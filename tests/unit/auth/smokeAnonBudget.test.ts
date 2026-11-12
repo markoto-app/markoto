@@ -26,7 +26,7 @@ describe('smoke suite anonymous-creation budget', () => {
     const creations = setup.match(/createAnonDoc\s*\(/g) ?? []
     expect(creations.length).toBeLessThanOrEqual(3)
     expect(creations.length).toBeLessThan(ANON_DOC_CREATE_LIMITS[0]?.max ?? 0)
-    const config = readFileSync(resolve(__dirname, '../../../playwright.smoke.config.ts'), 'utf8')
-    expect(config).toContain('globalSetup: \'./tests/smoke/globalSetup.ts\'')
+    const config = readFileSync(resolve(__dirname, '../../smoke/playwright.config.ts'), 'utf8')
+    expect(config).toContain('globalSetup: \'./globalSetup.ts\'')
   })
 })

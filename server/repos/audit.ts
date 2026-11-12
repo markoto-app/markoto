@@ -1,8 +1,9 @@
 import { and, desc, eq, gte, like, lt } from 'drizzle-orm'
 import * as Sentry from '@sentry/nuxt'
 import { auditLog, users } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { useDatabase } from '../db/client'
 import { useLogger } from '../utils/platform/logger'
+import { actorUserId as userIdOfActor, type AdminActor, type AnyProof, type SystemActor, type WorkspaceAccess } from './proofs'
 import type { AuditAction, AuditAfter, AuditBefore, AuditEventParts, AuditMetadata } from '../db/columnTypes'
 
 const log = useLogger('audit')
@@ -19,7 +20,13 @@ const log = useLogger('audit')
 export type AuditScope = 'doc' | 'workspace' | 'user' | 'billing' | 'system'
 
 export type AppendAuditEventArgs<A extends AuditAction = AuditAction> = {
-  actorUserId: number | null
+  /**
+   * Who acted: the proof (or actor) the action ran under. The stored
+   * `actor_user_id` is its user (signed-in user or admin); null for
+   * anonymous callers and named jobs. `null`: an unauthenticated caller
+   * that holds no proof (an anonymous abuse report).
+   */
+  by: AnyProof | null
   actorIp: string | null
   scope: AuditScope
   scopeId: string | null
@@ -123,7 +130,7 @@ export async function appendAuditEvent(args: AppendAuditEventArgs<AuditAction> &
   try {
     const db = useDatabase()
     await db.insert(auditLog).values({
-      actorUserId: args.actorUserId,
+      actorUserId: args.by ? userIdOfActor(args.by.actor) : null,
       actorIp: truncateIp(args.actorIp),
       scope: args.scope,
       scopeId: args.scopeId,
@@ -153,6 +160,7 @@ export async function appendAuditEvent(args: AppendAuditEventArgs<AuditAction> &
  * smallest `id` from the previous page to fetch older rows.
  */
 export async function getAuditEventsByScope(
+  _by: AdminActor | SystemActor,
   scope: AuditScope,
   scopeId: string,
   opts: { limit?: number, beforeId?: number } = {}
@@ -177,6 +185,7 @@ export async function getAuditEventsByScope(
  * sees every security-sensitive action that user has performed.
  */
 export async function getAuditEventsByActor(
+  _by: AdminActor | SystemActor,
   actorUserId: number,
   opts: { limit?: number, beforeId?: number } = {}
 ): Promise<AuditEventRow[]> {
@@ -220,7 +229,8 @@ export interface WorkspaceAuditQuery {
 }
 
 /** The workspace's audit events, newest first, with the actor's name. */
-export async function listWorkspaceAuditEvents(workspaceId: string, q: WorkspaceAuditQuery = {}): Promise<WorkspaceAuditRow[]> {
+export async function listWorkspaceAuditEvents(ws: WorkspaceAccess<'admin'>, q: WorkspaceAuditQuery = {}): Promise<WorkspaceAuditRow[]> {
+  const workspaceId = ws.workspaceId
   const limit = Math.min(Math.max(q.limit ?? 50, 1), 1000)
   const conditions = [eq(auditLog.workspaceId, workspaceId)]
   if (q.beforeId !== undefined) conditions.push(lt(auditLog.id, q.beforeId))
@@ -248,3 +258,14 @@ export async function listWorkspaceAuditEvents(workspaceId: string, q: Workspace
     .limit(limit)
   return rows
 }
+
+/**
+ * Retention: delete rows older than `cutoff`. The only delete of this
+ * append-only table, run by the named retention sweep. Returns how many.
+ */
+export async function deleteAuditEventsBefore(_by: SystemActor, cutoff: Date): Promise<number> {
+  return (await useDatabase().delete(auditLog).where(lt(auditLog.ts, cutoff)).returning({ id: auditLog.id })).length
+}
+
+/** The document snapshot audit rows keep (`before` of a deletion). */
+export type { AuditDocSnapshot } from '../db/columnTypes'

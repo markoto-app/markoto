@@ -15,15 +15,16 @@ export default defineApiHandler({
   access: allow.admin(),
   params: liftModerationRestrictionParams,
   body: liftModerationRestrictionBody,
-  handler: async ({ event, admin, params: { docId }, body }) => {
+  handler: async ({ event, adminActor, params: { docId }, body }) => {
     const note = typeof body?.note === 'string' ? body.note.trim() : ''
     if (note.length < 1 || note.length > NOTE_MAX) throw apiError('moderation/note-required', { max: NOTE_MAX })
-    const restriction = await getModerationRestriction(docId)
+    const doc = adminActor.doc(docId)
+    const restriction = await getModerationRestriction(doc)
     if (!restriction) throw apiError('moderation/not-restricted')
 
-    await setModerationRestriction(docId, null)
+    await setModerationRestriction(doc, null)
     await appendAuditEvent({
-      actorUserId: admin.userId,
+      by: adminActor,
       actorIp: getClientIp(event),
       scope: 'doc',
       scopeId: docId,

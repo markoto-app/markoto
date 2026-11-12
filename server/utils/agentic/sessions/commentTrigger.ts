@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import { getDoc } from '../../../repos/documents'
+import type { DocAccess, UserScope } from '../../../repos/proofs'
 import { buildKnowledgeBlock, buildWorkspaceMembersBlock } from '../workspacePromptBlocks'
 import { buildCommentTriggerBlock, resolveCommentTrigger, COMMENT_TRIGGER_SYSTEM_PROMPT } from '../commentTriggerPrompt'
 import { assemblePromptSystemPrompt } from '../promptAssembly'
@@ -28,17 +29,20 @@ const log = useLogger('ai-trigger')
 //      clients can render a per-thread "AI is working" indicator.
 
 export interface CommentTriggerRequest {
-  docId: string
+  /** The route's write proof for the document (`allow.doc('write-content')`). */
+  docAccess: DocAccess<'write'>
+  self: UserScope
   commentId: string
   replyId: string | null
   user: { id: number, name: string }
 }
 
 export async function startCommentTrigger(event: H3Event, request: CommentTriggerRequest): Promise<{ sessionId: string }> {
-  const { docId, commentId } = request
+  const { docAccess, self, commentId } = request
+  const docId = docAccess.docId
   const userId = request.user.id
 
-  const doc = await getDoc(docId)
+  const doc = await getDoc(docAccess)
   const wsCtx = await resolveSessionWorkspace(doc?.workspaceId ?? null, userId)
   const triggerCtx = await peekTriggerThread(docId, userId, commentId, request.replyId)
   // The thread is written by whoever commented: it goes into the USER
@@ -51,6 +55,7 @@ export async function startCommentTrigger(event: H3Event, request: CommentTrigge
   // highlight on the matching comment card.
   const session = await openAiSession(event, {
     docId,
+    docAccess,
     userId,
     userName: request.user.name,
     workspaceId: wsCtx.workspaceId,
@@ -61,6 +66,9 @@ export async function startCommentTrigger(event: H3Event, request: CommentTrigge
   void runAgentSession({
     docId,
     userId,
+    docAccess,
+    self,
+    workspace: wsCtx,
     session,
     systemPrompt,
     initialPrompt: wrappedSeedPrompt,

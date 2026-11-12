@@ -11,11 +11,11 @@ import { themeParams } from '~~/shared/api/brand'
 export default defineApiHandler({
   access: allow.user(),
   params: themeParams,
-  handler: async ({ user, params: { themeId } }) => {
-    const existing = await getThemeById(themeId, user.id)
+  handler: async ({ self, params: { themeId } }) => {
+    const existing = await getThemeById(self, themeId)
     if (!existing) throw apiError('resource/not-found')
 
-    await deleteTheme(themeId, user.id)
+    await deleteTheme(self, themeId)
     return { ok: true }
   }
 })

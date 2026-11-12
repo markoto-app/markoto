@@ -17,7 +17,7 @@ export default defineApiHandler({
   body: 'none',
   // Same budget as saving: both make the server call the provider.
   rateLimit: { namespace: 'ai-provider-save', max: 20, windowMs: 10 * MINUTE_MS, key: 'user', error: 'ai-provider/rate-limited' },
-  handler: async ({ user, params }) => {
+  handler: async ({ user, params, self }) => {
     const userId = user.id
     const { capability } = params
     const row = await getAiProvider(userId, capability)
@@ -26,7 +26,7 @@ export default defineApiHandler({
     const billing = await resolveBillingContext(userId, null)
     const result = await reverifyUserProvider(row, billing.virtualKey)
     if (result.ok) {
-      await markAiProviderVerified(userId, capability, { supportsTools: result.supportsTools, verifiedAt: new Date() })
+      await markAiProviderVerified(self, capability, { supportsTools: result.supportsTools, verifiedAt: new Date() })
     }
     return { ok: result.ok, code: result.code, message: result.message }
   }

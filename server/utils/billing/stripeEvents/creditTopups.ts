@@ -1,13 +1,16 @@
 import type Stripe from 'stripe'
 import * as Sentry from '@sentry/nuxt'
 import { stampFirstStripeCustomer } from '../../../repos/userBilling'
-import { useDatabase } from '../../platform/database'
 import type { PlanName } from '~~/shared/config/tiers'
 import { isCurrency, isTopupPackId, topupPack, TOPUP_VALIDITY_MONTHS } from '~~/shared/config/pricing'
 import { insertCreditGrant, refundCreditGrant, type CreditSubject } from '../../../repos/aiCreditGrants'
 import { recomputeCreditBudget } from '../aiCredits'
-import type { DbOrTx, DeferredAfterCommit } from './types'
+import type { TxHandle, DeferredAfterCommit } from './types'
 import { useLogger } from '../../platform/logger'
+import { system } from '../../../repos/proofs'
+
+/** Stripe's webhook writes billing state for whichever customer the event names. */
+const STRIPE = system('stripe-webhook')
 
 // AI credit top-ups: a paid (or delayed-paid) top-up Checkout grants
 // credit, a refund takes the refunded share back.
@@ -22,7 +25,7 @@ const log = useLogger('stripe-webhook')
  */
 export async function handleTopupCheckout(
   session: Stripe.Checkout.Session,
-  opts: { db?: DbOrTx, deferAfterCommit?: DeferredAfterCommit }
+  opts: { db?: TxHandle, deferAfterCommit?: DeferredAfterCommit }
 ): Promise<{ matched: number, plan: PlanName | null }> {
   const meta = session.metadata ?? {}
   const pack = meta.pack
@@ -39,11 +42,11 @@ export async function handleTopupCheckout(
   // Delayed methods (SEPA Direct Debit, …) complete the Checkout with
   // `unpaid`; the credit is granted on `checkout.session.async_payment_succeeded`.
   if (session.payment_status !== 'paid') return { matched: 0, plan: null }
-  const db = opts.db ?? useDatabase()
+  const db = opts.db
   const subject: CreditSubject = { type: subjectType, id: subjectId }
   const expiresAt = new Date()
   expiresAt.setUTCMonth(expiresAt.getUTCMonth() + TOPUP_VALIDITY_MONTHS)
-  const inserted = await insertCreditGrant({
+  const inserted = await insertCreditGrant(STRIPE, {
     subject,
     pack,
     amountUsd: topupPack(pack).creditUsd,
@@ -55,7 +58,7 @@ export async function handleTopupCheckout(
   }, db)
   const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null
   if (subjectType === 'user' && customerId) {
-    await stampFirstStripeCustomer(db, Number(subjectId), customerId, currency)
+    await stampFirstStripeCustomer(STRIPE, db, Number(subjectId), customerId, currency)
   }
   if (inserted) opts.deferAfterCommit?.push(() => recomputeCreditBudget(subject))
   return { matched: inserted ? 1 : 0, plan: null }
@@ -71,7 +74,7 @@ export async function handleTopupCheckout(
  */
 export async function handleCheckoutAsyncPaymentSucceeded(
   event: Stripe.CheckoutSessionAsyncPaymentSucceededEvent,
-  opts: { db?: DbOrTx, deferAfterCommit?: DeferredAfterCommit }
+  opts: { db?: TxHandle, deferAfterCommit?: DeferredAfterCommit }
 ): Promise<{ matched: number, plan: PlanName | null }> {
   const session = event.data.object
   if (session.mode !== 'payment') return { matched: 0, plan: null }
@@ -97,13 +100,13 @@ export function handleCheckoutAsyncPaymentFailed(event: Stripe.CheckoutSessionAs
  */
 export async function handleChargeRefunded(
   event: Stripe.ChargeRefundedEvent,
-  db?: DbOrTx,
+  db?: TxHandle,
   deferAfterCommit?: DeferredAfterCommit
 ): Promise<{ matched: number }> {
   const charge = event.data.object
   const paymentIntent = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id ?? null
   if (!paymentIntent || charge.amount <= 0) return { matched: 0 }
-  const subject = await refundCreditGrant(paymentIntent, charge.amount_refunded / charge.amount, db ?? useDatabase())
+  const subject = await refundCreditGrant(STRIPE, paymentIntent, charge.amount_refunded / charge.amount, db)
   if (!subject) return { matched: 0 }
   deferAfterCommit?.push(() => recomputeCreditBudget(subject))
   return { matched: 1 }

@@ -1,13 +1,11 @@
-import { eq } from 'drizzle-orm'
-import { users } from '../../db/schema'
-import { useDatabase } from '../platform/database'
+import { getUserPlanPeriod } from '../../repos/plans'
 import type { PlanName } from '~~/shared/config/tiers'
 import { ensureUserKey } from '../litellm/userKeys'
 import { isBillingEnabled } from './billingMode'
 import { getPooledWorkspace } from './workspaceBilling'
 import { ensureMemberKey } from '../litellm/workspaceTeams'
 import { resolveUserPlan } from './entitlements'
-import { getWorkspaceRole } from '../workspaces/workspaceAccess'
+import { getWorkspaceRole } from '../access/workspaceAccess'
 
 /**
  * Billing context resolution. Every AI call site calls
@@ -153,13 +151,7 @@ async function getUserPlan(userId: number): Promise<{
   planValidUntil: Date | null
   stripeCurrentPeriodStart: Date | null
 } | null> {
-  const db = useDatabase()
-  const rows = await db.select({
-    plan: users.plan,
-    planValidUntil: users.planValidUntil,
-    stripeCurrentPeriodStart: users.stripeCurrentPeriodStart
-  }).from(users).where(eq(users.id, userId)).limit(1)
-  const row = rows[0]
+  const row = await getUserPlanPeriod(userId)
   if (!row) return null
   return {
     plan: row.plan,

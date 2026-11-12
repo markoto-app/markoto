@@ -9,13 +9,13 @@ import { workspaceInviteParams } from '~~/shared/api/workspaces'
 export default defineApiHandler({
   access: allow.workspace('admin', { deny: 'workspace/admin-required' }),
   params: workspaceInviteParams,
-  handler: async ({ event, user, wsId, params }) => {
+  handler: async ({ event, wsId, params, workspaceAccess }) => {
     const inviteId = params.inviteId
-    const removed = await deleteWorkspaceInvite(wsId, inviteId)
+    const removed = await deleteWorkspaceInvite(workspaceAccess, inviteId)
     if (!removed) throw apiError('workspace/invite-not-found')
 
     await appendAuditEvent({
-      actorUserId: user.id,
+      by: workspaceAccess,
       actorIp: getClientIp(event),
       scope: 'workspace',
       scopeId: wsId,

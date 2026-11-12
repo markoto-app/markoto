@@ -21,14 +21,14 @@ export default defineApiHandler({
   plan: { feature: 'brandKit', message: BRAND_KIT_PLAN_MESSAGE },
   body: 'multipart',
   rateLimit: { namespace: 'brand-upload', max: 60, windowMs: HOUR_MS, key: ctx => ctx.wsId, error: 'brand/rate-limited' },
-  handler: async ({ event, user, wsId }) => {
+  handler: async ({ event, user, wsId, workspaceAccess }) => {
     const { bytes, fileName } = await readBrandUpload(event, BRAND_IMAGE_MAX_BYTES)
     const detected = await fileTypeFromBuffer(bytes)
     const format = detected ? BY_MIME[detected.mime] : undefined
     if (!format) {
       throw apiError('brand/image-type')
     }
-    if (await countBrandAssets(wsId, 'image') >= BRAND_IMAGES_PER_WORKSPACE) throw tooManyImages()
+    if (await countBrandAssets(workspaceAccess, 'image') >= BRAND_IMAGES_PER_WORKSPACE) throw tooManyImages()
     // Display name only (never part of a path or URL): the file name
     // without its extension, plain characters, ≤ 80.
     const name = fileName.replace(/\.[A-Za-z0-9]{1,5}$/, '').replace(/[^\p{L}\p{N} ._-]+/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Logo'
@@ -38,7 +38,7 @@ export default defineApiHandler({
     await putBrandObject(key, bytes, format)
     let inserted: 'inserted' | 'limit'
     try {
-      inserted = await insertBrandAsset({ id, workspaceId: wsId, kind: 'image', format, name, weight: null, style: null, sizeBytes: bytes.byteLength, s3Key: key, uploadedBy: user.id, licenceConfirmedAt: null }, BRAND_IMAGES_PER_WORKSPACE)
+      inserted = await insertBrandAsset(workspaceAccess, { id, kind: 'image', format, name, weight: null, style: null, sizeBytes: bytes.byteLength, s3Key: key, uploadedBy: user.id, licenceConfirmedAt: null }, BRAND_IMAGES_PER_WORKSPACE)
     } catch (e) {
       await deleteBrandObjects([key])
       throw e
@@ -48,7 +48,7 @@ export default defineApiHandler({
       throw tooManyImages()
     }
     await appendAuditEvent({
-      actorUserId: user.id,
+      by: workspaceAccess,
       actorIp: getClientIp(event),
       scope: 'workspace',
       scopeId: wsId,

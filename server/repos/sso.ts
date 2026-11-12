@@ -2,16 +2,13 @@ import { must } from '~~/shared/utils/must'
 import { and, eq, isNotNull, sql, type SQL } from 'drizzle-orm'
 import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 import { ssoConnections, ssoDomains, ssoGrants, userIdentities, users } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { asTxHandle, executor, useDatabase, type TxHandle } from '../db/client'
+import { proofUserId, type SystemActor, type WorkspaceAccess } from './proofs'
 import { DuplicateError, NotFoundError } from './errors'
 import { HOUR_MS } from '~~/shared/config/units'
 
 // Per-workspace single sign-on: connections, domains, identities
 // and the grants that let a member in while SSO is enforced.
-
-type Db = ReturnType<typeof useDatabase>
-type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
-type DbOrTx = Db | Tx
 
 export type SsoProtocol = 'oidc' | 'saml'
 export type SsoStatus = 'draft' | 'active'
@@ -54,11 +51,13 @@ const connectionColumns = {
   updatedAt: ssoConnections.updatedAt
 }
 
-export async function getSsoConnectionById(id: string, db: DbOrTx = useDatabase()): Promise<SsoConnectionRow | null> {
+export async function getSsoConnectionById(id: string, tx?: TxHandle): Promise<SsoConnectionRow | null> {
+  const db = executor(tx)
   return (await db.select(connectionColumns).from(ssoConnections).where(eq(ssoConnections.id, id)).limit(1))[0] ?? null
 }
 
-export async function getSsoConnectionForWorkspace(workspaceId: string, db: DbOrTx = useDatabase()): Promise<SsoConnectionRow | null> {
+export async function getSsoConnectionForWorkspace(workspaceId: string, tx?: TxHandle): Promise<SsoConnectionRow | null> {
+  const db = executor(tx)
   return (await db.select(connectionColumns).from(ssoConnections).where(eq(ssoConnections.workspaceId, workspaceId)).limit(1))[0] ?? null
 }
 
@@ -84,12 +83,14 @@ export interface SsoConnectionFields {
  * settings must pass a test sign-in before they are enforced, so a typo
  * can't lock the workspace out.
  */
-export async function upsertSsoConnection(args: {
+export async function upsertSsoConnection(ws: WorkspaceAccess<'admin'>, input: {
   id: string
-  workspaceId: string
-  createdByUserId: number
   fields: SsoConnectionFields
 }): Promise<{ connection: SsoConnectionRow, idpChanged: boolean }> {
+  // The workspace and the creating admin come from the proof.
+  const createdByUserId = proofUserId(ws)
+  if (createdByUserId === null) throw new Error('upsertSsoConnection: the connection is set up by a signed-in admin')
+  const args = { ...input, workspaceId: ws.workspaceId, createdByUserId }
   const db = useDatabase()
   return db.transaction(async (tx) => {
     const existing = (await tx.select(connectionColumns).from(ssoConnections)
@@ -112,7 +113,7 @@ export async function upsertSsoConnection(args: {
         defaultRole: f.defaultRole ?? 'editor',
         createdByUserId: args.createdByUserId
       })
-      return { connection: must(await getSsoConnectionById(args.id, tx), 'SSO connection just inserted'), idpChanged: true }
+      return { connection: must(await getSsoConnectionById(args.id, asTxHandle(tx)), 'SSO connection just inserted'), idpChanged: true }
     }
     const secretChanged = f.protocol === 'oidc' && f.oidcClientSecret !== undefined && f.oidcClientSecret !== existing.oidcClientSecret
     const idpChanged = secretChanged
@@ -133,17 +134,18 @@ export async function upsertSsoConnection(args: {
     if (idp.protocol !== existing.protocol || idp.oidcIssuer !== existing.oidcIssuer || idp.samlIdpEntityId !== existing.samlIdpEntityId) {
       await tx.delete(userIdentities).where(eq(userIdentities.connectionId, existing.id))
     }
-    return { connection: must(await getSsoConnectionById(existing.id, tx), 'SSO connection just updated'), idpChanged }
+    return { connection: must(await getSsoConnectionById(existing.id, asTxHandle(tx)), 'SSO connection just updated'), idpChanged }
   })
 }
 
-export async function activateSsoConnection(id: string): Promise<void> {
+export async function activateSsoConnection(_by: SystemActor, id: string): Promise<void> {
   await useDatabase().update(ssoConnections)
     .set({ status: 'active', activatedAt: new Date(), updatedAt: new Date() })
     .where(eq(ssoConnections.id, id))
 }
 
-export async function deleteSsoConnection(workspaceId: string): Promise<boolean> {
+export async function deleteSsoConnection(ws: WorkspaceAccess<'admin'>): Promise<boolean> {
+  const workspaceId = ws.workspaceId
   const db = useDatabase()
   return db.transaction(async (tx) => {
     const deleted = await tx.delete(ssoConnections).where(eq(ssoConnections.workspaceId, workspaceId)).returning({ id: ssoConnections.id })
@@ -152,8 +154,9 @@ export async function deleteSsoConnection(workspaceId: string): Promise<boolean>
   })
 }
 
-export async function setScimTokenHash(connectionId: string, hash: string | null): Promise<void> {
-  await useDatabase().update(ssoConnections).set({ scimTokenHash: hash, updatedAt: new Date() }).where(eq(ssoConnections.id, connectionId))
+export async function setScimTokenHash(ws: WorkspaceAccess<'admin'>, connectionId: string, hash: string | null): Promise<void> {
+  await useDatabase().update(ssoConnections).set({ scimTokenHash: hash, updatedAt: new Date() })
+    .where(and(eq(ssoConnections.id, connectionId), eq(ssoConnections.workspaceId, ws.workspaceId)))
 }
 
 export interface SsoDomainRow {
@@ -170,26 +173,29 @@ const domainColumns = {
   verifiedAt: ssoDomains.verifiedAt
 }
 
-export async function listSsoDomains(workspaceId: string): Promise<SsoDomainRow[]> {
+export async function listSsoDomains(ws: WorkspaceAccess<'admin'>): Promise<SsoDomainRow[]> {
+  const workspaceId = ws.workspaceId
   return useDatabase().select(domainColumns).from(ssoDomains)
     .where(eq(ssoDomains.workspaceId, workspaceId)).orderBy(ssoDomains.domain)
 }
 
-export async function addSsoDomain(workspaceId: string, domain: string, verificationToken: string): Promise<SsoDomainRow> {
-  const rows = await useDatabase().insert(ssoDomains).values({ workspaceId, domain, verificationToken })
+export async function addSsoDomain(ws: WorkspaceAccess<'admin'>, domain: string, verificationToken: string): Promise<SsoDomainRow> {
+  const rows = await useDatabase().insert(ssoDomains).values({ workspaceId: ws.workspaceId, domain, verificationToken })
     .onConflictDoNothing({ target: [ssoDomains.workspaceId, ssoDomains.domain] })
     .returning(domainColumns)
   if (!rows[0]) throw new DuplicateError('This domain is already listed for the workspace.')
   return rows[0]
 }
 
-export async function getSsoDomain(workspaceId: string, id: number): Promise<SsoDomainRow | null> {
+export async function getSsoDomain(ws: WorkspaceAccess<'admin'>, id: number): Promise<SsoDomainRow | null> {
+  const workspaceId = ws.workspaceId
   return (await useDatabase().select(domainColumns).from(ssoDomains)
     .where(and(eq(ssoDomains.workspaceId, workspaceId), eq(ssoDomains.id, id))).limit(1))[0] ?? null
 }
 
 /** Mark verified. DuplicateError when another workspace verified it first. */
-export async function markSsoDomainVerified(workspaceId: string, id: number): Promise<void> {
+export async function markSsoDomainVerified(ws: WorkspaceAccess<'admin'>, id: number): Promise<void> {
+  const workspaceId = ws.workspaceId
   try {
     const rows = await useDatabase().update(ssoDomains).set({ verifiedAt: new Date() })
       .where(and(eq(ssoDomains.workspaceId, workspaceId), eq(ssoDomains.id, id))).returning({ id: ssoDomains.id })
@@ -202,7 +208,8 @@ export async function markSsoDomainVerified(workspaceId: string, id: number): Pr
   }
 }
 
-export async function deleteSsoDomain(workspaceId: string, id: number): Promise<boolean> {
+export async function deleteSsoDomain(ws: WorkspaceAccess<'admin'>, id: number): Promise<boolean> {
+  const workspaceId = ws.workspaceId
   const rows = await useDatabase().delete(ssoDomains)
     .where(and(eq(ssoDomains.workspaceId, workspaceId), eq(ssoDomains.id, id))).returning({ id: ssoDomains.id })
   return rows.length > 0
@@ -214,11 +221,18 @@ export async function findVerifiedDomainOwner(domain: string): Promise<string | 
     .where(and(eq(ssoDomains.domain, domain), isNotNull(ssoDomains.verifiedAt))).limit(1))[0]?.workspaceId ?? null
 }
 
-export async function isDomainVerifiedForWorkspace(workspaceId: string, domain: string, db: DbOrTx = useDatabase()): Promise<boolean> {
+export async function isDomainVerifiedForWorkspace(workspaceId: string, domain: string, tx?: TxHandle): Promise<boolean> {
+  const db = executor(tx)
   const row = (await db.select({ id: ssoDomains.id }).from(ssoDomains)
     .where(and(eq(ssoDomains.workspaceId, workspaceId), eq(ssoDomains.domain, domain), isNotNull(ssoDomains.verifiedAt))).limit(1))[0]
   return row !== undefined
 }
+
+/**
+ * Who writes identities and grants: the SSO sign-in (`system('sso-login')`)
+ * or the workspace's SCIM client (its admin-level workspace proof).
+ */
+export type SsoActor = SystemActor | WorkspaceAccess<'admin'>
 
 export interface UserIdentityRow {
   id: number
@@ -236,12 +250,14 @@ const identityColumns = {
   active: userIdentities.active
 }
 
-export async function findIdentity(connectionId: string, subject: string, db: DbOrTx = useDatabase()): Promise<UserIdentityRow | null> {
+export async function findIdentity(connectionId: string, subject: string, tx?: TxHandle): Promise<UserIdentityRow | null> {
+  const db = executor(tx)
   return (await db.select(identityColumns).from(userIdentities)
     .where(and(eq(userIdentities.connectionId, connectionId), eq(userIdentities.subject, subject))).limit(1))[0] ?? null
 }
 
-export async function findIdentityForUser(connectionId: string, userId: number, db: DbOrTx = useDatabase()): Promise<UserIdentityRow | null> {
+export async function findIdentityForUser(connectionId: string, userId: number, tx?: TxHandle): Promise<UserIdentityRow | null> {
+  const db = executor(tx)
   return (await db.select(identityColumns).from(userIdentities)
     .where(and(eq(userIdentities.connectionId, connectionId), eq(userIdentities.userId, userId))).limit(1))[0] ?? null
 }
@@ -251,7 +267,8 @@ export async function findIdentityById(connectionId: string, id: number): Promis
     .where(and(eq(userIdentities.connectionId, connectionId), eq(userIdentities.id, id))).limit(1))[0] ?? null
 }
 
-export async function insertIdentity(args: { userId: number, connectionId: string, subject: string, scimExternalId?: string | null }, db: DbOrTx = useDatabase()): Promise<UserIdentityRow> {
+export async function insertIdentity(_by: SsoActor, args: { userId: number, connectionId: string, subject: string, scimExternalId?: string | null }, tx?: TxHandle): Promise<UserIdentityRow> {
+  const db = executor(tx)
   const rows = await db.insert(userIdentities).values({
     userId: args.userId,
     connectionId: args.connectionId,
@@ -262,28 +279,33 @@ export async function insertIdentity(args: { userId: number, connectionId: strin
   return rows[0]
 }
 
-export async function touchIdentityLogin(id: number, db: DbOrTx = useDatabase()): Promise<void> {
+export async function touchIdentityLogin(_by: SsoActor, id: number, tx?: TxHandle): Promise<void> {
+  const db = executor(tx)
   await db.update(userIdentities).set({ lastLoginAt: new Date() }).where(eq(userIdentities.id, id))
 }
 
-export async function setIdentityActive(id: number, active: boolean, db: DbOrTx = useDatabase()): Promise<void> {
+export async function setIdentityActive(_by: SsoActor, id: number, active: boolean, tx?: TxHandle): Promise<void> {
+  const db = executor(tx)
   await db.update(userIdentities).set({ active }).where(eq(userIdentities.id, id))
 }
 
-export async function setIdentityScimExternalId(id: number, externalId: string | null, db: DbOrTx = useDatabase()): Promise<void> {
+export async function setIdentityScimExternalId(_by: SsoActor, id: number, externalId: string | null, tx?: TxHandle): Promise<void> {
+  const db = executor(tx)
   await db.update(userIdentities).set({ scimExternalId: externalId }).where(eq(userIdentities.id, id))
 }
 
 /** How long a sign-in through the workspace's IdP lets the member in. */
 const SSO_GRANT_TTL_MS = 12 * HOUR_MS
 
-export async function writeSsoGrant(userId: number, workspaceId: string, sessionEpoch: number, now = new Date(), db: DbOrTx = useDatabase()): Promise<void> {
+export async function writeSsoGrant(_by: SsoActor, userId: number, workspaceId: string, sessionEpoch: number, now = new Date(), tx?: TxHandle): Promise<void> {
+  const db = executor(tx)
   const expiresAt = new Date(now.getTime() + SSO_GRANT_TTL_MS)
   await db.insert(ssoGrants).values({ userId, workspaceId, sessionEpoch, grantedAt: now, expiresAt })
     .onConflictDoUpdate({ target: [ssoGrants.userId, ssoGrants.workspaceId], set: { sessionEpoch, grantedAt: now, expiresAt } })
 }
 
-export async function deleteSsoGrant(userId: number, workspaceId: string, db: DbOrTx = useDatabase()): Promise<void> {
+export async function deleteSsoGrant(_by: SsoActor, userId: number, workspaceId: string, tx?: TxHandle): Promise<void> {
+  const db = executor(tx)
   await db.delete(ssoGrants).where(and(eq(ssoGrants.userId, userId), eq(ssoGrants.workspaceId, workspaceId)))
 }
 

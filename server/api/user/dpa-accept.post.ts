@@ -21,7 +21,7 @@ import { acceptDpaBody } from '~~/shared/api/account'
 export default defineApiHandler({
   access: allow.user(),
   body: acceptDpaBody,
-  handler: async ({ event, user, body }) => {
+  handler: async ({ event, user, body, self }) => {
     if (body.dpaVersion !== DPA_VERSION) {
       throw apiError('dpa/version-stale', { currentVersion: DPA_VERSION })
     }
@@ -37,7 +37,7 @@ export default defineApiHandler({
     const ip = getClientIp(event)
 
     await appendAuditEvent({
-      actorUserId: user.id,
+      by: self,
       actorIp: ip,
       scope: 'user',
       scopeId: String(user.id),

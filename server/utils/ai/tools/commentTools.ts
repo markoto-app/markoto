@@ -7,7 +7,7 @@ import type { DocToolContext } from '../../agentic/toolContext'
 import { readYComment, type YCommentFields } from '~~/shared/utils/documents/yComment'
 import { plainCommentText, stripAiMention } from '../../agentic/commentTriggerPrompt'
 import { AI_COMMENT_AUTHOR_NAME, isAiCommentAuthor } from '~~/shared/ai/author'
-import { canManageDoc } from '../../workspaces/workspaceAccess'
+import { canManageDoc } from '../../access/workspaceAccess'
 
 // Comments are the primary channel for AI <-> user communication; every comment
 // appears in the sidebar in real time (same as collaborator comments).

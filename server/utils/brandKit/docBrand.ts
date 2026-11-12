@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
-import { getWorkspace } from '../../repos/workspaces'
-import { brandFontsOf, listBrandAssets } from '../../repos/brandAssets'
+import { getWorkspaceOfDoc } from '../../repos/workspaces'
+import { brandFontsOf, listBrandAssetsForDoc } from '../../repos/brandAssets'
+import type { DocAccess } from '../../repos/proofs'
 import { brandKitAvailable } from './access'
 import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
 import type { BrandFont } from '~~/shared/config/brandKit'
@@ -27,10 +28,12 @@ export interface DocBrand {
 
 const NONE: DocBrand = { fonts: [], lockedTheme: null, fingerprint: null }
 
-export async function resolveDocBrand(workspaceId: string | null): Promise<DocBrand> {
-  if (!workspaceId) return NONE
-  const [workspace, assets] = await Promise.all([getWorkspace(workspaceId), listBrandAssets(workspaceId)])
+/** The brand kit of the document's workspace (none outside a workspace, or without a readable document). */
+export async function resolveDocBrand(doc: DocAccess<'view'> | null): Promise<DocBrand> {
+  if (!doc) return NONE
+  const [workspace, assets] = await Promise.all([getWorkspaceOfDoc(doc), listBrandAssetsForDoc(doc)])
   if (!workspace) return NONE
+  const workspaceId = workspace.workspaceId
   const fonts = brandFontsOf(assets)
   // Logos count too: deleting one a document's own theme still points at
   // must re-render its cached PDF without it.
@@ -45,7 +48,7 @@ export async function resolveDocBrand(workspaceId: string | null): Promise<DocBr
 }
 
 /** The client shape (token + meta endpoints). */
-export async function docBrandForClient(workspaceId: string | null): Promise<{ fonts: BrandFont[], lockedTheme: DocTheme | null }> {
-  const brand = await resolveDocBrand(workspaceId)
+export async function docBrandForClient(doc: DocAccess<'view'> | null): Promise<{ fonts: BrandFont[], lockedTheme: DocTheme | null }> {
+  const brand = await resolveDocBrand(doc)
   return { fonts: brand.fonts, lockedTheme: brand.lockedTheme }
 }

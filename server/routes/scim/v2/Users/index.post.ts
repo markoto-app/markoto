@@ -7,10 +7,10 @@ import { scimResourceBody } from '~~/shared/api/sso'
 export default defineApiHandler({
   access: allow.scim(),
   body: scimResourceBody,
-  handler: async ({ event, connection, body }) => {
+  handler: async ({ event, connection, body, workspaceAccess }) => {
     const { identity, created } = await createScimUser(connection, body)
-    await appendAuditEvent({ actorUserId: null, actorIp: getClientIp(event), scope: 'workspace', scopeId: connection.workspaceId, action: AUDIT_SSO_SCIM_USER_CREATED, metadata: { affectedUserId: identity.userId, accountCreated: created, active: identity.active } })
+    await appendAuditEvent({ by: workspaceAccess, actorIp: getClientIp(event), scope: 'workspace', scopeId: connection.workspaceId, action: AUDIT_SSO_SCIM_USER_CREATED, metadata: { affectedUserId: identity.userId, accountCreated: created, active: identity.active } })
     setResponseStatus(event, 201)
-    return scimUserResource(event, await requireScimUser(connection.id, identity.id))
+    return scimUserResource(event, await requireScimUser(connection, identity.id))
   }
 })

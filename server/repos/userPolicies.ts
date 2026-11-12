@@ -1,6 +1,6 @@
 import { eq, sql } from 'drizzle-orm'
 import { users } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { useDatabase } from '../db/client'
 
 // Policy acceptance on the user row (onboarding: age + Privacy + ToS; the
 // DPA for workspace owners) and the account-status read of the privacy

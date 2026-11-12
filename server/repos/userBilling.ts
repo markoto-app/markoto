@@ -1,16 +1,13 @@
 import { and, eq, isNull, lt, or } from 'drizzle-orm'
 import { users } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { executor, useDatabase, type TxHandle } from '../db/client'
 import type { PersonalPlanName } from '~~/shared/config/tiers'
 import type { Currency } from '~~/shared/config/pricing'
+import type { SystemActor, UserScope } from './proofs'
 
 // The personal plan + Stripe columns of `users`. Written by the Stripe
 // webhook (inside its per-event transaction: pass its `db`) and read by the
 // Pro checkout.
-
-type Db = ReturnType<typeof useDatabase>
-type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
-type DbOrTx = Db | Tx
 
 export interface UserBillingUpdate {
   where: { stripeCustomerId: string } | { id: number }
@@ -29,19 +26,19 @@ export interface UserBillingUpdate {
  * the number of rows matched (0 when the customer id doesn't map to a
  * user — logged but not fatal).
  */
-export async function updateUserBilling(opts: UserBillingUpdate, db?: DbOrTx): Promise<number> {
-  const handle = db ?? useDatabase()
+export async function updateUserBilling(_by: SystemActor, opts: UserBillingUpdate, tx?: TxHandle): Promise<number> {
+  const db = executor(tx)
   const where = 'id' in opts.where
     ? eq(users.id, opts.where.id)
     : eq(users.stripeCustomerId, opts.where.stripeCustomerId)
-  const result = await handle.update(users).set(opts.set).where(where).returning({ id: users.id })
+  const result = await db.update(users).set(opts.set).where(where).returning({ id: users.id })
   return result.length
 }
 
 /** Resolve `users.id` from a Stripe customer id (null if none). */
-export async function findUserIdByStripeCustomer(customerId: string, db?: DbOrTx): Promise<number | null> {
-  const conn = db ?? useDatabase()
-  const rows = await conn.select({ id: users.id })
+export async function findUserIdByStripeCustomer(_by: SystemActor, customerId: string, tx?: TxHandle): Promise<number | null> {
+  const db = executor(tx)
+  const rows = await db.select({ id: users.id })
     .from(users)
     .where(eq(users.stripeCustomerId, customerId))
     .limit(1)
@@ -52,14 +49,16 @@ export async function findUserIdByStripeCustomer(customerId: string, db?: DbOrTx
  * Apply a subscription's state to the user whose CURRENT subscription it is
  * (customer + subscription id both match). Returns the rows matched.
  */
-export async function applyUserSubscriptionState(db: DbOrTx, customerId: string, subscriptionId: string, set: UserBillingUpdate['set']): Promise<number> {
+export async function applyUserSubscriptionState(_by: SystemActor, tx: TxHandle | undefined, customerId: string, subscriptionId: string, set: UserBillingUpdate['set']): Promise<number> {
+  const db = executor(tx)
   return (await db.update(users).set(set)
     .where(and(eq(users.stripeCustomerId, customerId), eq(users.stripeSubscriptionId, subscriptionId)))
     .returning({ id: users.id })).length
 }
 
 /** Move the user's period anchors forward to `period` (never back). Returns the rows matched. */
-export async function advanceUserBillingPeriod(db: DbOrTx, customerId: string, subscriptionId: string, period: { start: Date, end: Date }): Promise<number> {
+export async function advanceUserBillingPeriod(_by: SystemActor, tx: TxHandle | undefined, customerId: string, subscriptionId: string, period: { start: Date, end: Date }): Promise<number> {
+  const db = executor(tx)
   const result = await db.update(users)
     .set({ stripeCurrentPeriodStart: period.start, planValidUntil: period.end })
     .where(and(
@@ -72,7 +71,8 @@ export async function advanceUserBillingPeriod(db: DbOrTx, customerId: string, s
 }
 
 /** A personal buyer's first Stripe customer id (and its currency); an existing one is kept. */
-export async function stampFirstStripeCustomer(db: DbOrTx, userId: number, customerId: string, currency: Currency): Promise<void> {
+export async function stampFirstStripeCustomer(_by: SystemActor, tx: TxHandle | undefined, userId: number, customerId: string, currency: Currency): Promise<void> {
+  const db = executor(tx)
   await db.update(users)
     .set({ stripeCustomerId: customerId, billingCurrency: currency })
     .where(and(eq(users.id, userId), isNull(users.stripeCustomerId)))
@@ -93,4 +93,20 @@ export async function getUserCheckoutBilling(userId: number): Promise<{
     billingCurrency: users.billingCurrency
   }).from(users).where(eq(users.id, userId)).limit(1)
   return rows[0] ?? null
+}
+
+/** The Stripe customer of the user's own billing (portal). */
+export async function getOwnStripeCustomerId(self: UserScope): Promise<string | null> {
+  return (await useDatabase().select({ stripeCustomerId: users.stripeCustomerId }).from(users).where(eq(users.id, self.userId)).limit(1))[0]?.stripeCustomerId ?? null
+}
+
+/** What a personal credit top-up checks about the buyer. */
+export async function getOwnTopupFacts(self: UserScope) {
+  return (await useDatabase().select({
+    email: users.email,
+    plan: users.plan,
+    planValidUntil: users.planValidUntil,
+    stripeCustomerId: users.stripeCustomerId,
+    billingCurrency: users.billingCurrency
+  }).from(users).where(eq(users.id, self.userId)).limit(1))[0] ?? null
 }

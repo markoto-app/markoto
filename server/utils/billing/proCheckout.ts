@@ -13,6 +13,7 @@ import { requestBaseUrl } from './workspaceStripe'
 import { checkoutTaxFields } from './checkoutSession'
 import { useEnv } from '~~/shared/env/load'
 import { useLogger } from '../platform/logger'
+import type { UserScope } from '../../repos/proofs'
 
 const log = useLogger('billing')
 
@@ -28,7 +29,8 @@ const log = useLogger('billing')
 // pre-fills the form.
 
 export interface ProCheckoutRequest {
-  userId: number
+  /** The buyer, acting for themselves. */
+  self: UserScope
   interval: BillingInterval
   currency: Currency | undefined
   /** The request body: carries the paid-terms acceptance (`requirePaidTermsAccepted`). */
@@ -42,7 +44,8 @@ function customerOrEmailFields(stripeCustomerId: string | null, email: string | 
 }
 
 export async function startProCheckout(event: H3Event, request: ProCheckoutRequest): Promise<PlanCheckoutResponse<'pro'>> {
-  const { userId, interval } = request
+  const { self, interval } = request
+  const userId = self.userId
   const plan = 'pro'
   const stripe = useStripeClient()
   if (!stripe) throw apiError('billing/not-configured')
@@ -73,7 +76,7 @@ export async function startProCheckout(event: H3Event, request: ProCheckoutReque
     await changeProPriceInPlace(stripe, liveSub, priceId, userId)
     // The webhook is the source of truth for users.plan; the client may briefly
     // read the old plan until it lands.
-    await recordPaidTermsAcceptance(event, userId, { kind: 'plan', subject: { type: 'user', id: String(userId) }, item: `${plan}_${interval}` })
+    await recordPaidTermsAcceptance(event, self, { kind: 'plan', subject: { type: 'user', id: String(userId) }, item: `${plan}_${interval}` })
     return { updated: true, plan }
   }
 
@@ -93,7 +96,7 @@ export async function startProCheckout(event: H3Event, request: ProCheckoutReque
     if (!checkoutSession.url) {
       throw apiError('billing/checkout-failed')
     }
-    await recordPaidTermsAcceptance(event, userId, { kind: 'plan', subject: { type: 'user', id: String(userId) }, item: `${plan}_${interval}` })
+    await recordPaidTermsAcceptance(event, self, { kind: 'plan', subject: { type: 'user', id: String(userId) }, item: `${plan}_${interval}` })
     return { url: checkoutSession.url, sessionId: checkoutSession.id }
   } catch (e) {
     log.error('checkout session creation failed', { userId, err: e })

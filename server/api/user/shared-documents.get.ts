@@ -5,8 +5,8 @@ import { listSharedWithUser } from '../../repos/documentShares'
 // dashboard lists them under "Shared with you".
 export default defineApiHandler({
   access: allow.user(),
-  handler: async ({ user }) => {
-    const rows = await listSharedWithUser(user.id)
+  handler: async ({ self }) => {
+    const rows = await listSharedWithUser(self)
     return rows.map(r => ({
       docId: r.docId,
       title: r.title,

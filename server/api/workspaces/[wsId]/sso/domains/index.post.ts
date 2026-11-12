@@ -16,13 +16,13 @@ export default defineApiHandler({
   body: addSsoDomainBody,
   invalidCode: 'sso/invalid-domain',
   plan: { feature: 'sso', message: 'Single sign-on is part of the Business plan.' },
-  handler: async ({ event, user, wsId, body }) => {
+  handler: async ({ event, wsId, body, workspaceAccess }) => {
     const domain = normalizeSsoDomain(body.domain)
     if (!domain) throw apiError('sso/invalid-domain', { field: 'domain' })
-    if ((await listSsoDomains(wsId)).length >= MAX_DOMAINS) throw apiError('sso/domain-cap', { max: MAX_DOMAINS })
+    if ((await listSsoDomains(workspaceAccess)).length >= MAX_DOMAINS) throw apiError('sso/domain-cap', { max: MAX_DOMAINS })
     try {
-      const row = await addSsoDomain(wsId, domain, newDomainVerificationToken())
-      await appendAuditEvent({ actorUserId: user.id, actorIp: getClientIp(event), scope: 'workspace', scopeId: wsId, action: AUDIT_SSO_DOMAIN_ADDED, metadata: { domain } })
+      const row = await addSsoDomain(workspaceAccess, domain, newDomainVerificationToken())
+      await appendAuditEvent({ by: workspaceAccess, actorIp: getClientIp(event), scope: 'workspace', scopeId: wsId, action: AUDIT_SSO_DOMAIN_ADDED, metadata: { domain } })
       return domainView(row)
     } catch (e) {
       if (e instanceof DuplicateError) throw apiError('sso/domain-exists', undefined, { cause: e })

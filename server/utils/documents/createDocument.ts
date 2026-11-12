@@ -7,7 +7,8 @@ import { createError } from 'h3'
 import { createDoc, type CreateDocInput } from '../../repos/documents'
 import { getWorkspace } from '../../repos/workspaces'
 import { getThemeById } from '../../repos/themes'
-import { getWorkspaceRole } from '../workspaces/workspaceAccess'
+import { proveWorkspaceAccess } from '../access/workspaceAccess'
+import type { UserScope, WorkspaceAccess } from '../../repos/proofs'
 import { isAudienceKind, type AudienceKind } from '~~/shared/audiences'
 import { LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
 import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
@@ -18,6 +19,7 @@ import { themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
 import { DOC_DESCRIPTION_MAX_LENGTH, DOC_TITLE_MAX_LENGTH, INITIAL_CONTENT_MAX_LENGTH } from '~~/shared/config/docCreate'
 import { seedDocContent } from './seedDocContent'
 import { apiError } from '../api/apiError'
+import { proveNewDoc } from '../access/docProof'
 
 // Document creation, shared by `POST /api/docs` and the `handleCreateDocument`
 // AI-tool handler (in-app loop + MCP) so both apply the same validation
@@ -28,9 +30,9 @@ import { apiError } from '../api/apiError'
 // real userId, so only the HTTP endpoint can take the anonymous branch.
 
 export interface CreateDocumentParams {
-  /** Real human user id, or null for anonymous creation. Tool handlers
-   *  ALWAYS pass a non-null id (initiatorUserId from the ToolContext). */
-  ownerId: number | null
+  /** The creating user acting for themselves, or null for anonymous
+   *  creation. Tool handlers ALWAYS pass the initiator (`ctx.self`). */
+  owner: UserScope | null
   /** Free-form title, ≤255 chars after trimming. Falls back to the
    *  default 'Untitled' when omitted or empty. */
   title?: string
@@ -89,13 +91,12 @@ export interface CreateDocumentResult {
  */
 export async function createDocument(input: CreateDocumentParams): Promise<CreateDocumentResult> {
   const docId = nanoid(10)
-  const workspaceId = await resolveWorkspace(input.workspaceId, input.ownerId)
+  const ownerId = input.owner?.userId ?? null
+  const workspace = await resolveWorkspace(input.workspaceId, input.owner)
 
-  const create: CreateDocInput = {
+  const create: Omit<CreateDocInput, 'ownerId' | 'workspaceId'> = {
     docId,
-    ownerId: input.ownerId,
-    workspaceId,
-    accessMode: input.ownerId == null ? 'open-edit' : 'private'
+    accessMode: ownerId == null ? 'open-edit' : 'private'
   }
 
   const language = applyDocumentProperties(create, input)
@@ -106,7 +107,7 @@ export async function createDocument(input: CreateDocumentParams): Promise<Creat
 
   const content = parseContent(input.content, input.templateId)
 
-  const resolved = await resolveTheme(input, input.ownerId, workspaceId, template)
+  const resolved = await resolveTheme(input, input.owner, workspace, template)
   if (resolved !== null) {
     // The template's own design gets the template's cover placeholders
     // (authors, affiliations, subtitle), in the document's language.
@@ -116,15 +117,16 @@ export async function createDocument(input: CreateDocumentParams): Promise<Creat
     create.theme = withCustomCssForNewDoc(theme, docId)
   }
 
-  if (input.ownerId == null) applyAnonymousCreator(create, input)
+  if (ownerId == null) applyAnonymousCreator(create, input)
 
-  await createDoc(create)
-  if (content !== null) await seedDocContent(docId, content)
+  await createDoc(input.owner, workspace, create)
+  // Just created: its creator holds every right on it.
+  if (content !== null) await seedDocContent(proveNewDoc(input.owner, docId), content)
   return { docId, url: `/d/${docId}` }
 }
 
 /** Title, description, audience and language of the new row (each validated); returns the language. */
-function applyDocumentProperties(create: CreateDocInput, input: CreateDocumentParams): string | null {
+function applyDocumentProperties(create: Omit<CreateDocInput, 'ownerId' | 'workspaceId'>, input: CreateDocumentParams): string | null {
   const title = parseTitle(input.title)
   if (title !== null) create.title = title
 
@@ -152,7 +154,7 @@ function resolveTemplate(templateId: string): TemplateMeta {
 }
 
 /** An anonymous document: the creating browser's key (it alone may delete it) and the accepted terms. */
-function applyAnonymousCreator(create: CreateDocInput, input: CreateDocumentParams): void {
+function applyAnonymousCreator(create: Omit<CreateDocInput, 'ownerId' | 'workspaceId'>, input: CreateDocumentParams): void {
   if (input.anonCreatorKeyHash !== undefined) {
     create.anonCreatorKeyHash = input.anonCreatorKeyHash
   }
@@ -175,19 +177,19 @@ function withCustomCssForNewDoc(theme: DocTheme, docId: string): DocTheme {
   return adapted.dropped.length === 0 ? images : { ...images, customCss: adapted.css }
 }
 
-async function resolveWorkspace(raw: string | null | undefined, ownerId: number | null): Promise<string | null> {
+async function resolveWorkspace(raw: string | null | undefined, owner: UserScope | null): Promise<WorkspaceAccess<'editor'> | null> {
   if (raw === undefined || raw === null || raw.length === 0) return null
-  if (ownerId == null) {
+  if (owner == null) {
     throw createError({ statusCode: 401, message: 'Login required to use workspaces' })
   }
-  const role = await getWorkspaceRole(ownerId, raw)
-  if (role === null) {
+  const member = await proveWorkspaceAccess(owner.userId, raw, 'member')
+  if (member === null) {
     throw createError({ statusCode: 403, message: 'Not a member of this workspace' })
   }
-  if (role === 'viewer') {
+  if (!member.allows('editor')) {
     throw createError({ statusCode: 403, message: 'Viewers cannot create documents' })
   }
-  return raw
+  return member
 }
 
 function parseTitle(raw: string | undefined): string | null {
@@ -250,18 +252,18 @@ interface ResolvedTheme {
 
 async function resolveTheme(
   input: CreateDocumentParams,
-  ownerId: number | null,
-  workspaceId: string | null,
+  owner: UserScope | null,
+  workspace: WorkspaceAccess<'member'> | null,
   template: TemplateMeta | null
 ): Promise<ResolvedTheme | null> {
   if (input.themeId !== undefined && input.themePreset !== undefined) {
     throw createError({ statusCode: 400, message: 'Pass themeId OR themePreset, not both' })
   }
   if (input.themeId !== undefined) {
-    if (ownerId == null) {
+    if (owner == null) {
       throw createError({ statusCode: 401, message: 'Login required to use saved themes' })
     }
-    const saved = await getThemeById(input.themeId, ownerId)
+    const saved = await getThemeById(owner, input.themeId)
     if (!saved) {
       throw createError({ statusCode: 404, message: 'Saved theme not found' })
     }
@@ -276,8 +278,8 @@ async function resolveTheme(
   }
   const design = template?.design ? THEME_PRESETS.find(p => p.id === template.design) : undefined
   if (design) return { theme: design.theme, preset: design.id }
-  if (workspaceId !== null) {
-    const ws = await getWorkspace(workspaceId)
+  if (workspace !== null) {
+    const ws = await getWorkspace(workspace)
     return ws?.defaultTheme ? { theme: ws.defaultTheme, preset: null } : null
   }
   return null

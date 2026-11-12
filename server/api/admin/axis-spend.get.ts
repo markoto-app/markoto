@@ -1,5 +1,4 @@
-import { Pool } from 'pg'
-import { litellmDbUrl } from '../../utils/litellm/litellmDb'
+import { spendByFeatureForTag } from '../../repos/litellmSpend'
 import { ALL_FEATURE_TAGS, type FeatureTag } from '../../utils/litellm/featureTags'
 import { DAY_MS } from '~~/shared/config/units'
 import { axisSpendQuery } from '~~/shared/api/legal'
@@ -8,29 +7,8 @@ import { axisSpendQuery } from '~~/shared/api/legal'
 // doc); drives the operator dashboard's drill-down.
 //
 // `/spend/tags` has per-tag totals but no cross-tabs, so this queries
-// `LiteLLM_SpendLogs` directly with a JSONB filter on `request_tags`. Read-only
-// SELECTs need no write coordination with the proxy (same pattern as
-// `spendLogsSweep.ts`). Bounded by the date window to avoid all-time scans.
-
-let cachedPool: Pool | null = null
-
-function pool(): Pool {
-  if (cachedPool) return cachedPool
-  cachedPool = new Pool({
-    connectionString: litellmDbUrl(),
-    max: 2,
-    connectionTimeoutMillis: 5000,
-    idleTimeoutMillis: 5000
-  })
-  return cachedPool
-}
-
-export function _resetAxisSpendPool(): void {
-  if (cachedPool) {
-    void cachedPool.end()
-    cachedPool = null
-  }
-}
+// `LiteLLM_SpendLogs` directly (`repos/litellmSpend.ts`) with a JSONB filter
+// on `request_tags`, bounded by the date window.
 
 function defaultRange(): { from: string, to: string } {
   const today = new Date()
@@ -44,7 +22,7 @@ function defaultRange(): { from: string, to: string } {
 export default defineApiHandler({
   access: allow.admin(),
   query: axisSpendQuery,
-  handler: async ({ query }) => {
+  handler: async ({ query, adminActor }) => {
     const opts = {
       axis: query.axis,
       value: query.value,
@@ -53,38 +31,11 @@ export default defineApiHandler({
     }
     const filterTag = `${opts.axis}:${opts.value}`
 
-    // Sum spend per feature tag co-occurring with the axis tag (`?` tests JSONB
-    // array element equality). The `startTime` filter bounds the scan.
-    type Row = { feature_tag: string, spend: string, requests: string, total_tokens: string }
-    const rows = await pool().query<Row>(
-      `
-      WITH matched AS (
-        SELECT spend, total_tokens, request_tags AS tags
-        FROM "LiteLLM_SpendLogs"
-        WHERE "startTime" >= $2::timestamp
-          AND "startTime" < ($3::date + INTERVAL '1 day')
-          AND request_tags ? $1
-      ),
-      feature_rows AS (
-        -- Unnest the tags array; keep only feature-prefixed entries
-        -- so we filter out the sibling axes (workspace, user, doc).
-        SELECT jsonb_array_elements_text(tags) AS feature_tag, spend, total_tokens
-        FROM matched
-      )
-      SELECT
-        feature_tag,
-        SUM(spend)::float8 AS spend,
-        COUNT(*)::bigint AS requests,
-        SUM(total_tokens)::bigint AS total_tokens
-      FROM feature_rows
-      WHERE feature_tag LIKE 'feature:%'
-      GROUP BY feature_tag
-      `,
-      [filterTag, opts.from, opts.to]
-    )
+    // Spend per feature tag co-occurring with the axis tag.
+    const rows = await spendByFeatureForTag(adminActor, filterTag, opts.from, opts.to)
 
     const byTag = new Map<string, { spend: number, requests: number, totalTokens: number }>()
-    for (const r of rows.rows) {
+    for (const r of rows) {
       byTag.set(r.feature_tag, {
         spend: Number(r.spend ?? 0),
         requests: Number(r.requests ?? 0),

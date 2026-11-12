@@ -1,16 +1,10 @@
 import type Stripe from 'stripe'
-import type { useDatabase } from '../../platform/database'
+import type { TxHandle } from '../../../repos/transaction'
 
-// Drizzle's node-postgres transaction handle — same shape as the
-// top-level `db` for our usage but typed distinctly. We accept either
-// for handler reuse: the dispatcher wraps the whole event in a single
-// transaction so the dedup INSERT and the user UPDATE commit together.
-//
-// `DbOrTx` is whatever drizzle accepts for chained query builders: the
-// pool-backed result of `useDatabase()` OR a `tx` argument inside
-// `db.transaction(async tx => ...)`. They share the chained-builder
-// surface we need; we don't actually narrow further.
-export type DbOrTx = ReturnType<typeof useDatabase> | Parameters<Parameters<ReturnType<typeof useDatabase>['transaction']>[0]>[0]
+// The dispatcher wraps the whole event in one transaction (`withTransaction`)
+// so the dedup INSERT and the billing UPDATEs commit together; handlers pass
+// its opaque handle on to the repo functions.
+export type { TxHandle }
 
 // Handlers queue side-effects that must run AFTER the
 // surrounding transaction commits — primarily LiteLLM virtual-key
@@ -24,6 +18,6 @@ export type DeferredAfterCommit = (() => Promise<void>)[]
 /** What every event handler runs with: the SDK client, the event's transaction, the after-commit queue. */
 export interface StripeHandlerOptions {
   stripe: Stripe
-  db: DbOrTx
+  db?: TxHandle
   deferAfterCommit?: DeferredAfterCommit
 }

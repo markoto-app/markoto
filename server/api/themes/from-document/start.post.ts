@@ -35,7 +35,7 @@ const LOCK_TTL_MS = 7 * MINUTE_MS
 export default defineApiHandler({
   access: allow.user(),
   body: designImportStartBody,
-  handler: async ({ event, user, body: { uploadId } }) => {
+  handler: async ({ event, user, body: { uploadId }, self }) => {
     const userId = user.id
     const pending = await claimPendingDesignUpload(userId, uploadId)
     if (!pending) throw apiError('design-import/upload-not-found')
@@ -76,7 +76,7 @@ export default defineApiHandler({
       }
 
       await appendAuditEvent({
-        actorUserId: userId,
+        by: self,
         actorIp: truncateIp(getClientIp(event)),
         scope: 'user',
         scopeId: String(userId),

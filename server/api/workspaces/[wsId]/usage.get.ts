@@ -1,5 +1,4 @@
-import { sql } from 'drizzle-orm'
-import { useDatabase } from '../../../utils/platform/database'
+import { listWorkspaceUsage } from '../../../repos/workspaceUsage'
 import { openMemberKey, readMemberKeySpend } from '../../../utils/litellm/workspaceTeams'
 import { getPooledWorkspace } from '../../../utils/billing/workspaceBilling'
 
@@ -11,51 +10,28 @@ import { getPooledWorkspace } from '../../../utils/billing/workspaceBilling'
 // their own budget). No activity times: this is usage, not monitoring.
 export default defineApiHandler({
   access: allow.workspace('admin', { deny: 'usage/admin-required' }),
-  handler: async ({ event, wsId }) => {
-    const rows = (await useDatabase().execute<{
-      user_id: number
-      name: string
-      role: string
-      key_token: string | null
-      docs: number
-      shared_docs: number
-      knowledge_files: number
-      knowledge_bytes: number
-      image_bytes: number
-    }>(sql`
-      select wm.user_id, u.name, wm.role, wm.litellm_key_token as key_token,
-        (select count(*)::int from documents d where d.workspace_id = ${wsId} and d.owner_id = wm.user_id) as docs,
-        (select count(*)::int from document_shares s join documents d on d.doc_id = s.doc_id
-          where d.workspace_id = ${wsId} and s.user_id = wm.user_id) as shared_docs,
-        (select count(*)::int from workspace_knowledge k where k.workspace_id = ${wsId} and k.uploader_id = wm.user_id) as knowledge_files,
-        (select coalesce(sum(k.size_bytes), 0)::float8 from workspace_knowledge k where k.workspace_id = ${wsId} and k.uploader_id = wm.user_id) as knowledge_bytes,
-        (select coalesce(sum(up.size_bytes), 0)::float8 from uploads up join documents d on d.doc_id = up.doc_id
-          where d.workspace_id = ${wsId} and up.uploader_id = wm.user_id) as image_bytes
-      from workspace_members wm
-      join users u on u.id = wm.user_id
-      where wm.workspace_id = ${wsId}
-      order by case wm.role when 'admin' then 0 when 'editor' then 1 when 'viewer' then 2 else 3 end, wm.joined_at
-    `)).rows
+  handler: async ({ event, wsId, workspaceAccess }) => {
+    const rows = await listWorkspaceUsage(workspaceAccess)
 
     const pooled = await getPooledWorkspace(wsId)
     const members = await Promise.all(rows.map(async (r) => {
       let aiSpendUsd: number | null = null
       if (pooled && r.role !== 'guest') {
         try {
-          aiSpendUsd = r.key_token ? (await readMemberKeySpend(openMemberKey(wsId, Number(r.user_id), r.key_token)))?.spend ?? 0 : 0
+          aiSpendUsd = r.keyToken ? (await readMemberKeySpend(openMemberKey(wsId, r.userId, r.keyToken)))?.spend ?? 0 : 0
         } catch {
           aiSpendUsd = null
         }
       }
       return {
-        userId: Number(r.user_id),
+        userId: r.userId,
         name: r.name,
         role: r.role,
-        documents: Number(r.docs),
-        sharedDocuments: Number(r.shared_docs),
-        knowledgeFiles: Number(r.knowledge_files),
-        knowledgeBytes: Number(r.knowledge_bytes),
-        imageBytes: Number(r.image_bytes),
+        documents: r.docs,
+        sharedDocuments: r.sharedDocs,
+        knowledgeFiles: r.knowledgeFiles,
+        knowledgeBytes: r.knowledgeBytes,
+        imageBytes: r.imageBytes,
         aiSpendUsd
       }
     }))

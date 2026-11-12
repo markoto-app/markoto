@@ -1,6 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm'
-import { consentLog } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { latestConsentDecision } from '../repos/consent'
 import { CONSENT_VERSION } from '~~/shared/legal/versions'
 import { ensureAnonId } from '../utils/auth/anonId'
 import { CONSENT_PURPOSES, OPTIONAL_CONSENT_PURPOSES, type ConsentPurpose } from '../utils/privacy/consentDecisions'
@@ -21,24 +19,12 @@ interface PurposeState {
 
 export default defineApiHandler({
   access: allow.public('Visitors read their own consent state, keyed on their account or their first-party anonymous cookie', { session: 'optional' }),
-  handler: async ({ event, user }) => {
-    const userId = user?.id ?? null
+  handler: async ({ event, self }) => {
     const anonId = await ensureAnonId(event)
-
-    const db = useDatabase()
     const states: Partial<Record<ConsentPurpose, PurposeState>> = {}
 
     for (const purpose of CONSENT_PURPOSES) {
-      const matchUser = userId === null
-        ? eq(consentLog.anonId, anonId)
-        : eq(consentLog.userId, userId)
-      const row = (await db
-        .select({ granted: consentLog.granted, version: consentLog.version })
-        .from(consentLog)
-        .where(and(matchUser, eq(consentLog.purpose, purpose)))
-        .orderBy(desc(consentLog.createdAt))
-        .limit(1)
-      )[0]
+      const row = await latestConsentDecision({ self, anonId }, purpose)
       if (row) {
         states[purpose] = { purpose, granted: row.granted, version: row.version }
       }

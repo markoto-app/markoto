@@ -1,6 +1,8 @@
-import { getDocWithActorRole } from '../../repos/documents'
-import { getMemberRole } from '../../repos/workspaceMembers'
-import { isEffectiveDocOwner, type WorkspaceRole } from '../../../shared/utils/documents/docPermissions'
+import { getDocWithActorRole } from '../../repos/access/docAuthz'
+import { getMemberRole, getMemberRoleIgnoringSso, getMembershipRole } from '../../repos/access/workspaceRoles'
+import { mintWorkspaceAccess, userActor } from '../../repos/proofs/mint'
+import type { WorkspaceAccess, WorkspaceGrant, WorkspaceLevel } from '../../repos/proofs'
+import { isEffectiveDocOwner, type MembershipRole, type WorkspaceRole } from '../../../shared/utils/documents/docPermissions'
 
 // Thin authz shortcuts for workspace / document operations. Delegates to
 // the repos in server/repos/ for the actual queries.
@@ -17,8 +19,57 @@ import { isEffectiveDocOwner, type WorkspaceRole } from '../../../shared/utils/d
 //     the workspace, plus delete docs *they created* (via the owner path).
 //   - Workspace *viewer* can view docs in the workspace only.
 
+/**
+ * The caller's role in a workspace, or null if not a member, a guest, or
+ * without a current SSO grant in a workspace that enforces it. THE access
+ * check for workspace content.
+ */
 export async function getWorkspaceRole(userId: number, wsId: string): Promise<WorkspaceRole | null> {
   return getMemberRole(wsId, userId)
+}
+
+/**
+ * The member role without the SSO condition: the SSO settings (break-glass),
+ * the SSO sign-in and prompt, SCIM, admin actions about another member.
+ * Never for the caller's own access to content.
+ */
+export async function getWorkspaceRoleIgnoringSso(userId: number, wsId: string): Promise<WorkspaceRole | null> {
+  return getMemberRoleIgnoringSso(wsId, userId)
+}
+
+/** The raw membership role including `guest`; for member management, never for access to content. */
+export async function getWorkspaceMembershipRole(userId: number, wsId: string): Promise<MembershipRole | null> {
+  return getMembershipRole(wsId, userId)
+}
+
+/**
+ * Prove `need` in a workspace for a user: their SSO-checked role (or the
+ * role without SSO with `ignoreSso`, the SSO settings' break-glass). Null
+ * when the user has no role or one below `need`.
+ */
+export async function proveWorkspaceAccess<N extends WorkspaceLevel>(
+  userId: number,
+  wsId: string,
+  need: N,
+  o?: { ignoreSso?: boolean }
+): Promise<WorkspaceAccess<WorkspaceGrant<N>> | null> {
+  const role = o?.ignoreSso ? await getMemberRoleIgnoringSso(wsId, userId) : await getMemberRole(wsId, userId)
+  return role ? workspaceProofFor(userId, wsId, role, need) : null
+}
+
+/** The proof for a role the caller already looked up; null when it is below `need`. */
+export function workspaceProofFor<N extends WorkspaceLevel>(userId: number, wsId: string, role: WorkspaceRole, need: N): WorkspaceAccess<WorkspaceGrant<N>> | null {
+  if (!workspaceRoleSatisfies(role, need)) return null
+  return mintWorkspaceAccess(userActor(userId), wsId, role, need)
+}
+
+const RANK: Record<WorkspaceRole, number> = { viewer: 1, editor: 2, admin: 3 }
+const NEED_RANK: Record<WorkspaceLevel, number> = { member: 1, editor: 2, admin: 3 }
+
+/** Pure: does `role` satisfy `need`? Unknown values never do. */
+export function workspaceRoleSatisfies(role: WorkspaceRole | null, need: WorkspaceLevel): boolean {
+  if (role === null || !Object.hasOwn(RANK, role) || !Object.hasOwn(NEED_RANK, need)) return false
+  return RANK[role] >= NEED_RANK[need]
 }
 
 /**
@@ -105,3 +156,6 @@ export function docAuthzOf(
 export async function canManageWorkspace(userId: number, wsId: string): Promise<boolean> {
   return (await getMemberRole(wsId, userId)) === 'admin'
 }
+
+/** The access bootstrap role lookups, for the access decisions made outside the policies (SSO, SCIM, AI tools, MCP). */
+export { getMemberRole, getMemberRoleIgnoringSso, getMembershipRole }

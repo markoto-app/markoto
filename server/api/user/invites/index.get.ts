@@ -10,12 +10,12 @@ import { pooledPlansFor } from '../../../utils/billing/workspaceBilling'
 // invitations through the emailed link.
 export default defineApiHandler({
   access: allow.user(),
-  handler: async ({ user }) => {
+  handler: async ({ user, self }) => {
     const account = await findUserById(user.id)
     const email = normaliseInviteEmail(account?.email)
     if (!email) return []
 
-    const rows = await listInvitesForEmail(email, new Date())
+    const rows = await listInvitesForEmail(self, email, new Date())
     // A Team / Business plan of the workspace: the invite says what it
     // includes for the invitee.
     const plans = await pooledPlansFor(rows.map(r => r.workspaceId))

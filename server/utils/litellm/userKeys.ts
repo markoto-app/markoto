@@ -1,7 +1,5 @@
-import { eq } from 'drizzle-orm'
-import { users } from '../../db/schema'
 import { litellmKeyGenerateResponse, litellmKeyInfoResponse } from './adminResponses'
-import { useDatabase } from '../platform/database'
+import { getStoredUserKey, storeUserKey } from '../../repos/litellmKeys'
 import { planToBudgetUsd } from '~~/shared/billing/aiPoints'
 import { getTiers } from '~~/server/utils/billing/tierConfig'
 import type { PlanName } from '~~/shared/config/tiers'
@@ -135,11 +133,7 @@ export async function createUserKey(userId: number, plan: PlanName): Promise<Use
     throw new Error('[litellmKeys] /key/generate response missing key or token_id')
   }
 
-  const db = useDatabase()
-  await db.update(users).set({
-    litellmKeyId: keyId,
-    litellmKeyToken: sealUserKey(userId, token)
-  }).where(eq(users.id, userId))
+  await storeUserKey(userId, keyId, sealUserKey(userId, token))
 
   return { keyId, token }
 }
@@ -158,12 +152,7 @@ function openUserKey(userId: number, sealed: string): string | null {
  * `users.litellmKeyId` is already set; otherwise creates + persists.
  */
 export async function ensureUserKey(userId: number, plan: PlanName): Promise<UserKeyHandle> {
-  const db = useDatabase()
-  const rows = await db.select({
-    keyId: users.litellmKeyId,
-    keyToken: users.litellmKeyToken
-  }).from(users).where(eq(users.id, userId)).limit(1)
-  const row = rows[0]
+  const row = await getStoredUserKey(userId)
   if (row?.keyId && row?.keyToken) {
     const token = openUserKey(userId, row.keyToken)
     if (token) return { keyId: row.keyId, token }
@@ -177,10 +166,7 @@ export async function ensureUserKey(userId: number, plan: PlanName): Promise<Use
     // Persist a stub so subsequent reads don't churn — same shape as
     // a real key, no LiteLLM round-trip.
     const stubKeyId = `${TEST_STUB_KEY_ID_PREFIX}${userId}`
-    await db.update(users).set({
-      litellmKeyId: stubKeyId,
-      litellmKeyToken: sealUserKey(userId, TEST_STUB_TOKEN)
-    }).where(eq(users.id, userId))
+    await storeUserKey(userId, stubKeyId, sealUserKey(userId, TEST_STUB_TOKEN))
     return { keyId: stubKeyId, token: TEST_STUB_TOKEN }
   }
   return await createUserKey(userId, plan)
@@ -253,11 +239,7 @@ export async function setUserKeyMaxBudget(userId: number, plan: PlanName, dollar
  */
 export async function resetUserKeySpend(userId: number): Promise<boolean> {
   if (isStubMode()) return true
-  const db = useDatabase()
-  const rows = await db.select({
-    keyToken: users.litellmKeyToken
-  }).from(users).where(eq(users.id, userId)).limit(1)
-  const encrypted = rows[0]?.keyToken
+  const encrypted = (await getStoredUserKey(userId))?.keyToken
   if (!encrypted) {
     // No key yet — nothing to reset. The next AI call will create one
     // with the right budget via `ensureUserKey`.
@@ -344,10 +326,7 @@ export async function deleteLitellmIdentity(adminFetch: AdminFetch, token: strin
  */
 export async function deleteUserKey(userId: number): Promise<boolean> {
   if (isStubMode()) return true
-  const db = useDatabase()
-  const rows = await db.select({ keyToken: users.litellmKeyToken })
-    .from(users).where(eq(users.id, userId)).limit(1)
-  const encrypted = rows[0]?.keyToken
+  const encrypted = (await getStoredUserKey(userId))?.keyToken
   let token: string | null = null
   if (encrypted) {
     token = openUserKey(userId, encrypted)

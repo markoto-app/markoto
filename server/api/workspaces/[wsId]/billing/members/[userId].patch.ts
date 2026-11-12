@@ -1,6 +1,4 @@
-import { and, eq, ne } from 'drizzle-orm'
-import { workspaceMembers } from '../../../../../db/schema'
-import { useDatabase } from '../../../../../utils/platform/database'
+import { setMemberAiLimit } from '../../../../../repos/workspaceBilling'
 import { appendAuditEvent } from '../../../../../repos/audit'
 import { getPooledWorkspace } from '../../../../../utils/billing/workspaceBilling'
 import { syncMemberKeyLimit } from '../../../../../utils/litellm/workspaceTeams'
@@ -20,7 +18,7 @@ export default defineApiHandler({
   access: allow.workspace('admin', { deny: 'billing/admin-required' }),
   params: memberUserParams,
   body: setMemberLimitBody,
-  handler: async ({ event, user, wsId, params, body }) => {
+  handler: async ({ event, wsId, params, body, workspaceAccess }) => {
     const targetUserId = params.userId
     let next: { aiLimitUsd: number | null, aiUnlimited: boolean }
     if (body?.default === true) {
@@ -33,17 +31,13 @@ export default defineApiHandler({
       throw apiError('billing/invalid-member-limit', { max: MAX_MEMBER_LIMIT_USD })
     }
 
-    const updated = await useDatabase().update(workspaceMembers)
-      .set(next)
-      .where(and(eq(workspaceMembers.workspaceId, wsId), eq(workspaceMembers.userId, targetUserId), ne(workspaceMembers.role, 'guest')))
-      .returning({ userId: workspaceMembers.userId })
-    if (updated.length === 0) throw apiError('billing/member-not-found')
+    if (!(await setMemberAiLimit(workspaceAccess, targetUserId, next))) throw apiError('billing/member-not-found')
 
     const pool = await getPooledWorkspace(wsId)
     if (pool) await syncMemberKeyLimit(pool, targetUserId)
 
     await appendAuditEvent({
-      actorUserId: user.id,
+      by: workspaceAccess,
       actorIp: getClientIp(event),
       scope: 'billing',
       scopeId: wsId,

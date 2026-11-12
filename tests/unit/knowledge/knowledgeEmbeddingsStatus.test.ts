@@ -16,7 +16,7 @@ function stubDims(dims: number): void {
   stubEnv({ NUXT_LITELLM_EMBEDDINGS_DIMS: String(dims) })
 }
 
-vi.mock('../../../server/utils/platform/database', () => ({
+vi.mock('../../../server/db/client', () => ({
   useDatabasePool: () => ({
     query: async (sql: string) => {
       state.queries++

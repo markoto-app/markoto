@@ -9,9 +9,9 @@ import { CUSTOM_DOMAINS_PER_USER } from '~~/shared/config/customDomains'
 export default defineApiHandler({
   access: allow.user(),
   instance: 'customDomains',
-  handler: async ({ event, user }) => {
+  handler: async ({ event, user, self }) => {
     const { settings, available } = await customDomainContext(user.id)
-    const rows = await listCustomDomainsForUser(user.id)
+    const rows = await listCustomDomainsForUser(self)
     return {
       available,
       limit: CUSTOM_DOMAINS_PER_USER,

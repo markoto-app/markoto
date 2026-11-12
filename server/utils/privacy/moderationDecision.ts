@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/nuxt'
-import type { abuseReports } from '../../db/schema'
+import type { AbuseReportRow } from '../../repos/abuseReports'
 import { getDoc, setModerationRestriction } from '../../repos/documents'
 import { findUserById } from '../../repos/users'
 import { appendAuditEvent } from '../../repos/audit'
@@ -13,7 +13,8 @@ import { abuseNotificationRecipient } from '../platform/instanceConfig'
 import { buildDecisionNotice, buildStatementOfReasons, deliverNotice, type NoticeStatus } from './moderationNotices'
 import { actionRestrictsContent, type ModerationAction, type ModerationRule } from '~~/shared/config/moderation'
 import { useEnv } from '~~/shared/env/load'
-import type { AuditDocSnapshot } from '../../db/columnTypes'
+import type { AuditDocSnapshot } from '../../repos/audit'
+import type { AdminActor, DocAccess } from '../../repos/proofs'
 
 // Carries out a moderator's decision on an abuse report:
 //   1. snapshot the reported document (owner, title) BEFORE touching it,
@@ -26,8 +27,6 @@ import type { AuditDocSnapshot } from '../../db/columnTypes'
 // Every notice lands in `moderation_notices`. Called by
 // PATCH /api/admin/abuse-reports/:reportId after the status transition
 // was claimed, so it runs once per report.
-
-type AbuseReportRow = typeof abuseReports.$inferSelect
 
 export interface ModerationDecision {
   action: ModerationAction
@@ -50,14 +49,15 @@ function documentUrl(docId: string, fallback: string | null): string {
 }
 
 async function applyToContent(
-  docId: string,
+  doc: DocAccess<'manage' | 'delete'>,
   action: ModerationAction,
-  meta: { reportId: string, adminUserId: number, adminIp: string | null, before: AuditDocSnapshot }
+  meta: { reportId: string, admin: AdminActor, adminIp: string | null, before: AuditDocSnapshot }
 ): Promise<ContentEffect> {
+  const docId = doc.docId
   if (action === 'content_removed') {
-    await deleteDocument(docId)
+    await deleteDocument(doc)
     await appendAuditEvent({
-      actorUserId: meta.adminUserId,
+      by: meta.admin,
       actorIp: meta.adminIp,
       scope: 'doc',
       scopeId: docId,
@@ -72,20 +72,20 @@ async function applyToContent(
     // Private, no password, no guest shares — and marked, so the owner
     // can't widen it again (utils/moderationRestriction.ts); only an
     // admin lifts it (DELETE /api/admin/documents/:docId/moderation-restriction).
-    await setModerationRestriction(docId, { reportId: meta.reportId })
+    await setModerationRestriction(doc, { reportId: meta.reportId })
     // Guests reach a document through their share whatever its access
     // mode; close their open editors too.
-    const unsharedGuestIds = await deleteSharesForDoc(docId)
+    const unsharedGuestIds = await deleteSharesForDoc(doc)
     for (const guestId of unsharedGuestIds) notifySyncKickUser(guestId, [docId])
     // Everyone else who had it open through the link (or a password)
     // re-authenticates against the now private document.
     notifySyncReauthDocument(docId)
     // The web page is a separate public copy: restricting the document
     // takes it down too. (Removal deletes it with the document.)
-    const page = await takeDownPublishedPage(docId)
+    const page = await takeDownPublishedPage(doc)
     if (page) {
       await appendAuditEvent({
-        actorUserId: meta.adminUserId,
+        by: meta.admin,
         actorIp: meta.adminIp,
         scope: 'doc',
         scopeId: docId,
@@ -94,7 +94,7 @@ async function applyToContent(
       })
     }
     await appendAuditEvent({
-      actorUserId: meta.adminUserId,
+      by: meta.admin,
       actorIp: meta.adminIp,
       scope: 'doc',
       scopeId: docId,
@@ -111,20 +111,22 @@ async function applyToContent(
 export async function applyModerationDecision(input: {
   report: AbuseReportRow
   decision: ModerationDecision
-  adminUserId: number
+  /** The deciding instance admin: the content change and its audit rows are theirs. */
+  admin: AdminActor
   adminIp: string | null
 }): Promise<ModerationOutcome> {
   const { report, decision } = input
   const decidedAt = new Date()
   const restricts = actionRestrictsContent(decision.action)
-  const doc = report.docId ? await getDoc(report.docId) : null
+  const access = report.docId ? input.admin.doc(report.docId) : null
+  const doc = access ? await getDoc(access) : null
 
   let contentEffect: ContentEffect = restricts ? 'not_found' : 'none'
-  if (restricts && doc) {
+  if (restricts && doc && access) {
     try {
-      contentEffect = await applyToContent(doc.docId, decision.action, {
+      contentEffect = await applyToContent(access, decision.action, {
         reportId: report.reportId,
-        adminUserId: input.adminUserId,
+        admin: input.admin,
         adminIp: input.adminIp,
         before: { title: doc.title, accessMode: doc.accessMode, ownerId: doc.ownerId, workspaceId: doc.workspaceId }
       })

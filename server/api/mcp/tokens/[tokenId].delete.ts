@@ -1,6 +1,4 @@
-import { eq, and, isNull } from 'drizzle-orm'
-import { mcpPersonalTokens } from '../../../db/schema'
-import { useDatabase } from '../../../utils/platform/database'
+import { revokeMcpToken } from '../../../repos/mcpTokens'
 import { invalidateMcpPatCache } from '../../../utils/mcp/mcpAuth'
 import { useMcpSessionBindings } from '../../../utils/mcp/mcpSessionBinding'
 import { appendAuditEvent, truncateIp } from '../../../repos/audit'
@@ -17,28 +15,14 @@ const log = useLogger('mcp')
 export default defineApiHandler({
   access: allow.user(),
   params: mcpTokenParams,
-  handler: async ({ event, user, params }) => {
-    const userId = user.id
+  handler: async ({ event, self, params }) => {
+    const userId = self.userId
     const { tokenId } = params
 
-    const db = useDatabase()
-
-    // Tuple-keyed update returning the hash (for cache invalidation) and `name`
-    // (for a readable audit row). An already-revoked or foreign token returns no
-    // rows, hence 404.
-    const updated = await db.update(mcpPersonalTokens)
-      .set({ revokedAt: new Date() })
-      .where(and(
-        eq(mcpPersonalTokens.tokenId, tokenId),
-        eq(mcpPersonalTokens.userId, userId),
-        isNull(mcpPersonalTokens.revokedAt)
-      ))
-      .returning({
-        tokenHash: mcpPersonalTokens.tokenHash,
-        name: mcpPersonalTokens.name
-      })
-
-    const row = updated[0]
+    // Keyed on (token, user) and only while not revoked: a foreign or
+    // already-revoked token returns nothing, hence 404. The hash is for cache
+    // invalidation, the name for a readable audit row.
+    const row = await revokeMcpToken(self, tokenId)
     if (!row) throw apiError('mcp/token-not-found')
 
     await invalidateMcpPatCache(row.tokenHash)
@@ -52,7 +36,7 @@ export default defineApiHandler({
     // Audit the revocation; never log the hash.
     const ip = getClientIp(event)
     await appendAuditEvent({
-      actorUserId: userId,
+      by: self,
       actorIp: truncateIp(ip),
       scope: 'user',
       scopeId: String(userId),

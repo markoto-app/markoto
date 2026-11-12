@@ -10,8 +10,9 @@ import { startEditorPrompt } from '../../utils/agentic/sessions/editorPrompt'
 export default defineApiHandler({
   access: allow.doc('write-content', { docId: { from: 'body' } }),
   body: aiPromptBody,
-  handler: ({ event, user, docId, body }) => startEditorPrompt(event, {
-    docId,
+  handler: ({ event, user, docAccess, self, body }) => startEditorPrompt(event, {
+    docAccess,
+    self,
     user: { id: user.id, name: user.name },
     prompt: body.prompt,
     editorSelection: body.editorSelection

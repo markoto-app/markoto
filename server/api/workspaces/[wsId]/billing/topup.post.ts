@@ -16,7 +16,7 @@ export default defineApiHandler({
   instance: 'billing',
   body: buyWorkspaceTopupBody,
   rateLimit: { namespace: 'billing-checkout', max: 10, windowMs: MINUTE_MS, key: 'user', error: 'billing/rate-limited' },
-  handler: async ({ event, user, wsId, body }) => {
+  handler: async ({ event, wsId, body, workspaceAccess }) => {
     const pool = await getPooledWorkspace(wsId)
     if (!pool || !pool.subscription.stripeCustomerId) throw apiError('billing/no-subscription')
     requirePaidTermsAccepted(body)
@@ -34,7 +34,7 @@ export default defineApiHandler({
       cancelUrl: `${base}/w/${encodeURIComponent(wsId)}?tab=billing&credits=cancelled`,
       automaticTax: automaticTaxEnabled(useEnv().billing.stripeAutomaticTax)
     })
-    await recordPaidTermsAcceptance(event, user.id, { kind: 'topup', subject: { type: 'workspace', id: wsId }, item: body.pack })
+    await recordPaidTermsAcceptance(event, workspaceAccess, { kind: 'topup', subject: { type: 'workspace', id: wsId }, item: body.pack })
     return checkout
   }
 })

@@ -3,6 +3,7 @@ import { runCustomDomainCheck } from './manage'
 import { listCustomDomainsToRecheck } from '../../repos/customDomains'
 import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
 import { useLogger } from '../platform/logger'
+import { system } from '../../repos/proofs'
 
 const log = useLogger('custom-domain-recheck')
 
@@ -19,7 +20,7 @@ const BATCH = 200
 export async function runCustomDomainRecheck(now = Date.now()): Promise<{ checked: number }> {
   const settings = customDomainSettings()
   if (!settings) return { checked: 0 }
-  const due = await listCustomDomainsToRecheck({
+  const due = await listCustomDomainsToRecheck(system('custom-domain-recheck'), {
     pendingNewerThan: new Date(now - PENDING_WINDOW_MS),
     verifiedCheckedBefore: new Date(now - VERIFIED_EVERY_MS),
     limit: BATCH

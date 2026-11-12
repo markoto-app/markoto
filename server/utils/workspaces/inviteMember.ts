@@ -30,6 +30,7 @@ import {
 } from './workspaceInvites'
 import { useEnv } from '~~/shared/env/load'
 import { useLogger } from '../platform/logger'
+import type { WorkspaceAccess } from '../../repos/proofs'
 
 const log = useLogger('workspace-invite')
 
@@ -41,10 +42,11 @@ const log = useLogger('workspace-invite')
 // invite email (when the per-address budget allows) and the audit row
 // follow.
 
-type InviteRole = Parameters<typeof upsertWorkspaceInvite>[0]['role']
+type InviteRole = Parameters<typeof upsertWorkspaceInvite>[1]['role']
 
 export interface WorkspaceInviteRequest {
-  wsId: string
+  /** The inviting admin's proof: the invite's workspace and inviter come from it. */
+  ws: WorkspaceAccess<'admin'>
   inviter: { id: number, name: string }
   /** Normalised address (`normaliseInviteEmail`). */
   email: string
@@ -54,24 +56,26 @@ export interface WorkspaceInviteRequest {
 }
 
 interface InviteContext extends WorkspaceInviteRequest {
+  wsId: string
   event: H3Event
   now: Date
   plan: PlanName
 }
 
 export async function inviteWorkspaceMember(event: H3Event, request: WorkspaceInviteRequest): Promise<void> {
-  const { wsId, email } = request
-  if (await isEmailWorkspaceMember(wsId, email)) {
+  const { ws, email } = request
+  const wsId = ws.workspaceId
+  if (await isEmailWorkspaceMember(ws, email)) {
     throw apiError('workspace/already-member')
   }
 
   const now = new Date()
-  const openInvites = await countOpenWorkspaceInvites(wsId, now, email)
+  const openInvites = await countOpenWorkspaceInvites(ws, now, email)
   if (openInvites >= WORKSPACE_INVITE_OPEN_CAP) {
     throw apiError('workspace/invite-cap', { limit: WORKSPACE_INVITE_OPEN_CAP })
   }
 
-  const ctx: InviteContext = { ...request, event, now, plan: await resolveWorkspacePlan(wsId) }
+  const ctx: InviteContext = { ...request, wsId, event, now, plan: await resolveWorkspacePlan(wsId) }
 
   // Team / Business: counting the seats and acting on the count (buying
   // one, writing the invite) happen under one lock per workspace, so two
@@ -93,7 +97,7 @@ export async function inviteWorkspaceMember(event: H3Event, request: WorkspaceIn
   }
 
   await appendAuditEvent({
-    actorUserId: request.inviter.id,
+    by: ws,
     actorIp: getClientIp(event),
     scope: 'workspace',
     scopeId: wsId,
@@ -109,13 +113,13 @@ export async function inviteWorkspaceMember(event: H3Event, request: WorkspaceIn
  * paid seats for everyone else (buying a seat when the admin confirmed).
  */
 async function assertRoomForInvitee(ctx: InviteContext, pool: PooledWorkspace | null): Promise<void> {
-  const { wsId, now, email, plan, role } = ctx
+  const { ws, now, email, plan, role } = ctx
   if (role === 'guest') {
     // Guests: a plan feature; no seat and no member limit, but at
     // most GUESTS_PER_SEAT per paid seat in a Team / Business workspace.
     assertPlanFeature(plan, 'guests', 'Guests are part of the Team and Business plans.')
     if (pool) {
-      const guests = await countGuests(wsId) + await countOpenWorkspaceInvites(wsId, now, email, 'guests')
+      const guests = await countGuests(ws) + await countOpenWorkspaceInvites(ws, now, email, 'guests')
       const cap = GUESTS_PER_SEAT * pool.seats
       if (guests >= cap) {
         throw apiError('workspace/guest-cap', { limit: cap })
@@ -130,8 +134,8 @@ async function assertRoomForInvitee(ctx: InviteContext, pool: PooledWorkspace | 
   // needs no second check. A workspace already above the limit (e.g.
   // after a downgrade) keeps everyone; only new invitations are refused.
   // Guests and guest invitations don't count.
-  const membersNow = await countMembers(wsId)
-  const memberInvites = await countOpenWorkspaceInvites(wsId, now, email, 'members')
+  const membersNow = await countMembers(ws)
+  const memberInvites = await countOpenWorkspaceInvites(ws, now, email, 'members')
   if (role === 'guest') return
   assertPlanLimit(
     plan,
@@ -156,7 +160,7 @@ async function buySeat(ctx: InviteContext, pool: PooledWorkspace, seats: number)
   const stripe = useStripeClient()
   if (!stripe) throw apiError('workspace/billing-not-configured')
   try {
-    await changeWorkspaceSeats(stripe, pool.subscription, seats)
+    await changeWorkspaceSeats(stripe, ctx.ws, pool.subscription, seats)
   } catch (e) {
     throw seatChangeError(e, wsId)
   }
@@ -167,7 +171,7 @@ async function buySeat(ctx: InviteContext, pool: PooledWorkspace, seats: number)
     })
   }
   await appendAuditEvent({
-    actorUserId: inviter.id,
+    by: ctx.ws,
     actorIp: getClientIp(ctx.event),
     scope: 'billing',
     scopeId: wsId,
@@ -197,11 +201,9 @@ async function recordInvite(ctx: InviteContext, baseUrl: string | null): Promise
     && await checkRateLimit('workspace-invite-email', hashInviteSecret(ctx.email), WORKSPACE_INVITE_EMAILS_PER_ADDRESS, WORKSPACE_INVITE_EMAIL_WINDOW_MS)
   const token = sendEmail ? generateInviteToken() : null
 
-  const inviteId = await upsertWorkspaceInvite({
-    workspaceId: ctx.wsId,
+  const inviteId = await upsertWorkspaceInvite(ctx.ws, {
     email: ctx.email,
     role: ctx.role,
-    invitedByUserId: ctx.inviter.id,
     tokenHash: token === null ? null : hashInviteSecret(token),
     expiresAt: new Date(ctx.now.getTime() + WORKSPACE_INVITE_TTL_MS)
   })
@@ -209,7 +211,7 @@ async function recordInvite(ctx: InviteContext, baseUrl: string | null): Promise
 }
 
 async function sendInviteEmail(ctx: InviteContext, token: string, baseUrl: string): Promise<void> {
-  const [inviter, workspace] = await Promise.all([findUserById(ctx.inviter.id), getWorkspace(ctx.wsId)])
+  const [inviter, workspace] = await Promise.all([findUserById(ctx.inviter.id), getWorkspace(ctx.ws)])
   const content = buildWorkspaceInviteEmail({
     locale: normaliseInviteLocale(inviter?.locale),
     baseUrl,

@@ -47,8 +47,8 @@ function assignments(file: string): Set<string> {
 }
 
 const STACKS: Array<{ name: string, files: readonly string[], scopes: readonly Scope[] }> = [
-  { name: 'hosted (prod)', files: ['docker-compose.base.yml', 'docker-compose.prod.yml'], scopes: ['both', 'hosted'] },
-  { name: 'self-host', files: ['docker-compose.base.yml', 'docker-compose.selfhost.yml'], scopes: ['both', 'self-host'] }
+  { name: 'hosted (prod)', files: ['deploy/compose/compose.base.yml', 'deploy/compose/compose.prod.yml'], scopes: ['both', 'hosted'] },
+  { name: 'self-host', files: ['deploy/compose/compose.base.yml', 'deploy/compose/compose.selfhost.yml'], scopes: ['both', 'self-host'] }
 ]
 
 const readBy = (spec: AnyVar, service: ValidatedService): boolean => spec.services.includes(service)
@@ -81,33 +81,32 @@ describe('compose ↔ registry', () => {
 describe('deploy paths ↔ compose', () => {
   const prodNeeds = [...interpolations(STACKS[0]!.files)].filter(([, hasDefault]) => !hasDefault).map(([k]) => k)
 
-  // Written for the operator's reference although docker-compose.prod.yml
-  // pins these values itself (internal service URLs, Valkey address).
-  // Kept until the compose restructure; listed so a new dead line fails.
-  const WRITTEN_BUT_PINNED_BY_COMPOSE = new Set([
-    'VALKEY_HOST', 'VALKEY_PORT',
-    'NUXT_MARKITDOWN_URL', 'NUXT_SYNC_INTERNAL_URL', 'NUXT_PUBLIC_SYNC_URL', 'NUXT_RENDERER_INTERNAL_URL'
-  ])
   // Consumed by the deploy path itself (turned into PGSSLROOTCERT).
   const DEPLOY_ONLY = new Set(['OVH_PG_HOST', 'OVH_PG_CA_REMOTE_PATH'])
+  // Docker Compose's own settings (which files make the stack), read by the
+  // compose CLI on the host, not by markoto.
+  const COMPOSE_CLI = new Set(['COMPOSE_FILE'])
+  const file = 'infra/render-env.sh'
+  // The script's own list of inputs, not a .env line.
+  const written = new Set([...assignments(file)].filter(k => k !== 'INPUTS'))
 
-  for (const file of ['infra/render-env.sh', 'infra/templates/env.j2']) {
-    const written = assignments(file)
+  it(`${file} writes every value deploy/compose/compose.prod.yml requires`, () => {
+    expect(prodNeeds.filter(k => !written.has(k))).toEqual([])
+  })
 
-    it(`${file} writes every value docker-compose.prod.yml requires`, () => {
-      expect(prodNeeds.filter(k => !written.has(k))).toEqual([])
-    })
+  it(`${file} writes only registered variables the hosted stack uses`, () => {
+    const used = interpolations(STACKS[0]!.files)
+    expect([...written].filter(k => !KNOWN.has(k) && !COMPOSE_CLI.has(k))).toEqual([])
+    expect([...written].filter(k => !used.has(k) && !DEPLOY_ONLY.has(k) && !COMPOSE_CLI.has(k))).toEqual([])
+  })
 
-    it(`${file} writes only registered variables the hosted stack uses`, () => {
-      const used = interpolations(STACKS[0]!.files)
-      expect([...written].filter(k => !KNOWN.has(k))).toEqual([])
-      expect([...written].filter(k => !used.has(k) && !WRITTEN_BUT_PINNED_BY_COMPOSE.has(k) && !DEPLOY_ONLY.has(k))).toEqual([])
-    })
-  }
+  it(`${file} names the production stack for the host's plain \`docker compose\``, () => {
+    expect(read(file)).toMatch(/^COMPOSE_FILE=deploy\/compose\/compose\.prod\.yml$/m)
+  })
 
   it('install.sh provides every value the self-host stack requires', () => {
     const script = read('install.sh')
-    const needs = [...interpolations([...STACKS[1]!.files, 'docker-compose.selfhost.tls.yml'])]
+    const needs = [...interpolations([...STACKS[1]!.files, 'deploy/compose/compose.selfhost.tls.yml'])]
       .filter(([, hasDefault]) => !hasDefault)
       .map(([k]) => k)
     expect(needs.filter(k => !script.includes(`${k}=`) && !script.includes(`${k} `))).toEqual([])

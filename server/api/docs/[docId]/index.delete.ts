@@ -1,4 +1,4 @@
-import { getDoc } from '../../../repos/documents'
+import { getDocForDeletion } from '../../../repos/documents'
 import { deleteDocument } from '../../../utils/documents/documentLifecycle'
 import { appendAuditEvent } from '../../../repos/audit'
 import { MINUTE_MS } from '~~/shared/config/units'
@@ -13,8 +13,8 @@ import { MINUTE_MS } from '~~/shared/config/units'
 //   - workspace doc → owner or workspace admin.
 // Anonymous callers reach the decision (session optional); without a
 // session on a non-anonymous doc the answer is 401.
-// `deleteDocument` itself trusts its input (it's also called from the
-// inactive-doc sweeper without a session).
+// `deleteDocument` takes the delete proof (the inactive-doc sweeper passes
+// its system proof).
 
 export default defineApiHandler({
   access: allow.doc('delete', { anonymous: true, deny: 'docs/delete-forbidden' }),
@@ -22,19 +22,20 @@ export default defineApiHandler({
   // (30/min) — deletes are rarer, so 10/min per client is plenty. Counted
   // before the lookup, so unknown ids are throttled too.
   rateLimit: { namespace: 'doc-delete', max: 10, windowMs: MINUTE_MS, key: 'ip', phase: 'before-access' },
-  handler: async ({ event, user, docId }) => {
+  handler: async ({ event, docId, docAccess }) => {
     // Snapshot the row BEFORE the delete — once `deleteDocument` runs the
     // row is gone and we can't reconstruct title/accessMode for the audit
     // trail (`getDoc` returns the title field).
-    const snapshot = await getDoc(docId)
+    // The delete proof also grants reading the row it is about to remove.
+    const snapshot = await getDocForDeletion(docAccess)
 
-    await deleteDocument(docId)
+    await deleteDocument(docAccess)
 
     // Audit AFTER the primary action commits. `appendAuditEvent` swallows
     // its own failures so a wedged audit table never flips a successful
     // delete into a 500.
     await appendAuditEvent({
-      actorUserId: user?.id ?? null,
+      by: docAccess,
       actorIp: getClientIp(event),
       scope: 'doc',
       scopeId: docId,

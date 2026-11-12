@@ -1,7 +1,8 @@
 import { z } from 'zod'
 import { defineMetaTool, toolError, toolOk, type ToolResult } from './toolDefinition'
 import type { MetaToolContext } from '../../agentic/toolContext'
-import { getDocWithActorRole, listWorkspaceDocsWithOwnerFlag, listOwnedByUser } from '../../../repos/documents'
+import { listWorkspaceDocsWithOwnerFlag, listOwnedByUser } from '../../../repos/documents'
+import { getDocWithActorRole } from '../../access/docProof'
 import { docStateOf, isEffectiveDocOwner, decideTokenAccess } from '~~/shared/utils/documents/docPermissions'
 import { openTrustedCommentClient } from '../../documents/commentsServerClient'
 
@@ -65,7 +66,9 @@ async function handleListWorkspaceDocuments(
   session: MetaToolContext,
   _input: z.output<typeof ListWorkspaceDocumentsArgs>
 ): Promise<ToolResult> {
-  if (!session.workspaceId) {
+  // The membership proof, not the bare workspace id: a guest's session
+  // carries the document's workspace id but no member proof.
+  if (!session.workspaceId || !session.workspaceAccess) {
     return toolError('Error: list_workspace_documents requires the current document to be in a workspace.')
   }
 
@@ -74,7 +77,7 @@ async function handleListWorkspaceDocuments(
   // same membership check happens before we get here (the AI session
   // belongs to a workspace member or it would have been rejected at
   // /api/ai/prompt time).
-  const rows = await listWorkspaceDocsWithOwnerFlag(session.workspaceId, session.initiatorUserId)
+  const rows = await listWorkspaceDocsWithOwnerFlag(session.workspaceAccess)
   // Drop the current document from the list — the AI already has it
   // open, including it would be confusing and tempt redundant calls
   // to view_other_document on the same id it's editing.
@@ -115,7 +118,7 @@ async function handleListMyDocuments(
   // the real human's id (same pattern handleListThemes,
   // handleSaveThemeAsPreset use).
   const limit = input.limit ?? LIST_MY_DOCUMENTS_DEFAULT_LIMIT
-  const rows = await listOwnedByUser(session.initiatorUserId)
+  const rows = await listOwnedByUser(session.self)
   const sliced = rows.slice(0, limit)
 
   if (sliced.length === 0) {

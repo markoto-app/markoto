@@ -8,8 +8,8 @@ import { pooledPlansFor } from '../../utils/billing/workspaceBilling'
 // "Viewer" / etc. without a second fetch.
 export default defineApiHandler({
   access: allow.user(),
-  handler: async ({ user }) => {
-    const rows = await listWorkspacesForUser(user.id)
+  handler: async ({ self }) => {
+    const rows = await listWorkspacesForUser(self)
     // Team / Business plan covering the workspace, for the badge.
     const plans = await pooledPlansFor(rows.map(r => r.workspaceId))
     return rows.map(r => ({ ...r, plan: plans.get(r.workspaceId) ?? null }))

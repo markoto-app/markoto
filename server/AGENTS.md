@@ -16,13 +16,14 @@ Nitro API, sign-in routes, middleware and background jobs. How access control, d
 ## Document access
 
 - Decide document access only with the pure functions in `shared/utils/documents/docPermissions.ts` (`decideTokenAccess`, `decideFileAccess`, `decideActivityAccess`, `decideDocDelete`, `canDownload`), fed by `docStateOf(row)` from `getDocWithActorRole`. Check ownership with `isEffectiveDocOwner` — never compare `ownerId` by hand: share expiry and SSO enforcement change the answer.
-- Server-side content writes call `requireDocEditAccess` (`utils/documents/documentAccess.ts`). It allows exactly what `decideTokenAccess` would make writable; a workspace viewer never writes, even on `open-edit`.
+- Server-side content writes call `requireDocEditAccess` (`utils/access/documentAccess.ts`), which returns a `DocAccess<'write'>`. It allows exactly what `decideTokenAccess` would make writable; a workspace viewer never writes, even on `open-edit`.
+- Repo calls take capability proofs, never bare ids (`repos/AGENTS.md` → Proofs). A handler gets them from its policy (`docAccess`, `workspaceAccess`, `self`, `adminActor`); other code asks the access layer (`utils/access/`: `proveDocMembership`, `proveWorkspaceAccess`, `docProofFor`). Only background jobs, webhooks and internal routes use `system('<name>')`; ESLint refuses it in user-facing handlers. Tenancy guarantees and limits: `docs/SECURITY-HARDENING.md` → Tenancy.
 - Denied callers of `/meta` and `/token` get the access fields only — never title, owner, theme, body or document context.
 - After a change that makes a document's access stricter (access mode, password, share expiry or no-download, moderation, workspace move), call `notifySyncReauthDocument(docId)` AFTER the write commits. After reducing one user's access (role change, removal, unshare), call `notifySyncKickUser`. Both live in `utils/documents/syncNotify.ts`.
 - Every path that widens who can reach a document (access mode, password, shares, workspace move, publishing) calls `assertNotModerationRestricted` (`utils/privacy/moderationRestriction.ts`).
 - `hasValidDocJwt(event, docId, scopes)` accepts a scoped token only when the caller lists its scope; only the file routes accept `file-access`. Don't widen it.
 - Guests (`workspace_members.role = 'guest'`) are invisible to `getMemberRole`; they reach a document only through `document_shares`. Use `getMembershipRole` only where guests must be counted.
-- Workspace authz goes through `utils/workspaces/workspaceAccess.ts`; `workspaces.owner_id` is provenance, never an authz input.
+- Workspace authz goes through `utils/access/workspaceAccess.ts`; `workspaces.owner_id` is provenance, never an authz input.
 
 ## Sessions and accounts
 
@@ -40,7 +41,7 @@ Nitro API, sign-in routes, middleware and background jobs. How access control, d
 
 ## Plugins and background jobs
 
-- Every periodic job is a plugin that calls `defineSweeper` (`utils/platform/defineSweeper.ts`) with a row of `config/sweeps.ts`. It takes the advisory lock `acquireSweepLock(name)` (`utils/platform/sweepLock.ts`; `name` is the lock key, never rename it) and releases it in `finally`; only per-process work, like `yDocPoolSweep.ts`, sets `lock: false`. See `docs/contributing/server.md` → Background jobs.
+- Every periodic job is a plugin that calls `defineSweeper` (`utils/platform/defineSweeper.ts`) with a row of `config/sweeps.ts`. It takes the advisory lock `acquireSweepLock(name)` (`repos/sweepLocks.ts`; `name` is the lock key, never rename it) and releases it in `finally`; only per-process work, like `yDocPoolSweep.ts`, sets `lock: false`. See `docs/contributing/server.md` → Background jobs.
 - A plugin that queries the database at startup first awaits `migrationsComplete` (`utils/platform/migrations.ts`): Nitro does not wait for one plugin before running the next. `defineSweeper` does this for its runs.
 - Billing jobs start only when `isBillingEnabled()`.
 

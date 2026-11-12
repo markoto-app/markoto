@@ -1,6 +1,5 @@
-import { eq, and, lt } from 'drizzle-orm'
-import { aiSessions } from '../../db/schema'
-import { useDatabase } from '../platform/database'
+import { deleteAiSessionRow, deleteAiSessionsStartedBefore, getAiSessionRow, hasAiSessionOn, insertAiSession, listAiSessionRows, type AiSessionRow } from '../../repos/aiSessions'
+import { system, type DocAccess, type UserScope } from '../../repos/proofs'
 
 /**
  * AI session registry.
@@ -40,22 +39,15 @@ export class DuplicateSessionError extends Error {
   }
 }
 
-export async function hasUserAiSession(userId: number, docId: string): Promise<boolean> {
-  const db = useDatabase()
-  const row = (await db
-    .select({ sessionId: aiSessions.sessionId })
-    .from(aiSessions)
-    .where(and(eq(aiSessions.initiatorUserId, userId), eq(aiSessions.docId, docId)))
-    .limit(1))[0]
-  return !!row
+export async function hasUserAiSession(self: UserScope, docId: string): Promise<boolean> {
+  return hasAiSessionOn(self, docId)
 }
 
-export async function addAiSession(session: Omit<ActiveAISession, 'abortController'> & { abortController: AbortController }): Promise<void> {
-  const db = useDatabase()
+/** Register a session on the document the write proof names (one per user and document). */
+export async function addAiSession(doc: DocAccess<'write'>, session: Omit<ActiveAISession, 'abortController' | 'docId'> & { abortController: AbortController }): Promise<void> {
   try {
-    await db.insert(aiSessions).values({
+    await insertAiSession(doc, {
       sessionId: session.sessionId,
-      docId: session.docId,
       initiatorUserId: session.initiatorUserId,
       initiatorName: session.initiatorName,
       initiatorColor: session.initiatorColor,
@@ -85,19 +77,16 @@ export async function addAiSession(session: Omit<ActiveAISession, 'abortControll
 }
 
 export async function removeAiSession(sessionId: string): Promise<void> {
-  const db = useDatabase()
-  await db.delete(aiSessions).where(eq(aiSessions.sessionId, sessionId))
+  await deleteAiSessionRow(sessionId)
   localControllers.delete(sessionId)
 }
 
 export async function getAiSession(sessionId: string): Promise<ActiveAISession | undefined> {
-  const db = useDatabase()
-  const row = (await db
-    .select()
-    .from(aiSessions)
-    .where(eq(aiSessions.sessionId, sessionId))
-    .limit(1))[0]
-  if (!row) return undefined
+  const row = await getAiSessionRow(sessionId)
+  return row ? toActiveSession(row) : undefined
+}
+
+function toActiveSession(row: AiSessionRow): ActiveAISession {
   return {
     sessionId: row.sessionId,
     docId: row.docId,
@@ -105,25 +94,18 @@ export async function getAiSession(sessionId: string): Promise<ActiveAISession |
     initiatorName: row.initiatorName,
     initiatorColor: row.initiatorColor,
     startedAt: row.startedAt,
-    abortController: localControllers.get(sessionId) ?? null
+    abortController: localControllers.get(row.sessionId) ?? null
   }
 }
+
+/** The stale-session sweeper acts on every registered session. */
+const SWEEPER = system('ai-session')
 
 /**
  * All sessions currently registered in the DB. Used by the sweeper.
  */
 export async function snapshotAiSessions(): Promise<ActiveAISession[]> {
-  const db = useDatabase()
-  const rows = await db.select().from(aiSessions)
-  return rows.map(row => ({
-    sessionId: row.sessionId,
-    docId: row.docId,
-    initiatorUserId: row.initiatorUserId,
-    initiatorName: row.initiatorName,
-    initiatorColor: row.initiatorColor,
-    startedAt: row.startedAt,
-    abortController: localControllers.get(row.sessionId) ?? null
-  }))
+  return (await listAiSessionRows(SWEEPER)).map(toActiveSession)
 }
 
 /**
@@ -132,11 +114,5 @@ export async function snapshotAiSessions(): Promise<ActiveAISession[]> {
  * Returns the number of rows deleted.
  */
 export async function purgeStaleAiSessions(olderThanMs: number): Promise<number> {
-  const db = useDatabase()
-  const cutoff = new Date(Date.now() - olderThanMs)
-  const result = await db
-    .delete(aiSessions)
-    .where(lt(aiSessions.startedAt, cutoff))
-    .returning({ sessionId: aiSessions.sessionId })
-  return result.length
+  return deleteAiSessionsStartedBefore(SWEEPER, new Date(Date.now() - olderThanMs))
 }

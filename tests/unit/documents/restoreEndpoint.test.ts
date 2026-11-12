@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { API_ERRORS } from '../../../shared/api/errors'
+import { docAs } from '../../helpers/access'
 
 // Unit-style test for the POST /api/docs/:docId/activity/:activityId/restore
 // endpoint handler. The integration suite (tests/integration/endpoints/
@@ -69,7 +70,8 @@ async function call(docId: string, activityId: string | number): Promise<unknown
   const parsed = def!.params.safeParse({ docId, activityId: String(activityId) })
   if (!parsed.success) throw Object.assign(new Error('invalid'), { statusCode: 400 })
   const { user } = await resolveAccess(docId)
-  return def!.handler({ user, docId, params: parsed.data })
+  // The policy hands the handler a write proof for the URL document.
+  return def!.handler({ user, docId, docAccess: docAs(docId, user.id), params: parsed.data })
 }
 
 interface ActivityRow {
@@ -144,7 +146,7 @@ describe('POST /api/docs/:docId/activity/:activityId/restore — handler', () =>
 
     // Pin the (activityId, docId) tuple — the cross-doc leak guard
     // depends on the docId being passed to the repo.
-    expect(getActivityById).toHaveBeenCalledWith(99, 'doc-1')
+    expect(getActivityById).toHaveBeenCalledWith(expect.objectContaining({ docId: 'doc-1' }), 99)
     expect(restoreDocToYjsId).not.toHaveBeenCalled()
   })
 
@@ -174,7 +176,7 @@ describe('POST /api/docs/:docId/activity/:activityId/restore — handler', () =>
 
     expect(restoreDocToYjsId).toHaveBeenCalledTimes(1)
     expect(restoreDocToYjsId).toHaveBeenCalledWith(expect.objectContaining({
-      docId: 'doc-1',
+      doc: expect.objectContaining({ docId: 'doc-1' }),
       targetYjsId: 30, // source row's BEFORE — not 35
       actorUserId: 7,
       actorName: 'Alice',
@@ -198,7 +200,7 @@ describe('POST /api/docs/:docId/activity/:activityId/restore — handler', () =>
     expect(restoreDocToYjsId).toHaveBeenCalledWith(expect.objectContaining({
       actorName: 'User'
     }))
-    expect(appendActivity).toHaveBeenCalledWith(expect.objectContaining({
+    expect(appendActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
       userName: 'User'
     }))
   })
@@ -221,8 +223,7 @@ describe('POST /api/docs/:docId/activity/:activityId/restore — handler', () =>
     await call('doc-1', '41')
 
     expect(appendActivity).toHaveBeenCalledTimes(1)
-    expect(appendActivity).toHaveBeenCalledWith(expect.objectContaining({
-      docId: 'doc-1',
+    expect(appendActivity).toHaveBeenCalledWith(expect.objectContaining({ docId: 'doc-1' }), expect.objectContaining({
       userId: 7,
       userName: 'Alice',
       action: 'restore',
@@ -321,8 +322,8 @@ describe('POST /api/docs/:docId/activity/:activityId/restore — handler', () =>
     await call('doc-x', '41')
 
     expect(resolveAccess).toHaveBeenCalledWith('doc-x')
-    expect(getActivityById).toHaveBeenCalledWith(41, 'doc-x')
-    expect(restoreDocToYjsId).toHaveBeenCalledWith(expect.objectContaining({ docId: 'doc-x', actorUserId: 7 }))
+    expect(getActivityById).toHaveBeenCalledWith(expect.objectContaining({ docId: 'doc-x' }), 41)
+    expect(restoreDocToYjsId).toHaveBeenCalledWith(expect.objectContaining({ doc: expect.objectContaining({ docId: 'doc-x' }), actorUserId: 7 }))
   })
 
   it('a refused access never reaches the activity row', async () => {

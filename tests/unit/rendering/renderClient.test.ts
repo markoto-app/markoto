@@ -16,6 +16,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { stubEnv } from '../../helpers/env'
 import { renderDocument, __testing } from '../../../server/utils/rendering/renderClient'
+import { docAs } from '../../helpers/access'
 
 const RENDERER_URL = 'http://renderer:9000'
 const SECRET = 'internal-api-secret-for-test-0123456789'
@@ -29,7 +30,7 @@ vi.mock('../../../server/utils/storage/s3', () => ({
 }))
 
 const dbQuery = vi.fn(async () => ({ rows: [{ id: 100 }] }))
-vi.mock('../../../server/utils/platform/database', () => ({
+vi.mock('../../../server/db/client', () => ({
   useDatabasePool: () => ({ query: dbQuery })
 }))
 
@@ -91,7 +92,7 @@ describe('renderClient.renderDocument — pending edits', () => {
     s3Send
       .mockResolvedValueOnce({})
       .mockResolvedValueOnce({ Body: { transformToString: async () => JSON.stringify(manifest('pdf')) } })
-    await renderDocument('DOC', { format: 'pdf' })
+    await renderDocument(docAs('DOC'), { format: 'pdf' })
     expect(flushSyncDocument).toHaveBeenCalledWith('DOC')
     expect(callOrder.slice(0, 2)).toEqual(['flush', 'snapshot'])
   })
@@ -121,7 +122,7 @@ describe('renderClient.renderDocument', () => {
   it('returns cached:true when a matching manifest exists, without calling the renderer', async () => {
     s3Cache(manifest('pdf'))
 
-    const result = await renderDocument('DOC', { format: 'pdf' })
+    const result = await renderDocument(docAs('DOC'), { format: 'pdf' })
 
     expect(result.cached).toBe(true)
     expect(result.manifest.snapshotId).toBe(100)
@@ -132,7 +133,7 @@ describe('renderClient.renderDocument', () => {
   it('treats a `both`-format cached manifest as satisfying a pdf request', async () => {
     s3Cache(manifest('both'))
 
-    const result = await renderDocument('DOC', { format: 'pdf' })
+    const result = await renderDocument(docAs('DOC'), { format: 'pdf' })
 
     expect(result.cached).toBe(true)
     expect(fetchMock).not.toHaveBeenCalled()
@@ -141,7 +142,7 @@ describe('renderClient.renderDocument', () => {
   it('treats a `both`-format cached manifest as satisfying a png request', async () => {
     s3Cache(manifest('both'))
 
-    const result = await renderDocument('DOC', { format: 'png' })
+    const result = await renderDocument(docAs('DOC'), { format: 'png' })
 
     expect(result.cached).toBe(true)
     expect(fetchMock).not.toHaveBeenCalled()
@@ -154,7 +155,7 @@ describe('renderClient.renderDocument', () => {
       json: async () => ({ pageCount: 2, pdfKey: 'renders/DOC/100/document.pdf', pageKeys: [] })
     })
 
-    const result = await renderDocument('DOC', { format: 'pdf' })
+    const result = await renderDocument(docAs('DOC'), { format: 'pdf' })
 
     expect(result.cached).toBe(false)
     expect(result.manifest.pageCount).toBe(2)
@@ -175,6 +176,6 @@ describe('renderClient.renderDocument', () => {
       json: async () => ({ error: 'Render hard timeout' })
     })
 
-    await expect(renderDocument('DOC', { format: 'pdf' })).rejects.toThrow(/Renderer 502/)
+    await expect(renderDocument(docAs('DOC'), { format: 'pdf' })).rejects.toThrow(/Renderer 502/)
   })
 })

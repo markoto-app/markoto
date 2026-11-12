@@ -22,8 +22,8 @@ import { useEnv } from '~~/shared/env/load'
 export default defineApiHandler({
   access: allow.user(),
   params: exportJobParams,
-  handler: async ({ event, user, params }) => {
-    const job = await getJobForUser(params.jobId, user.id)
+  handler: async ({ event, params, self }) => {
+    const job = await getJobForUser(self, params.jobId)
     if (!job) {
     // 404 regardless of whether the job exists — we don't want to
     // leak the existence of jobs belonging to other users.

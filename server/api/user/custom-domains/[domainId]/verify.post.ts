@@ -11,13 +11,13 @@ export default defineApiHandler({
   params: customDomainParams,
   body: 'none',
   rateLimit: { namespace: 'custom-domain-verify', max: 60, windowMs: HOUR_MS, key: 'user', error: 'custom-domain/rate-limited' },
-  handler: async ({ event, user, params }) => {
+  handler: async ({ event, user, self, params }) => {
     const userId = user.id
     const { settings } = await customDomainContext(userId)
-    const domain = await getCustomDomainForUser(params.domainId, userId)
+    const domain = await getCustomDomainForUser(self, params.domainId)
     if (!domain) throw apiError('custom-domain/not-found')
-    await runCustomDomainCheck(domain, settings, { userId, ip: getClientIp(event) })
-    const row = (await listCustomDomainsForUser(userId)).find(d => d.id === domain.id)
+    await runCustomDomainCheck(domain, settings, { self, ip: getClientIp(event) })
+    const row = (await listCustomDomainsForUser(self)).find(d => d.id === domain.id)
     if (!row) throw apiError('custom-domain/not-found')
     return customDomainView(event, row, settings)
   }

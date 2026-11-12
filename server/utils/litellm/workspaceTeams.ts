@@ -1,7 +1,7 @@
-import { and, eq, isNotNull, isNull, ne } from 'drizzle-orm'
-import { workspaceMembers, workspaceSubscriptions } from '../../db/schema'
 import { litellmKeyGenerateResponse, litellmKeyInfoResponse, litellmTeamInfoResponse, type LitellmTeamInfo } from './adminResponses'
-import { useDatabase } from '../platform/database'
+import { clearMemberKey, getStoredMemberKey, listMemberKeysOfUser, listMembersWithKeys, storeMemberKeyIfAbsent, storeWorkspaceTeamId } from '../../repos/litellmKeys'
+import { listAllWorkspaceSubscriptions } from '../../repos/workspaceSubscriptions'
+import { system } from '../../repos/proofs'
 import { openSecretOrNull, sealSecret, secretContext } from '../platform/secretBox'
 import { litellmAdminFetch } from './litellmAdmin'
 import { isDuplicateTeamError } from './freeTierTeam'
@@ -120,9 +120,7 @@ export async function ensureWorkspaceTeam(pool: PooledWorkspace): Promise<string
     }
   }
   if (pool.subscription.litellmTeamId !== teamId) {
-    await useDatabase().update(workspaceSubscriptions)
-      .set({ litellmTeamId: teamId })
-      .where(eq(workspaceSubscriptions.workspaceId, pool.workspaceId))
+    await storeWorkspaceTeamId(pool.workspaceId, teamId)
   }
   return teamId
 }
@@ -162,18 +160,8 @@ interface MemberRow {
 }
 
 async function readMember(workspaceId: string, userId: number): Promise<MemberRow | null> {
-  const row = (await useDatabase()
-    .select({
-      aiLimitUsd: workspaceMembers.aiLimitUsd,
-      aiUnlimited: workspaceMembers.aiUnlimited,
-      litellmKeyId: workspaceMembers.litellmKeyId,
-      litellmKeyToken: workspaceMembers.litellmKeyToken
-    })
-    .from(workspaceMembers)
-    // Guests use their own AI budget, never the workspace's.
-    .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId), ne(workspaceMembers.role, 'guest')))
-    .limit(1))[0]
-  return row ?? null
+  // Guests use their own AI budget, never the workspace's.
+  return getStoredMemberKey(workspaceId, userId)
 }
 
 export interface MemberKeyHandle {
@@ -204,13 +192,7 @@ export async function ensureMemberKey(pool: PooledWorkspace, userId: number): Pr
     // Unreadable (encryption key lost or rotated without _PREVIOUS): retire
     // it by id (LiteLLM's /key/delete takes the hashed id too) and mint anew.
     await deleteKeyTokens([member.litellmKeyId])
-    await useDatabase().update(workspaceMembers)
-      .set({ litellmKeyId: null, litellmKeyToken: null })
-      .where(and(
-        eq(workspaceMembers.workspaceId, pool.workspaceId),
-        eq(workspaceMembers.userId, userId),
-        eq(workspaceMembers.litellmKeyId, member.litellmKeyId)
-      ))
+    await clearMemberKey(pool.workspaceId, userId, member.litellmKeyId)
   }
   let handle: MemberKeyHandle
   if (isStubMode()) {
@@ -240,15 +222,7 @@ export async function ensureMemberKey(pool: PooledWorkspace, userId: number): Pr
   }
   // Only store when no concurrent request stored one first; on a race the
   // loser's key is deleted and the stored one used.
-  const stored = await useDatabase().update(workspaceMembers)
-    .set({ litellmKeyId: handle.keyId, litellmKeyToken: sealMemberKey(pool.workspaceId, userId, handle.token) })
-    .where(and(
-      eq(workspaceMembers.workspaceId, pool.workspaceId),
-      eq(workspaceMembers.userId, userId),
-      isNull(workspaceMembers.litellmKeyId)
-    ))
-    .returning({ userId: workspaceMembers.userId })
-  if (stored.length > 0) return handle
+  if (await storeMemberKeyIfAbsent(pool.workspaceId, userId, handle.keyId, sealMemberKey(pool.workspaceId, userId, handle.token))) return handle
   if (!isStubMode()) await deleteKeyTokens([handle.token])
   const winner = await readMember(pool.workspaceId, userId)
   const winnerToken = winner?.litellmKeyId && winner.litellmKeyToken ? openMemberKey(pool.workspaceId, userId, winner.litellmKeyToken) : null
@@ -279,11 +253,7 @@ export async function syncMemberKeyLimit(pool: PooledWorkspace, userId: number):
  */
 export async function syncAllMemberKeyLimits(pool: PooledWorkspace): Promise<void> {
   if (isStubMode()) return
-  const rows = await useDatabase()
-    .select({ userId: workspaceMembers.userId })
-    .from(workspaceMembers)
-    .where(and(eq(workspaceMembers.workspaceId, pool.workspaceId), isNotNull(workspaceMembers.litellmKeyToken)))
-  for (const row of rows) await syncMemberKeyLimit(pool, row.userId)
+  for (const userId of await listMembersWithKeys(pool.workspaceId)) await syncMemberKeyLimit(pool, userId)
 }
 
 /** Delete a member's workspace key (member removed / left). Best-effort. */
@@ -299,18 +269,13 @@ export async function deleteMemberKey(workspaceId: string, userId: number): Prom
     }
   }
   if (member?.litellmKeyId) {
-    await useDatabase().update(workspaceMembers)
-      .set({ litellmKeyId: null, litellmKeyToken: null })
-      .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)))
+    await clearMemberKey(workspaceId, userId)
   }
 }
 
 /** Every workspace key token a user holds (account deletion). */
 export async function listMemberKeyTokens(userId: number): Promise<string[]> {
-  const rows = await useDatabase()
-    .select({ workspaceId: workspaceMembers.workspaceId, keyId: workspaceMembers.litellmKeyId, token: workspaceMembers.litellmKeyToken })
-    .from(workspaceMembers)
-    .where(and(eq(workspaceMembers.userId, userId), isNotNull(workspaceMembers.litellmKeyToken)))
+  const rows = await listMemberKeysOfUser(userId)
   const tokens: string[] = []
   for (const row of rows) {
     // An unreadable token is deleted by its hashed id instead.
@@ -353,7 +318,7 @@ export async function readMemberKeySpend(token: string | null): Promise<KeySpend
 export async function reconcileWorkspaceTeams(): Promise<{ checked: number, failed: number }> {
   const summary = { checked: 0, failed: 0 }
   if (isStubMode() || !isBillingEnabled()) return summary
-  const rows = await useDatabase().select().from(workspaceSubscriptions)
+  const rows = await listAllWorkspaceSubscriptions(system('litellm-reconcile'))
   for (const row of rows) {
     const pool = pooledFromRow(row)
     if (!pool) continue

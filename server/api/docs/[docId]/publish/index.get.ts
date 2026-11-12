@@ -5,5 +5,5 @@ import { getPublishedPageSummary } from '../../../../repos/publishedPages'
 // at which address, indexed or not. Owner + workspace admins.
 export default defineApiHandler({
   access: allow.doc('manage', { deny: 'publish/not-allowed' }),
-  handler: async ({ event, docId }) => publishView(event, await getPublishedPageSummary(docId))
+  handler: async ({ event, docAccess }) => publishView(event, await getPublishedPageSummary(docAccess))
 })

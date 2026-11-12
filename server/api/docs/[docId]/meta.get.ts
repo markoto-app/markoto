@@ -1,6 +1,5 @@
 import { docBrandForClient } from '../../../utils/brandKit/docBrand'
-import { eq } from 'drizzle-orm'
-import { documents } from '../../../db/schema'
+import { getDocMetaForViewer } from '../../../repos/documents'
 import { renderTemplate } from '../../../utils/documents/templateRenderer'
 import { canDownload, decideTokenAccess } from '../../../../shared/utils/documents/docPermissions'
 
@@ -22,7 +21,7 @@ export default defineApiHandler({
     jwt: true,
     reason: 'decideTokenAccess (or a doc JWT from the password unlock, void once the share link expired): full metadata, otherwise only the gate fields'
   }),
-  handler: async ({ docId, doc: authz, state, actor }) => {
+  handler: async ({ docId, doc: authz, state, actor, docAccess }) => {
     const decision = decideTokenAccess(state, actor)
     // An expired share link also ends what an earlier password unlock
     // (its JWT) gave — only the owner and members keep seeing the metadata.
@@ -40,29 +39,11 @@ export default defineApiHandler({
       }
     }
 
+    // Everyone who reaches this point may open the document; the proof agrees
+    // (a doc JWT or the decision above grants file access).
+    if (!docAccess.allows('view')) throw apiError('docs/not-found')
     // Explicit projection — never ship `passwordHash` over a public endpoint.
-    const db = useDatabase()
-    const doc = (await db
-      .select({
-        id: documents.id,
-        docId: documents.docId,
-        ownerId: documents.ownerId,
-        title: documents.title,
-        accessMode: documents.accessMode,
-        sizeBytes: documents.sizeBytes,
-        wordCount: documents.wordCount,
-        theme: documents.theme,
-        description: documents.description,
-        audience: documents.audience,
-        language: documents.language,
-        templateId: documents.templateId,
-        workspaceId: documents.workspaceId,
-        createdAt: documents.createdAt,
-        lastActive: documents.lastActive
-      })
-      .from(documents)
-      .where(eq(documents.docId, docId))
-      .limit(1))[0]
+    const doc = await getDocMetaForViewer(docAccess)
 
     if (!doc) {
       throw apiError('docs/not-found')
@@ -70,16 +51,13 @@ export default defineApiHandler({
 
     // Boolean is safe to expose; the hash itself is not.
     const hasPassword = doc.accessMode === 'password-protected'
-    // The workspace id is read for the brand kit only; it is not part of this
-    // public shape.
-    const { workspaceId, ...publicDoc } = doc
     return {
       granted: true as const,
-      ...publicDoc,
+      ...doc,
       // Share-link controls: this viewer may not download or print.
       noDownload: !canDownload(state, actor, authz.shareNoDownload),
       // Workspace brand kit, as on the token endpoint.
-      brandKit: await docBrandForClient(workspaceId),
+      brandKit: await docBrandForClient(docAccess),
       hasPassword,
       requiresPassword: false,
       forbidden: false,

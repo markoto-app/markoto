@@ -1,6 +1,4 @@
-import { eq, and, isNull } from 'drizzle-orm'
-import { mcpPersonalTokens } from '../../../db/schema'
-import { useDatabase } from '../../../utils/platform/database'
+import { countActiveMcpTokens } from '../../../repos/mcpTokens'
 import { MAX_PATS_PER_USER, issueMcpToken } from '../../../utils/mcp/mcpAuth'
 import { appendAuditEvent, truncateIp } from '../../../repos/audit'
 import { AUDIT_MCP_TOKEN_ISSUED } from '../../../legal/auditActions'
@@ -17,8 +15,8 @@ export default defineApiHandler({
   access: allow.user(),
   body: createMcpTokenBody,
   invalidCode: 'mcp/invalid-token-request',
-  handler: async ({ event, user, body }) => {
-    const userId = user.id
+  handler: async ({ event, self, body }) => {
+    const userId = self.userId
 
     const { name } = body
     const scopes: McpScope[] = body.scopes ?? [...MCP_SCOPES]
@@ -26,25 +24,18 @@ export default defineApiHandler({
     // Per-user cap on active tokens (revoked rows stay for audit but don't
     // count). Race-tolerant: a concurrent issue may overshoot by one, which is
     // fine for an anti-abuse cap.
-    const db = useDatabase()
-    const active = await db.select({ tokenId: mcpPersonalTokens.tokenId })
-      .from(mcpPersonalTokens)
-      .where(and(
-        eq(mcpPersonalTokens.userId, userId),
-        isNull(mcpPersonalTokens.revokedAt)
-      ))
-    if (active.length >= MAX_PATS_PER_USER) {
+    if (await countActiveMcpTokens(self) >= MAX_PATS_PER_USER) {
       throw apiError('mcp/too-many-tokens')
     }
 
-    const issued = await issueMcpToken({ userId, name, scopes })
+    const issued = await issueMcpToken({ self, name, scopes })
 
     // Audit the issuance (equivalent to handing out account-scoped API access).
     // The plaintext is NEVER in the metadata. `appendAuditEvent` is
     // fire-and-forget, so a Postgres hiccup never blocks the response.
     const ip = getClientIp(event)
     await appendAuditEvent({
-      actorUserId: userId,
+      by: self,
       actorIp: truncateIp(ip),
       scope: 'user',
       scopeId: String(userId),

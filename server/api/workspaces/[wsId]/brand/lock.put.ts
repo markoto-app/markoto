@@ -16,23 +16,23 @@ export default defineApiHandler({
   access: allow.workspace('admin', { deny: 'brand/admin-required' }),
   body: setBrandLockBody,
   invalidCode: 'brand/invalid',
-  handler: async ({ event, user, wsId, body: { locked } }) => {
+  handler: async ({ event, wsId, body: { locked }, workspaceAccess }) => {
     // Only locking needs the plan; unlocking must stay possible after a downgrade.
     if (locked) assertPlanFeature(await resolveWorkspacePlan(wsId), 'brandKit', BRAND_KIT_PLAN_MESSAGE)
-    const ws = await getWorkspace(wsId)
+    const ws = await getWorkspace(workspaceAccess)
     if (!ws) throw apiError('workspace/not-found')
     if (locked && !ws.defaultTheme) throw apiError('brand/no-design')
     if (ws.brandLocked !== locked) {
-      await updateWorkspace(wsId, { brandLocked: locked })
+      await updateWorkspace(workspaceAccess, { brandLocked: locked })
       await appendAuditEvent({
-        actorUserId: user.id,
+        by: workspaceAccess,
         actorIp: getClientIp(event),
         scope: 'workspace',
         scopeId: wsId,
         action: AUDIT_WORKSPACE_BRAND_LOCK_CHANGED,
         before: { locked: ws.brandLocked },
         after: { locked },
-        metadata: { documents: (await listDocIdsInWorkspace(wsId)).length }
+        metadata: { documents: (await listDocIdsInWorkspace(workspaceAccess)).length }
       })
     }
     return { locked }

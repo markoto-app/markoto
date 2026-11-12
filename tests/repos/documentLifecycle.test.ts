@@ -15,6 +15,7 @@ import { appendActivity } from '../../server/repos/activity'
 import { recordPending } from '../../server/repos/uploads'
 import { createUser, createDoc as seedDoc } from '../integration/setup/fixtures'
 import { at, first, must } from '../helpers/assert'
+import { docAs } from '../helpers/access'
 
 const logs = captureLogs()
 
@@ -74,13 +75,12 @@ describe('deleteDocDbRows', () => {
   it('removes activity + uploads + documents rows for the target doc', async () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
-    await appendActivity({ docId: doc.docId, userName: 'u', action: 'edit' })
-    await recordPending({
-      docId: doc.docId, fileId: 'a.png', uploaderId: user.id,
+    await appendActivity(docAs(doc.docId), { userName: 'u', action: 'edit' })
+    await recordPending(docAs(doc.docId), { fileId: 'a.png', uploaderId: user.id,
       contentType: 'image/png', sizeBytes: 1, s3Key: `docs/${doc.docId}/a.png`
     })
 
-    await deleteDocDbRows(doc.docId)
+    await deleteDocDbRows(docAs(doc.docId))
 
     const db = testDb()
     expect(Number(first((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM documents WHERE doc_id = $1', [doc.docId])).rows).c)).toBe(0)
@@ -92,10 +92,10 @@ describe('deleteDocDbRows', () => {
     const user = await createUser()
     const docA = await seedDoc({ ownerId: user.id })
     const docB = await seedDoc({ ownerId: user.id })
-    await appendActivity({ docId: docA.docId, userName: 'u', action: 'edit' })
-    await appendActivity({ docId: docB.docId, userName: 'u', action: 'edit' })
+    await appendActivity(docAs(docA.docId), { userName: 'u', action: 'edit' })
+    await appendActivity(docAs(docB.docId), { userName: 'u', action: 'edit' })
 
-    await deleteDocDbRows(docA.docId)
+    await deleteDocDbRows(docAs(docA.docId))
 
     const db = testDb()
     expect(Number(first((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM activity_log WHERE doc_id = $1', [docB.docId])).rows).c)).toBe(1)
@@ -103,7 +103,7 @@ describe('deleteDocDbRows', () => {
   })
 
   it('is idempotent — deleting a nonexistent doc is a no-op (no throw)', async () => {
-    await expect(deleteDocDbRows('ghost-doc')).resolves.toBeUndefined()
+    await expect(deleteDocDbRows(docAs('ghost-doc'))).resolves.toBeUndefined()
   })
 
   it('FK order: activity and uploads drop BEFORE the documents row', async () => {
@@ -116,8 +116,8 @@ describe('deleteDocDbRows', () => {
     // change noticing it can flip both together.
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
-    await appendActivity({ docId: doc.docId, userName: 'u', action: 'edit' })
-    await deleteDocDbRows(doc.docId)
+    await appendActivity(docAs(doc.docId), { userName: 'u', action: 'edit' })
+    await deleteDocDbRows(docAs(doc.docId))
     // Everything gone — test passes iff the FK-safe order worked.
     const db = testDb()
     expect(Number(first((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM documents WHERE doc_id = $1', [doc.docId])).rows).c)).toBe(0)

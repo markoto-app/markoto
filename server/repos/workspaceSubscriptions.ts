@@ -1,8 +1,9 @@
 import { and, eq, inArray, isNull, lt, or, sql, type SQL } from 'drizzle-orm'
 import { workspaceSubscriptions } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { executor, useDatabase, type TxHandle } from '../db/client'
 import type { WorkspacePlanName } from '../../shared/config/tiers'
 import type { StripeSubscriptionStatus } from '../../shared/contracts/stripe'
+import type { SystemActor, WorkspaceAccess } from './proofs'
 
 // Team / Business subscriptions of workspaces. Stripe writes every row through
 // the webhook; the rest of the app only reads them, through
@@ -93,14 +94,11 @@ export async function listSubscriptionsForWorkspaces(workspaceIds: readonly stri
   return useDatabase().select().from(workspaceSubscriptions).where(inArray(workspaceSubscriptions.workspaceId, [...workspaceIds]))
 }
 
-type Db = ReturnType<typeof useDatabase>
-type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
-type DbOrTx = Db | Tx
-
 // Writes of the Stripe webhook (inside its per-event transaction).
 
 /** The workspace whose subscription uses this Stripe customer (each workspace has its own). */
-export async function findWorkspaceIdByStripeCustomer(customerId: string, db: DbOrTx): Promise<string | null> {
+export async function findWorkspaceIdByStripeCustomer(_by: SystemActor, customerId: string, tx?: TxHandle): Promise<string | null> {
+  const db = executor(tx)
   const ws = await db.select({ workspaceId: workspaceSubscriptions.workspaceId })
     .from(workspaceSubscriptions)
     .where(eq(workspaceSubscriptions.stripeCustomerId, customerId))
@@ -109,14 +107,16 @@ export async function findWorkspaceIdByStripeCustomer(customerId: string, db: Db
 }
 
 /** The workspace's subscription row, read through the caller's transaction. */
-export async function getWorkspaceSubscriptionIn(db: DbOrTx, workspaceId: string): Promise<WorkspaceSubscriptionRow | null> {
+export async function getWorkspaceSubscriptionIn(_by: SystemActor, tx: TxHandle | undefined, workspaceId: string): Promise<WorkspaceSubscriptionRow | null> {
+  const db = executor(tx)
   const row: WorkspaceSubscriptionRow | undefined = (await db.select().from(workspaceSubscriptions)
     .where(eq(workspaceSubscriptions.workspaceId, workspaceId)).limit(1))[0]
   return row ?? null
 }
 
 /** Which subscription the workspace's row holds, and its status. */
-export async function getWorkspaceSubscriptionState(db: DbOrTx, workspaceId: string): Promise<{ id: string | null, status: StripeSubscriptionStatus } | null> {
+export async function getWorkspaceSubscriptionState(_by: SystemActor, tx: TxHandle | undefined, workspaceId: string): Promise<{ id: string | null, status: StripeSubscriptionStatus } | null> {
+  const db = executor(tx)
   const row = (await db.select({ id: workspaceSubscriptions.stripeSubscriptionId, status: workspaceSubscriptions.status })
     .from(workspaceSubscriptions)
     .where(eq(workspaceSubscriptions.workspaceId, workspaceId)).limit(1))[0]
@@ -138,19 +138,21 @@ export interface WorkspaceSubscriptionFromStripe {
 }
 
 /** Insert on first sight, update after. */
-export async function upsertWorkspaceSubscription(
-  db: DbOrTx,
+export async function upsertWorkspaceSubscription(_by: SystemActor,
+  tx: TxHandle | undefined,
   workspaceId: string,
   values: WorkspaceSubscriptionFromStripe,
   billingAdmin: { billingAdminId?: number | null }
 ): Promise<void> {
+  const db = executor(tx)
   await db.insert(workspaceSubscriptions)
     .values({ workspaceId, ...values, ...billingAdmin })
     .onConflictDoUpdate({ target: workspaceSubscriptions.workspaceId, set: { ...values, ...billingAdmin } })
 }
 
 /** The subscription ended: the row stays as the record, `resolveWorkspacePlan` stops granting the plan. Returns the rows matched. */
-export async function markWorkspaceSubscriptionCanceled(db: DbOrTx, workspaceId: string): Promise<number> {
+export async function markWorkspaceSubscriptionCanceled(_by: SystemActor, tx: TxHandle | undefined, workspaceId: string): Promise<number> {
+  const db = executor(tx)
   const result = await db.update(workspaceSubscriptions)
     .set({ status: 'canceled', updatedAt: new Date() })
     .where(eq(workspaceSubscriptions.workspaceId, workspaceId))
@@ -159,7 +161,8 @@ export async function markWorkspaceSubscriptionCanceled(db: DbOrTx, workspaceId:
 }
 
 /** Move the workspace's period anchors forward to `period` (never back). Returns the rows matched. */
-export async function advanceWorkspaceBillingPeriod(db: DbOrTx, workspaceId: string, period: { start: Date, end: Date }): Promise<number> {
+export async function advanceWorkspaceBillingPeriod(_by: SystemActor, tx: TxHandle | undefined, workspaceId: string, period: { start: Date, end: Date }): Promise<number> {
+  const db = executor(tx)
   const result = await db.update(workspaceSubscriptions)
     .set({ currentPeriodStart: period.start, validUntil: period.end, updatedAt: new Date() })
     .where(and(
@@ -168,4 +171,51 @@ export async function advanceWorkspaceBillingPeriod(db: DbOrTx, workspaceId: str
     ))
     .returning({ workspaceId: workspaceSubscriptions.workspaceId })
   return result.length
+}
+
+/** Hand the subscription to another billing admin (null: none left). */
+export async function setWorkspaceBillingAdmin(ws: WorkspaceAccess<'admin'>, billingAdminId: number | null): Promise<void> {
+  await useDatabase().update(workspaceSubscriptions)
+    .set({ billingAdminId, updatedAt: new Date() })
+    .where(eq(workspaceSubscriptions.workspaceId, ws.workspaceId))
+}
+
+/**
+ * The workspace's own Stripe customer, recorded with an `incomplete`
+ * placeholder row before the Checkout Session exists (so an early
+ * `customer.subscription.*` event finds its workspace). An existing row
+ * keeps its plan, seats and status.
+ */
+export async function recordWorkspaceStripeCustomer(ws: WorkspaceAccess<'admin'>, row: {
+  plan: WorkspacePlanName
+  seats: number
+  billingAdminId: number
+  stripeCustomerId: string
+  currency: 'eur' | 'chf'
+  interval: 'month' | 'year'
+}): Promise<void> {
+  await useDatabase().insert(workspaceSubscriptions).values({ ...row, workspaceId: ws.workspaceId, status: 'incomplete' })
+    .onConflictDoUpdate({
+      target: workspaceSubscriptions.workspaceId,
+      set: { stripeCustomerId: row.stripeCustomerId, billingAdminId: row.billingAdminId, updatedAt: new Date() }
+    })
+}
+
+/** A seat change the admin made (paid in Stripe): the count and the budget adjustment it carries. */
+export async function recordSeatChange(ws: WorkspaceAccess<'admin'>, change: { seats: number, budgetSeatAdjust: number, budgetSeatAdjustUntil: Date | null }): Promise<void> {
+  await useDatabase().update(workspaceSubscriptions)
+    .set({ ...change, updatedAt: new Date() })
+    .where(eq(workspaceSubscriptions.workspaceId, ws.workspaceId))
+}
+
+/** The budget alerts' scan: every workspace subscription row. */
+export async function listAllWorkspaceSubscriptions(_by: SystemActor): Promise<WorkspaceSubscriptionRow[]> {
+  return useDatabase().select().from(workspaceSubscriptions)
+}
+
+/** End a seat change's budget adjustment once its window passed (only the one ending at `until`). */
+export async function clearSeatAdjustment(_by: SystemActor, workspaceId: string, until: Date): Promise<void> {
+  await useDatabase().update(workspaceSubscriptions)
+    .set({ budgetSeatAdjust: 0, budgetSeatAdjustUntil: null })
+    .where(and(eq(workspaceSubscriptions.workspaceId, workspaceId), eq(workspaceSubscriptions.budgetSeatAdjustUntil, until)))
 }

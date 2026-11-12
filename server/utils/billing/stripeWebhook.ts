@@ -1,12 +1,16 @@
 import type Stripe from 'stripe'
 import * as Sentry from '@sentry/nuxt'
 import { listPendingStripeEvents, markPendingStripeEventProcessed, recordProcessedWebhookEvent, stashPendingStripeEvent } from '../../repos/stripeWebhookEvents'
-import { useDatabase } from '../platform/database'
 import { isOrderSensitiveStripeEvent, type OrderSensitiveStripeEvent } from '~~/shared/contracts/stripe'
 import { subjectForCustomer } from './stripeEvents/billingSubjects'
 import { runStripeEventHandler } from './stripeEvents/eventHandlers'
-import type { DbOrTx, DeferredAfterCommit, StripeHandlerOptions } from './stripeEvents/types'
+import type { TxHandle, DeferredAfterCommit, StripeHandlerOptions } from './stripeEvents/types'
+import { withTransaction } from '../../repos/transaction'
 import { useLogger } from '../platform/logger'
+import { system } from '../../repos/proofs'
+
+/** Stripe's webhook writes billing state for whichever customer the event names. */
+const STRIPE = system('stripe-webhook')
 
 const log = useLogger('stripe-webhook')
 
@@ -64,12 +68,12 @@ async function drainPendingEvents(
   customerId: string,
   opts: StripeHandlerOptions
 ): Promise<number> {
-  const rows = await listPendingStripeEvents(opts.db, customerId)
+  const rows = await listPendingStripeEvents(STRIPE, opts.db, customerId)
 
   for (const row of rows) {
     try {
       await runStripeEventHandler(row.payload, opts)
-      await markPendingStripeEventProcessed(opts.db, row.eventId)
+      await markPendingStripeEventProcessed(STRIPE, opts.db, row.eventId)
       log.info('drained stashed event', { eventId: row.eventId, customerId })
     } catch (e) {
       // Don't propagate — one bad stashed event shouldn't block the
@@ -117,19 +121,18 @@ export async function dispatchStripeEvent(
     stripe: Stripe
   }
 ): Promise<{ handled: boolean, detail?: unknown, replayed?: boolean, stashed?: boolean }> {
-  const db = useDatabase()
   // Handlers push LiteLLM key-sync closures here (instead of
   // running them inline) — the surrounding TX holds an exclusive lock
   // on the user row, and `updateUserKeyBudget` opens its own pool
   // connection to UPDATE the same row. We flush these AFTER the TX
   // commits so the lock has been released.
   const deferAfterCommit: DeferredAfterCommit = []
-  const result = await db.transaction(async (tx: DbOrTx) => {
+  const result = await withTransaction(async (tx: TxHandle) => {
     // Step 1: dedup. Atomic INSERT with ON CONFLICT DO NOTHING; false
     // when this event.id has been processed before. Short-circuit so
     // the row stays at whatever state it's in (including any
     // out-of-band ops correction).
-    if (!(await recordProcessedWebhookEvent(tx, event.id, event.type))) {
+    if (!(await recordProcessedWebhookEvent(STRIPE, tx, event.id, event.type))) {
       log.info('replay short-circuited', { eventId: event.id })
       return { handled: true, replayed: true }
     }
@@ -146,7 +149,7 @@ export async function dispatchStripeEvent(
         // Probe: does a user or a workspace subscription own this
         // customer id? If not, stash.
         if (await subjectForCustomer(customerId, tx) === null) {
-          await stashPendingStripeEvent(tx, event, customerId)
+          await stashPendingStripeEvent(STRIPE, tx, event, customerId)
           log.info('stashed out-of-order event for unbound customer', { eventType: event.type, customerId, eventId: event.id })
           return { handled: true, stashed: true }
         }

@@ -1,13 +1,13 @@
 import { CopyObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
 import { confirmOwnUploadWithinQuota, deletePending, findOwnUpload } from '../../repos/uploads'
-import { getDocWithActorRole } from '../../repos/documents'
+import { getDocWithActorRole, canWriteDocContent } from '../../utils/access/docProof'
 import { requireContentMatchesExtension } from '../../utils/storage/fileTypeGuard'
 import { parseUploadKey, stagingKeyFor } from '../../utils/storage/uploadKey'
-import { canWriteDocContent } from '../../utils/documents/documentAccess'
 import { imageQuotaError, resolveImageQuota } from '../../utils/storage/imageQuota'
 import { confirmUploadBody } from '~~/shared/api/ai'
 import { MINUTE_MS } from '~~/shared/config/units'
 import { useEnv } from '~~/shared/env/load'
+import type { UserScope } from '../../repos/proofs'
 
 // The key is client-supplied, so it must have the exact shape
 // `/api/upload/request` mints AND resolve to an `uploads` row issued to the
@@ -49,14 +49,14 @@ export default defineApiHandler({
   access: allow.user(),
   body: confirmUploadBody,
   rateLimit: { namespace: 'upload-confirm', max: 60, windowMs: MINUTE_MS, key: 'user', error: 'upload/rate-limited' },
-  handler: async ({ user, body }) => {
+  handler: async ({ user, self, body }) => {
     const userId = user.id
 
     const key = body.key
     const parsed = parseUploadKey(key)
     if (!parsed) throw notFound()
 
-    const row = await findOwnUpload(key, userId)
+    const row = await findOwnUpload(self, key)
     if (!row || row.docId !== parsed.docId) throw notFound()
 
     // Already confirmed (double confirm / retry): idempotent success, no S3 call.
@@ -73,7 +73,7 @@ export default defineApiHandler({
       throw apiError('upload/confirm-in-progress')
     }
     try {
-      return await confirmUpload({ key, userId, row, ext: parsed.ext, docId: parsed.docId })
+      return await confirmUpload({ key, self, row, ext: parsed.ext, docId: parsed.docId })
     } finally {
       await releaseSessionLock(CONFIRM_LOCK_NS, key)
     }
@@ -82,12 +82,13 @@ export default defineApiHandler({
 
 async function confirmUpload(args: {
   key: string
-  userId: number
+  self: UserScope
   row: { contentType: string, sizeBytes: number }
   ext: string
   docId: string
 }) {
-  const { key, userId, row } = args
+  const { key, self, row } = args
+  const userId = self.userId
   const s3 = useS3Client()
   const bucket = useEnv().storage.bucket
   const stagingKey = stagingKeyFor(key)
@@ -96,7 +97,7 @@ async function confirmUpload(args: {
     try {
       await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: stagingKey }))
       await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
-      await deletePending(key, userId)
+      await deletePending(self, key)
     } catch { /* orphan-cleanup sweeper covers it */ }
   }
 
@@ -136,7 +137,7 @@ async function confirmUpload(args: {
   // no owner and is dropped.
   const quota = await resolveImageQuota(userId, args.docId)
   const quotaBytes = quota.maxBytes
-  const outcome = await confirmOwnUploadWithinQuota(key, userId, quotaBytes, quota.scope)
+  const outcome = await confirmOwnUploadWithinQuota(self, key, quotaBytes, quota.scope)
   if (outcome === 'over-quota') {
     await discard()
     throw imageQuotaError(quotaBytes)

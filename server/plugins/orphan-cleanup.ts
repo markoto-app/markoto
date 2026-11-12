@@ -13,6 +13,10 @@ import { SWEEPS } from '../config/sweeps'
 import { DAY_MS } from '~~/shared/config/units'
 import { useEnv } from '~~/shared/env/load'
 import { useLogger } from '../utils/platform/logger'
+import { system } from '../repos/proofs'
+
+/** The orphan sweep reconciles every document's storage against the database. */
+const ORPHAN_CLEANUP = system('orphan-cleanup')
 
 const log = useLogger('orphan-cleanup')
 
@@ -79,7 +83,7 @@ export default defineSweeper({
       Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'design_import_sweep_failed' } })
     }
     try {
-      const { deleted } = await sweepPublishedOrphans({ store: s3ObjectStore(s3, bucket), livePageIds: listPublishedPageIds, now })
+      const { deleted } = await sweepPublishedOrphans({ store: s3ObjectStore(s3, bucket), livePageIds: () => listPublishedPageIds(ORPHAN_CLEANUP), now })
       if (deleted > 0) log.info('reaped objects of unpublished pages', { deleted })
     } catch (e) {
       log.error('Published-page sweep failed', { err: e })
@@ -94,7 +98,7 @@ export default defineSweeper({
  * objects, if any. Older than 24h.
  */
 async function sweepUnconfirmedUploads(s3: S3Client, bucket: string): Promise<void> {
-  const stale = await listStaleUnconfirmed(DAY_MS)
+  const stale = await listStaleUnconfirmed(ORPHAN_CLEANUP, DAY_MS)
   if (stale.length === 0) return
 
   await deleteObjectsBatched(
@@ -106,7 +110,7 @@ async function sweepUnconfirmedUploads(s3: S3Client, bucket: string): Promise<vo
   // Drop the rows whether or not the S3 delete succeeded — the row
   // itself is what blocks future re-use, and the defensive S3 sweep
   // below catches any leftover objects.
-  await purgeStaleUnconfirmed(DAY_MS)
+  await purgeStaleUnconfirmed(ORPHAN_CLEANUP, DAY_MS)
   log.info('reaped unconfirmed upload rows', { reaped: stale.length })
 }
 
@@ -123,7 +127,7 @@ async function sweepDocLevelOrphans(
   const s3DocIds = prefixes
     .map(p => p.replace(/^docs\//, '').replace(/\/$/, ''))
     .filter(Boolean)
-  const existingDocSet = new Set(await listAllDocIds())
+  const existingDocSet = new Set(await listAllDocIds(ORPHAN_CLEANUP))
   const orphanDocs = s3DocIds.filter(id => !existingDocSet.has(id))
 
   let totalDeleted = 0
@@ -148,7 +152,7 @@ async function sweepDefensiveStaleS3(
   liveDocIds: string[],
   now: number
 ): Promise<void> {
-  const knownKeys = new Set(await listAllS3Keys())
+  const knownKeys = new Set(await listAllS3Keys(ORPHAN_CLEANUP))
   const ageCutoff = now - DAY_MS
   const stale: string[] = []
 

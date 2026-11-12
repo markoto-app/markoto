@@ -1,6 +1,4 @@
-import { and, asc, eq, ne } from 'drizzle-orm'
-import { users, workspaceMembers } from '../../../../db/schema'
-import { useDatabase } from '../../../../utils/platform/database'
+import { listBillingMembers } from '../../../../repos/workspaceBilling'
 import { getWorkspaceSubscription, subscriptionGrantsPlan } from '../../../../repos/workspaceSubscriptions'
 import { isBillingEnabled } from '../../../../utils/billing/billingMode'
 import { creditBalanceView } from '../../../../utils/billing/aiCreditBudget'
@@ -22,26 +20,14 @@ import {
 //   every member (live from LiteLLM, best-effort: null when unreadable).
 export default defineApiHandler({
   access: allow.workspace('admin', { deny: 'billing/admin-required' }),
-  handler: async ({ user, wsId }) => {
+  handler: async ({ user, wsId, workspaceAccess }) => {
     const billingEnabled = isBillingEnabled()
     const sub = await getWorkspaceSubscription(wsId)
     const entitled = billingEnabled && sub !== null && subscriptionGrantsPlan(sub)
-    const seatsUsed = await countSeatsUsed(wsId)
+    const seatsUsed = await countSeatsUsed(workspaceAccess)
 
-    const rows = await useDatabase()
-      .select({
-        userId: users.id,
-        name: users.name,
-        role: workspaceMembers.role,
-        aiLimitUsd: workspaceMembers.aiLimitUsd,
-        aiUnlimited: workspaceMembers.aiUnlimited,
-        keyToken: workspaceMembers.litellmKeyToken
-      })
-      .from(workspaceMembers)
-      .innerJoin(users, eq(users.id, workspaceMembers.userId))
-      // Guests take no seat and never use the workspace's AI budget.
-      .where(and(eq(workspaceMembers.workspaceId, wsId), ne(workspaceMembers.role, 'guest')))
-      .orderBy(asc(workspaceMembers.joinedAt))
+    // Guests take no seat and never use the workspace's AI budget.
+    const rows = await listBillingMembers(workspaceAccess)
 
     const caps = sub ? workspacePoolCaps(sub.plan, sub.seats) : null
     const team = entitled ? await readWorkspaceTeam(wsId).catch(() => null) : null

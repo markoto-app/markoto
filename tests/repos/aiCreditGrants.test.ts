@@ -14,8 +14,9 @@ import {
   sumUsableCredits,
   type CreditSubject
 } from '../../server/repos/aiCreditGrants'
-import { useDatabase } from '../../server/utils/platform/database'
+import { asTxHandle, useDatabase } from '../../server/db/client'
 import { creditBudgetExtraUsd, creditPeriod, previousCreditPeriod } from '../../server/utils/billing/aiCreditBudget'
+import { sys } from '../helpers/access'
 
 // AI credit top-ups: grants, using them up oldest-expiring first,
 // monthly settlement, refunds, expiry.
@@ -30,7 +31,7 @@ function future(days: number): Date {
 
 async function grant(subject: CreditSubject, usd: number, expiresInDays = 365): Promise<string> {
   const id = `pi_test_${++pi}`
-  expect(await insertCreditGrant({ subject, pack: String(usd), amountUsd: usd, amountPaid: usd * 100, currency: 'eur', stripePaymentIntentId: id, stripeCheckoutSessionId: null, expiresAt: future(expiresInDays) })).toBe(true)
+  expect(await insertCreditGrant(sys(), { subject, pack: String(usd), amountUsd: usd, amountPaid: usd * 100, currency: 'eur', stripePaymentIntentId: id, stripeCheckoutSessionId: null, expiresAt: future(expiresInDays) })).toBe(true)
   return id
 }
 
@@ -41,7 +42,7 @@ describe('AI credit grants', () => {
 
   it('records a payment once, per subject', async () => {
     const id = await grant(alice, 10)
-    expect(await insertCreditGrant({ subject: alice, pack: '10', amountUsd: 10, amountPaid: 1000, currency: 'eur', stripePaymentIntentId: id, stripeCheckoutSessionId: null, expiresAt: future(365) })).toBe(false)
+    expect(await insertCreditGrant(sys(), { subject: alice, pack: '10', amountUsd: 10, amountPaid: 1000, currency: 'eur', stripePaymentIntentId: id, stripeCheckoutSessionId: null, expiresAt: future(365) })).toBe(false)
     await grant(ws, 25)
     expect(await sumUsableCredits(alice)).toBe(10)
     expect(await sumUsableCredits(ws)).toBe(25)
@@ -89,14 +90,14 @@ describe('AI credit grants', () => {
   it('a refund removes the refunded share of what is left', async () => {
     const id = await grant(alice, 20)
     await consumeCredits(alice, creditPeriod(), 5)
-    expect(await refundCreditGrant(id, 0.5)).toEqual(alice)
+    expect(await refundCreditGrant(sys(), id, 0.5)).toEqual(alice)
     expect(await sumUsableCredits(alice)).toBe(5)
     // The same refund again changes nothing; a full refund takes the rest.
-    await refundCreditGrant(id, 0.5)
+    await refundCreditGrant(sys(), id, 0.5)
     expect(await sumUsableCredits(alice)).toBe(5)
-    await refundCreditGrant(id, 1)
+    await refundCreditGrant(sys(), id, 1)
     expect(await sumUsableCredits(alice)).toBe(0)
-    expect(await refundCreditGrant('pi_unknown', 1)).toBeNull()
+    expect(await refundCreditGrant(sys(), 'pi_unknown', 1)).toBeNull()
   })
 
   it('a settlement waits for a refund in flight instead of overwriting it', async () => {
@@ -105,7 +106,7 @@ describe('AI credit grants', () => {
     let settledEarly = false
     await useDatabase().transaction(async (tx) => {
       // The webhook's transaction refunds half and is still open…
-      await refundCreditGrant(id, 0.5, tx)
+      await refundCreditGrant(sys(), id, 0.5, asTxHandle(tx))
       // …while the hourly settlement takes 5 from the same grant.
       settled = consumeCredits(alice, creditPeriod(), 5)
       void settled.then(() => {

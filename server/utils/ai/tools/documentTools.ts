@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { defineDocTool, toolError, toolOk, type ToolResult } from './toolDefinition'
 import { describeEditedRegion, findIndexOfOnlyMatch, lineToCharOffset, withLineNumbers } from './documentText'
-import type { DocToolContext } from '../../agentic/toolContext'
+import { writeAccessOf, type DocToolContext } from '../../agentic/toolContext'
 import { NO_OP_EDIT_ERROR_PREFIX } from '../../agentic/editProgress'
 import { updateDocMeta } from '../../../repos/documents'
 import * as Sentry from '@sentry/nuxt'
@@ -156,7 +156,7 @@ async function handleSetTitle(
   }, origin)
 
   try {
-    await updateDocMeta(session.docId, { title })
+    await updateDocMeta(writeAccessOf(session), { title })
   } catch (e) {
     // Same tradeoff as theme: Y.js already broadcast the change live;
     // DB failure only affects what brand-new visitors see before sync.

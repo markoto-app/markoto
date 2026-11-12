@@ -17,6 +17,10 @@ import { safeSendTransactionalEmail } from '../email/sendEmail'
 import { DATA_EXPORT_RETENTION_DAYS } from '~~/shared/config/retention'
 import { useEnv } from '~~/shared/env/load'
 import { useLogger } from '../platform/logger'
+import { system } from '../../repos/proofs'
+
+/** The export worker builds what a user asked for: the requester is the actor of record. */
+const WORKER = system('data-export-worker')
 
 const log = useLogger('data-export')
 
@@ -61,7 +65,7 @@ export interface RunDataExportWorkerResult {
  * worker per tick and no double-S3-PUT.
  */
 export async function runDataExportWorker(): Promise<RunDataExportWorkerResult> {
-  const job = await claimQueuedJob()
+  const job = await claimQueuedJob(WORKER)
   if (!job) {
     return { jobId: null, succeeded: false, s3Key: null, errorMessage: null }
   }
@@ -74,7 +78,7 @@ export async function runDataExportWorker(): Promise<RunDataExportWorkerResult> 
   }
 
   try {
-    const { bytes, counts } = await buildExportZip(job.userId)
+    const { bytes, counts } = await buildExportZip(WORKER, job.userId)
     const s3Key = `${S3_KEY_PREFIX}/${job.userId}/${job.jobId}.zip`
 
     const env = useEnv()
@@ -94,7 +98,7 @@ export async function runDataExportWorker(): Promise<RunDataExportWorkerResult> 
       }
     }))
 
-    await markJobReady({
+    await markJobReady(WORKER, {
       jobId: job.jobId,
       s3Key,
       sizeBytes: bytes.byteLength,
@@ -106,7 +110,8 @@ export async function runDataExportWorker(): Promise<RunDataExportWorkerResult> 
 
     // Audit + best-effort email.
     await appendAuditEvent({
-      actorUserId: job.userId,
+      // The export is the user's own request; the worker carries it out.
+      by: WORKER.actingFor(job.userId),
       actorIp: null,
       scope: 'user',
       scopeId: String(job.userId),
@@ -141,7 +146,7 @@ export async function runDataExportWorker(): Promise<RunDataExportWorkerResult> 
     })
 
     try {
-      await markJobFailed(job.jobId, msg)
+      await markJobFailed(WORKER, job.jobId, msg)
     } catch (markFailedErr) {
       // If we can't even update the row, log + Sentry; ops needs to
       // intervene manually. The row stays `running` and the next
@@ -153,7 +158,8 @@ export async function runDataExportWorker(): Promise<RunDataExportWorkerResult> 
     }
 
     await appendAuditEvent({
-      actorUserId: job.userId,
+      // The export is the user's own request; the worker carries it out.
+      by: WORKER.actingFor(job.userId),
       actorIp: null,
       scope: 'user',
       scopeId: String(job.userId),

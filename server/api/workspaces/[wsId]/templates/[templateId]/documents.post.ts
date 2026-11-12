@@ -1,5 +1,6 @@
 import { nanoid } from 'nanoid'
 import { getWorkspaceTemplate } from '../../../../../repos/workspaceTemplates'
+import { proveWorkspaceDoc } from '../../../../../utils/access/docProof'
 import { duplicateDocument, ImageQuotaExceededError } from '../../../../../utils/documents/duplicateDocument'
 import { imageQuotaError, resolveImageQuota } from '../../../../../utils/storage/imageQuota'
 import { flushSyncDocument } from '../../../../../utils/documents/syncNotify'
@@ -25,9 +26,12 @@ export default defineApiHandler({
   params: templateParams,
   body: createDocFromTemplateBody,
   rateLimit: { namespace: 'template-document', max: TEMPLATE_DOCUMENTS_PER_HOUR, windowMs: HOUR_MS, key: 'user', error: 'workspace/template-rate-limited' },
-  handler: async ({ event, user, wsId, params: { templateId }, body }) => {
-    const template = await getWorkspaceTemplate(wsId, templateId)
+  handler: async ({ event, user, self, wsId, workspaceAccess, params: { templateId }, body }) => {
+    const template = await getWorkspaceTemplate(workspaceAccess, templateId)
     if (!template) throw apiError('resource/not-found')
+    // Templates list only documents still in this workspace; a member reads them.
+    const source = await proveWorkspaceDoc(workspaceAccess, template.docId)
+    if (!source?.allows('view')) throw apiError('resource/not-found')
     const title = body?.title || template.name
 
     // Idempotency is keyed by the template, which is only known after the lookup.
@@ -37,7 +41,7 @@ export default defineApiHandler({
       await flushSyncDocument(template.docId)
       try {
         await duplicateDocument(
-          { sourceDocId: template.docId, newDocId, ownerId: user.id, workspaceId: wsId, title, fromTemplate: true },
+          { source, newDocId, owner: self, workspace: workspaceAccess, title, fromTemplate: true },
           { s3: useS3Client(), bucket: useEnv().storage.bucket, imageQuota }
         )
       } catch (e) {

@@ -1,5 +1,6 @@
 import * as Y from 'yjs'
-import { latestYjsId, readYjsUpdatesAt } from './yjsLog'
+import { latestYjsId, readYjsUpdatesAt } from '../../repos/yjsLog'
+import type { DocAccess } from '../../repos/proofs'
 
 // Reconstruct a Y.Doc's state at a specific point in its history: the
 // document's `yjs_updates` rows up to (and including) a given id, starting
@@ -26,17 +27,17 @@ import { latestYjsId, readYjsUpdatesAt } from './yjsLog'
  * any meaningful time.
  */
 export async function reconstructDocAtYjsId(
-  docId: string,
+  doc: DocAccess<'view'>,
   maxYjsId: number | null
 ): Promise<Y.Doc> {
-  const doc = new Y.Doc()
-  if (maxYjsId === null || maxYjsId < 0) return doc
+  const ydoc = new Y.Doc()
+  if (maxYjsId === null || maxYjsId < 0) return ydoc
 
-  const updates = await readYjsUpdatesAt(docId, maxYjsId)
-  doc.transact(() => {
-    for (const update of updates) Y.applyUpdate(doc, update)
+  const updates = await readYjsUpdatesAt(doc, maxYjsId)
+  ydoc.transact(() => {
+    for (const update of updates) Y.applyUpdate(ydoc, update)
   })
-  return doc
+  return ydoc
 }
 
 /**
@@ -44,8 +45,8 @@ export async function reconstructDocAtYjsId(
  * `flushSyncDocument` first when edits still pending in the sync server
  * must be included. The caller destroys the returned doc.
  */
-export async function reconstructCurrentDoc(docId: string): Promise<Y.Doc> {
-  return reconstructDocAtYjsId(docId, await latestYjsId(docId))
+export async function reconstructCurrentDoc(doc: DocAccess<'view'>): Promise<Y.Doc> {
+  return reconstructDocAtYjsId(doc, await latestYjsId(doc))
 }
 
 /**
@@ -54,13 +55,13 @@ export async function reconstructCurrentDoc(docId: string): Promise<Y.Doc> {
  * the caller's event loop.
  */
 export async function reconstructTextAtYjsId(
-  docId: string,
+  doc: DocAccess<'view'>,
   maxYjsId: number | null
 ): Promise<string> {
-  const doc = await reconstructDocAtYjsId(docId, maxYjsId)
+  const ydoc = await reconstructDocAtYjsId(doc, maxYjsId)
   try {
-    return doc.getText('content').toJSON()
+    return ydoc.getText('content').toJSON()
   } finally {
-    doc.destroy()
+    ydoc.destroy()
   }
 }

@@ -9,7 +9,8 @@ import {
   workspaceMembers,
   workspaces
 } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { useDatabase } from '../db/client'
+import type { SystemActor, UserScope, WorkspaceAccess } from './proofs'
 
 // Repo helpers used only by the account-deletion executor. Kept apart from
 // the other repos because they bypass invariants (>=1 admin, real owner) that
@@ -23,7 +24,8 @@ import { useDatabase } from '../utils/platform/database'
  * the literal `[deleted user]`). Returns rows updated. The placeholder is not
  * localised so the stored data stays locale-agnostic.
  */
-export async function anonymiseCommentsByAuthor(userId: number): Promise<number> {
+export async function anonymiseCommentsByAuthor(user: UserScope): Promise<number> {
+  const userId = user.userId
   const db = useDatabase()
   const updated = await db
     .update(documentComments)
@@ -39,7 +41,8 @@ export async function anonymiseCommentsByAuthor(userId: number): Promise<number>
  * would still show the name; nulling it renders "Anonymous". Must run BEFORE
  * the users row is deleted.
  */
-export async function anonymiseActivityByUser(userId: number): Promise<number> {
+export async function anonymiseActivityByUser(user: UserScope): Promise<number> {
+  const userId = user.userId
   const db = useDatabase()
   const updated = await db
     .update(activityLog)
@@ -54,7 +57,8 @@ export async function anonymiseActivityByUser(userId: number): Promise<number> {
  * after per-workspace promotion, so each workspace either keeps another admin
  * or is itself being cascade-deleted.
  */
-export async function removeAllMemberships(userId: number): Promise<string[]> {
+export async function removeAllMemberships(user: UserScope): Promise<string[]> {
+  const userId = user.userId
   const db = useDatabase()
   const removed = await db
     .delete(workspaceMembers)
@@ -69,10 +73,11 @@ export async function removeAllMemberships(userId: number): Promise<string[]> {
  * leaves a workspace without a path to an admin.
  */
 export async function promoteWorkspaceAdmin(
-  workspaceId: string,
+  ws: WorkspaceAccess<'admin'>,
   outgoingUserId: number,
   newAdminUserId: number
 ): Promise<void> {
+  const workspaceId = ws.workspaceId
   const db = useDatabase()
   await db.transaction(async (tx) => {
     // `workspaces.owner_id` is RESTRICT; it must be repointed before the user
@@ -101,7 +106,8 @@ export async function promoteWorkspaceAdmin(
  * Hard-delete every doc owned by the user and return the ids. The caller runs
  * `deleteDocument()` per id for the S3 + Y.js + sync side effects.
  */
-export async function listOwnedDocIds(userId: number): Promise<string[]> {
+export async function listOwnedDocIds(user: UserScope): Promise<string[]> {
+  const userId = user.userId
   const db = useDatabase()
   const rows = await db
     .select({ docId: documents.docId })
@@ -114,7 +120,8 @@ export async function listOwnedDocIds(userId: number): Promise<string[]> {
  * Delete `ai_sessions` initiated by the user. The FK is RESTRICT, so this must
  * precede the user-row delete (`ai_session_messages` cascades on user_id).
  */
-export async function deleteAiSessionsByUser(userId: number): Promise<number> {
+export async function deleteAiSessionsByUser(user: UserScope): Promise<number> {
+  const userId = user.userId
   const db = useDatabase()
   const removed = await db
     .delete(aiSessions)
@@ -128,7 +135,8 @@ export async function deleteAiSessionsByUser(userId: number): Promise<number> {
  * explicit so the executor can count them for the audit summary and control
  * ordering.
  */
-export async function deleteThemesByUser(userId: number): Promise<number> {
+export async function deleteThemesByUser(user: UserScope): Promise<number> {
+  const userId = user.userId
   const db = useDatabase()
   const removed = await db
     .delete(themes)
@@ -147,7 +155,8 @@ export async function deleteThemesByUser(userId: number): Promise<number> {
  * Throws if the user row no longer exists (another instance raced the sweeper
  * despite the advisory lock).
  */
-export async function deleteUserRow(userId: number): Promise<void> {
+export async function deleteUserRow(user: UserScope): Promise<void> {
+  const userId = user.userId
   const db = useDatabase()
   const removed = await db
     .delete(users)
@@ -167,7 +176,8 @@ export interface UserMembershipRow {
   name: string
 }
 
-export async function listMembershipsForUser(userId: number): Promise<UserMembershipRow[]> {
+export async function listMembershipsForUser(user: UserScope): Promise<UserMembershipRow[]> {
+  const userId = user.userId
   const db = useDatabase()
   const rows = await db
     .select({
@@ -192,9 +202,10 @@ export async function listMembershipsForUser(userId: number): Promise<UserMember
  * Empty means the workspace is sole-member.
  */
 export async function listOtherMembers(
-  workspaceId: string,
+  ws: WorkspaceAccess<'member'>,
   excludeUserId: number
 ): Promise<{ userId: number, role: 'admin' | 'editor' | 'viewer' | 'guest', joinedAt: Date }[]> {
+  const workspaceId = ws.workspaceId
   const db = useDatabase()
   const rows = await db
     .select({
@@ -219,7 +230,7 @@ export async function listOtherMembers(
 }
 
 /** Document ids in the given workspaces, for the cascade-delete of sole-member workspaces. */
-export async function listDocIdsInWorkspaces(workspaceIds: string[]): Promise<string[]> {
+export async function listDocIdsInWorkspaces(_by: SystemActor, workspaceIds: string[]): Promise<string[]> {
   if (workspaceIds.length === 0) return []
   const db = useDatabase()
   const rows = await db

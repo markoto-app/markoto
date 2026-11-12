@@ -1,4 +1,5 @@
 import { docExists, bumpLastActive } from '../../repos/documents'
+import { system } from '../../repos/proofs'
 import { normalizeAvatarSeed } from '../../../shared/utils/documents/awarenessUser'
 import { appendActivity, pruneActivity } from '../../repos/activity'
 import { internalActivityBody } from '~~/shared/api/platform'
@@ -25,8 +26,9 @@ export default defineApiHandler({
     const actorPrincipal = typeof body.actorPrincipal === 'string' && body.actorPrincipal.length > 0
       ? body.actorPrincipal
       : null
-    const { inserted } = await appendActivity({
-      docId: body.docId,
+    // The sync server reports what its authorised clients did to this document.
+    const doc = system('sync-server').doc(body.docId)
+    const { inserted } = await appendActivity(doc, {
       userId,
       userName: body.userName || null,
       actorPrincipal,
@@ -55,11 +57,11 @@ export default defineApiHandler({
     // edited without ever hitting `meta.put` isn't reaped. Join/leave don't
     // count: a passive viewer shouldn't keep an abandoned doc alive.
     if (action === 'edit') {
-      await bumpLastActive(body.docId)
+      await bumpLastActive(doc)
     }
 
     // Cap the log at MAX_ENTRIES_PER_DOC (one count + one targeted delete).
-    await pruneActivity(body.docId)
+    await pruneActivity(doc)
 
     return { success: true, logged: true }
   }

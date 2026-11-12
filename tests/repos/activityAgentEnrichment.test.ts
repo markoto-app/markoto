@@ -2,10 +2,11 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser, createDoc } from '../integration/setup/fixtures'
 import { listRecentActivity } from '../../server/repos/activity'
-import { useDatabase } from '../../server/utils/platform/database'
+import { useDatabase } from '../../server/db/client'
 import { issueMcpToken, touchMcpSession } from '../../server/utils/mcp/mcpAuth'
 import { useValkey } from '../../server/utils/platform/valkey'
 import { aiSessions } from '../../server/db/schema'
+import { asUser, docAs } from '../helpers/access'
 
 // Pin the unified-attribution enrichment chain end-to-end against
 // a real DB. Mirrors what the sync-server + agentic loop would
@@ -46,7 +47,7 @@ describe('listRecentActivity — agent enrichment', () => {
       actorPrincipal: null
     })
 
-    const rows = await listRecentActivity(doc.docId, 10)
+    const rows = await listRecentActivity(docAs(doc.docId), 10)
     expect(rows.length).toBe(1)
     expect(rows[0]!.agentKind).toBeNull()
     expect(rows[0]!.agentInitiatorName).toBeNull()
@@ -60,7 +61,7 @@ describe('listRecentActivity — agent enrichment', () => {
     const user = await createUser({ name: 'Joel' })
     const doc = await createDoc({ ownerId: user.id })
     const issued = await issueMcpToken({
-      userId: user.id, name: 't', scopes: ['documents:write']
+      self: asUser(user.id), name: 't', scopes: ['documents:write']
     })
     const sid = 'mcp-sid-enrich'
     // Touch the session so mcp_sessions has the row to JOIN.
@@ -84,7 +85,7 @@ describe('listRecentActivity — agent enrichment', () => {
       actorPrincipal: `mcp:${sid}`
     })
 
-    const rows = await listRecentActivity(doc.docId, 10)
+    const rows = await listRecentActivity(docAs(doc.docId), 10)
     expect(rows.length).toBe(1)
     expect(rows[0]!.agentKind).toBe('mcp')
     expect(rows[0]!.agentInitiatorUserId).toBe(user.id)
@@ -115,7 +116,7 @@ describe('listRecentActivity — agent enrichment', () => {
       actorPrincipal: `ai:assistant:${aiSid}`
     })
 
-    const rows = await listRecentActivity(doc.docId, 10)
+    const rows = await listRecentActivity(docAs(doc.docId), 10)
     expect(rows.length).toBe(1)
     expect(rows[0]!.agentKind).toBe('ai')
     expect(rows[0]!.agentInitiatorUserId).toBe(user.id)
@@ -149,7 +150,7 @@ describe('listRecentActivity — agent enrichment', () => {
       actorPrincipal: `mcp:${sid}`
     })
 
-    const rows = await listRecentActivity(doc.docId, 10)
+    const rows = await listRecentActivity(docAs(doc.docId), 10)
     expect(rows[0]!.agentClientName).toBe('cursor-mcp/0.5')
   })
 
@@ -166,7 +167,7 @@ describe('listRecentActivity — agent enrichment', () => {
       actorPrincipal: 'mcp:long-gone-session'
     })
 
-    const rows = await listRecentActivity(doc.docId, 10)
+    const rows = await listRecentActivity(docAs(doc.docId), 10)
     expect(rows.length).toBe(1)
     expect(rows[0]!.agentKind).toBe('mcp') // we still know it WAS MCP
     expect(rows[0]!.agentInitiatorUserId).toBeNull() // can't resolve
@@ -205,7 +206,7 @@ describe('listRecentActivity — agent enrichment', () => {
     await insertRawActivity({ docId: doc.docId, userId: null, userName: 'markoto', actorPrincipal: 'ai:assistant:mix-ai' })
     await insertRawActivity({ docId: doc.docId, userId: null, userName: 'MCP', actorPrincipal: 'mcp:mix-mcp' })
 
-    const rows = await listRecentActivity(doc.docId, 10)
+    const rows = await listRecentActivity(docAs(doc.docId), 10)
     expect(rows.length).toBe(3)
     // Most-recent-first
     const byPrincipal = new Map(rows.map(r => [r.actorPrincipal, r]))

@@ -9,9 +9,14 @@ import { requireScimConnection } from '../sso/scim'
 import { scimErrorFormat } from '../sso/scimErrors'
 import type { SsoConnectionRow } from '../../repos/sso'
 import { apiError } from './apiError'
-import { docPolicy, type DocNeed, type DocPolicyOptions, type DocCtx } from './policyDoc'
+import { docPolicy, type DocPolicyOptions, type DocCtx } from './policyDoc'
+import type { DocNeed } from '../access/docProof'
 import { workspacePolicy, type WorkspaceNeed, type WorkspacePolicyOptions, type WorkspaceCtx, type WorkspaceSelfOptions, type WorkspaceSelfCtx } from './policyWorkspace'
 import type { Policy, PolicyGate, ResolveInput, ValidatedUser, AdminIdentity } from './policyTypes'
+import { proveAdmin, proveSelf } from '../access/userProof'
+import { proveScimWorkspace } from '../access/scimProof'
+import { proveRenderDoc } from '../access/docProof'
+import type { AdminActor, DocAccess, UserScope, WorkspaceAccess, WorkspaceGrant } from '../../repos/proofs'
 import { isTestModeEnabled } from '~~/shared/utils/security/testMode'
 import { matchesCurrentOrPrevious } from '~~/shared/utils/security/internalSecret'
 import type { RenderJwtPayload } from '~~/shared/contracts/jwt'
@@ -32,6 +37,8 @@ export interface InternalCtx {
   user: null
   /** `render-token`: the verified claims (`docId` from the query). */
   render?: RenderJwtPayload
+  /** `render-token`: read access to exactly the document the token names. */
+  docAccess?: DocAccess<'view'>
   /** `traefik-token`: the provider settings, or null when the instance runs no custom domains (then any caller gets the empty answer). */
   traefik?: TraefikProviderSettings | null
 }
@@ -44,9 +51,9 @@ function nonEmpty(reason: string, what: string): string {
   return reason
 }
 
-function publicPolicy(reason: string): Policy<{ user: null }>
-function publicPolicy(reason: string, o: { session: 'optional' }): Policy<{ user: ValidatedUser | null }>
-function publicPolicy(reason: string, o?: { session: 'optional' }): Policy<{ user: ValidatedUser | null }> {
+function publicPolicy(reason: string): Policy<{ user: null, self: null }>
+function publicPolicy(reason: string, o: { session: 'optional' }): Policy<{ user: ValidatedUser | null, self: UserScope | null }>
+function publicPolicy(reason: string, o?: { session: 'optional' }): Policy<{ user: ValidatedUser | null, self: UserScope | null }> {
   const optional = o?.session === 'optional'
   return {
     kind: 'public',
@@ -55,7 +62,7 @@ function publicPolicy(reason: string, o?: { session: 'optional' }): Policy<{ use
     // Without `session: 'optional'` the session is never read, so an anonymous
     // request can't end up with a cookie (plugins/session-cookie.ts).
     gate: async event => optional ? { user: (await getValidatedUserSession(event))?.user ?? null } : NO_USER,
-    resolve: async (_event, gate) => ({ user: gate.user })
+    resolve: async (_event, gate) => ({ user: gate.user, self: gate.user ? proveSelf(gate.user.id) : null })
   }
 }
 
@@ -67,16 +74,19 @@ function signedIn(gate: PolicyGate): ValidatedUser {
   return gate.user
 }
 
-function userPolicy(): Policy<{ user: ValidatedUser }> {
+function userPolicy(): Policy<{ user: ValidatedUser, self: UserScope }> {
   return {
     kind: 'user',
     sessionless: false,
     gate: userGate,
-    resolve: async (_event, gate) => ({ user: signedIn(gate) })
+    resolve: async (_event, gate) => {
+      const user = signedIn(gate)
+      return { user, self: proveSelf(user.id) }
+    }
   }
 }
 
-function adminPolicy(): Policy<{ user: ValidatedUser, admin: AdminIdentity }> {
+function adminPolicy(): Policy<{ user: ValidatedUser, admin: AdminIdentity, adminActor: AdminActor, self: UserScope }> {
   return {
     kind: 'admin',
     sessionless: false,
@@ -87,7 +97,8 @@ function adminPolicy(): Policy<{ user: ValidatedUser, admin: AdminIdentity }> {
     },
     resolve: async (_event, gate) => {
       if (!gate.admin) throw apiError('admin/forbidden')
-      return { user: signedIn(gate), admin: gate.admin }
+      const user = signedIn(gate)
+      return { user, admin: gate.admin, adminActor: proveAdmin(gate.admin.userId), self: proveSelf(user.id) }
     }
   }
 }
@@ -122,14 +133,14 @@ function internalPolicy(via: InternalVia): Policy<InternalCtx> {
         }
         const render = verifyRenderToken(t, docId)
         if (!render) throw apiError('internal/forbidden')
-        return { user: null, render }
+        return { user: null, render, docAccess: proveRenderDoc(docId) }
       }
       throw apiError('internal/forbidden')
     }
   }
 }
 
-function scimPolicy(): Policy<{ user: null, connection: SsoConnectionRow }> {
+function scimPolicy(): Policy<{ user: null, connection: SsoConnectionRow, workspaceAccess: WorkspaceAccess<WorkspaceGrant<'admin'>> }> {
   return {
     kind: 'scim',
     sessionless: true,
@@ -138,12 +149,12 @@ function scimPolicy(): Policy<{ user: null, connection: SsoConnectionRow }> {
     gate: async event => ({ user: null, scimConnection: await requireScimConnection(event) }),
     resolve: async (_event, gate) => {
       if (!gate.scimConnection) throw apiError('auth/required')
-      return { user: null, connection: gate.scimConnection }
+      return { user: null, connection: gate.scimConnection, workspaceAccess: proveScimWorkspace(gate.scimConnection.workspaceId) }
     }
   }
 }
 
-function testOnlyPolicy(o?: { session: 'required' | 'none' }): Policy<{ user: ValidatedUser | null }> {
+function testOnlyPolicy(o?: { session: 'required' | 'none' }): Policy<{ user: ValidatedUser | null, self: UserScope | null }> {
   const required = o?.session === 'required'
   return {
     kind: 'test-only',
@@ -153,7 +164,10 @@ function testOnlyPolicy(o?: { session: 'required' | 'none' }): Policy<{ user: Va
       if (!isTestModeEnabled()) throw apiError('resource/not-found')
       return required ? userGate(event) : NO_USER
     },
-    resolve: async (_event, gate) => ({ user: required ? signedIn(gate) : gate.user })
+    resolve: async (_event, gate) => {
+      const user = required ? signedIn(gate) : gate.user
+      return { user, self: user ? proveSelf(user.id) : null }
+    }
   }
 }
 
@@ -168,13 +182,13 @@ function customPolicy<Ctx>(reason: string, o: { sessionless: boolean, check: (ev
   }
 }
 
-function workspace(need: WorkspaceNeed, o: WorkspaceSelfOptions): Policy<WorkspaceSelfCtx>
-function workspace(need: WorkspaceNeed, o?: WorkspacePolicyOptions): Policy<WorkspaceCtx>
-function workspace(need: WorkspaceNeed, o?: WorkspacePolicyOptions | WorkspaceSelfOptions): Policy<WorkspaceCtx> | Policy<WorkspaceSelfCtx> {
+function workspace<N extends WorkspaceNeed>(need: N, o: WorkspaceSelfOptions): Policy<WorkspaceSelfCtx>
+function workspace<N extends WorkspaceNeed>(need: N, o?: WorkspacePolicyOptions): Policy<WorkspaceCtx<N>>
+function workspace<N extends WorkspaceNeed>(need: N, o?: WorkspacePolicyOptions | WorkspaceSelfOptions): Policy<WorkspaceCtx<N>> | Policy<WorkspaceSelfCtx> {
   return workspacePolicy(need, o, userGate)
 }
 
-function doc<const A extends boolean = false>(need: DocNeed, o?: DocPolicyOptions<A>): Policy<DocCtx<A>> {
+function doc<const N extends DocNeed, const A extends boolean = false>(need: N, o?: DocPolicyOptions<A>): Policy<DocCtx<A, N>> {
   return docPolicy(need, o, async event => o?.anonymous
     ? { user: (await getValidatedUserSession(event))?.user ?? null }
     : userGate(event))

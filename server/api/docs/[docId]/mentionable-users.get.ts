@@ -1,4 +1,5 @@
 import { listMembers } from '../../../repos/workspaceMembers'
+import { proveWorkspaceAccess } from '../../../utils/access/workspaceAccess'
 
 // Typeahead source for `@`-mentions inside doc comments.
 //
@@ -23,11 +24,11 @@ export default defineApiHandler({
     // from their share). Doc owners who have been booted from the workspace
     // lose this privilege — they can still see comments via the doc-level
     // grant, but typing `@` gets them no list.
-    const role = await getWorkspaceRole(user.id, doc.workspaceId)
-    if (role === null) return { users: [] }
+    const ws = await proveWorkspaceAccess(user.id, doc.workspaceId, 'member')
+    if (ws === null) return { users: [] }
 
     // Guests see only documents shared with them: not offered.
-    const members = (await listMembers(doc.workspaceId)).filter(m => m.role !== 'guest')
+    const members = (await listMembers(ws)).filter(m => m.role !== 'guest')
     return {
       users: members.map(m => ({
         id: m.userId,

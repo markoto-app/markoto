@@ -46,12 +46,19 @@ async function handleGetPageCount(
   session.updateStatus('tool', 'Counting pages…')
 
   try {
-    const result = await renderDocument(session.docId, { format: 'png' })
+    if (!session.docAccess) return toolError('Error: rendering needs a document.')
+    const result = await renderDocument(session.docAccess, { format: 'png' })
     return toolOk(`Document has ${result.manifest.pageCount} page(s) under the current theme. Use view_pages to inspect specific pages by 1-indexed number.`)
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'unknown error'
     return toolError(`Error: failed to render document for page count: ${msg}`)
   }
+}
+
+async function fetchPagePng(s3: ReturnType<typeof useS3Client>, bucket: string, key: string): Promise<Uint8Array> {
+  const got = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
+  if (!got.Body) throw new Error(`rendered page ${key} has no body`)
+  return got.Body.transformToByteArray()
 }
 
 async function handleViewPages(
@@ -65,9 +72,11 @@ async function handleViewPages(
   // billed by LiteLLM on that turn's chat completion.
   session.updateStatus('tool', `Rendering ${requestedPages.length} page${requestedPages.length === 1 ? '' : 's'}…`)
 
+  const docAccess = session.docAccess
+  if (!docAccess) return toolError('Error: rendering needs a document.')
   let manifest
   try {
-    const result = await renderDocument(session.docId, { format: 'png' })
+    const result = await renderDocument(docAccess, { format: 'png' })
     manifest = result.manifest
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'unknown error'
@@ -94,16 +103,9 @@ async function handleViewPages(
     const key = manifest.pageKeys.find(k => k.endsWith(`/page-${n}.png`))
     if (!key) return toolError(`Error: failed to fetch page ${n}: not in the render`)
     try {
-      const got = await s3.send(new GetObjectCommand({
-        Bucket: env.storage.bucket,
-        Key: key
-      }))
-      if (!got.Body) throw new Error(`rendered page ${key} has no body`)
-      const bytes = await got.Body.transformToByteArray()
-      const base64 = Buffer.from(bytes).toString('base64')
-      parts.push({ inlineData: { mimeType: 'image/png', data: base64 } })
-      const sizeKB = Math.round(bytes.byteLength / 1024)
-      captions.push(`page ${n} (${sizeKB}KB)`)
+      const bytes = await fetchPagePng(s3, env.storage.bucket, key)
+      parts.push({ inlineData: { mimeType: 'image/png', data: Buffer.from(bytes).toString('base64') } })
+      captions.push(`page ${n} (${Math.round(bytes.byteLength / 1024)}KB)`)
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'unknown error'
       return toolError(`Error: failed to fetch page ${n}: ${msg}`)

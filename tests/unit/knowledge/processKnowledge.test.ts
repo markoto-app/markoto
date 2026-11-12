@@ -78,7 +78,7 @@ function makeDbChain() {
 }
 
 const db = makeDbChain()
-vi.mock('../../../server/utils/platform/database', () => ({
+vi.mock('../../../server/db/client', () => ({
   useDatabase: () => db
 }))
 

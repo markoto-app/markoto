@@ -161,6 +161,16 @@ function formatAiToolMetadata(m: AiToolActivityMetadata | null): string {
   }
 }
 
+/** The answer when nothing matched, naming the filters that were applied. */
+function noMatchMessage(input: z.output<typeof SearchActivityLogArgs>, since: Date | undefined, before: Date | undefined): string {
+  const filterDesc: string[] = []
+  if (input.query) filterDesc.push(`query="${input.query}"`)
+  if (input.actions?.length) filterDesc.push(`actions=[${input.actions.join(',')}]`)
+  if (since) filterDesc.push(`since=${since.toISOString()}`)
+  if (before) filterDesc.push(`before=${before.toISOString()}`)
+  return `No activity rows matched. Filters: ${filterDesc.join(', ') || '(none)'}.`
+}
+
 async function handleSearchActivityLog(
   session: MetaToolContext,
   input: z.output<typeof SearchActivityLogArgs>
@@ -182,9 +192,10 @@ async function handleSearchActivityLog(
   const since = cutoff && (!requestedSince || requestedSince < cutoff) ? cutoff : requestedSince
   const before = parseTime(input.before)
 
+  if (!session.docAccess) return toolError('Error: search_activity_log needs a document.')
   let rows: ActivityEntry[]
   try {
-    rows = await searchActivity(session.docId, {
+    rows = await searchActivity(session.docAccess, {
       query: input.query,
       actions: input.actions,
       since,
@@ -195,14 +206,7 @@ async function handleSearchActivityLog(
     return toolError(`Error: search_activity_log failed: ${e instanceof Error ? e.message : 'unknown'}`)
   }
 
-  if (rows.length === 0) {
-    const filterDesc: string[] = []
-    if (input.query) filterDesc.push(`query="${input.query}"`)
-    if (input.actions?.length) filterDesc.push(`actions=[${input.actions.join(',')}]`)
-    if (since) filterDesc.push(`since=${since.toISOString()}`)
-    if (before) filterDesc.push(`before=${before.toISOString()}`)
-    return toolOk(`No activity rows matched. Filters: ${filterDesc.join(', ') || '(none)'}.`)
-  }
+  if (rows.length === 0) return toolOk(noMatchMessage(input, since, before))
 
   // Returned in DESC-by-time order from the repo. Render preserves that
   // order so the model reads newest first — usually what it wants when

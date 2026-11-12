@@ -18,8 +18,9 @@ import {
   readYjsUpdatesAt,
   YjsHistoryCompactedError,
   YJS_LOCK_NAMESPACE as APP_LOCK_NAMESPACE
-} from '../../server/utils/documents/yjsLog'
+} from '../../server/repos/yjsLog'
 import type { Logger } from '../../shared/logging/core'
+import { docAs } from '../helpers/access'
 
 // Durability of the Y.js log (`yjs_updates`) against the real test Postgres:
 // the sync server's store (sync-server/src/yjs-store.ts), its Hocuspocus-facing
@@ -96,7 +97,7 @@ function sameState(a: Y.Doc, b: Y.Doc): void {
 /** The app's replay of the state at `id`. */
 async function appTextAt(docId: string, id: number): Promise<string> {
   const doc = new Y.Doc()
-  for (const u of await readYjsUpdatesAt(docId, id)) Y.applyUpdate(doc, u)
+  for (const u of await readYjsUpdatesAt(docAs(docId), id)) Y.applyUpdate(doc, u)
   return text(doc)
 }
 
@@ -216,7 +217,7 @@ describe('Y.js persistence', () => {
       expect(second!.id).toBeGreaterThan(first!.id)
       expect(second!.previousId).toBe(first!.id)
       expect(third!.previousId).toBe(second!.id)
-      expect(await latestYjsId(docId)).toBe(third!.id)
+      expect(await latestYjsId(docAs(docId))).toBe(third!.id)
     })
 
     it('a document without rows loads empty', async () => {
@@ -467,10 +468,10 @@ describe('Y.js persistence', () => {
       sameState(await loadFresh(docId), doc)
       expect(await appTextAt(docId, snap.id)).toBe(texts[9])
       for (let i = 10; i < 13; i++) expect(await appTextAt(docId, ids[i]!)).toBe(texts[i])
-      await expect(readYjsUpdatesAt(docId, ids[3]!)).rejects.toBeInstanceOf(YjsHistoryCompactedError)
-      await expect(readYjsUpdatesAt(docId, ids[3]!)).rejects.toMatchObject({ floorId: snap.id })
+      await expect(readYjsUpdatesAt(docAs(docId), ids[3]!)).rejects.toBeInstanceOf(YjsHistoryCompactedError)
+      await expect(readYjsUpdatesAt(docAs(docId), ids[3]!)).rejects.toMatchObject({ floorId: snap.id })
       // The image GC still walks every remaining state.
-      expect(await readAllYjsUpdates(docId)).toHaveLength(4)
+      expect(await readAllYjsUpdates(docAs(docId))).toHaveLength(4)
     })
 
     it('keeps everything while the snapshot is younger than the retention window', async () => {
@@ -557,7 +558,7 @@ describe('Y.js persistence', () => {
       const doc = await open(h, docId)
       doc.getText('content').insert(0, 'x')
       const first = (await h.persistence.store(docId, doc))!
-      expect(await readYjsUpdatesAt(docId, first.id - 1)).toEqual([])
+      expect(await readYjsUpdatesAt(docAs(docId), first.id - 1)).toEqual([])
     })
 
     it('the app and the sync server use the same lock and read the same state', async () => {
@@ -570,7 +571,7 @@ describe('Y.js persistence', () => {
       await newStore().writeSnapshot(docId)
       doc.getText('content').insert(0, 'the ')
       await h.persistence.store(docId, doc)
-      expect(await appTextAt(docId, (await latestYjsId(docId))!)).toBe(text(await loadFresh(docId)))
+      expect(await appTextAt(docId, (await latestYjsId(docAs(docId)))!)).toBe(text(await loadFresh(docId)))
     })
   })
 })

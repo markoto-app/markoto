@@ -58,7 +58,7 @@ export function buildTestEnv(): Record<string, string> {
     POSTGRES_PORT: TEST_DB_PORT,
     POSTGRES_DB: TEST_DB_NAME,
     // Atomic Valkey parts — `valkeyUrlFromEnv` reads these. Password
-    // mirrors `--requirepass testpassword` in docker-compose.test.yml.
+    // mirrors `--requirepass testpassword` in deploy/compose/compose.test.yml.
     VALKEY_HOST: TEST_VALKEY_HOST,
     VALKEY_PORT: TEST_VALKEY_PORT,
     VALKEY_PASSWORD: TEST_VALKEY_PASSWORD,

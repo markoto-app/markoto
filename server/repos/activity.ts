@@ -1,10 +1,12 @@
 import { and, desc, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm'
 import { activityLog, users, aiSessions, mcpSessions } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { useDatabase } from '../db/client'
 import type { ActivityAction, ActivityMetadata } from '~~/shared/contracts/activity'
+import type { DocAccess } from './proofs'
 
 // Activity-log repository. Append-mostly; each doc is capped to its most
-// recent 500 rows.
+// recent 500 rows. Every function takes the document's proof and queries
+// its id: an activity row of another document is never reached.
 
 // The action list and the per-action metadata shapes are the activity
 // contract shared with the sync server and the client feed.
@@ -59,7 +61,6 @@ export interface ActivityEntry {
 }
 
 export interface AppendInput {
-  docId: string
   // Omitted and explicit `null` are equivalent: both mean no value for this nullable column.
   userId?: number | null
   userName: string | null
@@ -93,13 +94,13 @@ export interface AppendActivityResult {
   rowId: number | null
 }
 
-export async function appendActivity(input: AppendInput): Promise<AppendActivityResult> {
+export async function appendActivity(doc: DocAccess<'write'>, input: AppendInput): Promise<AppendActivityResult> {
   const db = useDatabase()
   // The conflict target only matches the partial index for rows inside it
   // (non-null `yjsDocIdAfter`, actions 'edit' / 'title.changed' /
   // 'theme.changed'); other rows insert unconditionally.
   const result = await db.insert(activityLog).values({
-    docId: input.docId,
+    docId: doc.docId,
     userId: input.userId ?? null,
     userName: input.userName,
     actorPrincipal: input.actorPrincipal ?? null,
@@ -129,7 +130,8 @@ export async function appendActivity(input: AppendInput): Promise<AppendActivity
  * single-value subquery (lowest id among the newest N) stays an index lookup;
  * OFFSET and NOT IN variants were slow on hot docs.
  */
-export async function pruneActivity(docId: string): Promise<void> {
+export async function pruneActivity(doc: DocAccess<'write'>): Promise<void> {
+  const docId = doc.docId
   const db = useDatabase()
   await db.execute(sql`
     DELETE FROM ${activityLog}
@@ -145,7 +147,7 @@ export async function pruneActivity(docId: string): Promise<void> {
   `)
 }
 
-export async function listRecentActivity(docId: string, limit = 50, since: Date | null = null): Promise<ActivityEntry[]> {
+export async function listRecentActivity(doc: DocAccess<'view'>, limit = 50, since: Date | null = null): Promise<ActivityEntry[]> {
   const db = useDatabase()
   // Agent enrichment is a separate batch step so this SQL stays simple and
   // can be skipped for pages without agent rows.
@@ -168,8 +170,8 @@ export async function listRecentActivity(docId: string, limit = 50, since: Date 
     })
     .from(activityLog)
     .where(since
-      ? and(eq(activityLog.docId, docId), gte(activityLog.createdAt, since))
-      : eq(activityLog.docId, docId))
+      ? and(eq(activityLog.docId, doc.docId), gte(activityLog.createdAt, since))
+      : eq(activityLog.docId, doc.docId))
     .orderBy(desc(activityLog.createdAt))
     .limit(limit)
   return enrichActivityAgentFields(rows)
@@ -179,12 +181,12 @@ export async function listRecentActivity(docId: string, limit = 50, since: Date 
  * Whether the doc has activity rows older than `before` — lets the
  * activity endpoint tell the UI that a plan's history window hides some.
  */
-export async function hasActivityBefore(docId: string, before: Date): Promise<boolean> {
+export async function hasActivityBefore(doc: DocAccess<'view'>, before: Date): Promise<boolean> {
   const db = useDatabase()
   const rows = await db
     .select({ id: activityLog.id })
     .from(activityLog)
-    .where(and(eq(activityLog.docId, docId), lt(activityLog.createdAt, before)))
+    .where(and(eq(activityLog.docId, doc.docId), lt(activityLog.createdAt, before)))
     .limit(1)
   return rows.length > 0
 }
@@ -308,7 +310,7 @@ async function enrichActivityAgentFields(rows: RawActivityRow[]): Promise<Activi
  * Fetch one activity row by id for the diff endpoint. Null when missing or not
  * on the requested doc (both are 404).
  */
-export async function getActivityById(activityId: number, docId: string): Promise<ActivityEntry | null> {
+export async function getActivityById(doc: DocAccess<'view'>, activityId: number): Promise<ActivityEntry | null> {
   const db = useDatabase()
   const rows = await db
     .select({
@@ -328,7 +330,7 @@ export async function getActivityById(activityId: number, docId: string): Promis
       createdAt: activityLog.createdAt
     })
     .from(activityLog)
-    .where(and(eq(activityLog.id, activityId), eq(activityLog.docId, docId)))
+    .where(and(eq(activityLog.id, activityId), eq(activityLog.docId, doc.docId)))
     .limit(1)
   if (rows.length === 0) return null
   const enriched = await enrichActivityAgentFields(rows)
@@ -351,13 +353,13 @@ export interface SearchActivityOpts {
 }
 
 export async function searchActivity(
-  docId: string,
+  doc: DocAccess<'view'>,
   opts: SearchActivityOpts = {}
 ): Promise<ActivityEntry[]> {
   const db = useDatabase()
   const limit = Math.max(1, Math.min(opts.limit ?? 20, 50))
 
-  const filters = [eq(activityLog.docId, docId)]
+  const filters = [eq(activityLog.docId, doc.docId)]
   if (opts.actions && opts.actions.length > 0) {
     filters.push(inArray(activityLog.action, opts.actions))
   }
@@ -398,7 +400,8 @@ export async function searchActivity(
   return enrichActivityAgentFields(rows)
 }
 
-export async function deleteActivityForDoc(docId: string): Promise<void> {
+export async function deleteActivityForDoc(doc: DocAccess<'delete'>): Promise<void> {
+  const docId = doc.docId
   const db = useDatabase()
   await db.delete(activityLog).where(eq(activityLog.docId, docId))
 }

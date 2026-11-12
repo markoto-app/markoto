@@ -11,61 +11,10 @@
 // Files that exist only for tests / dev tooling, never in a production bundle.
 const TEST_ONLY = '^tests/'
 
-// Files outside server/repos that still import drizzle-orm / server/db/schema directly.
-// Move their queries into a repo, then delete the entry.
-const DB_OFFENDERS = [
-  '^server/api/abuse-reports\\.post\\.ts$',
-  '^server/api/admin/abuse-reports\\.get\\.ts$',
-  '^server/api/admin/abuse-reports/\\[reportId\\]\\.patch\\.ts$',
-  '^server/api/ai/credits\\.get\\.ts$',
-  '^server/api/billing/portal\\.post\\.ts$',
-  '^server/api/billing/topup\\.post\\.ts$',
-  '^server/api/consent\\.get\\.ts$',
-  '^server/api/consent\\.post\\.ts$',
-  '^server/api/docs/\\[docId\\]/meta\\.get\\.ts$',
-  '^server/api/internal/comments-snapshot\\.post\\.ts$',
-  '^server/api/mcp/tokens/index\\.get\\.ts$',
-  '^server/api/mcp/tokens/index\\.post\\.ts$',
-  '^server/api/mcp/tokens/\\[tokenId\\]\\.delete\\.ts$',
-  '^server/api/user/ai-model\\.put\\.ts$',
-  '^server/api/workspaces/index\\.post\\.ts$',
-  '^server/api/workspaces/\\[wsId\\]/billing/index\\.get\\.ts$',
-  '^server/api/workspaces/\\[wsId\\]/billing/members/\\[userId\\]\\.patch\\.ts$',
-  '^server/api/workspaces/\\[wsId\\]/knowledge/confirm\\.post\\.ts$',
-  '^server/api/workspaces/\\[wsId\\]/usage\\.get\\.ts$',
-  '^server/plugins/knowledge-sweep\\.ts$',
-  '^server/plugins/mcp-sessions-sweep\\.ts$',
-  '^server/utils/privacy/accountDeletionPlan\\.ts$',
-  '^server/utils/privacy/accountDeletionSweep\\.ts$',
-  '^server/utils/billing/aiCredits\\.ts$',
-  '^server/utils/aiProviders/resolve\\.ts$',
-  '^server/utils/ai/aiRecordsSweep\\.ts$',
-  '^server/utils/ai/aiSessions\\.ts$',
-  '^server/utils/billing/billing\\.ts$',
-  '^server/utils/privacy/dataExport\\.ts$',
-  '^server/utils/email/workspaceBillingEmails\\.ts$',
-  '^server/utils/billing/entitlements\\.ts$',
-  '^server/utils/platform/healthProbes\\.ts$',
-  '^server/utils/storage/imageQuota\\.ts$',
-  '^server/utils/documents/inactiveDocSweep\\.ts$',
-  '^server/utils/privacy/legalRetentionSweep\\.ts$',
-  '^server/utils/litellm/keyReconcile\\.ts$',
-  '^server/utils/litellm/userKeys\\.ts$',
-  '^server/utils/litellm/workspaceTeams\\.ts$',
-  '^server/utils/mcp/mcpAuth\\.ts$',
-  '^server/utils/privacy/moderationDecision\\.ts$',
-  '^server/utils/privacy/moderationNotices\\.ts$',
-  '^server/utils/knowledge/processKnowledge\\.ts$',
-  '^server/utils/publish/publishDocument\\.ts$',
-  '^server/utils/documents/restoreDoc\\.ts$',
-  '^server/utils/sso/completeLogin\\.ts$',
-  '^server/utils/sso/membership\\.ts$',
-  '^server/utils/sso/scim\\.ts$',
-  '^server/utils/billing/webhookEventSweep\\.ts$',
-  '^server/utils/billing/workspaceBillingLifecycle\\.ts$',
-  '^server/utils/billing/workspaceBudgetAlerts\\.ts$',
-  '^server/utils/billing/workspaceStripe\\.ts$'
-]
+// The access layer: the only production code that may mint capability proofs
+// (DocAccess, WorkspaceAccess, UserScope, AdminActor) and read the
+// authorization bootstrap rows they are minted from.
+const ACCESS_LAYER = '^server/utils/access/'
 
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
@@ -130,12 +79,12 @@ module.exports = {
     },
     {
       name: 'repos-only-use-db-layer',
-      comment: 'server/repos may use server/db, shared, other repos, the database handle and the logger. Business logic belongs in server/utils.',
+      comment: 'server/repos may use server/db, shared, other repos and the logger. Business logic belongs in server/utils.',
       severity: 'error',
       from: { path: '^server/repos/' },
       to: {
         path: '^(server|app|sync-server|renderer)/',
-        pathNot: ['^server/db/', '^server/repos/', '^server/utils/platform/database\\.ts$', '^server/utils/platform/logger\\.ts$']
+        pathNot: ['^server/db/', '^server/repos/', '^server/utils/platform/logger\\.ts$']
       }
     },
 
@@ -152,21 +101,57 @@ module.exports = {
     {
       name: 'db-access-only-in-repos',
       comment:
-        'drizzle-orm and server/db/schema belong behind server/repos. '
-        + 'The files below are existing offenders (allowlist in pathNot) — move their queries into repos and delete the entry; never add new ones.',
+        'Only server/repos talks to the database: drizzle-orm, pg and server/db/** (schema, '
+        + 'connection, transactions) are off limits everywhere else. Add a repo function instead.',
       severity: 'error',
       from: {
-        path: '^(app|server|shared|sync-server|renderer|modules)/',
+        path: '^(app|server|shared|modules)/',
         pathNot: [
           '^server/(repos|db)/',
-          // the database handle + boot-time migration runner are the sanctioned non-repo users
-          '^server/utils/platform/database\\.ts$',
-          '^server/plugins/00-db-migrate\\.ts$',
-          // known offenders: shrink this list, never grow it
-          ...DB_OFFENDERS
+          // a type-only PoolConfig import; the TLS options it builds are used by server/db and sync-server
+          '^shared/utils/runtime/postgresSsl\\.ts$'
         ]
       },
-      to: { path: ['^node_modules/drizzle-orm', '^server/db/schema(/|\\.ts$)'] }
+      to: { path: ['^node_modules/(drizzle-orm|pg)/', '^server/db/'] }
+    },
+
+    // ---------- capability proofs (docs/SECURITY-HARDENING.md, tenancy) ----------
+    {
+      name: 'proofs-minted-only-by-access-layer',
+      comment: 'The proof mint is private to the access layer. Everyone else receives proofs (handler ctx, tool context) or asks the access layer to prove a need.',
+      severity: 'error',
+      from: { pathNot: [ACCESS_LAYER, '^server/repos/proofs/'] },
+      to: { path: '^server/repos/proofs/mint\\.ts$' }
+    },
+    {
+      name: 'proof-test-mint-only-in-tests',
+      comment: 'server/repos/proofs/testing.ts mints proofs without an authorization check; production code must never reach it.',
+      severity: 'error',
+      from: { pathNot: TEST_ONLY },
+      to: { path: '^server/repos/proofs/testing\\.ts$' }
+    },
+    {
+      name: 'authz-bootstrap-reads-only-in-access-layer',
+      comment: 'server/repos/access/** reads the rows authorization is decided from (roles, doc ACL, token hashes) without a proof. Only the access layer (and the MCP token authenticator) may call it.',
+      severity: 'error',
+      from: { pathNot: [ACCESS_LAYER, '^server/repos/access/', '^server/utils/mcp/mcpAuth\\.ts$', TEST_ONLY] },
+      to: { path: '^server/repos/access/' }
+    },
+    {
+      name: 'identity-proofs-only-from-policies',
+      comment: 'proveSelf / proveAdmin / proveScimWorkspace trust the caller for WHO is acting; only the handler policies, the MCP authenticator and the SCIM / SSO flows establish that.',
+      severity: 'error',
+      from: {
+        pathNot: [
+          ACCESS_LAYER,
+          '^server/utils/api/policy(Doc|Workspace)?\\.ts$',
+          '^server/utils/mcp/mcpAuth\\.ts$',
+          '^server/mcp/lib/wrapDocBoundTool\\.ts$',
+          '^server/utils/sso/scim\\.ts$',
+          TEST_ONLY
+        ]
+      },
+      to: { path: '^server/utils/access/(userProof|scimProof)\\.ts$' }
     }
   ],
 

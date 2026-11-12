@@ -1,5 +1,4 @@
-import { useDatabasePool } from '../platform/database'
-import { readEmbeddingColumnDims, mismatchMessage, countStoredEmbeddings } from './embeddingColumn'
+import { countKnowledgeEmbeddings, mismatchMessage, readKnowledgeEmbeddingDims } from '../../repos/knowledgeEmbeddings'
 import { parseEmbeddingDims } from '../../../shared/utils/runtime/embeddingConfig'
 import { useEnv } from '~~/shared/env/load'
 
@@ -33,10 +32,9 @@ async function evaluate(): Promise<KnowledgeEmbeddingsStatus> {
     return { ok: false, code: 'invalid_config', message: e instanceof Error ? e.message : String(e) }
   }
   try {
-    const pool = useDatabasePool()
-    const current = await readEmbeddingColumnDims(pool)
+    const current = await readKnowledgeEmbeddingDims()
     if (current === target) return { ok: true }
-    const stored = await countStoredEmbeddings(pool)
+    const stored = await countKnowledgeEmbeddings()
     return { ok: false, code: 'dimension_mismatch', message: mismatchMessage(current, target, stored) }
   } catch (e) {
     return { ok: false, code: 'check_failed', message: `Could not verify the embedding column: ${e instanceof Error ? e.message : String(e)}` }

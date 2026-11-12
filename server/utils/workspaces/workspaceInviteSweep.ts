@@ -1,4 +1,5 @@
 import { deleteExpiredWorkspaceInvites } from '../../repos/workspaceInvites'
+import { system } from '../../repos/proofs'
 import { useLogger } from '../platform/logger'
 
 const log = useLogger('workspace-invite-sweep')
@@ -13,7 +14,7 @@ export interface WorkspaceInviteSweepResult {
 }
 
 export async function runWorkspaceInviteSweep(now: Date = new Date()): Promise<WorkspaceInviteSweepResult> {
-  const deletedExpired = await deleteExpiredWorkspaceInvites(now)
+  const deletedExpired = await deleteExpiredWorkspaceInvites(system('workspace-invite-sweep'), now)
   if (deletedExpired > 0) {
     log.info('deleted expired invitations', { deleted: deletedExpired })
   }

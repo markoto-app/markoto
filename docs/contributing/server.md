@@ -10,9 +10,10 @@ How the Nitro server in `server/` decides who may do what, how sessions and docu
 | `server/routes/` | Other routes: OAuth and OIDC sign-in (`routes/auth/`), per-workspace SSO (`routes/auth/sso/`), SCIM (`routes/scim/v2/`), published pages (`routes/p/`), the dictation WebSocket (`routes/api/ai/dictate.ts`), `robots.txt`, `sitemap.xml` |
 | `server/middleware/` | Runs on every request, in file-name order: `00.custom-domain.ts`, `auth.ts`, `csrf.ts`, `onboarding.ts` |
 | `server/plugins/` | Startup hooks and periodic jobs; numeric prefixes order the ones that must run first (`00-db-migrate.ts`) |
-| `server/repos/` | Drizzle queries, one file per table family (`server/repos/AGENTS.md`); the `users` row is split by concern: `users.ts` (lookups, session epoch), `userSignIn.ts` (OAuth upsert), `userPolicies.ts` (policy acceptance), `userDeletionRequests.ts`, `userBilling.ts` (plan + Stripe columns) |
+| `server/repos/` | The only code that queries the database, one file per table family (`server/repos/AGENTS.md`). `repos/proofs/` defines the capability proofs, `repos/access/` the authorization bootstrap reads, `repos/transaction.ts` the one transaction mechanism; the `users` row is split by concern: `users.ts` (lookups, session epoch), `userSignIn.ts` (OAuth upsert), `userPolicies.ts` (policy acceptance), `userDeletionRequests.ts`, `userBilling.ts` (plan + Stripe columns) |
 | `server/utils/<domain>/` | Orchestration grouped by domain (auth, documents, workspaces, billing, knowledge, storage, rendering, privacy, platform, …). Nitro auto-imports from every sub-folder. A long route keeps its declaration (access, schemas, rate limits, error codes) and calls a use-case function here: `ai/prompt.post.ts` → `agentic/sessions/editorPrompt.ts`, the `@ai` trigger → `agentic/sessions/commentTrigger.ts`, the member invite → `workspaces/inviteMember.ts`, the plan checkouts → `billing/proCheckout.ts`, `billing/workspaceCheckout.ts` |
-| `server/db/schema/` | The schema, one file per domain (`server/db/AGENTS.md`, [database.md](database.md)) |
+| `server/db/` | The schema (`schema/`, one file per domain), the connection (`client.ts`), the boot migrator and the LiteLLM spend-log pool; imported only by `server/repos/` (`server/db/AGENTS.md`, [database.md](database.md)) |
+| `server/utils/access/` | The access layer: decides document and workspace access and mints the proofs repo functions take |
 | `server/utils/api/` | The handler contract: `defineApiHandler`, the `allow.*` access policies, `apiError` ([api-handlers.md](api-handlers.md)) |
 | `server/error.ts` | Nitro error handler: 4xx pass through, 5xx become a generic message with `code: 'internal'` |
 
@@ -38,16 +39,20 @@ How the Nitro server in `server/` decides who may do what, how sessions and docu
 
 Workspace roles override the mode for documents in the workspace: admin and editor get full edit everywhere, viewer is read-only everywhere (also on `open-edit`). A guest (`role = 'guest'`) reaches only documents shared with them through `document_shares` and is treated as editor or viewer for that one document.
 
-All decisions are pure functions in `shared/utils/documents/docPermissions.ts`: `decideTokenAccess` (the editor token and every server-side write), `decideFileAccess` (images, PDF, brand files), `decideActivityAccess` (activity feed, diff, comment context), `decideDocDelete`, `canDownload` (view-only links). Their input is a `DocState` built by `docStateOf(row)` from `getDocWithActorRole` (`server/repos/documents.ts`), which also applies:
+All decisions are pure functions in `shared/utils/documents/docPermissions.ts`: `decideTokenAccess` (the editor token and every server-side write), `decideFileAccess` (images, PDF, brand files), `decideActivityAccess` (activity feed, diff, comment context), `decideDocDelete`, `canDownload` (view-only links). Their input is a `DocState` built by `docStateOf(row)` from `getDocWithActorRole` (`server/repos/access/docAuthz.ts`), which also applies:
 
 - **Share-link expiry** — once `share_expires_at` has passed, a public mode acts as `private` for visitors.
 - **SSO enforcement** — in a workspace with an active SSO connection, members without a current SSO grant have no role, and an owner without one loses owner rights (`ownerAccessSuspended`). See `server/utils/sso/AGENTS.md`.
 
-Server-side content writes (AI prompt, `@ai` trigger, restore, dictation token, image uploads) go through `requireDocEditAccess` / `canWriteDocContent` (`utils/documents/documentAccess.ts`), which allow exactly what `decideTokenAccess` would mint a writable token for.
+Server-side content writes (AI prompt, `@ai` trigger, restore, dictation token, image uploads) go through `requireDocEditAccess` / `canWriteDocContent` (`utils/access/documentAccess.ts`), which allow exactly what `decideTokenAccess` would mint a writable token for.
+
+### Proofs: where the decision is enforced
+
+A decision is turned into a capability proof (`DocAccess<level>`, `WorkspaceAccess<level>`, `UserScope`, `AdminActor`, `SystemActor`) by the access layer, and every repo function that writes or returns tenant-private data demands one and takes the object id from it. The handler policies mint them (`ctx.docAccess`, `ctx.workspaceAccess`, `ctx.self`, `ctx.adminActor`); the MCP tool wrapper, the AI tools and the SSO / SCIM flows ask `utils/access/` (`proveDocMembership`, `proveWorkspaceAccess`, `proveScimWorkspace`); background jobs use a named `system('<job>')`. So a handler that forgets a check cannot reach another tenant's rows with an id from the URL: it has no proof for them. What this does and does not guarantee, and what row-level security would add: `docs/SECURITY-HARDENING.md` → Tenancy.
 
 A document restricted by a moderation decision stays private until an admin lifts it: every path that widens access (access mode, password, shares, workspace move, publishing) calls `assertNotModerationRestricted` (`utils/privacy/moderationRestriction.ts`).
 
-Workspace actions use the helpers in `utils/workspaces/workspaceAccess.ts`: `canEditDoc` (content), `canManageDoc` (sharing, access mode, delete), `canManageWorkspace` (workspace admin actions). The last admin of a workspace cannot be demoted or removed (409, `LastAdminError`).
+Workspace actions use the helpers in `utils/access/workspaceAccess.ts`: `canEditDoc` (content), `canManageDoc` (sharing, access mode, delete), `canManageWorkspace` (workspace admin actions). The last admin of a workspace cannot be demoted or removed (409, `LastAdminError`).
 
 ### Anonymous documents
 
@@ -101,7 +106,7 @@ A handler refuses with `apiError(code, params)` (`server/utils/api/apiError.ts`)
 
 ## Background jobs
 
-Every periodic job is one plugin file in `server/plugins/` that calls `defineSweeper` (`utils/platform/defineSweeper.ts`). The helper implements the shared behaviour once: startup delay and interval, no overlapping runs in one process, the cross-instance advisory lock (`utils/platform/sweepLock.ts`, so only one app instance runs each job), waiting for migrations (`utils/platform/migrations.ts`), one log line per run that returns a summary, failures logged and sent to Sentry (throttled), and timers cleared on Nitro `close`. Nothing is scheduled during the build's prerender.
+Every periodic job is one plugin file in `server/plugins/` that calls `defineSweeper` (`utils/platform/defineSweeper.ts`). The helper implements the shared behaviour once: startup delay and interval, no overlapping runs in one process, the cross-instance advisory lock (`repos/sweepLocks.ts`, so only one app instance runs each job), waiting for migrations (`utils/platform/migrations.ts`), one log line per run that returns a summary, failures logged and sent to Sentry (throttled), and timers cleared on Nitro `close`. Nothing is scheduled during the build's prerender.
 
 To add a sweeper: add a row to `SWEEPS` in `server/config/sweeps.ts`, then add a plugin file:
 
@@ -135,6 +140,6 @@ Options for the exceptions: `enabled` (checked once at boot, e.g. `isBillingEnab
 
 ## Other subsystems
 
-- History and restore: `utils/documents/historyReplay.ts` rebuilds a past document from the `yjs_updates` log up to a boundary id stored on the activity row (all access to that table is in `utils/documents/yjsLog.ts`); `textDiff.ts` caps a diff at 200 hunks; `restoreDoc.ts` serialises restores per document with `pg_advisory_xact_lock`. The UI side is in `app/components/collab/AGENTS.md`.
+- History and restore: `utils/documents/historyReplay.ts` rebuilds a past document from the `yjs_updates` log up to a boundary id stored on the activity row (all access to that table is in `repos/yjsLog.ts`); `textDiff.ts` caps a diff at 200 hunks; `restoreDoc.ts` serialises restores per document with `pg_advisory_xact_lock`. The UI side is in `app/components/collab/AGENTS.md`.
 - Server-rendered PDF and page images: `utils/rendering/renderClient.ts` flushes pending edits on the sync server, then renders through the renderer container, cached in S3 by snapshot id. A failed render is an error; there is no fallback to browser printing.
 - Workspace knowledge base: [knowledge-base.md](knowledge-base.md). Billing and plan limits: [billing.md](billing.md). Migrations: [database.md](database.md).

@@ -6,6 +6,7 @@ import { countOwnedWorkspacesByUser, listWorkspacesForUser } from '../../repos/w
 import { countKnowledgeByUploader, sumKnowledgeBytesByUploader } from '../../repos/knowledge'
 import { sumImageBytesByUploader } from '../../repos/uploads'
 import { getTiers } from '~~/server/utils/billing/tierConfig'
+import type { UserScope } from '../../repos/proofs'
 
 /**
  * Session-level billing summary for the current user. Drives:
@@ -18,18 +19,18 @@ import { getTiers } from '~~/server/utils/billing/tierConfig'
  */
 export default defineApiHandler({
   access: allow.user(),
-  handler: async ({ user }) => {
+  handler: async ({ user, self }) => {
     const userId = user.id
     const ctx = await resolveBillingContext(userId, null)
     const tier = getTiers()[ctx.plan]
 
     const [ownedWorkspaces, knowledgeFiles, knowledgeBytes, imageBytes] = await Promise.all([
-      countOwnedWorkspacesByUser(userId),
+      countOwnedWorkspacesByUser(self),
       // Personal storage only: files and images in Team / Business
       // workspaces count against those workspaces' pools.
-      countKnowledgeByUploader(userId, { excludePooled: isBillingEnabled() }),
-      sumKnowledgeBytesByUploader(userId, { excludePooled: isBillingEnabled() }),
-      sumImageBytesByUploader(userId, { excludePooled: isBillingEnabled() })
+      countKnowledgeByUploader(self, { excludePooled: isBillingEnabled() }),
+      sumKnowledgeBytesByUploader(self, { excludePooled: isBillingEnabled() }),
+      sumImageBytesByUploader(self, { excludePooled: isBillingEnabled() })
     ])
 
     return {
@@ -50,13 +51,13 @@ export default defineApiHandler({
       // AI credit top-ups: balance + purchases. Null with billing off.
       credits: isBillingEnabled() ? await creditBalanceView({ type: 'user', id: String(userId) }) : null,
       // Workspaces whose Team / Business plan covers the user inside them.
-      coveringWorkspaces: await coveringWorkspaces(userId)
+      coveringWorkspaces: await coveringWorkspaces(self)
     }
   }
 })
 
-async function coveringWorkspaces(userId: number): Promise<Array<{ workspaceId: string, name: string, plan: 'team' | 'business' }>> {
-  const rows = await listWorkspacesForUser(userId)
+async function coveringWorkspaces(self: UserScope): Promise<Array<{ workspaceId: string, name: string, plan: 'team' | 'business' }>> {
+  const rows = await listWorkspacesForUser(self)
   const plans = await pooledPlansFor(rows.map(r => r.workspaceId))
   return rows.flatMap((r) => {
     const plan = plans.get(r.workspaceId)

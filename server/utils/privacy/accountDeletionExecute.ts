@@ -35,6 +35,7 @@ import { deleteAllMemberKeys, endWorkspaceBilling, handOverBillingAdmin } from '
 import { deleteCreditsForSubject } from '../../repos/aiCreditGrants'
 import { useEnv } from '~~/shared/env/load'
 import { useLogger } from '../platform/logger'
+import { system, type UserScope } from '../../repos/proofs'
 
 const log = useLogger('account-deletion')
 
@@ -75,10 +76,17 @@ export interface ExecuteAccountDeletionResult {
   summary: AccountDeletionSummary
 }
 
+/**
+ * The deletion job acts on everything the account holds: its own rows
+ * (`user`), the workspaces it leaves or takes down, its documents.
+ */
+const JOB = system('account-deletion')
+
 export async function executeAccountDeletion(
   args: ExecuteAccountDeletionArgs
 ): Promise<ExecuteAccountDeletionResult> {
   const userId = args.userId
+  const user = JOB.user(userId)
 
   // Pre-read for the audit row + Stripe customer id. Read-then-act
   // is fine here — the advisory lock at the sweeper level has
@@ -92,38 +100,38 @@ export async function executeAccountDeletion(
   const stripeCustomerId = userRow.stripeCustomerId
   const summary = emptySummary()
 
-  summary.commentsAnonymised = await anonymiseCommentsByAuthor(userId)
-  summary.activityAnonymised = await anonymiseActivityByUser(userId)
-  const cascadeWorkspaceIds = await processWorkspaceMemberships(userId, summary)
+  summary.commentsAnonymised = await anonymiseCommentsByAuthor(user)
+  summary.activityAnonymised = await anonymiseActivityByUser(user)
+  const cascadeWorkspaceIds = await processWorkspaceMemberships(user, summary)
   // Team / Business: billing-admin role → longest-serving other
   // admin (after the promotion above), else the subscription ends at the
   // period end. Cascade-deleted workspaces cancel instead.
-  summary.billingAdminHandovers = await handOverBillingAdmin(userId, cascadeWorkspaceIds)
+  summary.billingAdminHandovers = await handOverBillingAdmin(JOB, userId, cascadeWorkspaceIds)
   await cascadeDeleteWorkspaces(cascadeWorkspaceIds, summary)
-  await deleteOwnedDocs(userId, summary)
+  await deleteOwnedDocs(user, summary)
 
   // The user's keys in workspace LiteLLM teams (the tokens live on the
   // membership rows, so before they go).
   summary.workspaceKeysDeleted = await deleteAllMemberKeys(userId)
   // Personal AI credit top-ups (no FK to users).
   summary.creditGrantsDeleted = await deleteCreditsForSubject({ type: 'user', id: String(userId) })
-  const removed = await removeAllMemberships(userId)
+  const removed = await removeAllMemberships(user)
   summary.workspaceMembershipsRemoved = removed.length
 
-  summary.aiSessionsDeleted = await deleteAiSessionsByUser(userId)
-  summary.themesDeleted = await deleteThemesByUser(userId)
+  summary.aiSessionsDeleted = await deleteAiSessionsByUser(user)
+  summary.themesDeleted = await deleteThemesByUser(user)
   // BYOK provider configs hold third-party API keys (encrypted). The FK
   // CASCADE would drop them with the user row anyway; deleting
   // explicitly makes the count visible in the audit summary.
-  summary.aiProvidersDeleted = await deleteAllAiProvidersForUser(userId)
+  summary.aiProvidersDeleted = await deleteAllAiProvidersForUser(user)
   // Pending invitations addressed to the user's email (someone else
   // typed the address; the person is leaving, so it goes). Invites the
   // user SENT keep existing for their workspace; `invited_by_user_id`
   // is SET NULL by the FK with the user row.
   const inviteEmail = normaliseInviteEmail(userRow.email)
-  summary.workspaceInvitesDeleted = inviteEmail === null ? 0 : await deleteInvitesForEmail(inviteEmail)
+  summary.workspaceInvitesDeleted = inviteEmail === null ? 0 : await deleteInvitesForEmail(JOB, inviteEmail)
 
-  const exportS3KeysToDelete = await collectExportS3Keys(userId, summary)
+  const exportS3KeysToDelete = await collectExportS3Keys(user, summary)
 
   // LiteLLM virtual key + user record. Before the row delete: the
   // encrypted key token lives on the users row. Best effort, never
@@ -135,7 +143,7 @@ export async function executeAccountDeletion(
   // `activity_log`, `audit_log`, `abuse_reports`, `uploads.uploader_id`,
   // and `workspace_knowledge.uploader_id` all CASCADE / SET NULL via
   // FK and are handled by this row delete.
-  await deleteUserRow(userId)
+  await deleteUserRow(user)
 
   // Side effects after the local commit. Stripe + S3 failures must not
   // roll back the local deletion (which has already committed).
@@ -149,7 +157,7 @@ export async function executeAccountDeletion(
   // `metadata.summary` carry the FINAL state — including the
   // post-Stripe `stripeCustomerDeleted` flag.
   await appendAuditEvent({
-    actorUserId: null,
+    by: JOB,
     actorIp: null,
     scope: 'user',
     scopeId: String(userId),
@@ -173,14 +181,15 @@ export async function executeAccountDeletion(
  * left for the bulk membership-drop in `removeAllMemberships`.
  */
 async function processWorkspaceMemberships(
-  userId: number,
+  user: UserScope,
   summary: AccountDeletionSummary
 ): Promise<string[]> {
-  const memberships = await listMembershipsForUser(userId)
+  const userId = user.userId
+  const memberships = await listMembershipsForUser(user)
   const cascadeWorkspaceIds: string[] = []
 
   for (const m of memberships) {
-    const others = await listOtherMembers(m.workspaceId, userId)
+    const others = await listOtherMembers(JOB.workspace(m.workspaceId), userId)
     if (others.length === 0) {
       // Sole member — cascade-delete the entire workspace.
       cascadeWorkspaceIds.push(m.workspaceId)
@@ -194,7 +203,7 @@ async function processWorkspaceMemberships(
     const promote = others.find(o => o.role === 'admin')
       ?? others.find(o => o.role === 'editor')
       ?? must(others[0], 'another member (sole-member workspaces cascade above)')
-    await promoteWorkspaceAdmin(m.workspaceId, userId, promote.userId)
+    await promoteWorkspaceAdmin(JOB.workspace(m.workspaceId), userId, promote.userId)
     summary.workspacesPromoted += 1
   }
   return cascadeWorkspaceIds
@@ -215,9 +224,9 @@ async function cascadeDeleteWorkspaces(
   // subscription Stripe won't cancel throws here, before anything of
   // these workspaces is deleted; the sweep retries the account later.
   for (const wsId of cascadeWorkspaceIds) {
-    await endWorkspaceBilling(wsId, null)
+    await endWorkspaceBilling(JOB.workspace(wsId))
   }
-  const docIds = await listDocIdsInWorkspaces(cascadeWorkspaceIds)
+  const docIds = await listDocIdsInWorkspaces(JOB, cascadeWorkspaceIds)
   for (const docId of docIds) {
     await deleteOneDoc(docId, 'cascade_doc_failed', summary)
   }
@@ -226,16 +235,18 @@ async function cascadeDeleteWorkspaces(
   // the original S3 objects are usually already gone (deleted post-
   // processing). `deleteKnowledgeArtifact` tolerates 404.
   for (const wsId of cascadeWorkspaceIds) {
-    const knowledgeRows = await listKnowledge(wsId)
+    const ws = JOB.workspace(wsId)
+    const knowledgeRows = await listKnowledge(ws)
     for (const row of knowledgeRows) {
-      await deleteKnowledgeArtifact(row.knowledgeId)
+      await deleteKnowledgeArtifact(ws, row.knowledgeId)
     }
   }
   // Drop the workspace rows themselves — workspace_members cascade via FK.
   // Brand-kit objects: keys read before the rows cascade away.
   for (const wsId of cascadeWorkspaceIds) {
-    const brandKeys = await collectBrandObjectKeys(wsId)
-    await deleteWorkspaceRow(wsId)
+    const ws = JOB.workspace(wsId)
+    const brandKeys = await collectBrandObjectKeys(ws)
+    await deleteWorkspaceRow(ws)
     await deleteBrandObjects(brandKeys)
   }
 }
@@ -245,8 +256,8 @@ async function cascadeDeleteWorkspaces(
  * workspaces). After cascadeDeleteWorkspaces these are standalone or
  * co-member-workspace docs.
  */
-async function deleteOwnedDocs(userId: number, summary: AccountDeletionSummary): Promise<void> {
-  const remaining = await listOwnedDocIds(userId)
+async function deleteOwnedDocs(user: UserScope, summary: AccountDeletionSummary): Promise<void> {
+  const remaining = await listOwnedDocIds(user)
   for (const docId of remaining) {
     await deleteOneDoc(docId, 'owned_doc_failed', summary)
   }
@@ -260,7 +271,7 @@ async function deleteOwnedDocs(userId: number, summary: AccountDeletionSummary):
  */
 async function deleteOneDoc(docId: string, sentryEvent: string, summary: AccountDeletionSummary): Promise<void> {
   try {
-    await deleteDocument(docId)
+    await deleteDocument(JOB.doc(docId))
     summary.ownedDocsDeleted += 1
   } catch (e) {
     log.error('document cleanup failed', { step: sentryEvent, docId, err: e })
@@ -276,8 +287,8 @@ async function deleteOneDoc(docId: string, sentryEvent: string, summary: Account
  * data_export_jobs rows CASCADE via FK on user delete; we capture the
  * keys now so the post-commit S3 cleanup has somewhere to look).
  */
-async function collectExportS3Keys(userId: number, summary: AccountDeletionSummary): Promise<string[]> {
-  const jobs = await listAllJobsForUser(userId)
+async function collectExportS3Keys(user: UserScope, summary: AccountDeletionSummary): Promise<string[]> {
+  const jobs = await listAllJobsForUser(user)
   summary.dataExportJobsDeleted = jobs.length
   return jobs
     .map(j => j.s3Key)

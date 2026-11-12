@@ -2,8 +2,7 @@ import { docIdForPublishedUrl } from '../utils/publish/takeDown'
 import { createHash } from 'node:crypto'
 import type { z } from 'zod'
 import { nanoid } from 'nanoid'
-import { abuseReports } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { insertAbuseReport } from '../repos/abuseReports'
 import { truncateIp, appendAuditEvent } from '../repos/audit'
 import { AUDIT_ABUSE_REPORTED } from '../legal/auditActions'
 import { checkRateLimit } from '../utils/platform/rateLimit'
@@ -95,8 +94,8 @@ function readReporterContact(
 export default defineApiHandler({
   access: allow.public('DSA Art.16 notices are open to everyone; anonymous reporters pass the ALTCHA bot check and per-client limits, signed-in ones the per-user limit', { session: 'optional' }),
   body: submitAbuseReportBody,
-  handler: async ({ event, user, body }) => {
-    const userId = user?.id ?? null
+  handler: async ({ event, self, body }) => {
+    const userId = self?.userId ?? null
 
     if (userId === null && !anonGateEnabled()) throw apiError('abuse/login-required')
 
@@ -121,11 +120,10 @@ export default defineApiHandler({
     const userAgentHash = userAgent ? createHash('sha256').update(userAgent).digest('hex') : null
 
     const reportId = `rep-${nanoid(16)}`
-    await useDatabase().insert(abuseReports).values({
+    await insertAbuseReport(self, {
       reportId,
       docId,
       contentUrl,
-      reporterUserId: userId,
       reporterEmail: reporterEmail || null,
       reporterName: reporterName || null,
       reporterLocale: locale,
@@ -133,12 +131,12 @@ export default defineApiHandler({
       reporterIpTruncated: truncateIp(rawIp),
       reporterUserAgentHash: userAgentHash,
       category,
-      body: reportBody,
-      status: 'open'
+      body: reportBody
     })
 
     await appendAuditEvent({
-      actorUserId: userId,
+      // The reporter when signed in; an anonymous reporter holds no proof.
+      by: self,
       actorIp: rawIp,
       scope: 'system',
       scopeId: reportId,

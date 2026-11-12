@@ -1,6 +1,4 @@
-import { eq } from 'drizzle-orm'
-import { documents, users } from '../../db/schema'
-import { useDatabase } from '../platform/database'
+import { getDocPlanSubject, getStoredUserPlan } from '../../repos/plans'
 import { getTiers } from '../billing/tierConfig'
 import { effectivePlan, isBillingEnabled, limitRecovery, limitUpgradeHint } from '../billing/billingMode'
 import { getPooledWorkspace, workspacePoolCaps } from '../billing/workspaceBilling'
@@ -19,13 +17,7 @@ import { apiError } from '../api/apiError'
 
 /** The user's image byte quota under their effective plan. */
 async function resolveImageQuotaBytes(userId: number): Promise<number> {
-  const db = useDatabase()
-  const rows = await db
-    .select({ plan: users.plan, planValidUntil: users.planValidUntil })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1)
-  const row = rows[0]
+  const row = await getStoredUserPlan(userId)
   const plan = row ? effectivePlan(row.plan, row.planValidUntil) : 'free'
   return getTiers()[plan].imageBytesPerUser
 }
@@ -47,7 +39,7 @@ export async function resolveImageQuota(userId: number, docId: string | null, ta
   const workspaceId = targetWorkspaceId !== undefined
     ? targetWorkspaceId
     : docId
-      ? (await useDatabase().select({ workspaceId: documents.workspaceId }).from(documents).where(eq(documents.docId, docId)).limit(1))[0]?.workspaceId ?? null
+      ? (await getDocPlanSubject(docId))?.workspaceId ?? null
       : null
   const pool = await getPooledWorkspace(workspaceId)
   if (pool) {

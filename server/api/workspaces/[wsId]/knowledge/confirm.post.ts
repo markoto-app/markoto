@@ -1,7 +1,6 @@
 import { CopyObjectCommand, HeadObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
-import { sql } from 'drizzle-orm'
-import { createKnowledge, disambiguateFilename } from '../../../../repos/knowledge'
-import { useDatabase } from '../../../../utils/platform/database'
+import { createKnowledge, disambiguateFilename, lockWorkspaceKnowledge } from '../../../../repos/knowledge'
+import { withTransaction } from '../../../../repos/transaction'
 import { resolveEmbeddingsConfig, embeddingVersionTag } from '../../../../utils/knowledge/embeddings'
 import { processKnowledge } from '../../../../utils/knowledge/processKnowledge'
 import { requireContentMatchesExtension } from '../../../../utils/storage/fileTypeGuard'
@@ -51,7 +50,7 @@ const SAFE_KEY_RE = /^workspaces\/[A-Za-z0-9_-]+\/knowledge\/[A-Za-z0-9_-]+\.[A-
 export default defineApiHandler({
   access: allow.workspace('editor', { deny: 'knowledge/editor-required' }),
   body: confirmKnowledgeUploadBody,
-  handler: async ({ user, wsId, body }) => {
+  handler: async ({ user, wsId, body, workspaceAccess, self }) => {
     const userId = user.id
     const { knowledgeId, s3Key, filename, ext, mimeType } = body
     if (!SAFE_KEY_RE.test(s3Key) || !s3Key.startsWith(`workspaces/${wsId}/knowledge/`)) {
@@ -131,20 +130,17 @@ export default defineApiHandler({
       }
 
       const embeddingVersion = embeddingVersionTag(resolveEmbeddingsConfig())
-      const db = useDatabase()
 
-      // Advisory lock + recheck + insert inside one transaction. The
-      // hashtext() → bigint cast gives us a stable 64-bit key from the
-      // workspace id. `pg_advisory_xact_lock` auto-releases at commit.
+      // Per-workspace lock + recheck + insert inside one transaction (the
+      // lock releases at commit).
       let safeName: string
       try {
-        safeName = await db.transaction(async (tx) => {
-          await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${wsId}))`)
-          await assertCapsOnConfirm({ workspaceId: wsId, userId, size: sizeBytes })
-          const name = await disambiguateFilename(wsId, filename)
-          await createKnowledge({
+        safeName = await withTransaction(async (tx) => {
+          await lockWorkspaceKnowledge(workspaceAccess, tx)
+          await assertCapsOnConfirm({ ws: workspaceAccess, self, size: sizeBytes })
+          const name = await disambiguateFilename(workspaceAccess, filename)
+          await createKnowledge(workspaceAccess, {
             knowledgeId,
-            workspaceId: wsId,
             filename: name,
             sourceExt: ext,
             mimeType,
@@ -152,7 +148,7 @@ export default defineApiHandler({
             s3Key,
             embeddingVersion,
             uploaderId: userId
-          })
+          }, tx)
           return name
         })
       } catch (e) {

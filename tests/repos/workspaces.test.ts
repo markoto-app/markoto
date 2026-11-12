@@ -15,6 +15,7 @@ import {
   setMemberRole
 } from '../integration/setup/fixtures'
 import { first } from '../helpers/assert'
+import { asUser, wsAs } from '../helpers/access'
 
 async function memberCount(workspaceId: string): Promise<number> {
   const db = testDb()
@@ -38,8 +39,8 @@ describe('createWorkspace', () => {
 
   it('inserts the workspace row AND the creator-admin member row', async () => {
     const user = await createUser()
-    await createWorkspace({ workspaceId: 'ws-1', ownerId: user.id, name: 'Team', description: null })
-    const ws = await getWorkspace('ws-1')
+    await createWorkspace(asUser(user.id), { workspaceId: 'ws-1', name: 'Team', description: null })
+    const ws = await getWorkspace(wsAs('ws-1'))
     expect(ws).not.toBeNull()
     expect(ws!.ownerId).toBe(user.id)
     expect(await memberCount('ws-1')).toBe(1)
@@ -47,7 +48,7 @@ describe('createWorkspace', () => {
 
   it('creator\'s membership row carries role=admin', async () => {
     const user = await createUser()
-    await createWorkspace({ workspaceId: 'ws-a', ownerId: user.id, name: 'X', description: null })
+    await createWorkspace(asUser(user.id), { workspaceId: 'ws-a', name: 'X', description: null })
     const db = testDb()
     const r = await db.query<{ role: string }>(
       'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
@@ -64,9 +65,9 @@ describe('createWorkspace', () => {
     // has an FK to users(id)). The transaction should roll back the workspaces INSERT that landed earlier in the
     // same tx.
     await expect(
-      createWorkspace({ workspaceId: 'ws-bad', ownerId: 99999, name: 'Ghost', description: null })
+      createWorkspace(asUser(99999), { workspaceId: 'ws-bad', name: 'Ghost', description: null })
     ).rejects.toThrow()
-    expect(await getWorkspace('ws-bad')).toBeNull()
+    expect(await getWorkspace(wsAs('ws-bad'))).toBeNull()
     expect(await workspaceCount()).toBe(0)
   })
 })
@@ -79,30 +80,30 @@ describe('updateWorkspace', () => {
   it('applies a name update', async () => {
     const user = await createUser()
     const ws = await seedWorkspace(user.id)
-    await updateWorkspace(ws.workspaceId, { name: 'Renamed' })
-    expect((await getWorkspace(ws.workspaceId))!.name).toBe('Renamed')
+    await updateWorkspace(wsAs(ws.workspaceId), { name: 'Renamed' })
+    expect((await getWorkspace(wsAs(ws.workspaceId)))!.name).toBe('Renamed')
   })
 
   it('applies a description update (including null)', async () => {
     const user = await createUser()
     const ws = await seedWorkspace(user.id)
-    await updateWorkspace(ws.workspaceId, { description: 'hi' })
-    expect((await getWorkspace(ws.workspaceId))!.description).toBe('hi')
-    await updateWorkspace(ws.workspaceId, { description: null })
-    expect((await getWorkspace(ws.workspaceId))!.description).toBeNull()
+    await updateWorkspace(wsAs(ws.workspaceId), { description: 'hi' })
+    expect((await getWorkspace(wsAs(ws.workspaceId)))!.description).toBe('hi')
+    await updateWorkspace(wsAs(ws.workspaceId), { description: null })
+    expect((await getWorkspace(wsAs(ws.workspaceId)))!.description).toBeNull()
   })
 
   it('is a no-op when update object is empty', async () => {
     const user = await createUser()
     const ws = await seedWorkspace(user.id)
-    const before = (await getWorkspace(ws.workspaceId))!
-    await updateWorkspace(ws.workspaceId, {})
-    const after = (await getWorkspace(ws.workspaceId))!
+    const before = (await getWorkspace(wsAs(ws.workspaceId)))!
+    await updateWorkspace(wsAs(ws.workspaceId), {})
+    const after = (await getWorkspace(wsAs(ws.workspaceId)))!
     expect(after.name).toBe(before.name)
   })
 
   it('throws NotFoundError for a nonexistent workspaceId', async () => {
-    await expect(updateWorkspace('missing', { name: 'x' }))
+    await expect(updateWorkspace(wsAs('missing'), { name: 'x' }))
       .rejects.toBeInstanceOf(NotFoundError)
   })
 })
@@ -115,8 +116,8 @@ describe('deleteWorkspaceRow', () => {
   it('removes the workspace row', async () => {
     const user = await createUser()
     const ws = await seedWorkspace(user.id)
-    await deleteWorkspaceRow(ws.workspaceId)
-    expect(await getWorkspace(ws.workspaceId)).toBeNull()
+    await deleteWorkspaceRow(wsAs(ws.workspaceId))
+    expect(await getWorkspace(wsAs(ws.workspaceId))).toBeNull()
   })
 
   it('cascades workspace_members via the FK', async () => {
@@ -125,7 +126,7 @@ describe('deleteWorkspaceRow', () => {
     const ws = await seedWorkspace(user.id)
     await setMemberRole(ws.workspaceId, other.id, 'editor')
     expect(await memberCount(ws.workspaceId)).toBe(2)
-    await deleteWorkspaceRow(ws.workspaceId)
+    await deleteWorkspaceRow(wsAs(ws.workspaceId))
     expect(await memberCount(ws.workspaceId)).toBe(0)
   })
 
@@ -136,7 +137,7 @@ describe('deleteWorkspaceRow', () => {
     const user = await createUser()
     const ws = await seedWorkspace(user.id)
     const doc = await seedDoc({ ownerId: user.id, workspaceId: ws.workspaceId })
-    await deleteWorkspaceRow(ws.workspaceId)
+    await deleteWorkspaceRow(wsAs(ws.workspaceId))
     const db = testDb()
     const r = await db.query<{ workspace_id: string | null }>(
       'SELECT workspace_id FROM documents WHERE doc_id = $1', [doc.docId]
@@ -156,7 +157,7 @@ describe('listWorkspacesForUser', () => {
     const wsA = await seedWorkspace(alice.id)
     const wsB = await seedWorkspace(bob.id)
     await setMemberRole(wsA.workspaceId, bob.id, 'editor')
-    const rows = await listWorkspacesForUser(bob.id)
+    const rows = await listWorkspacesForUser(asUser(bob.id))
     const byId = new Map(rows.map(r => [r.workspaceId, r]))
     expect(byId.get(wsA.workspaceId)?.role).toBe('editor')
     expect(byId.get(wsB.workspaceId)?.role).toBe('admin')
@@ -168,14 +169,14 @@ describe('listWorkspacesForUser', () => {
     const ws = await seedWorkspace(u.id)
     await seedDoc({ ownerId: u.id, workspaceId: ws.workspaceId })
     await seedDoc({ ownerId: u.id, workspaceId: ws.workspaceId })
-    const rows = await listWorkspacesForUser(u.id)
+    const rows = await listWorkspacesForUser(asUser(u.id))
     expect(first(rows).docCount).toBe(2)
   })
 
   it('empty workspaces still appear with docCount=0 and lastActive=null', async () => {
     const u = await createUser()
     await seedWorkspace(u.id)
-    const rows = await listWorkspacesForUser(u.id)
+    const rows = await listWorkspacesForUser(asUser(u.id))
     expect(rows.length).toBe(1)
     expect(first(rows).docCount).toBe(0)
     expect(first(rows).lastActive).toBeNull()
@@ -194,11 +195,11 @@ describe('createWorkspace — race', () => {
     // workspaces exist afterwards.
     const user = await createUser()
     await Promise.all([
-      createWorkspace({ workspaceId: 'race-a', ownerId: user.id, name: 'A', description: null }),
-      createWorkspace({ workspaceId: 'race-b', ownerId: user.id, name: 'B', description: null })
+      createWorkspace(asUser(user.id), { workspaceId: 'race-a', name: 'A', description: null }),
+      createWorkspace(asUser(user.id), { workspaceId: 'race-b', name: 'B', description: null })
     ])
-    expect(await getWorkspace('race-a')).not.toBeNull()
-    expect(await getWorkspace('race-b')).not.toBeNull()
+    expect(await getWorkspace(wsAs('race-a'))).not.toBeNull()
+    expect(await getWorkspace(wsAs('race-b'))).not.toBeNull()
     expect(await memberCount('race-a')).toBe(1)
     expect(await memberCount('race-b')).toBe(1)
   })

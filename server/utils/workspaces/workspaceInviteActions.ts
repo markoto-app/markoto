@@ -14,6 +14,7 @@ import {
 } from '../../legal/auditActions'
 import { normaliseInviteEmail, parseInviteId } from './workspaceInvites'
 import { getClientIp } from '../platform/clientIp'
+import type { UserScope } from '../../repos/proofs'
 
 // Invitee-side accept / decline, shared by the in-app endpoints
 // (`/api/user/invites/:inviteId/{accept,decline}`) and the email-link
@@ -40,12 +41,12 @@ export async function inAppInviteSelector(userId: number, rawInviteId: string): 
 export type InviteAccepted = { ok: true, action: 'accept', workspaceId: string, workspaceName: string, role: ResolvedInvite['role'] }
 export type InviteDeclined = { ok: true, action: 'decline' }
 
-export async function acceptInviteForUser(event: H3Event, userId: number, selector: InviteSelector): Promise<InviteAccepted> {
-  const accepted = await acceptWorkspaceInvite(selector, userId, new Date())
+export async function acceptInviteForUser(event: H3Event, self: UserScope, selector: InviteSelector): Promise<InviteAccepted> {
+  const accepted = await acceptWorkspaceInvite(self, selector, new Date())
   if (!accepted) throw apiError('workspace/invite-not-found')
 
   await appendAuditEvent({
-    actorUserId: userId,
+    by: self,
     actorIp: getClientIp(event),
     scope: 'workspace',
     scopeId: accepted.workspaceId,
@@ -64,12 +65,12 @@ export async function acceptInviteForUser(event: H3Event, userId: number, select
   }
 }
 
-export async function declineInviteForUser(event: H3Event, userId: number, selector: InviteSelector): Promise<InviteDeclined> {
-  const declined = await declineWorkspaceInvite(selector)
+export async function declineInviteForUser(event: H3Event, self: UserScope, selector: InviteSelector): Promise<InviteDeclined> {
+  const declined = await declineWorkspaceInvite(self, selector)
   if (!declined) throw apiError('workspace/invite-not-found')
 
   await appendAuditEvent({
-    actorUserId: userId,
+    by: self,
     actorIp: getClientIp(event),
     scope: 'workspace',
     scopeId: declined.workspaceId,

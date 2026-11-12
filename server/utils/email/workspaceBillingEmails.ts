@@ -1,6 +1,5 @@
-import { and, eq, isNotNull } from 'drizzle-orm'
-import { users, workspaceMembers, workspaces } from '../../db/schema'
-import { useDatabase } from '../platform/database'
+import { getWorkspaceAdminContacts } from '../../repos/workspaceBilling'
+import { system } from '../../repos/proofs'
 import { useValkey } from '../platform/valkey'
 import { emailLinkBaseUrl } from '../platform/siteUrl'
 import { safeSendTransactionalEmail } from './sendEmail'
@@ -129,14 +128,9 @@ export async function notifyWorkspaceAdmins(args: {
       const claimed = await useValkey().set(`ws-billing-email:${args.onceKey}`, '1', 'EX', ONCE_TTL_SECONDS, 'NX')
       if (claimed !== 'OK') return 0
     }
-    const db = useDatabase()
-    const ws = (await db.select({ name: workspaces.name }).from(workspaces).where(eq(workspaces.workspaceId, args.workspaceId)).limit(1))[0]
+    const ws = await getWorkspaceAdminContacts(system('workspace-billing'), args.workspaceId)
     if (!ws) return 0
-    const admins = await db
-      .select({ id: users.id, email: users.email, locale: users.locale })
-      .from(workspaceMembers)
-      .innerJoin(users, eq(users.id, workspaceMembers.userId))
-      .where(and(eq(workspaceMembers.workspaceId, args.workspaceId), eq(workspaceMembers.role, 'admin'), isNotNull(users.email)))
+    const admins = ws.admins
     const base = emailLinkBaseUrl(useEnv().core.siteUrl)
     const billingUrl = base ? `${base}/w/${encodeURIComponent(args.workspaceId)}?tab=billing` : null
     let sent = 0

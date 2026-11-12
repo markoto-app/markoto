@@ -13,6 +13,7 @@ import { samlAcsUrl, samlSpEntityId, ssoBaseUrl, ssoCallbackUrl } from './http'
 import { DOMAIN_TXT_PREFIX } from './domains'
 import { apiError } from '../api/apiError'
 import { trimTrailingSlashes } from '~~/shared/utils/trimTrailingSlashes'
+import type { WorkspaceAccess } from '../../repos/proofs'
 
 function invalid(field: string, detail: string): Error {
   return apiError('sso/invalid-settings', { field, detail })
@@ -140,9 +141,10 @@ export function domainView(d: SsoDomainRow) {
   return { id: d.id, domain: d.domain, verified: d.verifiedAt !== null, txtName: d.domain, txtValue: `${DOMAIN_TXT_PREFIX}${d.verificationToken}` }
 }
 
-export async function ssoSettingsView(event: H3Event, wsId: string, connection: SsoConnectionRow | null): Promise<SsoSettingsView> {
+export async function ssoSettingsView(event: H3Event, ws: WorkspaceAccess<'admin'>, connection: SsoConnectionRow | null): Promise<SsoSettingsView> {
+  const wsId = ws.workspaceId
   const available = planHasFeature(await resolveWorkspacePlan(wsId), 'sso')
-  const domains = (await listSsoDomains(wsId)).map(domainView)
+  const domains = (await listSsoDomains(ws)).map(domainView)
   if (!connection) return { available, connection: null, domains }
   const base = ssoBaseUrl(event)
   return {

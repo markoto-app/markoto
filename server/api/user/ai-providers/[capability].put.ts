@@ -25,12 +25,12 @@ export default defineApiHandler({
   body: saveAiProviderBody,
   invalidCode: 'ai-provider/invalid',
   rateLimit: { namespace: 'ai-provider-save', max: 20, windowMs: 10 * MINUTE_MS, key: 'user', error: 'ai-provider/rate-limited' },
-  handler: async ({ event, user, params, body }) => {
+  handler: async ({ event, user, params, body, self }) => {
     const userId = user.id
     const { capability } = params
 
     const billing = await resolveBillingContext(userId, null)
-    const outcome = await saveUserProvider(userId, capability, body, billing.virtualKey)
+    const outcome = await saveUserProvider(self, capability, body, billing.virtualKey)
 
     // The refusal sentences are fixed, key-free texts of the provider layer
     // (`providerErrorMessage`, never upstream text); they stay the message.
@@ -52,7 +52,7 @@ export default defineApiHandler({
 
     const ip = getClientIp(event)
     await appendAuditEvent({
-      actorUserId: userId,
+      by: self,
       actorIp: truncateIp(ip),
       scope: 'user',
       scopeId: String(userId),

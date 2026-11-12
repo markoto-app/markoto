@@ -22,14 +22,13 @@ export default defineApiHandler({
   // sign-in through it, gets 403 `sso/required` with the sign-in link; anyone
   // else without a role gets 404 so membership isn't enumerable.
   access: allow.workspace('member', { ssoHint: true }),
-  handler: async ({ user, wsId, role: myRole }) => {
-    const ws = await getWorkspace(wsId)
+  handler: async ({ wsId, role: myRole, workspaceAccess }) => {
+    const ws = await getWorkspace(workspaceAccess)
     if (!ws) throw apiError('workspace/not-found')
-    const userId = user.id
 
     const [documents, members, pool] = await Promise.all([
-      listWorkspaceDocsWithOwnerFlag(wsId, userId),
-      listMembers(wsId),
+      listWorkspaceDocsWithOwnerFlag(workspaceAccess),
+      listMembers(workspaceAccess),
       getPooledWorkspace(wsId)
     ])
     // Team / Business, admins only: the seat counter in the invite
@@ -40,7 +39,7 @@ export default defineApiHandler({
       const sub = pool?.subscription ?? await getWorkspaceSubscription(wsId)
       if (sub?.stripeSubscriptionId) billing = {
         seats: sub.seats,
-        seatsUsed: await countSeatsUsed(wsId),
+        seatsUsed: await countSeatsUsed(workspaceAccess),
         status: sub.status,
         plan: sub.plan,
         interval: sub.interval,
@@ -66,7 +65,7 @@ export default defineApiHandler({
       guests = { available: planHasFeature(plan, 'guests') }
       brandKit = {
         available: planHasFeature(plan, 'brandKit'),
-        inUse: ws.brandLocked || (await countBrandAssets(wsId, 'font')) + (await countBrandAssets(wsId, 'image')) + (await countWorkspaceTemplates(wsId)) > 0
+        inUse: ws.brandLocked || (await countBrandAssets(workspaceAccess, 'font')) + (await countBrandAssets(workspaceAccess, 'image')) + (await countWorkspaceTemplates(workspaceAccess)) > 0
       }
     }
 

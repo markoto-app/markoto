@@ -9,7 +9,7 @@ import { describe, it, expect } from 'vitest'
 //   - aspect-ratio overrides
 
 describe('image gen — BFL provider message shape', () => {
-  // The custom provider in infra/litellm/custom_handlers.py expects
+  // The custom provider in deploy/config/litellm/custom_handlers.py expects
   // JSON-encoded {prompt, width, height, prompt_upsampling} as the
   // message content. Pin the wire format so a future renaming on
   // either side trips the test instead of silently producing $0

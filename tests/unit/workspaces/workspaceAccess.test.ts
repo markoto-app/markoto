@@ -12,14 +12,14 @@ import { partial } from '../../helpers/fixtures'
 const getDocWithActorRole = vi.fn()
 const getMemberRole = vi.fn()
 
-vi.mock('../../../server/repos/documents', () => ({ getDocWithActorRole }))
-vi.mock('../../../server/repos/workspaceMembers', () => ({ getMemberRole }))
+vi.mock('../../../server/repos/access/docAuthz', () => ({ getDocWithActorRole }))
+vi.mock('../../../server/repos/access/workspaceRoles', () => ({ getMemberRole }))
 
 const {
   canEditDoc,
   canManageDoc,
   getDocAuthz
-} = await import('../../../server/utils/workspaces/workspaceAccess')
+} = await import('../../../server/utils/access/workspaceAccess')
 
 type Ctx = Awaited<ReturnType<typeof getDocWithActorRole>>
 

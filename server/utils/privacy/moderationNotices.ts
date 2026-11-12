@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid'
 import * as Sentry from '@sentry/nuxt'
-import { moderationNotices } from '../../db/schema'
-import { useDatabase } from '../platform/database'
+import { recordModerationNotice } from '../../repos/abuseReports'
+import { system } from '../../repos/proofs'
 import { safeSendTransactionalEmail, type TransactionalEmailKind } from '../email/sendEmail'
 import { NOTICE_COPY, normaliseNoticeLocale, type NoticeLocale } from './moderationNoticeCopy'
 import { isModerationRule, type ModerationAction } from '~~/shared/config/moderation'
@@ -154,7 +154,7 @@ export async function deliverNotice(input: DeliverNoticeInput): Promise<NoticeSt
     status = result?.delivered ? 'sent' : 'failed'
   }
   try {
-    await useDatabase().insert(moderationNotices).values({
+    await recordModerationNotice(system('moderation'), {
       noticeId: `ntc-${nanoid(16)}`,
       reportId: input.reportId,
       kind: input.kind,
@@ -170,7 +170,7 @@ export async function deliverNotice(input: DeliverNoticeInput): Promise<NoticeSt
     Sentry.captureException(e, { tags: { component: 'moderation', event: 'notice_record_failed' } })
   }
   await appendAuditEvent({
-    actorUserId: null,
+    by: system('moderation'),
     actorIp: null,
     scope: 'system',
     scopeId: input.reportId,

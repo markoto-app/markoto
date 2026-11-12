@@ -10,6 +10,7 @@ import { listGrants } from '../../repos/aiCreditGrants'
 import { listSubscriptionsByBillingAdmin } from '../../repos/workspaceSubscriptions'
 import { listPublishedPagesForOwner } from '../../repos/publishedPages'
 import { listCustomDomainsForUser } from '../../repos/customDomains'
+import type { UserScope } from '../../repos/proofs'
 
 // Sections of the GDPR export (`dataExport.ts`) that read through the
 // repos or from Stripe: invitations, the waitlist, AI provider settings,
@@ -24,8 +25,8 @@ export type ExportEntries = Record<string, Uint8Array>
  * Open workspace invitations: addressed to the user's email, and sent by
  * the user. Token hashes are never exported.
  */
-export async function addWorkspaceInvitesEntry(entries: ExportEntries, userId: number, email: string | null): Promise<number> {
-  const { received, sent } = await listInvitesForExport(userId, normaliseInviteEmail(email))
+export async function addWorkspaceInvitesEntry(entries: ExportEntries, user: UserScope, email: string | null): Promise<number> {
+  const { received, sent } = await listInvitesForExport(user, normaliseInviteEmail(email))
   entries['workspace_invites.json'] = strToU8(JSON.stringify({
     received: received.map(r => ({
       workspaceName: r.workspaceName,
@@ -49,8 +50,8 @@ export async function addWorkspaceInvitesEntry(entries: ExportEntries, userId: n
  * signed in). Token hashes are deliberately not exported — see
  * `listWaitlistSignupsForUser`.
  */
-export async function addWaitlistEntry(entries: ExportEntries, userId: number): Promise<number> {
-  const rows = await listWaitlistSignupsForUser(userId)
+export async function addWaitlistEntry(entries: ExportEntries, user: UserScope): Promise<number> {
+  const rows = await listWaitlistSignupsForUser(user)
   entries['waitlist.ndjson'] = strToU8(toNdjson(rows))
   return rows.length
 }
@@ -60,8 +61,8 @@ export async function addWaitlistEntry(entries: ExportEntries, userId: number): 
  * neither the ciphertext nor the last four characters: an export ZIP
  * travels by email link and must not become a credential carrier.
  */
-export async function addAiProvidersEntry(entries: ExportEntries, userId: number): Promise<number> {
-  const rows = await listAiProviders(userId)
+export async function addAiProvidersEntry(entries: ExportEntries, user: UserScope): Promise<number> {
+  const rows = await listAiProviders(user.userId)
   entries['ai/providers.json'] = strToU8(JSON.stringify(rows.map(r => ({
     capability: r.capability,
     baseUrl: r.baseUrl,
@@ -76,8 +77,8 @@ export async function addAiProvidersEntry(entries: ExportEntries, userId: number
 }
 
 /** Workspace subscriptions the user manages as billing admin (always written). */
-export async function addWorkspaceSubscriptionsEntry(entries: ExportEntries, userId: number): Promise<number> {
-  const rows = await listSubscriptionsByBillingAdmin(userId)
+export async function addWorkspaceSubscriptionsEntry(entries: ExportEntries, user: UserScope): Promise<number> {
+  const rows = await listSubscriptionsByBillingAdmin(user.userId)
   entries['billing/workspace_subscriptions.json'] = strToU8(JSON.stringify(rows.map(r => ({
     workspaceId: r.workspaceId,
     plan: r.plan,
@@ -92,8 +93,8 @@ export async function addWorkspaceSubscriptionsEntry(entries: ExportEntries, use
 }
 
 /** Personal AI credit top-ups (always written). */
-export async function addCreditGrantsEntry(entries: ExportEntries, userId: number): Promise<number> {
-  const rows = await listGrants({ type: 'user', id: String(userId) })
+export async function addCreditGrantsEntry(entries: ExportEntries, user: UserScope): Promise<number> {
+  const rows = await listGrants({ type: 'user', id: String(user.userId) })
   entries['billing/ai_credits.json'] = strToU8(JSON.stringify(rows.map(r => ({
     pack: r.pack,
     creditUsd: r.amountUsd,
@@ -108,8 +109,8 @@ export async function addCreditGrantsEntry(entries: ExportEntries, userId: numbe
 }
 
 /** Publishing: web pages of documents you own, your custom domains. */
-export async function addPublishingEntries(entries: ExportEntries, userId: number): Promise<void> {
-  const pages = await listPublishedPagesForOwner(userId)
+export async function addPublishingEntries(entries: ExportEntries, user: UserScope): Promise<void> {
+  const pages = await listPublishedPagesForOwner(user)
   entries['published_pages.json'] = strToU8(JSON.stringify(pages.map(p => ({
     docId: p.docId,
     slug: p.slug,
@@ -118,7 +119,7 @@ export async function addPublishingEntries(entries: ExportEntries, userId: numbe
     publishedAt: p.publishedAt.toISOString(),
     updatedAt: p.updatedAt.toISOString()
   })), null, 2))
-  const domains = await listCustomDomainsForUser(userId)
+  const domains = await listCustomDomainsForUser(user)
   // No verification token: it's a credential for the domain check.
   entries['custom_domains.json'] = strToU8(JSON.stringify(domains.map(d => ({
     hostname: d.hostname,

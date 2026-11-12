@@ -13,7 +13,8 @@ import { first } from '../helpers/assert'
 // (which tables get touched, what gets anonymised, what gets promoted)
 // is fully testable without them.
 
-const deleteDocumentMock = vi.fn<(docId: string) => Promise<void>>(async () => {})
+// Called with the job's delete proof for the document.
+const deleteDocumentMock = vi.fn<(doc: { docId: string }) => Promise<void>>(async () => {})
 const deleteKnowledgeArtifactMock = vi.fn(async () => {})
 const stripeCustomersDelMock = vi.fn(async () => ({ id: 'cus_x', deleted: true }))
 
@@ -66,7 +67,7 @@ describe('executeAccountDeletion: full graph', () => {
     // Make `deleteDocument` actually drop the documents row in the DB
     // so the user-row FK can succeed. The other side-effects (S3 + sync
     // notify) are fine to no-op in tests.
-    deleteDocumentMock.mockImplementation(async (docId: string) => {
+    deleteDocumentMock.mockImplementation(async ({ docId }) => {
       const db = testDb()
       // Mirror what deleteDocDbRows does, in FK-safe order.
       await db.query(`DELETE FROM activity_log WHERE doc_id = $1`, [docId])

@@ -1,8 +1,9 @@
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 import { dataExportJobs } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { useDatabase } from '../db/client'
 import { ConflictError, NotFoundError } from './errors'
+import type { SystemActor, UserScope } from './proofs'
 
 // `data_export_jobs` repository (GDPR Art. 15/20 export): enqueue, the worker's
 // claim -> run -> ready / failed transitions, the expiry sweeper and the user's
@@ -36,7 +37,8 @@ export interface DataExportJobRow {
  * partial unique index, because a finished ready row must coexist with a newly
  * queued one. `jobId` is a nanoid so the URL space is unguessable.
  */
-export async function enqueueExportJob(userId: number): Promise<DataExportJobRow> {
+export async function enqueueExportJob(self: UserScope): Promise<DataExportJobRow> {
+  const userId = self.userId
   const db = useDatabase()
   return db.transaction(async (tx) => {
     // SELECT FOR UPDATE the user's active rows so a concurrent enqueue can't slip past (the matching rows are locked, not the user row).
@@ -70,7 +72,7 @@ export async function enqueueExportJob(userId: number): Promise<DataExportJobRow
  * Worker entry: claim the oldest queued job and mark it `running`; null if
  * none. `FOR UPDATE SKIP LOCKED` lets several workers each take a different job.
  */
-export async function claimQueuedJob(): Promise<DataExportJobRow | null> {
+export async function claimQueuedJob(_by: SystemActor): Promise<DataExportJobRow | null> {
   const db = useDatabase()
   return db.transaction(async (tx) => {
     const claimed = await tx.execute<{
@@ -130,7 +132,7 @@ function toDateOrNull(v: Date | string | number | null): Date | null {
  * Idempotent: the worker is the only writer of `ready` and advisory-locks per
  * user.
  */
-export async function markJobReady(args: {
+export async function markJobReady(_by: SystemActor, args: {
   jobId: string
   s3Key: string
   sizeBytes: number
@@ -156,7 +158,7 @@ export async function markJobReady(args: {
  * Mark a job failed. Truncates the error message to 500 chars so
  * a long stack trace doesn't blow out the row.
  */
-export async function markJobFailed(jobId: string, errorMessage: string): Promise<void> {
+export async function markJobFailed(_by: SystemActor, jobId: string, errorMessage: string): Promise<void> {
   const db = useDatabase()
   await db
     .update(dataExportJobs)
@@ -173,7 +175,7 @@ export async function markJobFailed(jobId: string, errorMessage: string): Promis
  * `expires_at`. Returns the rows that flipped (with their s3_keys)
  * so the caller can delete the S3 objects.
  */
-export async function markExpiredJobs(): Promise<{ jobId: string, s3Key: string | null }[]> {
+export async function markExpiredJobs(_by: SystemActor): Promise<{ jobId: string, s3Key: string | null }[]> {
   const db = useDatabase()
   const flipped = await db
     .update(dataExportJobs)
@@ -193,7 +195,8 @@ export async function markExpiredJobs(): Promise<{ jobId: string, s3Key: string 
  * recent activity, not a permanent archive (rows are anyway expired
  * within a week).
  */
-export async function listJobsForUser(userId: number, limit = 50): Promise<DataExportJobRow[]> {
+export async function listJobsForUser(self: UserScope, limit = 50): Promise<DataExportJobRow[]> {
+  const userId = self.userId
   const db = useDatabase()
   const rows = await db
     .select()
@@ -209,14 +212,14 @@ export async function listJobsForUser(userId: number, limit = 50): Promise<DataE
  * Used by the download endpoint to gate access without leaking
  * existence of jobs that belong to other users.
  */
-export async function getJobForUser(jobId: string, userId: number): Promise<DataExportJobRow | null> {
+export async function getJobForUser(self: UserScope, jobId: string): Promise<DataExportJobRow | null> {
   const db = useDatabase()
   const row = (await db
     .select()
     .from(dataExportJobs)
     .where(and(
       eq(dataExportJobs.jobId, jobId),
-      eq(dataExportJobs.userId, userId)
+      eq(dataExportJobs.userId, self.userId)
     ))
     .limit(1))[0]
   return row ? rowToJob(row) : null
@@ -228,7 +231,8 @@ export async function getJobForUser(jobId: string, userId: number): Promise<Data
  * dropped (the FK CASCADE drops the rows automatically; the S3 blobs
  * outlive that and need explicit deletion).
  */
-export async function listAllJobsForUser(userId: number): Promise<DataExportJobRow[]> {
+export async function listAllJobsForUser(user: UserScope): Promise<DataExportJobRow[]> {
+  const userId = user.userId
   const db = useDatabase()
   const rows = await db
     .select()
@@ -244,7 +248,7 @@ export async function listAllJobsForUser(userId: number): Promise<DataExportJobR
  * sweeper can use this to surface them in Sentry so ops can intervene
  * if the worker died mid-build. Not load-bearing for correctness.
  */
-export async function countActiveJobs(): Promise<number> {
+export async function countActiveJobs(_by: SystemActor): Promise<number> {
   const db = useDatabase()
   const rows = await db
     .select({ count: sql<number>`count(*)::int` })
@@ -257,7 +261,7 @@ export async function countActiveJobs(): Promise<number> {
  * Throws NotFoundError if the row does not exist. Used by tests +
  * by the worker if it needs to refetch a row mid-process.
  */
-export async function getJobById(jobId: string): Promise<DataExportJobRow> {
+export async function getJobById(_by: SystemActor, jobId: string): Promise<DataExportJobRow> {
   const db = useDatabase()
   const row = (await db
     .select()

@@ -1,6 +1,7 @@
 import { asc, eq } from 'drizzle-orm'
 import { aiSessionProvenance } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { useDatabase } from '../db/client'
+import type { UserScope } from './proofs'
 
 // Provenance of in-editor AI sessions for the taint gate
 // (`server/repos/docProvenance.ts`). One row per session, written when
@@ -36,7 +37,8 @@ export interface AiSessionProvenanceRow {
 }
 
 /** Every provenance row of `userId`, oldest first (data export). */
-export async function listAiSessionProvenanceForUser(userId: number): Promise<AiSessionProvenanceRow[]> {
+export async function listAiSessionProvenanceForUser(user: UserScope): Promise<AiSessionProvenanceRow[]> {
+  const userId = user.userId
   const db = useDatabase()
   return db
     .select({

@@ -12,13 +12,13 @@ import { resolveCaps } from '../../../../utils/knowledge/knowledgeQuota'
 
 export default defineApiHandler({
   access: allow.workspace('member'),
-  handler: async ({ user, wsId }) => {
+  handler: async ({ user, wsId, workspaceAccess }) => {
     const userId = user.id
 
     const [rows, count, totalBytes, caps] = await Promise.all([
-      listKnowledge(wsId),
-      countWorkspaceKnowledge(wsId),
-      sumWorkspaceKnowledgeBytes(wsId),
+      listKnowledge(workspaceAccess),
+      countWorkspaceKnowledge(workspaceAccess),
+      sumWorkspaceKnowledgeBytes(workspaceAccess),
       resolveCaps({ workspaceId: wsId, uploaderId: userId })
     ])
 

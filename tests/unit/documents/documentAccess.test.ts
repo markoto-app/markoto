@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { DocAuthzRow } from '../../../server/repos/documents'
+import type { DocAuthzRow } from '../../../server/repos/access/docAuthz'
 
 // Unit tests for requireDocEditAccess — the gate that AI prompt, @ai
 // comment trigger, restore, dictation and image upload use to prove a
@@ -14,9 +14,9 @@ vi.stubGlobal('createError', (opts: { statusCode: number, message: string }) =>
   Object.assign(new Error(opts.message), { statusCode: opts.statusCode }))
 
 const getDocWithActorRole = vi.fn<(docId: string, userId: number | null) => Promise<DocAuthzRow | null>>()
-vi.mock('../../../server/repos/documents', () => ({ getDocWithActorRole }))
+vi.mock('../../../server/repos/access/docAuthz', () => ({ getDocWithActorRole }))
 
-const { requireDocEditAccess } = await import('../../../server/utils/documents/documentAccess')
+const { requireDocEditAccess } = await import('../../../server/utils/access/documentAccess')
 
 const ACTOR = 42
 
@@ -39,6 +39,12 @@ function row(overrides: Partial<DocAuthzRow>): DocAuthzRow {
     templateId: 'blank',
     ...overrides
   }
+}
+
+/** Access is granted as a write proof for this document, held by the actor. */
+function isWriteProof(p: unknown): boolean {
+  const proof = p as { docId: string, actor: unknown, allows: (l: string) => boolean }
+  return proof.docId === 'd1' && JSON.stringify(proof.actor) === JSON.stringify({ kind: 'user', userId: ACTOR }) && proof.allows('write')
 }
 
 beforeEach(() => {
@@ -64,7 +70,7 @@ describe('requireDocEditAccess', () => {
     'owner can write on a %s doc',
     async (accessMode) => {
       getDocWithActorRole.mockResolvedValueOnce(row({ ownerId: ACTOR, accessMode }))
-      await expect(requireDocEditAccess('d1', ACTOR)).resolves.toBeUndefined()
+      await expect(requireDocEditAccess('d1', ACTOR)).resolves.toSatisfy(isWriteProof)
     }
   )
 
@@ -76,12 +82,12 @@ describe('requireDocEditAccess', () => {
     ['admin', 'open-edit']
   ] as const)('workspace %s can write on a %s doc', async (workspaceRole, accessMode) => {
     getDocWithActorRole.mockResolvedValueOnce(row({ workspaceId: 'ws', workspaceRole, accessMode }))
-    await expect(requireDocEditAccess('d1', ACTOR)).resolves.toBeUndefined()
+    await expect(requireDocEditAccess('d1', ACTOR)).resolves.toSatisfy(isWriteProof)
   })
 
   it('a logged-in non-member can write on an open-edit doc (public edit grant)', async () => {
     getDocWithActorRole.mockResolvedValueOnce(row({ accessMode: 'open-edit' }))
-    await expect(requireDocEditAccess('d1', ACTOR)).resolves.toBeUndefined()
+    await expect(requireDocEditAccess('d1', ACTOR)).resolves.toSatisfy(isWriteProof)
   })
 
   it('a workspace VIEWER cannot write on an open-edit doc (viewer wins over the public grant)', async () => {
@@ -118,6 +124,6 @@ describe('requireDocEditAccess', () => {
 
   it('an owner whose ownership is suspended keeps only the public edit grant of an open-edit doc', async () => {
     getDocWithActorRole.mockResolvedValueOnce(row({ ownerId: ACTOR, workspaceId: 'ws', accessMode: 'open-edit', ownerAccessSuspended: true }))
-    await expect(requireDocEditAccess('d1', ACTOR)).resolves.toBeUndefined()
+    await expect(requireDocEditAccess('d1', ACTOR)).resolves.toSatisfy(isWriteProof)
   })
 })

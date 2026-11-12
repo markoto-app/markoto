@@ -11,7 +11,8 @@ How the markoto stack is hardened, for self-hosted instances and the hosted serv
   the Docker socket proxy, separate Postgres roles.
 - §D. Public edge and access control — internal endpoints kept off the
   edge, default-deny API authentication, sync connections that end with
-  their authorization, published pages on their own hostname.
+  their authorization, published pages on their own hostname, tenancy
+  enforced below the handler with capability proofs.
 - §E. Secrets at rest, telemetry and the supply chain — encryption of
   stored credentials, Sentry scrubbing, test-only code absent from release
   builds, digest-pinned images.
@@ -28,8 +29,8 @@ Docker network such as the bundled self-host Postgres.
 
 Where: every HTTPS response from the production stack carries a fixed set of
 security headers. Most come from the Traefik edge (`security-headers`
-middleware in `docker-compose.prod.yml`, `markoto-headers` in
-`docker-compose.selfhost.yml`). **`Content-Security-Policy` and
+middleware in `deploy/compose/compose.prod.yml`, `markoto-headers` in
+`deploy/compose/compose.selfhost.yml`). **`Content-Security-Policy` and
 `Cross-Origin-Resource-Policy` come from the app** (`server/plugins/csp.ts`,
 policies in `server/utils/rendering/csp.ts`): the CSP carries a per-response script
 nonce that has to match the HTML, `/api/files` needs a different CORP than the
@@ -49,7 +50,7 @@ of the preview/print iframes, and the verification recipe.
 ## 1. The header set
 
 Values applied to every response from the app router (hosted deployment,
-`docker-compose.prod.yml`):
+`deploy/compose/compose.prod.yml`):
 
 ```
 Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
@@ -62,7 +63,7 @@ Permissions-Policy: camera=(), microphone=(self), geolocation=(), payment=(self)
 Content-Security-Policy: <see §2>
 ```
 
-The self-host stack (`markoto-headers` in `docker-compose.selfhost.yml`)
+The self-host stack (`markoto-headers` in `deploy/compose/compose.selfhost.yml`)
 sends the same set with HSTS `max-age=31536000` only (no
 `includeSubDomains`, no `preload`) and `payment=()`.
 
@@ -231,7 +232,7 @@ shows the app's header, with a new nonce on every request.
 ## 5. Known gaps
 
 - **No CSP violation reporting.** The policy has no `report-uri`; violations show only in the browser console.
-- **`docker-compose.local.yml`** does not apply the Traefik header set (HSTS, frame-deny, …). It does get the app's CSP + CORP, like every production build.
+- **`deploy/compose/compose.local.yml`** does not apply the Traefik header set (HSTS, frame-deny, …). It does get the app's CSP + CORP, like every production build.
 - **`style-src 'unsafe-inline'`** stays: removing it would need nonces or hashes for Nuxt UI's token block and a KaTeX / paged.js pipeline without inline styles.
 - **The S3 bucket must be private** (no public `ListBucket` or read): the app never relies on public access, but it cannot check the bucket's policy. See [S3-SETUP.md](S3-SETUP.md#1-create-the-bucket).
 
@@ -258,10 +259,10 @@ off by default (see §B.4).
 
 | Stack | Password | How |
 |---|---|---|
-| Production (`docker-compose.prod.yml`) | `${VALKEY_PASSWORD:?required}` from `.env` (≥32 random chars) | `--requirepass` arg + every consumer passes `VALKEY_PASSWORD` env var |
-| Local full-stack (`docker-compose.local.yml`) | `${VALKEY_PASSWORD:?required}` — any string in `.env`, never internet-reachable | same as prod, mirrors the auth code path |
-| Dev (`docker-compose.dev.yml`) | `${VALKEY_PASSWORD:-devpassword}` — defaults to a weak literal | host bun reads `VALKEY_PASSWORD=devpassword` from `.env.example` |
-| Test (`docker-compose.test.yml`) | hardcoded `testpassword` | matches `tests/integration/setup/env.ts` literal |
+| Production (`deploy/compose/compose.prod.yml`) | `${VALKEY_PASSWORD:?required}` from `.env` (≥32 random chars) | `--requirepass` arg + every consumer passes `VALKEY_PASSWORD` env var |
+| Local full-stack (`deploy/compose/compose.local.yml`) | `${VALKEY_PASSWORD:?required}` — any string in `.env`, never internet-reachable | same as prod, mirrors the auth code path |
+| Dev (`deploy/compose/compose.dev.yml`) | `${VALKEY_PASSWORD:-devpassword}` — defaults to a weak literal | host bun reads `VALKEY_PASSWORD=devpassword` from `.env.example` |
+| Test (`deploy/compose/compose.test.yml`) | hardcoded `testpassword` | matches `tests/integration/setup/env.ts` literal |
 
 The dev/test password is hardcoded weak ON PURPOSE: those stacks expose
 6379 (or 6380) only on `127.0.0.1`, hold no real data, and exist to
@@ -277,10 +278,10 @@ The runtime client config flows through `valkeyClientConfigFromEnv()` in
 
 | Compose file | Valkey listener | Why |
 |---|---|---|
-| `docker-compose.prod.yml` | `expose: ["6379"]` (`data` network only, no host port) | The app, sync, LiteLLM and backup containers reach Valkey over the internal `data` bridge (§C.3); the renderer and markitdown can't. Publishing 6379 would let any VPS-host process bypass docker network ACLs. |
-| `docker-compose.local.yml` | `expose: ["6379"]` (same) | App runs IN a container; no host access needed. |
-| `docker-compose.dev.yml` | `ports: ["127.0.0.1:6379:6379"]` | Nuxt runs on the host (`bun run dev`) and reaches Valkey via `localhost:6379`. Loopback only: the weak dev password must never face the LAN. |
-| `docker-compose.test.yml` | `ports: ["127.0.0.1:6380:6379"]` | vitest runs on the host and reaches Valkey via `localhost:6380`. tmpfs storage; loopback only. |
+| `deploy/compose/compose.prod.yml` | `expose: ["6379"]` (`data` network only, no host port) | The app, sync, LiteLLM and backup containers reach Valkey over the internal `data` bridge (§C.3); the renderer and markitdown can't. Publishing 6379 would let any VPS-host process bypass docker network ACLs. |
+| `deploy/compose/compose.local.yml` | `expose: ["6379"]` (same) | App runs IN a container; no host access needed. |
+| `deploy/compose/compose.dev.yml` | `ports: ["127.0.0.1:6379:6379"]` | Nuxt runs on the host (`bun run dev`) and reaches Valkey via `localhost:6379`. Loopback only: the weak dev password must never face the LAN. |
+| `deploy/compose/compose.test.yml` | `ports: ["127.0.0.1:6380:6379"]` | vitest runs on the host and reaches Valkey via `localhost:6380`. tmpfs storage; loopback only. |
 
 Valkey listens on `0.0.0.0` inside the container (the upstream image
 default) — that's correct because the docker bridge IS the only route in
@@ -292,7 +293,7 @@ Verify post-deploy:
 
 ```bash
 ss -ltnp | grep :6379         # expect: nothing on the host
-docker compose -f docker-compose.prod.yml exec app sh -c 'echo "PING" | nc -q1 valkey 6379'   # expect: connection refused without auth, or NOAUTH after PING
+docker compose exec app sh -c 'echo "PING" | nc -q1 valkey 6379'   # expect: connection refused without auth, or NOAUTH after PING
 ```
 
 ## B.3 Healthcheck shape
@@ -342,16 +343,16 @@ hosted compose file; on self-host plain `docker compose` works):
 
 ```bash
 # Without auth — expect NOAUTH error.
-docker compose -f docker-compose.prod.yml exec valkey valkey-cli ping
+docker compose exec valkey valkey-cli ping
 # Output: NOAUTH Authentication required.
 
 # With auth — expect PONG.
-docker compose -f docker-compose.prod.yml exec valkey \
+docker compose exec valkey \
   valkey-cli --no-auth-warning -a "$VALKEY_PASSWORD" ping
 # Output: PONG
 
 # From the app container — expect PONG (container has VALKEY_PASSWORD env).
-docker compose -f docker-compose.prod.yml exec app sh -c \
+docker compose exec app sh -c \
   'apk add --no-cache redis 2>/dev/null; redis-cli -h valkey -a "$VALKEY_PASSWORD" --no-auth-warning ping'
 
 # Confirm no host port exposed.
@@ -402,7 +403,7 @@ capabilities, Chromium's zygote sandboxes renderer processes in new user /
 PID / network namespaces. Docker's default seccomp profile only allows
 `clone(CLONE_NEWUSER)` / `unshare` / `chroot` with `CAP_SYS_ADMIN` /
 `CAP_SYS_CHROOT`, so the renderer gets its own profile,
-`renderer/seccomp.json`: Docker's default profile
+`deploy/config/renderer/seccomp.json`: Docker's default profile
 (the default seccomp profile of github.com/moby/profiles, Apache-2.0) plus one
 rule allowing `chroot`, `clone` and `unshare` unconditionally. The kernel
 still checks every namespace operation; only the seccomp pre-filter is
@@ -421,7 +422,7 @@ To regenerate the profile after a Docker upgrade:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/moby/profiles/main/seccomp/default.json \
   | jq '.syscalls += [{"names":["chroot","clone","unshare"],"action":"SCMP_ACT_ALLOW","comment":"markoto renderer: Chromium namespace sandbox (unprivileged user namespaces) without CAP_SYS_ADMIN/CAP_SYS_CHROOT"}]' \
-  > renderer/seccomp.json
+  > deploy/config/renderer/seccomp.json
 ```
 
 Escape hatch: a host that forbids unprivileged user namespaces entirely
@@ -481,7 +482,7 @@ provider. Verify: `docker compose exec traefik wget -qO- --post-data= http://soc
 superuser, or the managed cluster's admin user). It is used only by the
 `db-init` one-shot and the backup sidecar. With `POSTGRES_APP_USER` /
 `POSTGRES_APP_PASSWORD` and `POSTGRES_LITELLM_USER` /
-`POSTGRES_LITELLM_PASSWORD` set, `db-init` (`infra/postgres/db-init.sh`,
+`POSTGRES_LITELLM_PASSWORD` set, `db-init` (`deploy/config/postgres/db-init.sh`,
 idempotent, runs on every `up`):
 
 - creates both roles as `LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE`, and
@@ -496,7 +497,7 @@ idempotent, runs on every `up`):
 
 The app needs LiteLLM's spend-log table for the 90-day retention sweep and
 the admin spend query; it connects with the LiteLLM role for that
-(`NUXT_LITELLM_DB_USER` / `_PASSWORD`, `server/utils/litellm/litellmDb.ts`).
+(`NUXT_LITELLM_DB_USER` / `_PASSWORD`, `server/db/litellm.ts`).
 That widens nothing — the app already holds the LiteLLM master key; the
 separation protects the app database *from* a compromised proxy.
 
@@ -505,8 +506,8 @@ Without the four variables set, every service connects as the admin role.
 
 ## C.6 Dev and test stacks
 
-`docker-compose.dev.yml`, `docker-compose.test.yml` and
-`docker-compose.local.yml` publish every port on `127.0.0.1` only (they run
+`deploy/compose/compose.dev.yml`, `deploy/compose/compose.test.yml` and
+`deploy/compose/compose.local.yml` publish every port on `127.0.0.1` only (they run
 with committed, throwaway credentials). Containers that need the host's
 `bun run dev` reach it through `host.docker.internal`; the renderer maps
 `localhost` image URLs to the SeaweedFS container instead
@@ -610,6 +611,92 @@ Without it (the self-host default), pages share the app's origin at
 shape) the app refuses to boot without it; for a public self-hosted
 instance it is recommended (see
 [SELF-HOSTING.md](SELF-HOSTING.md#published-pages)).
+
+## D.5 Tenancy: capability proofs below the handler
+
+The access decision is made once, in the access layer
+(`server/utils/access/`, with the pure rules of
+`shared/utils/documents/docPermissions.ts`), and turned into a **proof**:
+`DocAccess<level>`, `WorkspaceAccess<level>`, `UserScope`, `AdminActor` or
+`SystemActor` (`server/repos/proofs/`). Every repo function that writes,
+deletes or returns tenant-private data demands one and takes the object id
+from it. The repos are the only code that talks to the database
+(dependency-cruiser `db-access-only-in-repos`, ESLint
+`markoto/data-access-boundaries`).
+
+Who mints proofs:
+
+| Minter | Proofs |
+|---|---|
+| Handler policies (`server/utils/api/policy*.ts`) | `docAccess` at the route's need, `workspaceAccess` at the caller's role, `self`, `adminActor`; SCIM and render-token routes get a workspace / view proof held by a named job |
+| MCP tool wrapper (`server/mcp/lib/wrapDocBoundTool.ts`), AI tools | `proveDocMembership` / `proveWorkspaceAccess` for the acting user, through the same rules |
+| Background jobs, webhooks, internal routes | `system('<job name>')`, which may act on anything |
+
+What this guarantees:
+
+- **A missing check fails to compile, not open.** A handler or tool that
+  takes an id from a URL, body or model output cannot pass it to a repo
+  function; it needs a proof for that object, and only the access layer
+  makes one after deciding.
+- **Sub-resources stay inside their parent.** Activity rows, comments,
+  uploads, shares, knowledge files, brand assets, invites, templates and
+  members are addressed by their own id but queried with the parent from
+  the proof (`… AND workspace_id = ${ws.workspaceId}`), so the id of another
+  tenant's row returns nothing (`tests/repos/tenancyIsolation.test.ts`).
+- **Proofs cannot be forged in production code.** The classes are nominal
+  (an object literal does not type-check), their constructors refuse
+  anything but a module-private token, and instances are frozen. The mint
+  is importable only from the access layer, the test mint only from
+  `tests/**` (dependency-cruiser + ESLint), and a scan refuses casts to a
+  proof type outside the access layer (`tests/unit/access/proofCasts.test.ts`).
+  The authorization bootstrap reads (`server/repos/access/`: role, document
+  ACL row, token hash) are importable only by the access layer.
+- **Levels are checked by the compiler.** A view proof is not a write
+  proof; a manage proof is also an edit, write and view proof
+  (`tests/unit/access/proofs.test.ts`). The policy matrix
+  (`tests/unit/platform/defineApiHandler.test.ts`) checks that every proof
+  a policy hands out names the requested object and actor and carries
+  exactly what was decided.
+- **The audit actor is the proof's actor**, so an audit row cannot name
+  someone other than who was authorized.
+
+What it does not guarantee:
+
+- **It is a code-structure control, not an isolation boundary.** All
+  server code runs in one process with one database role that can read
+  every tenant's rows. `as any`, `@ts-expect-error` or a cast through an
+  unrelated type is not caught by the scan; review has to.
+- **The access layer trusts the user id it is given.** `proveDocMembership(userId, …)`
+  proves what *that* user may do; called with the wrong id it mints a
+  valid proof for the wrong person. The identity proofs (`proveSelf`,
+  `proveAdmin`, `proveScimWorkspace`) are restricted to the policies, the
+  MCP authenticator and the SSO / SCIM code, but the others are not.
+- **Elevated actors are unrestricted.** `system(…)` and `AdminActor` reach
+  every tenant. Their use is greppable by name and banned from
+  user-facing handlers by lint (`markoto/no-system-actor-in-handlers`), but
+  a bug in a sweeper affects everyone.
+- **Proofs are not revalidated.** A proof is valid for the object it names
+  for as long as the code holds it. Request handlers hold it for one
+  request; an AI session holds its document proof for the whole session
+  (the knowledge tools re-check the workspace role per call, and document
+  JWTs bound open sync connections, §D.3).
+- **The parent constraint is written by hand** in each repo function.
+  The isolation tests cover the sub-resource families above, not every
+  function.
+- **Outside the layer:** the sync server's own `yjs_updates` SQL (guarded by
+  its document JWT), LiteLLM's database, and scripts run by operators.
+
+What row-level security would add: Postgres RLS policies on the tenant
+tables, with the actor and tenant set per transaction (`SET LOCAL`), would
+enforce isolation in the database itself — against a missing parent
+constraint, a raw query that skips the repo layer, or an injection. The
+cost is restating the access rules (owner, workspace roles, guest shares,
+access modes, password and anonymous-creator access, share expiry, SSO
+grants) as SQL policies next to `docPermissions.ts`, a role with
+`BYPASSRLS` for the jobs, and every query running inside a transaction that
+carries the settings. Markoto does not use RLS today. The proof layer is
+the prerequisite: every query already runs with a known actor and tenant,
+and `withTransaction` is the one place where such settings would be set.
 
 ---
 

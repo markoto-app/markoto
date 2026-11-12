@@ -7,5 +7,5 @@ import { ssoSettingsView } from '../../../../utils/sso/admin'
 // enforced (`ignoreSso`): they must be able to repair a broken IdP.
 export default defineApiHandler({
   access: allow.workspace('admin', { ignoreSso: true, deny: 'sso/admin-required' }),
-  handler: async ({ event, wsId }) => ssoSettingsView(event, wsId, await getSsoConnectionForWorkspace(wsId))
+  handler: async ({ event, wsId, workspaceAccess }) => ssoSettingsView(event, workspaceAccess, await getSsoConnectionForWorkspace(wsId))
 })

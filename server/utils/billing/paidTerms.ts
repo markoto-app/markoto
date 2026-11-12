@@ -3,6 +3,7 @@ import { apiError } from '../api/apiError'
 import { appendAuditEvent } from '../../repos/audit'
 import { AUDIT_POLICY_ACCEPTED } from '../../legal/auditActions'
 import { PAID_TERMS_VERSION } from '~~/shared/legal/versions'
+import type { UserScope, WorkspaceAccess } from '../../repos/proofs'
 
 // Paid Plans Terms (`content/legal/paid-terms/`). Every purchase —
 // a plan checkout, an in-place plan switch, an AI-credit top-up — needs
@@ -31,9 +32,10 @@ export function requirePaidTermsAccepted(body: unknown): void {
 }
 
 /** Record the acceptance (best-effort, like every audit write). */
-export async function recordPaidTermsAcceptance(event: H3Event, userId: number, purchase: PaidTermsPurchase): Promise<void> {
+/** `by`: the buyer's proof (their own scope, or the workspace admin's). */
+export async function recordPaidTermsAcceptance(event: H3Event, by: UserScope | WorkspaceAccess, purchase: PaidTermsPurchase): Promise<void> {
   await appendAuditEvent({
-    actorUserId: userId,
+    by,
     actorIp: getClientIp(event),
     scope: purchase.subject.type === 'workspace' ? 'workspace' : 'user',
     scopeId: purchase.subject.id,

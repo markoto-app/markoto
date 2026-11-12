@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 import { first } from '../../helpers/assert'
 import { stubEnv } from '../../helpers/env'
+import { docAs } from '../../helpers/access'
 
 // Mocks have to register BEFORE the import of `restoreDoc.ts` —
 // vitest hoists `vi.mock` calls automatically, but the factory
@@ -163,9 +164,11 @@ const dbMock = {
   })
 }
 
-vi.mock('../../../server/utils/platform/database', () => ({
+vi.mock('../../../server/db/client', () => ({
   useDatabase: () => dbMock,
-  useDatabasePool: () => ({ query: vi.fn() })
+  useDatabasePool: () => ({ query: vi.fn() }),
+  withTransaction: (fn: Parameters<typeof dbMock.transaction>[0]) => dbMock.transaction(fn),
+  executor: (tx: unknown) => tx
 }))
 
 // historyReplay mock
@@ -216,7 +219,7 @@ describe('restoreDocToYjsId', () => {
     it('throws when jwtSecret is not configured', async () => {
       stubConfig(undefined)
       await expect(
-        restoreDocToYjsId({ docId: 'd', targetYjsId: 50, actorUserId: 1, actorName: 'A', sessionId: 's' })
+        restoreDocToYjsId({ doc: docAs('d'), targetYjsId: 50, actorUserId: 1, actorName: 'A', sessionId: 's' })
       ).rejects.toThrow(/JWT secret/)
     })
   })
@@ -225,7 +228,7 @@ describe('restoreDocToYjsId', () => {
     it('returns the captured before/after yjs ids', async () => {
       txState.maxIdValues = [73, 76]
       const result = await restoreDocToYjsId({
-        docId: 'doc-x', targetYjsId: 50, actorUserId: 1, actorName: 'Joel', sessionId: 'sess1'
+        doc: docAs('doc-x'), targetYjsId: 50, actorUserId: 1, actorName: 'Joel', sessionId: 'sess1'
       })
       expect(result).toEqual({ yjsDocIdBeforeRestore: 73, yjsDocIdAfterRestore: 76 })
     })
@@ -243,7 +246,7 @@ describe('restoreDocToYjsId', () => {
       // reading `before` AFTER the WS connect (the reversibility bug).
       txState.maxIdValues = [40, 41]
       await restoreDocToYjsId({
-        docId: 'doc-y', targetYjsId: 30, actorUserId: 1, actorName: 'A', sessionId: 's'
+        doc: docAs('doc-y'), targetYjsId: 30, actorUserId: 1, actorName: 'A', sessionId: 's'
       })
       expect(txState.providerConstructedAtCallIndex).toBe(2)
     })
@@ -253,7 +256,7 @@ describe('restoreDocToYjsId', () => {
       // it stored would stamp the restore row with the pre-restore id
       // (after == before) and its diff / undo would show nothing.
       MockProvider.ackDelayMs = 30
-      await restoreDocToYjsId({ docId: 'doc-x', targetYjsId: 50, actorUserId: 1, actorName: 'Joel', sessionId: 's' })
+      await restoreDocToYjsId({ doc: docAs('doc-x'), targetYjsId: 50, actorUserId: 1, actorName: 'Joel', sessionId: 's' })
       expect(events).toEqual(['maxId#0', 'ack', 'flush', 'maxId#1'])
       expect(flushMock).toHaveBeenCalledWith('doc-x')
       expect(first(providerInstances).disconnectCalls).toBe(1)
@@ -263,7 +266,7 @@ describe('restoreDocToYjsId', () => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
       try {
         MockProvider.neverAck = true
-        const run = restoreDocToYjsId({ docId: 'd', targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's' })
+        const run = restoreDocToYjsId({ doc: docAs('d'), targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's' })
           .then(() => null, (e: unknown) => e)
         await vi.advanceTimersByTimeAsync(10_001)
         expect(String(await run)).toMatch(/not acknowledged/)
@@ -277,7 +280,7 @@ describe('restoreDocToYjsId', () => {
     it('returns null for both ids when MAX(id) is null (empty doc, no rows yet)', async () => {
       txState.maxIdValues = [null, null]
       const result = await restoreDocToYjsId({
-        docId: 'd', targetYjsId: 0, actorUserId: 1, actorName: 'A', sessionId: 's'
+        doc: docAs('d'), targetYjsId: 0, actorUserId: 1, actorName: 'A', sessionId: 's'
       })
       expect(result).toEqual({ yjsDocIdBeforeRestore: null, yjsDocIdAfterRestore: null })
     })
@@ -289,7 +292,7 @@ describe('restoreDocToYjsId', () => {
       // sync-server's onChange hook uses to attribute the activity
       // row to the right user. A typo here breaks every consumer.
       await restoreDocToYjsId({
-        docId: 'd', targetYjsId: 1, actorUserId: 42, actorName: 'Joel', sessionId: 'abc123'
+        doc: docAs('d'), targetYjsId: 1, actorUserId: 42, actorName: 'Joel', sessionId: 'abc123'
       })
       expect(providerCalls).toHaveLength(1)
       const jwtModule = await import('jsonwebtoken')
@@ -302,7 +305,7 @@ describe('restoreDocToYjsId', () => {
 
     it('passes the live doc name as the WS provider `name`', async () => {
       await restoreDocToYjsId({
-        docId: 'doc-target', targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
+        doc: docAs('doc-target'), targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
       })
       expect(first(providerCalls).name).toBe('doc-target')
     })
@@ -310,7 +313,7 @@ describe('restoreDocToYjsId', () => {
     it('converts http:// syncInternalUrl to ws:// for the WS connection', async () => {
       stubConfig(JWT_SECRET, 'http://sync:4001')
       await restoreDocToYjsId({
-        docId: 'd', targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
+        doc: docAs('d'), targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
       })
       expect(first(providerCalls).url).toBe('ws://sync:4001')
     })
@@ -318,7 +321,7 @@ describe('restoreDocToYjsId', () => {
     it('converts https:// syncInternalUrl to wss:// for TLS', async () => {
       stubConfig(JWT_SECRET, 'https://sync.prod:443')
       await restoreDocToYjsId({
-        docId: 'd', targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
+        doc: docAs('d'), targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
       })
       expect(first(providerCalls).url).toBe('wss://sync.prod:443')
     })
@@ -338,7 +341,7 @@ describe('restoreDocToYjsId', () => {
         return d
       })
       await restoreDocToYjsId({
-        docId: 'd', targetYjsId: 5, actorUserId: 1, actorName: 'A', sessionId: 's'
+        doc: docAs('d'), targetYjsId: 5, actorUserId: 1, actorName: 'A', sessionId: 's'
       })
       // The live doc passed to the provider IS the same instance the
       // helper applies the past update to. Inspect its content.
@@ -356,7 +359,7 @@ describe('restoreDocToYjsId', () => {
       const destroySpy = vi.spyOn(pastDoc, 'destroy')
       replayMock.mockResolvedValueOnce(pastDoc)
       await restoreDocToYjsId({
-        docId: 'd', targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
+        doc: docAs('d'), targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
       })
       expect(destroySpy).toHaveBeenCalled()
     })
@@ -365,7 +368,7 @@ describe('restoreDocToYjsId', () => {
   describe('cleanup paths', () => {
     it('disconnects + destroys the provider on the happy path', async () => {
       await restoreDocToYjsId({
-        docId: 'd', targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
+        doc: docAs('d'), targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
       })
       expect(providerInstances).toHaveLength(1)
       expect(first(providerInstances).disconnectCalls).toBe(1)
@@ -377,7 +380,7 @@ describe('restoreDocToYjsId', () => {
       MockProvider.authFailReason = 'expired token'
       await expect(
         restoreDocToYjsId({
-          docId: 'd', targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
+          doc: docAs('d'), targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
         })
       ).rejects.toThrow(/auth failed/)
       expect(providerInstances).toHaveLength(1)
@@ -393,7 +396,7 @@ describe('restoreDocToYjsId', () => {
       // against incompatible "live" states and produce a last-write-
       // wins result. Pin the order.
       await restoreDocToYjsId({
-        docId: 'doc-lock', targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
+        doc: docAs('doc-lock'), targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
       })
       expect(txExecuteCalls.length).toBeGreaterThan(0)
       expect(first(txExecuteCalls).kind).toBe('lock')
@@ -422,7 +425,7 @@ describe('restoreDocToYjsId', () => {
         return await fn(tx)
       })
       await restoreDocToYjsId({
-        docId: 'doc-shape', targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
+        doc: docAs('doc-shape'), targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
       })
       // The first query's serialized form should mention the
       // xact-scoped advisory lock + hashtext.
@@ -436,16 +439,16 @@ describe('restoreDocToYjsId', () => {
   describe('replay arguments', () => {
     it('replays at the targetYjsId for the right doc', async () => {
       await restoreDocToYjsId({
-        docId: 'replay-doc', targetYjsId: 999, actorUserId: 1, actorName: 'A', sessionId: 's'
+        doc: docAs('replay-doc'), targetYjsId: 999, actorUserId: 1, actorName: 'A', sessionId: 's'
       })
-      expect(replayMock).toHaveBeenCalledWith('replay-doc', 999)
+      expect(replayMock).toHaveBeenCalledWith(expect.objectContaining({ docId: 'replay-doc' }), 999)
     })
 
     it('refuses a target below the history floor before connecting (never applies an empty doc)', async () => {
-      const { YjsHistoryCompactedError } = await import('../../../server/utils/documents/yjsLog')
+      const { YjsHistoryCompactedError } = await import('../../../server/repos/yjsLog')
       replayMock.mockRejectedValueOnce(new YjsHistoryCompactedError('floor-doc', 5, 40))
       await expect(restoreDocToYjsId({
-        docId: 'floor-doc', targetYjsId: 5, actorUserId: 1, actorName: 'A', sessionId: 's'
+        doc: docAs('floor-doc'), targetYjsId: 5, actorUserId: 1, actorName: 'A', sessionId: 's'
       })).rejects.toMatchObject({ name: 'RestorePointCompactedError', targetYjsId: 5, floorId: 40 })
       expect(providerInstances).toHaveLength(0)
     })

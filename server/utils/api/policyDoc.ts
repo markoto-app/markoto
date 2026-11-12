@@ -1,28 +1,21 @@
 import type { H3Event } from 'h3'
 import { getRouterParam } from 'h3'
-import { getDocWithActorRole, type DocAuthzRow } from '../../repos/documents'
+import { decideDocNeed, docProofFor, getDocWithActorRole, isDocNeed, type DocAuthzRow, type DocNeed, type DocNeedGrant } from '../access/docProof'
+import { proveSelf } from '../access/userProof'
 import { hasValidDocJwt, type DocJwtScope } from '../documents/docTokenVerify'
-import { canWriteDocContent } from '../documents/documentAccess'
 import { anonCreatorKeyMatches, readAnonCreatorKey } from '../auth/anonCreator'
-import { docAuthzOf } from '../workspaces/workspaceAccess'
+import { docAuthzOf } from '../access/workspaceAccess'
 import { apiError, denyError, type DenyCode } from './apiError'
 import type { PolicyGate, Policy, ResolveInput, ValidatedUser } from './policyTypes'
-import {
-  decideActivityAccess,
-  decideDocDelete,
-  decideFileAccess,
-  docStateOf,
-  type ActorState,
-  type DocState
-} from '~~/shared/utils/documents/docPermissions'
+import type { DocAccess, UserScope } from '../../repos/proofs'
+import { docStateOf, type ActorState, type DocState } from '~~/shared/utils/documents/docPermissions'
 
 // `allow.doc(need)`: access to one document, decided ONLY by the pure functions
-// of shared/utils/documents/docPermissions.ts on a row from
-// `getDocWithActorRole` (one query: owner, workspace role or guest share, SSO
-// owner suspension, share expiry). The DocState always comes from `docStateOf`,
-// so share expiry and SSO suspension can't be skipped.
-
-export type DocNeed = 'file' | 'activity' | 'write-content' | 'edit' | 'manage' | 'share-guests' | 'delete' | 'lookup'
+// of shared/utils/documents/docPermissions.ts (through server/utils/access/docProof.ts)
+// on a row from `getDocWithActorRole` (one query: owner, workspace role or
+// guest share, SSO owner suspension, share expiry). The DocState always comes
+// from `docStateOf`, so share expiry and SSO suspension can't be skipped. The
+// context carries the proof (`docAccess`) the repo functions demand.
 
 export interface DocPolicyOptions<A extends boolean> {
   /** Session optional: anonymous callers reach the decision (route must be on the public allowlist). */
@@ -45,7 +38,7 @@ export interface DocAuthzFlags {
   canManage: boolean
 }
 
-export interface DocCtx<A extends boolean> {
+export interface DocCtx<A extends boolean, N extends DocNeed = DocNeed> {
   user: A extends true ? ValidatedUser | null : ValidatedUser
   docId: string
   /** Contains `anonCreatorKeyHash`: never return it (the secret-key check refuses to compile). */
@@ -53,39 +46,10 @@ export interface DocCtx<A extends boolean> {
   state: DocState
   actor: ActorState
   authz: DocAuthzFlags
-}
-
-export type DocDecision = { allow: true } | { allow: false, status: 401 | 403 }
-
-/** `true` = allowed; `false` = 403; `401` = needs a signed-in caller. */
-type Verdict = boolean | 401
-type Rule = (row: DocAuthzRow, state: DocState, actor: ActorState) => Verdict
-
-const RULES: Record<DocNeed, Rule> = {
-  'lookup': () => true,
-  'file': (_row, state, actor) => decideFileAccess(state, actor).outcome === 'allow',
-  'activity': (_row, state, actor) => decideActivityAccess(state, actor).outcome === 'allow',
-  'delete': (_row, state, actor) => {
-    const d = decideDocDelete(state, actor)
-    if (d.outcome === 'allow') return true
-    return d.reason === 'authentication-required' ? 401 : false
-  },
-  'write-content': (row, _state, actor) => actor.userId === null ? 401 : canWriteDocContent(row, actor.userId),
-  'edit': (row, _state, actor) => docAuthzOf(row, actor.userId).canEdit,
-  'manage': (row, _state, actor) => docAuthzOf(row, actor.userId).canManage,
-  // Workspace admins and editors (members, not guests) of a workspace doc.
-  'share-guests': row => row.workspaceId !== null && !row.isGuest && (row.workspaceRole === 'admin' || row.workspaceRole === 'editor')
-}
-
-/**
- * Pure: may this actor do `need` on the document? Every rule delegates to a
- * docPermissions decision (or to `docAuthzOf` / `canWriteDocContent`, which
- * build on them). Unknown needs deny.
- */
-export function decideDocNeed(need: DocNeed, row: DocAuthzRow, state: DocState, actor: ActorState): DocDecision {
-  const verdict = Object.hasOwn(RULES, need) ? RULES[need](row, state, actor) : false
-  if (verdict === true) return { allow: true }
-  return { allow: false, status: verdict === 401 ? 401 : 403 }
+  /** The proof repo functions take: this document, this actor, the levels the decision granted. */
+  docAccess: DocAccess<DocNeedGrant<N>>
+  /** The signed-in caller acting on their own data (null for anonymous callers). */
+  self: A extends true ? UserScope | null : UserScope
 }
 
 function readDocId(event: H3Event, input: ResolveInput, from: 'params' | 'body' | 'query', key: string): string {
@@ -97,12 +61,12 @@ function readDocId(event: H3Event, input: ResolveInput, from: 'params' | 'body' 
   return value
 }
 
-export function docPolicy<A extends boolean>(
-  need: DocNeed,
+export function docPolicy<A extends boolean, N extends DocNeed>(
+  need: N,
   o: DocPolicyOptions<A> | undefined,
   gate: (event: H3Event) => Promise<PolicyGate>
-): Policy<DocCtx<A>> {
-  if (!Object.hasOwn(RULES, need)) throw new Error(`allow.doc: unknown need ${String(need)}`)
+): Policy<DocCtx<A, N>> {
+  if (!isDocNeed(need)) throw new Error(`allow.doc: unknown need ${String(need)}`)
   if (need === 'lookup' && !o?.reason?.trim()) throw new Error('allow.doc(\'lookup\') needs a reason')
   const anonymous = Boolean(o?.anonymous)
   const from = o?.docId?.from ?? 'params'
@@ -131,7 +95,16 @@ export function docPolicy<A extends boolean>(
       }
       const decision = decideDocNeed(need, row, state, actor)
       if (!decision.allow) throw decision.status === 401 ? apiError('auth/required') : denyError(o?.deny ?? 'auth/forbidden')
-      return { user: g.user as DocCtx<A>['user'], docId, doc: row, state, actor, authz: docAuthzOf(row, userId) }
+      return {
+        user: g.user as DocCtx<A, N>['user'],
+        docId,
+        doc: row,
+        state,
+        actor,
+        authz: docAuthzOf(row, userId),
+        docAccess: docProofFor(need, docId, row, state, actor),
+        self: (g.user ? proveSelf(g.user.id) : null) as DocCtx<A, N>['self']
+      }
     }
   }
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Tests for the slow-query log instrumentation in
-// server/utils/platform/database.ts. We can't import the real `useDatabase`
+// server/db/client.ts. We can't import the real `useDatabase`
 // because it spins up an actual Pool against a real DB; instead we
 // stub `pg.Pool` for a fake whose `query` method we control, then run
 // the wrapped pool's `query` and observe Sentry side effects.
@@ -59,7 +59,7 @@ beforeEach(() => {
 
 describe('slow-query log', () => {
   it('does not fire for fast queries', async () => {
-    const { useDatabasePool } = await import('../../../server/utils/platform/database')
+    const { useDatabasePool } = await import('../../../server/db/client')
     // The instrumented pool (a proxy over the pg Pool) is what drizzle queries through.
     const pool = useDatabasePool()
     expect(lastPool).toBeTruthy()
@@ -79,7 +79,7 @@ describe('slow-query log', () => {
       return nowCalls === 1 ? 0 : 200
     })
     try {
-      const { useDatabasePool } = await import('../../../server/utils/platform/database')
+      const { useDatabasePool } = await import('../../../server/db/client')
       // The instrumented pool (a proxy over the pg Pool) is what drizzle queries through.
       const pool = useDatabasePool()
       expect(lastPool).toBeTruthy()
@@ -112,7 +112,7 @@ describe('slow-query log', () => {
       return nowCalls === 1 ? 0 : 50
     })
     try {
-      const { useDatabasePool } = await import('../../../server/utils/platform/database')
+      const { useDatabasePool } = await import('../../../server/db/client')
       // The instrumented pool (a proxy over the pg Pool) is what drizzle queries through.
       const pool = useDatabasePool()
       expect(lastPool).toBeTruthy()

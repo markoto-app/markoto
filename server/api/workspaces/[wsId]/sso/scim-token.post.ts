@@ -11,12 +11,12 @@ export default defineApiHandler({
   access: allow.workspace('admin', { ignoreSso: true, deny: 'sso/admin-required' }),
   body: 'none',
   plan: { feature: 'sso', message: 'Single sign-on is part of the Business plan.' },
-  handler: async ({ event, user, wsId }) => {
+  handler: async ({ event, wsId, workspaceAccess }) => {
     const connection = await getSsoConnectionForWorkspace(wsId)
     if (!connection) throw apiError('sso/scim-needs-connection')
     const token = newScimToken()
-    await setScimTokenHash(connection.id, hashScimToken(token))
-    await appendAuditEvent({ actorUserId: user.id, actorIp: getClientIp(event), scope: 'workspace', scopeId: wsId, action: AUDIT_SSO_SCIM_TOKEN_ROTATED, metadata: { revoked: false } })
+    await setScimTokenHash(workspaceAccess, connection.id, hashScimToken(token))
+    await appendAuditEvent({ by: workspaceAccess, actorIp: getClientIp(event), scope: 'workspace', scopeId: wsId, action: AUDIT_SSO_SCIM_TOKEN_ROTATED, metadata: { revoked: false } })
     setHeader(event, 'cache-control', 'no-store')
     return { token, baseUrl: `${ssoBaseUrl(event)}/scim/v2` }
   }

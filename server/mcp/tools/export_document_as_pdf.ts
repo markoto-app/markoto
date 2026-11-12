@@ -1,12 +1,12 @@
 import { z } from 'zod'
-import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from '../../utils/documents/shareSettings'
+import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from '../../utils/access/shareSettings'
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import type { ShapeOutput } from '@modelcontextprotocol/sdk/server/zod-compat.js'
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { defineMcpTool, type McpRequestExtra } from '@nuxtjs/mcp-toolkit/server'
 import { renderDocument } from '../../utils/rendering/renderClient'
 import { useS3Client } from '../../utils/storage/s3'
-import { getDocAuthz } from '../../utils/workspaces/workspaceAccess'
+import { proveDocMembership } from '../../utils/access/docProof'
 import { toolEnabled } from '../lib/mcpToolContext'
 import { admitToolCall } from '../lib/wrapDocBoundTool'
 import { useEnv } from '~~/shared/env/load'
@@ -58,8 +58,8 @@ export default defineMcpTool({
 
     // View access on the source. Same anti-enumeration 404-shape as
     // the rest of the doc-bound MCP tools.
-    const authz = await getDocAuthz(auth.userId, docId)
-    if (!authz.exists || !authz.canView) {
+    const proven = await proveDocMembership(auth.userId, docId, 'view')
+    if (!proven) {
       throw apiError('mcp/doc-not-found')
     }
 
@@ -70,7 +70,7 @@ export default defineMcpTool({
 
     let result
     try {
-      result = await renderDocument(docId, { format: 'pdf' })
+      result = await renderDocument(proven.access, { format: 'pdf' })
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'render failed'
       // Tool-level error (not 5xx) so the model sees `isError: true`

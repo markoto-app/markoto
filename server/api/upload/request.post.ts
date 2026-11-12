@@ -35,7 +35,7 @@ export default defineApiHandler({
   access: allow.doc('write-content', { docId: { from: 'body' } }),
   body: requestUploadBody,
   rateLimit: { namespace: 'upload-request', max: 60, windowMs: MINUTE_MS, key: 'user', error: 'upload/rate-limited' },
-  handler: async ({ user, body }) => {
+  handler: async ({ user, docAccess, body }) => {
     const { docId, contentType, size } = body
     const ext = ownValue(CONTENT_TYPE_EXT, contentType)
     if (!ext) throw apiError('upload/unsupported-format')
@@ -53,8 +53,7 @@ export default defineApiHandler({
     // Team / Business workspace documents use the workspace's pool.
     const quota = await resolveImageQuota(user.id, docId)
     const quotaBytes = quota.maxBytes
-    const reservation = await reservePendingUpload({
-      docId,
+    const reservation = await reservePendingUpload(docAccess, {
       fileId: `${fileId}.${ext}`,
       uploaderId: user.id,
       contentType,

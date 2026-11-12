@@ -7,9 +7,8 @@
 // sidecar (renderer, markitdown) must not flag the instance as degraded.
 // Sync, Postgres and Valkey are hard-required and never skipped.
 
-import { sql } from 'drizzle-orm'
 import { HeadBucketCommand } from '@aws-sdk/client-s3'
-import { useDatabase } from './database'
+import { pingDatabase } from '../../repos/health'
 import { useValkey } from './valkey'
 import { useS3Client } from '../storage/s3'
 import { getKnowledgeEmbeddingsStatus } from '../knowledge/knowledgeEmbeddingsStatus'
@@ -61,10 +60,9 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
 export async function probePostgres(): Promise<ProbeResult> {
   const started = performance.now()
   try {
-    const db = useDatabase()
     // JS-side timeout: SET LOCAL statement_timeout would need a transaction
     // and an extra round-trip.
-    await withTimeout(db.execute(sql`SELECT 1`), PROBE_TIMEOUT_MS)
+    await withTimeout(pingDatabase(), PROBE_TIMEOUT_MS)
     return ok(Math.round(performance.now() - started))
   } catch (e) {
     return down(Math.round(performance.now() - started), e instanceof Error ? e.message : String(e))

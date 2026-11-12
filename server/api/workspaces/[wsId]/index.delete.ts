@@ -1,11 +1,12 @@
 import { collectBrandObjectKeys, deleteBrandObjects } from '../../../utils/brandKit/storage'
 import { deleteWorkspaceRow } from '../../../repos/workspaces'
-import { getDoc, listDocIdsInWorkspace } from '../../../repos/documents'
+import { getDocForDeletion, listDocIdsInWorkspace } from '../../../repos/documents'
 import { listKnowledge } from '../../../repos/knowledge'
 import { deleteDocument } from '../../../utils/documents/documentLifecycle'
 import { deleteKnowledgeArtifact } from '../../../utils/knowledge/knowledgeAccess'
 import { appendAuditEvent } from '../../../repos/audit'
 import { endWorkspaceBilling } from '../../../utils/billing/workspaceBillingLifecycle'
+import { proveWorkspaceDoc } from '../../../utils/access/docProof'
 
 // Cascade delete: wipe every doc in this workspace (S3 + Y.js + activity
 // etc via `deleteDocument`), then drop the workspace row itself. Deletes
@@ -22,21 +23,24 @@ import { endWorkspaceBilling } from '../../../utils/billing/workspaceBillingLife
 
 export default defineApiHandler({
   access: allow.workspace('admin', { deny: 'workspace/admin-required' }),
-  handler: async ({ event, user, wsId }) => {
+  handler: async ({ event, wsId, workspaceAccess }) => {
     const ip = getClientIp(event)
 
     // Team / Business: cancel the subscription first (annual:
     // prorated credit) and delete the workspace's LiteLLM team. If Stripe
     // can't cancel it, this throws and nothing has been deleted yet.
-    await endWorkspaceBilling(wsId, user.id)
+    await endWorkspaceBilling(workspaceAccess)
 
-    const childDocIds = await listDocIdsInWorkspace(wsId)
+    const childDocIds = await listDocIdsInWorkspace(workspaceAccess)
     for (const docId of childDocIds) {
+      // A workspace admin may delete every document in the workspace.
+      const doc = await proveWorkspaceDoc(workspaceAccess, docId)
+      if (!doc?.allows('delete')) continue
       // Snapshot per-doc before the cascade for audit forensics.
-      const snapshot = await getDoc(docId)
-      await deleteDocument(docId)
+      const snapshot = await getDocForDeletion(doc)
+      await deleteDocument(doc)
       await appendAuditEvent({
-        actorUserId: user.id,
+        by: workspaceAccess,
         actorIp: ip,
         scope: 'doc',
         scopeId: docId,
@@ -58,22 +62,22 @@ export default defineApiHandler({
     // Knowledge S3 cleanup is per-object (one key per row) — the FK on
     // workspace_knowledge → workspaces cascades the DB row automatically,
     // but S3 objects are orphaned without this explicit sweep.
-    const knowledgeRows = await listKnowledge(wsId)
+    const knowledgeRows = await listKnowledge(workspaceAccess)
     for (const row of knowledgeRows) {
-      await deleteKnowledgeArtifact(row.knowledgeId)
+      await deleteKnowledgeArtifact(workspaceAccess, row.knowledgeId)
     }
 
     // Brand-kit objects: the rows cascade with the workspace; read
     // their keys first, delete the objects after.
-    const brandKeys = await collectBrandObjectKeys(wsId)
+    const brandKeys = await collectBrandObjectKeys(workspaceAccess)
 
     // workspace_members rows are removed automatically by the ON DELETE
     // CASCADE foreign key.
-    await deleteWorkspaceRow(wsId)
+    await deleteWorkspaceRow(workspaceAccess)
     await deleteBrandObjects(brandKeys)
 
     await appendAuditEvent({
-      actorUserId: user.id,
+      by: workspaceAccess,
       actorIp: ip,
       scope: 'workspace',
       scopeId: wsId,

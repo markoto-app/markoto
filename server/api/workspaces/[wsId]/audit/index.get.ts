@@ -12,8 +12,8 @@ export default defineApiHandler({
   plan: { feature: 'auditLog', message: 'The audit log is part of the Business plan.' },
   query: listAuditEventsQuery,
   invalidCode: 'audit/invalid-query',
-  handler: async ({ event, wsId, query }) => {
-    const rows = await listWorkspaceAuditEvents(wsId, { beforeId: query.before, actionPrefix: query.action, from: query.from, to: query.to, limit: PAGE + 1 })
+  handler: async ({ event, query, workspaceAccess }) => {
+    const rows = await listWorkspaceAuditEvents(workspaceAccess, { beforeId: query.before, actionPrefix: query.action, from: query.from, to: query.to, limit: PAGE + 1 })
     const page = rows.slice(0, PAGE)
     setHeader(event, 'cache-control', 'private, no-store')
     return {

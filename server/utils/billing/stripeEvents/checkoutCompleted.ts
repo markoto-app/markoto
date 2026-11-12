@@ -1,6 +1,5 @@
 import type Stripe from 'stripe'
 import * as Sentry from '@sentry/nuxt'
-import { useDatabase } from '../../platform/database'
 import type { PersonalPlanName, PlanName } from '~~/shared/config/tiers'
 import { cancelDuplicateWorkspaceSubscription } from '../workspaceStripe'
 import { findLiveSubscription } from '../stripePlanChange'
@@ -9,8 +8,12 @@ import { identifyItem, isWorkspaceIdentity, stripeId, subscriptionPeriod, warnUn
 import { deferWorkspaceTeamSync, rowHoldingOtherSubscription, upsertWorkspaceSubscriptionFromStripe } from './billingSubjects'
 import { updateUserBilling, type UserBillingUpdate } from '../../../repos/userBilling'
 import { handleTopupCheckout } from './creditTopups'
-import type { DbOrTx, DeferredAfterCommit } from './types'
+import type { TxHandle, DeferredAfterCommit } from './types'
 import { useLogger } from '../../platform/logger'
+import { system } from '../../../repos/proofs'
+
+/** Stripe's webhook writes billing state for whichever customer the event names. */
+const STRIPE = system('stripe-webhook')
 
 const log = useLogger('stripe-webhook')
 
@@ -19,7 +22,7 @@ export const WORKSPACE_REF_PREFIX = 'workspace:'
 
 interface CheckoutOptions {
   stripe: Stripe
-  db?: DbOrTx
+  db?: TxHandle
   deferAfterCommit?: DeferredAfterCommit
 }
 
@@ -76,13 +79,13 @@ async function bindWorkspaceCheckout(session: Stripe.Checkout.Session, workspace
   }
   // A second completed Checkout while the first subscription is still
   // live: cancel + refund the new one, keep the first.
-  const holder = await rowHoldingOtherSubscription(opts.db ?? useDatabase(), workspaceId, sub.id)
+  const holder = await rowHoldingOtherSubscription(opts.db, workspaceId, sub.id)
   if (holder && await findLiveSubscription(opts.stripe, holder.stripeSubscriptionId)) {
     await cancelDuplicateWorkspaceSubscription(opts.stripe, sub, workspaceId)
     return NOT_MATCHED
   }
   const adminRaw = Number(session.metadata?.billing_admin_id)
-  await upsertWorkspaceSubscriptionFromStripe(opts.db ?? useDatabase(), {
+  await upsertWorkspaceSubscriptionFromStripe(opts.db, {
     workspaceId,
     sub,
     identity,
@@ -121,7 +124,7 @@ async function bindPersonalCheckout(session: Stripe.Checkout.Session, ref: strin
   // to read. Still stamp the customer id so future subscription flows can
   // reuse the same customer record.
   if (!subscriptionId) {
-    const matched = await updateUserBilling({
+    const matched = await updateUserBilling(STRIPE, {
       where: { id: userId },
       set: { stripeCustomerId: customerId }
     }, opts.db)
@@ -149,7 +152,7 @@ async function bindPersonalCheckout(session: Stripe.Checkout.Session, ref: strin
   if (period.start) setFields.stripeCurrentPeriodStart = period.start
   if (period.end) setFields.planValidUntil = period.end
 
-  const matched = await updateUserBilling({
+  const matched = await updateUserBilling(STRIPE, {
     where: { id: userId },
     set: setFields
   }, opts.db)

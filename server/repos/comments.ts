@@ -1,6 +1,7 @@
-import { and, asc, eq, or } from 'drizzle-orm'
+import { and, asc, eq, or, sql } from 'drizzle-orm'
 import { documentComments } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { useDatabase } from '../db/client'
+import type { DocAccess } from './proofs'
 
 // Postgres mirror of the doc's comment threads. Y.js stays the source of truth;
 // this is a write-side index for cross-doc queries (see server/db/schema/collab.ts).
@@ -16,27 +17,56 @@ export interface CommentSnapshotRow {
   resolved: boolean
 }
 
+export interface StoredCommentRow {
+  entryId: string
+  parentCommentId: string | null
+  authorId: number | null
+  authorName: string
+  body: string
+  resolved: boolean
+}
+
 /**
  * Replace the doc's mirrored comments with the snapshot (delete-then-insert in
- * one transaction). Empty snapshots are valid: the sync server sends one when
- * the last comment is cleared.
+ * one transaction) and return the rows it replaced, so the caller can diff
+ * them. Empty snapshots are valid: the sync server sends one when the last
+ * comment is cleared.
+ *
+ * Serialised per document with `pg_advisory_xact_lock`: two concurrent saves
+ * would otherwise both read the old rows and both DELETE+INSERT, and the
+ * second hits the (doc_id, entry_id) unique constraint. The lock releases on
+ * commit or rollback.
  */
-export async function replaceCommentSnapshot(docId: string, rows: CommentSnapshotRow[]): Promise<void> {
-  const db = useDatabase()
-  await db.transaction(async (tx) => {
+export async function replaceCommentSnapshot(doc: DocAccess<'write'>, rows: CommentSnapshotRow[]): Promise<StoredCommentRow[]> {
+  const docId = doc.docId
+  return useDatabase().transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${docId}))`)
+    const previous = await tx
+      .select({
+        entryId: documentComments.entryId,
+        parentCommentId: documentComments.parentCommentId,
+        authorId: documentComments.authorId,
+        authorName: documentComments.authorName,
+        body: documentComments.body,
+        resolved: documentComments.resolved
+      })
+      .from(documentComments)
+      .where(eq(documentComments.docId, docId))
     await tx.delete(documentComments).where(eq(documentComments.docId, docId))
-    if (rows.length === 0) return
-    await tx.insert(documentComments).values(rows.map(r => ({
-      docId,
-      entryId: r.entryId,
-      parentCommentId: r.parentCommentId,
-      authorId: r.authorId,
-      authorName: r.authorName,
-      body: r.body,
-      createdAtMs: r.createdAt,
-      updatedAtMs: r.updatedAt,
-      resolved: r.resolved
-    })))
+    if (rows.length > 0) {
+      await tx.insert(documentComments).values(rows.map(r => ({
+        docId,
+        entryId: r.entryId,
+        parentCommentId: r.parentCommentId,
+        authorId: r.authorId,
+        authorName: r.authorName,
+        body: r.body,
+        createdAtMs: r.createdAt,
+        updatedAtMs: r.updatedAt,
+        resolved: r.resolved
+      })))
+    }
+    return previous
   })
 }
 
@@ -58,9 +88,10 @@ export interface CommentThreadRow {
 }
 
 export async function getCommentThreadByEntryId(
-  docId: string,
+  doc: DocAccess<'view'>,
   entryId: string
 ): Promise<CommentThreadRow[] | null> {
+  const docId = doc.docId
   const db = useDatabase()
   const [row] = await db
     .select({

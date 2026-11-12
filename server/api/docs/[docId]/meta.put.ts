@@ -1,4 +1,5 @@
 import { getDoc, updateDocMeta, type MetaUpdate } from '../../../repos/documents'
+import type { DocAccess } from '../../../repos/proofs'
 import { appendAuditEvent } from '../../../repos/audit'
 import { assertPlanFeature, resolveDocPlan } from '../../../utils/billing/entitlements'
 import { ownCustomCss } from '~~/shared/utils/theme/themePresets'
@@ -14,8 +15,8 @@ import { updateDocMetaBody } from '~~/shared/api/docs'
 export default defineApiHandler({
   access: allow.doc('edit', { deny: 'docs/edit-forbidden' }),
   body: updateDocMetaBody,
-  handler: async ({ event, user, docId, doc, authz, body }) => {
-    if (body.accessMode !== undefined && !authz.canManage) {
+  handler: async ({ event, docId, doc, docAccess, body }) => {
+    if (body.accessMode !== undefined && !docAccess.allows('manage')) {
       throw apiError('docs/manage-forbidden')
     }
 
@@ -24,7 +25,7 @@ export default defineApiHandler({
     // referenced) and the request origin, so it is checked here rather
     // than in the schema.
     assertValidThemeCustomCss(updates.theme, docId, event)
-    await assertCustomCssAllowedByPlan(updates.theme, docId)
+    await assertCustomCssAllowedByPlan(updates.theme, docAccess)
     // Same for theme images: the schema checks the shape, but only this
     // document's uploads (or a bundled asset) may be referenced.
     if (updates.theme && themeImagesForDoc(updates.theme, docId).dropped.length > 0) {
@@ -37,16 +38,16 @@ export default defineApiHandler({
     // edits captured by the activity log, not security events.
     let beforeAccessMode: string | null = null
     if (updates.accessMode !== undefined) {
-      const snap = await getDoc(docId)
+      const snap = await getDoc(docAccess)
       if (updates.accessMode !== 'private') assertNotModerationRestricted(snap)
       beforeAccessMode = snap?.accessMode ?? null
     }
 
-    await updateDocMeta(docId, updates)
+    await updateDocMeta(docAccess, updates)
 
     if (updates.accessMode !== undefined && beforeAccessMode !== updates.accessMode) {
       await appendAuditEvent({
-        actorUserId: user.id,
+        by: docAccess,
         actorIp: getClientIp(event),
         scope: 'doc',
         scopeId: docId,
@@ -87,12 +88,12 @@ function metaUpdatesOf(body: MetaUpdate): MetaUpdate {
  * renderers drop the CSS for such documents (render-bootstrap +
  * `EditorLayout`'s `renderTheme`), which is the authoritative check.
  */
-async function assertCustomCssAllowedByPlan(theme: MetaUpdate['theme'] | undefined, docId: string): Promise<void> {
+async function assertCustomCssAllowedByPlan(theme: MetaUpdate['theme'] | undefined, access: DocAccess<'view'>): Promise<void> {
   // Only the author's own CSS counts: a built-in preset's unchanged
   // template CSS (arXiv, IEEE, …) is part of the preset on every plan.
   const css = ownCustomCss(theme?.customCss)
   if (css === '') return
-  const stored = (await getDoc(docId))?.theme as { customCss?: string } | null | undefined
+  const stored = (await getDoc(access))?.theme as { customCss?: string } | null | undefined
   if (ownCustomCss(stored?.customCss) === css) return
-  assertPlanFeature(await resolveDocPlan(docId), 'customCss', 'Custom CSS is not included in this document\'s plan.')
+  assertPlanFeature(await resolveDocPlan(access.docId), 'customCss', 'Custom CSS is not included in this document\'s plan.')
 }

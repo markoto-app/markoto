@@ -3,8 +3,9 @@ import { eq } from 'drizzle-orm'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser, createWorkspace, setMemberRole } from '../integration/setup/fixtures'
 import { documents } from '../../server/db/schema'
-import { useDatabase } from '../../server/utils/platform/database'
+import { useDatabase } from '../../server/db/client'
 import { createDocument } from '../../server/utils/documents/createDocument'
+import { asUser } from '../helpers/access'
 
 // Pin the validate+create flow that both POST /api/docs and the
 // `handleCreateDocument` AI tool handler share. The branches we care
@@ -19,7 +20,7 @@ describe('createDocument — happy paths', () => {
   })
 
   it('anonymous creation returns an open-edit doc with no owner / workspace', async () => {
-    const result = await createDocument({ ownerId: null })
+    const result = await createDocument({ owner: null })
     expect(result.docId).toMatch(/^[A-Za-z0-9_-]{10}$/)
     expect(result.url).toBe(`/d/${result.docId}`)
 
@@ -32,7 +33,7 @@ describe('createDocument — happy paths', () => {
 
   it('logged-in creation defaults to private + sets ownerId', async () => {
     const user = await createUser()
-    const result = await createDocument({ ownerId: user.id })
+    const result = await createDocument({ owner: asUser(user.id) })
 
     const db = useDatabase()
     const row = (await db.select().from(documents).where(eq(documents.docId, result.docId)))[0]!
@@ -45,7 +46,7 @@ describe('createDocument — happy paths', () => {
     const owner = await createUser()
     const ws = await createWorkspace(owner.id)
     const result = await createDocument({
-      ownerId: owner.id,
+      owner: asUser(owner.id),
       workspaceId: ws.workspaceId,
       title: 'Q3 retro'
     })
@@ -59,7 +60,7 @@ describe('createDocument — happy paths', () => {
   it('optional context fields land on the row', async () => {
     const user = await createUser()
     const result = await createDocument({
-      ownerId: user.id,
+      owner: asUser(user.id),
       title: '  trimmed  ',
       description: 'Hello world',
       audience: 'casual',
@@ -84,7 +85,7 @@ describe('createDocument — workspace authz gating', () => {
     const owner = await createUser()
     const ws = await createWorkspace(owner.id)
     await expect(createDocument({
-      ownerId: null,
+      owner: null,
       workspaceId: ws.workspaceId
     })).rejects.toMatchObject({ statusCode: 401 })
   })
@@ -94,7 +95,7 @@ describe('createDocument — workspace authz gating', () => {
     const ws = await createWorkspace(owner.id)
     const stranger = await createUser()
     await expect(createDocument({
-      ownerId: stranger.id,
+      owner: asUser(stranger.id),
       workspaceId: ws.workspaceId
     })).rejects.toMatchObject({ statusCode: 403 })
   })
@@ -105,7 +106,7 @@ describe('createDocument — workspace authz gating', () => {
     const viewer = await createUser()
     await setMemberRole(ws.workspaceId, viewer.id, 'viewer')
     await expect(createDocument({
-      ownerId: viewer.id,
+      owner: asUser(viewer.id),
       workspaceId: ws.workspaceId
     })).rejects.toMatchObject({ statusCode: 403 })
   })
@@ -116,7 +117,7 @@ describe('createDocument — workspace authz gating', () => {
     const editor = await createUser()
     await setMemberRole(ws.workspaceId, editor.id, 'editor')
     const result = await createDocument({
-      ownerId: editor.id,
+      owner: asUser(editor.id),
       workspaceId: ws.workspaceId
     })
     const db = useDatabase()
@@ -134,7 +135,7 @@ describe('createDocument — validation', () => {
   it('rejects title > 255 chars', async () => {
     const user = await createUser()
     await expect(createDocument({
-      ownerId: user.id,
+      owner: asUser(user.id),
       title: 'x'.repeat(256)
     })).rejects.toMatchObject({ statusCode: 400 })
   })
@@ -142,7 +143,7 @@ describe('createDocument — validation', () => {
   it('rejects description > 500 chars', async () => {
     const user = await createUser()
     await expect(createDocument({
-      ownerId: user.id,
+      owner: asUser(user.id),
       description: 'x'.repeat(501)
     })).rejects.toMatchObject({ statusCode: 400 })
   })
@@ -150,7 +151,7 @@ describe('createDocument — validation', () => {
   it('rejects empty language string', async () => {
     const user = await createUser()
     await expect(createDocument({
-      ownerId: user.id,
+      owner: asUser(user.id),
       language: '   '
     })).rejects.toMatchObject({ statusCode: 400 })
   })
@@ -158,7 +159,7 @@ describe('createDocument — validation', () => {
   it('rejects unknown templateId', async () => {
     const user = await createUser()
     await expect(createDocument({
-      ownerId: user.id,
+      owner: asUser(user.id),
       templateId: 'definitely-not-a-template'
     })).rejects.toMatchObject({ statusCode: 400 })
   })
@@ -166,7 +167,7 @@ describe('createDocument — validation', () => {
   it('rejects unknown themePreset', async () => {
     const user = await createUser()
     await expect(createDocument({
-      ownerId: user.id,
+      owner: asUser(user.id),
       themePreset: 'definitely-not-a-preset'
     })).rejects.toMatchObject({ statusCode: 400 })
   })
@@ -174,7 +175,7 @@ describe('createDocument — validation', () => {
   it('rejects themeId AND themePreset together (mutex)', async () => {
     const user = await createUser()
     await expect(createDocument({
-      ownerId: user.id,
+      owner: asUser(user.id),
       themeId: 'foo',
       themePreset: 'modern'
     })).rejects.toMatchObject({ statusCode: 400 })
@@ -190,7 +191,7 @@ describe('createDocument — validation', () => {
       ['t-shared', owner.id, 'Owner theme', JSON.stringify({})]
     )
     await expect(createDocument({
-      ownerId: otherUser.id,
+      owner: asUser(otherUser.id),
       themeId: 't-shared'
     })).rejects.toMatchObject({ statusCode: 404 })
   })

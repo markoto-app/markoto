@@ -1,7 +1,7 @@
 import { getActivityById } from '../../../../../repos/activity'
 import { assertWithinHistory, resolveDocPlanFor } from '../../../../../utils/billing/entitlements'
 import { reconstructTextAtYjsId } from '../../../../../utils/documents/historyReplay'
-import { YjsHistoryCompactedError } from '../../../../../utils/documents/yjsLog'
+import { YjsHistoryCompactedError } from '../../../../../repos/yjsLog'
 import { computeTextDiff, type DiffHunk } from '../../../../../utils/documents/textDiff'
 import { activityParams } from '~~/shared/api/docs'
 
@@ -44,8 +44,8 @@ interface DiffResponse {
 export default defineApiHandler({
   access: allow.doc('activity', { anonymous: true, jwt: true }),
   params: activityParams,
-  handler: async ({ docId, doc: docRow, params: { activityId } }): Promise<DiffResponse> => {
-    const activity = await getActivityById(activityId, docId)
+  handler: async ({ doc: docRow, docAccess, params: { activityId } }): Promise<DiffResponse> => {
+    const activity = await getActivityById(docAccess, activityId)
     if (!activity) {
       throw apiError('docs/activity-not-found')
     }
@@ -65,8 +65,8 @@ export default defineApiHandler({
     let after: string
     try {
       [before, after] = await Promise.all([
-        reconstructTextAtYjsId(docId, activity.yjsDocIdBefore),
-        reconstructTextAtYjsId(docId, activity.yjsDocIdAfter)
+        reconstructTextAtYjsId(docAccess, activity.yjsDocIdBefore),
+        reconstructTextAtYjsId(docAccess, activity.yjsDocIdAfter)
       ])
     } catch (e) {
       // The sync server pruned the history this row points into.

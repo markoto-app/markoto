@@ -1,13 +1,16 @@
 import type Stripe from 'stripe'
 import * as Sentry from '@sentry/nuxt'
-import { useDatabase } from '../../platform/database'
 import { notifyWorkspaceAdmins } from '../../email/workspaceBillingEmails'
 import { invoiceServicePeriod, invoiceSubscriptionId } from './stripeObjects'
 import { rowHoldingOtherSubscription, subjectForCustomer } from './billingSubjects'
 import { advanceUserBillingPeriod } from '../../../repos/userBilling'
 import { advanceWorkspaceBillingPeriod } from '../../../repos/workspaceSubscriptions'
-import type { DbOrTx, DeferredAfterCommit } from './types'
+import type { TxHandle, DeferredAfterCommit } from './types'
 import { useLogger } from '../../platform/logger'
+import { system } from '../../../repos/proofs'
+
+/** Stripe's webhook writes billing state for whichever customer the event names. */
+const STRIPE = system('stripe-webhook')
 
 // Invoices: a paid one advances the period anchors, a failed one is
 // reported (Stripe retries; workspace admins hear about the first failure).
@@ -30,10 +33,10 @@ const log = useLogger('stripe-webhook')
  */
 export async function handleInvoicePaid(
   event: Stripe.InvoicePaidEvent,
-  db?: DbOrTx,
+  db?: TxHandle,
   _deferAfterCommit?: DeferredAfterCommit
 ): Promise<{ matched: number }> {
-  const handle = db ?? useDatabase()
+  const handle = db
   const invoice = event.data.object
   const subscriptionId = invoiceSubscriptionId(invoice)
   if (!subscriptionId) return { matched: 0 }
@@ -45,10 +48,10 @@ export async function handleInvoicePaid(
   const subject = await subjectForCustomer(customerId, handle)
   if (subject?.kind === 'workspace') {
     if (await rowHoldingOtherSubscription(handle, subject.workspaceId, subscriptionId)) return { matched: 0 }
-    return { matched: await advanceWorkspaceBillingPeriod(handle, subject.workspaceId, period) }
+    return { matched: await advanceWorkspaceBillingPeriod(STRIPE, handle, subject.workspaceId, period) }
   }
 
-  return { matched: await advanceUserBillingPeriod(handle, customerId, subscriptionId, period) }
+  return { matched: await advanceUserBillingPeriod(STRIPE, handle, customerId, subscriptionId, period) }
 }
 
 /**
@@ -59,7 +62,7 @@ export async function handleInvoicePaid(
  */
 export async function handleInvoicePaymentFailed(
   event: Stripe.InvoicePaymentFailedEvent,
-  db?: DbOrTx,
+  db?: TxHandle,
   deferAfterCommit?: DeferredAfterCommit
 ): Promise<{ matched: number }> {
   const invoice = event.data.object
@@ -68,7 +71,7 @@ export async function handleInvoicePaymentFailed(
   // about the FIRST failure. Personal plans: Stripe's own dunning
   // emails cover it.
   if (customerId && (invoice.attempt_count ?? 1) <= 1) {
-    const subject = await subjectForCustomer(customerId, db ?? useDatabase())
+    const subject = await subjectForCustomer(customerId, db)
     if (subject?.kind === 'workspace') {
       const workspaceId = subject.workspaceId
       deferAfterCommit?.push(async () => {

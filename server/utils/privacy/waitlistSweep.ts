@@ -1,4 +1,5 @@
 import { deleteExpiredUnconfirmedWaitlistSignups } from '../../repos/waitlist'
+import { system } from '../../repos/proofs'
 import { useLogger } from '../platform/logger'
 
 const log = useLogger('waitlist-sweep')
@@ -16,7 +17,7 @@ export interface WaitlistSweepResult {
 }
 
 export async function runWaitlistSweep(now: Date = new Date()): Promise<WaitlistSweepResult> {
-  const deletedUnconfirmed = await deleteExpiredUnconfirmedWaitlistSignups(now)
+  const deletedUnconfirmed = await deleteExpiredUnconfirmedWaitlistSignups(system('waitlist-sweep'), now)
   if (deletedUnconfirmed > 0) {
     log.info('deleted unconfirmed sign-ups past the confirm window', { deleted: deletedUnconfirmed })
   }

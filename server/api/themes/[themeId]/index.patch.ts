@@ -12,8 +12,8 @@ export default defineApiHandler({
   access: allow.user(),
   params: themeParams,
   body: updateSavedThemeBody,
-  handler: async ({ event, user, params: { themeId }, body }) => {
-    const existing = await getThemeById(themeId, user.id)
+  handler: async ({ event, self, params: { themeId }, body }) => {
+    const existing = await getThemeById(self, themeId)
     if (!existing) throw apiError('resource/not-found')
 
     const update: { name?: string, description?: string, theme?: DocTheme } = {}
@@ -28,7 +28,7 @@ export default defineApiHandler({
 
     if (Object.keys(update).length === 0) throw apiError('request/invalid', { field: 'body' })
 
-    await updateTheme(themeId, user.id, update)
+    await updateTheme(self, themeId, update)
     return { ok: true }
   }
 })

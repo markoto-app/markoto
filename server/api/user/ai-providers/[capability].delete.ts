@@ -13,15 +13,15 @@ export default defineApiHandler({
   recentLogin: true,
   params: aiProviderParams,
   invalidCode: 'ai-provider/invalid',
-  handler: async ({ event, user, params }) => {
+  handler: async ({ event, user, params, self }) => {
     const userId = user.id
     const { capability } = params
-    const deleted = await deleteAiProvider(userId, capability)
+    const deleted = await deleteAiProvider(self, capability)
     if (!deleted) throw apiError('ai-provider/not-configured')
 
     const ip = getClientIp(event)
     await appendAuditEvent({
-      actorUserId: userId,
+      by: self,
       actorIp: truncateIp(ip),
       scope: 'user',
       scopeId: String(userId),

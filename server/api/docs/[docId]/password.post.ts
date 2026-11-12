@@ -1,6 +1,8 @@
 import type { H3Event } from 'h3'
 import jwt from 'jsonwebtoken'
-import { getDoc, setDocPassword, clearDocPassword, type DocSnapshot, type DocAuthzRow } from '../../../repos/documents'
+import { getDoc, setDocPassword, clearDocPassword, type DocSnapshot } from '../../../repos/documents'
+import { getDocPasswordForVerify, type DocAuthzRow } from '../../../utils/access/docProof'
+import type { DocAccess } from '../../../repos/proofs'
 import { appendAuditEvent } from '../../../repos/audit'
 import { admitPasswordAttempt, recordPasswordFailure } from '../../../utils/documents/docPasswordLimits'
 import { decideTokenAccess, type ActorState, type DocState } from '../../../../shared/utils/documents/docPermissions'
@@ -21,21 +23,24 @@ export default defineApiHandler({
     reason: 'verify: anyone, limited per client+doc, per doc and by a per-doc failure lockout; set / remove: signed in with manage rights (checked per action)'
   }),
   body: docPasswordBody,
-  handler: async ({ event, user, docId, doc: row, state, actor, authz, body }): Promise<DocPasswordResponse> => {
-    const doc = await getDoc(docId)
-    if (!doc) throw apiError('docs/not-found')
-
-    if (body.action === 'verify') return handleVerify(event, user, docId, doc, row, state, actor, body.password)
+  handler: async ({ event, user, docId, doc: row, state, actor, docAccess, body }): Promise<DocPasswordResponse> => {
+    if (body.action === 'verify') {
+      const stored = await getDocPasswordForVerify(docId)
+      if (!stored) throw apiError('docs/not-found')
+      return handleVerify(event, user, docId, stored, row, state, actor, body.password)
+    }
 
     // Set and remove change who can open the document: owner or workspace
-    // admin only (`canManage`). Editors / viewers cannot.
+    // admin only (`manage`). Editors / viewers cannot.
     if (!user) throw apiError('auth/required')
-    if (!authz.canManage) throw apiError('docs/manage-forbidden')
+    if (!docAccess.allows('manage')) throw apiError('docs/manage-forbidden')
+    const doc = await getDoc(docAccess)
+    if (!doc) throw apiError('docs/not-found')
     // A password opens the document to whoever has it; removing it makes the
     // document open-edit. Neither while a moderation restriction holds.
     assertNotModerationRestricted(doc)
-    if (body.action === 'set') return handleSet(event, user, docId, doc, body.password)
-    return handleRemove(event, user, docId, doc)
+    if (body.action === 'set') return handleSet(event, docAccess, doc, body.password)
+    return handleRemove(event, docAccess, doc)
   }
 })
 
@@ -48,7 +53,8 @@ type DocPasswordResponse
   = | { action: 'set' | 'remove', success: true }
     | { action: 'verify', success: true, token: string, readOnly: boolean }
 
-async function handleSet(event: H3Event, user: ValidatedUser, docId: string, doc: DocSnapshot, password: string | undefined): Promise<DocPasswordResponse> {
+async function handleSet(event: H3Event, access: DocAccess<'manage'>, doc: DocSnapshot, password: string | undefined): Promise<DocPasswordResponse> {
+  const docId = access.docId
   // Minimum length applies when a password is SET; passwords set under
   // an older, shorter minimum keep verifying.
   if (password === undefined || password.length < DOC_PASSWORD_MIN_LENGTH) {
@@ -56,7 +62,7 @@ async function handleSet(event: H3Event, user: ValidatedUser, docId: string, doc
   }
 
   const hash = await hashPassword(password)
-  await setDocPassword(docId, hash)
+  await setDocPassword(access, hash)
   // Visitors connected without the (new) password must not stay in.
   notifySyncReauthDocument(docId)
 
@@ -64,7 +70,7 @@ async function handleSet(event: H3Event, user: ValidatedUser, docId: string, doc
   // transition only. `setDocPassword` flips access_mode to
   // password-protected, so the after-state always has hasPassword=true.
   await appendAuditEvent({
-    actorUserId: user.id,
+    by: access,
     actorIp: getClientIp(event),
     scope: 'doc',
     scopeId: docId,
@@ -93,7 +99,7 @@ async function handleVerify(
   event: H3Event,
   user: ValidatedUser | null,
   docId: string,
-  doc: DocSnapshot,
+  doc: { accessMode: string, passwordHash: string | null },
   row: DocAuthzRow,
   state: DocState,
   actor: ActorState,
@@ -155,12 +161,13 @@ function mintPasswordToken(user: ValidatedUser | null, docId: string, readOnly: 
 }
 
 /** REMOVE password — doc owner or workspace admin. */
-async function handleRemove(event: H3Event, user: ValidatedUser, docId: string, doc: DocSnapshot): Promise<DocPasswordResponse> {
-  await clearDocPassword(docId)
+async function handleRemove(event: H3Event, access: DocAccess<'manage'>, doc: DocSnapshot): Promise<DocPasswordResponse> {
+  const docId = access.docId
+  await clearDocPassword(access)
 
   // `clearDocPassword` flips access_mode back to open-edit.
   await appendAuditEvent({
-    actorUserId: user.id,
+    by: access,
     actorIp: getClientIp(event),
     scope: 'doc',
     scopeId: docId,

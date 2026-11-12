@@ -9,7 +9,7 @@ const lock = vi.hoisted(() => ({
 const sentry = vi.hoisted(() => ({ capture: vi.fn() }))
 const migrations = vi.hoisted(() => ({ gate: Promise.resolve() as Promise<void> }))
 
-vi.mock('../../../server/utils/platform/sweepLock', () => ({
+vi.mock('../../../server/repos/sweepLocks', () => ({
   acquireSweepLock: lock.acquire,
   releaseSweepLock: lock.release
 }))

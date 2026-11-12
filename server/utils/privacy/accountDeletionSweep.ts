@@ -1,7 +1,6 @@
 import * as Sentry from '@sentry/nuxt'
-import { and, isNotNull, lte, sql } from 'drizzle-orm'
-import { users } from '../../db/schema'
-import { useDatabase } from '../platform/database'
+import { listAccountsDueForDeletion } from '../../repos/userDeletionRequests'
+import { system } from '../../repos/proofs'
 import { executeAccountDeletion } from './accountDeletionExecute'
 import { useLogger } from '../platform/logger'
 
@@ -41,15 +40,7 @@ export interface DeletionSweepResult {
  * tests) can assert behaviour.
  */
 export async function runAccountDeletionSweep(): Promise<DeletionSweepResult> {
-  const db = useDatabase()
-  const due = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(and(
-      isNotNull(users.deletionRequestedAt),
-      isNotNull(users.deletionGraceUntil),
-      lte(users.deletionGraceUntil, sql`now()`)
-    ))
+  const due = (await listAccountsDueForDeletion(system('account-deletion-sweep'))).map(id => ({ id }))
 
   const result: DeletionSweepResult = {
     scanned: due.length,

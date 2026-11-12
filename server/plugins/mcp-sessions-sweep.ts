@@ -1,6 +1,5 @@
-import { lt } from 'drizzle-orm'
-import { mcpSessions } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { deleteIdleMcpSessions } from '../repos/mcpTokens'
+import { system } from '../repos/proofs'
 import { defineSweeper } from '../utils/platform/defineSweeper'
 import { SWEEPS } from '../config/sweeps'
 import { DAY_MS } from '~~/shared/config/units'
@@ -36,9 +35,7 @@ export default defineSweeper({
   schedule: SWEEPS.mcpSessions,
   run: async () => {
     const cutoff = new Date(Date.now() - IDLE_THRESHOLD_DAYS * DAY_MS)
-    const result = await useDatabase().delete(mcpSessions)
-      .where(lt(mcpSessions.lastActiveAt, cutoff))
-      .returning({ id: mcpSessions.id })
-    return result.length > 0 ? { pruned: result.length, idleAfterDays: IDLE_THRESHOLD_DAYS } : undefined
+    const pruned = await deleteIdleMcpSessions(system('mcp-sessions-sweep'), cutoff)
+    return pruned > 0 ? { pruned, idleAfterDays: IDLE_THRESHOLD_DAYS } : undefined
   }
 })

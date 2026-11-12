@@ -1,4 +1,4 @@
-import { closeDatabase } from '../utils/platform/database'
+import { closeDatabaseConnections } from '../repos/connection'
 import { closeValkey } from '../utils/platform/valkey'
 import { useLogger } from '../utils/platform/logger'
 
@@ -13,10 +13,10 @@ const log = useLogger('shutdown')
 // being killed mid-request.
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('close', async () => {
-    log.info('Closing database pool…')
+    log.info('Closing database pools…')
     try {
-      await closeDatabase()
-      log.info('Database pool closed.')
+      await closeDatabaseConnections()
+      log.info('Database pools closed.')
     } catch (e) {
       log.warn('Database pool close failed', { err: e })
     }

@@ -1,7 +1,5 @@
-import { eq } from 'drizzle-orm'
 import * as Sentry from '@sentry/nuxt'
-import { users } from '../../db/schema'
-import { useDatabase } from '../../utils/platform/database'
+import { getOwnStripeCustomerId } from '../../repos/userBilling'
 import { useStripeClient } from '../../utils/billing/stripeClient'
 import { MINUTE_MS } from '~~/shared/config/units'
 import { useLogger } from '../../utils/platform/logger'
@@ -19,16 +17,12 @@ export default defineApiHandler({
   body: 'none',
   // Mirrors /api/billing/checkout: portal sessions are real Stripe objects.
   rateLimit: { namespace: 'billing-portal', max: 10, windowMs: MINUTE_MS, key: 'user', error: 'billing/rate-limited' },
-  handler: async ({ event, user }) => {
+  handler: async ({ event, user, self }) => {
     const userId = user.id
     const stripe = useStripeClient()
     if (!stripe) throw apiError('billing/not-configured')
 
-    const db = useDatabase()
-    const rows = await db.select({
-      stripeCustomerId: users.stripeCustomerId
-    }).from(users).where(eq(users.id, userId)).limit(1)
-    const customerId = rows[0]?.stripeCustomerId
+    const customerId = await getOwnStripeCustomerId(self)
     if (!customerId) throw apiError('billing/no-billing-history')
 
     // Origin (always sent on POST) with Host as fallback; both survive Traefik.

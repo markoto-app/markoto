@@ -11,6 +11,7 @@ import {
   AUDIT_ACCOUNT_DELETE_REQUESTED
 } from '../../legal/auditActions'
 import { safeSendTransactionalEmail } from '../email/sendEmail'
+import type { UserScope } from '../../repos/proofs'
 
 // GDPR Article 17 orchestrator. Two flows: schedule a deletion (with
 // 30-day grace), or cancel one in flight.
@@ -43,7 +44,8 @@ import { safeSendTransactionalEmail } from '../email/sendEmail'
 const DEFAULT_DELETION_GRACE_DAYS = 30
 
 export interface RequestAccountDeletionArgs {
-  userId: number
+  /** The account holder, deleting their own account. */
+  self: UserScope
   // Truncated by `appendAuditEvent`'s call site; pass the raw IP and
   // the audit helper handles /24 + /48 truncation.
   actorIp: string | null
@@ -73,16 +75,17 @@ export interface RequestAccountDeletionResult {
  */
 export async function requestAccountDeletionByUser(args: RequestAccountDeletionArgs): Promise<RequestAccountDeletionResult> {
   const graceDays = args.graceDays ?? DEFAULT_DELETION_GRACE_DAYS
-  const status = await repoRequest(args.userId, graceDays)
+  const userId = args.self.userId
+  const status = await repoRequest(args.self, graceDays)
 
   // Audit + email AFTER the row update committed. If either of the
   // following throws / rejects, the deletion is still scheduled — the
   // user's UI shows the banner regardless.
   await appendAuditEvent({
-    actorUserId: args.userId,
+    by: args.self,
     actorIp: args.actorIp,
     scope: 'user',
-    scopeId: String(args.userId),
+    scopeId: String(userId),
     action: AUDIT_ACCOUNT_DELETE_REQUESTED,
     after: {
       deletionRequestedAt: status.deletionRequestedAt?.toISOString() ?? null,
@@ -94,7 +97,7 @@ export async function requestAccountDeletionByUser(args: RequestAccountDeletionA
   // Best-effort email. Pull email + locale from the user row; if
   // either is missing we still scheduled the deletion (the in-product
   // banner is the primary surface).
-  const user = await findUserById(args.userId)
+  const user = await findUserById(userId)
   const userEmail = user?.email
   const emailAttempted = !!userEmail
   if (userEmail) {
@@ -107,7 +110,7 @@ export async function requestAccountDeletionByUser(args: RequestAccountDeletionA
         + (status.deletionGraceUntil?.toISOString().slice(0, 10) ?? 'the scheduled date')
         + '. If you did not request this, sign in and cancel from /settings/profile.',
       metadata: {
-        userId: args.userId,
+        userId: userId,
         graceUntil: status.deletionGraceUntil?.toISOString() ?? ''
       }
     })
@@ -117,7 +120,7 @@ export async function requestAccountDeletionByUser(args: RequestAccountDeletionA
 }
 
 export interface CancelAccountDeletionArgs {
-  userId: number
+  self: UserScope
   actorIp: string | null
 }
 
@@ -138,14 +141,15 @@ export async function cancelAccountDeletionByUser(args: CancelAccountDeletionArg
   // same transaction as the cancel, but the cancel is itself a single
   // UPDATE … WHERE clause that won't race a concurrent re-request
   // (the repo gates on `IS NOT NULL`), so this read is safe.
-  const before = await getAccountDeletionStatus(args.userId)
-  await repoCancel(args.userId)
+  const userId = args.self.userId
+  const before = await getAccountDeletionStatus(args.self)
+  await repoCancel(args.self)
 
   await appendAuditEvent({
-    actorUserId: args.userId,
+    by: args.self,
     actorIp: args.actorIp,
     scope: 'user',
-    scopeId: String(args.userId),
+    scopeId: String(userId),
     action: AUDIT_ACCOUNT_DELETE_CANCELLED,
     before: before
       ? {
@@ -155,7 +159,7 @@ export async function cancelAccountDeletionByUser(args: CancelAccountDeletionArg
       : null
   })
 
-  const user = await findUserById(args.userId)
+  const user = await findUserById(userId)
   const userEmail = user?.email
   const emailAttempted = !!userEmail
   if (userEmail) {
@@ -165,7 +169,7 @@ export async function cancelAccountDeletionByUser(args: CancelAccountDeletionArg
       locale: null,
       subject: 'Your markoto account deletion was cancelled',
       body: 'Your scheduled account deletion has been cancelled. Your account is active again.',
-      metadata: { userId: args.userId }
+      metadata: { userId: userId }
     })
   }
 

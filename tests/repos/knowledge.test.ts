@@ -9,6 +9,7 @@ import {
   deleteKnowledgeRow
 } from '../../server/repos/knowledge'
 import { createUser, createWorkspace } from '../integration/setup/fixtures'
+import { wsAs } from '../helpers/access'
 
 // DB-backed tests for the knowledge repo. No S3, no markitdown, no
 // embeddings — those are exercised via endpoint tests + unit tests.
@@ -23,9 +24,8 @@ async function seed(args: {
   sizeBytes?: number
 }): Promise<string> {
   const knowledgeId = `kn-${Math.random().toString(36).slice(2, 10)}`
-  await createKnowledge({
+  await createKnowledge(wsAs(args.workspaceId), {
     knowledgeId,
-    workspaceId: args.workspaceId,
     filename: args.filename,
     sourceExt: 'pdf',
     mimeType: 'application/pdf',
@@ -52,7 +52,7 @@ describe('disambiguateFilename', () => {
   it('returns the original filename when not taken', async () => {
     const u = await createUser()
     const ws = await createWorkspace(u.id)
-    const picked = await disambiguateFilename(ws.workspaceId, 'report.pdf')
+    const picked = await disambiguateFilename(wsAs(ws.workspaceId), 'report.pdf')
     expect(picked).toBe('report.pdf')
   })
 
@@ -60,7 +60,7 @@ describe('disambiguateFilename', () => {
     const u = await createUser()
     const ws = await createWorkspace(u.id)
     await seed({ workspaceId: ws.workspaceId, uploaderId: u.id, filename: 'report.pdf' })
-    const picked = await disambiguateFilename(ws.workspaceId, 'report.pdf')
+    const picked = await disambiguateFilename(wsAs(ws.workspaceId), 'report.pdf')
     expect(picked).toBe('report (2).pdf')
   })
 
@@ -70,7 +70,7 @@ describe('disambiguateFilename', () => {
     await seed({ workspaceId: ws.workspaceId, uploaderId: u.id, filename: 'report.pdf' })
     await seed({ workspaceId: ws.workspaceId, uploaderId: u.id, filename: 'report (2).pdf' })
     await seed({ workspaceId: ws.workspaceId, uploaderId: u.id, filename: 'report (3).pdf' })
-    const picked = await disambiguateFilename(ws.workspaceId, 'report.pdf')
+    const picked = await disambiguateFilename(wsAs(ws.workspaceId), 'report.pdf')
     expect(picked).toBe('report (4).pdf')
   })
 
@@ -80,7 +80,7 @@ describe('disambiguateFilename', () => {
     const wsB = await createWorkspace(u.id, { workspaceId: 'ws-other' })
     await seed({ workspaceId: wsA.workspaceId, uploaderId: u.id, filename: 'report.pdf' })
     // Same name allowed in a different workspace.
-    const picked = await disambiguateFilename(wsB.workspaceId, 'report.pdf')
+    const picked = await disambiguateFilename(wsAs(wsB.workspaceId), 'report.pdf')
     expect(picked).toBe('report.pdf')
   })
 
@@ -88,7 +88,7 @@ describe('disambiguateFilename', () => {
     const u = await createUser()
     const ws = await createWorkspace(u.id)
     await seed({ workspaceId: ws.workspaceId, uploaderId: u.id, filename: 'README' })
-    const picked = await disambiguateFilename(ws.workspaceId, 'README')
+    const picked = await disambiguateFilename(wsAs(ws.workspaceId), 'README')
     expect(picked).toBe('README (2)')
   })
 })
@@ -105,17 +105,17 @@ describe('aggregate counters', () => {
     await seed({ workspaceId: wsA.workspaceId, uploaderId: u.id, filename: 'a.pdf', sizeBytes: 1000 })
     await seed({ workspaceId: wsA.workspaceId, uploaderId: u.id, filename: 'b.pdf', sizeBytes: 2000 })
     await seed({ workspaceId: wsB.workspaceId, uploaderId: u.id, filename: 'c.pdf', sizeBytes: 9999 })
-    expect(await countWorkspaceKnowledge(wsA.workspaceId)).toBe(2)
-    expect(await sumWorkspaceKnowledgeBytes(wsA.workspaceId)).toBe(3000)
-    expect(await countWorkspaceKnowledge(wsB.workspaceId)).toBe(1)
-    expect(await sumWorkspaceKnowledgeBytes(wsB.workspaceId)).toBe(9999)
+    expect(await countWorkspaceKnowledge(wsAs(wsA.workspaceId))).toBe(2)
+    expect(await sumWorkspaceKnowledgeBytes(wsAs(wsA.workspaceId))).toBe(3000)
+    expect(await countWorkspaceKnowledge(wsAs(wsB.workspaceId))).toBe(1)
+    expect(await sumWorkspaceKnowledgeBytes(wsAs(wsB.workspaceId))).toBe(9999)
   })
 
   it('returns 0 for an empty workspace', async () => {
     const u = await createUser()
     const ws = await createWorkspace(u.id)
-    expect(await countWorkspaceKnowledge(ws.workspaceId)).toBe(0)
-    expect(await sumWorkspaceKnowledgeBytes(ws.workspaceId)).toBe(0)
+    expect(await countWorkspaceKnowledge(wsAs(ws.workspaceId))).toBe(0)
+    expect(await sumWorkspaceKnowledgeBytes(wsAs(ws.workspaceId))).toBe(0)
   })
 })
 
@@ -130,7 +130,7 @@ describe('listReadyKnowledgeBrief', () => {
     await seed({ workspaceId: ws.workspaceId, uploaderId: u.id, filename: 'ready.pdf', status: 'ready' })
     await seed({ workspaceId: ws.workspaceId, uploaderId: u.id, filename: 'busy.pdf', status: 'processing' })
     await seed({ workspaceId: ws.workspaceId, uploaderId: u.id, filename: 'broken.pdf', status: 'failed' })
-    const brief = await listReadyKnowledgeBrief(ws.workspaceId)
+    const brief = await listReadyKnowledgeBrief(wsAs(ws.workspaceId))
     expect(brief.map(b => b.filename).sort()).toEqual(['ready.pdf'])
     // The AI loop decides from this whether a file is someone else's.
     expect(brief[0]?.uploaderId).toBe(u.id)
@@ -140,7 +140,7 @@ describe('listReadyKnowledgeBrief', () => {
     const u = await createUser()
     const ws = await createWorkspace(u.id)
     await seed({ workspaceId: ws.workspaceId, uploaderId: u.id, filename: 'pending.pdf', status: 'processing' })
-    expect(await listReadyKnowledgeBrief(ws.workspaceId)).toEqual([])
+    expect(await listReadyKnowledgeBrief(wsAs(ws.workspaceId))).toEqual([])
   })
 })
 
@@ -153,7 +153,7 @@ describe('deleteKnowledgeRow', () => {
     const u = await createUser()
     const ws = await createWorkspace(u.id)
     const id = await seed({ workspaceId: ws.workspaceId, uploaderId: u.id, filename: 'x.pdf' })
-    await deleteKnowledgeRow(id)
-    expect(await countWorkspaceKnowledge(ws.workspaceId)).toBe(0)
+    await deleteKnowledgeRow(wsAs(ws.workspaceId), id)
+    expect(await countWorkspaceKnowledge(wsAs(ws.workspaceId))).toBe(0)
   })
 })

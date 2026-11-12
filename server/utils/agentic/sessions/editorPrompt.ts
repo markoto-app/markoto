@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import { getDoc } from '../../../repos/documents'
+import type { DocAccess, UserScope } from '../../../repos/proofs'
 import { appendAiMessage, lastActivityAt, loadRecentMessages } from '../../../repos/aiSessionMessages'
 import { buildConversationContextForPrompt, shouldRecordToolInMemory, summarizeToolCall } from '../conversationMemory'
 import { validateEditorSelection, wrapPromptWithEditorState } from '../editorStatePrompt'
@@ -17,21 +18,24 @@ const log = useLogger('ai-prompt')
 // cursor), and every tool call is remembered for the next prompt.
 
 export interface EditorPromptRequest {
-  docId: string
+  /** The route's write proof for the document (`allow.doc('write-content')`). */
+  docAccess: DocAccess<'write'>
+  self: UserScope
   user: { id: number, name: string }
   prompt: string
   editorSelection?: unknown
 }
 
 export async function startEditorPrompt(event: H3Event, request: EditorPromptRequest): Promise<{ sessionId: string }> {
-  const { docId } = request
+  const { docAccess, self } = request
+  const docId = docAccess.docId
   const userId = request.user.id
   // A bad editor-state snapshot falls back to `kind: 'none'` instead of
   // failing the request.
   const prompt = request.prompt
   const wrappedPrompt = wrapPromptWithEditorState(prompt, validateEditorSelection(request.editorSelection))
 
-  const doc = await getDoc(docId)
+  const doc = await getDoc(docAccess)
   const wsCtx = await resolveSessionWorkspace(doc?.workspaceId ?? null, userId)
   const documentContextBlock = documentContextBlockFor(doc)
   const conversationBlock = await loadConversationBlock(docId, userId)
@@ -47,6 +51,7 @@ export async function startEditorPrompt(event: H3Event, request: EditorPromptReq
 
   const session = await openAiSession(event, {
     docId,
+    docAccess,
     userId,
     userName: request.user.name,
     workspaceId: wsCtx.workspaceId,
@@ -58,6 +63,9 @@ export async function startEditorPrompt(event: H3Event, request: EditorPromptReq
   void runAgentSession({
     docId,
     userId,
+    docAccess,
+    self,
+    workspace: wsCtx,
     session,
     systemPrompt,
     initialPrompt: wrappedPrompt,

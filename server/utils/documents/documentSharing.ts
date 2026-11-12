@@ -1,4 +1,4 @@
-import { getMembershipRole, listMembers } from '../../repos/workspaceMembers'
+import { getMembershipRole } from '../access/workspaceAccess'
 import { apiError } from '../api/apiError'
 
 // Sharing a workspace document with a GUEST. Who may share (declared by
@@ -13,8 +13,4 @@ export async function requireWorkspaceGuest(workspaceId: string, rawUserId: unkn
   if (!Number.isInteger(userId) || userId <= 0) throw apiError('share/invalid', { field: 'userId' })
   if ((await getMembershipRole(workspaceId, userId)) !== 'guest') throw apiError('share/not-a-guest')
   return userId
-}
-
-export async function listWorkspaceGuests(workspaceId: string): Promise<Array<{ userId: number, name: string, email: string | null }>> {
-  return (await listMembers(workspaceId)).filter(m => m.role === 'guest').map(m => ({ userId: m.userId, name: m.name, email: m.email }))
 }

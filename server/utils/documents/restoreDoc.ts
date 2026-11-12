@@ -2,21 +2,16 @@ import * as Y from 'yjs'
 import jwt from 'jsonwebtoken'
 import { HocuspocusProvider } from '@hocuspocus/provider'
 import { Awareness } from 'y-protocols/awareness'
-import { sql } from 'drizzle-orm'
-import { useDatabase } from '../platform/database'
+import { withTransaction } from '../../repos/transaction'
+import type { DocAccess } from '../../repos/proofs'
 import { reconstructDocAtYjsId } from './historyReplay'
-import { YjsHistoryCompactedError } from './yjsLog'
+import { latestYjsIdIn, lockDocumentForRestore, YjsHistoryCompactedError } from '../../repos/yjsLog'
 import { flushSyncDocument } from './syncNotify'
 import { restoreClientUserId, type SessionJwtPayload } from '~~/shared/contracts/jwt'
 import { isValidMetaValue } from '~~/shared/utils/documents/ymetaValidation'
 import { useEnv } from '~~/shared/env/load'
 
 const RESTORABLE_META_KEYS = ['title', 'theme', 'description', 'audience', 'language', 'templateId'] as const
-
-// pg returns bigint (`yjs_updates.id`) as a string.
-function toYjsId(v: string | number | null | undefined): number | null {
-  return v === null || v === undefined ? null : Number(v)
-}
 
 /**
  * The past state's restorable ymeta values as plain JS. Only values that
@@ -100,7 +95,8 @@ function waitForServerAck(provider: HocuspocusProvider): Promise<void> {
 }
 
 export interface RestoreDocOptions {
-  docId: string
+  /** Write access to the document being restored (the route's proof). */
+  doc: DocAccess<'write'>
   /** `yjs_updates` id whose state we'll restore the live doc to.
    *  In the endpoint this is the source activity row's `yjsDocIdBefore`
    *  — i.e., "the state right before that activity happened." */
@@ -152,23 +148,20 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
   const env = useEnv()
   if (!env.auth.jwtSecret) throw new Error('JWT secret not configured')
 
-  const db = useDatabase()
+  const docId = opts.doc.docId
   // Per-doc serialization. The lock is held for the lifetime of
   // this transaction — which we keep open for the whole restore
   // duration via a long-running select. That seems heavy but
   // restores are infrequent (manual user action) and short
   // (~250ms in practice).
-  return await db.transaction(async (tx) => {
-    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${opts.docId}))`)
+  return await withTransaction(async (tx) => {
+    await lockDocumentForRestore(opts.doc, tx)
 
     // Capture the live state's max yjs row id BEFORE we touch the doc.
     // This is what makes restores reversible: stamping it on the
     // resulting activity row's `yjsDocIdBefore` means a future restore
     // from THIS row brings the doc back to the pre-restore state.
-    const beforeRow = await tx.execute<{ id: string | null }>(
-      sql`SELECT max(id) AS id FROM yjs_updates WHERE doc_id = ${opts.docId}`
-    )
-    const yjsDocIdBeforeRestore = toYjsId((beforeRow.rows?.[0])?.id)
+    const yjsDocIdBeforeRestore = await latestYjsIdIn(opts.doc, tx)
 
     // Step 1: replay to get the past state's full Y.Doc, then EXTRACT
     // the values we want to restore (text, comments, meta) as plain
@@ -178,7 +171,7 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
     // empty doc — applying an empty reconstruction would WIPE the live doc.
     let past: Y.Doc
     try {
-      past = await reconstructDocAtYjsId(opts.docId, opts.targetYjsId)
+      past = await reconstructDocAtYjsId(opts.doc, opts.targetYjsId)
     } catch (e) {
       if (e instanceof YjsHistoryCompactedError) throw new RestorePointCompactedError(opts.targetYjsId, e.floorId)
       throw e
@@ -190,7 +183,7 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
 
     // Step 2: open a synthetic Hocuspocus client as the acting user.
     const payload = {
-      docId: opts.docId,
+      docId: docId,
       // Distinct synthetic principal so attribution can tell a
       // restore apart from a regular edit by the same user.
       // Format mirrors the AI session's `ai:assistant:*`.
@@ -221,7 +214,7 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
 
     const provider = new HocuspocusProvider({
       url: wsUrl,
-      name: opts.docId,
+      name: docId,
       document: ydoc,
       awareness,
       token,
@@ -301,11 +294,8 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
       // A failed flush is logged by flushSyncDocument; the id read below
       // may then precede the restore's own row.
       await waitForServerAck(provider)
-      await flushSyncDocument(opts.docId)
-      const r = await tx.execute<{ id: string | null }>(
-        sql`SELECT max(id) AS id FROM yjs_updates WHERE doc_id = ${opts.docId}`
-      )
-      yjsDocIdAfterRestore = toYjsId((r.rows?.[0])?.id)
+      await flushSyncDocument(docId)
+      yjsDocIdAfterRestore = await latestYjsIdIn(opts.doc, tx)
     } finally {
       try {
         awareness.setLocalState(null)

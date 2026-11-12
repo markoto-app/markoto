@@ -1,6 +1,7 @@
 import { eq, sql } from 'drizzle-orm'
 import { users } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { useDatabase } from '../db/client'
+import type { AdminActor, SystemActor, UserScope } from './proofs'
 
 // Users repository: the account row, lookups and the session epoch. Sign-in
 // (OAuth upsert) is `userSignIn.ts`, policy acceptance `userPolicies.ts`,
@@ -50,7 +51,8 @@ export async function getSessionEpoch(userId: number): Promise<number> {
  * Increment the session epoch, invalidating every session cookie sealed
  * before this call. Returns the new epoch (null when the user is gone).
  */
-export async function bumpSessionEpoch(userId: number): Promise<number | null> {
+export async function bumpSessionEpoch(self: UserScope): Promise<number | null> {
+  const userId = self.userId
   const db = useDatabase()
   const row = (await db
     .update(users)
@@ -94,7 +96,7 @@ export async function findUserByEmail(email: string): Promise<Pick<UserRow, 'id'
  * Set the `is_admin` flag. Mutation only: the caller writes the audit-log entry.
  * Returns the previous value so the caller can skip auditing no-op flips.
  */
-export async function setAdminFlag(userId: number, value: boolean): Promise<{ previous: boolean } | null> {
+export async function setAdminFlag(_by: AdminActor | SystemActor, userId: number, value: boolean): Promise<{ previous: boolean } | null> {
   const db = useDatabase()
   const before = (await db
     .select({ isAdmin: users.isAdmin })
@@ -107,4 +109,23 @@ export async function setAdminFlag(userId: number, value: boolean): Promise<{ pr
     .set({ isAdmin: value })
     .where(eq(users.id, userId))
   return { previous: before.isAdmin }
+}
+
+/** What creating a workspace checks about the creator: their plan and DPA acceptance. */
+export async function getWorkspaceCreationFacts(self: UserScope): Promise<{ plan: 'free' | 'pro', planValidUntil: Date | null, dpaVersionAccepted: number | null } | null> {
+  return (await useDatabase().select({
+    plan: users.plan,
+    planValidUntil: users.planValidUntil,
+    dpaVersionAccepted: users.dpaVersionAccepted
+  }).from(users).where(eq(users.id, self.userId)).limit(1))[0] ?? null
+}
+
+/** The user's platform chat model pick (`fast` / `strong`). */
+export async function setAiModelTier(self: UserScope, tier: 'fast' | 'strong'): Promise<void> {
+  await useDatabase().update(users).set({ aiModelTier: tier }).where(eq(users.id, self.userId))
+}
+
+/** The stored pick, read when resolving the providers for that user's own AI calls. */
+export async function getAiModelTier(userId: number): Promise<'fast' | 'strong' | null> {
+  return (await useDatabase().select({ tier: users.aiModelTier }).from(users).where(eq(users.id, userId)).limit(1))[0]?.tier ?? null
 }

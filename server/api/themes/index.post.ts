@@ -12,7 +12,7 @@ import { assertPlanLimit, resolveUserPlan } from '../../utils/billing/entitlemen
 export default defineApiHandler({
   access: allow.user(),
   body: createSavedThemeBody,
-  handler: async ({ event, user, body }) => {
+  handler: async ({ event, user, self, body }) => {
     const userId = user.id
     const name = readSavedThemeName(body.name ?? '')
     const description = readSavedThemeDescription(body.description)
@@ -21,7 +21,7 @@ export default defineApiHandler({
     // sanitizer drops the ones that don't belong to the doc it's applied to.
     assertValidThemeCustomCss(body.theme, null, event)
 
-    const owned = await countThemesByUser(userId)
+    const owned = await countThemesByUser(self)
     assertPlanLimit(
       await resolveUserPlan(userId),
       'savedThemes',
@@ -30,9 +30,8 @@ export default defineApiHandler({
     )
 
     const themeId = nanoid(10)
-    const row = await createTheme({
+    const row = await createTheme(self, {
       themeId,
-      userId,
       name,
       description,
       theme: body.theme

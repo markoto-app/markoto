@@ -1,7 +1,6 @@
 import * as Sentry from '@sentry/nuxt'
-import { and, eq, isNotNull, lt, or } from 'drizzle-orm'
-import { processedWebhookEvents, pendingStripeEvents } from '../../db/schema'
-import { useDatabase } from '../platform/database'
+import { pruneWebhookEvents } from '../../repos/stripeWebhookEvents'
+import { system } from '../../repos/proofs'
 import { DAY_MS } from '~~/shared/config/units'
 import { useLogger } from '../platform/logger'
 
@@ -33,37 +32,15 @@ const THIRTY_DAYS_MS = 30 * DAY_MS
  * tables (mostly for ops logging — caller doesn't act on the value).
  */
 export async function runWebhookEventSweep(): Promise<{ processedDeleted: number, pendingDeleted: number }> {
-  const db = useDatabase()
   let processedDeleted = 0
   let pendingDeleted = 0
   try {
     const now = Date.now()
-    const processedCutoff = new Date(now - NINETY_DAYS_MS)
-    const pendingProcessedCutoff = new Date(now - SEVEN_DAYS_MS)
-    const pendingUnprocessedCutoff = new Date(now - THIRTY_DAYS_MS)
-
-    const a = await db.delete(processedWebhookEvents)
-      .where(lt(processedWebhookEvents.processedAt, processedCutoff))
-      .returning({ eventId: processedWebhookEvents.eventId })
-    processedDeleted = a.length
-
-    const b = await db.delete(pendingStripeEvents)
-      .where(or(
-        and(
-          eq(pendingStripeEvents.processed, true),
-          // processedAt is nullable for unprocessed rows; we only
-          // delete here if processedAt itself is past the cutoff so
-          // a freshly-flipped row gets the full week of audit grace.
-          isNotNull(pendingStripeEvents.processedAt),
-          lt(pendingStripeEvents.processedAt, pendingProcessedCutoff)
-        ),
-        and(
-          eq(pendingStripeEvents.processed, false),
-          lt(pendingStripeEvents.receivedAt, pendingUnprocessedCutoff)
-        )
-      ))
-      .returning({ eventId: pendingStripeEvents.eventId })
-    pendingDeleted = b.length
+    ;({ processedDeleted, pendingDeleted } = await pruneWebhookEvents(system('stripe-webhook'), {
+      processedBefore: new Date(now - NINETY_DAYS_MS),
+      replayedBefore: new Date(now - SEVEN_DAYS_MS),
+      unreplayedBefore: new Date(now - THIRTY_DAYS_MS)
+    }))
 
     if (processedDeleted + pendingDeleted > 0) {
       log.info('pruned webhook events', { processed: processedDeleted, pending: pendingDeleted })

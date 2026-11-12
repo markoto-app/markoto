@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/nuxt'
-import { Pool } from 'pg'
-import { litellmDbUrl } from './litellmDb'
+import { deleteSpendLogsBefore } from '../../repos/litellmSpend'
+import { system } from '../../repos/proofs'
 import { DAY_MS } from '~~/shared/config/units'
 import { useLogger } from '../platform/logger'
 
@@ -24,52 +24,20 @@ const log = useLogger('spend-logs-sweep')
 // has no write coordination on this table beyond its own connection
 // pool, so a sweep window deletion is safe.
 //
-// Connection: a dedicated pool on the litellm DB (same Postgres instance,
-// LiteLLM's own role when configured) — see ./litellmDb.ts.
+// Connection: the one pool on the litellm DB (same Postgres instance,
+// LiteLLM's own role when configured) — server/db/litellm.ts.
 //
 // Failure-tolerant: a hiccup just leaves stale rows around for one
 // more cycle. The sweep doesn't gate any user-facing behaviour.
 
 const RETENTION_DAYS = 90
-const TABLE_NAME = '"LiteLLM_SpendLogs"' // PascalCase + quoted (Prisma convention)
-const TIMESTAMP_COL = '"startTime"'
-
-let cachedPool: Pool | null = null
-
-function pool(): Pool {
-  if (cachedPool) return cachedPool
-  cachedPool = new Pool({
-    connectionString: litellmDbUrl(),
-    // Single-connection pool — the sweep is one query per day.
-    max: 1,
-    // Tighter timeouts than the app pool: we'd rather fail fast and
-    // retry next cycle than hold a connection while the proxy DB is
-    // sluggish.
-    connectionTimeoutMillis: 5000,
-    idleTimeoutMillis: 1000
-  })
-  return cachedPool
-}
-
-/** Test-only: drop the cached pool so a fresh connection is made next call. */
-export function _resetSpendLogsSweepPool(): void {
-  if (cachedPool) {
-    void cachedPool.end()
-    cachedPool = null
-  }
-}
-
 export async function runSpendLogsSweep(): Promise<{ deleted: number } | null> {
   const cutoff = new Date(Date.now() - RETENTION_DAYS * DAY_MS)
   const cutoffIso = cutoff.toISOString()
 
   let result: { deleted: number }
   try {
-    const r = await pool().query<{ count: string }>(
-      `DELETE FROM ${TABLE_NAME} WHERE ${TIMESTAMP_COL} < $1`,
-      [cutoffIso]
-    )
-    result = { deleted: r.rowCount ?? 0 }
+    result = { deleted: await deleteSpendLogsBefore(system('spend-logs-sweep'), cutoff) }
   } catch (e) {
     const msg = `[spend-logs-sweep] DELETE failed: ${e instanceof Error ? e.message : e}`
     log.warn('DELETE failed', { err: e })

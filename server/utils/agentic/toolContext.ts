@@ -3,6 +3,7 @@ import type { Awareness } from 'y-protocols/awareness'
 import type { AttributedTo } from '../billing/billing'
 import type { PlanName } from '~~/shared/config/tiers'
 import type { ResolvedAiProviders } from '../aiProviders/resolve'
+import type { DocAccess, UserScope, WorkspaceAccess } from '../../repos/proofs'
 
 // Two-tiered tool context. The split exists to make a class of bug
 // IMPOSSIBLE: a META-typed handler (one that doesn't need Y.js state)
@@ -47,6 +48,18 @@ export interface MetaToolContext {
   /** Workspace the doc belongs to, if any. `null` for standalone docs
    *  + user-only tool calls. */
   workspaceId: string | null
+
+  /** The initiator acting on their own data (saved themes, their documents, uploads). */
+  self: UserScope
+
+  /** The bound document, proven for the initiator at session start (null
+   *  for workspace-bound and user-only MCP calls). Write tools narrow it
+   *  with `allows('write')`. */
+  docAccess: DocAccess<'view'> | null
+
+  /** The initiator's membership of `workspaceId`, proven at session start
+   *  (null outside a workspace or without a role). */
+  workspaceAccess: WorkspaceAccess<'member'> | null
 
   /** Per-invocation correlation id. The in-app loop uses the AI
    *  session id; MCP uses the MCP session id. Tools tag Y.js
@@ -99,6 +112,7 @@ export interface MetaToolContext {
  * MCP's `connectAsMcpClient` returns this shape directly.
  */
 export interface DocToolContext extends MetaToolContext {
+  docAccess: DocAccess<'view'>
   ydoc: Y.Doc
   ytext: Y.Text
   ymeta: Y.Map<unknown>
@@ -115,3 +129,15 @@ export interface DocToolContext extends MetaToolContext {
  * the narrower of the two.
  */
 export type ToolContext = DocToolContext
+
+/**
+ * The bound document's proof narrowed to `write`, for tools that change it.
+ * In-app sessions are opened with write access and the MCP wrapper binds
+ * write tools with `access: 'edit'`, so a view-only proof here is a wiring
+ * bug: fail closed.
+ */
+export function writeAccessOf(ctx: DocToolContext): DocAccess<'write'> {
+  const access = ctx.docAccess
+  if (!access.allows('write')) throw new Error(`tool on ${ctx.docId} needs write access`)
+  return access
+}

@@ -1,4 +1,4 @@
-import { getDocWithActorRole } from '../../repos/documents'
+import { getDocWithActorRole } from '../../repos/access/docAuthz'
 import { canDownload, docStateOf } from '~~/shared/utils/documents/docPermissions'
 
 // Share-link controls: who may see and change them — the document's

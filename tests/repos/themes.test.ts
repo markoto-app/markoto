@@ -11,6 +11,7 @@ import {
 import { NotFoundError } from '../../server/repos/errors'
 import { createUser } from '../integration/setup/fixtures'
 import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
+import { asUser } from '../helpers/access'
 
 // Themes repo. Covers the user-saved preset round-trips + the
 // `(themeId, userId)` cross-user isolation tuple — a row owned by user
@@ -23,9 +24,8 @@ describe('createTheme + getThemeById', () => {
 
   it('round-trips a saved theme for the owner', async () => {
     const user = await createUser()
-    const row = await createTheme({
+    const row = await createTheme(asUser(user.id), {
       themeId: 'tA',
-      userId: user.id,
       name: 'Brand red',
       theme: defaultTheme
     })
@@ -33,7 +33,7 @@ describe('createTheme + getThemeById', () => {
     expect(row.name).toBe('Brand red')
     expect(row.theme).toEqual(defaultTheme)
 
-    const fetched = await getThemeById('tA', user.id)
+    const fetched = await getThemeById(asUser(user.id), 'tA')
     expect(fetched?.name).toBe('Brand red')
     expect(fetched?.theme).toEqual(defaultTheme)
   })
@@ -41,13 +41,12 @@ describe('createTheme + getThemeById', () => {
   it('returns null for another user looking up the same id', async () => {
     const owner = await createUser()
     const stranger = await createUser()
-    await createTheme({
+    await createTheme(asUser(owner.id), {
       themeId: 'tCross',
-      userId: owner.id,
       name: 'Mine',
       theme: defaultTheme
     })
-    expect(await getThemeById('tCross', stranger.id)).toBeNull()
+    expect(await getThemeById(asUser(stranger.id), 'tCross')).toBeNull()
   })
 })
 
@@ -58,19 +57,19 @@ describe('listThemesByUser', () => {
 
   it('returns an empty list for a user with no saved themes', async () => {
     const user = await createUser()
-    expect(await listThemesByUser(user.id)).toEqual([])
+    expect(await listThemesByUser(asUser(user.id))).toEqual([])
   })
 
   it('lists only themes owned by the caller', async () => {
     const a = await createUser()
     const b = await createUser()
-    await createTheme({ themeId: 't1', userId: a.id, name: 'A1', theme: defaultTheme })
-    await createTheme({ themeId: 't2', userId: a.id, name: 'A2', theme: defaultTheme })
-    await createTheme({ themeId: 't3', userId: b.id, name: 'B1', theme: defaultTheme })
+    await createTheme(asUser(a.id), { themeId: 't1', name: 'A1', theme: defaultTheme })
+    await createTheme(asUser(a.id), { themeId: 't2', name: 'A2', theme: defaultTheme })
+    await createTheme(asUser(b.id), { themeId: 't3', name: 'B1', theme: defaultTheme })
 
-    const aRows = await listThemesByUser(a.id)
+    const aRows = await listThemesByUser(asUser(a.id))
     expect(aRows.map(r => r.themeId).sort()).toEqual(['t1', 't2'])
-    const bRows = await listThemesByUser(b.id)
+    const bRows = await listThemesByUser(asUser(b.id))
     expect(bRows.map(r => r.themeId)).toEqual(['t3'])
   })
 })
@@ -82,17 +81,17 @@ describe('countThemesByUser', () => {
 
   it('returns 0 for a user with no saved themes', async () => {
     const user = await createUser()
-    expect(await countThemesByUser(user.id)).toBe(0)
+    expect(await countThemesByUser(asUser(user.id))).toBe(0)
   })
 
   it('counts only the caller\'s saved themes', async () => {
     const a = await createUser()
     const b = await createUser()
-    await createTheme({ themeId: 'c1', userId: a.id, name: 'A1', theme: defaultTheme })
-    await createTheme({ themeId: 'c2', userId: a.id, name: 'A2', theme: defaultTheme })
-    await createTheme({ themeId: 'c3', userId: b.id, name: 'B1', theme: defaultTheme })
-    expect(await countThemesByUser(a.id)).toBe(2)
-    expect(await countThemesByUser(b.id)).toBe(1)
+    await createTheme(asUser(a.id), { themeId: 'c1', name: 'A1', theme: defaultTheme })
+    await createTheme(asUser(a.id), { themeId: 'c2', name: 'A2', theme: defaultTheme })
+    await createTheme(asUser(b.id), { themeId: 'c3', name: 'B1', theme: defaultTheme })
+    expect(await countThemesByUser(asUser(a.id))).toBe(2)
+    expect(await countThemesByUser(asUser(b.id))).toBe(1)
   })
 })
 
@@ -103,28 +102,28 @@ describe('updateTheme', () => {
 
   it('renames a theme owned by the caller', async () => {
     const user = await createUser()
-    await createTheme({ themeId: 'tU', userId: user.id, name: 'Old', theme: defaultTheme })
-    await updateTheme('tU', user.id, { name: 'New' })
-    const r = await getThemeById('tU', user.id)
+    await createTheme(asUser(user.id), { themeId: 'tU', name: 'Old', theme: defaultTheme })
+    await updateTheme(asUser(user.id), 'tU', { name: 'New' })
+    const r = await getThemeById(asUser(user.id), 'tU')
     expect(r?.name).toBe('New')
   })
 
   it('throws NotFound when the theme belongs to a different user', async () => {
     const owner = await createUser()
     const stranger = await createUser()
-    await createTheme({ themeId: 'tX', userId: owner.id, name: 'Mine', theme: defaultTheme })
-    await expect(updateTheme('tX', stranger.id, { name: 'Stolen' }))
+    await createTheme(asUser(owner.id), { themeId: 'tX', name: 'Mine', theme: defaultTheme })
+    await expect(updateTheme(asUser(stranger.id), 'tX', { name: 'Stolen' }))
       .rejects.toBeInstanceOf(NotFoundError)
     // Underlying row untouched.
-    const original = await getThemeById('tX', owner.id)
+    const original = await getThemeById(asUser(owner.id), 'tX')
     expect(original?.name).toBe('Mine')
   })
 
   it('is a no-op when given an empty update', async () => {
     const user = await createUser()
-    await createTheme({ themeId: 'tE', userId: user.id, name: 'Same', theme: defaultTheme })
-    await updateTheme('tE', user.id, {})
-    const r = await getThemeById('tE', user.id)
+    await createTheme(asUser(user.id), { themeId: 'tE', name: 'Same', theme: defaultTheme })
+    await updateTheme(asUser(user.id), 'tE', {})
+    const r = await getThemeById(asUser(user.id), 'tE')
     expect(r?.name).toBe('Same')
   })
 })
@@ -136,17 +135,17 @@ describe('deleteTheme', () => {
 
   it('removes a theme owned by the caller', async () => {
     const user = await createUser()
-    await createTheme({ themeId: 'tD', userId: user.id, name: 'Bye', theme: defaultTheme })
-    await deleteTheme('tD', user.id)
-    expect(await getThemeById('tD', user.id)).toBeNull()
+    await createTheme(asUser(user.id), { themeId: 'tD', name: 'Bye', theme: defaultTheme })
+    await deleteTheme(asUser(user.id), 'tD')
+    expect(await getThemeById(asUser(user.id), 'tD')).toBeNull()
   })
 
   it('throws NotFound when the theme belongs to a different user', async () => {
     const owner = await createUser()
     const stranger = await createUser()
-    await createTheme({ themeId: 'tDX', userId: owner.id, name: 'Mine', theme: defaultTheme })
-    await expect(deleteTheme('tDX', stranger.id))
+    await createTheme(asUser(owner.id), { themeId: 'tDX', name: 'Mine', theme: defaultTheme })
+    await expect(deleteTheme(asUser(stranger.id), 'tDX'))
       .rejects.toBeInstanceOf(NotFoundError)
-    expect(await getThemeById('tDX', owner.id)).not.toBeNull()
+    expect(await getThemeById(asUser(owner.id), 'tDX')).not.toBeNull()
   })
 })

@@ -10,9 +10,9 @@ import { BRAND_ASSET_FILE_RE } from '~~/shared/config/brandKit'
 export default defineApiHandler({
   access: allow.workspace('member'),
   params: brandFileParams,
-  handler: async ({ event, wsId, params: { file } }) => {
+  handler: async ({ event, params: { file }, workspaceAccess }) => {
     const [, assetId, format] = BRAND_ASSET_FILE_RE.exec(file) ?? []
-    const asset = assetId ? await getBrandAsset(wsId, assetId) : null
+    const asset = assetId ? await getBrandAsset(workspaceAccess, assetId) : null
     if (!asset || asset.format !== format) throw apiError('resource/not-found')
     return sendBrandAsset(event, asset, { crossOrigin: false })
   }

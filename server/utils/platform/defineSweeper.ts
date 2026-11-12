@@ -1,5 +1,5 @@
 import { migrationsComplete } from './migrations'
-import { acquireSweepLock, releaseSweepLock } from './sweepLock'
+import { acquireSweepLock, releaseSweepLock } from '../../repos/sweepLocks'
 import { captureExceptionThrottled } from './throttledSentry'
 import { useLogger } from './logger'
 

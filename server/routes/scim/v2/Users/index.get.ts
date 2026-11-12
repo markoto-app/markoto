@@ -10,7 +10,7 @@ export default defineApiHandler({
     const filter = parseScimFilter(query.filter)
     if (filter === 'unsupported') throw scimError(400, 'Only "userName eq", "externalId eq" and "emails eq" filters are supported.', 'invalidFilter')
     const { startIndex, count } = query
-    const { total, rows } = await listScimUsers(connection.id, { filter, startIndex, count })
+    const { total, rows } = await listScimUsers(connection, { filter, startIndex, count })
     return {
       schemas: [SCIM_LIST_SCHEMA],
       totalResults: total,

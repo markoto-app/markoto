@@ -1,6 +1,6 @@
-import { and, inArray, isNotNull, lt } from 'drizzle-orm'
-import { abuseReports, auditLog } from '../../db/schema'
-import { useDatabase } from '../platform/database'
+import { deleteAuditEventsBefore } from '../../repos/audit'
+import { deleteClosedAbuseReportsBefore } from '../../repos/abuseReports'
+import { system } from '../../repos/proofs'
 import { DAY_MS } from '~~/shared/config/units'
 import { useEnv } from '~~/shared/env/load'
 import type { RawEnv } from '~~/shared/env/define'
@@ -41,11 +41,7 @@ export async function runAuditLogSweep(
   const retentionDays = opts.retentionDays ?? resolveAuditLogRetentionDays()
   if (retentionDays === 0) return 0
   const cutoff = new Date((opts.now ?? Date.now()) - retentionDays * DAY_MS)
-  const deleted = await useDatabase()
-    .delete(auditLog)
-    .where(lt(auditLog.ts, cutoff))
-    .returning({ id: auditLog.id })
-  return deleted.length
+  return deleteAuditEventsBefore(system('legal-retention-sweep'), cutoff)
 }
 
 /** Delete abuse reports closed longer ago than the retention window. Returns the count. */
@@ -55,13 +51,5 @@ export async function runAbuseReportSweep(
   const retentionDays = opts.retentionDays ?? resolveAbuseReportRetentionDays()
   if (retentionDays === 0) return 0
   const cutoff = new Date((opts.now ?? Date.now()) - retentionDays * DAY_MS)
-  const deleted = await useDatabase()
-    .delete(abuseReports)
-    .where(and(
-      inArray(abuseReports.status, ['actioned', 'dismissed']),
-      isNotNull(abuseReports.actionedAt),
-      lt(abuseReports.actionedAt, cutoff)
-    ))
-    .returning({ id: abuseReports.id })
-  return deleted.length
+  return deleteClosedAbuseReportsBefore(system('legal-retention-sweep'), cutoff)
 }

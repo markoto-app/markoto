@@ -32,14 +32,12 @@ export default defineApiHandler({
   // Shared with the cancel endpoint (same namespace), so alternating
   // requests and cancels can't pump the audit log.
   rateLimit: { namespace: 'account-delete-request', max: 5, windowMs: HOUR_MS, key: 'user+ip', error: 'account/delete-rate-limited' },
-  handler: async ({ event, user }) => {
-    const userId = user.id
-
+  handler: async ({ event, self }) => {
     const ip = getClientIp(event)
 
     try {
       const result = await requestAccountDeletionByUser({
-        userId,
+        self,
         actorIp: ip
       })
 
@@ -47,7 +45,7 @@ export default defineApiHandler({
       // stolen cookie must stop working. This browser keeps its session
       // (re-sealed with the new epoch) so the user can still cancel from
       // the grace banner.
-      const epoch = await bumpSessionEpoch(userId)
+      const epoch = await bumpSessionEpoch(self)
       if (epoch !== null) await setUserSession(event, { e: epoch })
 
       return {

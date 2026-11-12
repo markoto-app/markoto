@@ -33,6 +33,16 @@ const TS_GLOBS = ['**/*.ts', '**/*.vue', '**/*.mts']
 const TESTS = ['tests/**', 'sync-server/**/*.test.ts', 'sync-server/tests/**', 'renderer/**/*.test.ts']
 const BACKEND = ['server/**', 'sync-server/src/**', 'renderer/src/**']
 
+// Data-access boundaries (markoto/data-access-boundaries below).
+const DB_IMPORTS = {
+  group: ['drizzle-orm', 'drizzle-orm/*', 'pg', 'pg/*', '**/db/*', '~~/server/db/*', '#server/db/*'],
+  message: 'Only server/repos talks to the database. Add or reuse a repo function.'
+}
+const MINT_IMPORTS = {
+  group: ['**/repos/proofs/testing', '**/repos/proofs/mint', '**/repos/access/*'],
+  message: 'Proofs are minted by the access layer (server/utils/access); import the proof types from server/repos/proofs.'
+}
+
 // Backend code logs through `useLogger` (docs/contributing/logging.md). The
 // only console users: the boot-time configuration report of each process
 // (a plain, human-readable problem list written before any logger setting is
@@ -325,6 +335,45 @@ const composed = withNuxt(
       ...strict(security.configs.recommended.rules),
       // Fires on every `obj[key]`; far too noisy to act on.
       'security/detect-object-injection': 'off'
+    }
+  },
+
+  // Only server/repos talks to the database, and proofs are minted only by
+  // the access layer (docs/SECURITY-HARDENING.md, tenancy). dependency-cruiser
+  // enforces the same boundaries on the resolved graph; this rule flags them
+  // in the editor. Later blocks replace the rule's options, so each repeats
+  // the patterns it keeps.
+  {
+    name: 'markoto/data-access-boundaries',
+    files: ['app/**/*.{ts,vue}', 'server/**/*.{ts,mts}', 'shared/**/*.ts', 'modules/**/*.ts'],
+    ignores: ['server/db/**', 'server/repos/**', 'shared/utils/runtime/postgresSsl.ts', ...TESTS],
+    rules: { 'no-restricted-imports': ['error', { patterns: [DB_IMPORTS, MINT_IMPORTS] }] }
+  },
+  {
+    name: 'markoto/no-system-actor-in-handlers',
+    // A user-facing handler acts with the caller's proofs from its policy; a
+    // named system actor would act on anything. Internal, webhook and
+    // test-only routes are the exceptions (they have no user).
+    files: ['server/api/**/*.ts'],
+    ignores: ['server/api/internal/**', 'server/api/_test/**', 'server/api/webhooks/**', ...TESTS],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [DB_IMPORTS, MINT_IMPORTS, {
+          group: ['**/repos/proofs', '**/repos/proofs/index'],
+          importNames: ['system'],
+          message: 'User-facing handlers act with the proofs their policy hands them, not a system actor.'
+        }]
+      }]
+    }
+  },
+  {
+    name: 'markoto/access-layer-imports',
+    // The access layer itself mints proofs and reads the authorization bootstrap rows.
+    files: ['server/utils/access/**/*.ts', 'server/utils/mcp/mcpAuth.ts'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [DB_IMPORTS, { group: ['**/repos/proofs/testing'], message: 'The test mint is for tests only.' }]
+      }]
     }
   },
 

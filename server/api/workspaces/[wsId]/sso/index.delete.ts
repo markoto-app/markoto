@@ -8,10 +8,10 @@ import { AUDIT_SSO_CONNECTION_DELETED } from '../../../../legal/auditActions'
 // and while SSO is enforced (`ignoreSso`).
 export default defineApiHandler({
   access: allow.workspace('admin', { ignoreSso: true, deny: 'sso/admin-required' }),
-  handler: async ({ event, user, wsId }) => {
-    const deleted = await deleteSsoConnection(wsId)
+  handler: async ({ event, wsId, workspaceAccess }) => {
+    const deleted = await deleteSsoConnection(workspaceAccess)
     if (!deleted) throw apiError('sso/not-configured')
-    await appendAuditEvent({ actorUserId: user.id, actorIp: getClientIp(event), scope: 'workspace', scopeId: wsId, action: AUDIT_SSO_CONNECTION_DELETED, metadata: {} })
+    await appendAuditEvent({ by: workspaceAccess, actorIp: getClientIp(event), scope: 'workspace', scopeId: wsId, action: AUDIT_SSO_CONNECTION_DELETED, metadata: {} })
     return { ok: true }
   }
 })

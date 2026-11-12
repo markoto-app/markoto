@@ -1,6 +1,6 @@
-import { lt } from 'drizzle-orm'
-import { aiSessionMessages, aiSessions } from '../../db/schema'
-import { useDatabase } from '../platform/database'
+import { deleteAiMessagesBefore } from '../../repos/aiSessionMessages'
+import { deleteAiSessionsStartedBefore } from '../../repos/aiSessions'
+import { system } from '../../repos/proofs'
 import { DAY_MS } from '~~/shared/config/units'
 
 // GDPR retention enforcement for AI records.
@@ -32,15 +32,8 @@ export interface AiRecordsSweepResult {
  */
 export async function runAiRecordsSweep(now: number = Date.now()): Promise<AiRecordsSweepResult> {
   const cutoff = new Date(now - AI_RECORD_RETENTION_DAYS * DAY_MS)
-  const db = useDatabase()
-
-  const messages = await db.delete(aiSessionMessages)
-    .where(lt(aiSessionMessages.createdAt, cutoff))
-    .returning({ id: aiSessionMessages.id })
-
-  const sessions = await db.delete(aiSessions)
-    .where(lt(aiSessions.startedAt, cutoff))
-    .returning({ sessionId: aiSessions.sessionId })
-
-  return { messagesDeleted: messages.length, sessionsDeleted: sessions.length }
+  const sweep = system('ai-records-sweep')
+  const messagesDeleted = await deleteAiMessagesBefore(sweep, cutoff)
+  const sessionsDeleted = await deleteAiSessionsStartedBefore(sweep, cutoff)
+  return { messagesDeleted, sessionsDeleted }
 }

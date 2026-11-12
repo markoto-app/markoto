@@ -17,20 +17,20 @@ export default defineApiHandler({
   params: ssoDomainParams,
   body: 'none',
   plan: { feature: 'sso', message: 'Single sign-on is part of the Business plan.' },
-  handler: async ({ event, user, wsId, params }) => {
+  handler: async ({ event, user, wsId, params, workspaceAccess }) => {
     const id = Number(params.domainId)
-    const domain = Number.isInteger(id) ? await getSsoDomain(wsId, id) : null
+    const domain = Number.isInteger(id) ? await getSsoDomain(workspaceAccess, id) : null
     if (!domain) throw apiError('sso/domain-not-found')
     if (domain.verifiedAt) return domainView(domain)
     if (!(await checkRateLimit('sso-domain-verify', String(user.id), 30, 10 * MINUTE_MS))) throw apiError('sso/rate-limited')
     if (!(await domainHasVerificationRecord(domain.domain, domain.verificationToken))) throw apiError('sso/domain-unverified')
     try {
-      await markSsoDomainVerified(wsId, id)
+      await markSsoDomainVerified(workspaceAccess, id)
     } catch (e) {
       if (e instanceof DuplicateError) throw apiError('sso/domain-taken', undefined, { cause: e })
       throw e
     }
-    await appendAuditEvent({ actorUserId: user.id, actorIp: getClientIp(event), scope: 'workspace', scopeId: wsId, action: AUDIT_SSO_DOMAIN_VERIFIED, metadata: { domain: domain.domain } })
+    await appendAuditEvent({ by: workspaceAccess, actorIp: getClientIp(event), scope: 'workspace', scopeId: wsId, action: AUDIT_SSO_DOMAIN_VERIFIED, metadata: { domain: domain.domain } })
     return { ...domainView(domain), verified: true }
   }
 })

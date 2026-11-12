@@ -14,19 +14,19 @@ export default defineApiHandler({
   access: allow.doc('share-guests', { deny: 'share/not-allowed' }),
   body: upsertDocShareBody,
   invalidCode: 'share/invalid',
-  handler: async ({ event, user, docId, doc, body }) => {
+  handler: async ({ event, docId, doc, docAccess, body }) => {
     if (!doc.workspaceId) throw apiError('share/not-allowed')
     const workspaceId = doc.workspaceId
     // A share widens who can open the document: refused while restricted.
-    assertNotModerationRestricted(await getDoc(docId))
+    assertNotModerationRestricted(await getDoc(docAccess))
     const guestId = await requireWorkspaceGuest(workspaceId, body.userId)
-    const before = await upsertShare({ docId, userId: guestId, access: body.access, grantedByUserId: user.id })
+    const before = await upsertShare(docAccess, { userId: guestId, access: body.access })
     // Edit → view: their open editor holds a writable token; close it so
     // they reconnect read-only.
     if (before === 'edit' && body.access === 'view') notifySyncKickUser(guestId, [docId])
     if (before !== body.access) {
       await appendAuditEvent({
-        actorUserId: user.id,
+        by: docAccess,
         actorIp: getClientIp(event),
         scope: 'doc',
         scopeId: docId,

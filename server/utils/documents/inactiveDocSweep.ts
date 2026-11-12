@@ -1,6 +1,5 @@
-import { and, isNull, lt } from 'drizzle-orm'
-import { documents } from '../../db/schema'
-import { useDatabase } from '../platform/database'
+import { listInactiveAnonymousDocIds } from '../../repos/documents'
+import { system } from '../../repos/proofs'
 import { DAY_MS } from '~~/shared/config/units'
 
 // Candidate query for the inactive-doc sweep (server/plugins/inactive-doc-sweep.ts).
@@ -23,12 +22,5 @@ export async function loadInactiveAnonymousDocs(
 ): Promise<Array<{ docId: string }>> {
   if (ttlDays <= 0) return []
   const cutoff = new Date(now.getTime() - ttlDays * DAY_MS)
-  return useDatabase()
-    .select({ docId: documents.docId })
-    .from(documents)
-    .where(and(
-      isNull(documents.ownerId),
-      isNull(documents.workspaceId),
-      lt(documents.lastActive, cutoff)
-    ))
+  return listInactiveAnonymousDocIds(system('inactive-doc-sweep'), cutoff)
 }

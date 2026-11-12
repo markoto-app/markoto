@@ -1,7 +1,6 @@
 import * as Sentry from '@sentry/nuxt'
-import { and, eq, lt } from 'drizzle-orm'
-import { workspaceKnowledge } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { listKnowledgeInStatusSince } from '../repos/knowledgePipeline'
+import { system } from '../repos/proofs'
 import { processKnowledge } from '../utils/knowledge/processKnowledge'
 import { deleteKnowledgeArtifact } from '../utils/knowledge/knowledgeAccess'
 import { defineSweeper } from '../utils/platform/defineSweeper'
@@ -28,17 +27,13 @@ const log = useLogger('knowledge-sweep')
 
 const { staleAfterMs: STALE_THRESHOLD_MS } = SWEEPS.knowledge
 
+const SWEEP = system('knowledge-sweep')
+
 async function sweepStuck() {
   const cutoff = new Date(Date.now() - STALE_THRESHOLD_MS)
   let stuck: Array<{ knowledgeId: string }>
   try {
-    const db = useDatabase()
-    stuck = await db.select({ knowledgeId: workspaceKnowledge.knowledgeId })
-      .from(workspaceKnowledge)
-      .where(and(
-        eq(workspaceKnowledge.status, 'processing'),
-        lt(workspaceKnowledge.createdAt, cutoff)
-      ))
+    stuck = await listKnowledgeInStatusSince(SWEEP, 'processing', cutoff)
   } catch (e) {
     log.warn('stuck-query failed', { err: e })
     Sentry.captureException(e, { tags: { component: 'knowledge-sweep', event: 'query_failed' } })
@@ -65,15 +60,9 @@ async function sweepFailed() {
   const cutoffDays = KNOWLEDGE_PLATFORM_LIMITS.failedRetentionDays
   if (cutoffDays <= 0) return
   const cutoff = new Date(Date.now() - cutoffDays * DAY_MS)
-  let rows: Array<{ knowledgeId: string }>
+  let rows: Array<{ knowledgeId: string, workspaceId: string }>
   try {
-    const db = useDatabase()
-    rows = await db.select({ knowledgeId: workspaceKnowledge.knowledgeId })
-      .from(workspaceKnowledge)
-      .where(and(
-        eq(workspaceKnowledge.status, 'failed'),
-        lt(workspaceKnowledge.createdAt, cutoff)
-      ))
+    rows = await listKnowledgeInStatusSince(SWEEP, 'failed', cutoff)
   } catch (e) {
     log.warn('failed-query failed', { err: e })
     Sentry.captureException(e, { tags: { component: 'knowledge-sweep', event: 'failed_query_failed' } })
@@ -84,7 +73,7 @@ async function sweepFailed() {
     // deleteKnowledgeArtifact is already idempotent: it no-ops if
     // the row is missing and best-effort deletes the S3 object.
     try {
-      await deleteKnowledgeArtifact(row.knowledgeId)
+      await deleteKnowledgeArtifact(SWEEP.workspace(row.workspaceId), row.knowledgeId)
     } catch (e) {
       log.warn('reap failed', { knowledgeId: row.knowledgeId, err: e })
       // Surface to Sentry — repeated reap failures keep failed rows

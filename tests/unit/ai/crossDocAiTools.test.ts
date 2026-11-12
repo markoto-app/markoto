@@ -15,13 +15,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 
 import { executeFunctionByName } from '../../../server/utils/ai/tools/registry'
-import {
-  getDocWithActorRole,
-  listWorkspaceDocsWithOwnerFlag
-} from '../../../server/repos/documents'
+import { listWorkspaceDocsWithOwnerFlag } from '../../../server/repos/documents'
+import { getDocWithActorRole } from '../../../server/repos/access/docAuthz'
 import { openTrustedCommentClient } from '../../../server/utils/documents/commentsServerClient'
 import type { AiSession } from '../../../server/utils/ai/aiClient'
 import { partial } from '../../helpers/fixtures'
+import { asUser, docAs, wsRole } from '../../helpers/access'
 
 // Module-level mocks must come BEFORE importing the SUT.
 vi.mock('../../../server/repos/documents', async (importOriginal) => {
@@ -30,7 +29,6 @@ vi.mock('../../../server/repos/documents', async (importOriginal) => {
     ...actual,
     // Stubs are reset per test via `beforeEach`. The test file installs
     // a behaviour for each function via `vi.mocked(fn).mockResolvedValue(...)`.
-    getDocWithActorRole: vi.fn(),
     listWorkspaceDocsWithOwnerFlag: vi.fn(),
     // The handler also calls `getDoc` for the current-theme fallback in
     // theme tools — leave it un-stubbed so unrelated branches don't trip.
@@ -39,6 +37,11 @@ vi.mock('../../../server/repos/documents', async (importOriginal) => {
       : vi.fn()
   }
 })
+
+vi.mock('../../../server/repos/access/docAuthz', async importOriginal => ({
+  ...await importOriginal<object>(),
+  getDocWithActorRole: vi.fn()
+}))
 
 vi.mock('../../../server/utils/documents/commentsServerClient', () => ({
   openTrustedCommentClient: vi.fn()
@@ -50,7 +53,6 @@ vi.mock('../../../server/repos/documents', async (importOriginal) => {
   const actual = await importOriginal<object>()
   return {
     ...actual,
-    getDocWithActorRole: vi.fn(),
     listWorkspaceDocsWithOwnerFlag: vi.fn(),
     updateDocMeta: vi.fn().mockResolvedValue(undefined)
   }
@@ -74,10 +76,17 @@ function makeSession(opts: {
   sessionId?: string
 } = {}): AiSession {
   const ydoc = new Y.Doc()
+  const userId = opts.initiatorUserId ?? 100
+  const docId = opts.docId ?? 'CURRENT_DOC'
   return {
-    docId: opts.docId ?? 'CURRENT_DOC',
+    docId,
     workspaceId: opts.workspaceId ?? null,
-    initiatorUserId: opts.initiatorUserId ?? 100,
+    initiatorUserId: userId,
+    // The proofs the session was opened with: the initiator, their write
+    // access to the current document and their membership of its workspace.
+    self: asUser(userId),
+    docAccess: docAs(docId, userId),
+    workspaceAccess: opts.workspaceId ? wsRole(opts.workspaceId, userId, 'editor') : null,
     sessionId: opts.sessionId ?? 'sess-1',
     ydoc,
     ytext: ydoc.getText('content'),
@@ -567,7 +576,7 @@ describe('list_workspace_documents — gating', () => {
     mockedListDocs.mockResolvedValue([])
     const session = makeSession({ workspaceId: 'WS-A', initiatorUserId: 100 })
     await executeFunctionByName(session, 'list_workspace_documents', {})
-    expect(mockedListDocs).toHaveBeenCalledWith('WS-A', 100)
+    expect(mockedListDocs).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: 'WS-A', actor: { kind: 'user', userId: 100 } }))
   })
 })
 

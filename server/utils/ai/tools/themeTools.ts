@@ -4,7 +4,8 @@ import * as Sentry from '@sentry/nuxt'
 import { defineDocTool, defineMetaTool, toolError, toolOk, type ToolResult } from './toolDefinition'
 import { UpdateThemeArgs, type UpdateThemeInput } from './themeSchema'
 import { coerceThemePatch, mergeTheme, summarizePatch } from './themeMerge'
-import type { DocToolContext, MetaToolContext } from '../../agentic/toolContext'
+import { writeAccessOf, type DocToolContext, type MetaToolContext } from '../../agentic/toolContext'
+import type { DocAccess } from '../../../repos/proofs'
 import type { DocTheme } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
@@ -23,7 +24,7 @@ import { resolveDocBrand } from '../../brandKit/docBrand'
 import { DOC_OWNED_COVER_FIELDS } from '~~/shared/utils/theme/brandLock'
 import { getDoc, updateDocMeta } from '../../../repos/documents'
 import { countThemesByUser, createTheme, getThemeById, listThemesByUser } from '../../../repos/themes'
-import { getWorkspace } from '../../../repos/workspaces'
+import { getWorkspaceOfDoc } from '../../../repos/workspaces'
 import { useLogger } from '../../platform/logger'
 
 // The document's theme: update_theme (patch over a base: current theme,
@@ -55,9 +56,9 @@ export const SaveThemeAsPresetArgs = z.object({
     .describe(`Optional one-line description shown under the name (≤${SAVED_THEME_DESCRIPTION_MAX} chars), e.g. "Two columns, serif body, for papers".`)
 }).describe('Save the document\'s CURRENT theme as a personal preset for the initiator. Available across all their documents from the theme picker afterwards. Capped at 20 saved themes per user — call returns an error if the cap is reached. Only call when the user explicitly asks to save / bookmark / remember a theme. Does NOT change the current document\'s theme; pair with `update_theme` if they also want it applied somewhere.')
 
-async function checkBrandLock(docId: string, input: UpdateThemeInput): Promise<ToolResult | null> {
-  const doc = await getDoc(docId)
-  if (!(await resolveDocBrand(doc?.workspaceId ?? null)).lockedTheme) return null
+async function checkBrandLock(access: DocAccess<'view'>, input: UpdateThemeInput): Promise<ToolResult | null> {
+  const doc = await getDoc(access)
+  if (!doc || !(await resolveDocBrand(access)).lockedTheme) return null
   const entries = Object.entries(input as Record<string, unknown>).filter(([, v]) => v !== undefined && v !== null && v !== false)
   const outside = entries.filter(([k]) => k !== 'cover').map(([k]) => k)
   const cover = (input as { cover?: Record<string, unknown> }).cover
@@ -75,7 +76,7 @@ async function handleUpdateTheme(
 
   // Brand kit: a locked workspace design — only the cover text is
   // the document's own. Anything else would be stored but never shown.
-  const lockErr = await checkBrandLock(session.docId, input)
+  const lockErr = await checkBrandLock(session.docAccess, input)
   if (lockErr) return lockErr
 
   const baseResult = await resolveBaseTheme(session, input)
@@ -195,7 +196,7 @@ async function resolveBaseTheme(session: DocToolContext, input: UpdateThemeInput
     return { ok: true, theme: themeFromPreset(preset, current.customCss) }
   }
   if (input.theme_id) {
-    const saved = await getThemeById(input.theme_id, session.initiatorUserId)
+    const saved = await getThemeById(session.self, input.theme_id)
     if (!saved) {
       return { ok: false, error: toolError(`Error: saved theme "${input.theme_id}" not found. Call list_themes for valid ids.`) }
     }
@@ -205,7 +206,8 @@ async function resolveBaseTheme(session: DocToolContext, input: UpdateThemeInput
     if (!session.workspaceId) {
       return { ok: false, error: toolError('Error: from_workspace_default requires the document to be in a workspace.') }
     }
-    const ws = await getWorkspace(session.workspaceId)
+    // The document's own workspace (keyed on the document proof).
+    const ws = session.docAccess ? await getWorkspaceOfDoc(session.docAccess) : null
     if (!ws?.defaultTheme) {
       return { ok: false, error: toolError('Error: this workspace has no default theme set. Ask an admin to set one, or pick a preset / saved theme instead.') }
     }
@@ -232,7 +234,7 @@ function applyThemeToYDoc(session: DocToolContext, merged: DocTheme): void {
  */
 async function persistThemeBestEffort(session: DocToolContext, merged: DocTheme): Promise<void> {
   try {
-    await updateDocMeta(session.docId, { theme: merged })
+    await updateDocMeta(writeAccessOf(session), { theme: merged })
   } catch (e) {
     log.warn('theme DB persist failed', { docId: session.docId, err: e })
     Sentry.captureException(e, {
@@ -252,7 +254,7 @@ async function persistThemeBestEffort(session: DocToolContext, merged: DocTheme)
 async function resolveCurrentTheme(session: DocToolContext): Promise<DocTheme> {
   const fromYmeta = session.ymeta.get('theme')
   if (isValidTheme(fromYmeta)) return fromYmeta
-  const doc = await getDoc(session.docId)
+  const doc = await getDoc(session.docAccess)
   return (doc?.theme && isValidTheme(doc.theme)) ? doc.theme : defaultTheme
 }
 
@@ -274,10 +276,10 @@ async function handleListThemes(
   // Saved themes are SCOPED TO THE SESSION INITIATOR — never the AI's
   // synthetic principal. This is the same ownership boundary
   // `handleUpdateTheme` enforces when accepting a `theme_id`.
-  const saved = await listThemesByUser(session.initiatorUserId)
+  const saved = await listThemesByUser(session.self)
   let workspaceDefault: DocTheme | null = null
-  if (session.workspaceId) {
-    const ws = await getWorkspace(session.workspaceId)
+  if (session.workspaceId && session.docAccess) {
+    const ws = await getWorkspaceOfDoc(session.docAccess)
     workspaceDefault = ws?.defaultTheme ?? null
   }
 
@@ -333,7 +335,7 @@ async function handleSaveThemeAsPreset(
   // REST endpoint enforces. The cap is correctness-critical (storage
   // growth), not a rate limit, so we re-check rather than relying on a
   // Valkey hint.
-  const owned = await countThemesByUser(session.initiatorUserId)
+  const owned = await countThemesByUser(session.self)
   const savedThemesLimit = capsFor(await resolveUserPlan(session.initiatorUserId)).savedThemes
   if (owned >= savedThemesLimit) {
     return toolError(`Error: you've reached the saved-theme limit of the user's plan (${savedThemesLimit}). Ask the user to delete an unused saved theme first.`)
@@ -344,9 +346,8 @@ async function handleSaveThemeAsPreset(
   session.updateStatus('tool', `Saving theme as "${name.slice(0, 40)}"…`)
 
   const themeId = nanoid(10)
-  await createTheme({
+  await createTheme(session.self, {
     themeId,
-    userId: session.initiatorUserId,
     name,
     description: descriptionCheck.value,
     theme

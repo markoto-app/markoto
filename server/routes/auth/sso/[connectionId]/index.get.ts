@@ -1,5 +1,5 @@
 import { getSsoConnectionById } from '../../../../repos/sso'
-import { getMemberRoleIgnoringSso } from '../../../../repos/workspaceMembers'
+import { getMemberRoleIgnoringSso } from '../../../../utils/access/workspaceAccess'
 import { buildOidcAuthorizationRequest, getOidcConfiguration } from '../../../../utils/oidc/client'
 import { isSafeReturnTo, type SsoFlow } from '../../../../utils/sso/flowCookie'
 import { oidcSettingsForConnection, setSsoFlowCookie, ssoErrorPath } from '../../../../utils/sso/http'

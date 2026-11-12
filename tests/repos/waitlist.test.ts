@@ -10,6 +10,7 @@ import {
 } from '../../server/repos/waitlist'
 import { runWaitlistSweep } from '../../server/utils/privacy/waitlistSweep'
 import { first } from '../helpers/assert'
+import { asUser } from '../helpers/access'
 
 // Paid-plans waitlist repository (double opt-in lifecycle) + sweeper.
 
@@ -114,7 +115,7 @@ describe('waitlist repo', () => {
     const alice = await createUser()
     await upsertWaitlistSignup(input({ userId: alice.id }))
     await upsertWaitlistSignup(input({ email: 'other@example.com', confirmTokenHash: 'c-o', unsubscribeTokenHash: 'u-o' }))
-    const exported = await listWaitlistSignupsForUser(alice.id)
+    const exported = await listWaitlistSignupsForUser(asUser(alice.id))
     expect(exported).toHaveLength(1)
     expect(first(exported).email).toBe('maya@example.com')
     expect(JSON.stringify(exported)).not.toContain('hash')

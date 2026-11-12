@@ -1,6 +1,7 @@
 import { and, asc, eq, gt, lte, sql } from 'drizzle-orm'
 import { aiCreditGrants, aiCreditSettlements } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { asTxHandle, executor, useDatabase, type TxHandle } from '../db/client'
+import type { SystemActor } from './proofs'
 
 // AI credit top-ups: grants + monthly settlements. Orchestration (budgets,
 // Stripe) lives in `server/utils/billing/aiCredits.ts`.
@@ -28,16 +29,12 @@ export interface CreditGrantRow {
   createdAt: Date
 }
 
-type Db = ReturnType<typeof useDatabase>
-type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
-type DbOrTx = Db | Tx
-
 function subjectWhere(subject: CreditSubject) {
   return and(eq(aiCreditGrants.subjectType, subject.type), eq(aiCreditGrants.subjectId, subject.id))
 }
 
 /** Record a paid top-up. Returns false when the payment was already recorded. */
-export async function insertCreditGrant(input: {
+export async function insertCreditGrant(_by: SystemActor, input: {
   subject: CreditSubject
   pack: string
   amountUsd: number
@@ -46,7 +43,8 @@ export async function insertCreditGrant(input: {
   stripePaymentIntentId: string
   stripeCheckoutSessionId: string | null
   expiresAt: Date
-}, db: DbOrTx = useDatabase()): Promise<boolean> {
+}, tx?: TxHandle): Promise<boolean> {
+  const db = executor(tx)
   const rows = await db.insert(aiCreditGrants).values({
     subjectType: input.subject.type,
     subjectId: input.subject.id,
@@ -63,21 +61,24 @@ export async function insertCreditGrant(input: {
 }
 
 /** Unexpired grants with something left, soonest-expiring first (the order credits are used). */
-export async function listUsableGrants(subject: CreditSubject, now: Date = new Date(), db: DbOrTx = useDatabase()): Promise<CreditGrantRow[]> {
+export async function listUsableGrants(subject: CreditSubject, now: Date = new Date(), tx?: TxHandle): Promise<CreditGrantRow[]> {
+  const db = executor(tx)
   return db.select().from(aiCreditGrants)
     .where(and(subjectWhere(subject), gt(aiCreditGrants.expiresAt, now), gt(aiCreditGrants.remainingUsd, 0)))
     .orderBy(asc(aiCreditGrants.expiresAt), asc(aiCreditGrants.id))
 }
 
 /** Every grant of a subject, newest first (billing UI, data export). */
-export async function listGrants(subject: CreditSubject, db: DbOrTx = useDatabase()): Promise<CreditGrantRow[]> {
+export async function listGrants(subject: CreditSubject, tx?: TxHandle): Promise<CreditGrantRow[]> {
+  const db = executor(tx)
   return db.select().from(aiCreditGrants)
     .where(subjectWhere(subject))
     .orderBy(sql`${aiCreditGrants.createdAt} desc`)
 }
 
 /** Credits still usable, USD. */
-export async function sumUsableCredits(subject: CreditSubject, now: Date = new Date(), db: DbOrTx = useDatabase()): Promise<number> {
+export async function sumUsableCredits(subject: CreditSubject, now: Date = new Date(), tx?: TxHandle): Promise<number> {
+  const db = executor(tx)
   const row = (await db.select({ total: sql<number>`coalesce(sum(${aiCreditGrants.remainingUsd}), 0)::float8` })
     .from(aiCreditGrants)
     .where(and(subjectWhere(subject), gt(aiCreditGrants.expiresAt, now), gt(aiCreditGrants.remainingUsd, 0))))[0]
@@ -85,7 +86,8 @@ export async function sumUsableCredits(subject: CreditSubject, now: Date = new D
 }
 
 /** Subjects that have (or had this month) usable credits — the settlement's work list. */
-export async function listSubjectsWithCredits(since: Date, db: DbOrTx = useDatabase()): Promise<CreditSubject[]> {
+export async function listSubjectsWithCredits(since: Date, tx?: TxHandle): Promise<CreditSubject[]> {
+  const db = executor(tx)
   const rows = await db.selectDistinct({ type: aiCreditGrants.subjectType, id: aiCreditGrants.subjectId })
     .from(aiCreditGrants)
     .where(gt(aiCreditGrants.expiresAt, since))
@@ -93,7 +95,8 @@ export async function listSubjectsWithCredits(since: Date, db: DbOrTx = useDatab
 }
 
 /** Credits already taken from this subject's grants in a month. */
-export async function getSettledUsd(subject: CreditSubject, period: string, db: DbOrTx = useDatabase()): Promise<number> {
+export async function getSettledUsd(subject: CreditSubject, period: string, tx?: TxHandle): Promise<number> {
+  const db = executor(tx)
   const row = (await db.select({ consumed: aiCreditSettlements.consumedUsd })
     .from(aiCreditSettlements)
     .where(and(
@@ -109,7 +112,8 @@ export async function getSettledUsd(subject: CreditSubject, period: string, db: 
  * highest one recorded for it (a plan that ended mid-month still covered
  * the spend made while it ran). Upsert; never lowers the stored value.
  */
-export async function recordPeriodPlanBudget(subject: CreditSubject, period: string, planBudgetUsd: number, db: DbOrTx = useDatabase()): Promise<number> {
+export async function recordPeriodPlanBudget(subject: CreditSubject, period: string, planBudgetUsd: number, tx?: TxHandle): Promise<number> {
+  const db = executor(tx)
   const budget = roundUsd(Math.max(0, planBudgetUsd))
   const rows = await db.insert(aiCreditSettlements)
     .values({ subjectType: subject.type, subjectId: subject.id, period, planBudgetUsd: budget })
@@ -122,7 +126,8 @@ export async function recordPeriodPlanBudget(subject: CreditSubject, period: str
 }
 
 /** The plan budget recorded for a month, or null when no settlement ran while it was open. */
-export async function getPeriodPlanBudget(subject: CreditSubject, period: string, db: DbOrTx = useDatabase()): Promise<number | null> {
+export async function getPeriodPlanBudget(subject: CreditSubject, period: string, tx?: TxHandle): Promise<number | null> {
+  const db = executor(tx)
   const row = (await db.select({ planBudgetUsd: aiCreditSettlements.planBudgetUsd })
     .from(aiCreditSettlements)
     .where(and(
@@ -149,7 +154,7 @@ export async function consumeCredits(subject: CreditSubject, period: string, amo
   return useDatabase().transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${creditLockKey(subject)}))`)
     let left = amountUsd
-    for (const grant of await listUsableGrants(subject, now, tx)) {
+    for (const grant of await listUsableGrants(subject, now, asTxHandle(tx))) {
       if (left <= 0) break
       const take = Math.min(left, grant.remainingUsd)
       await tx.update(aiCreditGrants).set({ remainingUsd: roundUsd(grant.remainingUsd - take) }).where(eq(aiCreditGrants.id, grant.id))
@@ -182,7 +187,8 @@ export async function settleMonth(subject: CreditSubject, period: string, target
  * credit is removed (what's left of it first; credits already used stay
  * used). Returns the subject, or null for an unknown payment.
  */
-export async function refundCreditGrant(paymentIntentId: string, refundedFraction: number, db: DbOrTx = useDatabase()): Promise<CreditSubject | null> {
+export async function refundCreditGrant(_by: SystemActor, paymentIntentId: string, refundedFraction: number, tx?: TxHandle): Promise<CreditSubject | null> {
+  const db = executor(tx)
   const found = (await db.select({ subjectType: aiCreditGrants.subjectType, subjectId: aiCreditGrants.subjectId })
     .from(aiCreditGrants).where(eq(aiCreditGrants.stripePaymentIntentId, paymentIntentId)).limit(1))[0]
   if (!found) return null
@@ -204,7 +210,8 @@ export async function refundCreditGrant(paymentIntentId: string, refundedFractio
 }
 
 /** Expired grants that still show a remainder → 0. Returns their subjects. */
-export async function expireGrants(now: Date = new Date(), db: DbOrTx = useDatabase()): Promise<CreditSubject[]> {
+export async function expireGrants(now: Date = new Date(), tx?: TxHandle): Promise<CreditSubject[]> {
+  const db = executor(tx)
   const rows = await db.update(aiCreditGrants).set({ remainingUsd: 0 })
     .where(and(lte(aiCreditGrants.expiresAt, now), gt(aiCreditGrants.remainingUsd, 0)))
     .returning({ type: aiCreditGrants.subjectType, id: aiCreditGrants.subjectId })
@@ -212,7 +219,8 @@ export async function expireGrants(now: Date = new Date(), db: DbOrTx = useDatab
 }
 
 /** Delete a subject's grants + settlements (account / workspace deleted). */
-export async function deleteCreditsForSubject(subject: CreditSubject, db: DbOrTx = useDatabase()): Promise<number> {
+export async function deleteCreditsForSubject(subject: CreditSubject, tx?: TxHandle): Promise<number> {
+  const db = executor(tx)
   const rows = await db.delete(aiCreditGrants).where(subjectWhere(subject)).returning({ id: aiCreditGrants.id })
   await db.delete(aiCreditSettlements).where(and(eq(aiCreditSettlements.subjectType, subject.type), eq(aiCreditSettlements.subjectId, subject.id)))
   return rows.length

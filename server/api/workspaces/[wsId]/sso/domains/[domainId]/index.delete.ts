@@ -9,11 +9,11 @@ import { ssoDomainParams } from '~~/shared/api/sso'
 export default defineApiHandler({
   access: allow.workspace('admin', { ignoreSso: true, deny: 'sso/admin-required' }),
   params: ssoDomainParams,
-  handler: async ({ event, user, wsId, params }) => {
+  handler: async ({ event, wsId, params, workspaceAccess }) => {
     const id = Number(params.domainId)
-    const domain = Number.isInteger(id) ? await getSsoDomain(wsId, id) : null
-    if (!domain || !(await deleteSsoDomain(wsId, id))) throw apiError('sso/domain-not-found')
-    await appendAuditEvent({ actorUserId: user.id, actorIp: getClientIp(event), scope: 'workspace', scopeId: wsId, action: AUDIT_SSO_DOMAIN_REMOVED, metadata: { domain: domain.domain } })
+    const domain = Number.isInteger(id) ? await getSsoDomain(workspaceAccess, id) : null
+    if (!domain || !(await deleteSsoDomain(workspaceAccess, id))) throw apiError('sso/domain-not-found')
+    await appendAuditEvent({ by: workspaceAccess, actorIp: getClientIp(event), scope: 'workspace', scopeId: wsId, action: AUDIT_SSO_DOMAIN_REMOVED, metadata: { domain: domain.domain } })
     return { ok: true }
   }
 })

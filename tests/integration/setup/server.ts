@@ -107,7 +107,7 @@ export async function startNuxt(): Promise<void> {
     NUXT_OAUTH_GOOGLE_CLIENT_ID: 'test',
     NUXT_OAUTH_GOOGLE_CLIENT_SECRET: 'test',
     // Generic OIDC against the real `oidc-test` mock IdP
-    // (docker-compose.test.yml). http issuer is accepted because
+    // (deploy/compose/compose.test.yml). http issuer is accepted because
     // TEST_MODE=1; see tests/integration/endpoints/oidcLogin.test.ts.
     NUXT_OAUTH_OIDC_ISSUER: TEST_OIDC_ISSUER,
     NUXT_OAUTH_OIDC_CLIENT_ID: TEST_OIDC_CLIENT_ID,
@@ -117,7 +117,7 @@ export async function startNuxt(): Promise<void> {
     // Admin allowlist bootstrap on sign-in — an address no other suite uses.
     NUXT_ADMIN_USER_EMAILS: TEST_OIDC_ADMIN_EMAIL,
     NUXT_GOOGLE_API_KEY: 'test',
-    // LiteLLM proxy: integration tests hit a real `litellm-test` container (docker-compose.test.yml) on port 4100
+    // LiteLLM proxy: integration tests hit a real `litellm-test` container (deploy/compose/compose.test.yml) on port 4100
     // so the per-user virtual-key CRUD round-trips through the actual /key/* admin surface. Knowledge embeddings
     // keep the legacy provider tag for tests that exercise the dual-mode resolver branch; no model upstream is
     // wired in the test proxy.
@@ -140,7 +140,7 @@ export async function startNuxt(): Promise<void> {
     // The markitdown-test container (host port 8081): the design-from-a-
     // document pipeline reads its uploads there (`POST /design/extract`).
     NUXT_MARKITDOWN_URL: process.env.TEST_MARKITDOWN_URL ?? 'http://127.0.0.1:8081',
-    // Matches MARKITDOWN_API_SECRET of markitdown-test in docker-compose.test.yml.
+    // Matches MARKITDOWN_API_SECRET of markitdown-test in deploy/compose/compose.test.yml.
     NUXT_MARKITDOWN_API_SECRET: 'test-markitdown-api-secret-isolated',
     // Stripe: tests talk to the `stripe-mock` container for SDK calls
     // (checkout, portal) and construct webhook payloads locally with
@@ -173,14 +173,14 @@ export async function startNuxt(): Promise<void> {
     // Inactive-doc sweeper. Set TTL to 0 to disable for tests — no point
     // letting it fire during a short integration run.
     NUXT_INACTIVE_DOC_TTL_DAYS: '0',
-    // Real renderer container (docker-compose.test.yml renderer-test).
+    // Real renderer container (deploy/compose/compose.test.yml renderer-test).
     // Hosts on :9101, drives Playwright + headless Chromium through the
     // actual print page. Tests that need the full render pipeline talk
     // to this. The stub-based path is gone — it couldn't catch
     // browser/SSR-layer bugs (oklch in Nuxt UI styles, zod imports
     // wedging Vite SSR, etc.).
     NUXT_RENDERER_INTERNAL_URL: 'http://127.0.0.1:9101',
-    // Same extra origin as renderer-test in docker-compose.test.yml (print-page CSP mirror).
+    // Same extra origin as renderer-test in deploy/compose/compose.test.yml (print-page CSP mirror).
     RENDERER_ALLOWED_ORIGINS: 'http://host.docker.internal:3187',
     // AI providers — the primary server is shaped like a SELF-HOSTED
     // instance: operator defaults that are LiteLLM model aliases (the
@@ -206,7 +206,7 @@ export async function startNuxt(): Promise<void> {
     JINA_AI_API_KEY: 'stub-jina-key',
     // Custom domains: checked against challtestsrv-test, routed by
     // traefik-test (which polls this server with the same token) with
-    // certificates from pebble-test — docker-compose.test.yml.
+    // certificates from pebble-test — deploy/compose/compose.test.yml.
     NUXT_PUBLISH_DOMAINS_TARGET: TEST_PUBLISH_DOMAINS_TARGET,
     NUXT_PUBLISH_DNS_SERVERS: '127.0.0.1:8053',
     NUXT_PUBLISH_TRAEFIK_TOKEN: TEST_TRAEFIK_PROVIDER_TOKEN,

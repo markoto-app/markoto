@@ -15,20 +15,20 @@ export default defineApiHandler({
   access: allow.doc('manage', { deny: 'publish/not-allowed' }),
   body: publishDocBody,
   invalidCode: 'publish/invalid',
-  handler: async ({ event, user, docId, doc, body }) => {
-    assertNotModerationRestricted(await getDoc(docId))
+  handler: async ({ event, docId, doc, docAccess, body }) => {
+    assertNotModerationRestricted(await getDoc(docAccess))
     const fields: { slug?: string, indexable?: boolean } = {}
     if (body?.slug) {
       if (!PUBLISH_SLUG_RE.test(body.slug)) throw apiError('publish/slug-invalid', { field: 'slug' })
       fields.slug = body.slug
     }
     if (body?.indexable !== undefined) fields.indexable = body.indexable
-    const before = await getPublishedPageSummary(docId)
+    const before = await getPublishedPageSummary(docAccess)
     if (!before) throw apiError('publish/not-published')
-    if (fields.slug && fields.slug !== before.slug) await slugConflict(fields.slug, docId)
+    if (fields.slug && fields.slug !== before.slug) await slugConflict(docAccess, fields.slug)
     let page: typeof before
     try {
-      page = (await updatePublishSettings(docId, fields)) ?? before
+      page = (await updatePublishSettings(docAccess, fields)) ?? before
     } catch (e) {
       // Another document took the address between the check and the write.
       if ((e as { code?: string }).code === '23505' || (e as { cause?: { code?: string } }).cause?.code === '23505') {
@@ -38,7 +38,7 @@ export default defineApiHandler({
     }
     if (page.slug !== before.slug || page.indexable !== before.indexable) {
       await appendAuditEvent({
-        actorUserId: user.id,
+        by: docAccess,
         actorIp: getClientIp(event),
         scope: 'doc',
         scopeId: docId,

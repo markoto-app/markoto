@@ -1,15 +1,14 @@
 import { resolveBillingContext } from '../../utils/billing/billing'
 import { getUserKeyInfo } from '../../utils/litellm/userKeys'
-import { getWorkspaceRole } from '../../utils/workspaces/workspaceAccess'
+import { proveWorkspaceAccess } from '../../utils/access/workspaceAccess'
 import { dollarsToPoints, planToPointsTotal } from '~~/shared/billing/aiPoints'
 import { getTiers } from '~~/server/utils/billing/tierConfig'
 import { freeAllowanceView } from '../../utils/billing/freeAllowance'
 import { readMemberKeySpend, readWorkspaceTeam } from '../../utils/litellm/workspaceTeams'
 import { getPooledWorkspace, memberLimitUsd, workspacePoolCaps } from '../../utils/billing/workspaceBilling'
-import { and, eq } from 'drizzle-orm'
-import { workspaceMembers } from '../../db/schema'
-import { useDatabase } from '../../utils/platform/database'
+import { getOwnAiLimit } from '../../repos/workspaceBilling'
 import { aiCreditsQuery } from '~~/shared/api/ai'
+import type { UserScope, WorkspaceAccess } from '../../repos/proofs'
 
 /**
  * GET /api/ai/credits: AI Points UI data (1000 pts = $1.00 USD).
@@ -28,7 +27,7 @@ import { aiCreditsQuery } from '~~/shared/api/ai'
 export default defineApiHandler({
   access: allow.user(),
   query: aiCreditsQuery,
-  handler: async ({ user, query }) => {
+  handler: async ({ user, self, query }) => {
     const userId = user.id
 
     // Optional `workspaceId` so the UI can show a Team workspace's pooled budget.
@@ -37,10 +36,8 @@ export default defineApiHandler({
     // Honour the workspace context only for members: otherwise any logged-in
     // user who learns a workspace id could read its live budget. Non-members
     // fall back to their own context.
-    const workspaceId = requestedWorkspaceId
-      && (await getWorkspaceRole(userId, requestedWorkspaceId)) !== null
-      ? requestedWorkspaceId
-      : null
+    const membership = requestedWorkspaceId ? await proveWorkspaceAccess(userId, requestedWorkspaceId, 'member') : null
+    const workspaceId = membership?.workspaceId ?? null
 
     const billing = await resolveBillingContext(userId, workspaceId)
 
@@ -48,44 +45,7 @@ export default defineApiHandler({
     // Remaining = the smaller of the member's limit and the team pool;
     // `workspace` carries both for the usage panel.
     if (billing.attribution === 'workspace' && billing.workspaceId) {
-      const pool = await getPooledWorkspace(billing.workspaceId)
-      const caps = pool ? workspacePoolCaps(pool.plan, pool.seats) : null
-      const [member, team, row] = await Promise.all([
-        readMemberKeySpend(billing.virtualKey),
-        readWorkspaceTeam(billing.workspaceId).catch(() => null),
-        useDatabase()
-          .select({ aiLimitUsd: workspaceMembers.aiLimitUsd, aiUnlimited: workspaceMembers.aiUnlimited })
-          .from(workspaceMembers)
-          .where(and(eq(workspaceMembers.workspaceId, billing.workspaceId), eq(workspaceMembers.userId, userId)))
-          .limit(1)
-          .then(rows => rows[0] ?? null)
-      ])
-      const teamBudget = typeof team?.max_budget === 'number' ? team.max_budget : caps?.aiBudgetUsd ?? 0
-      const teamSpend = typeof team?.spend === 'number' ? team.spend : 0
-      const memberSpend = member?.spend ?? 0
-      // The stored limit is the source of truth (the key carries the same
-      // value; `syncMemberKeyLimit` keeps them in step).
-      const memberLimit = caps && row ? memberLimitUsd(row, caps) : member?.maxBudget ?? null
-      const teamLeft = Math.max(0, teamBudget - teamSpend)
-      const memberLeft = memberLimit === null ? teamLeft : Math.max(0, memberLimit - memberSpend)
-      const remaining = Math.min(teamLeft, memberLeft)
-      return {
-        pointsRemaining: dollarsToPoints(remaining),
-        pointsTotal: dollarsToPoints(memberLimit ?? teamBudget),
-        plan: billing.plan,
-        periodEnd: billing.periodEnd.toISOString(),
-        attribution: billing.attribution,
-        freeAllowance: null,
-        workspace: {
-          workspaceId: billing.workspaceId,
-          teamBudgetUsd: teamBudget,
-          teamSpendUsd: teamSpend,
-          memberLimitUsd: memberLimit,
-          memberSpendUsd: memberSpend,
-          exhausted: remaining <= 0,
-          teamExhausted: teamLeft <= 0
-        }
-      }
+      return workspaceCredits(billing, billing.workspaceId, membership, self)
     }
 
     // Read live key info from the same budget that is actually charged.
@@ -111,3 +71,51 @@ export default defineApiHandler({
     }
   }
 })
+
+/**
+ * Team / Business workspace: the member's key in the workspace team.
+ * Remaining = the smaller of the member's limit and the team pool;
+ * `workspace` carries both for the usage panel.
+ */
+async function workspaceCredits(
+  billing: Awaited<ReturnType<typeof resolveBillingContext>>,
+  workspaceId: string,
+  membership: WorkspaceAccess<'member'> | null,
+  self: UserScope
+) {
+  const pool = await getPooledWorkspace(workspaceId)
+  const caps = pool ? workspacePoolCaps(pool.plan, pool.seats) : null
+  const [member, team, row] = await Promise.all([
+    readMemberKeySpend(billing.virtualKey),
+    readWorkspaceTeam(workspaceId).catch(() => null),
+    // The pooled workspace is the requested one (billing resolves it from
+    // the membership proved above).
+    membership ? getOwnAiLimit(membership, self) : null
+  ])
+  const teamBudget = typeof team?.max_budget === 'number' ? team.max_budget : caps?.aiBudgetUsd ?? 0
+  const teamSpend = typeof team?.spend === 'number' ? team.spend : 0
+  const memberSpend = member?.spend ?? 0
+  // The stored limit is the source of truth (the key carries the same
+  // value; `syncMemberKeyLimit` keeps them in step).
+  const memberLimit = caps && row ? memberLimitUsd(row, caps) : member?.maxBudget ?? null
+  const teamLeft = Math.max(0, teamBudget - teamSpend)
+  const memberLeft = memberLimit === null ? teamLeft : Math.max(0, memberLimit - memberSpend)
+  const remaining = Math.min(teamLeft, memberLeft)
+  return {
+    pointsRemaining: dollarsToPoints(remaining),
+    pointsTotal: dollarsToPoints(memberLimit ?? teamBudget),
+    plan: billing.plan,
+    periodEnd: billing.periodEnd.toISOString(),
+    attribution: billing.attribution,
+    freeAllowance: null,
+    workspace: {
+      workspaceId: workspaceId,
+      teamBudgetUsd: teamBudget,
+      teamSpendUsd: teamSpend,
+      memberLimitUsd: memberLimit,
+      memberSpendUsd: memberSpend,
+      exhausted: remaining <= 0,
+      teamExhausted: teamLeft <= 0
+    }
+  }
+}

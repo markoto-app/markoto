@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { searchKnowledge } from '../../server/repos/knowledge'
 import { createUser, createWorkspace } from '../integration/setup/fixtures'
+import { wsAs } from '../helpers/access'
 
 // Hybrid-search fusion test. We stub embeddings directly at the SQL
 // layer (so we're not coupled to the embeddings provider) and check that:
@@ -94,8 +95,7 @@ describe('searchKnowledge (hybrid)', () => {
 
     // Query vector lives on axis 99 — no semantic overlap with either
     // chunk. The BM25 path has to do the work.
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'procurement vendor onboarding',
       queryEmbedding: axisVec(99),
       topK: 3
@@ -128,8 +128,7 @@ describe('searchKnowledge (hybrid)', () => {
     // Query on axis 5 — cosine sim = 1 with chunk 1, 0 with chunk 2.
     // Query text "xyzblargh" won't hit BM25 on either — forces the
     // vector path to drive ordering.
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'xyzblargh',
       queryEmbedding: axisVec(5),
       topK: 3
@@ -153,8 +152,7 @@ describe('searchKnowledge (hybrid)', () => {
       vector: axisVec(10)
     })
 
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'gradient descent momentum',
       queryEmbedding: axisVec(10),
       topK: 5
@@ -189,8 +187,7 @@ describe('searchKnowledge (hybrid)', () => {
       vector: axisVec(21)
     })
 
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'transformers attention',
       queryEmbedding: axisVec(20),
       topK: 5
@@ -216,8 +213,7 @@ describe('searchKnowledge (hybrid)', () => {
       vector: axisVec(30)
     })
 
-    const hits = await searchKnowledge({
-      workspaceId: wsA.workspaceId,
+    const hits = await searchKnowledge(wsAs(wsA.workspaceId), {
       queryText: 'another workspace entirely',
       queryEmbedding: axisVec(30),
       topK: 5
@@ -255,8 +251,7 @@ describe('searchKnowledge — adversarial: query degenerate cases', () => {
       vector: axisVec(7)
     })
 
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'the and of', // all stopwords
       queryEmbedding: axisVec(7),
       topK: 5
@@ -282,8 +277,7 @@ describe('searchKnowledge — adversarial: query degenerate cases', () => {
       vector: axisVec(7)
     })
 
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: '',
       queryEmbedding: axisVec(7),
       topK: 5
@@ -311,8 +305,7 @@ describe('searchKnowledge — adversarial: topK edges', () => {
       chunkIndex: 0, content: 'something', vector: axisVec(1)
     })
 
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'something',
       queryEmbedding: axisVec(1),
       topK: 0
@@ -330,8 +323,7 @@ describe('searchKnowledge — adversarial: topK edges', () => {
       chunkIndex: 0, content: 'unique-keyword-xyz', vector: axisVec(1)
     })
 
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'unique-keyword-xyz',
       queryEmbedding: axisVec(1),
       topK: 100
@@ -369,8 +361,7 @@ describe('searchKnowledge — adversarial: similarity sign + threshold', () => {
       vector: axisVec(7).map(x => -x) // anti-parallel to query
     })
 
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'completely unrelated query', // no BM25 hit
       queryEmbedding: axisVec(7),
       topK: 5
@@ -401,8 +392,7 @@ describe('searchKnowledge — adversarial: similarity sign + threshold', () => {
       vector: axisVec(7).map(x => -x)
     })
 
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'no overlap text',
       queryEmbedding: axisVec(7),
       topK: 5,
@@ -448,8 +438,7 @@ describe('searchKnowledge — zero-vector NaN guard', () => {
       vector: new Array(DIM).fill(0)
     })
 
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'something other than the chunk content',
       queryEmbedding: axisVec(7),
       topK: 5
@@ -476,8 +465,7 @@ describe('searchKnowledge — zero-vector NaN guard', () => {
     await seedChunk({ workspaceId: ws.workspaceId, knowledgeId: 'kn-zero', chunkIndex: 0, content: 'zero', vector: new Array(DIM).fill(0) })
     await seedChunk({ workspaceId: ws.workspaceId, knowledgeId: 'kn-orth', chunkIndex: 0, content: 'orth', vector: axisVec(99) })
 
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'no overlap',
       queryEmbedding: axisVec(7),
       topK: 5,

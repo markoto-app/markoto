@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/nuxt'
 import { getKnowledge, deleteKnowledgeRow } from '../../repos/knowledge'
 import { useEnv } from '~~/shared/env/load'
 import { useLogger } from '../platform/logger'
+import type { WorkspaceAccess } from '../../repos/proofs'
 
 const log = useLogger('knowledge')
 
@@ -28,11 +29,11 @@ const log = useLogger('knowledge')
  * Sentry but does not throw — the object will be orphaned but the
  * user sees a successful delete.
  */
-export async function deleteKnowledgeArtifact(knowledgeId: string): Promise<void> {
-  const row = await getKnowledge(knowledgeId)
+export async function deleteKnowledgeArtifact(ws: WorkspaceAccess<'editor'>, knowledgeId: string): Promise<void> {
+  const row = await getKnowledge(ws, knowledgeId)
   if (!row) return
 
-  await deleteKnowledgeRow(knowledgeId)
+  await deleteKnowledgeRow(ws, knowledgeId)
 
   const env = useEnv()
   const s3 = useS3Client()

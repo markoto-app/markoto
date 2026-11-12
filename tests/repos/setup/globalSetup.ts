@@ -8,7 +8,7 @@ import { applyTestEnv } from '../../integration/setup/testEnv'
 // Repo-test globalSetup. Runs once before any repo test file. The repos
 // layer is plain TS — no Nuxt subprocess needed. We just:
 //   1. Wait until the test Postgres is reachable (user must `docker
-//      compose -f docker-compose.test.yml up -d` first).
+//      compose -f deploy/compose/compose.test.yml up -d` first).
 //   2. Run migrations against it using drizzle-kit's in-code migrator —
 //      same path the Nuxt app's `00-db-migrate` plugin takes, so the
 //      schema matches prod exactly.
@@ -46,7 +46,7 @@ export default async function globalSetup() {
   // violations 100 assertions deep. The repos under test will go
   // through this exact pool — if SELECT 1 doesn't work here, NONE
   // of the tests that follow will work either.
-  const { useDatabasePool, closeDatabase } = await import('../../../server/utils/platform/database')
+  const { useDatabasePool, closeDatabase } = await import('../../../server/db/client')
   try {
     const probePool = useDatabasePool()
     const r = await probePool.query<{ one: number }>('SELECT 1 AS one')

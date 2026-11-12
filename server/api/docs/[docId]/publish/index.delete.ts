@@ -9,11 +9,11 @@ import { AUDIT_DOC_UNPUBLISHED } from '../../../../legal/auditActions'
 // chosen.
 export default defineApiHandler({
   access: allow.doc('manage', { deny: 'publish/not-allowed' }),
-  handler: async ({ event, user, docId, doc }) => {
-    const removed = await withPublishLock(docId, () => takeDownPublishedPage(docId))
+  handler: async ({ event, docId, doc, docAccess }) => {
+    const removed = await withPublishLock(docId, () => takeDownPublishedPage(docAccess))
     if (removed) {
       await appendAuditEvent({
-        actorUserId: user.id,
+        by: docAccess,
         actorIp: getClientIp(event),
         scope: 'doc',
         scopeId: docId,

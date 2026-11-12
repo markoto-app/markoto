@@ -1,7 +1,5 @@
-import { eq } from 'drizzle-orm'
 import { recordPaidTermsAcceptance, requirePaidTermsAccepted } from '../../utils/billing/paidTerms'
-import { users } from '../../db/schema'
-import { useDatabase } from '../../utils/platform/database'
+import { getOwnTopupFacts } from '../../repos/userBilling'
 import { useStripeClient } from '../../utils/billing/stripeClient'
 import { effectivePlan } from '../../utils/billing/billingMode'
 import { requestBaseUrl } from '../../utils/billing/workspaceStripe'
@@ -20,15 +18,9 @@ export default defineApiHandler({
   instance: 'billing',
   body: buyTopupBody,
   rateLimit: { namespace: 'billing-checkout', max: 10, windowMs: MINUTE_MS, key: 'user', error: 'billing/rate-limited' },
-  handler: async ({ event, user, body }) => {
+  handler: async ({ event, user, body, self }) => {
     const userId = user.id
-    const row = (await useDatabase().select({
-      email: users.email,
-      plan: users.plan,
-      planValidUntil: users.planValidUntil,
-      stripeCustomerId: users.stripeCustomerId,
-      billingCurrency: users.billingCurrency
-    }).from(users).where(eq(users.id, userId)).limit(1))[0]
+    const row = await getOwnTopupFacts(self)
     if (!row) throw apiError('resource/not-found')
     if (effectivePlan(row.plan, row.planValidUntil) === 'free') throw apiError('billing/topup-needs-plan')
     const currency = body.currency ?? row.billingCurrency ?? 'eur'
@@ -50,7 +42,7 @@ export default defineApiHandler({
       cancelUrl: `${base}/settings/profile?credits=cancelled`,
       automaticTax: automaticTaxEnabled(useEnv().billing.stripeAutomaticTax)
     })
-    await recordPaidTermsAcceptance(event, userId, { kind: 'topup', subject: { type: 'user', id: String(userId) }, item: body.pack })
+    await recordPaidTermsAcceptance(event, self, { kind: 'topup', subject: { type: 'user', id: String(userId) }, item: body.pack })
     return checkout
   }
 })

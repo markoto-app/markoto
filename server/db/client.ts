@@ -1,9 +1,9 @@
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool, type QueryConfig } from 'pg'
 import * as Sentry from '@sentry/nuxt'
-import * as schema from '../../db/schema'
-import { postgresUrlFromEnv } from '../../../shared/utils/runtime/connectionStrings'
-import { resolvePostgresSsl } from '../../../shared/utils/runtime/postgresSsl'
+import * as schema from './schema'
+import { postgresUrlFromEnv } from '../../shared/utils/runtime/connectionStrings'
+import { resolvePostgresSsl } from '../../shared/utils/runtime/postgresSsl'
 import { useEnv } from '~~/shared/env/load'
 
 let db: ReturnType<typeof drizzle<typeof schema>> | null = null
@@ -100,4 +100,37 @@ export async function closeDatabase(): Promise<void> {
     pool = null
     db = null
   }
+}
+
+export type Database = ReturnType<typeof useDatabase>
+type DrizzleTx = Parameters<Parameters<Database['transaction']>[0]>[0]
+
+declare const txBrand: unique symbol
+/**
+ * An open transaction as code outside the repos sees it: opaque, so it can
+ * only be handed to repo functions (their optional last parameter), never
+ * used to build a query. That keeps every statement in a repo even when one
+ * use case writes through several of them atomically.
+ */
+export interface TxHandle { readonly [txBrand]: true }
+
+/** What a repo function runs its statements on: the shared pool or the caller's transaction. */
+export type Executor = Database | DrizzleTx
+
+/**
+ * Run `fn` in one transaction: every repo call that receives `tx` commits or
+ * rolls back together. The one mechanism for multi-repo atomic writes.
+ */
+export async function withTransaction<T>(fn: (tx: TxHandle) => Promise<T>): Promise<T> {
+  return useDatabase().transaction(async tx => fn(tx as unknown as TxHandle))
+}
+
+/** Inside a repo: the caller's transaction when one was passed, else the pool. */
+export function executor(tx?: TxHandle | null): Executor {
+  return tx ? (tx as unknown as DrizzleTx) : useDatabase()
+}
+
+/** Inside a repo that opens its own transaction: hand the drizzle transaction on to other repo functions. */
+export function asTxHandle(tx: DrizzleTx): TxHandle {
+  return tx as unknown as TxHandle
 }

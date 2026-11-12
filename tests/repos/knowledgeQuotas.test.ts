@@ -7,6 +7,7 @@ import {
 } from '../../server/repos/knowledge'
 import { countOwnedWorkspacesByUser } from '../../server/repos/workspaces'
 import { createUser, createWorkspace } from '../integration/setup/fixtures'
+import { asUser, wsAs } from '../helpers/access'
 
 // Per-user quota aggregators. Cheap repo-level checks so the
 // endpoint-level cap logic has solid primitives.
@@ -18,9 +19,8 @@ async function seed(args: {
   sizeBytes?: number
 }): Promise<void> {
   const kid = `kn-${Math.random().toString(36).slice(2, 10)}`
-  await createKnowledge({
+  await createKnowledge(wsAs(args.workspaceId), {
     knowledgeId: kid,
-    workspaceId: args.workspaceId,
     filename: args.filename,
     sourceExt: 'pdf',
     mimeType: 'application/pdf',
@@ -48,10 +48,10 @@ describe('countKnowledgeByUploader / sumKnowledgeBytesByUploader', () => {
     await seed({ workspaceId: wsB.workspaceId, uploaderId: u1.id, filename: 'c.pdf', sizeBytes: 500 })
     await seed({ workspaceId: wsA.workspaceId, uploaderId: u2.id, filename: 'x.pdf', sizeBytes: 9999 })
 
-    expect(await countKnowledgeByUploader(u1.id)).toBe(3)
-    expect(await sumKnowledgeBytesByUploader(u1.id)).toBe(3500)
-    expect(await countKnowledgeByUploader(u2.id)).toBe(1)
-    expect(await sumKnowledgeBytesByUploader(u2.id)).toBe(9999)
+    expect(await countKnowledgeByUploader(asUser(u1.id))).toBe(3)
+    expect(await sumKnowledgeBytesByUploader(asUser(u1.id))).toBe(3500)
+    expect(await countKnowledgeByUploader(asUser(u2.id))).toBe(1)
+    expect(await sumKnowledgeBytesByUploader(asUser(u2.id))).toBe(9999)
   })
 
   it('counts rows regardless of status', async () => {
@@ -62,14 +62,14 @@ describe('countKnowledgeByUploader / sumKnowledgeBytesByUploader', () => {
     // Flip one to failed — it should STILL count against the quota.
     const db = testDb()
     await db.query(`UPDATE workspace_knowledge SET status = 'failed' WHERE filename = 'bad.pdf'`)
-    expect(await countKnowledgeByUploader(u.id)).toBe(2)
-    expect(await sumKnowledgeBytesByUploader(u.id)).toBe(3000)
+    expect(await countKnowledgeByUploader(asUser(u.id))).toBe(2)
+    expect(await sumKnowledgeBytesByUploader(asUser(u.id))).toBe(3000)
   })
 
   it('returns zero for a user with no uploads', async () => {
     const u = await createUser()
-    expect(await countKnowledgeByUploader(u.id)).toBe(0)
-    expect(await sumKnowledgeBytesByUploader(u.id)).toBe(0)
+    expect(await countKnowledgeByUploader(asUser(u.id))).toBe(0)
+    expect(await sumKnowledgeBytesByUploader(asUser(u.id))).toBe(0)
   })
 })
 
@@ -91,7 +91,7 @@ describe('countOwnedWorkspacesByUser', () => {
       [creator.id]
     )
 
-    expect(await countOwnedWorkspacesByUser(creator.id)).toBe(2)
-    expect(await countOwnedWorkspacesByUser(other.id)).toBe(1)
+    expect(await countOwnedWorkspacesByUser(asUser(creator.id))).toBe(2)
+    expect(await countOwnedWorkspacesByUser(asUser(other.id))).toBe(1)
   })
 })

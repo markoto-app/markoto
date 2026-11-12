@@ -1,9 +1,9 @@
-import { and, eq, ne, sql } from 'drizzle-orm'
-import { workspaceMembers, users } from '../db/schema'
+import { and, asc, eq, ne, sql } from 'drizzle-orm'
+import { documents, workspaceMembers, users } from '../db/schema'
 import type { MembershipRole, WorkspaceRole } from '../../shared/utils/documents/docPermissions'
-import { useDatabase } from '../utils/platform/database'
+import { useDatabase } from '../db/client'
 import { ConflictError, LastAdminError, NotFoundError } from './errors'
-import { ssoSatisfiedSql } from './sso'
+import type { DocAccess, UserScope, WorkspaceAccess } from './proofs'
 
 // Workspace-membership repository. This table is the authorisation source
 // of truth for workspaces; every mutation here needs to preserve the
@@ -29,73 +29,11 @@ export interface MemberRow {
 }
 
 /**
- * The caller's role in a workspace, or null if not a member — or if the
- * workspace enforces single sign-on and the caller has no current
- * SSO grant. This is THE access check: every path into a workspace goes
- * through it (or through `getDocWithActorRole`, which applies the same
- * condition), so SSO enforcement holds for the editor, AI, MCP,
- * knowledge and exports alike.
- */
-export async function getMemberRole(
-  workspaceId: string,
-  userId: number
-): Promise<WorkspaceRole | null> {
-  const db = useDatabase()
-  const row = (await db
-    .select({ role: workspaceMembers.role })
-    .from(workspaceMembers)
-    .where(and(
-      eq(workspaceMembers.workspaceId, workspaceId),
-      eq(workspaceMembers.userId, userId),
-      // Guests are not members for anything workspace-wide.
-      ne(workspaceMembers.role, 'guest'),
-      ssoSatisfiedSql(workspaceMembers.workspaceId, userId)
-    ))
-    .limit(1))[0]
-  return (row?.role ?? null) as WorkspaceRole | null
-}
-
-/**
- * The membership role WITHOUT the SSO condition. Only for the places
- * that must see a member who hasn't signed in through the workspace's
- * IdP: the SSO settings (admins can fix a broken IdP — the only
- * break-glass), the "sign in with SSO" prompt, the SSO sign-in itself,
- * SCIM, and admin actions about ANOTHER member (removal). Never for the
- * caller's own access to content.
- */
-export async function getMemberRoleIgnoringSso(
-  workspaceId: string,
-  userId: number
-): Promise<WorkspaceRole | null> {
-  const row = (await useDatabase()
-    .select({ role: workspaceMembers.role })
-    .from(workspaceMembers)
-    .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId), ne(workspaceMembers.role, 'guest')))
-    .limit(1))[0]
-  return (row?.role ?? null) as WorkspaceRole | null
-}
-
-/**
- * The raw membership row's role INCLUDING `guest`. For the member
- * list, member removal and role changes — never for access decisions.
- */
-export async function getMembershipRole(
-  workspaceId: string,
-  userId: number
-): Promise<MembershipRole | null> {
-  const row = (await useDatabase()
-    .select({ role: workspaceMembers.role })
-    .from(workspaceMembers)
-    .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)))
-    .limit(1))[0]
-  return row?.role ?? null
-}
-
-/**
  * Full member roster for a workspace, ordered admin → editor → viewer,
  * then by joinedAt ascending within each role.
  */
-export async function listMembers(workspaceId: string): Promise<MemberRow[]> {
+export async function listMembers(ws: WorkspaceAccess<'member'>): Promise<MemberRow[]> {
+  const workspaceId = ws.workspaceId
   const db = useDatabase()
   return db
     .select({
@@ -116,10 +54,7 @@ export async function listMembers(workspaceId: string): Promise<MemberRow[]> {
  * Roster for the presence bar — joined with the doc's ownerId so the UI
  * can render an "owner" badge. Same ordering as listMembers().
  */
-export async function listMembersForDoc(
-  workspaceId: string,
-  docOwnerId: number | null
-): Promise<Array<{
+export async function listMembersForDoc(doc: DocAccess<'view'>): Promise<Array<{
   userId: number
   name: string
   login: string | null
@@ -133,12 +68,13 @@ export async function listMembersForDoc(
       name: users.name,
       login: users.login,
       role: workspaceMembers.role,
-      isDocOwner: sql<boolean>`${users.id} = ${docOwnerId}`
+      isDocOwner: sql<boolean>`coalesce(${users.id} = ${docColumn('owner_id', doc)}, false)`
     })
     .from(workspaceMembers)
     .innerJoin(users, eq(users.id, workspaceMembers.userId))
-    // Guests aren't part of the team roster (presence, mentions).
-    .where(and(eq(workspaceMembers.workspaceId, workspaceId), ne(workspaceMembers.role, 'guest')))
+    // The document's own workspace; guests aren't part of the team roster
+    // (presence, mentions).
+    .where(and(eq(workspaceMembers.workspaceId, sql`${docColumn('workspace_id', doc)}`), ne(workspaceMembers.role, 'guest')))
     .orderBy(sql`case ${workspaceMembers.role} when 'admin' then 0 when 'editor' then 1 else 2 end, ${workspaceMembers.joinedAt} asc`) as Promise<Array<{ userId: number, name: string, login: string | null, role: WorkspaceRole, isDocOwner: boolean }>>
 }
 
@@ -146,7 +82,8 @@ export async function listMembersForDoc(
  * How many admins does this workspace have right now? Used to enforce
  * the last-admin invariant before demotion / removal.
  */
-export async function countAdmins(workspaceId: string): Promise<number> {
+export async function countAdmins(ws: WorkspaceAccess<'member'>): Promise<number> {
+  const workspaceId = ws.workspaceId
   const db = useDatabase()
   const rows = await db
     .select({ userId: workspaceMembers.userId })
@@ -162,7 +99,8 @@ export async function countAdmins(workspaceId: string): Promise<number> {
  * How many members does this workspace have right now? Used for the
  * plan's `membersPerWorkspace` limit (together with open invitations).
  */
-export async function countMembers(workspaceId: string): Promise<number> {
+export async function countMembers(ws: WorkspaceAccess<'member'>): Promise<number> {
+  const workspaceId = ws.workspaceId
   const db = useDatabase()
   const rows = await db
     .select({ n: sql<number>`count(*)::int` })
@@ -173,7 +111,8 @@ export async function countMembers(workspaceId: string): Promise<number> {
 }
 
 /** Guests of the workspace — for the guest cap. */
-export async function countGuests(workspaceId: string): Promise<number> {
+export async function countGuests(ws: WorkspaceAccess<'member'>): Promise<number> {
+  const workspaceId = ws.workspaceId
   const rows = await useDatabase()
     .select({ n: sql<number>`count(*)::int` })
     .from(workspaceMembers)
@@ -187,10 +126,11 @@ export async function countGuests(workspaceId: string): Promise<number> {
  * duplicate insertion and throws ConflictError via the schema-level PK.
  */
 export async function addMember(
-  workspaceId: string,
+  ws: WorkspaceAccess<'admin'>,
   userId: number,
   role: WorkspaceRole
 ): Promise<void> {
+  const workspaceId = ws.workspaceId
   const db = useDatabase()
   await db.insert(workspaceMembers).values({ workspaceId, userId, role })
 }
@@ -207,10 +147,11 @@ export async function addMember(
  * remove it.
  */
 export async function setRole(
-  workspaceId: string,
+  ws: WorkspaceAccess<'admin'>,
   userId: number,
   nextRole: WorkspaceRole
 ): Promise<WorkspaceRole> {
+  const workspaceId = ws.workspaceId
   const db = useDatabase()
   return db.transaction(async (tx): Promise<WorkspaceRole> => {
     const existing = (await tx
@@ -261,10 +202,27 @@ export async function setRole(
  * the last admin, refuses. Same FOR UPDATE lock story as setRole.
  * Returns the removed role, or throws NotFoundError.
  */
-export async function removeMember(
-  workspaceId: string,
-  userId: number
-): Promise<MembershipRole> {
+export async function removeMember(ws: WorkspaceAccess<'admin'>, userId: number): Promise<MembershipRole> {
+  return removeMembership(ws.workspaceId, userId)
+}
+
+/**
+ * The caller leaves a workspace (members and guests alike); same invariant
+ * as `removeMember`. Returns the ids of the workspace's documents too, whose
+ * open connections of the leaver the caller closes.
+ */
+export async function leaveWorkspace(self: UserScope, workspaceId: string): Promise<{ role: MembershipRole, workspaceDocIds: string[] }> {
+  const role = await removeMembership(workspaceId, self.userId)
+  const docs = await useDatabase().select({ docId: documents.docId }).from(documents).where(eq(documents.workspaceId, workspaceId))
+  return { role, workspaceDocIds: docs.map(d => d.docId) }
+}
+
+/** A column of the proof's document row, as a scalar subquery. */
+function docColumn(column: 'owner_id' | 'workspace_id', doc: DocAccess) {
+  return sql`(select ${sql.identifier(column)} from ${documents} where ${documents.docId} = ${doc.docId})`
+}
+
+async function removeMembership(workspaceId: string, userId: number): Promise<MembershipRole> {
   const db = useDatabase()
   return db.transaction(async (tx) => {
     const existing = (await tx
@@ -299,4 +257,25 @@ export async function removeMember(
       ))
     return role
   })
+}
+
+/** The guests of the document's workspace (whom its sharers can share it with). */
+export async function listGuestsForDoc(doc: DocAccess<'share'>): Promise<Array<{ userId: number, name: string, email: string | null }>> {
+  return useDatabase()
+    .select({ userId: users.id, name: users.name, email: users.email })
+    .from(workspaceMembers)
+    .innerJoin(users, eq(users.id, workspaceMembers.userId))
+    .where(and(eq(workspaceMembers.workspaceId, sql`${docColumn('workspace_id', doc)}`), eq(workspaceMembers.role, 'guest')))
+    .orderBy(sql`${workspaceMembers.joinedAt} asc`)
+}
+
+/** The longest-serving admin of the workspace other than `excludeUserId` (billing-admin hand-over). */
+export async function findLongestServingOtherAdmin(ws: WorkspaceAccess<'admin'>, excludeUserId: number): Promise<number | null> {
+  const row = (await useDatabase()
+    .select({ userId: workspaceMembers.userId })
+    .from(workspaceMembers)
+    .where(and(eq(workspaceMembers.workspaceId, ws.workspaceId), eq(workspaceMembers.role, 'admin'), ne(workspaceMembers.userId, excludeUserId)))
+    .orderBy(asc(workspaceMembers.joinedAt))
+    .limit(1))[0]
+  return row?.userId ?? null
 }

@@ -24,9 +24,9 @@ export default defineApiHandler({
   instance: 'billing',
   body: startWorkspaceCheckoutBody,
   rateLimit: { namespace: 'billing-checkout', max: 10, windowMs: MINUTE_MS, key: 'user', error: 'billing/rate-limited' },
-  handler: ({ event, user, wsId, body }) => startWorkspaceCheckout(event, {
-    wsId,
-    userId: user.id,
+  handler: ({ event, workspaceAccess, self, body }) => startWorkspaceCheckout(event, {
+    ws: workspaceAccess,
+    self,
     plan: body.plan,
     interval: body.interval,
     currency: body.currency,

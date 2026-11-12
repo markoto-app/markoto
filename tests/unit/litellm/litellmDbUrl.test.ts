@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { litellmDbUrl } from '../../../server/utils/litellm/litellmDb'
+import { litellmDbUrl } from '../../../server/db/litellm'
 
 // The app reaches LiteLLM's own database for the spend-log sweep and the
 // admin per-axis spend query. With separate Postgres roles
-// (infra/postgres/db-init.sh) the app role has no CONNECT on `litellm`, so
+// (deploy/config/postgres/db-init.sh) the app role has no CONNECT on `litellm`, so
 // these paths must use LiteLLM's role when the deployment configures one.
 
 const base = {

@@ -2,10 +2,11 @@ import { deletePublishedPage, getPublishedPageById, getPublishedPageBySlug } fro
 import { prunePublishedObjects } from './publishDocument'
 import { liveCustomDomainForHost } from '../customDomains/routing'
 import { normalizeCustomHostname } from '~~/shared/config/customDomains'
+import type { DocAccess } from '../../repos/proofs'
 
 /** Take a document's web page down: the row (the address 404s at once), then its files. */
-export async function takeDownPublishedPage(docId: string): Promise<{ id: string } | null> {
-  const removed = await deletePublishedPage(docId)
+export async function takeDownPublishedPage(doc: DocAccess<'manage'> | DocAccess<'delete'>): Promise<{ id: string } | null> {
+  const removed = await deletePublishedPage(doc)
   if (removed) await prunePublishedObjects(removed.id)
   return removed
 }

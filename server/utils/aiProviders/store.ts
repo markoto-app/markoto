@@ -11,6 +11,7 @@ import { verifyProvider, type VerifyResult } from './verify'
 import type { ResolvedAiProvider } from './resolve'
 import type { saveAiProviderBody } from '~~/shared/api/account'
 import { apiKeyLast4, baseUrlHost, normalizeBaseUrl, type AiCapability, type AiProviderConfigView } from '~~/shared/ai/providers'
+import type { UserScope } from '../../repos/proofs'
 
 export function toProviderView(row: AiProviderRow): AiProviderConfigView {
   return {
@@ -35,11 +36,12 @@ export type SaveOutcome
     | { kind: 'verify-failed', verify: VerifyResult }
 
 export async function saveUserProvider(
-  userId: number,
+  self: UserScope,
   capability: AiCapability,
   body: SaveBody,
   virtualKey: string
 ): Promise<SaveOutcome> {
+  const userId = self.userId
   const check = await checkProviderBaseUrl(body.baseUrl, resolveByokUrlPolicy())
   if (!check.ok) return { kind: 'url-refused', code: check.code, message: check.message }
   const baseUrl = check.normalized
@@ -66,8 +68,7 @@ export async function saveUserProvider(
   const verify = await verifyProvider(capability, candidate, virtualKey)
   if (!verify.ok) return { kind: 'verify-failed', verify }
 
-  const row = await upsertAiProvider({
-    userId,
+  const row = await upsertAiProvider(self, {
     capability,
     baseUrl,
     model: body.model,

@@ -1,6 +1,4 @@
-import { eq } from 'drizzle-orm'
-import { users } from '../../db/schema'
-import { useDatabase } from '../../utils/platform/database'
+import { setAiModelTier } from '../../repos/users'
 import { setAiModelBody } from '~~/shared/api/account'
 
 // PUT /api/user/ai-model — the platform chat model the user wants:
@@ -11,8 +9,8 @@ import { setAiModelBody } from '~~/shared/api/account'
 export default defineApiHandler({
   access: allow.user(),
   body: setAiModelBody,
-  handler: async ({ user, body }) => {
-    await useDatabase().update(users).set({ aiModelTier: body.tier }).where(eq(users.id, user.id))
+  handler: async ({ self, body }) => {
+    await setAiModelTier(self, body.tier)
     return { tier: body.tier }
   }
 })

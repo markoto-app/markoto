@@ -1,11 +1,10 @@
 import { must } from '~~/shared/utils/must'
 import { CopyObjectCommand, DeleteObjectsCommand, ListObjectsV2Command } from '@aws-sdk/client-s3'
-import { and, eq, inArray, isNotNull } from 'drizzle-orm'
 import { customAlphabet, nanoid } from 'nanoid'
-import { uploads } from '../../db/schema'
-import { useDatabase } from '../platform/database'
+import { listConfirmedUploadKeys } from '../../repos/uploads'
+import type { DocAccess } from '../../repos/proofs'
 import { renderWebSnapshot, type WebSnapshot } from '../rendering/renderClient'
-import { listBrandAssets } from '../../repos/brandAssets'
+import { listBrandAssetsForDoc } from '../../repos/brandAssets'
 import { getModerationRestriction } from '../../repos/documents'
 import { moderationRestrictedError } from '../privacy/moderationRestriction'
 import {
@@ -29,17 +28,18 @@ const log = useLogger('publish')
 const slugSuffix = customAlphabet('abcdefghijkmnpqrstuvwxyz23456789', 6)
 
 export interface PublishInput {
-  docId: string
-  workspaceId: string | null
+  /** The manage proof of the document being published. */
+  doc: DocAccess<'manage'>
   title: string
   userId: number
   slug?: string
   indexable?: boolean
 }
 
-async function renderOrFail(docId: string): Promise<WebSnapshot> {
+async function renderOrFail(doc: DocAccess<'manage'>): Promise<WebSnapshot> {
+  const docId = doc.docId
   try {
-    return await renderWebSnapshot(docId)
+    return await renderWebSnapshot(doc)
   } catch (e) {
     const msg = e instanceof Error ? e.message : ''
     if (msg.includes('413') || msg.includes('too large')) {
@@ -50,19 +50,11 @@ async function renderOrFail(docId: string): Promise<WebSnapshot> {
   }
 }
 
-/** S3 keys of the document's confirmed uploads among `files`. */
-async function uploadKeys(docId: string, files: Set<string>): Promise<Map<string, string>> {
+/** S3 keys of the document's workspace's brand files among `files`. */
+async function brandKeys(doc: DocAccess<'view'>, files: Set<string>): Promise<Map<string, string>> {
   if (files.size === 0) return new Map()
-  const rows = await useDatabase().select({ fileId: uploads.fileId, s3Key: uploads.s3Key }).from(uploads)
-    .where(and(eq(uploads.docId, docId), inArray(uploads.fileId, [...files]), isNotNull(uploads.confirmedAt)))
-  return new Map(rows.map(r => [r.fileId, r.s3Key]))
-}
-
-/** S3 keys of the workspace's brand files among `files`. */
-async function brandKeys(workspaceId: string | null, files: Set<string>): Promise<Map<string, string>> {
-  if (!workspaceId || files.size === 0) return new Map()
   const out = new Map<string, string>()
-  for (const row of await listBrandAssets(workspaceId)) {
+  for (const row of await listBrandAssetsForDoc(doc)) {
     const file = `${row.id}.${row.format}`
     if (files.has(file)) out.set(file, row.s3Key)
   }
@@ -112,16 +104,16 @@ function hljsUrlFor(name: string): string | null {
   return Object.hasOwn(HLJS_THEMES, name) ? hljsTheme(name as keyof typeof HLJS_THEMES).url : null
 }
 
-async function freeSlug(title: string, docId: string): Promise<string> {
+async function freeSlug(title: string, doc: DocAccess<'manage'>): Promise<string> {
   for (let i = 0; i < 5; i++) {
     const slug = slugFromTitle(title, slugSuffix())
-    if (!await isSlugTaken(slug, docId)) return slug
+    if (!await isSlugTaken(doc, slug)) return slug
   }
   return `page-${slugSuffix()}${slugSuffix()}`
 }
 
-export async function slugConflict(slug: string, docId: string): Promise<void> {
-  if (await isSlugTaken(slug, docId)) {
+export async function slugConflict(doc: DocAccess<'manage'>, slug: string): Promise<void> {
+  if (await isSlugTaken(doc, slug)) {
     throw createError({ statusCode: 409, message: 'This address is already taken. Choose another one.', data: { code: PUBLISH_ERROR_CODES.slugTaken } })
   }
 }
@@ -153,24 +145,25 @@ function isUniqueViolation(e: unknown): boolean {
 const slugTakenError = () => createError({ statusCode: 409, message: 'This address is already taken. Choose another one.', data: { code: PUBLISH_ERROR_CODES.slugTaken } })
 
 export async function publishDocument(input: PublishInput): Promise<PublishedPageSummary> {
-  return withPublishLock(input.docId, () => publishLocked(input))
+  return withPublishLock(input.doc.docId, () => publishLocked(input))
 }
 
 async function publishLocked(input: PublishInput): Promise<PublishedPageSummary> {
-  const { docId } = input
-  if (input.slug) await slugConflict(input.slug, docId)
-  const snap = await renderOrFail(docId)
+  const { doc } = input
+  const docId = doc.docId
+  if (input.slug) await slugConflict(doc, input.slug)
+  const snap = await renderOrFail(doc)
   // A render takes seconds; a moderator may have restricted the document meanwhile.
-  if (await getModerationRestriction(docId)) throw moderationRestrictedError()
+  if (await getModerationRestriction(doc)) throw moderationRestrictedError()
 
-  const existing = await getPublishedPageSummary(docId)
+  const existing = await getPublishedPageSummary(doc)
   const pageId = existing?.id ?? nanoid(16)
 
   const texts = [sanitizeSnapshotHtml(snap.html), snap.css, snap.fontsImport]
   const refs = collectSnapshotAssets(texts, docId)
   const copied: SnapshotAssetRefs = { files: new Set(), brand: new Set() }
-  await copyAll(pageId, 'files', await uploadKeys(docId, refs.files), copied.files)
-  await copyAll(pageId, 'brand', await brandKeys(input.workspaceId, refs.brand), copied.brand)
+  await copyAll(pageId, 'files', await listConfirmedUploadKeys(doc, [...refs.files]), copied.files)
+  await copyAll(pageId, 'brand', await brandKeys(doc, refs.brand), copied.brand)
   const [html, css, fontsImport] = texts.map(t => rewriteSnapshotAssets(t, docId, pageId, copied)) as [string, string, string]
 
   if (html.length + css.length + fontsImport.length > PUBLISH_MAX_SNAPSHOT_CHARS) {
@@ -190,7 +183,7 @@ async function publishLocked(input: PublishInput): Promise<PublishedPageSummary>
   if (existing) await replaceSnapshot(input, pageId, stored)
   else await insertFirstSnapshot(input, pageId, stored)
   await prunePublishedObjects(pageId, keysOf(pageId, copied))
-  return must(await getPublishedPageSummary(docId), 'published page just stored')
+  return must(await getPublishedPageSummary(doc), 'published page just stored')
 }
 
 interface StoredSnapshot {
@@ -207,7 +200,7 @@ async function replaceSnapshot(input: PublishInput, pageId: string, stored: Stor
   let updated: boolean
   try {
     // The slug was checked before the render; another page may have taken it since.
-    updated = await updatePublishedSnapshot(input.docId, { ...stored, slug: input.slug, indexable: input.indexable, publishedByUserId: input.userId })
+    updated = await updatePublishedSnapshot(input.doc, { ...stored, slug: input.slug, indexable: input.indexable, publishedByUserId: input.userId })
   } catch (e) {
     // The live page keeps its files (extra copies go with the next publish).
     if (isUniqueViolation(e)) throw slugTakenError()
@@ -222,9 +215,9 @@ async function replaceSnapshot(input: PublishInput, pageId: string, stored: Stor
 
 /** First publish: a new page row under the requested (or a free) slug. */
 async function insertFirstSnapshot(input: PublishInput, pageId: string, stored: StoredSnapshot): Promise<void> {
-  const slug = input.slug ?? await freeSlug(input.title, input.docId)
+  const slug = input.slug ?? await freeSlug(input.title, input.doc)
   try {
-    await insertPublishedPage({ ...stored, id: pageId, docId: input.docId, slug, indexable: input.indexable ?? false, publishedByUserId: input.userId })
+    await insertPublishedPage(input.doc, { ...stored, id: pageId, slug, indexable: input.indexable ?? false, publishedByUserId: input.userId })
   } catch (e) {
     await prunePublishedObjects(pageId)
     // Unique violation: the slug was taken in between, or a concurrent

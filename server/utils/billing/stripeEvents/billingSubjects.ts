@@ -14,8 +14,12 @@ import { findUserIdByStripeCustomer } from '../../../repos/userBilling'
 import { getPooledWorkspace } from '../workspaceBilling'
 import { ensureWorkspaceTeam, syncAllMemberKeyLimits } from '../../litellm/workspaceTeams'
 import { subscriptionPeriod } from './stripeObjects'
-import type { DbOrTx, DeferredAfterCommit } from './types'
+import type { TxHandle, DeferredAfterCommit } from './types'
 import { useLogger } from '../../platform/logger'
+import { system } from '../../../repos/proofs'
+
+/** Stripe's webhook writes billing state for whichever customer the event names. */
+const STRIPE = system('stripe-webhook')
 
 // Who a Stripe customer is (a user or a workspace subscription) and the
 // writes every handler makes on that subject.
@@ -31,10 +35,10 @@ const log = useLogger('stripe-webhook')
  */
 export type CustomerSubject = { kind: 'user', userId: number } | { kind: 'workspace', workspaceId: string }
 
-export async function subjectForCustomer(customerId: string, db: DbOrTx): Promise<CustomerSubject | null> {
-  const userId = await findUserIdByStripeCustomer(customerId, db)
+export async function subjectForCustomer(customerId: string, db: TxHandle | undefined): Promise<CustomerSubject | null> {
+  const userId = await findUserIdByStripeCustomer(STRIPE, customerId, db)
   if (userId !== null) return { kind: 'user', userId }
-  const workspaceId = await findWorkspaceIdByStripeCustomer(customerId, db)
+  const workspaceId = await findWorkspaceIdByStripeCustomer(STRIPE, customerId, db)
   if (workspaceId !== null) return { kind: 'workspace', workspaceId }
   return null
 }
@@ -56,7 +60,7 @@ function storedStatus(sub: Stripe.Subscription): StripeSubscriptionStatus {
  * (insert on first sight, update after). Seats = the item quantity.
  */
 export async function upsertWorkspaceSubscriptionFromStripe(
-  db: DbOrTx,
+  db: TxHandle | undefined,
   args: {
     workspaceId: string
     sub: Stripe.Subscription
@@ -80,7 +84,7 @@ export async function upsertWorkspaceSubscriptionFromStripe(
     updatedAt: new Date()
   }
   const billingAdmin = args.billingAdminId === undefined ? {} : { billingAdminId: args.billingAdminId }
-  await upsertWorkspaceSubscription(db, args.workspaceId, values, billingAdmin)
+  await upsertWorkspaceSubscription(STRIPE, db, args.workspaceId, values, billingAdmin)
 }
 
 /**
@@ -88,14 +92,14 @@ export async function upsertWorkspaceSubscriptionFromStripe(
  * than `subscriptionId`, else null. Only one subscription per workspace
  * is tracked; events of any other one must not overwrite it.
  */
-export async function rowHoldingOtherSubscription(db: DbOrTx, workspaceId: string, subscriptionId: string): Promise<WorkspaceSubscriptionRow | null> {
-  const row = await getWorkspaceSubscriptionIn(db, workspaceId)
+export async function rowHoldingOtherSubscription(db: TxHandle | undefined, workspaceId: string, subscriptionId: string): Promise<WorkspaceSubscriptionRow | null> {
+  const row = await getWorkspaceSubscriptionIn(STRIPE, db, workspaceId)
   return row?.stripeSubscriptionId && row.stripeSubscriptionId !== subscriptionId ? row : null
 }
 
 /** True when the workspace's row holds `subscriptionId` and it has ended (`canceled`). */
-export async function isEndedSubscription(db: DbOrTx, workspaceId: string, subscriptionId: string): Promise<boolean> {
-  const row = await getWorkspaceSubscriptionState(db, workspaceId)
+export async function isEndedSubscription(db: TxHandle | undefined, workspaceId: string, subscriptionId: string): Promise<boolean> {
+  const row = await getWorkspaceSubscriptionState(STRIPE, db, workspaceId)
   return row?.id === subscriptionId && row.status === 'canceled'
 }
 

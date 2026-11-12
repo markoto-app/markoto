@@ -56,7 +56,7 @@ export default defineApiHandler({
   // 30 per minute is plenty for a genuine power user batch-uploading; well
   // below the volume a script would need to meaningfully abuse signing throughput.
   rateLimit: { namespace: 'knowledge-upload', max: 30, windowMs: MINUTE_MS, key: 'user', error: 'knowledge/rate-limited' },
-  handler: async ({ user, wsId, body }) => {
+  handler: async ({ user, wsId, body, self, workspaceAccess }) => {
     const userId = user.id
     const { filename, size } = body
 
@@ -69,11 +69,7 @@ export default defineApiHandler({
     // Cap + inflight-slot reservation. Throws on any cap breach; returns
     // a releaser we invoke on the failure path after this point. The
     // confirm endpoint releases on success and on its own failures.
-    const { releaseSlots } = await reserveUploadSlot({
-      workspaceId: wsId,
-      userId,
-      size
-    })
+    const { releaseSlots } = await reserveUploadSlot({ ws: workspaceAccess, self, size })
 
     const env = useEnv()
     const knowledgeId = nanoid(12)

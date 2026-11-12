@@ -7,7 +7,7 @@ import { updateWorkspaceBody } from '~~/shared/api/workspaces'
 export default defineApiHandler({
   access: allow.workspace('admin', { deny: 'workspace/admin-required' }),
   body: updateWorkspaceBody,
-  handler: async ({ event, wsId, body }) => {
+  handler: async ({ event, body, workspaceAccess }) => {
     const updates: WorkspaceUpdate = {}
     if (body?.name !== undefined) updates.name = body.name
     if (body?.description !== undefined) updates.description = body.description
@@ -18,7 +18,7 @@ export default defineApiHandler({
     // No document context — see `assertValidThemeCustomCss`.
     assertValidThemeCustomCss(body?.defaultTheme, null, event)
 
-    await updateWorkspace(wsId, updates)
+    await updateWorkspace(workspaceAccess, updates)
     return { success: true }
   }
 })

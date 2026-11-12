@@ -50,18 +50,18 @@ export const TEST_DB_URL = `postgres://${TEST_DB_USER}:${TEST_DB_PASSWORD}@${TES
 export const TEST_VALKEY_HOST = '127.0.0.1'
 export const TEST_VALKEY_PORT = '6380'
 // Hardcoded weak password mirroring `--requirepass testpassword` in
-// docker-compose.test.yml. Test infra is throwaway / tmpfs and the
+// deploy/compose/compose.test.yml. Test infra is throwaway / tmpfs and the
 // container only listens on localhost; the password exists to exercise
 // the same auth code path prod uses.
 export const TEST_VALKEY_PASSWORD = 'testpassword'
 
-// Sync-server target: the real `sync-test` Hocuspocus container under docker-compose.test.yml, host-mapped on
+// Sync-server target: the real `sync-test` Hocuspocus container under deploy/compose/compose.test.yml, host-mapped on
 // 4002. Both internal HTTP endpoints (/internal/kick-user, /internal/notify-deleted) AND the WebSocket Y.js
 // sync protocol are served by the same process, so pointing Nuxt's `syncInternalUrl` here gives live-sync
 // coverage (MCP doc-bound tools, AI agentic loop, real Hocuspocus auth flow). The kick-user dispatch shape
 // is pinned by `tests/unit/sync/syncNotify.test.ts`.
 //
-// Generic OIDC: the `oidc-test` mock IdP (navikt mock-oauth2-server) in docker-compose.test.yml. Every path
+// Generic OIDC: the `oidc-test` mock IdP (navikt mock-oauth2-server) in deploy/compose/compose.test.yml. Every path
 // is its own issuer with its own signing key; the app trusts exactly TEST_OIDC_ISSUER.
 const TEST_OIDC_PORT = 4130
 export const TEST_OIDC_BASE_URL = `http://127.0.0.1:${TEST_OIDC_PORT}`
@@ -80,7 +80,7 @@ export const TEST_SYNC_URL = `http://127.0.0.1:${TEST_SYNC_PORT}`
 // to match the sync-test container's build-time env vars (same compose
 // file) — otherwise Nuxt → sync /internal calls 403 and Hocuspocus
 // rejects every WS connection. If you bump these, mirror the change in
-// docker-compose.test.yml's sync-test environment.
+// deploy/compose/compose.test.yml's sync-test environment.
 export const TEST_JWT_SECRET = 'test-jwt-secret-isolated-from-dev-and-prod-stacks-64char'
 export const TEST_SESSION_PASSWORD = 'test-session-password-' + 'y'.repeat(64)
 export const TEST_INTERNAL_SECRET = 'test-internal-api-secret-isolated'
@@ -90,18 +90,18 @@ export const TEST_ALTCHA_HMAC_KEY = 'test-altcha-hmac-key-isolated-from-dev-and-
 // Valkey-compatible endpoint for the test stack. Rate limits and session
 // locks fall open/closed per `server/utils/platform/rateLimit.ts` semantics when
 // Valkey is unreachable — tests that exercise those paths need a live
-// Valkey. The docker-compose.test.yml stack maps Valkey to localhost:6380
+// Valkey. The deploy/compose/compose.test.yml stack maps Valkey to localhost:6380
 // with `--requirepass testpassword`.
 export const TEST_VALKEY_URL = `redis://:${TEST_VALKEY_PASSWORD}@127.0.0.1:6380/0`
 
 // Fake OpenAI-compatible provider (BYOK)
-// `fake-openai-test` in docker-compose.test.yml, published on host port
+// `fake-openai-test` in deploy/compose/compose.test.yml, published on host port
 // 4120. The BYOK base URL must be reachable from BOTH the app (on the
 // host, which runs the SSRF policy incl. DNS — loopback is refused) and
 // litellm-test (in a container, which connects). The gateway address of
 // the test stack's network is one both sides share: it is a local
 // interface on the host, and from inside a container it reaches the host.
-// docker-compose.test.yml pins that network's subnet so the gateway is
+// deploy/compose/compose.test.yml pins that network's subnet so the gateway is
 // known up front, and publishes the port on that address (plus loopback)
 // only — never on all interfaces. Override with TEST_NETWORK_GATEWAY
 // (set it for `docker compose up` too) or TEST_FAKE_OPENAI_BASE_URL.
@@ -118,7 +118,7 @@ export const TEST_STRIPE_PRICE_IDS = 'markoto_pro_month_eur=price_test_pro,marko
 
 const TEST_FAKE_OPENAI_PORT = 4120
 export const TEST_FAKE_OPENAI_HOST_URL = `http://127.0.0.1:${TEST_FAKE_OPENAI_PORT}`
-/** MUST match the `networks.default` gateway default in docker-compose.test.yml. */
+/** MUST match the `networks.default` gateway default in deploy/compose/compose.test.yml. */
 const TEST_NETWORK_GATEWAY_DEFAULT = '10.213.47.1'
 
 export function fakeOpenAiBaseUrl(): string {
@@ -142,13 +142,13 @@ export function ssoMockIdpBase(): string {
 }
 
 // LiteLLM's own Postgres role in the test stack (litellm-test-db-init in
-// docker-compose.test.yml). The app's spend-log paths connect with it, as
-// in a deployment with separate roles (server/utils/litellm/litellmDb.ts).
+// deploy/compose/compose.test.yml). The app's spend-log paths connect with it, as
+// in a deployment with separate roles (server/db/litellm.ts).
 export const TEST_LITELLM_DB_USER = 'litellm_test'
 export const TEST_LITELLM_DB_PASSWORD = 'litellmtestpassword'
 
 // Custom domains: the CNAME target the test server announces and
-// the token traefik-test sends (docker-compose.test.yml has the same one).
+// the token traefik-test sends (deploy/compose/compose.test.yml has the same one).
 export const TEST_PUBLISH_DOMAINS_TARGET = 'pages.markoto.test'
 export const TEST_TRAEFIK_PROVIDER_TOKEN = 'test-provider-token-0123456789abcdef0123'
 /**

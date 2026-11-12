@@ -11,6 +11,7 @@ import { getAccountStatus } from '../../server/repos/userPolicies'
 import { upsertOAuthUser } from '../../server/repos/userSignIn'
 import { ConflictError } from '../../server/repos/errors'
 import { at, first } from '../helpers/assert'
+import { asUser, sys } from '../helpers/access'
 
 // Users repository. Write-side hot spot is `upsertOAuthUser`, which
 // now has THREE outcomes:
@@ -387,7 +388,7 @@ describe('requestAccountDeletion', () => {
   it('marks the row with both timestamp columns and returns the new state', async () => {
     const userId = await newUser()
     const before = Date.now()
-    const status = await requestAccountDeletion(userId, 30)
+    const status = await requestAccountDeletion(asUser(userId), 30)
     const after = Date.now()
 
     expect(status.deletionRequestedAt).toBeInstanceOf(Date)
@@ -406,35 +407,35 @@ describe('requestAccountDeletion', () => {
 
   it('throws ConflictError if a deletion is already scheduled', async () => {
     const userId = await newUser()
-    await requestAccountDeletion(userId, 30)
-    await expect(requestAccountDeletion(userId, 30)).rejects.toBeInstanceOf(ConflictError)
+    await requestAccountDeletion(asUser(userId), 30)
+    await expect(requestAccountDeletion(asUser(userId), 30)).rejects.toBeInstanceOf(ConflictError)
   })
 
   it('does NOT reset the grace clock on a redundant request', async () => {
     const userId = await newUser()
-    const first = await requestAccountDeletion(userId, 30)
+    const first = await requestAccountDeletion(asUser(userId), 30)
     // Tiny sleep so any reset would produce a measurable diff.
     await new Promise(r => setTimeout(r, 50))
-    await expect(requestAccountDeletion(userId, 30)).rejects.toBeInstanceOf(ConflictError)
+    await expect(requestAccountDeletion(asUser(userId), 30)).rejects.toBeInstanceOf(ConflictError)
     // Re-read — grace still equals the original.
-    const status = await getAccountDeletionStatus(userId)
+    const status = await getAccountDeletionStatus(asUser(userId))
     expect(status?.deletionGraceUntil?.getTime()).toBe(first.deletionGraceUntil!.getTime())
   })
 
   it('throws on out-of-range graceDays', async () => {
     const userId = await newUser()
-    await expect(requestAccountDeletion(userId, 0)).rejects.toThrow(/out of range/)
-    await expect(requestAccountDeletion(userId, 366)).rejects.toThrow(/out of range/)
-    await expect(requestAccountDeletion(userId, -1)).rejects.toThrow(/out of range/)
+    await expect(requestAccountDeletion(asUser(userId), 0)).rejects.toThrow(/out of range/)
+    await expect(requestAccountDeletion(asUser(userId), 366)).rejects.toThrow(/out of range/)
+    await expect(requestAccountDeletion(asUser(userId), -1)).rejects.toThrow(/out of range/)
   })
 
   it('throws if the user does not exist', async () => {
-    await expect(requestAccountDeletion(99_999_999, 30)).rejects.toThrow(/not found/)
+    await expect(requestAccountDeletion(asUser(99_999_999), 30)).rejects.toThrow(/not found/)
   })
 
   it('honours a custom graceDays value', async () => {
     const userId = await newUser()
-    const status = await requestAccountDeletion(userId, 7)
+    const status = await requestAccountDeletion(asUser(userId), 7)
     const requestedMs = status.deletionRequestedAt!.getTime()
     const graceMs = status.deletionGraceUntil!.getTime()
     expect(Math.abs(graceMs - (requestedMs + 7 * 24 * 60 * 60 * 1000))).toBeLessThan(5 * 60 * 1000)
@@ -448,28 +449,28 @@ describe('cancelAccountDeletion', () => {
 
   it('clears both timestamp columns', async () => {
     const userId = await newUser()
-    await requestAccountDeletion(userId, 30)
-    await cancelAccountDeletion(userId)
-    const status = await getAccountDeletionStatus(userId)
+    await requestAccountDeletion(asUser(userId), 30)
+    await cancelAccountDeletion(asUser(userId))
+    const status = await getAccountDeletionStatus(asUser(userId))
     expect(status?.deletionRequestedAt).toBeNull()
     expect(status?.deletionGraceUntil).toBeNull()
   })
 
   it('throws ConflictError when no deletion is scheduled', async () => {
     const userId = await newUser()
-    await expect(cancelAccountDeletion(userId)).rejects.toBeInstanceOf(ConflictError)
+    await expect(cancelAccountDeletion(asUser(userId))).rejects.toBeInstanceOf(ConflictError)
   })
 
   it('throws if the user does not exist', async () => {
-    await expect(cancelAccountDeletion(99_999_999)).rejects.toThrow(/not found/)
+    await expect(cancelAccountDeletion(asUser(99_999_999))).rejects.toThrow(/not found/)
   })
 
   it('allows re-requesting after a cancel (idempotent across cycle)', async () => {
     const userId = await newUser()
-    await requestAccountDeletion(userId, 30)
-    await cancelAccountDeletion(userId)
+    await requestAccountDeletion(asUser(userId), 30)
+    await cancelAccountDeletion(asUser(userId))
     // Second request should succeed (no longer "already scheduled").
-    const status = await requestAccountDeletion(userId, 30)
+    const status = await requestAccountDeletion(asUser(userId), 30)
     expect(status.deletionRequestedAt).toBeInstanceOf(Date)
   })
 })
@@ -481,20 +482,20 @@ describe('getAccountDeletionStatus', () => {
 
   it('returns nulls for a fresh user', async () => {
     const userId = await newUser()
-    const status = await getAccountDeletionStatus(userId)
+    const status = await getAccountDeletionStatus(asUser(userId))
     expect(status).toEqual({ deletionRequestedAt: null, deletionGraceUntil: null })
   })
 
   it('returns the marks after a request', async () => {
     const userId = await newUser()
-    await requestAccountDeletion(userId, 30)
-    const status = await getAccountDeletionStatus(userId)
+    await requestAccountDeletion(asUser(userId), 30)
+    const status = await getAccountDeletionStatus(asUser(userId))
     expect(status?.deletionRequestedAt).toBeInstanceOf(Date)
     expect(status?.deletionGraceUntil).toBeInstanceOf(Date)
   })
 
   it('returns null for a nonexistent user', async () => {
-    const status = await getAccountDeletionStatus(99_999_999)
+    const status = await getAccountDeletionStatus(asUser(99_999_999))
     expect(status).toBeNull()
   })
 })
@@ -519,7 +520,7 @@ describe('getAccountStatus', () => {
 
   it('reflects a scheduled deletion', async () => {
     const userId = await newUser()
-    await requestAccountDeletion(userId, 30)
+    await requestAccountDeletion(asUser(userId), 30)
     const status = await getAccountStatus(userId)
     expect(status!.deletionRequestedAt).toBeInstanceOf(Date)
     expect(status!.deletionGraceUntil).toBeInstanceOf(Date)
@@ -539,7 +540,7 @@ describe('setAdminFlag', () => {
 
   it('promotes a user from non-admin to admin and returns the previous value', async () => {
     const userId = await newUser()
-    const result = await setAdminFlag(userId, true)
+    const result = await setAdminFlag(sys(), userId, true)
     expect(result).toEqual({ previous: false })
 
     // Verify the column actually flipped via findUserById.
@@ -549,9 +550,9 @@ describe('setAdminFlag', () => {
 
   it('is a no-op when the flag is already at the requested value', async () => {
     const userId = await newUser()
-    await setAdminFlag(userId, true)
+    await setAdminFlag(sys(), userId, true)
     // Second call should report previous=true and write nothing.
-    const result = await setAdminFlag(userId, true)
+    const result = await setAdminFlag(sys(), userId, true)
     expect(result).toEqual({ previous: true })
     const reread = await findUserById(userId)
     expect(reread?.isAdmin).toBe(true)
@@ -559,15 +560,15 @@ describe('setAdminFlag', () => {
 
   it('demotes from admin to non-admin', async () => {
     const userId = await newUser()
-    await setAdminFlag(userId, true)
-    const result = await setAdminFlag(userId, false)
+    await setAdminFlag(sys(), userId, true)
+    const result = await setAdminFlag(sys(), userId, false)
     expect(result).toEqual({ previous: true })
     const reread = await findUserById(userId)
     expect(reread?.isAdmin).toBe(false)
   })
 
   it('returns null for a nonexistent user', async () => {
-    expect(await setAdminFlag(99_999_999, true)).toBeNull()
+    expect(await setAdminFlag(sys(), 99_999_999, true)).toBeNull()
   })
 })
 
@@ -581,7 +582,7 @@ describe('findUserById — isAdmin projection', () => {
     const fresh = await findUserById(userId)
     expect(fresh?.isAdmin).toBe(false)
 
-    await setAdminFlag(userId, true)
+    await setAdminFlag(sys(), userId, true)
     const promoted = await findUserById(userId)
     expect(promoted?.isAdmin).toBe(true)
   })

@@ -5,8 +5,8 @@ import { listOwnedByUser } from '../../repos/documents'
 // semantically "my stuff" vs. "everything I can edit".
 export default defineApiHandler({
   access: allow.user(),
-  handler: async ({ user }) => {
-    const docs = await listOwnedByUser(user.id)
+  handler: async ({ self }) => {
+    const docs = await listOwnedByUser(self)
     // Always true here; the dashboard UI relies on the field being present.
     return docs.map(d => ({ ...d, isOwner: true as const }))
   }

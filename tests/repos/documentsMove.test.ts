@@ -9,6 +9,7 @@ import {
 import { NotFoundError } from '../../server/repos/errors'
 import { createUser, createDoc as seedDoc, createWorkspace } from '../integration/setup/fixtures'
 import type { DocTheme } from '../../shared/types/theme'
+import { asUser, docAs, wsAs } from '../helpers/access'
 
 // Extension tests for the documents repo: the move and duplicate helpers
 // added for post-creation workspace moves and document duplication. The
@@ -26,9 +27,9 @@ describe('moveDocToWorkspace', () => {
     const doc = await seedDoc({ ownerId: user.id })
     expect(doc.workspaceId).toBeNull()
 
-    await moveDocToWorkspace(doc.docId, ws.workspaceId)
+    await moveDocToWorkspace(docAs(doc.docId), wsAs(ws.workspaceId))
 
-    const after = (await getDoc(doc.docId))!
+    const after = (await getDoc(docAs(doc.docId)))!
     expect(after.workspaceId).toBe(ws.workspaceId)
   })
 
@@ -37,9 +38,9 @@ describe('moveDocToWorkspace', () => {
     const ws = await createWorkspace(user.id)
     const doc = await seedDoc({ ownerId: user.id, workspaceId: ws.workspaceId })
 
-    await moveDocToWorkspace(doc.docId, null)
+    await moveDocToWorkspace(docAs(doc.docId), null)
 
-    const after = (await getDoc(doc.docId))!
+    const after = (await getDoc(docAs(doc.docId)))!
     expect(after.workspaceId).toBeNull()
   })
 
@@ -49,9 +50,9 @@ describe('moveDocToWorkspace', () => {
     const wsB = await createWorkspace(user.id)
     const doc = await seedDoc({ ownerId: user.id, workspaceId: wsA.workspaceId })
 
-    await moveDocToWorkspace(doc.docId, wsB.workspaceId)
+    await moveDocToWorkspace(docAs(doc.docId), wsAs(wsB.workspaceId))
 
-    const after = (await getDoc(doc.docId))!
+    const after = (await getDoc(docAs(doc.docId)))!
     expect(after.workspaceId).toBe(wsB.workspaceId)
   })
 
@@ -64,11 +65,11 @@ describe('moveDocToWorkspace', () => {
       `UPDATE documents SET last_active = now() - interval '1 day' WHERE doc_id = $1`,
       [doc.docId]
     )
-    const before = (await getDoc(doc.docId))!.lastActive
+    const before = (await getDoc(docAs(doc.docId)))!.lastActive
 
-    await moveDocToWorkspace(doc.docId, ws.workspaceId)
+    await moveDocToWorkspace(docAs(doc.docId), wsAs(ws.workspaceId))
 
-    const after = (await getDoc(doc.docId))!.lastActive
+    const after = (await getDoc(docAs(doc.docId)))!.lastActive
     expect(after.getTime()).toBeGreaterThan(before.getTime())
   })
 
@@ -85,9 +86,9 @@ describe('moveDocToWorkspace', () => {
       [doc.docId]
     )
 
-    await moveDocToWorkspace(doc.docId, ws.workspaceId)
+    await moveDocToWorkspace(docAs(doc.docId), wsAs(ws.workspaceId))
 
-    const after = (await getDoc(doc.docId))!
+    const after = (await getDoc(docAs(doc.docId)))!
     expect(after.title).toBe('Test Doc')
     expect(after.accessMode).toBe('password-protected')
     expect(after.passwordHash).toBe('hash')
@@ -97,7 +98,7 @@ describe('moveDocToWorkspace', () => {
   })
 
   it('throws NotFoundError when the doc is missing', async () => {
-    await expect(moveDocToWorkspace('ghost', null))
+    await expect(moveDocToWorkspace(docAs('ghost'), null))
       .rejects.toBeInstanceOf(NotFoundError)
   })
 })
@@ -126,7 +127,7 @@ describe('insertDuplicateDoc', () => {
     // round-trips through the duplicate path unchanged. Using a minimal
     // object keeps the test independent of the DocTheme shape evolving.
 
-    await insertDuplicateDoc({
+    await insertDuplicateDoc(docAs('source-doc'), {
       ...COPY_DEFAULTS,
       newDocId: 'copy-doc',
       ownerId: user.id,
@@ -139,7 +140,7 @@ describe('insertDuplicateDoc', () => {
       sizeBytes: 1234
     })
 
-    const snap = (await getDoc('copy-doc'))!
+    const snap = (await getDoc(docAs('copy-doc')))!
     expect(snap.ownerId).toBe(user.id)
     expect(snap.workspaceId).toBeNull()
     expect(snap.title).toBe('Copy of X')
@@ -155,7 +156,7 @@ describe('insertDuplicateDoc', () => {
     // never reported them. The duplicate row should still be valid
     // (default 0) rather than carrying the NULL forward.
     const user = await createUser()
-    await insertDuplicateDoc({
+    await insertDuplicateDoc(docAs('source-doc'), {
       ...COPY_DEFAULTS,
       newDocId: 'copy-nulls',
       ownerId: user.id,
@@ -167,7 +168,7 @@ describe('insertDuplicateDoc', () => {
       wordCount: null,
       sizeBytes: null
     })
-    const snap = (await getDoc('copy-nulls'))!
+    const snap = (await getDoc(docAs('copy-nulls')))!
     expect(snap.wordCount).toBe(0)
     expect(snap.sizeBytes).toBe(0)
     expect(snap.theme).toBeNull()
@@ -176,7 +177,7 @@ describe('insertDuplicateDoc', () => {
   it('can assign a workspace at insert time', async () => {
     const user = await createUser()
     const ws = await createWorkspace(user.id)
-    await insertDuplicateDoc({
+    await insertDuplicateDoc(docAs('source-doc'), {
       ...COPY_DEFAULTS,
       newDocId: 'copy-ws',
       ownerId: user.id,
@@ -188,7 +189,7 @@ describe('insertDuplicateDoc', () => {
       wordCount: 0,
       sizeBytes: 0
     })
-    const snap = (await getDoc('copy-ws'))!
+    const snap = (await getDoc(docAs('copy-ws')))!
     expect(snap.workspaceId).toBe(ws.workspaceId)
   })
 
@@ -199,7 +200,7 @@ describe('insertDuplicateDoc', () => {
     const alice = await createUser()
     const bob = await createUser()
     await seedDoc({ ownerId: alice.id })
-    await insertDuplicateDoc({
+    await insertDuplicateDoc(docAs('source-doc'), {
       ...COPY_DEFAULTS,
       newDocId: 'copy-bob',
       ownerId: bob.id, // Bob duplicates Alice's doc
@@ -212,10 +213,10 @@ describe('insertDuplicateDoc', () => {
       sizeBytes: 0
     })
 
-    const bobsDocs = await listOwnedByUser(bob.id)
+    const bobsDocs = await listOwnedByUser(asUser(bob.id))
     expect(bobsDocs.map(d => d.docId)).toContain('copy-bob')
 
-    const alicesDocs = await listOwnedByUser(alice.id)
+    const alicesDocs = await listOwnedByUser(asUser(alice.id))
     expect(alicesDocs.map(d => d.docId)).not.toContain('copy-bob')
   })
 })
@@ -231,7 +232,7 @@ describe('listOwnedByUser shape additions', () => {
     const inWs = await seedDoc({ ownerId: user.id, workspaceId: ws.workspaceId })
     const standalone = await seedDoc({ ownerId: user.id })
 
-    const rows = await listOwnedByUser(user.id)
+    const rows = await listOwnedByUser(asUser(user.id))
     const byId = new Map(rows.map(r => [r.docId, r]))
     expect(byId.get(inWs.docId)!.workspaceId).toBe(ws.workspaceId)
     expect(byId.get(standalone.docId)!.workspaceId).toBeNull()

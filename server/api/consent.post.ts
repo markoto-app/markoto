@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto'
-import { consentLog } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { appendConsentDecisions } from '../repos/consent'
 import { truncateIp } from '../repos/audit'
 import { CONSENT_VERSION, AUTHORITATIVE_LOCALE, LEGAL_DOCUMENT_LOCALES } from '~~/shared/legal/versions'
 import { ensureAnonId } from '../utils/auth/anonId'
@@ -26,7 +25,7 @@ export default defineApiHandler({
   access: allow.public('Visitors record their consent choices, keyed on their account or their first-party anonymous cookie; append-only and limited per client', { session: 'optional' }),
   body: recordConsentBody,
   rateLimit: { namespace: 'consent', max: CONSENT_RATE_LIMIT, windowMs: CONSENT_RATE_WINDOW_MS, key: 'ip', error: 'consent/rate-limited' },
-  handler: async ({ event, user, body }) => {
+  handler: async ({ event, self, body }) => {
     // One row per purpose per submission (last decision wins); unknown purposes
     // and non-boolean values are dropped rather than 400-ing the batch, but an
     // empty or oversized array is refused.
@@ -37,7 +36,6 @@ export default defineApiHandler({
     // The record stores the language the user actually saw the banner in.
     const locale = LEGAL_DOCUMENT_LOCALES.find(l => l === body?.locale) ?? AUTHORITATIVE_LOCALE
 
-    const userId = user?.id ?? null
     const anonId = await ensureAnonId(event)
 
     // Truncate IP + hash UA (same as the audit log): raw values would
@@ -49,11 +47,8 @@ export default defineApiHandler({
       ? createHash('sha256').update(userAgent).digest('hex')
       : null
 
-    const db = useDatabase()
     // Append-only: no conflict handling; the read path takes the latest row.
-    await db.insert(consentLog).values(valid.map(d => ({
-      userId,
-      anonId,
+    await appendConsentDecisions({ self, anonId }, valid.map(d => ({
       purpose: d.purpose,
       granted: d.granted,
       version: CONSENT_VERSION,

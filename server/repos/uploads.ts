@@ -1,7 +1,8 @@
-import { and, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull, lt, or, sql } from 'drizzle-orm'
 import { documents, uploads } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { useDatabase, useDatabasePool } from '../db/client'
 import { pooledWorkspaceIdsSubquery } from './workspaceSubscriptions'
+import type { DocAccess, SystemActor, UserScope } from './proofs'
 
 // Uploads repository. Powers the presigned-URL upload flow:
 //   request → recordPending (row inserted as unconfirmed)
@@ -10,6 +11,9 @@ import { pooledWorkspaceIdsSubquery } from './workspaceSubscriptions'
 //
 // The orphan-cleanup plugin reads stale unconfirmed rows + the full
 // s3Key list to reconcile against S3.
+//
+// Rows of a document take its proof; an uploader's own rows take their
+// `UserScope` and match `uploader_id`; the sweeps take a `SystemActor`.
 
 export interface PendingUploadInput {
   docId: string
@@ -25,9 +29,9 @@ export interface PendingUploadInput {
  * the presigned PUT URL, so the orphan-cleanup sweep has a record to
  * compare against.
  */
-export async function recordPending(input: PendingUploadInput): Promise<void> {
+export async function recordPending(doc: DocAccess<'write'>, input: Omit<PendingUploadInput, 'docId'>): Promise<void> {
   const db = useDatabase()
-  await db.insert(uploads).values(input)
+  await db.insert(uploads).values({ ...input, docId: doc.docId })
 }
 
 // Image storage quota: every upload row, pending or confirmed, counts against
@@ -70,8 +74,8 @@ async function sumScopeBytes(tx: Tx | ReturnType<typeof useDatabase>, scope: Ima
 }
 
 /** Bytes counted against the user's personal image quota (pending + confirmed rows). */
-export async function sumImageBytesByUploader(uploaderId: number, opts: { excludePooled?: boolean } = {}): Promise<number> {
-  return sumScopeBytes(useDatabase(), { kind: 'user', uploaderId, excludePooled: opts.excludePooled === true })
+export async function sumImageBytesByUploader(self: UserScope, opts: { excludePooled?: boolean } = {}): Promise<number> {
+  return sumScopeBytes(useDatabase(), { kind: 'user', uploaderId: self.userId, excludePooled: opts.excludePooled === true })
 }
 
 /** Bytes counted against a quota scope. */
@@ -89,13 +93,13 @@ export interface QuotaReservation {
  * Insert a pending upload row if it fits the uploader's quota. Atomic per
  * uploader (advisory lock + sum + insert in one transaction).
  */
-export async function reservePendingUpload(input: PendingUploadInput, maxBytes: number, scope: ImageQuotaScope): Promise<QuotaReservation> {
+export async function reservePendingUpload(doc: DocAccess<'write'>, input: Omit<PendingUploadInput, 'docId'>, maxBytes: number, scope: ImageQuotaScope): Promise<QuotaReservation> {
   const db = useDatabase()
   return db.transaction(async (tx) => {
     await lockQuotaScope(tx, scope)
     const usedBytes = await sumScopeBytes(tx, scope)
     if (usedBytes + input.sizeBytes > maxBytes) return { reserved: false, usedBytes }
-    await tx.insert(uploads).values(input)
+    await tx.insert(uploads).values({ ...input, docId: doc.docId })
     return { reserved: true, usedBytes }
   })
 }
@@ -109,11 +113,12 @@ export type ConfirmOutcome = 'confirmed' | 'already-confirmed' | 'over-quota' | 
  * bytes were reserved at request time, so the check is "total <= max".
  */
 export async function confirmOwnUploadWithinQuota(
+  self: UserScope,
   s3Key: string,
-  uploaderId: number,
   maxBytes: number,
   scope: ImageQuotaScope
 ): Promise<ConfirmOutcome> {
+  const uploaderId = self.userId
   const db = useDatabase()
   return db.transaction(async (tx) => {
     await lockQuotaScope(tx, scope)
@@ -146,7 +151,8 @@ export interface OwnUploadRow {
  * confirmed or not. Null when the key was never issued to this user, in
  * which case /upload/confirm answers 404 without touching S3.
  */
-export async function findOwnUpload(s3Key: string, uploaderId: number): Promise<OwnUploadRow | null> {
+export async function findOwnUpload(self: UserScope, s3Key: string): Promise<OwnUploadRow | null> {
+  const uploaderId = self.userId
   const db = useDatabase()
   const rows = await db
     .select({
@@ -165,9 +171,9 @@ export async function findOwnUpload(s3Key: string, uploaderId: number): Promise<
  * Flip an upload to confirmed by key alone. Only for server-issued keys
  * (AI image tool); the HTTP confirm path uses `confirmOwnUpload`.
  */
-export async function markConfirmed(s3Key: string): Promise<void> {
+export async function markConfirmed(doc: DocAccess<'write'>, s3Key: string): Promise<void> {
   const db = useDatabase()
-  await db.update(uploads).set({ confirmedAt: new Date() }).where(eq(uploads.s3Key, s3Key))
+  await db.update(uploads).set({ confirmedAt: new Date() }).where(and(eq(uploads.s3Key, s3Key), eq(uploads.docId, doc.docId)))
 }
 
 /**
@@ -175,7 +181,8 @@ export async function markConfirmed(s3Key: string): Promise<void> {
  * when there was nothing to flip (already confirmed, or not theirs), so
  * concurrent double-confirms are harmless.
  */
-export async function confirmOwnUpload(s3Key: string, uploaderId: number): Promise<boolean> {
+export async function confirmOwnUpload(self: UserScope, s3Key: string): Promise<boolean> {
+  const uploaderId = self.userId
   const db = useDatabase()
   const rows = await db
     .update(uploads)
@@ -189,7 +196,8 @@ export async function confirmOwnUpload(s3Key: string, uploaderId: number): Promi
  * Drop the caller's still-pending row (content-sniff rejection). Never
  * touches a confirmed row.
  */
-export async function deletePending(s3Key: string, uploaderId: number): Promise<void> {
+export async function deletePending(self: UserScope, s3Key: string): Promise<void> {
+  const uploaderId = self.userId
   const db = useDatabase()
   await db
     .delete(uploads)
@@ -201,7 +209,7 @@ export async function deletePending(s3Key: string, uploaderId: number): Promise<
  * orphan-cleanup sweep deletes these after also removing the S3 object
  * (if any).
  */
-export async function listStaleUnconfirmed(olderThanMs: number): Promise<Array<{ s3Key: string }>> {
+export async function listStaleUnconfirmed(_by: SystemActor, olderThanMs: number): Promise<Array<{ s3Key: string }>> {
   const db = useDatabase()
   const cutoff = new Date(Date.now() - olderThanMs)
   return db
@@ -214,7 +222,7 @@ export async function listStaleUnconfirmed(olderThanMs: number): Promise<Array<{
  * Delete unconfirmed rows older than the cutoff. Used by the
  * orphan-cleanup sweep after the S3 side has been cleared.
  */
-export async function purgeStaleUnconfirmed(olderThanMs: number): Promise<void> {
+export async function purgeStaleUnconfirmed(_by: SystemActor, olderThanMs: number): Promise<void> {
   const db = useDatabase()
   const cutoff = new Date(Date.now() - olderThanMs)
   await db
@@ -226,7 +234,7 @@ export async function purgeStaleUnconfirmed(olderThanMs: number): Promise<void> 
  * Every s3Key we know about. Used by orphan-cleanup to reconcile
  * against S3's actual object list.
  */
-export async function listAllS3Keys(): Promise<string[]> {
+export async function listAllS3Keys(_by: SystemActor): Promise<string[]> {
   const db = useDatabase()
   const rows = await db.select({ s3Key: uploads.s3Key }).from(uploads)
   return rows.map(r => r.s3Key)
@@ -236,9 +244,9 @@ export async function listAllS3Keys(): Promise<string[]> {
  * Delete every upload row for a doc. Called from deleteDocument —
  * cascades the DB side; S3 cleanup is separate.
  */
-export async function deleteUploadsForDoc(docId: string): Promise<void> {
+export async function deleteUploadsForDoc(doc: DocAccess<'delete'>): Promise<void> {
   const db = useDatabase()
-  await db.delete(uploads).where(eq(uploads.docId, docId))
+  await db.delete(uploads).where(eq(uploads.docId, doc.docId))
 }
 
 /**
@@ -255,7 +263,8 @@ export interface UploadRow {
   uploaderId: number | null
 }
 
-export async function listConfirmedUploadsForDoc(docId: string): Promise<UploadRow[]> {
+export async function listConfirmedUploadsForDoc(doc: DocAccess<'view'>): Promise<UploadRow[]> {
+  const docId = doc.docId
   const db = useDatabase()
   return db
     .select({
@@ -275,7 +284,6 @@ export async function listConfirmedUploadsForDoc(docId: string): Promise<UploadR
  * underlying S3 objects before this runs).
  */
 export interface InsertConfirmedUpload {
-  docId: string
   fileId: string
   uploaderId: number | null
   contentType: string
@@ -283,16 +291,16 @@ export interface InsertConfirmedUpload {
   s3Key: string
 }
 
-export async function insertConfirmedUploads(rows: InsertConfirmedUpload[]): Promise<void> {
+export async function insertConfirmedUploads(doc: DocAccess<'write'>, rows: InsertConfirmedUpload[]): Promise<void> {
   if (rows.length === 0) return
   const db = useDatabase()
-  await db.insert(uploads).values(toConfirmedValues(rows))
+  await db.insert(uploads).values(toConfirmedValues(doc, rows))
 }
 
-function toConfirmedValues(rows: InsertConfirmedUpload[]) {
+function toConfirmedValues(doc: DocAccess<'write'>, rows: InsertConfirmedUpload[]) {
   const now = new Date()
   return rows.map(r => ({
-    docId: r.docId,
+    docId: doc.docId,
     fileId: r.fileId,
     uploaderId: r.uploaderId,
     contentType: r.contentType,
@@ -308,6 +316,7 @@ function toConfirmedValues(rows: InsertConfirmedUpload[]) {
  * false — inserting nothing — when it doesn't.
  */
 export async function insertConfirmedUploadsWithinQuota(
+  doc: DocAccess<'write'>,
   rows: InsertConfirmedUpload[],
   maxBytes: number,
   scope: ImageQuotaScope
@@ -318,7 +327,7 @@ export async function insertConfirmedUploadsWithinQuota(
     const usedBytes = await sumScopeBytes(tx, scope)
     const adding = rows.reduce((n, r) => n + r.sizeBytes, 0)
     if (usedBytes + adding > maxBytes) return { reserved: false, usedBytes }
-    if (rows.length > 0) await tx.insert(uploads).values(toConfirmedValues(rows))
+    if (rows.length > 0) await tx.insert(uploads).values(toConfirmedValues(doc, rows))
     return { reserved: true, usedBytes }
   })
 }
@@ -337,7 +346,7 @@ export interface GcCandidate {
  * confirmed before `confirmedBefore` and not checked since `checkedBefore`.
  * Least-recently-checked first so every doc gets its turn.
  */
-export async function listGcCandidateDocIds(args: {
+export async function listGcCandidateDocIds(_by: SystemActor, args: {
   confirmedBefore: Date
   checkedBefore: Date
   limit: number
@@ -357,7 +366,8 @@ export async function listGcCandidateDocIds(args: {
 }
 
 /** The doc's confirmed uploads old enough to be checked. */
-export async function listGcCandidatesForDoc(docId: string, confirmedBefore: Date): Promise<GcCandidate[]> {
+export async function listGcCandidatesForDoc(doc: DocAccess<'manage'>, confirmedBefore: Date): Promise<GcCandidate[]> {
+  const docId = doc.docId
   const db = useDatabase()
   return db
     .select({
@@ -374,7 +384,7 @@ export async function listGcCandidatesForDoc(docId: string, confirmedBefore: Dat
  * Record a GC check: referenced rows get `unreferenced_since = NULL`,
  * unreferenced rows keep an existing stamp or get `now`.
  */
-export async function recordGcCheck(args: {
+export async function recordGcCheck(_by: SystemActor, args: {
   referencedIds: number[]
   unreferencedIds: number[]
   now: Date
@@ -399,11 +409,40 @@ export async function recordGcCheck(args: {
  * (a concurrent check that found a reference clears the stamp and wins).
  * Returns the S3 key to delete, or null when the row was kept.
  */
-export async function deleteExpiredUnreferencedUpload(id: number, cutoff: Date): Promise<string | null> {
+export async function deleteExpiredUnreferencedUpload(_by: SystemActor, id: number, cutoff: Date): Promise<string | null> {
   const db = useDatabase()
   const rows = await db
     .delete(uploads)
     .where(and(eq(uploads.id, id), lt(uploads.unreferencedSince, cutoff)))
     .returning({ s3Key: uploads.s3Key })
   return rows[0]?.s3Key ?? null
+}
+
+/** S3 keys of the document's confirmed uploads among `fileIds` (what a published page copies). */
+export async function listConfirmedUploadKeys(doc: DocAccess<'view'>, fileIds: readonly string[]): Promise<Map<string, string>> {
+  if (fileIds.length === 0) return new Map()
+  const rows = await useDatabase().select({ fileId: uploads.fileId, s3Key: uploads.s3Key }).from(uploads)
+    .where(and(eq(uploads.docId, doc.docId), inArray(uploads.fileId, [...fileIds]), isNotNull(uploads.confirmedAt)))
+  return new Map(rows.map(r => [r.fileId, r.s3Key]))
+}
+
+/**
+ * Which of `paths` (`{docId}/{fileId}`) occur anywhere outside their own
+ * document's replay: raw Y.js bytes of every document, themes, workspace
+ * default themes, comments, activity metadata (the image GC's safety net).
+ */
+export async function findReferencedUploadPaths(_by: SystemActor, paths: readonly string[]): Promise<Set<string>> {
+  if (paths.length === 0) return new Set()
+  const res = await useDatabasePool().query<{ path: string }>(
+    `SELECT p.path FROM unnest($1::text[]) AS p(path)
+     WHERE EXISTS (SELECT 1 FROM yjs_updates y
+                   WHERE position(convert_to(p.path, 'UTF8') IN y.data) > 0)
+        OR EXISTS (SELECT 1 FROM documents d WHERE strpos(d.theme::text, p.path) > 0)
+        OR EXISTS (SELECT 1 FROM workspaces w WHERE strpos(w.default_theme::text, p.path) > 0)
+        OR EXISTS (SELECT 1 FROM themes t WHERE strpos(t.theme::text, p.path) > 0)
+        OR EXISTS (SELECT 1 FROM document_comments c WHERE strpos(c.body, p.path) > 0)
+        OR EXISTS (SELECT 1 FROM activity_log a WHERE strpos(a.metadata::text, p.path) > 0)`,
+    [[...paths]]
+  )
+  return new Set(res.rows.map(r => r.path))
 }

@@ -1,5 +1,4 @@
-import { migrate } from 'drizzle-orm/node-postgres/migrator'
-import { useDatabase } from '../utils/platform/database'
+import { applyMigrations as runMigrations } from '../repos/connection'
 import { signalMigrationsComplete } from '../utils/platform/migrations'
 import { useEnv } from '~~/shared/env/load'
 import { useLogger } from '../utils/platform/logger'
@@ -31,8 +30,7 @@ export default defineNitroPlugin(() => {
 })
 
 async function applyMigrations(): Promise<void> {
-  const db = useDatabase()
-  await migrate(db, { migrationsFolder: useEnv().server.migrationsDir })
+  await runMigrations(useEnv().server.migrationsDir)
   log.info('Migrations applied successfully.')
   signalMigrationsComplete()
 }

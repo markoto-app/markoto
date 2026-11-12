@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as Y from 'yjs'
+import { docAs } from '../../helpers/access'
 
 // cloneYjsState unit-level complement. The comprehensive coverage lives
 // in `tests/repos/cloneYjsState.test.ts` which exercises the real DB.
@@ -18,7 +19,7 @@ import * as Y from 'yjs'
 // source's state is one update, and appends are captured.
 let sourceUpdate: Uint8Array | null = null
 const appended: Uint8Array[] = []
-vi.mock('../../../server/utils/documents/yjsLog', () => ({
+vi.mock('../../../server/repos/yjsLog', () => ({
   latestYjsId: async () => (sourceUpdate ? 1 : null),
   readYjsUpdatesAt: async () => (sourceUpdate ? [sourceUpdate] : []),
   appendYjsUpdate: async (_docId: string, update: Uint8Array) => {
@@ -54,7 +55,7 @@ describe('cloneYjsState — non-obvious contracts', () => {
     )
     sourceUpdate = Y.encodeStateAsUpdate(src)
 
-    await cloneYjsStateWithUrlRewrite('SRC', 'TGT')
+    await cloneYjsStateWithUrlRewrite(docAs('SRC'), docAs('TGT'))
 
     const tgt = lastAppendedDoc()
     expect(tgt.getText('content').toString()).toBe(
@@ -74,7 +75,7 @@ describe('cloneYjsState — non-obvious contracts', () => {
     )
     sourceUpdate = Y.encodeStateAsUpdate(src)
 
-    await cloneYjsStateWithUrlRewrite('SRC', 'TGT')
+    await cloneYjsStateWithUrlRewrite(docAs('SRC'), docAs('TGT'))
 
     const tgt = lastAppendedDoc()
     expect(tgt.getText('content').toString()).toBe(
@@ -94,7 +95,7 @@ describe('cloneYjsState — non-obvious contracts', () => {
     meta.set('_deleted', true)
     sourceUpdate = Y.encodeStateAsUpdate(src)
 
-    await cloneYjsStateWithUrlRewrite('SRC', 'TGT')
+    await cloneYjsStateWithUrlRewrite(docAs('SRC'), docAs('TGT'))
 
     const tgt = lastAppendedDoc()
     expect(tgt.getMap('meta').get('title')).toBe('Title')
@@ -107,7 +108,7 @@ describe('cloneYjsState — non-obvious contracts', () => {
     src.getMap('meta').set('theme', { body: { size: 11 }, customCss: 'p{background:url(/api/files/SRC/a.png)}' })
     sourceUpdate = Y.encodeStateAsUpdate(src)
 
-    await cloneYjsStateWithUrlRewrite('SRC', 'TGT')
+    await cloneYjsStateWithUrlRewrite(docAs('SRC'), docAs('TGT'))
 
     const tgt = lastAppendedDoc()
     expect(tgt.getMap('meta').get('theme')).toEqual({

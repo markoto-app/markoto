@@ -1,6 +1,5 @@
 import type Stripe from 'stripe'
 import * as Sentry from '@sentry/nuxt'
-import { useDatabase } from '../../platform/database'
 import type { PersonalPlanName, PlanName, WorkspacePlanName } from '~~/shared/config/tiers'
 import type { PriceIdentity } from '~~/shared/config/pricing'
 import { markWorkspaceSubscriptionCanceled, subscriptionGrantsPlan } from '../../../repos/workspaceSubscriptions'
@@ -15,8 +14,12 @@ import {
   upsertWorkspaceSubscriptionFromStripe
 } from './billingSubjects'
 import { applyUserSubscriptionState, findUserIdByStripeCustomer, updateUserBilling, type UserBillingUpdate } from '../../../repos/userBilling'
-import type { DbOrTx, DeferredAfterCommit } from './types'
+import type { TxHandle, DeferredAfterCommit } from './types'
 import { useLogger } from '../../platform/logger'
+import { system } from '../../../repos/proofs'
+
+/** Stripe's webhook writes billing state for whichever customer the event names. */
+const STRIPE = system('stripe-webhook')
 
 // Subscription lifecycle: created / updated (plan, seats, interval,
 // cancel-at-period-end, dunning status) and deleted. Routed by the
@@ -38,9 +41,9 @@ type SubscriptionChangeEvent = Stripe.CustomerSubscriptionUpdatedEvent | Stripe.
  */
 export async function handleSubscriptionUpdated(
   event: SubscriptionChangeEvent,
-  opts: { stripe?: Stripe | null, db?: DbOrTx, deferAfterCommit?: DeferredAfterCommit } = {}
+  opts: { stripe?: Stripe | null, db?: TxHandle, deferAfterCommit?: DeferredAfterCommit } = {}
 ): Promise<SubscriptionResult> {
-  const db = opts.db ?? useDatabase()
+  const db = opts.db
   const sub = event.data.object
   const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
   const item = sub.items.data[0]
@@ -64,7 +67,7 @@ export async function handleSubscriptionUpdated(
 
 async function applyWorkspaceSubscription(
   event: SubscriptionChangeEvent,
-  args: { db: DbOrTx, workspaceId: string, identity: PriceIdentity & { plan: WorkspacePlanName }, customerId: string, deferAfterCommit?: DeferredAfterCommit }
+  args: { db: TxHandle | undefined, workspaceId: string, identity: PriceIdentity & { plan: WorkspacePlanName }, customerId: string, deferAfterCommit?: DeferredAfterCommit }
 ): Promise<SubscriptionResult> {
   const { db, workspaceId, identity, customerId } = args
   const sub = event.data.object
@@ -97,7 +100,7 @@ async function applyWorkspaceSubscription(
 
 async function applyPersonalSubscription(
   event: SubscriptionChangeEvent,
-  args: { db: DbOrTx, plan: PersonalPlanName, identity: PriceIdentity, customerId: string, deferAfterCommit?: DeferredAfterCommit }
+  args: { db: TxHandle | undefined, plan: PersonalPlanName, identity: PriceIdentity, customerId: string, deferAfterCommit?: DeferredAfterCommit }
 ): Promise<SubscriptionResult> {
   const { db, plan, identity, customerId } = args
   const sub = event.data.object
@@ -113,7 +116,7 @@ async function applyPersonalSubscription(
   // of an ended subscription can't bring Pro back; a new subscription's
   // events that beat its checkout are covered by the checkout, which
   // reads the live subscription.
-  const matched = await applyUserSubscriptionState(db, customerId, sub.id, setFields)
+  const matched = await applyUserSubscriptionState(STRIPE, db, customerId, sub.id, setFields)
   if (matched === 0) {
     log.warn('ignoring event: not the customer\'s current subscription', { eventType: event.type, subscriptionId: sub.id })
     return { matched: 0, plan: null }
@@ -123,7 +126,7 @@ async function applyPersonalSubscription(
   if (args.deferAfterCommit) {
     args.deferAfterCommit.push(async () => {
       try {
-        const userId = await findUserIdByStripeCustomer(customerId)
+        const userId = await findUserIdByStripeCustomer(STRIPE, customerId)
         if (userId !== null) {
           await updateUserKeyBudget(userId, plan)
         }
@@ -149,10 +152,10 @@ async function applyPersonalSubscription(
  */
 export async function handleSubscriptionDeleted(
   event: Stripe.CustomerSubscriptionDeletedEvent,
-  db?: DbOrTx,
+  db?: TxHandle,
   deferAfterCommit?: DeferredAfterCommit
 ): Promise<{ matched: number }> {
-  const handle = db ?? useDatabase()
+  const handle = db
   const sub = event.data.object
   const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
   const subject = await subjectForCustomer(customerId, handle)
@@ -161,7 +164,7 @@ export async function handleSubscriptionDeleted(
     // Only the tracked subscription ends the workspace's plan (not a
     // cancelled duplicate, not an old subscription's late event).
     if (await rowHoldingOtherSubscription(handle, subject.workspaceId, sub.id)) return { matched: 0 }
-    const matched = await markWorkspaceSubscriptionCanceled(handle, subject.workspaceId)
+    const matched = await markWorkspaceSubscriptionCanceled(STRIPE, handle, subject.workspaceId)
     // The team + member keys stay (unused while not entitled: members
     // fall back to their personal keys); a resubscription reuses them and
     // workspace deletion removes them (`endWorkspaceBilling`).
@@ -172,7 +175,7 @@ export async function handleSubscriptionDeleted(
     return { matched }
   }
 
-  const matched = await updateUserBilling({
+  const matched = await updateUserBilling(STRIPE, {
     where: { stripeCustomerId: customerId },
     set: {
       plan: 'free',
@@ -187,7 +190,7 @@ export async function handleSubscriptionDeleted(
   if (deferAfterCommit) {
     deferAfterCommit.push(async () => {
       try {
-        const userId = await findUserIdByStripeCustomer(customerId)
+        const userId = await findUserIdByStripeCustomer(STRIPE, customerId)
         if (userId !== null) {
           await updateUserKeyBudget(userId, 'free')
           // Un-brick: a user who spent more than the free cap while on a

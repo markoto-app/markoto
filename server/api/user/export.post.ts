@@ -23,16 +23,16 @@ export default defineApiHandler({
   recentLogin: true,
   body: 'none',
   rateLimit: { namespace: 'account-export-request', max: 1, windowMs: DAY_MS, key: 'user', error: 'export/rate-limited' },
-  handler: async ({ event, user }) => {
+  handler: async ({ event, user, self }) => {
     const userId = user.id
 
     const ip = getClientIp(event)
 
     try {
-      const job = await enqueueExportJob(userId)
+      const job = await enqueueExportJob(self)
 
       await appendAuditEvent({
-        actorUserId: userId,
+        by: self,
         actorIp: ip,
         scope: 'user',
         scopeId: String(userId),

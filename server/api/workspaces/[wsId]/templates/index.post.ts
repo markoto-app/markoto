@@ -7,6 +7,7 @@ import { appendAuditEvent } from '../../../../repos/audit'
 import { AUDIT_WORKSPACE_TEMPLATE_ADDED } from '../../../../legal/auditActions'
 import { createTemplateBody } from '~~/shared/api/brand'
 import { WORKSPACE_TEMPLATES_PER_WORKSPACE } from '~~/shared/config/brandKit'
+import { proveWorkspaceDoc } from '../../../../utils/access/docProof'
 
 // POST /api/workspaces/:wsId/templates — {docId, name, description?}
 // — make one of the workspace's documents a template. Admins, plan
@@ -17,22 +18,25 @@ export default defineApiHandler({
   plan: { feature: 'brandKit', message: BRAND_KIT_PLAN_MESSAGE },
   body: createTemplateBody,
   invalidCode: 'template/invalid',
-  handler: async ({ event, user, wsId, body: { docId, name, description: rawDescription } }) => {
+  handler: async ({ event, user, wsId, body: { docId, name, description: rawDescription }, workspaceAccess }) => {
     const description = rawDescription ?? ''
-    const doc = await getDoc(docId)
+    // Only a document of this workspace: an id from elsewhere yields no proof.
+    const docAccess = await proveWorkspaceDoc(workspaceAccess, docId)
+    if (!docAccess?.allows('view')) throw apiError('template/doc-not-found')
+    const doc = await getDoc(docAccess)
     if (!doc || doc.workspaceId !== wsId) throw apiError('template/doc-not-found')
-    if (await countWorkspaceTemplates(wsId) >= WORKSPACE_TEMPLATES_PER_WORKSPACE) {
+    if (await countWorkspaceTemplates(workspaceAccess) >= WORKSPACE_TEMPLATES_PER_WORKSPACE) {
       throw apiError('template/too-many', { limit: WORKSPACE_TEMPLATES_PER_WORKSPACE })
     }
     const id = nanoid(12)
     try {
-      await insertWorkspaceTemplate({ id, workspaceId: wsId, docId, name, description, createdBy: user.id })
+      await insertWorkspaceTemplate(workspaceAccess, docAccess, { id, name, description, createdBy: user.id })
     } catch (e) {
       if (e instanceof DuplicateError) throw apiError('template/exists')
       throw e
     }
     await appendAuditEvent({
-      actorUserId: user.id,
+      by: workspaceAccess,
       actorIp: getClientIp(event),
       scope: 'workspace',
       scopeId: wsId,

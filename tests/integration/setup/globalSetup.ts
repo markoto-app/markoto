@@ -6,7 +6,7 @@ import { startNuxt, stopNuxt } from './server'
 //
 // Sequence:
 //   1. Verify the test Postgres is reachable (user must `docker compose
-//      -f docker-compose.test.yml up -d` before running tests).
+//      -f deploy/compose/compose.test.yml up -d` before running tests).
 //   2. Boot the Nuxt dev subprocess with TEST_MODE=1 and point its env
 //      at the test DB + stub sync-server.
 //   3. Nuxt runs migrations on boot (server/plugins/00-db-migrate.ts),

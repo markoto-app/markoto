@@ -1,7 +1,8 @@
 import type { H3Event } from 'h3'
 import { getRouterParam } from 'h3'
-import { getWorkspaceRole } from '../workspaces/workspaceAccess'
-import { getMemberRoleIgnoringSso, getMembershipRole } from '../../repos/workspaceMembers'
+import { getWorkspaceMembershipRole, getWorkspaceRole, getWorkspaceRoleIgnoringSso, workspaceProofFor, workspaceRoleSatisfies } from '../access/workspaceAccess'
+import { proveSelf } from '../access/userProof'
+import type { UserScope, WorkspaceAccess, WorkspaceGrant } from '../../repos/proofs'
 import { ssoRequiredError } from '../sso/required'
 import { apiError, denyError, type DenyCode } from './apiError'
 import type { PolicyGate, Policy, ResolveInput, ValidatedUser } from './policyTypes'
@@ -32,10 +33,14 @@ export interface WorkspaceSelfOptions extends WorkspacePolicyOptions {
   orSelf: string
 }
 
-export interface WorkspaceCtx {
+export interface WorkspaceCtx<N extends WorkspaceNeed = WorkspaceNeed> {
   user: ValidatedUser
   wsId: string
   role: WorkspaceRole
+  /** The proof repo functions take: this workspace, this caller, at least `need`. */
+  workspaceAccess: WorkspaceAccess<WorkspaceGrant<N>>
+  /** The caller acting on their own data. */
+  self: UserScope
 }
 
 export interface WorkspaceSelfCtx {
@@ -46,25 +51,25 @@ export interface WorkspaceSelfCtx {
   /** The target user (the `orSelf` parameter). */
   targetUserId: number
   isSelf: boolean
+  /**
+   * The caller's workspace proof (null for a guest leaving). Its static level
+   * is `member`: when acting on someone else the policy already required
+   * `need`; narrow with `allows`.
+   */
+  workspaceAccess: WorkspaceAccess<'member'> | null
+  self: UserScope
 }
 
-const RANK: Record<WorkspaceRole, number> = { viewer: 1, editor: 2, admin: 3 }
-const NEED_RANK: Record<WorkspaceNeed, number> = { member: 1, editor: 2, admin: 3 }
+const NEEDS: readonly WorkspaceNeed[] = ['member', 'editor', 'admin']
 
-/** Pure: does `role` satisfy `need`? Unknown values never do. */
-function workspaceRoleSatisfies(role: WorkspaceRole | null, need: WorkspaceNeed): boolean {
-  if (role === null || !Object.hasOwn(RANK, role) || !Object.hasOwn(NEED_RANK, need)) return false
-  return RANK[role] >= NEED_RANK[need]
-}
-
-export function workspacePolicy(need: WorkspaceNeed, o: WorkspaceSelfOptions, gate: (event: H3Event) => Promise<PolicyGate>): Policy<WorkspaceSelfCtx>
-export function workspacePolicy(need: WorkspaceNeed, o: WorkspacePolicyOptions | undefined, gate: (event: H3Event) => Promise<PolicyGate>): Policy<WorkspaceCtx>
-export function workspacePolicy(
-  need: WorkspaceNeed,
+export function workspacePolicy<N extends WorkspaceNeed>(need: N, o: WorkspaceSelfOptions, gate: (event: H3Event) => Promise<PolicyGate>): Policy<WorkspaceSelfCtx>
+export function workspacePolicy<N extends WorkspaceNeed>(need: N, o: WorkspacePolicyOptions | undefined, gate: (event: H3Event) => Promise<PolicyGate>): Policy<WorkspaceCtx<N>>
+export function workspacePolicy<N extends WorkspaceNeed>(
+  need: N,
   o: WorkspacePolicyOptions | WorkspaceSelfOptions | undefined,
   gate: (event: H3Event) => Promise<PolicyGate>
-): Policy<WorkspaceCtx> | Policy<WorkspaceSelfCtx> {
-  if (!Object.hasOwn(NEED_RANK, need)) throw new Error(`allow.workspace: unknown need ${String(need)}`)
+): Policy<WorkspaceCtx<N>> | Policy<WorkspaceSelfCtx> {
+  if (!NEEDS.includes(need)) throw new Error(`allow.workspace: unknown need ${String(need)}`)
   if (o && 'orSelf' in o) return selfPolicy(need, o, gate)
   return {
     kind: 'workspace',
@@ -76,9 +81,7 @@ export function workspacePolicy(
       const raw = input.params?.wsId ?? getRouterParam(event, 'wsId')
       if (typeof raw !== 'string' || raw === '') throw apiError('request/invalid', { field: 'wsId' })
       const wsId = raw
-      const role = o?.ignoreSso
-        ? await getMemberRoleIgnoringSso(wsId, g.user.id)
-        : await getWorkspaceRole(g.user.id, wsId)
+      const role = await roleIn(wsId, g.user.id, o)
       if (role === null) {
         if (o?.ssoHint) {
           const sso = await ssoRequiredError(wsId, g.user.id, `/w/${wsId}`)
@@ -86,14 +89,15 @@ export function workspacePolicy(
         }
         throw apiError('workspace/not-found')
       }
-      if (!workspaceRoleSatisfies(role, need)) throw denyError(o?.deny ?? 'auth/forbidden')
-      return { user: g.user, wsId, role }
+      const workspaceAccess = workspaceProofFor(g.user.id, wsId, role, need)
+      if (!workspaceAccess) throw denyError(o?.deny ?? 'auth/forbidden')
+      return { user: g.user, wsId, role, workspaceAccess, self: proveSelf(g.user.id) }
     }
   }
 }
 
 async function roleIn(wsId: string, userId: number, o: WorkspacePolicyOptions | undefined): Promise<WorkspaceRole | null> {
-  return o?.ignoreSso ? getMemberRoleIgnoringSso(wsId, userId) : getWorkspaceRole(userId, wsId)
+  return o?.ignoreSso ? getWorkspaceRoleIgnoringSso(userId, wsId) : getWorkspaceRole(userId, wsId)
 }
 
 function selfPolicy(need: WorkspaceNeed, o: WorkspaceSelfOptions, gate: (event: H3Event) => Promise<PolicyGate>): Policy<WorkspaceSelfCtx> {
@@ -114,13 +118,13 @@ function selfPolicy(need: WorkspaceNeed, o: WorkspaceSelfOptions, gate: (event: 
       const role = await roleIn(wsId, g.user.id, o)
       if (role === null) {
         // A guest has no workspace role but may still act on themselves.
-        if (isSelf && (await getMembershipRole(wsId, g.user.id)) === 'guest') {
-          return { user: g.user, wsId, role: 'guest' as const, targetUserId: target, isSelf }
+        if (isSelf && (await getWorkspaceMembershipRole(g.user.id, wsId)) === 'guest') {
+          return { user: g.user, wsId, role: 'guest' as const, targetUserId: target, isSelf, workspaceAccess: null, self: proveSelf(g.user.id) }
         }
         throw apiError('workspace/not-found')
       }
       if (!isSelf && !workspaceRoleSatisfies(role, need)) throw denyError(o.deny ?? 'auth/forbidden')
-      return { user: g.user, wsId, role, targetUserId: target, isSelf }
+      return { user: g.user, wsId, role, targetUserId: target, isSelf, workspaceAccess: workspaceProofFor(g.user.id, wsId, role, 'member'), self: proveSelf(g.user.id) }
     }
   }
 }

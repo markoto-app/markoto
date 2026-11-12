@@ -9,7 +9,7 @@ import type { AiSession } from '../../../server/utils/ai/aiClient'
 // delete-auth tests rely on the AI's own-author / initiator's-own-author
 // branches, not the doc-manager fallback. Hoisted to module top-level
 // because vitest hoists vi.mock calls before any imports.
-vi.mock('../../../server/utils/workspaces/workspaceAccess', () => ({
+vi.mock('../../../server/utils/access/workspaceAccess', () => ({
   canManageDoc: vi.fn().mockResolvedValue(false),
   canEditDoc: vi.fn().mockResolvedValue(true),
   getWorkspaceRole: vi.fn().mockResolvedValue(null),

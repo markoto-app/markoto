@@ -18,14 +18,14 @@ export default defineApiHandler({
   access: allow.user(),
   body: 'none',
   rateLimit: { namespace: 'sessions-revoke', max: 10, windowMs: HOUR_MS, key: 'user', error: 'account/sessions-revoke-rate-limited' },
-  handler: async ({ event, user }) => {
+  handler: async ({ event, user, self }) => {
     const userId = user.id
 
-    await bumpSessionEpoch(userId)
+    await bumpSessionEpoch(self)
     await clearUserSession(event)
 
     await appendAuditEvent({
-      actorUserId: userId,
+      by: self,
       actorIp: getClientIp(event),
       scope: 'user',
       scopeId: String(userId),

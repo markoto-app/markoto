@@ -22,9 +22,7 @@ import { listAiProviders, type AiProviderRow } from '../../repos/aiProviders'
 import { readInstanceDefault, realtimeDictationModel } from './config'
 import { getWebToolAvailability } from '../ai/webTools'
 import { planHasFeature } from '../billing/entitlements'
-import { eq } from 'drizzle-orm'
-import { users } from '../../db/schema'
-import { useDatabase } from '../platform/database'
+import { getAiModelTier } from '../../repos/users'
 import type { FeatureField, PlanName } from '~~/shared/config/tiers'
 import {
   MISTRAL_EU_API_HOST,
@@ -131,7 +129,7 @@ export interface AiAccess {
 export async function resolveAiAccess(userId: number, plan: PlanName): Promise<AiAccess> {
   const [rows, userRow] = await Promise.all([
     listAiProviders(userId),
-    useDatabase().select({ tier: users.aiModelTier }).from(users).where(eq(users.id, userId)).limit(1).then(r => r[0])
+    getAiModelTier(userId).then(tier => ({ tier }))
   ])
   const locked: AiCapability[] = []
   const pick = (capability: AiCapability): ResolvedAiProvider | null => {

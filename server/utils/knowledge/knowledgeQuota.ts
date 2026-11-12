@@ -13,6 +13,7 @@ import { isBillingEnabled } from '../billing/billingMode'
 import { getPooledWorkspace, workspacePoolCaps } from '../billing/workspaceBilling'
 import { apiError } from '../api/apiError'
 import { MIB } from '~~/shared/config/units'
+import type { UserScope, WorkspaceAccess } from '../../repos/proofs'
 
 /**
  * Per-user caps don't apply inside a pooled (Team / Business) workspace;
@@ -158,12 +159,10 @@ export async function resolveCaps(args: {
  * in the confirm endpoint too — the slot tracks "bytes in flight",
  * not "row written", so releasing on confirm is correct.
  */
-export async function reserveUploadSlot(args: {
-  workspaceId: string
-  userId: number
-  size: number
-}): Promise<{ releaseSlots: () => Promise<void> }> {
-  const caps = await resolveCaps({ workspaceId: args.workspaceId, uploaderId: args.userId })
+export async function reserveUploadSlot(args: KnowledgeUploadArgs): Promise<{ releaseSlots: () => Promise<void> }> {
+  const workspaceId = args.ws.workspaceId
+  const userId = args.self.userId
+  const caps = await resolveCaps({ workspaceId, uploaderId: userId })
 
   const { wsCount, userCount } = await assertWithinCaps(caps, args)
 
@@ -174,22 +173,22 @@ export async function reserveUploadSlot(args: {
 
   // The member's own share of the workspace's slots is reserved FIRST, so
   // a member at their share never consumes a workspace slot.
-  const memberKey = workspaceMemberSlotKey(args.workspaceId, args.userId)
+  const memberKey = workspaceMemberSlotKey(workspaceId, userId)
   const memberSlot = await reserveInflightSlot(
     INFLIGHT_NS_WORKSPACE_MEMBER, memberKey, memberShareOfWorkspaceSlots(wsSlotMax), INFLIGHT_SLOT_TTL_MS
   )
   if (!memberSlot.allowed) {
     throw apiError('knowledge/too-many-pending')
   }
-  const wsSlot = await reserveInflightSlot(INFLIGHT_NS_WORKSPACE, args.workspaceId, wsSlotMax, INFLIGHT_SLOT_TTL_MS)
+  const wsSlot = await reserveInflightSlot(INFLIGHT_NS_WORKSPACE, workspaceId, wsSlotMax, INFLIGHT_SLOT_TTL_MS)
   if (!wsSlot.allowed) {
     await releaseInflightSlot(INFLIGHT_NS_WORKSPACE_MEMBER, memberKey)
     throw apiError('knowledge/too-many-pending')
   }
-  const userSlot = await reserveInflightSlot(INFLIGHT_NS_USER, String(args.userId), userSlotMax, INFLIGHT_SLOT_TTL_MS)
+  const userSlot = await reserveInflightSlot(INFLIGHT_NS_USER, String(userId), userSlotMax, INFLIGHT_SLOT_TTL_MS)
   if (!userSlot.allowed) {
     await Promise.all([
-      releaseInflightSlot(INFLIGHT_NS_WORKSPACE, args.workspaceId),
+      releaseInflightSlot(INFLIGHT_NS_WORKSPACE, workspaceId),
       releaseInflightSlot(INFLIGHT_NS_WORKSPACE_MEMBER, memberKey)
     ])
     throw apiError('knowledge/too-many-pending')
@@ -200,7 +199,7 @@ export async function reserveUploadSlot(args: {
     releaseSlots: async () => {
       if (released) return
       released = true
-      await releaseKnowledgeUploadSlots(args.workspaceId, args.userId)
+      await releaseKnowledgeUploadSlots(workspaceId, userId)
     }
   }
 }
@@ -213,12 +212,8 @@ export async function reserveUploadSlot(args: {
  * Doesn't touch the inflight counters — the confirm endpoint's caller
  * releases them after this function returns (success or failure).
  */
-export async function assertCapsOnConfirm(args: {
-  workspaceId: string
-  userId: number
-  size: number
-}): Promise<void> {
-  const caps = await resolveCaps({ workspaceId: args.workspaceId, uploaderId: args.userId })
+export async function assertCapsOnConfirm(args: KnowledgeUploadArgs): Promise<void> {
+  const caps = await resolveCaps({ workspaceId: args.ws.workspaceId, uploaderId: args.self.userId })
   await assertWithinCaps(caps, args)
 }
 
@@ -227,21 +222,28 @@ function megabytes(bytes: number): number {
   return Math.round(bytes / MIB)
 }
 
+/** One knowledge upload: the uploader's workspace proof, the uploader, the size. */
+interface KnowledgeUploadArgs {
+  ws: WorkspaceAccess<'member'>
+  self: UserScope
+  size: number
+}
+
 /**
  * Refuses a file of `size` bytes that would pass a cap: its size, the
  * workspace's file count and bytes, the uploader's file count and bytes.
  * The error names the limit, so a client (or an MCP agent) knows what to
  * delete or how much fits. Returns the current counts.
  */
-async function assertWithinCaps(caps: KnowledgeCaps, args: { workspaceId: string, userId: number, size: number }): Promise<{ wsCount: number, userCount: number }> {
+async function assertWithinCaps(caps: KnowledgeCaps, args: KnowledgeUploadArgs): Promise<{ wsCount: number, userCount: number }> {
   if (args.size > caps.maxFileBytes) {
     throw apiError('knowledge/file-too-large', { maxMb: megabytes(caps.maxFileBytes) })
   }
   const [wsCount, wsBytes, userCount, userBytes] = await Promise.all([
-    countWorkspaceKnowledge(args.workspaceId),
-    sumWorkspaceKnowledgeBytes(args.workspaceId),
-    countKnowledgeByUploader(args.userId, { excludePooled: isBillingEnabled() }),
-    sumKnowledgeBytesByUploader(args.userId, { excludePooled: isBillingEnabled() })
+    countWorkspaceKnowledge(args.ws),
+    sumWorkspaceKnowledgeBytes(args.ws),
+    countKnowledgeByUploader(args.self, { excludePooled: isBillingEnabled() }),
+    sumKnowledgeBytesByUploader(args.self, { excludePooled: isBillingEnabled() })
   ])
   if (wsCount >= caps.maxFilesPerWorkspace) {
     throw apiError('knowledge/workspace-file-cap', { max: caps.maxFilesPerWorkspace, recovery: limitRecovery() })

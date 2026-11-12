@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { INTERNAL_HOSTNAMES, isInternalHostname } from '../../../server/utils/aiProviders/urlPolicy'
 
 // The BYOK internal-hostname denylist (app) and the `byok/*` api_base
-// regex (LiteLLM, infra/litellm/config.yaml) must name every host the
+// regex (LiteLLM, deploy/config/litellm/config.yaml) must name every host the
 // compose files create: service names, container names and network
 // aliases. This test reads the compose files, so adding a service without
 // updating both lists fails here instead of silently widening the SSRF
@@ -38,13 +38,14 @@ function composeHostnames(text: string): string[] {
   return names
 }
 
-const composeFiles = readdirSync(ROOT).filter(f => /^docker-compose.*\.ya?ml$/.test(f))
-const allNames = [...new Set(composeFiles.flatMap(f => composeHostnames(readFileSync(join(ROOT, f), 'utf8'))))].sort()
+const COMPOSE_DIR = join(ROOT, 'deploy', 'compose')
+const composeFiles = readdirSync(COMPOSE_DIR).filter(f => /^compose\..*\.ya?ml$/.test(f))
+const allNames = [...new Set(composeFiles.flatMap(f => composeHostnames(readFileSync(join(COMPOSE_DIR, f), 'utf8'))))].sort()
 
 function litellmApiBaseRegex(): RegExp {
-  const config = readFileSync(join(ROOT, 'infra', 'litellm', 'config.yaml'), 'utf8')
+  const config = readFileSync(join(ROOT, 'deploy', 'config', 'litellm', 'config.yaml'), 'utf8')
   const match = /- api_base: '([^']+)'/.exec(config)
-  if (!match?.[1]) throw new Error('api_base regex not found in infra/litellm/config.yaml')
+  if (!match?.[1]) throw new Error('api_base regex not found in deploy/config/litellm/config.yaml')
   return new RegExp(match[1])
 }
 

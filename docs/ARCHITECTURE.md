@@ -64,15 +64,15 @@ flowchart LR
 | `sync` | `sync-server/` | Hocuspocus WebSocket server. Persists Y.js state to Postgres (the `yjs_updates` log), keeps per-document attribution and diff baselines in Valkey, writes the activity log, snapshots long logs. |
 | `renderer` | `renderer/` | Headless Playwright. Loads the app's internal print page and returns PDF and per-page PNGs. Internal only; every browser request is checked against an origin allowlist (`renderer/src/allowlist.ts`). |
 | `markitdown` | `markitdown-server/` | Python FastAPI wrapper that converts DOCX/PDF/PPTX/XLSX/HTML/EPUB to markdown (imports, knowledge uploads, design extraction). Internal only, requires its own secret. |
-| `litellm` | `infra/litellm/` | LiteLLM proxy. Every AI call goes through it: one OpenAI-shaped API, per-user virtual keys with budgets, spend tracking. Custom providers in `infra/litellm/custom_handlers.py` wrap embeddings, transcription and image generation. |
-| `db-init` | `infra/postgres/` | One-shot on every start: creates the app and LiteLLM database roles. |
+| `litellm` | `deploy/config/litellm/` | LiteLLM proxy. Every AI call goes through it: one OpenAI-shaped API, per-user virtual keys with budgets, spend tracking. Custom providers in `deploy/config/litellm/custom_handlers.py` wrap embeddings, transcription and image generation. |
+| `db-init` | `deploy/config/postgres/` | One-shot on every start: creates the app and LiteLLM database roles. |
 | `postgres` | | PostgreSQL 16 with pgvector. |
 | `valkey` | | Rate limits, session locks, per-document sync state. Losing it costs only transient state. |
-| S3 storage | `seaweedfs/` in dev and self-host | Any S3-compatible service. |
+| S3 storage | `deploy/config/seaweedfs/` in dev and self-host | Any S3-compatible service. |
 | `backup` | `backup-server/` | Periodic encrypted `pg_dump` into its own bucket. |
-| `traefik` + `socket-proxy` | `traefik/` | The only published service: TLS, routing, security headers, sticky sessions for sync. Reads Docker labels through a read-only socket proxy. |
+| `traefik` + `socket-proxy` | `deploy/config/traefik/` (local TLS) | The only published service: TLS, routing, security headers, sticky sessions for sync. Reads Docker labels through a read-only socket proxy. |
 
-Compose files are layered: `docker-compose.base.yml` holds the shared service shape and is `include:`d by the dev, local, prod and self-host files. Services sit on purpose-specific networks (`data`, `render`, `import`, `storage`, `egress`, …), most of them `internal: true`; see [SECURITY-HARDENING.md](./SECURITY-HARDENING.md).
+Every stack lives in `deploy/compose/`, the third-party config it mounts in `deploy/config/`. Compose files are layered: `deploy/compose/compose.base.yml` holds the shared service shape and is `include:`d by the dev, local, prod and self-host files. Services sit on purpose-specific networks (`data`, `render`, `import`, `storage`, `egress`, …), most of them `internal: true`; see [SECURITY-HARDENING.md](./SECURITY-HARDENING.md).
 
 ## How a document is edited and saved
 
@@ -107,7 +107,7 @@ Workspaces group documents and people. Roles are `admin`, `editor`, `viewer` and
 ## Security model
 
 - **Default-deny API.** `server/middleware/auth.ts` requires a session for every `/api` route that is not on the explicit public list (`server/utils/auth/publicRoutes.ts`), and every route declares its own access policy (`defineApiHandler`). State-changing requests also pass an Origin / `Sec-Fetch-Site` check (`server/middleware/csrf.ts`). Sign-in is optional: anonymous visitors can create and edit public documents behind a terms and proof-of-work gate; ownership, workspaces, AI and settings need an account.
-- **Authorization helpers per concern.** `canEditDoc`, `canManageDoc` and `canManageWorkspace` in `server/utils/workspaces/workspaceAccess.ts`.
+- **Authorization below the handler.** The access layer (`server/utils/access/`) decides with the pure rules in `shared/utils/documents/docPermissions.ts` and mints capability proofs (`DocAccess`, `WorkspaceAccess`, `UserScope`, `AdminActor`, `SystemActor`); every repo function that writes or returns tenant-private data demands one and uses the id inside it, and sub-resources are constrained to the proof's parent. Only `server/repos/` queries the database. A handler that forgets a check has no proof to pass, so it does not compile. Guarantees and limits: [SECURITY-HARDENING.md §D.5](./SECURITY-HARDENING.md#d5-tenancy-capability-proofs-below-the-handler).
 - **Separate token scopes.** Document JWT, render token, preview file token, dictation token and MCP personal access tokens each work only for their own surface.
 - **Internal plane.** Service-to-service routes (`/api/internal/**` on the app, `/internal/**` on the sync server, the render routes) are excluded from the public Traefik routers, require the shared secret (`X-Internal-Secret`, constant-time and rotation-aware, `shared/utils/security/internalSecret.ts`) or their own token, and answer 404 to any request that carries the edge proxy's forwarding headers (`server/utils/platform/internalRoutes.ts`).
 - **Preview isolation.** Rendered content is attacker-influenced, so the preview and print iframes run in an opaque origin and load images with a short-lived document-scoped file token. The app sets a nonce-based Content-Security-Policy itself (`server/plugins/csp.ts`) with no third-party hosts.
@@ -136,11 +136,11 @@ One codebase; configuration decides the shape:
 
 | Shape | Compose file | Billing | Notes |
 |---|---|---|---|
-| Self-hosted | `docker-compose.selfhost.yml` (+ TLS, build, brand overlays), installed by `install.sh` | off | Everything in one stack, legal surfaces off. See [SELF-HOSTING.md](./SELF-HOSTING.md). |
-| Hosted, free only (markoto.app) | `docker-compose.prod.yml`, Ansible in `infra/` | off; paid plans shown as "coming soon" | Managed Postgres and object storage. |
+| Self-hosted | `deploy/compose/compose.selfhost.yml` (+ TLS, build, brand overlays), installed by `install.sh` | off | Everything in one stack, legal surfaces off. See [SELF-HOSTING.md](./SELF-HOSTING.md). |
+| Hosted, free only (markoto.app) | `deploy/compose/compose.prod.yml`, Ansible in `infra/` | off; paid plans shown as "coming soon" | Managed Postgres and object storage. |
 | Hosted with paid plans | same | on (`NUXT_BILLING_ENABLED=true`) | Stripe; plans map to LiteLLM budgets. |
 
-Development uses `docker-compose.dev.yml` (infrastructure only, app on the host), `docker-compose.local.yml` (full stack with local TLS) and `docker-compose.test.yml` (disposable test stack). The app can run as several instances (sticky sessions for sync, Valkey-backed shared state, advisory-locked sweepers).
+Development uses `deploy/compose/compose.dev.yml` (infrastructure only, app on the host), `deploy/compose/compose.local.yml` (full stack with local TLS) and `deploy/compose/compose.test.yml` (disposable test stack). The app can run as several instances (sticky sessions for sync, Valkey-backed shared state, advisory-locked sweepers).
 
 ## Repository layout
 

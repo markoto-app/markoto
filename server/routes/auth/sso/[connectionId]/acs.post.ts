@@ -7,6 +7,7 @@ import { finishSsoSignIn } from '../../../../utils/sso/finish'
 import { ID_RE } from '~~/shared/config/identifiers'
 import { samlAcsBody, ssoConnectionParams } from '~~/shared/api/sso'
 import { useLogger } from '../../../../utils/platform/logger'
+import { system } from '../../../../repos/proofs'
 
 const log = useLogger('auth-sso')
 
@@ -47,7 +48,7 @@ export default defineApiHandler({
     } catch (err) {
       log.warn('SAML response rejected', { connectionId: connection.id, err })
       await appendAuditEvent({
-        actorUserId: null,
+        by: system('sso-login'),
         actorIp: getClientIp(event),
         scope: 'workspace',
         scopeId: connection.workspaceId,

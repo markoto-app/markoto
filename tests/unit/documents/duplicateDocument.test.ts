@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { first } from '../../helpers/assert'
+import { asUser, docAs, wsAs } from '../../helpers/access'
 
 // duplicateDocument is the end-to-end duplicate orchestrator: one DB
 // row insert + N S3 CopyObject calls + a Y.js state clone with URL
@@ -65,10 +66,10 @@ function fakeSource(overrides: Partial<Record<string, unknown>> = {}) {
 
 function baseInput(overrides: Partial<Parameters<typeof duplicateDocument>[0]> = {}) {
   return {
-    sourceDocId: 'SRC',
+    source: docAs('SRC'),
     newDocId: 'TGT',
-    ownerId: 2,
-    workspaceId: null,
+    owner: asUser(2),
+    workspace: null,
     title: 'Source (copy)',
     ...overrides
   }
@@ -180,9 +181,9 @@ describe('duplicateDocument — happy path', () => {
     listConfirmedUploadsForDoc.mockResolvedValueOnce([])
     const s3 = makeS3()
 
-    await duplicateDocument(baseInput({ ownerId: 7, workspaceId: 'ws1' }), { s3, bucket: 'b', imageQuota: QUOTA_SCOPE })
+    await duplicateDocument(baseInput({ owner: asUser(7), workspace: wsAs('ws1') }), { s3, bucket: 'b', imageQuota: QUOTA_SCOPE })
 
-    const arg = first(insertDuplicateDoc.mock.calls)[0]
+    const arg = first(insertDuplicateDoc.mock.calls)[1]
     expect(arg).toMatchObject({
       newDocId: 'TGT',
       ownerId: 7,
@@ -205,7 +206,7 @@ describe('duplicateDocument — happy path', () => {
 
     await duplicateDocument(baseInput(), { s3, bucket: 'b', imageQuota: QUOTA_SCOPE })
 
-    expect(first(insertDuplicateDoc.mock.calls)[0].theme).toEqual({
+    expect(first(insertDuplicateDoc.mock.calls)[1].theme).toEqual({
       page: { marginMm: 25 },
       customCss: 'p { background: url(/api/files/TGT/a.png) } q { background: url(/api/files/OTHER/b.png) }'
     })
@@ -224,7 +225,7 @@ describe('duplicateDocument — happy path', () => {
 
     await duplicateDocument(baseInput(), { s3: makeS3(), bucket: 'b', imageQuota: QUOTA_SCOPE })
 
-    const theme = first(insertDuplicateDoc.mock.calls)[0].theme
+    const theme = first(insertDuplicateDoc.mock.calls)[1].theme
     expect(theme.brand.logoUrl).toBe('/api/files/TGT/AbCdEfGhIjKl.png')
     expect(theme.header.imageUrl).toBe('/api/files/TGT/b.webp')
   })
@@ -243,8 +244,8 @@ describe('duplicateDocument — rollback', () => {
 
     await expect(duplicateDocument(baseInput(), { s3, bucket: 'b', imageQuota: QUOTA_SCOPE })).rejects.toThrow('AccessDenied')
 
-    expect(deleteUploadsForDoc).toHaveBeenCalledWith('TGT')
-    expect(deleteDocRow).toHaveBeenCalledWith('TGT')
+    expect(deleteUploadsForDoc).toHaveBeenCalledWith(expect.objectContaining({ docId: 'TGT' }))
+    expect(deleteDocRow).toHaveBeenCalledWith(expect.objectContaining({ docId: 'TGT' }))
     expect(cloneYjsStateWithUrlRewrite).not.toHaveBeenCalled()
   })
 
@@ -259,8 +260,8 @@ describe('duplicateDocument — rollback', () => {
 
     await expect(duplicateDocument(baseInput(), { s3, bucket: 'b', imageQuota: QUOTA_SCOPE })).rejects.toThrow('Y.js replay failed')
 
-    expect(deleteUploadsForDoc).toHaveBeenCalledWith('TGT')
-    expect(deleteDocRow).toHaveBeenCalledWith('TGT')
+    expect(deleteUploadsForDoc).toHaveBeenCalledWith(expect.objectContaining({ docId: 'TGT' }))
+    expect(deleteDocRow).toHaveBeenCalledWith(expect.objectContaining({ docId: 'TGT' }))
   })
 
   it('swallows rollback failure to Sentry and re-throws the original error', async () => {
@@ -339,10 +340,10 @@ describe('duplicateDocument — image storage quota', () => {
     getDoc.mockResolvedValueOnce(fakeSource())
     listConfirmedUploadsForDoc.mockResolvedValueOnce(images)
 
-    await duplicateDocument(baseInput({ ownerId: 2 }), { s3: makeS3(), bucket: 'b', imageQuota: QUOTA_SCOPE })
+    await duplicateDocument(baseInput({ owner: asUser(2) }), { s3: makeS3(), bucket: 'b', imageQuota: QUOTA_SCOPE })
 
     expect(insertConfirmedUploadsWithinQuota).toHaveBeenCalledOnce()
-    const [rows, maxBytes, scope] = insertConfirmedUploadsWithinQuota.mock.calls[0]!
+    const [, rows, maxBytes, scope] = insertConfirmedUploadsWithinQuota.mock.calls[0]!
     expect(maxBytes).toBe(QUOTA)
     expect(scope).toEqual(QUOTA_SCOPE.scope)
     expect((rows as Array<{ uploaderId: number }>).map(r => r.uploaderId)).toEqual([2, 2])
@@ -367,8 +368,8 @@ describe('duplicateDocument — image storage quota', () => {
 
     await expect(duplicateDocument(baseInput(), { s3: makeS3(), bucket: 'b', imageQuota: QUOTA_SCOPE }))
       .rejects.toThrow(/image storage limit/)
-    expect(deleteUploadsForDoc).toHaveBeenCalledWith('TGT')
-    expect(deleteDocRow).toHaveBeenCalledWith('TGT')
+    expect(deleteUploadsForDoc).toHaveBeenCalledWith(expect.objectContaining({ docId: 'TGT' }))
+    expect(deleteDocRow).toHaveBeenCalledWith(expect.objectContaining({ docId: 'TGT' }))
     expect(cloneYjsStateWithUrlRewrite).not.toHaveBeenCalled()
   })
 })

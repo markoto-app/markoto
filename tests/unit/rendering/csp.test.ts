@@ -107,10 +107,10 @@ describe('vendored asset pins', () => {
 describe('deployment config', () => {
   const read = (file: string) => readFileSync(fileURLToPath(new URL(`../../../${file}`, import.meta.url)), 'utf8')
   it.each([
-    'docker-compose.prod.yml',
-    'docker-compose.selfhost.yml',
-    'docker-compose.selfhost.tls.yml',
-    'docker-compose.local.yml'
+    'deploy/compose/compose.prod.yml',
+    'deploy/compose/compose.selfhost.yml',
+    'deploy/compose/compose.selfhost.tls.yml',
+    'deploy/compose/compose.local.yml'
   ])('%s leaves the app CSP + CORP to the app (no second, looser policy at the proxy)', (file) => {
     const text = read(file)
     // The self-host S3 route keeps its own sandbox CSP (object responses only).

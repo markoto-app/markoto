@@ -1,6 +1,7 @@
-import { and, desc, eq, gte } from 'drizzle-orm'
+import { and, desc, eq, gte, lt } from 'drizzle-orm'
+import type { SystemActor } from './proofs'
 import { aiSessionMessages } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { useDatabase } from '../db/client'
 import { parseAiMessageEntry, type AiMessageEntry } from '../db/columnTypes'
 
 export { parseAiMessageEntry, type AiMessageEntry } from '../db/columnTypes'
@@ -104,4 +105,9 @@ export async function lastActivityAt(docId: string, userId: number): Promise<Dat
     .orderBy(desc(aiSessionMessages.createdAt))
     .limit(1)
   return row[0]?.createdAt ?? null
+}
+
+/** Retention: conversation memory written before `cutoff`. Returns how many. */
+export async function deleteAiMessagesBefore(_by: SystemActor, cutoff: Date): Promise<number> {
+  return (await useDatabase().delete(aiSessionMessages).where(lt(aiSessionMessages.createdAt, cutoff)).returning({ id: aiSessionMessages.id })).length
 }

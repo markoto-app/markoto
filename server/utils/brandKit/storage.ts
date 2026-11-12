@@ -4,6 +4,7 @@ import { BRAND_ASSET_CONTENT_TYPES, type BrandAssetFormat } from '~~/shared/conf
 import { listBrandAssetKeys, type BrandAssetRow } from '../../repos/brandAssets'
 import { useEnv } from '~~/shared/env/load'
 import { useLogger } from '../platform/logger'
+import type { WorkspaceAccess } from '../../repos/proofs'
 
 const log = useLogger('brand-kit')
 
@@ -42,8 +43,8 @@ export async function deleteBrandObjects(keys: string[]): Promise<void> {
 }
 
 /** Workspace deletion: read the keys BEFORE the rows cascade away. */
-export async function collectBrandObjectKeys(workspaceId: string): Promise<string[]> {
-  return listBrandAssetKeys(workspaceId)
+export async function collectBrandObjectKeys(ws: WorkspaceAccess<'admin'>): Promise<string[]> {
+  return listBrandAssetKeys(ws)
 }
 
 /**

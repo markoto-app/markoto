@@ -15,6 +15,7 @@ import { isInternalHostname } from '../aiProviders/urlPolicy'
 import { appendAuditEvent } from '../../repos/audit'
 import { AUDIT_CUSTOM_DOMAIN_DROPPED, AUDIT_CUSTOM_DOMAIN_VERIFIED } from '../../legal/auditActions'
 import { useEnv } from '~~/shared/env/load'
+import { system, type UserScope } from '../../repos/proofs'
 
 // Custom domains: the signed-in user's own domains. Adding one
 // needs the plan feature `customDomains`; the domain is routed only once
@@ -71,28 +72,29 @@ export async function runCustomDomainCheck(
   domain: CustomDomainRow,
   settings: CustomDomainSettings,
   // Who asked (the Check button); the sweeper's checks are recorded as the system.
-  actor: { userId: number, ip: string | null } | null = null
+  actor: { self: UserScope, ip: string | null } | null = null
 ): Promise<{ check: DnsCheck, row: CustomDomainRow | null, newlyVerified: boolean }> {
   let check: DnsCheck = await checkCustomDomainDns(domain.hostname, domain.verifyToken, settings.target, dnsLookups(settings.dnsServers))
   // Only a live domain can be dropped; a pending one just stays pending.
   const dropVerified = domain.status === 'verified'
     && (!domain.verifiedAt || Date.now() - domain.verifiedAt.getTime() > CUSTOM_DOMAIN_GRACE_MS)
+  const by = actor?.self ?? system('custom-domain-recheck')
   let row: CustomDomainRow | null
   try {
-    row = await recordCustomDomainCheck(domain.id, check.ok ? { ok: true } : { ok: false, problem: check.problem, dropVerified })
+    row = await recordCustomDomainCheck(by, domain.id, check.ok ? { ok: true } : { ok: false, problem: check.problem, dropVerified })
   } catch (e) {
     // Another account's claim of this hostname is verified (unique index on
     // verified hostnames): the records match, but the domain is theirs.
     if (!isUniqueViolation(e)) throw e
     check = { ok: false, problem: 'in-use' }
-    row = await recordCustomDomainCheck(domain.id, { ok: false, problem: check.problem, dropVerified: false })
+    row = await recordCustomDomainCheck(by, domain.id, { ok: false, problem: check.problem, dropVerified: false })
   }
   if (row?.status !== domain.status) invalidateCustomDomainCache()
   const newlyVerified = check.ok && domain.status !== 'verified'
   const dropped = domain.status === 'verified' && row?.status === 'failed'
   if (newlyVerified || dropped) {
     await appendAuditEvent({
-      actorUserId: actor?.userId ?? null,
+      by,
       actorIp: actor?.ip ?? null,
       scope: 'user',
       scopeId: String(domain.userId),

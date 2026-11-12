@@ -12,6 +12,7 @@ import { imageQuotaMessage, resolveImageQuota } from '../../storage/imageQuota'
 import { useS3Client } from '../../storage/s3'
 import { useEnv } from '~~/shared/env/load'
 import { useLogger } from '../../platform/logger'
+import type { DocAccess } from '../../../repos/proofs'
 
 // Images: view_image (show the model an image of the document or of the
 // web) and generate_image (generate, store as an upload of the document,
@@ -87,6 +88,45 @@ export function sanitizeAltText(s: string): string {
   return s.replace(/[[\]()]/g, '').replace(/\s+/g, ' ').trim()
 }
 
+/**
+ * The pending `uploads` row of a generated image, under the write proof of
+ * the bound document (in-app sessions; MCP binds generate_image with
+ * `access: 'edit'`). Without one, or for the anonymous-doc edge case (no
+ * row), nothing is reserved. A DB failure stays non-fatal: an S3 object
+ * with no row still serves and is reaped later by orphan-cleanup.
+ */
+async function reserveGeneratedImageRow(
+  session: MetaToolContext,
+  row: { fileId: string, uploaderId: number, contentType: string, sizeBytes: number, s3Key: string },
+  quota: { maxBytes: number, scope: Parameters<typeof reservePendingUpload>[3] }
+): Promise<{ reservedUnder: DocAccess<'write'> | null } | { error: ToolResult }> {
+  const access = session.docAccess?.allows('write') ? session.docAccess : null
+  if (!access || !(await getDoc(access))) return { reservedUnder: null }
+  try {
+    const reservation = await reservePendingUpload(access, row, quota.maxBytes, quota.scope)
+    if (!reservation.reserved) return { error: toolError(`Error: ${imageQuotaMessage(quota.maxBytes)}`) }
+    return { reservedUnder: access }
+  } catch (e) {
+    log.warn('uploads row insert failed', { key: row.s3Key, err: e })
+    Sentry.captureException(e, {
+      tags: { component: 'aiToolAdapter', event: 'uploads_row_insert_failed', s3Key: row.s3Key }
+    })
+    return { reservedUnder: null }
+  }
+}
+
+/** Confirm the generated image's row; a failure is logged, not fatal. */
+async function confirmGeneratedImageRow(access: DocAccess<'write'>, key: string): Promise<void> {
+  try {
+    await markConfirmed(access, key)
+  } catch (e) {
+    log.warn('uploads row insert failed', { key, err: e })
+    Sentry.captureException(e, {
+      tags: { component: 'aiToolAdapter', event: 'uploads_row_insert_failed', s3Key: key }
+    })
+  }
+}
+
 async function handleGenerateImage(
   session: MetaToolContext,
   input: z.output<typeof GenerateImageArgs>
@@ -134,30 +174,15 @@ async function handleGenerateImage(
 
   // 3a. Reserve the bytes (pending `uploads` row) atomically against the
   //     quota BEFORE the PUT, so concurrent generations can't overshoot.
-  //     Skipped for the anonymous-doc edge case (no FK target). A DB
-  //     failure stays non-fatal: an S3 object with no row still serves,
-  //     it is just reaped later by orphan-cleanup.
-  const doc = await getDoc(session.docId)
-  let rowReserved = false
-  if (doc) {
-    try {
-      const reservation = await reservePendingUpload({
-        docId: session.docId,
-        fileId: fileIdWithExt,
-        uploaderId: session.initiatorUserId,
-        contentType: gen.mimeType,
-        sizeBytes: gen.bytes.byteLength,
-        s3Key: key
-      }, quotaBytes, quota.scope)
-      if (!reservation.reserved) return toolError(`Error: ${imageQuotaMessage(quotaBytes)}`)
-      rowReserved = true
-    } catch (e) {
-      log.warn('uploads row insert failed', { key, err: e })
-      Sentry.captureException(e, {
-        tags: { component: 'aiToolAdapter', event: 'uploads_row_insert_failed', s3Key: key }
-      })
-    }
-  }
+  const reserved = await reserveGeneratedImageRow(session, {
+    fileId: fileIdWithExt,
+    uploaderId: session.initiatorUserId,
+    contentType: gen.mimeType,
+    sizeBytes: gen.bytes.byteLength,
+    s3Key: key
+  }, quota)
+  if ('error' in reserved) return reserved.error
+  const rowReservedUnder = reserved.reservedUnder
 
   try {
     await s3.send(new PutObjectCommand({
@@ -177,8 +202,8 @@ async function handleGenerateImage(
       // silently breaking only the AI-image flow.
     }))
   } catch (e) {
-    if (rowReserved) {
-      await deletePending(key, session.initiatorUserId).catch(() => { /* reaped after 24 h */ })
+    if (rowReservedUnder) {
+      await deletePending(session.self, key).catch(() => { /* reaped after 24 h */ })
     }
     const msg = e instanceof Error ? e.message : 'Unknown error'
     return toolError(`Error: failed to upload generated image: ${msg}`)
@@ -186,17 +211,7 @@ async function handleGenerateImage(
 
   // 3b. Confirm the row so orphan-cleanup doesn't reap it. Server-written
   //     bytes never had a presigned URL, so no staging copy is needed.
-  if (rowReserved) {
-    try {
-      await markConfirmed(key)
-    } catch (e) {
-      // Non-fatal — see note above.
-      log.warn('uploads row insert failed', { key, err: e })
-      Sentry.captureException(e, {
-        tags: { component: 'aiToolAdapter', event: 'uploads_row_insert_failed', s3Key: key }
-      })
-    }
-  }
+  if (rowReservedUnder) await confirmGeneratedImageRow(rowReservedUnder, key)
 
   // 4. Build and return the markdown. Caller chooses placement via a
   //    follow-up insert_text / replace_text call.

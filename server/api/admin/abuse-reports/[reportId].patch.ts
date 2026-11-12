@@ -1,6 +1,4 @@
-import { eq, sql } from 'drizzle-orm'
-import { abuseReports } from '../../../db/schema'
-import { useDatabase } from '../../../utils/platform/database'
+import { claimAbuseReportTransition, getAbuseReport } from '../../../repos/abuseReports'
 import { appendAuditEvent } from '../../../repos/audit'
 import {
   AUDIT_ABUSE_ACKNOWLEDGED,
@@ -73,19 +71,14 @@ export default defineApiHandler({
   access: allow.admin(),
   params: updateAbuseReportParams,
   body: updateAbuseReportBody,
-  handler: async ({ event, admin, params: { reportId }, body }) => {
+  handler: async ({ event, adminActor, params: { reportId }, body }) => {
     const status = body.status
     const decision = parseDecision(status, body.decision)
     const notes = typeof body.notes === 'string' ? body.notes.trim().slice(0, 5000) : null
 
-    const db = useDatabase()
     // Re-read for the existing notes + status (audit `before` payload and
     // transition validation).
-    const existing = (await db
-      .select()
-      .from(abuseReports)
-      .where(eq(abuseReports.reportId, reportId))
-      .limit(1))[0]
+    const existing = await getAbuseReport(adminActor, reportId)
     if (!existing) throw apiError('abuse/report-not-found')
     if (existing.status === 'actioned' || existing.status === 'dismissed') {
       throw apiError('abuse/already-closed', { status: existing.status })
@@ -93,36 +86,17 @@ export default defineApiHandler({
 
     // Claim the transition atomically (status unchanged since the read), so
     // two moderators can't both act — and both email — on one report.
-    const claimed = await db
-      .update(abuseReports)
-      .set({
-        status,
-        actionedBy: admin.userId,
-        notes: notes ?? existing.notes,
-        ...(status === 'acknowledged'
-          ? { acknowledgedAt: sql`now()` }
-          : {
-              actionedAt: sql`now()`,
-              // Skipped acknowledged → stamp it too ("we saw this at…").
-              acknowledgedAt: existing.acknowledgedAt ?? sql`now()`,
-              decisionAction: decision?.action ?? null,
-              decisionRule: decision?.rule ?? null,
-              decisionExplanation: decision?.explanation ?? null
-            })
-      })
-      .where(sql`${abuseReports.reportId} = ${reportId} AND ${abuseReports.status} = ${existing.status}`)
-      .returning({ reportId: abuseReports.reportId })
-    if (claimed.length === 0) {
+    if (!(await claimAbuseReportTransition(adminActor, reportId, existing, { status, notes, decision }))) {
       throw apiError('abuse/conflict')
     }
 
     const ip = getClientIp(event)
     const outcome = decision
-      ? await applyModerationDecision({ report: existing, decision, adminUserId: admin.userId, adminIp: ip })
+      ? await applyModerationDecision({ report: existing, decision, admin: adminActor, adminIp: ip })
       : null
 
     await appendAuditEvent({
-      actorUserId: admin.userId,
+      by: adminActor,
       actorIp: ip,
       scope: 'system',
       scopeId: reportId,

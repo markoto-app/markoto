@@ -1,28 +1,27 @@
 import { zipSync, strToU8 } from 'fflate'
-import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import * as Sentry from '@sentry/nuxt'
 import {
-  abuseReports,
-  activityLog,
-  aiSessionMessages,
-  aiSessions,
-  auditLog,
-  consentLog,
-  documentComments,
-  documentShares,
-  documents,
-  moderationNotices,
-  ssoConnections,
-  themes,
-  userIdentities,
-  users,
-  workspaceBrandAssets,
-  workspaceMembers,
-  workspaces
-} from '../../db/schema'
-import { useDatabase } from '../platform/database'
+  getProfileForExport,
+  listActivityForExport,
+  listAiMessagesForExport,
+  listAiSessionsForExport,
+  listAuditForExport,
+  listAuthoredComments,
+  listBrandAssetsUploadedBy,
+  listConsentForExport,
+  listDocumentSharesForExport,
+  listFiledAbuseReports,
+  listMembershipsForExport,
+  listOwnedDocumentsForExport,
+  listOwnerNoticesForExport,
+  listReporterNoticesForExport,
+  listSsoIdentitiesForExport,
+  listThemesForExport,
+  type UserProfileRow
+} from '../../repos/personalData'
+import type { DocAccess, SystemActor, UserScope } from '../../repos/proofs'
 import { reconstructTextAtYjsId } from '../documents/historyReplay'
-import { latestYjsId } from '../documents/yjsLog'
+import { latestYjsId } from '../../repos/yjsLog'
 import { listAiSessionProvenanceForUser } from '../../repos/aiSessionProvenance'
 import { ZIP_README } from './dataExportReadme'
 import {
@@ -110,40 +109,40 @@ export interface BuildExportZipResult {
  * tens of MB later, the worker can switch to a streaming PUT —
  * the layout doesn't change.
  */
-export async function buildExportZip(userId: number): Promise<BuildExportZipResult> {
-  const db = useDatabase()
-  const userRow = (await db
-    .select()
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1))[0]
+/**
+ * `by`: the export worker, acting for the account that asked (its rows and
+ * the documents it owns).
+ */
+export async function buildExportZip(by: SystemActor, userId: number): Promise<BuildExportZipResult> {
+  const user = by.user(userId)
+  const userRow = await getProfileForExport(user)
   if (!userRow) throw new Error(`buildExportZip: user ${userId} not found`)
 
   const entries: Record<string, Uint8Array> = {}
   entries['README.txt'] = strToU8(ZIP_README)
   entries['profile.json'] = strToU8(JSON.stringify(buildProfileEntry(userRow), null, 2))
 
-  const documentsCount = await addOwnedDocumentsEntries(entries, db, userId)
-  const commentsCount = await addCommentsEntry(entries, db, userId)
-  const membershipsCount = await addWorkspaceMembershipsEntry(entries, db, userId)
-  const invitesCount = await addWorkspaceInvitesEntry(entries, userId, userRow.email)
-  const themesCount = await addThemesEntry(entries, db, userId)
-  const { sessionsCount, messagesCount } = await addAiEntries(entries, db, userId)
+  const documentsCount = await addOwnedDocumentsEntries(entries, by, user)
+  const commentsCount = await addCommentsEntry(entries, user)
+  const membershipsCount = await addWorkspaceMembershipsEntry(entries, user)
+  const invitesCount = await addWorkspaceInvitesEntry(entries, user, userRow.email)
+  const themesCount = await addThemesEntry(entries, user)
+  const { sessionsCount, messagesCount } = await addAiEntries(entries, user)
   // No AI usage history is exported: LiteLLM's spend logs are operator-facing only.
-  const activityCount = await addActivityLogEntry(entries, db, userId)
-  const auditCount = await addAuditLogEntry(entries, db, userId)
-  const consentCount = await addConsentLogEntry(entries, db, userId)
-  const waitlistCount = await addWaitlistEntry(entries, userId)
-  const abuseReportsCount = await addAbuseReportsEntry(entries, db, userId)
-  const ownerNoticesCount = await addOwnerNoticesEntry(entries, db, userId)
-  const aiProvidersCount = await addAiProvidersEntry(entries, userId)
+  const activityCount = await addActivityLogEntry(entries, user)
+  const auditCount = await addAuditLogEntry(entries, user)
+  const consentCount = await addConsentLogEntry(entries, user)
+  const waitlistCount = await addWaitlistEntry(entries, user)
+  const abuseReportsCount = await addAbuseReportsEntry(entries, user)
+  const ownerNoticesCount = await addOwnerNoticesEntry(entries, user)
+  const aiProvidersCount = await addAiProvidersEntry(entries, user)
   const invoicesCount = await addBillingEntries(entries, userRow.stripeCustomerId)
-  const workspaceSubscriptionsCount = await addWorkspaceSubscriptionsEntry(entries, userId)
-  await addCreditGrantsEntry(entries, userId)
-  await addSsoIdentitiesEntry(entries, userId)
-  await addDocumentSharesEntry(entries, userId)
-  await addBrandAssetsEntry(entries, userId)
-  await addPublishingEntries(entries, userId)
+  const workspaceSubscriptionsCount = await addWorkspaceSubscriptionsEntry(entries, user)
+  await addCreditGrantsEntry(entries, user)
+  await addSsoIdentitiesEntry(entries, user)
+  await addDocumentSharesEntry(entries, user)
+  await addBrandAssetsEntry(entries, user)
+  await addPublishingEntries(entries, user)
 
   return {
     bytes: zipSync(entries, { level: 6 }),
@@ -168,8 +167,6 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
   }
 }
 
-type Db = ReturnType<typeof useDatabase>
-
 type Entries = ExportEntries
 
 /**
@@ -177,7 +174,7 @@ type Entries = ExportEntries
  * OAuth) but we still defensively project to the columns we want
  * surfaced, so a future column addition doesn't accidentally leak.
  */
-function buildProfileEntry(userRow: typeof users.$inferSelect) {
+function buildProfileEntry(userRow: UserProfileRow) {
   return {
     id: userRow.id,
     name: userRow.name,
@@ -207,9 +204,10 @@ function buildProfileEntry(userRow: typeof users.$inferSelect) {
 }
 
 /** Reconstruct a single doc's current markdown from its Y.js log, with Sentry-reported error fallback so one failed doc doesn't sink the whole export. */
-async function reconstructDocMarkdown(docId: string): Promise<string> {
+async function reconstructDocMarkdown(doc: DocAccess<'view'>): Promise<string> {
+  const docId = doc.docId
   try {
-    return await reconstructTextAtYjsId(docId, await latestYjsId(docId))
+    return await reconstructTextAtYjsId(doc, await latestYjsId(doc))
   } catch (e) {
     Sentry.captureException(e, {
       tags: { component: 'dataExport', event: 'reconstruct_failed', docId }
@@ -218,13 +216,10 @@ async function reconstructDocMarkdown(docId: string): Promise<string> {
   }
 }
 
-async function addOwnedDocumentsEntries(entries: Entries, db: Db, userId: number): Promise<number> {
-  const ownedDocs = await db
-    .select()
-    .from(documents)
-    .where(eq(documents.ownerId, userId))
+async function addOwnedDocumentsEntries(entries: Entries, by: SystemActor, user: UserScope): Promise<number> {
+  const ownedDocs = await listOwnedDocumentsForExport(user)
   for (const doc of ownedDocs) {
-    const markdown = await reconstructDocMarkdown(doc.docId)
+    const markdown = await reconstructDocMarkdown(by.doc(doc.docId))
     entries[`documents/${doc.docId}.md`] = strToU8(markdown)
     entries[`documents/${doc.docId}.meta.json`] = strToU8(JSON.stringify({
       docId: doc.docId,
@@ -245,12 +240,8 @@ async function addOwnedDocumentsEntries(entries: Entries, db: Db, userId: number
   return ownedDocs.length
 }
 
-async function addCommentsEntry(entries: Entries, db: Db, userId: number): Promise<number> {
-  const comments = await db
-    .select()
-    .from(documentComments)
-    .where(eq(documentComments.authorId, userId))
-    .orderBy(asc(documentComments.createdAtMs))
+async function addCommentsEntry(entries: Entries, user: UserScope): Promise<number> {
+  const comments = await listAuthoredComments(user)
   entries['comments.ndjson'] = strToU8(toNdjson(comments.map(c => ({
     docId: c.docId,
     entryId: c.entryId,
@@ -263,18 +254,8 @@ async function addCommentsEntry(entries: Entries, db: Db, userId: number): Promi
   return comments.length
 }
 
-async function addWorkspaceMembershipsEntry(entries: Entries, db: Db, userId: number): Promise<number> {
-  const memberships = await db
-    .select({
-      workspaceId: workspaceMembers.workspaceId,
-      role: workspaceMembers.role,
-      joinedAt: workspaceMembers.joinedAt,
-      workspaceName: workspaces.name
-    })
-    .from(workspaceMembers)
-    .innerJoin(workspaces, eq(workspaces.workspaceId, workspaceMembers.workspaceId))
-    .where(eq(workspaceMembers.userId, userId))
-    .orderBy(asc(workspaceMembers.joinedAt))
+async function addWorkspaceMembershipsEntry(entries: Entries, user: UserScope): Promise<number> {
+  const memberships = await listMembershipsForExport(user)
   entries['workspace_memberships.json'] = strToU8(JSON.stringify(
     memberships.map(m => ({
       workspaceId: m.workspaceId,
@@ -287,12 +268,8 @@ async function addWorkspaceMembershipsEntry(entries: Entries, db: Db, userId: nu
   return memberships.length
 }
 
-async function addThemesEntry(entries: Entries, db: Db, userId: number): Promise<number> {
-  const themesRows = await db
-    .select()
-    .from(themes)
-    .where(eq(themes.userId, userId))
-    .orderBy(asc(themes.createdAt))
+async function addThemesEntry(entries: Entries, user: UserScope): Promise<number> {
+  const themesRows = await listThemesForExport(user)
   entries['themes.json'] = strToU8(JSON.stringify(
     themesRows.map(t => ({
       themeId: t.themeId,
@@ -307,12 +284,8 @@ async function addThemesEntry(entries: Entries, db: Db, userId: number): Promise
   return themesRows.length
 }
 
-async function addAiEntries(entries: Entries, db: Db, userId: number): Promise<{ sessionsCount: number, messagesCount: number }> {
-  const sessionsRows = await db
-    .select()
-    .from(aiSessions)
-    .where(eq(aiSessions.initiatorUserId, userId))
-    .orderBy(asc(aiSessions.startedAt))
+async function addAiEntries(entries: Entries, user: UserScope): Promise<{ sessionsCount: number, messagesCount: number }> {
+  const sessionsRows = await listAiSessionsForExport(user)
   entries['ai/sessions.ndjson'] = strToU8(toNdjson(sessionsRows.map(s => ({
     sessionId: s.sessionId,
     docId: s.docId,
@@ -321,11 +294,7 @@ async function addAiEntries(entries: Entries, db: Db, userId: number): Promise<{
     startedAt: s.startedAt.toISOString()
   }))))
 
-  const aiMessagesRows = await db
-    .select()
-    .from(aiSessionMessages)
-    .where(eq(aiSessionMessages.userId, userId))
-    .orderBy(asc(aiSessionMessages.createdAt))
+  const aiMessagesRows = await listAiMessagesForExport(user)
   entries['ai/messages.ndjson'] = strToU8(toNdjson(aiMessagesRows.map(m => ({
     docId: m.docId,
     sessionId: m.sessionId,
@@ -334,7 +303,7 @@ async function addAiEntries(entries: Entries, db: Db, userId: number): Promise<{
     createdAt: m.createdAt.toISOString()
   }))))
 
-  const provenanceRows = await listAiSessionProvenanceForUser(userId)
+  const provenanceRows = await listAiSessionProvenanceForUser(user)
   entries['ai/edit-provenance.ndjson'] = strToU8(toNdjson(provenanceRows.map(p => ({
     sessionId: p.sessionId,
     docId: p.docId,
@@ -345,12 +314,8 @@ async function addAiEntries(entries: Entries, db: Db, userId: number): Promise<{
   return { sessionsCount: sessionsRows.length, messagesCount: aiMessagesRows.length }
 }
 
-async function addActivityLogEntry(entries: Entries, db: Db, userId: number): Promise<number> {
-  const activityRows = await db
-    .select()
-    .from(activityLog)
-    .where(eq(activityLog.userId, userId))
-    .orderBy(asc(activityLog.createdAt))
+async function addActivityLogEntry(entries: Entries, user: UserScope): Promise<number> {
+  const activityRows = await listActivityForExport(user)
   entries['activity.ndjson'] = strToU8(toNdjson(activityRows.map(a => ({
     docId: a.docId,
     userName: a.userName,
@@ -371,14 +336,8 @@ async function addActivityLogEntry(entries: Entries, db: Db, userId: number): Pr
  * audited entity was them (e.g. `account.delete_requested` with
  * `scope_id = String(userId)`).
  */
-async function addAuditLogEntry(entries: Entries, db: Db, userId: number): Promise<number> {
-  const auditRows = await db
-    .select()
-    .from(auditLog)
-    .where(and(
-      sql`(${auditLog.actorUserId} = ${userId} OR (${auditLog.scope} = 'user' AND ${auditLog.scopeId} = ${String(userId)}))`
-    ))
-    .orderBy(asc(auditLog.ts))
+async function addAuditLogEntry(entries: Entries, user: UserScope): Promise<number> {
+  const auditRows = await listAuditForExport(user)
   entries['audit.ndjson'] = strToU8(toNdjson(auditRows.map(r => ({
     ts: r.ts.toISOString(),
     scope: r.scope,
@@ -391,12 +350,8 @@ async function addAuditLogEntry(entries: Entries, db: Db, userId: number): Promi
   return auditRows.length
 }
 
-async function addConsentLogEntry(entries: Entries, db: Db, userId: number): Promise<number> {
-  const consentRows = await db
-    .select()
-    .from(consentLog)
-    .where(eq(consentLog.userId, userId))
-    .orderBy(asc(consentLog.createdAt))
+async function addConsentLogEntry(entries: Entries, user: UserScope): Promise<number> {
+  const consentRows = await listConsentForExport(user)
   entries['consent.ndjson'] = strToU8(toNdjson(consentRows.map(c => ({
     purpose: c.purpose,
     granted: c.granted,
@@ -416,48 +371,9 @@ async function addConsentLogEntry(entries: Entries, db: Db, userId: number): Pro
  * reporter. Never the internal moderator notes, the moderator's identity,
  * or anything about the reported document's owner.
  */
-async function addAbuseReportsEntry(entries: Entries, db: Db, userId: number): Promise<number> {
-  const reports = await db
-    .select({
-      reportId: abuseReports.reportId,
-      contentUrl: abuseReports.contentUrl,
-      docId: abuseReports.docId,
-      category: abuseReports.category,
-      body: abuseReports.body,
-      reporterName: abuseReports.reporterName,
-      reporterEmail: abuseReports.reporterEmail,
-      reporterLocale: abuseReports.reporterLocale,
-      reporterIpTruncated: abuseReports.reporterIpTruncated,
-      goodFaithConfirmedAt: abuseReports.goodFaithConfirmedAt,
-      status: abuseReports.status,
-      decisionAction: abuseReports.decisionAction,
-      decisionRule: abuseReports.decisionRule,
-      decisionExplanation: abuseReports.decisionExplanation,
-      createdAt: abuseReports.createdAt,
-      acknowledgedAt: abuseReports.acknowledgedAt,
-      actionedAt: abuseReports.actionedAt
-    })
-    .from(abuseReports)
-    .where(eq(abuseReports.reporterUserId, userId))
-    .orderBy(asc(abuseReports.createdAt))
-  const notices = reports.length === 0
-    ? []
-    : await db
-        .select({
-          reportId: moderationNotices.reportId,
-          kind: moderationNotices.kind,
-          status: moderationNotices.status,
-          locale: moderationNotices.locale,
-          subject: moderationNotices.subject,
-          body: moderationNotices.body,
-          createdAt: moderationNotices.createdAt
-        })
-        .from(moderationNotices)
-        .where(and(
-          inArray(moderationNotices.reportId, reports.map(r => r.reportId)),
-          eq(moderationNotices.recipientRole, 'reporter')
-        ))
-        .orderBy(asc(moderationNotices.createdAt))
+async function addAbuseReportsEntry(entries: Entries, user: UserScope): Promise<number> {
+  const reports = await listFiledAbuseReports(user)
+  const notices = await listReporterNoticesForExport(user, reports.map(r => r.reportId))
   entries['abuse_reports.ndjson'] = strToU8(toNdjson(reports.map(r => ({
     reportId: r.reportId,
     contentUrl: r.contentUrl,
@@ -488,20 +404,8 @@ async function addAbuseReportsEntry(entries: Entries, db: Db, userId: number): P
  * removed / restricted document. The notice text contains no reporter
  * data, so it is exported as sent.
  */
-async function addOwnerNoticesEntry(entries: Entries, db: Db, userId: number): Promise<number> {
-  const rows = await db
-    .select({
-      reportId: moderationNotices.reportId,
-      kind: moderationNotices.kind,
-      status: moderationNotices.status,
-      locale: moderationNotices.locale,
-      subject: moderationNotices.subject,
-      body: moderationNotices.body,
-      createdAt: moderationNotices.createdAt
-    })
-    .from(moderationNotices)
-    .where(and(eq(moderationNotices.recipientUserId, userId), eq(moderationNotices.recipientRole, 'owner')))
-    .orderBy(asc(moderationNotices.createdAt))
+async function addOwnerNoticesEntry(entries: Entries, user: UserScope): Promise<number> {
+  const rows = await listOwnerNoticesForExport(user)
   entries['moderation_notices.ndjson'] = strToU8(toNdjson(rows.map(n => ({
     reference: n.reportId,
     kind: n.kind,
@@ -519,17 +423,8 @@ async function addOwnerNoticesEntry(entries: Entries, db: Db, userId: number): P
  * is linked to — which workspace, the protocol, the subject the IdP
  * knows you by, whether provisioning (SCIM) disabled it, last sign-in.
  */
-async function addSsoIdentitiesEntry(entries: Entries, userId: number): Promise<number> {
-  const rows = await useDatabase().select({
-    workspaceId: ssoConnections.workspaceId,
-    protocol: ssoConnections.protocol,
-    subject: userIdentities.subject,
-    active: userIdentities.active,
-    createdAt: userIdentities.createdAt,
-    lastLoginAt: userIdentities.lastLoginAt
-  }).from(userIdentities)
-    .innerJoin(ssoConnections, eq(ssoConnections.id, userIdentities.connectionId))
-    .where(eq(userIdentities.userId, userId))
+async function addSsoIdentitiesEntry(entries: Entries, user: UserScope): Promise<number> {
+  const rows = await listSsoIdentitiesForExport(user)
   entries['sso_identities.json'] = strToU8(JSON.stringify(rows.map(r => ({
     workspaceId: r.workspaceId,
     protocol: r.protocol,
@@ -545,21 +440,8 @@ async function addSsoIdentitiesEntry(entries: Entries, userId: number): Promise<
  * Workspace guests: documents shared with this account as a
  * guest, and the shares this account granted to guests.
  */
-async function addDocumentSharesEntry(entries: Entries, userId: number): Promise<void> {
-  const db = useDatabase()
-  const cols = {
-    docId: documentShares.docId,
-    title: documents.title,
-    workspaceId: documents.workspaceId,
-    userId: documentShares.userId,
-    access: documentShares.access,
-    grantedByUserId: documentShares.grantedByUserId,
-    createdAt: documentShares.createdAt
-  }
-  const [received, granted] = await Promise.all([
-    db.select(cols).from(documentShares).innerJoin(documents, eq(documents.docId, documentShares.docId)).where(eq(documentShares.userId, userId)),
-    db.select(cols).from(documentShares).innerJoin(documents, eq(documents.docId, documentShares.docId)).where(eq(documentShares.grantedByUserId, userId))
-  ])
+async function addDocumentSharesEntry(entries: Entries, user: UserScope): Promise<void> {
+  const { received, granted } = await listDocumentSharesForExport(user)
   const view = (r: typeof received[number]) => ({ docId: r.docId, title: r.title, workspaceId: r.workspaceId, access: r.access, sharedAt: r.createdAt.toISOString() })
   entries['document_shares.json'] = strToU8(JSON.stringify({
     received: received.map(view),
@@ -569,15 +451,7 @@ async function addDocumentSharesEntry(entries: Entries, userId: number): Promise
 }
 
 /** Brand kit: the fonts and logos this account uploaded to a workspace. */
-async function addBrandAssetsEntry(entries: Entries, userId: number): Promise<void> {
-  const rows = await useDatabase().select({
-    workspaceId: workspaceBrandAssets.workspaceId,
-    kind: workspaceBrandAssets.kind,
-    name: workspaceBrandAssets.name,
-    weight: workspaceBrandAssets.weight,
-    style: workspaceBrandAssets.style,
-    format: workspaceBrandAssets.format,
-    createdAt: workspaceBrandAssets.createdAt
-  }).from(workspaceBrandAssets).where(eq(workspaceBrandAssets.uploadedBy, userId))
+async function addBrandAssetsEntry(entries: Entries, user: UserScope): Promise<void> {
+  const rows = await listBrandAssetsUploadedBy(user)
   entries['brand_assets.json'] = strToU8(JSON.stringify(rows.map(r => ({ ...r, createdAt: r.createdAt.toISOString() })), null, 2))
 }

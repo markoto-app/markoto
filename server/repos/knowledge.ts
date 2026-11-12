@@ -1,7 +1,8 @@
 import { and, desc, eq, sql, cosineDistance } from 'drizzle-orm'
 import { workspaceKnowledge, workspaceKnowledgeChunks } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { executor, useDatabase, type TxHandle } from '../db/client'
 import { pooledWorkspaceIdsSubquery } from './workspaceSubscriptions'
+import type { SystemActor, UserScope, WorkspaceAccess } from './proofs'
 
 /**
  * Data access for the workspace knowledge base. Kept thin — business rules
@@ -47,7 +48,8 @@ const LIST_COLUMNS = {
   processedAt: workspaceKnowledge.processedAt
 } as const
 
-export async function listKnowledge(workspaceId: string): Promise<KnowledgeRow[]> {
+export async function listKnowledge(ws: WorkspaceAccess<'member'>): Promise<KnowledgeRow[]> {
+  const workspaceId = ws.workspaceId
   const db = useDatabase()
   return db.select(LIST_COLUMNS).from(workspaceKnowledge)
     .where(eq(workspaceKnowledge.workspaceId, workspaceId))
@@ -65,7 +67,8 @@ export interface KnowledgeBrief {
   uploaderId: number | null
 }
 
-export async function listReadyKnowledgeBrief(workspaceId: string): Promise<KnowledgeBrief[]> {
+export async function listReadyKnowledgeBrief(ws: WorkspaceAccess<'member'>): Promise<KnowledgeBrief[]> {
+  const workspaceId = ws.workspaceId
   const db = useDatabase()
   return db.select({
     knowledgeId: workspaceKnowledge.knowledgeId,
@@ -82,28 +85,28 @@ export async function listReadyKnowledgeBrief(workspaceId: string): Promise<Know
     .orderBy(desc(workspaceKnowledge.createdAt))
 }
 
-export async function getKnowledge(knowledgeId: string): Promise<KnowledgeRow | null> {
+/** One file of the proof's workspace; null for an id of another workspace. */
+export async function getKnowledge(ws: WorkspaceAccess<'member'>, knowledgeId: string): Promise<KnowledgeRow | null> {
   const db = useDatabase()
   const rows = await db.select(LIST_COLUMNS).from(workspaceKnowledge)
-    .where(eq(workspaceKnowledge.knowledgeId, knowledgeId))
+    .where(and(eq(workspaceKnowledge.knowledgeId, knowledgeId), eq(workspaceKnowledge.workspaceId, ws.workspaceId)))
     .limit(1)
   return rows[0] ?? null
 }
 
-export async function getKnowledgeWithMarkdown(knowledgeId: string): Promise<(KnowledgeRow & { markdownCache: string | null }) | null> {
+export async function getKnowledgeWithMarkdown(ws: WorkspaceAccess<'member'>, knowledgeId: string): Promise<(KnowledgeRow & { markdownCache: string | null }) | null> {
   const db = useDatabase()
   const rows = await db.select({
     ...LIST_COLUMNS,
     markdownCache: workspaceKnowledge.markdownCache
   }).from(workspaceKnowledge)
-    .where(eq(workspaceKnowledge.knowledgeId, knowledgeId))
+    .where(and(eq(workspaceKnowledge.knowledgeId, knowledgeId), eq(workspaceKnowledge.workspaceId, ws.workspaceId)))
     .limit(1)
   return rows[0] ?? null
 }
 
 export interface CreateKnowledgeInput {
   knowledgeId: string
-  workspaceId: string
   filename: string
   sourceExt: string
   mimeType: string
@@ -113,10 +116,11 @@ export interface CreateKnowledgeInput {
   uploaderId: number
 }
 
-export async function createKnowledge(input: CreateKnowledgeInput): Promise<void> {
-  const db = useDatabase()
+export async function createKnowledge(ws: WorkspaceAccess<'editor'>, input: CreateKnowledgeInput, tx?: TxHandle): Promise<void> {
+  const db = executor(tx)
   await db.insert(workspaceKnowledge).values({
     ...input,
+    workspaceId: ws.workspaceId,
     status: 'processing' as const
   })
 }
@@ -128,7 +132,8 @@ export async function createKnowledge(input: CreateKnowledgeInput): Promise<void
  * uploads land on the same suffix — the caller should handle a 23505
  * by retrying.
  */
-export async function disambiguateFilename(workspaceId: string, desired: string): Promise<string> {
+export async function disambiguateFilename(ws: WorkspaceAccess<'member'>, desired: string): Promise<string> {
+  const workspaceId = ws.workspaceId
   const db = useDatabase()
   const existing = await db.select({ filename: workspaceKnowledge.filename })
     .from(workspaceKnowledge)
@@ -145,7 +150,8 @@ export async function disambiguateFilename(workspaceId: string, desired: string)
   throw new Error('disambiguateFilename: exhausted suffixes')
 }
 
-export async function countWorkspaceKnowledge(workspaceId: string): Promise<number> {
+export async function countWorkspaceKnowledge(ws: WorkspaceAccess<'member'>): Promise<number> {
+  const workspaceId = ws.workspaceId
   const db = useDatabase()
   const rows = await db.select({ n: sql<number>`count(*)::int` })
     .from(workspaceKnowledge)
@@ -153,7 +159,8 @@ export async function countWorkspaceKnowledge(workspaceId: string): Promise<numb
   return rows[0]?.n ?? 0
 }
 
-export async function sumWorkspaceKnowledgeBytes(workspaceId: string): Promise<number> {
+export async function sumWorkspaceKnowledgeBytes(ws: WorkspaceAccess<'member'>): Promise<number> {
+  const workspaceId = ws.workspaceId
   const db = useDatabase()
   const rows = await db.select({ total: sql<number>`coalesce(sum(size_bytes), 0)::bigint` })
     .from(workspaceKnowledge)
@@ -170,7 +177,8 @@ export async function sumWorkspaceKnowledgeBytes(workspaceId: string): Promise<n
  * Failed rows still hold their S3 bytes until the sweep reaps them, so
  * they're fair game to count against the quota.
  */
-export async function countKnowledgeByUploader(uploaderId: number, opts: { excludePooled?: boolean } = {}): Promise<number> {
+export async function countKnowledgeByUploader(self: UserScope, opts: { excludePooled?: boolean } = {}): Promise<number> {
+  const uploaderId = self.userId
   const db = useDatabase()
   const rows = await db.select({ n: sql<number>`count(*)::int` })
     .from(workspaceKnowledge)
@@ -178,7 +186,8 @@ export async function countKnowledgeByUploader(uploaderId: number, opts: { exclu
   return rows[0]?.n ?? 0
 }
 
-export async function sumKnowledgeBytesByUploader(uploaderId: number, opts: { excludePooled?: boolean } = {}): Promise<number> {
+export async function sumKnowledgeBytesByUploader(self: UserScope, opts: { excludePooled?: boolean } = {}): Promise<number> {
+  const uploaderId = self.userId
   const db = useDatabase()
   const rows = await db.select({ total: sql<number>`coalesce(sum(size_bytes), 0)::bigint` })
     .from(workspaceKnowledge)
@@ -197,17 +206,17 @@ function uploaderCondition(uploaderId: number, excludePooled: boolean) {
     : byUploader
 }
 
-export async function deleteKnowledgeRow(knowledgeId: string): Promise<void> {
+export async function deleteKnowledgeRow(ws: WorkspaceAccess<'editor'>, knowledgeId: string): Promise<void> {
   const db = useDatabase()
   await db.delete(workspaceKnowledge)
-    .where(eq(workspaceKnowledge.knowledgeId, knowledgeId))
+    .where(and(eq(workspaceKnowledge.knowledgeId, knowledgeId), eq(workspaceKnowledge.workspaceId, ws.workspaceId)))
 }
 
 /**
  * Every original key a knowledge row points at (any status). The
  * orphan sweep keeps exactly these and deletes other knowledge objects.
  */
-export async function listAllKnowledgeS3Keys(): Promise<string[]> {
+export async function listAllKnowledgeS3Keys(_by: SystemActor): Promise<string[]> {
   const db = useDatabase()
   const rows = await db.select({ s3Key: workspaceKnowledge.s3Key }).from(workspaceKnowledge)
   return rows.map(r => r.s3Key)
@@ -255,14 +264,14 @@ const RRF_K = 60
  * query (the whole input was stopwords or punctuation) we skip it
  * rather than hit the GIN with an empty tsquery.
  */
-export async function searchKnowledge(args: {
-  workspaceId: string
+export async function searchKnowledge(ws: WorkspaceAccess<'member'>, search: {
   queryText: string
   queryEmbedding: number[]
   topK: number
   candidatePool?: number
   similarityThreshold?: number
 }): Promise<SearchHit[]> {
+  const args = { ...search, workspaceId: ws.workspaceId }
   const db = useDatabase()
   const pool = Math.max(args.topK, args.candidatePool ?? args.topK * 4)
   const threshold = args.similarityThreshold ?? 0
@@ -362,4 +371,13 @@ export async function searchKnowledge(args: {
   return [...byKey.values()]
     .sort((a, b) => b.rrfScore - a.rrfScore)
     .slice(0, args.topK)
+}
+
+/**
+ * Serialise knowledge confirms of one workspace for the rest of `tx`: the
+ * cap check and the insert must not interleave with another upload's.
+ * `pg_advisory_xact_lock` releases at commit or rollback.
+ */
+export async function lockWorkspaceKnowledge(ws: WorkspaceAccess<'editor'>, tx: TxHandle): Promise<void> {
+  await executor(tx).execute(sql`select pg_advisory_xact_lock(hashtext(${ws.workspaceId}))`)
 }

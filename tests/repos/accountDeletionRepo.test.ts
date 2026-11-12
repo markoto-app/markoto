@@ -18,6 +18,7 @@ import {
   setMemberRole
 } from '../integration/setup/fixtures'
 import { first } from '../helpers/assert'
+import { asUser, wsAs } from '../helpers/access'
 
 // Repo-level tests for the deletion-cascade helpers. These hit the DB
 // directly and exercise the SQL shape (FK ordering, returning clauses,
@@ -57,7 +58,7 @@ describe('anonymiseCommentsByAuthor', () => {
       authorName: bob.name, body: 'reply'
     })
 
-    const updated = await anonymiseCommentsByAuthor(alice.id)
+    const updated = await anonymiseCommentsByAuthor(asUser(alice.id))
     expect(updated).toBe(1)
 
     const rows = await testDb().query<{ author_id: number | null, author_name: string, body: string }>(
@@ -71,7 +72,7 @@ describe('anonymiseCommentsByAuthor', () => {
 
   it('returns 0 when the user has no comments', async () => {
     const u = await createUser()
-    expect(await anonymiseCommentsByAuthor(u.id)).toBe(0)
+    expect(await anonymiseCommentsByAuthor(asUser(u.id))).toBe(0)
   })
 
   it('is idempotent — re-running on already-anonymised state returns 0', async () => {
@@ -82,8 +83,8 @@ describe('anonymiseCommentsByAuthor', () => {
       docId: doc.docId, entryId: 'e1', authorId: alice.id,
       authorName: alice.name, body: 'x'
     })
-    expect(await anonymiseCommentsByAuthor(alice.id)).toBe(1)
-    expect(await anonymiseCommentsByAuthor(alice.id)).toBe(0)
+    expect(await anonymiseCommentsByAuthor(asUser(alice.id))).toBe(1)
+    expect(await anonymiseCommentsByAuthor(asUser(alice.id))).toBe(0)
   })
 })
 
@@ -98,7 +99,7 @@ describe('promoteWorkspaceAdmin', () => {
     const ws = await createWorkspace(alice.id)
     await setMemberRole(ws.workspaceId, bob.id, 'editor')
 
-    await promoteWorkspaceAdmin(ws.workspaceId, alice.id, bob.id)
+    await promoteWorkspaceAdmin(wsAs(ws.workspaceId), alice.id, bob.id)
 
     const wsRow = await testDb().query<{ owner_id: number }>(
       `SELECT owner_id FROM workspaces WHERE workspace_id = $1`,
@@ -121,7 +122,7 @@ describe('promoteWorkspaceAdmin', () => {
     await setMemberRole(ws.workspaceId, bob.id, 'admin')
     await setMemberRole(ws.workspaceId, carol.id, 'editor')
 
-    await promoteWorkspaceAdmin(ws.workspaceId, bob.id, carol.id)
+    await promoteWorkspaceAdmin(wsAs(ws.workspaceId), bob.id, carol.id)
 
     const wsRow = await testDb().query<{ owner_id: number }>(
       `SELECT owner_id FROM workspaces WHERE workspace_id = $1`,
@@ -142,8 +143,8 @@ describe('promoteWorkspaceAdmin', () => {
     const ws = await createWorkspace(alice.id)
     await setMemberRole(ws.workspaceId, bob.id, 'admin')
 
-    await promoteWorkspaceAdmin(ws.workspaceId, alice.id, bob.id)
-    await promoteWorkspaceAdmin(ws.workspaceId, alice.id, bob.id)
+    await promoteWorkspaceAdmin(wsAs(ws.workspaceId), alice.id, bob.id)
+    await promoteWorkspaceAdmin(wsAs(ws.workspaceId), alice.id, bob.id)
 
     const wsRow = await testDb().query<{ owner_id: number }>(
       `SELECT owner_id FROM workspaces WHERE workspace_id = $1`,
@@ -167,7 +168,7 @@ describe('removeAllMemberships', () => {
     await setMemberRole(ws1.workspaceId, alice.id, 'editor')
     await setMemberRole(ws2.workspaceId, alice.id, 'viewer')
 
-    const removed = await removeAllMemberships(alice.id)
+    const removed = await removeAllMemberships(asUser(alice.id))
     expect(removed.sort()).toEqual(
       [ws1.workspaceId, ws2.workspaceId, ws3.workspaceId].sort()
     )
@@ -181,7 +182,7 @@ describe('removeAllMemberships', () => {
 
   it('returns empty array when the user has no memberships', async () => {
     const u = await createUser()
-    expect(await removeAllMemberships(u.id)).toEqual([])
+    expect(await removeAllMemberships(asUser(u.id))).toEqual([])
   })
 })
 
@@ -206,7 +207,7 @@ describe('deleteAiSessionsByUser', () => {
       [doc2.docId, u2.id]
     )
 
-    const removed = await deleteAiSessionsByUser(u.id)
+    const removed = await deleteAiSessionsByUser(asUser(u.id))
     expect(removed).toBe(1)
 
     const remaining = await testDb().query<{ count: string }>(`SELECT COUNT(*) AS count FROM ai_sessions`)
@@ -231,7 +232,7 @@ describe('deleteThemesByUser', () => {
       [bob.id]
     )
 
-    const removed = await deleteThemesByUser(alice.id)
+    const removed = await deleteThemesByUser(asUser(alice.id))
     expect(removed).toBe(1)
 
     const remaining = await testDb().query<{ count: string }>(`SELECT COUNT(*) AS count FROM themes`)
@@ -251,7 +252,7 @@ describe('listOwnedDocIds', () => {
     await createDoc({ ownerId: bob.id })
     await createDoc({ ownerId: null }) // anonymous
 
-    const owned = await listOwnedDocIds(alice.id)
+    const owned = await listOwnedDocIds(asUser(alice.id))
     expect(owned).toEqual([aliceDoc.docId])
   })
 })
@@ -268,7 +269,7 @@ describe('listMembershipsForUser', () => {
     const ws2 = await createWorkspace(bob.id)
     await setMemberRole(ws2.workspaceId, alice.id, 'editor')
 
-    const m = await listMembershipsForUser(alice.id)
+    const m = await listMembershipsForUser(asUser(alice.id))
     expect(m.length).toBe(2)
     const byWs = Object.fromEntries(m.map(r => [r.workspaceId, r]))
     expect(byWs[ws1.workspaceId]).toMatchObject({ role: 'admin', ownerId: alice.id })
@@ -296,7 +297,7 @@ describe('listOtherMembers', () => {
     await setMemberRole(ws.workspaceId, bob.id, 'editor')
     await setMemberRole(ws.workspaceId, carol.id, 'viewer')
 
-    const others = await listOtherMembers(ws.workspaceId, alice.id)
+    const others = await listOtherMembers(wsAs(ws.workspaceId), alice.id)
     expect(others.map(o => o.userId)).toEqual([bob.id, carol.id])
     expect(others[0]!.role).toBe('editor')
     expect(others[1]!.role).toBe('viewer')
@@ -305,7 +306,7 @@ describe('listOtherMembers', () => {
   it('returns empty when the user is sole member', async () => {
     const alice = await createUser()
     const ws = await createWorkspace(alice.id)
-    expect(await listOtherMembers(ws.workspaceId, alice.id)).toEqual([])
+    expect(await listOtherMembers(wsAs(ws.workspaceId), alice.id)).toEqual([])
   })
 })
 
@@ -326,7 +327,7 @@ describe('deleteUserRow', () => {
       [doc.docId, u.id]
     )
 
-    await deleteUserRow(u.id)
+    await deleteUserRow(asUser(u.id))
 
     const userRow = await testDb().query(`SELECT id FROM users WHERE id = $1`, [u.id])
     expect(userRow.rows.length).toBe(0)
@@ -342,6 +343,6 @@ describe('deleteUserRow', () => {
   })
 
   it('throws when the user is already gone', async () => {
-    await expect(deleteUserRow(99_999_999)).rejects.toThrow(/already gone/)
+    await expect(deleteUserRow(asUser(99_999_999))).rejects.toThrow(/already gone/)
   })
 })

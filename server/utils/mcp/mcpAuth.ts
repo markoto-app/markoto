@@ -1,11 +1,12 @@
 import { createHash, randomBytes } from 'node:crypto'
-import { eq, sql } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 import * as Sentry from '@sentry/nuxt'
-import { mcpPersonalTokens, mcpSessions } from '../../db/schema'
-import { useDatabase } from '../platform/database'
+import { findMcpTokenByHash, touchMcpTokenByHash } from '../../repos/access/mcpTokens'
+import { insertMcpToken, upsertMcpSession } from '../../repos/mcpTokens'
+import { proveSelf } from '../access/userProof'
 import { useValkey } from '../platform/valkey'
 import { MCP_SCOPES, type McpScope } from '~~/shared/api/account'
+import type { UserScope } from '../../repos/proofs'
 
 // MCP Personal Access Token primitives.
 //
@@ -88,7 +89,8 @@ export function generateMcpToken(): { plaintext: string, hash: string } {
 }
 
 export interface IssueMcpTokenInput {
-  userId: number
+  /** The user the token acts as, issuing it for themselves. */
+  self: UserScope
   name: string
   scopes: McpScope[]
   expiresAt?: Date | null
@@ -109,19 +111,13 @@ export async function issueMcpToken(input: IssueMcpTokenInput): Promise<{
 }> {
   const { plaintext, hash } = generateMcpToken()
   const tokenId = `mkt_pat_${nanoid(16)}`
-  const db = useDatabase()
-  const inserted = await db.insert(mcpPersonalTokens).values({
+  const row = await insertMcpToken(input.self, {
     tokenId,
-    userId: input.userId,
     name: input.name,
     tokenHash: hash,
     scopes: input.scopes,
     expiresAt: input.expiresAt ?? null
-  }).returning({
-    tokenId: mcpPersonalTokens.tokenId,
-    createdAt: mcpPersonalTokens.createdAt
   })
-  const row = inserted[0]
   if (!row) {
     // Drizzle .returning() always populates on a successful INSERT — this
     // branch is purely a TS-narrow + defense against future SQL drift.
@@ -183,16 +179,7 @@ export async function verifyMcpPat(plaintextOrHeader: string | null | undefined)
     return cached
   }
 
-  const db = useDatabase()
-  const rows = await db.select({
-    tokenId: mcpPersonalTokens.tokenId,
-    userId: mcpPersonalTokens.userId,
-    scopes: mcpPersonalTokens.scopes,
-    revokedAt: mcpPersonalTokens.revokedAt,
-    expiresAt: mcpPersonalTokens.expiresAt
-  }).from(mcpPersonalTokens).where(eq(mcpPersonalTokens.tokenHash, hash)).limit(1)
-
-  const row = rows[0]
+  const row = await findMcpTokenByHash(hash)
   if (!row) return null
   if (row.revokedAt !== null) return null
   if (row.expiresAt !== null && row.expiresAt.getTime() <= Date.now()) return null
@@ -234,10 +221,7 @@ async function bumpLastUsed(hash: string): Promise<void> {
     return // Valkey down — skip the bump
   }
   try {
-    const db = useDatabase()
-    await db.update(mcpPersonalTokens)
-      .set({ lastUsedAt: new Date() })
-      .where(eq(mcpPersonalTokens.tokenHash, hash))
+    await touchMcpTokenByHash(hash)
   } catch {
     // Best-effort; failure here is harmless.
   }
@@ -312,34 +296,13 @@ export async function touchMcpSession(input: TouchMcpSessionInput): Promise<void
   }
 
   try {
-    const db = useDatabase()
-    // UPSERT semantics:
-    //   - INSERT for the first call (no existing row)
-    //   - UPDATE last_active_at for subsequent calls
-    //   - client_name + user_agent are first-writer-wins via COALESCE
-    //     on the existing row's value (never overwrite a real value
-    //     with NULL)
-    //   - token_id is first-writer-wins as well (see the conflict set)
-    await db.insert(mcpSessions)
-      .values({
-        mcpSessionId: input.mcpSessionId,
-        userId: input.userId,
-        tokenId: input.tokenId,
-        clientName: input.clientName ?? null,
-        userAgent: input.userAgent ?? null
-      })
-      .onConflictDoUpdate({
-        target: mcpSessions.mcpSessionId,
-        set: {
-          // token_id is first-writer-wins too: the /mcp middleware binds a
-          // session to the token that created it and refuses any other
-          // token, so the creating credential is the one to record.
-          lastActiveAt: new Date(),
-          tokenId: sql`coalesce(${mcpSessions.tokenId}, ${input.tokenId})`,
-          clientName: sql`coalesce(${mcpSessions.clientName}, ${input.clientName ?? null})`,
-          userAgent: sql`coalesce(${mcpSessions.userAgent}, ${input.userAgent ?? null})`
-        }
-      })
+    // The verified token's user (the middleware authenticated it).
+    await upsertMcpSession(proveSelf(input.userId), {
+      mcpSessionId: input.mcpSessionId,
+      tokenId: input.tokenId,
+      clientName: input.clientName ?? null,
+      userAgent: input.userAgent ?? null
+    })
   } catch (err) {
     // The whole point of mcp_sessions is forensic recoverability.
     // Silent loss defeats it. Capture for observability — the user's

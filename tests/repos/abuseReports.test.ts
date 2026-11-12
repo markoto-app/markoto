@@ -3,7 +3,7 @@ import { aliasedTable, desc, eq } from 'drizzle-orm'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser } from '../integration/setup/fixtures'
 import { abuseReports, users } from '../../server/db/schema'
-import { useDatabase } from '../../server/utils/platform/database'
+import { useDatabase } from '../../server/db/client'
 import { first } from '../helpers/assert'
 
 // Repo tests for the abuse-report table. The HTTP endpoint goes

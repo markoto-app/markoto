@@ -19,8 +19,8 @@ import { createDocBody } from '~~/shared/api/docs'
 export default defineApiHandler({
   access: allow.public('Anonymous document creation: per-client rate limits and the anonymous gate (terms + ALTCHA) apply to callers without a session', { session: 'optional' }),
   body: createDocBody,
-  handler: async ({ event, user, body }) => {
-    const ownerId = user?.id ?? null
+  handler: async ({ event, self, body }) => {
+    const ownerId = self?.userId ?? null
 
     // Rate limit ANONYMOUS creation only, per client key (IPv4 or IPv6 /64):
     // each doc is a Postgres row + Y.js state living until the inactive-doc
@@ -57,7 +57,7 @@ export default defineApiHandler({
       : undefined
 
     const result = await createDocument({
-      ownerId,
+      owner: self,
       anonCreatorKeyHash,
       anonTermsAcceptance: acceptance ?? undefined,
       workspaceId: body?.workspaceId ?? null,

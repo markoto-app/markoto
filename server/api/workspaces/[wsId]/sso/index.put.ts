@@ -19,19 +19,19 @@ export default defineApiHandler({
   invalidCode: 'sso/invalid-settings',
   plan: { feature: 'sso', message: 'Single sign-on is part of the Business plan.' },
   rateLimit: { namespace: 'sso-settings', max: 20, windowMs: 10 * MINUTE_MS, key: 'user', error: 'sso/rate-limited' },
-  handler: async ({ event, user, wsId, body }) => {
+  handler: async ({ event, wsId, body, workspaceAccess }) => {
     const existing = await getSsoConnectionForWorkspace(wsId)
     // The IdP URL is checked against the SSRF policy here (and again on every use).
     const fields = await parseSsoSettings(body, existing, wsId)
-    const { connection, idpChanged } = await upsertSsoConnection({ id: existing?.id ?? nanoid(16), workspaceId: wsId, createdByUserId: user.id, fields })
+    const { connection, idpChanged } = await upsertSsoConnection(workspaceAccess, { id: existing?.id ?? nanoid(16), fields })
     await appendAuditEvent({
-      actorUserId: user.id,
+      by: workspaceAccess,
       actorIp: getClientIp(event),
       scope: 'workspace',
       scopeId: wsId,
       action: AUDIT_SSO_CONNECTION_SAVED,
       metadata: { protocol: connection.protocol, created: !existing, idpChanged, status: connection.status }
     })
-    return ssoSettingsView(event, wsId, connection)
+    return ssoSettingsView(event, workspaceAccess, connection)
   }
 })

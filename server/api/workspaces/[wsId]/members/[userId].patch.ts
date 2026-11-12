@@ -16,13 +16,13 @@ export default defineApiHandler({
   access: allow.workspace('admin', { deny: 'workspace/admin-required' }),
   params: workspaceMemberParams,
   body: updateMemberRoleBody,
-  handler: async ({ event, user, wsId, params, body }) => {
+  handler: async ({ event, wsId, params, body, workspaceAccess }) => {
     const targetUserId = params.userId
     const nextRole = body.role
 
     let previousRole: 'admin' | 'editor' | 'viewer'
     try {
-      previousRole = await setRole(wsId, targetUserId, nextRole)
+      previousRole = await setRole(workspaceAccess, targetUserId, nextRole)
     } catch (e) {
       if (e instanceof NotFoundError) throw apiError('workspace/member-not-found')
       if (e instanceof LastAdminError) throw apiError('workspace/last-admin')
@@ -40,12 +40,12 @@ export default defineApiHandler({
     // admin) — because the alternative is maintaining a "does this change
     // reduce access" predicate, and any mistake there becomes a stale-JWT
     // security bug. Reconnect cost is a UI flicker; wrong call is a hole.
-    const wsDocIds = await listDocIdsInWorkspace(wsId)
+    const wsDocIds = await listDocIdsInWorkspace(workspaceAccess)
     notifySyncKickUser(targetUserId, wsDocIds)
 
     const ip = getClientIp(event)
     await appendAuditEvent({
-      actorUserId: user.id,
+      by: workspaceAccess,
       actorIp: ip,
       scope: 'workspace',
       scopeId: wsId,

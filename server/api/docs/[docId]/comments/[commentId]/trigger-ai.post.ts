@@ -21,10 +21,11 @@ export default defineApiHandler({
   access: allow.doc('write-content'),
   params: commentParams,
   body: triggerCommentAiBody,
-  handler: async ({ event, user, docId, params, body }) => {
+  handler: async ({ event, user, docAccess, self, params, body }) => {
     const replyId = body?.replyId ?? null
     const { sessionId } = await startCommentTrigger(event, {
-      docId,
+      docAccess,
+      self,
       commentId: params.commentId,
       replyId,
       user: { id: user.id, name: user.name }

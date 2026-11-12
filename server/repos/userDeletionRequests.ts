@@ -1,6 +1,7 @@
-import { and, eq, isNotNull, sql } from 'drizzle-orm'
+import { and, eq, isNotNull, lte, sql } from 'drizzle-orm'
+import type { SystemActor, UserScope } from './proofs'
 import { users } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { useDatabase } from '../db/client'
 import { ConflictError } from './errors'
 
 // GDPR Art. 17 account-deletion request lifecycle. These functions only touch
@@ -27,7 +28,8 @@ export interface AccountDeletionStatus {
  * to 409 so the client can surface "already scheduled" without a
  * duplicated audit trail.
  */
-export async function requestAccountDeletion(userId: number, graceDays: number): Promise<AccountDeletionStatus> {
+export async function requestAccountDeletion(self: UserScope, graceDays: number): Promise<AccountDeletionStatus> {
+  const userId = self.userId
   if (!Number.isInteger(graceDays) || graceDays < 1 || graceDays > 365) {
     // Repo-level shape rejection — should never trip from a controlled
     // caller (orchestrator passes the constant), but guard anyway so a
@@ -69,7 +71,7 @@ export async function requestAccountDeletion(userId: number, graceDays: number):
   // No row updated. Distinguish "already scheduled" (409) from "user
   // doesn't exist" (404 — but `requireValidatedUserSession` should
   // have ruled this out before we get here).
-  const status = await getAccountDeletionStatus(userId)
+  const status = await getAccountDeletionStatus(self)
   if (status === null) {
     throw new Error(`requestAccountDeletion: user ${userId} not found`)
   }
@@ -85,7 +87,8 @@ export async function requestAccountDeletion(userId: number, graceDays: number):
  * Cancel a scheduled deletion. Clears both timestamp columns. Throws
  * `ConflictError` if no deletion is scheduled.
  */
-export async function cancelAccountDeletion(userId: number): Promise<void> {
+export async function cancelAccountDeletion(self: UserScope): Promise<void> {
+  const userId = self.userId
   const db = useDatabase()
   const updated = await db.update(users)
     .set({
@@ -101,7 +104,7 @@ export async function cancelAccountDeletion(userId: number): Promise<void> {
   if (updated.length === 1) return
 
   // No row updated — disambiguate.
-  const status = await getAccountDeletionStatus(userId)
+  const status = await getAccountDeletionStatus(self)
   if (status === null) {
     throw new Error(`cancelAccountDeletion: user ${userId} not found`)
   }
@@ -113,7 +116,8 @@ export async function cancelAccountDeletion(userId: number): Promise<void> {
  * user does not exist; the two timestamp columns are null when no
  * deletion is scheduled.
  */
-export async function getAccountDeletionStatus(userId: number): Promise<AccountDeletionStatus | null> {
+export async function getAccountDeletionStatus(self: UserScope): Promise<AccountDeletionStatus | null> {
+  const userId = self.userId
   const db = useDatabase()
   const row = (await db
     .select({
@@ -128,4 +132,13 @@ export async function getAccountDeletionStatus(userId: number): Promise<AccountD
     deletionRequestedAt: row.deletionRequestedAt,
     deletionGraceUntil: row.deletionGraceUntil
   }
+}
+
+/** Accounts whose deletion grace period has ended (the deletion sweep's work list). */
+export async function listAccountsDueForDeletion(_by: SystemActor): Promise<number[]> {
+  const rows = await useDatabase()
+    .select({ id: users.id })
+    .from(users)
+    .where(and(isNotNull(users.deletionRequestedAt), isNotNull(users.deletionGraceUntil), lte(users.deletionGraceUntil, sql`now()`)))
+  return rows.map(r => r.id)
 }

@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nuxt'
 import { deleteDocument } from '../utils/documents/documentLifecycle'
 import { getDoc } from '../repos/documents'
+import { system } from '../repos/proofs'
 import { appendAuditEvent } from '../repos/audit'
 import { defineSweeper } from '../utils/platform/defineSweeper'
 import { loadInactiveAnonymousDocs, parseInactiveDocTtlDays } from '../utils/documents/inactiveDocSweep'
@@ -60,10 +61,12 @@ async function reapDocs(candidates: Array<{ docId: string }>): Promise<number> {
 /** Snapshot → delete → audit. Returns false if anything threw (Sentry already captured). */
 async function reapOneDoc(docId: string): Promise<boolean> {
   try {
-    const snapshot = await getDoc(docId)
-    await deleteDocument(docId)
+    const sweep = system('inactive-doc-sweep')
+    const doc = sweep.doc(docId)
+    const snapshot = await getDoc(doc)
+    await deleteDocument(doc)
     await appendAuditEvent({
-      actorUserId: null,
+      by: sweep,
       actorIp: null,
       scope: 'doc',
       scopeId: docId,

@@ -1,8 +1,6 @@
 import { nanoid } from 'nanoid'
-import { eq } from 'drizzle-orm'
 import { createWorkspace, countOwnedWorkspacesByUser } from '../../repos/workspaces'
-import { users } from '../../db/schema'
-import { useDatabase } from '../../utils/platform/database'
+import { getWorkspaceCreationFacts } from '../../repos/users'
 import type { PlanName } from '~~/shared/config/tiers'
 import { getTiers } from '~~/server/utils/billing/tierConfig'
 import { effectivePlan, limitRecovery } from '~~/server/utils/billing/billingMode'
@@ -13,23 +11,16 @@ import { createWorkspaceBody } from '~~/shared/api/workspaces'
 export default defineApiHandler({
   access: allow.user(),
   body: createWorkspaceBody,
-  handler: async ({ user, body }) => {
-    const userId = user.id
-
+  handler: async ({ self, body }) => {
     // Per-user workspace cap, tier-aware. Prevents the "spawn thousands
     // of workspaces to fan out uploads" fan-out vector — each workspace
     // independently has a 1 GB knowledge cap, so without a per-user
     // workspace limit a single account could pin TB of S3. The exact
     // number depends on the plan: Free=1, Pro=10, Team=30, Business=100.
     // Lapsed paid plans fall back to free-tier caps.
-    const db = useDatabase()
-    const planRows = await db.select({
-      plan: users.plan,
-      planValidUntil: users.planValidUntil,
-      dpaVersionAccepted: users.dpaVersionAccepted
-    }).from(users).where(eq(users.id, userId)).limit(1)
+    const facts = await getWorkspaceCreationFacts(self)
     // Lapsed paid plans and billing-off deployments both resolve to free.
-    const plan: PlanName = effectivePlan(planRows[0]?.plan ?? 'free', planRows[0]?.planValidUntil ?? null)
+    const plan: PlanName = effectivePlan(facts?.plan ?? 'free', facts?.planValidUntil ?? null)
     const cap = getTiers()[plan].workspacesOwned
 
     // GDPR Article 28 gate: the user is about to become a controller
@@ -44,12 +35,12 @@ export default defineApiHandler({
     // Only while the legal surfaces are on (hosted SaaS): the bundled DPA
     // names the hosted operator as processor. A self-hosted instance runs
     // its own contractual setup and shows no DPA step.
-    const acceptedDpa = planRows[0]?.dpaVersionAccepted ?? null
+    const acceptedDpa = facts?.dpaVersionAccepted ?? null
     if (legalSurfacesEnabled() && (acceptedDpa === null || acceptedDpa < DPA_VERSION)) {
       throw apiError('workspace/dpa-required', { currentDpaVersion: DPA_VERSION })
     }
 
-    const owned = await countOwnedWorkspacesByUser(userId)
+    const owned = await countOwnedWorkspacesByUser(self)
     if (owned >= cap) {
       throw apiError('workspace/cap-reached', { plan, cap, recovery: limitRecovery() })
     }
@@ -59,9 +50,8 @@ export default defineApiHandler({
     // createWorkspace writes the workspaces row AND the creator's admin
     // membership row in one transaction — neither can land without the
     // other, so the ≥1-admin invariant holds from t=0.
-    await createWorkspace({
+    await createWorkspace(self, {
       workspaceId,
-      ownerId: userId,
       name: body.name,
       description: body.description ?? null
     })

@@ -1,4 +1,4 @@
-import { SHARE_EXPIRY_MAX_DAYS } from '../../../../utils/documents/shareSettings'
+import { SHARE_EXPIRY_MAX_DAYS } from '../../../../utils/access/shareSettings'
 import { setShareSettings } from '../../../../repos/documents'
 import { appendAuditEvent } from '../../../../repos/audit'
 import { assertPlanFeature, resolveDocPlanFor } from '../../../../utils/billing/entitlements'
@@ -20,7 +20,7 @@ export default defineApiHandler({
   body: updateShareSettingsBody,
   invalidCode: 'share/invalid',
   rateLimit: { namespace: 'share-settings', max: SHARE_SETTINGS_RATE_LIMIT, windowMs: 10 * MINUTE_MS, key: 'user', error: 'share/rate-limited' },
-  handler: async ({ event, user, docId, doc, body }) => {
+  handler: async ({ event, docId, doc, docAccess, body }) => {
     let expiresAt: Date | null = doc.shareExpiresAt
     if (body?.expiresAt !== undefined) {
       expiresAt = body.expiresAt === null ? null : new Date(body.expiresAt)
@@ -35,14 +35,14 @@ export default defineApiHandler({
     const adds = (expiresAt !== null && expiresAt.getTime() !== doc.shareExpiresAt?.getTime()) || (noDownload && !doc.shareNoDownload)
     if (adds) assertPlanFeature(await resolveDocPlanFor(doc), 'shareControls', 'Link expiry and view-only sharing are part of the paid plans.')
 
-    await setShareSettings(docId, { shareExpiresAt: expiresAt, shareNoDownload: noDownload })
+    await setShareSettings(docAccess, { shareExpiresAt: expiresAt, shareNoDownload: noDownload })
     // An earlier expiry or view-only applies to visitors already in the
     // editor too: they re-authenticate and get a token (and download
     // rights) matching the new settings.
     if (tightensShareLink(doc, expiresAt, noDownload)) notifySyncReauthDocument(docId)
     if (expiresAt?.getTime() !== doc.shareExpiresAt?.getTime() || noDownload !== doc.shareNoDownload) {
       await appendAuditEvent({
-        actorUserId: user.id,
+        by: docAccess,
         actorIp: getClientIp(event),
         scope: 'doc',
         scopeId: docId,

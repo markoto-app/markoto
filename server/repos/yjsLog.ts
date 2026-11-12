@@ -1,5 +1,7 @@
 import type { PoolClient } from 'pg'
-import { useDatabasePool } from '../platform/database'
+import { sql } from 'drizzle-orm'
+import { executor, useDatabasePool, type TxHandle } from '../db/client'
+import type { DocAccess } from './proofs'
 
 // The app's access to a document's Y.js log (`yjs_updates`, layout in
 // server/db/schema/sync.ts). The sync server writes it (sync-server/src/yjs-store.ts);
@@ -35,7 +37,8 @@ function toId(v: string | number | null | undefined): number | null {
 }
 
 /** The document's newest row id (its current state), or null without rows. */
-export async function latestYjsId(docId: string): Promise<number | null> {
+export async function latestYjsId(doc: DocAccess<'view'>): Promise<number | null> {
+  const docId = doc.docId
   const r = await useDatabasePool().query<{ id: string | null }>(
     'SELECT max(id) AS id FROM yjs_updates WHERE doc_id = $1',
     [docId]
@@ -49,7 +52,8 @@ export async function latestYjsId(docId: string): Promise<number | null> {
  * ONE statement, so a concurrent prune can't remove rows between the two.
  * Throws `YjsHistoryCompactedError` below the history floor.
  */
-export async function readYjsUpdatesAt(docId: string, maxId: number): Promise<Uint8Array[]> {
+export async function readYjsUpdatesAt(doc: DocAccess<'view'>, maxId: number): Promise<Uint8Array[]> {
+  const docId = doc.docId
   const r = await useDatabasePool().query<{ floor: string | null, id: string | null, data: Buffer | null }>(
     `WITH f AS (
        SELECT (SELECT CASE WHEN kind = 'snapshot' THEN id END
@@ -77,7 +81,8 @@ export async function readYjsUpdatesAt(docId: string, maxId: number): Promise<Ui
  * state that can still be reconstructed (snapshots repeat state, which is
  * harmless). Used by the image GC to search all restorable versions.
  */
-export async function readAllYjsUpdates(docId: string): Promise<Uint8Array[]> {
+export async function readAllYjsUpdates(doc: DocAccess<'view'>): Promise<Uint8Array[]> {
+  const docId = doc.docId
   const r = await useDatabasePool().query<{ data: Buffer }>(
     'SELECT data FROM yjs_updates WHERE doc_id = $1 ORDER BY id',
     [docId]
@@ -90,7 +95,8 @@ export async function readAllYjsUpdates(docId: string): Promise<Uint8Array[]> {
  * same per-document lock the sync server takes, in its own transaction.
  * Returns the new row's id.
  */
-export async function appendYjsUpdate(docId: string, update: Uint8Array): Promise<number> {
+export async function appendYjsUpdate(doc: DocAccess<'write'>, update: Uint8Array): Promise<number> {
+  const docId = doc.docId
   const client: PoolClient = await useDatabasePool().connect()
   let broken = false
   try {
@@ -112,4 +118,18 @@ export async function appendYjsUpdate(docId: string, update: Uint8Array): Promis
   } finally {
     client.release(broken)
   }
+}
+
+/**
+ * Serialise restores of one document for the rest of `tx`
+ * (`pg_advisory_xact_lock`, released at commit or rollback).
+ */
+export async function lockDocumentForRestore(doc: DocAccess<'write'>, tx: TxHandle): Promise<void> {
+  await executor(tx).execute(sql`SELECT pg_advisory_xact_lock(hashtext(${doc.docId}))`)
+}
+
+/** `latestYjsId` read through the caller's transaction. */
+export async function latestYjsIdIn(doc: DocAccess<'view'>, tx: TxHandle): Promise<number | null> {
+  const r = await executor(tx).execute<{ id: string | null }>(sql`SELECT max(id) AS id FROM yjs_updates WHERE doc_id = ${doc.docId}`)
+  return toId(r.rows?.[0]?.id)
 }

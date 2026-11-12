@@ -18,16 +18,16 @@ export default defineApiHandler({
   body: publishDocBody,
   invalidCode: 'publish/invalid',
   rateLimit: { namespace: 'publish', max: PUBLISH_RATE_PER_HOUR, windowMs: HOUR_MS, key: 'user', error: 'publish/rate-limited' },
-  handler: async ({ event, user, docId, doc, body }) => {
+  handler: async ({ event, user, docId, doc, docAccess, body }) => {
     // Publishing makes the content public: refused while restricted
     // (publishDocument checks again after the render).
-    assertNotModerationRestricted(await getDoc(docId))
+    assertNotModerationRestricted(await getDoc(docAccess))
     const slug = body?.slug || undefined
     if (slug !== undefined && !PUBLISH_SLUG_RE.test(slug)) throw apiError('publish/slug-invalid', { field: 'slug' })
-    const before = await getPublishedPageSummary(docId)
-    const page = await publishDocument({ docId, workspaceId: doc.workspaceId, title: doc.title, userId: user.id, slug, indexable: body?.indexable })
+    const before = await getPublishedPageSummary(docAccess)
+    const page = await publishDocument({ doc: docAccess, title: doc.title, userId: user.id, slug, indexable: body?.indexable })
     await appendAuditEvent({
-      actorUserId: user.id,
+      by: docAccess,
       actorIp: getClientIp(event),
       scope: 'doc',
       scopeId: docId,

@@ -4,6 +4,7 @@ import { markExpiredJobs } from '../../repos/dataExportJobs'
 import { useS3Client } from '../storage/s3'
 import { useEnv } from '~~/shared/env/load'
 import { useLogger } from '../platform/logger'
+import { system } from '../../repos/proofs'
 
 const log = useLogger('data-export-expiry')
 
@@ -29,7 +30,7 @@ export interface DataExportExpirySweepResult {
 }
 
 export async function runDataExportExpirySweep(): Promise<DataExportExpirySweepResult> {
-  const flipped = await markExpiredJobs()
+  const flipped = await markExpiredJobs(system('data-export-expiry-sweep'))
   const result: DataExportExpirySweepResult = {
     expired: flipped.length,
     s3DeleteSucceeded: 0,

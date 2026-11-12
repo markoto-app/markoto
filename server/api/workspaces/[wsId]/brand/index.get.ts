@@ -8,8 +8,8 @@ import { BRAND_FONTS_PER_WORKSPACE, BRAND_IMAGES_PER_WORKSPACE } from '~~/shared
 // workspace's Brand kit tab.
 export default defineApiHandler({
   access: allow.workspace('member'),
-  handler: async ({ event, wsId, role }) => {
-    const assets = await listBrandAssets(wsId)
+  handler: async ({ event, wsId, role, workspaceAccess }) => {
+    const assets = await listBrandAssets(workspaceAccess)
     setHeader(event, 'cache-control', 'private, no-store')
     return {
       available: await brandKitAvailable(wsId),

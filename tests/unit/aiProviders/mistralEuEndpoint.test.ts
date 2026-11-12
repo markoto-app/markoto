@@ -82,8 +82,8 @@ describe('realtime client', () => {
 })
 
 describe('LiteLLM: every Mistral deployment is EU-pinned', () => {
-  const config = readFileSync(resolve(ROOT, 'infra/litellm/config.yaml'), 'utf8')
-  const handlers = readFileSync(resolve(ROOT, 'infra/litellm/custom_handlers.py'), 'utf8')
+  const config = readFileSync(resolve(ROOT, 'deploy/config/litellm/config.yaml'), 'utf8')
+  const handlers = readFileSync(resolve(ROOT, 'deploy/config/litellm/custom_handlers.py'), 'utf8')
 
   it('each `mistral/…` deployment carries api_base = the EU endpoint', () => {
     const blocks = config.split(/\n {2}- model_name: /).slice(1)

@@ -1,6 +1,4 @@
-import { aliasedTable, desc, eq, inArray } from 'drizzle-orm'
-import { abuseReports, moderationNotices, users } from '../../db/schema'
-import { useDatabase } from '../../utils/platform/database'
+import { listAbuseReportsForTriage, listNoticesForReports } from '../../repos/abuseReports'
 import { listAbuseReportsQuery } from '~~/shared/api/legal'
 
 // Admin queue: abuse reports for triage, filterable by status (default: open +
@@ -12,67 +10,15 @@ const ALLOWED_STATUSES = ['open', 'acknowledged', 'actioned', 'dismissed'] as co
 export default defineApiHandler({
   access: allow.admin(),
   query: listAbuseReportsQuery,
-  handler: async ({ query }) => {
+  handler: async ({ query, adminActor }) => {
     const statuses: Array<(typeof ALLOWED_STATUSES)[number]> = !query.status
       ? ['open', 'acknowledged']
       : query.status === 'all' ? [...ALLOWED_STATUSES] : [query.status]
 
     const limit = query.limit
 
-    const db = useDatabase()
-    // Two joins to `users` (reporter, actioning admin), hence the aliases.
-    const reporter = aliasedTable(users, 'reporter')
-    const actioner = aliasedTable(users, 'actioner')
-    const rows = await db
-      .select({
-        reportId: abuseReports.reportId,
-        docId: abuseReports.docId,
-        category: abuseReports.category,
-        body: abuseReports.body,
-        status: abuseReports.status,
-        notes: abuseReports.notes,
-        createdAt: abuseReports.createdAt,
-        acknowledgedAt: abuseReports.acknowledgedAt,
-        actionedAt: abuseReports.actionedAt,
-        reporterIpTruncated: abuseReports.reporterIpTruncated,
-        reporterUserId: abuseReports.reporterUserId,
-        reporterEmailSnapshot: abuseReports.reporterEmail,
-        reporterNameSnapshot: abuseReports.reporterName,
-        contentUrl: abuseReports.contentUrl,
-        goodFaithConfirmedAt: abuseReports.goodFaithConfirmedAt,
-        decisionAction: abuseReports.decisionAction,
-        decisionRule: abuseReports.decisionRule,
-        decisionExplanation: abuseReports.decisionExplanation,
-        reporterName: reporter.name,
-        reporterEmail: reporter.email,
-        actionedBy: abuseReports.actionedBy,
-        actionedByName: actioner.name,
-        actionedByEmail: actioner.email
-      })
-      .from(abuseReports)
-      .leftJoin(reporter, eq(reporter.id, abuseReports.reporterUserId))
-      .leftJoin(actioner, eq(actioner.id, abuseReports.actionedBy))
-      .where(inArray(abuseReports.status, statuses))
-      .orderBy(desc(abuseReports.createdAt))
-      .limit(limit)
-
-    // Every notice we produced for these reports (receipt, decision,
-    // statement of reasons — incl. the ones we could not deliver).
-    const notices = rows.length === 0
-      ? []
-      : await db
-          .select({
-            reportId: moderationNotices.reportId,
-            kind: moderationNotices.kind,
-            recipientRole: moderationNotices.recipientRole,
-            status: moderationNotices.status,
-            subject: moderationNotices.subject,
-            body: moderationNotices.body,
-            createdAt: moderationNotices.createdAt
-          })
-          .from(moderationNotices)
-          .where(inArray(moderationNotices.reportId, rows.map(r => r.reportId)))
-          .orderBy(moderationNotices.createdAt)
+    const rows = await listAbuseReportsForTriage(adminActor, statuses, limit)
+    const notices = await listNoticesForReports(adminActor, rows.map(r => r.reportId))
 
     return rows.map(r => ({
       reportId: r.reportId,

@@ -67,8 +67,8 @@ function buildDbStub() {
   }
 }
 
-vi.mock('../../../server/utils/platform/database', () => ({
-  useDatabase: vi.fn(() => {
+vi.mock('../../../server/db/client', () => {
+  const useDatabase = vi.fn(() => {
     const stub = buildDbStub()
     // db.transaction(cb) just runs the callback with the same stub
     // shape — fine for unit tests since we don't model isolation.
@@ -77,7 +77,13 @@ vi.mock('../../../server/utils/platform/database', () => ({
       transaction: vi.fn(async (cb: (tx: unknown) => unknown) => cb(stub))
     }
   })
-}))
+  return {
+    useDatabase,
+    withTransaction: async (cb: (tx: unknown) => unknown) => useDatabase().transaction(cb),
+    executor: (tx?: unknown) => tx ?? useDatabase(),
+    asTxHandle: (tx: unknown) => tx
+  }
+})
 
 // The price catalogue maps this test price id to Pro (monthly, EUR): prices are identified by lookup key or
 // by the NUXT_STRIPE_PRICE_IDS override, read per call.

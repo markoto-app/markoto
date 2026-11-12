@@ -2,7 +2,8 @@ import { z } from 'zod'
 import { defineMetaTool, pickStringArg, toolError, toolOk, type ToolResult } from './toolDefinition'
 import type { MetaToolContext } from '../../agentic/toolContext'
 import { getKnowledgeWithMarkdown, searchKnowledge } from '../../../repos/knowledge'
-import { getMemberRole } from '../../../repos/workspaceMembers'
+import { proveWorkspaceAccess } from '../../access/workspaceAccess'
+import type { WorkspaceAccess } from '../../../repos/proofs'
 import { embedQuery } from '../../knowledge/embeddings'
 import { assertKnowledgeEmbeddingsReady } from '../../knowledge/knowledgeEmbeddingsStatus'
 
@@ -51,21 +52,21 @@ const KNOWLEDGE_FILE_CHAR_CAP = 40_000
  * REST list endpoint). We reject only on "no membership at all".
  */
 /** The document's workspace when the invoker is (still) a member of it, else the refusal. */
-async function verifyWorkspaceMembership(session: MetaToolContext): Promise<{ workspaceId: string, denied?: undefined } | { denied: string }> {
+async function verifyWorkspaceMembership(session: MetaToolContext): Promise<{ workspace: WorkspaceAccess<'member'>, denied?: undefined } | { denied: string }> {
   if (!session.workspaceId) {
     return { denied: 'Error: this tool is only available for documents inside a workspace.' }
   }
-  const role = await getMemberRole(session.workspaceId, session.initiatorUserId)
-  if (!role) {
+  const workspace = await proveWorkspaceAccess(session.initiatorUserId, session.workspaceId, 'member')
+  if (!workspace) {
     return { denied: 'Error: your membership in this workspace has been revoked. Knowledge tools are unavailable.' }
   }
-  return { workspaceId: session.workspaceId }
+  return { workspace }
 }
 
 async function handleSearchKnowledge(session: MetaToolContext, input: z.output<typeof SearchKnowledgeArgs>): Promise<ToolResult> {
   const membership = await verifyWorkspaceMembership(session)
   if (membership.denied !== undefined) return toolError(membership.denied)
-  const { workspaceId } = membership
+  const { workspace } = membership
   const topK = input.top_k ?? 5
 
   session.updateStatus('tool', `Searching workspace knowledge for "${input.query.slice(0, 80)}"…`)
@@ -79,8 +80,7 @@ async function handleSearchKnowledge(session: MetaToolContext, input: z.output<t
     return toolError(`Error: failed to embed query: ${msg}`)
   }
 
-  const hits = await searchKnowledge({
-    workspaceId,
+  const hits = await searchKnowledge(workspace, {
     queryText: input.query,
     queryEmbedding,
     topK
@@ -115,13 +115,10 @@ async function handleGetKnowledgeFile(session: MetaToolContext, input: z.output<
 
   session.updateStatus('tool', `Reading knowledge file ${input.knowledge_id}…`)
 
-  const row = await getKnowledgeWithMarkdown(input.knowledge_id)
+  // Keyed on the session's workspace: an id of another workspace is not found.
+  const row = await getKnowledgeWithMarkdown(membership.workspace, input.knowledge_id)
   if (!row) {
     return toolError(`Error: knowledge_id "${input.knowledge_id}" not found. Use only ids from the <knowledge_files> block in the system prompt.`)
-  }
-  // Scope check — knowledge is workspace-scoped, session is workspace-scoped.
-  if (row.workspaceId !== session.workspaceId) {
-    return toolError(`Error: knowledge_id "${input.knowledge_id}" belongs to a different workspace.`)
   }
   if (row.status !== 'ready') {
     const errTail = row.errorMessage ? `: ${row.errorMessage}` : ''

@@ -8,12 +8,15 @@ import type { ToolContext, ToolStatusPhase } from '../agentic/toolContext'
 import type { ResolvedAiProviders } from '../aiProviders/resolve'
 import type { AiSessionChannel } from '../agentic/sessionChannel'
 import { useEnv } from '~~/shared/env/load'
+import type { DocAccess, UserScope, WorkspaceAccess } from '../../repos/proofs'
 
 // AiSession = ToolContext + the loop-only lifecycle plumbing the
 // runLoop needs (`provider` for telemetry, `destroy()` for the
 // finally-block teardown). Tool handlers see only the `ToolContext`
 // surface — see `server/utils/agentic/toolContext.ts` for the rationale.
 export interface AiSession extends ToolContext {
+  /** In-app sessions are only opened with write access (prompt route, `@ai` trigger). */
+  docAccess: DocAccess<'write'>
   provider: HocuspocusProvider
   /** Initiator-only channel: prompt, status messages, answers, confirmations. */
   channel: AiSessionChannel
@@ -33,6 +36,10 @@ export interface SessionMeta {
   channel: AiSessionChannel
   /** Workspace the doc belongs to, forwarded to the resulting AiSession. */
   workspaceId?: string | null
+  /** The proofs the session's tools act under (see `MetaToolContext`). */
+  docAccess: DocAccess<'write'>
+  self: UserScope
+  workspaceAccess: WorkspaceAccess<'member'> | null
   /** Billing attribution target, resolved by the caller. */
   attributedTo: AttributedTo
   /** Plan that applies to the session. */
@@ -186,6 +193,9 @@ export async function createAiSession(
     docId,
     initiatorUserId: meta.initiatorUserId,
     workspaceId: meta.workspaceId ?? null,
+    self: meta.self,
+    docAccess: meta.docAccess,
+    workspaceAccess: meta.workspaceAccess,
     ydoc: entry.ydoc,
     ytext: entry.ytext,
     ymeta: entry.ymeta,

@@ -5,8 +5,8 @@ import { listWorkspaceInvites } from '../../../../repos/workspaceInvites'
 // whether the address belongs to an account.
 export default defineApiHandler({
   access: allow.workspace('admin', { deny: 'workspace/admin-required' }),
-  handler: async ({ wsId }) => {
-    const rows = await listWorkspaceInvites(wsId, new Date())
+  handler: async ({ workspaceAccess }) => {
+    const rows = await listWorkspaceInvites(workspaceAccess, new Date())
     return rows.map(r => ({
       inviteId: r.inviteId,
       email: r.email,

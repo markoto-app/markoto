@@ -10,6 +10,7 @@ import type { CrossBoundaryGuard } from '../crossBoundary'
 import { finalizeSessionProvenance } from '../sessionProvenance'
 import { loopErrorMessage } from '../loopErrorMessage'
 import type { SessionWorkspace, OpenedSession } from './sessionSetup'
+import type { DocAccess, UserScope } from '../../../repos/proofs'
 
 // The background part of an AI session (editor prompt or `@ai` comment
 // trigger): open the AI's Y.js client, build the taint gate, run the loop,
@@ -20,6 +21,10 @@ import type { SessionWorkspace, OpenedSession } from './sessionSetup'
 export interface AgentSessionSpec {
   docId: string
   userId: number
+  /** Write access to the document, proven for the initiator by the route. */
+  docAccess: DocAccess<'write'>
+  self: UserScope
+  workspace: SessionWorkspace
   session: OpenedSession
   systemPrompt: string
   /** The first user message (the prompt / seed, wrapped with the editor state). */
@@ -68,6 +73,9 @@ export async function runAgentSession(spec: AgentSessionSpec): Promise<void> {
       initiatorColor: session.initiatorColor,
       channel: session.channel,
       workspaceId: spec.workspaceId,
+      docAccess: spec.docAccess,
+      self: spec.self,
+      workspaceAccess: spec.workspace.workspaceAccess,
       attributedTo: session.billingContext.attributedTo,
       plan: session.billingContext.plan,
       periodStart: session.billingContext.periodStart,
@@ -83,7 +91,7 @@ export async function runAgentSession(spec: AgentSessionSpec): Promise<void> {
     crossBoundary = await buildSessionGuard({
       docId: spec.docId,
       initiatorUserId: spec.userId,
-      workspaceId: spec.workspaceId,
+      workspaceAccess: spec.workspace.workspaceAccess,
       ydoc: aiSession.ydoc,
       channel: session.channel,
       invokerText: [spec.invokerText],

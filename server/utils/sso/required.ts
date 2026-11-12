@@ -1,4 +1,4 @@
-import { getMemberRoleIgnoringSso } from '../../repos/workspaceMembers'
+import { getMemberRoleIgnoringSso } from '../access/workspaceAccess'
 import { getSsoConnectionForWorkspace } from '../../repos/sso'
 import { apiError } from '../api/apiError'
 

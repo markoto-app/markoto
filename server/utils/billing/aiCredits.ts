@@ -1,9 +1,6 @@
-import { eq } from 'drizzle-orm'
-import { Pool } from 'pg'
 import * as Sentry from '@sentry/nuxt'
-import { users } from '../../db/schema'
-import { useDatabase } from '../platform/database'
-import { litellmDbUrl } from '../litellm/litellmDb'
+import { getUserPlanAndKeyId } from '../../repos/plans'
+import { sumKeySpend, sumTeamSpend } from '../../repos/litellmSpend'
 import { getTiers } from './tierConfig'
 import { effectivePlan, isBillingEnabled } from './billingMode'
 import { planToBudgetUsd } from '~~/shared/billing/aiPoints'
@@ -39,12 +36,6 @@ const log = useLogger('ai-credits')
 //   Expiry  = 12 months after purchase (`expireGrants`).
 // The plan allowance is always used before purchased credits.
 
-let cachedPool: Pool | null = null
-function spendDb(): Pool {
-  if (!cachedPool) cachedPool = new Pool({ connectionString: litellmDbUrl(), max: 2 })
-  return cachedPool
-}
-
 function isStubMode(): boolean {
   return useEnv().test.litellmStub
 }
@@ -63,25 +54,17 @@ export async function monthSpendUsd(subject: CreditSubject, period: string): Pro
   if (isStubMode()) return 0
   const { from, to } = monthBounds(period)
   if (subject.type === 'user') {
-    const keyId = (await useDatabase().select({ keyId: users.litellmKeyId }).from(users).where(eq(users.id, Number(subject.id))).limit(1))[0]?.keyId
+    const keyId = (await getUserPlanAndKeyId(Number(subject.id)))?.keyId
     if (!keyId) return 0
-    const r = await spendDb().query<{ spend: number | null }>(
-      'SELECT coalesce(sum(spend), 0)::float8 AS spend FROM "LiteLLM_SpendLogs" WHERE api_key = $1 AND "startTime" >= $2 AND "startTime" < $3',
-      [keyId, from, to]
-    )
-    return Number(r.rows[0]?.spend ?? 0)
+    return sumKeySpend(keyId, from, to)
   }
-  const r = await spendDb().query<{ spend: number | null }>(
-    'SELECT coalesce(sum(spend), 0)::float8 AS spend FROM "LiteLLM_SpendLogs" WHERE team_id = $1 AND "startTime" >= $2 AND "startTime" < $3',
-    [workspaceTeamId(subject.id), from, to]
-  )
-  return Number(r.rows[0]?.spend ?? 0)
+  return sumTeamSpend(workspaceTeamId(subject.id), from, to)
 }
 
 /** The subject's plan budget for a month, USD (without credits). */
 export async function planBudgetUsd(subject: CreditSubject): Promise<number> {
   if (subject.type === 'user') {
-    const row = (await useDatabase().select({ plan: users.plan, planValidUntil: users.planValidUntil }).from(users).where(eq(users.id, Number(subject.id))).limit(1))[0]
+    const row = await getUserPlanAndKeyId(Number(subject.id))
     return row ? planToBudgetUsd(effectivePlan(row.plan, row.planValidUntil), getTiers()) : 0
   }
   const pool = await getPooledWorkspace(subject.id)
@@ -93,7 +76,7 @@ export async function recomputeCreditBudget(subject: CreditSubject): Promise<voi
   if (isStubMode()) return
   try {
     if (subject.type === 'user') {
-      const row = (await useDatabase().select({ plan: users.plan, planValidUntil: users.planValidUntil, keyId: users.litellmKeyId }).from(users).where(eq(users.id, Number(subject.id))).limit(1))[0]
+      const row = await getUserPlanAndKeyId(Number(subject.id))
       if (!row?.keyId) return // budget applied when the key is created
       const plan = effectivePlan(row.plan, row.planValidUntil)
       await setUserKeyMaxBudget(Number(subject.id), plan, await userKeyBudgetUsd(Number(subject.id), plan))

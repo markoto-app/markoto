@@ -1,6 +1,7 @@
 import { and, eq, gt, isNull, lt } from 'drizzle-orm'
 import { waitlistSignups } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { useDatabase } from '../db/client'
+import type { SystemActor, UserScope } from './proofs'
 
 // `waitlist_signups` repository — the paid-plans waitlist.
 //
@@ -137,7 +138,8 @@ export type WaitlistSignupExport = {
  * projection — token hashes are internal secrets, not personal data
  * the person needs, and exporting them would only widen their exposure.
  */
-export async function listWaitlistSignupsForUser(userId: number): Promise<WaitlistSignupExport[]> {
+export async function listWaitlistSignupsForUser(user: UserScope): Promise<WaitlistSignupExport[]> {
+  const userId = user.userId
   const db = useDatabase()
   const rows = await db.select({
     email: waitlistSignups.email,
@@ -161,7 +163,7 @@ export async function listWaitlistSignupsForUser(userId: number): Promise<Waitli
  * Delete unconfirmed signups whose confirm window has passed. Returns
  * the number of rows removed (sweeper telemetry).
  */
-export async function deleteExpiredUnconfirmedWaitlistSignups(now: Date = new Date()): Promise<number> {
+export async function deleteExpiredUnconfirmedWaitlistSignups(_by: SystemActor, now: Date = new Date()): Promise<number> {
   const db = useDatabase()
   const rows = await db.delete(waitlistSignups)
     .where(and(

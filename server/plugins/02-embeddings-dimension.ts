@@ -1,7 +1,6 @@
 import * as Sentry from '@sentry/nuxt'
-import { useDatabasePool } from '../utils/platform/database'
 import { migrationsComplete } from '../utils/platform/migrations'
-import { reconcileEmbeddingColumn } from '../utils/knowledge/embeddingColumn'
+import { reconcileKnowledgeEmbeddingColumn } from '../repos/knowledgeEmbeddings'
 import { resetKnowledgeEmbeddingsStatus } from '../utils/knowledge/knowledgeEmbeddingsStatus'
 import { DEFAULT_EMBEDDINGS_DIMS, parseEmbeddingDims } from '../../shared/utils/runtime/embeddingConfig'
 import { useEnv } from '~~/shared/env/load'
@@ -26,7 +25,7 @@ export default defineNitroPlugin(() => {
       return
     }
     try {
-      const result = await reconcileEmbeddingColumn(useDatabasePool(), dims)
+      const result = await reconcileKnowledgeEmbeddingColumn(dims)
       resetKnowledgeEmbeddingsStatus()
       switch (result.action) {
         case 'noop':

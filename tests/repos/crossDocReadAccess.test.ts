@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb } from '../integration/setup/db'
 import { createUser, createWorkspace, createDoc, setMemberRole } from '../integration/setup/fixtures'
 import { decideTokenAccess, docStateOf } from '~~/shared/utils/documents/docPermissions'
-import { getDocWithActorRole } from '../../server/repos/documents'
+import { getDocWithActorRole } from '../../server/repos/access/docAuthz'
 
 // Cross-document access matrix for `view_other_document`. The handler
 // delegates the policy decision to `getDocWithActorRole` +

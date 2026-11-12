@@ -1,5 +1,5 @@
 import { resolveDocBrand } from '../../utils/brandKit/docBrand'
-import { listBrandAssets } from '../../repos/brandAssets'
+import { listBrandAssetsForDoc } from '../../repos/brandAssets'
 import { applyBrandLock } from '~~/shared/utils/theme/brandLock'
 import { mintFileAccessToken } from '../../utils/storage/fileAccessToken'
 import { getDoc } from '../../repos/documents'
@@ -25,7 +25,7 @@ export default defineApiHandler({
   // which check failed.
   access: allow.internal('render-token'),
   query: renderBootstrapQuery,
-  handler: async ({ query, render: payload }) => {
+  handler: async ({ query, render: payload, docAccess }) => {
     // The policy always sets it; checked so the handler can't run without a verified token.
     if (!payload) throw apiError('internal/forbidden')
     const docId = query.docId
@@ -54,7 +54,8 @@ export default defineApiHandler({
     }
 
     // The renderer may pass a stale docId if the doc was deleted since the snapshot.
-    const doc = await getDoc(docId)
+    if (!docAccess) throw apiError('internal/forbidden')
+    const doc = await getDoc(docAccess)
     if (!doc) {
       throw apiError('docs/not-found')
     }
@@ -66,7 +67,7 @@ export default defineApiHandler({
     // fallback: only the OWNER's editor persists them to the row, so other
     // editors' changes live in Y.js alone.
     const snapshotId = payload.snapshotId > 0 ? payload.snapshotId : null
-    const ydoc = await reconstructDocAtYjsId(docId, snapshotId)
+    const ydoc = await reconstructDocAtYjsId(docAccess, snapshotId)
     let markdown: string
     let properties: ReturnType<typeof resolveDocProperties>
     try {
@@ -88,7 +89,7 @@ export default defineApiHandler({
     //
     // Brand kit: a locked workspace design replaces everything but the cover text
     // (shared/utils/theme/brandLock.ts) before the CSS gate.
-    const brand = await resolveDocBrand(doc.workspaceId)
+    const brand = await resolveDocBrand(docAccess)
     const ownTheme = brand.lockedTheme ? applyBrandLock(properties.theme, brand.lockedTheme) : properties.theme
     const customCssAllowed = planHasFeature(await resolveDocPlanFor(doc), 'customCss')
     const css = customCssForPlan(ownTheme?.customCss, customCssAllowed)
@@ -109,12 +110,12 @@ export default defineApiHandler({
       // ONLY to `/api/files/<docId>/<fileId>` URLs naming one of these
       // (app/utils/preview/renderFileTokens.ts), never to arbitrary URLs in the
       // content.
-      fileIds: (await listConfirmedUploadsForDoc(docId)).map(u => u.fileId),
+      fileIds: (await listConfirmedUploadsForDoc(docAccess)).map(u => u.fileId),
       // Workspace brand kit: fonts to declare, and the files (fonts + logos) the
       // token may go to; `/api/brand/<file>` theme URLs load through
       // `/api/docs/<docId>/brand/<file>`.
       brandFonts: brand.fonts,
-      brandFiles: doc.workspaceId ? (await listBrandAssets(doc.workspaceId)).map(a => `${a.id}.${a.format}`) : [],
+      brandFiles: (await listBrandAssetsForDoc(docAccess)).map(a => `${a.id}.${a.format}`),
       // Public app origin(s) — absolute `https://<app>/api/files/…` URLs in
       // custom CSS are treated as this app's (the print page itself is
       // served from the internal container origin, so it can't tell).

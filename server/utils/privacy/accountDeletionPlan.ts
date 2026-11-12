@@ -1,17 +1,14 @@
 import { must } from '~~/shared/utils/must'
-import { and, eq, ne, notInArray, sql } from 'drizzle-orm'
 import {
-  aiSessions,
-  aiSessionMessages,
-  dataExportJobs,
-  documentComments,
-  documents,
-  themes,
-  users,
-  workspaceMembers,
-  workspaces
-} from '../../db/schema'
-import { useDatabase } from '../platform/database'
+  countAccountRecords,
+  countCommentsOnOthersDocs,
+  countWorkspaceContents,
+  getDeletionSubject,
+  listCoMembers,
+  listMembershipsForDeletion,
+  listOwnedDocsForDeletion
+} from '../../repos/accountDeletionPreview'
+import type { UserScope } from '../../repos/proofs'
 
 // Pre-computes — and exposes for transparent UX — the consequences of
 // deleting a user's account. The same module is used by:
@@ -68,96 +65,35 @@ export interface AccountDeletionPlan {
  * Compute the plan for a given user. Returns `null` if the user does
  * not exist (so the preview endpoint can 404 cleanly).
  */
-export async function planAccountDeletion(userId: number): Promise<AccountDeletionPlan | null> {
-  const db = useDatabase()
-
+export async function planAccountDeletion(user: UserScope): Promise<AccountDeletionPlan | null> {
+  const userId = user.userId
   // Bail early if the user is gone.
-  const userRow = (await db
-    .select({ id: users.id, stripeCustomerId: users.stripeCustomerId })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1))[0]
+  const userRow = await getDeletionSubject(user)
   if (!userRow) return null
 
-  // ── Owned docs ──────────────────────────────────────────────────
-  const owned = await db
-    .select({
-      docId: documents.docId,
-      title: documents.title,
-      accessMode: documents.accessMode,
-      workspaceId: documents.workspaceId
-    })
-    .from(documents)
-    .where(eq(documents.ownerId, userId))
-
-  // ── Comments authored elsewhere (excluding comments on owned docs;
-  //    those go away with the doc anyway) ──────────────────────────
-  const ownedDocIds = owned.map(d => d.docId)
-  const commentsCountRows = ownedDocIds.length === 0
-    ? await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(documentComments)
-        .where(eq(documentComments.authorId, userId))
-    : await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(documentComments)
-        .where(and(
-          eq(documentComments.authorId, userId),
-          // Bound parameters, never ids spliced into the SQL text.
-          notInArray(documentComments.docId, ownedDocIds)
-        ))
-  const commentsToAnonymise = Number(commentsCountRows[0]?.count ?? 0)
-
-  // ── Workspaces ──────────────────────────────────────────────────
-  const memberships = await db
-    .select({
-      workspaceId: workspaceMembers.workspaceId,
-      role: workspaceMembers.role,
-      ownerId: workspaces.ownerId,
-      wsName: workspaces.name
-    })
-    .from(workspaceMembers)
-    .innerJoin(workspaces, eq(workspaces.workspaceId, workspaceMembers.workspaceId))
-    .where(eq(workspaceMembers.userId, userId))
+  const owned = await listOwnedDocsForDeletion(user)
+  // Comments authored elsewhere (excluding comments on owned docs; those go
+  // away with the doc anyway).
+  const commentsToAnonymise = await countCommentsOnOthersDocs(user, owned.map(d => d.docId))
+  const memberships = await listMembershipsForDeletion(user)
 
   const workspacesPlan: WorkspaceFate[] = []
   for (const m of memberships) {
     // Other members ordered by joinedAt ascending (longest-tenured first).
     // Filter out the deleting user. We need name + previous role for
     // the promote case, so join users.
-    const others = await db
-      .select({
-        userId: workspaceMembers.userId,
-        role: workspaceMembers.role,
-        joinedAt: workspaceMembers.joinedAt,
-        name: users.name
-      })
-      .from(workspaceMembers)
-      .innerJoin(users, eq(users.id, workspaceMembers.userId))
-      .where(and(
-        eq(workspaceMembers.workspaceId, m.workspaceId),
-        sql`${workspaceMembers.userId} <> ${userId}`,
-        // Guests are not the team: never promoted, and a workspace
-        // left with only guests counts as having no other member.
-        ne(workspaceMembers.role, 'guest')
-      ))
-      .orderBy(workspaceMembers.joinedAt)
+    // Other members, longest-tenured first (name + previous role for the promote case).
+    const others = await listCoMembers(user, m.workspaceId)
 
     if (others.length === 0) {
       // Sole member → cascade-delete the workspace + everything in it.
-      const docCountRow = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(documents)
-        .where(eq(documents.workspaceId, m.workspaceId))
-      const knowledgeCountRow = await db.execute<{ count: number }>(sql`
-        SELECT COUNT(*)::int AS count FROM workspace_knowledge WHERE workspace_id = ${m.workspaceId}
-      `)
+      const contents = await countWorkspaceContents(user, m.workspaceId)
       workspacesPlan.push({
         kind: 'cascade_delete',
         workspaceId: m.workspaceId,
         name: m.wsName,
-        docCount: Number(docCountRow[0]?.count ?? 0),
-        knowledgeCount: Number(knowledgeCountRow.rows?.[0]?.count ?? 0)
+        docCount: contents.docCount,
+        knowledgeCount: contents.knowledgeCount
       })
     } else if (m.role === 'admin') {
       // User is admin (and there are other members). Promote the
@@ -187,32 +123,9 @@ export async function planAccountDeletion(userId: number): Promise<AccountDeleti
     }
   }
 
-  // ── AI usage (cascade via FK, but expose counts for transparency) ─
-  const aiSessionsRows = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(aiSessions)
-    .where(eq(aiSessions.initiatorUserId, userId))
-  const aiSessionMessagesRows = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(aiSessionMessages)
-    .where(eq(aiSessionMessages.userId, userId))
-  // ── Data export jobs (CASCADE on user delete, but the S3 blobs
-  //    don't go away with the row — collect keys for cleanup) ──────
-  const exportJobs = await db
-    .select({ jobId: dataExportJobs.jobId, s3Key: dataExportJobs.s3Key })
-    .from(dataExportJobs)
-    .where(eq(dataExportJobs.userId, userId))
-
-  // ── Activity / audit / consent surviving counts (transparency) ──
-  const activityCountRow = await db.execute<{ count: number }>(sql`
-    SELECT COUNT(*)::int AS count FROM activity_log WHERE user_id = ${userId}
-  `)
-  const auditCountRow = await db.execute<{ count: number }>(sql`
-    SELECT COUNT(*)::int AS count FROM audit_log WHERE actor_user_id = ${userId}
-  `)
-  const consentCountRow = await db.execute<{ count: number }>(sql`
-    SELECT COUNT(*)::int AS count FROM consent_log WHERE user_id = ${userId}
-  `)
+  // AI usage, export jobs (their S3 blobs need cleanup) and the rows that
+  // survive anonymised: counts for transparency.
+  const records = await countAccountRecords(user)
 
   return {
     userId,
@@ -224,14 +137,14 @@ export async function planAccountDeletion(userId: number): Promise<AccountDeleti
     })),
     commentsToAnonymise,
     workspaces: workspacesPlan,
-    aiSessionsToDelete: Number(aiSessionsRows[0]?.count ?? 0),
-    aiSessionMessagesToDelete: Number(aiSessionMessagesRows[0]?.count ?? 0),
-    dataExportJobsToDelete: exportJobs.map(j => ({ jobId: j.jobId, s3Key: j.s3Key })),
+    aiSessionsToDelete: records.aiSessions,
+    aiSessionMessagesToDelete: records.aiSessionMessages,
+    dataExportJobsToDelete: records.exportJobs.map(j => ({ jobId: j.jobId, s3Key: j.s3Key })),
     stripeCustomerToDelete: userRow.stripeCustomerId,
     rowsRetainedAnonymised: {
-      activityLog: Number(activityCountRow.rows?.[0]?.count ?? 0),
-      auditLog: Number(auditCountRow.rows?.[0]?.count ?? 0),
-      consentLog: Number(consentCountRow.rows?.[0]?.count ?? 0)
+      activityLog: records.activityLog,
+      auditLog: records.auditLog,
+      consentLog: records.consentLog
     }
   }
 }
@@ -263,14 +176,4 @@ export interface AccountDeletionSummary {
   workspaceKeysDeleted: number
   /** Personal AI credit top-ups. */
   creditGrantsDeleted: number
-}
-
-// Theme count for the executor; not in the preview because saved themes
-// are personal and always go away with the account.
-export async function countThemesByUser(userId: number): Promise<number> {
-  const db = useDatabase()
-  const rows = await db.select({ count: sql<number>`count(*)::int` })
-    .from(themes)
-    .where(eq(themes.userId, userId))
-  return Number(rows[0]?.count ?? 0)
 }

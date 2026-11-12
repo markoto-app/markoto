@@ -19,7 +19,7 @@ import { listMembersForDoc } from '../../../repos/workspaceMembers'
 // is already implicit and showing just themselves offline is clutter.
 export default defineApiHandler({
   access: allow.doc('lookup', { reason: 'Never refuses an existing document: callers without a member role in its workspace (outsiders, guests) get an empty roster.' }),
-  handler: async ({ user, doc }) => {
+  handler: async ({ user, doc, docAccess }) => {
     // No workspace ⇒ no roster to disclose.
     if (!doc.workspaceId) return { members: [] }
 
@@ -33,7 +33,8 @@ export default defineApiHandler({
     // from a workspace without SSO but still owns the doc).
     if (doc.workspaceRole === null && !isEffectiveDocOwner(doc, user.id)) return { members: [] }
 
-    const members = await listMembersForDoc(doc.workspaceId, doc.ownerId)
+    if (!docAccess.allows('view')) return { members: [] }
+    const members = await listMembersForDoc(docAccess)
     return { members }
   }
 })

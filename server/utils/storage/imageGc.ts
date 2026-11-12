@@ -5,15 +5,19 @@ import {
   listGcCandidateDocIds,
   listGcCandidatesForDoc,
   recordGcCheck,
+  findReferencedUploadPaths,
   type GcCandidate
 } from '../../repos/uploads'
-import { useDatabasePool } from '../platform/database'
-import { readAllYjsUpdates } from '../documents/yjsLog'
+import { readAllYjsUpdates } from '../../repos/yjsLog'
 import type { ObjectStore } from './objectStore'
 import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
 import { useEnv } from '~~/shared/env/load'
 import type { RawEnv } from '~~/shared/env/define'
 import { useLogger } from '../platform/logger'
+import { system } from '../../repos/proofs'
+
+/** The image garbage collector acts on every document's unreferenced uploads. */
+const IMAGE_GC = system('image-gc')
 
 const log = useLogger('image-gc')
 
@@ -98,19 +102,7 @@ export function findFileIdsInHistory(updates: Uint8Array[], fileIds: string[]): 
  * metadata. One scan per source for all paths together.
  */
 async function findExternallyReferencedPaths(paths: string[]): Promise<Set<string>> {
-  if (paths.length === 0) return new Set()
-  const res = await useDatabasePool().query<{ path: string }>(
-    `SELECT p.path FROM unnest($1::text[]) AS p(path)
-     WHERE EXISTS (SELECT 1 FROM yjs_updates y
-                   WHERE position(convert_to(p.path, 'UTF8') IN y.data) > 0)
-        OR EXISTS (SELECT 1 FROM documents d WHERE strpos(d.theme::text, p.path) > 0)
-        OR EXISTS (SELECT 1 FROM workspaces w WHERE strpos(w.default_theme::text, p.path) > 0)
-        OR EXISTS (SELECT 1 FROM themes t WHERE strpos(t.theme::text, p.path) > 0)
-        OR EXISTS (SELECT 1 FROM document_comments c WHERE strpos(c.body, p.path) > 0)
-        OR EXISTS (SELECT 1 FROM activity_log a WHERE strpos(a.metadata::text, p.path) > 0)`,
-    [paths]
-  )
-  return new Set(res.rows.map(r => r.path))
+  return findReferencedUploadPaths(IMAGE_GC, paths)
 }
 
 export interface ImageGcDeps {
@@ -128,7 +120,7 @@ export interface ImageGcResult {
 
 /** Split one doc's candidates into referenced / unreferenced. */
 async function classifyDocCandidates(docId: string, candidates: GcCandidate[]): Promise<{ referenced: GcCandidate[], unreferenced: GcCandidate[] } | null> {
-  const updates = await readAllYjsUpdates(docId)
+  const updates = await readAllYjsUpdates(IMAGE_GC.doc(docId))
   // No stored state at all: nothing to prove a negative against. Skip.
   if (updates.length === 0) return null
   const inHistory = findFileIdsInHistory(updates, candidates.map(c => c.fileId))
@@ -151,7 +143,7 @@ export async function runImageGc(deps: ImageGcDeps): Promise<ImageGcResult> {
   const now = deps.now ?? new Date()
   const confirmedBefore = new Date(now.getTime() - IMAGE_GC_CONFIRM_GRACE_MS)
   const deleteCutoff = new Date(now.getTime() - retentionDays * DAY_MS)
-  const docIds = await listGcCandidateDocIds({
+  const docIds = await listGcCandidateDocIds(IMAGE_GC, {
     confirmedBefore,
     checkedBefore: new Date(now.getTime() - IMAGE_GC_RECHECK_MS),
     limit: deps.maxDocs ?? IMAGE_GC_MAX_DOCS_PER_RUN
@@ -175,14 +167,14 @@ async function gcDoc(
   at: { confirmedBefore: Date, deleteCutoff: Date, now: Date },
   result: ImageGcResult
 ): Promise<void> {
-  const candidates = await listGcCandidatesForDoc(docId, at.confirmedBefore)
+  const candidates = await listGcCandidatesForDoc(IMAGE_GC.doc(docId), at.confirmedBefore)
   if (candidates.length === 0) return
   const classified = await classifyDocCandidates(docId, candidates)
   // Skipped docs still get their check stamped (as referenced), so the
   // rotation moves on and no stale stamp survives.
   const referenced = classified ? classified.referenced : candidates
   const unreferenced = classified ? classified.unreferenced : []
-  await recordGcCheck({
+  await recordGcCheck(IMAGE_GC, {
     referencedIds: referenced.map(c => c.id),
     unreferencedIds: unreferenced.map(c => c.id),
     now: at.now
@@ -193,7 +185,7 @@ async function gcDoc(
   for (const c of unreferenced) {
     // Only a stamp from an EARLIER check can be old enough.
     if (!c.unreferencedSince || c.unreferencedSince >= at.deleteCutoff) continue
-    const s3Key = await deleteExpiredUnreferencedUpload(c.id, at.deleteCutoff)
+    const s3Key = await deleteExpiredUnreferencedUpload(IMAGE_GC, c.id, at.deleteCutoff)
     if (!s3Key) continue
     result.deleted++
     // Row first, object second: a failed S3 delete leaves an untracked

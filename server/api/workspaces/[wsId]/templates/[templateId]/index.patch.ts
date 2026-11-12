@@ -9,11 +9,11 @@ export default defineApiHandler({
   params: templateParams,
   body: updateTemplateBody,
   invalidCode: 'template/invalid',
-  handler: async ({ wsId, params: { templateId: id }, body }) => {
+  handler: async ({ params: { templateId: id }, body, workspaceAccess }) => {
     const patch: { name?: string, description?: string } = {}
     if (body?.name !== undefined) patch.name = body.name
     if (body?.description !== undefined) patch.description = body.description
-    if (Object.keys(patch).length && !(await updateWorkspaceTemplate(wsId, id, patch))) throw apiError('resource/not-found')
+    if (Object.keys(patch).length && !(await updateWorkspaceTemplate(workspaceAccess, id, patch))) throw apiError('resource/not-found')
     return { ok: true }
   }
 })

@@ -8,6 +8,7 @@ import { getDoc, type DocSnapshot } from '../../../server/repos/documents'
 import { splitMarkotoFrontmatter } from '../../../shared/utils/markdown/markdownFrontmatter'
 import { THEME_PRESETS } from '../../../shared/utils/theme/themePresets'
 import { defaultTheme } from '../../../shared/utils/theme/defaultTheme'
+import { asUser, docAs } from '../../helpers/access'
 
 // export_document_as_markdown (in-editor AI + MCP) writes the same file
 // as the editor's "Download Markdown": markoto frontmatter (theme + doc
@@ -18,11 +19,13 @@ vi.mock('../../../server/repos/documents', async (importOriginal) => {
   const actual = await importOriginal<object>()
   return {
     ...actual,
-    getDoc: vi.fn(),
-    // Share-link controls: the caller may download (no view-only link).
-    getDocWithActorRole: vi.fn(async () => ({ ownerId: null, workspaceId: null, accessMode: 'open-edit', ownerAccessSuspended: false, workspaceRole: null, isGuest: false, shareExpiresAt: null, shareNoDownload: false }))
+    getDoc: vi.fn()
   }
 })
+// Share-link controls: the caller may download (no view-only link).
+vi.mock('../../../server/repos/access/docAuthz', () => ({
+  getDocWithActorRole: vi.fn(async () => ({ ownerId: null, workspaceId: null, accessMode: 'open-edit', ownerAccessSuspended: false, workspaceRole: null, isGuest: false, shareExpiresAt: null, shareNoDownload: false }))
+}))
 const mockedGetDoc = vi.mocked(getDoc)
 
 const arxiv = THEME_PRESETS.find(p => p.id === 'arxiv')?.theme
@@ -60,6 +63,9 @@ function session(body: string, meta: Record<string, unknown> = {}): DocToolConte
     docId: 'doc1',
     initiatorUserId: 1,
     workspaceId: null,
+    self: asUser(1),
+    docAccess: docAs('doc1', 1),
+    workspaceAccess: null,
     sessionId: 's1',
     attributedTo: 'user:1',
     plan: 'free',

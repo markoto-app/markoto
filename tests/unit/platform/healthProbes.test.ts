@@ -17,7 +17,7 @@ const mockState = vi.hoisted(() => ({
   s3Send: async (): Promise<unknown> => ({})
 }))
 
-vi.mock('../../../server/utils/platform/database', () => ({
+vi.mock('../../../server/db/client', () => ({
   useDatabase: () => ({
     execute: () => mockState.dbExecute()
   })

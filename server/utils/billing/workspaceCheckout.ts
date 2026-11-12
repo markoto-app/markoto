@@ -19,6 +19,7 @@ import { countSeatsUsed, parseSeats } from './workspaceBilling'
 import { WORKSPACE_REF_PREFIX } from './stripeEvents/checkoutCompleted'
 import { checkoutTaxFields } from './checkoutSession'
 import { AUDIT_WORKSPACE_BILLING_CHECKOUT_STARTED, AUDIT_WORKSPACE_BILLING_PLAN_CHANGED } from '../../legal/auditActions'
+import type { UserScope, WorkspaceAccess } from '../../repos/proofs'
 
 // Buying Team / Business for a workspace, or changing the plan / billing
 // period of its live subscription (`POST /api/workspaces/:wsId/billing/checkout`,
@@ -35,8 +36,9 @@ import { AUDIT_WORKSPACE_BILLING_CHECKOUT_STARTED, AUDIT_WORKSPACE_BILLING_PLAN_
 // `billing/currency-locked` for the other.
 
 export interface WorkspaceCheckoutRequest {
-  wsId: string
-  userId: number
+  /** The workspace admin's proof; the admin is the billing admin of record. */
+  ws: WorkspaceAccess<'admin'>
+  self: UserScope
   plan: WorkspacePlanName
   interval: BillingInterval
   currency: Currency | undefined
@@ -55,7 +57,8 @@ interface CheckoutContext extends WorkspaceCheckoutRequest {
 }
 
 export async function startWorkspaceCheckout(event: H3Event, request: WorkspaceCheckoutRequest): Promise<PlanCheckoutResponse<WorkspacePlanName>> {
-  const { wsId, plan, interval } = request
+  const { plan, interval } = request
+  const wsId = request.ws.workspaceId
   const stripe = useStripeClient()
   if (!stripe) throw apiError('billing/not-configured')
 
@@ -80,7 +83,8 @@ export async function startWorkspaceCheckout(event: H3Event, request: WorkspaceC
 }
 
 async function changePlanInPlace(ctx: CheckoutContext, liveSub: Stripe.Subscription): Promise<PlanCheckoutResponse<WorkspacePlanName>> {
-  const { stripe, wsId, userId, plan, interval, existing, priceId } = ctx
+  const { stripe, ws, plan, interval, existing, priceId } = ctx
+  const wsId = ws.workspaceId
   const item = liveSub.items.data[0]
   if (!item) throw apiError('billing/plan-change-failed')
   if (item.price?.id === priceId) {
@@ -98,7 +102,7 @@ async function changePlanInPlace(ctx: CheckoutContext, liveSub: Stripe.Subscript
     throw apiError('billing/plan-change-failed')
   }
   await appendAuditEvent({
-    actorUserId: userId,
+    by: ws,
     actorIp: getClientIp(ctx.event),
     scope: 'billing',
     scopeId: wsId,
@@ -107,22 +111,23 @@ async function changePlanInPlace(ctx: CheckoutContext, liveSub: Stripe.Subscript
     after: { plan, interval },
     metadata: undefined
   })
-  await recordPaidTermsAcceptance(ctx.event, userId, { kind: 'plan', subject: { type: 'workspace', id: wsId }, item: `${plan}_${interval}` })
+  await recordPaidTermsAcceptance(ctx.event, ws, { kind: 'plan', subject: { type: 'workspace', id: wsId }, item: `${plan}_${interval}` })
   return { updated: true, plan }
 }
 
 async function openCheckout(ctx: CheckoutContext): Promise<PlanCheckoutResponse<WorkspacePlanName>> {
-  const { stripe, event, wsId, userId, plan, interval, currency, priceId } = ctx
+  const { stripe, event, ws, self, plan, interval, currency, priceId } = ctx
+  const wsId = ws.workspaceId
+  const userId = self.userId
   // New subscription: seats can't be fewer than the people already in it.
   const seats = parseSeats(ctx.seats)
-  const used = await countSeatsUsed(wsId)
+  const used = await countSeatsUsed(ws)
   if (seats < used) {
     throw apiError('billing/seats-below-members', { used })
   }
 
-  const [workspace, admin] = await Promise.all([getWorkspace(wsId), findUserById(userId)])
-  const customerId = await ensureWorkspaceCustomer(stripe, {
-    workspaceId: wsId,
+  const [workspace, admin] = await Promise.all([getWorkspace(ws), findUserById(userId)])
+  const customerId = await ensureWorkspaceCustomer(stripe, ws, {
     workspaceName: workspace?.name ?? '',
     billingAdminId: userId,
     billingAdminEmail: admin?.email ?? null,
@@ -155,7 +160,7 @@ async function openCheckout(ctx: CheckoutContext): Promise<PlanCheckoutResponse<
     })
     if (!checkout.url) throw apiError('billing/checkout-failed')
     await appendAuditEvent({
-      actorUserId: userId,
+      by: ws,
       actorIp: getClientIp(event),
       scope: 'billing',
       scopeId: wsId,
@@ -164,7 +169,7 @@ async function openCheckout(ctx: CheckoutContext): Promise<PlanCheckoutResponse<
       after: null,
       metadata: { plan, seats, interval, currency }
     })
-    await recordPaidTermsAcceptance(event, userId, { kind: 'plan', subject: { type: 'workspace', id: wsId }, item: `${plan}_${interval}` })
+    await recordPaidTermsAcceptance(event, ws, { kind: 'plan', subject: { type: 'workspace', id: wsId }, item: `${plan}_${interval}` })
     return { url: checkout.url, sessionId: checkout.id }
   } catch (e) {
     if ((e as { statusCode?: number })?.statusCode) throw e

@@ -1,8 +1,6 @@
 import { docExists } from '../../repos/documents'
-import type { CommentSnapshotRow } from '../../repos/comments'
-import { eq, sql } from 'drizzle-orm'
-import { documentComments } from '../../db/schema'
-import { useDatabase } from '../../utils/platform/database'
+import { replaceCommentSnapshot, type CommentSnapshotRow } from '../../repos/comments'
+import { system, type DocAccess } from '../../repos/proofs'
 import { appendActivity, pruneActivity } from '../../repos/activity'
 import { diffCommentsSnapshot } from '../../utils/documents/commentsSnapshotDiff'
 import { normalizeAvatarSeed } from '../../../shared/utils/documents/awarenessUser'
@@ -52,9 +50,11 @@ export default defineApiHandler({
     if (!(await docExists(body.docId))) return { ok: true, mirrored: false }
 
     const rows = body.entries.map(buildSnapshotRow)
+    // The sync server saves what its authorised clients wrote to this document.
+    const doc = system('sync-server').doc(body.docId)
 
-    const events = await replaceSnapshotInTx(body.docId, rows)
-    await recordSnapshotEvents(body, events, anonAvatarSeedsByEntry(body.entries))
+    const events = diffCommentsSnapshot(await replaceCommentSnapshot(doc, rows), rows)
+    await recordSnapshotEvents(doc, body, events, anonAvatarSeedsByEntry(body.entries))
 
     return { ok: true, mirrored: true, rowCount: rows.length, activityEvents: events.length }
   }
@@ -72,51 +72,6 @@ function buildSnapshotRow(e: CommentSnapshotEntry): CommentSnapshotRow {
     updatedAt: new Date(e.updatedAt),
     resolved: e.resolved
   }
-}
-
-/**
- * Read prev, diff, replace and return events, all inside one transaction under
- * a per-doc advisory lock. Without it, two concurrent pushes both see the prev
- * rows and both DELETE+INSERT in `replaceCommentSnapshot`, and the second hits
- * the (doc_id, entry_id) unique constraint (500). The xact lock releases on
- * commit or rollback.
- */
-async function replaceSnapshotInTx(
-  docId: string,
-  rows: CommentSnapshotRow[]
-): Promise<ReturnType<typeof diffCommentsSnapshot>> {
-  const db = useDatabase()
-  return db.transaction(async (tx) => {
-    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${docId}))`)
-    const previous = await tx
-      .select({
-        entryId: documentComments.entryId,
-        parentCommentId: documentComments.parentCommentId,
-        authorId: documentComments.authorId,
-        authorName: documentComments.authorName,
-        body: documentComments.body,
-        resolved: documentComments.resolved
-      })
-      .from(documentComments)
-      .where(eq(documentComments.docId, docId))
-
-    const events = diffCommentsSnapshot(previous, rows)
-    await tx.delete(documentComments).where(eq(documentComments.docId, docId))
-    if (rows.length > 0) {
-      await tx.insert(documentComments).values(rows.map(r => ({
-        docId,
-        entryId: r.entryId,
-        parentCommentId: r.parentCommentId,
-        authorId: r.authorId,
-        authorName: r.authorName,
-        body: r.body,
-        createdAtMs: r.createdAt,
-        updatedAtMs: r.updatedAt,
-        resolved: r.resolved
-      })))
-    }
-    return events
-  })
 }
 
 /**
@@ -147,14 +102,14 @@ function metadataForEvent(e: ReturnType<typeof diffCommentsSnapshot>[number]) {
 
 /** Append one activity row per snapshot event, then prune. */
 async function recordSnapshotEvents(
+  doc: DocAccess<'write'>,
   body: ParsedBody,
   events: ReturnType<typeof diffCommentsSnapshot>,
   anonSeeds: Map<string, string>
 ): Promise<void> {
   for (const e of events) {
     const metadata = metadataForEvent(e)
-    await appendActivity({
-      docId: body.docId,
+    await appendActivity(doc, {
       userId: e.userId,
       userName: e.userName,
       actorAvatarSeed: e.userId === null ? anonSeeds.get(e.commentId) ?? null : null,
@@ -164,5 +119,5 @@ async function recordSnapshotEvents(
       yjsDocIdAfter: body.yjsDocIdAfter
     })
   }
-  if (events.length > 0) await pruneActivity(body.docId)
+  if (events.length > 0) await pruneActivity(doc)
 }

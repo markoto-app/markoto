@@ -6,16 +6,15 @@ import { RECOMMENDED_SAAS_ALLOWED_BASE_URLS } from '../../../shared/ai/providers
 import { resolveTiersFromEnv } from '../../../shared/config/tiers'
 import { bootProblems } from '../env/fixtures'
 
-// The hosted SaaS shape is pure configuration: infra/render-env.sh (CI
-// deploys) and infra/templates/env.j2 (Ansible) render the .env that the
-// prod compose stack reads. This pins the defaults a staging/prod deploy
+// The hosted SaaS shape is pure configuration: infra/render-env.sh renders
+// the .env that the prod compose stack reads, for both deploy paths
+// (deploy.yml and the Ansible role). This pins the defaults a staging/prod deploy
 // gets when the GitHub Environment sets only the required secrets:
 // billing off, plans "coming soon", legal surfaces on, BYOK limited to
 // the known providers (the SSRF allowlist must match shared/ai/providers.ts),
 // the free AI allowance (chat default = the GLM-5.3 Flash alias, $0.50 per
 // user and $500 in total per month; image / transcription stay BYOK) and
-// no OIDC login. infra/render-env-parity-test.sh separately proves the
-// two renderers agree for a given value set.
+// no OIDC login. infra/render-env-test.sh pins the renderer's mechanics.
 
 const ROOT = resolve(__dirname, '../../..')
 
@@ -146,8 +145,8 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
     })
   })
 
-  it('the chat default is a deployment in infra/litellm/config.yaml', () => {
-    const config = readFileSync(resolve(ROOT, 'infra/litellm/config.yaml'), 'utf8')
+  it('the chat default is a deployment in deploy/config/litellm/config.yaml', () => {
+    const config = readFileSync(resolve(ROOT, 'deploy/config/litellm/config.yaml'), 'utf8')
     expect(config).toContain(`- model_name: ${vars.get('NUXT_AI_DEFAULT_CHAT_MODEL')}\n`)
   })
 
@@ -187,31 +186,13 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
   })
 })
 
-describe('Ansible env.j2 hosted defaults', () => {
-  const template = readFileSync(resolve(ROOT, 'infra/templates/env.j2'), 'utf8')
+describe('the Ansible path', () => {
+  const role = readFileSync(resolve(ROOT, 'infra/roles/markoto/tasks/main.yml'), 'utf8')
 
-  it('renders the same free-tier plan limits as render-env.sh', () => {
-    const vars = renderHostedEnv()
-    for (const name of [
-      'TIER_FREE_MEMBERS_PER_WORKSPACE', 'TIER_FREE_HISTORY_DAYS', 'TIER_FREE_SAVED_THEMES',
-      'TIER_FREE_IMPORT_MAX_BYTES', 'TIER_FREE_WEB_TOOLS_PER_DAY', 'TIER_FREE_MCP_TOOL_CALLS_PER_DAY',
-      'TIER_FREE_FEATURE_CUSTOM_CSS', 'TIER_FREE_FEATURE_MCP_WRITE',
-      'TIER_FREE_FEATURE_AI_IMAGE', 'TIER_FREE_FEATURE_AI_VOICE', 'TIER_FREE_FEATURE_AI_STRONG_MODEL'
-    ]) {
-      expect(template, name).toContain(`${name}={{ ${name.toLowerCase()} | default('${vars.get(name)}') }}`)
-    }
-  })
-
-  it('uses the same free-allowance defaults as render-env.sh', () => {
-    expect(template).toContain('NUXT_AI_DEFAULT_CHAT_MODEL={{ nuxt_ai_default_chat_model | default(\'zai-glm-5-3-flash\') }}')
-    expect(template).toContain('NUXT_AI_DEFAULT_CHAT_VISION={{ nuxt_ai_default_chat_vision | default(\'true\') | string | lower }}')
-    expect(template).toContain('TIER_FREE_LITELLM_BUDGET_USD={{ tier_free_litellm_budget_usd | default(\'0.5\') }}')
-    expect(template).toContain('NUXT_FREE_TIER_TOTAL_BUDGET_USD={{ nuxt_free_tier_total_budget_usd | default(\'500\') }}')
-  })
-
-  it('uses the same BYOK allowlist default as shared/ai/providers.ts', () => {
-    const m = /NUXT_AI_BYOK_ALLOWED_BASE_URLS=\{\{ nuxt_ai_byok_allowed_base_urls \| default\('([^']*)'\) \}\}/.exec(template)
-    expect(m?.[1]).toBe(RECOMMENDED_SAAS_ALLOWED_BASE_URLS.join(','))
+  it('renders .env through render-env.sh, so it gets the same hosted defaults', () => {
+    expect(role).toContain('infra/render-env.sh --keys')
+    expect(role).toMatch(/cmd: bash \{\{ markoto_repo_root \}\}\/infra\/render-env\.sh\n/)
+    expect(role).not.toMatch(/ansible\.builtin\.template/)
   })
 })
 
@@ -222,9 +203,9 @@ describe('render-env.sh covers every variable the prod compose stack reads', () 
   // NUXT_PRODUCT_TOUR_ENABLED is a one-release alias the hosted stack never sets.
   const NOT_RENDERED = new Set(['LITELLM_CONFIG_HASH', 'NUXT_PRODUCT_TOUR_ENABLED'])
 
-  it('emits each ${VAR} of docker-compose.prod.yml + docker-compose.base.yml', () => {
+  it('emits each ${VAR} of deploy/compose/compose.prod.yml + deploy/compose/compose.base.yml', () => {
     const rendered = renderHostedEnv()
-    const compose = ['docker-compose.prod.yml', 'docker-compose.base.yml']
+    const compose = ['deploy/compose/compose.prod.yml', 'deploy/compose/compose.base.yml']
       .map(f => readFileSync(resolve(ROOT, f), 'utf8'))
       .join('\n')
       .split('\n')
@@ -240,12 +221,12 @@ describe('render-env.sh covers every variable the prod compose stack reads', () 
 // .env without the line meant "any public URL" on the hosted service.
 describe('compose files never default the hosted BYOK allowlist to empty', () => {
   it('prod requires it', () => {
-    const prod = readFileSync(resolve(ROOT, 'docker-compose.prod.yml'), 'utf8')
+    const prod = readFileSync(resolve(ROOT, 'deploy/compose/compose.prod.yml'), 'utf8')
     expect(prod).toMatch(/NUXT_AI_BYOK_ALLOWED_BASE_URLS=\$\{NUXT_AI_BYOK_ALLOWED_BASE_URLS:\?/)
   })
 
   it('local (hosted shape: legal surfaces on) defaults to the SaaS list', () => {
-    const local = readFileSync(resolve(ROOT, 'docker-compose.local.yml'), 'utf8')
+    const local = readFileSync(resolve(ROOT, 'deploy/compose/compose.local.yml'), 'utf8')
     const m = /NUXT_AI_BYOK_ALLOWED_BASE_URLS=\$\{NUXT_AI_BYOK_ALLOWED_BASE_URLS:-([^}]*)\}/.exec(local)
     expect(m?.[1]).toBe(RECOMMENDED_SAAS_ALLOWED_BASE_URLS.join(','))
   })

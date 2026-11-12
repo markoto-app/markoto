@@ -4,7 +4,7 @@ import { checkout, release, type PoolKey } from './yDocPool'
 import type { ToolContext, ToolStatusPhase } from '../agentic/toolContext'
 import { resolveBillingContext } from '../billing/billing'
 import { resolveAiProviders } from '../aiProviders/resolve'
-import { getDoc } from '../../repos/documents'
+import type { DocAccess, UserScope, WorkspaceAccess } from '../../repos/proofs'
 import { useValkey } from '../platform/valkey'
 import { useEnv } from '~~/shared/env/load'
 import { apiError } from '../api/apiError'
@@ -50,12 +50,15 @@ export interface ConnectAsMcpClientInput {
   /** Optional color for the awareness `user.color` field. Falls back
    *  to a desaturated default. */
   userColor?: string
-  /** Pre-resolved workspace the doc belongs to (or `null` for
-   *  standalone docs). Callers that already fetched the doc for authz
-   *  (e.g. via `getDocAuthz`) pass it through to skip a duplicate
-   *  lookup; otherwise `connectAsMcpClient` falls back to a fresh
-   *  `getDoc(docId)` call. */
-  workspaceId?: string | null
+  /** The workspace the doc belongs to (or `null` for standalone docs),
+   *  from the wrapper's access decision. */
+  workspaceId: string | null
+  /** The wrapper's proof for the document (`view` or `edit` per tool). */
+  docAccess: DocAccess<'view'>
+  /** The token owner acting for themselves. */
+  self: UserScope
+  /** The token owner's membership of `workspaceId` (null for guests and outsiders). */
+  workspaceAccess: WorkspaceAccess<'member'> | null
 }
 
 export interface McpClientHandle {
@@ -171,13 +174,7 @@ export async function connectAsMcpClient(input: ConnectAsMcpClientInput): Promis
   // `useLitellmForUser(virtualKey)`. Resolving HERE rather than
   // baking into the pool entry means a mid-session plan change is
   // picked up on the NEXT tool call (vs frozen forever).
-  //
-  // workspaceId precedence: caller's explicit value first (the
-  // wrapper already fetched the doc for authz), fall back to a fresh
-  // `getDoc` for callers that don't have one handy.
-  const workspaceId = input.workspaceId !== undefined
-    ? input.workspaceId
-    : (await getDoc(input.docId))?.workspaceId ?? null
+  const workspaceId = input.workspaceId
   const billingContext = await resolveBillingContext(input.userId, workspaceId)
   // BYOK providers, resolved per call like the billing context so a
   // settings change is picked up on the next tool call.
@@ -231,6 +228,9 @@ export async function connectAsMcpClient(input: ConnectAsMcpClientInput): Promis
     docId: input.docId,
     initiatorUserId: input.userId,
     workspaceId,
+    self: input.self,
+    docAccess: input.docAccess,
+    workspaceAccess: input.workspaceAccess,
     ydoc: entry.ydoc,
     ytext: entry.ytext,
     ymeta: entry.ymeta,

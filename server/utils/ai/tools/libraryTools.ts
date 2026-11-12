@@ -8,10 +8,11 @@ import { resolveDocProperties } from '../../documents/docProperties'
 import { buildMarkdownExport } from '~~/shared/utils/markdown/markdownFrontmatter'
 import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 import { getDoc } from '../../../repos/documents'
-import { getMemberRole } from '../../../repos/workspaceMembers'
-import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from '../../documents/shareSettings'
+import { proveWorkspaceAccess } from '../../access/workspaceAccess'
+import { proveDocMembership } from '../../access/docProof'
+import type { WorkspaceAccess } from '../../../repos/proofs'
+import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from '../../access/shareSettings'
 import { openTrustedCommentClient } from '../../documents/commentsServerClient'
-import { canEditDoc } from '../../workspaces/workspaceAccess'
 import { createDocument } from '../../documents/createDocument'
 import { duplicateDocument } from '../../documents/duplicateDocument'
 import { useS3Client } from '../../storage/s3'
@@ -72,7 +73,7 @@ async function handleCreateDocument(
   let result: { docId: string, url: string }
   try {
     result = await createDocument({
-      ownerId: session.initiatorUserId,
+      owner: session.self,
       title: input.title,
       description: input.description,
       audience: input.audience as Parameters<typeof createDocument>[0]['audience'],
@@ -143,11 +144,9 @@ async function handleDuplicateDocument(
   //   - canEditDoc on source (anyone who can edit can fork)
   //   - admin/editor on target workspace if specified (else inherit
   //     source's workspace)
-  const source = await getDoc(input.source_doc_id)
-  if (!source) {
-    return toolError(`Error: source document "${input.source_doc_id}" not found, or you don't have access to it.`)
-  }
-  if (!(await canEditDoc(session.initiatorUserId, input.source_doc_id))) {
+  const proven = await proveDocMembership(session.initiatorUserId, input.source_doc_id, 'edit')
+  const source = proven ? await getDoc(proven.access) : null
+  if (!proven || !source) {
     return toolError(`Error: source document "${input.source_doc_id}" not found, or you don't have access to it.`)
   }
   // View only: a copy is a download.
@@ -166,11 +165,13 @@ async function handleDuplicateDocument(
   } else {
     targetWorkspaceId = input.workspace_id
   }
+  let target: WorkspaceAccess<'editor'> | null = null
   if (targetWorkspaceId !== null) {
-    const role = await getMemberRole(targetWorkspaceId, session.initiatorUserId)
-    if (role === null || role === 'viewer') {
+    const member = await proveWorkspaceAccess(session.initiatorUserId, targetWorkspaceId, 'member')
+    if (!member?.allows('editor')) {
       return toolError(`Error: cannot duplicate into workspace "${targetWorkspaceId}" — must be admin or editor.`)
     }
+    target = member
   }
 
   const title = input.title?.trim() || `Copy of ${source.title}`
@@ -179,10 +180,10 @@ async function handleDuplicateDocument(
   try {
     await duplicateDocument(
       {
-        sourceDocId: input.source_doc_id,
+        source: proven.access,
         newDocId,
-        ownerId: session.initiatorUserId,
-        workspaceId: targetWorkspaceId,
+        owner: session.self,
+        workspace: target,
         title
       },
       {
@@ -207,7 +208,7 @@ async function handleExportDocumentAsMarkdown(
 ): Promise<ToolResult> {
   // The wrapper has already authz-checked + checked out the YDocPool
   // entry, so session.ytext / ymeta are the live synced doc.
-  const doc = await getDoc(session.docId)
+  const doc = await getDoc(session.docAccess)
   if (!doc) return toolError('Error: document not found.')
   // Share-link controls: a visitor may not download a view-only doc.
   if (!(await userMayDownload(session.docId, session.initiatorUserId))) {

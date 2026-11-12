@@ -4,8 +4,8 @@ import { listThemesByUser } from '../../repos/themes'
 
 export default defineApiHandler({
   access: allow.user(),
-  handler: async ({ user }) => {
-    const rows = await listThemesByUser(user.id)
+  handler: async ({ self }) => {
+    const rows = await listThemesByUser(self)
     return {
       themes: rows.map(r => ({
         themeId: r.themeId,

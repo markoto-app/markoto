@@ -11,12 +11,12 @@ import { workspaceKnowledgeParams } from '~~/shared/api/workspaces'
 export default defineApiHandler({
   access: allow.workspace('editor', { deny: 'knowledge/editor-required' }),
   params: workspaceKnowledgeParams,
-  handler: async ({ user, wsId, role, params }) => {
+  handler: async ({ user, wsId, role, params, workspaceAccess }) => {
     const knowledgeId = params.knowledgeId
 
-    const row = await getKnowledge(knowledgeId)
-    // Resolve workspace scope BEFORE the uploader check so callers can't
-    // probe for knowledge in another workspace via this endpoint.
+    // Keyed on this workspace: a row of another workspace is not found,
+    // resolved BEFORE the uploader check so callers can't probe for it.
+    const row = await getKnowledge(workspaceAccess, knowledgeId)
     if (row?.workspaceId !== wsId) {
       throw apiError('knowledge/not-found')
     }
@@ -26,7 +26,7 @@ export default defineApiHandler({
       throw apiError('knowledge/not-uploader')
     }
 
-    await deleteKnowledgeArtifact(knowledgeId)
+    await deleteKnowledgeArtifact(workspaceAccess, knowledgeId)
 
     return { success: true }
   }

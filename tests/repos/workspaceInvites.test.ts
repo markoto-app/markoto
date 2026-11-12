@@ -9,6 +9,7 @@ import {
   upsertWorkspaceInvite
 } from '../../server/repos/workspaceInvites'
 import { runWorkspaceInviteSweep } from '../../server/utils/workspaces/workspaceInviteSweep'
+import { asUser, sys, wsAs } from '../helpers/access'
 
 const DAY = 24 * 60 * 60 * 1000
 
@@ -28,12 +29,10 @@ describe('workspace_invites repo', () => {
   it('upsert keeps one open invite per (workspace, email) and rotates the token', async () => {
     const admin = await createUser()
     const ws = await createWorkspace(admin.id)
-    const first = await upsertWorkspaceInvite({
-      workspaceId: ws.workspaceId, email: 'a@test.local', role: 'viewer', invitedByUserId: admin.id,
+    const first = await upsertWorkspaceInvite(wsAs(ws.workspaceId, admin.id), { email: 'a@test.local', role: 'viewer',
       tokenHash: 'hash-1', expiresAt: new Date(Date.now() + DAY)
     })
-    const second = await upsertWorkspaceInvite({
-      workspaceId: ws.workspaceId, email: 'a@test.local', role: 'editor', invitedByUserId: admin.id,
+    const second = await upsertWorkspaceInvite(wsAs(ws.workspaceId, admin.id), { email: 'a@test.local', role: 'editor',
       tokenHash: 'hash-2', expiresAt: new Date(Date.now() + 2 * DAY)
     })
     expect(second).toBe(first)
@@ -45,24 +44,23 @@ describe('workspace_invites repo', () => {
     const admin = await createUser()
     const ws = await createWorkspace(admin.id)
     const now = new Date()
-    await upsertWorkspaceInvite({ workspaceId: ws.workspaceId, email: 'a@test.local', role: 'editor', invitedByUserId: admin.id, tokenHash: null, expiresAt: new Date(now.getTime() + DAY) })
-    await upsertWorkspaceInvite({ workspaceId: ws.workspaceId, email: 'b@test.local', role: 'editor', invitedByUserId: admin.id, tokenHash: null, expiresAt: new Date(now.getTime() - DAY) })
-    expect(await countOpenWorkspaceInvites(ws.workspaceId, now)).toBe(1)
-    expect(await countOpenWorkspaceInvites(ws.workspaceId, now, 'a@test.local')).toBe(0)
+    await upsertWorkspaceInvite(wsAs(ws.workspaceId, admin.id), { email: 'a@test.local', role: 'editor', tokenHash: null, expiresAt: new Date(now.getTime() + DAY) })
+    await upsertWorkspaceInvite(wsAs(ws.workspaceId, admin.id), { email: 'b@test.local', role: 'editor', tokenHash: null, expiresAt: new Date(now.getTime() - DAY) })
+    expect(await countOpenWorkspaceInvites(wsAs(ws.workspaceId), now)).toBe(1)
+    expect(await countOpenWorkspaceInvites(wsAs(ws.workspaceId), now, 'a@test.local')).toBe(0)
   })
 
   it('two concurrent accepts of the same invite produce one membership and one success', async () => {
     const admin = await createUser()
     const invitee = await createUser({ email: 'race@test.local' })
     const ws = await createWorkspace(admin.id)
-    const inviteId = await upsertWorkspaceInvite({
-      workspaceId: ws.workspaceId, email: 'race@test.local', role: 'editor', invitedByUserId: admin.id,
+    const inviteId = await upsertWorkspaceInvite(wsAs(ws.workspaceId, admin.id), { email: 'race@test.local', role: 'editor',
       tokenHash: null, expiresAt: new Date(Date.now() + DAY)
     })
     const selector = { kind: 'id' as const, inviteId, email: 'race@test.local' }
     const results = await Promise.all([
-      acceptWorkspaceInvite(selector, invitee.id, new Date()),
-      acceptWorkspaceInvite(selector, invitee.id, new Date())
+      acceptWorkspaceInvite(asUser(invitee.id), selector, new Date()),
+      acceptWorkspaceInvite(asUser(invitee.id), selector, new Date())
     ])
     expect(results.filter(r => r !== null)).toHaveLength(1)
     expect(await memberRole(ws.workspaceId, invitee.id)).toBe('editor')
@@ -72,17 +70,17 @@ describe('workspace_invites repo', () => {
     const admin = await createUser()
     const ws = await createWorkspace(admin.id)
     const now = new Date()
-    await upsertWorkspaceInvite({ workspaceId: ws.workspaceId, email: 'old@test.local', role: 'editor', invitedByUserId: admin.id, tokenHash: null, expiresAt: new Date(now.getTime() - 1000) })
-    await upsertWorkspaceInvite({ workspaceId: ws.workspaceId, email: 'new@test.local', role: 'editor', invitedByUserId: admin.id, tokenHash: null, expiresAt: new Date(now.getTime() + DAY) })
+    await upsertWorkspaceInvite(wsAs(ws.workspaceId, admin.id), { email: 'old@test.local', role: 'editor', tokenHash: null, expiresAt: new Date(now.getTime() - 1000) })
+    await upsertWorkspaceInvite(wsAs(ws.workspaceId, admin.id), { email: 'new@test.local', role: 'editor', tokenHash: null, expiresAt: new Date(now.getTime() + DAY) })
     expect(await runWorkspaceInviteSweep(now)).toEqual({ deletedExpired: 1 })
-    expect(await deleteExpiredWorkspaceInvites(now)).toBe(0)
-    expect((await listInvitesForEmail('new@test.local', now)).map(i => i.workspaceId)).toEqual([ws.workspaceId])
+    expect(await deleteExpiredWorkspaceInvites(sys(), now)).toBe(0)
+    expect((await listInvitesForEmail(asUser(admin.id), 'new@test.local', now)).map(i => i.workspaceId)).toEqual([ws.workspaceId])
   })
 
   it('invites cascade with the workspace', async () => {
     const admin = await createUser()
     const ws = await createWorkspace(admin.id)
-    await upsertWorkspaceInvite({ workspaceId: ws.workspaceId, email: 'a@test.local', role: 'editor', invitedByUserId: admin.id, tokenHash: null, expiresAt: new Date(Date.now() + DAY) })
+    await upsertWorkspaceInvite(wsAs(ws.workspaceId, admin.id), { email: 'a@test.local', role: 'editor', tokenHash: null, expiresAt: new Date(Date.now() + DAY) })
     await testDb().query('DELETE FROM workspace_members WHERE workspace_id = $1', [ws.workspaceId])
     await testDb().query('DELETE FROM workspaces WHERE workspace_id = $1', [ws.workspaceId])
     const rows = await testDb().query('SELECT 1 FROM workspace_invites')

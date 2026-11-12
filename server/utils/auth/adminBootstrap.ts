@@ -2,6 +2,7 @@ import { setAdminFlag } from '../../repos/users'
 import { appendAuditEvent } from '../../repos/audit'
 import { AUDIT_ADMIN_GRANTED } from '../../legal/auditActions'
 import { isAdminEmail } from './adminAccess'
+import { system } from '../../repos/proofs'
 
 // One-shot bootstrap: when a user logs in via OAuth and their
 // email is on the `NUXT_ADMIN_USER_EMAILS` allowlist, flip their
@@ -24,13 +25,14 @@ export async function bootstrapAdminFromEnv(args: {
 }): Promise<void> {
   if (!isAdminEmail(args.email)) return
 
-  const result = await setAdminFlag(args.userId, true)
+  const bootstrap = system('admin-bootstrap')
+  const result = await setAdminFlag(bootstrap, args.userId, true)
   if (!result) return // user not found — should be unreachable here
   if (result.previous === true) return // already admin; no-op
 
   // Newly promoted — audit.
   await appendAuditEvent({
-    actorUserId: null,
+    by: bootstrap,
     actorIp: null,
     scope: 'user',
     scopeId: String(args.userId),

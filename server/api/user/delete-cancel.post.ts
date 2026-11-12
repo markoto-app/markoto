@@ -23,14 +23,12 @@ export default defineApiHandler({
   // Shared with the request endpoint (same namespace), so alternating
   // requests and cancels can't pump the audit log.
   rateLimit: { namespace: 'account-delete-request', max: 5, windowMs: HOUR_MS, key: 'user+ip', error: 'account/delete-rate-limited' },
-  handler: async ({ event, user }) => {
-    const userId = user.id
-
+  handler: async ({ event, self }) => {
     const ip = getClientIp(event)
 
     try {
       const result = await cancelAccountDeletionByUser({
-        userId,
+        self,
         actorIp: ip
       })
 

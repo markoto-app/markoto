@@ -21,7 +21,7 @@ Server logic grouped by domain (`auth/`, `documents/`, `workspaces/`, `storage/`
 
 ## Documents and rendering
 
-- Compute a past state by replaying the `yjs_updates` log up to the boundary id stored on the activity row (`documents/historyReplay.ts`), never against the latest row. All SQL on that table goes through `documents/yjsLog.ts`.
+- Compute a past state by replaying the `yjs_updates` log up to the boundary id stored on the activity row (`documents/historyReplay.ts`), never against the latest row. All SQL on that table goes through `server/repos/yjsLog.ts`.
 - Keep the 200-hunk cap in `documents/textDiff.ts` and the per-document advisory lock in `documents/restoreDoc.ts`.
 - Before reading a live document's `yjs_updates` rows (duplicate, render), call `flushSyncDocument(docId)`; edits are flushed with a delay.
 - Plan-gated theme features that Y.js can write (custom CSS, the workspace brand lock) are enforced at render time in `api/_internal/render-bootstrap.get.ts` and the editor's `renderTheme`. Never rely on the write-time check alone, and never delete stored CSS.

@@ -29,7 +29,7 @@ export async function runSubCall(
     if (name === 'web_search') {
       const { query } = validatedArgs as { query: string }
       const out = await webSearch(ctx.opts.ai, ctx.opts.model, query, ctx.opts.abortController.signal, subCallContext)
-      void logAiTool(ctx.opts.aiSession.docId, ctx.opts.aiSession.sessionId, {
+      void logAiTool(ctx.opts.aiSession.docAccess, ctx.opts.aiSession.sessionId, {
         kind: 'ai.tool',
         tool: 'web_search',
         query: query.slice(0, 200),
@@ -42,7 +42,7 @@ export async function runSubCall(
     }
     const { url } = validatedArgs as { url: string }
     const out = await fetchUrl(ctx.opts.ai, ctx.opts.model, url, ctx.opts.abortController.signal, subCallContext)
-    void logAiTool(ctx.opts.aiSession.docId, ctx.opts.aiSession.sessionId, {
+    void logAiTool(ctx.opts.aiSession.docAccess, ctx.opts.aiSession.sessionId, {
       kind: 'ai.tool',
       tool: 'fetch_url',
       url: out.url.slice(0, 500),

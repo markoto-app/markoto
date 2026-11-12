@@ -49,8 +49,8 @@ const COMMENT_ACTIONS = new Set([
 export default defineApiHandler({
   access: allow.doc('activity', { anonymous: true, jwt: true }),
   params: activityParams,
-  handler: async ({ docId, doc: docRow, params: { activityId } }): Promise<CommentContextResponse> => {
-    const activity = await getActivityById(activityId, docId)
+  handler: async ({ doc: docRow, docAccess, params: { activityId } }): Promise<CommentContextResponse> => {
+    const activity = await getActivityById(docAccess, activityId)
     if (!activity) {
       throw apiError('docs/activity-not-found')
     }
@@ -69,7 +69,7 @@ export default defineApiHandler({
       throw apiError('docs/not-a-comment')
     }
 
-    const thread = await getCommentThreadByEntryId(docId, entryId)
+    const thread = await getCommentThreadByEntryId(docAccess, entryId)
     if (!thread || thread.length === 0) {
       // Comment was deleted after the row was written. 410 rather than 404
       // because the activity row itself is real, just orphaned; the UI shows

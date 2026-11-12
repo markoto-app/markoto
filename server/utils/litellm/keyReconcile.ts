@@ -14,10 +14,8 @@
 // `/key/update` only for keys that differ. Run by the
 // `litellm-key-reconcile` plugin at boot and every 6 h, under its sweep lock.
 
-import { isNotNull } from 'drizzle-orm'
 import { litellmKeyListResponse, type LitellmListedKey } from './adminResponses'
-import { users } from '../../db/schema'
-import { useDatabase } from '../platform/database'
+import { listUsersWithKeys } from '../../repos/litellmKeys'
 import { effectivePlan } from '../billing/billingMode'
 import { getTiers } from '../billing/tierConfig'
 import { planToBudgetUsd } from '~~/shared/billing/aiPoints'
@@ -94,14 +92,7 @@ export async function reconcileUserKeys(): Promise<KeyReconcileSummary> {
   const summary: KeyReconcileSummary = { checked: 0, updated: 0, missing: 0, failed: 0 }
   if (useEnv().test.litellmStub) return summary
 
-  const db = useDatabase()
-  const rows = await db.select({
-    id: users.id,
-    plan: users.plan,
-    planValidUntil: users.planValidUntil,
-    keyId: users.litellmKeyId,
-    keyToken: users.litellmKeyToken
-  }).from(users).where(isNotNull(users.litellmKeyId))
+  const rows = await listUsersWithKeys()
   if (rows.length === 0) return summary
 
   // The team must exist before any key can be pointed at it.

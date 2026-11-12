@@ -35,12 +35,12 @@ export default defineApiHandler({
   access: allow.doc('write-content', { deny: 'docs/edit-forbidden' }),
   params: activityParams,
   body: 'none',
-  handler: async ({ user, docId, params: { activityId } }) => {
+  handler: async ({ user, docId, docAccess, params: { activityId } }) => {
     const userId = user.id
 
     // The (id, docId) tuple in `getActivityById` pins the row to THIS doc; a
     // row from another doc yields null -> 404 (same as the diff endpoint).
-    const activity = await getActivityById(activityId, docId)
+    const activity = await getActivityById(docAccess, activityId)
     if (!activity) {
       throw apiError('docs/activity-not-found')
     }
@@ -62,7 +62,7 @@ export default defineApiHandler({
     let yjsDocIdAfterRestore: number | null
     try {
       const result = await restoreDocToYjsId({
-        docId,
+        doc: docAccess,
         targetYjsId: activity.yjsDocIdBefore,
         actorUserId: userId,
         actorName,
@@ -86,8 +86,7 @@ export default defineApiHandler({
     // Boundary ids of the `restore` row: `yjsDocIdBefore` is the live state
     // right before the restore (this is what makes restoring THIS row bring the
     // pre-restore state back), `yjsDocIdAfter` the post-restore state.
-    await appendActivity({
-      docId,
+    await appendActivity(docAccess, {
       userId,
       userName: actorName,
       action: 'restore',
@@ -99,7 +98,7 @@ export default defineApiHandler({
       yjsDocIdBefore: yjsDocIdBeforeRestore,
       yjsDocIdAfter: yjsDocIdAfterRestore
     })
-    await pruneActivity(docId)
+    await pruneActivity(docAccess)
 
     return {
       ok: true,

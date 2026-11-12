@@ -23,8 +23,8 @@ import { isBillingEnabled } from '../../utils/billing/billingMode'
 
 export default defineApiHandler({
   access: allow.user(),
-  handler: async ({ user }) => {
-    const plan = await planAccountDeletion(user.id)
+  handler: async ({ self }) => {
+    const plan = await planAccountDeletion(self)
     if (!plan) {
       throw apiError('internal')
     }

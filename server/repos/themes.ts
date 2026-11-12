@@ -2,8 +2,9 @@ import { and, desc, eq, sql } from 'drizzle-orm'
 import { must } from '~~/shared/utils/must'
 import { themes } from '../db/schema'
 import type { DocTheme } from '~~/shared/types/theme'
-import { useDatabase } from '../utils/platform/database'
+import { useDatabase } from '../db/client'
 import { NotFoundError } from './errors'
+import type { UserScope } from './proofs'
 
 // User-saved theme presets. Per-user, never shared. A user lists,
 // creates, renames, and deletes through this repo; the per-user cap
@@ -20,7 +21,7 @@ export interface ThemeRow {
   updatedAt: Date
 }
 
-export async function listThemesByUser(userId: number): Promise<ThemeRow[]> {
+export async function listThemesByUser(self: UserScope): Promise<ThemeRow[]> {
   const db = useDatabase()
   const rows = await db
     .select({
@@ -33,12 +34,12 @@ export async function listThemesByUser(userId: number): Promise<ThemeRow[]> {
       updatedAt: themes.updatedAt
     })
     .from(themes)
-    .where(eq(themes.userId, userId))
+    .where(eq(themes.userId, self.userId))
     .orderBy(desc(themes.updatedAt))
   return rows
 }
 
-export async function getThemeById(themeId: string, userId: number): Promise<ThemeRow | null> {
+export async function getThemeById(self: UserScope, themeId: string): Promise<ThemeRow | null> {
   const db = useDatabase()
   // The `(themeId, userId)` tuple guards against cross-user access
   // even when an attacker guesses a valid id — same shape as the
@@ -54,23 +55,22 @@ export async function getThemeById(themeId: string, userId: number): Promise<The
       updatedAt: themes.updatedAt
     })
     .from(themes)
-    .where(and(eq(themes.themeId, themeId), eq(themes.userId, userId)))
+    .where(and(eq(themes.themeId, themeId), eq(themes.userId, self.userId)))
     .limit(1))[0]
   return row ?? null
 }
 
-export async function countThemesByUser(userId: number): Promise<number> {
+export async function countThemesByUser(self: UserScope): Promise<number> {
   const db = useDatabase()
   const rows = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(themes)
-    .where(eq(themes.userId, userId))
+    .where(eq(themes.userId, self.userId))
   return rows[0]?.n ?? 0
 }
 
-export async function createTheme(input: {
+export async function createTheme(self: UserScope, input: {
   themeId: string
-  userId: number
   name: string
   description?: string
   theme: DocTheme
@@ -80,7 +80,7 @@ export async function createTheme(input: {
     .insert(themes)
     .values({
       themeId: input.themeId,
-      userId: input.userId,
+      userId: self.userId,
       name: input.name,
       description: input.description ?? '',
       theme: input.theme
@@ -98,8 +98,8 @@ export async function createTheme(input: {
 }
 
 export async function updateTheme(
+  self: UserScope,
   themeId: string,
-  userId: number,
   update: { name?: string, description?: string, theme?: DocTheme }
 ): Promise<void> {
   if (Object.keys(update).length === 0) return
@@ -107,18 +107,18 @@ export async function updateTheme(
   const result = await db
     .update(themes)
     .set({ ...update, updatedAt: new Date() })
-    .where(and(eq(themes.themeId, themeId), eq(themes.userId, userId)))
+    .where(and(eq(themes.themeId, themeId), eq(themes.userId, self.userId)))
     .returning({ themeId: themes.themeId })
   if (result.length === 0) {
     throw new NotFoundError('Theme')
   }
 }
 
-export async function deleteTheme(themeId: string, userId: number): Promise<void> {
+export async function deleteTheme(self: UserScope, themeId: string): Promise<void> {
   const db = useDatabase()
   const result = await db
     .delete(themes)
-    .where(and(eq(themes.themeId, themeId), eq(themes.userId, userId)))
+    .where(and(eq(themes.themeId, themeId), eq(themes.userId, self.userId)))
     .returning({ themeId: themes.themeId })
   if (result.length === 0) {
     throw new NotFoundError('Theme')

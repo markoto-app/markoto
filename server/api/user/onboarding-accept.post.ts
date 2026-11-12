@@ -32,7 +32,7 @@ import { acceptOnboardingBody } from '~~/shared/api/account'
 export default defineApiHandler({
   access: allow.user(),
   body: acceptOnboardingBody,
-  handler: async ({ event, user, body }) => {
+  handler: async ({ event, user, body, self }) => {
     if (body.ageConfirmed !== true) throw apiError('onboarding/age-required')
     if (body.privacyVersion !== PRIVACY_VERSION) {
       throw apiError('onboarding/privacy-version-stale', { currentVersion: PRIVACY_VERSION })
@@ -61,7 +61,7 @@ export default defineApiHandler({
     // we always record because each version-bump produces a fresh
     // acceptance event.
     await appendAuditEvent({
-      actorUserId: user.id,
+      by: self,
       actorIp: ip,
       scope: 'user',
       scopeId: String(user.id),
@@ -69,7 +69,7 @@ export default defineApiHandler({
       metadata: { locale }
     })
     await appendAuditEvent({
-      actorUserId: user.id,
+      by: self,
       actorIp: ip,
       scope: 'user',
       scopeId: String(user.id),
@@ -81,7 +81,7 @@ export default defineApiHandler({
       }
     })
     await appendAuditEvent({
-      actorUserId: user.id,
+      by: self,
       actorIp: ip,
       scope: 'user',
       scopeId: String(user.id),

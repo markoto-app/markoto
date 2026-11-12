@@ -3,6 +3,7 @@ import * as Y from 'yjs'
 import { resetDb, testDb } from '../integration/setup/db'
 import { cloneYjsStateWithUrlRewrite } from '../../server/utils/documents/cloneYjsState'
 import { first } from '../helpers/assert'
+import { docAs } from '../helpers/access'
 
 // `cloneYjsStateWithUrlRewrite` reads the source doc's stored Y.js
 // state, reconstructs a Y.Doc, rewrites `/api/files/{sourceDocId}/`
@@ -17,7 +18,7 @@ async function ensureDoc(docId: string): Promise<void> {
 async function clone(source: string, target: string): Promise<void> {
   await ensureDoc(source)
   await ensureDoc(target)
-  await cloneYjsStateWithUrlRewrite(source, target)
+  await cloneYjsStateWithUrlRewrite(docAs(source), docAs(target))
 }
 
 async function countRows(docname: string): Promise<number> {

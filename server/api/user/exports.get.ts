@@ -6,8 +6,8 @@ import { listJobsForUser } from '../../repos/dataExportJobs'
 
 export default defineApiHandler({
   access: allow.user(),
-  handler: async ({ user }) => {
-    const jobs = await listJobsForUser(user.id)
+  handler: async ({ self }) => {
+    const jobs = await listJobsForUser(self)
 
     return jobs.map(j => ({
       jobId: j.jobId,

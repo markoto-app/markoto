@@ -6,12 +6,12 @@ import { listWorkspaceTemplates } from '../../../../repos/workspaceTemplates'
 // brand-kit tab. Each is a live link to a workspace document.
 export default defineApiHandler({
   access: allow.workspace('member'),
-  handler: async ({ event, wsId, role }) => {
+  handler: async ({ event, wsId, role, workspaceAccess }) => {
     setHeader(event, 'cache-control', 'private, no-store')
     return {
       available: await brandKitAvailable(wsId),
       canManage: role === 'admin',
-      templates: (await listWorkspaceTemplates(wsId)).map(t => ({
+      templates: (await listWorkspaceTemplates(workspaceAccess)).map(t => ({
         id: t.id,
         name: t.name,
         description: t.description,

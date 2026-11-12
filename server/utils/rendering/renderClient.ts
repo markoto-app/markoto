@@ -1,11 +1,11 @@
 import { GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
-import { latestYjsId } from '../documents/yjsLog'
+import { latestYjsId } from '../../repos/yjsLog'
 import { useS3Client } from '../storage/s3'
 import { useValkey } from '../platform/valkey'
 import { injectTraceHeaders } from '../platform/traceHeaders'
 import { flushSyncDocument } from '../documents/syncNotify'
 import { resolveDocBrand } from '../brandKit/docBrand'
-import { getDoc } from '../../repos/documents'
+import type { DocAccess } from '../../repos/proofs'
 import * as Sentry from '@sentry/nuxt'
 import type { RenderFormat, RenderManifest, RenderRequest, RenderResponse, WebSnapshot } from '~~/shared/contracts/render'
 import { renderErrorSchema, renderManifestSchema, renderResponseSchema } from '~~/shared/contracts/renderSchemas'
@@ -140,10 +140,9 @@ function renderFolder(snapshotId: number, variant: string | null): string {
 }
 
 /** The document's brand-kit fingerprint (null outside a workspace / without brand inputs). */
-async function brandRenderVariant(docId: string): Promise<string | null> {
+async function brandRenderVariant(doc: DocAccess<'view'>): Promise<string | null> {
   try {
-    const doc = await getDoc(docId)
-    return (await resolveDocBrand(doc?.workspaceId ?? null)).fingerprint
+    return (await resolveDocBrand(doc)).fingerprint
   } catch {
     return null
   }
@@ -154,8 +153,8 @@ async function brandRenderVariant(docId: string): Promise<string | null> {
  * a doc that was created but never saw a single Y.js update. Note: 0
  * is also what `reconstructDocAtYjsId` treats as "empty doc".
  */
-async function getLatestSnapshotId(docId: string): Promise<number> {
-  return (await latestYjsId(docId)) ?? 0
+async function getLatestSnapshotId(doc: DocAccess<'view'>): Promise<number> {
+  return (await latestYjsId(doc)) ?? 0
 }
 
 /**
@@ -232,19 +231,20 @@ async function callRenderer(
  * the same key share one Promise via the singleflight Map.
  */
 export async function renderDocument(
-  docId: string,
+  doc: DocAccess<'view'>,
   opts: { format: 'pdf' | 'png' | 'both' }
 ): Promise<RenderResult> {
+  const docId = doc.docId
   // The render reads the persisted Y.js rows (snapshot id + the print
   // page's bootstrap). Edits from the last 2–10 s may still sit in the
   // sync-server's debounced store, so a PDF exported right after typing
   // would miss them. Persist them first; on failure render what is stored.
   await flushSyncDocument(docId)
-  const snapshotId = await getLatestSnapshotId(docId)
+  const snapshotId = await getLatestSnapshotId(doc)
   // Brand kit: a change to the workspace's fonts or locked design
   // writes no Y.js row, so the snapshot id alone would serve a stale
   // render — the brand fingerprint is part of the cache folder.
-  const variant = await brandRenderVariant(docId)
+  const variant = await brandRenderVariant(doc)
 
   // First, check the cache. If a usable manifest exists for the requested
   // format (or a superset 'both'), reuse it. e.g. asking for PNG can
@@ -320,9 +320,10 @@ export async function renderPngUncached(id: string, round: number): Promise<{ pa
  * Uncached — publishing is an explicit, rate-limited action and the
  * result is stored in `published_pages` by the caller.
  */
-export async function renderWebSnapshot(docId: string): Promise<WebSnapshot> {
+export async function renderWebSnapshot(doc: DocAccess<'view'>): Promise<WebSnapshot> {
+  const docId = doc.docId
   await flushSyncDocument(docId)
-  const snapshotId = await getLatestSnapshotId(docId)
+  const snapshotId = await getLatestSnapshotId(doc)
   const out = await callRenderer(docId, snapshotId, 'html')
   if (!out.web) throw new Error('Renderer returned no web snapshot')
   return out.web

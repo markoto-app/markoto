@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid'
 import { resetDb } from '../integration/setup/db'
 import { createUser, createWorkspace, setMemberRole } from '../integration/setup/fixtures'
 import { DEFAULT_TIERS } from '../../shared/config/tiers'
+import { asUser, wsAs } from '../helpers/access'
 
 // Regression: the per-workspace inflight-upload counter was shared by all
 // members, so one editor requesting presigns (and never confirming) could
@@ -52,18 +53,18 @@ describe('knowledge upload slots: per-member share of the workspace', () => {
     const held: Array<{ releaseSlots: () => Promise<void> }> = []
     try {
       for (let i = 0; i < share; i++) {
-        held.push(await reserveUploadSlot({ workspaceId: ws.workspaceId, userId: admin.id, size: 10 }))
+        held.push(await reserveUploadSlot({ ws: wsAs(ws.workspaceId), self: asUser(admin.id), size: 10 }))
       }
-      await expect(reserveUploadSlot({ workspaceId: ws.workspaceId, userId: admin.id, size: 10 }))
+      await expect(reserveUploadSlot({ ws: wsAs(ws.workspaceId), self: asUser(admin.id), size: 10 }))
         .rejects.toMatchObject({ statusCode: 409 })
 
-      held.push(await reserveUploadSlot({ workspaceId: ws.workspaceId, userId: editor.id, size: 10 }))
+      held.push(await reserveUploadSlot({ ws: wsAs(ws.workspaceId), self: asUser(editor.id), size: 10 }))
     } finally {
       for (const h of held) await h.releaseSlots()
     }
 
     // Released slots are usable again.
-    const again = await reserveUploadSlot({ workspaceId: ws.workspaceId, userId: admin.id, size: 10 })
+    const again = await reserveUploadSlot({ ws: wsAs(ws.workspaceId), self: asUser(admin.id), size: 10 })
     await again.releaseSlots()
   })
 })

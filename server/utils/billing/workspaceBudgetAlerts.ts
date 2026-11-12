@@ -1,11 +1,13 @@
-import { and, eq } from 'drizzle-orm'
-import { workspaceSubscriptions } from '../../db/schema'
-import { useDatabase } from '../platform/database'
+import { clearSeatAdjustment, listAllWorkspaceSubscriptions } from '../../repos/workspaceSubscriptions'
+import { system } from '../../repos/proofs'
 import { isBillingEnabled } from './billingMode'
 import { getPooledWorkspace, pooledFromRow, type PooledWorkspace } from './workspaceBilling'
 import { ensureWorkspaceTeam, readWorkspaceTeam } from '../litellm/workspaceTeams'
 import { notifyWorkspaceAdmins } from '../email/workspaceBillingEmails'
 import { useLogger } from '../platform/logger'
+
+/** The budget-alert job reads and adjusts every workspace's subscription row. */
+const ALERTS = system('workspace-billing')
 
 const log = useLogger('workspace-budget')
 
@@ -36,9 +38,7 @@ export function budgetAlertLevel(spend: number, budget: number): 0.8 | 1 | null 
 async function endSeatAdjustment(pool: PooledWorkspace, now: Date): Promise<void> {
   const until = pool.subscription.budgetSeatAdjustUntil
   if (!until || until.getTime() > now.getTime()) return
-  await useDatabase().update(workspaceSubscriptions)
-    .set({ budgetSeatAdjust: 0, budgetSeatAdjustUntil: null })
-    .where(and(eq(workspaceSubscriptions.workspaceId, pool.workspaceId), eq(workspaceSubscriptions.budgetSeatAdjustUntil, until)))
+  await clearSeatAdjustment(ALERTS, pool.workspaceId, until)
   const fresh = await getPooledWorkspace(pool.workspaceId, now)
   if (fresh) {
     await ensureWorkspaceTeam(fresh).catch((e: unknown) => {
@@ -51,7 +51,7 @@ export async function runWorkspaceBudgetAlerts(now: Date = new Date()): Promise<
   if (!isBillingEnabled()) return { checked: 0, alerted: 0 }
   let checked = 0
   let alerted = 0
-  const rows = await useDatabase().select().from(workspaceSubscriptions)
+  const rows = await listAllWorkspaceSubscriptions(ALERTS)
   for (const row of rows) {
     const pool = pooledFromRow(row, now)
     if (!pool) continue

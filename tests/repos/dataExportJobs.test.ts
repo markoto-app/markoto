@@ -14,6 +14,7 @@ import {
 } from '../../server/repos/dataExportJobs'
 import { createUser } from '../integration/setup/fixtures'
 import { ConflictError, NotFoundError } from '../../server/repos/errors'
+import { asUser, sys } from '../helpers/access'
 
 describe('enqueueExportJob', () => {
   beforeEach(async () => {
@@ -22,7 +23,7 @@ describe('enqueueExportJob', () => {
 
   it('inserts a queued row and returns the new job', async () => {
     const u = await createUser()
-    const job = await enqueueExportJob(u.id)
+    const job = await enqueueExportJob(asUser(u.id))
     expect(job.userId).toBe(u.id)
     expect(job.status).toBe('queued')
     expect(job.jobId.length).toBeGreaterThan(10)
@@ -32,17 +33,17 @@ describe('enqueueExportJob', () => {
 
   it('throws ConflictError if a queued or running job already exists', async () => {
     const u = await createUser()
-    await enqueueExportJob(u.id)
-    await expect(enqueueExportJob(u.id)).rejects.toBeInstanceOf(ConflictError)
+    await enqueueExportJob(asUser(u.id))
+    await expect(enqueueExportJob(asUser(u.id))).rejects.toBeInstanceOf(ConflictError)
   })
 
   it('allows a fresh enqueue once the prior job is ready/failed/expired', async () => {
     const u = await createUser()
-    const first = await enqueueExportJob(u.id)
-    await markJobReady({ jobId: first.jobId, s3Key: 'k1', sizeBytes: 100, retentionDays: 7 })
+    const first = await enqueueExportJob(asUser(u.id))
+    await markJobReady(sys(), { jobId: first.jobId, s3Key: 'k1', sizeBytes: 100, retentionDays: 7 })
 
     // Now a fresh enqueue is allowed.
-    const second = await enqueueExportJob(u.id)
+    const second = await enqueueExportJob(asUser(u.id))
     expect(second.jobId).not.toBe(first.jobId)
     expect(second.status).toBe('queued')
   })
@@ -54,18 +55,18 @@ describe('claimQueuedJob', () => {
   })
 
   it('returns null when the queue is empty', async () => {
-    expect(await claimQueuedJob()).toBeNull()
+    expect(await claimQueuedJob(sys())).toBeNull()
   })
 
   it('claims the oldest queued row and flips it to running', async () => {
     const u1 = await createUser()
     const u2 = await createUser()
-    const j1 = await enqueueExportJob(u1.id)
+    const j1 = await enqueueExportJob(asUser(u1.id))
     // Force j2 to be slightly newer.
     await new Promise(r => setTimeout(r, 10))
-    await enqueueExportJob(u2.id)
+    await enqueueExportJob(asUser(u2.id))
 
-    const claimed = await claimQueuedJob()
+    const claimed = await claimQueuedJob(sys())
     expect(claimed).not.toBeNull()
     expect(claimed!.jobId).toBe(j1.jobId)
     expect(claimed!.status).toBe('running')
@@ -74,10 +75,10 @@ describe('claimQueuedJob', () => {
 
   it('returns null when only running rows exist', async () => {
     const u = await createUser()
-    await enqueueExportJob(u.id)
-    await claimQueuedJob() // consume the only queued row
+    await enqueueExportJob(asUser(u.id))
+    await claimQueuedJob(sys()) // consume the only queued row
 
-    expect(await claimQueuedJob()).toBeNull()
+    expect(await claimQueuedJob(sys())).toBeNull()
   })
 })
 
@@ -88,13 +89,13 @@ describe('markJobReady', () => {
 
   it('flips to ready and sets s3Key, sizeBytes, completedAt, expiresAt', async () => {
     const u = await createUser()
-    const job = await enqueueExportJob(u.id)
-    await claimQueuedJob() // → running
+    const job = await enqueueExportJob(asUser(u.id))
+    await claimQueuedJob(sys()) // → running
     const before = Date.now()
-    await markJobReady({ jobId: job.jobId, s3Key: 's3-key', sizeBytes: 12345, retentionDays: 7 })
+    await markJobReady(sys(), { jobId: job.jobId, s3Key: 's3-key', sizeBytes: 12345, retentionDays: 7 })
     const after = Date.now()
 
-    const reread = await getJobById(job.jobId)
+    const reread = await getJobById(sys(), job.jobId)
     expect(reread.status).toBe('ready')
     expect(reread.s3Key).toBe('s3-key')
     expect(reread.sizeBytes).toBe(12345)
@@ -108,10 +109,10 @@ describe('markJobReady', () => {
 
   it('throws on out-of-range retentionDays', async () => {
     const u = await createUser()
-    const job = await enqueueExportJob(u.id)
-    await expect(markJobReady({ jobId: job.jobId, s3Key: 'k', sizeBytes: 1, retentionDays: 0 }))
+    const job = await enqueueExportJob(asUser(u.id))
+    await expect(markJobReady(sys(), { jobId: job.jobId, s3Key: 'k', sizeBytes: 1, retentionDays: 0 }))
       .rejects.toThrow(/out of range/)
-    await expect(markJobReady({ jobId: job.jobId, s3Key: 'k', sizeBytes: 1, retentionDays: 91 }))
+    await expect(markJobReady(sys(), { jobId: job.jobId, s3Key: 'k', sizeBytes: 1, retentionDays: 91 }))
       .rejects.toThrow(/out of range/)
   })
 })
@@ -123,11 +124,11 @@ describe('markJobFailed', () => {
 
   it('flips to failed and stores the (truncated) error message', async () => {
     const u = await createUser()
-    const job = await enqueueExportJob(u.id)
+    const job = await enqueueExportJob(asUser(u.id))
     const longMsg = 'x'.repeat(800)
-    await markJobFailed(job.jobId, longMsg)
+    await markJobFailed(sys(), job.jobId, longMsg)
 
-    const reread = await getJobById(job.jobId)
+    const reread = await getJobById(sys(), job.jobId)
     expect(reread.status).toBe('failed')
     expect(reread.errorMessage).toBeTruthy()
     expect(reread.errorMessage!.length).toBeLessThanOrEqual(500)
@@ -137,9 +138,9 @@ describe('markJobFailed', () => {
 
   it('keeps short messages intact', async () => {
     const u = await createUser()
-    const job = await enqueueExportJob(u.id)
-    await markJobFailed(job.jobId, 'short error')
-    const reread = await getJobById(job.jobId)
+    const job = await enqueueExportJob(asUser(u.id))
+    await markJobFailed(sys(), job.jobId, 'short error')
+    const reread = await getJobById(sys(), job.jobId)
     expect(reread.errorMessage).toBe('short error')
   })
 })
@@ -151,33 +152,33 @@ describe('markExpiredJobs', () => {
 
   it('flips ready rows past expires_at to expired and returns their s3Keys', async () => {
     const u = await createUser()
-    const job = await enqueueExportJob(u.id)
-    await markJobReady({ jobId: job.jobId, s3Key: 'k1', sizeBytes: 1, retentionDays: 7 })
+    const job = await enqueueExportJob(asUser(u.id))
+    await markJobReady(sys(), { jobId: job.jobId, s3Key: 'k1', sizeBytes: 1, retentionDays: 7 })
     // Backdate expires_at.
     await testDb().query(
       `UPDATE data_export_jobs SET expires_at = NOW() - INTERVAL '1 day' WHERE job_id = $1`,
       [job.jobId]
     )
 
-    const flipped = await markExpiredJobs()
+    const flipped = await markExpiredJobs(sys())
     expect(flipped).toHaveLength(1)
     expect(flipped[0]).toEqual({ jobId: job.jobId, s3Key: 'k1' })
 
-    const reread = await getJobById(job.jobId)
+    const reread = await getJobById(sys(), job.jobId)
     expect(reread.status).toBe('expired')
   })
 
   it('does not flip rows whose expires_at is in the future', async () => {
     const u = await createUser()
-    const job = await enqueueExportJob(u.id)
-    await markJobReady({ jobId: job.jobId, s3Key: 'k1', sizeBytes: 1, retentionDays: 7 })
+    const job = await enqueueExportJob(asUser(u.id))
+    await markJobReady(sys(), { jobId: job.jobId, s3Key: 'k1', sizeBytes: 1, retentionDays: 7 })
 
-    expect(await markExpiredJobs()).toEqual([])
-    expect((await getJobById(job.jobId)).status).toBe('ready')
+    expect(await markExpiredJobs(sys())).toEqual([])
+    expect((await getJobById(sys(), job.jobId)).status).toBe('ready')
   })
 
   it('returns empty when no ready rows exist', async () => {
-    expect(await markExpiredJobs()).toEqual([])
+    expect(await markExpiredJobs(sys())).toEqual([])
   })
 })
 
@@ -188,20 +189,20 @@ describe('listJobsForUser', () => {
 
   it('returns jobs ordered most-recent-first, limited to 50', async () => {
     const u = await createUser()
-    const j1 = await enqueueExportJob(u.id)
-    await markJobReady({ jobId: j1.jobId, s3Key: 'k1', sizeBytes: 1, retentionDays: 7 })
+    const j1 = await enqueueExportJob(asUser(u.id))
+    await markJobReady(sys(), { jobId: j1.jobId, s3Key: 'k1', sizeBytes: 1, retentionDays: 7 })
     await new Promise(r => setTimeout(r, 10))
-    const j2 = await enqueueExportJob(u.id)
+    const j2 = await enqueueExportJob(asUser(u.id))
 
-    const list = await listJobsForUser(u.id)
+    const list = await listJobsForUser(asUser(u.id))
     expect(list.map(j => j.jobId)).toEqual([j2.jobId, j1.jobId])
   })
 
   it('does not return another user\'s jobs', async () => {
     const u1 = await createUser()
     const u2 = await createUser()
-    await enqueueExportJob(u1.id)
-    expect(await listJobsForUser(u2.id)).toEqual([])
+    await enqueueExportJob(asUser(u1.id))
+    expect(await listJobsForUser(asUser(u2.id))).toEqual([])
   })
 })
 
@@ -212,21 +213,21 @@ describe('getJobForUser', () => {
 
   it('returns the row for the rightful user', async () => {
     const u = await createUser()
-    const job = await enqueueExportJob(u.id)
-    const fetched = await getJobForUser(job.jobId, u.id)
+    const job = await enqueueExportJob(asUser(u.id))
+    const fetched = await getJobForUser(asUser(u.id), job.jobId)
     expect(fetched?.jobId).toBe(job.jobId)
   })
 
   it('returns null for a different user (no existence-leak)', async () => {
     const u1 = await createUser()
     const u2 = await createUser()
-    const job = await enqueueExportJob(u1.id)
-    expect(await getJobForUser(job.jobId, u2.id)).toBeNull()
+    const job = await enqueueExportJob(asUser(u1.id))
+    expect(await getJobForUser(asUser(u2.id), job.jobId)).toBeNull()
   })
 
   it('returns null for a nonexistent jobId', async () => {
     const u = await createUser()
-    expect(await getJobForUser('nope', u.id)).toBeNull()
+    expect(await getJobForUser(asUser(u.id), 'nope')).toBeNull()
   })
 })
 
@@ -238,18 +239,18 @@ describe('countActiveJobs + listAllJobsForUser', () => {
   it('counts queued + running rows across users', async () => {
     const u1 = await createUser()
     const u2 = await createUser()
-    await enqueueExportJob(u1.id)
-    await enqueueExportJob(u2.id)
-    expect(await countActiveJobs()).toBe(2)
+    await enqueueExportJob(asUser(u1.id))
+    await enqueueExportJob(asUser(u2.id))
+    expect(await countActiveJobs(sys())).toBe(2)
   })
 
   it('listAllJobsForUser returns every row regardless of status', async () => {
     const u = await createUser()
-    const j1 = await enqueueExportJob(u.id)
-    await markJobReady({ jobId: j1.jobId, s3Key: 'k1', sizeBytes: 1, retentionDays: 7 })
-    const j2 = await enqueueExportJob(u.id)
+    const j1 = await enqueueExportJob(asUser(u.id))
+    await markJobReady(sys(), { jobId: j1.jobId, s3Key: 'k1', sizeBytes: 1, retentionDays: 7 })
+    const j2 = await enqueueExportJob(asUser(u.id))
 
-    const all = await listAllJobsForUser(u.id)
+    const all = await listAllJobsForUser(asUser(u.id))
     expect(all.map(j => j.jobId).sort()).toEqual([j1.jobId, j2.jobId].sort())
   })
 })
@@ -260,6 +261,6 @@ describe('getJobById', () => {
   })
 
   it('throws NotFoundError for unknown jobId', async () => {
-    await expect(getJobById('nope')).rejects.toBeInstanceOf(NotFoundError)
+    await expect(getJobById(sys(), 'nope')).rejects.toBeInstanceOf(NotFoundError)
   })
 })

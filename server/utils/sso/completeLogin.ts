@@ -25,10 +25,10 @@
 // Never instance-admin bootstrap (`NUXT_ADMIN_USER_EMAILS`): a customer's IdP
 // must not be able to make anyone an instance operator.
 
-import { must } from '~~/shared/utils/must'
-import { and, eq, sql } from 'drizzle-orm'
-import { userIdentities, users } from '../../db/schema'
-import { useDatabase } from '../platform/database'
+import { findOrCreateUserByEmail, setIdentitySubject } from '../../repos/ssoMembership'
+import { findUserById, getSessionEpoch } from '../../repos/users'
+import { withTransaction, type TxHandle } from '../../repos/transaction'
+import { system } from '../../repos/proofs'
 import {
   activateSsoConnection,
   findIdentity,
@@ -39,8 +39,7 @@ import {
   writeSsoGrant,
   type SsoConnectionRow
 } from '../../repos/sso'
-import { getMemberRoleIgnoringSso, getMembershipRole } from '../../repos/workspaceMembers'
-import { getSessionEpoch } from '../../repos/users'
+import { getMemberRoleIgnoringSso, getMembershipRole } from '../access/workspaceAccess'
 import { emailDomain } from './domains'
 import { joinWorkspaceBySso, SsoJoinRefused } from './membership'
 import type { SsoFlow } from './flowCookie'
@@ -101,7 +100,7 @@ export async function completeSsoLogin(connection: SsoConnectionRow, assertion: 
     : null
   const name = (assertion.name || trustedEmail || 'Workspace member').slice(0, MAX_NAME)
 
-  const who = await useDatabase().transaction(async (tx) => {
+  const who = await withTransaction(async (tx) => {
     const identity = await findIdentity(connection.id, assertion.subject, tx)
     if (identity) {
       if (!identity.active) throw new SsoLoginRefused('sso/deactivated', 'Your access to this workspace was removed by your organisation.')
@@ -117,16 +116,15 @@ export async function completeSsoLogin(connection: SsoConnectionRow, assertion: 
   })
 
   const { role, joined } = await ensureMembership(connection, who, trustedEmail)
-  await touchIdentityLogin(who.identityId)
-  await writeSsoGrant(who.userId, connection.workspaceId, await getSessionEpoch(who.userId))
+  await touchIdentityLogin(SSO_LOGIN, who.identityId)
+  await writeSsoGrant(SSO_LOGIN, who.userId, connection.workspaceId, await getSessionEpoch(who.userId))
   let activated = false
   if (isTest && connection.status !== 'active') {
-    await activateSsoConnection(connection.id)
+    await activateSsoConnection(SSO_LOGIN, connection.id)
     activated = true
   }
 
-  const profile = (await useDatabase().select({ name: users.name, email: users.email }).from(users)
-    .where(and(eq(users.id, who.userId))).limit(1))[0]
+  const profile = await findUserById(who.userId)
   return {
     userId: who.userId,
     name: profile?.name ?? name,
@@ -140,7 +138,8 @@ export async function completeSsoLogin(connection: SsoConnectionRow, assertion: 
   }
 }
 
-type Tx = Parameters<Parameters<ReturnType<typeof useDatabase>['transaction']>[0]>[0]
+/** The sign-in through the workspace's IdP acts on whichever account and membership it resolves. */
+const SSO_LOGIN = system('sso-login')
 
 /**
  * The flow may sign in with this connection: a test flow names the admin
@@ -164,16 +163,11 @@ async function admitFlow(connection: SsoConnectionRow, flow: SsoFlow): Promise<n
 }
 
 /** The account a first sign-in belongs to: the one with the verified address, else a new one. */
-async function accountForEmail(tx: Tx, trustedEmail: string | null, name: string): Promise<{ userId: number, created: boolean }> {
+async function accountForEmail(tx: TxHandle, trustedEmail: string | null, name: string): Promise<{ userId: number, created: boolean }> {
   if (!trustedEmail) {
     throw new SsoLoginRefused('sso/not-provisioned', 'Your account is not set up for this workspace. Ask an admin to add you.')
   }
-  const existing = (await tx.execute<{ id: number }>(sql`
-        select id from ${users} where lower(email) = ${trustedEmail} order by id limit 1 for update
-      `)).rows[0]
-  if (existing) return { userId: Number(existing.id), created: false }
-  const inserted = await tx.insert(users).values({ name, email: trustedEmail }).returning({ id: users.id })
-  return { userId: must(inserted[0], 'inserted user row').id, created: true }
+  return findOrCreateUserByEmail(SSO_LOGIN, trustedEmail, name, tx)
 }
 
 /**
@@ -182,7 +176,7 @@ async function accountForEmail(tx: Tx, trustedEmail: string | null, name: string
  * an account linked to ANOTHER real subject is not re-linked.
  */
 async function linkIdentity(
-  tx: Tx,
+  tx: TxHandle,
   connection: SsoConnectionRow,
   subject: string,
   account: { userId: number, created: boolean },
@@ -192,13 +186,13 @@ async function linkIdentity(
   const linkedAlready = await findIdentityForUser(connection.id, userId, tx)
   if (linkedAlready?.subject.startsWith(SCIM_PLACEHOLDER_PREFIX)) {
     if (!linkedAlready.active) throw new SsoLoginRefused('sso/deactivated', 'Your access to this workspace was removed by your organisation.')
-    await tx.update(userIdentities).set({ subject }).where(eq(userIdentities.id, linkedAlready.id))
+    await setIdentitySubject(SSO_LOGIN, linkedAlready.id, subject, tx)
     return { userId, identityId: linkedAlready.id, scim: true, created, linked: true }
   }
   if (linkedAlready) {
     throw new SsoLoginRefused(isTest ? 'sso/test-mismatch' : 'sso/not-provisioned', 'This markoto account is linked to another account at your identity provider.')
   }
-  const inserted = await insertIdentity({ userId, connectionId: connection.id, subject }, tx)
+  const inserted = await insertIdentity(SSO_LOGIN, { userId, connectionId: connection.id, subject }, tx)
   return { userId, identityId: inserted.id, scim: false, created, linked: true }
 }
 
@@ -214,7 +208,7 @@ async function ensureMembership(
     throw new SsoLoginRefused('sso/not-provisioned', 'Your account is not a member of this workspace. Ask an admin to add you.')
   }
   try {
-    const result = await joinWorkspaceBySso({ workspaceId: connection.workspaceId, userId: who.userId, email: trustedEmail, defaultRole: connection.defaultRole })
+    const result = await joinWorkspaceBySso({ by: SSO_LOGIN, workspaceId: connection.workspaceId, userId: who.userId, email: trustedEmail, defaultRole: connection.defaultRole })
     return { role: result.role, joined: result.joined }
   } catch (e) {
     if (e instanceof SsoJoinRefused) throw new SsoLoginRefused(e.code, e.message)

@@ -8,6 +8,7 @@ import {
   createWorkspace,
   setMemberRole
 } from '../integration/setup/fixtures'
+import { sys } from '../helpers/access'
 
 // Stripe stub — we don't want the export builder hitting the network.
 vi.mock('../../server/utils/billing/stripeClient', () => ({
@@ -47,12 +48,12 @@ describe('buildExportZip', () => {
   })
 
   it('throws when the user does not exist', async () => {
-    await expect(buildExportZip(99_999_999)).rejects.toThrow(/not found/)
+    await expect(buildExportZip(sys(), 99_999_999)).rejects.toThrow(/not found/)
   })
 
   it('emits the canonical layout for a brand-new user with no data', async () => {
     const u = await createUser()
-    const result = await buildExportZip(u.id)
+    const result = await buildExportZip(sys(), u.id)
     expect(result.bytes.byteLength).toBeGreaterThan(0)
 
     const names = entryNames(result.bytes)
@@ -131,7 +132,7 @@ describe('buildExportZip', () => {
       [reporter.id, owner.id]
     )
 
-    const mine = await buildExportZip(reporter.id)
+    const mine = await buildExportZip(sys(), reporter.id)
     const raw = readEntry(mine.bytes, 'abuse_reports.ndjson')
     expect(raw).not.toContain('INTERNAL moderator note')
     expect(raw).not.toContain('statement body for the OWNER')
@@ -153,7 +154,7 @@ describe('buildExportZip', () => {
     expect(readEntry(mine.bytes, 'moderation_notices.ndjson')).toBe('')
 
     // The owner sees the statement of reasons they got, nothing of the reporter.
-    const theirs = await buildExportZip(owner.id)
+    const theirs = await buildExportZip(sys(), owner.id)
     const notices = readEntry(theirs.bytes, 'moderation_notices.ndjson').trim().split('\n').map(l => JSON.parse(l))
     expect(notices).toEqual([expect.objectContaining({ kind: 'statement_of_reasons', body: 'statement body for the OWNER', reference: 'rep-mine' })])
     expect(JSON.stringify(notices)).not.toContain('rita@example.org')
@@ -169,7 +170,7 @@ describe('buildExportZip', () => {
       `UPDATE users SET oidc_issuer = $1, oidc_subject = $2 WHERE id = $3`,
       ['https://idp.example.org/realms/markoto', 'opaque-subject-123', u.id]
     )
-    const result = await buildExportZip(u.id)
+    const result = await buildExportZip(sys(), u.id)
     const profile = JSON.parse(readEntry(result.bytes, 'profile.json'))
     expect(profile.oidcLinked).toBe(true)
     expect(profile.oidcIssuer).toBe('https://idp.example.org/realms/markoto')
@@ -182,7 +183,7 @@ describe('buildExportZip', () => {
       `INSERT INTO themes (theme_id, user_id, name, description, theme) VALUES ($1, $2, $3, $4, $5)`,
       ['th-export-1', u.id, 'Paper', 'Two columns, serif body', JSON.stringify({ page: { size: 'A4' } })]
     )
-    const result = await buildExportZip(u.id)
+    const result = await buildExportZip(sys(), u.id)
     const themes = JSON.parse(readEntry(result.bytes, 'themes.json')) as Array<{ themeId: string, name: string, description: string }>
     expect(themes).toHaveLength(1)
     expect(themes[0]).toMatchObject({ themeId: 'th-export-1', name: 'Paper', description: 'Two columns, serif body' })
@@ -195,7 +196,7 @@ describe('buildExportZip', () => {
        VALUES ('me@example.com', 'de', 1, 'waitlist.consentLabel', $1, 'confirm-hash-secret', NOW() + interval '7 days', 'unsub-hash-secret')`,
       [u.id]
     )
-    const result = await buildExportZip(u.id)
+    const result = await buildExportZip(sys(), u.id)
     const raw = readEntry(result.bytes, 'waitlist.ndjson')
     expect(raw).not.toContain('hash-secret')
     const rows = raw.trim().split('\n').map(l => JSON.parse(l))
@@ -221,7 +222,7 @@ describe('buildExportZip', () => {
               ('inv-sent-1', $3, 'friend@example.com', 'editor', $4, NULL, NOW() + interval '7 days')`,
       [ws.workspaceId, admin.id, mine.workspaceId, u.id]
     )
-    const result = await buildExportZip(u.id)
+    const result = await buildExportZip(sys(), u.id)
     const raw = readEntry(result.bytes, 'workspace_invites.json')
     expect(raw).not.toContain('token-hash-secret')
     const parsed = JSON.parse(raw)
@@ -235,7 +236,7 @@ describe('buildExportZip', () => {
     try {
       const u = await createUser()
       await testDb().query(`UPDATE users SET stripe_customer_id = 'cus_leftover' WHERE id = $1`, [u.id])
-      const result = await buildExportZip(u.id)
+      const result = await buildExportZip(sys(), u.id)
       expect(readEntry(result.bytes, 'billing/customer.json')).toBe('{}')
       expect(readEntry(result.bytes, 'billing/invoices.ndjson')).toBe('')
       expect(result.counts.invoices).toBe(0)
@@ -248,7 +249,7 @@ describe('buildExportZip', () => {
     const u = await createUser()
     const doc = await createDoc({ ownerId: u.id, title: 'My Doc', description: 'A test doc' })
 
-    const result = await buildExportZip(u.id)
+    const result = await buildExportZip(sys(), u.id)
     const names = entryNames(result.bytes)
     expect(names).toContain(`documents/${doc.docId}.md`)
     expect(names).toContain(`documents/${doc.docId}.meta.json`)
@@ -283,7 +284,7 @@ describe('buildExportZip', () => {
     ydoc.getText('content').insert(6, '\n\nand edited after the snapshot')
     await insertYjsUpdate(doc.docId, Y.encodeStateAsUpdate(ydoc, sv))
 
-    const result = await buildExportZip(u.id)
+    const result = await buildExportZip(sys(), u.id)
     expect(readEntry(result.bytes, `documents/${doc.docId}.md`)).toBe('# Kept\n\nand edited after the snapshot')
   })
 
@@ -295,7 +296,7 @@ describe('buildExportZip', () => {
     await insertComment({ docId: doc.docId, entryId: 'c2', authorId: u.id, authorName: u.name, body: 'second' })
     await insertComment({ docId: doc.docId, entryId: 'c3', authorId: other.id, authorName: other.name, body: 'reply' })
 
-    const result = await buildExportZip(u.id)
+    const result = await buildExportZip(sys(), u.id)
     const ndjson = readEntry(result.bytes, 'comments.ndjson')
     const lines = ndjson.trim().split('\n').filter(Boolean)
     expect(lines).toHaveLength(2)
@@ -311,7 +312,7 @@ describe('buildExportZip', () => {
     const ws = await createWorkspace(owner.id, { name: 'Library' })
     await setMemberRole(ws.workspaceId, u.id, 'editor')
 
-    const result = await buildExportZip(u.id)
+    const result = await buildExportZip(sys(), u.id)
     const list = JSON.parse(readEntry(result.bytes, 'workspace_memberships.json'))
     expect(list).toHaveLength(1)
     expect(list[0]).toMatchObject({
@@ -340,7 +341,7 @@ describe('buildExportZip', () => {
       [other.id]
     )
 
-    const result = await buildExportZip(u.id)
+    const result = await buildExportZip(sys(), u.id)
     const ndjson = readEntry(result.bytes, 'audit.ndjson')
     const lines = ndjson.trim().split('\n').filter(Boolean)
     expect(lines).toHaveLength(2)
@@ -350,7 +351,7 @@ describe('buildExportZip', () => {
 
   it('emits empty billing files when no Stripe customer is set', async () => {
     const u = await createUser()
-    const result = await buildExportZip(u.id)
+    const result = await buildExportZip(sys(), u.id)
     const customer = readEntry(result.bytes, 'billing/customer.json')
     expect(customer).toBe('{}')
     expect(readEntry(result.bytes, 'billing/invoices.ndjson')).toBe('')

@@ -22,7 +22,7 @@ export default defineApiHandler({
   plan: { feature: 'brandKit', message: BRAND_KIT_PLAN_MESSAGE },
   body: 'multipart',
   rateLimit: { namespace: 'brand-upload', max: 60, windowMs: HOUR_MS, key: ctx => ctx.wsId, error: 'brand/rate-limited' },
-  handler: async ({ event, user, wsId }) => {
+  handler: async ({ event, user, wsId, workspaceAccess }) => {
     const { bytes, form } = await readBrandUpload(event, BRAND_FONT_MAX_BYTES)
     if (form.get('licence') !== 'true') throw apiError('brand/licence-required')
     const inspected = inspectFont(bytes)
@@ -32,7 +32,7 @@ export default defineApiHandler({
 
     const { family, weight, style } = readFontFace(form, inspected)
 
-    if (await countBrandAssets(wsId, 'font') >= BRAND_FONTS_PER_WORKSPACE) throw tooManyFonts()
+    if (await countBrandAssets(workspaceAccess, 'font') >= BRAND_FONTS_PER_WORKSPACE) throw tooManyFonts()
 
     const id = newBrandAssetId()
     const key = brandAssetKey(wsId, id, inspected.format)
@@ -42,7 +42,7 @@ export default defineApiHandler({
     await putBrandObject(key, bytes, inspected.format)
     let inserted: 'inserted' | 'limit'
     try {
-      inserted = await insertBrandAsset({ id, workspaceId: wsId, kind: 'font', format: inspected.format, name: family, weight, style, sizeBytes: bytes.byteLength, s3Key: key, uploadedBy: user.id, licenceConfirmedAt: new Date() }, BRAND_FONTS_PER_WORKSPACE)
+      inserted = await insertBrandAsset(workspaceAccess, { id, kind: 'font', format: inspected.format, name: family, weight, style, sizeBytes: bytes.byteLength, s3Key: key, uploadedBy: user.id, licenceConfirmedAt: new Date() }, BRAND_FONTS_PER_WORKSPACE)
     } catch (e) {
       await deleteBrandObjects([key])
       if (e instanceof DuplicateError) {
@@ -55,7 +55,7 @@ export default defineApiHandler({
       throw tooManyFonts()
     }
     await appendAuditEvent({
-      actorUserId: user.id,
+      by: workspaceAccess,
       actorIp: getClientIp(event),
       scope: 'workspace',
       scopeId: wsId,

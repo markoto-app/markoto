@@ -1,9 +1,8 @@
 import { must } from '~~/shared/utils/must'
 import { GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import * as Sentry from '@sentry/nuxt'
-import { eq } from 'drizzle-orm'
-import { workspaceKnowledge, workspaceKnowledgeChunks } from '../../db/schema'
-import { useDatabase } from '../platform/database'
+import { getKnowledgeForProcessing, knowledgeRowExists, markKnowledgeFailed, markKnowledgeReady, replaceKnowledgeChunks } from '../../repos/knowledgePipeline'
+import { system } from '../../repos/proofs'
 import { chunkMarkdown } from './chunkMarkdown'
 import { embedDocuments, embeddingVersionTag, resolveEmbeddingsConfig } from './embeddings'
 import { assertKnowledgeEmbeddingsReady } from './knowledgeEmbeddingsStatus'
@@ -67,13 +66,11 @@ export async function processKnowledge(knowledgeId: string): Promise<void> {
   }
 }
 
-async function runPipeline(knowledgeId: string): Promise<void> {
-  const db = useDatabase()
+/** The pipeline works on whichever file it is given: an upload already proven at confirm, or a stuck one the sweep re-kicks. */
+const PIPELINE = system('knowledge-pipeline')
 
-  const rows = await db.select().from(workspaceKnowledge)
-    .where(eq(workspaceKnowledge.knowledgeId, knowledgeId))
-    .limit(1)
-  const row = rows[0]
+async function runPipeline(knowledgeId: string): Promise<void> {
+  const row = await getKnowledgeForProcessing(PIPELINE, knowledgeId)
   if (!row) {
     log.warn('knowledge row not found', { knowledgeId })
     return
@@ -133,36 +130,21 @@ async function runPipeline(knowledgeId: string): Promise<void> {
 
     const tokenCount = chunks.reduce((n, c) => n + c.tokens, 0)
 
-    // Insert chunks + flip status in one logical step. The chunks insert
-    // is a single round-trip (multi-row VALUES); the update is a single
-    // UPDATE. We intentionally don't wrap in a transaction — pg+HNSW
-    // writes don't play great inside long txns and partial inserts are
-    // recoverable (a re-process deletes by knowledgeId first).
-    await db.delete(workspaceKnowledgeChunks)
-      .where(eq(workspaceKnowledgeChunks.knowledgeId, knowledgeId))
+    // Chunks, then the status flip (not one transaction: see
+    // `replaceKnowledgeChunks`).
+    await replaceKnowledgeChunks(PIPELINE, knowledgeId, row.workspaceId, chunks.map((c, i) => ({
+      chunkIndex: c.index,
+      content: c.content,
+      tokens: c.tokens,
+      embedding: must(embeddings[i], `embedding of chunk ${i}`)
+    })))
 
-    if (chunks.length > 0) {
-      await db.insert(workspaceKnowledgeChunks).values(
-        chunks.map((c, i) => ({
-          knowledgeId,
-          workspaceId: row.workspaceId,
-          chunkIndex: c.index,
-          content: c.content,
-          tokens: c.tokens,
-          embedding: must(embeddings[i], `embedding of chunk ${i}`)
-        }))
-      )
-    }
-
-    await db.update(workspaceKnowledge).set({
-      status: 'ready' as const,
+    await markKnowledgeReady(PIPELINE, knowledgeId, {
       chunkCount: chunks.length,
       tokenCount,
       markdownCache: markdown,
-      embeddingVersion: embeddingVersionTag(embedCfg),
-      processedAt: new Date(),
-      errorMessage: null
-    }).where(eq(workspaceKnowledge.knowledgeId, knowledgeId))
+      embeddingVersion: embeddingVersionTag(embedCfg)
+    })
 
     // Original upload is no longer needed — we never serve it back and
     // `markdown_cache` has the parsed content the AI retrieves. Deleting
@@ -191,21 +173,11 @@ async function runPipeline(knowledgeId: string): Promise<void> {
 }
 
 async function markFailed(knowledgeId: string, message: string): Promise<void> {
-  const db = useDatabase()
-  await db.update(workspaceKnowledge).set({
-    status: 'failed' as const,
-    errorMessage: message,
-    processedAt: new Date()
-  }).where(eq(workspaceKnowledge.knowledgeId, knowledgeId))
+  await markKnowledgeFailed(PIPELINE, knowledgeId, message)
 }
 
 async function rowStillExists(knowledgeId: string): Promise<boolean> {
-  const db = useDatabase()
-  const rows = await db.select({ id: workspaceKnowledge.knowledgeId })
-    .from(workspaceKnowledge)
-    .where(eq(workspaceKnowledge.knowledgeId, knowledgeId))
-    .limit(1)
-  return rows.length > 0
+  return knowledgeRowExists(PIPELINE, knowledgeId)
 }
 
 async function runConversion(s3Key: string, ext: string): Promise<string> {

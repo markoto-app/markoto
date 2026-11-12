@@ -1,4 +1,5 @@
 import { listAllKnowledgeS3Keys } from '../../repos/knowledge'
+import { system } from '../../repos/proofs'
 import type { ObjectStore } from '../storage/objectStore'
 import { HOUR_MS } from '~~/shared/config/units'
 
@@ -45,7 +46,7 @@ export async function sweepKnowledgeOrphans(deps: KnowledgeOrphanSweepDeps): Pro
   if (candidates.length === 0) return { deleted: 0 }
 
   // Read the rows AFTER listing: a row committed while we listed is seen.
-  const known = new Set(await listAllKnowledgeS3Keys())
+  const known = new Set(await listAllKnowledgeS3Keys(system('orphan-cleanup')))
   const orphans = candidates.filter(k => !known.has(k))
   await deps.store.deleteMany(orphans)
   return { deleted: orphans.length }

@@ -1,8 +1,9 @@
 import * as Y from 'yjs'
-import { appendYjsUpdate, latestYjsId, readYjsUpdatesAt } from './yjsLog'
+import { appendYjsUpdate, latestYjsId, readYjsUpdatesAt } from '../../repos/yjsLog'
 import { withThemeDocId } from '~~/shared/utils/theme/customCss'
 import { withThemeImagesDocId } from '~~/shared/utils/theme/themeImages'
 import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
+import type { DocAccess } from '../../repos/proofs'
 
 // Clones Y.js state from one docId to another, rewriting image URLs so the
 // target's markdown references its own `/api/files/{targetDocId}/...` paths.
@@ -23,19 +24,21 @@ import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
 // debounces onStoreDocument) and are missing from the clone. A flush
 // endpoint on the sync-server would close that gap.
 export async function cloneYjsStateWithUrlRewrite(
-  sourceDocId: string,
-  targetDocId: string,
+  source: DocAccess<'view'>,
+  target: DocAccess<'write'>,
   /** `title`: the copy's live title (ymeta) — used when a document is made from a template. */
   overrides?: { title?: string }
 ): Promise<void> {
+  const sourceDocId = source.docId
+  const targetDocId = target.docId
   // No rows → source hasn't been opened / persisted yet. Nothing to
   // clone; the duplicate will start empty on first open, which is the
   // correct behavior (the documents row already has title + theme).
-  const latest = await latestYjsId(sourceDocId)
+  const latest = await latestYjsId(source)
   if (latest === null) return
 
   const sourceDoc = new Y.Doc()
-  for (const update of await readYjsUpdatesAt(sourceDocId, latest)) {
+  for (const update of await readYjsUpdatesAt(source, latest)) {
     Y.applyUpdate(sourceDoc, update)
   }
 
@@ -70,5 +73,5 @@ export async function cloneYjsStateWithUrlRewrite(
 
   if (overrides?.title !== undefined && targetMeta.has('title')) targetMeta.set('title', overrides.title)
 
-  await appendYjsUpdate(targetDocId, Y.encodeStateAsUpdate(targetDoc))
+  await appendYjsUpdate(target, Y.encodeStateAsUpdate(targetDoc))
 }

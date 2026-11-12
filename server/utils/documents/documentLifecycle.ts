@@ -11,6 +11,7 @@ import { deleteDocRow } from '../../repos/documents'
 import { injectTraceHeaders } from '../platform/traceHeaders'
 import { useEnv } from '~~/shared/env/load'
 import { useLogger } from '../platform/logger'
+import type { DocAccess } from '../../repos/proofs'
 
 const log = useLogger('document-lifecycle')
 
@@ -19,8 +20,9 @@ const log = useLogger('document-lifecycle')
 // - `server/plugins/inactive-doc-sweep.ts` (automated cleanup)
 // - `server/api/workspaces/[wsId]/index.delete.ts` (workspace cascade)
 //
-// Callers are responsible for authorisation checks — this helper trusts
-// its input docId and reaps everything associated.
+// Callers prove the right to delete (`DocAccess<'delete'>`: the delete
+// policy, a workspace admin's cascade, or the named sweeper) and this
+// helper reaps everything associated with exactly that document.
 //
 // Ordering is load-bearing:
 //   1. DB rows first — the doc "disappears" from the user's perspective
@@ -46,10 +48,10 @@ export interface DocumentLifecycleDeps {
  * reference documents). If this throws, the caller treats the whole
  * delete as failed — nothing external has been touched yet.
  */
-export async function deleteDocDbRows(docId: string): Promise<void> {
-  await deleteActivityForDoc(docId)
-  await deleteUploadsForDoc(docId)
-  await deleteDocRow(docId)
+export async function deleteDocDbRows(doc: DocAccess<'delete'>): Promise<void> {
+  await deleteActivityForDoc(doc)
+  await deleteUploadsForDoc(doc)
+  await deleteDocRow(doc)
 }
 
 /**
@@ -137,12 +139,13 @@ export function notifySyncDeleted(
  * Orchestrator: runs the three steps in order. Production callers use
  * this; tests drive the steps directly for finer-grained assertions.
  */
-export async function deleteDocument(docId: string): Promise<void> {
+export async function deleteDocument(doc: DocAccess<'delete'>): Promise<void> {
+  const docId = doc.docId
   // A published web page goes with the document (FK cascade); its
   // copied files are read first and deleted after (the orphan sweep is the
   // backstop).
-  const published = await getPublishedPageSummary(docId)
-  await deleteDocDbRows(docId)
+  const published = await getPublishedPageSummary(doc)
+  await deleteDocDbRows(doc)
 
   const env = useEnv()
   await cleanupDocS3(docId, { s3: useS3Client(), bucket: env.storage.bucket })

@@ -11,13 +11,13 @@ export default defineApiHandler({
   access: allow.user(),
   instance: 'customDomains',
   params: customDomainParams,
-  handler: async ({ event, user, params }) => {
+  handler: async ({ event, user, params, self }) => {
     await customDomainContext(user.id)
-    const removed = await deleteCustomDomain(params.domainId, user.id)
+    const removed = await deleteCustomDomain(self, params.domainId)
     if (!removed) throw apiError('custom-domain/not-found')
     invalidateCustomDomainCache()
     await appendAuditEvent({
-      actorUserId: user.id,
+      by: self,
       actorIp: getClientIp(event),
       scope: 'user',
       scopeId: String(user.id),

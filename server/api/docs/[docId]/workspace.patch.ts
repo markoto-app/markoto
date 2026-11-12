@@ -1,4 +1,6 @@
 import { getDoc, moveDocToWorkspace } from '../../../repos/documents'
+import { proveWorkspaceAccess } from '../../../utils/access/workspaceAccess'
+import type { WorkspaceAccess } from '../../../repos/proofs'
 import { assertNotModerationRestricted } from '../../../utils/privacy/moderationRestriction'
 import { deleteSharesForDoc } from '../../../repos/documentShares'
 import { deleteTemplatesForDoc } from '../../../repos/workspaceTemplates'
@@ -22,13 +24,15 @@ import { moveDocWorkspaceBody } from '~~/shared/api/sharing'
 export default defineApiHandler({
   access: allow.doc('manage', { deny: 'share/move-not-allowed' }),
   body: moveDocWorkspaceBody,
-  handler: async ({ event, user, docId, doc, body: { workspaceId: target } }) => {
+  handler: async ({ event, user, docId, doc, docAccess, body: { workspaceId: target } }) => {
+    let targetAccess: WorkspaceAccess<'editor'> | null = null
     if (target !== null) {
       // Another workspace's members would gain access.
-      assertNotModerationRestricted(await getDoc(docId))
-      const targetRole = await getWorkspaceRole(user.id, target)
-      if (targetRole === null) throw apiError('auth/forbidden')
-      if (targetRole === 'viewer') throw apiError('share/move-target-viewer')
+      assertNotModerationRestricted(await getDoc(docAccess))
+      const member = await proveWorkspaceAccess(user.id, target, 'member')
+      if (member === null) throw apiError('auth/forbidden')
+      if (!member.allows('editor')) throw apiError('share/move-target-viewer')
+      targetAccess = member
     }
 
     // No-op if nothing would change — saves a write and keeps lastActive
@@ -37,21 +41,21 @@ export default defineApiHandler({
       return { success: true, workspaceId: target }
     }
 
-    await moveDocToWorkspace(docId, target)
+    await moveDocToWorkspace(docAccess, targetAccess)
     // Guest shares belong to the workspace the document left. The
     // guests' open editor connections are closed, as on unshare — their
     // token no longer authorises the document.
-    const unsharedGuestIds = await deleteSharesForDoc(docId)
+    const unsharedGuestIds = await deleteSharesForDoc(docAccess)
     for (const guestId of unsharedGuestIds) notifySyncKickUser(guestId, [docId])
     // The members of the workspace it left lose access; everyone connected
     // re-authenticates against the new placement.
     notifySyncReauthDocument(docId)
     // A workspace template is a link to a document IN the
     // workspace: it goes when the document leaves.
-    const templatesRemoved = await deleteTemplatesForDoc(docId)
+    const templatesRemoved = await deleteTemplatesForDoc(docAccess)
 
     await appendAuditEvent({
-      actorUserId: user.id,
+      by: docAccess,
       actorIp: getClientIp(event),
       scope: 'doc',
       scopeId: docId,

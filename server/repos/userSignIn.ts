@@ -1,7 +1,7 @@
 import { and, eq, sql, type SQL } from 'drizzle-orm'
 import { must } from '~~/shared/utils/must'
 import { users } from '../db/schema'
-import { useDatabase } from '../utils/platform/database'
+import { useDatabase } from '../db/client'
 
 // Sign-in: OAuth handlers write through the single `upsertOAuthUser`
 // (upsert by provider id).

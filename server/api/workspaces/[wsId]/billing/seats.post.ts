@@ -10,6 +10,7 @@ import { AUDIT_WORKSPACE_BILLING_SEATS_CHANGED } from '../../../../legal/auditAc
 import { notifyWorkspaceAdmins } from '../../../../utils/email/workspaceBillingEmails'
 import { changeSeatsBody } from '~~/shared/api/billing'
 import { MINUTE_MS } from '~~/shared/config/units'
+import type { WorkspaceAccess } from '../../../../repos/proofs'
 
 // POST /api/workspaces/:wsId/billing/seats — change the paid seat count
 // of a live Team / Business subscription. Workspace admins only.
@@ -25,26 +26,27 @@ export default defineApiHandler({
   instance: 'billing',
   body: changeSeatsBody,
   rateLimit: { namespace: 'billing-seats', max: 10, windowMs: MINUTE_MS, key: 'user', error: 'billing/rate-limited' },
-  handler: async ({ event, user, wsId, body }) => {
+  handler: async ({ event, user, wsId, body, workspaceAccess }) => {
     const seats = parseSeats(body?.seats)
     // Same lock as invitations: the seats-in-use count and the change can't
     // interleave with an invite taking a seat.
     const releaseSeatLock = await acquireWorkspaceSeatLock(wsId)
     try {
-      return await changeSeats(event, user, wsId, seats)
+      return await changeSeats(event, user, workspaceAccess, seats)
     } finally {
       await releaseSeatLock()
     }
   }
 })
 
-async function changeSeats(event: H3Event, user: { id: number, name: string }, wsId: string, seats: number): Promise<{ seats: number }> {
+async function changeSeats(event: H3Event, user: { id: number, name: string }, workspaceAccess: WorkspaceAccess<'admin'>, seats: number): Promise<{ seats: number }> {
+  const wsId = workspaceAccess.workspaceId
   const row = await getWorkspaceSubscription(wsId)
   if (!row?.stripeSubscriptionId) {
     throw apiError('billing/no-subscription')
   }
   if (seats === row.seats) return { seats }
-  const used = await countSeatsUsed(wsId)
+  const used = await countSeatsUsed(workspaceAccess)
   if (seats < used) {
     throw apiError('billing/seats-below-members', { used })
   }
@@ -52,7 +54,7 @@ async function changeSeats(event: H3Event, user: { id: number, name: string }, w
   const stripe = useStripeClient()
   if (!stripe) throw apiError('billing/not-configured')
   try {
-    await changeWorkspaceSeats(stripe, row, seats)
+    await changeWorkspaceSeats(stripe, workspaceAccess, row, seats)
   } catch (e) {
     throw seatChangeError(e, wsId)
   }
@@ -64,7 +66,7 @@ async function changeSeats(event: H3Event, user: { id: number, name: string }, w
     })
   }
   await appendAuditEvent({
-    actorUserId: user.id,
+    by: workspaceAccess,
     actorIp: getClientIp(event),
     scope: 'billing',
     scopeId: wsId,

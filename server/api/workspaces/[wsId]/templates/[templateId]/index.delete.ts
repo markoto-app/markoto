@@ -8,11 +8,11 @@ import { templateParams } from '~~/shared/api/brand'
 export default defineApiHandler({
   access: allow.workspace('admin', { deny: 'brand/admin-required' }),
   params: templateParams,
-  handler: async ({ event, user, wsId, params: { templateId: id } }) => {
-    const removed = await deleteWorkspaceTemplate(wsId, id)
+  handler: async ({ event, wsId, params: { templateId: id }, workspaceAccess }) => {
+    const removed = await deleteWorkspaceTemplate(workspaceAccess, id)
     if (!removed) throw apiError('resource/not-found')
     await appendAuditEvent({
-      actorUserId: user.id,
+      by: workspaceAccess,
       actorIp: getClientIp(event),
       scope: 'workspace',
       scopeId: wsId,

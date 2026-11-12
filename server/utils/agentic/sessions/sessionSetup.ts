@@ -2,7 +2,9 @@ import type { H3Event } from 'h3'
 import { nanoid } from 'nanoid'
 import { findUserNameById } from '../../../repos/users'
 import type { getDoc } from '../../../repos/documents'
-import { getMemberRole, listMembers } from '../../../repos/workspaceMembers'
+import { listMembers } from '../../../repos/workspaceMembers'
+import { proveWorkspaceAccess } from '../../access/workspaceAccess'
+import type { DocAccess, WorkspaceAccess } from '../../../repos/proofs'
 import { listReadyKnowledgeBrief } from '../../../repos/knowledge'
 import { addAiSession, DuplicateSessionError } from '../../ai/aiSessions'
 import { resolveBillingContext, type BillingContext } from '../../billing/billing'
@@ -23,6 +25,8 @@ import { apiError } from '../../api/apiError'
 
 export interface SessionWorkspace {
   workspaceId: string | null
+  /** The initiator's membership, proven when the session opens. */
+  workspaceAccess: WorkspaceAccess<'member'> | null
   knowledgeFiles: Awaited<ReturnType<typeof listReadyKnowledgeBrief>>
   members: Array<{ userId: number, name: string }>
   toolDeclarations: typeof ALL_TOOL_DECLARATIONS
@@ -36,20 +40,18 @@ export interface SessionWorkspace {
  * caller demoted out of the workspace.
  */
 export async function resolveSessionWorkspace(rawWorkspaceId: string | null, userId: number): Promise<SessionWorkspace> {
-  if (!rawWorkspaceId) {
-    return { workspaceId: null, knowledgeFiles: [], members: [], toolDeclarations: ALL_TOOL_DECLARATIONS, exposeKnowledgeTools: false }
-  }
-  const role = await getMemberRole(rawWorkspaceId, userId)
-  if (role === null) {
-    return { workspaceId: null, knowledgeFiles: [], members: [], toolDeclarations: ALL_TOOL_DECLARATIONS, exposeKnowledgeTools: false }
-  }
+  const none: SessionWorkspace = { workspaceId: null, workspaceAccess: null, knowledgeFiles: [], members: [], toolDeclarations: ALL_TOOL_DECLARATIONS, exposeKnowledgeTools: false }
+  if (!rawWorkspaceId) return none
+  const workspaceAccess = await proveWorkspaceAccess(userId, rawWorkspaceId, 'member')
+  if (workspaceAccess === null) return none
   const [members, knowledgeFiles] = await Promise.all([
-    listMembers(rawWorkspaceId),
-    listReadyKnowledgeBrief(rawWorkspaceId)
+    listMembers(workspaceAccess),
+    listReadyKnowledgeBrief(workspaceAccess)
   ])
   const exposeKnowledgeTools = knowledgeFiles.length > 0
   return {
     workspaceId: rawWorkspaceId,
+    workspaceAccess,
     knowledgeFiles,
     members: members.filter(m => m.role !== 'guest').map(m => ({ userId: m.userId, name: m.name })),
     toolDeclarations: exposeKnowledgeTools
@@ -85,6 +87,8 @@ export interface OpenedSession {
 
 export interface OpenSessionRequest {
   docId: string
+  /** The route's write proof for the document; the session registers on it. */
+  docAccess: DocAccess<'write'>
   userId: number
   userName: string
   workspaceId: string | null
@@ -118,7 +122,7 @@ export async function openAiSession(event: H3Event, request: OpenSessionRequest)
     if (!req.readableEnded) abortController.abort()
   })
 
-  await claimAiSession({ sessionId, docId, userId, initiatorName, initiatorColor, abortController })
+  await claimAiSession({ sessionId, docId, docAccess: request.docAccess, userId, initiatorName, initiatorColor, abortController })
   const deadlineTimer = setTimeout(() => abortController.abort(), AI_SESSION_HARD_DEADLINE_MS)
   // Initiator-only channel: prompt, status text, answers, confirmations.
   // Opened before the response so the client's first poll finds it.
@@ -130,6 +134,7 @@ export async function openAiSession(event: H3Event, request: OpenSessionRequest)
 interface ClaimSessionArgs {
   sessionId: string
   docId: string
+  docAccess: DocAccess<'write'>
   userId: number
   initiatorName: string
   initiatorColor: string
@@ -138,9 +143,8 @@ interface ClaimSessionArgs {
 
 async function claimAiSession(args: ClaimSessionArgs): Promise<void> {
   try {
-    await addAiSession({
+    await addAiSession(args.docAccess, {
       sessionId: args.sessionId,
-      docId: args.docId,
       initiatorUserId: args.userId,
       initiatorName: args.initiatorName,
       initiatorColor: args.initiatorColor,

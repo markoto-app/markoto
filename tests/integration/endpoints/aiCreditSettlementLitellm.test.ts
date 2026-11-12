@@ -6,6 +6,7 @@ import { createUser } from '../setup/fixtures'
 import { applyTestEnv } from '../setup/testEnv'
 import { TEST_LITELLM_DB_PASSWORD, TEST_LITELLM_DB_USER } from '../setup/env'
 import { LITELLM_MASTER_KEY, LITELLM_URL, waitFor } from '../setup/byok'
+import { sys } from '../../helpers/access'
 
 // AI credit top-ups against the REAL `litellm-test` proxy, in
 // process: a Pro user's key budget includes their credits, and the
@@ -37,7 +38,7 @@ const { insertCreditGrant, sumUsableCredits } = await import('../../../server/re
 const { settleSubject, monthSpendUsd } = await import('../../../server/utils/billing/aiCredits')
 const { creditPeriod } = await import('../../../server/utils/billing/aiCreditBudget')
 const { useLitellmForUser } = await import('../../../server/utils/ai/litellmClient')
-const { litellmDbUrl } = await import('../../../server/utils/litellm/litellmDb')
+const { litellmDbUrl } = await import('../../../server/db/litellm')
 
 async function keyInfo(token: string): Promise<Record<string, unknown>> {
   const res = await fetch(`${LITELLM_URL}/key/info?key=${encodeURIComponent(token)}`, { headers: { Authorization: `Bearer ${LITELLM_MASTER_KEY}` } })
@@ -61,7 +62,7 @@ describe('credit settlement (real LiteLLM)', () => {
   it('budget = plan + credits; spend above the plan comes out of the credits, the budget holds', async () => {
     const u = await createUser()
     await testDb().query(`UPDATE users SET plan = 'pro', plan_valid_until = now() + interval '30 days' WHERE id = $1`, [u.id])
-    await insertCreditGrant({
+    await insertCreditGrant(sys(), {
       subject: { type: 'user', id: String(u.id) },
       pack: '10', amountUsd: 1, amountPaid: 100, currency: 'eur',
       stripePaymentIntentId: `pi_settle_${u.id}_${Date.now()}`, stripeCheckoutSessionId: null,

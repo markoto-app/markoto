@@ -76,6 +76,16 @@ ALTER TABLE child VALIDATE CONSTRAINT fk_child_parent;
 
 `consent_log` is append-only and keyed on the `markoto-anon` cookie id; the current state for an id is its newest row.
 
+## Who may query
+
+Only `server/repos/**` talks to the database; everything else calls a repo function (dependency-cruiser rule `db-access-only-in-repos`, ESLint `markoto/data-access-boundaries`). `server/db/` holds the schema, the connection (`client.ts`), the boot migrator (`migrate.ts`), the LiteLLM spend-log pool (`litellm.ts`, the only second pool) and the embedding-column maintenance used by `bun run knowledge:reembed`. Raw SQL is written with Drizzle's `sql` template, so every value is a bound parameter.
+
+Repo functions that write or return tenant-private data take a capability proof instead of a bare id; see `server/repos/AGENTS.md` and `docs/SECURITY-HARDENING.md` → Tenancy.
+
+### Transactions
+
+There is one mechanism. Code outside the repos that needs several repo writes to commit together calls `withTransaction(async (tx) => …)` (`server/repos/transaction.ts`) and passes `tx` — an opaque `TxHandle`, useless for building a query — as the last argument of each repo call. Inside a repo, `executor(tx)` returns the caller's transaction or the pool; a repo that opens its own `db.transaction` passes it on to other repos with `asTxHandle(tx)`. The Stripe webhook dispatcher (`server/utils/billing/stripeWebhook.ts`) and the restore flow (`server/utils/documents/restoreDoc.ts`) are the main users.
+
 ## Connection and TLS
 
-`useDatabase()` (`server/utils/platform/database.ts`) returns the Drizzle handle over a `pg` pool; `pg` is the only Postgres driver in the stack, the sync server included. TLS settings come from `resolvePostgresSsl()` (`shared/utils/runtime/postgresSsl.ts`): `PGSSL=disable` opts out, `PGSSLROOTCERT` pins a CA and an unreadable path fails the boot. Queries slower than `NUXT_DB_SLOW_QUERY_MS` (default 200) are reported to Sentry with the SQL truncated and without parameter values.
+`useDatabase()` (`server/db/client.ts`) returns the Drizzle handle over a `pg` pool; `pg` is the only Postgres driver in the stack, the sync server included. TLS settings come from `resolvePostgresSsl()` (`shared/utils/runtime/postgresSsl.ts`): `PGSSL=disable` opts out, `PGSSLROOTCERT` pins a CA and an unreadable path fails the boot. Queries slower than `NUXT_DB_SLOW_QUERY_MS` (default 200) are reported to Sentry with the SQL truncated and without parameter values.

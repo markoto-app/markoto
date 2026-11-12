@@ -1,7 +1,7 @@
 import type { PoolClient } from 'pg'
 import * as Sentry from '@sentry/nuxt'
-import { useDatabasePool } from './database'
-import { useLogger } from './logger'
+import { useDatabasePool } from '../db/client'
+import { useLogger } from '../utils/platform/logger'
 
 const log = useLogger('sweep-lock')
 

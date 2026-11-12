@@ -28,7 +28,7 @@ import { inviteWorkspaceMember } from '../../../../utils/workspaces/inviteMember
 export default defineApiHandler({
   access: allow.workspace('admin', { deny: 'workspace/admin-required' }),
   body: inviteMemberBody,
-  handler: async ({ event, user, wsId, body }) => {
+  handler: async ({ event, user, wsId, body, workspaceAccess }) => {
     const email = normaliseInviteEmail(body.email)
     if (!email) throw apiError('workspace/invalid-email')
 
@@ -40,7 +40,7 @@ export default defineApiHandler({
     }
 
     await inviteWorkspaceMember(event, {
-      wsId,
+      ws: workspaceAccess,
       inviter: { id: user.id, name: user.name },
       email,
       // Default role for new invites is 'editor' — the most common case.

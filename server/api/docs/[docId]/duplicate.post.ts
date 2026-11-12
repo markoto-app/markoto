@@ -1,5 +1,6 @@
 import { nanoid } from 'nanoid'
-import { getMembershipRole } from '../../../repos/workspaceMembers'
+import { getMembershipRole, proveWorkspaceAccess } from '../../../utils/access/workspaceAccess'
+import type { WorkspaceAccess } from '../../../repos/proofs'
 import { duplicateDocument, ImageQuotaExceededError } from '../../../utils/documents/duplicateDocument'
 import { withIdempotency } from '../../../utils/platform/idempotency'
 import { imageQuotaError, resolveImageQuota } from '../../../utils/storage/imageQuota'
@@ -35,13 +36,13 @@ import { useEnv } from '~~/shared/env/load'
 export default defineApiHandler({
   access: allow.doc('edit'),
   body: duplicateDocBody,
-  handler: async ({ event, user, docId: sourceDocId, doc: source, state, actor, body }) => {
+  handler: async ({ event, user, self, docId: sourceDocId, docAccess, doc: source, state, actor, body }) => {
     if (!canDownload(state, actor, source.shareNoDownload)) throw apiError('share/download-disabled')
 
     const title = resolveTitle(body?.title, source.title)
     // Left out: the source's workspace; null: a personal copy.
     const targetWorkspaceId = body?.workspaceId === undefined ? source.workspaceId : body.workspaceId
-    await assertCanCreateInTarget(user.id, targetWorkspaceId)
+    const target = await assertCanCreateInTarget(user.id, targetWorkspaceId)
 
     // Idempotency: when the client supplies an `Idempotency-Key` header,
     // a rapid second call (double-click, retry on flaky network) returns
@@ -63,7 +64,7 @@ export default defineApiHandler({
       await flushSyncDocument(sourceDocId)
       try {
         await duplicateDocument(
-          { sourceDocId, newDocId, ownerId: user.id, workspaceId: targetWorkspaceId, title },
+          { source: docAccess, newDocId, owner: self, workspace: target, title },
           { s3: useS3Client(), bucket: env.storage.bucket, imageQuota }
         )
       } catch (e) {
@@ -96,10 +97,11 @@ function resolveTitle(rawTitle: string | undefined, sourceTitle: string | null |
  * their removal). Guests get a dedicated code; a personal copy is not
  * offered (the editor's Duplicate always keeps the source's workspace).
  */
-async function assertCanCreateInTarget(userId: number, targetWorkspaceId: string | null): Promise<void> {
-  if (targetWorkspaceId === null) return
-  const targetRole = await getWorkspaceRole(userId, targetWorkspaceId)
-  if (targetRole === 'admin' || targetRole === 'editor') return
+async function assertCanCreateInTarget(userId: number, targetWorkspaceId: string | null): Promise<WorkspaceAccess<'editor'> | null> {
+  if (targetWorkspaceId === null) return null
+  const member = await proveWorkspaceAccess(userId, targetWorkspaceId, 'member')
+  if (member?.allows('editor')) return member
+  const targetRole = member ? 'viewer' : null
   if (targetRole === null && (await getMembershipRole(targetWorkspaceId, userId)) === 'guest') {
     throw apiError('workspace/guest-cannot-create')
   }

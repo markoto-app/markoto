@@ -1,8 +1,7 @@
 import type Stripe from 'stripe'
 import * as Sentry from '@sentry/nuxt'
-import { eq } from 'drizzle-orm'
-import { workspaceSubscriptions } from '../../db/schema'
-import { useDatabase } from '../platform/database'
+import { recordSeatChange, recordWorkspaceStripeCustomer, setWorkspaceBillingAdmin } from '../../repos/workspaceSubscriptions'
+import type { WorkspaceAccess } from '../../repos/proofs'
 import { findLiveSubscription } from './stripePlanChange'
 import { changedSeatBudgetAdjust } from './workspaceBilling'
 import { readWorkspaceTeam } from '../litellm/workspaceTeams'
@@ -36,8 +35,7 @@ function isMissing(e: unknown): boolean {
  * `incomplete` placeholder row. Never touches an existing row's plan /
  * seats / status (an entitled subscription is changed, not re-bought).
  */
-export async function ensureWorkspaceCustomer(stripe: Stripe, args: {
-  workspaceId: string
+export async function ensureWorkspaceCustomer(stripe: Stripe, ws: WorkspaceAccess<'admin'>, args: {
   workspaceName: string
   billingAdminId: number
   billingAdminEmail: string | null
@@ -47,30 +45,22 @@ export async function ensureWorkspaceCustomer(stripe: Stripe, args: {
   interval: BillingInterval
   existing: WorkspaceSubscriptionRow | null
 }): Promise<string> {
-  const db = useDatabase()
   if (args.existing?.stripeCustomerId) {
-    await db.update(workspaceSubscriptions)
-      .set({ billingAdminId: args.billingAdminId, updatedAt: new Date() })
-      .where(eq(workspaceSubscriptions.workspaceId, args.workspaceId))
+    await setWorkspaceBillingAdmin(ws, args.billingAdminId)
     return args.existing.stripeCustomerId
   }
   const customer = await stripe.customers.create({
     name: args.workspaceName || undefined,
     ...(args.billingAdminEmail ? { email: args.billingAdminEmail } : {}),
-    metadata: { workspace_id: args.workspaceId, subject_type: 'workspace' }
+    metadata: { workspace_id: ws.workspaceId, subject_type: 'workspace' }
   })
-  await db.insert(workspaceSubscriptions).values({
-    workspaceId: args.workspaceId,
+  await recordWorkspaceStripeCustomer(ws, {
     plan: args.plan,
     seats: args.seats,
-    status: 'incomplete',
     billingAdminId: args.billingAdminId,
     stripeCustomerId: customer.id,
     currency: args.currency,
     interval: args.interval
-  }).onConflictDoUpdate({
-    target: workspaceSubscriptions.workspaceId,
-    set: { stripeCustomerId: customer.id, billingAdminId: args.billingAdminId, updatedAt: new Date() }
   })
   return customer.id
 }
@@ -93,7 +83,9 @@ export async function ensureWorkspaceCustomer(stripe: Stripe, args: {
  * (an invite that adds a seat can go through); the
  * `customer.subscription.updated` webhook writes the same seat count.
  */
-export async function changeWorkspaceSeats(stripe: Stripe, row: WorkspaceSubscriptionRow, seats: number, now: Date = new Date()): Promise<void> {
+/** `ws`: the admin buying or removing seats, for `row`'s workspace. */
+export async function changeWorkspaceSeats(stripe: Stripe, ws: WorkspaceAccess<'admin'>, row: WorkspaceSubscriptionRow, seats: number, now: Date = new Date()): Promise<void> {
+  if (ws.workspaceId !== row.workspaceId) throw new Error('changeWorkspaceSeats: the subscription row belongs to another workspace')
   const sub = await findLiveSubscription(stripe, row.stripeSubscriptionId)
   const item = sub?.items.data[0]
   if (!sub || !item) {
@@ -118,9 +110,7 @@ export async function changeWorkspaceSeats(stripe: Stripe, row: WorkspaceSubscri
       : { proration_behavior: 'none' as const })
   })
   const budget = changedSeatBudgetAdjust({ current: row, from, to: seats, windowEnd, now })
-  await useDatabase().update(workspaceSubscriptions)
-    .set({ seats, budgetSeatAdjust: budget.adjust, budgetSeatAdjustUntil: budget.until, updatedAt: new Date() })
-    .where(eq(workspaceSubscriptions.workspaceId, row.workspaceId))
+  await recordSeatChange(ws, { seats, budgetSeatAdjust: budget.adjust, budgetSeatAdjustUntil: budget.until })
 }
 
 /** How long a seat lock may be held (a Stripe charge plus the invite write). */

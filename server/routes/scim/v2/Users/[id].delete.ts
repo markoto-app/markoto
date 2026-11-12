@@ -7,10 +7,10 @@ import { scimUserParams } from '~~/shared/api/sso'
 export default defineApiHandler({
   access: allow.scim(),
   params: scimUserParams,
-  handler: async ({ event, connection, params }) => {
+  handler: async ({ event, connection, params, workspaceAccess }) => {
     const identity = await requireScimIdentity(connection, params.id)
     await deleteScimUser(connection, identity)
-    await appendAuditEvent({ actorUserId: null, actorIp: getClientIp(event), scope: 'workspace', scopeId: connection.workspaceId, action: AUDIT_SSO_SCIM_USER_DEACTIVATED, metadata: { affectedUserId: identity.userId, deleted: true } })
+    await appendAuditEvent({ by: workspaceAccess, actorIp: getClientIp(event), scope: 'workspace', scopeId: connection.workspaceId, action: AUDIT_SSO_SCIM_USER_DEACTIVATED, metadata: { affectedUserId: identity.userId, deleted: true } })
     setResponseStatus(event, 204)
     return null
   }

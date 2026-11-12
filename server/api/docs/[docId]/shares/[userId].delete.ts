@@ -11,10 +11,10 @@ export default defineApiHandler({
   access: allow.doc('share-guests', { deny: 'share/not-allowed' }),
   params: deleteDocShareParams,
   invalidCode: 'share/invalid',
-  handler: async ({ event, user, docId, doc, params: { userId: guestId } }) => {
-    if (!(await deleteShare(docId, guestId))) throw apiError('share/not-shared')
+  handler: async ({ event, docId, doc, docAccess, params: { userId: guestId } }) => {
+    if (!(await deleteShare(docAccess, guestId))) throw apiError('share/not-shared')
     notifySyncKickUser(guestId, [docId])
-    await appendAuditEvent({ actorUserId: user.id, actorIp: getClientIp(event), scope: 'doc', scopeId: docId, workspaceId: doc.workspaceId, action: AUDIT_DOC_UNSHARED, metadata: { affectedUserId: guestId } })
+    await appendAuditEvent({ by: docAccess, actorIp: getClientIp(event), scope: 'doc', scopeId: docId, workspaceId: doc.workspaceId, action: AUDIT_DOC_UNSHARED, metadata: { affectedUserId: guestId } })
     return { ok: true }
   }
 })

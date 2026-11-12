@@ -25,9 +25,7 @@
 // Reads `process.env` through `getTiers()` / `effectivePlan()` on every
 // call, like `tierConfig.ts`, so repos/unit tests can vary env per case.
 
-import { eq } from 'drizzle-orm'
-import { documents, users, workspaces } from '../../db/schema'
-import { useDatabase } from '../platform/database'
+import { getDocPlanSubject, getStoredUserPlan, getWorkspaceCreatorId } from '../../repos/plans'
 import { getTiers } from './tierConfig'
 import { effectivePlan, isBillingEnabled, limitRecovery, limitUpgradeHint } from './billingMode'
 import { getWorkspaceSubscription, subscriptionGrantsPlan } from '../../repos/workspaceSubscriptions'
@@ -45,11 +43,7 @@ export function capsFor(plan: PlanName): TierCaps {
 /** Effective plan of a user (`free` for anonymous, unknown, lapsed or billing off). */
 export async function resolveUserPlan(userId: number | null | undefined): Promise<PlanName> {
   if (userId === null || userId === undefined) return 'free'
-  const row = (await useDatabase()
-    .select({ plan: users.plan, planValidUntil: users.planValidUntil })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1))[0]
+  const row = await getStoredUserPlan(userId)
   return row ? effectivePlan(row.plan, row.planValidUntil) : 'free'
 }
 
@@ -61,17 +55,12 @@ export async function resolveUserPlan(userId: number | null | undefined): Promis
  *     Pro features without a workspace subscription.
  */
 export async function resolveWorkspacePlan(workspaceId: string): Promise<PlanName> {
-  const [row, subscription] = await Promise.all([
-    useDatabase()
-      .select({ ownerId: workspaces.ownerId })
-      .from(workspaces)
-      .where(eq(workspaces.workspaceId, workspaceId))
-      .limit(1)
-      .then(rows => rows[0]),
+  const [creatorId, subscription] = await Promise.all([
+    getWorkspaceCreatorId(workspaceId),
     getWorkspaceSubscription(workspaceId)
   ])
-  if (!row) return 'free'
-  const creatorPlan = await resolveUserPlan(row.ownerId)
+  if (creatorId === null) return 'free'
+  const creatorPlan = await resolveUserPlan(creatorId)
   const subscriptionPlan: PlanName | null = isBillingEnabled() && subscription && subscriptionGrantsPlan(subscription)
     ? subscription.plan
     : null
@@ -86,11 +75,7 @@ export async function resolveDocPlanFor(doc: { ownerId: number | null, workspace
 
 /** Effective plan of a document by id (`free` when it doesn't exist). */
 export async function resolveDocPlan(docId: string): Promise<PlanName> {
-  const row = (await useDatabase()
-    .select({ ownerId: documents.ownerId, workspaceId: documents.workspaceId })
-    .from(documents)
-    .where(eq(documents.docId, docId))
-    .limit(1))[0]
+  const row = await getDocPlanSubject(docId)
   return row ? resolveDocPlanFor(row) : 'free'
 }
 

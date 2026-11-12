@@ -26,7 +26,7 @@ export default defineApiHandler({
   query: docTokenQuery,
   // Before the lookup: every request counts, so probing for document ids is throttled too.
   rateLimit: { namespace: 'token', max: 30, windowMs: MINUTE_MS, key: 'ip', phase: 'before-access' },
-  handler: async ({ event, user, docId, doc: row, state: doc, actor, query }) => {
+  handler: async ({ event, user, docId, doc: row, state: doc, actor, query, docAccess }) => {
     const env = useEnv()
     if (!env.auth.jwtSecret) {
       throw apiError('internal')
@@ -114,7 +114,8 @@ export default defineApiHandler({
       // Workspace brand kit: the fonts every render declares and,
       // while the workspace design is locked, that design (the editor
       // renders with it, keeping only the document's cover text).
-      brandKit: await docBrandForClient(row.workspaceId),
+      // The token is granted at this point, which includes viewing.
+      brandKit: await docBrandForClient(docAccess.allows('view') ? docAccess : null),
       // Share-link controls: this viewer may not download or print.
       noDownload: !canDownload(doc, actor, row.shareNoDownload),
       // The Team / Business plan covering the doc's workspace (header badge).
@@ -145,8 +146,8 @@ export default defineApiHandler({
     // workspace members, on a plan with share controls. Aggregate per day,
     // best-effort — never fails the open. A token refresh (`?refresh=1`, the
     // editor's reconnect path) is not a new open.
-    if (query.refresh !== '1' && isVisitor(doc, actor) && planHasFeature(docPlan, 'shareControls')) {
-      void recordDocumentOpen(docId).catch(() => {})
+    if (query.refresh !== '1' && isVisitor(doc, actor) && planHasFeature(docPlan, 'shareControls') && docAccess.allows('view')) {
+      void recordDocumentOpen(docAccess).catch(() => {})
     }
 
     return { token, requiresPassword: false as const, forbidden: false as const, ...responseBase }

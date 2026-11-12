@@ -15,7 +15,8 @@ import {
   type WorkspaceRole
 } from '../../../shared/utils/documents/docPermissions'
 import { hashAnonCreatorKey } from '../../../server/utils/auth/anonCreator'
-import type { DocAuthzRow } from '../../../server/repos/documents'
+import type { DocAuthzRow } from '../../../server/repos/access/docAuthz'
+import type { DocAccess, DocLevel, WorkspaceAccess } from '../../../server/repos/proofs'
 import { partial, deliberatelyInvalid } from '../../helpers/fixtures'
 
 // The handler wrapper and its access policies (server/utils/api/). Requests
@@ -62,8 +63,8 @@ vi.mock('../../../server/utils/auth/adminAccess', () => ({
     return { userId: m.user.id, name: m.user.name, email: 'a@test.local' }
   })
 }))
-vi.mock('../../../server/repos/documents', () => ({ getDocWithActorRole: vi.fn(async () => m.row) }))
-vi.mock('../../../server/repos/workspaceMembers', () => ({
+vi.mock('../../../server/repos/access/docAuthz', () => ({ getDocWithActorRole: vi.fn(async () => m.row) }))
+vi.mock('../../../server/repos/access/workspaceRoles', () => ({
   getMemberRole: vi.fn(async () => m.memberRole),
   getMemberRoleIgnoringSso: vi.fn(async () => m.memberRoleIgnoringSso),
   getMembershipRole: vi.fn(async () => m.membership)
@@ -115,7 +116,7 @@ const INTERNAL = 'unit-test-internal-secret-0123456789'
 
 const { defineApiHandler, lenientBody } = await import('../../../server/utils/api/defineApiHandler')
 const { allow } = await import('../../../server/utils/api/policy')
-const { decideDocNeed } = await import('../../../server/utils/api/policyDoc')
+const { decideDocNeed } = await import('../../../server/utils/access/docProof')
 const { scimError } = await import('../../../server/utils/sso/scimErrors')
 type DocNeed = Parameters<typeof decideDocNeed>[0]
 
@@ -177,6 +178,39 @@ const ACTORS: Actor[] = [
 ]
 const MODES: AccessMode[] = ['private', 'open-edit', 'open-view', 'password-protected']
 const NEEDS: DocNeed[] = ['file', 'activity', 'write-content', 'edit', 'manage', 'share-guests', 'delete', 'lookup']
+
+// The proof level each need grants, and the need that decides each level
+// (a `lookup` proof carries every level the actor holds).
+const NEED_LEVEL: Record<Exclude<DocNeed, 'lookup'>, DocLevel> = {
+  'file': 'view', 'activity': 'view', 'write-content': 'write', 'edit': 'edit', 'manage': 'manage', 'share-guests': 'share', 'delete': 'delete'
+}
+const LEVEL_NEED: Record<DocLevel, Exclude<DocNeed, 'lookup'>> = {
+  view: 'file', write: 'write-content', edit: 'edit', manage: 'manage', share: 'share-guests', delete: 'delete'
+}
+const LEVELS = Object.keys(LEVEL_NEED) as DocLevel[]
+
+function proofFacts(proof: DocAccess) {
+  return { docId: proof.docId, actor: proof.actor, levels: LEVELS.filter(l => proof.allows(l)) }
+}
+type ProofFacts = ReturnType<typeof proofFacts>
+
+/** The proof handed to the handler must name the requested document and actor and carry what was decided. */
+function proofMismatch(need: DocNeed, facts: ProofFacts, row: DocAuthzRow, actor: Actor, opts: { anonymous: boolean, jwt: boolean }): string | null {
+  if (facts.docId !== 'd1') return `proof for ${facts.docId}`
+  const wantActor = actor.userId === null ? { kind: 'anonymous' } : { kind: 'user', userId: actor.userId }
+  if (JSON.stringify(facts.actor) !== JSON.stringify(wantActor)) return `proof actor ${JSON.stringify(facts.actor)}`
+  if (need !== 'lookup') return facts.levels.includes(NEED_LEVEL[need]) ? null : `proof lacks ${NEED_LEVEL[need]}`
+  for (const level of LEVELS) {
+    // A view proof is also implied by write (an editor token on an open doc); the decision for
+    // each level is that of the need it stands for.
+    const held = facts.levels.includes(level)
+    // The anonymous-creator cookie is read by `delete` routes only, so a lookup proof never carries it.
+    const who = level === 'delete' ? { ...actor, creatorKey: false } : actor
+    const decided = expected(LEVEL_NEED[level], row, who, opts) === 200
+    if (held !== decided && !(level === 'view' && held && facts.levels.includes('write'))) return `lookup proof ${held ? 'holds' : 'lacks'} ${level}`
+  }
+  return null
+}
 
 function rowFor(kind: DocKind, mode: AccessMode, expired: boolean, actor: Actor): DocAuthzRow {
   const inWorkspace = kind === 'workspace'
@@ -246,7 +280,7 @@ describe('allow.doc — need × access mode × role × anonymous / JWT, against 
         for (const withJwt of [false, true]) {
           const handler = defineApiHandler({
             access: allow.doc(need, { anonymous, ...(withJwt ? { jwt: ['file-access'] as const } : {}), reason: 'matrix', deny: 'files/access-denied' }),
-            handler: ({ docId, state, authz }) => ({ docId, mode: state.accessMode, canManage: authz.canManage })
+            handler: ({ docId, state, authz, docAccess }) => ({ docId, mode: state.accessMode, canManage: authz.canManage, proof: proofFacts(docAccess) })
           })
           for (const kind of ['standalone', 'workspace', 'anonymous'] as DocKind[]) {
             for (const mode of kind === 'anonymous' ? ['open-edit' as AccessMode] : MODES) {
@@ -261,6 +295,10 @@ describe('allow.doc — need × access mode × role × anonymous / JWT, against 
                   cases++
                   if (res.status !== want) mismatches.push(`${kind}/${mode}${expired ? '/expired' : ''} ${actor.label} anon=${anonymous} jwt=${withJwt}: got ${res.status}, want ${want}`)
                   else if (want === 403 && res.body.data?.code !== 'files/access-denied') mismatches.push(`${kind}/${mode} ${actor.label}: deny code ${String(res.body.data?.code)}`)
+                  else if (want === 200) {
+                    const bad = proofMismatch(need, res.body.proof as ProofFacts, row, actor, { anonymous, jwt: withJwt })
+                    if (bad) mismatches.push(`${kind}/${mode}${expired ? '/expired' : ''} ${actor.label} anon=${anonymous} jwt=${withJwt}: ${bad}`)
+                  }
                 }
               }
             }
@@ -313,6 +351,11 @@ describe('allow.doc — need × access mode × role × anonymous / JWT, against 
 // Workspace policy
 // ---------------------------------------------------------------------------
 
+const WS_LEVELS = { viewer: ['member'], editor: ['member', 'editor'], admin: ['member', 'editor', 'admin'] } as const
+function wsProofFacts(proof: WorkspaceAccess) {
+  return { workspaceId: proof.workspaceId, actor: proof.actor, levels: (['member', 'editor', 'admin'] as const).filter(l => proof.allows(l)) }
+}
+
 describe('allow.workspace', () => {
   const route = '/api/workspaces/:wsId/x'
   const url = '/api/workspaces/w1/x'
@@ -323,11 +366,16 @@ describe('allow.workspace', () => {
   ] as const)('need %s, role %s → %i', async (need, role, status) => {
     m.user = { id: 7, name: 'U' }
     m.memberRole = role
-    const res = await call(defineApiHandler({ access: allow.workspace(need, { deny: 'brand/admin-required' }), handler: ({ wsId, role: r }) => ({ wsId, role: r }) }) as EventHandler, route, url)
+    const res = await call(defineApiHandler({
+      access: allow.workspace(need, { deny: 'brand/admin-required' }),
+      handler: ({ wsId, role: r, workspaceAccess }) => ({ wsId, role: r, proof: wsProofFacts(workspaceAccess) })
+    }) as EventHandler, route, url)
     expect(res.status).toBe(status)
-    // One assertion for every case: a success returns the handler body, a refusal carries its error code.
+    // One assertion for every case: a success returns the handler body (with a proof naming the
+    // route's workspace and the signed-in user, at the role's level), a refusal carries its error code.
     const refusalCode = status === 404 ? 'workspace/not-found' : 'brand/admin-required'
-    expect(status === 200 ? res.body : res.body.data?.code).toEqual(status === 200 ? { wsId: 'w1', role } : refusalCode)
+    const success = role === null ? null : { wsId: 'w1', role, proof: { workspaceId: 'w1', actor: { kind: 'user', userId: 7 }, levels: WS_LEVELS[role] } }
+    expect(status === 200 ? res.body : res.body.data?.code).toEqual(status === 200 ? success : refusalCode)
   })
 
   it('401 without a session; guests and SSO-less members (null role) are 404', async () => {
@@ -361,7 +409,9 @@ describe('allow.workspace', () => {
     const handler = defineApiHandler({
       access: allow.workspace('admin', { orSelf: 'userId', deny: 'workspace/admin-required' }),
       params,
-      handler: ({ role, targetUserId, isSelf }) => ({ role, targetUserId, isSelf })
+      handler: ({ role, targetUserId, isSelf, workspaceAccess, self }) => ({
+        role, targetUserId, isSelf, adminProof: workspaceAccess?.allows('admin') === true, self: self.userId
+      })
     }) as EventHandler
     // caller 7; role = their workspace role (null: no role), membership = the raw row (guest)
     it.each([
@@ -383,13 +433,13 @@ describe('allow.workspace', () => {
       expect(res.status).toBe(status)
       const refusalCode = status === 403 ? 'workspace/admin-required' : 'workspace/not-found'
       expect(status === 200 ? res.body : res.body.data?.code)
-        .toEqual(status === 200 ? { role: role ?? 'guest', targetUserId: target, isSelf: target === 7 } : refusalCode)
+        .toEqual(status === 200 ? { role: role ?? 'guest', targetUserId: target, isSelf: target === 7, adminProof: role === 'admin', self: 7 } : refusalCode)
     })
 
     it('401 without a session; a bad user id is 400 before any role lookup', async () => {
       expect((await call(handler, selfRoute, '/api/workspaces/w1/members/7', { method: 'DELETE' })).status).toBe(401)
       m.user = { id: 7, name: 'U' }
-      const { getMemberRole } = await import('../../../server/repos/workspaceMembers')
+      const { getMemberRole } = await import('../../../server/repos/access/workspaceRoles')
       vi.mocked(getMemberRole).mockClear()
       expect((await call(handler, selfRoute, '/api/workspaces/w1/members/abc', { method: 'DELETE' })).status).toBe(400)
       expect(getMemberRole).not.toHaveBeenCalled()
@@ -411,10 +461,14 @@ describe('allow.workspace', () => {
 
 describe('session, admin, public, internal, test-only, custom', () => {
   it('user: 401 anonymous, 200 signed in; recentLogin adds auth/reauth-required', async () => {
-    const handler = defineApiHandler({ access: allow.user(), handler: ({ user }) => ({ id: user.id }) }) as EventHandler
+    const handler = defineApiHandler({
+      access: allow.user(),
+      handler: ({ user, self }) => ({ id: user.id, self: { userId: self.userId, actor: self.actor, isSelf: self.isSelf } })
+    }) as EventHandler
     expect((await call(handler, '/api/x', '/api/x')).status).toBe(401)
     m.user = { id: 5, name: 'U' }
-    expect((await call(handler, '/api/x', '/api/x')).body).toEqual({ id: 5 })
+    // The user scope is the session's user acting for themselves.
+    expect((await call(handler, '/api/x', '/api/x')).body).toEqual({ id: 5, self: { userId: 5, actor: { kind: 'user', userId: 5 }, isSelf: true } })
     const recent = defineApiHandler({ access: allow.user(), recentLogin: true, handler: () => 'ok' }) as EventHandler
     m.recent = false
     const res = await call(recent, '/api/x', '/api/x')
@@ -423,7 +477,11 @@ describe('session, admin, public, internal, test-only, custom', () => {
   })
 
   it('admin: 401 anonymous, 403 non-admin (before the body is read), 200 admin', async () => {
-    const handler = defineApiHandler({ access: allow.admin(), body: z.object({ n: z.number() }), handler: ({ admin }) => ({ admin: admin.userId }) }) as EventHandler
+    const handler = defineApiHandler({
+      access: allow.admin(),
+      body: z.object({ n: z.number() }),
+      handler: ({ admin, adminActor }) => ({ admin: admin.userId, actor: adminActor.actor })
+    }) as EventHandler
     const post = (body: unknown) => call(handler, '/api/x', '/api/x', { method: 'POST', body: JSON.stringify(body), headers: { 'content-type': 'application/json' } })
     expect((await post({ n: 'bad' })).status).toBe(401)
     m.user = { id: 5, name: 'U' }
@@ -432,7 +490,7 @@ describe('session, admin, public, internal, test-only, custom', () => {
     expect(refused.body.data?.code).toBe('admin/forbidden')
     m.isAdmin = true
     expect((await post({ n: 'bad' })).status).toBe(400)
-    expect((await post({ n: 1 })).body).toEqual({ admin: 5 })
+    expect((await post({ n: 1 })).body).toEqual({ admin: 5, actor: { kind: 'admin', userId: 5 } })
   })
 
   it('public never reads the session; session: optional does', async () => {
@@ -452,10 +510,15 @@ describe('session, admin, public, internal, test-only, custom', () => {
   })
 
   it('internal render token: 400 without docId / t, 403 with a bad token, claims on success', async () => {
-    const handler = defineApiHandler({ access: allow.internal('render-token'), handler: ({ render }) => ({ docId: render?.docId }) }) as EventHandler
+    const handler = defineApiHandler({
+      access: allow.internal('render-token'),
+      handler: ({ render, docAccess }) => ({ docId: render?.docId, proof: docAccess ? { docId: docAccess.docId, view: docAccess.allows('view'), actor: docAccess.actor } : null })
+    }) as EventHandler
     expect((await call(handler, '/api/r', '/api/r?docId=d1')).status).toBe(400)
     expect((await call(handler, '/api/r', '/api/r?docId=d1&t=bad')).status).toBe(403)
-    expect((await call(handler, '/api/r', '/api/r?docId=d1&t=good')).body).toEqual({ docId: 'd1' })
+    // The view proof is bound to the token's document and held by the render job.
+    expect((await call(handler, '/api/r', '/api/r?docId=d1&t=good')).body)
+      .toEqual({ docId: 'd1', proof: { docId: 'd1', view: true, actor: { kind: 'system', name: 'internal-render' } } })
   })
 
   it('test-only routes 404 outside test mode, before the session', async () => {
@@ -721,7 +784,7 @@ describe('rate limits: keys and phases', () => {
     // Over the limit: 429 before the session or the document is read.
     m.rateAllowed = false
     m.user = { id: 1, name: 'U' }
-    const { getDocWithActorRole } = await import('../../../server/repos/documents')
+    const { getDocWithActorRole } = await import('../../../server/repos/access/docAuthz')
     const { getValidatedUserSession } = await import('../../../server/utils/auth/validatedSession')
     vi.mocked(getDocWithActorRole).mockClear()
     vi.mocked(getValidatedUserSession).mockClear()

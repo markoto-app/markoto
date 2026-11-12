@@ -16,8 +16,8 @@ export default defineApiHandler({
   // Every call creates a real Stripe Checkout Session; 10/min is far above any
   // human retry pattern and stops a looping client flooding Stripe.
   rateLimit: { namespace: 'billing-checkout', max: 10, windowMs: MINUTE_MS, key: 'user', error: 'billing/rate-limited' },
-  handler: ({ event, user, body }) => {
+  handler: ({ event, self, body }) => {
     if (body.plan !== 'pro') throw apiError('billing/workspace-plan')
-    return startProCheckout(event, { userId: user.id, interval: body.interval, currency: body.currency, terms: body })
+    return startProCheckout(event, { self, interval: body.interval, currency: body.currency, terms: body })
   }
 })

@@ -37,7 +37,7 @@ export default defineApiHandler({
   // doesn't differentiate hit vs. miss): the limit is on REQUEST volume, not
   // renderer load. Counted before the lookup, so unknown ids count too.
   rateLimit: { ...RENDER_RATE_LIMIT, key: 'ip', phase: 'before-access' },
-  handler: async ({ event, docId, doc: row, state: doc, actor, query }) => {
+  handler: async ({ event, docAccess, doc: row, state: doc, actor, query }) => {
     // Share-link controls: view-only without download for visitors.
     if (!canDownload(doc, actor, row.shareNoDownload)) {
       throw apiError('share/download-disabled')
@@ -45,7 +45,7 @@ export default defineApiHandler({
 
     let result
     try {
-      result = await renderDocument(docId, { format: 'pdf' })
+      result = await renderDocument(docAccess, { format: 'pdf' })
     } catch (e) {
       throw apiError('docs/render-failed', undefined, { cause: e })
     }

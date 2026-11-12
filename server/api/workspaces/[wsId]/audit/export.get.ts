@@ -17,7 +17,7 @@ export default defineApiHandler({
   query: exportAuditEventsQuery,
   invalidCode: 'audit/invalid-query',
   rateLimit: { namespace: 'audit-export', max: 10, windowMs: HOUR_MS, key: 'user', error: 'audit/rate-limited' },
-  handler: async ({ event, user, wsId, query: q }) => {
+  handler: async ({ event, wsId, query: q, workspaceAccess }) => {
     const format = q.format ?? 'csv'
     const query = { actionPrefix: q.action, from: q.from, to: q.to }
 
@@ -25,7 +25,7 @@ export default defineApiHandler({
     let before: number | undefined
     let total = 0
     for (;;) {
-      const rows = await listWorkspaceAuditEvents(wsId, { ...query, beforeId: before, limit: BATCH })
+      const rows = await listWorkspaceAuditEvents(workspaceAccess, { ...query, beforeId: before, limit: BATCH })
       for (const row of rows) {
         const view = auditEventView(row)
         chunks.push(format === 'csv' ? auditCsvLine(view) : `${JSON.stringify(view)}\n`)
@@ -39,7 +39,7 @@ export default defineApiHandler({
     }
 
     await appendAuditEvent({
-      actorUserId: user.id,
+      by: workspaceAccess,
       actorIp: getClientIp(event),
       scope: 'workspace',
       scopeId: wsId,

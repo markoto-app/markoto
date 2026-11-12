@@ -4,7 +4,7 @@ import { tryAcquireSessionLock } from '../../platform/rateLimit'
 import { normalizeLanguageCode } from '../dictateHelpers'
 import { liveDictationTarget, resolveAiProviders, type LiveDictationTarget } from '../../aiProviders/resolve'
 import { resolveBillingContext, type BillingContext } from '../../billing/billing'
-import { getDoc } from '../../../repos/documents'
+import { getDocWorkspaceId } from '../../access/docProof'
 import type { DictateJwtPayload } from '~~/shared/contracts/jwt'
 import { encodeServerFrame } from '~~/shared/contracts/dictateWs'
 import { useEnv } from '~~/shared/env/load'
@@ -131,8 +131,8 @@ async function resolvePayer(peer: PeerLike, ctx: DictatePeerContext, claims: Aut
   // disappeared mid-handshake just means we tag with no workspace
   // dimension, which is harmless (the call still bills correctly).
   try {
-    const doc = await getDoc(claims.docId)
-    ctx.workspaceId = doc?.workspaceId ?? null
+    // The signed dictation token proves write access to this document.
+    ctx.workspaceId = (await getDocWorkspaceId(claims.docId)) ?? null
   } catch {
     ctx.workspaceId = null
   }

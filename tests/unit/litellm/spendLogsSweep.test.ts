@@ -21,20 +21,18 @@ vi.mock('@sentry/nuxt', () => ({
   captureMessage: vi.fn()
 }))
 
-const {
-  runSpendLogsSweep,
-  _resetSpendLogsSweepPool
-} = await import('../../../server/utils/litellm/spendLogsSweep')
+const { runSpendLogsSweep } = await import('../../../server/utils/litellm/spendLogsSweep')
+const { closeLitellmPool } = await import('../../../server/db/litellm')
 
-beforeEach(() => {
+beforeEach(async () => {
   queryFn.mockReset()
   endFn.mockReset()
   PoolMock.mockClear()
-  _resetSpendLogsSweepPool()
+  await closeLitellmPool()
 })
 
-afterEach(() => {
-  _resetSpendLogsSweepPool()
+afterEach(async () => {
+  await closeLitellmPool()
 })
 
 describe('runSpendLogsSweep — date math', () => {
@@ -98,11 +96,11 @@ describe('runSpendLogsSweep — failure tolerance', () => {
     expect(queryFn).toHaveBeenCalledTimes(3)
   })
 
-  it('_resetSpendLogsSweepPool drops the cache so a fresh Pool is built next call', async () => {
+  it('closeLitellmPool drops the cache so a fresh Pool is built next call', async () => {
     queryFn.mockResolvedValue({ rowCount: 0 })
     await runSpendLogsSweep()
     expect(PoolMock).toHaveBeenCalledTimes(1)
-    _resetSpendLogsSweepPool()
+    await closeLitellmPool()
     await runSpendLogsSweep()
     expect(PoolMock).toHaveBeenCalledTimes(2)
   })

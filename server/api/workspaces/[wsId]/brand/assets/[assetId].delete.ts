@@ -11,12 +11,12 @@ import { brandAssetParams } from '~~/shared/api/brand'
 export default defineApiHandler({
   access: allow.workspace('admin', { deny: 'brand/admin-required' }),
   params: brandAssetParams,
-  handler: async ({ event, user, wsId, params: { assetId } }) => {
-    const removed = await deleteBrandAsset(wsId, assetId)
+  handler: async ({ event, wsId, params: { assetId }, workspaceAccess }) => {
+    const removed = await deleteBrandAsset(workspaceAccess, assetId)
     if (!removed) throw apiError('resource/not-found')
     await deleteBrandObjects([removed.s3Key])
     await appendAuditEvent({
-      actorUserId: user.id,
+      by: workspaceAccess,
       actorIp: getClientIp(event),
       scope: 'workspace',
       scopeId: wsId,

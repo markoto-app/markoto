@@ -4,9 +4,11 @@ import type { ShapeOutput } from '@modelcontextprotocol/sdk/server/zod-compat.js
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { defineMcpTool, type McpRequestExtra, type McpToolCallback } from '@nuxtjs/mcp-toolkit/server'
 import { stripWrapperArgs } from './stripWrapperArgs'
-import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from '../../utils/documents/shareSettings'
-import { getDocAuthz } from '../../utils/workspaces/workspaceAccess'
-import { getMemberRole } from '../../repos/workspaceMembers'
+import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from '../../utils/access/shareSettings'
+import { proveWorkspaceAccess } from '../../utils/access/workspaceAccess'
+import { proveDocMembership } from '../../utils/access/docProof'
+import { proveSelf } from '../../utils/access/userProof'
+import type { DocAccess, WorkspaceAccess } from '../../repos/proofs'
 import { findUserNameById } from '../../repos/users'
 import { connectAsMcpClient } from '../../utils/mcp/mcpHocuspocusClient'
 import { executeFunctionByName, executeMetaTool, type MetaToolName, type ToolName } from '../../utils/ai/tools/registry'
@@ -168,7 +170,7 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
       // thread `workspaceId` into `connectAsMcpClient` instead of
       // having that helper re-query `getDoc`. One DB round-trip per
       // tool call, not two.
-      const authz = await assertDocAccess(opts.name, auth.userId, docId, opts.access)
+      const authz = await assertDocAccess(auth.userId, docId, opts.access)
       if (opts.download && !(await userMayDownload(docId, auth.userId))) {
         return { content: [{ type: 'text', text: DOWNLOAD_DISABLED_MESSAGE }], isError: true }
       }
@@ -181,7 +183,10 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
         userId: auth.userId,
         mcpSessionId,
         userName,
-        workspaceId: authz.workspaceId
+        workspaceId: authz.workspaceId,
+        docAccess: authz.access,
+        self: proveSelf(auth.userId),
+        workspaceAccess: authz.workspaceId ? await proveWorkspaceAccess(auth.userId, authz.workspaceId, 'member') : null
       })
       try {
         // The registry runs DOC and META tools alike with handle.ctx
@@ -236,13 +241,13 @@ export function buildWorkspaceBoundTool<Schema extends ZodRawShape>(opts: WrapWo
         throw apiError('mcp/missing-workspace-id')
       }
 
-      const role = await getMemberRole(workspaceId, auth.userId)
-      if (!isRoleSufficient(role, opts.minRole)) {
-        // Same anti-enumeration shape as `getDocAuthz` failures.
+      const workspaceAccess = await proveWorkspaceAccess(auth.userId, workspaceId, 'member')
+      if (!workspaceAccess || !workspaceAccess.allows(MIN_ROLE_LEVEL[opts.minRole])) {
+        // Same anti-enumeration shape as a document refusal.
         throw apiError('mcp/workspace-not-found')
       }
 
-      const ctx = await buildStubContext(auth.userId, workspaceId, mcpSessionIdFromEvent(event))
+      const ctx = await buildStubContext(auth.userId, workspaceAccess, mcpSessionIdFromEvent(event))
       try {
         // Strip the wrapper-injected `workspace_id` for the same
         // reason `buildDocBoundTool` strips `doc_id` — keeps the
@@ -336,34 +341,25 @@ function assertSchemaContains(schema: ZodRawShape, field: string, name: string):
   }
 }
 
-const ROLE_RANK: Record<'viewer' | 'editor' | 'admin', number> = { viewer: 0, editor: 1, admin: 2 }
-function isRoleSufficient(actual: 'viewer' | 'editor' | 'admin' | null, required: 'viewer' | 'editor' | 'admin'): boolean {
-  if (actual === null) return false
-  return ROLE_RANK[actual] >= ROLE_RANK[required]
-}
+const MIN_ROLE_LEVEL = { viewer: 'member', editor: 'editor', admin: 'admin' } as const
 
 /**
- * Authz check + return the resolved authz info so the caller can
- * forward `workspaceId` to `connectAsMcpClient` (avoiding a second
- * `getDoc` round-trip).
+ * Authz check: the token owner's membership grant on the document (`view`:
+ * owner or any workspace role; `edit`: owner, workspace admin or editor),
+ * as a proof the tool context carries, plus the workspace for the client.
  */
 async function assertDocAccess(
-  toolName: string,
   userId: number,
   docId: string,
   kind: 'view' | 'edit'
-): Promise<{ workspaceId: string | null }> {
-  const authz = await getDocAuthz(userId, docId)
-  if (!authz.exists) {
+): Promise<{ workspaceId: string | null, access: DocAccess<'view'> }> {
+  const proven = await proveDocMembership(userId, docId, kind)
+  if (!proven) {
+    // 404-shape (not 403) for missing and refused alike — matches the
+    // in-app endpoints' anti-enumeration policy.
     throw apiError('mcp/doc-not-found')
   }
-  const allowed = kind === 'edit' ? authz.canEdit : authz.canView
-  if (!allowed) {
-    // 404-shape (not 403) — matches the in-app endpoints' anti-
-    // enumeration policy.
-    throw apiError('mcp/doc-not-found')
-  }
-  return { workspaceId: authz.workspaceId }
+  return { workspaceId: proven.workspaceId, access: proven.access }
 }
 
 /**
@@ -378,9 +374,10 @@ async function assertDocAccess(
  */
 async function buildStubContext(
   userId: number,
-  workspaceId: string | null,
+  workspaceAccess: WorkspaceAccess<'member'> | null,
   mcpSessionId: string | null
 ): Promise<{ ctx: MetaToolContext, dispose: () => void }> {
+  const workspaceId = workspaceAccess?.workspaceId ?? null
   const billingContext = await resolveBillingContext(userId, workspaceId)
   const aiProviders = await resolveAiProviders(userId, billingContext.plan)
   const sessionId = mcpSessionId ?? `oneshot-${Date.now()}`
@@ -393,6 +390,9 @@ async function buildStubContext(
     docId: 'mcp:no-doc-context',
     initiatorUserId: userId,
     workspaceId,
+    self: proveSelf(userId),
+    docAccess: null,
+    workspaceAccess,
     sessionId,
     attributedTo: billingContext.attributedTo,
     plan: billingContext.plan,

@@ -3,9 +3,10 @@ import { eq } from 'drizzle-orm'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser } from '../integration/setup/fixtures'
 import { mcpSessions, mcpPersonalTokens } from '../../server/db/schema'
-import { useDatabase } from '../../server/utils/platform/database'
+import { useDatabase } from '../../server/db/client'
 import { useValkey } from '../../server/utils/platform/valkey'
 import { issueMcpToken, touchMcpSession } from '../../server/utils/mcp/mcpAuth'
+import { asUser } from '../helpers/access'
 
 // DB-backed tests for the `mcp_sessions` audit-attribution table.
 // Without this writer + table, `activity_log` rows tagged
@@ -21,7 +22,7 @@ describe('touchMcpSession — first call inserts a row', () => {
   it('inserts a row with the expected shape', async () => {
     const user = await createUser()
     const issued = await issueMcpToken({
-      userId: user.id, name: 't', scopes: ['documents:read']
+      self: asUser(user.id), name: 't', scopes: ['documents:read']
     })
     const sid = 'mcp-sid-insert'
     // Clear any throttle key so the touch fires immediately.
@@ -50,7 +51,7 @@ describe('touchMcpSession — first call inserts a row', () => {
   it('subsequent touch (after throttle clears) updates lastActiveAt, not startedAt', async () => {
     const user = await createUser()
     const issued = await issueMcpToken({
-      userId: user.id, name: 't', scopes: ['documents:read']
+      self: asUser(user.id), name: 't', scopes: ['documents:read']
     })
     const sid = 'mcp-sid-update'
     const valkey = useValkey()
@@ -148,7 +149,7 @@ describe('mcp_sessions — FK cascade rules (the audit-trail contract)', () => {
     // doesn't break the audit chain.
     const user = await createUser()
     const issued = await issueMcpToken({
-      userId: user.id, name: 't', scopes: ['documents:read']
+      self: asUser(user.id), name: 't', scopes: ['documents:read']
     })
     const sid = 'mcp-sid-token-setnull'
     const valkey = useValkey()

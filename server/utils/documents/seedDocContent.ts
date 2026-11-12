@@ -1,5 +1,6 @@
 import * as Y from 'yjs'
-import { appendYjsUpdate } from './yjsLog'
+import { appendYjsUpdate } from '../../repos/yjsLog'
+import type { DocAccess } from '../../repos/proofs'
 
 // Server-side seeding of a brand-new document's Markdown body
 // (`POST /api/docs` with `content`, used by the marketing `::try-it`
@@ -10,11 +11,11 @@ import { appendYjsUpdate } from './yjsLog'
 //     sees the text right away, without a browser ever connecting.
 // Only called for a docId minted a moment ago (its documents row exists),
 // so there is no existing history to merge with.
-export async function seedDocContent(docId: string, content: string): Promise<void> {
+export async function seedDocContent(doc: DocAccess<'write'>, content: string): Promise<void> {
   if (content.length === 0) return
-  const doc = new Y.Doc()
-  doc.getText('content').insert(0, content)
-  const update = Y.encodeStateAsUpdate(doc)
-  doc.destroy()
-  await appendYjsUpdate(docId, update)
+  const ydoc = new Y.Doc()
+  ydoc.getText('content').insert(0, content)
+  const update = Y.encodeStateAsUpdate(ydoc)
+  ydoc.destroy()
+  await appendYjsUpdate(doc, update)
 }

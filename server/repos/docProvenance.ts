@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
-import { useDatabase } from '../utils/platform/database'
+import { useDatabase } from '../db/client'
+import type { DocAccess, WorkspaceAccess } from './proofs'
 
 // Provenance queries for the AI taint gate (`server/utils/agentic/crossBoundary.ts`):
 // "has anybody other than this user changed this document's content?"
@@ -29,7 +30,8 @@ import { useDatabase } from '../utils/platform/database'
 const CONTENT_ACTIONS = ['edit', 'title.changed', 'theme.changed', 'restore'] as const
 
 /** True when `docId` has a content-changing activity row not attributable to `userId`. */
-export async function hasForeignContentActivity(docId: string, userId: number): Promise<boolean> {
+export async function hasForeignContentActivity(doc: DocAccess<'view'>, userId: number): Promise<boolean> {
+  const docId = doc.docId
   const db = useDatabase()
   const actions = sql.join(CONTENT_ACTIONS.map(a => sql`${a}`), sql`, `)
   const uid = String(userId)
@@ -93,7 +95,8 @@ export async function hasForeignContentActivity(docId: string, userId: number): 
  * its documents — a guest can change that document's text, title
  * and description, which the invoker's AI then reads.
  */
-export async function countOtherWorkspaceEditors(workspaceId: string, userId: number): Promise<number> {
+export async function countOtherWorkspaceEditors(ws: WorkspaceAccess<'member'>, userId: number): Promise<number> {
+  const workspaceId = ws.workspaceId
   const db = useDatabase()
   const result = await db.execute(sql`
     SELECT count(*)::int AS n FROM (

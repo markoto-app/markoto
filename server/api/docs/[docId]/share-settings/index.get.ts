@@ -6,7 +6,7 @@ import { planHasFeature, resolveDocPlanFor } from '../../../../utils/billing/ent
 // opens of the last 30 days (only on a plan with the feature).
 export default defineApiHandler({
   access: allow.doc('manage', { deny: 'share/not-allowed' }),
-  handler: async ({ event, docId, doc }) => {
+  handler: async ({ event, doc, docAccess }) => {
     // Reading the settings is free on every plan (they can be cleared after
     // a downgrade); `available` tells the dialog whether new ones can be set.
     const available = planHasFeature(await resolveDocPlanFor(doc), 'shareControls')
@@ -15,7 +15,7 @@ export default defineApiHandler({
       available,
       expiresAt: doc.shareExpiresAt?.toISOString() ?? null,
       noDownload: doc.shareNoDownload,
-      views: available ? await documentViews(docId, 30) : null
+      views: available ? await documentViews(docAccess, 30) : null
     }
   }
 })

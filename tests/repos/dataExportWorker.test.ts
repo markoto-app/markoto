@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { resetDb } from '../integration/setup/db'
 import { createUser } from '../integration/setup/fixtures'
 import { enqueueExportJob, getJobById } from '../../server/repos/dataExportJobs'
+import { asUser, sys } from '../helpers/access'
 
 const s3SendMock = vi.fn(async () => ({}))
 vi.mock('../../server/utils/storage/s3', () => ({
@@ -33,7 +34,7 @@ describe('runDataExportWorker', () => {
 
   it('claims a queued job, builds the ZIP, PUTs to S3, marks ready', async () => {
     const u = await createUser()
-    const job = await enqueueExportJob(u.id)
+    const job = await enqueueExportJob(asUser(u.id))
 
     const result = await runDataExportWorker()
     expect(result.jobId).toBe(job.jobId)
@@ -41,7 +42,7 @@ describe('runDataExportWorker', () => {
     expect(result.s3Key).toBe(`exports/${u.id}/${job.jobId}.zip`)
     expect(s3SendMock).toHaveBeenCalledTimes(1)
 
-    const reread = await getJobById(job.jobId)
+    const reread = await getJobById(sys(), job.jobId)
     expect(reread.status).toBe('ready')
     expect(reread.s3Key).toBe(`exports/${u.id}/${job.jobId}.zip`)
     expect(reread.sizeBytes).toBeGreaterThan(0)
@@ -51,7 +52,7 @@ describe('runDataExportWorker', () => {
 
   it('marks the job failed when S3 PUT throws', async () => {
     const u = await createUser()
-    const job = await enqueueExportJob(u.id)
+    const job = await enqueueExportJob(asUser(u.id))
 
     s3SendMock.mockRejectedValueOnce(new Error('s3 down'))
 
@@ -59,7 +60,7 @@ describe('runDataExportWorker', () => {
     expect(result.succeeded).toBe(false)
     expect(result.errorMessage).toContain('s3 down')
 
-    const reread = await getJobById(job.jobId)
+    const reread = await getJobById(sys(), job.jobId)
     expect(reread.status).toBe('failed')
     expect(reread.errorMessage).toContain('s3 down')
   })
@@ -67,8 +68,8 @@ describe('runDataExportWorker', () => {
   it('processes one job per call (deterministic worker pacing)', async () => {
     const u1 = await createUser()
     const u2 = await createUser()
-    await enqueueExportJob(u1.id)
-    await enqueueExportJob(u2.id)
+    await enqueueExportJob(asUser(u1.id))
+    await enqueueExportJob(asUser(u2.id))
 
     const r1 = await runDataExportWorker()
     expect(r1.succeeded).toBe(true)
