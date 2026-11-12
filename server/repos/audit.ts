@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/nuxt'
 import { auditLog, users } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
 import { useLogger } from '../utils/platform/logger'
+import type { AuditAction, AuditAfter, AuditBefore, AuditEventParts, AuditMetadata } from '../db/columnTypes'
 
 const log = useLogger('audit')
 
@@ -17,22 +18,21 @@ const log = useLogger('audit')
 
 export type AuditScope = 'doc' | 'workspace' | 'user' | 'billing' | 'system'
 
-export interface AppendAuditEventArgs {
+export type AppendAuditEventArgs<A extends AuditAction = AuditAction> = {
   actorUserId: number | null
   actorIp: string | null
   scope: AuditScope
   scopeId: string | null
-  action: string
-  before?: unknown
-  after?: unknown
-  metadata?: Record<string, unknown>
+  action: A
   /**
    * The workspace the event belongs to. Defaults to `scopeId` for
    * `workspace` and `billing` events (their scope id IS the workspace);
    * pass it for document events of a workspace document.
    */
   workspaceId?: string | null
-}
+} & AuditEventParts<A>
+
+type StoredAuditParts = { before?: AuditBefore | null, after?: AuditAfter | null, metadata?: AuditMetadata | null }
 
 export interface AuditEventRow {
   id: number
@@ -42,9 +42,9 @@ export interface AuditEventRow {
   scope: AuditScope
   scopeId: string | null
   action: string
-  before: unknown
-  after: unknown
-  metadata: Record<string, unknown> | null
+  before: AuditBefore | null
+  after: AuditAfter | null
+  metadata: AuditMetadata | null
 }
 
 /**
@@ -61,9 +61,15 @@ export function truncateIp(ip: string | null): string | null {
   if (!ip) return null
   const trimmed = ip.trim()
   if (!trimmed) return null
-  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(trimmed)) return truncateIpv4(trimmed)
+  if (isDottedQuad(trimmed)) return truncateIpv4(trimmed)
   if (trimmed.includes(':')) return truncateIpv6(trimmed)
   return null
+}
+
+/** Four dot-separated groups of 1–3 digits (range checked by `truncateIpv4`). */
+function isDottedQuad(value: string): boolean {
+  const parts = value.split('.')
+  return parts.length === 4 && parts.every(p => /^\d{1,3}$/.test(p))
 }
 
 /** IPv4 — drop the last octet. Returns null if any octet is out of range. */
@@ -110,7 +116,10 @@ function expandIpv6(trimmed: string): string[] | null {
  * Failures are reported to Sentry + logged so they're observable
  * without affecting the request path.
  */
-export async function appendAuditEvent(args: AppendAuditEventArgs): Promise<void> {
+export async function appendAuditEvent<A extends AuditAction>(args: AppendAuditEventArgs<A>): Promise<void>
+// The implementation stores the parts as given; the overload above is what
+// ties each action to its shape.
+export async function appendAuditEvent(args: AppendAuditEventArgs<AuditAction> & StoredAuditParts): Promise<void> {
   try {
     const db = useDatabase()
     await db.insert(auditLog).values({
@@ -119,8 +128,8 @@ export async function appendAuditEvent(args: AppendAuditEventArgs): Promise<void
       scope: args.scope,
       scopeId: args.scopeId,
       action: args.action,
-      before: args.before === undefined ? null : args.before,
-      after: args.after === undefined ? null : args.after,
+      before: args.before ?? null,
+      after: args.after ?? null,
       metadata: args.metadata ?? null,
       workspaceId: args.workspaceId !== undefined
         ? args.workspaceId
@@ -159,7 +168,7 @@ export async function getAuditEventsByScope(
     .where(where)
     .orderBy(desc(auditLog.ts), desc(auditLog.id))
     .limit(limit)
-  return rows as AuditEventRow[]
+  return rows
 }
 
 /**
@@ -182,7 +191,7 @@ export async function getAuditEventsByActor(
     .where(where)
     .orderBy(desc(auditLog.ts), desc(auditLog.id))
     .limit(limit)
-  return rows as AuditEventRow[]
+  return rows
 }
 
 export interface WorkspaceAuditRow {
@@ -195,9 +204,9 @@ export interface WorkspaceAuditRow {
   scope: AuditScope
   scopeId: string | null
   action: string
-  before: unknown
-  after: unknown
-  metadata: Record<string, unknown> | null
+  before: AuditBefore | null
+  after: AuditAfter | null
+  metadata: AuditMetadata | null
 }
 
 export interface WorkspaceAuditQuery {
@@ -237,5 +246,5 @@ export async function listWorkspaceAuditEvents(workspaceId: string, q: Workspace
     .where(and(...conditions))
     .orderBy(desc(auditLog.id))
     .limit(limit)
-  return rows as WorkspaceAuditRow[]
+  return rows
 }

@@ -37,6 +37,7 @@ import { lookup } from 'node:dns/promises'
 import { isIP } from 'node:net'
 import { isAlwaysForbiddenIp, isPrivateIp } from '../agentic/urlGuard'
 import { normalizeBaseUrl, type UrlRefusalCode } from '~~/shared/ai/providers'
+import { trimEndChars } from '~~/shared/utils/trimChars'
 
 export interface ByokUrlPolicy {
   /** Normalised allowlisted base URLs. Empty = any public URL (self-host). */
@@ -71,6 +72,7 @@ export const INTERNAL_HOSTNAMES: ReadonlySet<string> = new Set([
  * on the compose network too, under whatever project name the operator
  * picked — match them by the service part.
  */
+// eslint-disable-next-line security/detect-non-literal-regexp -- built once from the fixed internal-hostname list (filtered to [a-z0-9-])
 const COMPOSE_CONTAINER_NAME = new RegExp(
   `^[a-z0-9][a-z0-9_-]*[-_](?:${[...INTERNAL_HOSTNAMES].filter(n => /^[a-z0-9-]+$/.test(n)).join('|')})[-_]\\d+$`
 )
@@ -81,7 +83,7 @@ const COMPOSE_CONTAINER_NAME = new RegExp(
  * name as `litellm` to a resolver).
  */
 function normalizeHostname(raw: string): string {
-  return raw.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.+$/, '')
+  return trimEndChars(raw.toLowerCase().replace(/^\[|\]$/g, ''), '.')
 }
 
 /** Is `host` one of markoto's own service names (any spelling)? */

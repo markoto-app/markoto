@@ -3,6 +3,7 @@
 // them is the routes' policy: `allow.workspace('admin', { ignoreSso: true })`.
 
 import { X509Certificate } from 'node:crypto'
+import type { UpdateSsoSettingsBody } from '~~/shared/api/sso'
 import type { H3Event } from 'h3'
 import { listSsoDomains, type SsoConnectionFields, type SsoConnectionRow, type SsoDomainRow } from '../../repos/sso'
 import { planHasFeature, resolveWorkspacePlan } from '../billing/entitlements'
@@ -10,9 +11,11 @@ import { sealSecret, secretContext } from '../platform/secretBox'
 import { checkSsoUrl, ssoAllowsPrivateUrls, SsoUrlRefused } from './urlPolicy'
 import { samlAcsUrl, samlSpEntityId, ssoBaseUrl, ssoCallbackUrl } from './http'
 import { DOMAIN_TXT_PREFIX } from './domains'
+import { apiError } from '../api/apiError'
+import { trimTrailingSlashes } from '~~/shared/utils/trimTrailingSlashes'
 
-function invalid(field: string, message: string): Error {
-  return createError({ statusCode: 400, message, data: { code: 'sso/invalid-settings', field } })
+function invalid(field: string, detail: string): Error {
+  return apiError('sso/invalid-settings', { field, detail })
 }
 
 const MAX_TEXT = 1024
@@ -29,7 +32,9 @@ function normalizeIdpCertificate(raw: unknown, now = new Date()): string {
   const input = text(raw, 'samlIdpCert', MAX_CERT)
   const body = input.replace(/-----(BEGIN|END) CERTIFICATE-----/g, '').replace(/\s+/g, '')
   if (!/^[A-Za-z0-9+/]+=*$/.test(body)) throw invalid('samlIdpCert', 'Paste the IdP signing certificate (PEM or Base64).')
-  const pem = `-----BEGIN CERTIFICATE-----\n${body.match(/.{1,64}/g)!.join('\n')}\n-----END CERTIFICATE-----\n`
+  const lines: string[] = []
+  for (let i = 0; i < body.length; i += 64) lines.push(body.slice(i, i + 64))
+  const pem = `-----BEGIN CERTIFICATE-----\n${lines.join('\n')}\n-----END CERTIFICATE-----\n`
   let cert: X509Certificate
   try {
     cert = new X509Certificate(pem)
@@ -41,11 +46,10 @@ function normalizeIdpCertificate(raw: unknown, now = new Date()): string {
 }
 
 /** Validate the PUT body into repo fields. The client secret is encrypted here. */
-export async function parseSsoSettings(body: unknown, existing: SsoConnectionRow | null, workspaceId: string): Promise<SsoConnectionFields> {
-  const b = (typeof body === 'object' && body !== null ? body : {}) as Record<string, unknown>
-  if (b.protocol !== 'oidc' && b.protocol !== 'saml') throw invalid('protocol', 'Choose OpenID Connect or SAML.')
-  const defaultRole = b.defaultRole === undefined ? undefined : b.defaultRole === 'editor' || b.defaultRole === 'viewer' ? b.defaultRole : null
-  if (defaultRole === null) throw invalid('defaultRole', 'The default role is editor or viewer.')
+export async function parseSsoSettings(b: UpdateSsoSettingsBody, existing: SsoConnectionRow | null, workspaceId: string): Promise<SsoConnectionFields> {
+  // `protocol` and `defaultRole` are checked by the route's schema
+  // (`updateSsoSettingsBody`); the protocol's own fields are checked here.
+  const defaultRole = b.defaultRole
 
   if (b.protocol === 'oidc') {
     const issuer = text(b.oidcIssuer, 'oidcIssuer')
@@ -57,12 +61,12 @@ export async function parseSsoSettings(body: unknown, existing: SsoConnectionRow
     }
     const clientId = text(b.oidcClientId, 'oidcClientId')
     let secret: string | undefined
-    if (typeof b.oidcClientSecret === 'string' && b.oidcClientSecret.trim()) {
+    if (b.oidcClientSecret?.trim()) {
       secret = sealSecret('sso-client-secret', secretContext.ssoClientSecret(workspaceId), text(b.oidcClientSecret, 'oidcClientSecret'))
     } else if (!(existing?.protocol === 'oidc' && existing.oidcClientSecret)) {
       throw invalid('oidcClientSecret', 'The client secret is required.')
     }
-    return { protocol: 'oidc', oidcIssuer: issuer.replace(/\/+$/, ''), oidcClientId: clientId, oidcClientSecret: secret, defaultRole }
+    return { protocol: 'oidc', oidcIssuer: trimTrailingSlashes(issuer), oidcClientId: clientId, oidcClientSecret: secret, defaultRole }
   }
 
   const entityId = text(b.samlIdpEntityId, 'samlIdpEntityId')

@@ -3,7 +3,8 @@
 // them. Side-effect import + named import; `Sentry` is the namespace we
 // use for continueTrace / startSpan inside the request handler.
 import { Sentry } from './sentry'
-import { renderDocument, type RenderInput } from './render'
+import { renderDocument } from './render'
+import type { RenderRequest } from './contract'
 import { checkInternalSecret, INTERNAL_SECRET_HEADER } from './internalSecret'
 import { env } from './env'
 import { useLogger } from './logger'
@@ -32,12 +33,13 @@ const server = Bun.serve({
         return jsonResponse({ error: 'forbidden' }, 403)
       }
 
-      let body: Partial<RenderInput>
+      let raw: unknown
       try {
-        body = await req.json() as Partial<RenderInput>
+        raw = await req.json()
       } catch {
         return jsonResponse({ error: 'invalid JSON body' }, 400)
       }
+      const body: Partial<Record<keyof RenderRequest, unknown>> = isRecord(raw) ? raw : {}
 
       // Light validation — the calling app already validated upstream, this
       // is a sanity net for stray callers.
@@ -101,6 +103,10 @@ const server = Bun.serve({
 
 log.info('listening', { port: server.port })
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
 function jsonResponse(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -112,7 +118,8 @@ function jsonResponse(body: unknown, status: number): Response {
 // dirs get cleaned up properly. SIGTERM from compose; SIGINT from Ctrl-C.
 async function shutdown(signal: string) {
   log.info('shutting down', { signal })
-  server.stop()
+  // Stop accepting requests; the exit below doesn't wait for open ones.
+  server.stop().catch((e: unknown) => log.warn('server stop failed', { err: e }))
   // Browser closure happens lazily on next launch; explicit close not
   // required since the kernel reaps the process tree on exit. Skip to
   // avoid blocking shutdown on a stuck browser.

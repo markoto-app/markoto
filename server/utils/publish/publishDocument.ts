@@ -1,3 +1,4 @@
+import { must } from '~~/shared/utils/must'
 import { CopyObjectCommand, DeleteObjectsCommand, ListObjectsV2Command } from '@aws-sdk/client-s3'
 import { and, eq, inArray, isNotNull } from 'drizzle-orm'
 import { customAlphabet, nanoid } from 'nanoid'
@@ -214,7 +215,7 @@ async function publishLocked(input: PublishInput): Promise<PublishedPageSummary>
     }
   }
   await prunePublishedObjects(pageId, keysOf(pageId, copied))
-  return (await getPublishedPageSummary(docId))!
+  return must(await getPublishedPageSummary(docId), 'published page just stored')
 }
 
 function keysOf(pageId: string, copied: SnapshotAssetRefs): Set<string> {

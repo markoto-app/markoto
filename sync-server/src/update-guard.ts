@@ -96,12 +96,14 @@ const MAX_REFERENCE_STEPS = 10_000
 function placementOfType(type: Y.AbstractType<unknown>, parentSub: string | null): Resolution {
   let t = type
   let nested = false
-  for (let steps = 0; t._item !== null; steps++) {
+  let steps = 0
+  while (t._item !== null) {
     if (steps > MAX_REFERENCE_STEPS) return 'missing'
     const parent: unknown = t._item.parent
     if (!(parent instanceof Y.AbstractType)) return 'gc'
     nested = true
     t = parent
+    steps++
   }
   let root: string
   try {

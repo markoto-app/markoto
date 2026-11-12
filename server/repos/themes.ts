@@ -1,4 +1,5 @@
 import { and, desc, eq, sql } from 'drizzle-orm'
+import { must } from '~~/shared/utils/must'
 import { themes } from '../db/schema'
 import type { DocTheme } from '~~/shared/types/theme'
 import { useDatabase } from '../utils/platform/database'
@@ -93,7 +94,7 @@ export async function createTheme(input: {
       createdAt: themes.createdAt,
       updatedAt: themes.updatedAt
     })
-  return row!
+  return must(row, 'inserted theme row')
 }
 
 export async function updateTheme(

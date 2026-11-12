@@ -4,6 +4,7 @@ import { SANS_FONTS, SERIF_FONTS } from './fontLists'
 import { MARKDOWN_REFERENCE } from './markdownReference'
 import { fenceBlock, quoteInline, UNTRUSTED_DATA_RULE } from './untrustedText'
 import { isAiCommentAuthor } from '~~/shared/ai/author'
+import { readYComment, type YCommentFields } from '~~/shared/utils/documents/yComment'
 
 /**
  * Builds the `<comment_trigger>` block that tells the AI it was summoned by
@@ -46,9 +47,19 @@ export function stripAiMention(body: string): string {
  */
 export function plainCommentText(body: string): string {
   return body
-    .replace(/\*\*(\S(?:[^*\n]*\S)?)\*\*/g, '$1')
-    .replace(/__(\S(?:[^_\n]*\S)?)__/g, '$1')
+    .replace(/\*\*([^*\n]+)\*\*/g, unwrapIfTight)
+    .replace(/__([^_\n]+)__/g, unwrapIfTight)
     .replace(/^#{1,6}\s+/gm, '')
+}
+
+/**
+ * `**x**` → `x` when the inner text starts and ends with a non-space (a
+ * `** spaced **` pair is not emphasis). Checked here rather than in the
+ * pattern: `\S(?:[^*\n]*\S)?` backtracks over every split of a long
+ * unclosed run, and comment bodies are anyone's text.
+ */
+function unwrapIfTight(match: string, inner: string): string {
+  return /^\S/.test(inner) && /\S$/.test(inner) ? inner : match
 }
 
 /** Detect whether a body contains an `@ai` mention at a word boundary. */
@@ -91,24 +102,6 @@ interface ResolvedThread {
   triggerMentionsAi: boolean
 }
 
-/** Coerce a Y.Map field to a string with a fallback. */
-function strField(map: Y.Map<unknown>, key: string, fallback: string): string {
-  const v = map.get(key)
-  return typeof v === 'string' ? v : fallback
-}
-
-/** Coerce a Y.Map field to a number, returning null on miss. */
-function numFieldOrNull(map: Y.Map<unknown>, key: string): number | null {
-  const v = map.get(key)
-  return typeof v === 'number' ? v : null
-}
-
-/** Coerce a Y.Map field to a number with a numeric fallback. */
-function numFieldOrZero(map: Y.Map<unknown>, key: string): number {
-  const v = map.get(key)
-  return typeof v === 'number' ? v : 0
-}
-
 interface ParentFields {
   body: string
   authorId: number | null
@@ -117,13 +110,13 @@ interface ParentFields {
   resolved: boolean
 }
 
-function parseParentFields(map: Y.Map<unknown>): ParentFields {
+function parseParentFields(c: YCommentFields): ParentFields {
   return {
-    body: strField(map, 'body', ''),
-    authorId: numFieldOrNull(map, 'authorId'),
-    authorName: strField(map, 'authorName', 'Unknown'),
-    createdAt: numFieldOrZero(map, 'createdAt'),
-    resolved: Boolean(map.get('resolved'))
+    body: c.body,
+    authorId: c.authorId,
+    authorName: c.authorName ?? 'Unknown',
+    createdAt: c.createdAt,
+    resolved: c.resolved
   }
 }
 
@@ -139,11 +132,11 @@ interface AnchorResolution {
  * all-nulls when the anchor is orphaned (decode failure or zero-width
  * range).
  */
-function resolveAnchor(parentMap: Y.Map<unknown>, ydoc: Y.Doc, ytext: Y.Text): AnchorResolution {
+function resolveAnchor(parent: YCommentFields, ydoc: Y.Doc, ytext: Y.Text): AnchorResolution {
   const empty: AnchorResolution = { anchorText: null, startLine: null, endLine: null }
-  const startB64 = parentMap.get('anchorStart')
-  const endB64 = parentMap.get('anchorEnd')
-  if (typeof startB64 !== 'string' || typeof endB64 !== 'string') return empty
+  const startB64 = parent.anchorStart
+  const endB64 = parent.anchorEnd
+  if (startB64 === null || endB64 === null) return empty
   try {
     const startRel = Y.decodeRelativePosition(new Uint8Array(Buffer.from(startB64, 'base64')))
     const endRel = Y.decodeRelativePosition(new Uint8Array(Buffer.from(endB64, 'base64')))
@@ -176,14 +169,15 @@ function walkReplies(parentMap: Y.Map<unknown>, replyId: string | null): { repli
   for (let i = 0; i < repliesArr.length; i++) {
     const r = repliesArr.get(i)
     if (!(r instanceof Y.Map)) continue
-    const rId = strField(r, 'id', '')
+    const c = readYComment(r)
+    const rId = c.id ?? ''
     const isTrigger = replyId !== null && rId === replyId
     const entry: ResolvedReply = {
       id: rId,
-      body: strField(r, 'body', ''),
-      authorId: numFieldOrNull(r, 'authorId'),
-      authorName: strField(r, 'authorName', 'Unknown'),
-      createdAt: numFieldOrZero(r, 'createdAt'),
+      body: c.body,
+      authorId: c.authorId,
+      authorName: c.authorName ?? 'Unknown',
+      createdAt: c.createdAt,
       isTrigger
     }
     replies.push(entry)
@@ -211,8 +205,9 @@ export function resolveCommentTrigger(
   const parentMap = findParentMap(ycomments, commentId)
   if (!parentMap) return null
 
-  const parent = parseParentFields(parentMap)
-  const anchor = resolveAnchor(parentMap, ydoc, ytext)
+  const parentComment = readYComment(parentMap)
+  const parent = parseParentFields(parentComment)
+  const anchor = resolveAnchor(parentComment, ydoc, ytext)
   const { replies, triggerReply } = walkReplies(parentMap, replyId)
 
   // The triggering message: a specific reply if replyId resolved to

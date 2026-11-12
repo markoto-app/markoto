@@ -83,17 +83,17 @@ function buildUserMessages(parts: Part[]): OAIMessage[] {
   const out: OAIMessage[] = []
   // Split into (a) tool-response parts (each becomes a `tool` message)
   // and (b) text + inlineData parts (combined into one user message).
-  const toolResponses: Part[] = []
+  const toolResponses: Array<NonNullable<Part['functionResponse']>> = []
   const userParts: Part[] = []
   for (const p of parts) {
-    if (p.functionResponse) toolResponses.push(p)
+    if (p.functionResponse) toolResponses.push(p.functionResponse)
     else userParts.push(p)
   }
 
   // Tool messages first — OpenAI requires `tool` messages reference a
   // prior assistant tool_call id, which is satisfied because
   // contents.push(model) ran before contents.push(user{functionResponse}).
-  for (const p of toolResponses) out.push(buildToolMessage(p.functionResponse!))
+  for (const fr of toolResponses) out.push(buildToolMessage(fr))
 
   const carrier = buildCarrierUserMessage(userParts)
   if (carrier) out.push(carrier)

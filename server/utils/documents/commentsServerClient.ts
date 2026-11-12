@@ -1,3 +1,4 @@
+import { readYComment } from '~~/shared/utils/documents/yComment'
 import * as Y from 'yjs'
 import jwt from 'jsonwebtoken'
 import { HocuspocusProvider } from '@hocuspocus/provider'
@@ -167,12 +168,8 @@ export interface CommentAuthorRef {
 }
 
 export function readCommentAuthor(map: Y.Map<unknown>): CommentAuthorRef {
-  const aid = map.get('authorId')
-  const an = map.get('authorName')
-  return {
-    authorId: typeof aid === 'number' ? aid : null,
-    authorName: typeof an === 'string' ? an : ''
-  }
+  const c = readYComment(map)
+  return { authorId: c.authorId, authorName: c.authorName ?? '' }
 }
 
 export function readReplyAuthor(
@@ -185,9 +182,10 @@ export function readReplyAuthor(
     const r = repliesArr.get(i)
     if (r instanceof Y.Map && r.get('id') === replyId) {
       return {
+        // `replies` holds one Y.Map per reply (the comments writers' layout).
         repliesArr: repliesArr as Y.Array<Y.Map<unknown>>,
         index: i,
-        author: readCommentAuthor(r as Y.Map<unknown>)
+        author: readCommentAuthor(r)
       }
     }
   }

@@ -1,6 +1,7 @@
 import MarkdownIt from 'markdown-it'
 import anchor from 'markdown-it-anchor'
 import toc from 'markdown-it-toc-done-right'
+import { trimChars } from '~~/shared/utils/trimChars'
 
 // Renderer for the bundled legal documents (/legal/*). See
 // server/api/_internal/legal/[slug].get.ts.
@@ -11,12 +12,11 @@ import toc from 'markdown-it-toc-done-right'
  * folded, so every locale gets readable, stable fragment links.
  */
 export function legalSlugify(text: string): string {
-  return text
+  return trimChars(text
     .normalize('NFKD')
     .replaceAll(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replaceAll(/[^a-z0-9]+/g, '-')
-    .replaceAll(/^-+|-+$/g, '')
+    .replaceAll(/[^a-z0-9]+/g, '-'), '-')
 }
 
 export const legalMarkdown = new MarkdownIt({

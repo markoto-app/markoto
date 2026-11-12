@@ -21,7 +21,7 @@ export default defineApiHandler({
     reason: 'verify: anyone, limited per client+doc, per doc and by a per-doc failure lockout; set / remove: signed in with manage rights (checked per action)'
   }),
   body: docPasswordBody,
-  handler: async ({ event, user, docId, doc: row, state, actor, authz, body }) => {
+  handler: async ({ event, user, docId, doc: row, state, actor, authz, body }): Promise<DocPasswordResponse> => {
     const doc = await getDoc(docId)
     if (!doc) throw apiError('docs/not-found')
 
@@ -39,7 +39,16 @@ export default defineApiHandler({
   }
 })
 
-async function handleSet(event: H3Event, user: ValidatedUser, docId: string, doc: DocSnapshot, password: string | undefined) {
+/**
+ * One answer per action, keyed by `action`: a verify carries the document
+ * token the caller now holds (without the key, the three would collapse into
+ * the common `{ success }` shape).
+ */
+type DocPasswordResponse
+  = | { action: 'set' | 'remove', success: true }
+    | { action: 'verify', success: true, token: string, readOnly: boolean }
+
+async function handleSet(event: H3Event, user: ValidatedUser, docId: string, doc: DocSnapshot, password: string | undefined): Promise<DocPasswordResponse> {
   // Minimum length applies when a password is SET; passwords set under
   // an older, shorter minimum keep verifying.
   if (password === undefined || password.length < DOC_PASSWORD_MIN_LENGTH) {
@@ -65,7 +74,7 @@ async function handleSet(event: H3Event, user: ValidatedUser, docId: string, doc
     after: { accessMode: 'password-protected', hasPassword: true }
   })
 
-  return { success: true }
+  return { action: 'set', success: true }
 }
 
 /**
@@ -89,7 +98,7 @@ async function handleVerify(
   state: DocState,
   actor: ActorState,
   password: string | undefined
-) {
+): Promise<DocPasswordResponse> {
   const outcome = await admitPasswordAttempt(getClientRateLimitKey(event), docId)
   if (outcome !== 'allowed') {
     throw apiError(outcome === 'locked' ? 'password/locked' : 'password/rate-limited')
@@ -109,7 +118,7 @@ async function handleVerify(
   }
 
   const grant = passwordGrant(row, state, actor)
-  return { success: true, token: mintPasswordToken(user, docId, grant.readOnly, grant.shareExpiresAt), readOnly: grant.readOnly }
+  return { action: 'verify', success: true, token: mintPasswordToken(user, docId, grant.readOnly, grant.shareExpiresAt), readOnly: grant.readOnly }
 }
 
 /**
@@ -146,7 +155,7 @@ function mintPasswordToken(user: ValidatedUser | null, docId: string, readOnly: 
 }
 
 /** REMOVE password — doc owner or workspace admin. */
-async function handleRemove(event: H3Event, user: ValidatedUser, docId: string, doc: DocSnapshot) {
+async function handleRemove(event: H3Event, user: ValidatedUser, docId: string, doc: DocSnapshot): Promise<DocPasswordResponse> {
   await clearDocPassword(docId)
 
   // `clearDocPassword` flips access_mode back to open-edit.
@@ -161,5 +170,5 @@ async function handleRemove(event: H3Event, user: ValidatedUser, docId: string, 
     after: { accessMode: 'open-edit', hasPassword: false }
   })
 
-  return { success: true }
+  return { action: 'remove', success: true }
 }

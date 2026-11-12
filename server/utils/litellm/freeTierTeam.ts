@@ -28,6 +28,7 @@
 // `litellm-key-reconcile` sweeper (`keyReconcile.ts`).
 
 import type { PlanName } from '~~/shared/config/tiers'
+import { litellmTeamInfoResponse, type LitellmTeamInfo } from './adminResponses'
 import { litellmAdminFetch } from './litellmAdmin'
 import { useEnv } from '~~/shared/env/load'
 import type { RawEnv } from '~~/shared/env/define'
@@ -96,12 +97,7 @@ export function resetFreeTierTeamMemo(): void {
   poolCache = null
 }
 
-interface TeamInfo {
-  max_budget?: number | null
-  spend?: number | null
-  budget_duration?: string | null
-  budget_reset_at?: string | null
-}
+type TeamInfo = LitellmTeamInfo
 
 async function readTeam(): Promise<TeamInfo | null> {
   const res = await litellmAdminFetch(`/team/info?team_id=${encodeURIComponent(FREE_TIER_TEAM_ID)}`)
@@ -114,8 +110,7 @@ async function readTeam(): Promise<TeamInfo | null> {
     const text = await res.text().catch(() => '')
     throw new Error(`[freeTierTeam] /team/info failed: ${res.status} ${text.slice(0, 200)}`)
   }
-  const payload = await res.json() as { team_info?: TeamInfo }
-  return payload.team_info ?? null
+  return litellmTeamInfoResponse.parse(await res.json()).team_info ?? null
 }
 
 /**

@@ -22,8 +22,9 @@ export interface PublishedPageView {
   reportUrl: string | null
 }
 
+const FOOTER_TEXT_EN = { by: 'Published with markoto', report: 'Report' }
 const FOOTER_TEXT: Record<string, { by: string, report: string }> = {
-  en: { by: 'Published with markoto', report: 'Report' },
+  en: FOOTER_TEXT_EN,
   de: { by: 'Veröffentlicht mit markoto', report: 'Melden' },
   fr: { by: 'Publié avec markoto', report: 'Signaler' },
   es: { by: 'Publicado con markoto', report: 'Denunciar' },
@@ -48,6 +49,7 @@ export function publishedHljsStylesheet(url: string | null): { url: string, sri:
 }
 
 function langTag(language: string): string {
+  // eslint-disable-next-line security/detect-unsafe-regex -- each repetition starts with `-`, so no two ways to split a tag: linear
   return /^[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8})*$/.test(language) ? language : 'en'
 }
 
@@ -67,7 +69,7 @@ body { margin: 0; }
 
 export function buildPublishedPageHtml(page: PublishedPageView): string {
   const lang = langTag(page.language)
-  const text = FOOTER_TEXT[lang.slice(0, 2).toLowerCase()] ?? FOOTER_TEXT.en!
+  const text = FOOTER_TEXT[lang.slice(0, 2).toLowerCase()] ?? FOOTER_TEXT_EN
   const hljs = publishedHljsStylesheet(page.hljsUrl)
   // The theme's paper colour for the whole page, not just the text column.
   const bg = /--doc-bg:\s*(#[0-9a-fA-F]{3,8})\s*;/.exec(page.css)?.[1] ?? '#ffffff'

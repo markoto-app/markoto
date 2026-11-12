@@ -89,7 +89,7 @@ export async function getCommentThreadByEntryId(
     .from(documentComments)
     .where(and(
       eq(documentComments.docId, docId),
-      or(eq(documentComments.entryId, rootId), eq(documentComments.parentCommentId, rootId))!
+      or(eq(documentComments.entryId, rootId), eq(documentComments.parentCommentId, rootId))
     ))
     .orderBy(asc(documentComments.createdAtMs))
 

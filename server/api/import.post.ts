@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { importMarkdownFile } from '../utils/documents/markdownImport'
+import { importMarkdownFile, type MarkdownImportResult } from '../utils/documents/markdownImport'
 import { capsFor, planLimitError, resolveUserPlan } from '../utils/billing/entitlements'
 import { markitdownAuthHeaders } from '../utils/platform/markitdownAuth'
 import { ID_RE } from '~~/shared/config/identifiers'
@@ -11,16 +11,18 @@ import { useEnv } from '~~/shared/env/load'
 // Subset of formats markitdown handles well as document imports. It also
 // supports CSV/JSON/XML/audio/images, but those round-trip into markdown
 // poorly or need LLM/OCR config; keep the whitelist tight.
-const ALLOWED_EXTENSIONS = new Set([
-  'docx',
-  'pdf',
-  'pptx',
-  'xlsx',
-  'xls',
-  'html',
-  'htm',
-  'epub'
-])
+const CONVERTED_EXTENSIONS = ['docx', 'pdf', 'pptx', 'xlsx', 'xls', 'html', 'htm', 'epub'] as const
+type ConvertedExtension = typeof CONVERTED_EXTENSIONS[number]
+const isConvertedExtension = (ext: string): ext is ConvertedExtension => (CONVERTED_EXTENSIONS as readonly string[]).includes(ext)
+
+/**
+ * What an import answers. `source` is the file's format: only a Markdown
+ * file (`md`) can carry markoto's frontmatter (`properties`, `ignored`,
+ * `droppedCustomCssRules`); a converted file is markdown alone. One object
+ * type rather than a union, so the optional fields stay readable on the
+ * client without narrowing.
+ */
+type ImportResponse = MarkdownImportResult & { source: ConvertedExtension | 'md', filename: string }
 // Markdown needs no conversion: read as UTF-8 here, markoto's own
 // frontmatter (theme + document properties, written by Download
 // Markdown) is split off and validated (server/utils/documents/markdownImport.ts).
@@ -29,13 +31,13 @@ const MARKDOWN_EXTENSIONS = new Set(['md', 'markdown'])
 
 // Public with an optional session (anonymous users import too); limited per client.
 // The multipart body is read by the handler through a size-bounded reader
-// BEFORE it is parsed, so the wrapper must not read it first (`body: 'custom'`).
+// BEFORE it is parsed, so the wrapper must not read it first (`body: 'multipart'`).
 export default defineApiHandler({
   access: allow.public('Importing converts a file and stores nothing; open to anonymous visitors, limited per client and by the caller\'s plan', { session: 'optional' }),
-  body: 'custom',
+  body: 'multipart',
   // Before the optional session lookup: anonymous floods never reach the database.
   rateLimit: { namespace: 'import', max: 10, windowMs: 60_000, key: 'ip', phase: 'before-access', error: 'import/rate-limited' },
-  handler: async ({ event, user }) => {
+  handler: async ({ event, user }): Promise<ImportResponse> => {
     // The caller's plan sets the largest file it may convert
     // (`importMaxBytes`; anonymous = free), never above the platform cap.
     const plan = await resolveUserPlan(user?.id ?? null)
@@ -63,7 +65,7 @@ export default defineApiHandler({
       return await importMarkdown(event, file, form?.get('docId'))
     }
 
-    if (!ALLOWED_EXTENSIONS.has(ext)) throw apiError('import/unsupported-format')
+    if (!isConvertedExtension(ext)) throw apiError('import/unsupported-format')
 
     const env = useEnv()
     if (!env.markitdown.url) throw apiError('import/not-configured')
@@ -110,7 +112,7 @@ export default defineApiHandler({
   }
 })
 
-async function importMarkdown(event: H3Event, file: File, rawDocId: FormDataEntryValue | null | undefined) {
+async function importMarkdown(event: H3Event, file: File, rawDocId: FormDataEntryValue | null | undefined): Promise<ImportResponse> {
   if (file.size > IMPORT_MARKDOWN_MAX_BYTES) throw apiError('import/file-too-large')
   let text: string
   try {

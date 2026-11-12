@@ -36,13 +36,16 @@ const topLevel = new Set(files.map(f => f.split('/')[0]))
 const EXCLUDE = [/^content\//, /^tests\/fixtures\//, /^shared\/templates\/content\//, /^CHANGELOG\.md$/, /(^|\/)node_modules\//]
 const docs = files.filter(f => f.endsWith('.md') && !EXCLUDE.some(re => re.test(f)) && existsSync(join(root, f)))
 
-const EXT = /\.(ts|tsx|vue|md|ya?ml|sql|sh|json|jsonc|mjs|cjs|js|css|py|toml|conf|properties|lock|html|txt|svg|png|woff2?)$/
+const EXTENSIONS = new Set(['ts', 'tsx', 'vue', 'md', 'yml', 'yaml', 'sql', 'sh', 'json', 'jsonc', 'mjs', 'cjs', 'js', 'css', 'py', 'toml', 'conf', 'properties', 'lock', 'html', 'txt', 'svg', 'png', 'woff', 'woff2'])
+const EXT = { test: p => EXTENSIONS.has(p.slice(p.lastIndexOf('.') + 1)) && p.includes('.') }
 const allow = []
 const allowPath = join(root, 'scripts/checks/md-paths.allowlist')
 if (existsSync(allowPath)) {
   for (const raw of readFileSync(allowPath, 'utf8').split('\n')) {
-    const line = raw.replace(/#.*$/, '').trim()
+    const hash = raw.indexOf('#')
+    const line = (hash === -1 ? raw : raw.slice(0, hash)).trim()
     if (!line) continue
+    // eslint-disable-next-line sonarjs/super-linear-regex -- the repo's own allowlist file, one short line at a time
     const m = line.match(/^(\S+\.md):\s*(.+)$/)
     allow.push(m ? { doc: m[1], p: m[2].trim() } : { doc: null, p: line })
   }
@@ -83,7 +86,9 @@ for (const doc of docs) {
       if (/[\s<>{}*$|=,;!?"'\\^]/.test(t) || t.includes('://')) continue
       if (/^(\/|~|@|-|\.\.\.|#)/.test(t)) continue
       // `file.ts:123` and `file.py:Symbol` point at a place inside the file.
-      t = t.replace(/^\.\//, '').replace(/#.*$/, '').replace(/:(\d+(-\d+)?|\w+)$/, '').replace(/\(\)$/, '')
+      t = t.replace(/^\.\//, '')
+      if (t.includes('#')) t = t.slice(0, t.indexOf('#'))
+      t = t.replace(/:(\d+(-\d+)?|\w+)$/, '').replace(/\(\)$/, '')
       // A bare extension (`.md`, `.png`) is a pattern, not a path; `.env`/`.nuxt`/`.output` are runtime.
       if (!t || (EXT.test(t) && t.startsWith('.') && !t.includes('/') && !t.startsWith('.github')) || /^\.(env|nuxt|output|ansible)/.test(t) || t.startsWith('../')) continue
       const hasSlash = t.includes('/')

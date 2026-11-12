@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/node-postgres'
-import { Pool, type QueryConfig, type QueryArrayConfig } from 'pg'
+import { Pool, type QueryConfig } from 'pg'
 import * as Sentry from '@sentry/nuxt'
 import * as schema from '../../db/schema'
 import { postgresUrlFromEnv } from '../../../shared/utils/runtime/connectionStrings'
@@ -16,69 +16,57 @@ let pool: Pool | null = null
  */
 
 /**
- * Wrap `pool.query` with a timing probe. Slow queries are reported with the
- * SQL truncated to 500 chars and the param COUNT only, never the values,
- * which can carry PII or secrets.
+ * The pool as drizzle and the migrations see it: `query` goes through a
+ * timing probe. Slow queries are reported with the SQL truncated to 500
+ * chars and the param COUNT only, never the values, which can carry PII or
+ * secrets.
  *
- * Only the Promise branch is timed; a non-Promise return (a Submittable)
- * passes through unwrapped so callers that consume its events still work.
+ * A proxy rather than a patched `pool.query`: `Pool.query` has a dozen
+ * overloads, and the probe only needs to see the arguments and the result.
+ * Only a Promise result is timed; a Submittable (callback / stream use)
+ * passes through untouched so callers that consume its events still work.
  */
-function instrumentPoolForSlowQueries(p: Pool): void {
+function withSlowQueryProbe(p: Pool): Pool {
   // Read when the pool is created, not at import: a module-level read would
   // run before boot validation and report only part of the problems.
-  const SLOW_QUERY_THRESHOLD_MS = useEnv().server.slowQueryMs
-  const orig = p.query.bind(p)
-  // Cast through `unknown`: `pg.Pool.query` has too many overloads to type.
-  // The wrapper does not change semantics, so the cast is sound.
-  ;(p as unknown as { query: (...args: unknown[]) => unknown }).query = (...args: unknown[]) => {
+  const thresholdMs = useEnv().server.slowQueryMs
+  const timedQuery = (...args: unknown[]): unknown => {
     const start = performance.now()
-    const result = (orig as unknown as (...a: unknown[]) => unknown)(...args)
-    if (result && typeof (result as { then?: unknown }).then === 'function') {
-      return (result as Promise<unknown>).then((r) => {
-        const ms = performance.now() - start
-        if (ms > SLOW_QUERY_THRESHOLD_MS) {
-          // Drizzle uses the QueryConfig-object overload, raw callers the string one.
-          let sql = '<unknown>'
-          const first = args[0]
-          if (typeof first === 'string') {
-            sql = first
-          } else if (first && typeof first === 'object') {
-            const cfg = first as Partial<QueryConfig | QueryArrayConfig>
-            if (typeof cfg.text === 'string') sql = cfg.text
-          }
-          // Param count: second positional arg, or `config.values`.
-          let paramsCount: number | undefined
-          const second = args[1]
-          if (Array.isArray(second)) {
-            paramsCount = second.length
-          } else if (first && typeof first === 'object' && Array.isArray((first as { values?: unknown[] }).values)) {
-            paramsCount = (first as { values: unknown[] }).values.length
-          }
-          try {
-            Sentry.captureMessage('slow-query', {
-              level: 'warning',
-              tags: { component: 'db', event: 'slow_query' },
-              extra: {
-                sql: String(sql).slice(0, 500),
-                paramsCount,
-                durationMs: Math.round(ms),
-                thresholdMs: SLOW_QUERY_THRESHOLD_MS
-              }
-            })
-          } catch {
-            // Telemetry must never propagate into the query path.
-          }
-        }
-        return r
-      })
-    }
-    return result
+    const result: unknown = Reflect.apply(p.query, p, args)
+    if (!(result instanceof Promise)) return result
+    return result.then((r: unknown) => {
+      const ms = performance.now() - start
+      if (ms > thresholdMs) reportSlowQuery(args, ms, thresholdMs)
+      return r
+    })
+  }
+  return new Proxy(p, {
+    get: (target, prop, receiver) => (prop === 'query' ? timedQuery : Reflect.get(target, prop, receiver))
+  })
+}
+
+function reportSlowQuery(args: unknown[], ms: number, thresholdMs: number): void {
+  // Drizzle uses the QueryConfig-object overload, raw callers the string one.
+  const first = args[0]
+  const config: Partial<QueryConfig> | null = typeof first === 'object' && first !== null ? { ...first } : null
+  const sql = typeof first === 'string' ? first : typeof config?.text === 'string' ? config.text : '<unknown>'
+  // Param count: second positional arg, or `config.values`.
+  const second = args[1]
+  const paramsCount = Array.isArray(second) ? second.length : Array.isArray(config?.values) ? config.values.length : undefined
+  try {
+    Sentry.captureMessage('slow-query', {
+      level: 'warning',
+      tags: { component: 'db', event: 'slow_query' },
+      extra: { sql: sql.slice(0, 500), paramsCount, durationMs: Math.round(ms), thresholdMs }
+    })
+  } catch {
+    // Telemetry must never propagate into the query path.
   }
 }
 
 export function useDatabase() {
   if (!db) {
-    pool = new Pool({
+    pool = withSlowQueryProbe(new Pool({
       connectionString: postgresUrlFromEnv(useEnv().database),
       // Prod verifies the server cert (pinned CA or system bundle); dev keeps
       // TLS off for the local TLS-less Postgres. See shared/utils/runtime/postgresSsl.ts.
@@ -92,8 +80,7 @@ export function useDatabase() {
       statement_timeout: 30_000,
       // Pool exhaustion fails after 5s instead of hanging the request.
       connectionTimeoutMillis: 5_000
-    })
-    instrumentPoolForSlowQueries(pool)
+    }))
     db = drizzle(pool, { schema })
   }
   return db
@@ -101,10 +88,9 @@ export function useDatabase() {
 
 // The migration plugin reuses this pool.
 export function useDatabasePool(): Pool {
-  if (!pool) {
-    useDatabase()
-  }
-  return pool!
+  useDatabase()
+  if (!pool) throw new Error('database pool not initialised')
+  return pool
 }
 
 // Called on Nitro `close` so in-flight queries finish before the container exits.

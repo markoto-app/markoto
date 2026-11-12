@@ -33,9 +33,11 @@ const SECRET_KEY = /token|secret|passw|authoriz|cookie|signature|credential|sess
 const EMAIL_KEY = /email|^user\.?name$|username/
 const QUERY_KEY = /(^|\.)(query|querystring|fragment|search)$/
 
-const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g
-const URL_WITH_PARTS = /\b([a-z][a-z0-9+.-]*:\/\/)([^\s/?#@]*@)?([^\s?#"'<>)\]]*)([?#][^\s"'<>)\]]*)?/gi
-const BEARER = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{8,}/gi
+// Bounded runs (RFC 5321 lengths): with `+` a long run of address characters
+// without an `@` is rescanned from every start position (quadratic).
+const EMAIL = /[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}\.[A-Za-z0-9.-]{1,253}/g
+const URL_WITH_PARTS = /\b([a-z][a-z0-9+.-]{0,31}:\/\/)([^\s/?#@]{0,256}@|)([^\s?#"'<>)\]]*)([?#][^\s"'<>)\]]*|)/gi
+const BEARER = /\b(Bearer|Basic)\s+[A-Z0-9._~+/=-]{8,}/gi
 const JWT = /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]*/g
 const PROVIDER_KEY = /\b(?:sk|pk|rk|whsec|xox[bp])[-_][A-Za-z0-9_-]{16,}/g
 const AWS_SIGNATURE = /\b(X-Amz-(?:Signature|Credential|Security-Token))=[^&\s"']+/gi

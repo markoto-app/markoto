@@ -20,7 +20,7 @@ const BUDGET_ALERT_LEVELS = [1, 0.8] as const
 
 /** Pure: the highest alert level a spend has reached, or null. */
 export function budgetAlertLevel(spend: number, budget: number): 0.8 | 1 | null {
-  if (!(budget > 0)) return null
+  if (Number.isNaN(budget) || budget <= 0) return null
   for (const level of BUDGET_ALERT_LEVELS) {
     if (spend >= budget * level) return level
   }
@@ -48,13 +48,14 @@ async function endSeatAdjustment(pool: PooledWorkspace, now: Date): Promise<void
 }
 
 export async function runWorkspaceBudgetAlerts(now: Date = new Date()): Promise<{ checked: number, alerted: number }> {
-  const summary = { checked: 0, alerted: 0 }
-  if (!isBillingEnabled()) return summary
+  if (!isBillingEnabled()) return { checked: 0, alerted: 0 }
+  let checked = 0
+  let alerted = 0
   const rows = await useDatabase().select().from(workspaceSubscriptions)
   for (const row of rows) {
     const pool = pooledFromRow(row, now)
     if (!pool) continue
-    summary.checked++
+    checked++
     await endSeatAdjustment(pool, now)
     const team = await readWorkspaceTeam(pool.workspaceId).catch(() => null)
     if (!team || typeof team.spend !== 'number' || typeof team.max_budget !== 'number') continue
@@ -67,7 +68,7 @@ export async function runWorkspaceBudgetAlerts(now: Date = new Date()): Promise<
       date: team.budget_reset_at ? new Date(team.budget_reset_at) : null,
       onceKey: `budget:${pool.workspaceId}:${period}:${level}`
     })
-    if (sent > 0) summary.alerted++
+    if (sent > 0) alerted++
   }
-  return summary
+  return { checked, alerted }
 }

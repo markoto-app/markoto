@@ -7,6 +7,8 @@ import { flushSyncDocument } from '../documents/syncNotify'
 import { resolveDocBrand } from '../brandKit/docBrand'
 import { getDoc } from '../../repos/documents'
 import * as Sentry from '@sentry/nuxt'
+import type { RenderFormat, RenderManifest, RenderRequest, RenderResponse, WebSnapshot } from '~~/shared/contracts/render'
+import { renderErrorSchema, renderManifestSchema, renderResponseSchema } from '~~/shared/contracts/renderSchemas'
 import { useEnv } from '~~/shared/env/load'
 import { useLogger } from '../platform/logger'
 
@@ -34,37 +36,11 @@ const log = useLogger('render-client')
 // any time the Y.Doc is updated — including theme changes pushed via
 // ymeta. So no separate themeHash is needed.
 
-export type RenderFormat = 'pdf' | 'png' | 'both'
-
-export interface RenderManifest {
-  snapshotId: number
-  pageCount: number
-  format: RenderFormat
-  renderedAt: string
-  pdfKey: string | null
-  pageKeys: string[]
-}
+export type { RenderFormat, RenderManifest, WebSnapshot } from '~~/shared/contracts/render'
 
 export interface RenderResult {
   cached: boolean
   manifest: RenderManifest
-}
-
-interface RendererSuccess {
-  pageCount: number
-  pdfKey?: string
-  pageKeys: string[]
-  web?: WebSnapshot
-}
-
-/** The web snapshot a published page is made of (renderer format 'html'). */
-export interface WebSnapshot {
-  html: string
-  css: string
-  fontsImport: string
-  hljsTheme: string
-  hljsUrl: string | null
-  language: string
 }
 
 const RENDER_TIMEOUT_MS = 90_000
@@ -204,8 +180,8 @@ async function readManifest(docId: string, snapshotId: number, variant: string |
   // Manifest exists — fetch + parse.
   try {
     const got = await s3.send(new GetObjectCommand({ Bucket: env.storage.bucket, Key: key }))
-    const text = await got.Body!.transformToString()
-    return JSON.parse(text) as RenderManifest
+    if (!got.Body) return null
+    return renderManifestSchema.parse(JSON.parse(await got.Body.transformToString()))
   } catch (e) {
     log.warn('manifest GET failed', { docId, snapshotId, err: e })
     return null
@@ -223,7 +199,7 @@ async function callRenderer(
   snapshotId: number,
   format: RenderFormat | 'html',
   variant: string | null = null
-): Promise<RendererSuccess> {
+): Promise<RenderResponse> {
   const env = useEnv()
   if (!env.renderer.internalUrl) {
     throw new Error('Renderer not configured (NUXT_RENDERER_INTERNAL_URL missing)')
@@ -238,21 +214,21 @@ async function callRenderer(
       'Content-Type': 'application/json',
       'X-Internal-Secret': env.auth.internalApiSecret
     }),
-    body: JSON.stringify(variant ? { docId, snapshotId, format, variant } : { docId, snapshotId, format }),
+    body: JSON.stringify(variant ? { docId, snapshotId, format, variant } satisfies RenderRequest : { docId, snapshotId, format } satisfies RenderRequest),
     signal: AbortSignal.timeout(RENDER_TIMEOUT_MS)
   })
 
   if (!res.ok) {
     let detail = ''
     try {
-      const body = await res.json() as { error?: string }
-      detail = body.error || ''
+      const body = renderErrorSchema.safeParse(await res.json())
+      detail = body.success ? body.data.error || '' : ''
     } catch { /* non-JSON body */ }
     const tail = detail ? `: ${detail}` : ''
     throw new Error(`Renderer ${res.status}${tail}`)
   }
 
-  return await res.json() as RendererSuccess
+  return renderResponseSchema.parse(await res.json())
 }
 
 /**
@@ -353,7 +329,7 @@ export async function renderWebSnapshot(docId: string): Promise<WebSnapshot> {
   await flushSyncDocument(docId)
   const snapshotId = await getLatestSnapshotId(docId)
   const out = await callRenderer(docId, snapshotId, 'html')
-  if (!out.web || typeof out.web.html !== 'string') throw new Error('Renderer returned no web snapshot')
+  if (!out.web) throw new Error('Renderer returned no web snapshot')
   return out.web
 }
 

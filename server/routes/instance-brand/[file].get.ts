@@ -24,14 +24,16 @@ export default defineApiHandler({
     if (!ext || params.file !== `logo.${ext}`) throw apiError('resource/not-found')
     let bytes: Buffer
     try {
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- the operator's configured logo file (NUXT_INSTANCE_BRAND_LOGO); the request only picks the extension check
       const info = await stat(path)
       if (!info.isFile() || info.size > MAX_BYTES) throw new Error('not a usable file')
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- the operator's configured logo file, as above
       bytes = await readFile(path)
     } catch (e) {
       log.warn('logo not readable', { err: e })
       throw apiError('resource/not-found')
     }
-    setHeader(event, 'content-type', INSTANCE_BRAND_LOGO_TYPES[ext]!)
+    setHeader(event, 'content-type', INSTANCE_BRAND_LOGO_TYPES[ext])
     setHeader(event, 'x-content-type-options', 'nosniff')
     setHeader(event, 'content-security-policy', `default-src 'none'; style-src 'unsafe-inline'; sandbox`)
     setHeader(event, 'cache-control', 'public, max-age=300')

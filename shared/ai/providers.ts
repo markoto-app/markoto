@@ -1,3 +1,4 @@
+import { trimTrailingSlashes } from '../utils/trimTrailingSlashes'
 // Bring-your-own-key (BYOK) AI provider vocabulary, shared by the
 // server (resolution, validation, verification) and the settings UI.
 //
@@ -205,7 +206,7 @@ export function normalizeBaseUrl(raw: string): string | null {
   } catch {
     return null
   }
-  const path = parsed.pathname.replace(/\/+$/, '')
+  const path = trimTrailingSlashes(parsed.pathname)
   return `${parsed.protocol}//${parsed.host}${path}`
 }
 

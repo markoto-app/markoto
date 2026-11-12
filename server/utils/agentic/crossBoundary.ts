@@ -1,4 +1,5 @@
 import type { ConfirmationRequest } from './sessionChannel'
+import { trimEndChars } from '~~/shared/utils/trimChars'
 
 // Taint + confirm gate for the in-editor AI loop.
 //
@@ -95,7 +96,7 @@ function truncateTarget(s: string): string {
  * exactly so nothing can be appended to a typed URL. Fragment dropped.
  */
 export function normalizeUrlForCompare(raw: string): string | null {
-  const trimmed = raw.trim().replace(/[.,;:!?)\]}'"]+$/, '')
+  const trimmed = trimEndChars(raw.trim(), '.,;:!?)]}\'"')
   if (!trimmed) return null
   const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
   let url: URL
@@ -110,7 +111,11 @@ export function normalizeUrlForCompare(raw: string): string | null {
   return url.pathname === '/' && !url.search ? href.replace(/\/$/, '') : href
 }
 
-const URL_IN_TEXT = /\bhttps?:\/\/[^\s<>"'`]+|\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<>"'`]*)?/gi
+// Bare domains: labels of at most 63 characters, at most 10 levels deep.
+// Unbounded `(?:[a-z0-9-]+\.)+` retries every label split on a long dotted
+// run that doesn't end in a TLD, and the text scanned is other people's.
+// eslint-disable-next-line security/detect-unsafe-regex, sonarjs/regex-complexity -- every run is bounded (labels ≤ 63, ≤ 10 levels): linear in the text
+const URL_IN_TEXT = /\bhttps?:\/\/[^\s<>"'`]+|\b(?:[a-z0-9-]{1,63}\.){1,10}[a-z]{2,63}(?:\/[^\s<>"'`]*)?/gi
 
 /** Every URL-looking token in `text`, normalised. */
 export function extractTypedUrls(text: string): Set<string> {

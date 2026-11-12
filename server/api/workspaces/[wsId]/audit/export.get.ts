@@ -35,7 +35,7 @@ export default defineApiHandler({
       if (total > MAX_ROWS) {
         throw apiError('audit/too-many-rows', { max: MAX_ROWS })
       }
-      before = rows.at(-1)!.id
+      before = rows.at(-1)?.id
     }
 
     await appendAuditEvent({

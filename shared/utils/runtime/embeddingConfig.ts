@@ -73,7 +73,7 @@ function mapTaskToJina(task: EmbeddingTaskType): string {
   switch (task) {
     case 'RETRIEVAL_DOCUMENT': return 'retrieval.passage'
     case 'RETRIEVAL_QUERY': return 'retrieval.query'
-    default: return 'text-matching'
+    case 'CLASSIFICATION': case 'CLUSTERING': case 'SEMANTIC_SIMILARITY': return 'text-matching'
   }
 }
 

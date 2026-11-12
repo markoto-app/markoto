@@ -24,35 +24,11 @@ export const publishedPageParams = z.object({ slug: z.string() })
 /** GET /instance-brand/:file. */
 export const instanceBrandParams = z.object({ file: z.string() })
 
-/**
- * POST /api/internal/activity (sync-server → app). Optional fields of the
- * wrong type are ignored, as the sender is another container of the stack and
- * one bad field must not drop the whole row. `action` is checked against
- * ACTIVITY_ACTIONS in the handler (the list lives in server/repos).
- */
-export const internalActivityBody = z.object({
-  docId: z.string().min(1),
-  action: z.string().min(1),
-  userId: z.number().nullish().catch(null),
-  userName: z.string().nullish().catch(null),
-  actorPrincipal: z.string().nullish().catch(null),
-  actorAvatarSeed: z.string().nullish().catch(null),
-  wordCount: z.number().nullish().catch(null),
-  linesAdded: z.number().nullish().catch(null),
-  linesRemoved: z.number().nullish().catch(null),
-  metadata: z.custom<object>(v => typeof v === 'object').nullish().catch(null),
-  yjsDocIdBefore: z.number().nullish().catch(null),
-  yjsDocIdAfter: z.number().nullish().catch(null)
-})
+/** POST /api/internal/activity: the schema lives with the activity contract the sync server shares. */
+export { internalActivityBody } from '../contracts/activity'
 
-/** POST /api/internal/comments-snapshot. The entries are shaped one by one in the handler, so a corrupt entry only drops itself. */
-export const commentsSnapshotBody = z.object({
-  docId: z.string().min(1),
-  // Each entry an object; its fields are checked one by one (a mistyped entry is skipped, not the snapshot).
-  entries: z.array(z.record(z.string(), z.unknown())),
-  yjsDocIdBefore: z.number().nullish().catch(null),
-  yjsDocIdAfter: z.number().nullish().catch(null)
-})
+/** POST /api/internal/comments-snapshot: shared with the sync server that sends it. */
+export { commentsSnapshotBody } from '../contracts/syncInternal'
 
 /** POST /api/_test/login. */
 export const testLoginBody = z.object({

@@ -8,9 +8,10 @@
 //   bun scripts/check-overflow.ts http://127.0.0.1:3000 [/path …]
 
 import { chromium } from '@playwright/test'
+import { trimTrailingSlashes } from '../shared/utils/trimTrailingSlashes'
 
 const args = process.argv.slice(2)
-const base = (args[0] ?? 'http://127.0.0.1:3000').replace(/\/+$/, '')
+const base = trimTrailingSlashes(args[0] ?? 'http://127.0.0.1:3000')
 const WIDTHS = [375, 390]
 
 async function sitemapPaths(): Promise<string[]> {

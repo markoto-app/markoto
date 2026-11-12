@@ -27,9 +27,12 @@ const cache = new Map<string, string>()
 
 function readBody(templateId: string, locale: string): string | null {
   const cacheKey = `${templateId}:${locale}`
-  if (cache.has(cacheKey)) return cache.get(cacheKey)!
+  const cached = cache.get(cacheKey)
+  if (cached !== undefined) return cached
   const path = resolve(CONTENT_ROOT, templateId, `${locale}.md`)
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- template id from the registry, locale from the supported list (renderTemplate), never raw request input
   if (!existsSync(path)) return null
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- as above
   const body = readFileSync(path, 'utf-8')
   cache.set(cacheKey, body)
   return body

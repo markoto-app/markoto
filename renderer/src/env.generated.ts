@@ -99,7 +99,7 @@ function number(opts: RangeOptions = {}): Coercer<number> {
     tsType: 'number',
     expr: `number(${JSON.stringify(opts)})`,
     parse(raw) {
-      if (!/^-?(\d+\.?\d*|\.\d+)$/.test(raw)) fail(`a ${label}`)
+      if (!/^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(raw)) fail(`a ${label}`)
       return checkRange(Number(raw), `a ${label}`, opts)
     }
   }
@@ -111,7 +111,7 @@ const positiveNumber: Coercer<number> = {
   tsType: 'number',
   expr: 'positiveNumber',
   parse(raw) {
-    if (!/^(\d+\.?\d*|\.\d+)$/.test(raw)) fail('a number > 0')
+    if (!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(raw)) fail('a number > 0')
     const n = Number(raw)
     if (n <= 0) fail('a number > 0')
     return n
@@ -174,7 +174,19 @@ const hostname: Coercer<string> = {
   }
 }
 
-const EMAIL = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/
+/**
+ * One `@`, a non-empty local part, a domain with an inner dot, no whitespace
+ * or `<>"`. A scan instead of `/^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/`,
+ * which backtracks quadratically on a long run of dots. Self-contained: this
+ * file is copied into the renderer's generated env module.
+ */
+function isEmailAddress(value: string): boolean {
+  const at = value.indexOf('@')
+  if (at < 1 || at !== value.lastIndexOf('@') || /[\s<>"]/.test(value)) return false
+  const domain = value.slice(at + 1)
+  const dot = domain.indexOf('.', 1)
+  return dot > 0 && dot < domain.length - 1
+}
 
 /** An email address. */
 const email: Coercer<string> = {
@@ -182,7 +194,7 @@ const email: Coercer<string> = {
   tsType: 'string',
   expr: 'email',
   parse(raw) {
-    if (raw.length > 254 || !EMAIL.test(raw)) fail('an email address')
+    if (raw.length > 254 || !isEmailAddress(raw)) fail('an email address')
     return raw
   }
 }
@@ -353,5 +365,6 @@ export function loadRendererEnv(source: Record<string, string | undefined> = pro
       + problems.map(p => `  - ${p}`).join('\n')
       + '\nEvery variable is described in docs/reference/configuration.md.')
   }
+  // Built field by field from RENDERER_VARS, whose groups and keys are RendererEnv's.
   return out as unknown as RendererEnv
 }

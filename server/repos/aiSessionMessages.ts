@@ -1,6 +1,9 @@
 import { and, desc, eq, gte } from 'drizzle-orm'
 import { aiSessionMessages } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
+import { parseAiMessageEntry, type AiMessageEntry } from '../db/columnTypes'
+
+export { parseAiMessageEntry, type AiMessageEntry } from '../db/columnTypes'
 
 // Per-(doc, user) AI conversation memory. Append-only by convention: no
 // `update`/`delete` exports, mirroring `audit.ts`. Rows disappear only through
@@ -8,25 +11,19 @@ import { useDatabase } from '../utils/platform/database'
 // system prompt is built from `loadRecentMessages(...)`; the hot read is "last
 // N rows for (docId, userId), since the last idle gap".
 
-export type AiMessageKind = 'user_prompt' | 'tool_call' | 'message_to_user'
-
-export interface AiMessageRow {
+export type AiMessageRow = {
   id: number
   docId: string
   userId: number
   sessionId: string
-  kind: AiMessageKind
-  body: unknown
   createdAt: Date
-}
+} & AiMessageEntry
 
-export interface AppendAiMessageInput {
+export type AppendAiMessageInput = {
   docId: string
   userId: number
   sessionId: string
-  kind: AiMessageKind
-  body: unknown
-}
+} & AiMessageEntry
 
 /**
  * Append one row to a user's per-doc AI memory. Fire-and-forget from
@@ -89,7 +86,7 @@ export async function loadRecentMessages(
 
   // Reverse to chronological order — the prompt builder concatenates
   // forward in time so the model reads turn N before turn N+1.
-  return rows.reverse()
+  return [...rows].reverse().map(({ kind, body, ...row }) => ({ ...row, ...parseAiMessageEntry(kind, body) }))
 }
 
 /**

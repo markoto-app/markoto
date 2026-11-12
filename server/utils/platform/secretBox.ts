@@ -110,10 +110,11 @@ function tryOpen(secret: string, purpose: SecretPurpose, context: string, nonce:
  */
 export function openSecret(purpose: SecretPurpose, context: string, sealed: string, material: KeyMaterial = keyMaterial()): string {
   const parts = sealed.split(':')
-  if (parts.length !== 4 || parts[0] !== VERSION) throw new SecretUnreadableError(purpose, 'format')
-  const nonce = Buffer.from(parts[1]!, 'base64url')
-  const tag = Buffer.from(parts[2]!, 'base64url')
-  const ct = Buffer.from(parts[3]!, 'base64url')
+  const [version, nonceB64, tagB64, ctB64] = parts
+  if (parts.length !== 4 || version !== VERSION || nonceB64 === undefined || tagB64 === undefined || ctB64 === undefined) throw new SecretUnreadableError(purpose, 'format')
+  const nonce = Buffer.from(nonceB64, 'base64url')
+  const tag = Buffer.from(tagB64, 'base64url')
+  const ct = Buffer.from(ctB64, 'base64url')
   if (nonce.length !== NONCE_BYTES || tag.length !== TAG_BYTES) throw new SecretUnreadableError(purpose, 'format')
   if (!material.current && !material.previous) throw new SecretUnreadableError(purpose, 'key-missing')
   for (const secret of [material.current, material.previous]) {

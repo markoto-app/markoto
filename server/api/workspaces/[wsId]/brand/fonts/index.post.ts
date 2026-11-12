@@ -20,7 +20,7 @@ import { HOUR_MS } from '~~/shared/config/units'
 export default defineApiHandler({
   access: allow.workspace('admin', { deny: 'brand/admin-required' }),
   plan: { feature: 'brandKit', message: BRAND_KIT_PLAN_MESSAGE },
-  body: 'custom',
+  body: 'multipart',
   rateLimit: { namespace: 'brand-upload', max: 60, windowMs: HOUR_MS, key: ctx => ctx.wsId, error: 'brand/rate-limited' },
   handler: async ({ event, user, wsId }) => {
     const { bytes, form } = await readBrandUpload(event, BRAND_FONT_MAX_BYTES)

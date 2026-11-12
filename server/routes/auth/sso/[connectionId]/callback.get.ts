@@ -30,7 +30,7 @@ export default defineApiHandler({
     }
 
     const settings = oidcSettingsForConnection(event, connection)
-    const callbackUrl = new URL(settings.redirectUrl!)
+    const callbackUrl = new URL(settings.redirectUrl)
     callbackUrl.search = getRequestURL(event).search
     let profile
     try {

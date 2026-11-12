@@ -1,3 +1,5 @@
+import { must } from '~~/shared/utils/must'
+import { z } from 'zod'
 // SCIM 2.0 user provisioning (RFC 7643/7644), `/scim/v2/Users` only; roles
 // stay in markoto.
 //
@@ -49,6 +51,7 @@ import { joinWorkspaceBySso, SsoJoinRefused } from './membership'
 import { ssoBaseUrl } from './http'
 import { SCIM_PLACEHOLDER_PREFIX } from './scimPrefix'
 import { SCIM_CONTENT_TYPE, scimError } from './scimErrors'
+import { isPlainEmail } from '~~/shared/utils/plainEmail'
 
 export const SCIM_USER_SCHEMA = 'urn:ietf:params:scim:schemas:core:2.0:User'
 export const SCIM_LIST_SCHEMA = 'urn:ietf:params:scim:api:messages:2.0:ListResponse'
@@ -69,8 +72,8 @@ export function newScimToken(): string {
  */
 export async function requireScimConnection(event: H3Event): Promise<SsoConnectionRow> {
   const auth = getHeader(event, 'authorization') ?? ''
-  const match = /^Bearer\s+(\S{20,200})$/i.exec(auth)
-  const connection = match ? await getSsoConnectionByScimTokenHash(hashScimToken(match[1]!)) : null
+  const token = /^Bearer\s+(\S{20,200})$/i.exec(auth)?.[1]
+  const connection = token ? await getSsoConnectionByScimTokenHash(hashScimToken(token)) : null
   if (!connection) {
     setHeader(event, 'www-authenticate', 'Bearer')
     throw scimError(401, 'A valid SCIM bearer token is required.')
@@ -119,7 +122,7 @@ const userRowColumns = {
   subject: userIdentities.subject
 }
 
-export async function getScimUser(connectionId: string, id: number): Promise<ScimUserRow | null> {
+async function getScimUser(connectionId: string, id: number): Promise<ScimUserRow | null> {
   return (await useDatabase().select(userRowColumns).from(userIdentities)
     .innerJoin(users, eq(users.id, userIdentities.userId))
     .where(and(eq(userIdentities.connectionId, connectionId), eq(userIdentities.id, id))).limit(1))[0] ?? null
@@ -129,9 +132,10 @@ export async function getScimUser(connectionId: string, id: number): Promise<Sci
 export function parseScimFilter(filter: string | undefined): { attribute: 'userName' | 'externalId', value: string } | null | 'unsupported' {
   if (!filter) return null
   const m = /^\s*(userName|externalId|emails(?:\[type eq "work"\])?\.value|emails)\s+eq\s+"((?:[^"\\]|\\.)*)"\s*$/i.exec(filter)
-  if (!m) return 'unsupported'
-  const attr = m[1]!.toLowerCase().startsWith('externalid') ? 'externalId' : 'userName'
-  return { attribute: attr, value: m[2]!.replace(/\\(.)/g, '$1') }
+  const [, attribute, quoted] = m ?? []
+  if (attribute === undefined || quoted === undefined) return 'unsupported'
+  const attr = attribute.toLowerCase().startsWith('externalid') ? 'externalId' : 'userName'
+  return { attribute: attr, value: quoted.replace(/\\(.)/g, '$1') }
 }
 
 export async function listScimUsers(connectionId: string, opts: { filter: ReturnType<typeof parseScimFilter>, startIndex: number, count: number }): Promise<{ total: number, rows: ScimUserRow[] }> {
@@ -152,22 +156,38 @@ export async function listScimUsers(connectionId: string, opts: { filter: Return
   return { total, rows }
 }
 
+// The attributes read from a SCIM User / PatchOp body. IdPs differ in what
+// they send, so every attribute is optional and a mistyped one reads as absent.
+const scimText = z.string().optional().catch(undefined)
+const scimUserBody = z.object({
+  userName: scimText,
+  displayName: scimText,
+  externalId: scimText,
+  active: z.unknown().optional(),
+  emails: z.array(z.object({ value: z.unknown().optional(), primary: z.unknown().optional() }).nullable().catch(null)).catch([]).default([]),
+  name: z.object({ givenName: scimText, familyName: scimText, formatted: scimText }).catch({}).default({})
+})
+type ScimUserBody = z.infer<typeof scimUserBody>
+const scimPatchOp = z.object({ op: z.unknown().optional(), path: z.unknown().optional(), value: z.unknown().optional() })
+const scimPatchBody = z.object({ Operations: z.array(scimPatchOp.catch({ op: undefined, path: undefined, value: undefined })).optional().catch(undefined) })
+const scimAttributes = z.record(z.string(), z.unknown()).catch({})
+
 /** The user's email from a SCIM User body: primary email, else userName when it is an address. */
-function emailFromScimBody(body: Record<string, unknown>): string | null {
-  const emails = Array.isArray(body.emails) ? body.emails as Array<Record<string, unknown>> : []
+function emailFromScimBody(body: ScimUserBody): string | null {
+  const emails = body.emails
   const primary = emails.find(e => e?.primary === true) ?? emails[0]
   const candidates = [primary?.value, body.userName]
   for (const c of candidates) {
-    if (typeof c === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.trim())) return c.trim().toLowerCase()
+    if (typeof c === 'string' && isPlainEmail(c.trim())) return c.trim().toLowerCase()
   }
   return null
 }
 
-function nameFromScimBody(body: Record<string, unknown>, email: string): string {
-  const n = (body.name ?? {}) as Record<string, unknown>
-  const parts = [n.givenName, n.familyName].filter(p => typeof p === 'string' && p.trim()) as string[]
-  const display = typeof body.displayName === 'string' && body.displayName.trim() ? body.displayName.trim() : null
-  const formatted = typeof n.formatted === 'string' && n.formatted.trim() ? n.formatted.trim() : null
+function nameFromScimBody(body: ScimUserBody, email: string): string {
+  const n = body.name
+  const parts = [n.givenName, n.familyName].filter((p): p is string => typeof p === 'string' && p.trim() !== '')
+  const display = body.displayName?.trim() ? body.displayName.trim() : null
+  const formatted = n.formatted?.trim() ? n.formatted.trim() : null
   return (display ?? formatted ?? (parts.length ? parts.join(' ') : email)).slice(0, 200)
 }
 
@@ -178,20 +198,21 @@ function scimBoolean(v: unknown): boolean | undefined {
   return undefined
 }
 
-export async function createScimUser(connection: SsoConnectionRow, body: Record<string, unknown>): Promise<{ identity: UserIdentityRow, created: boolean }> {
+export async function createScimUser(connection: SsoConnectionRow, rawBody: Record<string, unknown>): Promise<{ identity: UserIdentityRow, created: boolean }> {
+  const body = scimUserBody.parse(rawBody)
   const email = emailFromScimBody(body)
   const domain = emailDomain(email)
   if (!email || !domain || !(await isDomainVerifiedForWorkspace(connection.workspaceId, domain))) {
     throw scimError(400, 'The user\'s email must be in a domain this workspace has verified.', 'invalidValue')
   }
-  const externalId = typeof body.externalId === 'string' && body.externalId.trim() ? body.externalId.trim().slice(0, 255) : null
+  const externalId = body.externalId?.trim() ? body.externalId.trim().slice(0, 255) : null
   const active = scimBoolean(body.active) ?? true
 
   const { userId, created } = await useDatabase().transaction(async (tx) => {
     const existing = (await tx.execute<{ id: number }>(sql`select id from ${users} where lower(email) = ${email} order by id limit 1 for update`)).rows[0]
     if (existing) return { userId: Number(existing.id), created: false }
     const inserted = await tx.insert(users).values({ name: nameFromScimBody(body, email), email }).returning({ id: users.id })
-    return { userId: inserted[0]!.id, created: true }
+    return { userId: must(inserted[0], 'inserted user row').id, created: true }
   })
 
   const already = (await useDatabase().select({ id: userIdentities.id }).from(userIdentities)
@@ -262,7 +283,7 @@ export async function deleteScimUser(connection: SsoConnectionRow, identity: Use
  * attributes are accepted and ignored (see the header).
  */
 export async function patchScimUser(connection: SsoConnectionRow, identity: UserIdentityRow, body: Record<string, unknown>): Promise<void> {
-  const ops = Array.isArray(body.Operations) ? body.Operations as Array<Record<string, unknown>> : null
+  const ops = scimPatchBody.parse(body).Operations
   if (!ops) throw scimError(400, 'PATCH needs an Operations array.', 'invalidSyntax')
   let active: boolean | undefined
   let externalId: string | null | undefined
@@ -270,7 +291,7 @@ export async function patchScimUser(connection: SsoConnectionRow, identity: User
     const kind = typeof op.op === 'string' ? op.op.toLowerCase() : ''
     if (kind !== 'replace' && kind !== 'add' && kind !== 'remove') throw scimError(400, `Unsupported operation "${String(op.op)}".`, 'invalidSyntax')
     const path = typeof op.path === 'string' ? op.path : null
-    const values: Record<string, unknown> = path ? { [path]: op.value } : (typeof op.value === 'object' && op.value !== null ? op.value as Record<string, unknown> : {})
+    const values: Record<string, unknown> = path ? { [path]: op.value } : scimAttributes.parse(op.value)
     for (const [key, value] of Object.entries(values)) {
       if (key.toLowerCase() === 'active') {
         const b = kind === 'remove' ? false : scimBoolean(value)
@@ -285,10 +306,18 @@ export async function patchScimUser(connection: SsoConnectionRow, identity: User
   if (active !== undefined) await setScimUserActive(connection, identity, active)
 }
 
-export async function replaceScimUser(connection: SsoConnectionRow, identity: UserIdentityRow, body: Record<string, unknown>): Promise<void> {
+export async function replaceScimUser(connection: SsoConnectionRow, identity: UserIdentityRow, rawBody: Record<string, unknown>): Promise<void> {
+  const body = scimUserBody.parse(rawBody)
   if (typeof body.externalId === 'string') await setIdentityScimExternalId(identity.id, body.externalId.slice(0, 255))
   const active = scimBoolean(body.active)
   if (active !== undefined) await setScimUserActive(connection, identity, active)
+}
+
+/** The SCIM view of an identity just read or written (404 if it vanished meanwhile). */
+export async function requireScimUser(connectionId: string, identityId: number): Promise<ScimUserRow> {
+  const row = await getScimUser(connectionId, identityId)
+  if (!row) throw scimError(404, 'User not found.')
+  return row
 }
 
 /** `id` is the parsed path parameter (`scimUserParams`: a positive integer). */

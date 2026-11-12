@@ -1,3 +1,4 @@
+import { must } from '~~/shared/utils/must'
 import { and, eq, isNotNull, sql, type SQL } from 'drizzle-orm'
 import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 import { ssoConnections, ssoDomains, ssoGrants, userIdentities, users } from '../db/schema'
@@ -111,7 +112,7 @@ export async function upsertSsoConnection(args: {
         defaultRole: f.defaultRole ?? 'editor',
         createdByUserId: args.createdByUserId
       })
-      return { connection: (await getSsoConnectionById(args.id, tx))!, idpChanged: true }
+      return { connection: must(await getSsoConnectionById(args.id, tx), 'SSO connection just inserted'), idpChanged: true }
     }
     const secretChanged = f.protocol === 'oidc' && f.oidcClientSecret !== undefined && f.oidcClientSecret !== existing.oidcClientSecret
     const idpChanged = secretChanged
@@ -132,7 +133,7 @@ export async function upsertSsoConnection(args: {
     if (idp.protocol !== existing.protocol || idp.oidcIssuer !== existing.oidcIssuer || idp.samlIdpEntityId !== existing.samlIdpEntityId) {
       await tx.delete(userIdentities).where(eq(userIdentities.connectionId, existing.id))
     }
-    return { connection: (await getSsoConnectionById(existing.id, tx))!, idpChanged }
+    return { connection: must(await getSsoConnectionById(existing.id, tx), 'SSO connection just updated'), idpChanged }
   })
 }
 

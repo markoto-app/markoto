@@ -133,7 +133,26 @@ const DEFAULT_BY_CATEGORY: Record<FontCategory, string> = {
   mono: 'JetBrains Mono'
 }
 
-const STYLE_WORDS = /(?:regular|roman|book|bold|semibold|demibold|extrabold|ultrabold|black|heavy|medium|light|extralight|ultralight|thin|italic|oblique|condensed|narrow|psmt|mt|ps|std|pro|lt)+$/
+const STYLE_WORDS = ['regular', 'roman', 'book', 'bold', 'semibold', 'demibold', 'extrabold', 'ultrabold', 'black', 'heavy', 'medium', 'light', 'extralight', 'ultralight', 'thin', 'italic', 'oblique', 'condensed', 'narrow', 'psmt', 'mt', 'ps', 'std', 'pro', 'lt']
+
+/**
+ * Where the longest run of glued-on style words at the end of `compact`
+ * starts (`compact.length` when there is none). A table from the end
+ * instead of `/(?:regular|…|psmt|mt|ps|…)+$/`: words that are also
+ * concatenations of other words (`psmt` = `ps` + `mt`) give that pattern
+ * exponentially many ways to fail, and font names come from uploaded files.
+ */
+function styleSuffixStart(compact: string): number {
+  const n = compact.length
+  // endsHere[i]: compact.slice(i) is a concatenation of style words.
+  const endsHere = new Array<boolean>(n + 1).fill(false)
+  endsHere[n] = true
+  for (let i = n - 1; i >= 0; i--) {
+    endsHere[i] = STYLE_WORDS.some(w => compact.startsWith(w, i) && endsHere[i + w.length] === true)
+  }
+  const start = endsHere.findIndex((ok, i) => ok && i < n)
+  return start === -1 ? n : start
+}
 
 /** Lower-case letters + digits of the family part of a font name ("ABCDEF+Arial-BoldMT" → "arial"). */
 export function compactFontName(raw: string): string {
@@ -142,14 +161,14 @@ export function compactFontName(raw: string): string {
   name = name.split(/[,-]/)[0] ?? '' // PostScript / Word style suffix ("Arial-BoldMT", "Calibri,Bold")
   let compact = name.toLowerCase().replace(/[^a-z0-9]/g, '')
   // Style words glued on without a separator ("TimesNewRomanPSMT", "HelveticaNeueLight").
-  const stripped = compact.replace(STYLE_WORDS, '')
+  const stripped = compact.slice(0, styleSuffixStart(compact))
   if (stripped.length >= 3) compact = stripped
   return compact
 }
 
 const REGISTRY: Array<{ name: string, category: FontCategory, compact: string }> = [
   ...THEME_FONTS.map(f => ({ name: f.name, category: f.category, compact: compactFontName(f.name) })),
-  ...CODE_FONT_NAMES.map(name => ({ name, category: 'mono' as FontCategory, compact: compactFontName(name) }))
+  ...CODE_FONT_NAMES.map((name): { name: string, category: FontCategory, compact: string } => ({ name, category: 'mono', compact: compactFontName(name) }))
 ]
 
 const LOOK_ALIKE_KEYS = Object.keys(LOOK_ALIKES).sort((a, b) => b.length - a.length)

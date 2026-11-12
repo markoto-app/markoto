@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { litellmAdminFetch } from '../../utils/litellm/litellmAdmin'
 import { ALL_FEATURE_TAGS, TAG_NAMESPACES, type FeatureTag } from '../../utils/litellm/featureTags'
 import { DAY_MS } from '~~/shared/config/units'
@@ -10,17 +11,25 @@ import { aiSpendQuery } from '~~/shared/api/legal'
 // override it. Invalid dates fall back to the default rather than 400, so a
 // typo'd URL still shows a chart.
 
-interface SpendTagRow {
-  individual_request_tag?: string
-  total_spend?: number
-  log_count?: number
-  prompt_tokens?: number
-  completion_tokens?: number
-  total_tokens?: number
-}
-
 /** Internal shape — collapsed from LiteLLM's response into a tag-keyed map. */
 type SpendByTag = Record<string, { spend: number, requests: number, totalTokens: number }>
+
+const spendNumber = z.number().optional().catch(undefined)
+/** A row of the array shape (one per tag, possibly repeated). */
+const spendTagRow = z.object({
+  individual_request_tag: z.string(),
+  total_spend: spendNumber,
+  log_count: spendNumber,
+  total_tokens: spendNumber
+})
+/** A value of the map shape: `total_spend`/`spend`, `log_count`/`api_requests` are alternative names. */
+const spendMapEntry = z.object({
+  total_spend: spendNumber,
+  spend: spendNumber,
+  log_count: spendNumber,
+  api_requests: spendNumber,
+  total_tokens: spendNumber
+}).catch({})
 
 /**
  * LiteLLM's `/spend/tags` returns an array of rows, or the same wrapped as
@@ -30,60 +39,39 @@ type SpendByTag = Record<string, { spend: number, requests: number, totalTokens:
 function collapseSpendResponse(payload: unknown): SpendByTag {
   const body = unwrapEnvelope(payload)
   if (Array.isArray(body)) return collapseArrayShape(body)
-  if (body && typeof body === 'object') return collapseMapShape(body as Record<string, unknown>)
-  return {}
+  const map = z.record(z.string(), spendMapEntry).safeParse(body)
+  return map.success ? collapseMapShape(map.data) : {}
 }
 
 function unwrapEnvelope(payload: unknown): unknown {
-  if (payload && typeof payload === 'object' && 'spend_per_tag' in payload) {
-    return (payload as { spend_per_tag?: unknown }).spend_per_tag
-  }
+  if (payload && typeof payload === 'object' && 'spend_per_tag' in payload) return payload.spend_per_tag
   return payload
 }
 
-function num(row: unknown, key: string): number {
-  if (!row || typeof row !== 'object') return 0
-  const v = (row as Record<string, unknown>)[key]
-  return typeof v === 'number' ? v : 0
-}
-
-/** Pick the first numeric field from a list of candidate keys; 0 if none match. */
-function firstNum(row: unknown, keys: string[]): number {
-  if (!row || typeof row !== 'object') return 0
-  const r = row as Record<string, unknown>
-  for (const k of keys) {
-    const v = r[k]
-    if (typeof v === 'number') return v
-  }
-  return 0
-}
-
-/** Array shape: multiple rows for the same tag sum. */
+/** Array shape: multiple rows for the same tag sum; rows without a tag are skipped. */
 function collapseArrayShape(rows: unknown[]): SpendByTag {
   const out: SpendByTag = {}
-  for (const row of rows as SpendTagRow[]) {
-    if (typeof row?.individual_request_tag !== 'string') continue
-    const tag = row.individual_request_tag
+  for (const raw of rows) {
+    const row = spendTagRow.safeParse(raw)
+    if (!row.success) continue
+    const tag = row.data.individual_request_tag
     const existing = out[tag] ?? { spend: 0, requests: 0, totalTokens: 0 }
-    existing.spend += num(row, 'total_spend')
-    existing.requests += num(row, 'log_count')
-    existing.totalTokens += num(row, 'total_tokens')
+    existing.spend += row.data.total_spend ?? 0
+    existing.requests += row.data.log_count ?? 0
+    existing.totalTokens += row.data.total_tokens ?? 0
     out[tag] = existing
   }
   return out
 }
 
-/**
- * Map shape: `total_spend`/`spend` and `log_count`/`api_requests` are
- * alternative field names; the first defined wins.
- */
-function collapseMapShape(rows: Record<string, unknown>): SpendByTag {
+/** Map shape: the first defined of the alternative field names wins. */
+function collapseMapShape(rows: Record<string, z.infer<typeof spendMapEntry>>): SpendByTag {
   const out: SpendByTag = {}
   for (const [tag, row] of Object.entries(rows)) {
     out[tag] = {
-      spend: firstNum(row, ['total_spend', 'spend']),
-      requests: firstNum(row, ['log_count', 'api_requests']),
-      totalTokens: num(row, 'total_tokens')
+      spend: row.total_spend ?? row.spend ?? 0,
+      requests: row.log_count ?? row.api_requests ?? 0,
+      totalTokens: row.total_tokens ?? 0
     }
   }
   return out

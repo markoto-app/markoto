@@ -1,5 +1,5 @@
 import { brandKitAvailable } from '../../../../utils/brandKit/access'
-import { listBrandAssets } from '../../../../repos/brandAssets'
+import { isBrandFontAsset, isBrandImageAsset, listBrandAssets } from '../../../../repos/brandAssets'
 import { BRAND_FONTS_PER_WORKSPACE, BRAND_IMAGES_PER_WORKSPACE } from '~~/shared/config/brandKit'
 
 // GET /api/workspaces/:wsId/brand — the workspace's brand kit for
@@ -15,7 +15,7 @@ export default defineApiHandler({
       available: await brandKitAvailable(wsId),
       canManage: role === 'admin',
       limits: { fonts: BRAND_FONTS_PER_WORKSPACE, images: BRAND_IMAGES_PER_WORKSPACE },
-      fonts: assets.filter(a => a.kind === 'font').map(a => ({
+      fonts: assets.filter(isBrandFontAsset).map(a => ({
         id: a.id,
         file: `${a.id}.${a.format}`,
         family: a.name,
@@ -25,7 +25,7 @@ export default defineApiHandler({
         sizeBytes: a.sizeBytes,
         createdAt: a.createdAt
       })),
-      images: assets.filter(a => a.kind === 'image').map(a => ({
+      images: assets.filter(isBrandImageAsset).map(a => ({
         id: a.id,
         file: `${a.id}.${a.format}`,
         name: a.name,

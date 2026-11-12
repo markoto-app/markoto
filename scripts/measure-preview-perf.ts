@@ -137,7 +137,7 @@ async function setDocument(page: Page, frame: Frame, markdown: string, marker: s
 }
 
 async function sampleLatency(page: Page, frame: Frame, i: number): Promise<Sample> {
-  const marker = `zq${i}x${Math.random().toString(36).slice(2, 6)}`
+  const marker = `zq${i}x${crypto.randomUUID().slice(0, 4)}`
   await frame.evaluate((m) => {
     const w = window as unknown as { __perfHit?: number, __perfObs?: MutationObserver }
     w.__perfHit = undefined

@@ -1,3 +1,4 @@
+import { must } from '~~/shared/utils/must'
 import { GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import * as Sentry from '@sentry/nuxt'
 import { eq } from 'drizzle-orm'
@@ -148,7 +149,7 @@ async function runPipeline(knowledgeId: string): Promise<void> {
           chunkIndex: c.index,
           content: c.content,
           tokens: c.tokens,
-          embedding: embeddings[i]!
+          embedding: must(embeddings[i], `embedding of chunk ${i}`)
         }))
       )
     }
@@ -218,7 +219,8 @@ async function runConversion(s3Key: string, ext: string): Promise<string> {
     Bucket: env.storage.bucket,
     Key: s3Key
   }))
-  const bytes = await object.Body!.transformToByteArray()
+  if (!object.Body) throw new Error(`knowledge original ${s3Key} has no body`)
+  const bytes = await object.Body.transformToByteArray()
 
   const url = `${env.markitdown.url}/convert?ext=${encodeURIComponent(ext)}`
   // Markitdown doesn't parse sentry-trace headers, but they are still sent

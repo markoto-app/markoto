@@ -95,10 +95,10 @@ function splitOversizedBlock(block: string, maxTokens: number, overlapTokens: nu
 function retainOverlapTail(buf: string[], overlapTokens: number): { paragraphs: string[], tokens: number } {
   const paragraphs: string[] = []
   let tokens = 0
-  for (let i = buf.length - 1; i >= 0; i--) {
-    const pt = estimateTokens(buf[i]!)
+  for (const paragraph of [...buf].reverse()) {
+    const pt = estimateTokens(paragraph)
     if (tokens + pt > overlapTokens) break
-    paragraphs.unshift(buf[i]!)
+    paragraphs.unshift(paragraph)
     tokens += pt
   }
   return { paragraphs, tokens }
@@ -205,7 +205,7 @@ function chunksFromSections(sections: string[], maxTokens: number, overlapTokens
       chunks.push({ index, content: section, tokens: sectionTokens })
       continue
     }
-    const firstLine = section.split('\n', 1)[0]!
+    const firstLine = section.split('\n', 1)[0] ?? ''
     const heading = /^#{2,3}\s/.test(firstLine) ? firstLine : null
     const body = heading ? section.slice(firstLine.length).trimStart() : section
     for (const piece of splitOversizedBlock(body, maxTokens, overlapTokens)) {

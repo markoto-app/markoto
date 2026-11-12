@@ -1,6 +1,7 @@
 import type { H3Event } from 'h3'
 import { findUserById } from '../../repos/users'
 import { useEnv } from '~~/shared/env/load'
+import { apiError } from '../api/apiError'
 
 // Admin authorisation.
 //
@@ -63,11 +64,7 @@ export async function requireAdminUser(event: H3Event): Promise<{ userId: number
   const session = await requireValidatedUserSession(event)
   const user = await findUserById(session.user.id)
   if (!user?.isAdmin) {
-    throw createError({
-      statusCode: 403,
-      message: 'Admin access required',
-      data: { code: 'admin/forbidden' }
-    })
+    throw apiError('admin/forbidden')
   }
   return { userId: user.id, name: user.name, email: user.email ?? '' }
 }

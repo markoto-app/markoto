@@ -1,4 +1,5 @@
 import { and, eq, isNotNull, sql, type SQL } from 'drizzle-orm'
+import { must } from '~~/shared/utils/must'
 import { users } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
 import { ConflictError } from './errors'
@@ -265,7 +266,7 @@ async function insertNewUser(tx: Tx, input: OAuthUpsertInput): Promise<OAuthUpse
     name: input.name,
     email: input.email
   }).returning({ id: users.id })
-  return { userId: inserted[0]!.id, outcome: 'inserted' }
+  return { userId: must(inserted[0], 'inserted user row').id, outcome: 'inserted' }
 }
 
 // GDPR Art. 17 account-deletion request lifecycle. These functions only touch
@@ -323,10 +324,11 @@ export async function requestAccountDeletion(userId: number, graceDays: number):
       deletionGraceUntil: users.deletionGraceUntil
     })
 
-  if (updated.length === 1) {
+  const [row] = updated
+  if (row && updated.length === 1) {
     return {
-      deletionRequestedAt: updated[0]!.deletionRequestedAt,
-      deletionGraceUntil: updated[0]!.deletionGraceUntil
+      deletionRequestedAt: row.deletionRequestedAt,
+      deletionGraceUntil: row.deletionGraceUntil
     }
   }
 

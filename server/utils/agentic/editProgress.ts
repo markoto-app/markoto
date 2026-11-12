@@ -72,7 +72,7 @@ export function stalledEditNote(verdict: EditVerdict): string | null {
       return 'Note: the document is now exactly as it was earlier in this session — you are undoing your own edits. Stop editing. If the user\'s request is done, finish now: reply without calling any tool.'
     case 'repeat':
       return 'Note: you already made this exact call and it failed the same way. Do not repeat it. Only text shown by view_document is in the document — the document context and conversation history are not. If the user\'s request is done, finish now: reply without calling any tool.'
-    default:
+    case 'progress':
       return null
   }
 }

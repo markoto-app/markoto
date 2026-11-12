@@ -173,10 +173,9 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
   }
 
   private nextChunk(): Promise<Uint8Array | null> {
-    if (this.chunkQueue.length > 0) {
-      const c = this.chunkQueue.shift()!
-      return Promise.resolve(c)
-    }
+    // `null` is a queued value (the end sentinel); `undefined` means empty.
+    const queued = this.chunkQueue.shift()
+    if (queued !== undefined) return Promise.resolve(queued)
     return new Promise(resolve => this.waiters.push(resolve))
   }
 
@@ -266,12 +265,9 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
       return false
     }
     const u8 = new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength)
-    if (this.waiters.length > 0) {
-      const w = this.waiters.shift()!
-      w(u8)
-    } else {
-      this.chunkQueue.push(u8)
-    }
+    const waiter = this.waiters.shift()
+    if (waiter) waiter(u8)
+    else this.chunkQueue.push(u8)
     return true
   }
 
@@ -279,18 +275,15 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
     if (this.ended) return
     this.ended = true
     // Push a null sentinel to close the audio generator cleanly.
-    if (this.waiters.length > 0) {
-      const w = this.waiters.shift()!
-      w(null)
-    } else {
-      this.chunkQueue.push(null)
-    }
+    const waiter = this.waiters.shift()
+    if (waiter) waiter(null)
+    else this.chunkQueue.push(null)
   }
 
   destroy(): void {
     this.aborted = true
     this.ended = true
-    while (this.waiters.length > 0) this.waiters.shift()!(null)
+    for (const waiter of this.waiters.splice(0)) waiter(null)
     this.chunkQueue.length = 0
   }
 }

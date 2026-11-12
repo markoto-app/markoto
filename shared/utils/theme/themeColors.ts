@@ -290,10 +290,12 @@ export function categoricalPalette(opts: {
   ]
   const out: string[] = [accent]
   if (headingAnchored) out.push(rgbToHex(hexToRgb(opts.heading)))
-  for (let i = 0; out.length < size; i++) {
+  let i = 0
+  while (out.length < size) {
     const slot = slots[i % slots.length] ?? { h: base.h, c }
     const level = levels[out.length % LEVELS] ?? (lo + hi) / 2
     out.push(colorAtGreyLightness(slot.h, slot.c, level))
+    i++
   }
   return out
 }

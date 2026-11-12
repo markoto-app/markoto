@@ -73,7 +73,7 @@ export function gallerySources(): Record<string, GallerySource> {
     const pageNumber = typeof value.pageNumber === 'number' ? value.pageNumber : 1
     if (typeof value.tryIt === 'string') {
       const { theme, source } = firstTryIt(resolve(FIXTURE_DIR, value.tryIt))
-      const title = /^#\s+(.+)$/m.exec(source)?.[1]?.trim() ?? id
+      const title = /^#[ \t]+(\S[^\n]*)$/m.exec(source)?.[1]?.trim() ?? id
       // Same as the page's workbench: a title-block theme sets the title
       // itself, so the example's leading `# Title` stays out of the body.
       const cover = THEME_PRESETS.find(p => p.id === theme)?.theme.cover

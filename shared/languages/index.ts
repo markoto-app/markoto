@@ -62,7 +62,7 @@ export function languageBadge(value: string): string {
   // BCP-47 codes are 2-3 letters with optional `-XX` region. Match
   // the language part only.
   const isoMatch = /^([a-z]{2,3})(-[A-Z]{2})?$/.exec(trimmed)
-  if (isoMatch) return isoMatch[1]!.toUpperCase()
+  if (isoMatch?.[1]) return isoMatch[1].toUpperCase()
   return trimmed.slice(0, 4).toUpperCase()
 }
 

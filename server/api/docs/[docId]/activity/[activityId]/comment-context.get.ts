@@ -63,8 +63,8 @@ export default defineApiHandler({
 
     // All comment.* metadata shapes carry `commentId`; guard against rows
     // written without it.
-    const meta = activity.metadata as { kind?: string, commentId?: string } | null
-    const entryId = meta?.commentId
+    const meta = activity.metadata
+    const entryId = meta && 'commentId' in meta ? meta.commentId : undefined
     if (!entryId) {
       throw apiError('docs/not-a-comment')
     }

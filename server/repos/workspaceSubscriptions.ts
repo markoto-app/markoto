@@ -2,6 +2,7 @@ import { eq, inArray, sql, type SQL } from 'drizzle-orm'
 import { workspaceSubscriptions } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
 import type { WorkspacePlanName } from '../../shared/config/tiers'
+import type { StripeSubscriptionStatus } from '../../shared/contracts/stripe'
 
 // Team / Business subscriptions of workspaces. Stripe writes every row through
 // the webhook; the rest of the app only reads them, through
@@ -11,7 +12,7 @@ export interface WorkspaceSubscriptionRow {
   workspaceId: string
   plan: WorkspacePlanName
   seats: number
-  status: string
+  status: StripeSubscriptionStatus
   billingAdminId: number | null
   stripeCustomerId: string | null
   stripeSubscriptionId: string | null
@@ -89,5 +90,5 @@ export function pooledWorkspaceIdsSubquery(): SQL {
 /** Subscription rows of several workspaces (badges, hints). */
 export async function listSubscriptionsForWorkspaces(workspaceIds: readonly string[]): Promise<WorkspaceSubscriptionRow[]> {
   if (workspaceIds.length === 0) return []
-  return useDatabase().select().from(workspaceSubscriptions).where(inArray(workspaceSubscriptions.workspaceId, [...workspaceIds])) as Promise<WorkspaceSubscriptionRow[]>
+  return useDatabase().select().from(workspaceSubscriptions).where(inArray(workspaceSubscriptions.workspaceId, [...workspaceIds]))
 }

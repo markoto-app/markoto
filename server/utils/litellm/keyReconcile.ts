@@ -15,6 +15,7 @@
 // `litellm-key-reconcile` plugin at boot and every 6 h, under its sweep lock.
 
 import { isNotNull } from 'drizzle-orm'
+import { litellmKeyListResponse, type LitellmListedKey } from './adminResponses'
 import { users } from '../../db/schema'
 import { useDatabase } from '../platform/database'
 import { effectivePlan } from '../billing/billingMode'
@@ -45,12 +46,7 @@ export interface KeyReconcileSummary {
   failed: number
 }
 
-interface ListedKey {
-  token: string
-  team_id: string | null
-  max_budget: number | null
-  budget_duration: string | null
-}
+type ListedKey = LitellmListedKey
 
 export interface DesiredKeyState {
   teamId: string | null
@@ -83,20 +79,12 @@ async function listAllKeys(): Promise<Map<string, ListedKey>> {
       const text = await res.text().catch(() => '')
       throw new Error(`[keyReconcile] /key/list failed: ${res.status} ${text.slice(0, 200)}`)
     }
-    const payload = await res.json() as { keys?: unknown[], total_pages?: number | null }
-    const keys = Array.isArray(payload.keys) ? payload.keys : []
-    for (const raw of keys) {
-      if (typeof raw !== 'object' || raw === null) continue
-      const k = raw as Record<string, unknown>
-      if (typeof k.token !== 'string') continue
-      out.set(k.token, {
-        token: k.token,
-        team_id: typeof k.team_id === 'string' ? k.team_id : null,
-        max_budget: typeof k.max_budget === 'number' ? k.max_budget : null,
-        budget_duration: typeof k.budget_duration === 'string' ? k.budget_duration : null
-      })
+    const payload = litellmKeyListResponse.parse(await res.json())
+    const keys = payload.keys
+    for (const k of keys) {
+      out.set(k.token, { token: k.token, team_id: k.team_id ?? null, max_budget: k.max_budget ?? null, budget_duration: k.budget_duration ?? null })
     }
-    const totalPages = typeof payload.total_pages === 'number' ? payload.total_pages : null
+    const totalPages = payload.total_pages ?? null
     if (keys.length === 0 || (totalPages !== null && page >= totalPages)) break
   }
   return out

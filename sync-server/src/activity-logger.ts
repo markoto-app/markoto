@@ -4,57 +4,16 @@
 import { injectTraceHeaders, captureException } from './sentry'
 import { syncEnv } from './env'
 import { useLogger } from './logger'
+import type { InternalActivityEvent } from '../../shared/contracts/activity'
 
 const log = useLogger('activity-logger')
 
 const APP_URL = syncEnv().sync.appUrl
 const INTERNAL_SECRET = syncEnv().auth.internalApiSecret
 
-// Mirror of the app-side ActivityAction union. Kept in lockstep with
-// server/repos/activity.ts; the internal endpoint validates the action
-// against its own allowlist.
-type ActivityAction
-  = | 'edit' | 'join' | 'leave'
-    | 'comment.added' | 'comment.replied'
-    | 'comment.resolved' | 'comment.reopened' | 'comment.deleted'
-    | 'theme.changed' | 'title.changed' | 'ai.tool'
-
-type ActivityEvent = {
-  docId: string
-  /** Optional user id — drives avatar JOIN on the read endpoint. */
-  userId?: number | null
-  userName: string | null
-  /**
-   * Synthetic-principal label for agent-driven rows (`'ai:assistant:{sid}'`,
-   * `'mcp:{sid}'`). NULL for human edits. The app-side enrichment in
-   * `listRecentActivity` uses this to JOIN to ai_sessions / mcp_sessions
-   * → users so the activity feed can render "Joel via Claude Desktop"
-   * for agent rows. See `server/db/schema.ts` activity_log.actor_principal
-   * column comment.
-   */
-  actorPrincipal?: string | null
-  /**
-   * Anonymous editors only: the random per-tab avatar token their
-   * awareness broadcasts (`user.avatarSeed`), so the Activity Log shows
-   * the same face as the presence bar. Null for everyone else.
-   */
-  actorAvatarSeed?: string | null
-  action: ActivityAction
-  wordCount?: number | null
-  linesAdded?: number | null
-  linesRemoved?: number | null
-  metadata?: Record<string, unknown> | null
-  /**
-   * Boundary y-postgresql row ids around the store event that produced
-   * this activity. Stamped on the row so the diff endpoint can replay
-   * the doc state on either side. Optional — comment-only events may
-   * not have meaningful boundaries to attach.
-   */
-  yjsDocIdBefore?: number | null
-  yjsDocIdAfter?: number | null
-}
-
-export async function logActivity(event: ActivityEvent): Promise<void> {
+// The row shape is the activity contract shared with the app's
+// POST /api/internal/activity.
+export async function logActivity(event: InternalActivityEvent): Promise<void> {
   if (!APP_URL || !INTERNAL_SECRET) {
     // Silent no-op if not configured — dev setups without activity logging still work
     return

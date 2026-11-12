@@ -328,8 +328,8 @@ export const TIER_FIELDS = Object.keys(TIER_FIELD_ENV_SUFFIX) as (keyof TierCaps
  * also `unlimited`, everything else a number > 0.
  */
 export function tierOverrideType(field: keyof TierCaps): Coercer<number | boolean | null> {
-  if ((FEATURE_FIELDS as readonly string[]).includes(field)) return bool
-  if ((UNLIMITED_CAP_FIELDS as readonly string[]).includes(field)) return limitOrUnlimited(positiveNumber)
+  if (isFeatureField(field)) return bool
+  if (isUnlimitedCapField(field)) return limitOrUnlimited(positiveNumber)
   return positiveNumber
 }
 
@@ -345,23 +345,40 @@ export function tierOverrideType(field: keyof TierCaps): Coercer<number | boolea
  * validation reports it before any request runs).
  */
 export function resolveTiersFromEnv(env: Record<string, string | undefined> = processEnv()): TiersMap {
-  const resolved = {} as Record<PlanName, TierCaps>
-  for (const plan of PLAN_NAMES) {
-    const caps = { ...DEFAULT_TIERS[plan] } as TierCaps
-    for (const field of TIER_FIELDS) {
-      const name = tierEnvName(plan, field)
-      const raw = env[name]?.trim()
-      if (!raw) continue
-      try {
-        (caps as unknown as Record<string, unknown>)[field] = tierOverrideType(field).parse(raw)
-      } catch (e) {
-        if (e instanceof EnvValueError) throw new EnvValueError(`${name}: ${e.message}`)
-        throw e
-      }
-    }
-    resolved[plan] = caps
+  return {
+    free: resolvePlanCaps('free', env),
+    pro: resolvePlanCaps('pro', env),
+    team: resolvePlanCaps('team', env),
+    business: resolvePlanCaps('business', env)
   }
-  return resolved
+}
+
+function isFeatureField(field: keyof TierCaps): field is FeatureField {
+  return (FEATURE_FIELDS as readonly string[]).includes(field)
+}
+
+function isUnlimitedCapField(field: keyof TierCaps): field is UnlimitedCapField {
+  return (UNLIMITED_CAP_FIELDS as readonly string[]).includes(field)
+}
+
+function resolvePlanCaps(plan: PlanName, env: Record<string, string | undefined>): TierCaps {
+  const caps: TierCaps = { ...DEFAULT_TIERS[plan] }
+  for (const field of TIER_FIELDS) {
+    const name = tierEnvName(plan, field)
+    const raw = env[name]?.trim()
+    if (!raw) continue
+    try {
+      // Each field kind has its own parser (`tierOverrideType`), so the
+      // assignment stays typed per kind.
+      if (isFeatureField(field)) caps[field] = bool.parse(raw)
+      else if (isUnlimitedCapField(field)) caps[field] = limitOrUnlimited(positiveNumber).parse(raw)
+      else caps[field] = positiveNumber.parse(raw)
+    } catch (e) {
+      if (e instanceof EnvValueError) throw new EnvValueError(`${name}: ${e.message}`)
+      throw e
+    }
+  }
+  return caps
 }
 
 /** The "more is better" cap fields — strictly higher on a bigger tier. */

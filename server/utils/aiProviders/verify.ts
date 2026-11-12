@@ -1,3 +1,4 @@
+import { z } from 'zod'
 // Verification of a BYOK provider config before it is saved (and on the
 // settings page's "Verify" button).
 //
@@ -145,18 +146,15 @@ async function verifyImage(provider: ResolvedAiProvider, apiKey: string): Promis
   }
 }
 
+/** OpenAI-compatible `GET /models`: `{ data: [{ id }] }`; entries without an id are skipped. */
+const modelList = z.object({
+  data: z.array(z.object({ id: z.string() }).nullable().catch(null))
+})
+
 function extractModelIds(body: unknown): string[] {
-  if (typeof body !== 'object' || body === null) return []
-  const data = (body as Record<string, unknown>).data
-  if (!Array.isArray(data)) return []
-  const ids: string[] = []
-  for (const entry of data) {
-    if (typeof entry === 'object' && entry !== null) {
-      const id = (entry as Record<string, unknown>).id
-      if (typeof id === 'string') ids.push(id)
-    }
-  }
-  return ids
+  const parsed = modelList.safeParse(body)
+  if (!parsed.success) return []
+  return parsed.data.data.flatMap(entry => (entry ? [entry.id] : []))
 }
 
 export async function verifyProvider(

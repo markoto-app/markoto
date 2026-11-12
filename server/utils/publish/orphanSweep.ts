@@ -25,7 +25,8 @@ export async function sweepPublishedOrphans(deps: {
   const stale = objects
     .filter((obj) => {
       const m = PUBLISHED_KEY_RE.exec(obj.key)
-      return m !== null && !live.has(m[1]!)
+      const pageId = m?.[1]
+      return pageId !== undefined && !live.has(pageId)
     })
     .filter(obj => (obj.lastModified ? obj.lastModified.getTime() : now) < cutoff)
     .map(obj => obj.key)

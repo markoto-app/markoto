@@ -1,4 +1,5 @@
 import { MIB } from './units'
+import { trimChars, trimEndChars } from '../utils/trimChars'
 
 // Publish as a web page. Shared by the publish endpoints, the
 // published-page route and the publish dialog.
@@ -41,13 +42,11 @@ export function publishedFileUrl(pageId: string, kind: 'files' | 'brand', file: 
  * collide. The caller retries with a new suffix on a (rare) clash.
  */
 export function slugFromTitle(title: string, suffix: string): string {
-  const base = title
+  const hyphenated = title
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 48)
-    .replace(/-+$/g, '')
+  const base = trimEndChars(trimChars(hyphenated, '-').slice(0, 48), '-')
   return base.length >= 3 ? `${base}-${suffix}` : `page-${suffix}`
 }

@@ -1,20 +1,22 @@
 #!/usr/bin/env bun
-// Fails when tracked text files carry internal planning vocabulary
-// ("WP4", "Phase 3", "Batch 2", "security batch B5", "Workstream B", "MMP").
+// Fails when tracked text files carry internal planning vocabulary: work
+// package, phase and batch numbers, workstream letters, the minimum-marketable-product label
+// (the exact forms are in PATTERN below).
 // Comments and docs should say WHY something is the way it is; a milestone
 // label is meaningless to anyone outside the planning tool and rots on its own.
 //   bun scripts/checks/internal-vocabulary.mjs [--summary] [--json]
-// Opt-out for a genuine non-milestone use (e.g. "Phase 1" of a protocol):
+// Opt-out for a genuine non-milestone use (a numbered phase of a protocol):
 // put `vocab-ok` on the same line.
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const root = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim()
+// eslint-disable-next-line sonarjs/regex-complexity -- one alternation of literal labels; reads best as written
 const PATTERN = /\b(WP ?\d+[a-z]?|Phase \d+|Batch \d+|[Ss]ecurity batch|batch B\d+|Workstream [A-Z]|MMP)\b/g
 
 const EXCLUDE = [
-  // Sample documents: "Phase 1" there is the document's own content.
+  // Sample documents: a numbered phase there is the document's own content.
   /^shared\/templates\/content\//,
   /^tests\/fixtures\/theme-shots\//,
   /^tests\/e2e\/flows\/share-a-document-with-a-guest\.spec\.ts$/,

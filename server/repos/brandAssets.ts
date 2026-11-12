@@ -2,7 +2,7 @@ import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 import { workspaceBrandAssets } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
 import { DuplicateError } from './errors'
-import type { BrandAssetFormat, BrandFont } from '~~/shared/config/brandKit'
+import { BRAND_FONT_FORMATS, BRAND_IMAGE_FORMATS, type BrandAssetFormat, type BrandFont, type BrandFontFormat, type BrandImageFormat } from '~~/shared/config/brandKit'
 
 // Workspace brand kit assets: fonts and logos. Writers are the
 // admin-only routes under /api/workspaces/:wsId/brand; readers are the
@@ -20,6 +20,19 @@ export interface BrandAssetRow {
   s3Key: string
   uploadedBy: number | null
   createdAt: Date
+}
+
+/** A font asset: its format is a font format. */
+export type BrandFontAssetRow = BrandAssetRow & { kind: 'font', format: BrandFontFormat }
+/** A logo / image asset: its format is an image format. */
+export type BrandImageAssetRow = BrandAssetRow & { kind: 'image', format: BrandImageFormat }
+
+export function isBrandFontAsset(a: BrandAssetRow): a is BrandFontAssetRow {
+  return a.kind === 'font' && (BRAND_FONT_FORMATS as readonly string[]).includes(a.format)
+}
+
+export function isBrandImageAsset(a: BrandAssetRow): a is BrandImageAssetRow {
+  return a.kind === 'image' && (BRAND_IMAGE_FORMATS as readonly string[]).includes(a.format)
 }
 
 const columns = {

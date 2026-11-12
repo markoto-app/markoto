@@ -1,4 +1,4 @@
-import { getScimUser, requireScimIdentity, scimUserResource } from '../../../../utils/sso/scim'
+import { requireScimUser, requireScimIdentity, scimUserResource } from '../../../../utils/sso/scim'
 import { scimUserParams } from '~~/shared/api/sso'
 
 // GET /scim/v2/Users/:id
@@ -7,6 +7,6 @@ export default defineApiHandler({
   params: scimUserParams,
   handler: async ({ event, connection, params }) => {
     const identity = await requireScimIdentity(connection, params.id)
-    return scimUserResource(event, (await getScimUser(connection.id, identity.id))!)
+    return scimUserResource(event, await requireScimUser(connection.id, identity.id))
   }
 })

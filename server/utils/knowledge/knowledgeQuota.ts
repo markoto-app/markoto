@@ -11,7 +11,7 @@ import { limitRecovery } from '~~/server/utils/billing/billingMode'
 import { resolveUserPlan, resolveWorkspacePlan } from '../billing/entitlements'
 import { isBillingEnabled } from '../billing/billingMode'
 import { getPooledWorkspace, workspacePoolCaps } from '../billing/workspaceBilling'
-import { MIB } from '~~/shared/config/units'
+import { apiError } from '../api/apiError'
 
 /**
  * Per-user caps don't apply inside a pooled (Team / Business) workspace;
@@ -165,11 +165,7 @@ export async function reserveUploadSlot(args: {
   const caps = await resolveCaps({ workspaceId: args.workspaceId, uploaderId: args.userId })
 
   if (args.size > caps.maxFileBytes) {
-    throw createError({
-      statusCode: 413,
-      message: `File too large. Max ${Math.round(caps.maxFileBytes / MIB)} MB.`,
-      data: { code: 'knowledge/file-too-large' }
-    })
+    throw apiError('knowledge/file-too-large')
   }
 
   const [wsCount, wsBytes, userCount, userBytes] = await Promise.all([
@@ -180,44 +176,16 @@ export async function reserveUploadSlot(args: {
   ])
 
   if (wsCount >= caps.maxFilesPerWorkspace) {
-    throw createError({
-      statusCode: 409,
-      message: `Workspace knowledge limit reached (${caps.maxFilesPerWorkspace} files).`,
-      data: {
-        code: 'knowledge/workspace-file-cap',
-        recovery: limitRecovery()
-      }
-    })
+    throw apiError('knowledge/workspace-file-cap', { recovery: limitRecovery() })
   }
   if (wsBytes + args.size > caps.maxTotalBytesPerWorkspace) {
-    throw createError({
-      statusCode: 409,
-      message: `Workspace knowledge storage limit reached (${Math.round(caps.maxTotalBytesPerWorkspace / MIB)} MB).`,
-      data: {
-        code: 'knowledge/workspace-bytes-cap',
-        recovery: limitRecovery()
-      }
-    })
+    throw apiError('knowledge/workspace-bytes-cap', { recovery: limitRecovery() })
   }
   if (userCount >= caps.maxFilesPerUser) {
-    throw createError({
-      statusCode: 409,
-      message: `You've reached the per-user knowledge upload limit (${caps.maxFilesPerUser} files).`,
-      data: {
-        code: 'knowledge/user-file-cap',
-        recovery: limitRecovery()
-      }
-    })
+    throw apiError('knowledge/user-file-cap', { recovery: limitRecovery() })
   }
   if (userBytes + args.size > caps.maxTotalBytesPerUser) {
-    throw createError({
-      statusCode: 409,
-      message: `You've reached the per-user knowledge storage limit (${Math.round(caps.maxTotalBytesPerUser / MIB)} MB).`,
-      data: {
-        code: 'knowledge/user-bytes-cap',
-        recovery: limitRecovery()
-      }
-    })
+    throw apiError('knowledge/user-bytes-cap', { recovery: limitRecovery() })
   }
 
   // Reserve BOTH slots. If the second reservation fails, release the
@@ -232,20 +200,12 @@ export async function reserveUploadSlot(args: {
     INFLIGHT_NS_WORKSPACE_MEMBER, memberKey, memberShareOfWorkspaceSlots(wsSlotMax), INFLIGHT_SLOT_TTL_MS
   )
   if (!memberSlot.allowed) {
-    throw createError({
-      statusCode: 409,
-      message: 'You have too many pending uploads in this workspace — finish or wait for them, then try again.',
-      data: { code: 'knowledge/too-many-pending' }
-    })
+    throw apiError('knowledge/too-many-pending')
   }
   const wsSlot = await reserveInflightSlot(INFLIGHT_NS_WORKSPACE, args.workspaceId, wsSlotMax, INFLIGHT_SLOT_TTL_MS)
   if (!wsSlot.allowed) {
     await releaseInflightSlot(INFLIGHT_NS_WORKSPACE_MEMBER, memberKey)
-    throw createError({
-      statusCode: 409,
-      message: 'Too many pending uploads for this workspace — try again in a moment.',
-      data: { code: 'knowledge/too-many-pending' }
-    })
+    throw apiError('knowledge/too-many-pending')
   }
   const userSlot = await reserveInflightSlot(INFLIGHT_NS_USER, String(args.userId), userSlotMax, INFLIGHT_SLOT_TTL_MS)
   if (!userSlot.allowed) {
@@ -253,11 +213,7 @@ export async function reserveUploadSlot(args: {
       releaseInflightSlot(INFLIGHT_NS_WORKSPACE, args.workspaceId),
       releaseInflightSlot(INFLIGHT_NS_WORKSPACE_MEMBER, memberKey)
     ])
-    throw createError({
-      statusCode: 409,
-      message: 'Too many pending uploads on your account — try again in a moment.',
-      data: { code: 'knowledge/too-many-pending' }
-    })
+    throw apiError('knowledge/too-many-pending')
   }
 
   let released = false

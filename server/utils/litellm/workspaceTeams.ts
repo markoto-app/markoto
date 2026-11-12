@@ -1,5 +1,6 @@
 import { and, eq, isNotNull, isNull, ne } from 'drizzle-orm'
 import { workspaceMembers, workspaceSubscriptions } from '../../db/schema'
+import { litellmKeyGenerateResponse, litellmKeyInfoResponse, litellmTeamInfoResponse, type LitellmTeamInfo } from './adminResponses'
 import { useDatabase } from '../platform/database'
 import { openSecretOrNull, sealSecret, secretContext } from '../platform/secretBox'
 import { litellmAdminFetch } from './litellmAdmin'
@@ -68,12 +69,7 @@ async function failOnError(res: Response, what: string): Promise<void> {
   throw new Error(`[workspaceTeams] ${what} failed: ${res.status} ${text.slice(0, 200)}`)
 }
 
-interface TeamInfo {
-  max_budget?: number | null
-  spend?: number | null
-  budget_duration?: string | null
-  budget_reset_at?: string | null
-}
+type TeamInfo = LitellmTeamInfo
 
 export async function readWorkspaceTeam(workspaceId: string): Promise<TeamInfo | null> {
   if (isStubMode()) return null
@@ -83,8 +79,7 @@ export async function readWorkspaceTeam(workspaceId: string): Promise<TeamInfo |
     return null
   }
   await failOnError(res, '/team/info')
-  const payload = await res.json() as { team_info?: TeamInfo }
-  return payload.team_info ?? null
+  return litellmTeamInfoResponse.parse(await res.json()).team_info ?? null
 }
 
 /**
@@ -237,7 +232,7 @@ export async function ensureMemberKey(pool: PooledWorkspace, userId: number): Pr
       })
     })
     await failOnError(res, '/key/generate')
-    const payload = await res.json() as { key?: string, token_id?: string, token?: string }
+    const payload = litellmKeyGenerateResponse.parse(await res.json())
     const token = payload.key
     const keyId = payload.token_id ?? payload.token ?? ''
     if (!token || !keyId) throw new Error('[workspaceTeams] /key/generate response missing key or token_id')
@@ -346,11 +341,8 @@ export async function readMemberKeySpend(token: string | null): Promise<KeySpend
     await res.text().catch(() => '')
     return null
   }
-  const payload = await res.json() as { info?: { spend?: number, max_budget?: number | null } }
-  return {
-    spend: typeof payload.info?.spend === 'number' ? payload.info.spend : 0,
-    maxBudget: typeof payload.info?.max_budget === 'number' ? payload.info.max_budget : null
-  }
+  const { info } = litellmKeyInfoResponse.parse(await res.json())
+  return { spend: info?.spend ?? 0, maxBudget: info?.max_budget ?? null }
 }
 
 /**

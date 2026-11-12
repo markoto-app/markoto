@@ -1,4 +1,4 @@
-import { acceptInviteForUser, declineInviteForUser } from '../../../utils/workspaces/workspaceInviteActions'
+import { acceptInviteForUser, declineInviteForUser, type InviteAccepted, type InviteDeclined } from '../../../utils/workspaces/workspaceInviteActions'
 import { hashInviteSecret, parseInviteToken } from '../../../utils/workspaces/workspaceInvites'
 import { actOnInviteTokenBody } from '~~/shared/api/account'
 import { MINUTE_MS } from '~~/shared/config/units'
@@ -14,7 +14,7 @@ export default defineApiHandler({
   access: allow.user(),
   body: actOnInviteTokenBody,
   rateLimit: { namespace: 'workspace-invite-token', max: 20, windowMs: 10 * MINUTE_MS, key: 'user', error: 'workspace/invite-rate-limited' },
-  handler: async ({ event, user, body }) => {
+  handler: async ({ event, user, body }): Promise<InviteAccepted | InviteDeclined> => {
     const token = parseInviteToken(body.token)
     if (!token) throw apiError('workspace/invite-not-found')
     const selector = { kind: 'token' as const, tokenHash: hashInviteSecret(token) }

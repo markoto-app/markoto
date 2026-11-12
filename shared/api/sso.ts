@@ -30,6 +30,7 @@ export const updateSsoSettingsBody = z.object({
   samlSsoUrl: optionalText,
   samlIdpCert: optionalText
 })
+export type UpdateSsoSettingsBody = z.output<typeof updateSsoSettingsBody>
 
 /** POST /api/workspaces/:wsId/sso/domains. Normalised (and consumer domains refused) by `normalizeSsoDomain`. */
 export const addSsoDomainBody = z.object({ domain: z.string() })

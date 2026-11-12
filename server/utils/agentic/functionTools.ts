@@ -503,7 +503,7 @@ export const UpdateThemeArgs = z.object({
     showSubtitle: z.boolean().optional(),
     subtitle: z.string().max(200).optional().describe('Cover subtitle text (≤200 chars).'),
     showDate: z.boolean().optional(),
-    date: z.string().regex(/^(?:\d{4}-\d{2}-\d{2})?$/).optional()
+    date: z.string().regex(/^$|^\d{4}-\d{2}-\d{2}$/).optional()
       .describe('Publication date YYYY-MM-DD shown on the cover and by the {date} header/footer token (written out in the document language). Empty string = today.'),
     dateFormat: DateFormatSchema.optional()
       .describe('How the date is written: `locale` (default) the document language\'s long date, `us` "November 2, 2026" (APA), `iso` 2026-11-02.'),
@@ -1045,15 +1045,16 @@ const _WEB_SEARCH_SYSTEM_PROMPT
 
 // Staan /search/web response envelope (fields we consume). See
 // https://docs.staan.ai/docs/web-search.md.
-interface StaanSearchResult {
-  title?: string
-  url?: string
-  snippet?: string
-}
-interface StaanSearchResponse {
-  search_id?: string
-  web?: { results?: StaanSearchResult[] }
-}
+// Third-party answers: a mistyped field reads as absent, a mistyped result is dropped.
+const optionalText = z.string().optional().catch(undefined)
+const staanSearchResponse = z.object({
+  web: z.object({
+    results: z.array(z.object({ title: optionalText, url: optionalText, snippet: optionalText }).nullable().catch(null)).catch([])
+  }).optional().catch(undefined)
+})
+const jinaReaderResponse = z.object({
+  data: z.object({ content: optionalText, title: optionalText }).optional().catch(undefined)
+})
 
 async function webSearchViaStaan(
   query: string,
@@ -1086,8 +1087,8 @@ async function webSearchViaStaan(
   if (!staanRes.ok) {
     throw new Error(`Staan search returned ${staanRes.status}`)
   }
-  const staanPayload = await staanRes.json() as StaanSearchResponse
-  const results = staanPayload.web?.results ?? []
+  const staanPayload = staanSearchResponse.catch({}).parse(await staanRes.json())
+  const results = (staanPayload.web?.results ?? []).flatMap(r => (r ? [r] : []))
 
   if (results.length === 0) {
     return {
@@ -1217,7 +1218,7 @@ async function fetchUrlViaJina(
       images: []
     }
   }
-  const readerPayload = await readerRes.json() as { data?: { content?: string, title?: string } }
+  const readerPayload = jinaReaderResponse.catch({}).parse(await readerRes.json())
   const pageMarkdown = readerPayload.data?.content ?? ''
   const pageTitle = readerPayload.data?.title ?? ''
 

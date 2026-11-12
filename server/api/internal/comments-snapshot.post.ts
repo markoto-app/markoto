@@ -7,6 +7,7 @@ import { appendActivity, pruneActivity } from '../../repos/activity'
 import { diffCommentsSnapshot } from '../../utils/documents/commentsSnapshotDiff'
 import { normalizeAvatarSeed } from '../../../shared/utils/documents/awarenessUser'
 import { commentsSnapshotBody } from '~~/shared/api/platform'
+import { commentSnapshotEntry, type CommentSnapshotEntry } from '~~/shared/contracts/syncInternal'
 
 // Internal endpoint called by the sync-server on every persisted save of a doc
 // with a non-empty `comments` Y.Array. The body carries the FULL list of
@@ -20,24 +21,12 @@ import { commentsSnapshotBody } from '~~/shared/api/platform'
 // Auth: X-Internal-Secret, enforced for all of /api/internal/** by
 // server/middleware/auth.ts and again by the policy.
 
-interface IncomingEntry {
-  entryId?: string
-  parentCommentId?: string | null
-  authorId?: number | null
-  authorName?: string
-  authorAvatarSeed?: string | null
-  body?: string
-  createdAt?: number
-  updatedAt?: number
-  resolved?: boolean
-}
-
 const MAX_ENTRIES_PER_DOC = 5000
 const MAX_BODY_LENGTH = 8000 // the loosest comment cap, with headroom
 
 interface ParsedBody {
   docId: string
-  entries: IncomingEntry[]
+  entries: CommentSnapshotEntry[]
   yjsDocIdBefore: number | null
   yjsDocIdAfter: number | null
 }
@@ -49,7 +38,11 @@ export default defineApiHandler({
     if (input.entries.length > MAX_ENTRIES_PER_DOC) throw apiError('request/too-large')
     const body: ParsedBody = {
       docId: input.docId,
-      entries: input.entries as IncomingEntry[],
+      // One corrupt entry is skipped, not the snapshot.
+      entries: input.entries.flatMap((e) => {
+        const parsed = commentSnapshotEntry.safeParse(e)
+        return parsed.success ? [parsed.data] : []
+      }),
       yjsDocIdBefore: input.yjsDocIdBefore ?? null,
       yjsDocIdAfter: input.yjsDocIdAfter ?? null
     }
@@ -58,9 +51,7 @@ export default defineApiHandler({
     // activity endpoint.
     if (!(await docExists(body.docId))) return { ok: true, mirrored: false }
 
-    const rows = body.entries
-      .map(buildSnapshotRow)
-      .filter((r): r is CommentSnapshotRow => r !== null)
+    const rows = body.entries.map(buildSnapshotRow)
 
     const events = await replaceSnapshotInTx(body.docId, rows)
     await recordSnapshotEvents(body, events, anonAvatarSeedsByEntry(body.entries))
@@ -69,27 +60,17 @@ export default defineApiHandler({
   }
 })
 
-/**
- * Shapes one incoming entry into a `CommentSnapshotRow`, or null when a
- * required field is missing or mistyped so one corrupt row can't block the
- * whole snapshot.
- */
-function buildSnapshotRow(e: IncomingEntry): CommentSnapshotRow | null {
-  if (typeof e.entryId !== 'string' || e.entryId.length === 0 || e.entryId.length > 64) return null
-  if (typeof e.authorName !== 'string') return null
-  if (typeof e.body !== 'string') return null
-  if (typeof e.createdAt !== 'number' || typeof e.updatedAt !== 'number') return null
+/** One parsed entry as a mirror row, its text capped to the column limits. */
+function buildSnapshotRow(e: CommentSnapshotEntry): CommentSnapshotRow {
   return {
     entryId: e.entryId,
-    parentCommentId: typeof e.parentCommentId === 'string' && e.parentCommentId.length > 0 && e.parentCommentId.length <= 64
-      ? e.parentCommentId
-      : null,
-    authorId: typeof e.authorId === 'number' ? e.authorId : null,
+    parentCommentId: e.parentCommentId,
+    authorId: e.authorId,
     authorName: e.authorName.slice(0, 200),
     body: e.body.slice(0, MAX_BODY_LENGTH),
     createdAt: new Date(e.createdAt),
     updatedAt: new Date(e.updatedAt),
-    resolved: Boolean(e.resolved)
+    resolved: e.resolved
   }
 }
 
@@ -143,10 +124,10 @@ async function replaceSnapshotInTx(
  * (the mirror table doesn't store them; they live on the comment in Y.js). A
  * deleted comment has none, so its row falls back to the name-seeded avatar.
  */
-function anonAvatarSeedsByEntry(entries: IncomingEntry[]): Map<string, string> {
+function anonAvatarSeedsByEntry(entries: CommentSnapshotEntry[]): Map<string, string> {
   const out = new Map<string, string>()
   for (const e of entries) {
-    if (typeof e.entryId !== 'string' || typeof e.authorId === 'number') continue
+    if (e.authorId !== null) continue
     const seed = normalizeAvatarSeed(e.authorAvatarSeed)
     if (seed) out.set(e.entryId, seed)
   }

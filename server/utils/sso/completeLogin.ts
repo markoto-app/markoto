@@ -25,6 +25,7 @@
 // Never instance-admin bootstrap (`NUXT_ADMIN_USER_EMAILS`): a customer's IdP
 // must not be able to make anyone an instance operator.
 
+import { must } from '~~/shared/utils/must'
 import { and, eq, sql } from 'drizzle-orm'
 import { userIdentities, users } from '../../db/schema'
 import { useDatabase } from '../platform/database'
@@ -91,11 +92,17 @@ const MAX_NAME = 200
 
 export async function completeSsoLogin(connection: SsoConnectionRow, assertion: SsoAssertion, flow: SsoFlow): Promise<SsoLoginResult> {
   if (flow.connectionId !== connection.id) throw new SsoLoginRefused('sso/not-provisioned', 'The sign-in belongs to another connection.')
-  const isTest = flow.purpose === 'test'
+  // A test flow always names the admin who started it (the flow cookie
+  // refuses one without); without it the test can't be attributed.
+  const testUserId = flow.purpose === 'test' ? flow.testUserId ?? null : null
+  if (flow.purpose === 'test' && testUserId === null) {
+    throw new SsoLoginRefused('sso/test-not-admin', 'Only an admin of the workspace can test its sign-in.')
+  }
+  const isTest = testUserId !== null
   if (!isTest && connection.status !== 'active') {
     throw new SsoLoginRefused('sso/not-active', 'Single sign-on for this workspace is not switched on yet.')
   }
-  if (isTest && (await getMemberRoleIgnoringSso(connection.workspaceId, flow.testUserId!)) !== 'admin') {
+  if (isTest && (await getMemberRoleIgnoringSso(connection.workspaceId, testUserId)) !== 'admin') {
     throw new SsoLoginRefused('sso/test-not-admin', 'Only an admin of the workspace can test its sign-in.')
   }
 
@@ -110,7 +117,7 @@ export async function completeSsoLogin(connection: SsoConnectionRow, assertion: 
     const identity = await findIdentity(connection.id, assertion.subject, tx)
     if (identity) {
       if (!identity.active) throw new SsoLoginRefused('sso/deactivated', 'Your access to this workspace was removed by your organisation.')
-      if (isTest && identity.userId !== flow.testUserId) {
+      if (isTest && identity.userId !== testUserId) {
         throw new SsoLoginRefused('sso/test-mismatch', 'This identity-provider account belongs to another markoto account. Test with your own account.')
       }
       return { userId: identity.userId, identityId: identity.id, scim: identity.scimExternalId !== null, created: false, linked: false }
@@ -119,7 +126,7 @@ export async function completeSsoLogin(connection: SsoConnectionRow, assertion: 
     let userId: number
     let created = false
     if (isTest) {
-      userId = flow.testUserId!
+      userId = testUserId
     } else if (trustedEmail) {
       const existing = (await tx.execute<{ id: number }>(sql`
         select id from ${users} where lower(email) = ${trustedEmail} order by id limit 1 for update
@@ -128,7 +135,7 @@ export async function completeSsoLogin(connection: SsoConnectionRow, assertion: 
         userId = Number(existing.id)
       } else {
         const inserted = await tx.insert(users).values({ name, email: trustedEmail }).returning({ id: users.id })
-        userId = inserted[0]!.id
+        userId = must(inserted[0], 'inserted user row').id
         created = true
       }
     } else {

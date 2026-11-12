@@ -27,6 +27,7 @@ import { MCP_RATE_LIMITS, type RateLimitRule } from './mcpGate'
 import { mcpToolAllowed } from './toolClasses'
 import { PLAN_FEATURE_UNAVAILABLE_CODE, PLAN_LIMIT_REACHED_CODE } from '~~/shared/config/planErrors'
 import { limitRecovery } from '../../utils/billing/billingMode'
+import { apiError } from '../../utils/api/apiError'
 
 // Wrappers that bake the per-class boilerplate every MCP tool needs.
 // Three flavors based on what context the tool needs to operate on:
@@ -75,7 +76,7 @@ export type ToolCallLimit = 'render' | RateLimitRule
 export async function admitToolCall(event: H3Event, name: string, scope: McpScope, limit?: ToolCallLimit): Promise<McpAuthContext> {
   const auth = requireMcpAuth(event)
   if (!hasScope(event, scope)) {
-    throw createError({ statusCode: 404, message: `Tool ${name} not found`, data: { code: 'mcp/tool-not-found' } })
+    throw apiError('mcp/tool-not-found')
   }
   // Plan: without `mcpWrite` only read tools run (lib/toolClasses.ts).
   const plan = event.context.mcpPlan
@@ -88,7 +89,7 @@ export async function admitToolCall(event: H3Event, name: string, scope: McpScop
   }
   const perUser = MCP_RATE_LIMITS.toolCallsPerUser
   if (!(await checkRateLimit(perUser.namespace, String(auth.userId), perUser.max, perUser.windowMs))) {
-    throw createError({ statusCode: 429, message: 'Too many tool calls. Try again in a minute.', data: { code: 'mcp/rate-limited' } })
+    throw apiError('mcp/rate-limited')
   }
   // Plan: daily tool-call allowance (`mcpToolCallsPerDay`, null = none).
   const daily = plan?.mcpToolCallsPerDay ?? null
@@ -104,10 +105,10 @@ export async function admitToolCall(event: H3Event, name: string, scope: McpScop
   }
   if (limit === 'render') {
     if (!(await consumeRenderAllowance(event))) {
-      throw createError({ statusCode: 429, message: 'Too many render requests. Try again in a minute.', data: { code: 'mcp/render-rate-limited' } })
+      throw apiError('mcp/render-rate-limited')
     }
   } else if (limit && !(await checkRateLimit(limit.namespace, String(auth.userId), limit.max, limit.windowMs))) {
-    throw createError({ statusCode: 429, message: `Too many ${name} calls. Try again later.`, data: { code: 'mcp/rate-limited' } })
+    throw apiError('mcp/rate-limited')
   }
   return auth
 }
@@ -161,11 +162,7 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
       const auth = await admitToolCall(event, opts.name, opts.scope, opts.limit)
       const docId = String(args.doc_id ?? '')
       if (!docId) {
-        throw createError({
-          statusCode: 400,
-          message: `${opts.name}: doc_id is required`,
-          data: { code: 'mcp/missing-doc-id' }
-        })
+        throw apiError('mcp/missing-doc-id')
       }
 
       // `assertDocAccess` returns the resolved authz info so we can
@@ -200,7 +197,7 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
         // strict-validators reject the result. See `stripWrapperArgs`
         // for the full rationale.
         const handlerArgs = stripWrapperArgs(args, 'doc_id')
-        return toolResultToCallToolResult(await TOOL_HANDLERS[opts.name]!(handle.ctx, handlerArgs))
+        return toolResultToCallToolResult(await TOOL_HANDLERS[opts.name](handle.ctx, handlerArgs))
       } finally {
         handle.release()
       }
@@ -237,21 +234,13 @@ export function buildWorkspaceBoundTool<Schema extends ZodRawShape>(opts: WrapWo
       const auth = await admitToolCall(event, opts.name, opts.scope)
       const workspaceId = String(args.workspace_id ?? '')
       if (!workspaceId) {
-        throw createError({
-          statusCode: 400,
-          message: `${opts.name}: workspace_id is required`,
-          data: { code: 'mcp/missing-workspace-id' }
-        })
+        throw apiError('mcp/missing-workspace-id')
       }
 
       const role = await getMemberRole(workspaceId, auth.userId)
       if (!isRoleSufficient(role, opts.minRole)) {
         // Same anti-enumeration shape as `getDocAuthz` failures.
-        throw createError({
-          statusCode: 404,
-          message: `${opts.name}: workspace not found`,
-          data: { code: 'mcp/workspace-not-found' }
-        })
+        throw apiError('mcp/workspace-not-found')
       }
 
       const ctx = await buildStubContext(auth.userId, workspaceId, mcpSessionIdFromEvent(event))
@@ -367,21 +356,13 @@ async function assertDocAccess(
 ): Promise<{ workspaceId: string | null }> {
   const authz = await getDocAuthz(userId, docId)
   if (!authz.exists) {
-    throw createError({
-      statusCode: 404,
-      message: `${toolName}: document not found`,
-      data: { code: 'mcp/doc-not-found' }
-    })
+    throw apiError('mcp/doc-not-found')
   }
   const allowed = kind === 'edit' ? authz.canEdit : authz.canView
   if (!allowed) {
     // 404-shape (not 403) — matches the in-app endpoints' anti-
     // enumeration policy.
-    throw createError({
-      statusCode: 404,
-      message: `${toolName}: document not found`,
-      data: { code: 'mcp/doc-not-found' }
-    })
+    throw apiError('mcp/doc-not-found')
   }
   return { workspaceId: authz.workspaceId }
 }

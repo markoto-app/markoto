@@ -54,7 +54,12 @@ export function lenientBody<S extends ZodType>(schema: S): LenientBody<S> {
   return { lenient: schema }
 }
 
-export type BodySpec = ZodType | LenientBody | 'none' | 'raw' | 'custom'
+/**
+ * `'multipart'`: a form upload the handler reads itself through a size-limited
+ * reader (`readBodyWithLimit` + `parseMultipart`, `readBrandUpload`); the
+ * client sends a `FormData`. `'custom'`: any other body the handler reads itself.
+ */
+export type BodySpec = ZodType | LenientBody | 'none' | 'raw' | 'multipart' | 'custom'
 
 interface RateLimitBase {
   namespace: string
@@ -83,7 +88,7 @@ export type RateLimitSpec<Ctx> = RateLimitBase & ({
 })
 
 type Out<S> = S extends ZodType ? z.output<S> : undefined
-type In<S> = S extends ZodType ? z.input<S> : S extends LenientBody<infer L> ? z.input<L> : undefined
+type In<S> = S extends ZodType ? z.input<S> : S extends LenientBody<infer L> ? z.input<L> : S extends 'multipart' ? FormData : undefined
 
 export type ParsedInput<P, Q, B> = {
   params: Out<P>
@@ -96,7 +101,7 @@ export interface ApiHandlerDef<Ctx, P, Q, B extends BodySpec, R> {
   access: Policy<Ctx>
   params?: P
   query?: Q
-  /** A zod schema, `lenientBody(schema)` (`ctx.parseBody()`, null instead of a 400), `'none'` (default), `'raw'` (`ctx.rawBody()`), or `'custom'` (the handler reads it: multipart, size-limited readers). */
+  /** A zod schema, `lenientBody(schema)` (`ctx.parseBody()`, null instead of a 400), `'none'` (default), `'raw'` (`ctx.rawBody()`), `'multipart'` (a `FormData` upload the handler reads with its size-limited reader) or `'custom'` (any other body the handler reads itself). */
   body?: B
   /** Code for validation failures (keeps a route's existing code, e.g. `share/invalid`); default `request/invalid`. Its params must accept `field` and `fields`. */
   invalidCode?: ApiErrorCode
@@ -197,14 +202,14 @@ async function parseLenient(event: H3Event, spec: LenientBody): Promise<unknown>
   return result.success ? result.data : null
 }
 
-function rateKey<Ctx>(spec: RateLimitSpec<Ctx>, ctx: Ctx, event: H3Event): string {
+function rateKey<Ctx extends object>(spec: RateLimitSpec<Ctx>, ctx: Ctx, event: H3Event): string {
   if (typeof spec.key === 'function') return spec.key(ctx, event)
   if (spec.key === 'ip') return getClientRateLimitKey(event)
-  const user = (ctx as { user?: { id: number } | null }).user
+  const userId = userIdOf(ctx)
   // A per-user limit on a route that admitted no user is a wiring bug: refuse.
-  if (!user) throw new Error(`rate limit ${spec.namespace}: key '${spec.key}' on a route without a user`)
-  if (spec.key === 'user') return String(user.id)
-  if (spec.key === 'user+ip') return `${user.id}:${getClientRateLimitKey(event)}`
+  if (userId === null) throw new Error(`rate limit ${spec.namespace}: key '${spec.key}' on a route without a user`)
+  if (spec.key === 'user') return String(userId)
+  if (spec.key === 'user+ip') return `${userId}:${getClientRateLimitKey(event)}`
   throw new Error(`rate limit ${spec.namespace}: unknown key ${String(spec.key)}`)
 }
 
@@ -214,10 +219,26 @@ async function enforce<Ctx>(spec: RateLimitSpec<Ctx>, key: string): Promise<void
   }
 }
 
-async function planFor(ctx: { wsId?: unknown, doc?: unknown, user?: { id: number } | null }) {
-  if (typeof ctx.wsId === 'string') return resolveWorkspacePlan(ctx.wsId)
-  if (ctx.doc) return resolveDocPlanFor(ctx.doc as { ownerId: number | null, workspaceId: string | null })
-  return resolveUserPlan(ctx.user?.id ?? null)
+/** The document row of a document policy's context (`allow.doc`). */
+function planDocOf(ctx: object): { ownerId: number | null, workspaceId: string | null } | null {
+  if (!('doc' in ctx) || typeof ctx.doc !== 'object' || ctx.doc === null) return null
+  const { doc } = ctx
+  const ownerId = 'ownerId' in doc && typeof doc.ownerId === 'number' ? doc.ownerId : null
+  const workspaceId = 'workspaceId' in doc && typeof doc.workspaceId === 'string' ? doc.workspaceId : null
+  return { ownerId, workspaceId }
+}
+
+/** The signed-in user of a policy's context, when it has one. */
+function userIdOf(ctx: object): number | null {
+  if (!('user' in ctx) || typeof ctx.user !== 'object' || ctx.user === null) return null
+  return 'id' in ctx.user && typeof ctx.user.id === 'number' ? ctx.user.id : null
+}
+
+async function planFor(ctx: object) {
+  if ('wsId' in ctx && typeof ctx.wsId === 'string') return resolveWorkspacePlan(ctx.wsId)
+  const doc = planDocOf(ctx)
+  if (doc) return resolveDocPlanFor(doc)
+  return resolveUserPlan(userIdOf(ctx))
 }
 
 const BROKEN_POLICY: PolicyDescriptor = { kind: 'custom', sessionless: false, reason: 'invalid policy' }
@@ -242,6 +263,8 @@ export function defineApiHandler<
     const { phase, key, namespace } = spec as { phase?: string, key: unknown, namespace: string }
     if (phase === 'before-access' && key !== 'ip') throw new Error(`rate limit ${namespace}: phase 'before-access' needs key 'ip'`)
   }
+  const bodySpec: BodySpec | undefined = def.body
+  const lenient = isLenient(bodySpec) ? bodySpec : null
   const early = limits.filter(spec => spec.phase === 'before-access')
   const late = limits.filter(spec => spec.phase !== 'before-access')
 
@@ -273,26 +296,29 @@ export function defineApiHandler<
       query: query as Record<string, unknown> | undefined,
       body
     }
-    const ctx = await access.resolve(event, gate, input)
-    if (ctx === null || typeof ctx !== 'object') throw createError({ statusCode: 500, message: 'Access policy returned no context' })
+    // Fail closed on a policy that resolves to nothing (the type can't rule out an untyped custom check).
+    const ctx: Ctx | null | undefined = await access.resolve(event, gate, input)
+    if (ctx === null || ctx === undefined) throw createError({ statusCode: 500, message: 'Access policy returned no context' })
 
-    if (def.plan) assertPlanFeature(await planFor(ctx as never), def.plan.feature, def.plan.message)
+    if (def.plan) assertPlanFeature(await planFor(ctx), def.plan.feature, def.plan.message)
     for (const spec of late) await enforce(spec, rateKey(spec, ctx, event))
 
+    // The generic context can't be spread into its declared type: the parsed
+    // input and the body helpers are what `ParsedInput<P, Q, B>` describes.
     const full = {
       ...ctx,
       params,
       query,
       body,
       event,
-      ...(def.body === 'raw' ? { rawBody: () => readRawBody(event, false) } : {}),
-      ...(isLenient(def.body) ? { parseBody: () => parseLenient(event, def.body as LenientBody) } : {})
+      ...(bodySpec === 'raw' ? { rawBody: () => readRawBody(event, false) } : {}),
+      ...(lenient ? { parseBody: () => parseLenient(event, lenient) } : {})
     } as unknown as Ctx & ParsedInput<P, Q, B> & { event: H3Event }
     const call = async () => def.handler(full)
     if (def.idempotency) {
-      const user = (ctx as { user?: { id: number } | null }).user
-      if (!user) throw new Error('idempotency needs a signed-in user')
-      return withIdempotency(event, def.idempotency.scope, user.id, call)
+      const userId = userIdOf(ctx)
+      if (userId === null) throw new Error('idempotency needs a signed-in user')
+      return withIdempotency(event, def.idempotency.scope, userId, call)
     }
     return call()
   }
@@ -315,5 +341,5 @@ export function defineApiHandler<
   const descriptor: PolicyDescriptor = isPolicy(def.access)
     ? { kind: def.access.kind, sessionless: def.access.sessionless, reason: def.access.reason, need: def.access.need }
     : BROKEN_POLICY
-  return Object.assign(handler, { '~access': descriptor }) as unknown as ApiEventHandler<R, { params: In<P>, query: In<Q>, body: In<B> }>
+  return Object.assign(handler, { '~access': descriptor })
 }

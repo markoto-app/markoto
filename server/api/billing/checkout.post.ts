@@ -1,3 +1,4 @@
+import type { PlanCheckoutResponse } from '~~/shared/contracts/stripe'
 import { eq } from 'drizzle-orm'
 import { recordPaidTermsAcceptance, requirePaidTermsAccepted } from '../../utils/billing/paidTerms'
 import * as Sentry from '@sentry/nuxt'
@@ -41,7 +42,7 @@ export default defineApiHandler({
   // Every call creates a real Stripe Checkout Session; 10/min is far above any
   // human retry pattern and stops a looping client flooding Stripe.
   rateLimit: { namespace: 'billing-checkout', max: 10, windowMs: MINUTE_MS, key: 'user', error: 'billing/rate-limited' },
-  handler: async ({ event, user, body }) => {
+  handler: async ({ event, user, body }): Promise<PlanCheckoutResponse<'pro'>> => {
     const userId = user.id
     const { plan, interval } = body
     if (plan !== 'pro') throw apiError('billing/workspace-plan')

@@ -17,6 +17,7 @@ import { adaptCustomCssToDoc } from '~~/shared/utils/theme/customCss'
 import { themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
 import { DOC_DESCRIPTION_MAX_LENGTH, DOC_TITLE_MAX_LENGTH, INITIAL_CONTENT_MAX_LENGTH } from '~~/shared/config/docCreate'
 import { seedDocContent } from './seedDocContent'
+import { apiError } from '../api/apiError'
 
 // Document creation, shared by `POST /api/docs` and the `handleCreateDocument`
 // AI-tool handler (in-app loop + MCP) so both apply the same validation
@@ -199,7 +200,7 @@ function parseContent(raw: string | undefined, templateId: string | undefined): 
     throw createError({ statusCode: 400, message: 'Pass content OR templateId, not both' })
   }
   if (raw.length > INITIAL_CONTENT_MAX_LENGTH) {
-    throw createError({ statusCode: 400, message: `Content too long (max ${INITIAL_CONTENT_MAX_LENGTH} characters)`, data: { code: 'docs/content-too-long' } })
+    throw apiError('docs/content-too-long', { max: INITIAL_CONTENT_MAX_LENGTH })
   }
   return raw
 }

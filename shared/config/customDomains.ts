@@ -34,10 +34,9 @@ export type CustomDomainDnsProblem = 'txt-missing' | 'txt-mismatch' | 'not-point
  */
 export function normalizeCustomHostname(input: unknown, opts: { allowTestNames?: boolean } = {}): string | null {
   if (typeof input !== 'string') return null
-  const raw = input.trim().toLowerCase()
-    .replace(/^https?:\/\//, '')
-    .replace(/[/?#].*$/, '')
-    .replace(/\.$/, '')
+  const withoutScheme = input.trim().toLowerCase().replace(/^https?:\/\//, '')
+  const pathStart = withoutScheme.search(/[/?#]/)
+  const raw = (pathStart === -1 ? withoutScheme : withoutScheme.slice(0, pathStart)).replace(/\.$/, '')
   if (raw.length === 0 || raw.length > 253 || /[:@*\s[\]]/.test(raw)) return null
   let host: string
   try {
@@ -49,8 +48,8 @@ export function normalizeCustomHostname(input: unknown, opts: { allowTestNames?:
   const labels = host.split('.')
   if (labels.some(l => l.length === 0 || l.length > 63 || !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(l))) return null
   // IPv4 literal (incl. the short forms URL parsing accepts) or numeric TLD.
-  if (/^\d+$/.test(labels.at(-1)!)) return null
-  const tld = labels.at(-1)!
+  const tld = labels.at(-1) ?? ''
+  if (/^\d+$/.test(tld)) return null
   if (['localhost', 'local', 'internal', 'invalid', 'example', 'onion', 'alt'].includes(tld)) return null
   if (host.endsWith('.home.arpa') || tld === 'arpa') return null
   if (tld === 'test' && !opts.allowTestNames) return null

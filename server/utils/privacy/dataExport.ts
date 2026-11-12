@@ -802,9 +802,8 @@ async function addBillingEntries(entries: Entries, stripeCustomerId: string | nu
     const customer = await stripe.customers.retrieve(stripeCustomerId)
     entries['billing/customer.json'] = strToU8(JSON.stringify(customer, null, 2))
     const list = await stripe.invoices.list({ customer: stripeCustomerId, limit: 100 })
-    const invoices = list.data as unknown as Record<string, unknown>[]
-    entries['billing/invoices.ndjson'] = strToU8(toNdjson(invoices))
-    return invoices.length
+    entries['billing/invoices.ndjson'] = strToU8(toNdjson(list.data))
+    return list.data.length
   } catch (e) {
     Sentry.captureException(e, {
       tags: { component: 'dataExport', event: 'stripe_fetch_failed' }
@@ -816,7 +815,7 @@ async function addBillingEntries(entries: Entries, stripeCustomerId: string | nu
   }
 }
 
-function toNdjson(rows: Array<Record<string, unknown>>): string {
+function toNdjson(rows: readonly object[]): string {
   if (rows.length === 0) return ''
   return rows.map(r => JSON.stringify(r)).join('\n') + '\n'
 }

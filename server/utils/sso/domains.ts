@@ -35,6 +35,7 @@ export function normalizeSsoDomain(raw: string): string | null {
   }
   const labels = domain.split('.')
   if (labels.length < 2) return null
+  // eslint-disable-next-line security/detect-unsafe-regex -- anchored, one bounded run (≤ 61): linear
   if (!labels.every(l => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(l))) return null
   if (/^\d+$/.test(labels.at(-1) ?? '')) return null // an IP address
   if (CONSUMER_DOMAINS.has(domain)) return null

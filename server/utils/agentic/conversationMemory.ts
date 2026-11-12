@@ -121,28 +121,22 @@ export function summarizeToolCall(name: string, args: unknown): string {
 
 // One line per row: leading dash + bracketed kind + content.
 function renderRow(row: AiMessageRow): string {
-  const body = row.body as Record<string, unknown> | null
   switch (row.kind) {
     case 'user_prompt': {
-      const text = typeof body?.text === 'string' ? body.text : ''
+      const text = row.body.text
       // Anything over 800 chars is a doc paste, not a conversational turn;
       // the user meant it for the document, not as memory.
       const trimmed = text.length > 800 ? text.slice(0, 800) + '…' : text
       return `- user: ${trimmed}`
     }
     case 'message_to_user': {
-      const message = typeof body?.message === 'string' ? body.message : ''
-      const isQuestion = body?.isQuestion === true
-      const tag = isQuestion ? 'AI asked' : 'AI replied'
-      return `- ${tag}: ${message}`
+      const tag = row.body.isQuestion ? 'AI asked' : 'AI replied'
+      return `- ${tag}: ${row.body.message}`
     }
     case 'tool_call': {
-      const name = typeof body?.name === 'string' ? body.name : '<unknown>'
-      const summary = typeof body?.summary === 'string' ? body.summary : ''
+      const { name, summary } = row.body
       return summary ? `- AI used ${name} (${summary})` : `- AI used ${name}`
     }
-    default:
-      return ''
   }
 }
 

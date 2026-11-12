@@ -24,10 +24,10 @@ export function applyBrandLock(docTheme: DocTheme | null | undefined, brandTheme
   const own = (docTheme?.cover ?? {}) as Partial<Record<string, unknown>>
   const cover = { ...brandTheme.cover }
   if (typeof own.subtitle === 'string') cover.subtitle = own.subtitle
-  if (Array.isArray(own.authors) && own.authors.every(a => typeof a === 'string')) cover.authors = own.authors as string[]
+  if (Array.isArray(own.authors) && own.authors.every(a => typeof a === 'string')) cover.authors = own.authors
   if (typeof own.date === 'string') cover.date = own.date
   else delete cover.date
-  if (Array.isArray(own.affiliations) && own.affiliations.every(a => typeof a === 'string')) cover.affiliations = own.affiliations as string[]
+  if (Array.isArray(own.affiliations) && own.affiliations.every(a => typeof a === 'string')) cover.affiliations = own.affiliations
   else delete cover.affiliations
   return { ...brandTheme, cover }
 }

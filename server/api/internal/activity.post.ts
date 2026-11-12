@@ -1,6 +1,6 @@
 import { docExists, bumpLastActive } from '../../repos/documents'
 import { normalizeAvatarSeed } from '../../../shared/utils/documents/awarenessUser'
-import { appendActivity, pruneActivity, ACTIVITY_ACTIONS, type ActivityAction, type ActivityMetadata } from '../../repos/activity'
+import { appendActivity, pruneActivity } from '../../repos/activity'
 import { internalActivityBody } from '~~/shared/api/platform'
 import { useLogger } from '../../utils/platform/logger'
 
@@ -14,8 +14,7 @@ export default defineApiHandler({
   access: allow.internal('secret'),
   body: internalActivityBody,
   handler: async ({ body }) => {
-    const action = body.action as ActivityAction
-    if (!ACTIVITY_ACTIONS.includes(action)) throw apiError('request/invalid', { field: 'action' })
+    const action = body.action
 
     // Anonymous/direct-URL docs without a DB row are skipped.
     if (!(await docExists(body.docId))) {
@@ -40,7 +39,7 @@ export default defineApiHandler({
       wordCount: body.wordCount ?? null,
       linesAdded: body.linesAdded ?? null,
       linesRemoved: body.linesRemoved ?? null,
-      metadata: (body.metadata ?? null) as ActivityMetadata | null,
+      metadata: body.metadata ?? null,
       yjsDocIdBefore: typeof body.yjsDocIdBefore === 'number' ? body.yjsDocIdBefore : null,
       yjsDocIdAfter: typeof body.yjsDocIdAfter === 'number' ? body.yjsDocIdAfter : null
     })

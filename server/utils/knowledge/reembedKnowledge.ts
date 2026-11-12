@@ -1,3 +1,4 @@
+import { must } from '~~/shared/utils/must'
 import type { Pool } from 'pg'
 import {
   KNOWLEDGE_EMBEDDING_COLUMN,
@@ -136,8 +137,8 @@ export async function runReembed(opts: ReembedOptions): Promise<ReembedSummary> 
 
       await client.query('BEGIN')
       try {
-        for (let i = 0; i < chunks.length; i++) {
-          await client.query('UPDATE workspace_knowledge_chunks SET embedding = $1::vector WHERE id = $2', [vectorLiteral(vectors[i]!), chunks[i]!.id])
+        for (const [i, chunk] of chunks.entries()) {
+          await client.query('UPDATE workspace_knowledge_chunks SET embedding = $1::vector WHERE id = $2', [vectorLiteral(must(vectors[i], `vector of chunk ${chunk.id}`)), chunk.id])
         }
         await client.query('UPDATE workspace_knowledge SET embedding_version = $1 WHERE knowledge_id = $2', [opts.versionTag, file.knowledge_id])
         await client.query('COMMIT')

@@ -18,7 +18,7 @@ export default defineApiHandler({
     setHeader(event, 'cache-control', 'private, no-store')
     return {
       events: page.map(auditEventView),
-      nextBefore: rows.length > PAGE ? page.at(-1)!.id : null,
+      nextBefore: rows.length > PAGE ? page.at(-1)?.id ?? null : null,
       retentionDays: auditRetentionDays()
     }
   }

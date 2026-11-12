@@ -20,6 +20,8 @@ import {
 } from './flowCookie'
 import type { SsoLoginResult } from './completeLogin'
 import { useEnv } from '~~/shared/env/load'
+import { apiError } from '../api/apiError'
+import { trimTrailingSlashes } from '~~/shared/utils/trimTrailingSlashes'
 
 /**
  * The origin markoto is reached at (`NUXT_SITE_URL`). Callback URLs and
@@ -28,13 +30,9 @@ import { useEnv } from '~~/shared/env/load'
  */
 export function ssoBaseUrl(event: H3Event): string {
   const site = String(useEnv().core.siteUrl ?? '').trim()
-  if (site) return site.replace(/\/+$/, '')
+  if (site) return trimTrailingSlashes(site)
   if (isTestModeEnabled()) return getRequestURL(event).origin
-  throw createError({
-    statusCode: 503,
-    message: 'Single sign-on needs NUXT_SITE_URL to be set on this instance.',
-    data: { code: 'sso/misconfigured' }
-  })
+  throw apiError('sso/misconfigured')
 }
 
 export function ssoCallbackUrl(event: H3Event, connectionId: string): string {
@@ -105,15 +103,15 @@ export function ssoErrorPath(code: string, workspaceId?: string): string {
 }
 
 /** openid-client settings for a workspace's OIDC connection. */
-export function oidcSettingsForConnection(event: H3Event, connection: SsoConnectionRow): OidcSettings {
+export function oidcSettingsForConnection(event: H3Event, connection: SsoConnectionRow): OidcSettings & { redirectUrl: string } {
   if (connection.protocol !== 'oidc' || !connection.oidcIssuer || !connection.oidcClientId || !connection.oidcClientSecret) {
-    throw createError({ statusCode: 409, message: 'This connection is not a complete OpenID Connect setup.', data: { code: 'sso/incomplete' } })
+    throw apiError('sso/incomplete')
   }
   const clientSecret = openSecretOrNull('sso-client-secret', secretContext.ssoClientSecret(connection.workspaceId), connection.oidcClientSecret)
   if (clientSecret === null) {
     // Encryption key lost or rotated away: a workspace admin enters the
     // client secret again (the settings stay reachable via the break-glass).
-    throw createError({ statusCode: 409, message: 'The stored client secret can no longer be read. A workspace admin must enter it again.', data: { code: 'sso/incomplete' } })
+    throw apiError('sso/incomplete')
   }
   const allowPrivate = ssoAllowsPrivateUrls()
   return {

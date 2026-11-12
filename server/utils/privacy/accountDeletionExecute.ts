@@ -1,3 +1,4 @@
+import { must } from '~~/shared/utils/must'
 import * as Sentry from '@sentry/nuxt'
 import { DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { appendAuditEvent } from '../../repos/audit'
@@ -192,7 +193,7 @@ async function processWorkspaceMemberships(
     // first → editor → viewer.
     const promote = others.find(o => o.role === 'admin')
       ?? others.find(o => o.role === 'editor')
-      ?? others[0]!
+      ?? must(others[0], 'another member (sole-member workspaces cascade above)')
     await promoteWorkspaceAdmin(m.workspaceId, userId, promote.userId)
     summary.workspacesPromoted += 1
   }

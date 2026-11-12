@@ -30,14 +30,14 @@ import jwt from 'jsonwebtoken'
  * The signer side uses HS256 (jsonwebtoken's default for string secrets),
  * so pinning HS256-only doesn't reject any legitimate token we issue.
  */
-const ALLOWED_ALGORITHMS = ['HS256'] as const
+const ALLOWED_ALGORITHMS: jwt.Algorithm[] = ['HS256']
 
 export function verifyJwtWithRotation<T = Record<string, unknown>>(
   token: string,
   current: string,
   previous?: string | null
 ): T {
-  const opts: jwt.VerifyOptions = { algorithms: ALLOWED_ALGORITHMS as unknown as jwt.Algorithm[] }
+  const opts: jwt.VerifyOptions = { algorithms: ALLOWED_ALGORITHMS }
   try {
     return jwt.verify(token, current, opts) as T
   } catch (err) {

@@ -136,7 +136,7 @@ export async function sendTransactionalEmail(args: SendEmailArgs): Promise<SendE
 
   // Resend (auto-detected via RESEND_API_KEY). To explicitly opt
   // OUT of Resend despite the key being set, use NUXT_EMAIL_PROVIDER=stub.
-  return sendViaResend(args, label, apiKey, email.from)
+  return sendViaResend({ ...args, to: args.to }, label, apiKey, email.from)
 }
 
 // Resend dispatch via the official SDK. The SDK is ~12 KB and gives
@@ -148,7 +148,7 @@ export async function sendTransactionalEmail(args: SendEmailArgs): Promise<SendE
 // end. Production should set `NUXT_EMAIL_FROM` to a verified-domain
 // address; a misconfigured `from` returns a 422 from Resend which
 // we surface in the thrown error.
-async function sendViaResend(args: SendEmailArgs, label: string, apiKey: string, configuredFrom: string | undefined): Promise<SendEmailResult> {
+async function sendViaResend(args: SendEmailArgs & { to: string }, label: string, apiKey: string, configuredFrom: string | undefined): Promise<SendEmailResult> {
   const from = configuredFrom || SANDBOX_FROM
   if (!configuredFrom) {
     // Soft warn so devs running with just the API key see the
@@ -159,8 +159,7 @@ async function sendViaResend(args: SendEmailArgs, label: string, apiKey: string,
   const resend = new Resend(apiKey)
   const { data, error } = await resend.emails.send({
     from,
-    // Non-null asserted: the no-recipient branch returns earlier.
-    to: args.to!,
+    to: args.to,
     subject: args.subject,
     text: args.body,
     // Resend tags: surface email kind in their dashboard so ops

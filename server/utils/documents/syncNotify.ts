@@ -11,6 +11,7 @@ import { captureExceptionThrottled } from '../platform/throttledSentry'
 import { injectTraceHeaders } from '../platform/traceHeaders'
 import { useEnv } from '~~/shared/env/load'
 import { useLogger } from '../platform/logger'
+import type { FlushDocumentRequest, KickUserRequest, ReauthDocumentRequest } from '~~/shared/contracts/syncInternal'
 
 const log = useLogger('sync-notify')
 
@@ -38,7 +39,7 @@ export function notifySyncKickUser(userId: number, docIds: string[]): void {
       'Content-Type': 'application/json',
       'X-Internal-Secret': env.auth.internalApiSecret
     }),
-    body: JSON.stringify({ userId, docIds }),
+    body: JSON.stringify({ userId, docIds } satisfies KickUserRequest),
     signal: AbortSignal.timeout(3000)
   }).catch((e) => {
     log.warn('kick-user failed', { userId, err: e })
@@ -72,7 +73,7 @@ export function notifySyncReauthDocument(docId: string): void {
       'Content-Type': 'application/json',
       'X-Internal-Secret': env.auth.internalApiSecret
     }),
-    body: JSON.stringify({ docId, notBefore: Math.floor(Date.now() / 1000) }),
+    body: JSON.stringify({ docId, notBefore: Math.floor(Date.now() / 1000) } satisfies ReauthDocumentRequest),
     signal: AbortSignal.timeout(3000)
   }).then((res) => {
     if (!res.ok) throw new Error(`reauth-document answered ${res.status}`)
@@ -107,7 +108,7 @@ export async function flushSyncDocument(docId: string): Promise<boolean> {
         'Content-Type': 'application/json',
         'X-Internal-Secret': env.auth.internalApiSecret
       }),
-      body: JSON.stringify({ docId }),
+      body: JSON.stringify({ docId } satisfies FlushDocumentRequest),
       signal: AbortSignal.timeout(12_000)
     })
     if (!res.ok) throw new Error(`flush-document answered ${res.status}`)

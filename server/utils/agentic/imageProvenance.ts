@@ -12,7 +12,11 @@
 // what to embed, and this check lives in the in-editor loop only.
 
 /** Markdown image targets: `![alt](url)`, `![alt](<url>)`, `![alt](url "title")`. */
-const MARKDOWN_IMAGE_RE = /!\[[^\]]*\]\(\s*<?([^\s)>]+)>?(?:\s+"[^"]*")?\s*\)/g
+// Bounded runs: the text comes from documents and web pages, and with
+// unbounded `[^\]]*` / `\s+…\s*` every `![` without its `](…)` rescans the
+// rest of the text. Real alt texts, URLs and titles fit well inside.
+// eslint-disable-next-line security/detect-unsafe-regex -- every run is bounded (see above): linear in the text
+const MARKDOWN_IMAGE_RE = /!\[[^\]]{0,1000}\]\(\s{0,32}<?([^\s)>]{1,4096})>?(?:\s{1,32}"[^"]{0,1000}")?\s{0,32}\)/g
 
 /** Every image URL a Markdown snippet references, in order, de-duplicated. */
 export function markdownImageUrls(markdown: string): string[] {

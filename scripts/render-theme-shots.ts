@@ -159,6 +159,7 @@ async function capturePreview(ctx: BrowserContext, base: string, docId: string):
         // against the sheet they came from.
         const base = s.href ?? el.ownerDocument.baseURI
         const css = Array.from(s.cssRules).map(r => r.cssText).join('\n')
+          // eslint-disable-next-line sonarjs/super-linear-regex -- dev script over the app's own stylesheets
           .replace(/url\(\s*(["']?)(?![a-z][a-z0-9+.-]*:|\/|#)([^"')]+)\1\s*\)/gi, (m, q: string, u: string) => {
             try {
               return `url(${q}${new URL(u, base).href}${q})`

@@ -49,6 +49,7 @@ export default defineApiHandler({
         // Share-link controls: the public link ended — the page says
         // so instead of "no access". Nothing else about the doc is revealed.
         shareExpired: doc.shareExpired === true,
+        // `token` tells the two answers apart: null here, the document JWT when granted.
         token: null,
         requiresPassword: decision.outcome === 'password-required',
         forbidden: decision.outcome === 'forbidden',
@@ -148,6 +149,6 @@ export default defineApiHandler({
       void recordDocumentOpen(docId).catch(() => {})
     }
 
-    return { token, requiresPassword: false, forbidden: false, ...responseBase }
+    return { token, requiresPassword: false as const, forbidden: false as const, ...responseBase }
   }
 })

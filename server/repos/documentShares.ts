@@ -94,5 +94,5 @@ export async function listSharedWithUser(userId: number): Promise<SharedWithMeRo
       sql`exists (select 1 from workspace_members wm where wm.workspace_id = ${documents.workspaceId} and wm.user_id = ${userId} and wm.role = 'guest')`
     ))
     .orderBy(desc(documents.lastActive))
-  return rows as SharedWithMeRow[]
+  return rows
 }

@@ -3,7 +3,8 @@ import { findUserById } from '../../repos/users'
 import {
   acceptWorkspaceInvite,
   declineWorkspaceInvite,
-  type InviteSelector
+  type InviteSelector,
+  type ResolvedInvite
 } from '../../repos/workspaceInvites'
 import { appendAuditEvent } from '../../repos/audit'
 import { apiError } from '../api/apiError'
@@ -35,7 +36,11 @@ export async function inAppInviteSelector(userId: number, rawInviteId: string): 
   return { kind: 'id', inviteId, email }
 }
 
-export async function acceptInviteForUser(event: H3Event, userId: number, selector: InviteSelector) {
+/** What acting on an invitation answers; `action` tells the two apart. */
+export type InviteAccepted = { ok: true, action: 'accept', workspaceId: string, workspaceName: string, role: ResolvedInvite['role'] }
+export type InviteDeclined = { ok: true, action: 'decline' }
+
+export async function acceptInviteForUser(event: H3Event, userId: number, selector: InviteSelector): Promise<InviteAccepted> {
   const accepted = await acceptWorkspaceInvite(selector, userId, new Date())
   if (!accepted) throw apiError('workspace/invite-not-found')
 
@@ -52,13 +57,14 @@ export async function acceptInviteForUser(event: H3Event, userId: number, select
 
   return {
     ok: true,
+    action: 'accept',
     workspaceId: accepted.workspaceId,
     workspaceName: accepted.workspaceName,
     role: accepted.role
   }
 }
 
-export async function declineInviteForUser(event: H3Event, userId: number, selector: InviteSelector) {
+export async function declineInviteForUser(event: H3Event, userId: number, selector: InviteSelector): Promise<InviteDeclined> {
   const declined = await declineWorkspaceInvite(selector)
   if (!declined) throw apiError('workspace/invite-not-found')
 
@@ -73,5 +79,5 @@ export async function declineInviteForUser(event: H3Event, userId: number, selec
     metadata: { inviteId: declined.inviteId, via: selector.kind }
   })
 
-  return { ok: true }
+  return { ok: true, action: 'decline' }
 }

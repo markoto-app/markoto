@@ -126,6 +126,7 @@ export function loadEnv<S extends ValidatedService>(
     for (const rule of RULES) {
       if (!rule.services.includes(service)) continue
       if (rule.relaxedInTestMode && relaxed) continue
+      // A rule only reads the namespaces of the services it lists (`rule.services`).
       const messages = rule.check(env as unknown as AppEnv, ctx)
       if (rule.warning) messages.forEach(warn)
       else problems.push(...messages)
@@ -134,6 +135,7 @@ export function loadEnv<S extends ValidatedService>(
   }
 
   if (problems.length > 0) throw new EnvError(service, problems)
+  // `build` fills exactly the variables the registry assigns to `service`, which is what ServiceEnv<S> projects.
   return deepFreeze(env) as unknown as ServiceEnv<S>
 }
 

@@ -6,6 +6,8 @@
 import * as Y from 'yjs'
 import { injectTraceHeaders } from './sentry'
 import { normalizeAvatarSeed } from '../../shared/utils/documents/awarenessUser'
+import { readYComment } from '../../shared/utils/documents/yComment'
+import type { CommentSnapshotEntry, CommentsSnapshotRequest } from '../../shared/contracts/syncInternal'
 import { syncEnv } from './env'
 import { useLogger } from './logger'
 
@@ -14,55 +16,28 @@ const log = useLogger('comments-snapshot')
 const APP_URL = syncEnv().sync.appUrl
 const INTERNAL_SECRET = syncEnv().auth.internalApiSecret
 
-interface SnapshotEntry {
-  entryId: string
-  parentCommentId: string | null
-  authorId: number | null
-  authorName: string
-  /** Anonymous authors only: the random avatar token stored on the
-   *  comment, so its activity row shows the same face. */
-  authorAvatarSeed: string | null
-  body: string
-  createdAt: number
-  updatedAt: number
-  resolved: boolean
-}
-
-/** Coerce a Y.Map field to a string with a fallback (Anonymous, '', etc.). */
-function strField(map: Y.Map<unknown>, key: string, fallback: string): string {
-  const v = map.get(key)
-  return typeof v === 'string' ? v : fallback
-}
-
-/** Coerce a Y.Map field to a number with a fallback. Returns null when fallback is null. */
-function numField<F extends number | null>(map: Y.Map<unknown>, key: string, fallback: F): number | F {
-  const v = map.get(key)
-  return typeof v === 'number' ? v : fallback
-}
-
 /**
- * Build one SnapshotEntry from a Y.Map carrying a comment-or-reply.
+ * Build one snapshot entry from a Y.Map carrying a comment-or-reply.
  * Returns null when the map is missing a required string `id` (corrupt
  * row — silently dropped from the snapshot rather than failing the
  * whole mirror).
  */
-function entryFromMap(map: Y.Map<unknown>, parentCommentId: string | null): SnapshotEntry | null {
-  const id = map.get('id')
-  if (typeof id !== 'string') return null
-  const authorId = numField(map, 'authorId', null)
+function entryFromMap(map: Y.Map<unknown>, parentCommentId: string | null): CommentSnapshotEntry | null {
+  const c = readYComment(map)
+  if (c.id === undefined) return null
   return {
-    entryId: id,
+    entryId: c.id,
     parentCommentId,
-    authorId,
-    authorName: strField(map, 'authorName', 'Anonymous'),
-    authorAvatarSeed: authorId === null ? normalizeAvatarSeed(map.get('authorAvatarSeed')) : null,
-    body: strField(map, 'body', ''),
-    createdAt: numField(map, 'createdAt', 0),
-    updatedAt: numField(map, 'updatedAt', 0),
+    authorId: c.authorId,
+    authorName: c.authorName ?? 'Anonymous',
+    authorAvatarSeed: c.authorId === null ? normalizeAvatarSeed(c.authorAvatarSeed) : null,
+    body: c.body,
+    createdAt: c.createdAt,
+    updatedAt: c.updatedAt,
     // Replies inherit thread state via parentCommentId; the resolved
     // column is meaningful only on the root. Caller drives this via the
     // parentCommentId arg — null for roots, set for replies.
-    resolved: parentCommentId === null && Boolean(map.get('resolved'))
+    resolved: parentCommentId === null && c.resolved
   }
 }
 
@@ -71,9 +46,9 @@ function entryFromMap(map: Y.Map<unknown>, parentCommentId: string | null): Snap
  * snapshot entries (root + nested replies). Replies inherit
  * `parentCommentId` from their thread root.
  */
-function deriveSnapshot(ydoc: Y.Doc): SnapshotEntry[] {
+function deriveSnapshot(ydoc: Y.Doc): CommentSnapshotEntry[] {
   const ycomments = ydoc.getArray<Y.Map<unknown>>('comments')
-  const out: SnapshotEntry[] = []
+  const out: CommentSnapshotEntry[] = []
   for (let i = 0; i < ycomments.length; i++) {
     const map = ycomments.get(i)
     if (!(map instanceof Y.Map)) continue
@@ -135,7 +110,7 @@ export async function shipCommentsSnapshot(
         entries,
         yjsDocIdBefore: boundaries?.yjsDocIdBefore ?? null,
         yjsDocIdAfter: boundaries?.yjsDocIdAfter ?? null
-      }),
+      } satisfies CommentsSnapshotRequest),
       signal: AbortSignal.timeout(8000)
     })
     if (res.ok) {

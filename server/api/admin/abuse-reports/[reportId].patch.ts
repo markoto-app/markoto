@@ -37,7 +37,7 @@ import { updateAbuseReportBody, updateAbuseReportParams } from '~~/shared/api/le
 
 type Status = 'acknowledged' | 'actioned' | 'dismissed'
 
-const ACTION_AUDIT: Record<Status, string> = {
+const ACTION_AUDIT: Record<Status, typeof AUDIT_ABUSE_ACKNOWLEDGED | typeof AUDIT_ABUSE_ACTIONED | typeof AUDIT_ABUSE_DISMISSED> = {
   acknowledged: AUDIT_ABUSE_ACKNOWLEDGED,
   actioned: AUDIT_ABUSE_ACTIONED,
   dismissed: AUDIT_ABUSE_DISMISSED

@@ -356,6 +356,7 @@ export const renderer = defineNamespace({
       name: 'APP_URL',
       internal: true,
       type: url(),
+      // eslint-disable-next-line sonarjs/no-clear-text-protocols -- container to container on the internal render network; TLS ends at Traefik
       default: 'http://app:3000',
       doc: 'Internal URL the renderer loads the print page from.',
       services: ['renderer'],

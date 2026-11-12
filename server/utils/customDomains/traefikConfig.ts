@@ -6,6 +6,7 @@ import type { LiveCustomDomain } from './routing'
 // (letters, digits, hyphens, dots), so they can't break out of the
 // Host(`…`) rule.
 
+// eslint-disable-next-line security/detect-unsafe-regex -- anchored, one bounded run (≤ 251): linear
 const HOSTNAME_RE = /^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$/
 const UPSTREAM_SERVICE = 'markoto-published-pages'
 

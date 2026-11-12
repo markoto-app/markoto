@@ -6,7 +6,7 @@
 // validated tool call to the right handler.
 
 import type { AgenticPart as Part } from '../agentic/aiTypes'
-import { TOOL_HANDLERS, KNOWN_TOOL_NAMES } from '../agentic/toolHandlers'
+import { TOOL_HANDLERS, KNOWN_TOOL_NAMES, isToolName } from '../agentic/toolHandlers'
 import { litellmCompletion, litellmImage } from '../litellm/createCompletion'
 import { providerRequestFields, withProviderErrors } from '../aiProviders/requestFields'
 import type { ResolvedAiProvider } from '../aiProviders/resolve'
@@ -85,6 +85,8 @@ import { embedQuery } from '../knowledge/embeddings'
 import { assertKnowledgeEmbeddingsReady } from '../knowledge/knowledgeEmbeddingsStatus'
 import { appendAiMessage } from '../../repos/aiSessionMessages'
 import { searchActivity, type ActivityEntry } from '../../repos/activity'
+import type { AiToolActivityMetadata } from '~~/shared/contracts/activity'
+import { readYComment, type YCommentFields } from '~~/shared/utils/documents/yComment'
 import { plainCommentText, stripAiMention } from '../agentic/commentTriggerPrompt'
 import { fetchExternalImage as fetchExternalImageGuarded, type ExternalImageResult } from '../storage/externalImage'
 import { budgetExhaustedMessage } from '../billing/billingMode'
@@ -249,8 +251,8 @@ export function lineToCharOffset(full: string, insertLine: number): number | nul
   const lines = full.split('\n')
   if (insertLine > lines.length) return null
   let idx = 0
-  for (let i = 0; i < insertLine; i++) {
-    idx += lines[i]!.length + 1
+  for (const line of lines.slice(0, insertLine)) {
+    idx += line.length + 1
   }
   return Math.min(idx, full.length)
 }
@@ -325,6 +327,8 @@ export function mergeTheme(current: DocTheme, patch: Record<string, unknown>): D
       merged[key] = value
     }
   }
+  // Untyped patch merged into a theme: both callers validate the result
+  // (DocThemeSchema / isValidTheme) before it is used or stored.
   return merged as unknown as DocTheme
 }
 
@@ -822,7 +826,8 @@ export async function handleCreateDocument(
   // emits for this transact carries this string in `actor_principal`,
   // so the audit chain still resolves to the human (no agent kind,
   // because seeding isn't an agent action — just bootstrapping).
-  if (input.initial_markdown && input.initial_markdown.length > 0) {
+  const seed = input.initial_markdown
+  if (seed && seed.length > 0) {
     try {
       const client = await openTrustedCommentClient(
         result.docId,
@@ -831,7 +836,7 @@ export async function handleCreateDocument(
       try {
         const ytext = client.ydoc.getText('content')
         client.ydoc.transact(() => {
-          ytext.insert(0, input.initial_markdown!)
+          ytext.insert(0, seed)
         }, `seed:${session.initiatorUserId}`)
       } finally {
         await client.destroy()
@@ -1106,9 +1111,9 @@ function applyViewRange(body: string, range: ViewOtherDocumentInput['view_range'
   let startLine = 1
   let endLine = allLines.length
   if (range) {
-    const [s, e] = range
-    startLine = s!
-    endLine = e === -1 ? allLines.length : e!
+    const [s = startLine, e = endLine] = range
+    startLine = s
+    endLine = e === -1 ? allLines.length : e
   }
   const sliceStart = Math.max(0, startLine - 1)
   const sliceEnd = Math.min(allLines.length, endLine)
@@ -1196,7 +1201,8 @@ const MAX_IMAGE_BYTES = 5 * MIB
 export function parseInternalFileRef(src: string): { docId: string, fileId: string } | null {
   const match = /\/api\/files\/([A-Za-z0-9_-]+)\/([A-Za-z0-9_-]+\.[A-Za-z0-9]+)(?:$|[?#])/.exec(src)
   if (!match) return null
-  return { docId: match[1]!, fileId: match[2]! }
+  const [, docId, fileId] = match
+  return docId && fileId ? { docId, fileId } : null
 }
 
 async function fetchFromS3(docId: string, fileId: string): Promise<{ bytes: Uint8Array, mimeType: string } | { error: string }> {
@@ -1214,7 +1220,8 @@ async function fetchFromS3(docId: string, fileId: string): Promise<{ bytes: Uint
     if (typeof resp.ContentLength === 'number' && resp.ContentLength > MAX_IMAGE_BYTES) {
       return { error: `Image is ${Math.round(resp.ContentLength / 1024)}KB, which exceeds the ${MAX_IMAGE_BYTES / MIB}MB limit for inlining.` }
     }
-    const bytes = await resp.Body!.transformToByteArray()
+    if (!resp.Body) return { error: 'Image is empty.' }
+    const bytes = await resp.Body.transformToByteArray()
     if (bytes.byteLength > MAX_IMAGE_BYTES) {
       return { error: `Image exceeded the ${MAX_IMAGE_BYTES / MIB}MB limit after fetch.` }
     }
@@ -1273,10 +1280,28 @@ export async function handleViewImage(
 // the extension the upload pipeline uses. (Keep the set narrow — the
 // file-id regex in /api/files only accepts these extensions; anything
 // else would be unreachable via /api/files.)
-const IMAGE_MIME_EXT: Record<string, string> = {
+const IMAGE_MIME_EXT = {
   'image/png': 'png',
   'image/jpeg': 'jpg',
   'image/webp': 'webp'
+} as const
+type GeneratedImageMime = keyof typeof IMAGE_MIME_EXT
+
+/**
+ * A generated image fetched from the provider's URL, kept only in a format
+ * the upload path stores (`view_image` also admits GIF / HEIC, which a
+ * generated image must not become: it would get no file extension).
+ */
+/** @internal exported for unit tests; not part of the public API. */
+export function generatedImageFromFetch(fetched: ExternalImageResult): ImageGenResult {
+  if ('error' in fetched) return fetched
+  const { mimeType } = fetched
+  if (!isGeneratedImageMime(mimeType)) return { error: 'The image provider returned an unsupported image format.' }
+  return { bytes: fetched.bytes, mimeType }
+}
+
+function isGeneratedImageMime(mime: string): mime is GeneratedImageMime {
+  return Object.hasOwn(IMAGE_MIME_EXT, mime)
 }
 
 interface ImageGenOpts {
@@ -1296,7 +1321,7 @@ interface ImageGenOpts {
   docId?: string | null
 }
 
-type ImageGenResult = { bytes: Uint8Array, mimeType: string } | { error: string }
+type ImageGenResult = { bytes: Uint8Array, mimeType: GeneratedImageMime } | { error: string }
 
 /**
  * Generate an image from a text prompt. Two paths, picked by the
@@ -1326,7 +1351,7 @@ async function generateImageBytes(
 }
 
 /** Sniff PNG / JPEG / WebP from magic bytes — providers don't always say. */
-function sniffImageMime(bytes: Uint8Array): string | null {
+function sniffImageMime(bytes: Uint8Array): GeneratedImageMime | null {
   if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) return 'image/png'
   if (bytes.length >= 3 && bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) return 'image/jpeg'
   if (bytes.length >= 12 && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
@@ -1376,7 +1401,7 @@ async function generateImageBytesByok(
       // Some providers (dall-e style) answer with a URL. The URL comes
       // from a third party, so it goes through the same SSRF guard,
       // size cap and MIME allowlist as `view_image`.
-      return await fetchExternalImage(first.url)
+      return generatedImageFromFetch(await fetchExternalImage(first.url))
     }
     return { error: 'The image provider returned no image.' }
   } catch (e) {
@@ -1434,7 +1459,7 @@ async function generateImageBytesBfl(
     // BFL returns image/jpeg by default for FLUX.2 [pro]. Map MIME →
     // extension via IMAGE_MIME_EXT; if the response ever changes, the
     // upload pipeline will reject unknown MIMEs at /api/files.
-    const mimeType = 'image/jpeg'
+    const mimeType: GeneratedImageMime = 'image/jpeg'
     log.debug('BFL image generated', { mimeType, bytes: bytes.byteLength, costUsd: body.cost_usd ?? null })
     return { bytes, mimeType }
   } catch (e) {
@@ -1500,7 +1525,7 @@ export async function handleGenerateImage(
   //    existing /api/files endpoint serves it with no extra plumbing.
   session.updateStatus('tool', 'Uploading generated image…')
 
-  const ext = IMAGE_MIME_EXT[gen.mimeType]!
+  const ext = IMAGE_MIME_EXT[gen.mimeType]
   const fileIdWithExt = `${nanoid(12)}.${ext}`
   const key = `docs/${session.docId}/${fileIdWithExt}`
   const s3 = useS3Client()
@@ -1655,7 +1680,8 @@ export async function handleViewPages(
         Bucket: env.storage.bucket,
         Key: key
       }))
-      const bytes = await got.Body!.transformToByteArray()
+      if (!got.Body) throw new Error(`rendered page ${key} has no body`)
+      const bytes = await got.Body.transformToByteArray()
       const base64 = Buffer.from(bytes).toString('base64')
       parts.push({ inlineData: { mimeType: 'image/png', data: base64 } })
       const sizeKB = Math.round(bytes.byteLength / 1024)
@@ -1752,8 +1778,10 @@ export function formatActivityRow(row: ActivityEntry): string {
   const ts = row.createdAt.toISOString()
   const who = row.userName ?? '(anonymous)'
   const head = `[#${row.id} ${ts} ${row.action} by ${who}]`
-  const m = row.metadata as Record<string, unknown> | null
-  const trim = (s: unknown, n: number) => (typeof s === 'string' ? s.slice(0, n) : '')
+  // Rows can predate the current metadata shapes, so every field read
+  // tolerates a missing value (the line still renders).
+  const m = row.metadata
+  const trim = (s: string | undefined, n: number) => (typeof s === 'string' ? s.slice(0, n) : '')
 
   switch (row.action) {
     case 'edit': {
@@ -1769,45 +1797,53 @@ export function formatActivityRow(row: ActivityEntry): string {
     case 'comment.resolved':
     case 'comment.reopened':
     case 'comment.deleted': {
-      const preview = trim(m?.bodyPreview, 120)
-      const id = trim(m?.commentId, 32)
+      const c = m && 'commentId' in m ? m : null
+      const preview = trim(c?.bodyPreview, 120)
+      const id = trim(c?.commentId, 32)
       const idPart = id ? `comment_id=${id} ` : ''
       return `${head} ${idPart}body≈"${preview}"`
     }
-    case 'title.changed':
-      return `${head} from "${trim(m?.from, 80)}" → "${trim(m?.to, 80)}"`
+    case 'title.changed': {
+      const t = m?.kind === 'title.changed' ? m : null
+      return `${head} from "${trim(t?.from, 80)}" → "${trim(t?.to, 80)}"`
+    }
     case 'theme.changed':
       return `${head} theme updated`
-    case 'ai.tool': {
-      const tool = trim(m?.tool, 40)
-      switch (tool) {
-        case 'web_search':
-          return `${head} web_search query="${trim(m?.query, 120)}"`
-        case 'fetch_url':
-          return `${head} fetch_url url="${trim(m?.url, 200)}"`
-        case 'generate_image':
-          return `${head} generate_image prompt="${trim(m?.prompt, 120)}"`
-        case 'view_image':
-          return `${head} view_image src="${trim(m?.src, 200)}"`
-        case 'search_knowledge':
-          return `${head} search_knowledge query="${trim(m?.query, 120)}"`
-        case 'get_knowledge_file':
-          return `${head} get_knowledge_file knowledge_id=${trim(m?.knowledgeId, 64)}`
-        default:
-          return `${head} ai.tool ${tool || ''}`
-      }
-    }
+    case 'ai.tool':
+      return `${head} ${formatAiToolMetadata(m?.kind === 'ai.tool' ? m : null, trim)}`
     case 'restore': {
-      const fromId = m && typeof m.restoredFromActivityId === 'number' ? m.restoredFromActivityId : null
-      const fromTime = trim(m?.restoredFromTime, 32)
+      const r = m?.kind === 'restore' ? m : null
+      const fromId = typeof r?.restoredFromActivityId === 'number' ? r.restoredFromActivityId : null
+      const fromTime = trim(r?.restoredFromTime, 32)
       const tail = fromTime ? ` (${fromTime})` : ''
       return `${head} restored to row #${fromId ?? '?'}${tail}`
     }
     case 'join':
     case 'leave':
       return `${head} ${row.action}`
+  }
+}
+
+function formatAiToolMetadata(m: AiToolActivityMetadata | null, trim: (s: string | undefined, n: number) => string): string {
+  const toolName: string | undefined = m?.tool
+  switch (m?.tool) {
+    case 'web_search':
+      return `web_search query="${trim(m.query, 120)}"`
+    case 'fetch_url':
+      return `fetch_url url="${trim(m.url, 200)}"`
+    case 'generate_image':
+      return `generate_image prompt="${trim(m.prompt, 120)}"`
+    case 'view_image':
+      return `view_image src="${trim(m.src, 200)}"`
+    case 'search_knowledge':
+      return `search_knowledge query="${trim(m.query, 120)}"`
+    case 'get_knowledge_file':
+      return `get_knowledge_file knowledge_id=${trim(m.knowledgeId, 64)}`
+    case undefined:
     default:
-      return head
+      // No metadata, or a tool written by newer code than this formatter:
+      // show its bare name.
+      return `ai.tool ${trim(toolName, 40)}`
   }
 }
 
@@ -1867,11 +1903,10 @@ export async function executeFunctionByName(
   name: string,
   args: unknown
 ): Promise<ToolResult> {
-  const handler = TOOL_HANDLERS[name]
-  if (!handler) {
+  if (!isToolName(name)) {
     return err(`Error: Unsupported function "${name}". Supported: ${KNOWN_TOOL_NAMES.join(', ')}.`)
   }
-  return handler(session, args)
+  return TOOL_HANDLERS[name](session, args)
 }
 
 // --- Knowledge tools -------------------------------------------------------
@@ -1899,24 +1934,22 @@ const KNOWLEDGE_FILE_CHAR_CAP = 40_000
  * Viewer role still passes: viewers can read knowledge (same as the
  * REST list endpoint). We reject only on "no membership at all".
  */
-async function verifyWorkspaceMembership(session: MetaToolContext): Promise<string | null> {
+/** The document's workspace when the invoker is (still) a member of it, else the refusal. */
+async function verifyWorkspaceMembership(session: MetaToolContext): Promise<{ workspaceId: string, denied?: undefined } | { denied: string }> {
   if (!session.workspaceId) {
-    return 'Error: this tool is only available for documents inside a workspace.'
+    return { denied: 'Error: this tool is only available for documents inside a workspace.' }
   }
   const role = await getMemberRole(session.workspaceId, session.initiatorUserId)
   if (!role) {
-    return 'Error: your membership in this workspace has been revoked. Knowledge tools are unavailable.'
+    return { denied: 'Error: your membership in this workspace has been revoked. Knowledge tools are unavailable.' }
   }
-  return null
+  return { workspaceId: session.workspaceId }
 }
 
 export async function handleSearchKnowledge(session: MetaToolContext, input: SearchKnowledgeInput): Promise<ToolResult> {
-  const denied = await verifyWorkspaceMembership(session)
-  if (denied) return err(denied)
-  // verifyWorkspaceMembership guarantees workspaceId is non-null when
-  // it returns null; TS can't follow that through the helper, hence
-  // the local narrow.
-  const workspaceId = session.workspaceId!
+  const membership = await verifyWorkspaceMembership(session)
+  if (membership.denied !== undefined) return err(membership.denied)
+  const { workspaceId } = membership
   const topK = input.top_k ?? 5
 
   session.updateStatus('tool', `Searching workspace knowledge for "${input.query.slice(0, 80)}"…`)
@@ -1961,8 +1994,8 @@ export async function handleSearchKnowledge(session: MetaToolContext, input: Sea
 }
 
 export async function handleGetKnowledgeFile(session: MetaToolContext, input: GetKnowledgeFileInput): Promise<ToolResult> {
-  const denied = await verifyWorkspaceMembership(session)
-  if (denied) return err(denied)
+  const membership = await verifyWorkspaceMembership(session)
+  if (membership.denied !== undefined) return err(membership.denied)
 
   session.updateStatus('tool', `Reading knowledge file ${input.knowledge_id}…`)
 
@@ -2012,12 +2045,12 @@ function _fromBase64Comment(b64: string): Uint8Array {
 
 /** Resolve a comment's anchor to { from, to } char offsets, or null (orphan). */
 function resolveCommentAnchor(
-  map: Y.Map<unknown>,
+  comment: YCommentFields,
   ydoc: Y.Doc
 ): { from: number, to: number } | null {
-  const startB64 = map.get('anchorStart')
-  const endB64 = map.get('anchorEnd')
-  if (typeof startB64 !== 'string' || typeof endB64 !== 'string') return null
+  const startB64 = comment.anchorStart
+  const endB64 = comment.anchorEnd
+  if (startB64 === null || endB64 === null) return null
   try {
     const startRel = Y.decodeRelativePosition(_fromBase64Comment(startB64))
     const endRel = Y.decodeRelativePosition(_fromBase64Comment(endB64))
@@ -2062,17 +2095,13 @@ function formatAnchorLabel(
 
 /** Format the four header lines (---, anchor, by, comment) for one thread. */
 function formatThreadHeader(map: Y.Map<unknown>, fullText: string, ydoc: Y.Doc): string[] {
-  const id = map.get('id') as string
-  const body = typeof map.get('body') === 'string' ? stripMentions(map.get('body') as string) : ''
-  const authorName = typeof map.get('authorName') === 'string' ? (map.get('authorName') as string) : 'Unknown'
-  const createdAt = typeof map.get('createdAt') === 'number' ? (map.get('createdAt') as number) : 0
-  const resolved = Boolean(map.get('resolved'))
-  const anchorLabel = formatAnchorLabel(resolveCommentAnchor(map, ydoc), fullText)
+  const c = readYComment(map)
+  const anchorLabel = formatAnchorLabel(resolveCommentAnchor(c, ydoc), fullText)
   return [
-    `--- Thread ${id}${resolved ? ' [RESOLVED]' : ''} ---`,
+    `--- Thread ${c.id ?? ''}${c.resolved ? ' [RESOLVED]' : ''} ---`,
     `Anchor: ${anchorLabel}`,
-    `By: ${authorName} at ${fmtDate(createdAt)}`,
-    `Comment: ${body}`
+    `By: ${c.authorName ?? 'Unknown'} at ${fmtDate(c.createdAt)}`,
+    `Comment: ${stripMentions(c.body)}`
   ]
 }
 
@@ -2084,11 +2113,8 @@ function formatThreadReplies(map: Y.Map<unknown>): string[] {
   for (let j = 0; j < repliesArr.length; j++) {
     const r = repliesArr.get(j)
     if (!(r instanceof Y.Map)) continue
-    const rId = r.get('id') as string
-    const rBody = typeof r.get('body') === 'string' ? stripMentions(r.get('body') as string) : ''
-    const rAuthor = typeof r.get('authorName') === 'string' ? (r.get('authorName') as string) : 'Unknown'
-    const rCreatedAt = typeof r.get('createdAt') === 'number' ? (r.get('createdAt') as number) : 0
-    lines.push(`  [${rId}] ${rAuthor} at ${fmtDate(rCreatedAt)}: ${rBody}`)
+    const reply = readYComment(r)
+    lines.push(`  [${reply.id ?? ''}] ${reply.authorName ?? 'Unknown'} at ${fmtDate(reply.createdAt)}: ${stripMentions(reply.body)}`)
   }
   return lines
 }

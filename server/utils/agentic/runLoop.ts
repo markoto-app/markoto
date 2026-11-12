@@ -549,7 +549,7 @@ function validateToolArgs(
   ctx: LoopContext,
   call: FunctionCall
 ): { ok: true, args: unknown } | { ok: false, outcome: DispatchOutcome } {
-  const schema = TOOL_SCHEMAS[call.name!]
+  const schema = TOOL_SCHEMAS[call.name ?? '']
   if (!schema) return { ok: true, args: call.args ?? {} }
   const parsed = schema.safeParse(call.args ?? {})
   if (parsed.success) return { ok: true, args: parsed.data }
@@ -595,8 +595,9 @@ async function recordToolCallMemory(
  * up gracefully without further tool use.
  */
 function checkToolSlotCap(ctx: LoopContext, call: FunctionCall): DispatchOutcome | null {
-  if (ctx.budget.claimToolSlot(call.name!)) return null
-  const cap = ctx.budget.toolCap(call.name!) ?? 0
+  const name = call.name ?? ''
+  if (ctx.budget.claimToolSlot(name)) return null
+  const cap = ctx.budget.toolCap(name) ?? 0
   ctx.log(`[limits] tool call cap reached: ${call.name} (${cap}/${cap})`)
   return {
     kind: 'continue',

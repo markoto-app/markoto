@@ -192,8 +192,9 @@ export async function embedDocuments(
   async function worker(): Promise<void> {
     while (true) {
       const i = next++
-      if (i >= texts.length) return
-      out[i] = await embedOne(client, cfg, texts[i]!, 'RETRIEVAL_DOCUMENT')
+      const text = texts[i]
+      if (text === undefined) return
+      out[i] = await embedOne(client, cfg, text, 'RETRIEVAL_DOCUMENT')
     }
   }
   const workers = Array.from({ length: Math.min(concurrency, texts.length) }, worker)

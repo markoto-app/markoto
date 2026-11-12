@@ -1,6 +1,9 @@
 import { pgTable, serial, integer, text, timestamp, primaryKey, index, uniqueIndex, jsonb, vector, boolean, customType, check, doublePrecision, date } from 'drizzle-orm/pg-core'
 import { sql, type SQL } from 'drizzle-orm'
 import type { DocTheme } from '~~/shared/types/theme'
+import type { ActivityMetadata } from '~~/shared/contracts/activity'
+import type { AiMessageBody, AuditAfter, AuditBefore, AuditMetadata } from './columnTypes'
+import type { OrderSensitiveStripeEvent, StripeSubscriptionStatus } from '~~/shared/contracts/stripe'
 
 // drizzle has no native `tsvector`; generated columns are STORED so the
 // GIN index stays in sync without triggers.
@@ -220,7 +223,7 @@ export const workspaceSubscriptions = pgTable('workspace_subscriptions', {
   seats: integer('seats').notNull(),
   // Stripe subscription status, verbatim (active, trialing, past_due,
   // canceled, unpaid, incomplete, incomplete_expired, paused).
-  status: text('status').notNull(),
+  status: text('status').$type<StripeSubscriptionStatus>().notNull(),
   // The member who pays and manages billing. SET NULL when their account
   // is deleted; the account-deletion flow hands the role to the
   // longest-serving workspace admin first.
@@ -642,7 +645,7 @@ export const aiSessionMessages = pgTable('ai_session_messages', {
   //   user_prompt:      { text }
   //   tool_call:        { name, summary }
   //   message_to_user:  { message, isQuestion }
-  body: jsonb('body').notNull(),
+  body: jsonb('body').$type<AiMessageBody>().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
   // Hot path: this user's recent memory for this doc.
@@ -781,7 +784,7 @@ export const activityLog = pgTable('activity_log', {
   wordCount: integer('word_count'),
   linesAdded: integer('lines_added'),
   linesRemoved: integer('lines_removed'),
-  metadata: jsonb('metadata'),
+  metadata: jsonb('metadata').$type<ActivityMetadata>(),
   // Boundary y-postgresql row ids around the store event that produced
   // this row: max yjs_documents.id BEFORE and AFTER the store. The diff
   // endpoint reconstructs the doc on either side from them. Nullable:
@@ -858,12 +861,12 @@ export const auditLog = pgTable('audit_log', {
   action: text('action').notNull(),
   // State before the action, shaped per action, e.g. { accessMode: 'open-edit' }.
   // Never holds secrets: passwords are recorded as { hasPassword: bool }.
-  before: jsonb('before'),
+  before: jsonb('before').$type<AuditBefore>(),
   // State after.
-  after: jsonb('after'),
+  after: jsonb('after').$type<AuditAfter>(),
   // Free-form context. Examples: { reason: 'workspace_cascade' },
   // { affectedUserId: 42 }, { stripeEventId: 'evt_xxx' }.
-  metadata: jsonb('metadata'),
+  metadata: jsonb('metadata').$type<AuditMetadata>(),
   // The workspace the event belongs to (for the workspace audit-log
   // viewer). Set for every `workspace` / `billing` event (= scope_id) and
   // for document events of a workspace document (the workspace at the
@@ -911,7 +914,7 @@ export const pendingStripeEvents = pgTable('pending_stripe_events', {
   customerId: text('customer_id').notNull(),
   type: text('type').notNull(),
   // Replayed verbatim through the dispatcher once the customer is bound.
-  payload: jsonb('payload').notNull(),
+  payload: jsonb('payload').$type<OrderSensitiveStripeEvent>().notNull(),
   receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
   // True once replayed against a bound user row; kept a week for audit.
   processed: boolean('processed').notNull().default(false),

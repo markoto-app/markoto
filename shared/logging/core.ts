@@ -72,7 +72,7 @@ function normaliseKey(key: string): string {
   return key.toLowerCase().replace(/[^a-z0-9]/g, '')
 }
 
-const SECRET_KEY = /password|passwd|secret|authorization|cookie|apikey|privatekey|accesskey|signingkey|credential|jwt|bearer|token$/
+const SECRET_KEY = /password|passwd|secret|authorization|cookie|apikey|privatekey|accesskey|signingkey|credential|jwt|bearer|(?:token$)/
 const EMAIL_KEY = /email$/
 const BODY_KEY = /^(body|rawbody|requestbody|responsebody|headers|payload)$/
 
@@ -83,8 +83,10 @@ export function maskEmail(address: string): string {
   return `${address[0]}***${address.slice(at)}`
 }
 
-const EMAIL_IN_TEXT = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g
-const URL_IN_TEXT = /\b([a-z][a-z0-9+.-]*:\/\/)([^\s/?#@]*@)?([^\s?#"'<>)\]]*)(\?[^\s"'<>)\]]*)?/gi
+// Bounded runs (RFC 5321 lengths): with `+` a long run of address characters
+// without an `@` is rescanned from every start position (quadratic).
+const EMAIL_IN_TEXT = /[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}\.[A-Za-z0-9.-]{1,253}/g
+const URL_IN_TEXT = /\b([a-z][a-z0-9+.-]{0,31}:\/\/)([^\s/?#@]{0,256}@|)([^\s?#"'<>)\]]*)(\?[^\s"'<>)\]]*|)/gi
 const BEARER = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{8,}/g
 const JWT = /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]*/g
 const PROVIDER_KEY = /\b(?:sk|pk|rk|whsec|xox[bp])[-_][A-Za-z0-9_-]{16,}/g
@@ -131,6 +133,7 @@ function sanitise(value: unknown, depth: number, key?: string): unknown {
     case 'boolean': return value
     case 'bigint': return value.toString()
     case 'function': case 'symbol': return undefined
+    case 'object': case 'undefined': break
   }
   if (value instanceof Error) return errorFields(value, depth)
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? 'Invalid Date' : value.toISOString()
@@ -144,7 +147,7 @@ function sanitise(value: unknown, depth: number, key?: string): unknown {
   }
   const out: LogFields = {}
   let count = 0
-  for (const [k, v] of Object.entries(value as object)) {
+  for (const [k, v] of Object.entries(value)) {
     if (++count > MAX_KEYS) {
       out['…'] = 'truncated'
       break

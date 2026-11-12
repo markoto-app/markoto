@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { isValidEmailShape } from './emailShape'
 import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
+import { trimTrailingSlashes } from '~~/shared/utils/trimTrailingSlashes'
 
 // Workspace invitations (pending invite + accept).
 //
@@ -170,7 +171,7 @@ export function buildWorkspaceInviteEmail(args: {
   role: InviteRole
 }): { subject: string, body: string } {
   const copy = INVITE_EMAIL_COPY[args.locale]
-  const base = args.baseUrl.replace(/\/+$/, '')
+  const base = trimTrailingSlashes(args.baseUrl)
   const acceptUrl = `${base}/invites/accept?token=${encodeURIComponent(args.token)}`
   const workspace = clip(args.workspaceName, 80)
   const inviter = clip(args.inviterName, 60)

@@ -3,13 +3,14 @@ import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from '../../utils/document
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import type { ShapeOutput } from '@modelcontextprotocol/sdk/server/zod-compat.js'
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
-import { defineMcpTool, type McpRequestExtra, type McpToolCallback } from '@nuxtjs/mcp-toolkit/server'
+import { defineMcpTool, type McpRequestExtra } from '@nuxtjs/mcp-toolkit/server'
 import { renderDocument } from '../../utils/rendering/renderClient'
 import { useS3Client } from '../../utils/storage/s3'
 import { getDocAuthz } from '../../utils/workspaces/workspaceAccess'
 import { toolEnabled } from '../lib/mcpToolContext'
 import { admitToolCall } from '../lib/wrapDocBoundTool'
 import { useEnv } from '~~/shared/env/load'
+import { apiError } from '../../utils/api/apiError'
 
 // MCP-only tool. The in-app agentic loop has no use for a PDF blob —
 // `view_pages` already gives the loop per-page PNGs for visual
@@ -45,29 +46,21 @@ export default defineMcpTool({
   inputSchema,
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   enabled: event => toolEnabled(event, 'documents:read', 'export_document_as_pdf'),
-  handler: (async (args: ShapeOutput<typeof inputSchema>, _extra: McpRequestExtra): Promise<CallToolResult> => {
+  handler: async (args: ShapeOutput<typeof inputSchema>, _extra: McpRequestExtra): Promise<CallToolResult> => {
     const event = useEvent()
     // Scope re-check + per-user call limit + the render allowance shared
     // with `GET /api/docs/:id/pdf`.
     const auth = await admitToolCall(event, 'export_document_as_pdf', 'documents:read', 'render')
     const docId = String(args.doc_id ?? '')
     if (!docId) {
-      throw createError({
-        statusCode: 400,
-        message: 'export_document_as_pdf: doc_id is required',
-        data: { code: 'mcp/missing-doc-id' }
-      })
+      throw apiError('mcp/missing-doc-id')
     }
 
     // View access on the source. Same anti-enumeration 404-shape as
     // the rest of the doc-bound MCP tools.
     const authz = await getDocAuthz(auth.userId, docId)
     if (!authz.exists || !authz.canView) {
-      throw createError({
-        statusCode: 404,
-        message: 'export_document_as_pdf: document not found',
-        data: { code: 'mcp/doc-not-found' }
-      })
+      throw apiError('mcp/doc-not-found')
     }
 
     // View only: a visitor (e.g. a guest) gets no PDF, as on GET /pdf.
@@ -138,7 +131,7 @@ export default defineMcpTool({
       ],
       isError: false
     }
-  }) as McpToolCallback<typeof inputSchema>
+  }
 })
 
 /** `renders/<docId>/<folder>/<file>.pdf` → `<folder>`. */

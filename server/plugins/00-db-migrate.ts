@@ -15,20 +15,24 @@ const log = useLogger('db-migrate')
 //
 // Fires `signalMigrationsComplete()` on success so plugins that kick off
 // DB-touching startup work can await it instead of racing us.
-export default defineNitroPlugin(async () => {
+export default defineNitroPlugin(() => {
   // `bun run build` boots Nitro in prerender mode (PWA workbox needs `/`
   // pre-rendered), which fires every plugin. We have no DB at build time —
   // skip. The plugin still runs at every real container start.
   if (import.meta.prerender) return
 
-  const migrationsFolder = useEnv().server.migrationsDir
-  try {
-    const db = useDatabase()
-    await migrate(db, { migrationsFolder })
-    log.info('Migrations applied successfully.')
-    signalMigrationsComplete()
-  } catch (e) {
+  // Nitro doesn't await plugins; startup work that needs the schema awaits
+  // `migrationsComplete` instead. A failed migration stops the process: the
+  // app must not serve requests against a schema it doesn't match.
+  applyMigrations().catch((e: unknown) => {
     log.error('Migration failed', { err: e })
-    throw e
-  }
+    process.exit(1)
+  })
 })
+
+async function applyMigrations(): Promise<void> {
+  const db = useDatabase()
+  await migrate(db, { migrationsFolder: useEnv().server.migrationsDir })
+  log.info('Migrations applied successfully.')
+  signalMigrationsComplete()
+}

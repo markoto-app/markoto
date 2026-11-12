@@ -87,9 +87,11 @@ type MetaHandlerFn = (ctx: MetaToolContext, args: unknown) => ToolResult | Promi
  */
 export const DOC_TOOL_HANDLERS = Object.freeze({
   view_document: (ctx, args) => {
-    const vr = (args as ViewDocumentInput).view_range
+    // The schema keeps `view_range` an array of exactly two (a tuple schema
+    // is refused by some providers' validators).
+    const [start, end] = (args as ViewDocumentInput).view_range ?? []
     return handleView(ctx, {
-      view_range: vr ? [vr[0]!, vr[1]!] : undefined
+      view_range: start !== undefined && end !== undefined ? [start, end] : undefined
     })
   },
   replace_text: (ctx, args) => handleStrReplace(ctx, args as ReplaceTextInput),
@@ -167,8 +169,14 @@ export const META_TOOL_HANDLERS = Object.freeze({
  * of DocToolContext); meta handlers also accept it (DocToolContext is
  * structurally a superset of MetaToolContext).
  */
-export const TOOL_HANDLERS: Readonly<Record<string, (ctx: DocToolContext, args: unknown) => ToolResult | Promise<ToolResult>>>
+type ToolHandler = (ctx: DocToolContext, args: unknown) => ToolResult | Promise<ToolResult>
+export const TOOL_HANDLERS: Readonly<Record<ToolName, ToolHandler>>
   = Object.freeze({ ...DOC_TOOL_HANDLERS, ...META_TOOL_HANDLERS })
+
+/** Whether `name` is a registered tool (a model can ask for any name). */
+export function isToolName(name: string): name is ToolName {
+  return Object.hasOwn(TOOL_HANDLERS, name)
+}
 
 export type DocToolName = keyof typeof DOC_TOOL_HANDLERS
 export type MetaToolName = keyof typeof META_TOOL_HANDLERS

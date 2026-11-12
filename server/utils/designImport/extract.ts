@@ -24,7 +24,10 @@ export interface DesignFacts {
   format: DesignImportExt
   pageCount: number | null
   pages: OriginalPage[]
-  /** Format-specific facts (`docx` / `pdf` object), passed to the model as JSON. */
+  /**
+   * Format-specific facts (`docx` / `pdf` object). Opaque on purpose: the app
+   * only forwards them to the model as JSON and collects font names from them.
+   */
   facts: Record<string, unknown>
   /** Start of the text with style names (DOCX) — DATA from the upload, never instructions. */
   textSample: string
@@ -94,8 +97,7 @@ export function fontNamesInFacts(facts: DesignFacts): string[] {
       return
     }
     if (typeof value !== 'object' || value === null) return
-    const record = value as Record<string, unknown>
-    for (const [k, v] of Object.entries(record)) {
+    for (const [k, v] of Object.entries(value)) {
       if (k === 'font' || k === 'major' || k === 'minor') add(v)
       // `{value, share}` rows of a font histogram
       else if (k === 'value' && (key === 'fonts')) add(v)

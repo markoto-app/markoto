@@ -73,8 +73,17 @@ export const HANDLED_STRIPE_EVENT_TYPES = [
   'customer.subscription.updated',
   'customer.subscription.deleted',
   'invoice.paid',
-  'invoice.payment_failed'
+  'invoice.payment_failed',
+  'charge.refunded'
 ] as const
+
+export type HandledStripeEventType = typeof HANDLED_STRIPE_EVENT_TYPES[number]
+/** A handled event, narrowed to the SDK's own event type for its `type`. */
+export type HandledStripeEvent = Extract<Stripe.Event, { type: HandledStripeEventType }>
+
+export function isHandledStripeEvent(event: Stripe.Event): event is HandledStripeEvent {
+  return (HANDLED_STRIPE_EVENT_TYPES as readonly string[]).includes(event.type)
+}
 
 /**
  * The subset of handled events whose ordering matters — those that
@@ -95,6 +104,8 @@ export const ORDER_SENSITIVE_STRIPE_EVENT_TYPES = [
 ] as const
 
 export type OrderSensitiveStripeEventType = typeof ORDER_SENSITIVE_STRIPE_EVENT_TYPES[number]
+/** An order-sensitive event; also the shape stashed in `pending_stripe_events.payload`. */
+export type OrderSensitiveStripeEvent = Extract<Stripe.Event, { type: OrderSensitiveStripeEventType }>
 
 /**
  * Type-narrowing helper: given any Stripe.Event, returns true if it's
@@ -103,6 +114,27 @@ export type OrderSensitiveStripeEventType = typeof ORDER_SENSITIVE_STRIPE_EVENT_
  */
 export function isOrderSensitiveStripeEvent(
   event: Stripe.Event
-): event is Stripe.Event & { type: OrderSensitiveStripeEventType } {
+): event is OrderSensitiveStripeEvent {
   return (ORDER_SENSITIVE_STRIPE_EVENT_TYPES as readonly string[]).includes(event.type)
+}
+
+/**
+ * Answer of the plan checkout routes (personal and workspace): either the
+ * live subscription was switched in place (`updated`), or a Stripe Checkout
+ * session was opened for the browser to follow (`url`).
+ */
+export type PlanCheckoutResponse<P extends string>
+  = | { updated: true, plan: P }
+    | { url: string | null, sessionId: string }
+
+/**
+ * The subscription statuses of the pinned API version, as stored in
+ * `workspace_subscriptions.status`. Stripe's own type also admits any other
+ * string (statuses added in later API versions).
+ */
+export const STRIPE_SUBSCRIPTION_STATUSES = ['active', 'canceled', 'incomplete', 'incomplete_expired', 'past_due', 'paused', 'trialing', 'unpaid'] as const
+export type StripeSubscriptionStatus = typeof STRIPE_SUBSCRIPTION_STATUSES[number]
+
+export function isKnownSubscriptionStatus(status: string): status is StripeSubscriptionStatus {
+  return (STRIPE_SUBSCRIPTION_STATUSES as readonly string[]).includes(status)
 }

@@ -1,18 +1,17 @@
 import type OpenAI from 'openai'
 import { isBudgetExceededError } from './userKeys'
 
-// Typed wrapper around `litellm.chat.completions.create(...)` that handles
-// the cast for LiteLLM's `metadata.tags: string[]` extension AND retries
-// transient upstream throttles (429) transparently.
+// Typed wrapper around `litellm.chat.completions.create(...)` that carries
+// LiteLLM's body extensions AND retries transient upstream throttles (429)
+// transparently.
 //
 // The OpenAI SDK types `ChatCompletionCreateParams['metadata']` as `Metadata`
 // (= `Record<string, string>`). LiteLLM extends this with `{ tags: string[] }`
-// for spend-attribution tags — structurally incompatible with the base type.
-// Without a typed wrapper, every call site ended up writing
-// `{...} as unknown as Parameters<typeof litellm.chat.completions.create>[0]`
-// — a double cast that hides not just the metadata mismatch but ALL type
-// errors in the body. These helpers narrow the cast to the metadata field
-// alone; everything else stays type-checked.
+// for spend-attribution tags — structurally incompatible with the base type —
+// plus the clientside `api_key` / `api_base`. The SDK gets the standard
+// fields as its typed params and the full LiteLLM body through its `body`
+// request option (which replaces the serialized body), so no cast hides a
+// type error in the body.
 //
 // Retry semantics — applies to both wrappers below:
 //   - 429 from upstream (Mistral / Jina / BFL) is RETRIED with
@@ -129,6 +128,12 @@ export type LitellmCreateStreamParams = Omit<
 
 export type LitellmImageParams = Omit<OpenAI.Images.ImageGenerateParamsNonStreaming, 'metadata'> & LitellmBodyExtensions
 
+/** The OpenAI-shaped part of a LiteLLM body (the SDK's typed params). */
+function sdkParams<T extends LitellmBodyExtensions>(body: T): Omit<T, keyof LitellmBodyExtensions> {
+  const { metadata: _metadata, api_key: _apiKey, api_base: _apiBase, ...params } = body
+  return params
+}
+
 /**
  * Image generation through LiteLLM's `/v1/images/generations` (BYOK
  * path — the user's OpenAI-compatible images API). Uses the SDK's
@@ -174,10 +179,7 @@ export async function litellmCompletion(
   opts?: { signal?: AbortSignal }
 ): Promise<OpenAI.Chat.Completions.ChatCompletion> {
   return withRetry(
-    () => client.chat.completions.create(
-      body as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
-      opts
-    ),
+    () => client.chat.completions.create(sdkParams(body), { signal: opts?.signal, body }),
     opts
   )
 }
@@ -189,6 +191,7 @@ export async function litellmCompletion(
  * SDK's `Stream<...>` — the chunk-translator in `messageTranslation.ts`
  * only consumes the iterator interface.
  */
+// eslint-disable-next-line sonarjs/no-identical-functions -- same body as litellmCompletion, but the SDK's streaming overload (and return type) is picked from the stream params
 export async function litellmStream(
   client: OpenAI,
   body: LitellmCreateStreamParams,
@@ -201,10 +204,7 @@ export async function litellmStream(
   // for that anyway and the caller's existing error handler is the
   // right surface.
   return withRetry(
-    () => client.chat.completions.create(
-      body as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming,
-      opts
-    ),
+    () => client.chat.completions.create(sdkParams(body), { signal: opts?.signal, body }),
     opts
   )
 }

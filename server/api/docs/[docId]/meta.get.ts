@@ -28,6 +28,8 @@ export default defineApiHandler({
     // (its JWT) gave — only the owner and members keep seeing the metadata.
     if (decision.outcome !== 'allow' && (state.shareExpired || !actor.hasValidDocJwt)) {
       return {
+        // The two answers' discriminant: only a granted one carries the document's fields.
+        granted: false as const,
         docId,
         // The effective mode: once a link has expired it reads `private`,
         // never what it was before.
@@ -72,6 +74,7 @@ export default defineApiHandler({
     // public shape.
     const { workspaceId, ...publicDoc } = doc
     return {
+      granted: true as const,
       ...publicDoc,
       // Share-link controls: this viewer may not download or print.
       noDownload: !canDownload(state, actor, authz.shareNoDownload),

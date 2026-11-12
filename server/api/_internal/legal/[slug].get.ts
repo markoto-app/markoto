@@ -106,6 +106,7 @@ export default defineApiHandler({
     let chosenLocale = locale
     let raw: string
     try {
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- slug and locale are checked against fixed allowlists above
       raw = await readFile(join(baseDir, `${chosenLocale}.md`), 'utf8')
     } catch {
       if (chosenLocale === AUTHORITATIVE_LOCALE) {
@@ -113,6 +114,7 @@ export default defineApiHandler({
       }
       chosenLocale = AUTHORITATIVE_LOCALE
       try {
+        // eslint-disable-next-line security/detect-non-literal-fs-filename -- slug and locale are checked against fixed allowlists above
         raw = await readFile(join(baseDir, `${chosenLocale}.md`), 'utf8')
       } catch {
         throw apiError('internal')

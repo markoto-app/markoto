@@ -57,7 +57,7 @@ export default defineApiHandler({
         log.warn('OIDC discovery failed', { connectionId: connection.id, err })
         return sendRedirect(event, ssoErrorPath('sso/idp-unavailable', connection.workspaceId))
       }
-      const { url, flow: oidcFlow } = await buildOidcAuthorizationRequest(config, settings, settings.redirectUrl!)
+      const { url, flow: oidcFlow } = await buildOidcAuthorizationRequest(config, settings, settings.redirectUrl)
       setSsoFlowCookie(event, { ...flow, ...oidcFlow })
       return sendRedirect(event, url.href)
     }

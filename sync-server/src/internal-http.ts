@@ -9,6 +9,7 @@ import { writeDocNotBefore } from './doc-not-before'
 import { Sentry } from './sentry'
 import { syncEnv } from './env'
 import { useLogger, type Logger } from './logger'
+import { flushDocumentBody, kickUserBody, notifyDeletedBody, reauthDocumentBody } from '../../shared/contracts/syncInternal'
 
 const log = useLogger('internal-http')
 
@@ -184,12 +185,12 @@ async function handleNotifyDeleted(
   response: ServerResponse,
   instance: HocuspocusInstance
 ): Promise<boolean> {
-  const body = await readJsonBody(request) as { docId?: unknown }
-  const docId = body?.docId
-  if (typeof docId !== 'string') {
+  const parsed = notifyDeletedBody.safeParse(await readJsonBody(request))
+  if (!parsed.success) {
     sendJson(response, 400, { error: 'Missing docId' })
     return true
   }
+  const { docId } = parsed.data
   const doc = instance.documents?.get(docId)
   if (doc) {
     doc.getMap('meta').set('_deleted', Date.now())
@@ -223,12 +224,12 @@ async function handleFlushDocument(
   response: ServerResponse,
   instance: HocuspocusInstance
 ): Promise<boolean> {
-  const body: unknown = await readJsonBody(request)
-  const docId = typeof body === 'object' && body !== null ? (body as Record<string, unknown>).docId : undefined
-  if (typeof docId !== 'string' || docId.length === 0) {
+  const parsed = flushDocumentBody.safeParse(await readJsonBody(request))
+  if (!parsed.success) {
     sendJson(response, 400, { error: 'Missing docId' })
     return true
   }
+  const { docId } = parsed.data
   const outcome = await flushPendingStore(instance, docId)
   sendJson(response, 200, { success: true, outcome })
   return true
@@ -248,19 +249,16 @@ async function handleKickUser(
   response: ServerResponse,
   instance: HocuspocusInstance
 ): Promise<boolean> {
-  const body = await readJsonBody(request) as { userId?: unknown, docIds?: unknown }
-  const rawUserId = body?.userId
-  const rawDocIds = body?.docIds
-  if ((typeof rawUserId !== 'string' && typeof rawUserId !== 'number')
-    || !Array.isArray(rawDocIds)) {
+  const parsed = kickUserBody.safeParse(await readJsonBody(request))
+  if (!parsed.success) {
     sendJson(response, 400, { error: 'userId (string|number) and docIds (string[]) required' })
     return true
   }
   // JWT payloads may carry userId as number (logged-in) or string
   // ('anonymous'). Compare as strings to cover both shapes without
   // a silent skip on number/string mismatch.
-  const targetUserId = String(rawUserId)
-  const targetDocIds = rawDocIds.filter((d): d is string => typeof d === 'string')
+  const targetUserId = String(parsed.data.userId)
+  const targetDocIds = parsed.data.docIds
 
   const { kicked, missing } = performKickUser(instance, targetUserId, targetDocIds)
   // Record for TEST_MODE inspection — no-op in prod.
@@ -283,14 +281,12 @@ async function handleReauthDocument(
   response: ServerResponse,
   instance: HocuspocusInstance
 ): Promise<boolean> {
-  const body: unknown = await readJsonBody(request)
-  const fields = typeof body === 'object' && body !== null ? body as Record<string, unknown> : {}
-  const { docId, notBefore } = fields
-  if (typeof docId !== 'string' || docId.length === 0
-    || typeof notBefore !== 'number' || !Number.isInteger(notBefore) || notBefore <= 0) {
+  const parsed = reauthDocumentBody.safeParse(await readJsonBody(request))
+  if (!parsed.success) {
     sendJson(response, 400, { error: 'docId (string) and notBefore (epoch seconds) required' })
     return true
   }
+  const { docId, notBefore } = parsed.data
   // Cutoff first: a client closed below reconnects within a second and
   // must already be refused if it presents its old token.
   const cutoffStored = await writeDocNotBefore(docId, notBefore)

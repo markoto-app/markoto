@@ -136,7 +136,7 @@ const MAX_NESTING_DEPTH = 32
 
 const SCRIPT_SCHEME_RE = /(?:java|vb)script:/i
 
-const DATA_IMAGE_RE = /^data:image\/(?:png|jpeg|jpg|gif|webp);base64,[A-Za-z0-9+/]+={0,2}$/i
+const DATA_IMAGE_RE = /^data:image\/(?:png|jpeg|jpg|gif|webp);base64,[A-Z0-9+/]+={0,2}$/i
 const SVG_DATA_RE = /^data:image\/svg/i
 
 const ID_PART = ID_PATTERN
@@ -238,7 +238,9 @@ function nestingDepth(input: string, limit: number): number {
   let depth = 0
   let max = 0
   let quote: string | null = null
-  for (let i = 0; i < input.length; i++) {
+  // A scanner: escapes and comments advance the index inside the body.
+  let i = -1
+  while (++i < input.length) {
     const ch = input[i]
     if (quote !== null) {
       if (ch === '\\') i++
@@ -377,6 +379,7 @@ function sanitizeChecked(input: string, opts: SanitizeCustomCssOptions): CustomC
   }
 
   const inspect = (node: CssNode) => {
+    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check -- css-tree has ~40 node types; only these need a decision, every other node is inert (default)
     switch (node.type) {
       case 'Comment':
       case 'CDO':

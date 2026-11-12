@@ -1,3 +1,5 @@
+import type { PlanCheckoutResponse } from '~~/shared/contracts/stripe'
+import type { WorkspacePlanName } from '~~/shared/config/tiers'
 import * as Sentry from '@sentry/nuxt'
 import { recordPaidTermsAcceptance, requirePaidTermsAccepted } from '../../../../utils/billing/paidTerms'
 import { findUserById } from '../../../../repos/users'
@@ -39,7 +41,7 @@ export default defineApiHandler({
   instance: 'billing',
   body: startWorkspaceCheckoutBody,
   rateLimit: { namespace: 'billing-checkout', max: 10, windowMs: MINUTE_MS, key: 'user', error: 'billing/rate-limited' },
-  handler: async ({ event, user, wsId, body }) => {
+  handler: async ({ event, user, wsId, body }): Promise<PlanCheckoutResponse<WorkspacePlanName>> => {
     const userId = user.id
     const { plan, interval } = body
     const stripe = useStripeClient()

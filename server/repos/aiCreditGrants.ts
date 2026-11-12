@@ -66,14 +66,14 @@ export async function insertCreditGrant(input: {
 export async function listUsableGrants(subject: CreditSubject, now: Date = new Date(), db: DbOrTx = useDatabase()): Promise<CreditGrantRow[]> {
   return db.select().from(aiCreditGrants)
     .where(and(subjectWhere(subject), gt(aiCreditGrants.expiresAt, now), gt(aiCreditGrants.remainingUsd, 0)))
-    .orderBy(asc(aiCreditGrants.expiresAt), asc(aiCreditGrants.id)) as Promise<CreditGrantRow[]>
+    .orderBy(asc(aiCreditGrants.expiresAt), asc(aiCreditGrants.id))
 }
 
 /** Every grant of a subject, newest first (billing UI, data export). */
 export async function listGrants(subject: CreditSubject, db: DbOrTx = useDatabase()): Promise<CreditGrantRow[]> {
   return db.select().from(aiCreditGrants)
     .where(subjectWhere(subject))
-    .orderBy(sql`${aiCreditGrants.createdAt} desc`) as Promise<CreditGrantRow[]>
+    .orderBy(sql`${aiCreditGrants.createdAt} desc`)
 }
 
 /** Credits still usable, USD. */
@@ -145,7 +145,7 @@ function creditLockKey(subject: CreditSubject): string {
  * taken (less than asked when the credits run out).
  */
 export async function consumeCredits(subject: CreditSubject, period: string, amountUsd: number, now: Date = new Date()): Promise<number> {
-  if (!(amountUsd > 0)) return 0
+  if (Number.isNaN(amountUsd) || amountUsd <= 0) return 0
   return useDatabase().transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${creditLockKey(subject)}))`)
     let left = amountUsd
@@ -191,7 +191,7 @@ export async function refundCreditGrant(paymentIntentId: string, refundedFractio
   // settlement taking from this grant at the same moment and this refund
   // each write `remaining_usd` from a stale read, and one write is lost.
   await db.execute(sql`select pg_advisory_xact_lock(hashtext(${creditLockKey({ type: found.subjectType, id: found.subjectId })}))`)
-  const grant = (await db.select().from(aiCreditGrants).where(eq(aiCreditGrants.stripePaymentIntentId, paymentIntentId)).limit(1))[0] as CreditGrantRow | undefined
+  const grant: CreditGrantRow | undefined = (await db.select().from(aiCreditGrants).where(eq(aiCreditGrants.stripePaymentIntentId, paymentIntentId)).limit(1))[0]
   if (!grant) return null
   const fraction = Math.min(1, Math.max(0, refundedFraction))
   const targetRefunded = roundUsd(grant.amountUsd * fraction)

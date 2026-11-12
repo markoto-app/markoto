@@ -1,3 +1,4 @@
+import { must } from '~~/shared/utils/must'
 import { and, eq, ne, notInArray, sql } from 'drizzle-orm'
 import {
   aiSessions,
@@ -165,7 +166,7 @@ export async function planAccountDeletion(userId: number): Promise<AccountDeleti
       // else longest-tenured viewer.
       const promote = others.find(o => o.role === 'admin')
         ?? others.find(o => o.role === 'editor')
-        ?? others[0]!
+        ?? must(others[0], 'another member (sole-member workspaces cascade above)')
       workspacesPlan.push({
         kind: 'promote_admin',
         workspaceId: m.workspaceId,

@@ -13,6 +13,7 @@ import { abuseNotificationRecipient } from '../platform/instanceConfig'
 import { buildDecisionNotice, buildStatementOfReasons, deliverNotice, type NoticeStatus } from './moderationNotices'
 import { actionRestrictsContent, type ModerationAction, type ModerationRule } from '~~/shared/config/moderation'
 import { useEnv } from '~~/shared/env/load'
+import type { AuditDocSnapshot } from '../../db/columnTypes'
 
 // Carries out a moderator's decision on an abuse report:
 //   1. snapshot the reported document (owner, title) BEFORE touching it,
@@ -51,7 +52,7 @@ function documentUrl(docId: string, fallback: string | null): string {
 async function applyToContent(
   docId: string,
   action: ModerationAction,
-  meta: { reportId: string, adminUserId: number, adminIp: string | null, before: Record<string, unknown> }
+  meta: { reportId: string, adminUserId: number, adminIp: string | null, before: AuditDocSnapshot }
 ): Promise<ContentEffect> {
   if (action === 'content_removed') {
     await deleteDocument(docId)
@@ -98,7 +99,7 @@ async function applyToContent(
       scope: 'doc',
       scopeId: docId,
       action: 'doc.access_mode_changed',
-      before: { accessMode: meta.before.accessMode ?? null },
+      before: { accessMode: meta.before.accessMode },
       after: { accessMode: 'private', moderationRestricted: true },
       metadata: { reason: 'moderation', reportId: meta.reportId, ...(unsharedGuestIds.length > 0 ? { guestSharesRemoved: unsharedGuestIds.length } : {}) }
     })

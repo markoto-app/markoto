@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken'
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright'
+import type { RenderManifest, RenderRequest, RenderResponse, WebSnapshot } from './contract'
 import { putBytes } from './s3'
 import { buildAllowedOrigins, hostForLog, isAllowedUrl } from './allowlist'
 import { env } from './env'
@@ -128,32 +129,6 @@ class Semaphore {
 }
 const pool = new Semaphore(POOL_SIZE)
 
-export interface RenderInput {
-  docId: string
-  snapshotId: number
-  /** 'html': the web snapshot for a published page — returned, not stored. */
-  format: 'pdf' | 'png' | 'both' | 'html'
-  /** Brand-kit fingerprint (16 hex chars) — appended to the output folder. */
-  variant?: string
-}
-
-export interface RenderOutput {
-  pageCount: number
-  pdfKey?: string
-  pageKeys: string[]
-  /** format 'html' only: the print page's web snapshot. */
-  web?: WebSnapshot
-}
-
-export interface WebSnapshot {
-  html: string
-  css: string
-  fontsImport: string
-  hljsTheme: string
-  hljsUrl: string | null
-  language: string
-}
-
 /** A published page's snapshot can't exceed this (the app checks again). */
 const MAX_WEB_SNAPSHOT_CHARS = 8 * 1024 * 1024
 
@@ -178,7 +153,7 @@ function mintRenderToken(docId: string, snapshotId: number): string {
   )
 }
 
-export async function renderDocument(input: RenderInput): Promise<RenderOutput> {
+export async function renderDocument(input: RenderRequest): Promise<RenderResponse> {
   await pool.acquire(POOL_WAIT_MS)
   const created: { context: BrowserContext | null } = { context: null }
   try {
@@ -241,7 +216,7 @@ async function readWebSnapshot(page: Page): Promise<WebSnapshot> {
     { timeout: PAGED_READY_TIMEOUT_MS }
   )
   const raw = await page.evaluate(() => (globalThis as { __webSnapshot?: unknown }).__webSnapshot)
-  const snap = raw as Partial<WebSnapshot> | undefined
+  const snap: Partial<Record<keyof WebSnapshot, unknown>> | undefined = typeof raw === 'object' && raw !== null ? { ...raw } : undefined
   const str = (v: unknown): string => (typeof v === 'string' ? v : '')
   const web: WebSnapshot = {
     html: str(snap?.html),
@@ -258,10 +233,10 @@ async function readWebSnapshot(page: Page): Promise<WebSnapshot> {
 }
 
 async function doRender(
-  input: RenderInput,
+  input: RenderRequest,
   browser: Browser,
   setContext: (ctx: BrowserContext) => void
-): Promise<RenderOutput> {
+): Promise<RenderResponse> {
   const { docId, snapshotId, format } = input
 
   const context = await browser.newContext({
@@ -361,7 +336,7 @@ async function doRender(
 
   // Manifest written LAST. Readers HEAD it as the "render complete" sentinel
   // before fetching page bytes — partial renders show as no manifest.
-  const manifest = {
+  const manifest: RenderManifest = {
     snapshotId,
     pageCount,
     format,

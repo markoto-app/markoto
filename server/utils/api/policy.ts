@@ -171,7 +171,7 @@ function customPolicy<Ctx>(reason: string, o: { sessionless: boolean, check: (ev
 function workspace(need: WorkspaceNeed, o: WorkspaceSelfOptions): Policy<WorkspaceSelfCtx>
 function workspace(need: WorkspaceNeed, o?: WorkspacePolicyOptions): Policy<WorkspaceCtx>
 function workspace(need: WorkspaceNeed, o?: WorkspacePolicyOptions | WorkspaceSelfOptions): Policy<WorkspaceCtx> | Policy<WorkspaceSelfCtx> {
-  return o && 'orSelf' in o ? workspacePolicy(need, o, userGate) : workspacePolicy(need, o, userGate)
+  return workspacePolicy(need, o, userGate)
 }
 
 function doc<const A extends boolean = false>(need: DocNeed, o?: DocPolicyOptions<A>): Policy<DocCtx<A>> {

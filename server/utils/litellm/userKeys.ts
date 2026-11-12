@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { users } from '../../db/schema'
+import { litellmKeyGenerateResponse, litellmKeyInfoResponse } from './adminResponses'
 import { useDatabase } from '../platform/database'
 import { planToBudgetUsd } from '~~/shared/billing/aiPoints'
 import { getTiers } from '~~/server/utils/billing/tierConfig'
@@ -123,7 +124,7 @@ export async function createUserKey(userId: number, plan: PlanName): Promise<Use
     const text = await res.text().catch(() => '')
     throw new Error(`[litellmKeys] /key/generate failed: ${res.status} ${text.slice(0, 200)}`)
   }
-  const payload = await res.json() as { key?: string, token_id?: string, token?: string }
+  const payload = litellmKeyGenerateResponse.parse(await res.json())
   const token = payload.key
   // LiteLLM exposes the bookkeeping handle under either `token_id` or
   // `token` depending on version; prefer `token_id` (newer) and fall
@@ -378,13 +379,10 @@ export async function getUserKeyInfo(userId: number, plan: PlanName): Promise<Ke
     const text = await res.text().catch(() => '')
     throw new Error(`[litellmKeys] /key/info failed: ${res.status} ${text.slice(0, 200)}`)
   }
-  const payload = await res.json() as {
-    info?: { spend?: number, max_budget?: number }
-  }
-  const info = payload.info ?? {}
+  const { info } = litellmKeyInfoResponse.parse(await res.json())
   return {
-    spend: typeof info.spend === 'number' ? info.spend : 0,
-    maxBudget: typeof info.max_budget === 'number' ? info.max_budget : planToBudgetUsd(plan, getTiers())
+    spend: info?.spend ?? 0,
+    maxBudget: info?.max_budget ?? planToBudgetUsd(plan, getTiers())
   }
 }
 

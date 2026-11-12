@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto'
 import { isValidEmailShape } from '../workspaces/emailShape'
 import { getBillingMode } from '../billing/billingMode'
 import { DAY_MS } from '~~/shared/config/units'
+import { trimTrailingSlashes } from '~~/shared/utils/trimTrailingSlashes'
 
 // Paid-plans waitlist helpers: token minting/hashing, email
 // normalisation, the localised double-opt-in email, and the "is the
@@ -146,7 +147,7 @@ export function buildWaitlistConfirmEmail(args: {
   unsubscribeToken: string
 }): WaitlistEmailContent {
   const copy = WAITLIST_EMAIL_COPY[args.locale]
-  const base = args.baseUrl.replace(/\/+$/, '')
+  const base = trimTrailingSlashes(args.baseUrl)
   const confirmUrl = `${base}/waitlist/confirm?token=${encodeURIComponent(args.confirmToken)}`
   const unsubscribeUrl = `${base}/waitlist/unsubscribe?token=${encodeURIComponent(args.unsubscribeToken)}`
   const body = [

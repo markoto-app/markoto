@@ -286,6 +286,10 @@ server.webSocketServer.on('connection', (socket, request) => {
 
 server.listen(port, () => {
   log.info('sync server listening', { port })
+}).catch((e: unknown) => {
+  // Port taken or the extensions failed to start: nothing to serve.
+  log.error('sync server failed to start', { port, err: e })
+  process.exit(1)
 })
 
 // Background compaction of the yjs_documents append-log. y-postgresql only
@@ -402,7 +406,8 @@ async function logEditActivity(
     // diff blocks below need to run to log them.
     if (added === 0 && removed === 0) return
 
-    logActivity({
+    // logActivity catches and reports its own failures (fire-and-forget).
+    void logActivity({
       docId: data.documentName,
       userId,
       userName,
@@ -447,7 +452,8 @@ async function logMetaDiffActivity(
     if (!prevMeta) return
 
     if ((prevMeta.title ?? '') !== (currMeta.title ?? '')) {
-      logActivity({
+      // logActivity catches and reports its own failures (fire-and-forget).
+      void logActivity({
         docId: data.documentName,
         userId,
         userName,
@@ -464,7 +470,8 @@ async function logMetaDiffActivity(
       })
     }
     if (prevMeta.themeHash !== currMeta.themeHash) {
-      logActivity({
+      // logActivity catches and reports its own failures (fire-and-forget).
+      void logActivity({
         docId: data.documentName,
         userId,
         userName,

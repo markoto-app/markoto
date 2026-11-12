@@ -20,12 +20,15 @@ function escapeRe(s: string): string {
 
 function patterns(docId: string): { files: RegExp, brand: RegExp } {
   const id = escapeRe(docId)
+  // The document id is escaped above; the rest is constant.
+  /* eslint-disable security/detect-non-literal-regexp */
   return {
     // Not preceded by a word / path character: `/api/files/…` as a whole
     // URL path, also inside url('…') and src="…".
     files: new RegExp(String.raw`(?<![\w./-])/api/files/${id}/(${FILE})(?![\w.-])`, 'g'),
     brand: new RegExp(String.raw`(?<![\w./-])/api/docs/${id}/brand/(${BRAND_FILE})(?![\w.-])`, 'g')
   }
+  /* eslint-enable security/detect-non-literal-regexp */
 }
 
 export interface SnapshotAssetRefs {
@@ -37,8 +40,8 @@ export function collectSnapshotAssets(texts: readonly string[], docId: string): 
   const out: SnapshotAssetRefs = { files: new Set(), brand: new Set() }
   const re = patterns(docId)
   for (const text of texts) {
-    for (const m of text.matchAll(re.files)) out.files.add(m[1]!)
-    for (const m of text.matchAll(re.brand)) out.brand.add(m[1]!)
+    for (const [, file] of text.matchAll(re.files)) if (file) out.files.add(file)
+    for (const [, file] of text.matchAll(re.brand)) if (file) out.brand.add(file)
   }
   return out
 }

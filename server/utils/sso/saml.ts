@@ -23,6 +23,8 @@ import { useValkey } from '../platform/valkey'
 import type { SsoConnectionRow } from '../../repos/sso'
 import { samlAcsUrl, samlSpEntityId } from './http'
 import type { SsoAssertion } from './completeLogin'
+import { apiError } from '../api/apiError'
+import { isPlainEmail } from '~~/shared/utils/plainEmail'
 
 const KEY_PREFIX = 'sso:saml:'
 const REQUEST_TTL_SECONDS = 10 * 60
@@ -72,8 +74,9 @@ function samlCacheProvider(boundRequestId?: string): CacheProvider & {
 
 export function samlFor(event: H3Event, connection: SsoConnectionRow, opts: { requestId?: string, boundRequestId?: string } = {}): SAML {
   if (connection.protocol !== 'saml' || !connection.samlIdpEntityId || !connection.samlSsoUrl || !connection.samlIdpCert) {
-    throw createError({ statusCode: 409, message: 'This connection is not a complete SAML setup.', data: { code: 'sso/incomplete' } })
+    throw apiError('sso/incomplete')
   }
+  const requestId = opts.requestId
   const spEntityId = samlSpEntityId(event, connection.id)
   return new SAML({
     callbackUrl: samlAcsUrl(event, connection.id),
@@ -96,7 +99,7 @@ export function samlFor(event: H3Event, connection: SsoConnectionRow, opts: { re
     identifierFormat: null,
     disableRequestedAuthnContext: true,
     cacheProvider: samlCacheProvider(opts.boundRequestId),
-    ...(opts.requestId ? { generateUniqueId: () => opts.requestId! } : {})
+    ...(requestId ? { generateUniqueId: () => requestId } : {})
   })
 }
 
@@ -135,15 +138,13 @@ function firstString(profile: Profile, keys: string[]): string | null {
   return null
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
 /** The validated profile as an `SsoAssertion` (subject = NameID). */
 export function assertionFromSamlProfile(profile: Profile): SsoAssertion {
   const subject = typeof profile.nameID === 'string' ? profile.nameID.trim() : ''
   if (!subject || subject.length > 255) throw new Error('SAML assertion has no usable NameID')
   let email = firstString(profile, EMAIL_ATTRIBUTES)
-  if (!email && /emailAddress$/.test(profile.nameIDFormat ?? '') && EMAIL_RE.test(subject)) email = subject
-  if (email && !EMAIL_RE.test(email)) email = null
+  if (!email && /emailAddress$/.test(profile.nameIDFormat ?? '') && isPlainEmail(subject)) email = subject
+  if (email && !isPlainEmail(email)) email = null
   const given = firstString(profile, GIVEN)
   const surname = firstString(profile, SURNAME)
   const name = firstString(profile, NAME_ATTRIBUTES) ?? ([given, surname].filter(Boolean).join(' ') || email || 'Workspace member')

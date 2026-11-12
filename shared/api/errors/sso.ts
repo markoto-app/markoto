@@ -12,7 +12,8 @@ export const ssoErrors = defineErrors('sso', {
   'domain-unverified': { status: 422 },
   'incomplete': { status: 409 },
   'invalid-domain': { status: 400, params: z.object({ field: z.string().optional(), fields: z.array(fieldIssue).optional() }) },
-  'invalid-settings': { status: 400, params: z.object({ field: z.string().optional(), fields: z.array(fieldIssue).optional() }) },
+  // `detail`: what is wrong with `field`, in English (for API callers; the form names the field).
+  'invalid-settings': { status: 400, params: z.object({ field: z.string().optional(), fields: z.array(fieldIssue).optional(), detail: z.string().optional() }) },
   'misconfigured': { status: 503 },
   'not-configured': { status: 404 },
   'no-connection': { status: 404 },

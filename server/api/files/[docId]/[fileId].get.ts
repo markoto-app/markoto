@@ -8,6 +8,7 @@ import { useEnv } from '~~/shared/env/load'
 // fileId is a nanoid(12) with a content-type-derived extension. Not a security
 // boundary (S3 keys are opaque); it just stops malformed clients from presigning
 // nonsense keys.
+// eslint-disable-next-line security/detect-non-literal-regexp -- ID_PATTERN is a constant character class
 const FILE_ID_RE = new RegExp(`^${ID_PATTERN}\\.(png|jpg|jpeg|gif|webp)$`)
 
 const EXT_CONTENT_TYPE: Record<string, string> = {

@@ -1,65 +1,14 @@
 import { and, desc, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm'
 import { activityLog, users, aiSessions, mcpSessions } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
+import type { ActivityAction, ActivityMetadata } from '~~/shared/contracts/activity'
 
 // Activity-log repository. Append-mostly; each doc is capped to its most
 // recent 500 rows.
 
-export type ActivityAction
-  = | 'edit'
-    | 'join'
-    | 'leave'
-    | 'comment.added'
-    | 'comment.replied'
-    | 'comment.resolved'
-    | 'comment.reopened'
-    | 'comment.deleted'
-    | 'theme.changed'
-    | 'title.changed'
-    | 'ai.tool'
-    | 'restore'
-
-export const ACTIVITY_ACTIONS: readonly ActivityAction[] = [
-  'edit', 'join', 'leave',
-  'comment.added', 'comment.replied',
-  'comment.resolved', 'comment.reopened', 'comment.deleted',
-  'theme.changed', 'title.changed', 'ai.tool',
-  'restore'
-]
-
-// Per-action metadata shapes in the jsonb `metadata` column. The UI renders
-// strings via i18n at read time, so rows stay locale-agnostic.
-// `comment.deleted` carries `isReply` because the comments row is gone by the
-// time the feed renders; `comment.replied` carries `parentCommentId` for
-// deep-linking.
-export type ActivityMetadata
-  = | { kind: 'comment.added' | 'comment.resolved' | 'comment.reopened'
-    commentId: string
-    bodyPreview: string }
-    | { kind: 'comment.replied'
-      commentId: string
-      parentCommentId: string
-      bodyPreview: string }
-      | { kind: 'comment.deleted'
-        commentId: string
-        bodyPreview: string
-        isReply: boolean }
-        | { kind: 'title.changed', from: string, to: string }
-        | { kind: 'theme.changed' }
-        | { kind: 'ai.tool', tool: 'web_search', query: string, sources?: Array<{ title: string, uri: string }> }
-        | { kind: 'ai.tool', tool: 'fetch_url', url: string, summary?: string, images?: Array<{ url: string, description?: string }> }
-        | { kind: 'ai.tool', tool: 'generate_image', prompt: string }
-        | { kind: 'ai.tool', tool: 'view_image', src: string }
-        | { kind: 'ai.tool', tool: 'search_knowledge', query: string }
-        | { kind: 'ai.tool', tool: 'get_knowledge_file', knowledgeId: string }
-        | {
-          kind: 'restore'
-          /** Activity row this restore was anchored at (the doc was reset to its yjsDocIdBefore). */
-          restoredFromActivityId: number
-          /** ISO8601 time of the anchor row, frozen at restore time so the
-           *  "From {relative time}" label can't drift. */
-          restoredFromTime: string
-        }
+// The action list and the per-action metadata shapes are the activity
+// contract shared with the sync server and the client feed.
+export type { ActivityAction, ActivityMetadata } from '~~/shared/contracts/activity'
 
 export interface ActivityEntry {
   id: number
@@ -223,7 +172,7 @@ export async function listRecentActivity(docId: string, limit = 50, since: Date 
       : eq(activityLog.docId, docId))
     .orderBy(desc(activityLog.createdAt))
     .limit(limit)
-  return enrichActivityAgentFields(rows as RawActivityRow[])
+  return enrichActivityAgentFields(rows)
 }
 
 /**
@@ -382,7 +331,7 @@ export async function getActivityById(activityId: number, docId: string): Promis
     .where(and(eq(activityLog.id, activityId), eq(activityLog.docId, docId)))
     .limit(1)
   if (rows.length === 0) return null
-  const enriched = await enrichActivityAgentFields(rows as RawActivityRow[])
+  const enriched = await enrichActivityAgentFields(rows)
   return enriched[0] ?? null
 }
 
@@ -446,7 +395,7 @@ export async function searchActivity(
     .where(and(...filters))
     .orderBy(desc(activityLog.createdAt))
     .limit(limit)
-  return enrichActivityAgentFields(rows as RawActivityRow[])
+  return enrichActivityAgentFields(rows)
 }
 
 export async function deleteActivityForDoc(docId: string): Promise<void> {

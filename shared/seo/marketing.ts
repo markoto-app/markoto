@@ -1,3 +1,4 @@
+import { trimChars } from '../utils/trimChars'
 // Marketing pages (hosted markoto.app only): routes, language versions,
 // hreflang and indexing rules. Pure — shared by the catch-all page
 // (app/pages/[...marketing].vue), the URL-locale plugin and the sitemap.
@@ -45,7 +46,7 @@ function isMarketingLocale(value: string | undefined): value is MarketingLocale 
 }
 
 function trimSlashes(path: string): string {
-  return path.replace(/^\/+|\/+$/g, '')
+  return trimChars(path, '/')
 }
 
 /**

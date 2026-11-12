@@ -21,20 +21,25 @@ export interface InstanceBrand {
 export const EMPTY_INSTANCE_BRAND: InstanceBrand = Object.freeze({ name: '', logoUrl: null, supportUrl: '', supportEmail: '' })
 
 /** Logo formats the route serves, by file extension. */
-export const INSTANCE_BRAND_LOGO_TYPES: Record<string, string> = {
+export const INSTANCE_BRAND_LOGO_TYPES = {
   svg: 'image/svg+xml',
   png: 'image/png',
   webp: 'image/webp',
   jpg: 'image/jpeg',
   jpeg: 'image/jpeg'
+} as const
+export type InstanceBrandLogoExt = keyof typeof INSTANCE_BRAND_LOGO_TYPES
+
+function isInstanceBrandLogoExt(ext: string): ext is InstanceBrandLogoExt {
+  return Object.hasOwn(INSTANCE_BRAND_LOGO_TYPES, ext)
 }
 
 const INSTANCE_BRAND_NAME_MAX = 60
 
 /** Extension of the configured logo file, or null when it isn't a supported image. */
-export function instanceBrandLogoExt(path: string | undefined): string | null {
+export function instanceBrandLogoExt(path: string | undefined): InstanceBrandLogoExt | null {
   const ext = /\.([a-z0-9]+)$/i.exec((path ?? '').trim())?.[1]?.toLowerCase()
-  return ext && Object.hasOwn(INSTANCE_BRAND_LOGO_TYPES, ext) ? ext : null
+  return ext && isInstanceBrandLogoExt(ext) ? ext : null
 }
 
 export function resolveInstanceBrand(source?: RawEnv): InstanceBrand {

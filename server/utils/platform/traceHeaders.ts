@@ -19,7 +19,7 @@ export function injectTraceHeaders(
   const requestId = currentRequestId()
   const withId = requestId ? { ...headers, 'x-request-id': requestId } : headers
   try {
-    const trace = (Sentry as unknown as { getTraceData?: () => Record<string, string> }).getTraceData?.() ?? {}
+    const trace = Sentry.getTraceData()
     return { ...withId, ...trace }
   } catch {
     return withId

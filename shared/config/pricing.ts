@@ -15,6 +15,7 @@
 //     `TIER_<PRO|TEAM|BUSINESS>_PRICE_<EUR|CHF>` (monthly) and
 //     `..._<EUR|CHF>_YEAR` (annual), e.g. `TIER_PRO_PRICE_CHF=10`.
 
+import { must } from '../utils/must'
 import { EnvValueError, positiveNumber } from '../env/coerce'
 import { processEnv } from '../env/source'
 import type { PlanName } from './tiers'
@@ -180,7 +181,7 @@ export function isTopupPackId(value: unknown): value is TopupPackId {
 }
 
 export function topupPack(id: TopupPackId): TopupPack {
-  return TOPUP_PACKS.find(p => p.id === id)!
+  return must(TOPUP_PACKS.find(p => p.id === id), `top-up pack ${id}`)
 }
 
 export function stripeTopupLookupKey(pack: TopupPackId, currency: Currency, prefix = 'markoto'): string {

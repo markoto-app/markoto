@@ -313,17 +313,13 @@ function familyName(n: Reader): string {
     let value: string
     let score = nameId === 16 ? 10 : 0
     if (platformId === 3 && (encodingId === 1 || encodingId === 10)) {
-      const raw = n.slice(stringOffset + offset, length)
-      value = ''
-      for (let j = 0; j + 1 < raw.length; j += 2) value += String.fromCharCode((raw[j]! << 8) | raw[j + 1]!)
+      value = utf16be(n.slice(stringOffset + offset, length))
       score += languageId === 0x0409 ? 5 : 3
     } else if (platformId === 1 && encodingId === 0) {
       value = String.fromCharCode(...n.slice(stringOffset + offset, length))
       score += languageId === 0 ? 2 : 1
     } else if (platformId === 0) {
-      const raw = n.slice(stringOffset + offset, length)
-      value = ''
-      for (let j = 0; j + 1 < raw.length; j += 2) value += String.fromCharCode((raw[j]! << 8) | raw[j + 1]!)
+      value = utf16be(n.slice(stringOffset + offset, length))
       score += 1
     } else {
       continue
@@ -343,4 +339,11 @@ function clampWeight(w: number): number {
   // Some fonts store 1–9 (old Apple convention) instead of 100–900.
   const v = w < 10 ? w * 100 : w
   return Math.min(900, Math.max(100, Math.round(v / 100) * 100))
+}
+
+/** A UTF-16BE name record (a trailing odd byte is ignored). */
+function utf16be(raw: Uint8Array): string {
+  let out = ''
+  for (let j = 0; j + 1 < raw.length; j += 2) out += String.fromCharCode(((raw[j] ?? 0) << 8) | (raw[j + 1] ?? 0))
+  return out
 }

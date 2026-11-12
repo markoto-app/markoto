@@ -1,4 +1,5 @@
 import { ListObjectsV2Command, DeleteObjectsCommand, type S3Client } from '@aws-sdk/client-s3'
+import type { NotifyDeletedRequest } from '~~/shared/contracts/syncInternal'
 import { cleanupRendersForDoc } from '../rendering/renderClient'
 import { prunePublishedObjects } from '../publish/publishDocument'
 import { getPublishedPageSummary } from '../../repos/publishedPages'
@@ -121,7 +122,7 @@ export function notifySyncDeleted(
       'Content-Type': 'application/json',
       'X-Internal-Secret': deps.internalApiSecret
     }),
-    body: JSON.stringify({ docId }),
+    body: JSON.stringify({ docId } satisfies NotifyDeletedRequest),
     signal: AbortSignal.timeout(3000)
   }).catch((e) => {
     log.warn('sync-server notify failed', { docId, err: e })

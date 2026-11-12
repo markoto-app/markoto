@@ -7,6 +7,7 @@ import { resolveAiProviders } from '../aiProviders/resolve'
 import { getDoc } from '../../repos/documents'
 import { useValkey } from '../platform/valkey'
 import { useEnv } from '~~/shared/env/load'
+import { apiError } from '../api/apiError'
 
 // MCP equivalent of `createAiSession`. Builds a `ToolContext`-shaped
 // handle for a single MCP tool call, backed by the YDocPool so
@@ -153,11 +154,7 @@ export async function connectAsMcpClient(input: ConnectAsMcpClientInput): Promis
   // downstream failure path AND on `release()`.
   const reserved = await reserveUserDocSlot(input.userId, input.docId)
   if (!reserved) {
-    throw createError({
-      statusCode: 429,
-      message: `MCP cap: at most ${MAX_OPEN_DOCS_PER_USER} simultaneously open docs per user. Close another tool call first or wait for idle eviction (~5 min).`,
-      data: { code: 'mcp/too-many-open-docs' }
-    })
+    throw apiError('mcp/too-many-open-docs')
   }
 
   // Pool key — per-MCP-session principal so multiple Claude Desktop

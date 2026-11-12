@@ -235,6 +235,7 @@ export function loadRendererEnv(source: Record<string, string | undefined> = pro
       + problems.map(p => \`  - \${p}\`).join('\\n')
       + '\\nEvery variable is described in docs/reference/configuration.md.')
   }
+  // Built field by field from RENDERER_VARS, whose groups and keys are RendererEnv's.
   return out as unknown as RendererEnv
 }
 `

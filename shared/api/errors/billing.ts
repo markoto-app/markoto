@@ -15,7 +15,8 @@ export const billingErrors = defineErrors('billing', {
   'no-billing-history': { status: 409 },
   'no-subscription': { status: 409 },
   'not-configured': { status: 503 },
-  'payment-failed': { status: 402 },
+  // `detail`: the payment provider's reason (e.g. the card was declined).
+  'payment-failed': { status: 402, params: z.object({ detail: z.string().optional() }) },
   'plan-change-failed': { status: 502 },
   'portal-failed': { status: 502 },
   'price-unavailable': { status: 503 },

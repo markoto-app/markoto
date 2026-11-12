@@ -77,7 +77,8 @@ const AUTH_DEADLINE_MS = 5_000
 // both satisfy it.
 type SttStream = SpeechStream
 
-interface DictatePeerContext {
+/** Per-connection state, kept on the crossws peer's `context` under `dictate`. */
+class DictatePeerContext {
   userId?: number
   docId?: string
   /** Workspace this doc belongs to, if any; tags spend on voice-tick calls. */
@@ -114,6 +115,15 @@ interface PeerLike {
   context: Record<string, unknown>
 }
 
+/** The connection's state, created on first use. */
+function dictateContext(peer: PeerLike): DictatePeerContext {
+  const existing = peer.context.dictate
+  if (existing instanceof DictatePeerContext) return existing
+  const created = new DictatePeerContext()
+  peer.context.dictate = created
+  return created
+}
+
 export default defineEventHandler({
   handler() {
     throw createError({ statusCode: 426, message: 'Upgrade Required: WebSocket only' })
@@ -132,8 +142,8 @@ export default defineEventHandler({
     },
 
     open(peer) {
-      const p = peer as unknown as PeerLike
-      const ctx = p.context as DictatePeerContext
+      const p: PeerLike = peer
+      const ctx = dictateContext(p)
       p.send(encodeServerFrame({ type: 'hello' }))
       ctx.authTimer = setTimeout(() => {
         if (!ctx.authed) {
@@ -144,8 +154,8 @@ export default defineEventHandler({
     },
 
     async message(peer, message) {
-      const p = peer as unknown as PeerLike
-      const ctx = p.context as DictatePeerContext
+      const p: PeerLike = peer
+      const ctx = dictateContext(p)
       if (ctx.closed) return
 
       // Text-vs-binary detection is tricky with crossws over the Node
@@ -172,7 +182,7 @@ export default defineEventHandler({
     },
 
     close(peer) {
-      const ctx = (peer as unknown as PeerLike).context as DictatePeerContext
+      const ctx = dictateContext(peer)
       ctx.closed = true
       if (ctx.authTimer) clearTimeout(ctx.authTimer)
       if (ctx.idleTimer) clearTimeout(ctx.idleTimer)
@@ -193,7 +203,7 @@ export default defineEventHandler({
       Sentry.captureException(err, {
         tags: { component: 'dictate', event: 'ws_error' }
       })
-      const ctx = (peer as unknown as PeerLike).context as DictatePeerContext
+      const ctx = dictateContext(peer)
       ctx.closed = true
       stopVoiceTickOrchestrator(ctx)
       try {

@@ -72,7 +72,8 @@ async function fetchBytes(bucket: string, key: string, rangeEnd: number): Promis
     Key: key,
     Range: `bytes=0-${rangeEnd}`
   }))
-  return await resp.Body!.transformToByteArray()
+  if (!resp.Body) return new Uint8Array(0)
+  return await resp.Body.transformToByteArray()
 }
 
 function isPrintableUtf8(bytes: Uint8Array): boolean {
@@ -85,7 +86,7 @@ function isPrintableUtf8(bytes: Uint8Array): boolean {
   }
   let printable = 0
   for (const ch of text) {
-    const code = ch.codePointAt(0)!
+    const code = ch.codePointAt(0) ?? 0
     // Tab, newline, carriage return, anything \x20+ that isn't a delete
     // control, and all non-ASCII (covers Unicode content).
     if (code === 0x09 || code === 0x0a || code === 0x0d || (code >= 0x20 && code !== 0x7f)) {

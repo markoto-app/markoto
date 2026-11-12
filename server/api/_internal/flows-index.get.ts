@@ -32,6 +32,7 @@ const LOCALE = 'en'
 
 async function dirExists(p: string): Promise<boolean> {
   try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- a directory under the fixed public/flows folder; slugs come from readdir, never from the request
     const s = await stat(p)
     return s.isDirectory()
   } catch {
@@ -42,6 +43,7 @@ async function dirExists(p: string): Promise<boolean> {
 async function readManifest(slug: string): Promise<ManifestLite | null> {
   const p = join(FLOWS_DIR, slug, LOCALE, VARIANT, 'manifest.json')
   try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- slug from readdir of the fixed public/flows folder, never from the request
     const raw = await readFile(p, 'utf-8')
     return JSON.parse(raw) as ManifestLite
   } catch {

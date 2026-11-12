@@ -97,11 +97,7 @@ export async function changeWorkspaceSeats(stripe: Stripe, row: WorkspaceSubscri
   const sub = await findLiveSubscription(stripe, row.stripeSubscriptionId)
   const item = sub?.items.data[0]
   if (!sub || !item) {
-    throw createError({
-      statusCode: 409,
-      message: 'This workspace has no active subscription to change.',
-      data: { code: 'billing/no-subscription' }
-    })
+    throw apiError('billing/no-subscription')
   }
   // The budget window has to be known BEFORE anything is charged: without
   // it the added seats' budget can't be prorated.
@@ -153,11 +149,7 @@ export function seatChangeError(e: unknown, workspaceId: string): Error {
   if ((e as { statusCode?: number })?.statusCode) return e as Error
   const msg = e instanceof Error ? e.message : 'Stripe error'
   if ((e as { type?: string })?.type === 'StripeCardError') {
-    return createError({
-      statusCode: 402,
-      message: `The payment for the added seats failed, so nothing was changed: ${msg}`,
-      data: { code: 'billing/payment-failed' }
-    })
+    return apiError('billing/payment-failed', { detail: msg })
   }
   Sentry.captureException(e, { tags: { component: 'billing', event: 'workspace_seats_failed', workspaceId } })
   return createError({ statusCode: 502, message: `Could not change the seats: ${msg}` })

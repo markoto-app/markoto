@@ -18,6 +18,7 @@
 
 import { JSDOM } from 'jsdom'
 import { MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH } from '../shared/seo/meta'
+import { trimTrailingSlashes } from '../shared/utils/trimTrailingSlashes'
 
 interface PageReport {
   path: string
@@ -41,7 +42,7 @@ interface PageReport {
 }
 
 const args = process.argv.slice(2)
-const base = (args.find(a => !a.startsWith('--')) ?? 'http://127.0.0.1:3000').replace(/\/+$/, '')
+const base = trimTrailingSlashes(args.find(a => !a.startsWith('--')) ?? 'http://127.0.0.1:3000')
 const jsonOut = args.includes('--json') ? args[args.indexOf('--json') + 1] : undefined
 
 const OG_REQUIRED = ['og:title', 'og:description', 'og:type', 'og:url', 'og:site_name', 'og:image', 'og:image:width', 'og:image:height', 'og:image:alt'] as const

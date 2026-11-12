@@ -15,7 +15,7 @@ import { notifyWorkspaceAdmins } from '../email/workspaceBillingEmails'
 import { insertCreditGrant, refundCreditGrant, type CreditSubject } from '../../repos/aiCreditGrants'
 import { recomputeCreditBudget } from './aiCredits'
 import { isCurrency, isTopupPackId, topupPack, TOPUP_VALIDITY_MONTHS } from '~~/shared/config/pricing'
-import { isOrderSensitiveStripeEvent } from '~~/shared/contracts/stripe'
+import { isHandledStripeEvent, isKnownSubscriptionStatus, isOrderSensitiveStripeEvent, type OrderSensitiveStripeEvent, type StripeSubscriptionStatus } from '~~/shared/contracts/stripe'
 import { updateUserKeyBudget, resetUserKeySpend } from '../litellm/userKeys'
 import { useLogger } from '../platform/logger'
 
@@ -161,7 +161,7 @@ async function subjectForCustomer(customerId: string, db: DbOrTx): Promise<Custo
 }
 
 interface UpdateUserArgs {
-  where: { stripeCustomerId?: string, id?: number }
+  where: { stripeCustomerId: string } | { id: number }
   set: Partial<{
     plan: PersonalPlanName
     planValidUntil: Date | null
@@ -179,11 +179,23 @@ interface UpdateUserArgs {
  */
 async function updateUser(opts: UpdateUserArgs, db?: DbOrTx): Promise<number> {
   const handle = db ?? useDatabase()
-  const where = opts.where.id === undefined
-    ? eq(users.stripeCustomerId, opts.where.stripeCustomerId!)
-    : eq(users.id, opts.where.id)
+  const where = 'id' in opts.where
+    ? eq(users.id, opts.where.id)
+    : eq(users.stripeCustomerId, opts.where.stripeCustomerId)
   const result = await handle.update(users).set(opts.set).where(where).returning({ id: users.id })
   return result.length
+}
+
+/**
+ * The status to store. A status the pinned API version doesn't know (a
+ * newer one) is stored as `incomplete`: not entitled, like any unknown
+ * status would be, and reported so the version bump gets done.
+ */
+function storedStatus(sub: Stripe.Subscription): StripeSubscriptionStatus {
+  if (isKnownSubscriptionStatus(sub.status)) return sub.status
+  log.warn('unknown subscription status stored as incomplete', { subscriptionId: sub.id, status: sub.status })
+  Sentry.captureMessage('[stripe/webhook] unknown subscription status', { level: 'warning', tags: { component: 'stripeWebhook', event: 'unknown_subscription_status' } })
+  return 'incomplete'
 }
 
 /**
@@ -205,7 +217,7 @@ async function upsertWorkspaceSubscriptionFromStripe(
   const values = {
     plan: args.identity.plan,
     seats: Math.max(1, item?.quantity ?? 1),
-    status: args.sub.status,
+    status: storedStatus(args.sub),
     stripeCustomerId: args.customerId,
     stripeSubscriptionId: args.sub.id,
     currentPeriodStart: period.start,
@@ -226,8 +238,8 @@ async function upsertWorkspaceSubscriptionFromStripe(
  * is tracked; events of any other one must not overwrite it.
  */
 async function rowHoldingOtherSubscription(db: DbOrTx, workspaceId: string, subscriptionId: string): Promise<WorkspaceSubscriptionRow | null> {
-  const row = (await db.select().from(workspaceSubscriptions)
-    .where(eq(workspaceSubscriptions.workspaceId, workspaceId)).limit(1))[0] as WorkspaceSubscriptionRow | undefined
+  const row: WorkspaceSubscriptionRow | undefined = (await db.select().from(workspaceSubscriptions)
+    .where(eq(workspaceSubscriptions.workspaceId, workspaceId)).limit(1))[0]
   return row?.stripeSubscriptionId && row.stripeSubscriptionId !== subscriptionId ? row : null
 }
 
@@ -349,7 +361,7 @@ async function handleChargeRefunded(
 ): Promise<{ matched: number }> {
   const charge = event.data.object
   const paymentIntent = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id ?? null
-  if (!paymentIntent || !(charge.amount > 0)) return { matched: 0 }
+  if (!paymentIntent || charge.amount <= 0) return { matched: 0 }
   const subject = await refundCreditGrant(paymentIntent, charge.amount_refunded / charge.amount, db ?? useDatabase())
   if (!subject) return { matched: 0 }
   deferAfterCommit?.push(() => recomputeCreditBudget(subject))
@@ -553,15 +565,15 @@ export async function handleSubscriptionUpdated(
     return { matched: 1, plan: identity.plan }
   }
 
-  const plan: PersonalPlanName | null = identity?.plan === 'pro' ? 'pro' : null
-  if (!plan) {
+  if (identity?.plan !== 'pro') {
     warnUnknownPrice(`subscription.${event.type.split('.').pop()}`, item?.price?.id, `sub=${sub.id}`)
     return { matched: 0, plan: null }
   }
+  const plan: PersonalPlanName = identity.plan
   const period = subscriptionPeriod(sub)
   const setFields: UpdateUserArgs['set'] = {
     plan,
-    billingCurrency: identity!.currency
+    billingCurrency: identity.currency
   }
   if (period.start) setFields.stripeCurrentPeriodStart = period.start
   if (period.end) setFields.planValidUntil = period.end
@@ -780,6 +792,9 @@ async function runHandler(
     deferAfterCommit?: DeferredAfterCommit
   }
 ): Promise<{ handled: boolean, detail?: unknown }> {
+  // Unhandled events are OK — Stripe sends dozens of types we don't care
+  // about. Acknowledge them so Stripe stops retrying.
+  if (!isHandledStripeEvent(event)) return { handled: false }
   switch (event.type) {
     case 'checkout.session.completed':
       return { handled: true, detail: await handleCheckoutSessionCompleted(event, opts) }
@@ -798,30 +813,18 @@ async function runHandler(
       return { handled: true, detail: await handleChargeRefunded(event, opts.db, opts.deferAfterCommit) }
     case 'invoice.payment_failed':
       return { handled: true, detail: await handleInvoicePaymentFailed(event, opts.db, opts.deferAfterCommit) }
-    default:
-      // Unhandled events are OK — Stripe sends dozens of types we
-      // don't care about. Log + acknowledge so Stripe stops retrying.
-      return { handled: false }
   }
 }
 
 /**
- * Pull the customer id off any of the event types that key on it.
- * Returns null for event shapes that don't carry one (e.g. unknown
- * event types). Used to (a) detect out-of-order subscription events
+ * Pull the customer id off an event whose object keys on it (subscription,
+ * invoice, checkout session). Used to (a) detect out-of-order subscription events
  * and (b) drain the pending-events stash on checkout binding.
  */
-function extractCustomerId(event: Stripe.Event): string | null {
-  // Cast through `unknown` because Stripe.Event.data.object is a giant
-  // discriminated union (every Stripe object type) — we only care about
-  // the ones that carry a `customer` field, and we already gate this
-  // function behind a type-name check at the call site.
-  const obj = (event.data as unknown as { object?: Record<string, unknown> })?.object
-  if (!obj) return null
-  const cust = (obj as { customer?: string | { id?: string } | null }).customer
+function extractCustomerId(event: OrderSensitiveStripeEvent | Stripe.CheckoutSessionCompletedEvent): string | null {
+  const cust = event.data.object.customer
   if (typeof cust === 'string') return cust
-  if (cust && typeof cust === 'object' && typeof cust.id === 'string') return cust.id
-  return null
+  return cust?.id ?? null
 }
 
 /**
@@ -853,7 +856,7 @@ async function drainPendingEvents(
 
   for (const row of rows) {
     try {
-      await runHandler(row.payload as Stripe.Event, opts)
+      await runHandler(row.payload, opts)
       await opts.db.update(pendingStripeEvents)
         .set({ processed: true, processedAt: new Date() })
         .where(eq(pendingStripeEvents.eventId, row.eventId))

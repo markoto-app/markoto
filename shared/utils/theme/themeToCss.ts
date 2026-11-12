@@ -258,7 +258,7 @@ function compileTemplate(template: string, theme: DocTheme, runtime: ThemeRuntim
     if (match.index > lastIndex) {
       parts.push(cssString(template.slice(lastIndex, match.index)))
     }
-    parts.push(tokenToCss(match[1]!, theme, runtime))
+    parts.push(tokenToCss(match[1] ?? '', theme, runtime))
     lastIndex = regex.lastIndex
   }
   if (lastIndex < template.length) {

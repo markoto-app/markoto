@@ -10,6 +10,7 @@
 // flow started for connection B.
 
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import { z } from 'zod'
 
 export const SSO_FLOW_COOKIE = 'markoto-sso-flow'
 export const SSO_FLOW_COOKIE_PATH = '/auth/sso'
@@ -40,7 +41,19 @@ export function encodeSsoFlow(flow: SsoFlow, secret: string, nowMs = Date.now())
   return `${body}.${sign(body, secret)}`
 }
 
-const str = (v: unknown, max = 512): v is string => typeof v === 'string' && v.length > 0 && v.length <= max
+const flowText = z.string().min(1).max(512)
+/** The signed cookie's payload. */
+const ssoFlowPayload = z.object({
+  iat: z.number(),
+  connectionId: z.string().min(1).max(64),
+  purpose: z.enum(['login', 'test']),
+  testUserId: z.number().int().optional(),
+  state: flowText.optional(),
+  nonce: flowText.optional(),
+  codeVerifier: flowText.optional(),
+  requestId: flowText.optional(),
+  returnTo: flowText.optional()
+})
 
 /** The flow, or null when missing, forged, malformed or expired. */
 export function decodeSsoFlow(raw: string | undefined, secret: string, nowMs = Date.now()): SsoFlow | null {
@@ -50,27 +63,23 @@ export function decodeSsoFlow(raw: string | undefined, secret: string, nowMs = D
   const expected = Buffer.from(sign(body, secret))
   const actual = Buffer.from(mac)
   if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null
-  let p: Record<string, unknown>
+  let json: unknown
   try {
-    const parsed: unknown = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'))
-    if (typeof parsed !== 'object' || parsed === null) return null
-    p = parsed as Record<string, unknown>
+    json = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'))
   } catch {
     return null
   }
-  if (typeof p.iat !== 'number') return null
+  const parsed = ssoFlowPayload.safeParse(json)
+  if (!parsed.success) return null
+  const p = parsed.data
   const age = Math.floor(nowMs / 1000) - p.iat
   if (age < 0 || age > SSO_FLOW_MAX_AGE_SECONDS) return null
-  if (!str(p.connectionId, 64) || (p.purpose !== 'login' && p.purpose !== 'test')) return null
-  if (p.purpose === 'test' && (typeof p.testUserId !== 'number' || !Number.isInteger(p.testUserId))) return null
+  if (p.purpose === 'test' && p.testUserId === undefined) return null
   const flow: SsoFlow = { connectionId: p.connectionId, purpose: p.purpose }
-  if (p.purpose === 'test') flow.testUserId = p.testUserId as number
+  if (p.purpose === 'test') flow.testUserId = p.testUserId
   for (const key of ['state', 'nonce', 'codeVerifier', 'requestId', 'returnTo'] as const) {
     const v = p[key]
-    if (v !== undefined) {
-      if (!str(v)) return null
-      flow[key] = v
-    }
+    if (v !== undefined) flow[key] = v
   }
   if (flow.returnTo !== undefined && !isSafeReturnTo(flow.returnTo)) return null
   return flow
