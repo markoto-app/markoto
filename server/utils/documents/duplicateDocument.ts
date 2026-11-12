@@ -120,33 +120,8 @@ export async function duplicateDocument(
   })
 
   try {
-    // Step 2: S3 image asset clone. Uses the same fileId on both
-    // sides so the rewritten markdown URLs match.
-    const copiedRows: Parameters<typeof insertConfirmedUploads>[0] = []
-    for (const row of uploadsToClone) {
-      const newS3Key = `docs/${input.newDocId}/${row.fileId}`
-      await deps.s3.send(new CopyObjectCommand({
-        Bucket: deps.bucket,
-        // CopySource must include the bucket. Keys are nanoid-safe, so no
-        // URL-encoding is needed.
-        CopySource: `/${deps.bucket}/${row.s3Key}`,
-        Key: newS3Key
-      }))
-      copiedRows.push({
-        docId: input.newDocId,
-        fileId: row.fileId,
-        uploaderId: input.ownerId ?? row.uploaderId,
-        contentType: row.contentType,
-        sizeBytes: row.sizeBytes,
-        s3Key: newS3Key
-      })
-    }
-    if (copiedRows.length > 0 && input.ownerId !== null) {
-      const res = await insertConfirmedUploadsWithinQuota(copiedRows, deps.imageQuota.maxBytes, deps.imageQuota.scope)
-      if (!res.reserved) throw new ImageQuotaExceededError(deps.imageQuota.maxBytes)
-    } else if (copiedRows.length > 0) {
-      await insertConfirmedUploads(copiedRows)
-    }
+    // Step 2: S3 image asset clone.
+    await cloneUploads(input, deps, uploadsToClone)
 
     // Step 3: Y.js state with URL rewrite.
     await cloneYjsStateWithUrlRewrite(input.sourceDocId, input.newDocId, input.fromTemplate ? { title: input.title } : undefined)
@@ -163,6 +138,43 @@ export async function duplicateDocument(
       })
     }
     throw e
+  }
+}
+
+/**
+ * Copy the source's confirmed uploads to the new document and record them
+ * (against the duplicator's image quota). Uses the same fileId on both
+ * sides so the rewritten markdown URLs match.
+ */
+async function cloneUploads(
+  input: DuplicateInput,
+  deps: DuplicateDeps,
+  uploadsToClone: Awaited<ReturnType<typeof listConfirmedUploadsForDoc>>
+): Promise<void> {
+  const copiedRows: Parameters<typeof insertConfirmedUploads>[0] = []
+  for (const row of uploadsToClone) {
+    const newS3Key = `docs/${input.newDocId}/${row.fileId}`
+    await deps.s3.send(new CopyObjectCommand({
+      Bucket: deps.bucket,
+      // CopySource must include the bucket. Keys are nanoid-safe, so no
+      // URL-encoding is needed.
+      CopySource: `/${deps.bucket}/${row.s3Key}`,
+      Key: newS3Key
+    }))
+    copiedRows.push({
+      docId: input.newDocId,
+      fileId: row.fileId,
+      uploaderId: input.ownerId ?? row.uploaderId,
+      contentType: row.contentType,
+      sizeBytes: row.sizeBytes,
+      s3Key: newS3Key
+    })
+  }
+  if (copiedRows.length > 0 && input.ownerId !== null) {
+    const res = await insertConfirmedUploadsWithinQuota(copiedRows, deps.imageQuota.maxBytes, deps.imageQuota.scope)
+    if (!res.reserved) throw new ImageQuotaExceededError(deps.imageQuota.maxBytes)
+  } else if (copiedRows.length > 0) {
+    await insertConfirmedUploads(copiedRows)
   }
 }
 

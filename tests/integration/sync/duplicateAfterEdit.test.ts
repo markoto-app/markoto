@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import * as Y from 'yjs'
-import { ensureYjsTable, resetDb, testDb } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { loggedInClient } from '../setup/client'
 import { createDoc, createUser } from '../setup/fixtures'
 import { writeDocAs, type SyncClient } from '../setup/byok'
 
 // Regression: duplicating a document right after an edit cloned the persisted Y.js rows from BEFORE the edit.
-// The sync-server debounces its store 2–10 s, and `duplicateDocument` reads `yjs_documents`, so the duplicate
+// The sync-server debounces its store 2–10 s, and `duplicateDocument` reads `yjs_updates`, so the duplicate
 // endpoint asks the sync-server to persist pending edits first (`/internal/flush-document`).
 //
 // The edit below is acknowledged by the sync-server (it has it in memory) but well inside the 2 s store
@@ -14,7 +14,7 @@ import { writeDocAs, type SyncClient } from '../setup/byok'
 
 async function persistedText(docId: string): Promise<string> {
   const rows = await testDb().query<{ value: Buffer }>(
-    'SELECT value FROM yjs_documents WHERE docname = $1 AND version = \'v1\' ORDER BY id',
+    'SELECT data AS value FROM yjs_updates WHERE doc_id = $1 ORDER BY id',
     [docId]
   )
   const doc = new Y.Doc()
@@ -28,7 +28,6 @@ const clients: SyncClient[] = []
 
 beforeEach(async () => {
   await resetDb()
-  await ensureYjsTable()
 })
 
 afterEach(() => {

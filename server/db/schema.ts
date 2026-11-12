@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp, primaryKey, index, uniqueIndex, jsonb, vector, boolean, customType, check, doublePrecision, date } from 'drizzle-orm/pg-core'
+import { pgTable, serial, integer, bigint, text, timestamp, primaryKey, index, uniqueIndex, jsonb, vector, boolean, customType, check, doublePrecision, date } from 'drizzle-orm/pg-core'
 import { sql, type SQL } from 'drizzle-orm'
 import type { DocTheme } from '~~/shared/types/theme'
 import type { ActivityMetadata } from '~~/shared/contracts/activity'
@@ -9,6 +9,12 @@ import type { OrderSensitiveStripeEvent, StripeSubscriptionStatus } from '~~/sha
 // GIN index stays in sync without triggers.
 const tsvector = customType<{ data: string }>({
   dataType() { return 'tsvector' }
+})
+
+// Raw bytes (Y.js updates). Read and written with plain SQL through
+// `server/utils/documents/yjsLog.ts`, never through drizzle's query builder.
+const bytea = customType<{ data: Buffer }>({
+  dataType() { return 'bytea' }
 })
 
 export const users = pgTable('users', {
@@ -185,6 +191,38 @@ export const documents = pgTable('documents', {
   index('idx_documents_owner').on(table.ownerId),
   index('idx_documents_last_active').on(table.lastActive),
   index('idx_documents_workspace').on(table.workspaceId)
+])
+
+// A document's Y.js state as an append-only log (written by the sync server,
+// read by history replay, duplicate, render, export and the image GC).
+//
+// - `update`: a Y.js update — what one store added since the previous store of
+//   the same sync server process (the full delete set included).
+// - `snapshot`: the merged state of EVERY row of the document with a smaller
+//   id. Its data is redundant; it only spares readers the replay of the rows
+//   below it, and it is what lets older rows be pruned.
+//
+// The state at id X is all rows with id <= X applied, which equals the newest
+// snapshot <= X plus the updates after it. Every writer holds the per-document
+// transaction lock (`pg_advisory_xact_lock(YJS_LOCK_NAMESPACE, hashtext(doc_id))`)
+// while it inserts, so within one document the id order is the commit order:
+// an id read once can never later gain a smaller sibling, which is what
+// `activity_log.yjs_doc_id_*` and the snapshot invariant rely on.
+//
+// Readers and writers: `sync-server/src/yjs-store.ts` (load, store, snapshot,
+// prune) and `server/utils/documents/yjsLog.ts` (everything the app does).
+// `ON DELETE CASCADE`: deleting a document deletes its Y.js state with it.
+export const yjsUpdates = pgTable('yjs_updates', {
+  id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+  docId: text('doc_id').notNull().references(() => documents.docId, { onDelete: 'cascade' }),
+  kind: text('kind', { enum: ['update', 'snapshot'] }).notNull(),
+  data: bytea('data').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  index('idx_yjs_updates_doc').on(table.docId, table.id),
+  index('idx_yjs_updates_snapshots').on(table.docId, table.id).where(sql`kind = 'snapshot'`),
+  // Pruning looks for snapshots older than the retention window.
+  index('idx_yjs_updates_snapshot_age').on(table.createdAt).where(sql`kind = 'snapshot'`)
 ])
 
 export const workspaces = pgTable('workspaces', {
@@ -785,13 +823,14 @@ export const activityLog = pgTable('activity_log', {
   linesAdded: integer('lines_added'),
   linesRemoved: integer('lines_removed'),
   metadata: jsonb('metadata').$type<ActivityMetadata>(),
-  // Boundary y-postgresql row ids around the store event that produced
-  // this row: max yjs_documents.id BEFORE and AFTER the store. The diff
-  // endpoint reconstructs the doc on either side from them. Nullable:
-  // some actions (e.g. metadata-only events fired ahead of the store
-  // flush) have neither.
-  yjsDocIdBefore: integer('yjs_doc_id_before'),
-  yjsDocIdAfter: integer('yjs_doc_id_after'),
+  // `yjs_updates` ids around the store event that produced this row: the
+  // document's newest row id BEFORE the store and the id the store wrote.
+  // The diff endpoint and restore replay the doc at them. Nullable: some
+  // actions (e.g. metadata-only events fired ahead of the store flush)
+  // have neither. No FK: rows below the history floor may be pruned
+  // (`docs/restore-compacted` / `docs/diff-unavailable`).
+  yjsDocIdBefore: bigint('yjs_doc_id_before', { mode: 'number' }),
+  yjsDocIdAfter: bigint('yjs_doc_id_after', { mode: 'number' }),
   // Principal label for agent-driven rows: the JWT's userId verbatim when
   // non-numeric (`'ai:assistant:{aiSessionId}'` for the in-app loop,
   // `'mcp:{mcpSessionId}'` for MCP). NULL for human edits (`userId`).

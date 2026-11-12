@@ -1,12 +1,14 @@
 # Sync server (Hocuspocus)
 
-How it works (persistence, compaction, auth and connection expiry, guards, activity logging, Valkey keys, multi-instance): [`docs/contributing/sync-server.md`](../docs/contributing/sync-server.md).
+How it works (persistence and its durability argument, snapshots and pruning, auth and connection expiry, guards, activity logging, Valkey keys, multi-instance): [`docs/contributing/sync-server.md`](../docs/contributing/sync-server.md).
 
 ## Rules
 
-- **Never return a fresh `Y.Doc` from `onLoadDocument` on error.** Re-throw so the connection is refused; an empty doc would let clients' cached state overwrite the real document. y-postgresql already returns an empty doc for absent rows without throwing.
-- **Keep `useIndex: false` on y-postgresql** (1.0.1 has a SQL bug in its index branch); `persistence.ts` creates the index itself.
-- **Compaction must stay ceiling-bounded.** Never reuse y-postgresql's `flushDocument` (deletes `id < mergedId`) from the sweep: snapshot `MAX(id)` first and touch only rows `<= ceiling`, in one transaction.
+- **Never return a fresh `Y.Doc` from `onLoadDocument` on error.** Re-throw so the connection is refused; an empty doc would let clients' cached state overwrite the real document. A document without rows legitimately loads empty.
+- **All `yjs_updates` SQL lives in `src/yjs-store.ts`** (the app's in `server/utils/documents/yjsLog.ts`). No DDL here: the table belongs to the app's migrations.
+- **Every write holds the per-document lock** (`pg_advisory_xact_lock(YJS_LOCK_NAMESPACE, hashtext(doc_id))`) until COMMIT. The activity "before" id and the snapshot invariant depend on it.
+- **Advance a document's persisted state vector only after its append committed** (`persistence.ts`). Moving it earlier loses the delta of a failed store.
+- **A snapshot must cover every row below its id; only pruning deletes, and only below a snapshot.** Never delete rows any other way, and never snapshot a document with an unreadable row.
 - **Every connection must have a token expiry.** `onAuthenticate` sets `context.tokenExpiresAt`; `connected` closes a connection without one. Don't add a code path that authenticates without it.
 - **Close for re-authentication only via `closeForReauth`** (`src/connection-expiry.ts`): document close, then socket close, code 4419 / reason `reauthenticate`. The editor only refetches its token on that reason; any other close reason from `shared/contracts/syncClose.ts` makes it stop reconnecting.
 - **Never close the app's own server-side clients** (`ai:`, `mcp:`, `restore:` … — `SYNTHETIC_USER_ID_PREFIXES` in `shared/contracts/jwt.ts`) on a document re-auth: it would fail an AI edit or a restore halfway.

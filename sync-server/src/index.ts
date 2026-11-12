@@ -6,7 +6,7 @@ import './boot-env'
 // name from the module also satisfies the side-effect import.
 import { captureMessage } from './sentry'
 import { Server } from '@hocuspocus/server'
-import { ypgPersistence } from './persistence'
+import { persistence, compaction, closePersistencePool } from './persistence-instance'
 import { authFromEnv } from './auth'
 import { rateLimiter } from './rate-limiter'
 import { logActivity, mostRecentVerifiedEditor, countWords, lineDiff, type VerifiedIdentity } from './activity-logger'
@@ -18,7 +18,6 @@ import { normalizeAvatarSeed } from '../../shared/utils/documents/awarenessUser'
 import { readMetaSnapshot } from './meta-snapshot'
 import { SYNC_CLOSE_REASONS } from '../../shared/contracts/syncClose'
 import { handleInternalRequest } from './internal-http'
-import { startCompactionSweeper, stopCompactionSweeper } from './compaction'
 import { shipCommentsSnapshot, dropSnapshotCache } from './comments-snapshot'
 import {
   getLastEditor,
@@ -87,7 +86,7 @@ const server = new Server({
   maxDebounce: 10000,
 
   async onLoadDocument(data) {
-    const doc = await ypgPersistence.onLoadDocument(data)
+    const doc = await persistence.load(data.documentName, data.document)
     // Seeding the diff baselines is best-effort: a failure here must never
     // reject the load (Hocuspocus would refuse every connection to the
     // document — a corrupted value in it would make it unloadable and
@@ -113,6 +112,14 @@ const server = new Server({
 
   async afterLoadDocument(data) {
     attachAwarenessGuard(data.document)
+  },
+
+  async beforeUnloadDocument(data) {
+    // Edits that could not be stored live only in this document's memory:
+    // throwing keeps Hocuspocus from unloading it (persistence.ts retries).
+    if (persistence.hasUnsavedChanges(data.document)) {
+      throw new Error(`document ${data.documentName} has unsaved edits, kept in memory`)
+    }
   },
 
   async beforeHandleMessage(data) {
@@ -155,27 +162,15 @@ const server = new Server({
   },
 
   async onStoreDocument(data) {
-    // Capture the y-postgresql row id BEFORE the store so the activity
-    // log can stamp boundary ids around this event. After the store,
-    // we'll capture the id again — together they bracket the operations
-    // that produced this debounce window's changes, so the diff
-    // endpoint can replay the doc on either side.
-    // BEFORE: capture the latest persisted row for this doc prior to
-    // our store. Null on a brand-new doc with no rows yet — the first
-    // edit is intentionally not restorable (no prior state to roll
-    // back to).
-    const yjsDocIdBefore = await ypgPersistence.getMaxYjsDocId(data.documentName)
-    // AFTER: use the row id returned by the store itself rather than a
-    // follow-up MAX query, which can return null across separate pg pools
-    // (suspected snapshot timing). The returned id is also the correct one:
-    // it's the id WE wrote, not whatever the latest
-    // row happens to be by the time we re-query (which under
-    // multi-instance concurrency could be a row a different instance
-    // wrote).
-    const yjsDocIdAfter = await ypgPersistence.onStoreDocument(
-      data,
-      bytes => updateGuard.noteDocumentSize(data.document, bytes)
-    )
+    // The appended row's id and the newest id before it (read under the
+    // document's write lock, so nothing can commit in between) bracket
+    // this debounce window's changes: the activity log stamps them so the
+    // diff endpoint and restore can replay the doc on either side. Null on
+    // a failed store (no activity row then); `previousId` is null for the
+    // document's first row — the first edit has no earlier state.
+    const stored = await persistence.store(data.documentName, data.document)
+    const yjsDocIdBefore = stored?.previousId ?? null
+    const yjsDocIdAfter = stored?.id ?? null
 
     // Read the tracked editor ONCE for the whole hook so the edit-row and
     // meta-diff blocks below see consistent attribution. Valkey miss vs
@@ -292,11 +287,19 @@ server.listen(port, () => {
   process.exit(1)
 })
 
-// Background compaction of the yjs_documents append-log. y-postgresql only
-// merges granular update rows on document LOAD, so an always-loaded (never
-// re-loaded) doc grows unbounded — this sweep bounds it. See compaction.ts
-// for the race-safety design.
-startCompactionSweeper()
+// Snapshots (and optional pruning) of the yjs_updates log. See compaction.ts.
+compaction.start()
+
+// Documents whose store failed stay in memory (beforeUnloadDocument); retry
+// them until they are written, then let them unload if nobody is connected.
+const UNSAVED_RETRY_MS = 15_000
+const unsavedRetry = setInterval(() => {
+  void persistence.retryUnsaved((docId) => {
+    const doc = server.hocuspocus.documents.get(docId)
+    if (doc && doc.getConnectionsCount() === 0) void server.hocuspocus.unloadDocument(doc)
+  })
+}, UNSAVED_RETRY_MS)
+unsavedRetry.unref()
 
 // onStoreDocument helpers
 
@@ -504,9 +507,19 @@ async function shutdown(signal: string) {
     process.exit(1)
   }, 25_000)
   try {
-    await stopCompactionSweeper()
+    clearInterval(unsavedRetry)
+    await compaction.stop()
+    // One last attempt for documents whose store failed, then stop keeping
+    // them in memory so the drain can finish.
+    await persistence.retryUnsaved(() => {})
+    persistence.beginShutdown()
     await server.destroy()
-    await ypgPersistence.destroy()
+    const lost = persistence.unsavedDocumentIds()
+    if (lost.length > 0) {
+      // Clients that still hold these edits send them again on reconnect.
+      log.error('shut down with unsaved edits', { docIds: lost })
+    }
+    await closePersistencePool()
     await closeValkey()
     log.info('Shutdown complete.')
     clearTimeout(killTimer)

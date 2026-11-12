@@ -11,7 +11,7 @@ import { isValidMetaValue } from '~~/shared/utils/documents/ymetaValidation'
  * `meta` map first, the `documents` row as the fallback.
  *
  * Why ymeta wins: the editor writes every property change to ymeta
- * (broadcast to all collaborators, persisted by y-postgresql), but only
+ * (broadcast to all collaborators, persisted by the sync server), but only
  * the OWNER's client also persists it to the row via `PUT /meta`.
  * Ownerless (anonymous) docs and changes made by workspace editors or
  * open-edit visitors therefore exist only in ymeta — the row keeps its

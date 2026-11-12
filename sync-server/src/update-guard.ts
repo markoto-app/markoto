@@ -270,10 +270,10 @@ function rejectReadOnlyStateless(message: Uint8Array): void {
 // Guard
 
 export function createUpdateGuard(limits: SyncLimits) {
-  // Last known encoded size per live document, advanced by the size of
-  // each accepted update and reset to the exact value on every store
-  // (`noteDocumentSize`). Only re-measured when the estimate would cross
-  // the cap, so the common path never encodes the whole document.
+  // Upper estimate of each live document's encoded size: advanced by the
+  // size of every accepted update, and replaced by the exact size only
+  // when the estimate would cross the cap, so the common path never
+  // encodes the whole document.
   const sizes = new WeakMap<Y.Doc, number>()
 
   function measure(doc: Y.Doc): number {
@@ -319,11 +319,6 @@ export function createUpdateGuard(limits: SyncLimits) {
 
       checkMetaWrites(doc, structs)
       sizes.set(doc, size + update.byteLength)
-    },
-
-    /** Record the exact encoded size (computed by the store anyway). */
-    noteDocumentSize(doc: Y.Doc, bytes: number): void {
-      sizes.set(doc, bytes)
     }
   }
 }

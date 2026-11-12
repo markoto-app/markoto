@@ -1,6 +1,6 @@
 # server/db
 
-`schema.ts` is the schema source of truth. How migrations run, plus recipes (pgvector, partial unique indexes, indexes and foreign keys on populated tables, guarded TRUNCATE): `docs/contributing/database.md`.
+`schema.ts` is the schema source of truth. How migrations run, plus recipes (pgvector, partial unique indexes, indexes and foreign keys on populated tables): `docs/contributing/database.md`.
 
 ## Rules
 

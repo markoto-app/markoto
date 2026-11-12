@@ -10,7 +10,7 @@ Rows live in `activity_log` (`server/db/schema.ts`, `server/repos/activity.ts`).
 
 - `edit`, `title.changed`, `theme.changed` are written by the sync server after each store (see [sync-server.md](sync-server.md#activity-logging)). The actor name comes from the editing connection's JWT, never from the awareness name a client chooses; anonymous editors appear as "Anonymous" with their per-tab avatar seed.
 - Comment, AI tool and restore rows are written by the app's endpoints.
-- Edit-like rows carry `yjsDocIdBefore` / `yjsDocIdAfter`: the `yjs_documents` row ids on either side of the change. Diffs and restores replay the document to those ids.
+- Edit-like rows carry `yjsDocIdBefore` / `yjsDocIdAfter`: the `yjs_updates` ids on either side of the change. Diffs and restores replay the document to those ids (`server/utils/documents/historyReplay.ts`).
 
 ## The feed (`app/components/collab/ActivityFeed.vue`)
 
@@ -34,8 +34,8 @@ The restore button (history icon) opens `RestoreConfirmModal.vue` and posts `POS
 
 `restoreDocToYjsId` (`server/utils/documents/restoreDoc.ts`) runs inside one Postgres transaction holding `pg_advisory_xact_lock(hashtext(docId))`:
 
-1. Read `MAX(id)` of the document's `yjs_documents` rows: the live state before the restore.
-2. Replay the document at the target id. If compaction has merged that point away, it throws `RestorePointCompactedError` and the endpoint answers 410.
+1. Read the newest `yjs_updates` id of the document: the live state before the restore.
+2. Replay the document at the target id. If history retention has pruned that point (the sync server's `COMPACT_RETAIN_HISTORY_DAYS`, off by default), it throws `RestorePointCompactedError` and the endpoint answers 410 (error code `restore-compacted`); the diff of such a row answers 410 (`diff-unavailable`). Snapshots never make a point unavailable.
 3. Connect a short-lived Hocuspocus client as the acting user (principal `restore:{userId}:{sessionId}`) so collaborators see who restored.
 4. In one Y.js transaction, empty the text and comments and insert the past values, and copy the past `meta` values (title, theme, description, audience, language, template). Transient keys such as `_deleted` are left alone. Every client receives one update.
 5. Disconnect and return the boundary ids.
@@ -51,9 +51,9 @@ All three row endpoints look the row up with `getActivityById(activityId, docId)
 | Restore order of steps and boundary ids | `tests/unit/documents/restoreDoc.test.ts` |
 | Restore endpoint: boundary mapping, atomicity, auth order | `tests/unit/documents/restoreEndpoint.test.ts` |
 | Restore endpoint over HTTP: validation, 404 / 410 | `tests/integration/endpoints/activityRestore.test.ts` |
+| Edit rows' boundary ids, diff, restore and restoring the restore against the real sync container | `tests/integration/sync/persistence.test.ts` |
+| Replay at an id, history floor, restore semantics on the stored log | `tests/repos/yjsPersistence.test.ts` |
 | Drawer mount and restore-button gating | `tests/nuxt/ActivityFeed.test.ts` |
 | Diff rendering | `tests/nuxt/DiffView.test.ts` |
 | `categoryOf` / `isExpandable` | `tests/unit/collab/activityFeedHelpers.test.ts` |
 | Comment snapshots | `tests/unit/comments/commentsSnapshotDiff.test.ts`, `tests/integration/endpoints/commentsSnapshotConcurrency.test.ts` |
-
-The integration stack has no Hocuspocus, so the successful restore path is covered by the unit test (mocked helper) and by the flow tests.

@@ -53,24 +53,15 @@ export function importMarkdownFile(
   const properties: ImportedDocProperties = {}
   const ignored: string[] = []
 
-  const title = readString(data.title, DOC_TITLE_MAX_LENGTH, false)
-  if (title !== undefined) properties.title = title
-  else if ('title' in data) ignored.push('title')
-
-  const description = readString(data.description, DOC_DESCRIPTION_MAX_LENGTH, true)
-  if (description !== undefined) properties.description = description
-  else if ('description' in data) ignored.push('description')
-
-  if (isAudienceKind(data.audience)) properties.audience = data.audience
-  else if ('audience' in data) ignored.push('audience')
-
-  const language = readString(data.language, LANGUAGE_MAX_LENGTH, false)
-  if (language !== undefined) properties.language = language
-  else if ('language' in data) ignored.push('language')
-
-  const templateId = resolveTemplateId(data.templateId)
-  if (templateId !== null) properties.templateId = templateId
-  else if ('templateId' in data) ignored.push('templateId')
+  const take = <K extends keyof ImportedDocProperties>(key: K, value: ImportedDocProperties[K] | undefined) => {
+    if (value !== undefined) properties[key] = value
+    else if (key in data) ignored.push(key)
+  }
+  take('title', readString(data.title, DOC_TITLE_MAX_LENGTH, false))
+  take('description', readString(data.description, DOC_DESCRIPTION_MAX_LENGTH, true))
+  take('audience', isAudienceKind(data.audience) ? data.audience : undefined)
+  take('language', readString(data.language, LANGUAGE_MAX_LENGTH, false))
+  take('templateId', resolveTemplateId(data.templateId) ?? undefined)
 
   let droppedCustomCssRules = 0
   if ('theme' in data) {

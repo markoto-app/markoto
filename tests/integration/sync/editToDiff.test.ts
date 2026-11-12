@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import * as Y from 'yjs'
-import { ensureYjsTable, resetDb, testDb } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { anonClient } from '../setup/client'
 import { createDoc } from '../setup/fixtures'
 import { TEST_INTERNAL_SECRET } from '../setup/env'
@@ -9,8 +9,8 @@ import { first } from '../../helpers/assert'
 // End-to-end smoke test for the edit → activity → diff pipeline.
 // Doesn't actually run Hocuspocus — instead it synthesizes the same
 // row shape the sync-server writes:
-//   1. Insert a yjs_documents row representing pre-edit state.
-//   2. Insert a yjs_documents row representing post-edit state.
+//   1. Insert a yjs_updates row representing pre-edit state.
+//   2. Insert a yjs_updates row representing post-edit state.
 //   3. POST to /api/internal/activity with the boundary ids.
 //   4. GET /api/docs/:docId/activity/:activityId/diff.
 //   5. Assert the diff response shows the exact change.
@@ -51,10 +51,10 @@ async function stageStates(docname: string, contents: string[]): Promise<number[
     const update = Y.encodeStateAsUpdate(doc)
     const value = Buffer.from(update.buffer, update.byteOffset, update.byteLength)
     const r = await db.query<{ id: number }>(
-      `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1') RETURNING id`,
+      `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2) RETURNING id`,
       [docname, value]
     )
-    ids.push(first(r.rows).id)
+    ids.push(Number(first(r.rows).id))
     lastContent = next
   }
   return ids
@@ -82,7 +82,6 @@ interface DiffResponse {
 describe('edit → activity row → diff endpoint round-trip', () => {
   beforeEach(async () => {
     await resetDb()
-    await ensureYjsTable()
   })
 
   it('writes an activity row through /internal/activity and serves a real diff for it', async () => {

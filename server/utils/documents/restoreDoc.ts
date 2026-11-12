@@ -5,11 +5,17 @@ import { Awareness } from 'y-protocols/awareness'
 import { sql } from 'drizzle-orm'
 import { useDatabase } from '../platform/database'
 import { reconstructDocAtYjsId } from './historyReplay'
+import { YjsHistoryCompactedError } from './yjsLog'
 import { restoreClientUserId, type SessionJwtPayload } from '~~/shared/contracts/jwt'
 import { isValidMetaValue } from '~~/shared/utils/documents/ymetaValidation'
 import { useEnv } from '~~/shared/env/load'
 
 const RESTORABLE_META_KEYS = ['title', 'theme', 'description', 'audience', 'language', 'templateId'] as const
+
+// pg returns bigint (`yjs_updates.id`) as a string.
+function toYjsId(v: string | number | null | undefined): number | null {
+  return v === null || v === undefined ? null : Number(v)
+}
 
 /**
  * The past state's restorable ymeta values as plain JS. Only values that
@@ -35,7 +41,7 @@ export function readRestorableMeta(pastMeta: Y.Map<unknown>): Record<string, unk
 // "Snap the live Y.Doc to a past state" — the execution side of restore.
 //
 // Mechanics:
-//   1. Replay y-postgresql up to `targetYjsId` to produce the past
+//   1. Replay the Y.js log up to `targetYjsId` to produce the past
 //      state's full Y.Doc (no in-memory references to the live doc).
 //   2. Connect a synthetic Hocuspocus client to the live doc as the
 //      acting user. Mirrors the AI-session pattern (`aiClient.ts`):
@@ -65,7 +71,7 @@ export function readRestorableMeta(pastMeta: Y.Map<unknown>): Record<string, unk
 
 export interface RestoreDocOptions {
   docId: string
-  /** y-postgresql row id whose state we'll restore the live doc to.
+  /** `yjs_updates` id whose state we'll restore the live doc to.
    *  In the endpoint this is the source activity row's `yjsDocIdBefore`
    *  — i.e., "the state right before that activity happened." */
   targetYjsId: number
@@ -79,25 +85,22 @@ export interface RestoreDocOptions {
 }
 
 export interface RestoreDocResult {
-  /** The y-postgresql row id captured BEFORE the restore landed —
+  /** The `yjs_updates` id captured BEFORE the restore landed —
    *  i.e., the live state right before our inverse update. Stamped
    *  on the new restore activity row's `yjsDocIdBefore` so a FUTURE
    *  restore from this row brings the doc back to the pre-restore
    *  state. THIS is the field that powers reversibility. */
   yjsDocIdBeforeRestore: number | null
-  /** The y-postgresql row id captured AFTER the restore landed.
+  /** The `yjs_updates` id captured AFTER the restore landed.
    *  Used to set yjsDocIdAfter on the resulting `restore` activity
    *  row so its diff drawer can replay the exact change. */
   yjsDocIdAfterRestore: number | null
 }
 
 /**
- * Thrown when the restore target sits below y-postgresql's compaction floor:
- * `flushDocument` → `clearUpdatesRange` physically DELETES every granular `v1`
- * row below the merged row, so a target id below the lowest surviving row can
- * no longer be reconstructed. `reconstructDocAtYjsId` would return an EMPTY
- * doc for it, and applying that would WIPE the live document. We refuse instead.
- * The endpoint maps this to 410 Gone. See the compaction-floor guard in `restoreDocToYjsId`.
+ * Thrown when the restore target sits below the document's history floor:
+ * the sync server pruned the Y.js rows it needs (COMPACT_RETAIN_HISTORY_DAYS),
+ * so that state can't be reconstructed. The endpoint maps this to 410 Gone.
  */
 export class RestorePointCompactedError extends Error {
   constructor(public readonly targetYjsId: number, public readonly floorId: number) {
@@ -131,35 +134,24 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
     // This is what makes restores reversible: stamping it on the
     // resulting activity row's `yjsDocIdBefore` means a future restore
     // from THIS row brings the doc back to the pre-restore state.
-    const beforeRow = await tx.execute<{ id: number | null }>(
-      sql`SELECT MAX(id) AS id FROM yjs_documents WHERE docname = ${opts.docId}`
+    const beforeRow = await tx.execute<{ id: string | null }>(
+      sql`SELECT max(id) AS id FROM yjs_updates WHERE doc_id = ${opts.docId}`
     )
-    const yjsDocIdBeforeRestore = (beforeRow.rows?.[0])?.id ?? null
-
-    // Compaction-floor guard: keeps a restore from WIPING the doc.
-    // y-postgresql compaction (`flushDocument` → `clearUpdatesRange`) DELETES
-    // every granular `v1` row below the merged row, collapsing the doc into a
-    // single row at the highest id. If `targetYjsId` sits below that surviving
-    // floor, its rows are gone: `reconstructDocAtYjsId` would match zero rows
-    // (the merged row is excluded by `id <= targetYjsId`) and return an EMPTY
-    // doc — and the apply below unconditionally clears the live content, so an
-    // empty reconstruction WIPES the live document. The target is unrecoverable,
-    // not empty, so we refuse. (Target >= floor replays faithfully: the merged
-    // row at `floor` carries all state up to it, plus any granular rows above.)
-    const floorRow = await tx.execute<{ min_v1_id: number | null }>(
-      sql`SELECT MIN(id) AS min_v1_id FROM yjs_documents
-          WHERE docname = ${opts.docId} AND version = 'v1'`
-    )
-    const minSurvivingV1 = (floorRow.rows?.[0])?.min_v1_id ?? null
-    if (minSurvivingV1 !== null && opts.targetYjsId < minSurvivingV1) {
-      throw new RestorePointCompactedError(opts.targetYjsId, minSurvivingV1)
-    }
+    const yjsDocIdBeforeRestore = toYjsId((beforeRow.rows?.[0])?.id)
 
     // Step 1: replay to get the past state's full Y.Doc, then EXTRACT
     // the values we want to restore (text, comments, meta) as plain
     // JS values. We deliberately do NOT use the past doc's encoded
     // update — see the rationale at the apply site below.
-    const past = await reconstructDocAtYjsId(opts.docId, opts.targetYjsId)
+    // Below the history floor the replay throws instead of returning an
+    // empty doc — applying an empty reconstruction would WIPE the live doc.
+    let past: Y.Doc
+    try {
+      past = await reconstructDocAtYjsId(opts.docId, opts.targetYjsId)
+    } catch (e) {
+      if (e instanceof YjsHistoryCompactedError) throw new RestorePointCompactedError(opts.targetYjsId, e.floorId)
+      throw e
+    }
     const pastText = past.getText('content').toJSON()
     const pastComments = past.getArray('comments').toJSON() as unknown[]
     const pastMeta = readRestorableMeta(past.getMap('meta'))
@@ -274,7 +266,7 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
       // Give Hocuspocus a tick to broadcast + persist. Without this
       // the disconnect can race the store debounce and the next
       // collaborator's onLoad gets a stale state. 200ms is well above
-      // the y-postgresql write latency (~5ms) and well below user-
+      // the Y.js store latency (~5ms) and well below user-
       // perceptible (which kicks in ~300ms).
       await new Promise(r => setTimeout(r, 200))
     } finally {
@@ -303,10 +295,10 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
     // Step 4: capture the post-restore yjs row id for the activity row's
     // yjsDocIdAfter. Hocuspocus's store debounce may not have flushed yet;
     // the diff drawer then resolves to the latest state available.
-    const r = await tx.execute<{ id: number | null }>(
-      sql`SELECT MAX(id) AS id FROM yjs_documents WHERE docname = ${opts.docId}`
+    const r = await tx.execute<{ id: string | null }>(
+      sql`SELECT max(id) AS id FROM yjs_updates WHERE doc_id = ${opts.docId}`
     )
-    const yjsDocIdAfterRestore = (r.rows?.[0])?.id ?? null
+    const yjsDocIdAfterRestore = toYjsId((r.rows?.[0])?.id)
 
     return { yjsDocIdBeforeRestore, yjsDocIdAfterRestore }
   })

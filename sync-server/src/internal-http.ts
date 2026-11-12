@@ -1,5 +1,4 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { ypgPersistence } from './persistence'
 import { cameThroughEdgeProxy, checkInternalSecret, INTERNAL_SECRET_HEADER } from '../../shared/utils/security/internalSecret'
 import { isTestModeEnabled } from '../../shared/utils/security/testMode'
 import { performKickUser, type HocuspocusInstance } from './kickUser'
@@ -177,8 +176,9 @@ function authenticateInternalRequest(request: IncomingMessage, response: ServerR
 /**
  * Flag the in-memory Y.Doc as deleted — connected clients observe via
  * ymeta and handle redirect/toast on their end. After a short delay
- * we unload the doc + clear its persisted Y.js rows so it can't be
- * revived from disk.
+ * we unload the doc. Its Y.js rows already went with the `documents`
+ * row (FK cascade), and a later store for it is refused by that same
+ * foreign key, so it can't be revived.
  */
 async function handleNotifyDeleted(
   request: IncomingMessage,
@@ -202,20 +202,13 @@ async function handleNotifyDeleted(
       } catch { /* ignore */ }
     }, 2000)
   }
-  // Wait briefly so any in-flight broadcast persists `_deleted` first.
-  setTimeout(() => {
-    ypgPersistence.clearDocument(docId).catch((e) => {
-      requestLog(request).warn('clearDocument failed', { docId, err: e })
-    })
-  }, 3000)
-
   sendJson(response, 200, { success: true, notified: !!doc })
   return true
 }
 
 /**
  * Persist a loaded document's pending edits NOW instead of after the
- * store debounce, so the caller can read complete `yjs_documents` rows
+ * store debounce, so the caller can read complete `yjs_updates` rows
  * (duplicate clones them). Answers once the store finished; `outcome`
  * says whether there was anything to store (see flushDocument.ts).
  */

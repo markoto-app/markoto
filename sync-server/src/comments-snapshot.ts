@@ -79,9 +79,9 @@ const lastShipped = new Map<string, string>()
 /**
  * Best-effort. Errors are logged and swallowed; the mirror catches up
  * on the next store. Caller passes the Y.Doc directly so we don't have
- * to re-fetch it from y-postgresql.
+ * to re-fetch it from the database.
  *
- * Optional `boundaries` carry the y-postgresql row ids around the
+ * Optional `boundaries` carry the `yjs_updates` row ids around the
  * triggering store event — passed through so the comment.* activity
  * rows get the same diff-replay anchors as edit rows.
  */

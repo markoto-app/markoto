@@ -98,6 +98,33 @@ export async function createDocument(input: CreateDocumentParams): Promise<Creat
     accessMode: input.ownerId == null ? 'open-edit' : 'private'
   }
 
+  const language = applyDocumentProperties(create, input)
+
+  const template = input.templateId === undefined ? null : resolveTemplate(input.templateId)
+  // Stored under its current id (an alias like `academic-paper` → `arxiv`).
+  if (template !== null) create.templateId = template.id
+
+  const content = parseContent(input.content, input.templateId)
+
+  const resolved = await resolveTheme(input, input.ownerId, workspaceId, template)
+  if (resolved !== null) {
+    // The template's own design gets the template's cover placeholders
+    // (authors, affiliations, subtitle), in the document's language.
+    const theme = template !== null && resolved.preset !== null && resolved.preset === template.design
+      ? withTemplateCover(resolved.theme, template, language ?? 'en')
+      : resolved.theme
+    create.theme = withCustomCssForNewDoc(theme, docId)
+  }
+
+  if (input.ownerId == null) applyAnonymousCreator(create, input)
+
+  await createDoc(create)
+  if (content !== null) await seedDocContent(docId, content)
+  return { docId, url: `/d/${docId}` }
+}
+
+/** Title, description, audience and language of the new row (each validated); returns the language. */
+function applyDocumentProperties(create: CreateDocInput, input: CreateDocumentParams): string | null {
   const title = parseTitle(input.title)
   if (title !== null) create.title = title
 
@@ -113,40 +140,26 @@ export async function createDocument(input: CreateDocumentParams): Promise<Creat
 
   const language = parseLanguage(input.language)
   if (language !== null) create.language = language
+  return language
+}
 
-  let template: TemplateMeta | null = null
-  if (input.templateId !== undefined) {
-    template = getTemplate(input.templateId)
-    if (!template) {
-      throw createError({ statusCode: 400, message: 'Unknown templateId' })
-    }
-    // Stored under its current id (an alias like `academic-paper` → `arxiv`).
-    create.templateId = template.id
+function resolveTemplate(templateId: string): TemplateMeta {
+  const template = getTemplate(templateId)
+  if (!template) {
+    throw createError({ statusCode: 400, message: 'Unknown templateId' })
   }
+  return template
+}
 
-  const content = parseContent(input.content, input.templateId)
-
-  const resolved = await resolveTheme(input, input.ownerId, workspaceId, template)
-  if (resolved !== null) {
-    // The template's own design gets the template's cover placeholders
-    // (authors, affiliations, subtitle), in the document's language.
-    const theme = template !== null && resolved.preset !== null && resolved.preset === template.design
-      ? withTemplateCover(resolved.theme, template, language ?? 'en')
-      : resolved.theme
-    create.theme = withCustomCssForNewDoc(theme, docId)
-  }
-
-  if (input.ownerId == null && input.anonCreatorKeyHash !== undefined) {
+/** An anonymous document: the creating browser's key (it alone may delete it) and the accepted terms. */
+function applyAnonymousCreator(create: CreateDocInput, input: CreateDocumentParams): void {
+  if (input.anonCreatorKeyHash !== undefined) {
     create.anonCreatorKeyHash = input.anonCreatorKeyHash
   }
-  if (input.ownerId == null && input.anonTermsAcceptance !== undefined) {
+  if (input.anonTermsAcceptance !== undefined) {
     create.anonTermsVersion = input.anonTermsAcceptance.termsVersion
     create.anonTermsAcceptedAt = input.anonTermsAcceptance.acceptedAt
   }
-
-  await createDoc(create)
-  if (content !== null) await seedDocContent(docId, content)
-  return { docId, url: `/d/${docId}` }
 }
 
 /**

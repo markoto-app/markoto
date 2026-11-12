@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken'
 import WebSocket from 'ws'
 import type { HocuspocusProvider } from '@hocuspocus/provider'
 import { newProvider } from '../../helpers/hocuspocus'
-import { ensureYjsTable, resetDb } from '../setup/db'
+import { resetDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser } from '../setup/fixtures'
 import { TEST_JWT_SECRET, TEST_SYNC_PORT } from '../setup/env'
@@ -79,7 +79,6 @@ const reauthClosed = (c: Client) => c.closes.some(e => e.reason === SYNC_REAUTH_
 
 beforeEach(async () => {
   await resetDb()
-  await ensureYjsTable()
 })
 
 afterEach(() => {

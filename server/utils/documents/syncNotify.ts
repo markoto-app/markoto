@@ -88,7 +88,7 @@ export function notifySyncReauthDocument(docId: string): void {
 /**
  * Ask the sync-server to persist a document's pending edits NOW (its
  * store is debounced 2–10 s) and wait until it has. Call before reading
- * a live document's `yjs_documents` rows — `duplicateDocument` clones
+ * a live document's `yjs_updates` rows — `duplicateDocument` clones
  * them, and without the flush a duplicate made right after an edit
  * would miss that edit.
  *

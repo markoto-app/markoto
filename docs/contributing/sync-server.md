@@ -6,10 +6,41 @@ Entry point: `sync-server/src/index.ts`. It runs as TypeScript directly under Bu
 
 ## Persistence
 
-- `sync-server/src/persistence.ts` wraps `y-postgresql` (`yjs_documents` table) with `useIndex: false`, because y-postgresql 1.0.1 has a bug in its index-creation branch. The module creates `idx_yjs_documents_docname` itself at boot (`CREATE INDEX CONCURRENTLY IF NOT EXISTS`).
-- Every store appends a row. y-postgresql merges rows only when a document is loaded, so a document that stays loaded keeps growing. `sync-server/src/compaction.ts` runs a periodic sweep that merges the rows of documents above `COMPACT_THRESHOLD` (default 500). It snapshots `MAX(id)` first, merges and deletes only rows up to that ceiling in one transaction, so a concurrent append is never lost. A Postgres advisory lock lets only one instance sweep at a time. Settings: `COMPACT_THRESHOLD`, `COMPACT_INTERVAL_MS` (default 900000; `<= 0` disables), `COMPACT_MAX_DOCS_PER_RUN` (default 50). Compaction raises the lowest row id, so older activity-log restore points become unavailable; the restore code checks for that.
-- `onLoadDocument` re-throws a load error so the connection is refused and the client retries. It must never return an empty `Y.Doc` on error: connected clients would then write their cached state back as new content.
-- Hocuspocus debounces stores (`debounce: 2000`, `maxDebounce: 10000`). `POST /internal/flush-document` runs a pending store immediately; the app calls it before duplicating a document.
+A document's Y.js state is an append-only log in the `yjs_updates` table, declared in `server/db/schema.ts` and created by the app's migration like every other table (the sync server never runs DDL). Each row belongs to a `documents` row (`ON DELETE CASCADE`).
+
+| Column | Meaning |
+|---|---|
+| `id` | `bigint` identity. Within one document, id order is commit order (see locking below). Activity rows store these ids. |
+| `kind` | `update`: a Y.js update. `snapshot`: the merged state of every row of the document with a smaller id. |
+| `data` | The Y.js update bytes. |
+| `created_at` | Used by pruning. |
+
+**State at an id.** The state at id X is every row with id ≤ X applied, which equals the newest snapshot ≤ X plus the updates after it. Loading is the same rule at the newest id. Snapshots hold no information of their own, so writing one never changes any state.
+
+**Code.** All of the sync server's SQL is in `sync-server/src/yjs-store.ts`. `sync-server/src/persistence.ts` is the Hocuspocus side; `persistence-instance.ts` wires both to the env. The app reads and writes the table only through `server/utils/documents/yjsLog.ts`. The two modules share the lock namespace `YJS_LOCK_NAMESPACE` (pinned equal by `tests/repos/yjsPersistence.test.ts`).
+
+**Load.** `onLoadDocument` reads the newest snapshot plus the updates after it in one statement and returns the document. A database error is re-thrown, so Hocuspocus refuses the connection and the client retries; it must never answer with an empty `Y.Doc`, because connected clients would then present their state as new. A row that cannot be decoded is skipped and reported to Sentry (it stays in the table).
+
+**Store.** Hocuspocus debounces stores (`debounce: 2000`, `maxDebounce: 10000`). A store appends `Y.encodeStateAsUpdate(document, persistedStateVector)`: the delta since what this process last persisted, plus the full delete set (deletions do not move the state vector). The state vector is taken at load and advanced only after the append committed:
+
+- A store is one transaction (`BEGIN`, lock, read the newest id, `INSERT`, `COMMIT`). When it resolves, the row is durable; when it fails, nothing was written and the next store's delta still contains everything.
+- Two instances holding the same document each append their own deltas. Y.js updates commute and are idempotent, so both are kept and merge on load.
+- The id read under the lock is the document's state before this store. It becomes the activity row's `yjsDocIdBefore`; the inserted id becomes `yjsDocIdAfter`.
+- A failed store is retried three times (0.25 s, 1 s, 3 s). If it still fails, the document is marked unsaved: `beforeUnloadDocument` refuses to unload it (its edits exist only in memory) and a 15 s timer retries until the store succeeds. On shutdown the veto is lifted after one last try; the document ids that are still unsaved are logged as errors (clients that hold the edits send them again on reconnect).
+- A store for a document whose `documents` row is gone fails on the foreign key: the edits are dropped on purpose (the document was deleted) and logged at info level.
+- A row above `SYNC_MAX_DOCUMENT_BYTES + SYNC_MAX_UPDATE_BYTES` is refused before it reaches Postgres. The update guard keeps documents below that, so this only fires on a guard bypass.
+
+**Locking.** Every write (store, snapshot, prune, and the app's first row of a new or duplicated document) holds `pg_advisory_xact_lock(YJS_LOCK_NAMESPACE, hashtext(doc_id))` until it commits. Writers of the same document wait for each other (a store is a few milliseconds); writers of different documents never do. Without the lock a row with a smaller id could commit after a larger one was read, and a snapshot could miss it.
+
+**Snapshots (compaction).** The persistence counts the updates of each open document since its newest snapshot (at load, then per store). Above `COMPACT_THRESHOLD` (default 500) the document is queued, and the periodic sweep (`sync-server/src/compaction.ts`, every `COMPACT_INTERVAL_MS`, default 900000, `<= 0` = off) writes a snapshot for up to `COMPACT_MAX_DOCS_PER_RUN` (default 50) queued documents. A snapshot reads and merges the log without the lock, then under the lock applies the rows appended meanwhile and inserts the snapshot, whose new id is above every row it covers. If another instance snapshotted meanwhile, it writes nothing. The snapshot is decoded again and compared with the merged document before it is inserted, and a document with an unreadable row is never snapshotted. A session advisory lock keeps instances from sweeping at the same moment; the per-document lock makes concurrent work safe anyway. Snapshots delete nothing: every id stays replayable.
+
+**Pruning (history retention).** Only with `COMPACT_RETAIN_HISTORY_DAYS` > 0 (default 0 = keep all history). For a document with a snapshot older than the window, the sweep deletes every row below the newest such snapshot. That snapshot becomes the document's oldest row, the **history floor**: ids from it on replay exactly; older ids raise `YjsHistoryCompactedError`, which restore maps to 410 (error code `restore-compacted`) and the diff to 410 (`diff-unavailable`). Every activity row created inside the window refers only to ids at or above the floor (an id is the newest row at the moment it was recorded, and the kept snapshot existed then), so set the retention at least as long as the longest plan history window (`TIER_*_HISTORY_DAYS`). A document whose oldest row is an `update` was never pruned: an id below it is the empty state before its first write.
+
+**Deletion.** Deleting the `documents` row deletes its Y.js rows in the same statement, whether the delete comes from the user, a workspace, the account-deletion purge, moderation or the inactive-document sweep. `POST /internal/notify-deleted` only tells connected clients and unloads the document; a later store of it is refused by the foreign key, so a deleted document cannot come back.
+
+**Observability.** Loads and stores are logged at debug level with `durationMs` and `bytes`, at warn level above one second. After every sweep a `persistence stats` line sums loads, stores, bytes, average and maximum store time, failures and unsaved documents. Sentry tags: `component: persistence` with `event` `load_failed`, `store_failed`, `store_refused`, `unreadable_rows`; `component: compaction` with `snapshot_failed`, `prune_failed`, `sweep_failed`.
+
+`POST /internal/flush-document` runs a pending store immediately; the app calls it before reading a live document's rows (duplicate, render).
 
 ## Authentication and authorization
 
@@ -25,7 +56,7 @@ Entry point: `sync-server/src/index.ts`. It runs as TypeScript directly under Bu
 
 | Route | Purpose |
 |---|---|
-| `POST /internal/notify-deleted` | Set `ymeta._deleted`, then unload the document and clear its rows |
+| `POST /internal/notify-deleted` | Set `ymeta._deleted`, then unload the document (its rows went with the `documents` row) |
 | `POST /internal/kick-user` | Close a user's connections on given documents |
 | `POST /internal/reauth-document` | Store a not-before cutoff and close the document's connections |
 | `POST /internal/flush-document` | Run the debounced store now and wait for it |
@@ -40,7 +71,7 @@ Entry point: `sync-server/src/index.ts`. It runs as TypeScript directly under Bu
 
 ## Activity logging
 
-On every store the server compares the text and the `meta` snapshot with the previous state and posts `edit`, `title.changed` and `theme.changed` rows to the app (`POST /api/internal/activity`, fire-and-forget, 5 s timeout). Each row carries `yjsDocIdBefore` / `yjsDocIdAfter`, the `yjs_documents` row ids around the store, so the Activity Log can show diffs and restore (see [activity-log.md](activity-log.md)). Comment changes are mirrored with `POST /api/internal/comments-snapshot`.
+On every store the server compares the text and the `meta` snapshot with the previous state and posts `edit`, `title.changed` and `theme.changed` rows to the app (`POST /api/internal/activity`, fire-and-forget, 5 s timeout). Each row carries `yjsDocIdBefore` / `yjsDocIdAfter`, the `yjs_updates` ids around the store (see [Persistence](#persistence)), so the Activity Log can show diffs and restore (see [activity-log.md](activity-log.md)). Comment changes are mirrored with `POST /api/internal/comments-snapshot`.
 
 Attribution comes from the editing connection's JWT, never from the client-chosen awareness name. The last editor is recorded in `onChange`; if that record is missing (cold document, Valkey down), the fallback is the JWT identity of the writer connection whose awareness changed last. Anonymous editors are logged as "Anonymous" with the avatar seed their connection broadcast.
 
@@ -60,9 +91,10 @@ Hocuspocus keeps each loaded document in one process, so production routes WebSo
 
 ## Shutdown
 
-SIGTERM stops the compaction sweeper, calls `server.destroy()` (drains connections and pending stores), closes the Postgres pool and Valkey. A 25 s timer forces exit; compose gives the container 30 s.
+SIGTERM stops the compaction sweeper, retries unsaved documents once, calls `server.destroy()` (drains connections and pending stores), closes the Postgres pool and Valkey. A 25 s timer forces exit; compose gives the container 30 s.
 
 ## Tests
 
 - Unit tests run from the root workspace and import `sync-server/src/*` directly: `tests/unit/sync/`. Tests that build `Y.Doc`s for sync-server helpers import Y from `sync-server/src/yjs.ts`, because Y.js relies on `instanceof` and the sync server has its own copy of the package.
-- Integration tests against the real sync container: `tests/integration/sync/` (for example `syncHardening.test.ts` and `connectionRevocation.test.ts`). `docker-compose.test.yml` sets low `SYNC_MAX_*` / `SYNC_AUTH_TIMEOUT_MS` values that must match the constants in `syncHardening.test.ts`.
+- Persistence against the real test Postgres (store, load, failures, two instances, snapshots, pruning, restore semantics): `tests/repos/yjsPersistence.test.ts`.
+- Integration tests against the real sync container: `tests/integration/sync/` (for example `persistence.test.ts`, `syncHardening.test.ts` and `connectionRevocation.test.ts`). `docker-compose.test.yml` sets low `SYNC_MAX_*` / `SYNC_AUTH_TIMEOUT_MS` values that must match the constants in `syncHardening.test.ts`.

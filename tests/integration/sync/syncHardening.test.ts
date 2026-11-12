@@ -6,7 +6,7 @@ import * as encoding from 'lib0/encoding'
 import type { HocuspocusProvider } from '@hocuspocus/provider'
 import { newProvider } from '../../helpers/hocuspocus'
 import { Awareness } from 'y-protocols/awareness'
-import { ensureYjsTable, resetDb, testDb } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { createDoc, createUser } from '../setup/fixtures'
 import { TEST_JWT_SECRET, TEST_SYNC_URL, TEST_SYNC_PORT } from '../setup/env'
 import { defaultTheme } from '../../../shared/utils/theme/defaultTheme'
@@ -117,7 +117,6 @@ async function freshCopy(docId: string): Promise<Y.Doc> {
 
 beforeEach(async () => {
   await resetDb()
-  await ensureYjsTable()
 })
 
 afterEach(() => {
@@ -261,7 +260,7 @@ describe('ymeta validation on the WebSocket path', () => {
     })
     const update = Y.encodeStateAsUpdate(corrupt)
     await testDb().query(
-      `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1')`,
+      `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2)`,
       [doc.docId, Buffer.from(update.buffer, update.byteOffset, update.byteLength)]
     )
 

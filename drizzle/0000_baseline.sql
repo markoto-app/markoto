@@ -39,8 +39,8 @@ CREATE TABLE "activity_log" (
 	"lines_added" integer,
 	"lines_removed" integer,
 	"metadata" jsonb,
-	"yjs_doc_id_before" integer,
-	"yjs_doc_id_after" integer,
+	"yjs_doc_id_before" bigint,
+	"yjs_doc_id_after" bigint,
 	"actor_principal" text,
 	"actor_avatar_seed" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
@@ -553,6 +553,14 @@ CREATE TABLE "workspaces" (
 	CONSTRAINT "workspaces_workspace_id_unique" UNIQUE("workspace_id")
 );
 --> statement-breakpoint
+CREATE TABLE "yjs_updates" (
+	"id" bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "yjs_updates_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1 CACHE 1),
+	"doc_id" text NOT NULL,
+	"kind" text NOT NULL,
+	"data" "bytea" NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 ALTER TABLE "abuse_reports" ADD CONSTRAINT "abuse_reports_reporter_user_id_users_id_fk" FOREIGN KEY ("reporter_user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "abuse_reports" ADD CONSTRAINT "abuse_reports_actioned_by_users_id_fk" FOREIGN KEY ("actioned_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "activity_log" ADD CONSTRAINT "activity_log_doc_id_documents_doc_id_fk" FOREIGN KEY ("doc_id") REFERENCES "public"."documents"("doc_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -609,6 +617,7 @@ ALTER TABLE "workspace_templates" ADD CONSTRAINT "workspace_templates_workspace_
 ALTER TABLE "workspace_templates" ADD CONSTRAINT "workspace_templates_doc_id_documents_doc_id_fk" FOREIGN KEY ("doc_id") REFERENCES "public"."documents"("doc_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "workspace_templates" ADD CONSTRAINT "workspace_templates_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "workspaces" ADD CONSTRAINT "workspaces_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "yjs_updates" ADD CONSTRAINT "yjs_updates_doc_id_documents_doc_id_fk" FOREIGN KEY ("doc_id") REFERENCES "public"."documents"("doc_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "idx_abuse_reports_status" ON "abuse_reports" USING btree ("status","created_at");--> statement-breakpoint
 CREATE INDEX "idx_abuse_reports_doc" ON "abuse_reports" USING btree ("doc_id");--> statement-breakpoint
 CREATE INDEX "idx_activity_doc" ON "activity_log" USING btree ("doc_id","created_at");--> statement-breakpoint
@@ -673,4 +682,7 @@ CREATE INDEX "idx_workspace_subscriptions_billing_admin" ON "workspace_subscript
 CREATE INDEX "idx_workspace_subscriptions_customer" ON "workspace_subscriptions" USING btree ("stripe_customer_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "uq_workspace_template_doc" ON "workspace_templates" USING btree ("workspace_id","doc_id");--> statement-breakpoint
 CREATE INDEX "idx_workspace_templates_doc" ON "workspace_templates" USING btree ("doc_id");--> statement-breakpoint
-CREATE INDEX "idx_workspaces_owner" ON "workspaces" USING btree ("owner_id");
+CREATE INDEX "idx_workspaces_owner" ON "workspaces" USING btree ("owner_id");--> statement-breakpoint
+CREATE INDEX "idx_yjs_updates_doc" ON "yjs_updates" USING btree ("doc_id","id");--> statement-breakpoint
+CREATE INDEX "idx_yjs_updates_snapshots" ON "yjs_updates" USING btree ("doc_id","id") WHERE kind = 'snapshot';--> statement-breakpoint
+CREATE INDEX "idx_yjs_updates_snapshot_age" ON "yjs_updates" USING btree ("created_at") WHERE kind = 'snapshot';
