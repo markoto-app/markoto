@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nuxt'
 import type { NitroErrorHandler } from 'nitropack/types'
+import type { H3Event } from 'h3'
 import { dropUnusedSessionCookie } from './utils/auth/sessionCookie'
 import { isApiErrorCode } from '../shared/api/errors'
 import { isTestModeEnabled } from '../shared/utils/security/testMode'
@@ -54,6 +55,47 @@ export function buildSanitizedErrorPayload(error: {
   return payload
 }
 
+/** A browser navigating to a page, as opposed to an API or asset request. */
+function wantsErrorPage(event: H3Event): boolean {
+  if (event.context.nuxt?.['~rendering-error']) return false
+  const path = event.path
+  if (/^\/(api|mcp|scim|internal|_nuxt|__nuxt_error)(\/|$|\?)/.test(path)) return false
+  return (getRequestHeader(event, 'accept') ?? '').includes('text/html')
+}
+
+/**
+ * Render `app/error.vue` for a failed page request. A custom Nitro error
+ * handler replaces Nuxt's own, which is what renders that page, so an unknown
+ * URL would otherwise show the JSON payload. Only the status travels in a
+ * way the page uses: it picks its text by status, never from `message`.
+ * Returns false when the page itself cannot render; the caller then answers
+ * with the JSON payload.
+ */
+async function sendErrorPage(event: H3Event, payload: SanitizedErrorPayload): Promise<boolean> {
+  event.context.nuxt = { ...event.context.nuxt, '~rendering-error': true }
+  const target = `/__nuxt_error?${new URLSearchParams({
+    url: payload.url ?? '/',
+    statusCode: String(payload.statusCode),
+    statusMessage: payload.statusMessage,
+    message: payload.statusMessage
+  }).toString()}`
+  const res = await useNitroApp().localFetch(target, {
+    headers: event.headers,
+    redirect: 'manual',
+    context: { nuxt: { '~rendering-error': true } }
+  }).catch(() => null)
+  if (!res || event.handled) return false
+  const html = await res.text()
+  for (const [header, value] of res.headers.entries()) {
+    if (header === 'set-cookie') continue
+    setResponseHeader(event, header, value)
+  }
+  setResponseStatus(event, payload.statusCode, payload.statusMessage)
+  dropUnusedSessionCookie(event)
+  await send(event, html)
+  return true
+}
+
 const handler: NitroErrorHandler = async (error, event) => {
   const url = event.path
   const statusCode = error.statusCode || 500
@@ -84,6 +126,7 @@ const handler: NitroErrorHandler = async (error, event) => {
   }
 
   const payload = buildSanitizedErrorPayload(error, url)
+  if (wantsErrorPage(event) && await sendErrorPage(event, payload)) return
   setResponseStatus(event, payload.statusCode, payload.statusMessage)
   setResponseHeader(event, 'content-type', 'application/json')
   // Error answers skip `beforeResponse`; same rule as plugins/session-cookie.ts.

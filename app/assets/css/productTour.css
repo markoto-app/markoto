@@ -586,8 +586,10 @@ html.lenis body { height: auto; }
 }
 @keyframes mk-hero-travel {
   /* From centred under the hero copy to the stage's right side. */
-  /* Low enough that its top clears the hero's button. */
-  from { transform: translate(calc((var(--mk-win) - var(--mk-inner)) / 2), 50vh) scale(1.08); }
+  /* Low enough that its top clears the hero's button: half a viewport, or
+     further when the component measured that the copy ends lower
+     (--mk-hero-y, ProductTour.vue). */
+  from { transform: translate(calc((var(--mk-win) - var(--mk-inner)) / 2), var(--mk-hero-y, 50vh)) scale(1.08); }
   to { transform: none; }
 }
 @keyframes mk-hero-layer-out {

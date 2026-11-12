@@ -204,6 +204,35 @@ onBeforeUnmount(() => {
   dark.value = false
 })
 
+// Where the stage window rests under the hero. The stylesheet's default
+// (half a viewport down) assumes the hero copy ends above that line; the
+// copy's height follows the viewport WIDTH, so on a wide but short window
+// it does not, and the window would cover the call-to-action button. Push
+// it down just far enough to clear the copy.
+const HERO_WINDOW_GAP_PX = 28
+const HERO_WINDOW_SCALE = 1.08
+const trackEl = ref<HTMLElement | null>(null)
+const heroCopyEl = ref<HTMLElement | null>(null)
+const stageEl = ref<HTMLElement | null>(null)
+const stageWindowEl = ref<HTMLElement | null>(null)
+const heroWindowY = ref<string | undefined>(undefined)
+function placeHeroWindow(): void {
+  const [track, copy, stage, win] = [trackEl.value, heroCopyEl.value, stageEl.value, stageWindowEl.value]
+  if (!track || !copy || !stage || !win || !pinnedNow()) {
+    heroWindowY.value = undefined
+    return
+  }
+  const copyBottom = copy.getBoundingClientRect().bottom - track.getBoundingClientRect().top
+  // Untransformed: centred in the stage. The hero pose scales it around its
+  // centre, which lifts its top edge by half the growth.
+  const centredTop = (stage.offsetHeight - win.offsetHeight) / 2
+  const lift = win.offsetHeight * (HERO_WINDOW_SCALE - 1) / 2
+  const needed = copyBottom + HERO_WINDOW_GAP_PX - centredTop + lift
+  heroWindowY.value = `${Math.round(Math.max(window.innerHeight / 2, needed))}px`
+}
+useResizeObserver([heroCopyEl, stageEl, stageWindowEl], placeHeroWindow)
+onMounted(placeHeroWindow)
+
 const chips = [
   { key: 'byok', icon: 'i-lucide-key-round' },
   { key: 'eu', icon: 'i-lucide-map-pin' },
@@ -215,15 +244,20 @@ const chips = [
   <div
     class="mk-tour"
     :lang="locale"
+    :style="{ '--mk-hero-y': heroWindowY }"
     data-testid="product-tour"
   >
     <div
+      ref="trackEl"
       class="mk-track"
       :style="trackStyle"
     >
       <!-- 0 · Hero -->
       <section class="mk-hero">
-        <div class="mk-hero__copy">
+        <div
+          ref="heroCopyEl"
+          class="mk-hero__copy"
+        >
           <i18n-t
             keypath="tour.hero.title"
             tag="h1"
@@ -285,10 +319,14 @@ const chips = [
 
       <!-- The pinned stage (desktop with scroll-driven animations only). -->
       <div
+        ref="stageEl"
         class="mk-stage"
         aria-hidden="true"
       >
-        <div class="mk-stage__window">
+        <div
+          ref="stageWindowEl"
+          class="mk-stage__window"
+        >
           <div class="mk-stage__slide">
             <LandingTourFrame :ratio="viewportRatio">
               <div
