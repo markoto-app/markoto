@@ -23,6 +23,7 @@
  * Works on parsed DOM (inert `<template>`) of sanitised markup; the
  * composed result is sanitised again by `composeFinalHtml`. Browser-only.
  */
+import { headingKey } from '~/utils/markdown/trimTrailing'
 
 /** Heading texts recognised as an abstract (lower case, trailing colon/period ignored). */
 const ABSTRACT_HEADINGS: ReadonlySet<string> = new Set([
@@ -44,8 +45,7 @@ function headingLevel(el: Element): number {
 }
 
 function isAbstractHeading(el: Element): boolean {
-  const text = (el.textContent ?? '').trim().toLowerCase().replace(/[:.：。]+$/u, '').trim()
-  return ABSTRACT_HEADINGS.has(text)
+  return ABSTRACT_HEADINGS.has(headingKey(el))
 }
 
 /** The leading abstract heading among the top-level children, or null. */

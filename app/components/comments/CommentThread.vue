@@ -72,7 +72,9 @@ function onClickThread(e: MouseEvent) {
 </script>
 
 <template>
+  <!-- The card click is a pointer shortcut; keyboard users reach the same comment through the editor decoration and the controls inside. -->
   <div
+    role="presentation"
     class="comment-thread-card rounded-md border border-default bg-default p-3 cursor-pointer transition-shadow shadow-sm"
     :class="[
       muted ? 'opacity-70 hover:opacity-100' : '',

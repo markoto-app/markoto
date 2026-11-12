@@ -9,6 +9,7 @@ import { billingKeys, useInvalidatePlan, usePlanPricesQuery, useUserBillingQuery
 import { themeKeys, useCreateSavedTheme, useDeleteSavedTheme, useSavedThemes } from '~/queries/themes'
 import { useCreateWorkspace, useDeleteWorkspace, useMyWorkspaces, workspaceKeys } from '~/queries/workspaces'
 import { accountKeys } from '~/queries/account'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 
 // The query layer (app/queries): each domain's keys nest under its root, so
 // invalidating the root covers every child, and each mutation refreshes the
@@ -161,7 +162,7 @@ describe('saved themes — mutations refresh the list', () => {
     const create = await use(() => useCreateSavedTheme())
     expect(list.value.map(t => t.name)).toEqual(['Report'])
 
-    await create.mutateAsync({ name: 'Letter', description: null, theme: {} as never })
+    await create.mutateAsync({ name: 'Letter', description: null, theme: defaultTheme })
     expect(hits('themes')).toBe(2)
     expect(list.value.map(t => t.name)).toEqual(['Report', 'Letter'])
   })

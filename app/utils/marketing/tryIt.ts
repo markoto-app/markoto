@@ -1,6 +1,7 @@
 import { ANON_GATE_CODES } from '~~/shared/config/anonGate'
 import { DOC_TITLE_MAX_LENGTH } from '~~/shared/config/docCreate'
 import { apiErrorData, errorStatus } from '~/utils/api/errors'
+import { trimTrailing } from '~/utils/markdown/trimTrailing'
 
 export { withoutTitleHeading } from '~~/shared/utils/markdown/markdownTitle'
 
@@ -20,8 +21,16 @@ export function titleFromMarkdown(markdown: string): string {
       continue
     }
     if (inFence) continue
-    const m = /^\s{0,3}#{1,6}[ \t]+(.*?)(?:[ \t]+#+)?[ \t]*$/.exec(line)
-    if (m?.[1]) return m[1].trim().slice(0, DOC_TITLE_MAX_LENGTH)
+    const m = /^\s{0,3}#{1,6}[ \t]/.exec(line)
+    if (m) {
+      // The optional closing "###" is stripped by hand: a lazy group followed
+      // by optional whitespace backtracks quadratically on long lines.
+      const text = line.slice(m[0].length).trim()
+      const hashes = trimTrailing(text, '#')
+      const closing = hashes.length < text.length && (hashes.length === 0 || /\s/.test(hashes.charAt(hashes.length - 1)))
+      const title = (closing ? hashes : text).trim()
+      if (title) return title.slice(0, DOC_TITLE_MAX_LENGTH)
+    }
   }
   return ''
 }

@@ -12,10 +12,12 @@ export function useMarkdownPreview(source: Ref<string>) {
     const update = async (val: string) => {
       rendered.value = await renderMarkdown(val)
     }
-    update(source.value)
-    watch(source, (val) => {
-      update(val)
-    })
+    // A failed render keeps the last good HTML on screen.
+    const refresh = (val: string) => {
+      update(val).catch((err: unknown) => console.warn('[preview] markdown render failed', err))
+    }
+    refresh(source.value)
+    watch(source, refresh)
   }
 
   return { rendered }

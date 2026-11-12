@@ -78,7 +78,7 @@ describe('buildPreviewSrcdoc', () => {
 })
 
 describe('parseFrameMessage', () => {
-  const frame = {} as Window
+  const frame: Window = Object.create(null)
   const ev = (data: unknown, opts: { source?: unknown, origin?: string } = {}) =>
     new MessageEvent('message', { data, origin: opts.origin ?? 'null', source: (opts.source ?? frame) as MessageEventSource })
 

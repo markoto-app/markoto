@@ -26,7 +26,7 @@ export function apiErrorData(err: unknown): ApiErrorData | undefined {
   if (typeof inner === 'object' && inner !== null && !Array.isArray(inner) && typeof body.code !== 'string') {
     return { ...(inner as Record<string, unknown>), ...(typeof body.message === 'string' ? { message: body.message } : {}) }
   }
-  return body as ApiErrorData
+  return body
 }
 
 export interface ErrorText {
@@ -68,7 +68,7 @@ function apiErrorTexts(data: ApiErrorData | undefined): ErrorText[] {
   if (!data) return []
   const out: ErrorText[] = []
   // Own keys only: a code like "constructor" must not reach Object.prototype.
-  const perOccurrence = data.code && Object.hasOwn(PER_OCCURRENCE, data.code) ? PER_OCCURRENCE[data.code]!(data) : undefined
+  const perOccurrence = data.code && Object.hasOwn(PER_OCCURRENCE, data.code) ? PER_OCCURRENCE[data.code]?.(data) : undefined
   if (perOccurrence) out.push({ key: perOccurrence, params: data })
   const registered = registryText(data)
   if (registered) out.push(registered)

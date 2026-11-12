@@ -341,21 +341,23 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
   }
 
   function schedulePoll(sid: string) {
-    pollTimer = setTimeout(async () => {
-      if (pollingFor !== sid) return
-      const alive = await fetchStatus(sid)
-      if (pollingFor !== sid) return
-      // Gone, or finished without (still) being in awareness — e.g. the
-      // session failed before the AI could join the document.
-      const finished = privateStatus.value?.sessionId === sid
-        && (privateStatus.value.phase === 'done' || privateStatus.value.phase === 'error')
-        && mySessionId.value !== sid
-      if (!alive || finished) {
-        finishTracking(sid)
-        return
-      }
-      schedulePoll(sid)
-    }, pollMs)
+    pollTimer = setTimeout(() => void poll(sid), pollMs)
+  }
+
+  async function poll(sid: string) {
+    if (pollingFor !== sid) return
+    const alive = await fetchStatus(sid)
+    if (pollingFor !== sid) return
+    // Gone, or finished without (still) being in awareness — e.g. the
+    // session failed before the AI could join the document.
+    const finished = privateStatus.value?.sessionId === sid
+      && (privateStatus.value.phase === 'done' || privateStatus.value.phase === 'error')
+      && mySessionId.value !== sid
+    if (!alive || finished) {
+      finishTracking(sid)
+      return
+    }
+    schedulePoll(sid)
   }
 
   watch(trackedSessionId, (sid, prev) => {

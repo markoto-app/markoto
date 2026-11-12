@@ -33,7 +33,8 @@ const props = defineProps<{
   themePreset?: string
   /** Document language (ISO code): preview TOC title + cover date, and the created document's language. */
   language?: string
-  autofocus?: boolean
+  /** Move focus into the editor once it has mounted (the visitor clicked the static version). */
+  focusOnReady?: boolean
 }>()
 const emit = defineEmits<{ ready: [] }>()
 
@@ -98,7 +99,7 @@ onMounted(() => {
     parent: editorHost.value
   })
   emit('ready')
-  if (props.autofocus) void nextTick(() => view.value?.focus())
+  if (props.focusOnReady) void nextTick(() => view.value?.focus())
 })
 
 onBeforeUnmount(() => {

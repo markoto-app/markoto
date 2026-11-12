@@ -4,6 +4,7 @@ import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { setResponseStatus } from 'h3'
 import { SettingsAiProviderCard } from '#components'
+import type { AiCapabilityStatus, AiProviderConfigView } from '~~/shared/ai/providers'
 
 // The card shows a refusal in the reader's language from its code: routes
 // no longer send a `messageKey` for codes whose text is fixed
@@ -15,7 +16,7 @@ afterEach(() => {
   for (const w of mounted.splice(0)) w.unmount()
 })
 
-const CONFIG = {
+const CONFIG: AiProviderConfigView = {
   capability: 'chat',
   baseUrl: 'https://api.mistral.ai/v1',
   host: 'api.mistral.ai',
@@ -23,9 +24,11 @@ const CONFIG = {
   apiKeyLast4: 'abcd',
   supportsVision: false,
   supportsTools: null,
-  verifiedAt: null,
-  lastVerifyCode: null
+  lastVerifiedAt: null,
+  updatedAt: '2026-01-01T00:00:00.000Z'
 }
+
+const STATUS: AiCapabilityStatus = { available: true, source: 'user', platformBilled: false }
 
 describe('AiProviderCard errors', () => {
   it('a code without messageKey shows the code\'s text, then the server detail', async () => {
@@ -39,8 +42,8 @@ describe('AiProviderCard errors', () => {
     const w = await mountSuspended(SettingsAiProviderCard, {
       props: {
         capability: 'chat',
-        config: CONFIG as never,
-        status: { available: true, source: 'user', platformBilled: false } as never,
+        config: CONFIG,
+        status: STATUS,
         presets: []
       }
     })

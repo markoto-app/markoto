@@ -52,7 +52,7 @@ const workspaceCapShortLabel = computed(() =>
 
 function onCapReachedClick() {
   if (pricingVisible.value) {
-    router.push('/pricing')
+    void router.push('/pricing')
     return
   }
   // Self-hosted: nothing to buy — say so instead of a dead link.
@@ -159,12 +159,12 @@ tryOnMounted(() => {
   const pendingInvite = loggedIn.value ? readPendingInviteToken() : null
   if (pendingInvite) {
     clearPendingInviteToken()
-    router.replace({ path: '/invites/accept', query: { token: pendingInvite } })
+    void router.replace({ path: '/invites/accept', query: { token: pendingInvite } })
     return
   }
   watch(loggedIn, () => {
     docsFetched.value = false
-    loadDocs()
+    void loadDocs()
     void loadInvites()
     void loadSharedDocs()
   }, { immediate: true })
@@ -209,7 +209,7 @@ function openMove(doc: DocumentListItem) {
   showMoveModal.value = true
 }
 function onDocDuplicated(newDocId: string) {
-  router.push(`/d/${newDocId}`)
+  void router.push(`/d/${newDocId}`)
 }
 function onDocMoved(newWorkspaceId: string | null) {
   // The documents list shows every owned doc regardless of workspace,
@@ -225,7 +225,7 @@ function onDocMoved(newWorkspaceId: string | null) {
 const showCreateWorkspace = ref(false)
 
 function onWorkspaceCreated(workspaceId: string) {
-  router.push(`/w/${workspaceId}`)
+  void router.push(`/w/${workspaceId}`)
 }
 
 // Long-press a doc row to open its action menu — discoverable on

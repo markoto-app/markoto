@@ -15,6 +15,7 @@
  * higher level (or the end). Works on parsed DOM (inert `<template>`) of
  * sanitised markup; the composed result is sanitised again. Browser-only.
  */
+import { headingKey } from '~/utils/markdown/trimTrailing'
 
 /** Heading texts recognised as a reference list (lower case, trailing colon/period ignored). */
 const REFERENCE_HEADINGS: ReadonlySet<string> = new Set([
@@ -40,8 +41,7 @@ function headingLevel(el: Element): number {
 }
 
 function isReferencesHeading(el: Element): boolean {
-  const text = (el.textContent ?? '').trim().toLowerCase().replace(/[:.：。]+$/u, '').trim()
-  return REFERENCE_HEADINGS.has(text)
+  return REFERENCE_HEADINGS.has(headingKey(el))
 }
 
 /** Mark the reference sections' lists and paragraphs (top-level children only). */

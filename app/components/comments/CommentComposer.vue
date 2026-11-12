@@ -168,7 +168,7 @@ function refreshMentionContext() {
 function onInput() {
   // In some browsers input fires before selectionStart updates; defer a tick
   // to read the post-mutation caret.
-  nextTick(() => refreshMentionContext())
+  void nextTick(() => refreshMentionContext())
 }
 
 function onSelectionChange() {
@@ -189,7 +189,7 @@ function pickMention(entry: MentionableEntry) {
   body.value = before + token + after
   mentionContext.value = null
   const newCaret = (before + token).length
-  nextTick(() => {
+  void nextTick(() => {
     ta.focus()
     ta.setSelectionRange(newCaret, newCaret)
   })
@@ -249,7 +249,7 @@ function submit() {
 
 onMounted(() => {
   if (props.autoFocus) {
-    nextTick(() => {
+    void nextTick(() => {
       textareaRef.value?.focus()
     })
   }
@@ -306,6 +306,7 @@ const submitDisabled = computed(() => body.value.trim().length === 0)
         :data-testid="entry.kind === 'ai' ? 'mention-typeahead-ai' : `mention-typeahead-user-${entry.id}`"
         @click="pickMention(entry)"
         @mouseenter="highlighted = idx"
+        @focus="highlighted = idx"
       >
         <template v-if="entry.kind === 'ai'">
           <!-- Seal replaces a generic icon for the markoto row. -->

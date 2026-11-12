@@ -13,7 +13,7 @@ const props = defineProps<{ docId: string }>()
 const { t, locale } = useI18n()
 const { showContextualError } = useErrorHandler()
 const { customDomains: domainsOnInstance } = useInstanceConfig()
-const { copy, copied } = useClipboard()
+const { copy, copied } = useCopyText()
 
 const state = ref<PublishState | null>(null)
 const domains = ref<DomainsResponse | null>(null)

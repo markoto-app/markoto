@@ -50,7 +50,8 @@ describe('workspace default-design picker', () => {
       const card = wrapper.find(`[data-testid="workspace-default-theme-preset-${preset.id}"]`)
       expect(card.exists(), preset.id).toBe(true)
       const url = themeThumbnailUrl(preset.id)
-      if (url) expect(card.find('img').attributes('src')).toBe(url)
+      const img = card.find('img')
+      expect(img.exists() ? img.attributes('src') : null).toBe(url || null)
     }
     wrapper.unmount()
   })

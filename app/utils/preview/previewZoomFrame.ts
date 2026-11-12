@@ -93,8 +93,13 @@ function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): P
     return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
   }
 
+  // `n > 0` is false for NaN too, which a negated comparison would have to spell out.
+  function isPositive(n: number): boolean {
+    return n > 0
+  }
+
   function overviewGrid(available: number, natural: number, count: number): { cols: number, zoom: number } {
-    if (!(available > 0) || !(natural > 0)) return { cols: 1, zoom: 1 }
+    if (!isPositive(available) || !isPositive(natural)) return { cols: 1, zoom: 1 }
     const fit = Math.min(1, available / natural)
     const thumbMin = Math.min(THUMB_MAX_MIN, Math.max(THUMB_FLOOR, available / 3.4))
     let cols = Math.max(1, Math.floor((available + GAP) / (thumbMin + GAP)))
@@ -376,7 +381,7 @@ function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): P
     if (!pinch || e.touches.length !== 2) return
     e.preventDefault()
     const f = spread(e.touches) / pinch.start
-    if (!(f > 0)) return
+    if (!isPositive(f)) return
     gestureStep(f / pinch.last, middle(e.touches))
     pinch.last = f
   }, { passive: false })

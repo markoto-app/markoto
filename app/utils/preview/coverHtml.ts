@@ -78,7 +78,7 @@ function buildTitleHtml(theme: DocTheme, title: string): string {
  * only letters, digits and hyphens are matched, never `&…;` or tags.
  */
 export function keepCompoundsTogether(escapedTitle: string): string {
-  return escapedTitle.replace(/[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)+/gu, m => `<span class="markoto-nobreak">${m}</span>`)
+  return escapedTitle.replace(/(?<![\p{L}\p{N}])[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)+/gu, m => `<span class="markoto-nobreak">${m}</span>`)
 }
 
 /**
@@ -89,7 +89,12 @@ export function keepCompoundsTogether(escapedTitle: string): string {
  * "ISO 9001 2015" stay on one line.
  */
 export function keepNumbersTogether(title: string): string {
-  return title.replace(/(?<=\S*\d\S*) (?=\S*\d)/gu, '\u00A0')
+  // Word by word: a lookbehind of `\S*\d\S*` re-scans the word before every space.
+  const words = title.split(' ')
+  return words.map((word, i) => {
+    const next = words[i + 1]
+    return next !== undefined && /\d/.test(word) && /\d/.test(next) ? `${word}\u00A0` : (next === undefined ? word : `${word} `)
+  }).join('')
 }
 
 function buildSubtitleHtml(theme: DocTheme): string {

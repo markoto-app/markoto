@@ -6,7 +6,7 @@ import { describe, expect, test } from 'vitest'
 import { DROPCAP_MIN_CHARS, wrapFirstLetterAsDropCap } from '../../app/utils/preview/dropcapWrap'
 
 // A drop cap only goes on an opening paragraph long enough to sit beside
-// it (DROPCAP_MIN_CHARS). Most cases below are about WHERE the cap goes,
+// the cap (DROPCAP_MIN_CHARS). Most cases below are about WHERE the cap goes,
 // so their paragraphs get this tail to be long enough.
 const TAIL = ' ' + 'and the paragraph keeps going for a few lines of ordinary prose. '.repeat(4).trim()
 const P = '<p class="markoto-dropcap-p">'

@@ -15,7 +15,7 @@ import type { BillingMode } from '~~/shared/config/billingMode'
 // environment is torn down (EnvironmentTeardownError). The static import
 // above loads it with the test file instead.
 beforeAll(() => {
-  expect(CommonLegalFooter).toBeTruthy()
+  if (!CommonLegalFooter) throw new Error('CommonLegalFooter did not load')
 })
 
 // Pins the pricing page in the three instance shapes:

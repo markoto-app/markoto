@@ -260,7 +260,10 @@ const playTimeout = useTimeoutFn(
       isPlaying.value = false
     }
   },
-  () => entries.value[slideIdx.value] ? durationFor(entries.value[slideIdx.value]!) : 3000,
+  () => {
+    const entry = entries.value[slideIdx.value]
+    return entry ? durationFor(entry) : 3000
+  },
   { immediate: false }
 )
 
@@ -370,9 +373,10 @@ const progressPct = computed(() =>
   entries.value.length ? ((slideIdx.value + playProgress.value) / entries.value.length) * 100 : 0
 )
 
-const currentSlideDuration = computed(() =>
-  entries.value[slideIdx.value] ? durationFor(entries.value[slideIdx.value]!) : 3000
-)
+const currentSlideDuration = computed(() => {
+  const entry = entries.value[slideIdx.value]
+  return entry ? durationFor(entry) : 3000
+})
 
 const currentSlide = computed(() => entries.value[slideIdx.value])
 

@@ -98,7 +98,7 @@ function editorView(wrapper: Awaited<ReturnType<typeof mountLive>>): EditorView 
 // can take longer than `vi.waitFor`'s second — the static import above
 // loads it with the test file, so the tests time the mount, not the compile.
 beforeAll(() => {
-  expect(MarketingTryItWorkbench).toBeTruthy()
+  if (!MarketingTryItWorkbench) throw new Error('MarketingTryItWorkbench did not load')
 })
 
 beforeEach(() => {

@@ -47,8 +47,9 @@ watch(expanded, v => emit('update:expanded', v), { immediate: true })
 
 <template>
   <Transition name="response-panel">
-    <output
+    <div
       v-if="response && expanded"
+      role="status"
       class="ai-response-panel pointer-events-auto block w-full max-w-3xl rounded-2xl border border-default bg-default px-4 py-3 shadow-sm"
       :class="{ 'is-question': response.isQuestion }"
       :aria-live="response.isQuestion ? 'assertive' : 'polite'"
@@ -82,7 +83,7 @@ watch(expanded, v => emit('update:expanded', v), { immediate: true })
           />
         </button>
       </div>
-    </output>
+    </div>
     <button
       v-else-if="response && !expanded"
       type="button"

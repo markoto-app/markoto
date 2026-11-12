@@ -148,6 +148,7 @@ function hostOf(rawUrl: string): string {
       <a
         v-if="viewedSrc"
         :href="viewedSrc"
+        :aria-label="t('activity.aiTool.openViewedImage')"
         target="_blank"
         rel="noopener noreferrer"
         class="block rounded overflow-hidden border border-default/60 max-h-48 bg-muted"

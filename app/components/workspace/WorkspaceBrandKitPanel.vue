@@ -53,6 +53,9 @@ const families = computed(() => {
   return [...groups.entries()].map(([family, faces]) => ({ family, faces }))
 })
 
+// `sr-only` file inputs (not `hidden`) stay reachable by keyboard; the label shows the focus ring.
+const fontInputId = useId()
+const imageInputId = useId()
 const fontFile = ref<File | null>(null)
 const fontFamily = ref('')
 const fontLicence = ref(false)
@@ -209,11 +212,15 @@ function faceLabel(f: FontRow): string {
         data-testid="brand-font-upload"
       >
         <div class="flex items-center gap-2 flex-wrap">
-          <label class="flex">
+          <label
+            :for="fontInputId"
+            class="relative flex rounded-md focus-within:ring-2 focus-within:ring-inverted"
+          >
             <input
+              :id="fontInputId"
               type="file"
               accept=".woff2,.woff,.ttf,font/woff2,font/woff,font/ttf"
-              class="hidden"
+              class="sr-only"
               data-testid="brand-font-file"
               @change="onFontFile"
             >
@@ -292,12 +299,14 @@ function faceLabel(f: FontRow): string {
         </div>
         <label
           v-if="kit?.canManage && kit.available"
-          class="rounded-lg border border-dashed border-default p-3 flex flex-col items-center justify-center gap-2 w-40 cursor-pointer"
+          :for="imageInputId"
+          class="relative rounded-lg border border-dashed border-default p-3 flex flex-col items-center justify-center gap-2 w-40 cursor-pointer focus-within:ring-2 focus-within:ring-inverted"
         >
           <input
+            :id="imageInputId"
             type="file"
             accept="image/png,image/jpeg,image/webp"
-            class="hidden"
+            class="sr-only"
             data-testid="brand-image-file"
             @change="onImageFile"
           >

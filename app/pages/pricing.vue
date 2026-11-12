@@ -219,7 +219,7 @@ async function onChangePlan(plan: PlanName): Promise<void> {
     }
     // Full-page redirect — Stripe's hosted Checkout is a separate
     // origin, can't be iframed.
-    if ('url' in resp) globalThis.location.href = resp.url
+    if ('url' in resp && resp.url) globalThis.location.href = resp.url
   } catch (e) {
     toast.add({
       title: t('workspace.billing.checkoutFailed'),

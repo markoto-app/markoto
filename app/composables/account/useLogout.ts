@@ -90,7 +90,7 @@ async function purgeMarkotoIdb(): Promise<void> {
  * page load on a rare action is worth the correctness.
  */
 async function redirectHome(): Promise<void> {
-  if (globalThis.window !== undefined) {
+  if (typeof globalThis.window === 'object') {
     globalThis.location.href = '/'
     return
   }

@@ -63,10 +63,12 @@ const {
 // Safety-net poll: covers join/leave entries and missed updates. Paused while
 // the tab is hidden.
 const visibility = useDocumentVisibility()
-const { pause, resume } = useIntervalFn(loadActivity, 30_000)
+const { pause, resume } = useIntervalFn(() => {
+  void loadActivity()
+}, 30_000)
 watch(visibility, (v) => {
   if (v === 'visible') {
-    loadActivity()
+    void loadActivity()
     resume()
   } else {
     pause()
@@ -77,7 +79,7 @@ watch(visibility, (v) => {
 // refetch ~3 s after the doc stops changing.
 const debouncedReload = useDebounceFn(loadActivity, 3_000)
 function onYUpdate() {
-  debouncedReload()
+  void debouncedReload()
 }
 
 watch(() => props.ydoc, (doc, prev) => {
@@ -144,6 +146,7 @@ function detailFor(entry: ActivityEntry): string | null {
     case 'restore':
       // Relative to the source row's timestamp, formatted like the row's own.
       return t('activity.detail.restoredFrom', { ago: formatTime(m.restoredFromTime) })
+    case 'theme.changed':
     default:
       return null
   }
@@ -207,7 +210,7 @@ function categoryOf(entry: ActivityEntry): FilterKey {
 }
 
 const counts = computed(() => {
-  const c = { all: 0, edits: 0, comments: 0, ai: 0, meta: 0 } as Record<FilterKey, number>
+  const c: Record<FilterKey, number> = { all: 0, edits: 0, comments: 0, ai: 0, meta: 0 }
   for (const e of entries.value) {
     c.all += 1
     const k = categoryOf(e)
@@ -345,7 +348,7 @@ function openRestoreModal(entry: ActivityEntry) {
 function onRestored() {
   // Refetch now rather than waiting for the 30 s poll. The editor body
   // updates through the Hocuspocus broadcast.
-  loadActivity()
+  void loadActivity()
 }
 </script>
 
@@ -411,6 +414,7 @@ function onRestored() {
       :key="entry.id"
       class="rounded-md border border-default bg-default shadow-sm transition-shadow hover:shadow-md hover:border-primary/40"
       :class="isExpandable(entry) ? 'cursor-pointer' : ''"
+      role="presentation"
       :data-activity-id="entry.id"
       :data-expanded="isExpanded(entry) ? 'true' : 'false'"
       @click="toggleExpanded(entry)"
@@ -487,9 +491,13 @@ function onRestored() {
             v-if="isExpandable(entry) || isRestorable(entry)"
             class="mt-1 flex items-center justify-between gap-2 text-[11px]"
           >
-            <div
+            <!-- The card's own click is a mouse shortcut for this button. -->
+            <button
               v-if="isExpandable(entry)"
+              type="button"
               class="flex items-center gap-1 text-muted"
+              :aria-expanded="isExpanded(entry)"
+              @click.stop="toggleExpanded(entry)"
             >
               <UIcon
                 name="i-lucide-chevron-down"
@@ -497,7 +505,7 @@ function onRestored() {
                 :class="isExpanded(entry) ? 'rotate-180' : ''"
               />
               <span>{{ expansionToggleLabel(entry, isExpanded(entry)) }}</span>
-            </div>
+            </button>
             <button
               v-if="isRestorable(entry)"
               type="button"

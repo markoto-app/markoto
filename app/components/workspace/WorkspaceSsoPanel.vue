@@ -17,7 +17,7 @@ const emit = defineEmits<{ changed: [] }>()
 const { t, d } = useI18n()
 const toast = useToast()
 const { showError } = useErrorHandler()
-const { copy } = useClipboard()
+const { copy } = useCopyText()
 
 const view = ref<SsoView | null>(null)
 // The template reads `cur` inside `v-else-if="view"`: Vue's type check

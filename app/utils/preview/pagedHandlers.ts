@@ -152,7 +152,8 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
     for (let sib = el.previousSibling; sib; sib = sib.previousSibling) {
       if (hasContent(sib)) return true
     }
-    return el.parentElement !== parent && el.parentElement !== null && hasContentBeforeIn(el.parentElement, parent)
+    const up = el.parentNode
+    return up !== parent && up instanceof Element && hasContentBeforeIn(up, parent)
   }
 
   function prevElement(el: Element): Element | null {
@@ -458,7 +459,7 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
         const staying = breaksBefore ? index : index + 1
         const lead = prevElement(list)
         if (fresh && staying < total && total <= SHORT_LIST && nearPageEnd(list, page)) target = list
-        else if (fresh && staying < MIN_LIST_ITEMS && lead && keepsWithNext(lead) && (list.parentElement === root || list.parentElement?.classList.contains('paged-doc') === true) && nearPageEnd(lead, page)) target = list
+        else if (fresh && staying < MIN_LIST_ITEMS && lead && keepsWithNext(lead) && (list.parentNode === root || list.parentElement?.classList.contains('paged-doc') === true) && nearPageEnd(lead, page)) target = list
         // One item alone at the foot of the page reads as torn off too.
         else if (fresh && staying === 1 && total > 2 && nearPageEnd(list, page)) target = list
         else if (breaksBefore && index >= 2 && after === 1) target = items[index - 1] ?? null
@@ -820,7 +821,7 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
     const need = diagram.getBoundingClientRect().height + margins * zoom
     const room = bottom - Math.max(...ends)
     const estimate = Math.floor((room / need) * 100) / 100
-    if (!(estimate >= MIN_DIAGRAM_SCALE)) return overflow
+    if (Number.isNaN(estimate) || estimate < MIN_DIAGRAM_SCALE) return overflow
     diagram.setAttribute('data-markoto-fit', '')
     // The estimate can come out a little large (margins, the line box
     // around the image): try a few smaller steps before giving up.
@@ -935,7 +936,7 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
       run = []
     }
     for (const [i, b] of bases.entries()) {
-      if (i > 0 && (opensWithRelation(b) || b.previousElementSibling !== bases[i - 1])) flush()
+      if (i > 0 && (opensWithRelation(b) || b.previousElementSibling !== (bases[i - 1] ?? null))) flush()
       run.push(b)
     }
     flush()

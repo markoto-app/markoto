@@ -30,7 +30,7 @@ if (import.meta.client) {
     if (!loggedIn.value) {
       globalThis.location.href = primaryLoginPath.value ?? '/'
     } else if (accountStatus.value && !accountStatus.value.isAdmin) {
-      router.push('/')
+      void router.push('/')
     }
   })
 }
@@ -109,30 +109,28 @@ function formatUsd(usd: number): string {
     </p>
 
     <div class="flex items-end gap-3 mb-8">
-      <div>
-        <label
-          for="ai-spend-from"
-          class="block text-xs font-mono uppercase tracking-wide text-muted mb-1"
-        >From</label>
+      <label
+        for="ai-spend-from"
+      >
+        <span class="block text-xs font-mono uppercase tracking-wide text-muted mb-1">From</span>
         <input
           id="ai-spend-from"
           v-model="fromDate"
           type="date"
           class="px-3 py-1.5 border border-default bg-default rounded text-sm font-mono"
         >
-      </div>
-      <div>
-        <label
-          for="ai-spend-to"
-          class="block text-xs font-mono uppercase tracking-wide text-muted mb-1"
-        >To</label>
+      </label>
+      <label
+        for="ai-spend-to"
+      >
+        <span class="block text-xs font-mono uppercase tracking-wide text-muted mb-1">To</span>
         <input
           id="ai-spend-to"
           v-model="toDate"
           type="date"
           class="px-3 py-1.5 border border-default bg-default rounded text-sm font-mono"
         >
-      </div>
+      </label>
       <UButton
         color="neutral"
         :loading="loading"

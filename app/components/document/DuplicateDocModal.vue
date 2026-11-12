@@ -66,6 +66,7 @@ async function handleDuplicate() {
   <UModal
     v-model:open="open"
     :title="t('duplicate.title')"
+    :content="initialFocus('duplicate-title-input')"
   >
     <template #content>
       <div class="p-6">
@@ -87,23 +88,21 @@ async function handleDuplicate() {
         </div>
 
         <div class="mb-4">
-          <label
-            for="duplicate-title-input"
-            class="block text-sm font-medium mb-2"
+          <UFormField
+            :label="t('duplicate.titleLabel')"
+            :ui="{ container: 'mt-2' }"
           >
-            {{ t('duplicate.titleLabel') }}
-          </label>
-          <UInput
-            id="duplicate-title-input"
-            v-model="newTitle"
-            :placeholder="t('duplicate.titlePlaceholder')"
-            size="md"
-            class="w-full"
-            :ui="{ base: 'w-full' }"
-            maxlength="255"
-            autofocus
-            @keydown.enter="handleDuplicate"
-          />
+            <UInput
+              id="duplicate-title-input"
+              v-model="newTitle"
+              :placeholder="t('duplicate.titlePlaceholder')"
+              size="md"
+              class="w-full"
+              :ui="{ base: 'w-full' }"
+              maxlength="255"
+              @keydown.enter="handleDuplicate"
+            />
+          </UFormField>
         </div>
 
         <div class="flex gap-2 justify-end">

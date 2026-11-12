@@ -77,10 +77,11 @@ const { open: openImagePicker, onChange: onImagePicked } = useFileDialog({
   reset: true
 })
 
-onImagePicked(async (files) => {
+// `uploadAndInsert` reports failures through `uploadError`; it does not reject.
+onImagePicked((files) => {
   const file = files?.[0]
   if (!file || !props.view) return
-  await uploadAndInsert(file, props.view)
+  void uploadAndInsert(file, props.view)
 })
 
 // Link wraps as `[text](url)` and selects the placeholder URL so the user can

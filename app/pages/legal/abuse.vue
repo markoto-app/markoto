@@ -93,7 +93,7 @@ function onClose(): void {
   if (globalThis.history.length > 1 && document.referrer) {
     router.back()
   } else {
-    router.push('/')
+    void router.push('/')
   }
 }
 
@@ -233,61 +233,54 @@ async function onSubmit(): Promise<void> {
         @submit.prevent="onSubmit"
       >
         <div>
-          <label
-            for="abuse-url"
-            class="block text-sm mb-1"
+          <UFormField
+            :label="t('legal.abuse.urlLabel')"
+            :description="t('legal.abuse.urlHelp')"
+            :ui="{ label: 'text-sm font-normal', description: 'text-xs text-muted mt-1', container: 'mt-2' }"
           >
-            {{ t('legal.abuse.urlLabel') }}
-          </label>
-          <p class="text-xs text-muted mb-2">
-            {{ t('legal.abuse.urlHelp') }}
-          </p>
-          <UInput
-            id="abuse-url"
-            v-model="contentUrl"
-            :maxlength="REPORT_URL_MAX"
-            placeholder="https://markoto.app/d/…"
-            class="w-full font-mono"
-            :ui="{ base: 'w-full' }"
-            data-testid="abuse-form-url"
-          />
+            <UInput
+              id="abuse-url"
+              v-model="contentUrl"
+              :maxlength="REPORT_URL_MAX"
+              placeholder="https://markoto.app/d/…"
+              class="w-full font-mono"
+              :ui="{ base: 'w-full' }"
+              data-testid="abuse-form-url"
+            />
+          </UFormField>
         </div>
         <div>
-          <label
-            for="abuse-category"
-            class="block text-sm mb-2"
+          <UFormField
+            :label="t('legal.abuse.categoryLabel')"
+            :ui="{ label: 'text-sm font-normal', container: 'mt-2' }"
           >
-            {{ t('legal.abuse.categoryLabel') }}
-          </label>
-          <USelect
-            id="abuse-category"
-            v-model="category"
-            :items="categories"
-            value-key="value"
-            class="w-full"
-            data-testid="abuse-form-category"
-          />
+            <USelect
+              id="abuse-category"
+              v-model="category"
+              :items="categories"
+              value-key="value"
+              class="w-full"
+              data-testid="abuse-form-category"
+            />
+          </UFormField>
         </div>
         <div>
-          <label
-            for="abuse-body"
-            class="block text-sm mb-1"
+          <UFormField
+            :label="t('legal.abuse.bodyLabel')"
+            :description="t('legal.abuse.bodyHelp')"
+            :ui="{ label: 'text-sm font-normal', description: 'text-xs text-muted mt-1', container: 'mt-2' }"
           >
-            {{ t('legal.abuse.bodyLabel') }}
-          </label>
-          <p class="text-xs text-muted mb-2">
-            {{ t('legal.abuse.bodyHelp') }}
-          </p>
-          <UTextarea
-            id="abuse-body"
-            v-model="reportBody"
-            :placeholder="t('legal.abuse.bodyPlaceholder')"
-            :rows="6"
-            :maxlength="REPORT_BODY_MAX"
-            class="w-full"
-            :ui="{ base: 'w-full' }"
-            data-testid="abuse-form-body"
-          />
+            <UTextarea
+              id="abuse-body"
+              v-model="reportBody"
+              :placeholder="t('legal.abuse.bodyPlaceholder')"
+              :rows="6"
+              :maxlength="REPORT_BODY_MAX"
+              class="w-full"
+              :ui="{ base: 'w-full' }"
+              data-testid="abuse-form-body"
+            />
+          </UFormField>
           <p class="text-xs text-muted mt-1 font-mono">
             {{ reportBody.trim().length }} / {{ REPORT_BODY_MAX }}
           </p>
@@ -301,34 +294,36 @@ async function onSubmit(): Promise<void> {
             </span>
           </legend>
           <div>
-            <label
-              for="abuse-name"
-              class="block text-xs text-muted mb-1"
-            >{{ t('legal.abuse.nameLabel') }}</label>
-            <UInput
-              id="abuse-name"
-              v-model="reporterName"
-              :maxlength="REPORTER_NAME_MAX"
-              autocomplete="name"
-              class="w-full"
-              :ui="{ base: 'w-full' }"
-              data-testid="abuse-form-name"
-            />
+            <UFormField
+              :label="t('legal.abuse.nameLabel')"
+              :ui="{ label: 'text-xs text-muted font-normal', container: 'mt-1' }"
+            >
+              <UInput
+                id="abuse-name"
+                v-model="reporterName"
+                :maxlength="REPORTER_NAME_MAX"
+                autocomplete="name"
+                class="w-full"
+                :ui="{ base: 'w-full' }"
+                data-testid="abuse-form-name"
+              />
+            </UFormField>
           </div>
           <div>
-            <label
-              for="abuse-email"
-              class="block text-xs text-muted mb-1"
-            >{{ t('legal.abuse.emailLabel') }}</label>
-            <UInput
-              id="abuse-email"
-              v-model="reporterEmail"
-              type="email"
-              autocomplete="email"
-              class="w-full"
-              :ui="{ base: 'w-full' }"
-              data-testid="abuse-form-email"
-            />
+            <UFormField
+              :label="t('legal.abuse.emailLabel')"
+              :ui="{ label: 'text-xs text-muted font-normal', container: 'mt-1' }"
+            >
+              <UInput
+                id="abuse-email"
+                v-model="reporterEmail"
+                type="email"
+                autocomplete="email"
+                class="w-full"
+                :ui="{ base: 'w-full' }"
+                data-testid="abuse-form-email"
+              />
+            </UFormField>
           </div>
         </fieldset>
 

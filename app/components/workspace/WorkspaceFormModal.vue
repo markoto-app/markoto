@@ -127,40 +127,42 @@ async function handleSubmit() {
     v-model:open="open"
     :title="isEdit ? t('workspace.editTitle') : t('workspace.createTitle')"
     :description="isEdit ? '' : t('workspace.createDescription')"
+    :content="initialFocus('workspace-form-name')"
   >
     <template #body>
       <div class="space-y-4">
         <div>
-          <label
-            for="workspace-form-name"
-            class="block text-sm font-medium mb-2"
-          >{{ t('workspace.nameLabel') }}</label>
-          <UInput
-            id="workspace-form-name"
-            v-model="name"
-            :placeholder="t('workspace.namePlaceholder')"
-            size="md"
-            class="w-full"
-            :ui="{ base: 'w-full' }"
-            autofocus
-            data-testid="workspace-form-name"
-            @keydown.enter="handleSubmit"
-          />
+          <UFormField
+            :label="t('workspace.nameLabel')"
+            :ui="{ container: 'mt-2' }"
+          >
+            <UInput
+              id="workspace-form-name"
+              v-model="name"
+              :placeholder="t('workspace.namePlaceholder')"
+              size="md"
+              class="w-full"
+              :ui="{ base: 'w-full' }"
+              data-testid="workspace-form-name"
+              @keydown.enter="handleSubmit"
+            />
+          </UFormField>
         </div>
         <div>
-          <label
-            for="workspace-form-description"
-            class="block text-sm font-medium mb-2"
-          >{{ t('workspace.descriptionOptional') }}</label>
-          <UTextarea
-            id="workspace-form-description"
-            v-model="description"
-            :placeholder="t('workspace.descriptionPlaceholder')"
-            :rows="3"
-            class="w-full"
-            :ui="{ base: 'w-full' }"
-            data-testid="workspace-form-description"
-          />
+          <UFormField
+            :label="t('workspace.descriptionOptional')"
+            :ui="{ container: 'mt-2' }"
+          >
+            <UTextarea
+              id="workspace-form-description"
+              v-model="description"
+              :placeholder="t('workspace.descriptionPlaceholder')"
+              :rows="3"
+              class="w-full"
+              :ui="{ base: 'w-full' }"
+              data-testid="workspace-form-description"
+            />
+          </UFormField>
         </div>
 
         <!-- DPA acceptance gate. Surfaces only when the current

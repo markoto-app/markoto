@@ -150,7 +150,7 @@ async function mountEditor() {
     })
   })
   // Show existing problems straight away (e.g. CSS written over Y.js).
-  if (text.value.trim() !== '') debouncedCheck(text.value)
+  if (text.value.trim() !== '') void debouncedCheck(text.value)
 }
 
 useIntersectionObserver(host, ([entry]) => {

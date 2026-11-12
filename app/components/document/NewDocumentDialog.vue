@@ -318,6 +318,7 @@ async function submit() {
     :title="t('newDoc.title')"
     :description="t('newDoc.subtitle')"
     :ui="{ content: 'max-w-xl', header: 'shrink-0', title: 'pe-8', description: 'pe-8' }"
+    :content="initialFocus('newdoc-title')"
     data-testid="new-doc-dialog"
     @update:open="(v: boolean) => emit('update:open', v)"
   >
@@ -328,22 +329,20 @@ async function submit() {
       >
         <!-- Title: the one thing in view ─────────────────────── -->
         <div>
-          <label
-            for="newdoc-title"
-            class="sr-only"
+          <UFormField
+            :label="t('newDoc.titleLabel')"
+            :ui="{ labelWrapper: 'sr-only', container: 'mt-0' }"
           >
-            {{ t('newDoc.titleLabel') }}
-          </label>
-          <UInput
-            id="newdoc-title"
-            v-model="title"
-            :placeholder="t('newDoc.titlePlaceholder')"
-            :maxlength="255"
-            size="xl"
-            data-testid="newdoc-title-input"
-            class="w-full"
-            autofocus
-          />
+            <UInput
+              id="newdoc-title"
+              v-model="title"
+              :placeholder="t('newDoc.titlePlaceholder')"
+              :maxlength="255"
+              size="xl"
+              data-testid="newdoc-title-input"
+              class="w-full"
+            />
+          </UFormField>
         </div>
 
         <!-- Options: collapsed rows with the current choice ────── -->
@@ -456,60 +455,57 @@ async function submit() {
                   {{ t('newDoc.detailsHelp') }}
                 </p>
                 <div>
-                  <label
-                    for="newdoc-description"
-                    class="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5"
+                  <UFormField
+                    :label="t('newDoc.descriptionLabel')"
+                    :ui="{ label: 'text-xs font-semibold uppercase tracking-wide text-muted', container: 'mt-1.5' }"
                   >
-                    {{ t('newDoc.descriptionLabel') }}
-                  </label>
-                  <UTextarea
-                    id="newdoc-description"
-                    v-model="description"
-                    :placeholder="t('newDoc.descriptionPlaceholder')"
-                    :rows="2"
-                    :maxrows="5"
-                    autoresize
-                    data-testid="newdoc-description-input"
-                    class="w-full"
-                  />
+                    <UTextarea
+                      id="newdoc-description"
+                      v-model="description"
+                      :placeholder="t('newDoc.descriptionPlaceholder')"
+                      :rows="2"
+                      :maxrows="5"
+                      autoresize
+                      data-testid="newdoc-description-input"
+                      class="w-full"
+                    />
+                  </UFormField>
                   <div class="text-xs text-muted mt-1 text-right">
                     {{ description.length }} / 500
                   </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label
-                      for="newdoc-language"
-                      class="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5"
+                    <UFormField
+                      :label="t('newDoc.languageLabel')"
+                      :ui="{ label: 'text-xs font-semibold uppercase tracking-wide text-muted', container: 'mt-1.5' }"
                     >
-                      {{ t('newDoc.languageLabel') }}
-                    </label>
-                    <UInputMenu
-                      id="newdoc-language"
-                      v-model="languageModel"
-                      :items="languageItems"
-                      :placeholder="t('documentPanel.language.placeholder')"
-                      :create-item="true"
-                      :create-item-position="'bottom'"
-                      data-testid="newdoc-language-input"
-                      class="w-full"
-                      @create="(text: string) => languageModel = onCreateLanguage(text)"
-                    />
+                      <UInputMenu
+                        id="newdoc-language"
+                        v-model="languageModel"
+                        :items="languageItems"
+                        :placeholder="t('documentPanel.language.placeholder')"
+                        :create-item="true"
+                        :create-item-position="'bottom'"
+                        data-testid="newdoc-language-input"
+                        class="w-full"
+                        @create="(text: string) => languageModel = onCreateLanguage(text)"
+                      />
+                    </UFormField>
                   </div>
                   <div>
-                    <label
-                      for="newdoc-audience"
-                      class="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5"
+                    <UFormField
+                      :label="t('newDoc.audienceLabel')"
+                      :ui="{ label: 'text-xs font-semibold uppercase tracking-wide text-muted', container: 'mt-1.5' }"
                     >
-                      {{ t('newDoc.audienceLabel') }}
-                    </label>
-                    <USelect
-                      id="newdoc-audience"
-                      v-model="audience"
-                      :items="audienceItems"
-                      data-testid="newdoc-audience-select"
-                      class="w-full"
-                    />
+                      <USelect
+                        id="newdoc-audience"
+                        v-model="audience"
+                        :items="audienceItems"
+                        data-testid="newdoc-audience-select"
+                        class="w-full"
+                      />
+                    </UFormField>
                   </div>
                 </div>
                 <p

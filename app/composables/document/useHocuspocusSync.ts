@@ -149,7 +149,7 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
         const seenUserIds = new Set<number>()
         let unique = 0
         for (const s of states) {
-          const u = (s as { user?: { id?: number | string, isAI?: boolean } }).user
+          const u = (s as { user?: { id?: number | string | null, isAI?: boolean } }).user
           if (!u) continue
           if (u.isAI) {
             unique++

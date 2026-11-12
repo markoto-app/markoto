@@ -1,5 +1,6 @@
 import { browserTracingIntegration, captureException, init, setUser } from '@sentry/nuxt'
 import type { Router } from 'vue-router'
+import { sentryScrubOptions } from '~~/shared/utils/security/sentryScrub'
 
 // The browser Sentry SDK, loaded on demand by `plugins/sentry.client.ts`
 // (after the page is idle, or at once when an error happens first), so the
@@ -37,15 +38,12 @@ export function startSentry(options: { dsn: string, router: Router, production: 
       ...defaults.filter(i => i.name !== 'GlobalHandlers'),
       browserTracingIntegration({ router: options.router, routeLabel: 'path' })
     ],
-    // Scrub bearer tokens from captured request data before they leave the
-    // browser. `sendDefaultPii: false` is already the SDK default.
-    beforeSend(event) {
-      if (event.request?.headers) {
-        delete event.request.headers.authorization
-        delete event.request.headers.cookie
-      }
-      return event
-    }
+    // Errors, sampled transactions and breadcrumbs share the server's
+    // scrubber. Breadcrumbs matter most here: fetch ones carry presigned
+    // S3 URLs and navigation ones `?token=` invite links and render tokens.
+    // `sendDefaultPii` is false. No session replay or feedback integration
+    // is configured: only errors and the sampled traces above leave the browser.
+    ...sentryScrubOptions
   })
 
   return {

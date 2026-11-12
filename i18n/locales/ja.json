@@ -251,7 +251,8 @@
       "sourcesHeading": "ソース",
       "noSources": "ソースは見つかりませんでした。",
       "imageInDoc": "生成された画像はドキュメントに挿入されました。",
-      "knowledgeNote": "ワークスペースナレッジ機能。"
+      "knowledgeNote": "ワークスペースナレッジ機能。",
+      "openViewedImage": "閲覧した画像を新しいタブで開く"
     },
     "viaAgent": "{agent}経由"
   },
@@ -505,7 +506,8 @@
     "docs": "ドキュメント",
     "documentation": "ドキュメンテーション",
     "homeLinkLabel": "markotoのホーム",
-    "dragToClose": "ドラッグして閉じる"
+    "dragToClose": "ドラッグして閉じる",
+    "copyFailed": "コピーできませんでした。テキストを選択して、手動でコピーしてください。"
   },
   "menu": {
     "lightMode": "ライトモード",
@@ -1658,7 +1660,14 @@
     "shareAccessModeFailed": "共有設定を更新できませんでした",
     "sharePasswordFailed": "ドキュメントのパスワードを設定できませんでした",
     "activityLoadFailed": "アクティビティを読み込めませんでした",
-    "retry": "再試行"
+    "retry": "再試行",
+    "page": {
+      "notFoundTitle": "ページが見つかりません",
+      "notFoundMessage": "このページは存在しないか、移動されました。アドレスを確認するか、ホームに戻ってください。",
+      "genericTitle": "問題が発生しました",
+      "genericMessage": "こちら側で予期しないエラーが発生しました。しばらくしてからもう一度お試しください。",
+      "backHome": "ホームに戻る"
+    }
   },
   "legal": {
     "ageGate": {

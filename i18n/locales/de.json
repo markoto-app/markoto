@@ -251,7 +251,8 @@
       "sourcesHeading": "Quellen",
       "noSources": "Keine Quellen aufgetaucht.",
       "imageInDoc": "Das generierte Bild wurde in das Dokument eingefügt.",
-      "knowledgeNote": "Workspace-Wissensfunktion."
+      "knowledgeNote": "Workspace-Wissensfunktion.",
+      "openViewedImage": "Angesehenes Bild in neuem Tab öffnen"
     },
     "viaAgent": "über {agent}"
   },
@@ -505,7 +506,8 @@
     "docs": "Doku",
     "documentation": "Dokumentation",
     "homeLinkLabel": "markoto Startseite",
-    "dragToClose": "Zum Schliessen ziehen"
+    "dragToClose": "Zum Schliessen ziehen",
+    "copyFailed": "Kopieren fehlgeschlagen. Markieren Sie den Text und kopieren Sie ihn manuell."
   },
   "menu": {
     "lightMode": "Heller Modus",
@@ -1658,7 +1660,14 @@
     "shareAccessModeFailed": "Freigabeeinstellungen konnten nicht aktualisiert werden",
     "sharePasswordFailed": "Dokumentpasswort konnte nicht festgelegt werden",
     "activityLoadFailed": "Aktivität konnte nicht geladen werden",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "page": {
+      "notFoundTitle": "Seite nicht gefunden",
+      "notFoundMessage": "Diese Seite existiert nicht oder wurde verschoben. Prüfen Sie die Adresse oder kehren Sie zur Startseite zurück.",
+      "genericTitle": "Etwas ist schiefgelaufen",
+      "genericMessage": "Auf unserer Seite ist ein unerwarteter Fehler aufgetreten. Bitte versuchen Sie es gleich noch einmal.",
+      "backHome": "Zurück zur Startseite"
+    }
   },
   "legal": {
     "ageGate": {

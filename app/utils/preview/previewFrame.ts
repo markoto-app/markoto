@@ -167,6 +167,7 @@ export function buildZoomMessage(opts: { mode: FrameZoomMode, scale?: number, an
 
 /** Post a protocol message to the iframe. Its origin is opaque, hence '*'. */
 export function postToFrame(frame: Window, msg: ParentToFrameMessage): void {
+  // eslint-disable-next-line sonarjs/post-message -- the frame's origin is opaque (sandbox without allow-same-origin): '*' is the only target that reaches it
   frame.postMessage(msg, '*')
 }
 

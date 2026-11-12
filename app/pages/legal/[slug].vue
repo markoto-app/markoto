@@ -62,14 +62,14 @@ function onClose(): void {
   if (globalThis.history.length > 1 && document.referrer) {
     router.back()
   } else {
-    router.push('/')
+    void router.push('/')
   }
 }
 
 function viewAuthoritative(): void {
   // Force English by appending ?locale=en. The same query-string
   // path the i18n switcher uses elsewhere; refresh re-fetches.
-  router.replace({ query: { ...route.query, locale: data.value?.authoritativeLocale ?? 'en' } })
+  void router.replace({ query: { ...route.query, locale: data.value?.authoritativeLocale ?? 'en' } })
   void refresh()
 }
 

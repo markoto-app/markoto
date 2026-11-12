@@ -170,7 +170,7 @@ export function usePagedPreview(opts: {
     if (token !== null) return token
     if (!fileTokenPending) {
       fileTokenPending = true
-      fileTokens.refresh().finally(() => {
+      void fileTokens.refresh().finally(() => {
         fileTokenPending = false
         render()
       })
@@ -288,7 +288,7 @@ export function usePagedPreview(opts: {
       firstRender = false
       render() // immediate first paint after sync
     } else {
-      debouncedRender()
+      void debouncedRender()
     }
   })
 

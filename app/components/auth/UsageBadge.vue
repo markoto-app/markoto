@@ -98,12 +98,12 @@ watch(open, (isOpen) => {
 // Terms box there.
 function onUpgrade(): void {
   open.value = false
-  router.push('/pricing')
+  void router.push('/pricing')
 }
 
 function onManage(): void {
   open.value = false
-  router.push('/pricing')
+  void router.push('/pricing')
 }
 </script>
 

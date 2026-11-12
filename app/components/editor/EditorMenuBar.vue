@@ -79,9 +79,9 @@ onMounted(() => {
 watch(() => colorMode.value, (v) => {
   colorModeValue.value = v === 'dark' ? 'dark' : 'light'
 })
-// Sharing → Copy link. `useClipboard` adds an execCommand fallback for iframe
-// / older-browser contexts the Async Clipboard API doesn't reach.
-const { copy: copyToClipboard } = useClipboard()
+// Sharing → Copy link. `useClipboard` (inside) adds an execCommand fallback for
+// iframe / older-browser contexts the Async Clipboard API doesn't reach.
+const { copy: copyToClipboard } = useCopyText()
 
 // Delegates to shared utils so menu and toolbar produce identical output
 // (smart toggle, whitespace trim, prefix replacement); see `app/utils/editor/editorCommands.ts`.

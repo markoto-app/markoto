@@ -10,6 +10,12 @@ const { workspaceSso } = useInstanceConfig()
 // the workspace that verified its domain. Only where per-workspace SSO
 // can exist on this instance.
 const ssoOpen = ref(false)
+const ssoEmailId = useId()
+// The field appears on click, so focus moves to it by hand (`autofocus` only runs on page load).
+function openSso(): void {
+  ssoOpen.value = true
+  void nextTick(() => document.getElementById(ssoEmailId)?.focus())
+}
 const ssoEmail = ref('')
 const ssoBusy = ref(false)
 const ssoError = ref<string | null>(null)
@@ -56,7 +62,7 @@ async function continueWithSso(): Promise<void> {
         variant="ghost"
         block
         data-testid="login-sso"
-        @click="ssoOpen = true"
+        @click="openSso"
       >
         {{ t('sso.discover.button') }}
       </UButton>
@@ -67,11 +73,11 @@ async function continueWithSso(): Promise<void> {
         @submit.prevent="continueWithSso"
       >
         <UInput
+          :id="ssoEmailId"
           v-model="ssoEmail"
           type="email"
           autocomplete="email"
           :placeholder="t('sso.discover.placeholder')"
-          autofocus
           data-testid="login-sso-email"
         />
         <UButton

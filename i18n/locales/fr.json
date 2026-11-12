@@ -251,7 +251,8 @@
       "sourcesHeading": "Sources",
       "noSources": "Aucune source affichée.",
       "imageInDoc": "L'image générée a été insérée dans le document.",
-      "knowledgeNote": "Fonctionnalité de connaissances de l'espace de travail."
+      "knowledgeNote": "Fonctionnalité de connaissances de l'espace de travail.",
+      "openViewedImage": "Ouvrir l'image consultée dans un nouvel onglet"
     },
     "viaAgent": "via {agent}"
   },
@@ -505,7 +506,8 @@
     "docs": "Docs",
     "documentation": "Documentation",
     "homeLinkLabel": "Accueil markoto",
-    "dragToClose": "Faites glisser pour fermer"
+    "dragToClose": "Faites glisser pour fermer",
+    "copyFailed": "Copie impossible. Sélectionnez le texte et copiez-le manuellement."
   },
   "menu": {
     "lightMode": "Mode clair",
@@ -1658,7 +1660,14 @@
     "shareAccessModeFailed": "Impossible de mettre à jour les paramètres de partage",
     "sharePasswordFailed": "Impossible de définir le mot de passe du document",
     "activityLoadFailed": "Impossible de charger l'activité",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "page": {
+      "notFoundTitle": "Page introuvable",
+      "notFoundMessage": "Cette page n'existe pas ou a été déplacée. Vérifiez l'adresse ou retournez à l'accueil.",
+      "genericTitle": "Une erreur est survenue",
+      "genericMessage": "Une erreur inattendue est survenue de notre côté. Veuillez réessayer dans un instant.",
+      "backHome": "Retour à l'accueil"
+    }
   },
   "legal": {
     "ageGate": {

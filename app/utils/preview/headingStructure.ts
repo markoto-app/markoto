@@ -74,7 +74,8 @@ export function sectionNumberLabel(style: HeadingNumbering, n: number): string {
     case 'decimal-dot': return `${n}.`
     case 'ieee': return `${toRoman(n)}.`
     case 'decimal-zero': return String(n).padStart(2, '0')
-    default: return String(n)
+    case 'decimal':
+    case 'none': return String(n)
   }
 }
 

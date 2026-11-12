@@ -65,7 +65,7 @@ interface OfflineEntry {
 type DisplayEntry = LiveEntry | OfflineEntry
 
 const { user: sessionUser } = useUserSession()
-const myUserId = computed(() => (sessionUser.value?.id ?? null) as number | null)
+const myUserId = computed(() => sessionUser.value?.id ?? null)
 
 const liveEntries = ref<LiveEntry[]>([])
 const roster = ref<RosterMember[]>([])
@@ -124,7 +124,7 @@ async function loadRoster() {
 onMounted(() => {
   updateLive()
   props.awareness.on('change', updateLive)
-  loadRoster()
+  void loadRoster()
 })
 
 onUnmounted(() => {

@@ -42,7 +42,7 @@ function mount(el: HTMLElement, binding: DirectiveBinding) {
     startY: 0,
     pointerDown(e) {
       // Primary pointer only: right-click would double-fire next to the native context menu.
-      if (e.button !== undefined && e.button !== 0) return
+      if (typeof e.button === 'number' && e.button !== 0) return
       state.startX = e.clientX
       state.startY = e.clientY
       state.timer = setTimeout(() => {

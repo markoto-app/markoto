@@ -34,7 +34,13 @@ const labelText = computed(() => {
 </script>
 
 <template>
-  <div class="p-2.5 select-none">
+  <!-- Presentation only: the hover preview mirrors what focus does on the buttons below. -->
+  <div
+    role="presentation"
+    class="p-2.5 select-none"
+    @mouseleave="hoverRow = -1; hoverCol = -1"
+    @focusout="hoverRow = -1; hoverCol = -1"
+  >
     <div class="text-xs text-center mb-2 font-medium text-default tabular-nums">
       {{ labelText }}
     </div>
@@ -42,7 +48,6 @@ const labelText = computed(() => {
       class="border-separate"
       style="border-spacing: 2px;"
       :aria-label="`Table size picker, up to ${MAX_ROWS} by ${MAX_COLS}`"
-      @mouseleave="hoverRow = -1; hoverCol = -1"
     >
       <!-- Visually-hidden column headers (1..N) so screen readers and Sonar can confirm the grid has scope. -->
       <thead class="sr-only">
@@ -75,6 +80,7 @@ const labelText = computed(() => {
                 ? 'bg-primary border-primary'
                 : 'bg-elevated border-default'"
               @mouseenter="hoverRow = row - 1; hoverCol = col - 1"
+              @focus="hoverRow = row - 1; hoverCol = col - 1"
               @click="onSelect(row - 1, col - 1)"
             />
           </td>

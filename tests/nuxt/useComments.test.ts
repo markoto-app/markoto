@@ -20,12 +20,10 @@ import type { SerializedAnchor } from '../../app/utils/comments/commentAnchors'
 // users can only delete their own / resolve threads). No tests for an
 // edit path.
 
-const { sessionState } = vi.hoisted(() => ({
-  sessionState: {
-    loggedIn: { value: true },
-    user: { value: { id: 1, name: 'Alice' } as { id: number, name?: string } | null }
-  }
-}))
+const { sessionState } = vi.hoisted(() => {
+  const user: { value: { id: number, name?: string } | null } = { value: { id: 1, name: 'Alice' } }
+  return { sessionState: { loggedIn: { value: true }, user } }
+})
 
 mockNuxtImport('useUserSession', () => {
   return () => ({

@@ -157,25 +157,22 @@ const audienceItems = AUDIENCE_KINDS.map((kind): { label: string, description: s
 
     <div class="flex-1 overflow-y-auto p-3 min-h-0 space-y-5">
       <section>
-        <label
-          for="doc-description"
-          class="block font-mono text-[10.5px] font-normal uppercase tracking-[0.06em] text-muted mb-1.5"
+        <UFormField
+          :label="t('documentPanel.description.label')"
+          :description="t('documentPanel.description.help')"
+          :ui="{ label: 'font-mono text-[10.5px] font-normal uppercase tracking-[0.06em] text-muted', description: 'text-xs text-toned mt-1.5', container: 'mt-2' }"
         >
-          {{ t('documentPanel.description.label') }}
-        </label>
-        <p class="text-xs text-toned mb-2">
-          {{ t('documentPanel.description.help') }}
-        </p>
-        <UTextarea
-          id="doc-description"
-          v-model="descriptionDraft"
-          :placeholder="t('documentPanel.description.placeholder')"
-          :rows="3"
-          :maxrows="6"
-          :disabled="!canEdit"
-          autoresize
-          class="w-full"
-        />
+          <UTextarea
+            id="doc-description"
+            v-model="descriptionDraft"
+            :placeholder="t('documentPanel.description.placeholder')"
+            :rows="3"
+            :maxrows="6"
+            :disabled="!canEdit"
+            autoresize
+            class="w-full"
+          />
+        </UFormField>
         <!-- Character counter in the slate caption register —
              JetBrains Mono with 0.04em tracking, matches the rest of
              the editor's micro-meta voice. The format shifts from
@@ -188,27 +185,24 @@ const audienceItems = AUDIENCE_KINDS.map((kind): { label: string, description: s
       </section>
 
       <section>
-        <label
-          for="doc-language"
-          class="block font-mono text-[10.5px] font-normal uppercase tracking-[0.06em] text-muted mb-1.5"
+        <UFormField
+          :label="t('documentPanel.language.label')"
+          :description="t('documentPanel.language.help')"
+          :ui="{ label: 'font-mono text-[10.5px] font-normal uppercase tracking-[0.06em] text-muted', description: 'text-xs text-toned mt-1.5', container: 'mt-2' }"
         >
-          {{ t('documentPanel.language.label') }}
-        </label>
-        <p class="text-xs text-toned mb-2">
-          {{ t('documentPanel.language.help') }}
-        </p>
-        <UInputMenu
-          id="doc-language"
-          v-model="languageModel"
-          :items="languageItems"
-          :placeholder="t('documentPanel.language.placeholder')"
-          :disabled="!canEdit"
-          :create-item="true"
-          :create-item-position="'bottom'"
-          value-key="value"
-          class="w-full"
-          @create="(text: string) => languageModel = onCreateLanguage(text)"
-        />
+          <UInputMenu
+            id="doc-language"
+            v-model="languageModel"
+            :items="languageItems"
+            :placeholder="t('documentPanel.language.placeholder')"
+            :disabled="!canEdit"
+            :create-item="true"
+            :create-item-position="'bottom'"
+            value-key="value"
+            class="w-full"
+            @create="(text: string) => languageModel = onCreateLanguage(text)"
+          />
+        </UFormField>
         <p
           v-if="languageIsCustom"
           class="text-xs text-toned mt-1"
@@ -218,22 +212,19 @@ const audienceItems = AUDIENCE_KINDS.map((kind): { label: string, description: s
       </section>
 
       <section>
-        <label
-          for="doc-audience"
-          class="block font-mono text-[10.5px] font-normal uppercase tracking-[0.06em] text-muted mb-1.5"
+        <UFormField
+          :label="t('documentPanel.audience.label')"
+          :description="t('documentPanel.audience.help')"
+          :ui="{ label: 'font-mono text-[10.5px] font-normal uppercase tracking-[0.06em] text-muted', description: 'text-xs text-toned mt-1.5', container: 'mt-2' }"
         >
-          {{ t('documentPanel.audience.label') }}
-        </label>
-        <p class="text-xs text-toned mb-2">
-          {{ t('documentPanel.audience.help') }}
-        </p>
-        <USelect
-          id="doc-audience"
-          v-model="audienceDraft"
-          :items="audienceItems"
-          :disabled="!canEdit"
-          class="w-full"
-        />
+          <USelect
+            id="doc-audience"
+            v-model="audienceDraft"
+            :items="audienceItems"
+            :disabled="!canEdit"
+            class="w-full"
+          />
+        </UFormField>
         <p
           v-if="audienceItems.some(i => i.value === audienceDraft)"
           class="text-xs text-toned mt-1.5"

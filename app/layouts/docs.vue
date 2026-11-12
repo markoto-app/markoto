@@ -53,7 +53,8 @@ watch(searchOpen, (open) => {
 const sidebarNav = computed(() => {
   const nav = navigation.value
   if (!nav?.length) return []
-  if (nav.length === 1 && nav[0]!.children?.length) return nav[0]!.children
+  const only = nav.length === 1 ? nav[0] : undefined
+  if (only?.children?.length) return only.children
   return nav
 })
 

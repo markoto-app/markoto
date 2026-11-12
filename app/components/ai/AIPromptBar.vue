@@ -144,7 +144,7 @@ function onCapReached() {
   }
   if (creditsAreShared.value) return
   if (pricingVisible.value) {
-    router.push('/pricing')
+    void router.push('/pricing')
     return
   }
   // Self-hosted: nothing to buy — re-explain instead of a dead link.
@@ -350,9 +350,10 @@ const statusIcon = computed(() => {
     case 'editing': return 'i-lucide-pencil'
     case 'error': return 'i-lucide-alert-circle'
     case 'done': return 'i-lucide-check-circle'
-    // Fallback: pulsing-circle for any unknown active phase. The
+    // Fallback: pulsing-circle for no phase or any unknown active one. The
     // brand reserves the seal for the brand mark itself; here we
     // just need a "still working" glyph.
+    case undefined:
     default: return 'i-lucide-loader'
   }
 })

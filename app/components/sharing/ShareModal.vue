@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useQRCode } from '@vueuse/integrations/useQRCode'
-import { DOC_PASSWORD_MIN_LENGTH } from '~~/shared/config/docPassword'
+import { DOC_PASSWORD_MAX_LENGTH, DOC_PASSWORD_MIN_LENGTH } from '~~/shared/config/docPassword'
 import type { AccessMode } from '~~/shared/utils/documents/docPermissions'
 
 const props = defineProps<{
@@ -22,7 +22,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const { copy, copied } = useClipboard()
+const { copy, copied } = useCopyText()
 // Web Share API: shows the OS share sheet on iOS/Android Safari +
 // Chrome and on Edge/Chrome on Windows. `isSupported` is false on
 // desktop Chrome on Linux and Firefox everywhere — we hide the button
@@ -152,58 +152,59 @@ async function setPassword() {
         </div>
 
         <div>
-          <label
-            for="share-link-input"
-            class="block text-sm font-medium mb-2"
-          >{{ t('share.copyLink') }}</label>
-          <div class="flex gap-2">
-            <UInput
-              id="share-link-input"
-              :model-value="shareUrl"
-              readonly
-              data-testid="share-link-input"
-              class="flex-1"
-              size="sm"
-            />
-            <UButton
-              :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'"
-              :color="copied ? 'success' : 'neutral'"
-              variant="solid"
-              size="sm"
-              data-testid="share-copy-link-button"
-              :aria-label="copied ? t('share.linkCopied') : t('share.copyLink')"
-              @click="copyLink"
-            >
-              {{ copied ? t('share.linkCopied') : t('share.copyLink') }}
-            </UButton>
-            <!-- Native OS share sheet — only shown when supported
-                 (mobile Safari/Chrome, Edge). On desktop Chrome (Linux)
-                 and Firefox everywhere it's hidden. -->
-            <UButton
-              v-if="shareSupported"
-              icon="i-lucide-share"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              data-testid="share-system-button"
-              :aria-label="t('share.systemShare')"
-              :title="t('share.systemShare')"
-              @click="shareLink"
-            />
-            <!-- QR toggle — collapsed by default; opens a 160px square
-                 below the link row for mobile-handoff scanning. -->
-            <UButton
-              :icon="showQrCode ? 'i-lucide-x' : 'i-lucide-qr-code'"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              data-testid="share-qr-toggle"
-              :aria-label="t('share.qrCode')"
-              :aria-pressed="showQrCode"
-              :title="t('share.qrCode')"
-              @click="showQrCode = !showQrCode"
-            />
-          </div>
+          <UFormField
+            :label="t('share.copyLink')"
+            :ui="{ container: 'mt-2' }"
+          >
+            <div class="flex gap-2">
+              <UInput
+                id="share-link-input"
+                :model-value="shareUrl"
+                readonly
+                data-testid="share-link-input"
+                class="flex-1"
+                size="sm"
+              />
+              <UButton
+                :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'"
+                :color="copied ? 'success' : 'neutral'"
+                variant="solid"
+                size="sm"
+                data-testid="share-copy-link-button"
+                :aria-label="copied ? t('share.linkCopied') : t('share.copyLink')"
+                @click="copyLink"
+              >
+                {{ copied ? t('share.linkCopied') : t('share.copyLink') }}
+              </UButton>
+              <!-- Native OS share sheet — only shown when supported
+                   (mobile Safari/Chrome, Edge). On desktop Chrome (Linux)
+                   and Firefox everywhere it's hidden. -->
+              <UButton
+                v-if="shareSupported"
+                icon="i-lucide-share"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                data-testid="share-system-button"
+                :aria-label="t('share.systemShare')"
+                :title="t('share.systemShare')"
+                @click="shareLink"
+              />
+              <!-- QR toggle — collapsed by default; opens a 160px square
+                   below the link row for mobile-handoff scanning. -->
+              <UButton
+                :icon="showQrCode ? 'i-lucide-x' : 'i-lucide-qr-code'"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                data-testid="share-qr-toggle"
+                :aria-label="t('share.qrCode')"
+                :aria-pressed="showQrCode"
+                :title="t('share.qrCode')"
+                @click="showQrCode = !showQrCode"
+              />
+            </div>
+          </UFormField>
           <!-- QR rendering — sits beneath the link row. The data-url
                is reactive on `shareUrl`, so changing access mode (or
                anything else that mutates the URL) re-renders the QR
@@ -264,33 +265,35 @@ async function setPassword() {
             v-if="settingPassword"
             class="mt-3 p-3 rounded-lg border border-default bg-[var(--ui-bg-muted)]"
           >
-            <label
-              for="share-password-input"
-              class="block text-sm font-medium mb-2"
-            >{{ t('share.setPassword') }}</label>
-            <div class="flex gap-2 items-stretch">
-              <UInput
-                id="share-password-input"
-                v-model="password"
-                type="password"
-                :placeholder="t('share.passwordPlaceholder')"
-                size="sm"
-                class="flex-1"
-                :ui="{ root: 'flex-1', base: 'w-full' }"
-                data-testid="share-password-input"
-                @keydown.enter="setPassword"
-              />
-              <UButton
-                size="sm"
-                class="shrink-0"
-                :loading="saving"
-                :disabled="!password || password.length < DOC_PASSWORD_MIN_LENGTH"
-                data-testid="share-password-save"
-                @click="setPassword"
-              >
-                {{ t('common.save') }}
-              </UButton>
-            </div>
+            <UFormField
+              :label="t('share.setPassword')"
+              :ui="{ container: 'mt-2' }"
+            >
+              <div class="flex gap-2 items-stretch">
+                <UInput
+                  id="share-password-input"
+                  v-model="password"
+                  type="password"
+                  :maxlength="DOC_PASSWORD_MAX_LENGTH"
+                  :placeholder="t('share.passwordPlaceholder')"
+                  size="sm"
+                  class="flex-1"
+                  :ui="{ root: 'flex-1', base: 'w-full' }"
+                  data-testid="share-password-input"
+                  @keydown.enter="setPassword"
+                />
+                <UButton
+                  size="sm"
+                  class="shrink-0"
+                  :loading="saving"
+                  :disabled="!password || password.length < DOC_PASSWORD_MIN_LENGTH"
+                  data-testid="share-password-save"
+                  @click="setPassword"
+                >
+                  {{ t('common.save') }}
+                </UButton>
+              </div>
+            </UFormField>
             <p class="text-xs text-muted mt-1">
               {{ t('share.passwordMinLength', { min: DOC_PASSWORD_MIN_LENGTH }) }}
             </p>

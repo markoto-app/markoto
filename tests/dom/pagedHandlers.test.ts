@@ -359,7 +359,7 @@ describe('multi-column: wide blocks and the columns before them', () => {
     if (!wide || !narrow) throw new Error('fixture')
     // 300px with `overflow-wrap: anywhere`, 450px with nothing broken apart.
     Object.defineProperty(wide, 'offsetWidth', { configurable: true, get: () => wide.hasAttribute('data-markoto-measure') ? 450 : 300 })
-    Object.defineProperty(narrow, 'offsetWidth', { configurable: true, get: () => narrow.hasAttribute('data-markoto-measure') ? 280 : 280 })
+    Object.defineProperty(narrow, 'offsetWidth', { configurable: true, get: () => 280 })
     handler().layout(r)
     expect(wide.style.getPropertyValue('column-span')).toBe('all')
     expect(wide.hasAttribute('data-markoto-wide')).toBe(true)

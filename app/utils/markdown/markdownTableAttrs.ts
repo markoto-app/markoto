@@ -27,7 +27,11 @@ function closeIndex(tokens: Token[], start: number, type: string): number {
 
 function rewriteTables(state: StateCore): void {
   const tokens = state.tokens
-  for (let i = 0; i < tokens.length; i++) {
+  // After a rewrite the scan resumes where the removed row used to end, so
+  // the cursor is advanced here rather than by the loop header.
+  let next = 0
+  while (next < tokens.length) {
+    const i = next++
     if (tokens[i]?.type !== 'tbody_open') continue
     const tbodyClose = closeIndex(tokens, i, 'tbody_close')
     if (tbodyClose < 0) continue
@@ -58,7 +62,7 @@ function rewriteTables(state: StateCore): void {
     pClose.level = level
     tokens.splice(tableClose + 1, 0, pOpen, inline, pClose)
     tokens.splice(trOpen, trClose - trOpen + 1)
-    i = tableClose - (trClose - trOpen + 1)
+    next = tableClose - (trClose - trOpen + 1) + 1
   }
 }
 

@@ -148,6 +148,7 @@ export async function printDocumentAsPdf(opts: {
       }
     }
 
+    // eslint-disable-next-line sonarjs/post-message -- onMessage checks `event.source` against the iframe's window in parseFrameMessage
     globalThis.addEventListener('message', onMessage)
     // Safety nets: pagination hanging (unloadable font, runaway layout),
     // and an `afterprint` that never arrives.

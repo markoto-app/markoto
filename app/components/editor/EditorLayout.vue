@@ -107,7 +107,7 @@ const dictation = useVoiceDictation({
     if (!view) return
     // Clear the ghost first so interim-to-final looks seamless.
     view.dispatch({ effects: setDictationInterim.of('') })
-    const uid = (sessionUser.value?.id as number | undefined) ?? null
+    const uid = sessionUser.value?.id ?? null
     commitDictationFinal(view, ydoc, ytext, uid, text)
   },
   onError: (message) => {
@@ -214,8 +214,7 @@ onKeyStroke('Escape', () => {
 const commentsApi = useProvideComments(ydoc, awareness, props.docId)
 const commentRanges = computed<CommentRange[]>(() =>
   commentsApi.comments.value
-    .filter(c => c.anchor !== null && !c.resolved)
-    .map(c => ({ id: c.id, from: c.anchor!.from, to: c.anchor!.to }))
+    .flatMap(c => c.anchor && !c.resolved ? [{ id: c.id, from: c.anchor.from, to: c.anchor.to }] : [])
 )
 
 // OS notification on replies to a thread I authored, only while the tab is
@@ -239,7 +238,7 @@ const commentsPanelRef = ref<{
 function onCommentClickInEditor(id: string) {
   rightSidebar.value = 'comments'
   // Wait a tick so the panel mounts before it is asked to scroll.
-  nextTick(() => {
+  void nextTick(() => {
     commentsPanelRef.value?.focusComment(id)
     flashEditorComment(id)
   })
@@ -249,7 +248,7 @@ function onCommentClickInEditor(id: string) {
 function triggerCreateComment() {
   if (isReadOnly.value) return
   rightSidebar.value = 'comments'
-  nextTick(() => {
+  void nextTick(() => {
     commentsPanelRef.value?.startDraft()
   })
 }
@@ -300,7 +299,7 @@ watch(deletedByOther, (deleted) => {
     icon: 'i-lucide-trash-2',
     color: 'warning'
   })
-  navigateTo('/')
+  void navigateTo('/')
 })
 // Drives the dropdown loader spinner.
 const exporting = ref(false)
@@ -431,7 +430,7 @@ useEventListener(document, 'keydown', (e: KeyboardEvent) => {
     && (e.key === 'p' || e.key === 'P')
   if (!isPrint) return
   e.preventDefault()
-  exportPdf()
+  void exportPdf()
 }, { capture: true })
 
 // Image insert via the menu; same flow as EditorToolbar's image button, kept
@@ -463,10 +462,11 @@ const { open: openImagePicker, onChange: onMenuImagePicked } = useFileDialog({
   multiple: false,
   reset: true
 })
-onMenuImagePicked(async (files) => {
+// `uploadImageAndInsert` reports failures through `imageUploadError`; it does not reject.
+onMenuImagePicked((files) => {
   const file = files?.[0]
   if (!file || !editorView.value) return
-  await uploadImageAndInsert(file, editorView.value)
+  void uploadImageAndInsert(file, editorView.value)
 })
 
 // Menu-driven file actions. New document hits the same endpoint as the
@@ -493,7 +493,7 @@ const anonDoc = useAnonDocCreate()
 async function newDocument() {
   try {
     const docId = await anonDoc.createDocument()
-    navigateTo(`/d/${docId}`)
+    void navigateTo(`/d/${docId}`)
   } catch (e) {
     if (e instanceof AnonGateCancelled) return
     toast.add({ title: t('error.documentCreateFailed'), color: 'error' })
@@ -556,6 +556,7 @@ const syncRejectionMessage = computed(() => {
     case 'document-too-large': return t('editor.syncRejected.documentTooLarge')
     case 'invalid-meta': return t('editor.syncRejected.invalidMeta')
     case 'invalid-update': return t('editor.syncRejected.invalidUpdate')
+    case null:
     default: return null
   }
 })
@@ -790,11 +791,11 @@ const persistStats = useDebounceFn(() => {
 }, 10000)
 
 watch(textContent, () => {
-  persistStats()
+  void persistStats()
 })
 // Also persist once the initial sync completes.
 watch(synced, (s) => {
-  if (s) persistStats()
+  if (s) void persistStats()
 })
 
 onUnmounted(() => {
@@ -817,7 +818,7 @@ const { focused: titleFocused } = useFocus(titleInputEl)
 function startEditTitle() {
   titleInput.value = title.value
   editingTitle.value = true
-  nextTick(() => {
+  void nextTick(() => {
     titleFocused.value = true
     titleInputEl.value?.select()
   })

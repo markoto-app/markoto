@@ -283,21 +283,20 @@ async function onConfirm(): Promise<void> {
              is — without this the row would collapse off-screen on
              mobile (the modal flex-column caps at 85vh). -->
         <div class="mt-6 pt-4 border-t border-default shrink-0">
-          <label
-            for="deletion-confirm-input"
-            class="block text-sm mb-2"
+          <UFormField
+            :label="t('legal.delete.confirmTypeIn', { phrase: CONFIRM_PHRASE })"
+            :ui="{ label: 'text-sm font-normal', container: 'mt-2' }"
           >
-            {{ t('legal.delete.confirmTypeIn', { phrase: CONFIRM_PHRASE }) }}
-          </label>
-          <UInput
-            id="deletion-confirm-input"
-            v-model="confirmInput"
-            :placeholder="CONFIRM_PHRASE"
-            class="w-full font-mono"
-            data-testid="deletion-confirm-input"
-            autocomplete="off"
-            spellcheck="false"
-          />
+            <UInput
+              id="deletion-confirm-input"
+              v-model="confirmInput"
+              :placeholder="CONFIRM_PHRASE"
+              class="w-full font-mono"
+              data-testid="deletion-confirm-input"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </UFormField>
           <!-- Buttons stack on mobile (Schedule on top because it's
                the answer to the typed phrase; Cancel below as the
                escape hatch). On `sm+` they sit side-by-side aligned

@@ -98,7 +98,7 @@ const uploadCapShortLabel = computed(() =>
 function onUploadClick() {
   if (uploadCapReached.value) {
     if (pricingVisible.value) {
-      router.push('/pricing')
+      void router.push('/pricing')
     } else {
       toast.add({ title: uploadCapShortLabel.value, description: uploadCapTooltip.value, icon: 'i-lucide-lock', color: 'neutral' })
     }
@@ -113,7 +113,10 @@ function canDelete(row: KnowledgeItem): boolean {
   return false
 }
 
-watch(() => props.workspaceId, () => load(), { immediate: true })
+// `load` is a `useAsyncState` execute: it reports failures through `onError`, never rejects.
+watch(() => props.workspaceId, () => {
+  void load()
+}, { immediate: true })
 
 // Poll for status transitions when processing items exist. Cheap enough
 // (one GET every 5s, only while items are in flight); stops automatically
@@ -122,12 +125,14 @@ watch(() => props.workspaceId, () => load(), { immediate: true })
 const visibility = useDocumentVisibility()
 const anyProcessing = computed(() => items.value.some(it => it.status === 'processing'))
 const shouldPoll = computed(() => anyProcessing.value && visibility.value === 'visible')
-const { pause, resume } = useIntervalFn(() => load(), 5000, { immediate: false })
+const { pause, resume } = useIntervalFn(() => {
+  void load()
+}, 5000, { immediate: false })
 watch(shouldPoll, (active) => {
   if (active) {
     // Catch up on the transition (any state-change that happened while
     // we were paused) before resuming the cadence.
-    load()
+    void load()
     resume()
   } else {
     pause()
@@ -142,12 +147,16 @@ const { open: pickFile, onChange: onFilesPicked } = useFileDialog({
   reset: true
 })
 
-onFilesPicked(async (fileList) => {
+async function uploadPicked(fileList: FileList | null): Promise<void> {
   const files = Array.from(fileList ?? [])
   for (const file of files) {
     await uploadOne(file)
   }
   await load()
+}
+// `uploadOne` reports its own failures; `load` reports through `onError`.
+onFilesPicked((fileList) => {
+  void uploadPicked(fileList)
 })
 
 async function uploadOne(file: File) {
@@ -223,8 +232,9 @@ function openDeleteModal(row: KnowledgeItem) {
 }
 
 function onItemDeleted() {
-  if (!deleteTarget.value) return
-  items.value = items.value.filter(it => it.knowledgeId !== deleteTarget.value!.knowledgeId)
+  const target = deleteTarget.value
+  if (!target) return
+  items.value = items.value.filter(it => it.knowledgeId !== target.knowledgeId)
   deleteTarget.value = null
   // Re-fetch usage so the "X MB of Y MB" footer updates.
   void load()

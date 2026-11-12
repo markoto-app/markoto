@@ -157,31 +157,33 @@ async function onFile(event: Event) {
 }
 
 function poll(jobId: string, token: number) {
-  pollTimer = setTimeout(async () => {
-    if (token !== runToken || !open.value) return
-    try {
-      const job = await apiFetch('/api/themes/from-document/jobs/:jobId', { path: { jobId } })
-      if (token !== runToken) return
-      maxRounds.value = job.maxRounds
-      round.value = job.round
-      if (job.phase === 'done' && job.result) {
-        result.value = job.result
-        pageIndex.value = 0
-        name.value = job.result.name.slice(0, SAVED_THEME_NAME_MAX)
-        description.value = job.result.description.slice(0, SAVED_THEME_DESCRIPTION_MAX)
-        step.value = 'result'
-        return
-      }
-      if (job.phase === 'error') {
-        const code = job.error?.code ?? 'internal'
-        return fail((DESIGN_IMPORT_ERROR_CODES as readonly string[]).includes(code) ? code : 'internal')
-      }
-      phase.value = job.phase === 'done' ? 'rendering' : job.phase
-      poll(jobId, token)
-    } catch (e) {
-      fail(errorKeyFrom(e))
+  pollTimer = setTimeout(() => void pollOnce(jobId, token), 1500)
+}
+
+async function pollOnce(jobId: string, token: number) {
+  if (token !== runToken || !open.value) return
+  try {
+    const job = await apiFetch('/api/themes/from-document/jobs/:jobId', { path: { jobId } })
+    if (token !== runToken) return
+    maxRounds.value = job.maxRounds
+    round.value = job.round
+    if (job.phase === 'done' && job.result) {
+      result.value = job.result
+      pageIndex.value = 0
+      name.value = job.result.name.slice(0, SAVED_THEME_NAME_MAX)
+      description.value = job.result.description.slice(0, SAVED_THEME_DESCRIPTION_MAX)
+      step.value = 'result'
+      return
     }
-  }, 1500)
+    if (job.phase === 'error') {
+      const code = job.error?.code ?? 'internal'
+      return fail((DESIGN_IMPORT_ERROR_CODES as readonly string[]).includes(code) ? code : 'internal')
+    }
+    phase.value = job.phase === 'done' ? 'rendering' : job.phase
+    poll(jobId, token)
+  } catch (e) {
+    fail(errorKeyFrom(e))
+  }
 }
 
 const phaseLabel = computed(() => t(`designImport.phase.${phase.value}`))
@@ -306,6 +308,7 @@ function png(base64: string): string {
               ref="fileInput"
               type="file"
               class="hidden"
+              :aria-label="t('designImport.chooseFile')"
               accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               data-testid="design-import-file"
               @change="onFile"

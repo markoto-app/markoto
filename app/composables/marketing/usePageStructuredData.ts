@@ -1,3 +1,4 @@
+import { trimTrailing } from '~/utils/markdown/trimTrailing'
 import { pageStructuredData, serializeJsonLd, type PageGraphInput } from '~~/shared/seo/structuredData'
 
 /** What a page passes: everything but the instance-wide fields. */
@@ -27,7 +28,7 @@ export function usePageStructuredData(build: () => PageStructuredData | null): v
     const json = serializeJsonLd(pageStructuredData({
       ...input,
       // Same path as the canonical: no trailing slash.
-      path: input.path ?? (route.path.replace(/\/+$/, '') || '/'),
+      path: input.path ?? (trimTrailing(route.path, '/') || '/'),
       siteUrl: siteUrl.value,
       operatorName: operatorName.value,
       inLanguage: localeProperties.value.language ?? locale.value

@@ -15,7 +15,7 @@ const { t, locale } = useI18n()
 const { loggedIn } = useUserSession()
 const { primaryLoginPath, customDomains: domainsOnInstance } = useInstanceConfig()
 const { showContextualError } = useErrorHandler()
-const { copy } = useClipboard()
+const { copy } = useCopyText()
 
 useHead({ title: () => t('customDomains.title') })
 
@@ -25,7 +25,7 @@ if (import.meta.client && !loggedIn.value) {
 
 function onClose(): void {
   if (globalThis.history.length > 1 && document.referrer) router.back()
-  else router.push('/')
+  else void router.push('/')
 }
 
 const data = ref<DomainsResponse | null>(null)

@@ -71,7 +71,7 @@ export function commentDecorationsExtension(opts: CommentDecorationsOptions = {}
     click(e: MouseEvent) {
       const target = e.target as HTMLElement | null
       if (!target) return
-      const el = target.closest('[data-comment-id]') as HTMLElement | null
+      const el = target.closest<HTMLElement>('[data-comment-id]')
       if (!el) return
       const id = el.dataset.commentId
       if (id && opts.onCommentClick) {

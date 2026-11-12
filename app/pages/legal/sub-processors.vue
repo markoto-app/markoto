@@ -35,7 +35,7 @@ function onClose(): void {
   if (globalThis.history.length > 1 && document.referrer) {
     router.back()
   } else {
-    router.push('/')
+    void router.push('/')
   }
 }
 

@@ -57,7 +57,7 @@ onMounted(() => {
       color: 'success'
     })
     // Strip the query param so a reload doesn't re-fire the toast.
-    router.replace({ query: { ...route.query, linked: undefined } })
+    void router.replace({ query: { ...route.query, linked: undefined } })
   }
 })
 
@@ -67,7 +67,7 @@ onMounted(() => {
 // (useNewDocDialog), so the product page doesn't ship it.
 const { mounted: newDocDialogMounted, open: showNewDocDialog, show: createDocument, warm: warmNewDocDialog } = useNewDocDialog(() => import('~/components/document/NewDocumentDialog.vue'))
 function onDocCreated(docId: string) {
-  router.push(`/d/${docId}`)
+  void router.push(`/d/${docId}`)
 }
 </script>
 

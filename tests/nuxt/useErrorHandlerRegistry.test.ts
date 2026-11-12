@@ -7,7 +7,10 @@ import { useErrorHandler } from '~/composables/platform/useErrorHandler'
 // code's translated text first, then the route's messageKey, the per-feature
 // plan texts, a status-based text. The server's English message is never shown.
 
-const { translations } = vi.hoisted(() => ({ translations: {} as Record<string, string> }))
+const { translations } = vi.hoisted(() => {
+  const translations: Record<string, string> = {}
+  return { translations }
+})
 
 mockNuxtImport('useToast', () => () => ({ add: () => {} }))
 mockNuxtImport('useI18n', () => () => ({

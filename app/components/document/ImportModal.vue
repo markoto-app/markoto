@@ -263,6 +263,7 @@ function cancelImport() {
           </p>
 
           <div
+            role="presentation"
             :class="[
               'border-2 rounded-lg p-8 text-center cursor-pointer transition-colors',
               selectedFile
@@ -306,9 +307,13 @@ function cancelImport() {
                 name="i-lucide-file-up"
                 class="size-10 text-muted mx-auto mb-2"
               />
-              <p class="text-sm text-muted">
+              <button
+                type="button"
+                class="text-sm text-muted"
+                @click.stop="selectFile()"
+              >
                 {{ t('import.selectFile') }}
-              </p>
+              </button>
               <p class="text-xs text-muted mt-1">
                 {{ t('import.formats') }}
               </p>

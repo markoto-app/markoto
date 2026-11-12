@@ -77,7 +77,7 @@ export function useMarketingNav() {
       nav[group].push(link)
     }
     const sorted = (links: Ordered[]): MarketingNavLink[] => links
-      .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label))
+      .toSorted((a, b) => a.order - b.order || a.label.localeCompare(b.label))
       .map(({ label, to }) => ({ label, to }))
     return { useCases: sorted(nav.useCases), compare: sorted(nav.compare), templates: sorted(nav.templates) }
   })

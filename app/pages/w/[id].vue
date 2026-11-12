@@ -153,7 +153,7 @@ function createDocument() {
   showNewDocDialog.value = true
 }
 function onDocCreated(docId: string) {
-  router.push(`/d/${docId}`)
+  void router.push(`/d/${docId}`)
 }
 
 // Modals
@@ -194,8 +194,9 @@ function openDocMove(doc: WorkspaceDoc) {
 }
 
 function onDocDeleted() {
-  if (!deleteTargetDoc.value || !data.value) return
-  data.value.documents = data.value.documents.filter(d => d.docId !== deleteTargetDoc.value!.docId)
+  const target = deleteTargetDoc.value
+  if (!target || !data.value) return
+  data.value.documents = data.value.documents.filter(d => d.docId !== target.docId)
   deleteTargetDoc.value = null
 }
 
@@ -205,7 +206,7 @@ function onDocDuplicated(newDocId: string) {
   // next visit. If the duplicate stayed in this workspace, reloading
   // here would surface it in the list too, but we'd rather the user
   // start editing immediately.
-  router.push(`/d/${newDocId}`)
+  void router.push(`/d/${newDocId}`)
 }
 
 function onDocMoved(newWorkspaceId: string | null) {
@@ -213,10 +214,11 @@ function onDocMoved(newWorkspaceId: string | null) {
   // current list. Same-workspace no-op is impossible here because the
   // row's modal doesn't allow picking the current workspace's option
   // server-side it's a no-op anyway.
-  if (!moveTargetDoc.value || !data.value) return
+  const target = moveTargetDoc.value
+  if (!target || !data.value) return
   if (newWorkspaceId !== workspaceId.value) {
     data.value.documents = data.value.documents.filter(
-      d => d.docId !== moveTargetDoc.value!.docId
+      d => d.docId !== target.docId
     )
   }
   moveTargetDoc.value = null
@@ -229,7 +231,7 @@ function onWorkspaceUpdated(payload: { name: string, description: string | null 
 }
 
 function onWorkspaceDeleted() {
-  router.replace('/')
+  void router.replace('/')
 }
 
 function onMembersUpdated(members: WorkspaceMember[]) {
@@ -243,7 +245,7 @@ function onLeftWorkspace() {
     icon: 'i-lucide-log-out',
     color: 'success'
   })
-  router.replace('/')
+  void router.replace('/')
 }
 
 // Admin vs non-admin see different workspace-level actions. Computed so the
@@ -276,7 +278,7 @@ const workspaceMenuItems = computed<DropdownMenuItem[][]>(() => {
       label: t('workspace.members.leave'),
       icon: 'i-lucide-log-out',
       color: 'error',
-      onSelect: () => leaveWorkspace()
+      onSelect: () => { void leaveWorkspace() }
     })
   }
   return [items]

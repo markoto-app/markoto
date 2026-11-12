@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { renderTrustedMarkdown } from '~/utils/markdown/renderMarkdown'
+import { trimTrailing } from '~/utils/markdown/trimTrailing'
 import { sampleHeadingsToDivs } from '~/utils/marketing/sampleHeadings'
 import { KATEX_CSS_SRI, KATEX_CSS_URL } from '~~/shared/utils/vendor/katexAssets'
 import { hljsTheme } from '~~/shared/utils/vendor/hljsAssets'
@@ -36,7 +37,7 @@ function hashOf(text: string): string {
   return (h >>> 0).toString(36)
 }
 
-const source = computed(() => props.source.replace(/\n+$/, ''))
+const source = computed(() => trimTrailing(props.source, '\n'))
 const { data: html } = await useAsyncData(
   `sample:${hashOf(source.value)}`,
   // Headings become styled <div>s: the sample's "# Title" is not a heading of this page.
@@ -114,11 +115,13 @@ useHead(() => ({
         <span>{{ t('marketing.sample.result') }}</span>
       </div>
       <!-- Rendered from committed content only (see renderTrustedMarkdown). -->
+      <!-- eslint-disable vue/no-v-html -- committed content, never visitor input (renderTrustedMarkdown) -->
       <div
         ref="resultEl"
         class="mk-sample__result"
         v-html="diagramHtml ?? html"
       />
+      <!-- eslint-enable vue/no-v-html -->
     </div>
   </figure>
 </template>

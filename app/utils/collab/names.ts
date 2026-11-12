@@ -9,7 +9,10 @@ const animals = [
 ]
 
 export function generateRandomName(): string {
-  const adj = adjectives[Math.floor(Math.random() * adjectives.length)]
-  const animal = animals[Math.floor(Math.random() * animals.length)]
+  // A cosmetic display name for anonymous collaborators; not security-relevant.
+  /* eslint-disable sonarjs/pseudo-random -- cosmetic choice, not security-relevant */
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)] ?? adjectives[0]
+  const animal = animals[Math.floor(Math.random() * animals.length)] ?? animals[0]
+  /* eslint-enable sonarjs/pseudo-random */
   return `${adj} ${animal}`
 }

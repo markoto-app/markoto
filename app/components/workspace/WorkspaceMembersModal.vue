@@ -243,6 +243,7 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
     :title="t('workspace.members.title', { name: workspaceName })"
     :description="isAdmin ? t('workspace.members.adminDescription') : t('workspace.members.memberDescription')"
     :ui="{ content: 'sm:max-w-lg' }"
+    :content="focusInvite ? initialFocus('workspace-invite-email') : undefined"
   >
     <template #body>
       <div class="space-y-4">
@@ -390,12 +391,12 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
           </p>
           <div class="flex gap-2">
             <UInput
+              id="workspace-invite-email"
               v-model="newEmail"
               type="email"
               :placeholder="t('workspace.members.emailPlaceholder')"
               class="flex-1"
               :ui="{ base: 'w-full' }"
-              :autofocus="focusInvite"
               data-testid="workspace-invite-email"
               @keydown.enter="addMember()"
             />

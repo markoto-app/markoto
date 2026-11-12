@@ -84,9 +84,12 @@ watch(pgCount, (n) => {
 
 <template>
   <div
+    role="presentation"
     class="preview-pane h-full w-full relative"
     @mouseenter="pointerOver = true"
     @mouseleave="pointerOver = false"
+    @focusin="pointerOver = true"
+    @focusout="pointerOver = false"
   >
     <div
       ref="iframeHost"

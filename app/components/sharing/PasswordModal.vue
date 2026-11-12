@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { DOC_PASSWORD_MAX_LENGTH } from '~~/shared/config/docPassword'
+
 const props = defineProps<{
   docId: string
 }>()
@@ -51,6 +53,7 @@ function handleClose() {
     v-model:open="open"
     :title="t('share.passwordRequired')"
     :close="false"
+    :content="initialFocus('password-modal-input')"
     @update:open="(val: boolean) => { if (!val) handleClose() }"
   >
     <template #content>
@@ -72,11 +75,12 @@ function handleClose() {
 
         <form @submit.prevent="verify">
           <UInput
+            id="password-modal-input"
             v-model="password"
             type="password"
+            :maxlength="DOC_PASSWORD_MAX_LENGTH"
             :placeholder="t('share.enterPassword')"
             size="lg"
-            autofocus
             class="mb-3"
             data-testid="password-modal-input"
           />

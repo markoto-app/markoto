@@ -37,7 +37,7 @@ if (import.meta.client) {
     if (!loggedIn.value) {
       globalThis.location.href = primaryLoginPath.value ?? '/'
     } else if (accountStatus.value && !accountStatus.value.isAdmin) {
-      router.push('/')
+      void router.push('/')
     }
   })
 }
@@ -179,7 +179,7 @@ function fmtDate(iso: string | null): string {
 }
 
 function onClose(): void {
-  router.push('/')
+  void router.push('/')
 }
 
 const STATUS_TONE: Record<AbuseReport['status'], string> = {

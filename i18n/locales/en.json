@@ -251,7 +251,8 @@
       "sourcesHeading": "Sources",
       "noSources": "No sources surfaced.",
       "imageInDoc": "The generated image was inserted into the document.",
-      "knowledgeNote": "Workspace knowledge feature."
+      "knowledgeNote": "Workspace knowledge feature.",
+      "openViewedImage": "Open the viewed image in a new tab"
     },
     "viaAgent": "via {agent}"
   },
@@ -505,7 +506,8 @@
     "docs": "Docs",
     "documentation": "Documentation",
     "homeLinkLabel": "markoto home",
-    "dragToClose": "Drag to close"
+    "dragToClose": "Drag to close",
+    "copyFailed": "Could not copy. Select the text and copy it manually."
   },
   "menu": {
     "lightMode": "Light mode",
@@ -1658,7 +1660,14 @@
     "shareAccessModeFailed": "Could not update sharing settings",
     "sharePasswordFailed": "Could not set document password",
     "activityLoadFailed": "Could not load activity",
-    "retry": "Retry"
+    "retry": "Retry",
+    "page": {
+      "notFoundTitle": "Page not found",
+      "notFoundMessage": "This page does not exist or has moved. Check the address or head back to the start.",
+      "genericTitle": "Something went wrong",
+      "genericMessage": "An unexpected error occurred on our side. Please try again in a moment.",
+      "backHome": "Back to home"
+    }
   },
   "legal": {
     "ageGate": {

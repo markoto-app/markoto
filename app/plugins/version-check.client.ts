@@ -19,19 +19,11 @@
 // State-machine logic is in `app/utils/platform/versionCheckController.ts`
 // (unit-testable without Nuxt); this plugin is the glue (toast + $fetch + $pwa).
 
-// @vite-pwa/nuxt augments NuxtApp with `$pwa`, but the augmentation isn't
-// visible under `.nuxt/tsconfig.server.json`, so the shape is re-asserted via
-// the module's own `PwaInjection` interface; a module change then gives a
-// type error here instead of a silent runtime miss.
-import type { UnwrapNestedRefs } from 'vue'
-import type { PwaInjection } from '@vite-pwa/nuxt/dist/runtime/plugins/types.js'
 import {
   createVersionCheckController,
   type VersionCheckPromptHandlers
 } from '../utils/platform/versionCheckController'
 import { MINUTE_MS } from '~~/shared/config/units'
-
-type Pwa = UnwrapNestedRefs<PwaInjection>
 
 function reloadNow() {
   globalThis.location.reload()
@@ -40,7 +32,7 @@ function reloadNow() {
 export default defineNuxtPlugin((nuxtApp) => {
   const toast = useToast()
   const { t } = nuxtApp.$i18n
-  const pwa = nuxtApp.$pwa as Pwa | undefined
+  const pwa = nuxtApp.$pwa
 
   function renderPrompt(h: VersionCheckPromptHandlers) {
     toast.add({
@@ -95,7 +87,10 @@ export default defineNuxtPlugin((nuxtApp) => {
       if (!needs || pwaPromptShown) return
       pwaPromptShown = true
       // Must go through `updateServiceWorker` so the next navigation loads the new precache.
-      const swReload = () => pwa.updateServiceWorker(true)
+      const swReload = () => {
+        // A failed service-worker swap would leave the stale build running: fall back to a plain reload.
+        pwa.updateServiceWorker(true).catch(reloadNow)
+      }
       let timer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
         timer = null
         swReload()

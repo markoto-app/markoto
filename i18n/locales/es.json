@@ -251,7 +251,8 @@
       "sourcesHeading": "Fuentes",
       "noSources": "No se mostraron fuentes.",
       "imageInDoc": "La imagen generada se insertó en el documento.",
-      "knowledgeNote": "Función de conocimiento del espacio de trabajo."
+      "knowledgeNote": "Función de conocimiento del espacio de trabajo.",
+      "openViewedImage": "Abrir la imagen vista en una pestaña nueva"
     },
     "viaAgent": "vía {agent}"
   },
@@ -505,7 +506,8 @@
     "docs": "Docs",
     "documentation": "Documentación",
     "homeLinkLabel": "Inicio de markoto",
-    "dragToClose": "Arrastra para cerrar"
+    "dragToClose": "Arrastra para cerrar",
+    "copyFailed": "No se pudo copiar. Selecciona el texto y cópialo manualmente."
   },
   "menu": {
     "lightMode": "Modo claro",
@@ -1658,7 +1660,14 @@
     "shareAccessModeFailed": "No se pudo actualizar la configuración de uso compartido",
     "sharePasswordFailed": "No se pudo establecer la contraseña del documento",
     "activityLoadFailed": "No se pudo cargar la actividad",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "page": {
+      "notFoundTitle": "Página no encontrada",
+      "notFoundMessage": "Esta página no existe o se ha movido. Revisa la dirección o vuelve al inicio.",
+      "genericTitle": "Algo salió mal",
+      "genericMessage": "Se produjo un error inesperado por nuestra parte. Inténtalo de nuevo en un momento.",
+      "backHome": "Volver al inicio"
+    }
   },
   "legal": {
     "ageGate": {

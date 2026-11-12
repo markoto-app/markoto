@@ -30,7 +30,8 @@ export const AWARENESS_PALETTE: readonly string[] = [
 ]
 
 export function pickColor(): string {
-  // Non-null assertion is safe: the random index is always a valid palette
-  // position. Typescript can't prove that from `array[number]`, hence `!`.
-  return AWARENESS_PALETTE[Math.floor(Math.random() * AWARENESS_PALETTE.length)]!
+  // A cosmetic cursor colour: nothing here is a secret, so Math.random is fine.
+  // eslint-disable-next-line sonarjs/pseudo-random -- cosmetic choice, not security-relevant
+  const index = Math.floor(Math.random() * AWARENESS_PALETTE.length)
+  return AWARENESS_PALETTE[index] ?? AWARENESS_PALETTE[0] ?? '#888CA0'
 }

@@ -39,7 +39,7 @@ useHead({
 // Nuxt UI's own built-in texts (modal close button, command palette, calendar,
 // pagination, ...) follow the UI language through UApp's `locale` prop.
 const uiLocales = { en, de, fr, es, ja, zh: zh_cn }
-const uiLocale = computed(() => uiLocales[locale.value as keyof typeof uiLocales] ?? en)
+const uiLocale = computed(() => uiLocales[locale.value] ?? en)
 
 // Fallback description; indexable pages set their own (useMarketingSeo,
 // docs frontmatter). Open Graph tags come from useMarketingSeo only, so

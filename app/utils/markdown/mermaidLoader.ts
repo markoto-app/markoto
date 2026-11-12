@@ -192,7 +192,7 @@ const MAX_AXIS_TICKS = 8
 
 /** `step` is 1, 2, 2.5 or 5 × 10^n. */
 function isNiceStep(step: number): boolean {
-  if (!(step > 0) || !Number.isFinite(step)) return false
+  if (!Number.isFinite(step) || step <= 0) return false
   const mantissa = step / 10 ** Math.floor(Math.log10(step))
   return [1, 2, 2.5, 5, 10].some(m => Math.abs(mantissa - m) < 1e-9)
 }
@@ -211,7 +211,7 @@ export function thinAxisTicks(axis: Element): void {
   if (!values.every(v => BARE_NUMBER_RE.test(v))) return
   const nums = values.map(Number)
   const step = Math.abs((nums[1] ?? 0) - (nums[0] ?? 0))
-  if (!(step > 0)) return
+  if (Number.isNaN(step) || step <= 0) return
   const factor = [2, 4, 5, 10, 20, 25, 50].find((f) => {
     if (!isNiceStep(step * f)) return false
     return nums.filter(n => Math.abs(n / (step * f) - Math.round(n / (step * f))) < 1e-6).length <= MAX_AXIS_TICKS

@@ -80,99 +80,42 @@ function findDangers(html: string): DangerFinding[] {
   return out
 }
 
+// Vectors that must leave nothing dangerous in the DOM. Markdown-it runs with
+// `html: false`, so raw HTML arrives as escaped text and several of these are
+// weak attacks on their own; DOMPurify is the backstop if that ever changes,
+// and the DOM is checked either way.
+const DANGER_FREE_VECTORS: Array<[name: string, markdown: string]> = [
+  ['<script> tags never survive into the DOM', 'Hi <script>alert(1)</script>'],
+  ['<iframe> never survives', '<iframe src="evil.com"></iframe>'],
+  ['<img src=x onerror=...> produces no onerror attribute', '<img src=x onerror="alert(1)">'],
+  ['[link](javascript:...) does not produce a live javascript: href', '[click](javascript:alert(1))'],
+  ['[link](data:text/html,...) does not produce a data:text/html href', '[x](data:text/html,<script>alert(1)</script>)'],
+  ['[link](vbscript:...) is neutered', '[x](vbscript:msgbox(1))'],
+  ['[link](file:///etc/passwd) is neutered', '[x](file:///etc/passwd)'],
+  ['<style> blocks never enter the DOM', '<style>body{background:red}</style>'],
+  ['<object>, <embed>, <form> never enter the DOM', '<object data="evil.swf"></object>\n\n<embed src="evil.swf">\n\n<form action="evil"><input></form>'],
+  ['<meta>, <link>, <base> tags never enter the DOM', '<meta http-equiv="refresh" content="0;url=evil.com">\n\n<link rel="stylesheet" href="evil.css">\n\n<base href="http://evil.com/">'],
+  ['onclick on an allowed tag is stripped', '<a href="#" onclick="alert(1)">x</a>'],
+  ['encoded event handlers in raw HTML are neutered', '<img src=x on&#101;rror=alert(1)>'],
+  // markdown-it's validateLink neuters the scheme at parse time; DOMPurify is the second layer.
+  ['image syntax with a javascript: URL does not leak the scheme into src', '![x](javascript:alert(1))']
+]
+
 describe('renderMarkdown — XSS vectors produce safe DOM', () => {
-  it('<script> tags never survive into the DOM', async () => {
-    const html = await renderMarkdown('Hi <script>alert(1)</script>')
-    expect(findDangers(html)).toEqual([])
-  })
-
-  it('<iframe> never survives', async () => {
-    const html = await renderMarkdown('<iframe src="evil.com"></iframe>')
-    expect(findDangers(html)).toEqual([])
-  })
-
-  it('<img src=x onerror=...> produces no onerror attribute in the DOM', async () => {
-    // markdown-it with `html: false` escapes raw HTML to text, so this
-    // is actually a weak attack. But if markdown-it ever flips to
-    // html:true by mistake, DOMPurify is the backstop. Test the DOM
-    // regardless.
-    const html = await renderMarkdown('<img src=x onerror="alert(1)">')
-    expect(findDangers(html)).toEqual([])
-  })
-
-  it('[link](javascript:...) markdown does not produce a live javascript: href', async () => {
-    const html = await renderMarkdown('[click](javascript:alert(1))')
-    expect(findDangers(html)).toEqual([])
-  })
-
-  it('[link](data:text/html,...) does not produce a data:text/html href', async () => {
-    const html = await renderMarkdown('[x](data:text/html,<script>alert(1)</script>)')
-    expect(findDangers(html)).toEqual([])
-  })
-
-  it('[link](vbscript:...) is neutered', async () => {
-    const html = await renderMarkdown('[x](vbscript:msgbox(1))')
-    expect(findDangers(html)).toEqual([])
-  })
-
-  it('[link](file:///etc/passwd) is neutered', async () => {
-    const html = await renderMarkdown('[x](file:///etc/passwd)')
-    expect(findDangers(html)).toEqual([])
-  })
-
-  it('<style> blocks never enter the DOM', async () => {
-    const html = await renderMarkdown('<style>body{background:red}</style>')
-    expect(findDangers(html)).toEqual([])
-  })
-
-  it('<object>, <embed>, <form> never enter the DOM', async () => {
-    const html = await renderMarkdown(
-      '<object data="evil.swf"></object>\n\n<embed src="evil.swf">\n\n<form action="evil"><input></form>'
-    )
-    expect(findDangers(html)).toEqual([])
+  it.each(DANGER_FREE_VECTORS)('%s', async (_name, markdown) => {
+    expect(findDangers(await renderMarkdown(markdown))).toEqual([])
   })
 
   it('<svg> is stripped entirely (not in allowlist)', async () => {
     const html = await renderMarkdown('<svg><circle r="5"/><script>alert(1)</script></svg>')
     expect(findDangers(html)).toEqual([])
-    // Extra: the svg tag itself is gone (findDangers covers this, but
-    // pin the tag-level absence too).
+    // findDangers covers the tag too; pin the tag-level absence explicitly.
     expect(parseDoc(html).querySelector('svg')).toBeNull()
-  })
-
-  it('<meta>, <link>, <base> tags never enter the DOM', async () => {
-    const html = await renderMarkdown(
-      '<meta http-equiv="refresh" content="0;url=evil.com">\n\n'
-      + '<link rel="stylesheet" href="evil.css">\n\n'
-      + '<base href="http://evil.com/">'
-    )
-    expect(findDangers(html)).toEqual([])
-  })
-
-  it('onclick on an allowed tag is stripped', async () => {
-    // Raw `<a onclick=...>` gets HTML-escaped to text by markdown-it's
-    // html:false, so it arrives at DOMPurify as text content — safe.
-    // DOMPurify is the backstop if that ever changes.
-    const html = await renderMarkdown('<a href="#" onclick="alert(1)">x</a>')
-    expect(findDangers(html)).toEqual([])
-  })
-
-  it('encoded event handlers in raw HTML are neutered', async () => {
-    const html = await renderMarkdown('<img src=x on&#101;rror=alert(1)>')
-    expect(findDangers(html)).toEqual([])
   })
 
   it('unknown custom elements are stripped', async () => {
     const html = await renderMarkdown('<custom-xss>hi</custom-xss>')
     expect(parseDoc(html).querySelector('custom-xss')).toBeNull()
-  })
-
-  it('image syntax with javascript: URL does not leak the scheme into src', async () => {
-    // A markdown image `![alt](javascript:...)` — similar to the link
-    // case. markdown-it's validateLink should neuter this at parse
-    // time; DOMPurify is the second layer.
-    const html = await renderMarkdown('![x](javascript:alert(1))')
-    expect(findDangers(html)).toEqual([])
   })
 })
 

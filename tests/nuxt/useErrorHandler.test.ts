@@ -33,11 +33,14 @@ import { useErrorHandler } from '~/composables/platform/useErrorHandler'
 //      `/pricing`. Without this return value, the upgrade CTA silently
 //      breaks.
 
-const { toastAddMock, translations, missingKeys } = vi.hoisted(() => ({
-  toastAddMock: { fn: (_opts: unknown) => {} },
-  translations: {} as Record<string, string>,
-  missingKeys: new Set<string>()
-}))
+const { toastAddMock, translations, missingKeys } = vi.hoisted(() => {
+  const translations: Record<string, string> = {}
+  return {
+    toastAddMock: { fn: (_opts: unknown) => {} },
+    translations,
+    missingKeys: new Set<string>()
+  }
+})
 
 mockNuxtImport('useToast', () => {
   return () => ({ add: (opts: unknown) => toastAddMock.fn(opts) })

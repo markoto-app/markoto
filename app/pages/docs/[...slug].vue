@@ -67,14 +67,15 @@ const crumbs = computed(() => {
   // Subsequent segments build their own paths cumulatively.
   const items: Array<{ label: string, to: string }> = [{ label: t('common.docs'), to: '/docs' }]
   for (let i = 1; i < parts.length; i++) {
-    const seg = parts[i]!
+    const seg = parts[i] ?? ''
     const to = '/' + parts.slice(0, i + 1).join('/')
     // Title-case the slug: "getting-started" → "Getting started"
     const label = seg.replaceAll('-', ' ').replace(/^./, c => c.toUpperCase())
     items.push({ label, to })
   }
   // Last crumb is the current page — non-clickable.
-  if (items.length) items[items.length - 1]!.to = ''
+  const last = items.at(-1)
+  if (last) last.to = ''
   return items
 })
 

@@ -69,8 +69,9 @@ async function onCancel(): Promise<void> {
 </script>
 
 <template>
-  <output
+  <div
     v-if="showBanner"
+    role="status"
     class="grace-banner flex items-center justify-center gap-3 px-3 py-2 text-xs"
     data-testid="deletion-grace-banner"
   >
@@ -100,7 +101,7 @@ async function onCancel(): Promise<void> {
     >
       {{ t('legal.delete.graceBannerCancel') }}
     </UButton>
-  </output>
+  </div>
 </template>
 
 <style scoped>

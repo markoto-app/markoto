@@ -94,6 +94,7 @@ const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
     v-model:open="open"
     :title="mode === 'create' ? t('theme.saved.saveDialogTitle') : t('theme.saved.editDialogTitle')"
     :description="mode === 'create' ? t('theme.saved.saveDialogIntro') : t('theme.saved.editDialogIntro')"
+    :content="initialFocus('saved-theme-name')"
   >
     <template #content>
       <form
@@ -123,10 +124,10 @@ const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
             </span>
           </template>
           <UInput
+            id="saved-theme-name"
             v-model="name"
             :placeholder="t('theme.saved.namePlaceholder')"
             :maxlength="SAVED_THEME_NAME_MAX"
-            autofocus
             class="w-full"
             data-testid="saved-theme-name-input"
           />

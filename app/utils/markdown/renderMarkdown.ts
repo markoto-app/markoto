@@ -33,6 +33,15 @@ interface MarkdownPipeline {
   md: MarkdownIt
 }
 
+/** Offsets of a block-rule line (markdown-it's per-line arrays are indexed by a line the rule has already checked is in range). */
+function lineStart(state: StateBlock, line: number): number {
+  return (state.bMarks[line] ?? 0) + (state.tShift[line] ?? 0)
+}
+
+function lineEnd(state: StateBlock, line: number): number {
+  return state.eMarks[line] ?? 0
+}
+
 /**
  * Matches `<!-- pagebreak -->` on its own line and emits an empty
  * `<div class="page-break">` (styled in themeToCss). The HTML-comment
@@ -42,8 +51,8 @@ interface MarkdownPipeline {
 function pagebreakPlugin(md: MarkdownIt): void {
   const re = /^\s*<!--\s*pagebreak\s*-->\s*$/i
   md.block.ruler.before('paragraph', 'pagebreak', (state: StateBlock, startLine: number, _endLine: number, silent: boolean) => {
-    const start = state.bMarks[startLine]! + state.tShift[startLine]!
-    const max = state.eMarks[startLine]!
+    const start = lineStart(state, startLine)
+    const max = lineEnd(state, startLine)
     const line = state.src.slice(start, max)
     if (!re.test(line)) return false
     if (silent) return true
@@ -73,8 +82,8 @@ function pagebreakPlugin(md: MarkdownIt): void {
  */
 function commentPlugin(md: MarkdownIt): void {
   md.block.ruler.before('paragraph', 'comment', (state: StateBlock, startLine: number, endLine: number, silent: boolean) => {
-    const start = state.bMarks[startLine]! + state.tShift[startLine]!
-    const max = state.eMarks[startLine]!
+    const start = lineStart(state, startLine)
+    const max = lineEnd(state, startLine)
     const firstLine = state.src.slice(start, max)
     if (!firstLine.startsWith('<!--')) return false
 
@@ -94,9 +103,9 @@ function commentPlugin(md: MarkdownIt): void {
     // line must also end in whitespace (no trailing real content).
     let line = startLine + 1
     while (line < endLine) {
-      const lineStart = state.bMarks[line]! + state.tShift[line]!
-      const lineEnd = state.eMarks[line]!
-      const lineText = state.src.slice(lineStart, lineEnd)
+      const bodyStart = lineStart(state, line)
+      const bodyEnd = lineEnd(state, line)
+      const lineText = state.src.slice(bodyStart, bodyEnd)
       const closeIdx = lineText.indexOf('-->')
       if (closeIdx !== -1) {
         if (lineText.slice(closeIdx + 3).trim() !== '') return false
@@ -371,7 +380,8 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
   // `checkout-api` would otherwise break after a hyphen). The spaces stay
   // text between the spans: copying gives the original string.
   md.renderer.rules.code_inline = (tokens, idx, _options, _env, self) => {
-    const token = tokens[idx]!
+    const token = tokens[idx]
+    if (!token) return ''
     return `<code${self.renderAttrs(token)}>${wrapCodeTokens(token.content, md.utils.escapeHtml)}</code>`
   }
 
@@ -381,13 +391,10 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
   const defaultLinkOpen: RenderRule = md.renderer.rules.link_open
     || ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options))
   md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
-    const token = tokens[idx]!
-    const targetIdx = token.attrIndex('target')
-    if (targetIdx < 0) token.attrPush(['target', '_blank'])
-    else token.attrs![targetIdx]![1] = '_blank'
-    const relIdx = token.attrIndex('rel')
-    if (relIdx < 0) token.attrPush(['rel', 'noopener noreferrer'])
-    else token.attrs![relIdx]![1] = 'noopener noreferrer'
+    const token = tokens[idx]
+    if (!token) return defaultLinkOpen(tokens, idx, options, env, self)
+    token.attrSet('target', '_blank')
+    token.attrSet('rel', 'noopener noreferrer')
     return defaultLinkOpen(tokens, idx, options, env, self)
   }
 

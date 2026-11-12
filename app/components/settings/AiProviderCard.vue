@@ -17,6 +17,7 @@ import {
   type ProviderPreset
 } from '~~/shared/ai/providers'
 import { apiErrorData } from '~/utils/api/errors'
+import { trimTrailing } from '~/utils/markdown/trimTrailing'
 import { useRemoveAiProvider, useSaveAiProvider, useVerifyAiProvider } from '~/queries/ai'
 
 const props = defineProps<{
@@ -63,7 +64,7 @@ watch(presetId, (id) => {
 })
 
 function presetFor(url: string): string {
-  const trimmed = url.trim().replace(/\/+$/, '')
+  const trimmed = trimTrailing(url.trim(), '/')
   return props.presets.find(p => p.baseUrl === trimmed)?.id ?? CUSTOM
 }
 

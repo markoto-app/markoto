@@ -22,7 +22,7 @@ export default defineNuxtPlugin(() => {
 
   watch(toasts, (list) => {
     for (const toast of list) {
-      if (toast.color !== 'error' || toast.id === undefined || reported.has(toast.id)) continue
+      if (toast.color !== 'error' || reported.has(toast.id)) continue
       reported.add(toast.id)
       const report: unknown = Reflect.get(globalThis, '__flowErrorToast')
       if (typeof report === 'function') {

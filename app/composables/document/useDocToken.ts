@@ -45,7 +45,7 @@ function jwtExpiryMs(token: string): number | null {
   try {
     // base64url: restore the standard alphabet + padding before atob. The
     // payload is ASCII JSON, so atob's binary string parses cleanly.
-    const b64 = parts[1]!.replaceAll('-', '+').replaceAll('_', '/')
+    const b64 = (parts[1] ?? '').replaceAll('-', '+').replaceAll('_', '/')
     const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4)
     const payload = JSON.parse(atob(padded)) as { exp?: unknown }
     return typeof payload.exp === 'number' ? payload.exp * 1000 : null

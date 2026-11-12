@@ -83,3 +83,31 @@ export function errorParams(): void {
   // @ts-expect-error a status the code is not registered with
   apiError('share/not-allowed', undefined, { status: 404 })
 }
+
+export function multipartBodies(): void {
+  // `body: 'multipart'`: the client sends a FormData, nothing else.
+  expectType<Equal<ApiRequest<'/api/import', 'post'>['body'], FormData>>()
+  void apiFetch('/api/import', { method: 'post', body: new FormData() })
+  // @ts-expect-error a JSON body is not a form upload
+  void apiFetch('/api/import', { method: 'post', body: { file: 'x' } })
+  defineApiHandler({
+    access: allow.user(),
+    body: 'multipart',
+    handler: (ctx) => {
+      // The handler reads the form itself (size-limited reader).
+      expectType<Equal<typeof ctx.body, undefined>>()
+      void ctx
+      return null
+    }
+  })
+}
+
+export function preciseResponses(): void {
+  // Discriminated answers the client can narrow without runtime guards.
+  type Password = ApiResponse<'/api/docs/:docId/password', 'post'>
+  expectType<Equal<Extract<Password, { action: 'verify' }>['token'], string>>()
+  type Meta = ApiResponse<'/api/docs/:docId/meta', 'get'>
+  expectType<Equal<Extract<Meta, { granted: true }>['title'], string>>()
+  type Brand = ApiResponse<'/api/workspaces/:wsId/brand', 'get'>
+  expectType<Equal<Brand['fonts'][number]['format'], 'woff2' | 'woff' | 'ttf'>>()
+}

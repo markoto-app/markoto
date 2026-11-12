@@ -101,7 +101,7 @@ const VIEWPORT_UNIT_RE = /\d(?:[sdl]?v[wh]|vmin|vmax|v[ib])\b/i
 function isSafeStyleValue(property: string, value: string): boolean {
   if (!value || !SAFE_STYLE_VALUE_RE.test(value) || value.includes('/*')) return false
   if (VIEWPORT_UNIT_RE.test(value)) return false
-  for (const m of value.matchAll(/([a-z-]+)\s*\(/gi)) {
+  for (const m of value.matchAll(/(?<![a-z-])([a-z-]+)\s*\(/gi)) {
     if (!ALLOWED_STYLE_FUNCTIONS.has((m[1] ?? '').toLowerCase())) return false
   }
   if (property === 'position' && !ALLOWED_POSITIONS.has(value.toLowerCase())) return false

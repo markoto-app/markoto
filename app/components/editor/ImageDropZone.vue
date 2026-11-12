@@ -81,12 +81,15 @@ async function handlePaste(e: Event) {
 }
 
 // useEventListener accepts a ref target and rebinds when it resolves.
-useEventListener(containerRef, 'paste', handlePaste)
+useEventListener(containerRef, 'paste', (e) => {
+  void handlePaste(e)
+})
 </script>
 
 <template>
   <div
     ref="containerRef"
+    role="presentation"
     class="relative"
     @dragover="handleDragOver"
     @dragleave="handleDragLeave"

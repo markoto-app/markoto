@@ -38,7 +38,8 @@ describe('theme panel — design picker', () => {
       const card = wrapper.find(`[data-testid="theme-preset-${preset.id}"]`)
       expect(card.exists(), preset.id).toBe(true)
       const url = themeThumbnailUrl(preset.id)
-      if (url) expect(card.find('img').attributes('src')).toBe(url)
+      const img = card.find('img')
+      expect(img.exists() ? img.attributes('src') : null).toBe(url || null)
     }
     wrapper.unmount()
   })
@@ -64,7 +65,7 @@ describe('theme panel — design picker', () => {
     await flushPromises()
     const value: unknown = wrapper.emitted('update:theme')?.at(-1)?.[0]
     expect(isValidTheme(value)).toBe(true)
-    if (isValidTheme(value)) expect(value.headings.font).toBe(target.theme.headings.font)
+    expect(isValidTheme(value) ? value.headings.font : null).toBe(target.theme.headings.font)
     wrapper.unmount()
   })
 })

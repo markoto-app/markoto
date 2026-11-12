@@ -98,22 +98,21 @@ watch(open, (v) => {
         </div>
 
         <div class="mb-4">
-          <label
-            for="delete-confirm-input"
-            class="block text-sm font-medium mb-2"
+          <UFormField
+            :label="t('delete.confirmPrompt', { title })"
+            :ui="{ container: 'mt-2' }"
           >
-            {{ t('delete.confirmPrompt', { title }) }}
-          </label>
-          <UInput
-            id="delete-confirm-input"
-            v-model="confirmText"
-            :placeholder="title"
-            size="md"
-            class="w-full"
-            :ui="{ base: 'w-full' }"
-            data-testid="delete-confirm-input"
-            @keydown.enter="handleDelete"
-          />
+            <UInput
+              id="delete-confirm-input"
+              v-model="confirmText"
+              :placeholder="title"
+              size="md"
+              class="w-full"
+              :ui="{ base: 'w-full' }"
+              data-testid="delete-confirm-input"
+              @keydown.enter="handleDelete"
+            />
+          </UFormField>
         </div>
 
         <div class="flex gap-2 justify-end">

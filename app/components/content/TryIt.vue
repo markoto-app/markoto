@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { KATEX_CSS_SRI, KATEX_CSS_URL } from '~~/shared/utils/vendor/katexAssets'
 import { hljsTheme } from '~~/shared/utils/vendor/hljsAssets'
+import { trimTrailing } from '~/utils/markdown/trimTrailing'
 import { DEFAULT_MARKETING_LOCALE, parseMarketingRoute } from '~~/shared/seo/marketing'
 
 // A small Markdown editor next to the live paged preview, for marketing
@@ -51,7 +52,7 @@ function hashOf(text: string): string {
   return (h >>> 0).toString(36)
 }
 
-const initial = computed(() => `${props.source.replace(/\n+$/, '')}\n`)
+const initial = computed(() => `${trimTrailing(props.source, '\n')}\n`)
 const heightPx = computed(() => {
   const n = Number(props.height)
   return Number.isFinite(n) && n >= 240 ? Math.min(n, 1200) : 540
@@ -158,7 +159,7 @@ useHead(() => ({
       :initial="initial"
       :theme-preset="theme"
       :language="language"
-      :autofocus="wantsFocus"
+      :focus-on-ready="wantsFocus"
       @ready="ready = true"
     />
     <div
@@ -194,11 +195,13 @@ useHead(() => ({
           <span>{{ t('marketing.sample.result') }}</span>
         </div>
         <!-- Rendered from committed content only (renderTrustedMarkdown). -->
+        <!-- eslint-disable vue/no-v-html -- committed content, never visitor input (renderTrustedMarkdown) -->
         <div
           class="mk-try-it__result"
           data-testid="try-it-static-result"
           v-html="staticHtml"
         />
+        <!-- eslint-enable vue/no-v-html -->
       </div>
     </div>
   </section>

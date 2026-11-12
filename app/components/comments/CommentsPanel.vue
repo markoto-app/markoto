@@ -131,7 +131,7 @@ function startDraft(): boolean {
   }
   draftAnchor.value = anchor
   // Scroll to the top, where the draft renders.
-  nextTick(() => {
+  void nextTick(() => {
     scrollContainer.value?.scrollTo({ top: 0, behavior: 'smooth' })
   })
   return true
@@ -149,14 +149,14 @@ function submitDraft(body: string) {
   emit('focus', id)
   // Fire the AI trigger if the body contains @ai. The server validates edit
   // access and login, so only the logged-in gate is needed here.
-  if (hasAiMention(body)) maybeTriggerAi(id, null)
+  if (hasAiMention(body)) void maybeTriggerAi(id, null)
 }
 
 async function onSubmitReply(commentId: string, body: string) {
   const replyId = postReply(commentId, body)
   // The server runs the AI only for a message the caller wrote that mentions
   // it, so the trigger must name THIS reply (the parent may be someone else's).
-  if (replyId && hasAiMention(body)) maybeTriggerAi(commentId, replyId)
+  if (replyId && hasAiMention(body)) void maybeTriggerAi(commentId, replyId)
 }
 
 const { chatMissing, refresh: refreshAiAvailability } = useAiAvailability()
@@ -260,7 +260,7 @@ let pinnedBeforeUpdate = true
 watch(comments, () => {
   // Capture pinned state when the count changes; scroll next tick once the DOM is laid out.
   pinnedBeforeUpdate = arrivedState.bottom
-  nextTick(() => {
+  void nextTick(() => {
     if (pinnedBeforeUpdate && scrollContainer.value) {
       scrollContainer.value.scrollTo({
         top: scrollContainer.value.scrollHeight,

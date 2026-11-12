@@ -186,6 +186,9 @@ const headerImagePositionItems = computed(() => [
 // but writes into `draft.header.imageUrl`. Returns synchronously after
 // the upload + confirm round-trip; `headerImageUploading` drives the
 // button spinner.
+// `sr-only`, not `hidden`: the file input stays reachable by keyboard; the label shows its focus.
+const headerImageInputId = useId()
+const logoInputId = useId()
 const headerImageUploading = ref(false)
 const headerImageError = ref<string | null>(null)
 async function uploadHeaderImage(file: File) {
@@ -210,7 +213,7 @@ async function uploadHeaderImage(file: File) {
 function onHeaderImageFile(e: Event) {
   const input = e.target as HTMLInputElement
   const f = input.files?.[0]
-  if (f) uploadHeaderImage(f)
+  if (f) void uploadHeaderImage(f)
   input.value = ''
 }
 function clearHeaderImage() {
@@ -565,7 +568,7 @@ async function uploadLogo(file: File) {
 function onLogoFile(e: Event) {
   const input = e.target as HTMLInputElement
   const f = input.files?.[0]
-  if (f) uploadLogo(f)
+  if (f) void uploadLogo(f)
   input.value = ''
 }
 function clearLogo() {
@@ -589,14 +592,14 @@ const headingScaleItems = computed(() => {
   }))
 })
 const headingWeightItems = computed(() => ([400, 500, 600, 700, 800, 900] as const).map((value): { label: string, value: number } => ({ label: weightLabel(value), value })))
-const codeThemeItems = computed(() => [
-  { label: 'GitHub Light', value: 'github-light' as CodeTheme },
-  { label: 'GitHub Dark', value: 'github-dark' as CodeTheme },
-  { label: 'Monokai', value: 'monokai' as CodeTheme },
-  { label: 'Dracula', value: 'dracula' as CodeTheme },
-  { label: 'Solarized Light', value: 'solarized-light' as CodeTheme },
-  { label: 'Solarized Dark', value: 'solarized-dark' as CodeTheme },
-  { label: t('theme.code.none'), value: 'none' as CodeTheme }
+const codeThemeItems = computed<Array<{ label: string, value: CodeTheme }>>(() => [
+  { label: 'GitHub Light', value: 'github-light' },
+  { label: 'GitHub Dark', value: 'github-dark' },
+  { label: 'Monokai', value: 'monokai' },
+  { label: 'Dracula', value: 'dracula' },
+  { label: 'Solarized Light', value: 'solarized-light' },
+  { label: 'Solarized Dark', value: 'solarized-dark' },
+  { label: t('theme.code.none'), value: 'none' }
 ])
 const tableHeaderBgItems = computed(() => [
   { label: t('theme.tables.headerBgBrand'), value: 'brand' },
@@ -613,15 +616,15 @@ const tableBordersItems = computed(() => [
   { label: t('theme.tables.bordersMinimal'), value: 'minimal' },
   { label: t('theme.tables.bordersNone'), value: 'none' }
 ])
-const tocMaxDepthItems = computed(() => [
-  { label: t('theme.toc.depth2'), value: 2 as TocMaxDepth },
-  { label: t('theme.toc.depth3'), value: 3 as TocMaxDepth },
-  { label: t('theme.toc.depth4'), value: 4 as TocMaxDepth }
+const tocMaxDepthItems = computed<Array<{ label: string, value: TocMaxDepth }>>(() => [
+  { label: t('theme.toc.depth2'), value: 2 },
+  { label: t('theme.toc.depth3'), value: 3 },
+  { label: t('theme.toc.depth4'), value: 4 }
 ])
-const tocLeaderItems = computed(() => [
-  { label: t('theme.toc.leaderDotted'), value: 'dotted' as TocLeaderStyle },
-  { label: t('theme.toc.leaderDashed'), value: 'dashed' as TocLeaderStyle },
-  { label: t('theme.toc.leaderNone'), value: 'none' as TocLeaderStyle }
+const tocLeaderItems = computed<Array<{ label: string, value: TocLeaderStyle }>>(() => [
+  { label: t('theme.toc.leaderDotted'), value: 'dotted' },
+  { label: t('theme.toc.leaderDashed'), value: 'dashed' },
+  { label: t('theme.toc.leaderNone'), value: 'none' }
 ])
 const mermaidThemeItems = computed<Array<{ label: string, value: MermaidTheme }>>(() => [
   { label: t('theme.mermaid.themeDocument'), value: 'document' },
@@ -682,7 +685,7 @@ function insertToken(token: string) {
   const current = draft.value[slot][position]
   draft.value[slot][position] = current.slice(0, start) + token + current.slice(end)
 
-  nextTick(() => {
+  void nextTick(() => {
     el.focus()
     const caret = start + token.length
     el.setSelectionRange(caret, caret)
@@ -1267,11 +1270,15 @@ function deleteSaved(saved: SavedTheme) {
                         {{ t('theme.brand.clearLogo') }}
                       </UButton>
                     </div>
-                    <label class="flex">
+                    <label
+                      :for="logoInputId"
+                      class="relative flex rounded-md focus-within:ring-2 focus-within:ring-inverted"
+                    >
                       <input
+                        :id="logoInputId"
                         type="file"
                         accept="image/png,image/jpeg,image/webp,image/gif"
-                        class="hidden"
+                        class="sr-only"
                         @change="onLogoFile"
                       >
                       <UButton
@@ -1999,11 +2006,15 @@ function deleteSaved(saved: SavedTheme) {
                       {{ t('theme.brand.clearLogo') }}
                     </UButton>
                   </div>
-                  <label class="flex">
+                  <label
+                    :for="headerImageInputId"
+                    class="relative flex rounded-md focus-within:ring-2 focus-within:ring-inverted"
+                  >
                     <input
+                      :id="headerImageInputId"
                       type="file"
                       accept="image/png,image/jpeg,image/webp,image/gif"
-                      class="hidden"
+                      class="sr-only"
                       @change="onHeaderImageFile"
                     >
                     <UButton

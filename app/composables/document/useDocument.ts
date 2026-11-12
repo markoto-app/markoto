@@ -256,14 +256,15 @@ export function useDocument(docId: string) {
   }, 800)
   function persistDocContext(next: DocContextPatch) {
     pendingDocContext = { ...pendingDocContext, ...next }
-    flushDocContext()
+    // The debounced body swallows its own failure (best-effort seed).
+    void flushDocContext()
   }
 
   function setTheme(next: DocTheme) {
     if (!canEditTheme.value) return
     if (!isValidTheme(next)) return
     ymeta.set('theme', next) // observer above updates _themeRef
-    if (tokenState.isOwner.value) persistTheme(next)
+    if (tokenState.isOwner.value) void persistTheme(next)
   }
 
   // Clears the ymeta entry and, for owned docs, nulls the DB column; everyone falls back to `defaultTheme`.
@@ -336,7 +337,8 @@ export function useDocument(docId: string) {
     _languageRef.value = tokenState.initialLanguage.value
   }
 
-  tokenState.fetchToken().then(() => {
+  // fetchToken reports its own failures through `status`; it does not reject.
+  void tokenState.fetchToken().then(() => {
     applySessionAwareness()
     applyInitialSeeds()
     // Password-gated docs must not connect before unlock (content would sync

@@ -10,8 +10,9 @@ const online = useOnline()
 </script>
 
 <template>
-  <output
+  <div
     v-if="!online"
+    role="status"
     class="offline-banner flex items-center justify-center gap-2 text-xs text-amber-900 dark:text-amber-100 px-3 py-1.5"
   >
     <UIcon
@@ -19,7 +20,7 @@ const online = useOnline()
       class="size-4 shrink-0"
     />
     <span>{{ t('app.offline') }}</span>
-  </output>
+  </div>
 </template>
 
 <style scoped>

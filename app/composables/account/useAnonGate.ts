@@ -107,9 +107,13 @@ export function useAnonDocCreate() {
   const prompt = useAnonTermsPrompt()
   // One solver per tab, reused by the landing page, dialog and File → New.
   // Never shared across SSR requests: the server gets a throw-away instance.
-  const check = import.meta.server
-    ? useAnonBotCheck('doc-create')
-    : (sharedDocCheck ??= useAnonBotCheck('doc-create'))
+  let check: ReturnType<typeof useAnonBotCheck>
+  if (import.meta.server) {
+    check = useAnonBotCheck('doc-create')
+  } else {
+    sharedDocCheck ??= useAnonBotCheck('doc-create')
+    check = sharedDocCheck
+  }
 
   const gated = computed(() => anonGate.value && !loggedIn.value)
 

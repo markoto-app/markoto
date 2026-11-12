@@ -153,7 +153,7 @@ export function useComments(ydoc: Y.Doc, awareness: Awareness, docId?: string) {
     const active: DerivedComment[] = []
     const orphan: DerivedComment[] = []
     for (const c of out) (c.anchor ? active : orphan).push(c)
-    active.sort((a, b) => (a.anchor!.from - b.anchor!.from) || (a.createdAt - b.createdAt))
+    active.sort((a, b) => ((a.anchor?.from ?? 0) - (b.anchor?.from ?? 0)) || (a.createdAt - b.createdAt))
     orphan.sort((a, b) => a.createdAt - b.createdAt)
     comments.value = [...active, ...orphan]
   }

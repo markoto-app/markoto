@@ -93,7 +93,7 @@ export function useCommentNotifications(opts: UseCommentNotificationsOptions) {
     const last = fresh.at(-1)
     if (!last) return
     const preview = last.body.length > 120 ? `${last.body.slice(0, 117)}…` : last.body
-    show({
+    void show({
       title: opts.docTitle.value || t('comments.notificationFallbackTitle'),
       body: `${last.authorName}: ${preview}`,
       tag: `comment-thread-${opts.docId}-${last.threadId}`,

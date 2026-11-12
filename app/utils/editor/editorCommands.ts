@@ -52,6 +52,10 @@ const isBlank = (s: string) => s.trim().length === 0
 const BLOCK_PREFIX_RE = /^(\s*)([-*]\s+\[[ xX]\]\s+|[-*]\s+|\d+\.\s+|>\s+)/
 const HEADING_PREFIX_RE = /^(#{1,6})\s+/
 
+function leadingWhitespace(text: string): string {
+  return text.slice(0, text.length - text.trimStart().length)
+}
+
 /**
  * Wrap/unwrap one selection range with `marker`. Returns a ChangeSpec
  * list instead of dispatching so callers can batch.
@@ -64,7 +68,7 @@ function wrapRangeChanges(
 ): { changes: ChangeSpec[], finalFrom: number, finalTo: number } | null {
   const docLen = view.state.doc.length
   const selected = view.state.sliceDoc(from, to)
-  const leading = /^\s*/.exec(selected)![0]
+  const leading = leadingWhitespace(selected)
   // trimEnd removes the exact same character set `\s` matches; computing
   // the suffix this way avoids the super-linear backtracking of /\s*$/.
   const trailing = selected.slice(selected.trimEnd().length)
@@ -176,7 +180,7 @@ export function toggleWrap(view: EditorView, marker: string): void {
 
   for (const line of nonBlank) {
     const text = line.text
-    const leading = /^\s*/.exec(text)![0]
+    const leading = leadingWhitespace(text)
     const trailing = text.slice(text.trimEnd().length)
     const trimmed = text.slice(leading.length, text.length - trailing.length)
 
@@ -280,7 +284,7 @@ export function toggleHeading(view: EditorView, level: number): void {
 
   const atLevel = (text: string) => {
     const m = HEADING_PREFIX_RE.exec(text)
-    return !!m && m[1]!.length === level
+    return m?.[1]?.length === level
   }
   const allAtLevel = nonBlank.every(l => atLevel(l.text))
 
@@ -327,7 +331,7 @@ export function toggleLinePrefix(view: EditorView, prefix: string): void {
     const m = BLOCK_PREFIX_RE.exec(text)
     if (!m) return false
     if (m[2] === wanted) return true
-    if (isTaskPrefix(m[2]!) && isTaskPrefix(wanted)) return true
+    if (m[2] !== undefined && isTaskPrefix(m[2]) && isTaskPrefix(wanted)) return true
     return false
   }
   const allHavePrefix = nonBlank.every(l => hasPrefix(l.text))
@@ -444,7 +448,7 @@ function footnoteSeparator(lastChar: string): string {
  */
 export function insertFootnote(view: EditorView): void {
   const docText = view.state.doc.toString()
-  const refs = [...docText.matchAll(/\[\^(\d+)\]/g)].map(m => Number.parseInt(m[1]!, 10))
+  const refs = [...docText.matchAll(/\[\^(\d+)\]/g)].map(m => Number.parseInt(m[1] ?? '0', 10))
   const next = refs.length > 0 ? Math.max(...refs) + 1 : 1
   const ref = `[^${next}]`
 
@@ -645,7 +649,7 @@ export function toggleComment(view: EditorView): void {
   const trimmed = selected.trim()
   if (trimmed.startsWith('<!--') && trimmed.endsWith('-->') && trimmed.length >= 7) {
     // Only the trimmed core is touched, preserving surrounding whitespace.
-    const lead = /^\s*/.exec(selected)![0]
+    const lead = leadingWhitespace(selected)
     const trail = selected.slice(selected.trimEnd().length)
     const inner = trimmed.slice(4, -3).trim()
     const insert = lead + inner + trail
