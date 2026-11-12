@@ -155,8 +155,7 @@ describe('parseProposal', () => {
   it('explains what is wrong', () => {
     expect(parseProposal({ content: 'no json here' })).toEqual({ ok: false, error: expect.stringContaining('no tool call') })
     const bad = parseProposal(toolAnswer({ ...VALID, theme: 'blue' }).message)
-    expect(bad.ok).toBe(false)
-    if (!bad.ok) expect(bad.error).toContain('theme')
+    expect(bad).toMatchObject({ ok: false, error: expect.stringContaining('theme') })
     // A font we don't serve is dropped (the base font stays) and noted.
     const font = parseProposal(toolAnswer({ ...VALID, theme: { body: { font: 'Comic Sans', size: 11 } } }).message)
     expect(font.ok && font.value.theme.body).toEqual({ size: 11 })

@@ -137,24 +137,14 @@ describe('requireContentMatchesExtension — binary formats', () => {
 })
 
 describe('requireContentMatchesExtension — text formats', () => {
-  it('accepts plausibly-printable text for .md', async () => {
-    mockBytes.mockResolvedValueOnce(plainText())
-    await expect(requireContentMatchesExtension({ s3Key: 'k', ext: 'md' })).resolves.toBeUndefined()
-  })
-
-  it('accepts plausibly-printable text for .txt', async () => {
-    mockBytes.mockResolvedValueOnce(plainText())
-    await expect(requireContentMatchesExtension({ s3Key: 'k', ext: 'txt' })).resolves.toBeUndefined()
-  })
-
-  it('accepts plausibly-printable text for .html', async () => {
-    mockBytes.mockResolvedValueOnce(new TextEncoder().encode('<html><body>hi</body></html>'))
-    await expect(requireContentMatchesExtension({ s3Key: 'k', ext: 'html' })).resolves.toBeUndefined()
-  })
-
-  it('accepts plausibly-printable text for .htm (alias)', async () => {
-    mockBytes.mockResolvedValueOnce(plainText())
-    await expect(requireContentMatchesExtension({ s3Key: 'k', ext: 'htm' })).resolves.toBeUndefined()
+  it.each([
+    ['md', plainText],
+    ['txt', plainText],
+    ['html', () => new TextEncoder().encode('<html><body>hi</body></html>')],
+    ['htm', plainText]
+  ])('accepts plausibly-printable text for .%s', async (ext, bytes) => {
+    mockBytes.mockResolvedValueOnce(bytes())
+    await expect(requireContentMatchesExtension({ s3Key: 'k', ext })).resolves.toBeUndefined()
   })
 
   it('rejects low-printable-ratio bytes for .txt', async () => {

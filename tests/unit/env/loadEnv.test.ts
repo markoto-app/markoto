@@ -26,15 +26,12 @@ describe('loadEnv', () => {
   })
 
   it('never prints a secret value', () => {
-    try {
-      loadEnv('app', { ...VALID_APP_ENV, NUXT_SESSION_PASSWORD: 'tooshort-but-secret' })
-      expect.unreachable()
-    } catch (e) {
-      expect(e).toBeInstanceOf(EnvError)
-      expect((e as EnvError).message).toContain('NUXT_SESSION_PASSWORD: expected at least 32 characters (got 19)')
-      expect((e as EnvError).message).not.toContain('tooshort-but-secret')
-      expect((e as EnvError).message).toContain('docs/reference/configuration.md')
-    }
+    const load = () => loadEnv('app', { ...VALID_APP_ENV, NUXT_SESSION_PASSWORD: 'tooshort-but-secret' })
+    expect(load).toThrow(EnvError)
+    expect(load).toThrow('NUXT_SESSION_PASSWORD: expected at least 32 characters (got 19)')
+    expect(load).toThrow('docs/reference/configuration.md')
+    // Only meaningful after the positive checks above: any other message would also satisfy `.not.toThrow`.
+    expect(load).not.toThrow('tooshort-but-secret')
   })
 
   it('treats an empty value as unset (the default applies)', () => {

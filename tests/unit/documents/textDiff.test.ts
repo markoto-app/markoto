@@ -62,7 +62,7 @@ describe('computeTextDiff', () => {
     expect(r.hunks.length).toBeLessThanOrEqual(200)
     // Whether the test produces > 200 hunks depends on context window
     // collapsing — assert truncated only if totalHunks tipped over.
-    if (r.totalHunks > 200) expect(r.truncated).toBe(true)
+    expect(r.totalHunks <= 200 || r.truncated).toBe(true)
   })
 
   it('filters out the diff library\'s "\\ No newline at end of file" marker', () => {

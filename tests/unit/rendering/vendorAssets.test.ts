@@ -84,7 +84,7 @@ describe('pinned constants vs installed packages', () => {
       const dir = join(ROOT, 'fonts', font.slug)
       expect(readFileSync(join(dir, 'LICENSE.txt'), 'utf8'), font.name).toContain('GUST Font License')
       for (const face of font.source.faces) {
-        if (face.licence) expect(readFileSync(join(dir, face.licence), 'utf8'), face.file).toContain('SIL OPEN FONT LICENSE')
+        expect(!face.licence || readFileSync(join(dir, face.licence), 'utf8').includes('SIL OPEN FONT LICENSE'), `${face.file}: SIL OPEN FONT LICENSE`).toBe(true)
         const bytes = readFileSync(join(dir, face.file))
         // WOFF2 signature 'wOF2'
         expect(bytes.subarray(0, 4).toString('latin1'), face.file).toBe('wOF2')

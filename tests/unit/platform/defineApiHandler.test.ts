@@ -16,6 +16,7 @@ import {
 } from '../../../shared/utils/documents/docPermissions'
 import { hashAnonCreatorKey } from '../../../server/utils/auth/anonCreator'
 import type { DocAuthzRow } from '../../../server/repos/documents'
+import { partial, deliberatelyInvalid } from '../../helpers/fixtures'
 
 // The handler wrapper and its access policies (server/utils/api/). Requests
 // go through real h3 routing; only the repositories and session lookups are
@@ -179,7 +180,7 @@ const NEEDS: DocNeed[] = ['file', 'activity', 'write-content', 'edit', 'manage',
 
 function rowFor(kind: DocKind, mode: AccessMode, expired: boolean, actor: Actor): DocAuthzRow {
   const inWorkspace = kind === 'workspace'
-  return {
+  return partial<DocAuthzRow>({
     ownerId: kind === 'anonymous' ? null : 1,
     workspaceId: inWorkspace ? 'w1' : null,
     accessMode: kind === 'anonymous' ? 'open-edit' : mode,
@@ -196,7 +197,7 @@ function rowFor(kind: DocKind, mode: AccessMode, expired: boolean, actor: Actor)
     audience: 'business',
     language: 'en',
     templateId: 'blank'
-  } as DocAuthzRow
+  })
 }
 
 function headersFor(actor: Actor, docId: string): Record<string, string> {
@@ -324,9 +325,9 @@ describe('allow.workspace', () => {
     m.memberRole = role
     const res = await call(defineApiHandler({ access: allow.workspace(need, { deny: 'brand/admin-required' }), handler: ({ wsId, role: r }) => ({ wsId, role: r }) }) as EventHandler, route, url)
     expect(res.status).toBe(status)
-    if (status === 200) expect(res.body).toEqual({ wsId: 'w1', role })
-    if (status === 404) expect(res.body.data?.code).toBe('workspace/not-found')
-    if (status === 403) expect(res.body.data?.code).toBe('brand/admin-required')
+    // One assertion for every case: a success returns the handler body, a refusal carries its error code.
+    const refusalCode = status === 404 ? 'workspace/not-found' : 'brand/admin-required'
+    expect(status === 200 ? res.body : res.body.data?.code).toEqual(status === 200 ? { wsId: 'w1', role } : refusalCode)
   })
 
   it('401 without a session; guests and SSO-less members (null role) are 404', async () => {
@@ -380,9 +381,9 @@ describe('allow.workspace', () => {
       m.membership = membership
       const res = await call(handler, selfRoute, `/api/workspaces/w1/members/${target}`, { method: 'DELETE' })
       expect(res.status).toBe(status)
-      if (status === 200) expect(res.body).toEqual({ role: role ?? 'guest', targetUserId: target, isSelf: target === 7 })
-      if (status === 403) expect(res.body.data?.code).toBe('workspace/admin-required')
-      if (status === 404) expect(res.body.data?.code).toBe('workspace/not-found')
+      const refusalCode = status === 403 ? 'workspace/admin-required' : 'workspace/not-found'
+      expect(status === 200 ? res.body : res.body.data?.code)
+        .toEqual(status === 200 ? { role: role ?? 'guest', targetUserId: target, isSelf: target === 7 } : refusalCode)
     })
 
     it('401 without a session; a bad user id is 400 before any role lookup', async () => {
@@ -739,8 +740,8 @@ describe('rate limits: keys and phases', () => {
   })
 
   it('a before-access limit keyed on anything but the client address does not build', () => {
-    expect(() => defineApiHandler({ access: allow.user(), rateLimit: { namespace: 'x', max: 1, windowMs: 1, key: 'user', phase: 'before-access' } as never, handler: () => null })).toThrow(/before-access/)
-    expect(() => defineApiHandler({ access: allow.user(), rateLimit: { namespace: 'x', max: 1, windowMs: 1, key: () => 'k', phase: 'before-access' } as never, handler: () => null })).toThrow(/before-access/)
+    expect(() => defineApiHandler({ access: allow.user(), rateLimit: deliberatelyInvalid({ namespace: 'x', max: 1, windowMs: 1, key: 'user', phase: 'before-access' }), handler: () => null })).toThrow(/before-access/)
+    expect(() => defineApiHandler({ access: allow.user(), rateLimit: deliberatelyInvalid({ namespace: 'x', max: 1, windowMs: 1, key: () => 'k', phase: 'before-access' }), handler: () => null })).toThrow(/before-access/)
   })
 })
 

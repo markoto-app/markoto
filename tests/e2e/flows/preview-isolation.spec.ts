@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { test, expect, type Frame, type Page } from '@playwright/test'
 import { EditorPage } from '../page-objects/Editor'
+import { waitForNothingToHappen } from '../fixtures/waits'
 
 // Security regression suite (NOT a docs flow — it uses plain Playwright,
 // not the `flow` / `editor` fixtures, so it writes no manifest):
@@ -172,7 +173,7 @@ test.describe('preview isolation + CSP', () => {
     await frame.evaluate(() => {
       window.postMessage({ type: 'render', html: '<p>forged</p>', themeCss: '', fontsImport: '', hljsUrl: '', hljsSri: '', mermaidConfig: '{}', locale: 'en', print: false }, '*')
     })
-    await page.waitForTimeout(1000)
+    await waitForNothingToHappen(page, 1000)
     expect(await frame.evaluate(() => (document.getElementById('mount')?.textContent ?? '').includes('forged'))).toBe(false)
     expect(await frame.evaluate(() => document.querySelectorAll('#mount .pagedjs_page').length)).toBe(pagesBefore)
 
@@ -273,12 +274,14 @@ test.describe('preview isolation + CSP', () => {
       const res = await page.goto(path)
       csp = res?.headers()['content-security-policy'] ?? ''
       expect(csp).toContain('\'nonce-')
+      // eslint-disable-next-line playwright/no-networkidle -- the docs pages run no long-lived socket, and the content queries that follow the navigation are exactly what this test checks for failures
       await page.waitForLoadState('networkidle')
     }
     // Client-side navigation inside the docs site (Nuxt Content queries).
     const docLink = page.locator('a[href^="/docs/"]').first()
     await expect(docLink).toBeVisible()
     await docLink.click()
+    // eslint-disable-next-line playwright/no-networkidle -- the docs pages run no long-lived socket, and the content queries that follow the navigation are exactly what this test checks for failures
     await page.waitForLoadState('networkidle')
     await expect(page.locator('main h1').first()).toBeVisible()
     expect(failedContentQueries).toEqual([])

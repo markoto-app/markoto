@@ -65,8 +65,7 @@ describe('template bundles', () => {
 
   it('every template names a built-in design and a picker category; only Blank has none', () => {
     for (const tpl of TEMPLATES) {
-      if (tpl.id === 'blank') expect(tpl.design).toBeNull()
-      else expect(presetIds, `${tpl.id}: design ${tpl.design}`).toContain(tpl.design)
+      expect(tpl.id === 'blank' ? [null] : presetIds, `${tpl.id}: design ${tpl.design}`).toContain(tpl.design)
       expect(['general', 'engineering', 'academic', 'business', 'writing']).toContain(tpl.category)
     }
   })
@@ -83,8 +82,8 @@ describe('template bundles', () => {
         const file = join(ROOT, 'shared', 'templates', 'content', tpl.content, `${locale}.md`)
         expect(existsSync(file), `${tpl.content}/${locale}.md`).toBe(true)
         const body = readFileSync(file, 'utf8')
-        if (locale === 'de') expect(body, `${tpl.id}/de: ss, not ß`).not.toContain('ß')
-        if (tpl.id !== 'resume') expect(body, `${tpl.id}/${locale}: hint comments`).toMatch(/<!--/)
+        expect(locale !== 'de' || !body.includes('ß'), `${tpl.id}/de: ss, not ß`).toBe(true)
+        expect(tpl.id === 'resume' || body.includes('<!--'), `${tpl.id}/${locale}: hint comments`).toBe(true)
       }
     }
   })
@@ -107,7 +106,7 @@ describe('template bundles', () => {
       expect(cover?.enabled, `${tpl.id}: its design has no cover`).toBe(true)
       for (const value of Object.values(tpl.cover)) {
         expect(JSON.stringify(value), `${tpl.id}: German uses ss`).not.toContain('ß')
-        if (value.authors) expect(value.authors.length).toBeLessThanOrEqual(10)
+        expect(value.authors?.length ?? 0, `${tpl.id}: authors`).toBeLessThanOrEqual(10)
       }
     }
     const arxiv = getTemplate('arxiv')
@@ -219,7 +218,7 @@ describe('renderTemplate', () => {
     for (const locale of TEMPLATE_LOCALES) {
       const out = renderTemplate('demo', { ...baseCtx, language: locale })
       expect(out, `demo/${locale}.md`).toBeTruthy()
-      if (locale !== 'en') expect(out, `demo/${locale}.md is translated`).not.toBe(en)
+      expect(locale === 'en' || out !== en, `demo/${locale}.md is translated`).toBe(true)
       // Same structure in every language: the same number of sections,
       // the page break, the mermaid diagram and the task list.
       expect(out!.match(/^## /gm)?.length, `demo/${locale}.md sections`).toBe(en!.match(/^## /gm)?.length)
@@ -272,7 +271,7 @@ describe('resume + report templates', () => {
         expect(existsSync(join(ROOT, 'shared', 'templates', 'content', id, `${locale}.md`)), `${id}/${locale}.md`).toBe(true)
         const out = renderTemplate(id, { title: 'T', description: '', language: locale })
         expect(out, `${id}/${locale}`).toBeTruthy()
-        if (locale !== 'en') expect(out, `${id}/${locale} is translated`).not.toBe(en)
+        expect(locale === 'en' || out !== en, `${id}/${locale} is translated`).toBe(true)
         expect(out?.match(/^#{1,3} /gm)?.length, `${id}/${locale} headings`).toBe(en?.match(/^#{1,3} /gm)?.length)
         expect(out, `${id}/${locale}: German uses ss`).not.toContain('ß')
       }

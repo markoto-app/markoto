@@ -52,7 +52,7 @@ describe('i18n locale parity', () => {
   })
 
   for (const locale of LOCALES.filter(l => l !== SOURCE)) {
-    describe(locale, () => {
+    describe(`${locale}`, () => {
       const m = messages[locale]
 
       it('has exactly the keys of en.json', () => {

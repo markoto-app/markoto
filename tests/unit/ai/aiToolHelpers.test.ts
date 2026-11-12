@@ -12,6 +12,7 @@ import {
 import { defaultTheme } from '../../../shared/utils/theme/defaultTheme'
 import type { HeadingLevels } from '../../../shared/types/theme'
 import { UpdateThemeArgs, type UpdateThemeInput } from '../../../server/utils/agentic/functionTools'
+import { partial } from '../../helpers/fixtures'
 
 // Pure helpers that power the AI theme + image tools. Integration with
 // DB / S3 is skipped here (those paths need module mocks); these are the
@@ -22,48 +23,48 @@ describe('coerceThemePatch', () => {
   it('coerces headings.weight string enum to number', () => {
     // Function-call schema stability forces weight to be '600' not 600; handler must un-stringify before
     // isValidTheme (which expects a number literal).
-    const out = coerceThemePatch({ headings: { weight: '600' } } as UpdateThemeInput) as { headings: { weight: number } }
+    const out = coerceThemePatch(partial<UpdateThemeInput>({ headings: { weight: '600' } })) as { headings: { weight: number } }
     expect(out.headings.weight).toBe(600)
     expect(typeof out.headings.weight).toBe('number')
   })
 
   it('coerces layout.columns string enum to number', () => {
-    const out = coerceThemePatch({ layout: { columns: '2' } } as UpdateThemeInput) as { layout: { columns: number } }
+    const out = coerceThemePatch(partial<UpdateThemeInput>({ layout: { columns: '2' } })) as { layout: { columns: number } }
     expect(out.layout.columns).toBe(2)
   })
 
   it('coerces toc.maxDepth string enum to number', () => {
-    const out = coerceThemePatch({ toc: { maxDepth: '3' } } as UpdateThemeInput) as { toc: { maxDepth: number } }
+    const out = coerceThemePatch(partial<UpdateThemeInput>({ toc: { maxDepth: '3' } })) as { toc: { maxDepth: number } }
     expect(out.toc.maxDepth).toBe(3)
   })
 
   it('strips the `preset` directive so it never lands on the DocTheme', () => {
     // `preset` is a tool-arg that selects the base theme — it must NOT
     // appear on the merged DocTheme or isValidTheme will reject it.
-    const out = coerceThemePatch({ preset: 'modern' } as UpdateThemeInput)
+    const out = coerceThemePatch(partial<UpdateThemeInput>({ preset: 'modern' }))
     expect('preset' in out).toBe(false)
   })
 
   it('strips theme_id and from_workspace_default directives too', () => {
     // Both new base sources are directives, not theme fields. Same
     // contract as `preset` — they must not land on the merged DocTheme.
-    const out = coerceThemePatch({
+    const out = coerceThemePatch(partial<UpdateThemeInput>({
       theme_id: 'abc123',
       from_workspace_default: true,
       body: { size: 14 }
-    } as UpdateThemeInput) as { body: { size: number } }
+    })) as { body: { size: number } }
     expect('theme_id' in out).toBe(false)
     expect('from_workspace_default' in out).toBe(false)
     expect(out.body.size).toBe(14)
   })
 
   it('preserves unrelated fields as-is', () => {
-    const out = coerceThemePatch({ body: { size: 13 } } as UpdateThemeInput) as { body: { size: number } }
+    const out = coerceThemePatch(partial<UpdateThemeInput>({ body: { size: 13 } })) as { body: { size: number } }
     expect(out.body.size).toBe(13)
   })
 
   it('empty patch → empty object', () => {
-    expect(coerceThemePatch({} as UpdateThemeInput)).toEqual({})
+    expect(coerceThemePatch(partial<UpdateThemeInput>({}))).toEqual({})
   })
 })
 
@@ -127,41 +128,41 @@ describe('mergeTheme', () => {
 
 describe('summarizePatch', () => {
   it('lists changed sections', () => {
-    const s = summarizePatch({ body: { size: 12 }, color: { brand: '#fff' } } as UpdateThemeInput)
+    const s = summarizePatch(partial<UpdateThemeInput>({ body: { size: 12 }, color: { brand: '#fff' } }))
     expect(s).toContain('body')
     expect(s).toContain('color')
   })
 
   it('surfaces the preset id when present', () => {
-    const s = summarizePatch({ preset: 'arxiv' } as UpdateThemeInput)
+    const s = summarizePatch(partial<UpdateThemeInput>({ preset: 'arxiv' }))
     expect(s).toContain('preset=arxiv')
   })
 
   it('combines preset + sections with a separator', () => {
-    const s = summarizePatch({ preset: 'modern', layout: { columns: '2' } } as UpdateThemeInput)
+    const s = summarizePatch(partial<UpdateThemeInput>({ preset: 'modern', layout: { columns: '2' } }))
     expect(s).toContain('preset=modern')
     expect(s).toContain('layout')
   })
 
   it('surfaces theme_id base source when present', () => {
-    const s = summarizePatch({ theme_id: 'abc123', body: { size: 14 } } as UpdateThemeInput)
+    const s = summarizePatch(partial<UpdateThemeInput>({ theme_id: 'abc123', body: { size: 14 } }))
     expect(s).toContain('saved=abc123')
     expect(s).toContain('body')
   })
 
   it('surfaces from_workspace_default base source when present', () => {
-    const s = summarizePatch({ from_workspace_default: true, color: { brand: '#000' } } as UpdateThemeInput)
+    const s = summarizePatch(partial<UpdateThemeInput>({ from_workspace_default: true, color: { brand: '#000' } }))
     expect(s).toContain('workspace-default')
     expect(s).toContain('color')
   })
 
   it('reports "(no changes)" for empty patch', () => {
-    expect(summarizePatch({} as UpdateThemeInput)).toBe('(no changes)')
+    expect(summarizePatch(partial<UpdateThemeInput>({}))).toBe('(no changes)')
   })
 
   it('ignores sub-objects that are empty', () => {
     // A section sent with no keys shouldn't count as "changed".
-    const s = summarizePatch({ body: {} } as UpdateThemeInput)
+    const s = summarizePatch(partial<UpdateThemeInput>({ body: {} }))
     expect(s).toBe('(no changes)')
   })
 })
@@ -345,14 +346,13 @@ describe('update_theme custom CSS', () => {
   })
 
   it('summarizePatch names customCss', () => {
-    expect(summarizePatch({ customCss: 'p{}' } as UpdateThemeInput)).toBe('customCss')
+    expect(summarizePatch(partial<UpdateThemeInput>({ customCss: 'p{}' }))).toBe('customCss')
   })
 
   it('rejects CSS the model sent when anything is wrong, with line/column', () => {
     const merged = { ...defaultTheme, customCss: 'p { color: red }\n@import "http://evil.test/x.css";' }
     const res = resolveThemeCustomCss(merged, true, 'doc1', ORIGINS)
-    expect(res.ok).toBe(false)
-    if (!res.ok) expect(res.error).toMatch(/line 2, column 1: @import is not allowed/)
+    expect(res).toMatchObject({ ok: false, error: expect.stringMatching(/line 2, column 1: @import is not allowed/) })
   })
 
   it('rejects an upload from another document sent by the model', () => {
@@ -369,10 +369,10 @@ describe('update_theme custom CSS', () => {
   it('adapts CSS inherited from a base theme instead of failing the call', () => {
     const merged = { ...defaultTheme, customCss: 'p { color: red; background: url(/api/files/doc2/a.png) }' }
     const res = resolveThemeCustomCss(merged, false, 'doc1', ORIGINS)
-    expect(res.ok).toBe(true)
-    if (res.ok) {
-      expect(res.theme.customCss).toBe('p{color:red}')
-      expect(res.note).toMatch(/1 custom CSS rule/)
-    }
+    expect(res).toMatchObject({
+      ok: true,
+      theme: { customCss: 'p{color:red}' },
+      note: expect.stringMatching(/1 custom CSS rule/)
+    })
   })
 })

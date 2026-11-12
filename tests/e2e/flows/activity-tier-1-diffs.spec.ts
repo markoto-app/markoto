@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/flow'
+import { settleAnimations } from '../fixtures/waits'
 
 // Tier 2: "See exactly what changed in any past edit".
 //
@@ -129,7 +130,7 @@ test('See what changed in past edits', async ({ page, flow, editor }) => {
         await firstEditRow.locator('[data-expanded="true"]').or(
           page.locator('[data-activity-id]').filter({ hasText: /Maya/i }).first().locator('xpath=..').filter({ hasText: /Maya/i })
         ).waitFor({ state: 'visible', timeout: 5_000 }).catch(() => { /* selector may not match — fall through */ })
-        await page.waitForTimeout(1_500)
+        await settleAnimations(page, 1_500)
       }
     }
   )

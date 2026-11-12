@@ -301,14 +301,17 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
       // way there should be no orphan `restore` row.
       expect([200, 500]).toContain(res.status)
 
+      // A 200 legitimately leaves a `restore` row; only the failed restore must leave none.
+      let orphanRestoreRows = 0
       if (res.status === 500) {
         const db = testDb()
         const r = await db.query<{ c: string }>(
           `SELECT COUNT(*) AS c FROM activity_log WHERE doc_id = $1 AND action = 'restore'`,
           [doc.docId]
         )
-        expect(Number(first(r.rows).c)).toBe(0)
+        orphanRestoreRows = Number(first(r.rows).c)
       }
+      expect(orphanRestoreRows).toBe(0)
     }, 30_000)
   })
 })

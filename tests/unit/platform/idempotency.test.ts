@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest'
+import { deliberatelyInvalid } from '../../helpers/fixtures'
 
 // Idempotency helper. Pins three load-bearing properties:
 //   1. Header absent → behave as a no-op pass-through (don't break
@@ -54,7 +55,7 @@ const headerStore: { value: string | undefined } = { value: undefined }
 
 const { withIdempotency } = await import('../../../server/utils/platform/idempotency')
 
-const FAKE_EVENT = {} as never // helper only forwards to getRequestHeader
+const FAKE_EVENT = deliberatelyInvalid({}) // helper only forwards to getRequestHeader
 
 beforeEach(() => {
   fake.store.clear()

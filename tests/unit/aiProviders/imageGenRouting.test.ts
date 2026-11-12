@@ -79,7 +79,7 @@ describe('image gen — BFL response parsing', () => {
     })
     const body = JSON.parse(content)
     expect(body.b64_json).toBe('AAAA')
-    expect(body.cost_usd).toBe(0.03)
+    expect(body.cost_usd).toBeCloseTo(0.03, 10)
     expect(body.url).toContain('delivery.eu2.bfl.ai')
   })
 

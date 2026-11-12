@@ -46,7 +46,6 @@ interface ToolModule {
   // (identity passthrough). We narrow at use-sites — kept loose here
   // because the toolkit's generic-shape type is unwieldy in a test
   // harness.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   def: any
 }
 

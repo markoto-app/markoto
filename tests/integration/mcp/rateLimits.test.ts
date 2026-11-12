@@ -102,7 +102,7 @@ describe('MCP rate limits (enforced)', () => {
 
     const over = await a.call('list_my_documents', {})
     expect(over.isError).toBe(true)
-    expect(errorText(over)).toMatch(/Too many tool calls/)
+    expect(errorText(over)).toMatch(/Too many requests/)
   })
 
   it('generate_image has its own per-user allowance, checked before any work', async () => {
@@ -120,6 +120,6 @@ describe('MCP rate limits (enforced)', () => {
     }
     const over = await c.call('generate_image', { doc_id: doc.docId, prompt: 'a lighthouse', alt: 'lighthouse' })
     expect(over.isError).toBe(true)
-    expect(errorText(over)).toMatch(/Too many generate_image calls/)
+    expect(errorText(over)).toMatch(/Too many requests/)
   })
 })

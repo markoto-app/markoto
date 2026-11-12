@@ -101,9 +101,10 @@ describe('litellmCompletion — 429 retry', () => {
       { model: 'm', messages: [], stream: false }
     )
     // Expected backoffs: 3s, 6s, 12s, 24s — total 45s.
-    const settled = expect(p).rejects.toThrow(/Rate limit/)
+    // Attach the rejection handler before the timers run so the rejection is never unhandled.
+    const outcome = p.then(() => null, (e: unknown) => e)
     await vi.advanceTimersByTimeAsync(45_000)
-    await settled
+    expect(await outcome).toEqual(expect.objectContaining({ message: expect.stringMatching(/Rate limit/) }))
     expect(client.chat.completions.create).toHaveBeenCalledTimes(5)
   })
 

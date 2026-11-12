@@ -44,6 +44,7 @@ test('Share a document with a guest', async ({ page, flow, editor }) => {
     data: {
       workspaceId,
       title: 'Harbourline proposal',
+      // eslint-disable-next-line markoto/no-milestone-vocabulary -- sample document text, not a project label
       content: '# Harbourline proposal\n\n## Scope\n\nA shared routing model for the three Harbourline depots, delivered in two phases.\n\n## Timeline\n\n- Phase 1: data and model, six weeks\n- Phase 2: rollout and training, four weeks\n'
     }
   })

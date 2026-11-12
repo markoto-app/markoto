@@ -109,22 +109,21 @@ describe('discriminated union narrowing', () => {
       { type: 'partial', text: 'hi' },
       { type: 'budget-exhausted', remaining: 0 }
     ]
-    for (const frame of frames) {
+    // Each case reads the field only its variant has; the map collects the runtime types so one assertion
+    // covers every frame (an assertion inside the switch would be conditional).
+    const payloadTypes = frames.map((frame) => {
       switch (frame.type) {
         case 'final':
-          expect(typeof frame.text).toBe('string')
-          break
         case 'partial':
-          expect(typeof frame.text).toBe('string')
-          break
+          return typeof frame.text
         case 'budget-exhausted':
-          expect(typeof frame.remaining).toBe('number')
-          break
+          return typeof frame.remaining
         default:
           // unreachable for our test fixtures, but the default branch
           // existence is what makes the switch type-exhaustive.
-          break
+          return 'unreachable'
       }
-    }
+    })
+    expect(payloadTypes).toEqual(['string', 'string', 'number'])
   })
 })

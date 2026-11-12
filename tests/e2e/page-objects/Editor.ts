@@ -4,6 +4,7 @@ import { Pool } from 'pg'
 import { TESTID, sel } from '../../../shared/testids'
 import { PRIVACY_VERSION, TOS_VERSION, DPA_VERSION } from '../../../shared/legal/versions'
 import { at, first } from '../../helpers/assert'
+import { settleAnimations } from '../fixtures/waits'
 
 // Page-object for the YPad editor (`/d/<id>`). Stable selectors for
 // the parts of the UI that flow tests touch most often. ONE place to
@@ -441,7 +442,7 @@ export class EditorPage {
     if (!putRes.ok()) {
       throw new Error(`[setAccessMode] PUT /meta returned ${putRes.status()}: ${await putRes.text()}`)
     }
-    await this.page.waitForTimeout(300)
+    await settleAnimations(this.page, 300)
   }
 
   /** EditorCommandsPanel buttons (mobile drawer content). */

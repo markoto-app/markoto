@@ -50,7 +50,7 @@ describe('appendAuditEvent', () => {
       scope: 'doc',
       scopeId: 'doc-A',
       action: 'doc.deleted',
-      before: { title: 'Old', accessMode: 'private' },
+      before: { title: 'Old', accessMode: 'private', ownerId: null, workspaceId: null },
       after: null,
       metadata: { reason: 'user_initiated' }
     })
@@ -61,7 +61,7 @@ describe('appendAuditEvent', () => {
     expect(first(rows).actorUserId).toBe(u.id)
     // IP stored truncated.
     expect(first(rows).actorIp).toBe('192.168.1.0')
-    expect(first(rows).before).toEqual({ title: 'Old', accessMode: 'private' })
+    expect(first(rows).before).toEqual({ title: 'Old', accessMode: 'private', ownerId: null, workspaceId: null })
     expect(first(rows).metadata).toEqual({ reason: 'user_initiated' })
   })
 
@@ -131,13 +131,13 @@ describe('getAuditEventsByScope', () => {
 
   it('returns rows ordered by ts desc (most-recent-first)', async () => {
     const u = await createUser()
-    await appendAuditEvent({ actorUserId: u.id, actorIp: null, scope: 'doc', scopeId: 'd', action: 'doc.deleted', metadata: { n: 1 } })
+    await appendAuditEvent({ actorUserId: u.id, actorIp: null, scope: 'doc', scopeId: 'd', action: 'workspace.deleted', metadata: { deletedDocs: 1, deletedKnowledge: 0 } })
     await new Promise(r => setTimeout(r, 5))
-    await appendAuditEvent({ actorUserId: u.id, actorIp: null, scope: 'doc', scopeId: 'd', action: 'doc.deleted', metadata: { n: 2 } })
+    await appendAuditEvent({ actorUserId: u.id, actorIp: null, scope: 'doc', scopeId: 'd', action: 'workspace.deleted', metadata: { deletedDocs: 2, deletedKnowledge: 0 } })
     await new Promise(r => setTimeout(r, 5))
-    await appendAuditEvent({ actorUserId: u.id, actorIp: null, scope: 'doc', scopeId: 'd', action: 'doc.deleted', metadata: { n: 3 } })
+    await appendAuditEvent({ actorUserId: u.id, actorIp: null, scope: 'doc', scopeId: 'd', action: 'workspace.deleted', metadata: { deletedDocs: 3, deletedKnowledge: 0 } })
     const rows = await getAuditEventsByScope('doc', 'd')
-    expect(rows.map(r => (r.metadata as { n: number }).n)).toEqual([3, 2, 1])
+    expect(rows.map(r => (r.metadata as { deletedDocs: number }).deletedDocs)).toEqual([3, 2, 1])
   })
 
   it('paginates via beforeId', async () => {
@@ -146,7 +146,7 @@ describe('getAuditEventsByScope', () => {
     for (let i = 0; i < 5; i++) {
       await appendAuditEvent({
         actorUserId: u.id, actorIp: null, scope: 'doc', scopeId: 'd',
-        action: 'doc.deleted', metadata: { n: i }
+        action: 'workspace.deleted', metadata: { deletedDocs: i, deletedKnowledge: 0 }
       })
     }
     const page1 = await getAuditEventsByScope('doc', 'd', { limit: 2 })
@@ -187,11 +187,11 @@ describe('getAuditEventsByActor', () => {
   it('orders by ts desc and paginates via beforeId', async () => {
     const u = await createUser()
     for (let i = 0; i < 4; i++) {
-      await appendAuditEvent({ actorUserId: u.id, actorIp: null, scope: 'doc', scopeId: 'd', action: 'doc.deleted', metadata: { n: i } })
+      await appendAuditEvent({ actorUserId: u.id, actorIp: null, scope: 'doc', scopeId: 'd', action: 'workspace.deleted', metadata: { deletedDocs: i, deletedKnowledge: 0 } })
     }
     const page1 = await getAuditEventsByActor(u.id, { limit: 2 })
-    expect(page1.map(r => (r.metadata as { n: number }).n)).toEqual([3, 2])
+    expect(page1.map(r => (r.metadata as { deletedDocs: number }).deletedDocs)).toEqual([3, 2])
     const page2 = await getAuditEventsByActor(u.id, { limit: 2, beforeId: last(page1).id })
-    expect(page2.map(r => (r.metadata as { n: number }).n)).toEqual([1, 0])
+    expect(page2.map(r => (r.metadata as { deletedDocs: number }).deletedDocs)).toEqual([1, 0])
   })
 })

@@ -78,10 +78,8 @@ describe('POST /api/ai/transcribe', () => {
           audio: MIN_VALID_AUDIO_B64,
           mimeType
         })
-        if (res.status === 400) {
-          const body = await res.json() as { message?: string }
-          expect(body.message ?? '', `${mimeType} must not be rejected at our mimeType gate`).not.toMatch(/mimeType/i)
-        }
+        const body: { message?: string } = res.status === 400 ? await res.json() : {}
+        expect(body.message ?? '', `${mimeType} must not be rejected at our mimeType gate`).not.toMatch(/mimeType/i)
       }
     })
 

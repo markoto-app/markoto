@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures/flow'
 import { computeStripeSig, loadStripeFixture } from '../../integration/setup/stripeHelpers'
+import { settleAnimations } from '../fixtures/waits'
 
 // The flow-test stack uses its own webhook secret (set in
 // `scripts/flows-ephemeral.ts` as `whsec_test_flows`). The integration
@@ -145,7 +146,7 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
         { label: 'Upgrade Pro', selector: '[data-testid="pricing-tier-pro"] button:has-text("Upgrade")', kind: 'arrow' }
       ],
       result: 'The button shows a spinner while markoto opens a Stripe Checkout session.',
-      after: () => page.waitForTimeout(500)
+      after: () => settleAnimations(page, 500)
     }
   )
 

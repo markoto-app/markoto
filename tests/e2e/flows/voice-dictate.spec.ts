@@ -134,7 +134,7 @@ test('Speak instead of typing', async ({ page, flow, editor }) => {
       result: 'The mic returns to its idle state — no more streaming.',
       after: async () => {
         // Back to the idle aria-label.
-        await expect(micButton).toHaveAttribute('aria-label', /start dictation|dictate$/i, { timeout: 10_000 })
+        await expect(micButton).toHaveAttribute('aria-label', /(?:start dictation)|(?:dictate$)/i, { timeout: 10_000 })
       }
     }
   )

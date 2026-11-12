@@ -407,7 +407,8 @@ describe('stateless messages', () => {
     const viewer = connect(doc.docId, { userId: 'anonymous', userName: null, readOnly: true })
     await Promise.all([writer.synced, viewer.synced])
     broadcastStateless(writer, 'from-writer')
-    await waitFor(() => viewer.stateless.includes('from-writer'))
+    // `waitFor` throws on timeout; the explicit expectation makes the test's one assertion visible.
+    expect(await waitFor(() => viewer.stateless.includes('from-writer'))).toBe(true)
   })
 
   it('a read-only connection\'s broadcast is dropped and its connection closed', async () => {

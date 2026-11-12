@@ -3,7 +3,8 @@ import { resetDb, testDb } from '../integration/setup/db'
 import {
   appendAiMessage,
   loadRecentMessages,
-  lastActivityAt
+  lastActivityAt,
+  parseAiMessageEntry
 } from '../../server/repos/aiSessionMessages'
 import { createUser, createDoc } from '../integration/setup/fixtures'
 import { first } from '../helpers/assert'
@@ -80,8 +81,7 @@ describe('appendAiMessage', () => {
         docId: doc.docId,
         userId: u.id,
         sessionId: 's',
-        kind,
-        body: { test: true }
+        ...parseAiMessageEntry(kind, { test: true })
       })
       const rows = await loadRecentMessages(doc.docId, u.id)
       expect(rows[0]?.kind).toBe(kind)

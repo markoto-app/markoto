@@ -7,7 +7,7 @@ import {
   shouldRecordToolInMemory,
   summarizeToolCall
 } from '../../../server/utils/agentic/conversationMemory'
-import type { AiMessageRow } from '../../../server/repos/aiSessionMessages'
+import { parseAiMessageEntry, type AiMessageRow } from '../../../server/repos/aiSessionMessages'
 
 // Pure-function unit tests for the AI conversation memory helpers.
 // These compose into the agentic loop's `<conversation_history>` block
@@ -25,8 +25,7 @@ function row(
     docId: 'doc-x',
     userId: 1,
     sessionId: 'sess-x',
-    kind,
-    body,
+    ...parseAiMessageEntry(kind, body),
     createdAt: new Date(Date.now() - msAgo)
   }
 }

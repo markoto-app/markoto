@@ -5,6 +5,7 @@ import path from 'node:path'
 import { EDITOR_TOUR_DONE, EDITOR_TOUR_STORAGE_KEY } from '../../../app/utils/editor/editorTour'
 import sharp from 'sharp'
 import { EditorPage } from '../page-objects/Editor'
+import { settleAnimations } from './waits'
 
 // One Playwright fixture that turns a normal e2e test into a "flow":
 // a sequence of slides — chapter, narration, approach, outcome — that
@@ -543,7 +544,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         // We deliberately do NOT use waitForLoadState('networkidle') —
         // editor pages run a long-lived Y.js WebSocket so they never
         // hit networkidle in practice.
-        await actorPage.waitForTimeout(150)
+        await settleAnimations(actorPage, 150)
       }
 
       const readCursor = async (

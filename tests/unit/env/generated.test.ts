@@ -56,7 +56,7 @@ describe('registry shape', () => {
   it('every variable is documented and a secret never has a printable default', () => {
     for (const { spec } of registeredVars()) {
       expect(spec.doc.length, spec.name).toBeGreaterThan(5)
-      if (spec.secret) expect(spec.default === undefined || spec.default === '', spec.name).toBe(true)
+      expect(!spec.secret || spec.default === undefined || spec.default === '', spec.name).toBe(true)
     }
   })
 })

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { captureLogs } from '../../helpers/logs'
 import { createRateLimiter } from '../../../sync-server/src/rate-limiter'
+import { deliberatelyInvalid } from '../../helpers/fixtures'
 
 const logs = captureLogs()
 
@@ -187,7 +188,7 @@ describe('createRateLimiter — room cap', () => {
     // open rather than refuse every connection. The per-IP cap still
     // applies.
     const rl = createRateLimiter({ maxActiveRooms: 10 })
-    expect(() => rl.onConnect({ request: { headers: { 'x-forwarded-for': '1.1.1.1' } }, socketId: 's1' } as never))
+    expect(() => rl.onConnect(deliberatelyInvalid({ request: { headers: { 'x-forwarded-for': '1.1.1.1' } }, socketId: 's1' })))
       .not.toThrow()
   })
 })
@@ -198,9 +199,9 @@ describe('createRateLimiter — resilience', () => {
     // shouldn't DoS legitimate traffic — defensive behaviour is documented
     // in the module comment.
     const rl = createRateLimiter({ maxConnectionsPerIP: 20 })
-    expect(() => rl.onConnect({} as never)).not.toThrow()
-    expect(() => rl.onConnect({ request: null } as never)).not.toThrow()
-    expect(() => rl.onDisconnect({} as never)).not.toThrow()
+    expect(() => rl.onConnect(deliberatelyInvalid({}))).not.toThrow()
+    expect(() => rl.onConnect(deliberatelyInvalid({ request: null }))).not.toThrow()
+    expect(() => rl.onDisconnect(deliberatelyInvalid({}))).not.toThrow()
   })
 
   it('the default singleton exists and is usable', async () => {

@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/flow'
+import { settleAnimations } from '../fixtures/waits'
 
 // Tier 1: "Share a doc as read-only."
 //
@@ -82,7 +83,7 @@ test('Share as read-only', async ({ page, flow, editor }) => {
   // Commit the mode change via the API, then close the dialog.
   await editor.page.setAccessMode('open-view')
   await page.keyboard.press('Escape')
-  await page.waitForTimeout(200)
+  await settleAnimations(page, 200)
 
   const docUrl = page.url()
 
@@ -172,8 +173,7 @@ test('Share as read-only', async ({ page, flow, editor }) => {
     // Desktop: CodeMirror's read-only Compartments set
     // `contenteditable="false"` on the .cm-content root. Verify
     // directly — this is the canonical "you cannot edit" signal.
-    const editable = await visitor.page.locator('.cm-content').getAttribute('contenteditable')
-    expect(editable).toBe('false')
+    await expect(visitor.page.locator('.cm-content')).toHaveAttribute('contenteditable', 'false')
     // Also assert the menubar's edit-only commands are disabled
     // (Insert / Format require write access). These are independent
     // of the CodeMirror compartment and prove the read-only

@@ -42,7 +42,7 @@ describe('MCP tool list on a read-only plan', () => {
     for (const file of files) {
       const def = (await import(join(TOOLS_DIR, file))).default as { name: string, enabled: (e: unknown) => boolean }
       const shown = def.enabled(fakeEvent({ mcpWrite: false, mcpToolCallsPerDay: 100 }))
-      if (mcpToolClass(def.name) !== 'read') expect(shown, def.name).toBe(false)
+      expect(mcpToolClass(def.name) === 'read' || !shown, def.name).toBe(true)
     }
   })
 

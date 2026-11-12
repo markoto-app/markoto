@@ -58,8 +58,7 @@ describe('buildMarkdownExport / splitMarkotoFrontmatter', () => {
   test('accepts CRLF line endings and a BOM', () => {
     const file = '﻿' + buildMarkdownExport(BODY, PROPS).replaceAll('\n', '\r\n')
     const split = splitMarkotoFrontmatter(file)
-    expect(split.kind).toBe('markoto')
-    if (split.kind === 'markoto') expect(split.data.title).toBe(PROPS.title)
+    expect(split).toMatchObject({ kind: 'markoto', data: { title: PROPS.title } })
   })
 
   test('oversized frontmatter is not read', () => {

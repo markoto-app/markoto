@@ -91,12 +91,9 @@ describe('addNonceToScripts', () => {
 
 describe('vendored asset pins', () => {
   it('every highlight.js theme has an SRI hash under the pinned same-origin path', () => {
-    for (const theme of CodeThemeSchema.options) {
+    expect(hljsTheme('none').url).toBe('')
+    for (const theme of CodeThemeSchema.options.filter(t => t !== 'none')) {
       const { url, sri } = hljsTheme(theme)
-      if (theme === 'none') {
-        expect(url).toBe('')
-        continue
-      }
       expect(url.startsWith(HLJS_STYLES_BASE)).toBe(true)
       expect(sri).toMatch(/^sha384-[A-Za-z0-9+/]{64}$/)
     }

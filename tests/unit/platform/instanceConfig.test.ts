@@ -156,12 +156,7 @@ describe('server instance helpers', () => {
   it('assertLegalSurfacesEnabled → 404 legal/disabled when off', () => {
     vi.stubEnv('NUXT_LEGAL_SURFACES_ENABLED', '')
     expect(legalSurfacesEnabled()).toBe(false)
-    try {
-      assertLegalSurfacesEnabled()
-      expect.unreachable('should have thrown')
-    } catch (e) {
-      expect(e).toMatchObject({ statusCode: 404, data: { code: LEGAL_DISABLED_CODE } })
-    }
+    expect(assertLegalSurfacesEnabled).toThrow(expect.objectContaining({ statusCode: 404, data: { code: LEGAL_DISABLED_CODE } }))
   })
 
   it('assertLegalSurfacesEnabled passes when on', () => {

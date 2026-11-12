@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/flow'
+import { waitForSyncDebounce } from '../fixtures/waits'
 
 // Tier 1: "Roll the doc back to an earlier point."
 //
@@ -46,7 +47,7 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
   await editor.silentSetup({ title: 'Launch announcement', body: LAUNCH_DRAFT, cover: false })
   // Let the seeded draft flush as its own batch so the two edits below
   // become separate activity rows (Hocuspocus batch window, see below).
-  await page.waitForTimeout(3_000)
+  await waitForSyncDebounce(page)
 
   await flow.heading('Restore an earlier version of your doc', 3)
   await flow.narrate(
@@ -83,7 +84,7 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
   // restoring the mistake would also drop the release date. 3 s = 2 s
   // debounce + 1 s safety (polling exits at flush time, while the next
   // keystroke can still land in the same batch).
-  await page.waitForTimeout(3_000)
+  await waitForSyncDebounce(page)
 
   // The mistake: select everything and type over it.
   await cmContent.press(`${accel}+A`)
@@ -96,7 +97,7 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
   )
 
   // Let the mistake flush as its own row before opening Activity.
-  await page.waitForTimeout(3_000)
+  await waitForSyncDebounce(page)
 
   // Open Activity
   await flow.heading('Open the Activity tab', 3)
@@ -159,6 +160,7 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
     // the modal's button. Same workaround as cover-page-editor —
     // dispatch the full pointerdown→pointerup→click sequence so
     // Reka's pointer-capture chain fires and the modal commits.
+    // eslint-disable-next-line playwright/no-force-option -- mobile-only branch: the bottom-sheet portal intercepts the pointer (tests/e2e/AGENTS.md)
     await flow.hover('Click Restore in the confirmation', confirm, { force: true })
     await confirm.evaluate((el: HTMLElement) => {
       const fire = (type: string) => el.dispatchEvent(new PointerEvent(type, {

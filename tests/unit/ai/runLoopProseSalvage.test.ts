@@ -6,6 +6,7 @@ import {
   type AgenticFunctionCall as FunctionCall
 } from '../../../server/utils/agentic/aiTypes'
 import { soloSessionGuard } from '../fixtures/crossBoundary'
+import { partial } from '../../helpers/fixtures'
 
 // Pin the salvage-path branching: when the model emits prose without a tool call, the runLoop synthesises a
 // fallback call. By default that is `message_to_user`; with `commentThreadId` on RunLoopOptions (comment-trigger
@@ -69,7 +70,7 @@ function makeOpts(overrides: Partial<Parameters<typeof runAgenticLoop>[0]> = {})
     model: 'fake-test-model',
     systemPrompt: 'system',
     initialPrompt: 'user prompt',
-    aiSession: { aiProviders: FULL_AI_PROVIDERS } as Parameters<typeof runAgenticLoop>[0]['aiSession'],
+    aiSession: partial<Parameters<typeof runAgenticLoop>[0]['aiSession']>({ aiProviders: FULL_AI_PROVIDERS }),
     sessionId: 'sess-test',
     abortController: new AbortController(),
     setStatus: vi.fn(),

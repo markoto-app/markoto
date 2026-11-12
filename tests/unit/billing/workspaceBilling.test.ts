@@ -62,7 +62,7 @@ describe('pooledFromRow', () => {
   }
   const now = new Date('2027-01-01T00:00:00Z')
   it('pools active, trialing and past_due subscriptions that haven\'t expired', () => {
-    for (const status of ['active', 'trialing', 'past_due']) {
+    for (const status of ['active', 'trialing', 'past_due'] as const) {
       expect(pooledFromRow({ ...base, status, validUntil: new Date('2027-02-01') }, now)?.seats, status).toBe(5)
     }
   })

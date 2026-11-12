@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { captureLogs } from '../../helpers/logs'
 import type Stripe from 'stripe'
 import type { WorkspaceSubscriptionRow } from '../../../server/repos/workspaceSubscriptions'
+import { partial } from '../../helpers/fixtures'
 
 vi.stubGlobal('createError', (input: { statusCode: number, message: string, data?: unknown }) => Object.assign(new Error(input.message), input))
 
@@ -97,7 +98,7 @@ describe('expireOpenWorkspaceCheckouts', () => {
 })
 
 describe('cancelWorkspaceSubscriptionNow (workspace deletion)', () => {
-  const row = { workspaceId: 'ws1', stripeSubscriptionId: 'sub_live', interval: 'month' } as WorkspaceSubscriptionRow
+  const row = partial<WorkspaceSubscriptionRow>({ workspaceId: 'ws1', stripeSubscriptionId: 'sub_live', interval: 'month' })
 
   function stripeWith(cancelError: unknown, status = 'active') {
     return {

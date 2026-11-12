@@ -200,9 +200,7 @@ describe('searchKnowledge (hybrid)', () => {
     expect(hits[0]!.chunkIndex).toBe(1)
     // Chunk A's RRF is sum of two contributions vs B's one, so A's
     // score is strictly higher.
-    if (hits.length >= 2) {
-      expect(hits[0]!.rrfScore).toBeGreaterThan(hits[1]!.rrfScore)
-    }
+    expect(hits.length < 2 || hits[0]!.rrfScore > hits[1]!.rrfScore).toBe(true)
   })
 
   it('scopes results to the caller\'s workspace', async () => {

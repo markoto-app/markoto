@@ -224,6 +224,7 @@ describe('openAIStreamToInternalChunks', () => {
         finalCall = c.functionCalls[0]
       }
     }
+    expect(allChunks.length).toBeGreaterThan(0)
     expect(finalCall).toBeDefined()
     expect(finalCall?.id).toBe('call_a')
     expect(finalCall?.name).toBe('view_document')

@@ -329,7 +329,7 @@ describe('number + unit in table cells', () => {
   test('keeps short hyphenated words together, not long ones', () => {
     expect(kept('Payments on-call')).toEqual(['on-call'])
     expect(kept('re-run the job')).toEqual(['re-run'])
-    expect(kept('Phase 1 roll-out')).toEqual(['roll-out'])
+    expect(kept('Wave 1 roll-out')).toEqual(['roll-out'])
     expect(kept('state-of-the-art-and-beyond tooling')).toEqual([])
     expect(nowrapRuns('Payments on-call, 24/7').map(r => r.text).join('')).toBe('Payments on-call, 24/7')
   })

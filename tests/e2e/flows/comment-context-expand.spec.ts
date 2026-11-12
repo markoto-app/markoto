@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/flow'
+import { waitForSyncDebounce, settleAnimations } from '../fixtures/waits'
 
 // Tier 2: "Replay any comment in its original context".
 //
@@ -64,7 +65,7 @@ test('Replay a comment in its original context', async ({ page, flow, editor }) 
   }
   // Give Hocuspocus + sync-server time to flush the comments
   // snapshot (advisory-lock + DB write).
-  await page.waitForTimeout(3_000)
+  await waitForSyncDebounce(page)
 
   await flow.heading('Replay a comment in its original context', 3)
   await flow.narrate(
@@ -132,7 +133,7 @@ test('Replay a comment in its original context', async ({ page, flow, editor }) 
       result: 'The comment-context drawer expands — parent body, replies (none yet), resolution state. Anyone reviewing the audit can see this thread the way it looked then.',
       after: async () => {
         await expect(commentRow).toHaveAttribute('data-expanded', 'true', { timeout: 5_000 })
-        await page.waitForTimeout(1_500)
+        await settleAnimations(page, 1_500)
       }
     }
   )

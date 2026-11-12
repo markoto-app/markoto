@@ -35,11 +35,7 @@ describe('SUB_PROCESSORS', () => {
     // Catches the inverse misconfiguration too — a sub-processor
     // marked `eu` shouldn't carry a DPF transfer mechanism.
     for (const sp of SUB_PROCESSORS) {
-      if (sp.location === 'eu') {
-        expect(sp.transferMechanism).toBe('intra_eu')
-      } else {
-        expect(sp.transferMechanism).not.toBe('intra_eu')
-      }
+      expect(sp.transferMechanism === 'intra_eu', sp.name).toBe(sp.location === 'eu')
     }
   })
 })

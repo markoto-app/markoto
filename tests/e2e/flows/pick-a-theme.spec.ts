@@ -127,6 +127,7 @@ test('Pick a theme', async ({ page, flow, editor }) => {
   if (editor.isMobile) {
     // DOM-level click — the preset card lives inside the BottomSheet
     // portal. Workaround #2 from `tests/e2e/AGENTS.md`.
+    // eslint-disable-next-line playwright/no-force-option -- mobile-only branch: the bottom-sheet portal intercepts the pointer (tests/e2e/AGENTS.md)
     await flow.hover('Tap "markoto" to return to the default', editor.page.theme.preset('markoto'), { force: true })
     await editor.page.theme.preset('markoto').evaluate((el: HTMLElement) => el.click())
     await expect.poll(async () => (await themeMeta()).color.brand.toLowerCase()).toBe('#b5371f')

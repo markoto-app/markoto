@@ -46,8 +46,7 @@ describe('AGENTS.md hygiene', () => {
 
     for (const f of claudeFiles.filter(x => x !== 'AGENTS.md')) {
       it(`${f} is listed in the root index`, () => {
-        if (UNINDEXED_ALLOWANCE.has(f)) return
-        expect(indexed(f), `add \`${f}\` to the index table in AGENTS.md`).toBe(true)
+        expect(UNINDEXED_ALLOWANCE.has(f) || indexed(f), `add \`${f}\` to the index table in AGENTS.md`).toBe(true)
       })
     }
 

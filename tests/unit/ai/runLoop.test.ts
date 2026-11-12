@@ -8,6 +8,7 @@ import {
 } from '../../../server/utils/agentic/aiTypes'
 import { soloSessionGuard, taintedSessionGuard } from '../fixtures/crossBoundary'
 import { at, first, last } from '../../helpers/assert'
+import { partial } from '../../helpers/fixtures'
 
 // Adversarial: budget exhaustion paths
 //
@@ -128,7 +129,7 @@ function makeOpts(overrides: Partial<Parameters<typeof runAgenticLoop>[0]> = {},
     model: 'fake-test-model',
     systemPrompt: 'system',
     initialPrompt: 'user prompt',
-    aiSession: { aiProviders: FULL_AI_PROVIDERS, ...(ytext ? { ytext } : {}) } as Parameters<typeof runAgenticLoop>[0]['aiSession'],
+    aiSession: partial<Parameters<typeof runAgenticLoop>[0]['aiSession']>({ aiProviders: FULL_AI_PROVIDERS, ...(ytext ? { ytext } : {}) }),
     sessionId: 'sess-test',
     abortController: new AbortController(),
     setStatus: vi.fn(),

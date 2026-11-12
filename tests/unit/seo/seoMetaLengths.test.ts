@@ -121,7 +121,7 @@ describe('marketing pages (content/marketing frontmatter)', () => {
       expect(description.length).toBeLessThanOrEqual(MAX_DESCRIPTION_LENGTH)
       const locale = file.slice(dir.length + 1).split('/')[0]
       expect(MARKETING_LOCALES.some(l => l === locale), `language folder ${locale}`).toBe(true)
-      if (fm.updated !== undefined) expect(String(fm.updated)).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      expect(fm.updated === undefined || /^\d{4}-\d{2}-\d{2}$/.test(String(fm.updated)), `updated: ${String(fm.updated)}`).toBe(true)
     })
   }
 })

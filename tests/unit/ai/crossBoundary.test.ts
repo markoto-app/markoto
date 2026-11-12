@@ -144,8 +144,7 @@ describe('tainted session', () => {
   it('deny → a tool error telling the model not to retry', async () => {
     const { guard } = makeGuard({ initialTaint: 'shared' })
     const r = await guard.beforeTool('list_my_documents', {}, signal)
-    expect(r.allowed).toBe(false)
-    if (!r.allowed) expect(r.message).toMatch(/did not allow.*Do not retry/s)
+    expect(r).toMatchObject({ allowed: false, message: expect.stringMatching(/did not allow.*Do not retry/s) })
   })
 
   it('labels the request with the document title, query, URL or filename', async () => {

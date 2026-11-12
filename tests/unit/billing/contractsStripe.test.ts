@@ -57,7 +57,8 @@ describe('HANDLED_STRIPE_EVENT_TYPES', () => {
       'customer.subscription.updated',
       'customer.subscription.deleted',
       'invoice.paid',
-      'invoice.payment_failed'
+      'invoice.payment_failed',
+      'charge.refunded'
     ])
   })
 

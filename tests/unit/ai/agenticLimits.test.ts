@@ -17,6 +17,7 @@ import { soloSessionGuard } from '../fixtures/crossBoundary'
 // stubbed billing, no DB / Y.js / network.
 
 import { SESSION_INTERACTION_CAP, SESSION_TOOL_CALL_CAPS } from '../../../server/utils/agentic/limits'
+import { partial } from '../../helpers/fixtures'
 
 const executeFunctionByName = vi.fn<(session: unknown, name: string, args: unknown) => Promise<{ content: string, isError: boolean, extraParts?: unknown[] }>>()
 const webSearch = vi.fn<(ai: unknown, model: string, query: string, signal: AbortSignal) => Promise<{ text: string, sources: Array<{ title: string, uri: string }> }>>()
@@ -72,7 +73,7 @@ function makeOpts(overrides: Partial<Parameters<typeof runAgenticLoop>[0]> = {})
     model: 'fake-test-model',
     systemPrompt: 'system',
     initialPrompt: 'user prompt',
-    aiSession: { aiProviders: FULL_AI_PROVIDERS } as Parameters<typeof runAgenticLoop>[0]['aiSession'],
+    aiSession: partial<Parameters<typeof runAgenticLoop>[0]['aiSession']>({ aiProviders: FULL_AI_PROVIDERS }),
     sessionId: 'sess-test',
     abortController: new AbortController(),
     setStatus: vi.fn(),

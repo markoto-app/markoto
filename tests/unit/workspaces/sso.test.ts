@@ -4,6 +4,7 @@ import { decodeSsoFlow, encodeSsoFlow, isSafeReturnTo, SSO_FLOW_MAX_AGE_SECONDS 
 import { checkSsoUrl, createSsoFetch, SsoUrlRefused, SSO_FETCH_MAX_BYTES, type RawFetch } from '../../../server/utils/sso/urlPolicy'
 import { assertionFromSamlProfile } from '../../../server/utils/sso/saml'
 import type { Profile } from '@node-saml/node-saml'
+import { partial } from '../../helpers/fixtures'
 
 // Per-workspace single sign-on— the pure rules. End-to-end
 // sign-ins: tests/integration/endpoints/sso*.test.ts.
@@ -106,14 +107,14 @@ describe('SAML profile → assertion', () => {
   const base = { issuer: 'https://idp.example', nameIDFormat: 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent' }
 
   it('uses NameID as subject and the common email / name attributes', () => {
-    const a = assertionFromSamlProfile({ ...base, 'nameID': 'abc-123', 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'ada@example.com', 'givenName': 'Ada', 'sn': 'Lovelace' } as Profile)
+    const a = assertionFromSamlProfile(partial<Profile>({ ...base, 'nameID': 'abc-123', 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'ada@example.com', 'givenName': 'Ada', 'sn': 'Lovelace' }))
     expect(a).toEqual({ subject: 'abc-123', email: 'ada@example.com', emailVerified: false, name: 'Ada Lovelace' })
   })
 
   it('takes an emailAddress NameID as the email; drops a malformed email; refuses an empty NameID', () => {
-    expect(assertionFromSamlProfile({ ...base, nameIDFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress', nameID: 'bo@example.com' } as Profile).email).toBe('bo@example.com')
-    expect(assertionFromSamlProfile({ ...base, nameID: 'x', email: 'not an email' } as Profile).email).toBeNull()
-    expect(() => assertionFromSamlProfile({ ...base, nameID: '' } as Profile)).toThrow()
+    expect(assertionFromSamlProfile(partial<Profile>({ ...base, nameIDFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress', nameID: 'bo@example.com' })).email).toBe('bo@example.com')
+    expect(assertionFromSamlProfile(partial<Profile>({ ...base, nameID: 'x', email: 'not an email' })).email).toBeNull()
+    expect(() => assertionFromSamlProfile(partial<Profile>({ ...base, nameID: '' }))).toThrow()
   })
 })
 

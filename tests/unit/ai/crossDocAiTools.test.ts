@@ -21,6 +21,7 @@ import {
 } from '../../../server/repos/documents'
 import { openTrustedCommentClient } from '../../../server/utils/documents/commentsServerClient'
 import type { AiSession } from '../../../server/utils/ai/aiClient'
+import { partial } from '../../helpers/fixtures'
 
 // Module-level mocks must come BEFORE importing the SUT.
 vi.mock('../../../server/repos/documents', async (importOriginal) => {
@@ -91,7 +92,7 @@ function makeSession(opts: {
 // Helper: build a getDocWithActorRole context for stubbing.
 type ActorCtx = NonNullable<Awaited<ReturnType<typeof getDocWithActorRole>>>
 function ctx(over: Partial<ActorCtx> = {}): ActorCtx {
-  return {
+  return partial<ActorCtx>({
     title: 'Target doc',
     description: '',
     audience: 'casual',
@@ -103,7 +104,7 @@ function ctx(over: Partial<ActorCtx> = {}): ActorCtx {
     accessMode: 'private',
     theme: null,
     ...over
-  } as ActorCtx
+  })
 }
 
 // Helper: build the trusted-client return value with given body text.

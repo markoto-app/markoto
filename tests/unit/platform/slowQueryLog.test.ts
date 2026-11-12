@@ -59,9 +59,10 @@ beforeEach(() => {
 
 describe('slow-query log', () => {
   it('does not fire for fast queries', async () => {
-    const { useDatabase } = await import('../../../server/utils/platform/database')
-    useDatabase()
-    const pool = lastPool!
+    const { useDatabasePool } = await import('../../../server/utils/platform/database')
+    // The instrumented pool (a proxy over the pg Pool) is what drizzle queries through.
+    const pool = useDatabasePool()
+    expect(lastPool).toBeTruthy()
     expect(pool).toBeTruthy()
     await pool.query('SELECT 1')
     await pool.query('SELECT 2', [1, 2, 3])
@@ -78,9 +79,10 @@ describe('slow-query log', () => {
       return nowCalls === 1 ? 0 : 200
     })
     try {
-      const { useDatabase } = await import('../../../server/utils/platform/database')
-      useDatabase()
-      const pool = lastPool!
+      const { useDatabasePool } = await import('../../../server/utils/platform/database')
+      // The instrumented pool (a proxy over the pg Pool) is what drizzle queries through.
+      const pool = useDatabasePool()
+      expect(lastPool).toBeTruthy()
       const longSql = 'SELECT '.padEnd(800, 'x')
       await pool.query(longSql, ['secret-password', 'pii@example.com'])
       expect(captureMessage).toHaveBeenCalledTimes(1)
@@ -110,9 +112,10 @@ describe('slow-query log', () => {
       return nowCalls === 1 ? 0 : 50
     })
     try {
-      const { useDatabase } = await import('../../../server/utils/platform/database')
-      useDatabase()
-      const pool = lastPool!
+      const { useDatabasePool } = await import('../../../server/utils/platform/database')
+      // The instrumented pool (a proxy over the pg Pool) is what drizzle queries through.
+      const pool = useDatabasePool()
+      expect(lastPool).toBeTruthy()
       // QueryConfig form — { text, values } — used by Drizzle internally.
       await pool.query({ text: 'UPDATE foo SET bar = $1', values: ['baz'] })
       expect(captureMessage).toHaveBeenCalledTimes(1)

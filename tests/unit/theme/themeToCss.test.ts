@@ -165,11 +165,8 @@ describe('themeToCss — Step 10: brand logo on cover', () => {
     // markoto pre-fills logoUrl with the public wordmark asset; other
     // presets ship with an empty string until users upload their own.
     for (const preset of THEME_PRESETS) {
-      if (preset.id === 'markoto') {
-        expect(preset.theme.brand.logoUrl).toBe('/markoto-logos/primary-lockup-light.svg')
-      } else {
-        expect(preset.theme.brand.logoUrl).toBe('')
-      }
+      expect(preset.theme.brand.logoUrl, preset.id)
+        .toBe(preset.id === 'markoto' ? '/markoto-logos/primary-lockup-light.svg' : '')
       expect(preset.theme.brand.logoHeight).toBeGreaterThanOrEqual(8)
       expect(preset.theme.brand.logoHeight).toBeLessThanOrEqual(80)
     }

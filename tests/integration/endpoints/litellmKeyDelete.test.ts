@@ -35,11 +35,10 @@ describe('deleteLitellmIdentity wire contract', () => {
     const asKey = await fetch(`${LITELLM_URL}/v1/models`, { headers: { Authorization: `Bearer ${key}` } })
     expect(asKey.status).toBe(401)
     const userInfo = await adminFetch(`/user/info?user_id=${userId}`)
-    if (userInfo.status === 200) {
-      const body = await userInfo.json() as { user_info?: unknown, keys?: unknown[] }
-      expect(body.keys ?? []).toHaveLength(0)
-      expect(body.user_info ?? null).toBeNull()
-    }
+    // A 404 (user gone entirely) is as good as an empty record.
+    const body: { user_info?: unknown, keys?: unknown[] } = userInfo.status === 200 ? await userInfo.json() : {}
+    expect(body.keys ?? []).toHaveLength(0)
+    expect(body.user_info ?? null).toBeNull()
   })
 
   it('treats a user that never had a key as done', async () => {

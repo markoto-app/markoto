@@ -66,12 +66,9 @@ describe('text', () => {
 
   it('secret checks the length and never echoes the value', () => {
     expect(secret(32).parse('x'.repeat(32))).toHaveLength(32)
-    try {
-      secret(32).parse('hunter2')
-      expect.unreachable()
-    } catch (e) {
-      expect(String(e)).toContain('at least 32 characters (got 7)')
-      expect(String(e)).not.toContain('hunter2')
-    }
+    const tooShort = () => secret(32).parse('hunter2')
+    expect(tooShort).toThrow('at least 32 characters (got 7)')
+    // `.not.toThrow(text)` passes for any other message, so it is only meaningful after the positive check above.
+    expect(tooShort).not.toThrow('hunter2')
   })
 })

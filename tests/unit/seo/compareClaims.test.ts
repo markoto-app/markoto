@@ -135,7 +135,7 @@ describe('claim data (content/compare/*.yml)', () => {
   })
 
   for (const slug of slugs) {
-    describe(slug, () => {
+    describe(`${slug}`, () => {
       const data = loadData(slug)
 
       it('has rows with unique features', () => {

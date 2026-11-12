@@ -151,7 +151,7 @@ describe('chart geometry', () => {
       expect(seq.actorFontSize).toBe(14)
       expect(seq.noteFontSize).toBe(14)
       const total = 4 * width + 3 * margin + 2 * num(seq.diagramMarginX)
-      if (colPx >= 642) expect(Math.abs(total - colPx), `${colPx}`).toBeLessThanOrEqual(4)
+      expect(colPx < 642 || Math.abs(total - colPx) <= 4, `${colPx}: total ${total}`).toBe(true)
       // A message wraps at the distance between lifelines: wider than a box.
       expect(margin).toBeGreaterThan(width * 0.3)
     }

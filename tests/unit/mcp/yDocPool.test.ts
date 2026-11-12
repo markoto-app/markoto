@@ -13,6 +13,7 @@ import {
   type PoolEntry,
   type PoolCheckoutOpts
 } from '../../../server/utils/mcp/yDocPool'
+import { partial } from '../../helpers/fixtures'
 
 // Pool unit tests use the `_setBuildEntryForTesting` seam to avoid
 // spawning a real HocuspocusProvider. Each fake entry tracks its own
@@ -43,7 +44,7 @@ function makeFakeEntry(key: PoolKey): FakeEntry {
     destroy() { this.destroyed = true },
     disconnect() { this.disconnected = true }
   }
-  return {
+  return partial<FakeEntry>({
     ydoc,
     ytext: ydoc.getText('content'),
     ymeta: ydoc.getMap<unknown>('meta'),
@@ -53,7 +54,7 @@ function makeFakeEntry(key: PoolKey): FakeEntry {
     refCount: 0,
     lastReleasedAt: 0,
     createdAt: Date.now()
-  } as FakeEntry
+  })
 }
 
 beforeEach(() => {
@@ -234,10 +235,8 @@ describe('evictIdle', () => {
   it('handles many entries without missing any eligible ones', async () => {
     // 20 entries, all idle, all past threshold — verify the iteration
     // doesn't get confused by mid-loop deletions.
-    const keys: PoolKey[] = []
     for (let i = 0; i < 20; i++) {
       const k: PoolKey = { docId: `doc-${i}`, principalId: 'mcp:s1' }
-      keys.push(k)
       const e = await checkout(k, fakeOpts) as FakeEntry
       release(k)
       e.lastReleasedAt = Date.now() - 60_000

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { deliberatelyInvalid } from '../../helpers/fixtures'
 
 // LiteLLM_SpendLogs retention sweeper. The 90-day cutoff is the
 // load-bearing arithmetic — off by one means we delete a day too
@@ -38,7 +39,7 @@ afterEach(() => {
 
 describe('runSpendLogsSweep — date math', () => {
   it('uses a 90-day cutoff against the LiteLLM_SpendLogs.startTime column', async () => {
-    queryFn.mockResolvedValueOnce({ rowCount: 42 } as { rowCount: number })
+    queryFn.mockResolvedValueOnce({ rowCount: 42 })
 
     const before = Date.now()
     const result = await runSpendLogsSweep()
@@ -65,13 +66,13 @@ describe('runSpendLogsSweep — date math', () => {
   })
 
   it('returns deleted=0 when the table is empty (rowCount=0)', async () => {
-    queryFn.mockResolvedValueOnce({ rowCount: 0 } as { rowCount: number })
+    queryFn.mockResolvedValueOnce({ rowCount: 0 })
     const result = await runSpendLogsSweep()
     expect(result).toEqual({ deleted: 0 })
   })
 
   it('handles null rowCount (some pg drivers return null on DELETE without rows) as 0', async () => {
-    queryFn.mockResolvedValueOnce({ rowCount: null } as unknown as { rowCount: number })
+    queryFn.mockResolvedValueOnce(deliberatelyInvalid({ rowCount: null }))
     const result = await runSpendLogsSweep()
     expect(result).toEqual({ deleted: 0 })
   })
@@ -88,7 +89,7 @@ describe('runSpendLogsSweep — failure tolerance', () => {
   })
 
   it('reuses the cached pool across calls (single connection)', async () => {
-    queryFn.mockResolvedValue({ rowCount: 0 } as { rowCount: number })
+    queryFn.mockResolvedValue({ rowCount: 0 })
     await runSpendLogsSweep()
     await runSpendLogsSweep()
     await runSpendLogsSweep()
@@ -98,7 +99,7 @@ describe('runSpendLogsSweep — failure tolerance', () => {
   })
 
   it('_resetSpendLogsSweepPool drops the cache so a fresh Pool is built next call', async () => {
-    queryFn.mockResolvedValue({ rowCount: 0 } as { rowCount: number })
+    queryFn.mockResolvedValue({ rowCount: 0 })
     await runSpendLogsSweep()
     expect(PoolMock).toHaveBeenCalledTimes(1)
     _resetSpendLogsSweepPool()

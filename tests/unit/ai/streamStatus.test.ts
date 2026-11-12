@@ -334,7 +334,7 @@ describe('processChunk — dedupe + state machine', () => {
     const setStatus = vi.fn<(phase: StreamStatusPhase, msg?: string) => void>()
     const state = newStreamState()
     // Malformed call shape — library consumers could produce this.
-    processChunk({ functionCalls: [{ args: {} } as { name?: string, args?: Record<string, unknown> }] }, state, { setStatus })
+    processChunk({ functionCalls: [{ args: {} }] }, state, { setStatus })
     expect(setStatus).not.toHaveBeenCalled()
   })
 

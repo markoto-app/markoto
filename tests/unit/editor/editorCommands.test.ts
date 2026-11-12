@@ -194,22 +194,14 @@ describe('toggleWrap — strike (~~) + sub (~) disambiguation', () => {
 })
 
 describe('toggleWrap — other markers (happy-path only)', () => {
-  it('highlight == wraps correctly', () => {
+  it.each([
+    ['highlight', '=='],
+    ['ins', '++'],
+    ['sup', '^']
+  ])('%s %s wraps correctly', (_name, marker) => {
     const v = makeView('foo', { from: 0, to: 3 })
-    toggleWrap(v, '==')
-    expect(text(v)).toBe('==foo==')
-  })
-
-  it('ins ++ wraps correctly', () => {
-    const v = makeView('foo', { from: 0, to: 3 })
-    toggleWrap(v, '++')
-    expect(text(v)).toBe('++foo++')
-  })
-
-  it('sup ^ wraps correctly', () => {
-    const v = makeView('foo', { from: 0, to: 3 })
-    toggleWrap(v, '^')
-    expect(text(v)).toBe('^foo^')
+    toggleWrap(v, marker)
+    expect(text(v)).toBe(`${marker}foo${marker}`)
   })
 })
 

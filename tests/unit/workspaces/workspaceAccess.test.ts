@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { partial } from '../../helpers/fixtures'
 
 // workspaceAccess contract tests. The original 24-test suite was a
 // mechanical role-matrix pin (owner returns true, admin returns true,
@@ -23,14 +24,14 @@ const {
 type Ctx = Awaited<ReturnType<typeof getDocWithActorRole>>
 
 function ctx(overrides: Partial<NonNullable<Ctx>> = {}): NonNullable<Ctx> {
-  return {
+  return partial<NonNullable<Ctx>>({
     ownerId: 1,
     workspaceId: null,
     accessMode: 'private',
     theme: null,
     workspaceRole: null,
     ...overrides
-  } as NonNullable<Ctx>
+  })
 }
 
 beforeEach(() => {

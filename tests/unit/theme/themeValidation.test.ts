@@ -388,10 +388,7 @@ describe('DocThemeSchema.safeParse — error surfacing (richer-errors path)', ()
     t.body.color = 'red' as string
     const r = DocThemeSchema.safeParse(t)
     expect(r.success).toBe(false)
-    if (!r.success) {
-      const paths = r.error.issues.map(i => i.path.join('.'))
-      expect(paths).toContain('body.color')
-    }
+    expect(r.error?.issues.map(i => i.path.join('.'))).toContain('body.color')
   })
 
   it('reports every top-level section issue when multiple fields are wrong', () => {
@@ -400,10 +397,7 @@ describe('DocThemeSchema.safeParse — error surfacing (richer-errors path)', ()
     t.page.margin = -1
     const r = DocThemeSchema.safeParse(t)
     expect(r.success).toBe(false)
-    if (!r.success) {
-      const paths = r.error.issues.map(i => i.path.join('.'))
-      expect(paths).toEqual(expect.arrayContaining(['page.margin', 'body.color']))
-    }
+    expect(r.error?.issues.map(i => i.path.join('.'))).toEqual(expect.arrayContaining(['page.margin', 'body.color']))
   })
 })
 

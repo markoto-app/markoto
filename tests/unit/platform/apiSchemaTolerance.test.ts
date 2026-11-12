@@ -55,7 +55,8 @@ describe('fallbacks instead of 400s', () => {
   it('internal activity: a wrongly typed counter or metadata drops the field, not the row', () => {
     const parsed = internalActivityBody.parse({ docId: 'd', action: 'edit', wordCount: '12', linesAdded: 'x', linesRemoved: {}, metadata: 'oops' })
     expect(parsed).toMatchObject({ docId: 'd', action: 'edit', wordCount: null, linesAdded: null, linesRemoved: null, metadata: null })
-    expect(internalActivityBody.parse({ docId: 'd', action: 'edit', wordCount: 3, metadata: { a: 1 } })).toMatchObject({ wordCount: 3, metadata: { a: 1 } })
+    expect(internalActivityBody.parse({ docId: 'd', action: 'edit', wordCount: 3, metadata: { a: 1 } })).toMatchObject({ wordCount: 3, metadata: null })
+    expect(internalActivityBody.parse({ docId: 'd', action: 'theme.changed', metadata: { kind: 'theme.changed' } }).metadata).toEqual({ kind: 'theme.changed' })
   })
 
   it('SSO settings: null / non-text fields read as absent (a null secret keeps the stored one)', () => {

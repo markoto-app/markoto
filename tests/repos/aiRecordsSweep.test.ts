@@ -52,11 +52,11 @@ describe('runAiRecordsSweep', () => {
     await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'user_prompt', body: { text: 'recent' } })
     const recentId = await latestMessageId()
 
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'tool_call', body: { name: 'web_search' } })
+    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'tool_call', body: { name: 'web_search', summary: '' } })
     const insideId = await latestMessageId()
     await backdateMessage(insideId, new Date(Date.now() - 89 * DAY_MS))
 
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'message_to_user', body: { message: 'old' } })
+    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'message_to_user', body: { message: 'old', isQuestion: false } })
     const outsideId = await latestMessageId()
     await backdateMessage(outsideId, new Date(Date.now() - 91 * DAY_MS))
 

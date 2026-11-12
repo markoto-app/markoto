@@ -1,6 +1,7 @@
 import { beforeEach, describe, it, expect, vi, type Mock } from 'vitest'
 import type Stripe from 'stripe'
 import { captureLogs } from '../../helpers/logs'
+import { partial } from '../../helpers/fixtures'
 import {
   handleCheckoutSessionCompleted,
   handleSubscriptionUpdated,
@@ -141,7 +142,7 @@ describe('handleCheckoutSessionCompleted — race fix', () => {
     // Construct typed but stamp client_reference_id null inline — the
     // factory requires it (handlers usually depend on it), this branch
     // is the corner case where it's missing.
-    const event = {
+    const event = partial<Stripe.CheckoutSessionCompletedEvent>({
       ...makeCheckoutSessionCompletedEvent({
         sessionId: 'cs',
         clientReferenceId: '',
@@ -149,7 +150,7 @@ describe('handleCheckoutSessionCompleted — race fix', () => {
         subscription: 'sub'
       }),
       data: { object: { id: 'cs', object: 'checkout.session', customer: 'cus', subscription: 'sub', client_reference_id: null } as unknown as Stripe.Checkout.Session }
-    } as Stripe.CheckoutSessionCompletedEvent
+    })
     const result = await handleCheckoutSessionCompleted(event, { stripe })
     expect(result.matched).toBe(0)
     // SDK not called — we bail before fetching.
@@ -301,10 +302,10 @@ describe('handleSubscriptionDeleted / InvoicePaymentFailed — branch coverage',
       customer: 'cus',
       subscription: 'sub_placeholder'
     })
-    const event = {
+    const event = partial<Stripe.InvoicePaidEvent>({
       ...base,
       data: { object: { ...base.data.object, subscription: null } as unknown as Stripe.Invoice }
-    } as Stripe.InvoicePaidEvent
+    })
     const result = await handleInvoicePaid(event)
     expect(result.matched).toBe(0)
   })

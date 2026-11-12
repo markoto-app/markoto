@@ -237,12 +237,11 @@ describe('A2 — AI status is private to the initiator', () => {
     expect(serialized).not.toContain(PROMPT)
     expect(serialized).not.toContain('"prompt"')
     expect(serialized).not.toContain('aiResponse')
-    for (const state of seen) {
+    const statusMessages = seen.flatMap((state) => {
       const status = state.aiStatus
-      if (typeof status === 'object' && status !== null && 'message' in status) {
-        expect(status.message).toBe(null)
-      }
-    }
+      return typeof status === 'object' && status !== null && 'message' in status ? [status.message] : []
+    })
+    expect(statusMessages.filter(message => message !== null)).toEqual([])
     // Bob sees who the AI works for.
     expect(serialized).toContain('"initiatorName":"Alice"')
 
