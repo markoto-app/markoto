@@ -1,11 +1,11 @@
 # Database schema and migrations
 
-markoto keeps all application data in PostgreSQL. The schema is defined in `server/db/schema.ts` with Drizzle; `drizzle-kit` generates SQL migrations into `drizzle/` (committed together with the snapshots in `drizzle/meta/`). Agent rules for this area: `server/db/AGENTS.md`.
+markoto keeps all application data in PostgreSQL. The schema is defined with Drizzle in `server/db/schema/`, one file per domain (users, workspaces, documents, sync, collab, brand kit, billing, ai, knowledge, privacy, sso, publish, mcp) re-exported from `server/db/schema/index.ts`, which is what drizzle-kit reads and what `server/db/schema` imports resolve to. Domain files import each other's tables only downwards (a table's file imports the files of the tables it references), never in a cycle; `drizzle-kit` generates SQL migrations into `drizzle/` (committed together with the snapshots in `drizzle/meta/`). Agent rules for this area: `server/db/AGENTS.md`.
 
 ## How migrations run
 
 - `drizzle/0000_baseline.sql` creates the whole schema in one file. The migration history before it was squashed away; a database created by an earlier version cannot be upgraded across that and has to be recreated (the boot migrator fails with `relation "…" already exists`).
-- `bun run db:generate` diffs `schema.ts` against the latest snapshot and writes `drizzle/NNNN_<name>.sql`.
+- `bun run db:generate` diffs the schema against the latest snapshot and writes `drizzle/NNNN_<name>.sql`.
 - At boot, `server/plugins/00-db-migrate.ts` applies pending files with `drizzle-orm/node-postgres/migrator`. Drizzle runs **all pending files in one transaction**. If a migration fails, the process exits.
 - Startup work that needs the migrated schema waits on `migrationsComplete` (`server/utils/platform/migrations.ts`).
 - The runtime image copies `drizzle/` (see `Dockerfile`); without it nothing can be applied.
@@ -38,7 +38,7 @@ A migration that needs another extension does the same. The `--> statement-break
 
 ### Partial unique index for cross-instance deduplication
 
-Two sync-server instances can report the same edit batch. The activity log absorbs that with a partial unique index (`uq_activity_doc_yjsafter` in `schema.ts`):
+Two sync-server instances can report the same edit batch. The activity log absorbs that with a partial unique index (`uq_activity_doc_yjsafter` in `server/db/schema/collab.ts`):
 
 ```ts
 uniqueIndex('uq_activity_doc_yjsafter')

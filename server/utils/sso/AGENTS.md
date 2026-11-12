@@ -2,7 +2,7 @@
 
 A workspace connects its own identity provider (OIDC or SAML) and optionally SCIM provisioning. Gated by the plan feature `sso` (on in the committed tiers; the hosted `infra/render-env.sh` turns it off below Business). User docs: `content/docs/account/single-sign-on.md`.
 
-Not the same as instance sign-in with OIDC (`server/utils/oidc/`, `NUXT_OAUTH_OIDC_*`). Workspace SSO reuses `oidc/client.ts` but has its own tables (`sso_connections`, `sso_domains`, `user_identities`, `sso_grants` in `server/db/schema.ts`; repo `server/repos/sso.ts`), routes (`server/routes/auth/sso/[connectionId]/`, `server/routes/scim/v2/`, `server/api/workspaces/[wsId]/sso/`) and rules.
+Not the same as instance sign-in with OIDC (`server/utils/oidc/`, `NUXT_OAUTH_OIDC_*`). Workspace SSO reuses `oidc/client.ts` but has its own tables (`sso_connections`, `sso_domains`, `user_identities`, `sso_grants` in `server/db/schema/sso.ts`; repo `server/repos/sso.ts`), routes (`server/routes/auth/sso/[connectionId]/`, `server/routes/scim/v2/`, `server/api/workspaces/[wsId]/sso/`) and rules.
 
 ## Rules
 

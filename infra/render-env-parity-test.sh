@@ -60,7 +60,6 @@ postgres_litellm_user=v_pgllmuser
 postgres_litellm_password=v_pgllmpw
 valkey_password=v_vkpw
 valkey_db=2
-valkey_tls_enabled=True
 nuxt_s3_endpoint=v_s3ep
 nuxt_s3_access_key=v_s3ak
 nuxt_s3_secret_key=v_s3sk

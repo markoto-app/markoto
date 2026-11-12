@@ -178,7 +178,6 @@ jobs:
           POSTGRES_APP_USER: ${{ vars.POSTGRES_APP_USER }}
           POSTGRES_LITELLM_USER: ${{ vars.POSTGRES_LITELLM_USER }}
           VALKEY_DB: ${{ vars.VALKEY_DB }}
-          VALKEY_TLS_ENABLED: ${{ vars.VALKEY_TLS_ENABLED }}
           NUXT_S3_ENDPOINT: ${{ vars.NUXT_S3_ENDPOINT }}
           NUXT_S3_BUCKET: ${{ vars.NUXT_S3_BUCKET }}
           NUXT_STRIPE_LOOKUP_KEY_PREFIX: ${{ vars.NUXT_STRIPE_LOOKUP_KEY_PREFIX }}
@@ -281,6 +280,7 @@ jobs:
           COMPACT_THRESHOLD: ${{ vars.COMPACT_THRESHOLD }}
           COMPACT_INTERVAL_MS: ${{ vars.COMPACT_INTERVAL_MS }}
           COMPACT_MAX_DOCS_PER_RUN: ${{ vars.COMPACT_MAX_DOCS_PER_RUN }}
+          COMPACT_RETAIN_HISTORY_DAYS: ${{ vars.COMPACT_RETAIN_HISTORY_DAYS }}
           # the tag being deployed pins IMAGE_TAG in the rendered .env
           IMAGE_TAG: ${{ inputs.tag }}
         run: |

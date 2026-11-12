@@ -117,7 +117,7 @@ export interface ApiHandlerDef<Ctx, P, Q, B extends BodySpec, R> {
   handler: (ctx: Ctx & ParsedInput<P, Q, B> & { event: H3Event }) => R | Promise<R>
 }
 
-/** Secret columns of server/db/schema.ts that a response must never carry. */
+/** Secret columns of server/db/schema/ that a response must never carry. */
 type SecretKey = 'passwordHash' | 'anonCreatorKeyHash' | 'tokenHash' | 'scimTokenHash' | 'litellmKeyToken'
   | 'oidcClientSecret' | 'apiKeyEncrypted' | 'confirmTokenHash' | 'unsubscribeTokenHash' | 'verifyToken'
 

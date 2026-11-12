@@ -79,7 +79,7 @@ describe('renderer copy', () => {
   it('is byte-identical to the shared helper (the renderer image is built from renderer/ only)', () => {
     const root = resolve(__dirname, '../../..')
     const shared = readFileSync(resolve(root, 'shared/utils/security/internalSecret.ts'), 'utf8')
-    const copy = readFileSync(resolve(root, 'renderer/src/internalSecret.ts'), 'utf8')
+    const copy = readFileSync(resolve(root, 'renderer/src/shared/utils/security/internalSecret.ts'), 'utf8')
     expect(copy).toBe(shared)
   })
 })

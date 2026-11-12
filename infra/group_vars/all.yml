@@ -42,7 +42,6 @@ postgres_host: "{{ ovh_pg_host | default('postgres') }}"
 postgres_port: "{{ ovh_pg_port | default(5432) }}"
 
 valkey_db: 0
-valkey_tls_enabled: false
 
 s3_endpoint: "{{ ovh_s3_endpoint | default('') }}"
 s3_bucket: "{{ ovh_s3_bucket | default('') }}"

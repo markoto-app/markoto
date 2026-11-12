@@ -90,7 +90,8 @@ export function notifySyncReauthDocument(docId: string): void {
  * store is debounced 2–10 s) and wait until it has. Call before reading
  * a live document's `yjs_updates` rows — `duplicateDocument` clones
  * them, and without the flush a duplicate made right after an edit
- * would miss that edit.
+ * would miss that edit; a restore reads the id of the row its own
+ * change was stored in.
  *
  * Unlike the kick above this one is awaited, but it never fails the
  * caller: on timeout / sync-server down it reports false and the caller

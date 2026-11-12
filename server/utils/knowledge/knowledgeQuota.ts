@@ -12,6 +12,7 @@ import { resolveUserPlan, resolveWorkspacePlan } from '../billing/entitlements'
 import { isBillingEnabled } from '../billing/billingMode'
 import { getPooledWorkspace, workspacePoolCaps } from '../billing/workspaceBilling'
 import { apiError } from '../api/apiError'
+import { MIB } from '~~/shared/config/units'
 
 /**
  * Per-user caps don't apply inside a pooled (Team / Business) workspace;
@@ -164,29 +165,7 @@ export async function reserveUploadSlot(args: {
 }): Promise<{ releaseSlots: () => Promise<void> }> {
   const caps = await resolveCaps({ workspaceId: args.workspaceId, uploaderId: args.userId })
 
-  if (args.size > caps.maxFileBytes) {
-    throw apiError('knowledge/file-too-large')
-  }
-
-  const [wsCount, wsBytes, userCount, userBytes] = await Promise.all([
-    countWorkspaceKnowledge(args.workspaceId),
-    sumWorkspaceKnowledgeBytes(args.workspaceId),
-    countKnowledgeByUploader(args.userId, { excludePooled: isBillingEnabled() }),
-    sumKnowledgeBytesByUploader(args.userId, { excludePooled: isBillingEnabled() })
-  ])
-
-  if (wsCount >= caps.maxFilesPerWorkspace) {
-    throw apiError('knowledge/workspace-file-cap', { recovery: limitRecovery() })
-  }
-  if (wsBytes + args.size > caps.maxTotalBytesPerWorkspace) {
-    throw apiError('knowledge/workspace-bytes-cap', { recovery: limitRecovery() })
-  }
-  if (userCount >= caps.maxFilesPerUser) {
-    throw apiError('knowledge/user-file-cap', { recovery: limitRecovery() })
-  }
-  if (userBytes + args.size > caps.maxTotalBytesPerUser) {
-    throw apiError('knowledge/user-bytes-cap', { recovery: limitRecovery() })
-  }
+  const { wsCount, userCount } = await assertWithinCaps(caps, args)
 
   // Reserve BOTH slots. If the second reservation fails, release the
   // first so the partial reservation doesn't pin a slot for the TTL.
@@ -240,8 +219,23 @@ export async function assertCapsOnConfirm(args: {
   size: number
 }): Promise<void> {
   const caps = await resolveCaps({ workspaceId: args.workspaceId, uploaderId: args.userId })
+  await assertWithinCaps(caps, args)
+}
+
+/** Whole megabytes, for the limit an error names. */
+function megabytes(bytes: number): number {
+  return Math.round(bytes / MIB)
+}
+
+/**
+ * Refuses a file of `size` bytes that would pass a cap: its size, the
+ * workspace's file count and bytes, the uploader's file count and bytes.
+ * The error names the limit, so a client (or an MCP agent) knows what to
+ * delete or how much fits. Returns the current counts.
+ */
+async function assertWithinCaps(caps: KnowledgeCaps, args: { workspaceId: string, userId: number, size: number }): Promise<{ wsCount: number, userCount: number }> {
   if (args.size > caps.maxFileBytes) {
-    throw createError({ statusCode: 413, message: 'Uploaded file exceeds size limit' })
+    throw apiError('knowledge/file-too-large', { maxMb: megabytes(caps.maxFileBytes) })
   }
   const [wsCount, wsBytes, userCount, userBytes] = await Promise.all([
     countWorkspaceKnowledge(args.workspaceId),
@@ -250,15 +244,16 @@ export async function assertCapsOnConfirm(args: {
     sumKnowledgeBytesByUploader(args.userId, { excludePooled: isBillingEnabled() })
   ])
   if (wsCount >= caps.maxFilesPerWorkspace) {
-    throw createError({ statusCode: 409, message: 'Workspace knowledge limit reached' })
+    throw apiError('knowledge/workspace-file-cap', { max: caps.maxFilesPerWorkspace, recovery: limitRecovery() })
   }
   if (wsBytes + args.size > caps.maxTotalBytesPerWorkspace) {
-    throw createError({ statusCode: 409, message: 'Workspace knowledge storage limit reached' })
+    throw apiError('knowledge/workspace-bytes-cap', { maxMb: megabytes(caps.maxTotalBytesPerWorkspace), recovery: limitRecovery() })
   }
   if (userCount >= caps.maxFilesPerUser) {
-    throw createError({ statusCode: 409, message: 'Per-user knowledge limit reached' })
+    throw apiError('knowledge/user-file-cap', { max: caps.maxFilesPerUser, recovery: limitRecovery() })
   }
   if (userBytes + args.size > caps.maxTotalBytesPerUser) {
-    throw createError({ statusCode: 409, message: 'Per-user knowledge storage limit reached' })
+    throw apiError('knowledge/user-bytes-cap', { maxMb: megabytes(caps.maxTotalBytesPerUser), recovery: limitRecovery() })
   }
+  return { wsCount, userCount }
 }

@@ -156,6 +156,36 @@ function createPlacementResolver(doc: Y.Doc, structs: ReadonlyArray<Y.Item | Y.G
     return s instanceof Y.Item ? s : 'gc'
   }
 
+  /**
+   * One step of the walk: the item's placement when it is known from the
+   * item itself (memoised), or the item its parent is implied by.
+   */
+  function resolveStep(cur: Y.Item): { result: Resolution } | { next: Y.Item, intoNested: boolean } {
+    const parent: unknown = cur.parent
+    let result: Resolution
+    let next: Y.Item | 'gc' | 'missing'
+    let intoNested = false
+    if (typeof parent === 'string') {
+      result = { root: parent, key: cur.parentSub, nested: false }
+    } else if (parent instanceof Y.AbstractType) {
+      result = placementOfType(parent, cur.parentSub)
+    } else {
+      if (parent instanceof Y.ID) {
+        // Parent is a nested type; `parent` is the id of the item holding it.
+        next = lookup(parent)
+        intoNested = true
+      } else {
+        // Parent implied by the neighbour this item was inserted next to.
+        const ref = cur.origin ?? cur.rightOrigin
+        next = ref ? lookup(ref) : 'missing'
+      }
+      if (next !== 'gc' && next !== 'missing') return { next, intoNested }
+      result = next
+    }
+    memo.set(cur, result)
+    return { result }
+  }
+
   return function placementOf(start: Y.Item): Resolution {
     // Walk references until something resolves, remembering for each
     // step whether it descended into a nested type.
@@ -172,36 +202,13 @@ function createPlacementResolver(doc: Y.Doc, structs: ReadonlyArray<Y.Item | Y.G
         result = 'missing'
         break
       }
-      const parent: unknown = cur.parent
-      if (typeof parent === 'string') {
-        result = { root: parent, key: cur.parentSub, nested: false }
-        memo.set(cur, result)
+      const step = resolveStep(cur)
+      if ('result' in step) {
+        result = step.result
         break
       }
-      if (parent instanceof Y.AbstractType) {
-        result = placementOfType(parent, cur.parentSub)
-        memo.set(cur, result)
-        break
-      }
-      let next: Y.Item | 'gc' | 'missing'
-      let intoNested: boolean
-      if (parent instanceof Y.ID) {
-        // Parent is a nested type; `parent` is the id of the item holding it.
-        next = lookup(parent)
-        intoNested = true
-      } else {
-        // Parent implied by the neighbour this item was inserted next to.
-        const ref = cur.origin ?? cur.rightOrigin
-        next = ref ? lookup(ref) : 'missing'
-        intoNested = false
-      }
-      if (next === 'gc' || next === 'missing') {
-        result = next
-        memo.set(cur, result)
-        break
-      }
-      chain.push({ item: cur, intoNested })
-      cur = next
+      chain.push({ item: cur, intoNested: step.intoNested })
+      cur = step.next
     }
     for (let i = chain.length - 1; i >= 0; i--) {
       const step = chain[i]
@@ -226,20 +233,23 @@ function checkMetaWrites(doc: Y.Doc, structs: ReadonlyArray<Y.Item | Y.GC | Y.Sk
     if (!(s instanceof Y.Item)) continue
     // Already integrated (a resend) — Y.js skips it on apply.
     if (Y.getState(doc.store, s.id.client) >= s.id.clock + s.length) continue
-    const placement = placementOf(s)
-    if (placement === 'missing') {
-      throw new SyncRejection(SYNC_CLOSE_REASONS.invalidUpdate, 'references unknown state')
-    }
-    if (placement === 'gc' || placement.root !== META_ROOT) continue
-    if (s.content instanceof Y.ContentDeleted) continue
-    if (placement.nested || placement.key === null) {
-      throw new SyncRejection(SYNC_CLOSE_REASONS.invalidMeta, 'nested value')
-    }
-    const content: unknown = s.content
-    const values = content instanceof Y.ContentAny || content instanceof Y.ContentJSON ? content.arr : null
-    if (values?.length !== 1 || !isValidMetaValue(placement.key, values[0])) {
-      throw new SyncRejection(SYNC_CLOSE_REASONS.invalidMeta, `key ${placement.key.slice(0, 64)}`)
-    }
+    checkMetaItem(s, placementOf(s))
+  }
+}
+
+function checkMetaItem(s: Y.Item, placement: Resolution): void {
+  if (placement === 'missing') {
+    throw new SyncRejection(SYNC_CLOSE_REASONS.invalidUpdate, 'references unknown state')
+  }
+  if (placement === 'gc' || placement.root !== META_ROOT) return
+  if (s.content instanceof Y.ContentDeleted) return
+  if (placement.nested || placement.key === null) {
+    throw new SyncRejection(SYNC_CLOSE_REASONS.invalidMeta, 'nested value')
+  }
+  const content: unknown = s.content
+  const values = content instanceof Y.ContentAny || content instanceof Y.ContentJSON ? content.arr : null
+  if (values?.length !== 1 || !isValidMetaValue(placement.key, values[0])) {
+    throw new SyncRejection(SYNC_CLOSE_REASONS.invalidMeta, `key ${placement.key.slice(0, 64)}`)
   }
 }
 

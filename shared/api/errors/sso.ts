@@ -14,6 +14,16 @@ export const ssoErrors = defineErrors('sso', {
   'invalid-domain': { status: 400, params: z.object({ field: z.string().optional(), fields: z.array(fieldIssue).optional() }) },
   // `detail`: what is wrong with `field`, in English (for API callers; the form names the field).
   'invalid-settings': { status: 400, params: z.object({ field: z.string().optional(), fields: z.array(fieldIssue).optional(), detail: z.string().optional() }) },
+  // What is wrong with one settings field (`field`), so the admin knows what to fix.
+  'certificate-format': { status: 400, params: z.object({ field: z.string() }) },
+  'certificate-invalid': { status: 400, params: z.object({ field: z.string() }) },
+  'certificate-expired': { status: 400, params: z.object({ field: z.string() }) },
+  'client-secret-required': { status: 400, params: z.object({ field: z.string() }) },
+  'url-invalid': { status: 400, params: z.object({ field: z.string() }) },
+  'url-not-https': { status: 400, params: z.object({ field: z.string() }) },
+  'url-credentials': { status: 400, params: z.object({ field: z.string() }) },
+  'url-unresolvable': { status: 400, params: z.object({ field: z.string(), host: z.string() }) },
+  'url-refused': { status: 400, params: z.object({ field: z.string() }) },
   'misconfigured': { status: 503 },
   'not-configured': { status: 404 },
   'no-connection': { status: 404 },

@@ -13,7 +13,7 @@ const log = useLogger('audit')
 // on actor_user_id (when a user account is purged) or a manual DBA
 // action.
 //
-// See `schema.ts` and docs/contributing/database.md for the data-model
+// See `server/db/schema/privacy.ts` and docs/contributing/database.md for the data-model
 // rationale.
 
 export type AuditScope = 'doc' | 'workspace' | 'user' | 'billing' | 'system'

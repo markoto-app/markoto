@@ -313,8 +313,11 @@ substitution.
 ## B.4 Optional TLS
 
 With app and Valkey containers on the same Docker network, the network is
-the trust boundary and TLS adds nothing. A Valkey on a separate host (a
-managed Redis / Valkey service) needs TLS:
+the trust boundary and TLS adds nothing: the hosted and self-host compose
+files pin `VALKEY_HOST=valkey` and do not pass the variables below (the
+hosted deploy does not render them either). They are for running the app
+and sync server against a Valkey on a separate host (a managed Redis /
+Valkey service), which needs TLS:
 
 | Var | Default | When set |
 |---|---|---|
@@ -661,7 +664,7 @@ errors).
 The app server, the sync server and the renderer pass every error event,
 every sampled transaction and every breadcrumb through one scrubber
 (`shared/utils/security/sentryScrub.ts`; the renderer carries a
-byte-identical copy, `renderer/src/sentryScrub.ts`) wired as `beforeSend`,
+byte-identical copy, `renderer/src/shared/utils/security/sentryScrub.ts`) wired as `beforeSend`,
 `beforeSendTransaction` and `beforeBreadcrumb`, with `sendDefaultPii: false`:
 
 - URLs (request URL, span and breadcrumb URLs, `http.url` / `url.full`)

@@ -121,7 +121,7 @@ Container hardening, CSP details and the renderer sandbox are in [SECURITY-HARDE
 
 | Data | Where |
 |---|---|
-| Application data (users, documents, workspaces, billing, audit and consent logs, …) | PostgreSQL via Drizzle; schema in `server/db/schema.ts`, migrations in `drizzle/` |
+| Application data (users, documents, workspaces, billing, audit and consent logs, …) | PostgreSQL via Drizzle; schema in `server/db/schema/` (one file per domain), migrations in `drizzle/` |
 | Y.js document state | PostgreSQL, `yjs_updates` (append-only log of updates and snapshots per document, deleted with the `documents` row; layout in [`docs/contributing/sync-server.md`](contributing/sync-server.md#persistence)) |
 | Knowledge chunks and embeddings | PostgreSQL, pgvector HNSW + GIN index |
 | Per-document sync state, rate limits, locks | Valkey (sync state has a 24 h TTL) |
@@ -147,7 +147,7 @@ Development uses `docker-compose.dev.yml` (infrastructure only, app on the host)
 | Path | Contents |
 |---|---|
 | `app/` | Vue frontend: `components/`, `composables/<domain>/`, `pages/`, `layouts/`, `utils/<domain>/`, `plugins/`, `middleware/` |
-| `server/` | Nitro: `api/`, `routes/`, `middleware/`, `plugins/` (migrations, sweepers, workers), `db/schema.ts`, `repos/` (database access), `utils/<domain>/`, `mcp/`, `legal/` |
+| `server/` | Nitro: `api/`, `routes/`, `middleware/`, `plugins/` (migrations, sweepers, workers), `db/schema/`, `repos/` (database access), `utils/<domain>/`, `mcp/`, `legal/` |
 | `shared/` | Code for client and server: `config/`, `contracts/`, `types/`, `utils/<domain>/`, templates, audiences, languages, legal versions |
 | `sync-server/` | Hocuspocus container |
 | `renderer/`, `markitdown-server/`, `backup-server/` | Sidecars |

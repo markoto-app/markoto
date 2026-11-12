@@ -6,7 +6,7 @@ It is separate from the audit log (`audit_log`, `server/repos/audit.ts`), which 
 
 ## Where rows come from
 
-Rows live in `activity_log` (`server/db/schema.ts`, `server/repos/activity.ts`). Actions: `edit`, `join`, `leave`, `comment.added` / `replied` / `resolved` / `reopened` / `deleted`, `theme.changed`, `title.changed`, `ai.tool`, `restore`. The column is a text enum, so a new action is a TypeScript change only.
+Rows live in `activity_log` (`server/db/schema/collab.ts`, `server/repos/activity.ts`). Actions: `edit`, `join`, `leave`, `comment.added` / `replied` / `resolved` / `reopened` / `deleted`, `theme.changed`, `title.changed`, `ai.tool`, `restore`. The column is a text enum, so a new action is a TypeScript change only.
 
 - `edit`, `title.changed`, `theme.changed` are written by the sync server after each store (see [sync-server.md](sync-server.md#activity-logging)). The actor name comes from the editing connection's JWT, never from the awareness name a client chooses; anonymous editors appear as "Anonymous" with their per-tab avatar seed.
 - Comment, AI tool and restore rows are written by the app's endpoints.

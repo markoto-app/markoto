@@ -58,7 +58,9 @@
         "typescript-eslint"
       ],
       // System binaries called from scripts / test setup / package.json checks.
-      "ignoreBinaries": ["pdftoppm", "openssl", "uvx", "shellcheck", "hadolint", "lychee"]
+      // uv / uvx are the Python toolchain (ruff, pyright, markitdown tests), installed
+      // on the host, not npm packages.
+      "ignoreBinaries": ["pdftoppm", "openssl", "uv", "uvx", "shellcheck", "hadolint", "lychee"]
     },
     // sync-server and renderer are NOT Bun workspaces; knip reads their own
     // package.json and bun.lock-installed node_modules.
@@ -74,15 +76,11 @@
     "scripts/flows-test-changed.ts": ["unresolved"],
     // `#nitro-internal-pollyfills` is a Nitro virtual module, resolved by the bundler.
     "server/runtime/bunEntry.ts": ["unresolved"],
-    // Byte-identical copy of shared/utils/security/internalSecret.ts: the renderer image
-    // is built from renderer/ alone (pinned by tests/unit/platform/internalSecret.test.ts),
-    // so the exports its own code does not call must stay.
-    "renderer/src/internalSecret.ts": ["exports"],
-    // Same for shared/utils/security/sentryScrub.ts (pinned by tests/unit/platform/sentryScrub.test.ts).
-    "renderer/src/sentryScrub.ts": ["exports"],
-    // Byte-identical copy of shared/logging/core.ts, pinned by tests/unit/logging/core.test.ts;
-    // the renderer uses only part of it.
-    "renderer/src/logging-core.ts": ["exports"],
+    // renderer/src/shared/ mirrors the shared/ files the renderer needs, byte for byte
+    // (its image is built from renderer/ alone; pinned by tests/unit/logging/core.test.ts,
+    // tests/unit/platform/{internalSecret,sentryScrub}.test.ts), so the exports its own
+    // code does not call must stay.
+    "renderer/src/shared/**": ["exports"],
     // `ApiInputOf` is read by the generated .nuxt/types/api-inputs.d.ts (modules/api-contract.ts)
     "shared/api/contract.ts": ["types"]
   },

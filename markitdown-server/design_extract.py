@@ -32,7 +32,7 @@ import base64
 import io
 import re
 import zipfile
-from collections import Counter
+from collections import Counter, defaultdict
 from typing import Any
 
 from defusedxml import ElementTree as ET
@@ -562,7 +562,9 @@ def render_pdf_pages(body: bytes, max_pages: int) -> tuple[int, list[dict[str, A
             page = pdf[i]
             width = page.get_width() or 1
             scale = min(PAGE_PX_WIDTH / width, 3.0)
-            image = page.render(scale=scale).to_pil().convert("RGB")
+            # pypdfium2 documents `scale` as a float; its signature is
+            # unannotated, so the checker infers `int` from the default `1`.
+            image = page.render(scale=scale).to_pil().convert("RGB")  # pyright: ignore[reportArgumentType]
             buf = io.BytesIO()
             image.save(buf, format="PNG", optimize=True)
             pages.append(
@@ -587,7 +589,8 @@ def extract_pdf(body: bytes, max_pages: int = MAX_PAGES) -> dict[str, Any]:
     fonts: Counter = Counter()
     sizes: Counter = Counter()
     colors: Counter = Counter()
-    fills: Counter = Counter()
+    # Share of the page area each fill colour covers: fractions, so not a Counter (int counts).
+    fills: defaultdict[str, float] = defaultdict(float)
     lines: list[dict[str, Any]] = []
     margins: list[dict[str, float]] = []
     page_size: dict[str, float] = {}
@@ -677,7 +680,7 @@ def extract_pdf(body: bytes, max_pages: int = MAX_PAGES) -> dict[str, Any]:
             "textColors": _top(colors, 8),
             "filledShapes": [
                 {"value": k, "pageShare": round(v / max(1, len(pages)), 3)}
-                for k, v in fills.most_common(6)
+                for k, v in sorted(fills.items(), key=lambda kv: kv[1], reverse=True)[:6]
             ],
             "lines": lines,
         },

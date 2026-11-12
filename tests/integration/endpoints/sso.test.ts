@@ -157,10 +157,16 @@ describe('SSO settings', () => {
     for (const issuer of ['http://127.0.0.1:4130/x', 'http://169.254.169.254/latest', 'https://postgres-test/x', 'https://litellm/x']) {
       const res = await client.put(`/api/workspaces/${ws.workspaceId}/sso`, { protocol: 'oidc', oidcIssuer: issuer, oidcClientId: 'a', oidcClientSecret: 'b' })
       expect(res.status, issuer).toBe(400)
-      expect((await res.json() as { data?: { field?: string } }).data?.field).toBe('oidcIssuer')
+      // The code says what to change, not just that something is wrong.
+      expect((await res.json() as { data?: { field?: string, code?: string } }).data, issuer).toMatchObject({ field: 'oidcIssuer', code: 'sso/url-refused' })
     }
     const bad = await client.put(`/api/workspaces/${ws.workspaceId}/sso`, { protocol: 'saml', samlIdpEntityId: 'x', samlSsoUrl: 'https://idp.example/sso', samlIdpCert: 'not a certificate' })
     expect(bad.status).toBe(400)
+    expect(await bad.json()).toMatchObject({ data: { code: 'sso/certificate-invalid', field: 'samlIdpCert' }, message: 'This is not a valid X.509 certificate.' })
+    const notBase64 = await client.put(`/api/workspaces/${ws.workspaceId}/sso`, { protocol: 'saml', samlIdpEntityId: 'x', samlSsoUrl: 'https://idp.example/sso', samlIdpCert: '<certificate/>' })
+    expect(await notBase64.json()).toMatchObject({ data: { code: 'sso/certificate-format', field: 'samlIdpCert' } })
+    const plain = await client.put(`/api/workspaces/${ws.workspaceId}/sso`, { protocol: 'saml', samlIdpEntityId: 'x', samlSsoUrl: 'ftp://idp.example/sso', samlIdpCert: 'not a certificate' })
+    expect(await plain.json()).toMatchObject({ data: { code: 'sso/url-not-https', field: 'samlSsoUrl' } })
   })
 
   it('on markoto.app (free plan, no private IdPs) SSO is not available', async () => {

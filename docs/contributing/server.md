@@ -12,7 +12,7 @@ How the Nitro server in `server/` decides who may do what, how sessions and docu
 | `server/plugins/` | Startup hooks and periodic jobs; numeric prefixes order the ones that must run first (`00-db-migrate.ts`) |
 | `server/repos/` | Drizzle queries, one file per table family (`server/repos/AGENTS.md`); the `users` row is split by concern: `users.ts` (lookups, session epoch), `userSignIn.ts` (OAuth upsert), `userPolicies.ts` (policy acceptance), `userDeletionRequests.ts`, `userBilling.ts` (plan + Stripe columns) |
 | `server/utils/<domain>/` | Orchestration grouped by domain (auth, documents, workspaces, billing, knowledge, storage, rendering, privacy, platform, …). Nitro auto-imports from every sub-folder. A long route keeps its declaration (access, schemas, rate limits, error codes) and calls a use-case function here: `ai/prompt.post.ts` → `agentic/sessions/editorPrompt.ts`, the `@ai` trigger → `agentic/sessions/commentTrigger.ts`, the member invite → `workspaces/inviteMember.ts`, the plan checkouts → `billing/proCheckout.ts`, `billing/workspaceCheckout.ts` |
-| `server/db/schema.ts` | The schema (`server/db/AGENTS.md`, [database.md](database.md)) |
+| `server/db/schema/` | The schema, one file per domain (`server/db/AGENTS.md`, [database.md](database.md)) |
 | `server/utils/api/` | The handler contract: `defineApiHandler`, the `allow.*` access policies, `apiError` ([api-handlers.md](api-handlers.md)) |
 | `server/error.ts` | Nitro error handler: 4xx pass through, 5xx become a generic message with `code: 'internal'` |
 

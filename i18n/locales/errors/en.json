@@ -206,7 +206,7 @@
       "content-type-mismatch": "The uploaded file does not have the expected type.",
       "editor-required": "Only admins and editors can change the knowledge base.",
       "empty-upload": "The uploaded file is empty.",
-      "file-too-large": "The file is too large.",
+      "file-too-large": "The file is too large (at most {maxMb} MB).",
       "invalid-key": "The storage key does not belong to this workspace's knowledge base.",
       "key-mismatch": "knowledgeId must match the s3Key.",
       "not-found": "Knowledge file not found.",
@@ -215,10 +215,10 @@
       "too-many-pending": "Too many uploads are pending. Try again in a moment.",
       "unsupported-format": "Unsupported format: .{ext}. Allowed: {allowed}.",
       "upload-not-found": "Upload not found. Request a new upload and try again.",
-      "user-bytes-cap": "You've reached your knowledge storage limit.",
-      "user-file-cap": "You've reached your knowledge upload limit.",
-      "workspace-bytes-cap": "This workspace has reached its knowledge storage limit.",
-      "workspace-file-cap": "This workspace has reached its knowledge file limit."
+      "user-bytes-cap": "You've reached your knowledge storage limit ({maxMb} MB).",
+      "user-file-cap": "You've reached your knowledge upload limit ({max} files).",
+      "workspace-bytes-cap": "This workspace has reached its knowledge storage limit ({maxMb} MB).",
+      "workspace-file-cap": "This workspace has reached its knowledge file limit ({max} files)."
     },
     "legal": {
       "disabled": "Legal pages are not enabled on this deployment."
@@ -228,14 +228,14 @@
       "invalid-token-request": "Invalid token request.",
       "missing-doc-id": "doc_id is required.",
       "missing-workspace-id": "workspace_id is required.",
-      "rate-limited": "Too many requests — please wait a moment and try again.",
       "render-rate-limited": "Too many render requests. Try again in a minute.",
       "token-not-found": "Token not found.",
-      "too-many-open-docs": "Too many documents are open at the same time. Wait a few minutes and try again.",
+      "too-many-open-docs": "Too many documents are open at the same time (at most {max}). Wait a few minutes and try again.",
       "too-many-tokens": "You have the maximum number of active MCP tokens. Revoke one first.",
-      "tool-not-found": "Tool not found.",
+      "tool-not-found": "Tool {tool} not found.",
       "unauthenticated": "MCP authentication required.",
-      "workspace-not-found": "Workspace not found."
+      "workspace-not-found": "Workspace not found.",
+      "tool-call-limit": "Too many tool calls (limit: {limit} per {minutes} min). Try again later."
     },
     "moderation": {
       "not-restricted": "This document is not restricted.",
@@ -322,7 +322,16 @@
       "test-mismatch": "The test sign-in used a different account.",
       "test-not-admin": "Only an admin of the workspace can test its sign-in.",
       "unknown": "Unknown sign-in link.",
-      "scim-needs-connection": "Set up single sign-on first."
+      "scim-needs-connection": "Set up single sign-on first.",
+      "certificate-format": "Paste the identity provider's signing certificate (PEM or Base64).",
+      "certificate-invalid": "This is not a valid X.509 certificate.",
+      "certificate-expired": "This certificate has expired.",
+      "client-secret-required": "Enter the client secret.",
+      "url-invalid": "This is not a valid URL.",
+      "url-not-https": "The URL must start with https://.",
+      "url-credentials": "The URL must not contain a user name or password.",
+      "url-unresolvable": "The host name {host} could not be resolved.",
+      "url-refused": "markoto may not connect to this address (an internal service, a loopback, link-local or metadata address, or a private network)."
     },
     "template": {
       "doc-not-found": "Document not found in this workspace.",

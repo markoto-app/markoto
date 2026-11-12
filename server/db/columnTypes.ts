@@ -1,4 +1,4 @@
-// Shapes of the jsonb columns in `schema.ts` that only the server reads
+// Shapes of the jsonb columns in `schema/` that only the server reads
 // (`.$type<…>()` changes no SQL). Where a column's shape depends on another
 // column of the row (a kind / action), the union is keyed by that column, and
 // readers pair the two with the parsers here: rows written by older code are

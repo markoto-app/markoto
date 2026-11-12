@@ -6,7 +6,7 @@ import { useDatabase } from '../utils/platform/database'
 // (`server/repos/docProvenance.ts`). One row per session, written when
 // the session is claimed (`clean = false`) and flipped to `clean = true`
 // only after the session ended untainted — see the table comment in
-// `server/db/schema.ts`. Fail-closed by construction: every path that
+// `server/db/schema/ai.ts`. Fail-closed by construction: every path that
 // does not reach `markAiSessionProvenanceClean` leaves the session's
 // edits counted as somebody else's.
 

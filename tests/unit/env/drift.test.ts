@@ -82,11 +82,10 @@ describe('deploy paths ↔ compose', () => {
   const prodNeeds = [...interpolations(STACKS[0]!.files)].filter(([, hasDefault]) => !hasDefault).map(([k]) => k)
 
   // Written for the operator's reference although docker-compose.prod.yml
-  // pins these values itself (internal service URLs, Valkey address) or
-  // does not pass them (VALKEY_TLS_ENABLED: no TLS on the in-stack Valkey).
+  // pins these values itself (internal service URLs, Valkey address).
   // Kept until the compose restructure; listed so a new dead line fails.
   const WRITTEN_BUT_PINNED_BY_COMPOSE = new Set([
-    'VALKEY_HOST', 'VALKEY_PORT', 'VALKEY_TLS_ENABLED',
+    'VALKEY_HOST', 'VALKEY_PORT',
     'NUXT_MARKITDOWN_URL', 'NUXT_SYNC_INTERNAL_URL', 'NUXT_PUBLIC_SYNC_URL', 'NUXT_RENDERER_INTERNAL_URL'
   ])
   // Consumed by the deploy path itself (turned into PGSSLROOTCERT).
@@ -112,6 +111,27 @@ describe('deploy paths ↔ compose', () => {
       .filter(([, hasDefault]) => !hasDefault)
       .map(([k]) => k)
     expect(needs.filter(k => !script.includes(`${k}=`) && !script.includes(`${k} `))).toEqual([])
+  })
+
+  it('deploy.yml hands render-env.sh every optional setting it reads', () => {
+    // `${NAME:-…}` / `${NAME:?…}` in render-env.sh: a value the operator may
+    // set in the GitHub Environment. Without a line in deploy.yml setting it
+    // there silently does nothing.
+    const reads = new Set([...read('infra/render-env.sh').matchAll(/\$\{([A-Z][A-Z0-9_]*):[-?]/g)].map(m => m[1]!))
+    const passed = new Set([...read('.github/workflows/deploy.yml').matchAll(/^\s+([A-Z][A-Z0-9_]{2,}): \$\{\{/gm)].map(m => m[1]!))
+    // Fixed for markoto.app by render-env.sh's defaults: the BYOK provider
+    // allowlist, the platform AI defaults (aliases, no own endpoints) and the
+    // Jina embeddings. Other operators use install.sh, not this workflow.
+    const fixedForHosted = new Set([
+      'NUXT_AI_BYOK_ALLOWED_BASE_URLS', 'NUXT_AI_BYOK_ALLOW_PRIVATE_URLS',
+      'NUXT_AI_DEFAULT_CHAT_API_KEY', 'NUXT_AI_DEFAULT_CHAT_BASE_URL',
+      'NUXT_AI_DEFAULT_IMAGE_API_KEY', 'NUXT_AI_DEFAULT_IMAGE_BASE_URL',
+      'NUXT_AI_DEFAULT_TRANSCRIBE_API_KEY', 'NUXT_AI_DEFAULT_TRANSCRIBE_BASE_URL',
+      'NUXT_LITELLM_EMBEDDINGS_MODEL', 'NUXT_LITELLM_EMBEDDINGS_DIMS',
+      'NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS', 'NUXT_LITELLM_EMBEDDINGS_TASK_HINTS',
+      'EMBEDDINGS_UPSTREAM_MODEL', 'EMBEDDINGS_UPSTREAM_API_BASE', 'EMBEDDINGS_UPSTREAM_API_KEY'
+    ])
+    expect([...reads].filter(n => !passed.has(n) && !fixedForHosted.has(n))).toEqual([])
   })
 
   it('deploy.yml hands render-env.sh only registered variables', () => {

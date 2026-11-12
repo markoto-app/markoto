@@ -71,7 +71,7 @@ export type ToolCallLimit = 'render' | RateLimitRule
 export async function admitToolCall(event: H3Event, name: string, scope: McpScope, limit?: ToolCallLimit): Promise<McpAuthContext> {
   const auth = requireMcpAuth(event)
   if (!hasScope(event, scope)) {
-    throw apiError('mcp/tool-not-found')
+    throw apiError('mcp/tool-not-found', { tool: name })
   }
   // Plan: without `mcpWrite` only read tools run (lib/toolClasses.ts).
   const plan = event.context.mcpPlan
@@ -84,7 +84,7 @@ export async function admitToolCall(event: H3Event, name: string, scope: McpScop
   }
   const perUser = MCP_RATE_LIMITS.toolCallsPerUser
   if (!(await checkRateLimit(perUser.namespace, String(auth.userId), perUser.max, perUser.windowMs))) {
-    throw apiError('mcp/rate-limited')
+    throw toolCallLimitError(perUser)
   }
   // Plan: daily tool-call allowance (`mcpToolCallsPerDay`, null = none).
   const daily = plan?.mcpToolCallsPerDay ?? null
@@ -103,9 +103,13 @@ export async function admitToolCall(event: H3Event, name: string, scope: McpScop
       throw apiError('mcp/render-rate-limited')
     }
   } else if (limit && !(await checkRateLimit(limit.namespace, String(auth.userId), limit.max, limit.windowMs))) {
-    throw apiError('mcp/rate-limited')
+    throw toolCallLimitError(limit, name)
   }
   return auth
+}
+
+function toolCallLimitError(rule: RateLimitRule, tool?: string) {
+  return apiError('mcp/tool-call-limit', { limit: rule.max, minutes: Math.round(rule.windowMs / 60_000), ...(tool ? { tool } : {}) })
 }
 
 export type ToolAnnotations = {

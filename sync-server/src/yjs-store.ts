@@ -1,6 +1,6 @@
 import * as Y from 'yjs'
 
-// The `yjs_updates` table (server/db/schema.ts): every SQL statement the sync
+// The `yjs_updates` table (server/db/schema/sync.ts): every SQL statement the sync
 // server runs against it. No env, Sentry or Hocuspocus in here, so the repos
 // test tier drives it against a real Postgres.
 //

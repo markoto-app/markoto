@@ -12,7 +12,7 @@ A flat reference of the common commands, grouped by task. `make help` lists ever
 | Stop dev infra | `make dev-down` |
 | Stop dev infra and wipe volumes | `make dev-clean` |
 | Tail dev infra logs | `make dev-logs` |
-| Generate a new migration after editing `server/db/schema.ts` | `make db-generate` |
+| Generate a new migration after editing `server/db/schema/` | `make db-generate` |
 | Apply pending migrations manually | `make db-migrate` |
 
 For the full stack in containers with TLS (`make local-up`), see `docs/contributing/LOCAL.md`.

@@ -2,7 +2,7 @@ import type { PoolClient } from 'pg'
 import { useDatabasePool } from '../platform/database'
 
 // The app's access to a document's Y.js log (`yjs_updates`, layout in
-// server/db/schema.ts). The sync server writes it (sync-server/src/yjs-store.ts);
+// server/db/schema/sync.ts). The sync server writes it (sync-server/src/yjs-store.ts);
 // the app reads it for history, duplicate, render, export and image GC, and
 // writes the first row of a brand-new document (seed, duplicate).
 //

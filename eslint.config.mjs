@@ -11,9 +11,7 @@ import { RAW_HANDLER_EXCEPTIONS } from './tests/unit/platform/apiRoutes.exceptio
 const ROOT = import.meta.dirname
 
 // Recommended rule sets are taken at `error`. `strict` upgrades whichever
-// severity a preset picked so the whole tree is uniform; the only rules that
-// stay `warn` are the three size/complexity rules under the ratchet in
-// scripts/checks/lint-budget.mjs (listed in BUDGETED_RULES there).
+// severity a preset picked so the whole tree is uniform: no rule warns.
 const strict = rules => Object.fromEntries(
   Object.entries(rules).map(([name, value]) => [
     name,
@@ -234,7 +232,7 @@ const composed = withNuxt(
     plugins: { sonarjs },
     rules: {
       ...sonarRules,
-      'sonarjs/cognitive-complexity': ['warn', 15],
+      'sonarjs/cognitive-complexity': ['error', 15],
       // Duplicates of rules already enforced by ESLint core / @nuxt/eslint /
       // typescript-eslint.
       'sonarjs/unused-import': 'off',
@@ -298,8 +296,8 @@ const composed = withNuxt(
     name: 'markoto/size-limits',
     files: ['**/*.{ts,mts,js,mjs,vue}'],
     rules: {
-      'max-lines': ['warn', { max: 600, skipBlankLines: true, skipComments: true }],
-      'max-lines-per-function': ['warn', { max: 150, skipBlankLines: true, skipComments: true }]
+      'max-lines': ['error', { max: 600, skipBlankLines: true, skipComments: true }],
+      'max-lines-per-function': ['error', { max: 150, skipBlankLines: true, skipComments: true }]
     }
   },
   {

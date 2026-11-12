@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { DOCS_LANDING_SEO } from '~~/shared/seo/meta'
 import { docsBreadcrumbs } from '~~/shared/seo/breadcrumbs'
 
 // /docs landing page. Hand-written (not driven by a markdown file)
@@ -20,17 +19,19 @@ const { data: featured } = await useAsyncData('docs:featured', () =>
     .all()
 )
 
+const metaTitle = t('docs.landing.metaTitle')
+const metaDescription = t('docs.landing.metaDescription')
 const { imageUrl } = useMarketingSeo({
-  title: DOCS_LANDING_SEO.title,
-  description: DOCS_LANDING_SEO.description,
+  title: metaTitle,
+  description: metaDescription,
   imageGroup: 'docs'
 })
 usePageStructuredData(() => ({
   pageType: 'CollectionPage',
-  name: DOCS_LANDING_SEO.title,
-  description: DOCS_LANDING_SEO.description,
+  name: metaTitle,
+  description: metaDescription,
   image: imageUrl.value,
-  breadcrumbs: docsBreadcrumbs('/docs', DOCS_LANDING_SEO.title),
+  breadcrumbs: docsBreadcrumbs('/docs', metaTitle),
   about: [{ self: true }]
 }))
 

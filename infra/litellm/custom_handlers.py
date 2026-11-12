@@ -14,7 +14,6 @@ import asyncio
 import base64
 import os
 import time
-from typing import Any
 from uuid import uuid4
 
 import httpx
@@ -23,8 +22,6 @@ from litellm import CustomLLM
 from litellm.types.utils import (
     Choices,
     EmbeddingResponse,
-    ImageObject,
-    ImageResponse,
     Message,
     ModelResponse,
     Usage,
@@ -336,8 +333,8 @@ class MistralTranscribeProvider(CustomLLM):
         content = last.get("content", "")
         try:
             req = _json.loads(content) if isinstance(content, str) else content
-        except _json.JSONDecodeError:
-            raise ValueError("Voxtral transcribe message content must be JSON")
+        except _json.JSONDecodeError as e:
+            raise ValueError("Voxtral transcribe message content must be JSON") from e
 
         audio_b64 = req.get("audio_base64")
         mime = req.get("mime", "audio/webm")

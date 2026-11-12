@@ -206,7 +206,7 @@
       "content-type-mismatch": "Die hochgeladene Datei hat nicht den erwarteten Typ.",
       "editor-required": "Nur Admins und Bearbeiter können die Wissensdatenbank ändern.",
       "empty-upload": "Die hochgeladene Datei ist leer.",
-      "file-too-large": "Die Datei ist zu gross.",
+      "file-too-large": "Die Datei ist zu gross (höchstens {maxMb} MB).",
       "invalid-key": "Der Speicherschlüssel gehört nicht zur Wissensdatenbank dieses Arbeitsbereichs.",
       "key-mismatch": "knowledgeId muss mit dem s3Key übereinstimmen.",
       "not-found": "Wissensdatei nicht gefunden.",
@@ -215,10 +215,10 @@
       "too-many-pending": "Zu viele Uploads sind ausstehend. Versuchen Sie es gleich noch einmal.",
       "unsupported-format": "Nicht unterstütztes Format: .{ext}. Erlaubt: {allowed}.",
       "upload-not-found": "Upload nicht gefunden. Fordern Sie einen neuen Upload an und versuchen Sie es erneut.",
-      "user-bytes-cap": "Sie haben Ihr Speicherlimit für die Wissensdatenbank erreicht.",
-      "user-file-cap": "Sie haben Ihr Upload-Limit für die Wissensdatenbank erreicht.",
-      "workspace-bytes-cap": "Dieser Arbeitsbereich hat sein Speicherlimit für die Wissensdatenbank erreicht.",
-      "workspace-file-cap": "Dieser Arbeitsbereich hat sein Dateilimit für die Wissensdatenbank erreicht."
+      "user-bytes-cap": "Sie haben Ihr Speicherlimit für die Wissensdatenbank erreicht ({maxMb} MB).",
+      "user-file-cap": "Sie haben Ihr Upload-Limit für die Wissensdatenbank erreicht ({max} Dateien).",
+      "workspace-bytes-cap": "Dieser Arbeitsbereich hat sein Speicherlimit für die Wissensdatenbank erreicht ({maxMb} MB).",
+      "workspace-file-cap": "Dieser Arbeitsbereich hat sein Dateilimit für die Wissensdatenbank erreicht ({max} Dateien)."
     },
     "legal": {
       "disabled": "Rechtliche Seiten sind in dieser Installation nicht aktiviert."
@@ -228,14 +228,14 @@
       "invalid-token-request": "Ungültige Token-Anfrage.",
       "missing-doc-id": "doc_id ist erforderlich.",
       "missing-workspace-id": "workspace_id ist erforderlich.",
-      "rate-limited": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut.",
       "render-rate-limited": "Zu viele Render-Anfragen. Versuchen Sie es in einer Minute noch einmal.",
       "token-not-found": "Token nicht gefunden.",
-      "too-many-open-docs": "Zu viele Dokumente sind gleichzeitig geöffnet. Warten Sie ein paar Minuten und versuchen Sie es erneut.",
+      "too-many-open-docs": "Zu viele Dokumente sind gleichzeitig geöffnet (höchstens {max}). Warten Sie ein paar Minuten und versuchen Sie es erneut.",
       "too-many-tokens": "Sie haben die maximale Anzahl aktiver MCP-Tokens erreicht. Widerrufen Sie zuerst eines.",
-      "tool-not-found": "Werkzeug nicht gefunden.",
+      "tool-not-found": "Werkzeug {tool} nicht gefunden.",
       "unauthenticated": "MCP-Authentifizierung erforderlich.",
-      "workspace-not-found": "Arbeitsbereich nicht gefunden."
+      "workspace-not-found": "Arbeitsbereich nicht gefunden.",
+      "tool-call-limit": "Zu viele Werkzeugaufrufe (Limit: {limit} pro {minutes} Min.). Versuchen Sie es später erneut."
     },
     "moderation": {
       "not-restricted": "Dieses Dokument ist nicht eingeschränkt.",
@@ -322,7 +322,16 @@
       "test-mismatch": "Bei der Test-Anmeldung wurde ein anderes Konto verwendet.",
       "test-not-admin": "Nur ein Admin des Arbeitsbereichs kann dessen Anmeldung testen.",
       "unknown": "Unbekannter Anmeldelink.",
-      "scim-needs-connection": "Richten Sie zuerst Single Sign-on ein."
+      "scim-needs-connection": "Richten Sie zuerst Single Sign-on ein.",
+      "certificate-format": "Fügen Sie das Signaturzertifikat des Identitätsanbieters ein (PEM oder Base64).",
+      "certificate-invalid": "Das ist kein gültiges X.509-Zertifikat.",
+      "certificate-expired": "Dieses Zertifikat ist abgelaufen.",
+      "client-secret-required": "Geben Sie das Client-Secret ein.",
+      "url-invalid": "Das ist keine gültige URL.",
+      "url-not-https": "Die URL muss mit https:// beginnen.",
+      "url-credentials": "Die URL darf keinen Benutzernamen und kein Passwort enthalten.",
+      "url-unresolvable": "Der Hostname {host} konnte nicht aufgelöst werden.",
+      "url-refused": "markoto darf sich nicht mit dieser Adresse verbinden (ein interner Dienst, eine Loopback-, Link-Local- oder Metadaten-Adresse oder ein privates Netzwerk)."
     },
     "template": {
       "doc-not-found": "Dokument in diesem Arbeitsbereich nicht gefunden.",

@@ -1,6 +1,6 @@
 import { onScopeDispose } from 'vue'
 import type { Awareness } from 'y-protocols/awareness'
-import type { AiSessionInfo } from './useAI'
+import type { AiSessionInfo } from '~/types/ai/session'
 
 /**
  * The AI sessions running on a document, as every participant sees them in

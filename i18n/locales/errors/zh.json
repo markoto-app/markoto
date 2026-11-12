@@ -206,7 +206,7 @@
       "content-type-mismatch": "上传的文件类型不符合预期。",
       "editor-required": "只有管理员和编辑者才能更改知识库。",
       "empty-upload": "上传的文件为空。",
-      "file-too-large": "文件过大。",
+      "file-too-large": "文件过大（最大 {maxMb} MB）。",
       "invalid-key": "该存储键不属于此工作区的知识库。",
       "key-mismatch": "knowledgeId 必须与 s3Key 一致。",
       "not-found": "未找到知识库文件。",
@@ -215,10 +215,10 @@
       "too-many-pending": "待处理的上传过多。请稍后再试。",
       "unsupported-format": "不支持的格式：.{ext}。支持：{allowed}。",
       "upload-not-found": "未找到上传。请重新发起上传后再试。",
-      "user-bytes-cap": "你已达到知识库存储上限。",
-      "user-file-cap": "你已达到知识库上传上限。",
-      "workspace-bytes-cap": "此工作区已达到知识库存储上限。",
-      "workspace-file-cap": "此工作区已达到知识库文件数上限。"
+      "user-bytes-cap": "你已达到知识库存储上限（{maxMb} MB）。",
+      "user-file-cap": "你已达到知识库上传上限（{max} 个文件）。",
+      "workspace-bytes-cap": "此工作区已达到知识库存储上限（{maxMb} MB）。",
+      "workspace-file-cap": "此工作区已达到知识库文件数上限（{max} 个文件）。"
     },
     "legal": {
       "disabled": "此部署未启用法律页面。"
@@ -228,14 +228,14 @@
       "invalid-token-request": "令牌请求无效。",
       "missing-doc-id": "需要 doc_id。",
       "missing-workspace-id": "需要 workspace_id。",
-      "rate-limited": "请求过于频繁 — 请稍候片刻后重试。",
       "render-rate-limited": "渲染请求过多。请一分钟后再试。",
       "token-not-found": "未找到令牌。",
-      "too-many-open-docs": "同时打开的文档过多。请等待几分钟后再试。",
+      "too-many-open-docs": "同时打开的文档过多（最多 {max} 个）。请等待几分钟后再试。",
       "too-many-tokens": "你的有效 MCP 令牌已达上限。请先撤销一个。",
-      "tool-not-found": "未找到工具。",
+      "tool-not-found": "未找到工具 {tool}。",
       "unauthenticated": "需要 MCP 身份验证。",
-      "workspace-not-found": "未找到工作区。"
+      "workspace-not-found": "未找到工作区。",
+      "tool-call-limit": "工具调用过多（上限：每 {minutes} 分钟 {limit} 次）。请稍后再试。"
     },
     "moderation": {
       "not-restricted": "此文档未被限制。",
@@ -322,7 +322,16 @@
       "test-mismatch": "测试登录使用了不同的账号。",
       "test-not-admin": "只有工作区管理员才能测试其登录。",
       "unknown": "未知的登录链接。",
-      "scim-needs-connection": "请先设置单点登录。"
+      "scim-needs-connection": "请先设置单点登录。",
+      "certificate-format": "请粘贴身份提供商的签名证书（PEM 或 Base64）。",
+      "certificate-invalid": "这不是有效的 X.509 证书。",
+      "certificate-expired": "此证书已过期。",
+      "client-secret-required": "请输入客户端密钥。",
+      "url-invalid": "这不是有效的 URL。",
+      "url-not-https": "URL 必须以 https:// 开头。",
+      "url-credentials": "URL 不能包含用户名或密码。",
+      "url-unresolvable": "无法解析主机名 {host}。",
+      "url-refused": "markoto 不能连接到此地址（内部服务、环回地址、链路本地地址、元数据地址或专用网络）。"
     },
     "template": {
       "doc-not-found": "在此工作区中未找到该文档。",

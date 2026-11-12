@@ -136,9 +136,10 @@ def _auth_key(headers):
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
-    def log_message(self, fmt, *args):  # quiet by default
+    # `format` (shadowing the builtin) is the base class's parameter name.
+    def log_message(self, format, *args):  # quiet by default
         if os.environ.get("FAKE_OPENAI_VERBOSE") == "1":
-            super().log_message(fmt, *args)
+            super().log_message(format, *args)
 
     # helpers
     def _send_json(self, status, payload):

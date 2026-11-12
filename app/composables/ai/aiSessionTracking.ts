@@ -1,5 +1,5 @@
 import { onScopeDispose } from 'vue'
-import type { AiConfirmationRequest, AiEventSource, AiResponseEntry, AiSessionOutcome } from './useAI'
+import type { AiConfirmationRequest, AiEventSource, AiResponseEntry, AiSessionOutcome } from '~/types/ai/session'
 
 /**
  * The initiator's private channel of an AI session: while I have a session,

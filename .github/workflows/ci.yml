@@ -358,15 +358,13 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # ESLint without the type-aware rules (`lint:fast`, ~seconds), then the
-      # ratchet: the only rules still at `warn` are max-lines,
-      # max-lines-per-function and sonarjs/cognitive-complexity, and no file
-      # may gain a hit. The type-aware rules run in the parallel `lint-types`
-      # job. `--bun` forces eslint + nuxt to run under Bun (Node 20 on the
+      # ESLint without the type-aware rules (`lint:fast`, ~seconds); every
+      # rule is an error. The type-aware rules run in the parallel
+      # `lint-types` job. `--bun` forces eslint + nuxt to run under Bun (Node 20 on the
       # runner lacks Object.groupBy that eslint-flat-config-utils 0.4+
       # depends on; would crash before reading a single rule).
-      - name: Lint (all rules except type-aware) + budget ratchet
-        run: bun run lint:budget
+      - name: Lint (all rules except type-aware)
+        run: bun run lint:fast
 
       # No `--bun`: `bun run` keeps the shebang's real Node for vue-tsc.
       - name: Typecheck
@@ -481,7 +479,7 @@ jobs:
       - name: Import graph (dependency-cruiser)
         run: bun run depcruise
 
-      # Fails when server/db/schema.ts has changes no committed migration
+      # Fails when server/db/schema/ has changes no committed migration
       # covers, i.e. `drizzle-kit generate` would create a migration.
       - name: Schema matches the migrations
         run: bun run db:check-drift

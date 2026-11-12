@@ -2,7 +2,7 @@ import { BRAND_KIT_PLAN_MESSAGE } from '../../../../utils/brandKit/access'
 import { getDoc } from '../../../../repos/documents'
 import { updateWorkspace } from '../../../../repos/workspaces'
 import { flushSyncDocument } from '../../../../utils/documents/syncNotify'
-import { reconstructDocAtYjsId } from '../../../../utils/documents/historyReplay'
+import { reconstructCurrentDoc } from '../../../../utils/documents/historyReplay'
 import { resolveDocProperties } from '../../../../utils/documents/docProperties'
 import { defaultTheme as markotoTheme } from '~~/shared/utils/theme/defaultTheme'
 import { themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
@@ -26,7 +26,7 @@ export default defineApiHandler({
     if (!doc || doc.workspaceId !== wsId) throw apiError('template/doc-not-found')
 
     await flushSyncDocument(docId)
-    const ydoc = await reconstructDocAtYjsId(docId, null)
+    const ydoc = await reconstructCurrentDoc(docId)
     let theme
     try {
       theme = resolveDocProperties(ydoc.getMap('meta'), doc).theme ?? markotoTheme

@@ -51,7 +51,9 @@ import resource
 import threading
 import time
 import zipfile
+import zlib
 
+import design_extract
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 from markitdown import MarkItDown, StreamInfo
@@ -106,8 +108,6 @@ ZIP_EXTENSIONS = {
 ZIP_MAGIC = b"PK\x03\x04"
 _INFLATE_CHUNK = 64 * 1024
 
-import design_extract
-
 # MarkItDown is stateless and converter-routing is per-call. Building
 # once at module load avoids repeating the optional-converter discovery
 # on every request; forked children inherit the instance.
@@ -118,7 +118,7 @@ md = MarkItDown()
 _convert_slot = threading.Semaphore(1)
 _fork = multiprocessing.get_context("fork")
 
-SECRET_HEADER = "x-markitdown-secret"
+SECRET_HEADER = "x-markitdown-secret"  # noqa: S105 -- a header name, not a secret
 UNAUTHENTICATED_PATHS = {"/health"}
 
 
@@ -232,9 +232,17 @@ def check_archive(body: bytes, time_budget: float = ARCHIVE_CHECK_TIMEOUT_SECOND
                             raise ArchiveCheckTimeout()
             except (ArchiveRejected, ArchiveCheckTimeout):
                 raise
-            except Exception:
-                # Corrupt / encrypted / unsupported entry: the converter
-                # reports it; we only care about expansion here.
+            except (
+                zipfile.BadZipFile,
+                RuntimeError,
+                NotImplementedError,
+                EOFError,
+                OSError,
+                zlib.error,
+            ):
+                # Corrupt (bad CRC, truncated, bad deflate stream), encrypted
+                # (RuntimeError) or unsupported-compression (NotImplementedError)
+                # entry: the converter reports it; we only care about expansion here.
                 continue
     return total
 
@@ -363,9 +371,9 @@ async def convert(request: Request) -> PlainTextResponse:
         try:
             await asyncio.to_thread(check_archive, body)
         except ArchiveRejected as e:
-            raise HTTPException(413, f"Archive rejected: {e}")
-        except ArchiveCheckTimeout:
-            raise HTTPException(504, "Archive inspection took too long")
+            raise HTTPException(413, f"Archive rejected: {e}") from e
+        except ArchiveCheckTimeout as e:
+            raise HTTPException(504, "Archive inspection took too long") from e
 
     # Markitdown reads StreamInfo to route to the right converter — extension
     # alone is enough for the formats we accept; mimetype is left to the
@@ -416,16 +424,16 @@ async def design_extract_endpoint(request: Request) -> JSONResponse:
         raise HTTPException(400, "ext must be pdf or docx")
     try:
         pages = int(request.query_params.get("pages", str(design_extract.MAX_PAGES)))
-    except ValueError:
-        raise HTTPException(400, "pages must be a number")
+    except ValueError as e:
+        raise HTTPException(400, "pages must be a number") from e
 
     if ext == "docx" or body.startswith(ZIP_MAGIC):
         try:
             await asyncio.to_thread(check_archive, body)
         except ArchiveRejected as e:
-            raise HTTPException(413, f"Archive rejected: {e}")
-        except ArchiveCheckTimeout:
-            raise HTTPException(504, "Archive inspection took too long")
+            raise HTTPException(413, f"Archive rejected: {e}") from e
+        except ArchiveCheckTimeout as e:
+            raise HTTPException(504, "Archive inspection took too long") from e
 
     outcome, payload = await asyncio.to_thread(run_isolated, _child_design, body, ext, pages)
     if outcome == "ok":

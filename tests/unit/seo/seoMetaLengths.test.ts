@@ -4,7 +4,6 @@ import { join } from 'node:path'
 import { parse as parseYaml } from 'yaml'
 import {
   DEFAULT_TITLE,
-  DOCS_LANDING_SEO,
   MAX_DESCRIPTION_LENGTH,
   MAX_TITLE_LENGTH,
   applyTitleTemplate
@@ -70,14 +69,9 @@ describe('docs pages (content/docs frontmatter)', () => {
       expect(description.length).toBeLessThanOrEqual(MAX_DESCRIPTION_LENGTH)
     })
   }
-
-  it('/docs landing page', () => {
-    expect(applyTitleTemplate(DOCS_LANDING_SEO.title).length).toBeLessThanOrEqual(MAX_TITLE_LENGTH)
-    expect(DOCS_LANDING_SEO.description.length).toBeLessThanOrEqual(MAX_DESCRIPTION_LENGTH)
-  })
 })
 
-describe('marketing pages (/ and /pricing), every locale', () => {
+describe('marketing pages (/, /pricing, /docs), every locale', () => {
   it('home title (untemplated) fits', () => {
     expect(DEFAULT_TITLE.length).toBeLessThanOrEqual(MAX_TITLE_LENGTH)
   })
@@ -85,7 +79,7 @@ describe('marketing pages (/ and /pricing), every locale', () => {
   for (const locale of LOCALES) {
     const messages: unknown = JSON.parse(readFileSync(join(ROOT, 'i18n', 'locales', `${locale}.json`), 'utf8'))
     it(`${locale}: titles and descriptions fit`, () => {
-      for (const key of ['pricing.title', 'pricing.selfHostedTitle']) {
+      for (const key of ['pricing.title', 'pricing.selfHostedTitle', 'docs.landing.metaTitle']) {
         expect(applyTitleTemplate(lookup(messages, key)).length, key).toBeLessThanOrEqual(MAX_TITLE_LENGTH)
       }
       for (const key of [
@@ -93,7 +87,8 @@ describe('marketing pages (/ and /pricing), every locale', () => {
         'tour.hero.body',
         'pricing.metaDescription',
         'pricing.comingSoonSubtitle',
-        'pricing.selfHostedSubtitle'
+        'pricing.selfHostedSubtitle',
+        'docs.landing.metaDescription'
       ]) {
         expect(lookup(messages, key).length, key).toBeLessThanOrEqual(MAX_DESCRIPTION_LENGTH)
       }

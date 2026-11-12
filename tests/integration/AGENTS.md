@@ -10,7 +10,7 @@ REST + WebSocket tests against a production build of the app, backed by the real
 
 ## Writing tests
 
-- Call `resetDb()` in `beforeEach`. When you add a table to `server/db/schema.ts`, add it to the truncate list in `tests/integration/setup/db.ts`; the list is explicit on purpose, a missing table leaks state between tests.
+- Call `resetDb()` in `beforeEach`. When you add a table to `server/db/schema/`, add it to the truncate list in `tests/integration/setup/db.ts`; the list is explicit on purpose, a missing table leaks state between tests.
 - `resetDb()` clears rows, not module memory or Valkey. Don't share state through module-level `let`; reseed in-memory and Valkey state in `beforeEach`.
 - Close every WebSocket / Hocuspocus client in `afterEach`. Leaked sockets hit the sync server's per-IP connection limit and cause random failures.
 - `vi.mock` paths resolve relative to the test file, not the source file. A wrong path silently mocks nothing.

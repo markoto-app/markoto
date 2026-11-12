@@ -106,7 +106,7 @@ lint: ## Run all lint+typecheck (eslint + tsc incl. sync-server + renderer + ans
 	$(MAKE) lint-actions
 
 .PHONY: check
-check: ## The one-command local gate: generated files, graph checks, fast lint + ratchet, every typecheck, unit tests
+check: ## The one-command local gate: generated files, graph checks, fast lint, every typecheck, unit tests
 	bun run check
 
 .PHONY: check-full

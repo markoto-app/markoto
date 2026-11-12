@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it } from 'vitest'
+import * as Y from 'yjs'
 import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
@@ -177,6 +178,22 @@ describe('brand kit — locked design', () => {
 
     const audit = await testDb().query(`SELECT after FROM audit_log WHERE action = 'workspace.brand_lock_changed' ORDER BY id`)
     expect(audit.rows.map(r => r.after)).toEqual([{ locked: true }, { locked: false }])
+  })
+
+  it('design-from-doc takes the document\'s live design (Y.js meta), not the stale row', async () => {
+    const { admin, ws, adminClient } = await setup()
+    const report = THEME_PRESETS.find(p => p.id === 'business-report')!.theme
+    const live = THEME_PRESETS.find(p => p.theme.body.font !== report.body.font)!.theme
+    // The row keeps its creation-time theme; the editor's later change
+    // lives only in the Y.js meta map (what a workspace editor's change does).
+    const source = await createDoc({ ownerId: admin.id, workspaceId: ws.workspaceId, theme: report })
+    const ydoc = new Y.Doc()
+    ydoc.getMap('meta').set('theme', live)
+    await testDb().query(`INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2)`, [source.docId, Buffer.from(Y.encodeStateAsUpdate(ydoc))])
+
+    const set = await adminClient.post(`/api/workspaces/${ws.workspaceId}/brand/design-from-doc`, { docId: source.docId })
+    expect(set.status).toBe(200)
+    expect((await set.json() as { defaultTheme: { body: { font: string } } }).defaultTheme.body.font).toBe(live.body.font)
   })
 
   it('the lock pauses on a plan without the brand kit (markoto.app free)', async () => {

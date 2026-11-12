@@ -30,7 +30,7 @@ Extending an existing purpose with new data categories or a longer retention is 
 
 ### A new third party receives personal data
 
-1. Add an entry to `SUB_PROCESSORS`.
+1. Add an entry to `SUB_PROCESSORS`, and its `purpose` as `legal.subProcessors.purpose.<id>` in `i18n/locales/*.json` (the English text equal to the registry's sentence; `tests/unit/legal/registries.test.ts` checks that). The page shows the reader's language.
 2. Add its id to the `subProcessors` list of every purpose that sends it data.
 3. Bump `PRIVACY_VERSION`; sub-processor changes are material under GDPR Art. 28(2).
 4. Update the prose in `content/legal/privacy/` and `content/legal/dpa/` where they name processors.

@@ -1,9 +1,10 @@
 // The logger every backend process shares: the Nuxt server, the sync server
-// and (through a byte-identical copy at renderer/src/logging-core.ts, pinned
-// by tests/unit/logging/core.test.ts) the renderer, whose image is built
-// from renderer/ alone.
+// and (through a byte-identical copy at renderer/src/shared/logging/core.ts,
+// pinned by tests/unit/logging/core.test.ts) the renderer, whose image is
+// built from renderer/ alone.
 //
-// Dependency-free on purpose: no imports, no process.env. Each process hands
+// Dependency-free on purpose: no package imports (only the sibling
+// redaction core), no process.env. Each process hands
 // in its level and format through `createLogging` (see
 // server/utils/platform/logger.ts, sync-server/src/logger.ts,
 // renderer/src/logger.ts).
@@ -12,10 +13,15 @@
 // then the structured fields), so `docker logs` output is machine-readable.
 // Development: one readable line. Tests: silent unless a test captures.
 //
-// The redaction lives here, not in the call sites: a field named like a
-// secret is masked, an email address is masked to `a***@domain`, URL query
-// strings (render tokens, presigned S3 signatures) are cut, long strings are
-// truncated, and request bodies are never written. Logging never throws.
+// The redaction lives here (rules in ./redaction.ts, shared with the Sentry
+// scrubber), not in the call sites: a field named like a secret is masked,
+// an email address is masked to `a***@domain`, URL query strings (render
+// tokens, presigned S3 signatures) are cut, long strings are truncated, and
+// request bodies are never written. Logging never throws.
+
+import { maskEmail, redactEntries, redactText, type RedactionPolicy } from './redaction'
+
+export { maskEmail }
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 export type LogFormat = 'json' | 'pretty' | 'silent'
@@ -55,122 +61,35 @@ export function asLogLevel(value: unknown): LogLevel {
 const RANK: Record<LogLevel, number> = { debug: 10, info: 20, warn: 30, error: 40 }
 
 const MAX_STRING = 500
-const MAX_STACK = 2000
-const MAX_DEPTH = 4
-const MAX_ITEMS = 20
-const MAX_KEYS = 40
-const MASKED = '[redacted]'
-const OMITTED = '[omitted]'
-
 const RESERVED = new Set(['time', 'level', 'component', 'msg'])
 
 // ---------------------------------------------------------------------------
 // Redaction
 
-/** Lower-cased, separators removed: `api_key`, `apiKey` and `API-KEY` all become `apikey`. */
-function normaliseKey(key: string): string {
-  return key.toLowerCase().replace(/[^a-z0-9]/g, '')
+// Narrower than the Sentry policy on purpose: ids that merely contain "key"
+// or "session" (`s3Key`, `keyId`, `sessionId`, `tokenHash`) stay readable in
+// our own logs, while anything that names a credential is masked.
+const LOG_POLICY: RedactionPolicy = {
+  keys: {
+    omit: /^(body|rawbody|requestbody|responsebody|headers|payload)$/,
+    secret: /password|passwd|secret|authorization|cookie|apikey|privatekey|accesskey|signingkey|credential|jwt|bearer|(?:token$)/,
+    email: /email$/
+  },
+  maxString: MAX_STRING,
+  maxStack: 2000,
+  maxDepth: 4,
+  maxItems: 20,
+  maxKeys: 40
 }
-
-const SECRET_KEY = /password|passwd|secret|authorization|cookie|apikey|privatekey|accesskey|signingkey|credential|jwt|bearer|(?:token$)/
-const EMAIL_KEY = /email$/
-const BODY_KEY = /^(body|rawbody|requestbody|responsebody|headers|payload)$/
-
-/** `jane.doe@example.org` → `j***@example.org`. */
-export function maskEmail(address: string): string {
-  const at = address.lastIndexOf('@')
-  if (at < 1) return MASKED
-  return `${address[0]}***${address.slice(at)}`
-}
-
-// Bounded runs (RFC 5321 lengths): with `+` a long run of address characters
-// without an `@` is rescanned from every start position (quadratic).
-const EMAIL_IN_TEXT = /[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}\.[A-Za-z0-9.-]{1,253}/g
-const URL_IN_TEXT = /\b([a-z][a-z0-9+.-]{0,31}:\/\/)([^\s/?#@]{0,256}@|)([^\s?#"'<>)\]]*)(\?[^\s"'<>)\]]*|)/gi
-const BEARER = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{8,}/g
-const JWT = /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]*/g
-const PROVIDER_KEY = /\b(?:sk|pk|rk|whsec|xox[bp])[-_][A-Za-z0-9_-]{16,}/g
 
 /** Redacts secrets, emails and URL queries inside free text, and bounds its length. */
 export function scrubText(text: string, max = MAX_STRING): string {
-  let out = text
-  if (out.length > max * 4) out = out.slice(0, max * 4)
-  out = out
-    .replace(URL_IN_TEXT, (_m, scheme: string, userinfo: string | undefined, rest: string, query: string | undefined) =>
-      `${scheme}${userinfo ? '[redacted]@' : ''}${rest}${query ? '?[query]' : ''}`)
-    .replace(BEARER, '$1 [redacted]')
-    .replace(JWT, MASKED)
-    .replace(PROVIDER_KEY, MASKED)
-    .replace(EMAIL_IN_TEXT, maskEmail)
-  return out.length > max ? `${out.slice(0, max)}…[+${out.length - max}]` : out
-}
-
-function errorFields(err: Error, depth: number): LogFields {
-  const out: LogFields = {
-    name: err.name,
-    message: scrubText(err.message),
-    stack: err.stack ? scrubText(err.stack, MAX_STACK) : undefined
-  }
-  const extra = err as Error & { code?: unknown, status?: unknown, statusCode?: unknown }
-  if (typeof extra.code === 'string' || typeof extra.code === 'number') out.code = extra.code
-  const status = extra.status ?? extra.statusCode
-  if (typeof status === 'number') out.status = status
-  if (err.cause !== undefined && depth < MAX_DEPTH - 1) out.cause = sanitise(err.cause, depth + 1)
-  return out
-}
-
-function sanitise(value: unknown, depth: number, key?: string): unknown {
-  if (key !== undefined) {
-    const k = normaliseKey(key)
-    if (BODY_KEY.test(k)) return OMITTED
-    if (SECRET_KEY.test(k)) return value === undefined || value === null ? value : MASKED
-    if (EMAIL_KEY.test(k) && typeof value === 'string') return maskEmail(value)
-  }
-  if (value === null || value === undefined) return value
-  switch (typeof value) {
-    case 'string': return scrubText(value)
-    case 'number': return Number.isFinite(value) ? value : String(value)
-    case 'boolean': return value
-    case 'bigint': return value.toString()
-    case 'function': case 'symbol': return undefined
-    case 'object': case 'undefined': break
-  }
-  if (value instanceof Error) return errorFields(value, depth)
-  if (value instanceof Date) return Number.isNaN(value.getTime()) ? 'Invalid Date' : value.toISOString()
-  if (value instanceof URL) return scrubText(`${value.origin}${value.pathname}${value.search ? '?[query]' : ''}`)
-  if (value instanceof Uint8Array || value instanceof ArrayBuffer) return `[bytes ${value.byteLength}]`
-  if (depth >= MAX_DEPTH) return '[nested]'
-  if (Array.isArray(value)) {
-    const items = value.slice(0, MAX_ITEMS).map(v => sanitise(v, depth + 1))
-    if (value.length > MAX_ITEMS) items.push(`[+${value.length - MAX_ITEMS} more]`)
-    return items
-  }
-  const out: LogFields = {}
-  let count = 0
-  for (const [k, v] of Object.entries(value)) {
-    if (++count > MAX_KEYS) {
-      out['…'] = 'truncated'
-      break
-    }
-    const clean = sanitise(v, depth + 1, k)
-    if (clean !== undefined) out[k] = clean
-  }
-  return out
+  return redactText(text, max)
 }
 
 /** The redaction applied to every record's fields (exported for tests). */
 export function sanitiseFields(fields: LogFields): LogFields {
-  const out: LogFields = {}
-  let count = 0
-  for (const [k, v] of Object.entries(fields)) {
-    if (++count > MAX_KEYS) {
-      out['…'] = 'truncated'
-      break
-    }
-    const clean = sanitise(v, 0, k)
-    if (clean !== undefined) out[RESERVED.has(k) ? `field_${k}` : k] = clean
-  }
-  return out
+  return redactEntries(fields, LOG_POLICY, 0, k => (RESERVED.has(k) ? `field_${k}` : k))
 }
 
 // ---------------------------------------------------------------------------

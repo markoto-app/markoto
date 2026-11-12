@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { OG_IMAGES } from '../../../shared/seo/ogImages'
 import { buildSitemapXml, LEGAL_LASTMOD, LEGAL_SITEMAP_PATHS, marketingSitemapPages, sitemapEntries } from '../../../server/utils/platform/sitemap'
 import { sampleHeadingsToDivs } from '../../../app/utils/marketing/sampleHeadings'
-import { LEGAL_PAGE_DESCRIPTIONS, MAX_DESCRIPTION_LENGTH } from '../../../shared/seo/meta'
+import { legalDescriptionKey, MAX_DESCRIPTION_LENGTH } from '../../../shared/seo/meta'
 
 // SEO-7 assets and dates: the committed social cards are real 1200×630
 // JPEGs, sitemap <lastmod> comes from frontmatter / legal effective
@@ -64,13 +64,22 @@ describe('content dates', () => {
 })
 
 describe('legal page descriptions', () => {
-  it('cover every sitemap legal page and fit a search result', () => {
-    for (const path of LEGAL_SITEMAP_PATHS) {
-      const text = LEGAL_PAGE_DESCRIPTIONS[path.replace('/legal/', '')] ?? ''
-      expect(text.length, path).toBeGreaterThan(50)
-      expect(text.length, path).toBeLessThanOrEqual(MAX_DESCRIPTION_LENGTH)
-    }
-  })
+  // Every UI language: a reader of the German UI gets a German description.
+  for (const locale of ['en', 'de', 'fr', 'es', 'ja', 'zh']) {
+    it(`${locale}: cover every sitemap legal page and fit a search result`, () => {
+      const messages: unknown = JSON.parse(readFileSync(join(ROOT, 'i18n/locales', `${locale}.json`), 'utf8'))
+      for (const path of LEGAL_SITEMAP_PATHS) {
+        let node: unknown = messages
+        for (const part of legalDescriptionKey(path.replace('/legal/', '')).split('.')) {
+          node = typeof node === 'object' && node !== null ? (node as Record<string, unknown>)[part] : undefined
+        }
+        const text = typeof node === 'string' ? node : ''
+        // Japanese and Chinese say as much in far fewer characters.
+        expect(text.length, path).toBeGreaterThan(locale === 'ja' || locale === 'zh' ? 20 : 50)
+        expect(text.length, path).toBeLessThanOrEqual(MAX_DESCRIPTION_LENGTH)
+      }
+    })
+  }
 })
 
 describe('sitemap <lastmod>', () => {

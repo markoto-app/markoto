@@ -10,6 +10,7 @@
 // can't drift from the registry. Rendered on the server. Without legal
 // surfaces the endpoint answers 404 and the block renders nothing.
 const { t } = useI18n()
+const { subProcessorPurpose } = useSubProcessorPurpose()
 
 const { data } = await useFetch('/api/_internal/sub-processors', {
   key: 'marketing-sub-processors',
@@ -19,7 +20,7 @@ const { data } = await useFetch('/api/_internal/sub-processors', {
 const rows = computed(() => (data.value ?? []).map(sp => ({
   id: sp.id,
   name: sp.name,
-  purpose: sp.purpose,
+  purpose: subProcessorPurpose(sp),
   location: t(`marketing.subProcessors.location.${sp.location}`),
   transfer: t(`marketing.subProcessors.transfer.${sp.transferMechanism}`),
   inEu: sp.transferMechanism === 'intra_eu'

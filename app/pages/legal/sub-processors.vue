@@ -5,7 +5,7 @@
 // the registry in `server/legal/subProcessors.ts` is the source
 // of truth and this page renders whatever it contains — adding a
 // new sub-processor is one TypeScript edit, no template change.
-import { LEGAL_PAGE_DESCRIPTIONS } from '~~/shared/seo/meta'
+import { legalDescriptionKey } from '~~/shared/seo/meta'
 import { pageBreadcrumbs } from '~~/shared/seo/breadcrumbs'
 import type { ApiResponse } from '~/utils/api/client'
 import { PRIVACY_EFFECTIVE_DATE } from '~~/shared/legal/versions'
@@ -20,7 +20,7 @@ const { data: subProcessors, pending } = await useFetch(
 )
 
 const SEO_TITLE = t('legal.footer.subProcessors')
-const SEO_DESCRIPTION = LEGAL_PAGE_DESCRIPTIONS['sub-processors'] ?? ''
+const SEO_DESCRIPTION = t(legalDescriptionKey('sub-processors'))
 const { imageUrl } = useMarketingSeo({ title: SEO_TITLE, description: SEO_DESCRIPTION, imageGroup: 'default' })
 usePageStructuredData(() => ({
   name: SEO_TITLE,
@@ -43,6 +43,7 @@ function onClose(): void {
 // marketing sub-processor table shares the same texts.
 const locationLabel = (location: SubProcessor['location']): string => t(`marketing.subProcessors.location.${location}`)
 const transferLabel = (mechanism: SubProcessor['transferMechanism']): string => t(`marketing.subProcessors.transfer.${mechanism}`)
+const { subProcessorPurpose } = useSubProcessorPurpose()
 </script>
 
 <template>
@@ -114,7 +115,7 @@ const transferLabel = (mechanism: SubProcessor['transferMechanism']): string => 
           </div>
 
           <p class="text-sm mb-3">
-            {{ sp.purpose }}
+            {{ subProcessorPurpose(sp) }}
           </p>
 
           <dl class="grid grid-cols-[minmax(0,1fr)] sm:grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-1 text-xs">

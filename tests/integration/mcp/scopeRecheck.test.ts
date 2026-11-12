@@ -35,7 +35,7 @@ describe('MCP per-call scope re-check', () => {
 
     const res = await client.call('set_title', { doc_id: doc.docId, title: 'After' })
     expect(res.isError).toBe(true)
-    expect(res.content[0]).toMatchObject({ type: 'text', text: expect.stringContaining('Tool not found') })
+    expect(res.content[0]).toMatchObject({ type: 'text', text: expect.stringContaining('Tool set_title not found') })
 
     const title = await testDb().query<{ title: string }>('SELECT title FROM documents WHERE doc_id = $1', [doc.docId])
     expect(title.rows[0]?.title).toBe('Before')
@@ -55,6 +55,6 @@ describe('MCP per-call scope re-check', () => {
 
     const res = await client.call('list_my_documents', {})
     expect(res.isError).toBe(true)
-    expect(res.content[0]).toMatchObject({ type: 'text', text: expect.stringContaining('Tool not found') })
+    expect(res.content[0]).toMatchObject({ type: 'text', text: expect.stringContaining('Tool list_my_documents not found') })
   })
 })

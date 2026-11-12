@@ -1847,7 +1847,29 @@
       "intro": "Les tiers que markoto mandate pour traiter des données personnelles pour notre compte, avec le lieu, le mécanisme de transfert et les liens publics de chacun. Information requise par l’article 13, paragraphe 1, point e), du RGPD. Nous prévenons les clients propriétaires d’espaces de travail au moins 30 jours avant tout nouveau sous-traitant.",
       "dpfCertified": "Certifié selon le cadre de protection des données UE-États-Unis",
       "dpf": "DPF",
-      "transfer": "Transfert"
+      "transfer": "Transfert",
+      "purpose": {
+        "ovh_postgres": "Base de données principale de l’application, état Y.js des documents, embeddings de la base de connaissances",
+        "ovh_object_storage": "Images téléversées, originaux de la base de connaissances (supprimés après traitement), sauvegardes de la base de données",
+        "mistral_ai": "Génération de texte par IA pour l’assistant d’écriture : l’allocation d’IA gratuite (Z.ai GLM-5.3 Flash, servi et traité par Mistral ; Z.ai ne reçoit aucune donnée) avec Mistral Small en secours ; transcription vocale (Voxtral). Toutes les requêtes passent par le point d’accès européen de Mistral (centres de données dans l’UE et l’AELE)",
+        "jina_ai": "Génération d’embeddings pour la base de connaissances (RAG) ; extraction du contenu d’une page à partir d’une URL pour l’outil de récupération d’URL (Jina Reader ; l’URL est envoyée pour tous les utilisateurs, y compris ceux qui utilisent leur propre fournisseur d’IA)",
+        "staan": "Recherche web pour l’assistant d’écriture IA (la requête est envoyée pour tous les utilisateurs, y compris ceux qui utilisent leur propre fournisseur d’IA), via un index de recherche européen propriétaire (acheminement uniquement dans l’UE)",
+        "bfl": "Génération d’images avec FLUX.2 (traitement des données fixé dans l’UE)",
+        "google_oauth": "Connexion avec un compte Google (aucune autre donnée Google consultée)",
+        "github_oauth": "Connexion avec un compte GitHub (aucune autre donnée GitHub consultée)",
+        "stripe": "Facturation des abonnements, conservation des moyens de paiement, émission des factures, évaluation de la fraude",
+        "sentry": "Télémétrie des erreurs et des performances de l’application, stockée dans la région de données européenne de Sentry (Francfort)",
+        "resend": "Envoi d’e-mails transactionnels : confirmations de suppression de compte, avis de disponibilité des exports de données, notifications de violation de données"
+      }
+    },
+    "seoDescription": {
+      "privacy": "Comment markoto traite les données personnelles : quoi, pourquoi, combien de temps, par quels sous-traitants, et vos droits selon le RGPD et le droit suisse.",
+      "terms": "Les conditions d’utilisation de markoto : comptes, documents sans compte, usage acceptable, fonctions d’IA, responsabilité et évolution des conditions.",
+      "paid-terms": "Les conditions des forfaits Pro, Team et Business et des crédits d’IA : places, renouvellement et résiliation, crédits, remboursements, rétractation.",
+      "dpa": "L’accord de traitement des données pour les propriétaires d’espaces de travail : markoto traite leur contenu pour vous selon l’article 28 du RGPD.",
+      "abuse-policy": "Ce qui est interdit sur markoto, comment signaler un contenu illicite ou un abus, et comment les signalements sont traités et tranchés.",
+      "imprint": "Mentions légales de markoto : la société qui l’exploite, son adresse et comment la contacter.",
+      "sub-processors": "Toutes les entreprises qui traitent des données pour markoto : leur rôle, le lieu de stockage des données et l’encadrement des transferts."
     }
   },
   "settings": {
@@ -2726,7 +2748,9 @@
       "search": "rechercher",
       "startHere": "Commencer ici",
       "startHereHint": "Les parcours les plus importants",
-      "browse": "Parcourir par thème"
+      "browse": "Parcourir par thème",
+      "metaTitle": "Documentation",
+      "metaDescription": "Guides, visites guidées et référence pour markoto, l’éditeur Markdown collaboratif."
     },
     "pagination": {
       "label": "Pagination de la documentation",

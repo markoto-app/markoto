@@ -5,6 +5,7 @@ Archive pre-flight tests for server.py. Run inside the service image:
         <image> -B -m unittest -v test_server
 """
 
+import importlib.util
 import io
 import os
 import unittest
@@ -52,9 +53,9 @@ class CheckArchiveTest(unittest.TestCase):
         with (
             mock.patch.object(server, "MAX_ARCHIVE_UNCOMPRESSED_BYTES", 1 * MIB),
             mock.patch.object(server, "RATIO_FLOOR_BYTES", 1 * MIB),
+            self.assertRaises(server.ArchiveRejected) as raised,
         ):
-            with self.assertRaises(server.ArchiveRejected) as raised:
-                server.check_archive(body)
+            server.check_archive(body)
         # Declared size already exceeds the cap: refused before inflating.
         self.assertEqual(raised.exception.inflated, 0)
 
@@ -89,15 +90,15 @@ class SecretTest(unittest.TestCase):
         self.assertFalse(server.secret_matches("anything", ""))
 
 
-try:
-    from fastapi.testclient import TestClient
-except ImportError:  # httpx is not part of the service image
-    TestClient = None
+# httpx (needed by fastapi.testclient) is not part of the service image.
+HAS_HTTPX = importlib.util.find_spec("httpx") is not None
 
 
-@unittest.skipIf(TestClient is None, "fastapi.testclient needs httpx")
+@unittest.skipUnless(HAS_HTTPX, "fastapi.testclient needs httpx")
 class AuthMiddlewareTest(unittest.TestCase):
     def setUp(self):
+        from fastapi.testclient import TestClient
+
         patcher = mock.patch.dict(os.environ, {"MARKITDOWN_API_SECRET": "test-secret"})
         patcher.start()
         self.addCleanup(patcher.stop)

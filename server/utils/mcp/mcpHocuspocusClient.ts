@@ -133,7 +133,7 @@ function mintMcpJwt(docId: string, mcpSessionId: string): string {
     // resolving the human initiator) lives in
     // `activity_log.actor_principal` column, which the sync-server
     // populates from the JWT's `userId` field directly. See
-    // `server/db/schema.ts` activity_log.actor_principal comment.
+    // `server/db/schema/collab.ts` activity_log.actor_principal comment.
     userName: 'MCP',
     readOnly: false
   }
@@ -154,7 +154,7 @@ export async function connectAsMcpClient(input: ConnectAsMcpClientInput): Promis
   // downstream failure path AND on `release()`.
   const reserved = await reserveUserDocSlot(input.userId, input.docId)
   if (!reserved) {
-    throw apiError('mcp/too-many-open-docs')
+    throw apiError('mcp/too-many-open-docs', { max: MAX_OPEN_DOCS_PER_USER })
   }
 
   // Pool key — per-MCP-session principal so multiple Claude Desktop

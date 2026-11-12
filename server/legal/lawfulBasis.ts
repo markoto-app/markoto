@@ -203,7 +203,7 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     // notification for paid plans. Unconfirmed sign-ups are deleted
     // after 7 days. Linked to the account (if signed in) and deleted
     // with it. No IP address is stored. See `waitlist_signups` in
-    // server/db/schema.ts.
+    // server/db/schema/billing.ts.
     id: 'paid_plans_waitlist',
     label: 'Paid-plans waitlist',
     basis: 'consent',
@@ -219,7 +219,7 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     // `workspace-invite-sweep`). If email is configured, one invitation
     // email per invite goes out via Resend (max 3 per address per day).
     // Nobody becomes a member without accepting. See `workspace_invites`
-    // in server/db/schema.ts.
+    // in server/db/schema/workspaces.ts.
     id: 'workspace_invitations',
     label: 'Workspace invitations',
     basis: 'legitimate_interest',

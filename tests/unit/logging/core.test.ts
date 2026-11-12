@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { scrubText as scrubSentryText, scrubValue } from '../../../shared/utils/security/sentryScrub'
 import { asLogLevel, createLogging, formatFor, maskEmail, sanitiseFields, scrubText, setLogSink, type LogLevel, type LogRecord } from '../../../shared/logging/core'
 
 function logger(level: LogLevel = 'info', context?: () => Record<string, unknown> | undefined) {
@@ -125,6 +126,30 @@ describe('redaction', () => {
   })
 })
 
+describe('one redaction core for logs and Sentry', () => {
+  // shared/logging/redaction.ts: the token shapes are the same for both, only
+  // the key policy and the limits differ.
+  it('masks the same secret shapes in free text on both paths', () => {
+    const text = 'retry https://s3.example.org/f.png?X-Amz-Signature=deadbeef with token=abcdef123 for a@b.co'
+    for (const out of [scrubText(text), scrubSentryText(text)]) {
+      expect(out).not.toMatch(/deadbeef|abcdef123|a@b\.co/)
+      expect(out).toContain('https://s3.example.org/f.png?[query]')
+    }
+    expect(scrubText('connect token=abcdef123')).toBe('connect token=[redacted]')
+  })
+
+  it('keeps ids readable in logs but masks them for Sentry', () => {
+    expect(sanitiseFields({ sessionId: 's1', s3Key: 'docs/d/f.png' })).toEqual({ sessionId: 's1', s3Key: 'docs/d/f.png' })
+    expect(scrubValue({ sessionId: 's1', s3Key: 'docs/d/f.png' })).toEqual({ sessionId: '[redacted]', s3Key: '[redacted]' })
+  })
+
+  it('serialises an Error the same way on both paths', () => {
+    const err = new Error('failed for jane@example.org')
+    expect(sanitiseFields({ err }).err).toMatchObject({ name: 'Error', message: 'failed for j***@example.org' })
+    expect(scrubValue({ err })).toMatchObject({ err: { name: 'Error', message: 'failed for j***@example.org' } })
+  })
+})
+
 describe('format and level helpers', () => {
   it('chooses JSON in production, silence under Vitest and pretty otherwise', () => {
     expect(formatFor('production')).toBe('json')
@@ -141,9 +166,9 @@ describe('format and level helpers', () => {
 })
 
 describe('the renderer copy', () => {
-  it('is byte-identical to shared/logging/core.ts (the renderer image cannot import shared/)', () => {
+  it.each(['core.ts', 'redaction.ts'])('mirrors shared/logging/%s byte for byte (the renderer image cannot import shared/)', (file) => {
     const root = resolve(__dirname, '../../..')
-    expect(readFileSync(resolve(root, 'renderer/src/logging-core.ts'), 'utf8'))
-      .toBe(readFileSync(resolve(root, 'shared/logging/core.ts'), 'utf8'))
+    expect(readFileSync(resolve(root, 'renderer/src/shared/logging', file), 'utf8'))
+      .toBe(readFileSync(resolve(root, 'shared/logging', file), 'utf8'))
   })
 })

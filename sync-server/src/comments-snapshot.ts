@@ -1,7 +1,7 @@
 // Mirrors the doc's `comments` Y.Array to the app's Postgres mirror
 // table on every persisted save. Fire-and-forget — a failed snapshot
 // never blocks Y.js sync; the mirror is eventually-consistent by design
-// (see schema.ts comments on `document_comments`).
+// (see the comments on `document_comments` in server/db/schema/collab.ts).
 
 import * as Y from 'yjs'
 import { injectTraceHeaders } from './sentry'

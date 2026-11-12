@@ -1847,7 +1847,29 @@
       "intro": "markoto 委托其代为处理个人数据的第三方，附有各自所在地、传输机制和公开链接。这是 GDPR 第 13(1)(e) 条要求的披露。如有新增分处理者，我们会至少提前 30 天通知作为工作区所有者的客户。",
       "dpfCertified": "已通过欧美数据隐私框架认证",
       "dpf": "DPF",
-      "transfer": "传输"
+      "transfer": "传输",
+      "purpose": {
+        "ovh_postgres": "应用主数据库、Y.js 文档状态、知识库嵌入向量",
+        "ovh_object_storage": "图片上传、知识库原始文件（处理后删除）、数据库备份",
+        "mistral_ai": "写作助手的 AI 文本生成：免费 AI 额度（Z.ai GLM-5.3 Flash，由 Mistral 提供和处理；Z.ai 不接收任何数据），以 Mistral Small 作为备用；语音转写（Voxtral）。所有请求都发送到 Mistral 的欧盟端点（数据中心位于欧盟和欧洲自由贸易联盟）",
+        "jina_ai": "为知识库（RAG）生成嵌入向量；为获取 URL 工具提取单个 URL 的页面内容（Jina Reader；所有用户的 URL 都会发送，包括使用自己 AI 提供商的用户）",
+        "staan": "AI 写作助手的网页搜索（所有用户的搜索词都会发送，包括使用自己 AI 提供商的用户），使用自有的欧洲搜索索引（仅在欧盟内路由）",
+        "bfl": "使用 FLUX.2 生成图片（数据处理固定在欧盟）",
+        "google_oauth": "使用 Google 账号登录（不访问其他 Google 数据）",
+        "github_oauth": "使用 GitHub 账号登录（不访问其他 GitHub 数据）",
+        "stripe": "订阅计费、支付方式存储、开具发票、欺诈评估",
+        "sentry": "应用错误和性能遥测，存储在 Sentry 的欧盟（法兰克福）数据区域",
+        "resend": "发送事务性邮件：账户删除确认、数据导出就绪通知、数据泄露通知"
+      }
+    },
+    "seoDescription": {
+      "privacy": "markoto 如何处理个人数据：处理哪些数据、原因、保存多久、由哪些分处理者处理，以及你在 GDPR 和瑞士法律下的权利。",
+      "terms": "markoto 使用条款：账户、无账户文档、可接受的使用、AI 功能、责任以及条款如何变更。",
+      "paid-terms": "Pro、Team 和 Business 套餐及 AI 额度的条款：席位、续订与取消、额度、退款和撤回权。",
+      "dpa": "面向工作区所有者的数据处理协议：markoto 依据 GDPR 第 28 条代表你处理工作区内容。",
+      "abuse-policy": "markoto 禁止哪些行为、如何举报违法内容或滥用，以及举报如何处理和裁决。",
+      "imprint": "markoto 法律声明：运营公司、其地址及联系方式。",
+      "sub-processors": "为 markoto 处理数据的所有公司：它们做什么、数据存储在哪里以及数据传输如何得到保障。"
     }
   },
   "settings": {
@@ -2726,7 +2748,9 @@
       "search": "搜索",
       "startHere": "从这里开始",
       "startHereHint": "最重要的流程",
-      "browse": "按主题浏览"
+      "browse": "按主题浏览",
+      "metaTitle": "文档",
+      "metaDescription": "协作 Markdown 编辑器 markoto 的指南、演示和参考资料。"
     },
     "pagination": {
       "label": "文档分页",

@@ -1847,7 +1847,29 @@
       "intro": "The third parties markoto engages to process personal data on our behalf, with the location, transfer mechanism, and public links for each. Required disclosure under GDPR Article 13(1)(e). We notify workspace-owner customers at least 30 days in advance of any new sub-processor.",
       "dpfCertified": "EU-US Data Privacy Framework certified",
       "dpf": "DPF",
-      "transfer": "Transfer"
+      "transfer": "Transfer",
+      "purpose": {
+        "ovh_postgres": "Primary application database, Y.js document state, knowledge embeddings",
+        "ovh_object_storage": "Image uploads, knowledge-base originals (deleted post-processing), database backups",
+        "mistral_ai": "AI text generation for the writing assistant: the free AI allowance (Z.ai GLM-5.3 Flash, served and processed by Mistral; Z.ai receives no data) with Mistral Small as fallback; voice transcription (Voxtral). All requests go to Mistral's EU endpoint (data centres in the EU and EFTA)",
+        "jina_ai": "Embedding generation for knowledge-base RAG; single-URL page content extraction for the fetch-URL tool (Jina Reader; the URL is sent for every user, including users with their own AI provider)",
+        "staan": "Web search for the AI writing assistant (the search query is sent for every user, including users with their own AI provider), via a proprietary European search index (EU-only routing)",
+        "bfl": "Image generation via FLUX.2 (EU-pinned data plane)",
+        "google_oauth": "Sign-in via Google account (no other Google data accessed)",
+        "github_oauth": "Sign-in via GitHub account (no other GitHub data accessed)",
+        "stripe": "Subscription billing, payment method storage, invoice generation, fraud scoring",
+        "sentry": "Application error + performance telemetry, stored in Sentry's EU (Frankfurt) data region",
+        "resend": "Transactional email delivery — account-deletion confirmations, data-export-ready notifications, breach notifications"
+      }
+    },
+    "seoDescription": {
+      "privacy": "How markoto handles personal data: what is processed, why, for how long, by which sub-processors, and your rights under the GDPR and Swiss law.",
+      "terms": "The terms of use for markoto: accounts, documents without an account, acceptable use, AI features, liability and how the terms change.",
+      "paid-terms": "The terms for Pro, Team and Business plans and AI credits: seats, renewal and cancellation, credits, refunds and your right of withdrawal.",
+      "dpa": "The data processing addendum for workspace owners: markoto processes workspace content on your behalf under GDPR Article 28.",
+      "abuse-policy": "What is not allowed on markoto, how to report illegal content or abuse, and how reports are handled and decided.",
+      "imprint": "Legal notice for markoto: the operating company, its address and how to contact it.",
+      "sub-processors": "Every company that processes data for markoto: what it does, where the data is stored and how transfers are covered."
     }
   },
   "settings": {
@@ -2726,7 +2748,9 @@
       "search": "search",
       "startHere": "Start here",
       "startHereHint": "Most-load-bearing flows",
-      "browse": "Browse by topic"
+      "browse": "Browse by topic",
+      "metaTitle": "Documentation",
+      "metaDescription": "Guides, walkthroughs, and reference for the markoto collaborative markdown editor."
     },
     "pagination": {
       "label": "Documentation pagination",

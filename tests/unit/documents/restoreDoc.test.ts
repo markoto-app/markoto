@@ -59,6 +59,7 @@ class MockProvider {
       options: options as unknown as Record<string, unknown>
     })
     providerInstances.push(this)
+    options.document.on('update', () => this.sent())
 
     // Schedule the async lifecycle event (sync OR auth-fail). Done
     // via setTimeout so the constructor returns first; matches real
@@ -76,7 +77,40 @@ class MockProvider {
 
   disconnect() { this.disconnectCalls += 1 }
   destroy() { this.destroyCalls += 1 }
+
+  // Server acknowledgement of sent updates (Hocuspocus sync-status). By
+  // default every update is acknowledged as soon as it is sent; with
+  // `ackDelayMs` the acknowledgement arrives later, with `neverAck` never.
+  static ackDelayMs = 0
+  static neverAck = false
+  unsynced = 0
+  private listeners: Array<() => void> = []
+  get hasUnsyncedChanges() { return this.unsynced > 0 }
+  on(event: string, fn: () => void) { if (event === 'unsyncedChanges') this.listeners.push(fn) }
+  off(event: string, fn: () => void) { this.listeners = this.listeners.filter(l => l !== fn) }
+  /** Called by the test's update hook: one update sent to the server. */
+  sent() {
+    this.unsynced += 1
+    if (MockProvider.neverAck) return
+    setTimeout(() => {
+      this.unsynced -= 1
+      events.push('ack')
+      for (const l of [...this.listeners]) l()
+    }, MockProvider.ackDelayMs)
+  }
 }
+
+// Order of the observable steps after the restore transaction: the server
+// ack, the flush request and the `after` id read.
+const events: string[] = []
+
+const flushMock = vi.fn(async (_docId: string) => {
+  events.push('flush')
+  return true
+})
+vi.mock('../../../server/utils/documents/syncNotify', () => ({
+  flushSyncDocument: (docId: string) => flushMock(docId)
+}))
 
 vi.mock('@hocuspocus/provider', () => ({
   HocuspocusProvider: MockProvider
@@ -119,6 +153,7 @@ const dbMock = {
         }
         const idx = txState.maxIdCallIndex
         txState.maxIdCallIndex += 1
+        events.push(`maxId#${idx}`)
         const id = txState.maxIdValues[idx] ?? null
         txExecuteCalls.push({ kind: 'maxId', orderInTransaction: callIndex })
         return { rows: [{ id }] }
@@ -162,6 +197,10 @@ beforeEach(() => {
   MockProvider.autoSync = true
   MockProvider.authFailReason = null
   MockProvider.syncDelayMs = 0
+  MockProvider.ackDelayMs = 0
+  MockProvider.neverAck = false
+  events.length = 0
+  flushMock.mockClear()
   // Hand back a non-empty past doc by default.
   replayMock.mockReset()
   replayMock.mockImplementation((_docId: string, _maxId: number) => {
@@ -207,6 +246,32 @@ describe('restoreDocToYjsId', () => {
         docId: 'doc-y', targetYjsId: 30, actorUserId: 1, actorName: 'A', sessionId: 's'
       })
       expect(txState.providerConstructedAtCallIndex).toBe(2)
+    })
+
+    it('reads the after id only once the server acknowledged the update and stored the document', async () => {
+      // The sync server debounces its store by 2 s; reading max(id) before
+      // it stored would stamp the restore row with the pre-restore id
+      // (after == before) and its diff / undo would show nothing.
+      MockProvider.ackDelayMs = 30
+      await restoreDocToYjsId({ docId: 'doc-x', targetYjsId: 50, actorUserId: 1, actorName: 'Joel', sessionId: 's' })
+      expect(events).toEqual(['maxId#0', 'ack', 'flush', 'maxId#1'])
+      expect(flushMock).toHaveBeenCalledWith('doc-x')
+      expect(first(providerInstances).disconnectCalls).toBe(1)
+    })
+
+    it('fails (and still disconnects) when the server never acknowledges the update', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+      try {
+        MockProvider.neverAck = true
+        const run = restoreDocToYjsId({ docId: 'd', targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's' })
+          .then(() => null, (e: unknown) => e)
+        await vi.advanceTimersByTimeAsync(10_001)
+        expect(String(await run)).toMatch(/not acknowledged/)
+        expect(flushMock).not.toHaveBeenCalled()
+        expect(first(providerInstances).disconnectCalls).toBe(1)
+      } finally {
+        vi.useRealTimers()
+      }
     })
 
     it('returns null for both ids when MAX(id) is null (empty doc, no rows yet)', async () => {

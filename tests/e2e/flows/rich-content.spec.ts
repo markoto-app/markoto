@@ -86,9 +86,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       'Tap "Code block"',
       page.locator('[data-testid="ecp-insert-code-block"]').first(),
       {
-        // Mobile: Editor drawer renders inside BottomSheet; pointer
-        // routing intercepted. See `tests/e2e/AGENTS.md`.
-        // eslint-disable-next-line playwright/no-force-option -- bottom-sheet portal interception (tests/e2e/AGENTS.md); applied on both variants, so desktop runs forced too: narrowing it to `editor.isMobile` needs a desktop run to confirm
+        // eslint-disable-next-line playwright/no-force-option -- mobile branch only (desktop uses the menu bar): the drawer sits in the bottom sheet, whose host intercepts pointer routing (tests/e2e/AGENTS.md; docs/contributing/flow-docs.md#known-shortcuts)
         force: true,
         result: 'A fenced code block lands at the cursor — drawer closes, editor regains focus.',
         after: refocusEditor
@@ -164,7 +162,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       'Tap "Alert"',
       page.locator('[data-testid="ecp-insert-alert"]').first(),
       {
-        // eslint-disable-next-line playwright/no-force-option -- bottom-sheet portal interception (tests/e2e/AGENTS.md); applied on both variants, so desktop runs forced too: narrowing it to `editor.isMobile` needs a desktop run to confirm
+        // eslint-disable-next-line playwright/no-force-option -- mobile branch only (desktop uses the menu bar): the drawer sits in the bottom sheet, whose host intercepts pointer routing (tests/e2e/AGENTS.md; docs/contributing/flow-docs.md#known-shortcuts)
         force: true,
         result: 'The flavour grid opens — Note / Tip / Important / Warning / Caution.',
         after: () => page.locator('[data-testid="ecp-alert-tip"]').first().waitFor({ state: 'visible' })
@@ -174,7 +172,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       'Tap "Tip"',
       page.locator('[data-testid="ecp-alert-tip"]').first(),
       {
-        // eslint-disable-next-line playwright/no-force-option -- bottom-sheet portal interception (tests/e2e/AGENTS.md); applied on both variants, so desktop runs forced too: narrowing it to `editor.isMobile` needs a desktop run to confirm
+        // eslint-disable-next-line playwright/no-force-option -- mobile branch only (desktop uses the menu bar): the drawer sits in the bottom sheet, whose host intercepts pointer routing (tests/e2e/AGENTS.md; docs/contributing/flow-docs.md#known-shortcuts)
         force: true,
         result: 'A Tip alert lands — drawer closes, editor regains focus.',
         after: refocusEditor
@@ -236,7 +234,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       'Tap "Math"',
       page.locator('[data-testid="ecp-insert-math"]').first(),
       {
-        // eslint-disable-next-line playwright/no-force-option -- bottom-sheet portal interception (tests/e2e/AGENTS.md); applied on both variants, so desktop runs forced too: narrowing it to `editor.isMobile` needs a desktop run to confirm
+        // eslint-disable-next-line playwright/no-force-option -- mobile branch only (desktop uses the menu bar): the drawer sits in the bottom sheet, whose host intercepts pointer routing (tests/e2e/AGENTS.md; docs/contributing/flow-docs.md#known-shortcuts)
         force: true,
         result: 'A block equation placeholder lands — drawer closes, editor regains focus.',
         after: refocusEditor
@@ -294,7 +292,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       'Tap "Diagram"',
       page.locator('[data-testid="ecp-insert-diagram"]').first(),
       {
-        // eslint-disable-next-line playwright/no-force-option -- bottom-sheet portal interception (tests/e2e/AGENTS.md); applied on both variants, so desktop runs forced too: narrowing it to `editor.isMobile` needs a desktop run to confirm
+        // eslint-disable-next-line playwright/no-force-option -- mobile branch only (desktop uses the menu bar): the drawer sits in the bottom sheet, whose host intercepts pointer routing (tests/e2e/AGENTS.md; docs/contributing/flow-docs.md#known-shortcuts)
         force: true,
         result: 'The diagram-kind grid opens.',
         after: () => page.locator('[data-testid="ecp-diagram-pie"]').first().waitFor({ state: 'visible' })
@@ -304,7 +302,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       'Tap "Pie chart"',
       page.locator('[data-testid="ecp-diagram-pie"]').first(),
       {
-        // eslint-disable-next-line playwright/no-force-option -- bottom-sheet portal interception (tests/e2e/AGENTS.md); applied on both variants, so desktop runs forced too: narrowing it to `editor.isMobile` needs a desktop run to confirm
+        // eslint-disable-next-line playwright/no-force-option -- mobile branch only (desktop uses the menu bar): the drawer sits in the bottom sheet, whose host intercepts pointer routing (tests/e2e/AGENTS.md; docs/contributing/flow-docs.md#known-shortcuts)
         force: true,
         result: 'A working pie-chart Mermaid snippet lands — drawer closes, editor regains focus.',
         after: refocusEditor

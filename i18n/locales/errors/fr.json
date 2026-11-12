@@ -206,7 +206,7 @@
       "content-type-mismatch": "Le fichier téléversé n’est pas du type attendu.",
       "editor-required": "Seuls les admins et les éditeurs peuvent modifier la base de connaissances.",
       "empty-upload": "Le fichier téléversé est vide.",
-      "file-too-large": "Le fichier est trop volumineux.",
+      "file-too-large": "Le fichier est trop volumineux ({maxMb} Mo au maximum).",
       "invalid-key": "La clé de stockage n’appartient pas à la base de connaissances de cet espace de travail.",
       "key-mismatch": "knowledgeId doit correspondre à s3Key.",
       "not-found": "Fichier de connaissances introuvable.",
@@ -215,10 +215,10 @@
       "too-many-pending": "Trop de téléversements sont en attente. Veuillez réessayer dans un instant.",
       "unsupported-format": "Format non pris en charge : .{ext}. Formats autorisés : {allowed}.",
       "upload-not-found": "Téléversement introuvable. Demandez un nouveau téléversement et réessayez.",
-      "user-bytes-cap": "Vous avez atteint votre limite de stockage de connaissances.",
-      "user-file-cap": "Vous avez atteint votre limite de fichiers de connaissances.",
-      "workspace-bytes-cap": "Cet espace de travail a atteint sa limite de stockage de connaissances.",
-      "workspace-file-cap": "Cet espace de travail a atteint sa limite de fichiers de connaissances."
+      "user-bytes-cap": "Vous avez atteint votre limite de stockage de connaissances ({maxMb} Mo).",
+      "user-file-cap": "Vous avez atteint votre limite de fichiers de connaissances ({max} fichiers).",
+      "workspace-bytes-cap": "Cet espace de travail a atteint sa limite de stockage de connaissances ({maxMb} Mo).",
+      "workspace-file-cap": "Cet espace de travail a atteint sa limite de fichiers de connaissances ({max} fichiers)."
     },
     "legal": {
       "disabled": "Les pages juridiques ne sont pas activées sur ce déploiement."
@@ -228,14 +228,14 @@
       "invalid-token-request": "Demande de jeton non valide.",
       "missing-doc-id": "doc_id est requis.",
       "missing-workspace-id": "workspace_id est requis.",
-      "rate-limited": "Trop de requêtes — veuillez patienter un instant et réessayer.",
       "render-rate-limited": "Trop de demandes de rendu. Veuillez réessayer dans une minute.",
       "token-not-found": "Jeton introuvable.",
-      "too-many-open-docs": "Trop de documents sont ouverts en même temps. Patientez quelques minutes et réessayez.",
+      "too-many-open-docs": "Trop de documents sont ouverts en même temps ({max} au maximum). Patientez quelques minutes et réessayez.",
       "too-many-tokens": "Vous avez atteint le nombre maximal de jetons MCP actifs. Révoquez-en un d’abord.",
-      "tool-not-found": "Outil introuvable.",
+      "tool-not-found": "Outil {tool} introuvable.",
       "unauthenticated": "Authentification MCP requise.",
-      "workspace-not-found": "Espace de travail introuvable."
+      "workspace-not-found": "Espace de travail introuvable.",
+      "tool-call-limit": "Trop d’appels d’outils (limite : {limit} par {minutes} min). Réessayez plus tard."
     },
     "moderation": {
       "not-restricted": "Ce document n’est pas restreint.",
@@ -322,7 +322,16 @@
       "test-mismatch": "La connexion de test a utilisé un autre compte.",
       "test-not-admin": "Seul un admin de l’espace de travail peut tester sa connexion.",
       "unknown": "Lien de connexion inconnu.",
-      "scim-needs-connection": "Configurez d’abord l’authentification unique."
+      "scim-needs-connection": "Configurez d’abord l’authentification unique.",
+      "certificate-format": "Collez le certificat de signature du fournisseur d’identité (PEM ou Base64).",
+      "certificate-invalid": "Ce n’est pas un certificat X.509 valide.",
+      "certificate-expired": "Ce certificat a expiré.",
+      "client-secret-required": "Saisissez le secret client.",
+      "url-invalid": "Ce n’est pas une URL valide.",
+      "url-not-https": "L’URL doit commencer par https://.",
+      "url-credentials": "L’URL ne doit contenir ni nom d’utilisateur ni mot de passe.",
+      "url-unresolvable": "Le nom d’hôte {host} n’a pas pu être résolu.",
+      "url-refused": "markoto ne peut pas se connecter à cette adresse (un service interne, une adresse de bouclage, link-local ou de métadonnées, ou un réseau privé)."
     },
     "template": {
       "doc-not-found": "Document introuvable dans cet espace de travail.",

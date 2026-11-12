@@ -206,7 +206,7 @@
       "content-type-mismatch": "El archivo subido no tiene el tipo esperado.",
       "editor-required": "Solo los admins y editores pueden cambiar la base de conocimiento.",
       "empty-upload": "El archivo subido está vacío.",
-      "file-too-large": "El archivo es demasiado grande.",
+      "file-too-large": "El archivo es demasiado grande (como máximo {maxMb} MB).",
       "invalid-key": "La clave de almacenamiento no pertenece a la base de conocimiento de este espacio de trabajo.",
       "key-mismatch": "knowledgeId debe coincidir con s3Key.",
       "not-found": "No se encontró el archivo de conocimiento.",
@@ -215,10 +215,10 @@
       "too-many-pending": "Hay demasiadas subidas pendientes. Inténtalo de nuevo en un momento.",
       "unsupported-format": "Formato no compatible: .{ext}. Permitidos: {allowed}.",
       "upload-not-found": "No se encontró la subida. Solicita una nueva subida e inténtalo de nuevo.",
-      "user-bytes-cap": "Has alcanzado tu límite de almacenamiento de conocimiento.",
-      "user-file-cap": "Has alcanzado tu límite de subidas de conocimiento.",
-      "workspace-bytes-cap": "Este espacio de trabajo ha alcanzado su límite de almacenamiento de conocimiento.",
-      "workspace-file-cap": "Este espacio de trabajo ha alcanzado su límite de archivos de conocimiento."
+      "user-bytes-cap": "Has alcanzado tu límite de almacenamiento de conocimiento ({maxMb} MB).",
+      "user-file-cap": "Has alcanzado tu límite de subidas de conocimiento ({max} archivos).",
+      "workspace-bytes-cap": "Este espacio de trabajo ha alcanzado su límite de almacenamiento de conocimiento ({maxMb} MB).",
+      "workspace-file-cap": "Este espacio de trabajo ha alcanzado su límite de archivos de conocimiento ({max} archivos)."
     },
     "legal": {
       "disabled": "Las páginas legales no están activadas en este despliegue."
@@ -228,14 +228,14 @@
       "invalid-token-request": "Solicitud de token no válida.",
       "missing-doc-id": "Se requiere doc_id.",
       "missing-workspace-id": "Se requiere workspace_id.",
-      "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
       "render-rate-limited": "Demasiadas solicitudes de renderizado. Inténtalo de nuevo en un minuto.",
       "token-not-found": "No se encontró el token.",
-      "too-many-open-docs": "Hay demasiados documentos abiertos a la vez. Espera unos minutos e inténtalo de nuevo.",
+      "too-many-open-docs": "Hay demasiados documentos abiertos a la vez (como máximo {max}). Espera unos minutos e inténtalo de nuevo.",
       "too-many-tokens": "Ya tienes el máximo de tokens MCP activos. Revoca uno primero.",
-      "tool-not-found": "No se encontró la herramienta.",
+      "tool-not-found": "No se encontró la herramienta {tool}.",
       "unauthenticated": "Se requiere autenticación MCP.",
-      "workspace-not-found": "No se encontró el espacio de trabajo."
+      "workspace-not-found": "No se encontró el espacio de trabajo.",
+      "tool-call-limit": "Demasiadas llamadas a herramientas (límite: {limit} cada {minutes} min). Inténtalo de nuevo más tarde."
     },
     "moderation": {
       "not-restricted": "Este documento no está restringido.",
@@ -322,7 +322,16 @@
       "test-mismatch": "El inicio de sesión de prueba usó otra cuenta.",
       "test-not-admin": "Solo un admin del espacio de trabajo puede probar su inicio de sesión.",
       "unknown": "Enlace de inicio de sesión desconocido.",
-      "scim-needs-connection": "Configure primero el inicio de sesión único."
+      "scim-needs-connection": "Configure primero el inicio de sesión único.",
+      "certificate-format": "Pega el certificado de firma del proveedor de identidad (PEM o Base64).",
+      "certificate-invalid": "No es un certificado X.509 válido.",
+      "certificate-expired": "Este certificado ha caducado.",
+      "client-secret-required": "Introduce el secreto de cliente.",
+      "url-invalid": "No es una URL válida.",
+      "url-not-https": "La URL debe empezar por https://.",
+      "url-credentials": "La URL no debe contener un nombre de usuario ni una contraseña.",
+      "url-unresolvable": "No se pudo resolver el nombre de host {host}.",
+      "url-refused": "markoto no puede conectarse a esta dirección (un servicio interno, una dirección de loopback, link-local o de metadatos, o una red privada)."
     },
     "template": {
       "doc-not-found": "No se encontró el documento en este espacio de trabajo.",

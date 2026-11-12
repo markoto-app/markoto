@@ -1847,7 +1847,29 @@
       "intro": "Die Dritten, die markoto in unserem Auftrag mit der Verarbeitung personenbezogener Daten beauftragt, mit Standort, Übermittlungsgrundlage und öffentlichen Links. Offenlegung gemäss Art. 13 Abs. 1 lit. e DSGVO. Wir informieren Kunden mit Arbeitsbereichen mindestens 30 Tage im Voraus über jeden neuen Unterauftragsverarbeiter.",
       "dpfCertified": "Nach dem EU-US Data Privacy Framework zertifiziert",
       "dpf": "DPF",
-      "transfer": "Übermittlung"
+      "transfer": "Übermittlung",
+      "purpose": {
+        "ovh_postgres": "Primäre Anwendungsdatenbank, Y.js-Dokumentzustand, Wissens-Embeddings",
+        "ovh_object_storage": "Bild-Uploads, Originale der Wissensdatenbank (nach der Verarbeitung gelöscht), Datenbank-Backups",
+        "mistral_ai": "KI-Textgenerierung für den Schreibassistenten: das kostenlose KI-Kontingent (Z.ai GLM-5.3 Flash, bereitgestellt und verarbeitet von Mistral; Z.ai erhält keine Daten) mit Mistral Small als Rückfalloption; Sprachtranskription (Voxtral). Alle Anfragen gehen an Mistrals EU-Endpunkt (Rechenzentren in der EU und EFTA)",
+        "jina_ai": "Erzeugung von Embeddings für die Wissensdatenbank (RAG); Extraktion des Seiteninhalts einer einzelnen URL für das Werkzeug „URL abrufen“ (Jina Reader; die URL wird für alle Nutzer gesendet, auch für Nutzer mit eigenem KI-Anbieter)",
+        "staan": "Websuche für den KI-Schreibassistenten (die Suchanfrage wird für alle Nutzer gesendet, auch für Nutzer mit eigenem KI-Anbieter) über einen eigenen europäischen Suchindex (nur EU-Routing)",
+        "bfl": "Bildgenerierung mit FLUX.2 (Datenverarbeitung fest in der EU)",
+        "google_oauth": "Anmeldung mit einem Google-Konto (kein Zugriff auf andere Google-Daten)",
+        "github_oauth": "Anmeldung mit einem GitHub-Konto (kein Zugriff auf andere GitHub-Daten)",
+        "stripe": "Abo-Abrechnung, Speicherung von Zahlungsmitteln, Rechnungserstellung, Betrugsbewertung",
+        "sentry": "Telemetrie zu Anwendungsfehlern und Leistung, gespeichert in Sentrys EU-Datenregion (Frankfurt)",
+        "resend": "Versand von Transaktions-E-Mails: Bestätigungen von Kontolöschungen, Hinweise auf bereitstehende Datenexporte, Meldungen von Datenschutzverletzungen"
+      }
+    },
+    "seoDescription": {
+      "privacy": "Wie markoto mit Personendaten umgeht: was verarbeitet wird, warum, wie lange, durch welche Auftragsverarbeiter und Ihre Rechte nach DSGVO und Schweizer Recht.",
+      "terms": "Die Nutzungsbedingungen von markoto: Konten, Dokumente ohne Konto, zulässige Nutzung, KI-Funktionen, Haftung und wie sich die Bedingungen ändern.",
+      "paid-terms": "Die Bedingungen für die Pläne Pro, Team und Business und KI-Guthaben: Plätze, Verlängerung und Kündigung, Guthaben, Erstattungen, Widerrufsrecht.",
+      "dpa": "Der Auftragsverarbeitungsvertrag für Inhaber von Arbeitsbereichen: markoto verarbeitet Inhalte in Ihrem Auftrag nach Art. 28 DSGVO.",
+      "abuse-policy": "Was auf markoto nicht erlaubt ist, wie Sie rechtswidrige Inhalte oder Missbrauch melden und wie Meldungen bearbeitet und entschieden werden.",
+      "imprint": "Impressum von markoto: das betreibende Unternehmen, seine Adresse und wie Sie es erreichen.",
+      "sub-processors": "Alle Unternehmen, die Daten für markoto verarbeiten: was sie tun, wo die Daten liegen und wie Übermittlungen abgesichert sind."
     }
   },
   "settings": {
@@ -2726,7 +2748,9 @@
       "search": "suchen",
       "startHere": "Hier starten",
       "startHereHint": "Die wichtigsten Abläufe",
-      "browse": "Nach Thema durchsuchen"
+      "browse": "Nach Thema durchsuchen",
+      "metaTitle": "Dokumentation",
+      "metaDescription": "Anleitungen, Rundgänge und Nachschlagewerk für markoto, den kollaborativen Markdown-Editor."
     },
     "pagination": {
       "label": "Seitennavigation der Dokumentation",

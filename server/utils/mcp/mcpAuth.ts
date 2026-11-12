@@ -289,7 +289,7 @@ const SESSION_TOUCH_THROTTLE_SECONDS = 60
  * Without this writer, `activity_log` rows tagged `mcp:{mcpSessionId}`
  * are dead pointers — the forensic question "who edited this doc via
  * MCP at 14:32" can't be answered. With it, the join chain (see
- * `mcpSessions` table comment in schema.ts) lights up.
+ * `mcpSessions` table comment in server/db/schema/mcp.ts) lights up.
  */
 export async function touchMcpSession(input: TouchMcpSessionInput): Promise<void> {
   // Throttle FIRST-check: peek the Valkey key without claiming. If

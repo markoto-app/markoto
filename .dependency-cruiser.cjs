@@ -18,7 +18,6 @@ const DB_OFFENDERS = [
   '^server/api/admin/abuse-reports\\.get\\.ts$',
   '^server/api/admin/abuse-reports/\\[reportId\\]\\.patch\\.ts$',
   '^server/api/ai/credits\\.get\\.ts$',
-  '^server/api/billing/checkout\\.post\\.ts$',
   '^server/api/billing/portal\\.post\\.ts$',
   '^server/api/billing/topup\\.post\\.ts$',
   '^server/api/consent\\.get\\.ts$',
@@ -62,27 +61,10 @@ const DB_OFFENDERS = [
   '^server/utils/sso/completeLogin\\.ts$',
   '^server/utils/sso/membership\\.ts$',
   '^server/utils/sso/scim\\.ts$',
-  '^server/utils/billing/stripeWebhook\\.ts$',
   '^server/utils/billing/webhookEventSweep\\.ts$',
   '^server/utils/billing/workspaceBillingLifecycle\\.ts$',
   '^server/utils/billing/workspaceBudgetAlerts\\.ts$',
   '^server/utils/billing/workspaceStripe\\.ts$'
-]
-
-// Import cycles that exist today, as the files on both sides of each. Every
-// member of a known cycle is excluded as a starting point, so these three pass
-// while any cycle through a file NOT listed here still fails. Break the cycle,
-// then delete its entries; never add one.
-const KNOWN_CYCLES = [
-  // shared/types/theme.ts <-> shared/utils/documents/documentLocale.ts
-  '^shared/types/theme\\.ts$',
-  '^shared/utils/documents/documentLocale\\.ts$',
-  // shared/tour/manifest.ts <-> shared/tour/schema.ts
-  '^shared/tour/manifest\\.ts$',
-  '^shared/tour/schema\\.ts$',
-  // server/utils/agentic/toolHandlers.ts <-> server/utils/ai/aiToolAdapter.ts
-  '^server/utils/agentic/toolHandlers\\.ts$',
-  '^server/utils/ai/aiToolAdapter\\.ts$'
 ]
 
 /** @type {import('dependency-cruiser').IConfiguration} */
@@ -91,9 +73,9 @@ module.exports = {
     // ---------- cycles ----------
     {
       name: 'no-circular',
-      comment: 'Circular dependencies make load order fragile. Fix the cycle; do not add to KNOWN_CYCLES.',
+      comment: 'Circular dependencies make load order fragile. Break the cycle (shared types go to a leaf module).',
       severity: 'error',
-      from: { pathNot: KNOWN_CYCLES },
+      from: {},
       to: { circular: true }
     },
 
@@ -184,7 +166,7 @@ module.exports = {
           ...DB_OFFENDERS
         ]
       },
-      to: { path: ['^node_modules/drizzle-orm', '^server/db/schema\\.ts$'] }
+      to: { path: ['^node_modules/drizzle-orm', '^server/db/schema(/|\\.ts$)'] }
     }
   ],
 

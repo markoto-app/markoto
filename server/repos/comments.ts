@@ -3,7 +3,7 @@ import { documentComments } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
 
 // Postgres mirror of the doc's comment threads. Y.js stays the source of truth;
-// this is a write-side index for cross-doc queries (see schema.ts).
+// this is a write-side index for cross-doc queries (see server/db/schema/collab.ts).
 
 export interface CommentSnapshotRow {
   entryId: string

@@ -42,8 +42,11 @@ export function ssoAllowsPrivateUrls(source?: RawEnv): boolean {
   return useEnv(source).oauth.ssoAllowPrivateUrls
 }
 
+/** Why a URL was refused: what the admin has to change. */
+export type SsoUrlRefusal = 'invalid' | 'not-https' | 'credentials' | 'unresolvable' | 'refused'
+
 export class SsoUrlRefused extends Error {
-  constructor(message: string) {
+  constructor(message: string, readonly reason: SsoUrlRefusal, readonly host?: string) {
     super(message)
     this.name = 'SsoUrlRefused'
   }
@@ -67,23 +70,23 @@ export async function checkSsoUrl(
   try {
     url = new URL(String(raw))
   } catch {
-    throw new SsoUrlRefused('This is not a valid URL.')
+    throw new SsoUrlRefused('This is not a valid URL.', 'invalid')
   }
-  if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new SsoUrlRefused('Use an https:// URL.')
-  if (url.username || url.password) throw new SsoUrlRefused('The URL must not contain a user name or password.')
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new SsoUrlRefused('Use an https:// URL.', 'not-https')
+  if (url.username || url.password) throw new SsoUrlRefused('The URL must not contain a user name or password.', 'credentials')
   const host = url.hostname.replace(/^\[|\]$/g, '')
-  if (!host) throw new SsoUrlRefused('The URL has no host name.')
-  if (isInternalHostname(host)) throw new SsoUrlRefused('This URL points at a service inside markoto.')
+  if (!host) throw new SsoUrlRefused('The URL has no host name.', 'invalid')
+  if (isInternalHostname(host)) throw new SsoUrlRefused('This URL points at a service inside markoto.', 'refused')
 
   const allowPrivate = opts.allowPrivate ?? ssoAllowsPrivateUrls()
   const addresses = await hostAddresses(host, opts.resolve ?? systemSsoResolver)
-  if (addresses === 'unresolvable') throw new SsoUrlRefused(`The host name "${host}" could not be resolved.`)
-  if (addresses === 'no-records') throw new SsoUrlRefused(`The host name "${host}" has no DNS records.`)
+  if (addresses === 'unresolvable') throw new SsoUrlRefused(`The host name "${host}" could not be resolved.`, 'unresolvable', host)
+  if (addresses === 'no-records') throw new SsoUrlRefused(`The host name "${host}" has no DNS records.`, 'unresolvable', host)
   const screen = screenHostAddresses(addresses, allowPrivate)
-  if (screen.refused === 'forbidden') throw new SsoUrlRefused('This URL points at a loopback, link-local or metadata address.')
-  if (screen.refused === 'private') throw new SsoUrlRefused('This URL points at a private network address, which this instance does not allow.')
+  if (screen.refused === 'forbidden') throw new SsoUrlRefused('This URL points at a loopback, link-local or metadata address.', 'refused')
+  if (screen.refused === 'private') throw new SsoUrlRefused('This URL points at a private network address, which this instance does not allow.', 'refused')
   if (url.protocol === 'http:' && (!allowPrivate || screen.anyPublic)) {
-    throw new SsoUrlRefused('Use https:// — plain http is only allowed for an identity provider on a private network of a self-hosted instance.')
+    throw new SsoUrlRefused('Use https:// — plain http is only allowed for an identity provider on a private network of a self-hosted instance.', 'not-https')
   }
   return { url, addresses }
 }
@@ -119,10 +122,10 @@ export function createSsoFetch(opts: { allowPrivate?: boolean, resolve?: SsoReso
     const response = await (opts.fetchImpl ?? ((u, i) => fetch(u, i)))(pinned.href, pinnedInit)
     if (response.status >= 300 && response.status < 400) {
       await response.body?.cancel()
-      throw new SsoUrlRefused('The identity provider answered with a redirect, which is not followed.')
+      throw new SsoUrlRefused('The identity provider answered with a redirect, which is not followed.', 'refused')
     }
     const body = response.body ? await readStreamWithCap(response.body, SSO_FETCH_MAX_BYTES) : new Uint8Array(0)
-    if (body === null) throw new SsoUrlRefused('The identity provider answered with more than 1 MiB.')
+    if (body === null) throw new SsoUrlRefused('The identity provider answered with more than 1 MiB.', 'refused')
     return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers })
   }
 }

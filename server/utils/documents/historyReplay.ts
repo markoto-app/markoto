@@ -1,5 +1,5 @@
 import * as Y from 'yjs'
-import { readYjsUpdatesAt } from './yjsLog'
+import { latestYjsId, readYjsUpdatesAt } from './yjsLog'
 
 // Reconstruct a Y.Doc's state at a specific point in its history: the
 // document's `yjs_updates` rows up to (and including) a given id, starting
@@ -9,7 +9,8 @@ import { readYjsUpdatesAt } from './yjsLog'
 //
 // Edge cases:
 //   - `maxYjsId === null` → an empty Y.Doc (the activity row has no
-//     recorded boundary).
+//     recorded boundary). It never means "latest": the current state is
+//     `reconstructCurrentDoc`.
 //   - `maxYjsId` below the document's first row → an empty Y.Doc: the state
 //     before the first write.
 //   - `maxYjsId` below the history floor (rows pruned by the sync server's
@@ -36,6 +37,15 @@ export async function reconstructDocAtYjsId(
     for (const update of updates) Y.applyUpdate(doc, update)
   })
   return doc
+}
+
+/**
+ * The document's current stored state (its newest row). Call
+ * `flushSyncDocument` first when edits still pending in the sync server
+ * must be included. The caller destroys the returned doc.
+ */
+export async function reconstructCurrentDoc(docId: string): Promise<Y.Doc> {
+  return reconstructDocAtYjsId(docId, await latestYjsId(docId))
 }
 
 /**

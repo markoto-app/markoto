@@ -16,7 +16,7 @@
 // haven't translated yet), we surface that loudly with a link back
 // to the authoritative copy.
 
-import { LEGAL_PAGE_DESCRIPTIONS } from '~~/shared/seo/meta'
+import { legalDescriptionKey } from '~~/shared/seo/meta'
 import { pageBreadcrumbs } from '~~/shared/seo/breadcrumbs'
 
 definePageMeta({ middleware: 'legal-surfaces' })
@@ -25,7 +25,7 @@ useLeanResourceHints()
 
 const route = useRoute()
 const router = useRouter()
-const { t, locale } = useI18n()
+const { t, te, locale } = useI18n()
 
 const slug = computed(() => String(route.params.slug ?? ''))
 
@@ -42,7 +42,7 @@ const { data, error, pending, refresh } = await useAsyncData(
 )
 
 const pageTitle = computed(() => data.value?.title ?? 'Legal')
-const pageDescription = computed(() => LEGAL_PAGE_DESCRIPTIONS[slug.value] ?? '')
+const pageDescription = computed(() => (te(legalDescriptionKey(slug.value)) ? t(legalDescriptionKey(slug.value)) : ''))
 const { imageUrl } = useMarketingSeo({
   title: pageTitle,
   description: pageDescription,

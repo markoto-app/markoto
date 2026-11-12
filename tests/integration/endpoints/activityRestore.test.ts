@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
+import * as Y from 'yjs'
 import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import {
@@ -12,23 +13,8 @@ import { first } from '../../helpers/assert'
 // POST /api/docs/:docId/activity/:activityId/restore
 //
 // Snaps the live Y.Doc to a past state. The endpoint owns auth +
-// validation; the actual restoration goes through Hocuspocus, which
-// the integration test stack doesn't run (it has an HTTP-only sync
-// stub via `syncStub.ts`). So this suite exercises every path that
-// completes BEFORE the WS connect:
-//   - 401 unauthenticated
-//   - 400 malformed activityId
-//   - 403 read-only viewer / non-member on a private doc
-//   - 404 unknown activityId
-//   - 404 activity row from a different doc (cross-doc isolation)
-//   - 410 row predates boundary tracking
-//
-// The "actually restores doc state" path is covered by:
-//   1. The `restoreDocToYjsId` unit tests (mocked WS provider)
-//   2. The flow-test docker stack which brings up `sync-test` and
-//      can drive a real WS round-trip (see scripts/flows-ephemeral.ts)
-// Documenting the split here so the gap doesn't masquerade as a
-// missing test.
+// validation (401 / 400 / 403 / 404 / 410 below); the restoration itself
+// goes through the real sync server of the test stack (`sync-test`).
 
 async function insertActivityRow(
   docId: string,
@@ -57,6 +43,25 @@ async function insertYjsRow(docname: string, _content: string, kind: 'update' | 
     [docname, fakeBytes, kind]
   )
   return Number(first(r.rows).id)
+}
+
+async function insertYjsUpdate(docId: string, update: Uint8Array): Promise<number> {
+  const r = await testDb().query<{ id: string }>(
+    `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2) RETURNING id`,
+    [docId, Buffer.from(update)]
+  )
+  return Number(first(r.rows).id)
+}
+
+/** The document text at a row id, replayed from the stored rows. */
+async function textAt(docId: string, maxId: number): Promise<string> {
+  const r = await testDb().query<{ data: Buffer }>(
+    'SELECT data FROM yjs_updates WHERE doc_id = $1 AND id <= $2 ORDER BY id',
+    [docId, maxId]
+  )
+  const ydoc = new Y.Doc()
+  for (const row of r.rows) Y.applyUpdate(ydoc, new Uint8Array(row.data))
+  return ydoc.getText('content').toJSON()
 }
 
 describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
@@ -277,6 +282,37 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
       // guard must NOT fire. Falls through to the WS path: 200 (full stack) or
       // 500 (no Hocuspocus in this harness). Just never 410.
       expect([200, 500]).toContain(res.status)
+    }, 30_000)
+  })
+
+  describe('a restore that changes the content', () => {
+    it('stamps the restore row with the id the restore wrote, so its diff shows the change', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      const ydoc = new Y.Doc()
+      const text = ydoc.getText('content')
+      text.insert(0, 'old text')
+      const oldId = await insertYjsUpdate(doc.docId, Y.encodeStateAsUpdate(ydoc))
+      const sv = Y.encodeStateVector(ydoc)
+      text.delete(0, text.length)
+      text.insert(0, 'new text')
+      const newId = await insertYjsUpdate(doc.docId, Y.encodeStateAsUpdate(ydoc, sv))
+      const activityId = await insertActivityRow(doc.docId, oldId, newId)
+
+      const client = await loggedInClient(owner.id)
+      const res = await client.post(`/api/docs/${doc.docId}/activity/${activityId}/restore`, {})
+      expect(res.status).toBe(200)
+
+      const row = first((await testDb().query<{ before: string, after: string }>(
+        `SELECT yjs_doc_id_before AS before, yjs_doc_id_after AS after FROM activity_log WHERE doc_id = $1 AND action = 'restore'`,
+        [doc.docId]
+      )).rows)
+      expect(Number(row.before)).toBe(newId)
+      // The sync server stores after a 2 s debounce; the restore makes it
+      // store right away, so the row carries the restore's own id.
+      expect(Number(row.after)).toBeGreaterThan(Number(row.before))
+      expect(await textAt(doc.docId, Number(row.before))).toBe('new text')
+      expect(await textAt(doc.docId, Number(row.after))).toBe('old text')
     }, 30_000)
   })
 

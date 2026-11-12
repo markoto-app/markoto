@@ -206,7 +206,7 @@
       "content-type-mismatch": "アップロードされたファイルの種類が想定と異なります。",
       "editor-required": "ナレッジベースを変更できるのは、管理者と編集者だけです。",
       "empty-upload": "アップロードされたファイルが空です。",
-      "file-too-large": "ファイルが大きすぎます。",
+      "file-too-large": "ファイルが大きすぎます（最大 {maxMb} MB）。",
       "invalid-key": "このストレージキーは、このワークスペースのナレッジベースのものではありません。",
       "key-mismatch": "knowledgeId は s3Key と一致している必要があります。",
       "not-found": "ナレッジファイルが見つかりません。",
@@ -215,10 +215,10 @@
       "too-many-pending": "保留中のアップロードが多すぎます。しばらくしてからもう一度お試しください。",
       "unsupported-format": "対応していない形式です：.{ext}。使用できる形式：{allowed}。",
       "upload-not-found": "アップロードが見つかりません。新しくアップロードをリクエストして、もう一度お試しください。",
-      "user-bytes-cap": "ナレッジの保存容量の上限に達しました。",
-      "user-file-cap": "ナレッジのアップロード数の上限に達しました。",
-      "workspace-bytes-cap": "このワークスペースは、ナレッジの保存容量の上限に達しました。",
-      "workspace-file-cap": "このワークスペースは、ナレッジファイル数の上限に達しました。"
+      "user-bytes-cap": "ナレッジの保存容量の上限（{maxMb} MB）に達しました。",
+      "user-file-cap": "ナレッジのアップロード数の上限（{max} 件）に達しました。",
+      "workspace-bytes-cap": "このワークスペースは、ナレッジの保存容量の上限（{maxMb} MB）に達しました。",
+      "workspace-file-cap": "このワークスペースは、ナレッジファイル数の上限（{max} 件）に達しました。"
     },
     "legal": {
       "disabled": "この環境では、法務ページは有効になっていません。"
@@ -228,14 +228,14 @@
       "invalid-token-request": "トークンのリクエストが無効です。",
       "missing-doc-id": "doc_id は必須です。",
       "missing-workspace-id": "workspace_id は必須です。",
-      "rate-limited": "リクエストが多すぎます — 少し待ってから再試行してください。",
       "render-rate-limited": "レンダリングのリクエストが多すぎます。1 分後にもう一度お試しください。",
       "token-not-found": "トークンが見つかりません。",
-      "too-many-open-docs": "同時に開いているドキュメントが多すぎます。数分待ってから、もう一度お試しください。",
+      "too-many-open-docs": "同時に開いているドキュメントが多すぎます（最大 {max} 件）。数分待ってから、もう一度お試しください。",
       "too-many-tokens": "有効な MCP トークンが上限に達しています。先にどれかを無効にしてください。",
-      "tool-not-found": "ツールが見つかりません。",
+      "tool-not-found": "ツール {tool} が見つかりません。",
       "unauthenticated": "MCP の認証が必要です。",
-      "workspace-not-found": "ワークスペースが見つかりません。"
+      "workspace-not-found": "ワークスペースが見つかりません。",
+      "tool-call-limit": "ツールの呼び出しが多すぎます（上限：{minutes} 分あたり {limit} 回）。しばらくしてから再試行してください。"
     },
     "moderation": {
       "not-restricted": "このドキュメントは制限されていません。",
@@ -322,7 +322,16 @@
       "test-mismatch": "テスト用のサインインに、別のアカウントが使われました。",
       "test-not-admin": "サインインをテストできるのは、ワークスペースの管理者だけです。",
       "unknown": "不明なサインインリンクです。",
-      "scim-needs-connection": "先にシングルサインオンを設定してください。"
+      "scim-needs-connection": "先にシングルサインオンを設定してください。",
+      "certificate-format": "ID プロバイダーの署名証明書を貼り付けてください（PEM または Base64）。",
+      "certificate-invalid": "有効な X.509 証明書ではありません。",
+      "certificate-expired": "この証明書は有効期限が切れています。",
+      "client-secret-required": "クライアントシークレットを入力してください。",
+      "url-invalid": "有効な URL ではありません。",
+      "url-not-https": "URL は https:// で始まる必要があります。",
+      "url-credentials": "URL にユーザー名やパスワードを含めることはできません。",
+      "url-unresolvable": "ホスト名 {host} を解決できませんでした。",
+      "url-refused": "markoto はこのアドレスに接続できません（内部サービス、ループバック・リンクローカル・メタデータのアドレス、またはプライベートネットワーク）。"
     },
     "template": {
       "doc-not-found": "このワークスペースにドキュメントが見つかりません。",

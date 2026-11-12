@@ -6,7 +6,7 @@ import { useLogger } from '../platform/logger'
 const log = useLogger('ai-provenance')
 
 // Lifecycle of a session's `ai_session_provenance` row (see the table
-// comment in `server/db/schema.ts`), shared by `/api/ai/prompt` and the
+// comment in `server/db/schema/ai.ts`), shared by `/api/ai/prompt` and the
 // `@ai` comment trigger:
 //
 //   claim    → row written `clean = false` right after the session is

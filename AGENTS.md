@@ -14,7 +14,7 @@ markoto is a collaborative markdown editor. A Nuxt 4 app on Bun (SSR, Nitro API,
 | Unused code and dependencies | `bun run knip` |
 | Import layering and cycles | `bun run depcruise` |
 | Repo checks | `bun run check:env` (generated env files current), `check:md-paths`, `check:vocab`, `check:i18n-unused`, `check:links`, `check:shell`, `check:docker`, `check:py` |
-| New migration from `server/db/schema.ts` | `bun run db:generate` (applied at app boot) |
+| New migration from `server/db/schema/` | `bun run db:generate` (applied at app boot) |
 
 Tests (details: [`docs/contributing/testing.md`](docs/contributing/testing.md)):
 
@@ -59,7 +59,7 @@ Database
 - drizzle-kit does not emit `CREATE EXTENSION`; hand-prepend it to a generated migration that needs one (see `drizzle/0000_baseline.sql`).
 - Enums are `text('col', { enum: [...] })`, not `pgEnum`. Migrations are forward-only.
 - Document Y.js state is the `yjs_updates` log (in the schema). Read it only through `server/utils/documents/yjsLog.ts` (app) / `sync-server/src/yjs-store.ts` (sync); never delete its rows by hand (pruning keeps the history floor consistent, `docs/contributing/sync-server.md`).
-- The knowledge embedding column's dimension is set at boot (`server/plugins/02-embeddings-dimension.ts`). Do not change `vector(768)` in `schema.ts` and never migrate that column's type.
+- The knowledge embedding column's dimension is set at boot (`server/plugins/02-embeddings-dimension.ts`). Do not change `vector(768)` in `server/db/schema/knowledge.ts` and never migrate that column's type.
 - Sweepers take `pg_try_advisory_lock` on a dedicated, checked-out client held for the whole sweep (`server/utils/platform/sweepLock.ts`); the `_xact_` variant releases at commit and is wrong here.
 
 Security

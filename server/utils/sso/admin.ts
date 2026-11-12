@@ -18,6 +18,17 @@ function invalid(field: string, detail: string): Error {
   return apiError('sso/invalid-settings', { field, detail })
 }
 
+/** A refused URL as the error that tells the admin what to change. */
+function urlRefused(field: string, e: SsoUrlRefused): Error {
+  switch (e.reason) {
+    case 'invalid': return apiError('sso/url-invalid', { field })
+    case 'not-https': return apiError('sso/url-not-https', { field })
+    case 'credentials': return apiError('sso/url-credentials', { field })
+    case 'unresolvable': return apiError('sso/url-unresolvable', { field, host: e.host ?? '' })
+    case 'refused': return apiError('sso/url-refused', { field })
+  }
+}
+
 const MAX_TEXT = 1024
 const MAX_CERT = 16 * 1024
 
@@ -31,7 +42,7 @@ function text(v: unknown, field: string, max = MAX_TEXT): string {
 function normalizeIdpCertificate(raw: unknown, now = new Date()): string {
   const input = text(raw, 'samlIdpCert', MAX_CERT)
   const body = input.replace(/-----(BEGIN|END) CERTIFICATE-----/g, '').replace(/\s+/g, '')
-  if (!/^[A-Za-z0-9+/]+=*$/.test(body)) throw invalid('samlIdpCert', 'Paste the IdP signing certificate (PEM or Base64).')
+  if (!/^[A-Za-z0-9+/]+=*$/.test(body)) throw apiError('sso/certificate-format', { field: 'samlIdpCert' })
   const lines: string[] = []
   for (let i = 0; i < body.length; i += 64) lines.push(body.slice(i, i + 64))
   const pem = `-----BEGIN CERTIFICATE-----\n${lines.join('\n')}\n-----END CERTIFICATE-----\n`
@@ -39,9 +50,9 @@ function normalizeIdpCertificate(raw: unknown, now = new Date()): string {
   try {
     cert = new X509Certificate(pem)
   } catch {
-    throw invalid('samlIdpCert', 'This is not a valid X.509 certificate.')
+    throw apiError('sso/certificate-invalid', { field: 'samlIdpCert' })
   }
-  if (new Date(cert.validTo).getTime() <= now.getTime()) throw invalid('samlIdpCert', 'This certificate has expired.')
+  if (new Date(cert.validTo).getTime() <= now.getTime()) throw apiError('sso/certificate-expired', { field: 'samlIdpCert' })
   return pem
 }
 
@@ -56,7 +67,7 @@ export async function parseSsoSettings(b: UpdateSsoSettingsBody, existing: SsoCo
     try {
       await checkSsoUrl(issuer)
     } catch (e) {
-      if (e instanceof SsoUrlRefused) throw invalid('oidcIssuer', e.message)
+      if (e instanceof SsoUrlRefused) throw urlRefused('oidcIssuer', e)
       throw e
     }
     const clientId = text(b.oidcClientId, 'oidcClientId')
@@ -64,7 +75,7 @@ export async function parseSsoSettings(b: UpdateSsoSettingsBody, existing: SsoCo
     if (b.oidcClientSecret?.trim()) {
       secret = sealSecret('sso-client-secret', secretContext.ssoClientSecret(workspaceId), text(b.oidcClientSecret, 'oidcClientSecret'))
     } else if (!(existing?.protocol === 'oidc' && existing.oidcClientSecret)) {
-      throw invalid('oidcClientSecret', 'The client secret is required.')
+      throw apiError('sso/client-secret-required', { field: 'oidcClientSecret' })
     }
     return { protocol: 'oidc', oidcIssuer: trimTrailingSlashes(issuer), oidcClientId: clientId, oidcClientSecret: secret, defaultRole }
   }
@@ -75,14 +86,14 @@ export async function parseSsoSettings(b: UpdateSsoSettingsBody, existing: SsoCo
   try {
     parsed = new URL(ssoUrl)
   } catch {
-    throw invalid('samlSsoUrl', 'The SSO URL is not a valid URL.')
+    throw apiError('sso/url-invalid', { field: 'samlSsoUrl' })
   }
   // The browser goes there, not the server, so https is all we require
   // (http only on an instance that allows private IdPs, e.g. tests).
   if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && ssoAllowsPrivateUrls())) {
-    throw invalid('samlSsoUrl', 'The SSO URL must start with https://.')
+    throw apiError('sso/url-not-https', { field: 'samlSsoUrl' })
   }
-  if (parsed.username || parsed.password) throw invalid('samlSsoUrl', 'The SSO URL must not contain a user name or password.')
+  if (parsed.username || parsed.password) throw apiError('sso/url-credentials', { field: 'samlSsoUrl' })
   return {
     protocol: 'saml',
     samlIdpEntityId: entityId,

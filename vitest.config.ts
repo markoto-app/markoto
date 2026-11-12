@@ -88,7 +88,7 @@ export default defineConfig({
         'server/middleware/**',
         'server/plugins/**',
         'server/routes/**',
-        'server/db/schema.ts',
+        'server/db/schema/**',
         // Vue components — covered by manual/e2e UX testing, not unit.
         'app/components/**',
         'app/pages/**',

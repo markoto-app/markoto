@@ -1,10 +1,12 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, type Mock } from 'vitest'
 import { dispatchDictationFrame, type DictationFrameHandlers } from '../../app/composables/ai/dictationPipeline'
 
 // Live dictation's server frames reach `useVoiceDictation` through this
 // dispatcher: one handler per frame type, malformed frames ignored.
 
-function handlers(): DictationFrameHandlers & Record<string, ReturnType<typeof vi.fn>> {
+type MockHandlers = { [K in keyof DictationFrameHandlers]: Mock<DictationFrameHandlers[K]> }
+
+function handlers(): MockHandlers {
   return {
     onReady: vi.fn(),
     onPartial: vi.fn(),

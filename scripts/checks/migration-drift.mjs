@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Fails when server/db/schema.ts has changes that no committed migration
+// Fails when the schema (server/db/schema/) has changes that no committed migration
 // covers, i.e. `drizzle-kit generate` would emit a new migration. Runs
 // against a throwaway copy of drizzle/ so the working tree is never touched,
 // and needs no database.
@@ -15,7 +15,7 @@ try {
   cpSync(join(root, 'drizzle'), out, { recursive: true })
   const config = join(work, 'drizzle.config.mjs')
   writeFileSync(config, `export default {
-  schema: ${JSON.stringify(join(root, 'server/db/schema.ts'))},
+  schema: ${JSON.stringify(join(root, 'server/db/schema/index.ts'))},
   out: './drizzle',
   dialect: 'postgresql'
 }\n`)
@@ -27,7 +27,7 @@ try {
     process.exit(run.status ?? 1)
   }
   if (added.length > 0) {
-    console.error(`server/db/schema.ts differs from the committed migrations (drizzle-kit would create: ${added.join(', ')}).`)
+    console.error(`server/db/schema/ differs from the committed migrations (drizzle-kit would create: ${added.join(', ')}).`)
     console.error('Run `bun run db:generate` and commit the new migration + snapshot.')
     process.exit(1)
   }

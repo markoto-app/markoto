@@ -61,7 +61,7 @@ The architecture overview is [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md). T
 | Path | Contents |
 |---|---|
 | `app/` | Vue frontend (Nuxt 4): `pages/`, `components/<area>/`, `composables/<domain>/`, `utils/<domain>/` |
-| `server/` | Nitro API: `api/` (routes), `repos/` (database access), `db/schema.ts`, `middleware/`, `plugins/`, `mcp/`, `legal/`, `utils/<domain>/` |
+| `server/` | Nitro API: `api/` (routes), `repos/` (database access), `db/schema/`, `middleware/`, `plugins/`, `mcp/`, `legal/`, `utils/<domain>/` |
 | `shared/` | Code used by client and server: `config/`, `types/`, `templates/`, `utils/<domain>/` |
 | `sync-server/`, `renderer/`, `markitdown-server/` | The sync server (Hocuspocus), the PDF renderer (Playwright) and the import service (Python), each its own package |
 | `tests/` | `unit/<domain>/`, `dom/`, `nuxt/`, `repos/`, `integration/`, `e2e/` |
@@ -102,19 +102,18 @@ One command runs the fast local gate, no Docker needed:
 bun run check        # or: make check
 ```
 
-In order: generated env files, Markdown paths, internal vocabulary, schema-vs-migrations drift, `depcruise`, `knip`, ESLint (everything except the type-aware rules) with the lint budget ratchet, `nuxt typecheck` + the `.vue` guard, `typecheck:tests`, `typecheck:scripts`, sync-server + renderer typechecks and the unit tests. `bun run check:full` (`make check-full`) adds the type-aware lint rules and the checks that need an external tool: shellcheck, hadolint, lychee and `uv` (ruff, pyright).
+In order: generated env files, Markdown paths, internal vocabulary, schema-vs-migrations drift, `depcruise`, `knip`, ESLint (everything except the type-aware rules), `nuxt typecheck` + the `.vue` guard, `typecheck:tests`, `typecheck:scripts`, sync-server + renderer typechecks and the unit tests. `bun run check:full` (`make check-full`) adds the type-aware lint rules and the checks that need an external tool: shellcheck, hadolint, lychee and `uv` (ruff, pyright).
 
 | Command | What it checks | In CI job |
 |---|---|---|
 | `bun run lint` | The whole ESLint config (CI truth, about 4 minutes) | `lint-types` |
 | `bun run lint:fast` | Everything except the type-aware rules (`no-floating-promises`, ...): seconds | `lint-typecheck` |
 | `bun run lint:types` | Only the type-aware rules | covered by `lint` |
-| `bun run lint:budget` | `lint:fast` plus the budget ratchet below | `lint-typecheck` |
 | `bun run typecheck`, `typecheck:guard` | `nuxt typecheck` (vue-tsc) over app, server and shared; the guard fails when `.vue` files are silently skipped | `lint-typecheck` |
 | `bun run typecheck:tests`, `typecheck:scripts`, `typecheck:services` | Types of `tests/`, `scripts/` + root configs, `sync-server/` + `renderer/` | `lint-typecheck` |
 | `bun run knip` | Unused files, exports and dependencies | `repo-checks` |
-| `bun run depcruise` | Import-layer rules and cycles (`.dependency-cruiser.cjs`; three known cycles are listed there and may only shrink) | `repo-checks` |
-| `bun run db:check-drift` | `server/db/schema.ts` matches the committed migrations (`bun run db:generate` would create nothing) | `repo-checks` |
+| `bun run depcruise` | Import-layer rules and cycles (`.dependency-cruiser.cjs`; no import cycle is allowed) | `repo-checks` |
+| `bun run db:check-drift` | `server/db/schema/` matches the committed migrations (`bun run db:generate` would create nothing) | `repo-checks` |
 | `bun run check:env` | Generated `.env.example`, config reference and renderer env are current (`bun run env:gen`) | `lint-typecheck` |
 | `bun run check:vocab`, `check:md-paths`, `check:links` | Internal planning labels, dangling paths, broken relative links and anchors in Markdown | `repo-checks`, `docs-checks` |
 | `bun run check:shell`, `check:docker` | shellcheck, hadolint (`.hadolint.yaml`) | `shell-docker-lint` |
@@ -122,7 +121,7 @@ In order: generated env files, Markdown paths, internal vocabulary, schema-vs-mi
 | `bun run check:i18n-unused` | Unused i18n keys (informational) | no |
 | `make lint` | ESLint, the type checks incl. `sync-server/` and `renderer/`, ansible-lint, yamllint, actionlint | partly |
 
-Every ESLint rule is an `error` except three that still have a backlog: `max-lines` (600), `max-lines-per-function` (150) and `sonarjs/cognitive-complexity` (15). They warn, and `scripts/checks/lint-budget.mjs` keeps the backlog from growing: it compares the files with hits against `scripts/checks/lint-budget.baseline.json` and fails when a file not in the baseline gets a hit, when a listed file gets more hits, or when any other rule warns. When you split a file or simplify a function the check also fails, telling you the baseline can shrink: run `bun run lint:budget:update` and commit the smaller baseline. Never regenerate the baseline to make a new hit pass; split the code instead.
+Every ESLint rule is an `error`, including the size and complexity limits: `max-lines` (600 per file), `max-lines-per-function` (150) and `sonarjs/cognitive-complexity` (15). When code hits one, split the file or the function. An inline `eslint-disable-next-line` for one of them is reserved for code that is clearer in one piece (a flat dispatch table, a parser) and needs a one-line reason after `--`.
 
 **Run the type check under Node, never with `bun --bun`.** Under the Bun runtime the Vue language plugin of `vue-tsc` does not load, so every `.vue` file drops out of the check and it still exits 0. `bun run typecheck` keeps the script's Node shebang; `typecheck:guard` catches the silent case. ESLint and `depcruise` are the opposite and run under Bun (`bun --bun`).
 
@@ -157,7 +156,7 @@ The ones that matter most in review:
 
 Migrations are forward-only and applied at app start.
 
-1. Edit `server/db/schema.ts` (enums are `text(..., { enum: [...] })`, not `pgEnum`).
+1. Edit the domain file in `server/db/schema/` (enums are `text(..., { enum: [...] })`, not `pgEnum`).
 2. Run `bun run db:generate` (or `make db-generate`) and commit both the SQL in `drizzle/` and the `drizzle/meta/` snapshot.
 3. An index on a large, populated table needs a hand-edited `CREATE INDEX CONCURRENTLY`; see `server/AGENTS.md`.
 4. CI's `migration-guard` job blocks destructive migrations (`bun run db:check-migrations` runs the same check locally). Call out anything that needs an operator action in the pull-request body.

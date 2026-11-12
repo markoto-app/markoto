@@ -6,6 +6,7 @@ import { sql } from 'drizzle-orm'
 import { useDatabase } from '../platform/database'
 import { reconstructDocAtYjsId } from './historyReplay'
 import { YjsHistoryCompactedError } from './yjsLog'
+import { flushSyncDocument } from './syncNotify'
 import { restoreClientUserId, type SessionJwtPayload } from '~~/shared/contracts/jwt'
 import { isValidMetaValue } from '~~/shared/utils/documents/ymetaValidation'
 import { useEnv } from '~~/shared/env/load'
@@ -51,7 +52,11 @@ export function readRestorableMeta(pastMeta: Y.Map<unknown>): Record<string, unk
 //      replace ytext + ymeta + ycomments with the past state's
 //      content. The transaction shows up to every connected client
 //      as a single broadcast — no flicker, no partial state.
-//   4. Disconnect the synthetic client. The live doc now reflects
+//   4. Wait until the sync server acknowledged the update, have it
+//      store the document now (`flush-document`) and read the newest
+//      row id: the row the restore wrote, so the `restore` activity
+//      row's boundaries diff (and undo) exactly this change.
+//   5. Disconnect the synthetic client. The live doc now reflects
 //      the target state; collaborators' editors update via the
 //      normal y-codemirror.next bind.
 //
@@ -68,6 +73,31 @@ export function readRestorableMeta(pastMeta: Y.Map<unknown>): Record<string, unk
 //     endpoint runs first)
 //   - The activity-log row write (caller writes it after success
 //     so a replay-time exception leaves no orphan)
+
+const ACK_TIMEOUT_MS = 10_000
+
+/**
+ * Resolves once the sync server has applied every update this provider
+ * sent (Hocuspocus answers each one with a sync-status message). Rejects
+ * when that takes longer than `ACK_TIMEOUT_MS` — e.g. the server refused
+ * the update.
+ */
+function waitForServerAck(provider: HocuspocusProvider): Promise<void> {
+  if (!provider.hasUnsyncedChanges) return Promise.resolve()
+  return new Promise((resolve, reject) => {
+    const onChange = () => {
+      if (provider.hasUnsyncedChanges) return
+      clearTimeout(timer)
+      provider.off('unsyncedChanges', onChange)
+      resolve()
+    }
+    const timer = setTimeout(() => {
+      provider.off('unsyncedChanges', onChange)
+      reject(new Error(`Restore update not acknowledged by the sync server within ${ACK_TIMEOUT_MS}ms`))
+    }, ACK_TIMEOUT_MS)
+    provider.on('unsyncedChanges', onChange)
+  })
+}
 
 export interface RestoreDocOptions {
   docId: string
@@ -91,9 +121,10 @@ export interface RestoreDocResult {
    *  restore from this row brings the doc back to the pre-restore
    *  state. THIS is the field that powers reversibility. */
   yjsDocIdBeforeRestore: number | null
-  /** The `yjs_updates` id captured AFTER the restore landed.
-   *  Used to set yjsDocIdAfter on the resulting `restore` activity
-   *  row so its diff drawer can replay the exact change. */
+  /** The `yjs_updates` id after the restore was stored (the sync
+   *  server is made to store it before this is read). Used to set
+   *  yjsDocIdAfter on the resulting `restore` activity row so its diff
+   *  drawer can replay the exact change. */
   yjsDocIdAfterRestore: number | null
 }
 
@@ -215,6 +246,7 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
       }
     })
 
+    let yjsDocIdAfterRestore: number | null
     try {
       await syncReady
 
@@ -263,12 +295,17 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
         }
       }, `restore:${opts.actorUserId}:${opts.sessionId}`)
 
-      // Give Hocuspocus a tick to broadcast + persist. Without this
-      // the disconnect can race the store debounce and the next
-      // collaborator's onLoad gets a stale state. 200ms is well above
-      // the Y.js store latency (~5ms) and well below user-
-      // perceptible (which kicks in ~300ms).
-      await new Promise(r => setTimeout(r, 200))
+      // Step 4: the update is in the sync server's document once it
+      // acknowledged it; then make it store the document now instead of
+      // after its 2 s debounce, and read the row that store appended.
+      // A failed flush is logged by flushSyncDocument; the id read below
+      // may then precede the restore's own row.
+      await waitForServerAck(provider)
+      await flushSyncDocument(opts.docId)
+      const r = await tx.execute<{ id: string | null }>(
+        sql`SELECT max(id) AS id FROM yjs_updates WHERE doc_id = ${opts.docId}`
+      )
+      yjsDocIdAfterRestore = toYjsId((r.rows?.[0])?.id)
     } finally {
       try {
         awareness.setLocalState(null)
@@ -291,14 +328,6 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
         /* best-effort */
       }
     }
-
-    // Step 4: capture the post-restore yjs row id for the activity row's
-    // yjsDocIdAfter. Hocuspocus's store debounce may not have flushed yet;
-    // the diff drawer then resolves to the latest state available.
-    const r = await tx.execute<{ id: string | null }>(
-      sql`SELECT max(id) AS id FROM yjs_updates WHERE doc_id = ${opts.docId}`
-    )
-    const yjsDocIdAfterRestore = toYjsId((r.rows?.[0])?.id)
 
     return { yjsDocIdBeforeRestore, yjsDocIdAfterRestore }
   })

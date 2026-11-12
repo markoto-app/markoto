@@ -6,7 +6,7 @@ Entry point: `sync-server/src/index.ts`. It runs as TypeScript directly under Bu
 
 ## Persistence
 
-A document's Y.js state is an append-only log in the `yjs_updates` table, declared in `server/db/schema.ts` and created by the app's migration like every other table (the sync server never runs DDL). Each row belongs to a `documents` row (`ON DELETE CASCADE`).
+A document's Y.js state is an append-only log in the `yjs_updates` table, declared in `server/db/schema/sync.ts` and created by the app's migration like every other table (the sync server never runs DDL). Each row belongs to a `documents` row (`ON DELETE CASCADE`).
 
 | Column | Meaning |
 |---|---|

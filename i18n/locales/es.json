@@ -1847,7 +1847,29 @@
       "intro": "Los terceros a los que markoto encarga tratar datos personales en nuestro nombre, con la ubicación, el mecanismo de transferencia y los enlaces públicos de cada uno. Información exigida por el artículo 13(1)(e) del RGPD. Avisamos a los clientes propietarios de espacios de trabajo con al menos 30 días de antelación de cualquier nuevo encargado del tratamiento.",
       "dpfCertified": "Certificado en el Marco de Privacidad de Datos UE-EE. UU.",
       "dpf": "DPF",
-      "transfer": "Transferencia"
+      "transfer": "Transferencia",
+      "purpose": {
+        "ovh_postgres": "Base de datos principal de la aplicación, estado Y.js de los documentos, embeddings de la base de conocimiento",
+        "ovh_object_storage": "Imágenes subidas, originales de la base de conocimiento (se eliminan tras el procesamiento), copias de seguridad de la base de datos",
+        "mistral_ai": "Generación de texto con IA para el asistente de escritura: la asignación de IA gratuita (Z.ai GLM-5.3 Flash, servido y procesado por Mistral; Z.ai no recibe datos) con Mistral Small como alternativa; transcripción de voz (Voxtral). Todas las solicitudes van al endpoint de Mistral en la UE (centros de datos en la UE y la AELC)",
+        "jina_ai": "Generación de embeddings para la base de conocimiento (RAG); extracción del contenido de una página a partir de una URL para la herramienta de obtener URL (Jina Reader; la URL se envía para todos los usuarios, también para quienes usan su propio proveedor de IA)",
+        "staan": "Búsqueda web para el asistente de escritura con IA (la consulta se envía para todos los usuarios, también para quienes usan su propio proveedor de IA), mediante un índice de búsqueda europeo propio (enrutamiento solo en la UE)",
+        "bfl": "Generación de imágenes con FLUX.2 (tratamiento de datos fijado en la UE)",
+        "google_oauth": "Inicio de sesión con una cuenta de Google (no se accede a otros datos de Google)",
+        "github_oauth": "Inicio de sesión con una cuenta de GitHub (no se accede a otros datos de GitHub)",
+        "stripe": "Facturación de suscripciones, almacenamiento de métodos de pago, emisión de facturas, evaluación del fraude",
+        "sentry": "Telemetría de errores y rendimiento de la aplicación, almacenada en la región de datos de la UE de Sentry (Fráncfort)",
+        "resend": "Envío de correos transaccionales: confirmaciones de eliminación de cuenta, avisos de exportación de datos lista, notificaciones de brechas de datos"
+      }
+    },
+    "seoDescription": {
+      "privacy": "Cómo trata markoto los datos personales: qué se trata, por qué, durante cuánto tiempo, con qué encargados y tus derechos según el RGPD y la ley suiza.",
+      "terms": "Las condiciones de uso de markoto: cuentas, documentos sin cuenta, uso aceptable, funciones de IA, responsabilidad y cómo cambian las condiciones.",
+      "paid-terms": "Las condiciones de los planes Pro, Team y Business y de los créditos de IA: plazas, renovación y cancelación, créditos, reembolsos y desistimiento.",
+      "dpa": "El acuerdo de tratamiento de datos para propietarios de espacios de trabajo: markoto trata su contenido por encargo según el artículo 28 del RGPD.",
+      "abuse-policy": "Qué no está permitido en markoto, cómo denunciar contenido ilegal o abusos y cómo se tramitan y resuelven las denuncias.",
+      "imprint": "Aviso legal de markoto: la empresa que lo gestiona, su dirección y cómo contactar con ella.",
+      "sub-processors": "Todas las empresas que tratan datos para markoto: qué hacen, dónde se guardan los datos y cómo se cubren las transferencias."
     }
   },
   "settings": {
@@ -2726,7 +2748,9 @@
       "search": "buscar",
       "startHere": "Empieza aquí",
       "startHereHint": "Los flujos más importantes",
-      "browse": "Explorar por tema"
+      "browse": "Explorar por tema",
+      "metaTitle": "Documentación",
+      "metaDescription": "Guías, recorridos y referencia de markoto, el editor de Markdown colaborativo."
     },
     "pagination": {
       "label": "Paginación de la documentación",

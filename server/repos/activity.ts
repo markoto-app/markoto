@@ -67,7 +67,7 @@ export interface AppendInput {
    * Synthetic-principal label for agent-driven rows (`'ai:assistant:{aiSessionId}'`,
    * `'mcp:{mcpSessionId}'`), taken from the JWT userId when non-numeric. NULL
    * for human and anonymous edits. See `activity_log.actor_principal` in
-   * `server/db/schema.ts` for the join chain.
+   * `server/db/schema/collab.ts` for the join chain.
    */
   actorPrincipal?: string | null
   /** Anonymous rows only: the editor's awareness avatar token. */

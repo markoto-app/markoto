@@ -144,6 +144,12 @@ By hand: dispatch `publish-flow-shots.yml` with a run id, or `gh run download <r
 4. Write the docs page `content/docs/<section>/<slug>.md` with frontmatter (`title`, `description`, `category`, `order`, optional `featured`) and embed `::flow{id="<slug>" mode="slides" hide-title}::`.
 5. Run `bun run flows:test:changed` (or `bun run flows`) and look at the frames in `tests/e2e/output/flows/<slug>/`.
 
+## Known shortcuts
+
+Workarounds in the flow specs that nobody has re-checked since they were added. Each one lists how to check it; remove it from this list once it is checked or gone.
+
+- **Forced clicks in the mobile Insert drawer** (`tests/e2e/flows/rich-content.spec.ts`): the six `click({ force: true })` taps on *Code block*, *Alert*, *Tip*, *Math*, *Diagram* and *Pie chart* (`data-testid="ecp-insert-*"`, `ecp-alert-tip`, `ecp-diagram-pie`). They sit inside `if (editor.isMobile)`, so only the mobile projects run them; the desktop branch inserts through the menu bar with normal clicks. The force works around the bottom-sheet pointer interception described in `tests/e2e/AGENTS.md`, but it was never confirmed that this drawer (a plain grid of buttons, not a portaled popover) needs it, and a forced click skips Playwright's visibility and enabled checks. To check: remove `force: true` from the six calls and run the flow in both form factors, `FLOWS_SERVE_ONLY=1 bun run flows:test` in one terminal and `bun run flows:test:against-running -- tests/e2e/flows/rich-content.spec.ts --project=en-light-mobile --project=en-light-desktop` in another (`PLAYWRIGHT_BASE_URL=http://markoto.localhost:3001`). The desktop run must pass unchanged (it never reaches these calls); if the mobile run passes too, drop the force and this entry.
+
 ## Product-tour captures
 
 The product page's scene videos are recorded from the real app by `tests/e2e/tour/*.capture.ts` with `playwright.tour.config.ts` (projects `tour-light` / `tour-dark`), using the fixture in `tests/e2e/tour/fixture.ts`. Frames are captured step by step, not screen-recorded, and written to `$TOUR_OUTPUT_DIR/<mode>/<scene>/`. The demo content is `tests/e2e/tour/content/demoDocument.ts`. `bun run tour:capture` (`scripts/capture-tour.ts`) records and encodes (ffmpeg with libsvtav1 and libx264) and writes `public/tour/manifest.json`, whose schema `shared/tour/manifest.ts` is checked by `tests/unit/seo/tourManifest.test.ts`. The AI scenes need `MISTRAL_API_KEY` and `JINA_AI_API_KEY`.
