@@ -63,36 +63,38 @@ function endpointHtml(md: MarkdownIt, method: string, path: string): string {
   return `<span class="markoto-http-method">${method}</span> <span class="markoto-http-path">${md.utils.escapeHtml(path)}</span>`
 }
 
+/** The alert (`alert_open`) a paragraph at `i` opens, when it follows the alert's title directly. */
+function alertOpenedBy(tokens: Token[], i: number): Token | null {
+  if (tokens[i - 1]?.type !== 'alert_title') return null
+  for (let j = i - 2; j >= 0; j--) {
+    if (tokens[j]?.type === 'alert_open') return tokens[j] ?? null
+  }
+  return null
+}
+
+function markParagraph(md: MarkdownIt, state: StateCore, i: number): void {
+  const tokens = state.tokens
+  const t = tokens[i]
+  if (t?.type !== 'paragraph_open') return
+  const inline = tokens[i + 1]
+  if (opensWithLabel(inline)) {
+    t.attrJoin('class', LABELLED_CLASS)
+    // The first paragraph of an alert (right after its title).
+    alertOpenedBy(tokens, i)?.attrJoin('class', ALERT_LABELLED_CLASS)
+    return
+  }
+  const ep = endpointMatch(inline)
+  if (ep && inline) {
+    t.attrJoin('class', ENDPOINT_CLASS)
+    const html = new state.Token('html_inline', '', 0)
+    html.content = endpointHtml(md, ep[1] ?? '', ep[2] ?? '')
+    inline.children = [html]
+  }
+}
+
 export function markersPlugin(md: MarkdownIt): void {
   md.core.ruler.push('markoto_markers', (state: StateCore) => {
-    const tokens = state.tokens
-    for (let i = 0; i < tokens.length; i++) {
-      const t = tokens[i]
-      if (t?.type !== 'paragraph_open') continue
-      const inline = tokens[i + 1]
-      if (opensWithLabel(inline)) {
-        t.attrJoin('class', LABELLED_CLASS)
-        // The first paragraph of an alert (right after its title).
-        const prev = tokens[i - 1]
-        if (prev?.type === 'alert_title') {
-          for (let j = i - 2; j >= 0; j--) {
-            const open = tokens[j]
-            if (open?.type === 'alert_open') {
-              open.attrJoin('class', ALERT_LABELLED_CLASS)
-              break
-            }
-          }
-        }
-        continue
-      }
-      const ep = endpointMatch(inline)
-      if (ep && inline) {
-        t.attrJoin('class', ENDPOINT_CLASS)
-        const html = new state.Token('html_inline', '', 0)
-        html.content = endpointHtml(md, ep[1] ?? '', ep[2] ?? '')
-        inline.children = [html]
-      }
-    }
+    for (let i = 0; i < state.tokens.length; i++) markParagraph(md, state, i)
   })
 
   // ```http fence holding only `METHOD /path` → an endpoint line.

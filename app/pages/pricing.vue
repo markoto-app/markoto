@@ -219,7 +219,7 @@ async function onChangePlan(plan: PlanName): Promise<void> {
     }
     // Full-page redirect — Stripe's hosted Checkout is a separate
     // origin, can't be iframed.
-    if ('url' in resp && resp.url) globalThis.location.href = resp.url
+    if (resp.url) globalThis.location.href = resp.url
   } catch (e) {
     toast.add({
       title: t('workspace.billing.checkoutFailed'),
@@ -291,25 +291,19 @@ const { imageUrl } = useMarketingSeo({
 // would put a wrong claim into search results.
 // One graph with the page's WebPage + BreadcrumbList (usePageStructuredData
 // is marketing-site only too).
+/** One offer per plan, billing period and currency someone can pay. */
+function paidOffers(): PricingOffer[] {
+  return PAID_PLAN_NAMES.flatMap(plan => CURRENCIES.flatMap(cur => (['month', 'year'] as const).map(iv => ({
+    name: `${PAID_DISPLAY[plan]} (${iv === 'year' ? t('pricing.interval.year') : t('pricing.interval.month')}, ${cur.toUpperCase()})`,
+    price: PRICE_TABLE.value[cur][plan][iv],
+    currency: cur.toUpperCase(),
+    interval: iv,
+    perSeat: isPerSeatPlan(plan)
+  }))))
+}
 usePageStructuredData(() => {
   if (!optionsLayout.value) return null
-  const offers: PricingOffer[] = [{ name: t('pricing.freeAccount.title'), price: 0 }]
-  if (billingEnabled.value) {
-    // One offer per plan, billing period and currency someone can pay.
-    for (const plan of PAID_PLAN_NAMES) {
-      for (const cur of CURRENCIES) {
-        for (const iv of ['month', 'year'] as const) {
-          offers.push({
-            name: `${PAID_DISPLAY[plan]} (${iv === 'year' ? t('pricing.interval.year') : t('pricing.interval.month')}, ${cur.toUpperCase()})`,
-            price: PRICE_TABLE.value[cur][plan][iv],
-            currency: cur.toUpperCase(),
-            interval: iv,
-            perSeat: isPerSeatPlan(plan)
-          })
-        }
-      }
-    }
-  }
+  const offers: PricingOffer[] = [{ name: t('pricing.freeAccount.title'), price: 0 }, ...(billingEnabled.value ? paidOffers() : [])]
   return {
     name: pageTitle.value,
     description: metaDescription.value,
@@ -353,192 +347,19 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
           data-testid="pricing-options"
         >
           <!-- Self-hosted -->
-          <article
-            :class="[cardClass, 'border-default']"
-            data-testid="pricing-option-self-hosted"
-          >
-            <h2 class="font-serif text-xl font-normal tracking-tight">
-              {{ t('pricing.selfHosted.title') }}
-            </h2>
-            <p class="text-sm text-muted mt-1 lg:min-h-10">
-              {{ t('pricing.selfHosted.tagline') }}
-            </p>
-            <p class="mt-4 font-serif text-3xl font-light tracking-tight">
-              {{ t('pricing.price.free') }}
-            </p>
-            <p class="font-mono text-[11px] uppercase tracking-[0.06em] text-muted mt-1">
-              {{ t('pricing.selfHosted.priceNote') }}
-            </p>
-            <ul class="mt-5 space-y-2 text-sm flex-1">
-              <li class="flex gap-2">
-                <UIcon
-                  name="i-lucide-server"
-                  class="size-4 text-muted shrink-0 mt-0.5"
-                />
-                <span>{{ t('pricing.selfHosted.everyFeature') }}</span>
-              </li>
-              <li class="flex gap-2">
-                <UIcon
-                  name="i-lucide-key-round"
-                  class="size-4 text-muted shrink-0 mt-0.5"
-                />
-                <span>{{ t('pricing.selfHosted.byok') }}</span>
-              </li>
-              <li class="flex gap-2">
-                <UIcon
-                  name="i-lucide-scale"
-                  class="size-4 text-muted shrink-0 mt-0.5"
-                />
-                <span data-testid="pricing-licence">{{ t('pricing.selfHosted.licence') }}</span>
-              </li>
-            </ul>
-            <UButton
-              to="/docs/getting-started/self-hosting"
-              color="neutral"
-              variant="outline"
-              block
-              class="mt-6"
-              data-testid="pricing-self-hosted-cta"
-            >
-              {{ t('pricing.selfHosted.cta') }}
-            </UButton>
-          </article>
+          <PricingSelfHostedOption />
 
           <!-- No account -->
-          <article
-            :class="[cardClass, 'border-default']"
-            data-testid="pricing-option-anon"
-          >
-            <h2 class="font-serif text-xl font-normal tracking-tight">
-              {{ t('pricing.anon.title') }}
-            </h2>
-            <p class="text-sm text-muted mt-1 lg:min-h-10">
-              {{ t('pricing.anon.tagline') }}
-            </p>
-            <p class="mt-4 font-serif text-3xl font-light tracking-tight">
-              {{ t('pricing.price.free') }}
-            </p>
-            <p class="font-mono text-[11px] uppercase tracking-[0.06em] text-muted mt-1">
-              {{ t('pricing.anon.priceNote') }}
-            </p>
-            <ul class="mt-5 space-y-2 text-sm flex-1">
-              <li class="flex gap-2">
-                <UIcon
-                  name="i-lucide-users"
-                  class="size-4 text-muted shrink-0 mt-0.5"
-                />
-                <span>{{ t('pricing.anon.write') }}</span>
-              </li>
-              <li class="flex gap-2">
-                <UIcon
-                  name="i-lucide-file-down"
-                  class="size-4 text-muted shrink-0 mt-0.5"
-                />
-                <span>{{ t('pricing.anon.export') }}</span>
-              </li>
-              <li class="flex gap-2">
-                <UIcon
-                  name="i-lucide-minus"
-                  class="size-4 text-muted shrink-0 mt-0.5"
-                />
-                <span data-testid="pricing-anon-limits">{{ t('pricing.anon.noAi') }}</span>
-              </li>
-              <li
-                v-if="anonDocTtlDays > 0"
-                class="flex gap-2"
-              >
-                <UIcon
-                  name="i-lucide-clock"
-                  class="size-4 text-muted shrink-0 mt-0.5"
-                />
-                <span data-testid="pricing-anon-retention">{{ t('pricing.anon.retention', { n: formatCount(anonDocTtlDays, locale) }, anonDocTtlDays) }}</span>
-              </li>
-              <li class="flex gap-2">
-                <UIcon
-                  name="i-lucide-trash-2"
-                  class="size-4 text-muted shrink-0 mt-0.5"
-                />
-                <span>{{ t('pricing.anon.delete') }}</span>
-              </li>
-            </ul>
-            <MarketingStartButton
-              class="mt-6 block [&>button]:w-full [&>button]:justify-center"
-              testid="pricing-anon-cta"
-            />
-          </article>
+          <PricingAnonOption />
 
           <!-- Free account -->
-          <article
-            :class="[cardClass, isCurrent('free') ? 'border-inverted' : 'border-default']"
-            data-testid="pricing-tier-free"
-            :data-current="isCurrent('free')"
-            data-coming-soon="false"
-          >
-            <div
-              v-if="isCurrent('free')"
-              data-testid="pricing-current-plan-badge"
-              :class="badgeClass"
-            >
-              {{ t('pricing.currentPlan') }}
-            </div>
-            <h2 class="font-serif text-xl font-normal tracking-tight">
-              {{ t('pricing.freeAccount.title') }}
-            </h2>
-            <p class="text-sm text-muted mt-1 lg:min-h-10">
-              {{ t('pricing.tiers.free') }}
-            </p>
-            <p class="mt-4 font-serif text-3xl font-light tracking-tight">
-              {{ t('pricing.price.free') }}
-            </p>
-            <p class="font-mono text-[11px] uppercase tracking-[0.06em] text-muted mt-1">
-              {{ t('pricing.availableNow') }}
-            </p>
-            <div class="mt-5 flex-1">
-              <PricingCapsList
-                plan="free"
-                :tiers="TIERS"
-              />
-              <p class="mt-3 flex gap-2 text-sm">
-                <UIcon
-                  name="i-lucide-key-round"
-                  class="size-4 text-muted shrink-0 mt-0.5"
-                />
-                <span>{{ t('pricing.freeAccount.byok') }}</span>
-              </p>
-            </div>
-            <div class="mt-6">
-              <UButton
-                v-if="isCurrent('free')"
-                disabled
-                block
-                color="neutral"
-                variant="subtle"
-              >
-                {{ t('pricing.currentPlan') }}
-              </UButton>
-              <UButton
-                v-else-if="billingEnabled && paidPlanFor(billing?.plan)"
-                block
-                color="neutral"
-                variant="outline"
-                :loading="portalLoading"
-                @click="openPortal"
-              >
-                {{ t('pricing.downgrade') }}
-              </UButton>
-              <UButton
-                v-else-if="!loggedIn && primaryLoginPath"
-                :to="primaryLoginPath"
-                external
-                block
-                color="neutral"
-                variant="outline"
-                data-testid="pricing-free-sign-in"
-              >
-                {{ t('pricing.freeAccount.signIn') }}
-              </UButton>
-            </div>
-          </article>
+          <PricingFreeAccountOption
+            :current="isCurrent('free')"
+            :can-downgrade="billingEnabled && !!paidPlanFor(billing?.plan)"
+            :portal-loading="portalLoading"
+            :tiers="TIERS"
+            @portal="openPortal"
+          />
 
           <!-- Paid: Pro · Team · Business (Team / Business per seat) -->
           <article

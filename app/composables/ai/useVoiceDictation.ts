@@ -6,20 +6,13 @@
 // view + Y.js integration, this composable just streams bytes and
 // surfaces state.
 //
-// Built on VueUse primitives:
-//   - `useUserMedia` handles MediaStream lifecycle + explicit
-//     track.stop() on unmount / stop.
-//   - `useWebSocket` handles close-on-unmount, reactive status, and
-//     buffered send. Both `autoConnect` and `immediate` must be false:
-//     with `autoConnect` on it re-opens whenever the URL ref changes,
-//     which together with our explicit `.open()` spawns TWO sockets
-//     per click. With both off, set the URL once and call `.open()` once.
+// Built on VueUse primitives: `useUserMedia` handles the MediaStream
+// lifecycle + explicit track.stop() on unmount / stop; the socket is
+// `useDictationSocket` (dictationSocket.ts, on `useWebSocket`).
 
-import { useUserMedia, useWebSocket, useVibrate } from '@vueuse/core'
-import {
-  encodeClientFrame,
-  type DictateServerFrame
-} from '~~/shared/contracts/dictateWs'
+import { useUserMedia, useVibrate } from '@vueuse/core'
+import { createPcmPipeline } from './dictationPipeline'
+import { useDictationSocket } from './dictationSocket'
 
 export type VoiceDictationState
   = | 'idle'
@@ -63,14 +56,9 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
   const state = ref<VoiceDictationState>('idle')
   const errorMessage = ref<string | null>(null)
 
-  // Created after the user clicks the mic. Held outside reactivity because
-  // neither plays well with Vue's Proxy wrapping.
-  let audioCtx: AudioContext | null = null
-  let source: MediaStreamAudioSourceNode | null = null
-  let worklet: AudioWorkletNode | null = null
-  const wsUrl = ref<string | undefined>(undefined)
+  // The capture graph, built after the user clicks the mic.
+  const pcm = createPcmPipeline()
   let closing = false
-  const _connectWatchdog: ReturnType<typeof setTimeout> | null = null
 
   const media = useUserMedia({ constraints: { audio: true } })
 
@@ -79,67 +67,30 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
   // UseVibrateOptions.interval is non-optional in the upstream typings.
   const { vibrate } = useVibrate()
 
-  // Sent as the FIRST message after `open` rather than as a URL query param,
-  // which keeps the JWT out of access logs, browser history and `Referer`.
-  let pendingAuth: { token: string, languageCode?: string } | null = null
-
-  const ws = useWebSocket(wsUrl, {
-    immediate: false,
-    autoConnect: false,
-    autoReconnect: false, // a reconnect would start a second billed session
-    onConnected(socket) {
-      // Must be the first frame: the server closes the socket if it
-      // doesn't arrive within 5s.
-      if (pendingAuth) {
-        socket.send(encodeClientFrame({ type: 'auth', ...pendingAuth }))
-      }
+  const socket = useDictationSocket({
+    onReady: () => void startPumping(),
+    onPartial: options.onPartial,
+    onFinal: options.onFinal,
+    onBudgetExhausted: (remaining) => {
+      options.onBudgetExhausted?.(remaining)
+      fail(t('ai.dictateBudgetExhaustedTitle'))
     },
-    onMessage(_, ev) {
-      if (typeof ev.data !== 'string') return
-      try {
-        // Typed against the shared union so a new server frame type must be handled here.
-        const msg = JSON.parse(ev.data) as DictateServerFrame
-        switch (msg.type) {
-          case 'hello':
-            // Auth was already sent in `onConnected`; nothing to do.
-            break
-          case 'ready':
-            // Auth + STT stream both up — safe to start sending audio.
-            void startPumping()
-            break
-          case 'partial':
-            if (msg.text) options.onPartial(msg.text)
-            break
-          case 'final':
-            if (msg.text) options.onFinal(msg.text)
-            break
-          case 'budget-exhausted':
-            options.onBudgetExhausted?.(msg.remaining)
-            fail(t('ai.dictateBudgetExhaustedTitle'))
-            break
-          case 'session-cap':
-            options.onSessionCap?.()
-            stop()
-            break
-          case 'idle-timeout':
-            options.onIdleTimeout?.()
-            stop()
-            break
-          case 'error':
-            fail(t('ai.voiceErrors.transcription'))
-            break
-        }
-      } catch { /* ignore malformed frames */ }
+    onSessionCap: () => {
+      options.onSessionCap?.()
+      stop()
     },
-    onDisconnected() {
+    onIdleTimeout: () => {
+      options.onIdleTimeout?.()
+      stop()
+    },
+    onError: () => fail(t('ai.voiceErrors.transcription')),
+    onDisconnected: () => {
       if (!closing && state.value !== 'error') {
         // Unexpected server close: soft stop so the UI doesn't look stuck.
         stop()
       }
     },
-    onError() {
-      fail(t('ai.voiceErrors.dictationConnection'))
-    }
+    onSocketError: () => fail(t('ai.voiceErrors.dictationConnection'))
   })
 
   async function start() {
@@ -179,16 +130,12 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
       return
     }
 
-    // Sent by onConnected as the first WS frame; the UI locale rides along
+    // Sent as the first WS frame once connected; the UI locale rides along
     // so Voxtral transcribes in the user's language.
-    pendingAuth = { token, languageCode: locale.value }
-    wsUrl.value = buildWsUrl()
-    ws.open()
+    socket.open({ token, languageCode: locale.value })
   }
 
   async function startPumping() {
-    // `audio/pcm;rate=16000` requires the AudioContext itself to run at
-    // 16 kHz; the worklet does not resample.
     const stream = media.stream.value
     if (!stream) {
       fail(t('ai.voiceErrors.streamUnavailable'))
@@ -196,25 +143,12 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
     }
 
     try {
-      audioCtx = new AudioContext({ sampleRate: 16000 })
-      if (audioCtx.sampleRate !== 16000) {
-        // iOS Safari sometimes ignores the sampleRate hint. Fail rather
-        // than send the wrong rate (a resampler would be the fix).
-        fail(t('ai.voiceErrors.sampleRate', { rate: audioCtx.sampleRate }))
+      const wrongRate = await pcm.start(stream, socket.sendPcm)
+      if (wrongRate !== null) {
+        // A resampler would be the fix; sending the wrong rate is not.
+        fail(t('ai.voiceErrors.sampleRate', { rate: wrongRate }))
         return
       }
-      await audioCtx.audioWorklet.addModule('/worklets/pcm-recorder.js')
-      source = audioCtx.createMediaStreamSource(stream)
-      worklet = new AudioWorkletNode(audioCtx, 'pcm-recorder')
-      worklet.port.onmessage = (ev) => {
-        const pcm = (ev.data as { pcm?: ArrayBuffer }).pcm
-        if (pcm && ws.status.value === 'OPEN') {
-          ws.send(pcm)
-        }
-      }
-      source.connect(worklet)
-      // Not connected to `destination`: no local playback, and Chrome and
-      // Firefox pump the graph as long as a MediaStreamSource feeds it.
       state.value = 'recording'
       vibrate(50)
     } catch {
@@ -227,29 +161,18 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
     if (state.value === 'recording') vibrate([75, 20, 75])
     closing = true
 
-    // Lets Voxtral emit any pending final before teardown.
-    try {
-      if (ws.status.value === 'OPEN') ws.send(encodeClientFrame({ type: 'stop' }))
-    } catch { /* best-effort */ }
+    socket.sendStop()
 
     cleanupAudioResources()
     // Delay the close so the trailing `final` lands before onDisconnected fires.
-    setTimeout(() => {
-      try {
-        ws.close()
-      } catch { /* best-effort */ }
-      wsUrl.value = undefined
-    }, 300)
+    setTimeout(socket.close, 300)
 
     state.value = 'idle'
   }
 
   function fail(message: string) {
     cleanupAudioResources()
-    try {
-      ws.close()
-    } catch { /* best-effort */ }
-    wsUrl.value = undefined
+    socket.close()
     options.onError?.(message)
     errorMessage.value = message
     state.value = 'error'
@@ -271,18 +194,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
   }
 
   function cleanupAudioResources() {
-    try {
-      worklet?.disconnect()
-    } catch { /* best-effort */ }
-    worklet = null
-    try {
-      source?.disconnect()
-    } catch { /* best-effort */ }
-    source = null
-    if (audioCtx && audioCtx.state !== 'closed') {
-      audioCtx.close().catch(() => { /* best-effort */ })
-    }
-    audioCtx = null
+    pcm.release()
     // Clears the browser's mic indicator immediately.
     media.stop()
   }
@@ -290,9 +202,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
   onUnmounted(() => {
     closing = true
     cleanupAudioResources()
-    try {
-      ws.close()
-    } catch { /* best-effort */ }
+    socket.close()
   })
 
   return {
@@ -303,10 +213,4 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
     toggle,
     clearError
   }
-}
-
-function buildWsUrl(): string {
-  // The auth token is deliberately not in the URL; see `pendingAuth`.
-  const scheme = globalThis.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  return `${scheme}//${globalThis.location.host}/api/ai/dictate`
 }

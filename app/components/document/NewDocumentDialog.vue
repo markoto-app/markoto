@@ -257,49 +257,56 @@ const detailsSummary = computed(() => {
 
 const submitting = ref(false)
 
+/** The fields typed in the dialog, as the create endpoint takes them. */
+function documentFields(): Record<string, unknown> {
+  const body: Record<string, unknown> = {}
+  if (props.workspaceId) body.workspaceId = props.workspaceId
+  const trimmedTitle = title.value.trim()
+  if (trimmedTitle) body.title = trimmedTitle
+  const trimmedDesc = description.value.trim()
+  if (trimmedDesc) body.description = trimmedDesc
+  body.audience = audience.value
+  const lang = (languageModel.value?.value ?? '').trim()
+  if (lang) body.language = lang
+  return body
+}
+
+/**
+ * Template + design → API. A template brings its design (sent as
+ * `themePreset`, so an older server applies it too). Blank sends no design
+ * in a workspace with a default — the server applies that default — and the
+ * markoto preset otherwise. "Blank in <saved design>" sends the saved theme.
+ * `themePreset` and `themeId` are mutually exclusive — the server rejects both.
+ */
+function designFields(c: typeof choice.value): Record<string, unknown> {
+  if (c.kind === 'saved') return { templateId: 'blank', themeId: c.themeId }
+  if (c.kind !== 'template') return {}
+  const design = designOverride.value ?? getTemplate(c.id)?.design ?? null
+  if (design !== null) return { templateId: c.id, themePreset: design }
+  return workspaceDefaultTheme.value ? { templateId: c.id } : { templateId: c.id, themePreset: 'markoto' }
+}
+
+async function createDocument(): Promise<string> {
+  const c = choice.value
+  if (c.kind === 'workspace' && props.workspaceId) {
+    // A workspace template copies its document (text + design + images);
+    // the title is the one typed here, else the template's name.
+    const trimmedTitle = title.value.trim()
+    const res = await apiFetch('/api/workspaces/:wsId/templates/:templateId/documents', {
+      method: 'post',
+      path: { wsId: props.workspaceId, templateId: c.templateId },
+      body: trimmedTitle ? { title: trimmedTitle } : {}
+    })
+    return res.docId
+  }
+  return anonDoc.createDocument({ ...documentFields(), ...designFields(c) })
+}
+
 async function submit() {
   if (submitting.value) return
   submitting.value = true
   try {
-    const body: Record<string, unknown> = {}
-    if (props.workspaceId) body.workspaceId = props.workspaceId
-    const trimmedTitle = title.value.trim()
-    if (trimmedTitle) body.title = trimmedTitle
-    const trimmedDesc = description.value.trim()
-    if (trimmedDesc) body.description = trimmedDesc
-    body.audience = audience.value
-    const lang = (languageModel.value?.value ?? '').trim()
-    if (lang) body.language = lang
-    // Template + design → API. A template brings its design (sent as
-    // `themePreset`, so an older server applies it too). Blank sends no
-    // design in a workspace with a default — the server applies that
-    // default — and the markoto preset otherwise. "Blank in <saved
-    // design>" sends the saved theme. `themePreset` and `themeId` are
-    // mutually exclusive — the server rejects both.
-    const c = choice.value
-    if (c.kind === 'workspace' && props.workspaceId) {
-      // A workspace template copies its document (text + design + images);
-      // the title is the one typed here, else the template's name.
-      const res = await apiFetch('/api/workspaces/:wsId/templates/:templateId/documents', {
-        method: 'post',
-        path: { wsId: props.workspaceId, templateId: c.templateId },
-        body: trimmedTitle ? { title: trimmedTitle } : {}
-      })
-      rememberCreatedDoc()
-      emit('update:open', false)
-      emit('created', res.docId)
-      return
-    }
-    if (c.kind === 'saved') {
-      body.templateId = 'blank'
-      body.themeId = c.themeId
-    } else if (c.kind === 'template') {
-      body.templateId = c.id
-      const design = designOverride.value ?? getTemplate(c.id)?.design ?? null
-      if (design !== null) body.themePreset = design
-      else if (!workspaceDefaultTheme.value) body.themePreset = 'markoto'
-    }
-    const docId = await anonDoc.createDocument(body)
+    const docId = await createDocument()
     rememberCreatedDoc()
     emit('update:open', false)
     emit('created', docId)

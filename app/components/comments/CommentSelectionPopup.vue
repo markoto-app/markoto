@@ -71,33 +71,29 @@ function reposition(view: EditorView) {
 // bind via useEventListener to refs that follow view changes.
 const blurTarget = computed(() => props.view?.contentDOM ?? null)
 
-function onSelectionChange() {
-  const view = props.view
-  if (!view) return
-  if (props.disabled) {
-    if (visible.value) hide()
-    return
-  }
-  // Only for the selection the user is working with: stays hidden while the
-  // editor is unfocused (AI prompt bar typing, remote or AI edits moving the
-  // DOM selection).
-  if (!view.hasFocus) {
-    if (visible.value) hide()
-    return
-  }
+/**
+ * Whether the pill belongs to the current selection. Only for the selection
+ * the user is working with: none while the editor is unfocused (AI prompt bar
+ * typing, remote or AI edits moving the DOM selection), and none again for
+ * the selection a comment was just started from (`usedRange`, forgotten once
+ * that selection is gone).
+ */
+function selectionWantsPill(view: EditorView): boolean {
+  if (props.disabled || !view.hasFocus) return false
   const sel = view.state.selection.main
   if (sel.empty) {
     usedRange = null
-    if (visible.value) hide()
-    return
+    return false
   }
-  if (usedRange && usedRange.from === sel.from && usedRange.to === sel.to) {
-    if (visible.value) hide()
-    return
-  }
+  if (usedRange && usedRange.from === sel.from && usedRange.to === sel.to) return false
   usedRange = null
-  const text = view.state.sliceDoc(sel.from, sel.to).trim()
-  if (!text) {
+  return view.state.sliceDoc(sel.from, sel.to).trim() !== ''
+}
+
+function onSelectionChange() {
+  const view = props.view
+  if (!view) return
+  if (!selectionWantsPill(view)) {
     if (visible.value) hide()
     return
   }

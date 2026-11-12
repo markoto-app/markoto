@@ -1,10 +1,12 @@
 # Composables
 
-Grouped by domain (`account/`, `ai/`, `billing/`, `comments/`, `document/`, `marketing/`, `platform/`, `preview/`). Preview rendering: `app/utils/AGENTS.md`. Sync server side of the connection: [`docs/contributing/sync-server.md`](../../docs/contributing/sync-server.md).
+Grouped by domain (`account/`, `ai/`, `billing/`, `comments/`, `document/`, `editor/`, `marketing/`, `platform/`, `preview/`). A composable's internal parts sit next to it (`documentMeta.ts`, `aiSessionTracking.ts`, `voiceCapture.ts` …); its public API is the `use*` function callers import. Every file here is auto-imported, so give exports names that can't collide. Preview rendering: `app/utils/AGENTS.md`. Sync server side of the connection: [`docs/contributing/sync-server.md`](../../docs/contributing/sync-server.md).
 
 ## Document lifecycle (`document/`)
 
-`useDocToken.ts` (token + initial metadata), `useHocuspocusSync.ts` (provider lifecycle), `useDocument.ts` (orchestrator: `Y.Doc`, awareness, `ymeta` bridges, template seeding).
+`useDocToken.ts` (token flow; the fields and the per-answer writers are in `docAccessState.ts`), `useHocuspocusSync.ts` (provider lifecycle), `useDocument.ts` (orchestrator: `Y.Doc`, awareness, token → provider → sync wiring, template seeding), `documentMeta.ts` (the `ymeta` bridges: title, theme, document context, deletion flag).
+
+`editor/` holds the editor page's wiring that `EditorLayout.vue` composes (exports + print shortcut, dictation, comments, text stats, view mode, inserts, sync-problem toasts).
 
 - **One token fetch seeds everything.** `GET /api/docs/:docId/token` returns metadata, theme, document context and the rendered template body. Don't add a separate `/meta` fetch; the only exception is `hydrateAfterUnlock` after a password unlock (a gated visitor's `/token` carries no metadata).
 - **Pass the provider a token accessor, never a token string.** It is called on every (re)connect and when the sync server asks for a renewal (`getToken({ renewal })` → `getFreshToken`). A still-valid token is reused; a token near expiry, marked stale, or requested by the server is refetched from `/token`; a failed refetch keeps the current token.

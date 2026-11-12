@@ -275,6 +275,7 @@
     "activeSection": "アクティブ",
     "orphanedSection": "ドキュメントから削除されました",
     "orphanedHint": "このコメントが付いていたテキストは削除されました。",
+    "showInDocument": "ドキュメント内で表示",
     "resolvedSection": "解決済み",
     "composerPlaceholder": "コメントを追加…",
     "replyPlaceholder": "返信…",

@@ -233,33 +233,38 @@ export function thinAxisTicks(axis: Element): void {
  * gives an `<img>` no intrinsic size), and locale-formatted pie legend
  * values + xy-chart axis ticks. Returns the natural size for the `<img>` attributes.
  */
+/** The SVG's natural size from its viewBox (null when it has none). */
+function viewBoxSize(el: Element): { width: number | null, height: number | null } {
+  const vb = (el.getAttribute('viewBox') ?? '').trim().split(/[\s,]+/).map(Number)
+  const side = (v: number | undefined): number | null => vb.length === 4 && Number.isFinite(v) && (v ?? 0) > 0 ? Math.ceil(v ?? 0) : null
+  return { width: side(vb[2]), height: side(vb[3]) }
+}
+
+function formatTexts(texts: Element[], format: (text: string) => string): void {
+  for (const text of texts) {
+    const t = text.textContent ?? ''
+    const formatted = format(t)
+    if (formatted !== t) text.textContent = formatted
+  }
+}
+
 export function finishMermaidSvg(rawSvg: string, locale: string): { svg: string, width: number | null, height: number | null, kind: string } {
   const doc = new DOMParser().parseFromString(rawSvg, 'text/html')
   const el = doc.querySelector('svg')
   if (!el) return { svg: rawSvg, width: null, height: null, kind: '' }
   const kind = diagramKind(el)
-  const vb = (el.getAttribute('viewBox') ?? '').trim().split(/[\s,]+/).map(Number)
-  const width = vb.length === 4 && Number.isFinite(vb[2]) && (vb[2] ?? 0) > 0 ? Math.ceil(vb[2] ?? 0) : null
-  const height = vb.length === 4 && Number.isFinite(vb[3]) && (vb[3] ?? 0) > 0 ? Math.ceil(vb[3] ?? 0) : null
+  const { width, height } = viewBoxSize(el)
   if (width && height) {
     el.setAttribute('width', String(width))
     el.setAttribute('height', String(height))
     el.style.removeProperty('max-width')
     if (!el.getAttribute('style')?.trim()) el.removeAttribute('style')
   }
-  for (const text of Array.from(el.querySelectorAll('g.legend text'))) {
-    const t = text.textContent ?? ''
-    const formatted = formatPieLegendLabel(t, locale)
-    if (formatted !== t) text.textContent = formatted
-  }
+  formatTexts(Array.from(el.querySelectorAll('g.legend text')), t => formatPieLegendLabel(t, locale))
   for (const axis of Array.from(el.querySelectorAll('g.left-axis, g.bottom-axis, g.right-axis, g.top-axis'))) {
     thinAxisTicks(axis)
   }
-  for (const text of Array.from(el.querySelectorAll('g.left-axis text, g.bottom-axis text, g.right-axis text, g.top-axis text'))) {
-    const t = text.textContent ?? ''
-    const formatted = formatAxisNumber(t, locale)
-    if (formatted !== t) text.textContent = formatted
-  }
+  formatTexts(Array.from(el.querySelectorAll('g.left-axis text, g.bottom-axis text, g.right-axis text, g.top-axis text')), t => formatAxisNumber(t, locale))
   return { svg: new XMLSerializer().serializeToString(el), width, height, kind }
 }
 

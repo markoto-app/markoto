@@ -52,20 +52,24 @@ export function markHeadingStructure(bodyHtml: string, numbered: boolean, sectio
   if (numbered && base > 1) {
     for (const h of counted) h.classList.add(numberingBaseClass(base))
   }
-  if (sectionLabels !== undefined) {
-    // Section headings are the highest level used; they carry a number
-    // when that level is the numbering base and they aren't unnumbered.
-    let n = 0
-    for (const h of sections) {
-      const title = (h.textContent ?? '').trim()
-      const counts = numbered && sectionLabels !== 'none' && top === base && top <= 4 && !h.classList.contains(UNNUMBERED_CLASS)
-      if (counts) n++
-      h.setAttribute(SECTION_LABEL_ATTR, counts ? `${sectionNumberLabel(sectionLabels, n)} ${title}` : title)
-    }
-  }
+  if (sectionLabels !== undefined) labelSections(sections, numbered && sectionLabels !== 'none' && top === base && top <= 4, sectionLabels)
   const wrap = document.createElement('div')
   wrap.append(tpl.content)
   return wrap.innerHTML
+}
+
+/**
+ * Section headings are the highest level used; they carry a number when
+ * that level is the numbering base (`numbered`) and they aren't unnumbered.
+ */
+function labelSections(sections: Element[], numbered: boolean, style: HeadingNumbering): void {
+  let n = 0
+  for (const h of sections) {
+    const title = (h.textContent ?? '').trim()
+    const counts = numbered && !h.classList.contains(UNNUMBERED_CLASS)
+    if (counts) n++
+    h.setAttribute(SECTION_LABEL_ATTR, counts ? `${sectionNumberLabel(style, n)} ${title}` : title)
+  }
 }
 
 /** The top-level heading number as the theme CSS prints it (themeToCss `numberLabel`). */

@@ -126,6 +126,28 @@ export function useAnonDocCreate() {
     return res.docId
   }
 
+  /** Asks for the terms unless this browser accepted the current ones; true when it just did. */
+  async function ensureTerms(): Promise<boolean> {
+    if (check.termsAccepted.value) return false
+    if (!(await prompt.ask())) throw new AnonGateCancelled()
+    return true
+  }
+
+  /** After a refused first round: sets up the retry, or false when the refusal is final. */
+  function prepareRetry(code: NonNullable<ReturnType<typeof fetchErrorCode>>, acceptTerms: boolean): boolean {
+    if (code === ANON_GATE_CODES.termsRequired) {
+      check.termsAccepted.value = false
+      return true
+    }
+    if (ANON_GATE_RETRYABLE_CODES.includes(code) || code === ANON_GATE_CODES.botCheckRequired) {
+      // The server checks the terms before the bot check, so a fresh
+      // acceptance is already remembered (cookie) for the retry.
+      if (acceptTerms) check.termsAccepted.value = true
+      return true
+    }
+    return false
+  }
+
   /** Create a document; resolves to its id. Throws AnonGateCancelled when the visitor backs out. */
   async function createDocument(body: Record<string, unknown> = {}): Promise<string> {
     if (!gated.value) return post(body)
@@ -133,27 +155,14 @@ export function useAnonDocCreate() {
     // Two rounds at most: a stale remembered acceptance (terms version bumped)
     // re-asks; an expired / used / unsolved bot check fetches a fresh one.
     for (let round = 0; ; round++) {
-      let acceptTerms = false
-      if (!check.termsAccepted.value) {
-        if (!(await prompt.ask())) throw new AnonGateCancelled()
-        acceptTerms = true
-      }
+      const acceptTerms = await ensureTerms()
       try {
         const docId = await post({ ...body, altcha: await check.take(), acceptTerms })
         check.termsAccepted.value = true
         return docId
       } catch (e) {
         const code = fetchErrorCode(e)
-        if (round > 0 || !code) throw e
-        if (code === ANON_GATE_CODES.termsRequired) {
-          check.termsAccepted.value = false
-        } else if (ANON_GATE_RETRYABLE_CODES.includes(code) || code === ANON_GATE_CODES.botCheckRequired) {
-          // The server checks the terms before the bot check, so a fresh
-          // acceptance is already remembered (cookie) for the retry.
-          if (acceptTerms) check.termsAccepted.value = true
-        } else {
-          throw e
-        }
+        if (round > 0 || !code || !prepareRetry(code, acceptTerms)) throw e
       }
     }
   }

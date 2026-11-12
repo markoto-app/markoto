@@ -501,6 +501,7 @@ registerEndpoint('/api/docs/doc-123/meta', (event: { node: { req: { headers: Rec
   const auth = event.node.req.headers.authorization
   metaCalls.push({ authorization: typeof auth === 'string' ? auth : undefined })
   return {
+    granted: true,
     theme: null,
     title: 'Launch plan',
     description: 'Secret plan',

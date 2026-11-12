@@ -123,7 +123,7 @@ async function startCheckout() {
       body: { plan: plan.value, interval: interval.value, currency: currency.value, seats: seatsDraft.value, acceptPaidTerms: true }
     })
     // A plan switch of a live subscription answers `{ updated, plan }` instead of a checkout.
-    if ('url' in res && res.url) goToExternal(res.url)
+    if (!('updated' in res) && res.url) goToExternal(res.url)
   } catch (e) {
     showError('workspace.billing.checkoutFailed', e)
   } finally {

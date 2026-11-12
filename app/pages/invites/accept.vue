@@ -38,12 +38,10 @@ async function onAct(action: 'accept' | 'decline'): Promise<void> {
   try {
     const res = await answerInvite.mutateAsync({ token: token.value, action })
     clearPendingInviteToken()
-    // The route's inferred type is the narrower decline answer (`{ ok }`); an
-    // accept adds the workspace, so test for the fields before reading them.
-    if (action === 'accept' && 'workspaceId' in res && typeof res.workspaceId === 'string') {
+    if (res.action === 'accept') {
       // A guest has no workspace page: their shared documents
       // are on the dashboard.
-      await router.push('role' in res && res.role === 'guest' ? '/' : `/w/${res.workspaceId}`)
+      await router.push(res.role === 'guest' ? '/' : `/w/${res.workspaceId}`)
       return
     }
     state.value = 'declined'

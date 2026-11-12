@@ -275,6 +275,7 @@
     "activeSection": "Actifs",
     "orphanedSection": "Retirés du document",
     "orphanedHint": "Le texte auquel ce commentaire était attaché a été supprimé.",
+    "showInDocument": "Afficher dans le document",
     "resolvedSection": "Résolus",
     "composerPlaceholder": "Ajouter un commentaire…",
     "replyPlaceholder": "Répondre…",

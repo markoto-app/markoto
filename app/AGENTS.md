@@ -19,6 +19,7 @@ Contributor docs: [design system](../docs/contributing/design-system.md), [marke
 - **No hard-coded user-facing strings.** Everything goes through vue-i18n in all six locales (`i18n/locales/`). A literal `@` in a locale string must be written `{'@'}` (`@:` starts a linked message). Counts use plurals: `t(key, { n }, n)`.
 - **Mobile breakpoint is 639px** (`useMediaQuery('(max-width: 639px)')`, Tailwind `sm:`). Don't introduce 768px. On narrow screens the editor forces `viewMode = 'edit'` instead of split; keep the CodeMirror font at 16px on mobile (iOS zooms below that).
 - **Hide the preview with CSS (`hidden xl:block`), not `v-if`**, so resizing past `xl` restores it without remounting.
+- **`EditorLayout.vue` composes; it doesn't render details.** Top bar, banners, sidebar panels, status bar … are `components/editor/layout/*` (props down, events up); shared state stays in the layout (`useDocument`, the open sidebar panel, view mode, modals) and the wiring in `composables/editor/`. The theme panel follows the same split (`components/document/theme/`, one component per section on `v-model:theme`).
 - **CodeMirror `readOnly` and theme go through Compartments**; read-only state arrives after the token fetch.
 - **`ymeta` values are not reactive** — bridge with `ymeta.observe()` (see `app/composables/AGENTS.md`).
 - **Never write `:global(.dark) .x` in scoped CSS.** Vue compiles it to a bare `.dark { … }` that styles `<html>`. Write `html.dark .x`.

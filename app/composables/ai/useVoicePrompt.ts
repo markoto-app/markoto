@@ -1,3 +1,5 @@
+import { createMicCapture, createRecorder, encodeClip, openMicrophone, pickMimeType, silentLevels, takeClip } from './voiceCapture'
+
 // Voice-input state machine for the AI prompt bar.
 //
 // Flow:
@@ -39,39 +41,6 @@ export interface UseVoicePromptOptions {
 }
 
 const DEFAULT_MAX_DURATION_SEC = 60
-const LEVEL_SAMPLE_COUNT = 64 // visualizer bar count — thin bars read as a smooth wave rather than a chunky equalizer
-
-// MediaRecorder's MIME preference order. Only webm/ogg/wav: Voxtral's
-// `/v1/audio/transcriptions` rejects MP4/AAC, which is all Safari's
-// MediaRecorder emits, so voice input is Chrome/Firefox-only. Returning
-// `undefined` there lets `start()` fail with an "unsupported browser"
-// error instead of sending bytes Voxtral will reject.
-function pickMimeType(): string | undefined {
-  const candidates = [
-    'audio/webm;codecs=opus',
-    'audio/webm',
-    'audio/ogg;codecs=opus',
-    'audio/wav'
-  ]
-  if (typeof MediaRecorder === 'undefined') return undefined
-  for (const m of candidates) {
-    if (MediaRecorder.isTypeSupported(m)) return m
-  }
-  return undefined
-}
-
-async function blobToBase64(blob: Blob): Promise<string> {
-  const buf = await blob.arrayBuffer()
-  const bytes = new Uint8Array(buf)
-  // Chunk to avoid `Maximum call stack size exceeded` on large buffers —
-  // `String.fromCharCode(...bytes)` spreads every byte as an argument.
-  let binary = ''
-  const CHUNK = 0x8000
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    binary += String.fromCodePoint(...bytes.subarray(i, i + CHUNK))
-  }
-  return btoa(binary)
-}
 
 export function useVoicePrompt(opts: UseVoicePromptOptions) {
   // `useI18n()` must run during setup (it throws in the async transcribe
@@ -90,18 +59,18 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
   const state = ref<VoicePromptState>('idle')
   const errorMessage = ref<string | null>(null)
   const durationSec = ref(0)
-  const levels = ref<number[]>(new Array(LEVEL_SAMPLE_COUNT).fill(0))
+  const levels = ref<number[]>(silentLevels())
 
   const maxDurationSec = opts.maxDurationSec ?? DEFAULT_MAX_DURATION_SEC
 
-  // Native handles stay non-reactive: Vue proxies cause spurious re-renders
-  // and can break browser-native event plumbing.
-  let mediaStream: MediaStream | null = null
   let mediaRecorder: MediaRecorder | null = null
-  let audioCtx: AudioContext | null = null
-  let analyser: AnalyserNode | null = null
-  let rafId: number | null = null
   let startedAt = 0
+  const capture = createMicCapture((next) => {
+    levels.value = next
+    if (startedAt) {
+      durationSec.value = (Date.now() - startedAt) / 1000
+    }
+  })
   // Auto-stop at `maxDurationSec`. cleanupAudioResources stops it on
   // cancel/error so an early stop doesn't leave an orphaned timer.
   const stopTimeout = useTimeoutFn(() => {
@@ -110,27 +79,8 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
   const chunks: Blob[] = []
 
   function cleanupAudioResources() {
-    if (rafId !== null) {
-      cancelAnimationFrame(rafId)
-      rafId = null
-    }
     stopTimeout.stop()
-    try {
-      analyser?.disconnect()
-    } catch { /* best-effort */ }
-    analyser = null
-    if (audioCtx && audioCtx.state !== 'closed') {
-      audioCtx.close().catch(() => { /* best-effort */ })
-    }
-    audioCtx = null
-    if (mediaStream) {
-      for (const track of mediaStream.getTracks()) {
-        try {
-          track.stop()
-        } catch { /* best-effort */ }
-      }
-      mediaStream = null
-    }
+    capture.release()
     mediaRecorder = null
   }
 
@@ -138,7 +88,7 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     state.value = 'idle'
     errorMessage.value = null
     durationSec.value = 0
-    levels.value = new Array(LEVEL_SAMPLE_COUNT).fill(0)
+    levels.value = silentLevels()
     chunks.length = 0
   }
 
@@ -147,36 +97,8 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     errorMessage.value = message
     state.value = 'error'
     durationSec.value = 0
-    levels.value = new Array(LEVEL_SAMPLE_COUNT).fill(0)
+    levels.value = silentLevels()
     chunks.length = 0
-  }
-
-  function tickLevels() {
-    if (!analyser) return
-    const buf = new Uint8Array(analyser.frequencyBinCount)
-    analyser.getByteFrequencyData(buf)
-
-    // Max-pool (not mean) into LEVEL_SAMPLE_COUNT buckets: averages look
-    // flat even during speech.
-    const binsPerSample = Math.floor(buf.length / LEVEL_SAMPLE_COUNT)
-    const out: number[] = new Array(LEVEL_SAMPLE_COUNT)
-    for (let i = 0; i < LEVEL_SAMPLE_COUNT; i++) {
-      let peak = 0
-      const start = i * binsPerSample
-      const end = start + binsPerSample
-      for (let j = start; j < end; j++) {
-        const v = buf[j] ?? 0
-        if (v > peak) peak = v
-      }
-      // Scale 0..255 → 0..1 with a mild curve so quiet speech still shows.
-      out[i] = Math.min(1, (peak / 255) ** 0.7)
-    }
-    levels.value = out
-
-    if (startedAt) {
-      durationSec.value = (Date.now() - startedAt) / 1000
-    }
-    rafId = requestAnimationFrame(tickLevels)
   }
 
   async function start() {
@@ -189,9 +111,13 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
       return
     }
 
-    const stream = await acquireUserMedia()
-    if (!stream) return
-    mediaStream = stream
+    const mic = await openMicrophone()
+    if ('problem' in mic) {
+      fail(t(`ai.voiceErrors.${mic.problem}`))
+      return
+    }
+    const stream = mic.stream
+    capture.hold(stream)
 
     const mimeType = pickMimeType()
     if (!mimeType) {
@@ -202,32 +128,14 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     const recorder = instantiateRecorder(stream, mimeType)
     if (!recorder) return
 
-    setupAnalyser(stream)
+    capture.setupAnalyser(stream)
     recorder.start()
     startedAt = Date.now()
     state.value = 'recording'
-    rafId = requestAnimationFrame(tickLevels)
+    capture.startMeter()
 
     // Hitting the cap calls `stop()` (not `cancel`) so the audio is still transcribed.
     stopTimeout.start()
-  }
-
-  /** Returns null on any failure (already routed to fail()). */
-  async function acquireUserMedia(): Promise<MediaStream | null> {
-    try {
-      return await navigator.mediaDevices.getUserMedia({ audio: true })
-    } catch (e) {
-      // NotAllowedError = dismissed or blocked, NotFoundError = no hardware.
-      const name = (e as { name?: string })?.name
-      if (name === 'NotAllowedError') {
-        fail(t('ai.voiceErrors.micDenied'))
-      } else if (name === 'NotFoundError') {
-        fail(t('ai.voiceErrors.micNotFound'))
-      } else {
-        fail(t('ai.voiceErrors.micAccess'))
-      }
-      return null
-    }
   }
 
   /**
@@ -236,42 +144,14 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
    * one path. Returns null on construction failure (already routed to fail()).
    */
   function instantiateRecorder(stream: MediaStream, mimeType: string): MediaRecorder | null {
-    let recorder: MediaRecorder
-    try {
-      recorder = new MediaRecorder(stream, { mimeType })
-    } catch {
-      fail(t('ai.voiceErrors.recorderStart'))
-      return null
-    }
-    recorder.ondataavailable = (ev) => {
-      if (ev.data && ev.data.size > 0) chunks.push(ev.data)
-    }
-    recorder.onstop = () => {
-      void finalizeAndTranscribe(mimeType)
-    }
-    recorder.onerror = () => {
-      fail(t('ai.voiceErrors.recordingFailed'))
-    }
+    const recorder = createRecorder(stream, mimeType, {
+      onData: blob => chunks.push(blob),
+      onStop: () => void finalizeAndTranscribe(mimeType),
+      onError: () => fail(t('ai.voiceErrors.recordingFailed'))
+    })
+    if (!recorder) fail(t('ai.voiceErrors.recorderStart'))
     mediaRecorder = recorder
     return recorder
-  }
-
-  /**
-   * Analyser for the visualizer, sharing the MediaStream. fftSize 256 =
-   * 128 bins, enough for LEVEL_SAMPLE_COUNT buckets. Failure is
-   * non-fatal: recording works without bars.
-   */
-  function setupAnalyser(stream: MediaStream): void {
-    try {
-      audioCtx = new (globalThis.AudioContext || (globalThis as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
-      const source = audioCtx.createMediaStreamSource(stream)
-      analyser = audioCtx.createAnalyser()
-      analyser.fftSize = 256
-      analyser.smoothingTimeConstant = 0.6
-      source.connect(analyser)
-    } catch {
-      analyser = null
-    }
   }
 
   function stop() {
@@ -301,25 +181,14 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     cleanupAudioResources()
     state.value = 'transcribing'
 
-    if (chunks.length === 0) {
-      fail(t('ai.voiceErrors.noAudio'))
+    const blob = takeClip(chunks, mimeType)
+    if (typeof blob === 'string') {
+      fail(t(`ai.voiceErrors.${blob}`))
       return
     }
 
-    const blob = new Blob(chunks, { type: mimeType })
-    chunks.length = 0
-
-    // Very short recordings yield near-empty blobs; the server rejects
-    // under 100 bytes, this gives a cleaner error.
-    if (blob.size < 256) {
-      fail(t('ai.voiceErrors.tooShort'))
-      return
-    }
-
-    let audioB64: string
-    try {
-      audioB64 = await blobToBase64(blob)
-    } catch {
+    const audioB64 = await encodeClip(blob)
+    if (audioB64 === null) {
       fail(t('ai.voiceErrors.encodeFailed'))
       return
     }
@@ -353,9 +222,7 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     else if (state.value === 'idle' || state.value === 'error') void start()
   }
 
-  onUnmounted(() => {
-    cleanupAudioResources()
-  })
+  onUnmounted(cleanupAudioResources)
 
   return {
     state: readonly(state),

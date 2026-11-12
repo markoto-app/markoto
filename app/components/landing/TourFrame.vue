@@ -39,7 +39,7 @@ defineProps<{
 </template>
 
 <style>
-/* Colours come from the tour's tokens (ProductTour.vue), so the window
+/* Colours come from the tour's tokens (assets/css/productTour.css), so the window
    turns with the page's light → dark flip. */
 .mk-frame {
   container-type: inline-size;

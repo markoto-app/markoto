@@ -42,7 +42,7 @@ function looksLikeTheme(t: unknown): t is DocTheme {
 //   3. Waits for window.__pagedReady === true.
 //   4. Calls page.pdf() and page.locator('.pagedjs_page').screenshot().
 //
-// Server-replayed Y.Doc: the bootstrap endpoint reads the latest yjs_documents
+// Server-replayed Y.Doc: the bootstrap endpoint reads the latest yjs_updates
 // rows, replays them, and returns the materialized markdown directly. No
 // Hocuspocus connection from this page — one fewer moving part, ~1-2s saved
 // per render, and integration tests can run without a sync container.

@@ -46,14 +46,12 @@ function keyOn(b: KeyBinding, platform: ShortcutPlatform): string | null {
  * in its precedence order).
  */
 export function keyForCommand(run: Command, platform: ShortcutPlatform, shift = false, maps: readonly (readonly KeyBinding[])[] = EDITOR_KEYMAPS): string | null {
-  for (const map of maps) {
-    for (const b of map) {
-      if ((shift ? b.shift : b.run) !== run) continue
-      const key = keyOn(b, platform)
-      if (key) return shift ? `Shift-${key}` : key
-    }
-  }
-  return null
+  const key = maps.flat()
+    .filter(b => (shift ? b.shift : b.run) === run)
+    .map(b => keyOn(b, platform))
+    .find(k => k !== null && k !== '')
+  if (!key) return null
+  return shift ? `Shift-${key}` : key
 }
 
 /** The key of a formatting binding (formattingKeymap wraps each in its own closure). */

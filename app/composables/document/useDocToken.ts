@@ -1,5 +1,4 @@
-import type { DocTheme } from '~~/shared/types/theme'
-import type { BrandFont } from '~~/shared/config/brandKit'
+import { applyAccessEnded, applyTokenAnswer, applyUnlockedMeta, createDocAccessState } from './docAccessState'
 
 /**
  * Owns the auth/access-mode side of a document: fetching the Hocuspocus JWT,
@@ -21,11 +20,6 @@ import type { BrandFont } from '~~/shared/config/brandKit'
  *   - `clearPendingUnlock()` is called by the orchestrator on first sync after
  *     a password-verified reconnect — it flips `requiresPassword` to false.
  */
-
-export interface DocTokenState {
-  token: string
-  readOnly: boolean
-}
 
 // Refetch the JWT when it's within this window of expiring. The doc token
 // has a 2h TTL and HocuspocusProvider re-invokes its token callback on every
@@ -61,109 +55,15 @@ function isTokenExpiringSoon(token: string): boolean {
 }
 
 export function useDocToken(docId: string) {
-  // The JWT + readOnly flag in use by the provider. Null = not fetched yet;
-  // an empty token = the fetch failed (the user then sees a disconnected
-  // state rather than a hang).
-  const tokenData = ref<DocTokenState | null>(null)
-
-  const isReadOnly = ref(false)
-  // Set only when the sync layer rejected our auth at handshake time. Both
-  // that and a server-declared read-only (`data.readOnly`) flip isReadOnly,
-  // but only this one is a fault worth a banner.
-  const syncAuthFailed = ref(false)
-  const isOwner = ref(false)
-  // Anonymous-created docs have `ownerId: null`: anyone with edit access can
-  // change anything, including the theme. Logged-in docs always have an
-  // owner, and only that owner gets theme write access.
-  const hasOwner = ref(false)
-  const requiresPassword = ref(false)
-  // Private doc, non-owner: no token, and no client-side unlock path.
-  const forbidden = ref(false)
-  // Server-computed: would DELETE /api/docs/:id succeed for this caller
-  // (owner / workspace admin; for an anonymous doc only its creating browser)?
-  const canDelete = ref(false)
-  // The token endpoint 404'd. Distinct from `forbidden` and from a transient
-  // fetch failure, so the editor can show a not-found screen.
-  const notFound = ref(false)
-  const accessMode = ref<string>('open-edit')
-  const workspaceId = ref<string | null>(null)
-  const workspaceRole = ref<'admin' | 'editor' | 'viewer' | null>(null)
-  // DB-stored theme (null = defaultTheme), returned by /token so the preview
-  // paints before Y.js sync settles; ymeta.theme then takes over (bridged in `useDocument`).
-  const initialTheme = ref<DocTheme | null>(null)
-  // Plan features (server: `utils/entitlements.ts`). `false` = the plan has
-  // no custom CSS: it stays in the theme but is left out of preview and print
-  // (the server PDF renderer drops it too). Defaults to true so nothing
-  // flickers before /token answers.
-  const customCssAllowed = ref<boolean>(true)
-  // Workspace brand kit: fonts every render declares, and the locked
-  // workspace design (null = the document's own design).
-  const brandFonts = ref<BrandFont[]>([])
-  // Share-link controls: this viewer may not download or print; the public
-  // link has expired (shown on the "no access" page).
-  const noDownload = ref(false)
-  const shareExpired = ref(false)
-  const brandLockedTheme = ref<DocTheme | null>(null)
-  /** Team / Business plan covering the doc's workspace (header badge). */
-  const workspacePlan = ref<'team' | 'business' | null>(null)
-  // Set when denied because the doc's workspace enforces single sign-on:
-  // where to sign in through its IdP.
-  const ssoLoginUrl = ref<string | null>(null)
-  // Document context (description, audience, language): seeded from /token
-  // like the theme, then bridged to ymeta.* in `useDocument`.
-  const initialDescription = ref<string>('')
-  // Title from the documents row; shown until the live `ymeta.title` exists.
-  const initialTitle = ref<string>('')
-  const initialAudience = ref<string>('casual')
-  const initialLanguage = ref<string>('en')
-  // Template the doc started from (exported in the Markdown frontmatter).
-  const templateId = ref<string>('blank')
-  // Template body with placeholders already substituted server-side. Null
-  // for the `blank` template. Only seeded when ytext is empty.
-  const initialBody = ref<string | null>(null)
+  const state = createDocAccessState()
+  const { tokenData, isReadOnly, syncAuthFailed, requiresPassword, notFound, accessMode, noDownload, pendingPasswordUnlock } = state
 
   const { user: sessionUser } = useUserSession()
-
-  // Set while a post-password-verify reconnect is in flight; the orchestrator
-  // clears it via `clearPendingUnlock()` once the new provider syncs.
-  const pendingPasswordUnlock = ref(false)
 
   async function fetchToken() {
     try {
       const data = await apiFetch('/api/docs/:docId/token', { path: { docId } })
-
-      // The route answers `token: null` plus only the gate fields to a caller
-      // who may not open the document; everything else exists only with a token.
-      const granted = data.token === null ? null : data
-      const denied = data.token === null ? data : null
-      tokenData.value = { token: data.token ?? '', readOnly: data.readOnly }
-      isReadOnly.value = data.readOnly
-      requiresPassword.value = !!data.requiresPassword
-      forbidden.value = !!data.forbidden
-      canDelete.value = data.canDelete === true
-      accessMode.value = data.accessMode
-      workspaceId.value = data.workspaceId
-      workspaceRole.value = data.workspaceRole
-      initialTheme.value = data.theme ?? null
-      customCssAllowed.value = data.planFeatures?.customCss !== false
-      brandFonts.value = granted?.brandKit?.fonts ?? []
-      brandLockedTheme.value = granted?.brandKit?.lockedTheme ?? null
-      noDownload.value = granted?.noDownload === true
-      shareExpired.value = denied?.shareExpired === true
-      workspacePlan.value = data.workspacePlan ?? null
-      ssoLoginUrl.value = denied?.ssoLoginUrl ?? null
-      if (typeof granted?.title === 'string') initialTitle.value = granted.title
-      if (typeof granted?.description === 'string') initialDescription.value = granted.description
-      if (typeof granted?.audience === 'string') initialAudience.value = granted.audience
-      if (typeof granted?.language === 'string') initialLanguage.value = granted.language
-      if (typeof granted?.templateId === 'string') templateId.value = granted.templateId
-      initialBody.value = typeof data.initialBody === 'string' ? data.initialBody : null
-
-      const userId = sessionUser.value?.id
-      isOwner.value = data.ownerId != null
-        && typeof userId === 'number'
-        && data.ownerId === userId
-      hasOwner.value = data.ownerId != null
+      applyTokenAnswer(state, data, sessionUser.value?.id)
     } catch (e: unknown) {
       // 404 = the doc doesn't exist. Any other error (network, 5xx) stays a
       // transient no-token state surfaced via `status`.
@@ -198,14 +98,7 @@ export function useDocToken(docId: string) {
       // `refresh`: not a new open of the doc (view counts skip it).
       const data = await apiFetch('/api/docs/:docId/token', { path: { docId }, query: { refresh: '1' } })
       if (data.token === null) {
-        if (data.forbidden || data.requiresPassword) {
-          shareExpired.value = data.shareExpired === true
-          ssoLoginUrl.value = data.ssoLoginUrl ?? null
-          tokenData.value = { token: '', readOnly: true }
-          isReadOnly.value = true
-          if (data.forbidden) forbidden.value = true
-          if (data.requiresPassword) requiresPassword.value = true
-        }
+        applyAccessEnded(state, data)
         return null
       }
       if (!data.token) return null
@@ -268,17 +161,7 @@ export function useDocToken(docId: string) {
   async function hydrateAfterUnlock(newToken: string): Promise<void> {
     try {
       const data = await apiFetch('/api/docs/:docId/meta', { path: { docId }, headers: { Authorization: `Bearer ${newToken}` } })
-      // A response without the document (still gated) carries none of the metadata.
-      const meta = 'theme' in data ? data : null
-      initialTheme.value = meta?.theme ?? null
-      brandFonts.value = meta?.brandKit?.fonts ?? []
-      brandLockedTheme.value = meta?.brandKit?.lockedTheme ?? null
-      noDownload.value = meta?.noDownload === true
-      if (typeof meta?.title === 'string') initialTitle.value = meta.title
-      if (typeof meta?.description === 'string') initialDescription.value = meta.description
-      if (typeof meta?.audience === 'string') initialAudience.value = meta.audience
-      if (typeof meta?.language === 'string') initialLanguage.value = meta.language
-      initialBody.value = typeof meta?.initialBody === 'string' ? meta.initialBody : null
+      applyUnlockedMeta(state, data)
     } catch {
       // Non-fatal — sync is the live source of these values.
     }
@@ -305,33 +188,7 @@ export function useDocToken(docId: string) {
   }
 
   return {
-    tokenData,
-    isReadOnly,
-    syncAuthFailed,
-    isOwner,
-    hasOwner,
-    requiresPassword,
-    forbidden,
-    canDelete,
-    notFound,
-    accessMode,
-    workspaceId,
-    workspaceRole,
-    pendingPasswordUnlock,
-    initialTheme,
-    customCssAllowed,
-    brandFonts,
-    brandLockedTheme,
-    noDownload,
-    shareExpired,
-    workspacePlan,
-    ssoLoginUrl,
-    initialTitle,
-    initialDescription,
-    initialAudience,
-    initialLanguage,
-    initialBody,
-    templateId,
+    ...state,
     fetchToken,
     hydrateAfterUnlock,
     getFreshToken,

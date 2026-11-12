@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import WaveformVisualizer from './WaveformVisualizer.vue'
-
 const props = defineProps<{
   ai: {
     mySession: ReturnType<typeof useAI>['mySession']
@@ -38,31 +36,12 @@ const toast = useToast()
 // non-optional in the upstream .d.ts.
 const { vibrate: vibrateAbort } = useVibrate()
 
-// Billing state:
-//   1. `refreshBilling` runs after a session ends so the topbar badge
-//      ticks down live.
-//   2. `creditsExhausted` gates the input, send and mic buttons so the
-//      user can't type a prompt the server would reject. The bar stays
-//      visible to show the way forward.
-const { refresh: refreshBilling } = useBilling()
-// AI exhaustion comes from /api/ai/credits (LiteLLM /key/info);
-// `refreshAiCredits` also runs after a session ends so the AI Points
-// badge ticks down live.
-const { isExhausted: pointsExhausted, isFreeAllowanceExhausted, isWorkspaceShared: creditsAreShared, isTeamBudgetExhausted, refresh: refreshAiCredits } = useAiCredits(() => props.workspaceId)
-// Which capabilities this user can use, and whether chat is paid by the
-// platform. AI Points only gate the bar when chat actually spends them:
-// a user on their own key is never blocked by an empty platform budget.
-const { chatMissing, transcriptionAvailable, transcriptionLocked, chatPlatformBilled } = useAiAvailability()
+// Which capabilities this user can use (the budget notices read whether
+// chat is paid by the platform).
+const { chatMissing, transcriptionAvailable, transcriptionLocked } = useAiAvailability()
 // Voice the platform offers but the paying plan doesn't include: the mic
 // stays, locked, and explains the way forward.
 const { explainLocked } = useAiLockedPrompt()
-// Hosted free tier: the shared monthly pool can run dry before the
-// user's own points do. Only platform-paid chat is affected — an own key
-// keeps working.
-const freePoolExhausted = computed(() => chatPlatformBilled.value && isFreeAllowanceExhausted.value)
-const creditsExhausted = computed(() => freePoolExhausted.value || (chatPlatformBilled.value && pointsExhausted.value))
-const { billingEnabled, plansComingSoon, pricingVisible } = useBillingMode()
-const router = useRouter()
 
 const input = ref('')
 const inputEl = ref<HTMLInputElement | null>(null)
@@ -110,6 +89,11 @@ watch(() => voice.errorMessage.value, (err) => {
   voice.clearError()
 })
 
+// Billing state: the budget gates the input, send and mic buttons so the
+// user can't type a prompt the server would reject (the bar stays visible
+// to show the way forward), and the notices explain what ran out.
+const { creditsExhausted, freePoolExhausted, creditsAreShared, isTeamBudgetExhausted, billingEnabled, onCapReached, goToAiSettings } = useAiBudgetNotices(props.ai, () => props.workspaceId)
+
 const placeholder = computed(() => {
   if (!loggedIn.value) return t('ai.loginRequired')
   if (chatMissing.value) return t('aiProvider.cta.promptBar')
@@ -131,108 +115,6 @@ const placeholder = computed(() => {
   return t('ai.placeholder')
 })
 
-// At-cap click → /pricing instead of a doomed request. Used by the
-// send button's click handler and by click-on-input (for users who
-// click the grayed-out bar and expect *something* to happen).
-// Skip the redirect when the exhausted pool is workspace-shared —
-// the member has nothing to upgrade; the toast already told them
-// to contact the owner.
-function onCapReached() {
-  if (freePoolExhausted.value) {
-    showFreeAllowanceToast()
-    return
-  }
-  if (creditsAreShared.value) return
-  if (pricingVisible.value) {
-    void router.push('/pricing')
-    return
-  }
-  // Self-hosted: nothing to buy — re-explain instead of a dead link.
-  showPersonalBudgetToast()
-}
-
-// Team / Business workspace: the team pool or the member's own limit is
-// used up. Only an admin can change either, so never "upgrade".
-function showWorkspaceBudgetToast() {
-  const team = isTeamBudgetExhausted.value
-  toast.add({
-    title: team ? t('ai.workspaceBudgetExhaustedTitle') : t('ai.memberLimitReachedTitle'),
-    description: team ? t('ai.workspaceBudgetExhaustedDescription') : t('ai.memberLimitReachedDescription'),
-    icon: 'i-lucide-credit-card',
-    color: 'warning'
-  })
-}
-
-// Shared free-tier pool used up: the way forward is the user's own key
-// (Settings → AI provider) — never an upgrade, and not "your points".
-function showFreeAllowanceToast() {
-  toast.add({
-    title: t('ai.freeAllowanceExhaustedTitle'),
-    description: t('ai.freeAllowanceExhausted'),
-    icon: 'i-lucide-key-round',
-    color: 'warning',
-    actions: [{ label: t('ai.freeAllowanceCta'), color: 'neutral', onClick: goToAiSettings }]
-  })
-}
-
-// Personal-pool exhaustion toast. Billing mode picks the copy + CTA:
-// billing on → "Upgrade"; hosted free-only SaaS → "refills next period,
-// paid plans coming soon" + link to the coming-soon page; self-hosted →
-// "refills next period", no action (there is nothing to buy).
-function showPersonalBudgetToast() {
-  let description = t('ai.budgetExhaustedDescription')
-  if (!billingEnabled.value) {
-    description = plansComingSoon.value
-      ? t('ai.budgetExhaustedComingSoonDescription')
-      : t('ai.budgetExhaustedResetDescription')
-  }
-  let actions: Array<{ label: string, color: 'primary' | 'neutral', onClick: () => void }> | undefined
-  const goToPricing = () => {
-    globalThis.location.href = '/pricing'
-  }
-  if (billingEnabled.value) {
-    actions = [{ label: t('ai.upgradeCta'), color: 'primary', onClick: goToPricing }]
-  } else if (plansComingSoon.value) {
-    actions = [{ label: t('billing.comingSoonCta'), color: 'neutral', onClick: goToPricing }]
-  }
-  toast.add({
-    title: t('ai.budgetExhaustedTitle'),
-    description,
-    icon: 'i-lucide-credit-card',
-    color: 'warning',
-    actions
-  })
-}
-
-watch(() => props.ai.mySessionId.value, (now, prev) => {
-  if (prev && !now) {
-    void refreshBilling()
-    void refreshAiCredits()
-  }
-})
-
-// When the run loop's mid-loop catch fires (LitellmBudgetExhausted from
-// the proxy), the prompt request itself returned 200, so `useAI` has no
-// `budgetExhausted` flip. The session-end refresh above pulls the new
-// credit numbers; this watch reacts to the false→true transition and
-// surfaces the toast the user would otherwise miss.
-watch(creditsExhausted, (now, prev) => {
-  if (now && !prev) {
-    if (freePoolExhausted.value) {
-      showFreeAllowanceToast()
-      return
-    }
-    // Workspace-shared pool exhausted: the member can't fix this by
-    // upgrading; only the workspace admin's plan / spend matters. Use
-    // the workspace copy and drop the upgrade CTA.
-    if (creditsAreShared.value) {
-      showWorkspaceBudgetToast()
-      return
-    }
-    showPersonalBudgetToast()
-  }
-})
-
 const disabled = computed(() => {
   return !loggedIn.value
     || chatMissing.value
@@ -242,9 +124,6 @@ const disabled = computed(() => {
 })
 
 const aiSettingsRoute = AI_SETTINGS_ROUTE
-function goToAiSettings(): void {
-  void router.push(aiSettingsRoute)
-}
 
 // Voice UI is mutually exclusive with the text input; each voice state
 // maps to one of four display modes for the middle slot of the bar.
@@ -252,6 +131,8 @@ const isRecording = computed(() => voice.state.value === 'recording')
 const isTranscribing = computed(() => voice.state.value === 'transcribing')
 const isRequestingPerm = computed(() => voice.state.value === 'requesting-permission')
 const voiceActive = computed(() => isRecording.value || isTranscribing.value || isRequestingPerm.value)
+/** The voice state while `voiceActive` (the middle slot shows it instead of the input). */
+const voiceState = computed(() => isRecording.value ? 'recording' : isTranscribing.value ? 'transcribing' : 'requesting-permission')
 
 // The mic button is hidden during an active AI session (the stop button
 // takes its slot). It's also disabled when the user is mid-submit, when
@@ -271,25 +152,6 @@ const micTitle = computed(() => {
   return t('ai.micStart')
 })
 
-// Timer display ticks with `durationSec` (updated by the composable's RAF
-// loop). MM:SS is enough — voice input caps at 60s so minutes are always 0
-// or 1 but the format stays familiar.
-const formattedTime = computed(() => {
-  const s = Math.max(0, Math.floor(voice.durationSec.value))
-  const mm = String(Math.floor(s / 60)).padStart(1, '0')
-  const ss = String(s % 60).padStart(2, '0')
-  return `${mm}:${ss}`
-})
-
-// Amber at the last 10s, red at the last 5s — gives the user a moment
-// to wrap up before the hard auto-stop fires.
-const timerColorClass = computed(() => {
-  const remaining = voice.maxDurationSec - voice.durationSec.value
-  if (remaining <= 5) return 'text-red-500'
-  if (remaining <= 10) return 'text-amber-500'
-  return 'text-muted'
-})
-
 async function onSubmit() {
   // Exhausted users get routed to /pricing instead of a silent no-op.
   // `disabled.value` includes `creditsExhausted`, so the body below
@@ -304,31 +166,6 @@ async function onSubmit() {
   const ok = await props.ai.prompt(text)
   if (ok) input.value = ''
 }
-
-watch(() => props.ai.lastError.value, (err) => {
-  if (!err) return
-  if (props.ai.freeAllowanceExhausted?.value) {
-    showFreeAllowanceToast()
-    void refreshAiCredits()
-  } else if (props.ai.budgetExhausted.value) {
-    // Dedicated budget-exhausted toast with an Upgrade action. Users
-    // need an obvious path forward — a generic "AI request failed"
-    // toast doesn't tell them what to do.
-    if (creditsAreShared.value) {
-      showWorkspaceBudgetToast()
-      return
-    }
-    showPersonalBudgetToast()
-  } else {
-    toast.add({
-      title: t('ai.failed'),
-      description: err,
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
-  }
-  props.ai.clearLastError()
-})
 
 // Other people's sessions: only who it is for — their prompt and the
 // AI's status text are private to them.
@@ -375,56 +212,7 @@ function onPanelExpandedChange(v: boolean) {
   hasResponseExpanded.value = v
 }
 
-// Virtual-keyboard awareness — without this the bar gets shoved
-// off-screen on mobile when the keyboard pops up. We watch the
-// `visualViewport` API for keyboard intrusion and offset the bar's
-// `bottom: <px>` to sit just above it. Desktop fallback: 24px (the
-// existing `bottom-6` value).
-const keyboardOffset = ref(0)
-
-function updateKeyboardOffset() {
-  const vv = globalThis.window?.visualViewport
-  if (!vv) return
-  const gap = window.innerHeight - vv.height - vv.offsetTop
-  keyboardOffset.value = gap > 80 ? gap : 0
-}
-
-// On mobile (<sm) the bottom MobileTabBar sits at the very bottom of
-// the viewport. ~56px tall (24px icon + 12px label + ~12px vertical
-// padding + safe-area-inset-bottom). We add that to the AI-prompt-
-// bar's bottom offset so the two never overlap. Recomputed reactively
-// from the same media query the tab bar uses. Desktop returns 0 —
-// the tab bar isn't mounted there.
-const isMobile = useMediaQuery('(max-width: 639px)')
-const FORMAT_BAR_HEIGHT_PX = 56
-
-const bottomOffset = computed(() => {
-  const formatBarOffset = isMobile.value ? FORMAT_BAR_HEIGHT_PX : 0
-  if (keyboardOffset.value > 0) {
-    // Keyboard is up → sit just above the keyboard. The MobileFormatBar
-    // is also re-anchored above the keyboard (via the same offset), so
-    // we still need to clear it.
-    return `${keyboardOffset.value + formatBarOffset + 8}px`
-  }
-  // Keyboard down → sit above the format bar (mobile) or the
-  // standard 24px gap (desktop).
-  return formatBarOffset > 0 ? `${formatBarOffset + 8}px` : '24px'
-})
-
-onMounted(() => {
-  const vv = globalThis.window?.visualViewport
-  if (!vv) return
-  vv.addEventListener('resize', updateKeyboardOffset)
-  vv.addEventListener('scroll', updateKeyboardOffset)
-  updateKeyboardOffset()
-})
-
-onUnmounted(() => {
-  const vv = globalThis.window?.visualViewport
-  if (!vv) return
-  vv.removeEventListener('resize', updateKeyboardOffset)
-  vv.removeEventListener('scroll', updateKeyboardOffset)
-})
+const { bottomOffset } = usePromptBarOffset()
 </script>
 
 <template>
@@ -490,32 +278,13 @@ onUnmounted(() => {
            32px waveform canvas: 8 + 32 + 8 = 48 px matches the text
            input's 12 + 24 (line-height) + 12 exactly, so the pill
            doesn't grow vertically when the user toggles the mic. -->
-      <div
-        v-if="isRecording"
-        class="flex-1 min-w-0 flex items-center gap-3 py-2"
-      >
-        <WaveformVisualizer
-          :levels="voice.levels.value"
-          :height="32"
-          class="flex-1 min-w-0"
-        />
-        <span
-          class="voice-timer text-sm tabular-nums font-medium shrink-0"
-          :class="timerColorClass"
-        >{{ formattedTime }}</span>
-      </div>
-      <div
-        v-else-if="isTranscribing"
-        class="flex-1 min-w-0 flex items-center py-3"
-      >
-        <span class="text-muted italic transcribing-shimmer">{{ t('ai.micTranscribing') }}</span>
-      </div>
-      <div
-        v-else-if="isRequestingPerm"
-        class="flex-1 min-w-0 flex items-center py-3"
-      >
-        <span class="text-muted italic">{{ t('ai.micRequestingPermission') }}</span>
-      </div>
+      <AiPromptVoiceStatus
+        v-if="voiceActive"
+        :state="voiceState"
+        :levels="voice.levels.value"
+        :duration-sec="voice.durationSec.value"
+        :max-duration-sec="voice.maxDurationSec"
+      />
       <!-- AI prompt input wears the editorial italic-serif voice (Fraunces
            italic): the brand reserves italic-serif for "the AI is
            speaking", and this extends it to the user's side of the
@@ -786,29 +555,6 @@ html.dark .ai-prompt-bar.is-active .ai-prompt-bar__shell {
       0 20px 56px -12px color-mix(in srgb, var(--color-shu-500) 50%, transparent),
       0 8px 24px -8px rgb(20 17 13 / 0.18);
   }
-}
-
-/*
- * Transcribing shimmer — a subtle left-to-right gradient sweep on the
- * "Transcribing…" label so the UI reads as "working" without a full
- * spinner (the primary button already carries one).
- */
-@keyframes transcribe-shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-.transcribing-shimmer {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--ui-text-muted) 60%, transparent) 0%,
-    var(--color-shu-500) 50%,
-    color-mix(in srgb, var(--ui-text-muted) 60%, transparent) 100%
-  );
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: transcribe-shimmer 2s linear infinite;
 }
 
 /*

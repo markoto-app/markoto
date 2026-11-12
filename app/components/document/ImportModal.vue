@@ -46,10 +46,7 @@ const {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('docId', props.docId)
-    // Not apiFetch: the contract types a multipart (`body: 'custom'`) route's
-    // body as `undefined`, so a FormData is refused. The literal URL still
-    // gives `$fetch` the handler's response type.
-    const result = await $fetch('/api/import', { method: 'POST', body: formData })
+    const result = await apiFetch('/api/import', { method: 'post', body: formData })
     importedResult.value = result
     applyProperties.value = true
     return result.markdown

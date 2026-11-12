@@ -27,8 +27,7 @@ const { isLoading: loading, execute: runVerify } = useAsyncState(
   {
     immediate: false,
     onSuccess: (result) => {
-      // The route's response type is `{ success }` for every action, so the token is checked at runtime.
-      if (result && 'token' in result && typeof result.token === 'string') emit('verified', result.token)
+      if (result?.action === 'verify') emit('verified', result.token)
     },
     onError: (e) => {
       error.value = extractError(e).message

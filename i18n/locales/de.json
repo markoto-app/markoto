@@ -275,6 +275,7 @@
     "activeSection": "Aktiv",
     "orphanedSection": "Aus Dokument entfernt",
     "orphanedHint": "Der Text, an dem dieser Kommentar hing, wurde gelöscht.",
+    "showInDocument": "Im Dokument anzeigen",
     "resolvedSection": "Aufgelöst",
     "composerPlaceholder": "Kommentar hinzufügen…",
     "replyPlaceholder": "Antworten…",

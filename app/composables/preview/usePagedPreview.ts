@@ -5,9 +5,8 @@ import { themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
 import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
 import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 import { documentTexts } from '~~/shared/utils/documents/documentLocale'
-import type { CustomCssResult } from '~~/shared/types/customCss'
 import type { BrandFont } from '~~/shared/config/brandKit'
-import { sanitizeCustomCssForRender, currentAppOrigins } from '~/utils/preview/customCssLoader'
+import { createCustomCssCache, createFileTokenGate } from './previewRenderInputs'
 import type { PreviewZoomCommand } from '~/composables/preview/usePreviewZoom'
 import {
   PREVIEW_SANDBOX,
@@ -15,12 +14,10 @@ import {
   buildZoomMessage,
   buildPreviewSrcdoc,
   buildRenderMessage,
-  createFileTokenSource,
   currentCspNonce,
   parseFrameMessage,
   mayReferenceOwnUploads,
-  postToFrame,
-  withOwnUploadToken
+  postToFrame
 } from '~/utils/preview/previewFrame'
 
 /**
@@ -41,7 +38,7 @@ import {
  * `paginated` / `iframe-error` / `print-shortcut` come out. The bootstrap
  * document lives in `pagedPreviewIframe.html`.
  */
-export function usePagedPreview(opts: {
+export interface PagedPreviewOptions {
   html: Ref<string>
   theme: Ref<DocTheme>
   title: Ref<string>
@@ -85,7 +82,9 @@ export function usePagedPreview(opts: {
     /** The frame applied a zoom (effective + fit-width factor). */
     onApplied: (scale: number, fitScale: number) => void
   }
-}) {
+}
+
+export function usePagedPreview(opts: PagedPreviewOptions) {
   const { t } = useI18n()
   const pageCount = ref(0)
   const isPaginating = ref(false)
@@ -103,6 +102,14 @@ export function usePagedPreview(opts: {
   // can leave `#mount` empty even though both renders "succeeded".
   let pendingRender = false
 
+  /** Run the render that was requested while the frame was busy or loading. */
+  function drainPendingRender() {
+    if (pendingRender) {
+      pendingRender = false
+      render()
+    }
+  }
+
   function handleMessage(e: MessageEvent) {
     const data = parseFrameMessage(e, iframe?.contentWindow)
     if (!data) return
@@ -111,25 +118,16 @@ export function usePagedPreview(opts: {
       error.value = null
       sendColorMode()
       sendZoom(false)
-      if (pendingRender) {
-        pendingRender = false
-        render()
-      }
+      drainPendingRender()
     } else if (data.type === 'paginated') {
       pageCount.value = data.pageCount
       isPaginating.value = false
       // Drain a render request that arrived while busy.
-      if (pendingRender) {
-        pendingRender = false
-        render()
-      }
+      drainPendingRender()
     } else if (data.type === 'iframe-error') {
       error.value = data.message || t('editor.previewFailed')
       isPaginating.value = false
-      if (pendingRender) {
-        pendingRender = false
-        render()
-      }
+      drainPendingRender()
     } else if (data.type === 'print-shortcut') {
       opts.onPrintShortcut?.()
     } else if (data.type === 'zoom-request') {
@@ -156,74 +154,9 @@ export function usePagedPreview(opts: {
     }))
   }
 
-  // Image access token for the opaque-origin iframe (its requests carry
-  // no cookie). `render()` stays synchronous (see above): when a token is
-  // needed but missing / about to expire it starts a fetch and re-enters
-  // once the token is in.
-  const fileTokens = createFileTokenSource(() => opts.docId.value, opts.getDocJwt)
-  let fileTokenPending = false
-
-  /** The token to use ('' = none needed), or null while one is being fetched. */
-  function fileTokenFor(needed: boolean): string | null {
-    if (!needed) return ''
-    const token = fileTokens.current()
-    if (token !== null) return token
-    if (!fileTokenPending) {
-      fileTokenPending = true
-      void fileTokens.refresh().finally(() => {
-        fileTokenPending = false
-        render()
-      })
-    }
-    return null
-  }
-
-  // Sanitized custom CSS, keyed by the (docId, file token, raw css) it was
-  // made from — own-upload url()s carry the token, so a new token means a
-  // new sanitize (every ~13 min). The sanitizer is loaded lazily, so
-  // `render()` never awaits it: when the cache is stale it kicks off the
-  // sanitize and re-enters `render()` once the result is in. Documents
-  // without custom CSS skip all this.
-  let customCssKey = ''
-  let customCss: CustomCssResult | undefined
-  let customCssPending: string | null = null
-
-  /** True when the cache matches the current theme + token; otherwise starts a refresh. */
-  function customCssReady(raw: string, fileToken: string): boolean {
-    const docId = opts.docId.value
-    const key = `${docId}\n${fileToken}\n${raw}`
-    if (key === customCssKey) return true
-    if (raw.trim() === '') {
-      customCss = undefined
-      customCssKey = key
-      customCssPending = null
-      return true
-    }
-    if (customCssPending === key) return false
-    customCssPending = key
-    let result: CustomCssResult | undefined
-    sanitizeCustomCssForRender(raw, {
-      docId,
-      allowedOrigins: currentAppOrigins(),
-      fileUrl: path => withOwnUploadToken(path, docId, fileToken)
-    })
-      .then((res) => {
-        result = res
-      })
-      .catch((err: unknown) => {
-        // Fail closed: no custom CSS rather than unsanitized CSS.
-        console.warn('[custom css] sanitizer failed to load', err)
-      })
-      .finally(() => {
-        // A newer edit superseded this one; its own run will render.
-        if (customCssPending !== key) return
-        customCss = result
-        customCssPending = null
-        customCssKey = key
-        render()
-      })
-    return false
-  }
+  // Rendering waits for these two; each calls `render()` again once it is in.
+  const fileTokens = createFileTokenGate(() => opts.docId.value, opts.getDocJwt, () => render())
+  const customCss = createCustomCssCache(() => opts.docId.value, () => render())
 
   function render() {
     const frame = iframe?.contentWindow
@@ -256,16 +189,16 @@ export function usePagedPreview(opts: {
     // No document (the marketing `::try-it` block): there are no uploads to
     // authorise, so never ask for a file token.
     const brandFonts = opts.brandFonts?.value ?? null
-    const fileToken = fileTokenFor(docId !== '' && mayReferenceOwnUploads({ html, theme, rawCustomCss, docId, brandFonts }))
+    const fileToken = fileTokens.tokenFor(docId !== '' && mayReferenceOwnUploads({ html, theme, rawCustomCss, docId, brandFonts }))
     if (fileToken === null) return
-    if (!customCssReady(rawCustomCss, fileToken)) return
+    if (!customCss.ready(rawCustomCss, fileToken)) return
     isPaginating.value = true
     postToFrame(frame, buildRenderMessage({
       html,
       theme,
       title: opts.title.value || '',
       language,
-      customCss,
+      customCss: customCss.current(),
       docId,
       fileToken,
       print: false,

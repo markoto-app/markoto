@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest'
-import { PAGED_HANDLERS_SCRIPT } from '../../app/utils/preview/pagedHandlers'
+import { PAGED_HANDLERS_SCRIPT, registerPagedHandlers } from '../../app/utils/preview/pagedHandlers'
 
 // The handlers reach the live preview as the STRINGIFIED function (an
 // inline script in the opaque-origin iframe), so this suite evaluates
@@ -573,5 +573,31 @@ describe('selectors paged.js rewrites keep their specificity', () => {
     expect(parsed.querySelector('li')?.getAttribute('data-nth-of-type')).toBe(id)
     const rule = handlerInstance.styleSheet.cssRules[0]?.cssText ?? ''
     expect(rule).toMatch(/:is\(li:first-of-type, :where\(\[data-nth-of-type\*=.*\)\)::marker/)
+  })
+})
+
+// The server render page registers the same parts directly (no string):
+// the two paths must wire them alike.
+describe('direct registration (server render page)', () => {
+  const direct: unknown[] = []
+
+  beforeAll(() => {
+    const paged = { Handler: FakeHandler, registerHandlers: (...h: unknown[]) => direct.push(...h) }
+    registerPagedHandlers(paged)
+    registerPagedHandlers(paged)
+  })
+
+  it('registers one handler that applies the same break rules', () => {
+    expect(direct).toHaveLength(1)
+    const H = direct[0]
+    if (typeof H !== 'function') throw new Error('no handler registered')
+    const instance: unknown = Reflect.construct(H, [{ source: undefined }, null, null])
+    const onOverflow: unknown = typeof instance === 'object' && instance !== null ? Reflect.get(instance, 'onOverflow') : null
+    if (typeof onOverflow !== 'function') throw new Error('onOverflow missing')
+    const r = el('<div class="paged-doc"><p>Intro text.</p><h1>Section</h1><table><tbody><tr><td>1</td></tr></tbody></table></div>')
+    const table = r.querySelector('table')
+    if (!table) throw new Error('fixture')
+    const out: unknown = Reflect.apply(onOverflow, instance, [overflowFrom(table, r), r])
+    expect(out instanceof Range ? startNode(out)?.nodeName : null).toBe('H1')
   })
 })

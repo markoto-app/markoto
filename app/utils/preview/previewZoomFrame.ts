@@ -17,11 +17,14 @@
  * <html>; it never re-paginates. The print path reuses the bootstrap but
  * never sends a zoom message, and its `@media print` block resets zoom.
  *
- * DELIVERY. Like `pagedHandlers.ts`, the function below must stay
- * SELF-CONTAINED (no imports, no module references): the opaque-origin
- * iframe can't load app scripts, so `buildPreviewSrcdoc` inlines its
- * source (`PREVIEW_ZOOM_SCRIPT`) into the nonce'd bootstrap script.
- * `tests/dom/previewZoomFrame.test.ts` evaluates that string.
+ * DELIVERY. Like `pagedHandlers.ts`, every function below must stay
+ * SELF-CONTAINED (no imports, no references to module scope or to each
+ * other): the opaque-origin iframe can't load app scripts, so
+ * `buildPreviewSrcdoc` inlines `PREVIEW_ZOOM_SCRIPT` — the stringified
+ * parts, joined at the bottom of this file — into the nonce'd bootstrap
+ * script. The parts reach each other only through the arguments
+ * `runPreviewZoom` passes them. `tests/dom/previewZoomFrame.test.ts`
+ * evaluates that string.
  */
 
 export type FrameZoomMode = 'fit' | 'scale' | 'overview'
@@ -43,10 +46,32 @@ export interface PreviewZoomEngine {
   overviewGrid: (available: number, pageWidth: number, pageCount: number) => { cols: number, zoom: number }
 }
 
-function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): PreviewZoomEngine {
+/** The engine's mutable state, shared by its parts. */
+interface ZoomState {
+  mode: FrameZoomMode
+  fixedScale: number
+  /** Natural page width (CSS px at zoom 1); 0 = not measured yet. */
+  pageWidth: number
+  /** The zoom in effect. */
+  current: number
+  fitScale: number
+  animation: Animation | null
+}
+
+/** What every part gets: the state, the parent channel and the zoom limits. */
+interface ZoomContext {
+  state: ZoomState
+  toParent: (msg: Record<string, unknown>) => void
   /** Free-zoom range — keep in sync with PREVIEW_ZOOM_MIN / MAX (previewZoom.ts). */
-  const MIN = 0.3
-  const MAX = 3
+  min: number
+  max: number
+}
+
+/** A page and the point in it the reader is looking at. */
+interface ZoomAnchor { index: number, fx: number, fy: number, vx: number, vy: number, rect: DOMRect }
+
+/** Pages laid out for a mode: measuring, the overview grid, the reported state. */
+function createZoomLayout(ctx: ZoomContext) {
   /**
    * Smallest overview thumbnail (CSS px on screen) and the gap between
    * them. Narrow panes (phones) go down to ~100 px so three fit across.
@@ -56,25 +81,8 @@ function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): P
   const GAP = 14
   /** Overview thumbnails never grow past half size (short documents). */
   const OVERVIEW_MAX = 0.5
-  const DURATION_OVERVIEW = 520
-  const DURATION_STEP = 200
-  const EASING = 'cubic-bezier(0.22, 0.61, 0.36, 1)'
-  /** Pinching in this far on the overview opens the page under the fingers. */
-  const OVERVIEW_OPEN_FACTOR = 1.25
-
+  const state = ctx.state
   const root = document.documentElement
-  let mode: FrameZoomMode = 'fit'
-  let fixedScale = 1
-  let pageWidth = 0
-  let current = 1
-  let fitScale = 1
-  let animation: Animation | null = null
-
-  interface Anchor { index: number, fx: number, fy: number, vx: number, vy: number, rect: DOMRect }
-
-  function clamp(v: number, lo: number, hi: number): number {
-    return Math.min(hi, Math.max(lo, v))
-  }
 
   function mountEl(): HTMLElement | null {
     return document.getElementById('mount')
@@ -87,10 +95,6 @@ function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): P
   function pageList(): HTMLElement[] {
     const mount = mountEl()
     return mount ? Array.from(mount.querySelectorAll<HTMLElement>('.pagedjs_page')) : []
-  }
-
-  function reducedMotion(): boolean {
-    return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
   }
 
   // `n > 0` is false for NaN too, which a negated comparison would have to spell out.
@@ -115,35 +119,50 @@ function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): P
     const first = pages?.querySelector<HTMLElement>('.pagedjs_page')
     const mount = mountEl()
     if (!pages || !first || !mount) return false
-    if (remeasure || !pageWidth) {
+    if (remeasure || !state.pageWidth) {
       // Measure at zoom 1: the natural page width (A4 = 794px).
       pages.style.setProperty('--page-zoom', '1')
-      pageWidth = first.offsetWidth
+      state.pageWidth = first.offsetWidth
     }
     const available = mount.clientWidth
-    if (!pageWidth || !available) return false
-    fitScale = Math.min(1, available / pageWidth)
-    root.classList.toggle('zoom-overview', mode === 'overview')
-    root.classList.toggle('zoom-scale', mode === 'scale')
-    let zoom = fitScale
-    if (mode === 'overview') {
-      zoom = overviewGrid(available, pageWidth, pageList().length).zoom
+    if (!state.pageWidth || !available) return false
+    state.fitScale = Math.min(1, available / state.pageWidth)
+    root.classList.toggle('zoom-overview', state.mode === 'overview')
+    root.classList.toggle('zoom-scale', state.mode === 'scale')
+    let zoom = state.fitScale
+    if (state.mode === 'overview') {
+      zoom = overviewGrid(available, state.pageWidth, pageList().length).zoom
       pages.style.setProperty('--overview-gap', `${GAP / zoom}px`)
-    } else if (mode === 'scale') {
-      zoom = fixedScale
+    } else if (state.mode === 'scale') {
+      zoom = state.fixedScale
     }
     pages.style.setProperty('--page-zoom', String(zoom))
-    current = zoom
+    state.current = zoom
     return true
   }
 
   function postState(): void {
-    toParent({ type: 'zoom-state', mode, scale: current, fitScale })
+    ctx.toParent({ type: 'zoom-state', mode: state.mode, scale: state.current, fitScale: state.fitScale })
+  }
+
+  return { mountEl, pageList, isPositive, overviewGrid, applyLayout, postState }
+}
+
+type ZoomLayout = ReturnType<typeof createZoomLayout>
+
+/** Keeps the reader's place across a zoom change, and animates the change. */
+function createZoomCamera(ctx: ZoomContext, layout: ZoomLayout) {
+  const EASING = 'cubic-bezier(0.22, 0.61, 0.36, 1)'
+  const state = ctx.state
+  const root = document.documentElement
+
+  function clamp(v: number, lo: number, hi: number): number {
+    return Math.min(hi, Math.max(lo, v))
   }
 
   /** The page under (or nearest to) a viewport point, and where in it the point is. */
-  function anchorAt(point: { x: number, y: number } | null): Anchor | null {
-    const list = pageList()
+  function anchorAt(point: { x: number, y: number } | null): ZoomAnchor | null {
+    const list = layout.pageList()
     if (list.length === 0) return null
     const vx = point ? point.x : window.innerWidth / 2
     const vy = point ? point.y : window.innerHeight / 2
@@ -172,8 +191,8 @@ function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): P
     }
   }
 
-  function anchorOnPage(index: number): Anchor | null {
-    const page = pageList()[index]
+  function anchorOnPage(index: number): ZoomAnchor | null {
+    const page = layout.pageList()[index]
     if (!page) return null
     const rect = page.getBoundingClientRect()
     return { index, fx: 0.5, fy: 0, vx: window.innerWidth / 2, vy: 40, rect }
@@ -185,8 +204,8 @@ function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): P
    * 'row'   — the page's overview row centred vertically;
    * 'top'   — the page's top edge just below the top of the view.
    */
-  function restore(anchor: Anchor, target: 'point' | 'row' | 'top'): void {
-    const page = pageList()[anchor.index]
+  function restore(anchor: ZoomAnchor, target: 'point' | 'row' | 'top'): void {
+    const page = layout.pageList()[anchor.index]
     if (!page) return
     const r = page.getBoundingClientRect()
     if (target === 'row') {
@@ -206,9 +225,9 @@ function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): P
    * it was before the change, then let it settle — a pull-back into the
    * grid, a push-in onto a page, or a short zoom around the anchor.
    */
-  function animateFrom(anchor: Anchor, duration: number, fadeOthers: boolean): void {
-    const mount = mountEl()
-    const page = pageList()[anchor.index]
+  function animateFrom(anchor: ZoomAnchor, duration: number, fadeOthers: boolean): void {
+    const mount = layout.mountEl()
+    const page = layout.pageList()[anchor.index]
     if (!mount || !page || typeof mount.animate !== 'function') return
     const next = page.getBoundingClientRect()
     const box = mount.getBoundingClientRect()
@@ -223,15 +242,15 @@ function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): P
       [{ transform: `translate(${tx}px, ${ty}px) scale(${s})` }, { transform: 'none' }],
       { duration, easing: EASING }
     )
-    animation = run
+    state.animation = run
     // Into / out of the overview the layout changes around the anchor
     // page: let the other pages fade in instead of popping up.
     const fades = fadeOthers
-      ? pageList().filter(p => p !== page).map(p => p.animate([{ opacity: 0 }, { opacity: 1 }], { duration, easing: EASING }))
+      ? layout.pageList().filter(p => p !== page).map(p => p.animate([{ opacity: 0 }, { opacity: 1 }], { duration, easing: EASING }))
       : []
     const done = (): void => {
-      if (animation !== run) return
-      animation = null
+      if (state.animation !== run) return
+      state.animation = null
       for (const fade of fades) fade.cancel()
       root.classList.remove('zoom-animating')
     }
@@ -240,44 +259,26 @@ function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): P
   }
 
   function stopAnimation(): void {
-    if (animation) animation.cancel()
+    if (state.animation) state.animation.cancel()
   }
 
-  function set(cmd: FrameZoomCommand): void {
-    stopAnimation()
-    const wasOverview = mode === 'overview'
-    const anchor = cmd.page > 0 ? anchorOnPage(cmd.page - 1) : anchorAt(null)
-    mode = cmd.mode
-    fixedScale = clamp(cmd.scale, MIN, MAX)
-    // No pages yet: stored, applied after the first pagination.
-    if (!applyLayout(false)) return
-    if (anchor) {
-      restore(anchor, cmd.page > 0 ? 'top' : mode === 'overview' ? 'row' : 'point')
-      if (cmd.animate && !reducedMotion()) {
-        const switching = wasOverview !== (mode === 'overview')
-        animateFrom(anchor, switching ? DURATION_OVERVIEW : DURATION_STEP, switching)
-      }
-    }
-    postState()
-  }
+  return { clamp, anchorAt, anchorOnPage, restore, animateFrom, stopAnimation }
+}
 
-  function reapply(remeasure: boolean): void {
-    if (applyLayout(remeasure)) postState()
-  }
+type ZoomCamera = ReturnType<typeof createZoomCamera>
 
-  // Resize: keep the page being read in view.
-  let resizeFrame = 0
-  window.addEventListener('resize', () => {
-    if (resizeFrame) return
-    resizeFrame = requestAnimationFrame(() => {
-      resizeFrame = 0
-      stopAnimation()
-      const anchor = anchorAt(null)
-      if (!applyLayout(false)) return
-      if (anchor) restore(anchor, mode === 'overview' ? 'row' : 'point')
-      postState()
-    })
-  })
+/**
+ * Input inside the frame: Ctrl/Cmd + = / - / 0, a click on an overview
+ * page, and gestures (Ctrl+wheel / trackpad pinch, touch pinch). Gestures
+ * are applied live inside the frame (one layout per animation frame); the
+ * final factor goes to the parent, which stores it — or, pinched past the
+ * minimum, switches to the overview.
+ */
+function installZoomInput(ctx: ZoomContext, layout: ZoomLayout, camera: ZoomCamera): void {
+  /** Pinching in this far on the overview opens the page under the fingers. */
+  const OVERVIEW_OPEN_FACTOR = 1.25
+  const state = ctx.state
+  const clamp = camera.clamp
 
   // Keyboard: Ctrl/Cmd + = / - / 0 (same rule as zoomShortcutAction).
   const isMac = /Mac|iPhone|iPad/.test(navigator.platform)
@@ -290,54 +291,54 @@ function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): P
     else if (e.key === '0' || e.code === 'Digit0' || e.code === 'Numpad0') action = 'reset'
     if (!action) return
     e.preventDefault()
-    toParent({ type: 'zoom-request', action, page: 0 })
+    ctx.toParent({ type: 'zoom-request', action, page: 0 })
   }, true)
 
   // Overview: click a page to open it at fit width.
   document.addEventListener('click', (e) => {
-    if (mode !== 'overview') return
+    if (state.mode !== 'overview') return
     const target = e.target
     const page = target instanceof Element ? target.closest('#mount .pagedjs_page') : null
     if (!page) return
     e.preventDefault()
     e.stopPropagation()
-    toParent({ type: 'zoom-request', action: 'page', page: pageList().findIndex(p => p === page) + 1 })
+    ctx.toParent({ type: 'zoom-request', action: 'page', page: layout.pageList().findIndex(p => p === page) + 1 })
   }, true)
 
-  // Gestures (Ctrl+wheel / trackpad pinch, touch pinch). Applied live inside the frame (one layout per animation frame); the
-  // final factor goes to the parent, which stores it — or, pinched past
-  // the minimum, switches to the overview.
   interface Gesture { base: number, factor: number, point: { x: number, y: number }, opened: boolean }
   let gesture: Gesture | null = null
   let gestureFrame = 0
   let gestureTimer: ReturnType<typeof setTimeout> | null = null
 
+  /** One frame of a gesture: on the overview a pinch-in opens a page, elsewhere it zooms around the fingers. */
+  function applyGesture(g: Gesture): void {
+    if (state.mode === 'overview') {
+      if (!g.opened && g.factor > OVERVIEW_OPEN_FACTOR) {
+        g.opened = true
+        const anchor = camera.anchorAt(g.point)
+        if (anchor) ctx.toParent({ type: 'zoom-request', action: 'page', page: anchor.index + 1 })
+      }
+      return
+    }
+    const zoom = clamp(g.base * g.factor, ctx.min, ctx.max)
+    if (Math.abs(zoom - state.current) < 0.001) return
+    const anchor = camera.anchorAt(g.point)
+    state.mode = 'scale'
+    state.fixedScale = zoom
+    if (layout.applyLayout(false) && anchor) camera.restore(anchor, 'point')
+  }
+
   function gestureStep(factor: number, point: { x: number, y: number }): void {
     if (!gesture) {
-      stopAnimation()
-      gesture = { base: current, factor: 1, point, opened: false }
+      camera.stopAnimation()
+      gesture = { base: state.current, factor: 1, point, opened: false }
     }
     gesture.factor *= factor
     gesture.point = point
     if (gestureFrame) return
     gestureFrame = requestAnimationFrame(() => {
       gestureFrame = 0
-      const g = gesture
-      if (!g) return
-      if (mode === 'overview') {
-        if (!g.opened && g.factor > OVERVIEW_OPEN_FACTOR) {
-          g.opened = true
-          const anchor = anchorAt(g.point)
-          if (anchor) toParent({ type: 'zoom-request', action: 'page', page: anchor.index + 1 })
-        }
-        return
-      }
-      const zoom = clamp(g.base * g.factor, MIN, MAX)
-      if (Math.abs(zoom - current) < 0.001) return
-      const anchor = anchorAt(g.point)
-      mode = 'scale'
-      fixedScale = zoom
-      if (applyLayout(false) && anchor) restore(anchor, 'point')
+      if (gesture) applyGesture(gesture)
     })
   }
 
@@ -345,10 +346,10 @@ function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): P
     const g = gesture
     gesture = null
     if (!g) return
-    if (mode !== 'overview' && !g.opened && Math.abs(g.factor - 1) > 0.001) {
-      toParent({ type: 'zoom-gesture', scale: clamp(g.base * g.factor, 0.05, 10) })
+    if (state.mode !== 'overview' && !g.opened && Math.abs(g.factor - 1) > 0.001) {
+      ctx.toParent({ type: 'zoom-gesture', scale: clamp(g.base * g.factor, 0.05, 10) })
     }
-    postState()
+    layout.postState()
   }
 
   document.addEventListener('wheel', (e) => {
@@ -381,7 +382,7 @@ function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): P
     if (!pinch || e.touches.length !== 2) return
     e.preventDefault()
     const f = spread(e.touches) / pinch.start
-    if (!isPositive(f)) return
+    if (!layout.isPositive(f)) return
     gestureStep(f / pinch.last, middle(e.touches))
     pinch.last = f
   }, { passive: false })
@@ -397,9 +398,82 @@ function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): P
   document.addEventListener('gesturestart', (e) => {
     e.preventDefault()
   })
-
-  return { set, reapply, overviewGrid }
 }
 
-/** Function source for the bootstrap (inlined by `buildPreviewSrcdoc`). */
-export const PREVIEW_ZOOM_SCRIPT = installPreviewZoom.toString()
+interface ZoomParts {
+  createZoomLayout: typeof createZoomLayout
+  createZoomCamera: typeof createZoomCamera
+  installZoomInput: typeof installZoomInput
+}
+
+/** The engine: wires the parts, applies commands from the parent and keeps the page in view on resize. */
+function runPreviewZoom(toParent: (msg: Record<string, unknown>) => void, parts: ZoomParts): PreviewZoomEngine {
+  const DURATION_OVERVIEW = 520
+  const DURATION_STEP = 200
+  const ctx: ZoomContext = {
+    state: { mode: 'fit', fixedScale: 1, pageWidth: 0, current: 1, fitScale: 1, animation: null },
+    toParent,
+    min: 0.3,
+    max: 3
+  }
+  const state = ctx.state
+  const layout = parts.createZoomLayout(ctx)
+  const camera = parts.createZoomCamera(ctx, layout)
+
+  function reducedMotion(): boolean {
+    return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  }
+
+  function set(cmd: FrameZoomCommand): void {
+    camera.stopAnimation()
+    const wasOverview = state.mode === 'overview'
+    const anchor = cmd.page > 0 ? camera.anchorOnPage(cmd.page - 1) : camera.anchorAt(null)
+    state.mode = cmd.mode
+    state.fixedScale = camera.clamp(cmd.scale, ctx.min, ctx.max)
+    // No pages yet: stored, applied after the first pagination.
+    if (!layout.applyLayout(false)) return
+    if (anchor) {
+      camera.restore(anchor, cmd.page > 0 ? 'top' : state.mode === 'overview' ? 'row' : 'point')
+      if (cmd.animate && !reducedMotion()) {
+        const switching = wasOverview !== (state.mode === 'overview')
+        camera.animateFrom(anchor, switching ? DURATION_OVERVIEW : DURATION_STEP, switching)
+      }
+    }
+    layout.postState()
+  }
+
+  function reapply(remeasure: boolean): void {
+    if (layout.applyLayout(remeasure)) layout.postState()
+  }
+
+  // Resize: keep the page being read in view.
+  let resizeFrame = 0
+  window.addEventListener('resize', () => {
+    if (resizeFrame) return
+    resizeFrame = requestAnimationFrame(() => {
+      resizeFrame = 0
+      camera.stopAnimation()
+      const anchor = camera.anchorAt(null)
+      if (!layout.applyLayout(false)) return
+      if (anchor) camera.restore(anchor, state.mode === 'overview' ? 'row' : 'point')
+      layout.postState()
+    })
+  })
+
+  parts.installZoomInput(ctx, layout, camera)
+
+  return { set, reapply, overviewGrid: layout.overviewGrid }
+}
+
+/**
+ * Function source for the bootstrap (inlined by `buildPreviewSrcdoc`): one
+ * function expression `installPreviewZoom(toParent)` that hands the parts
+ * to the engine.
+ */
+export const PREVIEW_ZOOM_SCRIPT = `function installPreviewZoom(toParent) {
+  return (${runPreviewZoom.toString()})(toParent, {
+    createZoomLayout: ${createZoomLayout.toString()},
+    createZoomCamera: ${createZoomCamera.toString()},
+    installZoomInput: ${installZoomInput.toString()}
+  })
+}`

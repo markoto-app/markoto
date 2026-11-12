@@ -275,6 +275,7 @@
     "activeSection": "Active",
     "orphanedSection": "Removed from document",
     "orphanedHint": "The text this comment was attached to was deleted.",
+    "showInDocument": "Show in document",
     "resolvedSection": "Resolved",
     "composerPlaceholder": "Add a comment…",
     "replyPlaceholder": "Reply…",

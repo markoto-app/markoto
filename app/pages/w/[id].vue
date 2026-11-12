@@ -527,68 +527,16 @@ async function leaveWorkspace() {
           }"
         >
           <template #documents>
-            <!-- Same header pattern as the Knowledge tab: icon +
-                 Fraunces serif title + JetBrains Mono micro-count,
-                 description below, primary action right-aligned. The
-                 page-level "New document" button moved here so the
-                 CTA only fires when the user is actually looking at
-                 the documents list. -->
-            <section class="space-y-3">
-              <div class="flex items-center justify-between gap-3 flex-wrap">
-                <div class="flex items-center gap-2.5 min-w-0">
-                  <UIcon
-                    name="i-lucide-file-text"
-                    class="text-toned size-5 shrink-0"
-                  />
-                  <h2 class="font-serif text-2xl font-normal tracking-tight">
-                    {{ t('workspace.tabs.documents') }}
-                  </h2>
-                  <span
-                    v-if="data.documents.length > 0"
-                    class="font-mono text-[10.5px] tracking-[0.04em] text-muted"
-                  >{{ data.documents.length }}</span>
-                </div>
-                <UButton
-                  v-if="canCreateDoc"
-                  icon="i-lucide-plus"
-                  size="sm"
-                  color="neutral"
-                  data-testid="workspace-new-document"
-                  @click="createDocument"
-                >
-                  {{ t('workspace.newDocument') }}
-                </UButton>
-              </div>
-              <p class="text-xs text-muted">
-                {{ canCreateDoc ? t('workspace.emptyDescription') : t('workspace.emptyDescriptionViewer') }}
-              </p>
-
-              <div
-                v-if="data.documents.length > 0"
-                class="pt-2"
-              >
-                <WorkspaceDocTable
-                  :documents="data.documents"
-                  :my-role="myRole || 'viewer'"
-                  :workspace-id="data.workspace.workspaceId"
-                  @duplicate-requested="openDocDuplicate"
-                  @move-requested="openDocMove"
-                  @delete-requested="openDocDelete"
-                />
-              </div>
-              <div
-                v-else
-                class="text-center py-12 border border-dashed border-default rounded-lg bg-default"
-              >
-                <UIcon
-                  name="i-lucide-file-plus"
-                  class="size-6 text-muted mx-auto mb-2"
-                />
-                <p class="font-serif text-lg font-normal tracking-tight">
-                  {{ t('workspace.empty') }}
-                </p>
-              </div>
-            </section>
+            <WorkspaceDocumentsTab
+              :documents="data.documents"
+              :my-role="myRole || 'viewer'"
+              :workspace-id="data.workspace.workspaceId"
+              :can-create-doc="canCreateDoc"
+              @create="createDocument"
+              @duplicate-requested="openDocDuplicate"
+              @move-requested="openDocMove"
+              @delete-requested="openDocDelete"
+            />
           </template>
 
           <template #knowledge>

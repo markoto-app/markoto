@@ -4,7 +4,7 @@
 // the workspace templates. Server: `server/api/workspaces/[wsId]/brand/`.
 import { formatBytes } from '~/utils/billing/usageMeter'
 import { brandFontFaceCss } from '~~/shared/utils/theme/brandFonts'
-import { isAddedFont, kitFonts, type BrandKit, type BrandKitFontRow } from '~/utils/api/types/brandKit'
+import type { BrandKit, BrandKitFontRow } from '~/utils/api/types/brandKit'
 import type { DocTheme } from '~~/shared/types/theme'
 
 type FontRow = BrandKitFontRow
@@ -38,7 +38,7 @@ useHead(() => ({
   style: kit.value?.fonts.length
     ? [{
         key: 'brand-kit-panel-fonts',
-        textContent: brandFontFaceCss(kitFonts(kit.value), file => `${base.value}/files/${file}`)
+        textContent: brandFontFaceCss(kit.value.fonts, file => `${base.value}/files/${file}`)
       }]
     : []
 }))
@@ -75,10 +75,8 @@ async function uploadFont(): Promise<void> {
     form.append('file', fontFile.value)
     form.append('licence', 'true')
     if (fontFamily.value.trim()) form.append('family', fontFamily.value.trim())
-    // Not apiFetch: the contract types a multipart (`body: 'custom'`) route's
-    // body as `undefined`, so a FormData is refused.
-    const added: unknown = await $fetch(`${base.value}/fonts`, { method: 'POST', body: form })
-    if (isAddedFont(added)) toast.add({ title: t('brandKit.fontAdded', { name: `${added.family} ${added.weight}${added.style === 'italic' ? ' italic' : ''}` }), icon: 'i-lucide-check', color: 'neutral' })
+    const added = await apiFetch('/api/workspaces/:wsId/brand/fonts', { method: 'post', path: { wsId: props.workspaceId }, body: form })
+    toast.add({ title: t('brandKit.fontAdded', { name: `${added.family} ${added.weight}${added.style === 'italic' ? ' italic' : ''}` }), icon: 'i-lucide-check', color: 'neutral' })
     fontFile.value = null
     await load()
     emit('changed')
@@ -99,7 +97,7 @@ async function onImageFile(e: Event): Promise<void> {
   try {
     const form = new FormData()
     form.append('file', file)
-    await $fetch(`${base.value}/images`, { method: 'POST', body: form })
+    await apiFetch('/api/workspaces/:wsId/brand/images', { method: 'post', path: { wsId: props.workspaceId }, body: form })
     await load()
     emit('changed')
   } catch (e) {

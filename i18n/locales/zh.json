@@ -275,6 +275,7 @@
     "activeSection": "进行中",
     "orphanedSection": "已从文档中移除",
     "orphanedHint": "此评论所附着的文本已被删除。",
+    "showInDocument": "在文档中显示",
     "resolvedSection": "已解决",
     "composerPlaceholder": "添加评论…",
     "replyPlaceholder": "回复…",

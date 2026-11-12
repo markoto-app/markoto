@@ -77,40 +77,44 @@ function takeCaptionRow(tokens: Token[], tableOpen: number, tableClose: number):
   return first.replace(CAPTION_PREFIX, '')
 }
 
-function addCaptions(state: StateCore): void {
+/** The caption paragraph of the table opening at `i`: after the table first, then the paragraph right before it. */
+function captionParagraph(tokens: Token[], i: number, close: number): { open: number, text: string } | null {
+  const after = captionText(tokens, close + 1)
+  if (after !== null) return { open: close + 1, text: after }
+  const before = i >= 3 ? captionText(tokens, i - 3) : null
+  return before === null ? null : { open: i - 3, text: before }
+}
+
+/** Gives the table opening at `i` its caption; returns how many tokens before `i` were removed. */
+function captionTable(state: StateCore, i: number): number {
   const tokens = state.tokens
-  for (let i = 0; i < tokens.length; i++) {
-    const tableOpen = tokens[i]
-    if (tableOpen?.type !== 'table_open') continue
-    const close = closeIndex(tokens, i)
-    if (close < 0) continue
-    const rowText = takeCaptionRow(tokens, i, close)
-    if (rowText !== null) {
-      const inline = new state.Token('inline', '', 0)
-      inline.content = rowText
-      inline.children = []
-      insertCaption(state, tokens, i, inline)
-      continue
-    }
-    // After the table first, then the paragraph right before it.
-    let paraOpen = close + 1
-    let text = captionText(tokens, paraOpen)
-    if (text === null && i >= 3) {
-      paraOpen = i - 3
-      text = captionText(tokens, paraOpen)
-    }
-    if (text === null) continue
-    const inline = tokens[paraOpen + 1]
-    if (!inline) continue
-    inline.content = text
-    if (paraOpen > i) {
-      tokens.splice(paraOpen, 3)
-      insertCaption(state, tokens, i, inline)
-    } else {
-      insertCaption(state, tokens, i, inline)
-      tokens.splice(paraOpen, 3)
-      i -= 3
-    }
+  const close = closeIndex(tokens, i)
+  if (close < 0) return 0
+  const rowText = takeCaptionRow(tokens, i, close)
+  if (rowText !== null) {
+    const inline = new state.Token('inline', '', 0)
+    inline.content = rowText
+    inline.children = []
+    insertCaption(state, tokens, i, inline)
+    return 0
+  }
+  const para = captionParagraph(tokens, i, close)
+  const inline = para ? tokens[para.open + 1] : undefined
+  if (!para || !inline) return 0
+  inline.content = para.text
+  if (para.open > i) {
+    tokens.splice(para.open, 3)
+    insertCaption(state, tokens, i, inline)
+    return 0
+  }
+  insertCaption(state, tokens, i, inline)
+  tokens.splice(para.open, 3)
+  return 3
+}
+
+function addCaptions(state: StateCore): void {
+  for (let i = 0; i < state.tokens.length; i++) {
+    if (state.tokens[i]?.type === 'table_open') i -= captionTable(state, i)
   }
 }
 
@@ -189,36 +193,28 @@ export function nowrapRuns(text: string): Array<{ text: string, nowrap: boolean 
   return runs
 }
 
+/** `child` split into plain text and `<span class="markoto-nowrap">` runs. */
+function nowrapTokens(state: StateCore, child: Token): Token[] {
+  if (child.type !== 'text') return [child]
+  const runs = nowrapRuns(child.content)
+  if (!runs.some(r => r.nowrap)) return [child]
+  return runs.flatMap((run) => {
+    const text = new state.Token('text', '', 0)
+    text.content = run.text
+    if (!run.nowrap) return [text]
+    const open = new state.Token('markoto_nowrap_open', 'span', 1)
+    open.attrSet('class', 'markoto-nowrap')
+    return [open, text, new state.Token('markoto_nowrap_close', 'span', -1)]
+  })
+}
+
 function wrapCellText(state: StateCore): void {
   let inCell = false
   for (const token of state.tokens) {
     if (token.type === 'td_open' || token.type === 'th_open') inCell = true
     else if (token.type === 'td_close' || token.type === 'th_close') inCell = false
     else if (inCell && token.type === 'inline' && token.children) {
-      const out: Token[] = []
-      for (const child of token.children) {
-        if (child.type !== 'text') {
-          out.push(child)
-          continue
-        }
-        const runs = nowrapRuns(child.content)
-        if (!runs.some(r => r.nowrap)) {
-          out.push(child)
-          continue
-        }
-        for (const run of runs) {
-          const text = new state.Token('text', '', 0)
-          text.content = run.text
-          if (!run.nowrap) {
-            out.push(text)
-            continue
-          }
-          const open = new state.Token('markoto_nowrap_open', 'span', 1)
-          open.attrSet('class', 'markoto-nowrap')
-          out.push(open, text, new state.Token('markoto_nowrap_close', 'span', -1))
-        }
-      }
-      token.children = out
+      token.children = token.children.flatMap(child => nowrapTokens(state, child))
     }
   }
 }

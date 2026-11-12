@@ -72,7 +72,7 @@ function onClickThread(e: MouseEvent) {
 </script>
 
 <template>
-  <!-- The card click is a pointer shortcut; keyboard users reach the same comment through the editor decoration and the controls inside. -->
+  <!-- The card click is a pointer shortcut; keyboard users use the "Show in document" button. -->
   <div
     role="presentation"
     class="comment-thread-card rounded-md border border-default bg-default p-3 cursor-pointer transition-shadow shadow-sm"
@@ -107,6 +107,19 @@ function onClickThread(e: MouseEvent) {
       @delete="emit('delete-comment', comment.id)"
       @resolve="emit('resolve', comment.id)"
       @unresolve="emit('unresolve', comment.id)"
+    />
+
+    <!-- Keyboard equivalent of the card click (the card itself is not focusable). -->
+    <UButton
+      v-if="comment.anchor !== null"
+      size="xs"
+      variant="link"
+      color="neutral"
+      icon="i-lucide-locate"
+      class="mt-1 -ml-1.5 px-1.5"
+      :label="t('comments.showInDocument')"
+      data-testid="comment-show-in-document"
+      @click="emit('focus', comment.id)"
     />
 
     <div

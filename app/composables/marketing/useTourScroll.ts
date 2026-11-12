@@ -1,5 +1,5 @@
-import type Lenis from 'lenis'
 import { nearestRest, settleDuration, settleEasing, settleTarget, stepTarget } from '~~/shared/tour/paging'
+import { createTourLenis, LENIS_PREVENT, pageLocked } from './tourLenis'
 
 /** Fired on `window` when the page comes to rest on a scene (detail: rest index). */
 export const TOUR_REST_EVENT = 'mk-tour:rest'
@@ -37,32 +37,28 @@ const AT_REST_PX = 4
 /** Keys the browser scrolls the page with (taken over while Lenis runs). */
 const SCROLL_KEYS = new Set(['PageDown', 'PageUp', 'ArrowDown', 'ArrowUp', ' ', 'Home', 'End'])
 
-function afterLoadIdle(fn: () => void): () => void {
-  let cancelled = false
-  let idle: number | null = null
-  let timer: ReturnType<typeof setTimeout> | null = null
-  const run = (): void => {
-    if (cancelled) return
-    if (typeof globalThis.requestIdleCallback === 'function') idle = globalThis.requestIdleCallback(fn, { timeout: 2000 })
-    else timer = setTimeout(fn, 200)
-  }
-  if (document.readyState === 'complete') run()
-  else window.addEventListener('load', run, { once: true })
-  return () => {
-    cancelled = true
-    window.removeEventListener('load', run)
-    if (idle !== null && typeof globalThis.cancelIdleCallback === 'function') globalThis.cancelIdleCallback(idle)
-    if (timer !== null) clearTimeout(timer)
-  }
+/** A paging key the tour takes over: not typed into a field, not pressing a button, and the page isn't locked. */
+function isTourPagingKey(e: KeyboardEvent): boolean {
+  if (e.altKey || e.ctrlKey || e.metaKey || e.defaultPrevented || !SCROLL_KEYS.has(e.key)) return false
+  const target = e.target
+  if (target instanceof HTMLElement && (target.isContentEditable || target.closest(LENIS_PREVENT + ', input'))) return false
+  // Space on a button or link presses it.
+  if (e.key === ' ' && target instanceof HTMLElement && target.closest('button, a, summary, [role="button"]')) return false
+  return !pageLocked()
 }
 
-/** A modal's scroll lock is on: the page itself isn't scrollable right now. */
-function pageLocked(): boolean {
-  return getComputedStyle(document.body).overflowY === 'hidden' || getComputedStyle(document.documentElement).overflowY === 'hidden'
+/**
+ * The rest a paging key goes to: Home / End the first / last; otherwise the
+ * next one in `dir` — counted from the rest a running settle is heading for
+ * (`anchor`: a key pressed during a settle goes one further), else from
+ * where the scroll is going (`targetScroll`).
+ */
+function pagingKeyRest(key: string, rests: number[], from: { anchor: number } | { targetScroll: number }, dir: 1 | -1): number {
+  if (key === 'Home') return 0
+  if (key === 'End') return rests.length - 1
+  if ('anchor' in from) return Math.min(rests.length - 1, Math.max(0, from.anchor + dir))
+  return stepTarget(rests, from.targetScroll, dir)
 }
-
-/** Elements whose wheel/touch input is never smoothed: they scroll themselves. */
-const LENIS_PREVENT = '[role="dialog"], [role="menu"], [role="listbox"], textarea, select, [contenteditable="true"]'
 
 /**
  * Scrolling of the product page's pinned desktop layout.
@@ -87,9 +83,6 @@ const LENIS_PREVENT = '[role="dialog"], [role="menu"], [role="listbox"], textare
  * settled (the share scene fans its PDF pages out then).
  */
 export function useTourScroll(opts: TourScrollOptions) {
-  let lenis: Lenis | null = null
-  let LenisClass: typeof Lenis | null = null
-  let cancelLoad: (() => void) | null = null
   let media: MediaQueryList | null = null
   let started = false
 
@@ -128,6 +121,7 @@ export function useTourScroll(opts: TourScrollOptions) {
   function onIdle(): void {
     if (draggingScrollbar || pageLocked()) return
     const rests = opts.rests()
+    const lenis = host.current()
     if (!lenis) {
       // Native scrolling (CSS proximity snapping): note where it stopped.
       const i = nearestRest(rests, window.scrollY)
@@ -142,6 +136,7 @@ export function useTourScroll(opts: TourScrollOptions) {
   function settleTo(index: number, carry: boolean): void {
     const to = opts.rests()[index]
     if (to === undefined) return
+    const lenis = host.current()
     if (!lenis) {
       window.scrollTo({ top: to, behavior: 'smooth' })
       return
@@ -181,7 +176,7 @@ export function useTourScroll(opts: TourScrollOptions) {
     }
     // Lenis animating (smoothed wheel input, a settle) schedules itself;
     // anything else is native scrolling: keys, scrollbar, find-in-page.
-    if (lenis?.isScrolling === 'smooth') return
+    if (host.current()?.isScrolling === 'smooth') return
     if (y !== lastNativeY) dir = y > lastNativeY ? 1 : -1
     lastNativeY = y
     scheduleIdle(NATIVE_IDLE_MS)
@@ -199,22 +194,13 @@ export function useTourScroll(opts: TourScrollOptions) {
   // after a pause, so with Lenis running a paging key scrolls straight to
   // the next rest (a key pressed during a settle goes one further).
   function onKeyDown(e: KeyboardEvent): void {
-    if (!lenis || e.altKey || e.ctrlKey || e.metaKey || e.defaultPrevented || !SCROLL_KEYS.has(e.key)) return
-    const target = e.target
-    if (target instanceof HTMLElement && (target.isContentEditable || target.closest(LENIS_PREVENT + ', input'))) return
-    // Space on a button or link presses it.
-    if (e.key === ' ' && target instanceof HTMLElement && target.closest('button, a, summary, [role="button"]')) return
-    if (pageLocked()) return
+    const lenis = host.current()
+    if (!lenis || !isTourPagingKey(e)) return
     e.preventDefault()
     const rests = opts.rests()
     const back = e.key === 'PageUp' || e.key === 'ArrowUp' || (e.key === ' ' && e.shiftKey)
     dir = back ? -1 : 1
-    let index: number
-    if (e.key === 'Home') index = 0
-    else if (e.key === 'End') index = rests.length - 1
-    else if (settling) index = Math.min(rests.length - 1, Math.max(0, anchor + dir))
-    else index = stepTarget(rests, lenis.targetScroll, dir)
-    settleTo(index, true)
+    settleTo(pagingKeyRest(e.key, rests, settling ? { anchor } : { targetScroll: lenis.targetScroll }, dir), true)
   }
   function onPointerDown(e: PointerEvent): void {
     // A press on the page's scrollbar (right of the layout viewport).
@@ -226,44 +212,14 @@ export function useTourScroll(opts: TourScrollOptions) {
     scheduleIdle(NATIVE_IDLE_MS)
   }
 
-  function createLenis(): void {
-    if (lenis || !LenisClass || !opts.active()) return
-    lenis = new LenisClass({
-      autoRaf: true,
-      anchors: false,
-      prevent: node => node.matches(LENIS_PREVENT),
-      // A modal's scroll lock: leave the wheel to the browser.
-      virtualScroll: () => !pageLocked()
-    })
-    lenis.on('virtual-scroll', onWheelInput)
-  }
-  function destroyLenis(): void {
-    if (!lenis) return
-    lenis.off('virtual-scroll', onWheelInput)
-    lenis.destroy()
-    lenis = null
-    settling = false
-  }
-  function onMediaChange(): void {
-    if (opts.active()) {
-      if (LenisClass) createLenis()
-      else load()
-    } else {
-      destroyLenis()
+  const host = createTourLenis({
+    active: opts.active,
+    started: () => started,
+    onWheel: onWheelInput,
+    onDestroyed: () => {
+      settling = false
     }
-  }
-  function load(): void {
-    if (cancelLoad || LenisClass) return
-    cancelLoad = afterLoadIdle(() => {
-      import('lenis').then((mod) => {
-        if (!started) return
-        LenisClass = mod.default
-        createLenis()
-      }).catch(() => {
-        // Native scrolling with CSS proximity snapping stays in place.
-      })
-    })
-  }
+  })
 
   function start(): void {
     started = true
@@ -273,13 +229,13 @@ export function useTourScroll(opts: TourScrollOptions) {
     document.documentElement.addEventListener('pointerdown', onPointerDown)
     window.addEventListener('pointerup', onPointerUp)
     media = window.matchMedia(opts.activeQuery)
-    media.addEventListener('change', onMediaChange)
+    media.addEventListener('change', host.onMediaChange)
     const rests = opts.rests()
     const i = nearestRest(rests, window.scrollY)
     const at = rests[i]
     anchor = i
     if (at !== undefined && Math.abs(at - window.scrollY) <= AT_REST_PX) markRest(i, at)
-    if (opts.active()) load()
+    if (opts.active()) host.load()
   }
   function stop(): void {
     started = false
@@ -287,12 +243,11 @@ export function useTourScroll(opts: TourScrollOptions) {
     window.removeEventListener('keydown', onKeyDown)
     document.documentElement.removeEventListener('pointerdown', onPointerDown)
     window.removeEventListener('pointerup', onPointerUp)
-    media?.removeEventListener('change', onMediaChange)
+    media?.removeEventListener('change', host.onMediaChange)
     media = null
-    cancelLoad?.()
-    cancelLoad = null
+    host.cancelLoading()
     clearTimeout(idleTimer)
-    destroyLenis()
+    host.destroy()
   }
   function goTo(index: number): void {
     dir = index >= anchor ? 1 : -1
