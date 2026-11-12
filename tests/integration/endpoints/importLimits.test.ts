@@ -17,7 +17,7 @@
 //     upload size of work, not after inflating up to the absolute cap.
 //
 // Test stack required: postgres-test + valkey-test + markitdown-test
-// (docker-compose.test.yml).
+// (deploy/compose/compose.test.yml).
 
 import { describe, it, expect, beforeAll } from 'vitest'
 import { request } from 'node:http'
@@ -25,7 +25,7 @@ import { Zip, ZipDeflate, zipSync, strToU8 } from 'fflate'
 import { TEST_PORT } from '../setup/env'
 
 const MARKITDOWN_URL = process.env.TEST_MARKITDOWN_URL ?? 'http://127.0.0.1:8081'
-// MARKITDOWN_API_SECRET of markitdown-test (docker-compose.test.yml).
+// MARKITDOWN_API_SECRET of markitdown-test (deploy/compose/compose.test.yml).
 const MARKITDOWN_SECRET = 'test-markitdown-api-secret-isolated'
 const BOUNDARY = '----markoto-import-limit-test'
 

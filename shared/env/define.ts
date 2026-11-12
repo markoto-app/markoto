@@ -15,7 +15,7 @@ export type Service
   = | 'app' // Nuxt/Nitro server
     | 'sync' // Hocuspocus sync server (sync-server/)
     | 'renderer' // Playwright PDF/PNG sidecar (renderer/)
-    | 'litellm' // LiteLLM proxy (infra/litellm/)
+    | 'litellm' // LiteLLM proxy (deploy/config/litellm/)
     | 'markitdown' // import converter (markitdown-server/)
     | 'backup' // backup sidecar (backup-server/)
     | 'compose' // interpolated by the compose files / install.sh only

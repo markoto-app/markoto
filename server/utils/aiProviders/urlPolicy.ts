@@ -7,7 +7,7 @@
 // NOT run its own `user_url_validation` DNS check on a clientside
 // `api_base` (a request to `http://169.254.169.254/...` was attempted, and
 // a private docker address was accepted). This module is therefore the
-// authoritative gate; the regex in `infra/litellm/config.yaml` is
+// authoritative gate; the regex in `deploy/config/litellm/config.yaml` is
 // defence-in-depth for obvious literal internal targets.
 //
 // Checked at SAVE time (settings API) AND at REQUEST time (every LLM
@@ -47,7 +47,7 @@ export interface ByokUrlPolicy {
 
 /**
  * Hostnames of markoto's own services: every service name, container
- * name and network alias in the `docker-compose*.yml` files (pinned by
+ * name and network alias in the `deploy/compose/compose*.yml` files (pinned by
  * `tests/unit/aiProviders/internalHostnames.test.ts`, which fails when a compose file
  * gains a name that is missing here or in the LiteLLM `api_base` regex),
  * plus cloud metadata aliases. Refused unconditionally: even a self-hoster

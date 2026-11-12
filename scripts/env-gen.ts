@@ -4,7 +4,6 @@
 //   .env.example                      dev / hosted template (scripts/setup-env.sh fills its empty secrets)
 //   docs/reference/configuration.md   the configuration reference
 //   docs/reference/configuration.json machine-readable: every variable with its services, aliases, scope
-//   renderer/src/env.generated.ts     the renderer's loader (its image is built from renderer/ alone)
 //   deploy/compose/compose.{prod,selfhost}.yml  the marked `# BEGIN env:gen` regions (scripts/lib/composeEnv.ts)
 //
 //   bun scripts/env-gen.ts           write them
@@ -12,7 +11,7 @@
 
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { NAMESPACES, RULES, registeredVars, type RegisteredVar } from '../shared/env/registry'
+import { NAMESPACES, RULES, registeredVars } from '../shared/env/registry'
 import { nameFor, type AnyVar, type Namespace as EnvNamespace, type Service } from '../shared/env/define'
 import { COMPOSE_ENV_STACKS, renderComposeEnv } from './lib/composeEnv'
 
@@ -166,92 +165,6 @@ export function configurationJson(): string {
   return `${JSON.stringify({ note: GENERATED_NOTE, vars }, null, 2)}\n`
 }
 
-// ─── renderer/src/env.generated.ts ─────────────────────────────────────────
-
-export function rendererEnvModule(): string {
-  const coerce = readFileSync(resolve(ROOT, 'shared/env/coerce.ts'), 'utf8')
-  const vars = registeredVars().filter(v => v.spec.services.includes('renderer'))
-  const groups = new Map<string, RegisteredVar[]>()
-  for (const v of vars) groups.set(v.namespace, [...(groups.get(v.namespace) ?? []), v])
-  const iface = [...groups].map(([ns, list]) => `  readonly ${ns}: {\n${list.map(({ key, spec }) => {
-    const optional = spec.default === undefined && spec.required !== 'always'
-    return `    readonly ${key}: ${spec.type.tsType}${optional ? ' | undefined' : ''}`
-  }).join('\n')}\n  }`).join('\n')
-  const specs = vars.map(({ namespace, key, spec }) => {
-    const fields = [
-      `group: ${JSON.stringify(namespace)}`,
-      `key: ${JSON.stringify(key)}`,
-      `name: ${JSON.stringify(nameFor(spec, 'renderer'))}`,
-      `type: ${spec.type.expr}`
-    ]
-    if (spec.default !== undefined) fields.push(`default: ${JSON.stringify(spec.default)}`)
-    if (spec.required === 'always' || spec.required === 'production') fields.push(`required: ${JSON.stringify(spec.required)}`)
-    if (spec.emptyIsValue) fields.push('emptyIsValue: true')
-    return `  { ${fields.join(', ')} }`
-  }).join(',\n')
-  return `// ${GENERATED_NOTE}
-//
-// The renderer image is built from renderer/ alone, so it cannot import
-// shared/env. This file carries a copy of shared/env/coerce.ts (exports
-// dropped: only the loader below is the module's API) and
-// the renderer's slice of the registry; tests/unit/env/generated.test.ts
-// checks that it parses exactly like loadEnv('renderer').
-
-/* eslint-disable */
-${coerce.replace(/^\/\/.*\n/gm, '').replace(/^export /gm, '').trim()}
-
-interface Spec {
-  group: string
-  key: string
-  name: string
-  type: Coercer<unknown>
-  default?: unknown
-  required?: 'always' | 'production'
-  emptyIsValue?: boolean
-}
-
-const SPECS: readonly Spec[] = [
-${specs}
-]
-
-export interface RendererEnv {
-${iface}
-}
-
-/** Parse and validate the renderer's environment; throws with every problem listed. */
-export function loadRendererEnv(source: Record<string, string | undefined> = process.env): RendererEnv {
-  const problems: string[] = []
-  const out: Record<string, Record<string, unknown>> = {}
-  for (const spec of SPECS) {
-    const raw = source[spec.name]?.trim()
-    let value: unknown = spec.default
-    if (raw === '' && spec.emptyIsValue) {
-      value = ''
-    } else if (!raw) {
-      if (spec.required === 'always' || (spec.required === 'production' && source.NODE_ENV === 'production')) {
-        problems.push(\`\${spec.name}: required, not set\`)
-      }
-    } else {
-      try {
-        value = spec.type.parse(raw)
-      } catch (e) {
-        if (!(e instanceof EnvValueError)) throw e
-        problems.push(\`\${spec.name}: \${e.message}\`)
-      }
-    }
-    ;(out[spec.group] ??= {})[spec.key] = value
-  }
-  if (problems.length > 0) {
-    throw new Error(\`Invalid configuration of the renderer (\${problems.length === 1 ? '1 problem' : \`\${problems.length} problems\`}):\\n\`
-      + problems.map(p => \`  - \${p}\`).join('\\n')
-      + '\\nEvery variable is described in docs/reference/configuration.md.')
-  }
-  // Built field by field from RENDERER_VARS, whose groups and keys are RendererEnv's.
-  return out as unknown as RendererEnv
-}
-`
-}
-
 // ─── main ──────────────────────────────────────────────────────────────────
 
 // Each target renders from the file's current content (whole-file targets ignore it).
@@ -259,7 +172,6 @@ const TARGETS: Array<[string, (current: string) => string]> = [
   ['.env.example', envExample],
   ['docs/reference/configuration.md', configurationReference],
   ['docs/reference/configuration.json', configurationJson],
-  ['renderer/src/env.generated.ts', rendererEnvModule],
   ...COMPOSE_ENV_STACKS.map((stack): [string, (current: string) => string] => [stack.file, current => renderComposeEnv(stack, current)])
 ]
 

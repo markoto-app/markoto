@@ -21,7 +21,7 @@ import { defaultTheme } from '../../../shared/utils/theme/defaultTheme'
 //   - messages queued before authentication are bounded (bytes + time),
 //   - read-only connections can't broadcast stateless messages.
 //
-// The size limits come from docker-compose.test.yml (sync-test env) and
+// The size limits come from deploy/compose/compose.test.yml (sync-test env) and
 // MUST match the constants below.
 const MAX_MESSAGE_BYTES = 1_572_864
 const MAX_UPDATE_BYTES = 1_048_576

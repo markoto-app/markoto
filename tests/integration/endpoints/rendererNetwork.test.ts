@@ -6,12 +6,12 @@
 // app on :3101) and assert which of them a render touches:
 //
 //   - ALLOWED canary: its origin is listed in RENDERER_ALLOWED_ORIGINS on the
-//     renderer-test service (docker-compose.test.yml). Positive control — it
+//     renderer-test service (deploy/compose/compose.test.yml). Positive control — it
 //     proves the allowlist is configurable and that a render CAN fetch images.
 //   - BLOCKED canary: an ephemeral port nobody allowed. Must see zero hits.
 //
 // Test stack required: postgres-test + valkey-test + seaweedfs-test +
-// renderer-test (docker-compose.test.yml).
+// renderer-test (deploy/compose/compose.test.yml).
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { createServer, type Server } from 'node:http'
@@ -21,7 +21,7 @@ import { resetDb, testDb } from '../setup/db'
 import { anonClient } from '../setup/client'
 import { createDoc, createUser } from '../setup/fixtures'
 
-// MUST match RENDERER_ALLOWED_ORIGINS on renderer-test in docker-compose.test.yml.
+// MUST match RENDERER_ALLOWED_ORIGINS on renderer-test in deploy/compose/compose.test.yml.
 const ALLOWED_PORT = 3187
 
 // 1x1 transparent PNG.

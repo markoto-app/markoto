@@ -88,7 +88,7 @@ export const publish = defineNamespace({
       doc: 'Also emit the pages host\'s router from the HTTP provider (self-host HTTPS overlay).',
       services: ['app'],
       scope: 'self-host',
-      notPassed: 'set by docker-compose.selfhost.tls.yml'
+      notPassed: 'set by deploy/compose/compose.selfhost.tls.yml'
     })
   }
 })
@@ -102,8 +102,8 @@ export const deploy = defineNamespace({
     acmeEmail: v({ name: 'ACME_EMAIL', example: '', type: string, doc: 'Hosted: Let\'s Encrypt account email.', services: ['compose'], scope: 'hosted' }),
     registry: v({ name: 'REGISTRY', example: '', type: string, doc: 'Image registry prefix (ghcr.io/<owner>).', services: ['compose'], scope: 'hosted' }),
     imageTag: v({ name: 'IMAGE_TAG', example: '', type: string, doc: 'Image tag to run (pin a version; no implicit latest).', services: ['compose'], scope: 'both' }),
-    litellmConfigHash: v({ name: 'LITELLM_CONFIG_HASH', type: string, doc: 'Hash of infra/litellm/*: recreates the proxy when its config changes (set by every deploy path).', services: ['compose'], scope: 'both' }),
-    productTourEnabled: v({ name: 'NUXT_PRODUCT_TOUR_ENABLED', type: bool, doc: 'Deprecated alias of NUXT_MARKETING_SITE_ENABLED, resolved by docker-compose.prod.yml.', services: ['compose'], scope: 'hosted' }),
+    litellmConfigHash: v({ name: 'LITELLM_CONFIG_HASH', type: string, doc: 'Hash of deploy/config/litellm/*: recreates the proxy when its config changes (set by every deploy path).', services: ['compose'], scope: 'both' }),
+    productTourEnabled: v({ name: 'NUXT_PRODUCT_TOUR_ENABLED', type: bool, doc: 'Deprecated alias of NUXT_MARKETING_SITE_ENABLED, resolved by deploy/compose/compose.prod.yml.', services: ['compose'], scope: 'hosted' }),
     instance: v({ name: 'MARKOTO_INSTANCE', type: string, doc: 'Self-host: instance name (Traefik constraint, network names).', services: ['compose'], scope: 'self-host' }),
     publicUrl: v({ name: 'MARKOTO_PUBLIC_URL', type: url(), doc: 'Self-host: public URL (becomes NUXT_SITE_URL).', services: ['compose'], scope: 'self-host' }),
     syncUrl: v({ name: 'MARKOTO_SYNC_URL', type: url(['ws', 'wss']), doc: 'Self-host: browser WebSocket URL (becomes NUXT_PUBLIC_SYNC_URL).', services: ['compose'], scope: 'self-host' }),

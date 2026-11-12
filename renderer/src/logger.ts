@@ -1,14 +1,12 @@
-import { createLogging, formatFor, type LogLevel, type Logger } from './shared/logging/core'
+import { asLogLevel, createLogging, formatFor, type LogLevel, type Logger } from '../../shared/logging/core'
 import { env } from './env'
 
-// The renderer's logger. Same record shape as the app's; the core is a
-// byte-identical copy of shared/logging/core.ts (the image is built from
-// renderer/ alone), pinned by tests/unit/logging/core.test.ts.
+// The renderer's logger. Same record shape as the app's (shared/logging/core.ts).
 
-export type { Logger } from './shared/logging/core'
+export type { Logger } from '../../shared/logging/core'
 
 function currentLevel(): LogLevel {
-  return env.core.logLevel
+  return asLogLevel(env.core.logLevel)
 }
 
 const create = createLogging({

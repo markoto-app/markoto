@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { scrubBreadcrumb, scrubEvent, scrubUrl, sentryScrubOptions } from '../../../shared/utils/security/sentryScrub'
 
@@ -118,11 +116,5 @@ describe('sentry scrubber', () => {
 
   it('never sends default PII', () => {
     expect(sentryScrubOptions.sendDefaultPii).toBe(false)
-  })
-
-  it('the renderer carries a byte-identical copy', () => {
-    const root = resolve(import.meta.dirname, '../../..')
-    expect(readFileSync(resolve(root, 'renderer/src/shared/utils/security/sentryScrub.ts'), 'utf8'))
-      .toBe(readFileSync(resolve(root, 'shared/utils/security/sentryScrub.ts'), 'utf8'))
   })
 })

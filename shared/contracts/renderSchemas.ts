@@ -1,5 +1,5 @@
 // Parsers for what the app receives from the renderer (types in `render.ts`,
-// which the renderer shares as a pinned copy). The renderer is our own
+// which the renderer imports). The renderer is our own
 // container, but its answer crosses a process boundary: a version skew
 // during a deploy must surface as a clear error, not as a crash on a field
 // that isn't there.

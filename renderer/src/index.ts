@@ -4,8 +4,8 @@
 // use for continueTrace / startSpan inside the request handler.
 import { Sentry } from './sentry'
 import { renderDocument } from './render'
-import type { RenderRequest } from './contract'
-import { checkInternalSecret, INTERNAL_SECRET_HEADER } from './shared/utils/security/internalSecret'
+import type { RenderRequest } from '../../shared/contracts/render'
+import { checkInternalSecret, INTERNAL_SECRET_HEADER } from '../../shared/utils/security/internalSecret'
 import { env } from './env'
 import { useLogger } from './logger'
 

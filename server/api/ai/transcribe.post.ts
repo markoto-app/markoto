@@ -148,7 +148,7 @@ async function transcribeViaVoxtral(args: {
 
   // Custom provider convention: one user message with JSON-encoded
   // {audio_base64, mime, language}; MistralTranscribeProvider
-  // (infra/litellm/custom_handlers.py) wraps /v1/audio/transcriptions and
+  // (deploy/config/litellm/custom_handlers.py) wraps /v1/audio/transcriptions and
   // reshapes the response so spend tracks.
   try {
     const resp = await litellmCompletion(litellm, {

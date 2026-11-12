@@ -27,7 +27,9 @@
         // run with `uvx` from markitdown-server's PDF fixtures, never imported
         "tests/fixtures/design-import/make_pdf.ts",
         // compile-time API contract checks, read by `bun run typecheck` (vue-tsc), never run
-        "tests/nuxt/apiContract.typecheck.ts"
+        "tests/nuxt/apiContract.typecheck.ts",
+        // file name the proof-rule tests lint their own text under (tests/unit/access/proofRules.test.ts)
+        "tests/fixtures/proof-forgery/probe.ts"
       ],
       "project": [
         "app/**/*.{ts,vue,css}",
@@ -50,11 +52,7 @@
         // Icons are resolved by @nuxt/icon from `i-lucide-*` / `i-simple-icons-*`
         // class names at build time, never imported.
         "@iconify-json/lucide",
-        "@iconify-json/simple-icons",
-        // Pinned directly, but nothing imports it: @nuxt/eslint-config pulls in
-        // @typescript-eslint/{parser,eslint-plugin} itself. Dropping the pin
-        // reshuffles the hoisted transitive dependencies in bun.lock.
-        "typescript-eslint"
+        "@iconify-json/simple-icons"
       ],
       // System binaries called from scripts / test setup / package.json checks.
       // uv / uvx are the Python toolchain (ruff, pyright, markitdown tests), installed
@@ -83,11 +81,6 @@
     "scripts/flows-test-changed.ts": ["unresolved"],
     // `#nitro-internal-pollyfills` is a Nitro virtual module, resolved by the bundler.
     "server/runtime/bunEntry.ts": ["unresolved"],
-    // renderer/src/shared/ mirrors the shared/ files the renderer needs, byte for byte
-    // (pinned by tests/unit/logging/core.test.ts,
-    // tests/unit/platform/{internalSecret,sentryScrub}.test.ts), so the exports its own
-    // code does not call must stay.
-    "renderer/src/shared/**": ["exports"],
     // `ApiInputOf` is read by the generated .nuxt/types/api-inputs.d.ts (modules/api-contract.ts)
     "shared/api/contract.ts": ["types"]
   },

@@ -21,7 +21,7 @@ import {
 
 // Generic OpenID Connect sign-in against a REAL OpenID provider:
 // the `oidc-test` container (navikt mock-oauth2-server) in
-// docker-compose.test.yml. Its interactive login form takes the subject
+// deploy/compose/compose.test.yml. Its interactive login form takes the subject
 // plus arbitrary claims JSON, which is how these tests mint tokens with
 // an unverified email, a foreign audience, a wrong nonce, ...
 //

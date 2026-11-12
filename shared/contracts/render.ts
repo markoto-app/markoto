@@ -1,10 +1,7 @@
 // The app ↔ renderer wire contract: the body of POST /render, its answer,
 // and the manifest the renderer writes next to a stored render.
 //
-// Types only, dependency-free on purpose: the renderer image is built from
-// `renderer/` alone and carries a byte-identical copy at
-// `renderer/src/contract.ts`, pinned by tests/unit/platform/renderContract.test.ts.
-// The app parses what it receives with the schemas in `renderSchemas.ts`.
+// Types only; the renderer imports them too. The app parses what it receives with the schemas in `renderSchemas.ts`.
 
 /** What a stored render holds: the PDF, per-page PNGs, or both. */
 export type RenderFormat = 'pdf' | 'png' | 'both'

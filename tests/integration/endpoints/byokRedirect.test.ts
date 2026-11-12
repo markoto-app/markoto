@@ -15,7 +15,7 @@
 // means "not followed", not "not reachable".
 //
 // Test stack required: postgres-test + valkey-test + litellm-test +
-// fake-openai-test (docker-compose.test.yml).
+// fake-openai-test (deploy/compose/compose.test.yml).
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { createServer, type Server } from 'node:http'

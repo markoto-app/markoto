@@ -11,7 +11,7 @@
 // genuine integration test of the renderer + Nuxt + paged.js + S3 chain.
 //
 // Test stack required: postgres-test + valkey-test + seaweedfs-test +
-// renderer-test (all in docker-compose.test.yml). `bun run test:integration:up`
+// renderer-test (all in deploy/compose/compose.test.yml). `bun run test:integration:up`
 // brings them up.
 
 import { readFileSync } from 'node:fs'

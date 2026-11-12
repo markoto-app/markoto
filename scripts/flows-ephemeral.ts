@@ -4,7 +4,7 @@ import { testRoutesInBuild } from './lib/testRoutesInBuild'
 
 // Orchestrator for `bun run flows:test`. Hermetic, end-to-end.
 //
-// 1. Bring up docker-compose.flows.yml (waits for healthchecks).
+// 1. Bring up deploy/compose/compose.test.yml with the flows profile (waits for healthchecks).
 // 2. Run `bun run build` (production Nitro output to .output/).
 // 3. Spawn `bun run .output/server/index.mjs` against the ephemeral
 //    infra on port 3001.

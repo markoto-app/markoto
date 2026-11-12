@@ -8,9 +8,7 @@
 //   - an invalid value throws `EnvValueError` whose message says what
 //     was expected, never what was received (the value may be a secret).
 //
-// This file has no imports on purpose: `scripts/env-gen.ts` copies it
-// (exports dropped) into renderer/src/env.generated.ts, because the renderer image
-// is built from renderer/ alone and cannot import shared/.
+// This file has no imports on purpose: it is the leaf the rest of shared/env builds on.
 
 export class EnvValueError extends Error {}
 

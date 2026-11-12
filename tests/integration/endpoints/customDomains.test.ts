@@ -13,7 +13,7 @@ import {
 // Custom domains: a user adds a domain, proves it with a TXT
 // record, points it at the instance; only then Traefik gets a router for
 // it and a certificate from the ACME CA — here pebble, Let's Encrypt's
-// test CA, with challtestsrv as DNS (docker-compose.test.yml). On the
+// test CA, with challtestsrv as DNS (deploy/compose/compose.test.yml). On the
 // domain only the published page and its files exist.
 
 interface DomainView {

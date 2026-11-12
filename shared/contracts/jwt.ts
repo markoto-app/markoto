@@ -138,9 +138,9 @@ export interface RenderJwtPayload {
  *  the mint site so the literal scope value can never drift. */
 export const RENDER_JWT_FIXED_CLAIMS = { scope: 'render' } as const
 
-/** Lifetime of a render token. The renderer mints with the same value
- *  (`renderer/src/render.ts` cannot import `shared/`; its copy is pinned by
- *  tests/unit/platform/renderTokenTtl.test.ts). */
+/** Lifetime of a render token: short enough that a leaked token is useless
+ *  quickly, long enough that a slow Hocuspocus sync (cold doc, big history)
+ *  doesn't 401 mid-render. The app and the renderer mint with it. */
 export const RENDER_TOKEN_TTL_SECONDS = 60
 
 /**

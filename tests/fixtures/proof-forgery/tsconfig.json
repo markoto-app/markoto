@@ -1,0 +1,15 @@
+{
+  // Program for tests/unit/access/proofRules.test.ts: the type-aware
+  // `markoto/no-proof-forgery` rule runs on `probe.ts` (its text is
+  // replaced per test case) against the real proof module.
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": []
+  },
+  "include": ["probe.ts"]
+}

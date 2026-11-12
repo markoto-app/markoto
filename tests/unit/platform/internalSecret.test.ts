@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   cameThroughEdgeProxy,
@@ -72,14 +70,5 @@ describe('cameThroughEdgeProxy', () => {
       'x-forwarded-port': '3000',
       'x-forwarded-proto': 'http'
     }))).toBe(false)
-  })
-})
-
-describe('renderer copy', () => {
-  it('is byte-identical to the shared helper (the renderer image is built from renderer/ only)', () => {
-    const root = resolve(__dirname, '../../..')
-    const shared = readFileSync(resolve(root, 'shared/utils/security/internalSecret.ts'), 'utf8')
-    const copy = readFileSync(resolve(root, 'renderer/src/shared/utils/security/internalSecret.ts'), 'utf8')
-    expect(copy).toBe(shared)
   })
 })

@@ -7,6 +7,7 @@ import vitest from '@vitest/eslint-plugin'
 import playwright from 'eslint-plugin-playwright'
 import vueI18n from '@intlify/eslint-plugin-vue-i18n'
 import { RAW_HANDLER_EXCEPTIONS } from './tests/unit/platform/apiRoutes.exceptions.ts'
+import { proofRules, PROOF_ENTRY_CALLERS } from './scripts/lint/proofRules.mjs'
 
 const ROOT = import.meta.dirname
 
@@ -68,7 +69,6 @@ const MESSAGE = 'Internal milestone vocabulary ({{ match }}); describe the behav
 // module itself and the few places that must see the raw record.
 const RAW_ENV_ALLOWED = [
   'shared/env/**',
-  'renderer/src/env.generated.ts',
   // Copy of nitropack's bun preset entry (NITRO_* listen options), kept
   // byte-close to upstream (tests/unit/platform/bunEntryUpstream.test.ts).
   'server/runtime/bunEntry.ts',
@@ -83,6 +83,7 @@ const RAW_ENV_MESSAGE = 'Read configuration through the typed env (useEnv() / sy
 /** @type {import('eslint').ESLint.Plugin} */
 const markoto = {
   rules: {
+    ...proofRules.rules,
     'no-raw-env': {
       meta: { type: 'problem', schema: [], messages: { raw: RAW_ENV_MESSAGE } },
       create(context) {
@@ -209,7 +210,17 @@ const typeAwareBlocks = [
       parserOptions: { project: [`${dir}/tsconfig.json`], tsconfigRootDir: ROOT }
     },
     rules: typeAwareRules
-  }))
+  })),
+  {
+    // A proof reaches a repo only as a value the access layer minted: no
+    // type assertion to a proof type and no `any` / `never` value in a proof
+    // slot. The proof module and the access layer are the minters.
+    name: 'markoto/no-proof-forgery',
+    files: ['server/**/*.ts'],
+    ignores: [...TESTS, 'server/repos/proofs/**', 'server/utils/access/**'],
+    plugins: { markoto },
+    rules: { 'markoto/no-proof-forgery': 'error' }
+  }
 ]
 
 const composed = withNuxt(
@@ -374,6 +385,21 @@ const composed = withNuxt(
       'no-restricted-imports': ['error', {
         patterns: [DB_IMPORTS, { group: ['**/repos/proofs/testing'], message: 'The test mint is for tests only.' }]
       }]
+    }
+  },
+
+  {
+    name: 'markoto/proof-entry-imports',
+    // The access-layer functions that mint a proof from a user id or a
+    // decision the caller made, used only by their listed callers (imported
+    // or auto-imported). Server code never silences the compiler with a
+    // ts-comment: that would be a way past the proof types too.
+    files: ['server/**/*.ts'],
+    ignores: TESTS,
+    plugins: { markoto },
+    rules: {
+      'markoto/proof-entry-imports': ['error', PROOF_ENTRY_CALLERS],
+      '@typescript-eslint/ban-ts-comment': ['error', { 'ts-expect-error': true, 'ts-ignore': true, 'ts-nocheck': true }]
     }
   },
 
@@ -580,7 +606,7 @@ const composed = withNuxt(
 // registered (rule configs of other blocks are just emptied), and unused
 // disable directives are not reported because the rules they name are off.
 if (LINT_TYPES === 'only') {
-  const typeAwareNames = new Set(Object.keys(typeAwareRules))
+  const typeAwareNames = new Set([...Object.keys(typeAwareRules), 'markoto/no-proof-forgery'])
   composed.onResolved((configs) => {
     for (const config of configs) {
       if (!config.rules) continue

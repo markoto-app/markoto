@@ -5,7 +5,6 @@ Every environment variable markoto reads or passes is declared once, in the regi
 - the typed object each process reads its configuration from,
 - boot validation of the app, the sync server and the renderer,
 - `.env.example`, the [configuration reference](../reference/configuration.md) and its machine-readable twin `docs/reference/configuration.json`,
-- the renderer's loader `renderer/src/env.generated.ts`,
 - the drift tests that hold the compose files and the deploy paths to the registry (`tests/unit/env/drift.test.ts`).
 
 ## Layout
@@ -66,7 +65,7 @@ Invalid values fail boot instead of silently falling back to the default. Unset 
 
 ## The renderer
 
-The renderer reads its configuration through a generated loader instead of `shared/env`: `bun run env:gen` writes `renderer/src/env.generated.ts`: a copy of `coerce.ts` plus the renderer's slice of the registry. `tests/unit/env/generated.test.ts` checks it is current and parses exactly like `loadEnv('renderer')`; CI runs `bun run check:env`.
+The renderer image is built from the repository root with `shared/` copied next to `renderer/`, so `renderer/src/env.ts` calls `loadEnv('renderer')` like the sync server calls `loadEnv('sync')`.
 
 ## Tests
 

@@ -41,7 +41,7 @@ renderer/*
 !renderer/package.json
 
 # Compose / deploy files — not needed inside the image itself.
-docker-compose*.yml
+deploy/compose/compose*.yml
 Dockerfile
 **/Dockerfile
 .dockerignore

@@ -28,8 +28,7 @@ export default defineApiHandler({
 
     const locale = LEGAL_DOCUMENT_LOCALES.find(l => l === body.locale) ?? AUTHORITATIVE_LOCALE
 
-    await applyDpaAcceptance({
-      userId: user.id,
+    await applyDpaAcceptance(self, {
       dpaVersion: body.dpaVersion,
       locale
     })

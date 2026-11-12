@@ -11,7 +11,7 @@ import { billingRules } from './rules/billing'
 import { legalRules } from './rules/legal'
 
 export { NAMESPACES }
-export type { AppEnv, Registry, ServiceEnv, SyncEnv } from './namespaces'
+export type { AppEnv, Registry, RendererEnv, ServiceEnv, SyncEnv } from './namespaces'
 
 /** Cross-field rules; each names the variables it checks. */
 export const RULES: readonly Rule<AppEnv>[] = [

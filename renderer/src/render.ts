@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken'
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright'
-import type { RenderManifest, RenderRequest, RenderResponse, WebSnapshot } from './contract'
+import { RENDER_JWT_FIXED_CLAIMS, RENDER_TOKEN_TTL_SECONDS } from '../../shared/contracts/jwt'
+import type { RenderManifest, RenderRequest, RenderResponse, WebSnapshot } from '../../shared/contracts/render'
 import { putBytes } from './s3'
 import { buildAllowedOrigins, hostForLog, isAllowedUrl } from './allowlist'
 import { env } from './env'
@@ -15,7 +16,7 @@ const log = useLogger('render')
 //
 // Sizing: ~80MB/context × 5 = 400MB peak + ~250MB Chromium baseline =
 // ~650MB worst case, well under the renderer service's mem_limit: 2g
-// (set in docker-compose.prod.yml). A 3-slot pool queues most of 50
+// (set in deploy/compose/compose.prod.yml). A 3-slot pool queues most of 50
 // concurrent PDF requests past POOL_WAIT_MS (30 s); 5 slots raise throughput
 // without approaching the memory cap.
 const POOL_SIZE = 5
@@ -24,10 +25,6 @@ const RENDER_TIMEOUT_MS = 60_000
 const NAV_TIMEOUT_MS = 30_000
 const PAGED_READY_TIMEOUT_MS = 45_000
 const MAX_PAGES = 50
-// Render token TTL — short enough that a leaked token is useless quickly,
-// long enough that slow Hocuspocus sync (cold doc, big history) doesn't
-// 401 mid-render. 60 s matches the app-side mint.
-const TOKEN_TTL_SECONDS = 60
 
 const APP_URL = env.renderer.appUrl
 const INTERNAL_SECRET = env.auth.internalApiSecret
@@ -45,7 +42,7 @@ const MAX_BLOCKED_LOGS_PER_RENDER = 10
 
 // Chromium's own sandbox stays ON. The container runs as an unprivileged
 // user with no capabilities; the namespace sandbox then needs unprivileged
-// user namespaces, which the compose files allow with renderer/seccomp.json
+// user namespaces, which the compose files allow with deploy/config/renderer/seccomp.json
 // (docs/SECURITY-HARDENING.md §C.2). RENDERER_CHROMIUM_SANDBOX=false is
 // an operator escape hatch for hosts that forbid user namespaces outright —
 // it is logged loudly because it removes a whole layer.
@@ -137,19 +134,14 @@ const MAX_WEB_SNAPSHOT_CHARS = 8 * 1024 * 1024
  * Signed with INTERNAL_API_SECRET, scope='render', 60 s TTL. The app's
  * verifyRenderToken double-checks docId matches the route param.
  *
- * CONTRACT: this payload shape MUST match `RenderJwtPayload` +
- * `RENDER_JWT_FIXED_CLAIMS` in `shared/contracts/jwt.ts`. The renderer
- * runs in its own Docker build context (./renderer) so we can't import
- * the shared module here — the contract is enforced by the app-side
- * `verifyRenderToken` rejecting any drift with a 403, and by the
- * integration tests in `tests/integration/endpoints/printPage.test.ts`.
- * If you change this shape, update the shared contract AND the verifier.
+ * The payload shape is `RenderJwtPayload` in `shared/contracts/jwt.ts`; the
+ * app's `verifyRenderToken` rejects any drift with a 403.
  */
 function mintRenderToken(docId: string, snapshotId: number): string {
   return jwt.sign(
-    { docId, snapshotId, scope: 'render' },
+    { ...RENDER_JWT_FIXED_CLAIMS, docId, snapshotId },
     INTERNAL_SECRET,
-    { expiresIn: TOKEN_TTL_SECONDS }
+    { expiresIn: RENDER_TOKEN_TTL_SECONDS }
   )
 }
 

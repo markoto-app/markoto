@@ -1,9 +1,7 @@
 // What may leave the process in a Sentry event, transaction or breadcrumb.
-// One implementation for the app server and the sync server; the renderer
-// image is built from `renderer/` alone and carries a byte-identical copy at
-// `renderer/src/shared/utils/security/sentryScrub.ts` (pinned by
-// tests/unit/platform/sentryScrub.test.ts), so this file imports nothing but
-// the redaction core it shares with the logger (shared/logging/redaction.ts).
+// One implementation for the app server, the sync server and the renderer;
+// it imports nothing but the redaction core it shares with the logger
+// (shared/logging/redaction.ts).
 //
 // The threat: Sentry is a third party that keeps events for months. Our
 // URLs carry credentials in their query strings (presigned S3 URLs with

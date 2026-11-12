@@ -5,10 +5,7 @@
 // keys count as secret, how much is kept), so a new token shape added here
 // protects logs and telemetry alike.
 //
-// Dependency-free on purpose: the renderer image is built from `renderer/`
-// alone and carries byte-identical copies of this file and both consumers
-// under `renderer/src/shared/` (pinned by tests/unit/logging/core.test.ts and
-// tests/unit/platform/sentryScrub.test.ts).
+// Dependency-free on purpose: no package imports.
 
 const MASK = '[redacted]'
 const OMITTED = '[omitted]'

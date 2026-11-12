@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { scrubText as scrubSentryText, scrubValue } from '../../../shared/utils/security/sentryScrub'
 import { asLogLevel, createLogging, formatFor, maskEmail, sanitiseFields, scrubText, setLogSink, type LogLevel, type LogRecord } from '../../../shared/logging/core'
@@ -162,13 +160,5 @@ describe('format and level helpers', () => {
     expect(asLogLevel('debug')).toBe('debug')
     expect(asLogLevel('verbose')).toBe('info')
     expect(asLogLevel(undefined)).toBe('info')
-  })
-})
-
-describe('the renderer copy', () => {
-  it.each(['core.ts', 'redaction.ts'])('mirrors shared/logging/%s byte for byte (the renderer image cannot import shared/)', (file) => {
-    const root = resolve(__dirname, '../../..')
-    expect(readFileSync(resolve(root, 'renderer/src/shared/logging', file), 'utf8'))
-      .toBe(readFileSync(resolve(root, 'shared/logging', file), 'utf8'))
   })
 })

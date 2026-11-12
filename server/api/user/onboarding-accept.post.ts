@@ -46,8 +46,7 @@ export default defineApiHandler({
     // English so the audit trail stays readable.
     const locale = LEGAL_DOCUMENT_LOCALES.find(l => l === body.locale) ?? AUTHORITATIVE_LOCALE
 
-    await applyOnboardingAcceptance({
-      userId: user.id,
+    await applyOnboardingAcceptance(self, {
       privacyVersion: body.privacyVersion,
       tosVersion: body.tosVersion,
       locale

@@ -4,7 +4,7 @@ import { loggedInClient, anonClient } from '../setup/client'
 import { createUser } from '../setup/fixtures'
 
 // Integration tests for /api/billing/checkout + /api/billing/portal.
-// These hit stripe-mock (docker-compose.test.yml service on :12111)
+// These hit stripe-mock (deploy/compose/compose.test.yml service on :12111)
 // which implements Stripe's full REST API surface with fixture
 // responses. Our code uses the real Stripe SDK; only the host is
 // overridden — the request/response shape contracts are the same as

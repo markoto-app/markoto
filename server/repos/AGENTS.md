@@ -9,7 +9,7 @@ The only code that talks to the database: Drizzle queries and parameterised raw 
 - Sub-resources (activity rows, comments, uploads, shares, knowledge files, brand assets, invites, templates, members) are addressed by their own id but constrained to the parent in the proof: `WHERE id = $id AND doc_id = ${doc.docId}`. A row of another document or workspace returns null / not found. Pinned by `tests/repos/tenancyIsolation.test.ts`.
 - Instance-wide reads and writes (sweepers, webhooks, the data export) take `SystemActor` / `AdminActor`, even when the parameter is unused (`_by`): the caller must say who it is.
 - `access/` holds the bootstrap reads authorization is decided FROM (role lookup, doc ACL row, PAT hash). They take bare ids by design and are importable only from `server/utils/access/**` and `server/utils/mcp/mcpAuth.ts`.
-- Never import `./proofs/mint` (access layer only) or `./proofs/testing` (tests only), and never cast to a proof type (`tests/unit/access/proofCasts.test.ts`).
+- Never import `./proofs/mint` (access layer only) or `./proofs/testing` (tests only), and never cast to a proof type or pass an `any` / `never` value where one is expected (`markoto/no-proof-forgery`, `scripts/lint/proofRules.mjs`).
 - The audit actor comes from the proof: `appendAuditEvent({ by: proof, … })`.
 
 ## Rules

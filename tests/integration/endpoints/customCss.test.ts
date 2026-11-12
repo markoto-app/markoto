@@ -153,7 +153,7 @@ describe('custom CSS — write paths', () => {
 
 // Render path
 
-// MUST match RENDERER_ALLOWED_ORIGINS on renderer-test in docker-compose.test.yml
+// MUST match RENDERER_ALLOWED_ORIGINS on renderer-test in deploy/compose/compose.test.yml
 // (shared with rendererNetwork.test.ts, which runs in the same process pool —
 // vitest runs integration files serially, so the port is free here).
 const ALLOWED_PORT = 3187

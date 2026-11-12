@@ -199,7 +199,7 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
   subObj.customer = customerId
   // The price id in the fixture should map to Pro via `NUXT_STRIPE_PRICE_IDS`. The integration tests rely on
   // the same env-var-driven mapping; the fixture's price id is `price_test_pro`, the value wired into the test
-  // stack (see docker-compose.test.yml).
+  // stack (see deploy/compose/compose.test.yml).
   //
   // Override the subscription item's period dates to "now" → "now+30d" so `resolveBillingContext` doesn't demote
   // the plan to Free via its `planActive(plan, planValidUntil, now)` check. The fixture ships with hard-coded

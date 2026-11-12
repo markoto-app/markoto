@@ -1,6 +1,7 @@
 import { eq, sql } from 'drizzle-orm'
 import { users } from '../db/schema'
 import { useDatabase } from '../db/client'
+import type { UserScope } from './proofs'
 
 // Policy acceptance on the user row (onboarding: age + Privacy + ToS; the
 // DPA for workspace owners) and the account-status read of the privacy
@@ -31,8 +32,7 @@ export interface AccountStatus {
  * Idempotent. DPA acceptance is separate (`applyDpaAcceptance`): it is
  * workspace-owner only and prompted at workspace creation.
  */
-export async function applyOnboardingAcceptance(args: {
-  userId: number
+export async function applyOnboardingAcceptance(self: UserScope, args: {
   privacyVersion: number
   tosVersion: number
   locale: string
@@ -46,12 +46,11 @@ export async function applyOnboardingAcceptance(args: {
       tosVersionAccepted: args.tosVersion,
       tosVersionAcceptedLocale: args.locale
     })
-    .where(eq(users.id, args.userId))
+    .where(eq(users.id, self.userId))
 }
 
 /** Record acceptance of the DPA at the given version + locale. */
-export async function applyDpaAcceptance(args: {
-  userId: number
+export async function applyDpaAcceptance(self: UserScope, args: {
   dpaVersion: number
   locale: string
 }): Promise<void> {
@@ -61,7 +60,7 @@ export async function applyDpaAcceptance(args: {
       dpaVersionAccepted: args.dpaVersion,
       dpaVersionAcceptedLocale: args.locale
     })
-    .where(eq(users.id, args.userId))
+    .where(eq(users.id, self.userId))
 }
 
 export async function getAccountStatus(userId: number): Promise<AccountStatus | null> {

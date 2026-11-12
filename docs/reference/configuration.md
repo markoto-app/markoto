@@ -76,7 +76,7 @@ Login is optional: with no provider configured the instance is anonymous-only. E
 
 ## PostgreSQL
 
-Connection parts (shared/utils/runtime/connectionStrings.ts builds the URL). Dev: the values below match docker-compose.dev.yml; the containerised stacks set the host themselves.
+Connection parts (shared/utils/runtime/connectionStrings.ts builds the URL). Dev: the values below match deploy/compose/compose.dev.yml; the containerised stacks set the host themselves.
 
 | Variable | Type | Default | Required | Services | Scope | Description |
 |---|---|---|---|---|---|---|
@@ -172,7 +172,7 @@ Playwright sidecar that renders documents. Internal-only.
 
 ## LiteLLM proxy
 
-Every platform-paid AI call goes through the self-hosted LiteLLM proxy (infra/litellm/). Per-user virtual keys carry the budgets.
+Every platform-paid AI call goes through the self-hosted LiteLLM proxy (deploy/config/litellm/). Per-user virtual keys carry the budgets.
 
 | Variable | Type | Default | Required | Services | Scope | Description |
 |---|---|---|---|---|---|---|
@@ -194,7 +194,7 @@ Every platform-paid AI call goes through the self-hosted LiteLLM proxy (infra/li
 | `EMBEDDINGS_UPSTREAM_API_KEY` | string |  |  | litellm | self-host | API key of the custom embeddings upstream. Secret. |
 | `NUXT_LITELLM_IMAGE_DEFAULT_WIDTH` | integer ≥ 1 | `1024` |  | app | both | Default width of generated images. Not passed by the compose files: tuning knob, default is fine. |
 | `NUXT_LITELLM_IMAGE_DEFAULT_HEIGHT` | integer ≥ 1 | `1024` |  | app | both | Default height of generated images. Not passed by the compose files: tuning knob, default is fine. |
-| `NUXT_LITELLM_REALTIME_TICK_MODEL` | string | `voxtral-realtime-tick` |  | app | both | Metering model billed once per minute of live dictation. Not passed by the compose files: matches infra/litellm/config.yaml. |
+| `NUXT_LITELLM_REALTIME_TICK_MODEL` | string | `voxtral-realtime-tick` |  | app | both | Metering model billed once per minute of live dictation. Not passed by the compose files: matches deploy/config/litellm/config.yaml. |
 
 ## AI provider keys
 
@@ -321,7 +321,7 @@ Managed private instance: the customer's name, logo and support contact beside t
 | Variable | Type | Default | Required | Services | Scope | Description |
 |---|---|---|---|---|---|---|
 | `NUXT_INSTANCE_BRAND_NAME` | string | (empty) |  | app | self-host | Customer name shown beside the wordmark (max 60 chars). |
-| `NUXT_INSTANCE_BRAND_LOGO` | string | (empty) |  | app | self-host | Path of the logo file inside the app container (svg, png, webp, jpg). Not passed by the compose files: docker-compose.selfhost.brand.yml mounts the file and sets it. |
+| `NUXT_INSTANCE_BRAND_LOGO` | string | (empty) |  | app | self-host | Path of the logo file inside the app container (svg, png, webp, jpg). Not passed by the compose files: deploy/compose/compose.selfhost.brand.yml mounts the file and sets it. |
 | `NUXT_INSTANCE_SUPPORT_URL` | http/https URL |  |  | app | self-host | Help / service-desk page of this instance. |
 | `NUXT_INSTANCE_SUPPORT_EMAIL` | email address |  |  | app | self-host | Support email address of this instance. |
 
@@ -340,7 +340,7 @@ Publishing at /p/<slug> always works. A pages host of its own is required for th
 | `NUXT_PUBLISH_TRAEFIK_SERVICE` | string | `app@docker` |  | app | self-host | Existing Traefik service the generated routers point at. |
 | `NUXT_PUBLISH_TRAEFIK_UPSTREAM` | http/https URL |  |  | app | test | Upstream URL to declare a service for instead of NUXT_PUBLISH_TRAEFIK_SERVICE (test stacks). Not passed by the compose files: test stacks only. |
 | `NUXT_PUBLISH_TRAEFIK_MIDDLEWARES` | comma-separated list | (empty) |  | app | both | Traefik middlewares attached to the generated routers. |
-| `NUXT_PUBLISH_TRAEFIK_PAGES_ROUTER` | boolean | `false` |  | app | self-host | Also emit the pages host's router from the HTTP provider (self-host HTTPS overlay). Not passed by the compose files: set by docker-compose.selfhost.tls.yml. |
+| `NUXT_PUBLISH_TRAEFIK_PAGES_ROUTER` | boolean | `false` |  | app | self-host | Also emit the pages host's router from the HTTP provider (self-host HTTPS overlay). Not passed by the compose files: set by deploy/compose/compose.selfhost.tls.yml. |
 
 ## Error reporting (Sentry)
 
@@ -378,8 +378,8 @@ Interpolated by the compose files; no process reads them directly.
 | `ACME_EMAIL` | string |  |  | compose | hosted | Hosted: Let's Encrypt account email. |
 | `REGISTRY` | string |  |  | compose | hosted | Image registry prefix (ghcr.io/<owner>). |
 | `IMAGE_TAG` | string |  |  | compose | both | Image tag to run (pin a version; no implicit latest). |
-| `LITELLM_CONFIG_HASH` | string |  |  | compose | both | Hash of infra/litellm/*: recreates the proxy when its config changes (set by every deploy path). |
-| `NUXT_PRODUCT_TOUR_ENABLED` | boolean |  |  | compose | hosted | Deprecated alias of NUXT_MARKETING_SITE_ENABLED, resolved by docker-compose.prod.yml. |
+| `LITELLM_CONFIG_HASH` | string |  |  | compose | both | Hash of deploy/config/litellm/*: recreates the proxy when its config changes (set by every deploy path). |
+| `NUXT_PRODUCT_TOUR_ENABLED` | boolean |  |  | compose | hosted | Deprecated alias of NUXT_MARKETING_SITE_ENABLED, resolved by deploy/compose/compose.prod.yml. |
 | `MARKOTO_INSTANCE` | string |  |  | compose | self-host | Self-host: instance name (Traefik constraint, network names). |
 | `MARKOTO_PUBLIC_URL` | http/https URL |  |  | compose | self-host | Self-host: public URL (becomes NUXT_SITE_URL). |
 | `MARKOTO_SYNC_URL` | ws/wss URL |  |  | compose | self-host | Self-host: browser WebSocket URL (becomes NUXT_PUBLIC_SYNC_URL). |

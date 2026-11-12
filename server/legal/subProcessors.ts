@@ -62,7 +62,7 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
     name: 'Mistral AI SAS',
     // Hosted: the free AI allowance runs on Z.ai GLM-5.3 Flash, served and
     // processed by Mistral itself through its EU endpoint
-    // (api.eu.mistral.ai, infra/litellm/config.yaml) — Z.ai receives no
+    // (api.eu.mistral.ai, deploy/config/litellm/config.yaml) — Z.ai receives no
     // data, so it is not a sub-processor.
     // Every request goes to Mistral's EU regional endpoint (api.eu.mistral.ai):
     // the LiteLLM deployments and the live-dictation WebSocket.

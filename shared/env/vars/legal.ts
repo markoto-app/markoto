@@ -144,7 +144,7 @@ export const brand = defineNamespace({
       doc: 'Path of the logo file inside the app container (svg, png, webp, jpg).',
       services: ['app'],
       scope: 'self-host',
-      notPassed: 'docker-compose.selfhost.brand.yml mounts the file and sets it'
+      notPassed: 'deploy/compose/compose.selfhost.brand.yml mounts the file and sets it'
     }),
     supportUrl: v({
       name: 'NUXT_INSTANCE_SUPPORT_URL',

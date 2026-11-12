@@ -241,7 +241,7 @@ async function streamFromLiteLLM(opts: StreamFromProviderOpts): Promise<AsyncIte
     // documents it as raising the chance of a hit when requests spread over
     // replicas (it guarantees nothing). LiteLLM's mistral provider does not
     // list it as supported, so `drop_params` would strip it; the deployments
-    // in infra/litellm/config.yaml opt in via `allowed_openai_params`, which
+    // in deploy/config/litellm/config.yaml opt in via `allowed_openai_params`, which
     // makes v1.106.4 forward it (verified in the proxy's request transform).
     ...(opts.docId ? { prompt_cache_key: `doc:${opts.docId}` } : {}),
     // LiteLLM spend-tags: feature, workspace (when the doc is in one),

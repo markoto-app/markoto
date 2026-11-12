@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/bun'
 import { env } from './env'
-import { sentryScrubOptions } from './shared/utils/security/sentryScrub'
+import { sentryScrubOptions } from '../../shared/utils/security/sentryScrub'
 
 // Renderer Sentry init. Must be imported BEFORE any handler so Sentry's
 // Bun instrumentation patches stdlib targets (fetch / http / s3) before

@@ -49,3 +49,4 @@ export type ServiceEnv<S extends ValidatedService> = {
 
 export type AppEnv = ServiceEnv<'app'>
 export type SyncEnv = ServiceEnv<'sync'>
+export type RendererEnv = ServiceEnv<'renderer'>

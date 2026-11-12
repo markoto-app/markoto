@@ -1,7 +1,5 @@
 // The logger every backend process shares: the Nuxt server, the sync server
-// and (through a byte-identical copy at renderer/src/shared/logging/core.ts,
-// pinned by tests/unit/logging/core.test.ts) the renderer, whose image is
-// built from renderer/ alone.
+// and the renderer.
 //
 // Dependency-free on purpose: no package imports (only the sibling
 // redaction core), no process.env. Each process hands

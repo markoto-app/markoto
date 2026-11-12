@@ -9,7 +9,7 @@
 // request body (see `requestFields.ts`):
 //   - user config / instance default WITH base URL → model `byok/<id>`
 //     plus `api_key` + `api_base` clientside credentials. The `byok/*`
-//     deployment in infra/litellm/config.yaml has zero cost, so these
+//     deployment in deploy/config/litellm/config.yaml has zero cost, so these
 //     calls never debit the user's LiteLLM `max_budget`.
 //   - instance default WITHOUT base URL → the model alias as-is
 //     (platform-paid, debits the user's budget).
@@ -191,7 +191,7 @@ export function liveDictationTarget(transcription: ResolvedAiProvider | null): L
   const platformKey = useEnv().providers.mistralApiKey
   if (!platformKey) return null
   // Operator-paid: always Mistral's EU endpoint, like every LiteLLM
-  // Mistral deployment (infra/litellm/config.yaml).
+  // Mistral deployment (deploy/config/litellm/config.yaml).
   return { apiKey: platformKey, model, serverURL: `https://${MISTRAL_EU_API_HOST}`, platformBilled: true }
 }
 

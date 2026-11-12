@@ -644,13 +644,34 @@ What this guarantees:
   the proof (`… AND workspace_id = ${ws.workspaceId}`), so the id of another
   tenant's row returns nothing (`tests/repos/tenancyIsolation.test.ts`).
 - **Proofs cannot be forged in production code.** The classes are nominal
-  (an object literal does not type-check), their constructors refuse
-  anything but a module-private token, and instances are frozen. The mint
-  is importable only from the access layer, the test mint only from
-  `tests/**` (dependency-cruiser + ESLint), and a scan refuses casts to a
-  proof type outside the access layer (`tests/unit/access/proofCasts.test.ts`).
+  (an object literal does not type-check), their constructors take a
+  module-private token whose type is its own unique symbol (so `new` does
+  not type-check outside the proof module, and throws if forced), and
+  instances are frozen. The mint is importable only from the access layer,
+  the test mint only from `tests/**` (dependency-cruiser + ESLint). Lying
+  to the compiler is refused by lint in `server/**`: the type-aware rule
+  `markoto/no-proof-forgery` (`scripts/lint/proofRules.mjs`) rejects any
+  type assertion whose target is or holds a proof type (through aliases,
+  `as unknown as …`, `Parameters<…>`, arrays, object types) and any `any`
+  / `never` value in a slot whose type holds a proof (`repo(x as never)`,
+  `repo(JSON.parse(s))`, `const p: DocAccess = Object.create(…)`);
+  `as any` is refused everywhere (`no-explicit-any`), and `@ts-ignore` /
+  `@ts-expect-error` / `@ts-nocheck` in server code (`ban-ts-comment`).
+  A test refuses an `eslint-disable` of these rules in `server/**`
+  (`tests/unit/access/proofRules.test.ts`).
   The authorization bootstrap reads (`server/repos/access/`: role, document
   ACL row, token hash) are importable only by the access layer.
+- **The proof entry points have named callers.** The access-layer
+  functions that turn a user id or a decision the caller made into a proof
+  (`docProofFor`, `workspaceProofFor`, `proveRenderDoc`, `proveSelf`,
+  `proveAdmin`, `proveScimWorkspace`, `proveNewDoc`, `proveDocMembership`,
+  `proveWorkspaceAccess`) may be imported or auto-imported only by the
+  files listed per function in `PROOF_ENTRY_CALLERS`
+  (`markoto/proof-entry-imports`): the handler policies, the MCP
+  authenticator and tool wrapper, the AI session and tools, the creation
+  flows, SCIM, and five handlers that prove a second object for their
+  caller. `proveWorkspaceDoc` is open: it derives a document proof from a
+  workspace proof the caller already holds.
 - **Levels are checked by the compiler.** A view proof is not a write
   proof; a manage proof is also an edit, write and view proof
   (`tests/unit/access/proofs.test.ts`). The policy matrix
@@ -664,13 +685,19 @@ What it does not guarantee:
 
 - **It is a code-structure control, not an isolation boundary.** All
   server code runs in one process with one database role that can read
-  every tenant's rows. `as any`, `@ts-expect-error` or a cast through an
-  unrelated type is not caught by the scan; review has to.
+  every tenant's rows. A deliberate forgery is still possible: a generic
+  helper that casts to its type parameter (`<T>(x: unknown) => x as T`,
+  called as `make<DocAccess>(…)`) hides the proof type from the rule, and
+  `Reflect.construct` / `Object.setPrototypeOf` can then build an object
+  with the class's prototype. Such an object lacks the private state
+  (`allows()` throws), but a repo that only reads `docId` would not
+  notice. Review has to catch these.
 - **The access layer trusts the user id it is given.** `proveDocMembership(userId, …)`
   proves what *that* user may do; called with the wrong id it mints a
-  valid proof for the wrong person. The identity proofs (`proveSelf`,
-  `proveAdmin`, `proveScimWorkspace`) are restricted to the policies, the
-  MCP authenticator and the SSO / SCIM code, but the others are not.
+  valid proof for the wrong person. Every such entry point is limited to
+  its named callers (above), which pass the policy's user, the
+  authenticated token's user or the session initiator; the restriction
+  does not check which id they pass.
 - **Elevated actors are unrestricted.** `system(…)` and `AdminActor` reach
   every tenant. Their use is greppable by name and banned from
   user-facing handlers by lint (`markoto/no-system-actor-in-handlers`), but
@@ -750,8 +777,7 @@ errors).
 
 The app server, the sync server and the renderer pass every error event,
 every sampled transaction and every breadcrumb through one scrubber
-(`shared/utils/security/sentryScrub.ts`; the renderer carries a
-byte-identical copy, `renderer/src/shared/utils/security/sentryScrub.ts`) wired as `beforeSend`,
+(`shared/utils/security/sentryScrub.ts`) wired as `beforeSend`,
 `beforeSendTransaction` and `beforeBreadcrumb`, with `sendDefaultPii: false`:
 
 - URLs (request URL, span and breadcrumb URLs, `http.url` / `url.full`)

@@ -41,7 +41,7 @@ import { MINUTE_MS } from '~~/shared/config/units'
 // runs its own pool. An MCP session whose first tool call lands on
 // process A and whose second lands on process B will pay the handshake
 // cost twice — sticky sessions at Traefik (already in
-// docker-compose.prod.yml for the `sync` service; NOT for the `app`
+// deploy/compose/compose.prod.yml for the `sync` service; NOT for the `app`
 // service) would prevent this. When we move to multi-app-instance,
 // add `traefik.http.services.app.loadbalancer.sticky.cookie=true` so
 // MCP requests for the same `Mcp-Session-Id` route to the same Nuxt

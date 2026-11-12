@@ -3,13 +3,15 @@
 // was proven for WHICH object; the repo takes the object id from the proof,
 // so the id in the query is the id that was authorized.
 //
-// Construction is closed. Every class below takes a module-private token in
-// its constructor, so `new DocAccess(...)` fails outside this file, and a
-// member keyed by an undeclared unique symbol makes the types nominal, so an
-// object literal never type-checks as a proof. Only `server/utils/access/**` may import this file
-// (dependency-cruiser + ESLint); everything else imports the types from
-// `./index.ts`. A forged proof needs a cast, and casts to a proof type are
-// refused by `tests/unit/access/proofCasts.test.ts`.
+// Construction is closed. Every constructor takes the module-private `MINT`
+// token, typed as its own unique symbol, so `new DocAccess(...)` does not
+// type-check outside this file (and throws at runtime if forced); a member
+// keyed by an undeclared unique symbol (or a `#private` field) makes the
+// types nominal, so an object literal never type-checks as a proof. Only
+// `server/utils/access/**` may import this file (dependency-cruiser +
+// ESLint); everything else imports the types from `./index.ts`. What is left
+// is lying to the compiler (a cast, an `any` / `never` value, a ts-comment),
+// which lint refuses: `markoto/no-proof-forgery` and `ban-ts-comment`.
 //
 // The one constructor outside the access layer is `system(name)`: a named
 // background job (sweeper, webhook, worker) that acts on whatever it is
@@ -20,7 +22,7 @@ const MINT: unique symbol = Symbol('access-proof')
 declare const CAN: unique symbol
 declare const BRAND: unique symbol
 
-function checkToken(token: symbol): void {
+function checkToken(token: typeof MINT): void {
   if (!Object.is(token, MINT)) throw new Error('access proofs are minted by server/utils/access only')
 }
 
@@ -100,7 +102,7 @@ export class DocAccess<L extends DocLevel = never> {
   readonly docId: string
   readonly actor: Actor
 
-  constructor(token: symbol, docId: string, actor: Actor, levels: Iterable<DocLevel>) {
+  constructor(token: typeof MINT, docId: string, actor: Actor, levels: Iterable<DocLevel>) {
     checkToken(token)
     if (typeof docId !== 'string' || docId === '') throw new Error('DocAccess needs a document id')
     this.docId = docId
@@ -142,7 +144,7 @@ export class WorkspaceAccess<L extends WorkspaceLevel = never> {
   readonly workspaceId: string
   readonly actor: Actor
 
-  constructor(token: symbol, workspaceId: string, actor: Actor, level: WorkspaceLevel) {
+  constructor(token: typeof MINT, workspaceId: string, actor: Actor, level: WorkspaceLevel) {
     checkToken(token)
     if (typeof workspaceId !== 'string' || workspaceId === '') throw new Error('WorkspaceAccess needs a workspace id')
     this.workspaceId = workspaceId
@@ -164,7 +166,7 @@ export class UserScope {
   readonly userId: number
   readonly actor: Actor
 
-  constructor(token: symbol, userId: number, actor: Actor) {
+  constructor(token: typeof MINT, userId: number, actor: Actor) {
     checkToken(token)
     if (!Number.isInteger(userId) || userId <= 0) throw new Error('UserScope needs a user id')
     this.userId = userId
@@ -205,7 +207,7 @@ export class AdminActor extends Elevated {
   readonly actor: Actor
   readonly userId: number
 
-  constructor(token: symbol, userId: number) {
+  constructor(token: typeof MINT, userId: number) {
     super()
     checkToken(token)
     this.userId = userId
@@ -228,7 +230,7 @@ export class SystemActor extends Elevated {
     return new UserScope(MINT, userId, { kind: 'user', userId })
   }
 
-  constructor(token: symbol, name: SystemName) {
+  constructor(token: typeof MINT, name: SystemName) {
     super()
     checkToken(token)
     if (!SYSTEM_ACTORS.includes(name)) throw new Error(`unknown system actor ${String(name)}`)

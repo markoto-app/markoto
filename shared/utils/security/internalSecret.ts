@@ -5,9 +5,7 @@ import { createHash, timingSafeEqual } from 'node:crypto'
 // side of the boundary so the comparison stays timing-safe and accepts the
 // `_PREVIOUS` value during a rotation everywhere (docs/operations/SECRETS-ROTATION.md).
 //
-// Dependency-free on purpose (node:crypto only): the renderer image is
-// built from `renderer/` alone and carries a byte-identical copy at
-// `renderer/src/shared/utils/security/internalSecret.ts`, pinned by tests/unit/platform/internalSecret.test.ts.
+// Dependency-free on purpose (node:crypto only).
 
 /** Header that carries `INTERNAL_API_SECRET` on internal calls. */
 export const INTERNAL_SECRET_HEADER = 'x-internal-secret'

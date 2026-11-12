@@ -163,7 +163,7 @@ async function generateImageBytesBfl(
   const width = opts.width ?? env.litellm.imageDefaultWidth ?? 1024
   const height = opts.height ?? env.litellm.imageDefaultHeight ?? 1024
 
-  // Custom provider convention (see infra/litellm/custom_handlers.py:
+  // Custom provider convention (see deploy/config/litellm/custom_handlers.py:
   // BFLFluxProvider). Single user message with JSON-encoded body.
   // Response's content is JSON with {b64_json, url, cost_credits, cost_usd}.
   // prompt_upsampling is intentionally false — the prompt is AI-written

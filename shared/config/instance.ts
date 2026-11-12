@@ -19,7 +19,7 @@
 //    texts describe the HOSTED markoto.app service operated by
 //    LatentSpace Labs GmbH. A self-hoster is their own operator, so the
 //    default is OFF; the hosted SaaS turns them on via its env
-//    (`infra/render-env.sh`, `infra/templates/env.j2`, prod compose).
+//    (`infra/render-env.sh`, prod compose).
 //
 //   | Shape                         | NUXT_LEGAL_SURFACES_ENABLED |
 //   |-------------------------------|-----------------------------|

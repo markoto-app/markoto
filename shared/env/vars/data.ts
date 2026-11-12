@@ -4,7 +4,7 @@ import { defineNamespace, v } from '../define'
 export const database = defineNamespace({
   name: 'database',
   title: 'PostgreSQL',
-  intro: 'Connection parts (shared/utils/runtime/connectionStrings.ts builds the URL). Dev: the values below match docker-compose.dev.yml; the containerised stacks set the host themselves.',
+  intro: 'Connection parts (shared/utils/runtime/connectionStrings.ts builds the URL). Dev: the values below match deploy/compose/compose.dev.yml; the containerised stacks set the host themselves.',
   vars: {
     user: v({
       name: 'POSTGRES_USER',

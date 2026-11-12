@@ -6,7 +6,7 @@ const autoSwitch = oneOf(['auto', 'true', 'false'])
 export const litellm = defineNamespace({
   name: 'litellm',
   title: 'LiteLLM proxy',
-  intro: 'Every platform-paid AI call goes through the self-hosted LiteLLM proxy (infra/litellm/). Per-user virtual keys carry the budgets.',
+  intro: 'Every platform-paid AI call goes through the self-hosted LiteLLM proxy (deploy/config/litellm/). Per-user virtual keys carry the budgets.',
   vars: {
     url: v({
       name: 'NUXT_LITELLM_URL',
@@ -166,7 +166,7 @@ export const litellm = defineNamespace({
       doc: 'Metering model billed once per minute of live dictation.',
       services: ['app'],
       scope: 'both',
-      notPassed: 'matches infra/litellm/config.yaml'
+      notPassed: 'matches deploy/config/litellm/config.yaml'
     })
   }
 })

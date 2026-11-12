@@ -1,16 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { loadEnv } from '../../../shared/env/load'
 import { registeredVars } from '../../../shared/env/registry'
 import { nameFor, VALIDATED_SERVICES } from '../../../shared/env/define'
-import { loadRendererEnv } from '../../../renderer/src/env.generated'
-import { configurationJson, configurationReference, envExample, rendererEnvModule } from '../../../scripts/env-gen'
-import { VALID_RENDERER_ENV } from './fixtures'
+import { configurationJson, configurationReference, envExample } from '../../../scripts/env-gen'
 
 // Everything derived from the registry: the generated files are current
-// (CI also runs `bun scripts/env-gen.ts --check`), and the renderer's
-// generated loader parses exactly like loadEnv('renderer').
+// (CI also runs `bun scripts/env-gen.ts --check`).
 
 const ROOT = resolve(import.meta.dirname, '../../..')
 const read = (file: string): string => readFileSync(resolve(ROOT, file), 'utf8')
@@ -19,29 +15,9 @@ describe('generated files are current', () => {
   it.each([
     ['.env.example', envExample],
     ['docs/reference/configuration.md', configurationReference],
-    ['docs/reference/configuration.json', configurationJson],
-    ['renderer/src/env.generated.ts', rendererEnvModule]
+    ['docs/reference/configuration.json', configurationJson]
   ])('%s', (file, render) => {
     expect(read(file), 'run `bun scripts/env-gen.ts`').toBe(render())
-  })
-})
-
-describe('renderer loader (generated) ↔ loadEnv(\'renderer\')', () => {
-  it('parses the same values', () => {
-    const source = { ...VALID_RENDERER_ENV, RENDERER_ALLOWED_ORIGINS: 'https://cdn.example.org, http://s3:8333', RENDERER_CHROMIUM_SANDBOX: 'off', S3_SSE: '' }
-    expect(loadRendererEnv(source)).toEqual(JSON.parse(JSON.stringify(loadEnv('renderer', source))))
-  })
-
-  it('reports the same problems', () => {
-    const source = { ...VALID_RENDERER_ENV, INTERNAL_API_SECRET: 'short', PORT: 'x', RENDERER_LOCALHOST_TARGET: 'http://host' }
-    let shared = ''
-    try {
-      loadEnv('renderer', source)
-    } catch (e) {
-      shared = (e as Error).message
-    }
-    expect(shared).not.toBe('')
-    expect(() => loadRendererEnv(source)).toThrow(shared)
   })
 })
 

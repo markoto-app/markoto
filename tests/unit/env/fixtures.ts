@@ -41,7 +41,7 @@ export const VALID_SYNC_ENV: Record<string, string> = Object.freeze({
   VALKEY_HOST: 'localhost'
 })
 
-export const VALID_RENDERER_ENV: Record<string, string> = Object.freeze({
+const VALID_RENDERER_ENV: Record<string, string> = Object.freeze({
   INTERNAL_API_SECRET: SECRET,
   S3_ENDPOINT: 'http://localhost:8333',
   S3_ACCESS_KEY: 'key',
