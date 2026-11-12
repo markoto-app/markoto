@@ -67,6 +67,8 @@ const FLOWS_ENV: Record<string, string> = {
   VALKEY_PASSWORD: 'testpassword',
   VALKEY_DB: '0',
   DATABASE_URL: 'postgres://ypad:testpassword@localhost:5433/ypad_test',
+  // A production build always asks Postgres for TLS; postgres-test has none.
+  PGSSL: 'disable',
   // ioredis takes the password from the URL's userinfo segment; same
   // literal as VALKEY_PASSWORD.
   VALKEY_URL: 'redis://:testpassword@localhost:6380/0',

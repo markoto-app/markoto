@@ -124,7 +124,13 @@ const markoto = {
 // `tsconfig.json` at the root only holds project references (`files: []`), so
 // typescript-eslint's project service finds nothing there; point it at the
 // generated per-environment configs instead.
-const nuxtProjects = ['app', 'server', 'shared', 'node'].map(n => `.nuxt/tsconfig.${n}.json`)
+const NUXT_PROJECT_FILES = {
+  app: ['app/**/*.{ts,vue}', 'i18n/**/*.ts'],
+  server: ['server/**/*.ts'],
+  shared: ['shared/**/*.ts'],
+  node: ['modules/*.ts', 'nuxt.config.ts']
+}
+const NUXT_TYPE_AWARE_IGNORES = TESTS
 
 const typeAwareRules = {
   '@typescript-eslint/no-floating-promises': 'error',
@@ -193,15 +199,18 @@ const sonarRules = Object.fromEntries(
 )
 
 const typeAwareBlocks = [
-  {
-    name: 'markoto/type-aware-nuxt',
-    files: TS_GLOBS,
-    ignores: [...TESTS, 'scripts/**', 'sync-server/**', 'renderer/**', 'infra/**', '*.config.*', 'drizzle.config.ts', 'content.config.ts', 'colada.options.ts', 'playwright*.ts'],
+  // One block per generated Nuxt tsconfig: a file is checked against the one
+  // program that owns it. Listing all four for every file makes the parser
+  // hold every program at once, which does not fit a CI runner's memory.
+  ...Object.entries(NUXT_PROJECT_FILES).map(([project, files]) => ({
+    name: `markoto/type-aware-nuxt-${project}`,
+    files,
+    ignores: NUXT_TYPE_AWARE_IGNORES,
     languageOptions: {
-      parserOptions: { project: nuxtProjects, tsconfigRootDir: ROOT, extraFileExtensions: ['.vue'] }
+      parserOptions: { project: [`.nuxt/tsconfig.${project}.json`], tsconfigRootDir: ROOT, extraFileExtensions: ['.vue'] }
     },
     rules: typeAwareRules
-  },
+  })),
   ...['sync-server', 'renderer'].map(dir => ({
     name: `markoto/type-aware-${dir}`,
     files: [`${dir}/src/**/*.ts`],

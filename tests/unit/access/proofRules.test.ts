@@ -38,7 +38,9 @@ describe('markoto/no-proof-forgery', () => {
   const tester = new RuleTester({
     languageOptions: {
       parser: tseslint.parser,
-      parserOptions: { project: './tsconfig.json', tsconfigRootDir: FIXTURE }
+      // Each case replaces the text of probe.ts. With CI set the parser would
+      // infer a single run and build its program from the file on disk.
+      parserOptions: { project: './tsconfig.json', tsconfigRootDir: FIXTURE, disallowAutomaticSingleRunInference: true }
     }
   })
   const cast = [{ messageId: 'cast' }]

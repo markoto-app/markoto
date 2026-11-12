@@ -346,6 +346,10 @@ jobs:
     permissions:
       contents: read
     runs-on: ubuntu-latest
+    env:
+      # vue-tsc over the whole app exceeds Node's default heap ceiling on the
+      # runner.
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -415,7 +419,7 @@ jobs:
     permissions:
       contents: read
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -426,14 +430,24 @@ jobs:
         with:
           bun-version: 1.4.4
 
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
       # One install at the workspace root covers sync-server and the
       # renderer too: the type-aware rules resolve their imports through
       # their own tsconfig.
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # Under Node, not Bun: the TypeScript programs behind the type-aware
+      # rules peak at about 5 GB under V8 with this heap ceiling and at more
+      # than 11 GB under Bun, which the runner does not have.
       - name: Lint (full config, type-aware rules included)
-        run: bun --bun run lint
+        run: node node_modules/eslint/bin/eslint.js .
+        env:
+          NODE_OPTIONS: --max-old-space-size=5632
 
   # Structural checks over the source graph and the generated schema.
   repo-checks:
