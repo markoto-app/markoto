@@ -1,5 +1,8 @@
 import { readSessionChannel, toSessionView, valkeyChannelStore, type ChannelStore } from './sessionChannel'
 import { MINUTE_MS } from '~~/shared/config/units'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('ai-session-stream')
 
 // Server-Sent Events stream of one AI session's initiator-only channel
 // (`GET /api/ai/sessions/:sessionId/stream`): one long-lived response per
@@ -146,7 +149,7 @@ export function createSessionEventStream(opts: SessionStreamOptions): ReadableSt
           void refresh()
         })
       } catch (e) {
-        console.warn(`[ai/session-stream] subscribe failed, re-reading every ${fallbackRefreshMs} ms: ${e instanceof Error ? e.message : String(e)}`)
+        log.warn('subscribe failed, falling back to polling', { fallbackRefreshMs, err: e })
         interval = fallbackRefreshMs
       }
       if (closed) {

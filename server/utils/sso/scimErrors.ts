@@ -1,5 +1,8 @@
 import { createError } from 'h3'
 import type { ErrorFormat } from '../api/policyTypes'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('scim')
 
 // The SCIM Error object (RFC 7644 §3.12) and the error format `allow.scim()`
 // carries. Kept apart from scim.ts (database, membership) so the policy and
@@ -30,7 +33,7 @@ export const scimErrorFormat: ErrorFormat = {
     if (Array.isArray(data?.schemas) && data.schemas.includes(SCIM_ERROR_SCHEMA)) {
       return { status: Number(data.status), body: data, contentType: SCIM_CONTENT_TYPE }
     }
-    console.error('[scim] request failed:', e instanceof Error ? e.message : e)
+    log.error('request failed', { err: e })
     return { status: 500, body: { schemas: [SCIM_ERROR_SCHEMA], status: '500', detail: 'Something went wrong on our side.' }, contentType: SCIM_CONTENT_TYPE }
   }
 }

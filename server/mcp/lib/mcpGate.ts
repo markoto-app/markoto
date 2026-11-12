@@ -1,6 +1,9 @@
 import type { McpAuthContext } from '../../utils/mcp/mcpAuth'
 import type { BindingCheck, McpSessionBindings } from '../../utils/mcp/mcpSessionBinding'
 import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
+import { useLogger } from '../../utils/platform/logger'
+
+const log = useLogger('mcp')
 
 // Request gate for `/mcp`, run by the handler middleware BEFORE the MCP
 // toolkit sees the request (so before it can create a session):
@@ -99,7 +102,7 @@ async function checkBinding(bindings: McpSessionBindings, sessionId: string, tok
   try {
     return await bindings.check(sessionId, tokenId)
   } catch (e) {
-    console.warn(`[mcp] session binding lookup failed: ${e instanceof Error ? e.message : String(e)}`)
+    log.warn('session binding lookup failed', { err: e })
     return 'unknown'
   }
 }

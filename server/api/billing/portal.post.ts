@@ -4,6 +4,9 @@ import { users } from '../../db/schema'
 import { useDatabase } from '../../utils/platform/database'
 import { useStripeClient } from '../../utils/billing/stripeClient'
 import { MINUTE_MS } from '~~/shared/config/units'
+import { useLogger } from '../../utils/platform/logger'
+
+const log = useLogger('billing')
 
 // POST /api/billing/portal: creates a Stripe Customer Portal session (payment
 // method, invoices, cancel/upgrade) and returns the redirect URL. Needs an
@@ -42,8 +45,7 @@ export default defineApiHandler({
       })
       return { url: portalSession.url }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Stripe error'
-      console.error('[billing/portal] Stripe rejected the request:', msg)
+      log.error('portal session creation failed', { userId, err: e })
       Sentry.captureException(e, {
         tags: { component: 'billing', event: 'portal_create_failed', userId: String(userId) }
       })

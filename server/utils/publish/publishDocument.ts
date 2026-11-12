@@ -16,6 +16,9 @@ import { PUBLISH_ERROR_CODES, PUBLISH_MAX_SNAPSHOT_CHARS, slugFromTitle } from '
 import { sanitizeSnapshotHtml } from './sanitizeSnapshot'
 import { collectSnapshotAssets, publishedObjectKey, publishedPrefix, rewriteSnapshotAssets, type SnapshotAssetRefs } from './snapshotAssets'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('publish')
 
 // Publish a document as a web page: render the web snapshot, copy
 // the files it shows to the page's own prefix, store it. Re-publishing
@@ -41,7 +44,7 @@ async function renderOrFail(docId: string): Promise<WebSnapshot> {
     if (msg.includes('413') || msg.includes('too large')) {
       throw createError({ statusCode: 413, message: 'This document is too large to publish as a web page.', data: { code: PUBLISH_ERROR_CODES.tooLarge } })
     }
-    console.warn(`[publish] web snapshot failed for ${docId}:`, msg)
+    log.warn('web snapshot failed', { docId, err: e })
     throw createError({ statusCode: 502, message: 'The page could not be rendered. Please try again.', data: { code: PUBLISH_ERROR_CODES.renderFailed } })
   }
 }
@@ -75,7 +78,7 @@ async function copyAll(pageId: string, kind: 'files' | 'brand', sources: Map<str
     } catch (e) {
       // A missing source (deleted by the GC meanwhile) leaves its URL as it
       // was — the page shows a broken image rather than failing to publish.
-      console.warn(`[publish] copying ${kind}/${file} for page ${pageId} failed:`, e instanceof Error ? e.message : e)
+      log.warn('copying a file of the page failed', { pageId, kind, file, err: e })
     }
   }
 }
@@ -100,7 +103,7 @@ export async function prunePublishedObjects(pageId: string, keep: ReadonlySet<st
     if ((e as { name?: string }).name === 'NoSuchBucket') return
     // The orphan sweep removes prefixes of deleted pages; stale files of a
     // live page are harmless (nothing links to them).
-    console.warn(`[publish] pruning objects of page ${pageId} failed:`, e instanceof Error ? e.message : e)
+    log.warn('pruning objects of the page failed', { pageId, err: e })
   }
 }
 

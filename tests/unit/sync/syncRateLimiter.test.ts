@@ -1,5 +1,8 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
+import { captureLogs } from '../../helpers/logs'
 import { createRateLimiter } from '../../../sync-server/src/rate-limiter'
+
+const logs = captureLogs()
 
 // Hocuspocus connection rate limiter. Two independent caps:
 //   - per-IP: fairness / small-scale abuse.
@@ -217,15 +220,13 @@ describe('createRateLimiter — resilience', () => {
 
   it('logs (but does not throw) on unexpected errors inside the bookkeeping block', () => {
     // When onConnect's internal bookkeeping throws on a non-cap error, we
-    // fail open. Spy on console.warn to verify the path runs.
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    // fail open, and log it.
     const rl = createRateLimiter({ maxConnectionsPerIP: 5 })
     const broken = {
       get request() { throw new Error('boom') }
     }
     expect(() => rl.onConnect(broken as never)).not.toThrow()
-    expect(warn).toHaveBeenCalled()
-    warn.mockRestore()
+    expect(logs.find('warn', 'onConnect error')).toMatchObject({ component: 'rate-limiter' })
   })
 })
 
@@ -255,13 +256,11 @@ describe('createRateLimiter — socket teardown releases slots', () => {
 
   it('a flood of failed handshakes larger than the cap does not lock the IP out', () => {
     const rl = createRateLimiter({ maxConnectionsPerIP: 3 })
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     for (let i = 0; i < 25; i++) {
       const s = socketPair('8.8.8.8', `flood-${i}`)
       rl.onConnect(s)
       rl.onSocketClosed(s.request)
     }
-    warn.mockRestore()
     expect(() => rl.onConnect(socketPair('8.8.8.8', 'after-flood'))).not.toThrow()
   })
 

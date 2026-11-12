@@ -6,6 +6,9 @@ import { assertionFromSamlProfile, samlFor } from '../../../../utils/sso/saml'
 import { finishSsoSignIn } from '../../../../utils/sso/finish'
 import { ID_RE } from '~~/shared/config/identifiers'
 import { samlAcsBody, ssoConnectionParams } from '~~/shared/api/sso'
+import { useLogger } from '../../../../utils/platform/logger'
+
+const log = useLogger('auth-sso')
 
 // POST /auth/sso/:connectionId/acs — SAML assertion consumer service
 // (HTTP-POST binding) for a workspace's identity provider.
@@ -27,7 +30,7 @@ export default defineApiHandler({
     const connection = ID_RE.test(connectionId) ? await getSsoConnectionById(connectionId) : null
     if (!connection || connection.protocol !== 'saml') return sendRedirect(event, ssoErrorPath('sso/unknown'))
     if (!flow || flow.connectionId !== connection.id || !flow.requestId) {
-      console.warn('[auth/sso] SAML response without a valid flow cookie (expired, unsolicited or another browser)')
+      log.warn('SAML response without a valid flow cookie (expired, unsolicited or another browser)')
       return sendRedirect(event, ssoErrorPath('sso/failed', connection.workspaceId))
     }
 
@@ -42,7 +45,7 @@ export default defineApiHandler({
       if (loggedOut || !profile) throw new Error('not a sign-in response')
       assertion = assertionFromSamlProfile(profile)
     } catch (err) {
-      console.warn(`[auth/sso] SAML response rejected for connection ${connection.id}: ${err instanceof Error ? `${err.name}: ${err.message}` : 'unknown error'}`)
+      log.warn('SAML response rejected', { connectionId: connection.id, err })
       await appendAuditEvent({
         actorUserId: null,
         actorIp: getClientIp(event),

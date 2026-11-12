@@ -4,6 +4,9 @@ import { postgresUrlFromEnv } from '../../shared/utils/runtime/connectionStrings
 import { resolvePostgresSsl } from '../../shared/utils/runtime/postgresSsl'
 import { captureException } from './sentry'
 import { syncEnv } from './env'
+import { useLogger } from './logger'
+
+const log = useLogger('compaction')
 
 // Background compaction of the `yjs_documents` append-log.
 //
@@ -176,19 +179,19 @@ async function runCompactionSweep(): Promise<void> {
             rowsReclaimed += r.rowsDeleted - 1
           }
         } catch (e) {
-          console.error(`[compaction] failed for ${docname}:`, e instanceof Error ? e.message : e)
+          log.error('compaction failed for a document', { docId: docname, err: e })
           captureException(e, { tags: { component: 'compaction', event: 'doc_failed', docId: docname } })
         }
       }
       if (compacted > 0) {
-        console.log(`[compaction] compacted ${compacted} document(s), reclaimed ~${rowsReclaimed} rows`)
+        log.info('compacted documents', { documents: compacted, rowsReclaimed })
       }
     } finally {
       await lockClient.query('SELECT pg_advisory_unlock(hashtext($1))', [COMPACT_LOCK_NAME])
         .catch(() => { /* best-effort — the session ending releases it anyway */ })
     }
   } catch (e) {
-    console.error('[compaction] sweep error:', e instanceof Error ? e.message : e)
+    log.error('sweep error', { err: e })
     captureException(e, { tags: { component: 'compaction', event: 'sweep_failed' } })
   } finally {
     lockClient.release()
@@ -201,7 +204,7 @@ let sweeping = false
 /** Start the periodic compaction sweep. Idempotent; no-op if disabled. */
 export function startCompactionSweeper(): void {
   if (COMPACT_INTERVAL_MS <= 0) {
-    console.log('[compaction] sweeper disabled (COMPACT_INTERVAL_MS <= 0)')
+    log.info('sweeper disabled (COMPACT_INTERVAL_MS <= 0)')
     return
   }
   if (sweepTimer) return
@@ -214,7 +217,7 @@ export function startCompactionSweeper(): void {
   }, COMPACT_INTERVAL_MS)
   // Don't let the timer alone keep the process alive on shutdown.
   if (typeof sweepTimer.unref === 'function') sweepTimer.unref()
-  console.log(`[compaction] sweeper started (every ${Math.round(COMPACT_INTERVAL_MS / 1000)}s, threshold ${COMPACT_THRESHOLD} rows)`)
+  log.info('sweeper started', { everySeconds: Math.round(COMPACT_INTERVAL_MS / 1000), thresholdRows: COMPACT_THRESHOLD })
 }
 
 /** Stop the sweeper and close its pool (graceful shutdown). */

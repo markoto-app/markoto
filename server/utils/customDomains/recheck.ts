@@ -2,6 +2,9 @@ import { customDomainSettings } from './config'
 import { runCustomDomainCheck } from './manage'
 import { listCustomDomainsToRecheck } from '../../repos/customDomains'
 import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('custom-domain-recheck')
 
 // Periodic DNS re-check of custom domains, run by the
 // `custom-domain-recheck` plugin: pending / failed domains added in the
@@ -25,7 +28,7 @@ export async function runCustomDomainRecheck(now = Date.now()): Promise<{ checke
     try {
       await runCustomDomainCheck(domain, settings)
     } catch (e) {
-      console.warn(`[custom-domain-recheck] ${domain.hostname}:`, e instanceof Error ? e.message : e)
+      log.warn('domain check failed', { hostname: domain.hostname, err: e })
     }
   }
   return { checked: due.length }

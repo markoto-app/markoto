@@ -5,6 +5,9 @@ import { postgresUrlFromEnv } from '../../shared/utils/runtime/connectionStrings
 import { resolvePostgresSsl } from '../../shared/utils/runtime/postgresSsl'
 import { captureException } from './sentry'
 import { syncEnv } from './env'
+import { useLogger } from './logger'
+
+const log = useLogger('persistence')
 
 const DATABASE_URL = postgresUrlFromEnv(syncEnv().database)
 // Same TLS posture as the Nuxt app's pool (server/utils/platform/database.ts).
@@ -65,12 +68,9 @@ async function ensureDocnameIndex(): Promise<void> {
     await queryPool.query(
       'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_yjs_documents_docname ON yjs_documents (docname)'
     )
-    console.log('[persistence] ensured index idx_yjs_documents_docname on yjs_documents(docname)')
+    log.info('ensured index idx_yjs_documents_docname on yjs_documents(docname)')
   } catch (e) {
-    console.error(
-      '[persistence] could not create docname index (reads degrade to a scan):',
-      e instanceof Error ? e.message : e
-    )
+    log.error('could not create docname index (reads degrade to a scan)', { err: e })
     captureException(e, { tags: { component: 'persistence', event: 'index_create_failed' } })
   }
 }
@@ -99,7 +99,7 @@ async function withSelfHeal<T>(op: string, fn: () => Promise<T>): Promise<T> {
     return await fn()
   } catch (e) {
     if (!isMissingRelation(e)) throw e
-    console.warn(`[persistence] yjs_documents missing during ${op} — rebuilding pool to recreate it`)
+    log.warn('yjs_documents missing, rebuilding pool to recreate it', { op })
     captureException(e, { tags: { component: 'persistence', event: 'self_heal', op } })
     // Drop the broken pool before rebuilding — y-postgresql's PgAdapter
     // owns a Pool that won't release its prepared statements until destroy.
@@ -117,10 +117,10 @@ export const ypgPersistence = {
   async onLoadDocument({ documentName }: { documentName: string }) {
     try {
       const doc = await withSelfHeal(`load:${documentName}`, () => pgdb.getYDoc(documentName))
-      console.log(`[persistence] Loaded document: ${documentName}`)
+      log.debug('loaded document', { docId: documentName })
       return doc
     } catch (e) {
-      console.error(`[persistence] Error loading ${documentName}:`, e instanceof Error ? e.message : e)
+      log.error('load failed', { docId: documentName, err: e })
       captureException(e, { tags: { component: 'persistence', event: 'load_failed', docId: documentName } })
       // Re-throw so Hocuspocus rejects the connection. A previous version
       // returned a fresh Y.Doc here — which is catastrophic on transient
@@ -158,7 +158,7 @@ export const ypgPersistence = {
       // Log loudly. Hocuspocus will retry on the next debounce tick; in the
       // meantime the in-memory Y.Doc is still the source of truth for
       // connected clients.
-      console.error(`[persistence] Error storing ${documentName}:`, e instanceof Error ? e.message : e)
+      log.error('store failed', { docId: documentName, err: e })
       captureException(e, { tags: { component: 'persistence', event: 'store_failed', docId: documentName } })
       return null
     }
@@ -188,7 +188,7 @@ export const ypgPersistence = {
       // Table missing during a self-heal moment is the most common
       // case; we still return null and let activity logging skip the
       // boundary stamp. Don't capture to Sentry — it'd flood.
-      console.warn(`[persistence] getMaxYjsDocId(${documentName}) failed:`, e instanceof Error ? e.message : e)
+      log.warn('getMaxYjsDocId failed', { docId: documentName, err: e })
       return null
     }
   },

@@ -20,6 +20,9 @@ import {
   type CreditSubject
 } from '../../repos/aiCreditGrants'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('ai-credits')
 
 // AI credit top-ups: orchestration.
 //
@@ -99,7 +102,7 @@ export async function recomputeCreditBudget(subject: CreditSubject): Promise<voi
     const pool = await getPooledWorkspace(subject.id)
     if (pool) await ensureWorkspaceTeam(pool)
   } catch (e) {
-    console.warn(`[aiCredits] budget update for ${subject.type}:${subject.id} failed: ${e instanceof Error ? e.message : e}`)
+    log.warn('budget update failed', { subjectType: subject.type, subjectId: subject.id, err: e })
     Sentry.captureException(e, { tags: { component: 'aiCredits', event: 'budget_update_failed' } })
   }
 }
@@ -145,7 +148,7 @@ export async function runCreditSettlement(now: Date = new Date()): Promise<{ sub
       await settleSubject(subject, now)
     } catch (e) {
       summary.failed++
-      console.warn(`[aiCredits] settlement of ${subject.type}:${subject.id} failed: ${e instanceof Error ? e.message : e}`)
+      log.warn('settlement failed', { subjectType: subject.type, subjectId: subject.id, err: e })
     }
   }
   return summary

@@ -1,6 +1,9 @@
 import { markAiSessionProvenanceClean, recordAiSessionProvenance } from '../../repos/aiSessionProvenance'
 import { removeAiSession } from '../ai/aiSessions'
 import type { CrossBoundaryGuard } from './crossBoundary'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('ai-provenance')
 
 // Lifecycle of a session's `ai_session_provenance` row (see the table
 // comment in `server/db/schema.ts`), shared by `/api/ai/prompt` and the
@@ -43,6 +46,6 @@ export async function finalizeSessionProvenance(sessionId: string, guard: CrossB
   } catch (e) {
     // Fail closed: the edits stay "foreign" — at worst a later session
     // asks before reaching other documents.
-    console.warn(`[ai/provenance ${sessionId}] could not mark clean: ${e instanceof Error ? e.message : String(e)}`)
+    log.warn('could not mark session clean', { sessionId, err: e })
   }
 }

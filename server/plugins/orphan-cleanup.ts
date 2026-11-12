@@ -12,6 +12,9 @@ import { stagingKeyFor } from '../utils/storage/uploadKey'
 import { SWEEPS } from '../config/sweeps'
 import { DAY_MS } from '~~/shared/config/units'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../utils/platform/logger'
+
+const log = useLogger('orphan-cleanup')
 
 // Reconciles S3 against the documents + uploads + workspace_knowledge
 // tables. Four layers:
@@ -58,28 +61,28 @@ export default defineSweeper({
       const { liveDocIds } = await sweepDocLevelOrphans(s3, bucket)
       await sweepDefensiveStaleS3(s3, bucket, liveDocIds, now)
     } catch (e) {
-      console.error('[orphan-cleanup] Reconciliation failed:', e instanceof Error ? e.message : e)
+      log.error('Reconciliation failed', { err: e })
       Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'reconcile_failed' } })
     }
     try {
       const { deleted } = await sweepKnowledgeOrphans({ store: s3ObjectStore(s3, bucket), now })
-      if (deleted > 0) console.log(`[orphan-cleanup] Reaped ${deleted} orphaned knowledge object(s)`)
+      if (deleted > 0) log.info('reaped orphaned knowledge objects', { deleted })
     } catch (e) {
-      console.error('[orphan-cleanup] Knowledge sweep failed:', e instanceof Error ? e.message : e)
+      log.error('Knowledge sweep failed', { err: e })
       Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'knowledge_sweep_failed' } })
     }
     try {
       const { deleted } = await sweepDesignImportOrphans({ store: s3ObjectStore(s3, bucket), now })
-      if (deleted > 0) console.log(`[orphan-cleanup] Reaped ${deleted} design-import object(s)`)
+      if (deleted > 0) log.info('reaped design-import objects', { deleted })
     } catch (e) {
-      console.error('[orphan-cleanup] Design-import sweep failed:', e instanceof Error ? e.message : e)
+      log.error('Design-import sweep failed', { err: e })
       Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'design_import_sweep_failed' } })
     }
     try {
       const { deleted } = await sweepPublishedOrphans({ store: s3ObjectStore(s3, bucket), livePageIds: listPublishedPageIds, now })
-      if (deleted > 0) console.log(`[orphan-cleanup] Reaped ${deleted} object(s) of unpublished pages`)
+      if (deleted > 0) log.info('reaped objects of unpublished pages', { deleted })
     } catch (e) {
-      console.error('[orphan-cleanup] Published-page sweep failed:', e instanceof Error ? e.message : e)
+      log.error('Published-page sweep failed', { err: e })
       Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'published_sweep_failed' } })
     }
   }
@@ -104,7 +107,7 @@ async function sweepUnconfirmedUploads(s3: S3Client, bucket: string): Promise<vo
   // itself is what blocks future re-use, and the defensive S3 sweep
   // below catches any leftover objects.
   await purgeStaleUnconfirmed(DAY_MS)
-  console.log(`[orphan-cleanup] Reaped ${stale.length} unconfirmed upload row(s)`)
+  log.info('reaped unconfirmed upload rows', { reaped: stale.length })
 }
 
 /**
@@ -130,7 +133,7 @@ async function sweepDocLevelOrphans(
     totalDeleted += keys.length
   }
   if (orphanDocs.length > 0) {
-    console.log(`[orphan-cleanup] Reaped ${totalDeleted} object(s) from ${orphanDocs.length} orphan doc prefix(es)`)
+    log.info('reaped objects of orphan doc prefixes', { objects: totalDeleted, prefixes: orphanDocs.length })
   }
   return { liveDocIds: s3DocIds.filter(id => existingDocSet.has(id)) }
 }
@@ -155,7 +158,7 @@ async function sweepDefensiveStaleS3(
 
   if (stale.length > 0) {
     await deleteObjectsBatched(s3, bucket, stale, 'defensive', { silent: true })
-    console.log(`[orphan-cleanup] Defensive sweep removed ${stale.length} untracked S3 object(s) older than 24h`)
+    log.info('defensive sweep removed untracked S3 objects', { removed: stale.length })
   }
 }
 
@@ -257,7 +260,7 @@ async function deleteObjectsBatched(
       }))
     } catch (e) {
       if (opts.silent) throw e
-      console.warn(`[orphan-cleanup] S3 delete failed during ${sweepLabel} sweep:`, e instanceof Error ? e.message : e)
+      log.warn('S3 delete failed', { sweep: sweepLabel, err: e })
       Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 's3_delete_failed', sweep: sweepLabel } })
     }
   }

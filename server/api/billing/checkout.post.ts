@@ -9,6 +9,9 @@ import { stripePriceIdFor } from '../../utils/billing/stripePrices'
 import { startCheckoutBody } from '~~/shared/api/billing'
 import { MINUTE_MS } from '~~/shared/config/units'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../../utils/platform/logger'
+
+const log = useLogger('billing')
 
 // POST /api/billing/checkout: plan purchase/upgrade. Without a live
 // subscription it creates a Stripe Checkout Session and returns
@@ -79,8 +82,7 @@ export default defineApiHandler({
     try {
       liveSub = await findLiveSubscription(stripe, stripeSubscriptionId)
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Stripe error'
-      console.error('[billing/checkout] subscription probe failed:', msg)
+      log.error('subscription probe failed', { userId, err: e })
       Sentry.captureException(e, {
         tags: { component: 'billing', event: 'subscription_probe_failed', userId: String(userId) }
       })
@@ -96,8 +98,7 @@ export default defineApiHandler({
       try {
         await changeSubscriptionPrice(stripe, liveSub, priceId)
       } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Stripe error'
-        console.error('[billing/checkout] in-place plan change failed:', msg)
+        log.error('in-place plan change failed', { userId, err: e })
         Sentry.captureException(e, {
           tags: { component: 'billing', event: 'plan_change_failed', userId: String(userId) }
         })
@@ -155,8 +156,7 @@ export default defineApiHandler({
       await recordPaidTermsAcceptance(event, userId, { kind: 'plan', subject: { type: 'user', id: String(userId) }, item: `${plan}_${interval}` })
       return { url: checkoutSession.url, sessionId: checkoutSession.id }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Stripe error'
-      console.error('[billing/checkout] Stripe rejected the request:', msg)
+      log.error('checkout session creation failed', { userId, err: e })
       Sentry.captureException(e, {
         tags: { component: 'billing', event: 'checkout_create_failed', userId: String(userId) }
       })

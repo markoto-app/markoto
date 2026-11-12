@@ -4,6 +4,9 @@ import { restoreDocToYjsId, RestorePointCompactedError } from '../../../../../ut
 import { findUserNameById } from '../../../../../repos/users'
 import { assertWithinHistory, resolveDocPlan } from '../../../../../utils/billing/entitlements'
 import { activityParams } from '~~/shared/api/docs'
+import { useLogger } from '../../../../../utils/platform/logger'
+
+const log = useLogger('restore')
 
 // POST /api/docs/:docId/activity/:activityId/restore
 //
@@ -76,8 +79,7 @@ export default defineApiHandler({
       }
       // The Y.js transaction is atomic: on failure the live doc is unchanged.
       // 500 so the client can retry.
-      const msg = e instanceof Error ? e.message : String(e)
-      console.error(`[restore] failed for doc=${docId} activity=${activityId}: ${msg}`)
+      log.error('restore failed', { docId, activityId, err: e })
       throw apiError('internal', undefined, { cause: e })
     }
 

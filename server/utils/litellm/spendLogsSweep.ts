@@ -2,6 +2,9 @@ import * as Sentry from '@sentry/nuxt'
 import { Pool } from 'pg'
 import { litellmDbUrl } from './litellmDb'
 import { DAY_MS } from '~~/shared/config/units'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('spend-logs-sweep')
 
 // LiteLLM `LiteLLM_SpendLogs` retention sweeper. Every billable AI call
 // writes a row, so the table grows linearly with traffic. /spend/tags aggregation reads it on every
@@ -69,7 +72,7 @@ export async function runSpendLogsSweep(): Promise<{ deleted: number } | null> {
     result = { deleted: r.rowCount ?? 0 }
   } catch (e) {
     const msg = `[spend-logs-sweep] DELETE failed: ${e instanceof Error ? e.message : e}`
-    console.warn(msg)
+    log.warn('DELETE failed', { err: e })
     Sentry.captureMessage(msg, {
       level: 'warning',
       tags: { component: 'spend-logs-sweep', event: 'delete_failed' }
@@ -77,6 +80,6 @@ export async function runSpendLogsSweep(): Promise<{ deleted: number } | null> {
     return null
   }
 
-  console.log(`[spend-logs-sweep] deleted ${result.deleted} rows older than ${cutoffIso.slice(0, 10)}`)
+  log.info('deleted old rows', { deleted: result.deleted, olderThan: cutoffIso.slice(0, 10) })
   return result
 }

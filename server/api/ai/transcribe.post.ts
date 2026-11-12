@@ -22,6 +22,9 @@ import { isTestModeEnabled } from '../../../shared/utils/security/testMode'
 import { TRANSCRIBE_AUDIO_MAX_BYTES } from '~~/shared/config/uploads'
 import { transcribeBody } from '~~/shared/api/ai'
 import { ownValue } from '~~/shared/utils/ownValue'
+import { useLogger } from '../../utils/platform/logger'
+
+const log = useLogger('transcribe')
 
 const ALLOWED_MIME = new Set([
   'audio/webm',
@@ -117,7 +120,7 @@ async function transcribeViaByok(args: {
     return text ? { text, inaudible: false } : { text: '', inaudible: true }
   } catch (e) {
     // Message is already key-free (withProviderErrors redacts it).
-    console.error('[transcribe] BYOK provider error:', (e instanceof Error ? e.message : String(e)).slice(0, 300))
+    log.error('BYOK provider error', { err: e })
     throw apiError('ai/provider-error')
   }
 }
@@ -169,8 +172,7 @@ async function transcribeViaVoxtral(args: {
     }
     return { text, inaudible: false }
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    console.error('[transcribe] Voxtral upstream error:', msg.slice(0, 500))
+    log.error('Voxtral upstream error', { err: e })
     Sentry.captureMessage('[transcribe] Voxtral non-2xx', {
       tags: { component: 'transcribe', event: 'voxtral_upstream_error' }
     })

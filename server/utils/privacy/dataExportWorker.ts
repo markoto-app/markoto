@@ -16,6 +16,9 @@ import { buildExportZip } from './dataExport'
 import { safeSendTransactionalEmail } from '../email/sendEmail'
 import { DATA_EXPORT_RETENTION_DAYS } from '~~/shared/config/retention'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('data-export')
 
 // Worker that drives queued data-export jobs to completion. Picks up
 // the oldest queued row, builds the ZIP via `buildExportZip`,
@@ -132,7 +135,7 @@ export async function runDataExportWorker(): Promise<RunDataExportWorkerResult> 
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     result.errorMessage = msg
-    console.error(`[dataExportWorker] job ${job.jobId} failed:`, msg)
+    log.error('export job failed', { jobId: job.jobId, err: e })
     Sentry.captureException(e, {
       tags: { component: 'dataExportWorker', event: 'job_failed', userId: String(job.userId) }
     })
@@ -143,7 +146,7 @@ export async function runDataExportWorker(): Promise<RunDataExportWorkerResult> 
       // If we can't even update the row, log + Sentry; ops needs to
       // intervene manually. The row stays `running` and the next
       // sweep run can detect "stuck running" rows.
-      console.error('[dataExportWorker] markJobFailed itself failed:', markFailedErr)
+      log.error('markJobFailed itself failed', { jobId: job.jobId, err: markFailedErr })
       Sentry.captureException(markFailedErr, {
         tags: { component: 'dataExportWorker', event: 'mark_failed_failed', jobId: job.jobId }
       })

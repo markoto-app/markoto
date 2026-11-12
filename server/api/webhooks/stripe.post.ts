@@ -2,6 +2,9 @@ import * as Sentry from '@sentry/nuxt'
 import { useStripeClient } from '../../utils/billing/stripeClient'
 import { dispatchStripeEvent } from '../../utils/billing/stripeWebhook'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../../utils/platform/logger'
+
+const log = useLogger('stripe-webhook')
 
 // Stripe webhook entry point: verifies `Stripe-Signature` against the raw body,
 // then dispatches to the handlers in `server/utils/billing/stripeWebhook.ts`.
@@ -42,8 +45,7 @@ export default defineApiHandler({
       // synchronous variant. Same signature semantics.
       stripeEvent = await stripe.webhooks.constructEventAsync(raw, sig, env.billing.stripeWebhookSecret)
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'verification failed'
-      console.warn(`[stripe/webhook] signature verification failed: ${msg}`)
+      log.warn('signature verification failed', { err: e })
       Sentry.captureException(e, {
         level: 'warning',
         tags: { component: 'stripeWebhook', event: 'signature_verify_failed' }
@@ -53,7 +55,7 @@ export default defineApiHandler({
 
     try {
       const result = await dispatchStripeEvent(stripeEvent, { stripe })
-      console.log(`[stripe/webhook] ${stripeEvent.type} id=${stripeEvent.id} handled=${result.handled}${result.replayed ? ' replayed=true' : ''}${result.stashed ? ' stashed=true' : ''}`)
+      log.info('event dispatched', { eventType: stripeEvent.type, eventId: stripeEvent.id, handled: result.handled, replayed: result.replayed === true, stashed: result.stashed === true })
       return {
         received: true,
         handled: result.handled,
@@ -63,8 +65,7 @@ export default defineApiHandler({
         ...(result.stashed ? { stashed: true } : {})
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'handler failed'
-      console.error(`[stripe/webhook] ${stripeEvent.type} failed: ${msg}`, e)
+      log.error('dispatch failed', { eventType: stripeEvent.type, eventId: stripeEvent.id, err: e })
       Sentry.captureException(e, {
         tags: { component: 'stripeWebhook', event: 'dispatch_failed', stripeEventType: stripeEvent.type }
       })

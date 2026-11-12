@@ -34,6 +34,9 @@ import {
   normaliseInviteLocale
 } from '../../../../utils/workspaces/workspaceInvites'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../../../../utils/platform/logger'
+
+const log = useLogger('workspace-invite')
 
 // POST /api/workspaces/:wsId/members — invite someone by email. Admin-only.
 //
@@ -140,7 +143,7 @@ export default defineApiHandler({
           const updated = await getPooledWorkspace(wsId)
           if (updated) {
             await ensureWorkspaceTeam(updated).catch((e: unknown) => {
-              console.warn(`[invite] team budget sync failed: ${e instanceof Error ? e.message : e}`)
+              log.warn('team budget sync failed', { err: e })
             })
           }
           await appendAuditEvent({

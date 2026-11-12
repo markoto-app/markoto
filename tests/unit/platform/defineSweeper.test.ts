@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { captureLogs } from '../../helpers/logs'
 import { defineSweeper, type SweeperOptions } from '../../../server/utils/platform/defineSweeper'
 
 const lock = vi.hoisted(() => ({
@@ -35,6 +36,8 @@ function start(opts: Partial<SweeperOptions> & Pick<SweeperOptions, 'run'>) {
   return h
 }
 
+const logs = captureLogs()
+
 describe('defineSweeper', () => {
   beforeEach(() => {
     vi.useFakeTimers()
@@ -42,8 +45,6 @@ describe('defineSweeper', () => {
     lock.release.mockReset().mockResolvedValue(undefined)
     sentry.capture.mockReset()
     migrations.gate = Promise.resolve()
-    vi.spyOn(console, 'log').mockImplementation(() => {})
-    vi.spyOn(console, 'warn').mockImplementation(() => {})
   })
   afterEach(() => {
     vi.useRealTimers()
@@ -108,7 +109,7 @@ describe('defineSweeper', () => {
     expect(run).not.toHaveBeenCalled()
     expect(lock.release).not.toHaveBeenCalled()
     expect(sentry.capture).not.toHaveBeenCalled()
-    expect(console.warn).not.toHaveBeenCalled()
+    expect(logs.all('warn')).toEqual([])
   })
 
   it('reports a failed run once, releases the lock and still runs the next tick', async () => {
@@ -137,19 +138,19 @@ describe('defineSweeper', () => {
       reportErrors: false
     })
     await vi.advanceTimersByTimeAsync(0)
-    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('proxy starting'))
+    expect(logs.find('warn', 'run failed')).toMatchObject({ component: 'test-sweep', err: { message: 'proxy starting' } })
     expect(sentry.capture).not.toHaveBeenCalled()
   })
 
   it('logs one line with the summary, and stays silent when run returns nothing', async () => {
     start({ run: async () => ({ deleted: 3 }) })
     await vi.advanceTimersByTimeAsync(0)
-    expect(console.log).toHaveBeenCalledTimes(1)
-    expect(console.log).toHaveBeenCalledWith(expect.stringMatching(/^\[test-sweep\] ok in \d+ms \{"deleted":3\}$/))
-    vi.mocked(console.log).mockClear()
+    expect(logs.all('info')).toHaveLength(1)
+    expect(logs.find('info', 'run finished')).toMatchObject({ component: 'test-sweep', deleted: 3, durationMs: expect.any(Number) })
+    logs.records.length = 0
     start({ run: async () => {}, name: 'quiet' })
     await vi.advanceTimersByTimeAsync(0)
-    expect(console.log).not.toHaveBeenCalled()
+    expect(logs.all()).toEqual([])
   })
 
   it('never schedules when disabled, and skips setup', async () => {

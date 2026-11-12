@@ -10,6 +10,9 @@ import { claimPendingKnowledgeUpload, restorePendingKnowledgeUpload } from '../.
 import { stagingKeyFor } from '../../../../utils/storage/uploadKey'
 import { confirmKnowledgeUploadBody } from '~~/shared/api/workspaces'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../../../../utils/platform/logger'
+
+const log = useLogger('knowledge')
 
 /** The original's stored Content-Type must be exactly the type upload-request signed. */
 function requireStoredContentType(stored: string | undefined, expected: string): void {
@@ -161,7 +164,7 @@ export default defineApiHandler({
       // the row to `failed` with an error message; the sweep plugin
       // catches anything orphaned by a crash.
       void processKnowledge(knowledgeId).catch((e) => {
-        console.error(`[knowledge/confirm] background processKnowledge(${knowledgeId}) failed:`, e)
+        log.error('background processing failed', { knowledgeId, err: e })
       })
 
       return {

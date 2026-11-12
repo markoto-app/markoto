@@ -51,7 +51,7 @@ export const users = pgTable('users', {
   // `ensureUserKey(userId, plan)`; updated by Stripe webhooks on plan
   // changes.
   //
-  // The token is encrypted at rest with `LITELLM_SALT_KEY` and only held
+  // The token is encrypted at rest with `NUXT_ENCRYPTION_KEY` (server/utils/platform/secretBox.ts) and only held
   // in memory to build the OpenAI SDK client. `litellmKeyId` is LiteLLM's
   // internal token id, accepted by `/key/info` in place of the token.
   litellmKeyId: text('litellm_key_id').unique(),
@@ -1259,8 +1259,8 @@ export const waitlistSignups = pgTable('waitlist_signups', {
 // touched. See `server/utils/aiProviders/` + docs/AI-MODELS.md.
 //
 //   - `api_key_encrypted` uses the same AES-256-GCM scheme as the
-//     LiteLLM virtual-key tokens (`server/utils/litellm/tokenCrypto.ts`,
-//     keyed off LITELLM_SALT_KEY). The plaintext is never returned to
+//     LiteLLM virtual-key tokens (`server/utils/platform/secretBox.ts`,
+//     own HKDF key from NUXT_ENCRYPTION_KEY, bound to user + capability). The plaintext is never returned to
 //     the client, never logged and never included in the data export;
 //     `api_key_last4` is what the UI shows.
 //   - `base_url` is validated against the BYOK URL policy at save time

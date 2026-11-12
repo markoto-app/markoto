@@ -14,6 +14,9 @@ import { isPolicy, type ErrorFormat, type Policy, type PolicyDescriptor, type Re
 import type { ApiErrorCode } from '~~/shared/api/errors'
 import type { FieldIssue } from '~~/shared/api/errors/define'
 import type { FeatureField } from '~~/shared/config/tiers'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('api')
 
 // The handler contract (docs/contributing/api-handlers.md). Every route
 // declares its access policy, its inputs as zod schemas and its unconditional
@@ -298,7 +301,7 @@ export function defineApiHandler<
     const access: unknown = def.access
     // Fail closed: a route whose policy isn't one of ours never runs.
     if (!isPolicy(access)) {
-      console.error(`[api] ${event.path}: access is not an allow.* policy`)
+      log.error('access is not an allow.* policy', { path: event.path })
       throw createError({ statusCode: 500, message: 'Route has no valid access policy' })
     }
     if (!errorFormat) return run(event, access as Policy<Ctx>)

@@ -8,6 +8,9 @@ import { resolveDocBrand } from '../brandKit/docBrand'
 import { getDoc } from '../../repos/documents'
 import * as Sentry from '@sentry/nuxt'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('render-client')
 
 // Render orchestrator. Nuxt-side counterpart to renderer/src/render.ts:
 //   1. Compute the doc's current snapshotId (latest yjs_documents row id).
@@ -102,7 +105,7 @@ async function tryAcquireRenderLock(key: string): Promise<boolean> {
     const res = await valkey.set(lockKey, '1', 'PX', RENDER_LOCK_TTL_MS, 'NX')
     return res === 'OK'
   } catch (e) {
-    console.warn('[renderClient] valkey error on lock acquire, falling back to in-process dedup:', e instanceof Error ? e.message : e)
+    log.warn('valkey error on lock acquire, falling back to in-process dedup', { err: e })
     Sentry.captureException(e, {
       tags: { component: 'renderClient', event: 'valkey_unavailable' }
     })
@@ -204,7 +207,7 @@ async function readManifest(docId: string, snapshotId: number, variant: string |
     const text = await got.Body!.transformToString()
     return JSON.parse(text) as RenderManifest
   } catch (e) {
-    console.warn(`[renderClient] manifest GET failed for ${docId}@${snapshotId}:`, e instanceof Error ? e.message : e)
+    log.warn('manifest GET failed', { docId, snapshotId, err: e })
     return null
   }
 }
@@ -299,7 +302,7 @@ export async function renderDocument(
         // we've stopped waiting on. Either way, attempting our own
         // render here is the correct recovery — better one extra
         // render than an opaque timeout to the user.
-        console.warn(`[renderClient] poll timeout for ${key}, attempting own render`)
+        log.warn('poll timeout, attempting own render', { key })
       }
       const out = await callRenderer(docId, snapshotId, opts.format, variant)
       const manifest: RenderManifest = {
@@ -391,7 +394,7 @@ export async function cleanupRendersForDoc(docId: string): Promise<number> {
     }
     return keysToDelete.length
   } catch (e) {
-    console.warn(`[renderClient] renders cleanup failed for ${docId}:`, e instanceof Error ? e.message : e)
+    log.warn('renders cleanup failed', { docId, err: e })
     Sentry.captureException(e, {
       tags: { component: 'renderClient', event: 'renders_cleanup_failed', docId }
     })

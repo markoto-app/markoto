@@ -17,7 +17,7 @@
 // The request still authenticates with the user's LiteLLM virtual key,
 // so per-key rpm limits and spend-log tags keep working for BYOK.
 
-import { decryptToken } from '../litellm/tokenCrypto'
+import { openProviderKey } from './keyCrypto'
 import { listAiProviders, type AiProviderRow } from '../../repos/aiProviders'
 import { readInstanceDefault, realtimeDictationModel } from './config'
 import { getWebToolAvailability } from '../ai/webTools'
@@ -36,6 +36,9 @@ import {
 } from '~~/shared/ai/providers'
 import { useEnv } from '~~/shared/env/load'
 import type { RawEnv } from '~~/shared/env/define'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('ai-providers')
 
 /** LiteLLM deployment prefix for clientside-credential (BYOK) calls. */
 const BYOK_MODEL_PREFIX = 'byok/'
@@ -65,12 +68,12 @@ export function litellmModelFor(provider: ResolvedAiProvider): string {
 function fromUserRow(row: AiProviderRow): ResolvedAiProvider | null {
   let apiKey: string
   try {
-    apiKey = decryptToken(row.apiKeyEncrypted)
+    apiKey = openProviderKey(row)
   } catch {
-    // Undecryptable (salt rotated without re-encrypting). Treat as
+    // Undecryptable (encryption key lost or rotated away). Treat as
     // unconfigured rather than failing every AI call; the settings page
     // shows the row so the user can re-enter the key.
-    console.warn(`[aiProviders] could not decrypt the ${row.capability} key for user ${row.userId}; ignoring the config`)
+    log.warn('could not decrypt the stored provider key; ignoring the config', { capability: row.capability, userId: row.userId })
     return null
   }
   return {

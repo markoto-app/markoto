@@ -14,6 +14,9 @@ import { WAITLIST_CONSENT_TEXT_ID, WAITLIST_CONSENT_VERSION } from '~~/shared/le
 import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
 import { joinWaitlistBody } from '~~/shared/api/legal'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../../utils/platform/logger'
+
+const log = useLogger('waitlist')
 
 // POST /api/waitlist: join the paid-plans waitlist (double opt-in). Body:
 // { email, locale?, consent: true }.
@@ -85,7 +88,7 @@ export default defineApiHandler({
     // possible outside production) the email is skipped; the response stays 202.
     const baseUrl = emailLinkBaseUrl(useEnv().core.siteUrl)
     if (outcome !== 'unchanged' && baseUrl === null) {
-      console.warn('[waitlist] NUXT_SITE_URL is not set — confirmation email not sent')
+      log.warn('NUXT_SITE_URL is not set — confirmation email not sent')
     }
     if (outcome !== 'unchanged' && baseUrl !== null) {
       const content = buildWaitlistConfirmEmail({ locale, baseUrl, confirmToken, unsubscribeToken })

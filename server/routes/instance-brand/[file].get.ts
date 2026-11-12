@@ -3,6 +3,9 @@ import { INSTANCE_BRAND_LOGO_TYPES, instanceBrandLogoExt } from '~~/shared/confi
 import { MIB } from '~~/shared/config/units'
 import { instanceBrandParams } from '~~/shared/api/platform'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../../utils/platform/logger'
+
+const log = useLogger('instance-brand')
 
 // GET /instance-brand/logo.<ext> — the customer logo of a managed private
 // instance: the file the operator names in NUXT_INSTANCE_BRAND_LOGO
@@ -25,7 +28,7 @@ export default defineApiHandler({
       if (!info.isFile() || info.size > MAX_BYTES) throw new Error('not a usable file')
       bytes = await readFile(path)
     } catch (e) {
-      console.warn('[instance-brand] logo not readable:', e instanceof Error ? e.message : e)
+      log.warn('logo not readable', { err: e })
       throw apiError('resource/not-found')
     }
     setHeader(event, 'content-type', INSTANCE_BRAND_LOGO_TYPES[ext]!)

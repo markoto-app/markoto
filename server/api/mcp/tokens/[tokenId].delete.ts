@@ -6,6 +6,9 @@ import { useMcpSessionBindings } from '../../../utils/mcp/mcpSessionBinding'
 import { appendAuditEvent, truncateIp } from '../../../repos/audit'
 import { AUDIT_MCP_TOKEN_REVOKED } from '../../../legal/auditActions'
 import { mcpTokenParams } from '~~/shared/api/account'
+import { useLogger } from '../../../utils/platform/logger'
+
+const log = useLogger('mcp')
 
 // Revokes a Personal Access Token by soft-delete (`revoked_at`), keeping the row
 // for audit; the verifier rejects any non-null row. 404 (not 403) for another
@@ -43,7 +46,7 @@ export default defineApiHandler({
     // security-critical (the token no longer verifies); a Valkey error leaves
     // them to expire.
     await useMcpSessionBindings().releaseToken(tokenId, userId).catch((e: unknown) => {
-      console.warn(`[mcp] releasing session bindings of a revoked token failed: ${e instanceof Error ? e.message : String(e)}`)
+      log.warn('releasing session bindings of a revoked token failed', { err: e })
     })
 
     // Audit the revocation; never log the hash.

@@ -1,6 +1,9 @@
 import Redis from 'ioredis'
 import { valkeyClientConfigFromEnv } from '../../../shared/utils/runtime/connectionStrings'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from './logger'
+
+const log = useLogger('valkey')
 
 // Singleton ioredis client for Valkey (Redis-compatible), shared by all
 // consumers via key prefixes.
@@ -26,7 +29,7 @@ export function useValkey(): Redis {
 
   // ioredis reconnects on its own; this log is only an operator signal.
   client.on('error', (e: Error) => {
-    console.warn('[valkey] client error:', e.message)
+    log.warn('client error', { err: e })
   })
 
   return client
@@ -44,7 +47,7 @@ export function useValkeySubscriber(): Redis {
   if (subscriber) return subscriber
   subscriber = useValkey().duplicate()
   subscriber.on('error', (e: Error) => {
-    console.warn('[valkey] subscriber error:', e.message)
+    log.warn('subscriber error', { err: e })
   })
   return subscriber
 }

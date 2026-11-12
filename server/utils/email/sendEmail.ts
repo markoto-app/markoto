@@ -1,6 +1,9 @@
 import * as Sentry from '@sentry/nuxt'
 import { Resend } from 'resend'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('email')
 
 // Transactional email helper.
 //
@@ -112,7 +115,7 @@ export async function sendTransactionalEmail(args: SendEmailArgs): Promise<SendE
   const label = NORMALISED_KIND_LABELS[args.kind]
 
   if (!args.to) {
-    console.log(`[email] no-recipient skip (kind=${label})`)
+    log.info('no recipient, skipped', { kind: label })
     return { delivered: false }
   }
 
@@ -124,7 +127,10 @@ export async function sendTransactionalEmail(args: SendEmailArgs): Promise<SendE
       ? `${args.body.slice(0, 280)}…`
       : args.body
     if (args.bodyContainsSecrets) previewBody = '<redacted: contains single-use links>'
-    console.log(`[email-stub] kind=${label} to=${redactEmail(args.to)} locale=${args.locale ?? 'en'} subject=${JSON.stringify(args.subject)} body=${JSON.stringify(previewBody)}`)
+    // Subject and body (workspace and document names, member names) are only
+    // shown outside production, where the stub is how a developer reads the mail.
+    const preview = process.env.NODE_ENV === 'production' ? {} : { subject: args.subject, bodyPreview: previewBody }
+    log.info('email stubbed, not sent', { kind: label, to: redactEmail(args.to), locale: args.locale ?? 'en', ...preview })
     return { delivered: true }
   }
 
@@ -147,7 +153,7 @@ async function sendViaResend(args: SendEmailArgs, label: string, apiKey: string,
   if (!configuredFrom) {
     // Soft warn so devs running with just the API key see the
     // sandbox limitation in their server logs.
-    console.warn(`[email] NUXT_EMAIL_FROM not set; using Resend sandbox sender ${SANDBOX_FROM}. This delivers only to the Resend account owner.`)
+    log.warn('NUXT_EMAIL_FROM not set; using the Resend sandbox sender, which delivers only to the Resend account owner', { sender: SANDBOX_FROM })
   }
 
   const resend = new Resend(apiKey)
@@ -196,7 +202,7 @@ export async function safeSendTransactionalEmail(args: SendEmailArgs): Promise<S
   try {
     return await sendTransactionalEmail(args)
   } catch (e) {
-    console.error(`[email] send failed kind=${args.kind}:`, e instanceof Error ? e.message : e)
+    log.error('send failed', { kind: args.kind, err: e })
     Sentry.captureException(e, {
       tags: { component: 'email', emailKind: args.kind }
     })

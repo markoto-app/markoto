@@ -1,6 +1,9 @@
 import * as Sentry from '@sentry/nuxt'
 import { useValkey } from '../platform/valkey'
 import { MINUTE_MS } from '~~/shared/config/units'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('knowledge')
 
 // Pending knowledge uploads: the record `upload-request` issues so that
 // `confirm` only ever acts on an upload it handed to THIS caller, for
@@ -57,7 +60,7 @@ export async function claimPendingKnowledgeUpload(ref: PendingKnowledgeRef): Pro
   try {
     return parsePending(await useValkey().getdel(pendingKey(ref)))
   } catch (e) {
-    console.warn('[knowledge] valkey error on pending-upload claim, failing closed:', e instanceof Error ? e.message : e)
+    log.warn('valkey error on pending-upload claim, failing closed', { err: e })
     Sentry.captureException(e, { tags: { component: 'knowledge', event: 'valkey_unavailable' } })
     return null
   }

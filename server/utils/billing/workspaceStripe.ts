@@ -11,6 +11,9 @@ import type { WorkspaceSubscriptionRow } from '../../repos/workspaceSubscription
 import type { BillingInterval, Currency } from '~~/shared/config/pricing'
 import type { WorkspacePlanName } from '~~/shared/config/tiers'
 import { apiError } from '../api/apiError'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('workspace-stripe')
 
 // Stripe side of Team / Business workspace subscriptions.
 //
@@ -184,11 +187,11 @@ export async function cancelDuplicateWorkspaceSubscription(stripe: Stripe, sub: 
       refunded++
     }
   } catch (e) {
-    console.error(`[workspaceStripe] refund of duplicate subscription ${sub.id} failed — refund it manually:`, e instanceof Error ? e.message : e)
+    log.error('refund of a duplicate subscription failed: refund it manually', { subscriptionId: sub.id, workspaceId, err: e })
     Sentry.captureException(e, { level: 'error', tags: { component: 'billing', event: 'duplicate_subscription_refund_failed', workspaceId } })
   }
   const msg = `[workspaceStripe] duplicate subscription ${sub.id} for workspace ${workspaceId} cancelled, ${refunded} payment(s) refunded`
-  console.warn(msg)
+  log.warn('duplicate subscription cancelled', { subscriptionId: sub.id, workspaceId, refunded })
   Sentry.captureMessage(msg, { level: 'warning', tags: { component: 'billing', event: 'duplicate_subscription_cancelled', workspaceId } })
   return { refunded }
 }
@@ -251,7 +254,7 @@ export async function cancelWorkspaceSubscriptionNow(stripe: Stripe, row: Worksp
     await stripe.subscriptions.cancel(row.stripeSubscriptionId, { prorate: row.interval === 'year', invoice_now: false })
   } catch (e) {
     if (isMissing(e) || await hasEnded(stripe, row.stripeSubscriptionId)) return
-    console.error('[workspaceStripe] cancel on workspace delete failed:', e instanceof Error ? e.message : e)
+    log.error('cancel on workspace delete failed', { err: e })
     Sentry.captureException(e, { tags: { component: 'billing', event: 'workspace_cancel_failed', workspaceId: row.workspaceId } })
     throw apiError('billing/cancel-failed')
   }
@@ -282,7 +285,7 @@ export async function cancelWorkspaceSubscriptionAtPeriodEnd(stripe: Stripe | nu
     await stripe.subscriptions.update(row.stripeSubscriptionId, { cancel_at_period_end: true })
   } catch (e) {
     if (isMissing(e)) return
-    console.error('[workspaceStripe] cancel at period end failed:', e instanceof Error ? e.message : e)
+    log.error('cancel at period end failed', { err: e })
     Sentry.captureException(e, { tags: { component: 'billing', event: 'workspace_cancel_period_end_failed', workspaceId: row.workspaceId } })
   }
 }

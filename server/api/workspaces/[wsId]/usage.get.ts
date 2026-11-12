@@ -1,7 +1,6 @@
 import { sql } from 'drizzle-orm'
 import { useDatabase } from '../../../utils/platform/database'
-import { decryptToken } from '../../../utils/litellm/tokenCrypto'
-import { readMemberKeySpend } from '../../../utils/litellm/workspaceTeams'
+import { openMemberKey, readMemberKeySpend } from '../../../utils/litellm/workspaceTeams'
 import { getPooledWorkspace } from '../../../utils/billing/workspaceBilling'
 
 // GET /api/workspaces/:wsId/usage — per-person usage of the workspace for
@@ -43,7 +42,7 @@ export default defineApiHandler({
       let aiSpendUsd: number | null = null
       if (pooled && r.role !== 'guest') {
         try {
-          aiSpendUsd = r.key_token ? (await readMemberKeySpend(decryptToken(r.key_token)))?.spend ?? 0 : 0
+          aiSpendUsd = r.key_token ? (await readMemberKeySpend(openMemberKey(wsId, Number(r.user_id), r.key_token)))?.spend ?? 0 : 0
         } catch {
           aiSpendUsd = null
         }

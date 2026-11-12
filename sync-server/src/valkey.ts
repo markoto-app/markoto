@@ -1,6 +1,9 @@
 import Redis from 'ioredis'
 import { valkeyClientConfigFromEnv } from '../../shared/utils/runtime/connectionStrings'
 import { syncEnv } from './env'
+import { useLogger } from './logger'
+
+const log = useLogger('valkey')
 
 // Singleton ioredis client for the sync-server. Mirrors the pattern in
 // `server/utils/platform/valkey.ts` (the Nuxt app's client) — the sync-server is
@@ -28,7 +31,7 @@ export function useValkey(): Redis {
   })
 
   client.on('error', (e: Error) => {
-    console.warn('[sync-valkey] client error:', e.message)
+    log.warn('client error', { err: e })
   })
 
   return client

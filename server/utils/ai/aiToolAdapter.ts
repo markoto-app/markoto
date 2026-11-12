@@ -93,6 +93,9 @@ import { AI_COMMENT_AUTHOR_NAME, isAiCommentAuthor } from '~~/shared/ai/author'
 import { NO_OP_EDIT_ERROR_PREFIX } from '../agentic/editProgress'
 import { MIB } from '~~/shared/config/units'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('ai-tools')
 
 export interface ToolResult {
   content: string
@@ -541,7 +544,7 @@ async function persistThemeBestEffort(session: DocToolContext, merged: DocTheme)
   try {
     await updateDocMeta(session.docId, { theme: merged })
   } catch (e) {
-    console.warn(`[aiToolAdapter] theme DB persist failed for ${session.docId}:`, e)
+    log.warn('theme DB persist failed', { docId: session.docId, err: e })
     Sentry.captureException(e, {
       tags: { component: 'aiToolAdapter', event: 'theme_persist_failed', docId: session.docId }
     })
@@ -1156,7 +1159,7 @@ export async function handleSetTitle(
   } catch (e) {
     // Same tradeoff as theme: Y.js already broadcast the change live;
     // DB failure only affects what brand-new visitors see before sync.
-    console.warn(`[aiToolAdapter] title DB persist failed for ${session.docId}:`, e)
+    log.warn('title DB persist failed', { docId: session.docId, err: e })
     Sentry.captureException(e, {
       tags: { component: 'aiToolAdapter', event: 'title_persist_failed', docId: session.docId }
     })
@@ -1378,7 +1381,7 @@ async function generateImageBytesByok(
     return { error: 'The image provider returned no image.' }
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error'
-    console.error('[generate_image] [byok] failed:', msg)
+    log.error('BYOK image generation failed', { err: e })
     return { error: `Image generation failed: ${msg}` }
   }
 }
@@ -1404,7 +1407,7 @@ async function generateImageBytesBfl(
   // prompt_upsampling is intentionally false — the prompt is AI-written
   // and re-LLM-ing it adds latency without benefit.
   try {
-    console.log(`[generate_image] [bfl] calling model=${model} ${width}×${height} prompt="${prompt.slice(0, 100)}…"`)
+    log.debug('BFL image generation started', { model, width, height })
     const resp = await litellmCompletion(litellm, {
       model,
       messages: [{
@@ -1432,11 +1435,11 @@ async function generateImageBytesBfl(
     // extension via IMAGE_MIME_EXT; if the response ever changes, the
     // upload pipeline will reject unknown MIMEs at /api/files.
     const mimeType = 'image/jpeg'
-    console.log(`[generate_image] [bfl] got ${mimeType} image, ${bytes.byteLength} bytes, cost=$${body.cost_usd ?? 'unknown'}`)
+    log.debug('BFL image generated', { mimeType, bytes: bytes.byteLength, costUsd: body.cost_usd ?? null })
     return { bytes, mimeType }
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error'
-    console.error('[generate_image] [bfl] threw:', msg)
+    log.error('BFL image generation failed', { err: e })
     Sentry.captureException(e, {
       tags: { component: 'aiToolAdapter', event: 'image_generate_failed', provider: 'bfl' }
     })
@@ -1523,7 +1526,7 @@ export async function handleGenerateImage(
       if (!reservation.reserved) return err(`Error: ${imageQuotaMessage(quotaBytes)}`)
       rowReserved = true
     } catch (e) {
-      console.warn(`[aiToolAdapter] uploads row insert failed for ${key}:`, e)
+      log.warn('uploads row insert failed', { key, err: e })
       Sentry.captureException(e, {
         tags: { component: 'aiToolAdapter', event: 'uploads_row_insert_failed', s3Key: key }
       })
@@ -1562,7 +1565,7 @@ export async function handleGenerateImage(
       await markConfirmed(key)
     } catch (e) {
       // Non-fatal — see note above.
-      console.warn(`[aiToolAdapter] uploads row insert failed for ${key}:`, e)
+      log.warn('uploads row insert failed', { key, err: e })
       Sentry.captureException(e, {
         tags: { component: 'aiToolAdapter', event: 'uploads_row_insert_failed', s3Key: key }
       })
@@ -1715,7 +1718,7 @@ export async function handleMessageToUser(
       body: { message: input.message, isQuestion }
     })
   } catch (e) {
-    console.warn('[aiToolAdapter] message_to_user memory append failed:', e instanceof Error ? e.message : e)
+    log.warn('message_to_user memory append failed', { err: e })
   }
 
   return ok(

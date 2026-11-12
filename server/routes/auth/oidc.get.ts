@@ -16,6 +16,9 @@ import {
 import type { H3Event } from 'h3'
 import { oidcSignInQuery } from '~~/shared/api/sso'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../../utils/platform/logger'
+
+const log = useLogger('auth-oidc')
 
 // Generic OpenID Connect sign-in for self-hosted identity providers.
 // One route, two legs — like the nuxt-auth-utils handlers:
@@ -60,7 +63,7 @@ export default defineApiHandler({
     try {
       config = await getOidcConfiguration(settings)
     } catch (err) {
-      console.warn(`[auth/oidc] discovery failed for ${settings.issuer.href}: ${describeError(err)}`)
+      log.warn('discovery failed', { issuer: settings.issuer.href, reason: describeError(err) })
       throw apiError('auth/oidc-unavailable')
     }
 
@@ -80,7 +83,7 @@ export default defineApiHandler({
     const flow = decodeFlowCookie(getCookie(event, OIDC_FLOW_COOKIE), secret)
     deleteCookie(event, OIDC_FLOW_COOKIE, { path: '/auth/oidc' })
     if (!flow) {
-      console.warn('[auth/oidc] callback without a valid flow cookie (expired, forged or another browser)')
+      log.warn('callback without a valid flow cookie (expired, forged or another browser)')
       throw apiError('auth/oidc-failed')
     }
 
@@ -91,7 +94,7 @@ export default defineApiHandler({
     try {
       profile = await completeOidcAuthorization(config, callbackUrl, flow)
     } catch (err) {
-      console.warn(`[auth/oidc] sign-in rejected: ${describeError(err)}`)
+      log.warn('sign-in rejected', { reason: describeError(err) })
       throw apiError('auth/oidc-failed')
     }
 

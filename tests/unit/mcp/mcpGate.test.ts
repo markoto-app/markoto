@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, type Mock } from 'vitest'
+import { captureLogs } from '../../helpers/logs'
 import { evaluateMcpRequest, jsonRpcErrorResponse, MCP_RATE_LIMITS, type McpGateDeps, type RateLimitRule } from '../../../server/mcp/lib/mcpGate'
 import type { BindingCheck, McpSessionBindings } from '../../../server/utils/mcp/mcpSessionBinding'
 import type { McpAuthContext } from '../../../server/utils/mcp/mcpAuth'
@@ -7,6 +8,7 @@ import type { McpAuthContext } from '../../../server/utils/mcp/mcpAuth'
 // sessions bound to the token that created them, rate limits per client
 // address and per token, bounded sessions per user.
 
+const logs = captureLogs()
 const ALICE_FULL: McpAuthContext = { userId: 1, scopes: ['documents:read', 'documents:write'], tokenId: 'mkt_pat_full' }
 const ALICE_RO: McpAuthContext = { userId: 1, scopes: ['documents:read'], tokenId: 'mkt_pat_ro' }
 
@@ -117,10 +119,9 @@ describe('evaluateMcpRequest — binding storage failure', () => {
     const d = deps()
     await d.bindings.bind('sess-1', ALICE_FULL.tokenId, 1)
     d.bindings.throwOnCheck = true
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     expect(await evaluateMcpRequest({ authHeader: 'Bearer full', clientKey: 'c', sessionId: 'sess-1' }, d))
       .toMatchObject({ kind: 'reject', status: 404, message: 'Session not found' })
-    warn.mockRestore()
+    expect(logs.find('warn', 'session binding lookup failed')).toMatchObject({ component: 'mcp' })
   })
 })
 

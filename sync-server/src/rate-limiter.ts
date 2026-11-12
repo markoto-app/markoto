@@ -22,6 +22,9 @@
 
 import { DEFAULT_TRUSTED_PROXY_HOPS, resolveClientIp } from '../../shared/utils/security/clientIp'
 import { syncEnv } from './env'
+import { useLogger } from './logger'
+
+const log = useLogger('rate-limiter')
 
 // Minimal shape of Hocuspocus's onConnect/onDisconnect payload — only the
 // fields we read. Avoids importing Hocuspocus's internal types (which
@@ -133,7 +136,7 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
       if (!slots) return
       for (const key of [...slots]) releaseSlot(socketId, key)
     } catch (e) {
-      console.warn('[rate-limiter] onSocketClosed error:', e instanceof Error ? e.message : e)
+      log.warn('onSocketClosed error', { err: e })
     }
   }
 
@@ -144,7 +147,7 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
       // under the per-IP cap but collectively exhaust memory.
       const roomCount = data.instance?.documents?.size
       if (typeof roomCount === 'number' && roomCount >= maxActiveRooms) {
-        console.warn(`[rate-limiter] Active room cap reached (${roomCount}/${maxActiveRooms})`)
+        log.warn('active room cap reached', { rooms: roomCount, maxActiveRooms })
         throw new Error('Server at capacity')
       }
 
@@ -167,7 +170,7 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
 
         const current = connectionsPerIP.get(ip) || 0
         if (current >= maxConnectionsPerIP) {
-          console.warn(`[rate-limiter] Too many connections from ${ip}`)
+          log.warn('too many connections from one client', { maxConnectionsPerIP })
           throw new Error('Too many connections')
         }
         connectionsPerIP.set(ip, current + 1)
@@ -185,7 +188,7 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
         // Don't crash on unexpected data shape — fail-open on bookkeeping
         // errors. The cap is defence-in-depth; a wedged limiter
         // shouldn't DoS legitimate traffic.
-        console.warn('[rate-limiter] onConnect error:', e instanceof Error ? e.message : e)
+        log.warn('onConnect error', { err: e })
       }
     },
 
@@ -194,7 +197,7 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
         const socketId = data.__rateLimitSocketId || data.socketId || ''
         releaseSlot(socketId, slotKey(socketId, data.documentName))
       } catch (e) {
-        console.warn('[rate-limiter] onDisconnect error:', e instanceof Error ? e.message : e)
+        log.warn('onDisconnect error', { err: e })
       }
     },
 

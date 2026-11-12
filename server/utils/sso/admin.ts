@@ -6,7 +6,7 @@ import { X509Certificate } from 'node:crypto'
 import type { H3Event } from 'h3'
 import { listSsoDomains, type SsoConnectionFields, type SsoConnectionRow, type SsoDomainRow } from '../../repos/sso'
 import { planHasFeature, resolveWorkspacePlan } from '../billing/entitlements'
-import { encryptToken } from '../litellm/tokenCrypto'
+import { sealSecret, secretContext } from '../platform/secretBox'
 import { checkSsoUrl, ssoAllowsPrivateUrls, SsoUrlRefused } from './urlPolicy'
 import { samlAcsUrl, samlSpEntityId, ssoBaseUrl, ssoCallbackUrl } from './http'
 import { DOMAIN_TXT_PREFIX } from './domains'
@@ -41,7 +41,7 @@ function normalizeIdpCertificate(raw: unknown, now = new Date()): string {
 }
 
 /** Validate the PUT body into repo fields. The client secret is encrypted here. */
-export async function parseSsoSettings(body: unknown, existing: SsoConnectionRow | null): Promise<SsoConnectionFields> {
+export async function parseSsoSettings(body: unknown, existing: SsoConnectionRow | null, workspaceId: string): Promise<SsoConnectionFields> {
   const b = (typeof body === 'object' && body !== null ? body : {}) as Record<string, unknown>
   if (b.protocol !== 'oidc' && b.protocol !== 'saml') throw invalid('protocol', 'Choose OpenID Connect or SAML.')
   const defaultRole = b.defaultRole === undefined ? undefined : b.defaultRole === 'editor' || b.defaultRole === 'viewer' ? b.defaultRole : null
@@ -58,7 +58,7 @@ export async function parseSsoSettings(body: unknown, existing: SsoConnectionRow
     const clientId = text(b.oidcClientId, 'oidcClientId')
     let secret: string | undefined
     if (typeof b.oidcClientSecret === 'string' && b.oidcClientSecret.trim()) {
-      secret = encryptToken(text(b.oidcClientSecret, 'oidcClientSecret'))
+      secret = sealSecret('sso-client-secret', secretContext.ssoClientSecret(workspaceId), text(b.oidcClientSecret, 'oidcClientSecret'))
     } else if (!(existing?.protocol === 'oidc' && existing.oidcClientSecret)) {
       throw invalid('oidcClientSecret', 'The client secret is required.')
     }

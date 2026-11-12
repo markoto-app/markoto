@@ -5,6 +5,7 @@ import {
   type S3Client
 } from '@aws-sdk/client-s3'
 import { resetDb, testDb } from '../integration/setup/db'
+import { captureLogs } from '../helpers/logs'
 import {
   deleteDocDbRows,
   cleanupDocS3,
@@ -14,6 +15,8 @@ import { appendActivity } from '../../server/repos/activity'
 import { recordPending } from '../../server/repos/uploads'
 import { createUser, createDoc as seedDoc } from '../integration/setup/fixtures'
 import { at, first, must } from '../helpers/assert'
+
+const logs = captureLogs()
 
 // Each phase is tested independently so failure-isolation is visible:
 //   - deleteDocDbRows: touches DB only, in FK-safe order
@@ -166,11 +169,9 @@ describe('cleanupDocS3', () => {
       deleteCalls: [],
       listShouldFail: true
     }
-    const warnSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const count = await cleanupDocS3('abc', { s3: makeFakeS3(state), bucket: 'test' })
     expect(count).toBe(0)
-    expect(warnSpy).toHaveBeenCalled()
-    warnSpy.mockRestore()
+    expect(logs.find('error', 'S3 cleanup failed')).toMatchObject({ component: 'document-lifecycle', docId: 'abc' })
   })
 
   it('swallows a Delete failure mid-batch — returns 0, never throws', async () => {
@@ -180,12 +181,10 @@ describe('cleanupDocS3', () => {
       deleteCalls: [],
       deleteShouldFail: true
     }
-    const warnSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const count = await cleanupDocS3('abc', { s3: makeFakeS3(state), bucket: 'test' })
     expect(count).toBe(0)
     // Keys stay in S3 (fake didn't delete); orphan-cleanup will find them.
     expect(state.keys.size).toBe(2)
-    warnSpy.mockRestore()
   })
 })
 
@@ -259,7 +258,6 @@ describe('notifySyncDeleted', () => {
   it('swallows a fetch rejection — does NOT propagate an unhandledRejection', async () => {
     // If the sync-server is down and fetch rejects, the caught .catch()
     // logs but the app process must not crash.
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const fetchMock = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'))
     const dispatched = notifySyncDeleted('doc-1', {
       syncInternalUrl: 'http://sync.test',
@@ -269,7 +267,6 @@ describe('notifySyncDeleted', () => {
     expect(dispatched).toBe(true)
     // Give the catch handler a tick to fire.
     await new Promise(r => setTimeout(r, 5))
-    expect(warnSpy).toHaveBeenCalled()
-    warnSpy.mockRestore()
+    expect(logs.find('warn', 'sync-server notify failed')).toMatchObject({ docId: 'doc-1' })
   })
 })

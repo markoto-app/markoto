@@ -1,4 +1,7 @@
 import { deleteExpiredUnconfirmedWaitlistSignups } from '../../repos/waitlist'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('waitlist-sweep')
 
 // Waitlist sweeper. Deletes unconfirmed sign-ups whose 7-day confirm
 // window has passed — the privacy policy promises "unconfirmed entries
@@ -15,7 +18,7 @@ export interface WaitlistSweepResult {
 export async function runWaitlistSweep(now: Date = new Date()): Promise<WaitlistSweepResult> {
   const deletedUnconfirmed = await deleteExpiredUnconfirmedWaitlistSignups(now)
   if (deletedUnconfirmed > 0) {
-    console.log(`[waitlist-sweep] deleted ${deletedUnconfirmed} unconfirmed sign-up(s) past the confirm window`)
+    log.info('deleted unconfirmed sign-ups past the confirm window', { deleted: deletedUnconfirmed })
   }
   return { deletedUnconfirmed }
 }

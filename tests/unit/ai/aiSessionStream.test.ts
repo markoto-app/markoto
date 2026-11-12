@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import { captureLogs } from '../../helpers/logs'
 
 // SSE stream of the initiator-only session channel (F-7c), driven by the
 // in-memory channel store. Stub Valkey so importing never connects.
@@ -16,6 +17,7 @@ const { createSessionEventStream } = await import('../../../server/utils/agentic
 
 type Store = ReturnType<typeof createMemoryChannelStore>
 
+const logs = captureLogs()
 const meta = { initiatorUserId: 7, docId: 'doc1', prompt: 'Summarise the Q3 plan', commentThreadId: null }
 
 interface SseEvent { event: string, data: string }
@@ -176,15 +178,13 @@ describe('createSessionEventStream', () => {
         throw new Error('subscriber down')
       }
     }
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const ch = new AiSessionChannel('s1', store)
     await ch.open(meta)
     const sse = sseReader(createSessionEventStream({ sessionId: 's1', userId: 7, store, refreshMs: 60_000, fallbackRefreshMs: 30 }))
     await sse.next()
     await ch.setStatus({ phase: 'tool', message: 'picked up by the re-read' })
     expect(JSON.parse((await sse.next(1_000))?.data ?? '{}').message).toBe('picked up by the re-read')
-    expect(warn).toHaveBeenCalled()
-    warn.mockRestore()
+    expect(logs.find('warn', 'subscribe failed, falling back to polling')).toMatchObject({ fallbackRefreshMs: 30 })
     await sse.cancel()
   })
 

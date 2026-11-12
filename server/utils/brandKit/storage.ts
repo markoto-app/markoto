@@ -3,6 +3,9 @@ import type { H3Event } from 'h3'
 import { BRAND_ASSET_CONTENT_TYPES, type BrandAssetFormat } from '~~/shared/config/brandKit'
 import { listBrandAssetKeys, type BrandAssetRow } from '../../repos/brandAssets'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('brand-kit')
 
 // S3 side of the brand kit. Objects at
 // `workspaces/{wsId}/brand/{id}.{format}`. The app streams them itself
@@ -33,7 +36,7 @@ export async function deleteBrandObjects(keys: string[]): Promise<void> {
         Delete: { Objects: batch.map(Key => ({ Key })), Quiet: true }
       }))
     } catch (e) {
-      console.warn(`[brandKit] deleting ${batch.length} brand objects failed:`, e instanceof Error ? e.message : e)
+      log.warn('deleting brand objects failed', { objects: batch.length, err: e })
     }
   }
 }

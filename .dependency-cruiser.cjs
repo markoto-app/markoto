@@ -132,12 +132,12 @@ module.exports = {
     },
     {
       name: 'repos-only-use-db-layer',
-      comment: 'server/repos may use server/db, shared, other repos and the database handle. Business logic belongs in server/utils.',
+      comment: 'server/repos may use server/db, shared, other repos, the database handle and the logger. Business logic belongs in server/utils.',
       severity: 'error',
       from: { path: '^server/repos/' },
       to: {
         path: '^(server|app|sync-server|renderer)/',
-        pathNot: ['^server/db/', '^server/repos/', '^server/utils/platform/database\\.ts$']
+        pathNot: ['^server/db/', '^server/repos/', '^server/utils/platform/database\\.ts$', '^server/utils/platform/logger\\.ts$']
       }
     },
 

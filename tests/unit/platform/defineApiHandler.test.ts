@@ -484,7 +484,6 @@ describe('fail closed', () => {
   it('a route whose access is not an allow.* policy answers 500 and never runs', async () => {
     const run = vi.fn(() => 'ran')
     const bogus = { kind: 'user', sessionless: false, gate: async () => ({ user: null }) }
-    vi.spyOn(console, 'error').mockImplementation(() => {})
     const handler = defineApiHandler({ access: bogus as never, handler: run }) as EventHandler
     expect((await call(handler, '/api/x', '/api/x')).status).toBe(500)
     const unknownKind = { ...bogus, kind: 'everyone', resolve: async () => ({}) }
@@ -656,7 +655,6 @@ describe('error formats', () => {
   })
 
   it('any other error (API envelope, plain Error) is a generic SCIM 500 without details', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
     for (const thrown of [new Error('db down: secret'), createError({ statusCode: 403, data: { code: 'auth/forbidden' } })]) {
       const res = await call(scimRoute(() => {
         throw thrown

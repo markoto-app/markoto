@@ -2,6 +2,9 @@ import { docExists, bumpLastActive } from '../../repos/documents'
 import { normalizeAvatarSeed } from '../../../shared/utils/documents/awarenessUser'
 import { appendActivity, pruneActivity, ACTIVITY_ACTIONS, type ActivityAction, type ActivityMetadata } from '../../repos/activity'
 import { internalActivityBody } from '~~/shared/api/platform'
+import { useLogger } from '../../utils/platform/logger'
+
+const log = useLogger('activity')
 
 // Internal endpoint called by the sync-server to log user activity.
 // Auth: X-Internal-Secret, enforced for all of /api/internal/** by
@@ -45,7 +48,7 @@ export default defineApiHandler({
     if (!inserted) {
       // Cross-instance dup or replay: `uq_activity_doc_yjsafter` makes the second
       // INSERT a no-op. Expected with several sync servers, so debug-level only.
-      console.debug(`[activity] dedup skipped insert for doc=${body.docId} action=${action} yjsAfter=${body.yjsDocIdAfter}`)
+      log.debug('dedup skipped insert', { docId: body.docId, action, yjsDocIdAfter: body.yjsDocIdAfter })
       return { success: true, logged: false, deduped: true }
     }
 

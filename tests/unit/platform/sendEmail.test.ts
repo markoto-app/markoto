@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { captureLogs } from '../../helpers/logs'
 import {
   safeSendTransactionalEmail,
   sendTransactionalEmail
@@ -18,21 +19,16 @@ function restoreEnv(): void {
   else process.env.RESEND_API_KEY = ORIGINAL_RESEND_KEY
 }
 
-describe('sendTransactionalEmail (stub mode)', () => {
-  let logSpy: ReturnType<typeof vi.spyOn>
-  let warnSpy: ReturnType<typeof vi.spyOn>
+const logs = captureLogs()
 
+describe('sendTransactionalEmail (stub mode)', () => {
   beforeEach(() => {
     delete process.env.NUXT_EMAIL_PROVIDER
     delete process.env.RESEND_API_KEY
-    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
   })
 
   afterEach(() => {
     restoreEnv()
-    logSpy.mockRestore()
-    warnSpy.mockRestore()
   })
 
   it('returns delivered=true and logs in stub mode', async () => {
@@ -44,10 +40,8 @@ describe('sendTransactionalEmail (stub mode)', () => {
       body: 'Body text'
     })
     expect(result.delivered).toBe(true)
-    expect(logSpy).toHaveBeenCalledTimes(1)
-    const logged = String(logSpy.mock.calls[0]![0])
-    expect(logged).toContain('email-stub')
-    expect(logged).toContain('account-delete-requested')
+    expect(logs.all()).toHaveLength(1)
+    expect(logs.find('info', 'email stubbed, not sent')).toMatchObject({ component: 'email', kind: 'account-delete-requested' })
   })
 
   it('redacts the email address in logs', async () => {
@@ -57,7 +51,7 @@ describe('sendTransactionalEmail (stub mode)', () => {
       locale: null,
       subject: 'x', body: 'y'
     })
-    const logged = String(logSpy.mock.calls[0]![0])
+    const logged = JSON.stringify(logs.records[0])
     expect(logged).not.toContain('alicelongname@example.com')
     expect(logged).toContain('a***@example.com')
   })
@@ -71,10 +65,10 @@ describe('sendTransactionalEmail (stub mode)', () => {
       subject: 's',
       body: longBody
     })
-    const logged = String(logSpy.mock.calls[0]![0])
+    const logged = String(logs.records[0]!.bodyPreview)
     // 280-char preview + ellipsis
     expect(logged).toContain('xxxxxxxxxx…')
-    expect(logged.length).toBeLessThan(longBody.length + 200)
+    expect(logged.length).toBeLessThan(longBody.length)
   })
 
   it('no-ops when recipient is null (no email on file)', async () => {
@@ -85,8 +79,8 @@ describe('sendTransactionalEmail (stub mode)', () => {
       subject: 's', body: 'b'
     })
     expect(result.delivered).toBe(false)
-    expect(logSpy).toHaveBeenCalledTimes(1)
-    expect(String(logSpy.mock.calls[0]![0])).toContain('no-recipient skip')
+    expect(logs.all()).toHaveLength(1)
+    expect(logs.find('info', 'no recipient, skipped')).toBeDefined()
   })
 
   it('an unknown provider name is a configuration error (boot validation refuses it)', async () => {
@@ -110,8 +104,7 @@ describe('sendTransactionalEmail (stub mode)', () => {
       subject: 'Hello', body: 'Body'
     })
     expect(result.delivered).toBe(true)
-    expect(logSpy).toHaveBeenCalledTimes(1)
-    expect(String(logSpy.mock.calls[0]![0])).toContain('email-stub')
+    expect(logs.find('info', 'email stubbed, not sent')).toBeDefined()
   })
 })
 
@@ -119,12 +112,10 @@ describe('safeSendTransactionalEmail', () => {
   beforeEach(() => {
     delete process.env.NUXT_EMAIL_PROVIDER
     delete process.env.RESEND_API_KEY
-    vi.spyOn(console, 'log').mockImplementation(() => {})
   })
 
   afterEach(() => {
     restoreEnv()
-    vi.restoreAllMocks()
   })
 
   it('returns the result on success', async () => {
@@ -138,13 +129,10 @@ describe('safeSendTransactionalEmail', () => {
   })
 
   it('returns null when the underlying sender throws (never propagates)', async () => {
-    // Force the underlying call to throw by spying on console.log to throw —
-    // stub mode logs before returning; throwing there mimics a provider
-    // crash inside the dispatch branch.
-    vi.spyOn(console, 'log').mockImplementation(() => {
-      throw new Error('boom')
-    })
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+    // An unknown provider name makes the underlying sender throw (boot
+    // validation refuses it; a runtime read does not).
+    process.env.RESEND_API_KEY = 're_unused'
+    process.env.NUXT_EMAIL_PROVIDER = 'mailgun'
 
     const result = await safeSendTransactionalEmail({
       kind: 'account.delete_requested',

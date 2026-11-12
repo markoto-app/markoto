@@ -1,5 +1,8 @@
 import { useValkey } from './valkey'
 import { HOUR_SECONDS } from '../../shared/config/units'
+import { useLogger } from './logger'
+
+const log = useLogger('not-before')
 
 // Per-document not-before cutoff for doc tokens. When a document's access
 // becomes stricter, the app sends the cutoff (its own clock, epoch
@@ -26,7 +29,7 @@ export async function readDocNotBefore(docId: string): Promise<number | null> {
     const n = Number(raw)
     return Number.isFinite(n) ? n : null
   } catch (e) {
-    console.warn(`[not-before] read failed for ${docId}:`, e instanceof Error ? e.message : e)
+    log.warn('read failed', { docId, err: e })
     return null
   }
 }
@@ -37,7 +40,7 @@ export async function writeDocNotBefore(docId: string, notBeforeSeconds: number)
     await useValkey().set(KEY(docId), String(notBeforeSeconds), 'EX', NOT_BEFORE_TTL_SECONDS)
     return true
   } catch (e) {
-    console.warn(`[not-before] write failed for ${docId}:`, e instanceof Error ? e.message : e)
+    log.warn('write failed', { docId, err: e })
     return false
   }
 }

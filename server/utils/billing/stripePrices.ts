@@ -17,6 +17,9 @@ import {
 import { MINUTE_MS } from '~~/shared/config/units'
 import { useEnv } from '~~/shared/env/load'
 import type { RawEnv } from '~~/shared/env/define'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('stripe-prices')
 
 // The Stripe price catalogue: which Stripe Price sells which
 // plan / interval / currency.
@@ -93,7 +96,7 @@ export async function getStripeCatalogue(stripe: Stripe, now: number = Date.now(
         })
       }
     } catch (e) {
-      console.warn('[stripe/prices] price lookup failed:', e instanceof Error ? e.message : e)
+      log.warn('price lookup failed', { err: e })
       Sentry.captureException(e, { tags: { component: 'stripePrices', event: 'lookup_failed' } })
     }
   }
@@ -172,7 +175,7 @@ export async function stripeTopupPriceIdFor(stripe: Stripe, pack: TopupPackId, c
     const list = await stripe.prices.list({ lookup_keys: [key], active: true, limit: 1 })
     priceId = list.data[0]?.id ?? null
   } catch (e) {
-    console.warn('[stripe/prices] top-up price lookup failed:', e instanceof Error ? e.message : e)
+    log.warn('top-up price lookup failed', { err: e })
     Sentry.captureException(e, { tags: { component: 'stripePrices', event: 'topup_lookup_failed' } })
   }
   topupCache.set(key, { at: now, priceId })

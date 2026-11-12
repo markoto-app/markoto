@@ -1,10 +1,13 @@
 import { describe, it, expect, vi } from 'vitest'
+import { captureLogs } from '../../helpers/logs'
 import type Stripe from 'stripe'
 import type { WorkspaceSubscriptionRow } from '../../../server/repos/workspaceSubscriptions'
 
 vi.stubGlobal('createError', (input: { statusCode: number, message: string, data?: unknown }) => Object.assign(new Error(input.message), input))
 
 const { cancelDuplicateWorkspaceSubscription, cancelWorkspaceSubscriptionNow, expireOpenWorkspaceCheckouts } = await import('../../../server/utils/billing/workspaceStripe')
+
+const logs = captureLogs()
 
 // Two completed Checkouts for one workspace (two admins, or two tabs):
 // the newest open Checkout is the only one that can be paid, and a
@@ -77,9 +80,9 @@ describe('cancelDuplicateWorkspaceSubscription', () => {
 
   it('a failed refund is reported, not thrown (the cancel stands)', async () => {
     const f = fakeStripe({ payments: [{ payment_intent: 'pi_1' }], refundFails: true })
-    vi.spyOn(console, 'error').mockImplementation(() => {})
     expect(await cancelDuplicateWorkspaceSubscription(f.stripe, sub('active'), 'ws1')).toEqual({ refunded: 0 })
     expect(f.cancel).toHaveBeenCalled()
+    expect(logs.find('error')).toMatchObject({ component: 'workspace-stripe', subscriptionId: 'sub_dup', workspaceId: 'ws1' })
   })
 })
 
@@ -106,7 +109,6 @@ describe('cancelWorkspaceSubscriptionNow (workspace deletion)', () => {
   }
 
   it('a Stripe failure stops the deletion (502 billing/cancel-failed)', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
     await expect(cancelWorkspaceSubscriptionNow(stripeWith(new Error('stripe down')), row))
       .rejects.toMatchObject({ statusCode: 502, data: { code: 'billing/cancel-failed' } })
   })

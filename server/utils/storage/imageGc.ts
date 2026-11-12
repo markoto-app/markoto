@@ -12,6 +12,9 @@ import type { ObjectStore } from './objectStore'
 import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
 import { useEnv } from '~~/shared/env/load'
 import type { RawEnv } from '~~/shared/env/define'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('image-gc')
 
 // Garbage collection of document images nobody can see or restore any more.
 //
@@ -201,7 +204,7 @@ export async function runImageGc(deps: ImageGcDeps): Promise<ImageGcResult> {
         }
       }
     } catch (e) {
-      console.warn(`[image-gc] check failed for doc ${docId}:`, e instanceof Error ? e.message : e)
+      log.warn('check failed', { docId, err: e })
       Sentry.captureException(e, { tags: { component: 'image-gc', event: 'doc_check_failed' } })
     }
   }

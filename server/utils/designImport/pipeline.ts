@@ -5,6 +5,9 @@ import type { DesignFacts } from './extract'
 import { buildRoundMessages, fontMatches, parseProposal, type ProposeDesignInput } from './prompt'
 import { themeFromProposal } from './proposal'
 import type { DesignImportResult } from './job'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('design-import')
 
 // The design loop, free of I/O so unit tests drive it with fakes:
 //   extract (markitdown) → propose (model) → render sample → compare (model)
@@ -89,7 +92,7 @@ export async function runDesignImportPipeline(deps: PipelineDeps): Promise<Desig
     }
 
     // Server log only: what went back to the model (never document text).
-    console.info(`[design-import] round ${round}/${maxRounds}: ${parsed.ok ? 'proposal' : 'no proposal'}, ${answer.totalTokens} tokens${feedback.length ? `, feedback: ${feedback.join(' | ').slice(0, 400)}` : ''}`)
+    log.info('round finished', { round, maxRounds, proposal: parsed.ok, totalTokens: answer.totalTokens, feedbackNotes: feedback.length })
     const finished = parsed.ok && round > 1 && feedback.length === 0
       && (parsed.value.matches_original === true || state.best?.render !== null)
     if (finished) break
@@ -99,7 +102,7 @@ export async function runDesignImportPipeline(deps: PipelineDeps): Promise<Desig
       try {
         state.best.render = await deps.render(state.best.theme, round)
       } catch (e) {
-        console.warn('[design-import] sample render failed, finishing without comparison:', e instanceof Error ? e.message : e)
+        log.warn('sample render failed, finishing without comparison', { err: e })
         canRender = false
         // Without a render there is nothing to compare: a valid proposal is final.
         if (feedback.length === 0) break
@@ -115,7 +118,7 @@ export async function runDesignImportPipeline(deps: PipelineDeps): Promise<Desig
     try {
       best.render = await deps.render(best.theme, rounds + 1)
     } catch (e) {
-      console.warn('[design-import] final preview render failed:', e instanceof Error ? e.message : e)
+      log.warn('final preview render failed', { err: e })
     }
   }
 

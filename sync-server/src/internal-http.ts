@@ -8,6 +8,9 @@ import { performReauthDocument } from './connection-expiry'
 import { writeDocNotBefore } from './doc-not-before'
 import { Sentry } from './sentry'
 import { syncEnv } from './env'
+import { useLogger, type Logger } from './logger'
+
+const log = useLogger('internal-http')
 
 export type { HocuspocusInstance } from './kickUser'
 
@@ -61,6 +64,17 @@ async function readJsonBody(request: IncomingMessage): Promise<unknown> {
  * startSpan so the sync-server's work shows up as a child of the app's
  * transaction in Sentry's Trace Explorer.
  */
+/**
+ * A logger carrying the `x-request-id` the app sent, so this line can be
+ * matched with the app's log lines of the same request. Anything that is not
+ * id-shaped is ignored (the header is set by the app, but a log field must
+ * never be attacker-shaped).
+ */
+function requestLog(request: IncomingMessage): Logger {
+  const sent = request.headers['x-request-id']
+  return typeof sent === 'string' && /^[A-Za-z0-9._-]{8,64}$/.test(sent) ? log.with({ requestId: sent }) : log
+}
+
 export async function handleInternalRequest(
   request: IncomingMessage,
   response: ServerResponse,
@@ -124,7 +138,7 @@ async function handleInternalRequestInner(
     return true
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
-    console.warn('[internal-http]', msg)
+    requestLog(request).warn('internal request failed', { path: url, err: e })
     sendJson(response, 500, { error: msg })
     return true
   }
@@ -190,7 +204,7 @@ async function handleNotifyDeleted(
   // Wait briefly so any in-flight broadcast persists `_deleted` first.
   setTimeout(() => {
     ypgPersistence.clearDocument(docId).catch((e) => {
-      console.warn(`[internal-http] clearDocument(${docId}) failed:`, e instanceof Error ? e.message : e)
+      requestLog(request).warn('clearDocument failed', { docId, err: e })
     })
   }, 3000)
 

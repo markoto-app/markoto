@@ -13,6 +13,9 @@ import { MINUTE_MS } from '~~/shared/config/units'
 import { MARKITDOWN_KNOWLEDGE_TIMEOUT_MS } from '../../config/markitdown'
 import { useEnv } from '~~/shared/env/load'
 import { KNOWLEDGE_PLATFORM_LIMITS } from '~~/shared/config/tiers'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('knowledge-processing')
 
 /**
  * End-to-end ingestion for one knowledge file:
@@ -52,7 +55,7 @@ export async function processKnowledge(knowledgeId: string): Promise<void> {
   // TTL self-heals if a worker crashes mid-pipeline.
   const lockAcquired = await tryAcquireSessionLock('knowledge-process', knowledgeId, PROCESS_LOCK_TTL_MS)
   if (!lockAcquired) {
-    console.log(`[processKnowledge] ${knowledgeId} already being processed by another worker, skipping`)
+    log.info('already being processed by another worker, skipping', { knowledgeId })
     return
   }
 
@@ -71,11 +74,11 @@ async function runPipeline(knowledgeId: string): Promise<void> {
     .limit(1)
   const row = rows[0]
   if (!row) {
-    console.warn(`[processKnowledge] ${knowledgeId} not found`)
+    log.warn('knowledge row not found', { knowledgeId })
     return
   }
   if (row.status !== 'processing') {
-    console.log(`[processKnowledge] ${knowledgeId} already ${row.status}, skipping`)
+    log.info('already past processing, skipping', { knowledgeId, status: row.status })
     return
   }
 
@@ -89,7 +92,7 @@ async function runPipeline(knowledgeId: string): Promise<void> {
     // Row may have been deleted by the user mid-conversion. Bail out
     // before we spend money on embeddings for a row nobody needs.
     if (!(await rowStillExists(knowledgeId))) {
-      console.log(`[processKnowledge] ${knowledgeId} was deleted during conversion, aborting`)
+      log.info('deleted during conversion, aborting', { knowledgeId })
       return
     }
 
@@ -123,7 +126,7 @@ async function runPipeline(knowledgeId: string): Promise<void> {
     // are the expensive step, but chunks insert + status flip still
     // waste FK-failed round trips if the row is gone.
     if (!(await rowStillExists(knowledgeId))) {
-      console.log(`[processKnowledge] ${knowledgeId} was deleted during embedding, aborting`)
+      log.info('deleted during embedding, aborting', { knowledgeId })
       return
     }
 
@@ -169,16 +172,16 @@ async function runPipeline(knowledgeId: string): Promise<void> {
       const s3 = useS3Client()
       await s3.send(new DeleteObjectCommand({ Bucket: useEnv().storage.bucket, Key: row.s3Key }))
     } catch (e) {
-      console.warn(`[processKnowledge] ${knowledgeId} original S3 delete failed (keeping row):`, e instanceof Error ? e.message : e)
+      log.warn('original S3 delete failed (keeping row)', { knowledgeId, err: e })
       Sentry.captureException(e, {
         tags: { component: 'processKnowledge', event: 'post_success_s3_delete_failed', knowledgeId }
       })
     }
 
-    console.log(`[processKnowledge] ${knowledgeId} ready: ${chunks.length} chunks, ${tokenCount} tokens`)
+    log.info('ready', { knowledgeId, chunks: chunks.length, tokens: tokenCount })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
-    console.error(`[processKnowledge] ${knowledgeId} failed:`, msg)
+    log.error('processing failed', { knowledgeId, err: e })
     Sentry.captureException(e, {
       tags: { component: 'processKnowledge', event: 'pipeline_failed', knowledgeId }
     })

@@ -33,6 +33,9 @@ import type { AccountDeletionSummary } from './accountDeletionPlan'
 import { deleteAllMemberKeys, endWorkspaceBilling, handOverBillingAdmin } from '../billing/workspaceBillingLifecycle'
 import { deleteCreditsForSubject } from '../../repos/aiCreditGrants'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('account-deletion')
 
 // Cascading account deletion executor. Policy:
 //
@@ -259,7 +262,7 @@ async function deleteOneDoc(docId: string, sentryEvent: string, summary: Account
     await deleteDocument(docId)
     summary.ownedDocsDeleted += 1
   } catch (e) {
-    console.error(`[accountDeletion] ${sentryEvent} ${docId}:`, e instanceof Error ? e.message : e)
+    log.error('document cleanup failed', { step: sentryEvent, docId, err: e })
     Sentry.captureException(e, {
       tags: { component: 'accountDeletion', event: sentryEvent, docId }
     })
@@ -303,7 +306,7 @@ async function deleteStripeCustomer(
     await stripe.customers.del(stripeCustomerId)
     summary.stripeCustomerDeleted = true
   } catch (e) {
-    console.error(`[accountDeletion] stripe customers.del failed for ${stripeCustomerId}:`, e instanceof Error ? e.message : e)
+    log.error('stripe customers.del failed', { stripeCustomerId, err: e })
     Sentry.captureException(e, {
       tags: { component: 'accountDeletion', event: 'stripe_del_failed', userId: String(userId) }
     })
@@ -322,7 +325,7 @@ async function cleanupExportS3Blobs(keys: string[]): Promise<void> {
     try {
       await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
     } catch (e) {
-      console.warn(`[accountDeletion] export blob delete failed for ${key}:`, e instanceof Error ? e.message : e)
+      log.warn('export blob delete failed', { key, err: e })
       Sentry.captureException(e, {
         tags: { component: 'accountDeletion', event: 'export_blob_delete_failed' }
       })

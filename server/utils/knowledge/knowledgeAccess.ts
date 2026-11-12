@@ -2,6 +2,9 @@ import { DeleteObjectCommand } from '@aws-sdk/client-s3'
 import * as Sentry from '@sentry/nuxt'
 import { getKnowledge, deleteKnowledgeRow } from '../../repos/knowledge'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('knowledge')
 
 /**
  * Knowledge-base access rules (declared by the routes under
@@ -39,7 +42,7 @@ export async function deleteKnowledgeArtifact(knowledgeId: string): Promise<void
       Key: row.s3Key
     }))
   } catch (e) {
-    console.error(`[knowledge] S3 delete failed for ${row.s3Key}:`, e instanceof Error ? e.message : e)
+    log.error('S3 delete failed', { s3Key: row.s3Key, err: e })
     Sentry.captureException(e, {
       tags: { component: 'knowledgeAccess', event: 's3_delete_failed', knowledgeId }
     })

@@ -2,6 +2,9 @@ import { nanoid } from 'nanoid'
 import { useValkey, useValkeySubscriber } from '../platform/valkey'
 import type { ToolStatusPhase } from './toolContext'
 import { MINUTE_MS } from '~~/shared/config/units'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('ai-session-channel')
 
 // Initiator-only channel for an AI session.
 //
@@ -215,7 +218,7 @@ function readConfirmation(raw: string | null): PendingConfirmation | null {
 }
 
 function logChannelError(what: string, e: unknown): void {
-  console.warn(`[ai/session-channel] ${what} failed: ${e instanceof Error ? e.message : String(e)}`)
+  log.warn('session channel operation failed', { operation: what, err: e })
 }
 
 /**

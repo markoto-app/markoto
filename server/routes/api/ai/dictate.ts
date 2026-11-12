@@ -20,6 +20,9 @@ import type { DictateJwtPayload } from '~~/shared/contracts/jwt'
 import { encodeServerFrame } from '~~/shared/contracts/dictateWs'
 import { MINUTE_MS } from '~~/shared/config/units'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../../../utils/platform/logger'
+
+const log = useLogger('dictate')
 
 // WebSocket relay for live voice dictation. Bridges the browser's PCM
 // audio stream to Mistral Voxtral Realtime via the official
@@ -186,7 +189,7 @@ export default defineEventHandler({
     },
 
     error(peer, err) {
-      console.error('[dictate] ws error:', err)
+      log.error('ws error', { err })
       Sentry.captureException(err, {
         tags: { component: 'dictate', event: 'ws_error' }
       })
@@ -258,7 +261,7 @@ async function handleAudioChunk(p: PeerLike, ctx: DictatePeerContext, raw: unkno
   try {
     ctx.stt.write(buf)
   } catch (e) {
-    console.error('[dictate] stt write failed:', e)
+    log.error('stt write failed', { err: e })
     Sentry.captureException(e, { tags: { component: 'dictate', event: 'stt_write_failed' } })
     p.send(encodeServerFrame({ type: 'error', message: 'upstream send failed' }))
     p.close(1011, 'stt write failed')
@@ -371,7 +374,7 @@ async function fireVoiceTick(peer: PeerLike, ctx: DictatePeerContext): Promise<v
     }
     // Transient failure (network, LiteLLM hiccup) — log + continue.
     // The next tick (60s later) will retry.
-    console.warn(`[dictate] voice-tick failed (continuing): ${e instanceof Error ? e.message : e}`)
+    log.warn('voice-tick failed (continuing)', { err: e })
   }
 }
 
@@ -394,7 +397,7 @@ async function fireRoundUpTick(ctx: DictatePeerContext): Promise<void> {
     // Fire-and-forget — by the time we round-up the WS is gone and
     // there's no one to surface the error to. Telemetry would just be
     // noise.
-    console.warn(`[dictate] round-up tick failed: ${e instanceof Error ? e.message : e}`)
+    log.warn('round-up tick failed', { err: e })
   }
 }
 
@@ -493,7 +496,7 @@ async function handleAuth(
   try {
     billing = await resolveBillingContext(payload.userId, ctx.workspaceId)
   } catch (e) {
-    console.error('[dictate] billing resolve failed:', e)
+    log.error('billing resolve failed', { err: e })
     Sentry.captureException(e, {
       tags: { component: 'dictate', event: 'billing_resolve_failed', userId: String(payload.userId) }
     })
@@ -511,7 +514,7 @@ async function handleAuth(
   try {
     target = liveDictationTarget((await resolveAiProviders(payload.userId, billing.plan)).transcription)
   } catch (e) {
-    console.error('[dictate] provider resolve failed:', e instanceof Error ? e.message : e)
+    log.error('provider resolve failed', { err: e })
     target = null
   }
   if (!target) {
@@ -543,7 +546,7 @@ async function handleAuth(
       interimResults: true
     })
   } catch (e) {
-    console.error('[dictate] streamingRecognize init failed:', e)
+    log.error('streamingRecognize init failed', { err: e })
     Sentry.captureException(e, {
       tags: { component: 'dictate', event: 'stt_init_failed' }
     })
@@ -572,7 +575,7 @@ async function handleAuth(
     // silently — surfacing it as a UI error on the client would show
     // a toast for what was really a clean shutdown.
     if (ctx.sttEnded && /write after end/i.test(msg)) return
-    console.error('[dictate] stt error:', err)
+    log.error('stt error', { err })
     Sentry.captureException(err, {
       tags: { component: 'dictate', event: 'stt_stream_error' }
     })

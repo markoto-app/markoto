@@ -7,6 +7,9 @@ import { NOTICE_COPY, normaliseNoticeLocale, type NoticeLocale } from './moderat
 import { isModerationRule, type ModerationAction } from '~~/shared/config/moderation'
 import { appendAuditEvent } from '../../repos/audit'
 import { AUDIT_ABUSE_NOTICE_RECORDED } from '../../legal/auditActions'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('moderation')
 
 // Notices of the abuse pipeline: build the localised text, send it (if
 // there is anyone to send it to) and record exactly what was produced in
@@ -163,7 +166,7 @@ export async function deliverNotice(input: DeliverNoticeInput): Promise<NoticeSt
       body: input.notice.body
     })
   } catch (e) {
-    console.error('[moderationNotices] could not record notice:', e instanceof Error ? e.message : e)
+    log.error('could not record notice', { err: e })
     Sentry.captureException(e, { tags: { component: 'moderation', event: 'notice_record_failed' } })
   }
   await appendAuditEvent({

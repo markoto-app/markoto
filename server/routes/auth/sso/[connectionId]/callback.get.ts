@@ -6,6 +6,9 @@ import { oidcSettingsForConnection, ssoErrorPath, takeSsoFlowCookie } from '../.
 import { finishSsoSignIn } from '../../../../utils/sso/finish'
 import { ID_RE } from '~~/shared/config/identifiers'
 import { ssoConnectionParams } from '~~/shared/api/sso'
+import { useLogger } from '../../../../utils/platform/logger'
+
+const log = useLogger('auth-sso')
 
 // GET /auth/sso/:connectionId/callback — OIDC redirect back from a
 // workspace's identity provider. The flow cookie (signed, single
@@ -22,7 +25,7 @@ export default defineApiHandler({
     const connection = ID_RE.test(connectionId) ? await getSsoConnectionById(connectionId) : null
     if (!connection || connection.protocol !== 'oidc') return sendRedirect(event, ssoErrorPath('sso/unknown'))
     if (!flow || flow.connectionId !== connection.id || !flow.state || !flow.nonce || !flow.codeVerifier) {
-      console.warn('[auth/sso] OIDC callback without a valid flow cookie (expired, forged or another browser)')
+      log.warn('OIDC callback without a valid flow cookie (expired, forged or another browser)')
       return sendRedirect(event, ssoErrorPath('sso/failed', connection.workspaceId))
     }
 
@@ -34,7 +37,7 @@ export default defineApiHandler({
       const config = await getOidcConfiguration(settings)
       profile = await completeOidcAuthorization(config, callbackUrl, { state: flow.state, nonce: flow.nonce, codeVerifier: flow.codeVerifier })
     } catch (err) {
-      console.warn(`[auth/sso] OIDC sign-in rejected for connection ${connection.id}: ${err instanceof Error ? `${err.name}: ${err.message}` : 'unknown error'}`)
+      log.warn('OIDC sign-in rejected', { connectionId: connection.id, err })
       await appendAuditEvent({
         actorUserId: null,
         actorIp: getClientIp(event),

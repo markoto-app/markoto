@@ -7,6 +7,9 @@ import * as Y from 'yjs'
 import { injectTraceHeaders } from './sentry'
 import { normalizeAvatarSeed } from '../../shared/utils/documents/awarenessUser'
 import { syncEnv } from './env'
+import { useLogger } from './logger'
+
+const log = useLogger('comments-snapshot')
 
 const APP_URL = syncEnv().sync.appUrl
 const INTERNAL_SECRET = syncEnv().auth.internalApiSecret
@@ -138,10 +141,10 @@ export async function shipCommentsSnapshot(
     if (res.ok) {
       lastShipped.set(docId, fingerprint)
     } else {
-      console.warn(`[comments-snapshot] mirror returned ${res.status} for ${docId}`)
+      log.warn('mirror returned an error status', { status: res.status, docId })
     }
   } catch (e) {
-    console.warn(`[comments-snapshot] mirror failed for ${docId}:`, e instanceof Error ? e.message : e)
+    log.warn('mirror failed', { docId, err: e })
   }
 }
 

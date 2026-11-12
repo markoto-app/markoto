@@ -3,6 +3,9 @@ import { and, isNotNull, lte, sql } from 'drizzle-orm'
 import { users } from '../../db/schema'
 import { useDatabase } from '../platform/database'
 import { executeAccountDeletion } from './accountDeletionExecute'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('account-deletion')
 
 // Sweeper that drives the cascading deletion. Runs hourly, advisory-
 // locked at the plugin level. Reads users whose grace window has
@@ -62,10 +65,7 @@ export async function runAccountDeletionSweep(): Promise<DeletionSweepResult> {
     } catch (e) {
       result.failed += 1
       result.failedUserIds.push(row.id)
-      console.error(
-        `[accountDeletionSweep] user ${row.id} failed:`,
-        e instanceof Error ? e.message : e
-      )
+      log.error('account deletion failed', { userId: row.id, err: e })
       Sentry.captureException(e, {
         tags: {
           component: 'accountDeletionSweep',
@@ -77,9 +77,7 @@ export async function runAccountDeletionSweep(): Promise<DeletionSweepResult> {
   }
 
   if (result.scanned > 0) {
-    console.log(
-      `[accountDeletionSweep] scanned=${result.scanned} ok=${result.succeeded} failed=${result.failed}`
-    )
+    log.info('account deletion sweep finished', { scanned: result.scanned, succeeded: result.succeeded, failed: result.failed })
   }
 
   return result

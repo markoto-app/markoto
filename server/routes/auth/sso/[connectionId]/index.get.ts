@@ -6,6 +6,9 @@ import { oidcSettingsForConnection, setSsoFlowCookie, ssoErrorPath } from '../..
 import { newSamlRequestId, samlFor } from '../../../../utils/sso/saml'
 import { ID_RE } from '~~/shared/config/identifiers'
 import { ssoConnectionParams, startSsoSignInQuery } from '~~/shared/api/sso'
+import { useLogger } from '../../../../utils/platform/logger'
+
+const log = useLogger('auth-sso')
 
 // GET /auth/sso/:connectionId — start a sign-in through a workspace's
 // identity provider. `?test=1` = an admin testing a draft
@@ -51,7 +54,7 @@ export default defineApiHandler({
       try {
         config = await getOidcConfiguration(settings)
       } catch (err) {
-        console.warn(`[auth/sso] OIDC discovery failed for connection ${connection.id}: ${err instanceof Error ? err.message : 'unknown error'}`)
+        log.warn('OIDC discovery failed', { connectionId: connection.id, err })
         return sendRedirect(event, ssoErrorPath('sso/idp-unavailable', connection.workspaceId))
       }
       const { url, flow: oidcFlow } = await buildOidcAuthorizationRequest(config, settings, settings.redirectUrl!)

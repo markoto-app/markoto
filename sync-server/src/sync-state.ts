@@ -20,6 +20,9 @@
 
 import { useValkey } from './valkey'
 import { DAY_SECONDS } from '../../shared/config/units'
+import { useLogger } from './logger'
+
+const log = useLogger('sync-state')
 
 const TTL_SECONDS = DAY_SECONDS
 
@@ -78,7 +81,7 @@ async function safeDel(key: string): Promise<void> {
     await useValkey().del(key)
   } catch (e) {
     // Cleanup-only path; logging is the right thing here.
-    console.warn(`[sync-state] del failed for ${key}:`, e instanceof Error ? e.message : e)
+    log.warn('del failed', { key, err: e })
   }
 }
 

@@ -9,6 +9,9 @@ import { deleteUploadsForDoc } from '../../repos/uploads'
 import { deleteDocRow } from '../../repos/documents'
 import { injectTraceHeaders } from '../platform/traceHeaders'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('document-lifecycle')
 
 // Full-cascade deletion for a document. Used by:
 // - `server/api/docs/[docId]/index.delete.ts` (user-initiated delete)
@@ -87,7 +90,7 @@ export async function cleanupDocS3(
     }
     return keysToDelete.length
   } catch (e) {
-    console.error(`[deleteDocument] S3 cleanup failed for ${docId}:`, e instanceof Error ? e.message : e)
+    log.error('S3 cleanup failed', { docId, err: e })
     Sentry.captureException(e, {
       tags: { component: 'documentLifecycle', event: 's3_cleanup_failed', docId }
     })
@@ -121,7 +124,7 @@ export function notifySyncDeleted(
     body: JSON.stringify({ docId }),
     signal: AbortSignal.timeout(3000)
   }).catch((e) => {
-    console.warn(`[deleteDocument] sync-server notify failed for ${docId}:`, e instanceof Error ? e.message : e)
+    log.warn('sync-server notify failed', { docId, err: e })
     captureExceptionThrottled('documentLifecycle.notify-deleted', e, {
       tags: { component: 'documentLifecycle', event: 'sync_notify_deleted_failed' }
     })

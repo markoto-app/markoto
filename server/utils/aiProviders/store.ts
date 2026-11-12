@@ -3,7 +3,7 @@
 // server is `AiProviderConfigView` (host + last four characters).
 
 import type { z } from 'zod'
-import { encryptToken, decryptToken } from '../litellm/tokenCrypto'
+import { openProviderKey, sealProviderKey } from './keyCrypto'
 import { getAiProvider, upsertAiProvider, type AiProviderRow } from '../../repos/aiProviders'
 import { resolveByokUrlPolicy } from './config'
 import { checkProviderBaseUrl } from './urlPolicy'
@@ -49,7 +49,7 @@ export async function saveUserProvider(
   if (!apiKey) {
     if (!existing || normalizeBaseUrl(existing.baseUrl) !== baseUrl) return { kind: 'key-required' }
     try {
-      apiKey = decryptToken(existing.apiKeyEncrypted)
+      apiKey = openProviderKey(existing)
     } catch {
       return { kind: 'key-required' }
     }
@@ -71,7 +71,7 @@ export async function saveUserProvider(
     capability,
     baseUrl,
     model: body.model,
-    apiKeyEncrypted: encryptToken(apiKey),
+    apiKeyEncrypted: sealProviderKey(userId, capability, apiKey),
     apiKeyLast4: apiKeyLast4(apiKey),
     supportsVision,
     supportsTools: verify.supportsTools,
@@ -87,7 +87,7 @@ export async function reverifyUserProvider(
 ): Promise<VerifyResult> {
   let apiKey: string
   try {
-    apiKey = decryptToken(row.apiKeyEncrypted)
+    apiKey = openProviderKey(row)
   } catch {
     return { code: 'auth-failed', ok: false, supportsTools: null, message: 'The stored key can no longer be read. Enter it again.' }
   }

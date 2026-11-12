@@ -21,7 +21,7 @@ import { effectivePlan } from '../billing/billingMode'
 import { getTiers } from '../billing/tierConfig'
 import { planToBudgetUsd } from '~~/shared/billing/aiPoints'
 import type { PlanName } from '~~/shared/config/tiers'
-import { decryptToken } from './tokenCrypto'
+import { openSecretOrNull, secretContext } from '../platform/secretBox'
 import { creditBudgetExtraUsd } from '../billing/aiCreditBudget'
 import { listSubjectsWithCredits } from '../../repos/aiCreditGrants'
 import { litellmAdminFetch } from './litellmAdmin'
@@ -29,6 +29,9 @@ import { ensureFreeTierTeam, ensureFreeTierTeamMember, FREE_TIER_BUDGET_DURATION
 import { DAY_MS } from '~~/shared/config/units'
 import { useEnv } from '~~/shared/env/load'
 import type { RawEnv } from '~~/shared/env/define'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('litellm-key-reconcile')
 
 const PAGE_SIZE = 100
 /** Hard stop for the listing loop (100k keys) — guards against a proxy that never reports its last page. */
@@ -134,30 +137,35 @@ export async function reconcileUserKeys(): Promise<KeyReconcileSummary> {
       desired.maxBudget = Math.round((desired.maxBudget + await creditBudgetExtraUsd({ type: 'user', id: String(row.id) })) * 10_000) / 10_000
     }
     if (!keyNeedsUpdate(current, desired)) continue
+    // Unreadable token: ensureUserKey replaces the key on the user's next AI call.
+    const token = openSecretOrNull('litellm-user-key', secretContext.litellmUserKey(row.id), row.keyToken)
+    if (!token) {
+      summary.failed++
+      continue
+    }
     try {
       // LiteLLM only moves a key into a team whose member its user is.
       if (desired.teamId) await ensureFreeTierTeamMember(row.id)
       const res = await litellmAdminFetch('/key/update', {
         method: 'POST',
         body: JSON.stringify({
-          key: decryptToken(row.keyToken),
+          key: token,
           team_id: desired.teamId,
           max_budget: desired.maxBudget,
           budget_duration: desired.budgetDuration
         })
       })
       if (!res.ok) {
-        const text = await res.text().catch(() => '')
-        throw new Error(`${res.status} ${text.slice(0, 200)}`)
+        throw new Error(`LiteLLM answered ${res.status}`)
       }
       summary.updated++
     } catch (e) {
       summary.failed++
-      console.warn(`[keyReconcile] /key/update for user ${row.id} failed: ${e instanceof Error ? e.message : e}`)
+      log.warn('/key/update failed', { userId: row.id, err: e })
     }
   }
   if (summary.updated > 0 || summary.missing > 0 || summary.failed > 0) {
-    console.log(`[keyReconcile] checked=${summary.checked} updated=${summary.updated} missing=${summary.missing} failed=${summary.failed}`)
+    log.info('key reconcile finished', { ...summary })
   }
   return summary
 }

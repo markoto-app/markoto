@@ -6,6 +6,9 @@ import { Sentry } from './sentry'
 import { renderDocument, type RenderInput } from './render'
 import { checkInternalSecret, INTERNAL_SECRET_HEADER } from './internalSecret'
 import { env } from './env'
+import { useLogger } from './logger'
+
+const log = useLogger('renderer')
 
 const PORT = env.renderer.port
 const INTERNAL_SECRET = env.auth.internalApiSecret
@@ -62,6 +65,10 @@ const server = Bun.serve({
       // (and the renderer's Playwright `page.goto` to the print page is a
       // sibling trace — that hop can't carry headers via Playwright; see
       // docs/operations/OBSERVABILITY.md "Tracing limitations").
+      // The app's request id (renderClient.ts sends it with the trace headers),
+      // so these lines match the app's log lines of the same request.
+      const sentRequestId = req.headers.get('x-request-id')
+      const reqLog = sentRequestId && /^[A-Za-z0-9._-]{8,64}$/.test(sentRequestId) ? log.with({ requestId: sentRequestId }) : log
       const sentryTrace = req.headers.get('sentry-trace') ?? undefined
       const baggage = req.headers.get('baggage') ?? undefined
       return await Sentry.continueTrace({ sentryTrace, baggage }, () => {
@@ -71,13 +78,12 @@ const server = Bun.serve({
             const t0 = Date.now()
             try {
               const out = await renderDocument({ docId, snapshotId, format, variant })
-              console.log(`[renderer] docId=${docId} snap=${snapshotId} format=${format} `
-                + `pages=${out.pageCount} ms=${Date.now() - t0}`)
+              reqLog.info('rendered', { docId, snapshotId, format, pages: out.pageCount, durationMs: Date.now() - t0 })
               return jsonResponse(out, 200)
             } catch (e) {
               const msg = e instanceof Error ? e.message : 'render failed'
               const status = (e as { statusCode?: number }).statusCode ?? 500
-              console.warn(`[renderer] docId=${docId} snap=${snapshotId} ms=${Date.now() - t0} failed:`, msg)
+              reqLog.warn('render failed', { docId, snapshotId, format, durationMs: Date.now() - t0, status, err: e })
               Sentry.captureException(e, {
                 tags: { component: 'renderer', event: 'render_failed', docId },
                 extra: { snapshotId, format }
@@ -93,7 +99,7 @@ const server = Bun.serve({
   }
 })
 
-console.log(`[renderer] listening on :${server.port}`)
+log.info('listening', { port: server.port })
 
 function jsonResponse(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
@@ -105,7 +111,7 @@ function jsonResponse(body: unknown, status: number): Response {
 // Graceful shutdown — close the browser before exiting so Chromium's temp
 // dirs get cleaned up properly. SIGTERM from compose; SIGINT from Ctrl-C.
 async function shutdown(signal: string) {
-  console.log(`[renderer] received ${signal}, shutting down`)
+  log.info('shutting down', { signal })
   server.stop()
   // Browser closure happens lazily on next launch; explicit close not
   // required since the kernel reaps the process tree on exit. Skip to

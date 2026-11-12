@@ -32,6 +32,9 @@ import {
 import { closeValkey } from './valkey'
 import { createConnectionExpiry, type ReauthConnection } from './connection-expiry'
 import { syncEnv } from './env'
+import { useLogger } from './logger'
+
+const log = useLogger('hocuspocus')
 
 // Auth singleton — wired from env here (not inside auth.ts) so unit tests
 // can import `createAuth` without tripping a top-level env guard.
@@ -64,13 +67,13 @@ const updateGuard = createUpdateGuard(syncLimits)
 // See connection-expiry.ts.
 const connectionExpiry = createConnectionExpiry({
   onExpired: (conn) => {
-    console.warn(`[hocuspocus] closing connection with an expired token (user ${String(conn.context?.userId ?? '?')})`)
+    log.warn('closing connection with an expired token', { userId: String(conn.context?.userId ?? '?') })
   }
 })
 
 const preAuthGuard = createPreAuthGuard(parsePreAuthLimits(syncEnv()), {
   onReject: (reason, detail) => {
-    console.warn(`[hocuspocus] closing socket before authentication: ${reason} (${detail})`)
+    log.warn('closing socket before authentication', { reason, detail })
     captureMessage('[hocuspocus] pre-auth socket closed', {
       level: 'warning',
       tags: { component: 'hocuspocus', event: 'preauth_rejected', reason }
@@ -103,7 +106,7 @@ const server = new Server({
       // null `from` value.
       await setPrevMeta(data.documentName, readMetaSnapshot(doc))
     } catch (e) {
-      console.warn(`[hocuspocus] baseline seed failed for ${data.documentName}:`, e instanceof Error ? e.message : e)
+      log.warn('baseline seed failed', { docId: data.documentName, err: e })
     }
     return doc
   },
@@ -121,7 +124,7 @@ const server = new Server({
       const rejection = e instanceof SyncRejection
         ? e
         : new SyncRejection(SYNC_CLOSE_REASONS.invalidUpdate, e instanceof Error ? e.message : 'guard error')
-      console.warn(`[hocuspocus] ${rejection.message} on ${data.documentName} (socket ${data.socketId})`)
+      log.warn('update rejected', { reason: rejection.message, docId: data.documentName, socketId: data.socketId })
       captureMessage('[hocuspocus] update rejected', {
         level: 'warning',
         tags: { component: 'hocuspocus', event: 'update_rejected', reason: rejection.reason }
@@ -192,7 +195,7 @@ const server = new Server({
     // `shipCommentsSnapshot` returns a Promise (typescript:S4822).
     shipCommentsSnapshot(data.documentName, data.document, { yjsDocIdBefore, yjsDocIdAfter })
       .catch((e) => {
-        console.warn('[hocuspocus] comments-snapshot ship failed:', e instanceof Error ? e.message : e)
+        log.warn('comments-snapshot ship failed', { err: e })
       })
   },
 
@@ -282,7 +285,7 @@ server.webSocketServer.on('connection', (socket, request) => {
 })
 
 server.listen(port, () => {
-  console.log(`[hocuspocus] Sync server listening on port ${port}`)
+  log.info('sync server listening', { port })
 })
 
 // Background compaction of the yjs_documents append-log. y-postgresql only
@@ -327,8 +330,7 @@ function resolveAttribution(
   let fallback: VerifiedIdentity | null = null
   if (!tracked) {
     const cause = trackedFetch.cause === 'error' ? 'valkey-error' : 'valkey-miss'
-    const errMsg = trackedFetch.error ? ` (${trackedFetch.error.message})` : ''
-    console.warn(`[hocuspocus] Attribution fallback for doc ${data.documentName}: cause=${cause}${errMsg}, using awareness heuristic`)
+    log.warn('attribution fallback, using awareness heuristic', { docId: data.documentName, cause, err: trackedFetch.error })
     captureMessage(`[hocuspocus] Attribution fallback for doc ${data.documentName}`, {
       level: 'warning',
       tags: { component: 'hocuspocus', event: 'attribution_fallback', cause }
@@ -414,7 +416,7 @@ async function logEditActivity(
       yjsDocIdAfter
     })
   } catch (e) {
-    console.warn('[hocuspocus] activity log failed:', e instanceof Error ? e.message : e)
+    log.warn('activity log failed', { err: e })
   }
 }
 
@@ -475,7 +477,7 @@ async function logMetaDiffActivity(
       })
     }
   } catch (e) {
-    console.warn('[hocuspocus] meta diff failed:', e instanceof Error ? e.message : e)
+    log.warn('meta diff failed', { err: e })
   }
 }
 
@@ -487,11 +489,11 @@ let shuttingDown = false
 async function shutdown(signal: string) {
   if (shuttingDown) return
   shuttingDown = true
-  console.log(`[hocuspocus] Received ${signal}, draining…`)
+  log.info('draining', { signal })
   // Hard cap so a stuck connection can't block the process forever; SIGKILL
   // arrives after `stop_grace_period` (compose) anyway, but explicit is nicer.
   const killTimer = setTimeout(() => {
-    console.error('[hocuspocus] Drain timed out after 25s, forcing exit.')
+    log.error('Drain timed out after 25s, forcing exit.')
     process.exit(1)
   }, 25_000)
   try {
@@ -499,11 +501,11 @@ async function shutdown(signal: string) {
     await server.destroy()
     await ypgPersistence.destroy()
     await closeValkey()
-    console.log('[hocuspocus] Shutdown complete.')
+    log.info('Shutdown complete.')
     clearTimeout(killTimer)
     process.exit(0)
   } catch (e) {
-    console.error('[hocuspocus] Shutdown error:', e)
+    log.error('Shutdown error', { err: e })
     clearTimeout(killTimer)
     process.exit(1)
   }

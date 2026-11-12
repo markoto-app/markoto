@@ -7,6 +7,9 @@ import { OPERATOR_URL_POLICY, resolveByokUrlPolicy } from './config'
 import { AiProviderUrlRefused, checkProviderBaseUrl } from './urlPolicy'
 import { litellmModelFor, type ResolvedAiProvider } from './resolve'
 import type { VerifyCode } from '~~/shared/ai/providers'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('ai-provider')
 
 /**
  * LiteLLM's clientside-credential fields. Only ever sent together with a
@@ -150,6 +153,8 @@ export async function withProviderErrors<T>(provider: ResolvedAiProvider, fn: ()
 
 /** Server-log line for a failed provider call (key redacted, bounded). */
 export function logProviderFailure(code: VerifyCode, e: unknown, apiKey: string | null | undefined): void {
+  // The user's key is removed from the message before the logger sees it; the
+  // logger then masks key-shaped strings and bounds the length on top.
   const detail = redactSecret(e instanceof Error ? e.message : String(e), apiKey).slice(0, 300)
-  console.warn(`[ai-provider] call failed (${code}): ${detail}`)
+  log.warn('provider call failed', { code, detail })
 }

@@ -3,6 +3,9 @@ import type { SessionJwtPayload } from '../../shared/contracts/jwt'
 import { captureMessage } from './sentry'
 import { readDocNotBefore } from './doc-not-before'
 import { syncEnv } from './env'
+import { useLogger } from './logger'
+
+const log = useLogger('auth')
 
 // Hocuspocus `onAuthenticate` hook — runs on every new WS connection and
 // MUST reject anything not carrying a valid, in-scope JWT. This is the
@@ -79,7 +82,7 @@ export function createTokenVerifier({ secret, previousSecret, notBeforeFor }: Cr
       // defaults to HMAC algorithms only and rejects `alg: none`) into a
       // single error. Preserves the log line with the real cause for
       // operators without leaking which specific thing failed to callers.
-      console.warn(`[auth] Invalid token for ${documentName}:`, e instanceof Error ? e.message : e)
+      log.warn('invalid token', { docId: documentName, err: e })
       // `cause` stays server-side (logs/Sentry); callers only see the message.
       throw new Error('Invalid token', { cause: e })
     }
@@ -88,7 +91,7 @@ export function createTokenVerifier({ secret, previousSecret, notBeforeFor }: Cr
     // every mint site sets one, so its absence means a forged or
     // mis-minted token.
     if (typeof payload.exp !== 'number') {
-      console.warn(`[auth] Token without exp for ${documentName}`)
+      log.warn('token without exp', { docId: documentName })
       throw new Error('Invalid token')
     }
 
@@ -105,7 +108,7 @@ export function createTokenVerifier({ secret, previousSecret, notBeforeFor }: Cr
     // connection. Without this check, a leaked render token could be
     // replayed against the WS to read the live doc state.
     if (typeof payload.scope === 'string' && payload.scope.length > 0) {
-      console.warn(`[auth] Rejected scope-narrowed token (scope=${payload.scope}) for ${documentName}`)
+      log.warn('rejected scope-narrowed token', { docId: documentName, scope: payload.scope })
       // Operationally interesting: this branch fires when something
       // tries to escalate a narrow-scope token (e.g. a leaked render
       // token) into a Y.js connection. A spike here = active replay

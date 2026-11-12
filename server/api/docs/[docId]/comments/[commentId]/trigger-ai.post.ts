@@ -31,6 +31,9 @@ import { wrapPromptWithEditorState } from '../../../../../utils/agentic/editorSt
 import { EDITOR_SELECTION_TEXT_MAX } from '~~/shared/types/editorSelection'
 import { loopErrorMessage } from '../../../../../utils/agentic/loopErrorMessage'
 import { commentParams, triggerCommentAiBody } from '~~/shared/api/ai'
+import { useLogger } from '../../../../../utils/platform/logger'
+
+const log = useLogger('ai-trigger')
 
 // POST /api/docs/:docId/comments/:commentId/trigger-ai
 //
@@ -400,9 +403,9 @@ function handleTriggerLoopError(
   // Message → initiator only (session channel); others see the phase.
   setStatus(isAbort ? 'done' : 'error', isAbort ? 'Stopped' : `Error: ${loopErrorMessage(e)}`)
   if (isAbort) {
-    console.log(`[ai/trigger ${args.sessionId}] aborted by user`)
+    log.info('aborted by user', { sessionId: args.sessionId })
   } else {
-    console.error(`[ai/trigger ${args.sessionId}] loop failed:`, e)
+    log.error('loop failed', { sessionId: args.sessionId, docId: args.docId, commentId: args.commentId, err: e })
     Sentry.captureException(e, {
       tags: { component: 'aiCommentTrigger', event: 'loop_failed', sessionId: args.sessionId, docId: args.docId, commentId: args.commentId }
     })

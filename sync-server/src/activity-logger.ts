@@ -3,6 +3,9 @@
 
 import { injectTraceHeaders, captureException } from './sentry'
 import { syncEnv } from './env'
+import { useLogger } from './logger'
+
+const log = useLogger('activity-logger')
 
 const APP_URL = syncEnv().sync.appUrl
 const INTERNAL_SECRET = syncEnv().auth.internalApiSecret
@@ -68,7 +71,7 @@ export async function logActivity(event: ActivityEvent): Promise<void> {
       signal: AbortSignal.timeout(5000)
     })
   } catch (e) {
-    console.warn(`[activity-logger] Failed to log ${event.action} for ${event.docId}:`, e instanceof Error ? e.message : e)
+    log.warn('failed to log activity', { action: event.action, docId: event.docId, err: e })
     // App-side activity loss is operationally interesting — a steady
     // trickle means the internal endpoint or its auth path is broken.
     // Defensive try/catch so a Sentry transport hiccup never blocks

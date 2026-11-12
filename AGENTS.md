@@ -49,6 +49,7 @@ The test stack runs through `scripts/test-compose.sh` (detects rootless Podman).
 
 Runtime and build
 - Configuration: every environment variable is declared once in `shared/env/vars/` (then `bun run env:gen`); read it with `useEnv()` / `syncEnv()` / the renderer's `env`, never `process.env` (ESLint `markoto/no-raw-env`). Invalid values fail boot. Guide: `docs/contributing/configuration.md`.
+- Logging: backend code logs through `useLogger('component')` (JSON lines in production, `LOG_LEVEL`, built-in redaction of tokens / emails / URL queries / bodies), never `console.*` (ESLint `no-console`). Guide: `docs/contributing/logging.md`.
 - `nitro.preset` stays `bun`: lib0 and others ship Bun conditional exports that the `node-server` preset traces wrongly.
 - `server/runtime/bunEntry.ts` is a copy of nitropack's bun preset entry. When `tests/unit/platform/bunEntryUpstream.test.ts` fails, re-derive the file from the new upstream entry; never just refresh the snapshot.
 - OAuth handlers live in `server/routes/auth/`; there is no `server/auth/` route directory.
@@ -130,7 +131,7 @@ Docs (humans first, but read the relevant one before a larger change):
 |---|---|
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System overview, security model, data stores, design decisions |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Setup, checks, coding rules, PR conventions |
-| [`docs/contributing/`](docs/contributing/) | `testing`, `flow-docs`, `server`, `api-handlers`, `database`, `billing`, `knowledge-base`, `ai-tools`, `mcp`, `privacy-registries`, `sync-server`, `activity-log`, `preview-pipeline`, `design-system`, `templates`, `marketing-site`, `TEMPLATE-WORKFLOW` (design templates), `LOCAL`, `CONTAINER-ENGINES`, `CHEATSHEET` |
+| [`docs/contributing/`](docs/contributing/) | `testing`, `logging`, `flow-docs`, `server`, `api-handlers`, `database`, `billing`, `knowledge-base`, `ai-tools`, `mcp`, `privacy-registries`, `sync-server`, `activity-log`, `preview-pipeline`, `design-system`, `templates`, `marketing-site`, `TEMPLATE-WORKFLOW` (design templates), `LOCAL`, `CONTAINER-ENGINES`, `CHEATSHEET` |
 | [`docs/reference/rate-limits.md`](docs/reference/rate-limits.md) | Request limits with their source files |
 | [`docs/SELF-HOSTING.md`](docs/SELF-HOSTING.md) | Install, configuration reference, upgrades, backups |
 | [`docs/AI-MODELS.md`](docs/AI-MODELS.md), [`docs/SECURITY-HARDENING.md`](docs/SECURITY-HARDENING.md), [`docs/S3-SETUP.md`](docs/S3-SETUP.md) | AI models, hardening, external S3 |

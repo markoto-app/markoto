@@ -6,6 +6,9 @@ import { emailLinkBaseUrl } from '../platform/siteUrl'
 import { safeSendTransactionalEmail } from './sendEmail'
 import { normaliseInviteLocale, type InviteEmailLocale } from '../workspaces/workspaceInvites'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('workspace-billing-email')
 
 // Billing emails to a Team / Business workspace's admins:
 //   budget_80 / budget_100 — the workspace's AI budget is 80 % / fully used
@@ -155,7 +158,7 @@ export async function notifyWorkspaceAdmins(args: {
     }
     return sent
   } catch (e) {
-    console.warn(`[workspaceBillingEmails] ${args.kind} for ${args.workspaceId} failed: ${e instanceof Error ? e.message : e}`)
+    log.warn('billing email failed', { kind: args.kind, workspaceId: args.workspaceId, err: e })
     return 0
   }
 }

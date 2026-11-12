@@ -6,6 +6,9 @@ import { defineSweeper } from '../utils/platform/defineSweeper'
 import { loadInactiveAnonymousDocs, parseInactiveDocTtlDays } from '../utils/documents/inactiveDocSweep'
 import { SWEEPS } from '../config/sweeps'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../utils/platform/logger'
+
+const log = useLogger('inactive-doc-sweep')
 
 // Periodic cleanup of abandoned documents.
 //
@@ -36,7 +39,7 @@ async function sweep(): Promise<{ candidates: number, reaped: number } | undefin
   if (anonTtlDays <= 0) return
   const candidates = await loadInactiveAnonymousDocs(anonTtlDays)
   if (candidates.length === 0) return
-  console.log(`[inactive-doc-sweep] Reaping ${candidates.length} inactive anonymous doc(s)`)
+  log.info('reaping inactive anonymous docs', { candidates: candidates.length })
   return { candidates: candidates.length, reaped: await reapDocs(candidates) }
 }
 
@@ -78,7 +81,7 @@ async function reapOneDoc(docId: string): Promise<boolean> {
     })
     return true
   } catch (e) {
-    console.warn(`[inactive-doc-sweep] Failed to delete ${docId}:`, e instanceof Error ? e.message : e)
+    log.warn('failed to delete inactive doc', { docId, err: e })
     Sentry.captureException(e, {
       tags: { component: 'inactive-doc-sweep', event: 'delete_failed', docId }
     })

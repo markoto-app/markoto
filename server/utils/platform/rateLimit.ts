@@ -2,6 +2,9 @@ import { randomBytes } from 'node:crypto'
 import * as Sentry from '@sentry/nuxt'
 import { useValkey } from './valkey'
 import { isRateLimitBypassed } from '../../../shared/utils/security/testMode'
+import { useLogger } from './logger'
+
+const log = useLogger('rate-limit')
 
 // Sliding-window-log rate limiter backed by Valkey sorted sets.
 //
@@ -71,7 +74,7 @@ return {1, after}
 `
 
 function reportValkeyError(e: unknown, namespace: string, what: string): void {
-  console.warn(`[rateLimit] valkey error ${what}:`, e instanceof Error ? e.message : e)
+  log.warn('valkey error', { operation: what, err: e })
   // Stable tag so operators can chart how often rate-limit protection is bypassed.
   Sentry.captureException(e, {
     tags: { component: 'rateLimit', event: 'valkey_unavailable', namespace }

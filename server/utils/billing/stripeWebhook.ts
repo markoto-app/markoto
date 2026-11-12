@@ -17,6 +17,9 @@ import { recomputeCreditBudget } from './aiCredits'
 import { isCurrency, isTopupPackId, topupPack, TOPUP_VALIDITY_MONTHS } from '~~/shared/config/pricing'
 import { isOrderSensitiveStripeEvent } from '~~/shared/contracts/stripe'
 import { updateUserKeyBudget, resetUserKeySpend } from '../litellm/userKeys'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('stripe-webhook')
 
 /** `client_reference_id` prefix of a workspace (Team / Business) checkout. */
 export const WORKSPACE_REF_PREFIX = 'workspace:'
@@ -133,7 +136,7 @@ function invoiceServicePeriod(invoice: Stripe.Invoice): { start: Date, end: Date
 
 function warnUnknownPrice(where: string, priceId: string | null | undefined, ref: string): void {
   const msg = `[stripe/webhook] ${where} unknown price: ${priceId ?? 'none'} (${ref})`
-  console.warn(msg)
+  log.warn('unknown price', { where, priceId: priceId ?? null, ref })
   Sentry.captureMessage(msg, { level: 'warning', tags: { component: 'stripeWebhook', event: 'unknown_price' } })
 }
 
@@ -250,7 +253,7 @@ function deferWorkspaceTeamSync(deferAfterCommit: DeferredAfterCommit | undefine
       await ensureWorkspaceTeam(pool)
       await syncAllMemberKeyLimits(pool)
     } catch (e) {
-      console.warn(`[stripe/webhook] workspace team sync failed for ${workspaceId}: ${e instanceof Error ? e.message : e}`)
+      log.warn('workspace team sync failed', { workspaceId, err: e })
       Sentry.captureException(e, { tags: { component: 'stripeWebhook', event: 'workspace_team_sync_failed', workspaceId } })
     }
   })
@@ -274,7 +277,7 @@ async function handleTopupCheckout(
   const currency = (session.currency ?? '').toLowerCase()
   if (meta.kind !== 'topup' || !isTopupPackId(pack) || (subjectType !== 'user' && subjectType !== 'workspace') || !subjectId || !paymentIntent || !isCurrency(currency)) {
     const msg = `[stripe/webhook] payment checkout that isn't a valid top-up: session=${session.id}`
-    console.warn(msg)
+    log.warn('payment checkout is not a valid top-up', { sessionId: session.id })
     Sentry.captureMessage(msg, { level: 'warning', tags: { component: 'stripeWebhook', event: 'topup_invalid' } })
     return { matched: 0, plan: null }
   }
@@ -330,7 +333,7 @@ function handleCheckoutAsyncPaymentFailed(event: Stripe.CheckoutSessionAsyncPaym
   const session = event.data.object
   if (session.mode !== 'payment') return { matched: 0 }
   const msg = `[stripe/webhook] delayed top-up payment failed: session=${session.id}`
-  console.warn(msg)
+  log.warn('delayed top-up payment failed', { sessionId: session.id })
   Sentry.captureMessage(msg, { level: 'warning', tags: { component: 'stripeWebhook', event: 'topup_async_payment_failed' } })
   return { matched: 0 }
 }
@@ -393,7 +396,7 @@ export async function handleCheckoutSessionCompleted(
     const workspaceId = ref.slice(WORKSPACE_REF_PREFIX.length)
     if (!workspaceId || !customerId || !subscriptionId) {
       const msg = `[stripe/webhook] workspace checkout without workspace / customer / subscription: session=${session.id}`
-      console.warn(msg)
+      log.warn('workspace checkout without workspace / customer / subscription', { sessionId: session.id })
       Sentry.captureMessage(msg, { level: 'warning', tags: { component: 'stripeWebhook', event: 'checkout_workspace_incomplete' } })
       return { matched: 0, plan: null }
     }
@@ -425,7 +428,7 @@ export async function handleCheckoutSessionCompleted(
   const userId = ref ? Number(ref) : null
   if (!userId || Number.isNaN(userId)) {
     const msg = `[stripe/webhook] checkout.session.completed with no client_reference_id: session=${session.id}`
-    console.warn(msg)
+    log.warn('checkout.session.completed with no client_reference_id', { sessionId: session.id })
     Sentry.captureMessage(msg, {
       level: 'warning',
       tags: { component: 'stripeWebhook', event: 'checkout_missing_client_ref' }
@@ -434,7 +437,7 @@ export async function handleCheckoutSessionCompleted(
   }
   if (!customerId) {
     const msg = `[stripe/webhook] checkout.session.completed missing customer: session=${session.id}`
-    console.warn(msg)
+    log.warn('checkout.session.completed missing customer', { sessionId: session.id })
     Sentry.captureMessage(msg, {
       level: 'warning',
       tags: { component: 'stripeWebhook', event: 'checkout_missing_customer' }
@@ -487,7 +490,7 @@ export async function handleCheckoutSessionCompleted(
       try {
         await updateUserKeyBudget(userId, plan)
       } catch (e) {
-        console.warn(`[stripe/webhook] LiteLLM key budget sync failed (user=${userId} plan=${plan}):`, e instanceof Error ? e.message : e)
+        log.warn('LiteLLM key budget sync failed', { userId, plan, err: e })
         Sentry.captureException(e, {
           tags: { component: 'stripeWebhook', event: 'litellm_key_sync_failed', userId: String(userId) }
         })
@@ -526,14 +529,14 @@ export async function handleSubscriptionUpdated(
     // duplicate being cancelled, or a late event of an old one).
     const holder = await rowHoldingOtherSubscription(db, subject.workspaceId, sub.id)
     if (holder && subscriptionGrantsPlan(holder)) {
-      console.warn(`[stripe/webhook] ignoring ${event.type} of ${sub.id}: workspace ${subject.workspaceId} is on ${holder.stripeSubscriptionId}`)
+      log.warn('ignoring event: the workspace is on another subscription', { eventType: event.type, subscriptionId: sub.id, workspaceId: subject.workspaceId, holderSubscriptionId: holder.stripeSubscriptionId })
       return { matched: 0, plan: null }
     }
     // A cancelled subscription never comes back in Stripe, so an event
     // that says otherwise is an older one delivered late (a retry after
     // `customer.subscription.deleted`) and must not re-entitle the workspace.
     if (await isEndedSubscription(db, subject.workspaceId, sub.id)) {
-      console.warn(`[stripe/webhook] ignoring late ${event.type} of ended subscription ${sub.id} (workspace ${subject.workspaceId})`)
+      log.warn('ignoring late event of an ended subscription', { eventType: event.type, subscriptionId: sub.id, workspaceId: subject.workspaceId })
       return { matched: 0, plan: null }
     }
     await upsertWorkspaceSubscriptionFromStripe(db, { workspaceId: subject.workspaceId, sub, identity, customerId })
@@ -571,7 +574,7 @@ export async function handleSubscriptionUpdated(
     .where(and(eq(users.stripeCustomerId, customerId), eq(users.stripeSubscriptionId, sub.id)))
     .returning({ id: users.id })).length
   if (matched === 0) {
-    console.warn(`[stripe/webhook] ignoring ${event.type} of ${sub.id}: not the customer's current subscription`)
+    log.warn('ignoring event: not the customer\'s current subscription', { eventType: event.type, subscriptionId: sub.id })
     return { matched: 0, plan: null }
   }
 
@@ -584,7 +587,7 @@ export async function handleSubscriptionUpdated(
           await updateUserKeyBudget(userId, plan)
         }
       } catch (e) {
-        console.warn(`[stripe/webhook] LiteLLM key budget sync failed (customer=${customerId} plan=${plan}):`, e instanceof Error ? e.message : e)
+        log.warn('LiteLLM key budget sync failed', { customerId, plan, err: e })
         Sentry.captureException(e, {
           tags: { component: 'stripeWebhook', event: 'litellm_key_sync_failed', customerId }
         })
@@ -655,7 +658,7 @@ export async function handleSubscriptionDeleted(
           await resetUserKeySpend(userId)
         }
       } catch (e) {
-        console.warn(`[stripe/webhook] LiteLLM key drop-to-free failed (customer=${customerId}):`, e instanceof Error ? e.message : e)
+        log.warn('LiteLLM key drop-to-free failed', { customerId, err: e })
         Sentry.captureException(e, {
           tags: { component: 'stripeWebhook', event: 'litellm_key_sync_failed', customerId }
         })
@@ -754,7 +757,7 @@ export async function handleInvoicePaymentFailed(
     }
   }
   const msg = `[stripe/webhook] payment failed for customer=${customerId} invoice=${invoice.id} attempt=${invoice.attempt_count}`
-  console.warn(msg)
+  log.warn('payment failed', { customerId, invoiceId: invoice.id, attempt: invoice.attempt_count })
   Sentry.captureMessage(msg, {
     level: 'warning',
     tags: { component: 'stripeWebhook', event: 'invoice_payment_failed' }
@@ -854,12 +857,12 @@ async function drainPendingEvents(
       await opts.db.update(pendingStripeEvents)
         .set({ processed: true, processedAt: new Date() })
         .where(eq(pendingStripeEvents.eventId, row.eventId))
-      console.log(`[stripe/webhook] drained stashed event ${row.eventId} for customer ${customerId}`)
+      log.info('drained stashed event', { eventId: row.eventId, customerId })
     } catch (e) {
       // Don't propagate — one bad stashed event shouldn't block the
       // rest from replaying. Sentry capture so ops sees it; the row
       // stays processed=false and the daily sweep eventually reaps it.
-      console.warn(`[stripe/webhook] drain failed for stashed event ${row.eventId}:`, e instanceof Error ? e.message : e)
+      log.warn('drain failed for stashed event', { eventId: row.eventId, err: e })
       Sentry.captureException(e, {
         tags: { component: 'stripeWebhook', event: 'stash_drain_failed', stripeEventId: row.eventId }
       })
@@ -919,7 +922,7 @@ export async function dispatchStripeEvent(
       .returning({ eventId: processedWebhookEvents.eventId })
 
     if (inserted.length === 0) {
-      console.log(`[stripe/webhook] replay short-circuited for event ${event.id}`)
+      log.info('replay short-circuited', { eventId: event.id })
       return { handled: true, replayed: true }
     }
 
@@ -943,7 +946,7 @@ export async function dispatchStripeEvent(
               payload: event
             })
             .onConflictDoNothing({ target: pendingStripeEvents.eventId })
-          console.log(`[stripe/webhook] stashed out-of-order ${event.type} for unbound customer ${customerId} (event ${event.id})`)
+          log.info('stashed out-of-order event for unbound customer', { eventType: event.type, customerId, eventId: event.id })
           return { handled: true, stashed: true }
         }
       }

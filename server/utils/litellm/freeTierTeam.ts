@@ -31,6 +31,9 @@ import type { PlanName } from '~~/shared/config/tiers'
 import { litellmAdminFetch } from './litellmAdmin'
 import { useEnv } from '~~/shared/env/load'
 import type { RawEnv } from '~~/shared/env/define'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('litellm-free-tier')
 
 /** Fixed LiteLLM team id (LiteLLM accepts a caller-chosen `team_id`), so no app-side storage is needed. */
 export const FREE_TIER_TEAM_ID = 'markoto-free-tier'
@@ -239,7 +242,7 @@ async function readPoolStatus(budget: number): Promise<FreeTierPoolStatus | null
     // STRICTLY above max_budget (verified on v1.106.4).
     return { exhausted: spend > max, resetsAt: team.budget_reset_at ?? null }
   } catch (e) {
-    console.warn(`[freeTierTeam] could not read the free-tier pool: ${e instanceof Error ? e.message : e}`)
+    log.warn('could not read the free-tier pool', { err: e })
     return null
   }
 }

@@ -3,6 +3,9 @@ import { purgeStaleAiSessions, snapshotAiSessions, removeAiSession } from '../ut
 import { migrationsComplete } from '../utils/platform/migrations'
 import { defineSweeper } from '../utils/platform/defineSweeper'
 import { SWEEPS } from '../config/sweeps'
+import { useLogger } from '../utils/platform/logger'
+
+const log = useLogger('ai-session-sweep')
 
 // Every 60s, abort any AI session older than the stale threshold. Protects
 // against crashes that leave awareness entries orphaned on Hocuspocus docs.
@@ -43,10 +46,10 @@ async function runStartupPurge(): Promise<void> {
   try {
     const removed = await purgeStaleAiSessions(STALE_THRESHOLD_MS)
     if (removed > 0) {
-      console.log(`[ai-sweep] Startup: purged ${removed} stale AI session row(s) from a prior process.`)
+      log.info('purged stale AI session rows from a prior process', { removed })
     }
   } catch (e) {
-    console.warn('[ai-sweep] Startup purge failed:', e instanceof Error ? e.message : e)
+    log.warn('Startup purge failed', { err: e })
     Sentry.captureException(e, { tags: { component: 'ai-sweep', event: 'startup_purge_failed' } })
   }
 }
@@ -75,7 +78,7 @@ async function loadSessionsOrLog(): Promise<AiSessionRow[] | null> {
   try {
     return await snapshotAiSessions()
   } catch (e) {
-    console.warn('[ai-sweep] snapshot failed:', e instanceof Error ? e.message : e)
+    log.warn('snapshot failed', { err: e })
     Sentry.captureException(e, { tags: { component: 'ai-sweep', event: 'snapshot_failed' } })
     return null
   }
@@ -87,9 +90,7 @@ async function loadSessionsOrLog(): Promise<AiSessionRow[] | null> {
  * prior process: drop directly so the per-user cap unblocks.
  */
 async function abortStaleSession(s: AiSessionRow, ageMs: number): Promise<void> {
-  console.warn(
-    `[ai-sweep] Aborting stuck session ${s.sessionId} for doc ${s.docId} (age ${Math.round(ageMs / 1000)}s)`
-  )
+  log.warn('aborting stuck AI session', { sessionId: s.sessionId, docId: s.docId, ageSeconds: Math.round(ageMs / 1000) })
   if (s.abortController) {
     try {
       s.abortController.abort()

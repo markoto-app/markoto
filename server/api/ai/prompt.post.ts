@@ -35,6 +35,9 @@ import type { CrossBoundaryGuard } from '../../utils/agentic/crossBoundary'
 import { finalizeSessionProvenance, recordSessionProvenance } from '../../utils/agentic/sessionProvenance'
 import { loopErrorMessage } from '../../utils/agentic/loopErrorMessage'
 import { aiPromptBody } from '~~/shared/api/ai'
+import { useLogger } from '../../utils/platform/logger'
+
+const log = useLogger('ai-prompt')
 
 export default defineApiHandler({
   access: allow.doc('write-content', { docId: { from: 'body' } }),
@@ -166,7 +169,7 @@ async function loadConversationBlock(docId: string, userId: number): Promise<str
     )
     return ctx.block
   } catch (e) {
-    console.warn(`[ai/prompt] conversation memory load failed: ${e instanceof Error ? e.message : e}`)
+    log.warn('conversation memory load failed', { err: e })
     return ''
   }
 }
@@ -318,7 +321,7 @@ async function recordUserPromptMemory(args: PromptLoopArgs): Promise<void> {
       body: { text: args.prompt }
     })
   } catch (e) {
-    console.warn(`[ai/prompt] user_prompt memory append failed: ${e instanceof Error ? e.message : e}`)
+    log.warn('user_prompt memory append failed', { err: e })
   }
 }
 
@@ -338,7 +341,7 @@ async function recordToolCallMemory(args: PromptLoopArgs, name: string, validate
       body: { name, summary: summarizeToolCall(name, validatedArgs) }
     })
   } catch (e) {
-    console.warn(`[ai/prompt] tool_call memory append failed (${name}): ${e instanceof Error ? e.message : e}`)
+    log.warn('tool_call memory append failed', { tool: name, err: e })
   }
 }
 
@@ -361,9 +364,9 @@ function handlePromptLoopError(
   // (`loopErrorMessage`), the raw error is logged below.
   setStatus(isAbort ? 'done' : 'error', isAbort ? 'Stopped' : `Error: ${loopErrorMessage(e)}`)
   if (isAbort) {
-    console.log(`[ai/prompt ${args.sessionId}] aborted by user`)
+    log.info('aborted by user', { sessionId: args.sessionId })
   } else {
-    console.error(`[ai/prompt ${args.sessionId}] loop failed:`, e)
+    log.error('loop failed', { sessionId: args.sessionId, docId: args.docId, err: e })
     Sentry.captureException(e, {
       tags: { component: 'aiPrompt', event: 'loop_failed', sessionId: args.sessionId, docId: args.docId }
     })

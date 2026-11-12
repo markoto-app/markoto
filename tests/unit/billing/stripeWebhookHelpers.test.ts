@@ -1,5 +1,6 @@
 import { beforeEach, describe, it, expect, vi, type Mock } from 'vitest'
 import type Stripe from 'stripe'
+import { captureLogs } from '../../helpers/logs'
 import {
   handleCheckoutSessionCompleted,
   handleSubscriptionUpdated,
@@ -15,6 +16,8 @@ import {
   makeInvoicePaidEvent,
   makeInvoicePaymentFailedEvent
 } from '~~/tests/helpers/stripe'
+
+const logs = captureLogs()
 
 // Pure-function unit tests for the Stripe webhook helpers. These
 // complement the integration tests (which send signed HTTP payloads
@@ -267,8 +270,6 @@ describe('dispatchStripeEvent — routing + unknown events', () => {
 
 describe('handleSubscriptionDeleted / InvoicePaymentFailed — branch coverage', () => {
   it('invoice.payment_failed is logged-only, never updates the DB', async () => {
-    // Stub console.warn to suppress noise + verify we log.
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const event = makeInvoicePaymentFailedEvent({
       invoiceId: 'in_xxx',
       customer: 'cus_xxx',
@@ -277,8 +278,7 @@ describe('handleSubscriptionDeleted / InvoicePaymentFailed — branch coverage',
     })
     const result = await handleInvoicePaymentFailed(event)
     expect(result.matched).toBe(0)
-    expect(warn).toHaveBeenCalled()
-    warn.mockRestore()
+    expect(logs.find('warn', 'payment failed')).toMatchObject({ component: 'stripe-webhook', customerId: 'cus_xxx', invoiceId: 'in_xxx', attempt: 2 })
   })
 
   it('subscription.deleted without customer id no-ops (belt-and-braces)', async () => {
@@ -312,7 +312,6 @@ describe('handleSubscriptionDeleted / InvoicePaymentFailed — branch coverage',
 
 describe('handleSubscriptionUpdated — unknown price graceful', () => {
   it('logs + no-ops when the price id is unrecognised', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const event = makeSubscriptionEvent({
       type: 'customer.subscription.updated',
       subscriptionId: 'sub',
@@ -322,7 +321,6 @@ describe('handleSubscriptionUpdated — unknown price graceful', () => {
     const result = await handleSubscriptionUpdated(event)
     expect(result.plan).toBeNull()
     expect(result.matched).toBe(0)
-    expect(warn).toHaveBeenCalled()
-    warn.mockRestore()
+    expect(logs.find('warn', 'unknown price')).toMatchObject({ priceId: 'price_unrecognised' })
   })
 })

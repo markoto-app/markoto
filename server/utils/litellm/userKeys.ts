@@ -4,11 +4,14 @@ import { useDatabase } from '../platform/database'
 import { planToBudgetUsd } from '~~/shared/billing/aiPoints'
 import { getTiers } from '~~/server/utils/billing/tierConfig'
 import type { PlanName } from '~~/shared/config/tiers'
-import { encryptToken, decryptToken } from './tokenCrypto'
+import { openSecretOrNull, sealSecret, secretContext } from '../platform/secretBox'
 import { litellmAdminFetch } from './litellmAdmin'
 import { ensureFreeTierTeam, ensureFreeTierTeamMember, teamIdForPlan } from './freeTierTeam'
 import { creditBudgetExtraUsd } from '../billing/aiCreditBudget'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('litellm-keys')
 
 /** Plan budget + the user's top-up credits, USD. */
 export async function userKeyBudgetUsd(userId: number, plan: PlanName): Promise<number> {
@@ -134,10 +137,19 @@ export async function createUserKey(userId: number, plan: PlanName): Promise<Use
   const db = useDatabase()
   await db.update(users).set({
     litellmKeyId: keyId,
-    litellmKeyToken: encryptToken(token)
+    litellmKeyToken: sealUserKey(userId, token)
   }).where(eq(users.id, userId))
 
   return { keyId, token }
+}
+
+function sealUserKey(userId: number, token: string): string {
+  return sealSecret('litellm-user-key', secretContext.litellmUserKey(userId), token)
+}
+
+/** The stored bearer token, or null when it can't be decrypted (key lost / rotated away). */
+function openUserKey(userId: number, sealed: string): string | null {
+  return openSecretOrNull('litellm-user-key', secretContext.litellmUserKey(userId), sealed)
 }
 
 /**
@@ -152,7 +164,13 @@ export async function ensureUserKey(userId: number, plan: PlanName): Promise<Use
   }).from(users).where(eq(users.id, userId)).limit(1)
   const row = rows[0]
   if (row?.keyId && row?.keyToken) {
-    return { keyId: row.keyId, token: decryptToken(row.keyToken) }
+    const token = openUserKey(userId, row.keyToken)
+    if (token) return { keyId: row.keyId, token }
+    // Unreadable (encryption key lost or rotated without _PREVIOUS): the
+    // bearer token is gone for good, so retire the old key by its id and
+    // mint a fresh one rather than failing every AI call.
+    log.warn('stored key token is unreadable; minting a new key', { userId })
+    if (!isStubMode()) await retireKeyById(row.keyId)
   }
   if (isStubMode()) {
     // Persist a stub so subsequent reads don't churn — same shape as
@@ -160,7 +178,7 @@ export async function ensureUserKey(userId: number, plan: PlanName): Promise<Use
     const stubKeyId = `${TEST_STUB_KEY_ID_PREFIX}${userId}`
     await db.update(users).set({
       litellmKeyId: stubKeyId,
-      litellmKeyToken: encryptToken(TEST_STUB_TOKEN)
+      litellmKeyToken: sealUserKey(userId, TEST_STUB_TOKEN)
     }).where(eq(users.id, userId))
     return { keyId: stubKeyId, token: TEST_STUB_TOKEN }
   }
@@ -244,7 +262,9 @@ export async function resetUserKeySpend(userId: number): Promise<boolean> {
     // with the right budget via `ensureUserKey`.
     return true
   }
-  const token = decryptToken(encrypted)
+  const token = openUserKey(userId, encrypted)
+  // Unreadable: the next AI call mints a new key (ensureUserKey) with zero spend.
+  if (!token) return true
   const res = await litellmAdminFetch(`/key/${encodeURIComponent(token)}/reset_spend`, {
     method: 'POST',
     // LiteLLM >= 1.10x validates a JSON body on this route (a bodyless
@@ -255,11 +275,24 @@ export async function resetUserKeySpend(userId: number): Promise<boolean> {
     // 404 on `/key/{key}/reset_spend` means LiteLLM lost the key
     // (e.g. DB wipe on the LiteLLM side). Rather than 5xx the webhook,
     // log + recreate via ensureUserKey on the next AI call.
-    const text = await res.text().catch(() => '')
-    console.warn(`[litellmKeys] /key/reset_spend failed: ${res.status} ${text.slice(0, 200)}`)
+    log.warn('/key/reset_spend failed', { status: res.status })
     return false
   }
   return true
+}
+
+/**
+ * Best-effort delete of a key we can no longer present as a bearer token.
+ * LiteLLM's /key/delete accepts the hashed token id (`token_id`) as well as
+ * the `sk-` token, so the orphan doesn't keep a budget in the proxy.
+ */
+async function retireKeyById(keyId: string): Promise<void> {
+  try {
+    const res = await litellmAdminFetch('/key/delete', { method: 'POST', body: JSON.stringify({ keys: [keyId] }) })
+    if (!res.ok && res.status !== 404) log.warn('retiring an unreadable key failed', { status: res.status })
+  } catch (e) {
+    log.warn('retiring an unreadable key failed', { err: e })
+  }
 }
 
 type AdminFetch = (path: string, init?: RequestInit) => Promise<Response>
@@ -280,8 +313,7 @@ export async function deleteLitellmIdentity(adminFetch: AdminFetch, token: strin
         body: JSON.stringify({ keys: [token] })
       })
       if (!res.ok && res.status !== 404) {
-        const text = await res.text().catch(() => '')
-        console.warn(`[litellmKeys] /key/delete failed: ${res.status} ${text.slice(0, 200)}`)
+        log.warn('/key/delete failed', { status: res.status })
         ok = false
       }
     }
@@ -290,12 +322,11 @@ export async function deleteLitellmIdentity(adminFetch: AdminFetch, token: strin
       body: JSON.stringify({ user_ids: [String(userId)] })
     })
     if (!resUser.ok && resUser.status !== 404) {
-      const text = await resUser.text().catch(() => '')
-      console.warn(`[litellmKeys] /user/delete failed: ${resUser.status} ${text.slice(0, 200)}`)
+      log.warn('/user/delete failed', { status: resUser.status })
       ok = false
     }
   } catch (e) {
-    console.warn(`[litellmKeys] key deletion failed: ${e instanceof Error ? e.message : String(e)}`)
+    log.warn('key deletion failed', { err: e })
     ok = false
   }
   return ok
@@ -318,11 +349,8 @@ export async function deleteUserKey(userId: number): Promise<boolean> {
   const encrypted = rows[0]?.keyToken
   let token: string | null = null
   if (encrypted) {
-    try {
-      token = decryptToken(encrypted)
-    } catch (e) {
-      console.warn(`[litellmKeys] could not decrypt the key token for deletion: ${e instanceof Error ? e.message : String(e)}`)
-    }
+    token = openUserKey(userId, encrypted)
+    if (!token) log.warn('could not decrypt the key token for deletion')
   }
   return deleteLitellmIdentity(litellmAdminFetch, token, userId)
 }

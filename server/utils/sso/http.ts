@@ -4,7 +4,7 @@
 
 import type { H3Event } from 'h3'
 import { isTestModeEnabled } from '~~/shared/utils/security/testMode'
-import { decryptToken } from '../litellm/tokenCrypto'
+import { openSecretOrNull, secretContext } from '../platform/secretBox'
 import { SESSION_VERSION } from '../auth/validatedSession'
 import { getSessionEpoch } from '../../repos/users'
 import type { OidcSettings } from '../oidc/settings'
@@ -109,11 +109,17 @@ export function oidcSettingsForConnection(event: H3Event, connection: SsoConnect
   if (connection.protocol !== 'oidc' || !connection.oidcIssuer || !connection.oidcClientId || !connection.oidcClientSecret) {
     throw createError({ statusCode: 409, message: 'This connection is not a complete OpenID Connect setup.', data: { code: 'sso/incomplete' } })
   }
+  const clientSecret = openSecretOrNull('sso-client-secret', secretContext.ssoClientSecret(connection.workspaceId), connection.oidcClientSecret)
+  if (clientSecret === null) {
+    // Encryption key lost or rotated away: a workspace admin enters the
+    // client secret again (the settings stay reachable via the break-glass).
+    throw createError({ statusCode: 409, message: 'The stored client secret can no longer be read. A workspace admin must enter it again.', data: { code: 'sso/incomplete' } })
+  }
   const allowPrivate = ssoAllowsPrivateUrls()
   return {
     issuer: new URL(connection.oidcIssuer),
     clientId: connection.oidcClientId,
-    clientSecret: decryptToken(connection.oidcClientSecret),
+    clientSecret,
     scopes: ['openid', 'email', 'profile'],
     redirectUrl: ssoCallbackUrl(event, connection.id),
     // http only reaches a private address (enforced by the fetch policy).

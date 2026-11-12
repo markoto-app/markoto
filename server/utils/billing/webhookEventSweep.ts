@@ -3,6 +3,9 @@ import { and, eq, isNotNull, lt, or } from 'drizzle-orm'
 import { processedWebhookEvents, pendingStripeEvents } from '../../db/schema'
 import { useDatabase } from '../platform/database'
 import { DAY_MS } from '~~/shared/config/units'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('webhook-event-sweep')
 
 // Webhook event-table sweeper. Two responsibilities:
 //
@@ -63,10 +66,10 @@ export async function runWebhookEventSweep(): Promise<{ processedDeleted: number
     pendingDeleted = b.length
 
     if (processedDeleted + pendingDeleted > 0) {
-      console.log(`[webhook-event-sweep] pruned processed=${processedDeleted} pending=${pendingDeleted}`)
+      log.info('pruned webhook events', { processed: processedDeleted, pending: pendingDeleted })
     }
   } catch (e) {
-    console.warn('[webhook-event-sweep] sweep failed:', e instanceof Error ? e.message : e)
+    log.warn('sweep failed', { err: e })
     Sentry.captureException(e, { tags: { component: 'webhook-event-sweep', event: 'sweep_failed' } })
   }
   return { processedDeleted, pendingDeleted }

@@ -1,4 +1,7 @@
 import { deleteExpiredWorkspaceInvites } from '../../repos/workspaceInvites'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('workspace-invite-sweep')
 
 // Workspace-invite sweeper. Deletes invitations past their 14-day
 // expiry, so an address an admin typed is not kept longer than the
@@ -12,7 +15,7 @@ export interface WorkspaceInviteSweepResult {
 export async function runWorkspaceInviteSweep(now: Date = new Date()): Promise<WorkspaceInviteSweepResult> {
   const deletedExpired = await deleteExpiredWorkspaceInvites(now)
   if (deletedExpired > 0) {
-    console.log(`[workspace-invite-sweep] deleted ${deletedExpired} expired invitation(s)`)
+    log.info('deleted expired invitations', { deleted: deletedExpired })
   }
   return { deletedExpired }
 }

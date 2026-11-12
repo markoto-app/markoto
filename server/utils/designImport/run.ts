@@ -17,6 +17,9 @@ import { proposeDesignTool } from './prompt'
 import { renderDesignSample } from './sampleRender'
 import { writeJob, type DesignImportJobState } from './job'
 import { MINUTE_MS } from '~~/shared/config/units'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('design-import')
 
 // Production wiring of the design-import pipeline: markitdown extract,
 // the user's chat provider through LiteLLM (their virtual key — BYOK is
@@ -94,7 +97,7 @@ export async function runDesignImportJob(args: StartRunArgs): Promise<void> {
   } catch (e) {
     const { code, message } = classifyRunError(e)
     if (code === 'internal') {
-      console.error('[design-import] run failed:', e instanceof Error ? e.message.slice(0, 300) : e)
+      log.error('run failed', { err: e })
       Sentry.captureException(e, { tags: { component: 'design-import', event: 'run_failed' } })
     }
     await writeJob(args.jobId, { ...base, phase: 'error', round: 0, error: { code, message } }).catch(() => undefined)

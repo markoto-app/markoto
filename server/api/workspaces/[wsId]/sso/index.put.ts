@@ -22,7 +22,7 @@ export default defineApiHandler({
   handler: async ({ event, user, wsId, body }) => {
     const existing = await getSsoConnectionForWorkspace(wsId)
     // The IdP URL is checked against the SSRF policy here (and again on every use).
-    const fields = await parseSsoSettings(body, existing)
+    const fields = await parseSsoSettings(body, existing, wsId)
     const { connection, idpChanged } = await upsertSsoConnection({ id: existing?.id ?? nanoid(16), workspaceId: wsId, createdByUserId: user.id, fields })
     await appendAuditEvent({
       actorUserId: user.id,

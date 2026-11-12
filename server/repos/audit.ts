@@ -2,6 +2,9 @@ import { and, desc, eq, gte, like, lt } from 'drizzle-orm'
 import * as Sentry from '@sentry/nuxt'
 import { auditLog, users } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
+import { useLogger } from '../utils/platform/logger'
+
+const log = useLogger('audit')
 
 // Audit-log repository. Append-only: there is no `updateAuditEvent` and
 // no `deleteAuditEvent` on purpose — once written, a row is immutable.
@@ -124,7 +127,7 @@ export async function appendAuditEvent(args: AppendAuditEventArgs): Promise<void
         : (args.scope === 'workspace' || args.scope === 'billing') ? args.scopeId : null
     })
   } catch (e) {
-    console.error('[audit] append failed:', e instanceof Error ? e.message : e)
+    log.error('append failed', { err: e })
     Sentry.captureException(e, {
       tags: { component: 'audit', event: 'append_failed', auditAction: args.action }
     })

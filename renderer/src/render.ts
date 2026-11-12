@@ -3,6 +3,9 @@ import { chromium, type Browser, type BrowserContext, type Page } from 'playwrig
 import { putBytes } from './s3'
 import { buildAllowedOrigins, hostForLog, isAllowedUrl } from './allowlist'
 import { env } from './env'
+import { useLogger } from './logger'
+
+const log = useLogger('render')
 
 // One persistent browser, page-pool of POOL_SIZE. New BrowserContext per
 // render isolates cookies / storage between docs. The pool is a simple
@@ -35,7 +38,7 @@ const ALLOWED_ORIGINS = buildAllowedOrigins({
   S3_PUBLIC_ENDPOINT: env.storage.publicEndpoint,
   RENDERER_ALLOWED_ORIGINS: env.renderer.allowedOrigins.join(',')
 })
-console.info(`[renderer] network allowlist: ${[...ALLOWED_ORIGINS].join(', ')}`)
+log.info('network allowlist', { origins: [...ALLOWED_ORIGINS] })
 // At most this many distinct blocked hosts are logged per render.
 const MAX_BLOCKED_LOGS_PER_RENDER = 10
 
@@ -47,7 +50,7 @@ const MAX_BLOCKED_LOGS_PER_RENDER = 10
 // it is logged loudly because it removes a whole layer.
 const CHROMIUM_SANDBOX = env.renderer.chromiumSandbox
 if (!CHROMIUM_SANDBOX) {
-  console.warn('[renderer] RENDERER_CHROMIUM_SANDBOX=false: Chromium runs WITHOUT its sandbox')
+  log.warn('RENDERER_CHROMIUM_SANDBOX=false: Chromium runs WITHOUT its sandbox')
 }
 
 // Where Chromium sends `localhost` lookups (see getBrowser). The docker
@@ -219,7 +222,7 @@ async function lockDownNetwork(context: BrowserContext, docId: string): Promise<
     const host = hostForLog(url)
     if (!loggedHosts.has(host) && loggedHosts.size < MAX_BLOCKED_LOGS_PER_RENDER) {
       loggedHosts.add(host)
-      console.warn(`[renderer] blocked request to ${host} (doc ${docId})`)
+      log.warn('blocked request to a host outside the allowlist', { host, docId })
     }
     await route.abort('blockedbyclient')
   })

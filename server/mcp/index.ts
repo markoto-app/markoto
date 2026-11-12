@@ -5,6 +5,9 @@ import { getClientRateLimitKey } from '../utils/platform/clientIp'
 import { useMcpSessionBindings } from '../utils/mcp/mcpSessionBinding'
 import { evaluateMcpRequest, jsonRpcErrorResponse } from './lib/mcpGate'
 import { capsFor, resolveUserPlan } from '../utils/billing/entitlements'
+import { useLogger } from '../utils/platform/logger'
+
+const log = useLogger('mcp')
 
 // Default MCP handler. The middleware is the gate in front of the MCP
 // toolkit (`lib/mcpGate.ts` holds the decision logic):
@@ -73,10 +76,10 @@ async function initializeClientName(event: Parameters<typeof readBody>[0]): Prom
 async function bindNewSession(bindings: ReturnType<typeof useMcpSessionBindings>, sessionId: string, auth: McpAuthContext): Promise<void> {
   try {
     if (!(await bindings.bind(sessionId, auth.tokenId, auth.userId))) {
-      console.warn('[mcp] new session id was already bound; left unbound')
+      log.warn('new session id was already bound; left unbound')
     }
   } catch (e) {
-    console.warn(`[mcp] could not bind the new session: ${e instanceof Error ? e.message : String(e)}`)
+    log.warn('could not bind the new session', { err: e })
     Sentry.captureException(e, { tags: { component: 'mcp', event: 'session_bind_failed' } })
   }
 }

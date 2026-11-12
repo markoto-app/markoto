@@ -1,6 +1,9 @@
 import { evictIdle, getPoolStats, closeAll } from '../utils/mcp/yDocPool'
 import { defineSweeper } from '../utils/platform/defineSweeper'
 import { SWEEPS } from '../config/sweeps'
+import { useLogger } from '../utils/platform/logger'
+
+const log = useLogger('ydoc-pool')
 
 // Idle-eviction sweeper for the YDocPool.
 //
@@ -42,7 +45,7 @@ export default defineSweeper({
     try {
       closeAll()
     } catch (e) {
-      console.warn('[yDocPoolSweep] closeAll failed during shutdown:', e instanceof Error ? e.message : e)
+      log.warn('closeAll failed during shutdown', { err: e })
     }
   }
 })

@@ -1,6 +1,7 @@
 import { migrationsComplete } from './migrations'
 import { acquireSweepLock, releaseSweepLock } from './sweepLock'
 import { captureExceptionThrottled } from './throttledSentry'
+import { useLogger } from './logger'
 
 /**
  * One body for every periodic background job started by a Nitro plugin
@@ -24,7 +25,7 @@ interface SweeperHost {
 }
 
 export interface SweeperOptions {
-  /** Log prefix, Sentry `component` tag AND the advisory-lock key. Renaming it changes the lock key, which two app versions running side by side (a rolling deploy) would no longer share. */
+  /** Log `component`, Sentry `component` tag AND the advisory-lock key. Renaming it changes the lock key, which two app versions running side by side (a rolling deploy) would no longer share. */
   name: string
   schedule: { intervalMs: number, startupDelayMs?: number }
   /** Evaluated once at boot; false → nothing is scheduled. Read config here, not at module scope. */
@@ -47,10 +48,6 @@ export interface SweeperOptions {
   run: () => unknown
 }
 
-function errorMessage(e: unknown): string {
-  return e instanceof Error ? e.message : String(e)
-}
-
 export function defineSweeper(options: SweeperOptions): (nitroApp: SweeperHost) => void {
   const {
     name,
@@ -60,6 +57,8 @@ export function defineSweeper(options: SweeperOptions): (nitroApp: SweeperHost) 
     awaitMigrations = true,
     reportErrors = true
   } = options
+  // One component per sweeper, so `docker logs | jq 'select(.component == "waitlist-sweep")'` finds its runs.
+  const log = useLogger(name)
 
   return (nitroApp) => {
     // `bun run build` boots Nitro in prerender mode and runs every plugin;
@@ -92,10 +91,10 @@ export function defineSweeper(options: SweeperOptions): (nitroApp: SweeperHost) 
         }
         const summary = await options.run()
         if (summary && typeof summary === 'object') {
-          console.log(`[${name}] ok in ${Date.now() - started}ms ${JSON.stringify(summary)}`)
+          log.info('run finished', { durationMs: Date.now() - started, ...summary })
         }
       } catch (e) {
-        console.warn(`[${name}] failed after ${Date.now() - started}ms: ${errorMessage(e)}`)
+        log.warn('run failed', { durationMs: Date.now() - started, err: e })
         if (reportErrors) {
           captureExceptionThrottled(`sweep:${name}`, e, { tags: { component: name, event: 'sweep_failed' } })
         }

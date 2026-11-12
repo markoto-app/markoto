@@ -8,6 +8,9 @@ import { defineSweeper } from '../utils/platform/defineSweeper'
 import { SWEEPS } from '../config/sweeps'
 import { DAY_MS } from '~~/shared/config/units'
 import { KNOWLEDGE_PLATFORM_LIMITS } from '~~/shared/config/tiers'
+import { useLogger } from '../utils/platform/logger'
+
+const log = useLogger('knowledge-sweep')
 
 // Re-kicks knowledge-base uploads that got stuck in `status='processing'`
 // past the deadline. Normal ingestion runs fire-and-forget from the
@@ -37,12 +40,12 @@ async function sweepStuck() {
         lt(workspaceKnowledge.createdAt, cutoff)
       ))
   } catch (e) {
-    console.warn('[knowledge-sweep] stuck-query failed:', e instanceof Error ? e.message : e)
+    log.warn('stuck-query failed', { err: e })
     Sentry.captureException(e, { tags: { component: 'knowledge-sweep', event: 'query_failed' } })
     return
   }
   for (const row of stuck) {
-    console.warn(`[knowledge-sweep] Re-processing stuck knowledge ${row.knowledgeId}`)
+    log.warn('re-processing stuck knowledge', { knowledgeId: row.knowledgeId })
     // Serialize — don't spawn unbounded parallel processing if a
     // previous sweep just flagged 100 rows as stuck after a crash.
     // processKnowledge already catches its own errors.
@@ -72,18 +75,18 @@ async function sweepFailed() {
         lt(workspaceKnowledge.createdAt, cutoff)
       ))
   } catch (e) {
-    console.warn('[knowledge-sweep] failed-query failed:', e instanceof Error ? e.message : e)
+    log.warn('failed-query failed', { err: e })
     Sentry.captureException(e, { tags: { component: 'knowledge-sweep', event: 'failed_query_failed' } })
     return
   }
   for (const row of rows) {
-    console.log(`[knowledge-sweep] Reaping expired failed row ${row.knowledgeId}`)
+    log.info('reaping expired failed row', { knowledgeId: row.knowledgeId })
     // deleteKnowledgeArtifact is already idempotent: it no-ops if
     // the row is missing and best-effort deletes the S3 object.
     try {
       await deleteKnowledgeArtifact(row.knowledgeId)
     } catch (e) {
-      console.warn(`[knowledge-sweep] reap failed for ${row.knowledgeId}:`, e instanceof Error ? e.message : e)
+      log.warn('reap failed', { knowledgeId: row.knowledgeId, err: e })
       // Surface to Sentry — repeated reap failures keep failed rows
       // hoarding per-user quota; on-call wants the signal.
       Sentry.captureException(e, {

@@ -46,6 +46,9 @@ import {
   processChunk,
   type StreamStatusPhase
 } from './streamStatus'
+import { useLogger } from '../platform/logger'
+
+const loopLog = useLogger('ai-loop')
 
 /**
  * Outcome categories surfaced to Sentry on session end. Indexed as a
@@ -229,10 +232,9 @@ class SessionTelemetry {
         }
       })
     } catch (e) {
-      // Don't go through the user-facing `log` helper — that prefix is
-      // for prompt-loop chatter. console.warn keeps it visible while
-      // making clear the error is from the telemetry path.
-      console.warn(`[runLoop telemetry] capture failed: ${e instanceof Error ? e.message : e}`)
+      // Not the per-turn `log` helper (debug chatter): a telemetry failure
+      // should stay visible at warn.
+      loopLog.warn('telemetry capture failed', { err: e })
     }
   }
 }
@@ -267,7 +269,7 @@ async function logAiTool(
     })
     await pruneActivity(docId)
   } catch (e) {
-    console.warn('[runLoop] ai.tool activity log failed:', e instanceof Error ? e.message : e)
+    loopLog.warn('ai.tool activity log failed', { err: e })
   }
 }
 
@@ -302,7 +304,7 @@ export interface RunLoopOptions {
    */
   toolDeclarations?: FunctionDeclaration[]
   billingContext: BillingContext
-  /** Optional logger — defaults to `console.log` tagged with the session id. */
+  /** Optional logger — defaults to the `ai-loop` logger at debug level, tagged with the session id. */
   logger?: (msg: string) => void
   /**
    * Optional callback fired ONCE per validated tool call (after Zod
@@ -677,7 +679,8 @@ async function dispatchToolCall(
   // Telemetry tally — every attempted invocation, including
   // cap-rejected and errored.
   ctx.telemetry.noteToolAttempt(call.name)
-  ctx.log(`function_call: ${call.name} args=${JSON.stringify(call.args).slice(0, 200)}`)
+  // Argument NAMES only: the values are document text and user prompts.
+  ctx.log(`function_call: ${call.name} args=${Object.keys(call.args ?? {}).join(',')}`)
 
   // Only tools offered to this session may run — e.g. the knowledge
   // tools are not offered without workspace membership + ready files,
@@ -1021,7 +1024,10 @@ async function dispatchToolCallsForTurn(
 }
 
 export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
-  const log = opts.logger ?? ((msg: string) => console.log(`[ai/prompt ${opts.sessionId}] ${msg}`))
+  // Per-turn chatter: debug, so a production log carries the failures (their
+  // own error lines) rather than every turn.
+  const sessionLog = loopLog.with({ sessionId: opts.sessionId })
+  const log = opts.logger ?? ((msg: string) => sessionLog.debug(msg))
   const ctx: LoopContext = {
     opts,
     log,
@@ -1041,7 +1047,7 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
     answeredUser: false
   }
 
-  log(`[billing] session resolved: ${opts.billingContext.attributedTo} plan=${opts.billingContext.plan} virtualKey=…${opts.billingContext.virtualKey.slice(-6)}`)
+  log(`[billing] session resolved: ${opts.billingContext.attributedTo} plan=${opts.billingContext.plan}`)
 
   let turns = 0
   try {

@@ -10,6 +10,9 @@
 import { captureExceptionThrottled } from '../platform/throttledSentry'
 import { injectTraceHeaders } from '../platform/traceHeaders'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('sync-notify')
 
 /**
  * Force-close all live Y.js connections for `userId` on the given docs.
@@ -38,7 +41,7 @@ export function notifySyncKickUser(userId: number, docIds: string[]): void {
     body: JSON.stringify({ userId, docIds }),
     signal: AbortSignal.timeout(3000)
   }).catch((e) => {
-    console.warn(`[syncNotify] kick-user for user ${userId} failed:`, e instanceof Error ? e.message : e)
+    log.warn('kick-user failed', { userId, err: e })
     captureExceptionThrottled('syncNotify.kick-user', e, {
       tags: { component: 'syncNotify', event: 'kick_user_failed' }
     })
@@ -74,7 +77,7 @@ export function notifySyncReauthDocument(docId: string): void {
   }).then((res) => {
     if (!res.ok) throw new Error(`reauth-document answered ${res.status}`)
   }).catch((e) => {
-    console.warn(`[syncNotify] reauth-document for ${docId} failed:`, e instanceof Error ? e.message : e)
+    log.warn('reauth-document failed', { docId, err: e })
     captureExceptionThrottled('syncNotify.reauth-document', e, {
       tags: { component: 'syncNotify', event: 'reauth_document_failed' }
     })
@@ -110,7 +113,7 @@ export async function flushSyncDocument(docId: string): Promise<boolean> {
     if (!res.ok) throw new Error(`flush-document answered ${res.status}`)
     return true
   } catch (e) {
-    console.warn(`[syncNotify] flush-document for ${docId} failed:`, e instanceof Error ? e.message : e)
+    log.warn('flush-document failed', { docId, err: e })
     captureExceptionThrottled('syncNotify.flush-document', e, {
       tags: { component: 'syncNotify', event: 'flush_document_failed' }
     })

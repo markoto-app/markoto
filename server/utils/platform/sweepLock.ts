@@ -1,6 +1,9 @@
 import type { PoolClient } from 'pg'
 import * as Sentry from '@sentry/nuxt'
 import { useDatabasePool } from './database'
+import { useLogger } from './logger'
+
+const log = useLogger('sweep-lock')
 
 /**
  * Cross-instance lock for periodic background sweepers, built on Postgres
@@ -38,7 +41,7 @@ export async function acquireSweepLock(name: string): Promise<boolean> {
   try {
     client = await useDatabasePool().connect()
   } catch (e) {
-    console.warn(`[sweepLock] connect failed for '${name}':`, e instanceof Error ? e.message : e)
+    log.warn('connect failed', { lock: name, err: e })
     Sentry.captureException(e, {
       tags: { component: 'sweepLock', event: 'connect_failed', sweep: name }
     })
@@ -62,7 +65,7 @@ export async function acquireSweepLock(name: string): Promise<boolean> {
     try {
       client.release()
     } catch { /* ignore */ }
-    console.warn(`[sweepLock] acquire failed for '${name}':`, e instanceof Error ? e.message : e)
+    log.warn('acquire failed', { lock: name, err: e })
     Sentry.captureException(e, {
       tags: { component: 'sweepLock', event: 'acquire_failed', sweep: name }
     })
@@ -78,7 +81,7 @@ export async function releaseSweepLock(name: string): Promise<void> {
     await client.query('SELECT pg_advisory_unlock(hashtext($1))', [name])
   } catch (e) {
     // The lock is released when the connection ends, so just warn.
-    console.warn(`[sweepLock] unlock failed for '${name}':`, e instanceof Error ? e.message : e)
+    log.warn('unlock failed', { lock: name, err: e })
   } finally {
     try {
       client.release()

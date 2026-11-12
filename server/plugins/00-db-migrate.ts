@@ -2,6 +2,9 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { useDatabase } from '../utils/platform/database'
 import { signalMigrationsComplete } from '../utils/platform/migrations'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../utils/platform/logger'
+
+const log = useLogger('db-migrate')
 
 // Apply Drizzle migrations at boot. Idempotent: drizzle-kit's migrator tracks
 // applied migrations in `__drizzle_migrations` and only runs new ones.
@@ -22,10 +25,10 @@ export default defineNitroPlugin(async () => {
   try {
     const db = useDatabase()
     await migrate(db, { migrationsFolder })
-    console.log('[db-migrate] Migrations applied successfully.')
+    log.info('Migrations applied successfully.')
     signalMigrationsComplete()
   } catch (e) {
-    console.error('[db-migrate] Migration failed:', e instanceof Error ? e.message : e)
+    log.error('Migration failed', { err: e })
     throw e
   }
 })

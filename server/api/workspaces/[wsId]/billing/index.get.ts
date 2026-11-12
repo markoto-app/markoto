@@ -4,8 +4,7 @@ import { useDatabase } from '../../../../utils/platform/database'
 import { getWorkspaceSubscription, subscriptionGrantsPlan } from '../../../../repos/workspaceSubscriptions'
 import { isBillingEnabled } from '../../../../utils/billing/billingMode'
 import { creditBalanceView } from '../../../../utils/billing/aiCreditBudget'
-import { decryptToken } from '../../../../utils/litellm/tokenCrypto'
-import { readMemberKeySpend, readWorkspaceTeam } from '../../../../utils/litellm/workspaceTeams'
+import { openMemberKey, readMemberKeySpend, readWorkspaceTeam } from '../../../../utils/litellm/workspaceTeams'
 import {
   countSeatsUsed,
   memberLimitUsd,
@@ -50,7 +49,7 @@ export default defineApiHandler({
       let spendUsd: number | null = null
       if (entitled && row.keyToken) {
         try {
-          spendUsd = (await readMemberKeySpend(decryptToken(row.keyToken)))?.spend ?? null
+          spendUsd = (await readMemberKeySpend(openMemberKey(wsId, row.userId, row.keyToken)))?.spend ?? null
         } catch {
           spendUsd = null
         }

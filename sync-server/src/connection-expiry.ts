@@ -1,6 +1,9 @@
 import { SYNC_CLOSE_CODES, SYNC_REAUTH_REASON } from '../../shared/contracts/syncClose'
 import { SYNTHETIC_USER_ID_PREFIXES } from '../../shared/contracts/jwt'
 import type { VerifiedDocToken } from './auth'
+import { useLogger } from './logger'
+
+const log = useLogger('connection-expiry')
 
 // A doc token is checked once, when a connection authenticates. Without
 // the code below an open connection would outlive its token, a share
@@ -48,12 +51,12 @@ export function closeForReauth(conn: ReauthConnection): boolean {
     conn.close?.(event)
   } catch (e) {
     closed = false
-    console.warn('[reauth] document close failed:', e instanceof Error ? e.message : e)
+    log.warn('document close failed', { err: e })
   }
   try {
     conn.webSocket?.close(event.code, event.reason)
   } catch (e) {
-    console.warn('[reauth] socket close failed:', e instanceof Error ? e.message : e)
+    log.warn('socket close failed', { err: e })
   }
   return closed
 }
@@ -110,7 +113,7 @@ export function createConnectionExpiry(options: ConnectionExpiryOptions = {}) {
     try {
       conn.requestToken?.()
     } catch (e) {
-      console.warn('[reauth] token request failed:', e instanceof Error ? e.message : e)
+      log.warn('token request failed', { err: e })
     }
     scheduleClose(conn, entry, expiresAt)
   }

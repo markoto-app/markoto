@@ -10,6 +10,9 @@ import { deleteKeyTokens, deleteWorkspaceTeam, listMemberKeyTokens } from '../li
 import { deleteCreditsForSubject } from '../../repos/aiCreditGrants'
 import { AUDIT_WORKSPACE_BILLING_ADMIN_CHANGED, AUDIT_WORKSPACE_SUBSCRIPTION_CANCELLED } from '../../legal/auditActions'
 import { apiError } from '../api/apiError'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('workspace-billing')
 
 // Lifecycle hooks of Team / Business billing: what happens to a
 // workspace subscription when its workspace or its billing admin goes.
@@ -108,7 +111,7 @@ export async function deleteAllMemberKeys(userId: number): Promise<number> {
     await deleteKeyTokens(tokens)
     return tokens.length
   } catch (e) {
-    console.warn(`[workspaceBilling] member key deletion failed: ${e instanceof Error ? e.message : e}`)
+    log.warn('member key deletion failed', { err: e })
     return 0
   }
 }

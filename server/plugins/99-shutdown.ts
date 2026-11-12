@@ -1,5 +1,8 @@
 import { closeDatabase } from '../utils/platform/database'
 import { closeValkey } from '../utils/platform/valkey'
+import { useLogger } from '../utils/platform/logger'
+
+const log = useLogger('shutdown')
 
 // Closes long-lived network handles when Nitro shuts down. Numeric `99-`
 // prefix forces this to load LAST so other plugins are still set up when
@@ -10,20 +13,20 @@ import { closeValkey } from '../utils/platform/valkey'
 // being killed mid-request.
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('close', async () => {
-    console.log('[shutdown] Closing database pool…')
+    log.info('Closing database pool…')
     try {
       await closeDatabase()
-      console.log('[shutdown] Database pool closed.')
+      log.info('Database pool closed.')
     } catch (e) {
-      console.warn('[shutdown] Database pool close failed:', e instanceof Error ? e.message : e)
+      log.warn('Database pool close failed', { err: e })
     }
 
-    console.log('[shutdown] Closing Valkey client…')
+    log.info('Closing Valkey client…')
     try {
       await closeValkey()
-      console.log('[shutdown] Valkey client closed.')
+      log.info('Valkey client closed.')
     } catch (e) {
-      console.warn('[shutdown] Valkey client close failed:', e instanceof Error ? e.message : e)
+      log.warn('Valkey client close failed', { err: e })
     }
   })
 })

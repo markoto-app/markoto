@@ -1,13 +1,16 @@
 import { and, eq, isNotNull, isNull, ne } from 'drizzle-orm'
 import { workspaceMembers, workspaceSubscriptions } from '../../db/schema'
 import { useDatabase } from '../platform/database'
-import { encryptToken, decryptToken } from './tokenCrypto'
+import { openSecretOrNull, sealSecret, secretContext } from '../platform/secretBox'
 import { litellmAdminFetch } from './litellmAdmin'
 import { isDuplicateTeamError } from './freeTierTeam'
 import { memberLimitUsd, pooledFromRow, workspaceAiBudgetUsd, workspacePoolCaps, type PooledWorkspace } from '../billing/workspaceBilling'
 import { isBillingEnabled } from '../billing/billingMode'
 import { creditBudgetExtraUsd } from '../billing/aiCreditBudget'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('litellm-teams')
 
 // One LiteLLM team per Team / Business workspace.
 //
@@ -138,10 +141,10 @@ export async function deleteWorkspaceTeam(workspaceId: string): Promise<void> {
       body: JSON.stringify({ team_ids: [workspaceTeamId(workspaceId)] })
     })
     if (!res.ok && res.status !== 404) {
-      console.warn(`[workspaceTeams] /team/delete failed: ${res.status} ${(await res.text().catch(() => '')).slice(0, 200)}`)
+      log.warn('/team/delete failed', { status: res.status })
     }
   } catch (e) {
-    console.warn(`[workspaceTeams] /team/delete failed: ${e instanceof Error ? e.message : e}`)
+    log.warn('/team/delete failed', { err: e })
   }
 }
 
@@ -183,6 +186,15 @@ export interface MemberKeyHandle {
   token: string
 }
 
+function sealMemberKey(workspaceId: string, userId: number, token: string): string {
+  return sealSecret('litellm-member-key', secretContext.litellmMemberKey(workspaceId, userId), token)
+}
+
+/** A member's stored workspace key token, or null when it can't be decrypted. */
+export function openMemberKey(workspaceId: string, userId: number, sealed: string): string | null {
+  return openSecretOrNull('litellm-member-key', secretContext.litellmMemberKey(workspaceId, userId), sealed)
+}
+
 /**
  * The member's key in the workspace team, created on first use.
  * Returns null when the user isn't a member (callers then bill the
@@ -192,7 +204,18 @@ export async function ensureMemberKey(pool: PooledWorkspace, userId: number): Pr
   const member = await readMember(pool.workspaceId, userId)
   if (!member) return null
   if (member.litellmKeyId && member.litellmKeyToken) {
-    return { keyId: member.litellmKeyId, token: decryptToken(member.litellmKeyToken) }
+    const token = openMemberKey(pool.workspaceId, userId, member.litellmKeyToken)
+    if (token) return { keyId: member.litellmKeyId, token }
+    // Unreadable (encryption key lost or rotated without _PREVIOUS): retire
+    // it by id (LiteLLM's /key/delete takes the hashed id too) and mint anew.
+    await deleteKeyTokens([member.litellmKeyId])
+    await useDatabase().update(workspaceMembers)
+      .set({ litellmKeyId: null, litellmKeyToken: null })
+      .where(and(
+        eq(workspaceMembers.workspaceId, pool.workspaceId),
+        eq(workspaceMembers.userId, userId),
+        eq(workspaceMembers.litellmKeyId, member.litellmKeyId)
+      ))
   }
   let handle: MemberKeyHandle
   if (isStubMode()) {
@@ -223,7 +246,7 @@ export async function ensureMemberKey(pool: PooledWorkspace, userId: number): Pr
   // Only store when no concurrent request stored one first; on a race the
   // loser's key is deleted and the stored one used.
   const stored = await useDatabase().update(workspaceMembers)
-    .set({ litellmKeyId: handle.keyId, litellmKeyToken: encryptToken(handle.token) })
+    .set({ litellmKeyId: handle.keyId, litellmKeyToken: sealMemberKey(pool.workspaceId, userId, handle.token) })
     .where(and(
       eq(workspaceMembers.workspaceId, pool.workspaceId),
       eq(workspaceMembers.userId, userId),
@@ -233,8 +256,9 @@ export async function ensureMemberKey(pool: PooledWorkspace, userId: number): Pr
   if (stored.length > 0) return handle
   if (!isStubMode()) await deleteKeyTokens([handle.token])
   const winner = await readMember(pool.workspaceId, userId)
-  if (winner?.litellmKeyId && winner.litellmKeyToken) {
-    return { keyId: winner.litellmKeyId, token: decryptToken(winner.litellmKeyToken) }
+  const winnerToken = winner?.litellmKeyId && winner.litellmKeyToken ? openMemberKey(pool.workspaceId, userId, winner.litellmKeyToken) : null
+  if (winner?.litellmKeyId && winnerToken) {
+    return { keyId: winner.litellmKeyId, token: winnerToken }
   }
   return null
 }
@@ -244,10 +268,13 @@ export async function syncMemberKeyLimit(pool: PooledWorkspace, userId: number):
   if (isStubMode()) return
   const member = await readMember(pool.workspaceId, userId)
   if (!member?.litellmKeyToken) return
+  // Unreadable: ensureMemberKey replaces it (with the current limit) on next use.
+  const token = openMemberKey(pool.workspaceId, userId, member.litellmKeyToken)
+  if (!token) return
   const limit = memberLimitUsd(member, workspacePoolCaps(pool.plan, pool.seats))
   await failOnError(await litellmAdminFetch('/key/update', {
     method: 'POST',
-    body: JSON.stringify({ key: decryptToken(member.litellmKeyToken), max_budget: limit })
+    body: JSON.stringify({ key: token, max_budget: limit })
   }), '/key/update')
 }
 
@@ -269,9 +296,11 @@ export async function deleteMemberKey(workspaceId: string, userId: number): Prom
   const member = await readMember(workspaceId, userId)
   if (member?.litellmKeyToken && !isStubMode()) {
     try {
-      await deleteKeyTokens([decryptToken(member.litellmKeyToken)])
+      // An unreadable token is deleted by its hashed id instead.
+      const key = openMemberKey(workspaceId, userId, member.litellmKeyToken) ?? member.litellmKeyId
+      if (key) await deleteKeyTokens([key])
     } catch (e) {
-      console.warn(`[workspaceTeams] member key deletion failed: ${e instanceof Error ? e.message : e}`)
+      log.warn('member key deletion failed', { err: e })
     }
   }
   if (member?.litellmKeyId) {
@@ -284,16 +313,14 @@ export async function deleteMemberKey(workspaceId: string, userId: number): Prom
 /** Every workspace key token a user holds (account deletion). */
 export async function listMemberKeyTokens(userId: number): Promise<string[]> {
   const rows = await useDatabase()
-    .select({ token: workspaceMembers.litellmKeyToken })
+    .select({ workspaceId: workspaceMembers.workspaceId, keyId: workspaceMembers.litellmKeyId, token: workspaceMembers.litellmKeyToken })
     .from(workspaceMembers)
     .where(and(eq(workspaceMembers.userId, userId), isNotNull(workspaceMembers.litellmKeyToken)))
   const tokens: string[] = []
   for (const row of rows) {
-    try {
-      if (row.token) tokens.push(decryptToken(row.token))
-    } catch {
-      // unreadable token: nothing to delete upstream
-    }
+    // An unreadable token is deleted by its hashed id instead.
+    const key = (row.token ? openMemberKey(row.workspaceId, userId, row.token) : null) ?? row.keyId
+    if (key) tokens.push(key)
   }
   return tokens
 }
@@ -302,7 +329,7 @@ export async function deleteKeyTokens(tokens: string[]): Promise<void> {
   if (tokens.length === 0 || isStubMode()) return
   const res = await litellmAdminFetch('/key/delete', { method: 'POST', body: JSON.stringify({ keys: tokens }) })
   if (!res.ok && res.status !== 404) {
-    console.warn(`[workspaceTeams] /key/delete failed: ${res.status} ${(await res.text().catch(() => '')).slice(0, 200)}`)
+    log.warn('/key/delete failed', { status: res.status })
   }
 }
 
@@ -344,7 +371,7 @@ export async function reconcileWorkspaceTeams(): Promise<{ checked: number, fail
       await syncAllMemberKeyLimits(pool)
     } catch (e) {
       summary.failed++
-      console.warn(`[workspaceTeams] reconcile of ${row.workspaceId} failed: ${e instanceof Error ? e.message : e}`)
+      log.warn('reconcile failed', { workspaceId: row.workspaceId, err: e })
     }
   }
   return summary

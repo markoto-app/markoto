@@ -3,6 +3,9 @@ import { DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { markExpiredJobs } from '../../repos/dataExportJobs'
 import { useS3Client } from '../storage/s3'
 import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('data-export-expiry')
 
 // Expiry sweeper for data-export jobs. Hourly. Picks rows whose
 // `expires_at` has elapsed AND status is `ready`, flips them to
@@ -48,15 +51,13 @@ export async function runDataExportExpirySweep(): Promise<DataExportExpirySweepR
       result.s3DeleteSucceeded += 1
     } catch (e) {
       result.s3DeleteFailed += 1
-      console.warn(`[dataExportExpirySweep] s3 delete failed for ${row.s3Key}:`, e instanceof Error ? e.message : e)
+      log.warn('S3 delete failed', { s3Key: row.s3Key, err: e })
       Sentry.captureException(e, {
         tags: { component: 'dataExportExpirySweep', event: 's3_delete_failed', jobId: row.jobId }
       })
     }
   }
 
-  console.log(
-    `[dataExportExpirySweep] expired=${result.expired} s3Ok=${result.s3DeleteSucceeded} s3Fail=${result.s3DeleteFailed}`
-  )
+  log.info('data export expiry sweep finished', { expired: result.expired, s3Deleted: result.s3DeleteSucceeded, s3Failed: result.s3DeleteFailed })
   return result
 }

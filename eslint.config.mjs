@@ -25,6 +25,17 @@ const TS_GLOBS = ['**/*.ts', '**/*.vue', '**/*.mts']
 const TESTS = ['tests/**', 'sync-server/**/*.test.ts', 'sync-server/tests/**', 'renderer/**/*.test.ts']
 const BACKEND = ['server/**', 'sync-server/src/**', 'renderer/src/**']
 
+// Backend code logs through `useLogger` (docs/contributing/logging.md). The
+// only console users: the boot-time configuration report of each process
+// (a plain, human-readable problem list written before any logger setting is
+// valid) and the nitropack entry copy, whose "Listening on" line is upstream's.
+const CONSOLE_ALLOWED = [
+  'server/plugins/01-validate-secrets.ts',
+  'server/runtime/bunEntry.ts',
+  'sync-server/src/env.ts',
+  'renderer/src/env.ts'
+]
+
 // Milestone vocabulary (work-package, phase and batch labels) is planning jargon
 // that means nothing to a reader of the open-source tree; comments and strings
 // should say what the code does and why.
@@ -177,7 +188,7 @@ export default withNuxt(
   {
     name: 'markoto/type-aware-nuxt',
     files: TS_GLOBS,
-    ignores: [...TESTS, 'scripts/**', 'sync-server/**', 'renderer/**', 'infra/**', '*.config.*', 'drizzle.config.ts', 'content.config.ts', 'playwright*.ts'],
+    ignores: [...TESTS, 'scripts/**', 'sync-server/**', 'renderer/**', 'infra/**', '*.config.*', 'drizzle.config.ts', 'content.config.ts', 'colada.options.ts', 'playwright*.ts'],
     languageOptions: {
       parserOptions: { project: nuxtProjects, tsconfigRootDir: ROOT, extraFileExtensions: ['.vue'] }
     },
@@ -288,8 +299,8 @@ export default withNuxt(
   {
     name: 'markoto/no-console-backend',
     files: BACKEND.map(g => `${g}/*.{ts,mts,js,mjs}`).concat(BACKEND.map(g => `${g}/**/*.{ts,mts,js,mjs}`)),
-    ignores: TESTS,
-    rules: { 'no-console': ['warn', { allow: ['warn', 'error'] }] }
+    ignores: [...TESTS, ...CONSOLE_ALLOWED],
+    rules: { 'no-console': 'error' }
   },
 
   // --- Security ------------------------------------------------------------

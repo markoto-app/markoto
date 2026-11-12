@@ -5,6 +5,9 @@ import { isBillingEnabled } from './billingMode'
 import { getPooledWorkspace, pooledFromRow, type PooledWorkspace } from './workspaceBilling'
 import { ensureWorkspaceTeam, readWorkspaceTeam } from '../litellm/workspaceTeams'
 import { notifyWorkspaceAdmins } from '../email/workspaceBillingEmails'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('workspace-budget')
 
 // Budget alerts for Team / Business workspaces: when a workspace's
 // pooled AI budget reaches 80 % and 100 % of the month, its admins get
@@ -39,7 +42,7 @@ async function endSeatAdjustment(pool: PooledWorkspace, now: Date): Promise<void
   const fresh = await getPooledWorkspace(pool.workspaceId, now)
   if (fresh) {
     await ensureWorkspaceTeam(fresh).catch((e: unknown) => {
-      console.warn(`[workspaceBudgetAlerts] budget update for ${pool.workspaceId} failed: ${e instanceof Error ? e.message : e}`)
+      log.warn('budget update failed', { workspaceId: pool.workspaceId, err: e })
     })
   }
 }
