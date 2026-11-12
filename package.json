@@ -37,6 +37,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:check-migrations": "bun scripts/check-destructive-migrations.ts",
     "knowledge:reembed": "bun scripts/reembed-knowledge.ts",
+    "secrets:reencrypt": "bun scripts/reencrypt-secrets.ts",
     "smoke": "playwright test --config=playwright.smoke.config.ts",
     "test": "vitest run --project=unit --project=dom --project=nuxt",
     "test:unit": "vitest run --project=unit",

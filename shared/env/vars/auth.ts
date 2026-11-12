@@ -65,6 +65,25 @@ export const auth = defineNamespace({
       scope: 'both',
       aliases: { sync: 'INTERNAL_API_SECRET_PREVIOUS', renderer: 'INTERNAL_API_SECRET_PREVIOUS' }
     }),
+    encryptionKey: v({
+      name: 'NUXT_ENCRYPTION_KEY',
+      example: '',
+      type: signingSecret,
+      required: 'production',
+      secret: true,
+      doc: 'Encrypts the secrets the app stores in Postgres (LiteLLM virtual keys, users\' own AI provider keys, workspace SSO client secrets). Losing or replacing it makes them unreadable: rotate through NUXT_ENCRYPTION_KEY_PREVIOUS.',
+      services: ['app'],
+      scope: 'both'
+    }),
+    encryptionKeyPrevious: v({
+      name: 'NUXT_ENCRYPTION_KEY_PREVIOUS',
+      example: '',
+      type: signingSecret,
+      secret: true,
+      doc: 'Previous NUXT_ENCRYPTION_KEY, still used to decrypt during a rotation (then `bun run secrets:reencrypt`).',
+      services: ['app'],
+      scope: 'both'
+    }),
     dictateJwtSecret: v({
       name: 'NUXT_AI_DICTATE_JWT_SECRET',
       example: '',

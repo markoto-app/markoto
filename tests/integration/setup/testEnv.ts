@@ -78,7 +78,9 @@ export function buildTestEnv(): Record<string, string> {
     // network. Integration tests do NOT set this — they exercise the
     // real proxy.
     LITELLM_TEST_STUB: '1',
-    LITELLM_SALT_KEY: 'sk-test-litellm-salt-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz',
+    // Encrypts stored secrets (secretBox). Tests that seed encrypted rows
+    // from the test process encrypt with this same value.
+    NUXT_ENCRYPTION_KEY: 'test-encryption-key-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz',
     TEST_BASE_URL,
     NITRO_PORT: String(TEST_PORT),
     PORT: String(TEST_PORT)

@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/bun'
 import { env } from './env'
+import { sentryScrubOptions } from './sentryScrub'
 
 // Renderer Sentry init. Must be imported BEFORE any handler so Sentry's
 // Bun instrumentation patches stdlib targets (fetch / http / s3) before
@@ -21,7 +22,10 @@ if (dsn) {
     environment: process.env.NODE_ENV ?? 'development',
     // Same prod/dev split as the app — keeps the bill sane in prod,
     // makes every distributed trace visible while debugging locally.
-    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1,
+    // Render URLs carry `?t=` tokens and presigned S3 queries: scrubbed in
+    // errors, transactions and breadcrumbs (copy of shared/utils/security/sentryScrub.ts).
+    ...sentryScrubOptions
   })
 }
 

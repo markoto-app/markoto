@@ -279,6 +279,7 @@ interface Spec {
 
 const SPECS: readonly Spec[] = [
   { group: "core", key: "nodeEnv", name: "NODE_ENV", type: string },
+  { group: "core", key: "logLevel", name: "LOG_LEVEL", type: oneOf(["debug","info","warn","error"]), default: "info" },
   { group: "auth", key: "internalApiSecret", name: "INTERNAL_API_SECRET", type: secret(32), required: "always" },
   { group: "auth", key: "internalApiSecretPrevious", name: "INTERNAL_API_SECRET_PREVIOUS", type: secret(32) },
   { group: "storage", key: "endpoint", name: "S3_ENDPOINT", type: url(["http","https"]), required: "always" },
@@ -298,6 +299,7 @@ const SPECS: readonly Spec[] = [
 export interface RendererEnv {
   readonly core: {
     readonly nodeEnv: string | undefined
+    readonly logLevel: "debug" | "info" | "warn" | "error"
   }
   readonly auth: {
     readonly internalApiSecret: string

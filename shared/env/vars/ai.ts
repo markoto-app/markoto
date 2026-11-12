@@ -42,10 +42,10 @@ export const litellm = defineNamespace({
       example: '',
       type: secret(16),
       secret: true,
-      doc: 'Encrypts provider keys in LiteLLM\'s database; the app derives the key that encrypts stored virtual-key tokens from it. Never change it on a running instance (scripts/rotate-litellm-salt.ts).',
-      services: ['app', 'litellm'],
+      doc: 'Encrypts provider keys in LiteLLM\'s own database. Never change it on a running instance: LiteLLM can no longer read what it stored.',
+      services: ['litellm'],
       scope: 'both',
-      required: { when: 'a virtual-key token is stored or read (any AI use)' }
+      required: 'always'
     }),
     dbUrl: v({
       name: 'NUXT_LITELLM_DB_URL',

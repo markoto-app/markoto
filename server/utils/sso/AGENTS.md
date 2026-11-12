@@ -17,7 +17,7 @@ Not the same as instance sign-in with OIDC (`server/utils/oidc/`, `NUXT_OAUTH_OI
 - **SAML** (`saml.ts`, `@node-saml/node-saml`): signed assertion, issuer, audience = `/auth/sso/<id>/metadata`, recipient, 30 s clock skew, `validateInResponseTo: always` against the request id from this browser's flow cookie, `rejectReplayedAssertions`. No IdP-initiated sign-in.
 - **Flow cookie** (`flowCookie.ts`): HMAC-signed, httpOnly, path `/auth/sso`, 10 min, single use, bound to the connection; `SameSite=None; Secure` on https (SAML posts back cross-site), Lax on plain-http dev and test.
 - **SCIM** (`scim.ts`): Users only; one bearer token per connection, shown once and stored as SHA-256; accepts Entra and Okta PATCH shapes. Deactivate removes membership, grant and the workspace AI key; delete removes the user from the workspace (the account stays); removing the last admin is 409. Routes declare `allow.scim()`, whose error format (`scimErrorFormat`) answers every refusal as a SCIM Error body.
-- The OIDC client secret is encrypted with `litellm/tokenCrypto.ts`; the settings API never returns it, the certificate body or the SCIM token.
+- The OIDC client secret is encrypted with `platform/secretBox.ts` (purpose `sso-client-secret`, bound to the workspace id); the settings API never returns it, the certificate body or the SCIM token.
 - Refused sign-ins redirect to `/auth/sso-error?code=sso/…` with fixed codes only. Audit actions are `sso.*` (`server/legal/auditActions.ts`).
 
 ## Tests

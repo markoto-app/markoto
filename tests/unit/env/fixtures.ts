@@ -12,6 +12,7 @@ export const VALID_APP_ENV: Record<string, string> = Object.freeze({
   NUXT_JWT_SECRET: SECRET,
   NUXT_INTERNAL_API_SECRET: SECRET,
   NUXT_MARKITDOWN_API_SECRET: SECRET,
+  NUXT_ENCRYPTION_KEY: SECRET,
   POSTGRES_USER: 'ypad',
   POSTGRES_PASSWORD: 'devpassword',
   POSTGRES_HOST: 'localhost',

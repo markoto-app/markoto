@@ -12,6 +12,9 @@ How the markoto stack is hardened, for self-hosted instances and the hosted serv
 - §D. Public edge and access control — internal endpoints kept off the
   edge, default-deny API authentication, sync connections that end with
   their authorization, published pages on their own hostname.
+- §E. Secrets at rest, telemetry and the supply chain — encryption of
+  stored credentials, Sentry scrubbing, test-only code absent from release
+  builds, digest-pinned images.
 
 Postgres connections of a production build use TLS with certificate
 verification (`shared/utils/runtime/postgresSsl.ts`): against the system CA
@@ -604,3 +607,120 @@ Without it (the self-host default), pages share the app's origin at
 shape) the app refuses to boot without it; for a public self-hosted
 instance it is recommended (see
 [SELF-HOSTING.md](SELF-HOSTING.md#published-pages)).
+
+---
+
+# Section E — Secrets at rest, telemetry and the supply chain
+
+## E.1 Stored credentials are encrypted per purpose and per row
+
+The app keeps a few credentials in Postgres because it has to present them
+later. All of them go through `server/utils/platform/secretBox.ts`:
+
+| Column | Purpose (HKDF `info`) | Bound to (AES-GCM associated data) |
+|---|---|---|
+| `users.litellm_key_token` | `litellm-user-key` | user id |
+| `workspace_members.litellm_key_token` | `litellm-member-key` | workspace id + user id |
+| `user_ai_providers.api_key_encrypted` | `ai-provider-key` | user id + capability |
+| `sso_connections.oidc_client_secret` | `sso-client-secret` | workspace id (one connection per workspace) |
+
+- **Its own secret.** `NUXT_ENCRYPTION_KEY` (≥ 32 chars, required in
+  production) is given to the app only. It is not LiteLLM's salt
+  (`LITELLM_SALT_KEY` stays with the LiteLLM container), so a compromised
+  proxy does not hold the key to the app's stored credentials.
+- **One key per purpose.** Each purpose gets its own AES-256 key, derived
+  with HKDF-SHA-256 from the secret; a ciphertext of one kind never
+  decrypts as another.
+- **Bound to its row.** The associated data names the purpose and the
+  owning row, so a ciphertext copied into another user's or workspace's
+  row (SQL injection, a mass-assignment bug, a restore mix-up) fails
+  authentication instead of decrypting for the wrong owner.
+- **Format.** `v2:<nonce>:<tag>:<ciphertext>`, a random 96-bit nonce per
+  encryption. Anything else is refused with an error that carries no key,
+  plaintext or ciphertext.
+- **Failure is graceful.** A value that can't be decrypted (lost key,
+  rotation without `_PREVIOUS`) is treated as absent: a new LiteLLM key is
+  minted and the old one deleted by its id, the user is asked for their
+  provider key again, the SSO sign-in answers 409 `sso/incomplete` until an
+  admin enters the client secret again. Never a 500 loop.
+- **Rotation.** Encryption uses `NUXT_ENCRYPTION_KEY`, decryption tries it
+  and then `NUXT_ENCRYPTION_KEY_PREVIOUS`; `cli/reencrypt-secrets.js`
+  rewrites every row with the current key
+  ([SECRETS-ROTATION.md §24](operations/SECRETS-ROTATION.md)).
+
+SCIM tokens and MCP personal access tokens are not encrypted but stored as
+SHA-256 hashes (high-entropy random tokens, looked up by hash), and are
+never shown again after creation.
+
+Pinned by `tests/unit/platform/secretBox.test.ts` (round trip, wrong
+purpose, wrong row, tampering, rotation, nonce uniqueness, no secrets in
+errors).
+
+## E.2 What reaches Sentry
+
+The app server, the sync server and the renderer pass every error event,
+every sampled transaction and every breadcrumb through one scrubber
+(`shared/utils/security/sentryScrub.ts`; the renderer carries a
+byte-identical copy, `renderer/src/sentryScrub.ts`) wired as `beforeSend`,
+`beforeSendTransaction` and `beforeBreadcrumb`, with `sendDefaultPii: false`:
+
+- URLs (request URL, span and breadcrumb URLs, `http.url` / `url.full`)
+  lose their query string, fragment and credentials — presigned S3
+  signatures, render tokens (`?t=`), invite / unsubscribe tokens; query
+  attributes (`url.query`, `http.query`) are dropped;
+- request bodies, cookies, query strings and the process environment are
+  dropped; request headers are reduced to an allowlist (content type and
+  length, user agent, accept*, host, origin, referer without query,
+  request id) — no `authorization`, `cookie`, `x-internal-secret`,
+  `stripe-signature`;
+- values under keys that name a secret (token, secret, password,
+  authorization, cookie, key, signature, credential, session, dsn) are
+  replaced anywhere in `extra`, `contexts`, `tags`, span and breadcrumb
+  data; email-like keys are masked;
+- free text (messages, exception values, span descriptions) has bearer
+  tokens, JWTs, provider keys (`sk-…`, `whsec_…`), AWS signature
+  parameters and email addresses redacted; every string is length-capped;
+- the user is reduced to the numeric id (no email, username, IP); stack
+  frames lose local variables;
+- a scrubber failure drops the event rather than sending it unscrubbed.
+
+Pinned by `tests/unit/platform/sentryScrub.test.ts` (a Stripe webhook
+event, a transaction with presigned S3 and render-token spans,
+fetch / http / console / navigation breadcrumbs). The browser SDK
+(`app/utils/platform/sentryClient.ts`) has its own, narrower `beforeSend`.
+
+## E.3 No test-only code in release builds
+
+The test-only routes (`server/api/_test/**`: the sign-in shim, AI-tool
+execution, budget helpers, export-worker trigger) are compiled in only when
+the build runs with `MARKOTO_TEST_BUILD=1` (`nitro.ignore` in
+`nuxt.config.ts`). The integration and flow test harnesses set it for their
+own builds; the Dockerfile never does, and fails the image build if a test
+route is found in `.output/` (`scripts/check-test-routes.ts`). Each route
+also still refuses to run outside test mode (`TEST_MODE=1` on a
+non-deployment, `shared/utils/security/testMode.ts`), as defence in depth.
+
+The remaining `isTestModeEnabled()` branches in production code only relax
+behaviour under that runtime gate (rate limits, the anonymous-gate
+proof-of-work difficulty, http issuers / test host names for OIDC, SSO,
+custom domains and the pages host, canned transcription, stricter error
+registry checks, the sync server's kick log).
+
+## E.4 Images and dependencies are pinned
+
+- Every third-party image is pinned by digest (`tag@sha256:…` in the
+  compose files, `FROM …@sha256:…` in the Dockerfiles); our own images are
+  pinned by release tag and cosign-signed. `scripts/selfhost-check.sh`
+  fails on an unpinned image. Dependabot (`docker` for the Dockerfiles,
+  `docker-compose` for the compose files) moves tag and digest together.
+- Every `bun install` in the Dockerfiles uses `--frozen-lockfile
+  --ignore-scripts`: no dependency install script runs in an image build.
+  The app's own `postinstall` (`nuxt prepare`) runs explicitly.
+- The markitdown converter's Python tests run in CI inside the image they
+  test (`markitdown-tests` job).
+- Document passwords are capped at 1,024 characters before scrypt sees
+  them (set and verify), so a huge "password" can't burn CPU.
+- `/api/health/deep` (admins only) reports probe errors through the same
+  text scrubber, so a driver error quoting a connection string doesn't
+  show its credentials.
+

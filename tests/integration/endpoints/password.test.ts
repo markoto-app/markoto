@@ -150,6 +150,19 @@ describe('POST /api/docs/:docId/password', () => {
       expect(ok.status).toBe(200)
     })
 
+    it('refuses an over-long password before hashing it, for set and verify (400)', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
+      const client = await loggedInClient(owner.id)
+      const huge = 'p'.repeat(1025)
+      const set = await client.post(`/api/docs/${doc.docId}/password`, { action: 'set', password: huge })
+      expect(set.status).toBe(400)
+      expect(((await set.json()) as { data?: { code?: string } }).data?.code).toBe('request/invalid')
+      expect((await client.post(`/api/docs/${doc.docId}/password`, { action: 'set', password: 'p'.repeat(1024) })).status).toBe(200)
+      const verify = await anonClient().post(`/api/docs/${doc.docId}/password`, { action: 'verify', password: 'x'.repeat(2_000_000) })
+      expect(verify.status).toBe(400)
+    })
+
     it('a password set under the old 4-char minimum still verifies', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'password-protected' })

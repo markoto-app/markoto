@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/bun'
 import { syncEnv } from './env'
+import { sentryScrubOptions } from '../../shared/utils/security/sentryScrub'
 
 // Sync-server Sentry init. Must be imported before anything else in
 // index.ts so Sentry's Bun instrumentation patches the global fetch / ws /
@@ -15,7 +16,10 @@ if (dsn) {
     // Dev: full sampling so distributed traces (browser → app → sync-server
     // for activity logs / comments mirror) are visible while debugging.
     // Prod: 10% to keep the Sentry bill sane.
-    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1,
+    // Same scrubbing as the app (errors, transactions, breadcrumbs): the
+    // internal calls carry the shared secret and document tokens.
+    ...sentryScrubOptions
   })
 }
 

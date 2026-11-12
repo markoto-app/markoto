@@ -15,6 +15,7 @@ Public address and runtime mode of this instance.
 | Variable | Type | Default | Required | Services | Scope | Description |
 |---|---|---|---|---|---|---|
 | `NODE_ENV` | string |  |  | app, sync, renderer | both | `production` turns on production checks (required NUXT_SITE_URL, Postgres TLS, Secure cookies); the images set it. Not passed by the compose files: set by each image / the dev command; compose overrides it only on some services. |
+| `LOG_LEVEL` | debug \| info \| warn \| error | `info` |  | app, sync, renderer | both | Minimum level the app, the sync server and the renderer log (`debug`, `info`, `warn`, `error`). Production writes one JSON object per line; see docs/operations/OBSERVABILITY.md. Not passed by the compose files: code default is enough; an operator who wants debug output adds it to the container environment. |
 | `NUXT_SITE_URL` | http/https URL |  | in production | app, sync | both | Public origin of this instance (https://docs.example.org). Email links are built only from it, never from the request Host. |
 | `NUXT_CANONICAL_SITE_URL` | http/https URL |  |  | app | hosted | Origin named by canonical / og:url / JSON-LD / sitemap. Empty = NUXT_SITE_URL (staging renders https://markoto.app). |
 | `NUXT_DOCS_CANONICAL_BASE` | http/https URL |  |  | app | self-host | Origin the /docs pages' canonical links point to off the marketing site. Unset = https://markoto.app; set but empty = this instance. Set but empty is a value of its own. Not passed by the compose files: self-host compose only; the hosted instance is the marketing site and always self-canonical. |
@@ -49,6 +50,8 @@ Signing and service-to-service secrets (≥ 32 chars each; `openssl rand -hex 32
 | `NUXT_JWT_SECRET_PREVIOUS` | secret, ≥ 32 chars |  |  | app, sync (as `JWT_SECRET_PREVIOUS`) | both | Previous NUXT_JWT_SECRET, still accepted by verifiers during a rotation. Secret. |
 | `NUXT_INTERNAL_API_SECRET` | secret, ≥ 32 chars |  | always | app, sync (as `INTERNAL_API_SECRET`), renderer (as `INTERNAL_API_SECRET`) | both | Shared secret of the app ↔ sync ↔ renderer internal HTTP calls and render tokens. Secret. |
 | `NUXT_INTERNAL_API_SECRET_PREVIOUS` | secret, ≥ 32 chars |  |  | app, sync (as `INTERNAL_API_SECRET_PREVIOUS`), renderer (as `INTERNAL_API_SECRET_PREVIOUS`) | both | Previous NUXT_INTERNAL_API_SECRET, still accepted during a rotation. Secret. |
+| `NUXT_ENCRYPTION_KEY` | secret, ≥ 32 chars |  | in production | app | both | Encrypts the secrets the app stores in Postgres (LiteLLM virtual keys, users' own AI provider keys, workspace SSO client secrets). Losing or replacing it makes them unreadable: rotate through NUXT_ENCRYPTION_KEY_PREVIOUS. Secret. |
+| `NUXT_ENCRYPTION_KEY_PREVIOUS` | secret, ≥ 32 chars |  |  | app | both | Previous NUXT_ENCRYPTION_KEY, still used to decrypt during a rotation (then `bun run secrets:reencrypt`). Secret. |
 | `NUXT_AI_DICTATE_JWT_SECRET` | secret, ≥ 32 chars |  |  | app | both | Signs live-dictation WebSocket tokens; empty = NUXT_JWT_SECRET. Secret. |
 
 ## Sign-in
@@ -175,7 +178,7 @@ Every platform-paid AI call goes through the self-hosted LiteLLM proxy (infra/li
 | `NUXT_LITELLM_URL` | http/https URL |  | always | app | both | Internal URL of the proxy. |
 | `NUXT_LITELLM_MASTER_KEY` | secret |  | always | app | both | Admin key the app mints virtual keys with; must equal LITELLM_MASTER_KEY. Secret. |
 | `LITELLM_MASTER_KEY` | secret |  | always | litellm, compose | both | Master key the proxy starts with (sk-…). Secret. |
-| `LITELLM_SALT_KEY` | secret, ≥ 16 chars |  | when a virtual-key token is stored or read (any AI use) | app, litellm | both | Encrypts provider keys in LiteLLM's database; the app derives the key that encrypts stored virtual-key tokens from it. Never change it on a running instance (scripts/rotate-litellm-salt.ts). Secret. |
+| `LITELLM_SALT_KEY` | secret, ≥ 16 chars |  | always | litellm | both | Encrypts provider keys in LiteLLM's own database. Never change it on a running instance: LiteLLM can no longer read what it stored. Secret. |
 | `NUXT_LITELLM_DB_URL` | postgres/postgresql URL |  |  | app | both | Full URL of LiteLLM's spend database for the app's spend reads; empty = built from the parts below + POSTGRES_HOST/PORT. Not passed by the compose files: the compose files pass the parts instead. |
 | `NUXT_LITELLM_DB_USER` | string |  |  | app | both | Role the app reads LiteLLM's spend logs as; empty = POSTGRES_USER (and POSTGRES_PASSWORD). |
 | `NUXT_LITELLM_DB_PASSWORD` | string |  |  | app | both | Password of NUXT_LITELLM_DB_USER. Secret. |
@@ -357,6 +360,7 @@ Test-only switches. Ignored on an instance whose NUXT_SITE_URL is a real (non-lo
 
 | Variable | Type | Default | Required | Services | Scope | Description |
 |---|---|---|---|---|---|---|
+| `MARKOTO_TEST_BUILD` | boolean | `false` |  | build | test | Build time only: include the test-only routes (server/api/_test/**) in the build. Set by the integration and flow test harnesses; release images are built without it, so those routes do not exist there. Not passed by the compose files: set by the test harness for its own build only. |
 | `TEST_MODE` | 1 \| 0 |  |  | app, sync | test | 1 = test login shim, rate-limit bypass, in-process fakes, relaxed required-variable checks. Test harness only. Not passed by the compose files: set by the test harness only. |
 | `TEST_ENFORCE_RATE_LIMITS` | string | (empty) |  | app | test | Comma-separated rate-limit namespaces (or *) enforced despite TEST_MODE. Not passed by the compose files: set by the test harness only. |
 | `LITELLM_TEST_STUB` | boolean | `false` |  | app | test | Skip LiteLLM key/team calls (unit/repos test tiers). Not passed by the compose files: set by the test harness only. |

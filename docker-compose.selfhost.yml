@@ -368,10 +368,13 @@ services:
       - RENDERER_ALLOWED_ORIGINS=${RENDERER_ALLOWED_ORIGINS:-}
       - NUXT_LITELLM_URL=http://litellm:4000
       - NUXT_LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
-      # The app encrypts each user's LiteLLM virtual-key token at rest with
-      # this key (server/utils/litellm/userKeys.ts). Without it, creating
-      # the key (first AI use, BYOK save, AI Points) fails with a 500.
-      - LITELLM_SALT_KEY=${LITELLM_SALT_KEY:?LITELLM_SALT_KEY required}
+      # Encrypts the secrets the app stores (LiteLLM virtual keys, BYOK
+      # provider keys, SSO client secrets; server/utils/platform/secretBox.ts).
+      # Its own secret, not LiteLLM's salt: a compromised LiteLLM container
+      # must not also open the app's stored credentials. Losing it makes
+      # those values unreadable; rotate through _PREVIOUS.
+      - NUXT_ENCRYPTION_KEY=${NUXT_ENCRYPTION_KEY:?NUXT_ENCRYPTION_KEY required}
+      - NUXT_ENCRYPTION_KEY_PREVIOUS=${NUXT_ENCRYPTION_KEY_PREVIOUS:-}
       # LiteLLM's own role, for the spend-log sweep + admin spend query
       # (server/utils/litellm/litellmDb.ts); empty = the app role.
       - NUXT_LITELLM_DB_USER=${POSTGRES_LITELLM_USER:-}

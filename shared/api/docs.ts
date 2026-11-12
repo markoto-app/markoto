@@ -6,6 +6,7 @@ import { AUDIENCE_KINDS } from '../audiences'
 import { LANGUAGE_MAX_LENGTH } from '../languages'
 import { isTemplateId, resolveTemplateId } from '../templates'
 import { DOC_DESCRIPTION_MAX_LENGTH, DOC_TITLE_MAX_LENGTH } from '../config/docCreate'
+import { DOC_PASSWORD_MAX_LENGTH } from '../config/docPassword'
 import { isValidTheme } from '../utils/theme/themeValidation'
 import type { DocTheme } from '../types/theme'
 
@@ -71,10 +72,10 @@ export const updateDocMetaBody = z.object({
   templateId: z.string().refine(isTemplateId).transform(id => resolveTemplateId(id) ?? id).optional()
 })
 
-/** POST /api/docs/:docId/password. `set` checks the password's length itself (`password/too-short`). */
+/** POST /api/docs/:docId/password. `set` checks the minimum length itself (`password/too-short`); the maximum is a schema bound for every action. */
 export const docPasswordBody = z.object({
   action: z.enum(['set', 'verify', 'remove']),
-  password: z.string().optional()
+  password: z.string().max(DOC_PASSWORD_MAX_LENGTH).optional()
 })
 
 /** GET /api/docs/:docId/token. `refresh=1`: the editor's reconnect, not a new open. */

@@ -6,7 +6,9 @@
 #
 # To bump Playwright: change the version on this FROM line AND the playwright
 # pin in package.json so they match. Mismatched versions wedge the launcher.
-FROM mcr.microsoft.com/playwright:v1.64.1-jammy
+# The digest pins the exact image (a tag can be re-pushed); Dependabot moves
+# tag + digest together.
+FROM mcr.microsoft.com/playwright:v1.64.1-jammy@sha256:a3966b653e8d48a30901889081b616307fca73e0d843a117fadf6609397dac38
 
 # Bun via the official curl install. We don't need bun for Playwright (which
 # ships its Node), but the renderer's own HTTP server runs under Bun for

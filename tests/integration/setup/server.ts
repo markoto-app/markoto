@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_STRIPE_PRICE_IDS, TEST_BILLING_OFF_PORT, TEST_ALTCHA_HMAC_KEY, TEST_ENFORCED_ANON_RATE_LIMITS, TEST_ENFORCED_MCP_RATE_LIMITS, TEST_LITELLM_DB_PASSWORD, TEST_LITELLM_DB_USER, TEST_OIDC_ADMIN_EMAIL, TEST_OIDC_CLIENT_ID, TEST_OIDC_CLIENT_SECRET, TEST_OIDC_ISSUER, TEST_PORT, TEST_PUBLISH_DOMAINS_TARGET, TEST_PUBLISH_PAGES_HOST, TEST_TRAEFIK_PROVIDER_TOKEN, TEST_INSTANCE_BRAND_NAME } from './env'
 import { buildTestEnv } from './testEnv'
 import { RECOMMENDED_SAAS_ALLOWED_BASE_URLS } from '../../../shared/ai/providers'
+import { testRoutesInBuild } from '../../../scripts/lib/testRoutesInBuild'
 
 // Production Nitro subprocess lifecycle. Boot once for the whole test run
 // from globalSetup, tear down at the end.
@@ -38,15 +39,19 @@ export async function startNuxt(): Promise<void> {
   // because there's no point streaming progress — vitest holds the test
   // worker until globalSetup resolves anyway, and a 30-60s pause with no
   // output is normal.
-  if (process.env.INTEGRATION_SKIP_BUILD !== '1' || !existsSync(OUTPUT_ENTRY)) {
-    if (process.env.INTEGRATION_SKIP_BUILD === '1' && !existsSync(OUTPUT_ENTRY)) {
-      console.log('[integration] INTEGRATION_SKIP_BUILD=1 set but no .output/ found — building anyway.')
+  // A test build (MARKOTO_TEST_BUILD=1): the suite drives the /api/_test/*
+  // routes, which a production build leaves out. A reused .output/ from a
+  // production `bun run build` lacks them, so it is rebuilt.
+  const reusable = existsSync(OUTPUT_ENTRY) && testRoutesInBuild('.output').length > 0
+  if (process.env.INTEGRATION_SKIP_BUILD !== '1' || !reusable) {
+    if (process.env.INTEGRATION_SKIP_BUILD === '1' && !reusable) {
+      console.log('[integration] INTEGRATION_SKIP_BUILD=1 set but no test build in .output/ — building anyway.')
     } else {
       console.log('[integration] building production bundle (~30-60s, set INTEGRATION_SKIP_BUILD=1 to reuse .output/ between runs)...')
     }
     const buildResult = spawnSync('bun', ['run', 'build'], {
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: process.env
+      env: { ...process.env, MARKOTO_TEST_BUILD: '1' }
     })
     if (buildResult.status !== 0) {
       const stderr = buildResult.stderr?.toString() ?? '(no stderr)'

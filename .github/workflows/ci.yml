@@ -41,6 +41,7 @@ jobs:
     outputs:
       code: ${{ steps.code.outputs.code }}
       image_services: ${{ steps.services.outputs.services }}
+      markitdown: ${{ steps.markitdown.outputs.markitdown }}
     steps:
       # `code` is true when ANY changed file is NOT documentation-like
       # (`every` quantifier: a file counts only if it matches all patterns).
@@ -97,6 +98,18 @@ jobs:
             backup:
               - 'backup-server/Dockerfile'
               - '.github/workflows/image-scan.yml'
+
+      # The converter's own Python tests (archive-bomb limits, the shared
+      # secret, design extraction): run whenever its source changes.
+      - name: Detect markitdown source changes
+        id: markitdown
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            markitdown:
+              - 'markitdown-server/**'
+              - 'tests/fixtures/design-import/**'
+              - '.github/workflows/ci.yml'
 
       - name: Build image-scan service list
         id: services
@@ -267,6 +280,39 @@ jobs:
 
       - name: Validate self-host compose + install.sh
         run: bash scripts/selfhost-check.sh
+
+  # markitdown-server/test_*.py run inside the image they test (its Python,
+  # markitdown and limits), so a dependency bump that breaks the archive
+  # pre-flight or the secret check fails here, not in production.
+  markitdown-tests:
+    name: markitdown-tests
+    needs: changes
+    if: needs.changes.outputs.markitdown == 'true'
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Build the markitdown image
+        run: docker build -t markoto-markitdown:ci markitdown-server
+
+      # The image ships without pip; the HTTP test client (pure Python,
+      # pinned, wheels only) is mounted read-only instead of installed.
+      - name: Fetch the test client
+        run: |
+          python3 -m pip install --target "${RUNNER_TEMP}/pydeps" --no-deps --only-binary=:all: \
+            httpx==0.28.1 httpcore==1.0.9 certifi==2025.8.3
+
+      - name: Run the Python unit tests in the image
+        run: |
+          docker run --rm --network none --entrypoint python \
+            -e PYTHONPATH=/deps -v "${RUNNER_TEMP}/pydeps:/deps:ro" \
+            -v "$PWD/markitdown-server:/t:ro" -w /t \
+            -v "$PWD/tests/fixtures/design-import:/fixtures:ro" \
+            markoto-markitdown:ci -B -m unittest -v test_server test_design_extract
 
   lint-typecheck:
     name: lint-typecheck

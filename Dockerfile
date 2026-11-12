@@ -10,16 +10,25 @@ WORKDIR /app
 USER bun
 
 # Dependency install layer first, so source changes don't bust the package cache.
+# `--ignore-scripts`: no dependency's install script runs in the build (a
+# compromised package can't execute code here); same as the sync-server and
+# renderer images. The one script the app needs, the root `postinstall`
+# (`nuxt prepare`), runs explicitly once the source is in.
 COPY --chown=bun:bun package.json bun.lock ./
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --ignore-scripts
 
 COPY --chown=bun:bun . .
-RUN bun run build
+RUN bun run postinstall && bun run build
+# A release image must not contain the test-only routes (login shim, AI-tool
+# exec): they're compiled in only with MARKOTO_TEST_BUILD=1, which this
+# Dockerfile never sets. Fail the image build if one slipped in anyway.
+RUN bun scripts/check-test-routes.ts --absent .output
 # Operator CLIs. The runtime stage ships only the Nitro output — no
 # scripts/ dir, no node_modules — so standalone scripts are bundled into
 # single files (deps inlined) that run with the image's bun:
 #   docker compose exec app bun cli/reembed-knowledge.js [--dry-run]
 RUN bun build scripts/reembed-knowledge.ts --target=bun --outfile=cli/reembed-knowledge.js
+RUN bun build scripts/reencrypt-secrets.ts --target=bun --outfile=cli/reencrypt-secrets.js
 
 # --- Runtime stage ---------------------------------------------------------
 # Nitro's `bun` preset emits an output targeted at the Bun runtime — it

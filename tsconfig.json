@@ -1,6 +1,15 @@
 {
   // https://nuxt.com/docs/guide/concepts/typescript
   "files": [],
+  // Only for Bun, which ignores `references`: the bundled operator CLIs
+  // (Dockerfile `bun build scripts/*.ts`) import server code that uses the
+  // Nuxt aliases. The referenced projects define their own paths.
+  "compilerOptions": {
+    "paths": {
+      "~~/*": ["./*"],
+      "~/*": ["./app/*"]
+    }
+  },
   "references": [
     { "path": "./.nuxt/tsconfig.app.json" },
     { "path": "./.nuxt/tsconfig.server.json" },

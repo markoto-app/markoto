@@ -6,7 +6,7 @@ import { anonClient, loggedInClient, type TestClient } from '../setup/client'
 import { createDoc } from '../setup/fixtures'
 import { TEST_BILLING_OFF_BASE_URL, fakeOpenAiBaseUrl } from '../setup/env'
 import { LITELLM_MASTER_KEY, LITELLM_URL, byokUser, fakeRequests, resetFake, uniqueKey, waitFor } from '../setup/byok'
-import { decryptToken } from '../../../server/utils/litellm/tokenCrypto'
+import { openSecret, secretContext } from '../../../server/utils/platform/secretBox'
 
 // Bring-your-own-key AI providers, end to end:
 //   app (SSRF policy, encryption, verification) → litellm-test (`byok/*`
@@ -311,7 +311,7 @@ describe('BYOK round trips through LiteLLM', () => {
     }
     // And the key's budget counter itself is still at zero.
     const tokenRow = await testDb().query<{ litellm_key_token: string }>('SELECT litellm_key_token FROM users WHERE id = $1', [u.id])
-    const plainKey = decryptToken(tokenRow.rows[0]?.litellm_key_token ?? '')
+    const plainKey = openSecret('litellm-user-key', secretContext.litellmUserKey(u.id), tokenRow.rows[0]?.litellm_key_token ?? '')
     const info = await fetch(`${LITELLM_URL}/key/info?key=${encodeURIComponent(plainKey)}`, {
       headers: { Authorization: `Bearer ${LITELLM_MASTER_KEY}` }
     })

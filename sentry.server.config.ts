@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/nuxt'
+import { sentryScrubOptions } from './shared/utils/security/sentryScrub'
 
 // Server-side Sentry init — picked up automatically by @sentry/nuxt.
 //
@@ -20,16 +21,9 @@ if (dsn) {
     // httpIntegration, so cross-service traces stitch together when the
     // upstream parent kept the trace.
     tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
-    beforeSend(event) {
-      if (event.request?.headers) {
-        // Presigned-URL query strings carry SigV4 credentials — not headers,
-        // but scrub belt-and-suspenders just in case an SDK version widens
-        // what lands here.
-        delete event.request.headers.authorization
-        delete event.request.headers.cookie
-        delete event.request.headers['x-internal-secret']
-      }
-      return event
-    }
+    // Errors, sampled transactions and breadcrumbs all pass the same
+    // scrubber: URL queries (presigned S3 signatures, render tokens),
+    // bodies, cookies, non-allowlisted headers, secrets by key, emails.
+    ...sentryScrubOptions
   })
 }

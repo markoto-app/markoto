@@ -340,6 +340,8 @@ configure() {
   ensure_secret NUXT_SESSION_PASSWORD hex
   ensure_secret NUXT_JWT_SECRET hex
   ensure_secret NUXT_INTERNAL_API_SECRET hex
+  # Encrypts stored provider keys / SSO secrets: back it up with the .env.
+  ensure_secret NUXT_ENCRYPTION_KEY hex
   ensure_secret NUXT_AI_DICTATE_JWT_SECRET hex
   ensure_secret NUXT_ALTCHA_HMAC_KEY hex
   ensure_secret NUXT_MARKITDOWN_API_SECRET hex
@@ -536,6 +538,7 @@ cmd_upgrade() {
   grep -qF "$ENV_MARKER" "$ENV_FILE" || die "$ENV_FILE was not written by install.sh"
   if [ -n "$OPT_TAG" ]; then env_set IMAGE_TAG "$OPT_TAG"; fi
   # Secrets introduced by newer versions get generated; existing ones stay.
+  ensure_secret NUXT_ENCRYPTION_KEY hex
   ensure_secret NUXT_AI_DICTATE_JWT_SECRET hex
   ensure_secret NUXT_ALTCHA_HMAC_KEY hex
   ensure_secret NUXT_MARKITDOWN_API_SECRET hex

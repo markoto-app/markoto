@@ -37,7 +37,7 @@ services:
     # pre-built. Drop-in for postgres:16-alpine — data directory +
     # client protocol identical. CREATE EXTENSION vector runs in the
     # first migration.
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:pg16@sha256:0dd3149a06e4579a0d70d8fef9945636cd514005e7237deb27f9b67886f8dc4f
     restart: unless-stopped
     # Hard memory cap so a runaway query (big sort, pathological join) can't
     # starve the box and take every other service down with it. 1 GB is
@@ -87,7 +87,7 @@ services:
   # (/docker-entrypoint-initdb.d/ only fires on a *fresh* volume, so it
   # can't carry this for existing installs.)
   db-init:
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:pg16@sha256:0dd3149a06e4579a0d70d8fef9945636cd514005e7237deb27f9b67886f8dc4f
     restart: "no"
     depends_on:
       postgres:
@@ -114,7 +114,7 @@ services:
     entrypoint: ["/bin/sh", "/db-init.sh"]
 
   litellm:
-    image: ghcr.io/berriai/litellm:v1.106.4
+    image: ghcr.io/berriai/litellm:v1.106.4@sha256:c169fb3adc514fcf210377c203f3de406d54f10bfdacf13948a4a839db9af7de
     restart: unless-stopped
     # Cap the proxy. Steady-state it's a thin Python router; the memory
     # peak is the cold-start Prisma migration run (see start_period below).

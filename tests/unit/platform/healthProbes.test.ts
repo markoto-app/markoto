@@ -95,6 +95,17 @@ describe('probePostgres', () => {
     expect(r.status).toBe('down')
     expect(r.error).toContain('connection refused')
   })
+
+  it('never reports credentials a driver error quotes', async () => {
+    mockState.dbExecute = async () => {
+      throw new Error('getaddrinfo ENOTFOUND for postgres://markoto_app:hunter2-db-pass@db:5432/markoto?sslpassword=pw2')
+    }
+    const r = await probePostgres()
+    expect(r.status).toBe('down')
+    expect(r.error).toContain('ENOTFOUND')
+    expect(r.error).not.toContain('hunter2')
+    expect(r.error).not.toContain('pw2')
+  })
 })
 
 describe('probeValkey', () => {

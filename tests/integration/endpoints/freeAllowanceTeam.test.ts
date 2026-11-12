@@ -5,7 +5,7 @@ import { createUser } from '../setup/fixtures'
 import { applyTestEnv } from '../setup/testEnv'
 import { fakeOpenAiBaseUrl } from '../setup/env'
 import { LITELLM_MASTER_KEY, LITELLM_URL, waitFor } from '../setup/byok'
-import { encryptToken } from '../../../server/utils/litellm/tokenCrypto'
+import { sealSecret, secretContext } from '../../../server/utils/platform/secretBox'
 import type { ResolvedAiProvider } from '../../../server/utils/aiProviders/resolve'
 
 // The global monthly ceiling on platform-paid AI for free-tier users
@@ -86,7 +86,7 @@ async function legacyKey(userId: number): Promise<string> {
   expect(status).toBe(200)
   const token = String(json.key)
   await testDb().query('UPDATE users SET litellm_key_id = $1, litellm_key_token = $2 WHERE id = $3',
-    [String(json.token_id ?? json.token), encryptToken(token), userId])
+    [String(json.token_id ?? json.token), sealSecret('litellm-user-key', secretContext.litellmUserKey(userId), token), userId])
   return token
 }
 

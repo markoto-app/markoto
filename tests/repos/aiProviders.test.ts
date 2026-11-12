@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { unzipSync, strFromU8 } from 'fflate'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser } from '../integration/setup/fixtures'
-import { encryptToken } from '../../server/utils/litellm/tokenCrypto'
+import { sealProviderKey } from '../../server/utils/aiProviders/keyCrypto'
 import {
   deleteAllAiProvidersForUser,
   deleteAiProvider,
@@ -33,7 +33,7 @@ function row(userId: number, over: Partial<AiProviderUpsert> = {}): AiProviderUp
     capability: 'chat',
     baseUrl: 'https://api.mistral.ai/v1',
     model: 'mistral-small-2603',
-    apiKeyEncrypted: encryptToken(SECRET),
+    apiKeyEncrypted: sealProviderKey(userId, over.capability ?? 'chat', SECRET),
     apiKeyLast4: '7890',
     supportsVision: true,
     supportsTools: true,
@@ -69,7 +69,7 @@ describe('user_ai_providers repo', () => {
     const u = await createUser()
     await upsertAiProvider(row(u.id))
     const raw = await testDb().query<{ api_key_encrypted: string }>('SELECT api_key_encrypted FROM user_ai_providers')
-    expect(raw.rows[0]?.api_key_encrypted).toMatch(/^v1:/)
+    expect(raw.rows[0]?.api_key_encrypted).toMatch(/^v2:/)
     expect(raw.rows[0]?.api_key_encrypted).not.toContain(SECRET)
   })
 
@@ -142,6 +142,17 @@ describe('resolution order: own key → instance default → unavailable', () =>
     await upsertAiProvider(row(u.id, { apiKeyEncrypted: 'v1:broken:broken:broken' }))
     const p = await resolveAiProviders(u.id, 'free')
     expect(p.chat?.source).toBe('instance')
+  })
+
+  it('a key copied from another user\'s row does not decrypt for this user', async () => {
+    vi.stubEnv('NUXT_AI_DEFAULT_CHAT_MODEL', 'mistral-small-2603')
+    const alice = await createUser()
+    const mallory = await createUser()
+    await upsertAiProvider(row(alice.id))
+    const stolen = (await getAiProvider(alice.id, 'chat'))!.apiKeyEncrypted
+    await upsertAiProvider(row(mallory.id, { apiKeyEncrypted: stolen }))
+    expect((await resolveAiProviders(alice.id, 'free')).chat?.credentials?.apiKey).toBe(SECRET)
+    expect((await resolveAiProviders(mallory.id, 'free')).chat?.source).toBe('instance')
   })
 
   it('live dictation: own Mistral transcription key → available, not platform-billed', async () => {

@@ -24,6 +24,28 @@
       "deprecatedNames": []
     },
     {
+      "name": "LOG_LEVEL",
+      "namespace": "core",
+      "key": "logLevel",
+      "type": "debug | info | warn | error",
+      "services": [
+        "app",
+        "sync",
+        "renderer"
+      ],
+      "names": {
+        "app": "LOG_LEVEL",
+        "sync": "LOG_LEVEL",
+        "renderer": "LOG_LEVEL"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": "info",
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
       "name": "NUXT_SITE_URL",
       "namespace": "core",
       "key": "siteUrl",
@@ -393,6 +415,42 @@
         "app": "NUXT_INTERNAL_API_SECRET_PREVIOUS",
         "sync": "INTERNAL_API_SECRET_PREVIOUS",
         "renderer": "INTERNAL_API_SECRET_PREVIOUS"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": true,
+      "default": null,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_ENCRYPTION_KEY",
+      "namespace": "auth",
+      "key": "encryptionKey",
+      "type": "secret, ≥ 32 chars",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_ENCRYPTION_KEY"
+      },
+      "scope": "both",
+      "required": "in production",
+      "secret": true,
+      "default": null,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_ENCRYPTION_KEY_PREVIOUS",
+      "namespace": "auth",
+      "key": "encryptionKeyPrevious",
+      "type": "secret, ≥ 32 chars",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_ENCRYPTION_KEY_PREVIOUS"
       },
       "scope": "both",
       "required": null,
@@ -1741,15 +1799,13 @@
       "key": "saltKey",
       "type": "secret, ≥ 16 chars",
       "services": [
-        "app",
         "litellm"
       ],
       "names": {
-        "app": "LITELLM_SALT_KEY",
         "litellm": "LITELLM_SALT_KEY"
       },
       "scope": "both",
-      "required": "when a virtual-key token is stored or read (any AI use)",
+      "required": "always",
       "secret": true,
       "default": null,
       "passedByCompose": true,
@@ -5182,6 +5238,24 @@
       "required": null,
       "secret": false,
       "default": "markoto.app",
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "MARKOTO_TEST_BUILD",
+      "namespace": "test",
+      "key": "testBuild",
+      "type": "boolean",
+      "services": [
+        "build"
+      ],
+      "names": {
+        "build": "MARKOTO_TEST_BUILD"
+      },
+      "scope": "test",
+      "required": null,
+      "secret": false,
+      "default": false,
       "passedByCompose": false,
       "deprecatedNames": []
     },

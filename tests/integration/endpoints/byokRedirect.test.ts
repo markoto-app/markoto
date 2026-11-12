@@ -25,13 +25,13 @@ import { loggedInClient } from '../setup/client'
 import { createUser } from '../setup/fixtures'
 import { TEST_FAKE_OPENAI_HOST_URL, fakeOpenAiBaseUrl } from '../setup/env'
 import { buildTestEnv } from '../setup/testEnv'
-import { encryptToken } from '../../../server/utils/litellm/tokenCrypto'
+import { sealSecret, secretContext } from '../../../server/utils/platform/secretBox'
 
 const LITELLM_URL = 'http://127.0.0.1:4100'
 const LITELLM_MASTER_KEY = 'sk-test-litellm-master'
 const CANARY_BODY = 'CANARY-INTERNAL-BODY'
-// Same salt as the server subprocess, so the token we store decrypts there.
-process.env.LITELLM_SALT_KEY = buildTestEnv().LITELLM_SALT_KEY
+// Same encryption key as the server subprocess, so the token we store decrypts there.
+process.env.NUXT_ENCRYPTION_KEY = buildTestEnv().NUXT_ENCRYPTION_KEY
 
 const FAKE_ORIGIN = new URL(fakeOpenAiBaseUrl()).origin
 const BRIDGE_HOST = new URL(fakeOpenAiBaseUrl()).hostname
@@ -78,7 +78,7 @@ async function byokUser(): Promise<number> {
   const body: { key: string, token_id?: string, token?: string } = await res.json()
   await testDb().query(
     'UPDATE users SET litellm_key_id = $1, litellm_key_token = $2 WHERE id = $3',
-    [body.token_id ?? body.token, encryptToken(body.key), u.id]
+    [body.token_id ?? body.token, sealSecret('litellm-user-key', secretContext.litellmUserKey(u.id), body.key), u.id]
   )
   return u.id
 }

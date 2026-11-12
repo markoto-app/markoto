@@ -38,6 +38,7 @@ NUXT_SESSION_PASSWORD=placeholder-placeholder-placeholder-00
 NUXT_JWT_SECRET=placeholder-placeholder-placeholder-000000
 NUXT_INTERNAL_API_SECRET=placeholder-placeholder-placeholder-0000
 NUXT_MARKITDOWN_API_SECRET=placeholder-placeholder-placeholder-0000
+NUXT_ENCRYPTION_KEY=placeholder-encryption-placeholder-0000
 NUXT_S3_ACCESS_KEY=placeholder
 NUXT_S3_SECRET_KEY=placeholder
 NUXT_S3_BUCKET=markoto-files
@@ -155,6 +156,7 @@ NUXT_SESSION_PASSWORD=placeholder-placeholder-placeholder-00
 NUXT_JWT_SECRET=placeholder-placeholder-placeholder-000000
 NUXT_INTERNAL_API_SECRET=placeholder-placeholder-placeholder-0000
 NUXT_MARKITDOWN_API_SECRET=placeholder-placeholder-placeholder-0000
+NUXT_ENCRYPTION_KEY=placeholder-encryption-placeholder-0000
 NUXT_S3_ENDPOINT=https://s3.example.org
 NUXT_S3_ACCESS_KEY=placeholder
 NUXT_S3_SECRET_KEY=placeholder
@@ -266,19 +268,51 @@ echo "ok: install.sh generates the markitdown secret (install + upgrade)"
 render_config "$tmp/local.json" "$tmp/prod.env" "docker-compose.local.yml"
 check_isolation "local" "$tmp/local.json"
 
-# App gets the LiteLLM salt key
-# The app encrypts users' LiteLLM virtual-key tokens with LITELLM_SALT_KEY.
-# Every compose shape that runs the app must pass it (it reached only the
-# litellm service once, and every AI setup on staging failed with a 500).
+# App gets its own encryption key, not LiteLLM's salt
+# The app encrypts the secrets it stores (virtual keys, BYOK keys, SSO
+# secrets) with NUXT_ENCRYPTION_KEY. Every compose shape that runs the app
+# must pass it (a key reaching only one service once failed every AI setup
+# on staging), and LiteLLM's salt stays with LiteLLM: a compromised proxy
+# container must not hold the key to the app's stored credentials.
 render_config "$tmp/salt-prod.json" "$tmp/prod.env" "docker-compose.prod.yml"
 render_config "$tmp/salt-selfhost.json" "$tmp/selfhost.env" "docker-compose.selfhost.yml"
 for cfg in salt-prod salt-selfhost local; do
-  if ! jq -e '.services.app.environment.LITELLM_SALT_KEY == "sk-placeholder"' "$tmp/$cfg.json" > /dev/null; then
-    echo "FAIL: the app service must receive LITELLM_SALT_KEY ($cfg)" >&2
+  if ! jq -e '(.services.app.environment.NUXT_ENCRYPTION_KEY // "") != "" and .services.app.environment.LITELLM_SALT_KEY == null and .services.litellm.environment.LITELLM_SALT_KEY != null' "$tmp/$cfg.json" > /dev/null; then
+    echo "FAIL: the app must receive NUXT_ENCRYPTION_KEY and not LITELLM_SALT_KEY ($cfg)" >&2
     exit 1
   fi
 done
-echo "ok: the app receives LITELLM_SALT_KEY (prod, self-host, local)"
+grep -v '^NUXT_ENCRYPTION_KEY=' "$tmp/prod.env" > "$tmp/prod-noenc.env"
+if COMPOSE_FILE="docker-compose.prod.yml" docker compose --env-file "$tmp/prod-noenc.env" -p markoto-ci config > /dev/null 2>&1; then
+  echo "FAIL: prod compose must require NUXT_ENCRYPTION_KEY" >&2
+  exit 1
+fi
+if [ "$(grep -c 'ensure_secret NUXT_ENCRYPTION_KEY hex' install.sh)" -lt 2 ]; then
+  echo "FAIL: install.sh must generate NUXT_ENCRYPTION_KEY on install and upgrade" >&2
+  exit 1
+fi
+echo "ok: the app gets its own encryption key (prod, self-host, local; generated on install + upgrade)"
+
+# Third-party images are pinned by digest
+# A tag can be re-pushed; `tag@sha256:…` can't. Our own images
+# (${REGISTRY}/markoto-*) are pinned by release tag and cosign-signed.
+render_config "$tmp/img-dev.json" "$tmp/prod.env" "docker-compose.dev.yml"
+render_config "$tmp/img-test.json" "$tmp/prod.env" "docker-compose.test.yml" "flows"
+for cfg in salt-prod salt-selfhost local img-dev img-test; do
+  out="$(jq -r '.services | to_entries[] | select(.value.image != null) | .value.image
+    | select((test("/markoto-[a-z]+:") | not) and (test("@sha256:[0-9a-f]{64}$") | not))' "$tmp/$cfg.json")"
+  if [ -n "$out" ]; then
+    printf 'FAIL (%s): image not pinned by digest: %s\n' "$cfg" "$out" >&2
+    exit 1
+  fi
+done
+for df in Dockerfile sync-server/Dockerfile renderer/Dockerfile markitdown-server/Dockerfile backup-server/Dockerfile; do
+  if grep -E '^FROM ' "$df" | grep -vE '@sha256:[0-9a-f]{64}|^FROM [a-z]+ AS ' | grep -q .; then
+    echo "FAIL: $df has a FROM without a digest" >&2
+    exit 1
+  fi
+done
+echo "ok: third-party images pinned by digest (compose + Dockerfiles)"
 
 # App and sync server key their rate limits on the same X-Forwarded-For
 # entry only while both get the same trusted-proxy hop count.

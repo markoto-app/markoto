@@ -13,12 +13,14 @@
 nuxt_session_password: "REPLACE_ME"        # openssl rand -base64 48
 nuxt_jwt_secret: "REPLACE_ME"              # openssl rand -hex 64
 nuxt_internal_api_secret: "REPLACE_ME"     # openssl rand -hex 32
+nuxt_encryption_key: "REPLACE_ME"          # openssl rand -hex 32 — encrypts stored provider keys / SSO secrets; never-rotate without _previous
 nuxt_altcha_hmac_key: "REPLACE_ME"         # openssl rand -hex 32 — anonymous gate (ALTCHA bot check)
 nuxt_markitdown_api_secret: "REPLACE_ME"   # openssl rand -hex 32 — app <-> markitdown converter
 
 # Optional rotation slots — leave empty unless mid-rollover.
 nuxt_jwt_secret_previous: ""
 nuxt_internal_api_secret_previous: ""
+nuxt_encryption_key_previous: ""
 
 # ─── Postgres / Valkey credentials ───
 postgres_password: "REPLACE_ME"            # ≥24 chars

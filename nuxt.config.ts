@@ -3,6 +3,15 @@ import { fileURLToPath } from 'node:url'
 import { observability } from './shared/env/vars/sync'
 import { DAY_SECONDS } from './shared/config/units'
 import { scanFlowDocPages } from './scripts/lib/flowDocPagesFs'
+import { bool } from './shared/env/coerce'
+
+// Test-only routes (server/api/_test/**: login shim, AI-tool exec, budget
+// helpers) are compiled in only when the test harness builds with
+// MARKOTO_TEST_BUILD=1. A release image never contains them, so a mistake in
+// the runtime TEST_MODE gate (still checked by every one of them) can't
+// expose a login bypass. scripts/selfhost-check.sh + CI check a production
+// build for them.
+const testBuild = bool.parse(process.env.MARKOTO_TEST_BUILD || 'false')
 
 export default defineNuxtConfig({
   // Dev proxy: mirror production Traefik routing through localhost:3000
@@ -169,6 +178,8 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2025-01-15',
   nitro: {
+    // Relative to server/. See `testBuild` above.
+    ignore: testBuild ? [] : ['api/_test/**'],
     // Nitro scans only the top level of shared/utils; scan its sub-folders too.
     imports: {
       dirs: [fileURLToPath(new URL('./shared/utils/**', import.meta.url))]

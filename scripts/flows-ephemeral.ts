@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { spawn, type Subprocess } from 'bun'
+import { testRoutesInBuild } from './lib/testRoutesInBuild'
 
 // Orchestrator for `bun run flows:test`. Hermetic, end-to-end.
 //
@@ -95,7 +96,7 @@ const FLOWS_ENV: Record<string, string> = {
   // virtual key; the budget-exhausted flow drives the real /key/* admin API.
   NUXT_LITELLM_URL: 'http://127.0.0.1:4100',
   NUXT_LITELLM_MASTER_KEY: 'sk-test-litellm-master',
-  LITELLM_SALT_KEY: 'sk-test-litellm-salt-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz',
+  NUXT_ENCRYPTION_KEY: 'test-encryption-key-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz',
   // Billing mode and the marketing site are set per pass, not here: main()
   // runs untagged flows against the hosted shape (billing off, paid plans
   // "coming soon", marketing off), `@billing` flows against a billing-on
@@ -277,10 +278,13 @@ async function main() {
   // Step 2: production build. Skip with FLOWS_SKIP_BUILD=1 if you've
   // already got a fresh .output/ from a previous run AND haven't
   // touched app code (rare — most edits invalidate the bundle).
-  if (process.env.FLOWS_SKIP_BUILD === '1') {
+  // A test build (MARKOTO_TEST_BUILD=1): the flows sign in through
+  // /api/_test/login, which production builds leave out.
+  if (process.env.FLOWS_SKIP_BUILD === '1' && testRoutesInBuild('.output').length > 0) {
     console.log('[flows-ephemeral] FLOWS_SKIP_BUILD=1 — reusing existing .output/')
   } else {
-    console.log('[flows-ephemeral] building production bundle')
+    console.log('[flows-ephemeral] building production bundle (test build)')
+    process.env.MARKOTO_TEST_BUILD = '1'
     const buildCode = await shellOut(['bun', 'run', 'build'])
     if (buildCode !== 0) {
       console.error('[flows-ephemeral] bun run build failed')

@@ -40,6 +40,22 @@ updates:
       docker-base-images:
         patterns: ["*"]
 
+  # Third-party images referenced from the compose files (Postgres, LiteLLM,
+  # Valkey, Traefik, test fakes), pinned as `tag@sha256:digest`.
+  - package-ecosystem: docker-compose
+    directories:
+      - "/"
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "build"
+    groups:
+      compose-images:
+        patterns: ["*"]
+
   - package-ecosystem: bun
     directories:
       - "/"

@@ -14,6 +14,15 @@ export const core = defineNamespace({
       scope: 'both',
       notPassed: 'set by each image / the dev command; compose overrides it only on some services'
     }),
+    logLevel: v({
+      name: 'LOG_LEVEL',
+      type: oneOf(['debug', 'info', 'warn', 'error']),
+      default: 'info',
+      doc: 'Minimum level the app, the sync server and the renderer log (`debug`, `info`, `warn`, `error`). Production writes one JSON object per line; see docs/operations/OBSERVABILITY.md.',
+      services: ['app', 'sync', 'renderer'],
+      scope: 'both',
+      notPassed: 'code default is enough; an operator who wants debug output adds it to the container environment'
+    }),
     siteUrl: v({
       name: 'NUXT_SITE_URL',
       type: url(),
@@ -156,6 +165,15 @@ export const test = defineNamespace({
   title: 'Test harness',
   intro: 'Test-only switches. Ignored on an instance whose NUXT_SITE_URL is a real (non-loopback) host; TEST_MODE=1 there refuses to boot.',
   vars: {
+    testBuild: v({
+      name: 'MARKOTO_TEST_BUILD',
+      type: bool,
+      default: false,
+      doc: 'Build time only: include the test-only routes (server/api/_test/**) in the build. Set by the integration and flow test harnesses; release images are built without it, so those routes do not exist there.',
+      services: ['build'],
+      scope: 'test',
+      notPassed: 'set by the test harness for its own build only'
+    }),
     testMode: v({
       name: 'TEST_MODE',
       type: oneOf(['1', '0']),

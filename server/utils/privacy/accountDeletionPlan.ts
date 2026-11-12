@@ -1,4 +1,4 @@
-import { and, eq, ne, sql } from 'drizzle-orm'
+import { and, eq, ne, notInArray, sql } from 'drizzle-orm'
 import {
   aiSessions,
   aiSessionMessages,
@@ -11,18 +11,6 @@ import {
   workspaces
 } from '../../db/schema'
 import { useDatabase } from '../platform/database'
-
-/**
- * Build a Postgres ARRAY literal of the user's owned doc ids. Inline
- * single-quote escaping (PG-standard `''`) is safe here because
- * `documents.doc_id` is a system-controlled `nanoid(10)` (alphanum
- * only) — but we keep the escape for parity with hand-typed values
- * a future migration might allow.
- */
-function buildDocIdArrayLiteral(ownedDocIds: string[]): string {
-  const escaped = ownedDocIds.map(id => `'${id.replaceAll('\'', '\'\'')}'`)
-  return `ARRAY[${escaped.join(',')}]::text[]`
-}
 
 // Pre-computes — and exposes for transparent UX — the consequences of
 // deleting a user's account. The same module is used by:
@@ -114,7 +102,8 @@ export async function planAccountDeletion(userId: number): Promise<AccountDeleti
         .from(documentComments)
         .where(and(
           eq(documentComments.authorId, userId),
-          sql`${documentComments.docId} <> ALL (${sql.raw(buildDocIdArrayLiteral(ownedDocIds))})`
+          // Bound parameters, never ids spliced into the SQL text.
+          notInArray(documentComments.docId, ownedDocIds)
         ))
   const commentsToAnonymise = Number(commentsCountRows[0]?.count ?? 0)
 

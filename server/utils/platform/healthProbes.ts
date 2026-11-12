@@ -14,6 +14,7 @@ import { useValkey } from './valkey'
 import { useS3Client } from '../storage/s3'
 import { getKnowledgeEmbeddingsStatus } from '../knowledge/knowledgeEmbeddingsStatus'
 import { trimTrailingSlashes } from '../../../shared/utils/trimTrailingSlashes'
+import { scrubText } from '../../../shared/utils/security/sentryScrub'
 
 export type ProbeStatus = 'ok' | 'down' | 'skipped'
 
@@ -30,7 +31,9 @@ function ok(latencyMs: number): ProbeResult {
 }
 
 function down(latencyMs: number, error: string): ProbeResult {
-  return { status: 'down', latencyMs, error }
+  // Driver errors can quote a connection string or URL (credentials in the
+  // userinfo or query); the deep endpoint shows only the scrubbed text.
+  return { status: 'down', latencyMs, error: scrubText(error, 300) }
 }
 
 function skipped(): ProbeResult {

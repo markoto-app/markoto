@@ -44,6 +44,10 @@ describe('loadEnv', () => {
   it('enforces production-only requirements under NODE_ENV=production', () => {
     expect(bootProblems({ NODE_ENV: 'production' })).toContain('NUXT_SITE_URL: required, not set')
     expect(bootProblems({ NODE_ENV: 'production', NUXT_SITE_URL: 'https://docs.example.org' })).toEqual([])
+    // Stored provider keys / SSO secrets are encrypted with it: no default in production.
+    expect(bootProblems({ NODE_ENV: 'production', NUXT_SITE_URL: 'https://docs.example.org', NUXT_ENCRYPTION_KEY: undefined }))
+      .toEqual(['NUXT_ENCRYPTION_KEY: required, not set'])
+    expect(bootProblems({ NUXT_ENCRYPTION_KEY: 'short' })).toEqual(['NUXT_ENCRYPTION_KEY: expected at least 32 characters (got 5)'])
   })
 
   it('test mode relaxes required values, never types', () => {
