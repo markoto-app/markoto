@@ -5,6 +5,7 @@ import { apiErrorData, errorStatus } from '~/utils/api/errors'
 import type { WorkspaceDoc } from '~/components/workspace/WorkspaceDocTable.vue'
 import { isPaymentProblem } from '~/utils/billing/workspaceBilling'
 import type { WorkspaceMember } from '~/components/workspace/WorkspaceMemberAvatars.vue'
+import { useRemoveMember } from '~/queries/workspaces'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -281,10 +282,12 @@ const workspaceMenuItems = computed<DropdownMenuItem[][]>(() => {
   return [items]
 })
 
+// Leaving refreshes the caller's workspace list.
+const removeMember = useRemoveMember()
 async function leaveWorkspace() {
   if (!data.value || myUserId.value == null) return
   try {
-    await apiFetch('/api/workspaces/:wsId/members/:userId', { method: 'delete', path: { wsId: data.value.workspace.workspaceId, userId: myUserId.value } })
+    await removeMember.mutateAsync({ workspaceId: data.value.workspace.workspaceId, userId: myUserId.value })
     onLeftWorkspace()
   } catch (e) {
     toast.add({

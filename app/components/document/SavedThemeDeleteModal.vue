@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useDeleteSavedTheme } from '~/queries/themes'
+
 // Delete confirmation for a saved theme. Same idiom as
 // DeleteConfirmModal / WorkspaceKnowledgeDeleteConfirmModal without the
 // "type the name" step: a saved theme is a settings bookmark, and the
@@ -19,12 +21,14 @@ const toast = useToast()
 const { showError } = useErrorHandler()
 
 const deleting = ref(false)
+// Refreshes every saved-theme list on screen before resolving.
+const deleteTheme = useDeleteSavedTheme()
 
 async function handleDelete() {
   if (deleting.value) return
   deleting.value = true
   try {
-    await apiFetch('/api/themes/:themeId', { method: 'delete', path: { themeId: props.themeId } })
+    await deleteTheme.mutateAsync(props.themeId)
     toast.add({
       title: t('theme.saved.deleted'),
       description: props.name,

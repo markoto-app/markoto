@@ -1,4 +1,5 @@
 import type { AiAvailability } from '~~/shared/ai/providers'
+import { useAiAvailabilityQuery, useInvalidateAiAvailability } from '~/queries/ai'
 
 /**
  * The workspace of the document being edited (set by the editor, null
@@ -12,12 +13,14 @@ export function useAiWorkspaceContext() {
 
 /**
  * Which AI capabilities the signed-in user can use right now (their own
- * BYOK key → the instance default → none), from `GET /api/ai/availability`.
+ * BYOK key → the instance default → none), from `GET /api/ai/availability`
+ * for the current workspace context.
  *
- * `useState`-backed so every AI entry point (prompt bar, voice mic,
- * dictation button, `@ai` in comments, the AI Points meter) reads one
- * snapshot. Call `refresh()` after the settings page saves or deletes
- * a provider.
+ * One cached query per context (app/queries/ai.ts), so every AI entry point
+ * (prompt bar, voice mic, dictation button, `@ai` in comments, the AI Points
+ * meter) shares one request. Saving or removing a provider invalidates it
+ * through its mutation; `refresh()` is for the AI loop reporting a missing
+ * provider.
  *
  * Until the first fetch resolves `availability` is null; consumers treat
  * null as "unknown" and keep their default rendering so the editor
@@ -25,44 +28,13 @@ export function useAiWorkspaceContext() {
  */
 export function useAiAvailability() {
   const { loggedIn } = useUserSession()
-  const state = useState<AiAvailability | null>('ai-availability', () => null)
-  const loading = useState<boolean>('ai-availability-loading', () => false)
   const workspaceContext = useAiWorkspaceContext()
-
-  async function refresh(): Promise<void> {
-    if (!loggedIn.value) {
-      state.value = null
-      return
-    }
-    loading.value = true
-    try {
-      const workspaceId = workspaceContext.value
-      state.value = await apiFetch('/api/ai/availability', { query: workspaceId ? { workspaceId } : {} })
-    } catch {
-      // Keep the last known snapshot on a transient failure; the server
-      // still refuses AI calls without a provider (409 ai/provider-missing).
-    } finally {
-      loading.value = false
-    }
-  }
-
-  if (import.meta.client && loggedIn.value && state.value === null && !loading.value) {
-    void refresh()
-  }
-
-  watch(loggedIn, (isIn) => {
-    if (!isIn) {
-      state.value = null
-      return
-    }
-    void refresh()
-  })
-
-  if (import.meta.client) {
-    watch(workspaceContext, () => {
-      if (loggedIn.value) void refresh()
-    })
-  }
+  const query = useAiAvailabilityQuery(workspaceContext)
+  const invalidateAvailability = useInvalidateAiAvailability()
+  // A failed refetch keeps the last known snapshot; the server still refuses
+  // AI calls without a provider (409 ai/provider-missing).
+  const state = computed<AiAvailability | null>(() => loggedIn.value ? query.data.value ?? null : null)
+  const refresh = (): Promise<void> => invalidateAvailability()
 
   /** Known AND unavailable — only then do we swap UI for a call-to-action. */
   const chatMissing = computed(() => state.value !== null && !state.value.chat.available)
@@ -88,7 +60,6 @@ export function useAiAvailability() {
 
   return {
     availability: state,
-    loading,
     refresh,
     chatMissing,
     transcriptionAvailable,

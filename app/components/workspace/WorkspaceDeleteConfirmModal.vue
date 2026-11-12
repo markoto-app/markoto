@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useDeleteWorkspace } from '~/queries/workspaces'
+
 const props = defineProps<{
   workspaceId: string
   name: string
@@ -16,6 +18,8 @@ const toast = useToast()
 const { showError } = useErrorHandler()
 
 const deleting = ref(false)
+// Refreshes the workspace list and the owned-workspace cap.
+const deleteWorkspace = useDeleteWorkspace()
 const confirmText = ref('')
 const canConfirm = computed(() => confirmText.value === props.name)
 
@@ -23,7 +27,7 @@ async function handleDelete() {
   if (!canConfirm.value) return
   deleting.value = true
   try {
-    await apiFetch('/api/workspaces/:wsId', { method: 'delete', path: { wsId: props.workspaceId } })
+    await deleteWorkspace.mutateAsync(props.workspaceId)
     toast.add({
       title: t('workspace.deleteSuccess'),
       icon: 'i-lucide-check-circle',

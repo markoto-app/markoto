@@ -239,7 +239,7 @@ describe('performLogout — IndexedDB', () => {
 describe('performLogout — session + redirect', () => {
   // The current-tab redirect uses `window.location.href = '/'` (a hard reload) rather than
   // `navigateTo('/')` (a soft SPA route). The hard reload throws away ALL Vue state (`loggedIn` ref,
-  // billing/account-status `useState` snapshots, the editor's awareness handle, etc.) so the page
+  // the in-memory query cache with billing / account status, the editor's awareness handle, etc.) so the page
   // bootstraps cleanly anonymous; a soft navigation leaves a stale avatar and triggers 401 toasts.
   it('clears the session and reloads the page to /', async () => {
     await performLogout()

@@ -7,6 +7,7 @@
 // Accepting needs an account. A signed-out visitor sees the sign-in
 // buttons; the token is parked in sessionStorage (PENDING_INVITE_KEY)
 // so the dashboard can bring them back here after the OAuth round trip.
+import { useAnswerInviteByToken } from '~/queries/workspaces'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -28,15 +29,14 @@ onMounted(() => {
   else storePendingInviteToken(token.value)
 })
 
+// Accepting refreshes the workspace list the next page shows.
+const answerInvite = useAnswerInviteByToken()
 async function onAct(action: 'accept' | 'decline'): Promise<void> {
   if (!token.value || state.value === 'working') return
   state.value = 'working'
   errorMessage.value = null
   try {
-    const res = await apiFetch('/api/user/invites/by-token', {
-      method: 'post',
-      body: { token: token.value, action }
-    })
+    const res = await answerInvite.mutateAsync({ token: token.value, action })
     clearPendingInviteToken()
     // The route's inferred type is the narrower decline answer (`{ ok }`); an
     // accept adds the workspace, so test for the fields before reading them.

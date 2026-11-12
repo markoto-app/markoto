@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { UserBilling } from '~/composables/billing/useBilling'
+import { useInvalidatePlan, usePlanPricesQuery, useTierLimitsQuery } from '~/queries/billing'
 import { DEFAULT_TIERS, PLAN_NAMES, type PlanName } from '~~/shared/config/tiers'
 import {
   CURRENCIES,
@@ -48,12 +48,14 @@ const { loggedIn } = useUserSession()
 const { primaryLoginPath, anonDocTtlDays, marketingSite, siteUrl } = useInstanceConfig()
 const { billingEnabled, plansComingSoon } = useBillingMode()
 
-const [{ data: tiersData }, { data: pricesData }] = await Promise.all([
-  useFetch('/api/billing/tiers'),
-  useFetch('/api/billing/prices')
-])
-const TIERS = computed(() => tiersData.value ?? DEFAULT_TIERS)
-const PRICE_TABLE = computed(() => pricesData.value?.prices ?? DEFAULT_PLAN_PRICES)
+// Shared queries: fetched during the server render (cookies forwarded) and
+// hydrated from the payload; awaited so a client-side navigation shows the
+// real numbers on first paint, as `await useFetch` did.
+const tiersQuery = useTierLimitsQuery()
+const pricesQuery = usePlanPricesQuery()
+await Promise.all([tiersQuery.refresh(), pricesQuery.refresh()])
+const TIERS = computed(() => tiersQuery.data.value ?? DEFAULT_TIERS)
+const PRICE_TABLE = computed(() => pricesQuery.data.value?.prices ?? DEFAULT_PLAN_PRICES)
 
 // Currency + billing interval the visitor looks at. EUR on the server
 // render; after mount a Swiss browser locale (de-CH, fr-CH, …) switches
@@ -92,7 +94,10 @@ function priceUnitKey(plan: PlanName): string {
   return interval.value === 'year' ? 'pricing.price.perYear' : 'pricing.price.perMonth'
 }
 
-const billing = ref<UserBilling | null>(null)
+// The caller's plan (shared with the topbar badge), for the "current plan"
+// highlight. Signed out or failed: no highlight.
+const { billing, refresh: refreshBilling } = useBilling()
+const invalidatePlan = useInvalidatePlan()
 
 const optionsLayout = computed(() => billingEnabled.value || plansComingSoon.value)
 /** Paid prices are planned, not on sale. */
@@ -115,19 +120,17 @@ function paidPlanFor(value: string | number | undefined): PaidPlanName | undefin
   return PAID_PLAN_NAMES.find(plan => plan === value)
 }
 
-onMounted(async () => {
+// Open the tab of the plan the caller is on, once it is known.
+watch(() => billing.value?.plan, (plan) => {
+  const current = paidPlanFor(plan)
+  if (current) paidTab.value = current
+}, { immediate: true })
+
+onMounted(() => {
   currency.value = defaultCurrencyForLocale(globalThis.navigator?.language)
-  if (!loggedIn.value) return
-  try {
-    billing.value = await apiFetch('/api/user/billing')
-    // Open the tab of the plan the caller is on.
-    const current = paidPlanFor(billing.value.plan)
-    if (current) paidTab.value = current
-  } catch {
-    // Non-fatal — the page still renders for unauthenticated visitors
-    // and for logged-in users whose billing fetch errored; they just
-    // don't get the "your current plan" highlight.
-  }
+  // The page always read the plan fresh; a snapshot loaded earlier by the
+  // topbar is re-read (a first load is already under way otherwise).
+  if (billing.value) void refreshBilling()
 })
 
 const pageTitle = computed(() =>
@@ -204,17 +207,14 @@ async function onChangePlan(plan: PlanName): Promise<void> {
         color: 'success'
       })
       checkoutLoading.value = null
-      // Refresh the "current plan" highlight. The webhook that flips
-      // the plan can lag the API response by a beat — refetch once now
-      // and once shortly after so the page settles on the new state.
-      try {
-        billing.value = await apiFetch('/api/user/billing')
-        setTimeout(async () => {
-          try {
-            billing.value = await apiFetch('/api/user/billing')
-          } catch { /* highlight refresh only */ }
-        }, 2500)
-      } catch { /* highlight refresh only */ }
+      // The plan, its limits and the AI budgets changed — for this page's
+      // highlight and for the topbar badge alike. The webhook that flips
+      // the plan can lag the API response by a beat: re-read once now and
+      // once shortly after so everything settles on the new state.
+      await invalidatePlan()
+      setTimeout(() => {
+        void invalidatePlan()
+      }, 2500)
       return
     }
     // Full-page redirect — Stripe's hosted Checkout is a separate

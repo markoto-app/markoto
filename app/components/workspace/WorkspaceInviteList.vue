@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import type { ApiResponse } from '~/utils/api/client'
+import { useAcceptInvite } from '~/queries/workspaces'
 
 // Dashboard "Invitations" section: open workspace invitations addressed
 // to the signed-in user's account email (`GET /api/user/invites`).
-// Accepting creates the membership and emits `accepted` so the parent
-// refreshes its workspace list; declining just removes the card. Renders
+// Accepting creates the membership (the mutation refreshes the workspace
+// list) and emits `accepted`; declining just removes the card. Renders
 // nothing when there are no invitations.
 
 export type WorkspaceInviteItem = ApiResponse<'/api/user/invites', 'get'>[number]
@@ -22,6 +23,8 @@ const { t } = useI18n()
 const toast = useToast()
 const { showError } = useErrorHandler()
 const busy = ref<string | null>(null)
+// Refreshes the workspace list before resolving.
+const acceptInvite = useAcceptInvite()
 
 function roleLabel(role: WorkspaceInviteItem['role']): string {
   return t(`workspace.roles.${role}`)
@@ -31,9 +34,8 @@ async function act(invite: WorkspaceInviteItem, action: 'accept' | 'decline'): P
   if (busy.value) return
   busy.value = invite.inviteId
   try {
-    const path = { inviteId: invite.inviteId }
     if (action === 'accept') {
-      const res = await apiFetch('/api/user/invites/:inviteId/accept', { method: 'post', path })
+      const res = await acceptInvite.mutateAsync(invite.inviteId)
       emit('removed', invite.inviteId)
       toast.add({
         title: t('workspace.invites.accepted', { name: res.workspaceName ?? invite.workspaceName }),
@@ -42,7 +44,7 @@ async function act(invite: WorkspaceInviteItem, action: 'accept' | 'decline'): P
       })
       emit('accepted', res.workspaceId)
     } else {
-      await apiFetch('/api/user/invites/:inviteId/decline', { method: 'post', path })
+      await apiFetch('/api/user/invites/:inviteId/decline', { method: 'post', path: { inviteId: invite.inviteId } })
       emit('removed', invite.inviteId)
     }
   } catch (e) {

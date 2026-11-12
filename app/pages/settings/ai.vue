@@ -8,9 +8,7 @@
 // previous route; auth-gated client-side, endpoints are session-only.
 
 import type { AiCapability, AiProviderConfigView } from '~~/shared/ai/providers'
-import type { ApiResponse } from '~/utils/api/client'
-
-type ProvidersResponse = ApiResponse<'/api/user/ai-providers', 'get'>
+import { useAiProvidersQuery, useSetAiModelTier } from '~/queries/ai'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -18,7 +16,6 @@ const toast = useToast()
 const { loggedIn } = useUserSession()
 // Login starts at the first configured OAuth provider ('/' when none).
 const { primaryLoginPath } = useInstanceConfig()
-const { refresh: refreshAvailability } = useAiAvailability()
 
 useHead({ title: () => t('aiProvider.title') })
 
@@ -34,43 +31,24 @@ function onClose(): void {
   }
 }
 
-const data = ref<ProvidersResponse | null>(null)
+const providers = useAiProvidersQuery()
+const data = computed(() => providers.data.value ?? null)
+const loading = computed(() => providers.isLoading.value)
+watch(() => providers.error.value, (e) => {
+  if (e) toast.add({ title: t('aiProvider.errors.loadFailed'), color: 'error', icon: 'i-lucide-alert-circle' })
+})
 
-// Fast / Strong platform chat model.
-const savingTier = ref(false)
+// Fast / Strong platform chat model. The mutation re-reads the providers
+// and the availability it changes.
+const setModelTier = useSetAiModelTier()
+const savingTier = computed(() => setModelTier.isLoading.value)
 async function saveTier(tier: 'fast' | 'strong'): Promise<void> {
-  savingTier.value = true
   try {
-    await apiFetch('/api/user/ai-model', { method: 'put', body: { tier } })
-    await load()
-    await refreshAvailability()
+    await setModelTier.mutateAsync(tier)
   } catch {
     toast.add({ title: t('aiProvider.modelTier.saveFailed'), color: 'error', icon: 'i-lucide-alert-circle' })
-  } finally {
-    savingTier.value = false
   }
 }
-const loading = ref(false)
-
-async function load(): Promise<void> {
-  if (!loggedIn.value) return
-  loading.value = true
-  try {
-    data.value = await apiFetch('/api/user/ai-providers')
-  } catch {
-    toast.add({ title: t('aiProvider.errors.loadFailed'), color: 'error', icon: 'i-lucide-alert-circle' })
-  } finally {
-    loading.value = false
-  }
-}
-
-async function onChanged(): Promise<void> {
-  await Promise.all([load(), refreshAvailability()])
-}
-
-onMounted(() => {
-  void load()
-})
 
 const CAPABILITIES: AiCapability[] = ['chat', 'image', 'transcription']
 
@@ -196,7 +174,6 @@ const allowlistText = computed(() => {
           :config="configFor(capability)"
           :status="data.availability[capability]"
           :presets="data.presets"
-          @changed="onChanged"
         />
       </div>
     </main>

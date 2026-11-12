@@ -1,5 +1,5 @@
 // @vitest-environment nuxt
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest'
 import { ref } from 'vue'
 import { mountSuspended, mockNuxtImport, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
@@ -41,8 +41,13 @@ function el(selector: string): HTMLElement {
   return found
 }
 
+// Unmounted after each test, also a failed one: a dialog left in
+// document.body would otherwise answer the next test's selectors.
+const wrappers: Array<{ unmount: () => void }> = []
+
 async function openDialog(props: Record<string, string>) {
   const wrapper = await mountSuspended(Cta, { props: { label: 'Use this template', ...props } })
+  wrappers.push(wrapper)
   await wrapper.find('button').trigger('click')
   await flushPromises()
   await vi.waitFor(() => expect(document.body.querySelector('[data-testid="newdoc-submit-create"]')).not.toBeNull())
@@ -59,6 +64,15 @@ async function expand(section: 'template' | 'details') {
 
 let push: ReturnType<typeof vi.spyOn>
 
+// The button mounts the dialog as a lazy component: the first click
+// imports NewDocumentDialog.vue and its whole module graph, which Vite
+// transforms on demand — ~0.8 s on an idle machine, over the 1 s
+// `vi.waitFor` budget when the suite runs on every core. Load it once up
+// front, so the waits below measure the dialog, not the transform.
+beforeAll(async () => {
+  await import('~/components/document/NewDocumentDialog.vue')
+}, 120_000)
+
 beforeEach(() => {
   created.bodies = []
   // A fresh browser: the dialog's first-document default (Demo) applies.
@@ -70,6 +84,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  for (const wrapper of wrappers.splice(0)) wrapper.unmount()
   vi.restoreAllMocks()
 })
 
@@ -87,11 +102,10 @@ describe('::cta with a template ("Use this template")', () => {
     expect(created.bodies[0]).toMatchObject({ templateId: 'resume', themePreset: 'resume' })
     expect(created.bodies[0]).not.toHaveProperty('content')
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith('/d/tpl-doc'))
-    wrapper.unmount()
   })
 
   it('a theme on the button puts that design on the template (old links keep working)', async () => {
-    const wrapper = await openDialog({ template: 'academic-paper', theme: 'modern' })
+    await openDialog({ template: 'academic-paper', theme: 'modern' })
     expect(el('[data-testid="newdoc-section-template-summary"]').textContent?.trim()).toBe('arXiv preprint · Modern')
     await expand('template')
     expect(el('[data-testid="newdoc-template-card-arxiv"]').getAttribute('aria-pressed')).toBe('true')
@@ -99,28 +113,26 @@ describe('::cta with a template ("Use this template")', () => {
     el('[data-testid="newdoc-submit-create"]').click()
     await vi.waitFor(() => expect(created.bodies).toHaveLength(1))
     expect(created.bodies[0]).toMatchObject({ templateId: 'arxiv', themePreset: 'modern' })
-    wrapper.unmount()
   })
 
   it('falls back to the demo template in its own design for unknown ids', async () => {
-    const wrapper = await openDialog({ template: 'no-such-template', theme: 'no-such-theme' })
+    await openDialog({ template: 'no-such-template', theme: 'no-such-theme' })
     expect(el('[data-testid="newdoc-section-template-summary"]').textContent?.trim()).toBe('Demo')
     await expand('template')
     expect(el('[data-testid="newdoc-template-card-demo"]').getAttribute('aria-pressed')).toBe('true')
     el('[data-testid="newdoc-submit-create"]').click()
     await vi.waitFor(() => expect(created.bodies).toHaveLength(1))
     expect(created.bodies[0]).toMatchObject({ templateId: 'demo', themePreset: 'markoto' })
-    wrapper.unmount()
   })
 
   it('a plain ::cta keeps the dialog default (demo)', async () => {
     const mounted = await mountSuspended(Cta, { props: { title: 'Try it' } })
+    wrappers.push(mounted)
     expect(mounted.find('[data-testid="cta-start-writing"]').exists()).toBe(true)
     await mounted.find('button').trigger('click')
     await flushPromises()
     await vi.waitFor(() => expect(document.body.querySelector('[data-testid="newdoc-section-template"]')).not.toBeNull())
     await expand('template')
     expect(el('[data-testid="newdoc-template-card-demo"]').getAttribute('aria-pressed')).toBe('true')
-    mounted.unmount()
   })
 })

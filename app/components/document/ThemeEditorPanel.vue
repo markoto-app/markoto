@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { SavedTheme } from '~/utils/api/types/themes'
 import { kitFonts, type BrandKit } from '~/utils/api/types/brandKit'
+import { useSavedThemes } from '~/queries/themes'
 import type { DocTheme, CaptionLabelStyle, CaptionNumbering, CaptionPosition, CodeTheme, CodeBackground, CodeFrame, DateFormat, HeadingLevelKey, HeadingLevels, HeadingLevelStyle, HeadingNumbering, HeadingStyle, MermaidTheme, NumberingDepth, ReferenceStyle, SectionMode, TocLeaderStyle, TocMaxDepth } from '~~/shared/types/theme'
 import { HEADING_LEVEL_KEYS } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
@@ -718,32 +719,9 @@ function applyPreset(preset: ThemePreset) {
 // beside the section eyebrow: one-click apply, plus rename + delete.
 
 const { loggedIn } = useUserSession()
-const savedThemes = ref<SavedTheme[]>([])
-const savedLoading = ref(false)
-
-async function refreshSavedThemes() {
-  if (!loggedIn.value) {
-    savedThemes.value = []
-    return
-  }
-  savedLoading.value = true
-  try {
-    const res = await apiFetch('/api/themes')
-    savedThemes.value = res.themes
-  } catch {
-    // Non-fatal — anonymous users hit 401 here, which we already
-    // handle via the loggedIn guard. Other errors silently keep the
-    // list empty so the rest of the panel still works.
-  } finally {
-    savedLoading.value = false
-  }
-}
-
-onMounted(() => {
-  // onMounted only fires client-side, so no `import.meta.client` guard
-  // is needed.
-  refreshSavedThemes().catch(() => { /* swallowed inside refreshSavedThemes */ })
-})
+// Shared with the new-document dialog and the workspace settings; the
+// save / edit / delete dialogs refresh it through their mutations.
+const { themes: savedThemes, isLoading: savedLoading } = useSavedThemes()
 
 // Save the CURRENT draft as a new preset, or edit a saved one's name +
 // description: both through SavedThemeDialog (the API caps name,
@@ -768,8 +746,7 @@ function editSaved(saved: SavedTheme) {
   themeDialogOpen.value = true
 }
 
-async function onThemeDialogSaved(name: string) {
-  await refreshSavedThemes()
+function onThemeDialogSaved(name: string) {
   if (themeDialogMode.value === 'create') {
     toast.add({
       title: name,
@@ -825,8 +802,7 @@ function openDesignImport() {
   designImportOpen.value = true
 }
 
-async function onDesignImportSaved(name: string) {
-  await refreshSavedThemes()
+function onDesignImportSaved(name: string) {
   toast.add({
     title: name,
     description: t('designImport.savedToast'),
@@ -2496,7 +2472,6 @@ function deleteSaved(saved: SavedTheme) {
       v-model:open="deleteOpen"
       :theme-id="deleteTarget.themeId"
       :name="deleteTarget.name"
-      @deleted="refreshSavedThemes"
     />
   </div>
 </template>

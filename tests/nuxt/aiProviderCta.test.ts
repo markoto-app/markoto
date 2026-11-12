@@ -4,13 +4,15 @@ import { ref, computed } from 'vue'
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { AIPromptBar } from '#components'
 import type { AiAvailability } from '~~/shared/ai/providers'
+import { useQueryCache } from '@pinia/colada'
+import { aiKeys } from '~/queries/ai'
 
 // Bring your own key: the prompt bar must turn into an "Add your
 // API key in Settings" call-to-action when the user has no chat
 // provider (no own key, no instance default), and hide the voice mic
-// when there is no transcription provider. Availability is the
-// `useState('ai-availability')` snapshot `useAiAvailability()` reads;
-// tests set it directly, like the client fetch would.
+// when there is no transcription provider. Availability is the cached
+// query `useAiAvailability()` reads; tests put the answer in the query
+// cache, like the client fetch would.
 
 mockNuxtImport('useUserSession', () => () => ({
   loggedIn: ref(true),
@@ -50,7 +52,7 @@ function status(available: boolean, source: 'user' | 'instance' | 'none', platfo
 }
 
 function setAvailability(a: Omit<AiAvailability, 'webTools'>): void {
-  useState<AiAvailability | null>('ai-availability').value = { ...a, webTools: { search: true, fetch: true } }
+  useQueryCache().setQueryData<AiAvailability>(aiKeys.availabilityFor(null), { ...a, webTools: { search: true, fetch: true } })
 }
 
 describe('AIPromptBar — bring your own key', () => {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { SavedTheme } from '~/utils/api/types/themes'
+import { useSavedThemes } from '~/queries/themes'
+import { useUpdateWorkspace } from '~/queries/workspaces'
 import type { DocTheme } from '~~/shared/types/theme'
 import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
 import { jsonEqual } from '~~/shared/utils/jsonEqual'
@@ -30,21 +31,10 @@ const { t } = useI18n()
 const toast = useToast()
 const { showError } = useErrorHandler()
 
-const savedThemes = ref<SavedTheme[]>([])
+// The admin's own saved themes; a failed load leaves the built-in presets.
+const { themes: savedThemes } = useSavedThemes()
 const saving = ref(false)
-
-async function loadSavedThemes() {
-  try {
-    const res = await apiFetch('/api/themes')
-    savedThemes.value = res.themes
-  } catch {
-    // Ignore — non-blocking. The built-in presets are still pickable.
-  }
-}
-
-onMounted(() => {
-  loadSavedThemes().catch(() => { /* swallowed inside loadSavedThemes */ })
-})
+const updateWorkspace = useUpdateWorkspace()
 
 // Link the (same-origin) stylesheet of every preset's heading font so
 // each card renders in its own typography. Same approach the new-doc
@@ -76,11 +66,7 @@ async function persist(theme: DocTheme | null) {
   if (saving.value) return
   saving.value = true
   try {
-    await apiFetch('/api/workspaces/:wsId', {
-      method: 'put',
-      path: { wsId: props.workspaceId },
-      body: { defaultTheme: theme }
-    })
+    await updateWorkspace.mutateAsync({ workspaceId: props.workspaceId, body: { defaultTheme: theme } })
     emit('updated', theme)
     toast.add({
       title: t('workspace.settings.defaultTheme.savedTitle'),

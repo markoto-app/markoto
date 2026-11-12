@@ -4,6 +4,8 @@ import { ref, computed } from 'vue'
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { AIPromptBar } from '#components'
 import type { AiAvailability } from '~~/shared/ai/providers'
+import { useQueryCache } from '@pinia/colada'
+import { aiKeys } from '~/queries/ai'
 import type { AiConfirmationRequest } from '~/composables/ai/useAI'
 
 // The inline "Allow / Deny" confirm in the prompt bar (A1). Shown when
@@ -45,12 +47,12 @@ function aiProps(confirmation: AiConfirmationRequest | null, answer = vi.fn(asyn
 
 function available(): void {
   const s = { available: true, source: 'instance' as const, platformBilled: true }
-  useState<AiAvailability | null>('ai-availability').value = {
+  useQueryCache().setQueryData<AiAvailability>(aiKeys.availabilityFor(null), {
     chat: { ...s, supportsVision: true },
     image: s,
     transcription: { ...s, liveDictation: true },
     webTools: { search: true, fetch: true }
-  }
+  })
 }
 
 describe('AIPromptBar — confirmation request', () => {

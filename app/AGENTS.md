@@ -2,7 +2,7 @@
 
 Nested guides: `app/composables/AGENTS.md` (document lifecycle, token renewal), `app/utils/AGENTS.md` (preview pipeline, sanitising, vendored assets), `app/components/collab/AGENTS.md` (Activity Log), `app/components/document/AGENTS.md` (document context, new-document dialog), `app/components/legal/AGENTS.md` (privacy surfaces).
 
-Contributor docs: [design system](../docs/contributing/design-system.md), [marketing site, SEO, pricing](../docs/contributing/marketing-site.md), [preview pipeline](../docs/contributing/preview-pipeline.md).
+Contributor docs: [design system](../docs/contributing/design-system.md), [marketing site, SEO, pricing](../docs/contributing/marketing-site.md), [preview pipeline](../docs/contributing/preview-pipeline.md), [client data: queries vs local state vs Y.js](../docs/contributing/client-data.md).
 
 ## Brand rules
 
@@ -26,8 +26,8 @@ Contributor docs: [design system](../docs/contributing/design-system.md), [marke
 - **`data-testid` on `UModal` doesn't reach the DOM**: put it on a wrapper inside `<template #content>`. For dropdown menu items, put it on the rendered `<button>`.
 - **Logout is a hard reload** (`useLogout` → `window.location.href = '/'`), never `navigateTo()`; other tabs reload via the BroadcastChannel receiver.
 - **Gate every purchase surface on `useBillingMode()`**: upgrade buttons, plan badge and spending → `billingEnabled`; links to `/pricing` → `pricingVisible`; "limit reached" copy uses the `*Free` i18n variants when billing is off. Never point a user at a purchase that doesn't exist.
-- **Gate AI entry points on `useAiAvailability()`**: `chatMissing` → "add your API key" link instead of the prompt; `transcriptionAvailable` / `liveDictationAvailable` gate the mic and dictation; `chatPlatformBilled` decides whether an empty AI budget blocks the prompt. `null` (not loaded) keeps the default rendering. Call `refresh()` after saving or removing a provider.
-- **`useAccountStatus()` is shared `useState`.** Never `useFetch('/api/user/account-status')` in a component.
+- **Gate AI entry points on `useAiAvailability()`**: `chatMissing` → "add your API key" link instead of the prompt; `transcriptionAvailable` / `liveDictationAvailable` gate the mic and dictation; `chatPlatformBilled` decides whether an empty AI budget blocks the prompt. `null` (not loaded) keeps the default rendering. Provider mutations (`app/queries/ai.ts`) refresh it themselves.
+- **Server state goes through `app/queries/`** (Pinia Colada; [client-data.md](../docs/contributing/client-data.md)). A resource with a query (account status, plan + limits, AI points / availability / providers, saved themes, the workspace list, plan prices) is read through its composable and changed through its mutation, which invalidates every dependent key. Never `apiFetch` / `useFetch` such a resource in a component, and never hold it in `useState`.
 - **No cookie banner, no non-essential storage.** Adding any (analytics, replay, cookie-setting embeds) requires a consent purpose and banner first (`app/components/legal/AGENTS.md`), and every new browser storage key must be listed in the privacy policy.
 
 ## Public pages (marketing, docs, legal)

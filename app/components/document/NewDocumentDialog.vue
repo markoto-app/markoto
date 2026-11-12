@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { SavedTheme } from '~/utils/api/types/themes'
+import { useSavedThemes } from '~/queries/themes'
 import type { ApiResponse } from '~/utils/api/client'
 import { jsonEqual } from '~~/shared/utils/jsonEqual'
 import type { DocTheme } from '~~/shared/types/theme'
@@ -113,11 +113,11 @@ function setSection(section: Section, open: boolean) {
   openSection.value = open ? section : (openSection.value === section ? null : openSection.value)
 }
 
-const { loggedIn } = useUserSession()
-
-// Caller's saved themes — only fetched for logged-in users. Each becomes a
-// "Blank in <design>" card, and names a workspace default that matches one.
-const savedThemes = ref<SavedTheme[]>([])
+// Caller's saved themes — only fetched for logged-in users, once the dialog
+// is open (it stays mounted while closed on the workspace page). Each
+// becomes a "Blank in <design>" card, and names a workspace default that
+// matches one. Saving a theme anywhere invalidates the list.
+const { themes: savedThemes } = useSavedThemes(() => props.open)
 
 // Workspace default theme (when filing into a workspace): the design Blank
 // gets. Without one, Blank is in the markoto design.
@@ -128,16 +128,7 @@ type WorkspaceTemplate = ApiResponse<'/api/workspaces/:wsId/templates', 'get'>['
 const workspaceTemplates = ref<WorkspaceTemplate[]>([])
 
 async function loadThemeContext() {
-  // 1. The user's saved themes — only meaningful when logged in.
-  if (loggedIn.value) {
-    try {
-      const res = await apiFetch('/api/themes')
-      savedThemes.value = res.themes
-    } catch { /* non-fatal — list stays empty */ }
-  } else {
-    savedThemes.value = []
-  }
-  // 2. The workspace default — only when filing into a workspace.
+  // The workspace default — only when filing into a workspace.
   if (props.workspaceId) {
     try {
       const res = await apiFetch('/api/workspaces/:wsId', {
@@ -210,8 +201,7 @@ watch(() => props.open, async (next) => {
   openSection.value = null
   templateTab.value = 'all'
   languageModel.value = defaultLanguageItem()
-  // Pull saved themes + workspace default fresh on every open so a
-  // theme just-saved in the editor is immediately pickable here.
+  // Pull the workspace default + templates fresh on every open.
   await loadThemeContext()
   // A workspace with its own templates opens on them.
   if (workspaceTemplates.value.length > 0 && !props.initialTemplateId) templateTab.value = 'workspace'

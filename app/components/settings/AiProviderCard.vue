@@ -17,6 +17,7 @@ import {
   type ProviderPreset
 } from '~~/shared/ai/providers'
 import { apiErrorData } from '~/utils/api/errors'
+import { useRemoveAiProvider, useSaveAiProvider, useVerifyAiProvider } from '~/queries/ai'
 
 const props = defineProps<{
   capability: AiCapability
@@ -24,8 +25,6 @@ const props = defineProps<{
   status: AiCapabilityStatus & { liveDictation?: boolean }
   presets: ProviderPreset[]
 }>()
-
-const emit = defineEmits<{ changed: [] }>()
 
 const { t, locale } = useI18n()
 const toast = useToast()
@@ -38,9 +37,13 @@ const baseUrl = ref('')
 const model = ref('')
 const apiKey = ref('')
 const supportsVision = ref(false)
-const saving = ref(false)
-const verifying = ref(false)
-const removing = ref(false)
+// Each mutation re-reads the providers and the AI availability it changes.
+const saveProvider = useSaveAiProvider()
+const verifyProvider = useVerifyAiProvider()
+const removeProvider = useRemoveAiProvider()
+const saving = computed(() => saveProvider.isLoading.value)
+const verifying = computed(() => verifyProvider.isLoading.value)
+const removing = computed(() => removeProvider.isLoading.value)
 const lastMessage = ref<{ tone: 'success' | 'warning' | 'error', text: string } | null>(null)
 
 const presetItems = computed(() => [
@@ -128,12 +131,10 @@ function errorText(e: unknown, fallbackKey: string): string {
 
 async function onSave(): Promise<void> {
   if (saving.value) return
-  saving.value = true
   lastMessage.value = null
   try {
-    const resp = await apiFetch('/api/user/ai-providers/:capability', {
-      method: 'put',
-      path: { capability: props.capability },
+    const resp = await saveProvider.mutateAsync({
+      capability: props.capability,
       body: {
         baseUrl: baseUrl.value.trim(),
         model: model.value.trim(),
@@ -146,47 +147,33 @@ async function onSave(): Promise<void> {
     const warn = resp.verify.code !== 'ok'
     lastMessage.value = { tone: warn ? 'warning' : 'success', text: t(`aiProvider.verify.${codeKey(resp.verify.code)}`) }
     toast.add({ title: t(warn ? 'aiProvider.toast.savedWithWarning' : 'aiProvider.toast.saved'), color: warn ? 'warning' : 'success', icon: 'i-lucide-check' })
-    emit('changed')
   } catch (e) {
     if (handleReauthRequired(e)) return
     lastMessage.value = { tone: 'error', text: errorText(e, 'aiProvider.toast.saveFailed') }
-  } finally {
-    saving.value = false
   }
 }
 
 async function onVerify(): Promise<void> {
   if (verifying.value) return
-  verifying.value = true
   lastMessage.value = null
   try {
-    const resp = await apiFetch('/api/user/ai-providers/:capability/verify', {
-      method: 'post',
-      path: { capability: props.capability }
-    })
+    const resp = await verifyProvider.mutateAsync(props.capability)
     const text = t(`aiProvider.verify.${codeKey(resp.code)}`)
     lastMessage.value = { tone: resp.ok ? (resp.code === 'ok' ? 'success' : 'warning') : 'error', text: resp.ok ? text : `${text} — ${resp.message}` }
-    emit('changed')
   } catch (e) {
     lastMessage.value = { tone: 'error', text: errorText(e, 'aiProvider.toast.verifyFailed') }
-  } finally {
-    verifying.value = false
   }
 }
 
 async function onRemove(): Promise<void> {
   if (removing.value) return
-  removing.value = true
   lastMessage.value = null
   try {
-    await apiFetch('/api/user/ai-providers/:capability', { method: 'delete', path: { capability: props.capability } })
+    await removeProvider.mutateAsync(props.capability)
     toast.add({ title: t('aiProvider.toast.removed'), color: 'neutral', icon: 'i-lucide-check' })
-    emit('changed')
   } catch (e) {
     if (handleReauthRequired(e)) return
     lastMessage.value = { tone: 'error', text: errorText(e, 'aiProvider.toast.saveFailed') }
-  } finally {
-    removing.value = false
   }
 }
 

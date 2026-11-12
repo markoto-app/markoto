@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { DocTheme } from '~~/shared/types/theme'
 import type { ApiResponse } from '~/utils/api/client'
+import { useCreateSavedTheme } from '~/queries/themes'
 import {
   DESIGN_IMPORT_ERROR_CODES,
   DESIGN_IMPORT_MAX_BYTES,
@@ -223,6 +224,8 @@ const progressValue = computed(() => {
 const nameCheck = computed(() => checkSavedThemeName(name.value))
 const descriptionCheck = computed(() => checkSavedThemeDescription(description.value))
 
+const createTheme = useCreateSavedTheme()
+
 async function save() {
   const r = result.value
   const n = nameCheck.value
@@ -230,7 +233,7 @@ async function save() {
   if (!r || !n.ok || !d.ok || saving.value) return
   saving.value = true
   try {
-    await apiFetch('/api/themes', { method: 'post', body: { name: n.value, description: d.value, theme: r.theme } })
+    await createTheme.mutateAsync({ name: n.value, description: d.value, theme: r.theme })
     emit('saved', n.value)
     open.value = false
   } catch (e) {

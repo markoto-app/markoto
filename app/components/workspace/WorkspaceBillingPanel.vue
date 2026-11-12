@@ -3,9 +3,9 @@ import {
   CURRENCIES,
   defaultCurrencyForLocale,
   type BillingInterval,
-  type Currency,
-  type PlanPricesResponse
+  type Currency
 } from '~~/shared/config/pricing'
+import { usePlanPricesQuery } from '~/queries/billing'
 import { formatPrice, formatPlanBytes } from '~/utils/billing/pricing'
 import {
   formatUsd,
@@ -39,18 +39,21 @@ const toast = useToast()
 const { showError } = useErrorHandler()
 
 const overview = ref<WorkspaceBillingOverview | null>(null)
-const prices = ref<PlanPricesResponse | null>(null)
+// Shared with the pricing page and the seat-price prompt; a failed load
+// shows no prices.
+const pricesQuery = usePlanPricesQuery()
+const prices = computed(() => pricesQuery.data.value ?? null)
 const loading = ref(true)
 const busy = ref<string | null>(null)
 
 async function load() {
   try {
-    const [o, p] = await Promise.all([
+    const [o] = await Promise.all([
       apiFetch('/api/workspaces/:wsId/billing', { path: { wsId: props.workspaceId } }),
-      apiFetch('/api/billing/prices').catch(() => null)
+      // The panel shows prices together with the overview, as before.
+      pricesQuery.refresh()
     ])
     overview.value = o
-    prices.value = p
     if (o.subscription) {
       currency.value = o.subscription.currency
       interval.value = o.subscription.interval

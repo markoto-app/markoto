@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useCreateSavedTheme, useUpdateSavedTheme } from '~/queries/themes'
 import type { DocTheme } from '~~/shared/types/theme'
 import {
   SAVED_THEME_DESCRIPTION_MAX,
@@ -54,6 +55,10 @@ const nameError = computed(() => {
     : t('theme.saved.nameRequired')
 })
 
+// Both refresh every saved-theme list on screen before resolving.
+const createTheme = useCreateSavedTheme()
+const updateTheme = useUpdateSavedTheme()
+
 async function submit() {
   triedSubmit.value = true
   const n = nameCheck.value
@@ -65,14 +70,10 @@ async function submit() {
   submitting.value = true
   try {
     if (props.mode === 'create' && theme) {
-      await apiFetch('/api/themes', {
-        method: 'post',
-        body: { name: n.value, description: d.value, theme }
-      })
+      await createTheme.mutateAsync({ name: n.value, description: d.value, theme })
     } else if (props.savedTheme) {
-      await apiFetch('/api/themes/:themeId', {
-        method: 'patch',
-        path: { themeId: props.savedTheme.themeId },
+      await updateTheme.mutateAsync({
+        themeId: props.savedTheme.themeId,
         body: { name: n.value, description: d.value }
       })
     }

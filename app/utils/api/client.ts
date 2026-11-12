@@ -70,6 +70,9 @@ function createApi(fetcher?: $Fetch) {
 /** Client-side calls (event handlers, `onMounted`). */
 export const apiFetch = createApi()
 
+/** Either caller: `apiFetch`, or the cookie-forwarding one from `useApi()`. */
+export type ApiFetcher = typeof apiFetch
+
 /**
  * Calls made while the page renders (`useAsyncData`, `await` in setup): on
  * the server `useRequestFetch()` forwards the request's cookies and headers,

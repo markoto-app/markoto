@@ -4,6 +4,9 @@ import type { WorkspaceSeatBilling } from '~/utils/billing/workspaceBilling'
 import { formatPrice } from '~/utils/billing/pricing'
 import { isCurrency } from '~~/shared/config/pricing'
 import type { ApiResponse } from '~/utils/api/client'
+import { useQueryCache } from '@pinia/colada'
+import { useChangeMemberRole, useRemoveMember } from '~/queries/workspaces'
+import { planPricesQuery } from '~/queries/billing'
 
 // Members management modal. Single modal for admin + member views; the role
 // gates feature visibility:
@@ -55,6 +58,11 @@ const adding = ref(false)
 const rowBusy = ref<number | null>(null)
 
 const isAdmin = computed(() => props.myRole === 'admin')
+// Both refresh the caller's workspace list (their own role or membership
+// may be what changed).
+const queryCache = useQueryCache()
+const changeMemberRole = useChangeMemberRole()
+const removeMemberMutation = useRemoveMember()
 
 type PendingInvite = ApiResponse<'/api/workspaces/:wsId/invites', 'get'>[number]
 const invites = ref<PendingInvite[]>([])
@@ -128,7 +136,9 @@ async function loadSeatPrice() {
   seatPrice.value = null
   if (!billing || !isCurrency(billing.currency)) return
   try {
-    const prices = await apiFetch('/api/billing/prices')
+    // The cached price table when the billing tab already loaded it.
+    const { data: prices } = await queryCache.refresh(queryCache.ensure(planPricesQuery({ api: apiFetch })))
+    if (!prices) return
     // The workspace's plan arrives as a plain string; only per-seat plans have a seat price.
     const row = billing.plan === 'team' || billing.plan === 'business' ? prices.prices[billing.currency]?.[billing.plan] : undefined
     if (!row) return
@@ -176,11 +186,7 @@ async function changeRole(member: WorkspaceMember, role: 'admin' | 'editor' | 'v
   if (member.role === role) return
   rowBusy.value = member.userId
   try {
-    await apiFetch('/api/workspaces/:wsId/members/:userId', {
-      method: 'patch',
-      path: { wsId: props.workspaceId, userId: member.userId },
-      body: { role }
-    })
+    await changeMemberRole.mutateAsync({ workspaceId: props.workspaceId, userId: member.userId, role })
     localMembers.value = localMembers.value.map(m => m.userId === member.userId ? { ...m, role } : m)
     emit('updated', localMembers.value)
   } catch (e) {
@@ -193,10 +199,7 @@ async function changeRole(member: WorkspaceMember, role: 'admin' | 'editor' | 'v
 async function removeMember(member: WorkspaceMember) {
   rowBusy.value = member.userId
   try {
-    await apiFetch('/api/workspaces/:wsId/members/:userId', {
-      method: 'delete',
-      path: { wsId: props.workspaceId, userId: member.userId }
-    })
+    await removeMemberMutation.mutateAsync({ workspaceId: props.workspaceId, userId: member.userId })
     const wasMe = member.userId === props.myUserId
     localMembers.value = localMembers.value.filter(m => m.userId !== member.userId)
     emit('updated', localMembers.value)

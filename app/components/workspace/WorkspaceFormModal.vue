@@ -12,6 +12,7 @@
 // order: POST /api/user/dpa-accept, then POST /api/workspaces. The
 // server-side guard in /api/workspaces returns 409 if DPA is missing,
 // so a determined client can't bypass via direct curl.
+import { useCreateWorkspace, useUpdateWorkspace } from '~/queries/workspaces'
 
 const props = defineProps<{
   workspaceId?: string
@@ -34,6 +35,9 @@ const { status: accountStatus, refresh: refreshAccountStatus } = useAccountStatu
 const name = ref('')
 const description = ref('')
 const saving = ref(false)
+// Both refresh the workspace list; creating also the owned-workspace cap.
+const createWorkspace = useCreateWorkspace()
+const updateWorkspace = useUpdateWorkspace()
 const dpaChecked = ref(false)
 
 const isEdit = computed(() => !!props.workspaceId)
@@ -67,7 +71,7 @@ async function handleSubmit() {
   }
   try {
     if (props.workspaceId) {
-      await apiFetch('/api/workspaces/:wsId', { method: 'put', path: { wsId: props.workspaceId }, body: payload })
+      await updateWorkspace.mutateAsync({ workspaceId: props.workspaceId, body: payload })
       emit('updated', payload)
     } else {
       // Record DPA acceptance FIRST if required. The workspace POST
@@ -87,7 +91,7 @@ async function handleSubmit() {
         // updates next time the user opens it.
         void refreshAccountStatus()
       }
-      const res = await apiFetch('/api/workspaces', { method: 'post', body: payload })
+      const res = await createWorkspace.mutateAsync(payload)
       emit('created', res.workspaceId)
     }
     open.value = false

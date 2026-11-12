@@ -6,7 +6,7 @@
 
 - **Legal surfaces are hosted-only.** The onboarding gate mounts only when `useInstanceConfig().legalSurfaces` is true (`NUXT_LEGAL_SURFACES_ENABLED`); tests that need it must set the flag. Never show legal UI unconditionally.
 - **Keep the `/legal/*` exemption** in the gate (`path.startsWith('/legal/')`): users must be able to read what they are asked to accept. Any future blocking overlay needs the same exemption.
-- **Read account state through `useAccountStatus()`** (`useState`-backed, `refresh()` re-fetches `/api/user/account-status`). Never `useFetch` that endpoint inside a component: the copies race.
+- **Read account state through `useAccountStatus()`** (one cached query, `app/queries/account.ts`; `refresh()` re-reads `/api/user/account-status`). Never `useFetch` that endpoint inside a component: the copies race.
 - **The deletion modal only requests deletion** (`POST /api/user/delete`); its preview comes from `GET /api/user/deletion-preview`. The purge runs later in `server/utils/privacy/accountDeletionExecute.ts`.
 - **The cancel endpoint is `/api/user/delete-cancel`** (one path segment), not `/api/user/delete/cancel`.
 - **Keep the modal's confirm row visible**: the dialog is a `flex-col` capped at `max-h-[85vh]` with `shrink-0` header and confirm row, so a mobile keyboard can't push the buttons off-screen.

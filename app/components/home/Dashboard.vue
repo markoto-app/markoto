@@ -2,6 +2,7 @@
 import type { ApiResponse } from '~/utils/api/client'
 import type { WorkspaceListItem } from '~/components/workspace/WorkspaceList.vue'
 import type { WorkspaceInviteItem } from '~/components/workspace/WorkspaceInviteList.vue'
+import { useMyWorkspaces } from '~/queries/workspaces'
 
 // The home page for everyone who doesn't get the product tour. Logged-out
 // visitors see the plain hero with "New document"; signed-in users get an
@@ -69,7 +70,6 @@ type DocumentListItem = ApiResponse<'/api/user/documents', 'get'>[number]
 // stay false until the first fetch resolves; the v-if uses them to
 // show the spinner consistently across SSR + the brief load window.
 const docsFetched = ref(false)
-const workspacesFetched = ref(false)
 
 const {
   state: myDocs,
@@ -90,24 +90,16 @@ const {
   }
 )
 
-const {
-  state: myWorkspaces,
-  isLoading: _loadingWorkspaces,
-  execute: loadWorkspaces
-} = useAsyncState<WorkspaceListItem[]>(
-  () => loggedIn.value ? apiFetch('/api/user/workspaces') : Promise.resolve([]),
-  [],
-  {
-    immediate: false,
-    resetOnExecute: false,
-    onError: (e) => {
-      myWorkspaces.value = []
-      workspacesFetched.value = true
-      showContextualError(e, 'error.generic')
-    },
-    onSuccess: () => { workspacesFetched.value = true }
-  }
-)
+// The workspace list is a shared query (also behind "Move to workspace");
+// creating, renaming, deleting, leaving or joining a workspace refreshes it.
+// It starts after mount like the loads above, so the server render and
+// the first client render both show the spinner ("pending").
+const workspacesQuery = useMyWorkspaces()
+const myWorkspaces = computed<WorkspaceListItem[]>(() => loggedIn.value ? workspacesQuery.data.value ?? [] : [])
+const workspacesFetched = computed(() => workspacesQuery.status.value !== 'pending')
+watch(() => workspacesQuery.error.value, (e) => {
+  if (e) showContextualError(e, 'error.generic')
+})
 
 // Open workspace invitations addressed to this account. Failures are
 // non-fatal (the section just stays hidden) — the workspace list and
@@ -144,8 +136,7 @@ function onInviteRemoved(inviteId: string): void {
   myInvites.value = myInvites.value.filter(i => i.inviteId !== inviteId)
 }
 function onInviteAccepted(): void {
-  workspacesFetched.value = false
-  loadWorkspaces()
+  // The accept mutation already refreshed the workspace list.
   void loadSharedDocs()
 }
 
@@ -173,9 +164,7 @@ tryOnMounted(() => {
   }
   watch(loggedIn, () => {
     docsFetched.value = false
-    workspacesFetched.value = false
     loadDocs()
-    loadWorkspaces()
     void loadInvites()
     void loadSharedDocs()
   }, { immediate: true })
