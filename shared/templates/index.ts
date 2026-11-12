@@ -87,7 +87,7 @@ function template(
   }
 }
 
-const YOUR_NAME = { en: 'Your Name', de: 'Ihr Name' }
+const YOUR_NAME = { en: 'Your Name', de: 'Dein Name' }
 const IEEE_AFFILIATION = { en: 'Department\nInstitution\nCity, Country\nname@example.org', de: 'Institut\nHochschule\nOrt, Land\nname@example.org' }
 
 export const TEMPLATES: TemplateMeta[] = [
@@ -171,7 +171,7 @@ export const TEMPLATES: TemplateMeta[] = [
   template('proposal', 'proposal', 'business', 'i-lucide-handshake', {
     cover: {
       en: { subtitle: 'Prepared for Client name', authors: ['Your company'] },
-      de: { subtitle: 'Erstellt für Kundenname', authors: ['Ihre Firma'] }
+      de: { subtitle: 'Erstellt für Kundenname', authors: ['Deine Firma'] }
     }
   }),
   template('one-pager', 'one-pager', 'business', 'i-lucide-file-badge', {

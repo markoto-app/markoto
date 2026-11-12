@@ -108,12 +108,12 @@ const DE: NoticeCopy = {
     access_restricted: 'Der Zugang zum Dokument wurde eingeschränkt: Es ist über den Link nicht mehr erreichbar.',
     no_action: 'Wir haben das Dokument geprüft und nichts unternommen.'
   },
-  receiptSubject: id => `Wir haben Ihre Meldung erhalten (${id})`,
-  receiptBody: 'Danke. Wir haben Ihre Meldung erhalten und prüfen sie. Unsere Entscheidung senden wir an diese Adresse.',
-  decisionSubject: id => `Entscheidung zu Ihrer Meldung (${id})`,
+  receiptSubject: id => `Wir haben deine Meldung erhalten (${id})`,
+  receiptBody: 'Danke. Wir haben deine Meldung erhalten und prüfen sie. Unsere Entscheidung senden wir an diese Adresse.',
+  decisionSubject: id => `Entscheidung zu deiner Meldung (${id})`,
   decisionIntro: 'Wir haben den gemeldeten Inhalt geprüft. Das ist unsere Entscheidung.',
-  statementSubject: 'Wir haben eines Ihrer markoto-Dokumente entfernt oder eingeschränkt',
-  statementIntro: 'Wir haben eine Meldung zu einem Ihrer Dokumente auf markoto erhalten und geprüft. Hier ist unsere Begründung.',
+  statementSubject: 'Wir haben eines deiner markoto-Dokumente entfernt oder eingeschränkt',
+  statementIntro: 'Wir haben eine Meldung zu einem deiner Dokumente auf markoto erhalten und geprüft. Hier ist unsere Begründung.',
   labels: {
     reference: 'Referenz',
     reported: 'Gemeldeter Inhalt',
@@ -130,8 +130,8 @@ const DE: NoticeCopy = {
   basisText: 'Die Entscheidung beruht auf einer Meldung, die wir erhalten haben (Meldung nach Art. 16 des EU-Gesetzes über digitale Dienste). Sie wendet unsere Nutzungsbedingungen und Regeln zur zulässigen Nutzung an; lautet die Regel «Rechtswidrige Inhalte», halten wir den Inhalt zudem für rechtswidrig.',
   automationText: 'Keine. Eine Person hat die Meldung geprüft und entschieden.',
   scopeText: 'Das Dokument auf markoto, überall (weltweit).',
-  objectionText: contact => `Wenn Sie die Entscheidung für falsch halten, schreiben Sie innert 6 Monaten an ${contact} und nennen Sie die Referenz oben. Sie können auch eine aussergerichtliche Streitbeilegungsstelle anrufen oder vor Gericht gehen.`,
-  objectionNoContact: 'Wenn Sie die Entscheidung für falsch halten, wenden Sie sich innert 6 Monaten an den Betreiber dieses Dienstes und nennen Sie die Referenz oben. Sie können auch eine aussergerichtliche Streitbeilegungsstelle anrufen oder vor Gericht gehen.',
+  objectionText: contact => `Wenn du die Entscheidung für falsch hältst, schreibe innert 6 Monaten an ${contact} und nenne die Referenz oben. Du kannst auch eine aussergerichtliche Streitbeilegungsstelle anrufen oder vor Gericht gehen.`,
+  objectionNoContact: 'Wenn du die Entscheidung für falsch hältst, wende dich innert 6 Monaten an den Betreiber dieses Dienstes und nenne die Referenz oben. Du kannst auch eine aussergerichtliche Streitbeilegungsstelle anrufen oder vor Gericht gehen.',
   closing: 'markoto'
 }
 

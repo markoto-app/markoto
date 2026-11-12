@@ -45,14 +45,14 @@ const COPY: Record<InviteEmailLocale, Copy> = {
     footer: 'You get this email because you are an admin of this workspace on markoto.'
   },
   de: {
-    budget_80: { subject: v => `«${v.workspace}» hat 80 % des KI-Budgets dieses Monats verbraucht`, body: v => `Der Arbeitsbereich «${v.workspace}» hat 80 % seines KI-Budgets für diesen Monat verbraucht. Ist es aufgebraucht, pausiert die KI für alle im Arbeitsbereich bis zur Zurücksetzung. Mit zusätzlichen Plätzen erhöhen Sie es.` },
+    budget_80: { subject: v => `«${v.workspace}» hat 80 % des KI-Budgets dieses Monats verbraucht`, body: v => `Der Arbeitsbereich «${v.workspace}» hat 80 % seines KI-Budgets für diesen Monat verbraucht. Ist es aufgebraucht, pausiert die KI für alle im Arbeitsbereich bis zur Zurücksetzung. Mit zusätzlichen Plätzen erhöhst du es.` },
     budget_100: { subject: v => `«${v.workspace}» hat sein KI-Budget für diesen Monat verbraucht`, body: v => `Der Arbeitsbereich «${v.workspace}» hat sein ganzes KI-Budget für diesen Monat verbraucht. Die KI pausiert für seine Mitglieder bis zur Zurücksetzung${v.date ? ` am ${v.date}` : ''}. Zusätzliche Plätze erhöhen es sofort.` },
-    payment_failed: { subject: v => `Zahlung für «${v.workspace}» fehlgeschlagen`, body: v => `Stripe konnte die Zahlung für den Arbeitsbereich «${v.workspace}» nicht einziehen und versucht es in den nächsten Tagen erneut. Bitte aktualisieren Sie die Zahlungsmethode, damit der Arbeitsbereich seinen Plan behält.` },
+    payment_failed: { subject: v => `Zahlung für «${v.workspace}» fehlgeschlagen`, body: v => `Stripe konnte die Zahlung für den Arbeitsbereich «${v.workspace}» nicht einziehen und versucht es in den nächsten Tagen erneut. Bitte aktualisiere die Zahlungsmethode, damit der Arbeitsbereich seinen Plan behält.` },
     seat_added: { subject: v => `Ein Platz wurde zu «${v.workspace}» hinzugefügt`, body: v => `${v.actor ?? 'Ein Admin'} hat dem Arbeitsbereich «${v.workspace}» einen Platz hinzugefügt, um jemanden einzuladen. Er hat jetzt ${v.seats} Plätze; der zusätzliche Platz wird anteilig auf der nächsten Rechnung berechnet.` },
     ending: { subject: v => `Der Plan von «${v.workspace}» endet`, body: v => `Das Abonnement des Arbeitsbereichs «${v.workspace}» verlängert sich nicht${v.date ? ` und endet am ${v.date}` : ''}. Danach gilt wieder der kostenlose Plan; es wird nichts gelöscht.` },
-    ended: { subject: v => `Der Plan von «${v.workspace}» ist beendet`, body: v => `Das Abonnement des Arbeitsbereichs «${v.workspace}» ist beendet. Es gilt wieder der kostenlose Plan; es wurde nichts gelöscht. Team oder Business können Sie im Tab «Abrechnung» wieder kaufen.` },
+    ended: { subject: v => `Der Plan von «${v.workspace}» ist beendet`, body: v => `Das Abonnement des Arbeitsbereichs «${v.workspace}» ist beendet. Es gilt wieder der kostenlose Plan; es wurde nichts gelöscht. Team oder Business kannst du im Tab «Abrechnung» wieder kaufen.` },
     link: 'Abrechnung:',
-    footer: 'Sie erhalten diese E-Mail, weil Sie Admin dieses Arbeitsbereichs auf markoto sind.'
+    footer: 'Du erhältst diese E-Mail, weil du Admin dieses Arbeitsbereichs auf markoto bist.'
   },
   fr: {
     budget_80: { subject: v => `« ${v.workspace} » a utilisé 80 % du budget IA du mois`, body: v => `L’espace de travail « ${v.workspace} » a utilisé 80 % de son budget IA pour ce mois. Une fois épuisé, l’IA s’arrête pour tout l’espace jusqu’à la remise à zéro. Ajouter des places l’augmente.` },

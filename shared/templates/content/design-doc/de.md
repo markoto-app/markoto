@@ -1,4 +1,4 @@
-<!-- Ein Designdokument oder RFC: eine vorgeschlagene Änderung, so geschrieben, dass das Review Abschnitt für Abschnitt zustimmen oder widersprechen kann. Der Titelblock zeigt Titel, Team und Dokumentart (Untertitel) und das Datum. Die Tabelle unten ist der Dokumentkopf: Lassen Sie den Status in der ersten Zeile (Entwurf, Im Review, Angenommen, Abgelehnt, Ersetzt) und führen Sie ihn nach, wenn sich der Entscheid bewegt. -->
+<!-- Ein Designdokument oder RFC: eine vorgeschlagene Änderung, so geschrieben, dass das Review Abschnitt für Abschnitt zustimmen oder widersprechen kann. Der Titelblock zeigt Titel, Team und Dokumentart (Untertitel) und das Datum. Die Tabelle unten ist der Dokumentkopf: Lass den Status in der ersten Zeile (Entwurf, Im Review, Angenommen, Abgelehnt, Ersetzt) und führe ihn nach, wenn sich der Entscheid bewegt. -->
 
 | | |
 |---|---|
@@ -12,11 +12,11 @@
 
 # Zusammenfassung
 
-<!-- Ein Absatz für alle, die nichts anderes lesen: das Problem in einem Satz, was Sie vorschlagen und was es kostet. {{description}} -->
+<!-- Ein Absatz für alle, die nichts anderes lesen: das Problem in einem Satz, was du vorschlägst und was es kostet. {{description}} -->
 
 # Motivation
 
-<!-- Der heutige Zustand und warum er nicht genügt: was bricht, wie oft, für wen, mit Belegen (ein Incident, eine Messung, Supportaufwand). Nennen Sie die Randbedingungen, die jede Lösung einhalten muss. Ein H2 kann den einen Vorfall oder das Beispiel schildern, das die Sache dringend gemacht hat. Eine Fussnote ([^1]) hält Quellen und Nebenbemerkungen aus der Argumentation heraus. -->
+<!-- Der heutige Zustand und warum er nicht genügt: was bricht, wie oft, für wen, mit Belegen (ein Incident, eine Messung, Supportaufwand). Nenne die Randbedingungen, die jede Lösung einhalten muss. Ein H2 kann den einen Vorfall oder das Beispiel schildern, das die Sache dringend gemacht hat. Eine Fussnote ([^1]) hält Quellen und Nebenbemerkungen aus der Argumentation heraus. -->
 
 # Ziele
 
@@ -27,7 +27,7 @@
 
 ## Nicht-Ziele
 
-<!-- Was dieser Vorschlag bewusst nicht tut, damit das Review nicht darüber streitet. Verweisen Sie darauf, wo es später behandelt werden könnte. -->
+<!-- Was dieser Vorschlag bewusst nicht tut, damit das Review nicht darüber streitet. Verweise darauf, wo es später behandelt werden könnte. -->
 
 - Erstes Nicht-Ziel.
 
@@ -35,7 +35,7 @@
 
 ## Überblick
 
-<!-- Der Entwurf in zwei, drei Absätzen und, wenn es hilft, ein kleines Diagramm der Komponenten und wie Daten oder Anfragen zwischen ihnen fliessen. Ersetzen oder löschen Sie das Platzhalter-Diagramm. -->
+<!-- Der Entwurf in zwei, drei Absätzen und, wenn es hilft, ein kleines Diagramm der Komponenten und wie Daten oder Anfragen zwischen ihnen fliessen. Ersetze oder lösche das Platzhalter-Diagramm. -->
 
 ```mermaid
 flowchart LR
@@ -45,7 +45,7 @@ flowchart LR
 
 ## Detailentwurf
 
-<!-- Ein H2 pro Teil des Entwurfs (Datenmodell, API, Migration, Fehlerbehandlung). Schnittstellen, Schemas oder Abfragen als Codeblock zeigen. Sagen Sie, was passiert, wenn ein Teil ausfällt. -->
+<!-- Ein H2 pro Teil des Entwurfs (Datenmodell, API, Migration, Fehlerbehandlung). Schnittstellen, Schemas oder Abfragen als Codeblock zeigen. Sage, was passiert, wenn ein Teil ausfällt. -->
 
 # Geprüfte Alternativen
 
@@ -67,7 +67,7 @@ flowchart LR
 
 # Einführungsplan
 
-<!-- Die Phasen in Reihenfolge, je mit Umfang und dem Kriterium, das erfüllt sein muss, bevor die nächste beginnt. Sagen Sie, wie jede Phase zurückgerollt wird. -->
+<!-- Die Phasen in Reihenfolge, je mit Umfang und dem Kriterium, das erfüllt sein muss, bevor die nächste beginnt. Sage, wie jede Phase zurückgerollt wird. -->
 
 | Phase | Umfang | Abschlusskriterium |
 |---|---|---|

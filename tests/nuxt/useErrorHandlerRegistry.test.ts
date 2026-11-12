@@ -34,8 +34,8 @@ beforeEach(() => {
     'apiErrors.plan.feature-unavailable': 'Nicht im Plan.',
     'plan.feature.shareControls': 'Link-Ablauf ist Teil der bezahlten Pläne.',
     'legacy.key': 'Alte Übersetzung.',
-    'apiErrors.abuse.body-too-short': 'Bitte erklären Sie, was falsch ist (mindestens 10 Zeichen).',
-    'apiErrors.ai-provider.key-required': 'Geben Sie den API-Schlüssel ein.',
+    'apiErrors.abuse.body-too-short': 'Bitte erkläre, was falsch ist (mindestens 10 Zeichen).',
+    'apiErrors.ai-provider.key-required': 'Gib den API-Schlüssel ein.',
     'apiErrors.moderation.restricted': 'Dieses Dokument wurde nach einer Meldung eingeschränkt.'
   })
 })
@@ -98,8 +98,8 @@ describe('useErrorHandler: real $fetch errors (nested body)', () => {
 
   it('resolves the code\'s translated text without a messageKey', () => {
     const { extractError } = useErrorHandler()
-    expect(extractError(fetchError(400, { code: 'abuse/body-too-short' }))).toMatchObject({ code: 'abuse/body-too-short', message: 'Bitte erklären Sie, was falsch ist (mindestens 10 Zeichen).' })
-    expect(extractError(fetchError(400, { code: 'ai-provider/key-required' })).message).toBe('Geben Sie den API-Schlüssel ein.')
+    expect(extractError(fetchError(400, { code: 'abuse/body-too-short' }))).toMatchObject({ code: 'abuse/body-too-short', message: 'Bitte erkläre, was falsch ist (mindestens 10 Zeichen).' })
+    expect(extractError(fetchError(400, { code: 'ai-provider/key-required' })).message).toBe('Gib den API-Schlüssel ein.')
     expect(extractError(fetchError(403, { code: 'moderation/restricted' })).message).toBe('Dieses Dokument wurde nach einer Meldung eingeschränkt.')
   })
 

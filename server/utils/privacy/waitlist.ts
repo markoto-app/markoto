@@ -89,12 +89,12 @@ const WAITLIST_EMAIL_COPY: Record<WaitlistLocale, WaitlistEmailCopy> = {
     ignore: 'If you didn\'t sign up, ignore this email, nothing else will be sent.'
   },
   de: {
-    subject: 'Bestätigen Sie Ihren Platz auf der Warteliste für die markoto-Bezahlpläne',
-    intro: 'Jemand (hoffentlich Sie) möchte informiert werden, sobald die Bezahlpläne von markoto starten. Wir schreiben Ihnen ausschliesslich zu diesem Start.',
+    subject: 'Bestätige deinen Platz auf der Warteliste für die markoto-Bezahlpläne',
+    intro: 'Jemand (hoffentlich du) möchte informiert werden, sobald die Bezahlpläne von markoto starten. Wir schreiben dir ausschliesslich zu diesem Start.',
     confirmLabel: 'Anmeldung bestätigen:',
-    expiry: 'Dieser Link ist 7 Tage gültig. Ohne Bestätigung löschen wir Ihre Adresse automatisch.',
-    unsubscribeLabel: 'Meinung geändert? Hier entfernen Sie Ihre Adresse jederzeit:',
-    ignore: 'Falls Sie sich nicht angemeldet haben, ignorieren Sie diese E-Mail, Sie erhalten nichts weiter.'
+    expiry: 'Dieser Link ist 7 Tage gültig. Ohne Bestätigung löschen wir deine Adresse automatisch.',
+    unsubscribeLabel: 'Meinung geändert? Hier entfernst du deine Adresse jederzeit:',
+    ignore: 'Falls du dich nicht angemeldet hast, ignoriere diese E-Mail, du erhältst nichts weiter.'
   },
   fr: {
     subject: 'Confirmez votre inscription à la liste d\'attente des offres payantes markoto',

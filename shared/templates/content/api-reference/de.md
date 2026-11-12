@@ -12,7 +12,7 @@ https://api.example.com/v1
 
 # Authentifizierung
 
-<!-- Wie man sich authentifiziert (Header und Verfahren), wo Schlüssel erstellt werden und welche Arten von Schlüsseln es gibt und was sie dürfen. Zeigen Sie eine vollständige Anfrage. Warnen Sie, wo ein Schlüssel nie hingehört. Ergänzen Sie H2 für Versionierung und Idempotenz, falls die API sie kennt. -->
+<!-- Wie man sich authentifiziert (Header und Verfahren), wo Schlüssel erstellt werden und welche Arten von Schlüsseln es gibt und was sie dürfen. Zeige eine vollständige Anfrage. Warne, wo ein Schlüssel nie hingehört. Ergänze H2 für Versionierung und Idempotenz, falls die API sie kennt. -->
 
 ```bash
 curl https://api.example.com/v1/items \
@@ -60,7 +60,7 @@ curl https://api.example.com/v1/items \
 
 # Items
 
-<!-- Ein H1 pro Ressource, im Plural benannt wie im Pfad. Beginnen Sie mit ein, zwei Sätzen dazu, was die Ressource darstellt und wie ihr Lebenszyklus aussieht. Kopieren Sie diesen Block für jede weitere Ressource. -->
+<!-- Ein H1 pro Ressource, im Plural benannt wie im Pfad. Beginne mit ein, zwei Sätzen dazu, was die Ressource darstellt und wie ihr Lebenszyklus aussieht. Kopiere diesen Block für jede weitere Ressource. -->
 
 ## Das Item-Objekt
 

@@ -1,6 +1,6 @@
 # Willkommen bei markoto
 
-Sie tippen Markdown, die Vorschau zeigt die Seite, die daraus wird, und das PDF sieht genauso aus. Auf einem breiten Bildschirm steht die Vorschau rechts, auf dem Handy hinter dem Auge oben. Dieses Demo zeigt zuerst die Markdown-Grundlagen und dann, was markoto noch kann. Ändern Sie ruhig alles.
+Du tippst Markdown, die Vorschau zeigt die Seite, die daraus wird, und das PDF sieht genauso aus. Auf einem breiten Bildschirm steht die Vorschau rechts, auf dem Handy hinter dem Auge oben. Dieses Demo zeigt zuerst die Markdown-Grundlagen und dann, was markoto noch kann. Ändere ruhig alles.
 
 ## Überschriften
 
@@ -10,7 +10,7 @@ Eine Zeile mit `#` beginnen für einen Titel, `##` für einen Abschnitt, `###` f
 
 ## Fett, kursiv und mehr
 
-**Fett** (Cmd/Strg + B), *kursiv* (Cmd/Strg + I), ~~durchgestrichen~~ und ==markiert==. Den Rest finden Sie im Menü **Format**.
+**Fett** (Cmd/Strg + B), *kursiv* (Cmd/Strg + I), ~~durchgestrichen~~ und ==markiert==. Den Rest findest du im Menü **Format**.
 
 ## Listen
 
@@ -25,15 +25,15 @@ Eine Zeile mit `#` beginnen für einen Titel, `##` für einen Abschnitt, `###` f
 
 Ein `x` zwischen den Klammern hakt ein Kästchen ab.
 
-- [ ] **Teilen.** Das Schloss oben rechts (oder **Freigabe → Freigabeeinstellungen…**) legt fest, was Leute mit dem Link dürfen: «Privat: nur Sie», «Jeder kann ansehen», «Jeder kann bearbeiten» oder «Passwortgeschützt».
+- [ ] **Teilen.** Das Schloss oben rechts (oder **Freigabe → Freigabeeinstellungen…**) legt fest, was Leute mit dem Link dürfen: «Privat: nur du», «Jeder kann ansehen», «Jeder kann bearbeiten» oder «Passwortgeschützt».
 - [ ] **Das Aussehen ändern.** Das Paletten-Symbol rechts öffnet das **Dokumentdesign**: Vorlagen, Schriften, Farben, Seitenformat, Kopf- und Fusszeile.
 - [ ] **Die Titelseite bearbeiten.** Dieses Dokument beginnt mit einer. Im Design-Panel legt **Titelseite** Layout, Untertitel, Datum und Autoren fest oder schaltet sie aus.
-- [ ] **Kommentieren.** Text markieren und auf **Kommentar hinzufügen** klicken. Schreiben Sie `@markoto` in einen Kommentar, dann antwortet die KI im Verlauf.
-- [ ] **Die KI fragen.** Klicken Sie auf die Leiste unten («markoto fragen…») und versuchen Sie «Mach aus der Liste oben eine Tabelle». Die KI bearbeitet das Dokument wie eine Mitautorin, und Sie sehen ihr beim Tippen zu.
+- [ ] **Kommentieren.** Text markieren und auf **Kommentar hinzufügen** klicken. Schreib `@markoto` in einen Kommentar, dann antwortet die KI im Verlauf.
+- [ ] **Die KI fragen.** Klick auf die Leiste unten («markoto fragen…») und versuch «Mach aus der Liste oben eine Tabelle». Die KI bearbeitet das Dokument wie eine Mitautorin, und du siehst ihr beim Tippen zu.
 - [ ] **Sprechen statt tippen.** Das Mikrofon in der Werkzeugleiste startet das Diktat, das in der KI-Leiste nimmt eine gesprochene Anfrage entgegen.
-- [ ] **Zurück in der Zeit.** Das Panel **Aktivität** rechts listet jede Änderung. Öffnen Sie eine, um zu sehen, was sich geändert hat, oder setzen Sie das Dokument mit **Wiederherstellen** auf diesen Stand zurück (auch das lässt sich rückgängig machen).
+- [ ] **Zurück in der Zeit.** Das Panel **Aktivität** rechts listet jede Änderung. Öffne eine, um zu sehen, was sich geändert hat, oder setz das Dokument mit **Wiederherstellen** auf diesen Stand zurück (auch das lässt sich rückgängig machen).
 - [ ] **Als PDF exportieren.** **Datei → Exportieren → PDF**, oder Cmd/Strg + P zum Drucken.
-- [ ] **Der KI eigenes Material geben.** Laden Sie in einem Workspace PDFs, Word-Dateien oder Folien unter **Wissen** hoch. Die KI in den Dokumenten dieses Workspace schlägt darin nach.
+- [ ] **Der KI eigenes Material geben.** Lad in einem Workspace PDFs, Word-Dateien oder Folien unter **Wissen** hoch. Die KI in den Dokumenten dieses Workspace schlägt darin nach.
 
 > [!NOTE]
 > Die KI, `@markoto` und Workspaces brauchen ein Konto. **Anmelden** oben rechts.
@@ -46,7 +46,7 @@ Ein `x` zwischen den Klammern hakt ein Kästchen ab.
 
 ![Das markoto-Siegel](/markoto-logos/seal-master-light.svg){width=48}
 
-Ziehen Sie ein Bild in den Editor oder fügen Sie es ein, um es hochzuladen. Der Alternativtext wird zur Bildunterschrift.
+Zieh ein Bild in den Editor oder füg es ein, um es hochzuladen. Der Alternativtext wird zur Bildunterschrift.
 
 ## Zitate
 
@@ -63,7 +63,7 @@ def greet(name):
 
 ## Tabellen
 
-| Schaltfläche (oben Mitte) | Was Sie sehen |
+| Schaltfläche (oben Mitte) | Was du siehst |
 | --- | --- |
 | Bearbeiten | Nur das Markdown |
 | Geteilte Ansicht | Markdown und Seiten nebeneinander |
@@ -91,7 +91,7 @@ flowchart LR
 
 ## Fussnoten
 
-So fügen Sie eine Fussnote ein.[^1]
+So fügst du eine Fussnote ein.[^1]
 
 [^1]: Im PDF steht sie unten auf der Seite.
 
@@ -101,12 +101,12 @@ Die Zeile darunter beginnt eine neue Seite.
 
 <!-- pagebreak -->
 
-## Notizen nur für Sie
+## Notizen nur für dich
 
 <!-- Text zwischen diesen Markierungen bleibt im Markdown, erscheint aber nie auf der Seite oder im PDF. -->
 
 Die Zeile über dieser ist eine versteckte Notiz: Sie steht im Markdown, aber nicht auf der Seite. Praktisch für Erinnerungen an sich selbst.
 
-## Jetzt Sie
+## Jetzt du
 
-Löschen Sie alles und schreiben Sie los, oder öffnen Sie mit **Datei → Neues Dokument** ein leeres. Die ganze Syntax steht unter **Hilfe → Dokumentation**.
+Lösch alles und schreib los, oder öffne mit **Datei → Neues Dokument** ein leeres. Die ganze Syntax steht unter **Hilfe → Dokumentation**.

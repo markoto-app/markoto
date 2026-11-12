@@ -18,7 +18,7 @@ reviewed: false
 
 # Markdown-Spickzettel
 
-Das Markdown, das Sie wirklich brauchen, von den Grundlagen bis zu Tabellen, Fussnoten, Formeln und Diagrammen. Jedes Beispiel zeigt den Quelltext neben seinem Ergebnis, dargestellt mit demselben Code wie die Vorschau von markoto.
+Das Markdown, das du wirklich brauchst, von den Grundlagen bis zu Tabellen, Fussnoten, Formeln und Diagrammen. Jedes Beispiel zeigt den Quelltext neben seinem Ergebnis, dargestellt mit demselben Code wie die Vorschau von markoto.
 
 Die Beschriftung jedes Beispiels sagt, woher die Syntax stammt:
 
@@ -68,7 +68,7 @@ source: |
 
 ## Absätze und Zeilenumbrüche
 
-Eine Leerzeile beginnt einen neuen Absatz. In markoto bleibt ein einfacher Zeilenumbruch innerhalb eines Absatzes ein Zeilenumbruch, wie in einer Chatnachricht. Reines CommonMark fügt die beiden Zeilen zu einer zusammen; beenden Sie in anderen Editoren eine Zeile deshalb mit zwei Leerzeichen oder einem Backslash, um einen Umbruch zu erzwingen.
+Eine Leerzeile beginnt einen neuen Absatz. In markoto bleibt ein einfacher Zeilenumbruch innerhalb eines Absatzes ein Zeilenumbruch, wie in einer Chatnachricht. Reines CommonMark fügt die beiden Zeilen zu einer zusammen; beende in anderen Editoren eine Zeile deshalb mit zwei Leerzeichen oder einem Backslash, um einen Umbruch zu erzwingen.
 
 ::sample{kind="markoto"}
 ---
@@ -84,7 +84,7 @@ Die Typografie passiert automatisch: `--` wird zum Halbgeviertstrich, `---` zum 
 
 ## Listen
 
-Aufzählungspunkte beginnen mit `-`, `*` oder `+`, nummerierte Einträge mit `1.`. Für Unterpunkte rücken Sie um zwei Leerzeichen ein.
+Aufzählungspunkte beginnen mit `-`, `*` oder `+`, nummerierte Einträge mit `1.`. Für Unterpunkte rückst du um zwei Leerzeichen ein.
 
 ::sample{kind="commonmark"}
 ---
@@ -139,7 +139,7 @@ source: |
 ---
 ::
 
-Ziehen Sie in markoto ein Bild in den Editor oder fügen Sie es ein, um es hochzuladen (PNG, JPEG, GIF oder WebP, bis 10 MB); das Markdown wird für Sie eingefügt.
+Ziehe in markoto ein Bild in den Editor oder füge es ein, um es hochzuladen (PNG, JPEG, GIF oder WebP, bis 10 MB); das Markdown wird für dich eingefügt.
 
 ## Zitate und horizontale Linien
 
@@ -155,7 +155,7 @@ source: |
 ---
 ::
 
-Eine horizontale Linie besteht aus drei oder mehr `-`, `*` oder `_` auf einer eigenen Zeile. Verwenden Sie direkt unter einer Textzeile `***` oder `___`: `---` macht dort die Zeile darüber zu einer Überschrift.
+Eine horizontale Linie besteht aus drei oder mehr `-`, `*` oder `_` auf einer eigenen Zeile. Verwende direkt unter einer Textzeile `***` oder `___`: `---` macht dort die Zeile darüber zu einer Überschrift.
 
 ## Code
 
@@ -164,7 +164,7 @@ Code im Fliesstext steht zwischen Backticks. Ein Codeblock beginnt mit drei Back
 ::sample{kind="commonmark"}
 ---
 source: |
-  Führen Sie zuerst `npm install` aus.
+  Führe zuerst `npm install` aus.
 
   ```python
   def greet(name):
@@ -187,7 +187,7 @@ source: |
 ---
 ::
 
-Die Spalten müssen im Quelltext nicht bündig sein. Das Menü **Einfügen** von markoto hat eine Auswahl für die Tabellengrösse, sodass Sie die Trennzeile selten selbst tippen.
+Die Spalten müssen im Quelltext nicht bündig sein. Das Menü **Einfügen** von markoto hat eine Auswahl für die Tabellengrösse, sodass du die Trennzeile selten selbst tippst.
 
 ## Fussnoten
 
@@ -210,7 +210,7 @@ Ein Zitat, dessen erste Zeile genau `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARN
 ---
 source: |
   > [!TIP]
-  > Mit Cmd/Ctrl + P drucken Sie das Dokument.
+  > Mit Cmd/Ctrl + P druckst du das Dokument.
 
   > [!WARNING]
   > Damit wird die Datei für alle gelöscht.
@@ -219,7 +219,7 @@ source: |
 
 ## Formeln
 
-LaTeX steht im Text zwischen einfachen Dollarzeichen, als Block zwischen `$$`-Zeilen. Für ein echtes Dollarzeichen schreiben Sie `\$`. In markoto erscheint eine fehlerhafte Formel rot, statt die Seite zu zerstören.
+LaTeX steht im Text zwischen einfachen Dollarzeichen, als Block zwischen `$$`-Zeilen. Für ein echtes Dollarzeichen schreibst du `\$`. In markoto erscheint eine fehlerhafte Formel rot, statt die Seite zu zerstören.
 
 ::sample{kind="gfm"}
 ---
@@ -265,7 +265,7 @@ source: |
 
   *[PDF]: Portable Document Format
 
-  Exportieren Sie das PDF über das Menü Datei.
+  Exportiere das PDF über das Menü Datei.
 ---
 ::
 
@@ -304,15 +304,15 @@ source: |
 
 ## Was in markoto nicht funktioniert
 
-- **Rohes HTML** wird aus Sicherheitsgründen entfernt. Verwenden Sie stattdessen die Syntax oben.
-- **`:::`-Container** werden nicht unterstützt; nehmen Sie einen Hinweis.
-- **Bildgrössen im Alternativtext** wie `![alt =50%](url)` funktionieren nicht; schreiben Sie `![alt](url){width=50%}`.
+- **Rohes HTML** wird aus Sicherheitsgründen entfernt. Verwende stattdessen die Syntax oben.
+- **`:::`-Container** werden nicht unterstützt; nimm einen Hinweis.
+- **Bildgrössen im Alternativtext** wie `![alt =50%](url)` funktionieren nicht; schreibe `![alt](url){width=50%}`.
 
 Jedes Detail, auch zu Bildunterschriften und den vollständigen Regeln für Attribute, steht in der [Markdown-Referenz](/docs/writing/markdown-reference) (auf Englisch).
 
 ## Selbst ausprobieren
 
-Bearbeiten Sie das Markdown, und die Seiten folgen beim Tippen, so dargestellt, wie markoto sie darstellt. Solange Sie tippen, wird nichts gespeichert.
+Bearbeite das Markdown, und die Seiten folgen beim Tippen, so dargestellt, wie markoto sie darstellt. Solange du tippst, wird nichts gespeichert.
 
 ::try-it{theme="modern"}
 ---
@@ -325,7 +325,7 @@ source: |
 
   - [x] Überschriften, **fett** und *kursiv*
   - [x] Tabellen und Fussnoten[^1]
-  - [ ] Ihr eigener Text
+  - [ ] Dein eigener Text
 
   | Woche | Besuche | Veränderung |
   |:------|--------:|------------:|
@@ -333,7 +333,7 @@ source: |
   | 2     |    1610 |        +30% |
 
   > [!TIP]
-  > Mit `<!-- pagebreak -->` auf einer eigenen Zeile beginnen Sie eine neue Seite.
+  > Mit `<!-- pagebreak -->` auf einer eigenen Zeile beginnst du eine neue Seite.
 
   Die Fläche eines Kreises ist $A = \pi r^2$.
 
@@ -341,6 +341,6 @@ source: |
 ---
 ::
 
-::cta{title="Probieren Sie es mit Ihrem eigenen Markdown." secondary-label="Dokumentation lesen" secondary-to="/docs/writing/markdown-reference"}
+::cta{title="Probiere es mit deinem eigenen Markdown." secondary-label="Dokumentation lesen" secondary-to="/docs/writing/markdown-reference"}
 markoto zeigt jede Seite beim Tippen und exportiert ein PDF, das ihr entspricht. Kostenlos auf markoto.app, ohne Registrierung.
 ::
