@@ -1,0 +1,9 @@
+# Placeholder values in test fixtures and the self-host check (not credentials).
+# One line per finding: <commit>:<file>:<rule>:<line>.
+46d02557b6a958590702f667d465acaf9fba63c1:tests/unit/rendering/renderClient.test.ts:generic-api-key:21
+46d02557b6a958590702f667d465acaf9fba63c1:tests/unit/sync/syncInternalHttp.test.ts:generic-api-key:47
+46d02557b6a958590702f667d465acaf9fba63c1:tests/unit/sync/syncInternalHttp.test.ts:generic-api-key:77
+46d02557b6a958590702f667d465acaf9fba63c1:tests/unit/sync/syncInternalHttp.test.ts:generic-api-key:83
+46d02557b6a958590702f667d465acaf9fba63c1:tests/unit/sync/syncNotify.test.ts:generic-api-key:19
+d5b8e95eabf839771bd12a253518f04dfb427316:scripts/selfhost-check.sh:generic-api-key:159
+d5b8e95eabf839771bd12a253518f04dfb427316:scripts/selfhost-check.sh:generic-api-key:41
