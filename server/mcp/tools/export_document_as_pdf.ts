@@ -29,10 +29,10 @@ import { apiError } from '../../utils/api/apiError'
 // `pdf-download` namespace as the public endpoint to share
 // budget across surfaces.
 //
-// Why this isn't in TOOL_HANDLERS: the loop doesn't need it (no
+// Why this isn't in the tool registry: the loop doesn't need it (no
 // delivery channel), and the return shape is genuinely different
 // from every other tool (binary embedded resource, not text). Wiring
-// it through the META dispatch would require extending ToolResult
+// it through the registry would require extending ToolResult
 // with a resource variant just for one MCP-only tool — not worth it.
 
 const inputSchema = {

@@ -1,16 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
+import { cancelAccountDeletion, getAccountDeletionStatus, requestAccountDeletion } from '../../server/repos/userDeletionRequests'
 import {
-  cancelAccountDeletion,
   findUserById,
   findUserNameById,
   findUserByEmail,
-  getAccountDeletionStatus,
-  getAccountStatus,
-  requestAccountDeletion,
-  setAdminFlag,
-  upsertOAuthUser
+  setAdminFlag
 } from '../../server/repos/users'
+import { getAccountStatus } from '../../server/repos/userPolicies'
+import { upsertOAuthUser } from '../../server/repos/userSignIn'
 import { ConflictError } from '../../server/repos/errors'
 import { at, first } from '../helpers/assert'
 

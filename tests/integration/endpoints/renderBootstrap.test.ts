@@ -18,7 +18,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import jwt from 'jsonwebtoken'
 import * as Y from 'yjs'
-import { resetDb, testDb, ensureYjsTable } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
 import { anonClient } from '../setup/client'
 import { createUser, createDoc } from '../setup/fixtures'
@@ -201,7 +201,6 @@ describe('GET /api/_internal/render-bootstrap', () => {
   // Y.js `meta`; the row's theme stays NULL because only the owner's editor persists it via PUT /meta. The
   // bootstrap must read Y.js meta, otherwise the server PDF of an anonymous doc comes out in the default theme.
   it('takes theme + properties from the replayed Y.js meta (anonymous doc, row theme NULL)', async () => {
-    await ensureYjsTable()
     const arxiv = THEME_PRESETS.find(p => p.id === 'arxiv')?.theme
     expect(arxiv).toBeDefined()
     const doc = await createDoc({ ownerId: null, title: 'Row title' })
@@ -212,7 +211,7 @@ describe('GET /api/_internal/render-bootstrap', () => {
     ymeta.set('title', 'Live title')
     ymeta.set('language', 'de')
     const inserted = await testDb().query<{ id: number }>(
-      `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1') RETURNING id`,
+      `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2) RETURNING id`,
       [doc.docId, Buffer.from(Y.encodeStateAsUpdate(ydoc))]
     )
     const snapshotId = Number(inserted.rows[0]?.id)

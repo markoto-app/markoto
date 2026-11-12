@@ -1,5 +1,5 @@
 import { GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
-import { useDatabasePool } from '../platform/database'
+import { latestYjsId } from '../documents/yjsLog'
 import { useS3Client } from '../storage/s3'
 import { useValkey } from '../platform/valkey'
 import { injectTraceHeaders } from '../platform/traceHeaders'
@@ -15,7 +15,7 @@ import { useLogger } from '../platform/logger'
 const log = useLogger('render-client')
 
 // Render orchestrator. Nuxt-side counterpart to renderer/src/render.ts:
-//   1. Compute the doc's current snapshotId (latest yjs_documents row id).
+//   1. Compute the doc's current snapshotId (newest yjs_updates row id).
 //   2. HEAD s3://renders/{docId}/{snap}/manifest.json — cache hit short-
 //      circuits everything else.
 //   3. POST the renderer container with the docId + snapshotId + format,
@@ -32,7 +32,7 @@ const log = useLogger('render-client')
 //      but not corrupt (renderer is idempotent, manifest writes are
 //      last-writer-wins on S3).
 //
-// Caching is keyed on snapshotId (latest yjs_documents.id), which changes
+// Caching is keyed on snapshotId (newest yjs_updates.id), which changes
 // any time the Y.Doc is updated — including theme changes pushed via
 // ymeta. So no separate themeHash is needed.
 
@@ -150,17 +150,12 @@ async function brandRenderVariant(docId: string): Promise<string | null> {
 }
 
 /**
- * Latest yjs_documents.id for the doc. Returns 0 when no rows exist —
+ * Newest `yjs_updates` id for the doc. Returns 0 when no rows exist —
  * a doc that was created but never saw a single Y.js update. Note: 0
  * is also what `reconstructDocAtYjsId` treats as "empty doc".
  */
 async function getLatestSnapshotId(docId: string): Promise<number> {
-  const pool = useDatabasePool()
-  const res = await pool.query<{ id: number | null }>(
-    `SELECT MAX(id) AS id FROM yjs_documents WHERE docname = $1`,
-    [docId]
-  )
-  return Number(res.rows[0]?.id ?? 0)
+  return (await latestYjsId(docId)) ?? 0
 }
 
 /**

@@ -2,19 +2,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 
 import { reconstructDocAtYjsId, reconstructTextAtYjsId } from '../../../server/utils/documents/historyReplay'
+import { YjsHistoryCompactedError } from '../../../server/utils/documents/yjsLog'
 import { first } from '../../helpers/assert'
 
 // Mock useDatabasePool so we can drive reconstructDocAtYjsId without
 // a real Postgres. The implementation only ever calls pool.query —
-// we stub it to return canned y-postgresql-style rows.
+// we stub it to return canned `yjs_updates` rows (with the history
+// floor column the read returns alongside them).
 const mockQuery = vi.fn()
 vi.mock('../../../server/utils/platform/database', () => ({
   useDatabasePool: () => ({ query: mockQuery })
 }))
 
-// Helper: produce a `value` Buffer from an in-memory Y.Doc. y-
-// postgresql stores the full encoded state for v1 rows; we
-// approximate that by encoding the doc state.
+// Helper: produce a `data` Buffer from an in-memory Y.Doc.
 function bufferFromDoc(doc: Y.Doc): Buffer {
   const update = Y.encodeStateAsUpdate(doc)
   return Buffer.from(update.buffer, update.byteOffset, update.byteLength)
@@ -39,7 +39,7 @@ describe('reconstructDocAtYjsId', () => {
   it('replays a single row to recover state', async () => {
     const seed = new Y.Doc()
     seed.getText('content').insert(0, 'hello world')
-    mockQuery.mockResolvedValue({ rows: [{ value: bufferFromDoc(seed) }] })
+    mockQuery.mockResolvedValue({ rows: [{ floor: null, id: '1', data: bufferFromDoc(seed) }] })
 
     const doc = await reconstructDocAtYjsId('doc-x', 42)
     expect(doc.getText('content').toString()).toBe('hello world')
@@ -57,9 +57,9 @@ describe('reconstructDocAtYjsId', () => {
     abc.getText('content').insert(2, 'c')
 
     mockQuery.mockResolvedValue({ rows: [
-      { value: bufferFromDoc(a) },
-      { value: bufferFromDoc(ab) },
-      { value: bufferFromDoc(abc) }
+      { floor: null, id: '1', data: bufferFromDoc(a) },
+      { floor: null, id: '1', data: bufferFromDoc(ab) },
+      { floor: null, id: '1', data: bufferFromDoc(abc) }
     ] })
 
     const doc = await reconstructDocAtYjsId('doc-y', 99)
@@ -75,14 +75,17 @@ describe('reconstructDocAtYjsId', () => {
     )
   })
 
-  it('only fetches version=v1 rows (skips v1_sv state-vector rows)', async () => {
-    // y-postgresql writes both `v1` (update bytes) and `v1_sv` (state
-    // vector) rows. Replaying state-vector rows would either no-op
-    // or corrupt the doc — pin the SELECT to v1 only.
+  it('throws (never returns an empty doc) below the history floor', async () => {
+    // The floor comes back even when no row matches (LEFT JOIN on a one-row CTE).
+    mockQuery.mockResolvedValue({ rows: [{ floor: '50', id: null, data: null }] })
+    await expect(reconstructDocAtYjsId('doc-x', 10)).rejects.toBeInstanceOf(YjsHistoryCompactedError)
+  })
+
+  it('starts from the newest snapshot at or below the target', async () => {
     mockQuery.mockResolvedValue({ rows: [] })
     await reconstructDocAtYjsId('doc-x', 100)
     const callArgs = first(mockQuery.mock.calls)
-    expect(callArgs[0]).toContain('version = \'v1\'')
+    expect(callArgs[0]).toContain('kind = \'snapshot\' AND id <= $2')
   })
 
   it('returns an empty doc when maxYjsId is negative (defensive)', async () => {
@@ -97,11 +100,11 @@ describe('reconstructDocAtYjsId', () => {
   it('orders results by id ASC for deterministic replay', async () => {
     // Replay order isn't strictly required by Y.js (updates commute),
     // but deterministic order makes debugging much easier and matches
-    // y-postgresql's own load semantics. Pin the ORDER BY clause.
+    // the sync server's load. Pin the ORDER BY clause.
     mockQuery.mockResolvedValue({ rows: [] })
     await reconstructDocAtYjsId('doc-q', 50)
     const sql = first(mockQuery.mock.calls)[0] as string
-    expect(sql).toContain('ORDER BY id ASC')
+    expect(sql).toContain('ORDER BY r.id')
   })
 
   it('handles a Buffer-with-byteOffset (pg adapter quirk)', async () => {
@@ -119,7 +122,7 @@ describe('reconstructDocAtYjsId', () => {
     wrapper.set(update, 100) // offset by 100 bytes
     const bufferWithOffset = Buffer.from(wrapper.buffer, 100, update.length)
 
-    mockQuery.mockResolvedValue({ rows: [{ value: bufferWithOffset }] })
+    mockQuery.mockResolvedValue({ rows: [{ floor: null, id: '1', data: bufferWithOffset }] })
     const doc = await reconstructDocAtYjsId('doc-buf', 1)
     expect(doc.getText('content').toString()).toBe('shared')
   })
@@ -139,7 +142,7 @@ describe('reconstructTextAtYjsId', () => {
   it('extracts text and destroys the intermediate doc', async () => {
     const seed = new Y.Doc()
     seed.getText('content').insert(0, 'final text')
-    mockQuery.mockResolvedValue({ rows: [{ value: bufferFromDoc(seed) }] })
+    mockQuery.mockResolvedValue({ rows: [{ floor: null, id: '1', data: bufferFromDoc(seed) }] })
     const text = await reconstructTextAtYjsId('doc-b', 1)
     expect(text).toBe('final text')
   })

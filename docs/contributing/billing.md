@@ -48,16 +48,20 @@ A Stripe customer belongs to one subject: a user (personal Pro, `users.stripe_cu
 
 1. **Deduplicate** — insert `event.id` into `processed_webhook_events` with `ON CONFLICT DO NOTHING`; an existing row means a redelivery, answered 200 without re-applying anything.
 2. **Stash out-of-order events** — Stripe does not order deliveries. A `customer.subscription.*` or `invoice.*` event for a customer no subject owns yet is stored in `pending_stripe_events`.
-3. **Dispatch** to the handler for the event type (checkout completed, subscription updated / deleted, invoice paid / failed, top-up payments, refunds).
+3. **Dispatch** to the handler for the event type through the table in `server/utils/billing/stripeEvents/eventHandlers.ts`. The table is the list of handled types (`HANDLED_STRIPE_EVENT_TYPES` is derived from it): an event type without an entry is acknowledged unhandled. One module per event family under `stripeEvents/`: `checkoutCompleted.ts`, `creditTopups.ts` (top-up checkouts, delayed payments, refunds), `subscriptionEvents.ts` (created / updated / deleted), `invoiceEvents.ts` (paid / failed); `billingSubjects.ts` resolves a customer to its user or workspace, `stripeObjects.ts` reads the version-dependent fields. Their writes go through `server/repos/userBilling.ts`, `server/repos/workspaceSubscriptions.ts` and `server/repos/stripeWebhookEvents.ts`.
 4. **Drain** — after `checkout.session.completed`, stashed events for that customer are replayed in arrival order.
 
-Only the subscription a row tracks is applied: a late event about an older or cancelled subscription cannot bring a plan back. Version-dependent fields are read through `subscriptionPeriod`, `invoiceSubscriptionId` and `invoiceServicePeriod`, because the pinned API version and the SDK types differ.
+Only the subscription a row tracks is applied: a late event about an older or cancelled subscription cannot bring a plan back. Version-dependent fields are read through `subscriptionPeriod`, `invoiceSubscriptionId` and `invoiceServicePeriod` (`stripeEvents/stripeObjects.ts`), because the pinned API version and the SDK types differ.
 
 `webhook-event-sweep` (daily, billing on) prunes `processed_webhook_events` after 90 days and stashed events after 7 days (processed) or 30 days (never matched).
 
+### Checkout
+
+The two plan routes are declarations; the purchase is `startProCheckout` (`server/utils/billing/proCheckout.ts`) and `startWorkspaceCheckout` (`server/utils/billing/workspaceCheckout.ts`): a live subscription has its price swapped in place, otherwise a Checkout Session opens. Stripe Tax fields come from `checkoutTaxFields` (`checkoutSession.ts`).
+
 ### Workspace subscriptions
 
-`server/utils/billing/workspaceBilling.ts`, `workspaceStripe.ts` and `workspaceBillingLifecycle.ts`:
+`server/utils/billing/workspaceBilling.ts`, `workspaceStripe.ts` and `workspaceBillingLifecycle.ts`; inviting a member (seat purchase included) is `server/utils/workspaces/inviteMember.ts`:
 
 - Seats = members + open invites; the seat count must stay within `MIN_WORKSPACE_SEATS` and `MAX_WORKSPACE_SEATS` (`shared/config/workspaceSeats.ts`).
 - More seats are invoiced and paid immediately (`always_invoice` + `error_if_incomplete`); fewer seats are not credited (`proration_behavior: 'none'`).

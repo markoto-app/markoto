@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import * as Y from 'yjs'
 import { nanoid } from 'nanoid'
 
-import { executeFunctionByName } from '../../../server/utils/ai/aiToolAdapter'
+import { executeFunctionByName } from '../../../server/utils/ai/tools/registry'
 import type { AiSession } from '../../../server/utils/ai/aiClient'
 
 // Stub workspaceAccess so canManageDoc returns false by default. The

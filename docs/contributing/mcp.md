@@ -16,7 +16,7 @@ markoto exposes its document tools to external MCP clients (Claude Desktop, Curs
 | `server/utils/mcp/mcpSessionBinding.ts` | Session-to-token binding in Valkey |
 | `server/utils/mcp/mcpHocuspocusClient.ts` | `connectAsMcpClient`: connects to a document and builds the tool context |
 | `server/utils/mcp/yDocPool.ts` | Hocuspocus provider pool shared by MCP and the AI loop |
-| `server/utils/agentic/toolHandlers.ts` | `DOC_TOOL_HANDLERS` / `META_TOOL_HANDLERS`, the handlers both callers use |
+| `server/utils/ai/tools/registry.ts` | The tool registry both callers use (`executeFunctionByName`, `executeMetaTool`; `MetaToolName` types the workspace- and user-bound builders) |
 | `server/api/mcp/tokens/` | List, issue and revoke tokens (signed-in web session, not a token) |
 
 ## Request lifecycle

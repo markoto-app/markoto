@@ -1,4 +1,4 @@
-import { getAccountStatus } from '../../repos/users'
+import { getAccountStatus } from '../../repos/userPolicies'
 import { isAdminUser } from '../../utils/auth/adminAccess'
 import {
   DPA_VERSION,

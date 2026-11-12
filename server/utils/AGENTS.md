@@ -21,9 +21,9 @@ Server logic grouped by domain (`auth/`, `documents/`, `workspaces/`, `storage/`
 
 ## Documents and rendering
 
-- Compute a past state by replaying `yjs_documents` up to the boundary id stored on the activity row (`documents/historyReplay.ts`), never against the latest row.
+- Compute a past state by replaying the `yjs_updates` log up to the boundary id stored on the activity row (`documents/historyReplay.ts`), never against the latest row. All SQL on that table goes through `documents/yjsLog.ts`.
 - Keep the 200-hunk cap in `documents/textDiff.ts` and the per-document advisory lock in `documents/restoreDoc.ts`.
-- Before reading a live document's `yjs_documents` rows (duplicate, render), call `flushSyncDocument(docId)`; edits are flushed with a delay.
+- Before reading a live document's `yjs_updates` rows (duplicate, render), call `flushSyncDocument(docId)`; edits are flushed with a delay.
 - Plan-gated theme features that Y.js can write (custom CSS, the workspace brand lock) are enforced at render time in `api/_internal/render-bootstrap.get.ts` and the editor's `renderTheme`. Never rely on the write-time check alone, and never delete stored CSS.
 - A published page's HTML passes `publish/sanitizeSnapshot.ts` before it is stored.
 - Brand-kit fonts are accepted only through `brandKit/fontInspect.ts#inspectFont`; don't add a font-parsing library.
@@ -39,12 +39,12 @@ Server logic grouped by domain (`auth/`, `documents/`, `workspaces/`, `storage/`
 
 - Read the billing switch through `billing/billingMode.ts` on every call; never cache it at module scope.
 - Never put `workspace_id` in a LiteLLM request body (reserved, LiteLLM answers 401); our metadata key is `markoto_workspace`.
-- Stripe webhook handlers never throw on an unknown customer; let `dispatchStripeEvent` stash the event. Read version-dependent fields through `subscriptionPeriod`, `invoiceSubscriptionId` and `invoiceServicePeriod`.
+- Stripe webhook handlers never throw on an unknown customer; let `dispatchStripeEvent` stash the event. Read version-dependent fields through `subscriptionPeriod`, `invoiceSubscriptionId` and `invoiceServicePeriod` (`billing/stripeEvents/stripeObjects.ts`). A new handled event type is one entry in the table of `billing/stripeEvents/eventHandlers.ts` (the list of handled types is derived from it); dedup and the stash stay in `billing/stripeWebhook.ts`.
 - Fewer workspace seats are never credited, and workspace deletion calls `endWorkspaceBilling` before deleting anything. Keep both.
 
 ## Privacy and email
 
-- Run the account purge only from `account-deletion-sweep` (`privacy/accountDeletionSweep.ts`). A new table with user data must be covered by `privacy/accountDeletionExecute.ts` and `privacy/dataExport.ts`.
+- Run the account purge only from `account-deletion-sweep` (`privacy/accountDeletionSweep.ts`). A new table with user data must be covered by `privacy/accountDeletionExecute.ts` and the data export (`privacy/dataExport.ts`: sections that read tables directly; `privacy/dataExportSections.ts`: sections that read through repos or Stripe; the archive's README in `privacy/dataExportReadme.ts`).
 - After the primary state has committed, send email with `safeSendTransactionalEmail` (`email/sendEmail.ts`). Pass `bodyContainsSecrets: true` for emails carrying single-use links, so stub mode never logs them.
 
 ## Knowledge base

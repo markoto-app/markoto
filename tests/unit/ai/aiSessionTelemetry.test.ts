@@ -13,7 +13,7 @@ import { soloSessionGuard } from '../fixtures/crossBoundary'
 // tags + extras. Same harness pattern as agenticLimits.test.ts.
 
 // Sentry mock — captures the (msg, options) pairs for assertion.
-const captureMessage = vi.fn<(msg: string, opts?: unknown) => void>()
+const captureMessage = vi.hoisted(() => vi.fn<(msg: string, opts?: unknown) => void>())
 vi.mock('@sentry/nuxt', () => ({
   captureMessage,
   captureException: vi.fn(),
@@ -24,17 +24,16 @@ vi.mock('@sentry/nuxt', () => ({
 
 // Same mocks the existing limits test uses — keep the harness shape
 // identical so future changes to runLoop's deps land in one place.
-const executeFunctionByName = vi.fn<(session: unknown, name: string, args: unknown) => Promise<{ content: string, isError: boolean, extraParts?: unknown[] }>>()
-const webSearch = vi.fn<(ai: unknown, model: string, query: string, signal: AbortSignal) => Promise<{ text: string, sources: Array<{ title: string, uri: string }> }>>()
-const fetchUrl = vi.fn<(ai: unknown, model: string, url: string, signal: AbortSignal) => Promise<{ text: string, url: string, summary: string, images: Array<{ url: string, description?: string }> }>>()
+const executeFunctionByName = vi.hoisted(() => vi.fn<(session: unknown, name: string, args: unknown) => Promise<{ content: string, isError: boolean, extraParts?: unknown[] }>>())
+const webSearch = vi.hoisted(() => vi.fn<(ai: unknown, model: string, query: string, signal: AbortSignal) => Promise<{ text: string, sources: Array<{ title: string, uri: string }> }>>())
+const fetchUrl = vi.hoisted(() => vi.fn<(ai: unknown, model: string, url: string, signal: AbortSignal) => Promise<{ text: string, url: string, summary: string, images: Array<{ url: string, description?: string }> }>>())
 
-vi.mock('../../../server/utils/ai/aiToolAdapter', () => ({ executeFunctionByName }))
-vi.mock('../../../server/utils/agentic/functionTools', async () => {
-  const actual = await vi.importActual<typeof import('../../../server/utils/agentic/functionTools')>(
-    '../../../server/utils/agentic/functionTools'
-  )
-  return { ...actual, webSearch, fetchUrl }
-})
+vi.mock('../../../server/utils/ai/tools/registry', async importOriginal => ({
+  ...await importOriginal<typeof import('../../../server/utils/ai/tools/registry')>(),
+  executeFunctionByName
+}))
+vi.mock('../../../server/utils/ai/tools/webSearch', () => ({ webSearch }))
+vi.mock('../../../server/utils/ai/tools/fetchUrl', () => ({ fetchUrl }))
 
 // `appendActivity` / `pruneActivity` / `docExists` are reached via the
 // fire-and-forget `logAiTool` helper. Stub everything out so the

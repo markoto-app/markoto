@@ -62,8 +62,10 @@ def theme(major: str, minor: str, colors: dict[str, str]) -> str:
 
 def style(style_id: str, name: str, rpr: str = "", ppr: str = "", based: str = "Normal") -> str:
     based_el = f'<w:basedOn w:val="{based}"/>' if based else ""
-    return (f'<w:style w:type="paragraph" w:styleId="{style_id}"><w:name w:val="{name}"/>{based_el}'
-            f'<w:pPr>{ppr}</w:pPr><w:rPr>{rpr}</w:rPr></w:style>')
+    return (
+        f'<w:style w:type="paragraph" w:styleId="{style_id}"><w:name w:val="{name}"/>{based_el}'
+        f"<w:pPr>{ppr}</w:pPr><w:rPr>{rpr}</w:rPr></w:style>"
+    )
 
 
 def styles(defaults_rpr: str, defaults_ppr: str, entries: list[str]) -> str:
@@ -73,7 +75,7 @@ def styles(defaults_rpr: str, defaults_ppr: str, entries: list[str]) -> str:
     <w:rPrDefault><w:rPr>{defaults_rpr}</w:rPr></w:rPrDefault>
     <w:pPrDefault><w:pPr>{defaults_ppr}</w:pPr></w:pPrDefault>
   </w:docDefaults>
-  {''.join(entries)}
+  {"".join(entries)}
   <w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr><w:color w:val="0563C1" w:themeColor="hyperlink"/><w:u w:val="single"/></w:rPr></w:style>
 </w:styles>"""
 
@@ -88,7 +90,7 @@ def document(body: list[str], page: tuple[int, int], margins: dict[str, int]) ->
     return f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document {W_NS}>
   <w:body>
-    {''.join(body)}
+    {"".join(body)}
     <w:sectPr>
       <w:headerReference w:type="default" r:id="rId3"/>
       <w:footerReference w:type="default" r:id="rId4"/>
@@ -132,45 +134,102 @@ def letter_serif() -> None:
         para("Hollowmere Estates", "Title"),
         para("Quarterly letter to our partners", "Subtitle"),
         para("Dear partners,"),
-        para("The autumn harvest closed two weeks early this year. The yields on the north terraces were the best since we began keeping records, and the cellar is full for the first time in three seasons."),
+        para(
+            "The autumn harvest closed two weeks early this year. The yields on the north terraces were the best since we began keeping records, and the cellar is full for the first time in three seasons."
+        ),
         para("What changed this quarter", "Heading1"),
-        para("We replaced the irrigation on the lower slopes and moved the pressing to the new hall. Both changes cut the time from vine to vat by a day."),
+        para(
+            "We replaced the irrigation on the lower slopes and moved the pressing to the new hall. Both changes cut the time from vine to vat by a day."
+        ),
         para("Next steps", "Heading2"),
         para("The tasting room opens in March. We would be glad to welcome you there."),
         para("We grow slowly, and we grow well.", "Quote"),
         para("With warm regards,"),
         para("Ada Lindqvist, Estate Manager"),
     ]
-    write("letter-serif.docx", {
-        "[Content_Types].xml": CONTENT_TYPES,
-        "_rels/.rels": ROOT_RELS,
-        "word/_rels/document.xml.rels": DOC_RELS,
-        "word/theme/theme1.xml": theme("EB Garamond", "Georgia", {
-            "dk1": "1A1A1A", "lt1": "FFFFFF", "dk2": green, "lt2": "F4F1EA",
-            "accent1": green, "accent2": "B08D57", "accent3": "6B7F73", "accent4": "8C3B2E",
-            "accent5": "4A6A8A", "accent6": "A7A28F", "hlink": green, "folHlink": "6B7F73",
-        }),
-        "word/styles.xml": styles(
-            '<w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi"/><w:sz w:val="22"/><w:color w:val="1A1A1A"/>',
-            '<w:spacing w:after="160" w:line="300" w:lineRule="auto"/>',
-            [
-                style("Normal", "Normal", based=""),
-                style("Title", "Title", '<w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:sz w:val="56"/><w:color w:val="1F4D3A" w:themeColor="accent1"/>',
-                      '<w:spacing w:after="60"/><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="4" w:color="B08D57"/></w:pBdr>'),
-                style("Subtitle", "Subtitle", '<w:i/><w:sz w:val="28"/><w:color w:val="6B7F73"/>', '<w:spacing w:after="360"/>'),
-                style("Heading1", "heading 1", '<w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:sz w:val="32"/><w:color w:val="1F4D3A" w:themeColor="accent1"/>',
-                      '<w:keepNext/><w:spacing w:before="360" w:after="120"/>'),
-                style("Heading2", "heading 2", '<w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:smallCaps/><w:sz w:val="26"/><w:color w:val="B08D57"/>',
-                      '<w:keepNext/><w:spacing w:before="240" w:after="80"/>'),
-                style("Quote", "Quote", '<w:i/><w:color w:val="1F4D3A"/>', '<w:ind w:left="720"/><w:pBdr><w:left w:val="single" w:sz="18" w:space="8" w:color="B08D57"/></w:pBdr>'),
-                style("Header", "header", '<w:rFonts w:ascii="EB Garamond" w:hAnsi="EB Garamond"/><w:caps/><w:spacing w:val="40"/><w:sz w:val="18"/><w:color w:val="1F4D3A"/>'),
-                style("Footer", "footer", '<w:sz w:val="16"/><w:color w:val="6B7F73"/>'),
-            ],
-        ),
-        "word/document.xml": document(body, (11906, 16838), {"top": 1701, "right": 1417, "bottom": 1417, "left": 1417, "header": 709, "footer": 709}),
-        "word/header1.xml": header("Hollowmere Estates · Est. 1898"),
-        "word/footer1.xml": footer_page_of_pages("Page "),
-    })
+    write(
+        "letter-serif.docx",
+        {
+            "[Content_Types].xml": CONTENT_TYPES,
+            "_rels/.rels": ROOT_RELS,
+            "word/_rels/document.xml.rels": DOC_RELS,
+            "word/theme/theme1.xml": theme(
+                "EB Garamond",
+                "Georgia",
+                {
+                    "dk1": "1A1A1A",
+                    "lt1": "FFFFFF",
+                    "dk2": green,
+                    "lt2": "F4F1EA",
+                    "accent1": green,
+                    "accent2": "B08D57",
+                    "accent3": "6B7F73",
+                    "accent4": "8C3B2E",
+                    "accent5": "4A6A8A",
+                    "accent6": "A7A28F",
+                    "hlink": green,
+                    "folHlink": "6B7F73",
+                },
+            ),
+            "word/styles.xml": styles(
+                '<w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi"/><w:sz w:val="22"/><w:color w:val="1A1A1A"/>',
+                '<w:spacing w:after="160" w:line="300" w:lineRule="auto"/>',
+                [
+                    style("Normal", "Normal", based=""),
+                    style(
+                        "Title",
+                        "Title",
+                        '<w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:sz w:val="56"/><w:color w:val="1F4D3A" w:themeColor="accent1"/>',
+                        '<w:spacing w:after="60"/><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="4" w:color="B08D57"/></w:pBdr>',
+                    ),
+                    style(
+                        "Subtitle",
+                        "Subtitle",
+                        '<w:i/><w:sz w:val="28"/><w:color w:val="6B7F73"/>',
+                        '<w:spacing w:after="360"/>',
+                    ),
+                    style(
+                        "Heading1",
+                        "heading 1",
+                        '<w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:sz w:val="32"/><w:color w:val="1F4D3A" w:themeColor="accent1"/>',
+                        '<w:keepNext/><w:spacing w:before="360" w:after="120"/>',
+                    ),
+                    style(
+                        "Heading2",
+                        "heading 2",
+                        '<w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:smallCaps/><w:sz w:val="26"/><w:color w:val="B08D57"/>',
+                        '<w:keepNext/><w:spacing w:before="240" w:after="80"/>',
+                    ),
+                    style(
+                        "Quote",
+                        "Quote",
+                        '<w:i/><w:color w:val="1F4D3A"/>',
+                        '<w:ind w:left="720"/><w:pBdr><w:left w:val="single" w:sz="18" w:space="8" w:color="B08D57"/></w:pBdr>',
+                    ),
+                    style(
+                        "Header",
+                        "header",
+                        '<w:rFonts w:ascii="EB Garamond" w:hAnsi="EB Garamond"/><w:caps/><w:spacing w:val="40"/><w:sz w:val="18"/><w:color w:val="1F4D3A"/>',
+                    ),
+                    style("Footer", "footer", '<w:sz w:val="16"/><w:color w:val="6B7F73"/>'),
+                ],
+            ),
+            "word/document.xml": document(
+                body,
+                (11906, 16838),
+                {
+                    "top": 1701,
+                    "right": 1417,
+                    "bottom": 1417,
+                    "left": 1417,
+                    "header": 709,
+                    "footer": 709,
+                },
+            ),
+            "word/header1.xml": header("Hollowmere Estates · Est. 1898"),
+            "word/footer1.xml": footer_page_of_pages("Page "),
+        },
+    )
 
 
 def memo_office() -> None:
@@ -179,7 +238,9 @@ def memo_office() -> None:
         para("Platform migration plan", "Title"),
         para("Internal memo · Engineering", "Subtitle"),
         para("Summary", "Heading1"),
-        para("We will move the billing service to the new cluster in three steps over six weeks. Each step can be rolled back within an hour."),
+        para(
+            "We will move the billing service to the new cluster in three steps over six weeks. Each step can be rolled back within an hour."
+        ),
         para("Timeline", "Heading1"),
         para("Week 1 to 2", "Heading2"),
         para("Shadow traffic on the new cluster; compare responses and latency."),
@@ -188,32 +249,79 @@ def memo_office() -> None:
         para("Risks", "Heading1"),
         para("The batch exports depend on the old file share. They move first."),
     ]
-    write("memo-office.docx", {
-        "[Content_Types].xml": CONTENT_TYPES,
-        "_rels/.rels": ROOT_RELS,
-        "word/_rels/document.xml.rels": DOC_RELS,
-        "word/theme/theme1.xml": theme("Calibri Light", "Calibri", {
-            "dk1": "000000", "lt1": "FFFFFF", "dk2": "44546A", "lt2": "E7E6E6",
-            "accent1": "4472C4", "accent2": "ED7D31", "accent3": "A5A5A5", "accent4": "FFC000",
-            "accent5": "5B9BD5", "accent6": "70AD47", "hlink": "0563C1", "folHlink": "954F72",
-        }),
-        "word/styles.xml": styles(
-            '<w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi"/><w:sz w:val="22"/>',
-            '<w:spacing w:after="160" w:line="259" w:lineRule="auto"/>',
-            [
-                style("Normal", "Normal", based=""),
-                style("Title", "Title", '<w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:spacing w:val="-10"/><w:sz w:val="56"/>', '<w:spacing w:after="0" w:line="240" w:lineRule="auto"/>'),
-                style("Subtitle", "Subtitle", f'<w:color w:val="5A5A5A"/><w:spacing w:val="15"/>', '<w:spacing w:after="160"/>'),
-                style("Heading1", "heading 1", f'<w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:sz w:val="32"/><w:color w:val="{blue}" w:themeColor="accent1" w:themeShade="BF"/>', '<w:keepNext/><w:spacing w:before="240" w:after="0"/>'),
-                style("Heading2", "heading 2", f'<w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:sz w:val="26"/><w:color w:val="{blue}" w:themeColor="accent1" w:themeShade="BF"/>', '<w:keepNext/><w:spacing w:before="40" w:after="0"/>'),
-                style("Header", "header"),
-                style("Footer", "footer", '<w:sz w:val="18"/>'),
-            ],
-        ),
-        "word/document.xml": document(body, (12240, 15840), {"top": 1440, "right": 1440, "bottom": 1440, "left": 1440, "header": 720, "footer": 720}),
-        "word/header1.xml": header("Confidential"),
-        "word/footer1.xml": footer_page_of_pages(""),
-    })
+    write(
+        "memo-office.docx",
+        {
+            "[Content_Types].xml": CONTENT_TYPES,
+            "_rels/.rels": ROOT_RELS,
+            "word/_rels/document.xml.rels": DOC_RELS,
+            "word/theme/theme1.xml": theme(
+                "Calibri Light",
+                "Calibri",
+                {
+                    "dk1": "000000",
+                    "lt1": "FFFFFF",
+                    "dk2": "44546A",
+                    "lt2": "E7E6E6",
+                    "accent1": "4472C4",
+                    "accent2": "ED7D31",
+                    "accent3": "A5A5A5",
+                    "accent4": "FFC000",
+                    "accent5": "5B9BD5",
+                    "accent6": "70AD47",
+                    "hlink": "0563C1",
+                    "folHlink": "954F72",
+                },
+            ),
+            "word/styles.xml": styles(
+                '<w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi"/><w:sz w:val="22"/>',
+                '<w:spacing w:after="160" w:line="259" w:lineRule="auto"/>',
+                [
+                    style("Normal", "Normal", based=""),
+                    style(
+                        "Title",
+                        "Title",
+                        '<w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:spacing w:val="-10"/><w:sz w:val="56"/>',
+                        '<w:spacing w:after="0" w:line="240" w:lineRule="auto"/>',
+                    ),
+                    style(
+                        "Subtitle",
+                        "Subtitle",
+                        '<w:color w:val="5A5A5A"/><w:spacing w:val="15"/>',
+                        '<w:spacing w:after="160"/>',
+                    ),
+                    style(
+                        "Heading1",
+                        "heading 1",
+                        f'<w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:sz w:val="32"/><w:color w:val="{blue}" w:themeColor="accent1" w:themeShade="BF"/>',
+                        '<w:keepNext/><w:spacing w:before="240" w:after="0"/>',
+                    ),
+                    style(
+                        "Heading2",
+                        "heading 2",
+                        f'<w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:sz w:val="26"/><w:color w:val="{blue}" w:themeColor="accent1" w:themeShade="BF"/>',
+                        '<w:keepNext/><w:spacing w:before="40" w:after="0"/>',
+                    ),
+                    style("Header", "header"),
+                    style("Footer", "footer", '<w:sz w:val="18"/>'),
+                ],
+            ),
+            "word/document.xml": document(
+                body,
+                (12240, 15840),
+                {
+                    "top": 1440,
+                    "right": 1440,
+                    "bottom": 1440,
+                    "left": 1440,
+                    "header": 720,
+                    "footer": 720,
+                },
+            ),
+            "word/header1.xml": header("Confidential"),
+            "word/footer1.xml": footer_page_of_pages(""),
+        },
+    )
 
 
 if __name__ == "__main__":

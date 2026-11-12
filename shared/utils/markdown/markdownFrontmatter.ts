@@ -94,23 +94,10 @@ const CLOSE = /^(?:---|\.\.\.)[ \t]*$/
 export function splitMarkotoFrontmatter(text: string): FrontmatterSplit {
   const open = OPEN.exec(text)
   if (!open) return { kind: 'none' }
-  let pos = open[0].length
-  let close = -1
-  let after = -1
-  while (pos <= text.length) {
-    const nl = text.indexOf('\n', pos)
-    const lineEnd = nl === -1 ? text.length : nl
-    const line = text.slice(pos, lineEnd).replace(/\r$/, '')
-    if (CLOSE.test(line)) {
-      close = pos
-      after = nl === -1 ? text.length : nl + 1
-      break
-    }
-    if (nl === -1) break
-    pos = nl + 1
-    if (pos - open[0].length > FRONTMATTER_MAX_BYTES) return { kind: 'foreign' }
-  }
-  if (close === -1) return { kind: 'none' }
+  const fence = findClosingFence(text, open[0].length)
+  if (fence === 'too-long') return { kind: 'foreign' }
+  if (fence === null) return { kind: 'none' }
+  const { close, after } = fence
   const yamlText = text.slice(open[0].length, close)
   if (yamlText.length > FRONTMATTER_MAX_BYTES) return { kind: 'foreign' }
 
@@ -118,6 +105,25 @@ export function splitMarkotoFrontmatter(text: string): FrontmatterSplit {
   if (!data || data.markoto !== MARKOTO_FRONTMATTER_VERSION) return { kind: 'foreign' }
   const body = text.slice(after).replace(/^\r?\n/, '')
   return { kind: 'markoto', body, data }
+}
+
+/**
+ * The line closing a frontmatter block that starts at `start`: where it
+ * begins and where the body after it starts. Null without one; `too-long`
+ * once the block runs past `FRONTMATTER_MAX_BYTES`.
+ */
+function findClosingFence(text: string, start: number): { close: number, after: number } | 'too-long' | null {
+  let pos = start
+  while (pos <= text.length) {
+    const nl = text.indexOf('\n', pos)
+    const lineEnd = nl === -1 ? text.length : nl
+    const line = text.slice(pos, lineEnd).replace(/\r$/, '')
+    if (CLOSE.test(line)) return { close: pos, after: nl === -1 ? text.length : nl + 1 }
+    if (nl === -1) return null
+    pos = nl + 1
+    if (pos - start > FRONTMATTER_MAX_BYTES) return 'too-long'
+  }
+  return null
 }
 
 /**

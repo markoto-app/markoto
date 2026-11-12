@@ -100,7 +100,7 @@ describe('MCP host tools — create_document', () => {
 
   it('seeds initial_markdown into the new doc\'s ytext', async () => {
     // Verify the seed via export_document_as_markdown rather than
-    // by replaying yjs_documents binary directly — tests the same
+    // by replaying yjs_updates binary directly — tests the same
     // path a real MCP client would use to read the doc back, and
     // dodges the y-postgresql update-encoding gotcha (rows aren't
     // self-contained Y.js updates; they're chunks the persistence
@@ -116,7 +116,7 @@ describe('MCP host tools — create_document', () => {
 
     // Wait for the Hocuspocus debounce window — the seed is written
     // by openTrustedCommentClient which transacts on a fresh Y.Doc;
-    // sync-server debounces 2-10s before flushing to yjs_documents
+    // sync-server debounces 2-10s before flushing to yjs_updates
     // and broadcasting to other connections.
     await new Promise(r => setTimeout(r, 12_000))
 
@@ -177,12 +177,12 @@ describe('MCP host tools — export_document_as_markdown', () => {
     const doc = await createDoc({ ownerId: user.id })
     // Seed via direct DB insert so we don't need a Hocuspocus write to
     // populate state — export reads through YDocPool which loads from
-    // yjs_documents on connect.
+    // yjs_updates on connect.
     const ydoc = new Y.Doc()
     ydoc.getText('content').insert(0, '# Exported title\n\nBody text here.')
     const update = Y.encodeStateAsUpdate(ydoc)
     await testDb().query(
-      `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1')`,
+      `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2)`,
       [doc.docId, Buffer.from(update)]
     )
 
@@ -207,7 +207,7 @@ describe('MCP host tools — export_document_as_pdf', () => {
     ydoc.getText('content').insert(0, '# Hello\n\n' + 'Lorem ipsum dolor sit amet. '.repeat(40))
     const update = Y.encodeStateAsUpdate(ydoc)
     await testDb().query(
-      `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1')`,
+      `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2)`,
       [doc.docId, Buffer.from(update)]
     )
 

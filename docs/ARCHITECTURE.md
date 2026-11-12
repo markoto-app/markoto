@@ -61,7 +61,7 @@ flowchart LR
 | Service | Directory | Role |
 |---|---|---|
 | `app` | `app/`, `server/`, `shared/` | One Bun process: Nuxt SSR, the Nitro API, sign-in (OAuth, OpenID Connect, workspace SSO), the MCP server at `/mcp`, background sweepers and workers. Applies Drizzle migrations at boot (`server/plugins/00-db-migrate.ts`). |
-| `sync` | `sync-server/` | Hocuspocus WebSocket server. Persists Y.js state to Postgres (`yjs_documents` via `y-postgresql`), keeps per-document attribution and diff baselines in Valkey, writes the activity log, compacts stored updates. |
+| `sync` | `sync-server/` | Hocuspocus WebSocket server. Persists Y.js state to Postgres (the `yjs_updates` log), keeps per-document attribution and diff baselines in Valkey, writes the activity log, snapshots long logs. |
 | `renderer` | `renderer/` | Headless Playwright. Loads the app's internal print page and returns PDF and per-page PNGs. Internal only; every browser request is checked against an origin allowlist (`renderer/src/allowlist.ts`). |
 | `markitdown` | `markitdown-server/` | Python FastAPI wrapper that converts DOCX/PDF/PPTX/XLSX/HTML/EPUB to markdown (imports, knowledge uploads, design extraction). Internal only, requires its own secret. |
 | `litellm` | `infra/litellm/` | LiteLLM proxy. Every AI call goes through it: one OpenAI-shaped API, per-user virtual keys with budgets, spend tracking. Custom providers in `infra/litellm/custom_handlers.py` wrap embeddings, transcription and image generation. |
@@ -79,7 +79,7 @@ Compose files are layered: `docker-compose.base.yml` holds the shared service sh
 1. The browser calls `GET /api/docs/:id/token`. The server checks access (access mode, workspace role, share, password) and signs a document-scoped JWT, valid at most two hours and never past a share link's expiry (`server/utils/documents/docJwt.ts`). Viewers get a read-only token. For a document the caller may not open the response carries `token: null`, so no connection is possible.
 2. The editor connects to Hocuspocus with that token. CodeMirror 6 is bound to a `Y.Text` through `y-codemirror.next`, so edits, cursors and presence travel as CRDT updates. Title, theme and comments live in the same `Y.Doc`.
 3. A connection lives only as long as its authorization. Shortly before the token expires the server asks the client for a fresh one and renews in place; an unrenewed connection is closed (`sync-server/src/connection-expiry.ts`). When access becomes stricter (access mode, password, share expiry, membership) the app tells the sync server to close the affected connections, and tokens issued before the change no longer open the document.
-4. Hocuspocus debounces changes for 2 seconds and appends Y.js updates to `yjs_documents`. A background job compacts the rows (`sync-server/src/compaction.ts`). One `pg_dump` therefore backs up all content and history.
+4. Hocuspocus debounces changes for 2 seconds, then appends what changed as one row to `yjs_updates`, in its own transaction. A background job writes snapshots so loads stay short, and can prune history older than a configured retention (`sync-server/src/compaction.ts`). The Activity Log's diff and restore replay this log up to a row id. One `pg_dump` therefore backs up all content and history.
 5. On each store the sync server records activity rows (edits, title and theme changes) with attribution (person, AI session, MCP client). The Activity Log diffs and restores by replaying stored updates up to a boundary.
 
 ## The AI joins as a collaborator
@@ -122,7 +122,7 @@ Container hardening, CSP details and the renderer sandbox are in [SECURITY-HARDE
 | Data | Where |
 |---|---|
 | Application data (users, documents, workspaces, billing, audit and consent logs, …) | PostgreSQL via Drizzle; schema in `server/db/schema.ts`, migrations in `drizzle/` |
-| Y.js document state | PostgreSQL, `yjs_documents` (created by `y-postgresql` at sync-server start) |
+| Y.js document state | PostgreSQL, `yjs_updates` (append-only log of updates and snapshots per document, deleted with the `documents` row; layout in [`docs/contributing/sync-server.md`](contributing/sync-server.md#persistence)) |
 | Knowledge chunks and embeddings | PostgreSQL, pgvector HNSW + GIN index |
 | Per-document sync state, rate limits, locks | Valkey (sync state has a 24 h TTL) |
 | Images, brand assets, rendered PDFs, data exports | S3 |
@@ -162,7 +162,7 @@ Development uses `docker-compose.dev.yml` (infrastructure only, app on the host)
 ## Design decisions
 
 - **Full-stack Nuxt on Bun.** One process serves SSR, API and sign-in. `nitro.preset` is `bun` because dependencies such as lib0 use Bun-specific conditional exports.
-- **Y.js state in Postgres (`y-postgresql`).** Append plus compaction cannot lose a document on a failed write, and one `pg_dump` covers everything.
+- **Y.js state in Postgres as an append-only log (`yjs_updates`).** A failed write cannot lose stored state, two sync instances writing one document both keep their updates, history is replayable up to any row, and one `pg_dump` covers everything. Our own table instead of a library: it is part of the app's schema (no lazy DDL), and snapshots, pruning and locking are ours to get right.
 - **Hocuspocus in its own container.** Long-lived sockets and in-memory documents do not share the API's event loop.
 - **Sticky sessions plus Valkey state instead of replicating Y.Docs.** Sync instances share attribution and diff baselines through Valkey; a client stays on one instance.
 - **Postgres advisory locks for sweepers.** Only one app instance runs each sweeper; the lock is session-level, so it is held on a dedicated connection.

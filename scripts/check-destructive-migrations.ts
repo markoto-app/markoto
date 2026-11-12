@@ -8,7 +8,7 @@
  * Why this exists: the merge → staging → prod auto-promotion pipeline rolls
  * back CODE only (flip the image tag) and NEVER restores the database —
  * restoring a live prod DB would discard every user write since the snapshot
- * (docs, comments, and the continuous Y.js CRDT stream in yjs_documents).
+ * (docs, comments, and the continuous Y.js CRDT stream in yjs_updates).
  * For code-only rollback to be safe, every migration must be
  * backward-compatible: the PREVIOUS release must still run against the NEW
  * schema (expand-contract). Dropping / renaming / retyping a column or adding

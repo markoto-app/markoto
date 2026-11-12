@@ -1,4 +1,4 @@
-import { closeTestDb, closeTestValkey, ensureYjsTable, waitForDb } from './db'
+import { closeTestDb, closeTestValkey, waitForDb } from './db'
 import { startNuxt, stopNuxt } from './server'
 
 // vitest globalSetup: runs once for the whole integration test run in a
@@ -22,12 +22,6 @@ import { startNuxt, stopNuxt } from './server'
 export default async function globalSetup() {
   console.log('[integration] waiting for test DB...')
   await waitForDb()
-
-  // Create the yjs_documents table that y-postgresql would normally
-  // create at sync-server startup. Without this the duplicate-doc
-  // path (and any future server code that touches Y.js state from
-  // pg directly) 500s on a missing-relation error.
-  await ensureYjsTable()
 
   console.log('[integration] booting Nuxt subprocess (this may take ~15s)...')
   await startNuxt()

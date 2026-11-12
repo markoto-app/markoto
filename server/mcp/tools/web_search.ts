@@ -1,6 +1,6 @@
-import { z } from 'zod'
 import { buildUserOnlyTool } from '../lib/wrapDocBoundTool'
 import { isWebToolAvailable } from '../../utils/ai/webTools'
+import { WebSearchArgs } from '../../utils/ai/tools/webResearchTools'
 
 // `web_search` is a 2-call pattern (Staan search → synthesis on the caller's
 // chat provider). The synthesis runs on the user's own chat model (BYOK) or
@@ -14,7 +14,6 @@ export default buildUserOnlyTool({
   scope: 'web:fetch',
   annotations: { readOnlyHint: true, openWorldHint: true, idempotentHint: false },
   available: () => isWebToolAvailable('web_search'),
-  inputSchema: {
-    query: z.string().min(1).describe('Natural-language search query.')
-  }
+  // The in-app tool's arguments, unchanged.
+  inputSchema: WebSearchArgs.shape
 })

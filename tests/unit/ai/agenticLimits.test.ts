@@ -16,20 +16,20 @@ import { soloSessionGuard } from '../fixtures/crossBoundary'
 // Same harness pattern as runLoop.test.ts — programmable fake AI,
 // stubbed billing, no DB / Y.js / network.
 
-import { SESSION_INTERACTION_CAP, SESSION_TOOL_CALL_CAPS } from '../../../server/utils/agentic/limits'
+import { SESSION_INTERACTION_CAP } from '../../../server/utils/agentic/limits'
+import { SESSION_TOOL_CALL_CAPS } from '../../../server/utils/ai/tools/registry'
 import { partial } from '../../helpers/fixtures'
 
-const executeFunctionByName = vi.fn<(session: unknown, name: string, args: unknown) => Promise<{ content: string, isError: boolean, extraParts?: unknown[] }>>()
-const webSearch = vi.fn<(ai: unknown, model: string, query: string, signal: AbortSignal) => Promise<{ text: string, sources: Array<{ title: string, uri: string }> }>>()
-const fetchUrl = vi.fn<(ai: unknown, model: string, url: string, signal: AbortSignal) => Promise<{ text: string, url: string, summary: string, images: Array<{ url: string, description?: string }> }>>()
+const executeFunctionByName = vi.hoisted(() => vi.fn<(session: unknown, name: string, args: unknown) => Promise<{ content: string, isError: boolean, extraParts?: unknown[] }>>())
+const webSearch = vi.hoisted(() => vi.fn<(ai: unknown, model: string, query: string, signal: AbortSignal) => Promise<{ text: string, sources: Array<{ title: string, uri: string }> }>>())
+const fetchUrl = vi.hoisted(() => vi.fn<(ai: unknown, model: string, url: string, signal: AbortSignal) => Promise<{ text: string, url: string, summary: string, images: Array<{ url: string, description?: string }> }>>())
 
-vi.mock('../../../server/utils/ai/aiToolAdapter', () => ({ executeFunctionByName }))
-vi.mock('../../../server/utils/agentic/functionTools', async () => {
-  const actual = await vi.importActual<typeof import('../../../server/utils/agentic/functionTools')>(
-    '../../../server/utils/agentic/functionTools'
-  )
-  return { ...actual, webSearch, fetchUrl }
-})
+vi.mock('../../../server/utils/ai/tools/registry', async importOriginal => ({
+  ...await importOriginal<typeof import('../../../server/utils/ai/tools/registry')>(),
+  executeFunctionByName
+}))
+vi.mock('../../../server/utils/ai/tools/webSearch', () => ({ webSearch }))
+vi.mock('../../../server/utils/ai/tools/fetchUrl', () => ({ fetchUrl }))
 
 const { runAgenticLoop } = await import('../../../server/utils/agentic/runLoop')
 

@@ -79,6 +79,10 @@ function licenceFile(rootDir: string, pkg: string): string | null {
 
 /** Every reason the installed packages can't produce the pinned assets (empty = fine). */
 export function checkVendorPackages(rootDir: string): string[] {
+  return [...pinnedVersionProblems(rootDir), ...lockedFileProblems(rootDir), ...SELF_HOSTED_FONTS.flatMap(font => fontProblems(rootDir, font))]
+}
+
+function pinnedVersionProblems(rootDir: string): string[] {
   const problems: string[] = []
   for (const [pkg, version] of Object.entries(PINNED_VERSIONS)) {
     const installed = installedVersion(rootDir, pkg)
@@ -86,6 +90,11 @@ export function checkVendorPackages(rootDir: string): string[] {
       problems.push(`${pkg}: shared/utils pins ${version}, node_modules has ${installed ?? 'nothing'} — bump package.json and the *Assets.ts constant together`)
     }
   }
+  return problems
+}
+
+function lockedFileProblems(rootDir: string): string[] {
+  const problems: string[] = []
   for (const file of lockedVendorFiles()) {
     const path = join(packageDir(rootDir, file.package), file.from)
     if (!existsSync(path)) {
@@ -97,32 +106,28 @@ export function checkVendorPackages(rootDir: string): string[] {
       problems.push(`${file.package}/${file.from}: SRI is ${actual}, the pinned constant says ${file.sri}`)
     }
   }
-  const checkFontsource = (font: SelfHostedFont, source: FontsourceSource) => {
-    if (installedVersion(rootDir, source.package) === null) {
-      problems.push(`${font.name}: ${source.package} is not installed`)
-      return
-    }
-    for (const sheet of source.stylesheets) {
-      if (!existsSync(join(packageDir(rootDir, source.package), sheet))) {
-        problems.push(`${font.name}: ${source.package}/${sheet} is missing`)
-      }
-    }
-  }
-  for (const font of SELF_HOSTED_FONTS) {
-    const source = font.source
-    if (font.ui) checkFontsource(font, font.ui)
-    if (source.kind === 'bundled') {
-      const dir = bundledFontDir(rootDir, font)
-      for (const face of source.faces) {
-        if (!existsSync(join(dir, face.file))) problems.push(`${font.name}: ${BUNDLED_FONTS_DIR}/${font.slug}/${face.file} is missing`)
-        if (face.licence && !existsSync(join(dir, face.licence))) problems.push(`${font.name}: ${BUNDLED_FONTS_DIR}/${font.slug}/${face.licence} is missing`)
-      }
-      if (!existsSync(join(dir, 'LICENSE.txt'))) problems.push(`${font.name}: ${BUNDLED_FONTS_DIR}/${font.slug}/LICENSE.txt is missing`)
-      continue
-    }
-    checkFontsource(font, source)
-  }
   return problems
+}
+
+/** A family's UI variant (Fontsource) and its document source (Fontsource or bundled in the repo). */
+function fontProblems(rootDir: string, font: SelfHostedFont): string[] {
+  const problems = font.ui ? fontsourceProblems(rootDir, font, font.ui) : []
+  const source = font.source
+  if (source.kind !== 'bundled') return [...problems, ...fontsourceProblems(rootDir, font, source)]
+  const dir = bundledFontDir(rootDir, font)
+  for (const face of source.faces) {
+    if (!existsSync(join(dir, face.file))) problems.push(`${font.name}: ${BUNDLED_FONTS_DIR}/${font.slug}/${face.file} is missing`)
+    if (face.licence && !existsSync(join(dir, face.licence))) problems.push(`${font.name}: ${BUNDLED_FONTS_DIR}/${font.slug}/${face.licence} is missing`)
+  }
+  if (!existsSync(join(dir, 'LICENSE.txt'))) problems.push(`${font.name}: ${BUNDLED_FONTS_DIR}/${font.slug}/LICENSE.txt is missing`)
+  return problems
+}
+
+function fontsourceProblems(rootDir: string, font: SelfHostedFont, source: FontsourceSource): string[] {
+  if (installedVersion(rootDir, source.package) === null) return [`${font.name}: ${source.package} is not installed`]
+  return source.stylesheets
+    .filter(sheet => !existsSync(join(packageDir(rootDir, source.package), sheet)))
+    .map(sheet => `${font.name}: ${source.package}/${sheet} is missing`)
 }
 
 /** Repo folder with a bundled family's woff2 files + licence. */

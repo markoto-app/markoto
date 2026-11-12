@@ -1,5 +1,5 @@
-import { z } from 'zod'
 import { buildDocBoundTool } from '../lib/wrapDocBoundTool'
+import { ExportDocumentAsMarkdownArgs } from '../../utils/ai/tools/libraryTools'
 
 // Doc-bound — handler reads ctx.ytext + ctx.ymeta. Wrapper does
 // view-access authz + YDocPool checkout to give the handler a synced
@@ -16,7 +16,6 @@ export default buildDocBoundTool({
   scope: 'documents:read',
   access: 'view',
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  inputSchema: {
-    doc_id: z.string().min(1).describe('The doc id to export.')
-  }
+  // The in-app tool's arguments (it takes the doc id too), unchanged.
+  inputSchema: ExportDocumentAsMarkdownArgs.shape
 })

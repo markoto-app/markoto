@@ -4,17 +4,17 @@ How the loop works and how to add a tool: `docs/contributing/ai-tools.md`. MCP d
 
 ## Tool declarations
 
-- The field `decl()` writes is `parameters`, never `parametersJsonSchema`. `internalToOpenAITools` (`messageTranslation.ts`) reads `d.parameters` and silently falls back to an empty schema, and TypeScript does not catch the wrong name. Pinned by `tests/unit/ai/aiToolSchemas.test.ts`; assert on the literal field.
-- Zod is the single source: add the schema to `TOOL_SCHEMAS` and the declaration to `ALL_TOOL_DECLARATIONS` (or `KNOWLEDGE_TOOL_DECLARATIONS`) in `functionTools.ts`. Do not hand-write JSON Schema.
+- The field `toFunctionDeclaration` (`server/utils/ai/tools/toolDefinition.ts`) writes is `parameters`, never `parametersJsonSchema`. `internalToOpenAITools` (`messageTranslation.ts`) reads `d.parameters` and silently falls back to an empty schema, and TypeScript does not catch the wrong name. Pinned by `tests/unit/ai/aiToolSchemas.test.ts`; assert on the literal field.
+- Zod is the single source: a tool is one `defineDocTool` / `defineMetaTool` definition in its family module under `server/utils/ai/tools/`, listed in `registry.ts` (`CORE_TOOLS` or `KNOWLEDGE_TOOLS`, in the order the model sees them). Do not hand-write JSON Schema. Tool descriptions, schemas and their order are behaviour: `tests/unit/ai/aiToolListGolden.test.ts` pins them byte-for-byte.
 - Never use `z.tuple(...)`; some providers reject the emitted schema. Use `z.array(...).min(n).max(n)`.
 - Put `.trim()` before `.min(1)`. Enforce bounds with `.refine` and a clear message so the model can correct itself.
-- Handlers that touch Y.js state or awareness go in `DOC_TOOL_HANDLERS`, the rest in `META_TOOL_HANDLERS` (`toolHandlers.ts`). MCP wrappers depend on that split.
+- Handlers that touch Y.js state or awareness are `defineDocTool`, the rest `defineMetaTool`. MCP's workspace- and user-bound wrappers only accept `meta` tools (`MetaToolName`).
 - Binary tool output (images) goes in `ToolResult.extraParts`, appended after the `functionResponse`, never inside it.
 - Add a `describeToolInput` case (`streamStatus.ts`) for every new tool.
 
 ## Cross-boundary gate
 
-- A new tool that reads other people's content or reaches beyond the current document must be added to `crossBoundary.ts` (`CONFIRM_WHEN_TAINTED` and/or the taint cases in `afterTool`). Otherwise it bypasses the confirmation gate.
+- A new tool that reaches beyond the current document needs `trustBoundary` on its definition; one that returns other people's content needs its taint case in `crossBoundary.ts` (`applyTaint`). Otherwise it bypasses the confirmation gate.
 - `runAgenticLoop` requires `crossBoundary`; build it with `buildSessionGuard`. Unit tests use `tests/unit/fixtures/crossBoundary.ts`.
 - A confirmation that cannot be stored or read counts as denied (fail closed). Keep it that way.
 - Every URL-taking tool calls `assertSafeUrl` (`urlGuard.ts`); if the app fetches the URL itself, go through `server/utils/platform/safeFetch.ts`.
@@ -27,12 +27,13 @@ How the loop works and how to add a tool: `docs/contributing/ai-tools.md`. MCP d
 
 ## Loop behaviour
 
-- Keep `temperature: 0` on the loop call in `runLoop.ts`; higher values make tool choice drift.
+- The loop is `runLoop.ts` (turns) plus `loop/` (provider stream, tool dispatch, caps, salvage, telemetry). Keep the order of side effects in `loop/toolDispatch.ts`: status before the call, caps and the taint gate before the tool runs.
+- Keep `temperature: 0` on the loop call (`loop/providerStream.ts`); higher values make tool choice drift.
 - Do not tell the model "every turn must call a tool". A reply without a tool call is how a session ends; that wording made it edit until `MAX_TURNS`.
 - Everything the user should read goes through a tool (`message_to_user`, `reply_to_comment`). There is no chat surface for prose.
 - Keep the prompt prefix byte-stable for caching (`promptAssembly.ts`): static system prompt and tools first, per-prompt context in the first user message, history append-only, tool-call arguments replayed verbatim.
-- Runaway caps live in `limits.ts`: `SESSION_INTERACTION_CAP` aborts the session, `SESSION_TOOL_CALL_CAPS` returns a tool error. Give a new cost-bearing tool a per-session cap.
-- The session sweeper threshold (`server/plugins/ai-session-sweep.ts`, 7 min) must stay above the prompt deadline (5 min, `server/api/ai/prompt.post.ts`).
+- Runaway caps: `SESSION_INTERACTION_CAP` (`limits.ts`) aborts the session, a tool's `sessionCallCap` returns a tool error. Give a new cost-bearing tool a per-session cap.
+- The session sweeper threshold (`server/plugins/ai-session-sweep.ts`, 7 min) must stay above the session deadline (5 min, `AI_SESSION_HARD_DEADLINE_MS`, armed in `sessions/sessionSetup.ts`).
 - Comment bodies are plain text: AI-written comments go through `plainCommentText`, and outgoing `@ai` is stripped so the AI cannot trigger itself. Server and client use the same `@ai` regex (`commentTriggerPrompt.ts`).
 - Encode Y.js anchors with `Buffer`, not `btoa` (server context).
 
@@ -45,6 +46,7 @@ How the loop works and how to add a tool: `docs/contributing/ai-tools.md`. MCP d
 
 ## Dictation
 
+- `server/routes/api/ai/dictate.ts` holds only the socket's hooks; `dictation/` has the per-connection state (`peerContext.ts`), the frames (`messageProtocol.ts`), auth (`dictationAuth.ts`), the Voxtral stream (`upstreamSession.ts`) and the billing ticks (`voiceTicks.ts`).
 - The dictation JWT goes in the first WebSocket message, never in the query string (access logs).
 - The per-user dictation lock (`tryAcquireSessionLock`) fails closed; rate limits fail open. Do not flip either.
 - `useWebSocket` needs both `immediate: false` and `autoConnect: false` for manual control, or one click opens two sockets.

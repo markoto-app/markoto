@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { buildDocBoundTool } from '../lib/wrapDocBoundTool'
-import { UpdateThemeArgs } from '../../utils/agentic/functionTools'
+import { UpdateThemeArgs } from '../../utils/ai/tools/themeSchema'
 
 // Reuse the in-app loop's UpdateThemeArgs shape verbatim — there's only
 // one source of truth for which theme fields are valid + how each is

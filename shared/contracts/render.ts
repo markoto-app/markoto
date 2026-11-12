@@ -12,7 +12,7 @@ export type RenderFormat = 'pdf' | 'png' | 'both'
 /** Body of POST /render. */
 export interface RenderRequest {
   docId: string
-  /** The `yjs_documents` row the render reflects (its cache key). */
+  /** The `yjs_updates` row the render reflects (its cache key). */
   snapshotId: number
   /** 'html': the web snapshot for a published page — returned, not stored. */
   format: RenderFormat | 'html'

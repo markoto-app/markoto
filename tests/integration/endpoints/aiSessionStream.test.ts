@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { ensureYjsTable, resetDb, testDb } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { loggedInClient, type TestClient } from '../setup/client'
 import { createDoc, createWorkspace, setMemberRole } from '../setup/fixtures'
 import { TEST_BASE_URL, fakeOpenAiBaseUrl } from '../setup/env'
@@ -77,7 +77,6 @@ async function sharedSessionAwaitingConfirmation(): Promise<{ alice: TestClient,
 describe('F-7c — AI session status stream (SSE)', () => {
   beforeEach(async () => {
     await resetDb()
-    await ensureYjsTable()
     await resetFake()
   })
 

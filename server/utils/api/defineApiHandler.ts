@@ -243,6 +243,39 @@ async function planFor(ctx: object) {
 
 const BROKEN_POLICY: PolicyDescriptor = { kind: 'custom', sessionless: false, reason: 'invalid policy' }
 
+/** The declared rate limits, split by phase (before the session / object lookup, or after). */
+function rateLimitPhases<Ctx>(rateLimit: ApiHandlerDef<Ctx, never, never, BodySpec, unknown>['rateLimit']): { early: readonly RateLimitSpec<Ctx>[], late: readonly RateLimitSpec<Ctx>[] } {
+  const limits: readonly RateLimitSpec<Ctx>[] = rateLimit === undefined ? [] : Array.isArray(rateLimit) ? rateLimit : [rateLimit as RateLimitSpec<Ctx>]
+  for (const spec of limits) {
+    // Before access nothing but the client address is known; any other key is a wiring bug.
+    // (The type already forbids it; this holds for untyped callers.)
+    const { phase, key, namespace } = spec as { phase?: string, key: unknown, namespace: string }
+    if (phase === 'before-access' && key !== 'ip') throw new Error(`rate limit ${namespace}: phase 'before-access' needs key 'ip'`)
+  }
+  return {
+    early: limits.filter(spec => spec.phase === 'before-access'),
+    late: limits.filter(spec => spec.phase !== 'before-access')
+  }
+}
+
+/** `instance`: the route exists only while its instance feature is on (404 otherwise). */
+function assertInstanceFeature(instance: ApiHandlerDef<object, never, never, BodySpec, unknown>['instance']): void {
+  if (instance === 'billing') assertBillingEnabled()
+  else if (instance === 'legalSurfaces') assertLegalSurfacesEnabled()
+  else if (instance === 'customDomains' && !customDomainSettings()) throw apiError('custom-domain/disabled')
+}
+
+/** A schema body: read as JSON (unreadable JSON is a 400 like a schema failure) and parsed. */
+async function parseJsonBody(event: H3Event, schema: ZodType, refuse: Refuse): Promise<unknown> {
+  let raw: unknown
+  try {
+    raw = await readBody(event)
+  } catch {
+    throw refuse('body', [{ path: '', issue: 'invalid_format', format: 'json' }])
+  }
+  return parseWith(schema, raw, 'body', refuse)
+}
+
 export function defineApiHandler<
   Ctx extends object,
   P extends ZodType | undefined = undefined,
@@ -256,22 +289,12 @@ export function defineApiHandler<
   const invalidCode = def.invalidCode ?? 'request/invalid'
   const errorFormat = isPolicy(def.access) ? def.access.errorFormat : undefined
   const refuse: Refuse = errorFormat ? (part, fields) => errorFormat.invalid(part, fields) : (_part, fields) => invalid(invalidCode, fields)
-  const limits: readonly RateLimitSpec<Ctx>[] = def.rateLimit === undefined ? [] : Array.isArray(def.rateLimit) ? def.rateLimit : [def.rateLimit as RateLimitSpec<Ctx>]
-  for (const spec of limits) {
-    // Before access nothing but the client address is known; any other key is a wiring bug.
-    // (The type already forbids it; this holds for untyped callers.)
-    const { phase, key, namespace } = spec as { phase?: string, key: unknown, namespace: string }
-    if (phase === 'before-access' && key !== 'ip') throw new Error(`rate limit ${namespace}: phase 'before-access' needs key 'ip'`)
-  }
+  const { early, late } = rateLimitPhases<Ctx>(def.rateLimit)
   const bodySpec: BodySpec | undefined = def.body
   const lenient = isLenient(bodySpec) ? bodySpec : null
-  const early = limits.filter(spec => spec.phase === 'before-access')
-  const late = limits.filter(spec => spec.phase !== 'before-access')
 
   const run = async (event: H3Event, access: Policy<Ctx>): Promise<R> => {
-    if (def.instance === 'billing') assertBillingEnabled()
-    else if (def.instance === 'legalSurfaces') assertLegalSurfacesEnabled()
-    else if (def.instance === 'customDomains' && !customDomainSettings()) throw apiError('custom-domain/disabled')
+    assertInstanceFeature(def.instance)
     for (const spec of early) await enforce(spec, getClientRateLimitKey(event))
 
     const gate = await access.gate(event)
@@ -280,16 +303,7 @@ export function defineApiHandler<
     const rawParams = getRouterParams(event)
     const params = def.params ? parseWith(def.params, rawParams, 'params', refuse) : undefined
     const query = def.query ? parseWith(def.query, getQuery(event), 'query', refuse) : undefined
-    let body: unknown
-    if (isSchema(def.body)) {
-      let raw: unknown
-      try {
-        raw = await readBody(event)
-      } catch {
-        throw refuse('body', [{ path: '', issue: 'invalid_format', format: 'json' }])
-      }
-      body = parseWith(def.body, raw, 'body', refuse)
-    }
+    const body: unknown = isSchema(def.body) ? await parseJsonBody(event, def.body, refuse) : undefined
 
     const input: ResolveInput = {
       params: (params as Record<string, unknown> | undefined) ?? rawParams,

@@ -59,7 +59,7 @@ Each pulls `4 × topK` candidates. Results are merged by `(knowledgeId, chunkInd
 
 ## AI integration
 
-The two knowledge tools (`search_knowledge`, `get_knowledge_file`) are offered only when the AI session belongs to a workspace that has at least one ready file; the system prompt then lists the files in a `<knowledge_files>` block. The tool handlers re-check the caller's workspace role on every call (`verifyWorkspaceMembership` in `server/utils/ai/aiToolAdapter.ts`), so a member removed mid-session loses access at the next call. See `server/utils/agentic/AGENTS.md`.
+The two knowledge tools (`search_knowledge`, `get_knowledge_file`) are offered only when the AI session belongs to a workspace that has at least one ready file; the system prompt then lists the files in a `<knowledge_files>` block. The tool handlers re-check the caller's workspace role on every call (`verifyWorkspaceMembership` in `server/utils/ai/tools/knowledgeTools.ts`), so a member removed mid-session loses access at the next call. See `server/utils/agentic/AGENTS.md`.
 
 ## Limits
 

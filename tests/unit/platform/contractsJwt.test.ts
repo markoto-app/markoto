@@ -149,7 +149,7 @@ describe('JWT contract: mintDictateJwt', () => {
   })
 
   it('replicates the prod inline verifier checks against the minted token', () => {
-    // The dictate WS verify lives inline in `routes/api/ai/dictate.ts`
+    // The dictate WS verify lives in `utils/agentic/dictation/dictationAuth.ts`
     // (not extractable as a function without refactoring the WS
     // handler). Replicate its four checks here to ensure the helper
     // satisfies them. If the inline verify adds a new check, this

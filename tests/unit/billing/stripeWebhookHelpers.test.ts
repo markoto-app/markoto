@@ -2,14 +2,10 @@ import { beforeEach, describe, it, expect, vi, type Mock } from 'vitest'
 import type Stripe from 'stripe'
 import { captureLogs } from '../../helpers/logs'
 import { partial } from '../../helpers/fixtures'
-import {
-  handleCheckoutSessionCompleted,
-  handleSubscriptionUpdated,
-  handleSubscriptionDeleted,
-  handleInvoicePaid,
-  handleInvoicePaymentFailed,
-  dispatchStripeEvent
-} from '../../../server/utils/billing/stripeWebhook'
+import { dispatchStripeEvent } from '../../../server/utils/billing/stripeWebhook'
+import { handleCheckoutSessionCompleted } from '../../../server/utils/billing/stripeEvents/checkoutCompleted'
+import { handleSubscriptionUpdated, handleSubscriptionDeleted } from '../../../server/utils/billing/stripeEvents/subscriptionEvents'
+import { handleInvoicePaid, handleInvoicePaymentFailed } from '../../../server/utils/billing/stripeEvents/invoiceEvents'
 import {
   makeCheckoutSessionCompletedEvent,
   makeSubscriptionEvent,

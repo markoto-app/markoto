@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { generatedImageFromFetch } from '../../../server/utils/ai/aiToolAdapter'
+import { generatedImageFromFetch } from '../../../server/utils/ai/tools/imageGeneration'
 
 // A provider that answers image generation with a URL: the fetched image is
 // stored under an extension derived from its type, so only the formats the

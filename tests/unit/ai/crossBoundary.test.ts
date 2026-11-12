@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
+import { CONFIRM_WHEN_TAINTED } from '../../../server/utils/ai/tools/registry'
 import {
   CrossBoundaryGuard,
-  CONFIRM_WHEN_TAINTED,
   extractTypedUrls,
   normalizeUrlForCompare,
   type CrossBoundaryDeps,

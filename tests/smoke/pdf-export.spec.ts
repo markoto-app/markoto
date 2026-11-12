@@ -11,10 +11,10 @@ test('server-rendered PDF export succeeds for a mermaid doc', async ({ page }) =
   const docId = smokeDoc('demo')
 
   // Open the doc so the Demo body (incl. mermaid) seeds into Y.js and the
-  // sync-server persists it to yjs_documents — render-bootstrap replays that.
+  // sync-server persists it to yjs_updates — render-bootstrap replays that.
   await page.goto(`/d/${docId}`)
   await expect(page.locator('.cm-content')).toContainText('markoto', { timeout: 30_000 })
-  // Hocuspocus debounces ~2s before flushing to yjs_documents; wait out the
+  // Hocuspocus debounces ~2s before flushing to yjs_updates; wait out the
   // batch window so the renderer sees the persisted state.
   await waitForSyncDebounce(page, 4_000)
 

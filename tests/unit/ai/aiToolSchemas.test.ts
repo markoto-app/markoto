@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { TOOL_SCHEMAS, ALL_TOOL_DECLARATIONS, KNOWLEDGE_TOOL_DECLARATIONS } from '../../../server/utils/agentic/functionTools'
+import { ALL_TOOL_DECLARATIONS, KNOWLEDGE_TOOL_DECLARATIONS, toolSchema } from '../../../server/utils/ai/tools/registry'
 
 // Contract between our code and the model (Mistral via LiteLLM). The
 // Zod schemas in functionTools.ts are the single source of truth:
@@ -12,7 +12,7 @@ import { TOOL_SCHEMAS, ALL_TOOL_DECLARATIONS, KNOWLEDGE_TOOL_DECLARATIONS } from
 // explicit edit, not an accidental relaxation.
 
 function parse(name: string, input: unknown) {
-  const schema = TOOL_SCHEMAS[name]
+  const schema = toolSchema(name)
   if (!schema) throw new Error(`No schema registered for ${name}`)
   return schema.safeParse(input)
 }
@@ -486,9 +486,14 @@ describe('generate_image schema', () => {
   })
 })
 
-describe('TOOL_SCHEMAS registry', () => {
-  it('registers exactly the declared tools (drift guard against added/removed entries)', () => {
-    expect(Object.keys(TOOL_SCHEMAS).sort()).toEqual([
+const declaredNames = [
+  ...ALL_TOOL_DECLARATIONS.map(d => d.name),
+  ...KNOWLEDGE_TOOL_DECLARATIONS.map(d => d.name)
+].sort()
+
+describe('tool registry', () => {
+  it('declares exactly these tools (drift guard against added/removed entries)', () => {
+    expect(declaredNames).toEqual([
       'create_comment',
       'create_document',
       'delete_comment',
@@ -521,19 +526,13 @@ describe('TOOL_SCHEMAS registry', () => {
     ])
   })
 
-  it('registry keys match UNION of ALL + KNOWLEDGE declarations 1:1', () => {
-    // Drift guard: if someone adds a new declaration but forgets to
-    // register its schema (or vice versa), runLoop.ts's safeParse path
-    // silently no-ops for the unregistered half. Knowledge tools are
-    // held in a separate declaration array (gated by workspace context)
-    // but must still be represented in TOOL_SCHEMAS so the validate
-    // path works when they're exposed.
-    const declNames = [
-      ...ALL_TOOL_DECLARATIONS.map(d => d.name),
-      ...KNOWLEDGE_TOOL_DECLARATIONS.map(d => d.name)
-    ].sort()
-    const schemaNames = Object.keys(TOOL_SCHEMAS).sort()
-    expect(schemaNames).toEqual(declNames)
+  it('every declared tool has a runtime validator', () => {
+    // The loop's safeParse path would silently no-op for a tool without
+    // one. Knowledge tools are held in a separate declaration array (gated
+    // by workspace context) but validate the same way when exposed.
+    for (const name of declaredNames) {
+      expect(toolSchema(name ?? ''), name).toBeDefined()
+    }
   })
 })
 

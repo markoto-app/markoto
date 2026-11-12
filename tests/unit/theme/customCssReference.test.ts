@@ -13,7 +13,7 @@ import {
 import { sanitizeCustomCss } from '../../../shared/utils/theme/customCss'
 import { themeToCss } from '../../../shared/utils/theme/themeToCss'
 import { defaultTheme } from '../../../shared/utils/theme/defaultTheme'
-import { UpdateThemeArgs } from '../../../server/utils/agentic/functionTools'
+import { UpdateThemeArgs } from '../../../server/utils/ai/tools/themeSchema'
 import { PROMPT_SYSTEM_PROMPT } from '../../../server/utils/agentic/promptAssembly'
 import { COMMENT_TRIGGER_SYSTEM_PROMPT } from '../../../server/utils/agentic/commentTriggerPrompt'
 

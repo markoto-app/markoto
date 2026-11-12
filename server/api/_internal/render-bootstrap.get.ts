@@ -59,7 +59,7 @@ export default defineApiHandler({
       throw apiError('docs/not-found')
     }
 
-    // Replay every yjs_documents row up to the snapshot; no rows yields an empty
+    // Replay the Y.js log (`yjs_updates`) up to the snapshot; no rows yields an empty
     // doc (zero pages, which the renderer reports as an error).
     //
     // Theme + properties come from the replayed ymeta first, the row only as a

@@ -6,7 +6,7 @@
 // (`app/composables/marketing/useTourManifest.ts`).
 
 import { z } from 'zod'
-import { TOUR_BEAT_IDS, TOUR_SCENE_IDS } from './manifest'
+import { TOUR_BEAT_IDS, TOUR_SCENE_IDS } from './ids'
 
 const fraction = z.number().min(0).max(1)
 const positive = z.number().positive()

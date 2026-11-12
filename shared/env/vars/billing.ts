@@ -109,6 +109,11 @@ const PASSED_TIER_OVERRIDES = new Set([
 ])
 
 function tierVars(): Record<string, AnyVar> {
+  return { ...tierLimitVars(), ...plannedPriceVars() }
+}
+
+/** TIER_<PLAN>_<FIELD>: every plan limit and feature switch. */
+function tierLimitVars(): Record<string, AnyVar> {
   const vars: Record<string, AnyVar> = {}
   for (const plan of PLAN_NAMES) {
     for (const field of TIER_FIELDS) {
@@ -127,6 +132,12 @@ function tierVars(): Record<string, AnyVar> {
       })
     }
   }
+  return vars
+}
+
+/** TIER_<PLAN>_PRICE_<CURRENCY>[_YEAR]: the planned prices shown while billing is off. */
+function plannedPriceVars(): Record<string, AnyVar> {
+  const vars: Record<string, AnyVar> = {}
   for (const plan of PAID_PLAN_NAMES) {
     for (const currency of CURRENCIES) {
       for (const interval of BILLING_INTERVALS) {

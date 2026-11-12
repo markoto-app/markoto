@@ -22,17 +22,20 @@ import {
 } from '../../db/schema'
 import { useDatabase } from '../platform/database'
 import { reconstructTextAtYjsId } from '../documents/historyReplay'
-import { useStripeClient } from '../billing/stripeClient'
-import { isBillingEnabled } from '../billing/billingMode'
-import { listWaitlistSignupsForUser } from '../../repos/waitlist'
-import { listAiProviders } from '../../repos/aiProviders'
+import { latestYjsId } from '../documents/yjsLog'
 import { listAiSessionProvenanceForUser } from '../../repos/aiSessionProvenance'
-import { listInvitesForExport } from '../../repos/workspaceInvites'
-import { normaliseInviteEmail } from '../workspaces/workspaceInvites'
-import { listGrants } from '../../repos/aiCreditGrants'
-import { listSubscriptionsByBillingAdmin } from '../../repos/workspaceSubscriptions'
-import { listPublishedPagesForOwner } from '../../repos/publishedPages'
-import { listCustomDomainsForUser } from '../../repos/customDomains'
+import { ZIP_README } from './dataExportReadme'
+import {
+  addAiProvidersEntry,
+  addBillingEntries,
+  addCreditGrantsEntry,
+  addPublishingEntries,
+  addWaitlistEntry,
+  addWorkspaceInvitesEntry,
+  addWorkspaceSubscriptionsEntry,
+  toNdjson,
+  type ExportEntries
+} from './dataExportSections'
 
 // GDPR Article 15 + 20 export builder. Produces a self-describing
 // ZIP archive containing every piece of personal data we hold for
@@ -67,73 +70,10 @@ import { listCustomDomainsForUser } from '../../repos/customDomains'
 // Where a file would be empty (e.g. no comments authored), we still
 // emit it so the layout is predictable for any tool the user writes
 // against the format.
-
-const ZIP_README = `markoto data export
-
-This archive contains every piece of personal data markoto holds
-about your account. It is produced under your right of access
-(GDPR Article 15) and right to data portability (Article 20).
-
-Contents:
-
-  README.txt             this file
-  profile.json           your account row (no password hash, no secrets)
-  documents/             one Markdown file + one .meta.json per document
-                         you own. Markdown is reconstructed from the
-                         Y.js history of the doc; if the document has
-                         no edits yet, the .md file is empty.
-  comments.ndjson        every comment you authored, one JSON object per
-                         line (NDJSON format).
-  workspace_memberships.json  workspaces you are a member of, with role
-                         and join date.
-  workspace_invites.json  open workspace invitations addressed to your
-                         email ("received") and ones you sent
-                         ("sent": the address you typed, role, dates).
-  themes.json            saved themes you've created.
-  sso_identities.json    workspace identity providers (single sign-on)
-                         your account is linked to.
-  document_shares.json   documents shared with you as a workspace guest
-                         ("received") and ones you shared with guests
-                         ("granted"), with view / edit access.
-  brand_assets.json      fonts and logos you uploaded to a workspace's
-                         brand kit (the files stay with the workspace).
-  published_pages.json   your documents published as web pages: address,
-                         indexing, when (the page is your document's text).
-  custom_domains.json    your custom domains, their check status and the
-                         page each shows.
-  ai/sessions.ndjson     AI sessions you initiated.
-  ai/messages.ndjson     AI prompt + tool-call history (NDJSON).
-  ai/edit-provenance.ndjson  which AI sessions you started on which
-                         document, and whether their edits count as
-                         your own text for the AI's safety checks.
-  ai/usage.ndjson        per-billing-period AI interaction counters.
-  ai/providers.json      your own AI provider settings (provider URL,
-                         model, last verification). API keys are never
-                         exported.
-  activity.ndjson        activity-log rows attributed to you.
-  audit.ndjson           audit-log rows actioned by you OR scoped to
-                         your user id.
-  consent.ndjson         every consent decision you have made.
-  waitlist.ndjson        your paid-plans waitlist sign-up, if you joined
-                         it while signed in (email, language, consent
-                         version, sign-up + confirmation dates).
-  abuse_reports.ndjson   reports you filed while signed in: what you
-                         reported and wrote, your contact details,
-                         the status, our decision and every notice we
-                         sent you about it (confirmation, decision).
-  moderation_notices.ndjson  statements of reasons we sent you when we
-                         removed or restricted one of your documents.
-  billing/customer.json  your Stripe customer record (if billing was
-                         set up).
-  billing/invoices.ndjson  your Stripe invoice history (if any).
-  billing/workspace_subscriptions.json  Team / Business subscriptions of
-                         workspaces you manage as billing admin (plan,
-                         seats, status, currency, dates).
-  billing/ai_credits.json  AI credits you bought for yourself (pack,
-                         credit, what's left, amount paid, expiry).
-
-If a section is empty, the file still exists but contains zero rows.
-`
+//
+// The sections that read tables directly are below; the ones that read
+// through the repos or from Stripe are `dataExportSections.ts`, the
+// archive's README.txt `dataExportReadme.ts`.
 
 export interface BuildExportZipResult {
   bytes: Uint8Array
@@ -229,7 +169,8 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
 }
 
 type Db = ReturnType<typeof useDatabase>
-type Entries = Record<string, Uint8Array>
+
+type Entries = ExportEntries
 
 /**
  * Profile projection. `users` doesn't store password hashes (we use
@@ -265,34 +206,10 @@ function buildProfileEntry(userRow: typeof users.$inferSelect) {
   }
 }
 
-/**
- * y-postgresql creates `yjs_documents` lazily on the first write from
- * the sync server. In environments where the sync server hasn't run
- * (CI repos tests, fresh dev DB) the table doesn't exist yet — probe
- * `pg_class` so the export degrades gracefully to "no history; empty
- * markdown" instead of crashing.
- */
-async function checkYjsTableExists(db: Db): Promise<boolean> {
-  const row = await db.execute<{ exists: boolean }>(sql`
-    SELECT EXISTS (
-      SELECT 1 FROM pg_class WHERE relname = 'yjs_documents' AND relkind = 'r'
-    ) AS exists
-  `)
-  return row.rows?.[0]?.exists === true
-}
-
-/** Reconstruct a single doc's markdown via y-postgresql, with Sentry-reported error fallback so one failed doc doesn't sink the whole export. */
-async function reconstructDocMarkdown(db: Db, docId: string, yjsTableExists: boolean): Promise<string> {
-  let maxId: number | null = null
-  if (yjsTableExists) {
-    const latestYjs = await db.execute<{ max_id: number | null }>(sql`
-      SELECT MAX(id)::int AS max_id FROM yjs_documents
-      WHERE docname = ${docId} AND version = 'v1'
-    `)
-    maxId = latestYjs.rows?.[0]?.max_id ?? null
-  }
+/** Reconstruct a single doc's current markdown from its Y.js log, with Sentry-reported error fallback so one failed doc doesn't sink the whole export. */
+async function reconstructDocMarkdown(docId: string): Promise<string> {
   try {
-    return await reconstructTextAtYjsId(docId, maxId)
+    return await reconstructTextAtYjsId(docId, await latestYjsId(docId))
   } catch (e) {
     Sentry.captureException(e, {
       tags: { component: 'dataExport', event: 'reconstruct_failed', docId }
@@ -302,13 +219,12 @@ async function reconstructDocMarkdown(db: Db, docId: string, yjsTableExists: boo
 }
 
 async function addOwnedDocumentsEntries(entries: Entries, db: Db, userId: number): Promise<number> {
-  const yjsTableExists = await checkYjsTableExists(db)
   const ownedDocs = await db
     .select()
     .from(documents)
     .where(eq(documents.ownerId, userId))
   for (const doc of ownedDocs) {
-    const markdown = await reconstructDocMarkdown(db, doc.docId, yjsTableExists)
+    const markdown = await reconstructDocMarkdown(doc.docId)
     entries[`documents/${doc.docId}.md`] = strToU8(markdown)
     entries[`documents/${doc.docId}.meta.json`] = strToU8(JSON.stringify({
       docId: doc.docId,
@@ -494,41 +410,6 @@ async function addConsentLogEntry(entries: Entries, db: Db, userId: number): Pro
 }
 
 /**
- * Open workspace invitations: addressed to the user's email, and sent by
- * the user. Token hashes are never exported.
- */
-async function addWorkspaceInvitesEntry(entries: Entries, userId: number, email: string | null): Promise<number> {
-  const { received, sent } = await listInvitesForExport(userId, normaliseInviteEmail(email))
-  entries['workspace_invites.json'] = strToU8(JSON.stringify({
-    received: received.map(r => ({
-      workspaceName: r.workspaceName,
-      role: r.role,
-      createdAt: r.createdAt.toISOString(),
-      expiresAt: r.expiresAt.toISOString()
-    })),
-    sent: sent.map(s => ({
-      workspaceId: s.workspaceId,
-      email: s.email,
-      role: s.role,
-      createdAt: s.createdAt.toISOString(),
-      expiresAt: s.expiresAt.toISOString()
-    }))
-  }, null, 2))
-  return received.length + sent.length
-}
-
-/**
- * Paid-plans waitlist rows linked to the account (sign-ups made while
- * signed in). Token hashes are deliberately not exported — see
- * `listWaitlistSignupsForUser`.
- */
-async function addWaitlistEntry(entries: Entries, userId: number): Promise<number> {
-  const rows = await listWaitlistSignupsForUser(userId)
-  entries['waitlist.ndjson'] = strToU8(toNdjson(rows))
-  return rows.length
-}
-
-/**
  * Abuse reports the user filed while signed in (DSA Art.16 notices):
  * the user's own fields, the status, the decision as it was SENT to them
  * (action, rule, explanation) and the notices addressed to them as the
@@ -634,64 +515,6 @@ async function addOwnerNoticesEntry(entries: Entries, db: Db, userId: number): P
 }
 
 /**
- * Bring-your-own-key AI provider configs. Exported WITHOUT the key —
- * neither the ciphertext nor the last four characters: an export ZIP
- * travels by email link and must not become a credential carrier.
- */
-async function addAiProvidersEntry(entries: Entries, userId: number): Promise<number> {
-  const rows = await listAiProviders(userId)
-  entries['ai/providers.json'] = strToU8(JSON.stringify(rows.map(r => ({
-    capability: r.capability,
-    baseUrl: r.baseUrl,
-    model: r.model,
-    supportsVision: r.supportsVision,
-    supportsTools: r.supportsTools,
-    lastVerifiedAt: r.lastVerifiedAt ? r.lastVerifiedAt.toISOString() : null,
-    createdAt: r.createdAt.toISOString(),
-    updatedAt: r.updatedAt.toISOString()
-  })), null, 2))
-  return rows.length
-}
-
-/**
- * Stripe billing — best-effort. Failures land an error marker so the
- * user can re-request later; no Stripe customer at all emits empty
- * placeholders for layout stability. Invoices capped at 100 to
- * survive malicious / weird state without blowing the export.
- */
-/** Workspace subscriptions the user manages as billing admin (always written). */
-async function addWorkspaceSubscriptionsEntry(entries: Entries, userId: number): Promise<number> {
-  const rows = await listSubscriptionsByBillingAdmin(userId)
-  entries['billing/workspace_subscriptions.json'] = strToU8(JSON.stringify(rows.map(r => ({
-    workspaceId: r.workspaceId,
-    plan: r.plan,
-    seats: r.seats,
-    status: r.status,
-    validUntil: r.validUntil?.toISOString() ?? null,
-    currency: r.currency,
-    interval: r.interval,
-    createdAt: r.createdAt.toISOString()
-  })), null, 2))
-  return rows.length
-}
-
-/** Personal AI credit top-ups (always written). */
-async function addCreditGrantsEntry(entries: Entries, userId: number): Promise<number> {
-  const rows = await listGrants({ type: 'user', id: String(userId) })
-  entries['billing/ai_credits.json'] = strToU8(JSON.stringify(rows.map(r => ({
-    pack: r.pack,
-    creditUsd: r.amountUsd,
-    remainingUsd: r.remainingUsd,
-    refundedUsd: r.refundedUsd,
-    amountPaid: r.amountPaid,
-    currency: r.currency,
-    expiresAt: r.expiresAt.toISOString(),
-    createdAt: r.createdAt.toISOString()
-  })), null, 2))
-  return rows.length
-}
-
-/**
  * Single sign-on: the workspace identity providers this account
  * is linked to — which workspace, the protocol, the subject the IdP
  * knows you by, whether provisioning (SCIM) disabled it, last sign-in.
@@ -757,65 +580,4 @@ async function addBrandAssetsEntry(entries: Entries, userId: number): Promise<vo
     createdAt: workspaceBrandAssets.createdAt
   }).from(workspaceBrandAssets).where(eq(workspaceBrandAssets.uploadedBy, userId))
   entries['brand_assets.json'] = strToU8(JSON.stringify(rows.map(r => ({ ...r, createdAt: r.createdAt.toISOString() })), null, 2))
-}
-
-/** Publishing: web pages of documents you own, your custom domains. */
-async function addPublishingEntries(entries: Entries, userId: number): Promise<void> {
-  const pages = await listPublishedPagesForOwner(userId)
-  entries['published_pages.json'] = strToU8(JSON.stringify(pages.map(p => ({
-    docId: p.docId,
-    slug: p.slug,
-    title: p.title,
-    indexable: p.indexable,
-    publishedAt: p.publishedAt.toISOString(),
-    updatedAt: p.updatedAt.toISOString()
-  })), null, 2))
-  const domains = await listCustomDomainsForUser(userId)
-  // No verification token: it's a credential for the domain check.
-  entries['custom_domains.json'] = strToU8(JSON.stringify(domains.map(d => ({
-    hostname: d.hostname,
-    status: d.status,
-    lastCheckProblem: d.lastError,
-    verifiedAt: d.verifiedAt?.toISOString() ?? null,
-    lastCheckedAt: d.lastCheckedAt?.toISOString() ?? null,
-    createdAt: d.createdAt.toISOString(),
-    showsDocument: d.pageDocId
-  })), null, 2))
-}
-
-async function addBillingEntries(entries: Entries, stripeCustomerId: string | null): Promise<number> {
-  // Billing off → no Stripe client exists on this deployment; emit the
-  // same empty placeholders as "no Stripe customer" so the layout stays
-  // stable and the export never fails on billing.
-  if (!stripeCustomerId || !isBillingEnabled()) {
-    entries['billing/customer.json'] = strToU8('{}')
-    entries['billing/invoices.ndjson'] = strToU8('')
-    return 0
-  }
-  try {
-    const stripe = useStripeClient()
-    if (!stripe) {
-      entries['billing/customer.json'] = strToU8('{"error":"stripe client unavailable; export was built without billing data"}')
-      entries['billing/invoices.ndjson'] = strToU8('')
-      return 0
-    }
-    const customer = await stripe.customers.retrieve(stripeCustomerId)
-    entries['billing/customer.json'] = strToU8(JSON.stringify(customer, null, 2))
-    const list = await stripe.invoices.list({ customer: stripeCustomerId, limit: 100 })
-    entries['billing/invoices.ndjson'] = strToU8(toNdjson(list.data))
-    return list.data.length
-  } catch (e) {
-    Sentry.captureException(e, {
-      tags: { component: 'dataExport', event: 'stripe_fetch_failed' }
-    })
-    const msg = e instanceof Error ? e.message : String(e)
-    entries['billing/customer.json'] = strToU8(JSON.stringify({ error: `stripe fetch failed: ${msg}` }, null, 2))
-    entries['billing/invoices.ndjson'] = strToU8('')
-    return 0
-  }
-}
-
-function toNdjson(rows: readonly object[]): string {
-  if (rows.length === 0) return ''
-  return rows.map(r => JSON.stringify(r)).join('\n') + '\n'
 }

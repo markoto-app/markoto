@@ -29,7 +29,7 @@ async function readYtext(docname: string): Promise<string> {
   const r = await testDb().query<{ value: Buffer }>(
     // Only update rows: y-postgresql also stores state-vector rows
     // (`version = 'v1_sv'`), which are not Y.js updates.
-    `SELECT value FROM yjs_documents WHERE docname = $1 AND version = 'v1' ORDER BY id ASC`,
+    `SELECT data AS value FROM yjs_updates WHERE doc_id = $1 ORDER BY id`,
     [docname]
   )
   const ydoc = new Y.Doc()
@@ -288,8 +288,8 @@ describe('BYOK round trips through LiteLLM', () => {
     expect(firstTools).not.toContain('view_pages')
     expect(loopCalls[0]?.model).toBe('fake-chat')
 
-    // The tool call landed in the document (sync-test persists to yjs_documents).
-    await waitFor(async () => ((await readYtext(doc.docId)).includes(DOC_MARKER) ? true : null), 20_000, 'the AI edit in yjs_documents')
+    // The tool call landed in the document (sync-test persists to yjs_updates).
+    await waitFor(async () => ((await readYtext(doc.docId)).includes(DOC_MARKER) ? true : null), 20_000, 'the AI edit in yjs_updates')
 
     // Spend: LiteLLM logged the BYOK calls against the user's virtual key
     // with zero cost, so AI Points are untouched.
@@ -318,7 +318,7 @@ describe('BYOK round trips through LiteLLM', () => {
     const infoBody: { info: { spend: number } } = await info.json()
     expect(infoBody.info.spend).toBe(0)
   // Three sequential async stages: the agent loop (two LLM turns), the
-  // Hocuspocus 2 s debounce before yjs_documents is written, and
+  // Hocuspocus 2 s debounce before yjs_updates is written, and
   // LiteLLM's batched spend-log writer (~10 s interval). Each wait above
   // is bounded on its own; the default 30 s project timeout is shorter
   // than their worst-case sum.

@@ -152,9 +152,10 @@ Real-time collaboration. NUXT_* values are read by the app; the rest by the sync
 | `SYNC_MAX_PREAUTH_TOTAL_BYTES` | bytes (integer ≥ 1) | `268435456` |  | sync | both | Bytes all connections together may queue before authenticating. |
 | `SYNC_AUTH_TIMEOUT_MS` | milliseconds (integer ≥ 1) | `15000` |  | sync | both | A connection that sends for a document without its token within this time is closed. |
 | `SYNC_MAX_CONNECTIONS_PER_IP` | integer ≥ 1 | 20 with NODE_ENV=production, 200 otherwise |  | sync | both | Open sync connections per client IP. |
-| `COMPACT_THRESHOLD` | integer ≥ 1 | `500` |  | sync | both | A document is compacted once it has more stored update rows than this. |
+| `COMPACT_THRESHOLD` | integer ≥ 1 | `500` |  | sync | both | A snapshot of a document is written once it has more stored updates than this since its last snapshot (loading then starts from the snapshot; no history is removed). |
 | `COMPACT_INTERVAL_MS` | integer | `900000` |  | sync | both | How often the compaction sweep runs (ms); ≤ 0 = off. |
 | `COMPACT_MAX_DOCS_PER_RUN` | integer ≥ 1 | `50` |  | sync | both | Most documents compacted per sweep. |
+| `COMPACT_RETAIN_HISTORY_DAYS` | integer ≥ 0 | `0` |  | sync | both | Days of edit history that stay restorable. Older Y.js rows are deleted below a snapshot, and Activity Log restores/diffs from before then answer 410. 0 = keep all history. Must be at least the longest plan history window (TIER_*_HISTORY_DAYS). |
 
 ## Renderer (PDF / PNG)
 

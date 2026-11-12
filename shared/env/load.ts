@@ -64,14 +64,7 @@ function parseVar(spec: AnyVar, service: ValidatedService, source: RawEnv, requi
   const raw = source[name]
   const trimmed = typeof raw === 'string' ? raw.trim() : undefined
   if (trimmed === '' && spec.emptyIsValue && raw !== undefined) return ''
-  if (trimmed === undefined || trimmed === '') {
-    if (spec.default !== undefined) return spec.default
-    if (spec.required === 'always' || (spec.required === 'production' && source.NODE_ENV === 'production')) {
-      if (required) problems.missing.push(`${name}: required, not set`)
-      return spec.required === 'always' ? '' : undefined
-    }
-    return undefined
-  }
+  if (trimmed === undefined || trimmed === '') return unsetValue(spec, name, source, required, problems)
   try {
     return spec.type.parse(trimmed)
   } catch (e) {
@@ -81,6 +74,15 @@ function parseVar(spec: AnyVar, service: ValidatedService, source: RawEnv, requi
     }
     throw e
   }
+}
+
+/** The value of an unset variable: its default, else '' for an always-required one (reported when `required`). */
+function unsetValue(spec: AnyVar, name: string, source: RawEnv, required: boolean, problems: Problems): unknown {
+  if (spec.default !== undefined) return spec.default
+  const requiredHere = spec.required === 'always' || (spec.required === 'production' && source.NODE_ENV === 'production')
+  if (!requiredHere) return undefined
+  if (required) problems.missing.push(`${name}: required, not set`)
+  return spec.required === 'always' ? '' : undefined
 }
 
 function build(service: ValidatedService, source: RawEnv, enforceRequired: boolean, problems: Problems): Mutable {
@@ -122,21 +124,28 @@ export function loadEnv<S extends ValidatedService>(
   // Cross-field rules need correctly typed values (a missing required
   // one reads as ''); with type errors they could misfire, so they wait.
   if (found.type.length === 0 && options.rules !== false) {
-    const warn = options.onWarning ?? ((m: string) => console.warn(`[env] ${m}`))
-    for (const rule of RULES) {
-      if (!rule.services.includes(service)) continue
-      if (rule.relaxedInTestMode && relaxed) continue
-      // A rule only reads the namespaces of the services it lists (`rule.services`).
-      const messages = rule.check(env as unknown as AppEnv, ctx)
-      if (rule.warning) messages.forEach(warn)
-      else problems.push(...messages)
-    }
-    if (options.extraChecks) problems.push(...options.extraChecks(env as never, ctx))
+    problems.push(...ruleProblems(env, ctx, relaxed, options))
   }
 
   if (problems.length > 0) throw new EnvError(service, problems)
   // `build` fills exactly the variables the registry assigns to `service`, which is what ServiceEnv<S> projects.
   return deepFreeze(env) as unknown as ServiceEnv<S>
+}
+
+/** The cross-field rules of `ctx.service` (warnings go to `onWarning`), then the caller's extra checks. */
+function ruleProblems(env: Mutable, ctx: RuleContext, relaxed: boolean, options: LoadOptions): string[] {
+  const problems: string[] = []
+  const warn = options.onWarning ?? ((m: string) => console.warn(`[env] ${m}`))
+  for (const rule of RULES) {
+    if (!rule.services.includes(ctx.service)) continue
+    if (rule.relaxedInTestMode && relaxed) continue
+    // A rule only reads the namespaces of the services it lists (`rule.services`).
+    const messages = rule.check(env as unknown as AppEnv, ctx)
+    if (rule.warning) messages.forEach(warn)
+    else problems.push(...messages)
+  }
+  if (options.extraChecks) problems.push(...options.extraChecks(env as never, ctx))
+  return problems
 }
 
 const RUNTIME_READ: LoadOptions = { relaxRequired: true, rules: false }
@@ -162,24 +171,30 @@ export function runtimeEnv<S extends ValidatedService>(service: S): ServiceEnv<S
       env = loadEnv(service, process.env, RUNTIME_READ)
     } catch (e) {
       if (!(e instanceof EnvError)) throw e
-      // A read before boot validation (a module imported early) found a bad
-      // value: report everything boot would, not just the type problems,
-      // and stop a production process the same way boot validation does.
-      let report: EnvError = e
-      try {
-        loadEnv(service, process.env, { onWarning: () => {} })
-      } catch (full) {
-        if (full instanceof EnvError) report = full
-      }
-      if (process.env.NODE_ENV === 'production') {
-        console.error(report.message)
-        process.exit(1)
-      }
-      throw report
+      failEarlyRead(service, e)
     }
     cache.set(service, env)
   }
   return env
+}
+
+/**
+ * A read before boot validation (a module imported early) found a bad
+ * value: report everything boot would, not just the type problems, and
+ * stop a production process the same way boot validation does.
+ */
+function failEarlyRead(service: ValidatedService, e: EnvError): never {
+  let report: EnvError = e
+  try {
+    loadEnv(service, process.env, { onWarning: () => {} })
+  } catch (full) {
+    if (full instanceof EnvError) report = full
+  }
+  if (process.env.NODE_ENV === 'production') {
+    console.error(report.message)
+    process.exit(1)
+  }
+  throw report
 }
 
 /** Use the env validated at boot for the runtime reads that follow. */

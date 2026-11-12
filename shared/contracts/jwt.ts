@@ -128,7 +128,7 @@ export function mcpClientUserId(mcpSessionId: string): `mcp:${string}` {
  */
 export interface RenderJwtPayload {
   docId: string
-  /** y-postgresql row id snapshot the renderer should reconstruct. */
+  /** `yjs_updates` id the renderer should reconstruct the document at. */
   snapshotId: number
   /** Constant: 'render'. Required. */
   scope: 'render'

@@ -5,7 +5,7 @@ import {
   checkSavedThemeDescription,
   checkSavedThemeName
 } from '../../../shared/config/savedThemes'
-import { SaveThemeAsPresetArgs } from '../../../server/utils/agentic/functionTools'
+import { SaveThemeAsPresetArgs } from '../../../server/utils/ai/tools/themeTools'
 
 describe('saved theme name / description checks (shared by API, AI tool and dialog)', () => {
   test('name: trimmed, required, at most 80', () => {

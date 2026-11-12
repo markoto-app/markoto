@@ -1,4 +1,4 @@
-import { applyOnboardingAcceptance } from '../../repos/users'
+import { applyOnboardingAcceptance } from '../../repos/userPolicies'
 import { appendAuditEvent } from '../../repos/audit'
 import {
   AUDIT_ACCOUNT_AGE_CONFIRMED,

@@ -43,8 +43,8 @@ export interface AgenticContent {
 
 /**
  * Tool declaration shape. JSONSchema parameters are passed verbatim
- * through to the model; `functionTools.ts` builds these from Zod
- * schemas via `z.toJSONSchema`.
+ * through to the model; the tool registry (`ai/tools/`) builds these
+ * from Zod schemas via `z.toJSONSchema`.
  */
 export interface AgenticFunctionDeclaration {
   name?: string

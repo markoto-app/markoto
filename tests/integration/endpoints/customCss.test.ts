@@ -18,7 +18,7 @@ import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { inflateSync } from 'node:zlib'
 import * as Y from 'yjs'
-import { resetDb, testDb, ensureYjsTable } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
@@ -248,7 +248,7 @@ async function insertYjsRow(docname: string, content: string): Promise<void> {
   const ydoc = new Y.Doc()
   ydoc.getText('content').insert(0, content)
   await testDb().query(
-    `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1')`,
+    `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2)`,
     [docname, Buffer.from(Y.encodeStateAsUpdate(ydoc))]
   )
 }
@@ -280,7 +280,6 @@ async function renderFirstPagePng(customCss: string): Promise<Buffer> {
 describe('custom CSS — server renderer', () => {
   beforeEach(async () => {
     await resetDb()
-    await ensureYjsTable()
     canary.hits.length = 0
   })
 

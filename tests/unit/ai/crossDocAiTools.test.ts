@@ -14,7 +14,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 
-import { executeFunctionByName } from '../../../server/utils/ai/aiToolAdapter'
+import { executeFunctionByName } from '../../../server/utils/ai/tools/registry'
 import {
   getDocWithActorRole,
   listWorkspaceDocsWithOwnerFlag

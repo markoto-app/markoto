@@ -1,8 +1,8 @@
 import { request as httpRequest } from 'node:http'
 import { connect as tlsConnect, type PeerCertificate } from 'node:tls'
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import * as Y from 'yjs'
-import { ensureYjsTable, resetDb, testDb } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import {
@@ -75,7 +75,7 @@ async function publishedDoc(ownerId: number, text: string, workspaceId: string |
   const doc = await createDoc({ ownerId, title: 'Harbour guide', workspaceId })
   const ydoc = new Y.Doc()
   ydoc.getText('content').insert(0, text)
-  await testDb().query(`INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1')`, [doc.docId, Buffer.from(Y.encodeStateAsUpdate(ydoc))])
+  await testDb().query(`INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2)`, [doc.docId, Buffer.from(Y.encodeStateAsUpdate(ydoc))])
   const res = await (await loggedInClient(ownerId)).post(`/api/docs/${doc.docId}/publish`, {})
   if (res.status !== 200) throw new Error(`publish: ${res.status} ${await res.text()}`)
   return doc.docId
@@ -99,14 +99,9 @@ async function providerConfig(): Promise<{ http?: { routers?: Record<string, { r
   return await res.json() as never
 }
 
-beforeAll(async () => {
-  await ensureYjsTable()
-})
-
 describe('custom domains', () => {
   beforeEach(async () => {
     await resetDb()
-    await ensureYjsTable()
   })
 
   it('a domain is routed only after its TXT record and address check out', async () => {

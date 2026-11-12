@@ -54,28 +54,28 @@ export function isBoundedJsonValue(value: unknown, bounds: JsonBounds): boolean 
     const { v, depth } = next
     nodes++
     if (nodes > bounds.maxNodes || depth > bounds.maxDepth) return false
-    if (v === null || typeof v === 'boolean') continue
-    if (typeof v === 'number') {
-      if (!Number.isFinite(v)) return false
-      continue
-    }
-    if (typeof v === 'string') {
-      if (bounds.maxStringLength !== undefined && v.length > bounds.maxStringLength) return false
-      continue
-    }
-    if (Array.isArray(v)) {
-      for (const item of v) stack.push({ v: item, depth: depth + 1 })
-      continue
-    }
-    if (typeof v === 'object') {
-      const proto = Object.getPrototypeOf(v)
-      if (proto !== Object.prototype && proto !== null) return false
-      for (const item of Object.values(v)) stack.push({ v: item, depth: depth + 1 })
-      continue
-    }
-    return false
+    const children = jsonChildren(v, bounds)
+    if (children === null) return false
+    for (const item of children) stack.push({ v: item, depth: depth + 1 })
   }
   return true
+}
+
+const NO_CHILDREN: readonly unknown[] = []
+
+/** A JSON value's children (none for a scalar), or null when it isn't plain JSON within `bounds`. */
+function jsonChildren(v: unknown, bounds: JsonBounds): readonly unknown[] | null {
+  if (v === null || typeof v === 'boolean') return NO_CHILDREN
+  if (typeof v === 'number') return Number.isFinite(v) ? NO_CHILDREN : null
+  if (typeof v === 'string') {
+    return bounds.maxStringLength !== undefined && v.length > bounds.maxStringLength ? null : NO_CHILDREN
+  }
+  if (Array.isArray(v)) return v
+  if (typeof v === 'object') {
+    const proto = Object.getPrototypeOf(v)
+    return proto !== Object.prototype && proto !== null ? null : Object.values(v)
+  }
+  return null
 }
 
 function isBoundedString(v: unknown, max: number): boolean {

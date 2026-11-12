@@ -21,8 +21,8 @@ export const DOC_EDIT_TOOLS: ReadonlySet<string> = new Set(['replace_text', 'ins
 
 /**
  * Prefix of the tool error `replace_text` returns for `old_str === new_str`.
- * Shared with the handler (`aiToolAdapter.ts`) so the loop can count the
- * rejection as a stalled edit without parsing free text.
+ * Shared with the edit tools (`ai/tools/documentTools.ts`) so the loop
+ * can count the rejection as a stalled edit without parsing free text.
  */
 export const NO_OP_EDIT_ERROR_PREFIX = 'Error: No change'
 

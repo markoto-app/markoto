@@ -21,7 +21,7 @@ export interface ActivityEntry {
   linesRemoved: number | null
   metadata: ActivityMetadata | null
   /**
-   * Boundary `yjs_documents.id` values around the store event; the diff
+   * Boundary `yjs_updates.id` values around the store event; the diff
    * endpoint replays both to compute a textual diff. Null for action types not
    * tied to a store event.
    */

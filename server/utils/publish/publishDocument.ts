@@ -179,7 +179,7 @@ async function publishLocked(input: PublishInput): Promise<PublishedPageSummary>
     throw createError({ statusCode: 413, message: 'This document is too large to publish as a web page.', data: { code: PUBLISH_ERROR_CODES.tooLarge } })
   }
 
-  const stored = {
+  const stored: StoredSnapshot = {
     title: input.title.slice(0, 255),
     language: snap.language.slice(0, 35) || 'en',
     html,
@@ -187,35 +187,51 @@ async function publishLocked(input: PublishInput): Promise<PublishedPageSummary>
     fontsImport,
     hljsUrl: hljsUrlFor(snap.hljsTheme)
   }
-  if (existing) {
-    let updated: boolean
-    try {
-      // The slug was checked before the render; another page may have taken it since.
-      updated = await updatePublishedSnapshot(docId, { ...stored, slug: input.slug, indexable: input.indexable, publishedByUserId: input.userId })
-    } catch (e) {
-      // The live page keeps its files (extra copies go with the next publish).
-      if (isUniqueViolation(e)) throw slugTakenError()
-      throw e
-    }
-    if (!updated) {
-      // Taken down while rendering (moderation): leave nothing behind.
-      await prunePublishedObjects(pageId)
-      throw createError({ statusCode: 409, message: 'This page was unpublished in the meantime.', data: { code: PUBLISH_ERROR_CODES.notPublished } })
-    }
-  } else {
-    const slug = input.slug ?? await freeSlug(input.title, docId)
-    try {
-      await insertPublishedPage({ ...stored, id: pageId, docId, slug, indexable: input.indexable ?? false, publishedByUserId: input.userId })
-    } catch (e) {
-      await prunePublishedObjects(pageId)
-      // Unique violation: the slug was taken in between, or a concurrent
-      // first publish of the same document won.
-      if (isUniqueViolation(e)) throw slugTakenError()
-      throw e
-    }
-  }
+  if (existing) await replaceSnapshot(input, pageId, stored)
+  else await insertFirstSnapshot(input, pageId, stored)
   await prunePublishedObjects(pageId, keysOf(pageId, copied))
   return must(await getPublishedPageSummary(docId), 'published page just stored')
+}
+
+interface StoredSnapshot {
+  title: string
+  language: string
+  html: string
+  css: string
+  fontsImport: string
+  hljsUrl: ReturnType<typeof hljsUrlFor>
+}
+
+/** Republish: the page row gets the new snapshot (and slug / indexing when given). */
+async function replaceSnapshot(input: PublishInput, pageId: string, stored: StoredSnapshot): Promise<void> {
+  let updated: boolean
+  try {
+    // The slug was checked before the render; another page may have taken it since.
+    updated = await updatePublishedSnapshot(input.docId, { ...stored, slug: input.slug, indexable: input.indexable, publishedByUserId: input.userId })
+  } catch (e) {
+    // The live page keeps its files (extra copies go with the next publish).
+    if (isUniqueViolation(e)) throw slugTakenError()
+    throw e
+  }
+  if (!updated) {
+    // Taken down while rendering (moderation): leave nothing behind.
+    await prunePublishedObjects(pageId)
+    throw createError({ statusCode: 409, message: 'This page was unpublished in the meantime.', data: { code: PUBLISH_ERROR_CODES.notPublished } })
+  }
+}
+
+/** First publish: a new page row under the requested (or a free) slug. */
+async function insertFirstSnapshot(input: PublishInput, pageId: string, stored: StoredSnapshot): Promise<void> {
+  const slug = input.slug ?? await freeSlug(input.title, input.docId)
+  try {
+    await insertPublishedPage({ ...stored, id: pageId, docId: input.docId, slug, indexable: input.indexable ?? false, publishedByUserId: input.userId })
+  } catch (e) {
+    await prunePublishedObjects(pageId)
+    // Unique violation: the slug was taken in between, or a concurrent
+    // first publish of the same document won.
+    if (isUniqueViolation(e)) throw slugTakenError()
+    throw e
+  }
 }
 
 function keysOf(pageId: string, copied: SnapshotAssetRefs): Set<string> {

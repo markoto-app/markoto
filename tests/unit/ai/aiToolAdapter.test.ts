@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import * as Y from 'yjs'
-import { executeFunctionByName } from '../../../server/utils/ai/aiToolAdapter'
+import { executeFunctionByName } from '../../../server/utils/ai/tools/registry'
 import type { AiSession } from '../../../server/utils/ai/aiClient'
 
 // AI tool handlers — the functions the model uses to mutate user

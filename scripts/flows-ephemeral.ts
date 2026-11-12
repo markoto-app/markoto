@@ -256,6 +256,24 @@ async function cleanup() {
 }
 
 async function main() {
+  await bootStack()
+  await buildApp()
+  // Steps 3–5, once per pass that has flows to run: spawn the production Nitro
+  // server (preset 'bun' → .output/server/index.mjs runs under Bun),
+  // wait for it, run Playwright with the caller's argv (e.g.
+  // `--project=en-light-desktop`), stop the server.
+  //
+  // Serve-only mode (local debugging): keep the stack + app alive and skip
+  // Playwright + teardown so you can iterate with `flows:test:against-running`
+  // against http://markoto.localhost:3001. Ctrl-C to tear down. Not used by CI.
+  if (process.env.FLOWS_SERVE_ONLY === '1') {
+    await serveOnly()
+    return
+  }
+  await runPasses(process.argv.slice(2))
+}
+
+async function bootStack() {
   // Step 1: docker stack. The renderer container navigates back to the app's
   // print page — point it at OUR port (the flow app serves on NUXT_PORT, not
   // the integration default of 3101), or every server-rendered-PDF flow fails
@@ -274,7 +292,9 @@ async function main() {
     console.error('[flows-ephemeral] docker compose up failed')
     process.exit(upCode)
   }
+}
 
+async function buildApp() {
   // Step 2: production build. Skip with FLOWS_SKIP_BUILD=1 if you've
   // already got a fresh .output/ from a previous run AND haven't
   // touched app code (rare — most edits invalidate the bundle).
@@ -291,31 +311,23 @@ async function main() {
       process.exit(buildCode)
     }
   }
+}
 
-  // Steps 3–5, once per pass that has flows to run: spawn the production Nitro
-  // server (preset 'bun' → .output/server/index.mjs runs under Bun),
-  // wait for it, run Playwright with the caller's argv (e.g.
-  // `--project=en-light-desktop`), stop the server.
-  //
-  // Serve-only mode (local debugging): keep the stack + app alive and skip
-  // Playwright + teardown so you can iterate with `flows:test:against-running`
-  // against http://markoto.localhost:3001. Ctrl-C to tear down. Not used by CI.
-  if (process.env.FLOWS_SERVE_ONLY === '1') {
-    // FLOWS_BILLING=on / FLOWS_MARKETING=on serve that pass's shape
-    // instead (run `flows:test:against-running` with the matching
-    // FLOWS_BILLING_ENABLED=1 / FLOWS_MARKETING_ENABLED=1 to select its flows).
-    let phase = DEFAULT_PHASE
-    if (process.env.FLOWS_BILLING === 'on') phase = BILLING_PHASE
-    else if (process.env.FLOWS_MARKETING === 'on') phase = MARKETING_PHASE
-    await startNuxt(phase.env)
-    console.log(`[flows-ephemeral] FLOWS_SERVE_ONLY=1 — app up at ${NUXT_URL} (${phase.name}). Ctrl-C to tear down.`)
-    await new Promise(() => {}) // wait forever; cleanup runs on SIGINT/SIGTERM
-    return
-  }
+async function serveOnly() {
+  // FLOWS_BILLING=on / FLOWS_MARKETING=on serve that pass's shape
+  // instead (run `flows:test:against-running` with the matching
+  // FLOWS_BILLING_ENABLED=1 / FLOWS_MARKETING_ENABLED=1 to select its flows).
+  let phase = DEFAULT_PHASE
+  if (process.env.FLOWS_BILLING === 'on') phase = BILLING_PHASE
+  else if (process.env.FLOWS_MARKETING === 'on') phase = MARKETING_PHASE
+  await startNuxt(phase.env)
+  console.log(`[flows-ephemeral] FLOWS_SERVE_ONLY=1 — app up at ${NUXT_URL} (${phase.name}). Ctrl-C to tear down.`)
+  await new Promise(() => {}) // wait forever; cleanup runs on SIGINT/SIGTERM
+}
 
+async function runPasses(args: string[]) {
   let exitCode = 0
   let testsRan = 0
-  const args = process.argv.slice(2)
   for (const phase of PHASES) {
     // Tells playwright.config.ts which tagged flows may be selected.
     Object.assign(process.env, phase.selectEnv)

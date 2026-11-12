@@ -1,5 +1,6 @@
 import { docIdForPublishedUrl } from '../utils/publish/takeDown'
 import { createHash } from 'node:crypto'
+import type { z } from 'zod'
 import { nanoid } from 'nanoid'
 import { abuseReports } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
@@ -20,7 +21,8 @@ import {
   REPORT_URL_MAX,
   contactOptionalFor,
   docIdFromReportedLocation,
-  isReportCategory
+  isReportCategory,
+  type ReportCategory
 } from '~~/shared/config/moderation'
 import { ANON_ABUSE_REPORT_LIMITS, USER_ABUSE_REPORT_LIMIT } from '~~/shared/config/anonLimits'
 import { submitAbuseReportBody } from '~~/shared/api/legal'
@@ -59,6 +61,35 @@ async function enforceRateLimits(userId: number | null, clientKey: string): Prom
   }
 }
 
+type ReportInput = NonNullable<z.output<typeof submitAbuseReportBody>>
+
+/** Art.16(2)(a), (b), (d): the category, the location, the explanation and the good-faith statement. */
+function readNotice(input: ReportInput): { category: ReportCategory, contentUrl: string, reportBody: string } {
+  const category = input.category
+  if (!isReportCategory(category)) throw apiError('abuse/invalid-category')
+  const contentUrl = trimmed(input.contentUrl ?? input.docId, REPORT_URL_MAX)
+  if (!contentUrl) throw apiError('abuse/url-required')
+  const reportBody = typeof input.body === 'string' ? input.body.trim() : ''
+  if (reportBody.length < REPORT_BODY_MIN) throw apiError('abuse/body-too-short')
+  if (reportBody.length > REPORT_BODY_MAX) throw apiError('abuse/body-too-long')
+  if (input.goodFaith !== true) throw apiError('abuse/good-faith-required')
+  return { category, contentUrl, reportBody }
+}
+
+/** Art.16(2)(c): name + email, defaulting to a signed-in reporter's profile. */
+function readReporterContact(
+  input: ReportInput,
+  category: ReportCategory,
+  reporterUser: { name: string | null, email: string | null } | null
+): { reporterName: string, reporterEmail: string } {
+  const reporterName = trimmed(input.reporterName, REPORTER_NAME_MAX) || (reporterUser?.name?.trim() ?? '')
+  const typedEmail = trimmed(input.reporterEmail, 320).toLowerCase()
+  if (typedEmail && !isValidEmailShape(typedEmail)) throw apiError('abuse/invalid-email')
+  const reporterEmail = typedEmail || (reporterUser?.email ?? '')
+  if (!contactOptionalFor(category) && (!reporterName || !reporterEmail)) throw apiError('abuse/contact-required')
+  return { reporterName, reporterEmail }
+}
+
 // Public with an optional session: an anonymous reporter is gated by the bot
 // check below, so the rate limits depend on who is calling and stay inline.
 export default defineApiHandler({
@@ -72,22 +103,9 @@ export default defineApiHandler({
     await enforceRateLimits(userId, getClientRateLimitKey(event))
 
     const input: NonNullable<typeof body> = body ?? {}
-
-    const category = input.category
-    if (!isReportCategory(category)) throw apiError('abuse/invalid-category')
-    const contentUrl = trimmed(input.contentUrl ?? input.docId, REPORT_URL_MAX)
-    if (!contentUrl) throw apiError('abuse/url-required')
-    const reportBody = typeof input.body === 'string' ? input.body.trim() : ''
-    if (reportBody.length < REPORT_BODY_MIN) throw apiError('abuse/body-too-short')
-    if (reportBody.length > REPORT_BODY_MAX) throw apiError('abuse/body-too-long')
-    if (input.goodFaith !== true) throw apiError('abuse/good-faith-required')
-
+    const { category, contentUrl, reportBody } = readNotice(input)
     const reporterUser = userId === null ? null : await findUserById(userId)
-    const reporterName = trimmed(input.reporterName, REPORTER_NAME_MAX) || (reporterUser?.name?.trim() ?? '')
-    const typedEmail = trimmed(input.reporterEmail, 320).toLowerCase()
-    if (typedEmail && !isValidEmailShape(typedEmail)) throw apiError('abuse/invalid-email')
-    const reporterEmail = typedEmail || (reporterUser?.email ?? '')
-    if (!contactOptionalFor(category) && (!reporterName || !reporterEmail)) throw apiError('abuse/contact-required')
+    const { reporterName, reporterEmail } = readReporterContact(input, category, reporterUser)
 
     // Anonymous: bot check last (after the cheap validation, so a typo
     // doesn't burn the solution).

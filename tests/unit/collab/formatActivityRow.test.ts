@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatActivityRow } from '../../../server/utils/ai/aiToolAdapter'
+import { formatActivityRow } from '../../../server/utils/ai/tools/activityTools'
 import type { ActivityEntry } from '../../../server/repos/activity'
 
 // Per-action rendering for `search_activity_log`'s output. The model

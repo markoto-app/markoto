@@ -14,7 +14,7 @@ import { commentSnapshotEntry, type CommentSnapshotEntry } from '~~/shared/contr
 // comment entries (root + replies); the doc's rows in `document_comments` are
 // replaced atomically.
 //
-// Eventually consistent: the mirror lags live Y.js by the y-postgresql flush
+// Eventually consistent: the mirror lags live Y.js by the sync server's store
 // interval, which is fine for its cross-doc queries (mention notifications,
 // recent activity).
 //

@@ -295,12 +295,13 @@ services:
       # Open connections per client IP. Empty = 20 in production, 200
       # otherwise (sync-server/src/rate-limiter.ts).
       - SYNC_MAX_CONNECTIONS_PER_IP=${SYNC_MAX_CONNECTIONS_PER_IP:-}
-      # Y.js row compaction sweep. Empty = 500 rows per document before
-      # compacting / every 900000 ms (<= 0 turns it off) / 50 documents per
-      # run (sync-server/src/compaction.ts).
+      # Y.js log snapshots and history retention. Empty = a snapshot after
+      # 500 updates / sweep every 900000 ms (<= 0 turns it off) / 50
+      # documents per run / keep all history (sync-server/src/compaction.ts).
       - COMPACT_THRESHOLD=${COMPACT_THRESHOLD:-}
       - COMPACT_INTERVAL_MS=${COMPACT_INTERVAL_MS:-}
       - COMPACT_MAX_DOCS_PER_RUN=${COMPACT_MAX_DOCS_PER_RUN:-}
+      - COMPACT_RETAIN_HISTORY_DAYS=${COMPACT_RETAIN_HISTORY_DAYS:-}
     # Image user `bun`; source is root-owned. Bun only needs /tmp.
     read_only: true
     tmpfs:
@@ -315,7 +316,7 @@ services:
       valkey:
         condition: service_healthy
       # The app role (POSTGRES_APP_USER) must exist and own the database
-      # before sync creates `yjs_documents`.
+      # before sync reads or writes `yjs_updates`.
       db-init:
         condition: service_completed_successfully
 

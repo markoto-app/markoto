@@ -33,7 +33,7 @@ import { UNTRUSTED_DATA_RULE } from './untrustedText'
 import { SANS_FONTS, SERIF_FONTS } from './fontLists'
 
 // Tool catalog and per-tool usage hints live in the FunctionDeclarations
-// (see `server/utils/agentic/functionTools.ts`) — Mistral receives them
+// (see `server/utils/ai/tools/registry.ts`) — Mistral receives them
 // via the OpenAI tools schema with full Zod-derived descriptions. The
 // system prompt below is intentionally BEHAVIOR-only: identity, voice,
 // rules that span multiple tools, and policies the schema can't encode.

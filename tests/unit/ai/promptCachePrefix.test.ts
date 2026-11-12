@@ -4,7 +4,7 @@ import { COMMENT_TRIGGER_SYSTEM_PROMPT } from '../../../server/utils/agentic/com
 import { buildDocumentContext } from '../../../server/utils/agentic/documentContextPrompt'
 import { buildKnowledgeBlock, buildWorkspaceMembersBlock } from '../../../server/utils/agentic/workspacePromptBlocks'
 import { wrapPromptWithEditorState } from '../../../server/utils/agentic/editorStatePrompt'
-import { ALL_TOOL_DECLARATIONS, KNOWLEDGE_TOOL_DECLARATIONS, filterToolsForProviders } from '../../../server/utils/agentic/functionTools'
+import { ALL_TOOL_DECLARATIONS, KNOWLEDGE_TOOL_DECLARATIONS, filterToolsForProviders } from '../../../server/utils/ai/tools/registry'
 import { internalToOpenAIMessages, internalToOpenAITools, openAIStreamToInternalChunks } from '../../../server/utils/agentic/messageTranslation'
 import type { AgenticContent } from '../../../server/utils/agentic/aiTypes'
 import type OpenAI from 'openai'

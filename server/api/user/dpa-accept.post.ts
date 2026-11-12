@@ -1,4 +1,4 @@
-import { applyDpaAcceptance } from '../../repos/users'
+import { applyDpaAcceptance } from '../../repos/userPolicies'
 import { appendAuditEvent } from '../../repos/audit'
 import { AUDIT_POLICY_ACCEPTED } from '../../legal/auditActions'
 import {

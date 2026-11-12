@@ -226,6 +226,35 @@ export function isAlwaysForbiddenIp(ip: string): boolean {
 }
 
 /**
+ * Check a host's addresses in order against an "outbound to a configured
+ * server" policy (BYOK providers, SSO identity providers): the first
+ * always-forbidden address refuses, a private one refuses unless
+ * `allowPrivate`. Otherwise reports whether any address is public (plain
+ * http is only for all-private targets).
+ */
+export function screenHostAddresses(addresses: readonly string[], allowPrivate: boolean): { refused: 'forbidden' } | { refused: 'private' } | { refused: null, anyPublic: boolean } {
+  let anyPublic = false
+  for (const address of addresses) {
+    if (isAlwaysForbiddenIp(address)) return { refused: 'forbidden' }
+    if (!isPrivateIp(address)) anyPublic = true
+    else if (!allowPrivate) return { refused: 'private' }
+  }
+  return { refused: null, anyPublic }
+}
+
+/** A host's addresses: an IP literal is its own, a name goes through `resolve`. */
+export async function hostAddresses(host: string, resolve: (host: string) => Promise<string[]>): Promise<string[] | 'unresolvable' | 'no-records'> {
+  if (isIP(host) !== 0) return [host]
+  let addresses: string[]
+  try {
+    addresses = await resolve(host)
+  } catch {
+    return 'unresolvable'
+  }
+  return addresses.length === 0 ? 'no-records' : addresses
+}
+
+/**
  * Resolves a hostname to all A/AAAA records and rejects if ANY resolved
  * IP is private. Catches DNS-rebinding-shaped attacks where the public
  * authoritative answer is fine but a TOCTOU resolves to a private IP.

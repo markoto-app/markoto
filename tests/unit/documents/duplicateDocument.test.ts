@@ -249,7 +249,7 @@ describe('duplicateDocument — rollback', () => {
   })
 
   it('rolls back the row when the Y.js clone throws', async () => {
-    // Y.js clone failure: the source's yjs_documents rows are corrupt /
+    // Y.js clone failure: the source's yjs_updates rows are corrupt /
     // schema drift. S3 copies already happened — leaves orphan objects
     // under `docs/TGT/` that the sweep will clean up.
     getDoc.mockResolvedValueOnce(fakeSource())

@@ -71,6 +71,7 @@ export async function resetDb(): Promise<void> {
       ai_credit_settlements,
       workspace_members,
       workspaces,
+      yjs_updates,
       documents,
       processed_webhook_events,
       pending_stripe_events,
@@ -83,21 +84,6 @@ export async function resetDb(): Promise<void> {
       users
     RESTART IDENTITY CASCADE
   `)
-  // Drop any Y.js rows parked in the sync-server's table. `TRUNCATE
-  // IF EXISTS` isn't valid Postgres syntax — we probe pg_tables first
-  // and only issue the TRUNCATE when the table exists. This matters
-  // for tests that seed yjs_documents directly (duplicate flow):
-  // without a proper per-test reset, stale source rows bleed between
-  // cases and assertions fail non-deterministically.
-  const yjsExists = await db.query<{ exists: boolean }>(
-    `SELECT EXISTS (
-       SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'yjs_documents'
-     ) AS exists`
-  )
-  if (first(yjsExists.rows).exists) {
-    await db.query('TRUNCATE TABLE yjs_documents RESTART IDENTITY')
-  }
-
   // Wipe the test Valkey DB too. Without this, keys from the previous
   // test bleed across the boundary — the immediate symptom this fixed
   // was aiDictateWs tests failing with `expected 4002, got 4001`.
@@ -163,36 +149,28 @@ export async function closeTestValkey(): Promise<void> {
 }
 
 /**
- * Ensure the `yjs_documents` table exists. y-postgresql creates this
- * table lazily at sync-server startup (see
- * sync-server/node_modules/y-postgresql/src/pg-adapter.ts), but the
- * integration test environment doesn't run the sync-server — so any
- * code path that reads or writes `yjs_documents` (e.g. the document
- * duplicate flow) hits a "relation does not exist" error and 500s.
- *
- * Mirroring the schema here is the smallest fix that lets server
- * code exercise its real Y.js path under tests without spinning up
- * a separate sync-server. Idempotent via IF NOT EXISTS.
+ * Append a Y.js update row for `docId` (its documents row must exist), as the
+ * sync server would. Returns the row id.
  */
-export async function ensureYjsTable(): Promise<void> {
-  const db = testDb()
-  await db.query(`
-    DO $$
-    BEGIN
-      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ypga_version') THEN
-        CREATE TYPE ypga_version AS ENUM ('v1', 'v1_sv');
-      END IF;
-    END
-    $$;
-  `)
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS yjs_documents (
-      id SERIAL PRIMARY KEY,
-      docname TEXT NOT NULL,
-      value BYTEA NOT NULL,
-      version ypga_version NOT NULL
-    )
-  `)
+export async function insertYjsUpdate(docId: string, update: Uint8Array): Promise<number> {
+  const r = await testDb().query<{ id: string }>(
+    `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2) RETURNING id`,
+    [docId, Buffer.from(update.buffer, update.byteOffset, update.byteLength)]
+  )
+  return Number(first(r.rows).id)
+}
+
+/** Every stored row of `docId`, in id order (apply them all for the current state). */
+export async function readYjsRows(docId: string): Promise<Array<{ id: number, kind: 'update' | 'snapshot', data: Uint8Array }>> {
+  const r = await testDb().query<{ id: string, kind: 'update' | 'snapshot', data: Buffer }>(
+    'SELECT id, kind, data FROM yjs_updates WHERE doc_id = $1 ORDER BY id',
+    [docId]
+  )
+  return r.rows.map(row => ({
+    id: Number(row.id),
+    kind: row.kind,
+    data: new Uint8Array(row.data.buffer, row.data.byteOffset, row.data.byteLength)
+  }))
 }
 
 /**

@@ -1,4 +1,7 @@
 import type { DateFormat, DocTheme } from '../../types/theme'
+import { isIsoDate } from '../../contracts/isoDate'
+
+export { isIsoDate }
 
 /**
  * Locale-dependent text that ends up IN the document (cover date, the
@@ -168,17 +171,6 @@ export function captionLabelsFor(locale: string): CaptionLabels {
   const [table, figure] = CAPTION_LABELS[lang] ?? ['Table', 'Figure']
   const [before, after] = CHAPTER_LABELS[lang] ?? ['Chapter ', '']
   return { table, figure, separator: lang === 'fr' ? '\u00A0: ' : ': ', chapter: { before, after } }
-}
-
-const ISO_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/
-
-/** Is `value` a real calendar date written `YYYY-MM-DD`? */
-export function isIsoDate(value: string): boolean {
-  const m = ISO_DATE_RE.exec(value)
-  if (!m) return false
-  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])]
-  const date = new Date(Date.UTC(y, mo - 1, d))
-  return date.getUTCFullYear() === y && date.getUTCMonth() === mo - 1 && date.getUTCDate() === d
 }
 
 /** Today's date (local time zone) as `YYYY-MM-DD`. */

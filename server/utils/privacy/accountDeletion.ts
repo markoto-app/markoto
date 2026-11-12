@@ -1,10 +1,10 @@
 import {
   cancelAccountDeletion as repoCancel,
-  findUserById,
   getAccountDeletionStatus,
   requestAccountDeletion as repoRequest,
   type AccountDeletionStatus
-} from '../../repos/users'
+} from '../../repos/userDeletionRequests'
+import { findUserById } from '../../repos/users'
 import { appendAuditEvent } from '../../repos/audit'
 import {
   AUDIT_ACCOUNT_DELETE_CANCELLED,

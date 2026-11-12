@@ -1,4 +1,5 @@
-import { getSessionEpoch, upsertOAuthUser } from '../../repos/users'
+import { getSessionEpoch } from '../../repos/users'
+import { upsertOAuthUser } from '../../repos/userSignIn'
 import { SESSION_VERSION } from '../../utils/auth/validatedSession'
 import { bootstrapAdminFromEnv } from '../../utils/auth/adminBootstrap'
 import { githubVerifiedEmail, type GitHubEmailEntry } from '../../utils/auth/oauthEmail'

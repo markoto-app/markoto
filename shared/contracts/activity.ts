@@ -70,7 +70,7 @@ export const internalActivityBody = z.object({
   linesAdded: z.number().nullish().catch(null),
   linesRemoved: z.number().nullish().catch(null),
   metadata: activityMetadata.nullish().catch(null),
-  /** Boundary `yjs_documents.id` values around the store event (the diff endpoint replays both). */
+  /** Boundary `yjs_updates.id` values around the store event (the diff endpoint replays both). */
   yjsDocIdBefore: z.number().nullish().catch(null),
   yjsDocIdAfter: z.number().nullish().catch(null)
 })

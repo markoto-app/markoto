@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { ensureYjsTable, resetDb, testDb } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import {
   createDoc,
@@ -46,23 +46,22 @@ async function insertActivityRow(
   return first(r.rows).id
 }
 
-async function insertYjsRow(docname: string, _content: string): Promise<number> {
+async function insertYjsRow(docname: string, _content: string, kind: 'update' | 'snapshot' = 'update'): Promise<number> {
   const db = testDb()
   // Minimal valid Y.js update encoded for the row. Doesn't need to
   // be replayable for these tests — the auth/validation gates fire
   // before any replay happens.
   const fakeBytes = Buffer.from([0, 0]) // empty Y.js update header
   const r = await db.query<{ id: number }>(
-    `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1') RETURNING id`,
-    [docname, fakeBytes]
+    `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, $3, $2) RETURNING id`,
+    [docname, fakeBytes, kind]
   )
-  return first(r.rows).id
+  return Number(first(r.rows).id)
 }
 
 describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
   beforeEach(async () => {
     await resetDb()
-    await ensureYjsTable()
   })
 
   describe('validation', () => {
@@ -231,20 +230,20 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
       expect(res.status).toBe(410)
     })
 
-    // Data-loss guard: y-postgresql compaction physically DELETES every granular `v1` row below the merged row.
+    // Data-loss guard: pruning (sync COMPACT_RETAIN_HISTORY_DAYS) DELETES every row below a snapshot.
     // Restoring to a target below that surviving floor must be refused with 410, not reconstruct an EMPTY doc
     // and WIPE the live doc.
-    it('returns 410 (does NOT wipe) when the target id is below the compaction floor', async () => {
+    it('returns 410 (does NOT wipe) when the target id is below the history floor', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
-      const low = await insertYjsRow(doc.docId, '') // target — gets compacted away
+      const low = await insertYjsRow(doc.docId, '') // target — gets pruned
       await insertYjsRow(doc.docId, '')
-      const merged = await insertYjsRow(doc.docId, '') // stands in for the merged row
+      const snapshot = await insertYjsRow(doc.docId, '', 'snapshot')
       const activityId = await insertActivityRow(doc.docId, low, low)
-      // Simulate `clearUpdatesRange`: delete every v1 row below the merged one.
+      // What the prune does: delete every row below the snapshot.
       await testDb().query(
-        `DELETE FROM yjs_documents WHERE docname = $1 AND version = 'v1' AND id < $2`,
-        [doc.docId, merged]
+        `DELETE FROM yjs_updates WHERE doc_id = $1 AND id < $2`,
+        [doc.docId, snapshot]
       )
 
       const client = await loggedInClient(owner.id)
@@ -257,15 +256,15 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
       expect(res.status).toBe(410)
     })
 
-    it('does NOT 410 when the target id is AT the compaction floor (still reconstructable)', async () => {
+    it('does NOT 410 when the target id is AT the history floor (still reconstructable)', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
       await insertYjsRow(doc.docId, '')
       await insertYjsRow(doc.docId, '')
-      const floor = await insertYjsRow(doc.docId, '')
+      const floor = await insertYjsRow(doc.docId, '', 'snapshot')
       const activityId = await insertActivityRow(doc.docId, floor, floor)
       await testDb().query(
-        `DELETE FROM yjs_documents WHERE docname = $1 AND version = 'v1' AND id < $2`,
+        `DELETE FROM yjs_updates WHERE doc_id = $1 AND id < $2`,
         [doc.docId, floor]
       )
 
@@ -274,7 +273,7 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
         `/api/docs/${doc.docId}/activity/${activityId}/restore`,
         {}
       )
-      // target == floor → the merged row IS included by `id <= target`, so the
+      // target == floor → the snapshot IS included by `id <= target`, so the
       // guard must NOT fire. Falls through to the WS path: 200 (full stack) or
       // 500 (no Hocuspocus in this harness). Just never 410.
       expect([200, 500]).toContain(res.status)

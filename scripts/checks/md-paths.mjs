@@ -71,6 +71,33 @@ function exists(doc, p) {
   return files.some(f => f.endsWith(suffix)) || [...dirSet].some(d => d.endsWith(suffix))
 }
 
+/**
+ * The repository path a backticked span names, or null when it is no path
+ * (a command, a URL, a pattern, a runtime file, a library name).
+ */
+function referencedPath(span) {
+  let t = span.trim()
+  if (/[\s<>{}*$|=,;!?"'\\^]/.test(t) || t.includes('://')) return null
+  if (/^(\/|~|@|-|\.\.\.|#)/.test(t)) return null
+  // `file.ts:123` and `file.py:Symbol` point at a place inside the file.
+  t = t.replace(/^\.\//, '')
+  if (t.includes('#')) t = t.slice(0, t.indexOf('#'))
+  t = t.replace(/:(\d+(-\d+)?|\w+)$/, '').replace(/\(\)$/, '')
+  // A bare extension (`.md`, `.png`) is a pattern, not a path; `.env`/`.nuxt`/`.output` are runtime.
+  if (!t || (EXT.test(t) && t.startsWith('.') && !t.includes('/') && !t.startsWith('.github')) || /^\.(env|nuxt|output|ansible)/.test(t) || t.startsWith('../')) return null
+  return looksLikePath(t) ? t : null
+}
+
+function looksLikePath(t) {
+  const hasSlash = t.includes('/')
+  const looksPath = hasSlash
+    ? EXT.test(t) || topLevel.has(t.split('/')[0])
+    : EXT.test(t) && /^[\w.[\]()-]+$/.test(t) && !/^\d/.test(t) && !/^[\w-]+\.(com|app|io|dev|org|net|ch)$/.test(t)
+  if (!looksPath) return false
+  if (/\.\w+\.\w+$/.test(t) && !EXT.test(t)) return false
+  return !(/^[A-Za-z0-9-]+\.[a-z]+$/.test(t) && /^(node|bun|vue|next|nuxt|chart|d3|three)\.js$/i.test(t))
+}
+
 const missing = []
 for (const doc of docs) {
   let fenced = false
@@ -82,23 +109,8 @@ for (const doc of docs) {
     }
     if (fenced || line.includes('md-paths-ignore')) return
     for (const m of line.matchAll(/`([^`\n]+)`/g)) {
-      let t = m[1].trim()
-      if (/[\s<>{}*$|=,;!?"'\\^]/.test(t) || t.includes('://')) continue
-      if (/^(\/|~|@|-|\.\.\.|#)/.test(t)) continue
-      // `file.ts:123` and `file.py:Symbol` point at a place inside the file.
-      t = t.replace(/^\.\//, '')
-      if (t.includes('#')) t = t.slice(0, t.indexOf('#'))
-      t = t.replace(/:(\d+(-\d+)?|\w+)$/, '').replace(/\(\)$/, '')
-      // A bare extension (`.md`, `.png`) is a pattern, not a path; `.env`/`.nuxt`/`.output` are runtime.
-      if (!t || (EXT.test(t) && t.startsWith('.') && !t.includes('/') && !t.startsWith('.github')) || /^\.(env|nuxt|output|ansible)/.test(t) || t.startsWith('../')) continue
-      const hasSlash = t.includes('/')
-      const looksPath = hasSlash
-        ? EXT.test(t) || topLevel.has(t.split('/')[0])
-        : EXT.test(t) && /^[\w.[\]()-]+$/.test(t) && !/^\d/.test(t) && !/^[\w-]+\.(com|app|io|dev|org|net|ch)$/.test(t)
-      if (!looksPath) continue
-      if (/\.\w+\.\w+$/.test(t) && !EXT.test(t)) continue
-      if (/^[A-Za-z0-9-]+\.[a-z]+$/.test(t) && /^(node|bun|vue|next|nuxt|chart|d3|three)\.js$/i.test(t)) continue
-      if (allowed(doc, t) || exists(doc, t)) continue
+      const t = referencedPath(m[1])
+      if (t === null || allowed(doc, t) || exists(doc, t)) continue
       missing.push({ doc, line: i + 1, path: t })
     }
   })

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { unzipSync, strFromU8 } from 'fflate'
-import { resetDb, testDb } from '../integration/setup/db'
+import * as Y from 'yjs'
+import { insertYjsUpdate, resetDb, testDb } from '../integration/setup/db'
 import {
   createDoc,
   createUser,
@@ -252,10 +253,9 @@ describe('buildExportZip', () => {
     expect(names).toContain(`documents/${doc.docId}.md`)
     expect(names).toContain(`documents/${doc.docId}.meta.json`)
 
-    // Without yjs_documents rows the markdown is empty (the y-postgresql
-    // table is created lazily by the sync server). That's fine.
+    // Without yjs_updates rows the markdown is empty.
     const md = readEntry(result.bytes, `documents/${doc.docId}.md`)
-    expect(typeof md).toBe('string')
+    expect(md).toBe('')
 
     const meta = JSON.parse(readEntry(result.bytes, `documents/${doc.docId}.meta.json`))
     expect(meta).toMatchObject({
@@ -267,6 +267,24 @@ describe('buildExportZip', () => {
     })
 
     expect(result.counts.documents).toBe(1)
+  })
+
+  it('exports the current text from the Y.js log, starting at its newest snapshot', async () => {
+    const u = await createUser()
+    const doc = await createDoc({ ownerId: u.id })
+    const ydoc = new Y.Doc()
+    ydoc.getText('content').insert(0, '# Kept')
+    await insertYjsUpdate(doc.docId, Y.encodeStateAsUpdate(ydoc))
+    await testDb().query(
+      `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'snapshot', $2)`,
+      [doc.docId, Buffer.from(Y.encodeStateAsUpdate(ydoc))]
+    )
+    const sv = Y.encodeStateVector(ydoc)
+    ydoc.getText('content').insert(6, '\n\nand edited after the snapshot')
+    await insertYjsUpdate(doc.docId, Y.encodeStateAsUpdate(ydoc, sv))
+
+    const result = await buildExportZip(u.id)
+    expect(readEntry(result.bytes, `documents/${doc.docId}.md`)).toBe('# Kept\n\nand edited after the snapshot')
   })
 
   it('writes comments authored by the user as NDJSON', async () => {

@@ -34,8 +34,7 @@
 // closes it; self-hosters accept it with free-form URLs.
 
 import { lookup } from 'node:dns/promises'
-import { isIP } from 'node:net'
-import { isAlwaysForbiddenIp, isPrivateIp } from '../agentic/urlGuard'
+import { hostAddresses, screenHostAddresses } from '../agentic/urlGuard'
 import { normalizeBaseUrl, type UrlRefusalCode } from '~~/shared/ai/providers'
 import { trimEndChars } from '~~/shared/utils/trimChars'
 
@@ -152,33 +151,19 @@ export async function checkProviderBaseUrl(
   if (!structural.ok) return structural
   const host = structural.host ?? ''
 
-  let addresses: string[]
-  if (isIP(host) !== 0) {
-    addresses = [host]
-  } else {
-    try {
-      addresses = await resolve(host)
-    } catch {
-      return refuse('unresolvable', `The hostname "${host}" could not be resolved.`)
-    }
-    if (addresses.length === 0) return refuse('unresolvable', `The hostname "${host}" has no DNS records.`)
+  const addresses = await hostAddresses(host, resolve)
+  if (addresses === 'unresolvable') return refuse('unresolvable', `The hostname "${host}" could not be resolved.`)
+  if (addresses === 'no-records') return refuse('unresolvable', `The hostname "${host}" has no DNS records.`)
+
+  const screen = screenHostAddresses(addresses, policy.allowPrivate)
+  if (screen.refused === 'forbidden') {
+    return refuse('private-address', 'This URL points at a loopback, link-local or metadata address.')
+  }
+  if (screen.refused === 'private') {
+    return refuse('private-address', 'This URL points at a private network address, which this instance does not allow.')
   }
 
-  let anyPublic = false
-  for (const address of addresses) {
-    if (isAlwaysForbiddenIp(address)) {
-      return refuse('private-address', 'This URL points at a loopback, link-local or metadata address.')
-    }
-    if (isPrivateIp(address)) {
-      if (!policy.allowPrivate) {
-        return refuse('private-address', 'This URL points at a private network address, which this instance does not allow.')
-      }
-    } else {
-      anyPublic = true
-    }
-  }
-
-  if (structural.protocol === 'http:' && (!policy.allowPrivate || anyPublic)) {
+  if (structural.protocol === 'http:' && (!policy.allowPrivate || screen.anyPublic)) {
     return refuse('https-required', 'Use https:// — plain http is only allowed for private-network endpoints on self-hosted instances.')
   }
   return { ok: true, normalized: structural.normalized }

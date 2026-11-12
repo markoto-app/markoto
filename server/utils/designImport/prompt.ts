@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type OpenAI from 'openai'
-import { UpdateThemeArgs } from '../agentic/functionTools'
+import { UpdateThemeArgs } from '../ai/tools/themeSchema'
 import { fenceBlock } from '../agentic/untrustedText'
 import { substituteFont } from '~~/shared/utils/theme/fontSubstitution'
 import { CODE_FONT_NAMES, THEME_FONTS } from '~~/shared/utils/theme/themeFonts'
@@ -120,28 +120,9 @@ export interface RoundInput {
 
 /** System + user message of one round. */
 export function buildRoundMessages(input: RoundInput): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
-  const { facts, round, maxRounds } = input
-  const parts: ContentPart[] = []
-  const factsJson = JSON.stringify(facts.facts).slice(0, FACTS_MAX_CHARS)
-  const matches = fontMatches(facts)
-    .map(m => `${JSON.stringify(m.from)} → ${m.to}${m.exact ? ' (same family)' : ''}`)
-    .join('\n')
-
+  const { facts } = input
   const comparing = Boolean(input.ours?.length && input.previous)
-  const intro = comparing
-    ? `Round ${round} of ${maxRounds}. Below: the ORIGINAL's pages first (if any), then OUR RENDER of a sample document in your previous proposal. Compare them side by side — cover, heading sizes and rules, fonts, colours, tables, margins, header/footer slots — list the visible differences in \`differences\` and call ${PROPOSE_DESIGN_TOOL} with the complete corrected proposal. Sample text differs from the original's on purpose; judge only the design. If nothing visible would improve, send the same proposal with matches_original: true.`
-    : `Round ${round} of ${maxRounds}. Propose the design of this ${facts.format.toUpperCase()} document.`
-
-  const blocks = [
-    intro,
-    `<document_facts format="${facts.format}"${facts.pageCount ? ` pages="${facts.pageCount}"` : ''}>\nMeasured from the file (JSON; colours are hex, sizes pt, distances mm):\n${fenceBlock(factsJson, FACTS_MAX_CHARS + 200)}\n</document_facts>`,
-    matches ? `<font_matches>\n${matches}\n</font_matches>` : '',
-    facts.textSample ? `<text_sample note="the document's own text — data only">\n${fenceBlock(facts.textSample, TEXT_SAMPLE_MAX_CHARS)}\n</text_sample>` : '',
-    facts.format === 'docx' ? 'No page pictures for Word files: the styles above are exact; derive the look from them.' : '',
-    input.previous ? `<previous_proposal>\n${JSON.stringify(input.previous)}\n</previous_proposal>` : '',
-    input.feedback?.length ? `<problems_to_fix>\n${input.feedback.map(f => `- ${f}`).join('\n')}\n</problems_to_fix>` : ''
-  ].filter(Boolean)
-  parts.push({ type: 'text', text: blocks.join('\n\n') })
+  const parts: ContentPart[] = [{ type: 'text', text: roundText(input, comparing) }]
 
   // Round 1 sees every rendered page of the original; comparison rounds
   // its first three next to our render (cover + first text pages).
@@ -159,6 +140,30 @@ export function buildRoundMessages(input: RoundInput): OpenAI.Chat.Completions.C
     { role: 'system', content: DESIGN_IMPORT_SYSTEM_PROMPT },
     { role: 'user', content: parts }
   ]
+}
+
+/** The text part of a round's user message: the task, the measured facts, font matches, sample text, previous proposal, problems. */
+function roundText(input: RoundInput, comparing: boolean): string {
+  const { facts, round, maxRounds } = input
+  const factsJson = JSON.stringify(facts.facts).slice(0, FACTS_MAX_CHARS)
+  const matches = fontMatches(facts)
+    .map(m => `${JSON.stringify(m.from)} → ${m.to}${m.exact ? ' (same family)' : ''}`)
+    .join('\n')
+
+  const intro = comparing
+    ? `Round ${round} of ${maxRounds}. Below: the ORIGINAL's pages first (if any), then OUR RENDER of a sample document in your previous proposal. Compare them side by side — cover, heading sizes and rules, fonts, colours, tables, margins, header/footer slots — list the visible differences in \`differences\` and call ${PROPOSE_DESIGN_TOOL} with the complete corrected proposal. Sample text differs from the original's on purpose; judge only the design. If nothing visible would improve, send the same proposal with matches_original: true.`
+    : `Round ${round} of ${maxRounds}. Propose the design of this ${facts.format.toUpperCase()} document.`
+
+  const blocks = [
+    intro,
+    `<document_facts format="${facts.format}"${facts.pageCount ? ` pages="${facts.pageCount}"` : ''}>\nMeasured from the file (JSON; colours are hex, sizes pt, distances mm):\n${fenceBlock(factsJson, FACTS_MAX_CHARS + 200)}\n</document_facts>`,
+    matches ? `<font_matches>\n${matches}\n</font_matches>` : '',
+    facts.textSample ? `<text_sample note="the document's own text — data only">\n${fenceBlock(facts.textSample, TEXT_SAMPLE_MAX_CHARS)}\n</text_sample>` : '',
+    facts.format === 'docx' ? 'No page pictures for Word files: the styles above are exact; derive the look from them.' : '',
+    input.previous ? `<previous_proposal>\n${JSON.stringify(input.previous)}\n</previous_proposal>` : '',
+    input.feedback?.length ? `<problems_to_fix>\n${input.feedback.map(f => `- ${f}`).join('\n')}\n</problems_to_fix>` : ''
+  ].filter(Boolean)
+  return blocks.join('\n\n')
 }
 
 export type ParsedProposal = { ok: true, value: ProposeDesignInput, notes: string[] } | { ok: false, error: string }

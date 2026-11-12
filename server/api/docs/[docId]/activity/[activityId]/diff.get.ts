@@ -1,6 +1,7 @@
 import { getActivityById } from '../../../../../repos/activity'
 import { assertWithinHistory, resolveDocPlanFor } from '../../../../../utils/billing/entitlements'
 import { reconstructTextAtYjsId } from '../../../../../utils/documents/historyReplay'
+import { YjsHistoryCompactedError } from '../../../../../utils/documents/yjsLog'
 import { computeTextDiff, type DiffHunk } from '../../../../../utils/documents/textDiff'
 import { activityParams } from '~~/shared/api/docs'
 
@@ -15,7 +16,8 @@ import { activityParams } from '~~/shared/api/docs'
 // Errors:
 //   - 404 row doesn't exist OR belongs to another doc (the row id alone is
 //     not a capability)
-//   - 410 row has no boundary ids (yjsDocIdAfter is null); the UI shows
+//   - 410 row has no boundary ids (yjsDocIdAfter is null), or its Y.js
+//     history was pruned (below the history floor); the UI shows
 //     "diff unavailable"
 //   - 403 actor can't read activity for this doc
 //
@@ -51,18 +53,26 @@ export default defineApiHandler({
     // can't be opened (409 `plan/limit-reached`, field `historyDays`).
     assertWithinHistory(await resolveDocPlanFor(docRow), activity.createdAt)
 
-    // Rows without boundary ids can't be diffed (the snapshot is gone if
-    // y-postgresql merged through it). 410: exists but permanently unavailable.
+    // Rows without boundary ids can't be diffed. 410: exists but permanently
+    // unavailable.
     if (activity.yjsDocIdAfter === null) {
       throw apiError('docs/diff-unavailable')
     }
 
     // `before` is null on the very first edit; reconstructTextAtYjsId returns
     // '' for null / negative ids.
-    const [before, after] = await Promise.all([
-      reconstructTextAtYjsId(docId, activity.yjsDocIdBefore),
-      reconstructTextAtYjsId(docId, activity.yjsDocIdAfter)
-    ])
+    let before: string
+    let after: string
+    try {
+      [before, after] = await Promise.all([
+        reconstructTextAtYjsId(docId, activity.yjsDocIdBefore),
+        reconstructTextAtYjsId(docId, activity.yjsDocIdAfter)
+      ])
+    } catch (e) {
+      // The sync server pruned the history this row points into.
+      if (e instanceof YjsHistoryCompactedError) throw apiError('docs/diff-unavailable')
+      throw e
+    }
 
     const { hunks, truncated, totalHunks } = computeTextDiff(before, after)
 

@@ -16,17 +16,16 @@ import { partial } from '../../helpers/fixtures'
 // with reply_to_comment" mandate doesn't bind reliably) silently land in the prompt-bar response panel rather
 // than the comment thread, and the thread looks ignored to the user.
 
-const executeFunctionByName = vi.fn<(session: unknown, name: string, args: unknown) => Promise<{ content: string, isError: boolean, extraParts?: unknown[] }>>()
-const webSearch = vi.fn()
-const fetchUrl = vi.fn()
+const executeFunctionByName = vi.hoisted(() => vi.fn<(session: unknown, name: string, args: unknown) => Promise<{ content: string, isError: boolean, extraParts?: unknown[] }>>())
+const webSearch = vi.hoisted(() => vi.fn())
+const fetchUrl = vi.hoisted(() => vi.fn())
 
-vi.mock('../../../server/utils/ai/aiToolAdapter', () => ({ executeFunctionByName }))
-vi.mock('../../../server/utils/agentic/functionTools', async () => {
-  const actual = await vi.importActual<typeof import('../../../server/utils/agentic/functionTools')>(
-    '../../../server/utils/agentic/functionTools'
-  )
-  return { ...actual, webSearch, fetchUrl }
-})
+vi.mock('../../../server/utils/ai/tools/registry', async importOriginal => ({
+  ...await importOriginal<typeof import('../../../server/utils/ai/tools/registry')>(),
+  executeFunctionByName
+}))
+vi.mock('../../../server/utils/ai/tools/webSearch', () => ({ webSearch }))
+vi.mock('../../../server/utils/ai/tools/fetchUrl', () => ({ fetchUrl }))
 
 const { runAgenticLoop } = await import('../../../server/utils/agentic/runLoop')
 

@@ -126,19 +126,24 @@ export function resolvePlanPricesFromEnv(env: Record<string, string | undefined>
   for (const currency of CURRENCIES) {
     for (const plan of PAID_PLAN_NAMES) {
       for (const interval of BILLING_INTERVALS) {
-        const name = planPriceEnvName(plan, currency, interval)
-        const raw = env[name]?.trim()
-        if (!raw) continue
-        try {
-          table[currency][plan][interval] = positiveNumber.parse(raw)
-        } catch (e) {
-          if (e instanceof EnvValueError) throw new EnvValueError(`${name}: ${e.message}`)
-          throw e
-        }
+        const price = plannedPriceOverride(env, planPriceEnvName(plan, currency, interval))
+        if (price !== null) table[currency][plan][interval] = price
       }
     }
   }
   return table
+}
+
+/** One planned-price override, or null when unset / empty. */
+function plannedPriceOverride(env: Record<string, string | undefined>, name: string): number | null {
+  const raw = env[name]?.trim()
+  if (!raw) return null
+  try {
+    return positiveNumber.parse(raw)
+  } catch (e) {
+    if (e instanceof EnvValueError) throw new EnvValueError(`${name}: ${e.message}`)
+    throw e
+  }
 }
 
 /**

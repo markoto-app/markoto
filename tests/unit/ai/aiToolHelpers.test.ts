@@ -1,17 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import {
-  coerceThemePatch,
-  mergeTheme,
-  summarizePatch,
-  parseInternalFileRef,
-  lineToCharOffset,
-  sanitizeAltText,
-  parseDocIdFromInput,
-  resolveThemeCustomCss
-} from '../../../server/utils/ai/aiToolAdapter'
+import { coerceThemePatch, mergeTheme, summarizePatch } from '../../../server/utils/ai/tools/themeMerge'
+import { resolveThemeCustomCss } from '../../../server/utils/ai/tools/themeTools'
+import { parseInternalFileRef } from '../../../server/utils/ai/tools/imageFetch'
+import { sanitizeAltText } from '../../../server/utils/ai/tools/imageTools'
+import { lineToCharOffset } from '../../../server/utils/ai/tools/documentText'
+import { parseDocIdFromInput } from '../../../server/utils/ai/tools/crossDocumentTools'
 import { defaultTheme } from '../../../shared/utils/theme/defaultTheme'
 import type { HeadingLevels } from '../../../shared/types/theme'
-import { UpdateThemeArgs, type UpdateThemeInput } from '../../../server/utils/agentic/functionTools'
+import { UpdateThemeArgs, type UpdateThemeInput } from '../../../server/utils/ai/tools/themeSchema'
 import { partial } from '../../helpers/fixtures'
 
 // Pure helpers that power the AI theme + image tools. Integration with

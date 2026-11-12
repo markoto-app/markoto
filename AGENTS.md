@@ -1,6 +1,6 @@
 # markoto: agent guide
 
-markoto is a collaborative markdown editor. A Nuxt 4 app on Bun (SSR, Nitro API, sign-in, MCP server) serves the UI; documents are Y.js CRDTs synced by a separate Hocuspocus container and stored in PostgreSQL (`y-postgresql`), with pgvector for the workspace knowledge base. Valkey holds rate limits, locks and per-document sync state. Sidecars: a Playwright renderer (PDF/PNG), markitdown (imports), LiteLLM (every AI call), a backup job. Login is optional; anonymous users can edit public documents. Billing is off unless `NUXT_BILLING_ENABLED=true`. The system overview is [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); read it before changing anything cross-cutting.
+markoto is a collaborative markdown editor. A Nuxt 4 app on Bun (SSR, Nitro API, sign-in, MCP server) serves the UI; documents are Y.js CRDTs synced by a separate Hocuspocus container and stored in PostgreSQL (append-only `yjs_updates` log), with pgvector for the workspace knowledge base. Valkey holds rate limits, locks and per-document sync state. Sidecars: a Playwright renderer (PDF/PNG), markitdown (imports), LiteLLM (every AI call), a backup job. Login is optional; anonymous users can edit public documents. Billing is off unless `NUXT_BILLING_ENABLED=true`. The system overview is [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); read it before changing anything cross-cutting.
 
 ## Commands
 
@@ -58,7 +58,7 @@ Database
 - Drizzle uses `node-postgres`: no `.get()` / `.all()`; use `(await db.select()...limit(1))[0]`. Raw `tx.execute(sql\`…\`)` returns timestamps as strings.
 - drizzle-kit does not emit `CREATE EXTENSION`; hand-prepend it to a generated migration that needs one (see `drizzle/0000_baseline.sql`).
 - Enums are `text('col', { enum: [...] })`, not `pgEnum`. Migrations are forward-only.
-- `yjs_documents` is created by the sync server at start, not by Drizzle: code and migrations touching it must cope with its absence.
+- Document Y.js state is the `yjs_updates` log (in the schema). Read it only through `server/utils/documents/yjsLog.ts` (app) / `sync-server/src/yjs-store.ts` (sync); never delete its rows by hand (pruning keeps the history floor consistent, `docs/contributing/sync-server.md`).
 - The knowledge embedding column's dimension is set at boot (`server/plugins/02-embeddings-dimension.ts`). Do not change `vector(768)` in `schema.ts` and never migrate that column's type.
 - Sweepers take `pg_try_advisory_lock` on a dedicated, checked-out client held for the whole sweep (`server/utils/platform/sweepLock.ts`); the `_xact_` variant releases at commit and is wrong here.
 
@@ -79,7 +79,7 @@ Frontend
 - Logout is a hard reload (`useLogout`, `location.href = '/'`), never `navigateTo()`.
 
 AI
-- An AI tool declaration's schema field is `parameters`, not `parametersJsonSchema` (read by `server/utils/agentic/functionTools.ts`; pinned by `tests/unit/ai/aiToolSchemas.test.ts`).
+- An AI tool declaration's schema field is `parameters`, not `parametersJsonSchema` (written by `server/utils/ai/tools/toolDefinition.ts`; pinned by `tests/unit/ai/aiToolSchemas.test.ts`).
 - Adding processing of personal data requires an entry in `server/legal/lawfulBasis.ts` (see `server/legal/AGENTS.md`).
 
 Infrastructure

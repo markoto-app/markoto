@@ -12,7 +12,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import * as Y from 'yjs'
-import { resetDb, testDb, ensureYjsTable } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { loggedInClient } from '../setup/client'
 import { createUser, createDoc, createWorkspace } from '../setup/fixtures'
 import { S3Client, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
@@ -41,10 +41,10 @@ async function insertYjsRow(docname: string, content: string): Promise<number> {
   const update = Y.encodeStateAsUpdate(ydoc)
   const db = testDb()
   const r = await db.query<{ id: number }>(
-    `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1') RETURNING id`,
+    `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2) RETURNING id`,
     [docname, Buffer.from(update)]
   )
-  return first(r.rows).id
+  return Number(first(r.rows).id)
 }
 
 // Multi-page fixture (paginates to 3+ pages on the default theme). Used
@@ -77,7 +77,6 @@ async function execTool(
 
 beforeEach(async () => {
   await resetDb()
-  await ensureYjsTable()
 })
 
 describe('get_page_count tool — real renderer', () => {

@@ -189,27 +189,33 @@ function checkUrl(raw: string, opts: SanitizeCustomCssOptions): UrlCheck {
   if (SCRIPT_SCHEME_RE.test(squashed)) {
     return { ok: false, code: 'script-url', message: 'javascript: and vbscript: URLs are not allowed.' }
   }
-  if (/^data:/i.test(squashed)) {
-    if (SVG_DATA_RE.test(squashed)) {
-      return { ok: false, code: 'svg-data-url', message: 'SVG data URLs are not allowed. Use a PNG, JPEG, GIF or WebP data URL, or upload the image to this document.' }
-    }
-    if (DATA_IMAGE_RE.test(squashed)) return { ok: true, value: squashed }
-    return { ok: false, code: 'url', message: 'Only base64 data:image/png, jpeg, gif or webp URLs are allowed.' }
-  }
+  if (/^data:/i.test(squashed)) return checkDataUrl(squashed)
+  return checkFileUrl(value, opts)
+}
 
-  let path: string | null = null
-  if (value.startsWith('/') && !value.startsWith('//')) {
-    path = value
-  } else if (/^https?:\/\//i.test(value)) {
-    try {
-      const parsed = new URL(value)
-      if (opts.allowedOrigins?.includes(parsed.origin) && !parsed.search && !parsed.hash) {
-        path = parsed.pathname
-      }
-    } catch {
-      path = null
-    }
+function checkDataUrl(squashed: string): UrlCheck {
+  if (SVG_DATA_RE.test(squashed)) {
+    return { ok: false, code: 'svg-data-url', message: 'SVG data URLs are not allowed. Use a PNG, JPEG, GIF or WebP data URL, or upload the image to this document.' }
   }
+  if (DATA_IMAGE_RE.test(squashed)) return { ok: true, value: squashed }
+  return { ok: false, code: 'url', message: 'Only base64 data:image/png, jpeg, gif or webp URLs are allowed.' }
+}
+
+/** The path of a root-relative URL, or of an absolute one on an allowed app origin (no query, no fragment). */
+function appPathOf(value: string, opts: SanitizeCustomCssOptions): string | null {
+  if (value.startsWith('/') && !value.startsWith('//')) return value
+  if (!/^https?:\/\//i.test(value)) return null
+  try {
+    const parsed = new URL(value)
+    return opts.allowedOrigins?.includes(parsed.origin) && !parsed.search && !parsed.hash ? parsed.pathname : null
+  } catch {
+    return null
+  }
+}
+
+/** Only this document's own uploads (`/api/files/<docId>/<fileId>`). */
+function checkFileUrl(value: string, opts: SanitizeCustomCssOptions): UrlCheck {
+  const path = appPathOf(value, opts)
   const match = path === null ? null : FILE_PATH_RE.exec(path)
   if (!match) {
     return {
@@ -230,6 +236,9 @@ function isInertRaw(text: string): boolean {
   return !/[()\\@<]/.test(text) && !SCRIPT_SCHEME_RE.test(text.replaceAll(/\s/g, ''))
 }
 
+const OPENING_BRACKETS = new Set(['{', '(', '['])
+const CLOSING_BRACKETS = new Set(['}', ')', ']'])
+
 /**
  * Bracket nesting depth of `input`, ignoring brackets inside strings and
  * comments. Returns early once `limit` is exceeded.
@@ -237,33 +246,39 @@ function isInertRaw(text: string): boolean {
 function nestingDepth(input: string, limit: number): number {
   let depth = 0
   let max = 0
-  let quote: string | null = null
-  // A scanner: escapes and comments advance the index inside the body.
+  // A scanner: strings, escapes and comments advance the index inside the body.
   let i = -1
   while (++i < input.length) {
-    const ch = input[i]
-    if (quote !== null) {
-      if (ch === '\\') i++
-      else if (ch === quote) quote = null
-      continue
-    }
-    if (ch === '/' && input[i + 1] === '*') {
+    const ch = input[i] ?? ''
+    if (ch === '"' || ch === '\'') {
+      i = endOfString(input, i)
+    } else if (ch === '/' && input[i + 1] === '*') {
       const end = input.indexOf('*/', i + 2)
       if (end < 0) break
       i = end + 1
-    } else if (ch === '"' || ch === '\'') {
-      quote = ch
     } else if (ch === '\\') {
       i++
-    } else if (ch === '{' || ch === '(' || ch === '[') {
+    } else if (OPENING_BRACKETS.has(ch)) {
       depth++
       max = Math.max(max, depth)
       if (max > limit) return max
-    } else if ((ch === '}' || ch === ')' || ch === ']') && depth > 0) {
+    } else if (CLOSING_BRACKETS.has(ch) && depth > 0) {
       depth--
     }
   }
   return max
+}
+
+/** Index of the quote closing the string that opens at `start` (`input.length` when unterminated). */
+function endOfString(input: string, start: number): number {
+  const quote = input[start]
+  let i = start
+  while (++i < input.length) {
+    const ch = input[i]
+    if (ch === '\\') i++
+    else if (ch === quote) return i
+  }
+  return i
 }
 
 function failClosed(message: string): CustomCssResult {
@@ -318,159 +333,21 @@ function sanitizeChecked(input: string, opts: SanitizeCustomCssOptions): CustomC
     }
   })
 
-  const stack: Frame[] = []
-  const doomed = new Set<Frame>()
-  const kept = new Map<CssNode, string>()
-
-  const report = (node: CssNode, code: CustomCssIssueCode, message: string, detail?: string) => {
-    issues.push({
-      code,
-      message,
-      line: node.loc?.start.line ?? 1,
-      column: node.loc?.start.column ?? 1,
-      ...(detail === undefined ? {} : { detail: truncate(detail) })
-    })
-  }
-
-  const self = (): Frame | undefined => stack.at(-1)
-  const parent = (): Frame | undefined => stack.at(-2)
-
-  /** Remove the smallest meaningful unit around the current node. */
-  const doomEnclosing = () => {
-    for (let i = stack.length - 1; i >= 0; i--) {
-      const f = stack[i]
-      if (f?.node.type === 'Declaration') {
-        doomed.add(f)
-        return
-      }
-    }
-    for (let i = stack.length - 1; i >= 0; i--) {
-      const f = stack[i]
-      if (f && (f.node.type === 'Atrule' || f.node.type === 'Rule')) {
-        doomed.add(f)
-        return
-      }
-    }
-    const current = self()
-    if (current) doomed.add(current)
-  }
-
-  const doomSelf = () => {
-    const current = self()
-    if (current) doomed.add(current)
-  }
-
-  const insideUrlFunction = (): boolean =>
-    stack.some(f => f.node.type === 'Function' && URL_FUNCTIONS.has(unprefixed(decodedName(f.node.name))))
-
-  /** An enclosing function (not the current node) produces an image. */
-  const insideImageFunction = (): boolean =>
-    stack.slice(0, -1).some(f => f.node.type === 'Function' && IMAGE_ARG_FUNCTIONS.has(unprefixed(decodedName(f.node.name))))
-
-  const applyUrl = (node: CssNode & { value: string }) => {
-    const res = checkUrl(node.value, opts)
-    if (res.ok) {
-      node.value = res.value
-      kept.set(node, res.value)
-    } else {
-      report(node, res.code, res.message, node.value)
-      doomEnclosing()
-    }
-  }
-
-  const inspect = (node: CssNode) => {
-    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check -- css-tree has ~40 node types; only these need a decision, every other node is inert (default)
-    switch (node.type) {
-      case 'Comment':
-      case 'CDO':
-      case 'CDC':
-        doomSelf()
-        return
-      case 'Raw': {
-        const host = parent()?.node.type
-        if (host === 'StyleSheet' || host === 'Block' || host === undefined) {
-          // Garbage at rule level — the parse error was already reported.
-          doomSelf()
-        } else if (host === 'Rule') {
-          // Unparseable selector: drop the whole rule.
-          doomEnclosing()
-        } else if (!isInertRaw(node.value)) {
-          report(node, 'value', 'This value could not be parsed safely and was removed.', node.value)
-          doomEnclosing()
-        }
-        return
-      }
-      case 'Atrule': {
-        const name = decodedName(node.name)
-        if (name === 'charset') {
-          doomSelf()
-          return
-        }
-        if (!ALLOWED_AT_RULES.has(unprefixed(name))) {
-          const hint = name === 'font-face' ? ' Pick fonts in the theme\'s font settings instead.' : ''
-          report(node, 'at-rule', `@${name} is not allowed in custom CSS.${hint}`, `@${name}`)
-          doomSelf()
-        }
-        return
-      }
-      case 'Declaration': {
-        const prop = decodedName(node.property)
-        if (FORBIDDEN_PROPERTIES.has(unprefixed(prop)) || prop === 'behavior') {
-          report(node, 'property', `The "${prop}" property is not allowed.`, prop)
-          doomSelf()
-        }
-        return
-      }
-      case 'Function': {
-        const name = unprefixed(decodedName(node.name))
-        if (FORBIDDEN_FUNCTIONS.has(name)) {
-          report(node, 'function', `${name}() is not allowed.`, `${name}()`)
-          doomEnclosing()
-        } else if (SUBSTITUTION_FUNCTIONS.has(name) && insideImageFunction()) {
-          report(node, 'function', `${name}() is not allowed inside image functions such as image-set(). Write the URL directly.`, `${name}()`)
-          doomEnclosing()
-        }
-        return
-      }
-      case 'Url':
-        applyUrl(node)
-        return
-      case 'String':
-        if (insideUrlFunction()) {
-          applyUrl(node)
-        } else if (SCRIPT_SCHEME_RE.test(squash(node.value))) {
-          report(node, 'script-url', 'javascript: and vbscript: URLs are not allowed.', node.value)
-          doomEnclosing()
-        }
-        return
-      case 'Identifier':
-        if (SCRIPT_SCHEME_RE.test(ident.decode(node.name))) {
-          report(node, 'script-url', 'javascript: and vbscript: URLs are not allowed.', node.name)
-          doomEnclosing()
-        }
-        return
-      default:
-    }
-  }
-
+  const sanitizer = new SanitizingWalk(opts, issues)
   walk(ast, {
     enter(node: CssNode, item: ListItem<CssNode> | null, list: List<CssNode> | null) {
-      stack.push({ node, item, list })
-      inspect(node)
+      sanitizer.enter({ node, item, list })
     },
     leave() {
-      stack.pop()
+      sanitizer.leave()
     }
   })
-
-  for (const frame of doomed) {
-    if (frame.list && frame.item) frame.list.remove(frame.item)
-  }
+  sanitizer.removeDoomed()
 
   // URLs that are still in the tree after the removals.
   const urls = new Set<string>()
   walk(ast, (node: CssNode) => {
-    const url = kept.get(node)
+    const url = sanitizer.keptUrls.get(node)
     if (url !== undefined) urls.add(url)
   })
 
@@ -481,6 +358,173 @@ function sanitizeChecked(input: string, opts: SanitizeCustomCssOptions): CustomC
 
   issues.sort((a, b) => a.line - b.line || a.column - b.column)
   return { css, issues, urls: [...urls] }
+}
+
+/**
+ * One pass over the AST: every node is checked on `enter`; a node that
+ * fails removes the smallest meaningful unit around it (its declaration,
+ * else its rule / at-rule), applied after the walk so the walk never sees
+ * a mutated list. URLs that pass are normalised in place and remembered.
+ */
+class SanitizingWalk {
+  private readonly stack: Frame[] = []
+  private readonly doomed = new Set<Frame>()
+  readonly keptUrls = new Map<CssNode, string>()
+
+  constructor(private readonly opts: SanitizeCustomCssOptions, private readonly issues: CustomCssIssue[]) {}
+
+  enter(frame: Frame): void {
+    this.stack.push(frame)
+    this.inspect(frame.node)
+  }
+
+  leave(): void {
+    this.stack.pop()
+  }
+
+  removeDoomed(): void {
+    for (const frame of this.doomed) {
+      if (frame.list && frame.item) frame.list.remove(frame.item)
+    }
+  }
+
+  private report(node: CssNode, code: CustomCssIssueCode, message: string, detail?: string): void {
+    this.issues.push({
+      code,
+      message,
+      line: node.loc?.start.line ?? 1,
+      column: node.loc?.start.column ?? 1,
+      ...(detail === undefined ? {} : { detail: truncate(detail) })
+    })
+  }
+
+  private parentType(): CssNode['type'] | undefined {
+    return this.stack.at(-2)?.node.type
+  }
+
+  /** Remove the smallest meaningful unit around the current node. */
+  private doomEnclosing(): void {
+    const declaration = this.stack.findLast(f => f.node.type === 'Declaration')
+    const unit = declaration ?? this.stack.findLast(f => f.node.type === 'Atrule' || f.node.type === 'Rule')
+    const target = unit ?? this.stack.at(-1)
+    if (target) this.doomed.add(target)
+  }
+
+  private doomSelf(): void {
+    const current = this.stack.at(-1)
+    if (current) this.doomed.add(current)
+  }
+
+  private insideUrlFunction(): boolean {
+    return this.stack.some(f => f.node.type === 'Function' && URL_FUNCTIONS.has(unprefixed(decodedName(f.node.name))))
+  }
+
+  /** An enclosing function (not the current node) produces an image. */
+  private insideImageFunction(): boolean {
+    return this.stack.slice(0, -1).some(f => f.node.type === 'Function' && IMAGE_ARG_FUNCTIONS.has(unprefixed(decodedName(f.node.name))))
+  }
+
+  private applyUrl(node: CssNode & { value: string }): void {
+    const res = checkUrl(node.value, this.opts)
+    if (res.ok) {
+      node.value = res.value
+      this.keptUrls.set(node, res.value)
+    } else {
+      this.report(node, res.code, res.message, node.value)
+      this.doomEnclosing()
+    }
+  }
+
+  private inspect(node: CssNode): void {
+    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check -- css-tree has ~40 node types; only these need a decision, every other node is inert (default)
+    switch (node.type) {
+      case 'Comment':
+      case 'CDO':
+      case 'CDC':
+        this.doomSelf()
+        return
+      case 'Raw':
+        this.inspectRaw(node)
+        return
+      case 'Atrule':
+        this.inspectAtrule(node)
+        return
+      case 'Declaration':
+        this.inspectDeclaration(node)
+        return
+      case 'Function':
+        this.inspectFunction(node)
+        return
+      case 'Url':
+        this.applyUrl(node)
+        return
+      case 'String':
+        this.inspectString(node)
+        return
+      case 'Identifier':
+        if (SCRIPT_SCHEME_RE.test(ident.decode(node.name))) {
+          this.report(node, 'script-url', 'javascript: and vbscript: URLs are not allowed.', node.name)
+          this.doomEnclosing()
+        }
+        return
+      default:
+    }
+  }
+
+  private inspectRaw(node: CssNode & { type: 'Raw' }): void {
+    const host = this.parentType()
+    if (host === 'StyleSheet' || host === 'Block' || host === undefined) {
+      // Garbage at rule level — the parse error was already reported.
+      this.doomSelf()
+    } else if (host === 'Rule') {
+      // Unparseable selector: drop the whole rule.
+      this.doomEnclosing()
+    } else if (!isInertRaw(node.value)) {
+      this.report(node, 'value', 'This value could not be parsed safely and was removed.', node.value)
+      this.doomEnclosing()
+    }
+  }
+
+  private inspectAtrule(node: CssNode & { type: 'Atrule' }): void {
+    const name = decodedName(node.name)
+    if (name === 'charset') {
+      this.doomSelf()
+      return
+    }
+    if (!ALLOWED_AT_RULES.has(unprefixed(name))) {
+      const hint = name === 'font-face' ? ' Pick fonts in the theme\'s font settings instead.' : ''
+      this.report(node, 'at-rule', `@${name} is not allowed in custom CSS.${hint}`, `@${name}`)
+      this.doomSelf()
+    }
+  }
+
+  private inspectDeclaration(node: CssNode & { type: 'Declaration' }): void {
+    const prop = decodedName(node.property)
+    if (FORBIDDEN_PROPERTIES.has(unprefixed(prop)) || prop === 'behavior') {
+      this.report(node, 'property', `The "${prop}" property is not allowed.`, prop)
+      this.doomSelf()
+    }
+  }
+
+  private inspectFunction(node: CssNode & { type: 'Function' }): void {
+    const name = unprefixed(decodedName(node.name))
+    if (FORBIDDEN_FUNCTIONS.has(name)) {
+      this.report(node, 'function', `${name}() is not allowed.`, `${name}()`)
+      this.doomEnclosing()
+    } else if (SUBSTITUTION_FUNCTIONS.has(name) && this.insideImageFunction()) {
+      this.report(node, 'function', `${name}() is not allowed inside image functions such as image-set(). Write the URL directly.`, `${name}()`)
+      this.doomEnclosing()
+    }
+  }
+
+  private inspectString(node: CssNode & { type: 'String' }): void {
+    if (this.insideUrlFunction()) {
+      this.applyUrl(node)
+    } else if (SCRIPT_SCHEME_RE.test(squash(node.value))) {
+      this.report(node, 'script-url', 'javascript: and vbscript: URLs are not allowed.', node.value)
+      this.doomEnclosing()
+    }
+  }
 }
 
 /** One-line summary of the first issue, for API error messages + AI tool results. */

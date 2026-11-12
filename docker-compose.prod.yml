@@ -548,8 +548,7 @@ services:
       # Must match the app's value, or the two key their rate limits on
       # different X-Forwarded-For entries.
       - TRUSTED_PROXY_HOPS=${NUXT_TRUSTED_PROXY_HOPS:-1}
-      # Postgres TLS posture — same as the app container. y-postgresql's
-      # internal pool inherits the ssl config we pass via PoolConfig.
+      # Postgres TLS posture — same as the app container.
       - NODE_ENV=production
       - PGSSLROOTCERT=${PGSSLROOTCERT:-}
       - PGSSL=${PGSSL:-}

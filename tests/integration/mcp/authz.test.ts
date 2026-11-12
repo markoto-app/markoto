@@ -177,7 +177,7 @@ describe('MCP authz — workspace EDITOR can write through doc-bound tools', () 
       const update = Y.encodeStateAsUpdate(ydoc)
       const { testDb } = await import('../setup/db')
       await testDb().query(
-        `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1')`,
+        `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2)`,
         [doc.docId, Buffer.from(update)]
       )
     })

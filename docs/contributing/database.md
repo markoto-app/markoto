@@ -9,7 +9,7 @@ markoto keeps all application data in PostgreSQL. The schema is defined in `serv
 - At boot, `server/plugins/00-db-migrate.ts` applies pending files with `drizzle-orm/node-postgres/migrator`. Drizzle runs **all pending files in one transaction**. If a migration fails, the process exits.
 - Startup work that needs the migrated schema waits on `migrationsComplete` (`server/utils/platform/migrations.ts`).
 - The runtime image copies `drizzle/` (see `Dockerfile`); without it nothing can be applied.
-- `yjs_documents` is not in the schema: the sync server creates it on startup through `y-postgresql`.
+- `yjs_updates` (document Y.js state) is in the schema like every other table; the sync server only reads and writes it. Layout and invariants: [sync-server.md](sync-server.md#persistence).
 - The knowledge embedding column is `vector(768)` in the schema and is retyped at boot to the configured size (`server/plugins/02-embeddings-dimension.ts`). Never generate a migration that changes it; see [knowledge-base.md](knowledge-base.md).
 
 ## CI guard for destructive migrations
@@ -65,19 +65,6 @@ ALTER TABLE child VALIDATE CONSTRAINT fk_child_parent;
 
 `VALIDATE CONSTRAINT` scans without blocking writes.
 
-### TRUNCATE of an optional table
-
-A migration that touches `yjs_documents` must guard for its absence, because a fresh database does not have it until the sync server has started:
-
-```sql
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'yjs_documents') THEN
-    TRUNCATE yjs_documents;
-  END IF;
-END $$;
-```
-
 ## Foreign keys and personal data
 
 `onDelete` is chosen per relation:
@@ -91,4 +78,4 @@ END $$;
 
 ## Connection and TLS
 
-`useDatabase()` (`server/utils/platform/database.ts`) returns the Drizzle handle over a `pg` pool; `pg` is the only Postgres driver in the stack because `y-postgresql` in the sync server needs it. TLS settings come from `resolvePostgresSsl()` (`shared/utils/runtime/postgresSsl.ts`): `PGSSL=disable` opts out, `PGSSLROOTCERT` pins a CA and an unreadable path fails the boot. Queries slower than `NUXT_DB_SLOW_QUERY_MS` (default 200) are reported to Sentry with the SQL truncated and without parameter values.
+`useDatabase()` (`server/utils/platform/database.ts`) returns the Drizzle handle over a `pg` pool; `pg` is the only Postgres driver in the stack, the sync server included. TLS settings come from `resolvePostgresSsl()` (`shared/utils/runtime/postgresSsl.ts`): `PGSSL=disable` opts out, `PGSSLROOTCERT` pins a CA and an unreadable path fails the boot. Queries slower than `NUXT_DB_SLOW_QUERY_MS` (default 200) are reported to Sentry with the SQL truncated and without parameter values.

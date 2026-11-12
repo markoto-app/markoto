@@ -11,7 +11,7 @@
 // tool and returns `{ isError, content }`.
 
 import * as Y from 'yjs'
-import { executeFunctionByName } from '../../utils/ai/aiToolAdapter'
+import { executeFunctionByName } from '../../utils/ai/tools/registry'
 import { getDoc } from '../../repos/documents'
 import { resolveAiProviders } from '../../utils/aiProviders/resolve'
 import { resolveBillingContext } from '../../utils/billing/billing'

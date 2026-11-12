@@ -1,5 +1,5 @@
 import { must } from '~~/shared/utils/must'
-import type { Pool } from 'pg'
+import type { Pool, PoolClient } from 'pg'
 import {
   KNOWLEDGE_EMBEDDING_COLUMN,
   countStoredEmbeddings,
@@ -78,9 +78,6 @@ export async function runReembed(opts: ReembedOptions): Promise<ReembedSummary> 
     // whose tag could not tell the models apart).
     const resetAll = needsRetype || opts.force === true
 
-    const staleSql = `SELECT knowledge_id, filename, chunk_count FROM workspace_knowledge
-                       WHERE status = 'ready' AND embedding_version <> $1
-                       ORDER BY knowledge_id`
     const countRes = await client.query<{ n: number }>(
       `SELECT count(*)::int AS n FROM workspace_knowledge WHERE status = 'ready' AND ($2::boolean OR embedding_version <> $1)`,
       [opts.versionTag, resetAll]
@@ -94,60 +91,20 @@ export async function runReembed(opts: ReembedOptions): Promise<ReembedSummary> 
       return { dryRun: true, retyped: false, filesTotal, filesDone: 0, chunksDone: 0 }
     }
 
-    if (resetAll) {
-      await client.query('BEGIN')
-      try {
-        if (needsRetype) {
-          await client.query('LOCK TABLE workspace_knowledge_chunks IN ACCESS EXCLUSIVE MODE')
-          const stored = await countStoredEmbeddings(client)
-          await retypeEmbeddingColumn(client, opts.dims, { recreateIndex: false })
-          log(`column retyped to ${opts.dims} dims; ${stored} old vector(s) discarded`)
-        }
-        await client.query(`UPDATE workspace_knowledge SET embedding_version = $1 WHERE status = 'ready'`, [PENDING_VERSION])
-        await client.query('COMMIT')
-      } catch (e) {
-        await client.query('ROLLBACK').catch(() => {})
-        throw e
-      }
-    }
+    if (resetAll) await resetEmbeddings(client, opts, needsRetype, log)
 
     let filesDone = 0
     let chunksDone = 0
     const started = Date.now()
-    const stale = (await client.query<StaleFile>(staleSql, [opts.versionTag])).rows
+    const stale = (await client.query<StaleFile>(
+      `SELECT knowledge_id, filename, chunk_count FROM workspace_knowledge
+                       WHERE status = 'ready' AND embedding_version <> $1
+                       ORDER BY knowledge_id`,
+      [opts.versionTag]
+    )).rows
     for (const file of stale) {
-      const chunks = (await client.query<{ id: number, content: string }>(
-        'SELECT id, content FROM workspace_knowledge_chunks WHERE knowledge_id = $1 ORDER BY chunk_index',
-        [file.knowledge_id]
-      )).rows
-
-      const vectors: number[][] = []
-      for (let i = 0; i < chunks.length; i += opts.batchSize) {
-        const batch = chunks.slice(i, i + opts.batchSize)
-        const out = await opts.embed(batch.map(c => c.content))
-        if (out.length !== batch.length) {
-          throw new Error(`embedder returned ${out.length} vectors for ${batch.length} chunks (file ${file.knowledge_id})`)
-        }
-        for (const v of out) {
-          if (v.length !== opts.dims) throw new Error(`embedder returned a ${v.length}-dim vector, expected ${opts.dims}`)
-          vectors.push(v)
-        }
-        if (opts.pauseMs) await new Promise(resolve => setTimeout(resolve, opts.pauseMs))
-      }
-
-      await client.query('BEGIN')
-      try {
-        for (const [i, chunk] of chunks.entries()) {
-          await client.query('UPDATE workspace_knowledge_chunks SET embedding = $1::vector WHERE id = $2', [vectorLiteral(must(vectors[i], `vector of chunk ${chunk.id}`)), chunk.id])
-        }
-        await client.query('UPDATE workspace_knowledge SET embedding_version = $1 WHERE knowledge_id = $2', [opts.versionTag, file.knowledge_id])
-        await client.query('COMMIT')
-      } catch (e) {
-        await client.query('ROLLBACK').catch(() => {})
-        throw e
-      }
+      chunksDone += await reembedFile(client, opts, file)
       filesDone++
-      chunksDone += chunks.length
       log(`${filesDone}/${stale.length} files, ${chunksDone} chunks, ${Math.round((Date.now() - started) / 1000)}s: ${file.filename}`)
     }
 
@@ -160,4 +117,63 @@ export async function runReembed(opts: ReembedOptions): Promise<ReembedSummary> 
     throw new Error('Another process holds the embedding-dimension lock (an app instance reconciling at boot, or another re-embed run). Retry in a minute.')
   }
   return locked.value
+}
+
+type DbClient = PoolClient
+
+async function inTransaction(client: DbClient, work: () => Promise<void>): Promise<void> {
+  await client.query('BEGIN')
+  try {
+    await work()
+    await client.query('COMMIT')
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => {})
+    throw e
+  }
+}
+
+/** Mark every ready file pending (and retype the column first when its size changes). */
+async function resetEmbeddings(client: DbClient, opts: ReembedOptions, needsRetype: boolean, log: (line: string) => void): Promise<void> {
+  await inTransaction(client, async () => {
+    if (needsRetype) {
+      await client.query('LOCK TABLE workspace_knowledge_chunks IN ACCESS EXCLUSIVE MODE')
+      const stored = await countStoredEmbeddings(client)
+      await retypeEmbeddingColumn(client, opts.dims, { recreateIndex: false })
+      log(`column retyped to ${opts.dims} dims; ${stored} old vector(s) discarded`)
+    }
+    await client.query(`UPDATE workspace_knowledge SET embedding_version = $1 WHERE status = 'ready'`, [PENDING_VERSION])
+  })
+}
+
+/** Embed one file's chunks and store them with the new version tag in one transaction; returns the chunk count. */
+async function reembedFile(client: DbClient, opts: ReembedOptions, file: StaleFile): Promise<number> {
+  const chunks = (await client.query<{ id: number, content: string }>(
+    'SELECT id, content FROM workspace_knowledge_chunks WHERE knowledge_id = $1 ORDER BY chunk_index',
+    [file.knowledge_id]
+  )).rows
+  const vectors = await embedChunks(opts, file, chunks)
+  await inTransaction(client, async () => {
+    for (const [i, chunk] of chunks.entries()) {
+      await client.query('UPDATE workspace_knowledge_chunks SET embedding = $1::vector WHERE id = $2', [vectorLiteral(must(vectors[i], `vector of chunk ${chunk.id}`)), chunk.id])
+    }
+    await client.query('UPDATE workspace_knowledge SET embedding_version = $1 WHERE knowledge_id = $2', [opts.versionTag, file.knowledge_id])
+  })
+  return chunks.length
+}
+
+async function embedChunks(opts: ReembedOptions, file: StaleFile, chunks: Array<{ content: string }>): Promise<number[][]> {
+  const vectors: number[][] = []
+  for (let i = 0; i < chunks.length; i += opts.batchSize) {
+    const batch = chunks.slice(i, i + opts.batchSize)
+    const out = await opts.embed(batch.map(c => c.content))
+    if (out.length !== batch.length) {
+      throw new Error(`embedder returned ${out.length} vectors for ${batch.length} chunks (file ${file.knowledge_id})`)
+    }
+    for (const v of out) {
+      if (v.length !== opts.dims) throw new Error(`embedder returned a ${v.length}-dim vector, expected ${opts.dims}`)
+      vectors.push(v)
+    }
+    if (opts.pauseMs) await new Promise(resolve => setTimeout(resolve, opts.pauseMs))
+  }
+  return vectors
 }

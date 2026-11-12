@@ -31,7 +31,8 @@ vi.mock('../../../server/utils/agentic/urlGuard', async (importOriginal) => {
   return { ...actual, assertSafeUrl: vi.fn(async () => {}) }
 })
 
-const { webSearch, fetchUrl } = await import('../../../server/utils/agentic/functionTools')
+const { webSearch } = await import('../../../server/utils/ai/tools/webSearch')
+const { fetchUrl } = await import('../../../server/utils/ai/tools/fetchUrl')
 
 const neverAbort = new AbortController().signal
 

@@ -9,16 +9,11 @@ import { getDocAuthz } from '../../utils/workspaces/workspaceAccess'
 import { getMemberRole } from '../../repos/workspaceMembers'
 import { findUserNameById } from '../../repos/users'
 import { connectAsMcpClient } from '../../utils/mcp/mcpHocuspocusClient'
-import {
-  TOOL_HANDLERS,
-  META_TOOL_HANDLERS,
-  type MetaToolName,
-  type ToolName
-} from '../../utils/agentic/toolHandlers'
+import { executeFunctionByName, executeMetaTool, type MetaToolName, type ToolName } from '../../utils/ai/tools/registry'
 import { requireMcpAuth, hasScope, toolEnabled } from './mcpToolContext'
 import { resolveBillingContext } from '../../utils/billing/billing'
 import { resolveAiProviders } from '../../utils/aiProviders/resolve'
-import type { ToolResult } from '../../utils/ai/aiToolAdapter'
+import type { ToolResult } from '../../utils/ai/tools/toolDefinition'
 import type { MetaToolContext, ToolStatusPhase } from '../../utils/agentic/toolContext'
 import type { McpAuthContext, McpScope } from '../../utils/mcp/mcpAuth'
 import { checkRateLimit } from '../../utils/platform/rateLimit'
@@ -47,7 +42,7 @@ import { apiError } from '../../utils/api/apiError'
 //   - Authz-checks against the PAT-resolved userId.
 //   - Builds a ToolContext appropriate for the class (real Y handles
 //     for doc-bound, in-memory stub Y.Doc for workspace + user-only).
-//   - Dispatches to TOOL_HANDLERS[name].
+//   - Dispatches through the tool registry (`utils/ai/tools/registry.ts`).
 //   - Releases pool entries / cleans up stub Y handles in `finally`.
 //
 // Audit chain (verified end-to-end by tests/integration/mcp/audit-and-session.test.ts):
@@ -185,9 +180,9 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
         workspaceId: authz.workspaceId
       })
       try {
-        // The combined TOOL_HANDLERS map covers both DOC + META names.
-        // Both accept handle.ctx (DocToolContext) — META handlers via
-        // structural subtyping (DocToolContext extends MetaToolContext).
+        // The registry runs DOC and META tools alike with handle.ctx
+        // (DocToolContext) — META handlers via structural subtyping
+        // (DocToolContext extends MetaToolContext).
         // We strip wrapper-injected `doc_id` from the args before
         // dispatch so the handler receives the SAME shape the in-app
         // loop passes (the loop carries docId out-of-band on
@@ -197,7 +192,7 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
         // strict-validators reject the result. See `stripWrapperArgs`
         // for the full rationale.
         const handlerArgs = stripWrapperArgs(args, 'doc_id')
-        return toolResultToCallToolResult(await TOOL_HANDLERS[opts.name](handle.ctx, handlerArgs))
+        return toolResultToCallToolResult(await executeFunctionByName(handle.ctx, opts.name, handlerArgs))
       } finally {
         handle.release()
       }
@@ -206,7 +201,7 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
 }
 
 export interface WrapWorkspaceBoundToolOpts<Schema extends ZodRawShape> {
-  /** Must be a key in META_TOOL_HANDLERS. Compile error if you try to
+  /** Must be a document-free (`meta`) tool. Compile error if you try to
    *  pass a doc-bound name (e.g. 'replace_text') — that's the whole
    *  point of the type-narrowing. */
   name: MetaToolName
@@ -250,7 +245,7 @@ export function buildWorkspaceBoundTool<Schema extends ZodRawShape>(opts: WrapWo
         // handler's args shape identical to what the in-app loop
         // passes (loop carries workspaceId on MetaToolContext).
         const handlerArgs = stripWrapperArgs(args, 'workspace_id')
-        return toolResultToCallToolResult(await META_TOOL_HANDLERS[opts.name](ctx.ctx, handlerArgs))
+        return toolResultToCallToolResult(await executeMetaTool(ctx.ctx, opts.name, handlerArgs))
       } finally {
         ctx.dispose()
       }
@@ -259,7 +254,7 @@ export function buildWorkspaceBoundTool<Schema extends ZodRawShape>(opts: WrapWo
 }
 
 export interface WrapUserOnlyToolOpts<Schema extends ZodRawShape> {
-  /** Must be a key in META_TOOL_HANDLERS. */
+  /** Must be a document-free (`meta`) tool. */
   name: MetaToolName
   description: string
   inputSchema: Schema
@@ -288,7 +283,7 @@ export function buildUserOnlyTool<Schema extends ZodRawShape>(opts: WrapUserOnly
       const auth = await admitToolCall(event, opts.name, opts.scope)
       const ctx = await buildStubContext(auth.userId, null, mcpSessionIdFromEvent(event))
       try {
-        return toolResultToCallToolResult(await META_TOOL_HANDLERS[opts.name](ctx.ctx, args))
+        return toolResultToCallToolResult(await executeMetaTool(ctx.ctx, opts.name, args))
       } finally {
         ctx.dispose()
       }

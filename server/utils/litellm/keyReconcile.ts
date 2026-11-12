@@ -114,46 +114,58 @@ export async function reconcileUserKeys(): Promise<KeyReconcileSummary> {
   for (const row of rows) {
     if (!row.keyId || !row.keyToken) continue
     summary.checked++
-    const current = listed.get(row.keyId)
-    if (!current) {
-      summary.missing++
-      continue
-    }
-    const desired = desiredKeyState(row.plan, row.planValidUntil)
-    // Top-up credits raise the key's budget on top of the plan's.
-    if (usersWithCredits.has(String(row.id))) {
-      desired.maxBudget = Math.round((desired.maxBudget + await creditBudgetExtraUsd({ type: 'user', id: String(row.id) })) * 10_000) / 10_000
-    }
-    if (!keyNeedsUpdate(current, desired)) continue
-    // Unreadable token: ensureUserKey replaces the key on the user's next AI call.
-    const token = openSecretOrNull('litellm-user-key', secretContext.litellmUserKey(row.id), row.keyToken)
-    if (!token) {
-      summary.failed++
-      continue
-    }
-    try {
-      // LiteLLM only moves a key into a team whose member its user is.
-      if (desired.teamId) await ensureFreeTierTeamMember(row.id)
-      const res = await litellmAdminFetch('/key/update', {
-        method: 'POST',
-        body: JSON.stringify({
-          key: token,
-          team_id: desired.teamId,
-          max_budget: desired.maxBudget,
-          budget_duration: desired.budgetDuration
-        })
-      })
-      if (!res.ok) {
-        throw new Error(`LiteLLM answered ${res.status}`)
-      }
-      summary.updated++
-    } catch (e) {
-      summary.failed++
-      log.warn('/key/update failed', { userId: row.id, err: e })
-    }
+    const outcome = await reconcileKey({ id: row.id, plan: row.plan, planValidUntil: row.planValidUntil, keyId: row.keyId, keyToken: row.keyToken }, listed, usersWithCredits)
+    if (outcome !== 'unchanged') summary[outcome]++
   }
   if (summary.updated > 0 || summary.missing > 0 || summary.failed > 0) {
     log.info('key reconcile finished', { ...summary })
   }
   return summary
+}
+
+interface KeyedUser {
+  id: number
+  plan: Parameters<typeof desiredKeyState>[0]
+  planValidUntil: Parameters<typeof desiredKeyState>[1]
+  keyId: string
+  keyToken: string
+}
+
+/** Bring one user's key in line with their plan (and top-up credits); what happened, for the summary. */
+async function reconcileKey(
+  row: KeyedUser,
+  listed: Awaited<ReturnType<typeof listAllKeys>>,
+  usersWithCredits: ReadonlySet<string>
+): Promise<'missing' | 'unchanged' | 'updated' | 'failed'> {
+  const current = listed.get(row.keyId)
+  if (!current) return 'missing'
+  const desired = desiredKeyState(row.plan, row.planValidUntil)
+  // Top-up credits raise the key's budget on top of the plan's.
+  if (usersWithCredits.has(String(row.id))) {
+    desired.maxBudget = Math.round((desired.maxBudget + await creditBudgetExtraUsd({ type: 'user', id: String(row.id) })) * 10_000) / 10_000
+  }
+  if (!keyNeedsUpdate(current, desired)) return 'unchanged'
+  // Unreadable token: ensureUserKey replaces the key on the user's next AI call.
+  const token = openSecretOrNull('litellm-user-key', secretContext.litellmUserKey(row.id), row.keyToken)
+  if (!token) return 'failed'
+  try {
+    // LiteLLM only moves a key into a team whose member its user is.
+    if (desired.teamId) await ensureFreeTierTeamMember(row.id)
+    const res = await litellmAdminFetch('/key/update', {
+      method: 'POST',
+      body: JSON.stringify({
+        key: token,
+        team_id: desired.teamId,
+        max_budget: desired.maxBudget,
+        budget_duration: desired.budgetDuration
+      })
+    })
+    if (!res.ok) {
+      throw new Error(`LiteLLM answered ${res.status}`)
+    }
+    return 'updated'
+  } catch (e) {
+    log.warn('/key/update failed', { userId: row.id, err: e })
+    return 'failed'
+  }
 }

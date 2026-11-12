@@ -285,25 +285,41 @@ export async function deleteScimUser(connection: SsoConnectionRow, identity: Use
 export async function patchScimUser(connection: SsoConnectionRow, identity: UserIdentityRow, body: Record<string, unknown>): Promise<void> {
   const ops = scimPatchBody.parse(body).Operations
   if (!ops) throw scimError(400, 'PATCH needs an Operations array.', 'invalidSyntax')
-  let active: boolean | undefined
-  let externalId: string | null | undefined
-  for (const op of ops) {
-    const kind = typeof op.op === 'string' ? op.op.toLowerCase() : ''
-    if (kind !== 'replace' && kind !== 'add' && kind !== 'remove') throw scimError(400, `Unsupported operation "${String(op.op)}".`, 'invalidSyntax')
-    const path = typeof op.path === 'string' ? op.path : null
-    const values: Record<string, unknown> = path ? { [path]: op.value } : scimAttributes.parse(op.value)
-    for (const [key, value] of Object.entries(values)) {
-      if (key.toLowerCase() === 'active') {
-        const b = kind === 'remove' ? false : scimBoolean(value)
-        if (b === undefined) throw scimError(400, '"active" must be true or false.', 'invalidValue')
-        active = b
-      } else if (key.toLowerCase() === 'externalid') {
-        externalId = kind === 'remove' ? null : typeof value === 'string' ? value.slice(0, 255) : undefined
-      }
+  const changes: ScimUserChanges = {}
+  for (const op of ops) applyPatchOperation(changes, op)
+  if (changes.externalId !== undefined) await setIdentityScimExternalId(identity.id, changes.externalId)
+  if (changes.active !== undefined) await setScimUserActive(connection, identity, changes.active)
+}
+
+/** What a PATCH changes: `undefined` = untouched, `externalId: null` = removed. */
+interface ScimUserChanges {
+  active?: boolean
+  externalId?: string | null
+}
+
+type PatchOperation = NonNullable<z.output<typeof scimPatchBody>['Operations']>[number]
+
+/** Fold one PATCH operation into `changes` (later operations win). */
+function applyPatchOperation(changes: ScimUserChanges, op: PatchOperation): void {
+  const kind = typeof op.op === 'string' ? op.op.toLowerCase() : ''
+  if (kind !== 'replace' && kind !== 'add' && kind !== 'remove') throw scimError(400, `Unsupported operation "${String(op.op)}".`, 'invalidSyntax')
+  const path = typeof op.path === 'string' ? op.path : null
+  const values: Record<string, unknown> = path ? { [path]: op.value } : scimAttributes.parse(op.value)
+  for (const [key, value] of Object.entries(values)) {
+    const attribute = key.toLowerCase()
+    if (attribute === 'active') {
+      const b = kind === 'remove' ? false : scimBoolean(value)
+      if (b === undefined) throw scimError(400, '"active" must be true or false.', 'invalidValue')
+      changes.active = b
+    } else if (attribute === 'externalid') {
+      changes.externalId = patchedExternalId(kind, value)
     }
   }
-  if (externalId !== undefined) await setIdentityScimExternalId(identity.id, externalId)
-  if (active !== undefined) await setScimUserActive(connection, identity, active)
+}
+
+function patchedExternalId(kind: 'replace' | 'add' | 'remove', value: unknown): string | null | undefined {
+  if (kind === 'remove') return null
+  return typeof value === 'string' ? value.slice(0, 255) : undefined
 }
 
 export async function replaceScimUser(connection: SsoConnectionRow, identity: UserIdentityRow, rawBody: Record<string, unknown>): Promise<void> {

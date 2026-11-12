@@ -15,7 +15,7 @@ async function seedYjs(docname: string, body: string): Promise<void> {
   ydoc.getText('content').insert(0, body)
   const update = Y.encodeStateAsUpdate(ydoc)
   await testDb().query(
-    `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1')`,
+    `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2)`,
     [docname, Buffer.from(update)]
   )
 }

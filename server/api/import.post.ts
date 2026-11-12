@@ -67,42 +67,7 @@ export default defineApiHandler({
 
     if (!isConvertedExtension(ext)) throw apiError('import/unsupported-format')
 
-    const env = useEnv()
-    if (!env.markitdown.url) throw apiError('import/not-configured')
-
-    // Markitdown's converter routing is extension-driven (StreamInfo in
-    // markitdown-server/server.py), so pass the validated extension as a query
-    // param instead of relying on Content-Type sniffing.
-    const url = `${env.markitdown.url}/convert?ext=${encodeURIComponent(ext)}`
-
-    let response: Response
-    try {
-      response = await fetch(url, {
-        method: 'POST',
-        headers: injectTraceHeaders({
-          'Content-Type': 'application/octet-stream',
-          'Content-Length': String(file.size),
-          ...markitdownAuthHeaders()
-        }),
-        body: file,
-        signal: AbortSignal.timeout(MARKITDOWN_IMPORT_TIMEOUT_MS)
-      })
-    } catch (e) {
-      const timedOut = e instanceof Error && e.name === 'TimeoutError'
-      throw apiError(timedOut ? 'import/timeout' : 'import/unavailable')
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      // markitdown answers 413 when an archive would expand past its limits
-      // (zip-bomb guard) or the conversion hit its memory cap, 504 on its
-      // own timeout.
-      if (response.status === 413) throw apiError('import/too-complex')
-      if (response.status === 504) throw apiError('import/timeout')
-      throw apiError('import/conversion-failed', { detail: errorText.slice(0, 200) }, { status: response.status === 415 ? 415 : 422 })
-    }
-
-    const markdown = await response.text()
+    const markdown = await convertWithMarkitdown(file, ext)
 
     return {
       markdown,
@@ -111,6 +76,46 @@ export default defineApiHandler({
     }
   }
 })
+
+/** A converted file's Markdown from the markitdown service; its failures map to the import error codes. */
+async function convertWithMarkitdown(file: File, ext: ConvertedExtension): Promise<string> {
+  const env = useEnv()
+  if (!env.markitdown.url) throw apiError('import/not-configured')
+
+  // Markitdown's converter routing is extension-driven (StreamInfo in
+  // markitdown-server/server.py), so pass the validated extension as a query
+  // param instead of relying on Content-Type sniffing.
+  const url = `${env.markitdown.url}/convert?ext=${encodeURIComponent(ext)}`
+
+  let response: Response
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: injectTraceHeaders({
+        'Content-Type': 'application/octet-stream',
+        'Content-Length': String(file.size),
+        ...markitdownAuthHeaders()
+      }),
+      body: file,
+      signal: AbortSignal.timeout(MARKITDOWN_IMPORT_TIMEOUT_MS)
+    })
+  } catch (e) {
+    const timedOut = e instanceof Error && e.name === 'TimeoutError'
+    throw apiError(timedOut ? 'import/timeout' : 'import/unavailable')
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    // markitdown answers 413 when an archive would expand past its limits
+    // (zip-bomb guard) or the conversion hit its memory cap, 504 on its
+    // own timeout.
+    if (response.status === 413) throw apiError('import/too-complex')
+    if (response.status === 504) throw apiError('import/timeout')
+    throw apiError('import/conversion-failed', { detail: errorText.slice(0, 200) }, { status: response.status === 415 ? 415 : 422 })
+  }
+
+  return await response.text()
+}
 
 async function importMarkdown(event: H3Event, file: File, rawDocId: FormDataEntryValue | null | undefined): Promise<ImportResponse> {
   if (file.size > IMPORT_MARKDOWN_MAX_BYTES) throw apiError('import/file-too-large')

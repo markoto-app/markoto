@@ -15,7 +15,7 @@ All three run the same steps:
 1. **Markdown → HTML.** `app/utils/markdown/renderMarkdown.ts` holds one markdown-it instance (plugins imported lazily on first use, `html: false`) and sanitises the result with `app/utils/markdown/sanitizeHtml.ts` (DOMPurify with tag / attribute / URI allowlists; inline `style` values go through a property allowlist, `filterInlineStyle`). Code fences always get `language-<lang>` so Mermaid blocks are found as `pre code.language-mermaid`.
 2. **Footnotes.** `transformFootnotesForPagedMedia` moves markdown-it-footnote's end-of-document list to inline `<span class="footnote">` at each reference, which paged.js needs for `float: footnote`.
 3. **Compose.** `app/utils/preview/composeFinalHtml.ts` assembles cover + body (+ drop cap, structure markers) and **sanitises the composed result again**: the cover is built from theme values, and a theme can arrive over Y.js without passing the HTTP validation. DOM work (drop cap, markers) runs on parsed DOM, never on regexes over the HTML string.
-4. **Theme → CSS.** `shared/utils/theme/themeToCss.ts` compiles a `DocTheme` (`shared/types/theme.ts`) into the whole stylesheet: `@page` and margin boxes, body, headings, TOC page numbers (`target-counter`), code, tables, KaTeX, Mermaid, custom CSS last.
+4. **Theme → CSS.** `shared/utils/theme/themeToCss.ts` (composed from one module per CSS concern in `shared/themeCss/`; output pinned per preset and option by `tests/unit/theme/themeToCssGolden.test.ts`) compiles a `DocTheme` (`shared/types/theme.ts`) into the whole stylesheet: `@page` and margin boxes, body, headings, TOC page numbers (`target-counter`), code, tables, KaTeX, Mermaid, custom CSS last.
 5. **Paginate.** paged.js (vendored) lays the document out into pages; `app/utils/preview/pagedHandlers.ts` adjusts the breaks (below).
 
 At render time every consumer also checks the theme: `isValidTheme` (an invalid theme renders as `defaultTheme`) and `themeImagesForDoc(theme, docId)` (`shared/utils/theme/themeImages.ts`), which blanks image URLs that are not a bundled `/markoto-logos/*` asset or an upload of this document.
@@ -64,7 +64,7 @@ paged.js, KaTeX (stylesheet + fonts), highlight.js themes, Mermaid and all web f
 
 ## Themes
 
-Per-document theme JSON is stored in `documents.theme` and mirrored to `ymeta.theme`; it is validated by `shared/utils/theme/themeValidation.ts`. Presets: `shared/utils/theme/themePresets.ts`. Editor panel: `app/components/document/ThemeEditorPanel.vue`. Page sizes: `shared/utils/theme/pageDimensions.ts`.
+Per-document theme JSON is stored in `documents.theme` and mirrored to `ymeta.theme`; it is validated by `shared/utils/theme/themeValidation.ts`. Presets: `shared/utils/theme/themePresets.ts`. Editor panel: `app/components/document/ThemeEditorPanel.vue` (saved themes, presets, design import) with one component per section in `app/components/document/theme/`, each bound to the panel's draft through `v-model:theme`. Page sizes: `shared/utils/theme/pageDimensions.ts`.
 
 - **Optional fields.** Many theme fields are `.optional()` so stored themes stay valid without a migration. Every reader resolves them through `shared/utils/theme/themeOptions.ts`; presets and `defaultTheme` spell them out (`tests/unit/theme/themeFoundation.test.ts`). The panel binds them with defaults so opening it never rewrites a stored theme.
 - **Heading scale.** `headings.scale` is the ratio between neighbouring levels from h4 up: h4 = body, h1 = body × scale³ (`HEADING_SCALE_EXPONENTS`). Display sizes belong to the cover. `headings.levels` overrides size / weight / style per level.
@@ -82,7 +82,23 @@ Per-document theme JSON is stored in `documents.theme` and mirrored to `ymeta.th
 
 `app/utils/preview/pagedHandlers.ts` is a paged.js handler registered once per window. It keeps headings and lead-ins with the next block, splits or moves code blocks, tables and lists with minimum line / row counts on each side, avoids widows and orphans, shrinks a diagram (down to 75 %) before moving it, spans wide content across columns in multi-column themes, repeats table headers on continued pages, and fixes paged.js's footnote handling on multi-column pages. Display math wraps before relations and shrinks no further than `MIN_MATH_SCALE`.
 
-The function is delivered into the iframe via `toString()` as a nonce'd inline script (`PAGED_HANDLERS_SCRIPT`), so it must stay self-contained (no imports or module references). `tests/dom/pagedHandlers.test.ts` evaluates that string.
+One part per concern lives in `app/utils/preview/paged/`, each a factory that gets the parts it builds on as arguments:
+
+| Part | Concern |
+|---|---|
+| `blockQueries.ts` | what a block is, what comes before it, the shared minimums |
+| `lineGeometry.ts` | line boxes on the page vs. in the overflow column, widow fix, heading-near-break |
+| `tableCodeRules.ts` | table row splits (incl. totals blocks), code-line splits |
+| `breakRules.ts` | `adjustedBreak`: unbreakable blocks → tables / code → lists → orphans / widows → keep-with-next |
+| `columnRules.ts` | multi-column pages: spanning wide blocks, forced column breaks |
+| `keptBlocks.ts` | splitting a short kept block instead of a gap, shrinking diagrams |
+| `displayMath.ts` | breaking display math before relations, hanging indent, shrinking |
+| `pageMarks.ts` | the unpaginated source, repeated table headers, page-edge marks |
+| `boxlessRects.ts` | hidden nodes no longer count as overflow |
+| `pagedFixes.ts` | paged.js fixes: selector specificity, multi-column footnotes |
+| `paginationHandler.ts` | the handler class: one method per paged.js hook, each guarded |
+
+`runPagedHandlers` in `pagedHandlers.ts` wires them in a fixed order (the hidden-node fix before the handler registers, paged.js's own handlers patched after). The parts are delivered into the iframe via `toString()` as one nonce'd inline script (`PAGED_HANDLERS_SCRIPT`: the runner applied to the stringified parts), so every part must stay self-contained (no imports except types, no module references, no references to another part by name). The server render page calls `registerPagedHandlers`, which passes the same functions directly. `tests/dom/pagedHandlers.test.ts` evaluates the string and checks the direct path.
 
 ## Markdown comments
 

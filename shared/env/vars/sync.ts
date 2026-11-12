@@ -1,4 +1,4 @@
-import { bytes, durationMs, int, port, positiveInt, string, url } from '../coerce'
+import { bytes, durationMs, int, nonNegativeInt, port, positiveInt, string, url } from '../coerce'
 import { defineNamespace, v } from '../define'
 import { MIB } from '../../config/units'
 
@@ -102,7 +102,7 @@ export const sync = defineNamespace({
       name: 'COMPACT_THRESHOLD',
       type: positiveInt,
       default: 500,
-      doc: 'A document is compacted once it has more stored update rows than this.',
+      doc: 'A snapshot of a document is written once it has more stored updates than this since its last snapshot (loading then starts from the snapshot; no history is removed).',
       services: ['sync'],
       scope: 'both'
     }),
@@ -119,6 +119,14 @@ export const sync = defineNamespace({
       type: positiveInt,
       default: 50,
       doc: 'Most documents compacted per sweep.',
+      services: ['sync'],
+      scope: 'both'
+    }),
+    compactRetainHistoryDays: v({
+      name: 'COMPACT_RETAIN_HISTORY_DAYS',
+      type: nonNegativeInt,
+      default: 0,
+      doc: 'Days of edit history that stay restorable. Older Y.js rows are deleted below a snapshot, and Activity Log restores/diffs from before then answer 410. 0 = keep all history. Must be at least the longest plan history window (TIER_*_HISTORY_DAYS).',
       services: ['sync'],
       scope: 'both'
     })

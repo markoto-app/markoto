@@ -3,11 +3,9 @@
 // `dictateHelpers.ts` — extracted so unit tests don't pull in Nuxt
 // runtime + auth machinery just to assert on MIME/language mapping.
 //
-// `normalizeLanguageCode` is re-exported from `dictateHelpers.ts`
-// because both endpoints need identical locale handling; changing
-// either would produce inconsistent behavior between live dictation
-// and one-shot prompt transcription.
-export { normalizeLanguageCode } from './dictateHelpers'
+// Language codes go through `normalizeLanguageCode` in `dictateHelpers.ts`
+// for both endpoints: identical locale handling for live dictation and
+// one-shot prompt transcription.
 
 /**
  * Map a client-reported MIME type to the upstream's encoding enum. We

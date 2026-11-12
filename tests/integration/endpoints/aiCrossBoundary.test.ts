@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import * as Y from 'yjs'
-import { ensureYjsTable, resetDb, testDb } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { loggedInClient, type TestClient } from '../setup/client'
 import { createDoc, createWorkspace, setMemberRole, type TestUser } from '../setup/fixtures'
 import { fakeOpenAiBaseUrl } from '../setup/env'
@@ -126,7 +126,6 @@ async function waitForSessionEnd(docId: string): Promise<void> {
 describe('A1 — taint + confirm (prompt injection by another editor)', () => {
   beforeEach(async () => {
     await resetDb()
-    await ensureYjsTable()
     await resetFake()
   })
 
@@ -206,7 +205,6 @@ describe('A1 — taint + confirm (prompt injection by another editor)', () => {
 describe('A2 — AI status is private to the initiator', () => {
   beforeEach(async () => {
     await resetDb()
-    await ensureYjsTable()
     await resetFake()
   })
 
@@ -256,7 +254,6 @@ describe('A2 — AI status is private to the initiator', () => {
 describe('A6 — @ai trigger only for the caller\'s own message', () => {
   beforeEach(async () => {
     await resetDb()
-    await ensureYjsTable()
     await resetFake()
   })
 
@@ -286,7 +283,6 @@ describe('A6 — @ai trigger only for the caller\'s own message', () => {
 describe('F-7b — provenance of the invoker\'s own AI edits', () => {
   beforeEach(async () => {
     await resetDb()
-    await ensureYjsTable()
     await resetFake()
   })
 

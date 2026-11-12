@@ -19,29 +19,21 @@ import { partial } from '../../helpers/fixtures'
 // `streamFromProvider` (or the underlying ai client) can throw a synthetic LitellmBudgetExhausted to exercise
 // this path.
 
-// The runLoop imports `aiToolAdapter.executeFunctionByName` which
-// transitively pulls in the DB layer (repos/documents -> useDatabase).
-// Stub both adapter entry points at the module boundary so the loop
-// runs with no DB, no Y.js, no outbound HTTP. Every test can program
-// what each tool returns.
-const executeFunctionByName = vi.fn<(session: unknown, name: string, args: unknown) => Promise<{ content: string, isError: boolean, extraParts?: unknown[] }>>()
-const webSearch = vi.fn<typeof import('../../../server/utils/agentic/functionTools').webSearch>()
+// The runLoop dispatches through the tool registry's
+// `executeFunctionByName`, which transitively pulls in the DB layer
+// (repos/documents -> useDatabase). Stub the dispatcher and the web-search
+// helper at the module boundary so the loop runs with no DB, no Y.js, no
+// outbound HTTP. Every test can program what each tool returns. The rest of
+// the registry (schemas, declarations) stays real: the validation-failure
+// tests rely on safeParse.
+const executeFunctionByName = vi.hoisted(() => vi.fn<(session: unknown, name: string, args: unknown) => Promise<{ content: string, isError: boolean, extraParts?: unknown[] }>>())
+const webSearch = vi.hoisted(() => vi.fn<typeof import('../../../server/utils/ai/tools/webSearch').webSearch>())
 
-vi.mock('../../../server/utils/ai/aiToolAdapter', () => ({
+vi.mock('../../../server/utils/ai/tools/registry', async importOriginal => ({
+  ...await importOriginal<typeof import('../../../server/utils/ai/tools/registry')>(),
   executeFunctionByName
 }))
-vi.mock('../../../server/utils/agentic/functionTools', async () => {
-  const actual = await vi.importActual<typeof import('../../../server/utils/agentic/functionTools')>(
-    '../../../server/utils/agentic/functionTools'
-  )
-  return {
-    ...actual,
-    // Keep TOOL_SCHEMAS + ALL_TOOL_DECLARATIONS real (we rely on
-    // safeParse for the validation-failure tests) and stub only the
-    // external-I/O helper.
-    webSearch
-  }
-})
+vi.mock('../../../server/utils/ai/tools/webSearch', () => ({ webSearch }))
 
 // Import under test AFTER vi.mock() calls above.
 const { runAgenticLoop } = await import('../../../server/utils/agentic/runLoop')

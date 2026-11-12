@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 import { Awareness } from 'y-protocols/awareness'
-import { handleExportDocumentAsMarkdown } from '../../../server/utils/ai/aiToolAdapter'
+import { exportDocumentAsMarkdownTool } from '../../../server/utils/ai/tools/libraryTools'
 import type { DocToolContext } from '../../../server/utils/agentic/toolContext'
 import { FULL_AI_PROVIDERS } from '../fixtures/aiProviders'
 import { getDoc, type DocSnapshot } from '../../../server/repos/documents'
@@ -74,7 +74,7 @@ function session(body: string, meta: Record<string, unknown> = {}): DocToolConte
   }
 }
 
-const run = (ctx: DocToolContext) => handleExportDocumentAsMarkdown(ctx, { doc_id: 'doc1' })
+const run = (ctx: DocToolContext) => exportDocumentAsMarkdownTool.run(ctx, { doc_id: 'doc1' })
 
 beforeEach(() => {
   mockedGetDoc.mockReset()

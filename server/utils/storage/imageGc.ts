@@ -8,6 +8,7 @@ import {
   type GcCandidate
 } from '../../repos/uploads'
 import { useDatabasePool } from '../platform/database'
+import { readAllYjsUpdates } from '../documents/yjsLog'
 import type { ObjectStore } from './objectStore'
 import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
 import { useEnv } from '~~/shared/env/load'
@@ -27,11 +28,12 @@ const log = useLogger('image-gc')
 //         the meta map (title / theme incl. theme images and custom CSS)
 //         and the comments array are searched after EVERY row. Activity-log
 //         restore points are row boundaries of that same log, so every
-//         restorable version is covered; versions merged away by
-//         compaction are not restorable any more;
+//         restorable version is covered; versions pruned by the sync
+//         server's history retention are not restorable any more;
 //      b. any other place a reference to `/api/files/{docId}/{fileId}` can
-//         live: the raw bytes of every stored Y.js update (any doc — a URL
-//         pasted into another doc, or not-yet-compacted history), every
+//         live: the raw bytes of every stored Y.js row (any doc — a URL
+//         pasted into another doc; a URL typed across two stores can be
+//         split between update rows, a snapshot holds it whole), every
 //         document theme, workspace default theme, saved theme preset,
 //         comment body, and activity-log metadata (comment snapshots);
 //   3. 2. has held at every check for at least the retention window
@@ -40,8 +42,7 @@ const log = useLogger('image-gc')
 //      reference clears it, and the delete itself is conditional on the
 //      stamp still being older than the window.
 // When in doubt the image stays: a doc without any stored Y.js rows is
-// skipped, a missing `yjs_documents` table disables the run, and every
-// error leaves rows untouched.
+// skipped, and every error leaves rows untouched.
 //
 // Runs from `server/plugins/image-gc-sweep.ts` under its sweep lock.
 
@@ -91,21 +92,6 @@ export function findFileIdsInHistory(updates: Uint8Array[], fileIds: string[]): 
   return found
 }
 
-async function yjsTableExists(): Promise<boolean> {
-  const res = await useDatabasePool().query<{ exists: boolean }>(
-    `SELECT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'yjs_documents' AND relkind = 'r') AS exists`
-  )
-  return res.rows[0]?.exists === true
-}
-
-async function loadDocUpdates(docId: string): Promise<Uint8Array[]> {
-  const res = await useDatabasePool().query<{ value: Buffer }>(
-    `SELECT value FROM yjs_documents WHERE docname = $1 AND version = 'v1' ORDER BY id ASC`,
-    [docId]
-  )
-  return res.rows.map(r => new Uint8Array(r.value.buffer, r.value.byteOffset, r.value.byteLength))
-}
-
 /**
  * Which of `paths` (`{docId}/{fileId}`) occur anywhere outside the doc's
  * own replay: raw Y.js bytes of every doc, themes, comments, activity
@@ -115,8 +101,8 @@ async function findExternallyReferencedPaths(paths: string[]): Promise<Set<strin
   if (paths.length === 0) return new Set()
   const res = await useDatabasePool().query<{ path: string }>(
     `SELECT p.path FROM unnest($1::text[]) AS p(path)
-     WHERE EXISTS (SELECT 1 FROM yjs_documents y
-                   WHERE position(convert_to(p.path, 'UTF8') IN y.value) > 0)
+     WHERE EXISTS (SELECT 1 FROM yjs_updates y
+                   WHERE position(convert_to(p.path, 'UTF8') IN y.data) > 0)
         OR EXISTS (SELECT 1 FROM documents d WHERE strpos(d.theme::text, p.path) > 0)
         OR EXISTS (SELECT 1 FROM workspaces w WHERE strpos(w.default_theme::text, p.path) > 0)
         OR EXISTS (SELECT 1 FROM themes t WHERE strpos(t.theme::text, p.path) > 0)
@@ -142,7 +128,7 @@ export interface ImageGcResult {
 
 /** Split one doc's candidates into referenced / unreferenced. */
 async function classifyDocCandidates(docId: string, candidates: GcCandidate[]): Promise<{ referenced: GcCandidate[], unreferenced: GcCandidate[] } | null> {
-  const updates = await loadDocUpdates(docId)
+  const updates = await readAllYjsUpdates(docId)
   // No stored state at all: nothing to prove a negative against. Skip.
   if (updates.length === 0) return null
   const inHistory = findFileIdsInHistory(updates, candidates.map(c => c.fileId))
@@ -161,7 +147,6 @@ export async function runImageGc(deps: ImageGcDeps): Promise<ImageGcResult> {
   const result: ImageGcResult = { docsChecked: 0, unreferenced: 0, deleted: 0 }
   const retentionDays = deps.retentionDays ?? resolveImageGcRetentionDays()
   if (retentionDays <= 0) return result
-  if (!(await yjsTableExists())) return result
 
   const now = deps.now ?? new Date()
   const confirmedBefore = new Date(now.getTime() - IMAGE_GC_CONFIRM_GRACE_MS)
@@ -174,39 +159,49 @@ export async function runImageGc(deps: ImageGcDeps): Promise<ImageGcResult> {
 
   for (const docId of docIds) {
     try {
-      const candidates = await listGcCandidatesForDoc(docId, confirmedBefore)
-      if (candidates.length === 0) continue
-      const classified = await classifyDocCandidates(docId, candidates)
-      // Skipped docs still get their check stamped (as referenced), so the
-      // rotation moves on and no stale stamp survives.
-      const referenced = classified ? classified.referenced : candidates
-      const unreferenced = classified ? classified.unreferenced : []
-      await recordGcCheck({
-        referencedIds: referenced.map(c => c.id),
-        unreferencedIds: unreferenced.map(c => c.id),
-        now
-      })
-      result.docsChecked++
-      result.unreferenced += unreferenced.length
-
-      for (const c of unreferenced) {
-        // Only a stamp from an EARLIER check can be old enough.
-        if (!c.unreferencedSince || c.unreferencedSince >= deleteCutoff) continue
-        const s3Key = await deleteExpiredUnreferencedUpload(c.id, deleteCutoff)
-        if (!s3Key) continue
-        result.deleted++
-        // Row first, object second: a failed S3 delete leaves an untracked
-        // object that orphan-cleanup's defensive layer reaps after 24 h.
-        try {
-          await deps.store.deleteMany([s3Key])
-        } catch (e) {
-          Sentry.captureException(e, { tags: { component: 'image-gc', event: 's3_delete_failed' } })
-        }
-      }
+      await gcDoc(deps, docId, { confirmedBefore, deleteCutoff, now }, result)
     } catch (e) {
       log.warn('check failed', { docId, err: e })
       Sentry.captureException(e, { tags: { component: 'image-gc', event: 'doc_check_failed' } })
     }
   }
   return result
+}
+
+/** Check one document's candidates, stamp the result, delete what stayed unreferenced past the retention. */
+async function gcDoc(
+  deps: ImageGcDeps,
+  docId: string,
+  at: { confirmedBefore: Date, deleteCutoff: Date, now: Date },
+  result: ImageGcResult
+): Promise<void> {
+  const candidates = await listGcCandidatesForDoc(docId, at.confirmedBefore)
+  if (candidates.length === 0) return
+  const classified = await classifyDocCandidates(docId, candidates)
+  // Skipped docs still get their check stamped (as referenced), so the
+  // rotation moves on and no stale stamp survives.
+  const referenced = classified ? classified.referenced : candidates
+  const unreferenced = classified ? classified.unreferenced : []
+  await recordGcCheck({
+    referencedIds: referenced.map(c => c.id),
+    unreferencedIds: unreferenced.map(c => c.id),
+    now: at.now
+  })
+  result.docsChecked++
+  result.unreferenced += unreferenced.length
+
+  for (const c of unreferenced) {
+    // Only a stamp from an EARLIER check can be old enough.
+    if (!c.unreferencedSince || c.unreferencedSince >= at.deleteCutoff) continue
+    const s3Key = await deleteExpiredUnreferencedUpload(c.id, at.deleteCutoff)
+    if (!s3Key) continue
+    result.deleted++
+    // Row first, object second: a failed S3 delete leaves an untracked
+    // object that orphan-cleanup's defensive layer reaps after 24 h.
+    try {
+      await deps.store.deleteMany([s3Key])
+    } catch (e) {
+      Sentry.captureException(e, { tags: { component: 'image-gc', event: 's3_delete_failed' } })
+    }
+  }
 }

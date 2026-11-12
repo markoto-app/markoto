@@ -1,112 +1,182 @@
-// Unit tests for the CRDT-correctness core of background compaction
-// (sync-server/src/compaction.ts). Imported cross-package from the root
-// unit tier (like tests/unit/sync/syncAuth.test.ts) so it runs in CI — the
-// sync-server's own src/__tests__ suite is not wired into the CI vitest.
-//
-// The DB orchestration (compactDocument / runCompactionSweep) needs a live
-// Postgres and is covered by design + review; what MUST be pinned here is
-// that merging granular updates preserves document state, AND that an
-// update NOT folded into the merge (the concurrency case: rows appended
-// after the ceiling snapshot) still reconstructs correctly on top of the
-// merged row. That invariant is the whole reason the sweep is safe.
+// The sync server's persistence decisions without a database: what a store
+// writes, how failures are retried / kept in memory, and how the compaction
+// sweep schedules work. The SQL itself runs against Postgres in
+// tests/repos/yjsPersistence.test.ts.
 
 import { describe, it, expect } from 'vitest'
-import * as Y from 'yjs'
-import { mergeUpdates } from '../../../sync-server/src/compaction'
+import * as Y from '../../../sync-server/src/yjs'
+import { createDocumentPersistence, type LiveDocument } from '../../../sync-server/src/persistence'
+import { createCompactionSweeper } from '../../../sync-server/src/compaction'
+import { DocumentGoneError, type PoolLike, type YjsStore } from '../../../sync-server/src/yjs-store'
+import type { Logger } from '../../../shared/logging/core'
 
-// Capture the sequence of incremental updates a doc emits as it's edited —
-// this mirrors the granular `v1` rows y-postgresql appends per store.
-function recordUpdates(build: (doc: Y.Doc) => void): { updates: Uint8Array[], finalText: string } {
-  const doc = new Y.Doc()
-  const updates: Uint8Array[] = []
-  doc.on('update', (u: Uint8Array) => updates.push(u))
-  build(doc)
-  const finalText = doc.getText('content').toString()
-  doc.destroy()
-  return { updates, finalText }
+const silent: Logger = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {}, with: () => silent }
+
+/** An in-memory stand-in for the store: an array of appended updates. */
+function fakeStore(failures: Array<Error | null> = []) {
+  const rows: Uint8Array[] = []
+  const snapshots: string[] = []
+  const store = {
+    load: async () => {
+      const doc = new Y.Doc()
+      for (const r of rows) Y.applyUpdate(doc, r)
+      return { doc, updatesSinceSnapshot: rows.length, bytes: 0, unreadableRowIds: [] }
+    },
+    append: async (_docId: string, update: Uint8Array) => {
+      const failure = failures.shift()
+      if (failure) throw failure
+      rows.push(update)
+      return { id: rows.length, previousId: rows.length > 1 ? rows.length - 1 : null }
+    },
+    writeSnapshot: async (docId: string) => {
+      if (docId === 'broken') throw new Error('boom')
+      snapshots.push(docId)
+      return { id: 1, updatesMerged: 2, bytes: 1 }
+    },
+    prune: async () => 0,
+    pruneCandidates: async () => []
+  } satisfies YjsStore
+  return { store, rows, snapshots }
 }
 
-function textFromUpdates(updates: Uint8Array[]): string {
-  const doc = new Y.Doc()
-  for (const u of updates) Y.applyUpdate(doc, u)
-  const t = doc.getText('content').toString()
-  doc.destroy()
-  return t
+function persistenceWith(store: YjsStore, captured: unknown[] = []) {
+  const due: string[] = []
+  const p = createDocumentPersistence({
+    store,
+    log: silent,
+    capture: e => captured.push(e),
+    snapshotThreshold: 2,
+    onSnapshotDue: id => due.push(id),
+    retryDelaysMs: [1],
+    sleep: () => Promise.resolve()
+  })
+  return { p, due }
 }
 
-describe('mergeUpdates', () => {
-  it('merges granular updates into one equivalent update (state preserved)', () => {
-    const { updates, finalText } = recordUpdates((doc) => {
-      const t = doc.getText('content')
-      t.insert(0, 'Hello')
-      t.insert(5, ' world')
-      t.insert(0, '# ')
-      t.delete(2, 5) // delete "Hello"
-      t.insert(2, 'Hi')
-    })
-    expect(updates.length).toBeGreaterThan(1)
+function textOf(rows: Uint8Array[]): string {
+  const doc = new Y.Doc()
+  for (const r of rows) Y.applyUpdate(doc, r)
+  return doc.getText('content').toJSON()
+}
 
-    const merged = mergeUpdates(updates)
-
-    // A fresh doc with ONLY the merged update reconstructs the same state.
-    const doc = new Y.Doc()
-    Y.applyUpdate(doc, merged)
-    expect(doc.getText('content').toString()).toBe(finalText)
-    doc.destroy()
+describe('document persistence', () => {
+  it('stores only what changed since the previous store', async () => {
+    const { store, rows } = fakeStore()
+    const { p } = persistenceWith(store)
+    const doc = new Y.Doc() as LiveDocument
+    await p.load('d', doc)
+    doc.getText('content').insert(0, 'a'.repeat(500))
+    await p.store('d', doc)
+    doc.getText('content').insert(0, 'b')
+    await p.store('d', doc)
+    expect(rows).toHaveLength(2)
+    expect(rows[1]!.byteLength).toBeLessThan(100)
+    expect(textOf(rows)).toBe(`b${'a'.repeat(500)}`)
   })
 
-  it('preserves a ymeta map alongside the text (title/theme survive compaction)', () => {
-    const { updates } = recordUpdates((doc) => {
-      doc.getText('content').insert(0, 'body')
-      const meta = doc.getMap('meta')
-      meta.set('title', 'My Document')
-      meta.set('theme', { page: { size: 'A4' } })
-    })
-
-    const doc = new Y.Doc()
-    Y.applyUpdate(doc, mergeUpdates(updates))
-    expect(doc.getMap('meta').get('title')).toBe('My Document')
-    expect(doc.getMap('meta').get('theme')).toEqual({ page: { size: 'A4' } })
-    doc.destroy()
+  it('a store that fails and then succeeds writes the whole missed delta', async () => {
+    const { store, rows } = fakeStore([new Error('connection reset')])
+    const { p } = persistenceWith(store)
+    const doc = new Y.Doc() as LiveDocument
+    await p.load('d', doc)
+    doc.getText('content').insert(0, 'kept')
+    expect(await p.store('d', doc)).toEqual({ id: 1, previousId: null })
+    expect(textOf(rows)).toBe('kept')
   })
 
-  it('a concurrent update left OUT of the merge still applies on top (race-safety invariant)', () => {
-    // Simulate the sweep boundary: rows 1..N are read + merged (id <=
-    // ceiling); row N+1 is appended by a live writer AFTER the ceiling
-    // snapshot, so it is NOT in the merge and NOT deleted. On the next load
-    // the merged row + row N+1 must together reconstruct the full state.
-    const doc = new Y.Doc()
-    const belowCeiling: Uint8Array[] = []
-    const afterCeiling: Uint8Array[] = []
-    // Route each update into the current batch via a mutable target so the
-    // "ceiling" split is a single clean handoff.
-    let target = belowCeiling
-    doc.on('update', (u: Uint8Array) => target.push(u))
+  it('keeps a document unsaved after its retries, and saves it under its save mutex later', async () => {
+    const { store, rows } = fakeStore([new Error('down'), new Error('down')])
+    const captured: unknown[] = []
+    const { p } = persistenceWith(store, captured)
+    const doc = new Y.Doc() as LiveDocument
+    const order: string[] = []
+    doc.saveMutex = {
+      runExclusive: async <T>(fn: () => Promise<T>) => {
+        order.push('locked')
+        return fn()
+      }
+    }
+    await p.load('d', doc)
+    doc.getText('content').insert(0, 'precious')
+    expect(await p.store('d', doc)).toBeNull()
+    expect(p.hasUnsavedChanges(doc)).toBe(true)
+    expect(captured).toHaveLength(1)
 
-    doc.getText('content').insert(0, 'first batch')
-    target = afterCeiling // ceiling snapshot happens here
-    doc.getText('content').insert(11, ' + concurrent tail')
-    const expected = doc.getText('content').toString()
-    doc.destroy()
-
-    expect(belowCeiling.length).toBeGreaterThan(0)
-    expect(afterCeiling.length).toBeGreaterThan(0)
-
-    const merged = mergeUpdates(belowCeiling)
-
-    // Load order mirrors y-postgresql's `ORDER BY id`: merged row (higher
-    // id, appended last) sorts AFTER the concurrent row — but Y.js updates
-    // are commutative, so either order yields the same state. Assert both.
-    expect(textFromUpdates([merged, ...afterCeiling])).toBe(expected)
-    expect(textFromUpdates([...afterCeiling, merged])).toBe(expected)
+    const saved: string[] = []
+    await p.retryUnsaved(id => saved.push(id))
+    expect(order).toEqual(['locked'])
+    expect(saved).toEqual(['d'])
+    expect(p.hasUnsavedChanges(doc)).toBe(false)
+    expect(textOf(rows)).toBe('precious')
   })
 
-  it('is idempotent — merging an already-merged update is a no-op in state', () => {
-    const { updates, finalText } = recordUpdates((doc) => {
-      doc.getText('content').insert(0, 'stable content')
+  it('drops the edits of a deleted document without retrying or reporting it', async () => {
+    const { store } = fakeStore([new DocumentGoneError('d')])
+    const captured: unknown[] = []
+    const { p } = persistenceWith(store, captured)
+    const doc = new Y.Doc() as LiveDocument
+    await p.load('d', doc)
+    doc.getText('content').insert(0, 'x')
+    expect(await p.store('d', doc)).toBeNull()
+    expect(p.hasUnsavedChanges(doc)).toBe(false)
+    expect(captured).toHaveLength(0)
+  })
+
+  it('rethrows a load failure (Hocuspocus then refuses the connection)', async () => {
+    const { store } = fakeStore()
+    const failing = {
+      ...store,
+      load: async () => {
+        throw new Error('db down')
+      }
+    }
+    const { p } = persistenceWith(failing)
+    await expect(p.load('d', new Y.Doc())).rejects.toThrow('db down')
+  })
+
+  it('asks for a snapshot once the updates since the last one pass the threshold', async () => {
+    const { store } = fakeStore()
+    const { p, due } = persistenceWith(store)
+    const doc = new Y.Doc() as LiveDocument
+    await p.load('d', doc)
+    for (let i = 0; i < 3; i++) {
+      doc.getText('content').insert(0, 'x')
+      await p.store('d', doc)
+    }
+    expect(due).toEqual(['d'])
+  })
+})
+
+describe('compaction sweeper', () => {
+  function lockPool(locked: boolean): PoolLike {
+    const query = async <R>(text: string) => {
+      const rows = text.includes('pg_try_advisory_lock') ? [{ locked }] : []
+      return { rows: rows as R[], rowCount: 0 }
+    }
+    return { query, connect: async () => ({ query, release: () => {} }) }
+  }
+
+  it('snapshots queued documents, at most maxDocsPerRun, and one failure does not stop the rest', async () => {
+    const { store, snapshots } = fakeStore()
+    const sweeper = createCompactionSweeper({
+      store, pool: lockPool(true), log: silent, capture: () => {},
+      intervalMs: 0, maxDocsPerRun: 2, retainHistoryDays: 0
     })
-    const once = mergeUpdates(updates)
-    const twice = mergeUpdates([once])
-    expect(textFromUpdates([twice])).toBe(finalText)
+    for (const id of ['broken', 'a', 'b']) sweeper.enqueue(id)
+    expect(await sweeper.runOnce()).toMatchObject({ snapshots: 1, skipped: false })
+    expect(snapshots).toEqual(['a'])
+    expect(sweeper.queued()).toEqual(['b'])
+  })
+
+  it('skips the run while another instance holds the sweep lock', async () => {
+    const { store, snapshots } = fakeStore()
+    const sweeper = createCompactionSweeper({
+      store, pool: lockPool(false), log: silent, capture: () => {},
+      intervalMs: 0, maxDocsPerRun: 5, retainHistoryDays: 0
+    })
+    sweeper.enqueue('a')
+    expect(await sweeper.runOnce()).toMatchObject({ skipped: true })
+    expect(snapshots).toEqual([])
+    expect(sweeper.queued()).toEqual(['a'])
   })
 })

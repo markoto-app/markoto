@@ -34,7 +34,7 @@ test('Ask the AI about another doc', async ({ page, flow, editor }) => {
   // Seed the sibling doc with the relevant content baked into its
   // DESCRIPTION (which `list_workspace_documents` returns inline) and
   // its TITLE. This avoids the Hocuspocus-flush race: the body would
-  // need an open WS client to reach `yjs_documents`, but the description
+  // need an open WS client to reach `yjs_updates`, but the description
   // is just a column on the `documents` row that POST /api/docs writes
   // synchronously, so it's immediately readable by the AI's
   // `list_workspace_documents` call.

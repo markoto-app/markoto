@@ -11,7 +11,6 @@ const sentry = vi.hoisted(() => ({
   startSpan: vi.fn((_opts: unknown, fn: () => unknown) => fn())
 }))
 vi.mock('../../../sync-server/src/sentry', () => ({ Sentry: sentry }))
-vi.mock('../../../sync-server/src/persistence', () => ({ ypgPersistence: { clearDocument: vi.fn(() => Promise.resolve()) } }))
 const notBefore = vi.hoisted(() => ({ write: vi.fn(async (_docId: string, _sec: number) => true) }))
 vi.mock('../../../sync-server/src/doc-not-before', () => ({ writeDocNotBefore: notBefore.write }))
 

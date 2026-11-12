@@ -1,9 +1,9 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { request as httpRequest } from 'node:http'
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import * as Y from 'yjs'
 import { S3Client, PutObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3'
-import { ensureYjsTable, resetDb, testDb } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_PUBLISH_PAGES_HOST } from '../setup/env'
@@ -23,7 +23,7 @@ const PNG = new Uint8Array(readFileSync('public/markoto-logos/app-icon-light.png
 async function setContent(docId: string, content: string): Promise<void> {
   const ydoc = new Y.Doc()
   ydoc.getText('content').insert(0, content)
-  await testDb().query(`INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1')`, [docId, Buffer.from(Y.encodeStateAsUpdate(ydoc))])
+  await testDb().query(`INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2)`, [docId, Buffer.from(Y.encodeStateAsUpdate(ydoc))])
 }
 
 async function addImage(docId: string, ownerId: number): Promise<string> {
@@ -44,14 +44,9 @@ async function publishedKeys(pageId: string): Promise<string[]> {
 
 interface PublishView { published: boolean, page: { slug: string, url: string, indexable: boolean } | null }
 
-beforeAll(async () => {
-  await ensureYjsTable()
-})
-
 describe('publish as a web page', () => {
   beforeEach(async () => {
     await resetDb()
-    await ensureYjsTable()
   })
 
   it('publishes a private document as a script-free page with copied images; the document stays private', async () => {
@@ -308,7 +303,6 @@ describe('publish on a separate pages host', () => {
 
   beforeEach(async () => {
     await resetDb()
-    await ensureYjsTable()
   })
 
   async function published(): Promise<{ ownerId: number, docId: string, slug: string, pageId: string }> {

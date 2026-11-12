@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { CUSTOM_CSS_MAX_BYTES } from './customCss'
 import { THEME_IMAGE_URL_RE } from '../utils/theme/themeImages'
-import { isIsoDate } from '../utils/documents/documentLocale'
+import { isIsoDate } from '../contracts/isoDate'
 
 /**
  * Per-document theme. Drives both the live paged preview and the printed
@@ -45,7 +45,7 @@ const HEX_COLOR_REGEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
 
 /**
  * Exported so non-theme code (e.g. the AI `update_theme` tool schema in
- * `server/utils/agentic/functionTools.ts`) can reuse the same regex
+ * `server/utils/ai/tools/themeSchema.ts`) can reuse the same regex
  * rather than maintain a parallel copy that could drift. Any change to
  * what "valid hex" means now propagates automatically.
  */
@@ -263,7 +263,7 @@ export type TocMaxDepth = z.infer<typeof TocMaxDepthSchema>
  * Cover-page composition mode. Each layout is implemented via CSS Grid
  * placement (NOT just `justify-content`) so the visual difference is
  * obvious with even short cover content. See `coverBlock` in
- * `themeToCss.ts`.
+ * `shared/themeCss/coverCss.ts`.
  *
  *  - `classic`   — everything stacked vertically + horizontally centered (book/novel feel)
  *  - `editorial` — logo at top, title+subtitle at the upper third, author/date at the lower third (markoto default)

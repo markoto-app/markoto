@@ -19,7 +19,7 @@
 
 import { isIP } from 'node:net'
 import { lookup } from 'node:dns/promises'
-import { isAlwaysForbiddenIp, isPrivateIp } from '../agentic/urlGuard'
+import { hostAddresses, screenHostAddresses } from '../agentic/urlGuard'
 import { isInternalHostname } from '../aiProviders/urlPolicy'
 import { readStreamWithCap } from '../platform/streamCap'
 import type { PinnedRequestInit } from '../platform/safeFetch'
@@ -76,27 +76,13 @@ export async function checkSsoUrl(
   if (isInternalHostname(host)) throw new SsoUrlRefused('This URL points at a service inside markoto.')
 
   const allowPrivate = opts.allowPrivate ?? ssoAllowsPrivateUrls()
-  let addresses: string[]
-  if (isIP(host) !== 0) {
-    addresses = [host]
-  } else {
-    try {
-      addresses = await (opts.resolve ?? systemSsoResolver)(host)
-    } catch {
-      throw new SsoUrlRefused(`The host name "${host}" could not be resolved.`)
-    }
-    if (addresses.length === 0) throw new SsoUrlRefused(`The host name "${host}" has no DNS records.`)
-  }
-  let anyPublic = false
-  for (const address of addresses) {
-    if (isAlwaysForbiddenIp(address)) throw new SsoUrlRefused('This URL points at a loopback, link-local or metadata address.')
-    if (isPrivateIp(address)) {
-      if (!allowPrivate) throw new SsoUrlRefused('This URL points at a private network address, which this instance does not allow.')
-    } else {
-      anyPublic = true
-    }
-  }
-  if (url.protocol === 'http:' && (!allowPrivate || anyPublic)) {
+  const addresses = await hostAddresses(host, opts.resolve ?? systemSsoResolver)
+  if (addresses === 'unresolvable') throw new SsoUrlRefused(`The host name "${host}" could not be resolved.`)
+  if (addresses === 'no-records') throw new SsoUrlRefused(`The host name "${host}" has no DNS records.`)
+  const screen = screenHostAddresses(addresses, allowPrivate)
+  if (screen.refused === 'forbidden') throw new SsoUrlRefused('This URL points at a loopback, link-local or metadata address.')
+  if (screen.refused === 'private') throw new SsoUrlRefused('This URL points at a private network address, which this instance does not allow.')
+  if (url.protocol === 'http:' && (!allowPrivate || screen.anyPublic)) {
     throw new SsoUrlRefused('Use https:// — plain http is only allowed for an identity provider on a private network of a self-hosted instance.')
   }
   return { url, addresses }

@@ -141,17 +141,22 @@ export function templateThumbnailSources(): Record<string, TemplateThumbnailSour
   if (!isRecord(titles)) throw new Error('template-thumbs.json must hold an object')
   const out: Record<string, TemplateThumbnailSource> = {}
   for (const tpl of TEMPLATES) {
-    // "<title>" or { "title": "<title>", "pageNumber": 2 }
-    const entry = titles[tpl.id]
-    const title = typeof entry === 'string' ? entry : isRecord(entry) && typeof entry.title === 'string' ? entry.title : undefined
-    if (title === undefined) continue
-    const pageNumber = isRecord(entry) && typeof entry.pageNumber === 'number' ? entry.pageNumber : 1
+    const entry = thumbnailEntry(titles[tpl.id])
+    if (entry === null) continue
+    const { title, pageNumber } = entry
     const body = tpl.hasContent ? readFileSync(resolve(ROOT, 'shared/templates/content', tpl.content, 'en.md'), 'utf8') : ''
     const md = body.replaceAll('{{title}}', title).replaceAll('{{description}}', '')
     const cover = templateCover(tpl, 'en')
     out[tpl.id] = { md, title, theme: tpl.design ?? 'markoto', pageNumber, patch: cover ? { cover } : null }
   }
   return out
+}
+
+/** A template's entry of template-thumbs.json: "<title>" or { "title": "<title>", "pageNumber": 2 }; null without a title. */
+function thumbnailEntry(entry: unknown): { title: string, pageNumber: number } | null {
+  if (typeof entry === 'string') return { title: entry, pageNumber: 1 }
+  if (!isRecord(entry) || typeof entry.title !== 'string') return null
+  return { title: entry.title, pageNumber: typeof entry.pageNumber === 'number' ? entry.pageNumber : 1 }
 }
 
 export function templateThumbnailHash(source: TemplateThumbnailSource): string {

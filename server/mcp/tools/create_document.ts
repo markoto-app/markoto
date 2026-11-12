@@ -4,9 +4,9 @@ import { TEMPLATE_IDS, TEMPLATE_TOOL_HINT } from '~~/shared/templates'
 import { AUDIENCE_KINDS } from '~~/shared/audiences'
 
 // User-only — `create_document` doesn't operate on an existing doc;
-// it mints a NEW one owned by the caller. Routed through
-// META_TOOL_HANDLERS → handleCreateDocument which calls the shared
-// `createDocument` helper (same code path as POST /api/docs).
+// it mints a NEW one owned by the caller. Runs the registry's
+// `create_document` tool (`server/utils/ai/tools/libraryTools.ts`), which
+// calls the shared `createDocument` helper (same code path as POST /api/docs).
 //
 // Optional initial_markdown seeds the doc body in one call so the
 // caller doesn't have to follow up with insert_text. Workspace

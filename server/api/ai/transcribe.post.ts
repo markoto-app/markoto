@@ -6,7 +6,7 @@
 // is the user's virtual-key `max_budget` inside LiteLLM.
 
 import * as Sentry from '@sentry/nuxt'
-import { normalizeLanguageCode } from '../../utils/agentic/transcribeHelpers'
+import { normalizeLanguageCode } from '../../utils/agentic/dictateHelpers'
 import { useLitellmForUser } from '../../utils/ai/litellmClient'
 import { resolveBillingContext } from '../../utils/billing/billing'
 import { isBudgetExceededError } from '../../utils/litellm/userKeys'

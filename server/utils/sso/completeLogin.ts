@@ -91,20 +91,8 @@ export interface SsoLoginResult {
 const MAX_NAME = 200
 
 export async function completeSsoLogin(connection: SsoConnectionRow, assertion: SsoAssertion, flow: SsoFlow): Promise<SsoLoginResult> {
-  if (flow.connectionId !== connection.id) throw new SsoLoginRefused('sso/not-provisioned', 'The sign-in belongs to another connection.')
-  // A test flow always names the admin who started it (the flow cookie
-  // refuses one without); without it the test can't be attributed.
-  const testUserId = flow.purpose === 'test' ? flow.testUserId ?? null : null
-  if (flow.purpose === 'test' && testUserId === null) {
-    throw new SsoLoginRefused('sso/test-not-admin', 'Only an admin of the workspace can test its sign-in.')
-  }
+  const testUserId = await admitFlow(connection, flow)
   const isTest = testUserId !== null
-  if (!isTest && connection.status !== 'active') {
-    throw new SsoLoginRefused('sso/not-active', 'Single sign-on for this workspace is not switched on yet.')
-  }
-  if (isTest && (await getMemberRoleIgnoringSso(connection.workspaceId, testUserId)) !== 'admin') {
-    throw new SsoLoginRefused('sso/test-not-admin', 'Only an admin of the workspace can test its sign-in.')
-  }
 
   // The IdP may only speak for addresses in a domain the workspace verified.
   const domain = emailDomain(assertion.email)
@@ -122,58 +110,13 @@ export async function completeSsoLogin(connection: SsoConnectionRow, assertion: 
       }
       return { userId: identity.userId, identityId: identity.id, scim: identity.scimExternalId !== null, created: false, linked: false }
     }
-
-    let userId: number
-    let created = false
-    if (isTest) {
-      userId = testUserId
-    } else if (trustedEmail) {
-      const existing = (await tx.execute<{ id: number }>(sql`
-        select id from ${users} where lower(email) = ${trustedEmail} order by id limit 1 for update
-      `)).rows[0]
-      if (existing) {
-        userId = Number(existing.id)
-      } else {
-        const inserted = await tx.insert(users).values({ name, email: trustedEmail }).returning({ id: users.id })
-        userId = must(inserted[0], 'inserted user row').id
-        created = true
-      }
-    } else {
-      throw new SsoLoginRefused('sso/not-provisioned', 'Your account is not set up for this workspace. Ask an admin to add you.')
-    }
-    // One identity per account and connection. A SCIM-provisioned
-    // placeholder (`scim:…`) is taken over by the first real sign-in;
-    // an account linked to ANOTHER real subject is not re-linked.
-    const linkedAlready = await findIdentityForUser(connection.id, userId, tx)
-    if (linkedAlready?.subject.startsWith(SCIM_PLACEHOLDER_PREFIX)) {
-      if (!linkedAlready.active) throw new SsoLoginRefused('sso/deactivated', 'Your access to this workspace was removed by your organisation.')
-      await tx.update(userIdentities).set({ subject: assertion.subject }).where(eq(userIdentities.id, linkedAlready.id))
-      return { userId, identityId: linkedAlready.id, scim: true, created, linked: true }
-    }
-    if (linkedAlready) {
-      throw new SsoLoginRefused(isTest ? 'sso/test-mismatch' : 'sso/not-provisioned', 'This markoto account is linked to another account at your identity provider.')
-    }
-    const inserted = await insertIdentity({ userId, connectionId: connection.id, subject: assertion.subject }, tx)
-    return { userId, identityId: inserted.id, scim: false, created, linked: true }
+    const account = testUserId === null
+      ? await accountForEmail(tx, trustedEmail, name)
+      : { userId: testUserId, created: false }
+    return linkIdentity(tx, connection, assertion.subject, account, isTest)
   })
 
-  // Raw membership incl. `guest`: an existing guest stays a guest.
-  let role: MembershipRole | null = await getMembershipRole(connection.workspaceId, who.userId)
-  let joined = false
-  if (!role) {
-    if (!trustedEmail && !who.scim) {
-      throw new SsoLoginRefused('sso/not-provisioned', 'Your account is not a member of this workspace. Ask an admin to add you.')
-    }
-    try {
-      const result = await joinWorkspaceBySso({ workspaceId: connection.workspaceId, userId: who.userId, email: trustedEmail, defaultRole: connection.defaultRole })
-      role = result.role
-      joined = result.joined
-    } catch (e) {
-      if (e instanceof SsoJoinRefused) throw new SsoLoginRefused(e.code, e.message)
-      throw e
-    }
-  }
-
+  const { role, joined } = await ensureMembership(connection, who, trustedEmail)
   await touchIdentityLogin(who.identityId)
   await writeSsoGrant(who.userId, connection.workspaceId, await getSessionEpoch(who.userId))
   let activated = false
@@ -194,5 +137,87 @@ export async function completeSsoLogin(connection: SsoConnectionRow, assertion: 
     linked: who.linked,
     joined,
     activated
+  }
+}
+
+type Tx = Parameters<Parameters<ReturnType<typeof useDatabase>['transaction']>[0]>[0]
+
+/**
+ * The flow may sign in with this connection: a test flow names the admin
+ * who started it (returned), a real sign-in needs an active connection.
+ */
+async function admitFlow(connection: SsoConnectionRow, flow: SsoFlow): Promise<number | null> {
+  if (flow.connectionId !== connection.id) throw new SsoLoginRefused('sso/not-provisioned', 'The sign-in belongs to another connection.')
+  // A test flow always names the admin who started it (the flow cookie
+  // refuses one without); without it the test can't be attributed.
+  const testUserId = flow.purpose === 'test' ? flow.testUserId ?? null : null
+  if (flow.purpose === 'test' && testUserId === null) {
+    throw new SsoLoginRefused('sso/test-not-admin', 'Only an admin of the workspace can test its sign-in.')
+  }
+  if (testUserId === null && connection.status !== 'active') {
+    throw new SsoLoginRefused('sso/not-active', 'Single sign-on for this workspace is not switched on yet.')
+  }
+  if (testUserId !== null && (await getMemberRoleIgnoringSso(connection.workspaceId, testUserId)) !== 'admin') {
+    throw new SsoLoginRefused('sso/test-not-admin', 'Only an admin of the workspace can test its sign-in.')
+  }
+  return testUserId
+}
+
+/** The account a first sign-in belongs to: the one with the verified address, else a new one. */
+async function accountForEmail(tx: Tx, trustedEmail: string | null, name: string): Promise<{ userId: number, created: boolean }> {
+  if (!trustedEmail) {
+    throw new SsoLoginRefused('sso/not-provisioned', 'Your account is not set up for this workspace. Ask an admin to add you.')
+  }
+  const existing = (await tx.execute<{ id: number }>(sql`
+        select id from ${users} where lower(email) = ${trustedEmail} order by id limit 1 for update
+      `)).rows[0]
+  if (existing) return { userId: Number(existing.id), created: false }
+  const inserted = await tx.insert(users).values({ name, email: trustedEmail }).returning({ id: users.id })
+  return { userId: must(inserted[0], 'inserted user row').id, created: true }
+}
+
+/**
+ * One identity per account and connection. A SCIM-provisioned
+ * placeholder (`scim:…`) is taken over by the first real sign-in;
+ * an account linked to ANOTHER real subject is not re-linked.
+ */
+async function linkIdentity(
+  tx: Tx,
+  connection: SsoConnectionRow,
+  subject: string,
+  account: { userId: number, created: boolean },
+  isTest: boolean
+): Promise<{ userId: number, identityId: number, scim: boolean, created: boolean, linked: boolean }> {
+  const { userId, created } = account
+  const linkedAlready = await findIdentityForUser(connection.id, userId, tx)
+  if (linkedAlready?.subject.startsWith(SCIM_PLACEHOLDER_PREFIX)) {
+    if (!linkedAlready.active) throw new SsoLoginRefused('sso/deactivated', 'Your access to this workspace was removed by your organisation.')
+    await tx.update(userIdentities).set({ subject }).where(eq(userIdentities.id, linkedAlready.id))
+    return { userId, identityId: linkedAlready.id, scim: true, created, linked: true }
+  }
+  if (linkedAlready) {
+    throw new SsoLoginRefused(isTest ? 'sso/test-mismatch' : 'sso/not-provisioned', 'This markoto account is linked to another account at your identity provider.')
+  }
+  const inserted = await insertIdentity({ userId, connectionId: connection.id, subject }, tx)
+  return { userId, identityId: inserted.id, scim: false, created, linked: true }
+}
+
+/** Raw membership incl. `guest` (an existing guest stays a guest); otherwise join by verified email or SCIM. */
+async function ensureMembership(
+  connection: SsoConnectionRow,
+  who: { userId: number, scim: boolean },
+  trustedEmail: string | null
+): Promise<{ role: MembershipRole, joined: boolean }> {
+  const role = await getMembershipRole(connection.workspaceId, who.userId)
+  if (role) return { role, joined: false }
+  if (!trustedEmail && !who.scim) {
+    throw new SsoLoginRefused('sso/not-provisioned', 'Your account is not a member of this workspace. Ask an admin to add you.')
+  }
+  try {
+    const result = await joinWorkspaceBySso({ workspaceId: connection.workspaceId, userId: who.userId, email: trustedEmail, defaultRole: connection.defaultRole })
+    return { role: result.role, joined: result.joined }
+  } catch (e) {
+    if (e instanceof SsoJoinRefused) throw new SsoLoginRefused(e.code, e.message)
+    throw e
   }
 }

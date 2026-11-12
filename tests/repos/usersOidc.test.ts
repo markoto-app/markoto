@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
-import { findUserById, upsertOAuthUser } from '../../server/repos/users'
+import { findUserById } from '../../server/repos/users'
+import { upsertOAuthUser } from '../../server/repos/userSignIn'
 
 // Generic OIDC: identities are keyed by (issuer, sub) — never the
 // email — and only a VERIFIED email merges into an existing account,

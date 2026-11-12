@@ -19,7 +19,7 @@ import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import * as Y from 'yjs'
-import { resetDb, testDb, ensureYjsTable } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import { TEST_BASE_URL } from '../setup/env'
@@ -37,10 +37,10 @@ async function insertYjsRow(docname: string, content: string): Promise<number> {
   const update = Y.encodeStateAsUpdate(ydoc)
   const db = testDb()
   const r = await db.query<{ id: number }>(
-    `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1') RETURNING id`,
+    `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2) RETURNING id`,
     [docname, Buffer.from(update)]
   )
-  return first(r.rows).id
+  return Number(first(r.rows).id)
 }
 
 // Multi-page fixture body — paginates to ≥3 pages on the default theme.
@@ -83,7 +83,6 @@ async function fetchRenderBytes(key: string): Promise<Uint8Array> {
 
 beforeEach(async () => {
   await resetDb()
-  await ensureYjsTable()
 })
 
 // Pay the render chain's COLD-START cost before any measured test. The first render after stack boot covers
@@ -94,7 +93,6 @@ beforeEach(async () => {
 // renderer is genuinely broken, the real tests fail with far better errors than this hook could produce.
 beforeAll(async () => {
   await resetDb()
-  await ensureYjsTable()
   const owner = await createUser()
   const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
   await insertYjsRow(doc.docId, '# warmup\n\ncold-start render\n')

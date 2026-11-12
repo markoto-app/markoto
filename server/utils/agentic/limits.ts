@@ -25,32 +25,8 @@ import { MINUTE_MS } from '~~/shared/config/units'
  */
 export const SESSION_INTERACTION_CAP = 50
 
-/**
- * Max calls per tool name within a single session. Hitting one of
- * these returns a TOOL ERROR (not an abort) so the model sees the
- * cap and can wrap up its response gracefully.
- *
- * Numbers are sized against what a pathological loop looks like:
- *   - view_pages: 3 calls × 5 pages each = 15 page-images, enough to
- *     inspect any document. More than 3 means the model is stuck.
- *   - generate_image: a doc never needs more than a handful of new
- *     images per session.
- *   - web_search / fetch_url: 10 each. Beyond that is research-style
- *     usage that should be split across sessions.
- *   - search_knowledge: a cheap query, but the model can loop on
- *     "checking again" every turn. 20 is plenty for one prompt.
- */
-export const SESSION_TOOL_CALL_CAPS: Record<string, number> = {
-  view_pages: 3,
-  generate_image: 5,
-  web_search: 10,
-  fetch_url: 10,
-  search_knowledge: 20,
-  // Pure-DB tool, but bounded so the model can't loop on "search again
-  // with slightly different filters". 8 covers its use cases (recall a
-  // past edit, audit a restore, find the ai.tool rows behind a claim).
-  search_activity_log: 8
-}
+// The per-tool call caps live on the tool definitions
+// (`sessionCallCap`, collected in `ai/tools/registry.ts`).
 
 /**
  * Hard deadline for a full agentic loop (editor prompt or comment trigger).

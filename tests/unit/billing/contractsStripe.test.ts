@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type Stripe from 'stripe'
+import { HANDLED_STRIPE_EVENT_TYPES } from '../../../server/utils/billing/stripeEvents/eventHandlers'
 import {
-  HANDLED_STRIPE_EVENT_TYPES,
   ORDER_SENSITIVE_STRIPE_EVENT_TYPES,
   STRIPE_API_VERSION,
   isOrderSensitiveStripeEvent
@@ -24,9 +24,9 @@ import { first } from '../../helpers/assert'
 // What's pinned where:
 //   - `STRIPE_API_VERSION` — the wire-shape pin. Bumping requires
 //     coordinated work (see comment in the contract file).
-//   - `HANDLED_STRIPE_EVENT_TYPES` — the literal-union of types the
-//     dispatcher's switch handles. Adding a type here forces the
-//     switch to be updated.
+//   - `HANDLED_STRIPE_EVENT_TYPES` — derived from the dispatcher's
+//     handler table (`stripeEvents/eventHandlers.ts`): a type is handled
+//     exactly when it has a handler.
 //   - `ORDER_SENSITIVE_STRIPE_EVENT_TYPES` — the subset that may
 //     arrive before the binding `checkout.session.completed` and
 //     therefore needs the stash branch.
@@ -46,9 +46,8 @@ describe('STRIPE_API_VERSION', () => {
 
 describe('HANDLED_STRIPE_EVENT_TYPES', () => {
   it('contains exactly the types the dispatcher routes', () => {
-    // Hard-coded because a literal union here IS the spec — the
-    // dispatcher's switch must agree with this list. If you change
-    // either side, this test failing is the canary.
+    // Hard-coded: adding or dropping a handler changes what Stripe
+    // events the webhook acts on, so it shows up here.
     expect(HANDLED_STRIPE_EVENT_TYPES).toEqual([
       'checkout.session.completed',
       'checkout.session.async_payment_succeeded',

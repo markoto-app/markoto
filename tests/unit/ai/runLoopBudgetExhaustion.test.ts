@@ -14,17 +14,16 @@ import { soloSessionGuard } from '../fixtures/crossBoundary'
 //
 // If a refactor ever drops the catch block (or drops the breadcrumb emission), this test fails uniformly.
 
-const executeFunctionByName = vi.fn()
-const webSearch = vi.fn()
-const fetchUrl = vi.fn()
+const executeFunctionByName = vi.hoisted(() => vi.fn())
+const webSearch = vi.hoisted(() => vi.fn())
+const fetchUrl = vi.hoisted(() => vi.fn())
 
-vi.mock('../../../server/utils/ai/aiToolAdapter', () => ({ executeFunctionByName }))
-vi.mock('../../../server/utils/agentic/functionTools', async () => {
-  const actual = await vi.importActual<typeof import('../../../server/utils/agentic/functionTools')>(
-    '../../../server/utils/agentic/functionTools'
-  )
-  return { ...actual, webSearch, fetchUrl }
-})
+vi.mock('../../../server/utils/ai/tools/registry', async importOriginal => ({
+  ...await importOriginal<typeof import('../../../server/utils/ai/tools/registry')>(),
+  executeFunctionByName
+}))
+vi.mock('../../../server/utils/ai/tools/webSearch', () => ({ webSearch }))
+vi.mock('../../../server/utils/ai/tools/fetchUrl', () => ({ fetchUrl }))
 vi.mock('../../../server/repos/activity', () => ({
   appendActivity: vi.fn().mockResolvedValue(undefined),
   pruneActivity: vi.fn().mockResolvedValue(undefined)

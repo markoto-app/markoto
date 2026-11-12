@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import * as Y from 'yjs'
-import { ensureYjsTable, resetDb, testDb } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import {
   createDoc,
@@ -43,16 +43,16 @@ function encodeYjsUpdate(content: string): Buffer {
 }
 
 /**
- * Insert a fresh `yjs_documents` row and return its `id`. The
+ * Insert a fresh `yjs_updates` row and return its `id`. The
  * activity log boundary ids reference this same `id`.
  */
 async function insertYjsRow(docname: string, content: string): Promise<number> {
   const db = testDb()
   const r = await db.query<{ id: number }>(
-    `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1') RETURNING id`,
+    `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2) RETURNING id`,
     [docname, encodeYjsUpdate(content)]
   )
-  return first(r.rows).id
+  return Number(first(r.rows).id)
 }
 
 /**
@@ -85,7 +85,6 @@ function mintDocJwt(docId: string): string {
 describe('GET /api/docs/:docId/activity/:activityId/diff', () => {
   beforeEach(async () => {
     await resetDb()
-    await ensureYjsTable()
   })
 
   describe('happy path', () => {

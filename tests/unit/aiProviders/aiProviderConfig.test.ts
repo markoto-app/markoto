@@ -4,7 +4,7 @@ import { bootProblems, bootWarnings } from '../env/fixtures'
 import { AiProviderCallError, PROVIDER_ERROR_MESSAGES, classifyProviderError, providerErrorMessage, redactSecret, withProviderErrors } from '../../../server/utils/aiProviders/requestFields'
 import { AiProviderUrlRefused } from '../../../server/utils/aiProviders/urlPolicy'
 import type { ResolvedAiProvider } from '../../../server/utils/aiProviders/resolve'
-import { filterToolsForProviders, ALL_TOOL_DECLARATIONS } from '../../../server/utils/agentic/functionTools'
+import { filterToolsForProviders, ALL_TOOL_DECLARATIONS } from '../../../server/utils/ai/tools/registry'
 import { VERIFY_CODES, apiKeyLast4, normalizeBaseUrl } from '../../../shared/ai/providers'
 
 describe('readInstanceDefault', () => {

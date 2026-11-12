@@ -81,7 +81,7 @@ Both wait up to 90 s for `/api/health` and share the test Postgres and Valkey. T
 
 The tests use a production build because the dev server does not wire WebSocket upgrades reliably under Bun, and because a production bundle catches build-only problems.
 
-Isolation: call `resetDb()` (`tests/integration/setup/db.ts`) in `beforeEach`. It truncates an explicit list of tables with `RESTART IDENTITY CASCADE`, so ids are predictable; add every new table to that list. `yjs_documents` is created by the sync server at startup, so `resetDb()` truncates it only if it exists. `testDb()` refuses any database URL whose name is not the test database.
+Isolation: call `resetDb()` (`tests/integration/setup/db.ts`) in `beforeEach`. It truncates an explicit list of tables with `RESTART IDENTITY CASCADE`, so ids are predictable; add every new table to that list. `yjs_updates` is in that list too; `insertYjsUpdate` / `readYjsRows` in the same file write and read Y.js rows. `testDb()` refuses any database URL whose name is not the test database.
 
 ## Flows
 

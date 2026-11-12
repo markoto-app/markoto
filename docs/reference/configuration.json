@@ -1628,6 +1628,24 @@
       "deprecatedNames": []
     },
     {
+      "name": "COMPACT_RETAIN_HISTORY_DAYS",
+      "namespace": "sync",
+      "key": "compactRetainHistoryDays",
+      "type": "integer ≥ 0",
+      "services": [
+        "sync"
+      ],
+      "names": {
+        "sync": "COMPACT_RETAIN_HISTORY_DAYS"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": 0,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
       "name": "NUXT_RENDERER_INTERNAL_URL",
       "namespace": "renderer",
       "key": "internalUrl",

@@ -14,27 +14,31 @@ import * as Y from 'yjs'
 // Everything else was redundant with the repo test and has been deleted.
 // Coverage loss is zero — we cover the same lines via the repo test.
 
-const mockQuery = vi.fn()
-vi.mock('../../../server/utils/platform/database', () => ({
-  useDatabasePool: () => ({ query: mockQuery })
+// The Y.js log access is mocked at its module boundary (yjsLog.ts): the
+// source's state is one update, and appends are captured.
+let sourceUpdate: Uint8Array | null = null
+const appended: Uint8Array[] = []
+vi.mock('../../../server/utils/documents/yjsLog', () => ({
+  latestYjsId: async () => (sourceUpdate ? 1 : null),
+  readYjsUpdatesAt: async () => (sourceUpdate ? [sourceUpdate] : []),
+  appendYjsUpdate: async (_docId: string, update: Uint8Array) => {
+    appended.push(update)
+    return appended.length
+  }
 }))
 
 const { cloneYjsStateWithUrlRewrite } = await import('../../../server/utils/documents/cloneYjsState')
 
-function rowFromDoc(doc: Y.Doc): { value: Buffer } {
-  return { value: Buffer.from(Y.encodeStateAsUpdate(doc)) }
-}
-
-function docFromInsertedUpdate(insertCall: [string, unknown[]]): Y.Doc {
-  const params = insertCall[1] as [string, Buffer, string]
-  const buf = params[1]
+function lastAppendedDoc(): Y.Doc {
   const doc = new Y.Doc()
-  Y.applyUpdate(doc, new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength))
+  const update = appended[appended.length - 1]
+  if (update) Y.applyUpdate(doc, update)
   return doc
 }
 
 beforeEach(() => {
-  mockQuery.mockReset()
+  sourceUpdate = null
+  appended.length = 0
 })
 
 describe('cloneYjsState — non-obvious contracts', () => {
@@ -48,12 +52,11 @@ describe('cloneYjsState — non-obvious contracts', () => {
     src.getText('content').insert(0,
       '![](/api/files/SRCX/img.png) and ![](/api/files/SRC/img.png)'
     )
-    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [rowFromDoc(src)] })
-    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [] })
+    sourceUpdate = Y.encodeStateAsUpdate(src)
 
     await cloneYjsStateWithUrlRewrite('SRC', 'TGT')
 
-    const tgt = docFromInsertedUpdate(mockQuery.mock.calls[1] as [string, unknown[]])
+    const tgt = lastAppendedDoc()
     expect(tgt.getText('content').toString()).toBe(
       '![](/api/files/SRCX/img.png) and ![](/api/files/TGT/img.png)'
     )
@@ -69,12 +72,11 @@ describe('cloneYjsState — non-obvious contracts', () => {
     src.getText('content').insert(0,
       '![](https://example.com/SRC.png)\n![](/api/files/SRC/local.png)'
     )
-    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [rowFromDoc(src)] })
-    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [] })
+    sourceUpdate = Y.encodeStateAsUpdate(src)
 
     await cloneYjsStateWithUrlRewrite('SRC', 'TGT')
 
-    const tgt = docFromInsertedUpdate(mockQuery.mock.calls[1] as [string, unknown[]])
+    const tgt = lastAppendedDoc()
     expect(tgt.getText('content').toString()).toBe(
       '![](https://example.com/SRC.png)\n![](/api/files/TGT/local.png)'
     )
@@ -90,12 +92,11 @@ describe('cloneYjsState — non-obvious contracts', () => {
     const meta = src.getMap('meta')
     meta.set('title', 'Title')
     meta.set('_deleted', true)
-    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [rowFromDoc(src)] })
-    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [] })
+    sourceUpdate = Y.encodeStateAsUpdate(src)
 
     await cloneYjsStateWithUrlRewrite('SRC', 'TGT')
 
-    const tgt = docFromInsertedUpdate(mockQuery.mock.calls[1] as [string, unknown[]])
+    const tgt = lastAppendedDoc()
     expect(tgt.getMap('meta').get('title')).toBe('Title')
     expect(tgt.getMap('meta').get('_deleted')).toBeUndefined()
   })
@@ -104,12 +105,11 @@ describe('cloneYjsState — non-obvious contracts', () => {
     const src = new Y.Doc()
     src.getText('content').insert(0, 'body')
     src.getMap('meta').set('theme', { body: { size: 11 }, customCss: 'p{background:url(/api/files/SRC/a.png)}' })
-    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [rowFromDoc(src)] })
-    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [] })
+    sourceUpdate = Y.encodeStateAsUpdate(src)
 
     await cloneYjsStateWithUrlRewrite('SRC', 'TGT')
 
-    const tgt = docFromInsertedUpdate(mockQuery.mock.calls[1] as [string, unknown[]])
+    const tgt = lastAppendedDoc()
     expect(tgt.getMap('meta').get('theme')).toEqual({
       body: { size: 11 },
       customCss: 'p{background:url(/api/files/TGT/a.png)}'

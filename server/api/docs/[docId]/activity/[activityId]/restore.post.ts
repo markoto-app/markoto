@@ -15,7 +15,7 @@ const log = useLogger('restore')
 // it means restoring `before`).
 //
 // The restore is a real Y.js operation broadcast to every connected client,
-// not a history rewrite: y-postgresql keeps the operation log, and the
+// not a history rewrite: the Y.js log (`yjs_updates`) keeps every state, and the
 // resulting `restore` row is itself reversible.
 //
 // Auth: edit access (matches `replace_text` / `set_title`). Viewers can see

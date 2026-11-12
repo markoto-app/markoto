@@ -10,8 +10,8 @@ How the Nitro server in `server/` decides who may do what, how sessions and docu
 | `server/routes/` | Other routes: OAuth and OIDC sign-in (`routes/auth/`), per-workspace SSO (`routes/auth/sso/`), SCIM (`routes/scim/v2/`), published pages (`routes/p/`), the dictation WebSocket (`routes/api/ai/dictate.ts`), `robots.txt`, `sitemap.xml` |
 | `server/middleware/` | Runs on every request, in file-name order: `00.custom-domain.ts`, `auth.ts`, `csrf.ts`, `onboarding.ts` |
 | `server/plugins/` | Startup hooks and periodic jobs; numeric prefixes order the ones that must run first (`00-db-migrate.ts`) |
-| `server/repos/` | Drizzle queries, one file per table family (`server/repos/AGENTS.md`) |
-| `server/utils/<domain>/` | Orchestration grouped by domain (auth, documents, workspaces, billing, knowledge, storage, rendering, privacy, platform, …). Nitro auto-imports from every sub-folder |
+| `server/repos/` | Drizzle queries, one file per table family (`server/repos/AGENTS.md`); the `users` row is split by concern: `users.ts` (lookups, session epoch), `userSignIn.ts` (OAuth upsert), `userPolicies.ts` (policy acceptance), `userDeletionRequests.ts`, `userBilling.ts` (plan + Stripe columns) |
+| `server/utils/<domain>/` | Orchestration grouped by domain (auth, documents, workspaces, billing, knowledge, storage, rendering, privacy, platform, …). Nitro auto-imports from every sub-folder. A long route keeps its declaration (access, schemas, rate limits, error codes) and calls a use-case function here: `ai/prompt.post.ts` → `agentic/sessions/editorPrompt.ts`, the `@ai` trigger → `agentic/sessions/commentTrigger.ts`, the member invite → `workspaces/inviteMember.ts`, the plan checkouts → `billing/proCheckout.ts`, `billing/workspaceCheckout.ts` |
 | `server/db/schema.ts` | The schema (`server/db/AGENTS.md`, [database.md](database.md)) |
 | `server/utils/api/` | The handler contract: `defineApiHandler`, the `allow.*` access policies, `apiError` ([api-handlers.md](api-handlers.md)) |
 | `server/error.ts` | Nitro error handler: 4xx pass through, 5xx become a generic message with `code: 'internal'` |
@@ -135,6 +135,6 @@ Options for the exceptions: `enabled` (checked once at boot, e.g. `isBillingEnab
 
 ## Other subsystems
 
-- History and restore: `utils/documents/historyReplay.ts` rebuilds a past document from `yjs_documents` rows up to a boundary id stored on the activity row; `textDiff.ts` caps a diff at 200 hunks; `restoreDoc.ts` serialises restores per document with `pg_advisory_xact_lock`. The UI side is in `app/components/collab/AGENTS.md`.
+- History and restore: `utils/documents/historyReplay.ts` rebuilds a past document from the `yjs_updates` log up to a boundary id stored on the activity row (all access to that table is in `utils/documents/yjsLog.ts`); `textDiff.ts` caps a diff at 200 hunks; `restoreDoc.ts` serialises restores per document with `pg_advisory_xact_lock`. The UI side is in `app/components/collab/AGENTS.md`.
 - Server-rendered PDF and page images: `utils/rendering/renderClient.ts` flushes pending edits on the sync server, then renders through the renderer container, cached in S3 by snapshot id. A failed render is an error; there is no fallback to browser printing.
 - Workspace knowledge base: [knowledge-base.md](knowledge-base.md). Billing and plan limits: [billing.md](billing.md). Migrations: [database.md](database.md).
