@@ -157,7 +157,7 @@ EOF_PASSPHRASE
     echo "$existing" | tail -n +$((BACKUP_RETENTION_COUNT + 1)) | while IFS= read -r old; do
       [ -n "$old" ] || continue
       echo "[backup] Pruning s3://${S3_BUCKET}/${S3_PREFIX}/${old}"
-      aws --endpoint-url "$S3_ENDPOINT" s3 rm "s3://${S3_BUCKET}/${S3_PREFIX}/${old}" --no-progress || true
+      aws --endpoint-url "$S3_ENDPOINT" s3 rm "s3://${S3_BUCKET}/${S3_PREFIX}/${old}" --only-show-errors || true
     done
   fi
   return "$status"

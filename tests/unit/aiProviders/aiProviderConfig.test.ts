@@ -17,7 +17,7 @@ describe('readInstanceDefault', () => {
     expect(readInstanceDefault('chat', { NUXT_AI_DEFAULT_CHAT_MODEL: 'mistral-small-2603' })).toEqual({
       capability: 'chat', model: 'mistral-small-2603', credentials: null, supportsVision: true
     })
-    expect(readInstanceDefault('image', { NUXT_AI_DEFAULT_IMAGE_MODEL: 'flux-2-pro' })?.credentials).toBeNull()
+    expect(readInstanceDefault('image', { NUXT_AI_DEFAULT_IMAGE_MODEL: 'flux-3-image-klein' })?.credentials).toBeNull()
   })
 
   it('model + base URL + key → clientside credentials (normalised URL)', () => {

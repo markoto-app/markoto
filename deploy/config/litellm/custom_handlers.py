@@ -1,7 +1,7 @@
 """
 Custom LiteLLM providers, registered via litellm_settings.custom_provider_map.
 
-They wrap non-chat operations (FLUX.2 image generation, Voxtral transcription
+They wrap non-chat operations (FLUX image generation, Voxtral transcription
 and voice ticks, Jina embeddings) as billable calls so OSS LiteLLM budget
 enforcement applies to them (pass-through cost_per_request is Enterprise-only).
 Cost flows through model_info.input_cost_per_token / output_cost_per_token in
@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import os
+import re
 import time
 from uuid import uuid4
 
@@ -50,17 +51,26 @@ litellm.client_session = httpx.Client(follow_redirects=False)
 litellm.aclient_session = httpx.AsyncClient(follow_redirects=False)
 
 
-# BFL FLUX.2 [pro], EU-pinned, polling-based
+# BFL FLUX 3 Image Klein, EU-pinned, polling-based
 
-_BFL_EU = "https://api.eu2.bfl.ai"
+# BFL's EU endpoint: routing limited to EU clusters. The job itself runs on
+# a numbered cluster host (api.eu<N>.bfl.ai) named by `polling_url`.
+_BFL_EU = "https://api.eu.bfl.ai"
 _BFL_POLL_INTERVAL = 0.5
-_BFL_POLL_TIMEOUT = 90.0
-# BFL bills per credit; 1 credit ≈ $0.01 (FLUX.2 [pro] 1024² = 3 credits = $0.03)
+# A queued job can take well over 30 s; stay under the deployment's
+# `timeout` in config.yaml.
+_BFL_POLL_TIMEOUT = 100.0
+# BFL bills per credit; 1 credit ≈ $0.01 (Klein at 1k = 0.9 credits = $0.009)
 _BFL_CREDIT_USD = 0.01
 
 
+def _is_bfl_eu_url(url: str) -> bool:
+    """https://api.eu.bfl.ai or a numbered EU cluster (api.eu9.bfl.ai)."""
+    return re.fullmatch(r"https://api\.eu\d*\.bfl\.ai(/.*)?", url) is not None
+
+
 class BFLFluxProvider(CustomLLM):
-    """BFL FLUX submission → poll → b64_json + url. EU-pinned to api.eu2.bfl.ai.
+    """BFL FLUX submission → poll → b64_json + url. EU-pinned to api.eu.bfl.ai.
 
     Exposed via /v1/chat/completions (NOT /v1/images/generations) because OSS
     LiteLLM's aimage_generation path does not fire spend-logger callbacks, so
@@ -68,10 +78,10 @@ class BFLFluxProvider(CustomLLM):
     `usage` token counts × output_cost_per_token in config.
 
     Convention: caller sends a single user message whose JSON-encoded body is
-    `{prompt, width?, height?, size?, prompt_upsampling?}`. Either pass
-    `width` + `height` directly OR `size: "WxH"`. Default = 1024x1024.
-    `prompt_upsampling` defaults to false because the prompt is AI-written
-    and re-LLM-ing it adds latency without benefit. The response's
+    `{prompt, width?, height?, size?}`. Either pass `width` + `height`
+    directly OR `size: "WxH"`. Default = 1024x1024. FLUX 3 rewrites the
+    prompt itself (the model is trained on such captions) and refuses
+    unknown request fields, so nothing else is forwarded. The response's
     `choices[0].message.content` is a JSON-encoded `{b64_json, url,
     cost_credits, cost_usd}`. Our app code (aiToolAdapter.ts:generateImageBytes)
     is the only consumer.
@@ -82,7 +92,7 @@ class BFLFluxProvider(CustomLLM):
     ) -> ModelResponse:
         import json as _json
 
-        model: str = kwargs.get("model", "bfl-flux/flux-2-pro")
+        model: str = kwargs.get("model", "bfl-flux/flux-3-image-klein")
         bfl_model = model.split("/", 1)[1] if "/" in model else model
         bfl_key = kwargs.get("api_key") or os.environ["BFL_API_KEY"]
 
@@ -113,11 +123,6 @@ class BFLFluxProvider(CustomLLM):
                 h = h if h is not None else 1024
         w, h = int(w), int(h)
 
-        # prompt_upsampling: default false. The prompt is AI-written, so
-        # an LLM-side rewrite would add latency for no benefit. Caller can
-        # override (mostly for ad-hoc admin / testing).
-        prompt_upsampling = bool(req.get("prompt_upsampling", False))
-
         async with httpx.AsyncClient(timeout=30.0) as http:
             submit = await http.post(
                 f"{_BFL_EU}/v1/{bfl_model}",
@@ -126,12 +131,14 @@ class BFLFluxProvider(CustomLLM):
                     "prompt": prompt,
                     "width": w,
                     "height": h,
-                    "prompt_upsampling": prompt_upsampling,
                 },
             )
             submit.raise_for_status()
             sub = submit.json()
             polling_url = sub["polling_url"]
+            # The key goes to this URL on every poll: only ever to BFL's EU hosts.
+            if not _is_bfl_eu_url(polling_url):
+                raise RuntimeError("BFL returned a polling URL outside its EU hosts")
             cost_credits = float(sub.get("cost") or 0.0)
 
             deadline = time.monotonic() + _BFL_POLL_TIMEOUT
@@ -157,7 +164,7 @@ class BFLFluxProvider(CustomLLM):
         cost_usd = cost_credits * _BFL_CREDIT_USD
         # Map cost to completion_tokens via output_cost_per_token in config:
         #   output_cost_per_token: 0.0001 → tokens = cost_usd / 0.0001
-        # FLUX.2 [pro] 1024² = $0.030 = 300 tokens. Use round so dust doesn't
+        # Klein at 1k = $0.009 = 90 tokens. Use round so dust doesn't
         # cause off-by-one cents under repeated calls.
         completion_tokens = max(1, round(cost_usd / 0.0001))
 

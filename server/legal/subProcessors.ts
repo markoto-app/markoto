@@ -100,7 +100,7 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
   {
     id: 'bfl',
     name: 'Black Forest Labs GmbH',
-    purpose: 'Image generation via FLUX.2 (EU-pinned data plane)',
+    purpose: 'Image generation via FLUX (EU-pinned data plane)',
     location: 'eu',
     transferMechanism: 'intra_eu',
     dpfCertified: false,

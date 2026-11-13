@@ -201,7 +201,7 @@ All AI is optional; without any key the AI controls show as unavailable and ever
 | `..._MODEL` + `..._BASE_URL` + `..._API_KEY` | Any OpenAI-compatible endpoint, used like a user key (no AI Points). |
 | `NUXT_AI_DEFAULT_CHAT_VISION=false` | The default chat model can't read images. |
 
-`install.sh --mistral-api-key` sets `MISTRAL_API_KEY`, `NUXT_AI_DEFAULT_CHAT_MODEL=mistral-small-2603` and `NUXT_AI_DEFAULT_TRANSCRIBE_MODEL=voxtral-mini-transcribe`. For image generation through the bundled FLUX alias add `BFL_API_KEY` and `NUXT_AI_DEFAULT_IMAGE_MODEL=flux-2-pro`.
+`install.sh --mistral-api-key` sets `MISTRAL_API_KEY`, `NUXT_AI_DEFAULT_CHAT_MODEL=mistral-small-2603` and `NUXT_AI_DEFAULT_TRANSCRIBE_MODEL=voxtral-mini-transcribe`. For image generation through the bundled FLUX alias add `BFL_API_KEY` and `NUXT_AI_DEFAULT_IMAGE_MODEL=flux-3-image-klein`.
 
 **Local models (Ollama).** Ollama on the Docker host:
 

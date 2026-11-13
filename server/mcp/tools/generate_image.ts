@@ -2,15 +2,14 @@ import { z } from 'zod'
 import { buildDocBoundTool } from '../lib/wrapDocBoundTool'
 import { MCP_RATE_LIMITS } from '../lib/mcpGate'
 
-// Generates an image via BFL FLUX.2 [pro] EU-pinned through LiteLLM,
+// Generates an image via BFL FLUX 3 Image Klein EU-pinned through LiteLLM,
 // uploads to S3 under `docs/{docId}/...`, returns the markdown
 // reference. `access: 'edit'` because the operation creates an S3
 // asset attributed to the doc (uploads row + storage cost), only
 // editors should be able to mint these.
 //
 // Billing: hits LiteLLM via the user's virtualKey on ToolContext.
-// Default 1024² @ $0.030; non-square (width/height args) prices
-// linearly by megapixel.
+// Default 1024² @ $0.009; larger sizes are billed by BFL's size tier.
 export default buildDocBoundTool({
   name: 'generate_image',
   description: 'Generate a photo or illustration from a text prompt and upload it as an asset of the doc. Returns the markdown reference (e.g. "![alt](/api/files/.../x.png)"), pair with `insert_text` or `replace_text` to place it.',

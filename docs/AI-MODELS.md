@@ -8,7 +8,7 @@ markoto routes every AI call through one gateway (LiteLLM), so each model below 
 
 ## Bundled models (operator defaults)
 
-These are the deployments that ship in `deploy/config/litellm/config.yaml`. A self-hoster can make them the instance defaults (`NUXT_AI_DEFAULT_CHAT_MODEL=mistral-small-2603`, `NUXT_AI_DEFAULT_IMAGE_MODEL=flux-2-pro`, `NUXT_AI_DEFAULT_TRANSCRIBE_MODEL=voxtral-mini-transcribe`); calls then run on the operator's Mistral / BFL keys and debit each user's AI Points budget. The platform-provided rows (embeddings, page extraction, web search) are always active. The data path of these bundled providers stays inside the EU: Mistral AI (Paris), Jina AI (Berlin), Staan (European Search Perspective SAS) and Black Forest Labs (EU-pinned endpoint).
+These are the deployments that ship in `deploy/config/litellm/config.yaml`. A self-hoster can make them the instance defaults (`NUXT_AI_DEFAULT_CHAT_MODEL=mistral-small-2603`, `NUXT_AI_DEFAULT_IMAGE_MODEL=flux-3-image-klein`, `NUXT_AI_DEFAULT_TRANSCRIBE_MODEL=voxtral-mini-transcribe`); calls then run on the operator's Mistral / BFL keys and debit each user's AI Points budget. The platform-provided rows (embeddings, page extraction, web search) are always active. The data path of these bundled providers stays inside the EU: Mistral AI (Paris), Jina AI (Berlin), Staan (European Search Perspective SAS) and Black Forest Labs (EU-pinned endpoint).
 
 **Mistral is EU-only.** Every Mistral deployment (chat, fallbacks, transcription) and the live-dictation WebSocket on the operator's key go to Mistral's EU regional endpoint `api.eu.mistral.ai` (inference in EU / EFTA data centres; the default `api.mistral.ai` makes no location commitment). Mistral bills regional inference at 1.1x list on every token type; the prices below are those EU prices (list in brackets), and they are what `deploy/config/litellm/config.yaml` charges to budgets. A user's own Mistral key runs on whichever Mistral host the user configured.
 
@@ -22,7 +22,7 @@ These are the deployments that ship in `deploy/config/litellm/config.yaml`. A se
 | Knowledge-base embeddings | Jina `jina-embeddings-v5-text-nano` | about $0.02-0.05 per M tokens (verify) | 768 dimensions, 8K context |
 | Web page extraction | Jina Reader | billed in output tokens from a shared Jina balance | |
 | Web search | Staan | no public rate card found | |
-| Image generation | Black Forest Labs FLUX.2 [pro], EU endpoint | about $0.03 per 1024x1024 image | |
+| Image generation | Black Forest Labs FLUX 3 Image Klein (`flux-3-image-klein`), EU endpoint | $0.009 per 1024x1024 image, $0.014 up to about 4 MP | BFL rewrites the prompt before generating |
 
 ## Review findings and decisions
 
@@ -57,9 +57,11 @@ Source: [Jina embeddings](https://jina.ai/embeddings/). The v5 family is current
 
 Jina Reader and Staan are unchanged. We found no deprecation notices. Staan publishes no public rate card that we could find.
 
-### Image generation: keep FLUX.2 [pro]
+### Image generation: FLUX 3 Image Klein
 
-Source: [BFL pricing docs](https://docs.bfl.ai/quick_start/pricing). BFL has released FLUX 3 Image (around 2026-10-01) plus a Klein variant, with output up to 4K and multi-reference editing. We did not switch: the launch is three weeks old, prices we found came from secondary sources and include a temporary launch discount, and we could not confirm that FLUX 3 is served from the EU regional endpoint (`api.eu2.bfl.ai`), which is a hard requirement. FLUX.2 [pro] is still listed and not announced as retired. Revisit once BFL documents EU availability and a stable price.
+Source: [BFL release notes](https://docs.bfl.ai/release-notes) and [integration guidelines](https://docs.bfl.ai/api_integration/integration_guidelines) (checked 2026-11-13). FLUX 3 Image Klein is the small model of BFL's current generation: $0.009 per image at the `1k` size, against $0.030 for FLUX.2 [pro] and $0.048 for the full FLUX 3 Image. For illustrations in a document the small model is enough, and an image now takes about 2% of a free user's monthly allowance.
+
+Calls go to `api.eu.bfl.ai`, BFL's EU endpoint (routing limited to its EU clusters). The former host `api.eu2.bfl.ai` is no longer documented and answers 503. The job is polled on the numbered EU cluster BFL names (`api.eu<N>.bfl.ai`); the proxy refuses a polling URL on any other host. A queued job can take more than 40 seconds, so the deployment has a 120-second timeout.
 
 ## Web search and page fetch: platform-paid, rate-limited
 
@@ -182,7 +184,7 @@ The base URLs were checked against each provider's `/models` and `/chat/completi
 
 | Variable | Meaning |
 |---|---|
-| `NUXT_AI_DEFAULT_{CHAT,IMAGE,TRANSCRIBE}_MODEL` | Instance default per capability. Alone, it names a model alias from `deploy/config/litellm/config.yaml` (platform-paid, debits AI Points; image aliases use the chat-wrapped convention of the bundled `flux-2-pro`, transcription aliases that of `voxtral-mini-transcribe`). |
+| `NUXT_AI_DEFAULT_{CHAT,IMAGE,TRANSCRIBE}_MODEL` | Instance default per capability. Alone, it names a model alias from `deploy/config/litellm/config.yaml` (platform-paid, debits AI Points; image aliases use the chat-wrapped convention of the bundled `flux-3-image-klein`, transcription aliases that of `voxtral-mini-transcribe`). |
 | `NUXT_AI_DEFAULT_{CHAT,IMAGE,TRANSCRIBE}_BASE_URL` + `_API_KEY` | Together with `_MODEL`: an OpenAI-compatible endpoint used exactly like a user key (zero-cost to AI Points). The operator may point at private networks without the opt-in below; loopback, link-local/metadata addresses and markoto's own service names are still refused. |
 | `NUXT_AI_DEFAULT_CHAT_VISION` | `false` if the default chat model can't read images (default `true`). |
 | `NUXT_AI_BYOK_ALLOWED_BASE_URLS` | Comma-separated allowlist of base URLs users may pick. Empty (self-hosted default) = any public https URL. The hosted SaaS uses the eight non-local providers in the table above; an instance with `NUXT_LEGAL_SURFACES_ENABLED=true` (the hosted shape) refuses to boot with an empty list, and an entry that is not an absolute http(s) URL is a boot error everywhere. |
@@ -190,7 +192,7 @@ The base URLs were checked against each provider's `/models` and `/chat/completi
 | `NUXT_AI_REALTIME_MODEL` | Voxtral Realtime model for live dictation (default `voxtral-mini-transcribe-realtime-2602`). |
 | `NUXT_FREE_TIER_TOTAL_BUDGET_USD` | Monthly ceiling in USD on platform-paid AI for all free-tier users together (a LiteLLM team budget, see [Free AI allowance](#free-ai-allowance-hosted)). Empty / `0` = none (self-host default); hosted 500. |
 
-The hosted SaaS sets `NUXT_AI_DEFAULT_CHAT_MODEL=zai-glm-5-3-flash` (the [free AI allowance](#free-ai-allowance-hosted)), the image (`flux-2-pro`), transcription (`voxtral-mini-transcribe`) and strong-chat (`mistral-small-2603`) aliases (locked for the free tier, so they need the user's own key there), and the provider allowlist above.
+The hosted SaaS sets `NUXT_AI_DEFAULT_CHAT_MODEL=zai-glm-5-3-flash` (the [free AI allowance](#free-ai-allowance-hosted)), the image (`flux-3-image-klein`), transcription (`voxtral-mini-transcribe`) and strong-chat (`mistral-small-2603`) aliases (locked for the free tier, so they need the user's own key there), and the provider allowlist above.
 
 ### How BYOK calls flow
 
@@ -238,7 +240,7 @@ decides which of them apply (`shared/config/tiers.ts`):
   locked (mic, dictation) with "upgrade" / "coming soon" / "ask your admin"
   and "add your own key". The API answers 409 `plan/feature-unavailable`.
 - Committed defaults = self-host: every switch on. Hosted: image
-  (`flux-2-pro`), voice (`voxtral-mini-transcribe`) and the strong model
+  (`flux-3-image-klein`), voice (`voxtral-mini-transcribe`) and the strong model
   (`mistral-small-2603`) are configured, and the free tier has all three
   off (`infra/render-env.sh`), so with billing off nobody gets them on
   markoto.app without their own key.

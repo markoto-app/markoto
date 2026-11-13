@@ -184,7 +184,7 @@ describe('AI by plan', () => {
     for (const k of DEFAULT_ENV_KEYS) vi.stubEnv(k, '')
     vi.stubEnv('NUXT_AI_DEFAULT_CHAT_MODEL', 'zai-glm-5-3-flash')
     vi.stubEnv('NUXT_AI_DEFAULT_CHAT_STRONG_MODEL', 'mistral-small-2603')
-    vi.stubEnv('NUXT_AI_DEFAULT_IMAGE_MODEL', 'flux-2-pro')
+    vi.stubEnv('NUXT_AI_DEFAULT_IMAGE_MODEL', 'flux-3-image-klein')
     vi.stubEnv('NUXT_AI_DEFAULT_TRANSCRIBE_MODEL', 'voxtral-mini-transcribe')
     // The hosted free tier: image, voice and the strong model off.
     vi.stubEnv('TIER_FREE_FEATURE_AI_IMAGE', 'false')
@@ -216,7 +216,7 @@ describe('AI by plan', () => {
   it('Pro unlocks them; an own key unlocks them on any plan', async () => {
     const u = await createUser()
     const pro = await resolveAiAccess(asUser(u.id), 'pro')
-    expect(pro.providers.image?.model).toBe('flux-2-pro')
+    expect(pro.providers.image?.model).toBe('flux-3-image-klein')
     expect(pro.locked).toEqual([])
     await upsertAiProvider(asUser(u.id), row(u.id, { capability: 'image', model: 'gpt-image-1', baseUrl: 'https://api.openai.com/v1', supportsVision: false }))
     const free = await resolveAiAccess(asUser(u.id), 'free')
