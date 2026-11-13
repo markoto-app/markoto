@@ -1,22 +1,23 @@
 name: deploy
 
 # Manual deploy dispatcher (see `on:` below: NOT event-triggered). SSHes
-# to the VPS, pulls the requested tag (private GHCR via PAT mounted on the
-# VPS at provision time), runs compose up, polls /api/health,
-# auto-rollbacks on failure, sends Apprise notifications either way.
+# to the VPS as the unprivileged `markoto` user, pulls the requested tag,
+# runs the stack on that user's rootless Podman (markoto-compose, installed
+# by infra/playbooks/provision.yml), polls /api/health, auto-rollbacks on
+# failure, sends Apprise notifications either way.
 #
 # Required secrets, all scoped to the target Environment (staging / prod; see
 # the operator runbook, kept outside this repository):
-#   DEPLOY_SSH_KEY: private OpenSSH key for the deploy user on the VPS
+#   DEPLOY_SSH_KEY: private OpenSSH key of the markoto user on the VPS (its
+#                   public half is group_vars `markoto_deploy_pubkey`; the
+#                   host installs it with `restrict`, and markoto has no sudo)
 #   DEPLOY_HOST: IP or DNS of the VPS
 #   DEPLOY_KNOWN_HOSTS: pinned SSH host keys (`ssh-keyscan -t ed25519 HOST`);
 #                        the job refuses to connect without them
 #   APPRISE_URLS: Apprise URLs (optional: notifications are skipped)
+#   GHCR_PULL_TOKEN: read:packages token while the images are private
+#                    (optional, with the GHCR_PULL_USER variable)
 # plus the app + provider secrets that infra/render-env.sh renders into .env.
-#
-# The VPS must already have run `docker login ghcr.io` via the Ansible
-# `markoto` role (uses the `ghcr_pat` vault entry: see infra/group_vars/
-# all.vault.example.yml).
 
 on:
   # MANUAL ONLY. A merge/release never auto-deploys: you pick the environment
@@ -74,10 +75,9 @@ jobs:
       cancel-in-progress: false
     env:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-      # SSH login user on the VPS. Prod is Ansible-provisioned with a
-      # dedicated `markoto` user; the manually-provisioned staging box
-      # uses `debian`. Set a per-environment `DEPLOY_USER` variable
-      # (Settings → Environments → <env> → Variables) to override.
+      # SSH login user on the VPS: the unprivileged account that owns the
+      # stack (infra/roles/base). Override per Environment with a
+      # `DEPLOY_USER` variable only for a host provisioned differently.
       DEPLOY_USER: ${{ vars.DEPLOY_USER || 'markoto' }}
       TAG: ${{ inputs.tag }}
     steps:
@@ -304,6 +304,36 @@ jobs:
             mv -f .env.new .env
           ' < "$rendered"
 
+      # Private images (while ghcr.io/markoto-app is private): a read-only
+      # token, stored for the markoto user in ~/.docker/config.json (0600):
+      # Docker Compose sends it with each pull, Podman reads the same file.
+      # Streamed over ssh stdin, never on a command line. No token = the
+      # host's existing login (or none, for public images) stays as it is.
+      - name: Registry login on the host
+        env:
+          GHCR_PULL_USER: ${{ vars.GHCR_PULL_USER }}
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GHCR_PULL_TOKEN:-}" ]; then
+            echo "GHCR_PULL_TOKEN is not set: no registry login (public images)"
+            exit 0
+          fi
+          if [ -z "${GHCR_PULL_USER:-}" ]; then
+            echo "::error title=Missing variable::GHCR_PULL_TOKEN is set but the GHCR_PULL_USER variable is not"
+            exit 1
+          fi
+          auth="$(printf '%s:%s' "$GHCR_PULL_USER" "$GHCR_PULL_TOKEN" | base64 -w0)"
+          echo "::add-mask::${auth}"
+          printf '{"auths":{"ghcr.io":{"auth":"%s"}}}\n' "$auth" \
+            | ssh "${DEPLOY_USER}@${DEPLOY_HOST}" '
+                set -euo pipefail
+                umask 077
+                mkdir -p ~/.docker
+                cat > ~/.docker/config.json.new
+                mv -f ~/.docker/config.json.new ~/.docker/config.json
+              '
+
       # Same rationale as staging-gate.yml: the host's compose files are
       # otherwise only written at Ansible provision time, so a merged
       # compose change would never reach the box (`pull && up -d` against
@@ -314,15 +344,17 @@ jobs:
           set -euo pipefail
           # deploy/config/postgres/init is deliberately NOT synced: the initdb
           # scripts only run on the FIRST boot of a fresh postgres data
-          # dir (a provision-time concern), and the host copy is
-          # root-owned from provisioning, so the deploy user can't
-          # overwrite it. Changing an init script requires an Ansible pass.
+          # dir, a provision-time concern of the Ansible markoto role.
+          # compose.podman.yml: the hosted stack runs on rootless Podman
+          # (render-env.sh names it in COMPOSE_FILE).
           tar czf - \
             deploy/compose/compose.prod.yml \
             deploy/compose/compose.base.yml \
+            deploy/compose/compose.podman.yml \
             deploy/config/litellm/config.yaml \
             deploy/config/litellm/custom_handlers.py \
             deploy/config/postgres/db-init.sh \
+            deploy/config/edge/haproxy.cfg \
             deploy/config/renderer/seccomp.json \
             | ssh "${DEPLOY_USER}@${DEPLOY_HOST}" 'tar xzf - -C /opt/markoto'
 
@@ -336,6 +368,14 @@ jobs:
           set -euo pipefail
           : "${TAG:?TAG must be set}"
 
+          # Docker Compose on this user's rootless Podman, run in /opt/markoto
+          # (infra/roles/podman_host). Missing = the host was never
+          # provisioned for Podman: stop before touching anything.
+          if ! command -v markoto-compose > /dev/null; then
+            echo "markoto-compose not found: provision the host (infra/playbooks/provision.yml)" >&2
+            exit 1
+          fi
+          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
           cd /opt/markoto
 
           # Capture the version we are leaving so auto-rollback knows
@@ -354,10 +394,9 @@ jobs:
           # `up -d` recreates it (deploy/compose/compose.base.yml).
           LITELLM_CONFIG_HASH="$(cat deploy/config/litellm/config.yaml deploy/config/litellm/custom_handlers.py | sha256sum | cut -c1-16)"
           export LITELLM_CONFIG_HASH
-          # Login is already established at provision time via the
-          # ghcr_pat vault entry: no additional `docker login` here.
-          docker compose pull
-          docker compose up -d
+          # Registry credentials: the "Registry login on the host" step.
+          markoto-compose pull
+          markoto-compose up -d --remove-orphans
 
           # Health-check loop: 60 attempts × 5 s = 300 s. Sized for a COLD
           # first boot: litellm runs ~118 Prisma migrations before turning
@@ -383,8 +422,8 @@ jobs:
           if [ "$ok" -ne 1 ]; then
             echo "Health check failed after 300s, rolling back to $PREV" >&2
             export IMAGE_TAG="$PREV"
-            docker compose pull || true
-            docker compose up -d
+            markoto-compose pull || true
+            markoto-compose up -d --remove-orphans
             # Try to confirm rollback health. If even rollback fails,
             # the workflow will surface that too.
             for i in $(seq 1 20); do
@@ -405,6 +444,14 @@ jobs:
           # (it is only kept for recovery from a failed deploy).
           echo "$TAG" > .last-deploy
           rm -f .env.prev
+
+          # Disk: keep our images of this tag and of the previous one (the
+          # rollback target), drop older ones and dangling layers (a moved
+          # `latest`). Images a container still uses are refused by rmi.
+          podman images --format '{{.Repository}}:{{.Tag}}' \
+            | awk -F: -v cur="$TAG" -v prev="$PREV" '/\/markoto-[a-z]+:[^:]+$/ && $NF != cur && $NF != prev' \
+            | xargs -r podman rmi > /dev/null 2>&1 || true
+          podman image prune -f > /dev/null || true
           REMOTE
           ec=$?
           {

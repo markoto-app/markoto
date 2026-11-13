@@ -119,7 +119,7 @@ jobs:
     environment: staging
     env:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-      DEPLOY_USER: ${{ vars.DEPLOY_USER || 'debian' }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER || 'markoto' }}
       TAG: ${{ inputs.tag || 'latest' }}
       STAGING_URL: https://staging.markoto.app
     steps:
