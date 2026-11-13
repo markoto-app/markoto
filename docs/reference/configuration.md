@@ -289,8 +289,8 @@ Onboarding gate, DPA step, /legal/* pages and the operator identity rendered int
 | `NUXT_LEGAL_SURFACES_ENABLED` | boolean | `false` |  | app | both | Onboarding gate (age + Privacy + ToS), DPA step, /legal/* pages and footer links. Hosted: true. |
 | `NUXT_LEGAL_CONTROLLER_NAME` | string |  |  | app | hosted | Legal entity operating the instance (also the footer's operator name). Default: LatentSpace Labs GmbH (legal surfaces on). |
 | `NUXT_LEGAL_CONTROLLER_ADDRESS` | string |  | when NUXT_LEGAL_SURFACES_ENABLED=true | app | hosted | Postal address of the operator. No default. |
-| `NUXT_LEGAL_PRIVACY_CONTACT_EMAIL` | string |  |  | app | hosted | Inbox for data-subject requests. Default: privacy@markoto.app. |
-| `NUXT_LEGAL_ABUSE_CONTACT_EMAIL` | string |  |  | app | hosted | Inbox for DSA abuse reports; also receives abuse-report notifications on any instance. Default: abuse@markoto.app (legal surfaces on). |
+| `NUXT_LEGAL_PRIVACY_CONTACT_EMAIL` | string |  |  | app | hosted | Inbox for data-subject requests (the hosted service uses one address for general contact, privacy and abuse). Default: hello@markoto.app. |
+| `NUXT_LEGAL_ABUSE_CONTACT_EMAIL` | string |  |  | app | hosted | Inbox for DSA abuse reports; also receives abuse-report notifications on any instance. Default: hello@markoto.app (legal surfaces on). |
 | `NUXT_LEGAL_GOVERNING_LAW` | string |  |  | app | hosted | Choice of law of the Terms. Default: Swiss law. |
 | `NUXT_LEGAL_LEGAL_FORM` | string |  |  | app | hosted | Legal form, for the imprint. Default: Gesellschaft mit beschränkter Haftung (GmbH). |
 | `NUXT_LEGAL_REGISTERED_OFFICE` | string |  |  | app | hosted | Registered office, for the imprint. Default: Zürich, Switzerland. |
@@ -391,7 +391,7 @@ Interpolated by the compose files; no process reads them directly.
 | `TRAEFIK_TRUSTED_IPS` | string |  |  | compose | self-host | Self-host: proxies whose X-Forwarded-* Traefik trusts. |
 | `OVH_PG_HOST` | hostname |  |  | compose | hosted | Hosted deploy (infra/render-env.sh): managed Postgres host; set = verify its TLS against OVH_PG_CA_REMOTE_PATH. Not passed by the compose files: read by the deploy paths only, which turn it into PGSSLROOTCERT. |
 | `OVH_PG_CA_REMOTE_PATH` | string | `/opt/markoto/secrets/ovh-pg-ca.pem` |  | compose | hosted | Hosted deploy: path of the managed Postgres CA certificate on the server. Not passed by the compose files: read by the deploy paths only, which turn it into PGSSLROOTCERT. |
-| `CONTAINER_SOCKET` | string |  |  | compose | self-host | Docker / Podman socket path for the socket proxy. |
+| `CONTAINER_SOCKET` | string |  |  | compose | both | Docker / Podman socket path for the socket proxy. Hosted: exported by the markoto-compose wrapper (the markoto user's rootless Podman socket), not set in .env. |
 
 ## Backups
 

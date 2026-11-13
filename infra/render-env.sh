@@ -225,6 +225,18 @@ BACKUP_S3_PREFIX="${BACKUP_S3_PREFIX:-backups/postgres}"
 # cert-pinned TLS; empty (the in-stack pgvector default) disables TLS.
 OVH_PG_HOST="${OVH_PG_HOST:-}"
 OVH_PG_CA_REMOTE_PATH="${OVH_PG_CA_REMOTE_PATH:-/opt/markoto/secrets/ovh-pg-ca.pem}"
+# The bundled Postgres container runs only for the in-stack host name
+# (staging); a managed cluster (prod) gets no container at all
+# (deploy/compose/compose.prod.yml, profile `bundled-postgres`).
+if [ -n "$OVH_PG_HOST" ] && [ "$POSTGRES_HOST" = postgres ]; then
+  echo "render-env: OVH_PG_HOST is set but POSTGRES_HOST is the bundled 'postgres': set POSTGRES_HOST to the managed cluster's host name too" >&2
+  exit 1
+fi
+if [ "$POSTGRES_HOST" = postgres ]; then
+  compose_profiles=bundled-postgres
+else
+  compose_profiles=
+fi
 
 # ─── Value safety ───
 # Compose parses the rendered file, so an unquoted `$`, `#`, quote, backslash
@@ -275,9 +287,14 @@ cat <<EOF
 # Do not edit on the VPS; re-deploy after changing the secrets or group_vars.
 
 # Compose reads this file from the working directory (/opt/markoto) and
-# takes the stack from here, so every command on the host is a plain
-# \`docker compose <command>\` run there.
-COMPOSE_FILE=deploy/compose/compose.prod.yml
+# takes the stack from here: every command on the host is
+# \`markoto-compose <command>\` (Docker Compose on the markoto user's
+# rootless Podman socket, run in /opt/markoto; infra/roles/podman_host).
+# The Podman overlay swaps the renderer's seccomp transport
+# (docs/contributing/CONTAINER-ENGINES.md).
+COMPOSE_FILE=deploy/compose/compose.prod.yml:deploy/compose/compose.podman.yml
+# bundled-postgres = run the Postgres container (POSTGRES_HOST=postgres).
+COMPOSE_PROFILES=${compose_profiles}
 
 # ─── App secrets ───
 NUXT_SESSION_PASSWORD=${NUXT_SESSION_PASSWORD}

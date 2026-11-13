@@ -1,0 +1,106 @@
+---
+# Belt-and-braces backup. The in-stack `backup` sidecar is the primary path
+# (its own interval loop); this is the safety net for "the sidecar silently
+# stopped working". A systemd timer of the markoto user (lingering, roles/
+# podman_host) triggers a one-shot run of the sidecar's backup.sh at
+# backup_timer_oncalendar. backup.sh --once exits non-zero when the dump or
+# upload failed, which raises the markoto-notify alert below.
+#
+# Output: `journalctl --user -u markoto-backup` (as markoto), status:
+# `systemctl --user list-timers markoto-backup.timer`.
+
+- name: Read the markoto user's account
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ markoto_user }}"
+
+- name: Remember the markoto uid and home
+  ansible.builtin.set_fact:
+    backup_timer_uid: "{{ ansible_facts.getent_passwd[markoto_user][1] }}"
+    backup_timer_home: "{{ ansible_facts.getent_passwd[markoto_user][4] }}"
+
+# `--once` is load-bearing: backup.sh's default mode ends in an infinite
+# interval loop (it is the sidecar's PID 1), so an exec without the flag
+# never returns. The path is the one the image installs; scripts/
+# selfhost-check.sh asserts it exists in the built image.
+- name: Install the one-shot backup trigger
+  ansible.builtin.copy:
+    dest: /usr/local/bin/markoto-backup-now
+    owner: root
+    group: root
+    mode: "0755"
+    content: |
+      #!/usr/bin/env bash
+      # Managed by Ansible (markoto/backup_timer role). Run as {{ markoto_user }}.
+      # One backup through the running sidecar; notifies on failure.
+      set -uo pipefail
+      out="$(mktemp)"
+      trap 'rm -f "$out"' EXIT
+      /usr/local/bin/markoto-compose exec -T backup /usr/local/bin/backup.sh --once > "$out" 2>&1
+      ec=$?
+      cat "$out"
+      if [ "$ec" -ne 0 ]; then
+        # markoto-notify (roles/base) is a no-op without Apprise URLs.
+        /usr/local/bin/markoto-notify "Backup failed on $(hostname)" \
+          "markoto-backup exited ${ec} at $(date -Is). Last lines:
+      $(tail -n 20 "$out")" || true
+      fi
+      exit "$ec"
+
+- name: Install the backup service + timer (markoto user units)
+  ansible.builtin.copy:
+    dest: "{{ backup_timer_home }}/.config/systemd/user/{{ item.name }}"
+    owner: "{{ markoto_user }}"
+    group: "{{ markoto_user }}"
+    mode: "0644"
+    content: "{{ item.content }}"
+  loop:
+    - name: markoto-backup.service
+      content: |
+        # Managed by Ansible (markoto/backup_timer role).
+        [Unit]
+        Description=markoto one-shot backup through the backup sidecar
+        After=markoto-stack.service
+
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/local/bin/markoto-backup-now
+        TimeoutStartSec=3h
+    - name: markoto-backup.timer
+      content: |
+        # Managed by Ansible (markoto/backup_timer role).
+        [Unit]
+        Description=Daily markoto backup (belt and braces)
+
+        [Timer]
+        OnCalendar={{ backup_timer_oncalendar }}
+        # A run missed while the host was down happens at the next boot.
+        Persistent=true
+        RandomizedDelaySec=5min
+
+        [Install]
+        WantedBy=timers.target
+  loop_control:
+    label: "{{ item.name }}"
+  notify: Reload the markoto user manager (backup units)
+
+- name: Apply changed units before enabling the timer
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable the backup timer
+  ansible.builtin.systemd_service:
+    name: markoto-backup.timer
+    scope: user
+    enabled: true
+    state: started
+  become: true
+  become_user: "{{ markoto_user }}"
+  environment:
+    XDG_RUNTIME_DIR: /run/user/{{ backup_timer_uid }}
+
+# The Docker-era role ran the same job from root's crontab.
+- name: Remove the Docker-era root cron job
+  ansible.builtin.cron:
+    name: "markoto belt-and-braces backup trigger"
+    user: root
+    state: absent

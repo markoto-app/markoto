@@ -5686,7 +5686,7 @@
       "names": {
         "compose": "CONTAINER_SOCKET"
       },
-      "scope": "self-host",
+      "scope": "both",
       "required": null,
       "secret": false,
       "default": null,

@@ -375,7 +375,8 @@ The goal: a compromise of any one container, most plausibly the renderer
 (parsers for uploaded Office/PDF files), gives the attacker as little as
 possible: no root, no capabilities, nothing writable outside tmpfs, no
 route to the database or the AI gateway, no Docker API. Enforced in CI by
-`scripts/selfhost-check.sh` for the selfhost, prod and local stacks.
+`scripts/selfhost-check.sh` for the selfhost, prod and local stacks. The
+hosted deployment adds a rootless engine underneath (§C.8).
 
 ## C.1 Container baseline
 
@@ -389,8 +390,9 @@ Every service: `cap_drop: [ALL]` + `security_opt: [no-new-privileges:true]`.
 | markitdown | `app` (image) | read-only, tmpfs `/tmp` | no network except `import` (§C.3) |
 | litellm | `65534:65534` (nobody) | read-only, tmpfs `/tmp` | admin UI off (`DISABLE_ADMIN_UI=True`) |
 | valkey | `999:1000` (the image's `valkey` user, no root entrypoint) | read-only, data on its volume | |
-| traefik | root **without capabilities** | read-only | binding 80/443 needs no capability (Docker sets `ip_unprivileged_port_start=0`); the hosted compose keeps `DAC_OVERRIDE` only while its `traefik/acme.json` is owned by the deploy user rather than root |
-| socket-proxy | root without capabilities (to open the `root:docker` socket) | read-only, tmpfs `/tmp` `/run` | §C.4 |
+| traefik | root **without capabilities** | read-only | binding 80/443 needs no capability: Docker sets `ip_unprivileged_port_start=0` in the container, on Podman the compose files set it (it is per network namespace). Hosted: root in the rootless user namespace is the `markoto` user, which owns `traefik/acme.json`, so no `DAC_OVERRIDE` |
+| edge-proxy (hosted) | `haproxy` (image) | read-only | the only container in the host network namespace: binds 80/443 (host sysctl `ip_unprivileged_port_start=80`), relays TCP to Traefik's loopback ports with a PROXY header (§C.8) |
+| socket-proxy | root without capabilities (to open the `root:docker` socket; hosted: the `markoto` user's Podman socket) | read-only, tmpfs `/tmp` `/run` | §C.4 |
 | db-init | `postgres` | read-only | one-shot, §C.5 |
 | backup | `postgres` (uid 70) | writable | stages the encrypted dump in `/tmp`, which can be large |
 | postgres, seaweedfs | image entrypoint (root → drops to its user) | writable | keep `CHOWN DAC_OVERRIDE FOWNER SETGID SETUID` only, what the entrypoint needs to fix data-dir ownership and drop privileges |
@@ -424,6 +426,17 @@ curl -fsSL https://raw.githubusercontent.com/moby/profiles/main/seccomp/default.
   | jq '.syscalls += [{"names":["chroot","clone","unshare"],"action":"SCMP_ACT_ALLOW","comment":"markoto renderer: Chromium namespace sandbox (unprivileged user namespaces) without CAP_SYS_ADMIN/CAP_SYS_CHROOT"}]' \
   > deploy/config/renderer/seccomp.json
 ```
+
+On Podman (the hosted stack, and any stack started with
+`deploy/compose/compose.podman.yml`) the custom profile can't be handed
+over (Compose sends it inline, Podman's API expects a path), so the
+renderer runs under Podman's default seccomp profile, which already
+allows the namespace syscalls, plus `CAP_SYS_CHROOT` for Chromium's
+`chroot`. That capability is ambient for `pwuser` and acts only inside the
+container's own mount namespace. Rootless Podman applies no AppArmor
+profile (Docker's `docker-default` does), so on the hosted stack the
+renderer's confinement is seccomp, no other capabilities, the read-only
+root and the user namespace (§C.8).
 
 Escape hatch: a host that forbids unprivileged user namespaces entirely
 (`kernel.unprivileged_userns_clone=0`, some hardened kernels, rootless
@@ -476,6 +489,10 @@ i.e. cannot become root on the host. It can still read container
 metadata (including environment variables), inherent to the docker
 provider. Verify: `docker compose exec traefik wget -qO- --post-data= http://socket-proxy:2375/containers/create` → `403 Forbidden`.
 
+Hosted: the proxy mounts the `markoto` user's rootless Podman socket
+(`CONTAINER_SOCKET`, exported by `markoto-compose`). Even full access to
+that API means control of `markoto`'s containers, not root on the host.
+
 ## C.5 Postgres roles
 
 `POSTGRES_USER` is the **admin** role (the bundled image's bootstrap
@@ -524,6 +541,77 @@ bash scripts/selfhost-check.sh            # static: networks, caps, read-only, l
 docker compose exec renderer sh -c 'cat /proc/1/status | grep -E "^(Uid|CapEff|NoNewPrivs)"'
 docker compose exec renderer bun -e 'require("net").connect(5432,"postgres").on("error",e=>console.log(e.code))'   # ENOTFOUND
 docker compose exec postgres psql -U "$POSTGRES_USER" -c "select usename, datname from pg_stat_activity where usename is not null"
+```
+
+On the hosted stack use `markoto-compose` (as `markoto`) instead of
+`docker compose`.
+
+## C.8 Hosted deployment: rootless Podman
+
+Staging and prod run the stack on Debian 13 with rootless Podman 5.4, as the
+unprivileged `markoto` user (`infra/README.md`). What that adds, and what it
+does not:
+
+**Adds**
+
+- **No root anywhere in the container path.** There is no root daemon. Root
+  inside a container is `markoto` on the host; every other container uid is
+  a subordinate id that owns nothing on the host. A container escape lands
+  as an unprivileged user, not as root as with a rootful engine.
+- **The engine API is not root-equivalent.** Docker's socket (and the
+  `docker` group) amounts to root on the host. The Podman socket here gives
+  control of `markoto`'s containers, volumes and images, and nothing else.
+- **The deploy key can do nothing but drive the stack.** GitHub Actions logs
+  in as `markoto` (no sudo, no password); the key is installed with
+  `restrict` (no port, agent or X11 forwarding, no pty) and is that
+  account's only key. Administration goes through `debian`, whose key never
+  leaves the operator.
+- **The firewall governs the published ports.** Docker publishes ports
+  through its own iptables chains, past ufw. Rootless publishing happens in
+  user space in the host network namespace, so ufw's deny-by-default
+  applies; only 22, 80 and 443 are open, and Traefik listens on loopback.
+- **The host keeps CIS's `ip_forward=0`**: rootless networking routes inside
+  its own network namespace.
+
+**Does not add, or costs**
+
+- **The stack's secrets are still the stack's.** `.env`, the database (on
+  staging), the S3 and provider keys all belong to `markoto`, and so does
+  every container. A compromise of the app, or of `markoto`, reaches all of
+  them, exactly as before. Rootless protects the host (OS, SSH, firewall,
+  the admin account, persistence), not the application data.
+- **Unprivileged user namespaces are on** (`kernel.unprivileged_userns_clone=1`,
+  overriding devsec.hardening's Debian default). Rootless Podman needs them,
+  and so does Chromium's sandbox in the renderer. They add kernel attack
+  surface for every local user; the host has no other untrusted users.
+- **No AppArmor profile** on rootless containers (§C.2). Confinement is the
+  user namespace, `cap_drop: [ALL]`, `no-new-privileges`, seccomp (Podman's
+  default; the renderer's custom profile only on Docker) and read-only roots.
+- **Ports 80 to 1023 are unprivileged on the host**
+  (`net.ipv4.ip_unprivileged_port_start=80`), so `edge-proxy` can bind 80
+  and 443 without capabilities. Any local user could bind a port in that
+  range while it is free; sshd (22) stays privileged.
+- **Client addresses depend on the edge relay.** Rootless port publishing
+  (`rootlessport`) hides the client address. `edge-proxy`, in the host
+  network namespace, passes it to Traefik in a PROXY protocol v2 header;
+  Traefik accepts the header only from its own two networks (pinned
+  subnets). If the trust list and the subnets drift apart, Traefik ignores
+  the header and every request appears to come from one internal address
+  (per-IP rate limits and audit IPs collapse). `scripts/selfhost-check.sh`
+  pins the two together. The relay handles only TCP; TLS stays in Traefik.
+
+Verify on a host:
+
+```bash
+# as markoto
+podman info --format '{{.Host.Security.Rootless}} {{.Host.RootlessNetworkCmd}}'   # true pasta
+podman top markoto-app-1 user huser          # container user and the host uid it maps to
+markoto-compose ps edge-proxy traefik
+# from another machine: the app must see your address, e.g. the IP of your
+# own sign-in in the admin audit log (truncated to /24 or /48)
+# as debian
+sudo ss -ltnp | grep -E ':(80|443|10080|10443)\b'   # 80/443 on all addresses, 10080/10443 on 127.0.0.1 only
+sudo ufw status
 ```
 
 ---

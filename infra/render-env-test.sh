@@ -171,9 +171,27 @@ if [ -n "$missing" ]; then
 fi
 echo "KEYS OK: --keys covers every variable render-env.sh reads"
 
-# 3. The stack the host's plain `docker compose` uses.
-if ! echo "$bash_out" | grep -qx 'COMPOSE_FILE=deploy/compose/compose.prod.yml'; then
-  echo "COMPOSE_FILE FAILED: the .env must name the production stack"
+# 3. The stack markoto-compose uses on the host: the production stack on
+#    rootless Podman (its overlay), the Postgres container only for the
+#    in-stack host name, never with a managed cluster.
+if ! echo "$bash_out" | grep -qx 'COMPOSE_FILE=deploy/compose/compose.prod.yml:deploy/compose/compose.podman.yml'; then
+  echo "COMPOSE_FILE FAILED: the .env must name the production stack and the Podman overlay"
+  exit 1
+fi
+declare -a BUNDLEDPG=()
+for kv in "${ENVARGS[@]}"; do
+  case "$kv" in POSTGRES_HOST=*) BUNDLEDPG+=("POSTGRES_HOST=postgres") ;; *) BUNDLEDPG+=("$kv") ;; esac
+done
+bundled_out=$(env -i "${BUNDLEDPG[@]}" bash infra/render-env.sh)
+if echo "$bundled_out" | grep -qx 'COMPOSE_PROFILES=bundled-postgres' \
+   && echo "$bash_out" | grep -qx 'COMPOSE_PROFILES='; then
+  echo "PG PROFILE OK, Postgres container for the in-stack host only"
+else
+  echo "PG PROFILE FAILED, COMPOSE_PROFILES must be bundled-postgres exactly when POSTGRES_HOST=postgres"
+  exit 1
+fi
+if env -i "${BUNDLEDPG[@]}" OVH_PG_HOST=pg.example.test bash infra/render-env.sh >/dev/null 2>&1; then
+  echo "PG PROFILE FAILED, a managed OVH_PG_HOST with POSTGRES_HOST=postgres must not render"
   exit 1
 fi
 

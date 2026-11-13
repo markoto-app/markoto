@@ -179,7 +179,7 @@ describe('server instance helpers', () => {
   it('hosted (legal on) falls back to the legal entity default inbox', () => {
     vi.stubEnv('NUXT_LEGAL_SURFACES_ENABLED', 'true')
     vi.stubEnv('NUXT_LEGAL_ABUSE_CONTACT_EMAIL', '')
-    expect(abuseNotificationRecipient()).toBe('abuse@markoto.app')
+    expect(abuseNotificationRecipient()).toBe('hello@markoto.app')
   })
 })
 

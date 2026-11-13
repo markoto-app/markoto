@@ -201,7 +201,9 @@ describe('the Ansible path', () => {
 describe('render-env.sh covers every variable the prod compose stack reads', () => {
   // LITELLM_CONFIG_HASH is exported by the deploy step itself;
   // NUXT_PRODUCT_TOUR_ENABLED is a one-release alias the hosted stack never sets.
-  const NOT_RENDERED = new Set(['LITELLM_CONFIG_HASH', 'NUXT_PRODUCT_TOUR_ENABLED'])
+  // CONTAINER_SOCKET: exported on the host by markoto-compose (the markoto
+  // user's Podman socket), like LITELLM_CONFIG_HASH.
+  const NOT_RENDERED = new Set(['LITELLM_CONFIG_HASH', 'NUXT_PRODUCT_TOUR_ENABLED', 'CONTAINER_SOCKET'])
 
   it('emits each ${VAR} of deploy/compose/compose.prod.yml + deploy/compose/compose.base.yml', () => {
     const rendered = renderHostedEnv()
