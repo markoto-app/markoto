@@ -8,7 +8,7 @@
 # narrows the context to the files below. Compose:
 # `build: { context: <repo root>, dockerfile: sync-server/Dockerfile }`.
 # Pinned digest corresponds to oven/bun:1.4.4-alpine at the time of bump.
-FROM oven/bun@sha256:4cf82f5686b196504fe119db3fcd9185b191f82ece82c40680e597228ec6070a
+FROM oven/bun@sha256:1d22548f177f4ff38e0c15baa3c2c46c6c2060ba2d1bc573bb4720b407548f1d
 
 USER root
 RUN mkdir -p /app && chown bun:bun /app
