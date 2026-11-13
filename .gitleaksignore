@@ -1,9 +1,10 @@
 # Placeholder values in test fixtures and the self-host check (not credentials).
 # One line per finding: <commit>:<file>:<rule>:<line>.
-46d02557b6a958590702f667d465acaf9fba63c1:tests/unit/rendering/renderClient.test.ts:generic-api-key:21
-46d02557b6a958590702f667d465acaf9fba63c1:tests/unit/sync/syncInternalHttp.test.ts:generic-api-key:47
-46d02557b6a958590702f667d465acaf9fba63c1:tests/unit/sync/syncInternalHttp.test.ts:generic-api-key:77
-46d02557b6a958590702f667d465acaf9fba63c1:tests/unit/sync/syncInternalHttp.test.ts:generic-api-key:83
-46d02557b6a958590702f667d465acaf9fba63c1:tests/unit/sync/syncNotify.test.ts:generic-api-key:19
-d5b8e95eabf839771bd12a253518f04dfb427316:scripts/selfhost-check.sh:generic-api-key:159
-d5b8e95eabf839771bd12a253518f04dfb427316:scripts/selfhost-check.sh:generic-api-key:41
+6c7e4d3406a6ea039451edb4cf26150c373eaa72:tests/unit/rendering/renderClient.test.ts:generic-api-key:21
+6c7e4d3406a6ea039451edb4cf26150c373eaa72:tests/unit/sync/syncInternalHttp.test.ts:generic-api-key:47
+6c7e4d3406a6ea039451edb4cf26150c373eaa72:tests/unit/sync/syncInternalHttp.test.ts:generic-api-key:77
+6c7e4d3406a6ea039451edb4cf26150c373eaa72:tests/unit/sync/syncInternalHttp.test.ts:generic-api-key:83
+6c7e4d3406a6ea039451edb4cf26150c373eaa72:tests/unit/sync/syncNotify.test.ts:generic-api-key:19
+8e02e8a9b91002af98f19327ea7ca6386571a953:tests/unit/duplicateDocument.test.ts:generic-api-key:119
+ea76da72c87fc1e2c03a9e7f83f375d898e771eb:scripts/selfhost-check.sh:generic-api-key:159
+ea76da72c87fc1e2c03a9e7f83f375d898e771eb:scripts/selfhost-check.sh:generic-api-key:41
