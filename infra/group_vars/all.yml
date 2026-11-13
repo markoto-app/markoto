@@ -62,11 +62,11 @@ markoto_root: /opt/markoto
 # (no sudo, no password; SSH only with the deploy key below). Ansible itself
 # connects as the image's admin user (inventory ansible_user, `debian`).
 markoto_user: markoto
-# Public half of the GitHub deploy key (the DEPLOY_SSH_KEY secret of the
-# staging / prod Environment). Installed as markoto_user's ONLY authorized
-# key, with `restrict` (no forwarding, no pty). Empty = no SSH login for
-# markoto_user (Ansible deploys still work through the admin user).
-markoto_deploy_pubkey: ""
+# markoto_deploy_pubkey: public half of the environment's GitHub deploy key
+# (its DEPLOY_SSH_KEY secret), installed as markoto_user's ONLY authorized
+# key, with `restrict`. Set per environment in inventories/<env>/hosts.ini
+# or env.yml, never here: this file is a play vars_file and would override
+# the inventory's value. Unset = no SSH login for markoto_user.
 
 # ─── Container engine (roles/podman_host) ───
 # Docker Compose, standalone binary, driving the user's Podman socket
