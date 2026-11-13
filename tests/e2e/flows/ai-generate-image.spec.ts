@@ -10,12 +10,12 @@ import { IMAGE_PROVIDER_UNAVAILABLE_MESSAGE } from '../../../shared/utils/aiProv
 // preview just like any markdown image.
 //
 // Pipeline: prompt → AI calls `generate_image` → the image provider
-// (bundled default: BFL FLUX.2 [pro] via LiteLLM) returns the image →
+// (bundled default: BFL FLUX 3 Image Klein via LiteLLM) returns the image →
 // markoto stores it under the doc → registers an `uploads` row →
 // returns the markdown reference → the AI inserts it. The
 // image is owned by the doc; deletion cascades clean up.
 //
-// Live LiteLLM round-trip → BFL. Cost: ~$0.030 per 1024² image. Skipped if no key.
+// Live LiteLLM round-trip → BFL. Cost: ~$0.009 per 1024² image. Skipped if no key.
 // Also skipped (never failed) when the app reports the image provider as
 // unavailable (5xx / connection error): a third-party outage must not block a
 // release. Any other error still fails the flow.

@@ -8,6 +8,6 @@ import type { ResolvedAiProviders } from '../../../server/utils/aiProviders/reso
  */
 export const FULL_AI_PROVIDERS: ResolvedAiProviders = {
   chat: { capability: 'chat', source: 'instance', model: 'mistral-small-2603', credentials: null, supportsVision: true },
-  image: { capability: 'image', source: 'instance', model: 'flux-2-pro', credentials: null, supportsVision: false },
+  image: { capability: 'image', source: 'instance', model: 'flux-3-image-klein', credentials: null, supportsVision: false },
   transcription: { capability: 'transcription', source: 'instance', model: 'voxtral-mini-transcribe', credentials: null, supportsVision: false }
 }

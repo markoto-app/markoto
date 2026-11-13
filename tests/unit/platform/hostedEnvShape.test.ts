@@ -151,7 +151,7 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
   })
 
   it('image / voice / strong-model defaults are platform aliases, locked for the free tier', () => {
-    expect(vars.get('NUXT_AI_DEFAULT_IMAGE_MODEL')).toBe('flux-2-pro')
+    expect(vars.get('NUXT_AI_DEFAULT_IMAGE_MODEL')).toBe('flux-3-image-klein')
     expect(vars.get('NUXT_AI_DEFAULT_TRANSCRIBE_MODEL')).toBe('voxtral-mini-transcribe')
     expect(vars.get('NUXT_AI_DEFAULT_CHAT_STRONG_MODEL')).toBe('mistral-small-2603')
     // Aliases only: never an operator endpoint + key for these.
