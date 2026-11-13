@@ -1,7 +1,11 @@
 # Ansible vault password: never commit.
 .vault-password
 
-# Filled-in inventory: only the example template is committed.
+# One directory per environment (inventories/<env>/: hosts.ini, env.yml,
+# vault.yml, .vault-password). Only the example is committed.
+inventories/*
+!inventories/example/
+# The pre-environments layout.
 inventory.ini
 
 # Vault: only all.vault.example.yml (placeholders) is committed. NEVER commit

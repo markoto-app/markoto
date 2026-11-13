@@ -42,9 +42,10 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion != 'cancelled'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # RELEASE_BOT_TOKEN (main-only Environment) pushes the branch and opens
-    # the PR: a PR opened with GITHUB_TOKEN would not trigger ci.yml, so its
-    # required checks would never report.
+    # The organisation's release GitHub App (RELEASE_APP_ID variable +
+    # RELEASE_APP_PRIVATE_KEY secret, main-only Environment) pushes the branch
+    # and opens the PR: a PR opened with GITHUB_TOKEN would not trigger ci.yml,
+    # so its required checks would never report.
     environment: release
     permissions:
       actions: read # download the artifact of the triggering run
@@ -88,7 +89,7 @@ jobs:
 
       # The pixel comparison needs sharp (prebuilt libvips, no install
       # script). `--ignore-scripts`: no dependency code runs at install;
-      # the bot token only reaches the last step.
+      # the app token is only minted for the last step.
       - name: Install dependencies
         if: steps.artifact.outputs.found == 'true'
         run: bun install --frozen-lockfile --ignore-scripts --filter markoto
@@ -97,25 +98,44 @@ jobs:
         if: steps.artifact.outputs.found == 'true'
         run: bun scripts/build-flows.ts --summary "${RUNNER_TEMP}/flows-summary.md"
 
+      - name: Require the release GitHub App credentials
+        if: steps.artifact.outputs.found == 'true'
+        env:
+          RELEASE_APP_ID: ${{ vars.RELEASE_APP_ID }}
+          RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+        run: |
+          if [ -z "${RELEASE_APP_ID:-}" ] || [ -z "${RELEASE_APP_PRIVATE_KEY:-}" ]; then
+            echo "::error title=Missing GitHub App credentials::RELEASE_APP_ID (variable) and RELEASE_APP_PRIVATE_KEY (secret) must both be set in the 'release' Environment (the operator runbook, kept outside this repository)."
+            exit 1
+          fi
+
+      - name: Create release app token
+        id: app-token
+        if: steps.artifact.outputs.found == 'true'
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
       - name: Open the PR
         if: steps.artifact.outputs.found == 'true'
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          if [ -z "${GH_TOKEN:-}" ]; then
-            echo "::error title=Missing secret::RELEASE_BOT_TOKEN is not set in the 'release' Environment (the operator runbook, kept outside this repository)."
-            exit 1
-          fi
           if [ -z "$(git status --porcelain -- public/flows)" ]; then
             echo "public/flows is unchanged, nothing to publish."
             exit 0
           fi
           version=$(git tag --list 'v*' --sort=-v:refname | head -1)
           branch="docs/flow-shots-${version:-run-${RUN_ID}}"
-          git config user.name "markoto release bot"
-          git config user.email "release-bot@users.noreply.github.com"
+          bot_id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
           git switch -c "$branch"
           git add public/flows
           git commit -q -m "docs: publish the ${version} flow screenshots" \

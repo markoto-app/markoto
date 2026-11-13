@@ -313,6 +313,7 @@ configure() {
   # Podman: renderer seccomp overlay + the engine socket (docs/contributing/CONTAINER-ENGINES.md).
   if engine_is_podman; then
     COMPOSE_FILES="${COMPOSE_FILES}:deploy/compose/compose.podman.yml"
+    warn "Rootless Podman: the app sees one address for all clients (shared IP rate limits, internal audit IPs). See docs/SELF-HOSTING.md#client-addresses-on-rootless-podman."
     local unpriv
     unpriv="$(cat /proc/sys/net/ipv4/ip_unprivileged_port_start 2>/dev/null || echo 1024)"
     if [ "$(id -u)" != 0 ] && [ "$(env_get MARKOTO_HTTP_PORT)" -lt "$unpriv" ]; then

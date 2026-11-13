@@ -60,8 +60,8 @@ export function resolveLegalEntity(source?: RawEnv): LegalEntity {
   return {
     controllerName: legal.controllerName || 'LatentSpace Labs GmbH',
     controllerAddress: legal.controllerAddress ?? '',
-    privacyContactEmail: legal.privacyContactEmail || 'privacy@markoto.app',
-    abuseContactEmail: legal.abuseContactEmail || 'abuse@markoto.app',
+    privacyContactEmail: legal.privacyContactEmail || 'hello@markoto.app',
+    abuseContactEmail: legal.abuseContactEmail || 'hello@markoto.app',
     governingLaw: legal.governingLaw || 'Swiss law',
     legalForm: legal.legalForm || 'Gesellschaft mit beschränkter Haftung (GmbH)',
     registeredOffice: legal.registeredOffice || 'Zürich, Switzerland',

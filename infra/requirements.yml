@@ -5,8 +5,6 @@
 collections:
   - name: community.general
     version: ">=8.0.0"
-  - name: community.docker
-    version: ">=3.10.0"
   - name: ansible.posix
     version: ">=1.5.4"
   # CIS-aligned OS hardening (sysctl, file perms, login restrictions, kernel
@@ -16,16 +14,9 @@ collections:
     version: "10.5.2"
 
 roles:
-  # Geerling's Docker role handles every apt-key / repo edge case across
-  # Debian/Ubuntu releases. Pinned exact: Docker apt repo handling is the
-  # single most fragile piece of any "install Docker" role and we want
-  # surprise-upgrades blocked.
-  - name: geerlingguy.docker
-    version: "8.0.0"
   # Geerling's security role wires unattended-upgrades + reboot windows on
   # Debian/Ubuntu. We disable its SSH bits (devsec.hardening + our
   # ssh_hardening role already cover those) and its fail2ban bits (we
-  # template our own jail). Pinned exact for the same reason as the
-  # docker role: apt-touching roles drift.
+  # template our own jail). Pinned exact: apt-touching roles drift.
   - name: geerlingguy.security
     version: "3.0.0"

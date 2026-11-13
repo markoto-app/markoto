@@ -2,6 +2,8 @@
 
 Every compose stack (dev, test, flows, local, self-host) runs on **Docker** and on **rootless Podman** (Podman's Docker-compatible API driven by `docker compose` ≥ 5). Docker needs no extra settings. Podman needs a short `.env` block and, for some stacks, an overlay file.
 
+The hosted deployment (staging, prod) runs **only** on rootless Podman: see "Hosted deployment" below and `infra/README.md`.
+
 ## Quick start on Podman
 
 Point the Docker CLI at Podman's socket (most Podman setups already do this, e.g. through the `podman-docker` package or `DOCKER_HOST`):
@@ -43,7 +45,8 @@ The test-stack scripts go through `scripts/test-compose.sh`, which detects Podma
 | **Unprivileged low ports.** Docker sets `net.ipv4.ip_unprivileged_port_start=0` in every container; Podman does not. | Traefik (no capabilities): `listen tcp :80: bind: permission denied` | Traefik sets the sysctl itself (`deploy/compose/compose.local.yml`, `deploy/compose/compose.selfhost.yml`, `deploy/compose/compose.prod.yml`, `deploy/compose/compose.test.yml`). |
 | **Image healthchecks.** Podman builds OCI images, which drop `HEALTHCHECK`. | `container … has no healthcheck configured` on `depends_on: service_healthy` | The compose files declare the same healthchecks as the Dockerfiles (app, sync, markitdown, renderer). |
 | **No host-side bridge gateway.** Rootless Podman's networks live in its own network namespace. | `rootlessport listen tcp 10.213.47.1:4120: bind: cannot assign requested address` | `TEST_FAKE_OPENAI_HOST`: publish the fake AI provider on a private host address instead. Both the app (on the host) and LiteLLM (in a container) use it, and the BYOK SSRF policy accepts it (private, not loopback). It is a test fake with no secrets; it is reachable from your LAN while the stack runs. |
-| **Engine socket path.** Rootless Podman listens on `$XDG_RUNTIME_DIR/podman/podman.sock`. | Traefik finds no containers | `CONTAINER_SOCKET` (default `/var/run/docker.sock`). `install.sh` sets it. |
+| **Engine socket path.** Rootless Podman listens on `$XDG_RUNTIME_DIR/podman/podman.sock`. | Traefik finds no containers | `CONTAINER_SOCKET` (default `/var/run/docker.sock`). `install.sh` sets it; on the hosted stack `markoto-compose` exports it (required there). |
+| **Client address behind published ports.** Rootless publishing goes through `rootlessport`, a userspace proxy: the container sees the proxy's address (its own IP on one of its networks), not the client's. Podman 6 has an experimental pasta forwarder (`rootless_port_forwarder`) that keeps it; Podman 5.4 (Debian 13) has none. | Every request reaches Traefik from one internal address: per-IP rate limits and audit IPs collapse | Hosted: `edge-proxy` binds 80/443 in the host network namespace and passes the client address in a PROXY protocol v2 header to Traefik, published on loopback only; Traefik trusts the header from its own two networks, whose subnets are pinned (`deploy/compose/compose.prod.yml`, `deploy/config/edge/haproxy.cfg`). Self-host on Podman: not solved; the app sees one address for all clients (IP-keyed rate limits shared, audit IPs internal), see [SELF-HOSTING.md](../SELF-HOSTING.md#client-addresses-on-rootless-podman). Docker, or a host-level proxy sending PROXY protocol to a Traefik configured to trust it, avoids it. An `X-Forwarded-For` proxy alone does not: Traefik sees the rootlessport address as the sender. `install.sh` prints a notice. |
 | **Rootless low ports on the host.** Publishing ports below `net.ipv4.ip_unprivileged_port_start` (1024 on most distributions; Fedora: 80) needs privileges. | Self-host on port 80 fails to start | `install.sh` warns. Choose a higher port or lower the sysctl on the host. |
 
 ## VPNs and `host.docker.internal`
@@ -55,3 +58,32 @@ Fix: set `CONTAINER_HOST_ADDRESS` to a real private address of the host (your Wi
 ## Checking a change on both engines
 
 `scripts/selfhost-check.sh` runs on either engine (it builds `localhost/markoto-backup-ci` with `--load`, which also works when the Docker CLI's buildx builder runs in a container). CI runs everything on Docker; when you change a compose file, a stack bring-up on Podman with the commands above is the Podman check.
+
+## Hosted deployment
+
+Staging and prod are Debian 13 VPSs running the stack on rootless Podman
+5.4 as the unprivileged `markoto` user. Provisioning (Ansible,
+`infra/playbooks/provision.yml`) installs Debian's Podman and pasta, the
+pinned Docker Compose 5.7.0 binary and the `markoto-compose` wrapper; the
+deploy workflow (`.github/workflows/deploy.yml`) logs in as `markoto` and
+runs `markoto-compose pull` / `up -d`. The rendered `.env` sets
+`COMPOSE_FILE=deploy/compose/compose.prod.yml:deploy/compose/compose.podman.yml`,
+so the hosted stack gets the same renderer overlay as every other Podman
+stack. What the hosted stack does differently:
+
+- `edge-proxy` (HAProxy, `network_mode: host`) owns ports 80/443 and relays
+  TCP with PROXY protocol v2 to Traefik on `127.0.0.1:10080/10443` (the
+  client-address row above). The host lowers
+  `net.ipv4.ip_unprivileged_port_start` to 80 for it.
+- The socket proxy mounts `${CONTAINER_SOCKET}` (no default), the user's
+  Podman socket.
+- `traefik/acme.json` is owned by `markoto`, which is root inside the user
+  namespace, so Traefik needs no `DAC_OVERRIDE`.
+- The bundled Postgres runs only with `COMPOSE_PROFILES=bundled-postgres`
+  (staging); prod uses the managed cluster and has no Postgres container.
+
+To inspect the hosted shape locally, render it from the repository root
+with a `.env` produced by `infra/render-env.sh` and `CONTAINER_SOCKET` set:
+`CONTAINER_SOCKET=/run/user/1000/podman/podman.sock docker compose --env-file <that .env> config`.
+`bash scripts/selfhost-check.sh` asserts its invariants.
+

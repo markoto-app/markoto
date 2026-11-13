@@ -33,8 +33,8 @@ export const legal = defineNamespace({
       scope: 'hosted',
       required: { when: 'NUXT_LEGAL_SURFACES_ENABLED=true' }
     }),
-    privacyContactEmail: entity('NUXT_LEGAL_PRIVACY_CONTACT_EMAIL', 'Inbox for data-subject requests.', 'privacy@markoto.app'),
-    abuseContactEmail: entity('NUXT_LEGAL_ABUSE_CONTACT_EMAIL', 'Inbox for DSA abuse reports; also receives abuse-report notifications on any instance.', 'abuse@markoto.app (legal surfaces on)'),
+    privacyContactEmail: entity('NUXT_LEGAL_PRIVACY_CONTACT_EMAIL', 'Inbox for data-subject requests (the hosted service uses one address for general contact, privacy and abuse).', 'hello@markoto.app'),
+    abuseContactEmail: entity('NUXT_LEGAL_ABUSE_CONTACT_EMAIL', 'Inbox for DSA abuse reports; also receives abuse-report notifications on any instance.', 'hello@markoto.app (legal surfaces on)'),
     governingLaw: entity('NUXT_LEGAL_GOVERNING_LAW', 'Choice of law of the Terms.', 'Swiss law'),
     legalForm: entity('NUXT_LEGAL_LEGAL_FORM', 'Legal form, for the imprint.', 'Gesellschaft mit beschränkter Haftung (GmbH)'),
     registeredOffice: entity('NUXT_LEGAL_REGISTERED_OFFICE', 'Registered office, for the imprint.', 'Zürich, Switzerland'),

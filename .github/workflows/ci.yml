@@ -261,20 +261,25 @@ jobs:
     name: secret-scan
     permissions:
       contents: read
-      pull-requests: read
     runs-on: ubuntu-latest
     # Scans the full git history for leaked credentials. fetch-depth: 0
     # is required so gitleaks sees every commit, not just the PR head.
-    # The default action config matches our local `make secrets-scan`.
+    # The gitleaks image is run directly: the gitleaks GitHub Action needs a
+    # paid licence for repositories owned by an organisation, the tool
+    # itself does not. Same scan as the local `make secrets-scan`
+    # (.gitleaks.toml and .gitleaksignore are read from the repository).
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
           fetch-depth: 0
 
-      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Scan the history with gitleaks
+        run: |
+          docker run --rm -v "$PWD:/repo:ro" \
+            -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/repo \
+            ghcr.io/gitleaks/gitleaks:v8.30.0@sha256:105ac66a57b2bb8afb61a3b8a5dcc4817773d03724a7e8a515214cfe58225556 \
+            git /repo --redact --no-banner
 
   selfhost-check:
     name: selfhost-check

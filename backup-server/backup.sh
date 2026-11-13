@@ -12,7 +12,7 @@
 # only this sidecar ever receives them.
 #
 # Exit status: `--once` exits non-zero when the backup failed, so the host
-# cron (roles/backup_cron) can alert. The long-running
+# timer (infra/roles/backup_timer) can alert. The long-running
 # loop logs the failure and retries next interval.
 #
 # Why gpg on top of S3 SSE? S3 server-side encryption protects against
@@ -169,10 +169,10 @@ echo "[backup] Started: interval ${BACKUP_INTERVAL_SECONDS}s, retention ${BACKUP
 first_status=0
 backup_once || first_status=1
 
-# `--once` mode: used by the belt-and-braces host cron (roles/backup_cron),
-# which `docker compose exec`s this script inside the running sidecar for
+# `--once` mode: used by the belt-and-braces host timer (roles/backup_timer),
+# which `compose exec`s this script inside the running sidecar for
 # a one-shot run. Without this exit, the exec'd invocation would fall
-# into the interval loop below and never return: the cron job would hang
+# into the interval loop below and never return: the timer run would hang
 # forever and stack a new orphaned loop process every night.
 if [ "${1:-}" = "--once" ]; then
   if [ "$first_status" -ne 0 ]; then

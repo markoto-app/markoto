@@ -17,6 +17,9 @@
 #    routers, and markitdown requires its shared secret.
 # 7. Layout: every stack under deploy/compose/, seccomp paths resolve, and
 #    the host deploy paths sync every file the prod stack mounts.
+# 8. The hosted shape (prod + the Podman overlay, rootless Podman): the
+#    edge relay, Traefik on loopback with PROXY protocol trust limited to its
+#    own networks, the bundled Postgres only behind its profile.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -110,12 +113,12 @@ if ! jq -e '.services.backup.environment | .S3_ACCESS_KEY == "backup-only-access
 fi
 echo "ok: backup credentials reach only the backup service"
 
-# 2. The nightly cron job must call a script that exists, and be executable
+# 2. The nightly backup timer must call a script that exists, and be executable
 #    by the unprivileged user the image runs as. Build the real image and
-#    resolve the exact path the cron task uses.
-cron_path="$(grep -oE 'exec -T backup [^ ]+' infra/roles/backup_cron/tasks/main.yml | awk '{print $4}' | head -n 1)"
+#    resolve the exact path the timer task uses.
+cron_path="$(grep -oE 'exec -T backup [^ ]+' infra/roles/backup_timer/tasks/main.yml | awk '{print $4}' | head -n 1)"
 if [ -z "$cron_path" ]; then
-  echo "FAIL: could not find the backup command in infra/roles/backup_cron/tasks/main.yml" >&2
+  echo "FAIL: could not find the backup command in infra/roles/backup_timer/tasks/main.yml" >&2
   exit 1
 fi
 docker build --load -q -t localhost/markoto-backup-ci backup-server > /dev/null
@@ -171,6 +174,7 @@ BACKUP_INTERVAL_SECONDS=86400
 BACKUP_RETENTION_COUNT=14
 NUXT_ALTCHA_HMAC_KEY=placeholder-placeholder-placeholder-0000
 NUXT_PUBLISH_PAGES_HOST=pages.docs.example.org
+CONTAINER_SOCKET=/run/user/1001/podman/podman.sock
 EOF3
 
 render_config() { # render_config OUT ENVFILE FILES [PROFILES]
@@ -203,7 +207,7 @@ check_isolation() { # check_isolation LABEL CONFIG_JSON
           | "\($m) shares network \($n) with seaweedfs" ),
         # the Docker socket
         ( .services | to_entries[] | select(.key != "socket-proxy")
-          | select([.value.volumes[]? | .source // "" | test("docker\\.sock")] | any)
+          | select([.value.volumes[]? | .source // "" | test("(docker|podman)\\.sock")] | any)
           | "\(.key) mounts the Docker socket" ),
         # capabilities + no-new-privileges, everywhere
         ( .services | to_entries[]
@@ -533,3 +537,68 @@ for f in deploy/compose/compose.prod.yml deploy/compose/compose.base.yml; do
   fi
 done
 echo "ok: layout (stacks in deploy/compose, seccomp paths resolve, the host gets every mounted file)"
+
+# Hosted shape: prod on rootless Podman (infra/roles/podman_host)
+# render-env.sh sets COMPOSE_FILE to prod + the Podman overlay and
+# COMPOSE_PROFILES=bundled-postgres only for the in-stack Postgres.
+render_config "$tmp/hosted.json" "$tmp/prod.env" "deploy/compose/compose.prod.yml:deploy/compose/compose.podman.yml"
+render_config "$tmp/hosted-pg.json" "$tmp/prod.env" "deploy/compose/compose.prod.yml:deploy/compose/compose.podman.yml" "bundled-postgres"
+for cfg in hosted hosted-pg; do
+  out="$(jq -r '
+    . as $c
+    | def sub($n): ($c.networks[$n].ipam.config // [])[0].subnet // "unpinned";
+      [
+        # Only the TCP relay shares the host network namespace.
+        ( .services | to_entries[] | select(.value.network_mode == "host" and .key != "edge-proxy")
+          | "\(.key) uses the host network" ),
+        ( select(.services["edge-proxy"].network_mode != "host") | "edge-proxy is not in the host network namespace" ),
+        # Traefik is reachable only through the relay (loopback ports).
+        ( .services.traefik.ports[]? | select(.host_ip != "127.0.0.1") | "traefik publishes \(.published) on \(.host_ip // "all interfaces")" ),
+        # rootlessport presents Traefik own address on one of its networks:
+        # the PROXY trust list must be exactly those pinned subnets.
+        ( ([sub("web"), sub("docker-api")] | join(",")) as $want
+          | .services.traefik.command[] | select(test("proxyProtocol.trustedIPs="))
+          | select(split("=")[1] != $want) | "traefik trusts PROXY headers from \(split("=")[1]), expected \($want)" ),
+        ( select([.services.traefik.command[] | select(test("entrypoints\\.(web|websecure)\\.proxyProtocol\\.trustedIPs="))] | length != 2)
+          | "traefik must trust PROXY headers on both entrypoints" ),
+        # The renderer: Podman default seccomp + CAP_SYS_CHROOT only.
+        ( select((.services.renderer.cap_add // []) != ["SYS_CHROOT"]) | "renderer cap_add is \(.services.renderer.cap_add), expected [SYS_CHROOT]" ),
+        ( .services.renderer.security_opt[]? | select(test("seccomp=unconfined|apparmor=unconfined")) | "renderer runs \(.)" ),
+        # Every dependency on postgres tolerates its absence (managed cluster).
+        ( .services | to_entries[] | select(.value.depends_on.postgres? and .value.depends_on.postgres.required != false)
+          | "\(.key) requires postgres (must be required: false)" ),
+        # The engine socket comes from markoto-compose.
+        ( select([.services["socket-proxy"].volumes[] | select(.target == "/var/run/docker.sock") | .source] != ["/run/user/1001/podman/podman.sock"])
+          | "socket-proxy does not mount CONTAINER_SOCKET" )
+      ] | .[]' "$tmp/$cfg.json")"
+  if [ -n "$out" ]; then
+    printf 'FAIL (%s): %s\n' "$cfg" "$out" >&2
+    exit 1
+  fi
+done
+if jq -e '.services.postgres' "$tmp/hosted.json" > /dev/null; then
+  echo "FAIL: the hosted stack must not run Postgres without the bundled-postgres profile" >&2
+  exit 1
+fi
+if ! jq -e '.services.postgres' "$tmp/hosted-pg.json" > /dev/null; then
+  echo "FAIL: the bundled-postgres profile must run the Postgres container" >&2
+  exit 1
+fi
+check_isolation_hosted() { # the isolation rules minus the Docker seccomp file
+  jq 'del(.services.renderer)' "$1" > "$tmp/hosted-norenderer.json"
+  check_isolation "$2" "$tmp/hosted-norenderer.json"
+}
+check_isolation_hosted "$tmp/hosted-pg.json" "hosted (prod + podman)"
+if ! grep -q "^COMPOSE_FILE=deploy/compose/compose.prod.yml:deploy/compose/compose.podman.yml$" infra/render-env.sh; then
+  echo "FAIL: infra/render-env.sh must name the prod stack with the Podman overlay" >&2
+  exit 1
+fi
+# The deploy paths sync the overlay and every file the hosted stack mounts.
+for src in deploy/compose/compose.podman.yml $(jq -r --arg root "$root/" '[.services[].volumes // [] | .[] | select(.type == "bind") | .source | select(startswith($root)) | ltrimstr($root)] | unique | .[]' "$tmp/hosted-pg.json"); do
+  case "$src" in traefik/acme.json|deploy/config/postgres/init) continue ;; esac
+  if ! grep -qE "^\s+$src \\\\$" .github/workflows/deploy.yml || ! grep -qE "^\s+- $src$" infra/roles/markoto/tasks/main.yml; then
+    echo "FAIL: $src must be synced by deploy.yml and the Ansible role" >&2
+    exit 1
+  fi
+done
+echo "ok: hosted shape (edge relay, loopback Traefik + PROXY trust, renderer on Podman, Postgres profile, synced files)"

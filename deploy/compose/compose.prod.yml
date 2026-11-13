@@ -1,7 +1,14 @@
-# Production stack.
+# Production stack (the hosted service: staging and prod).
 # Traefik with Let's Encrypt TLS, all app images pulled from GHCR, external S3.
-# Run on the host from /opt/markoto: `docker compose pull && docker compose up -d`
-# (the .env there, infra/render-env.sh, sets COMPOSE_FILE to this file).
+# The hosts run it on rootless Podman as the `markoto` user (infra/README.md):
+# `markoto-compose pull && markoto-compose up -d`, a wrapper that points
+# Docker Compose at the user's Podman socket and runs it in /opt/markoto,
+# whose .env (infra/render-env.sh) sets COMPOSE_FILE to this file plus the
+# Podman overlay (deploy/compose/compose.podman.yml) and COMPOSE_PROFILES.
+#
+# Postgres: the bundled container runs only with the `bundled-postgres`
+# profile (staging); with a managed cluster (prod) there is no Postgres
+# container and every dependency on it is `required: false`.
 #
 # DNS and TLS prerequisites: see the operator runbook, kept outside this repository.
 #
@@ -35,11 +42,21 @@ include:
 #   renderer-egress  renderer alone                  (S3: presigned document images)
 # With managed Postgres, app/sync reach the cluster through `web`, the
 # others through `egress`.
+#
+# `web` and `docker-api` have fixed subnets: they are Traefik's networks,
+# and Traefik trusts PROXY protocol headers from exactly these two ranges
+# (see edge-proxy below).
 networks:
   web:
     name: web
+    ipam:
+      config:
+        - subnet: 10.213.80.0/24
   docker-api:
     internal: true
+    ipam:
+      config:
+        - subnet: 10.213.81.0/24
   data:
     internal: true
   render:
@@ -72,14 +89,44 @@ services:
       - VERSION=1
       - POST=0
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # The `markoto` user's Podman API socket
+      # (/run/user/<uid>/podman/podman.sock), exported by markoto-compose.
+      # Owned by that user, i.e. by root inside the rootless user namespace:
+      # the proxy opens it without any capability.
+      - ${CONTAINER_SOCKET:?CONTAINER_SOCKET required (run through markoto-compose)}:/var/run/docker.sock:ro
     read_only: true
     tmpfs:
       - /tmp:size=8m
       - /run:size=8m
-    <<: *hardening
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+      # SELinux hosts only (inert on Debian's AppArmor): a confined
+      # container may not connect to the engine socket.
+      - label=disable
     networks:
       - docker-api
+
+  # The public edge. Rootless Podman publishes container ports through
+  # rootlessport, a userspace proxy: the container sees the proxy's address,
+  # not the client's (Podman 5.4, Debian 13). So the ports 80/443 are bound
+  # by this TCP relay in the host's network namespace, which sees the real
+  # client and hands its address to Traefik in a PROXY protocol v2 header;
+  # Traefik is published on loopback only. TLS stays in Traefik (the relay
+  # never sees plaintext). Needs net.ipv4.ip_unprivileged_port_start <= 80
+  # on the host (infra/roles/podman_host). Logs no connections.
+  edge-proxy:
+    image: haproxy:3.4.7-alpine@sha256:b9fe316f718d5015c5cfebd8ca019591f3e44656f61d93cb8b59a1028961e530
+    restart: unless-stopped
+    mem_limit: 128m
+    network_mode: host
+    volumes:
+      - ../config/edge/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro,z
+    # Image user `haproxy`; no capabilities (the host sysctl makes 80/443
+    # unprivileged ports), nothing writable.
+    read_only: true
+    <<: *hardening
 
   traefik:
     image: traefik:v3@sha256:c8a121e4bb1347e8fd52657fab12f2cb70b68f8a018895e2068f92c9e519b9c2
@@ -90,6 +137,13 @@ services:
       - "--entrypoints.web.address=:80"
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       - "--entrypoints.websecure.address=:443"
+      # Client addresses arrive in PROXY protocol headers from edge-proxy,
+      # through rootlessport, whose source address is Traefik's own IP on
+      # one of its two networks (which one varies between starts). A header
+      # from any other source is ignored, so the client address would
+      # silently become that IP: keep this list equal to the two subnets.
+      - "--entrypoints.web.proxyProtocol.trustedIPs=10.213.80.0/24,10.213.81.0/24"
+      - "--entrypoints.websecure.proxyProtocol.trustedIPs=10.213.80.0/24,10.213.81.0/24"
       - "--providers.docker=true"
       - "--providers.docker.endpoint=tcp://socket-proxy:2375"
       - "--providers.docker.exposedbydefault=false"
@@ -103,30 +157,31 @@ services:
       - "--providers.http.endpoint=http://app:3000/api/internal/traefik/custom-domains"
       - "--providers.http.pollInterval=15s"
       - "--providers.http.headers.X-Markoto-Provider-Token=${NUXT_PUBLISH_TRAEFIK_TOKEN:-}"
+    # Loopback only: the public 80/443 belong to edge-proxy.
     ports:
-      - "80:80"
-      - "443:443"
+      - "127.0.0.1:10080:80"
+      - "127.0.0.1:10443:443"
     volumes:
+      # Owned by the `markoto` user (0600), which is root inside the
+      # rootless user namespace: readable without DAC_OVERRIDE.
       - ../../traefik/acme.json:/acme.json
     read_only: true
-    cap_drop:
-      - ALL
-    # Binding 80/443 needs no capability (Docker sets
-    # ip_unprivileged_port_start=0). DAC_OVERRIDE only because
-    # ./traefik/acme.json (0600) is owned by the deploy user, not root
-    # (infra/roles/markoto): drop it once the file is root-owned
-    # (the operator runbook, kept outside this repository).
-    cap_add:
-      - DAC_OVERRIDE
-    security_opt:
-      - no-new-privileges:true
+    # Podman (unlike Docker) leaves ip_unprivileged_port_start at 1024 in
+    # the container's network namespace; Traefik has no capabilities.
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: 0
+    <<: *hardening
     depends_on:
       - socket-proxy
     networks:
       - web
       - docker-api
 
+  # Bundled Postgres: only with COMPOSE_PROFILES=bundled-postgres, which
+  # infra/render-env.sh sets when POSTGRES_HOST is the in-stack `postgres`.
   postgres:
+    profiles:
+      - bundled-postgres
     expose:
       - "5432"
     networks:
@@ -331,10 +386,8 @@ services:
       # container; a managed-Postgres deployment overrides them via .env
       # (POSTGRES_HOST=<cluster-host> POSTGRES_PORT=<port> + the TLS vars
       # below). The Nuxt app composes the URL via
-      # shared/utils/runtime/connectionStrings.ts. NOTE: in managed mode the
-      # in-stack postgres container still runs (compose `include:` can't
-      # drop a service): it sits idle and keeps the depends_on
-      # healthcheck satisfied; accepted overhead.
+      # shared/utils/runtime/connectionStrings.ts. In managed mode the
+      # bundled postgres service is not started (its profile is off).
       # POSTGRES_APP_* = the app's own least-privilege role (owner of the app
       # database only, deploy/config/postgres/db-init.sh); unset = the admin role.
       - POSTGRES_USER=${POSTGRES_APP_USER:-${POSTGRES_USER}}
@@ -436,8 +489,10 @@ services:
       - "traefik.http.routers.app-import.middlewares=import-body-limit,security-headers"
       - "traefik.http.middlewares.import-body-limit.buffering.maxRequestBodyBytes=53477376"
     depends_on:
+      # Not required: absent with a managed cluster (see the header).
       postgres:
         condition: service_healthy
+        required: false
       valkey:
         condition: service_healthy
       # Every AI surface routes through LiteLLM. Gate app
@@ -464,9 +519,8 @@ services:
           - markoto-app
 
   # LiteLLM + the db-init one-shot come from deploy/compose/compose.base.yml via
-  # `include:`. Compose REPLACES `networks:` wholesale on merge, and base
-  # leaves them on the default network: so every service is pinned to its
-  # purpose networks here.
+  # `include:`. Base sets no `networks:` (they would be merged with these,
+  # not replaced): every service is pinned to its purpose networks here.
   litellm:
     networks:
       - data

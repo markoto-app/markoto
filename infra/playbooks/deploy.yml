@@ -7,7 +7,9 @@
   gather_facts: true
   vars_files:
     - ../group_vars/all.yml
-    - ../group_vars/all.vault.yml
+    # This environment's values and secrets (inventories/<env>/).
+    - "{{ inventory_dir }}/env.yml"
+    - "{{ inventory_dir }}/vault.yml"
   roles:
     - role: markoto
-    - role: backup_cron
+    - role: backup_timer
