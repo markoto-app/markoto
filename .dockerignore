@@ -28,7 +28,6 @@ data/
 README.md
 LICENSE
 AGENTS.md
-.claude/
 renovate.json
 eslint.config.mjs
 

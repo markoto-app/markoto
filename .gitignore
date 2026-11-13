@@ -28,9 +28,6 @@ logs
 /data/*.db-shm
 /data/*.db-wal
 
-# Claude Code local scheduler state
-/.claude/
-
 # Vitest coverage reports: regenerated via `bun run test:coverage`
 /coverage/
 
