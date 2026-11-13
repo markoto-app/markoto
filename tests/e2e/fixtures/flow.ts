@@ -6,6 +6,7 @@ import { EDITOR_TOUR_DONE, EDITOR_TOUR_STORAGE_KEY } from '../../../app/utils/ed
 import sharp from 'sharp'
 import { EditorPage } from '../page-objects/Editor'
 import { settleAnimations } from './waits'
+import { PROVIDER_OUTAGE_MARKER } from '../../../scripts/lib/flowSkips'
 
 // One Playwright fixture that turns a normal e2e test into a "flow":
 // a sequence of slides, chapter, narration, approach, outcome, that
@@ -946,9 +947,17 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
     // error toast raised by the final click) still fail the flow.
     // Only checked when the body itself passed, a thrown assertion
     // already carries the more useful message.
-    if (testInfo.status === testInfo.expectedStatus) {
+    // A skipped flow reports status === expectedStatus ('skipped'), but it
+    // stopped part-way: its frames must never replace the published ones.
+    if (testInfo.status === 'passed' && testInfo.expectedStatus === 'passed') {
       assertNoUnexpectedFailures()
       await fs.writeFile(path.join(outDir, '.passed'), '')
+    }
+    // `skipForProviderOutage`: leave the reason next to the frames so the
+    // release can list every flow its run could not verify.
+    const outage = testInfo.annotations.find(a => a.type === PROVIDER_OUTAGE_ANNOTATION)
+    if (outage && testInfo.status === 'skipped') {
+      await fs.writeFile(path.join(outDir, PROVIDER_OUTAGE_MARKER), outage.description ?? '')
     }
   },
 
@@ -1059,6 +1068,24 @@ export function requireLiveAi(): void {
     + 'Injected by flows-ephemeral.ts from the host/CI; present on the release + '
     + 'staging full-suite run, intentionally absent on the fast PR gate.'
   )
+}
+
+const PROVIDER_OUTAGE_ANNOTATION = 'provider-unavailable'
+
+/**
+ * End the running flow as SKIPPED because a third-party provider it needs is
+ * down (the app reported the provider as unavailable: 5xx, connection error,
+ * timeout). Call it ONLY on that exact signal; every other failure must stay
+ * a failure. Prints one greppable line, records the reason next to the flow's
+ * output (`scripts/flows-skipped-summary.ts` lists it in the release) and
+ * keeps the previously published frames (no `.passed` sentinel).
+ */
+export function skipForProviderOutage(reason: string): never {
+  const info = test.info()
+  console.log(`[flows] SKIPPED (provider unavailable): ${info.title} [${info.project.name}]: ${reason}`)
+  info.annotations.push({ type: PROVIDER_OUTAGE_ANNOTATION, description: reason })
+  test.skip(true, `Provider unavailable: ${reason}`)
+  throw new Error('unreachable: test.skip ends the test')
 }
 
 const slugify = (s: string) =>

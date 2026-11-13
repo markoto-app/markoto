@@ -39,6 +39,7 @@
       "confirmation-not-pending": "Diese Anfrage wartet nicht mehr auf eine Antwort.",
       "duplicate-session": "Du hast bereits eine markoto-Sitzung für dieses Dokument laufen.",
       "free-allowance-exhausted": "Das kostenlose KI-Kontingent ist für diesen Monat aufgebraucht.",
+      "image-provider-unavailable": "Der Bildanbieter ist gerade nicht erreichbar. Versuche es später noch einmal.",
       "provider-error": "Dein Transkriptionsanbieter hat einen Fehler gemeldet. Prüfe deine KI-Anbieter-Einstellungen.",
       "provider-missing": "Dafür ist kein KI-Anbieter eingerichtet. Füge in den Einstellungen einen hinzu.",
       "session-not-found": "KI-Sitzung nicht gefunden.",

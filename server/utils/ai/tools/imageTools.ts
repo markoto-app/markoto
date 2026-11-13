@@ -6,6 +6,7 @@ import { defineMetaTool, pickStringArg, toolError, toolOk, type ToolResult } fro
 import type { MetaToolContext } from '../../agentic/toolContext'
 import { fetchViewableExternalImage, fetchFromS3, parseInternalFileRef } from './imageFetch'
 import { IMAGE_MIME_EXT, generateImageBytes } from './imageGeneration'
+import { IMAGE_PROVIDER_UNAVAILABLE_MESSAGE } from '~~/shared/utils/aiProviderOutage'
 import { getDoc } from '../../../repos/documents'
 import { deletePending, markConfirmed, reservePendingUpload, sumImageBytesInScope } from '../../../repos/uploads'
 import { imageQuotaMessage, resolveImageQuota } from '../../storage/imageQuota'
@@ -160,7 +161,12 @@ async function handleGenerateImage(
     userId: session.initiatorUserId,
     docId: session.docId
   })
-  if ('error' in gen) return toolError(`Error: ${gen.error}`)
+  if ('error' in gen) {
+    if (gen.providerUnavailable) {
+      return { ...toolError(`Error: ${gen.error}`), endSessionWith: IMAGE_PROVIDER_UNAVAILABLE_MESSAGE }
+    }
+    return toolError(`Error: ${gen.error}`)
+  }
 
   // 2. Upload to S3 using the same key shape as user uploads so the
   //    existing /api/files endpoint serves it with no extra plumbing.

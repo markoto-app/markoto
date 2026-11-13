@@ -39,6 +39,7 @@
       "confirmation-not-pending": "Cette demande n’attend plus de réponse.",
       "duplicate-session": "Vous avez déjà une session markoto en cours sur ce document.",
       "free-allowance-exhausted": "L’allocation IA gratuite est épuisée pour ce mois.",
+      "image-provider-unavailable": "Le fournisseur d’images n’est pas disponible pour le moment. Veuillez réessayer plus tard.",
       "provider-error": "Votre fournisseur de transcription a renvoyé une erreur. Vérifiez vos réglages de fournisseur d'IA.",
       "provider-missing": "Aucun fournisseur d’IA n’est configuré pour cela. Ajoutez-en un dans les réglages.",
       "session-not-found": "Session IA introuvable.",

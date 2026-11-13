@@ -184,8 +184,23 @@ export class EditorPage {
    * `test.setTimeout(600_000)`.
    */
   async waitForAiIdle(timeout = 240_000): Promise<void> {
-    await expect(this.ai.promptBar).toHaveAttribute('data-active', 'false', { timeout })
+    await this.waitForAiSessionEnd(timeout)
     await this.expectAiSessionSucceeded()
+  }
+
+  /**
+   * Wait until my AI session ended, whatever its outcome, and return the
+   * outcome's server message (null when it ended without an error). Use it
+   * instead of `waitForAiIdle` when a flow reacts to one specific error
+   * (provider outage skip, see `skipForProviderOutage`).
+   */
+  async waitForAiSessionEnd(timeout = 240_000): Promise<string | null> {
+    const bar = this.ai.promptBar
+    await expect(bar).toHaveAttribute('data-active', 'false', { timeout })
+    await expect(bar).toHaveAttribute('data-last-outcome', /^(done|error)$/, { timeout: 15_000 })
+    return await bar.getAttribute('data-last-outcome') === 'error'
+      ? (await bar.getAttribute('data-last-outcome-message')) ?? ''
+      : null
   }
 
   /**
