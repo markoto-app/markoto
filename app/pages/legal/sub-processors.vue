@@ -3,36 +3,24 @@
 // recipients of personal data, plus the per-recipient transfer
 // mechanism (DPF / SCCs / intra-EU). One row per sub-processor;
 // the registry in `server/legal/subProcessors.ts` is the source
-// of truth and this page renders whatever it contains — adding a
+// of truth and this page renders whatever it contains, adding a
 // new sub-processor is one TypeScript edit, no template change.
-import { LEGAL_PAGE_DESCRIPTIONS } from '~~/shared/seo/meta'
+import { legalDescriptionKey } from '~~/shared/seo/meta'
 import { pageBreadcrumbs } from '~~/shared/seo/breadcrumbs'
+import type { ApiResponse } from '~/utils/api/client'
 import { PRIVACY_EFFECTIVE_DATE } from '~~/shared/legal/versions'
 
-interface SubProcessor {
-  id: string
-  name: string
-  purpose: string
-  location: 'eu' | 'us' | 'global'
-  transferMechanism: 'intra_eu' | 'dpf' | 'sccs' | 'dpf_with_sccs_fallback'
-  dpfCertified: boolean
-  privacyPolicyUrl: string
-  dpaUrl: string | null
-}
-
-definePageMeta({ middleware: 'legal-surfaces' })
-// Public page: no modulepreload / prefetch hints (useLeanResourceHints).
-useLeanResourceHints()
+type SubProcessor = ApiResponse<'/api/_internal/sub-processors', 'get'>[number]
 
 const router = useRouter()
 const { t } = useI18n()
 
-const { data: subProcessors, pending } = await useFetch<SubProcessor[]>(
+const { data: subProcessors, pending } = await useFetch(
   '/api/_internal/sub-processors'
 )
 
-const SEO_TITLE = 'Sub-processors'
-const SEO_DESCRIPTION = LEGAL_PAGE_DESCRIPTIONS['sub-processors'] ?? ''
+const SEO_TITLE = t('legal.footer.subProcessors')
+const SEO_DESCRIPTION = t(legalDescriptionKey('sub-processors'))
 const { imageUrl } = useMarketingSeo({ title: SEO_TITLE, description: SEO_DESCRIPTION, imageGroup: 'default' })
 usePageStructuredData(() => ({
   name: SEO_TITLE,
@@ -47,25 +35,15 @@ function onClose(): void {
   if (globalThis.history.length > 1 && document.referrer) {
     router.back()
   } else {
-    router.push('/')
+    void router.push('/')
   }
 }
 
-// Human-readable labels for the structured location + transfer
-// values. Keep these inline rather than in i18n — the values are
-// regulatory terms with established translations and any localised
-// version would have to mirror EU regulation language anyway.
-const LOCATION_LABEL: Record<SubProcessor['location'], string> = {
-  eu: 'European Union',
-  us: 'United States',
-  global: 'Global'
-}
-const TRANSFER_LABEL: Record<SubProcessor['transferMechanism'], string> = {
-  intra_eu: 'Intra-EU (no transfer)',
-  dpf: 'EU-US Data Privacy Framework',
-  sccs: 'Standard Contractual Clauses',
-  dpf_with_sccs_fallback: 'EU-US DPF (SCCs as fallback)'
-}
+// Human-readable labels for the structured location + transfer values; the
+// marketing sub-processor table shares the same texts.
+const locationLabel = (location: SubProcessor['location']): string => t(`marketing.subProcessors.location.${location}`)
+const transferLabel = (mechanism: SubProcessor['transferMechanism']): string => t(`marketing.subProcessors.transfer.${mechanism}`)
+const { subProcessorPurpose } = useSubProcessorPurpose()
 </script>
 
 <template>
@@ -87,14 +65,10 @@ const TRANSFER_LABEL: Record<SubProcessor['transferMechanism'], string> = {
           /legal · sub-processors
         </p>
         <h1 class="font-serif text-3xl sm:text-4xl font-normal tracking-tight">
-          Sub-processors
+          {{ t('legal.footer.subProcessors') }}
         </h1>
         <p class="mt-3 text-sm text-muted">
-          The third parties markoto engages to process personal data on
-          our behalf, with the location, transfer mechanism, and public
-          links for each. Required disclosure under GDPR Article 13(1)(e).
-          We notify workspace-owner customers at least 30 days in
-          advance of any new sub-processor.
+          {{ t('legal.subProcessors.intro') }}
         </p>
       </header>
 
@@ -106,12 +80,12 @@ const TRANSFER_LABEL: Record<SubProcessor['transferMechanism'], string> = {
           name="i-lucide-loader-2"
           class="size-5 animate-spin mb-3 mx-auto"
         />
-        Loading…
+        {{ t('common.loading') }}
       </div>
 
       <!-- One card per sub-processor. A table would pack tighter on
            desktop, but cards survive mobile better and let each row
-           breathe — there's no value in a 50-row dense table here;
+           breathe: there's no value in a 50-row dense table here;
            we have <10 sub-processors and add one per launch. -->
       <ul
         v-else-if="subProcessors"
@@ -129,31 +103,31 @@ const TRANSFER_LABEL: Record<SubProcessor['transferMechanism'], string> = {
               {{ sp.name }}
             </h2>
             <div class="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-muted shrink-0">
-              <span>{{ LOCATION_LABEL[sp.location] }}</span>
+              <span>{{ locationLabel(sp.location) }}</span>
               <span
                 v-if="sp.dpfCertified"
                 class="px-1.5 py-0.5 rounded border border-default"
-                title="EU-US Data Privacy Framework certified"
+                :title="t('legal.subProcessors.dpfCertified')"
               >
-                DPF
+                {{ t('legal.subProcessors.dpf') }}
               </span>
             </div>
           </div>
 
           <p class="text-sm mb-3">
-            {{ sp.purpose }}
+            {{ subProcessorPurpose(sp) }}
           </p>
 
           <dl class="grid grid-cols-[minmax(0,1fr)] sm:grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-1 text-xs">
             <dt class="font-mono uppercase tracking-wider text-muted">
-              Transfer
+              {{ t('legal.subProcessors.transfer') }}
             </dt>
             <dd class="font-mono">
-              {{ TRANSFER_LABEL[sp.transferMechanism] }}
+              {{ transferLabel(sp.transferMechanism) }}
             </dd>
 
             <dt class="font-mono uppercase tracking-wider text-muted">
-              Privacy
+              {{ t('legal.footer.privacy') }}
             </dt>
             <dd>
               <a
@@ -166,7 +140,7 @@ const TRANSFER_LABEL: Record<SubProcessor['transferMechanism'], string> = {
 
             <template v-if="sp.dpaUrl">
               <dt class="font-mono uppercase tracking-wider text-muted">
-                DPA
+                {{ t('legal.footer.dpaShort') }}
               </dt>
               <dd>
                 <a

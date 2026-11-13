@@ -4,14 +4,14 @@ import {
   AudioEncoding,
   RealtimeTranscription
 } from '@mistralai/mistralai/extra/realtime'
-import { isTestModeEnabled } from '../../../shared/utils/testMode'
+import { isTestModeEnabled } from '../../../shared/utils/security/testMode'
 import { MISTRAL_EU_API_HOST } from '../../../shared/ai/providers'
+import { useEnv } from '~~/shared/env/load'
 
-// Factory for the dictate streaming client. Phase 7: cloud-stt path
-// removed — voxtral realtime is the only path. The mock-streaming
-// fixture stays so integration tests can drive the WS handshake
-// without a real upstream (gated on `TEST_MODE=1 + NUXT_VOXTRAL_REALTIME_MOCK=1`,
-// or for backwards-compat the legacy `NUXT_GOOGLE_SPEECH_MOCK=1`).
+// Factory for the dictate streaming client. Voxtral realtime is the only
+// real path; the mock-streaming fixture lets integration tests drive the
+// WS handshake without a real upstream (gated on
+// `TEST_MODE=1 + NUXT_VOXTRAL_REALTIME_MOCK=1`).
 
 export interface StreamingRecognizeRequest {
   config: {
@@ -46,7 +46,7 @@ const MOCK_SEQUENCE: Array<{
   atChunk: number
   event: { text: string, isFinal: boolean }
 }> = [
-  // Realistic dictation — the voice-dictate flow's screenshots show it.
+  // Realistic dictation: the voice-dictate flow's screenshots show it.
   { atChunk: 1, event: { text: 'Lena says', isFinal: false } },
   { atChunk: 2, event: { text: 'Lena says the new templates', isFinal: false } },
   { atChunk: 3, event: { text: 'Lena says the new templates save her about an hour a week.', isFinal: true } },
@@ -69,7 +69,7 @@ class MockSpeechStream extends EventEmitter implements SpeechStream {
     this.chunks += 1
     for (const { atChunk, event } of MOCK_SEQUENCE) {
       if (atChunk !== this.chunks) continue
-      // Wrap in setImmediate so the write() call returns first — real
+      // Wrap in setImmediate so the write() call returns first, real
       // gRPC streams deliver `data` asynchronously.
       setImmediate(() => {
         this.emit('data', {
@@ -97,36 +97,30 @@ class MockSpeechStream extends EventEmitter implements SpeechStream {
   }
 }
 
-// ─── Voxtral Realtime path (Phase 5) ───────────────────────────────────
-//
-// Wraps Mistral's @mistralai/mistralai/extra/realtime SDK in the same
-// `SpeechClientLike` / `SpeechStream` shape the dictate handler already
-// consumes. The SDK takes an `AsyncGenerator<Uint8Array>` and yields
+// Voxtral Realtime path. Wraps Mistral's
+// @mistralai/mistralai/extra/realtime SDK in the same `SpeechClientLike` /
+// `SpeechStream` shape the dictate handler already consumes. The SDK takes an `AsyncGenerator<Uint8Array>` and yields
 // transcription events; we bridge that to the EventEmitter contract via
 // a small internal queue.
 //
-// Audio format match: Voxtral expects PCM s16le, 16-bit mono, 16 kHz —
+// Audio format match: Voxtral expects PCM s16le, 16-bit mono, 16 kHz,
 // the exact format our AudioWorklet pipeline produces. No client-side
-// codec change. The pre-Phase-5 (Cloud STT) MP4/AAC rejection (Safari
-// quirk) may disappear under Voxtral — verify in a future safari pass.
+// codec change.
 
-/** Mistral's EU regional endpoint — the default for every platform-paid realtime stream. */
-export const MISTRAL_EU_SERVER_URL = `https://${MISTRAL_EU_API_HOST}`
+/** Mistral's EU regional endpoint, the default for every platform-paid realtime stream. */
+const MISTRAL_EU_SERVER_URL = `https://${MISTRAL_EU_API_HOST}`
 
 /**
  * `apiKey` is the Mistral key that pays for the stream: the user's own
  * (BYOK transcription provider on api.mistral.ai or api.eu.mistral.ai) or
  * the operator's `MISTRAL_API_KEY` when the instance default is a platform
- * alias. `serverURL` is the Mistral server the WebSocket opens against —
+ * alias. `serverURL` is the Mistral server the WebSocket opens against,
  * the EU endpoint unless the user's own key is configured for another host
  * (`liveDictationTarget`). The SDK's own default is the global endpoint,
  * which makes no location commitment, so it is always passed explicitly.
  */
 export function createDictateRealtimeClient(apiKey: string, model: string = DEFAULT_REALTIME_MODEL, serverURL: string = MISTRAL_EU_SERVER_URL): SpeechClientLike {
-  if (isTestModeEnabled() && (
-    process.env.NUXT_VOXTRAL_REALTIME_MOCK === '1'
-    || process.env.NUXT_GOOGLE_SPEECH_MOCK === '1'
-  )) {
+  if (isTestModeEnabled() && useEnv().test.voxtralRealtimeMock) {
     return new MockRealtimeClient()
   }
   return new VoxtralRealtimeClient(apiKey, model, serverURL)
@@ -179,10 +173,9 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
   }
 
   private nextChunk(): Promise<Uint8Array | null> {
-    if (this.chunkQueue.length > 0) {
-      const c = this.chunkQueue.shift()!
-      return Promise.resolve(c)
-    }
+    // `null` is a queued value (the end sentinel); `undefined` means empty.
+    const queued = this.chunkQueue.shift()
+    if (queued !== undefined) return Promise.resolve(queued)
     return new Promise(resolve => this.waiters.push(resolve))
   }
 
@@ -197,10 +190,8 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
   private async run(apiKey: string, req: StreamingRecognizeRequest): Promise<void> {
     try {
       const client = new RealtimeTranscription({ apiKey, serverURL: this.serverURL })
-      // Voxtral's batch transcribe model id, in realtime variant. Using
-      // the purpose-built realtime-transcribe (not generic realtime
-      // chat) — same logic as Phase 2: dedicated transcription beats
-      // a generative chat model for our voice-prompt input flow.
+      // The realtime variant of Voxtral's transcribe model: a dedicated
+      // transcription model beats a generative chat model for voice prompts.
       const model = this.model
       const audioFormat = {
         encoding: AudioEncoding.PcmS16le,
@@ -227,8 +218,7 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
   /**
    * Append delta and emit a partial frame. Voxtral's `text` field is
    * just the delta; accumulate locally to expose the full running
-   * partial (matching the contract pre-Phase-5 Cloud STT clients
-   * expected). The Mistral SDK's stream union doesn't narrow to the
+   * partial (the contract the dictate WS clients expect). The Mistral SDK's stream union doesn't narrow to the
    * delta type off `event.type` alone; cast at the access point.
    */
   private handleDelta(event: unknown): void {
@@ -269,19 +259,15 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
 
   write(chunk: Buffer): boolean {
     if (this.ended) {
-      // Mirror the historical Cloud STT contract: writing after end
-      // emits "write after end" so the existing straggler-chunk guard
-      // works unchanged.
+      // Writing after end emits "write after end", which the server's
+      // straggler-chunk guard relies on.
       queueMicrotask(() => this.emit('error', new Error('write after end')))
       return false
     }
     const u8 = new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength)
-    if (this.waiters.length > 0) {
-      const w = this.waiters.shift()!
-      w(u8)
-    } else {
-      this.chunkQueue.push(u8)
-    }
+    const waiter = this.waiters.shift()
+    if (waiter) waiter(u8)
+    else this.chunkQueue.push(u8)
     return true
   }
 
@@ -289,26 +275,23 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
     if (this.ended) return
     this.ended = true
     // Push a null sentinel to close the audio generator cleanly.
-    if (this.waiters.length > 0) {
-      const w = this.waiters.shift()!
-      w(null)
-    } else {
-      this.chunkQueue.push(null)
-    }
+    const waiter = this.waiters.shift()
+    if (waiter) waiter(null)
+    else this.chunkQueue.push(null)
   }
 
   destroy(): void {
     this.aborted = true
     this.ended = true
-    while (this.waiters.length > 0) this.waiters.shift()!(null)
+    for (const waiter of this.waiters.splice(0)) waiter(null)
     this.chunkQueue.length = 0
   }
 }
 
-// ─── Mock for tests (mirrors MockSpeechClient pattern) ─────────────────
+// Mock for tests (mirrors MockSpeechClient pattern).
 class MockRealtimeClient implements SpeechClientLike {
   streamingRecognize(_req: StreamingRecognizeRequest): SpeechStream {
-    // Reuse MockSpeechStream — same emission shape works for the
+    // Reuse MockSpeechStream: same emission shape works for the
     // realtime path because we converge to the same wire frames
     // (`{type:'partial' | 'final', text}`) for the WS client.
     return new MockSpeechStream()

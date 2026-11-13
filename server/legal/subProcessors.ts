@@ -62,7 +62,7 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
     name: 'Mistral AI SAS',
     // Hosted: the free AI allowance runs on Z.ai GLM-5.3 Flash, served and
     // processed by Mistral itself through its EU endpoint
-    // (api.eu.mistral.ai, infra/litellm/config.yaml) — Z.ai receives no
+    // (api.eu.mistral.ai, deploy/config/litellm/config.yaml): Z.ai receives no
     // data, so it is not a sub-processor.
     // Every request goes to Mistral's EU regional endpoint (api.eu.mistral.ai):
     // the LiteLLM deployments and the live-dictation WebSocket.
@@ -81,7 +81,7 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
     transferMechanism: 'intra_eu',
     dpfCertified: false,
     privacyPolicyUrl: 'https://jina.ai/legal/#privacy-policy',
-    // Jina AI is part of Elastic since 2025; jina.ai/legal points to the
+    // Jina AI is part of Elastic; jina.ai/legal points to the
     // Elastic customer DPA for Jina products.
     dpaUrl: 'https://www.elastic.co/pdf/v100623-0-elastic-customer-dpa.pdf'
   },
@@ -92,8 +92,8 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
     location: 'eu',
     transferMechanism: 'intra_eu',
     dpfCertified: false,
-    // Checked 2026-11-03: /privacy is a 404; the API privacy policy is
-    // /privacy-policy. Staan's DPA is available on request only.
+    // The API privacy policy is /privacy-policy (/privacy is a 404).
+    // Staan's DPA is available on request only.
     privacyPolicyUrl: 'https://staan.ai/privacy-policy',
     dpaUrl: null
   },
@@ -105,8 +105,7 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
     transferMechanism: 'intra_eu',
     dpfCertified: false,
     privacyPolicyUrl: 'https://bfl.ai/privacy-policy/',
-    // Checked 2026-11-03: the former DPA URL is a 404 and no public DPA
-    // URL exists; the DPA is concluded out of band.
+    // No public DPA URL exists; the DPA is concluded out of band.
     dpaUrl: null
   },
   {
@@ -140,7 +139,7 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
     dpaUrl: 'https://stripe.com/legal/dpa'
   },
   // Note: the Markitdown document-parsing service is deliberately NOT
-  // listed here — we operate it ourselves on our own infrastructure
+  // listed here: we operate it ourselves on our own infrastructure
   // (Docker container co-located with the app). It is part of the
   // controller's own processing, not a third-party sub-processor.
   {
@@ -159,7 +158,7 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
   {
     id: 'resend',
     name: 'Resend, Inc.',
-    purpose: 'Transactional email delivery — account-deletion confirmations, data-export-ready notifications, breach notifications',
+    purpose: 'Transactional email delivery, account-deletion confirmations, data-export-ready notifications, breach notifications',
     location: 'global',
     transferMechanism: 'dpf_with_sccs_fallback',
     dpfCertified: true,
@@ -167,7 +166,3 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
     dpaUrl: 'https://resend.com/legal/dpa'
   }
 ] as const
-
-export function getSubProcessor(id: string): SubProcessor | undefined {
-  return SUB_PROCESSORS.find(p => p.id === id)
-}

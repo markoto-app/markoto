@@ -1,12 +1,13 @@
 import { test, expect } from '../fixtures/flow'
 import { Pool } from 'pg'
 import { PRIVACY_VERSION, TOS_VERSION, DPA_VERSION } from '../../../shared/legal/versions'
+import { first } from '../../helpers/assert'
 
 // Tier 1 (Privacy): "Delete your account, with the consequences spelled out".
 //
 // User-job: a user wants to leave the platform. GDPR Article 17
 // gives them the right to be forgotten; markoto's job is to make
-// the consequences LEGIBLE before they confirm — which workspaces
+// the consequences LEGIBLE before they confirm, which workspaces
 // will be cascade-deleted, which will get a new admin (named),
 // which docs go away with their content, which comments survive
 // anonymised. After confirmation a 30-day grace banner appears
@@ -15,9 +16,9 @@ import { PRIVACY_VERSION, TOS_VERSION, DPA_VERSION } from '../../../shared/legal
 //
 // What this flow IS: the canonical privacy-feature flow. A
 // compliance reviewer landing here sees the entire deletion-request
-// UX — the policies the user has accepted, the consequence preview
+// UX: the policies the user has accepted, the consequence preview
 // with workspaces named, the typing gate, the grace banner, the
-// one-click cancel — without having to assemble it from screenshots.
+// one-click cancel: without having to assemble it from screenshots.
 //
 // What this flow IS NOT: the cascade itself. Once the grace ends,
 // the sweeper runs offline (per-user advisory-locked, idempotent at
@@ -28,7 +29,7 @@ import { PRIVACY_VERSION, TOS_VERSION, DPA_VERSION } from '../../../shared/legal
 // Single-actor flow. The story is "one user navigating their
 // own settings"; spawning a second context wouldn't gain narrative.
 //
-// Runs on both desktop and mobile project variants — the profile
+// Runs on both desktop and mobile project variants, the profile
 // page is responsive (mobile dl-rows stack label-above-value), the
 // grace banner has a compact mobile mode (icon + short date + cancel
 // button only), and the consequence modal stacks its CTA buttons
@@ -38,13 +39,13 @@ import { PRIVACY_VERSION, TOS_VERSION, DPA_VERSION } from '../../../shared/legal
 test('Delete account with consequences', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
-  // ─── Seed: Alice with two workspaces of contrasting fate ────────
+  // Seed: Alice with two workspaces of contrasting fate
   // Two workspaces is the minimum that makes the consequence preview
   // tell a story:
-  //   1. "Personal notes" — Alice is the sole member. Cascade-delete
+  //   1. "Personal notes": Alice is the sole member. Cascade-delete
   //      on her account deletion. Demonstrates "your sole-member
   //      workspaces will be removed".
-  //   2. "Engineering library" — Alice + Bob both admin. On her
+  //   2. "Engineering library": Alice + Bob both admin. On her
   //      deletion, Bob is auto-promoted (or stays admin, with
   //      provenance ownership repointed to him). Demonstrates "co-
   //      member workspaces survive; we name the receiving admin".
@@ -92,7 +93,7 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
         // A real-looking address + language: the profile page shows both.
         [`flow-priv-${name.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, name, PRIVACY_VERSION, TOS_VERSION, DPA_VERSION, `${name.toLowerCase()}@studio.example`]
       )
-      return r.rows[0].id
+      return first(r.rows).id
     }
     async function insertWorkspace(ownerId: number, name: string): Promise<string> {
       const wsId = `ws-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -125,11 +126,11 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
 
   await editor.page.loginAsExistingUser(aliceUserId, 'Alice')
 
-  // Open from the dashboard so the avatar menu is the entry point —
+  // Open from the dashboard so the avatar menu is the entry point,
   // mirrors how a real user would navigate, not a deep-link.
   await page.goto('/')
 
-  // ─── Chapter 1: Open your profile ──────────────────────────────
+  // Chapter 1: Open your profile
   await flow.heading('Open your profile', 3)
   await flow.narrate(
     'Your profile page lives under your avatar in the topbar. It is '
@@ -143,9 +144,9 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
     'Click your avatar',
     avatarButton,
     {
-      result: 'A menu opens — Profile is the one you want.',
-      // Menu-item selector falls back to getByRole+name (AGENTS.md
-      // option 2) — Nuxt UI's UDropdownMenu items array doesn't
+      result: 'A menu opens, Profile is the one you want.',
+      // Menu-item selector falls back to getByRole+name (tests/e2e/AGENTS.md
+      // selector preference): Nuxt UI's UDropdownMenu items array doesn't
       // accept per-item data-testid declaratively. Same pattern as
       // delete-document.spec.ts uses for File-menu items.
       after: () => page.getByRole('menuitem', { name: /profile/i }).first().waitFor({ state: 'visible' })
@@ -159,12 +160,12 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
       annotations: [
         { label: 'profile', selector: 'role=menuitem[name=/profile/i]', kind: 'arrow' }
       ],
-      result: 'Your profile page opens — account info, your data (export), the delete-account zone, and the legal record of accepted policies.',
+      result: 'Your profile page opens, account info, your data (export), the delete-account zone, and the legal record of accepted policies.',
       after: () => page.waitForURL(/\/settings\/profile/)
     }
   )
 
-  // Page sentinel — the delete button depends on the account-status
+  // Page sentinel: the delete button depends on the account-status
   // fetch, so its visibility means the page is fully hydrated.
   await page.locator('[data-testid="delete-account-button"]').waitFor({ state: 'visible', timeout: 10_000 })
 
@@ -176,12 +177,12 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
     + 'Processing Addendum you accepted, and in which language. If '
     + 'we update any document materially we bump its version, you '
     + 'see "needs re-acceptance" here, and we re-prompt before any '
-    + 'further action — so the consent record is never out of date.'
+    + 'further action: so the consent record is never out of date.'
   )
 
   await flow.shot(
     'The Legal section is the audit trail you have with markoto. '
-    + 'Every signed-in user can read it directly — no support ticket '
+    + 'Every signed-in user can read it directly, no support ticket '
     + 'required.',
     {
       annotations: [
@@ -190,7 +191,7 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Chapter 3: Open the consequence preview ───────────────────
+  // Chapter 3: Open the consequence preview
   await flow.heading('Preview the consequences', 3)
   await flow.narrate(
     'Account deletion is irreversible after the 30-day grace window '
@@ -224,7 +225,7 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
   await page.locator('[data-testid="ws-cascade-block"]').waitFor({ state: 'visible', timeout: 10_000 })
   await page.locator('[data-testid="ws-promote-block"]').waitFor({ state: 'visible', timeout: 5_000 })
 
-  // Asserts — the modal renders both fates with the right names.
+  // Asserts: the modal renders both fates with the right names.
   // Acts as the spec: a future refactor that drops the workspace
   // name from the preview would fail here.
   const cascadeBlock = page.locator('[data-testid="ws-cascade-block"]')
@@ -233,7 +234,7 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
   await expect(promoteBlock).toContainText(wsCoadminName)
   await expect(promoteBlock).toContainText('Bob')
 
-  // ─── Chapter 4: Read the named consequences ────────────────────
+  // Chapter 4: Read the named consequences
   await flow.heading('Read the named consequences', 3)
   await flow.narrate(
     'Every workspace and every new admin is named. Want to keep a '
@@ -242,12 +243,12 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
     + 'admin" group. Nothing is lost by accident, and nobody is surprised.'
   )
 
-  // ─── Chapter 5: Type the confirm phrase ────────────────────────
+  // Chapter 5: Type the confirm phrase
   await flow.heading('Type the phrase to confirm', 3)
   await flow.narrate(
     'The destructive button is gated behind a phrase you have to '
     + 'type. Same shape as GitHub repo deletion or AWS account '
-    + 'closure — irreversible actions should never be one click '
+    + 'closure: irreversible actions should never be one click '
     + 'away. The button stays disabled until your input matches '
     + '"delete my account" exactly.'
   )
@@ -260,13 +261,13 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
     { result: 'The Schedule deletion button enables.' }
   )
 
-  // ─── Chapter 6: Submit → grace banner takes over ────────────────
-  await flow.heading('Submit — the grace banner takes over', 3)
+  // Chapter 6: Submit → grace banner takes over
+  await flow.heading('Submit: the grace banner takes over', 3)
   await flow.narrate(
     'The 30-day grace clock starts. Until it elapses, a banner sits '
     + 'pinned across the top of every page in markoto with a one-click '
     + 'cancel. The page itself flips into "scheduled for deletion" '
-    + 'state too — same cancel button, same date. Either path '
+    + 'state too: same cancel button, same date. Either path '
     + 'restores your account exactly as it was.'
   )
 
@@ -301,10 +302,10 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Chapter 7: Cancel — restored to normal ────────────────────
+  // Chapter 7: Cancel: restored to normal
   await flow.heading('Change your mind? Cancel from the banner', 3)
   await flow.narrate(
-    'During the grace window you can cancel from any page — click '
+    'During the grace window you can cancel from any page, click '
     + '"Cancel deletion" in the banner and the deletion request is '
     + 'cleared on the spot. No data lost, no collaborators surprised. '
     + 'Your account is back to the state it was in before the click.'
@@ -315,7 +316,7 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
     'Click "Cancel deletion" in the banner',
     cancelBtn,
     {
-      result: 'The banner disappears and your account is back to normal — nothing was deleted.',
+      result: 'The banner disappears and your account is back to normal, nothing was deleted.',
       after: () => page.locator('[data-testid="deletion-grace-banner"]').waitFor({ state: 'detached', timeout: 5_000 })
     }
   )

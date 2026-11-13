@@ -55,7 +55,7 @@ async function upload(client: TestClient, filename: string, bytes: Uint8Array): 
   const res = await client.post('/api/themes/from-document/upload-request', { filename, size: bytes.byteLength })
   expect(res.status, await res.clone().text()).toBe(200)
   const ticket: UploadTicket = await res.json()
-  const put = await fetch(ticket.uploadUrl, { method: 'PUT', headers: { 'Content-Type': ticket.mimeType }, body: bytes })
+  const put = await fetch(ticket.uploadUrl, { method: 'PUT', headers: { 'Content-Type': ticket.mimeType }, body: new Uint8Array(bytes) })
   expect(put.status).toBe(200)
   return ticket
 }
@@ -108,7 +108,7 @@ describe('design from a document', () => {
     expect((await client.post('/api/themes/from-document/upload-request', { filename: 'a.pdf', size: 21 * 1024 * 1024 })).status).toBe(413)
   })
 
-  it('PDF: extracts, proposes, renders, compares — and the result saves as a theme', async () => {
+  it('PDF: extracts, proposes, renders, compares, and the result saves as a theme', async () => {
     const { id, client } = await visionUser()
     const ticket = await upload(client, 'report-cover.pdf', fixture('report-cover.pdf'))
     const start = await client.post('/api/themes/from-document/start', { uploadId: ticket.uploadId })

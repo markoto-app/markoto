@@ -1,39 +1,22 @@
 <script setup lang="ts">
-import { parseCommentBody } from '~/utils/commentBody'
+import { parseCommentBody } from '~/utils/comments/commentBody'
+import type { ApiResponse } from '~/utils/api/client'
 
-// Lazy fetcher for an activity-row's comment-thread context. Renders
-// every comment in the thread, with the row's focus entry visually
-// highlighted. We deliberately don't reuse `<CommentItem>` because
-// (a) it ships action buttons (delete / resolve) that don't make
-// sense in a read-only history view, and (b) we want a tighter,
-// chat-bubble-style layout that fits the narrow sidebar width.
+// Fetches the comment thread behind an activity row and highlights the row's
+// own entry. Doesn't reuse `<CommentItem>`: its delete/resolve actions make no
+// sense in read-only history, and the narrow sidebar needs a tighter layout.
 
-interface CommentContextRow {
-  entryId: string
-  parentCommentId: string | null
-  authorId: number | null
-  authorName: string
-  body: string
-  createdAtMs: number
-  updatedAtMs: number
-  resolved: boolean
-}
-
-interface CommentContextResponse {
-  activityId: number
-  rows: CommentContextRow[]
-  focusEntryId: string
-}
+type CommentContextResponse = ApiResponse<'/api/docs/:docId/activity/:activityId/comment-context', 'get'>
 
 const props = defineProps<{
   docId: string
   activityId: number
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const data = ref<CommentContextResponse | null>(null)
-const error = ref<{ kind: 'unavailable' | 'unknown', message?: string } | null>(null)
+const error = ref<{ kind: 'unavailable' | 'unknown' } | null>(null)
 const loading = ref(true)
 
 async function load() {
@@ -41,16 +24,16 @@ async function load() {
   error.value = null
   data.value = null
   try {
-    data.value = await $fetch<CommentContextResponse>(
-      `/api/docs/${props.docId}/activity/${props.activityId}/comment-context`
-    )
+    data.value = await apiFetch('/api/docs/:docId/activity/:activityId/comment-context', {
+      path: { docId: props.docId, activityId: props.activityId }
+    })
   } catch (e: unknown) {
     const status = (e as { statusCode?: number, status?: number })?.statusCode
       ?? (e as { status?: number })?.status
     if (status === 410) {
       error.value = { kind: 'unavailable' }
     } else {
-      error.value = { kind: 'unknown', message: e instanceof Error ? e.message : String(e) }
+      error.value = { kind: 'unknown' }
     }
   } finally {
     loading.value = false
@@ -60,13 +43,11 @@ async function load() {
 onMounted(load)
 
 function formatTime(ms: number): string {
-  return new Date(ms).toLocaleString()
+  return new Date(ms).toLocaleString(locale.value)
 }
 
-// Strip mention tokens (`@[Name](user:N)` and the bare `@ai` form)
-// to plain text for display. Matches `CommentItem` rendering in
-// spirit but inline-only — we don't have room for mention pills in
-// this narrow drawer view.
+// Strips mention tokens (`@[Name](user:N)` and bare `@ai`) to plain text; the
+// narrow drawer has no room for mention pills.
 function plainBody(body: string): string {
   return parseCommentBody(body).map(segText).join('')
 }

@@ -3,9 +3,9 @@ import * as Y from 'yjs'
 import { resetDb, testDb } from '../setup/db'
 import { createDoc, createUser, createWorkspace } from '../setup/fixtures'
 import { mcp, mintPat } from '../setup/mcpClient'
-import { splitMarkotoFrontmatter } from '~~/shared/utils/markdownFrontmatter'
+import { splitMarkotoFrontmatter } from '~~/shared/utils/markdown/markdownFrontmatter'
 
-// Documents:read tools — happy paths against real DB + real Y.js
+// Documents:read tools: happy paths against real DB + real Y.js
 // state. Authz failures (cross-user, cross-workspace) are pinned in
 // authz.test.ts; this file is "the tool returns plausible content
 // when the caller is authorised".
@@ -15,14 +15,14 @@ async function seedYjs(docname: string, body: string): Promise<void> {
   ydoc.getText('content').insert(0, body)
   const update = Y.encodeStateAsUpdate(ydoc)
   await testDb().query(
-    `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1')`,
+    `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2)`,
     [docname, Buffer.from(update)]
   )
 }
 
 const READ_SCOPES = ['documents:read'] as const
 
-describe('MCP read tools — view_document', () => {
+describe('MCP read tools: view_document', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -35,7 +35,7 @@ describe('MCP read tools — view_document', () => {
     const { plaintext } = await mintPat({ userId: user.id, scopes: READ_SCOPES })
     const text = await mcp(plaintext).callText('view_document', { doc_id: doc.docId })
 
-    // viewDocument prefixes 1-indexed line numbers — exact format pinned.
+    // viewDocument prefixes 1-indexed line numbers, exact format pinned.
     expect(text).toContain('1: first line')
     expect(text).toContain('2: second line')
     expect(text).toContain('3: third')
@@ -59,11 +59,11 @@ describe('MCP read tools — view_document', () => {
     expect(text).not.toContain('5: e')
   })
 
-  it('view_document is STRICTER than browser authz — open-edit alone does not grant MCP view', async () => {
+  it('view_document is STRICTER than browser authz, open-edit alone does not grant MCP view', async () => {
     // PAT-authenticated MCP callers get access to docs they OWN or are
     // workspace members of, NOT every public open-edit doc on the
     // server. Stricter than the browser-side accessMode contract by
-    // design — see getDocAuthz in server/utils/workspaceAccess.ts
+    // design: see getDocAuthz in server/utils/workspaces/workspaceAccess.ts
     // (canView = isDocOwner || hasRole, accessMode is not consulted).
     // 404-shape (not 403) matches the rest of the anti-enumeration
     // policy.
@@ -82,7 +82,7 @@ describe('MCP read tools — view_document', () => {
   })
 })
 
-describe('MCP read tools — list_my_documents', () => {
+describe('MCP read tools: list_my_documents', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -104,7 +104,7 @@ describe('MCP read tools — list_my_documents', () => {
   })
 })
 
-describe('MCP read tools — list_workspace_documents', () => {
+describe('MCP read tools: list_workspace_documents', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -121,7 +121,7 @@ describe('MCP read tools — list_workspace_documents', () => {
   })
 })
 
-describe('MCP read tools — themes', () => {
+describe('MCP read tools: themes', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -133,7 +133,7 @@ describe('MCP read tools — themes', () => {
     const { plaintext } = await mintPat({ userId: user.id, scopes: READ_SCOPES })
     const res = await mcp(plaintext).callText('get_theme', { doc_id: doc.docId })
 
-    // Default theme JSON has at least the page + body sections — assert
+    // Default theme JSON has at least the page + body sections, assert
     // we got SOMETHING parseable rather than over-specifying internal
     // theme shape.
     const parsed = JSON.parse(res)
@@ -143,7 +143,7 @@ describe('MCP read tools — themes', () => {
 
   it('list_themes returns the savedThemes / workspaceDefault structure', async () => {
     // The handler returns ONLY user-scoped saved themes + workspace
-    // default — built-in presets are surfaced separately via the
+    // default: built-in presets are surfaced separately via the
     // update_theme tool's `preset` field, not list_themes. For a
     // fresh user with no saved themes and no workspace default, we
     // still expect the structural shape (savedThemes:[], default:null).
@@ -161,7 +161,7 @@ describe('MCP read tools — themes', () => {
   })
 })
 
-describe('MCP read tools — read_comments', () => {
+describe('MCP read tools: read_comments', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -180,7 +180,7 @@ describe('MCP read tools — read_comments', () => {
   })
 })
 
-describe('MCP read tools — search_activity_log', () => {
+describe('MCP read tools: search_activity_log', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -191,13 +191,13 @@ describe('MCP read tools — search_activity_log', () => {
 
     const { plaintext } = await mintPat({ userId: user.id, scopes: READ_SCOPES })
     const res = await mcp(plaintext).call('search_activity_log', { doc_id: doc.docId })
-    // Shape-only assertion — content present, no isError.
+    // Shape-only assertion: content present, no isError.
     expect(res.isError).not.toBe(true)
     expect(res.content.length).toBeGreaterThan(0)
   })
 })
 
-describe('MCP read tools — export_document_as_markdown', () => {
+describe('MCP read tools: export_document_as_markdown', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -233,7 +233,7 @@ describe('MCP read tools — export_document_as_markdown', () => {
   })
 })
 
-describe('MCP read tools — get_page_count', () => {
+describe('MCP read tools: get_page_count', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -241,14 +241,14 @@ describe('MCP read tools — get_page_count', () => {
   it('returns a number for a non-empty doc', async () => {
     const user = await createUser()
     const doc = await createDoc({ ownerId: user.id })
-    // Body big enough to render a page — covered indirectly by the
+    // Body big enough to render a page, covered indirectly by the
     // tool path, which calls renderDocument under the hood.
     await seedYjs(doc.docId, '# Test\n\n' + 'lorem '.repeat(200))
 
     const { plaintext } = await mintPat({ userId: user.id, scopes: READ_SCOPES })
     const res = await mcp(plaintext).call('get_page_count', { doc_id: doc.docId })
 
-    // Either succeeds with a number or fails gracefully via isError —
+    // Either succeeds with a number or fails gracefully via isError,
     // we accept either shape because renderDocument needs the renderer
     // sidecar healthy. Pin: it's not a transport-level RPC error.
     expect(res.content.length).toBeGreaterThan(0)

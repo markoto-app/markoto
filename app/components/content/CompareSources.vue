@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { compareSources, formatCheckedDate, oldestCheck } from '~~/shared/seo/compare'
-import { fetchCompareData } from '~/utils/marketingPage'
+import { fetchCompareData } from '~/utils/marketing/marketingPage'
 
 // Footer of a comparison page: when the facts were checked and where
 // each one comes from (content/compare/<competitor>.yml), plus the

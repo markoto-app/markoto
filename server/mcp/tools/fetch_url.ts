@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { buildUserOnlyTool } from '../lib/wrapDocBoundTool'
-import { isWebToolAvailable } from '../../utils/webTools'
+import { isWebToolAvailable } from '../../utils/ai/webTools'
 
 // `fetch_url` is a 2-call pattern (Jina Reader → synthesis with json_schema
 // strict on the caller's chat provider). Returns `{summary, images[]}`. The

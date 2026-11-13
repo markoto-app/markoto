@@ -16,7 +16,7 @@ import { test, expect } from '../fixtures/flow'
 
 /**
  * The marketing site's header stays short (Pricing, Self-host from `sm`,
- * Docs — no menus); the use-case, comparison and template pages are in
+ * Docs: no menus); the use-case, comparison and template pages are in
  * the footer's columns.
  */
 async function expectMarketingHeader(page: Page, isMobile: boolean): Promise<void> {

@@ -5,14 +5,14 @@ import {
   customCssByteLength,
   type CustomCssIssue
 } from '~~/shared/types/customCss'
-import { loadCustomCssSanitizer, currentAppOrigins } from '~/utils/customCssLoader'
+import { loadCustomCssSanitizer, currentAppOrigins } from '~/utils/preview/customCssLoader'
 
 /**
  * "Custom CSS" section of the theme panel. A small CodeMirror 6 editor
  * (CSS mode) whose text is checked with the same sanitizer the server
  * and every renderer use. Valid CSS is emitted upstream (→ `ymeta.theme`
  * + the owner's debounced DB persist), so the preview updates live;
- * while the text has errors nothing is emitted — the last valid CSS
+ * while the text has errors nothing is emitted, the last valid CSS
  * stays applied and the errors are listed under the editor.
  *
  * Everything heavy (CodeMirror CSS mode, css-tree) is loaded the first
@@ -25,7 +25,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ 'update:modelValue': [string] }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const host = ref<HTMLElement | null>(null)
 const view = shallowRef<EditorView | null>(null)
@@ -38,7 +38,7 @@ let lastEmitted = props.modelValue ?? ''
 
 const bytes = computed(() => customCssByteLength(text.value))
 const overLimit = computed(() => bytes.value > CUSTOM_CSS_MAX_BYTES)
-const numberFormat = new Intl.NumberFormat()
+const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
 
 let checkSeq = 0
 async function check(value: string) {
@@ -150,7 +150,7 @@ async function mountEditor() {
     })
   })
   // Show existing problems straight away (e.g. CSS written over Y.js).
-  if (text.value.trim() !== '') debouncedCheck(text.value)
+  if (text.value.trim() !== '') void debouncedCheck(text.value)
 }
 
 useIntersectionObserver(host, ([entry]) => {

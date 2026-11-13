@@ -7,12 +7,13 @@ import {
   createWorkspace,
   setMemberRole
 } from '../setup/fixtures'
+import { first } from '../../helpers/assert'
 
-// PUT /api/docs/:docId/meta — splits into two authz bands:
+// PUT /api/docs/:docId/meta: splits into two authz bands:
 //   - Content edits (title, wordCount, sizeBytes, theme) → canEdit
 //       (owner, workspace admin, workspace editor)
 //   - Access-mode change → canManage
-//       (owner, workspace admin ONLY — editors CANNOT change access)
+//       (owner, workspace admin ONLY, editors CANNOT change access)
 //
 // That split is load-bearing: if a workspace editor can flip `private` →
 // `open-edit` they can expose any doc in the workspace. Tests pin the
@@ -33,7 +34,7 @@ async function readDoc(docId: string) {
      FROM documents WHERE doc_id = $1`,
     [docId]
   )
-  return r.rows[0]
+  return first(r.rows, 'documents row')
 }
 
 describe('PUT /api/docs/:docId/meta', () => {
@@ -257,7 +258,7 @@ describe('PUT /api/docs/:docId/meta', () => {
     })
   })
 
-  // Doc context fields — same canEdit gate as title/wordCount/theme.
+  // Doc context fields: same canEdit gate as title/wordCount/theme.
   // Shipped as authoritative AI prompt context, so the validation
   // contract matters: bad enums or oversized strings should never make
   // it into a system prompt.

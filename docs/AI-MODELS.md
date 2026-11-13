@@ -4,13 +4,13 @@ Which models power markoto's AI features, why, and which models we recommend if 
 
 markoto routes every AI call through one gateway (LiteLLM), so each model below is a configuration choice, not a code dependency.
 
-**Who provides which model.** Chat (the writing agent), image generation and voice transcription are **bring your own key** (see [Bring your own key](#bring-your-own-key)): each user connects their own OpenAI-compatible provider, or uses a default the instance operator configured. The hosted markoto SaaS configures one: a monthly [free AI allowance](#free-ai-allowance-hosted) for chat on Z.ai GLM-5.3 Flash served by Mistral in the EU; image generation and transcription stay bring-your-own-key there. Embeddings, web search (Staan) and page fetching (Jina Reader) are always provided by the platform (or, for embeddings on a self-hosted instance, by the operator — see [Embeddings](#embeddings)); they are never per-user.
+**Who provides which model.** Chat (the writing agent), image generation and voice transcription are **bring your own key** (see [Bring your own key](#bring-your-own-key)): each user connects their own OpenAI-compatible provider, or uses a default the instance operator configured. The hosted markoto SaaS configures one: a monthly [free AI allowance](#free-ai-allowance-hosted) for chat on Z.ai GLM-5.3 Flash served by Mistral in the EU; image generation and transcription stay bring-your-own-key there. Embeddings, web search (Staan) and page fetching (Jina Reader) are always provided by the platform (or, for embeddings on a self-hosted instance, by the operator, see [Embeddings](#embeddings)); they are never per-user.
 
 ## Bundled models (operator defaults)
 
-These are the deployments that ship in `infra/litellm/config.yaml`. A self-hoster can make them the instance defaults (`NUXT_AI_DEFAULT_CHAT_MODEL=mistral-small-2603`, `NUXT_AI_DEFAULT_IMAGE_MODEL=flux-2-pro`, `NUXT_AI_DEFAULT_TRANSCRIBE_MODEL=voxtral-mini-transcribe`); calls then run on the operator's Mistral / BFL keys and debit each user's AI Points budget. The platform-provided rows (embeddings, page extraction, web search) are always active. The data path of these bundled providers stays inside the EU: Mistral AI (Paris), Jina AI (Berlin), Staan (European Search Perspective SAS) and Black Forest Labs (EU-pinned endpoint).
+These are the deployments that ship in `deploy/config/litellm/config.yaml`. A self-hoster can make them the instance defaults (`NUXT_AI_DEFAULT_CHAT_MODEL=mistral-small-2603`, `NUXT_AI_DEFAULT_IMAGE_MODEL=flux-2-pro`, `NUXT_AI_DEFAULT_TRANSCRIBE_MODEL=voxtral-mini-transcribe`); calls then run on the operator's Mistral / BFL keys and debit each user's AI Points budget. The platform-provided rows (embeddings, page extraction, web search) are always active. The data path of these bundled providers stays inside the EU: Mistral AI (Paris), Jina AI (Berlin), Staan (European Search Perspective SAS) and Black Forest Labs (EU-pinned endpoint).
 
-**Mistral is EU-only.** Every Mistral deployment (chat, fallbacks, transcription) and the live-dictation WebSocket on the operator's key go to Mistral's EU regional endpoint `api.eu.mistral.ai` (inference in EU / EFTA data centres; the default `api.mistral.ai` makes no location commitment). Mistral bills regional inference at 1.1x list on every token type; the prices below are those EU prices (list in brackets), and they are what `infra/litellm/config.yaml` charges to budgets. A user's own Mistral key runs on whichever Mistral host the user configured.
+**Mistral is EU-only.** Every Mistral deployment (chat, fallbacks, transcription) and the live-dictation WebSocket on the operator's key go to Mistral's EU regional endpoint `api.eu.mistral.ai` (inference in EU / EFTA data centres; the default `api.mistral.ai` makes no location commitment). Mistral bills regional inference at 1.1x list on every token type; the prices below are those EU prices (list in brackets), and they are what `deploy/config/litellm/config.yaml` charges to budgets. A user's own Mistral key runs on whichever Mistral host the user configured.
 
 | Feature | Model | Price (EU endpoint) | Notes |
 |---|---|---|---|
@@ -36,18 +36,18 @@ Sources: [Mistral models overview](https://docs.mistral.ai/getting-started/model
 - Decision: keep Small 4. Revisit Medium 3.5 only if real-world agent quality (not price) becomes the bottleneck.
 - Mistral Large 4 behaves differently: `temperature: 0` is rejected unless `top_p` is 1 (error 3054 "top_p must be 1 when using greedy sampling"), and message content comes back as a list of thinking and text blocks instead of a string. Our agent loop would need changes before using it.
 
-### Fallback model: pin Ministral 3 8B
+### Fallback model: Ministral 3 8B, pinned
 
-`ministral-8b-latest` is a moving alias. We now pin the dated id `ministral-8b-2512`. Price and capabilities are unchanged ($0.15 / $0.15). The older Ministral 8B (24.10) has been retired.
+The deployment uses the dated id `ministral-8b-2512`, not the moving alias `ministral-8b-latest`, so an alias change cannot change behaviour or billing. List price $0.15 / $0.15 per M tokens.
 
 ### One-shot transcription: pin Voxtral Mini Transcribe 2
 
-- The id we used, `voxtral-mini-2507`, was retired on 2026-05-31. The API currently still accepts it but silently serves `voxtral-mini-latest` (we observed this live: the response reports `model: voxtral-mini-latest`). We now pin `voxtral-mini-2602` (Voxtral Mini Transcribe 2, GA, $0.003/min, identical price and response shape, `usage.prompt_audio_seconds` unchanged), so a future change to the alias cannot change our behaviour or billing.
+- The deployment pins `voxtral-mini-2602` (Voxtral Mini Transcribe 2, GA, $0.003/min list), so a change to the `voxtral-mini-latest` alias cannot change behaviour or billing. Retired ids are not always refused: Mistral may silently serve the alias instead, which is another reason to pin.
 - Newer: on 2026-10-20 Mistral released the Voxtral 3 family in Public Preview: Voxtral Mini Transcribe 3 ($0.0035/min), Voxtral Small Transcribe 3 ($0.004/min) and Voxtral Mini Transcribe Realtime 3 ($0.008/min, latency configurable from 80 ms to 2.4 s). All four ids answer on `/v1/audio/transcriptions` with the same response shape as Transcribe 2. On our one short English test clip all produced identical text, so there is no evidence of a quality gain for dictating prose, while the price is 17-33% higher and the models are 6 days old and in preview. Decision: stay on the GA Transcribe 2 models and re-evaluate once Voxtral 3 is GA.
 
 ### Live dictation: keep Voxtral Realtime (26-02)
 
-We already use `voxtral-mini-transcribe-realtime-2602` through the Mistral SDK realtime client. Realtime 3 costs 33% more ($0.008 vs $0.006 per minute), is in preview, and Mistral does not document a protocol change. Decision: keep. The billing tick (`voxtral-realtime-tick`, $0.006 per 60 s) still matches the list price. If Realtime 3 is adopted later, update the tick price and verify the SDK accepts the new id.
+Live dictation uses `voxtral-mini-transcribe-realtime-2602` through the Mistral SDK realtime client. Realtime 3 costs 33% more ($0.008 vs $0.006 per minute list), is in preview, and Mistral does not document a protocol change. Decision: keep. The billing tick (`voxtral-realtime-tick`) charges $0.0066 per 60 s, the EU price (1.1 x $0.006). If Realtime 3 is adopted later, update the tick price and verify the SDK accepts the new id.
 
 ### Embeddings: keep Jina v5 text nano
 
@@ -85,17 +85,17 @@ Signed-in users of the hosted SaaS who have not added their own key get a small 
 | Per user per month | $0.50 = 500 AI Points | `TIER_FREE_LITELLM_BUDGET_USD` |
 | All free users together per month | $500 | `NUXT_FREE_TIER_TOTAL_BUDGET_USD` (unset / `0` = no ceiling, the self-host default) |
 
-All four are rendered by `infra/render-env.sh` / `infra/templates/env.j2` for staging and prod and can be overridden by a GitHub Environment variable / Ansible var. Self-hosted defaults are unchanged (no chat default, no ceiling).
+A self-hosted instance has none of these by default (no chat default, no ceiling); it can set the same variables.
 
 ### The model: Z.ai GLM-5.3 Flash, served by Mistral
 
 Verified on 2026-11-03 against Mistral's model page, its regional-inference docs and a live `GET /v1/models` on both endpoints:
 
 - **API id** `zai-glm-5-3-flash` (no aliases). **GA**, no deprecation date. Listed as a third-party model "served without Mistral modifications" (MIT-licensed weights); Mistral serves it on its own platform, on "the same infrastructure, regional controls, and service commitments as Mistral models". So the Mistral contract and the account's no-training opt-out cover it like Mistral's own models (the opt-out is an account setting under Admin → Privacy; check it stays off).
-- **EU**: the default `api.mistral.ai` endpoint makes no location commitment. `api.eu.mistral.ai` processes inference in EU / EFTA data centres and serves this model; it costs 1.1x list. The deployment is pinned to it (`api_base` in `infra/litellm/config.yaml`), and the costs there are the EU prices: $0.165 / $0.033 cached / $0.55 per M tokens.
+- **EU**: the default `api.mistral.ai` endpoint makes no location commitment. `api.eu.mistral.ai` processes inference in EU / EFTA data centres and serves this model; it costs 1.1x list. The deployment is pinned to it (`api_base` in `deploy/config/litellm/config.yaml`), and the costs there are the EU prices: $0.165 / $0.033 cached / $0.55 per M tokens.
 - **Capabilities** (from `/v1/models`): `completion_chat`, `function_calling`, `vision`, `reasoning`; 1,048,576-token context, 128K max output. Tool calling and image input verified through our LiteLLM (a tool call with valid JSON arguments; a colour named from a test image).
 - **Reasoning switched off**: it is a reasoning model, and without a setting Mistral lets it think a lot (1.2-4.9K reasoning tokens on an edit turn, ~20 s). The `zai-glm-5-3-flash` deployment sets `reasoning_effort: low` as a LiteLLM deployment parameter, so every caller (agent loop, `@ai`, MCP, web-tool synthesis) gets it and the fallback deployment never does. Mistral accepts only `low` / `high` / `max` (`none` is a 400, a Z.ai-style `thinking: {type: disabled}` a 422); `low` gives 0 reasoning tokens on plain chat turns and on most tool turns, at most ~130 on an edit turn. Any thinking arrives as `reasoning_content` (never shown to users); `content` holds only the answer, so the loop needs no change.
-- **Prompt caching** is automatic. `usage.prompt_tokens_details.cached_tokens` reports hits, LiteLLM bills them at `cache_read_input_token_cost` (verified to the 1e-9 $ through the proxy: uncached x input + cached x cached + output x output, on the key AND the team). Measured behaviour: hits come in ~1152-token blocks and only for a prefix the cache has seen at least twice, so in practice the reused part is the prefix every user shares (system prompt + tools, ~15K tokens). The growing history of one session is rarely reused. About a third of calls missed entirely (replica routing); `prompt_cache_key` made no measurable difference.
+- **Prompt caching** is automatic. `usage.prompt_tokens_details.cached_tokens` reports hits, and LiteLLM bills them at `cache_read_input_token_cost` (uncached x input + cached x cached + output x output, on the key and the team). Measured behaviour: hits come in ~1152-token blocks and only for a prefix the cache has seen at least twice, so in practice the reused part is the prefix every user shares (system prompt + tools, ~15K tokens). The growing history of one session is rarely reused. About a third of calls miss entirely (replica routing); `prompt_cache_key` makes no measurable difference.
 - **Fallback**: on 429 / 5xx / timeout after the proxy's retry, LiteLLM routes the request to `mistral-small-2603` (Mistral Small 4, also on the EU endpoint), so a fallback never leaves the EU path.
 
 ### How the limits are enforced
@@ -110,7 +110,7 @@ Both limits are LiteLLM budgets; the app keeps no counters.
 
 ### Cost per request
 
-Measured 2026-11-03 through the proxy with the app's real system prompt, tool list and message translation, on the Q3 report fixture (`tests/e2e/fixtures/content/q3-report/`, ~25K-token requests): a typical prompt is a 3-call loop (`view_document`, one edit, finish).
+Measured through the proxy with the app's real system prompt, tool list and message translation, on the Q3 report fixture (`tests/e2e/fixtures/content/q3-report/`, ~25K-token requests): a typical prompt is a 3-call loop (`view_document`, one edit, finish).
 
 | | GLM-5.3 Flash (EU price) |
 |---|---|
@@ -120,7 +120,7 @@ Measured 2026-11-03 through the proxy with the app's real system prompt, tool li
 | Prompts per user per month ($0.50) | about 60 |
 | Prompts per month for the whole pool ($500) | about 60,000 |
 
-The cost rows were measured before thinking was switched off; with `reasoning_effort: low` the output share drops further, so they are a slight overestimate. Input dominates (about 95 % of the cost with thinking off). Thinking off vs Mistral's default (default measured with `max`, which reasons like the default; same fixture, same session, 8 prompts each):
+The cost rows were measured with Mistral's default thinking; with `reasoning_effort: low` the output share drops further, so they are a slight overestimate. Input dominates (about 95 % of the cost with thinking off). Thinking off vs Mistral's default (default measured with `max`, which reasons like the default; same fixture, same session, 8 prompts each):
 
 | | Default thinking | `reasoning_effort: low` |
 |---|---|---|
@@ -134,7 +134,7 @@ Tool-call arguments stayed valid JSON and the edits stayed grounded in the docum
 
 ### Prompt-caching layout
 
-`server/utils/agentic/promptAssembly.ts` orders every request from most to least stable: static system prompt, tool definitions (fixed order, deterministic JSON), document context, workspace context — and only then, in the first USER message, the conversation memory, editor state and prompt. Within a session the history only appends and tool-call arguments are replayed byte-for-byte as the model generated them. Until 2026-11-03 the conversation memory closed the system message: Mistral Small 4's template places the tool definitions after the system message, so that cached 0 % of a follow-up prompt; with the memory in the user message it caches 99 % (measured through the proxy; whole two-prompt sessions: 65 % → 85 % cache hits). GLM-5.3 Flash renders tools first and was unaffected (48-51 % either way). `tests/unit/promptCachePrefix.test.ts` pins the layout; the loop logs `usage: prompt=… cached=…` per call and Sentry's `ai-session-completed` carries `totalCachedInputTokens`.
+`server/utils/agentic/promptAssembly.ts` orders every request from most to least stable: static system prompt, tool definitions (fixed order, deterministic JSON), document context, workspace context, and only then, in the first USER message, the conversation memory, editor state and prompt. Within a session the history only appends and tool-call arguments are replayed byte-for-byte as the model generated them. Keep the conversation memory out of the system message: Mistral Small 4's template places the tool definitions after the system message, so memory there makes a follow-up prompt cache 0 %; in the first user message it caches 99 % (measured through the proxy; whole two-prompt sessions: 85 % cache hits instead of 65 %). GLM-5.3 Flash renders tools first and is unaffected (48-51 % either way). `tests/unit/ai/promptCachePrefix.test.ts` pins the layout; the loop logs `usage: prompt=… cached=…` per call and Sentry's `ai-session-completed` carries `totalCachedInputTokens`.
 
 ## Bring your own key
 
@@ -164,25 +164,25 @@ The API key is stored encrypted at rest (AES-256-GCM, same scheme as the LiteLLM
 
 | Provider | Base URL | Chat models to try | Image | Transcription |
 |---|---|---|---|---|
-| Mistral AI | `https://api.mistral.ai/v1` | `mistral-small-2603` (tested), `ministral-14b-2512` | — | `voxtral-mini-2602` (also unlocks live dictation) |
+| Mistral AI | `https://api.mistral.ai/v1` | `mistral-small-2603` (tested), `ministral-14b-2512` | - | `voxtral-mini-2602` (also unlocks live dictation) |
 | OpenAI | `https://api.openai.com/v1` | `gpt-5.4-mini`, `gpt-5.4-nano`, `gpt-5.5` | `gpt-image-1` | `gpt-4o-mini-transcribe`, `whisper-1` |
-| OpenRouter | `https://openrouter.ai/api/v1` | see the table below | — | — |
-| Groq | `https://api.groq.com/openai/v1` | check Groq's tool-calling models | — | `whisper-large-v3-turbo` |
-| Together AI | `https://api.together.xyz/v1` | provider list | provider list | — |
-| DeepInfra | `https://api.deepinfra.com/v1/openai` | provider list | — | provider list |
-| Fireworks AI | `https://api.fireworks.ai/inference/v1` | provider list | — | — |
-| Scaleway (EU) | `https://api.scaleway.ai/v1` | provider list | — | provider list |
-| Ollama (self-hosted only) | `http://host.docker.internal:11434/v1` | a tool-capable local model | — | — |
+| OpenRouter | `https://openrouter.ai/api/v1` | see the table below | - | - |
+| Groq | `https://api.groq.com/openai/v1` | check Groq's tool-calling models | - | `whisper-large-v3-turbo` |
+| Together AI | `https://api.together.xyz/v1` | provider list | provider list | - |
+| DeepInfra | `https://api.deepinfra.com/v1/openai` | provider list | - | provider list |
+| Fireworks AI | `https://api.fireworks.ai/inference/v1` | provider list | - | - |
+| Scaleway (EU) | `https://api.scaleway.ai/v1` | provider list | - | provider list |
+| Ollama (self-hosted only) | `http://host.docker.internal:11434/v1` | a tool-capable local model | - | - |
 
 The base URLs were checked against each provider's `/models` and `/chat/completions` routes on 2026-10-26. The settings page fills them in from a preset list. Model ids differ per provider; the verification step catches an unknown id.
 
-**Ollama / vLLM on a self-hosted instance.** markoto's LiteLLM container must reach the server. With Ollama on the Docker host, use `http://host.docker.internal:11434/v1` (add `extra_hosts: ["host.docker.internal:host-gateway"]` to the `litellm` service on Linux) and set `NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=true`, otherwise private addresses are refused. Ollama ignores the API key, but the field is required: enter any placeholder. Pick a model whose tool calling works through your server's OpenAI endpoint (vLLM needs `--enable-auto-tool-choice` with the right parser).
+**Ollama / vLLM on a self-hosted instance.** markoto's LiteLLM container must reach the server. With Ollama on the Docker host, use `http://host.docker.internal:11434/v1` (the self-host compose maps that name to the Docker host for the `app` and `litellm` services; in another setup add `extra_hosts: ["host.docker.internal:host-gateway"]` to both) and set `NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=true`, otherwise private addresses are refused. Ollama ignores the API key, but the field is required: enter any placeholder. Pick a model whose tool calling works through your server's OpenAI endpoint (vLLM needs `--enable-auto-tool-choice` with the right parser).
 
 ### Operator settings
 
 | Variable | Meaning |
 |---|---|
-| `NUXT_AI_DEFAULT_{CHAT,IMAGE,TRANSCRIBE}_MODEL` | Instance default per capability. Alone, it names a model alias from `infra/litellm/config.yaml` (platform-paid, debits AI Points; image aliases use the chat-wrapped convention of the bundled `flux-2-pro`, transcription aliases that of `voxtral-mini-transcribe`). |
+| `NUXT_AI_DEFAULT_{CHAT,IMAGE,TRANSCRIBE}_MODEL` | Instance default per capability. Alone, it names a model alias from `deploy/config/litellm/config.yaml` (platform-paid, debits AI Points; image aliases use the chat-wrapped convention of the bundled `flux-2-pro`, transcription aliases that of `voxtral-mini-transcribe`). |
 | `NUXT_AI_DEFAULT_{CHAT,IMAGE,TRANSCRIBE}_BASE_URL` + `_API_KEY` | Together with `_MODEL`: an OpenAI-compatible endpoint used exactly like a user key (zero-cost to AI Points). The operator may point at private networks without the opt-in below; loopback, link-local/metadata addresses and markoto's own service names are still refused. |
 | `NUXT_AI_DEFAULT_CHAT_VISION` | `false` if the default chat model can't read images (default `true`). |
 | `NUXT_AI_BYOK_ALLOWED_BASE_URLS` | Comma-separated allowlist of base URLs users may pick. Empty (self-hosted default) = any public https URL. The hosted SaaS uses the eight non-local providers in the table above; an instance with `NUXT_LEGAL_SURFACES_ENABLED=true` (the hosted shape) refuses to boot with an empty list, and an entry that is not an absolute http(s) URL is a boot error everywhere. |
@@ -190,7 +190,8 @@ The base URLs were checked against each provider's `/models` and `/chat/completi
 | `NUXT_AI_REALTIME_MODEL` | Voxtral Realtime model for live dictation (default `voxtral-mini-transcribe-realtime-2602`). |
 | `NUXT_FREE_TIER_TOTAL_BUDGET_USD` | Monthly ceiling in USD on platform-paid AI for all free-tier users together (a LiteLLM team budget, see [Free AI allowance](#free-ai-allowance-hosted)). Empty / `0` = none (self-host default); hosted 500. |
 
-The hosted SaaS sets `NUXT_AI_DEFAULT_CHAT_MODEL=zai-glm-5-3-flash` (the [free AI allowance](#free-ai-allowance-hosted)), no image / transcription default, and the allowlist above (`infra/render-env.sh` / `infra/templates/env.j2`).
+The hosted SaaS sets `NUXT_AI_DEFAULT_CHAT_MODEL=zai-glm-5-3-flash` (the [free AI allowance](#free-ai-allowance-hosted)), the image (`flux-2-pro`), transcription (`voxtral-mini-transcribe`) and strong-chat (`mistral-small-2603`) aliases (locked for the free tier, so they need the user's own key there), and the provider allowlist above.
+
 ### How BYOK calls flow
 
 Every BYOK call still goes through LiteLLM: the app sends model `byok/<model id>` plus the user's `api_key` and `api_base` in the request body (LiteLLM "clientside credentials"). The `byok/*` deployment has zero cost in `model_info`, so these calls never debit the user's AI Points budget, while the call still authenticates with the user's LiteLLM virtual key (requests-per-minute limit and spend-log tags keep working). Verified on LiteLLM v1.106.4: without the zero-cost entry, LiteLLM would apply its own price table to known model ids (for example `gpt-4o`) and bill the virtual key.
@@ -202,20 +203,20 @@ Every BYOK call still goes through LiteLLM: the app sends model `byok/<model id>
 The LiteLLM proxy connects to whatever base URL it is given, so a user-supplied URL is a server-side request forgery risk. markoto checks it in `server/utils/aiProviders/urlPolicy.ts`, when the user saves it **and again on every request**:
 
 1. Absolute `http(s)` URL, no credentials, no query or fragment.
-2. Never one of markoto's service hostnames: every service name, container name and network alias in the compose files (`litellm`, `postgres`, `markoto-app`, `s3-init`, …), compose's default container names (`<project>-<service>-<n>`), `localhost` / `*.localhost` and cloud-metadata names. The host is lowercased and trailing dots are removed first (`litellm.` is the same name). `tests/unit/internalHostnames.test.ts` reads the compose files, so a new service that is missing from the list fails CI.
+2. Never one of markoto's service hostnames: every service name, container name and network alias in the compose files (`litellm`, `postgres`, `markoto-app`, `s3-init`, …), compose's default container names (`<project>-<service>-<n>`), `localhost` / `*.localhost` and cloud-metadata names. The host is lowercased and trailing dots are removed first (`litellm.` is the same name). `tests/unit/aiProviders/internalHostnames.test.ts` reads the compose files, so a new service that is missing from the list fails CI.
 3. With an allowlist configured, the URL must be at or below an allowlisted base URL.
 4. Every DNS answer is checked: loopback, link-local (including `169.254.169.254`), multicast, unspecified, documentation and reserved addresses are always refused; private addresses only with `NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=true`. Addresses are parsed into bytes, so every spelling counts: IPv6 forms that carry an IPv4 address (IPv4-mapped incl. the hex form `::ffff:7f00:1`, IPv4-compatible, NAT64 `64:ff9b::/96`, 6to4 `2002::/16`) are judged by that IPv4 address; Teredo is always refused; site-local `fec0::/10` and unique-local `fc00::/7` count as private (`server/utils/agentic/urlGuard.ts`, shared with the AI URL tools).
 5. Plain http only with that opt-in and only to private addresses, so an API key never crosses the internet unencrypted.
 
 LiteLLM v1.106.4 does **not** run its own `user_url_validation` DNS check on a clientside `api_base` when a deployment opts in with `configurable_clientside_auth_params` (we verified that a request to `169.254.169.254` was attempted). The app check is therefore the authoritative gate. The `byok/*` deployment additionally carries a regex that refuses literal loopback, metadata, IPv6-literal and markoto-service targets as defence in depth; it is the same for SaaS and self-host, because the deployment-specific parts (allowlist, private opt-in, DNS) can't be expressed in a static config file.
 
-**Redirects are not followed.** LiteLLM's default OpenAI client follows HTTP redirects, so a provider host that passes the check could answer 302/307 and send the proxy to an internal address the check never saw (verified on v1.106.4 for chat, streaming chat, image generation and transcription; transcription even returned the target's body as the transcript). `infra/litellm/custom_handlers.py` sets `litellm.client_session` / `litellm.aclient_session` to httpx clients with `follow_redirects=False`, which LiteLLM uses for every OpenAI-SDK-backed call. A redirect now fails the call ("the provider answered with a redirect"); enter the provider's final API URL. Pinned by `tests/integration/endpoints/byokRedirect.test.ts`.
+**Redirects are not followed.** LiteLLM's default OpenAI client follows HTTP redirects, so a provider host that passes the check could answer 302/307 and send the proxy to an internal address the check never saw (verified on v1.106.4 for chat, streaming chat, image generation and transcription; transcription even returned the target's body as the transcript). `deploy/config/litellm/custom_handlers.py` sets `litellm.client_session` / `litellm.aclient_session` to httpx clients with `follow_redirects=False`, which LiteLLM uses for every OpenAI-SDK-backed call. A redirect fails the call ("the provider answered with a redirect"); enter the provider's final API URL. Pinned by `tests/integration/endpoints/byokRedirect.test.ts`.
 
 **Error messages carry no upstream text.** A failed BYOK call (and a failed verification) shows a fixed sentence per failure class (`PROVIDER_ERROR_MESSAGES` in `server/utils/aiProviders/requestFields.ts`); the key-redacted upstream detail goes to the server log only.
 
 Residual risk: LiteLLM resolves the hostname again when it connects. A DNS answer that changes between markoto's check and LiteLLM's connection (rebinding with a near-zero TTL) is not caught. On the hosted SaaS the allowlist limits hostnames to the major providers, which closes this; self-hosters who allow free-form URLs accept it.
 
-## AI by plan (WP5)
+## AI by plan
 
 The instance defaults (`NUXT_AI_DEFAULT_*`) are platform-paid, so a plan
 decides which of them apply (`shared/config/tiers.ts`):
@@ -291,7 +292,7 @@ Embeddings power the workspace knowledge base (uploaded files are chunked, embed
 | `NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS` | app | `auto` | `auto` / `true` / `false`. Whether to send the OpenAI `dimensions` parameter. `auto` = only for Jina models. |
 | `NUXT_LITELLM_EMBEDDINGS_TASK_HINTS` | app | `auto` | `auto` / `true` / `false`. Whether to send Jina's `task` parameter. `auto` = only for Jina models. |
 
-The three `EMBEDDINGS_UPSTREAM_*` variables are consumed by the LiteLLM container through `infra/litellm/config.yaml` (`custom-embeddings` entry, `os.environ/...` references), so no Python or YAML needs editing. The compose files give them placeholder defaults because the proxy refuses to start if a referenced variable is undefined. The compose files also forward `EMBEDDINGS_UPSTREAM_MODEL` to the app, where it only labels the stored version tag (`custom/openai/text-embedding-3-small:1536`) so that a later model change is detectable.
+The three `EMBEDDINGS_UPSTREAM_*` variables are consumed by the LiteLLM container through `deploy/config/litellm/config.yaml` (`custom-embeddings` entry, `os.environ/...` references), so no Python or YAML needs editing. The compose files give them placeholder defaults because the proxy refuses to start if a referenced variable is undefined. The compose files also forward `EMBEDDINGS_UPSTREAM_MODEL` to the app, where it only labels the stored version tag (`custom/openai/text-embedding-3-small:1536`) so that a later model change is detectable.
 
 `dimensions` is off by default for non-Jina models on purpose: most models reject it (LiteLLM answers 400 for OpenAI-compatible models other than `text-embedding-3-*`). Turn it on only to shrink a model that supports reduced sizes, for example `text-embedding-3-large` at 1536. If the model's native output size already equals `NUXT_LITELLM_EMBEDDINGS_DIMS`, leave it off. In every case the app checks that the returned vector has exactly `NUXT_LITELLM_EMBEDDINGS_DIMS` entries and fails with a message naming the variable if not.
 
@@ -339,7 +340,7 @@ EMBEDDINGS_UPSTREAM_MODEL=ollama/nomic-embed-text
 EMBEDDINGS_UPSTREAM_API_BASE=http://host.docker.internal:11434
 ```
 
-On Linux the LiteLLM service needs `extra_hosts: ["host.docker.internal:host-gateway"]` for that hostname to resolve. Any other OpenAI-compatible server (vLLM, llama.cpp, LocalAI) works with `openai/<served-name>` and its `/v1` base URL.
+The self-host compose maps `host.docker.internal` to the Docker host for the LiteLLM service; elsewhere add `extra_hosts: ["host.docker.internal:host-gateway"]` to it. Any other OpenAI-compatible server (vLLM, llama.cpp, LocalAI) works with `openai/<served-name>` and its `/v1` base URL.
 
 Jina (the default): leave all of the above unset, or set `NUXT_LITELLM_EMBEDDINGS_MODEL=jina-embeddings-v5-text-nano` explicitly. `JINA_AI_API_KEY` is required either way, because `fetch_url` uses Jina Reader.
 

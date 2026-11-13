@@ -4,19 +4,17 @@ import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { SharingGuestShares, WorkspaceUsagePanel } from '#components'
 import { readBody } from 'h3'
 
-// Workspace guests UI (WP11): the share dialog's guest section and the
+// Workspace guests UI: the share dialog's guest section and the
 // admins' usage tab.
 
 type Wrapper = Awaited<ReturnType<typeof mountSuspended>>
 const mounted: Wrapper[] = []
-const puts: unknown[] = []
 const deletes: string[] = []
 let shares: Array<{ userId: number, name: string, email: string | null, access: 'view' | 'edit' }> = []
 
 registerEndpoint('/api/docs/doc1/shares', async (event) => {
   if (event.method === 'PUT') {
     const body = await readBody<{ userId: number, access: 'view' | 'edit' }>(event)
-    puts.push(body)
     shares = [...shares.filter(s => s.userId !== body.userId), { userId: body.userId, name: 'Gus Guest', email: 'gus@client.example', access: body.access }]
     return { ok: true }
   }
@@ -37,7 +35,6 @@ registerEndpoint('/api/workspaces/ws1/usage', () => ({
 
 afterEach(() => {
   for (const w of mounted.splice(0)) w.unmount()
-  puts.length = 0
   deletes.length = 0
   shares = []
 })

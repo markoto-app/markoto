@@ -2,17 +2,17 @@
 import type { TabsItem } from '@nuxt/ui'
 import { TEMPLATES, type TemplateMeta } from '~~/shared/templates'
 import { templateThumbnailUrl } from '~~/shared/templates/thumbnails'
-import { THEME_PRESETS, THEME_PRESET_CATEGORIES, type ThemePresetCategory } from '~~/shared/utils/themePresets'
+import { THEME_PRESETS, THEME_PRESET_CATEGORIES, type ThemePresetCategory } from '~~/shared/utils/theme/themePresets'
 import type { DocTheme } from '~~/shared/types/theme'
 
 /**
  * The new-document dialog's template picker: audience tabs over cards that
- * show each template's first page — its text in its design
+ * show each template's first page, its text in its design
  * (`public/template-thumbs/<id>.webp`, `make template-thumbs`). Same tabs and
  * cards as the design picker (`ThemePresetGrid.vue`, `PictureCard.vue`).
  *
  * Blank has no design of its own: the parent passes the design it will get
- * (`blankTheme`, the workspace default) — then its card shows that design's
+ * (`blankTheme`, the workspace default), then its card shows that design's
  * swatch instead of the markoto picture. The parent's `before` slot adds
  * cards in front ("Blank in <saved design>"); with `savedTab` a "My designs"
  * tab shows only that slot.
@@ -25,7 +25,7 @@ const props = withDefaults(defineProps<{
   /** data-testid of each card: `${testidPrefix}${template.id}`. */
   testidPrefix: string
   savedTab?: boolean
-  /** A "This workspace" tab (WP10c workspace templates) — shows only the `before` slot, first in the row. */
+  /** A "This workspace" tab (workspace templates), shows only the `before` slot, first in the row. */
   workspaceTab?: boolean
   /** The design Blank gets when it is not markoto (a workspace default). */
   blankTheme?: DocTheme | null

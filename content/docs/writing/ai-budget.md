@@ -13,7 +13,7 @@ points equal one US dollar of model usage. They only come into play when a
 capability is paid for by the operator of the instance, that is, when the
 operator set a default model with their own provider key.
 
-- **Using your own provider** ([Settings -> AI provider](/docs/account/ai-provider)): your provider bills you directly and **nothing counts against AI Points**. There is no markoto-side cap on your own key.
+- **Using your own provider** ([Settings → AI provider](/docs/account/ai-provider)): your provider bills you directly and **nothing counts against AI Points**. There is no markoto-side cap on your own key.
 - **Using an operator-paid default** (common on self-hosted instances): each person has a monthly allowance, set by the operator. It refills every 30 days.
 - **On markoto.app** the writing assistant runs on the [free AI allowance](/docs/writing/ai-overview#the-free-ai-allowance-on-markotoapp) until you connect your own provider: 500 AI Points a month, refilled at the start of each month, while the shared monthly pool lasts.
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // "Start writing": opens the new-document dialog (the same one as the
-// home page — anonymous visitors pass the terms + bot-check gate there)
+// home page: anonymous visitors pass the terms + bot-check gate there)
 // and opens the created document. Used by the marketing header and the
 // `::cta` content block; `templateId` pre-selects a template (text + its
 // design) in the dialog ("Use this template"), `themePreset` puts another

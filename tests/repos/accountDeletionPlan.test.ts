@@ -1,12 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
-import { planAccountDeletion } from '../../server/utils/accountDeletionPlan'
+import { planAccountDeletion } from '../../server/utils/privacy/accountDeletionPlan'
 import {
   createDoc,
   createUser,
   createWorkspace,
   setMemberRole
 } from '../integration/setup/fixtures'
+import { first } from '../helpers/assert'
+import { asUser } from '../helpers/access'
 
 async function insertComment(args: {
   docId: string
@@ -29,7 +31,7 @@ describe('planAccountDeletion', () => {
   })
 
   it('returns null for a nonexistent user', async () => {
-    expect(await planAccountDeletion(99_999_999)).toBeNull()
+    expect(await planAccountDeletion(asUser(99_999_999))).toBeNull()
   })
 
   it('classifies workspace fates: cascade vs promote vs remove_member', async () => {
@@ -52,7 +54,7 @@ describe('planAccountDeletion', () => {
     const wsExternal = await createWorkspace(carol.id, { name: 'External' })
     await setMemberRole(wsExternal.workspaceId, alice.id, 'editor')
 
-    const plan = await planAccountDeletion(alice.id)
+    const plan = await planAccountDeletion(asUser(alice.id))
     expect(plan).not.toBeNull()
     const byWs = Object.fromEntries(plan!.workspaces.map(w => [w.workspaceId, w]))
 
@@ -75,7 +77,7 @@ describe('planAccountDeletion', () => {
     const aliceDoc2 = await createDoc({ ownerId: alice.id, accessMode: 'open-edit', title: 'A2' })
     await createDoc({ ownerId: bob.id, title: 'B' })
 
-    const plan = await planAccountDeletion(alice.id)
+    const plan = await planAccountDeletion(asUser(alice.id))
     expect(plan!.ownedDocs).toHaveLength(2)
     const titles = plan!.ownedDocs.map(d => d.title).sort()
     expect(titles).toEqual(['A1', 'A2'])
@@ -89,15 +91,15 @@ describe('planAccountDeletion', () => {
     const aliceOwnedDoc = await createDoc({ ownerId: alice.id })
     const bobDoc = await createDoc({ ownerId: bob.id })
 
-    // Comment on alice's own doc — gets purged with the doc, so plan
+    // Comment on alice's own doc, gets purged with the doc, so plan
     // should NOT count it under commentsToAnonymise.
     await insertComment({ docId: aliceOwnedDoc.docId, entryId: 'c1', authorId: alice.id, authorName: alice.name, body: 'self' })
-    // Comment on bob's doc — anonymised.
+    // Comment on bob's doc, anonymised.
     await insertComment({ docId: bobDoc.docId, entryId: 'c2', authorId: alice.id, authorName: alice.name, body: 'foreign' })
-    // Bob's own comment — never touched.
+    // Bob's own comment: never touched.
     await insertComment({ docId: bobDoc.docId, entryId: 'c3', authorId: bob.id, authorName: bob.name, body: 'b' })
 
-    const plan = await planAccountDeletion(alice.id)
+    const plan = await planAccountDeletion(asUser(alice.id))
     expect(plan!.commentsToAnonymise).toBe(1)
   })
 
@@ -107,10 +109,10 @@ describe('planAccountDeletion', () => {
     await testDb().query(
       `UPDATE users SET stripe_customer_id = 'cus_alice' WHERE id = $1`, [alice.id]
     )
-    const planA = await planAccountDeletion(alice.id)
+    const planA = await planAccountDeletion(asUser(alice.id))
     expect(planA!.stripeCustomerToDelete).toBe('cus_alice')
 
-    const planB = await planAccountDeletion(bob.id)
+    const planB = await planAccountDeletion(asUser(bob.id))
     expect(planB!.stripeCustomerToDelete).toBeNull()
   })
 
@@ -128,7 +130,7 @@ describe('planAccountDeletion', () => {
       [doc.docId, alice.id]
     )
 
-    const plan = await planAccountDeletion(alice.id)
+    const plan = await planAccountDeletion(asUser(alice.id))
     expect(plan!.aiSessionsToDelete).toBe(1)
     expect(plan!.aiSessionMessagesToDelete).toBe(1)
   })
@@ -144,8 +146,8 @@ describe('planAccountDeletion', () => {
     await setMemberRole(ws.workspaceId, carolEditor.id, 'editor')
     await setMemberRole(ws.workspaceId, daveViewer.id, 'viewer')
 
-    const plan = await planAccountDeletion(alice.id)
-    const fate = plan!.workspaces[0]
+    const plan = await planAccountDeletion(asUser(alice.id))
+    const fate = first(plan!.workspaces)
     expect(fate.kind).toBe('promote_admin')
     expect((fate as { newAdminUserId: number }).newAdminUserId).toBe(bobAdmin.id)
   })

@@ -3,7 +3,7 @@ import { buildUserOnlyTool } from '../lib/wrapDocBoundTool'
 
 // User-only because the input field is `source_doc_id` (not the
 // generic `doc_id` that buildDocBoundTool expects). The handler does
-// its own authz check (canEditDoc on the source) — no wrapper-level
+// its own authz check (canEditDoc on the source), no wrapper-level
 // authz redundancy needed.
 //
 // `workspace_id` semantics: omit → inherit source's workspace.

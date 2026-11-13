@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import type { ApiResponse } from '~/utils/api/client'
+
 // Pre-deletion consequence modal. Pulls /api/user/me/deletion-preview
-// when opened so the rendered text reflects live state — names of
+// when opened so the rendered text reflects live state, names of
 // workspaces that will cascade vs the names of members who will be
 // promoted, etc. Requires the user to type a magic phrase before
 // the destructive action enables.
@@ -9,28 +11,7 @@
 // deletion (30-day grace begins). The grace banner takes over from
 // here as the persistent visible signal.
 
-interface OwnedDoc {
-  docId: string
-  title: string
-  accessMode: string
-  workspaceId: string | null
-}
-
-type WorkspaceFate
-  = | { kind: 'cascade_delete', workspaceId: string, name: string, docCount: number, knowledgeCount: number }
-    | { kind: 'promote_admin', workspaceId: string, name: string, newAdminUserId: number, newAdminName: string, newAdminPreviousRole: 'admin' | 'editor' | 'viewer' }
-    | { kind: 'remove_member', workspaceId: string, name: string, currentRole: 'admin' | 'editor' | 'viewer' }
-
-interface DeletionPreview {
-  userId: number
-  ownedDocs: { total: number, sample: OwnedDoc[] }
-  commentsToAnonymise: number
-  workspaces: WorkspaceFate[]
-  aiUsage: { sessions: number, sessionMessages: number }
-  dataExportJobs: number
-  stripeCustomerWillBeDeleted: boolean
-  retainedAnonymised: { activityLog: number, auditLog: number, consentLog: number }
-}
+type DeletionPreview = ApiResponse<'/api/user/deletion-preview', 'get'>
 
 const open = defineModel<boolean>('open', { required: true })
 
@@ -40,7 +21,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
-const { handleReauthRequired } = useErrorHandler()
+const { handleReauthRequired, extractError } = useErrorHandler()
 const { refresh: refreshAccountStatus } = useAccountStatus()
 
 const preview = ref<DeletionPreview | null>(null)
@@ -62,10 +43,9 @@ watch(open, async (isOpen) => {
   }
   previewLoading.value = true
   try {
-    preview.value = await $fetch<DeletionPreview>('/api/user/deletion-preview')
+    preview.value = await apiFetch('/api/user/deletion-preview')
   } catch (e) {
-    const err = e as { message?: string, data?: { message?: string } }
-    previewError.value = err.data?.message ?? err.message ?? 'Could not load deletion preview'
+    previewError.value = extractError(e).message
   } finally {
     previewLoading.value = false
   }
@@ -85,7 +65,7 @@ async function onConfirm(): Promise<void> {
   if (!phraseMatches.value || submitting.value) return
   submitting.value = true
   try {
-    await $fetch('/api/user/delete', { method: 'POST' })
+    await apiFetch('/api/user/delete', { method: 'post' })
     await refreshAccountStatus()
     toast.add({
       title: t('legal.delete.graceBannerTitle'),
@@ -97,10 +77,9 @@ async function onConfirm(): Promise<void> {
     emit('scheduled')
   } catch (e) {
     if (handleReauthRequired(e)) return
-    const err = e as { message?: string, data?: { message?: string } }
     toast.add({
-      title: 'Could not schedule deletion',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      title: t('legal.delete.scheduleFailed'),
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -145,7 +124,6 @@ async function onConfirm(): Promise<void> {
           </div>
         </div>
 
-        <!-- Loading + error states -->
         <div
           v-if="previewLoading"
           class="text-sm text-muted py-6 text-center"
@@ -154,7 +132,7 @@ async function onConfirm(): Promise<void> {
             name="i-lucide-loader-2"
             class="size-5 animate-spin mb-2 mx-auto"
           />
-          Reading your account…
+          {{ t('legal.delete.consequences.loading') }}
         </div>
         <div
           v-else-if="previewError"
@@ -167,7 +145,6 @@ async function onConfirm(): Promise<void> {
           v-else-if="preview"
           class="space-y-4 flex-1 min-h-0 overflow-y-auto pr-1"
         >
-          <!-- Permanently deleted -->
           <section>
             <h3 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-2">
               {{ t('legal.delete.consequences.deleted.heading') }}
@@ -185,7 +162,6 @@ async function onConfirm(): Promise<void> {
             </ul>
           </section>
 
-          <!-- Workspaces — the load-bearing transparency section -->
           <section v-if="preview.workspaces.length > 0">
             <h3 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-2">
               {{ t('legal.delete.consequences.workspaces.heading') }}
@@ -268,7 +244,6 @@ async function onConfirm(): Promise<void> {
             </div>
           </section>
 
-          <!-- Anonymised -->
           <section>
             <h3 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-2">
               {{ t('legal.delete.consequences.anonymised.heading') }}
@@ -283,7 +258,6 @@ async function onConfirm(): Promise<void> {
             </ul>
           </section>
 
-          <!-- Manual steps + timing -->
           <section>
             <h3 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-2">
               {{ t('legal.delete.consequences.manualSteps.heading') }}
@@ -306,24 +280,23 @@ async function onConfirm(): Promise<void> {
 
         <!-- Confirm gate. shrink-0 keeps it visible at the bottom of
              the modal regardless of how long the consequence preview
-             is — without this the row would collapse off-screen on
+             is: without this the row would collapse off-screen on
              mobile (the modal flex-column caps at 85vh). -->
         <div class="mt-6 pt-4 border-t border-default shrink-0">
-          <label
-            for="deletion-confirm-input"
-            class="block text-sm mb-2"
+          <UFormField
+            :label="t('legal.delete.confirmTypeIn', { phrase: CONFIRM_PHRASE })"
+            :ui="{ label: 'text-sm font-normal', container: 'mt-2' }"
           >
-            {{ t('legal.delete.confirmTypeIn', { phrase: CONFIRM_PHRASE }) }}
-          </label>
-          <UInput
-            id="deletion-confirm-input"
-            v-model="confirmInput"
-            :placeholder="CONFIRM_PHRASE"
-            class="w-full font-mono"
-            data-testid="deletion-confirm-input"
-            autocomplete="off"
-            spellcheck="false"
-          />
+            <UInput
+              id="deletion-confirm-input"
+              v-model="confirmInput"
+              :placeholder="CONFIRM_PHRASE"
+              class="w-full font-mono"
+              data-testid="deletion-confirm-input"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </UFormField>
           <!-- Buttons stack on mobile (Schedule on top because it's
                the answer to the typed phrase; Cancel below as the
                escape hatch). On `sm+` they sit side-by-side aligned

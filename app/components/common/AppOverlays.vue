@@ -2,12 +2,11 @@
 // App-wide overlays layered above every page. The onboarding gate exists
 // only where the legal surfaces are on (hosted SaaS);
 // a self-hosted instance is its own operator and ships without them by
-// default — see shared/config/instance.ts.
+// default: see shared/config/instance.ts.
 //
 // Every overlay that only a signed-in user can see, and the anonymous
 // terms dialog, is a Lazy component mounted only when it can show: an
-// anonymous visitor on a public page doesn't download them (they used to
-// sit in the entry chunk of every page).
+// anonymous visitor on a public page doesn't download them.
 const { legalSurfaces, anonGate } = useInstanceConfig()
 const { loggedIn } = useUserSession()
 // The anonymous terms dialog mounts the first time something asks for it
@@ -18,24 +17,20 @@ watch(() => anonTermsPrompt.value.open, (open) => {
   if (open) anonGateMounted.value = true
 }, { immediate: true })
 // The server-render page (/_internal/render/*) is loaded by the Playwright
-// sidecar and captured as PDF/PNG — no overlay may paint over it.
+// sidecar and captured as PDF/PNG, no overlay may paint over it.
 const route = useRoute()
 const showOverlays = computed(() => !route.path.startsWith('/_internal/'))
 </script>
 
 <template>
   <template v-if="showOverlays">
-    <!-- Browser-level offline banner — shown above all routes so the
-         user sees it everywhere (dashboard, editor, workspace, docs).
-         Auto-hides when the network comes back. -->
+    <!-- Shown above all routes; hides when the network returns. -->
     <CommonOfflineBanner />
-    <!-- Visible across every authenticated route while a deletion is
-         scheduled. Signed-in users only (no account, no deletion). -->
+    <!-- Signed-in users only (no account, no deletion). -->
     <LazyLegalAccountDeletionGraceBanner v-if="loggedIn" />
-    <!-- Onboarding gate — blocks the app on first login until the
-         user confirms age + accepts current Privacy Policy + ToS.
-         Signed-in users only (no row to attach acceptance to), and
-         hidden for users who already accepted the current versions. -->
+    <!-- Blocks the app until the user confirms age + accepts the current
+         Privacy Policy + ToS. Signed-in users only (no row to attach
+         acceptance to). -->
     <LazyLegalOnboardingGate v-if="legalSurfaces && loggedIn" />
     <!-- No cookie banner: markoto stores only what the service needs
          (session, language, anonymous-document creator key), which

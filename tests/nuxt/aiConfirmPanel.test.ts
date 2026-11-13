@@ -4,7 +4,9 @@ import { ref, computed } from 'vue'
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { AIPromptBar } from '#components'
 import type { AiAvailability } from '~~/shared/ai/providers'
-import type { AiConfirmationRequest } from '~/composables/useAI'
+import { useQueryCache } from '@pinia/colada'
+import { aiKeys } from '~/queries/ai'
+import type { AiConfirmationRequest } from '~/composables/ai/useAI'
 
 // The inline "Allow / Deny" confirm in the prompt bar (A1). Shown when
 // the AI, after reading other people's text, wants to reach the user's
@@ -45,15 +47,15 @@ function aiProps(confirmation: AiConfirmationRequest | null, answer = vi.fn(asyn
 
 function available(): void {
   const s = { available: true, source: 'instance' as const, platformBilled: true }
-  useState<AiAvailability | null>('ai-availability').value = {
+  useQueryCache().setQueryData<AiAvailability>(aiKeys.availabilityFor(null), {
     chat: { ...s, supportsVision: true },
     image: s,
     transcription: { ...s, liveDictation: true },
     webTools: { search: true, fetch: true }
-  }
+  })
 }
 
-describe('AIPromptBar — confirmation request', () => {
+describe('AIPromptBar: confirmation request', () => {
   it('no pending request → no panel', async () => {
     available()
     const wrapper = await mountSuspended(AIPromptBar, { props: { ai: aiProps(null) } })

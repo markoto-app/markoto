@@ -1,29 +1,22 @@
 import * as Sentry from '@sentry/nuxt'
 import type { NitroErrorHandler } from 'nitropack/types'
-import { dropUnusedSessionCookie } from './utils/sessionCookie'
+import type { H3Event } from 'h3'
+import { dropUnusedSessionCookie } from './utils/auth/sessionCookie'
+import { isApiErrorCode } from '../shared/api/errors'
+import { isTestModeEnabled } from '../shared/utils/security/testMode'
+import { useLogger } from './utils/platform/logger'
 
-// Global server-side error handler. Wired via `nitro.errorHandler`
-// in nuxt.config.ts. EVERY uncaught error from any /api/* endpoint
-// flows through here before the response is sent — this is the
-// belt-and-braces guard that prevents raw pg errors, drizzle
-// statement strings, or stack traces from leaking to the client
-// when a per-endpoint try/catch is missing.
+const log = useLogger('api-error')
+
+// Global error handler, wired via `nitro.errorHandler` in nuxt.config.ts.
+// Every uncaught error flows through here, so raw pg errors, SQL strings
+// or stack traces can't reach the client when an endpoint forgets a
+// try/catch.
 //
-// Policy:
-//   - 4xx errors are mostly INTENTIONAL (the endpoint called
-//     `createError({ statusCode: 400, message: '...' })` deliberately).
-//     We pass the message + data through, but ALWAYS strip `stack`.
-//   - 5xx errors are unintentional escapes — pg errors, network
-//     blips, bugs. We Sentry-capture the full thing, log to the
-//     server console, and return ONLY `{ statusCode, statusMessage,
-//     data: { code: 'internal' } }` to the client. NO message, NO
-//     stack, NO underlying SQL.
-//
-// Why not also strip 4xx messages: those messages are the
-// user-facing text our UI shows in toasts ("You've reached the
-// workspace limit", "Already scheduled for deletion"). Stripping
-// them would gut the UX. The risk surface is lower because we
-// authored those strings.
+// 4xx: the endpoint threw `createError(...)` on purpose; `message` and
+// `data` pass through (the UI shows them in toasts), `stack` never does.
+// 5xx: unintended escapes. Captured in Sentry and logged, but the client
+// gets only a generic message and `data: { code: 'internal' }`.
 
 export interface SanitizedErrorPayload {
   statusCode: number
@@ -33,22 +26,7 @@ export interface SanitizedErrorPayload {
   data?: unknown
 }
 
-/**
- * Pure function that builds the sanitized payload from any thrown
- * error. Extracted so the unit tests can verify the policy
- * without mocking h3's response helpers. The handler below wraps
- * this in the I/O.
- *
- * Policy:
- *   - 4xx (client errors): pass `message` and `data` through —
- *     these are author-controlled strings (`createError(...)`)
- *     safe to render in toasts.
- *   - 5xx (server errors): strip `message` and `data`, replace
- *     with a generic line + `data: { code: 'internal' }`. The
- *     original error could carry SQL / paths / env values.
- *   - `stack` is NEVER included in the payload regardless of
- *     status code.
- */
+/** Pure payload builder (no h3 I/O, so the policy is unit-testable). `stack` is never included. */
 export function buildSanitizedErrorPayload(error: {
   statusCode?: number
   statusMessage?: string
@@ -65,11 +43,11 @@ export function buildSanitizedErrorPayload(error: {
   }
 
   if (isServerError) {
-    // 5xx — strip everything, generic message only.
-    payload.message = 'Something went wrong on our side. Please try again — we\'ve been notified.'
+    // 5xx: strip everything, generic message only.
+    payload.message = 'Something went wrong on our side. Please try again. We\'ve been notified.'
     payload.data = { code: 'internal' }
   } else {
-    // 4xx pass-through — author-controlled strings.
+    // 4xx pass-through: author-controlled strings.
     if (error.message) payload.message = error.message
     if (error.data !== undefined) payload.data = error.data
   }
@@ -77,16 +55,55 @@ export function buildSanitizedErrorPayload(error: {
   return payload
 }
 
+/** A browser navigating to a page, as opposed to an API or asset request. */
+function wantsErrorPage(event: H3Event): boolean {
+  if (event.context.nuxt?.['~rendering-error']) return false
+  const path = event.path
+  if (/^\/(api|mcp|scim|internal|_nuxt|__nuxt_error)(\/|$|\?)/.test(path)) return false
+  return (getRequestHeader(event, 'accept') ?? '').includes('text/html')
+}
+
+/**
+ * Render `app/error.vue` for a failed page request. A custom Nitro error
+ * handler replaces Nuxt's own, which is what renders that page, so an unknown
+ * URL would otherwise show the JSON payload. Only the status travels in a
+ * way the page uses: it picks its text by status, never from `message`.
+ * Returns false when the page itself cannot render; the caller then answers
+ * with the JSON payload.
+ */
+async function sendErrorPage(event: H3Event, payload: SanitizedErrorPayload): Promise<boolean> {
+  event.context.nuxt = { ...event.context.nuxt, '~rendering-error': true }
+  const target = `/__nuxt_error?${new URLSearchParams({
+    url: payload.url ?? '/',
+    statusCode: String(payload.statusCode),
+    statusMessage: payload.statusMessage,
+    message: payload.statusMessage
+  }).toString()}`
+  const res = await useNitroApp().localFetch(target, {
+    headers: event.headers,
+    redirect: 'manual',
+    context: { nuxt: { '~rendering-error': true } }
+  }).catch(() => null)
+  if (!res || event.handled) return false
+  const html = await res.text()
+  for (const [header, value] of res.headers.entries()) {
+    if (header === 'set-cookie') continue
+    setResponseHeader(event, header, value)
+  }
+  setResponseStatus(event, payload.statusCode, payload.statusMessage)
+  dropUnusedSessionCookie(event)
+  await send(event, html)
+  return true
+}
+
 const handler: NitroErrorHandler = async (error, event) => {
   const url = event.path
   const statusCode = error.statusCode || 500
   const isServerError = statusCode >= 500
 
-  // Always log server-side. Dev console + Sentry both. The full
-  // error (incl. stack + cause) lands in our observability stack;
-  // it just doesn't leave the server.
+  // Full error (stack + cause) goes to console and Sentry, never the response.
   if (isServerError) {
-    console.error(`[error] ${statusCode} ${url}:`, error.message ?? error, error.cause)
+    log.error('request failed', { statusCode, path: url, err: error })
     try {
       Sentry.captureException(error, {
         tags: {
@@ -100,7 +117,16 @@ const handler: NitroErrorHandler = async (error, event) => {
     }
   }
 
+  // Every 4xx code belongs in the registry (shared/api/errors/). In dev and
+  // test runs, flag one that isn't, so a route conversion that invents a code
+  // without registering it shows up in the integration logs.
+  if (!isServerError && (isTestModeEnabled() || process.env.NODE_ENV === 'development')) {
+    const code = (error.data as { code?: unknown } | undefined)?.code
+    if (typeof code === 'string' && !isApiErrorCode(code)) log.warn('unregistered api error code', { code, statusCode, path: url })
+  }
+
   const payload = buildSanitizedErrorPayload(error, url)
+  if (wantsErrorPage(event) && await sendErrorPage(event, payload)) return
   setResponseStatus(event, payload.statusCode, payload.statusMessage)
   setResponseHeader(event, 'content-type', 'application/json')
   // Error answers skip `beforeResponse`; same rule as plugins/session-cookie.ts.

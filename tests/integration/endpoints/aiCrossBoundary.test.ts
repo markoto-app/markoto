@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import * as Y from 'yjs'
-import { ensureYjsTable, resetDb, testDb } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { loggedInClient, type TestClient } from '../setup/client'
 import { createDoc, createWorkspace, setMemberRole, type TestUser } from '../setup/fixtures'
 import { fakeOpenAiBaseUrl } from '../setup/env'
@@ -16,10 +16,10 @@ import {
   type SyncClient
 } from '../setup/byok'
 
-// AI security batch, end to end through the real loop:
+// AI security, end to end through the real loop:
 //   app → litellm-test (BYOK) → fake-openai-test model "obedient-chat",
 // a model that follows instructions planted in content
-// (`FAKE_DIRECTIVE <tool> <json>` lines) — i.e. a successful prompt
+// (`FAKE_DIRECTIVE <tool> <json>` lines), i.e. a successful prompt
 // injection, scripted.
 //
 //   A1  taint + confirm: once the session has read text written by
@@ -123,10 +123,9 @@ async function waitForSessionEnd(docId: string): Promise<void> {
   }, 40_000, 'the AI session to end')
 }
 
-describe('A1 — taint + confirm (prompt injection by another editor)', () => {
+describe('A1: taint + confirm (prompt injection by another editor)', () => {
   beforeEach(async () => {
     await resetDb()
-    await ensureYjsTable()
     await resetFake()
   })
 
@@ -203,10 +202,9 @@ describe('A1 — taint + confirm (prompt injection by another editor)', () => {
   }, 90_000)
 })
 
-describe('A2 — AI status is private to the initiator', () => {
+describe('A2: AI status is private to the initiator', () => {
   beforeEach(async () => {
     await resetDb()
-    await ensureYjsTable()
     await resetFake()
   })
 
@@ -237,12 +235,11 @@ describe('A2 — AI status is private to the initiator', () => {
     expect(serialized).not.toContain(PROMPT)
     expect(serialized).not.toContain('"prompt"')
     expect(serialized).not.toContain('aiResponse')
-    for (const state of seen) {
+    const statusMessages = seen.flatMap((state) => {
       const status = state.aiStatus
-      if (typeof status === 'object' && status !== null && 'message' in status) {
-        expect(status.message).toBe(null)
-      }
-    }
+      return typeof status === 'object' && status !== null && 'message' in status ? [status.message] : []
+    })
+    expect(statusMessages.filter(message => message !== null)).toEqual([])
     // Bob sees who the AI works for.
     expect(serialized).toContain('"initiatorName":"Alice"')
 
@@ -254,10 +251,9 @@ describe('A2 — AI status is private to the initiator', () => {
   }, 90_000)
 })
 
-describe('A6 — @ai trigger only for the caller\'s own message', () => {
+describe('A6: @ai trigger only for the caller\'s own message', () => {
   beforeEach(async () => {
     await resetDb()
-    await ensureYjsTable()
     await resetFake()
   })
 
@@ -284,10 +280,9 @@ describe('A6 — @ai trigger only for the caller\'s own message', () => {
   }, 90_000)
 })
 
-describe('F-7b — provenance of the invoker\'s own AI edits', () => {
+describe('F-7b: provenance of the invoker\'s own AI edits', () => {
   beforeEach(async () => {
     await resetDb()
-    await ensureYjsTable()
     await resetFake()
   })
 
@@ -364,9 +359,8 @@ describe('F-7b — provenance of the invoker\'s own AI edits', () => {
     })
     await waitForAcked(c)
 
-    // Session 1 (prompt bar — it writes conversation memory, which under
-    // the old rule made its edits "Alice's"): reads Bob's comment →
-    // tainted → writes into the doc.
+    // Session 1 (prompt bar, which writes conversation memory): reads Bob's comment, becomes tainted, writes
+    // into the doc.
     await startPrompt(alice.client, doc.docId, 'Go through the comments.')
     await waitForSessionEnd(doc.docId)
     await waitForAiEditRow(doc.docId)

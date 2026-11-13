@@ -4,10 +4,10 @@ import { loggedInClient, anonClient } from '../setup/client'
 import { createUser } from '../setup/fixtures'
 
 // Integration tests for /api/billing/checkout + /api/billing/portal.
-// These hit stripe-mock (docker-compose.test.yml service on :12111)
+// These hit stripe-mock (deploy/compose/compose.test.yml service on :12111)
 // which implements Stripe's full REST API surface with fixture
 // responses. Our code uses the real Stripe SDK; only the host is
-// overridden — the request/response shape contracts are the same as
+// overridden: the request/response shape contracts are the same as
 // against api.stripe.com.
 
 describe('POST /api/billing/checkout', () => {
@@ -66,7 +66,7 @@ describe('POST /api/billing/checkout', () => {
     // a new checkout should pass `customer: cus_...` to Stripe rather
     // than creating a fresh customer. We can't directly assert on
     // stripe-mock's request log, but we CAN assert the request
-    // succeeds — stripe-mock won't reject the `customer` field if we
+    // succeeds: stripe-mock won't reject the `customer` field if we
     // pass a plausible id.
     const u = await createUser()
     await testDb().query('UPDATE users SET stripe_customer_id = $1 WHERE id = $2', ['cus_existing_test', u.id])
@@ -93,13 +93,13 @@ describe('POST /api/billing/checkout', () => {
     const body = await res.json() as { updated?: boolean, plan?: string, url?: string }
     expect(body.updated).toBe(true)
     expect(body.plan).toBe('pro')
-    // Crucially: NO checkout URL — nothing to redirect to.
+    // Crucially: NO checkout URL, nothing to redirect to.
     expect(body.url).toBeUndefined()
   })
 
   it('409 when requesting the price the live subscription already has', async () => {
     // stripe-mock's canned subscription price is mapped to annual CHF Pro
-    // (setup/env.ts#STRIPE_MOCK_PRICE_ID).
+    // (the annual CHF Pro entry of setup/env.ts#TEST_STRIPE_PRICE_IDS).
     const u = await createUser()
     await testDb().query(
       'UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, plan = $3, billing_currency = $4 WHERE id = $5',
@@ -174,7 +174,7 @@ describe('POST /api/billing/checkout', () => {
   // request → 502) are one-line `if`/`catch` guards whose correctness
   // is obvious from inspection. Triggering them via integration
   // would require per-test env mutation (we can't change
-  // `useRuntimeConfig` after boot) or a live Stripe failure (can't
+  // the server's environment after boot) or a live Stripe failure (can't
   // make stripe-mock reject a valid request). We accept the gap;
   // any refactor that broke these branches would be caught by TS or
   // a plain `grep` during review.

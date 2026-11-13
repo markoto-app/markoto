@@ -2,10 +2,11 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
-import { THEME_PRESETS } from '~~/shared/utils/themePresets'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
+import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
+import { first } from '../../helpers/assert'
 
-// /api/themes — user-saved theme presets.
+// /api/themes: user-saved theme presets.
 // Plus the workspace `defaultTheme` field (PUT /api/workspaces/:id) and
 // the seed-from-workspace-default behaviour of POST /api/docs.
 
@@ -29,7 +30,7 @@ async function readDocTheme(docId: string) {
   return r.rows[0]?.theme ?? null
 }
 
-describe('GET /api/themes — list', () => {
+describe('GET /api/themes: list', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -62,7 +63,7 @@ describe('GET /api/themes — list', () => {
   })
 })
 
-describe('POST /api/themes — create', () => {
+describe('POST /api/themes: create', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -111,7 +112,7 @@ describe('POST /api/themes — create', () => {
   })
 })
 
-describe('PATCH /api/themes/:themeId — rename / replace', () => {
+describe('PATCH /api/themes/:themeId: rename / replace', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -123,7 +124,7 @@ describe('PATCH /api/themes/:themeId — rename / replace', () => {
     const res = await client.patch(`/api/themes/${created.themeId}`, { name: 'B' })
     expect(res.status).toBe(200)
     const list = await (await client.get('/api/themes')).json() as { themes: Array<{ name: string }> }
-    expect(list.themes[0].name).toBe('B')
+    expect(first(list.themes).name).toBe('B')
   })
 
   it('returns 404 when the theme belongs to another user', async () => {
@@ -224,7 +225,7 @@ describe('DELETE /api/themes/:themeId', () => {
   })
 })
 
-describe('PUT /api/workspaces/:wsId — defaultTheme', () => {
+describe('PUT /api/workspaces/:wsId: defaultTheme', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -278,7 +279,7 @@ describe('PUT /api/workspaces/:wsId — defaultTheme', () => {
   })
 })
 
-describe('POST /api/docs — theme resolution order', () => {
+describe('POST /api/docs: theme resolution order', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -374,7 +375,7 @@ describe('POST /api/docs — theme resolution order', () => {
   })
 })
 
-describe('GET /api/workspaces/:wsId — defaultTheme surfaced', () => {
+describe('GET /api/workspaces/:wsId: defaultTheme surfaced', () => {
   beforeEach(async () => {
     await resetDb()
   })

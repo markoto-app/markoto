@@ -8,10 +8,10 @@ import {
   setMemberRole
 } from '../setup/fixtures'
 
-// GET /api/docs/:docId/mentionable-users — typeahead source for the
+// GET /api/docs/:docId/mentionable-users: typeahead source for the
 // comments composer.
 //
-// Privacy posture (AGENTS.md §4): only workspace docs return a real list,
+// Privacy posture (no user enumeration): only workspace docs return a real list,
 // and only to members of that workspace. Standalone docs and non-member
 // viewers get an empty list. Anonymous gets 401 (auth middleware).
 

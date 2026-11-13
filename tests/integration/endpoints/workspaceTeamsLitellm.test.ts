@@ -5,7 +5,7 @@ import { createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import { applyTestEnv } from '../setup/testEnv'
 import { LITELLM_MASTER_KEY, LITELLM_URL, waitFor } from '../setup/byok'
 
-// Team / Business workspace AI budgets (WP3) against the REAL
+// Team / Business workspace AI budgets against the REAL
 // `litellm-test` proxy. Runs the production helpers in-process (the
 // integration server uses `LITELLM_TEST_STUB=1`), so the /team/* and
 // /key/* contracts and LiteLLM's budget errors are what the proxy really
@@ -18,20 +18,20 @@ import { LITELLM_MASTER_KEY, LITELLM_URL, waitFor } from '../setup/byok'
 // $0.006, no upstream call).
 
 const envBefore = { ...process.env }
-const globalsBefore = { useRuntimeConfig: Reflect.get(globalThis, 'useRuntimeConfig'), createError: Reflect.get(globalThis, 'createError') }
+const globalsBefore = { createError: Reflect.get(globalThis, 'createError') }
 
 applyTestEnv()
 process.env.LITELLM_TEST_STUB = ''
 process.env.NUXT_BILLING_ENABLED = 'true'
-Object.assign(globalThis, {
-  useRuntimeConfig: () => ({ litellm: { url: LITELLM_URL, masterKey: LITELLM_MASTER_KEY } }),
-  createError
-})
+// The code under test reads the proxy from the typed env (shared/env).
+process.env.NUXT_LITELLM_URL = LITELLM_URL
+process.env.NUXT_LITELLM_MASTER_KEY = LITELLM_MASTER_KEY
+Object.assign(globalThis, { createError })
 
 const teams = await import('../../../server/utils/litellm/workspaceTeams')
-const { getPooledWorkspace } = await import('../../../server/utils/workspaceBilling')
+const { getPooledWorkspace } = await import('../../../server/utils/billing/workspaceBilling')
 const { isBudgetExceededError } = await import('../../../server/utils/litellm/userKeys')
-const { useLitellmForUser } = await import('../../../server/utils/litellmClient')
+const { useLitellmForUser } = await import('../../../server/utils/ai/litellmClient')
 
 async function admin(path: string, body?: unknown): Promise<{ status: number, json: Record<string, unknown> }> {
   const res = await fetch(`${LITELLM_URL}${path}`, {

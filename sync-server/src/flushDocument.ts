@@ -1,12 +1,10 @@
-// Force a pending store of a loaded document — used by the app right
+// Force a pending store of a loaded document, used by the app right
 // before it reads the persisted Y.js state of a live document
-// (`POST /api/docs/:id/duplicate` clones the `yjs_documents` rows).
+// (`POST /api/docs/:id/duplicate` copies its `yjs_updates` state).
 //
 // Hocuspocus debounces `onStoreDocument` (2 s, up to 10 s under steady
-// typing — see `debounce` / `maxDebounce` in index.ts). Without this, a
-// duplicate made right after an edit cloned the rows from BEFORE the
-// edit: the v0.2.2 release flow caught a copy that held the welcome text
-// but not the line typed just before "Duplicate".
+// typing: see `debounce` / `maxDebounce` in index.ts). Without this, a
+// duplicate made right after an edit would clone the rows from before it.
 //
 // Pure over a structural instance shape (no persistence import) so the
 // unit tests can drive it with a fake debouncer.
@@ -37,9 +35,9 @@ export function storeDebounceId(docId: string): string {
 
 /**
  * Run the document's debounced store now (if one is pending) and wait
- * for any store already in flight, so the rows in `yjs_documents` hold
+ * for any store already in flight, so the rows in `yjs_updates` hold
  * everything this instance has received. Resolves:
- *   - `not-loaded`: no client has the doc open here — the rows are
+ *   - `not-loaded`: no client has the doc open here, the rows are
  *     already complete (a doc is stored before it is unloaded);
  *   - `idle`: loaded, nothing pending;
  *   - `flushed`: a pending or running store finished.

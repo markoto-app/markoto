@@ -1,9 +1,11 @@
-import { isTestModeEnabled } from '~~/shared/utils/testMode'
+import { isTestModeEnabled } from '~~/shared/utils/security/testMode'
+import { useEnv } from '~~/shared/env/load'
+import type { RawEnv } from '~~/shared/env/define'
 
-// Instance configuration of custom domains (WP13), read per call so tests
+// Instance configuration of custom domains, read per call so tests
 // can stub it. The feature is on only when the operator names the host
 // customers point their domain at (`NUXT_PUBLISH_DOMAINS_TARGET`, e.g.
-// `pages.markoto.app`) — that host must reach this instance's Traefik.
+// `pages.markoto.app`): that host must reach this instance's Traefik.
 
 export interface CustomDomainSettings {
   /** CNAME target customers point to (lowercase, no trailing dot). */
@@ -14,11 +16,11 @@ export interface CustomDomainSettings {
   allowTestNames: boolean
 }
 
-export function customDomainSettings(env: NodeJS.ProcessEnv = process.env): CustomDomainSettings | null {
-  const target = (env.NUXT_PUBLISH_DOMAINS_TARGET ?? '').trim().toLowerCase().replace(/\.$/, '')
+export function customDomainSettings(source?: RawEnv): CustomDomainSettings | null {
+  const { publish } = useEnv(source)
+  const target = (publish.domainsTarget ?? '').toLowerCase().replace(/\.$/, '')
   if (!target) return null
-  const dnsServers = (env.NUXT_PUBLISH_DNS_SERVERS ?? '').split(',').map(s => s.trim()).filter(Boolean)
-  return { target, dnsServers, allowTestNames: isTestModeEnabled(env) }
+  return { target, dnsServers: [...publish.dnsServers], allowTestNames: isTestModeEnabled(source) }
 }
 
 export interface TraefikProviderSettings {
@@ -30,19 +32,26 @@ export interface TraefikProviderSettings {
   /** … or an upstream URL the endpoint declares a service for (test stacks). */
   upstream: string | null
   middlewares: string[]
+  /**
+   * Also emit the router of the pages host (NUXT_PUBLISH_PAGES_HOST). On
+   * for the self-host HTTPS overlay, where the pages host is optional and
+   * compose labels can't express an optional router; the hosted stack
+   * declares its pages router as a compose label instead.
+   */
+  pagesRouter: boolean
 }
 
 /** Settings of the Traefik HTTP-provider endpoint; null = endpoint off (404). */
-export function traefikProviderSettings(env: NodeJS.ProcessEnv = process.env): TraefikProviderSettings | null {
-  const token = (env.NUXT_PUBLISH_TRAEFIK_TOKEN ?? '').trim()
-  if (token.length < 32) return null
-  const list = (v: string | undefined) => (v ?? '').split(',').map(s => s.trim()).filter(Boolean)
+export function traefikProviderSettings(source?: RawEnv): TraefikProviderSettings | null {
+  const { publish } = useEnv(source)
+  if (!publish.traefikToken) return null
   return {
-    token,
-    entryPoint: env.NUXT_PUBLISH_TRAEFIK_ENTRYPOINT?.trim() || 'websecure',
-    certResolver: env.NUXT_PUBLISH_TRAEFIK_CERT_RESOLVER?.trim() || 'le',
-    service: env.NUXT_PUBLISH_TRAEFIK_SERVICE?.trim() || 'app@docker',
-    upstream: env.NUXT_PUBLISH_TRAEFIK_UPSTREAM?.trim() || null,
-    middlewares: list(env.NUXT_PUBLISH_TRAEFIK_MIDDLEWARES)
+    token: publish.traefikToken,
+    entryPoint: publish.traefikEntryPoint,
+    certResolver: publish.traefikCertResolver,
+    service: publish.traefikService,
+    upstream: publish.traefikUpstream ?? null,
+    middlewares: [...publish.traefikMiddlewares],
+    pagesRouter: publish.traefikPagesRouter
   }
 }

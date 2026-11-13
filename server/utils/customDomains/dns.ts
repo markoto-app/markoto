@@ -1,12 +1,12 @@
 import { Resolver } from 'node:dns/promises'
 import { customDomainVerifyName, customDomainVerifyValue, type CustomDomainDnsProblem } from '~~/shared/config/customDomains'
 
-// DNS check of a custom domain (WP13). Two things must hold:
+// DNS check of a custom domain. Two things must hold:
 //  1. ownership: a TXT record `_markoto-verify.<host>` = `markoto-verify=<token>`
 //     (the token is per domain row, so a record left from someone else's
 //     earlier claim proves nothing for a new one);
-//  2. routing: the host is a CNAME to the instance's target, or — for an
-//     apex domain, which can't carry a CNAME — resolves to exactly the
+//  2. routing: the host is a CNAME to the instance's target, or, for an
+//     apex domain, which can't carry a CNAME, resolves to exactly the
 //     target's addresses (ALIAS / CNAME flattening).
 // Only then does the domain get a router and a certificate.
 

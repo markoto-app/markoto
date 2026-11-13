@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
-import { docRowActionGroups, type DocRowAction } from '~/utils/docRowActions'
+import { docRowActionGroups, type DocRowAction } from '~/utils/workspace/docRowActions'
 
 // The "…" menu of a document row on the dashboard and the workspace page.
 // Which actions show is decided by `docRowActionGroups` (permission
@@ -9,7 +9,7 @@ import { docRowActionGroups, type DocRowAction } from '~/utils/docRowActions'
 //
 // `open` is a two-way model so a long-press on the row can open the menu
 // too. It must be written in both directions: a one-way `:open` binding
-// keeps Reka's menu controlled and closed, so the trigger did nothing.
+// keeps Reka's menu controlled and closed, so the trigger would do nothing.
 
 const props = defineProps<{
   docId: string

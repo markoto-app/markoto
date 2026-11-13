@@ -1,6 +1,6 @@
 ---
 title: Audit log of a workspace
-description: See and download who changed what in a workspace — members, invitations, sharing, deletions, billing and single sign-on — as a workspace admin.
+description: See and download who changed what in a workspace (members, invitations, sharing, deletions, billing and single sign-on) as a workspace admin.
 category: account
 order: 4
 updated: '2026-11-09'

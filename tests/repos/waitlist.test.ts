@@ -8,7 +8,9 @@ import {
   upsertWaitlistSignup,
   type WaitlistSignupInput
 } from '../../server/repos/waitlist'
-import { runWaitlistSweep } from '../../server/utils/waitlistSweep'
+import { runWaitlistSweep } from '../../server/utils/privacy/waitlistSweep'
+import { first } from '../helpers/assert'
+import { asUser } from '../helpers/access'
 
 // Paid-plans waitlist repository (double opt-in lifecycle) + sweeper.
 
@@ -47,7 +49,7 @@ describe('waitlist repo', () => {
 
   it('first sign-up creates an UNCONFIRMED row', async () => {
     expect(await upsertWaitlistSignup(input())).toBe('created')
-    const [row] = await rows()
+    const row = first(await rows())
     expect(row.email).toBe('maya@example.com')
     expect(row.confirmed_at).toBeNull()
     expect(row.confirm_token_hash).toBe('confirm-hash-1')
@@ -73,7 +75,7 @@ describe('waitlist repo', () => {
     expect(await confirmWaitlistSignup('confirm-hash-1')).toBe(true)
     const outcome = await upsertWaitlistSignup(input({ confirmTokenHash: 'confirm-hash-x', unsubscribeTokenHash: 'unsub-hash-x' }))
     expect(outcome).toBe('unchanged')
-    const [row] = await rows()
+    const row = first(await rows())
     expect(row.unsubscribe_token_hash).toBe('unsub-hash-1')
     expect(row.confirmed_at).not.toBeNull()
   })
@@ -83,7 +85,7 @@ describe('waitlist repo', () => {
     const bob = await createUser()
     await upsertWaitlistSignup(input({ userId: alice.id }))
     await upsertWaitlistSignup(input({ userId: bob.id, confirmTokenHash: 'c2', unsubscribeTokenHash: 'u2' }))
-    const [row] = await rows()
+    const row = first(await rows())
     expect(row.user_id).toBe(alice.id)
   })
 
@@ -113,9 +115,9 @@ describe('waitlist repo', () => {
     const alice = await createUser()
     await upsertWaitlistSignup(input({ userId: alice.id }))
     await upsertWaitlistSignup(input({ email: 'other@example.com', confirmTokenHash: 'c-o', unsubscribeTokenHash: 'u-o' }))
-    const exported = await listWaitlistSignupsForUser(alice.id)
+    const exported = await listWaitlistSignupsForUser(asUser(alice.id))
     expect(exported).toHaveLength(1)
-    expect(exported[0].email).toBe('maya@example.com')
+    expect(first(exported).email).toBe('maya@example.com')
     expect(JSON.stringify(exported)).not.toContain('hash')
   })
 

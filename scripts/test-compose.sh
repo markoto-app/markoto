@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# `docker compose` for the test stack (docker-compose.test.yml), on Docker
+# `docker compose` for the test stack (deploy/compose/compose.test.yml), on Docker
 # or rootless Podman. Arguments pass through:
 #
 #   scripts/test-compose.sh up -d --wait
 #   scripts/test-compose.sh --profile flows down -v
 #
-# On Podman it adds docker-compose.test.podman.yml (renderer seccomp, see
+# On Podman it adds deploy/compose/compose.test.podman.yml (renderer seccomp, see
 # that file) and checks that TEST_FAKE_OPENAI_HOST is set: rootless Podman
 # has no host-side bridge gateway to publish the fake AI provider on.
 # Override detection with TEST_CONTAINER_ENGINE=docker|podman.
-# See docs/CONTAINER-ENGINES.md.
+# See docs/contributing/CONTAINER-ENGINES.md.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -20,9 +20,12 @@ if [ -z "$engine" ]; then
   case "$components" in *[Pp]odman*) engine=podman ;; *) engine=docker ;; esac
 fi
 
-files=(-f docker-compose.test.yml)
+files=(-f deploy/compose/compose.test.yml)
+# Compose reads `.env` from the compose file's directory, not from here;
+# hand it the repository's (TEST_FAKE_OPENAI_HOST and friends live there).
+if [ -f .env ]; then files=(--env-file .env "${files[@]}"); fi
 if [ "$engine" = podman ]; then
-  files+=(-f docker-compose.test.podman.yml)
+  files+=(-f deploy/compose/compose.test.podman.yml)
   if [ -z "${TEST_FAKE_OPENAI_HOST:-}" ]; then
     # Suggest the first private IPv4 address of a physical network card.
     suggestion=""
@@ -33,7 +36,7 @@ if [ "$engine" = podman ]; then
     done
     echo "test-compose: Podman detected, but TEST_FAKE_OPENAI_HOST is not set." >&2
     echo "  Set it (in .env) to a private address of this machine${suggestion:+, e.g. TEST_FAKE_OPENAI_HOST=$suggestion}." >&2
-    echo "  See docs/CONTAINER-ENGINES.md." >&2
+    echo "  See docs/contributing/CONTAINER-ENGINES.md." >&2
     exit 2
   fi
 fi

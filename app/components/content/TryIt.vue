@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { KATEX_CSS_SRI, KATEX_CSS_URL } from '~~/shared/utils/katexAssets'
-import { hljsTheme } from '~~/shared/utils/hljsAssets'
+import { KATEX_CSS_SRI, KATEX_CSS_URL } from '~~/shared/utils/vendor/katexAssets'
+import { hljsTheme } from '~~/shared/utils/vendor/hljsAssets'
+import { trimTrailing } from '~/utils/markdown/trimTrailing'
 import { DEFAULT_MARKETING_LOCALE, parseMarketingRoute } from '~~/shared/seo/marketing'
 
 // A small Markdown editor next to the live paged preview, for marketing
@@ -17,11 +18,11 @@ import { DEFAULT_MARKETING_LOCALE, parseMarketingRoute } from '~~/shared/seo/mar
 // Two stages:
 //   1. Static (SSR + until mounted): the committed `source` next to its
 //      result, rendered on the server by `renderTrustedMarkdown` (the
-//      preview's markdown-it pipeline without DOMPurify — committed
+//      preview's markdown-it pipeline without DOMPurify, committed
 //      content only). Crawlers, no-JS readers and slow phones get real
 //      content, and no editor code is loaded.
 //   2. Live: once the block comes near the viewport (or the visitor
-//      clicks / focuses it) `MarketingTryItWorkbench` is imported — a
+//      clicks / focuses it) `MarketingTryItWorkbench` is imported, a
 //      CodeMirror editor and the app's sandboxed preview iframe. What the
 //      visitor types goes ONLY through the client preview path
 //      (`renderMarkdown` = markdown-it + DOMPurify, then the opaque-origin
@@ -31,7 +32,7 @@ import { DEFAULT_MARKETING_LOCALE, parseMarketingRoute } from '~~/shared/seo/mar
 // the normal creation flow, see the workbench.
 const props = withDefaults(defineProps<{
   source: string
-  /** Built-in theme preset id (`shared/utils/themePresets.ts`); default theme otherwise. */
+  /** Built-in theme preset id (`shared/utils/theme/themePresets.ts`); default theme otherwise. */
   theme?: string
   /** Height of the editor + preview in px (desktop). */
   height?: number | string
@@ -41,7 +42,7 @@ const { t } = useI18n()
 
 // Document language of the example = the page's language (`/de/…` → de),
 // not the visitor's UI language: TOC title, cover date and the created
-// document follow it (`shared/utils/documentLocale.ts`).
+// document follow it (`shared/utils/documents/documentLocale.ts`).
 const route = useRoute()
 const language = computed(() => parseMarketingRoute(route.path)?.locale ?? DEFAULT_MARKETING_LOCALE)
 
@@ -51,7 +52,7 @@ function hashOf(text: string): string {
   return (h >>> 0).toString(36)
 }
 
-const initial = computed(() => `${props.source.replace(/\n+$/, '')}\n`)
+const initial = computed(() => `${trimTrailing(props.source, '\n')}\n`)
 const heightPx = computed(() => {
   const n = Number(props.height)
   return Number.isFinite(n) && n >= 240 ? Math.min(n, 1200) : 540
@@ -59,12 +60,12 @@ const heightPx = computed(() => {
 
 // Trusted render of the COMMITTED source only (never of visitor input).
 // Imported inside the callback so markdown-it stays out of this block's
-// client chunk — on the client the result comes from the payload.
+// client chunk: on the client the result comes from the payload.
 const { data: staticHtml } = await useAsyncData(
   `try-it:${hashOf(initial.value)}`,
   // Headings become styled <div>s (`utils/sampleHeadings.ts`): the
   // sample's "# Title" is not a heading of this page.
-  () => Promise.all([import('~/utils/renderMarkdown'), import('~/utils/sampleHeadings')])
+  () => Promise.all([import('~/utils/markdown/renderMarkdown'), import('~/utils/marketing/sampleHeadings')])
     .then(([m, h]) => m.renderTrustedMarkdown(initial.value).then(h.sampleHeadingsToDivs)),
   { default: () => '' }
 )
@@ -128,13 +129,14 @@ onBeforeUnmount(() => {
 // Stylesheets the static result needs (same as `::sample`).
 const CODE_THEME = hljsTheme('github-dark')
 const ANONYMOUS = 'anonymous' as const
+const STYLESHEET = 'stylesheet' as const
 useHead(() => ({
   link: [
     ...(staticHtml.value.includes('class="katex')
-      ? [{ key: 'katex-css', rel: 'stylesheet', href: KATEX_CSS_URL, integrity: KATEX_CSS_SRI, crossorigin: ANONYMOUS }]
+      ? [{ key: 'katex-css', rel: STYLESHEET, href: KATEX_CSS_URL, integrity: KATEX_CSS_SRI, crossorigin: ANONYMOUS }]
       : []),
     ...(staticHtml.value.includes('class="hljs')
-      ? [{ key: 'hljs-css', rel: 'stylesheet', href: CODE_THEME.url, integrity: CODE_THEME.sri, crossorigin: ANONYMOUS }]
+      ? [{ key: 'hljs-css', rel: STYLESHEET, href: CODE_THEME.url, integrity: CODE_THEME.sri, crossorigin: ANONYMOUS }]
       : [])
   ]
 }))
@@ -157,7 +159,7 @@ useHead(() => ({
       :initial="initial"
       :theme-preset="theme"
       :language="language"
-      :autofocus="wantsFocus"
+      :focus-on-ready="wantsFocus"
       @ready="ready = true"
     />
     <div
@@ -193,11 +195,13 @@ useHead(() => ({
           <span>{{ t('marketing.sample.result') }}</span>
         </div>
         <!-- Rendered from committed content only (renderTrustedMarkdown). -->
+        <!-- eslint-disable vue/no-v-html -- committed content, never visitor input (renderTrustedMarkdown) -->
         <div
           class="mk-try-it__result"
           data-testid="try-it-static-result"
           v-html="staticHtml"
         />
+        <!-- eslint-enable vue/no-v-html -->
       </div>
     </div>
   </section>

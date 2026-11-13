@@ -7,7 +7,7 @@ const props = defineProps<{
 const open = defineModel<boolean>('open', { required: true })
 
 const emit = defineEmits<{
-  // Fired right before the DELETE request, and `failed` when it errors —
+  // Fired right before the DELETE request, and `failed` when it errors,
   // lets the editor tell its own deletion apart from someone else's
   // (the sync broadcast can arrive before the response).
   deleting: []
@@ -17,8 +17,9 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
+const { showError } = useErrorHandler()
 // Mobile haptic on delete-confirm tap. Double-pulse pattern reinforces
-// "intentional, irreversible" — distinct from a casual click. iOS has
+// "intentional, irreversible": distinct from a casual click. iOS has
 // no Web Vibration API, so isSupported is false there and vibrate()
 // silently no-ops; safe to call unconditionally. Pattern passed at
 // call time rather than via options because the upstream
@@ -38,7 +39,7 @@ async function handleDelete() {
   deleting.value = true
   emit('deleting')
   try {
-    await $fetch(`/api/docs/${props.docId}`, { method: 'DELETE' })
+    await apiFetch('/api/docs/:docId', { method: 'delete', path: { docId: props.docId } })
     toast.add({
       title: t('delete.success'),
       description: t('delete.successDesc', { title: props.title }),
@@ -49,13 +50,7 @@ async function handleDelete() {
     emit('deleted')
   } catch (e) {
     emit('failed')
-    const err = e as { data?: { message?: string }, message?: string }
-    toast.add({
-      title: t('delete.failed'),
-      description: err.data?.message || err.message,
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+    showError('delete.failed', e)
   } finally {
     deleting.value = false
   }
@@ -66,7 +61,6 @@ function handleClose() {
   open.value = false
 }
 
-// Reset input when modal opens
 watch(open, (v) => {
   if (v) confirmText.value = ''
 })
@@ -104,22 +98,21 @@ watch(open, (v) => {
         </div>
 
         <div class="mb-4">
-          <label
-            for="delete-confirm-input"
-            class="block text-sm font-medium mb-2"
+          <UFormField
+            :label="t('delete.confirmPrompt', { title })"
+            :ui="{ container: 'mt-2' }"
           >
-            {{ t('delete.confirmPrompt', { title }) }}
-          </label>
-          <UInput
-            id="delete-confirm-input"
-            v-model="confirmText"
-            :placeholder="title"
-            size="md"
-            class="w-full"
-            :ui="{ base: 'w-full' }"
-            data-testid="delete-confirm-input"
-            @keydown.enter="handleDelete"
-          />
+            <UInput
+              id="delete-confirm-input"
+              v-model="confirmText"
+              :placeholder="title"
+              size="md"
+              class="w-full"
+              :ui="{ base: 'w-full' }"
+              data-testid="delete-confirm-input"
+              @keydown.enter="handleDelete"
+            />
+          </UFormField>
         </div>
 
         <div class="flex gap-2 justify-end">

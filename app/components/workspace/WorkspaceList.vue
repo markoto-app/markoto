@@ -1,29 +1,22 @@
 <script setup lang="ts">
 // Grid of workspace cards for the dashboard.
+import type { ApiResponse } from '~/utils/api/client'
 
 /** Card row payload from `/api/user/workspaces`. */
-export interface WorkspaceListItem {
-  workspaceId: string
-  name: string
-  description: string | null
-  docCount: number
-  lastActive: string | number | Date | null
-  createdAt: string | number | Date
-  role: 'admin' | 'editor' | 'viewer'
-}
+export type WorkspaceListItem = ApiResponse<'/api/user/workspaces', 'get'>[number]
 
 defineProps<{
   workspaces: WorkspaceListItem[]
   loading?: boolean
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 function formatDate(value: string | number | Date | null) {
   if (!value) return ''
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+  return date.toLocaleDateString(locale.value, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 </script>
 

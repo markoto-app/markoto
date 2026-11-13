@@ -7,7 +7,7 @@
 | **Reviewers** | Name (team) |
 | **Created** | YYYY-MM-DD |
 | **Last updated** | YYYY-MM-DD |
-| **Tracking issue** | — |
+| **Tracking issue** | - |
 | **Decision deadline** | YYYY-MM-DD |
 
 # Summary

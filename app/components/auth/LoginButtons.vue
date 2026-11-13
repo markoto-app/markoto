@@ -1,15 +1,21 @@
 <script setup lang="ts">
 const { t } = useI18n()
-// Only providers with complete credentials are offered — an
+// Only providers with complete credentials are offered, an
 // unconfigured one would end in a server error. A self-hosted instance
 // without any login provider is anonymous-only.
 const { loginOptions } = useLoginOptions()
 const { workspaceSso } = useInstanceConfig()
 
-// "Sign in with your organisation" (WP14): a work email → the SSO link of
+// "Sign in with your organisation": a work email → the SSO link of
 // the workspace that verified its domain. Only where per-workspace SSO
 // can exist on this instance.
 const ssoOpen = ref(false)
+const ssoEmailId = useId()
+// The field appears on click, so focus moves to it by hand (`autofocus` only runs on page load).
+function openSso(): void {
+  ssoOpen.value = true
+  void nextTick(() => document.getElementById(ssoEmailId)?.focus())
+}
 const ssoEmail = ref('')
 const ssoBusy = ref(false)
 const ssoError = ref<string | null>(null)
@@ -20,8 +26,8 @@ async function continueWithSso(): Promise<void> {
   ssoBusy.value = true
   ssoError.value = null
   try {
-    const res = await $fetch<{ loginUrl: string }>('/api/auth/sso/discover', {
-      method: 'POST',
+    const res = await apiFetch('/api/auth/sso/discover', {
+      method: 'post',
       body: { email: ssoEmail.value, returnTo: route.fullPath }
     })
     globalThis.location.href = res.loginUrl
@@ -56,7 +62,7 @@ async function continueWithSso(): Promise<void> {
         variant="ghost"
         block
         data-testid="login-sso"
-        @click="ssoOpen = true"
+        @click="openSso"
       >
         {{ t('sso.discover.button') }}
       </UButton>
@@ -67,11 +73,11 @@ async function continueWithSso(): Promise<void> {
         @submit.prevent="continueWithSso"
       >
         <UInput
+          :id="ssoEmailId"
           v-model="ssoEmail"
           type="email"
           autocomplete="email"
           :placeholder="t('sso.discover.placeholder')"
-          autofocus
           data-testid="login-sso-email"
         />
         <UButton

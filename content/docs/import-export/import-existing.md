@@ -9,13 +9,13 @@ updated: '2026-11-04'
 
 # Bring an existing document into markoto
 
-If you have a draft already — a Word doc, a PDF, an HTML article — you
+If you have a draft already (a Word doc, a PDF, an HTML article) you
 don't need to retype it. markoto converts the file to markdown on the
 way in. Headings, lists, tables, bold/italic, code blocks all survive
 the round-trip.
 
 This walkthrough imports an HTML file into a fresh doc. About thirty
-seconds. Desktop only — the File menu (which holds Import) is hidden
+seconds. Desktop only: the File menu (which holds Import) is hidden
 on mobile.
 
 ::flow{id="import-existing-document" hide-title}
@@ -52,5 +52,5 @@ not markoto's, so it stays in your text, unchanged.
 
 ## What's next
 
-- [Pick a theme](/docs/themes/pick-a-theme) — make the imported doc look the part.
-- [Add tables, math, and diagrams](/docs/writing/rich-content) — go beyond what your source had.
+- [Pick a theme](/docs/themes/pick-a-theme): make the imported doc look the part.
+- [Add tables, math, and diagrams](/docs/writing/rich-content): go beyond what your source had.

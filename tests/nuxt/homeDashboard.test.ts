@@ -6,10 +6,10 @@ import { flushPromises } from '@vue/test-utils'
 import { HomeDashboard } from '#components'
 
 // The home page (`/`) for everyone who doesn't get the product tour:
-//   - logged out: the plain hero with "New document" — unchanged;
-//   - logged in: an app dashboard — compact page header, no hero, the
+//   - logged out: the plain hero with "New document", unchanged;
+//   - logged in: an app dashboard, compact page header, no hero, the
 //     create buttons in their sections' headers, and a working "…" menu
-//     on every document row (it used to stay closed).
+//     on every document row.
 
 const loggedIn = ref(true)
 mockNuxtImport('useUserSession', () => () => ({

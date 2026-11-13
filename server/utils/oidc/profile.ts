@@ -1,14 +1,14 @@
-// Generic OpenID Connect sign-in (WP7b) — validated claims → markoto user profile.
+// Generic OpenID Connect sign-in, validated claims → markoto user profile.
 //
 // Pure. The input claims have ALREADY been validated by openid-client
-// (signature via JWKS, iss, aud, azp, exp/iat, nonce — see `client.ts`);
+// (signature via JWKS, iss, aud, azp, exp/iat, nonce, see `client.ts`);
 // this module only decides which claim values markoto stores.
 //
 // Linking rule (security-relevant):
 //   - The identity key is (issuer, sub). Never the email.
-//   - The email is only used — stored on the user row, offered for the
+//   - The email is only used, stored on the user row, offered for the
 //     verified-email account merge, matched against NUXT_ADMIN_USER_EMAILS,
-//     found by workspace invites — when the IdP asserts
+//     found by workspace invites, when the IdP asserts
 //     `email_verified === true` (the JSON boolean; the string "true" does
 //     not count). An unverified email is dropped entirely, because a
 //     stored unverified address would later let a GitHub/Google login

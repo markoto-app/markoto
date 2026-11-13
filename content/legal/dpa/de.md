@@ -8,9 +8,9 @@ translationStatus: machine-translated
 
 # Auftragsverarbeitungsvertrag
 
-Dieser Auftragsverarbeitungsvertrag («**AVV**») ist Bestandteil der Nutzungsbedingungen zwischen **{{controllerName}}** («**Auftragsverarbeiterin**» oder «**markoto**») und Ihnen, der Workspace-Eigentümerin bzw. dem Workspace-Eigentümer («**Verantwortlicher**»). Er regelt die Verarbeitung personenbezogener Daten durch markoto im Auftrag des Verantwortlichen im Zusammenhang mit markoto.app und seinen Funktionen (der «**Dienst**»).
+Dieser Auftragsverarbeitungsvertrag («**AVV**») ist Bestandteil der Nutzungsbedingungen zwischen **{{controllerName}}** («**Auftragsverarbeiterin**» oder «**markoto**») und dir, der Workspace-Eigentümerin bzw. dem Workspace-Eigentümer («**Verantwortlicher**»). Er regelt die Verarbeitung personenbezogener Daten durch markoto im Auftrag des Verantwortlichen im Zusammenhang mit markoto.app und seinen Funktionen (der «**Dienst**»).
 
-Dieser AVV ist nur für Workspace-Kundinnen und -Kunden erforderlich. Wenn Sie markoto ausschliesslich für persönliche Dokumente nutzen, gilt dieser AVV nicht für Sie.
+Dieser AVV ist nur für Workspace-Kundinnen und -Kunden erforderlich. Wenn du markoto ausschliesslich für persönliche Dokumente nutzt, gilt dieser AVV nicht für dich.
 
 ## 1. Begriffe und anwendbares Recht
 
@@ -61,7 +61,7 @@ Die Auftragsverarbeiterin ist in der **Schweiz** niedergelassen. Die Europäisch
 
 Bei Weiterübermittlungen hält die Auftragsverarbeiterin Art. 16 DSG und Kapitel V DSGVO ein:
 
-- Die zentrale Infrastruktur der Auftragsverarbeiterin (Datenbank, Dateispeicher, Sicherungskopien) befindet sich in der EU (Frankreich). Ihre KI-Unterauftragsverarbeiter verarbeiten Daten in der EU und, im Fall von Mistral AI, auch in EFTA-Staaten. Die Schweiz anerkennt den Datenschutz der Staaten der EU und des EWR als angemessen, und jeder EFTA-Staat ist entweder ein EWR-Staat oder die Schweiz.
+- Die zentrale Infrastruktur der Auftragsverarbeiterin (Datenbank, Dateispeicher, Sicherungskopien) befindet sich in der EU (Frankreich). Deine KI-Unterauftragsverarbeiter verarbeiten Daten in der EU und, im Fall von Mistral AI, auch in EFTA-Staaten. Die Schweiz anerkennt den Datenschutz der Staaten der EU und des EWR als angemessen, und jeder EFTA-Staat ist entweder ein EWR-Staat oder die Schweiz.
 - Befindet sich ein Unterauftragsverarbeiter in einem Land ohne angemessenes Schutzniveau, insbesondere in den Vereinigten Staaten, oder kann er von dort auf Daten zugreifen, stützt sich die Übermittlung bei zertifizierten Empfängern auf das EU-U.S. bzw. Swiss-U.S. Data Privacy Framework, andernfalls auf die Standardvertragsklauseln der Europäischen Kommission (2021/914), angepasst an das Schweizer Recht.
 
 Standort und Übermittlungsmechanismus jedes Unterauftragsverarbeiters sind unter [/legal/sub-processors](/legal/sub-processors) veröffentlicht.
@@ -144,7 +144,7 @@ Unterauftragsverarbeiter werden nach ihren Datenschutz- und Sicherheitspraktiken
 
 ## Anhang II: Unterauftragsverarbeiter
 
-Die aktuelle Liste, einschliesslich Standort und Übermittlungsmechanismus jedes Unterauftragsverarbeiters, finden Sie unter [/legal/sub-processors](/legal/sub-processors).
+Die aktuelle Liste, einschliesslich Standort und Übermittlungsmechanismus jedes Unterauftragsverarbeiters, findest du unter [/legal/sub-processors](/legal/sub-processors).
 
 ---
 

@@ -6,7 +6,7 @@
 // machine.
 //
 // Needs a running app with TEST_MODE=1 + NUXT_PUBLIC_EXPOSE_TEST_HANDLES=1
-// on top of the flow test stack (docker-compose.test.yml — Postgres on
+// on top of the flow test stack (deploy/compose/compose.test.yml, Postgres on
 // :5433), e.g. `FLOWS_SERVE_ONLY=1 bun run flows:test`. Then:
 //
 //   PERF_BASE_URL=http://localhost:3001 bun scripts/measure-preview-perf.ts [label]
@@ -137,7 +137,7 @@ async function setDocument(page: Page, frame: Frame, markdown: string, marker: s
 }
 
 async function sampleLatency(page: Page, frame: Frame, i: number): Promise<Sample> {
-  const marker = `zq${i}x${Math.random().toString(36).slice(2, 6)}`
+  const marker = `zq${i}x${crypto.randomUUID().slice(0, 4)}`
   await frame.evaluate((m) => {
     const w = window as unknown as { __perfHit?: number, __perfObs?: MutationObserver }
     w.__perfHit = undefined
@@ -208,6 +208,7 @@ function browserPssMiB(rootPid: number): number {
 async function main() {
   const server = await chromium.launchServer({ headless: process.env.PERF_HEADED !== '1' })
   const rootPid = server.process().pid
+  if (rootPid === undefined) throw new Error('Chromium launched without a PID; cannot sample its memory')
   const browser = await chromium.connect(server.wsEndpoint())
   const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } })
   const userId = await createUser()

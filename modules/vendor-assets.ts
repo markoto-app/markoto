@@ -1,5 +1,5 @@
 // Serves paged.js, Mermaid, KaTeX CSS + fonts, highlight.js themes and the
-// web fonts from our own origin under /vendor/ (why: shared/utils/vendorAssets.ts).
+// web fonts from our own origin under /vendor/ (why: shared/utils/vendor/vendorAssets.ts).
 //
 // At every `nuxt dev` / `nuxt build` / `nuxt prepare` the files are copied
 // out of the pinned npm packages into
@@ -7,9 +7,9 @@
 // not the build dir, which `nuxt build` / `prepare` empty after module
 // setup) and registered as a Nitro public-asset directory,
 // so the production build ships them in `.output/public/vendor/`. The copy
-// refuses to run — and the build fails — when an installed package's
+// refuses to run, and the build fails, when an installed package's
 // version or bytes differ from the version + SRI constants in
-// shared/utils/*Assets.ts.
+// shared/utils/vendor/*Assets.ts.
 //
 // Response headers (CORP, CORS, Cache-Control) are set per path by
 // server/plugins/vendor-assets.ts.
@@ -18,7 +18,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { defineNuxtModule, useLogger } from '@nuxt/kit'
 import { generateVendorAssets, vendorInputsKey } from '../scripts/lib/vendorAssets'
-import { VENDOR_BASE } from '../shared/utils/vendorAssets'
+import { VENDOR_BASE } from '../shared/utils/vendor/vendorAssets'
 
 export default defineNuxtModule({
   meta: { name: 'markoto-vendor-assets' },

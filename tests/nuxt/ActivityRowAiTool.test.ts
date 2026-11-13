@@ -14,7 +14,7 @@ function hrefsAndSrcs(html: string): string[] {
   return Array.from(html.matchAll(/\s(?:href|src)="([^"]*)"/g), m => m[1] ?? '')
 }
 
-describe('ActivityRowAiTool — URL binding', () => {
+describe('ActivityRowAiTool: URL binding', () => {
   it('web_search: drops a non-http source link, keeps the good one', async () => {
     const wrapper = await mountSuspended(ActivityRowAiTool, {
       props: {

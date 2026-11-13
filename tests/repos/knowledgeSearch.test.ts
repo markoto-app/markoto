@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { searchKnowledge } from '../../server/repos/knowledge'
 import { createUser, createWorkspace } from '../integration/setup/fixtures'
+import { wsAs } from '../helpers/access'
 
 // Hybrid-search fusion test. We stub embeddings directly at the SQL
 // layer (so we're not coupled to the embeddings provider) and check that:
@@ -12,7 +13,7 @@ import { createUser, createWorkspace } from '../integration/setup/fixtures'
 //
 // Embeddings are manually crafted 768-dim vectors with unit norm so
 // cosine similarity is predictable. We stick to cardinal-axis vectors
-// (e[i] = 1, else 0) — pairs on the same axis have sim=1.0, on
+// (e[i] = 1, else 0), pairs on the same axis have sim=1.0, on
 // different axes sim=0.
 
 const DIM = 768
@@ -81,7 +82,7 @@ describe('searchKnowledge (hybrid)', () => {
       knowledgeId: 'kn-1',
       chunkIndex: 1,
       content: 'The procurement policy covers vendor onboarding in section 4.3.',
-      // axis 0 — totally unrelated to the query vector.
+      // axis 0: totally unrelated to the query vector.
       vector: axisVec(0)
     })
     await seedChunk({
@@ -92,10 +93,9 @@ describe('searchKnowledge (hybrid)', () => {
       vector: axisVec(1)
     })
 
-    // Query vector lives on axis 99 — no semantic overlap with either
+    // Query vector lives on axis 99, no semantic overlap with either
     // chunk. The BM25 path has to do the work.
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'procurement vendor onboarding',
       queryEmbedding: axisVec(99),
       topK: 3
@@ -125,11 +125,10 @@ describe('searchKnowledge (hybrid)', () => {
       vector: axisVec(6)
     })
 
-    // Query on axis 5 — cosine sim = 1 with chunk 1, 0 with chunk 2.
-    // Query text "xyzblargh" won't hit BM25 on either — forces the
+    // Query on axis 5, cosine sim = 1 with chunk 1, 0 with chunk 2.
+    // Query text "xyzblargh" won't hit BM25 on either, forces the
     // vector path to drive ordering.
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'xyzblargh',
       queryEmbedding: axisVec(5),
       topK: 3
@@ -153,14 +152,13 @@ describe('searchKnowledge (hybrid)', () => {
       vector: axisVec(10)
     })
 
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'gradient descent momentum',
       queryEmbedding: axisVec(10),
       topK: 5
     })
 
-    // One row, not two — the key (knowledgeId + chunkIndex) de-duped
+    // One row, not two, the key (knowledgeId + chunkIndex) de-duped
     // across sources. Both scores populated.
     const matching = hits.filter(h => h.chunkIndex === 1)
     expect(matching.length).toBe(1)
@@ -189,8 +187,7 @@ describe('searchKnowledge (hybrid)', () => {
       vector: axisVec(21)
     })
 
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'transformers attention',
       queryEmbedding: axisVec(20),
       topK: 5
@@ -200,9 +197,7 @@ describe('searchKnowledge (hybrid)', () => {
     expect(hits[0]!.chunkIndex).toBe(1)
     // Chunk A's RRF is sum of two contributions vs B's one, so A's
     // score is strictly higher.
-    if (hits.length >= 2) {
-      expect(hits[0]!.rrfScore).toBeGreaterThan(hits[1]!.rrfScore)
-    }
+    expect(hits.length < 2 || hits[0]!.rrfScore > hits[1]!.rrfScore).toBe(true)
   })
 
   it('scopes results to the caller\'s workspace', async () => {
@@ -218,8 +213,7 @@ describe('searchKnowledge (hybrid)', () => {
       vector: axisVec(30)
     })
 
-    const hits = await searchKnowledge({
-      workspaceId: wsA.workspaceId,
+    const hits = await searchKnowledge(wsAs(wsA.workspaceId), {
       queryText: 'another workspace entirely',
       queryEmbedding: axisVec(30),
       topK: 5
@@ -229,20 +223,18 @@ describe('searchKnowledge (hybrid)', () => {
   })
 })
 
-// ─── Adversarial tests ────────────────────────────────────────────────────
+// Adversarial tests
 //
-// Senior-QA hypotheses that interrogate failure modes the happy-path
-// suite above doesn't touch. Each test states a hypothesis and pins
-// the actual behaviour. Where current behaviour is suboptimal but
-// not a security/correctness bug, the test documents it for future
-// review (with a comment explaining the cost-benefit).
+// Hypotheses that interrogate failure modes the happy-path suite above doesn't touch. Each test states a
+// hypothesis and pins the actual behaviour. Where current behaviour is suboptimal but not a security/correctness
+// bug, the test documents it for future review (with a comment explaining the cost-benefit).
 
-describe('searchKnowledge — adversarial: query degenerate cases', () => {
+describe('searchKnowledge: adversarial: query degenerate cases', () => {
   beforeEach(async () => {
     await resetDb()
   })
 
-  it('all-stopwords queryText (BM25 returns empty tsquery) — vector still works', async () => {
+  it('all-stopwords queryText (BM25 returns empty tsquery), vector still works', async () => {
     // `websearch_to_tsquery('english', 'the and of')` → empty tsquery →
     // `content_tsv @@ ''` returns false → zero BM25 rows. The vector
     // path still hits, so search degrades gracefully to vector-only.
@@ -259,8 +251,7 @@ describe('searchKnowledge — adversarial: query degenerate cases', () => {
       vector: axisVec(7)
     })
 
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'the and of', // all stopwords
       queryEmbedding: axisVec(7),
       topK: 5
@@ -286,8 +277,7 @@ describe('searchKnowledge — adversarial: query degenerate cases', () => {
       vector: axisVec(7)
     })
 
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: '',
       queryEmbedding: axisVec(7),
       topK: 5
@@ -298,7 +288,7 @@ describe('searchKnowledge — adversarial: query degenerate cases', () => {
   })
 })
 
-describe('searchKnowledge — adversarial: topK edges', () => {
+describe('searchKnowledge: adversarial: topK edges', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -315,8 +305,7 @@ describe('searchKnowledge — adversarial: topK edges', () => {
       chunkIndex: 0, content: 'something', vector: axisVec(1)
     })
 
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'something',
       queryEmbedding: axisVec(1),
       topK: 0
@@ -334,8 +323,7 @@ describe('searchKnowledge — adversarial: topK edges', () => {
       chunkIndex: 0, content: 'unique-keyword-xyz', vector: axisVec(1)
     })
 
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'unique-keyword-xyz',
       queryEmbedding: axisVec(1),
       topK: 100
@@ -345,7 +333,7 @@ describe('searchKnowledge — adversarial: topK edges', () => {
   })
 })
 
-describe('searchKnowledge — adversarial: similarity sign + threshold', () => {
+describe('searchKnowledge: adversarial: similarity sign + threshold', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -362,7 +350,7 @@ describe('searchKnowledge — adversarial: similarity sign + threshold', () => {
     // semantic-only results should pass `similarityThreshold > 0`.
     //
     // If this changes (e.g. to `>= 0` as the default), this test breaks
-    // — and that's the right place to decide whether the change is
+    // and that's the right place to decide whether the change is
     // wanted.
     const u = await createUser()
     const ws = await createWorkspace(u.id)
@@ -373,8 +361,7 @@ describe('searchKnowledge — adversarial: similarity sign + threshold', () => {
       vector: axisVec(7).map(x => -x) // anti-parallel to query
     })
 
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'completely unrelated query', // no BM25 hit
       queryEmbedding: axisVec(7),
       topK: 5
@@ -405,8 +392,7 @@ describe('searchKnowledge — adversarial: similarity sign + threshold', () => {
       vector: axisVec(7).map(x => -x)
     })
 
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'no overlap text',
       queryEmbedding: axisVec(7),
       topK: 5,
@@ -419,7 +405,7 @@ describe('searchKnowledge — adversarial: similarity sign + threshold', () => {
   })
 })
 
-describe('searchKnowledge — zero-vector NaN guard', () => {
+describe('searchKnowledge: zero-vector NaN guard', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -452,8 +438,7 @@ describe('searchKnowledge — zero-vector NaN guard', () => {
       vector: new Array(DIM).fill(0)
     })
 
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'something other than the chunk content',
       queryEmbedding: axisVec(7),
       topK: 5
@@ -480,8 +465,7 @@ describe('searchKnowledge — zero-vector NaN guard', () => {
     await seedChunk({ workspaceId: ws.workspaceId, knowledgeId: 'kn-zero', chunkIndex: 0, content: 'zero', vector: new Array(DIM).fill(0) })
     await seedChunk({ workspaceId: ws.workspaceId, knowledgeId: 'kn-orth', chunkIndex: 0, content: 'orth', vector: axisVec(99) })
 
-    const hits = await searchKnowledge({
-      workspaceId: ws.workspaceId,
+    const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'no overlap',
       queryEmbedding: axisVec(7),
       topK: 5,
@@ -493,7 +477,7 @@ describe('searchKnowledge — zero-vector NaN guard', () => {
   })
 })
 
-describe('searchKnowledge — schema invariant: knowledgeId is globally unique', () => {
+describe('searchKnowledge: schema invariant: knowledgeId is globally unique', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -510,7 +494,7 @@ describe('searchKnowledge — schema invariant: knowledgeId is globally unique',
     // ${knowledgeId}#${chunkIndex}` merge logic is only safe BECAUSE
     // knowledgeId is globally unique. A future migration that loosened
     // the constraint to (workspaceId, knowledgeId) would silently make
-    // cross-workspace merges possible — and this test would break,
+    // cross-workspace merges possible: and this test would break,
     // signaling the merge key needs to be revisited.
     const u = await createUser()
     const wsA = await createWorkspace(u.id)

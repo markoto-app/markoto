@@ -7,7 +7,7 @@ import { test, expect, requireLiveAi } from '../fixtures/flow'
 // does the Q3 postmortem say about onboarding?" The AI calls
 // `list_workspace_documents` to find sibling docs, picks the
 // matching one, calls `view_other_document` to read it, then
-// answers in doc A — citing doc B by title.
+// answers in doc A, citing doc B by title.
 //
 // Pipeline: AI agentic loop with two cross-doc tools (only
 // available when the session has a workspaceId AND the user is a
@@ -23,7 +23,7 @@ test('Ask the AI about another doc', async ({ page, flow, editor }) => {
   await page.goto('/')
 
   // Set up a workspace + a "sibling" doc that the AI will discover
-  // and read. All via API — the story is the cross-doc tool path,
+  // and read. All via API, the story is the cross-doc tool path,
   // not the workspace setup.
   const wsRes = await page.request.post('/api/workspaces', {
     data: { name: 'Engineering library' }
@@ -34,14 +34,14 @@ test('Ask the AI about another doc', async ({ page, flow, editor }) => {
   // Seed the sibling doc with the relevant content baked into its
   // DESCRIPTION (which `list_workspace_documents` returns inline) and
   // its TITLE. This avoids the Hocuspocus-flush race: the body would
-  // need an open WS client to reach `yjs_documents`, but the description
+  // need an open WS client to reach `yjs_updates`, but the description
   // is just a column on the `documents` row that POST /api/docs writes
   // synchronously, so it's immediately readable by the AI's
   // `list_workspace_documents` call.
   const siblingRes = await page.request.post('/api/docs', {
     data: {
       workspaceId: ws.workspaceId,
-      title: 'Q3 launch postmortem — onboarding fixes',
+      title: 'Q3 launch postmortem, onboarding fixes',
       description: 'Top onboarding fix: a single-page authentication setup checklist for new hires.',
       accessMode: 'private'
     }
@@ -82,7 +82,7 @@ test('Ask the AI about another doc', async ({ page, flow, editor }) => {
     'Inside a workspace the AI can find and read the other documents '
     + 'you have access to. Ask about another doc by name and it looks '
     + 'it up, reads it, then writes the answer into the doc you are in '
-    + '— naming the doc it took it from.'
+    + ': naming the doc it took it from.'
   )
 
   await flow.click(
@@ -99,7 +99,7 @@ test('Ask the AI about another doc', async ({ page, flow, editor }) => {
     'Ask about a sibling doc',
     editor.page.ai.promptBarInput,
     prompt,
-    { result: 'Your prompt names another doc in the workspace — the AI will go and read it.' }
+    { result: 'Your prompt names another doc in the workspace, the AI will go and read it.' }
   )
 
   await flow.click(
@@ -116,7 +116,7 @@ test('Ask the AI about another doc', async ({ page, flow, editor }) => {
   await editor.page.waitForAiIdle()
 
   // ASSERTION: the AI added a paragraph carrying the fact that exists
-  // only in the other doc (the authentication-setup checklist) — the
+  // only in the other doc (the authentication-setup checklist), the
   // draft mentions neither word, so it had to read the postmortem.
   const added = await editor.page.addedText(draft)
   expect(added.length, 'the AI added nothing').toBeGreaterThan(80)
@@ -135,7 +135,7 @@ test('Ask the AI about another doc', async ({ page, flow, editor }) => {
 
   await flow.shot(
     'The AI summarised the Q3 postmortem\'s onboarding finding into '
-    + 'this doc — citing the source. The user never had to open the '
+    + 'this doc: citing the source. The user never had to open the '
     + 'sibling doc themselves.',
     {
       hero: true,

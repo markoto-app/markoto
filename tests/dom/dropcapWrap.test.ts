@@ -3,15 +3,15 @@
 // The drop-cap wrapper works on parsed DOM (a `<template>`), so it runs
 // under a DOM environment; jsdom for parity with the XSS suite.
 import { describe, expect, test } from 'vitest'
-import { DROPCAP_MIN_CHARS, wrapFirstLetterAsDropCap } from '../../app/utils/dropcapWrap'
+import { DROPCAP_MIN_CHARS, wrapFirstLetterAsDropCap } from '../../app/utils/preview/dropcapWrap'
 
 // A drop cap only goes on an opening paragraph long enough to sit beside
-// it (DROPCAP_MIN_CHARS). Most cases below are about WHERE the cap goes,
+// the cap (DROPCAP_MIN_CHARS). Most cases below are about WHERE the cap goes,
 // so their paragraphs get this tail to be long enough.
 const TAIL = ' ' + 'and the paragraph keeps going for a few lines of ordinary prose. '.repeat(4).trim()
 const P = '<p class="markoto-dropcap-p">'
 
-describe('wrapFirstLetterAsDropCap — markup safety (regression)', () => {
+describe('wrapFirstLetterAsDropCap: markup safety (regression)', () => {
   // Elements in the output, parsed the way the preview parses them.
   function elementsOf(html: string): string[] {
     const tpl = document.createElement('template')
@@ -20,9 +20,8 @@ describe('wrapFirstLetterAsDropCap — markup safety (regression)', () => {
   }
 
   test('a paragraph that starts with a link keeps the link an element', () => {
-    // Sanitised HTML may carry `<` inside an attribute value; the old
-    // string splitter wrapped the tag's `<` and turned the attribute
-    // text into live markup.
+    // Sanitised HTML may carry `<` inside an attribute value; the wrapper must not treat that `<` as a tag
+    // start and turn the attribute text into live markup.
     const html = `<p><a href="x" title="&lt;img src=x onerror=alert(1)&gt;">a</a> tail${TAIL}</p>`
     const out = wrapFirstLetterAsDropCap(html)
     expect(elementsOf(out)).toEqual(['p', 'a', 'span'])
@@ -112,7 +111,7 @@ describe('wrapFirstLetterAsDropCap', () => {
     expect(out).toBe(`${P}<span class="markoto-dropcap">🌟</span> morning${TAIL}</p>`)
   })
 
-  test('case-insensitive match on the <P> tag — output is lowercase-normalized (markdown-it always emits lowercase, so this is a defensive case)', () => {
+  test('case-insensitive match on the <P> tag, output is lowercase-normalized (markdown-it always emits lowercase, so this is a defensive case)', () => {
     const out = wrapFirstLetterAsDropCap(`<P>Capital P${TAIL}</P>`)
     expect(out).toContain('<span class="markoto-dropcap">C</span>apital P')
   })
@@ -143,7 +142,7 @@ describe('wrapFirstLetterAsDropCap', () => {
   })
 })
 
-describe('wrapFirstLetterAsDropCap — which paragraph', () => {
+describe('wrapFirstLetterAsDropCap: which paragraph', () => {
   test('skips an alert title and takes the first body paragraph', () => {
     const html = `<pre><code>x</code></pre><div class="markdown-alert markdown-alert-tip"><p class="markdown-alert-title">Tip</p><p>Body</p></div><p>Prose${TAIL}</p>`
     const out = wrapFirstLetterAsDropCap(html)
@@ -162,7 +161,7 @@ describe('wrapFirstLetterAsDropCap — which paragraph', () => {
   })
 })
 
-describe('wrapFirstLetterAsDropCap — when the opening paragraph gets no cap', () => {
+describe('wrapFirstLetterAsDropCap: when the opening paragraph gets no cap', () => {
   test('a short opening paragraph gets no cap (it would tower over one or two lines)', () => {
     const html = '<p>A short intro line.</p><p>The next paragraph is long enough but is not the opening one.</p>'
     expect(wrapFirstLetterAsDropCap(html)).toBe(html)

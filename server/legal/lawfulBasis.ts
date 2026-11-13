@@ -36,8 +36,8 @@ export type ProcessingPurpose = {
 
 export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
   {
-    // `workspace_sso_identity` (WP14): signing in through a workspace's
-    // own identity provider — the identifier it sends (OIDC subject /
+    // `workspace_sso_identity`: signing in through a workspace's
+    // own identity provider: the identifier it sends (OIDC subject /
     // SAML NameID), the link to the account, the last sign-in, a 12-hour
     // sign-in record per workspace, and what that workspace's SCIM
     // provisioning sent (external id, active / deactivated). Kept until
@@ -51,27 +51,27 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: ['github_oauth', 'google_oauth']
   },
   {
-    // `edit_attribution`: who changed a document — the activity log and
+    // `edit_attribution`: who changed a document, the activity log and
     // which user each in-editor AI session wrote for
     // (`ai_session_provenance`, read by the AI's safety checks). Kept as
     // long as the document / account.
     id: 'document_storage',
     label: 'Document storage',
     basis: 'contract',
-    // `guest_document_shares` (WP11): which workspace documents were
+    // `guest_document_shares`: which workspace documents were
     // shared with which guest (view / edit) and by whom.
-    // `workspace_brand_kit` (WP10): fonts + logos a workspace's admins
+    // `workspace_brand_kit`: fonts + logos a workspace's admins
     // uploaded (and who), workspace templates.
     dataCategories: ['document_content', 'document_metadata', 'images', 'edit_attribution', 'guest_document_shares', 'workspace_brand_kit'],
     retention: 'until_deletion',
     subProcessors: ['ovh_postgres', 'ovh_object_storage']
   },
   {
-    // WP13: a document published as a web page — the copy as published
+    // Published pages: a document published as a web page, the copy as published
     // (text, design, images, fonts), its address, who published it; and
     // custom domains (name, verification token, DNS check results). The
     // certificate for a custom domain comes from Let's Encrypt (the
-    // domain name only; public in Certificate Transparency logs) — the
+    // domain name only; public in Certificate Transparency logs), the
     // customer's own request for a public HTTPS site, not processing of
     // document content.
     id: 'published_pages',
@@ -101,7 +101,7 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     // Includes the hosted free AI allowance (GLM-5.3 Flash on Mistral's EU
     // endpoint, monthly per-account limit + shared pool). The limits are
     // enforced from LiteLLM's per-request usage records (cost, model, time,
-    // internal user ID), kept 90 days by `spend-logs-sweep` — the same
+    // internal user ID), kept 90 days by `spend-logs-sweep`, the same
     // retention as the prompt / tool-call records.
     //
     // `uploaded_files`: "Create a design from a document" (theme panel)
@@ -118,7 +118,7 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: ['mistral_ai', 'jina_ai', 'bfl', 'staan']
   },
   {
-    // Bring-your-own-key AI (WP4). When a user configures their OWN AI
+    // Bring-your-own-key AI. When a user configures their OWN AI
     // provider (Settings → AI provider), their prompts, document
     // context, audio and generated content for that capability are sent
     // to the provider THEY chose, under THEIR agreement with that
@@ -126,13 +126,13 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     // does not choose that recipient, so it is deliberately NOT listed
     // as a sub-processor here; the user is the one directing the
     // transfer. What markoto itself processes is the provider config
-    // (base URL, model, API key encrypted at rest) — stored in our
-    // database until the user removes it or deletes the account — and
+    // (base URL, model, API key encrypted at rest), stored in our
+    // database until the user removes it or deletes the account, and
     // the in-flight request. Prompt/tool-call records follow
     // `ai_assistance` retention (90 days).
     //
     // Exception: web search + page fetch (`web_search` / `fetch_url`) are
-    // platform-provided for every user, BYOK included — queries go to Staan
+    // platform-provided for every user, BYOK included, queries go to Staan
     // and fetched URLs to Jina Reader on OUR accounts, so both are listed
     // below. The summarising step afterwards runs on the user's provider.
     id: 'user_directed_ai_provider',
@@ -168,12 +168,12 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
   },
   {
     // `audit_log` is append-only; `audit-log-sweep` deletes rows older
-    // than 2 years (`server/utils/legalRetentionSweep.ts`,
+    // than 2 years (`server/utils/privacy/legalRetentionSweep.ts`,
     // `NUXT_AUDIT_LOG_RETENTION_DAYS`). Account deletion nulls the actor
     // id earlier (FK `ON DELETE SET NULL`); the IP is stored truncated.
-    // Since WP15 the entries about a workspace are also shown to (and
+    // The entries about a workspace are also shown to (and
     // downloadable by) that workspace's admins when its plan includes
-    // the audit log — names and the truncated IPs included.
+    // the audit log: names and the truncated IPs included.
     id: 'security_audit_log',
     label: 'Security audit log',
     basis: 'legal_obligation',
@@ -189,13 +189,12 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     // Provider retention: Resend retains delivery logs (recipient
     // address + send timestamp + status) for 30 days for
     // deliverability monitoring. The email body itself is sent
-    // through-and-discarded — Resend doesn't archive content.
+    // through-and-discarded: Resend doesn't archive content.
     retention: 30,
     subProcessors: ['resend']
   },
-  // `product_analytics` and `session_replay` were removed with
-  // PRIVACY_VERSION 8 / CONSENT_VERSION 2: no analytics or session-replay
-  // script was ever loaded, so listing them was a false disclosure.
+  // No `product_analytics` / `session_replay` purposes: no such script is
+  // loaded, so listing them would be a false disclosure.
   {
     // Paid-plans waitlist (hosted SaaS while billing is off). Opt-in via
     // an unticked checkbox + double opt-in email. Retention: until the
@@ -204,7 +203,7 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     // notification for paid plans. Unconfirmed sign-ups are deleted
     // after 7 days. Linked to the account (if signed in) and deleted
     // with it. No IP address is stored. See `waitlist_signups` in
-    // server/db/schema.ts.
+    // server/db/schema/billing.ts.
     id: 'paid_plans_waitlist',
     label: 'Paid-plans waitlist',
     basis: 'consent',
@@ -220,7 +219,7 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     // `workspace-invite-sweep`). If email is configured, one invitation
     // email per invite goes out via Resend (max 3 per address per day).
     // Nobody becomes a member without accepting. See `workspace_invites`
-    // in server/db/schema.ts.
+    // in server/db/schema/workspaces.ts.
     id: 'workspace_invitations',
     label: 'Workspace invitations',
     basis: 'legitimate_interest',
@@ -231,8 +230,8 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
   {
     // Abuse / illegal-content reports (DSA Art. 16-18 notice and action):
     // `abuse_reports` (what was reported and why: content URL + parsed doc
-    // id, explanation, category; the reporter's name + email — required
-    // unless CSAM, Art.16(2)(c) — locale, good-faith confirmation time and
+    // id, explanation, category; the reporter's name + email, required
+    // unless CSAM, Art.16(2)(c): locale, good-faith confirmation time and
     // account if signed in; truncated IP + UA hash against report
     // flooding; the moderator's decision as sent) and `moderation_notices`
     // (the exact text of every receipt, decision notice and Art.17
@@ -259,7 +258,7 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     // Anonymous-use safeguards (server/utils/anonGate/). Before a document
     // is created without an account we record which Terms version the
     // visitor accepted and when (on the document row, so it is deleted
-    // with the document — 30 days without activity), remember that
+    // with the document: 30 days without activity), remember that
     // acceptance in a first-party httpOnly cookie (version + time, no
     // identifier), and run a proof-of-work bot check computed in our own
     // server (no third party, no cookie; the used challenge's signature is
@@ -282,7 +281,3 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: ['sentry']
   }
 ]
-
-export function getProcessingPurpose(id: string): ProcessingPurpose | undefined {
-  return PROCESSING_PURPOSES.find(p => p.id === id)
-}

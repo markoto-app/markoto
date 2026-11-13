@@ -1,0 +1,405 @@
+{
+  "apiErrors": {
+    "abuse": {
+      "already-closed": "Diese Meldung ist bereits {status} und kann nicht wieder geöffnet werden.",
+      "body-too-long": "Die Erklärung ist zu lang (höchstens 5000 Zeichen).",
+      "body-too-short": "Bitte erkläre, was am Inhalt falsch ist (mindestens 10 Zeichen).",
+      "conflict": "Die Meldung wurde inzwischen geändert. Lade die Seite neu und versuche es erneut.",
+      "contact-required": "Bitte gib deinen Namen und deine E-Mail-Adresse an.",
+      "decision-action": "Wähle, was mit dem Inhalt geschehen ist (entfernt oder eingeschränkt).",
+      "decision-explanation": "Die Begründung muss {min} bis {max} Zeichen lang sein. Sie wird an die meldende Person und die Eigentümerin oder den Eigentümer gesendet.",
+      "decision-rule": "Wähle die Regel, gegen die der Inhalt verstossen hat.",
+      "good-faith-required": "Bitte bestätige, dass deine Meldung richtig ist und in gutem Glauben erfolgt.",
+      "invalid-category": "Bitte wähle, was du meldest.",
+      "invalid-email": "Bitte gib eine gültige E-Mail-Adresse ein.",
+      "login-required": "Bitte melde dich an, um Inhalte zu melden.",
+      "rate-limited": "Zu viele Meldungen aus deinem Netzwerk. Bitte versuche es später noch einmal.",
+      "report-not-found": "Diese Meldung existiert nicht mehr.",
+      "url-required": "Bitte gib die Adresse (URL) des Inhalts an."
+    },
+    "account": {
+      "delete-cancel-conflict": "Es ist keine geplante Kontolöschung vorhanden, die abgebrochen werden könnte.",
+      "delete-conflict": "Die Löschung deines Kontos ist bereits geplant.",
+      "delete-rate-limited": "Zu viele Anfragen zur Kontolöschung. Versuche es später noch einmal.",
+      "sessions-revoke-rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut."
+    },
+    "admin": {
+      "forbidden": "Dafür sind Administratorrechte nötig.",
+      "spend-unavailable": "Der Dienst für die KI-Ausgaben hat mit einem Fehler geantwortet ({upstreamStatus})."
+    },
+    "ai": {
+      "abort-not-initiator": "Nur die Person, die diese markoto-Sitzung gestartet hat, kann sie stoppen.",
+      "audio-missing": "Es wurde keine Audioaufnahme empfangen.",
+      "audio-too-long": "Die Aufnahme ist zu lang (höchstens etwa 5 MiB).",
+      "audio-too-short": "Die Aufnahme ist zu kurz, um sie zu transkribieren.",
+      "audio-unsupported-type": "Nicht unterstützter Audio-MIME-Typ. Nimm als WebM, Ogg oder WAV auf.",
+      "budget-exhausted": "Dein KI-Budget ist für diesen Zeitraum aufgebraucht.",
+      "comment-not-author": "Nur die Autorin oder der Autor kann diesen Kommentar oder diese Antwort löschen.",
+      "comment-trigger-not-eligible": "Der Kommentarthread wurde nicht gefunden oder kann die KI nicht auslösen.",
+      "confirmation-not-pending": "Diese Anfrage wartet nicht mehr auf eine Antwort.",
+      "duplicate-session": "Du hast bereits eine markoto-Sitzung für dieses Dokument laufen.",
+      "free-allowance-exhausted": "Das kostenlose KI-Kontingent ist für diesen Monat aufgebraucht.",
+      "provider-error": "Dein Transkriptionsanbieter hat einen Fehler gemeldet. Prüfe deine KI-Anbieter-Einstellungen.",
+      "provider-missing": "Dafür ist kein KI-Anbieter eingerichtet. Füge in den Einstellungen einen hinzu.",
+      "session-not-found": "KI-Sitzung nicht gefunden.",
+      "transcription-failed": "Die Transkription ist fehlgeschlagen. Versuche es gleich noch einmal.",
+      "web-tools-rate-limited": "Das Limit für Websuche und Seitenabruf ist erreicht ({limit} pro {window}). Versuche es später erneut oder fahre ohne Web-Werkzeuge fort."
+    },
+    "ai-provider": {
+      "invalid": "Ungültige Anbieter-Einstellungen.",
+      "key-required": "Gib den API-Schlüssel ein. Er ist nötig, wenn du einen Anbieter hinzufügst oder die URL änderst.",
+      "not-configured": "Für diese Funktion ist kein Anbieter eingerichtet.",
+      "rate-limited": "Zu viele Versuche. Versuche es in ein paar Minuten noch einmal.",
+      "url-refused": "Diese Anbieter-URL ist nicht erlaubt.",
+      "verify-failed": "Der Anbieter konnte nicht überprüft werden. Prüfe URL, API-Schlüssel und Modell."
+    },
+    "anon-gate": {
+      "bot-check-expired": "Die Bot-Prüfung ist abgelaufen. Bitte versuche es noch einmal.",
+      "bot-check-failed": "Die automatische Bot-Prüfung ist fehlgeschlagen. Bitte versuche es noch einmal.",
+      "bot-check-replayed": "Diese Bot-Prüfung wurde bereits verwendet. Bitte versuche es noch einmal.",
+      "bot-check-required": "Die automatische Bot-Prüfung ist fehlgeschlagen. Bitte versuche es noch einmal.",
+      "misconfigured": "Die Bot-Prüfung ist gerade nicht verfügbar. Bitte versuche es gleich noch einmal.",
+      "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.",
+      "terms-required": "Bitte akzeptiere zuerst die Nutzungsbedingungen.",
+      "unavailable": "Die Bot-Prüfung ist gerade nicht verfügbar. Bitte versuche es gleich noch einmal."
+    },
+    "audit": {
+      "admin-required": "Nur Admins des Arbeitsbereichs können das Audit-Log sehen.",
+      "invalid-query": "Ungültiger Filter für das Audit-Log.",
+      "rate-limited": "Zu viele Exporte. Versuche es später noch einmal.",
+      "too-many-rows": "Mehr als {max} Ereignisse. Wähle einen kürzeren Zeitraum."
+    },
+    "auth": {
+      "forbidden": "Du hast darauf keinen Zugriff.",
+      "oidc-disabled": "Die Anmeldung über OpenID Connect ist nicht eingerichtet.",
+      "oidc-failed": "Die Anmeldung beim Identitätsanbieter ist fehlgeschlagen. Bitte versuche es noch einmal.",
+      "oidc-misconfigured": "Die Anmeldung über OpenID Connect ist auf dieser Instanz nicht vollständig eingerichtet.",
+      "oidc-unavailable": "Der Identitätsanbieter ist nicht erreichbar.",
+      "reauth-required": "Zu deiner Sicherheit erfordert diese Aktion eine kürzliche Anmeldung. Bitte melde dich erneut an und versuche es noch einmal.",
+      "required": "Bitte melde dich an, um fortzufahren."
+    },
+    "billing": {
+      "admin-required": "Nur Admins des Arbeitsbereichs können die Abrechnung verwalten.",
+      "already-on-plan": "Du nutzt diesen Plan und diesen Abrechnungszeitraum bereits.",
+      "cancel-failed": "Das Abonnement des Arbeitsbereichs konnte nicht gekündigt werden, deshalb wurde nichts gelöscht. Bitte versuche es erneut.",
+      "checkout-failed": "Der Bezahlvorgang konnte nicht gestartet werden. Bitte versuche es noch einmal.",
+      "currency-locked": "Dein Abo wird in einer anderen Währung abgerechnet und kann nicht wechseln. Wähle diese Währung, um fortzufahren.",
+      "disabled": "Die Abrechnung ist in dieser Installation nicht aktiviert.",
+      "invalid-member-limit": "Das Limit muss eine Zahl von 0 bis {max}, kein Limit oder der Standard sein.",
+      "invalid-seats": "Die Anzahl Plätze muss eine ganze Zahl von {min} bis {max} sein.",
+      "member-not-found": "Mitglied nicht gefunden.",
+      "no-billing-history": "Noch keine Abrechnungen vorhanden. Schliesse zuerst ein Abonnement ab, um es zu verwalten.",
+      "no-subscription": "Dieser Arbeitsbereich hat kein aktives Abonnement.",
+      "not-configured": "Die Abrechnung ist nicht eingerichtet. Wende dich an den Support.",
+      "payment-failed": "Die Zahlung ist fehlgeschlagen, deshalb wurde nichts geändert.",
+      "plan-change-failed": "Der Plan konnte nicht gewechselt werden. Es wurde nichts geändert; bitte versuche es noch einmal.",
+      "portal-failed": "Das Abrechnungsportal konnte nicht geöffnet werden. Bitte versuche es noch einmal.",
+      "price-unavailable": "Dieser Plan ist gerade nicht erhältlich.",
+      "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.",
+      "seats-below-members": "Im Arbeitsbereich sind mehr Personen als Plätze. Entferne jemanden oder behalte mehr Plätze.",
+      "seats-busy": "Gerade läuft eine andere Platzänderung oder Einladung. Bitte versuche es gleich noch einmal.",
+      "seats-full": "Alle bezahlten Plätze sind belegt. Füge einen Platz hinzu, um jemanden einzuladen.",
+      "subscription-active": "Dieser Arbeitsbereich hat noch ein laufendes Abonnement. Wende dich an den Support, um ihn zu löschen.",
+      "subscription-check-failed": "Das aktuelle Abonnement konnte nicht überprüft werden. Bitte versuche es noch einmal.",
+      "terms-required": "Akzeptiere die Bedingungen für kostenpflichtige Pläne, um fortzufahren.",
+      "topup-needs-plan": "KI-Guthaben ergänzt einen bezahlten Plan. Wechsle auf Pro, um es zu kaufen.",
+      "webhook-body-empty": "Der Anfrageinhalt ist leer.",
+      "webhook-failed": "Das Webhook-Ereignis konnte nicht verarbeitet werden.",
+      "webhook-signature-invalid": "Die Stripe-Signatur konnte nicht überprüft werden.",
+      "webhook-signature-missing": "Der Header Stripe-Signature fehlt.",
+      "workspace-plan": "Team und Business werden für einen Arbeitsbereich gekauft, in dessen Abrechnungseinstellungen."
+    },
+    "brand": {
+      "admin-required": "Nur Admins des Arbeitsbereichs können das Brand-Kit ändern.",
+      "family-built-in": "„{family}“ ist eine der integrierten Schriften. Gib deiner Schrift einen anderen Namen.",
+      "file-missing": "Sende die Datei als Multipart-Formularfeld „file“.",
+      "file-too-large": "Die Datei ist zu gross.",
+      "font-exists": "Der Arbeitsbereich hat diese Schrift in dieser Stärke und diesem Stil bereits. Lösche sie zuerst, um sie zu ersetzen.",
+      "font-refused": "Diese Schriftdatei kann nicht verwendet werden.",
+      "image-type": "Lade ein PNG-, JPEG- oder WebP-Bild hoch.",
+      "invalid": "Ungültige Brand-Kit-Einstellungen.",
+      "invalid-family": "Der Schriftname darf Buchstaben, Ziffern und Leerzeichen enthalten (bis 40 Zeichen).",
+      "invalid-weight": "Die Schriftstärke liegt zwischen 100 und 900 in Schritten von 100.",
+      "licence-required": "Bestätige, dass deine Lizenz das Einbetten dieser Schrift in Dokumente erlaubt.",
+      "no-design": "Noch kein Design des Arbeitsbereichs. Übernehme es aus einem Dokument oder wähle in den Einstellungen ein Standarddesign.",
+      "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.",
+      "too-many-fonts": "Ein Arbeitsbereich kann bis zu {limit} Schriftdateien haben.",
+      "too-many-images": "Ein Arbeitsbereich kann bis zu {limit} Markenbilder haben."
+    },
+    "common": {
+      "internal": "Auf unserer Seite ist etwas schiefgelaufen. Bitte versuche es noch einmal – wir wurden benachrichtigt."
+    },
+    "consent": {
+      "no-decisions": "Es wurden keine Einwilligungsentscheidungen gesendet.",
+      "no-valid-decisions": "Keine der Einwilligungsentscheidungen konnte erfasst werden.",
+      "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut."
+    },
+    "csrf": {
+      "origin-mismatch": "Anfrage von einer anderen Herkunft abgelehnt."
+    },
+    "custom-domain": {
+      "disabled": "Eigene Domains sind auf dieser Instanz nicht eingerichtet.",
+      "invalid": "Gib einen Domainnamen wie docs.example.com ein.",
+      "limit": "Du kannst bis zu {limit} Domains hinzufügen.",
+      "not-found": "Domain nicht gefunden.",
+      "page-not-allowed": "Nur die Eigentümerin oder der Eigentümer und Admins des Arbeitsbereichs können dieses Dokument auf einer Domain anzeigen.",
+      "page-not-published": "Veröffentliche das Dokument zuerst als Webseite.",
+      "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.",
+      "reserved": "Diese Domain gehört zu diesem Dienst.",
+      "taken": "Diese Domain wird bereits verwendet."
+    },
+    "design-import": {
+      "busy": "Es wird bereits ein Design erstellt. Warte, bis es fertig ist.",
+      "content-mismatch": "Die Datei konnte nicht gelesen werden. Prüfe, ob es ein PDF- oder Word-Dokument ist, das sich normal öffnen lässt.",
+      "mismatch": "Die hochgeladene Datei entspricht nicht der Anfrage.",
+      "no-vision": "Dein KI-Anbieter kann keine Bilder lesen. Wähle ein Modell, das Bilder lesen kann, und versuche es erneut.",
+      "rate-limited": "Du hast in der letzten Stunde viele Designs erstellt. Versuche es später erneut.",
+      "too-large": "Die Datei ist zu gross. Wähle eine Datei bis 20 MB.",
+      "unsupported-format": "Wähle eine PDF- oder Word-Datei (.docx).",
+      "upload-missing": "Der Upload ist nicht angekommen. Wähle die Datei erneut aus.",
+      "upload-not-found": "Upload nicht gefunden. Wähle die Datei erneut aus."
+    },
+    "docs": {
+      "activity-not-found": "Diese Aktivitätszeile existiert für dieses Dokument nicht.",
+      "comment-thread-gone": "Dieser Thread existiert nicht mehr.",
+      "content-too-long": "Der Inhalt ist zu lang (höchstens {max} Zeichen).",
+      "delete-forbidden": "Du kannst dieses Dokument nicht löschen.",
+      "diff-unavailable": "Diff für diese Zeile nicht verfügbar.",
+      "edit-forbidden": "Du hast keinen Bearbeitungszugriff auf dieses Dokument.",
+      "manage-forbidden": "Nur die Eigentümerin oder der Eigentümer und Admins des Arbeitsbereichs können ändern, wer dieses Dokument öffnen darf.",
+      "not-a-comment": "Diese Aktivitätszeile betrifft keinen Kommentar.",
+      "not-found": "Dokument nicht gefunden.",
+      "rate-limited": "Zu viele neue Dokumente aus deinem Netzwerk. Melde dich an oder versuche es später noch einmal.",
+      "render-failed": "Das PDF konnte nicht erstellt werden. Bitte versuche es noch einmal.",
+      "restore-compacted": "Dieser Wiederherstellungspunkt ist zu alt – sein Verlauf wurde verdichtet und kann nicht mehr wiederhergestellt werden. Stelle stattdessen einen neueren Punkt wieder her.",
+      "restore-unavailable": "Kann von dieser Zeile nicht wiederherstellen: Sie stammt aus der Zeit vor der Wiederherstellungsfunktion."
+    },
+    "dpa": {
+      "version-stale": "Der Auftragsverarbeitungsvertrag hat sich geändert, seit du diese Abfrage geöffnet hast. Bitte lies ihn erneut durch."
+    },
+    "export": {
+      "conflict": "Ein Export läuft bereits.",
+      "expired": "Dieser Export ist abgelaufen. Bitte fordere einen neuen an.",
+      "not-found": "Export nicht gefunden.",
+      "not-ready": "Dieser Export ist noch nicht bereit.",
+      "rate-limited": "Du hast heute bereits einen Export angefordert. Bitte versuche es morgen noch einmal."
+    },
+    "files": {
+      "access-denied": "Zugriff verweigert."
+    },
+    "import": {
+      "conversion-failed": "Die Datei konnte nicht konvertiert werden: {detail}",
+      "file-too-large": "Die Datei ist zu gross für den Import.",
+      "no-file": "Es wurde keine Datei angegeben.",
+      "not-configured": "Die Dokumentkonvertierung ist auf diesem Server nicht eingerichtet.",
+      "not-utf8": "Diese Markdown-Datei ist kein gültiger UTF-8-Text.",
+      "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.",
+      "timeout": "Die Konvertierung hat zu lange gedauert.",
+      "too-complex": "Diese Datei ist zu gross oder zu komplex für die Konvertierung.",
+      "unavailable": "Der Konvertierungsdienst ist nicht erreichbar.",
+      "unsupported-format": "Dieses Dateiformat wird nicht unterstützt."
+    },
+    "internal": {
+      "forbidden": "Ungültige oder fehlende Zugangsdaten."
+    },
+    "knowledge": {
+      "content-type-mismatch": "Die hochgeladene Datei hat nicht den erwarteten Typ.",
+      "editor-required": "Nur Admins und Bearbeiter können die Wissensdatenbank ändern.",
+      "empty-upload": "Die hochgeladene Datei ist leer.",
+      "file-too-large": "Die Datei ist zu gross (höchstens {maxMb} MB).",
+      "invalid-key": "Der Speicherschlüssel gehört nicht zur Wissensdatenbank dieses Arbeitsbereichs.",
+      "key-mismatch": "knowledgeId muss mit dem s3Key übereinstimmen.",
+      "not-found": "Wissensdatei nicht gefunden.",
+      "not-uploader": "Bearbeiter können nur ihre eigenen Uploads löschen.",
+      "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.",
+      "too-many-pending": "Zu viele Uploads sind ausstehend. Versuche es gleich noch einmal.",
+      "unsupported-format": "Nicht unterstütztes Format: .{ext}. Erlaubt: {allowed}.",
+      "upload-not-found": "Upload nicht gefunden. Fordere einen neuen Upload an und versuche es erneut.",
+      "user-bytes-cap": "Du hast dein Speicherlimit für die Wissensdatenbank erreicht ({maxMb} MB).",
+      "user-file-cap": "Du hast dein Upload-Limit für die Wissensdatenbank erreicht ({max} Dateien).",
+      "workspace-bytes-cap": "Dieser Arbeitsbereich hat sein Speicherlimit für die Wissensdatenbank erreicht ({maxMb} MB).",
+      "workspace-file-cap": "Dieser Arbeitsbereich hat sein Dateilimit für die Wissensdatenbank erreicht ({max} Dateien)."
+    },
+    "legal": {
+      "disabled": "Rechtliche Seiten sind in dieser Installation nicht aktiviert."
+    },
+    "mcp": {
+      "doc-not-found": "Dokument nicht gefunden.",
+      "invalid-token-request": "Ungültige Token-Anfrage.",
+      "missing-doc-id": "doc_id ist erforderlich.",
+      "missing-workspace-id": "workspace_id ist erforderlich.",
+      "render-rate-limited": "Zu viele Render-Anfragen. Versuche es in einer Minute noch einmal.",
+      "token-not-found": "Token nicht gefunden.",
+      "too-many-open-docs": "Zu viele Dokumente sind gleichzeitig geöffnet (höchstens {max}). Warte ein paar Minuten und versuche es erneut.",
+      "too-many-tokens": "Du hast die maximale Anzahl aktiver MCP-Tokens erreicht. Widerrufe zuerst eines.",
+      "tool-not-found": "Werkzeug {tool} nicht gefunden.",
+      "unauthenticated": "MCP-Authentifizierung erforderlich.",
+      "workspace-not-found": "Arbeitsbereich nicht gefunden.",
+      "tool-call-limit": "Zu viele Werkzeugaufrufe (Limit: {limit} pro {minutes} Min.). Versuche es später erneut."
+    },
+    "moderation": {
+      "not-restricted": "Dieses Dokument ist nicht eingeschränkt.",
+      "note-required": "Gib an, warum die Einschränkung aufgehoben wird (1 bis {max} Zeichen).",
+      "restricted": "Dieses Dokument wurde nach einer Meldung eingeschränkt. Es kann nicht geteilt, öffentlich gemacht oder veröffentlicht werden, bis die Einschränkung aufgehoben ist."
+    },
+    "onboarding": {
+      "age-required": "Du musst bestätigen, dass du mindestens 16 Jahre alt bist, um markoto zu nutzen.",
+      "privacy-version-stale": "Die Datenschutzerklärung hat sich geändert, seit du diese Abfrage geöffnet hast. Bitte lies sie erneut durch.",
+      "required": "Bitte bestätige zuerst dein Alter und akzeptiere die aktuelle Datenschutzerklärung und die Nutzungsbedingungen.",
+      "tos-version-stale": "Die Nutzungsbedingungen haben sich geändert, seit du diese Abfrage geöffnet hast. Bitte lies sie erneut durch."
+    },
+    "password": {
+      "invalid": "Ungültiges Passwort.",
+      "locked": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.",
+      "not-set": "Dieses Dokument hat kein Passwort.",
+      "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.",
+      "required": "Gib das Passwort ein.",
+      "too-short": "Das Passwort muss mindestens {minLength} Zeichen lang sein."
+    },
+    "plan": {
+      "feature-unavailable": "Dein Plan enthält diese Funktion nicht.",
+      "limit-reached": "Du hast ein Limit deines Plans erreicht."
+    },
+    "publish": {
+      "busy": "Diese Seite wird gerade aktualisiert. Versuche es gleich noch einmal.",
+      "invalid": "Ungültige Veröffentlichungseinstellungen.",
+      "not-allowed": "Nur die Eigentümerin oder der Eigentümer und Admins des Arbeitsbereichs können dieses Dokument veröffentlichen.",
+      "not-published": "Dieses Dokument ist nicht veröffentlicht.",
+      "rate-limited": "Zu viele Veröffentlichungen. Versuche es später noch einmal.",
+      "render-failed": "Die Seite konnte nicht erstellt werden. Bitte versuche es noch einmal.",
+      "slug-invalid": "Verwende 3–60 Kleinbuchstaben, Ziffern und einzelne Bindestriche.",
+      "slug-taken": "Diese Adresse ist bereits vergeben. Wähle eine andere.",
+      "too-large": "Dieses Dokument ist zu gross, um es als Webseite zu veröffentlichen."
+    },
+    "published": {
+      "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.",
+      "not-found": "Diese Seite existiert nicht oder ist nicht mehr veröffentlicht."
+    },
+    "rate": {
+      "limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut."
+    },
+    "request": {
+      "invalid": "Einige der gesendeten Angaben sind ungültig.",
+      "too-large": "Die Anfrage ist zu gross."
+    },
+    "resource": {
+      "not-found": "Nicht gefunden."
+    },
+    "share": {
+      "download-disabled": "Die Eigentümerin oder der Eigentümer hat Download und Druck dieses Dokuments deaktiviert.",
+      "expired": "Dieser Link ist abgelaufen.",
+      "expiry-past": "Das Ablaufdatum muss in der Zukunft liegen.",
+      "expiry-too-far": "Das Ablaufdatum darf höchstens {maxDays} Tage entfernt sein.",
+      "invalid": "Ungültige Freigabeeinstellungen.",
+      "move-not-allowed": "Nur die Eigentümerin oder der Eigentümer oder ein Admin des Arbeitsbereichs kann dieses Dokument verschieben.",
+      "move-target-viewer": "Betrachter können keine Dokumente in diesen Arbeitsbereich verschieben.",
+      "not-a-guest": "Diese Person ist kein Gast des Arbeitsbereichs.",
+      "not-allowed": "Du darfst die Freigabe dieses Dokuments nicht ändern.",
+      "not-shared": "Dieses Dokument ist nicht mit dieser Person geteilt.",
+      "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut."
+    },
+    "sso": {
+      "admin-required": "Nur Admins des Arbeitsbereichs können Single Sign-on verwalten.",
+      "connection-not-found": "Unbekannte Verbindung.",
+      "domain-not-found": "Domain nicht gefunden.",
+      "deactivated": "Dein Zugriff auf diesen Arbeitsbereich wurde von deiner Organisation deaktiviert.",
+      "domain-cap": "Höchstens {max} Domains pro Arbeitsbereich.",
+      "domain-exists": "Diese Domain wurde dem Arbeitsbereich bereits hinzugefügt.",
+      "domain-taken": "Ein anderer Arbeitsbereich verwendet diese Domain bereits.",
+      "domain-unverified": "Der TXT-Eintrag wurde noch nicht gefunden. DNS-Änderungen können bis zu einer Stunde dauern.",
+      "incomplete": "Diese Single-Sign-on-Verbindung ist nicht vollständig eingerichtet.",
+      "invalid-domain": "Gib die E-Mail-Domain deiner Organisation ein, z. B. example.com. Öffentliche Mail-Domains sind nicht möglich.",
+      "invalid-settings": "Ungültige Single-Sign-on-Einstellungen.",
+      "member-limit": "Dieser Arbeitsbereich hat das Mitgliederlimit seines Plans erreicht.",
+      "misconfigured": "Für Single Sign-on muss auf dieser Instanz NUXT_SITE_URL gesetzt sein.",
+      "not-configured": "Für diesen Arbeitsbereich ist kein Single Sign-on eingerichtet.",
+      "no-connection": "Für diese E-Mail-Adresse ist kein Single Sign-on eingerichtet.",
+      "no-seat": "Alle bezahlten Plätze dieses Arbeitsbereichs sind belegt.",
+      "not-active": "Single Sign-on ist für diesen Arbeitsbereich nicht aktiv.",
+      "not-provisioned": "Deine Organisation hat dir noch keinen Zugriff auf diesen Arbeitsbereich gegeben.",
+      "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.",
+      "required": "Dieser Workspace verwendet Single Sign-on. Melde dich über deine Organisation an, um fortzufahren.",
+      "test-mismatch": "Bei der Test-Anmeldung wurde ein anderes Konto verwendet.",
+      "test-not-admin": "Nur ein Admin des Arbeitsbereichs kann dessen Anmeldung testen.",
+      "unknown": "Unbekannter Anmeldelink.",
+      "scim-needs-connection": "Richte zuerst Single Sign-on ein.",
+      "certificate-format": "Füge das Signaturzertifikat des Identitätsanbieters ein (PEM oder Base64).",
+      "certificate-invalid": "Das ist kein gültiges X.509-Zertifikat.",
+      "certificate-expired": "Dieses Zertifikat ist abgelaufen.",
+      "client-secret-required": "Gib das Client-Secret ein.",
+      "url-invalid": "Das ist keine gültige URL.",
+      "url-not-https": "Die URL muss mit https:// beginnen.",
+      "url-credentials": "Die URL darf keinen Benutzernamen und kein Passwort enthalten.",
+      "url-unresolvable": "Der Hostname {host} konnte nicht aufgelöst werden.",
+      "url-refused": "markoto darf sich nicht mit dieser Adresse verbinden (ein interner Dienst, eine Loopback-, Link-Local- oder Metadaten-Adresse oder ein privates Netzwerk)."
+    },
+    "template": {
+      "doc-not-found": "Dokument in diesem Arbeitsbereich nicht gefunden.",
+      "exists": "Dieses Dokument ist bereits eine Vorlage.",
+      "invalid": "Ungültige Vorlageneinstellungen.",
+      "too-many": "Ein Arbeitsbereich kann bis zu {limit} Vorlagen haben."
+    },
+    "theme": {
+      "custom-css-invalid": "Das eigene CSS wurde abgelehnt.",
+      "description-not-a-string": "Die Beschreibung muss Text sein.",
+      "description-too-long": "Die Beschreibung ist zu lang.",
+      "image-not-in-doc": "Bilder des Designs müssen in dieses Dokument hochgeladen werden.",
+      "name-not-a-string": "Der Name muss Text sein.",
+      "name-required": "Ein Name ist erforderlich.",
+      "name-too-long": "Der Name ist zu lang."
+    },
+    "upload": {
+      "confirm-in-progress": "Dieser Upload wird bereits bestätigt. Versuche es gleich noch einmal.",
+      "content-type-mismatch": "Die hochgeladene Datei hat nicht den erwarteten Typ.",
+      "file-too-large": "Datei zu gross. Höchstens 10 MB.",
+      "not-found": "Upload nicht gefunden.",
+      "not-landed": "Der Upload ist noch nicht angekommen. Versuche es gleich noch einmal.",
+      "rate-limited": "Zu viele Uploads. Versuche es in einer Minute noch einmal.",
+      "size-mismatch": "Die Grösse der hochgeladenen Datei entspricht nicht der angefragten Grösse.",
+      "storage-quota": "Du hast dein Speicherlimit für Bilder erreicht. Bilder, die du aus deinen Dokumenten entfernst, geben Platz frei, sobald sie bereinigt werden.",
+      "unsupported-format": "Dieser Dateityp ist nicht erlaubt."
+    },
+    "usage": {
+      "admin-required": "Nur Admins des Arbeitsbereichs können die Nutzung sehen."
+    },
+    "validation": {
+      "custom": "Dieser Wert ist ungültig.",
+      "invalid_element": "Dieser Wert ist ungültig.",
+      "invalid_format": "Dieser Wert hat das falsche Format.",
+      "invalid_key": "Dieser Wert ist ungültig.",
+      "invalid_type": "Dieser Wert hat den falschen Typ.",
+      "invalid_union": "Dieser Wert ist ungültig.",
+      "invalid_value": "Dieser Wert gehört nicht zu den erlaubten Optionen.",
+      "not_multiple_of": "Dieser Wert ist nicht erlaubt.",
+      "too_big": "Dieser Wert ist zu lang oder zu gross.",
+      "too_small": "Dieser Wert ist zu kurz oder zu klein.",
+      "unrecognized_keys": "Diese Anfrage enthält Felder, die nicht erlaubt sind."
+    },
+    "waitlist": {
+      "consent-required": "Bitte setze das Häkchen bei der Einwilligung, um dich einzutragen.",
+      "disabled": "Die Warteliste ist in dieser Installation nicht verfügbar.",
+      "invalid-email": "Bitte gib eine gültige E-Mail-Adresse ein.",
+      "invalid-token": "Dieser Link ist ungültig oder abgelaufen.",
+      "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut."
+    },
+    "workspace": {
+      "admin-required": "Nur Admins des Arbeitsbereichs können das tun.",
+      "already-member": "Diese Person ist bereits Mitglied des Arbeitsbereichs.",
+      "billing-not-configured": "Die Abrechnung ist nicht eingerichtet. Wende dich an den Support.",
+      "cap-reached": "Du hast das Arbeitsbereich-Limit deines Plans erreicht ({plan}: {cap} Arbeitsbereiche). Lösche einen ungenutzten Arbeitsbereich, um einen neuen zu erstellen.",
+      "dpa-required": "Du musst den Auftragsverarbeitungsvertrag (AVV) akzeptieren, bevor du einen Arbeitsbereich erstellst.",
+      "guest-cannot-create": "Gäste können in diesem Arbeitsbereich keine Dokumente erstellen.",
+      "guest-cap": "Dieser Arbeitsbereich hat so viele Gäste, wie sein Plan erlaubt (5 pro bezahltem Platz). Entferne einen Gast oder füge einen Platz hinzu.",
+      "guest-role-change": "Der Zugriff eines Gasts wird über Freigaben verwaltet, nicht über eine Rolle. Entferne den Gast und lade ihn erneut ein, um das zu ändern.",
+      "invalid-email": "Gib eine gültige E-Mail-Adresse ein.",
+      "invite-cap": "Dieser Arbeitsbereich hat zu viele offene Einladungen. Ziehe zuerst einige zurück.",
+      "invite-not-found": "Diese Einladung existiert nicht mehr oder ist abgelaufen.",
+      "invite-rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.",
+      "last-admin": "Ein Arbeitsbereich braucht mindestens einen Admin. Befördere zuerst jemand anderen oder lösche den Arbeitsbereich.",
+      "member-not-found": "Diese Person ist kein Mitglied dieses Arbeitsbereichs.",
+      "not-found": "Arbeitsbereich nicht gefunden.",
+      "role-required": "Betrachter können in diesem Arbeitsbereich keine Dokumente erstellen.",
+      "template-rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut."
+    }
+  }
+}

@@ -6,32 +6,34 @@ import {
   createWorkspace,
   setMemberRole
 } from '../integration/setup/fixtures'
+import { first } from '../helpers/assert'
 
-// Mock the side-effects that talk to S3 / sync-server / Stripe — none
+// Mock the side-effects that talk to S3 / sync-server / Stripe, none
 // are reachable in the repos test environment. The executor's logic
 // (which tables get touched, what gets anonymised, what gets promoted)
 // is fully testable without them.
 
-const deleteDocumentMock = vi.fn(async () => {})
+// Called with the job's delete proof for the document.
+const deleteDocumentMock = vi.fn<(doc: { docId: string }) => Promise<void>>(async () => {})
 const deleteKnowledgeArtifactMock = vi.fn(async () => {})
 const stripeCustomersDelMock = vi.fn(async () => ({ id: 'cus_x', deleted: true }))
 
-vi.mock('../../server/utils/documentLifecycle', () => ({
+vi.mock('../../server/utils/documents/documentLifecycle', () => ({
   deleteDocument: deleteDocumentMock
 }))
 
-vi.mock('../../server/utils/knowledgeAccess', () => ({
+vi.mock('../../server/utils/knowledge/knowledgeAccess', () => ({
   deleteKnowledgeArtifact: deleteKnowledgeArtifactMock
 }))
 
-vi.mock('../../server/utils/stripeClient', () => ({
+vi.mock('../../server/utils/billing/stripeClient', () => ({
   useStripeClient: () => ({
     customers: { del: stripeCustomersDelMock }
   })
 }))
 
 // Import AFTER the mocks so the executor binds the mocked symbols.
-const { executeAccountDeletion } = await import('../../server/utils/accountDeletionExecute')
+const { executeAccountDeletion } = await import('../../server/utils/privacy/accountDeletionExecute')
 
 async function insertComment(args: {
   docId: string
@@ -65,7 +67,7 @@ describe('executeAccountDeletion: full graph', () => {
     // Make `deleteDocument` actually drop the documents row in the DB
     // so the user-row FK can succeed. The other side-effects (S3 + sync
     // notify) are fine to no-op in tests.
-    deleteDocumentMock.mockImplementation(async (docId: string) => {
+    deleteDocumentMock.mockImplementation(async ({ docId }) => {
       const db = testDb()
       // Mirror what deleteDocDbRows does, in FK-safe order.
       await db.query(`DELETE FROM activity_log WHERE doc_id = $1`, [docId])
@@ -81,9 +83,9 @@ describe('executeAccountDeletion: full graph', () => {
 
   it('hard-deletes the user row and runs every cascade branch', async () => {
     // Billing on so the Stripe-customer step runs (it's skipped when
-    // billing is off — see the dedicated case below).
+    // billing is off: see the dedicated case below).
     vi.stubEnv('NUXT_BILLING_ENABLED', 'true')
-    // ── Build the test graph ─────────────────────────────────────
+    // Build the test graph
     const alice = await createUser()
     const bob = await createUser()
     const carol = await createUser()
@@ -159,10 +161,10 @@ describe('executeAccountDeletion: full graph', () => {
       [alice.id]
     )
 
-    // ── Execute ─────────────────────────────────────────────────
+    // Execute
     const result = await executeAccountDeletion({ userId: alice.id })
 
-    // ── Assertions ──────────────────────────────────────────────
+    // Assertions
     // User row is gone.
     const userRow = await testDb().query(`SELECT id FROM users WHERE id = $1`, [alice.id])
     expect(userRow.rows.length).toBe(0)
@@ -186,7 +188,7 @@ describe('executeAccountDeletion: full graph', () => {
       `SELECT owner_id FROM workspaces WHERE workspace_id = $1`, [wsCoadmin.workspaceId]
     )
     expect(coadminWs.rows.length).toBe(1)
-    expect(coadminWs.rows[0].owner_id).toBe(bob.id)
+    expect(first(coadminWs.rows).owner_id).toBe(bob.id)
 
     // AdminOnly workspace survived; bob is now admin.
     const adminOnlyMembers = await testDb().query<{ user_id: number, role: string }>(
@@ -202,7 +204,7 @@ describe('executeAccountDeletion: full graph', () => {
       [wsExternal.workspaceId]
     )
     expect(externalMembers.rows).toHaveLength(1)
-    expect(externalMembers.rows[0].user_id).toBe(carol.id)
+    expect(first(externalMembers.rows).user_id).toBe(carol.id)
 
     // Standalone doc gone.
     const standaloneRow = await testDb().query(
@@ -238,9 +240,8 @@ describe('executeAccountDeletion: full graph', () => {
       { user_id: carol.id, user_name: carol.name }
     ])
 
-    // AI sessions cleared. (Phase 6: ai_usage_period dropped — LiteLLM
-    // owns spend state. Virtual-key revocation is exercised in the unit
-    // tests for `executeAccountDeletion`.)
+    // AI sessions cleared. (LiteLLM owns spend state; virtual-key revocation is exercised in the unit tests for
+    // `executeAccountDeletion`.)
     const aiSessions = await testDb().query(`SELECT session_id FROM ai_sessions`)
     expect(aiSessions.rows.length).toBe(0)
 
@@ -254,7 +255,7 @@ describe('executeAccountDeletion: full graph', () => {
       [String(alice.id)]
     )
     expect(auditRow.rows.length).toBe(1)
-    expect(auditRow.rows[0].actor_user_id).toBeNull()
+    expect(first(auditRow.rows).actor_user_id).toBeNull()
 
     // Audit log: account.delete_executed row landed BEFORE the user
     // row was dropped, so the FK SET NULL has fired and actor_user_id
@@ -270,9 +271,9 @@ describe('executeAccountDeletion: full graph', () => {
       [String(alice.id)]
     )
     expect(finalRow.rows.length).toBe(1)
-    expect(finalRow.rows[0].scope).toBe('user')
-    expect(finalRow.rows[0].actor_user_id).toBeNull()
-    const summary = finalRow.rows[0].metadata?.summary
+    expect(first(finalRow.rows).scope).toBe('user')
+    expect(first(finalRow.rows).actor_user_id).toBeNull()
+    const summary = first(finalRow.rows).metadata?.summary
     expect(summary).toBeTruthy()
     expect(summary!.commentsAnonymised).toBe(1)
     expect(summary!.activityAnonymised).toBe(1)
@@ -291,7 +292,7 @@ describe('executeAccountDeletion: full graph', () => {
     expect(result.summary.stripeCustomerDeleted).toBe(true)
   })
 
-  it('is idempotent — running on an already-deleted user is a no-op', async () => {
+  it('is idempotent: running on an already-deleted user is a no-op', async () => {
     const alice = await createUser()
     const result1 = await executeAccountDeletion({ userId: alice.id })
     expect(result1.summary.aiSessionsDeleted).toBe(0)
@@ -374,7 +375,7 @@ describe('executeAccountDeletion: full graph', () => {
     const wsRow = await testDb().query<{ owner_id: number }>(
       `SELECT owner_id FROM workspaces WHERE workspace_id = $1`, [ws.workspaceId]
     )
-    expect(wsRow.rows[0].owner_id).toBe(bob.id)
+    expect(first(wsRow.rows).owner_id).toBe(bob.id)
     const members = await testDb().query<{ user_id: number, role: string }>(
       `SELECT user_id, role FROM workspace_members WHERE workspace_id = $1`,
       [ws.workspaceId]
@@ -384,7 +385,7 @@ describe('executeAccountDeletion: full graph', () => {
   })
 })
 
-describe('executeAccountDeletion: Team / Business billing admin (WP3)', () => {
+describe('executeAccountDeletion: Team / Business billing admin', () => {
   beforeEach(async () => {
     await resetDb()
     deleteDocumentMock.mockClear()

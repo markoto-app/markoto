@@ -12,7 +12,7 @@ import { test, expect } from '../fixtures/flow'
 //   - the block starts as a static rendering (no editor loaded) and turns
 //     into a live editor + paged preview when it scrolls near;
 //   - typing changes the preview (sanitised client render, sandboxed
-//     iframe — the same pipeline as the editor);
+//     iframe: the same pipeline as the editor);
 //   - the notice says both actions create a document (and for how long it
 //     lives without edits);
 //   - "Download PDF" creates the document through the anonymous gate and
@@ -36,7 +36,7 @@ test('Try markoto without a document', { tag: '@marketing' }, async ({ page, flo
   const block = page.getByTestId('try-it')
 
   // ASSERTION: before it is near the viewport the block is static
-  // content — no editor code has run.
+  // content: no editor code has run.
   await expect(page.getByTestId('try-it-static')).toHaveCount(1)
   await expect(block).toHaveAttribute('data-state', 'static')
 
@@ -80,7 +80,7 @@ test('Try markoto without a document', { tag: '@marketing' }, async ({ page, flo
   const notice = page.getByTestId('try-it-notice')
   await expect(notice).toContainText('Both buttons create a document')
 
-  // ─── Download PDF ────────────────────────────────────────────
+  // Download PDF
   await flow.heading('Download it as a PDF', 3)
   await flow.narrate(
     'Both buttons turn your text into a real markoto document. Without an '
@@ -114,7 +114,7 @@ test('Try markoto without a document', { tag: '@marketing' }, async ({ page, flo
   expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-')
   expect(download.suggestedFilename()).toBe('Field notes.pdf')
 
-  // ─── Open as a document ──────────────────────────────────────
+  // Open as a document
   await flow.click('Click "Open as a document"', page.getByTestId('try-it-open'), {
     result: 'The same document opens in the editor, with your text in it.',
     after: () => page.waitForURL(/\/d\/[^/]+$/, { timeout: 30_000 })

@@ -1,11 +1,10 @@
-import { and, asc, eq, or } from 'drizzle-orm'
+import { and, asc, eq, or, sql } from 'drizzle-orm'
 import { documentComments } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../db/client'
+import type { DocAccess } from './proofs'
 
-// Postgres mirror of the doc's comment threads. See schema.ts for the
-// design rationale — Y.js stays the source of truth, this is a write-
-// side index for cross-doc queries we don't yet expose but want the
-// data for when we do.
+// Postgres mirror of the doc's comment threads. Y.js stays the source of truth;
+// this is a write-side index for cross-doc queries (see server/db/schema/collab.ts).
 
 export interface CommentSnapshotRow {
   entryId: string
@@ -18,42 +17,64 @@ export interface CommentSnapshotRow {
   resolved: boolean
 }
 
+export interface StoredCommentRow {
+  entryId: string
+  parentCommentId: string | null
+  authorId: number | null
+  authorName: string
+  body: string
+  resolved: boolean
+}
+
 /**
- * Replace the doc's mirrored comments with the snapshot. Atomic
- * delete-then-insert inside a transaction so a partial write never
- * leaves the mirror in an inconsistent state.
+ * Replace the doc's mirrored comments with the snapshot (delete-then-insert in
+ * one transaction) and return the rows it replaced, so the caller can diff
+ * them. Empty snapshots are valid: the sync server sends one when the last
+ * comment is cleared.
  *
- * Empty snapshots are valid (deletes everything) — the sync server
- * sends one when the user clears the last comment.
+ * Serialised per document with `pg_advisory_xact_lock`: two concurrent saves
+ * would otherwise both read the old rows and both DELETE+INSERT, and the
+ * second hits the (doc_id, entry_id) unique constraint. The lock releases on
+ * commit or rollback.
  */
-export async function replaceCommentSnapshot(docId: string, rows: CommentSnapshotRow[]): Promise<void> {
-  const db = useDatabase()
-  await db.transaction(async (tx) => {
+export async function replaceCommentSnapshot(doc: DocAccess<'write'>, rows: CommentSnapshotRow[]): Promise<StoredCommentRow[]> {
+  const docId = doc.docId
+  return useDatabase().transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${docId}))`)
+    const previous = await tx
+      .select({
+        entryId: documentComments.entryId,
+        parentCommentId: documentComments.parentCommentId,
+        authorId: documentComments.authorId,
+        authorName: documentComments.authorName,
+        body: documentComments.body,
+        resolved: documentComments.resolved
+      })
+      .from(documentComments)
+      .where(eq(documentComments.docId, docId))
     await tx.delete(documentComments).where(eq(documentComments.docId, docId))
-    if (rows.length === 0) return
-    await tx.insert(documentComments).values(rows.map(r => ({
-      docId,
-      entryId: r.entryId,
-      parentCommentId: r.parentCommentId,
-      authorId: r.authorId,
-      authorName: r.authorName,
-      body: r.body,
-      createdAtMs: r.createdAt,
-      updatedAtMs: r.updatedAt,
-      resolved: r.resolved
-    })))
+    if (rows.length > 0) {
+      await tx.insert(documentComments).values(rows.map(r => ({
+        docId,
+        entryId: r.entryId,
+        parentCommentId: r.parentCommentId,
+        authorId: r.authorId,
+        authorName: r.authorName,
+        body: r.body,
+        createdAtMs: r.createdAt,
+        updatedAtMs: r.updatedAt,
+        resolved: r.resolved
+      })))
+    }
+    return previous
   })
 }
 
 /**
- * Resolve a comment thread by any entry id (root OR reply). Returns
- * the thread root + every reply, ordered chronologically. Returns
- * null when the entry doesn't exist for this doc.
- *
- * Used by the activity-feed comment-context expansion: an activity
- * row references a single `commentId` (possibly a reply) and we
- * want to show "the whole conversation up to this point" without
- * forcing the caller to walk the parent chain themselves.
+ * Resolve a comment thread by any entry id (root or reply): the root plus every
+ * reply, chronological; null when the entry isn't on this doc. An activity row
+ * references one (possibly reply) commentId, and the feed shows the whole
+ * conversation up to that point.
  */
 export interface CommentThreadRow {
   entryId: string
@@ -67,11 +88,11 @@ export interface CommentThreadRow {
 }
 
 export async function getCommentThreadByEntryId(
-  docId: string,
+  doc: DocAccess<'view'>,
   entryId: string
 ): Promise<CommentThreadRow[] | null> {
+  const docId = doc.docId
   const db = useDatabase()
-  // First find the row to determine the thread root id.
   const [row] = await db
     .select({
       entryId: documentComments.entryId,
@@ -84,9 +105,7 @@ export async function getCommentThreadByEntryId(
 
   const rootId = row.parentCommentId ?? row.entryId
 
-  // Fetch the root + every row whose parentCommentId points at it.
-  // Single SELECT with `OR` rather than two — keeps the round-trip
-  // count down for the on-demand expansion.
+  // One SELECT with OR instead of two, to save a round-trip.
   const rows = await db
     .select({
       entryId: documentComments.entryId,
@@ -101,14 +120,11 @@ export async function getCommentThreadByEntryId(
     .from(documentComments)
     .where(and(
       eq(documentComments.docId, docId),
-      or(eq(documentComments.entryId, rootId), eq(documentComments.parentCommentId, rootId))!
+      or(eq(documentComments.entryId, rootId), eq(documentComments.parentCommentId, rootId))
     ))
     .orderBy(asc(documentComments.createdAtMs))
 
-  // Sort: root first, then replies in createdAt order. The orderBy
-  // above gives us chronological — but the root may have been
-  // created AFTER a reply in some pathological case (clock skew /
-  // edited timestamps). Force-pin the root regardless.
+  // Pin the root first regardless of createdAt (clock skew or edited timestamps can put it after a reply).
   const root = rows.find(r => r.entryId === rootId)
   const replies = rows.filter(r => r.entryId !== rootId)
   return root ? [root, ...replies] : rows

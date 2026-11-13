@@ -1,0 +1,84 @@
+import type { H3Event } from 'h3'
+import { findUserById } from '../../repos/users'
+import {
+  acceptWorkspaceInvite,
+  declineWorkspaceInvite,
+  type InviteSelector,
+  type ResolvedInvite
+} from '../../repos/workspaceInvites'
+import { appendAuditEvent } from '../../repos/audit'
+import { apiError } from '../api/apiError'
+import {
+  AUDIT_WORKSPACE_INVITE_ACCEPTED,
+  AUDIT_WORKSPACE_INVITE_DECLINED
+} from '../../legal/auditActions'
+import { normaliseInviteEmail, parseInviteId } from './workspaceInvites'
+import { getClientIp } from '../platform/clientIp'
+import type { UserScope } from '../../repos/proofs'
+
+// Invitee-side accept / decline, shared by the in-app endpoints
+// (`/api/user/invites/:inviteId/{accept,decline}`) and the email-link
+// endpoint (`/api/user/invites/by-token`).
+//
+// Proof that an invite belongs to the caller is either
+//   - in-app: the invite's address equals the verified email on the
+//     caller's account (accounts only ever store verified addresses), or
+//   - email link: the caller presents the single-use token sent to that
+//     address (possession of the mailbox).
+// Anything else is a uniform 404, an invite id alone grants nothing.
+
+/** Selector for an in-app action on `inviteId` by the signed-in user. */
+export async function inAppInviteSelector(self: UserScope, rawInviteId: string): Promise<InviteSelector> {
+  const inviteId = parseInviteId(rawInviteId)
+  if (!inviteId) throw apiError('request/invalid', { field: 'inviteId' })
+  const user = await findUserById(self)
+  const email = normaliseInviteEmail(user?.email)
+  if (!email) throw apiError('workspace/invite-not-found')
+  return { kind: 'id', inviteId, email }
+}
+
+/** What acting on an invitation answers; `action` tells the two apart. */
+export type InviteAccepted = { ok: true, action: 'accept', workspaceId: string, workspaceName: string, role: ResolvedInvite['role'] }
+export type InviteDeclined = { ok: true, action: 'decline' }
+
+export async function acceptInviteForUser(event: H3Event, self: UserScope, selector: InviteSelector): Promise<InviteAccepted> {
+  const accepted = await acceptWorkspaceInvite(self, selector, new Date())
+  if (!accepted) throw apiError('workspace/invite-not-found')
+
+  await appendAuditEvent({
+    by: self,
+    actorIp: getClientIp(event),
+    scope: 'workspace',
+    scopeId: accepted.workspaceId,
+    action: AUDIT_WORKSPACE_INVITE_ACCEPTED,
+    before: null,
+    after: { role: accepted.role },
+    metadata: { inviteId: accepted.inviteId, via: selector.kind, alreadyMember: accepted.alreadyMember }
+  })
+
+  return {
+    ok: true,
+    action: 'accept',
+    workspaceId: accepted.workspaceId,
+    workspaceName: accepted.workspaceName,
+    role: accepted.role
+  }
+}
+
+export async function declineInviteForUser(event: H3Event, self: UserScope, selector: InviteSelector): Promise<InviteDeclined> {
+  const declined = await declineWorkspaceInvite(self, selector)
+  if (!declined) throw apiError('workspace/invite-not-found')
+
+  await appendAuditEvent({
+    by: self,
+    actorIp: getClientIp(event),
+    scope: 'workspace',
+    scopeId: declined.workspaceId,
+    action: AUDIT_WORKSPACE_INVITE_DECLINED,
+    before: null,
+    after: null,
+    metadata: { inviteId: declined.inviteId, via: selector.kind }
+  })
+
+  return { ok: true, action: 'decline' }
+}

@@ -3,18 +3,18 @@ import {
   CURRENCIES,
   defaultCurrencyForLocale,
   type BillingInterval,
-  type Currency,
-  type PlanPricesResponse
+  type Currency
 } from '~~/shared/config/pricing'
-import { formatPrice, formatPlanBytes } from '~/utils/pricing'
+import { usePlanPricesQuery } from '~/queries/billing'
+import { formatPrice, formatPlanBytes } from '~/utils/billing/pricing'
 import {
   formatUsd,
   isPaymentProblem,
   minimumSeats,
   type WorkspaceBillingOverview
-} from '~/utils/workspaceBilling'
+} from '~/utils/billing/workspaceBilling'
 
-// Workspace billing tab (Team / Business, pricing plan WP3). Admins only;
+// Workspace billing tab (Team / Business). Admins only;
 // the page shows the tab only when billing is on.
 //
 //   - No subscription yet (or an abandoned checkout): choose Team or
@@ -23,8 +23,7 @@ import {
 //     seat changes, plan / billing-period switch, the Stripe portal
 //     (invoices, card, cancel), and the pooled AI budget with each
 //     member's spend and limit.
-// Members never see this tab: they never see a price (plan "Team member
-// experience").
+// Members never see this tab: they never see a price.
 
 const props = defineProps<{
   workspaceId: string
@@ -40,18 +39,21 @@ const toast = useToast()
 const { showError } = useErrorHandler()
 
 const overview = ref<WorkspaceBillingOverview | null>(null)
-const prices = ref<PlanPricesResponse | null>(null)
+// Shared with the pricing page and the seat-price prompt; a failed load
+// shows no prices.
+const pricesQuery = usePlanPricesQuery()
+const prices = computed(() => pricesQuery.data.value ?? null)
 const loading = ref(true)
 const busy = ref<string | null>(null)
 
 async function load() {
   try {
-    const [o, p] = await Promise.all([
-      $fetch<WorkspaceBillingOverview>(`/api/workspaces/${props.workspaceId}/billing`),
-      $fetch<PlanPricesResponse>('/api/billing/prices').catch(() => null)
+    const [o] = await Promise.all([
+      apiFetch('/api/workspaces/:wsId/billing', { path: { wsId: props.workspaceId } }),
+      // The panel shows prices together with the overview, as before.
+      pricesQuery.refresh()
     ])
     overview.value = o
-    prices.value = p
     if (o.subscription) {
       currency.value = o.subscription.currency
       interval.value = o.subscription.interval
@@ -77,7 +79,6 @@ const sub = computed(() => overview.value?.subscription ?? null)
 const hasLiveSubscription = computed(() => sub.value !== null && sub.value.status !== 'incomplete' && sub.value.status !== 'incomplete_expired' && sub.value.status !== 'canceled')
 const paymentProblem = computed(() => isPaymentProblem(sub.value?.status))
 
-// ── Buying ──────────────────────────────────────────────────────────
 const plan = ref<'team' | 'business'>('team')
 const interval = ref<BillingInterval>('month')
 const currency = ref<Currency>('eur')
@@ -108,7 +109,7 @@ const totalLabel = computed(() => {
   })
 })
 
-// The Paid Plans Terms box (WP6b): a first purchase and a plan switch
+// The Paid Plans Terms box: a first purchase and a plan switch
 // both need it; seat changes don't (they run under the accepted terms).
 const paidTermsAccepted = ref(false)
 
@@ -116,11 +117,13 @@ async function startCheckout() {
   if (!paidTermsAccepted.value) return
   busy.value = 'checkout'
   try {
-    const res = await $fetch<{ url?: string }>(`/api/workspaces/${props.workspaceId}/billing/checkout`, {
-      method: 'POST',
+    const res = await apiFetch('/api/workspaces/:wsId/billing/checkout', {
+      method: 'post',
+      path: { wsId: props.workspaceId },
       body: { plan: plan.value, interval: interval.value, currency: currency.value, seats: seatsDraft.value, acceptPaidTerms: true }
     })
-    if (res.url) goToExternal(res.url)
+    // A plan switch of a live subscription answers `{ updated, plan }` instead of a checkout.
+    if (!('updated' in res) && res.url) goToExternal(res.url)
   } catch (e) {
     showError('workspace.billing.checkoutFailed', e)
   } finally {
@@ -128,13 +131,13 @@ async function startCheckout() {
   }
 }
 
-// ── Changing ────────────────────────────────────────────────────────
 async function changePlan(next: { plan?: 'team' | 'business', interval?: BillingInterval }) {
   if (!sub.value || !paidTermsAccepted.value) return
   busy.value = 'plan'
   try {
-    await $fetch(`/api/workspaces/${props.workspaceId}/billing/checkout`, {
-      method: 'POST',
+    await apiFetch('/api/workspaces/:wsId/billing/checkout', {
+      method: 'post',
+      path: { wsId: props.workspaceId },
       body: { plan: next.plan ?? sub.value.plan, interval: next.interval ?? sub.value.interval, currency: sub.value.currency, acceptPaidTerms: true }
     })
     toast.add({ title: t('workspace.billing.planChanged'), icon: 'i-lucide-check', color: 'neutral' })
@@ -151,7 +154,7 @@ async function saveSeats() {
   if (!sub.value || seatsDraft.value === sub.value.seats) return
   busy.value = 'seats'
   try {
-    await $fetch(`/api/workspaces/${props.workspaceId}/billing/seats`, { method: 'POST', body: { seats: seatsDraft.value } })
+    await apiFetch('/api/workspaces/:wsId/billing/seats', { method: 'post', path: { wsId: props.workspaceId }, body: { seats: seatsDraft.value } })
     toast.add({ title: t('workspace.billing.seatsChanged', { seats: seatsDraft.value }), icon: 'i-lucide-check', color: 'neutral' })
     await load()
     emit('changed')
@@ -165,7 +168,7 @@ async function saveSeats() {
 async function openPortal() {
   busy.value = 'portal'
   try {
-    const res = await $fetch<{ url: string }>(`/api/workspaces/${props.workspaceId}/billing/portal`, { method: 'POST' })
+    const res = await apiFetch('/api/workspaces/:wsId/billing/portal', { method: 'post', path: { wsId: props.workspaceId } })
     goToExternal(res.url)
   } catch (e) {
     showError('workspace.billing.portalFailed', e)
@@ -174,7 +177,6 @@ async function openPortal() {
   }
 }
 
-// ── Member limits ───────────────────────────────────────────────────
 type LimitMode = 'default' | 'custom' | 'none'
 const limitDrafts = ref<Record<number, { mode: LimitMode, amount: number }>>({})
 watch(overview, (o) => {
@@ -199,7 +201,7 @@ async function saveLimit(userId: number) {
   busy.value = `limit-${userId}`
   const body = draft.mode === 'default' ? { default: true } : draft.mode === 'none' ? { limitUsd: null } : { limitUsd: draft.amount }
   try {
-    await $fetch(`/api/workspaces/${props.workspaceId}/billing/members/${userId}`, { method: 'PATCH', body })
+    await apiFetch('/api/workspaces/:wsId/billing/members/:userId', { method: 'patch', path: { wsId: props.workspaceId, userId }, body })
     toast.add({ title: t('workspace.billing.limitSaved'), icon: 'i-lucide-check', color: 'neutral' })
     await load()
   } catch (e) {
@@ -214,7 +216,7 @@ function fmtDate(iso: string | null | undefined): string {
   return new Date(iso).toLocaleDateString(locale.value, { year: 'numeric', month: 'long', day: 'numeric' })
 }
 function usd(amount: number | null | undefined): string {
-  return amount === null || amount === undefined ? '—' : formatUsd(amount, locale.value)
+  return amount === null || amount === undefined ? '-' : formatUsd(amount, locale.value)
 }
 </script>
 
@@ -251,7 +253,7 @@ function usd(amount: number | null | undefined): string {
         data-testid="workspace-billing-payment-problem"
       />
 
-      <!-- No subscription yet: buy one ─────────────────────────────── -->
+      <!-- No subscription yet: buy one -->
       <div
         v-if="!hasLiveSubscription"
         class="rounded-lg border border-default bg-default p-5 space-y-5"
@@ -338,7 +340,7 @@ function usd(amount: number | null | undefined): string {
         </p>
       </div>
 
-      <!-- Subscription ─────────────────────────────────────────────── -->
+      <!-- Subscription -->
       <template v-else-if="sub">
         <div
           class="rounded-lg border border-default bg-default p-5 space-y-4"
@@ -433,7 +435,7 @@ function usd(amount: number | null | undefined): string {
           </div>
         </div>
 
-        <!-- AI credit top-ups (WP4) ─────────────────────────────────── -->
+        <!-- AI credit top-ups -->
         <div
           class="rounded-lg border border-default bg-default p-5 space-y-3"
           data-testid="workspace-billing-credits-card"
@@ -444,13 +446,13 @@ function usd(amount: number | null | undefined): string {
           <CommonAiCreditsCard
             :credits="overview.credits ?? null"
             :currency="sub.currency"
-            :endpoint="`/api/workspaces/${workspaceId}/billing/topup`"
+            :workspace-id="workspaceId"
             :can-buy="sub.entitled"
             testid-prefix="workspace-billing"
           />
         </div>
 
-        <!-- Pooled AI budget + members ─────────────────────────────── -->
+        <!-- Pooled AI budget + members -->
         <div
           v-if="overview.pool"
           class="rounded-lg border border-default bg-default p-5 space-y-4"

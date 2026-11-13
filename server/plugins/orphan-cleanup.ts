@@ -4,14 +4,21 @@ import { ListObjectsV2Command, DeleteObjectsCommand, type S3Client } from '@aws-
 import * as Sentry from '@sentry/nuxt'
 import { listAllDocIds } from '../repos/documents'
 import { listStaleUnconfirmed, purgeStaleUnconfirmed, listAllS3Keys } from '../repos/uploads'
-import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
-import { sweepKnowledgeOrphans } from '../utils/knowledgeOrphanSweep'
+import { defineSweeper } from '../utils/platform/defineSweeper'
+import { sweepKnowledgeOrphans } from '../utils/knowledge/knowledgeOrphanSweep'
 import { sweepDesignImportOrphans } from '../utils/designImport/orphanSweep'
-import { s3ObjectStore } from '../utils/objectStore'
-import { stagingKeyFor } from '../utils/uploadKey'
+import { s3ObjectStore } from '../utils/storage/objectStore'
+import { stagingKeyFor } from '../utils/storage/uploadKey'
+import { SWEEPS } from '../config/sweeps'
+import { DAY_MS } from '~~/shared/config/units'
+import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../utils/platform/logger'
+import { system } from '../repos/proofs'
 
-const ONE_HOUR_MS = 60 * 60 * 1000
-const ONE_DAY_MS = 24 * ONE_HOUR_MS
+/** The orphan sweep reconciles every document's storage against the database. */
+const ORPHAN_CLEANUP = system('orphan-cleanup')
+
+const log = useLogger('orphan-cleanup')
 
 // Reconciles S3 against the documents + uploads + workspace_knowledge
 // tables. Four layers:
@@ -30,87 +37,60 @@ const ONE_DAY_MS = 24 * ONE_HOUR_MS
 //      and drop any whose key isn't in uploads AND whose last-modified
 //      is > 24h old. The 24h grace prevents racing the create-doc flow
 //      (where a file can briefly land in S3 before its uploads row
-//      commits, though our request handler now writes the row first —
-//      kept for belt-and-suspenders). Also catches staging objects
+//      commits; the request handler writes the row first, so this is a
+//      backstop). Also catches staging objects
 //      (`docs/{id}/staging/…`) left over after a confirm.
 //
-//   4. Knowledge sweep (`server/utils/knowledgeOrphanSweep.ts`): objects
+//   4. Knowledge sweep (`server/utils/knowledge/knowledgeOrphanSweep.ts`): objects
 //      under `workspaces/*/knowledge/` (final or staging) older than 1 h
-//      that no `workspace_knowledge` row points at — uploads that were
+//      that no `workspace_knowledge` row points at, uploads that were
 //      PUT but never confirmed, and originals of deleted rows. Runs even
 //      when the doc layers failed.
 //
 // Runs once on server startup (after a 30s delay so other subsystems are
-// ready), then every hour.
-export default defineNitroPlugin((nitroApp) => {
-  let running = false
+// ready), then every hour. The per-process non-overlap and the advisory lock
+// (across instances) come from `defineSweeper`.
+export default defineSweeper({
+  name: 'orphan-cleanup',
+  schedule: SWEEPS.orphanCleanup,
+  // Each layer reports its own failure and the next layer still runs, so
+  // this body never throws.
+  run: async () => {
+    const s3 = useS3Client()
+    const bucket = useEnv().storage.bucket
+    const now = Date.now()
 
-  async function reconcile() {
-    if (running) return
-    running = true
-    // The per-process `running` flag prevents tick-overlap WITHIN this
-    // process; the advisory lock prevents tick-overlap ACROSS processes.
-    // Both are useful — keep both.
-    if (!await acquireSweepLock('orphan-cleanup')) {
-      running = false
-      return
+    try {
+      await sweepUnconfirmedUploads(s3, bucket)
+      const { liveDocIds } = await sweepDocLevelOrphans(s3, bucket)
+      await sweepDefensiveStaleS3(s3, bucket, liveDocIds, now)
+    } catch (e) {
+      log.error('Reconciliation failed', { err: e })
+      Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'reconcile_failed' } })
     }
     try {
-      const s3 = useS3Client()
-      const bucket = useRuntimeConfig().s3.bucket
-      const now = Date.now()
-
-      try {
-        await sweepUnconfirmedUploads(s3, bucket)
-        const { liveDocIds } = await sweepDocLevelOrphans(s3, bucket)
-        await sweepDefensiveStaleS3(s3, bucket, liveDocIds, now)
-      } catch (e) {
-        console.error('[orphan-cleanup] Reconciliation failed:', e instanceof Error ? e.message : e)
-        Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'reconcile_failed' } })
-      }
-      try {
-        const { deleted } = await sweepKnowledgeOrphans({ store: s3ObjectStore(s3, bucket), now })
-        if (deleted > 0) console.log(`[orphan-cleanup] Reaped ${deleted} orphaned knowledge object(s)`)
-      } catch (e) {
-        console.error('[orphan-cleanup] Knowledge sweep failed:', e instanceof Error ? e.message : e)
-        Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'knowledge_sweep_failed' } })
-      }
-      try {
-        const { deleted } = await sweepDesignImportOrphans({ store: s3ObjectStore(s3, bucket), now })
-        if (deleted > 0) console.log(`[orphan-cleanup] Reaped ${deleted} design-import object(s)`)
-      } catch (e) {
-        console.error('[orphan-cleanup] Design-import sweep failed:', e instanceof Error ? e.message : e)
-        Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'design_import_sweep_failed' } })
-      }
-      try {
-        const { deleted } = await sweepPublishedOrphans({ store: s3ObjectStore(s3, bucket), livePageIds: listPublishedPageIds, now })
-        if (deleted > 0) console.log(`[orphan-cleanup] Reaped ${deleted} object(s) of unpublished pages`)
-      } catch (e) {
-        console.error('[orphan-cleanup] Published-page sweep failed:', e instanceof Error ? e.message : e)
-        Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'published_sweep_failed' } })
-      }
-    } finally {
-      await releaseSweepLock('orphan-cleanup')
-      running = false
+      const { deleted } = await sweepKnowledgeOrphans({ store: s3ObjectStore(s3, bucket), now })
+      if (deleted > 0) log.info('reaped orphaned knowledge objects', { deleted })
+    } catch (e) {
+      log.error('Knowledge sweep failed', { err: e })
+      Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'knowledge_sweep_failed' } })
+    }
+    try {
+      const { deleted } = await sweepDesignImportOrphans({ store: s3ObjectStore(s3, bucket), now })
+      if (deleted > 0) log.info('reaped design-import objects', { deleted })
+    } catch (e) {
+      log.error('Design-import sweep failed', { err: e })
+      Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'design_import_sweep_failed' } })
+    }
+    try {
+      const { deleted } = await sweepPublishedOrphans({ store: s3ObjectStore(s3, bucket), livePageIds: () => listPublishedPageIds(ORPHAN_CLEANUP), now })
+      if (deleted > 0) log.info('reaped objects of unpublished pages', { deleted })
+    } catch (e) {
+      log.error('Published-page sweep failed', { err: e })
+      Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'published_sweep_failed' } })
     }
   }
-
-  // Run once on startup (after a short delay so other subsystems are ready).
-  const startupTimer = setTimeout(() => {
-    void reconcile()
-  }, 30_000)
-  // Then run every hour.
-  const intervalTimer = setInterval(() => {
-    void reconcile()
-  }, ONE_HOUR_MS)
-
-  nitroApp.hooks.hook('close', () => {
-    clearTimeout(startupTimer)
-    clearInterval(intervalTimer)
-  })
 })
-
-// ─── Sweep helpers ──────────────────────────────────────────────────────
 
 /**
  * Layer 1: drop uploads rows that were never confirmed (presigned URL
@@ -118,7 +98,7 @@ export default defineNitroPlugin((nitroApp) => {
  * objects, if any. Older than 24h.
  */
 async function sweepUnconfirmedUploads(s3: S3Client, bucket: string): Promise<void> {
-  const stale = await listStaleUnconfirmed(ONE_DAY_MS)
+  const stale = await listStaleUnconfirmed(ORPHAN_CLEANUP, DAY_MS)
   if (stale.length === 0) return
 
   await deleteObjectsBatched(
@@ -127,11 +107,11 @@ async function sweepUnconfirmedUploads(s3: S3Client, bucket: string): Promise<vo
     stale.flatMap(u => [u.s3Key, stagingKeyFor(u.s3Key)]),
     'unconfirmed'
   )
-  // Drop the rows whether or not the S3 delete succeeded — the row
+  // Drop the rows whether or not the S3 delete succeeded, the row
   // itself is what blocks future re-use, and the defensive S3 sweep
   // below catches any leftover objects.
-  await purgeStaleUnconfirmed(ONE_DAY_MS)
-  console.log(`[orphan-cleanup] Reaped ${stale.length} unconfirmed upload row(s)`)
+  await purgeStaleUnconfirmed(ORPHAN_CLEANUP, DAY_MS)
+  log.info('reaped unconfirmed upload rows', { reaped: stale.length })
 }
 
 /**
@@ -147,7 +127,7 @@ async function sweepDocLevelOrphans(
   const s3DocIds = prefixes
     .map(p => p.replace(/^docs\//, '').replace(/\/$/, ''))
     .filter(Boolean)
-  const existingDocSet = new Set(await listAllDocIds())
+  const existingDocSet = new Set(await listAllDocIds(ORPHAN_CLEANUP))
   const orphanDocs = s3DocIds.filter(id => !existingDocSet.has(id))
 
   let totalDeleted = 0
@@ -157,7 +137,7 @@ async function sweepDocLevelOrphans(
     totalDeleted += keys.length
   }
   if (orphanDocs.length > 0) {
-    console.log(`[orphan-cleanup] Reaped ${totalDeleted} object(s) from ${orphanDocs.length} orphan doc prefix(es)`)
+    log.info('reaped objects of orphan doc prefixes', { objects: totalDeleted, prefixes: orphanDocs.length })
   }
   return { liveDocIds: s3DocIds.filter(id => existingDocSet.has(id)) }
 }
@@ -172,8 +152,8 @@ async function sweepDefensiveStaleS3(
   liveDocIds: string[],
   now: number
 ): Promise<void> {
-  const knownKeys = new Set(await listAllS3Keys())
-  const ageCutoff = now - ONE_DAY_MS
+  const knownKeys = new Set(await listAllS3Keys(ORPHAN_CLEANUP))
+  const ageCutoff = now - DAY_MS
   const stale: string[] = []
 
   for (const id of liveDocIds) {
@@ -182,7 +162,7 @@ async function sweepDefensiveStaleS3(
 
   if (stale.length > 0) {
     await deleteObjectsBatched(s3, bucket, stale, 'defensive', { silent: true })
-    console.log(`[orphan-cleanup] Defensive sweep removed ${stale.length} untracked S3 object(s) older than 24h`)
+    log.info('defensive sweep removed untracked S3 objects', { removed: stale.length })
   }
 }
 
@@ -191,7 +171,7 @@ async function sweepDefensiveStaleS3(
  * BOTH absent from `uploads` (the known-keys set) AND older than the
  * 24h race window. The age guard exists so an upload that's
  * mid-flight (PUT in S3 but row not committed yet) doesn't get
- * reaped — see `sweepUnconfirmedUploads` for the inverse pass.
+ * reaped: see `sweepUnconfirmedUploads` for the inverse pass.
  */
 async function findStaleKeysInDocPrefix(
   s3: S3Client,
@@ -219,8 +199,6 @@ async function findStaleKeysInDocPrefix(
   } while (token)
   return stale
 }
-
-// ─── Paginated-S3 helpers ───────────────────────────────────────────────
 
 /** List immediate `docs/{id}/` prefixes via the delimited Prefix API. */
 async function listDocPrefixes(s3: S3Client, bucket: string): Promise<string[]> {
@@ -264,8 +242,8 @@ async function listKeysUnderPrefix(s3: S3Client, bucket: string, prefix: string)
  * cap). Errors land in Sentry tagged with the sweep label so dashboards
  * can attribute failures to the right layer.
  *
- * `opts.silent` — by default, the unconfirmed sweep already logs every
- * S3 error inline (legacy behaviour); the doc-orphan + defensive sweeps
+ * `opts.silent`: by default, the unconfirmed sweep already logs every
+ * S3 error inline; the doc-orphan + defensive sweeps
  * let exceptions propagate to the outer try/catch so a transient S3
  * failure aborts THAT layer cleanly without nuking the rest. Set
  * `silent: true` to suppress the inline log + Sentry capture.
@@ -286,7 +264,7 @@ async function deleteObjectsBatched(
       }))
     } catch (e) {
       if (opts.silent) throw e
-      console.warn(`[orphan-cleanup] S3 delete failed during ${sweepLabel} sweep:`, e instanceof Error ? e.message : e)
+      log.warn('S3 delete failed', { sweep: sweepLabel, err: e })
       Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 's3_delete_failed', sweep: sweepLabel } })
     }
   }

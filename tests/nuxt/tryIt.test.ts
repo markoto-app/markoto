@@ -14,7 +14,7 @@ import { MINIMAL_INSTANCE_CONFIG, type InstanceConfig } from '~~/shared/config/i
 //   - the editor + preview mount only when the block nears the viewport
 //     (IntersectionObserver) or is clicked;
 //   - what the visitor types goes through `renderMarkdown` (DOMPurify)
-//     into the preview composable — never through `renderTrustedMarkdown`;
+//     into the preview composable, never through `renderTrustedMarkdown`;
 //   - both actions use the existing endpoints: POST /api/docs (with the
 //     text as `content`) and GET /api/docs/:id/pdf.
 
@@ -23,7 +23,7 @@ const md = vi.hoisted(() => ({
   sanitised: vi.fn(async (src: string) => `<p data-sanitised="1">${src.length} chars</p>`)
 }))
 
-vi.mock('../../app/utils/renderMarkdown', () => ({
+vi.mock('../../app/utils/markdown/renderMarkdown', () => ({
   renderTrustedMarkdown: md.trusted,
   renderMarkdown: md.sanitised
 }))
@@ -95,10 +95,10 @@ function editorView(wrapper: Awaited<ReturnType<typeof mountLive>>): EditorView 
 
 // The workbench is a lazy chunk (CodeMirror + the preview). Its first
 // import compiles it in the test runner, which under a full parallel run
-// can take longer than `vi.waitFor`'s second — the static import above
+// can take longer than `vi.waitFor`'s second, the static import above
 // loads it with the test file, so the tests time the mount, not the compile.
 beforeAll(() => {
-  expect(MarketingTryItWorkbench).toBeTruthy()
+  if (!MarketingTryItWorkbench) throw new Error('MarketingTryItWorkbench did not load')
 })
 
 beforeEach(() => {

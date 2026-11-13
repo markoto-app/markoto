@@ -1,34 +1,28 @@
 <script setup lang="ts">
+import type { ApiResponse } from '~/utils/api/client'
 // MCP integrations management. Issue, list, and revoke Personal Access
 // Tokens for external MCP clients (Claude Desktop, Cursor, ChatGPT app
 // store, ad-hoc scripts). Token plaintext is shown ONCE on creation and
-// never reconstructed — same pattern as GitHub PATs.
+// never reconstructed: same pattern as GitHub PATs.
 //
 // Auth-gated client-side via redirect; the token endpoints are session-
 // required so deep-linking without a session lands in the 401-toast
 // surface.
 
-interface IssuedToken {
-  tokenId: string
-  name: string
-  scopes: string[]
-  createdAt: string
-  lastUsedAt: string | null
-  expiresAt: string | null
-}
+type IssuedToken = ApiResponse<'/api/mcp/tokens', 'get'>[number]
 
-interface IssueResponse extends IssuedToken {
-  token: string
-}
+type IssueResponse = ApiResponse<'/api/mcp/tokens', 'post'>
 
 const router = useRouter()
+const { t, locale } = useI18n()
 const toast = useToast()
+const { extractError } = useErrorHandler()
 const { loggedIn, user } = useUserSession()
 // Login starts at the first configured OAuth provider ('/' when none).
 const { primaryLoginPath } = useInstanceConfig()
 const config = useRuntimeConfig()
 
-useHead({ title: 'Integrations' })
+useHead({ title: () => t('settings.integrations.title') })
 
 if (import.meta.client && !loggedIn.value) {
   globalThis.location.href = primaryLoginPath.value ?? '/'
@@ -38,7 +32,7 @@ function onClose(): void {
   if (globalThis.history.length > 1 && document.referrer) {
     router.back()
   } else {
-    router.push('/')
+    void router.push('/')
   }
 }
 
@@ -49,12 +43,11 @@ async function refreshTokens(): Promise<void> {
   if (!loggedIn.value) return
   tokensLoading.value = true
   try {
-    tokens.value = await $fetch<IssuedToken[]>('/api/mcp/tokens')
+    tokens.value = await apiFetch('/api/mcp/tokens')
   } catch (e) {
-    const err = e as { message?: string, data?: { message?: string } }
     toast.add({
-      title: 'Could not load tokens',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      title: t('settings.integrations.loadFailed'),
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -67,13 +60,12 @@ onMounted(() => {
   void refreshTokens()
 })
 
-// ─────────── New token form ───────────
 const newName = ref('')
 const issuing = ref(false)
 
 // Plaintext shown exactly once after issuance. Cleared when the user
 // dismisses the inline alert. We deliberately don't persist it anywhere
-// else — refreshing the page wipes it forever, mirroring GitHub PATs.
+// else: refreshing the page wipes it forever, mirroring GitHub PATs.
 const justIssued = ref<IssueResponse | null>(null)
 const justIssuedCopied = ref(false)
 
@@ -83,8 +75,8 @@ async function onIssue(): Promise<void> {
   if (!name) return
   issuing.value = true
   try {
-    const created = await $fetch<IssueResponse>('/api/mcp/tokens', {
-      method: 'POST',
+    const created = await apiFetch('/api/mcp/tokens', {
+      method: 'post',
       body: { name }
     })
     justIssued.value = created
@@ -92,10 +84,9 @@ async function onIssue(): Promise<void> {
     newName.value = ''
     await refreshTokens()
   } catch (e) {
-    const err = e as { message?: string, data?: { message?: string } }
     toast.add({
-      title: 'Could not issue token',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      title: t('settings.integrations.issueFailed'),
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -110,13 +101,13 @@ async function copyToken(): Promise<void> {
     await navigator.clipboard.writeText(justIssued.value.token)
     justIssuedCopied.value = true
     toast.add({
-      title: 'Token copied to clipboard',
+      title: t('settings.integrations.tokenCopied'),
       icon: 'i-lucide-check',
       color: 'neutral'
     })
   } catch {
     toast.add({
-      title: 'Could not copy — select and copy manually',
+      title: t('settings.integrations.copyFailed'),
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -128,25 +119,23 @@ function dismissIssued(): void {
   justIssuedCopied.value = false
 }
 
-// ─────────── Revoke ───────────
 const revokingId = ref<string | null>(null)
 
 async function onRevoke(tokenId: string): Promise<void> {
   if (revokingId.value !== null) return
   revokingId.value = tokenId
   try {
-    await $fetch(`/api/mcp/tokens/${encodeURIComponent(tokenId)}`, { method: 'DELETE' })
+    await apiFetch('/api/mcp/tokens/:tokenId', { method: 'delete', path: { tokenId } })
     await refreshTokens()
     toast.add({
-      title: 'Token revoked',
+      title: t('settings.integrations.revoked'),
       icon: 'i-lucide-check',
       color: 'neutral'
     })
   } catch (e) {
-    const err = e as { message?: string, data?: { message?: string } }
     toast.add({
-      title: 'Could not revoke token',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      title: t('settings.integrations.revokeFailed'),
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -155,14 +144,17 @@ async function onRevoke(tokenId: string): Promise<void> {
   }
 }
 
-// ─────────── Claude Desktop config snippet ───────────
 // Uses the just-issued plaintext when available; otherwise a placeholder.
-// The MCP URL is derived from the running origin so localhost users see
-// `http://localhost:3000/mcp` and prod users see their domain.
-const mcpUrl = computed(() => {
-  if (!import.meta.client) return 'https://markoto.app/mcp'
-  return `${globalThis.location.origin}/mcp`
+// The MCP URL follows the address the page is opened on, so a self-hosted
+// instance shows its own domain. The server's view of the origin travels in
+// the payload (identical markup on both sides, no hydration mismatch); the
+// browser's own address replaces it after mount, because behind a
+// TLS-terminating proxy the server may see http where the browser has https.
+const pageOrigin = useState('integrations-origin', () => useRequestURL().origin)
+onMounted(() => {
+  pageOrigin.value = globalThis.location.origin
 })
+const mcpUrl = computed(() => `${pageOrigin.value}/mcp`)
 
 const configSnippet = computed(() => {
   const plaintext = justIssued.value?.token ?? '<paste-your-token-here>'
@@ -180,13 +172,13 @@ async function copySnippet(): Promise<void> {
   try {
     await navigator.clipboard.writeText(configSnippet.value)
     toast.add({
-      title: 'Config snippet copied',
+      title: t('settings.integrations.snippetCopied'),
       icon: 'i-lucide-check',
       color: 'neutral'
     })
   } catch {
     toast.add({
-      title: 'Could not copy — select and copy manually',
+      title: t('settings.integrations.copyFailed'),
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -194,9 +186,9 @@ async function copySnippet(): Promise<void> {
 }
 
 function fmtDate(iso: string | null): string {
-  if (!iso) return '—'
+  if (!iso) return '-'
   try {
-    return new Date(iso).toLocaleString(undefined, {
+    return new Date(iso).toLocaleString(locale.value, {
       year: 'numeric', month: 'short', day: 'numeric',
       hour: '2-digit', minute: '2-digit'
     })
@@ -206,7 +198,7 @@ function fmtDate(iso: string | null): string {
 }
 
 // Surface the litellm key id for debugging from the user object only when
-// it's actually meaningful — keeps the Vue compiler from complaining about
+// it's actually meaningful: keeps the Vue compiler from complaining about
 // `config` being unused.
 void config
 void user
@@ -221,7 +213,7 @@ void user
       variant="ghost"
       size="md"
       class="absolute top-4 right-4 z-10"
-      aria-label="Close"
+      :aria-label="t('common.close')"
       @click="onClose"
     />
 
@@ -231,14 +223,14 @@ void user
           /settings/integrations
         </p>
         <h1 class="font-serif text-3xl sm:text-4xl font-normal tracking-tight">
-          Integrations
+          {{ t('settings.integrations.title') }}
         </h1>
         <p class="text-sm text-muted mt-2">
-          Personal access tokens for external MCP clients — Claude Desktop, Cursor, ChatGPT app store, or your own scripts.
+          {{ t('settings.integrations.intro') }}
         </p>
       </header>
 
-      <!-- Just-issued banner. Plaintext is here ONCE — refresh wipes it forever. -->
+      <!-- Just-issued banner. Plaintext is here ONCE, refresh wipes it forever. -->
       <section
         v-if="justIssued"
         class="mb-8 border border-default rounded-lg px-4 py-4 bg-elevated"
@@ -247,10 +239,10 @@ void user
         <div class="flex items-start justify-between gap-3 mb-3">
           <div>
             <p class="font-serif text-base font-normal">
-              Token created — copy it now
+              {{ t('settings.integrations.createdTitle') }}
             </p>
             <p class="text-xs text-muted mt-1">
-              For security, this token is shown exactly once. We can't recover it for you. If you lose it, revoke and create a new one.
+              {{ t('settings.integrations.createdBody') }}
             </p>
           </div>
           <UButton
@@ -258,7 +250,7 @@ void user
             color="neutral"
             variant="ghost"
             size="xs"
-            aria-label="Dismiss"
+            :aria-label="t('ai.responseDismiss')"
             @click="dismissIssued"
           />
         </div>
@@ -275,7 +267,7 @@ void user
             size="sm"
             @click="copyToken"
           >
-            {{ justIssuedCopied ? 'Copied' : 'Copy' }}
+            {{ justIssuedCopied ? t('sso.copied') : t('settings.integrations.copy') }}
           </UButton>
         </div>
       </section>
@@ -286,7 +278,7 @@ void user
         data-testid="integrations-issue-section"
       >
         <h2 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-3">
-          Generate token
+          {{ t('settings.integrations.generateTitle') }}
         </h2>
         <div class="border border-default rounded-lg px-4 py-4">
           <form
@@ -295,7 +287,7 @@ void user
           >
             <UInput
               v-model="newName"
-              placeholder="e.g. Claude Desktop on laptop"
+              :placeholder="t('settings.integrations.namePlaceholder')"
               maxlength="80"
               class="flex-1"
               data-testid="new-token-name"
@@ -309,11 +301,11 @@ void user
               :disabled="!newName.trim() || issuing"
               data-testid="issue-token-button"
             >
-              Generate
+              {{ t('settings.integrations.generate') }}
             </UButton>
           </form>
           <p class="text-xs text-muted mt-3">
-            Tokens grant the same access as your account, scoped to read, write, knowledge, and web fetch.
+            {{ t('settings.integrations.scopesNote') }}
           </p>
         </div>
       </section>
@@ -324,7 +316,7 @@ void user
         data-testid="integrations-list-section"
       >
         <h2 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-3">
-          Active tokens
+          {{ t('settings.integrations.activeTitle') }}
         </h2>
         <div
           v-if="tokensLoading"
@@ -334,33 +326,33 @@ void user
             name="i-lucide-loader-2"
             class="size-4 animate-spin inline mr-2"
           />
-          Loading…
+          {{ t('common.loading') }}
         </div>
         <div
           v-else-if="tokens.length === 0"
           class="text-sm text-muted font-mono border border-default rounded-lg px-4 py-6 text-center"
         >
-          No tokens yet.
+          {{ t('settings.integrations.empty') }}
         </div>
         <ul
           v-else
           class="space-y-2"
         >
           <li
-            v-for="t in tokens"
-            :key="t.tokenId"
+            v-for="token in tokens"
+            :key="token.tokenId"
             class="border border-default rounded-lg px-4 py-3 flex items-center justify-between gap-3"
-            :data-testid="`token-row-${t.tokenId}`"
+            :data-testid="`token-row-${token.tokenId}`"
           >
             <div class="min-w-0 flex-1">
               <p class="font-serif text-base font-normal truncate">
-                {{ t.name }}
+                {{ token.name }}
               </p>
               <p class="text-xs text-muted font-mono mt-0.5">
-                created {{ fmtDate(t.createdAt) }} · last used {{ fmtDate(t.lastUsedAt) }}
+                {{ t('settings.integrations.createdLastUsed', { created: fmtDate(token.createdAt), lastUsed: fmtDate(token.lastUsedAt) }) }}
               </p>
               <p class="text-[10px] text-muted font-mono mt-0.5 uppercase tracking-wider">
-                {{ t.scopes.join(' · ') }}
+                {{ token.scopes.join(' · ') }}
               </p>
             </div>
             <UButton
@@ -368,12 +360,12 @@ void user
               color="error"
               variant="ghost"
               icon="i-lucide-trash-2"
-              :loading="revokingId === t.tokenId"
+              :loading="revokingId === token.tokenId"
               :disabled="revokingId !== null"
-              :data-testid="`revoke-${t.tokenId}`"
-              @click="onRevoke(t.tokenId)"
+              :data-testid="`revoke-${token.tokenId}`"
+              @click="onRevoke(token.tokenId)"
             >
-              Revoke
+              {{ t('settings.integrations.revoke') }}
             </UButton>
           </li>
         </ul>
@@ -385,12 +377,18 @@ void user
         data-testid="integrations-howto-section"
       >
         <h2 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-3">
-          Connect Claude Desktop
+          {{ t('settings.integrations.connectTitle') }}
         </h2>
         <div class="border border-default rounded-lg px-4 py-4">
           <p class="text-sm text-muted mb-3">
-            Add this block to your <code class="font-mono text-xs">claude_desktop_config.json</code>
-            (Settings → Developer → Edit Config).
+            <i18n-t
+              keypath="settings.integrations.connectBody"
+              scope="global"
+            >
+              <template #file>
+                <code class="font-mono text-xs">claude_desktop_config.json</code>
+              </template>
+            </i18n-t>
           </p>
           <div class="flex items-start gap-2">
             <pre
@@ -404,7 +402,7 @@ void user
               size="sm"
               @click="copySnippet"
             >
-              Copy
+              {{ t('settings.integrations.copy') }}
             </UButton>
           </div>
         </div>

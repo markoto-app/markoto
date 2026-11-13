@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid'
 import { resetDb } from '../integration/setup/db'
 import { createUser, createWorkspace, setMemberRole } from '../integration/setup/fixtures'
 import { DEFAULT_TIERS } from '../../shared/config/tiers'
+import { asUser, wsAs } from '../helpers/access'
 
 // Regression: the per-workspace inflight-upload counter was shared by all
 // members, so one editor requesting presigns (and never confirming) could
@@ -10,7 +11,7 @@ import { DEFAULT_TIERS } from '../../shared/config/tiers'
 // now hold at most half of the workspace's free slots.
 //
 // Real Valkey: the repos tier runs with TEST_MODE=1 (which bypasses the
-// limiters) — switched off for this file, like rateLimitAtomic.test.ts.
+// limiters): switched off for this file, like rateLimitAtomic.test.ts.
 
 class HttpError extends Error {
   statusCode: number
@@ -21,7 +22,7 @@ class HttpError extends Error {
 }
 vi.stubGlobal('createError', (opts: { statusCode: number, message: string }) => new HttpError(opts))
 
-const { reserveUploadSlot, memberShareOfWorkspaceSlots } = await import('../../server/utils/knowledgeQuota')
+const { reserveUploadSlot, memberShareOfWorkspaceSlots } = await import('../../server/utils/knowledge/knowledgeQuota')
 
 let savedTestMode: string | undefined
 beforeAll(() => {
@@ -52,18 +53,18 @@ describe('knowledge upload slots: per-member share of the workspace', () => {
     const held: Array<{ releaseSlots: () => Promise<void> }> = []
     try {
       for (let i = 0; i < share; i++) {
-        held.push(await reserveUploadSlot({ workspaceId: ws.workspaceId, userId: admin.id, size: 10 }))
+        held.push(await reserveUploadSlot({ ws: wsAs(ws.workspaceId), self: asUser(admin.id), size: 10 }))
       }
-      await expect(reserveUploadSlot({ workspaceId: ws.workspaceId, userId: admin.id, size: 10 }))
+      await expect(reserveUploadSlot({ ws: wsAs(ws.workspaceId), self: asUser(admin.id), size: 10 }))
         .rejects.toMatchObject({ statusCode: 409 })
 
-      held.push(await reserveUploadSlot({ workspaceId: ws.workspaceId, userId: editor.id, size: 10 }))
+      held.push(await reserveUploadSlot({ ws: wsAs(ws.workspaceId), self: asUser(editor.id), size: 10 }))
     } finally {
       for (const h of held) await h.releaseSlots()
     }
 
     // Released slots are usable again.
-    const again = await reserveUploadSlot({ workspaceId: ws.workspaceId, userId: admin.id, size: 10 })
+    const again = await reserveUploadSlot({ ws: wsAs(ws.workspaceId), self: asUser(admin.id), size: 10 })
     await again.releaseSlots()
   })
 })

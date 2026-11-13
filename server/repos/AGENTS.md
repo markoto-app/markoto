@@ -1,62 +1,27 @@
 # server/repos
 
-Drizzle-backed repositories. One file per table family — `documents.ts`, `users.ts`, `workspaces.ts`, `workspaceMembers.ts`, `uploads.ts`, `comments.ts`, `activity.ts`, `audit.ts`, `themes.ts`, `knowledge.ts`, `health.ts`, `accountDeletionRepo.ts`, `dataExportJobs.ts`, `consentLog.ts`, `abuseReports.ts`. Anything cross-table (e.g. cascading delete logic) lives in `server/utils/` and calls into multiple repos.
+The only code that talks to the database: Drizzle queries and parameterised raw SQL, one file per table family. Anything that spans several tables or calls S3 / Valkey / other services lives in `server/utils/<domain>/` and calls the repos. The layering is api / routes / plugins / mcp → utils → repos → `server/db/`; dependency-cruiser (`db-access-only-in-repos`) and ESLint (`markoto/data-access-boundaries`) refuse `drizzle-orm`, `pg` or `server/db/**` anywhere else. How proofs work and what they guarantee: `docs/SECURITY-HARDENING.md` → Tenancy.
 
-## Conventions
+## Proofs
 
-### One repo per table family
-A "family" is one logical owner — `documents.ts` owns `documents` + the meta projections HTTP endpoints expect; `workspaces.ts` owns the workspace row; `workspaceMembers.ts` owns membership-keyed queries because it's its own authz axis (admin-count, role lookups). When in doubt: if the new file has more than one shape of write into the same table, extend; if it pulls a third table into the join, the orchestration belongs in `server/utils/`.
+- A function that writes, deletes or returns tenant-private data takes a proof as its first parameter (`DocAccess<level>`, `WorkspaceAccess<level>`, `UserScope`, `AdminActor`, `SystemActor`; types from `./proofs`) and takes the object id FROM the proof (`doc.docId`, `ws.workspaceId`, `self.userId`). Never add a parallel `docId` / `userId` parameter for the same object.
+- Ask for the weakest level that is enough (`DocAccess<'view'>` for a read, `'write'` for content, `'manage'` for sharing, `'delete'` for removal). Implied levels are encoded in the type: a manage proof satisfies a view parameter.
+- Sub-resources (activity rows, comments, uploads, shares, knowledge files, brand assets, invites, templates, members) are addressed by their own id but constrained to the parent in the proof: `WHERE id = $id AND doc_id = ${doc.docId}`. A row of another document or workspace returns null / not found. Pinned by `tests/repos/tenancyIsolation.test.ts`.
+- Instance-wide reads and writes (sweepers, webhooks, the data export) take `SystemActor` / `AdminActor`, even when the parameter is unused (`_by`): the caller must say who it is.
+- Rows that belong to a user AND a document (AI conversation memory, AI session provenance) take the document proof and read the user from its actor (`proofActingUserId`): one proof names both ids. AI session rows are found and released only for their initiator (`UserScope`); the sweeper alone drops any (`SystemActor`).
+- A function that cannot take a proof is on the exemption list in `tests/unit/access/repoProofs.test.ts`, which fails for any other exported function without one. The reasons: authorization bootstrap (`access/`, the session's user row and epoch, OAuth sign-in, SSO sign-in lookups), the proof machinery, pure helpers, database plumbing, billing state keyed by the paying subject (`litellmKeys`, `litellmSpend`, `aiCreditGrants`, `plans`, subscriptions, the image quota: billing resolves that subject once from an authorized request or a named job, so a proof minted inside billing from the same id would check nothing), public-by-design reads (published pages, the custom-domain routing table, `docExists`) and the token-keyed waitlist. Add to it only with a reason that fits one of these.
+- `access/` holds the bootstrap reads authorization is decided FROM (role lookup, doc ACL row, PAT hash). They take bare ids by design and are importable only from `server/utils/access/**` and `server/utils/mcp/mcpAuth.ts`.
+- Never import `./proofs/mint` (access layer only) or `./proofs/testing` (tests only), and never cast to a proof type or pass an `any` / `never` value where one is expected (`markoto/no-proof-forgery`, `scripts/lint/proofRules.mjs`).
+- The audit actor comes from the proof: `appendAuditEvent({ by: proof, … })`.
 
-### Cross-doc isolation via tuple keys
-Every per-doc lookup that takes an externally-supplied id MUST be keyed on the `(id, docId)` tuple, not the id alone. `getActivityById(activityId, docId)` returns null for a row from doc B accessed via doc A's URL — closes the timing-oracle for "does activityId X exist on doc Y?". Same pattern across `/diff`, `/comment-context`, `/restore`. When adding a new per-doc resource (annotations, attachments, etc.), follow the same pattern; **don't take a bare id and trust the URL prefix.**
+## Rules
 
-### Domain errors at the repo boundary
-Repo functions return either a valid domain value or throw one of the classes in `errors.ts`:
-
-| Class | HTTP | When |
-|---|---|---|
-| `NotFoundError` | 404 | row missing |
-| `ForbiddenError` | 403 | caller authorised but action not allowed (e.g. last-admin demotion) |
-| `ConflictError` | 409 | state conflict (already exists, in-flight) |
-| `DuplicateError` extends ConflictError | 409 | uniqueness violation |
-| `LastAdminError` extends ConflictError | 409 | the workspace ≥1-admin invariant |
-| `ValidationError` | 400 | repo-level shape rejection |
-
-Endpoints catch these and translate via `toHttpError(e)` at the end of the handler, so individual endpoints no longer spell out "throw 404 if not found" for every operation. **Never throw an HTTP status from inside a repo, never leak a `pg` error code outward** — those details stop at the repo boundary.
-
-### Audit-log specifics
-`audit.ts` is append-only by convention: it exports no `update` or `delete`. The only legitimate way for a row to disappear is the `set null` FK on `actor_user_id` (when a user account is purged) or a manual DBA action. **Failures to write audit MUST NOT propagate** — the user's primary action (delete, role change, etc.) has already committed by the time the audit row is appended; failing the request because audit failed would surface a confusing error for an action that succeeded. `appendAuditEvent` swallows + Sentry-captures internally.
-
-`actor_ip` is truncated to /24 (IPv4) or /48 (IPv6) before storage to honour pseudonymisation under GDPR. Use the exported `truncateIp(ip)` helper at the call site rather than passing the raw IP — the repo trusts what it gets.
-
-### Drizzle import shape
-Repos import `useDatabase` from `../utils/database` and call it inline. Don't cache the handle at module scope — the pool is initialised lazily by the migrate plugin and module-scope caching breaks tests that swap the pool. `useDatabasePool()` is for low-level callers that need a `PoolClient` (advisory locks, sweep locks).
-
-Drizzle's node-postgres adapter returns Promises, not `.get()` / `.all()`. Use `(await db.select()...limit(1))[0]` for single-row reads. `import { and, eq, lt, sql } from 'drizzle-orm'` — predicates are tree-shaken so import only what you use.
-
-### Transaction passing
-`audit.ts` and `stripeWebhook.ts` set the precedent: when a repo function is called from within a `db.transaction(async tx => …)`, accept an optional `db?: DbOrTx` parameter and pass `tx` through so reads / writes commit atomically with the caller's other work. The dispatcher in `stripeWebhook.ts` wraps the whole event in one transaction so the dedup INSERT, user UPDATE, and stash-drain all commit together — without the optional parameter the helpers would auto-acquire a separate connection and break atomicity.
-
-When NOT to pass `tx`: bulk operations that are intentionally separate from the caller's txn (e.g. fire-and-forget audit appends from a sweeper). Default arg = global pool; pass `tx` only when atomicity is load-bearing.
-
-### Privacy / lifecycle repos
-
-`accountDeletionRepo.ts` exports the deletion-cascade primitives that `accountDeletionExecute.ts` orchestrates: `anonymiseCommentsByAuthor(userId)`, `promoteWorkspaceAdmin(workspaceId, fromUserId)` (picks the longest-tenured other admin deterministically), `nullActivityAttribution(userId)`, etc. Each one is a single-purpose write keyed on `userId` — the orchestrator composes them.
-
-`users.ts` adds the lifecycle helpers: `requestAccountDeletion`, `cancelAccountDeletion`, `getAccountStatus` (powers `useAccountStatus()`), `setAdminFlag` (paired with audit), `applyOnboardingAcceptance`, `applyDpaAcceptance`. The acceptance helpers write the `*_version_accepted` + `*_locale` pair in one update — don't split into two queries.
-
-`dataExportJobs.ts` exports the queue primitives: `enqueueExportJob`, `claimQueuedJob` (atomic `UPDATE … RETURNING` flipping `queued` → `processing`), `markJobReady` (writes `s3_key` + `expires_at`), `markJobFailed`, `markJobExpired`. **`claimQueuedJob` uses `tx.execute(sql\`...\`)`** for the atomic claim, which returns timestamps as strings — coerce with `toDate` / `toDateOrNull` on read. Drizzle's typed `select()` would coerce automatically; raw `execute` does not.
-
-`consentLog.ts` is append-only by convention (no `update`). Read paths return the latest row by `received_at` for a given `anon_id`.
-
-`waitlist.ts` owns `waitlist_signups` (paid-plans waitlist): `upsertWaitlistSignup` (`created` / `refreshed` — unconfirmed re-signup rotates both tokens / `unchanged` — already confirmed or lost a concurrent first insert; serialised with `SELECT … FOR UPDATE` + `ON CONFLICT DO NOTHING`), `confirmWaitlistSignup` (single-use, expiry-checked), `deleteWaitlistSignupByUnsubscribeToken`, `listWaitlistSignupsForUser` (export projection — never token hashes), `deleteExpiredUnconfirmedWaitlistSignups` (sweeper). Takes token HASHES only; hashing lives in `server/utils/waitlist.ts`.
-
-`abuseReports.ts` separates the public-write path (`createAbuseReport` — used by `/api/abuse-reports`) from the admin-read path (`listAbuseReports`, `getAbuseReportById` — both use `aliasedTable` to join the same `users` table twice for reporter + actioner). Status transitions go through `updateAbuseReportStatus` which also writes the audit row in the same transaction (atomicity matters: the status change is the audit-evidence).
-
-### Adding a new repo
-
-1. New table → new file. Mirror the existing import block (`drizzle-orm` predicates, `../db/schema`, `../utils/database`, `./errors`).
-2. **Always** project explicit columns on public read paths — never `select *`. `passwordHash` is the canonical "must never escape" but the rule extends to any future PII column.
-3. If the table is per-doc, write tuple-key helpers from day one. Backfilling tuple-key isolation later means auditing every consumer.
-4. If the table is append-only (audit, activity, history), don't export `update`/`delete` even if drizzle would let you. Make the API shape match the invariant.
-5. Domain errors via `errors.ts`; HTTP-shaping at the endpoint via `toHttpError`.
+- Extend the file that owns a table; a query that pulls a third table into a join usually belongs in `server/utils/`.
+- Project explicit columns on every read path that reaches a client. Never `select()` a whole `users` or `documents` row into a response.
+- Raw SQL only through Drizzle's `sql` template (values become parameters). Never build SQL by string concatenation.
+- Throw only the domain errors in `errors.ts` (`NotFoundError`, `ConflictError`, `DuplicateError`, `LastAdminError`); endpoints map them with `isRepoError(e)` / `instanceof` and `e.httpStatus`. Never throw an HTTP error from a repo, and never let a `pg` error code leak out.
+- Append-only tables (`audit.ts`) export no update helpers; only the retention sweep deletes audit rows (`deleteAuditEventsBefore`).
+- Call `useDatabase()` inside each function; never cache the handle at module scope (tests swap the pool). Use `useDatabasePool()` only when you need a `PoolClient`. LiteLLM's database has one pool, owned by `server/db/litellm.ts` and used only by `litellmSpend.ts`.
+- Transactions: callers outside the repos use `withTransaction(fn)` (`./transaction.ts`) and pass the opaque `TxHandle` it gives them to each repo call (an optional last parameter `tx?: TxHandle`). Inside a repo, run statements on `executor(tx)`; a repo that opens its own `db.transaction` hands it on with `asTxHandle(tx)`. That is the one mechanism for multi-repo atomic writes.
+- Raw `tx.execute(sql\`…\`)` returns timestamps as strings; coerce them (see `toDate` in `dataExportJobs.ts`). Typed `select()` does this for you.
+- Concurrency-sensitive check-then-write (quotas, seats, caps) runs in one transaction under `pg_advisory_xact_lock(hashtext(key))`, as in `uploads.ts`.

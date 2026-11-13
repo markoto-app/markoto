@@ -23,7 +23,7 @@ logs
 .env.*
 !.env.example
 
-# SQLite dev DB (auto-migrated on startup — never commit binary state)
+# SQLite dev DB (auto-migrated on startup: never commit binary state)
 /data/*.db
 /data/*.db-shm
 /data/*.db-wal
@@ -31,11 +31,11 @@ logs
 # Claude Code local scheduler state
 /.claude/
 
-# Vitest coverage reports — regenerated via `bun run test:coverage`
+# Vitest coverage reports: regenerated via `bun run test:coverage`
 /coverage/
 
 # Playwright per-run artifacts (traces, failure context, raw flow output).
-# Manifests + screenshots that the docs SHIP live in public/flows/ — those
+# Manifests + screenshots that the docs SHIP live in public/flows/: those
 # are committed. Per-run artifacts are not.
 /test-results/
 /playwright-report/
@@ -47,11 +47,14 @@ logs
 
 .mcp.json
 
-# OVH OpenStack credentials (contains OS_PASSWORD) — never commit
+# OVH OpenStack credentials (contains OS_PASSWORD): never commit
 openrc.sh
 *openrc*
 .env.staging-openrc
 .eslintcache
 
-# Managed private instance: the customer logo (docker-compose.selfhost.brand.yml)
+# Managed private instance: the customer logo (deploy/compose/compose.selfhost.brand.yml)
 /branding/
+
+__pycache__/
+*.pyc

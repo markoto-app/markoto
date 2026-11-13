@@ -2,18 +2,21 @@
 //
 // The system prompt's CRITICAL IMAGE RULE says to embed only URLs that a
 // tool returned or the user gave, but at temperature 0 Mistral still
-// skipped `generate_image` and wrote a made-up URL straight into the
+// skips `generate_image` and writes a made-up URL straight into the
 // document (`https://placehold.co/…`, an invented `api.files.markoto.app`
-// path — v0.2.4 release flow run). A prompt rule can't stop that, so the
-// loop enforces it: an edit may only ADD an image whose URL this session
-// has already seen — in the document, the user's prompt, or a tool result
+// path). A prompt rule can't stop that, so the loop enforces it: an edit may only ADD an image whose URL this session
+// has already seen: in the document, the user's prompt, or a tool result
 // (`generate_image` returns the stored `/api/files/…` path; `web_search`,
 // `fetch_url`, `view_other_document` and the knowledge tools return the
 // URLs they found). MCP clients are not affected: their own agent decides
 // what to embed, and this check lives in the in-editor loop only.
 
 /** Markdown image targets: `![alt](url)`, `![alt](<url>)`, `![alt](url "title")`. */
-const MARKDOWN_IMAGE_RE = /!\[[^\]]*\]\(\s*<?([^\s)>]+)>?(?:\s+"[^"]*")?\s*\)/g
+// Bounded runs: the text comes from documents and web pages, and with
+// unbounded `[^\]]*` / `\s+…\s*` every `![` without its `](…)` rescans the
+// rest of the text. Real alt texts, URLs and titles fit well inside.
+// eslint-disable-next-line security/detect-unsafe-regex -- every run is bounded (see above): linear in the text
+const MARKDOWN_IMAGE_RE = /!\[[^\]]{0,1000}\]\(\s{0,32}<?([^\s)>]{1,4096})>?(?:\s{1,32}"[^"]{0,1000}")?\s{0,32}\)/g
 
 /** Every image URL a Markdown snippet references, in order, de-duplicated. */
 export function markdownImageUrls(markdown: string): string[] {
@@ -25,12 +28,12 @@ export function markdownImageUrls(markdown: string): string[] {
   return [...urls]
 }
 
-export const UNSEEN_IMAGE_ERROR_PREFIX = 'Error: image URL not from this session'
+const UNSEEN_IMAGE_ERROR_PREFIX = 'Error: image URL not from this session'
 
 /**
  * Text this session has seen. An image URL is allowed when it occurs in
  * that text verbatim, so a URL can only come from the document, the
- * user, or a real tool result — never from the model's imagination.
+ * user, or a real tool result, never from the model's imagination.
  */
 export class ImageUrlProvenance {
   private readonly seen: string[] = []

@@ -5,7 +5,7 @@ import { defineComponent, h } from 'vue'
 import { NuxtPage } from '#components'
 import { MINIMAL_INSTANCE_CONFIG, type InstanceConfig } from '~~/shared/config/instance'
 
-// The product tour (WP11) replaces the home page's hero only for
+// The product tour replaces the home page's hero only for
 // LOGGED-OUT visitors on an instance with NUXT_MARKETING_SITE_ENABLED
 // (hosted markoto.app). Self-hosted instances and signed-in users keep
 // the plain hero + dashboard.
@@ -35,14 +35,14 @@ beforeEach(() => {
   session.loggedIn = false
 })
 
-describe('home page — product tour gate', () => {
+describe('home page: product tour gate', () => {
   it('shows the tour to logged-out visitors when the flag is on', async () => {
     setConfig({ marketingSite: true })
     const wrapper = await mountSuspended(HomeRoute, { route: '/' })
     const tour = wrapper.find('[data-testid="product-tour"]')
     expect(tour.exists()).toBe(true)
     expect(tour.find('h1').text()).toBe('Beautifully rendered Markdown.')
-    expect(tour.find('[data-testid="tour-start-writing"]').text()).toContain('Start writing — no sign-up')
+    expect(tour.find('[data-testid="tour-start-writing"]').text()).toContain('Start writing, no sign-up')
     // Every scene's copy is in the markup (SEO) as a real heading.
     const headings = tour.findAll('h2').map(h2 => h2.text())
     expect(headings).toContain('Write Markdown, get paged documents.')

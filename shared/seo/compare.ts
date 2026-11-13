@@ -93,13 +93,13 @@ function unique(values: string[]): string[] {
 }
 
 /** A markoto source: site paths link to the page, repository paths are shown as text. */
-export function markotoSourceLink(source: string): CompareSourceLink {
+function markotoSourceLink(source: string): CompareSourceLink {
   if (source.startsWith('/')) return { href: source, label: source, external: false }
   return { href: null, label: source, external: false }
 }
 
 /** A competitor source as a link, labelled without the scheme. */
-export function competitorSourceLink(source: string): CompareSourceLink {
+function competitorSourceLink(source: string): CompareSourceLink {
   return { href: source, label: source.replace(/^https?:\/\//, '').replace(/\/$/, ''), external: true }
 }
 

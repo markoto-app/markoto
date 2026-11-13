@@ -2,17 +2,23 @@
   "app": {
     "name": "markoto",
     "tagline": "Kollaborativer Markdown-Editor",
-    "offline": "Sie sind offline — Änderungen bleiben lokal, bis Sie wieder verbunden sind."
+    "offline": "Du bist offline: Änderungen bleiben lokal, bis du wieder verbunden bist.",
+    "update": {
+      "title": "Neue Version verfügbar",
+      "description": "Neuladen in 30 Sekunden.",
+      "reloadNow": "Jetzt neu laden",
+      "snooze": "5 Min. später"
+    }
   },
   "landing": {
     "hero": "Schön gesetztes {markdown}.",
     "heroMarkdown": "Markdown",
-    "subtitle": "Ein kollaborativer Markdown-Editor mit einer Live-Vorschau in echten Seiten. Sie schreiben reinen Text; das PDF entspricht der Vorschau Seite für Seite.",
+    "subtitle": "Ein kollaborativer Markdown-Editor mit einer Live-Vorschau in echten Seiten. Du schreibst reinen Text; das PDF entspricht der Vorschau Seite für Seite.",
     "newDocument": "Neues Dokument",
     "openDocument": "Dokument öffnen",
     "recentDocuments": "Zuletzt verwendete Dokumente",
     "noRecent": "Keine zuletzt verwendeten Dokumente",
-    "sharedWithYou": "Mit Ihnen geteilt"
+    "sharedWithYou": "Mit dir geteilt"
   },
   "auth": {
     "login": "Anmelden",
@@ -21,27 +27,26 @@
     "loginGoogle": "Mit Google fortfahren",
     "loginOidc": "Mit {provider} fortfahren",
     "oidcDefaultName": "Single Sign-on",
-    "loginUnavailable": "Die Anmeldung ist auf dieser Instanz nicht eingerichtet. Sie können Dokumente trotzdem anonym erstellen und bearbeiten.",
+    "loginUnavailable": "Die Anmeldung ist auf dieser Instanz nicht eingerichtet. Du kannst Dokumente trotzdem anonym erstellen und bearbeiten.",
     "loginRequired": "Anmeldung erforderlich",
     "linkedTitle": "Konten verknüpft",
-    "linkedDescription": "Ihre {provider}-Anmeldung ist jetzt mit Ihrem bestehenden Konto verbunden. Ab sofort können Sie sich mit beiden Anbietern anmelden.",
+    "linkedDescription": "Deine {provider}-Anmeldung ist jetzt mit deinem bestehenden Konto verbunden. Ab sofort kannst du dich mit beiden Anbietern anmelden.",
     "reauthTitle": "Erneut anmelden",
-    "reauthAction": "Erneut anmelden",
-    "reauthRequired": "Zu Ihrer Sicherheit erfordert diese Aktion eine kürzliche Anmeldung. Bitte melden Sie sich erneut an und versuchen Sie es noch einmal."
+    "reauthAction": "Erneut anmelden"
   },
   "editor": {
     "untitled": "Unbenannt",
     "titleInputAria": "Dokumenttitel",
-    "placeholder": "Beginnen Sie zu schreiben...",
+    "placeholder": "Beginne zu schreiben...",
     "syncAuthFailedTitle": "Sync-Server hat die Verbindung abgelehnt",
-    "syncAuthFailedDescription": "Normalerweise haben Sie hier Bearbeitungszugriff. Der Sync-Server hat den Handshake abgewiesen — wahrscheinlich ein IP-Ratenlimit oder ein veraltetes Token. Laden Sie neu, um es erneut zu versuchen.",
+    "syncAuthFailedDescription": "Normalerweise hast du hier Bearbeitungszugriff. Der Sync-Server hat den Handshake abgewiesen, wahrscheinlich ein IP-Ratenlimit oder ein veraltetes Token. Lade neu, um es erneut zu versuchen.",
     "syncAuthFailedReload": "Neu laden",
     "syncRejected": {
-      "title": "Ihre letzten Änderungen wurden nicht gespeichert",
-      "updateTooLarge": "Diese Änderung ist zu gross, um sie auf einmal zu synchronisieren. Laden Sie neu und fügen Sie den Inhalt in kleineren Teilen ein.",
-      "documentTooLarge": "Dieses Dokument hat seine maximale Grösse erreicht. Laden Sie neu und entfernen Sie Inhalt oder teilen Sie ihn auf mehrere Dokumente auf.",
-      "invalidMeta": "Eine Dokumenteinstellung (Titel, Theme oder Angaben) hatte einen Wert, den der Server nicht annehmen konnte. Laden Sie neu, um weiterzuarbeiten.",
-      "invalidUpdate": "Der Server konnte eine Änderung aus diesem Tab nicht verarbeiten. Laden Sie neu, um weiterzuarbeiten."
+      "title": "Deine letzten Änderungen wurden nicht gespeichert",
+      "updateTooLarge": "Diese Änderung ist zu gross, um sie auf einmal zu synchronisieren. Lade neu und füge den Inhalt in kleineren Teilen ein.",
+      "documentTooLarge": "Dieses Dokument hat seine maximale Grösse erreicht. Lade neu und entferne Inhalt oder teile ihn auf mehrere Dokumente auf.",
+      "invalidMeta": "Eine Dokumenteinstellung (Titel, Theme oder Angaben) hatte einen Wert, den der Server nicht annehmen konnte. Lade neu, um weiterzuarbeiten.",
+      "invalidUpdate": "Der Server konnte eine Änderung aus diesem Tab nicht verarbeiten. Lade neu, um weiterzuarbeiten."
     },
     "bold": "Fett",
     "italic": "Kursiv",
@@ -64,7 +69,16 @@
     "horizontalRule": "Horizontale Linie",
     "pageBreak": "Seitenumbruch",
     "table": "Tabelle",
-    "hideFromPreview": "Unsichtbar machen (aus der Vorschau ausblenden)"
+    "hideFromPreview": "Unsichtbar machen (aus der Vorschau ausblenden)",
+    "footer": {
+      "words": "Wort | Wörter",
+      "pages": "Seite | Seiten",
+      "chars": "Zeichen | Zeichen",
+      "readOnly": "schreibgeschützt"
+    },
+    "previewReloadHint": "Lade die Seite neu, um es erneut zu versuchen.",
+    "previewFailed": "Vorschau konnte nicht geladen werden.",
+    "previewFrameTitle": "Dokumentvorschau"
   },
   "previewZoom": {
     "menu": "Zoom",
@@ -90,7 +104,7 @@
     "systemShare": "Über System teilen…",
     "qrCode": "QR-Code anzeigen",
     "accessMode": "Zugriffsmodus",
-    "private": "Privat — nur Sie",
+    "private": "Privat: nur du",
     "openEdit": "Jeder kann bearbeiten",
     "openView": "Jeder kann ansehen",
     "passwordProtected": "Passwortgeschützt",
@@ -98,9 +112,9 @@
     "passwordPlaceholder": "Passwort eingeben...",
     "passwordMinLength": "Mindestens {min} Zeichen",
     "passwordRequired": "Passwort erforderlich",
-    "passwordRequiredDesc": "Dieses Dokument ist geschützt. Geben Sie das Passwort ein, um fortzufahren.",
+    "passwordRequiredDesc": "Dieses Dokument ist geschützt. Gib das Passwort ein, um fortzufahren.",
     "enterPassword": "Passwort",
-    "invalidPassword": "Falsches Passwort. Bitte versuchen Sie es erneut.",
+    "invalidPassword": "Falsches Passwort. Bitte versuche es erneut.",
     "unlock": "Entsperren",
     "viewOnly": "Nur ansehen",
     "guests": {
@@ -117,7 +131,7 @@
     "controls": {
       "title": "Link-Einstellungen",
       "expires": "Link funktioniert bis",
-      "expiresHelp": "Danach können nur noch Sie und die Mitglieder des Workspace das Dokument öffnen. Leer lassen, damit der Link weiter funktioniert.",
+      "expiresHelp": "Danach können nur noch du und die Mitglieder des Workspace das Dokument öffnen. Leer lassen, damit der Link weiter funktioniert.",
       "clearExpiry": "Enddatum entfernen",
       "noDownload": "Nur ansehen – kein Download, kein Druck",
       "noDownloadHelp": "Personen mit dem Link können das Dokument lesen, aber nicht als PDF oder Markdown herunterladen oder drucken. Text auf dem Bildschirm lässt sich weiterhin kopieren.",
@@ -126,15 +140,15 @@
       "saveFailed": "Link-Einstellungen konnten nicht geändert werden",
       "downloadDisabled": "Die Eigentümerin oder der Eigentümer hat Download und Druck dieses Dokuments deaktiviert.",
       "expiredTitle": "Dieser Link ist abgelaufen",
-      "expiredBody": "Die Eigentümerin oder der Eigentümer hat diesen Link befristet. Bitten Sie um Zugriff, falls Sie das Dokument weiterhin benötigen."
+      "expiredBody": "Die Eigentümerin oder der Eigentümer hat diesen Link befristet. Bitte um Zugriff, falls du das Dokument weiterhin benötigst."
     }
   },
   "access": {
     "privateTitle": "Dieses Dokument ist privat",
-    "privateDescLoggedIn": "Nur der Eigentümer kann dieses Dokument öffnen. Wenn Sie glauben, dass Sie Zugriff haben sollten, bitten Sie ihn, die Freigabeeinstellungen zu ändern.",
-    "privateDescAnon": "Nur der Eigentümer kann dieses Dokument öffnen. Wenn Sie Zugriff haben, melden Sie sich an, um fortzufahren.",
+    "privateDescLoggedIn": "Nur der Eigentümer kann dieses Dokument öffnen. Wenn du glaubst, dass du Zugriff haben solltest, bitte ihn, die Freigabeeinstellungen zu ändern.",
+    "privateDescAnon": "Nur der Eigentümer kann dieses Dokument öffnen. Wenn du Zugriff hast, melde dich an, um fortzufahren.",
     "notFoundTitle": "Dokument nicht gefunden",
-    "notFoundDesc": "Dieses Dokument existiert nicht oder wurde gelöscht. Überprüfen Sie den Link oder kehren Sie zur Startseite zurück, um ein neues zu erstellen.",
+    "notFoundDesc": "Dieses Dokument existiert nicht oder wurde gelöscht. Überprüfe den Link oder kehre zur Startseite zurück, um ein neues zu erstellen.",
     "backHome": "Zurück zur Startseite"
   },
   "presence": {
@@ -189,18 +203,18 @@
     "restore": {
       "button": {
         "label": "Wiederherstellen",
-        "tooltip": "Das Dokument auf diesen Stand wiederherstellen. Umkehrbar — Sie können über das Aktivitätsprotokoll zurückkehren."
+        "tooltip": "Das Dokument auf diesen Stand wiederherstellen. Umkehrbar: du kannst über das Aktivitätsprotokoll zurückkehren."
       },
       "confirm": {
         "title": "Dokument wiederherstellen?",
         "body": "Das Dokument wird auf den Stand von {when} zurückgesetzt. Seitdem vorgenommene Änderungen werden entfernt (bleiben aber über das Aktivitätsprotokoll wiederherstellbar).",
-        "reversibleHint": "Diese Wiederherstellung ist selbst umkehrbar — Sie können jederzeit zum aktuellen Stand zurückkehren.",
+        "reversibleHint": "Diese Wiederherstellung ist selbst umkehrbar: du kannst jederzeit zum aktuellen Stand zurückkehren.",
         "cta": "Wiederherstellen"
       },
       "success": "Dokument wiederhergestellt.",
       "error": {
-        "unauthorized": "Sie haben keinen Bearbeitungszugriff auf dieses Dokument.",
-        "unavailable": "Kann von dieser Zeile nicht wiederherstellen — sie stammt aus der Zeit vor der Wiederherstellungsfunktion.",
+        "unauthorized": "Du hast keinen Bearbeitungszugriff auf dieses Dokument.",
+        "unavailable": "Kann von dieser Zeile nicht wiederherstellen: Sie stammt aus der Zeit vor der Wiederherstellungsfunktion.",
         "notFound": "Diese Aktivitätszeile existiert für dieses Dokument nicht.",
         "generic": "Wiederherstellung fehlgeschlagen. Das Dokument bleibt unverändert."
       }
@@ -220,7 +234,7 @@
       "unavailable": "Diff für diese Zeile nicht verfügbar.",
       "error": "Diff konnte nicht geladen werden.",
       "retry": "Erneut versuchen",
-      "truncated": "{shown} von {total} Abschnitten werden angezeigt — Diff gekürzt."
+      "truncated": "{shown} von {total} Abschnitten werden angezeigt: Diff gekürzt."
     },
     "commentContext": {
       "view": "Thread anzeigen",
@@ -237,14 +251,16 @@
       "sourcesHeading": "Quellen",
       "noSources": "Keine Quellen aufgetaucht.",
       "imageInDoc": "Das generierte Bild wurde in das Dokument eingefügt.",
-      "knowledgeNote": "Workspace-Wissensfunktion."
-    }
+      "knowledgeNote": "Workspace-Wissensfunktion.",
+      "openViewedImage": "Angesehenes Bild in neuem Tab öffnen"
+    },
+    "viaAgent": "über {agent}"
   },
   "comments": {
     "title": "Kommentare",
     "addLabel": "Kommentar hinzufügen",
     "addAria": "Einen Kommentar zur Auswahl hinzufügen",
-    "empty": "Noch keine Kommentare. Markieren Sie Text und klicken Sie auf die Kommentar-Schaltfläche.",
+    "empty": "Noch keine Kommentare. Markiere Text und klicke auf die Kommentar-Schaltfläche.",
     "post": "Absenden",
     "cancel": "Abbrechen",
     "reply": "Antworten",
@@ -259,39 +275,42 @@
     "activeSection": "Aktiv",
     "orphanedSection": "Aus Dokument entfernt",
     "orphanedHint": "Der Text, an dem dieser Kommentar hing, wurde gelöscht.",
+    "showInDocument": "Im Dokument anzeigen",
     "resolvedSection": "Aufgelöst",
     "composerPlaceholder": "Kommentar hinzufügen…",
     "replyPlaceholder": "Antworten…",
-    "selectTextFirst": "Markieren Sie Text im Editor, um einen Kommentar zu beginnen.",
+    "selectTextFirst": "Markiere Text im Editor, um einen Kommentar zu beginnen.",
     "draftHeading": "Neuer Kommentar",
-    "mentionTrigger": "Geben Sie {'@'} ein, um ein Workspace-Mitglied zu erwähnen",
+    "mentionTrigger": "Gib {'@'} ein, um ein Workspace-Mitglied zu erwähnen",
     "submitHint": "{cmd}+Enter  zum Absenden  ·  Esc  zum Abbrechen",
     "anonymous": "Anonym",
     "aiEntryName": "markoto",
-    "aiEntryDescription": "Bitten Sie markoto, in diesem Thread tätig zu werden",
+    "aiEntryDescription": "Bitte markoto, in diesem Thread tätig zu werden",
     "aiMentionTooltip": "Die Erwähnung von {'@'}markoto bittet markoto, in diesem Thread zu antworten.",
-    "aiMentionHint": "Tipp: Erwähnen Sie {'@'}markoto in einem Kommentar, um markoto darum zu bitten, tätig zu werden.",
+    "aiMentionHint": "Tipp: Erwähne {'@'}markoto in einem Kommentar, um markoto darum zu bitten, tätig zu werden.",
     "aiResponding": "markoto antwortet…",
     "aiTriggerFailed": "markoto konnte für diesen Thread nicht erreicht werden.",
-    "aiTriggerExhausted": "Kontingent aufgebraucht — führen Sie ein Upgrade durch, um markoto aus Kommentaren heraus zu fragen."
+    "aiTriggerExhausted": "Kontingent aufgebraucht: Führe ein Upgrade durch, um markoto aus Kommentaren heraus zu fragen.",
+    "hintPost": "senden",
+    "hintCancel": "abbrechen",
+    "notificationFallbackTitle": "Neue Antwort"
   },
   "image": {
-    "loginToUpload": "Bitte melden Sie sich an, um Bilder hochzuladen.",
+    "loginToUpload": "Bitte melde dich an, um Bilder hochzuladen.",
     "uploadFailed": "Bild-Upload fehlgeschlagen",
     "dropToUpload": "Bild zum Hochladen ablegen",
-    "uploading": "Wird hochgeladen...",
-    "storageQuotaReached": "Du hast dein Speicherlimit für Bilder erreicht. Bilder, die du aus deinen Dokumenten entfernst, geben Platz frei, sobald sie bereinigt werden."
+    "uploading": "Wird hochgeladen..."
   },
   "import": {
     "title": "Dokument importieren",
-    "description": "Konvertieren Sie eine Datei in Markdown und laden Sie sie in den Editor.",
+    "description": "Konvertiere eine Datei in Markdown und lade sie in den Editor.",
     "selectFile": "Klicken, um eine Datei auszuwählen",
     "changeFile": "Eine andere Datei wählen",
     "formats": "Unterstützt: Markdown, DOCX, PDF, PPTX, XLSX, XLS, HTML, EPUB",
     "import": "Importieren",
-    "error": "Import fehlgeschlagen. Bitte versuchen Sie eine andere Datei.",
+    "error": "Import fehlgeschlagen. Bitte versuche eine andere Datei.",
     "conflictTitle": "Dokument enthält bereits Inhalt",
-    "conflictDesc": "Wie möchten Sie mit dem importierten Inhalt umgehen?",
+    "conflictDesc": "Wie möchtest du mit dem importierten Inhalt umgehen?",
     "replace": "Alles ersetzen",
     "append": "Anhängen",
     "applyProperties": "Auch Theme und Dokumenteinstellungen aus der Datei übernehmen",
@@ -307,22 +326,22 @@
   },
   "newDoc": {
     "title": "Neues Dokument",
-    "subtitle": "Geben Sie ihm einen Namen und legen Sie los. Vorlage und Details sind optional — jetzt oder jederzeit später änderbar.",
+    "subtitle": "Gib ihm einen Namen und lege los. Vorlage und Details sind optional: jetzt oder jederzeit später änderbar.",
     "titleLabel": "Titel",
     "titlePlaceholder": "z. B. Q3-Launch-Plan",
     "descriptionLabel": "Beschreibung",
-    "descriptionHelp": "Eine Zeile darüber, was Sie schreiben. Die KI sieht dies bei jedem Zug.",
+    "descriptionHelp": "Eine Zeile darüber, was du schreibst. Die KI sieht dies bei jedem Zug.",
     "descriptionPlaceholder": "Worum geht es in diesem Dokument?",
     "languageLabel": "Sprache",
     "audienceLabel": "Zielgruppe",
     "themeWorkspaceDefault": "Workspace-Standard",
-    "templateHelp": "Eine Vorlage ist ein Anfangstext in einem passenden Design. Die grauen Kommentare im Text sagen, was wohin gehört; Vorschau und PDF zeigen sie nicht. Das Design ändern Sie jederzeit im Theme-Panel.",
+    "templateHelp": "Eine Vorlage ist ein Anfangstext in einem passenden Design. Die grauen Kommentare im Text sagen, was wohin gehört; Vorschau und PDF zeigen sie nicht. Das Design änderst du jederzeit im Theme-Panel.",
     "create": "Dokument erstellen",
     "sections": {
       "template": "Vorlage",
       "details": "Details"
     },
-    "detailsHelp": "Damit die KI passend für Sie schreibt: worum es geht, in welcher Sprache und in welchem Ton.",
+    "detailsHelp": "Damit die KI passend für dich schreibt: worum es geht, in welcher Sprache und in welchem Ton.",
     "designTabs": {
       "all": "Alle",
       "engineering": "Technik",
@@ -333,7 +352,7 @@
       "workspace": "Dieser Arbeitsbereich"
     },
     "blankIn": "Leer in {design}",
-    "blankWorkspaceDescription": "Eine leere Seite im Design Ihres Workspace: {design}."
+    "blankWorkspaceDescription": "Eine leere Seite im Design deines Workspace: {design}."
   },
   "templates": {
     "demo": {
@@ -342,7 +361,7 @@
     },
     "blank": {
       "label": "Leer",
-      "description": "Eine leere Seite. Alles Weitere bringen Sie mit."
+      "description": "Eine leere Seite. Alles Weitere bringst du mit."
     },
     "resume": {
       "label": "Lebenslauf",
@@ -425,14 +444,14 @@
     "title": "Dokument",
     "description": {
       "label": "Beschreibung",
-      "help": "Eine Zeile darüber, was dieses Dokument ist. Die KI sieht dies bei jedem Zug — so weiss das Modell, woran Sie arbeiten, ohne dass Sie es erneut eintippen müssen.",
+      "help": "Eine Zeile darüber, was dieses Dokument ist. Die KI sieht dies bei jedem Zug: So weiss das Modell, woran du arbeitest, ohne dass du es erneut eintippen musst.",
       "placeholder": "z. B. Q3-Launch-Plan für die neue mobile App"
     },
     "language": {
       "label": "Sprache",
-      "help": "Legt die Sprache fest, in der markoto schreibt. Wählen Sie eine Voreinstellung oder geben Sie einen beliebigen Sprachnamen ein.",
+      "help": "Legt die Sprache fest, in der markoto schreibt. Wähle eine Voreinstellung oder gib einen beliebigen Sprachnamen ein.",
       "placeholder": "Sprache wählen oder eingeben (z. B. Rätoromanisch, Schwiizerdütsch)",
-      "customActive": "Ihre eingegebene Sprache wird verwendet. Wählen Sie eine Voreinstellung, um zurückzuwechseln."
+      "customActive": "Deine eingegebene Sprache wird verwendet. Wähle eine Voreinstellung, um zurückzuwechseln."
     },
     "audience": {
       "label": "Zielgruppe",
@@ -486,7 +505,10 @@
     "loading": "Wird geladen...",
     "menu": "Menü",
     "docs": "Doku",
-    "documentation": "Dokumentation"
+    "documentation": "Dokumentation",
+    "homeLinkLabel": "markoto Startseite",
+    "dragToClose": "Zum Schliessen ziehen",
+    "copyFailed": "Kopieren fehlgeschlagen. Markiere den Text und kopiere ihn manuell."
   },
   "menu": {
     "lightMode": "Heller Modus",
@@ -555,7 +577,8 @@
       "github": "Auf GitHub ansehen",
       "docs": "Dokumentation",
       "tour": "Rundgang starten"
-    }
+    },
+    "label": "Menüleiste"
   },
   "ai": {
     "workingGeneric": "markoto arbeitet…",
@@ -590,67 +613,81 @@
     "statusDone": "Fertig",
     "otherSessions": "{n} weitere Sitzung | {n} weitere Sitzungen",
     "helpingTooltip": "markoto hilft {name}",
-    "alreadyRunning": "Sie haben bereits eine markoto-Sitzung für dieses Dokument laufen.",
-    "rateLimited": "Zu viele Anfragen. Versuchen Sie es in einer Minute erneut.",
+    "alreadyRunning": "Du hast bereits eine markoto-Sitzung für dieses Dokument laufen.",
+    "rateLimited": "Zu viele Anfragen. Versuche es in einer Minute erneut.",
     "failed": "markoto konnte nicht erreicht werden",
     "micStart": "Spracheingabe starten",
-    "micBlocked": "Mikrofon blockiert — aktivieren Sie es in Ihren Browser-Einstellungen",
+    "micBlocked": "Mikrofon blockiert: Aktiviere es in deinen Browser-Einstellungen",
     "micStop": "Stoppen und senden",
     "micCancel": "Spracheingabe abbrechen",
     "micRequestingPermission": "Warten auf Mikrofon…",
     "micTranscribing": "Wird transkribiert…",
     "micInaudibleTitle": "Nicht verstanden",
-    "micInaudibleDescription": "Die Aufnahme war still oder unverständlich. Versuchen Sie es erneut.",
+    "micInaudibleDescription": "Die Aufnahme war still oder unverständlich. Versuche es erneut.",
     "micErrorTitle": "Spracheingabe fehlgeschlagen",
     "dictateStart": "Diktat starten",
     "dictateStop": "Diktat stoppen",
     "dictateConnecting": "Verbindung wird hergestellt…",
     "dictateListening": "Hört zu…",
     "dictateBudgetExhaustedTitle": "Tägliches Diktatbudget erreicht",
-    "dictateBudgetExhaustedDescription": "Sie haben die Diktatminuten dieses Tages aufgebraucht. Versuchen Sie es morgen erneut.",
+    "dictateBudgetExhaustedDescription": "Du hast die Diktatminuten dieses Tages aufgebraucht. Versuche es morgen erneut.",
     "dictateSessionCapTitle": "Diktatsitzung beendet",
-    "dictateSessionCapDescription": "Sitzungen sind auf 10 Minuten begrenzt. Starten Sie eine neue, um fortzufahren.",
+    "dictateSessionCapDescription": "Sitzungen sind auf 10 Minuten begrenzt. Starte eine neue, um fortzufahren.",
     "dictateIdleTitle": "Diktat pausiert",
-    "dictateIdleDescription": "30 Sekunden lang kein Ton — Diktat gestoppt.",
+    "dictateIdleDescription": "30 Sekunden lang kein Ton: Diktat gestoppt.",
     "dictateErrorTitle": "Diktat fehlgeschlagen",
     "budgetExhaustedTitle": "Keine KI-Credits mehr",
-    "budgetExhaustedDescription": "Sie haben alle Ihre KI-Credits für diesen Abrechnungszeitraum aufgebraucht. Führen Sie ein Upgrade durch, um weiterzumachen.",
-    "exhaustedPlaceholder": "Keine KI-Credits mehr — für Fortsetzung upgraden",
+    "budgetExhaustedDescription": "Du hast alle deine KI-Credits für diesen Abrechnungszeitraum aufgebraucht. Führe ein Upgrade durch, um weiterzumachen.",
+    "exhaustedPlaceholder": "Keine KI-Credits mehr: für Fortsetzung upgraden",
     "workspaceBudgetExhaustedTitle": "Workspace-KI-Budget aufgebraucht",
-    "workspaceBudgetExhaustedDescription": "Das KI-Budget dieses Arbeitsbereichs ist für diesen Monat aufgebraucht. Bitten Sie einen Admin, Plätze oder Guthaben hinzuzufügen.",
-    "workspaceExhaustedPlaceholder": "KI-Budget des Arbeitsbereichs aufgebraucht – fragen Sie einen Admin",
+    "workspaceBudgetExhaustedDescription": "Das KI-Budget dieses Arbeitsbereichs ist für diesen Monat aufgebraucht. Bitte einen Admin, Plätze oder Guthaben hinzuzufügen.",
+    "workspaceExhaustedPlaceholder": "KI-Budget des Arbeitsbereichs aufgebraucht – frage einen Admin",
     "upgradeCta": "Upgrade",
     "remainingLabel": "{remaining} von {limit} KI-Credits diesen Monat verbleibend",
     "responseLabel": "markoto sagt",
     "responseQuestionLabel": "markoto fragt",
     "responseDismiss": "Verwerfen",
     "responseShowLast": "Letzte Antwort von markoto",
-    "errors": {
-      "duplicateSession": "Sie haben bereits eine markoto-Sitzung für dieses Dokument laufen.",
-      "abortNotInitiator": "Nur die Person, die diese markoto-Sitzung gestartet hat, kann sie stoppen."
-    },
-    "exhaustedPlaceholderFree": "Keine KI-Credits mehr — sie werden in der nächsten Periode aufgefüllt",
-    "budgetExhaustedResetDescription": "Sie haben alle KI-Credits für diese Periode verbraucht. Sie werden zu Beginn der nächsten Periode wieder aufgefüllt.",
-    "webToolsHourlyLimit": "Sie haben das stündliche Limit für Websuche und Seitenabruf erreicht. Versuchen Sie es innerhalb der nächsten Stunde erneut oder arbeiten Sie ohne Web-Werkzeuge weiter.",
-    "webToolsDailyLimit": "Sie haben das Tageslimit für Websuche und Seitenabruf erreicht. Versuchen Sie es morgen erneut oder arbeiten Sie ohne Web-Werkzeuge weiter.",
-    "budgetExhaustedComingSoonDescription": "Sie haben alle KI-Credits für diese Periode verbraucht. Sie werden zu Beginn der nächsten Periode wieder aufgefüllt — Bezahlpläne mit mehr Credits folgen in Kürze.",
+    "exhaustedPlaceholderFree": "Keine KI-Credits mehr: Sie werden in der nächsten Periode aufgefüllt",
+    "budgetExhaustedResetDescription": "Du hast alle KI-Credits für diese Periode verbraucht. Sie werden zu Beginn der nächsten Periode wieder aufgefüllt.",
+    "webToolsHourlyLimit": "Du hast das stündliche Limit für Websuche und Seitenabruf erreicht. Versuche es innerhalb der nächsten Stunde erneut oder arbeite ohne Web-Werkzeuge weiter.",
+    "webToolsDailyLimit": "Du hast das Tageslimit für Websuche und Seitenabruf erreicht. Versuche es morgen erneut oder arbeite ohne Web-Werkzeuge weiter.",
+    "budgetExhaustedComingSoonDescription": "Du hast alle KI-Credits für diese Periode verbraucht. Sie werden zu Beginn der nächsten Periode wieder aufgefüllt: Bezahlpläne mit mehr Credits folgen in Kürze.",
     "freeAllowanceExhaustedTitle": "Kostenloses KI-Kontingent aufgebraucht",
-    "freeAllowanceExhausted": "Das kostenlose KI-Kontingent für diesen Monat ist aufgebraucht. Hinterlegen Sie unter Einstellungen → KI-Anbieter Ihren eigenen Schlüssel, um weiterzumachen.",
+    "freeAllowanceExhausted": "Das kostenlose KI-Kontingent für diesen Monat ist aufgebraucht. Hinterlege unter Einstellungen → KI-Anbieter deinen eigenen Schlüssel, um weiterzumachen.",
     "freeAllowanceCta": "Eigenen Schlüssel hinterlegen",
-    "freeAllowanceExhaustedPlaceholder": "Das kostenlose KI-Kontingent für diesen Monat ist aufgebraucht – hinterlegen Sie Ihren eigenen Schlüssel",
-    "memberLimitReachedTitle": "Ihr KI-Limit ist erreicht",
-    "memberLimitReachedDescription": "Sie haben Ihr KI-Limit in diesem Arbeitsbereich für diesen Monat aufgebraucht. Bitten Sie einen Admin des Arbeitsbereichs, es zu erhöhen.",
-    "memberLimitPlaceholder": "Ihr KI-Limit hier ist aufgebraucht – fragen Sie einen Admin",
-    "teamBudgetExhausted": "Das KI-Budget dieses Arbeitsbereichs ist für diesen Monat aufgebraucht. Bitten Sie einen Admin, Plätze oder Guthaben hinzuzufügen.",
-    "memberLimitReached": "Sie haben Ihr KI-Limit in diesem Arbeitsbereich für diesen Monat erreicht. Bitten Sie einen Admin, es zu erhöhen.",
+    "freeAllowanceExhaustedPlaceholder": "Das kostenlose KI-Kontingent für diesen Monat ist aufgebraucht – hinterlege deinen eigenen Schlüssel",
+    "memberLimitReachedTitle": "Dein KI-Limit ist erreicht",
+    "memberLimitReachedDescription": "Du hast dein KI-Limit in diesem Arbeitsbereich für diesen Monat aufgebraucht. Bitte einen Admin des Arbeitsbereichs, es zu erhöhen.",
+    "memberLimitPlaceholder": "Dein KI-Limit hier ist aufgebraucht – frage einen Admin",
+    "teamBudgetExhausted": "Das KI-Budget dieses Arbeitsbereichs ist für diesen Monat aufgebraucht. Bitte einen Admin, Plätze oder Guthaben hinzuzufügen.",
+    "memberLimitReached": "Du hast dein KI-Limit in diesem Arbeitsbereich für diesen Monat erreicht. Bitte einen Admin, es zu erhöhen.",
     "locked": {
       "aiVoice": "Spracheingabe ist in diesem Plan nicht enthalten",
       "aiImage": "Bildgenerierung ist in diesem Plan nicht enthalten",
-      "askAdmin": "Fragen Sie einen Admin des Arbeitsbereichs nach dessen Plan, oder verwenden Sie Ihren eigenen Anbieter-Schlüssel.",
-      "upgrade": "Upgraden Sie auf Pro, oder verwenden Sie Ihren eigenen Anbieter-Schlüssel.",
-      "comingSoon": "Das kommt mit den bezahlten Plänen, die bald verfügbar sind. Mit Ihrem eigenen Anbieter-Schlüssel geht es schon jetzt.",
-      "operator": "Diese Instanz bietet das für Ihr Konto nicht an. Sie können Ihren eigenen Anbieter-Schlüssel verwenden.",
+      "askAdmin": "Frage einen Admin des Arbeitsbereichs nach dessen Plan, oder verwende deinen eigenen Anbieter-Schlüssel.",
+      "upgrade": "Wechsle auf Pro, oder verwende deinen eigenen Anbieter-Schlüssel.",
+      "comingSoon": "Das kommt mit den bezahlten Plänen, die bald verfügbar sind. Mit deinem eigenen Anbieter-Schlüssel geht es schon jetzt.",
+      "operator": "Diese Instanz bietet das für dein Konto nicht an. Du kannst deinen eigenen Anbieter-Schlüssel verwenden.",
       "ownKey": "Eigenen Schlüssel hinzufügen"
+    },
+    "voiceErrors": {
+      "transcription": "Transkriptionsfehler.",
+      "dictationConnection": "Verbindungsfehler beim Diktieren.",
+      "micDenied": "Mikrofonzugriff verweigert.",
+      "micNotFound": "Kein Mikrofon gefunden.",
+      "micAccess": "Auf das Mikrofon konnte nicht zugegriffen werden.",
+      "streamUnavailable": "Mikrofon-Stream nicht verfügbar.",
+      "pipeline": "Audio-Pipeline konnte nicht gestartet werden.",
+      "sampleRate": "Dein Browser hat Audio mit {rate} Hz erzwungen; das Diktieren braucht 16000 Hz.",
+      "unsupportedVoice": "Spracheingabe wird in diesem Browser nicht unterstützt.",
+      "unsupportedRecording": "Audioaufnahme wird in diesem Browser nicht unterstützt.",
+      "recorderStart": "Aufnahme konnte nicht gestartet werden.",
+      "recordingFailed": "Aufnahme fehlgeschlagen.",
+      "stopFailed": "Aufnahme konnte nicht beendet werden.",
+      "noAudio": "Es wurde kein Audio aufgenommen.",
+      "tooShort": "Die Aufnahme war zu kurz.",
+      "encodeFailed": "Audio konnte nicht kodiert werden."
     }
   },
   "mobileTabBar": {
@@ -687,9 +724,9 @@
   },
   "pricing": {
     "title": "Preise",
-    "subtitle": "Wählen Sie den passenden Tarif. Tarife legen Ihre Limits fest: KI-Punkte, Workspaces und Speicher. KI über Ihren eigenen Anbieterschlüssel ist durch keinen Tarif begrenzt.",
-    "metaDescription": "markoto-Tarife im Vergleich: KI-Punkte, Workspaces und Speicher pro Tarif. KI über Ihren eigenen Anbieterschlüssel ist nie begrenzt.",
-    "creditsHint": "KI-Punkte decken KI ab, die die Instanz bezahlt: 1000 Punkte = 1 $ Modellnutzung. KI über Ihren eigenen Anbieterschlüssel rechnet Ihr Anbieter ab; sie verbraucht keine Punkte.",
+    "subtitle": "Wähle den passenden Tarif. Tarife legen deine Limits fest: KI-Punkte, Workspaces und Speicher. KI über deinen eigenen Anbieterschlüssel ist durch keinen Tarif begrenzt.",
+    "metaDescription": "markoto-Tarife im Vergleich: KI-Punkte, Workspaces und Speicher pro Tarif. KI über deinen eigenen Anbieterschlüssel ist nie begrenzt.",
+    "creditsHint": "KI-Punkte decken KI ab, die die Instanz bezahlt: 1000 Punkte = 1 $ Modellnutzung. KI über deinen eigenen Anbieterschlüssel rechnet dein Anbieter ab; sie verbraucht keine Punkte.",
     "currentPlan": "Aktueller Tarif",
     "manageSubscription": "Abonnement verwalten",
     "upgrade": "Upgrade",
@@ -697,10 +734,10 @@
     "signUp": "Registrieren",
     "close": "Schliessen",
     "footnote": "Alle Stufen umfassen Echtzeit-Zusammenarbeit, Versionsverlauf und unbegrenzte Dokumente. KI-Punkte werden monatlich aufgefüllt.",
-    "comingSoonSubtitle": "Schreiben Sie ohne Konto, mit einem kostenlosen Konto oder auf Ihrem eigenen Server. Bezahlpläne mit höheren Limits folgen bald.",
+    "comingSoonSubtitle": "Schreibe ohne Konto, mit einem kostenlosen Konto oder auf deinem eigenen Server. Bezahlpläne mit höheren Limits folgen bald.",
     "comingSoonBadge": "Demnächst",
     "availableNow": "Jetzt verfügbar",
-    "comingSoonFootnote": "Bezahlpläne, ihre Preise und Limits stehen noch nicht fest. Tragen Sie sich in die Warteliste ein, und wir schreiben Ihnen einmal, sobald sie starten.",
+    "comingSoonFootnote": "Bezahlpläne, ihre Preise und Limits stehen noch nicht fest. Trage dich in die Warteliste ein, und wir schreiben dir einmal, sobald sie starten.",
     "freeFootnote": "Jedes Konto enthält Echtzeit-Zusammenarbeit, Versionsverlauf und unbegrenzt viele Dokumente. KI-Punkte werden jede Periode aufgefüllt.",
     "selfHostedTitle": "Limits dieser Instanz",
     "selfHostedSubtitle": "Diese markoto-Instanz verkauft keine Tarife. Jedes Konto erhält die unten aufgeführten Limits; der Betreiber dieser Instanz kann sie ändern.",
@@ -710,7 +747,7 @@
       "team": "Für Teams: pro Platz, gemeinsame AI Points und Speicher, Verwaltung für Admins.",
       "business": "Für Organisationen: Team plus Single Sign-on, Audit-Export und eigene Limits."
     },
-    "freeAllowanceNote": "Das kostenlose KI-Kontingent läuft auf einem Modell, das Mistral AI in der EU betreibt, und steht zur Verfügung, solange der gemeinsame Topf dieses Monats reicht. Für mehr hinterlegen Sie unter Einstellungen → KI-Anbieter Ihren eigenen Schlüssel.",
+    "freeAllowanceNote": "Das kostenlose KI-Kontingent läuft auf einem Modell, das Mistral AI in der EU betreibt, und steht zur Verfügung, solange der gemeinsame Topf dieses Monats reicht. Für mehr hinterlegst du unter Einstellungen → KI-Anbieter deinen eigenen Schlüssel.",
     "price": {
       "free": "Kostenlos",
       "perMonth": "pro Monat",
@@ -722,10 +759,10 @@
     },
     "selfHosted": {
       "title": "Selbst gehostet",
-      "tagline": "markoto auf Ihrem eigenen Server.",
-      "priceNote": "Ihr Server, Ihre Limits",
-      "everyFeature": "Alle Funktionen. Limits und Speicher bestimmen Sie.",
-      "byok": "KI über Ihren eigenen Anbieterschlüssel oder ein lokales Modell.",
+      "tagline": "markoto auf deinem eigenen Server.",
+      "priceNote": "Dein Server, deine Limits",
+      "everyFeature": "Alle Funktionen. Limits und Speicher bestimmst du.",
+      "byok": "KI über deinen eigenen Anbieterschlüssel oder ein lokales Modell.",
       "licence": "Source-available: FSL-1.1, wird nach zwei Jahren zu Apache-2.0.",
       "cta": "Anleitung zum Selbsthosten"
     },
@@ -741,7 +778,7 @@
     },
     "freeAccount": {
       "title": "Kostenloses Konto",
-      "byok": "Unbegrenzte KI über Ihren eigenen Anbieterschlüssel.",
+      "byok": "Unbegrenzte KI über deinen eigenen Anbieterschlüssel.",
       "signIn": "Anmelden"
     },
     "paid": {
@@ -750,7 +787,7 @@
       "tabsLabel": "Bezahlpläne",
       "joinWaitlist": "Auf die Warteliste",
       "setUpInWorkspace": "In einem Workspace einrichten",
-      "setUpInWorkspaceHint": "Öffnen Sie den Arbeitsbereich und dort den Tab «Abrechnung». Nur Admins des Arbeitsbereichs können kaufen."
+      "setUpInWorkspaceHint": "Öffne den Arbeitsbereich und dort den Tab «Abrechnung». Nur Admins des Arbeitsbereichs können kaufen."
     },
     "instance": {
       "title": "Jedes Konto"
@@ -786,7 +823,7 @@
       "days": "{n} Tag | {n} Tage",
       "customCss": "Eigenes CSS für Dokumente",
       "readOnly": "Nur Lesen",
-      "setByYou": "Legen Sie fest",
+      "setByYou": "Lege fest",
       "included": "Enthalten",
       "notIncluded": "Nicht enthalten",
       "perSeat": "{value} pro Platz",
@@ -798,17 +835,17 @@
     "faq": {
       "title": "Fragen",
       "comingSoonQ": "Was bedeutet „Demnächst“?",
-      "comingSoonA": "Bezahlpläne sind noch nicht im Verkauf. Die Preise auf dieser Seite sind geplant; sie und die Limits können sich bis zum Start noch ändern. Bis dahin ist jedes Konto im kostenlosen Tarif. Tragen Sie sich in die Warteliste ein, dann erhalten Sie eine E-Mail, sobald die Bezahlpläne starten.",
+      "comingSoonA": "Bezahlpläne sind noch nicht im Verkauf. Die Preise auf dieser Seite sind geplant; sie und die Limits können sich bis zum Start noch ändern. Bis dahin ist jedes Konto im kostenlosen Tarif. Trage dich in die Warteliste ein, dann erhältst du eine E-Mail, sobald die Bezahlpläne starten.",
       "byokQ": "Kann ich KI ohne Bezahlplan nutzen?",
-      "byokA": "Ja. Hinterlegen Sie unter Einstellungen → KI-Anbieter einen Schlüssel eines OpenAI-kompatiblen Anbieters. Diese Anfragen rechnet Ihr Anbieter ab; sie verbrauchen keine KI-Punkte, und kein Tarif begrenzt sie. Kostenlose Konten erhalten zusätzlich ein monatliches Kontingent an KI-Punkten.",
+      "byokA": "Ja. Hinterlege unter Einstellungen → KI-Anbieter einen Schlüssel eines OpenAI-kompatiblen Anbieters. Diese Anfragen rechnet dein Anbieter ab; sie verbrauchen keine KI-Punkte, und kein Tarif begrenzt sie. Kostenlose Konten erhalten zusätzlich ein monatliches Kontingent an KI-Punkten.",
       "pointsQ": "Was sind KI-Punkte?",
       "euQ": "Wo werden meine Daten verarbeitet?",
-      "euA": "Dokumente, Dateien und Backups speichert OVHcloud in der EU. Die KI, die markoto.app bezahlt, läuft bei Anbietern in der EU: Mistral AI (Text, Sprache), Jina AI (Wissenssuche, Lesen von Webseiten), Staan (Websuche) und Black Forest Labs (Bilder). Mit Ihrem eigenen KI-Schlüssel gehen Anfragen an den Anbieter, den Sie gewählt haben. Die Datenschutzerklärung nennt alle Unterauftragsverarbeiter.",
+      "euA": "Dokumente, Dateien und Backups speichert OVHcloud in der EU. Die KI, die markoto.app bezahlt, läuft bei Anbietern in der EU: Mistral AI (Text, Sprache), Jina AI (Wissenssuche, Lesen von Webseiten), Staan (Websuche) und Black Forest Labs (Bilder). Mit deinem eigenen KI-Schlüssel gehen Anfragen an den Anbieter, den du gewählt hast. Die Datenschutzerklärung nennt alle Unterauftragsverarbeiter.",
       "anonQ": "Was passiert mit Dokumenten, die ich ohne Konto schreibe?",
-      "anonA": "Jeder mit dem Link kann sie lesen und bearbeiten. Sie werden nach {n} Tag ohne Änderung gelöscht, und nur der Browser, der ein Dokument erstellt hat, kann es früher löschen. Melden Sie sich an, um Dokumente zu behalten, privat zu stellen oder mit einem Passwort zu schützen. | Jeder mit dem Link kann sie lesen und bearbeiten. Sie werden nach {n} Tagen ohne Änderungen gelöscht, und nur der Browser, der ein Dokument erstellt hat, kann es früher löschen. Melden Sie sich an, um Dokumente zu behalten, privat zu stellen oder mit einem Passwort zu schützen.",
-      "anonKeptA": "Jeder mit dem Link kann sie lesen und bearbeiten, und nur der Browser, der ein Dokument erstellt hat, kann es löschen. Melden Sie sich an, um Dokumente privat zu stellen oder mit einem Passwort zu schützen.",
+      "anonA": "Jeder mit dem Link kann sie lesen und bearbeiten. Sie werden nach {n} Tag ohne Änderung gelöscht, und nur der Browser, der ein Dokument erstellt hat, kann es früher löschen. Melde dich an, um Dokumente zu behalten, privat zu stellen oder mit einem Passwort zu schützen. | Jeder mit dem Link kann sie lesen und bearbeiten. Sie werden nach {n} Tagen ohne Änderungen gelöscht, und nur der Browser, der ein Dokument erstellt hat, kann es früher löschen. Melde dich an, um Dokumente zu behalten, privat zu stellen oder mit einem Passwort zu schützen.",
+      "anonKeptA": "Jeder mit dem Link kann sie lesen und bearbeiten, und nur der Browser, der ein Dokument erstellt hat, kann es löschen. Melde dich an, um Dokumente privat zu stellen oder mit einem Passwort zu schützen.",
       "selfHostQ": "Kann ich markoto auf meinem eigenen Server betreiben?",
-      "selfHostA": "Ja. Der Code ist source-available unter der Lizenz FSL-1.1, die nach zwei Jahren zu Apache-2.0 wird. Eine selbst gehostete Instanz hat alle Funktionen und keine Tarife: Sie legen die Limits fest und verbinden Ihren eigenen KI-Anbieter oder ein lokales Modell. Die Anleitung zum Selbsthosten in der Dokumentation beschreibt die Installation."
+      "selfHostA": "Ja. Der Code ist source-available unter der Lizenz FSL-1.1, die nach zwei Jahren zu Apache-2.0 wird. Eine selbst gehostete Instanz hat alle Funktionen und keine Tarife: du legst die Limits fest und verbindest deinen eigenen KI-Anbieter oder ein lokales Modell. Die Anleitung zum Selbsthosten in der Dokumentation beschreibt die Installation."
     },
     "interval": {
       "label": "Abrechnungszeitraum",
@@ -816,7 +853,6 @@
       "year": "Jährlich · 2 Monate gratis"
     },
     "currencyLabel": "Währung",
-    "currencyLocked": "Ihr Abo wird in einer anderen Währung abgerechnet und kann nicht wechseln. Wählen Sie diese Währung, um fortzufahren.",
     "countPerSeat": {
       "aiPoints": "{n} KI-Punkt pro Platz und Monat, gemeinsam | {n} KI-Punkte pro Platz und Monat, gemeinsam",
       "workspaces": "{n} eigener Arbeitsbereich | {n} eigene Arbeitsbereiche",
@@ -837,7 +873,7 @@
     "creditsResetOn": "Zurücksetzung am {date}",
     "creditsHint": "KI-Punkte decken KI ab, die die Instanz bezahlt: 1000 Punkte = 1 $ Modellnutzung.",
     "upgradeToPlan": "Upgrade auf {plan}",
-    "topPlan": "Sie nutzen den höchsten Tarif.",
+    "topPlan": "Du nutzt den höchsten Tarif.",
     "viewAllPlans": "Alle Tarife anzeigen",
     "ownProviderSettings": "KI-Anbieter verwalten",
     "limits": {
@@ -851,8 +887,8 @@
   },
   "theme": {
     "title": "Dokumentdesign",
-    "description": "Passen Sie das Aussehen dieses Dokuments an. Änderungen werden live für alle mit Zugriff übernommen.",
-    "readOnly": "Sie haben keine Berechtigung, das Design dieses Dokuments zu bearbeiten.",
+    "description": "Passe das Aussehen dieses Dokuments an. Änderungen werden live für alle mit Zugriff übernommen.",
+    "readOnly": "Du hast keine Berechtigung, das Design dieses Dokuments zu bearbeiten.",
     "reset": "Auf Standard zurücksetzen",
     "portrait": "Hochformat",
     "landscape": "Querformat",
@@ -914,7 +950,7 @@
       "scale": "Skalierungsverhältnis",
       "weight": "Stärke",
       "color": "Farbe",
-      "colorHelp": "Oft die Markenfarbe, aber unabhängig gehalten, damit Sie sie kombinieren können.",
+      "colorHelp": "Oft die Markenfarbe, aber unabhängig gehalten, damit du sie kombinieren kannst.",
       "underline": "Unterstreichen (mit Markenfarbe)",
       "letterSpacing": "Buchstabenabstand (em)",
       "lineHeight": "Zeilenhöhe",
@@ -922,11 +958,11 @@
       "spacingScaleHelp": "Faktor für den Abstand über Überschriften. 1,0 = Druckstandard, 1,5 = viel Luft.",
       "scaleOption": "{ratio} (Überschrift 1 = {h1}× Fliesstext)",
       "numbering": "Nummerierung",
-      "numberingHelp": "Nummeriert die Überschriften 1 bis 4 (1, 1.1, 1.1.1) und ihre Einträge im Inhaltsverzeichnis. Ein Abschnitt «Abstract» am Anfang wird nicht nummeriert; markieren Sie jede andere Überschrift mit {code}, z. B. «# Literatur {code}».",
+      "numberingHelp": "Nummeriert die Überschriften 1 bis 4 (1, 1.1, 1.1.1) und ihre Einträge im Inhaltsverzeichnis. Ein Abschnitt «Abstract» am Anfang wird nicht nummeriert; markiere jede andere Überschrift mit {code}, z. B. «# Literatur {code}».",
       "numberingNone": "Keine",
       "numberingDecimal": "1, 1.1, 1.1.1",
       "levels": "Pro Ebene",
-      "levelsHelp": "Legen Sie Grösse, Stärke, Kursivschrift oder Kapitälchen für eine Überschriftenebene fest. Was Sie nicht ändern, folgt der Skala und der Stärke oben.",
+      "levelsHelp": "Lege Grösse, Stärke, Kursivschrift oder Kapitälchen für eine Überschriftenebene fest. Was du nicht änderst, folgt der Skala und der Stärke oben.",
       "levelTitle": "Überschrift {level}",
       "levelSize": "Grösse (× Fliesstext)",
       "levelItalic": "Kursiv",
@@ -970,7 +1006,7 @@
       "left": "Links",
       "center": "Zentriert",
       "right": "Rechts",
-      "help": "Verwenden Sie die Tokens unten für dynamische Werte wie die Seitenzahl.",
+      "help": "Verwende die Tokens unten für dynamische Werte wie die Seitenzahl.",
       "tokens": "Einfügen:",
       "image": "Bild",
       "imageHelp": "Optionales Logo oder Zeichen, das im laufenden Kopf auf jeder Textseite dargestellt wird (die Titelseite unterdrückt Kopfzeilen automatisch).",
@@ -985,7 +1021,8 @@
       "sectionMode": "{token} zeigt",
       "sectionModeHelp": "Welcher Abschnitt in der Kopf- oder Fusszeile einer Seite steht.",
       "sectionModeFirst": "Die erste Abschnittsüberschrift auf der Seite",
-      "sectionModeStart": "Den Abschnitt, in dem die Seite beginnt"
+      "sectionModeStart": "Den Abschnitt, in dem die Seite beginnt",
+      "imagePreview": "Kopfzeilenvorschau"
     },
     "code": {
       "theme": "Farbschema",
@@ -1084,16 +1121,16 @@
     },
     "meta": {
       "font": "Meta-Schriftart",
-      "fontHelp": "Wird für Kopf-/Fusszeilentext, Bildunterschriften und Fussnoten verwendet — die \"Über das Dokument\"-Stimme."
+      "fontHelp": "Wird für Kopf-/Fusszeilentext, Bildunterschriften und Fussnoten verwendet: die \"Über das Dokument\"-Stimme."
     },
     "cover": {
       "enabled": "Titelseite anzeigen",
       "enabledHelp": "Stellt ein Titelblatt als Seite 1 voran (unterdrückt Seitenzahlen + laufenden Kopf).",
       "layout": "Layout",
-      "layoutClassic": "Klassisch — alles zentriert",
-      "layoutEditorial": "Redaktionell — Logo oben, Titel bei ⅓, Meta bei ⅔",
-      "layoutBanner": "Banner — Logo + Titel in einem markengetönten oberen Band",
-      "layoutMinimal": "Minimal — nur Titel, zentriert (Logo & Meta ausgeblendet)",
+      "layoutClassic": "Klassisch: alles zentriert",
+      "layoutEditorial": "Redaktionell: Logo oben, Titel bei ⅓, Meta bei ⅔",
+      "layoutBanner": "Banner: Logo + Titel in einem markengetönten oberen Band",
+      "layoutMinimal": "Minimal: nur Titel, zentriert (Logo & Meta ausgeblendet)",
       "align": "Textausrichtung",
       "titleSize": "Titelgrösse",
       "subtitleSize": "Untertitelgrösse",
@@ -1112,7 +1149,7 @@
       "addAuthor": "Autor hinzufügen",
       "removeAuthor": "Autor entfernen",
       "layoutTitleBlock": "Titelblock auf Seite 1 (Paper)",
-      "titleBlockHelp": "Keine eigene Titelseite: Titel, Autorinnen und Autoren, Datum und Abstract eröffnen Seite 1. Beginnen Sie das Dokument mit einem Abschnitt «Abstract», damit er im Titelblock erscheint.",
+      "titleBlockHelp": "Keine eigene Titelseite: Titel, Autorinnen und Autoren, Datum und Abstract eröffnen Seite 1. Beginne das Dokument mit einem Abschnitt «Abstract», damit er im Titelblock erscheint.",
       "rules": "Linien über und unter dem Titel",
       "rulesHelp": "Kräftige waagrechte Linien wie bei einem arXiv-Preprint.",
       "smallCaps": "Titel in Kapitälchen",
@@ -1132,7 +1169,8 @@
       "uploadLogo": "Logo hochladen",
       "replaceLogo": "Logo ersetzen",
       "clearLogo": "Entfernen",
-      "logoHeight": "Logohöhe (px)"
+      "logoHeight": "Logohöhe (px)",
+      "logoPreview": "Logovorschau"
     },
     "toc": {
       "showTitle": "Überschrift \"Inhaltsverzeichnis\" anzeigen",
@@ -1150,7 +1188,7 @@
       "leaderNone": "Keine"
     },
     "saved": {
-      "title": "Ihre Designs",
+      "title": "Deine Designs",
       "saveCurrent": "Aktuelles speichern",
       "savedToast": "Als persönliche Voreinstellung gespeichert",
       "saveFailedTitle": "Design konnte nicht gespeichert werden",
@@ -1181,10 +1219,10 @@
     },
     "presets": {
       "title": "Vorlagen",
-      "applied": "Vorlage auf Ihr Dokument angewendet",
+      "applied": "Vorlage auf dein Dokument angewendet",
       "markoto": {
         "name": "markoto",
-        "description": "Der markante Look. Redaktionelle Fraunces-Überschriften, Inter-Fliesstext auf schlichtem weissem Papier, Zinnoberrot-Akzent — ruhiger Feldführer, kein Dashboard."
+        "description": "Der markante Look. Redaktionelle Fraunces-Überschriften, Inter-Fliesstext auf schlichtem weissem Papier, Zinnoberrot-Akzent: ruhiger Feldführer, kein Dashboard."
       },
       "modern": {
         "name": "Modern",
@@ -1228,7 +1266,7 @@
       },
       "proposal": {
         "name": "Kundenofferte",
-        "description": "Für Offerten und Angebote von Agenturen, Beratungen und Freelancern: Lora-Überschriften über Work Sans, ein warmer Rostton als Akzent, ein hohes Titelfeld, Preistabellen wie auf einer Rechnung mit doppelt unterstrichenem Total, nummerierte Abschnitte und ein Unterschriftenblock (eine Tabellenzeile mit leeren Zellen wird zur Linie für Ihre Unterschrift)."
+        "description": "Für Offerten und Angebote von Agenturen, Beratungen und Freelancern: Lora-Überschriften über Work Sans, ein warmer Rostton als Akzent, ein hohes Titelfeld, Preistabellen wie auf einer Rechnung mit doppelt unterstrichenem Total, nummerierte Abschnitte und ein Unterschriftenblock (eine Tabellenzeile mit leeren Zellen wird zur Linie für deine Unterschrift)."
       },
       "memo": {
         "name": "Memo / Brief",
@@ -1269,7 +1307,7 @@
       "bytes": "{used} / {max} Bytes",
       "checking": "wird geprüft…",
       "applied": "angewendet",
-      "notApplied": "nicht angewendet — behebe die Fehler unten",
+      "notApplied": "nicht angewendet: Behebe die Fehler unten",
       "position": "Zeile {line}, Spalte {column}",
       "droppedOnApply": "Einige CSS-Regeln dieses Themes verwenden Bilder aus einem anderen Dokument. Sie wurden entfernt.",
       "issue": {
@@ -1285,11 +1323,22 @@
         "value": "Dieser Wert konnte nicht sicher gelesen werden."
       },
       "docsLink": "So schreibst du eigenes CSS"
+    },
+    "fontWeight": {
+      "thin": "Thin",
+      "extraLight": "Extra Light",
+      "light": "Light",
+      "regular": "Regular",
+      "medium": "Medium",
+      "semibold": "Semibold",
+      "bold": "Bold",
+      "extraBold": "Extra Bold",
+      "black": "Black"
     }
   },
   "table": {
     "title": "Tabelle einfügen",
-    "description": "Zeigen Sie darauf, um die Grösse zu wählen, und klicken Sie dann zum Einfügen.",
+    "description": "Zeige darauf, um die Grösse zu wählen, und klicke dann zum Einfügen.",
     "tocTitle": "Inhaltsverzeichnis"
   },
   "duplicate": {
@@ -1304,10 +1353,10 @@
   },
   "move": {
     "title": "Dokument verschieben",
-    "description": "Wählen Sie, wo dieses Dokument abgelegt werden soll. Mitglieder des Ziel-Workspace erhalten entsprechend ihrer Rolle Zugriff.",
+    "description": "Wähle, wo dieses Dokument abgelegt werden soll. Mitglieder des Ziel-Workspace erhalten entsprechend ihrer Rolle Zugriff.",
     "document": "Dokument",
     "personal": "Persönlich (kein Workspace)",
-    "noWorkspaces": "Sie haben keine Workspaces, in denen Sie Dokumente ablegen können.",
+    "noWorkspaces": "Du hast keine Workspaces, in denen du Dokumente ablegen kannst.",
     "confirm": "Verschieben",
     "success": "Dokument verschoben",
     "successToPersonal": "\"{title}\" ist jetzt ein persönliches Dokument.",
@@ -1319,7 +1368,7 @@
     "title": "Dokument löschen",
     "warning": "Dadurch werden das Dokument und sein gesamter Inhalt dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
     "document": "Dokument",
-    "confirmPrompt": "Geben Sie \"{title}\" ein, um zu bestätigen:",
+    "confirmPrompt": "Gib \"{title}\" ein, um zu bestätigen:",
     "confirm": "Dokument löschen",
     "dangerZone": "Gefahrenzone",
     "dangerZoneDesc": "Das Löschen eines Dokuments ist endgültig. Alle Mitarbeiter verlieren den Zugriff.",
@@ -1346,8 +1395,8 @@
       "subtitle": "Standardwerte für neue Dokumente, die in diesem Workspace erstellt werden.",
       "defaultTheme": {
         "title": "Standarddesign",
-        "help": "Wird auf hier erstellte neue Dokumente angewendet. Bestehende Dokumente sind nicht betroffen — sie behalten das Design, das sie haben.",
-        "useGlobal": "Kein Standard — markoto verwenden",
+        "help": "Wird auf hier erstellte neue Dokumente angewendet. Bestehende Dokumente sind nicht betroffen: Sie behalten das Design, das sie haben.",
+        "useGlobal": "Kein Standard: markoto verwenden",
         "useGlobalHelp": "Neue Dokumente starten mit der markoto-Voreinstellung, bis jemand eine andere wählt.",
         "savedTitle": "Standarddesign aktualisiert",
         "appliedToast": "Neue Dokumente in diesem Workspace verwenden dieses Design",
@@ -1355,12 +1404,12 @@
         "failedTitle": "Standarddesign konnte nicht gespeichert werden"
       }
     },
-    "capReached": "{used} von {limit} Workspaces im {plan}-Tarif genutzt. Löschen Sie einen oder führen Sie ein Upgrade durch, um weitere hinzuzufügen.",
-    "capReachedShort": "Workspace-Limit erreicht — Upgrade",
+    "capReached": "{used} von {limit} Workspaces im {plan}-Tarif genutzt. Lösche einen oder führe ein Upgrade durch, um weitere hinzuzufügen.",
+    "capReachedShort": "Workspace-Limit erreicht: Upgrade",
     "sectionTitle": "Meine Workspaces",
     "newWorkspace": "Neuer Workspace",
     "createTitle": "Einen Workspace erstellen",
-    "createDescription": "Workspaces sind Ordner für Ihre Dokumente. Geben Sie ihm einen Namen und, wenn Sie möchten, eine kurze Beschreibung, wofür er gedacht ist.",
+    "createDescription": "Workspaces sind Ordner für deine Dokumente. Gib ihm einen Namen und, wenn du möchtest, eine kurze Beschreibung, wofür er gedacht ist.",
     "nameLabel": "Name",
     "namePlaceholder": "z. B. Marketing, Forschung, Q4-Planung",
     "descriptionLabel": "Beschreibung",
@@ -1369,7 +1418,7 @@
     "create": "Workspace erstellen",
     "docCount": "keine Dokumente | {count} Dokument | {count} Dokumente",
     "empty": "Noch keine Dokumente",
-    "emptyDescription": "Beginnen Sie, indem Sie Ihr erstes Dokument in diesem Workspace erstellen.",
+    "emptyDescription": "Beginne, indem du dein erstes Dokument in diesem Workspace erstellst.",
     "emptyDescriptionViewer": "Hier erstellte Dokumente erscheinen in dieser Liste.",
     "newDocument": "Neues Dokument",
     "backToHome": "Zurück",
@@ -1380,15 +1429,15 @@
     "deleteTitle": "Workspace löschen",
     "deleteWarning": "Dadurch werden dieser Workspace und {count} darin enthaltenes Dokument dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden. | Dadurch werden dieser Workspace und {count} darin enthaltene Dokumente dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
     "deleteWarningEmpty": "Dadurch wird dieser Workspace dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
-    "deleteConfirmPrompt": "Geben Sie \"{name}\" ein, um zu bestätigen:",
+    "deleteConfirmPrompt": "Gib \"{name}\" ein, um zu bestätigen:",
     "deleteConfirm": "Workspace löschen",
     "deleteSuccess": "Workspace gelöscht",
     "deleteFailed": "Workspace konnte nicht gelöscht werden",
     "createFailed": "Workspace konnte nicht erstellt werden",
     "saveFailed": "Workspace konnte nicht gespeichert werden",
     "notFound": "Workspace nicht gefunden",
-    "notFoundDesc": "Dieser Workspace existiert nicht, oder Sie haben keinen Zugriff darauf.",
-    "noWorkspaces": "Sie haben noch keine Workspaces.",
+    "notFoundDesc": "Dieser Workspace existiert nicht, oder du hast keinen Zugriff darauf.",
+    "noWorkspaces": "Du hast noch keine Workspaces.",
     "untitledDoc": "Unbenannt",
     "roles": {
       "admin": "Administrator",
@@ -1403,56 +1452,47 @@
       "adminDescription": "Mitwirkende per E-Mail einladen, Rollen ändern oder Mitglieder entfernen.",
       "memberDescription": "Personen, die Zugriff auf diesen Workspace haben.",
       "addTitle": "Mitglied einladen",
-      "addHint": "Geben Sie die E-Mail-Adresse ein. Die Person tritt erst bei, wenn sie die Einladung annimmt — in markoto, angemeldet mit dieser Adresse, oder über die Einladungs-E-Mail.",
+      "addHint": "Gib die E-Mail-Adresse ein. Die Person tritt erst bei, wenn sie die Einladung annimmt: in markoto, angemeldet mit dieser Adresse, oder über die Einladungs-E-Mail.",
       "emailPlaceholder": "E-Mail-Adresse eingeben",
       "add": "Einladen",
       "addFailed": "Einladung konnte nicht gesendet werden",
       "remove": "Aus Workspace entfernen",
       "removeFailed": "Mitglied konnte nicht entfernt werden",
       "roleChangeFailed": "Rolle konnte nicht geändert werden",
-      "you": "(Sie)",
+      "you": "(du)",
       "leave": "Workspace verlassen",
       "leaveFailed": "Workspace konnte nicht verlassen werden",
-      "leftToast": "Sie haben den Workspace verlassen",
+      "leftToast": "Du hast den Workspace verlassen",
       "invitedToast": "Einladung gesendet",
       "invitedToastDescription": "{email} kann sie innerhalb von 14 Tagen annehmen.",
       "pendingTitle": "Offene Einladungen",
       "pendingExpires": "läuft ab am {date}",
       "revoke": "Einladung zurückziehen",
       "revokeFailed": "Einladung konnte nicht zurückgezogen werden",
-      "errors": {
-        "invalidEmail": "Geben Sie eine gültige E-Mail-Adresse ein.",
-        "alreadyMember": "Diese Person ist bereits Mitglied des Arbeitsbereichs.",
-        "inviteCap": "Dieser Arbeitsbereich hat zu viele offene Einladungen. Ziehen Sie zuerst einige zurück.",
-        "guestCap": "Dieser Arbeitsbereich hat so viele Gäste, wie sein Plan erlaubt (5 pro bezahltem Platz). Entfernen Sie einen Gast oder fügen Sie einen Platz hinzu."
-      },
       "invitePeople": "Personen einladen",
-      "guestHint": "Ein Gast sieht nur die Dokumente, die Sie mit ihm teilen, belegt keinen Platz und nutzt sein eigenes KI-Budget."
+      "guestHint": "Ein Gast sieht nur die Dokumente, die du mit ihm teilst, belegt keinen Platz und nutzt sein eigenes KI-Budget."
     },
-    "capReachedFree": "{used} von {limit} Workspaces genutzt. Löschen Sie einen, um einen neuen anzulegen.",
+    "capReachedFree": "{used} von {limit} Workspaces genutzt. Lösche einen, um einen neuen anzulegen.",
     "capReachedShortFree": "Workspace-Limit erreicht",
     "invites": {
       "sectionTitle": "Einladungen",
-      "invitedBy": "{name} hat Sie als {role} eingeladen",
-      "invitedAs": "Sie sind als {role} eingeladen",
+      "invitedBy": "{name} hat dich als {role} eingeladen",
+      "invitedAs": "Du bist als {role} eingeladen",
       "accept": "Annehmen",
       "decline": "Ablehnen",
-      "accepted": "Sie sind {name} beigetreten",
+      "accepted": "Du bist {name} beigetreten",
       "acceptFailed": "Einladung konnte nicht angenommen werden",
       "declineFailed": "Einladung konnte nicht abgelehnt werden",
-      "errors": {
-        "notFound": "Diese Einladung existiert nicht mehr oder ist abgelaufen."
-      },
       "page": {
         "title": "Einladung in einen Arbeitsbereich",
-        "intro": "Sie wurden in einen Arbeitsbereich auf markoto eingeladen.",
-        "signIn": "Melden Sie sich an, um die Einladung anzunehmen.",
+        "intro": "Du wurdest in einen Arbeitsbereich auf markoto eingeladen.",
+        "signIn": "Melde dich an, um die Einladung anzunehmen.",
         "accept": "Einladung annehmen",
         "declined": "Einladung abgelehnt.",
-        "missingToken": "Dieser Einladungslink ist unvollständig. Öffnen Sie ihn erneut aus der E-Mail.",
+        "missingToken": "Dieser Einladungslink ist unvollständig. Öffne ihn erneut aus der E-Mail.",
         "home": "Zum Dashboard"
       },
-      "planIncluded": "{name} hat den Plan {plan}: Darin gelten seine Funktionen und sein KI-Budget auch für Sie."
+      "planIncluded": "{name} hat den Plan {plan}: Darin gelten seine Funktionen und sein KI-Budget auch für dich."
     },
     "actions": "Workspace-Aktionen",
     "billing": {
@@ -1460,7 +1500,7 @@
       "loading": "Abrechnung wird geladen…",
       "loadFailed": "Abrechnung konnte nicht geladen werden",
       "paymentProblemTitle": "Zahlungsproblem",
-      "paymentProblemBody": "Die letzte Zahlung für diesen Arbeitsbereich ist fehlgeschlagen. Stripe versucht es erneut; aktualisieren Sie die Zahlungsmethode unter «Abrechnung verwalten», damit die Team-Funktionen erhalten bleiben.",
+      "paymentProblemBody": "Die letzte Zahlung für diesen Arbeitsbereich ist fehlgeschlagen. Stripe versucht es erneut; aktualisiere die Zahlungsmethode unter «Abrechnung verwalten», damit die Team-Funktionen erhalten bleiben.",
       "buyTitle": "Diesen Arbeitsbereich upgraden",
       "buyBody": "Team und Business werden pro Platz bezahlt. Alle im Arbeitsbereich erhalten darin die Funktionen des Plans, mit einem gemeinsamen monatlichen KI-Budget.",
       "planLabel": "Plan",
@@ -1469,7 +1509,7 @@
       "totalPerMonth": "{total} pro Monat ({seats} Plätze × {price})",
       "totalPerYear": "{total} pro Jahr ({seats} Plätze × {price})",
       "continueToPayment": "Weiter zur Zahlung",
-      "buyFootnote": "Sie bezahlen mit Stripe. Sie werden Abrechnungsadmin dieses Arbeitsbereichs und können Plätze jederzeit ändern oder kündigen.",
+      "buyFootnote": "Du bezahlst mit Stripe. Du wirst Abrechnungsadmin dieses Arbeitsbereichs und kannst Plätze jederzeit ändern oder kündigen.",
       "currentPlan": "Aktueller Plan",
       "annual": "jährlich",
       "monthly": "monatlich",
@@ -1504,28 +1544,33 @@
       "checkoutSuccessBody": "Der Plan ist aktiv, sobald Stripe ihn bestätigt, meist innert weniger Sekunden.",
       "checkoutCancelled": "Zahlung abgebrochen",
       "addSeatTitle": "Alle {seats} Plätze sind belegt",
-      "addSeatBody": "Wenn Sie {email} einladen, kommt ein Platz zum Plan dieses Arbeitsbereichs hinzu, anteilig auf der nächsten Rechnung berechnet.",
+      "addSeatBody": "Wenn du {email} einladest, kommt ein Platz zum Plan dieses Arbeitsbereichs hinzu, anteilig auf der nächsten Rechnung berechnet.",
       "addSeatConfirm": "Platz hinzufügen und einladen",
       "pricePerSeatMonth": "Ein Platz kostet {price} pro Monat.",
       "pricePerSeatYear": "Ein Platz kostet {price} pro Jahr.",
       "errors": {
-        "seatsFull": "Alle bezahlten Plätze sind belegt. Fügen Sie einen Platz hinzu, um jemanden einzuladen.",
-        "seatsBelowMembers": "Im Arbeitsbereich sind mehr Personen als Plätze. Entfernen Sie jemanden oder behalten Sie mehr Plätze.",
-        "cancelFailed": "Das Abonnement des Arbeitsbereichs konnte nicht gekündigt werden, deshalb wurde nichts gelöscht. Bitte versuchen Sie es erneut.",
-        "subscriptionActive": "Dieser Arbeitsbereich hat noch ein laufendes Abonnement. Wenden Sie sich an den Support, um ihn zu löschen.",
-        "seatsBusy": "Gerade läuft eine andere Platzänderung oder Einladung. Bitte versuchen Sie es gleich noch einmal."
+        "seatsFull": "Alle bezahlten Plätze sind belegt. Füge einen Platz hinzu, um jemanden einzuladen.",
+        "seatsBelowMembers": "Im Arbeitsbereich sind mehr Personen als Plätze. Entferne jemanden oder behalte mehr Plätze.",
+        "cancelFailed": "Das Abonnement des Arbeitsbereichs konnte nicht gekündigt werden, deshalb wurde nichts gelöscht. Bitte versuche es erneut.",
+        "subscriptionActive": "Dieser Arbeitsbereich hat noch ein laufendes Abonnement. Wende dich an den Support, um ihn zu löschen.",
+        "seatsBusy": "Gerade läuft eine andere Platzänderung oder Einladung. Bitte versuche es gleich noch einmal."
       }
+    },
+    "dpa": {
+      "staleTitle": "Auftragsverarbeitungsvertrag aktualisiert – bitte erneut prüfen",
+      "heading": "Einmalige Zustimmung",
+      "body": "Mit dem Erstellen eines Arbeitsbereichs wirst du zum Verantwortlichen für die personenbezogenen Daten, die deine Mitglieder darin ablegen, und die LatentSpace Labs GmbH wird dein Auftragsverarbeiter. Unser Auftragsverarbeitungsvertrag ist der Vertrag, der dies regelt."
     }
   },
   "knowledge": {
     "title": "Wissensdatenbank",
-    "description": "Laden Sie PDFs, Word-Dokumente, Folien oder Tabellen hoch. Der KI-Assistent kann sie durchsuchen, wenn Sie in einem beliebigen Dokument in diesem Workspace schreiben.",
+    "description": "Lade PDFs, Word-Dokumente, Folien oder Tabellen hoch. Der KI-Assistent kann sie durchsuchen, wenn du in einem beliebigen Dokument in diesem Workspace schreibst.",
     "upload": "Dateien hochladen",
-    "capFilesReached": "Dieser Workspace hat das Dateilimit ({limit}) erreicht. Löschen Sie eine Datei oder führen Sie ein Upgrade durch, um weitere hinzuzufügen.",
-    "capBytesReached": "Dieser Workspace hat sein Speicherlimit ({limit} MB) erreicht. Löschen Sie eine Datei oder führen Sie ein Upgrade durch, um weitere hinzuzufügen.",
-    "capReachedShort": "Am Limit — Upgrade",
+    "capFilesReached": "Dieser Workspace hat das Dateilimit ({limit}) erreicht. Lösche eine Datei oder führe ein Upgrade durch, um weitere hinzuzufügen.",
+    "capBytesReached": "Dieser Workspace hat sein Speicherlimit ({limit} MB) erreicht. Lösche eine Datei oder führe ein Upgrade durch, um weitere hinzuzufügen.",
+    "capReachedShort": "Am Limit: Upgrade",
     "empty": "Noch keine Wissensdateien.",
-    "emptyDescription": "Laden Sie ein PDF oder Word-Dokument hoch, damit markoto beim Schreiben Kontext hat.",
+    "emptyDescription": "Lade ein PDF oder Word-Dokument hoch, damit markoto beim Schreiben Kontext hat.",
     "emptyDescriptionViewer": "In diesen Workspace wurde noch nichts hochgeladen.",
     "uploadQueued": "Upload in Warteschlange",
     "uploadFailed": "Upload fehlgeschlagen",
@@ -1533,7 +1578,7 @@
     "deleteFailed": "Datei konnte nicht entfernt werden",
     "loadFailed": "Wissensdatenbank konnte nicht geladen werden",
     "deleteTitle": "Aus Wissensdatenbank entfernen",
-    "deleteWarning": "Die KI kann beim Schreiben nicht mehr auf diese Datei verweisen. Alles, was bereits damit geschrieben wurde, bleibt in Ihren Dokumenten erhalten.",
+    "deleteWarning": "Die KI kann beim Schreiben nicht mehr auf diese Datei verweisen. Alles, was bereits damit geschrieben wurde, bleibt in deinen Dokumenten erhalten.",
     "deleteConfirm": "Datei entfernen",
     "chunks": "Abschnitte",
     "status": {
@@ -1541,17 +1586,19 @@
       "ready": "Bereit",
       "failed": "Fehlgeschlagen"
     },
-    "capFilesReachedFree": "Dieser Workspace hat sein Dateilimit ({limit}) erreicht. Löschen Sie eine Datei, um eine weitere hinzuzufügen.",
-    "capBytesReachedFree": "Dieser Workspace hat sein Speicherlimit ({limit} MB) erreicht. Löschen Sie eine Datei, um Platz zu schaffen.",
-    "capReachedShortFree": "Limit erreicht"
+    "capFilesReachedFree": "Dieser Workspace hat sein Dateilimit ({limit}) erreicht. Lösche eine Datei, um eine weitere hinzuzufügen.",
+    "capBytesReachedFree": "Dieser Workspace hat sein Speicherlimit ({limit} MB) erreicht. Lösche eine Datei, um Platz zu schaffen.",
+    "capReachedShortFree": "Limit erreicht",
+    "uploadStorageFailed": "Die Datei konnte nicht in den Speicher hochgeladen werden (Status {status}).",
+    "uploadNetworkError": "Netzwerkfehler beim Hochladen."
   },
   "designImport": {
     "button": "Design aus einem Dokument erstellen",
     "title": "Design aus einem Dokument erstellen",
-    "intro": "Laden Sie eine PDF- oder Word-Datei im Design Ihrer Organisation hoch. markoto liest Schriften, Farben und Layout und erstellt daraus ein Design für neue Dokumente.",
+    "intro": "Lade eine PDF- oder Word-Datei im Design deiner Organisation hoch. markoto liest Schriften, Farben und Layout und erstellt daraus ein Design für neue Dokumente.",
     "chooseFile": "PDF- oder Word-Datei auswählen",
     "fileHint": "PDF oder .docx, bis 20 MB",
-    "costNote": "Läuft über Ihren KI-Anbieter: bis zu drei Anfragen mit Seitenbildern. Schriften werden durch die ähnlichste Schrift ersetzt, die markoto anbietet.",
+    "costNote": "Läuft über deinen KI-Anbieter: bis zu drei Anfragen mit Seitenbildern. Schriften werden durch die ähnlichste Schrift ersetzt, die markoto anbietet.",
     "phase": {
       "uploading": "Wird hochgeladen",
       "reading": "Dokument wird gelesen",
@@ -1559,50 +1606,53 @@
       "rendering": "Vergleich mit dem Original"
     },
     "roundOf": "Runde {round} von {max}",
-    "original": "Ihr Dokument",
-    "ours": "Ihr neues Design",
+    "original": "Dein Dokument",
+    "ours": "Dein neues Design",
     "originalAlt": "Erste Seite des hochgeladenen Dokuments",
     "oursAlt": "Beispielseite im neuen Design",
     "noPagePictures": "Word-Dateien werden über ihre Formatvorlagen gelesen, daher gibt es kein Seitenbild. Gefundene Farben:",
-    "noPreview": "Es konnte keine Vorschau erstellt werden. Sie können das Design trotzdem speichern und in einem Dokument ansehen.",
+    "noPreview": "Es konnte keine Vorschau erstellt werden. Du kannst das Design trotzdem speichern und in einem Dokument ansehen.",
     "fontsTitle": "Schriften",
     "fontSubstituted": "{from} → {to}",
     "save": "Als mein Design speichern",
     "apply": "Auf dieses Dokument anwenden",
     "tryAnother": "Andere Datei versuchen",
-    "savedToast": "In Ihren Designs gespeichert",
+    "savedToast": "In deinen Designs gespeichert",
     "openAiSettings": "KI-Einstellungen öffnen",
     "errors": {
-      "no-vision": "Ihr KI-Anbieter kann keine Bilder lesen. Wählen Sie ein Modell, das Bilder lesen kann, und versuchen Sie es erneut.",
-      "provider-missing": "Es ist kein KI-Anbieter eingerichtet. Fügen Sie einen in den KI-Einstellungen hinzu.",
-      "provider-error": "Ihr KI-Anbieter hat einen Fehler gemeldet. Prüfen Sie die KI-Einstellungen und versuchen Sie es erneut.",
-      "budget": "Ihr KI-Budget für diesen Monat ist aufgebraucht.",
-      "unreadable": "Die Datei konnte nicht gelesen werden. Prüfen Sie, ob es ein PDF- oder Word-Dokument ist, das sich normal öffnen lässt.",
-      "too-large": "Die Datei ist zu gross. Wählen Sie eine Datei bis 20 MB.",
-      "format": "Wählen Sie eine PDF- oder Word-Datei (.docx).",
-      "invalid-design": "Die KI konnte aus diesem Dokument kein Design erstellen. Versuchen Sie es erneut oder mit einer anderen Datei.",
-      "rate-limited": "Sie haben in der letzten Stunde viele Designs erstellt. Versuchen Sie es später erneut.",
-      "busy": "Es wird bereits ein Design erstellt. Warten Sie, bis es fertig ist.",
-      "upload-failed": "Das Hochladen hat nicht funktioniert. Versuchen Sie es erneut.",
-      "internal": "Etwas ist schiefgelaufen. Versuchen Sie es erneut."
+      "no-vision": "Dein KI-Anbieter kann keine Bilder lesen. Wähle ein Modell, das Bilder lesen kann, und versuche es erneut.",
+      "provider-missing": "Es ist kein KI-Anbieter eingerichtet. Füge einen in den KI-Einstellungen hinzu.",
+      "provider-error": "Dein KI-Anbieter hat einen Fehler gemeldet. Prüfe die KI-Einstellungen und versuche es erneut.",
+      "budget": "Dein KI-Budget für diesen Monat ist aufgebraucht.",
+      "unreadable": "Die Datei konnte nicht gelesen werden. Prüfe, ob es ein PDF- oder Word-Dokument ist, das sich normal öffnen lässt.",
+      "too-large": "Die Datei ist zu gross. Wähle eine Datei bis 20 MB.",
+      "format": "Wähle eine PDF- oder Word-Datei (.docx).",
+      "invalid-design": "Die KI konnte aus diesem Dokument kein Design erstellen. Versuche es erneut oder mit einer anderen Datei.",
+      "rate-limited": "Du hast in der letzten Stunde viele Designs erstellt. Versuche es später erneut.",
+      "busy": "Es wird bereits ein Design erstellt. Warte, bis es fertig ist.",
+      "upload-failed": "Das Hochladen hat nicht funktioniert. Versuche es erneut.",
+      "internal": "Etwas ist schiefgelaufen. Versuche es erneut."
     },
     "pageAria": "Seite {n}",
     "thinking": {
-      "uploading": "Ihr Dokument kommt an…",
-      "reading": "Ich lese Schriften, Farben und Layout Ihres Dokuments…",
-      "designing": "Ich entwerfe ein Design nach Ihren Seiten…",
+      "uploading": "Dein Dokument kommt an…",
+      "reading": "Ich lese Schriften, Farben und Layout deines Dokuments…",
+      "designing": "Ich entwerfe ein Design nach deinen Seiten…",
       "rendering": "Ich setze eine Probeseite im neuen Design…",
-      "comparing": "Ich vergleiche mein Design mit Ihren Seiten, Runde {round} von {max}…"
+      "comparing": "Ich vergleiche mein Design mit deinen Seiten, Runde {round} von {max}…"
     },
-    "durationNote": "Das dauert meist zwei bis fünf Minuten. Lassen Sie dieses Fenster offen; das Ergebnis erscheint hier."
+    "durationNote": "Das dauert meist zwei bis fünf Minuten. Lass dieses Fenster offen; das Ergebnis erscheint hier."
   },
   "error": {
-    "generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
-    "network": "Netzwerkfehler. Überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
-    "unauthorized": "Bitte melden Sie sich an, um fortzufahren.",
-    "forbidden": "Sie haben keine Berechtigung, dies zu tun.",
+    "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+    "network": "Netzwerkfehler. Überprüfe deine Verbindung und versuche es erneut.",
+    "unauthorized": "Bitte melde dich an, um fortzufahren.",
+    "forbidden": "Du hast keine Berechtigung, dies zu tun.",
     "notFound": "Nicht gefunden.",
-    "rateLimited": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut.",
+    "badRequest": "Diese Anfrage war ungültig.",
+    "conflict": "Das widerspricht dem aktuellen Stand. Bitte lade die Seite neu und versuche es erneut.",
+    "payloadTooLarge": "Das ist zu gross.",
+    "rateLimited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.",
     "serverError": "Auf unserer Seite ist etwas kaputtgegangen. Wir wurden benachrichtigt.",
     "documentCreateFailed": "Dokument konnte nicht erstellt werden",
     "documentCreateFailedDescription": "Server hat die Anfrage abgelehnt.",
@@ -1611,20 +1661,27 @@
     "shareAccessModeFailed": "Freigabeeinstellungen konnten nicht aktualisiert werden",
     "sharePasswordFailed": "Dokumentpasswort konnte nicht festgelegt werden",
     "activityLoadFailed": "Aktivität konnte nicht geladen werden",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "page": {
+      "notFoundTitle": "Seite nicht gefunden",
+      "notFoundMessage": "Diese Seite existiert nicht oder wurde verschoben. Prüfe die Adresse oder kehre zur Startseite zurück.",
+      "genericTitle": "Etwas ist schiefgelaufen",
+      "genericMessage": "Auf unserer Seite ist ein unerwarteter Fehler aufgetreten. Bitte versuche es gleich noch einmal.",
+      "backHome": "Zurück zur Startseite"
+    }
   },
   "legal": {
     "ageGate": {
-      "title": "Bestätigen Sie Ihr Alter",
-      "body": "markoto ist für Personen ab 16 Jahren. Bitte bestätigen Sie, dass Sie mindestens 16 Jahre alt sind. Das gilt in jedem Land, auch wenn das dortige Recht ein tieferes Alter vorsieht.",
+      "title": "Bestätige dein Alter",
+      "body": "markoto ist für Personen ab 16 Jahren. Bitte bestätige, dass du mindestens 16 Jahre alt bist. Das gilt in jedem Land, auch wenn das dortige Recht ein tieferes Alter vorsieht.",
       "checkbox": "Ich bestätige, dass ich mindestens 16 Jahre alt bin",
       "continue": "Fortfahren",
       "underage": "Ich bin unter 16",
-      "underageNotice": "Es tut uns leid — markoto steht nur Personen ab 16 Jahren zur Verfügung. Wir speichern keine Daten über Sie."
+      "underageNotice": "Es tut uns leid, markoto steht nur Personen ab 16 Jahren zur Verfügung. Wir speichern keine Daten über dich."
     },
     "policyAcceptance": {
       "newVersionTitle": "Unsere Datenschutzbestimmungen haben sich geändert",
-      "newVersionBody": "Wir haben {document} aktualisiert. Bitte prüfen und akzeptieren Sie die neue Version, um markoto weiterhin zu nutzen.",
+      "newVersionBody": "Wir haben {document} aktualisiert. Bitte prüfen und akzeptiere die neue Version, um markoto weiterhin zu nutzen.",
       "review": "Änderungen prüfen",
       "accept": "Ich habe es gelesen und akzeptiere",
       "documents": {
@@ -1640,38 +1697,38 @@
     },
     "delete": {
       "confirmTitle": "Konto löschen?",
-      "confirmBody": "Wir bewahren Ihre Daten 30 Tage lang auf, falls Sie es sich anders überlegen. Danach wird alles dauerhaft entfernt. Diese Aktion kann nach Ablauf der Kulanzfrist nicht rückgängig gemacht werden.",
-      "confirmTypeIn": "Geben Sie {phrase} ein, um zu bestätigen",
+      "confirmBody": "Wir bewahren deine Daten 30 Tage lang auf, falls du es dir anders überlegst. Danach wird alles dauerhaft entfernt. Diese Aktion kann nach Ablauf der Kulanzfrist nicht rückgängig gemacht werden.",
+      "confirmTypeIn": "Gib {phrase} ein, um zu bestätigen",
       "confirmCta": "Löschung planen",
       "confirmCancel": "Abbrechen",
       "graceBannerTitle": "Konto zur Löschung vorgesehen",
-      "graceBannerBody": "Ihr Konto wird am {date} dauerhaft gelöscht. Sie können dies jederzeit vorher abbrechen.",
+      "graceBannerBody": "Dein Konto wird am {date} dauerhaft gelöscht. Du kannst dies jederzeit vorher abbrechen.",
       "graceBannerCancel": "Löschung abbrechen",
-      "emailConfirmSubject": "Ihr markoto-Konto ist zur Löschung vorgesehen",
-      "emailExecutedSubject": "Ihr markoto-Konto wurde gelöscht",
+      "emailConfirmSubject": "Dein markoto-Konto ist zur Löschung vorgesehen",
+      "emailExecutedSubject": "Dein markoto-Konto wurde gelöscht",
       "consequences": {
         "title": "Das genau wird passieren",
-        "intro": "Wir möchten, dass Sie das vollständige Bild sehen, bevor Sie bestätigen. Alles Folgende läuft automatisch ab, sobald die 30-tägige Kulanzfrist endet.",
+        "intro": "Wir möchten, dass du das vollständige Bild siehst, bevor du bestätigst. Alles Folgende läuft automatisch ab, sobald die 30-tägige Kulanzfrist endet.",
         "deleted": {
           "heading": "Dauerhaft gelöscht",
-          "ownedDocs": "{count} Dokument, das Ihnen gehört, auch wenn Sie es mit anderen teilen. Diese verlieren gleichzeitig den Zugriff. | {count} Dokumente, die Ihnen gehören, auch die, die Sie mit anderen teilen. Diese verlieren gleichzeitig den Zugriff.",
-          "themes": "Ihre gespeicherten Designs und persönlichen Einstellungen.",
-          "ai": "Ihre KI-Sitzungen, Prompt-Verlauf und Nutzungszähler.",
+          "ownedDocs": "{count} Dokument, das dir gehört, auch wenn du es mit anderen teilst. Diese verlieren gleichzeitig den Zugriff. | {count} Dokumente, die dir gehören, auch die, die du mit anderen teilst. Diese verlieren gleichzeitig den Zugriff.",
+          "themes": "Deine gespeicherten Designs und persönlichen Einstellungen.",
+          "ai": "Deine KI-Sitzungen, Prompt-Verlauf und Nutzungszähler.",
           "exports": "{count} früherer Datenexport und seine ZIP-Datei. | {count} frühere Datenexporte und ihre ZIP-Dateien.",
-          "stripe": "Ihr Stripe-Kundendatensatz (Stripe bewahrt zugrunde liegende Rechnungen für den steuerrechtlich erforderlichen Zeitraum auf)."
+          "stripe": "Dein Stripe-Kundendatensatz (Stripe bewahrt zugrunde liegende Rechnungen für den steuerrechtlich erforderlichen Zeitraum auf)."
         },
         "anonymised": {
-          "heading": "Auf der Plattform behalten, aber Ihr Name entfernt",
-          "comments": "{count} Kommentar, den Sie in fremden Dokumenten geschrieben haben, erscheint als „[gelöschter Nutzer]“. Der Text bleibt, damit andere der Unterhaltung weiter folgen können. | {count} Kommentare, die Sie in fremden Dokumenten geschrieben haben, erscheinen als „[gelöschter Nutzer]“. Der Text bleibt, damit andere der Unterhaltung weiter folgen können.",
+          "heading": "Auf der Plattform behalten, aber dein Name entfernt",
+          "comments": "{count} Kommentar, den du in fremden Dokumenten geschrieben hast, erscheint als „[gelöschter Nutzer]“. Der Text bleibt, damit andere der Unterhaltung weiter folgen können. | {count} Kommentare, die du in fremden Dokumenten geschrieben hast, erscheinen als „[gelöschter Nutzer]“. Der Text bleibt, damit andere der Unterhaltung weiter folgen können.",
           "activity": "{count} Eintrag im Aktivitätsprotokoll fremder Dokumente erscheint danach als „Anonym“. | {count} Einträge im Aktivitätsprotokoll fremder Dokumente erscheinen danach als „Anonym“.",
-          "audit": "{count} Eintrag in unserem internen Sicherheitsprotokoll; Ihre Nutzer-ID wird entfernt. | {count} Einträge in unserem internen Sicherheitsprotokoll; Ihre Nutzer-ID wird entfernt.",
+          "audit": "{count} Eintrag in unserem internen Sicherheitsprotokoll; deine Nutzer-ID wird entfernt. | {count} Einträge in unserem internen Sicherheitsprotokoll; deine Nutzer-ID wird entfernt.",
           "consent": "{count} Einwilligungsentscheidung, anonymisiert, aber als rechtlicher Nachweis nach Art. 7 Abs. 1 DSGVO aufbewahrt. | {count} Einwilligungsentscheidungen, anonymisiert, aber als rechtlicher Nachweis nach Art. 7 Abs. 1 DSGVO aufbewahrt."
         },
         "workspaces": {
           "heading": "Workspaces",
           "cascadeDelete": {
             "title": "Werden kaskadierend gelöscht (einziges Mitglied)",
-            "body": "Diese Workspaces werden zusammen mit jedem darin enthaltenen Dokument und jeder Wissensdatei dauerhaft entfernt. Wenn Sie deren Inhalte bewahren möchten, laden Sie zuerst ein Mitglied mit Administratorrolle ein, kehren Sie dann zurück und beantragen Sie die Löschung.",
+            "body": "Diese Workspaces werden zusammen mit jedem darin enthaltenen Dokument und jeder Wissensdatei dauerhaft entfernt. Wenn du deren Inhalte bewahren möchtest, lade zuerst ein Mitglied mit Administratorrolle ein, kehre dann zurück und beantrage die Löschung.",
             "row": "{name}: {docs}, {files}",
             "docCount": "keine Dokumente | {count} Dokument | {count} Dokumente",
             "fileCount": "keine Wissensdateien | {count} Wissensdatei | {count} Wissensdateien"
@@ -1683,32 +1740,34 @@
             "rowAlreadyAdmin": "{name}: {newAdminName} bleibt Admin und übernimmt"
           },
           "removeMember": {
-            "title": "Sie werden einfach entfernt",
-            "body": "Workspaces, in denen Sie Bearbeiter oder Betrachter sind, laufen ohne Sie weiter.",
-            "row": "{name} — derzeit {currentRole}"
+            "title": "Du wirst einfach entfernt",
+            "body": "Workspaces, in denen du Bearbeiter oder Betrachter bist, laufen ohne dich weiter.",
+            "row": "{name}: derzeit {currentRole}"
           }
         },
         "manualSteps": {
-          "heading": "Schritte, die Sie zuvor unternehmen sollten",
-          "exportFirst": "Nutzen Sie die Datenexportfunktion, um alles, was wir über Sie speichern, als ZIP herunterzuladen — bewahren Sie diese Datei auf, unabhängig davon, was hier geschieht.",
-          "transferDocs": "Für jedes Dokument, das ein Mitarbeiter behalten soll, verschieben Sie es entweder in einen Workspace, der ihm gehört, oder lassen Sie es ihn duplizieren.",
-          "inviteWorkspaceMember": "Für jeden Workspace, den Sie bewahren möchten, laden Sie vor dem Löschen mindestens einen Mitarbeiter mit Administratorrolle ein.",
-          "downloadKnowledge": "Für Wissensdatenbankdateien, die Sie bewahren möchten, laden Sie diese zuerst ausserhalb von markoto herunter."
+          "heading": "Schritte, die du zuvor unternehmen solltest",
+          "exportFirst": "Nutze die Datenexportfunktion, um alles, was wir über dich speichern, als ZIP herunterzuladen: Bewahre diese Datei auf, unabhängig davon, was hier geschieht.",
+          "transferDocs": "Für jedes Dokument, das ein Mitarbeiter behalten soll, verschiebe es entweder in einen Workspace, der ihm gehört, oder lass es ihn duplizieren.",
+          "inviteWorkspaceMember": "Für jeden Workspace, den du bewahren möchtest, lade vor dem Löschen mindestens einen Mitarbeiter mit Administratorrolle ein.",
+          "downloadKnowledge": "Für Wissensdatenbankdateien, die du bewahren möchtest, lade diese zuerst ausserhalb von markoto herunter."
         },
-        "timing": "Die eigentliche Kaskade läuft einmal pro Stunde als Hintergrundjob. Nach Ablauf der Kulanzfrist werden Ihre Daten innerhalb von etwa einer Stunde vollständig gelöscht.",
-        "noRecovery": "Sobald die Kaskade läuft, sind Ihr Konto und Ihre Inhalte dauerhaft verschwunden — es gibt keinen Wiederherstellungsweg."
+        "timing": "Die eigentliche Kaskade läuft einmal pro Stunde als Hintergrundjob. Nach Ablauf der Kulanzfrist werden deine Daten innerhalb von etwa einer Stunde vollständig gelöscht.",
+        "noRecovery": "Sobald die Kaskade läuft, sind dein Konto und deine Inhalte dauerhaft verschwunden: Es gibt keinen Wiederherstellungsweg.",
+        "loading": "Dein Konto wird gelesen…"
       },
-      "cancelledToast": "Löschung abgebrochen. Ihr Konto bleibt, wie es ist."
+      "cancelledToast": "Löschung abgebrochen. Dein Konto bleibt, wie es ist.",
+      "scheduleFailed": "Löschung konnte nicht geplant werden"
     },
     "export": {
-      "emailReadySubject": "Ihr markoto-Datenexport ist bereit",
-      "emailReadyBody": "Ihr Export steht zum Download bereit. Der Link läuft in 7 Tagen ab."
+      "emailReadySubject": "Dein markoto-Datenexport ist bereit",
+      "emailReadyBody": "Dein Export steht zum Download bereit. Der Link läuft in 7 Tagen ab."
     },
     "abuse": {
       "title": "Illegale Inhalte melden",
-      "intro": "Wenn Sie glauben, dass ein Dokument auf markoto illegale Inhalte enthält, teilen Sie es uns bitte mit. Wir bestätigen jede Meldung und handeln bei denen, die unseren Richtlinien entsprechen.",
+      "intro": "Wenn du glaubst, dass ein Dokument auf markoto illegale Inhalte enthält, teile es uns bitte mit. Wir bestätigen jede Meldung und handeln bei denen, die unseren Richtlinien entsprechen.",
       "docIdLabel": "Dokument-URL oder -ID (optional)",
-      "categoryLabel": "Was melden Sie?",
+      "categoryLabel": "Was meldest du?",
       "category": {
         "illegal_content": "Illegale Inhalte nach EU-Recht",
         "copyright": "Urheberrechtsverletzung",
@@ -1718,38 +1777,29 @@
         "other": "Etwas anderes"
       },
       "bodyLabel": "Was sollten wir wissen?",
-      "bodyPlaceholder": "Beschreiben Sie, was Sie gesehen haben und warum es entfernt werden sollte.",
+      "bodyPlaceholder": "Beschreibe, was du gesehen hast und warum es entfernt werden sollte.",
       "emailLabel": "E-Mail",
       "submit": "Meldung absenden",
-      "submittedTitle": "Danke — Ihre Meldung ist eingegangen",
-      "submittedBody": "Wir bestätigen jede Meldung. Wenn Sie eine E-Mail angegeben haben, teilen wir Ihnen unsere Entscheidung mit.",
+      "submittedTitle": "Danke, deine Meldung ist eingegangen",
+      "submittedBody": "Wir bestätigen jede Meldung. Wenn du eine E-Mail angegeben hast, teilen wir dir unsere Entscheidung mit.",
       "reportThisDoc": "Dieses Dokument melden",
       "policyHint": "In der {policy} steht, wogegen wir vorgehen und wie wir entscheiden.",
       "policyLink": "Richtlinie zu Missbrauch und rechtswidrigen Inhalten",
       "urlLabel": "Adresse (URL) des Inhalts",
       "urlHelp": "Der vollständige Link zum Dokument, zum Beispiel https://markoto.app/d/…",
-      "bodyHelp": "Erklären Sie, warum der Inhalt rechtswidrig ist oder gegen unsere Regeln verstösst. Seien Sie konkret: welcher Teil, und was daran falsch ist.",
-      "contactLegend": "Ihr Name und Ihre E-Mail-Adresse",
-      "contactHelp": "Wir brauchen sie, um den Eingang Ihrer Meldung zu bestätigen und Ihnen unsere Entscheidung mitzuteilen.",
-      "contactOptionalCsam": "Bei Meldungen von Darstellungen sexuellen Kindesmissbrauchs freiwillig. Ohne E-Mail-Adresse können wir Ihnen unsere Entscheidung nicht mitteilen.",
+      "bodyHelp": "Erkläre, warum der Inhalt rechtswidrig ist oder gegen unsere Regeln verstösst. Sei konkret: welcher Teil, und was daran falsch ist.",
+      "contactLegend": "Dein Name und deine E-Mail-Adresse",
+      "contactHelp": "Wir brauchen sie, um den Eingang deiner Meldung zu bestätigen und dir unsere Entscheidung mitzuteilen.",
+      "contactOptionalCsam": "Bei Meldungen von Darstellungen sexuellen Kindesmissbrauchs freiwillig. Ohne E-Mail-Adresse können wir dir unsere Entscheidung nicht mitteilen.",
       "nameLabel": "Name",
       "goodFaith": "Ich bestätige in gutem Glauben, dass die Angaben in dieser Meldung richtig und vollständig sind.",
-      "submittedBodyEmail": "Wir haben Ihnen eine Bestätigung per E-Mail geschickt und teilen Ihnen unsere Entscheidung dort mit.",
+      "submittedBodyEmail": "Wir haben dir eine Bestätigung per E-Mail geschickt und teilen dir unsere Entscheidung dort mit.",
       "reference": "Referenz: {id}",
-      "signInRequired": "Bitte melden Sie sich an, um Inhalte zu melden, oder schreiben Sie an die Kontaktadresse in der Missbrauchsrichtlinie.",
+      "signInRequired": "Bitte melde dich an, um Inhalte zu melden, oder schreibe an die Kontaktadresse in der Missbrauchsrichtlinie.",
       "signIn": "Anmelden",
       "errors": {
         "title": "Meldung konnte nicht gesendet werden",
-        "generic": "Bitte versuchen Sie es noch einmal.",
-        "rateLimited": "Zu viele Meldungen aus Ihrem Netzwerk. Bitte versuchen Sie es später noch einmal.",
-        "loginRequired": "Bitte melden Sie sich an, um Inhalte zu melden.",
-        "category": "Bitte wählen Sie, was Sie melden.",
-        "urlRequired": "Bitte geben Sie die Adresse (URL) des Inhalts an.",
-        "bodyTooShort": "Bitte erklären Sie, was am Inhalt falsch ist (mindestens 10 Zeichen).",
-        "bodyTooLong": "Die Erklärung ist zu lang (höchstens 5000 Zeichen).",
-        "goodFaith": "Bitte bestätigen Sie, dass Ihre Meldung richtig ist und in gutem Glauben erfolgt.",
-        "email": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
-        "contactRequired": "Bitte geben Sie Ihren Namen und Ihre E-Mail-Adresse an."
+        "generic": "Bitte versuche es noch einmal."
       }
     },
     "aiTransparency": {
@@ -1778,13 +1828,54 @@
       "viewAuthoritative": "Englisch anzeigen (massgeblich)",
       "lastUpdated": "Zuletzt aktualisiert am {date}",
       "version": "Version {version}",
-      "missingLocale": "Wir haben diese Seite noch nicht in Ihre Sprache übersetzt. Es wird die massgebliche englische Version angezeigt."
+      "missingLocale": "Wir haben diese Seite noch nicht in deine Sprache übersetzt. Es wird die massgebliche englische Version angezeigt.",
+      "notFoundTitle": "Dokument nicht gefunden",
+      "notFoundBody": "Das Rechtsdokument unter {path} existiert nicht."
+    },
+    "onboarding": {
+      "title": "Willkommen bei markoto",
+      "intro": "Bevor du mit dem Schreiben beginnst, brauchen wir kurz deine Bestätigung zu den folgenden Punkten. Du siehst dies nur einmal oder wenn wir eines der Dokumente wesentlich aktualisieren.",
+      "documentsTitle": "Zu akzeptierende Dokumente",
+      "documentsIntro": "Wir haben diese in verständlicher Sprache verfasst – öffne jedes in einem neuen Tab, um es vollständig zu lesen. Deine Zustimmung wird mit der gelesenen Version gespeichert, damit wir nachweisen können, was du gesehen hast.",
+      "acceptDocument": "Ich habe {document} gelesen und akzeptiere es",
+      "continue": "Weiter zu markoto",
+      "welcomeToast": "Willkommen bei markoto",
+      "staleTitle": "Dokument aktualisiert – bitte erneut prüfen",
+      "failedTitle": "Deine Zustimmung konnte nicht gespeichert werden"
+    },
+    "subProcessors": {
+      "intro": "Die Dritten, die markoto in unserem Auftrag mit der Verarbeitung personenbezogener Daten beauftragt, mit Standort, Übermittlungsgrundlage und öffentlichen Links. Offenlegung gemäss Art. 13 Abs. 1 lit. e DSGVO. Wir informieren Kunden mit Arbeitsbereichen mindestens 30 Tage im Voraus über jeden neuen Unterauftragsverarbeiter.",
+      "dpfCertified": "Nach dem EU-US Data Privacy Framework zertifiziert",
+      "dpf": "DPF",
+      "transfer": "Übermittlung",
+      "purpose": {
+        "ovh_postgres": "Primäre Anwendungsdatenbank, Y.js-Dokumentzustand, Wissens-Embeddings",
+        "ovh_object_storage": "Bild-Uploads, Originale der Wissensdatenbank (nach der Verarbeitung gelöscht), Datenbank-Backups",
+        "mistral_ai": "KI-Textgenerierung für den Schreibassistenten: das kostenlose KI-Kontingent (Z.ai GLM-5.3 Flash, bereitgestellt und verarbeitet von Mistral; Z.ai erhält keine Daten) mit Mistral Small als Rückfalloption; Sprachtranskription (Voxtral). Alle Anfragen gehen an Mistrals EU-Endpunkt (Rechenzentren in der EU und EFTA)",
+        "jina_ai": "Erzeugung von Embeddings für die Wissensdatenbank (RAG); Extraktion des Seiteninhalts einer einzelnen URL für das Werkzeug „URL abrufen“ (Jina Reader; die URL wird für alle Nutzer gesendet, auch für Nutzer mit eigenem KI-Anbieter)",
+        "staan": "Websuche für den KI-Schreibassistenten (die Suchanfrage wird für alle Nutzer gesendet, auch für Nutzer mit eigenem KI-Anbieter) über einen eigenen europäischen Suchindex (nur EU-Routing)",
+        "bfl": "Bildgenerierung mit FLUX.2 (Datenverarbeitung fest in der EU)",
+        "google_oauth": "Anmeldung mit einem Google-Konto (kein Zugriff auf andere Google-Daten)",
+        "github_oauth": "Anmeldung mit einem GitHub-Konto (kein Zugriff auf andere GitHub-Daten)",
+        "stripe": "Abo-Abrechnung, Speicherung von Zahlungsmitteln, Rechnungserstellung, Betrugsbewertung",
+        "sentry": "Telemetrie zu Anwendungsfehlern und Leistung, gespeichert in Sentrys EU-Datenregion (Frankfurt)",
+        "resend": "Versand von Transaktions-E-Mails: Bestätigungen von Kontolöschungen, Hinweise auf bereitstehende Datenexporte, Meldungen von Datenschutzverletzungen"
+      }
+    },
+    "seoDescription": {
+      "privacy": "Wie markoto mit Personendaten umgeht: was verarbeitet wird, warum, wie lange, durch welche Auftragsverarbeiter und deine Rechte nach DSGVO und Schweizer Recht.",
+      "terms": "Die Nutzungsbedingungen von markoto: Konten, Dokumente ohne Konto, zulässige Nutzung, KI-Funktionen, Haftung und wie sich die Bedingungen ändern.",
+      "paid-terms": "Die Bedingungen für die Pläne Pro, Team und Business und KI-Guthaben: Plätze, Verlängerung und Kündigung, Guthaben, Erstattungen, Widerrufsrecht.",
+      "dpa": "Der Auftragsverarbeitungsvertrag für Inhaber von Arbeitsbereichen: markoto verarbeitet Inhalte in deinem Auftrag nach Art. 28 DSGVO.",
+      "abuse-policy": "Was auf markoto nicht erlaubt ist, wie du rechtswidrige Inhalte oder Missbrauch melden kannst und wie Meldungen bearbeitet und entschieden werden.",
+      "imprint": "Impressum von markoto: das betreibende Unternehmen, seine Adresse und wie du es erreichst.",
+      "sub-processors": "Alle Unternehmen, die Daten für markoto verarbeiten: was sie tun, wo die Daten liegen und wie Übermittlungen abgesichert sind."
     }
   },
   "settings": {
     "profile": {
       "title": "Profil",
-      "intro": "Ihr Konto, die Daten, die wir über Sie speichern, und die Einstellungen, mit denen Sie beides verwalten.",
+      "intro": "Dein Konto, die Daten, die wir über dich speichern, und die Einstellungen, mit denen du beides verwaltest.",
       "account": {
         "heading": "Konto",
         "email": "E-Mail",
@@ -1795,43 +1886,48 @@
       },
       "spending": {
         "heading": "Ausgaben und Nutzung",
-        "comingSoon": "Bald verfügbar — Ihre KI-Credit-Nutzung, Tarifverlauf und Rechnungen werden hier angezeigt. Verwalten Sie die Abrechnung vorerst über die Preisseite.",
+        "comingSoon": "Bald verfügbar: deine KI-Credit-Nutzung, Tarifverlauf und Rechnungen werden hier angezeigt. Verwalte die Abrechnung vorerst über die Preisseite.",
         "viewPricing": "Preise ansehen",
         "plan": "Aktueller Plan: {plan}",
         "manage": "Abrechnung verwalten",
         "portalFailed": "Abrechnung konnte nicht geöffnet werden",
-        "coveringTitle": "Arbeitsbereiche, die Sie abdecken",
-        "coveringHint": "In diesen Arbeitsbereichen gilt deren Plan auch für Sie, einschliesslich des gemeinsamen KI-Budgets. Überall sonst gilt Ihr eigener Plan."
+        "coveringTitle": "Arbeitsbereiche, die du abdeckst",
+        "coveringHint": "In diesen Arbeitsbereichen gilt deren Plan auch für dich, einschliesslich des gemeinsamen KI-Budgets. Überall sonst gilt dein eigener Plan."
       },
       "data": {
-        "heading": "Ihre Daten",
-        "exportTitle": "Eine Kopie Ihrer Daten herunterladen",
-        "exportDescription": "Wir bereiten ein ZIP mit allem vor, was wir über Sie speichern — Ihr Kontoprofil, jedes Ihnen gehörende Dokument als Markdown, von Ihnen verfasste Kommentare, Abrechnungsverlauf, KI-Nutzungsprotokolle, Audit- und Einwilligungsdatensätze. Die Erstellung läuft im Hintergrund, normalerweise unter einer Minute. Diese Seite wird aktualisiert, wenn es bereit ist, und wir senden Ihnen ausserdem einen Download-Link per E-Mail. Der Link ist 7 Tage gültig.",
+        "heading": "Deine Daten",
+        "exportTitle": "Eine Kopie deiner Daten herunterladen",
+        "exportDescription": "Wir bereiten ein ZIP mit allem vor, was wir über dich speichern: dein Kontoprofil, jedes dir gehörende Dokument als Markdown, von dir verfasste Kommentare, Abrechnungsverlauf, KI-Nutzungsprotokolle, Audit- und Einwilligungsdatensätze. Die Erstellung läuft im Hintergrund, normalerweise unter einer Minute. Diese Seite wird aktualisiert, wenn es bereit ist, und wir senden dir ausserdem einen Download-Link per E-Mail. Der Link ist 7 Tage gültig.",
         "exportButton": "Export anfordern",
-        "exportInProgress": "Export läuft — diese Seite wird aktualisiert, wenn es bereit ist.",
+        "exportInProgress": "Export läuft: diese Seite wird aktualisiert, wenn es bereit ist.",
         "exportHistoryHeading": "Letzte Exporte",
         "exportHistoryEmpty": "Keine früheren Exporte.",
         "exportExpiresAt": "Verfügbar bis {date}",
-        "exportDownload": "Herunterladen"
+        "exportDownload": "Herunterladen",
+        "loadFailed": "Exporte konnten nicht geladen werden",
+        "requestFailed": "Export konnte nicht angefordert werden",
+        "exportRequested": "angefordert",
+        "exportAvailableUntil": "verfügbar bis"
       },
       "delete": {
         "heading": "Konto löschen",
-        "description": "Wir bewahren Ihre Daten 30 Tage lang auf, falls Sie es sich anders überlegen. Danach wird alles dauerhaft entfernt — Dokumente, Kommentare, Workspace-Mitgliedschaften, Abrechnungsverlauf. Workspaces, in denen Sie das einzige Mitglied sind, werden kaskadierend gelöscht; Workspaces mit weiteren Mitgliedern erhalten automatisch einen neuen Administrator.",
+        "description": "Wir bewahren deine Daten 30 Tage lang auf, falls du es dir anders überlegst. Danach wird alles dauerhaft entfernt: Dokumente, Kommentare, Workspace-Mitgliedschaften, Abrechnungsverlauf. Workspaces, in denen du das einzige Mitglied bist, werden kaskadierend gelöscht; Workspaces mit weiteren Mitgliedern erhalten automatisch einen neuen Administrator.",
         "button": "Kontolöschung anfordern",
         "scheduled": "Löschung geplant für den {date}",
-        "cancel": "Löschung abbrechen"
+        "cancel": "Löschung abbrechen",
+        "cancelFailed": "Löschung konnte nicht abgebrochen werden"
       },
       "legal": {
         "heading": "Rechtliches",
-        "subheading": "Versionen der Datenschutzerklärung, Nutzungsbedingungen und des Auftragsverarbeitungsvertrags, die Sie akzeptiert haben. Wenn wir ein Dokument wesentlich aktualisieren, sehen Sie hier \"erneute Zustimmung erforderlich\" und wir fragen vor jeder weiteren Aktion erneut nach.",
+        "subheading": "Versionen der Datenschutzerklärung, Nutzungsbedingungen und des Auftragsverarbeitungsvertrags, die du akzeptiert hast. Wenn wir ein Dokument wesentlich aktualisieren, siehst du hier \"erneute Zustimmung erforderlich\" und wir fragen vor jeder weiteren Aktion erneut nach.",
         "notAccepted": "Nicht akzeptiert",
         "needsReacceptance": "erneute Zustimmung erforderlich (aktuell v{version})",
-        "dpaNotApplicable": "Erforderlich, wenn Sie einen Workspace erstellen",
-        "cookieNote": "markoto verwendet nur notwendige Cookies: Ihre Anmeldesitzung, Ihre Sprache und einen Schlüssel, mit dem Ihr Browser Dokumente löschen kann, die er ohne Konto erstellt hat. Es gibt keine Analyse, kein Tracking und keine Werbung, daher ist keine Einwilligung nötig. Die Datenschutzerklärung führt jedes Cookie auf."
+        "dpaNotApplicable": "Erforderlich, wenn du einen Workspace erstellst",
+        "cookieNote": "markoto verwendet nur notwendige Cookies: deine Anmeldesitzung, deine Sprache und einen Schlüssel, mit dem dein Browser Dokumente löschen kann, die er ohne Konto erstellt hat. Es gibt keine Analyse, kein Tracking und keine Werbung, daher ist keine Einwilligung nötig. Die Datenschutzerklärung führt jedes Cookie auf."
       },
       "sessions": {
         "heading": "Sitzungen",
-        "description": "Auf einem Gerät angemeldet, das Sie nicht mehr nutzen, oder Sorge, dass jemand anderes Zugriff hat? Melden Sie sich in jedem Browser und auf jedem Gerät von markoto ab, auch auf diesem.",
+        "description": "Auf einem Gerät angemeldet, das du nicht mehr nutzt, oder Sorge, dass jemand anderes Zugriff hat? Melde dich in jedem Browser und auf jedem Gerät von markoto ab, auch auf diesem.",
         "button": "Überall abmelden",
         "failed": "Abmelden auf allen Geräten fehlgeschlagen"
       },
@@ -1842,7 +1938,29 @@
       }
     },
     "integrations": {
-      "menu": "Integrationen (MCP)"
+      "menu": "Integrationen (MCP)",
+      "title": "Integrationen",
+      "intro": "Persönliche Zugriffstokens für externe MCP-Clients – Claude Desktop, Cursor, ChatGPT-App-Store oder deine eigenen Skripte.",
+      "loadFailed": "Tokens konnten nicht geladen werden",
+      "issueFailed": "Token konnte nicht ausgestellt werden",
+      "tokenCopied": "Token in die Zwischenablage kopiert",
+      "copyFailed": "Kopieren fehlgeschlagen – bitte manuell markieren und kopieren",
+      "revoked": "Token widerrufen",
+      "revokeFailed": "Token konnte nicht widerrufen werden",
+      "snippetCopied": "Konfigurationsausschnitt kopiert",
+      "createdTitle": "Token erstellt – jetzt kopieren",
+      "createdBody": "Aus Sicherheitsgründen wird dieses Token nur ein einziges Mal angezeigt. Wir können es nicht für dich wiederherstellen. Wenn du es verlierst, widerrufe es und erstelle ein neues.",
+      "copy": "Kopieren",
+      "generateTitle": "Token erzeugen",
+      "namePlaceholder": "z. B. Claude Desktop auf dem Laptop",
+      "generate": "Erzeugen",
+      "scopesNote": "Tokens gewähren denselben Zugriff wie dein Konto, beschränkt auf Lesen, Schreiben, Wissen und Web-Abruf.",
+      "activeTitle": "Aktive Tokens",
+      "empty": "Noch keine Tokens.",
+      "createdLastUsed": "erstellt {created} · zuletzt verwendet {lastUsed}",
+      "revoke": "Widerrufen",
+      "connectTitle": "Claude Desktop verbinden",
+      "connectBody": "Füge diesen Block in deine Datei {file} ein (Einstellungen → Entwickler → Konfiguration bearbeiten)."
     }
   },
   "billing": {
@@ -1852,7 +1970,11 @@
       "consentPlan": "Ich akzeptiere die {terms} und verlange, dass mein Plan sofort beginnt. Widerrufe ich als Konsument in der EU innert 14 Tagen, bezahle ich die genutzte Zeit.",
       "consentTopup": "Ich akzeptiere die {terms} und verlange das Guthaben sofort. Mein Widerrufsrecht endet, sobald ich es nutze.",
       "link": "Bedingungen für kostenpflichtige Pläne",
-      "required": "Akzeptieren Sie die Bedingungen für kostenpflichtige Pläne, um fortzufahren."
+      "required": "Akzeptiere die Bedingungen für kostenpflichtige Pläne, um fortzufahren."
+    },
+    "planUpdated": {
+      "title": "Plan aktualisiert",
+      "description": "Du nutzt jetzt den Plan {plan}. Dein neues KI-Budget steht sofort zur Verfügung."
     }
   },
   "plan": {
@@ -1860,7 +1982,7 @@
     "feature": {
       "customCss": "Eigenes CSS ist im Plan dieses Dokuments nicht enthalten.",
       "customCssPaused": "Das eigene CSS dieses Dokuments ist pausiert, weil sein Plan kein eigenes CSS enthält. Das CSS bleibt gespeichert und wirkt wieder, sobald der Plan es enthält.",
-      "mcpWrite": "Ihr Plan enthält für KI-Clients über MCP nur Lesezugriff. Bearbeiten, Rendern und Web-Werkzeuge brauchen einen Plan, der sie enthält.",
+      "mcpWrite": "Dein Plan enthält für KI-Clients über MCP nur Lesezugriff. Bearbeiten, Rendern und Web-Werkzeuge brauchen einen Plan, der sie enthält.",
       "aiImage": "Bildgenerierung über die KI von markoto ist in diesem Plan nicht enthalten.",
       "aiVoice": "Spracheingabe über die KI von markoto ist in diesem Plan nicht enthalten.",
       "aiStrongModel": "Das starke KI-Modell ist in diesem Plan nicht enthalten.",
@@ -1869,14 +1991,14 @@
       "guests": "Gäste sind im Plan dieses Arbeitsbereichs nicht enthalten.",
       "brandKit": "Das Brand-Kit ist im Plan dieses Arbeitsbereichs nicht enthalten.",
       "shareControls": "Link-Ablauf, reine Ansicht und Aufrufzahlen sind im Plan dieses Dokuments nicht enthalten.",
-      "customDomains": "Eigene Domains sind in Ihrem Plan nicht enthalten."
+      "customDomains": "Eigene Domains sind in deinem Plan nicht enthalten."
     },
     "limit": {
       "membersPerWorkspace": "Dieser Workspace hat die Mitgliedergrenze seines Plans erreicht.",
-      "savedThemes": "Sie haben die Grenze Ihres Plans für gespeicherte Themes erreicht. Löschen Sie eines, um ein neues zu speichern.",
-      "importMaxBytes": "Diese Datei ist grösser, als Ihr Plan für Importe erlaubt.",
+      "savedThemes": "Du hast die Grenze deines Plans für gespeicherte Themes erreicht. Lösche eines, um ein neues zu speichern.",
+      "importMaxBytes": "Diese Datei ist grösser, als dein Plan für Importe erlaubt.",
       "historyEntry": "Diese Änderung ist älter als der Verlauf, den der Plan dieses Dokuments enthält.",
-      "mcpToolCallsPerDay": "Sie haben die MCP-Werkzeugaufrufe Ihres Plans für heute aufgebraucht. Versuchen Sie es morgen wieder."
+      "mcpToolCallsPerDay": "Du hast die MCP-Werkzeugaufrufe deines Plans für heute aufgebraucht. Versuche es morgen wieder."
     },
     "notice": {
       "historyHidden": "Aktivitäten, die älter als {days} Tage sind, werden im Plan dieses Dokuments ausgeblendet. Sie bleiben gespeichert und erscheinen wieder, sobald der Plan mehr Verlauf enthält."
@@ -1884,34 +2006,34 @@
   },
   "waitlist": {
     "title": "Auf die Warteliste",
-    "description": "Erhalten Sie eine E-Mail, sobald die Bezahlpläne starten. Mehr schicken wir nicht.",
+    "description": "Erhalte eine E-Mail, sobald die Bezahlpläne starten. Mehr schicken wir nicht.",
     "emailLabel": "E-Mail-Adresse",
     "emailPlaceholder": "sie{'@'}beispiel.ch",
     "consentLabel": "Ich bin einverstanden, dass markoto meine E-Mail-Adresse speichert, um mich über den Start der Bezahlpläne zu informieren. Ich kann mich jederzeit über den Link in jeder E-Mail abmelden.",
     "privacyLink": "Datenschutzerklärung",
     "submit": "Auf die Warteliste",
-    "successTitle": "Prüfen Sie Ihr Postfach",
-    "successBody": "Falls diese Adresse E-Mails empfangen kann, haben wir einen Bestätigungslink gesendet. Ihre Anmeldung zählt erst, wenn Sie ihn anklicken.",
-    "missingToken": "Dieser Link ist unvollständig. Bitte öffnen Sie ihn genau so, wie er in der E-Mail steht.",
+    "successTitle": "Prüfe dein Postfach",
+    "successBody": "Falls diese Adresse E-Mails empfangen kann, haben wir einen Bestätigungslink gesendet. Deine Anmeldung zählt erst, wenn du ihn anklickst.",
+    "missingToken": "Dieser Link ist unvollständig. Bitte öffne ihn genau so, wie er in der E-Mail steht.",
     "backHome": "Zurück zu markoto",
     "errors": {
-      "consentRequired": "Bitte setzen Sie das Häkchen bei der Einwilligung, um sich einzutragen.",
-      "invalidEmail": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+      "consentRequired": "Bitte setze das Häkchen bei der Einwilligung, um dich einzutragen.",
+      "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse ein.",
       "invalidToken": "Dieser Link ist ungültig oder abgelaufen."
     },
     "confirm": {
       "title": "Anmeldung zur Warteliste bestätigen",
-      "body": "Bestätigen Sie, dass Sie eine E-Mail von uns erhalten möchten, sobald die Bezahlpläne von markoto starten.",
+      "body": "Bestätige, dass du eine E-Mail von uns erhalten möchtest, sobald die Bezahlpläne von markoto starten.",
       "button": "Anmeldung bestätigen",
-      "successTitle": "Sie stehen auf der Liste",
-      "successBody": "Wir schreiben Ihnen, sobald die Bezahlpläne starten. Jede E-Mail enthält einen Abmeldelink."
+      "successTitle": "Du stehst auf der Liste",
+      "successBody": "Wir schreiben dir, sobald die Bezahlpläne starten. Jede E-Mail enthält einen Abmeldelink."
     },
     "unsubscribe": {
       "title": "Warteliste verlassen",
-      "body": "Entfernen Sie Ihre E-Mail-Adresse von der Warteliste für Bezahlpläne. Wir löschen sie sofort.",
+      "body": "Entferne deine E-Mail-Adresse von der Warteliste für Bezahlpläne. Wir löschen sie sofort.",
       "button": "Meine Adresse entfernen",
-      "successTitle": "Sie wurden entfernt",
-      "successBody": "Ihre E-Mail-Adresse wurde von der Warteliste gelöscht."
+      "successTitle": "Du wurdest entfernt",
+      "successBody": "Deine E-Mail-Adresse wurde von der Warteliste gelöscht."
     }
   },
   "aiProvider": {
@@ -1947,7 +2069,7 @@
       "keyEnding": "endet auf {last4}",
       "noToolSupport": "Dieses Modell hat das Test-Tool nicht aufgerufen; der Schreibassistent funktioniert damit vielleicht nicht. Wähle ein Modell mit Tool-Aufrufen.",
       "liveDictation": "Live-Diktat ist verfügbar.",
-      "locked": "Nicht in Ihrem Plan – Ihr eigener Schlüssel funktioniert"
+      "locked": "Nicht in deinem Plan – dein eigener Schlüssel funktioniert"
     },
     "form": {
       "preset": "Anbieter",
@@ -1994,8 +2116,6 @@
       "unresolvable": "Dieser Hostname wurde nicht gefunden."
     },
     "errors": {
-      "keyRequired": "Gib den API-Schlüssel ein. Er ist nötig, wenn du einen Anbieter hinzufügst oder die URL änderst.",
-      "transcription": "Dein Transkriptionsanbieter hat einen Fehler gemeldet. Prüfe deine KI-Anbieter-Einstellungen.",
       "loadFailed": "Deine KI-Einstellungen konnten nicht geladen werden."
     },
     "missing": {
@@ -2012,11 +2132,11 @@
     "freeAllowanceNote": "Ohne eigenen Schlüssel erhält dein Konto ein monatliches kostenloses KI-Kontingent auf dem Standardmodell dieser Instanz – solange der gemeinsame Monatstopf reicht. Sobald du einen eigenen Schlüssel hinterlegst, wird dieser verwendet.",
     "modelTier": {
       "title": "KI-Modell",
-      "description": "Welches Modell dieser Instanz die KI für Sie verwendet. Ein eigener Chat-Schlüssel hat immer Vorrang.",
+      "description": "Welches Modell dieser Instanz die KI für dich verwendet. Ein eigener Chat-Schlüssel hat immer Vorrang.",
       "fast": "Schnell",
-      "fastHint": "Schnelle Antworten und Änderungen. Braucht weniger von Ihrem KI-Budget.",
+      "fastHint": "Schnelle Antworten und Änderungen. Braucht weniger von deinem KI-Budget.",
       "strong": "Stark",
-      "strongHint": "Besser bei langen, sorgfältigen Texten und kniffligen Änderungen. Braucht mehr von Ihrem KI-Budget.",
+      "strongHint": "Besser bei langen, sorgfältigen Texten und kniffligen Änderungen. Braucht mehr von deinem KI-Budget.",
       "locked": "Das starke Modell gehört zu den bezahlten Plänen.",
       "saveFailed": "Modell konnte nicht gespeichert werden"
     }
@@ -2026,15 +2146,15 @@
     "hero": {
       "title": "Schön gesetztes {markdown}.",
       "markdown": "Markdown",
-      "body": "Ein kollaborativer Markdown-Editor mit einer Live-Vorschau in echten Seiten. Sie schreiben reinen Text; das PDF entspricht der Vorschau Seite für Seite.",
-      "cta": "Jetzt schreiben — ohne Anmeldung",
+      "body": "Ein kollaborativer Markdown-Editor mit einer Live-Vorschau in echten Seiten. Du schreibst reinen Text; das PDF entspricht der Vorschau Seite für Seite.",
+      "cta": "Jetzt schreiben, ohne Anmeldung",
       "next": "So funktioniert's"
     },
     "scenes": {
       "write": {
         "label": "Editor",
         "title": "Markdown schreiben, fertige Seiten erhalten.",
-        "body": "Links tippen Sie, rechts entstehen beim Schreiben echte A4- oder Letter-Seiten."
+        "body": "Links tippst du, rechts entstehen beim Schreiben echte A4- oder Letter-Seiten."
       },
       "rich": {
         "label": "Layout",
@@ -2044,7 +2164,7 @@
       "themes": {
         "label": "Themes",
         "title": "Neues Aussehen, gleiches Markdown.",
-        "body": "Wählen Sie ein fertiges Theme und passen Sie Farben, Schriften und Titelseite an. Ihr Text bleibt unverändert."
+        "body": "Wähle ein fertiges Theme und passe Farben, Schriften und Titelseite an. Dein Text bleibt unverändert."
       },
       "collab": {
         "label": "Zusammenarbeit",
@@ -2053,18 +2173,18 @@
       },
       "ai": {
         "label": "KI",
-        "title": "Ein KI-Assistent, der Ihr Markdown bearbeitet.",
-        "body": "Lassen Sie ihn einen Abschnitt entwerfen oder eine Tabelle korrigieren. Er schreibt direkt ins Dokument, während Sie zusehen, und jede Änderung steht im Verlauf."
+        "title": "Ein KI-Assistent, der dein Markdown bearbeitet.",
+        "body": "Lass ihn einen Abschnitt entwerfen oder eine Tabelle korrigieren. Er schreibt direkt ins Dokument, während du zusehst, und jede Änderung steht im Verlauf."
       },
       "knowledge": {
         "label": "Wissen",
-        "title": "Antworten aus Ihren eigenen Dateien.",
-        "body": "Laden Sie PDF-, Word- oder Excel-Dateien in einen Workspace. Die KI antwortet auf ihrer Grundlage, statt zu raten."
+        "title": "Antworten aus deinen eigenen Dateien.",
+        "body": "Lade PDF-, Word- oder Excel-Dateien in einen Workspace. Die KI antwortet auf ihrer Grundlage, statt zu raten."
       },
       "history": {
         "label": "Verlauf",
         "title": "Jede Änderung, mit Diff.",
-        "body": "Sehen Sie, wer was geändert hat, Menschen wie KI, und stellen Sie mit einem Klick eine frühere Version wieder her."
+        "body": "Sieh, wer was geändert hat, Menschen wie KI, und stelle mit einem Klick eine frühere Version wieder her."
       },
       "share": {
         "label": "Teilen & Export",
@@ -2074,7 +2194,7 @@
       "yours": {
         "label": "Selbst hosten",
         "title": "Quellcode einsehbar, selbst hostbar.",
-        "body": "Betreiben Sie es mit einem Skript auf Ihrem eigenen Server oder nutzen Sie markoto.app, gehostet in der EU. Mit Ihrem eigenen KI-Schlüssel."
+        "body": "Betreibe es mit einem Skript auf deinem eigenen Server oder nutze markoto.app, gehostet in der EU. Mit deinem eigenen KI-Schlüssel."
       }
     },
     "chips": {
@@ -2083,8 +2203,8 @@
       "oss": "Quellcode einsehbar · Self-Hosting mit einem Skript"
     },
     "cta": {
-      "title": "Probieren Sie es mit Ihrem eigenen Markdown.",
-      "body": "Kostenlos auf markoto.app, ohne Anmeldung — oder hoste es selbst.",
+      "title": "Probiere es mit deinem eigenen Markdown.",
+      "body": "Kostenlos auf markoto.app, ohne Anmeldung, oder hoste es selbst.",
       "start": "Jetzt schreiben",
       "selfHost": "Selbst hosten"
     },
@@ -2108,25 +2228,25 @@
     "nextScene": "Weiter: {scene}"
   },
   "anonGate": {
-    "eyebrow": "Vor Ihrem ersten Dokument",
+    "eyebrow": "Vor deinem ersten Dokument",
     "title": "Schreiben ohne Konto",
-    "pointPublic": "Wer den Link hat, kann Ihr Dokument öffnen und bearbeiten, solange Sie die Freigabe nicht ändern. Legen Sie darin nichts Vertrauliches ab.",
-    "pointRetention": "Es wird nach {days} Tagen ohne Aktivität gelöscht. Melden Sie sich an, um Ihre Dokumente zu behalten.",
+    "pointPublic": "Wer den Link hat, kann dein Dokument öffnen und bearbeiten, solange du die Freigabe nicht änderst. Lege darin nichts Vertrauliches ab.",
+    "pointRetention": "Es wird nach {days} Tagen ohne Aktivität gelöscht. Melde dich an, um deine Dokumente zu behalten.",
     "pointRules": "markoto prüft keine Dokumente. Rechtswidrige Inhalte, Betrug und Spam sind nicht erlaubt und werden auf Meldung hin entfernt.",
     "accept": "Ich akzeptiere die {terms} einschliesslich der Regeln zur zulässigen Nutzung und bin mindestens {age} Jahre alt.",
     "termsLink": "Nutzungsbedingungen",
-    "privacyNote": "Wie wir mit Ihren Daten umgehen: {privacy}.",
+    "privacyNote": "Wie wir mit deinen Daten umgehen: {privacy}.",
     "privacyLink": "Datenschutzerklärung",
-    "botCheckRunning": "Bot-Prüfung läuft in Ihrem Browser…",
+    "botCheckRunning": "Bot-Prüfung läuft in deinem Browser…",
     "botCheckReady": "Bot-Prüfung erledigt · läuft im Browser, ohne Tracking",
     "signInInstead": "Stattdessen anmelden",
     "cancel": "Abbrechen",
     "continue": "Akzeptieren und erstellen",
     "errors": {
-      "botCheck": "Die automatische Bot-Prüfung ist fehlgeschlagen. Bitte versuchen Sie es noch einmal.",
-      "termsRequired": "Bitte akzeptieren Sie zuerst die Nutzungsbedingungen.",
-      "unavailable": "Die Bot-Prüfung ist gerade nicht verfügbar. Bitte versuchen Sie es gleich noch einmal.",
-      "rateLimited": "Zu viele neue Dokumente aus Ihrem Netzwerk. Melden Sie sich an oder versuchen Sie es später noch einmal."
+      "botCheck": "Die automatische Bot-Prüfung ist fehlgeschlagen. Bitte versuche es noch einmal.",
+      "termsRequired": "Bitte akzeptiere zuerst die Nutzungsbedingungen.",
+      "unavailable": "Die Bot-Prüfung ist gerade nicht verfügbar. Bitte versuche es gleich noch einmal.",
+      "rateLimited": "Zu viele neue Dokumente aus deinem Netzwerk. Melde dich an oder versuche es später noch einmal."
     }
   },
   "userContent": {
@@ -2160,7 +2280,7 @@
     "steps": {
       "write": {
         "title": "Links Markdown, rechts Seiten",
-        "body": "Tippen Sie im Editor; die Vorschau zeigt die Seiten genau so, wie sie gedruckt und exportiert werden. Diese Schaltflächen wechseln zwischen Editor, beidem und Vorschau."
+        "body": "Tippe im Editor; die Vorschau zeigt die Seiten genau so, wie sie gedruckt und exportiert werden. Diese Schaltflächen wechseln zwischen Editor, beidem und Vorschau."
       },
       "format": {
         "title": "Formatieren ohne Syntax",
@@ -2168,15 +2288,15 @@
       },
       "theme": {
         "title": "Das richtige Aussehen",
-        "body": "Schriften, Farben, Seitenformat, Kopf- und Fusszeile und die Titelseite stellen Sie im Dokumentdesign ein."
+        "body": "Schriften, Farben, Seitenformat, Kopf- und Fusszeile und die Titelseite stellst du im Dokumentdesign ein."
       },
       "share": {
         "title": "Den Link teilen",
-        "body": "Das Schloss legt fest, wer den Link öffnen kann: nur Sie, alle zum Ansehen, alle zum Bearbeiten oder mit Passwort."
+        "body": "Das Schloss legt fest, wer den Link öffnen kann: nur du, alle zum Ansehen, alle zum Bearbeiten oder mit Passwort."
       },
       "ai": {
         "title": "markoto fragen",
-        "body": "Beschreiben Sie, was Sie möchten. Die KI bearbeitet das Dokument wie eine Mitautorin, und Sie sehen ihr beim Tippen zu."
+        "body": "Beschreibe, was du möchtest. Die KI bearbeitet das Dokument wie eine Mitautorin, und du siehst ihr beim Tippen zu."
       },
       "help": {
         "title": "Hier gibt es Hilfe",
@@ -2184,11 +2304,11 @@
       },
       "writeMobile": {
         "title": "Schreiben, dann die Seiten ansehen",
-        "body": "Tippen Sie hier Markdown. Das Auge zeigt die Seiten so, wie sie gedruckt und exportiert werden."
+        "body": "Tippe hier Markdown. Das Auge zeigt die Seiten so, wie sie gedruckt und exportiert werden."
       },
       "formatMobile": {
         "title": "Formatieren und einfügen",
-        "body": "Im Tab Editor finden Sie Überschriften, Listen, Tabellen, Hinweise, Formeln und Diagramme."
+        "body": "Im Tab Editor findest du Überschriften, Listen, Tabellen, Hinweise, Formeln und Diagramme."
       },
       "helpMobile": {
         "title": "Hilfe steht im Menü",
@@ -2238,18 +2358,18 @@
       "tabEdit": "Bearbeiten",
       "tabPreview": "Vorschau",
       "previewLoading": "Vorschau wird geladen…",
-      "previewFailed": "Die Vorschau konnte nicht geladen werden. Laden Sie die Seite neu, um es noch einmal zu versuchen.",
+      "previewFailed": "Die Vorschau konnte nicht geladen werden. Lade die Seite neu, um es noch einmal zu versuchen.",
       "open": "Als Dokument öffnen",
       "pdf": "PDF herunterladen",
-      "noticeAnon": "Beide Schaltflächen erstellen aus Ihrem Text ein Dokument. Alle mit dem Link können es bearbeiten, und es wird nach {n} Tag ohne Änderung gelöscht. | Beide Schaltflächen erstellen aus Ihrem Text ein Dokument. Alle mit dem Link können es bearbeiten, und es wird nach {n} Tagen ohne Änderungen gelöscht.",
-      "noticeAnonKept": "Beide Schaltflächen erstellen aus Ihrem Text ein Dokument. Alle mit dem Link können es bearbeiten.",
-      "noticeAccount": "Beide Schaltflächen erstellen aus Ihrem Text ein Dokument in Ihrem Konto.",
+      "noticeAnon": "Beide Schaltflächen erstellen aus deinem Text ein Dokument. Alle mit dem Link können es bearbeiten, und es wird nach {n} Tag ohne Änderung gelöscht. | Beide Schaltflächen erstellen aus deinem Text ein Dokument. Alle mit dem Link können es bearbeiten, und es wird nach {n} Tagen ohne Änderungen gelöscht.",
+      "noticeAnonKept": "Beide Schaltflächen erstellen aus deinem Text ein Dokument. Alle mit dem Link können es bearbeiten.",
+      "noticeAccount": "Beide Schaltflächen erstellen aus deinem Text ein Dokument in deinem Konto.",
       "openCreated": "Dokument öffnen",
       "errors": {
-        "create": "Das Dokument konnte nicht erstellt werden. Bitte versuchen Sie es noch einmal.",
-        "tooLong": "Dieser Text ist zu lang, um hier ein Dokument daraus zu machen. Erstellen Sie ein neues Dokument und fügen Sie ihn dort ein.",
-        "pdf": "Das Dokument wurde erstellt, aber das PDF konnte gerade nicht erzeugt werden. Bitte versuchen Sie es gleich noch einmal.",
-        "pdfRateLimited": "Zu viele PDFs aus Ihrem Netzwerk in der letzten Minute. Bitte versuchen Sie es in einer Minute noch einmal."
+        "create": "Das Dokument konnte nicht erstellt werden. Bitte versuche es noch einmal.",
+        "tooLong": "Dieser Text ist zu lang, um hier ein Dokument daraus zu machen. Erstelle ein neues Dokument und füge ihn dort ein.",
+        "pdf": "Das Dokument wurde erstellt, aber das PDF konnte gerade nicht erzeugt werden. Bitte versuche es gleich noch einmal.",
+        "pdfRateLimited": "Zu viele PDFs aus deinem Netzwerk in der letzten Minute. Bitte versuche es in einer Minute noch einmal."
       }
     },
     "subProcessors": {
@@ -2271,21 +2391,26 @@
   "home": {
     "title": "Start",
     "greeting": "Willkommen zurück, {name}",
-    "description": "Ihre Workspaces und Dokumente."
+    "description": "Deine Workspaces und Dokumente.",
+    "access": {
+      "private": "Privat",
+      "protected": "Geschützt"
+    }
   },
   "docRow": {
     "actions": "Dokumentaktionen",
     "open": "Öffnen",
-    "openNewTab": "In neuem Tab öffnen"
+    "openNewTab": "In neuem Tab öffnen",
+    "words": "{n} Wort | {n} Wörter"
   },
   "credits": {
     "title": "KI-Guthaben",
     "balance": "{amount} KI-Guthaben übrig",
     "usedThisMonth": "{amount} in diesem Monat verbraucht",
-    "explainer": "Guthaben ergänzt das monatliche KI-Budget Ihres Plans. Es wird erst verbraucht, wenn das Monatsbudget des Plans aufgebraucht ist, und verfällt {months} Monate nach dem Kauf.",
+    "explainer": "Guthaben ergänzt das monatliche KI-Budget deines Plans. Es wird erst verbraucht, wenn das Monatsbudget des Plans aufgebraucht ist, und verfällt {months} Monate nach dem Kauf.",
     "pack": "{price} → {credit} Guthaben",
     "grantLeft": "{left} übrig · verfällt am {date}",
-    "needsPlan": "KI-Guthaben ergänzt einen bezahlten Plan. Upgraden Sie auf Pro, um es zu kaufen.",
+    "needsPlan": "KI-Guthaben ergänzt einen bezahlten Plan. Wechsle auf Pro, um es zu kaufen.",
     "buyFailed": "Kauf konnte nicht gestartet werden",
     "purchased": "Guthaben gekauft",
     "purchasedBody": "Es wird gutgeschrieben, sobald Stripe die Zahlung bestätigt, meist innert weniger Sekunden."
@@ -2294,9 +2419,9 @@
     "title": "Single Sign-on (SSO)",
     "loading": "Single Sign-on wird geladen…",
     "loadFailed": "Die Einstellungen für Single Sign-on konnten nicht geladen werden.",
-    "planNotice": "Single Sign-on mit Ihrem eigenen Identitätsanbieter ist Teil des Business-Plans.",
-    "intro": "Mitglieder melden sich bei diesem Workspace über den Identitätsanbieter Ihrer Organisation an (OpenID Connect oder SAML). Sobald es eingeschaltet ist, müssen sich alle auf diese Weise anmelden, um den Workspace zu öffnen; Admins können jederzeit hierher zurückkehren, um es zu ändern oder zu entfernen.",
-    "enforcedNotice": "Single Sign-on ist eingeschaltet: Mitglieder öffnen diesen Workspace erst nach der Anmeldung über Ihren Identitätsanbieter (gültig für 12 Stunden).",
+    "planNotice": "Single Sign-on mit deinem eigenen Identitätsanbieter ist Teil des Business-Plans.",
+    "intro": "Mitglieder melden sich bei diesem Workspace über den Identitätsanbieter deiner Organisation an (OpenID Connect oder SAML). Sobald es eingeschaltet ist, müssen sich alle auf diese Weise anmelden, um den Workspace zu öffnen; Admins können jederzeit hierher zurückkehren, um es zu ändern oder zu entfernen.",
+    "enforcedNotice": "Single Sign-on ist eingeschaltet: Mitglieder öffnen diesen Workspace erst nach der Anmeldung über deinen Identitätsanbieter (gültig für 12 Stunden).",
     "idpTitle": "Identitätsanbieter",
     "protocol": {
       "oidc": "OpenID Connect",
@@ -2304,7 +2429,7 @@
     },
     "oidc": {
       "issuer": "Issuer-URL",
-      "issuerHint": "Die Adresse, unter der /.well-known/openid-configuration Ihres Anbieters liegt.",
+      "issuerHint": "Die Adresse, unter der /.well-known/openid-configuration deines Anbieters liegt.",
       "clientId": "Client-ID",
       "clientSecret": "Client-Secret",
       "secretKept": "Leer lassen, um das gespeicherte Secret zu behalten."
@@ -2313,7 +2438,7 @@
       "entityId": "Entity-ID des Identitätsanbieters",
       "ssoUrl": "Single-Sign-on-URL",
       "certificate": "Signaturzertifikat",
-      "certificateKept": "Gespeichert: {subject}, gültig bis {date}. Fügen Sie ein neues ein, um es zu ersetzen."
+      "certificateKept": "Gespeichert: {subject}, gültig bis {date}. Füge ein neues ein, um es zu ersetzen."
     },
     "defaultRole": "Rolle für neue Mitglieder",
     "defaultRoleHint": "Für Personen, die durch Anmelden oder über Provisioning beitreten.",
@@ -2322,8 +2447,8 @@
     "saveFailed": "Die Einstellungen für Single Sign-on konnten nicht gespeichert werden.",
     "testAndActivate": "Anmeldung testen und einschalten",
     "testAgain": "Anmeldung testen",
-    "draftHint": "Noch nicht eingeschaltet. Testen Sie die Anmeldung mit Ihrem eigenen Konto beim Identitätsanbieter; wenn sie funktioniert, wird Single Sign-on für den Workspace eingeschaltet.",
-    "testActivated": "Anmeldung funktioniert — Single Sign-on ist jetzt für diesen Workspace eingeschaltet",
+    "draftHint": "Noch nicht eingeschaltet. Teste die Anmeldung mit deinem eigenen Konto beim Identitätsanbieter; wenn sie funktioniert, wird Single Sign-on für den Workspace eingeschaltet.",
+    "testActivated": "Anmeldung funktioniert: Single Sign-on ist jetzt für diesen Workspace eingeschaltet",
     "testOk": "Anmeldung funktioniert",
     "status": {
       "active": "Eingeschaltet",
@@ -2331,7 +2456,7 @@
     },
     "sp": {
       "title": "Diese Werte beim Identitätsanbieter eintragen",
-      "body": "Ihr Identitätsanbieter braucht diese Werte, um Personen zu markoto zurückzuleiten.",
+      "body": "Dein Identitätsanbieter braucht diese Werte, um Personen zu markoto zurückzuleiten.",
       "callbackUrl": "Redirect-URI",
       "entityId": "Entity-ID (Audience)",
       "acsUrl": "Antwort-URL (ACS)",
@@ -2342,12 +2467,12 @@
     "copied": "Kopiert",
     "domains": {
       "title": "E-Mail-Domains",
-      "body": "Bestätigen Sie die Domains, die die E-Mail-Adressen Ihrer Organisation verwenden. Nur Adressen in einer bestätigten Domain werden mit bestehenden markoto-Konten verknüpft oder treten dem Workspace bei ihrer ersten Anmeldung bei.",
+      "body": "Bestätige die Domains, die die E-Mail-Adressen deiner Organisation verwenden. Nur Adressen in einer bestätigten Domain werden mit bestehenden markoto-Konten verknüpft oder treten dem Workspace bei ihrer ersten Anmeldung bei.",
       "verified": "Bestätigt",
       "unverified": "Nicht bestätigt",
       "verify": "Jetzt prüfen",
       "remove": "Domain entfernen",
-      "txtHint": "Fügen Sie auf {name} einen TXT-Eintrag mit diesem Wert hinzu und prüfen Sie dann:",
+      "txtHint": "Füge auf {name} einen TXT-Eintrag mit diesem Wert hinzu und prüfe dann:",
       "add": "Domain hinzufügen"
     },
     "domainVerified": "{domain} ist bestätigt",
@@ -2356,9 +2481,9 @@
     "domainRemoveFailed": "Die Domain konnte nicht entfernt werden.",
     "scim": {
       "title": "Provisioning (SCIM)",
-      "body": "Lassen Sie Ihren Identitätsanbieter Mitglieder automatisch hinzufügen und entfernen. Tragen Sie die Basis-URL und das Token in dessen SCIM-Einstellungen ein. Wenn Sie dort jemanden entfernen, wird die Person sofort aus diesem Workspace entfernt.",
+      "body": "Lass deinen Identitätsanbieter Mitglieder automatisch hinzufügen und entfernen. Trage die Basis-URL und das Token in dessen SCIM-Einstellungen ein. Wenn du dort jemanden entfernst, wird die Person sofort aus diesem Workspace entfernt.",
       "baseUrl": "SCIM-Basis-URL",
-      "tokenOnce": "Kopieren Sie dieses Token jetzt — es wird nicht noch einmal angezeigt.",
+      "tokenOnce": "Kopiere dieses Token jetzt: Es wird nicht noch einmal angezeigt.",
       "create": "Token erstellen",
       "rotate": "Token ersetzen",
       "revoke": "Provisioning ausschalten"
@@ -2368,30 +2493,30 @@
     "removeConfirm": "Mitglieder melden sich wieder wie zuvor an.",
     "removed": "Single Sign-on entfernt",
     "removeFailed": "Single Sign-on konnte nicht entfernt werden.",
-    "requiredTitle": "Über Ihre Organisation anmelden",
-    "requiredBody": "Dieser Workspace verwendet Single Sign-on. Melden Sie sich über den Identitätsanbieter Ihrer Organisation an, um ihn zu öffnen.",
-    "required": "Dieser Workspace verwendet Single Sign-on. Melden Sie sich über Ihre Organisation an, um fortzufahren.",
-    "signIn": "Mit Ihrer Organisation anmelden",
+    "requiredTitle": "Über deine Organisation anmelden",
+    "requiredBody": "Dieser Workspace verwendet Single Sign-on. Melde dich über den Identitätsanbieter deiner Organisation an, um ihn zu öffnen.",
+    "required": "Dieser Workspace verwendet Single Sign-on. Melde dich über deine Organisation an, um fortzufahren.",
+    "signIn": "Mit deiner Organisation anmelden",
     "error": {
       "title": "Die Anmeldung hat nicht funktioniert",
-      "not-provisioned": "Ihr Konto ist für diesen Workspace nicht eingerichtet. Bitten Sie einen Workspace-Admin, Sie hinzuzufügen.",
-      "deactivated": "Ihre Organisation hat Ihren Zugriff auf diesen Workspace entfernt.",
+      "not-provisioned": "Dein Konto ist für diesen Workspace nicht eingerichtet. Bitte einen Workspace-Admin, dich hinzuzufügen.",
+      "deactivated": "Deine Organisation hat deinen Zugriff auf diesen Workspace entfernt.",
       "not-active": "Single Sign-on ist für diesen Workspace noch nicht eingeschaltet.",
       "test-not-admin": "Nur ein Workspace-Admin kann die Anmeldung testen.",
-      "test-mismatch": "Dieses Konto beim Identitätsanbieter ist mit einem anderen markoto-Konto verknüpft. Testen Sie mit Ihrem eigenen Konto.",
-      "no-seat": "Alle bezahlten Plätze dieses Workspace sind belegt. Bitten Sie einen Admin, einen Platz hinzuzufügen.",
+      "test-mismatch": "Dieses Konto beim Identitätsanbieter ist mit einem anderen markoto-Konto verknüpft. Teste mit deinem eigenen Konto.",
+      "no-seat": "Alle bezahlten Plätze dieses Workspace sind belegt. Bitte einen Admin, einen Platz hinzuzufügen.",
       "member-limit": "Dieser Workspace hat das Mitgliederlimit seines Plans erreicht.",
-      "idp-unavailable": "Der Identitätsanbieter war nicht erreichbar. Versuchen Sie es gleich noch einmal.",
-      "failed": "Die Anmeldung konnte nicht abgeschlossen werden. Beginnen Sie erneut über den Anmeldelink.",
+      "idp-unavailable": "Der Identitätsanbieter war nicht erreichbar. Versuche es gleich noch einmal.",
+      "failed": "Die Anmeldung konnte nicht abgeschlossen werden. Beginne erneut über den Anmeldelink.",
       "unknown": "Diesen Anmeldelink gibt es nicht.",
       "toWorkspace": "Zurück zum Workspace"
     },
     "discover": {
-      "button": "Mit Ihrer Organisation anmelden",
+      "button": "Mit deiner Organisation anmelden",
       "placeholder": "Geschäftliche E-Mail-Adresse",
       "continue": "Weiter",
       "notFound": "Für diese E-Mail-Adresse ist kein Single Sign-on eingerichtet.",
-      "failed": "Etwas ist schiefgelaufen. Versuchen Sie es noch einmal."
+      "failed": "Etwas ist schiefgelaufen. Versuche es noch einmal."
     }
   },
   "audit": {
@@ -2476,16 +2601,16 @@
   },
   "brandKit": {
     "title": "Brand-Kit",
-    "intro": "Schriftarten, Logos und Design Ihrer Organisation für jedes Dokument in diesem Arbeitsbereich sowie Vorlagen, mit denen Ihre Mitglieder neue Dokumente beginnen.",
+    "intro": "Schriftarten, Logos und Design deiner Organisation für jedes Dokument in diesem Arbeitsbereich sowie Vorlagen, mit denen deine Mitglieder neue Dokumente beginnen.",
     "loadFailed": "Das Brand-Kit konnte nicht geladen werden",
     "uploadFailed": "Die Datei konnte nicht hochgeladen werden",
     "deleteFailed": "Die Datei konnte nicht gelöscht werden",
     "fonts": "Schriftarten",
-    "fontsHint": "Laden Sie pro Schnitt und Stil eine Datei hoch (WOFF2, WOFF oder TTF). Sie erscheinen unter «Dieser Arbeitsbereich» in den Schriftauswahlen aller Dokumente hier und in deren PDFs. Variable Schriften und Schriften mit PostScript-Konturen (CFF) drucken schlecht und werden nicht akzeptiert – verwenden Sie die statischen TrueType-Schnitte.",
+    "fontsHint": "Lade pro Schnitt und Stil eine Datei hoch (WOFF2, WOFF oder TTF). Sie erscheinen unter «Dieser Arbeitsbereich» in den Schriftauswahlen aller Dokumente hier und in deren PDFs. Variable Schriften und Schriften mit PostScript-Konturen (CFF) drucken schlecht und werden nicht akzeptiert – verwende die statischen TrueType-Schnitte.",
     "noFonts": "Noch keine Schriftarten.",
     "chooseFont": "Schriftdatei auswählen",
     "fontName": "Schriftname",
-    "fontNameHelp": "Leer lassen, um den Namen aus der Datei zu verwenden. Laden Sie alle Stile einer Familie unter demselben Namen hoch.",
+    "fontNameHelp": "Leer lassen, um den Namen aus der Datei zu verwenden. Lade alle Stile einer Familie unter demselben Namen hoch.",
     "fontNamePlaceholder": "z. B. Acme Sans",
     "licence": "Unsere Lizenz erlaubt es, diese Schrift in Dokumente und PDFs einzubetten.",
     "uploadFont": "Schriftart hochladen",
@@ -2498,38 +2623,38 @@
     "workspaceLogos": "Logos des Arbeitsbereichs",
     "workspaceFonts": "Dieser Arbeitsbereich",
     "design": "Design des Arbeitsbereichs",
-    "designHint": "Das Design, mit dem neue Dokumente in diesem Arbeitsbereich beginnen. Sperren Sie es, um es für jedes Dokument zu verwenden: Autorinnen und Autoren füllen dann nur noch den Text der Titelseite aus.",
-    "noDesign": "Noch kein Design des Arbeitsbereichs. Übernehmen Sie es aus einem Dokument oder wählen Sie in den Einstellungen ein Standarddesign.",
+    "designHint": "Das Design, mit dem neue Dokumente in diesem Arbeitsbereich beginnen. Sperre es, um es für jedes Dokument zu verwenden: Autorinnen und Autoren füllen dann nur noch den Text der Titelseite aus.",
+    "noDesign": "Noch kein Design des Arbeitsbereichs. Übernehme es aus einem Dokument oder wähle in den Einstellungen ein Standarddesign.",
     "pickDocument": "Dokument auswählen",
     "useDesign": "Design dieses Dokuments verwenden",
     "designSet": "Design des Arbeitsbereichs aktualisiert",
-    "designImagesDropped": "Bilder, die in dieses Dokument hochgeladen wurden, wurden weggelassen – wählen Sie für das gemeinsame Design ein Logo des Arbeitsbereichs.",
+    "designImagesDropped": "Bilder, die in dieses Dokument hochgeladen wurden, wurden weggelassen – wähle für das gemeinsame Design ein Logo des Arbeitsbereichs.",
     "designFailed": "Das Design des Arbeitsbereichs konnte nicht festgelegt werden",
     "lockLabel": "Design für alle Dokumente sperren",
     "lockDescription": "Jedes Dokument im Arbeitsbereich verwendet das Design des Arbeitsbereichs; nur der Text der Titelseite (Untertitel, Datum, Autoren) bleibt eigen. Beim Entsperren erhält jedes Dokument sein eigenes Design zurück.",
     "lockFailed": "Die Sperre konnte nicht geändert werden",
     "lockedTitle": "Das Design des Arbeitsbereichs ist gesperrt",
-    "lockedBody": "Dieses Dokument verwendet das Design seines Arbeitsbereichs. Den Text der Titelseite können Sie unten weiterhin ändern.",
+    "lockedBody": "Dieses Dokument verwendet das Design seines Arbeitsbereichs. Den Text der Titelseite kannst du unten weiterhin ändern.",
     "openBrandKit": "Brand-Kit öffnen",
     "templates": "Vorlagen",
-    "templatesHint": "Machen Sie aus einem Dokument des Arbeitsbereichs eine Vorlage. Neue Dokumente daraus übernehmen dessen aktuellen Text und Design, Änderungen am Dokument ändern also die Vorlage.",
+    "templatesHint": "Mache aus einem Dokument des Arbeitsbereichs eine Vorlage. Neue Dokumente daraus übernehmen dessen aktuellen Text und Design, Änderungen am Dokument ändern also die Vorlage.",
     "templateName": "Name der Vorlage",
     "templateDescription": "Kurze Beschreibung (optional)",
     "addTemplate": "Vorlage hinzufügen",
     "removeTemplate": "Vorlage entfernen",
     "templateFailed": "Die Vorlagen konnten nicht geändert werden",
     "fontRefused": {
-      "not-a-font": "Dies ist keine Schriftdatei. Laden Sie eine WOFF2-, WOFF- oder TTF-Datei hoch.",
-      "collection": "Diese Datei enthält mehrere Schriften. Laden Sie jeden Stil als eigene Datei hoch.",
-      "variable": "Variable Schriften drucken in PDFs schlecht. Laden Sie stattdessen die statischen Schnitte hoch (eine Datei pro Schnitt und Stil).",
-      "cff": "Schriften mit PostScript-Konturen (CFF) drucken in PDFs schlecht. Laden Sie stattdessen die TrueType-Version (TTF oder WOFF2) hoch.",
+      "not-a-font": "Dies ist keine Schriftdatei. Lade eine WOFF2-, WOFF- oder TTF-Datei hoch.",
+      "collection": "Diese Datei enthält mehrere Schriften. Lade jeden Stil als eigene Datei hoch.",
+      "variable": "Variable Schriften drucken in PDFs schlecht. Lade stattdessen die statischen Schnitte hoch (eine Datei pro Schnitt und Stil).",
+      "cff": "Schriften mit PostScript-Konturen (CFF) drucken in PDFs schlecht. Lade stattdessen die TrueType-Version (TTF oder WOFF2) hoch.",
       "no-embedding": "Die Lizenz dieser Schrift erlaubt das Einbetten in Dokumente nicht.",
       "damaged": "Diese Schriftdatei ist beschädigt oder unvollständig."
     }
   },
   "publish": {
     "title": "Als Webseite veröffentlichen",
-    "help": "Eine statische Kopie dieses Dokuments unter einer eigenen öffentlichen Adresse. Jede Person mit der Adresse kann sie lesen; das Dokument selbst bleibt so geteilt, wie es jetzt ist. Veröffentlichen Sie erneut, um die Seite zu aktualisieren.",
+    "help": "Eine statische Kopie dieses Dokuments unter einer eigenen öffentlichen Adresse. Jede Person mit der Adresse kann sie lesen; das Dokument selbst bleibt so geteilt, wie es jetzt ist. Veröffentliche erneut, um die Seite zu aktualisieren.",
     "publish": "Veröffentlichen",
     "update": "Seite aktualisieren",
     "unpublish": "Veröffentlichung aufheben",
@@ -2544,22 +2669,22 @@
     "saveFailed": "Die Änderung konnte nicht gespeichert werden",
     "unpublishFailed": "Die Veröffentlichung konnte nicht aufgehoben werden",
     "domain": {
-      "label": "Auf Ihrer Domain anzeigen",
+      "label": "Auf deiner Domain anzeigen",
       "none": "Keine Domain",
-      "manage": "Ihre Domains verwalten",
+      "manage": "Deine Domains verwalten",
       "add": "Eigene Domain verwenden"
     }
   },
   "customDomains": {
     "menu": "Domains",
     "title": "Eigene Domains",
-    "intro": "Zeigen Sie eine veröffentlichte Seite unter Ihrer eigenen Adresse an, zum Beispiel docs.example.com. Fügen Sie die Domain hinzu, setzen Sie die beiden unten angezeigten DNS-Einträge bei Ihrem DNS-Anbieter und wählen Sie die Seite im Teilen-Dialog des Dokuments aus. Ein HTTPS-Zertifikat besorgen wir automatisch.",
+    "intro": "Zeige eine veröffentlichte Seite unter deiner eigenen Adresse an, zum Beispiel docs.example.com. Füge die Domain hinzu, setze die beiden unten angezeigten DNS-Einträge bei deinem DNS-Anbieter und wähle die Seite im Teilen-Dialog des Dokuments aus. Ein HTTPS-Zertifikat besorgen wir automatisch.",
     "notOnInstance": "Eigene Domains sind auf dieser Instanz nicht eingerichtet.",
     "placeholder": "docs.example.com",
     "add": "Domain hinzufügen",
     "empty": "Noch keine Domains.",
     "loading": "Lädt…",
-    "loadFailed": "Ihre Domains konnten nicht geladen werden",
+    "loadFailed": "Deine Domains konnten nicht geladen werden",
     "addFailed": "Die Domain konnte nicht hinzugefügt werden",
     "checkFailed": "Die Domain konnte nicht geprüft werden",
     "removeFailed": "Die Domain konnte nicht entfernt werden",
@@ -2570,27 +2695,68 @@
     },
     "problem": {
       "txt-missing": "Der TXT-Eintrag ist noch nicht vorhanden. DNS-Änderungen können ein paar Minuten dauern, manchmal länger.",
-      "txt-mismatch": "Es gibt einen TXT-Eintrag, aber nicht mit diesem Wert. Kopieren Sie den unten angezeigten Wert genau.",
-      "not-pointing": "Die Domain zeigt noch nicht auf uns. Setzen Sie den unten angezeigten CNAME-Eintrag.",
+      "txt-mismatch": "Es gibt einen TXT-Eintrag, aber nicht mit diesem Wert. Kopiere den unten angezeigten Wert genau.",
+      "not-pointing": "Die Domain zeigt noch nicht auf uns. Setze den unten angezeigten CNAME-Eintrag.",
       "lookup-failed": "Wir konnten die DNS-Einträge der Domain nicht abfragen. Wir versuchen es in ein paar Minuten erneut.",
-      "in-use": "Diese Domain ist bereits mit einem anderen Konto verbunden. Wenn sie Ihnen gehört, entfernen Sie sie zuerst dort."
+      "in-use": "Diese Domain ist bereits mit einem anderen Konto verbunden. Wenn sie dir gehört, entferne sie zuerst dort."
     },
     "problemWhileLive": "Die letzte Prüfung ist fehlgeschlagen. Die Domain bleibt drei Tage aktiv; sind die Einträge dann immer noch falsch, wird sie gestoppt.",
-    "dnsIntro": "Fügen Sie diese beiden Einträge bei Ihrem DNS-Anbieter hinzu. Wir prüfen sie eine Woche lang alle paar Minuten, oder sofort mit «Jetzt prüfen».",
+    "dnsIntro": "Füge diese beiden Einträge bei deinem DNS-Anbieter hinzu. Wir prüfen sie eine Woche lang alle paar Minuten, oder sofort mit «Jetzt prüfen».",
     "dns": {
       "type": "Typ",
       "name": "Name",
       "value": "Wert"
     },
-    "apexHelp": "Für eine Domain ohne Subdomain (example.com), die keinen CNAME-Eintrag haben kann, verwenden Sie ALIAS oder CNAME-Flattening (CNAME-Auflösung auf Serverseite) Ihres Anbieters auf {target}.",
+    "apexHelp": "Für eine Domain ohne Subdomain (example.com), die keinen CNAME-Eintrag haben kann, verwende ALIAS oder CNAME-Flattening (CNAME-Auflösung auf Serverseite) deines Anbieters auf {target}.",
     "shows": "Zeigt",
     "untitled": "Ohne Titel",
-    "noPage": "Aktiv, aber es wird noch keine Seite angezeigt. Wählen Sie im Teilen-Dialog eines veröffentlichten Dokuments eine aus.",
+    "noPage": "Aktiv, aber es wird noch keine Seite angezeigt. Wähle im Teilen-Dialog eines veröffentlichten Dokuments eine aus.",
     "check": "Jetzt prüfen",
     "remove": "Entfernen",
     "lastChecked": "geprüft {date}"
   },
   "instanceBrand": {
     "support": "Hilfe & Support"
+  },
+  "docs": {
+    "searchLabel": "Dokumentation durchsuchen...",
+    "openMenu": "Dokumentationsmenü öffnen",
+    "flow": {
+      "loadFailed": "Ablauf {id} konnte nicht geladen werden: {message}",
+      "first": "Zur ersten Folie springen",
+      "previous": "Vorherige Folie",
+      "next": "Nächste Folie",
+      "last": "Zur letzten Folie springen",
+      "play": "Automatische Wiedergabe starten",
+      "pause": "Automatische Wiedergabe pausieren",
+      "tryNext": "als Nächstes ausprobieren",
+      "chapter": "Kapitel",
+      "toggle": "Wiedergabe der Diashow umschalten"
+    },
+    "sections": {
+      "gettingStarted": "Deine ersten zehn Minuten – Dokument erstellen, benennen, teilen.",
+      "writing": "Markdown-Erweiterungen, Formatierung, Hinweise, Formeln, Diagramme, Tabellen.",
+      "sharing": "Zugriffsmodi, Passwortschutz, anonyme Links, Arbeitsbereiche.",
+      "themes": "Designs pro Dokument, die sowohl die Live-Vorschau als auch den PDF-Export steuern.",
+      "importExport": "DOCX/PDF/PPTX importieren; als sauberes Markdown oder gestaltetes PDF exportieren."
+    },
+    "landing": {
+      "eyebrow": "Feldführer · Bd. 01",
+      "title": "Alles, was du in {product} tun kannst.",
+      "lede": "Ein kollaborativer Markdown-Editor mit optionalen Konten. Anonym schreiben, per URL teilen, gestalten, als PDF exportieren. Jeder Screenshot hier wurde live in der laufenden App aufgenommen.",
+      "begin": "Rundgang starten",
+      "search": "suchen",
+      "startHere": "Hier starten",
+      "startHereHint": "Die wichtigsten Abläufe",
+      "browse": "Nach Thema durchsuchen",
+      "metaTitle": "Dokumentation",
+      "metaDescription": "Anleitungen, Rundgänge und Nachschlagewerk für markoto, den kollaborativen Markdown-Editor."
+    },
+    "pagination": {
+      "label": "Seitennavigation der Dokumentation",
+      "previous": "zurück",
+      "next": "weiter"
+    },
+    "onThisPage": "Auf dieser Seite"
   }
 }

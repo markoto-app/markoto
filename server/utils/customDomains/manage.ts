@@ -1,41 +1,45 @@
 import type { H3Event } from 'h3'
+import { apiError } from '../api/apiError'
 import { customDomainSettings, type CustomDomainSettings } from './config'
 import { checkCustomDomainDns, dnsLookups, type DnsCheck } from './dns'
 import { invalidateCustomDomainCache } from './routing'
 import { recordCustomDomainCheck, type CustomDomainRow, type CustomDomainWithPage } from '../../repos/customDomains'
-import { planHasFeature, resolveUserPlan } from '../entitlements'
-import { emailLinkBaseUrl } from '../siteUrl'
+import { planHasFeature, resolveUserPlan } from '../billing/entitlements'
+import { emailLinkBaseUrl } from '../platform/siteUrl'
 import { publicBaseUrl, publishedPageUrl } from '../publish/access'
+import { publishPagesSettings } from '../publish/pagesHost'
 import {
-  CUSTOM_DOMAIN_ERROR_CODES, CUSTOM_DOMAIN_GRACE_MS, customDomainVerifyName, customDomainVerifyValue, normalizeCustomHostname
+  CUSTOM_DOMAIN_GRACE_MS, customDomainVerifyName, customDomainVerifyValue, normalizeCustomHostname
 } from '~~/shared/config/customDomains'
 import { isInternalHostname } from '../aiProviders/urlPolicy'
 import { appendAuditEvent } from '../../repos/audit'
 import { AUDIT_CUSTOM_DOMAIN_DROPPED, AUDIT_CUSTOM_DOMAIN_VERIFIED } from '../../legal/auditActions'
+import { useEnv } from '~~/shared/env/load'
+import { system, type UserScope } from '../../repos/proofs'
 
-// Custom domains (WP13): the signed-in user's own domains. Adding one
+// Custom domains: the signed-in user's own domains. Adding one
 // needs the plan feature `customDomains`; the domain is routed only once
 // its DNS check passed (TXT ownership + CNAME / same addresses).
 
-export async function requireCustomDomainUser(event: H3Event): Promise<{ userId: number, settings: CustomDomainSettings, available: boolean }> {
-  const session = await requireValidatedUserSession(event)
+/**
+ * The instance's custom-domain settings (404 `custom-domain/disabled` when it
+ * runs none) and whether the user's plan includes the feature.
+ */
+export async function customDomainContext(userId: number): Promise<{ settings: CustomDomainSettings, available: boolean }> {
   const settings = customDomainSettings()
-  if (!settings) {
-    throw createError({ statusCode: 404, message: 'Custom domains are not set up on this instance.', data: { code: CUSTOM_DOMAIN_ERROR_CODES.disabled } })
-  }
-  const available = planHasFeature(await resolveUserPlan(session.user.id), 'customDomains')
-  return { userId: session.user.id, settings, available }
+  if (!settings) throw apiError('custom-domain/disabled')
+  const available = planHasFeature(await resolveUserPlan(userId), 'customDomains')
+  return { settings, available }
 }
 
 /** The hostname a user may add, or a 400. */
 export function validateNewHostname(event: H3Event, input: unknown, settings: CustomDomainSettings): string {
   const host = normalizeCustomHostname(input, { allowTestNames: settings.allowTestNames })
-  const invalid = (message: string) => createError({ statusCode: 400, message, data: { code: CUSTOM_DOMAIN_ERROR_CODES.invalid, field: 'hostname' } })
-  if (!host) throw invalid('Enter a domain name such as docs.example.com.')
-  const site = emailLinkBaseUrl(useRuntimeConfig(event).siteUrl)
-  const own = [settings.target, site ? new URL(site).hostname : null, new URL(publicBaseUrl(event)).hostname].filter((h): h is string => !!h)
-  if (own.some(o => host === o || host.endsWith(`.${o}`))) throw invalid('This domain belongs to this service.')
-  if (isInternalHostname(host)) throw invalid('Enter a domain name such as docs.example.com.')
+  if (!host) throw apiError('custom-domain/invalid', { field: 'hostname' })
+  const site = emailLinkBaseUrl(useEnv().core.siteUrl)
+  const own = [settings.target, site ? new URL(site).hostname : null, new URL(publicBaseUrl(event)).hostname, publishPagesSettings()?.hostname ?? null].filter((h): h is string => !!h)
+  if (own.some(o => host === o || host.endsWith(`.${o}`))) throw apiError('custom-domain/reserved', { field: 'hostname' })
+  if (isInternalHostname(host)) throw apiError('custom-domain/invalid', { field: 'hostname' })
   return host
 }
 
@@ -53,7 +57,7 @@ export function customDomainView(event: H3Event, d: CustomDomainWithPage, settin
       cnameTarget: settings.target
     },
     page: d.pageId && d.pageSlug
-      ? { docId: d.pageDocId, title: d.pageTitle, slug: d.pageSlug, url: publishedPageUrl(publicBaseUrl(event), d.pageSlug) }
+      ? { docId: d.pageDocId, title: d.pageTitle, slug: d.pageSlug, url: publishedPageUrl(event, d.pageSlug) }
       : null,
     url: `https://${d.hostname}/`
   }
@@ -68,28 +72,29 @@ export async function runCustomDomainCheck(
   domain: CustomDomainRow,
   settings: CustomDomainSettings,
   // Who asked (the Check button); the sweeper's checks are recorded as the system.
-  actor: { userId: number, ip: string | null } | null = null
+  actor: { self: UserScope, ip: string | null } | null = null
 ): Promise<{ check: DnsCheck, row: CustomDomainRow | null, newlyVerified: boolean }> {
   let check: DnsCheck = await checkCustomDomainDns(domain.hostname, domain.verifyToken, settings.target, dnsLookups(settings.dnsServers))
   // Only a live domain can be dropped; a pending one just stays pending.
   const dropVerified = domain.status === 'verified'
     && (!domain.verifiedAt || Date.now() - domain.verifiedAt.getTime() > CUSTOM_DOMAIN_GRACE_MS)
+  const by = actor?.self ?? system('custom-domain-recheck')
   let row: CustomDomainRow | null
   try {
-    row = await recordCustomDomainCheck(domain.id, check.ok ? { ok: true } : { ok: false, problem: check.problem, dropVerified })
+    row = await recordCustomDomainCheck(by, domain.id, check.ok ? { ok: true } : { ok: false, problem: check.problem, dropVerified })
   } catch (e) {
     // Another account's claim of this hostname is verified (unique index on
     // verified hostnames): the records match, but the domain is theirs.
     if (!isUniqueViolation(e)) throw e
     check = { ok: false, problem: 'in-use' }
-    row = await recordCustomDomainCheck(domain.id, { ok: false, problem: check.problem, dropVerified: false })
+    row = await recordCustomDomainCheck(by, domain.id, { ok: false, problem: check.problem, dropVerified: false })
   }
   if (row?.status !== domain.status) invalidateCustomDomainCache()
   const newlyVerified = check.ok && domain.status !== 'verified'
   const dropped = domain.status === 'verified' && row?.status === 'failed'
   if (newlyVerified || dropped) {
     await appendAuditEvent({
-      actorUserId: actor?.userId ?? null,
+      by,
       actorIp: actor?.ip ?? null,
       scope: 'user',
       scopeId: String(domain.userId),

@@ -13,7 +13,9 @@ import {
   createAnonChallenge,
   deriveAltchaSecrets
 } from '../../../server/utils/anonGate/altcha'
-import { encodeAltchaPayload } from '../../../app/utils/altchaSolver'
+import { encodeAltchaPayload } from '../../../app/utils/platform/altchaSolver'
+import { toSolverChallenge } from '../../helpers/altcha'
+import { first } from '../../helpers/assert'
 
 // Anonymous document creation through the gate (server/utils/anonGate/):
 // terms acceptance + a fresh, single-use ALTCHA solution, recorded on the
@@ -29,7 +31,7 @@ async function docRow(docId: string) {
     'SELECT owner_id, anon_terms_version, anon_terms_accepted_at FROM documents WHERE doc_id = $1',
     [docId]
   )
-  return r.rows[0]
+  return first(r.rows, 'documents row')
 }
 
 /** A fresh client key per test: the server trusts one proxy hop. */
@@ -62,7 +64,7 @@ describe('GET /api/anon-gate/challenge', () => {
   })
 })
 
-describe('POST /api/docs — anonymous gate', () => {
+describe('POST /api/docs: anonymous gate', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -93,7 +95,7 @@ describe('POST /api/docs — anonymous gate', () => {
     const solution = await solveChallenge({ challenge: foreign, deriveKey })
     expect(solution).not.toBeNull()
     if (!solution) return
-    const res = await client.post('/api/docs', { acceptTerms: true, altcha: encodeAltchaPayload(foreign, solution) })
+    const res = await client.post('/api/docs', { acceptTerms: true, altcha: encodeAltchaPayload(toSolverChallenge(foreign), solution) })
     expect(await code(res)).toBe('anon-gate/bot-check-failed')
   })
 
@@ -109,7 +111,7 @@ describe('POST /api/docs — anonymous gate', () => {
     const old = await createAnonChallenge(secrets, 'doc-create', TEST_DIFFICULTY, Date.now() - 21 * 60_000)
     const solution = await solveChallenge({ challenge: old, deriveKey })
     if (!solution) throw new Error('unsolved')
-    const res = await anonClient().post('/api/docs', { acceptTerms: true, altcha: encodeAltchaPayload(old, solution) })
+    const res = await anonClient().post('/api/docs', { acceptTerms: true, altcha: encodeAltchaPayload(toSolverChallenge(old), solution) })
     expect(res.status).toBe(403)
     expect(await code(res)).toBe('anon-gate/bot-check-expired')
   })

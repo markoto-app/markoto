@@ -3,12 +3,13 @@ import { aliasedTable, desc, eq } from 'drizzle-orm'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser } from '../integration/setup/fixtures'
 import { abuseReports, users } from '../../server/db/schema'
-import { useDatabase } from '../../server/utils/database'
+import { useDatabase } from '../../server/db/client'
+import { first } from '../helpers/assert'
 
 // Repo tests for the abuse-report table. The HTTP endpoint goes
 // through `db.insert(abuseReports).values(...)` directly (no
 // repo wrapper), so these tests pin the inserted row's shape AND
-// the JOIN shape used by the admin GET — a refactor that breaks
+// the JOIN shape used by the admin GET, a refactor that breaks
 // either is caught here without spinning up the full integration
 // stack.
 
@@ -38,7 +39,7 @@ async function insertReport(args: {
   )
 }
 
-describe('abuse_reports — basic insert + read', () => {
+describe('abuse_reports: basic insert + read', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -68,18 +69,16 @@ describe('abuse_reports — basic insert + read', () => {
       ['rep-test-1']
     )
     expect(r.rows.length).toBe(1)
-    expect(r.rows[0].reporter_user_id).toBe(reporter.id)
-    expect(r.rows[0].reporter_email).toBe(reporter.email)
-    expect(r.rows[0].category).toBe('illegal_content')
-    expect(r.rows[0].body).toBe('this is a test')
-    expect(r.rows[0].status).toBe('open')
+    expect(first(r.rows).reporter_user_id).toBe(reporter.id)
+    expect(first(r.rows).reporter_email).toBe(reporter.email)
+    expect(first(r.rows).category).toBe('illegal_content')
+    expect(first(r.rows).body).toBe('this is a test')
+    expect(first(r.rows).status).toBe('open')
   })
 
   it('accepts free-form docId text (no FK constraint)', async () => {
     const reporter = await createUser()
-    // 'test' isn't a real doc id — this used to fail with an FK
-    // violation before B-15.1 dropped the constraint. Now it's
-    // accepted as free-form text.
+    // 'test' isn't a real doc id; it is accepted as free-form text (no FK).
     await insertReport({
       reportId: 'rep-test-freeform',
       reporterUserId: reporter.id,
@@ -92,7 +91,7 @@ describe('abuse_reports — basic insert + read', () => {
       `SELECT doc_id FROM abuse_reports WHERE report_id = $1`,
       ['rep-test-freeform']
     )
-    expect(r.rows[0].doc_id).toBe('test')
+    expect(first(r.rows).doc_id).toBe('test')
   })
 
   it('accepts NULL docId for platform-wide reports', async () => {
@@ -109,11 +108,11 @@ describe('abuse_reports — basic insert + read', () => {
       `SELECT doc_id FROM abuse_reports WHERE report_id = $1`,
       ['rep-platform']
     )
-    expect(r.rows[0].doc_id).toBeNull()
+    expect(first(r.rows).doc_id).toBeNull()
   })
 })
 
-describe('abuse_reports — admin GET join shape', () => {
+describe('abuse_reports: admin GET join shape', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -121,7 +120,7 @@ describe('abuse_reports — admin GET join shape', () => {
   it('joins reporter + actioner (aliased) and falls back to email snapshot when reporter is gone', async () => {
     // Build the same query the admin GET endpoint runs. This
     // makes sure a refactor that changes the column projection
-    // is caught at the repo level — the HTTP layer is just a
+    // is caught at the repo level, the HTTP layer is just a
     // thin wrapper around this select.
     const reporter = await createUser({ name: 'Reporter Alice', email: 'reporter-alice@test.local' })
     const actioner = await createUser({ name: 'Admin Bob', email: 'admin-bob@test.local' })
@@ -133,7 +132,7 @@ describe('abuse_reports — admin GET join shape', () => {
       category: 'harassment',
       body: 'live reporter row'
     })
-    // A second report whose reporter user has been deleted —
+    // A second report whose reporter user has been deleted,
     // FK SET NULL leaves reporter_user_id null, but the
     // reporter_email snapshot survives.
     await insertReport({
@@ -193,7 +192,7 @@ describe('abuse_reports — admin GET join shape', () => {
   })
 })
 
-describe('abuse_reports — FK on user delete', () => {
+describe('abuse_reports: FK on user delete', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -217,9 +216,9 @@ describe('abuse_reports — FK on user delete', () => {
       `SELECT reporter_user_id, reporter_email FROM abuse_reports WHERE report_id = $1`,
       ['rep-doomed']
     )
-    expect(r.rows[0].reporter_user_id).toBeNull()
+    expect(first(r.rows).reporter_user_id).toBeNull()
     // Email snapshot survives so the moderator still has a
     // contact channel.
-    expect(r.rows[0].reporter_email).toBe('doomed@test.local')
+    expect(first(r.rows).reporter_email).toBe('doomed@test.local')
   })
 })

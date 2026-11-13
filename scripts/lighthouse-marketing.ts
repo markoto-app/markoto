@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 // Lighthouse (mobile profile, simulated throttling) against the public
-// marketing pages of a running instance — ideally a local production
+// marketing pages of a running instance, ideally a local production
 // build of the hosted shape (NUXT_MARKETING_SITE_ENABLED=true). Advisory:
-// no CI job runs it. See docs/CHEATSHEET.md ("SEO + page speed").
+// no CI job runs it. See docs/contributing/CHEATSHEET.md ("SEO + page speed").
 //
 //   bun scripts/lighthouse-marketing.ts http://127.0.0.1:3620 [/path …]
 //
@@ -15,12 +15,13 @@
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { trimTrailingSlashes } from '../shared/utils/trimTrailingSlashes'
 
 const LIGHTHOUSE = 'lighthouse@12.8.2'
 const DEFAULT_PATHS = ['/', '/pricing', '/markdown-to-pdf', '/compare/hackmd']
 
 const args = process.argv.slice(2)
-const base = (args[0] ?? 'http://127.0.0.1:3000').replace(/\/+$/, '')
+const base = trimTrailingSlashes(args[0] ?? 'http://127.0.0.1:3000')
 const paths = args.length > 1 ? args.slice(1) : DEFAULT_PATHS
 const outDir = process.env.LIGHTHOUSE_OUT ?? mkdtempSync(join(tmpdir(), 'markoto-lh-'))
 

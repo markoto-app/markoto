@@ -1,5 +1,6 @@
 import type { Doc as YDoc } from 'yjs'
 import type { StoreDebouncer } from './flushDocument'
+import { closeForReauth, type ReauthConnection } from './connection-expiry'
 
 // Pure in-memory kick-user logic. Lives in its own file so tests can import
 // it without pulling in `persistence.ts` (which opens a Postgres connection
@@ -9,10 +10,7 @@ import type { StoreDebouncer } from './flushDocument'
 // Hocuspocus type graph is heavy and shifts between patch releases.
 // `documents` values are actually `Document` (extends Y.Doc); we narrow
 // structurally where `getConnections()` is used.
-export interface HocuspocusConnection {
-  context?: { userId?: string | number | null }
-  close?: () => void
-}
+export type HocuspocusConnection = ReauthConnection
 export interface HocuspocusDocument extends YDoc {
   getConnections?: () => HocuspocusConnection[]
 }
@@ -31,7 +29,7 @@ export interface HocuspocusInstance {
  * for logged-in users and the sentinel 'anonymous' string; both normalise
  * to string for comparison).
  *
- * Returns counters for the HTTP response — useful for the caller to detect
+ * Returns counters for the HTTP response, useful for the caller to detect
  * "kicked nobody" cases (most often means the member was never connected
  * to those docs in this session, which is fine).
  */
@@ -56,14 +54,13 @@ export function performKickUser(
 /** Close every connection on `doc` whose context userId matches; swallows individual close failures so one bad socket can't abort the sweep. Returns the number actually closed. */
 function closeUserConnections(doc: HocuspocusDocument, targetUserId: string): number {
   let kicked = 0
-  for (const conn of doc.getConnections?.() ?? []) {
+  // Copy first: closing removes the connection from the live set.
+  for (const conn of [...(doc.getConnections?.() ?? [])]) {
     if (!isOwnedBy(conn, targetUserId)) continue
-    try {
-      conn.close?.()
-      kicked++
-    } catch (e) {
-      console.warn(`[internal-http] kick-user close failed:`, e instanceof Error ? e.message : e)
-    }
+    // The re-authenticate close makes the editor fetch a fresh token
+    // before it reconnects, so a removed member lands on the no-access
+    // screen instead of reconnecting with the token it still holds.
+    if (closeForReauth(conn)) kicked++
   }
   return kicked
 }

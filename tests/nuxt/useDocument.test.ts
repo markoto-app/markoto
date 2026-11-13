@@ -2,10 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { nextTick } from 'vue'
 
-// — import AFTER mocks are in place ————————————————————————————————
-import { useDocument } from '~/composables/useDocument'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
-import { ANON_AVATAR_STORAGE_KEY } from '~/utils/userAvatar'
+// import AFTER mocks are in place,
+import { useDocument } from '~/composables/document/useDocument'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
+import { ANON_AVATAR_STORAGE_KEY } from '~/utils/collab/userAvatar'
 
 // Orchestrator tests for `useDocument`. The strategy:
 //
@@ -17,10 +17,10 @@ import { ANON_AVATAR_STORAGE_KEY } from '~/utils/userAvatar'
 //     from setTheme/resetTheme hit something deterministic.
 //
 // Everything else (Y.Doc, Awareness, observer wiring, computed derivation)
-// runs for real — the tests exercise the orchestrator's own logic, not
+// runs for real: the tests exercise the orchestrator's own logic, not
 // any sub-composable's.
 
-// — hoisted state + helpers that mocks close over ——————————————————
+// hoisted state + helpers that mocks close over,
 
 // All reactive state uses real Vue refs so the orchestrator's computeds
 // (canEditTheme, docSizeWarning) re-run when tests mutate dependencies.
@@ -58,6 +58,7 @@ const hoisted = vi.hoisted(() => {
       onPasswordVerified: vi.fn<(t: string) => void>(),
       clearPendingUnlock: vi.fn<() => void>(),
       markReadOnly: vi.fn<() => void>(),
+      invalidateToken: vi.fn<() => void>(),
       setAccessMode: vi.fn<(m: string) => void>()
     },
     syncState: {
@@ -73,17 +74,18 @@ const hoisted = vi.hoisted(() => {
       reconnect: vi.fn<() => void>(),
       destroy: vi.fn<() => void>()
     },
-    // Captured opts passed into useHocuspocusSync — gives tests the
+    // Captured opts passed into useHocuspocusSync, gives tests the
     // hook handles so they can simulate provider lifecycle events.
     metaCalls: [] as Array<{ url: string, method: string, body: unknown }>,
     debounce: { deferred: false, pending: null as null | (() => unknown) },
     capturedSyncOpts: null as null | {
       docId: string
       syncUrl: string
-      getToken: () => string | Promise<string>
+      getToken: (opts?: { renewal: boolean }) => string | Promise<string>
       onSynced?: () => void
       onDisconnect?: (everSynced: boolean) => void
       onAuthFailed?: () => void
+      onReauthRequired?: () => void
     }
   }
 })
@@ -96,7 +98,7 @@ mockNuxtImport('useUserSession', () => {
 })
 
 mockNuxtImport('useRuntimeConfig', () => {
-  // Mocking `useRuntimeConfig` wholesale replaces EVERYTHING — including
+  // Mocking `useRuntimeConfig` wholesale replaces EVERYTHING, including
   // the defaults Nuxt's core plugins depend on (router reads
   // `config.app.baseURL` during setup, for instance). Provide a minimal
   // complete shape so those plugins don't blow up at app-init time.
@@ -150,13 +152,14 @@ mockNuxtImport('useDocToken', () => {
     initialBody: hoisted.tokenState.initialBody,
     fetchToken: hoisted.tokenMocks.fetchToken,
     hydrateAfterUnlock: hoisted.tokenMocks.hydrateAfterUnlock,
-    // Faithful stub of the real getFreshToken happy path — return the
+    // Faithful stub of the real getFreshToken happy path, return the
     // current token. The refetch-near-expiry behaviour is pinned against
     // the real implementation in tests/nuxt/useDocToken.test.ts.
     getFreshToken: () => Promise.resolve(hoisted.tokenState.tokenData.value?.token || ''),
     onPasswordVerified: hoisted.tokenMocks.onPasswordVerified,
     clearPendingUnlock: hoisted.tokenMocks.clearPendingUnlock,
     markReadOnly: hoisted.tokenMocks.markReadOnly,
+    invalidateToken: hoisted.tokenMocks.invalidateToken,
     setAccessMode: hoisted.tokenMocks.setAccessMode
   })
 })
@@ -178,12 +181,12 @@ mockNuxtImport('useHocuspocusSync', () => {
   }
 })
 
-// — $fetch stub for meta PUT ——————————————————————————————————————
+// $fetch stub for meta PUT,
 // We can't use registerEndpoint here: the server-side auth middleware
 // rejects `/api/docs/*` PUTs without a real session cookie before our
 // handler runs. Mocking `useUserSession` only changes client-side state.
 // Mocking `$fetch` intercepts the call before it hits the network/Nitro
-// entirely — good enough for recording body + URL.
+// entirely: good enough for recording body + URL.
 //
 // Since Nuxt 4.5, `$fetch` in app code is an auto-import (nuxt/nuxt#35581)
 // rather than a read of the global, so `vi.stubGlobal('$fetch', …)` no
@@ -225,6 +228,7 @@ function resetHoisted() {
   hoisted.tokenMocks.hydrateAfterUnlock.mockReset().mockImplementation(() => Promise.resolve())
   hoisted.tokenMocks.clearPendingUnlock.mockReset()
   hoisted.tokenMocks.markReadOnly.mockReset()
+  hoisted.tokenMocks.invalidateToken.mockReset()
   hoisted.tokenMocks.setAccessMode.mockReset()
   hoisted.syncState.docSizeBytes.value = 0
   hoisted.syncState.status.value = 'connecting'
@@ -247,7 +251,7 @@ beforeEach(() => {
 
 /**
  * Helper: wait for `useDocument`'s fetchToken().then(...) chain to
- * settle. The orchestrator kicks off an async chain inside setup() —
+ * settle. The orchestrator kicks off an async chain inside setup(),
  * tests that assert about `sync.connect()` being called (or not) need
  * to yield a few microtasks first.
  */
@@ -257,11 +261,9 @@ async function flushFetchToken() {
   await Promise.resolve()
 }
 
-// ═══════════════════════════════════════════════════════════════════════
 // Awareness identity (generated avatars)
-// ═══════════════════════════════════════════════════════════════════════
 
-describe('useDocument — awareness avatar identity', () => {
+describe('useDocument: awareness avatar identity', () => {
   it('a signed-in user broadcasts their id and no avatar URL or seed', async () => {
     hoisted.loggedIn.value = true
     hoisted.sessionUser.value = { id: 7, name: 'Alice' }
@@ -291,11 +293,9 @@ describe('useDocument — awareness avatar identity', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // Initial connect gating
-// ═══════════════════════════════════════════════════════════════════════
 
-describe('useDocument — initial connect gating', () => {
+describe('useDocument: initial connect gating', () => {
   it('calls sync.connect() after fetchToken resolves for a normal doc', async () => {
     const doc = useDocument('doc-abc')
     await flushFetchToken()
@@ -354,11 +354,9 @@ describe('useDocument — initial connect gating', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // Sync lifecycle callbacks wired by useDocument
-// ═══════════════════════════════════════════════════════════════════════
 
-describe('useDocument — sync lifecycle wiring', () => {
+describe('useDocument: sync lifecycle wiring', () => {
   const TEMPLATE_BODY = '# Welcome to markoto\n\nTemplate body.\n'
 
   it('onSynced inserts the template body when the doc is empty + writable', async () => {
@@ -412,9 +410,9 @@ describe('useDocument — sync lifecycle wiring', () => {
     doc.destroy()
   })
 
-  it('does NOT wire an onDisconnect seed (F9: never seed without an authoritative sync)', async () => {
+  it('does NOT wire an onDisconnect seed (never seed without an authoritative sync)', async () => {
     // The template seed must run ONLY from onSynced. useDocument must not
-    // pass an onDisconnect handler that writes to the Y.Doc — a pre-sync
+    // pass an onDisconnect handler that writes to the Y.Doc, a pre-sync
     // disconnect seed would merge with the server's real content when the
     // provider auto-reconnects and finally syncs, corrupting the doc.
     const doc = useDocument('doc-abc')
@@ -439,17 +437,69 @@ describe('useDocument — sync lifecycle wiring', () => {
     doc.destroy()
   })
 
-  it('onAuthFailed calls tokenState.markReadOnly', async () => {
+  it('onAuthFailed retries once with a refetched token, then calls tokenState.markReadOnly', async () => {
     const doc = useDocument('doc-abc')
     await flushFetchToken()
     hoisted.capturedSyncOpts!.onAuthFailed!()
+    await Promise.resolve()
+    expect(hoisted.tokenMocks.invalidateToken).toHaveBeenCalledTimes(1)
+    expect(hoisted.syncMocks.reconnect).toHaveBeenCalledTimes(1)
+    expect(hoisted.tokenMocks.markReadOnly).not.toHaveBeenCalled()
+
+    hoisted.capturedSyncOpts!.onAuthFailed!()
     expect(hoisted.tokenMocks.markReadOnly).toHaveBeenCalledTimes(1)
+
+    // A successful sync re-arms the retry.
+    hoisted.capturedSyncOpts!.onSynced!()
+    hoisted.capturedSyncOpts!.onAuthFailed!()
+    await Promise.resolve()
+    expect(hoisted.syncMocks.reconnect).toHaveBeenCalledTimes(2)
+    doc.destroy()
+  })
+
+  it('onAuthFailed after access ended shows no sync-failure banner', async () => {
+    const doc = useDocument('doc-abc')
+    await flushFetchToken()
+    hoisted.tokenState.forbidden.value = true
+    hoisted.capturedSyncOpts!.onAuthFailed!()
+    expect(hoisted.tokenMocks.markReadOnly).not.toHaveBeenCalled()
+    expect(hoisted.syncMocks.reconnect).not.toHaveBeenCalled()
+    doc.destroy()
+  })
+
+  it('a re-authenticate close marks the token stale so the reconnect refetches it', async () => {
+    const doc = useDocument('doc-abc')
+    await flushFetchToken()
+    hoisted.capturedSyncOpts!.onReauthRequired!()
+    expect(hoisted.tokenMocks.invalidateToken).toHaveBeenCalledTimes(1)
+    doc.destroy()
+  })
+
+  it('drops the connection when access ends while the editor is open', async () => {
+    const doc = useDocument('doc-abc')
+    await flushFetchToken()
+    hoisted.tokenState.forbidden.value = true
+    await nextTick()
+    expect(hoisted.syncMocks.disconnect).toHaveBeenCalledTimes(1)
+    doc.destroy()
+  })
+
+  it('does not drop the connection while a password unlock is pending', async () => {
+    hoisted.tokenState.requiresPassword.value = true
+    const doc = useDocument('doc-abc')
+    await flushFetchToken()
+    hoisted.tokenState.pendingPasswordUnlock.value = true
+    await nextTick()
+    hoisted.tokenState.pendingPasswordUnlock.value = false
+    hoisted.tokenState.requiresPassword.value = false
+    await nextTick()
+    expect(hoisted.syncMocks.disconnect).not.toHaveBeenCalled()
     doc.destroy()
   })
 
   it('forwards the CURRENT token via getToken() (not a stale snapshot)', async () => {
     // getToken now delegates to tokenState.getFreshToken() (async) so the
-    // provider re-reads a possibly-refreshed JWT on every reconnect (F5).
+    // provider re-reads a possibly-refreshed JWT on every reconnect.
     hoisted.tokenState.tokenData.value = { token: 'initial', readOnly: false }
     const doc = useDocument('doc-abc')
     await flushFetchToken()
@@ -469,11 +519,9 @@ describe('useDocument — sync lifecycle wiring', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // Title bridge (ymeta ↔ Vue ref)
-// ═══════════════════════════════════════════════════════════════════════
 
-describe('useDocument — title bridge', () => {
+describe('useDocument: title bridge', () => {
   it('title defaults to "Untitled" when ymeta has no title', async () => {
     const doc = useDocument('doc-abc')
     await flushFetchToken()
@@ -486,7 +534,7 @@ describe('useDocument — title bridge', () => {
     const doc = useDocument('doc-abc')
     await flushFetchToken()
     expect(doc.title.value).toBe('Project kickoff notes')
-    // Showing it must not write ymeta — no spurious title.changed activity.
+    // Showing it must not write ymeta, no spurious title.changed activity.
     expect(doc.ydoc.getMap('meta').get('title')).toBeUndefined()
     doc.destroy()
   })
@@ -529,11 +577,9 @@ describe('useDocument — title bridge', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // Deletion observer
-// ═══════════════════════════════════════════════════════════════════════
 
-describe('useDocument — deletion observer', () => {
+describe('useDocument: deletion observer', () => {
   it('isDeleted flips true when ymeta._deleted is set', async () => {
     const doc = useDocument('doc-abc')
     await flushFetchToken()
@@ -581,11 +627,9 @@ describe('useDocument — deletion observer', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // Theme write path
-// ═══════════════════════════════════════════════════════════════════════
 
-describe('useDocument — document context persist', () => {
+describe('useDocument: document context persist', () => {
   it('merges description, audience and language changes into one PUT (debounce keeps all fields)', async () => {
     hoisted.tokenState.isOwner.value = true
     hoisted.tokenState.hasOwner.value = true
@@ -605,7 +649,7 @@ describe('useDocument — document context persist', () => {
   })
 })
 
-describe('useDocument — setTheme', () => {
+describe('useDocument: setTheme', () => {
   it('writes to ymeta and persists when the user is the owner', async () => {
     hoisted.tokenState.isOwner.value = true
     hoisted.tokenState.hasOwner.value = true
@@ -615,7 +659,7 @@ describe('useDocument — setTheme', () => {
     const next = structuredClone(defaultTheme)
     doc.setTheme(next)
     // Wait for the PUT to actually hit our stub (happens through
-    // the debounced wrapper — which we've mocked to identity).
+    // the debounced wrapper: which we've mocked to identity).
     await flushFetchToken()
 
     expect(doc.ydoc.getMap('meta').get('theme')).toEqual(next)
@@ -625,7 +669,7 @@ describe('useDocument — setTheme', () => {
   })
 
   it('writes to ymeta but DOES NOT persist on an ownerless doc', async () => {
-    // Anonymous-created doc — `canEditTheme` is true (open-edit liberal
+    // Anonymous-created doc: `canEditTheme` is true (open-edit liberal
     // default), so the ymeta write happens, but PUT /meta would 403 so
     // the orchestrator skips it.
     hoisted.tokenState.isOwner.value = false
@@ -679,7 +723,7 @@ describe('useDocument — setTheme', () => {
   })
 })
 
-describe('useDocument — resetTheme', () => {
+describe('useDocument: resetTheme', () => {
   it('clears ymeta.theme + nulls DB for owner', async () => {
     hoisted.tokenState.isOwner.value = true
     hoisted.tokenState.hasOwner.value = true
@@ -727,11 +771,9 @@ describe('useDocument — resetTheme', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // Theme reactivity + canEditTheme derivation
-// ═══════════════════════════════════════════════════════════════════════
 
-describe('useDocument — theme reactivity', () => {
+describe('useDocument: theme reactivity', () => {
   it('theme ref updates when ymeta.theme changes via remote broadcast', async () => {
     const doc = useDocument('doc-abc')
     await flushFetchToken()
@@ -761,11 +803,9 @@ describe('useDocument — theme reactivity', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // Password verify flow
-// ═══════════════════════════════════════════════════════════════════════
 
-describe('useDocument — onPasswordVerified', () => {
+describe('useDocument: onPasswordVerified', () => {
   it('forwards the new token to tokenState and triggers a reconnect', async () => {
     const doc = useDocument('doc-abc')
     await flushFetchToken()
@@ -797,11 +837,9 @@ describe('useDocument — onPasswordVerified', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // destroy()
-// ═══════════════════════════════════════════════════════════════════════
 
-describe('useDocument — destroy', () => {
+describe('useDocument: destroy', () => {
   it('tears down sync, awareness, and ydoc', async () => {
     const doc = useDocument('doc-abc')
     await flushFetchToken()
@@ -810,23 +848,21 @@ describe('useDocument — destroy', () => {
 
     doc.destroy()
 
-    // sync.destroy is our mock — strict count is meaningful.
+    // sync.destroy is our mock, strict count is meaningful.
     expect(hoisted.syncMocks.destroy).toHaveBeenCalledTimes(1)
     // awareness.destroy and ydoc.destroy may be called more than once
     // because Y.Doc's own teardown cascades through its subdocs and
     // emits destroy events on bound observers. What matters here is
-    // that the orchestrator invokes them — the redundant re-invocations
+    // that the orchestrator invokes them, the redundant re-invocations
     // downstream are a no-op on Y.js's side.
     expect(awarenessSpy).toHaveBeenCalled()
     expect(ydocSpy).toHaveBeenCalled()
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // docSizeWarning derivation pipes through from sync
-// ═══════════════════════════════════════════════════════════════════════
 
-describe('useDocument — docSizeWarning', () => {
+describe('useDocument: docSizeWarning', () => {
   it('reflects sync.docSizeBytes through the shared helper thresholds', async () => {
     const doc = useDocument('doc-abc')
     await flushFetchToken()

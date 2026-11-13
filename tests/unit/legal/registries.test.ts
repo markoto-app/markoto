@@ -1,11 +1,13 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, it, expect } from 'vitest'
 import { SUB_PROCESSORS } from '../../../server/legal/subProcessors'
 import { PROCESSING_PURPOSES } from '../../../server/legal/lawfulBasis'
 import * as auditActions from '../../../server/legal/auditActions'
-import { ABUSE_REPORT_DEFAULT_RETENTION_DAYS, AUDIT_LOG_DEFAULT_RETENTION_DAYS } from '../../../server/utils/legalRetentionSweep'
+import { ABUSE_REPORT_DEFAULT_RETENTION_DAYS, AUDIT_LOG_DEFAULT_RETENTION_DAYS } from '../../../server/utils/privacy/legalRetentionSweep'
 
 // Sanity tests for the legal registries. These are constants-only
-// modules — no DB, no I/O — but they're load-bearing for the
+// modules: no DB, no I/O, but they're load-bearing for the
 // privacy disclosure and the audit log. A typo in a sub-processor
 // id reference, or a duplicate id, would silently produce a
 // broken privacy policy or a corrupt audit row. These tests pin
@@ -32,15 +34,27 @@ describe('SUB_PROCESSORS', () => {
   })
 
   it('non-EU sub-processors declare a non-intra_eu transfer mechanism', () => {
-    // Catches the inverse misconfiguration too — a sub-processor
+    // Catches the inverse misconfiguration too, a sub-processor
     // marked `eu` shouldn't carry a DPF transfer mechanism.
     for (const sp of SUB_PROCESSORS) {
-      if (sp.location === 'eu') {
-        expect(sp.transferMechanism).toBe('intra_eu')
-      } else {
-        expect(sp.transferMechanism).not.toBe('intra_eu')
-      }
+      expect(sp.transferMechanism === 'intra_eu', sp.name).toBe(sp.location === 'eu')
     }
+  })
+})
+
+describe('sub-processor purposes in the UI languages', () => {
+  // /legal/sub-processors shows `legal.subProcessors.purpose.<id>`; the
+  // English text is the registry's sentence, so the two can't drift (the
+  // other locales follow en.json through the i18n parity test).
+  const en = JSON.parse(readFileSync(join(__dirname, '../../../i18n/locales/en.json'), 'utf8')) as { legal: { subProcessors: { purpose: Record<string, string> } } }
+  const purposes = en.legal.subProcessors.purpose
+
+  it('has exactly one text per registered sub-processor', () => {
+    expect(Object.keys(purposes).sort()).toEqual(SUB_PROCESSORS.map(sp => sp.id).sort())
+  })
+
+  it('the English text is the registry\'s purpose', () => {
+    for (const sp of SUB_PROCESSORS) expect(purposes[sp.id], sp.id).toBe(sp.purpose)
   })
 })
 

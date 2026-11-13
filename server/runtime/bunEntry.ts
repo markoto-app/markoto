@@ -1,7 +1,8 @@
 // Server entry for the production build (`nitro.entry` in nuxt.config.ts).
 // A copy of nitropack's `bun` preset entry (nitropack 2.13,
-// dist/presets/bun/runtime/bun.mjs) with ONE addition: a request-body
-// size limit enforced by Bun itself.
+// dist/presets/bun/runtime/bun.mjs) with two additions: a request-body
+// size limit enforced by Bun itself, and byte ranges for the bundled
+// videos (mediaRange.ts).
 //
 // Why: the preset entry calls `await req.arrayBuffer()` on every request
 // before any route handler runs, so no handler can refuse an oversized
@@ -18,13 +19,14 @@
 //
 // Upgrade guard: the preset source this copy was derived from is pinned
 // in tests/fixtures/nitropack/bun-preset-entry.mjs.txt, and
-// tests/unit/bunEntryUpstream.test.ts fails as soon as the installed
+// tests/unit/platform/bunEntryUpstream.test.ts fails as soon as the installed
 // nitropack ships a different preset entry. Carry the change over here,
 // then refresh the snapshot.
 
 import '#nitro-internal-pollyfills'
 import { useNitroApp } from 'nitropack/runtime'
 import wsAdapter from 'crossws/adapters/bun'
+import { withByteRange } from './mediaRange'
 
 /** Default request-body cap (51 MiB). Override: NITRO_MAX_REQUEST_BODY_BYTES. */
 export const DEFAULT_MAX_REQUEST_BODY_BYTES = 51 * 1024 * 1024
@@ -64,7 +66,7 @@ const server = Bun.serve({
     if (req.body) {
       body = await req.arrayBuffer()
     }
-    return nitroApp.localFetch(url.pathname + url.search, {
+    const response = await nitroApp.localFetch(url.pathname + url.search, {
       host: url.hostname,
       protocol: url.protocol,
       headers: req.headers,
@@ -72,6 +74,7 @@ const server = Bun.serve({
       redirect: req.redirect,
       body
     })
+    return withByteRange(req.method, url.pathname, req.headers.get('range'), response)
   }
 })
 console.log(`Listening on ${server.url}...`)

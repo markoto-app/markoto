@@ -2,16 +2,16 @@
 
 **Produktdesignerin** · Hamburg · alex.morgan@example.com · +49 40 1234 5678 · linkedin.com/in/alexmorgan
 
-<!-- Ein Beispiel-Lebenslauf für eine erfundene Person: Ersetzen Sie jede Zeile durch Ihre eigenen Angaben. Bleiben Sie bei einer Seite; die Vorschau zeigt, wo die Seite endet. -->
+<!-- Ein Beispiel-Lebenslauf für eine erfundene Person: Ersetze jede Zeile durch deine eigenen Angaben. Bleibe bei einer Seite; die Vorschau zeigt, wo die Seite endet. -->
 
 ## Profil
 
-<!-- Zwei oder drei Sätze: was Sie machen, für wen, und was Sie als Nächstes suchen. -->
+<!-- Zwei oder drei Sätze: was du machst, für wen, und was du als Nächstes suchst. -->
 Produktdesignerin mit acht Jahren Erfahrung in Business-Software für Logistik und Handel. Ich mache aus komplizierten Abläufen Werkzeuge, die Menschen jeden Tag nutzen, und arbeite eng mit Entwicklung und Support zusammen. Ich suche eine Lead-Rolle in einem kleinen Produktteam.
 
 ## Berufserfahrung
 
-<!-- Neueste Stelle zuerst. Rolle und Firma, dann Ort und Zeitraum, dann zwei bis vier Ergebnisse, mit Zahlen, wo Sie welche haben. -->
+<!-- Neueste Stelle zuerst. Rolle und Firma, dann Ort und Zeitraum, dann zwei bis vier Ergebnisse, mit Zahlen, wo du welche hast. -->
 
 **Senior Product Designer · Harbourline Software**\
 Hamburg · 2022 – heute

@@ -4,10 +4,10 @@ import { ref } from 'vue'
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { DocumentThemeEditorPanel } from '#components'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
-import { THEME_PRESETS } from '~~/shared/utils/themePresets'
-import { themeThumbnailUrl } from '~~/shared/utils/themeThumbnails'
-import { isValidTheme } from '~~/shared/utils/themeValidation'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
+import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
+import { themeThumbnailUrl } from '~~/shared/utils/theme/themeThumbnails'
+import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
 
 // The theme panel shows the same design picker as the new-document dialog
 // (DocumentThemePresetGrid): audience tabs over a picture of each preset's
@@ -31,14 +31,15 @@ async function mount() {
   return wrapper
 }
 
-describe('theme panel — design picker', () => {
+describe('theme panel: design picker', () => {
   it('shows every preset as a card with its first-page picture', async () => {
     const wrapper = await mount()
     for (const preset of THEME_PRESETS) {
       const card = wrapper.find(`[data-testid="theme-preset-${preset.id}"]`)
       expect(card.exists(), preset.id).toBe(true)
       const url = themeThumbnailUrl(preset.id)
-      if (url) expect(card.find('img').attributes('src')).toBe(url)
+      const img = card.find('img')
+      expect(img.exists() ? img.attributes('src') : null).toBe(url || null)
     }
     wrapper.unmount()
   })
@@ -64,7 +65,7 @@ describe('theme panel — design picker', () => {
     await flushPromises()
     const value: unknown = wrapper.emitted('update:theme')?.at(-1)?.[0]
     expect(isValidTheme(value)).toBe(true)
-    if (isValidTheme(value)) expect(value.headings.font).toBe(target.theme.headings.font)
+    expect(isValidTheme(value) ? value.headings.font : null).toBe(target.theme.headings.font)
     wrapper.unmount()
   })
 })

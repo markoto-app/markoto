@@ -3,7 +3,7 @@
 // accepted).
 //
 //   1. pass a proof-of-work bot check (ALTCHA, solved invisibly in a web
-//      worker; challenge + verification run in our own server — see
+//      worker; challenge + verification run in our own server, see
 //      server/utils/anonGate/altcha.ts), and
 //   2. accept the Terms + Acceptable Use rules and confirm they are at
 //      least 16 (once per browser and terms version; remembered in a
@@ -17,40 +17,31 @@
 //   | Self-hosted (default)  | (unset)                | off (legal off)  |
 //   | Either                 | true / false           | as set           |
 //
-// Pure — takes an env-shaped record so every test tier can drive it.
+// Reads the typed env (shared/env); tests pass an env-shaped record.
 
-import { parseBooleanFlag } from './billingMode'
-
-type Env = Record<string, string | undefined>
+import { useEnv } from '../env/load'
+import { anonGateOn } from '../env/rules/legal'
+import { legal } from '../env/vars/legal'
+import type { RawEnv } from '../env/define'
 
 /** Age floor confirmed in the gate (GDPR Art. 8 child-consent floor, as at onboarding). */
 export const ANON_GATE_MIN_AGE = 16
 
 /**
- * Is the gate on? An explicit `NUXT_ANON_GATE_ENABLED` wins (accepts the
- * same truthy/falsy spellings as the other flags); unset follows
- * `NUXT_LEGAL_SURFACES_ENABLED` — the gate links the terms, which only
+ * Is the gate on? An explicit `NUXT_ANON_GATE_ENABLED` wins; unset follows
+ * `NUXT_LEGAL_SURFACES_ENABLED`: the gate links the terms, which only
  * exist where the legal surfaces are on.
  */
-export function resolveAnonGateEnabled(env: Env): boolean {
-  const raw = env.NUXT_ANON_GATE_ENABLED?.trim()
-  if (raw) return parseBooleanFlag(raw)
-  return parseBooleanFlag(env.NUXT_LEGAL_SURFACES_ENABLED)
+export function resolveAnonGateEnabled(source?: RawEnv): boolean {
+  return anonGateOn(useEnv(source))
 }
 
-/** Default of NUXT_INACTIVE_DOC_TTL_DAYS — what the hosted Terms + privacy policy state. */
-export const DEFAULT_ANON_DOC_TTL_DAYS = 30
+/** Default of NUXT_INACTIVE_DOC_TTL_DAYS: what the hosted Terms + privacy policy state. */
+export const DEFAULT_ANON_DOC_TTL_DAYS = legal.vars.inactiveDocTtlDays.default
 
-/**
- * Inactivity period after which anonymous documents are deleted
- * (NUXT_INACTIVE_DOC_TTL_DAYS; unset → 30, `0` or invalid → 0 = never).
- * Mirrors the sweep's parser (server/utils/inactiveDocSweep.ts).
- */
-export function resolveAnonDocTtlDays(env: Env): number {
-  const raw = env.NUXT_INACTIVE_DOC_TTL_DAYS?.trim()
-  if (!raw) return DEFAULT_ANON_DOC_TTL_DAYS
-  const n = Number(raw)
-  return Number.isInteger(n) && n > 0 ? n : 0
+/** Inactivity period after which anonymous documents are deleted (NUXT_INACTIVE_DOC_TTL_DAYS; 0 = never). */
+export function resolveAnonDocTtlDays(source?: RawEnv): number {
+  return useEnv(source).legal.inactiveDocTtlDays
 }
 
 /** Stable error codes the server answers with (403 unless noted). */
@@ -59,7 +50,7 @@ export const ANON_GATE_CODES = {
   botCheckRequired: 'anon-gate/bot-check-required',
   /** The solution is malformed, unsigned, tampered or wrong. */
   botCheckFailed: 'anon-gate/bot-check-failed',
-  /** The challenge expired — fetch a new one. */
+  /** The challenge expired: fetch a new one. */
   botCheckExpired: 'anon-gate/bot-check-expired',
   /** The solution was already used once. */
   botCheckReplayed: 'anon-gate/bot-check-replayed',
@@ -67,11 +58,9 @@ export const ANON_GATE_CODES = {
   termsRequired: 'anon-gate/terms-required',
   /** 503: the gate is on but the server has no ALTCHA key. */
   misconfigured: 'anon-gate/misconfigured',
-  /** 503: the replay store (Valkey) is unreachable — the gate fails closed. */
+  /** 503: the replay store (Valkey) is unreachable, the gate fails closed. */
   unavailable: 'anon-gate/unavailable'
 } as const
-
-export type AnonGateCode = typeof ANON_GATE_CODES[keyof typeof ANON_GATE_CODES]
 
 /** Codes after which the client should fetch a fresh challenge and retry once. */
 export const ANON_GATE_RETRYABLE_CODES: readonly string[] = [

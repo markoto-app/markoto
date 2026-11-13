@@ -5,7 +5,7 @@ import {
   AUDIT_LOG_DEFAULT_RETENTION_DAYS,
   runAbuseReportSweep,
   runAuditLogSweep
-} from '../../server/utils/legalRetentionSweep'
+} from '../../server/utils/privacy/legalRetentionSweep'
 
 // Retention the privacy policy promises: audit-log entries are deleted after
 // 2 years (§5); abuse reports 1 year after the case was closed (§2b).

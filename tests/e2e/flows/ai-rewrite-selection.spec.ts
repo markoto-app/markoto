@@ -5,14 +5,14 @@ import { test, expect, requireLiveAi } from '../fixtures/flow'
 // User-job: a writer has a paragraph that's almost right but too
 // long, too formal, or in the wrong voice. Select it, type "make
 // this shorter" in the prompt bar, and the AI replaces THAT
-// passage — not the end of the doc. Job done when the AI's edit
+// passage: not the end of the doc. Job done when the AI's edit
 // lands inside the originally-selected range, not appended at EOF.
 //
 // Pipeline: the editor pre-captures an `EditorSelectionSnapshot`
 // (kind=`selection`, fromLine/toLine/text) at submit time and
 // passes it as `editorSelection` on `/api/ai/prompt`. The AI sees
 // the range inside `<editor_state>` in its system prompt and picks
-// `replace_text` over `insert_text` — same prompt-bar surface as
+// `replace_text` over `insert_text`: same prompt-bar surface as
 // the bottom-bar tour, but the user's selection routes the model.
 //
 // Live LiteLLM round-trip → Mistral. Skipped if no key.
@@ -21,7 +21,7 @@ test('Rewrite a selection with the AI', async ({ page, flow, editor }) => {
   test.setTimeout(360_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
-  // A short product update whose middle paragraph is far too wordy —
+  // A short product update whose middle paragraph is far too wordy,
   // a clear "make this shorter" target with text before AND after it,
   // so an in-place rewrite is visibly different from an append.
   const original = 'In the event that you should find yourself in a position '
@@ -51,7 +51,7 @@ test('Rewrite a selection with the AI', async ({ page, flow, editor }) => {
     + 'rewrites it in place instead of adding text somewhere else.'
   )
 
-  // ─── Select the paragraph ───────────────────────────────────────
+  // Select the paragraph
   await flow.heading('Select the passage you want to rewrite', 3)
   await flow.narrate(
     'Triple-click selects a paragraph; click and drag selects any '
@@ -71,7 +71,7 @@ test('Rewrite a selection with the AI', async ({ page, flow, editor }) => {
   const selectedLen = await page.evaluate(() => window.getSelection()?.toString().length ?? 0)
   expect(selectedLen).toBeGreaterThan(50)
 
-  // ─── Ask the AI to rewrite ──────────────────────────────────────
+  // Ask the AI to rewrite
   await flow.heading('Ask the AI to make it shorter', 3)
   await flow.narrate(
     'Type what you want into the prompt bar. Short instructions work '
@@ -83,7 +83,7 @@ test('Rewrite a selection with the AI', async ({ page, flow, editor }) => {
   await flow.type(
     'Type the rewrite instruction',
     editor.page.ai.promptBarInput,
-    'Make this much shorter — one crisp sentence, plain language.',
+    'Make this much shorter, one crisp sentence, plain language.',
     { result: 'Your instruction is ready; the paragraph is still selected.' }
   )
 
@@ -113,7 +113,7 @@ test('Rewrite a selection with the AI', async ({ page, flow, editor }) => {
 
   // ASSERTION: the original verbose phrasing is GONE (the AI did a
   // replace, not an append). The "behove" + "considerable length"
-  // markers are unique to the original — they should not survive.
+  // markers are unique to the original, they should not survive.
   const docId = page.url().match(/\/d\/([^/?]+)/)?.[1]
   expect(docId).toBeTruthy()
   const ytext = await page.evaluate(() => {

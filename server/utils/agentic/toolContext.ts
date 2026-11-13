@@ -1,20 +1,21 @@
 import type * as Y from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
-import type { AttributedTo } from '../billing'
+import type { AttributedTo } from '../billing/billing'
 import type { PlanName } from '~~/shared/config/tiers'
 import type { ResolvedAiProviders } from '../aiProviders/resolve'
+import type { DocAccess, UserScope, WorkspaceAccess } from '../../repos/proofs'
 
 // Two-tiered tool context. The split exists to make a class of bug
 // IMPOSSIBLE: a META-typed handler (one that doesn't need Y.js state)
 // being wrapped as a doc-bound MCP tool (and vice versa) won't typecheck
-// — `buildWorkspaceBoundTool({ name: 'replace_text' })` is a compile
+// `buildWorkspaceBoundTool({ name: 'replace_text' })` is a compile
 // error because `replace_text` is typed as accepting `DocToolContext`
 // but the wrapper passes `MetaToolContext`.
 //
 // The categorization is an intrinsic property of each handler:
 //   - DOC handlers READ or MUTATE the live Y.Doc (ydoc/ytext/ymeta) OR
 //     broadcast status via awareness on a real provider.
-//   - META handlers operate on DB rows + external APIs only — they need
+//   - META handlers operate on DB rows + external APIs only, they need
 //     identity (userId, workspaceId, docId) and billing context, but
 //     never the Y handles.
 //
@@ -33,11 +34,11 @@ export type ToolStatusPhase = 'thinking' | 'tool' | 'editing' | 'done' | 'error'
 export interface MetaToolContext {
   /** The doc the call is bound to. For tools that don't operate on a
    *  specific doc (web_search, list_my_documents), the wrapper sets
-   *  this to a sentinel string — handlers MUST NOT assume it's a real
+   *  this to a sentinel string, handlers MUST NOT assume it's a real
    *  docId. */
   docId: string
 
-  /** Real human user id — used for ownership checks, audited writes
+  /** Real human user id, used for ownership checks, audited writes
    *  (e.g. `uploads.uploaderId` from `generate_image`), and rate
    *  limits. The synthetic principal (loop's `ai:assistant:{sessionId}`,
    *  MCP's `mcp:{mcpSessionId}`) lives in `sessionId`; the human is
@@ -48,14 +49,26 @@ export interface MetaToolContext {
    *  + user-only tool calls. */
   workspaceId: string | null
 
+  /** The initiator acting on their own data (saved themes, their documents, uploads). */
+  self: UserScope
+
+  /** The bound document, proven for the initiator at session start (null
+   *  for workspace-bound and user-only MCP calls). Write tools narrow it
+   *  with `allows('write')`. */
+  docAccess: DocAccess<'view'> | null
+
+  /** The initiator's membership of `workspaceId`, proven at session start
+   *  (null outside a workspace or without a role). */
+  workspaceAccess: WorkspaceAccess<'member'> | null
+
   /** Per-invocation correlation id. The in-app loop uses the AI
    *  session id; MCP uses the MCP session id. Tools tag Y.js
    *  `transact()` with `'<principal>:{sessionId}'` so activity-log
    *  rows can attribute back to the originating call. */
   sessionId: string
 
-  /** Billing target — `user:{id}` self-bill, or `workspace:{id}` when
-   *  a `(+)` workspace's owner covers the cost. */
+  /** Billing target: `user:{id}` self-bill, or `workspace:{id}` when
+   *  the workspace's pooled budget covers the cost. */
   attributedTo: AttributedTo
 
   /** Plan that applies to this call (gates per-tier features +
@@ -66,7 +79,7 @@ export interface MetaToolContext {
    *  calendar-month UTC. */
   periodStart: Date
 
-  /** Per-user (or per-(+)-workspace-owner) LiteLLM virtual-key bearer
+  /** Per-user (or per-workspace-member) LiteLLM virtual-key bearer
    *  token. Tools that hit LiteLLM (web_search, fetch_url,
    *  generate_image, search_knowledge embeddings) pass this to
    *  `useLitellmForUser(virtualKey)` so spend lands on the right
@@ -82,14 +95,14 @@ export interface MetaToolContext {
   /** Report progress. Only the PHASE is broadcast to the document's
    *  other participants (loop: awareness `aiStatus`, MCP doc-bound:
    *  `mcpStatus`); the message (which can name other documents,
-   *  queries, URLs) goes to the initiator alone — the loop's session
+   *  queries, URLs) goes to the initiator alone, the loop's session
    *  channel (`sessionChannel.ts`), nowhere for MCP (the MCP client sees
    *  the tool result). META wrappers no-op. */
   updateStatus(phase: ToolStatusPhase, message?: string): void
 }
 
 /**
- * Full context — META plus live Y.js handles. Required by handlers
+ * Full context: META plus live Y.js handles. Required by handlers
  * that read/mutate the doc body (view_document, replace_text), the
  * doc metadata (set_title, update_theme), the comments array
  * (read_comments, create_comment, ...), or write to awareness directly
@@ -99,21 +112,32 @@ export interface MetaToolContext {
  * MCP's `connectAsMcpClient` returns this shape directly.
  */
 export interface DocToolContext extends MetaToolContext {
+  docAccess: DocAccess<'view'>
   ydoc: Y.Doc
   ytext: Y.Text
   ymeta: Y.Map<unknown>
   awareness: Awareness
   /** Deliver a `message_to_user` answer to the initiator only (never
    *  via awareness). Absent where there is no initiator UI (MCP, test
-   *  seams) — the handler then only records conversation memory. */
+   *  seams): the handler then only records conversation memory. */
   deliverResponse?(response: { message: string, isQuestion: boolean, ts: number }): void
 }
 
 /**
  * @deprecated Use `DocToolContext` (handlers that need Y handles) or
- * `MetaToolContext` (handlers that don't) explicitly. The unsplit
- * `ToolContext` alias remains so the migration to per-handler typing
- * doesn't have to land in one big patch. New code SHOULD pick the
- * narrower of the two.
+ * `MetaToolContext` (handlers that don't) explicitly. New code should pick
+ * the narrower of the two.
  */
 export type ToolContext = DocToolContext
+
+/**
+ * The bound document's proof narrowed to `write`, for tools that change it.
+ * In-app sessions are opened with write access and the MCP wrapper binds
+ * write tools with `access: 'edit'`, so a view-only proof here is a wiring
+ * bug: fail closed.
+ */
+export function writeAccessOf(ctx: DocToolContext): DocAccess<'write'> {
+  const access = ctx.docAccess
+  if (!access.allows('write')) throw new Error(`tool on ${ctx.docId} needs write access`)
+  return access
+}

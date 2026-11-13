@@ -1,13 +1,14 @@
 <script setup lang="ts">
-// Brand kit (WP10), admins: the workspace design — taken from one of the
-// workspace's documents, locked for every document — and the workspace
+// Brand kit, admins: the workspace design, taken from one of the
+// workspace's documents, locked for every document, and the workspace
 // templates (live links to workspace documents). Rendered inside
 // WorkspaceBrandKitPanel. Server: `…/brand/lock`, `…/brand/design-from-doc`,
 // `…/templates`.
 import type { DocTheme } from '~~/shared/types/theme'
+import type { ApiResponse } from '~/utils/api/client'
 
 interface DocOption { docId: string, title: string }
-interface Template { id: string, name: string, description: string, docId: string, docTitle: string }
+type Template = ApiResponse<'/api/workspaces/:wsId/templates', 'get'>['templates'][number]
 
 const props = defineProps<{
   workspaceId: string
@@ -21,17 +22,15 @@ const { t } = useI18n()
 const toast = useToast()
 const { showError } = useErrorHandler()
 
-const base = computed(() => `/api/workspaces/${encodeURIComponent(props.workspaceId)}`)
 const docItems = computed(() => props.documents.map(d => ({ label: d.title || t('editor.untitled'), value: d.docId })))
 
-// ── Design ─────────────────────────────────────────────────────────
 const designDoc = ref<string | undefined>(undefined)
 const designBusy = ref(false)
 async function useDesignFrom(): Promise<void> {
   if (!designDoc.value) return
   designBusy.value = true
   try {
-    const res = await $fetch<{ dropped: string[] }>(`${base.value}/brand/design-from-doc`, { method: 'POST', body: { docId: designDoc.value } })
+    const res = await apiFetch('/api/workspaces/:wsId/brand/design-from-doc', { method: 'post', path: { wsId: props.workspaceId }, body: { docId: designDoc.value } })
     toast.add({
       title: t('brandKit.designSet'),
       description: res.dropped.length ? t('brandKit.designImagesDropped') : undefined,
@@ -51,7 +50,7 @@ const lockBusy = ref(false)
 async function setLocked(locked: boolean): Promise<void> {
   lockBusy.value = true
   try {
-    await $fetch(`${base.value}/brand/lock`, { method: 'PUT', body: { locked } })
+    await apiFetch('/api/workspaces/:wsId/brand/lock', { method: 'put', path: { wsId: props.workspaceId }, body: { locked } })
     emit('changed')
   } catch (e) {
     showError('brandKit.lockFailed', e)
@@ -60,11 +59,10 @@ async function setLocked(locked: boolean): Promise<void> {
   }
 }
 
-// ── Templates ──────────────────────────────────────────────────────
 const templates = ref<Template[]>([])
 async function loadTemplates(): Promise<void> {
   try {
-    templates.value = (await $fetch<{ templates: Template[] }>(`${base.value}/templates`)).templates
+    templates.value = (await apiFetch('/api/workspaces/:wsId/templates', { path: { wsId: props.workspaceId } })).templates
   } catch {
     templates.value = []
   }
@@ -82,7 +80,7 @@ async function addTemplate(): Promise<void> {
   if (!tplDoc.value || !tplName.value.trim()) return
   tplBusy.value = true
   try {
-    await $fetch(`${base.value}/templates`, { method: 'POST', body: { docId: tplDoc.value, name: tplName.value, description: tplDescription.value } })
+    await apiFetch('/api/workspaces/:wsId/templates', { method: 'post', path: { wsId: props.workspaceId }, body: { docId: tplDoc.value, name: tplName.value, description: tplDescription.value } })
     tplDoc.value = undefined
     tplName.value = ''
     tplDescription.value = ''
@@ -98,7 +96,7 @@ const removing = ref<string | null>(null)
 async function removeTemplate(id: string): Promise<void> {
   removing.value = id
   try {
-    await $fetch(`${base.value}/templates/${id}`, { method: 'DELETE' })
+    await apiFetch('/api/workspaces/:wsId/templates/:templateId', { method: 'delete', path: { wsId: props.workspaceId, templateId: id } })
     await loadTemplates()
     emit('changed')
   } catch (e) {
@@ -111,7 +109,6 @@ async function removeTemplate(id: string): Promise<void> {
 
 <template>
   <div class="space-y-8">
-    <!-- Workspace design + lock -->
     <div
       class="space-y-3"
       data-testid="brand-design"
@@ -176,7 +173,6 @@ async function removeTemplate(id: string): Promise<void> {
       </div>
     </div>
 
-    <!-- Workspace templates -->
     <div
       class="space-y-3"
       data-testid="brand-templates"

@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { uiFontStylesheetUrls } from '~~/shared/utils/themeFonts'
+import { uiFontStylesheetUrls } from '~~/shared/utils/theme/themeFonts'
 import { applyTitleTemplate } from '~~/shared/seo/meta'
+import { de, en, es, fr, ja, zh_cn } from '@nuxt/ui/locale'
 
 const { t, locale, localeProperties } = useI18n()
 const { brand: instanceBrand } = useInstanceConfig()
 
 useHead({
   // `%s · markoto`; pages set only their own title. Without one: the
-  // default "markoto — Collaborative Markdown".
+  // default "markoto: Collaborative Markdown".
   titleTemplate: title => applyTitleTemplate(title, instanceBrand.value.name),
   meta: [
     { name: 'viewport', content: 'width=device-width, initial-scale=1' },
@@ -25,15 +26,20 @@ useHead({
     // the body/UI workhorse. JetBrains Mono is the eyebrow/meta/CTA
     // register. Fraunces (variable opsz + wght, upright + italic)
     // handles the wordmark, display headlines, and the AI's italic
-    // voice. Served from our own origin (shared/utils/themeFonts.ts) —
+    // voice. Served from our own origin (shared/utils/theme/themeFonts.ts),
     // no request leaves for Google Fonts.
-    ...uiFontStylesheetUrls(['Inter', 'JetBrains Mono', 'Fraunces']).map(href => ({ rel: 'stylesheet', href }))
+    ...uiFontStylesheetUrls(['Inter', 'JetBrains Mono', 'Fraunces']).map(href => ({ rel: 'stylesheet' as const, href }))
   ],
   htmlAttrs: {
     // The active UI language (cookie / Accept-Language, `no_prefix`).
     lang: () => localeProperties.value.language ?? locale.value
   }
 })
+
+// Nuxt UI's own built-in texts (modal close button, command palette, calendar,
+// pagination, ...) follow the UI language through UApp's `locale` prop.
+const uiLocales = { en, de, fr, es, ja, zh: zh_cn }
+const uiLocale = computed(() => uiLocales[locale.value] ?? en)
 
 // Fallback description; indexable pages set their own (useMarketingSeo,
 // docs frontmatter). Open Graph tags come from useMarketingSeo only, so
@@ -47,9 +53,12 @@ useCanonical()
 </script>
 
 <template>
-  <UApp :toaster="{ position: 'top-right' }">
+  <UApp
+    :locale="uiLocale"
+    :toaster="{ position: 'top-right' }"
+  >
     <!-- Offline / deletion-grace banners, onboarding gate, consent
-         banner — kept off the server-render page. -->
+         banner: kept off the server-render page. -->
     <CommonAppOverlays />
     <!-- NuxtLayout wraps NuxtPage with whatever layout the page opts
          into via definePageMeta({ layout: 'name' }). Pages without

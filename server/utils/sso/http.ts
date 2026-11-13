@@ -1,11 +1,11 @@
-// Per-workspace SSO (WP14) — HTTP plumbing shared by the routes under
-// `server/routes/auth/sso/`: the public base URL, the flow cookie, the
-// session, errors, and the per-connection OIDC settings.
+// HTTP plumbing shared by the routes under `server/routes/auth/sso/`: the
+// public base URL, the flow cookie, the session, errors, and the
+// per-connection OIDC settings.
 
 import type { H3Event } from 'h3'
-import { isTestModeEnabled } from '~~/shared/utils/testMode'
-import { decryptToken } from '../litellm/tokenCrypto'
-import { SESSION_VERSION } from '../validatedSession'
+import { isTestModeEnabled } from '~~/shared/utils/security/testMode'
+import { openSecretOrNull, secretContext } from '../platform/secretBox'
+import { SESSION_VERSION } from '../auth/validatedSession'
 import { getSessionEpoch } from '../../repos/users'
 import type { OidcSettings } from '../oidc/settings'
 import type { SsoConnectionRow } from '../../repos/sso'
@@ -19,6 +19,9 @@ import {
   type SsoFlow
 } from './flowCookie'
 import type { SsoLoginResult } from './completeLogin'
+import { useEnv } from '~~/shared/env/load'
+import { apiError } from '../api/apiError'
+import { trimTrailingSlashes } from '~~/shared/utils/trimTrailingSlashes'
 
 /**
  * The origin markoto is reached at (`NUXT_SITE_URL`). Callback URLs and
@@ -26,14 +29,10 @@ import type { SsoLoginResult } from './completeLogin'
  * test mode without a site URL, the request origin.
  */
 export function ssoBaseUrl(event: H3Event): string {
-  const site = String(useRuntimeConfig(event).siteUrl ?? '').trim()
-  if (site) return site.replace(/\/+$/, '')
+  const site = String(useEnv().core.siteUrl ?? '').trim()
+  if (site) return trimTrailingSlashes(site)
   if (isTestModeEnabled()) return getRequestURL(event).origin
-  throw createError({
-    statusCode: 503,
-    message: 'Single sign-on needs NUXT_SITE_URL to be set on this instance.',
-    data: { code: 'sso/misconfigured' }
-  })
+  throw apiError('sso/misconfigured')
 }
 
 export function ssoCallbackUrl(event: H3Event, connectionId: string): string {
@@ -95,7 +94,7 @@ export function afterSsoLoginPath(result: SsoLoginResult, flow: SsoFlow): string
 
 /**
  * A refused or failed sign-in lands on a page that explains it (no raw
- * error text from the IdP — only our fixed codes).
+ * error text from the IdP, only our fixed codes).
  */
 export function ssoErrorPath(code: string, workspaceId?: string): string {
   const q = new URLSearchParams({ code })
@@ -104,15 +103,21 @@ export function ssoErrorPath(code: string, workspaceId?: string): string {
 }
 
 /** openid-client settings for a workspace's OIDC connection. */
-export function oidcSettingsForConnection(event: H3Event, connection: SsoConnectionRow): OidcSettings {
+export function oidcSettingsForConnection(event: H3Event, connection: SsoConnectionRow): OidcSettings & { redirectUrl: string } {
   if (connection.protocol !== 'oidc' || !connection.oidcIssuer || !connection.oidcClientId || !connection.oidcClientSecret) {
-    throw createError({ statusCode: 409, message: 'This connection is not a complete OpenID Connect setup.', data: { code: 'sso/incomplete' } })
+    throw apiError('sso/incomplete')
+  }
+  const clientSecret = openSecretOrNull('sso-client-secret', secretContext.ssoClientSecret(connection.workspaceId), connection.oidcClientSecret)
+  if (clientSecret === null) {
+    // Encryption key lost or rotated away: a workspace admin enters the
+    // client secret again (the settings stay reachable via the break-glass).
+    throw apiError('sso/incomplete')
   }
   const allowPrivate = ssoAllowsPrivateUrls()
   return {
     issuer: new URL(connection.oidcIssuer),
     clientId: connection.oidcClientId,
-    clientSecret: decryptToken(connection.oidcClientSecret),
+    clientSecret,
     scopes: ['openid', 'email', 'profile'],
     redirectUrl: ssoCallbackUrl(event, connection.id),
     // http only reaches a private address (enforced by the fetch policy).

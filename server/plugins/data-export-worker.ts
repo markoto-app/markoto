@@ -1,40 +1,20 @@
-import { migrationsComplete } from '../utils/migrations'
-import { runDataExportWorker } from '../utils/dataExportWorker'
-import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
+import { runDataExportWorker } from '../utils/privacy/dataExportWorker'
+import { defineSweeper } from '../utils/platform/defineSweeper'
+import { SWEEPS } from '../config/sweeps'
 
-// Data-export worker plugin. Runs the queued-job claim → ZIP build
-// → S3 upload pipeline. Thin wrapper — the heavy lifting lives in
-// `dataExportWorker.ts` so it's importable from tests.
+// Runs the queued-job claim → ZIP build → S3 upload pipeline once a minute, so
+// a requested export completes within about a minute. The heavy lifting lives
+// in `dataExportWorker.ts` so tests can import it.
 //
-// Interval: 1 minute. Trades worker latency for DB scan frequency.
-// A user requesting an export sees their job complete within
-// roughly a minute on average (immediate if the queue is empty
-// when their request lands).
-//
-// Cross-instance lock: same pattern as the deletion sweeper. The
-// repo's claim uses `SELECT … FOR UPDATE SKIP LOCKED` so two
-// concurrent claims pick different rows by design — but the lock
-// keeps the noise floor low and ensures one S3 PUT per tick.
+// The repo's claim uses `SELECT … FOR UPDATE SKIP LOCKED`, so two concurrent
+// claims pick different rows by design, the lock just keeps the noise floor
+// low and ensures one S3 PUT per tick.
 
-const WORKER_INTERVAL_MS = 60 * 1000 // 1 min
-
-async function lockedRun(): Promise<void> {
-  if (!await acquireSweepLock('data-export-worker')) return
-  try {
-    await runDataExportWorker()
-  } finally {
-    await releaseSweepLock('data-export-worker')
+export default defineSweeper({
+  name: 'data-export-worker',
+  schedule: SWEEPS.dataExportWorker,
+  run: async () => {
+    const result = await runDataExportWorker()
+    return result.jobId ? result : undefined
   }
-}
-
-export default defineNitroPlugin((nitroApp) => {
-  void (async () => {
-    await migrationsComplete
-    await lockedRun()
-  })()
-
-  const timer = setInterval(() => {
-    void lockedRun()
-  }, WORKER_INTERVAL_MS)
-  nitroApp.hooks.hook('close', () => clearInterval(timer))
 })

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { DOC_PASSWORD_MAX_LENGTH } from '~~/shared/config/docPassword'
+
 const props = defineProps<{
   docId: string
 }>()
@@ -11,23 +13,24 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { extractError } = useErrorHandler()
 const password = ref('')
 const error = ref('')
 
 const { isLoading: loading, execute: runVerify } = useAsyncState(
-  () => $fetch<{ success: boolean, token: string, readOnly: boolean }>(
-    `/api/docs/${props.docId}/password`,
-    { method: 'POST', body: { action: 'verify', password: password.value } }
-  ),
+  () => apiFetch('/api/docs/:docId/password', {
+    method: 'post',
+    path: { docId: props.docId },
+    body: { action: 'verify', password: password.value }
+  }),
   null,
   {
     immediate: false,
     onSuccess: (result) => {
-      if (result) emit('verified', result.token)
+      if (result?.action === 'verify') emit('verified', result.token)
     },
     onError: (e) => {
-      const err = e as { data?: { message?: string } }
-      error.value = err.data?.message || t('share.invalidPassword')
+      error.value = extractError(e).message
       password.value = ''
     }
   }
@@ -49,6 +52,7 @@ function handleClose() {
     v-model:open="open"
     :title="t('share.passwordRequired')"
     :close="false"
+    :content="initialFocus('password-modal-input')"
     @update:open="(val: boolean) => { if (!val) handleClose() }"
   >
     <template #content>
@@ -70,11 +74,12 @@ function handleClose() {
 
         <form @submit.prevent="verify">
           <UInput
+            id="password-modal-input"
             v-model="password"
             type="password"
+            :maxlength="DOC_PASSWORD_MAX_LENGTH"
             :placeholder="t('share.enterPassword')"
             size="lg"
-            autofocus
             class="mb-3"
             data-testid="password-modal-input"
           />

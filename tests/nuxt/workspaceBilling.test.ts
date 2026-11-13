@@ -6,9 +6,9 @@ import { flushPromises } from '@vue/test-utils'
 import { WorkspaceBillingPanel, WorkspaceMembersModal } from '#components'
 import { DEFAULT_PLAN_PRICES, CURRENCIES, type PlanPricesResponse } from '~~/shared/config/pricing'
 import type { H3Event } from 'h3'
-import type { WorkspaceBillingOverview } from '~/utils/workspaceBilling'
+import type { WorkspaceBillingOverview } from '~/utils/billing/workspaceBilling'
 
-// Team / Business workspace billing UI (WP3): the admin billing tab and
+// Team / Business workspace billing UI: the admin billing tab and
 // the invite dialog's "This adds a seat" confirmation.
 
 type Wrapper = Awaited<ReturnType<typeof mountSuspended>>
@@ -72,6 +72,7 @@ beforeEach(() => {
     isBillingAdmin: true,
     subscription: null,
     pool: null,
+    credits: null,
     members: [
       { userId: 1, name: 'Ada', role: 'admin', limitUsd: null, limitIsDefault: true, unlimited: false, spendUsd: null },
       { userId: 2, name: 'Ben', role: 'editor', limitUsd: null, limitIsDefault: true, unlimited: false, spendUsd: null }
@@ -93,7 +94,7 @@ async function mountPanel() {
   return wrapper
 }
 
-describe('workspace billing tab — no subscription yet', () => {
+describe('workspace billing tab: no subscription yet', () => {
   it('starts at the people already in the workspace and shows the total', async () => {
     const wrapper = await mountPanel()
     expect(wrapper.find('[data-testid="workspace-billing-buy"]').exists()).toBe(true)
@@ -104,7 +105,7 @@ describe('workspace billing tab — no subscription yet', () => {
 
   it('sends plan, interval, currency and seats to checkout and follows the Stripe URL', async () => {
     const wrapper = await mountPanel()
-    // Disabled until the Paid Plans Terms box is ticked (WP6b).
+    // Disabled until the Paid Plans Terms box is ticked.
     expect(wrapper.get('[data-testid="workspace-billing-checkout"]').attributes('disabled')).toBeDefined()
     await wrapper.get('[data-testid="workspace-billing-checkout-paid-terms"] [role="checkbox"]').trigger('click')
     await flushPromises()
@@ -116,7 +117,7 @@ describe('workspace billing tab — no subscription yet', () => {
   })
 })
 
-describe('workspace billing tab — subscription', () => {
+describe('workspace billing tab: subscription', () => {
   beforeEach(() => {
     overview.subscription = {
       plan: 'team', seats: 5, status: 'active', entitled: true, interval: 'month', currency: 'eur',
@@ -164,7 +165,7 @@ describe('workspace billing tab — subscription', () => {
   })
 })
 
-describe('invite dialog — paid seats', () => {
+describe('invite dialog: paid seats', () => {
   async function mountModal() {
     const Host = defineComponent({
       setup() {
@@ -172,7 +173,7 @@ describe('invite dialog — paid seats', () => {
         return () => h(WorkspaceMembersModal, {
           'workspaceId': 'ws1',
           'workspaceName': 'Acme',
-          'members': [{ userId: 1, name: 'Ada', email: null, login: null, role: 'admin' }],
+          'members': [{ userId: 1, name: 'Ada', email: null, login: null, role: 'admin', joinedAt: '2026-01-01T00:00:00.000Z' }],
           'myRole': 'admin',
           'myUserId': 1,
           'billing': { seats: 3, seatsUsed: 3, status: 'active', plan: 'team', interval: 'month', currency: 'eur' },

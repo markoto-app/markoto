@@ -1,17 +1,17 @@
-# Ansible vault password — never commit.
+# Ansible vault password: never commit.
 .vault-password
 
-# Filled-in inventory — only the example template is committed.
+# Filled-in inventory: only the example template is committed.
 inventory.ini
 
-# Vault — only all.vault.example.yml (placeholders) is committed. NEVER commit
+# Vault: only all.vault.example.yml (placeholders) is committed. NEVER commit
 # the real vault, encrypted or not. This is a public (FSL) repo: ansible-vault
 # ciphertext in a public repo is a permanent offline brute-force target, so the
 # real secrets live in GitHub (Environment secrets/variables), not in git.
 group_vars/all.vault.yml
 group_vars/all.vault.yml.unencrypted
 
-# Provider CA bundles — site-specific, distributed out of band.
+# Provider CA bundles: site-specific, distributed out of band.
 files/ovh-pg-ca.pem
 files/managed-pg-ca.pem
 

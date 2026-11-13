@@ -6,15 +6,15 @@
  * change that would break code-only rollback can't merge unnoticed.
  *
  * Why this exists: the merge → staging → prod auto-promotion pipeline rolls
- * back CODE only (flip the image tag) and NEVER restores the database —
+ * back CODE only (flip the image tag) and NEVER restores the database,
  * restoring a live prod DB would discard every user write since the snapshot
- * (docs, comments, and the continuous Y.js CRDT stream in yjs_documents).
+ * (docs, comments, and the continuous Y.js CRDT stream in yjs_updates).
  * For code-only rollback to be safe, every migration must be
  * backward-compatible: the PREVIOUS release must still run against the NEW
  * schema (expand-contract). Dropping / renaming / retyping a column or adding
  * a NOT NULL constraint the old code doesn't satisfy breaks that.
  *
- * This is NOT a ban on destructive DDL — it's the CONTRACT phase of
+ * This is NOT a ban on destructive DDL, it's the CONTRACT phase of
  * expand-contract. Dropping a column is fine ONCE A PRIOR RELEASE stopped
  * reading it. To acknowledge that (or any other reviewed exception), add a
  * line to the migration .sql file:
@@ -27,7 +27,7 @@
  *     - no args: checks drizzle/*.sql files changed vs BASE_REF (default
  *       origin/main). Set BASE_REF to override the diff base.
  *
- * Only CHANGED files are checked — historical migrations (which legitimately
+ * Only CHANGED files are checked, historical migrations (which legitimately
  * contain DROP/TRUNCATE) are never re-scanned.
  */
 import { readFileSync } from 'node:fs'
@@ -80,7 +80,7 @@ function changedMigrationFiles(): string[] {
 const files = process.argv.slice(2).length > 0 ? process.argv.slice(2) : changedMigrationFiles()
 
 if (files.length === 0) {
-  console.log('[migration-guard] no changed migration files — OK.')
+  console.log('[migration-guard] no changed migration files, OK.')
   process.exit(0)
 }
 
@@ -90,7 +90,7 @@ for (const file of files) {
   try {
     raw = readFileSync(file, 'utf8')
   } catch {
-    console.error(`[migration-guard] cannot read ${file} — skipping.`)
+    console.error(`[migration-guard] cannot read ${file}, skipping.`)
     continue
   }
   const acknowledged = ALLOW_MARKER.test(raw)
@@ -99,7 +99,7 @@ for (const file of files) {
   if (hits.length === 0) continue
 
   if (acknowledged) {
-    console.log(`[migration-guard] ${file}: ${hits.join(', ')} — acknowledged via "-- allow-destructive:" ✓`)
+    console.log(`[migration-guard] ${file}: ${hits.join(', ')}, acknowledged via "-- allow-destructive:" ✓`)
     continue
   }
   violations++
@@ -119,4 +119,4 @@ if (violations > 0) {
   process.exit(1)
 }
 
-console.log(`[migration-guard] ${files.length} changed migration(s) checked — no unacknowledged destructive DDL. ✓`)
+console.log(`[migration-guard] ${files.length} changed migration(s) checked, no unacknowledged destructive DDL. ✓`)

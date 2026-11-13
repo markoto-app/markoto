@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import type { DocTheme } from '~~/shared/types/theme'
 import type { BrandFont } from '~~/shared/config/brandKit'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
-import { isMacPlatform, zoomShortcutAction } from '~/utils/previewZoom'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
+import { isMacPlatform, zoomShortcutAction } from '~/utils/preview/previewZoom'
 
 const props = defineProps<{
   source: string
   title: string
-  /** Document language — cover date, `{date}`, TOC title, chart numbers. */
+  /** Document language: cover date, `{date}`, TOC title, chart numbers. */
   language?: string
   theme?: DocTheme
-  /** Owning document — custom CSS may only reference this doc's uploads. */
+  /** Owning document: custom CSS may only reference this doc's uploads. */
   docId: string
   /** Doc JWT for session-less viewers (image access token fetch). */
   getDocJwt?: () => Promise<string | null>
-  /** The workspace's brand-kit fonts (WP10). */
+  /** The workspace's brand-kit fonts. */
   brandFonts?: readonly BrandFont[] | null
   /** Show the zoom pill in the pane (desktop; mobile has it in the view-mode bar). */
   zoomControl?: boolean
@@ -36,7 +36,7 @@ const { rendered } = useMarkdownPreview(sourceRef)
 // Host element the composable will append the preview iframe into.
 const iframeHost = ref<HTMLElement | null>(null)
 
-// Preview zoom — remembered per browser, applied inside the iframe.
+// Preview zoom: remembered per browser, applied inside the iframe.
 const zoom = usePreviewZoom()
 onMounted(() => zoom.load())
 
@@ -84,9 +84,12 @@ watch(pgCount, (n) => {
 
 <template>
   <div
+    role="presentation"
     class="preview-pane h-full w-full relative"
     @mouseenter="pointerOver = true"
     @mouseleave="pointerOver = false"
+    @focusin="pointerOver = true"
+    @focusout="pointerOver = false"
   >
     <div
       ref="iframeHost"
@@ -106,14 +109,14 @@ watch(pgCount, (n) => {
       />
       <p>{{ error }}</p>
       <p class="text-xs text-muted">
-        Reload the page to retry.
+        {{ $t('editor.previewReloadHint') }}
       </p>
     </div>
     <div
       v-else-if="!isReady"
       class="absolute inset-0 flex items-center justify-center text-sm text-muted bg-[var(--ui-bg-muted)] pointer-events-none"
     >
-      Loading preview…
+      {{ $t('marketing.tryIt.previewLoading') }}
     </div>
   </div>
 </template>

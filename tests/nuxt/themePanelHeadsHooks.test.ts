@@ -4,9 +4,9 @@ import { ref } from 'vue'
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { DocumentThemeEditorPanel } from '#components'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 import type { DocTheme } from '~~/shared/types/theme'
-import { isValidTheme } from '~~/shared/utils/themeValidation'
+import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
 
 // Theme panel ↔ the engine-batch-2 fields: `{section}` options, the drop
 // cap on every chapter. Opening the panel on a theme stored before them
@@ -57,7 +57,7 @@ async function toggle(wrapper: Awaited<ReturnType<typeof mount>>, testid: string
   await flushPromises()
 }
 
-describe('theme panel — {section} options, drop cap per chapter', () => {
+describe('theme panel: {section} options, drop cap per chapter', () => {
   it('opening the panel on a legacy theme emits nothing', async () => {
     const wrapper = await mount(legacy((t) => {
       t.header.left = '{section}'

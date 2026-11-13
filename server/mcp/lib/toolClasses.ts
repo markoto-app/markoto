@@ -1,16 +1,16 @@
 // Plan classes of the MCP tools. A plan without `mcpWrite`
-// (shared/config/tiers.ts — off on the hosted free tier, on everywhere
+// (shared/config/tiers.ts: off on the hosted free tier, on everywhere
 // by default) gets a read-only MCP server: only `read` tools are listed
 // and callable.
 //
-//   read  — reads documents, comments, themes, knowledge, history; no
+//   read: reads documents, comments, themes, knowledge, history; no
 //           change, no platform cost beyond a database read.
-//   write — changes content, comments, themes or creates documents.
-//   cost  — costs the platform money or renderer time on every call
+//   write: changes content, comments, themes or creates documents.
+//   cost: costs the platform money or renderer time on every call
 //           (server render, image generation, web search / page fetch).
 //
 // Every file in `server/mcp/tools/` must have an entry
-// (`tests/unit/mcpToolClasses.test.ts`); an unknown name is treated as
+// (`tests/unit/mcp/mcpToolClasses.test.ts`); an unknown name is treated as
 // `write`, so a tool added without a class is never free by accident.
 
 export type McpToolClass = 'read' | 'write' | 'cost'

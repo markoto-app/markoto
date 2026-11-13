@@ -1,12 +1,13 @@
-import type { ObjectStore } from '../objectStore'
+import type { ObjectStore } from '../storage/objectStore'
+import { HOUR_MS } from '~~/shared/config/units'
 
-// Layer of `orphan-cleanup` (WP13): objects under `published/<pageId>/`
-// whose page no longer exists — the document was deleted (the row goes
+// Layer of `orphan-cleanup`: objects under `published/<pageId>/`
+// whose page no longer exists, the document was deleted (the row goes
 // with it by FK cascade, the objects don't) or an unpublish's own clean-up
 // failed. One hour of grace: a first publish copies the files before it
 // inserts the row.
 
-export const PUBLISHED_ORPHAN_GRACE_MS = 60 * 60 * 1000
+const PUBLISHED_ORPHAN_GRACE_MS = HOUR_MS
 
 const PUBLISHED_KEY_RE = /^published\/([A-Za-z0-9_-]{16})\/(?:files|brand)\/[^/]+$/
 
@@ -24,7 +25,8 @@ export async function sweepPublishedOrphans(deps: {
   const stale = objects
     .filter((obj) => {
       const m = PUBLISHED_KEY_RE.exec(obj.key)
-      return m !== null && !live.has(m[1]!)
+      const pageId = m?.[1]
+      return pageId !== undefined && !live.has(pageId)
     })
     .filter(obj => (obj.lastModified ? obj.lastModified.getTime() : now) < cutoff)
     .map(obj => obj.key)

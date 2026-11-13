@@ -3,10 +3,9 @@
  *
  * Postgres `jsonb` does not keep key order (it sorts keys by length,
  * then bytes), so a theme read back from the database is the same theme
- * but `JSON.stringify` of it differs from the in-code preset. The new-
- * document dialog compared themes by `JSON.stringify` and therefore never
- * recognised a workspace default that IS a built-in preset — it showed a
- * generic "workspace default" card instead of preselecting the preset.
+ * but `JSON.stringify` of it differs from the in-code preset. Compare
+ * themes with this, not `JSON.stringify`, or a stored theme never equals
+ * the preset it was copied from.
  */
 export function jsonEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true

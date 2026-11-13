@@ -7,7 +7,7 @@ import { MINIMAL_INSTANCE_CONFIG, type InstanceConfig } from '~~/shared/config/i
 // The sign-in buttons follow the SSR-hydrated instance config
 // (`useState('instance-config')`, see useInstanceConfig): only configured
 // providers, the operator's own IdP first and labelled with
-// NUXT_OAUTH_OIDC_NAME (WP7b).
+// NUXT_OAUTH_OIDC_NAME.
 
 function setConfig(patch: Partial<InstanceConfig>): void {
   useState<InstanceConfig>('instance-config').value = { ...MINIMAL_INSTANCE_CONFIG, ...patch }

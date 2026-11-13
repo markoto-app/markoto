@@ -34,7 +34,7 @@ describe('POST /api/user/sessions/revoke (log out everywhere)', () => {
     const res = await laptop.post('/api/user/sessions/revoke')
     expect(res.status).toBe(200)
 
-    // A cookie sealed before the bump — e.g. a stolen copy — is dead.
+    // A cookie sealed before the bump, e.g. a stolen copy, is dead.
     expect((await phone.get('/api/user/workspaces')).status).toBe(401)
     expect((await laptop.get('/api/user/workspaces')).status).toBe(401)
     // A fresh sign-in works again.

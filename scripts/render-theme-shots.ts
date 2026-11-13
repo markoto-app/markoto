@@ -11,7 +11,7 @@
  *
  * No preset ids = every built-in preset. `--patch` is a JSON object merged
  * (two levels deep, like the AI `update_theme`) over each preset before
- * the document opens — e.g. authors/affiliations for a title block. It is
+ * the document opens: e.g. authors/affiliations for a title block. It is
  * written with `PUT /api/docs/:id/meta`, which needs the owner, so with
  * `--patch` the documents are created as user 1 through the test login
  * shim: only on a TEST_MODE=1 instance whose database has that user.
@@ -19,7 +19,7 @@
  * Needs a running app (a production build is closest to what users see)
  * that lets anonymous visitors create documents without the terms step:
  * start it with NUXT_ANON_GATE_ENABLED=false. Nothing else (no sync
- * server login, no renderer) — the pages come from the browser preview,
+ * server login, no renderer), the pages come from the browser preview,
  * which shares `themeToCss` with the server PDF.
  *
  * Output per preset: `<out>/<preset>-p<N>.png` (2× scale), `<preset>.html`
@@ -29,7 +29,7 @@
 import { chromium, type BrowserContext } from '@playwright/test'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { THEME_PRESETS } from '../shared/utils/themePresets'
+import { THEME_PRESETS } from '../shared/utils/theme/themePresets'
 import type { DocTheme } from '../shared/types/theme'
 
 interface Args {
@@ -159,6 +159,7 @@ async function capturePreview(ctx: BrowserContext, base: string, docId: string):
         // against the sheet they came from.
         const base = s.href ?? el.ownerDocument.baseURI
         const css = Array.from(s.cssRules).map(r => r.cssText).join('\n')
+          // eslint-disable-next-line sonarjs/super-linear-regex -- dev script over the app's own stylesheets
           .replace(/url\(\s*(["']?)(?![a-z][a-z0-9+.-]*:|\/|#)([^"')]+)\1\s*\)/gi, (m, q: string, u: string) => {
             try {
               return `url(${q}${new URL(u, base).href}${q})`

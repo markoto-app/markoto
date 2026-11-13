@@ -1,3 +1,5 @@
+import { MIB } from './units'
+
 /**
  * "Create a design from a document" (theme panel): the user uploads a PDF
  * or Word file, markitdown extracts its styles (+ page pictures for PDF),
@@ -15,7 +17,7 @@ export const DESIGN_IMPORT_MIME: Record<DesignImportExt, string> = {
 }
 
 /** Largest upload. Design facts sit in the first pages; bigger files only cost time. */
-export const DESIGN_IMPORT_MAX_BYTES = 20 * 1024 * 1024
+export const DESIGN_IMPORT_MAX_BYTES = 20 * MIB
 
 /** PDF pages rendered for the model (the first ones: cover + a text page). */
 export const DESIGN_IMPORT_MAX_PAGES = 4

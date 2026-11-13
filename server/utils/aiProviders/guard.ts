@@ -1,15 +1,16 @@
 // HTTP-facing guards for AI entry points. Every AI surface resolves the
 // caller's providers once, up front, and refuses with a stable code +
-// i18n key + settings link when the capability it needs is missing — the
+// i18n key + settings link when the capability it needs is missing, the
 // client renders that as "Add your API key in Settings" instead of a
 // generic failure.
 
 import { CAPABILITY_PLAN_FEATURE, resolveAiAccess, type ResolvedAiProviders } from './resolve'
-import { assertPlanFeature } from '../entitlements'
+import { assertPlanFeature } from '../billing/entitlements'
 import type { AiCapability } from '~~/shared/ai/providers'
 import type { PlanName } from '~~/shared/config/tiers'
+import type { UserScope } from '../../repos/proofs'
 
-export const AI_PROVIDER_MISSING_CODE = 'ai/provider-missing'
+const AI_PROVIDER_MISSING_CODE = 'ai/provider-missing'
 
 /** Where the user configures providers. Kept in one place for every recovery hint. */
 export const AI_SETTINGS_PATH = '/settings/ai'
@@ -41,10 +42,10 @@ const LOCKED_MESSAGE: Partial<Record<AiCapability, string>> = {
 /**
  * Resolve all providers under `plan` and require one capability. A
  * capability the platform offers but the plan doesn't include answers
- * 409 `plan/feature-unavailable` (WP5); none at all → `ai/provider-missing`.
+ * 409 `plan/feature-unavailable`; none at all → `ai/provider-missing`.
  */
-export async function requireAiProviders(userId: number, capability: AiCapability, plan: PlanName): Promise<ResolvedAiProviders> {
-  const access = await resolveAiAccess(userId, plan)
+export async function requireAiProviders(user: UserScope, capability: AiCapability, plan: PlanName): Promise<ResolvedAiProviders> {
+  const access = await resolveAiAccess(user, plan)
   if (!access.providers[capability]) {
     const feature = CAPABILITY_PLAN_FEATURE[capability]
     if (feature && access.locked.includes(capability)) assertPlanFeature(plan, feature, LOCKED_MESSAGE[capability] ?? '')

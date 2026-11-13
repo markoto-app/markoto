@@ -1,11 +1,9 @@
 <script setup lang="ts">
-// Top-left home link for subpages (pricing, profile, legal/*,
-// admin/*). Mirrors the close-button (top-right) — every modal-
-// style page now has a logo back-to-home on the left and an X
-// on the right. Visual symmetry + a clear escape route either way.
+// Top-left home link for subpages (pricing, profile, legal/*, admin/*);
+// pairs with the close button on the right.
 
 interface Props {
-  /** Wordmark height in px. Defaults to 20 — slightly larger
+  /** Wordmark height in px. Defaults to 20, slightly larger
       than the topbar's 18px because subpage chrome has more
       breathing room. */
   size?: number
@@ -17,7 +15,7 @@ withDefaults(defineProps<Props>(), { size: 20 })
   <NuxtLink
     to="/"
     class="absolute top-4 left-4 z-10 inline-flex items-center gap-2.5 hover:opacity-80 transition-opacity"
-    aria-label="markoto — home"
+    :aria-label="$t('common.homeLinkLabel')"
     data-testid="page-home-link"
   >
     <CommonWordmark :size="size" />

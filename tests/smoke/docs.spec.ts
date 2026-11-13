@@ -18,6 +18,7 @@ test('docs pages render, server-side and on client navigation', async ({ page })
   const docLink = page.locator('a[href^="/docs/"]').first()
   await expect(docLink).toBeVisible()
   await docLink.click()
+  // eslint-disable-next-line playwright/no-networkidle -- the docs pages run no long-lived socket, and the content queries that follow the navigation are exactly what this test checks for failures
   await page.waitForLoadState('networkidle')
   await expect(page.locator('main h1').first()).toBeVisible()
 

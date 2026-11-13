@@ -1,30 +1,27 @@
 // Subscription tier caps. Single source of truth for what each plan
 // grants; consumed by server enforcement (via
-// `server/utils/tierConfig.ts#getTiers()`), the unit tests, and the
+// `server/utils/billing/tierConfig.ts#getTiers()`), the unit tests, and the
 // client-side pricing page (via `GET /api/billing/tiers`).
 //
-// Phase 6 architecture: AI usage is gated SOLELY by per-user LiteLLM
-// virtual-key budgets. No per-feature interaction counters, no
-// per-minute dictation caps, no rate-limit middleware. The user's
-// `litellmBudgetUsd` maps to a `max_budget` on their LiteLLM key;
-// every billable operation (chat, image gen, voice tick, embeddings)
-// debits that budget directly via LiteLLM's spend tracker. UI surfaces
-// budget as "AI Points" at 1000 pts = $1.00 USD (display multiplier
-// makes the numbers feel generous; backend math stays in dollars).
+// AI usage is gated solely by per-user LiteLLM virtual-key budgets: the
+// user's `litellmBudgetUsd` is the `max_budget` of their key, and every
+// billable operation (chat, image gen, voice tick, embeddings) debits it
+// through LiteLLM's spend tracker. The UI shows the budget as "AI Points"
+// at 1000 pts = $1.00 USD; backend math stays in dollars.
 //
-// Storage caps (knowledge files / bytes) stay because they bind real
-// S3 + DB cost, not LLM cost. `workspacesOwned` is a capacity cap.
+// Storage caps (knowledge files / bytes) bind real S3 + DB cost, not LLM
+// cost. `workspacesOwned` is a capacity cap.
+
+import { bool, EnvValueError, limitOrUnlimited, positiveNumber, type Coercer } from '../env/coerce'
+import { processEnv } from '../env/source'
 
 // Free and Pro are PERSONAL plans (`users.plan`); Team and Business are
 // WORKSPACE subscriptions (`workspace_subscriptions`), billed per seat.
 // For Team / Business the per-user style caps (`litellmBudgetUsd`,
-// knowledge, images) are PER SEAT; the workspace pools them (WP3).
+// knowledge, images) are PER SEAT; the workspace pools them.
 export type PlanName = 'free' | 'pro' | 'team' | 'business'
 export type PersonalPlanName = 'free' | 'pro'
 export type WorkspacePlanName = 'team' | 'business'
-
-export const PERSONAL_PLAN_NAMES: readonly PersonalPlanName[] = ['free', 'pro']
-export const WORKSPACE_PLAN_NAMES: readonly WorkspacePlanName[] = ['team', 'business']
 
 export function isWorkspacePlan(plan: PlanName): plan is WorkspacePlanName {
   return plan === 'team' || plan === 'business'
@@ -61,7 +58,7 @@ export interface TierCaps {
   /**
    * People in one workspace: accepted members plus open invitations.
    * Judged against the WORKSPACE's plan (see
-   * `server/utils/entitlements.ts#resolveWorkspacePlan`). `null` = no
+   * `server/utils/billing/entitlements.ts#resolveWorkspacePlan`). `null` = no
    * plan limit (the platform-wide invite caps still apply).
    */
   membersPerWorkspace: number | null
@@ -113,7 +110,7 @@ export interface TierCaps {
   aiStrongModel: boolean
   /**
    * Feature switch: the workspace may connect its own identity provider
-   * (SAML / OIDC single sign-on + SCIM, WP14). Judged against the
+   * (SAML / OIDC single sign-on + SCIM). Judged against the
    * WORKSPACE's plan. On in every committed tier (self-hosters); on
    * markoto.app only Business has it (`TIER_{FREE,PRO,TEAM}_FEATURE_SSO=false`
    * in infra/render-env.sh).
@@ -121,33 +118,33 @@ export interface TierCaps {
   sso: boolean
   /**
    * Feature switch: workspace admins see and export the workspace's
-   * audit log (WP15). Judged against the WORKSPACE's plan. On in every
+   * audit log. Judged against the WORKSPACE's plan. On in every
    * committed tier; markoto.app: Business only.
    */
   auditLog: boolean
   /**
-   * Feature switch: the workspace may invite guests (WP11) — people who
+   * Feature switch: the workspace may invite guests, people who
    * see only the documents shared with them, take no seat (up to
    * `GUESTS_PER_SEAT` per paid seat). Judged against the WORKSPACE's
    * plan. On in every committed tier; markoto.app: Team + Business.
    */
   guests: boolean
   /**
-   * Feature switch: the workspace brand kit (WP10) — uploaded fonts and
+   * Feature switch: the workspace brand kit, uploaded fonts and
    * logos, the locked workspace design, workspace templates. Judged
    * against the WORKSPACE's plan. On in every committed tier;
    * markoto.app: Team + Business.
    */
   brandKit: boolean
   /**
-   * Feature switch: share-link controls (WP9) — link expiry, view-only
+   * Feature switch: share-link controls, link expiry, view-only
    * without download / print, view counts. Judged against the DOCUMENT's
    * plan (workspace plan, else the owner's). On in every committed tier;
    * markoto.app: Pro and up.
    */
   shareControls: boolean
   /**
-   * Feature switch: custom domains for published web pages (WP13).
+   * Feature switch: custom domains for published web pages.
    * Judged against the plan of the user who adds the domain. Publishing at
    * `/p/<slug>` is free; a domain of one's own is not. On in every
    * committed tier; markoto.app: Pro and up.
@@ -202,13 +199,13 @@ const PAID_PLAN_ENTITLEMENTS = {
 // / MCP / web-tool limit. The hosted deployment narrows the free tier
 // through `TIER_FREE_*` (rendered by `infra/render-env.sh` + `env.j2`). The hosted deployment
 // can override any individual cap at runtime via `TIER_*` env vars
-// (see `resolveTiersFromEnv` below) without a code change — e.g.
+// (see `resolveTiersFromEnv` below) without a code change, e.g.
 // `TIER_PRO_LITELLM_BUDGET_USD=8`. Server enforcement resolves through
-// `server/utils/tierConfig.ts#getTiers()`; the client fetches the
+// `server/utils/billing/tierConfig.ts#getTiers()`; the client fetches the
 // resolved map from `GET /api/billing/tiers`.
 export const DEFAULT_TIERS = {
   free: {
-    litellmBudgetUsd: 1, // 500 AI Points
+    litellmBudgetUsd: 1, // 1000 AI Points
     workspacesOwned: 1,
     knowledgeFiles: 5,
     knowledgeBytesPerWorkspace: 50 * 1024 * 1024,
@@ -251,7 +248,7 @@ export const DEFAULT_TIERS = {
   // Team / Business: `litellmBudgetUsd`, `knowledgeFiles`,
   // `knowledgeBytesPerWorkspace` and `imageBytesPerUser` are PER SEAT;
   // a subscribed workspace pools seats × these values
-  // (`server/utils/workspaceBilling.ts#workspacePoolCaps`).
+  // (`server/utils/billing/workspaceBilling.ts#workspacePoolCaps`).
   team: {
     litellmBudgetUsd: 5,
     workspacesOwned: 100,
@@ -317,54 +314,74 @@ const TIER_FIELD_ENV_SUFFIX: Record<keyof TierCaps, string> = {
   customDomains: 'FEATURE_CUSTOM_DOMAINS'
 }
 
-const BOOLEAN_TRUE = new Set(['1', 'true', 'yes', 'on'])
-const BOOLEAN_FALSE = new Set(['0', 'false', 'no', 'off'])
+/** Env name of one override, e.g. `TIER_FREE_HISTORY_DAYS`. */
+export function tierEnvName(plan: PlanName, field: keyof TierCaps): string {
+  return `TIER_${plan.toUpperCase()}_${TIER_FIELD_ENV_SUFFIX[field]}`
+}
 
-/** Parse one override; `undefined` = keep the default. */
-function parseOverride(field: keyof TierCaps, raw: string): number | boolean | null | undefined {
-  const value = raw.trim().toLowerCase()
-  if ((FEATURE_FIELDS as readonly string[]).includes(field)) {
-    if (BOOLEAN_TRUE.has(value)) return true
-    if (BOOLEAN_FALSE.has(value)) return false
-    return undefined
-  }
-  if (value === 'unlimited' && (UNLIMITED_CAP_FIELDS as readonly string[]).includes(field)) return null
-  const n = Number(value)
-  return Number.isFinite(n) && n > 0 ? n : undefined
+/** Fields that can be overridden, in declaration order. */
+export const TIER_FIELDS = Object.keys(TIER_FIELD_ENV_SUFFIX) as (keyof TierCaps)[]
+
+/**
+ * Parser of one override (shared with the env registry, shared/env/vars/billing.ts):
+ * feature switches take the boolean words, the `UNLIMITED_CAP_FIELDS`
+ * also `unlimited`, everything else a number > 0.
+ */
+export function tierOverrideType(field: keyof TierCaps): Coercer<number | boolean | null> {
+  if (isFeatureField(field)) return bool
+  if (isUnlimitedCapField(field)) return limitOrUnlimited(positiveNumber)
+  return positiveNumber
 }
 
 /**
- * Resolve the effective tier map from an env-shaped record. Pure — no
- * process.env access — so every test tier can drive it directly.
+ * Resolve the effective tier map from an env-shaped record. Pure, no
+ * process.env access: so every test tier can drive it directly.
  *
  * Override key shape: `TIER_<PLAN>_<FIELD>`, e.g.
- * `TIER_FREE_LITELLM_BUDGET_USD=2`, `TIER_ULTRA_KNOWLEDGE_FILES=5000`,
+ * `TIER_FREE_LITELLM_BUDGET_USD=2`, `TIER_PRO_KNOWLEDGE_FILES=5000`,
  * `TIER_FREE_MEMBERS_PER_WORKSPACE=unlimited`,
- * `TIER_FREE_FEATURE_CUSTOM_CSS=false`.
- * Numbers: only positive finite values; the fields in
- * `UNLIMITED_CAP_FIELDS` also accept `unlimited`. Feature switches:
- * `true|false|1|0|yes|no|on|off`. Anything else (absent, empty, NaN,
- * zero, negative) leaves the committed default in place — a typo'd
- * override must degrade to the default, never to a disabled product.
+ * `TIER_FREE_FEATURE_CUSTOM_CSS=false`. Unset / empty keeps the
+ * committed default; an invalid value throws `EnvValueError` (boot
+ * validation reports it before any request runs).
  */
-export function resolveTiersFromEnv(
-  env: Record<string, string | undefined>
-): TiersMap {
-  const resolved = {} as Record<PlanName, TierCaps>
-  for (const plan of PLAN_NAMES) {
-    const caps = { ...DEFAULT_TIERS[plan] } as TierCaps
-    for (const field of Object.keys(TIER_FIELD_ENV_SUFFIX) as (keyof TierCaps)[]) {
-      const raw = env[`TIER_${plan.toUpperCase()}_${TIER_FIELD_ENV_SUFFIX[field]}`]
-      if (raw === undefined || raw.trim() === '') continue
-      const value = parseOverride(field, raw)
-      if (value !== undefined) (caps as unknown as Record<string, unknown>)[field] = value
-    }
-    resolved[plan] = caps
+export function resolveTiersFromEnv(env: Record<string, string | undefined> = processEnv()): TiersMap {
+  return {
+    free: resolvePlanCaps('free', env),
+    pro: resolvePlanCaps('pro', env),
+    team: resolvePlanCaps('team', env),
+    business: resolvePlanCaps('business', env)
   }
-  return resolved
 }
 
-/** The "more is better" cap fields — strictly higher on a bigger tier. */
+function isFeatureField(field: keyof TierCaps): field is FeatureField {
+  return (FEATURE_FIELDS as readonly string[]).includes(field)
+}
+
+function isUnlimitedCapField(field: keyof TierCaps): field is UnlimitedCapField {
+  return (UNLIMITED_CAP_FIELDS as readonly string[]).includes(field)
+}
+
+function resolvePlanCaps(plan: PlanName, env: Record<string, string | undefined>): TierCaps {
+  const caps: TierCaps = { ...DEFAULT_TIERS[plan] }
+  for (const field of TIER_FIELDS) {
+    const name = tierEnvName(plan, field)
+    const raw = env[name]?.trim()
+    if (!raw) continue
+    try {
+      // Each field kind has its own parser (`tierOverrideType`), so the
+      // assignment stays typed per kind.
+      if (isFeatureField(field)) caps[field] = bool.parse(raw)
+      else if (isUnlimitedCapField(field)) caps[field] = limitOrUnlimited(positiveNumber).parse(raw)
+      else caps[field] = positiveNumber.parse(raw)
+    } catch (e) {
+      if (e instanceof EnvValueError) throw new EnvValueError(`${name}: ${e.message}`)
+      throw e
+    }
+  }
+  return caps
+}
+
+/** The "more is better" cap fields, strictly higher on a bigger tier. */
 export const MONOTONIC_CAP_FIELDS: readonly NumericCapField[] = [
   'litellmBudgetUsd',
   'workspacesOwned',
@@ -383,33 +400,3 @@ export const KNOWLEDGE_PLATFORM_LIMITS = {
   /** `status='failed'` TTL before the sweep reaps the row + its S3 bytes. */
   failedRetentionDays: 7
 } as const
-
-// Stripe runtime-config keys. Populated from env vars in prod; empty
-// strings in dev. Mirrored in `nuxt.config.ts` so a single source of
-// truth drives both the unit tests and the Nitro runtimeConfig.
-//
-// `apiBase` is an override used by integration tests (pointed at the
-// `stripe-mock` container). Empty string = default SDK behaviour
-// (api.stripe.com).
-export const STRIPE_CONFIG_DEFAULTS = {
-  secretKey: '',
-  webhookSecret: '',
-  apiBase: '',
-  successUrl: '/pricing?checkout=success&session={CHECKOUT_SESSION_ID}',
-  cancelUrl: '/pricing?checkout=cancelled',
-  // '1' enables Stripe Tax on Checkout Sessions (automatic_tax +
-  // required billing address + VAT-id collection). OFF by default:
-  // `automatic_tax` hard-errors unless Stripe Tax is activated and an
-  // origin address is configured in the Stripe dashboard. Env:
-  // NUXT_STRIPE_AUTOMATIC_TAX — flip it as a live-launch step.
-  automaticTax: ''
-} as const
-
-export const STRIPE_CONFIG_KEYS = [
-  'secretKey',
-  'webhookSecret',
-  'apiBase',
-  'successUrl',
-  'cancelUrl',
-  'automaticTax'
-] as const

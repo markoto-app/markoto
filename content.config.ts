@@ -5,7 +5,7 @@ import { defineContentConfig, defineCollection, z } from '@nuxt/content'
 // route at /docs/<...slug>. Pages are rendered by app/pages/docs/[...slug].vue
 // using <ContentRenderer>.
 //
-// Flow assets (PNGs + manifest.json) live in public/flows/ — they're NOT
+// Flow assets (PNGs + manifest.json) live in public/flows/, they're NOT
 // part of any content collection. The <Flow> component fetches them via
 // $fetch directly. Keeps the build fast: regenerating screenshots
 // doesn't trigger a content rebuild.
@@ -39,16 +39,16 @@ export default defineContentConfig({
         // Optional category override. Defaults to the parent folder
         // name (e.g. "writing/tables.md" → category "writing"). Set
         // explicitly only when grouping needs to deviate from the
-        // directory layout — e.g. cross-cutting "advanced" pages
+        // directory layout: e.g. cross-cutting "advanced" pages
         // pulled out of their nominal folders for the landing page.
         category: z.string().optional(),
         // If true, this page is shown as a featured card on the
-        // /docs landing page. Use sparingly — only the 3-5 most
+        // /docs landing page. Use sparingly, only the 3-5 most
         // load-bearing entry points belong here.
         featured: z.boolean().optional(),
         // Auto-generated nav (queryCollectionNavigation) doesn't filter
         // out section indexes. `navHidden: true` keeps a page reachable
-        // by URL but skips it in the sidebar — useful for landing /
+        // by URL but skips it in the sidebar, useful for landing /
         // index pages that are the parent group's clickable header.
         navHidden: z.boolean().optional(),
         // Last substantive edit, YYYY-MM-DD: TechArticle dateModified,
@@ -97,7 +97,7 @@ export default defineContentConfig({
     }),
     // Claim data of the comparison pages (/compare/<slug>), one file per
     // competitor: content/compare/<slug>.yml. Every value carries its
-    // source and the day it was checked; tests/unit/compareClaims.test.ts
+    // source and the day it was checked; tests/unit/seo/compareClaims.test.ts
     // fails once a check is older than nine months. Rendered by
     // `::compare-facts{competitor}` + `::compare-sources{competitor}`
     // (app/components/content/CompareFacts.vue, CompareSources.vue).

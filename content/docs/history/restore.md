@@ -1,6 +1,6 @@
 ---
 title: Restore an earlier version
-description: One click rolls the doc back to that version — the restore is itself an undoable activity row.
+description: One click rolls the doc back to that version. The restore is itself an undoable activity row.
 category: history
 order: 2
 featured: true
@@ -31,5 +31,5 @@ roll it back.
 
 ## What's next
 
-- [See the diff before you restore](/docs/history/see-changes) — preview what restore would change.
-- [Replay a comment in its original context](/docs/writing/comment-replay) — for non-destructive looking-back.
+- [See the diff before you restore](/docs/history/see-changes): preview what restore would change.
+- [Replay a comment in its original context](/docs/writing/comment-replay): for non-destructive looking-back.

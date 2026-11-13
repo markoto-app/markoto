@@ -1,4 +1,4 @@
-// Product tour (WP11) settings that are design decisions, not assets.
+// Product tour settings that are design decisions, not assets.
 
 import type { TourSceneId } from './manifest'
 

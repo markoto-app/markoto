@@ -3,10 +3,10 @@
 // pipeline (`scripts/capture-tour.ts`) and the unit tests. Kept apart from
 // ./manifest.ts so the browser bundle of the product page never ships zod:
 // the page gets the parsed manifest from the SSR payload
-// (`app/composables/useTourManifest.ts`).
+// (`app/composables/marketing/useTourManifest.ts`).
 
 import { z } from 'zod'
-import { TOUR_BEAT_IDS, TOUR_SCENE_IDS } from './manifest'
+import { TOUR_BEAT_IDS, TOUR_SCENE_IDS } from './ids'
 
 const fraction = z.number().min(0).max(1)
 const positive = z.number().positive()
@@ -39,14 +39,14 @@ export type TourVideo = z.infer<typeof TourVideoSchema>
 const perMode = <T extends z.ZodTypeAny>(schema: T) => z.object({ light: schema, dark: schema })
 
 /** The same scene in a phone cut: cropped to `focus`, smaller encodes. */
-export const TourPhoneCutSchema = z.object({
+const TourPhoneCutSchema = z.object({
   poster: perMode(TourImageSchema),
   video: perMode(TourVideoSchema).optional()
 })
 
 /**
  * A later moment of a scene shown over its video: a few document pages
- * that fan out (the exported PDF). Pages are light-only — a PDF is paper.
+ * that fan out (the exported PDF). Pages are light-only, a PDF is paper.
  */
 export const TourBeatSchema = z.object({
   id: z.enum(TOUR_BEAT_IDS),
@@ -58,7 +58,7 @@ export type TourBeat = z.infer<typeof TourBeatSchema>
 
 export const TourSceneSchema = z.object({
   id: z.enum(TOUR_SCENE_IDS),
-  /** What the scene shows, in English — capture notes. The page's alt text is `tour.alt.<id>` (i18n). */
+  /** What the scene shows, in English, capture notes. The page's alt text is `tour.alt.<id>` (i18n). */
   description: z.string().max(400).optional(),
   poster: perMode(TourImageSchema).optional(),
   video: perMode(TourVideoSchema).optional(),
@@ -103,5 +103,3 @@ export function parseTourManifest(raw: unknown): TourManifest {
   }
   return result.data
 }
-
-export type TourPhoneCut = z.infer<typeof TourPhoneCutSchema>

@@ -3,47 +3,47 @@
  * Two picture sets, both rendered through the real preview so they never
  * drift from the product:
  *
- * - default: design-picker thumbnails — the first page of every built-in theme preset,
+ * - default: design-picker thumbnails, the first page of every built-in theme preset,
  * rendered from its showcase fixture (`tests/fixtures/theme-shots/thumbnails.json`)
  * through the real preview with `scripts/render-theme-shots.ts`, scaled to
  * 360 px and saved as `public/theme-thumbs/<id>.webp`. Records what each
- * picture was rendered from in `shared/utils/themeThumbnails.manifest.json`
- * (`tests/unit/themeThumbnails.test.ts` fails when a preset changes without
+ * picture was rendered from in `shared/utils/theme/themeThumbnails.manifest.json`
+ * (`tests/unit/theme/themeThumbnails.test.ts` fails when a preset changes without
  * a new picture). `make theme-thumbs`.
  * - `--gallery`: the template-gallery pictures of the SEO template pages,
  *   `public/templates/<id>.webp` (600 px), from
  *   `tests/fixtures/theme-shots/template-gallery.json` (a page's `::try-it`
  *   example or a fixture, in its theme), hashes in
- *   `shared/utils/templateGallery.manifest.json`
- *   (`tests/unit/templateGallery.test.ts`). `make template-gallery`.
+ *   `shared/utils/theme/templateGallery.manifest.json`
+ *   (`tests/unit/theme/templateGallery.test.ts`). `make template-gallery`.
  *
- * - `--templates`: the new-document dialog's template pictures — one page
+ * - `--templates`: the new-document dialog's template pictures, one page
  *   (the first, or its `pageNumber`) of each template's English text in its
  *   design (with its cover placeholders and a sample title from
  *   `tests/fixtures/theme-shots/template-thumbs.json`), 360 px,
  *   `public/template-thumbs/<id>.webp`, hashes in
  *   `shared/templates/templateThumbnails.manifest.json`
- *   (`tests/unit/templateThumbnails.test.ts`). `make template-thumbs`.
+ *   (`tests/unit/theme/templateThumbnails.test.ts`). `make template-thumbs`.
  *
  *   bun scripts/render-theme-thumbs.ts --base http://127.0.0.1:3309 [--gallery | --templates] [id …]
  *
  * Needs what render-theme-shots needs with `--patch`: a TEST_MODE=1 app with
- * NUXT_ANON_GATE_ENABLED=false (see docs/TEMPLATE-WORKFLOW.md), plus
+ * NUXT_ANON_GATE_ENABLED=false (see docs/contributing/TEMPLATE-WORKFLOW.md), plus
  * ImageMagick (`magick`) with WebP support.
  */
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { THEME_PRESETS } from '../shared/utils/themePresets'
+import { THEME_PRESETS } from '../shared/utils/theme/themePresets'
 import { FIXTURE_DIR, galleryHash, gallerySources, templateThumbnailHash, templateThumbnailSources, thumbnailHash, thumbnailSources } from './lib/themeThumbnailHash'
 
 const ROOT = resolve(import.meta.dirname, '..')
 const GALLERY = process.argv.includes('--gallery')
 const TEMPLATES = process.argv.includes('--templates')
 const MANIFEST = resolve(ROOT, GALLERY
-  ? 'shared/utils/templateGallery.manifest.json'
-  : TEMPLATES ? 'shared/templates/templateThumbnails.manifest.json' : 'shared/utils/themeThumbnails.manifest.json')
+  ? 'shared/utils/theme/templateGallery.manifest.json'
+  : TEMPLATES ? 'shared/templates/templateThumbnails.manifest.json' : 'shared/utils/theme/themeThumbnails.manifest.json')
 const OUT_DIR = resolve(ROOT, GALLERY ? 'public/templates' : TEMPLATES ? 'public/template-thumbs' : 'public/theme-thumbs')
 const WIDTH = GALLERY ? 600 : 360
 

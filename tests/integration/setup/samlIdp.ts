@@ -5,11 +5,10 @@ import { join } from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { SignedXml } from 'xml-crypto'
 
-// A SAML identity provider in a function, for the per-workspace SSO tests
-// (WP14). It signs exactly the Response the test asks for — including the
-// malformed ones a real IdP would never send (wrong audience, expired,
-// unsigned, answering another request) — so every check in
-// `server/utils/sso/saml.ts` is exercised against the real library.
+// A SAML identity provider in a function, for the per-workspace SSO tests. It signs exactly the Response the
+// test asks for, including the malformed ones a real IdP would never send (wrong audience, expired, unsigned,
+// answering another request), so every check in `server/utils/sso/saml.ts` is exercised against the real
+// library.
 //
 // The key pair is generated per run with openssl (no key in the repo).
 

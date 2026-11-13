@@ -1,10 +1,11 @@
 import { and, asc, count, eq, gt, lte, sql } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 import { users, workspaceInvites, workspaceMembers, workspaces } from '../db/schema'
-import type { MembershipRole } from '../../shared/utils/docPermissions'
-import { useDatabase } from '../utils/database'
+import type { MembershipRole } from '../../shared/utils/documents/docPermissions'
+import { useDatabase } from '../db/client'
+import { proofUserId, type SystemActor, type UserScope, type WorkspaceAccess } from './proofs'
 
-// `workspace_invites` repository — pending workspace invitations.
+// `workspace_invites` repository: pending workspace invitations.
 //
 // Lifecycle:
 //   invite      → row upserted per (workspace, email); re-inviting the
@@ -18,7 +19,7 @@ import { useDatabase } from '../utils/database'
 //                 `invited_by_user_id` SET NULL via FK
 //
 // Emails arrive normalised (`normaliseInviteEmail`). Token values arrive
-// HASHED (`hashInviteSecret`) — the raw token never reaches this layer.
+// HASHED (`hashInviteSecret`): the raw token never reaches this layer.
 // Every lookup that takes an externally supplied invite id is keyed on a
 // tuple (invite id + workspace for admins, invite id + email for the
 // invitee) so one workspace's / person's ids can't reach another's rows.
@@ -32,7 +33,7 @@ export interface UpsertInviteInput {
   expiresAt: Date
 }
 
-/** Admin view of an open invite — the typed address, never account data. */
+/** Admin view of an open invite, the typed address, never account data. */
 export interface WorkspaceInviteAdminRow {
   inviteId: string
   email: string
@@ -58,7 +59,11 @@ export interface WorkspaceInviteInboxRow {
  * invite id. A refresh rotates the token (an earlier emailed link stops
  * working) and restarts the expiry.
  */
-export async function upsertWorkspaceInvite(input: UpsertInviteInput): Promise<string> {
+export async function upsertWorkspaceInvite(ws: WorkspaceAccess<'admin'>, invite: Omit<UpsertInviteInput, 'workspaceId' | 'invitedByUserId'>): Promise<string> {
+  // Workspace and inviter come from the admin's proof.
+  const invitedByUserId = proofUserId(ws)
+  if (invitedByUserId === null) throw new Error('upsertWorkspaceInvite: an invite is sent by a signed-in admin')
+  const input: UpsertInviteInput = { ...invite, workspaceId: ws.workspaceId, invitedByUserId }
   const db = useDatabase()
   const row = (await db
     .insert(workspaceInvites)
@@ -88,13 +93,14 @@ export async function upsertWorkspaceInvite(input: UpsertInviteInput): Promise<s
 
 /** Open (unexpired) invites of a workspace, excluding `exceptEmail`. */
 export async function countOpenWorkspaceInvites(
-  workspaceId: string,
+  ws: WorkspaceAccess<'member'>,
   now: Date,
   exceptEmail?: string,
   // `members` for seats + the member limit, `guests` for the guest cap,
-  // `all` for the open-invitation cap (WP11).
+  // `all` for the open-invitation cap.
   kind: 'all' | 'members' | 'guests' = 'all'
 ): Promise<number> {
+  const workspaceId = ws.workspaceId
   const db = useDatabase()
   const conditions = [eq(workspaceInvites.workspaceId, workspaceId), gt(workspaceInvites.expiresAt, now)]
   if (exceptEmail !== undefined) conditions.push(sql`${workspaceInvites.email} <> ${exceptEmail}`)
@@ -105,7 +111,8 @@ export async function countOpenWorkspaceInvites(
 }
 
 /** Is a user with this (normalised) email already a member of the workspace? */
-export async function isEmailWorkspaceMember(workspaceId: string, email: string): Promise<boolean> {
+export async function isEmailWorkspaceMember(ws: WorkspaceAccess<'admin'>, email: string): Promise<boolean> {
+  const workspaceId = ws.workspaceId
   const db = useDatabase()
   const row = (await db
     .select({ userId: workspaceMembers.userId })
@@ -120,7 +127,8 @@ export async function isEmailWorkspaceMember(workspaceId: string, email: string)
 }
 
 /** Open invites of a workspace, for its admins. */
-export async function listWorkspaceInvites(workspaceId: string, now: Date): Promise<WorkspaceInviteAdminRow[]> {
+export async function listWorkspaceInvites(ws: WorkspaceAccess<'admin'>, now: Date): Promise<WorkspaceInviteAdminRow[]> {
+  const workspaceId = ws.workspaceId
   const db = useDatabase()
   return db
     .select({
@@ -138,7 +146,8 @@ export async function listWorkspaceInvites(workspaceId: string, now: Date): Prom
 }
 
 /** Revoke an invite. Keyed on (workspace, invite id). Null when nothing matched. */
-export async function deleteWorkspaceInvite(workspaceId: string, inviteId: string): Promise<{ role: MembershipRole } | null> {
+export async function deleteWorkspaceInvite(ws: WorkspaceAccess<'admin'>, inviteId: string): Promise<{ role: MembershipRole } | null> {
+  const workspaceId = ws.workspaceId
   const db = useDatabase()
   const row = (await db
     .delete(workspaceInvites)
@@ -148,7 +157,8 @@ export async function deleteWorkspaceInvite(workspaceId: string, inviteId: strin
 }
 
 /** Open invites addressed to an email (the invitee's inbox). */
-export async function listInvitesForEmail(email: string, now: Date): Promise<WorkspaceInviteInboxRow[]> {
+/** `email` is the signed-in user's own verified address (the caller passes `self`'s account email). */
+export async function listInvitesForEmail(_self: UserScope, email: string, now: Date): Promise<WorkspaceInviteInboxRow[]> {
   const db = useDatabase()
   return db
     .select({
@@ -192,10 +202,11 @@ function selectorCondition(selector: InviteSelector) {
  * act on it. Null when no open invite matches.
  */
 export async function acceptWorkspaceInvite(
+  self: UserScope,
   selector: InviteSelector,
-  userId: number,
   now: Date
 ): Promise<(ResolvedInvite & { alreadyMember: boolean }) | null> {
+  const userId = self.userId
   const db = useDatabase()
   return await db.transaction(async (tx) => {
     const invite = (await tx
@@ -235,7 +246,7 @@ export async function acceptWorkspaceInvite(
 }
 
 /** Decline (delete) an open or expired invite. Null when none matched. */
-export async function declineWorkspaceInvite(selector: InviteSelector): Promise<{ inviteId: string, workspaceId: string } | null> {
+export async function declineWorkspaceInvite(_self: UserScope, selector: InviteSelector): Promise<{ inviteId: string, workspaceId: string } | null> {
   const db = useDatabase()
   const row = (await db
     .delete(workspaceInvites)
@@ -245,7 +256,7 @@ export async function declineWorkspaceInvite(selector: InviteSelector): Promise<
 }
 
 /** Sweeper: delete invites past their expiry. Returns the number deleted. */
-export async function deleteExpiredWorkspaceInvites(now: Date): Promise<number> {
+export async function deleteExpiredWorkspaceInvites(_by: SystemActor, now: Date): Promise<number> {
   const db = useDatabase()
   const rows = await db
     .delete(workspaceInvites)
@@ -255,7 +266,7 @@ export async function deleteExpiredWorkspaceInvites(now: Date): Promise<number> 
 }
 
 /** Account deletion: drop every invite addressed to this email. */
-export async function deleteInvitesForEmail(email: string): Promise<number> {
+export async function deleteInvitesForEmail(_by: SystemActor, email: string): Promise<number> {
   const db = useDatabase()
   const rows = await db
     .delete(workspaceInvites)
@@ -265,7 +276,7 @@ export async function deleteInvitesForEmail(email: string): Promise<number> {
 }
 
 /** Data export: invites addressed to the user and invites they sent. */
-export async function listInvitesForExport(userId: number, email: string | null): Promise<{
+export async function listInvitesForExport(self: UserScope, email: string | null): Promise<{
   received: Array<{ workspaceName: string, role: MembershipRole, createdAt: Date, expiresAt: Date }>
   sent: Array<{ workspaceId: string, email: string, role: MembershipRole, createdAt: Date, expiresAt: Date }>
 }> {
@@ -292,7 +303,7 @@ export async function listInvitesForExport(userId: number, email: string | null)
       expiresAt: workspaceInvites.expiresAt
     })
     .from(workspaceInvites)
-    .where(eq(workspaceInvites.invitedByUserId, userId))
+    .where(eq(workspaceInvites.invitedByUserId, self.userId))
     .orderBy(asc(workspaceInvites.createdAt))
   return { received, sent }
 }

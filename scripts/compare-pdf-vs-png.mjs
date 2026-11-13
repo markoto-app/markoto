@@ -15,7 +15,7 @@
 //
 // Required env: JWT_SECRET (or NUXT_JWT_SECRET), INTERNAL_API_SECRET
 // (or NUXT_INTERNAL_API_SECRET), DATABASE_URL. Optional: APP_URL,
-// SYNC_URL. The script fails loudly if any required var is missing —
+// SYNC_URL. The script fails loudly if any required var is missing,
 // it must not embed dev secrets as literals (sonar javascript:S6437,
 // typescript:S2068, javascript:S5443).
 
@@ -40,7 +40,7 @@ if (!JWT_SECRET || !INTERNAL_SECRET || !DATABASE_URL) {
   console.error('  Tip: `set -a && source .env && set +a && bun scripts/compare-pdf-vs-png.mjs`')
   process.exit(1)
 }
-// mkdtempSync creates a 0700-mode directory with a unique random suffix —
+// mkdtempSync creates a 0700-mode directory with a unique random suffix,
 // safe against /tmp squatting attacks that a fixed path is vulnerable to.
 const OUT_DIR = mkdtempSync(path.join(tmpdir(), 'render-compare-'))
 const DOC_ID = 'render-compare-fixture'
@@ -66,7 +66,7 @@ function buildMarkdown() {
 
 async function ensureDoc() {
   // Insert the row directly so we don't depend on user auth. Anonymous,
-  // open-edit — the print page only needs the doc to exist.
+  // open-edit: the print page only needs the doc to exist.
   const { Client } = await import('pg')
   const c = new Client({ connectionString: DATABASE_URL })
   await c.connect()
@@ -194,7 +194,7 @@ for i in range(1, ${pageCount} + 1):
     b = Image.open(f'${OUT_DIR}/pdf-page-{i:01d}.png').convert('RGB')
     aw, ah = a.size
     bw, bh = b.size
-    # Resize the smaller one's frame to compare like-for-like — page.pdf()
+    # Resize the smaller one's frame to compare like-for-like: page.pdf()
     # at 96dpi vs deviceScaleFactor=1.5 may give slightly different pixel
     # counts, even though the printed page area is identical.
     target = (min(aw, bw), min(ah, bh))

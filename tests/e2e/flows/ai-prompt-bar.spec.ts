@@ -6,7 +6,7 @@ import { test, expect, requireLiveAi } from '../fixtures/flow'
 // restructure it without leaving the doc. Job done when the AI's
 // edits land in the document body and the bar returns to idle.
 //
-// This flow runs against the LIVE LiteLLM proxy → Mistral — there's
+// This flow runs against the LIVE LiteLLM proxy → Mistral, there's
 // no fixture or mock. The output is therefore non-deterministic
 // between runs (the model picks fresh wording each time), but the
 // assertions check behaviour, not exact text. MISTRAL_API_KEY +
@@ -33,12 +33,12 @@ test('Write with AI', async ({ flow, editor }) => {
   const draft = '# Team handbook\n\n## Writing in markoto\n\nWe draft every proposal in markoto so the whole team can edit at once.\n\n## Reviews\n\nLeave a comment on the passage you mean, not on the whole document.\n'
   await editor.silentSetup({ title: 'Team handbook', body: draft, cover: false })
 
-  // ─── Open the AI prompt bar ──────────────────────────────────────
+  // Open the AI prompt bar
   await flow.heading('Ask the AI to write for you', 3)
   await flow.narrate(
     'The AI prompt bar floats at the bottom of every markoto document. '
     + 'Type what you want, hit send, and the AI joins the doc as '
-    + 'another collaborator — you watch it type. It can draft new '
+    + 'another collaborator: you watch it type. It can draft new '
     + 'sections, rewrite passages, restructure outlines, even fetch '
     + 'sources from the web before it writes.'
   )
@@ -47,32 +47,32 @@ test('Write with AI', async ({ flow, editor }) => {
     'Click into the AI prompt bar to focus it',
     editor.page.ai.promptBarInput,
     {
-      // The prompt bar lives at the bottom of the editor — small
+      // The prompt bar lives at the bottom of the editor, small
       // surface against a busy doc body. Direction-anchor it so a
       // first-time reader doesn't scan the toolbar / sidebar
       // looking for an "AI" tab.
       annotations: [
         { label: 'prompt bar', selector: '[data-testid="ai-prompt-bar"]', kind: 'arrow' }
       ],
-      result: 'The bar lifts and glows — ready for your prompt.',
+      result: 'The bar lifts and glows, ready for your prompt.',
       after: () => editor.page.ai.promptBarInput.waitFor({ state: 'visible' })
     }
   )
   await expect(editor.page.ai.promptBarInput).toBeFocused()
 
-  // The prompt is short + crisp — keeping it under 80 chars makes it
+  // The prompt is short + crisp, keeping it under 80 chars makes it
   // fit in the captured screenshot without truncating, AND it's a
   // realistic ask the AI can resolve in 1-2 turns.
   const prompt = 'Add a short section about keyboard shortcuts at the end.'
   await flow.type(
-    'Type your prompt — like talking to a teammate',
+    'Type your prompt: like talking to a teammate',
     editor.page.ai.promptBarInput,
     prompt,
     { result: 'Your prompt is ready. Hit send to kick off the AI.' }
   )
   await expect(editor.page.ai.promptBarInput).toHaveValue(prompt)
 
-  // ─── Submit + watch the AI work ──────────────────────────────────
+  // Submit + watch the AI work
   await flow.heading('The AI joins your document', 3)
   await flow.narrate(
     'The bar swaps to its active state and pulses while '
@@ -85,7 +85,7 @@ test('Write with AI', async ({ flow, editor }) => {
     'Click send to submit your prompt',
     editor.page.ai.promptBarSend,
     {
-      result: 'The AI is working — the bar pulses while it edits.',
+      result: 'The AI is working, the bar pulses while it edits.',
       // Wait for the active state to flip on. Without this the
       // outcome shot races the prompt-handler response and lands on
       // a still-idle bar.
@@ -95,15 +95,15 @@ test('Write with AI', async ({ flow, editor }) => {
 
   // ASSERTION: a session is in flight server-side AND the UI reflects
   // it. Both checks together confirm the agentic loop actually
-  // started — a UI-only check would pass if /api/ai/prompt 500'd but
+  // started: a UI-only check would pass if /api/ai/prompt 500'd but
   // the client optimistically toggled active.
   await expect(editor.page.ai.promptBar).toHaveAttribute('data-active', 'true')
 
-  // ─── Wait for AI to finish + see the result ──────────────────────
+  // Wait for AI to finish + see the result
   await flow.heading('The AI is done', 3)
   await flow.narrate(
     'When the AI is done, the bar fades back to its idle '
-    + 'state. The AI\'s edits are now part of your document — undo '
+    + 'state. The AI\'s edits are now part of your document, undo '
     + 'them with Cmd / Ctrl + Z if you don\'t like what it wrote, or '
     + 'iterate by sending another prompt that builds on its work.'
   )
@@ -112,8 +112,8 @@ test('Write with AI', async ({ flow, editor }) => {
   // in an error (turn limit, provider failure) instead of `done`.
   await editor.page.waitForAiIdle()
 
-  // ASSERTION: the AI added a section about keyboard shortcuts — a
-  // heading plus body text — and it shows in the editor and preview.
+  // ASSERTION: the AI added a section about keyboard shortcuts, a
+  // heading plus body text, and it shows in the editor and preview.
   const added = await editor.page.addedText(draft)
   expect(added, 'the AI added nothing').toMatch(/^#{1,4} .*shortcut/im)
   expect(added.split('\n').length).toBeGreaterThanOrEqual(2)
@@ -134,12 +134,12 @@ test('Write with AI', async ({ flow, editor }) => {
       : 'The AI added a "Keyboard shortcuts" section at the end of the doc, in the editor and the preview.',
     {
       // Hero outcome: doc content extended by the AI. This IS the
-      // payoff of "ask the AI to write for you" — a reader who
+      // payoff of "ask the AI to write for you", a reader who
       // hasn't seen markoto before should clock the difference at
       // the hero strip without reading a step.
       hero: true,
       highlights: [
-        // Highlights the editor body — the "outcome" of an AI run is
+        // Highlights the editor body, the "outcome" of an AI run is
         // always doc content changing, so the editor pane is the
         // natural anchor. We don't pin to a specific selector inside
         // the editor because the AI's exact output varies between
@@ -156,6 +156,6 @@ test('Write with AI', async ({ flow, editor }) => {
   // Natural escalation in capability + scope.
   flow.next({
     slug: 'summon-ai-from-a-comment',
-    why: 'Ask the AI about a specific passage — tag @markoto in a comment'
+    why: 'Ask the AI about a specific passage, tag @markoto in a comment'
   })
 })

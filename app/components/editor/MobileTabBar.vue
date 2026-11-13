@@ -1,35 +1,19 @@
 <script setup lang="ts">
 /**
- * Mobile bottom tab bar. The single navigation surface on `<sm` for
- * opening the document's panel drawers + toggling live dictation.
+ * Mobile bottom tab bar: the single navigation surface on `<sm` for opening
+ * the panel drawers and toggling live dictation.
  *
- * Tabs:
- *   Document — opens the document-info drawer
- *   Comments — opens the comments drawer
- *   Activity — opens the activity-log drawer
- *   Theme    — opens the theme-editor drawer (gated on canEditTheme)
- *   Knowledge — opens the workspace-knowledge drawer (gated)
- *   Editor   — opens the editor-commands drawer (formatting / inserts)
- *   Mic      — TOGGLES live dictation (no drawer); pulses shu while
- *              recording so users see at-a-glance whether dictation
- *              is on
+ * Tabs: Document, Comments, Activity, Theme (gated on canEditTheme), Knowledge
+ * (gated), Editor (formatting / inserts drawer), Mic (toggles dictation, no
+ * drawer; pulses shu while recording).
  *
- * Each non-mic tab is a "drawer toggle": tapping the active one
- * closes it. Active state = shu underline + text-default. Inactive =
- * text-muted.
+ * Non-mic tabs are drawer toggles: tapping the active one closes it. Active =
+ * shu underline + text-default; inactive = text-muted. The Editor drawer is
+ * the home of the formatting buttons; typing markdown directly is the
+ * recommended mobile flow.
  *
- * The bar replaces TWO older mobile surfaces:
- *   1. The top-left panel-picker dropdown (the `i-lucide-panel-right`
- *      button) — folded into the always-visible tab strip.
- *   2. The `MobileFormatBar` keyboard-anchored row — its bold/italic/
- *      heading/list/link buttons move to the new "Editor" drawer
- *      (the design accepts the 2-tap cost: typing markdown directly
- *      is the recommended writing flow on mobile, the drawer is for
- *      when you want a button).
- *
- * Sits at `bottom: 0` of the viewport, fixed, full-width. The AI
- * prompt bar's `bottomOffset` is offset by this bar's height (~56px)
- * so the two stack instead of overlapping.
+ * Fixed at `bottom: 0`, full-width. The AI prompt bar's `bottomOffset` is
+ * offset by this bar's height (~56px) so the two stack.
  */
 import type { TabName } from './tabBarTypes'
 
@@ -55,8 +39,8 @@ const { t } = useI18n()
 const dictationActive = computed(() =>
   props.dictationState === 'recording' || props.dictationState === 'connecting'
 )
-// Live dictation needs a Mistral transcription provider (own key or
-// instance default) — hide the tab otherwise (kept while recording).
+// Live dictation needs a Mistral transcription provider (own key or instance
+// default); the tab is hidden otherwise (kept while recording).
 const { liveDictationAvailable, transcriptionLocked } = useAiAvailability()
 const { explainLocked } = useAiLockedPrompt()
 const dictationLocked = computed(() => !liveDictationAvailable.value && transcriptionLocked.value && !dictationActive.value)
@@ -75,12 +59,9 @@ interface TabDef {
   isPanel: true
 }
 
-// Order: Editor + Dictation first (writing-flow tools, the user's
-// primary actions), then the panel surfaces. Right-handed users land
-// their thumb on the LEFT half easiest at one-handed reach, so the
-// most-frequent tools live there. Labels use the short i18n keys
-// under `mobileTabBar.*Short` so they fit in a 50-60px column without
-// truncation.
+// Editor + Dictation come first (writing-flow tools); the most frequent tools
+// sit on the left half, which one-handed right-handed users reach most easily.
+// Labels use the short `mobileTabBar.*Short` i18n keys to fit a 50-60px column.
 const tabs = computed<TabDef[]>(() => [
   { name: 'editor', icon: 'i-lucide-pencil', label: t('mobileTabBar.editor'), visible: true, isPanel: true },
   { name: 'document', icon: 'i-lucide-info', label: t('mobileTabBar.documentShort'), visible: true, isPanel: true },
@@ -101,7 +82,6 @@ const visibleTabs = computed(() => tabs.value.filter(t => t.visible))
     :aria-label="t('mobileTabBar.label')"
     data-testid="mobile-tab-bar"
   >
-    <!-- First tab: Editor (drawer-toggling). Always present. -->
     <button
       v-if="visibleTabs[0]"
       type="button"
@@ -119,11 +99,8 @@ const visibleTabs = computed(() => tabs.value.filter(t => t.visible))
       <span class="mk-tab__label">{{ visibleTabs[0].label }}</span>
     </button>
 
-    <!-- Second tab: Dictation (TOGGLE — not a drawer). Sits next to
-         Editor since both are writing-flow tools the user reaches for
-         most while composing. Active state pulses shu so users see
-         recording status without opening anything. Short label fits
-         the 50-60px column on phones. -->
+    <!-- Dictation TOGGLES (no drawer). Next to Editor since both are writing-flow
+         tools; the active state pulses shu so recording status is visible. -->
     <button
       v-if="showDictation"
       type="button"
@@ -142,9 +119,7 @@ const visibleTabs = computed(() => tabs.value.filter(t => t.visible))
       <span class="mk-tab__label">{{ dictationActive ? t('mobileTabBar.dictateStop') : t('mobileTabBar.dictateStart') }}</span>
     </button>
 
-    <!-- Remaining panel tabs: Document, Comments, Activity, Theme,
-         Knowledge (each gated by its visibility flag in `tabs`
-         above). Same drawer-toggle behaviour as the first tab. -->
+    <!-- Document, Comments, Activity, Theme, Knowledge, each gated by its flag in `tabs`. -->
     <button
       v-for="tab in visibleTabs.slice(1)"
       :key="tab.name"
@@ -181,7 +156,7 @@ const visibleTabs = computed(() => tabs.value.filter(t => t.visible))
   cursor: pointer;
   transition: color 120ms ease, background 120ms ease;
   position: relative;
-  /* Height target: 24px icon + 12px label + 12px vertical padding ≈ 56px */
+  /* 24px icon + 12px label + 12px vertical padding ≈ 56px */
 }
 
 .mk-tab:active {
@@ -204,11 +179,8 @@ const visibleTabs = computed(() => tabs.value.filter(t => t.visible))
   color: var(--ui-text);
 }
 
-/* Active-tab indicator: 2px shu line at the top edge. Mirrors how
-   browsers and most mobile apps mark the active tab. The seal would
-   be too brand-loud here — a thin shu underline communicates "this
-   surface is in focus" without competing with the AI seal that lives
-   in the prompt bar. */
+/* Active tab: 2px shu line at the top edge. The seal would be too brand-loud
+   here and would compete with the AI seal in the prompt bar. */
 .mk-tab--active::before {
   content: '';
   position: absolute;
@@ -223,11 +195,9 @@ html.dark .mk-tab--active::before {
   background: var(--color-shu-400);
 }
 
-/* Dictation: while a session is live, the mic icon pulses shu.
-   Reuses the editor's `mk-pulse` keyframe vocabulary (declared in
-   AIPromptBar) — the brand has ONE "AI is working" animation. The
-   keyframe exists at the document level so it's safe to reference
-   here. */
+/* While a session is live the mic icon pulses shu, reusing the `mk-pulse`
+   keyframe from AIPromptBar (the brand has one "AI is working" animation;
+   it exists at document level, so referencing it here is safe). */
 .mk-tab--dictation-active {
   color: var(--color-shu-500);
   animation: mk-pulse 2.4s ease-in-out infinite;

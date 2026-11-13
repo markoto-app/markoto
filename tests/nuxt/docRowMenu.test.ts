@@ -5,12 +5,10 @@ import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { DocumentDocRowMenu } from '#components'
 
-// The document row "…" menu used to be a one-way `:open` binding that
-// kept the menu controlled and closed — clicking the button did nothing.
-// Pins: the trigger opens it (with the parent holding the open state,
-// exactly like the dashboard / workspace rows do for long-press), the
-// items match the caller's permissions, and the action items emit
-// (Open / Open in new tab are links).
+// The document row "…" menu opens from its trigger button (the parent holds the open state, exactly like the
+// dashboard / workspace rows do for long-press); a one-way `:open` binding would keep it closed. Pins: the
+// trigger opens it, the items match the caller's permissions, and the action items emit (Open / Open in new
+// tab are links).
 
 type Wrapper = Awaited<ReturnType<typeof mountSuspended>>
 const mounted: Wrapper[] = []

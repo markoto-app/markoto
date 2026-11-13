@@ -1,17 +1,18 @@
 <script setup lang="ts">
-// One modal for both create and edit — the shapes match (name + optional
+// One modal for both create and edit, the shapes match (name + optional
 // description) and the UX should too. Mode is implied by `workspaceId`:
 // present → edit (PUT), absent → create (POST).
 //
 // Create-mode also gates on DPA acceptance: a workspace owner becomes
 // a controller for personal data their members place inside the
-// workspace, and we become their processor — the DPA is the contract
+// workspace, and we become their processor, the DPA is the contract
 // that governs that. When the current user hasn't accepted the
 // current DPA version yet, we surface an inline checkbox + link to
 // the DPA inside this same modal. Submit then fires two calls in
 // order: POST /api/user/dpa-accept, then POST /api/workspaces. The
 // server-side guard in /api/workspaces returns 409 if DPA is missing,
 // so a determined client can't bypass via direct curl.
+import { useCreateWorkspace, useUpdateWorkspace } from '~/queries/workspaces'
 
 const props = defineProps<{
   workspaceId?: string
@@ -28,11 +29,15 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n()
 const toast = useToast()
+const { extractError } = useErrorHandler()
 const { status: accountStatus, refresh: refreshAccountStatus } = useAccountStatus()
 
 const name = ref('')
 const description = ref('')
 const saving = ref(false)
+// Both refresh the workspace list; creating also the owned-workspace cap.
+const createWorkspace = useCreateWorkspace()
+const updateWorkspace = useUpdateWorkspace()
 const dpaChecked = ref(false)
 
 const isEdit = computed(() => !!props.workspaceId)
@@ -65,8 +70,8 @@ async function handleSubmit() {
     description: description.value.trim() || null
   }
   try {
-    if (isEdit.value) {
-      await $fetch(`/api/workspaces/${props.workspaceId}`, { method: 'PUT', body: payload })
+    if (props.workspaceId) {
+      await updateWorkspace.mutateAsync({ workspaceId: props.workspaceId, body: payload })
       emit('updated', payload)
     } else {
       // Record DPA acceptance FIRST if required. The workspace POST
@@ -75,8 +80,8 @@ async function handleSubmit() {
       // and the audit log records DPA acceptance distinctly from
       // workspace creation.
       if (dpaRequired.value) {
-        await $fetch('/api/user/dpa-accept', {
-          method: 'POST',
+        await apiFetch('/api/user/dpa-accept', {
+          method: 'post',
           body: {
             dpaVersion: dpaCurrentVersion.value,
             locale: locale.value
@@ -86,27 +91,27 @@ async function handleSubmit() {
         // updates next time the user opens it.
         void refreshAccountStatus()
       }
-      const res = await $fetch<{ workspaceId: string }>('/api/workspaces', { method: 'POST', body: payload })
+      const res = await createWorkspace.mutateAsync(payload)
       emit('created', res.workspaceId)
     }
     open.value = false
   } catch (e) {
-    const err = e as { data?: { message?: string, code?: string }, message?: string }
-    if (err.data?.code === 'dpa/version-stale' || err.data?.code === 'workspace/dpa-required') {
-      // DPA bumped between modal-open and submit — refresh status
+    const err = extractError(e)
+    if (err.code === 'dpa/version-stale' || err.code === 'workspace/dpa-required') {
+      // DPA bumped between modal-open and submit, refresh status
       // and reset the checkbox so the user re-confirms.
       await refreshAccountStatus()
       dpaChecked.value = false
       toast.add({
-        title: 'Data Processing Addendum updated — please review again',
-        description: err.data?.message,
+        title: t('workspace.dpa.staleTitle'),
+        description: err.message,
         icon: 'i-lucide-refresh-cw',
         color: 'neutral'
       })
     } else {
       toast.add({
         title: isEdit.value ? t('workspace.saveFailed') : t('workspace.createFailed'),
-        description: err?.data?.message || err?.message,
+        description: err.message,
         icon: 'i-lucide-alert-circle',
         color: 'error'
       })
@@ -122,46 +127,48 @@ async function handleSubmit() {
     v-model:open="open"
     :title="isEdit ? t('workspace.editTitle') : t('workspace.createTitle')"
     :description="isEdit ? '' : t('workspace.createDescription')"
+    :content="initialFocus('workspace-form-name')"
   >
     <template #body>
       <div class="space-y-4">
         <div>
-          <label
-            for="workspace-form-name"
-            class="block text-sm font-medium mb-2"
-          >{{ t('workspace.nameLabel') }}</label>
-          <UInput
-            id="workspace-form-name"
-            v-model="name"
-            :placeholder="t('workspace.namePlaceholder')"
-            size="md"
-            class="w-full"
-            :ui="{ base: 'w-full' }"
-            autofocus
-            data-testid="workspace-form-name"
-            @keydown.enter="handleSubmit"
-          />
+          <UFormField
+            :label="t('workspace.nameLabel')"
+            :ui="{ container: 'mt-2' }"
+          >
+            <UInput
+              id="workspace-form-name"
+              v-model="name"
+              :placeholder="t('workspace.namePlaceholder')"
+              size="md"
+              class="w-full"
+              :ui="{ base: 'w-full' }"
+              data-testid="workspace-form-name"
+              @keydown.enter="handleSubmit"
+            />
+          </UFormField>
         </div>
         <div>
-          <label
-            for="workspace-form-description"
-            class="block text-sm font-medium mb-2"
-          >{{ t('workspace.descriptionOptional') }}</label>
-          <UTextarea
-            id="workspace-form-description"
-            v-model="description"
-            :placeholder="t('workspace.descriptionPlaceholder')"
-            :rows="3"
-            class="w-full"
-            :ui="{ base: 'w-full' }"
-            data-testid="workspace-form-description"
-          />
+          <UFormField
+            :label="t('workspace.descriptionOptional')"
+            :ui="{ container: 'mt-2' }"
+          >
+            <UTextarea
+              id="workspace-form-description"
+              v-model="description"
+              :placeholder="t('workspace.descriptionPlaceholder')"
+              :rows="3"
+              class="w-full"
+              :ui="{ base: 'w-full' }"
+              data-testid="workspace-form-description"
+            />
+          </UFormField>
         </div>
 
         <!-- DPA acceptance gate. Surfaces only when the current
              user hasn't accepted the current DPA version. Workspaces
              are the only surface in markoto where DPA is contractually
-             required — all other features are governed by the
+             required: all other features are governed by the
              Privacy Policy + Terms alone. -->
         <div
           v-if="dpaRequired"
@@ -169,28 +176,32 @@ async function handleSubmit() {
           data-testid="workspace-form-dpa-section"
         >
           <p class="text-xs text-muted mb-2 font-mono uppercase tracking-wider">
-            One-time acceptance
+            {{ t('workspace.dpa.heading') }}
           </p>
           <p class="text-sm text-muted mb-3">
-            By creating a workspace you become a controller for personal
-            data your members place inside it, and LatentSpace Labs GmbH
-            becomes your processor. Our Data Processing Addendum is the
-            contract that governs that.
+            {{ t('workspace.dpa.body') }}
           </p>
           <UCheckbox
             v-model="dpaChecked"
             data-testid="workspace-form-dpa-checkbox"
           >
             <template #label>
-              <span>I have read and accept the </span>
-              <NuxtLink
-                to="/legal/dpa"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="underline"
+              <i18n-t
+                keypath="legal.onboarding.acceptDocument"
+                tag="span"
+                scope="global"
               >
-                Data Processing Addendum
-              </NuxtLink>
+                <template #document>
+                  <NuxtLink
+                    to="/legal/dpa"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="underline"
+                  >
+                    {{ t('legal.policyAcceptance.documentNames.dpa') }}
+                  </NuxtLink>
+                </template>
+              </i18n-t>
               <span class="font-mono text-[11px] text-muted ml-1">
                 v{{ dpaCurrentVersion }}
               </span>

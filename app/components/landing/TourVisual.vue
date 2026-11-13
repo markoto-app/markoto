@@ -5,11 +5,11 @@ import {
   type TourBeat,
   type TourScene
 } from '~~/shared/tour/manifest'
-import { TOUR_DEPART_EVENT, TOUR_REST_EVENT, tourEventIndex } from '~/composables/useTourScroll'
+import { TOUR_DEPART_EVENT, TOUR_REST_EVENT, tourEventIndex } from '~/composables/marketing/useTourScroll'
 
 /**
  * One scene's picture: a poster still and a short looping video, each in
- * light + dark (both rendered, CSS-toggled — the Wordmark pattern, so SSR
+ * light + dark (both rendered, CSS-toggled, the Wordmark pattern, so SSR
  * and client agree and the hidden mode never downloads) and, inline on
  * phones with `phoneCut`, the scene's phone cut (`<source media>`). The cursor is baked
  * into the video by the capture.
@@ -20,12 +20,12 @@ import { TOUR_DEPART_EVENT, TOUR_REST_EVENT, tourEventIndex } from '~/composable
  * out once the scene has settled.
  *
  * Modes:
- *  - `stage`  — a layer of the pinned desktop stage; "on stage" = the
+ *  - `stage` : a layer of the pinned desktop stage; "on stage" = the
  *               scene's section crosses the middle of the viewport.
- *  - `inline` — the figure inside the scene section (phones, tablets and
+ *  - `inline`: the figure inside the scene section (phones, tablets and
  *               browsers without scroll-driven animations); "on stage" =
  *               the figure is mostly in view.
- *  - `hero`   — poster only.
+ *  - `hero`  : poster only.
  */
 const props = withDefaults(defineProps<{
   scene: TourScene
@@ -41,7 +41,7 @@ const props = withDefaults(defineProps<{
    * Which color mode's media this scene shows while the page runs its
    * light → dark scroll flip (see ProductTour.vue): `flip` = the scene the
    * page turns dark on (both, cross-faded). Ignored when the visitor
-   * picked a color mode — then `.dark` on <html> decides.
+   * picked a color mode, then `.dark` on <html> decides.
    */
   tone?: 'light' | 'dark' | 'flip'
   /**
@@ -53,7 +53,7 @@ const props = withDefaults(defineProps<{
   /**
    * The page's LCP image (the hero poster): `eager` loads the light
    * poster without waiting for layout, `high` asks for it first. Only the
-   * light variant — the page starts light, and an eager hidden variant
+   * light variant: the page starts light, and an eager hidden variant
    * would download for nothing.
    */
   priority?: 'eager' | 'high' | 'none'
@@ -78,7 +78,6 @@ function pageVars(beat: TourBeat, i: number): Record<string, string | number> {
   return { '--mk-o': o, '--mk-k': i, 'zIndex': String(10 - Math.round(Math.abs(o) * 2)) }
 }
 
-// ─── PDF fan-out (the share scene's beat) ─────────────────────────────
 // Time-based, part of the scene's REST state: once the scene has settled
 // (pinned stage: the pager's rest event; inline: the figure mostly in
 // view), the pages fan out over the window; they fold back as soon as the
@@ -126,7 +125,6 @@ const hasVideo = computed(() => props.mode !== 'hero' && Boolean(props.scene.vid
 const phoneVideo = computed(() => (props.mode === 'inline' && props.phoneCut ? props.scene.phone?.video : undefined))
 const phonePoster = computed(() => (props.mode === 'inline' && props.phoneCut ? props.scene.phone?.poster : undefined))
 
-// ─── Playback ─────────────────────────────────────────────────────────
 const root = ref<HTMLElement | null>(null)
 const videoEls: Record<Mode, HTMLVideoElement | null> = { light: null, dark: null }
 const playing = ref<Record<Mode, boolean>>({ light: false, dark: false })

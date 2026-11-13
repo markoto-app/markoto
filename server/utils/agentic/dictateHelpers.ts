@@ -1,8 +1,5 @@
-// Pure helpers for the dictation WebSocket route. Lifted out of the
-// main handler file so unit tests can import them without pulling in
-// the streaming-client setup. Phase 7 retired the cloud-stt path so
-// the heavy-import concern that motivated this split is gone, but
-// the separation is still useful for testability.
+// Pure helpers for the dictation WebSocket route, kept apart from the
+// handler so unit tests can import them without the streaming-client setup.
 
 /**
  * Parse a crossws Message as one of our known control frames. Returns
@@ -11,8 +8,8 @@
  *
  * Implementation note: crossws + the Node `ws` library deliver text
  * frames as Buffer, so `typeof rawData === 'string'` is unreliable.
- * We peek the first byte for `{` (0x7B) — our control frames are
- * always JSON objects — and only decode+parse when that matches. For
+ * We peek the first byte for `{` (0x7B), our control frames are
+ * always JSON objects: and only decode+parse when that matches. For
  * binary audio (int16 PCM, random first bytes), the peek short-
  * circuits without paying for a full TextDecoder + JSON.parse on
  * every 4 KiB chunk (~8 chunks/second at 16 kHz).
@@ -29,14 +26,13 @@
  * `en-US` rather than erroring so a typo in the cookie can't block
  * transcription.
  *
- * BCP-47-shaped strings (contains a dash) pass through — a power
+ * BCP-47-shaped strings (contains a dash) pass through, a power
  * user who sets `de-CH` or `en-GB` gets the locale they asked for.
  *
- * Phase 7: callers also gate on `isVoxtralSupportedLanguage` to drop
- * unsupported leading codes back to en-US. The build-time test in
- * `tests/unit/voxtralSupport.test.ts` keeps shipped i18n locales
- * inside the support set, but a power-user-supplied `tr-TR` (Turkish)
- * still shouldn't reach the upstream.
+ * Callers also gate on `isVoxtralSupportedLanguage` to drop unsupported
+ * leading codes back to en-US: a user-supplied `tr-TR` (Turkish) must not
+ * reach the upstream even though the shipped i18n locales are all
+ * supported.
  */
 import { isVoxtralSupportedLanguage } from '~~/shared/languages/voxtralSupport'
 

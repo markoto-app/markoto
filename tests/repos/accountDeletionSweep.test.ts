@@ -2,17 +2,17 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser } from '../integration/setup/fixtures'
 
-vi.mock('../../server/utils/documentLifecycle', () => ({
+vi.mock('../../server/utils/documents/documentLifecycle', () => ({
   deleteDocument: vi.fn(async () => {})
 }))
-vi.mock('../../server/utils/knowledgeAccess', () => ({
+vi.mock('../../server/utils/knowledge/knowledgeAccess', () => ({
   deleteKnowledgeArtifact: vi.fn(async () => {})
 }))
-vi.mock('../../server/utils/stripeClient', () => ({
+vi.mock('../../server/utils/billing/stripeClient', () => ({
   useStripeClient: () => null
 }))
 
-const { runAccountDeletionSweep } = await import('../../server/utils/accountDeletionSweep')
+const { runAccountDeletionSweep } = await import('../../server/utils/privacy/accountDeletionSweep')
 
 async function scheduleDeletion(userId: number, graceDays: number): Promise<void> {
   await testDb().query(
@@ -66,11 +66,11 @@ describe('runAccountDeletionSweep', () => {
     // owner_id can't be repointed (zero co-members so it should
     // cascade), but the cascade DELETE still works in our mocked
     // env. Instead let's break it via an ai_session whose RESTRICT
-    // FK is the executor's blocker — we set up the row and then mock
+    // FK is the executor's blocker, we set up the row and then mock
     // ai_sessions delete to throw via an unexpected schema state.
     //
     // Easier: create a row in a table the executor doesn't know
-    // about — a stray manual constraint. That's hard without DDL.
+    // about: a stray manual constraint. That's hard without DDL.
     // Instead, simulate by stuffing both users' grace windows; only
     // success of both matters here.
 

@@ -5,7 +5,12 @@ import type { EditorView } from '@codemirror/view'
 import type { H3Event } from 'h3'
 import { setResponseStatus } from 'h3'
 
-import { useImageUpload } from '~/composables/useImageUpload'
+import { useImageUpload } from '~/composables/document/useImageUpload'
+
+// The real English texts (error.* in i18n/locales/en.json): a 5xx answer shows the
+// server-side text whatever message it carries, anything else without a code the generic one.
+const SERVER_ERROR_TEXT = 'Something broke on our side. We\'ve been notified.'
+const GENERIC_ERROR_TEXT = 'Something went wrong. Please try again.'
 
 // Composable under test: 3-step presigned upload + placeholder-rewrite
 // helper for CodeMirror. Two surfaces:
@@ -16,13 +21,13 @@ import { useImageUpload } from '~/composables/useImageUpload'
 //
 // External deps we need to stub:
 //   - `$fetch('/api/upload/request' | '/api/upload/confirm')`
-//     — Nitro endpoints, registerEndpoint.
-//   - raw `globalThis.fetch` (used for the S3 PUT) — vi.stubGlobal.
-//   - CodeMirror EditorView — shimmed locally, same pattern as
+//     Nitro endpoints, registerEndpoint.
+//   - raw `globalThis.fetch` (used for the S3 PUT), vi.stubGlobal.
+//   - CodeMirror EditorView: shimmed locally, same pattern as
 //     editorCommands.test.ts but with a doc.toString() readout so we
 //     can verify placeholder rewrites.
 
-// — ApiError pattern (same as useAI tests) ————————————————————————
+// ApiError pattern (same as useAI tests),
 // Return, don't throw, so the response body matches what $fetch's
 // FetchError surfaces as `err.data`. See the comment in useAI.test.ts
 // for the full rationale.
@@ -75,7 +80,7 @@ registerEndpoint('/api/upload/confirm', {
   }
 })
 
-// — raw `fetch` stub for S3 PUT ————————————————————————————————————
+// raw `fetch` stub for S3 PUT,
 // The composable uses native fetch (not $fetch) for the PUT so the
 // request goes straight to the S3 presigned URL without Nitro's
 // ofetch interceptors. We stub globalThis.fetch and inspect the
@@ -103,7 +108,7 @@ function stubFetch() {
 /**
  * Install a gated S3 handler: the PUT stays pending until the test
  * calls `.resolve()`. Returns a `.waitForCall()` promise that resolves
- * when the stub is actually hit — necessary because simply calling
+ * when the stub is actually hit, necessary because simply calling
  * `.resolve()` right after kicking off the upload races the composable's
  * internal microtasks and deadlocks (the resolver closure hasn't been
  * assigned yet).
@@ -129,7 +134,7 @@ function gatedS3(): {
   }
 }
 
-// — CodeMirror view shim ————————————————————————————————————————
+// CodeMirror view shim,
 // Real EditorState so `view.state.doc.toString()` + dispatch work;
 // we just wrap it in a minimal object that matches the surface the
 // composable actually touches (state + dispatch).
@@ -173,11 +178,9 @@ beforeEach(() => {
   fetchCalls.length = 0
 })
 
-// ═══════════════════════════════════════════════════════════════════════
-// upload() — 3-step happy path + POST body shapes
-// ═══════════════════════════════════════════════════════════════════════
+// upload(): 3-step happy path + POST body shapes
 
-describe('upload() — happy path', () => {
+describe('upload(): happy path', () => {
   it('returns { fileId, url } on a successful 3-step upload', async () => {
     const { upload } = useImageUpload('doc-xyz')
     const result = await upload(makeFile('photo.png', 'image/png'))
@@ -212,7 +215,7 @@ describe('upload() — happy path', () => {
     expect(put).toBeDefined()
     expect(put!.init?.method).toBe('PUT')
     expect((put!.init?.headers as Record<string, string>)['Content-Type']).toBe('image/png')
-    // Body is the File object itself — the composable does NOT read
+    // Body is the File object itself, the composable does NOT read
     // and re-bundle the bytes; S3 streams from the File handle.
     expect(put!.init?.body).toBe(file)
   })
@@ -231,7 +234,7 @@ describe('upload() — happy path', () => {
   })
 
   it('composes the public URL from docId and fileId (not the S3 key)', async () => {
-    // The S3 key may include subfolders / a random suffix — the public
+    // The S3 key may include subfolders / a random suffix, the public
     // URL stays on /api/files/{docId}/{fileId} so Nuxt can apply access
     // control. Pin this derivation.
     requestEp.handler = () => ({
@@ -245,11 +248,9 @@ describe('upload() — happy path', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
-// upload() — `uploading` reactive state
-// ═══════════════════════════════════════════════════════════════════════
+// upload(): `uploading` reactive state
 
-describe('upload() — uploading ref', () => {
+describe('upload(): uploading ref', () => {
   it('flips uploading true during the in-flight call and back to false afterwards', async () => {
     const gate = gatedS3()
     const { upload, uploading } = useImageUpload('doc-xyz')
@@ -274,16 +275,14 @@ describe('upload() — uploading ref', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
-// upload() — error paths + error ref
-// ═══════════════════════════════════════════════════════════════════════
+// upload(): error paths + error ref
 
-describe('upload() — error handling', () => {
+describe('upload(): error handling', () => {
   it('clears error at the start of each call', async () => {
     requestEp.handler = () => new ApiError(500, { message: 'first' })
     const { upload, error } = useImageUpload('doc-xyz')
     await upload(makeFile())
-    expect(error.value).toBe('first')
+    expect(error.value).toBe(SERVER_ERROR_TEXT)
 
     // Happy-path second call should reset error to null.
     requestEp.handler = () => ({
@@ -299,16 +298,16 @@ describe('upload() — error handling', () => {
 
     const result = await upload(makeFile())
     expect(result).toBe(null)
-    expect(error.value).toBe('Service down')
+    expect(error.value).toBe(SERVER_ERROR_TEXT)
     // Subsequent steps must not run once step 1 errored.
     expect(fetchCalls.find(c => c.url.startsWith('https://s3.test/'))).toBeUndefined()
     expect(confirmCalls).toHaveLength(0)
   })
 
-  it('shows the localised hint when the image storage quota is reached', async () => {
+  it('shows the code\'s translated text when the image storage quota is reached (no messageKey needed)', async () => {
     requestEp.handler = () => new ApiError(409, {
       message: 'English server sentence',
-      data: { code: 'upload/storage-quota', messageKey: 'image.storageQuotaReached' }
+      data: { code: 'upload/storage-quota' }
     })
     const { upload, error } = useImageUpload('doc-xyz')
     expect(await upload(makeFile())).toBe(null)
@@ -325,13 +324,13 @@ describe('upload() — error handling', () => {
     expect(error.value).toBe('login_required')
   })
 
-  it('sets error to "S3 upload failed: N" when the PUT returns non-2xx', async () => {
+  it('sets the generic text when the PUT to S3 returns non-2xx (not an API error)', async () => {
     s3Fetch.handler = () => new Response(null, { status: 403 })
     const { upload, error } = useImageUpload('doc-xyz')
     const result = await upload(makeFile())
     expect(result).toBe(null)
-    expect(error.value).toBe('S3 upload failed: 403')
-    // Confirm must not fire — upload failed at step 2.
+    expect(error.value).toBe(GENERIC_ERROR_TEXT)
+    // Confirm must not fire, upload failed at step 2.
     expect(confirmCalls).toHaveLength(0)
   })
 
@@ -340,10 +339,10 @@ describe('upload() — error handling', () => {
     const { upload, error } = useImageUpload('doc-xyz')
     const result = await upload(makeFile())
     expect(result).toBe(null)
-    expect(error.value).toBe('confirm failed')
+    expect(error.value).toBe(SERVER_ERROR_TEXT)
   })
 
-  it('falls back to "Upload failed" for errors with no message fields', async () => {
+  it('shows a text for errors with no code or message fields', async () => {
     requestEp.handler = () => new ApiError(500, {})
     const { upload, error } = useImageUpload('doc-xyz')
     await upload(makeFile())
@@ -363,11 +362,9 @@ describe('upload() — error handling', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
-// uploadAndInsert() — placeholder rewrite contract
-// ═══════════════════════════════════════════════════════════════════════
+// uploadAndInsert(): placeholder rewrite contract
 
-describe('uploadAndInsert() — happy path', () => {
+describe('uploadAndInsert(): happy path', () => {
   it('inserts a uniquely-tagged "Uploading" placeholder BEFORE the network call', async () => {
     const gate = gatedS3()
     const view = makeView('before ', 7)
@@ -375,7 +372,7 @@ describe('uploadAndInsert() — happy path', () => {
     const pending = uploadAndInsert(makeFile('cat.png'), view)
 
     // The placeholder is dispatched synchronously, before the first
-    // `await upload(file)` — we can read it now.
+    // `await upload(file)`: we can read it now.
     expect(text(view)).toMatch(/^before !\[Uploading cat\.\.\.\]\(upload-[^)]+\)$/)
 
     await gate.waitForCall()
@@ -412,20 +409,20 @@ describe('uploadAndInsert() — happy path', () => {
     const view = makeView('', 0)
     const { uploadAndInsert } = useImageUpload('doc-xyz')
     await uploadAndInsert(makeFile('Untitled', 'image/png'), view)
-    // Regex `/\.[^.]+$/` doesn't match a name without a dot — alt stays
+    // Regex `/\.[^.]+$/` doesn't match a name without a dot, alt stays
     // as the full filename.
     expect(text(view)).toBe('![Untitled](/api/files/doc-xyz/file-abc)')
   })
 })
 
-describe('uploadAndInsert() — user-edit safety', () => {
+describe('uploadAndInsert(): user-edit safety', () => {
   it('relocates the replacement when the user types BEFORE the placeholder', async () => {
     const gate = gatedS3()
     const view = makeView('start ', 6)
     const { uploadAndInsert } = useImageUpload('doc-xyz')
     const pending = uploadAndInsert(makeFile('cat.png'), view)
 
-    // Wait until the stub has been hit before the user "types" — this
+    // Wait until the stub has been hit before the user "types", this
     // models the realistic case of an edit happening DURING the S3 PUT.
     await gate.waitForCall()
     view.dispatch({ changes: { from: 0, insert: 'AAA ' } })
@@ -433,7 +430,7 @@ describe('uploadAndInsert() — user-edit safety', () => {
     gate.resolve()
     await pending
 
-    // The final text must contain the full rendered image — indexOf
+    // The final text must contain the full rendered image, indexOf
     // recovered the placeholder's new position.
     expect(text(view)).toContain('![cat](/api/files/doc-xyz/file-abc)')
     expect(text(view)).toMatch(/^AAA start !/)
@@ -444,7 +441,7 @@ describe('uploadAndInsert() — user-edit safety', () => {
   it('silently skips when the user deletes the placeholder mid-upload', async () => {
     // If the user Cmd+Z's or manually removes the placeholder while the
     // upload is in flight, the composable must not re-insert orphaned
-    // markdown — it tracks the placeholder by string match and gives up
+    // markdown: it tracks the placeholder by string match and gives up
     // if the string is gone.
     const gate = gatedS3()
     const view = makeView('hello', 5)
@@ -452,7 +449,7 @@ describe('uploadAndInsert() — user-edit safety', () => {
     const pending = uploadAndInsert(makeFile('cat.png'), view)
 
     await gate.waitForCall()
-    // Wipe the whole doc — placeholder is gone.
+    // Wipe the whole doc, placeholder is gone.
     view.dispatch({
       changes: { from: 0, to: view.state.doc.length, insert: 'fresh content' }
     })
@@ -465,9 +462,7 @@ describe('uploadAndInsert() — user-edit safety', () => {
   })
 
   it('two concurrent uploads produce DISTINCT placeholders and replace each correctly', async () => {
-    // Previously the placeholder ID was built from a counter; now
-    // nanoid. Either way, concurrent calls must not collide on the
-    // `indexOf(placeholder)` lookup.
+    // Concurrent calls must not collide on the `indexOf(placeholder)` lookup.
     //
     // Track per-call resolvers so we can release the PUTs
     // independently AFTER both requests have actually hit the stub.

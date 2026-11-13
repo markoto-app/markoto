@@ -1,21 +1,26 @@
 import { customDomainSettings } from './config'
 import { runCustomDomainCheck } from './manage'
 import { listCustomDomainsToRecheck } from '../../repos/customDomains'
+import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
+import { useLogger } from '../platform/logger'
+import { system } from '../../repos/proofs'
 
-// Periodic DNS re-check of custom domains (WP13), run by the
+const log = useLogger('custom-domain-recheck')
+
+// Periodic DNS re-check of custom domains, run by the
 // `custom-domain-recheck` plugin: pending / failed domains added in the
 // last 7 days (so a user doesn't have to come back and click "Check"),
 // and verified domains every 6 hours (a domain whose DNS moved away is
-// dropped after the grace period — `runCustomDomainCheck`).
+// dropped after the grace period, `runCustomDomainCheck`).
 
-const PENDING_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
-const VERIFIED_EVERY_MS = 6 * 60 * 60 * 1000
+const PENDING_WINDOW_MS = 7 * DAY_MS
+const VERIFIED_EVERY_MS = 6 * HOUR_MS
 const BATCH = 200
 
 export async function runCustomDomainRecheck(now = Date.now()): Promise<{ checked: number }> {
   const settings = customDomainSettings()
   if (!settings) return { checked: 0 }
-  const due = await listCustomDomainsToRecheck({
+  const due = await listCustomDomainsToRecheck(system('custom-domain-recheck'), {
     pendingNewerThan: new Date(now - PENDING_WINDOW_MS),
     verifiedCheckedBefore: new Date(now - VERIFIED_EVERY_MS),
     limit: BATCH
@@ -24,7 +29,7 @@ export async function runCustomDomainRecheck(now = Date.now()): Promise<{ checke
     try {
       await runCustomDomainCheck(domain, settings)
     } catch (e) {
-      console.warn(`[custom-domain-recheck] ${domain.hostname}:`, e instanceof Error ? e.message : e)
+      log.warn('domain check failed', { hostname: domain.hostname, err: e })
     }
   }
   return { checked: due.length }

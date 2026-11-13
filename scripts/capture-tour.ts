@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// Product-tour videos (WP11): record → encode → manifest.
+// Product-tour videos: record → encode → manifest.
 //
 //   bun scripts/capture-tour.ts            # record (Playwright) + encode
 //   bun scripts/capture-tour.ts --encode   # only encode $TOUR_OUTPUT_DIR → public/tour
@@ -8,16 +8,16 @@
 //   … <playwright args>                    # anything else, e.g. --project=tour-light -g "Tour: write$"
 //
 // Recording drives the real app with tests/e2e/tour/*.capture.ts
-// (playwright.tour.config.ts: 1440×900 @2x, light + dark) and writes PNG
+// (tests/e2e/tour/playwright.config.ts: 1440×900 @2x, light + dark) and writes PNG
 // frames + clip.json per scene (see tests/e2e/tour/fixture.ts). It needs
 // the flow test stack and an app server in the hosted shape (no
-// NUXT_AI_DEFAULT_* — the AI runs on the user's own key), plus
+// NUXT_AI_DEFAULT_*: the AI runs on the user's own key), plus
 // MISTRAL_API_KEY / JINA_AI_API_KEY in the stack's LiteLLM and this shell.
 // PLAYWRIGHT_BASE_URL overrides the default http://markoto.localhost:3001;
 // TOUR_OUTPUT_DIR moves the (large) frame output, e.g. onto a tmpfs.
 //
 // Encoding needs ffmpeg with libsvtav1 and libx264. Per scene and color
-// mode: the desktop video (AV1 + H.264 MP4, 1728 px wide — a 2x display
+// mode: the desktop video (AV1 + H.264 MP4, 1728 px wide, a 2x display
 // of the pinned stage), the phone cut (the scene's focus rect, 720 px),
 // and posters (the clip's last frame) as webp in a few widths. Each loop
 // ends on a hold and cross-fades back to its first frame. The hero's
@@ -47,7 +47,7 @@ type Mode = 'light' | 'dark'
 
 const DESKTOP_WIDTH = 1728
 const PHONE_WIDTH = 720
-/** Per-file byte budgets from the WP11 brief: ≤ 3 MB per desktop scene, ≤ 1 MB per phone cut. */
+/** Per-file byte budgets: ≤ 3 MB per desktop scene, ≤ 1 MB per phone cut. */
 const DESKTOP_VIDEO_BUDGET = 3 * 1024 * 1024
 const PHONE_VIDEO_BUDGET = 1024 * 1024
 const POSTER_WIDTHS = [1920, 1280, 800] as const
@@ -280,7 +280,7 @@ async function encode(only: ReadonlySet<string> | null): Promise<void> {
     const light = await readClip('light', id)
     const dark = await readClip('dark', id)
     if (!light || !dark) {
-      if (light || dark) console.warn(`[capture-tour] ${id}: only one color mode recorded — keeping the previous entry`)
+      if (light || dark) console.warn(`[capture-tour] ${id}: only one color mode recorded, keeping the previous entry`)
       continue
     }
     viewport = light.viewport
@@ -324,7 +324,7 @@ async function encode(only: ReadonlySet<string> | null): Promise<void> {
 
 async function record(args: string[]): Promise<number> {
   const proc = spawn({
-    cmd: ['bunx', 'playwright', 'test', '-c', 'playwright.tour.config.ts', ...args],
+    cmd: ['bunx', 'playwright', 'test', '-c', 'tests/e2e/tour/playwright.config.ts', ...args],
     env: { ...process.env, PLAYWRIGHT_BASE_URL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://markoto.localhost:3001' },
     stdout: 'inherit',
     stderr: 'inherit'
@@ -334,7 +334,7 @@ async function record(args: string[]): Promise<number> {
 
 async function main(): Promise<void> {
   // Our flags: --encode, --record, --only <ids>. Everything else goes to
-  // Playwright (a `--` separator is optional — bun drops one that directly
+  // Playwright (a `--` separator is optional, bun drops one that directly
   // follows the script path, so never rely on it).
   const own = new Set<string>()
   let only: Set<string> | null = null
@@ -348,7 +348,7 @@ async function main(): Promise<void> {
   }
   if (!own.has('--encode')) {
     const code = await record(pwArgs)
-    if (code !== 0) console.warn(`[capture-tour] some captures failed (exit ${code}) — encoding what was recorded`)
+    if (code !== 0) console.warn(`[capture-tour] some captures failed (exit ${code}), encoding what was recorded`)
   }
   // `--only write,themes` encodes just those scenes and keeps the rest of the manifest.
   if (!own.has('--record')) await encode(only)

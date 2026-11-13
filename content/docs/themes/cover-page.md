@@ -1,6 +1,6 @@
 ---
 title: Edit your cover page
-description: Four cover-page layouts, an optional header image, size knobs — the front-page treatment is its own little design surface.
+description: Four cover-page layouts, an optional header image and size knobs. The front-page treatment is its own little design surface.
 category: themes
 order: 4
 updated: '2026-11-08'
@@ -8,7 +8,7 @@ updated: '2026-11-08'
 
 # Edit your cover page
 
-The cover page is the first page of your PDF — the editorial
+The cover page is the first page of your PDF, the editorial
 front-piece, before any body content. markoto ships four cover layouts
 (editorial, centered, banded, minimal), an optional header image, and
 size knobs for title / subtitle / author / date so the cover lands at
@@ -68,5 +68,5 @@ Page 1 shows no page header with the title block; the footer stays.
 
 ## What's next
 
-- [Tune the rest of the theme](/docs/themes/customize) — typography, colors, page geometry.
-- [Save the look as a preset](/docs/themes/save-preset) — re-use the cover treatment on future docs.
+- [Tune the rest of the theme](/docs/themes/customize): typography, colors, page geometry.
+- [Save the look as a preset](/docs/themes/save-preset): re-use the cover treatment on future docs.

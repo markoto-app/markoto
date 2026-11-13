@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid'
 import { TEST_BASE_URL } from './env'
 import { testDb } from './db'
-import { generateMcpToken, type McpScope } from '../../../server/utils/mcpAuth'
+import { generateMcpToken, type McpScope } from '../../../server/utils/mcp/mcpAuth'
 
 // Reusable MCP integration-test harness. Drives /mcp end-to-end against
 // the running Nitro subprocess (started by globalSetup) using JSON-RPC.
@@ -12,7 +12,7 @@ import { generateMcpToken, type McpScope } from '../../../server/utils/mcpAuth'
 //     shape, not exercise an SDK we don't ship.
 //   - The toolkit's response Accept negotiation (`application/json,
 //     text/event-stream`) means EVERY response can come back as either
-//     SSE or plain JSON depending on session/tool — the harness
+//     SSE or plain JSON depending on session/tool, the harness
 //     normalises both into one shape so tests don't care.
 //
 // PAT mint: tests don't go through `POST /api/mcp/tokens` (which needs
@@ -20,7 +20,7 @@ import { generateMcpToken, type McpScope } from '../../../server/utils/mcpAuth'
 // using the same hash function the issuer uses (`generateMcpToken` ↦
 // `hashToken`). Why direct insert instead of calling `issueMcpToken`:
 // the issuer routes through `useDatabase()` which boots its own
-// Drizzle pool from `DATABASE_URL` — unset in the test process (the
+// Drizzle pool from `DATABASE_URL`, unset in the test process (the
 // integration env populates env vars only for the spawned Nitro
 // subprocess), so the issuer would point at the wrong DB or fail.
 // The HTTP endpoint shape is covered by `tests/integration/endpoints/`
@@ -37,9 +37,9 @@ export interface MintPatInput {
 }
 
 export interface MintedPat {
-  /** The plaintext bearer token — pass to `new McpClient(plaintext)`. */
+  /** The plaintext bearer token, pass to `new McpClient(plaintext)`. */
   plaintext: string
-  /** The opaque token id (mkt_pat_…) — useful for revoke-by-id assertions. */
+  /** The opaque token id (mkt_pat_…), useful for revoke-by-id assertions. */
   tokenId: string
 }
 
@@ -54,14 +54,14 @@ export async function mintPat(input: MintPatInput): Promise<MintedPat> {
   await db.query(
     `INSERT INTO mcp_personal_tokens (token_id, user_id, name, token_hash, scopes, expires_at)
      VALUES ($1, $2, $3, $4, $5, $6)`,
-    // `scopes` is a Postgres text[] — pass a JS array; the pg driver
+    // `scopes` is a Postgres text[], pass a JS array; the pg driver
     // serialises it to native array syntax. Do NOT JSON.stringify here.
     [tokenId, input.userId, input.name ?? 'integration-test', hash, [...input.scopes], input.expiresAt ?? null]
   )
   return { plaintext, tokenId }
 }
 
-// ─── JSON-RPC client ─────────────────────────────────────────────────
+// JSON-RPC client
 
 export interface RpcResult<T = unknown> {
   result?: T
@@ -90,7 +90,7 @@ export interface CallToolResult {
 export interface McpClientOptions {
   /** Optional bearer. Omit to test the unauthenticated path. */
   token?: string | null
-  /** clientInfo.name passed in `initialize` — flows into mcp_sessions.client_name. */
+  /** clientInfo.name passed in `initialize`, flows into mcp_sessions.client_name. */
   clientName?: string
   /** Skip the auto-initialize so tests can assert pre-handshake behaviour. */
   skipInitialize?: boolean
@@ -135,7 +135,7 @@ export class McpClient {
       throw new Error(`[mcp-client] initialize failed: ${init.error.message}`)
     }
 
-    // notifications/initialized has no response. Fire and forget — we
+    // notifications/initialized has no response. Fire and forget, we
     // still need to send it so the toolkit transitions out of the
     // handshake state.
     await this.rawSend({
@@ -224,7 +224,7 @@ export class McpClient {
     return this.sessionId
   }
 
-  // ─── Internals ────────────────────────────────────────────────────
+  // Internals
 
   /** Send a JSON-RPC request and parse the response into RpcResult. */
   private async rawRpc<T>(body: object): Promise<RpcResult<T>> {
@@ -242,14 +242,14 @@ export class McpClient {
       body: JSON.stringify(body)
     })
 
-    // Capture session id off the response — assigned on initialize, then
+    // Capture session id off the response, assigned on initialize, then
     // echoed on subsequent calls so the toolkit can keep state.
     const newSession = res.headers.get('mcp-session-id')
     if (newSession) this.sessionId = newSession
 
     const text = await res.text()
     if (!text) {
-      // Empty body — happens for notification responses (HTTP 202) and
+      // Empty body: happens for notification responses (HTTP 202) and
       // for some toolkit error paths. Surface a minimal RpcResult.
       if (res.status >= 400) {
         return { error: { code: res.status, message: `HTTP ${res.status} (no body)` } }
@@ -277,7 +277,7 @@ export class McpClient {
 
   /** Normalise SSE-or-JSON wire format into a single RpcResult shape. */
   private parsePayload<T>(text: string, status: number): RpcResult<T> {
-    // SSE response — parse the first `data:` line as JSON.
+    // SSE response: parse the first `data:` line as JSON.
     if (text.startsWith('event:') || text.includes('\ndata:') || text.startsWith('data:')) {
       const dataLine = text.split('\n').find(l => l.startsWith('data:'))
       if (!dataLine) {
@@ -290,7 +290,7 @@ export class McpClient {
       }
     }
 
-    // Plain JSON — most toolkit responses.
+    // Plain JSON: most toolkit responses.
     try {
       return JSON.parse(text) as RpcResult<T>
     } catch (e) {

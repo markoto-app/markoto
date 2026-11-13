@@ -11,12 +11,12 @@
 // /settings/profile so all three feel like overlays on the user's
 // context rather than destinations.
 //
-// Translation banner mirrors the convention in `legal.documentPage.*`
-// — when the requested locale falls back to English (because we
+// Translation banner mirrors the convention in `legal.documentPage.*`,
+// when the requested locale falls back to English (because we
 // haven't translated yet), we surface that loudly with a link back
 // to the authoritative copy.
 
-import { LEGAL_PAGE_DESCRIPTIONS } from '~~/shared/seo/meta'
+import { legalDescriptionKey } from '~~/shared/seo/meta'
 import { pageBreadcrumbs } from '~~/shared/seo/breadcrumbs'
 
 definePageMeta({ middleware: 'legal-surfaces' })
@@ -25,19 +25,7 @@ useLeanResourceHints()
 
 const route = useRoute()
 const router = useRouter()
-const { t, locale } = useI18n()
-
-interface LegalDocResponse {
-  slug: string
-  title: string
-  version: number
-  effectiveDate: string
-  requestedLocale: string
-  actualLocale: string
-  isFallback: boolean
-  authoritativeLocale: string
-  html: string
-}
+const { t, te, locale } = useI18n()
 
 const slug = computed(() => String(route.params.slug ?? ''))
 
@@ -45,17 +33,16 @@ const slug = computed(() => String(route.params.slug ?? ''))
 // active i18n locale. The page renders the doc via `v-html` since
 // the markdown comes back already rendered + sanitised by the
 // server (markdown-it with html: false).
-const { data, error, pending, refresh } = await useFetch<LegalDocResponse>(
-  () => `/api/_internal/legal/${slug.value}`,
-  {
-    query: computed(() => ({ locale: locale.value })),
-    // Re-fetch when the user switches language while reading.
-    watch: [locale]
-  }
+const api = useApi()
+const { data, error, pending, refresh } = await useAsyncData(
+  // The key follows the slug and the language: a change of either re-fetches
+  // (the page component is reused when the slug changes).
+  () => `legal:${slug.value}:${locale.value}`,
+  () => api('/api/_internal/legal/:slug', { path: { slug: slug.value }, query: { locale: locale.value } })
 )
 
 const pageTitle = computed(() => data.value?.title ?? 'Legal')
-const pageDescription = computed(() => LEGAL_PAGE_DESCRIPTIONS[slug.value] ?? '')
+const pageDescription = computed(() => (te(legalDescriptionKey(slug.value)) ? t(legalDescriptionKey(slug.value)) : ''))
 const { imageUrl } = useMarketingSeo({
   title: pageTitle,
   description: pageDescription,
@@ -75,14 +62,14 @@ function onClose(): void {
   if (globalThis.history.length > 1 && document.referrer) {
     router.back()
   } else {
-    router.push('/')
+    void router.push('/')
   }
 }
 
 function viewAuthoritative(): void {
   // Force English by appending ?locale=en. The same query-string
   // path the i18n switcher uses elsewhere; refresh re-fetches.
-  router.replace({ query: { ...route.query, locale: data.value?.authoritativeLocale ?? 'en' } })
+  void router.replace({ query: { ...route.query, locale: data.value?.authoritativeLocale ?? 'en' } })
   void refresh()
 }
 
@@ -121,16 +108,16 @@ function fmtDate(iso: string): string {
           name="i-lucide-loader-2"
           class="size-5 animate-spin mb-3 mx-auto"
         />
-        Loading…
+        {{ t('common.loading') }}
       </div>
       <div
         v-else-if="error || !data"
         class="text-sm text-rose-700 dark:text-rose-300 py-12 text-center"
       >
         <p class="font-serif text-2xl mb-2">
-          Document not found
+          {{ t('legal.documentPage.notFoundTitle') }}
         </p>
-        <p>The legal document at /legal/{{ slug }} doesn't exist.</p>
+        <p>{{ t('legal.documentPage.notFoundBody', { path: `/legal/${slug}` }) }}</p>
       </div>
 
       <article
@@ -146,7 +133,7 @@ function fmtDate(iso: string): string {
 
         <!-- Translation-fallback banner. Shows when the user's locale
              isn't translated yet and we fell back to English. The link
-             is informational — they're already reading English. -->
+             is informational: they're already reading English. -->
         <UAlert
           v-if="data.isFallback"
           color="neutral"
@@ -157,7 +144,7 @@ function fmtDate(iso: string): string {
           :description="t('legal.documentPage.missingLocale')"
         />
         <!-- Convenience banner when reading a non-authoritative
-             translation — even when we DO have a translation,
+             translation: even when we DO have a translation,
              the English text legally prevails. -->
         <UAlert
           v-else-if="data.actualLocale !== data.authoritativeLocale"

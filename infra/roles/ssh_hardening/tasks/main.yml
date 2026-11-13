@@ -1,6 +1,6 @@
 ---
 # Disable password auth + root login. We MUST verify pubkey works before
-# kicking the previous SSH session — otherwise a typo locks us out of a
+# kicking the previous SSH session: otherwise a typo locks us out of a
 # fresh VPS. The handler-driven reload + meta:reset_connection at the end
 # ensures the next play picks up a working connection.
 

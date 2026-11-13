@@ -1,30 +1,13 @@
-import { migrationsComplete } from '../utils/migrations'
-import { runWorkspaceInviteSweep } from '../utils/workspaceInviteSweep'
-import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
+import { runWorkspaceInviteSweep } from '../utils/workspaces/workspaceInviteSweep'
+import { defineSweeper } from '../utils/platform/defineSweeper'
+import { SWEEPS } from '../config/sweeps'
 
 // Hourly sweeper that deletes expired workspace invitations. Logic lives
-// in `server/utils/workspaceInviteSweep.ts` so tests can drive it
+// in `server/utils/workspaces/workspaceInviteSweep.ts` so tests can drive it
 // directly.
 
-const SWEEP_INTERVAL_MS = 60 * 60 * 1000 // 1h
-
-async function lockedRun(): Promise<void> {
-  if (!await acquireSweepLock('workspace-invite-sweep')) return
-  try {
-    await runWorkspaceInviteSweep()
-  } finally {
-    await releaseSweepLock('workspace-invite-sweep')
-  }
-}
-
-export default defineNitroPlugin((nitroApp) => {
-  void (async () => {
-    await migrationsComplete
-    await lockedRun()
-  })()
-
-  const timer = setInterval(() => {
-    void lockedRun()
-  }, SWEEP_INTERVAL_MS)
-  nitroApp.hooks.hook('close', () => clearInterval(timer))
+export default defineSweeper({
+  name: 'workspace-invite-sweep',
+  schedule: SWEEPS.workspaceInvites,
+  run: runWorkspaceInviteSweep
 })

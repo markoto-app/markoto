@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parse as parseYaml } from 'yaml'
-import { THEME_PRESETS } from '../../shared/utils/themePresets'
-import { showsTitleItself, withoutTitleHeading } from '../../shared/utils/markdownTitle'
+import { THEME_PRESETS } from '../../shared/utils/theme/themePresets'
+import { showsTitleItself, withoutTitleHeading } from '../../shared/utils/markdown/markdownTitle'
 import { TEMPLATES, templateCover } from '../../shared/templates'
 
 /**
@@ -12,7 +12,7 @@ import { TEMPLATES, templateCover } from '../../shared/templates'
  * theme plus its showcase fixture (Markdown, title, optional patch) from
  * `tests/fixtures/theme-shots/thumbnails.json`. Shared by
  * `scripts/render-theme-thumbs.ts` (writes the hash into
- * `shared/utils/themeThumbnails.manifest.json`) and `tests/unit/themeThumbnails.test.ts`
+ * `shared/utils/theme/themeThumbnails.manifest.json`) and `tests/unit/theme/themeThumbnails.test.ts`
  * (fails when a preset or its fixture changed without a new picture).
  */
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
@@ -59,8 +59,8 @@ export function thumbnailHash(presetId: string, source: ThumbnailSource): string
  * content/marketing/en/templates/index.md): one page of the template's
  * example, rendered in its theme. A source is either a fixture file with a
  * title and preset, or a marketing page whose first `::try-it` block
- * (theme + source) is the example — so editing the page's example or the
- * preset makes the picture stale (`tests/unit/templateGallery.test.ts`).
+ * (theme + source) is the example, so editing the page's example or the
+ * preset makes the picture stale (`tests/unit/theme/templateGallery.test.ts`).
  */
 export interface GallerySource { md: string, title: string, theme: string, pageNumber: number }
 
@@ -73,7 +73,7 @@ export function gallerySources(): Record<string, GallerySource> {
     const pageNumber = typeof value.pageNumber === 'number' ? value.pageNumber : 1
     if (typeof value.tryIt === 'string') {
       const { theme, source } = firstTryIt(resolve(FIXTURE_DIR, value.tryIt))
-      const title = /^#\s+(.+)$/m.exec(source)?.[1]?.trim() ?? id
+      const title = /^#[ \t]+(\S[^\n]*)$/m.exec(source)?.[1]?.trim() ?? id
       // Same as the page's workbench: a title-block theme sets the title
       // itself, so the example's leading `# Title` stays out of the body.
       const cover = THEME_PRESETS.find(p => p.id === theme)?.theme.cover
@@ -121,7 +121,7 @@ export function galleryHash(source: GallerySource): string {
  * title (and optional `pageNumber`) from
  * `tests/fixtures/theme-shots/template-thumbs.json`. Blank
  * shows the markoto design (the default when the workspace sets none).
- * `tests/unit/templateThumbnails.test.ts` fails when the text, the
+ * `tests/unit/theme/templateThumbnails.test.ts` fails when the text, the
  * design or the placeholders changed without a new picture.
  */
 export interface TemplateThumbnailSource {
@@ -141,17 +141,22 @@ export function templateThumbnailSources(): Record<string, TemplateThumbnailSour
   if (!isRecord(titles)) throw new Error('template-thumbs.json must hold an object')
   const out: Record<string, TemplateThumbnailSource> = {}
   for (const tpl of TEMPLATES) {
-    // "<title>" or { "title": "<title>", "pageNumber": 2 }
-    const entry = titles[tpl.id]
-    const title = typeof entry === 'string' ? entry : isRecord(entry) && typeof entry.title === 'string' ? entry.title : undefined
-    if (title === undefined) continue
-    const pageNumber = isRecord(entry) && typeof entry.pageNumber === 'number' ? entry.pageNumber : 1
+    const entry = thumbnailEntry(titles[tpl.id])
+    if (entry === null) continue
+    const { title, pageNumber } = entry
     const body = tpl.hasContent ? readFileSync(resolve(ROOT, 'shared/templates/content', tpl.content, 'en.md'), 'utf8') : ''
     const md = body.replaceAll('{{title}}', title).replaceAll('{{description}}', '')
     const cover = templateCover(tpl, 'en')
     out[tpl.id] = { md, title, theme: tpl.design ?? 'markoto', pageNumber, patch: cover ? { cover } : null }
   }
   return out
+}
+
+/** A template's entry of template-thumbs.json: "<title>" or { "title": "<title>", "pageNumber": 2 }; null without a title. */
+function thumbnailEntry(entry: unknown): { title: string, pageNumber: number } | null {
+  if (typeof entry === 'string') return { title: entry, pageNumber: 1 }
+  if (!isRecord(entry) || typeof entry.title !== 'string') return null
+  return { title: entry.title, pageNumber: typeof entry.pageNumber === 'number' ? entry.pageNumber : 1 }
 }
 
 export function templateThumbnailHash(source: TemplateThumbnailSource): string {

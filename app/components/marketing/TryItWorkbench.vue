@@ -5,20 +5,20 @@ import { markdown, markdownLanguage, markdownKeymap } from '@codemirror/lang-mar
 import { languages } from '@codemirror/language-data'
 import { syntaxHighlighting } from '@codemirror/language'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
-import { markotoMarkdownHighlight } from '~/utils/markdownHighlight'
-import { formattingKeymap } from '~/utils/editorCommands'
-import { titleFromMarkdown, tryItErrorKey, withoutTitleHeading } from '~/utils/tryIt'
-import { showsTitleItself } from '~~/shared/utils/markdownTitle'
-import { AnonGateCancelled } from '~/composables/useAnonGate'
-import { THEME_PRESETS } from '~~/shared/utils/themePresets'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
+import { markotoMarkdownHighlight } from '~/utils/markdown/markdownHighlight'
+import { formattingKeymap } from '~/utils/editor/editorCommands'
+import { titleFromMarkdown, tryItErrorKey, withoutTitleHeading } from '~/utils/marketing/tryIt'
+import { showsTitleItself } from '~~/shared/utils/markdown/markdownTitle'
+import { AnonGateCancelled } from '~/composables/account/useAnonGate'
+import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 import { INITIAL_CONTENT_MAX_LENGTH } from '~~/shared/config/docCreate'
 
 // The live half of the `::try-it` block (components/content/TryIt.vue),
 // loaded only once the block is near the viewport or used. A CodeMirror
 // editor (no Y.js, no sync) next to the app's paged preview:
 // `useMarkdownPreview` (markdown-it + DOMPurify) → `usePagedPreview`
-// (themeToCss + the sandboxed opaque-origin iframe) — the same client
+// (themeToCss + the sandboxed opaque-origin iframe), the same client
 // path as the editor's preview. Visitor text never reaches a server
 // renderer while typing.
 //
@@ -33,7 +33,8 @@ const props = defineProps<{
   themePreset?: string
   /** Document language (ISO code): preview TOC title + cover date, and the created document's language. */
   language?: string
-  autofocus?: boolean
+  /** Move focus into the editor once it has mounted (the visitor clicked the static version). */
+  focusOnReady?: boolean
 }>()
 const emit = defineEmits<{ ready: [] }>()
 
@@ -54,7 +55,6 @@ const bodyText = computed(() => {
 })
 const tooLong = computed(() => text.value.length > INITIAL_CONTENT_MAX_LENGTH)
 
-// ── Editor ───────────────────────────────────────────────────────────
 const editorHost = ref<HTMLElement | null>(null)
 const view = shallowRef<EditorView | null>(null)
 
@@ -99,7 +99,7 @@ onMounted(() => {
     parent: editorHost.value
   })
   emit('ready')
-  if (props.autofocus) void nextTick(() => view.value?.focus())
+  if (props.focusOnReady) void nextTick(() => view.value?.focus())
 })
 
 onBeforeUnmount(() => {
@@ -107,7 +107,6 @@ onBeforeUnmount(() => {
   view.value = null
 })
 
-// ── Preview (the editor's client pipeline, no document) ─────────────
 const { rendered } = useMarkdownPreview(bodyText)
 const previewHost = ref<HTMLElement | null>(null)
 const { pageCount, isReady, error: previewError } = usePagedPreview({
@@ -119,10 +118,8 @@ const { pageCount, isReady, error: previewError } = usePagedPreview({
   language: computed(() => props.language ?? '')
 })
 
-// ── Phones: Edit / Preview tabs (both panes stay mounted) ────────────
 const tab = ref<'edit' | 'preview'>('edit')
 
-// ── Actions ──────────────────────────────────────────────────────────
 const busy = ref<'open' | 'pdf' | null>(null)
 const errorKey = ref<string | null>(null)
 // The document made from the current text, if any (reused on a second click).
@@ -189,7 +186,8 @@ async function downloadPdf(): Promise<void> {
     return
   }
   try {
-    const res = await $fetch<{ url: string }>(`/api/docs/${encodeURIComponent(docId)}/pdf`, {
+    const res = await apiFetch('/api/docs/:docId/pdf', {
+      path: { docId },
       query: { response: 'json' },
       // One request = one render allowance (10/min): never retry a 5xx.
       retry: 0
@@ -370,7 +368,7 @@ const createdDocPath = computed(() => (errorKey.value?.startsWith('marketing.try
   flex-direction: column;
 }
 /* Phones: one pane at a time. Both share one grid cell and the hidden one
-   keeps its layout (visibility, not display: none) — paged.js inside the
+   keeps its layout (visibility, not display: none), paged.js inside the
    preview frame must be able to measure while the editor tab is shown. */
 .mk-tryw__pane { grid-area: 1 / 1; }
 .is-tab-edit .mk-tryw__pane--preview,

@@ -7,6 +7,8 @@ import {
   type ActivityMetadata
 } from '../../server/repos/activity'
 import { createUser, createDoc } from '../integration/setup/fixtures'
+import { first } from '../helpers/assert'
+import { docAs } from '../helpers/access'
 
 // `search_activity_log` AI tool's repo path. Tests pin the filter
 // composition rules + doc-scoped isolation that the per-prompt
@@ -24,7 +26,7 @@ async function getLastActivityId(): Promise<number> {
   const r = await db.query<{ id: number }>(
     'SELECT id FROM activity_log ORDER BY id DESC LIMIT 1'
   )
-  return r.rows[0].id
+  return first(r.rows).id
 }
 
 async function append(
@@ -36,8 +38,7 @@ async function append(
     minutesAgo?: number
   } = {}
 ): Promise<number> {
-  await appendActivity({
-    docId,
+  await appendActivity(docAs(docId), {
     userName: opts.userName ?? 'Tester',
     action,
     metadata: opts.metadata ?? null
@@ -64,7 +65,7 @@ describe('searchActivity', () => {
       minutesAgo: 1
     })
 
-    const rows = await searchActivity(doc.docId)
+    const rows = await searchActivity(docAs(doc.docId))
     expect(rows.map(r => r.action)).toEqual(['comment.added', 'theme.changed', 'edit'])
   })
 
@@ -80,7 +81,7 @@ describe('searchActivity', () => {
       metadata: { kind: 'restore', restoredFromActivityId: 1, restoredFromTime: '2026-04-30T00:00:00Z' }
     })
 
-    const rows = await searchActivity(doc.docId, { actions: ['edit', 'restore'] })
+    const rows = await searchActivity(docAs(doc.docId), { actions: ['edit', 'restore'] })
     expect(rows.map(r => r.action).sort()).toEqual(['edit', 'restore'])
   })
 
@@ -92,7 +93,7 @@ describe('searchActivity', () => {
     await append(doc.docId, 'edit', { minutesAgo: 30 }) // 30 min ago
 
     const since = new Date(Date.now() - 60 * 60 * 1000) // 1 hour
-    const rows = await searchActivity(doc.docId, { since })
+    const rows = await searchActivity(docAs(doc.docId), { since })
     expect(rows).toHaveLength(1)
   })
 
@@ -104,7 +105,7 @@ describe('searchActivity', () => {
     await append(doc.docId, 'edit', { minutesAgo: 30 })
 
     const before = new Date(Date.now() - 60 * 60 * 1000) // 1 hour
-    const rows = await searchActivity(doc.docId, { before })
+    const rows = await searchActivity(docAs(doc.docId), { before })
     expect(rows).toHaveLength(2)
   })
 
@@ -119,7 +120,7 @@ describe('searchActivity', () => {
     })
     await append(doc.docId, 'edit', { minutesAgo: 1 })
 
-    const rows = await searchActivity(doc.docId, { query: 'pricing' })
+    const rows = await searchActivity(docAs(doc.docId), { query: 'pricing' })
     expect(rows).toHaveLength(1)
     expect((rows[0]!.metadata as { commentId: string }).commentId).toBe('c1')
   })
@@ -130,7 +131,7 @@ describe('searchActivity', () => {
     await append(doc.docId, 'edit', { userName: 'Alice', minutesAgo: 5 })
     await append(doc.docId, 'edit', { userName: 'Bob', minutesAgo: 1 })
 
-    const rows = await searchActivity(doc.docId, { query: 'alice' })
+    const rows = await searchActivity(docAs(doc.docId), { query: 'alice' })
     expect(rows.map(r => r.userName)).toEqual(['Alice'])
   })
 
@@ -140,7 +141,7 @@ describe('searchActivity', () => {
     await append(doc.docId, 'comment.added', {
       metadata: { kind: 'comment.added', commentId: 'c1', bodyPreview: 'PRICING MODEL' }
     })
-    const rows = await searchActivity(doc.docId, { query: 'pricing' })
+    const rows = await searchActivity(docAs(doc.docId), { query: 'pricing' })
     expect(rows).toHaveLength(1)
   })
 
@@ -155,11 +156,11 @@ describe('searchActivity', () => {
     })
     await append(doc.docId, 'edit', { userName: 'Bob', minutesAgo: 5 })
 
-    const rows = await searchActivity(doc.docId, {
+    const rows = await searchActivity(docAs(doc.docId), {
       actions: ['edit'],
       query: 'alice'
     })
-    // Both filters must match — only the Alice/edit row qualifies.
+    // Both filters must match, only the Alice/edit row qualifies.
     expect(rows).toHaveLength(1)
     expect(rows[0]!.userName).toBe('Alice')
     expect(rows[0]!.action).toBe('edit')
@@ -171,19 +172,19 @@ describe('searchActivity', () => {
     for (let i = 0; i < 30; i++) {
       await append(doc.docId, 'edit', { minutesAgo: 30 - i })
     }
-    expect(await searchActivity(doc.docId)).toHaveLength(20) // default
-    expect(await searchActivity(doc.docId, { limit: 5 })).toHaveLength(5)
-    expect(await searchActivity(doc.docId, { limit: 200 })).toHaveLength(30) // clamped to 50, but only 30 exist
+    expect(await searchActivity(docAs(doc.docId))).toHaveLength(20) // default
+    expect(await searchActivity(docAs(doc.docId), { limit: 5 })).toHaveLength(5)
+    expect(await searchActivity(docAs(doc.docId), { limit: 200 })).toHaveLength(30) // clamped to 50, but only 30 exist
   })
 
-  it('is doc-scoped — rows from other docs are not returned', async () => {
+  it('is doc-scoped: rows from other docs are not returned', async () => {
     const u = await createUser()
     const docA = await createDoc({ ownerId: u.id })
     const docB = await createDoc({ ownerId: u.id })
     await append(docA.docId, 'edit', { userName: 'A-user' })
     await append(docB.docId, 'edit', { userName: 'B-user' })
 
-    const aRows = await searchActivity(docA.docId)
+    const aRows = await searchActivity(docAs(docA.docId))
     expect(aRows).toHaveLength(1)
     expect(aRows[0]!.userName).toBe('A-user')
   })
@@ -192,11 +193,11 @@ describe('searchActivity', () => {
     const u = await createUser()
     const doc = await createDoc({ ownerId: u.id })
     await append(doc.docId, 'edit')
-    expect(await searchActivity(doc.docId, { query: 'definitely-not-in-the-data' })).toEqual([])
+    expect(await searchActivity(docAs(doc.docId), { query: 'definitely-not-in-the-data' })).toEqual([])
   })
 
   it('returns [] for an unknown docId', async () => {
-    expect(await searchActivity('does-not-exist')).toEqual([])
+    expect(await searchActivity(docAs('does-not-exist'))).toEqual([])
   })
 
   it('treats blank `query` as no filter', async () => {
@@ -206,8 +207,8 @@ describe('searchActivity', () => {
     const doc = await createDoc({ ownerId: u.id })
     await append(doc.docId, 'edit')
     await append(doc.docId, 'theme.changed', { metadata: { kind: 'theme.changed' } })
-    expect(await searchActivity(doc.docId, { query: '   ' })).toHaveLength(2)
-    expect(await searchActivity(doc.docId, { query: '' })).toHaveLength(2)
+    expect(await searchActivity(docAs(doc.docId), { query: '   ' })).toHaveLength(2)
+    expect(await searchActivity(docAs(doc.docId), { query: '' })).toHaveLength(2)
   })
 
   it('returns the attribution shape without any avatar field', async () => {
@@ -217,7 +218,7 @@ describe('searchActivity', () => {
     const u = await createUser()
     const doc = await createDoc({ ownerId: u.id })
     await append(doc.docId, 'edit', { userName: 'Alice' })
-    const rows = await searchActivity(doc.docId)
+    const rows = await searchActivity(docAs(doc.docId))
     expect(rows[0]).toMatchObject({
       userName: 'Alice',
       userId: null

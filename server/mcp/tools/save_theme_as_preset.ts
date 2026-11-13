@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { SAVED_THEME_DESCRIPTION_MAX, SAVED_THEME_NAME_MAX } from '~~/shared/config/savedThemes'
 import { buildDocBoundTool } from '../lib/wrapDocBoundTool'
 
-// `access: 'view'` — the handler READS the current doc's theme then
+// `access: 'view'`: the handler READS the current doc's theme then
 // saves to the user's personal preset table. It doesn't mutate the
 // doc. View access to the source doc is enough.
 export default buildDocBoundTool({

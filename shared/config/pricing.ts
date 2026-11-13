@@ -6,8 +6,8 @@
 //
 // Two sources, one shape (`PlanPriceTable`):
 //   - billing ON: the live Stripe Prices, found by LOOKUP KEY
-//     (`stripePriceLookupKey`, e.g. `markoto_pro_year_chf`) —
-//     server/utils/stripePrices.ts. The amounts on the page are then
+//     (`stripePriceLookupKey`, e.g. `markoto_pro_year_chf`),
+//     server/utils/billing/stripePrices.ts. The amounts on the page are then
 //     exactly what Stripe charges.
 //   - billing OFF ("coming soon"): the PLANNED prices below, labelled as
 //     planned on the page and left out of the JSON-LD (nothing can be
@@ -15,6 +15,9 @@
 //     `TIER_<PRO|TEAM|BUSINESS>_PRICE_<EUR|CHF>` (monthly) and
 //     `..._<EUR|CHF>_YEAR` (annual), e.g. `TIER_PRO_PRICE_CHF=10`.
 
+import { must } from '../utils/must'
+import { EnvValueError, positiveNumber } from '../env/coerce'
+import { processEnv } from '../env/source'
 import type { PlanName } from './tiers'
 
 export const CURRENCIES = ['eur', 'chf'] as const
@@ -28,21 +31,17 @@ export type PaidPlanName = Exclude<PlanName, 'free'>
 export const PAID_PLAN_NAMES: readonly PaidPlanName[] = ['pro', 'team', 'business']
 
 /** Plans priced per seat (workspace subscriptions). */
-export const PER_SEAT_PLANS: readonly PaidPlanName[] = ['team', 'business']
+const PER_SEAT_PLANS: readonly PaidPlanName[] = ['team', 'business']
 
 export function isPerSeatPlan(plan: PlanName): boolean {
   return (PER_SEAT_PLANS as readonly PlanName[]).includes(plan)
-}
-
-export function isPaidPlan(plan: PlanName): plan is PaidPlanName {
-  return plan !== 'free'
 }
 
 export function isCurrency(value: unknown): value is Currency {
   return typeof value === 'string' && (CURRENCIES as readonly string[]).includes(value)
 }
 
-export function isBillingInterval(value: unknown): value is BillingInterval {
+function isBillingInterval(value: unknown): value is BillingInterval {
   return typeof value === 'string' && (BILLING_INTERVALS as readonly string[]).includes(value)
 }
 
@@ -77,7 +76,7 @@ export interface PlanPricesResponse {
 /**
  * Stripe Price lookup key for a plan / interval / currency. The operator
  * creates one recurring Price per key in the Stripe dashboard
- * (docs/LAUNCH-CHECKLIST.md); the server finds them by key, so prices
+ * (docs/operations/LAUNCH-CHECKLIST.md); the server finds them by key, so prices
  * change in Stripe without a deploy.
  */
 export function stripePriceLookupKey(plan: PaidPlanName, interval: BillingInterval, currency: Currency, prefix = 'markoto'): string {
@@ -111,25 +110,40 @@ export function allStripePriceLookupKeys(prefix = 'markoto'): string[] {
   return keys
 }
 
+/** Env name of one planned price, e.g. `TIER_PRO_PRICE_EUR_YEAR`. */
+export function planPriceEnvName(plan: PaidPlanName, currency: Currency, interval: BillingInterval): string {
+  return `TIER_${plan.toUpperCase()}_PRICE_${currency.toUpperCase()}${interval === 'year' ? '_YEAR' : ''}`
+}
+
 /**
- * Resolve the planned prices from an env-shaped record. Pure. Only
- * positive finite numbers override a price; anything else keeps the
- * default (a typo must never make a plan free or broken).
+ * Resolve the planned prices from an env-shaped record. Pure. Unset /
+ * empty keeps the default; anything but a number > 0 throws
+ * `EnvValueError` (boot validation reports it first): a typo must never
+ * make a plan free.
  */
-export function resolvePlanPricesFromEnv(env: Record<string, string | undefined>): PlanPriceTable {
+export function resolvePlanPricesFromEnv(env: Record<string, string | undefined> = processEnv()): PlanPriceTable {
   const table = structuredClone(DEFAULT_PLAN_PRICES)
   for (const currency of CURRENCIES) {
     for (const plan of PAID_PLAN_NAMES) {
       for (const interval of BILLING_INTERVALS) {
-        const name = `TIER_${plan.toUpperCase()}_PRICE_${currency.toUpperCase()}${interval === 'year' ? '_YEAR' : ''}`
-        const raw = env[name]
-        if (raw === undefined || raw.trim() === '') continue
-        const value = Number(raw)
-        if (Number.isFinite(value) && value > 0) table[currency][plan][interval] = value
+        const price = plannedPriceOverride(env, planPriceEnvName(plan, currency, interval))
+        if (price !== null) table[currency][plan][interval] = price
       }
     }
   }
   return table
+}
+
+/** One planned-price override, or null when unset / empty. */
+function plannedPriceOverride(env: Record<string, string | undefined>, name: string): number | null {
+  const raw = env[name]?.trim()
+  if (!raw) return null
+  try {
+    return positiveNumber.parse(raw)
+  } catch (e) {
+    if (e instanceof EnvValueError) throw new EnvValueError(`${name}: ${e.message}`)
+    throw e
+  }
 }
 
 /**
@@ -141,7 +155,7 @@ export function defaultCurrencyForLocale(locale: string | null | undefined): Cur
   return /[-_]ch$/i.test(locale ?? '') ? 'chf' : 'eur'
 }
 
-// ─── AI credit top-ups (WP4) ────────────────────────────────────────
+// AI credit top-ups
 //
 // One-time purchases that raise a Pro user's or a Team / Business
 // workspace's AI budget. Each pack adds `creditUsd` (the AI budget is
@@ -172,24 +186,9 @@ export function isTopupPackId(value: unknown): value is TopupPackId {
 }
 
 export function topupPack(id: TopupPackId): TopupPack {
-  return TOPUP_PACKS.find(p => p.id === id)!
+  return must(TOPUP_PACKS.find(p => p.id === id), `top-up pack ${id}`)
 }
 
 export function stripeTopupLookupKey(pack: TopupPackId, currency: Currency, prefix = 'markoto'): string {
   return `${prefix}_topup_${pack}_${currency}`
 }
-
-/** Parse a top-up lookup key (`null` = not a top-up key of ours). */
-export function parseStripeTopupLookupKey(key: string | null | undefined, prefix = 'markoto'): { pack: TopupPackId, currency: Currency } | null {
-  if (!key || !key.startsWith(`${prefix}_topup_`)) return null
-  const [pack, currency, ...rest] = key.slice(prefix.length + '_topup_'.length).split('_')
-  if (rest.length > 0 || !isTopupPackId(pack) || !isCurrency(currency)) return null
-  return { pack, currency }
-}
-
-export function allStripeTopupLookupKeys(prefix = 'markoto'): string[] {
-  return TOPUP_PACK_IDS.flatMap(pack => CURRENCIES.map(c => stripeTopupLookupKey(pack, c, prefix)))
-}
-
-/** 400 code of a purchase sent without accepting the Paid Plans Terms (WP6b). */
-export const PAID_TERMS_REQUIRED_CODE = 'billing/terms-required'

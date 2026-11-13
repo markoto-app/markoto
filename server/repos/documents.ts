@@ -1,23 +1,17 @@
-import { and, eq, or, sql } from 'drizzle-orm'
+import { and, eq, isNull, lt, sql } from 'drizzle-orm'
 import type { DocTheme } from '~~/shared/types/theme'
 import type { AudienceKind } from '~~/shared/audiences'
-import { documentShares, documents, workspaceMembers } from '../db/schema'
-import { ssoEnforcedSql, ssoSatisfiedSql } from './sso'
-import type { WorkspaceRole } from '../../shared/utils/docPermissions'
-import { useDatabase } from '../utils/database'
+import { documents } from '../db/schema'
+import { useDatabase } from '../db/client'
 import { NotFoundError } from './errors'
+import { proofUserId, type DocAccess, type SystemActor, type UserScope, type WorkspaceAccess } from './proofs'
 
-// Documents repository.
-//
-// Every endpoint that reads or writes the `documents` table goes through
-// this module. Benefits:
-//   - One place owns the DB schema coupling; endpoints work with domain
-//     shapes (`DocSnapshot`, `DocAuthzRow`) instead of Drizzle row types.
-//   - The "fetch doc + joined workspace role" pattern used by token,
-//     files, and activity endpoints lives in `getDocWithActorRole`
-//     rather than being inlined in three places.
-//   - Unit-testable via `createDocumentsRepo(db)` that takes an explicit
-//     Drizzle instance. Default export reads from `useDatabase()`.
+// Documents repository: every read/write of the `documents` table goes through
+// here, so endpoints work with domain shapes (`DocSnapshot`) instead of
+// Drizzle rows. Reads of a document's content and every write take a
+// `DocAccess` proof (server/repos/proofs) and query the id FROM the proof;
+// the access lookup itself (`getDocWithActorRole`) lives in
+// `server/repos/access/docAuthz.ts`.
 
 export type AccessMode = 'private' | 'open-edit' | 'open-view' | 'password-protected'
 
@@ -31,7 +25,7 @@ export interface DocSnapshot {
   theme: DocTheme | null
   wordCount: number | null
   sizeBytes: number | null
-  /** One-line "what this doc is about" — empty string means not set. */
+  /** One-line "what this doc is about", empty string means not set. */
   description: string
   /** Closed enum of writing registers. Drives AI tone via `shared/audiences`. */
   audience: AudienceKind
@@ -39,50 +33,11 @@ export interface DocSnapshot {
   language: string
   /** Provenance of the structural skeleton picked at creation time. */
   templateId: string
+  /** Restricted by a moderation decision: may not be shared or published (null = not restricted). */
+  moderationRestrictedAt: Date | null
+  moderationReportId: string | null
   createdAt: Date
   lastActive: Date
-}
-
-export interface DocAuthzRow {
-  ownerId: number | null
-  workspaceId: string | null
-  accessMode: AccessMode
-  /** Anonymous docs: hash of the creating browser's key (never sent to clients). */
-  anonCreatorKeyHash: string | null
-  theme: DocTheme | null
-  workspaceRole: WorkspaceRole | null
-  /**
-   * The caller is a GUEST of the document's workspace (WP11):
-   * `workspaceRole` then comes from their share of this document only.
-   */
-  isGuest: boolean
-  /**
-   * True when the caller OWNS the doc but that ownership must not count:
-   * the doc sits in a workspace that enforces single sign-on (WP14) and
-   * the caller has no effective role there (no current SSO grant, or no
-   * longer a member — e.g. deactivated / deleted via SCIM). Ownership of
-   * a workspace doc then grants nothing beyond what any outsider gets.
-   * Always false in workspaces without an active SSO connection and for
-   * standalone docs (unchanged behaviour). Feed the row to the decide*
-   * functions through `docStateOf` / `isEffectiveDocOwner`
-   * (`shared/utils/docPermissions.ts`) so the rule applies everywhere.
-   */
-  ownerAccessSuspended: boolean
-  /** Share-link controls (WP9): when public access ends (null = never). `docStateOf` applies it. */
-  shareExpiresAt: Date | null
-  /** Share-link controls (WP9): no PDF / Markdown download or print for visitors. */
-  shareNoDownload: boolean
-  /**
-   * Document context fields. Surfaced through the token endpoint so the
-   * editor can hydrate the Document tab + new-doc-derived UI before the
-   * Y.js sync completes. Source-of-truth lives in the documents row;
-   * ymeta.* mirrors are bridged for live updates.
-   */
-  title: string
-  description: string
-  audience: AudienceKind
-  language: string
-  templateId: string
 }
 
 export interface CreateDocInput {
@@ -91,10 +46,8 @@ export interface CreateDocInput {
   workspaceId: string | null
   accessMode: AccessMode
   /**
-   * Optional context fields chosen at creation time via the new-doc
-   * dialog. Each falls back to the schema default if omitted, so the
-   * "Just give me a blank doc" path can pass nothing and get sensible
-   * values without the caller having to know the defaults.
+   * Optional context fields from the new-doc dialog; each falls back to the
+   * schema default when omitted.
    */
   title?: string
   description?: string
@@ -122,12 +75,9 @@ export interface MetaUpdate {
   templateId?: string
 }
 
-/**
- * Fetch the full document row. Returns null (not throws) for missing
- * docs so callers can distinguish "not found" from genuine errors —
- * handlers that want 404 on missing translate explicitly.
- */
-export async function getDoc(docId: string): Promise<DocSnapshot | null> {
+/** Fetch the full document row; null (not a throw) when missing so handlers choose their own 404. */
+export async function getDoc(doc: DocAccess<'view'>): Promise<DocSnapshot | null> {
+  const docId = doc.docId
   const db = useDatabase()
   const row = (await db
     .select()
@@ -149,15 +99,14 @@ export async function getDoc(docId: string): Promise<DocSnapshot | null> {
     audience: row.audience,
     language: row.language,
     templateId: row.templateId,
+    moderationRestrictedAt: row.moderationRestrictedAt,
+    moderationReportId: row.moderationReportId,
     createdAt: row.createdAt,
     lastActive: row.lastActive
   }
 }
 
-/**
- * Exists check without pulling the whole row. Cheaper than getDoc when
- * all we need is "yes/no" (e.g. internal/activity).
- */
+/** Existence check without loading the row. */
 export async function docExists(docId: string): Promise<boolean> {
   const db = useDatabase()
   const row = (await db
@@ -168,102 +117,24 @@ export async function docExists(docId: string): Promise<boolean> {
   return !!row
 }
 
-/**
- * The one-query fetch used by token, files, and activity endpoints:
- * doc row joined with the caller's workspace role (if any). Replaces
- * the "fetch doc, then fetch role conditionally" two-step that was
- * inlined in several places.
- *
- * `actorUserId` null ⇒ anonymous caller ⇒ no role lookup performed.
- */
-export async function getDocWithActorRole(
-  docId: string,
-  actorUserId: number | null
-): Promise<DocAuthzRow | null> {
-  const db = useDatabase()
-
-  const row = (await db
-    .select({
-      ownerId: documents.ownerId,
-      workspaceId: documents.workspaceId,
-      accessMode: documents.accessMode,
-      shareExpiresAt: documents.shareExpiresAt,
-      shareNoDownload: documents.shareNoDownload,
-      anonCreatorKeyHash: documents.anonCreatorKeyHash,
-      theme: documents.theme,
-      title: documents.title,
-      description: documents.description,
-      audience: documents.audience,
-      language: documents.language,
-      templateId: documents.templateId,
-      // A guest (WP11) has the role their share of THIS document gives
-      // (edit → editor, view → viewer) and none without one.
-      role: sql<WorkspaceRole | null>`case when ${workspaceMembers.role} = 'guest' then (
-        select case ${documentShares.access} when 'edit' then 'editor' else 'viewer' end
-        from ${documentShares}
-        where ${documentShares.docId} = ${documents.docId} and ${documentShares.userId} = ${actorUserId ?? -1}
-      ) else ${workspaceMembers.role} end`,
-      isGuest: sql<boolean>`coalesce(${workspaceMembers.role} = 'guest', false)`,
-      // Ownership of a doc in an SSO-enforcing workspace counts only
-      // while the caller has an effective MEMBER role there (the join
-      // above already carries the SSO condition, so NULL = no role; a
-      // guest row is not a member role — guests are outside the IdP).
-      ownerAccessSuspended: actorUserId === null
-        ? sql<boolean>`false`
-        : sql<boolean>`coalesce(${documents.ownerId} = ${actorUserId} and (${workspaceMembers.role} is null or ${workspaceMembers.role} = 'guest') and ${ssoEnforcedSql(documents.workspaceId)}, false)`
-    })
-    .from(documents)
-    .leftJoin(
-      workspaceMembers,
-      actorUserId === null
-        // Anonymous caller: construct a join predicate that never matches
-        // so the leftJoin still runs but workspaceRole always comes back
-        // null. Simpler than branching on two query shapes.
-        ? sql`false`
-        : and(
-            eq(workspaceMembers.workspaceId, documents.workspaceId),
-            eq(workspaceMembers.userId, actorUserId),
-            // Single sign-on (WP14): no role without a current SSO grant
-            // in a workspace that enforces it — same as getMemberRole.
-            // Guests (WP11) are outside the organisation: not held to it.
-            or(eq(workspaceMembers.role, 'guest'), ssoSatisfiedSql(workspaceMembers.workspaceId, actorUserId))
-          )
-    )
-    .where(eq(documents.docId, docId))
-    .limit(1))[0]
-
-  if (!row) return null
-
-  return {
-    ownerId: row.ownerId,
-    workspaceId: row.workspaceId,
-    accessMode: row.accessMode,
-    anonCreatorKeyHash: row.anonCreatorKeyHash,
-    theme: row.theme,
-    workspaceRole: (row.role ?? null),
-    isGuest: row.isGuest === true,
-    ownerAccessSuspended: row.ownerAccessSuspended === true,
-    shareExpiresAt: row.shareExpiresAt,
-    shareNoDownload: row.shareNoDownload,
-    title: row.title,
-    description: row.description,
-    audience: row.audience,
-    language: row.language,
-    templateId: row.templateId
+export async function createDoc(
+  creator: UserScope | null,
+  workspace: WorkspaceAccess<'editor'> | null,
+  input: Omit<CreateDocInput, 'ownerId' | 'workspaceId'>
+): Promise<void> {
+  // The owner and the workspace come from the proofs, and a workspace proof
+  // must be the creator's own: nobody files a document into a workspace on
+  // someone else's membership.
+  if (workspace && (!creator || proofUserId(workspace) !== creator.userId)) {
+    throw new Error('createDoc: the workspace proof belongs to another actor')
   }
-}
-
-/**
- * Create a new doc row. Title defaults to "Untitled" via the schema.
- */
-export async function createDoc(input: CreateDocInput): Promise<void> {
   const db = useDatabase()
   // Build the values object dynamically so omitted fields fall back to
   // the schema defaults rather than ending up as explicit nulls.
   const values: Record<string, unknown> = {
     docId: input.docId,
-    ownerId: input.ownerId,
-    workspaceId: input.workspaceId,
+    ownerId: creator?.userId ?? null,
+    workspaceId: workspace?.workspaceId ?? null,
     accessMode: input.accessMode
   }
   if (input.title !== undefined) values.title = input.title
@@ -284,12 +155,13 @@ export async function createDoc(input: CreateDocInput): Promise<void> {
  * untouched. Bumps `lastActive` whenever any field changes so the
  * inactive-doc sweep sees the activity.
  *
- * No authz check — caller must have already decided the actor can edit.
+ * No authz check: caller must have already decided the actor can edit.
  * Throws NotFoundError if no row matched. Setting an `accessMode` other
  * than `password-protected` also clears the stored password hash.
  */
-export async function updateDocMeta(docId: string, update: MetaUpdate): Promise<void> {
+export async function updateDocMeta(doc: DocAccess<'write'>, update: MetaUpdate): Promise<void> {
   if (Object.keys(update).length === 0) return
+  const docId = doc.docId
   const db = useDatabase()
   // Leaving password mode drops the hash: a stale hash must never be
   // able to unlock the doc again (verify also refuses outside
@@ -309,10 +181,12 @@ export async function updateDocMeta(docId: string, update: MetaUpdate): Promise<
 
 /**
  * Assign or clear the parent workspace. `null` detaches the doc.
- * No authz — callers gate via canManageDoc (source) + target-workspace
+ * No authz: callers gate via canManageDoc (source) + target-workspace
  * role. Bumps lastActive so the move surfaces in "recent" lists.
  */
-export async function moveDocToWorkspace(docId: string, workspaceId: string | null): Promise<void> {
+export async function moveDocToWorkspace(doc: DocAccess<'manage'>, target: WorkspaceAccess<'editor'> | null): Promise<void> {
+  const docId = doc.docId
+  const workspaceId = target?.workspaceId ?? null
   const db = useDatabase()
   const result = await db
     .update(documents)
@@ -327,7 +201,7 @@ export async function moveDocToWorkspace(docId: string, workspaceId: string | nu
 /**
  * Insert a new documents row as a copy of the source. Every field the
  * caller cares about is passed explicitly so this doesn't silently
- * inherit future schema additions — new columns must be audited for
+ * inherit future schema additions, new columns must be audited for
  * duplication safety.
  */
 export interface DuplicateDocInput {
@@ -344,9 +218,17 @@ export interface DuplicateDocInput {
   audience: AudienceKind
   language: string
   templateId: string
+  /** A copy of restricted content is restricted too (see `documents.moderation_restricted_at`). */
+  moderationRestrictedAt: Date | null
+  moderationReportId: string | null
 }
 
-export async function insertDuplicateDoc(input: DuplicateDocInput): Promise<void> {
+/**
+ * The copy's owner and workspace are decided by the duplicate use case
+ * (`utils/documents/duplicateDocument.ts`); the source must be readable.
+ */
+export async function insertDuplicateDoc(source: DocAccess<'view'>, input: DuplicateDocInput): Promise<void> {
+  if (source.docId === input.newDocId) throw new Error('insertDuplicateDoc: copy id equals the source id')
   const db = useDatabase()
   await db.insert(documents).values({
     docId: input.newDocId,
@@ -361,23 +243,44 @@ export async function insertDuplicateDoc(input: DuplicateDocInput): Promise<void
     description: input.description,
     audience: input.audience,
     language: input.language,
-    templateId: input.templateId
+    templateId: input.templateId,
+    moderationRestrictedAt: input.moderationRestrictedAt,
+    moderationReportId: input.moderationReportId
   })
 }
 
+/** The report behind a document's moderation restriction, if it has one. */
+export async function getModerationRestriction(doc: DocAccess<'view'>): Promise<{ restrictedAt: Date, reportId: string | null } | null> {
+  const row = (await useDatabase().select({ at: documents.moderationRestrictedAt, reportId: documents.moderationReportId })
+    .from(documents).where(eq(documents.docId, doc.docId)).limit(1))[0]
+  return row?.at ? { restrictedAt: row.at, reportId: row.reportId } : null
+}
+
 /**
- * Set the password hash AND flip accessMode to password-protected in one
- * write. Called by /password action=set.
+ * Restrict (moderation decision) or lift (platform admin). Restricting
+ * also makes the document private and drops its password in the same
+ * statement; lifting changes nothing else (the owner re-shares).
  */
-/** Share-link controls (WP9). */
-export async function setShareSettings(docId: string, settings: { shareExpiresAt: Date | null, shareNoDownload: boolean }): Promise<void> {
+export async function setModerationRestriction(doc: DocAccess<'manage'>, restriction: { reportId: string } | null): Promise<void> {
+  const set = restriction === null
+    ? { moderationRestrictedAt: null, moderationReportId: null }
+    : { accessMode: 'private' as const, passwordHash: null, moderationRestrictedAt: new Date(), moderationReportId: restriction.reportId }
+  const result = await useDatabase().update(documents).set(set)
+    .where(eq(documents.docId, doc.docId)).returning({ docId: documents.docId })
+  if (result.length === 0) throw new NotFoundError('Document')
+}
+
+/** Update the share-link controls. */
+export async function setShareSettings(doc: DocAccess<'manage'>, settings: { shareExpiresAt: Date | null, shareNoDownload: boolean }): Promise<void> {
   const result = await useDatabase().update(documents).set(settings)
-    .where(eq(documents.docId, docId))
+    .where(eq(documents.docId, doc.docId))
     .returning({ docId: documents.docId })
   if (result.length === 0) throw new NotFoundError('Document')
 }
 
-export async function setDocPassword(docId: string, passwordHash: string): Promise<void> {
+/** Set the password hash AND flip accessMode to password-protected in one write. */
+export async function setDocPassword(doc: DocAccess<'manage'>, passwordHash: string): Promise<void> {
+  const docId = doc.docId
   const db = useDatabase()
   await db
     .update(documents)
@@ -389,7 +292,8 @@ export async function setDocPassword(docId: string, passwordHash: string): Promi
  * Clear the password AND flip accessMode to open-edit. Called by
  * /password action=remove.
  */
-export async function clearDocPassword(docId: string): Promise<void> {
+export async function clearDocPassword(doc: DocAccess<'manage'>): Promise<void> {
+  const docId = doc.docId
   const db = useDatabase()
   await db
     .update(documents)
@@ -399,10 +303,11 @@ export async function clearDocPassword(docId: string): Promise<void> {
 
 /**
  * Bump the lastActive timestamp. Called from the internal activity
- * logger on every `edit` event — separated from updateDocMeta because
+ * logger on every `edit` event, separated from updateDocMeta because
  * it's hot-path and doesn't need the returning() check.
  */
-export async function bumpLastActive(docId: string): Promise<void> {
+export async function bumpLastActive(doc: DocAccess<'write'>): Promise<void> {
+  const docId = doc.docId
   const db = useDatabase()
   await db
     .update(documents)
@@ -414,17 +319,18 @@ export async function bumpLastActive(docId: string): Promise<void> {
  * Delete just the documents row. The full cascade (S3 + activity +
  * uploads + sync notify) lives in documentLifecycle.deleteDocument.
  */
-export async function deleteDocRow(docId: string): Promise<void> {
+export async function deleteDocRow(doc: DocAccess<'delete'>): Promise<void> {
+  const docId = doc.docId
   const db = useDatabase()
   await db.delete(documents).where(eq(documents.docId, docId))
 }
 
 /**
- * List docs owned by a user — powers the "My Documents" dashboard.
+ * List docs owned by a user, powers the "My Documents" dashboard.
  * workspaceId is included so the Move modal can preselect the doc's
  * current workspace.
  */
-export async function listOwnedByUser(userId: number): Promise<Array<{
+export async function listOwnedByUser(self: UserScope): Promise<Array<{
   docId: string
   title: string
   description: string
@@ -449,7 +355,7 @@ export async function listOwnedByUser(userId: number): Promise<Array<{
       workspaceId: documents.workspaceId
     })
     .from(documents)
-    .where(eq(documents.ownerId, userId))
+    .where(eq(documents.ownerId, self.userId))
     .orderBy(sql`${documents.lastActive} desc`)
 }
 
@@ -457,7 +363,7 @@ export async function listOwnedByUser(userId: number): Promise<Array<{
  * Every docId we know about. Used by orphan-cleanup to reconcile
  * against S3's prefix list.
  */
-export async function listAllDocIds(): Promise<string[]> {
+export async function listAllDocIds(_by: SystemActor): Promise<string[]> {
   const db = useDatabase()
   const rows = await db.select({ docId: documents.docId }).from(documents)
   return rows.map(r => r.docId)
@@ -467,7 +373,8 @@ export async function listAllDocIds(): Promise<string[]> {
  * List every docId in a workspace. Used by the membership-change path
  * (kick JWTs) and the workspace delete cascade.
  */
-export async function listDocIdsInWorkspace(workspaceId: string): Promise<string[]> {
+export async function listDocIdsInWorkspace(ws: WorkspaceAccess<'member'>): Promise<string[]> {
+  const workspaceId = ws.workspaceId
   const db = useDatabase()
   const rows = await db
     .select({ docId: documents.docId })
@@ -480,10 +387,7 @@ export async function listDocIdsInWorkspace(workspaceId: string): Promise<string
  * Full doc list for a workspace with per-row "isOwner" flag for the
  * calling user. Used by GET /api/workspaces/:id.
  */
-export async function listWorkspaceDocsWithOwnerFlag(
-  workspaceId: string,
-  actorUserId: number
-): Promise<Array<{
+export async function listWorkspaceDocsWithOwnerFlag(ws: WorkspaceAccess<'member'>): Promise<Array<{
   docId: string
   title: string
   description: string
@@ -495,6 +399,9 @@ export async function listWorkspaceDocsWithOwnerFlag(
   ownerId: number | null
   isOwner: boolean
 }>> {
+  const workspaceId = ws.workspaceId
+  // `isOwner` is relative to whoever holds the proof (no user: false).
+  const actorUserId = proofUserId(ws) ?? -1
   const db = useDatabase()
   return db
     .select({
@@ -512,4 +419,48 @@ export async function listWorkspaceDocsWithOwnerFlag(
     .from(documents)
     .where(eq(documents.workspaceId, workspaceId))
     .orderBy(sql`${documents.lastActive} desc`)
+}
+
+/**
+ * The metadata a viewer of the document gets (`GET /api/docs/:id/meta`):
+ * an explicit projection without the password hash or creator key.
+ */
+export async function getDocMetaForViewer(doc: DocAccess<'view'>) {
+  return (await useDatabase()
+    .select({
+      id: documents.id,
+      docId: documents.docId,
+      ownerId: documents.ownerId,
+      title: documents.title,
+      accessMode: documents.accessMode,
+      sizeBytes: documents.sizeBytes,
+      wordCount: documents.wordCount,
+      theme: documents.theme,
+      description: documents.description,
+      audience: documents.audience,
+      language: documents.language,
+      templateId: documents.templateId,
+      createdAt: documents.createdAt,
+      lastActive: documents.lastActive
+    })
+    .from(documents)
+    .where(eq(documents.docId, doc.docId))
+    .limit(1))[0] ?? null
+}
+
+/** What the audit trail keeps of a document that is about to be deleted. */
+export async function getDocForDeletion(doc: DocAccess<'delete'>): Promise<{ title: string, accessMode: AccessMode, ownerId: number | null, workspaceId: string | null } | null> {
+  return (await useDatabase()
+    .select({ title: documents.title, accessMode: documents.accessMode, ownerId: documents.ownerId, workspaceId: documents.workspaceId })
+    .from(documents)
+    .where(eq(documents.docId, doc.docId))
+    .limit(1))[0] ?? null
+}
+
+/** Anonymous documents (no owner, no workspace) without activity since `cutoff`: the inactive-doc sweep's candidates. */
+export async function listInactiveAnonymousDocIds(_by: SystemActor, cutoff: Date): Promise<Array<{ docId: string }>> {
+  return useDatabase()
+    .select({ docId: documents.docId })
+    .from(documents)
+    .where(and(isNull(documents.ownerId), isNull(documents.workspaceId), lt(documents.lastActive, cutoff)))
 }

@@ -1,27 +1,27 @@
 // SSRF lockdown for the renderer sidecar. The renderer's Chromium reaches the
 // app container directly (no Traefik, so no CSP) and used to fetch ANY URL a
-// document's markdown pointed at — internal services, cloud metadata — while
+// document's markdown pointed at, internal services, cloud metadata, while
 // producing a PDF/PNG. These tests plant two HTTP canaries on the host (the
 // renderer reaches them via host.docker.internal, exactly like it reaches the
 // app on :3101) and assert which of them a render touches:
 //
 //   - ALLOWED canary: its origin is listed in RENDERER_ALLOWED_ORIGINS on the
-//     renderer-test service (docker-compose.test.yml). Positive control — it
+//     renderer-test service (deploy/compose/compose.test.yml). Positive control, it
 //     proves the allowlist is configurable and that a render CAN fetch images.
 //   - BLOCKED canary: an ephemeral port nobody allowed. Must see zero hits.
 //
 // Test stack required: postgres-test + valkey-test + seaweedfs-test +
-// renderer-test (docker-compose.test.yml).
+// renderer-test (deploy/compose/compose.test.yml).
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import * as Y from 'yjs'
-import { resetDb, testDb, ensureYjsTable } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { anonClient } from '../setup/client'
 import { createDoc, createUser } from '../setup/fixtures'
 
-// MUST match RENDERER_ALLOWED_ORIGINS on renderer-test in docker-compose.test.yml.
+// MUST match RENDERER_ALLOWED_ORIGINS on renderer-test in deploy/compose/compose.test.yml.
 const ALLOWED_PORT = 3187
 
 // 1x1 transparent PNG.
@@ -65,7 +65,7 @@ async function insertYjsRow(docname: string, content: string): Promise<void> {
   const ydoc = new Y.Doc()
   ydoc.getText('content').insert(0, content)
   await testDb().query(
-    `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1')`,
+    `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2)`,
     [docname, Buffer.from(Y.encodeStateAsUpdate(ydoc))]
   )
 }
@@ -84,7 +84,6 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await resetDb()
-  await ensureYjsTable()
   allowed.hits.length = 0
   blocked.hits.length = 0
 })
@@ -106,15 +105,14 @@ describe('renderer network lockdown (SSRF)', () => {
 
   it('never requests an origin outside the allowlist', async () => {
     const status = await renderPdfWith(`# Doc\n\n![evil](http://host.docker.internal:${blocked.port}/internal-secret.png)\n`)
-    // A blocked image degrades to a broken image — the render itself succeeds.
+    // A blocked image degrades to a broken image, the render itself succeeds.
     expect(status).toBe(302)
     expect(blocked.hits).toEqual([])
   }, 90_000)
 
-  // The print page holds a file-access token for the document's own
-  // uploads. A URL that merely CONTAINS the upload path (here on an
-  // allowed origin) must not get it — it used to be appended to every
-  // `/api/files/<docId>/…` match in the HTML.
+  // The print page holds a file-access token for the document's own uploads. A URL that merely CONTAINS the
+  // upload path (here on an allowed origin) must not get it: the token must not be appended to every
+  // `/api/files/<docId>/…` substring match in the HTML.
   it('never hands the file-access token to a URL that only contains the doc\'s upload path', async () => {
     const status = await renderPdfWith(docId => `# Doc\n\n![t](http://host.docker.internal:${allowed.port}/api/files/${docId}/AbCdEfGhIjKl.png)\n`)
     expect(status).toBe(302)

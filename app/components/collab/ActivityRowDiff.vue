@@ -1,35 +1,14 @@
 <script setup lang="ts">
 import DiffView from './DiffView.vue'
+import type { ApiResponse } from '~/utils/api/client'
 
-// Lazy fetcher that wraps DiffView. ActivityFeed embeds this inside
-// each expanded edit card. We use $fetch (not useFetch) because:
-//   - The component mounts once per expansion; no SSR involved.
-//   - We want manual control over loading / error / unavailable
-//     states for the three distinct outcomes:
-//       - 200 → render the diff
-//       - 410 → "diff unavailable for this row" (pre-feature data)
-//       - other 4xx/5xx → generic error with retry link
-//
-// Performance: ~150ms for an average doc (replay + diff + roundtrip).
-// We don't show a skeleton for that short a wait — a centered spinner
-// is enough and matches what the comments panel does on first load.
+// Fetches and renders the diff for an expanded edit card. Uses $fetch rather
+// than useFetch (mounts once per expansion, no SSR) to control the three
+// outcomes: 200 renders the diff, 410 means the diff is unavailable for the
+// row, anything else is a generic error with retry. No skeleton: the fetch is
+// short, a spinner suffices.
 
-interface DiffLine { kind: 'context' | 'add' | 'remove', text: string }
-interface DiffHunk {
-  oldStart: number
-  oldLines: number
-  newStart: number
-  newLines: number
-  lines: DiffLine[]
-}
-interface DiffResponse {
-  activityId: number
-  before: string
-  after: string
-  hunks: DiffHunk[]
-  truncated: boolean
-  totalHunks: number
-}
+type DiffResponse = ApiResponse<'/api/docs/:docId/activity/:activityId/diff', 'get'>
 
 const props = defineProps<{
   docId: string
@@ -39,7 +18,7 @@ const props = defineProps<{
 const { t } = useI18n()
 
 const data = ref<DiffResponse | null>(null)
-const error = ref<{ kind: 'unavailable' | 'unknown', message?: string } | null>(null)
+const error = ref<{ kind: 'unavailable' | 'unknown' } | null>(null)
 const loading = ref(true)
 
 async function load() {
@@ -47,25 +26,23 @@ async function load() {
   error.value = null
   data.value = null
   try {
-    data.value = await $fetch<DiffResponse>(
-      `/api/docs/${props.docId}/activity/${props.activityId}/diff`
-    )
+    data.value = await apiFetch('/api/docs/:docId/activity/:activityId/diff', {
+      path: { docId: props.docId, activityId: props.activityId }
+    })
   } catch (e: unknown) {
     const status = (e as { statusCode?: number, status?: number })?.statusCode
       ?? (e as { status?: number })?.status
     if (status === 410) {
       error.value = { kind: 'unavailable' }
     } else {
-      const msg = e instanceof Error ? e.message : String(e)
-      error.value = { kind: 'unknown', message: msg }
+      error.value = { kind: 'unknown' }
     }
   } finally {
     loading.value = false
   }
 }
 
-// Fetch on mount. The parent guards mount/unmount via the expansion
-// state, so this also acts as a "fetch when first expanded."
+// The parent mounts this only on expansion, so this fetches on first expand.
 onMounted(load)
 </script>
 

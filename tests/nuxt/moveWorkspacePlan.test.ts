@@ -1,13 +1,22 @@
 // @vitest-environment nuxt
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { defineComponent, h, ref } from 'vue'
-import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
+import { mountSuspended, mockNuxtImport, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { DocumentMoveWorkspaceModal } from '#components'
 
-// Moving a document out of a Team / Business workspace (WP6): the modal
+// Moving a document out of a Team / Business workspace: the modal
 // warns that the doc's features then follow the new place's plan, but
 // only on a step down (Business → Team, or out of any plan).
+
+// The workspace list is the signed-in caller's (a session-gated query).
+mockNuxtImport('useUserSession', () => () => ({
+  loggedIn: ref(true),
+  user: ref({ id: 1, name: 'Maya' }),
+  session: ref({}),
+  fetch: vi.fn(),
+  clear: vi.fn()
+}))
 
 registerEndpoint('/api/user/workspaces', () => [
   { workspaceId: 'ws-biz', name: 'Acme', role: 'admin', plan: 'business' },
@@ -57,7 +66,7 @@ function warning(): string | null {
   return document.body.querySelector('[data-testid="move-leaves-plan"]')?.textContent ?? null
 }
 
-describe('MoveWorkspaceModal — leaving a plan', () => {
+describe('MoveWorkspaceModal: leaving a plan', () => {
   it('warns when a doc leaves a Business workspace for one without a plan, or for Team', async () => {
     await mountModal('ws-biz')
     expect(warning()).toBeNull()

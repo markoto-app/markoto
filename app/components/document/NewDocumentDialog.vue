@@ -1,13 +1,15 @@
 <script setup lang="ts">
+import { useSavedThemes } from '~/queries/themes'
+import type { ApiResponse } from '~/utils/api/client'
 import { jsonEqual } from '~~/shared/utils/jsonEqual'
 import type { DocTheme } from '~~/shared/types/theme'
 import { AUDIENCE_KINDS, type AudienceKind } from '~~/shared/audiences'
 import { LANGUAGE_PRESETS, LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
-import { THEME_PRESETS, type ThemePresetCategory } from '~~/shared/utils/themePresets'
-import { THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/themeFonts'
+import { THEME_PRESETS, type ThemePresetCategory } from '~~/shared/utils/theme/themePresets'
+import { THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/theme/themeFonts'
 import { DEFAULT_TEMPLATE_ID, getTemplate, resolveTemplateId } from '~~/shared/templates'
 
-// Same trick as ThemeEditorPanel — link every picker font's (same-origin)
+// Same trick as ThemeEditorPanel, link every picker font's (same-origin)
 // stylesheet so each preset card can render its heading in its actual
 // font face. Otherwise we'd see "Modern" / "arXiv preprint" / etc. all in
 // the system fallback and lose the visual signal. The stylesheets only
@@ -25,16 +27,16 @@ if (import.meta.client) {
 /**
  * Dialog shown when the user clicks "New document". Only the title is in
  * view; the rest sits in two collapsed rows that show the current choice
- * as a one-line summary, so a new user sees a name field and a button —
+ * as a one-line summary, so a new user sees a name field and a button,
  * and that there ARE options, without having to read them:
  *
- *   - Template — ONE choice of text + design (`shared/templates`): a
+ *   - Template: ONE choice of text + design (`shared/templates`): a
  *                picture of each template's first page in audience tabs.
  *                Blank gets the user's default design (the workspace
  *                default, else markoto); each saved design is offered as
  *                "Blank in <design>". The design can be changed later in
  *                the editor's theme panel.
- *   - Details  — description / language / audience (AI prompt context)
+ *   - Details : description / language / audience (AI prompt context)
  *
  * The template defaults to Demo for the first document created in this
  * browser and to Blank afterwards (`FIRST_DOC_KEY`), or to
@@ -81,7 +83,7 @@ const choice = ref<Choice>({ kind: 'template', id: DEFAULT_TEMPLATE_ID })
 const designOverride = ref<string | null>(null)
 
 // The first document shows what markoto can do (Demo); after that, people
-// want their own page (Blank). Remembered per browser — reset by logout,
+// want their own page (Blank). Remembered per browser, reset by logout,
 // which clears localStorage, and absent in private windows: then the demo
 // shows once more, which is harmless.
 const FIRST_DOC_KEY = 'markoto-created-first-doc'
@@ -95,7 +97,7 @@ function hasCreatedDoc(): boolean {
 function rememberCreatedDoc(): void {
   try {
     globalThis.localStorage?.setItem(FIRST_DOC_KEY, '1')
-  } catch { /* storage blocked — the demo shows again next time */ }
+  } catch { /* storage blocked, the demo shows again next time */ }
 }
 function defaultTemplateId(): string {
   return resolveTemplateId(props.initialTemplateId) ?? (hasCreatedDoc() ? 'blank' : DEFAULT_TEMPLATE_ID)
@@ -111,48 +113,31 @@ function setSection(section: Section, open: boolean) {
   openSection.value = open ? section : (openSection.value === section ? null : openSection.value)
 }
 
-const { loggedIn } = useUserSession()
-
-// Caller's saved themes — only fetched for logged-in users. Each becomes a
-// "Blank in <design>" card, and names a workspace default that matches one.
-interface SavedTheme {
-  themeId: string
-  name: string
-  description?: string
-  theme: DocTheme
-  createdAt: string
-  updatedAt: string
-}
-const savedThemes = ref<SavedTheme[]>([])
+// Caller's saved themes: only fetched for logged-in users, once the dialog
+// is open (it stays mounted while closed on the workspace page). Each
+// becomes a "Blank in <design>" card, and names a workspace default that
+// matches one. Saving a theme anywhere invalidates the list.
+const { themes: savedThemes } = useSavedThemes(() => props.open)
 
 // Workspace default theme (when filing into a workspace): the design Blank
 // gets. Without one, Blank is in the markoto design.
 const workspaceDefaultTheme = ref<DocTheme | null>(null)
-// The workspace's own templates (WP10c, brand kit): a copy of a workspace
+// The workspace's own templates: a copy of a workspace
 // document's current text + design. Only when filing into a workspace.
-interface WorkspaceTemplate { id: string, name: string, description: string, docTitle: string }
+type WorkspaceTemplate = ApiResponse<'/api/workspaces/:wsId/templates', 'get'>['templates'][number]
 const workspaceTemplates = ref<WorkspaceTemplate[]>([])
 
 async function loadThemeContext() {
-  // 1. The user's saved themes — only meaningful when logged in.
-  if (loggedIn.value) {
-    try {
-      const res = await $fetch<{ themes: SavedTheme[] }>('/api/themes')
-      savedThemes.value = res.themes
-    } catch { /* non-fatal — list stays empty */ }
-  } else {
-    savedThemes.value = []
-  }
-  // 2. The workspace default — only when filing into a workspace.
+  // The workspace default: only when filing into a workspace.
   if (props.workspaceId) {
     try {
-      const res = await $fetch<{ workspace: { defaultTheme: DocTheme | null } }>(
-        `/api/workspaces/${props.workspaceId}`
-      )
+      const res = await apiFetch('/api/workspaces/:wsId', {
+        path: { wsId: props.workspaceId }
+      })
       workspaceDefaultTheme.value = res.workspace.defaultTheme
     } catch { workspaceDefaultTheme.value = null }
     try {
-      const res = await $fetch<{ templates: WorkspaceTemplate[] }>(`/api/workspaces/${props.workspaceId}/templates`)
+      const res = await apiFetch('/api/workspaces/:wsId/templates', { path: { wsId: props.workspaceId } })
       workspaceTemplates.value = res.templates
     } catch { workspaceTemplates.value = [] }
   } else {
@@ -216,8 +201,7 @@ watch(() => props.open, async (next) => {
   openSection.value = null
   templateTab.value = 'all'
   languageModel.value = defaultLanguageItem()
-  // Pull saved themes + workspace default fresh on every open so a
-  // theme just-saved in the editor is immediately pickable here.
+  // Pull the workspace default + templates fresh on every open.
   await loadThemeContext()
   // A workspace with its own templates opens on them.
   if (workspaceTemplates.value.length > 0 && !props.initialTemplateId) templateTab.value = 'workspace'
@@ -273,48 +257,56 @@ const detailsSummary = computed(() => {
 
 const submitting = ref(false)
 
+/** The fields typed in the dialog, as the create endpoint takes them. */
+function documentFields(): Record<string, unknown> {
+  const body: Record<string, unknown> = {}
+  if (props.workspaceId) body.workspaceId = props.workspaceId
+  const trimmedTitle = title.value.trim()
+  if (trimmedTitle) body.title = trimmedTitle
+  const trimmedDesc = description.value.trim()
+  if (trimmedDesc) body.description = trimmedDesc
+  body.audience = audience.value
+  const lang = (languageModel.value?.value ?? '').trim()
+  if (lang) body.language = lang
+  return body
+}
+
+/**
+ * Template + design → API. A template brings its design (sent as
+ * `themePreset`, so an older server applies it too). Blank sends no design
+ * in a workspace with a default, the server applies that default, and the
+ * markoto preset otherwise. "Blank in <saved design>" sends the saved theme.
+ * `themePreset` and `themeId` are mutually exclusive, the server rejects both.
+ */
+function designFields(c: typeof choice.value): Record<string, unknown> {
+  if (c.kind === 'saved') return { templateId: 'blank', themeId: c.themeId }
+  if (c.kind !== 'template') return {}
+  const design = designOverride.value ?? getTemplate(c.id)?.design ?? null
+  if (design !== null) return { templateId: c.id, themePreset: design }
+  return workspaceDefaultTheme.value ? { templateId: c.id } : { templateId: c.id, themePreset: 'markoto' }
+}
+
+async function createDocument(): Promise<string> {
+  const c = choice.value
+  if (c.kind === 'workspace' && props.workspaceId) {
+    // A workspace template copies its document (text + design + images);
+    // the title is the one typed here, else the template's name.
+    const trimmedTitle = title.value.trim()
+    const res = await apiFetch('/api/workspaces/:wsId/templates/:templateId/documents', {
+      method: 'post',
+      path: { wsId: props.workspaceId, templateId: c.templateId },
+      body: trimmedTitle ? { title: trimmedTitle } : {}
+    })
+    return res.docId
+  }
+  return anonDoc.createDocument({ ...documentFields(), ...designFields(c) })
+}
+
 async function submit() {
   if (submitting.value) return
   submitting.value = true
   try {
-    const body: Record<string, unknown> = {}
-    if (props.workspaceId) body.workspaceId = props.workspaceId
-    const trimmedTitle = title.value.trim()
-    if (trimmedTitle) body.title = trimmedTitle
-    const trimmedDesc = description.value.trim()
-    if (trimmedDesc) body.description = trimmedDesc
-    body.audience = audience.value
-    const lang = (languageModel.value?.value ?? '').trim()
-    if (lang) body.language = lang
-    // Template + design → API. A template brings its design (sent as
-    // `themePreset`, so an older server applies it too). Blank sends no
-    // design in a workspace with a default — the server applies that
-    // default — and the markoto preset otherwise. "Blank in <saved
-    // design>" sends the saved theme. `themePreset` and `themeId` are
-    // mutually exclusive — the server rejects both.
-    const c = choice.value
-    if (c.kind === 'workspace' && props.workspaceId) {
-      // A workspace template copies its document (text + design + images);
-      // the title is the one typed here, else the template's name.
-      const res = await $fetch<{ docId: string }>(`/api/workspaces/${props.workspaceId}/templates/${c.templateId}/documents`, {
-        method: 'POST',
-        body: trimmedTitle ? { title: trimmedTitle } : {}
-      })
-      rememberCreatedDoc()
-      emit('update:open', false)
-      emit('created', res.docId)
-      return
-    }
-    if (c.kind === 'saved') {
-      body.templateId = 'blank'
-      body.themeId = c.themeId
-    } else if (c.kind === 'template') {
-      body.templateId = c.id
-      const design = designOverride.value ?? getTemplate(c.id)?.design ?? null
-      if (design !== null) body.themePreset = design
-      else if (!workspaceDefaultTheme.value) body.themePreset = 'markoto'
-    }
-    const docId = await anonDoc.createDocument(body)
+    const docId = await createDocument()
     rememberCreatedDoc()
     emit('update:open', false)
     emit('created', docId)
@@ -333,6 +325,7 @@ async function submit() {
     :title="t('newDoc.title')"
     :description="t('newDoc.subtitle')"
     :ui="{ content: 'max-w-xl', header: 'shrink-0', title: 'pe-8', description: 'pe-8' }"
+    :content="initialFocus('newdoc-title')"
     data-testid="new-doc-dialog"
     @update:open="(v: boolean) => emit('update:open', v)"
   >
@@ -343,22 +336,20 @@ async function submit() {
       >
         <!-- Title: the one thing in view ─────────────────────── -->
         <div>
-          <label
-            for="newdoc-title"
-            class="sr-only"
+          <UFormField
+            :label="t('newDoc.titleLabel')"
+            :ui="{ labelWrapper: 'sr-only', container: 'mt-0' }"
           >
-            {{ t('newDoc.titleLabel') }}
-          </label>
-          <UInput
-            id="newdoc-title"
-            v-model="title"
-            :placeholder="t('newDoc.titlePlaceholder')"
-            :maxlength="255"
-            size="xl"
-            data-testid="newdoc-title-input"
-            class="w-full"
-            autofocus
-          />
+            <UInput
+              id="newdoc-title"
+              v-model="title"
+              :placeholder="t('newDoc.titlePlaceholder')"
+              :maxlength="255"
+              size="xl"
+              data-testid="newdoc-title-input"
+              class="w-full"
+            />
+          </UFormField>
         </div>
 
         <!-- Options: collapsed rows with the current choice ────── -->
@@ -404,7 +395,7 @@ async function submit() {
                   @select="(tpl) => pickTemplate(tpl.id)"
                 >
                   <template #before="{ tab: slotTab }">
-                    <!-- The workspace's own templates (WP10c). -->
+                    <!-- The workspace's own templates. -->
                     <template v-if="slotTab === 'workspace'">
                       <DocumentPictureCard
                         v-for="wt in workspaceTemplates"
@@ -471,61 +462,57 @@ async function submit() {
                   {{ t('newDoc.detailsHelp') }}
                 </p>
                 <div>
-                  <label
-                    for="newdoc-description"
-                    class="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5"
+                  <UFormField
+                    :label="t('newDoc.descriptionLabel')"
+                    :ui="{ label: 'text-xs font-semibold uppercase tracking-wide text-muted', container: 'mt-1.5' }"
                   >
-                    {{ t('newDoc.descriptionLabel') }}
-                  </label>
-                  <UTextarea
-                    id="newdoc-description"
-                    v-model="description"
-                    :placeholder="t('newDoc.descriptionPlaceholder')"
-                    :rows="2"
-                    :maxrows="5"
-                    autoresize
-                    data-testid="newdoc-description-input"
-                    class="w-full"
-                  />
+                    <UTextarea
+                      id="newdoc-description"
+                      v-model="description"
+                      :placeholder="t('newDoc.descriptionPlaceholder')"
+                      :rows="2"
+                      :maxrows="5"
+                      autoresize
+                      data-testid="newdoc-description-input"
+                      class="w-full"
+                    />
+                  </UFormField>
                   <div class="text-xs text-muted mt-1 text-right">
                     {{ description.length }} / 500
                   </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label
-                      for="newdoc-language"
-                      class="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5"
+                    <UFormField
+                      :label="t('newDoc.languageLabel')"
+                      :ui="{ label: 'text-xs font-semibold uppercase tracking-wide text-muted', container: 'mt-1.5' }"
                     >
-                      {{ t('newDoc.languageLabel') }}
-                    </label>
-                    <UInputMenu
-                      id="newdoc-language"
-                      v-model="languageModel"
-                      :items="languageItems"
-                      :placeholder="t('documentPanel.language.placeholder')"
-                      :create-item="true"
-                      :create-item-position="'bottom'"
-                      value-key="value"
-                      data-testid="newdoc-language-input"
-                      class="w-full"
-                      @create="(text: string) => languageModel = onCreateLanguage(text)"
-                    />
+                      <UInputMenu
+                        id="newdoc-language"
+                        v-model="languageModel"
+                        :items="languageItems"
+                        :placeholder="t('documentPanel.language.placeholder')"
+                        :create-item="true"
+                        :create-item-position="'bottom'"
+                        data-testid="newdoc-language-input"
+                        class="w-full"
+                        @create="(text: string) => languageModel = onCreateLanguage(text)"
+                      />
+                    </UFormField>
                   </div>
                   <div>
-                    <label
-                      for="newdoc-audience"
-                      class="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5"
+                    <UFormField
+                      :label="t('newDoc.audienceLabel')"
+                      :ui="{ label: 'text-xs font-semibold uppercase tracking-wide text-muted', container: 'mt-1.5' }"
                     >
-                      {{ t('newDoc.audienceLabel') }}
-                    </label>
-                    <USelect
-                      id="newdoc-audience"
-                      v-model="audience"
-                      :items="audienceItems"
-                      data-testid="newdoc-audience-select"
-                      class="w-full"
-                    />
+                      <USelect
+                        id="newdoc-audience"
+                        v-model="audience"
+                        :items="audienceItems"
+                        data-testid="newdoc-audience-select"
+                        class="w-full"
+                      />
+                    </UFormField>
                   </div>
                 </div>
                 <p

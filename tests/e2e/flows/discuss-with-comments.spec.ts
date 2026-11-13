@@ -4,7 +4,7 @@ import { test, expect } from '../fixtures/flow'
 //
 // User-job: leave a thought on a specific passage so collaborators
 // can react. Job done when a comment is posted, replied to, and
-// resolved — the full thread arc.
+// resolved: the full thread arc.
 //
 // Doubles as the canonical e2e smoke test for the comments pipeline:
 // every step has a real assertion behind it (the post lands a thread
@@ -16,7 +16,7 @@ import { test, expect } from '../fixtures/flow'
 // otherwise notice (the new thread, the resolved section).
 //
 // Two people: Maya (the owner) comments and resolves, Sam (a spawned,
-// separately signed-in browser) replies — a discussion, not one
+// separately signed-in browser) replies, a discussion, not one
 // anonymous user talking to themselves.
 
 test('Have a discussion', async ({ page, flow, editor }) => {
@@ -41,17 +41,17 @@ test('Have a discussion', async ({ page, flow, editor }) => {
   // Sam (spawned below) joins through the link: anyone with it can edit.
   await editor.page.setAccessMode('open-edit')
 
-  // ─── Discuss in your doc ────────────────────────────────────────
+  // Discuss in your doc
   await flow.heading('Have a discussion', 3)
   await flow.narrate(
     'markoto documents have threaded comments built in. Highlight a passage, '
-    + 'leave a note, and your collaborators see it the moment you post — '
+    + 'leave a note, and your collaborators see it the moment you post, '
     + 'reply, resolve, or @-mention a workspace member without leaving '
     + 'the doc.'
   )
 
   // Click the line first to place the caret, then Home + Shift+End to
-  // select it — more cross-browser-reliable than triple-click.
+  // select it: more cross-browser-reliable than triple-click.
   const target = page.locator('.cm-content').getByText('Public beta opens on Saturday').first()
   await flow.step(
     'Highlight the passage you want to comment on',
@@ -65,8 +65,8 @@ test('Have a discussion', async ({ page, flow, editor }) => {
   await expect(editor.page.comments.selectionPopupTrigger).toBeVisible()
 
   // Click the "Add comment" pill. The pill appears as a floating
-  // popup ABOVE the selection — not adjacent to the obvious "Comments"
-  // sidebar tab — so first-time readers often don't notice it. An
+  // popup ABOVE the selection, not adjacent to the obvious "Comments"
+  // sidebar tab: so first-time readers often don't notice it. An
   // arrow annotation on the approach frame fixes that.
   await flow.click(
     'Click "Add comment" to start a thread',
@@ -75,7 +75,7 @@ test('Have a discussion', async ({ page, flow, editor }) => {
       annotations: [
         { label: 'add-comment pill', selector: '[data-testid="comment-selection-popup-trigger"]', kind: 'arrow' }
       ],
-      result: 'The comments sidebar opens — the composer is focused, ready for your note.',
+      result: 'The comments sidebar opens, the composer is focused, ready for your note.',
       after: () => editor.page.comments.composerInput.waitFor({ state: 'visible' })
     }
   )
@@ -98,7 +98,7 @@ test('Have a discussion', async ({ page, flow, editor }) => {
     'Should we open on Monday instead, when support is fully staffed?'
   )
 
-  // Submit — the thread lands in the sidebar AND the passage gets a
+  // Submit: the thread lands in the sidebar AND the passage gets a
   // yellow underline in the editor. Highlights the new thread because
   // it's a fresh element the user wouldn't notice otherwise.
   await flow.click(
@@ -106,7 +106,7 @@ test('Have a discussion', async ({ page, flow, editor }) => {
     editor.page.comments.composerSubmit,
     {
       force: editor.isMobile,
-      result: 'Your comment lands in the sidebar — the passage gets a yellow underline.',
+      result: 'Your comment lands in the sidebar, the passage gets a yellow underline.',
       highlights: [
         { label: 'Your new thread', selector: '[data-testid="comment-thread"]' }
       ]
@@ -115,7 +115,7 @@ test('Have a discussion', async ({ page, flow, editor }) => {
 
   // Assertions for thread + decoration. On mobile the comments sidebar
   // overlays the editor full-screen so the .cm-comment-anchor span is
-  // hidden behind it — toBeAttached confirms the Y.js → decoration
+  // hidden behind it: toBeAttached confirms the Y.js → decoration
   // pipeline fired without depending on whether the editor is the
   // currently-foregrounded pane.
   const newThread = editor.page.comments.thread.first()
@@ -123,7 +123,7 @@ test('Have a discussion', async ({ page, flow, editor }) => {
   await expect(newThread).toContainText('Should we open on Monday instead')
   await expect(page.locator('.cm-comment-anchor').first()).toBeAttached()
 
-  // ─── Sam replies ───────────────────────────────────────────────────
+  // Sam replies
   await flow.heading('Your collaborator replies', 3)
   await flow.narrate(
     'Sam opens the same document. The thread is waiting in the Comments '
@@ -157,7 +157,7 @@ test('Have a discussion', async ({ page, flow, editor }) => {
   await expect(samReplyInput).toHaveValue(REPLY)
   const samReplySubmit = samThread.locator('[data-testid="comment-composer-submit"]')
   if (editor.isMobile) {
-    // Comments BottomSheet portal — DOM-level click (tests/e2e/AGENTS.md).
+    // Comments BottomSheet portal: DOM-level click (tests/e2e/AGENTS.md).
     await samReplySubmit.evaluate((el: HTMLElement) => el.click())
   } else {
     await samReplySubmit.click()
@@ -176,7 +176,7 @@ test('Have a discussion', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Resolve when the discussion is done ───────────────────────────
+  // Resolve when the discussion is done
   await flow.heading('Resolve the thread when you\'re done', 3)
   await flow.narrate(
     'Question answered: resolve the thread. It moves into a "Resolved" '
@@ -189,7 +189,7 @@ test('Have a discussion', async ({ page, flow, editor }) => {
     editor.page.comments.resolveIn(newThread),
     {
       force: editor.isMobile,
-      result: 'The thread leaves the active list — the editor underline disappears.'
+      result: 'The thread leaves the active list, the editor underline disappears.'
     }
   )
 
@@ -206,7 +206,7 @@ test('Have a discussion', async ({ page, flow, editor }) => {
       // what makes resolve-as-archive (vs delete) the trustworthy
       // primitive readers need to see.
       hero: true,
-      result: 'Resolved threads tuck into their own section — out of the way, but recoverable.',
+      result: 'Resolved threads tuck into their own section, out of the way, but recoverable.',
       highlights: [
         { label: 'Resolved section', selector: '[data-testid="comments-resolved-section-heading"]' }
       ]
@@ -217,7 +217,7 @@ test('Have a discussion', async ({ page, flow, editor }) => {
   await expect(editor.page.comments.thread).toHaveCount(1)
 
   // Forward route: comments + AI is the next composability the
-  // reader hasn't seen — same threaded surface, the AI joins as a
+  // reader hasn't seen: same threaded surface, the AI joins as a
   // collaborator on a passage.
   flow.next({
     slug: 'summon-ai-from-a-comment',

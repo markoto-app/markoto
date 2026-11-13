@@ -1,22 +1,26 @@
 <script setup lang="ts">
 import type { WorkspaceMember } from './WorkspaceMemberAvatars.vue'
-import type { WorkspaceSeatBilling } from '~/utils/workspaceBilling'
-import { formatPrice } from '~/utils/pricing'
-import type { PlanPricesResponse } from '~~/shared/config/pricing'
+import type { WorkspaceSeatBilling } from '~/utils/billing/workspaceBilling'
+import { formatPrice } from '~/utils/billing/pricing'
+import { isCurrency } from '~~/shared/config/pricing'
+import type { ApiResponse } from '~/utils/api/client'
+import { useQueryCache } from '@pinia/colada'
+import { useChangeMemberRole, useRemoveMember } from '~/queries/workspaces'
+import { planPricesQuery } from '~/queries/billing'
 
 // Members management modal. Single modal for admin + member views; the role
 // gates feature visibility:
 //   - Admin: add new, change role, remove any (incl. self if not last admin)
 //   - Editor / Viewer: read-only list + "leave workspace" on own row
 //
-// Invite-by-email is the only way in — no typeahead search, so the user
+// Invite-by-email is the only way in, no typeahead search, so the user
 // base can't be enumerated. The server records a PENDING invitation and
 // answers the same way whether or not the address has an account; the
 // person joins only after accepting (dashboard, or the invitation email).
 // Admins see the open invitations below the roster and can revoke them.
 
 type MemberRole = 'admin' | 'editor' | 'viewer'
-// Guests (WP11) see only documents shared with them; no workspace role.
+// Guests see only documents shared with them; no workspace role.
 type InviteRole = MemberRole | 'guest'
 
 const props = defineProps<{
@@ -24,13 +28,13 @@ const props = defineProps<{
   workspaceName: string
   members: WorkspaceMember[]
   myRole: MemberRole
-  // The workspace's plan allows guests (WP11, admins only).
+  // The workspace's plan allows guests (admins only).
   guestsAvailable?: boolean
   myUserId: number
   // Opened from the workspace header's "Invite people" button: focus
   // the email field so the admin can type straight away.
   focusInvite?: boolean
-  // Team / Business subscription (WP3, admins only): paid seats and seats
+  // Team / Business subscription (admins only): paid seats and seats
   // in use (members + open invitations). Null = no seat limit.
   billing?: WorkspaceSeatBilling | null
 }>()
@@ -54,18 +58,16 @@ const adding = ref(false)
 const rowBusy = ref<number | null>(null)
 
 const isAdmin = computed(() => props.myRole === 'admin')
+// Both refresh the caller's workspace list (their own role or membership
+// may be what changed).
+const queryCache = useQueryCache()
+const changeMemberRole = useChangeMemberRole()
+const removeMemberMutation = useRemoveMember()
 
-interface PendingInvite {
-  inviteId: string
-  email: string
-  role: InviteRole
-  invitedByName: string | null
-  createdAt: string
-  expiresAt: string
-}
+type PendingInvite = ApiResponse<'/api/workspaces/:wsId/invites', 'get'>[number]
 const invites = ref<PendingInvite[]>([])
 const inviteBusy = ref<string | null>(null)
-const { showError } = useErrorHandler()
+const { showError, extractError } = useErrorHandler()
 
 async function loadInvites(): Promise<void> {
   if (!isAdmin.value) {
@@ -73,7 +75,7 @@ async function loadInvites(): Promise<void> {
     return
   }
   try {
-    invites.value = await $fetch<PendingInvite[]>(`/api/workspaces/${props.workspaceId}/invites`)
+    invites.value = await apiFetch('/api/workspaces/:wsId/invites', { path: { wsId: props.workspaceId } })
   } catch {
     invites.value = []
   }
@@ -91,13 +93,13 @@ watch(open, (v) => {
 function fmtDate(iso: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  return date.toLocaleDateString(locale.value, { month: 'short', day: 'numeric' })
 }
 
 async function revokeInvite(invite: PendingInvite) {
   inviteBusy.value = invite.inviteId
   try {
-    await $fetch(`/api/workspaces/${props.workspaceId}/invites/${invite.inviteId}`, { method: 'DELETE' })
+    await apiFetch('/api/workspaces/:wsId/invites/:inviteId', { method: 'delete', path: { wsId: props.workspaceId, inviteId: invite.inviteId } })
     invites.value = invites.value.filter(i => i.inviteId !== invite.inviteId)
     emit('billingChanged')
   } catch (e) {
@@ -120,7 +122,7 @@ function roleLabel(role: WorkspaceMember['role']) {
   return t('workspace.roles.viewer')
 }
 
-// "This adds a seat" (WP3): an invite into a workspace whose paid seats
+// "This adds a seat": an invite into a workspace whose paid seats
 // are all taken is refused (409 billing/seats-full); the admin confirms
 // and the invite is sent again with `addSeat: true`, which buys one seat.
 const seatConfirm = ref<{ email: string, seats: number } | null>(null)
@@ -132,20 +134,19 @@ const seatsLabel = computed(() => props.billing
 async function loadSeatPrice() {
   const billing = props.billing
   seatPrice.value = null
-  if (!billing) return
+  if (!billing || !isCurrency(billing.currency)) return
   try {
-    const prices = await $fetch<PlanPricesResponse>('/api/billing/prices')
-    const row = prices.prices[billing.currency]?.[billing.plan]
+    // The cached price table when the billing tab already loaded it.
+    const { data: prices } = await queryCache.refresh(queryCache.ensure(planPricesQuery({ api: apiFetch })))
+    if (!prices) return
+    // The workspace's plan arrives as a plain string; only per-seat plans have a seat price.
+    const row = billing.plan === 'team' || billing.plan === 'business' ? prices.prices[billing.currency]?.[billing.plan] : undefined
     if (!row) return
-    const amount = formatPrice(row[billing.interval], billing.currency.toUpperCase(), locale.value)
+    const amount = formatPrice(billing.interval === 'year' ? row.year : row.month, billing.currency.toUpperCase(), locale.value)
     seatPrice.value = t(billing.interval === 'year' ? 'workspace.billing.pricePerSeatYear' : 'workspace.billing.pricePerSeatMonth', { price: amount })
   } catch {
     seatPrice.value = null
   }
-}
-
-function errorCode(e: unknown): string | undefined {
-  return (e as { data?: { data?: { code?: string } } })?.data?.data?.code
 }
 
 async function addMember(addSeat = false) {
@@ -153,8 +154,9 @@ async function addMember(addSeat = false) {
   if (!email) return
   adding.value = true
   try {
-    await $fetch(`/api/workspaces/${props.workspaceId}/members`, {
-      method: 'POST',
+    await apiFetch('/api/workspaces/:wsId/members', {
+      method: 'post',
+      path: { wsId: props.workspaceId },
       body: { email, role: newRole.value, ...(addSeat ? { addSeat: true } : {}) }
     })
     seatConfirm.value = null
@@ -169,7 +171,7 @@ async function addMember(addSeat = false) {
     newRole.value = 'editor'
     await loadInvites()
   } catch (e) {
-    if (!addSeat && errorCode(e) === 'billing/seats-full' && props.billing) {
+    if (!addSeat && extractError(e).code === 'billing/seats-full' && props.billing) {
       seatConfirm.value = { email, seats: props.billing.seats }
       void loadSeatPrice()
     } else {
@@ -184,20 +186,11 @@ async function changeRole(member: WorkspaceMember, role: 'admin' | 'editor' | 'v
   if (member.role === role) return
   rowBusy.value = member.userId
   try {
-    await $fetch(`/api/workspaces/${props.workspaceId}/members/${member.userId}`, {
-      method: 'PATCH',
-      body: { role }
-    })
+    await changeMemberRole.mutateAsync({ workspaceId: props.workspaceId, userId: member.userId, role })
     localMembers.value = localMembers.value.map(m => m.userId === member.userId ? { ...m, role } : m)
     emit('updated', localMembers.value)
   } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
-    toast.add({
-      title: t('workspace.members.roleChangeFailed'),
-      description: err?.data?.message || err?.message,
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+    showError('workspace.members.roleChangeFailed', e)
   } finally {
     rowBusy.value = null
   }
@@ -206,25 +199,17 @@ async function changeRole(member: WorkspaceMember, role: 'admin' | 'editor' | 'v
 async function removeMember(member: WorkspaceMember) {
   rowBusy.value = member.userId
   try {
-    await $fetch(`/api/workspaces/${props.workspaceId}/members/${member.userId}`, {
-      method: 'DELETE'
-    })
+    await removeMemberMutation.mutateAsync({ workspaceId: props.workspaceId, userId: member.userId })
     const wasMe = member.userId === props.myUserId
     localMembers.value = localMembers.value.filter(m => m.userId !== member.userId)
     emit('updated', localMembers.value)
     if (wasMe) {
-      // Leaving the workspace — close modal + let the parent route away.
+      // Leaving the workspace: close modal + let the parent route away.
       open.value = false
       emit('leave')
     }
   } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
-    toast.add({
-      title: t('workspace.members.removeFailed'),
-      description: err?.data?.message || err?.message,
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+    showError('workspace.members.removeFailed', e)
   } finally {
     rowBusy.value = null
   }
@@ -249,7 +234,7 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
   ]
 }
 
-// Non-admin rendering uses a disabled look for the role chip — no dropdown.
+// Non-admin rendering uses a disabled look for the role chip, no dropdown.
 </script>
 
 <template>
@@ -258,6 +243,7 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
     :title="t('workspace.members.title', { name: workspaceName })"
     :description="isAdmin ? t('workspace.members.adminDescription') : t('workspace.members.memberDescription')"
     :ui="{ content: 'sm:max-w-lg' }"
+    :content="focusInvite ? initialFocus('workspace-invite-email') : undefined"
   >
     <template #body>
       <div class="space-y-4">
@@ -405,12 +391,12 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
           </p>
           <div class="flex gap-2">
             <UInput
+              id="workspace-invite-email"
               v-model="newEmail"
               type="email"
               :placeholder="t('workspace.members.emailPlaceholder')"
               class="flex-1"
               :ui="{ base: 'w-full' }"
-              :autofocus="focusInvite"
               data-testid="workspace-invite-email"
               @keydown.enter="addMember()"
             />

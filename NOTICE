@@ -12,6 +12,37 @@ ioredis, Stripe SDK, LiteLLM, and Markitdown. The full dependency set and
 license metadata are recorded in package.json / bun.lock of each workspace
 (root, sync-server/, renderer/, markitdown-server/).
 
-renderer/seccomp.json is derived from the Moby project's default seccomp profile
+deploy/config/renderer/seccomp.json is derived from the Moby project's default seccomp profile
 (https://github.com/moby/profiles, seccomp/default.json), licensed under the
 Apache License 2.0, with one added rule for Chromium's sandbox.
+
+Bundled fonts (committed under fonts/, served from this origin; each directory
+carries its licence and manifest):
+- TeX Gyre Termes and TeX Gyre Heros (fonts/tex-gyre-*), GUST e-foundry,
+  GUST Font License (LPPL 1.3c based), http://www.gust.org.pl/projects/e-foundry/tex-gyre
+- Latin Modern Roman and Latin Modern Mono (fonts/latin-modern-*), GUST
+  e-foundry, GUST Font License, http://www.gust.org.pl/projects/e-foundry/latin-modern
+- Greek companion files in fonts/latin-modern-*/cmu-greek-*, subset of CM
+  Unicode 0.7.0 by Andrey V. Panov, SIL Open Font License 1.1,
+  https://ctan.org/pkg/cm-unicode (renamed "markoto Greek Serif" per the
+  Reserved Font Name clause)
+
+Web fonts installed from npm, devDependencies, SIL Open Font License 1.1: the
+@fontsource and @fontsource-variable packages listed in shared/utils/theme/themeFonts.ts
+(https://fontsource.org), each repackaging the upstream font under its own OFL
+copyright; the licence text ships in each package and is copied next to the
+served files under /vendor/.
+
+Browser libraries served from this origin under /vendor/ (copied from the pinned
+npm packages at build time, versions in shared/utils/vendor/*Assets.ts):
+- paged.js, MIT, https://github.com/pagedjs/pagedjs
+- KaTeX (stylesheet and fonts), MIT, https://github.com/KaTeX/KaTeX
+- Mermaid, MIT, https://github.com/mermaid-js/mermaid
+- highlight.js (theme stylesheets), BSD-3-Clause, https://github.com/highlightjs/highlight.js
+
+Avatars: the "Moods" style from @dicebear/styles by DiceBear, CC0 1.0,
+https://www.dicebear.com, rendered locally with @dicebear/core (MIT).
+
+Demo video music: by Andrii Poradovskyi from Pixabay
+(https://pixabay.com/users/poradovskyi-52868186/), used under the Pixabay
+Content License.

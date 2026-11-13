@@ -29,11 +29,11 @@ const { data: navigation } = await useAsyncData('docs:nav', () =>
   queryCollectionNavigation('docs', ['order', 'navHidden', 'icon'])
 )
 
-// Search index — every page split into per-heading sections. Used
+// Search index: every page split into per-heading sections. Used
 // only by UContentSearch (Cmd-K modal, client-only), so it is NOT part of
-// the server render (it was ~50 KB gzip of every docs page's HTML): the
-// browser fetches it once when search is about to open — pointer over /
-// focus on the search button, or the modal opening (Cmd-K) — and keeps
+// the server render (~50 KB gzip per docs page): the
+// browser fetches it once when search is about to open, pointer over /
+// focus on the search button, or the modal opening (Cmd-K), and keeps
 // it across docs pages (same key).
 const { open: searchOpen } = useContentSearch()
 const { data: searchSections, status: searchStatus, execute: loadSearch } = useFetch('/api/_internal/docs-search', {
@@ -53,7 +53,8 @@ watch(searchOpen, (open) => {
 const sidebarNav = computed(() => {
   const nav = navigation.value
   if (!nav?.length) return []
-  if (nav.length === 1 && nav[0]!.children?.length) return nav[0]!.children
+  const only = nav.length === 1 ? nav[0] : undefined
+  if (only?.children?.length) return only.children
   return nav
 })
 
@@ -83,17 +84,17 @@ watch(() => route.path, () => {
         color="neutral"
         variant="ghost"
         size="sm"
-        :aria-label="'Open documentation menu'"
+        :aria-label="$t('docs.openMenu')"
         @click="mobileNavOpen = true"
       />
       <!-- Topbar anchor: wordmark + hairline + Fraunces section
            name. The Back button used to live between the rules but
-           cluttered the row — the wordmark itself links to /, so
+           cluttered the row: the wordmark itself links to /, so
            the affordance is preserved without the extra chrome. -->
       <NuxtLink
         to="/"
         class="flex items-center shrink-0"
-        aria-label="markoto home"
+        :aria-label="$t('common.homeLinkLabel')"
       >
         <CommonWordmark :size="20" />
       </NuxtLink>
@@ -105,7 +106,7 @@ watch(() => route.path, () => {
         to="/docs"
         class="hidden sm:inline-flex font-serif text-lg font-normal tracking-tight text-default hover:text-muted transition-colors"
       >
-        Documentation
+        {{ $t('common.documentation') }}
       </NuxtLink>
       <!-- Search bar centered horizontally in the topbar regardless
            of viewport. `flex-1 justify-center` lets the input column
@@ -118,7 +119,7 @@ watch(() => route.path, () => {
       <div class="flex-1 min-w-0 flex justify-center">
         <UContentSearchButton
           :collapsed="false"
-          label="Search the docs..."
+          :label="$t('docs.searchLabel')"
           class="w-full min-w-0 max-w-md justify-start text-toned overflow-hidden"
           @pointerenter="warmSearch"
           @focus="warmSearch"
@@ -134,7 +135,7 @@ watch(() => route.path, () => {
     </header>
 
     <div class="flex-1 grid md:grid-cols-[280px_1fr] min-h-0">
-      <!-- Desktop sidebar — pinned to viewport left, sticky scroll.
+      <!-- Desktop sidebar: pinned to viewport left, sticky scroll.
            `bg-muted` matches every other chrome surface in the app
            (toolbar, status bar, sidebars in the editor) so the docs
            shell reads as part of the same instrument. -->
@@ -159,7 +160,7 @@ watch(() => route.path, () => {
       v-model:open="mobileNavOpen"
       side="left"
       :ui="{ content: 'max-w-[280px]' }"
-      :title="'Documentation'"
+      :title="$t('common.documentation')"
     >
       <template #body>
         <DocsSidebar
@@ -170,7 +171,7 @@ watch(() => route.path, () => {
     </USlideover>
 
     <!-- Search modal. Shortcut bound to Cmd/Ctrl-K (UContentSearch's
-         default), but only mounted under the docs layout — won't
+         default), but only mounted under the docs layout, won't
          hijack the hotkey on /d/<id> editor pages where Cmd-K is
          used by other UI. Files come from the search-sections
          payload; navigation feeds the per-section grouping. -->

@@ -9,10 +9,10 @@ import { test, expect } from '../fixtures/flow'
 // from their dashboard and sees the workspace in My Workspaces.
 //
 // Two-context flow via `flow.spawn('teammate')`. The admin invites
-// from one identity (a PENDING invitation — nobody joins without
+// from one identity (a PENDING invitation, nobody joins without
 // accepting); the teammate signs in with the invited email, finds the
 // invitation on their dashboard and accepts it. The invitation is by
-// EMAIL — not username — so the teammate's account is created with a
+// EMAIL: not username, so the teammate's account is created with a
 // known email and the SAME email goes into the invite form.
 //
 // Setup shortcut: the teammate's account (via the test login shim) and
@@ -31,12 +31,12 @@ test('Invite a teammate to your workspace', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
   // Sam, the invitee: a second browser context with its own session. The
-  // account carries a verified email — the address the invitation is
-  // matched against — and the post-onboarding policy acceptance every
+  // account carries a verified email, the address the invitation is
+  // matched against: and the post-onboarding policy acceptance every
   // test user gets (otherwise the onboarding gate covers the dashboard).
   // The invitation is by EMAIL, never by username, so the SAME address
   // goes into the invite form below.
-  // A clean, readable address — it is on screen in the invite form
+  // A clean, readable address, it is on screen in the invite form
   // and the pending-invite row. Several Sam accounts with this email
   // can exist across the suite's projects; the accept step below
   // targets THIS workspace's invite by id, so that's harmless.
@@ -48,7 +48,7 @@ test('Invite a teammate to your workspace', async ({ page, flow, editor }) => {
   await editor.page.loginAsTestUser('Maya Chen')
   await page.goto('/')
   const wsRes = await page.request.post('/api/workspaces', {
-    data: { name: 'Q3 launch — engineering retro' }
+    data: { name: 'Q3 launch, engineering retro' }
   })
   if (!wsRes.ok()) {
     throw new Error(`[invite] workspace create failed: ${wsRes.status()} ${await wsRes.text()}`)
@@ -59,14 +59,14 @@ test('Invite a teammate to your workspace', async ({ page, flow, editor }) => {
 
   await flow.heading('Invite a teammate to your workspace', 3)
   await flow.narrate(
-    'Workspaces start with one member — you, the admin. To bring '
+    'Workspaces start with one member, you, the admin. To bring '
     + 'others in, click "Invite people" at the top of the workspace '
     + 'page, type their email, pick a role (admin, editor, or '
-    + 'viewer). Invitations are exact-email — no typeahead, so the '
+    + 'viewer). Invitations are exact-email, no typeahead, so the '
     + 'directory isn\'t enumerable. Nobody joins until they accept.'
   )
 
-  // ─── Open the Members panel ─────────────────────────────────────
+  // Open the Members panel
   await flow.click(
     'Click "Invite people" at the top of the workspace page',
     page.locator('[data-testid="workspace-invite-people"]'),
@@ -74,16 +74,16 @@ test('Invite a teammate to your workspace', async ({ page, flow, editor }) => {
       annotations: [
         { label: 'invite people', selector: '[data-testid="workspace-invite-people"]', kind: 'arrow' }
       ],
-      result: 'The Members modal opens with the email field ready — current roster + invite-by-email form.',
+      result: 'The Members modal opens with the email field ready, current roster + invite-by-email form.',
       after: () => page.locator('[data-testid="workspace-invite-email"]').waitFor({ state: 'visible', timeout: 5_000 })
     }
   )
 
-  // ─── Invite Sam ─────────────────────────────────────────────────
+  // Invite Sam
   await flow.heading('Add Sam by email', 3)
   await flow.narrate(
     'Type the exact email Sam signed up with. The default role is '
-    + '"editor" — they can read, write, comment, but can\'t change '
+    + '"editor": they can read, write, comment, but can\'t change '
     + 'access controls or remove other members. Switch to "viewer" '
     + 'for read-only access or "admin" to delegate full control.'
   )
@@ -99,25 +99,25 @@ test('Invite a teammate to your workspace', async ({ page, flow, editor }) => {
     'Click Invite',
     page.locator('[data-testid="workspace-invite-submit"]'),
     {
-      result: 'The invitation is pending — listed under the roster with its role and expiry until Sam accepts.',
+      result: 'The invitation is pending, listed under the roster with its role and expiry until Sam accepts.',
       after: async () => {
         await expect(page.locator(`[data-testid="workspace-pending-invite-${teammateEmail}"]`)).toBeVisible({ timeout: 10_000 })
       }
     }
   )
 
-  // ASSERTION (server-side): NOT a member yet — the invitation is
+  // ASSERTION (server-side): NOT a member yet, the invitation is
   // pending until Sam accepts it.
   const membersBefore = await page.request.get(`/api/workspaces/${ws.workspaceId}`).then(r => r.json()) as {
     members: Array<{ userId: number, role: string }>
   }
   expect(membersBefore.members.some(m => m.userId === teammateUserId)).toBe(false)
 
-  // ─── Sam sees the workspace ────────────────────────────────────
+  // Sam sees the workspace
   await flow.heading('Sam accepts', 3)
   await flow.narrate(
     'Sam opens markoto in their own browser, signed in with the invited '
-    + 'email. The invitation waits under Invitations on their dashboard — '
+    + 'email. The invitation waits under Invitations on their dashboard, '
     + 'workspace name, role and who invited them. (Where email is set up, '
     + 'Sam also gets an invitation email with a one-time link.)'
   )
@@ -154,7 +154,7 @@ test('Invite a teammate to your workspace', async ({ page, flow, editor }) => {
   // ASSERTION: Sam's dashboard contains the workspace card AND it
   // surfaces as an INVITED workspace (role=editor), not an owned
   // one. Without the role check the test would still pass if Sam
-  // was somehow created as the owner — which would be the wrong
+  // was somehow created as the owner, which would be the wrong
   // thing the right test would catch. The card carries
   // `data-role="editor"` from WorkspaceList; assert directly.
   const teammateCard = teammate.page.locator(`[data-testid="workspace-list-item-${ws.workspaceId}"]`)

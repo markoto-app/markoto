@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { defineComponent, h, ref, computed } from 'vue'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
-import { usePagedPreview } from '~/composables/usePagedPreview'
+import { usePagedPreview } from '~/composables/preview/usePagedPreview'
 import {
   PREVIEW_SANDBOX,
   PRINT_SANDBOX,
@@ -12,13 +12,13 @@ import {
   mayReferenceOwnUploads,
   parseFrameMessage,
   withOwnUploadToken
-} from '~/utils/previewFrame'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
-import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/pagedjsAssets'
-import { MERMAID_URL, MERMAID_SRI } from '~~/shared/utils/mermaidAssets'
+} from '~/utils/preview/previewFrame'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
+import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/vendor/pagedjsAssets'
+import { MERMAID_URL, MERMAID_SRI } from '~~/shared/utils/vendor/mermaidAssets'
 
 // The live preview + print iframes run in an OPAQUE origin (sandbox without
-// allow-same-origin) — see app/utils/previewFrame.ts. These tests pin the
+// allow-same-origin): see app/utils/preview/previewFrame.ts. These tests pin the
 // host side: the sandbox flags, the srcdoc substitution and the message /
 // URL helpers. The browser-level isolation (no cookie / storage / parent
 // access from inside the preview) is pinned by the Playwright flow
@@ -78,7 +78,7 @@ describe('buildPreviewSrcdoc', () => {
 })
 
 describe('parseFrameMessage', () => {
-  const frame = {} as Window
+  const frame: Window = Object.create(null)
   const ev = (data: unknown, opts: { source?: unknown, origin?: string } = {}) =>
     new MessageEvent('message', { data, origin: opts.origin ?? 'null', source: (opts.source ?? frame) as MessageEventSource })
 
@@ -160,7 +160,7 @@ describe('file-access token attachment (own uploads only)', () => {
     expect(withOwnUploadToken('/api/files/doc-1/x.png', 'doc-1', '')).toBe('/api/files/doc-1/x.png')
   })
 
-  it('touches <img src> only — never links or text', () => {
+  it('touches <img src> only, never links or text', () => {
     const html = '<p><img src="/api/files/doc-1/a.png" alt=""><a href="/api/files/doc-1/a.png">link</a> /api/files/doc-1/a.png</p>'
     const out = attachOwnUploadTokens(html, 'doc-1', 'tok')
     expect(out).toContain('<img src="/api/files/doc-1/a.png?token=tok"')
@@ -179,7 +179,7 @@ describe('file-access token attachment (own uploads only)', () => {
   })
 })
 
-describe('documents at scale — render message + srcdoc', () => {
+describe('documents at scale: render message + srcdoc', () => {
   it('sends the document-matched mermaid config and the document locale', () => {
     const theme = structuredClone(defaultTheme)
     theme.mermaid.theme = 'document'

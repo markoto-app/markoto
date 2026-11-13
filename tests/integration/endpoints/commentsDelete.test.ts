@@ -9,7 +9,7 @@ import {
 } from '../setup/fixtures'
 
 // Auth gates on the comment-delete endpoints. The endpoints route
-// through a trusted Hocuspocus client to mutate the live Y.Doc — that
+// through a trusted Hocuspocus client to mutate the live Y.Doc, that
 // part needs a real sync server, which the integration stack doesn't
 // run (the stack uses an HTTP stub on port 4010). What we CAN cover
 // here is the gate ordering BEFORE the trusted client opens:
@@ -26,7 +26,7 @@ import {
 const FAKE_COMMENT_ID = 'cmnt-not-needed-for-gate'
 const FAKE_REPLY_ID = 'rply-not-needed-for-gate'
 
-describe('DELETE /api/docs/:docId/comments/:commentId — auth gates', () => {
+describe('DELETE /api/docs/:docId/comments/:commentId: auth gates', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -60,7 +60,7 @@ describe('DELETE /api/docs/:docId/comments/:commentId — auth gates', () => {
 
   it('rejects a workspace viewer (403)', async () => {
     // Viewer can browse comments in the panel but can't author or
-    // delete. Same posture as theme/title — read-only across the
+    // delete. Same posture as theme/title, read-only across the
     // board.
     const admin = await createUser()
     const viewer = await createUser()
@@ -84,7 +84,7 @@ describe('DELETE /api/docs/:docId/comments/:commentId — auth gates', () => {
 
   it('rejects a malformed commentId with 400', async () => {
     // Empty / oversized commentId should fail input validation BEFORE
-    // hitting authz — protects the trusted-client path from junk.
+    // hitting authz: protects the trusted-client path from junk.
     const owner = await createUser()
     const doc = await createDoc({ ownerId: owner.id })
     const c = await loggedInClient(owner.id)
@@ -94,7 +94,7 @@ describe('DELETE /api/docs/:docId/comments/:commentId — auth gates', () => {
   })
 })
 
-describe('DELETE /api/docs/:docId/comments/:commentId/replies/:replyId — auth gates', () => {
+describe('DELETE /api/docs/:docId/comments/:commentId/replies/:replyId: auth gates', () => {
   beforeEach(async () => {
     await resetDb()
   })

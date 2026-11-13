@@ -5,7 +5,7 @@ import { anonClient, loggedInClient } from '../setup/client'
 import { createUser, createWorkspace } from '../setup/fixtures'
 import { computeStripeSig, makeStripeEvent, TEST_WEBHOOK_SECRET } from '../setup/stripeHelpers'
 
-// AI credit top-ups (WP4): checkout endpoints (stripe-mock), the webhook
+// AI credit top-ups: checkout endpoints (stripe-mock), the webhook
 // that records a paid top-up, refunds, and the balance in the billing
 // endpoints. Budget arithmetic + settlement: tests/repos/aiCreditGrants
 // and tests/integration/endpoints/aiCreditSettlementLitellm.

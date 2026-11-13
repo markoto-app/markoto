@@ -1,11 +1,11 @@
 import { Pool } from 'pg'
 import { test, expect } from '../fixtures/flow'
 
-// "Limit a share link" (WP9).
+// "Limit a share link".
 //
 // User-job: a writer shares a draft by link but doesn't want it to end up
 // as a file in someone's downloads, nor to stay open forever. Job done
-// when the link is view-only with an end date — a visitor in their own
+// when the link is view-only with an end date, a visitor in their own
 // browser can read but has no export or print, and after the end date
 // the link says it expired.
 //
@@ -36,12 +36,12 @@ test('Limit a share link', async ({ page, flow, editor }) => {
   await flow.click(
     'Open the share dialog',
     editor.page.accessLockButton,
-    { after: () => page.getByTestId('share-modal').waitFor({ state: 'visible', timeout: 10_000 }) }
+    { chain: true, after: () => page.getByTestId('share-modal').waitFor({ state: 'visible', timeout: 10_000 }) }
   )
   await flow.click(
     'Let anyone with the link view it',
     page.getByTestId('share-access-open-view'),
-    { after: () => page.getByTestId('share-modal').waitFor({ state: 'hidden', timeout: 10_000 }) }
+    { chain: true, after: () => page.getByTestId('share-modal').waitFor({ state: 'hidden', timeout: 10_000 }) }
   )
   // Choosing a mode closes the dialog; open it again for the link settings.
   await editor.page.accessLockButton.click()
@@ -66,7 +66,7 @@ test('Limit a share link', async ({ page, flow, editor }) => {
   })
   await page.keyboard.press('Escape')
 
-  // ─── The visitor ──────────────────────────────────────────────────
+  // The visitor
   await flow.heading('What the people with the link see', 3)
   const visitor = await flow.spawn('visitor')
   await visitor.editor.loginAsTestUser('Sam Reeves')
@@ -76,12 +76,12 @@ test('Limit a share link', async ({ page, flow, editor }) => {
   await visitor.flow.click(
     'They can read it, but File has no export or print',
     fileMenu,
-    { after: () => visitor.page.getByRole('menuitem', { name: /new/i }).first().waitFor({ state: 'visible', timeout: 10_000 }) }
+    { chain: true, after: () => visitor.page.getByRole('menuitem', { name: /new/i }).first().waitFor({ state: 'visible', timeout: 10_000 }) }
   )
   await expect(visitor.page.getByRole('menuitem', { name: /^print/i })).toHaveCount(0)
   await expect(visitor.page.getByRole('menuitem', { name: /export/i })).toHaveCount(0)
   expect((await visitor.page.request.get(`/api/docs/${docId}/pdf`)).status()).toBe(403)
-  await visitor.flow.shot('No export, no PDF, no print — for them only')
+  await visitor.flow.shot('No export, no PDF, no print, for them only')
   await visitor.page.keyboard.press('Escape')
 
   // The end date passes.

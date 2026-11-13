@@ -6,9 +6,9 @@ import { anonClient, loggedInClient, type TestClient } from '../setup/client'
 import { createDoc } from '../setup/fixtures'
 import { TEST_BILLING_OFF_BASE_URL, fakeOpenAiBaseUrl } from '../setup/env'
 import { LITELLM_MASTER_KEY, LITELLM_URL, byokUser, fakeRequests, resetFake, uniqueKey, waitFor } from '../setup/byok'
-import { decryptToken } from '../../../server/utils/litellm/tokenCrypto'
+import { openSecret, secretContext } from '../../../server/utils/platform/secretBox'
 
-// Bring-your-own-key AI providers (WP4), end to end:
+// Bring-your-own-key AI providers, end to end:
 //   app (SSRF policy, encryption, verification) → litellm-test (`byok/*`
 //   clientside credentials, zero cost) → fake-openai-test (the "user's
 //   provider", tests/fixtures/fake-openai/server.py).
@@ -29,7 +29,7 @@ async function readYtext(docname: string): Promise<string> {
   const r = await testDb().query<{ value: Buffer }>(
     // Only update rows: y-postgresql also stores state-vector rows
     // (`version = 'v1_sv'`), which are not Y.js updates.
-    `SELECT value FROM yjs_documents WHERE docname = $1 AND version = 'v1' ORDER BY id ASC`,
+    `SELECT data AS value FROM yjs_updates WHERE doc_id = $1 ORDER BY id`,
     [docname]
   )
   const ydoc = new Y.Doc()
@@ -101,7 +101,7 @@ describe('BYOK provider settings (self-hosted shape)', () => {
     expect(body.verify.code).toBe('no-tool-support')
   })
 
-  it('refuses (and does not save) a rejected key or an unknown model — with a key-free message', async () => {
+  it('refuses (and does not save) a rejected key or an unknown model, with a key-free message', async () => {
     const u = await byokUser()
     const client = await loggedInClient(u.id)
 
@@ -157,7 +157,7 @@ describe('BYOK SSRF policy', () => {
     ['internal service hostname (litellm)', 'http://litellm:4000/v1', 'internal-host'],
     ['internal service hostname (postgres)', 'http://postgres:5432', 'internal-host'],
     ['localhost', 'http://localhost:4120/v1', 'internal-host'],
-    // A public DNS name that resolves to 127.0.0.1 (nip.io wildcard DNS) —
+    // A public DNS name that resolves to 127.0.0.1 (nip.io wildcard DNS),
     // the DNS-rebinding shape: only the resolved address gives it away.
     ['hostname resolving to 127.0.0.1', 'http://127.0.0.1.nip.io:4120/v1', 'private-address'],
     ['credentials in URL', `https://user:pw@api.mistral.ai/v1`, 'credentials-in-url'],
@@ -230,7 +230,7 @@ describe('resolution order: own key → instance default → unavailable', () =>
     expect(after.chat).toMatchObject({ source: 'user', platformBilled: false })
   })
 
-  it('availability reports which platform web tools the operator configured (WP6)', async () => {
+  it('availability reports which platform web tools the operator configured', async () => {
     const u = await byokUser()
     const full: { webTools: { search: boolean, fetch: boolean } } = await (await (await loggedInClient(u.id)).get('/api/ai/availability')).json()
     expect(full.webTools).toEqual({ search: true, fetch: true })
@@ -288,8 +288,8 @@ describe('BYOK round trips through LiteLLM', () => {
     expect(firstTools).not.toContain('view_pages')
     expect(loopCalls[0]?.model).toBe('fake-chat')
 
-    // The tool call landed in the document (sync-test persists to yjs_documents).
-    await waitFor(async () => ((await readYtext(doc.docId)).includes(DOC_MARKER) ? true : null), 20_000, 'the AI edit in yjs_documents')
+    // The tool call landed in the document (sync-test persists to yjs_updates).
+    await waitFor(async () => ((await readYtext(doc.docId)).includes(DOC_MARKER) ? true : null), 20_000, 'the AI edit in yjs_updates')
 
     // Spend: LiteLLM logged the BYOK calls against the user's virtual key
     // with zero cost, so AI Points are untouched.
@@ -311,14 +311,14 @@ describe('BYOK round trips through LiteLLM', () => {
     }
     // And the key's budget counter itself is still at zero.
     const tokenRow = await testDb().query<{ litellm_key_token: string }>('SELECT litellm_key_token FROM users WHERE id = $1', [u.id])
-    const plainKey = decryptToken(tokenRow.rows[0]?.litellm_key_token ?? '')
+    const plainKey = openSecret('litellm-user-key', secretContext.litellmUserKey(u.id), tokenRow.rows[0]?.litellm_key_token ?? '')
     const info = await fetch(`${LITELLM_URL}/key/info?key=${encodeURIComponent(plainKey)}`, {
       headers: { Authorization: `Bearer ${LITELLM_MASTER_KEY}` }
     })
     const infoBody: { info: { spend: number } } = await info.json()
     expect(infoBody.info.spend).toBe(0)
   // Three sequential async stages: the agent loop (two LLM turns), the
-  // Hocuspocus 2 s debounce before yjs_documents is written, and
+  // Hocuspocus 2 s debounce before yjs_updates is written, and
   // LiteLLM's batched spend-log writer (~10 s interval). Each wait above
   // is bounded on its own; the default 30 s project timeout is shorter
   // than their worst-case sum.
@@ -331,7 +331,7 @@ describe('BYOK round trips through LiteLLM', () => {
     const key = uniqueKey('image')
     const saved = await saveProvider(client, 'image', { baseUrl: FAKE, model: 'fake-image', apiKey: key })
     expect(saved.status).toBe(200)
-    // Verification listed models — it did NOT generate an image.
+    // Verification listed models: it did NOT generate an image.
     const verifyCalls = (await fakeRequests()).filter(r => r.keySuffix === key.slice(-6))
     expect(verifyCalls.map(c => c.path)).toEqual(['/v1/models'])
 

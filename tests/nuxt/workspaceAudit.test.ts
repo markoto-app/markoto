@@ -4,7 +4,7 @@ import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { WorkspaceAuditPanel } from '#components'
 import { getQuery } from 'h3'
 
-// Workspace audit log UI (WP15): readable labels, actor + shortened IP,
+// Workspace audit log UI: readable labels, actor + shortened IP,
 // details on click, "show older" with the cursor, export links carrying
 // the filters.
 

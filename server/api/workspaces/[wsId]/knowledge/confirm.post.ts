@@ -1,45 +1,45 @@
 import { CopyObjectCommand, HeadObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
-import { sql } from 'drizzle-orm'
-import { createKnowledge, disambiguateFilename } from '../../../../repos/knowledge'
-import { useDatabase } from '../../../../utils/database'
-import { resolveEmbeddingsConfig, embeddingVersionTag } from '../../../../utils/embeddings'
-import { processKnowledge } from '../../../../utils/processKnowledge'
-import { requireContentMatchesExtension } from '../../../../utils/fileTypeGuard'
-import { assertCapsOnConfirm, releaseKnowledgeUploadSlots } from '../../../../utils/knowledgeQuota'
-import { claimPendingKnowledgeUpload, restorePendingKnowledgeUpload } from '../../../../utils/knowledgePendingUpload'
-import { stagingKeyFor } from '../../../../utils/uploadKey'
+import { createKnowledge, disambiguateFilename, lockWorkspaceKnowledge } from '../../../../repos/knowledge'
+import { withTransaction } from '../../../../repos/transaction'
+import { resolveEmbeddingsConfig, embeddingVersionTag } from '../../../../utils/knowledge/embeddings'
+import { processKnowledge } from '../../../../utils/knowledge/processKnowledge'
+import { requireContentMatchesExtension } from '../../../../utils/storage/fileTypeGuard'
+import { assertCapsOnConfirm, releaseKnowledgeUploadSlots } from '../../../../utils/knowledge/knowledgeQuota'
+import { claimPendingKnowledgeUpload, restorePendingKnowledgeUpload } from '../../../../utils/knowledge/knowledgePendingUpload'
+import { stagingKeyFor } from '../../../../utils/storage/uploadKey'
+import { confirmKnowledgeUploadBody } from '~~/shared/api/workspaces'
+import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../../../../utils/platform/logger'
+
+const log = useLogger('knowledge')
 
 /** The original's stored Content-Type must be exactly the type upload-request signed. */
 function requireStoredContentType(stored: string | undefined, expected: string): void {
   const normalised = stored?.split(';')[0]?.trim().toLowerCase()
   if (normalised !== expected.toLowerCase()) {
-    throw createError({
-      statusCode: 415,
-      message: `Uploaded file has content type ${stored ?? 'none'}; expected ${expected}.`,
-      data: { code: 'knowledge/content-type-mismatch' }
-    })
+    throw apiError('knowledge/content-type-mismatch')
   }
 }
 
 /**
  * Step 2: after the client has PUT the file to S3, call this to:
  *   0. Claim the pending record upload-request issued to this caller for
- *      this workspace (404 otherwise — no S3 call).
+ *      this workspace (404 otherwise, no S3 call).
  *   1. HEAD the staging object (did it actually land? stored type = the
  *      signed type?).
  *   2. Copy it to the final key, delete the staging key, and sniff the
- *      COPY's first bytes — confirm the content matches the claimed
+ *      COPY's first bytes: confirm the content matches the claimed
  *      extension (stops the "signed as PDF, uploaded EXE" abuse, and a
  *      re-used presigned URL can't swap the bytes after the sniff).
  *   3. Take a Postgres advisory lock keyed on the workspace ID,
- *      re-check all caps, disambiguate filename, and insert the row —
+ *      re-check all caps, disambiguate filename, and insert the row,
  *      all inside one transaction. The lock serialises concurrent
  *      confirms for the same workspace so a pair of uploads that both
  *      squeaked past upload-request can't both overshoot the cap.
  *   4. Release the Valkey inflight slots this upload reserved.
- *   5. Kick off processing async — sweep-plugin rescues stuck rows.
+ *   5. Kick off processing async, sweep-plugin rescues stuck rows.
  *
- * On ANY failure after step 1 we best-effort delete the S3 object —
+ * On ANY failure after step 1 we best-effort delete the S3 object,
  * otherwise unconfirmed-but-paid-for bytes would pile up if the user
  * hits a cap at confirm. Slot releases run in `finally` so they
  * always fire.
@@ -47,155 +47,133 @@ function requireStoredContentType(stored: string | undefined, expected: string):
 
 const SAFE_KEY_RE = /^workspaces\/[A-Za-z0-9_-]+\/knowledge\/[A-Za-z0-9_-]+\.[A-Za-z0-9]+$/
 
-export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
-  const wsId = requireWsId(event)
-  const userId = session.user.id
+export default defineApiHandler({
+  access: allow.workspace('editor', { deny: 'knowledge/editor-required' }),
+  body: confirmKnowledgeUploadBody,
+  handler: async ({ user, wsId, body, workspaceAccess, self }) => {
+    const userId = user.id
+    const { knowledgeId, s3Key, filename, ext, mimeType } = body
+    if (!SAFE_KEY_RE.test(s3Key) || !s3Key.startsWith(`workspaces/${wsId}/knowledge/`)) {
+      throw apiError('knowledge/invalid-key')
+    }
+    // Bind the knowledgeId to the s3Key tail. The client echoes back
+    // BOTH values it got from upload-request; if they don't line up it
+    // means either a confused client (unlikely) or a crafted request
+    // trying to claim an arbitrary S3 object under a freshly-minted
+    // knowledgeId. Stays out of trouble either way.
+    const expectedTail = `/${knowledgeId}.${ext}`
+    if (!s3Key.endsWith(expectedTail)) {
+      throw apiError('knowledge/key-mismatch')
+    }
 
-  await requireKnowledgeEditAccess(event, wsId, userId)
+    // The upload must be one `upload-request` issued to THIS caller in THIS
+    // workspace (atomic claim: a replayed or foreign knowledgeId finds
+    // nothing). Anything else is a 404 before any S3 call, so confirm can
+    // never HEAD, adopt or delete an object it didn't hand to this caller.
+    const pendingRef = { workspaceId: wsId, userId, knowledgeId }
+    const pending = await claimPendingKnowledgeUpload(pendingRef)
+    if (!pending || pending.s3Key !== s3Key || pending.ext !== ext || pending.mimeType !== mimeType) {
+      throw apiError('knowledge/upload-not-found')
+    }
 
-  const body = await readBody<{
-    knowledgeId?: unknown
-    s3Key?: unknown
-    filename?: unknown
-    ext?: unknown
-    mimeType?: unknown
-  }>(event)
+    const env = useEnv()
+    const s3 = useS3Client()
+    // The browser PUT the staging key; the final key only ever holds the
+    // copy confirm made (and sniffed) below.
+    const stagingKey = stagingKeyFor(s3Key)
 
-  const knowledgeId = typeof body?.knowledgeId === 'string' ? body.knowledgeId : ''
-  const s3Key = typeof body?.s3Key === 'string' ? body.s3Key : ''
-  const filename = typeof body?.filename === 'string' ? body.filename.trim() : ''
-  const ext = typeof body?.ext === 'string' ? body.ext.toLowerCase() : ''
-  const mimeType = typeof body?.mimeType === 'string' ? body.mimeType : ''
+    const cleanupOrphanS3 = async () => {
+      for (const Key of [stagingKey, s3Key]) {
+        try {
+          await s3.send(new DeleteObjectCommand({ Bucket: env.storage.bucket, Key }))
+        } catch { /* object may already be gone */ }
+      }
+    }
 
-  if (!knowledgeId || !s3Key || !filename || !ext || !mimeType) {
-    throw createError({ statusCode: 400, message: 'Missing required fields' })
-  }
-  if (!SAFE_KEY_RE.test(s3Key)) {
-    throw createError({ statusCode: 400, message: 'Invalid s3Key' })
-  }
-  if (!s3Key.startsWith(`workspaces/${wsId}/knowledge/`)) {
-    throw createError({ statusCode: 400, message: 'Key does not belong to this workspace' })
-  }
-  // Bind the knowledgeId to the s3Key tail. The client echoes back
-  // BOTH values it got from upload-request; if they don't line up it
-  // means either a confused client (unlikely) or a crafted request
-  // trying to claim an arbitrary S3 object under a freshly-minted
-  // knowledgeId. Stays out of trouble either way.
-  const expectedTail = `/${knowledgeId}.${ext}`
-  if (!s3Key.endsWith(expectedTail)) {
-    throw createError({ statusCode: 400, message: 'knowledgeId must match s3Key tail' })
-  }
-
-  // The upload must be one `upload-request` issued to THIS caller in THIS
-  // workspace (atomic claim — a replayed or foreign knowledgeId finds
-  // nothing). Anything else is a 404 before any S3 call, so confirm can
-  // never HEAD, adopt or delete an object it didn't hand to this caller.
-  const pendingRef = { workspaceId: wsId, userId, knowledgeId }
-  const pending = await claimPendingKnowledgeUpload(pendingRef)
-  if (!pending || pending.s3Key !== s3Key || pending.ext !== ext || pending.mimeType !== mimeType) {
-    throw createError({ statusCode: 404, message: 'Upload not found' })
-  }
-
-  const config = useRuntimeConfig()
-  const s3 = useS3Client()
-  // The browser PUT the staging key; the final key only ever holds the
-  // copy confirm made (and sniffed) below.
-  const stagingKey = stagingKeyFor(s3Key)
-
-  const cleanupOrphanS3 = async () => {
-    for (const Key of [stagingKey, s3Key]) {
+    try {
+      let head
       try {
-        await s3.send(new DeleteObjectCommand({ Bucket: config.s3.bucket, Key }))
-      } catch { /* object may already be gone */ }
-    }
-  }
+        head = await s3.send(new HeadObjectCommand({
+          Bucket: env.storage.bucket,
+          Key: stagingKey
+        }))
+      } catch {
+        // Not landed (yet): keep the claim so the client can retry.
+        await restorePendingKnowledgeUpload(pendingRef, pending)
+        throw apiError('knowledge/upload-not-found')
+      }
+      const sizeBytes = head.ContentLength ?? 0
+      if (sizeBytes <= 0) {
+        await cleanupOrphanS3()
+        throw apiError('knowledge/empty-upload')
+      }
 
-  try {
-    let head
-    try {
-      head = await s3.send(new HeadObjectCommand({
-        Bucket: config.s3.bucket,
-        Key: stagingKey
-      }))
-    } catch {
-      // Not landed (yet) — keep the claim so the client can retry.
-      await restorePendingKnowledgeUpload(pendingRef, pending)
-      throw createError({ statusCode: 404, message: 'Upload not found in storage' })
-    }
-    const sizeBytes = head.ContentLength ?? 0
-    if (sizeBytes <= 0) {
-      await cleanupOrphanS3()
-      throw createError({ statusCode: 400, message: 'Uploaded object has no size' })
-    }
+      // Stored type (signed at upload-request) + copy to the final key +
+      // magic-byte sniff OF THE COPY. Runs before caps so a junk upload
+      // never consumes workspace bytes, we reject, delete, and release.
+      // Bytes PUT to the staging key after the copy never reach the key
+      // processKnowledge reads.
+      try {
+        requireStoredContentType(head.ContentType, mimeType)
+        await s3.send(new CopyObjectCommand({
+          Bucket: env.storage.bucket,
+          CopySource: `/${env.storage.bucket}/${stagingKey}`,
+          Key: s3Key,
+          ContentType: mimeType,
+          MetadataDirective: 'REPLACE'
+        }))
+        await s3.send(new DeleteObjectCommand({ Bucket: env.storage.bucket, Key: stagingKey }))
+        await requireContentMatchesExtension({ s3Key, ext })
+      } catch (e) {
+        await cleanupOrphanS3()
+        throw e
+      }
 
-    // Stored type (signed at upload-request) + copy to the final key +
-    // magic-byte sniff OF THE COPY. Runs before caps so a junk upload
-    // never consumes workspace bytes — we reject, delete, and release.
-    // Bytes PUT to the staging key after the copy never reach the key
-    // processKnowledge reads.
-    try {
-      requireStoredContentType(head.ContentType, mimeType)
-      await s3.send(new CopyObjectCommand({
-        Bucket: config.s3.bucket,
-        CopySource: `/${config.s3.bucket}/${stagingKey}`,
-        Key: s3Key,
-        ContentType: mimeType,
-        MetadataDirective: 'REPLACE'
-      }))
-      await s3.send(new DeleteObjectCommand({ Bucket: config.s3.bucket, Key: stagingKey }))
-      await requireContentMatchesExtension({ s3Key, ext })
-    } catch (e) {
-      await cleanupOrphanS3()
-      throw e
-    }
+      const embeddingVersion = embeddingVersionTag(resolveEmbeddingsConfig())
 
-    const embeddingVersion = embeddingVersionTag(resolveEmbeddingsConfig())
-    const db = useDatabase()
-
-    // Advisory lock + recheck + insert inside one transaction. The
-    // hashtext() → bigint cast gives us a stable 64-bit key from the
-    // workspace id. `pg_advisory_xact_lock` auto-releases at commit.
-    let safeName: string
-    try {
-      await db.transaction(async (tx) => {
-        await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${wsId}))`)
-        await assertCapsOnConfirm({ workspaceId: wsId, userId, size: sizeBytes })
-        safeName = await disambiguateFilename(wsId, filename)
-        await createKnowledge({
-          knowledgeId,
-          workspaceId: wsId,
-          filename: safeName,
-          sourceExt: ext,
-          mimeType,
-          sizeBytes,
-          s3Key,
-          embeddingVersion,
-          uploaderId: userId
+      // Per-workspace lock + recheck + insert inside one transaction (the
+      // lock releases at commit).
+      let safeName: string
+      try {
+        safeName = await withTransaction(async (tx) => {
+          await lockWorkspaceKnowledge(workspaceAccess, tx)
+          await assertCapsOnConfirm({ ws: workspaceAccess, self, size: sizeBytes })
+          const name = await disambiguateFilename(workspaceAccess, filename)
+          await createKnowledge(workspaceAccess, {
+            knowledgeId,
+            filename: name,
+            sourceExt: ext,
+            mimeType,
+            sizeBytes,
+            s3Key,
+            embeddingVersion,
+            uploaderId: userId
+          }, tx)
+          return name
         })
+      } catch (e) {
+        await cleanupOrphanS3()
+        throw e
+      }
+
+      // Fire-and-forget processing. Errors inside processKnowledge flip
+      // the row to `failed` with an error message; the sweep plugin
+      // catches anything orphaned by a crash.
+      void processKnowledge(knowledgeId).catch((e) => {
+        log.error('background processing failed', { knowledgeId, err: e })
       })
-    } catch (e) {
-      await cleanupOrphanS3()
-      throw e
-    }
 
-    // Fire-and-forget processing. Errors inside processKnowledge flip
-    // the row to `failed` with an error message; the sweep plugin
-    // catches anything orphaned by a crash.
-    void processKnowledge(knowledgeId).catch((e) => {
-      console.error(`[knowledge/confirm] background processKnowledge(${knowledgeId}) failed:`, e)
-    })
-
-    return {
-      knowledgeId,
-      filename: safeName!,
-      status: 'processing' as const
+      return {
+        knowledgeId,
+        filename: safeName,
+        status: 'processing' as const
+      }
+    } finally {
+      // Always release: success, cap rejection, content-type mismatch,
+      // S3 missing, DB failure. The slot is a resource held during
+      // upload; its life ends at confirm regardless of outcome.
+      // Best-effort; rateLimit.ts swallows Valkey errors.
+      await releaseKnowledgeUploadSlots(wsId, userId)
     }
-  } finally {
-    // Always release — success, cap rejection, content-type mismatch,
-    // S3 missing, DB failure. The slot is a resource held during
-    // upload; its life ends at confirm regardless of outcome.
-    // Best-effort; rateLimit.ts swallows Valkey errors.
-    await releaseKnowledgeUploadSlots(wsId, userId)
   }
 })

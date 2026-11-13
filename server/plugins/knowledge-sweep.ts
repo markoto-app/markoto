@@ -1,11 +1,15 @@
 import * as Sentry from '@sentry/nuxt'
-import { and, eq, lt } from 'drizzle-orm'
-import { workspaceKnowledge } from '../db/schema'
-import { useDatabase } from '../utils/database'
-import { migrationsComplete } from '../utils/migrations'
-import { processKnowledge } from '../utils/processKnowledge'
-import { deleteKnowledgeArtifact } from '../utils/knowledgeAccess'
-import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
+import { listKnowledgeInStatusSince } from '../repos/knowledgePipeline'
+import { system } from '../repos/proofs'
+import { processKnowledge } from '../utils/knowledge/processKnowledge'
+import { deleteKnowledgeArtifact } from '../utils/knowledge/knowledgeAccess'
+import { defineSweeper } from '../utils/platform/defineSweeper'
+import { SWEEPS } from '../config/sweeps'
+import { DAY_MS } from '~~/shared/config/units'
+import { KNOWLEDGE_PLATFORM_LIMITS } from '~~/shared/config/tiers'
+import { useLogger } from '../utils/platform/logger'
+
+const log = useLogger('knowledge-sweep')
 
 // Re-kicks knowledge-base uploads that got stuck in `status='processing'`
 // past the deadline. Normal ingestion runs fire-and-forget from the
@@ -21,28 +25,23 @@ import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
 // before re-inserting, so a mid-flight kill that left half the chunks
 // behind still produces a clean result on retry.
 
-const STALE_THRESHOLD_MS = 10 * 60 * 1000
-const SWEEP_INTERVAL_MS = 2 * 60 * 1000
+const { staleAfterMs: STALE_THRESHOLD_MS } = SWEEPS.knowledge
+
+const SWEEP = system('knowledge-sweep')
 
 async function sweepStuck() {
   const cutoff = new Date(Date.now() - STALE_THRESHOLD_MS)
   let stuck: Array<{ knowledgeId: string }>
   try {
-    const db = useDatabase()
-    stuck = await db.select({ knowledgeId: workspaceKnowledge.knowledgeId })
-      .from(workspaceKnowledge)
-      .where(and(
-        eq(workspaceKnowledge.status, 'processing'),
-        lt(workspaceKnowledge.createdAt, cutoff)
-      ))
+    stuck = await listKnowledgeInStatusSince(SWEEP, 'processing', cutoff)
   } catch (e) {
-    console.warn('[knowledge-sweep] stuck-query failed:', e instanceof Error ? e.message : e)
+    log.warn('stuck-query failed', { err: e })
     Sentry.captureException(e, { tags: { component: 'knowledge-sweep', event: 'query_failed' } })
     return
   }
   for (const row of stuck) {
-    console.warn(`[knowledge-sweep] Re-processing stuck knowledge ${row.knowledgeId}`)
-    // Serialize — don't spawn unbounded parallel processing if a
+    log.warn('re-processing stuck knowledge', { knowledgeId: row.knowledgeId })
+    // Serialize: don't spawn unbounded parallel processing if a
     // previous sweep just flagged 100 rows as stuck after a crash.
     // processKnowledge already catches its own errors.
     await processKnowledge(row.knowledgeId)
@@ -51,40 +50,33 @@ async function sweepStuck() {
 
 /**
  * Second sweep pass: reap failed rows past the TTL. Failed rows hold
- * S3 bytes (we never delete originals on failure — keeps the retry
+ * S3 bytes (we never delete originals on failure, keeps the retry
  * path cheap) and count against the per-user quota, so letting them
  * linger forever would let "deliberate failure" hoard quota. The TTL
- * is per-ops comfort — operators looking at errors get N days to see
+ * is per-ops comfort: operators looking at errors get N days to see
  * what's going wrong before cleanup.
  */
 async function sweepFailed() {
-  const cfg = useRuntimeConfig().knowledge
-  const cutoffDays = cfg.failedRetentionDays
+  const cutoffDays = KNOWLEDGE_PLATFORM_LIMITS.failedRetentionDays
   if (cutoffDays <= 0) return
-  const cutoff = new Date(Date.now() - cutoffDays * 24 * 60 * 60 * 1000)
-  let rows: Array<{ knowledgeId: string }>
+  const cutoff = new Date(Date.now() - cutoffDays * DAY_MS)
+  let rows: Array<{ knowledgeId: string, workspaceId: string }>
   try {
-    const db = useDatabase()
-    rows = await db.select({ knowledgeId: workspaceKnowledge.knowledgeId })
-      .from(workspaceKnowledge)
-      .where(and(
-        eq(workspaceKnowledge.status, 'failed'),
-        lt(workspaceKnowledge.createdAt, cutoff)
-      ))
+    rows = await listKnowledgeInStatusSince(SWEEP, 'failed', cutoff)
   } catch (e) {
-    console.warn('[knowledge-sweep] failed-query failed:', e instanceof Error ? e.message : e)
+    log.warn('failed-query failed', { err: e })
     Sentry.captureException(e, { tags: { component: 'knowledge-sweep', event: 'failed_query_failed' } })
     return
   }
   for (const row of rows) {
-    console.log(`[knowledge-sweep] Reaping expired failed row ${row.knowledgeId}`)
+    log.info('reaping expired failed row', { knowledgeId: row.knowledgeId })
     // deleteKnowledgeArtifact is already idempotent: it no-ops if
     // the row is missing and best-effort deletes the S3 object.
     try {
-      await deleteKnowledgeArtifact(row.knowledgeId)
+      await deleteKnowledgeArtifact(SWEEP.workspace(row.workspaceId), row.knowledgeId)
     } catch (e) {
-      console.warn(`[knowledge-sweep] reap failed for ${row.knowledgeId}:`, e instanceof Error ? e.message : e)
-      // Surface to Sentry — repeated reap failures keep failed rows
+      log.warn('reap failed', { knowledgeId: row.knowledgeId, err: e })
+      // Surface to Sentry: repeated reap failures keep failed rows
       // hoarding per-user quota; on-call wants the signal.
       Sentry.captureException(e, {
         tags: { component: 'knowledge-sweep', event: 'reap_failed', knowledgeId: row.knowledgeId }
@@ -93,31 +85,13 @@ async function sweepFailed() {
   }
 }
 
-/**
- * Cross-instance gate: a single app instance runs both sub-sweeps per
- * tick. processKnowledge is idempotent if it does double-fire, so this
- * is purely a wastefulness guard, not a correctness one.
- */
-async function sweep() {
-  if (!await acquireSweepLock('knowledge-sweep')) return
-  try {
+export default defineSweeper({
+  name: 'knowledge-sweep',
+  schedule: SWEEPS.knowledge,
+  // A single instance runs both sub-sweeps per tick. processKnowledge is
+  // idempotent if it does double-fire, so the lock is a wastefulness guard.
+  run: async () => {
     await sweepStuck()
     await sweepFailed()
-  } finally {
-    await releaseSweepLock('knowledge-sweep')
   }
-}
-
-export default defineNitroPlugin((nitroApp) => {
-  // Kick first sweep after migrations complete so we don't race 00-db-migrate
-  // on a fresh DB.
-  void (async () => {
-    await migrationsComplete
-    await sweep()
-  })()
-
-  const timer = setInterval(() => {
-    void sweep()
-  }, SWEEP_INTERVAL_MS)
-  nitroApp.hooks.hook('close', () => clearInterval(timer))
 })

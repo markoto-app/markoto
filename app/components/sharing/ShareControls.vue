@@ -1,16 +1,13 @@
 <script setup lang="ts">
-// Share-link controls (WP9): when the public link stops working, whether
+import type { ApiRequest, ApiResponse } from '~/utils/api/client'
+// Share-link controls: when the public link stops working, whether
 // visitors may download / print, and how often the link was opened in the
 // last 30 days. Owner and workspace admins; the plan feature
 // `shareControls` is needed to SET a restriction (clearing always works).
 // Server: `server/api/docs/[docId]/share-settings/`.
 
-interface Settings {
-  available: boolean
-  expiresAt: string | null
-  noDownload: boolean
-  views: { total: number, lastDay: string | null, byDay: Array<{ day: string, opens: number }> } | null
-}
+type Settings = ApiResponse<'/api/docs/:docId/share-settings', 'get'>
+type SettingsPatch = NonNullable<ApiRequest<'/api/docs/:docId/share-settings', 'put'>['body']>
 
 const props = defineProps<{ docId: string }>()
 const { t, locale } = useI18n()
@@ -18,11 +15,10 @@ const { showError } = useErrorHandler()
 
 const settings = ref<Settings | null>(null)
 const busy = ref(false)
-const base = computed(() => `/api/docs/${encodeURIComponent(props.docId)}/share-settings`)
 
 async function load(): Promise<void> {
   try {
-    settings.value = await $fetch<Settings>(base.value)
+    settings.value = await apiFetch('/api/docs/:docId/share-settings', { path: { docId: props.docId } })
   } catch {
     settings.value = null
   }
@@ -41,10 +37,10 @@ watch(settings, (s) => {
   expiryInput.value = toLocalInput(s?.expiresAt ?? null)
 })
 
-async function save(patch: { expiresAt?: string | null, noDownload?: boolean }): Promise<void> {
+async function save(patch: SettingsPatch): Promise<void> {
   busy.value = true
   try {
-    const res = await $fetch<{ expiresAt: string | null, noDownload: boolean }>(base.value, { method: 'PUT', body: patch })
+    const res = await apiFetch('/api/docs/:docId/share-settings', { method: 'put', path: { docId: props.docId }, body: patch })
     if (settings.value) settings.value = { ...settings.value, ...res }
   } catch (e) {
     showError('share.controls.saveFailed', e)

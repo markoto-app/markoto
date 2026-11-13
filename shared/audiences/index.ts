@@ -11,7 +11,7 @@
  *     "ignore previous instructions"). The enum is the trust boundary.
  *
  * Why fragments live in code (not i18n locale files):
- *   - The AI is multilingual at the OUTPUT layer — its output language
+ *   - The AI is multilingual at the OUTPUT layer, its output language
  *     is driven by the document's `language` field, not the prompt's
  *     language. Translating these fragments would dilute carefully-
  *     tuned wording without buying anything.
@@ -43,7 +43,7 @@ export const AUDIENCES = {
   business: {
     label: 'audiences.business.label',
     description: 'audiences.business.description',
-    promptFragment: `Write for time-pressed business readers. Open with the bottom line: what, why, what's needed. Use BLUF structure. Quantify wherever possible — numbers, percentages, dates. Bullet lists for parallel items. Avoid technical jargon unless the audience is technical-business. Action items belong at the end of each section.`
+    promptFragment: `Write for time-pressed business readers. Open with the bottom line: what, why, what's needed. Use BLUF structure. Quantify wherever possible: numbers, percentages, dates. Bullet lists for parallel items. Avoid technical jargon unless the audience is technical-business. Action items belong at the end of each section.`
   },
   creative: {
     label: 'audiences.creative.label',
@@ -57,5 +57,6 @@ export type AudienceKind = keyof typeof AUDIENCES
 export const AUDIENCE_KINDS = Object.keys(AUDIENCES) as AudienceKind[]
 
 export function isAudienceKind(value: unknown): value is AudienceKind {
-  return typeof value === 'string' && value in AUDIENCES
+  // Own keys only: `'constructor' in AUDIENCES` is true for any object.
+  return typeof value === 'string' && Object.hasOwn(AUDIENCES, value)
 }

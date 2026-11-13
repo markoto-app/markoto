@@ -1,18 +1,11 @@
-// `v-long-press="handler"` — fires `handler(event)` after `delay` ms
-// of continuous pointerdown without movement past `tolerance` px.
-// Movement / pointerup / pointercancel before the threshold cancels.
+// `v-long-press="handler"` fires `handler(event)` after `delay` ms of
+// continuous pointerdown without movement past `tolerance` px; movement,
+// pointerup or pointercancel before that cancels. Defaults: 500 ms, 8 px.
+// Call sites tune with `[handler, { delay, tolerance }]`.
 //
-// Why a custom directive instead of VueUse's `vOnLongPress`: the
-// directive form ships in `@vueuse/components`, which isn't a
-// dependency. The composable form (`onLongPress`) only binds to a
-// single element ref and can't be used across a `v-for`. This 30-line
-// directive lets list rows attach long-press without restructuring
-// the loop.
-//
-// Default mobile-friendly: 500 ms hold, 8 px movement tolerance.
-// Modifiers `:600` / `:1000` (delay ms) and `.tolerance.16` would be
-// the natural extension; for now the call sites tune by passing
-// `[handler, { delay, tolerance }]`.
+// Custom instead of VueUse's `vOnLongPress` because that directive ships in
+// `@vueuse/components` (not a dependency) and the composable form binds one
+// element ref, which doesn't work across a `v-for`.
 
 import type { DirectiveBinding } from 'vue'
 
@@ -48,10 +41,8 @@ function mount(el: HTMLElement, binding: DirectiveBinding) {
     startX: 0,
     startY: 0,
     pointerDown(e) {
-      // Only primary pointer (left mouse / first touch). Skip the
-      // secondary buttons so right-click doesn't double-fire on
-      // desktop where the native context menu already handles it.
-      if (e.button !== undefined && e.button !== 0) return
+      // Primary pointer only: right-click would double-fire next to the native context menu.
+      if (typeof e.button === 'number' && e.button !== 0) return
       state.startX = e.clientX
       state.startY = e.clientY
       state.timer = setTimeout(() => {

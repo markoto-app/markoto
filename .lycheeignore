@@ -1,0 +1,5 @@
+# Link patterns that are intentionally not resolvable (placeholders, runtime URLs).
+^https?://(.*\.)?example\.(com|org)
+^https?://localhost
+^https?://.*\.127\.0\.0\.1\.nip\.io
+^https?://(.*\.)?markoto\.app

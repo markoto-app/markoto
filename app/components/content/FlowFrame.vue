@@ -17,16 +17,17 @@ type Annotation = {
 }
 type Card = { kind: 'chapter' | 'narration', text: string } | null
 
+const { t } = useI18n()
 const props = defineProps<{
-  /** Image URL — null when rendering a card body. */
+  /** Image URL: null when rendering a card body. */
   src: string | null
-  /** Card content — non-null swaps the body to a text card.
+  /** Card content: non-null swaps the body to a text card.
    *  `chapter` = big centered heading + "Chapter" label;
    *  `narration` = smaller centered prose, no label. */
   card: Card
   /** Cursor coords (CSS pixels relative to the source viewport). */
   cursor: { x: number, y: number } | null
-  /** Cursor opacity 0..1 — fades the cursor across kind changes. */
+  /** Cursor opacity 0..1: fades the cursor across kind changes. */
   cursorOpacity: number
   /** URL pathname rendered in the fake address bar. Empty on chapter. */
   path: string
@@ -36,7 +37,7 @@ const props = defineProps<{
    *  Distinct from `highlights`: these point AT something the reader
    *  needs to act on next, not at something that just happened. */
   annotations?: Annotation[]
-  /** Source viewport size — drives aspect ratio + overlay scaling. */
+  /** Source viewport size: drives aspect ratio + overlay scaling. */
   viewport: { w: number, h: number }
   showCursor: boolean
   showChrome: boolean
@@ -44,12 +45,12 @@ const props = defineProps<{
   showHighlights: boolean
   /** When true, render the cursor as a grey tap circle (Chrome-DevTools-
    *  style touch-emulation indicator) instead of the orange mouse SVG.
-   *  Mobile manifests don't have a real mouse cursor — a tap circle is
+   *  Mobile manifests don't have a real mouse cursor, a tap circle is
    *  more honest about how the user actually interacts. */
   isTouch?: boolean
 }>()
 
-// Emit a click only when the user clicks the IMAGE / CARD area —
+// Emit a click only when the user clicks the IMAGE / CARD area,
 // the browser chrome (traffic lights + address bar) is decorative
 // and shouldn't toggle play. Flow.vue's click-to-toggle listens on
 // this event rather than wrapping the whole frame.
@@ -63,7 +64,7 @@ function labelRight(h: Highlight): boolean {
   return h.x > props.viewport.w / 2
 }
 
-// Annotation positioning — same flip logic as highlights but stricter
+// Annotation positioning: same flip logic as highlights but stricter
 // because annotation labels live OFF-target (with a leader line) rather
 // than hugging the box edge. Decide which corner the label sits in.
 function annotationLabelLeft(a: Annotation): boolean {
@@ -74,7 +75,7 @@ function annotationLabelTop(a: Annotation): boolean {
 }
 
 // Leader-line endpoints for arrow-kind annotations. Currently
-// unused — annotation rendering is disabled in the public docs
+// unused: annotation rendering is disabled in the public docs
 // slideshow (the SVG block is gated on `v-if="false"`). Kept here
 // alongside lineToRectEdge so the rendering can be re-enabled
 // without re-deriving the geometry. The leading underscore is
@@ -88,7 +89,7 @@ function _arrowGeometry(a: Annotation) {
   const inset = 18
   const tailX = labelLeft ? inset : props.viewport.w - inset
   const tailY = labelTop ? inset : props.viewport.h - inset
-  // Arrowhead lands on the box edge closest to the tail anchor —
+  // Arrowhead lands on the box edge closest to the tail anchor,
   // computed via line-rect intersection. Keeps the arrow short and
   // clean instead of cutting through the target.
   const head = lineToRectEdge(tailX, tailY, cx, cy, a)
@@ -144,8 +145,8 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
 <template>
   <figure>
     <div class="rounded-lg overflow-hidden border border-default bg-elevated shadow-sm">
-      <!-- Browser chrome — kept across all slide kinds for visual
-           continuity. Address bar shows "—" on chapter cards (no
+      <!-- Browser chrome: kept across all slide kinds for visual
+           continuity. Address bar shows "-" on chapter cards (no
            meaningful path). -->
       <div
         v-if="showChrome"
@@ -185,7 +186,7 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
           <span
             v-else
             class="text-muted"
-          >—</span>
+          >-</span>
         </div>
       </div>
 
@@ -197,16 +198,14 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
         type="button"
         class="block w-full text-left relative bg-default cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-shu-500"
         :style="{ aspectRatio: `${viewport.w} / ${viewport.h}` }"
-        :aria-label="card ? card.text : 'Toggle slideshow playback'"
+        :aria-label="card ? card.text : t('docs.flow.toggle')"
         @click="$emit('click')"
       >
         <!-- Text card. Two variants:
-             - chapter: huge Fraunces serif headline (display register
+             - chapter: large Fraunces serif headline (display register
                with optional italic emphasis) + JetBrains Mono eyebrow
-               separator, centered on a warm bone field. The previous
-               `font-semibold` Inter at 5xl read "developer slide
-               deck"; the new register reads "field-guide chapter
-               title" — same display voice as the homepage hero.
+               separator, centered on a warm bone field; same display
+               voice as the homepage hero.
              - narration: smaller centered prose, exposition between
                actions, not a section break. -->
         <div
@@ -221,7 +220,7 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
               class="block w-[22px] h-px bg-current opacity-60"
               aria-hidden="true"
             />
-            <span>chapter</span>
+            <span>{{ t('docs.flow.chapter') }}</span>
           </div>
           <p
             v-if="card.kind === 'chapter'"
@@ -230,11 +229,9 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
           >
             {{ card.text }}
           </p>
-          <!-- Narration card. Sized up from `text-base/xl` to a
-               proper editorial body — readers used the previous size
-               only because chapter cards dwarfed it; on its own the
-               smaller text felt cramped on a full-frame slide. The
-               clamp() gives it responsive scaling without breakpoints. -->
+          <!-- Narration card: an editorial body size, scaled with clamp()
+               so it needs no breakpoints (chapter cards dwarf plain
+               `text-base/xl`, which felt cramped on a full-frame slide). -->
           <p
             v-else
             class="text-default text-center leading-relaxed max-w-3xl"
@@ -253,7 +250,7 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
             class="absolute inset-0 w-full h-full object-cover"
           >
 
-          <!-- Highlight callouts (outcome only — Flow.vue passes []
+          <!-- Highlight callouts (outcome only, Flow.vue passes []
                for any other kind). Color: shu (the markoto seal) so
                the callouts read as part of the brand surface, not
                like a generic warning chip. -->
@@ -283,16 +280,12 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
             </div>
           </template>
 
-          <!-- Annotation rendering DISABLED in the public docs slideshow.
-               The fixture + manifest still ship `annotations` (so future
-               work can re-enable arrow/box/pin overlays without churning
-               every spec), but feedback was that arrows spanning the
-               whole slide read as visual noise — the cursor + highlight
-               boxes carry enough direction. To re-enable, uncomment the
-               original block in git history (commit c22b7e3) and ensure
-               the props pipeline still passes the array through. -->
+          <!-- Annotation rendering is disabled in the public docs
+               slideshow. Manifests still carry `annotations`, but arrows
+               spanning the whole slide read as visual noise; the cursor
+               and highlight boxes carry enough direction. -->
           <template v-if="false && annotations?.length">
-            <!-- intentionally empty — annotations live in manifests but
+            <!-- intentionally empty: annotations live in manifests but
                  are not rendered in the slideshow today -->
           </template>
 
@@ -301,7 +294,7 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
                (preserves the element's identity across slides → CSS
                transition on left/top animates motion smoothly).
                Touch variant: a 32px translucent grey circle (Chrome
-               DevTools' touch-emulation indicator) — there's no real
+               DevTools' touch-emulation indicator): there's no real
                mouse cursor on mobile. -->
           <div
             v-if="showCursor && cursor && isTouch"
@@ -323,9 +316,8 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
               left: `${(cursor.x / viewport.w) * 100}%`,
               top: `${(cursor.y / viewport.h) * 100}%`,
               opacity: cursorOpacity,
-              // shu-500 (#B5371F = rgb(181 55 31)) — the markoto seal
-              // color. Was generic orange-500 before; switched so the
-              // cursor's glow reads as brand surface, not as a warning.
+              // shu-500 (#B5371F = rgb(181 55 31)), the markoto seal
+              // color, so the cursor's glow reads as brand surface, not a warning.
               filter: 'drop-shadow(0 0 3px rgb(181 55 31 / 0.95)) drop-shadow(0 0 10px rgb(181 55 31 / 0.7))'
             }"
           >
@@ -336,10 +328,8 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
 </template>
 
 <style scoped>
-/* shu-500 (#B5371F = rgb(181 55 31)) — the markoto seal color. The
-   pulse glow was generic orange-500; switched to shu so highlights
-   match the brand palette. The chip background (set inline above)
-   uses the same value. */
+/* shu-500 (#B5371F = rgb(181 55 31)), the markoto seal color. The chip
+   background (set inline above) uses the same value. */
 @keyframes flow-highlight-pulse {
   0%, 100% {
     box-shadow: 0 0 4px 1px rgb(181 55 31 / 0.6);

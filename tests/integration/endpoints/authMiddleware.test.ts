@@ -3,9 +3,10 @@ import { resetDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser } from '../setup/fixtures'
 import { createAnonDoc } from '../setup/anonGate'
+import { TEST_INTERNAL_SECRET } from '../setup/env'
 
 // server/middleware/auth.ts is the central whitelist that gates every
-// /api/* path. Regressions here have big blast radius — a stray protected
+// /api/* path. Regressions here have big blast radius, a stray protected
 // pattern exposes a mutation to anonymous callers. These tests verify the
 // whitelist is what the code claims it is.
 
@@ -24,7 +25,7 @@ describe('auth middleware whitelist', () => {
 
     it('GET /api/status is public and returns a per-component board', async () => {
       const res = await anonClient().get('/api/status')
-      // Status is a REPORT, not a gate — always 200 so a status-page
+      // Status is a REPORT, not a gate, always 200 so a status-page
       // poller's fetch succeeds even when a component is down.
       expect(res.status).toBe(200)
       const body = await res.json() as {
@@ -35,8 +36,8 @@ describe('auth middleware whitelist', () => {
       // Core components are reported (postgres + valkey are live in the
       // test stack, so they should probe 'ok'); the board carries the
       // full component set a status page renders.
-      expect(body.checks.postgres.status).toBe('ok')
-      expect(body.checks.valkey.status).toBe('ok')
+      expect(body.checks.postgres?.status).toBe('ok')
+      expect(body.checks.valkey?.status).toBe('ok')
       for (const key of ['postgres', 'valkey', 'sync', 's3', 'renderer', 'markitdown', 'litellm']) {
         expect(body.checks[key]).toBeDefined()
         expect(['ok', 'down', 'skipped']).toContain(body.checks[key]!.status)
@@ -60,12 +61,12 @@ describe('auth middleware whitelist', () => {
       const doc = await createDoc({ accessMode: 'open-edit' })
       const res = await anonClient().get(`/api/docs/${doc.docId}/activity`)
       // 200 on open-edit doc. The important thing is it didn't 401 at the
-      // middleware — the endpoint itself decides what's allowed.
+      // middleware: the endpoint itself decides what's allowed.
       expect(res.status).toBe(200)
     })
 
     it('DELETE /api/docs/:id is public (endpoint decides for anon docs)', async () => {
-      // Anonymous doc created by this (cookie-holding) anonymous browser —
+      // Anonymous doc created by this (cookie-holding) anonymous browser,
       // only the creating browser may delete it.
       const creator = anonClient()
       const created = await createAnonDoc(creator)
@@ -152,7 +153,7 @@ describe('auth middleware whitelist', () => {
 
   describe('default-deny backstop', () => {
     // The middleware is DEFAULT-DENY: any /api route not in the explicit
-    // public whitelist requires a valid session — there is no
+    // public whitelist requires a valid session, there is no
     // fall-through-open branch. These tests pin the model itself, not
     // individual endpoints: a regression back to prefix-matching would
     // flip the unknown-route case below from 401 to 404.
@@ -182,11 +183,16 @@ describe('auth middleware whitelist', () => {
       expect(res.status).toBe(401)
     })
 
+    it('GET /api/health/deep is for instance admins only (probe errors name internal hosts)', async () => {
+      const user = await createUser()
+      const res = await (await loggedInClient(user.id)).get('/api/health/deep')
+      expect(res.status).toBe(403)
+      expect((await res.json() as { data: { code: string } }).data.code).toBe('admin/forbidden')
+    })
+
     it('an UNKNOWN /api route rejects anonymous instead of falling through', async () => {
-      // This is the load-bearing default-deny pin: under the old
-      // prefix-list model this 404'd (fell through open); now the
-      // middleware refuses before routing. Also removes anonymous
-      // route-enumeration as a side effect.
+      // This is the load-bearing default-deny pin: the middleware refuses before routing (a prefix-list model
+      // would fall through and 404). It also removes anonymous route enumeration.
       const res = await anonClient().get('/api/route-that-does-not-exist')
       expect(res.status).toBe(401)
     })
@@ -198,9 +204,8 @@ describe('auth middleware whitelist', () => {
       expect(res.status).toBe(404)
     })
 
-    // Whitelist survivors — routes that previously relied on the implicit
-    // fall-through and are now explicitly public. A missed entry here
-    // breaks an anonymous product surface.
+    // Whitelist survivors: routes that are explicitly public (they once relied on the implicit fall-through).
+    // A missed entry here breaks an anonymous product surface.
 
     it('GET /api/version stays public', async () => {
       const res = await anonClient().get('/api/version')
@@ -215,7 +220,7 @@ describe('auth middleware whitelist', () => {
     it('GET /api/files/:docId/:fileId stays public (endpoint-gated)', async () => {
       const doc = await createDoc({ accessMode: 'open-edit' })
       const res = await anonClient().get(`/api/files/${doc.docId}/nonexistent-file`)
-      // The file doesn't exist so the endpoint 404s — the point is the
+      // The file doesn't exist so the endpoint 404s, the point is the
       // middleware didn't 401 an anonymous image read on an open doc.
       expect(res.status).not.toBe(401)
     })
@@ -228,14 +233,28 @@ describe('auth middleware whitelist', () => {
 
   describe('internal route guard', () => {
     it('POST /api/internal/* requires X-Internal-Secret, not a user session', async () => {
-      // Anonymous — should NOT get 401 (middleware lets internal routes
-      // through for the shared-secret auth to handle).
       const res = await anonClient().post('/api/internal/activity', {})
-      // Endpoint itself rejects without the internal secret header.
-      expect([400, 401, 403, 404]).toContain(res.status)
-      // But not middleware's 401 with "Unauthorized" — that would indicate
-      // the session guard rejected it before the endpoint ran. Internal
-      // endpoints check the header inside the handler.
+      expect(res.status).toBe(401)
+    })
+
+    it('a route under /api/internal/ with no handler is still secret-gated', async () => {
+      const res = await anonClient().post('/api/internal/does-not-exist', {})
+      expect(res.status).toBe(401)
+    })
+
+    it('a valid secret passes the middleware (the handler validates the body)', async () => {
+      const res = await anonClient().post('/api/internal/activity', {}, { headers: { 'X-Internal-Secret': TEST_INTERNAL_SECRET } })
+      expect(res.status).toBe(400)
+    })
+
+    it('internal routes are 404 when the request came through the edge proxy, even with the secret', async () => {
+      const edge = { 'X-Forwarded-Host': 'markoto.example', 'X-Real-Ip': '203.0.113.7' }
+      const internal = await anonClient().post('/api/internal/activity', {}, { headers: { ...edge, 'X-Internal-Secret': TEST_INTERNAL_SECRET } })
+      expect(internal.status).toBe(404)
+      const render = await anonClient().get('/_internal/render/some-doc-id', { headers: edge })
+      expect(render.status).toBe(404)
+      const bootstrap = await anonClient().get('/api/_internal/render-bootstrap?docId=x&t=y', { headers: edge })
+      expect(bootstrap.status).toBe(404)
     })
   })
 

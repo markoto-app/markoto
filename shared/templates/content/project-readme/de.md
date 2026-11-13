@@ -11,7 +11,7 @@
 
 # Schnellstart
 
-<!-- Copy-paste-fähig. Drei Befehle oder weniger. Nennen Sie die Voraussetzungen einmal im Tipp und setzen Sie sie danach voraus. Danach das kleinste sinnvolle Beispiel; ein Codeblock mit title="Dateiname" nach der Sprache zeigt den Dateinamen als Reiter. -->
+<!-- Copy-paste-fähig. Drei Befehle oder weniger. Nenne die Voraussetzungen einmal im Tipp und setze sie danach voraus. Danach das kleinste sinnvolle Beispiel; ein Codeblock mit title="Dateiname" nach der Sprache zeigt den Dateinamen als Reiter. -->
 
 > [!TIP]
 > Voraussetzungen: Laufzeitumgebung und Version.
@@ -27,7 +27,7 @@
 
 | Option | Umgebungsvariable | Standard | Beschreibung |
 |---|---|---|---|
-| `option` | `PROJECT_OPTION` | — | |
+| `option` | `PROJECT_OPTION` | - | |
 
 # Funktionen
 

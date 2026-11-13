@@ -1,7 +1,17 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import { fileURLToPath } from 'node:url'
-import { KNOWLEDGE_PLATFORM_LIMITS, STRIPE_CONFIG_DEFAULTS } from './shared/config/tiers'
+import { observability } from './shared/env/vars/sync'
+import { DAY_SECONDS } from './shared/config/units'
 import { scanFlowDocPages } from './scripts/lib/flowDocPagesFs'
+import { bool } from './shared/env/coerce'
+
+// Test-only routes (server/api/_test/**: login shim, AI-tool exec, budget
+// helpers) are compiled in only when the test harness builds with
+// MARKOTO_TEST_BUILD=1. A release image never contains them, so a mistake in
+// the runtime TEST_MODE gate (still checked by every one of them) can't
+// expose a login bypass. scripts/selfhost-check.sh + CI check a production
+// build for them.
+const testBuild = bool.parse(process.env.MARKOTO_TEST_BUILD || 'false')
 
 export default defineNuxtConfig({
   // Dev proxy: mirror production Traefik routing through localhost:3000
@@ -26,8 +36,11 @@ export default defineNuxtConfig({
     // See server/mcp/AGENTS.md.
     '@nuxtjs/mcp-toolkit',
     // Same-origin copies of paged.js / Mermaid / KaTeX / highlight.js and
-    // the web fonts under /vendor/ — see shared/utils/vendorAssets.ts.
-    './modules/vendor-assets'
+    // the web fonts under /vendor/, see shared/utils/vendor/vendorAssets.ts.
+    './modules/vendor-assets',
+    // Request types of the API handlers for the typed client
+    // (.nuxt/types/api-inputs.d.ts, read by app/utils/api/client.ts).
+    './modules/api-contract'
   ],
 
   // Nuxt Content in production builds (`nuxt dev` serves from Node and
@@ -55,6 +68,12 @@ export default defineNuxtConfig({
     }
   },
 
+  // Nuxt scans only the top level of these dirs; the domain sub-folders are
+  // scanned too so the auto-imports stay the same.
+  imports: {
+    dirs: ['composables/**', 'utils/**', '../shared/utils/**']
+  },
+
   devtools: {
     enabled: true
   },
@@ -64,7 +83,7 @@ export default defineNuxtConfig({
   ui: {
     // No @nuxt/fonts: it downloads the CSS font families from Google Fonts
     // at build time. Every web font is self-hosted from pinned Fontsource
-    // packages instead (shared/utils/themeFonts.ts, modules/vendor-assets.ts),
+    // packages instead (shared/utils/theme/themeFonts.ts, modules/vendor-assets.ts),
     // so a build needs no network beyond the package registry.
     fonts: false
   },
@@ -81,11 +100,11 @@ export default defineNuxtConfig({
     // nuxt-auth-utils reads `runtimeConfig.session` (shape = h3's SessionConfig,
     // which requires `password`). `NUXT_SESSION_PASSWORD` env var populates
     // `session.password` via Nuxt's nested env→runtimeConfig resolution. The
-    // old top-level `sessionPassword` was stale — left over from an earlier
+    // old top-level `sessionPassword` was stale, left over from an earlier
     // config shape and never read by the runtime.
     session: {
       password: '',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 7 * DAY_SECONDS,
       cookie: {
         // Default `Secure: true` blocks cookie acceptance over plain HTTP
         // on non-localhost origins (e.g. LAN IP `192.168.x.x` for browser
@@ -93,7 +112,7 @@ export default defineNuxtConfig({
         // terminates TLS and the upstream session cookie is set with
         // Secure via the response anyway.
         secure: process.env.NODE_ENV === 'production',
-        // Defaults are already these — make them explicit so they survive
+        // Defaults are already these, make them explicit so they survive
         // future h3 / nuxt-auth-utils default churn.
         httpOnly: true,
         path: '/',
@@ -112,7 +131,7 @@ export default defineNuxtConfig({
         // handlers never change state. Pinned by
         // tests/integration/endpoints/oidcLogin.test.ts.
         sameSite: 'lax'
-        // Intentionally NO `domain` — the cookie defaults to the exact
+        // Intentionally NO `domain`: the cookie defaults to the exact
         // host that set it, which means it will never be auto-included
         // on requests to `sync.${DOMAIN}` (the Hocuspocus subdomain).
         // Hocuspocus auth rides on a JWT, not the session cookie, so a
@@ -129,142 +148,20 @@ export default defineNuxtConfig({
         clientSecret: ''
       }
     },
-    s3: {
-      endpoint: '',
-      // NUXT_S3_PUBLIC_ENDPOINT — base URL browsers use for presigned S3
-      // URLs when it differs from `endpoint` (self-host compose: SeaweedFS
-      // is `http://seaweedfs:8333` inside the stack and published through
-      // Traefik on the public origin). Empty = same as `endpoint`. See
-      // server/utils/s3.ts#usePresignS3Client.
-      publicEndpoint: '',
-      accessKey: '',
-      secretKey: '',
-      bucket: 'ypad'
-    },
-    // Phase 5: every Google API surface (Gemini text/image/embeddings,
-    // Cloud STT) is gone. Only the dictation-WS JWT secret survives,
-    // moved from `config.google.dictateJwtSecret` → `config.aiDictateJwtSecret`.
-    // The env var renamed accordingly: NUXT_GOOGLE_DICTATE_JWT_SECRET
-    // → NUXT_AI_DICTATE_JWT_SECRET.
-    aiDictateJwtSecret: '', // NUXT_AI_DICTATE_JWT_SECRET — falls back to `jwtSecret` if unset
-    // LiteLLM proxy — vendor-agnostic gateway for Phase-1+ migration.
-    // Phase 1A only routes embeddings; Phase 4 adds chat, Phase 3 image
-    // gen, Phase 5 voice metering. The proxy enforces per-key budgets
-    // and unifies cost tracking across providers (Mistral / Jina / BFL).
-    litellm: {
-      url: '', // NUXT_LITELLM_URL — internal HTTP URL, e.g. http://litellm:4000 (prod) / http://localhost:4000 (dev with host bun)
-      masterKey: '', // NUXT_LITELLM_MASTER_KEY — admin key; per-user virtual keys arrive in Phase 6
-      // Embedding model + dims used when the knowledge pipeline routes
-      // through LiteLLM. jina-embeddings-v5-text-nano is natively 768-d
-      // (perfect fit for the existing pgvector(768) HNSW index — zero
-      // DDL needed). Smallest in Jina's v5 family = fastest + cheapest;
-      // quality is sufficient for writing-doc retrieval. Bumping to
-      // jina-embeddings-v5-text-small (1024-d native, MRL-truncate to
-      // 768) is a config-only change if quality becomes the bottleneck.
-      embeddingsModel: 'jina-embeddings-v5-text-nano', // NUXT_LITELLM_EMBEDDINGS_MODEL
-      embeddingsDims: 768, // NUXT_LITELLM_EMBEDDINGS_DIMS
-      // Self-hosters: swap the model/size via env. The pgvector column is
-      // re-typed to match at boot when empty (server/utils/embeddingColumn.ts);
-      // max 2000 dims (HNSW). See docs/AI-MODELS.md#embeddings.
-      embeddingsSendDimensions: 'auto', // NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS — auto|true|false (auto = Jina only)
-      embeddingsTaskHints: 'auto', // NUXT_LITELLM_EMBEDDINGS_TASK_HINTS — Jina `task` param; auto|true|false (auto = Jina only)
-      embeddingsUpstreamModel: '', // NUXT_LITELLM_EMBEDDINGS_UPSTREAM_MODEL — label only (version tag); mirrors the proxy's EMBEDDINGS_UPSTREAM_MODEL
-      // WP4: the chat / image / transcription MODELS are no longer runtime
-      // config. They resolve per request from the user's own provider
-      // (bring your own key) or the operator's instance default
-      // (`NUXT_AI_DEFAULT_{CHAT,IMAGE,TRANSCRIBE}_*`, read from process.env
-      // by server/utils/aiProviders/config.ts). The former
-      // NUXT_LITELLM_{TEXT,IMAGE,TRANSCRIBE}_MODEL vars are gone; set
-      // NUXT_AI_DEFAULT_*_MODEL to the same alias instead.
-      imageDefaultWidth: 1024, // NUXT_LITELLM_IMAGE_DEFAULT_WIDTH
-      imageDefaultHeight: 1024, // NUXT_LITELLM_IMAGE_DEFAULT_HEIGHT
-      // Phase 5 voice-tick metering stub. Each "call" against this fake
-      // chat model bills $0.006 (1 minute of Voxtral Realtime audio) —
-      // see infra/litellm/custom_handlers.py:VoxtralTickProvider. The
-      // dictate WS orchestrator hits this once per minute of audio.
-      // Real Voxtral Realtime transcription stays direct from our backend
-      // via @mistralai/mistralai/extra/realtime SDK — this stub exists
-      // only so spend lands in the same per-key budget as everything else.
-      realtimeTickModel: 'voxtral-realtime-tick' // NUXT_LITELLM_REALTIME_TICK_MODEL
-    },
-    jwtSecret: '',
-    // Optional: previous JWT_SECRET, accepted by verifiers during rotation.
-    // See docs/SECRETS-ROTATION.md.
-    jwtSecretPrevious: '',
-    internalApiSecret: '',
-    // Optional: previous INTERNAL_API_SECRET, accepted during rotation.
-    internalApiSecretPrevious: '',
-    markitdownUrl: '',
-    // Internal HTTP URL of the Hocuspocus sync-server (for server→server calls).
-    // In Docker Compose: http://sync:4001. In dev: http://localhost:4001.
-    syncInternalUrl: 'http://localhost:4001',
-    // Internal HTTP URL of the Playwright renderer container (PDF + per-page
-    // PNGs). Same network shape as syncInternalUrl: dev = host:9000, compose
-    // = http://renderer:9000. Empty disables the user-facing /api/docs/:id/pdf
-    // endpoint and the AI's view_pages tool — useful for tests that don't
-    // spin up the renderer container.
-    rendererInternalUrl: 'http://localhost:9000',
-    // Anonymous-doc auto-cleanup threshold (in days). Only docs with no
-    // owner AND no workspace are reaped once last_active is past this
-    // many days — owned docs (any age) and workspace-attached docs are
-    // never auto-reaped. 0 disables sweeping entirely. Override via
-    // NUXT_INACTIVE_DOC_TTL_DAYS. 30 = what the hosted Terms + privacy
-    // policy promise; self-hosters may pick another period.
-    inactiveDocTtlDays: 30,
-    // Per-tier caps are NOT mirrored here: enforcement resolves them
-    // via `server/utils/tierConfig.ts#getTiers()` (committed defaults
-    // in `shared/config/tiers.ts` + TIER_* env overrides), and the
-    // client fetches the resolved map from GET /api/billing/tiers.
-    // Knowledge-upload platform limits that don't vary by plan
-    // (single-file size, chunker ceiling, failed-row TTL). Tier-
-    // varying caps (file count, bytes, etc.) live in the tier caps (see shared/config/tiers.ts).
-    knowledge: KNOWLEDGE_PLATFORM_LIMITS,
-    // Stripe config — all empty in dev, set via NUXT_STRIPE_* in prod.
-    // Only read when NUXT_BILLING_ENABLED=true. The billing-mode flags
-    // themselves (NUXT_BILLING_ENABLED / NUXT_PLANS_COMING_SOON) are NOT
-    // runtimeConfig keys: they're parsed from the environment by
-    // `shared/config/billingMode.ts` (server guards + SSR-hydrated
-    // `useBillingMode()`), so enforcement utils that run outside Nitro
-    // (repos tests) see the same value. See server/utils/billingMode.ts.
-    stripe: STRIPE_CONFIG_DEFAULTS,
-    // Public origin of this deployment (e.g. https://markoto.app), used
-    // to build absolute links in emails (waitlist confirm/unsubscribe).
-    // Set via NUXT_SITE_URL in prod. Empty → derived from the request's
-    // Host header, which is only trustworthy behind a host-matching
-    // proxy rule (as in docker-compose.prod.yml's Traefik router).
-    siteUrl: '',
-    // Transactional email. All empty in dev (the helper falls back
-    // to a console log via `[email-stub]`); set via NUXT_EMAIL_* in
-    // prod to enable real delivery. See `server/utils/email/sendEmail.ts`
-    // for the dispatch shape. Today supports `provider: 'resend'`;
-    // adding a second provider is one branch in that file.
-    email: {
-      // Empty = stub mode. Set to 'resend' to enable real delivery
-      // (requires apiKey + fromAddress to also be set).
-      provider: '',
-      // Provider API key. Resend keys start `re_…`.
-      apiKey: '',
-      // Verified sending address — must be on a domain whose SPF +
-      // DKIM DNS records are set in the provider. Format: `Name
-      // <address@domain>`. NEVER set this to an unverified domain;
-      // the provider will silently bounce.
-      fromAddress: ''
-    },
+    // Server code reads its configuration from the typed env registry
+    // (`useEnv()`, shared/env/), not from here. runtimeConfig keeps only
+    // what a module or the browser reads: `session` + `oauth`
+    // (nuxt-auth-utils) and `public`. Their names and defaults are declared
+    // in the registry too (tests/unit/env/runtimeConfig.test.ts pins the names).
     public: {
-      syncUrl: '',
+      syncUrl: '', // NUXT_PUBLIC_SYNC_URL
       sentry: {
-        // sentry.io DSN for browser error reporting. Empty in dev;
-        // set via NUXT_PUBLIC_SENTRY_DSN in prod .env.
-        dsn: ''
+        dsn: '' // NUXT_PUBLIC_SENTRY_DSN
       },
       docs: {
-        // Cosmetic domain shown in the fake browser-bar above embedded
-        // flow screenshots. Override per-environment via
-        // NUXT_PUBLIC_DOCS_CHROME_DOMAIN if the docs subdomain differs
-        // from the app subdomain. The <Flow> component reads this as
-        // its default; individual flow embeds can still pass their own
-        // chrome-domain prop.
-        chromeDomain: 'markoto.app'
+        // NUXT_PUBLIC_DOCS_CHROME_DOMAIN: fake browser bar above the docs'
+        // flow screenshots; a flow embed can pass its own.
+        chromeDomain: observability.vars.docsChromeDomain.default
       },
       // Test-only: when true, useDocument.ts exposes the active
       // ydoc + ytext on `window.__DEBUG_*` so e2e specs can assert
@@ -273,7 +170,7 @@ export default defineNuxtConfig({
       // builds; flipped to true via NUXT_PUBLIC_EXPOSE_TEST_HANDLES=
       // 1 in the flow-test stack (see scripts/flows-ephemeral.ts +
       // tests/integration/setup/server.ts). Without this gate the
-      // handles ship in production bundles too — minor surface-area
+      // handles ship in production bundles too, minor surface-area
       // leak but a leak nonetheless.
       exposeTestHandles: false
     }
@@ -281,6 +178,12 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2025-01-15',
   nitro: {
+    // Relative to server/. See `testBuild` above.
+    ignore: testBuild ? [] : ['api/_test/**'],
+    // Nitro scans only the top level of shared/utils; scan its sub-folders too.
+    imports: {
+      dirs: [fileURLToPath(new URL('./shared/utils/**', import.meta.url))]
+    },
     // Global error sanitiser. Every uncaught error from any /api/*
     // endpoint flows through `server/error.ts` before the response
     // is sent. 5xx errors are stripped of their original message +
@@ -295,8 +198,7 @@ export default defineNuxtConfig({
     // CSS, JSON, SVG) and let Nitro's static handler serve them by
     // Accept-Encoding. Nothing in front of the app compresses (Traefik
     // has no compress middleware), so without this the ~1.5 MB of
-    // client JS went over the wire raw — the product page's first-view
-    // budget (WP11) is unreachable that way.
+    // client JS would go over the wire raw.
     compressPublicAssets: true,
     // Native WebSocket route support for `/api/ai/dictate` (voice
     // dictation relay to Mistral Voxtral Realtime). Other WS traffic
@@ -305,7 +207,7 @@ export default defineNuxtConfig({
     experimental: {
       websocket: true,
       // Required by @nuxtjs/mcp-toolkit composables (useEvent, useMcpServer,
-      // useMcpSession, useMcpLogger) — they read the current event from
+      // useMcpSession, useMcpLogger): they read the current event from
       // Nitro's async-local storage. Without this they throw at runtime.
       asyncContext: true
     },
@@ -317,7 +219,7 @@ export default defineNuxtConfig({
     // https://bun.com/docs/guides/ecosystem/nuxt.
     preset: 'bun',
     // Dev proxy: forward S3 requests through localhost:3000 to avoid CORS.
-    // WebSocket (Hocuspocus) connects directly — no same-origin restriction.
+    // WebSocket (Hocuspocus) connects directly, no same-origin restriction.
     // In production, Traefik handles routing for all subdomains.
     devProxy: {
       '/_s3': {
@@ -325,15 +227,14 @@ export default defineNuxtConfig({
         changeOrigin: true
       }
     },
-    // `ws` is a transitive dep (originally pulled in by `@google/genai`
-    // pre-Phase-5; now by `@mistralai/mistralai`'s realtime sub-export
-    // for live dictation) that Nitro's NFT tracer doesn't follow
-    // through the SDK's dist bundle — the output emits `import 'ws'`
+    // `ws` is a transitive dep (pulled in by `@mistralai/mistralai`'s
+    // realtime sub-export for live dictation) that Nitro's NFT tracer doesn't follow
+    // through the SDK's dist bundle, the output emits `import 'ws'`
     // but omits the package. `traceInclude` takes glob patterns (not
     // bare package names); `ws` itself has no deps so one glob is
     // enough. Tracked upstream in nitrojs/nitro#2923.
     externals: {
-      // Point the tracer at ws's real entry — NFT then follows its imports
+      // Point the tracer at ws's real entry, NFT then follows its imports
       // and copies the whole package (lib/*.js, browser.js, etc.). Pointing
       // at just package.json only copies that one file.
       traceInclude: ['node_modules/ws/index.js']
@@ -344,17 +245,37 @@ export default defineNuxtConfig({
   // Host header isn't in an allowlist. The sync-server container reaches the
   // Nuxt dev server via `host.docker.internal`, so without this entry every
   // activity-logger POST silently gets rejected before our middleware sees it.
-  // Production doesn't care — Traefik terminates TLS and forwards the right Host.
+  // Production doesn't care: Traefik terminates TLS and forwards the right Host.
   vite: {
     server: {
       allowedHosts: ['host.docker.internal', 'localhost']
     }
   },
 
+  // Compiler options for the generated .nuxt/tsconfig.{app,server,shared,node}.json
+  // (checked by `nuxt typecheck`). strict + noUncheckedIndexedAccess are already
+  // Nuxt defaults here. noUnusedLocals / noUnusedParameters are still off: they
+  // report a handful of leftovers that must be cleaned up before they can be
+  // enabled.
+  typescript: {
+    tsConfig: {
+      compilerOptions: {
+        noFallthroughCasesInSwitch: true,
+        noImplicitReturns: true
+      }
+    },
+    // Nuxt's server tsconfig does not set this one by default (app/shared/node do).
+    serverTsConfig: {
+      compilerOptions: {
+        noImplicitOverride: true
+      }
+    }
+  },
+
   hooks: {
     // Production server entry: the bun preset's entry plus a request-body
     // size limit enforced by Bun (the preset buffers every body before
-    // routing, so handlers can't refuse an oversized one in time — see the
+    // routing, so handlers can't refuse an oversized one in time, see the
     // file header). Set on the built `bun` Nitro only: the prerender and dev
     // Nitro instances need their own entries.
     'nitro:init'(nitro) {
@@ -375,16 +296,17 @@ export default defineNuxtConfig({
 
   i18n: {
     locales: [
-      { code: 'en', language: 'en-US', name: 'English', file: 'en.json' },
-      { code: 'de', language: 'de-DE', name: 'Deutsch', file: 'de.json' },
-      { code: 'fr', language: 'fr-FR', name: 'Français', file: 'fr.json' },
-      { code: 'es', language: 'es-ES', name: 'Español', file: 'es.json' },
-      { code: 'ja', language: 'ja-JP', name: '日本語', file: 'ja.json' },
-      { code: 'zh', language: 'zh-CN', name: '中文', file: 'zh.json' }
+      { code: 'en', language: 'en-US', name: 'English', files: ['en.json', 'errors/en.json'] },
+      { code: 'de', language: 'de-DE', name: 'Deutsch', files: ['de.json', 'errors/de.json'] },
+      { code: 'fr', language: 'fr-FR', name: 'Français', files: ['fr.json', 'errors/fr.json'] },
+      { code: 'es', language: 'es-ES', name: 'Español', files: ['es.json', 'errors/es.json'] },
+      { code: 'ja', language: 'ja-JP', name: '日本語', files: ['ja.json', 'errors/ja.json'] },
+      { code: 'zh', language: 'zh-CN', name: '中文', files: ['zh.json', 'errors/zh.json'] }
     ],
     defaultLocale: 'en',
-    // `lazy` was removed in @nuxtjs/i18n v10 — lazy loading is now the default
-    // whenever `locales[].file` is set (which it is for us, via langDir).
+    // Lazy loading is the @nuxtjs/i18n v10 default whenever `locales[].files`
+    // is set (it is, via langDir). `errors/<code>.json` holds the API error
+    // texts (`apiErrors.*`, shared/api/errors/), merged over the UI strings.
     langDir: 'locales/',
     strategy: 'no_prefix',
     detectBrowserLanguage: {
@@ -400,7 +322,7 @@ export default defineNuxtConfig({
   // means /mcp exposes everything not attached to a named handler.
   mcp: {
     name: 'markoto',
-    description: 'Collaborative markdown editor — read, search, and edit your docs from any MCP client.',
+    description: 'Collaborative markdown editor, read, search, and edit your docs from any MCP client.',
     sessions: true,
     defaultHandlerStrategy: 'orphans'
   },
@@ -425,25 +347,25 @@ export default defineNuxtConfig({
     workbox: {
       // SPA fallback: any navigation miss serves the app shell so deep links
       // (e.g. /d/abc123) work offline. Denylist keeps API and OAuth flows on
-      // the network — a cached 401 or stale token response would be worse
+      // the network: a cached 401 or stale token response would be worse
       // than an offline error page.
       navigateFallback: '/',
       navigateFallbackDenylist: [/^\/api\//, /^\/auth\//],
       cleanupOutdatedCaches: true,
       // The vendored third-party assets under /vendor/ (paged.js, Mermaid,
-      // KaTeX, highlight.js, web fonts — shared/utils/vendorAssets.ts) stay
+      // KaTeX, highlight.js, web fonts, shared/utils/vendor/vendorAssets.ts) stay
       // out of the precache: ~12 MB, and a page only ever needs a few of
       // them. They're runtime-cached on first use instead (below).
       globIgnores: ['**/node_modules/**/*', 'vendor/**'],
       // Runtime caching: the vendored static assets only. Docs, doc tokens,
-      // AI, and upload endpoints intentionally bypass the SW — freshness
+      // AI, and upload endpoints intentionally bypass the SW, freshness
       // beats offline for collaborative state. First match wins:
       //   - per-family font stylesheets (/vendor/fonts/<family>.css) are the
       //     one unversioned name → serve cached, refresh in the background;
       //   - everything else sits under a versioned directory and never
       //     changes → cache first.
       // (The sandboxed, opaque-origin preview iframes aren't SW clients;
-      // their requests use the HTTP cache — the files are `immutable`.)
+      // their requests use the HTTP cache, the files are `immutable`.)
       runtimeCaching: [{
         urlPattern: /\/vendor\/fonts\/[\w-]+\.css$/,
         handler: 'StaleWhileRevalidate',
@@ -457,13 +379,13 @@ export default defineNuxtConfig({
     client: {
       // Lets us hook into the browser's `beforeinstallprompt` via `$pwa.install()`.
       installPrompt: true,
-      // Hourly check for a fresh SW in the background — complements the
+      // Hourly check for a fresh SW in the background, complements the
       // /api/version polling in version-check.client.ts, which covers the
       // non-PWA SSR path.
       periodicSyncForUpdates: 3600
     },
     // `autoUpdate` defaults to registering the SW in prod only. The dev
-    // option lets us smoke-test PWA flows against docker-compose.local
+    // option lets us smoke-test PWA flows against the local stack (deploy/compose/compose.local.yml)
     // without shipping a prod build.
     devOptions: {
       enabled: false,
@@ -475,16 +397,16 @@ export default defineNuxtConfig({
   // `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` from the BUILD-
   // TIME environment (the `bun run build` step in the Docker builder
   // stage). When missing, the build still succeeds but stack traces
-  // captured in prod stay minified — investigations have to map line
+  // captured in prod stay minified, investigations have to map line
   // numbers by hand. Set those three vars in CI / build env (NOT in
-  // the runtime `app` container — they're not needed at runtime).
-  // See docs/DEPLOY.md.
+  // the runtime `app` container, they're not needed at runtime).
+  // See docs/operations/DEPLOY.md.
   sentry: {
     sourceMapsUploadOptions: {
       // `org` + `project` come from env. Empty / undefined disables
-      // upload — dev / forks / contributors don't need a Sentry account
+      // upload: dev / forks / contributors don't need a Sentry account
       // to build. authToken is read directly from `SENTRY_AUTH_TOKEN`
-      // by the underlying @sentry/vite-plugin — no need to thread it.
+      // by the underlying @sentry/vite-plugin, no need to thread it.
       org: process.env.SENTRY_ORG,
       project: process.env.SENTRY_PROJECT
     }

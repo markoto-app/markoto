@@ -7,10 +7,12 @@ import {
   insertConfirmedUploads
 } from '../../server/repos/uploads'
 import { createUser, createDoc as seedDoc } from '../integration/setup/fixtures'
+import { first } from '../helpers/assert'
+import { docAs } from '../helpers/access'
 
 // Repo-level tests for the new helpers used by the duplicate flow.
 // `listConfirmedUploadsForDoc` and `insertConfirmedUploads` feed the
-// S3 CopyObject loop in duplicateDocument — wrong behaviour here =
+// S3 CopyObject loop in duplicateDocument, wrong behaviour here =
 // dupe either misses images or inserts bogus rows.
 
 async function rowCount(docId: string): Promise<number> {
@@ -19,7 +21,7 @@ async function rowCount(docId: string): Promise<number> {
     'SELECT COUNT(*) AS c FROM uploads WHERE doc_id = $1',
     [docId]
   )
-  return Number(r.rows[0].c)
+  return Number(first(r.rows).c)
 }
 
 describe('listConfirmedUploadsForDoc', () => {
@@ -30,20 +32,18 @@ describe('listConfirmedUploadsForDoc', () => {
   it('returns only confirmed uploads for the requested doc', async () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
-    // One confirmed, one pending — only the confirmed one should land in
+    // One confirmed, one pending, only the confirmed one should land in
     // the clone set. Pending rows may not even have an S3 object yet, so
     // copying them would error inside CopyObject.
-    await recordPending({
-      docId: doc.docId,
+    await recordPending(docAs(doc.docId), {
       fileId: 'a.png',
       uploaderId: user.id,
       contentType: 'image/png',
       sizeBytes: 100,
       s3Key: `docs/${doc.docId}/a.png`
     })
-    await markConfirmed(`docs/${doc.docId}/a.png`)
-    await recordPending({
-      docId: doc.docId,
+    await markConfirmed(docAs(doc.docId), `docs/${doc.docId}/a.png`)
+    await recordPending(docAs(doc.docId), {
       fileId: 'b.png',
       uploaderId: user.id,
       contentType: 'image/png',
@@ -52,46 +52,44 @@ describe('listConfirmedUploadsForDoc', () => {
     })
     // b.png intentionally left unconfirmed.
 
-    const rows = await listConfirmedUploadsForDoc(doc.docId)
+    const rows = await listConfirmedUploadsForDoc(docAs(doc.docId))
     expect(rows).toHaveLength(1)
-    expect(rows[0].fileId).toBe('a.png')
-    expect(rows[0].contentType).toBe('image/png')
-    expect(rows[0].sizeBytes).toBe(100)
-    expect(rows[0].uploaderId).toBe(user.id)
-    expect(rows[0].s3Key).toBe(`docs/${doc.docId}/a.png`)
+    expect(first(rows).fileId).toBe('a.png')
+    expect(first(rows).contentType).toBe('image/png')
+    expect(first(rows).sizeBytes).toBe(100)
+    expect(first(rows).uploaderId).toBe(user.id)
+    expect(first(rows).s3Key).toBe(`docs/${doc.docId}/a.png`)
   })
 
   it('scopes to the requested doc (no cross-doc leakage)', async () => {
     const user = await createUser()
     const mine = await seedDoc({ ownerId: user.id })
     const other = await seedDoc({ ownerId: user.id })
-    await recordPending({
-      docId: mine.docId,
+    await recordPending(docAs(mine.docId), {
       fileId: 'm.png',
       uploaderId: user.id,
       contentType: 'image/png',
       sizeBytes: 1,
       s3Key: `docs/${mine.docId}/m.png`
     })
-    await markConfirmed(`docs/${mine.docId}/m.png`)
-    await recordPending({
-      docId: other.docId,
+    await markConfirmed(docAs(mine.docId), `docs/${mine.docId}/m.png`)
+    await recordPending(docAs(other.docId), {
       fileId: 'o.png',
       uploaderId: user.id,
       contentType: 'image/png',
       sizeBytes: 1,
       s3Key: `docs/${other.docId}/o.png`
     })
-    await markConfirmed(`docs/${other.docId}/o.png`)
+    await markConfirmed(docAs(other.docId), `docs/${other.docId}/o.png`)
 
-    const rows = await listConfirmedUploadsForDoc(mine.docId)
+    const rows = await listConfirmedUploadsForDoc(docAs(mine.docId))
     expect(rows.map(r => r.fileId)).toEqual(['m.png'])
   })
 
   it('returns [] for a doc with no uploads', async () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
-    expect(await listConfirmedUploadsForDoc(doc.docId)).toEqual([])
+    expect(await listConfirmedUploadsForDoc(docAs(doc.docId))).toEqual([])
   })
 })
 
@@ -104,9 +102,8 @@ describe('insertConfirmedUploads', () => {
     const user = await createUser()
     const target = await seedDoc({ ownerId: user.id })
 
-    await insertConfirmedUploads([
+    await insertConfirmedUploads(docAs(target.docId), [
       {
-        docId: target.docId,
         fileId: 'a.png',
         uploaderId: user.id,
         contentType: 'image/png',
@@ -114,7 +111,6 @@ describe('insertConfirmedUploads', () => {
         s3Key: `docs/${target.docId}/a.png`
       },
       {
-        docId: target.docId,
         fileId: 'b.png',
         uploaderId: user.id,
         contentType: 'image/jpeg',
@@ -124,10 +120,10 @@ describe('insertConfirmedUploads', () => {
     ])
 
     expect(await rowCount(target.docId)).toBe(2)
-    // Both rows must be confirmed — the duplicate flow skips them
+    // Both rows must be confirmed, the duplicate flow skips them
     // otherwise (listConfirmedUploadsForDoc filters on confirmedAt NOT
     // NULL) so a future move/dupe of the dupe would see an empty set.
-    const rows = await listConfirmedUploadsForDoc(target.docId)
+    const rows = await listConfirmedUploadsForDoc(docAs(target.docId))
     expect(rows.map(r => r.fileId).sort()).toEqual(['a.png', 'b.png'])
     // Content type preserved per-row (not flattened to a single value).
     const byFile = new Map(rows.map(r => [r.fileId, r]))
@@ -142,22 +138,21 @@ describe('insertConfirmedUploads', () => {
     // doesn't reintroduce the crash.
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
-    await expect(insertConfirmedUploads([])).resolves.toBeUndefined()
+    await expect(insertConfirmedUploads(docAs('any-doc'), [])).resolves.toBeUndefined()
     expect(await rowCount(doc.docId)).toBe(0)
   })
 
   it('accepts a null uploaderId (anon-owned source that had anon uploads)', async () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
-    await insertConfirmedUploads([{
-      docId: doc.docId,
+    await insertConfirmedUploads(docAs(doc.docId), [{
       fileId: 'anon.png',
       uploaderId: null,
       contentType: 'image/png',
       sizeBytes: 1,
       s3Key: `docs/${doc.docId}/anon.png`
     }])
-    const rows = await listConfirmedUploadsForDoc(doc.docId)
-    expect(rows[0].uploaderId).toBeNull()
+    const rows = await listConfirmedUploadsForDoc(docAs(doc.docId))
+    expect(first(rows).uploaderId).toBeNull()
   })
 })

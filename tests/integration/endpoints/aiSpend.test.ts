@@ -6,7 +6,7 @@ import { ALL_FEATURE_TAGS } from '../../../server/utils/litellm/featureTags'
 
 // /admin/ai-spend endpoint. Guards on requireAdminUser, then proxies
 // LiteLLM's /spend/tags aggregation. The integration stack runs the
-// real `litellm-test` proxy so the round-trip works end-to-end —
+// real `litellm-test` proxy so the round-trip works end-to-end,
 // the breakdown returned will be empty (no real spend in tests) but
 // the SHAPE has to match.
 

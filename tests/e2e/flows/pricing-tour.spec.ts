@@ -10,10 +10,10 @@ import { test, expect } from '../fixtures/flow'
 //    sits right under the columns. This is the flow
 //    content/docs/account/plans.md embeds.
 // 2. "Pricing with paid plans live" (`@billing`): the same page on an
-//    instance that sells plans. Kept for regression coverage only — no
+//    instance that sells plans. Kept for regression coverage only, no
 //    docs page embeds it, so scripts/build-flows.ts never publishes it.
 //
-// Works on desktop AND mobile — the columns stack below `md`, the paid
+// Works on desktop AND mobile, the columns stack below `md`, the paid
 // tabs stay a row of three, every card keeps its testid.
 
 const PAID = [
@@ -60,12 +60,12 @@ test('What you get on each plan', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Paid tabs ───────────────────────────────────────────────
+  // Paid tabs
   await flow.click('Click the "Team" tab', paid.getByRole('tab', { name: 'Team' }), {
     result: 'Team shows its planned price per seat and the limits each seat adds to the workspace.',
     after: () => expect(page.getByTestId('pricing-tier-team')).toBeVisible()
   })
-  // ASSERTION: every paid tab is a preview — planned price, the
+  // ASSERTION: every paid tab is a preview, planned price, the
   // waitlist link instead of a purchase button.
   for (const { plan, label } of PAID) {
     await paid.getByRole('tab', { name: label }).click()
@@ -75,7 +75,7 @@ test('What you get on each plan', async ({ page, flow, editor }) => {
     await expect(panel.getByTestId('pricing-join-waitlist')).toBeVisible()
   }
 
-  // ─── Comparison table ────────────────────────────────────────
+  // Comparison table
   const compare = page.getByTestId('pricing-compare')
   await compare.scrollIntoViewIfNeeded()
   await expect(compare.getByTestId('pricing-compare-row-aiPoints')).toBeVisible()
@@ -83,7 +83,7 @@ test('What you get on each plan', async ({ page, flow, editor }) => {
     highlights: [{ label: 'AI Points per month', selector: '[data-testid="pricing-compare-row-aiPoints"]' }]
   })
 
-  // ─── Waitlist ────────────────────────────────────────────────
+  // Waitlist
   await flow.heading('Hear when paid plans launch', 3)
   const section = page.getByTestId('waitlist-section')
   await section.scrollIntoViewIfNeeded()
@@ -165,8 +165,7 @@ test('Pricing with paid plans live', { tag: '@billing' }, async ({ page, flow, e
     await expect(panel).toHaveAttribute('data-coming-soon', 'false')
     await expect(panel.getByTestId('pricing-price')).toContainText('€')
     // Pro is bought personally; Team / Business are set up for a workspace.
-    if (plan === 'pro') await expect(panel.getByRole('button', { name: /upgrade/i })).toBeVisible()
-    else await expect(panel.getByTestId(`pricing-workspace-plan-${plan}`)).toBeVisible()
+    await expect(plan === 'pro' ? panel.getByRole('button', { name: /upgrade/i }) : panel.getByTestId(`pricing-workspace-plan-${plan}`)).toBeVisible()
   }
   await expect(page.locator('[data-testid="pricing-tier-free"]')).toHaveAttribute('data-current', 'true')
   await expect(page.locator('[data-testid="pricing-tier-free"] [data-testid="pricing-current-plan-badge"]')).toBeVisible()

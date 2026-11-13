@@ -1,16 +1,13 @@
-import { runAllProbes, isOverallHealthy, probeEmbeddings, type ProbeResult } from '../../utils/healthProbes'
+import { runAllProbes, isOverallHealthy, probeEmbeddings, type ProbeResult } from '../../utils/platform/healthProbes'
+import { useEnv } from '~~/shared/env/load'
 
-// Auth-gated deep healthcheck. Same probes as `/api/health` but returns
-// per-component latencies + (when down) the underlying error string.
-// Used by on-call dashboards / a logged-in operator pulling a snapshot.
+// Auth-gated deep healthcheck: the same probes as `/api/health` plus
+// per-component latencies and (when down) the underlying error string.
 //
-// Skips the cache: this endpoint is rare enough that fresh data is more
-// valuable than amortising cost. The bare `/api/health` endpoint already
-// absorbs the high-frequency Traefik traffic.
+// Uncached: it is rare, and `/api/health` absorbs the Traefik traffic.
 //
-// Auth: bare `requireValidatedUserSession` — any logged-in user can read
-// their own server's status. We don't gate on admin because the response
-// only exposes liveness booleans + sub-millisecond latencies, no PII.
+// Admins only (`users.is_admin`): the error strings name internal hosts,
+// ports and upstream failures, which only operators need.
 
 interface DeepCheck {
   status: ProbeResult['status']
@@ -24,35 +21,36 @@ function pick(r: ProbeResult): DeepCheck {
   return out
 }
 
-export default defineEventHandler(async (event) => {
-  await requireValidatedUserSession(event)
+export default defineApiHandler({
+  access: allow.admin(),
+  handler: async ({ event }) => {
+    const env = useEnv()
+    const embeddings = await probeEmbeddings()
+    const results = await runAllProbes({
+      syncUrl: env.sync.internalUrl,
+      rendererUrl: env.renderer.internalUrl,
+      markitdownUrl: env.markitdown.url,
+      litellmUrl: env.litellm.url,
+      s3Bucket: env.storage.bucket
+    })
 
-  const config = useRuntimeConfig()
-  const embeddings = await probeEmbeddings()
-  const results = await runAllProbes({
-    syncUrl: config.syncInternalUrl,
-    rendererUrl: config.rendererInternalUrl,
-    markitdownUrl: config.markitdownUrl,
-    litellmUrl: config.litellm?.url,
-    s3Bucket: config.s3?.bucket
-  })
+    const healthy = isOverallHealthy(results)
+    setResponseStatus(event, healthy ? 200 : 503)
 
-  const healthy = isOverallHealthy(results)
-  setResponseStatus(event, healthy ? 200 : 503)
-
-  return {
-    status: healthy ? 'ok' : 'degraded',
-    checks: {
-      postgres: pick(results.postgres),
-      valkey: pick(results.valkey),
-      sync: pick(results.sync),
-      s3: pick(results.s3),
-      renderer: pick(results.renderer),
-      markitdown: pick(results.markitdown),
-      litellm: pick(results.litellm),
-      // Informational: "down" disables knowledge features only and does
-      // not change the overall status or HTTP code.
-      embeddings: pick(embeddings)
+    return {
+      status: healthy ? 'ok' : 'degraded',
+      checks: {
+        postgres: pick(results.postgres),
+        valkey: pick(results.valkey),
+        sync: pick(results.sync),
+        s3: pick(results.s3),
+        renderer: pick(results.renderer),
+        markitdown: pick(results.markitdown),
+        litellm: pick(results.litellm),
+        // Informational: "down" disables knowledge features only and does
+        // not change the overall status or HTTP code.
+        embeddings: pick(embeddings)
+      }
     }
   }
 })

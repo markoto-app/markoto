@@ -1,36 +1,22 @@
 <script setup lang="ts">
 import CommentItem from '~/components/comments/CommentItem.vue'
 import CommentComposer from '~/components/comments/CommentComposer.vue'
-import { REPLY_BODY_MAX } from '~/utils/commentBody'
-import type { DerivedComment } from '~/composables/useComments'
-
-interface MentionableUser {
-  id: number
-  name: string
-  email: string | null
-}
+import { REPLY_BODY_MAX } from '~/utils/comments/commentBody'
+import type { DerivedComment } from '~/composables/comments/useComments'
+import type { MentionableEntry } from '~/utils/comments/mentionable'
 
 const props = withDefaults(defineProps<{
   comment: DerivedComment
   /** Disable all mutating actions (read-only viewer / no edit access). */
   readOnly?: boolean
-  /** Greyed out — applied for orphaned and resolved threads in the sidebar. */
+  /** Greyed out: applied for orphaned and resolved threads in the sidebar. */
   muted?: boolean
-  mentionableUsers?: readonly MentionableUser[]
-  /** Highlighted — applied when the user clicked the matching anchor in the doc. */
+  mentionableUsers?: readonly MentionableEntry[]
+  /** Highlighted: applied when the user clicked the matching anchor in the doc. */
   focused?: boolean
-  /**
-   * True while an AI session is responding to this thread (triggered
-   * by an @ai mention). Renders a rainbow-glow border similar to the
-   * AI prompt bar's active state, plus a "AI is responding…" footer.
-   */
+  /** True while an AI session is responding to this thread (@ai mention): glow border and "AI is responding…" footer. */
   aiActive?: boolean
-  /**
-   * Identity of the local viewer. Drives "can delete" — authors can
-   * delete their own comments. Anonymous (`null`) can delete only
-   * their own anon comments (i.e. authorId is also null AND
-   * authorName matches their session name).
-   */
+  /** Local viewer's identity; drives "can delete". Anonymous (`null`) can delete only their own anonymous comments. */
   viewerId?: number | null
   viewerName?: string
 }>(), {
@@ -67,8 +53,7 @@ function canDelete(authorId: number | null, authorName: string): boolean {
 
 const { t } = useI18n()
 
-// Reply composer key — bumped after every successful submit to force the
-// child to remount with an empty body. Avoids needing two-way binding.
+// Reply composer key: bumped after each submit to remount the child with an empty body.
 const replyResetKey = ref(0)
 
 function onSubmitReply(body: string) {
@@ -77,9 +62,8 @@ function onSubmitReply(body: string) {
 }
 
 function onClickThread(e: MouseEvent) {
-  // Don't fire `focus` when the click came from inside an interactive
-  // child (button, textarea, link). That would steal focus from
-  // composers and toggle buttons.
+  // Clicks from inside an interactive child (button, textarea, link) must not
+  // fire `focus`: it would steal focus from composers and toggle buttons.
   const target = e.target as HTMLElement | null
   if (!target) return
   if (target.closest('button, textarea, input, a, [role="option"]')) return
@@ -88,7 +72,9 @@ function onClickThread(e: MouseEvent) {
 </script>
 
 <template>
+  <!-- The card click is a pointer shortcut; keyboard users use the "Show in document" button. -->
   <div
+    role="presentation"
     class="comment-thread-card rounded-md border border-default bg-default p-3 cursor-pointer transition-shadow shadow-sm"
     :class="[
       muted ? 'opacity-70 hover:opacity-100' : '',
@@ -123,6 +109,19 @@ function onClickThread(e: MouseEvent) {
       @unresolve="emit('unresolve', comment.id)"
     />
 
+    <!-- Keyboard equivalent of the card click (the card itself is not focusable). -->
+    <UButton
+      v-if="comment.anchor !== null"
+      size="xs"
+      variant="link"
+      color="neutral"
+      icon="i-lucide-locate"
+      class="mt-1 -ml-1.5 px-1.5"
+      :label="t('comments.showInDocument')"
+      data-testid="comment-show-in-document"
+      @click="emit('focus', comment.id)"
+    />
+
     <div
       v-if="comment.replies.length > 0"
       class="mt-4 pl-3 border-l border-default space-y-4"
@@ -141,9 +140,7 @@ function onClickThread(e: MouseEvent) {
       />
     </div>
 
-    <!-- "markoto is responding" indicator. Seal anchor instead of
-         the lucide sparkles icon — the seal is the brand's universal
-         AI presence mark. -->
+    <!-- Seal anchor, the brand's AI presence mark. -->
     <div
       v-if="aiActive"
       class="mt-2 flex items-center gap-2 text-xs ai-responding-row"
@@ -172,11 +169,8 @@ function onClickThread(e: MouseEvent) {
 
 <style scoped>
 /*
- * "markoto is responding" treatment — same single-color shu pulse
- * that lives on the AI prompt bar's active state. Earlier this card
- * cycled through the full rainbow which contradicted the brand rule
- * "shu means AI presence, nothing else". One color, one breathing
- * shadow — same vocabulary as every other AI surface in the product.
+ * "markoto is responding" treatment: a single-color shu pulse, the same as the
+ * AI prompt bar's active state ("shu means AI presence, nothing else").
  */
 @property --mk-thread-pulse {
   syntax: '<number>';
@@ -194,9 +188,9 @@ function onClickThread(e: MouseEvent) {
   --_p: var(--mk-thread-pulse);
   border-color: transparent;
   box-shadow:
-    /* Border ring — thickness pulses 1.5px → 2.5px, color is locked shu */
+    /* Border ring: 1.5px to 2.5px, locked shu */
     0 0 0 calc(1.5px + var(--_p) * 1px) color-mix(in srgb, var(--color-shu-500) calc(60% + var(--_p) * 25%), transparent),
-    /* Outer glow — opacity + blur breathe */
+    /* Outer glow: opacity and blur breathe */
     0 calc(8px + var(--_p) * 8px) calc(20px + var(--_p) * 14px) -8px color-mix(in srgb, var(--color-shu-500) calc(28% + var(--_p) * 22%), transparent);
 }
 
@@ -215,10 +209,7 @@ html.dark .comment-thread-card.is-ai-active {
   }
 }
 
-/* Footer "markoto is responding…" label only — pulse opacity gently so
-   it reads as "still working" even at a glance. The icon next to it
-   is the brand seal (rendered via <CommonSeal>), which already carries
-   the shu cue without needing CSS color. */
+/* Pulses the "markoto is responding…" label opacity; the seal next to it carries the shu cue. */
 @keyframes mk-thread-label-pulse {
   0%, 100% { opacity: 0.65; }
   50%      { opacity: 1; }

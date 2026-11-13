@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest'
-import { PAGED_HANDLERS_SCRIPT } from '../../app/utils/pagedHandlers'
+import { PAGED_HANDLERS_SCRIPT, registerPagedHandlers } from '../../app/utils/preview/pagedHandlers'
 
 // The handlers reach the live preview as the STRINGIFIED function (an
 // inline script in the opaque-origin iframe), so this suite evaluates
@@ -72,6 +72,11 @@ function overflowFrom(node: Node, rendered: Element): Range {
 function startNode(range: Range | undefined): Node | null {
   if (!range) return null
   return range.startContainer.childNodes[range.startOffset] ?? null
+}
+
+function startElement(range: Range | undefined): Element | null {
+  const node = startNode(range)
+  return node instanceof Element ? node : null
 }
 
 function refOf(node: Node | null): string | null {
@@ -168,7 +173,7 @@ describe('pagination handlers (stringified, as the preview iframe runs them)', (
     const r = el('<div class="paged-doc"><p>Intro.</p><p class="table-caption">Fitted coefficients</p><table><tbody><tr><td>1</td></tr></tbody></table></div>')
     const table = r.querySelector('table')
     if (!table) throw new Error('fixture')
-    expect(startNode(handler().onOverflow(overflowFrom(table, r), r))?.className).toBe('table-caption')
+    expect(startElement(handler().onOverflow(overflowFrom(table, r), r))?.className).toBe('table-caption')
   })
 
   it('keeps a third of a short table on each side when it splits only to fill the page', () => {
@@ -239,7 +244,7 @@ describe('pagination handlers (stringified, as the preview iframe runs them)', (
     const second = r.querySelector('[data-line="2"]')
     if (!last || !second) throw new Error('fixture')
     // One line (the closing brace) would go over: three go.
-    expect(startNode(h.onOverflow(overflowFrom(last, r), r))?.getAttribute?.('data-line')).toBe('18')
+    expect(startElement(h.onOverflow(overflowFrom(last, r), r))?.getAttribute('data-line')).toBe('18')
     // Only one line would stay: the block moves whole.
     expect(startNode(h.onOverflow(overflowFrom(second, r), r))?.nodeName).toBe('PRE')
   })
@@ -266,7 +271,7 @@ describe('pagination handlers (stringified, as the preview iframe runs them)', (
     place(before, [[0, 0, 600, 400]])
     place(diagram, [[0, 400, 600, 380]])
     Object.defineProperty(diagram, 'offsetHeight', { configurable: true, value: 380 })
-    // 340px of room for 380px: the estimate (0.89) is not quite enough —
+    // 340px of room for 380px: the estimate (0.89) is not quite enough,
     // paged.js still finds the diagram overflowing until 0.83.
     const layout = {
       findOverflow: () => overflowFrom(Number.parseFloat(diagram.style.zoom) > 0.84 ? diagram : after, content)
@@ -354,7 +359,7 @@ describe('multi-column: wide blocks and the columns before them', () => {
     if (!wide || !narrow) throw new Error('fixture')
     // 300px with `overflow-wrap: anywhere`, 450px with nothing broken apart.
     Object.defineProperty(wide, 'offsetWidth', { configurable: true, get: () => wide.hasAttribute('data-markoto-measure') ? 450 : 300 })
-    Object.defineProperty(narrow, 'offsetWidth', { configurable: true, get: () => narrow.hasAttribute('data-markoto-measure') ? 280 : 280 })
+    Object.defineProperty(narrow, 'offsetWidth', { configurable: true, get: () => 280 })
     handler().layout(r)
     expect(wide.style.getPropertyValue('column-span')).toBe('all')
     expect(wide.hasAttribute('data-markoto-wide')).toBe(true)
@@ -536,7 +541,7 @@ describe('footnotes in multi-column pages', () => {
 describe('selectors paged.js rewrites keep their specificity', () => {
   class FakeFollowing {
     styleSheet = new CSSStyleSheet()
-    processSelectors(): void {
+    processSelectors(_parsed: ParentNode, _selectors: Record<string, [string, string]>): void {
       throw new Error('paged.js original must be replaced')
     }
   }
@@ -568,5 +573,31 @@ describe('selectors paged.js rewrites keep their specificity', () => {
     expect(parsed.querySelector('li')?.getAttribute('data-nth-of-type')).toBe(id)
     const rule = handlerInstance.styleSheet.cssRules[0]?.cssText ?? ''
     expect(rule).toMatch(/:is\(li:first-of-type, :where\(\[data-nth-of-type\*=.*\)\)::marker/)
+  })
+})
+
+// The server render page registers the same parts directly (no string):
+// the two paths must wire them alike.
+describe('direct registration (server render page)', () => {
+  const direct: unknown[] = []
+
+  beforeAll(() => {
+    const paged = { Handler: FakeHandler, registerHandlers: (...h: unknown[]) => direct.push(...h) }
+    registerPagedHandlers(paged)
+    registerPagedHandlers(paged)
+  })
+
+  it('registers one handler that applies the same break rules', () => {
+    expect(direct).toHaveLength(1)
+    const H = direct[0]
+    if (typeof H !== 'function') throw new Error('no handler registered')
+    const instance: unknown = Reflect.construct(H, [{ source: undefined }, null, null])
+    const onOverflow: unknown = typeof instance === 'object' && instance !== null ? Reflect.get(instance, 'onOverflow') : null
+    if (typeof onOverflow !== 'function') throw new Error('onOverflow missing')
+    const r = el('<div class="paged-doc"><p>Intro text.</p><h1>Section</h1><table><tbody><tr><td>1</td></tr></tbody></table></div>')
+    const table = r.querySelector('table')
+    if (!table) throw new Error('fixture')
+    const out: unknown = Reflect.apply(onOverflow, instance, [overflowFrom(table, r), r])
+    expect(out instanceof Range ? startNode(out)?.nodeName : null).toBe('H1')
   })
 })

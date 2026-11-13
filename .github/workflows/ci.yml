@@ -1,38 +1,6 @@
 name: ci
 
-# Phase 12 — PR-only checks. Push-to-main flow lives in release.yml.
-#
-# Jobs run in this order semantically (GH runs the independent ones in
-# parallel as the runner pool allows):
-#
-#   label-check         — exactly one (or zero) `release:*` label
-#   semantic-pr-title   — conventional-commit subject
-#   secret-scan         — gitleaks against full history; blocks any PR
-#                         that introduces a leaked secret
-#   lint-typecheck      — fast (~30s) gate
-#   selfhost-check      — shellcheck install.sh + `docker compose config`
-#                         for every self-host compose combination (no
-#                         containers started)
-#   test-unit-dom       — fast unit + happy-dom suite
-#   changes             — path filters (dorny/paths-filter): `code` (anything
-#                         beyond docs) gates the heavy jobs; per-image
-#                         filters gate image-scan. Job-level gating only —
-#                         never workflow-level `paths:` (see below).
-#   test-repos-integration-flows
-#                       — heavy stack (~10–15 min); skipped on draft PRs
-#                         and on docs-only PRs. Name is historical (it once
-#                         ran a fast flow suite); do NOT rename — required
-#                         check.
-#                         Also produces ./coverage/lcov.info (consumed
-#                         by the sonar job below) — `bun run test:repos`
-#                         was replaced by `test:coverage:fast` so we
-#                         don't run unit/dom/nuxt/repos twice on a PR.
-#   sonar               — SonarQube Cloud scan; downloads the coverage
-#                         artifact from test-repos-integration-flows.
-#                         Same draft/docs-only gates as that job.
-#   image-scan          — Trivy scan, only for images whose Dockerfile /
-#                         deps / base pins changed (image-scan.yml). The
-#                         weekly image-scan-weekly.yml covers the rest.
+# PR-only checks. The push-to-main flow lives in release.yml.
 #
 # There is deliberately no failure notification here: PR runs cannot use a
 # main-restricted Environment, so a notifier would need APPRISE_URLS as a
@@ -41,10 +9,12 @@ name: ci
 # scans) still notify through Environment-scoped APPRISE_URLS.
 #
 # The `main` ruleset requires `label-check`, `semantic-pr-title`,
-# `actions-lint`, `secret-scan`, `lint-typecheck`, `test-unit-dom`,
-# `migration-guard`, `selfhost-check` and `test-repos-integration-flows`.
-# `sonar` is NOT required (fork PRs never get its token). See
-# docs/GITHUB-CONFIG.md.
+# `actions-lint`, `secret-scan`, `lint-typecheck`, `lint-types`,
+# `repo-checks`, `docs-checks`, `shell-docker-lint`, `python-checks`,
+# `test-unit-dom`, `migration-guard`, `selfhost-check` and
+# `test-repos-integration-flows`. `sonar` is NOT required (fork PRs never get
+# its token). See docs/operations/GITHUB-CONFIG.md.
+# Every job except `sonar` runs on fork PRs: none of them reads a secret.
 # Jobs skipped by path filters report as skipped, which satisfies a
 # required check.
 
@@ -73,14 +43,14 @@ jobs:
     outputs:
       code: ${{ steps.code.outputs.code }}
       image_services: ${{ steps.services.outputs.services }}
+      markitdown: ${{ steps.markitdown.outputs.markitdown }}
+      python: ${{ steps.python.outputs.python }}
     steps:
-      # `code` is true when ANY changed file is NOT documentation-like.
-      # (`every` quantifier: a file counts only if it matches all patterns,
-      # i.e. matches `**` and none of the exclusions.) Deliberately counted
-      # as code: content/** (legal + docs pages are rendered by the app and
-      # covered by tests), shared/templates/content/** (template skeletons),
+      # `code` is true when ANY changed file is NOT documentation-like
+      # (`every` quantifier: a file counts only if it matches all patterns).
+      # Deliberately counted as code: content/** (legal + docs pages are
+      # rendered by the app and covered by tests), shared/templates/content/** (template skeletons),
       # and .github/workflows/*.yml (CI changes must always be exercised).
-      # paths-filter pinned by commit SHA (v4.0.3), like trivy-action.
       - name: Detect non-docs changes
         id: code
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
@@ -94,7 +64,6 @@ jobs:
               - '!**/AGENTS.md'
               - '!.github/**/*.md'
               - '!.github/ISSUE_TEMPLATE/**'
-              - '!.agents/**'
               - '!LICENSE'
               - '!NOTICE'
 
@@ -108,23 +77,32 @@ jobs:
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         with:
           filters: |
+            # One Bun workspace, one lockfile: every image installs from the
+            # root manifests, so a dependency change anywhere can move any of
+            # the three JavaScript images.
             app:
               - 'Dockerfile'
               - '.dockerignore'
               - 'package.json'
               - 'bun.lock'
+              - 'bunfig.toml'
+              - '*/package.json'
               - '.github/workflows/image-scan.yml'
             sync-server:
               - 'sync-server/Dockerfile'
-              - 'sync-server/package.json'
-              - 'sync-server/bun.lock'
-              - 'shared/package.json'
-              - 'shared/bun.lock'
+              - 'sync-server/Dockerfile.dockerignore'
+              - 'package.json'
+              - 'bun.lock'
+              - 'bunfig.toml'
+              - '*/package.json'
               - '.github/workflows/image-scan.yml'
             renderer:
               - 'renderer/Dockerfile'
-              - 'renderer/package.json'
-              - 'renderer/bun.lock'
+              - 'renderer/Dockerfile.dockerignore'
+              - 'package.json'
+              - 'bun.lock'
+              - 'bunfig.toml'
+              - '*/package.json'
               - '.github/workflows/image-scan.yml'
             markitdown:
               - 'markitdown-server/Dockerfile'
@@ -132,6 +110,33 @@ jobs:
             backup:
               - 'backup-server/Dockerfile'
               - '.github/workflows/image-scan.yml'
+
+      # The converter's own Python tests (archive-bomb limits, the shared
+      # secret, design extraction): run whenever its source changes.
+      - name: Detect markitdown source changes
+        id: markitdown
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            markitdown:
+              - 'markitdown-server/**'
+              - 'tests/fixtures/design-import/**'
+              - '.github/workflows/ci.yml'
+
+      # Python lives in markitdown-server/, deploy/config/litellm/, a few scripts and
+      # test fixtures; the linters read these configs.
+      - name: Detect Python changes
+        id: python
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            python:
+              - '**/*.py'
+              - 'ruff.toml'
+              - 'pyrightconfig.json'
+              - 'markitdown-server/**'
+              - 'package.json'
+              - '.github/workflows/ci.yml'
 
       - name: Build image-scan service list
         id: services
@@ -196,7 +201,7 @@ jobs:
     steps:
       # Enforces feat:/fix:/docs:/chore:/refactor:/test:/build:/ci: prefix +
       # lower-cased subject. The PR title is ALSO the release name (see
-      # release.yml) — this gate is what stops a sloppy title from shipping
+      # release.yml): this gate is what stops a sloppy title from shipping
       # straight to the public release page.
       - name: Validate PR title
         uses: amannn/action-semantic-pull-request@0723387faaf9b38adef4775cd42cfd5155ed6017 # v5.5.3
@@ -239,8 +244,8 @@ jobs:
 
       - name: Download actionlint
         id: get_actionlint
-        # Pin to the commit of the v1.7.12 tag of the download script. The script's first
-        # arg pins the binary version it fetches — both layers are pinned
+        # Pinned to a commit of the download script. The script's first
+        # arg pins the binary version it fetches: both layers are pinned
         # so a tampered `main` can't substitute a different binary.
         run: bash <(curl -sSL https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash) 1.7.12
         shell: bash
@@ -277,11 +282,11 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     # Static validation of the self-host deployment shape: install.sh is
-    # shellcheck-clean and docker-compose.selfhost*.yml (+ the shared base)
+    # shellcheck-clean and deploy/compose/compose.selfhost*.yml (+ the shared base)
     # render for HTTP, HTTPS, build-from-source and backup combinations.
     # The runner image ships shellcheck but Compose v2.x, which rejects a
     # file that overrides services it `include:`s ("conflicts with imported
-    # resource" — allowed again since Compose v5.0.0, compose-go#835). Every
+    # resource": allowed again since Compose v5.0.0, compose-go#835). Every
     # compose file here relies on that, so install a pinned v5 plugin.
     env:
       COMPOSE_VERSION: v5.4.0
@@ -303,8 +308,152 @@ jobs:
       - name: Validate self-host compose + install.sh
         run: bash scripts/selfhost-check.sh
 
+  # markitdown-server/test_*.py run inside the image they test (its Python,
+  # markitdown and limits), so a dependency bump that breaks the archive
+  # pre-flight or the secret check fails here, not in production.
+  markitdown-tests:
+    name: markitdown-tests
+    needs: changes
+    if: needs.changes.outputs.markitdown == 'true'
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Build the markitdown image
+        run: docker build -t markoto-markitdown:ci markitdown-server
+
+      # The image ships without pip; the HTTP test client (pure Python,
+      # pinned, wheels only) is mounted read-only instead of installed.
+      - name: Fetch the test client
+        run: |
+          python3 -m pip install --target "${RUNNER_TEMP}/pydeps" --no-deps --only-binary=:all: \
+            httpx==0.28.1 httpcore==1.0.9 certifi==2025.8.3
+
+      - name: Run the Python unit tests in the image
+        run: |
+          docker run --rm --network none --entrypoint python \
+            -e PYTHONPATH=/deps -v "${RUNNER_TEMP}/pydeps:/deps:ro" \
+            -v "$PWD/markitdown-server:/t:ro" -w /t \
+            -v "$PWD/tests/fixtures/design-import:/fixtures:ro" \
+            markoto-markitdown:ci -B -m unittest -v test_server test_design_extract
+
   lint-typecheck:
     name: lint-typecheck
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    env:
+      # vue-tsc over the whole app exceeds Node's default heap ceiling on the
+      # runner.
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.4
+
+      # vue-tsc must run under real Node: its Vue language plugin does not
+      # take effect under Bun, which silently drops every .vue file from the
+      # check. (setup-bun puts no `node` shim on PATH for a plain `bun run`.)
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # ESLint without the type-aware rules (`lint:fast`, ~seconds); every
+      # rule is an error. The type-aware rules run in the parallel
+      # `lint-types` job. `--bun` forces eslint + nuxt to run under Bun (Node 20 on the
+      # runner lacks Object.groupBy that eslint-flat-config-utils 0.4+
+      # depends on; would crash before reading a single rule).
+      - name: Lint (all rules except type-aware)
+        run: bun run lint:fast
+
+      # No `--bun`: `bun run` keeps the shebang's real Node for vue-tsc.
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Typecheck covers .vue files
+        run: bun run typecheck:guard
+
+      - name: Typecheck tests
+        run: bun run typecheck:tests
+
+      - name: Typecheck scripts
+        run: bun run typecheck:scripts
+
+      # sync-server and renderer are workspace packages with their own
+      # tsconfig + `typecheck` script; `nuxt typecheck` never sees them.
+      - name: Typecheck sync-server + renderer
+        run: bun run typecheck:services
+
+      # .env.example, the configuration reference and the renderer's env
+      # loader are generated from the env registry (shared/env).
+      - name: Generated env files are current
+        run: bun run check:env
+
+      # infra/render-env.sh renders the hosted .env for both deploy paths
+      # (deploy.yml and the Ansible role).
+      - name: render-env.sh behaviour
+        run: bash infra/render-env-test.sh
+
+  # The type-aware typescript-eslint rules (no-floating-promises, ...) cost
+  # ~95 % of the lint time, so they run as their own job in parallel with the
+  # rest. This job runs the complete config (`bun run lint`), which also covers
+  # the few non-type rules that read type information and the report of
+  # unused suppression comments, so nothing falls between the two lint jobs.
+  lint-types:
+    name: lint-types
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.4
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      # One install at the workspace root covers sync-server and the
+      # renderer too: the type-aware rules resolve their imports through
+      # their own tsconfig.
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Under Node, not Bun: the TypeScript programs behind the type-aware
+      # rules peak at about 5 GB under V8 with this heap ceiling and at more
+      # than 11 GB under Bun, which the runner does not have.
+      - name: Lint (full config, type-aware rules included)
+        run: node node_modules/eslint/bin/eslint.js .
+        env:
+          NODE_OPTIONS: --max-old-space-size=5632
+
+  # Structural checks over the source graph and the generated schema.
+  repo-checks:
+    name: repo-checks
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -318,42 +467,137 @@ jobs:
         with:
           bun-version: 1.4.4
 
+      # drizzle-kit and knip run under real Node.
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # `--bun` forces eslint + nuxt to run under Bun (Node 20 on the
-      # runner lacks Object.groupBy that eslint-flat-config-utils 0.4+
-      # depends on; would crash before reading a single rule).
-      - name: Lint
-        run: bun --bun run lint
+      # Unused files, exports and dependencies (knip.jsonc).
+      - name: Unused code and dependencies (knip)
+        run: bun run knip
 
-      - name: Typecheck
-        run: bun --bun run typecheck
+      # Layer boundaries and import cycles (.dependency-cruiser.cjs).
+      - name: Import graph (dependency-cruiser)
+        run: bun run depcruise
 
-      # sync-server/ and renderer/ ship as separate packages with their own
-      # lockfiles, so `nuxt typecheck` never sees them. Each has its own
-      # tsconfig + `typecheck` script.
-      - name: Install sync-server + renderer dependencies
+      # Fails when server/db/schema/ has changes no committed migration
+      # covers, i.e. `drizzle-kit generate` would create a migration.
+      - name: Schema matches the migrations
+        run: bun run db:check-drift
+
+      # Markdown prose: milestone vocabulary and dangling path references.
+      - name: Internal vocabulary
+        run: bun run check:vocab
+
+      # The em-dash character (U+2014) is never used in the repository.
+      - name: No em-dash
+        run: bun run check:em-dash
+
+  docs-checks:
+    name: docs-checks
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    env:
+      LYCHEE_VERSION: lychee-v0.24.2
+      LYCHEE_SHA256: 1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.4
+
+      - name: Path references in Markdown
+        run: bun run check:md-paths
+
+      # Offline pass (lychee.toml): relative links and #anchors between our
+      # own Markdown files. The release binary is pinned by checksum.
+      - name: Install lychee
         run: |
-          bun install --frozen-lockfile --cwd sync-server
-          bun install --frozen-lockfile --cwd renderer
+          curl -fsSL -o "${RUNNER_TEMP}/lychee.tar.gz" \
+            "https://github.com/lycheeverse/lychee/releases/download/${LYCHEE_VERSION}/lychee-x86_64-unknown-linux-gnu.tar.gz"
+          echo "${LYCHEE_SHA256}  ${RUNNER_TEMP}/lychee.tar.gz" | sha256sum -c -
+          mkdir -p "${HOME}/.local/bin"
+          tar -xzf "${RUNNER_TEMP}/lychee.tar.gz" -C "${HOME}/.local/bin" --strip-components=1 --wildcards '*/lychee'
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
 
-      - name: Typecheck sync-server
-        run: bun --bun run typecheck
-        working-directory: sync-server
+      - name: Markdown links (lychee, offline)
+        run: bun run check:links
 
-      - name: Typecheck renderer
-        run: bun --bun run typecheck
-        working-directory: renderer
+  shell-docker-lint:
+    name: shell-docker-lint
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    env:
+      HADOLINT_VERSION: v2.15.1
+      HADOLINT_SHA256: c7187db94eeeeca956519a6af171adc31453941a1e777961f6e680f697c8c507
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
-      # render-env.sh (CI deploy path) and env.j2 (Ansible path) must emit
-      # byte-identical .env content. The parity script existed but was never
-      # wired into CI, and the two DID silently drift (a var added to one
-      # file only) — this step makes the drift a PR failure.
-      - name: render-env ↔ env.j2 parity
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.4
+
+      # shellcheck ships with the runner image.
+      - name: shellcheck (every tracked *.sh)
+        run: bun run check:shell
+
+      - name: Install hadolint
         run: |
-          pip install --quiet jinja2==3.1.6
-          bash infra/render-env-parity-test.sh
+          mkdir -p "${HOME}/.local/bin"
+          curl -fsSL -o "${HOME}/.local/bin/hadolint" \
+            "https://github.com/hadolint/hadolint/releases/download/${HADOLINT_VERSION}/hadolint-linux-x86_64"
+          echo "${HADOLINT_SHA256}  ${HOME}/.local/bin/hadolint" | sha256sum -c -
+          chmod +x "${HOME}/.local/bin/hadolint"
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+
+      - name: hadolint (every Dockerfile, .hadolint.yaml)
+        run: bun run check:docker
+
+  # markitdown-server, the LiteLLM provider plugin and the Python fixtures.
+  python-checks:
+    name: python-checks
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.4
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: python3 -m pip install --quiet uv==0.13.6
+
+      # ruff (pinned in package.json): lint + format check.
+      - name: ruff
+        run: bun run check:py
+
+      # pyright against the pinned markitdown-server requirements.
+      - name: pyright
+        run: bun run check:pyright
 
   migration-guard:
     name: migration-guard
@@ -362,7 +606,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # fetch-depth: 0 so the guard can diff the PR's new migrations against
-      # the base branch (it only scans CHANGED drizzle/*.sql — historical
+      # the base branch (it only scans CHANGED drizzle/*.sql: historical
       # migrations legitimately contain DROP/TRUNCATE).
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -374,7 +618,7 @@ jobs:
         with:
           bun-version: 1.4.4
 
-      # No `bun install` — the script uses only node builtins, so this stays
+      # No `bun install`: the script uses only node builtins, so this stays
       # fast. Flags backward-incompatible DDL (DROP/RENAME/TYPE/SET NOT NULL/
       # TRUNCATE) that would break code-only rollback in the deploy pipeline.
       # Acknowledge a reviewed exception with `-- allow-destructive: <reason>`
@@ -402,16 +646,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # sync-server/ ships as a separate package with its own node_modules.
-      # A handful of unit tests import sync-server source directly
-      # (syncAuth.test.ts, contractsJwt.test.ts → sync-server/src/auth.ts →
-      # sentry.ts → @sentry/bun), so those deps must be present or the
-      # imports fail with ERR_MODULE_NOT_FOUND. The coverage job already does
-      # this; the unit job needs it too.
-      - name: Install sync-server dependencies
-        run: bun install --frozen-lockfile
-        working-directory: sync-server
-
       - name: Unit tests
         run: bun run test:unit
 
@@ -419,12 +653,11 @@ jobs:
         run: bun run test:dom
 
   test-repos-integration-flows:
-    # Historical name, kept because it is a required status check in branch
-    # protection (renaming it would block every merge). It originally ran
-    # repos + integration + a fast Playwright flow suite; today it is
-    # coverage + integration ONLY. The Playwright flow suite (which also
-    # regenerates the docs/demo screenshots, incl. live AI) runs only in
-    # release.yml, for PRs labeled release:*.
+    # The name is a required status check in branch protection; renaming it
+    # blocks every merge. The job runs coverage + integration only. The
+    # Playwright flow suite (which also regenerates the docs/demo
+    # screenshots, incl. live AI) runs only in release.yml, for PRs labeled
+    # release:*.
     name: test-repos-integration-flows
     permissions:
       contents: read
@@ -436,32 +669,29 @@ jobs:
     if: >-
       github.event.pull_request.draft == false &&
       needs.changes.outputs.code == 'true'
-    # ~10 min of setup (install, test stack, unit coverage) + the
+    # ~10 min of setup (install, test stack, unit coverage) plus the
     # integration suite, which grows with every design template (each has a
     # real-renderer PDF case, and the Type 3 sweep renders every preset).
-    # 20 min cancelled healthy runs mid-suite on 2026-11-08.
+    # A 20 min limit cancels healthy runs mid-suite.
     timeout-minutes: 30
     env:
-      # Test stack defaults — match docker-compose.test.yml.
+      # Test stack defaults: match deploy/compose/compose.test.yml.
       TEST_MODE: "1"
-      NUXT_GOOGLE_SPEECH_MOCK: "1"
-      # No live-AI provider keys + no Playwright flow suite here: the PR gate
-      # is coverage + integration only. The full flow suite (incl. live AI)
-      # runs in release.yml (release:*-labeled merges only).
+      NUXT_VOXTRAL_REALTIME_MOCK: "1"
+      # No live-AI provider keys here (the PR gate runs no flow suite).
       # Raise the V8 heap ceiling for the Nuxt build (the test stack + the
-      # integration setup both run `bun run build`, which OOM'd at the
-      # default heap limit on the 7 GB runner: "Reached heap limit").
+      # integration setup both run `bun run build`, which exceeds the
+      # default heap limit on the 7 GB runner).
       NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
-      # The integration setup's `bun run build` hit the V8 heap ceiling
-      # ("Reached heap limit") on the 7 GB runner. That's a soft heap limit,
-      # not physical exhaustion — NODE_OPTIONS=--max-old-space-size (in the
-      # job env above) lifts it using the existing RAM+swap. NO extra
-      # swapfile here: /mnt is Docker's data-root on the runner, and a big
+      # The integration setup's `bun run build` needs a larger V8 heap than
+      # the default on the 7 GB runner; NODE_OPTIONS=--max-old-space-size (in
+      # the job env above) lifts that soft limit using the existing RAM+swap.
+      # NO extra swapfile here: /mnt is Docker's data-root on the runner, and a big
       # swapfile there starves the test-stack image pulls ("no space left").
 
       - name: Setup Bun
@@ -472,29 +702,17 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # sync-server/ has its own package.json (it ships as a separate
-      # container — `@sentry/bun` etc. don't belong at the root). The
-      # root install doesn't reach it, but vitest's `coverage.all: true`
-      # instruments every file in `include:` — including
-      # `sync-server/src/**/*.ts` — at coverage-suite time. Without
-      # these deps installed, `import '@sentry/bun'` ERR_MODULE_NOT_FOUND
-      # crashes the coverage run.
-      - name: Install sync-server dependencies
-        run: bun install --frozen-lockfile
-        working-directory: sync-server
-
       # The integration app binds :3101 (TEST_PORT); sync-test posts
       # activity-log rows back to it, so its APP_URL must point there.
       # The default baked into the compose file is :3001; this override
       # keeps the MCP activity round-trip on the right port so the mcp:%
-      # attribution tests pass. (The full flow suite — incl. live AI —
-      # runs in release.yml, NOT on the PR gate.)
+      # attribution tests pass.
       - name: Bring up test stack
         env:
           SYNC_TEST_APP_URL: http://host.docker.internal:3101
-        run: docker compose -f docker-compose.test.yml --profile flows up -d --wait
+        run: bash scripts/test-compose.sh --profile flows up -d --wait
 
-      # Replaces `bun run test:repos` — covers the same project plus
+      # Replaces `bun run test:repos`: covers the same project plus
       # unit + dom + nuxt under one vitest invocation with --coverage.
       # The lcov is uploaded below for the sonar job to consume; running
       # the same test set in a separate workflow would double the cost.
@@ -504,20 +722,18 @@ jobs:
       - name: Integration tests
         run: bun run test:integration
 
-      # NOTE: the Playwright flow suite is NOT run here — it's slow (the
-      # 4-project matrix ~= the whole 25-min budget on its own). It runs in
-      # release.yml (full suite incl. live AI) for release:*-labeled merges.
-      # Keeping the PR gate to coverage + integration is what makes it fast.
+      # The Playwright flow suite is NOT run here: its 4-project matrix takes
+      # about the whole 25-min budget on its own. It runs in release.yml.
       - name: Tear down test stack
         if: always()
-        run: docker compose -f docker-compose.test.yml --profile flows down -v
+        run: bash scripts/test-compose.sh --profile flows down -v
 
       - name: Upload coverage for sonar
         if: success()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: coverage-lcov
-          # Only the lcov file — the html / json-summary reports add
+          # Only the lcov file: the html / json-summary reports add
           # MBs of artefact weight that sonar doesn't read.
           path: coverage/lcov.info
           if-no-files-found: error
@@ -529,7 +745,7 @@ jobs:
       contents: read
       pull-requests: read
     needs: [changes, test-repos-integration-flows]
-    # Inherits the heavy-job's gates (draft + docs-only) — sonar isn't useful
+    # Inherits the heavy-job's gates (draft + docs-only): sonar isn't useful
     # without the coverage artifact that job produces. Mirror the gates so a
     # draft or docs-only PR skips sonar instead of failing on a missing
     # artifact (a skipped dependency would skip this job anyway; the explicit
@@ -564,7 +780,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           if [ -z "${SONAR_TOKEN:-}" ]; then
-            echo "::error title=Missing secret::SONAR_TOKEN is not set (repo-level Actions secret, see docs/GITHUB-CONFIG.md)."
+            echo "::error title=Missing secret::SONAR_TOKEN is not set (repo-level Actions secret, see docs/operations/GITHUB-CONFIG.md)."
             exit 1
           fi
 
@@ -579,7 +795,7 @@ jobs:
       contents: read
     needs: changes
     # Builds + Trivy-scans only the images whose inputs changed in this PR
-    # (Dockerfile, package.json / bun.lock, base-image pins — see the
+    # (Dockerfile, package.json / bun.lock, base-image pins: see the
     # `images` filter in the `changes` job). A skipped job reports as
     # skipped, which satisfies a required check. Unchanged images are
     # covered by the weekly image-scan-weekly.yml run against main.

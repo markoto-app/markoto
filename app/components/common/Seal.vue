@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The Markoto seal. A small filled vermillion (shu) square — modeled
+ * The Markoto seal. A small filled vermillion (shu) square, modeled
  * on a hanko stamp on rice paper. Square, 2px corner radius, never
  * round, never gradient, never outlined. The seal is the brand mark
  * AND the in-product AI presence indicator. Default size is calibrated

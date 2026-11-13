@@ -4,11 +4,11 @@ import { computeStripeSig } from '../../integration/setup/stripeHelpers'
 // Stripe in flow tests. Real Stripe Checkout / the Customer Portal are
 // hosted pages on another origin that a flow can't (and shouldn't)
 // drive. Flows click the real button, these helpers keep the browser on
-// markoto, and the webhook Stripe would send is posted directly — so the
+// markoto, and the webhook Stripe would send is posted directly, so the
 // payoff (plan active, seats changed) is real.
 
 /** The flow stack's webhook secret (`scripts/flows-ephemeral.ts`). */
-export const FLOWS_WEBHOOK_SECRET = 'whsec_test_flows'
+const FLOWS_WEBHOOK_SECRET = 'whsec_test_flows'
 
 /**
  * Keep the page on the app's origin: cross-origin `location.href`
@@ -51,7 +51,7 @@ export async function stayOnApp(page: Page, testInfo: TestInfo): Promise<void> {
         await route.fulfill({ status: 200, body: '', contentType: 'text/html' })
         return
       }
-    } catch { /* malformed URL — let it through */ }
+    } catch { /* malformed URL, let it through */ }
     await route.continue()
   })
 }
@@ -104,7 +104,7 @@ export function subscriptionUpdatedEvent(args: {
   }
 }
 
-/** A paid credit top-up's `checkout.session.completed` (WP4). */
+// A paid credit top-up's `checkout.session.completed`.
 export function topupCompletedEvent(args: {
   subjectType: 'user' | 'workspace'
   subjectId: string

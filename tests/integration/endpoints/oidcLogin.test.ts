@@ -19,9 +19,9 @@ import {
   resetOidcConfigurationCache
 } from '../../../server/utils/oidc/client'
 
-// Generic OpenID Connect sign-in (WP7b) against a REAL OpenID provider:
+// Generic OpenID Connect sign-in against a REAL OpenID provider:
 // the `oidc-test` container (navikt mock-oauth2-server) in
-// docker-compose.test.yml. Its interactive login form takes the subject
+// deploy/compose/compose.test.yml. Its interactive login form takes the subject
 // plus arbitrary claims JSON, which is how these tests mint tokens with
 // an unverified email, a foreign audience, a wrong nonce, ...
 //
@@ -102,7 +102,7 @@ async function usersBySubject(sub: string) {
   )).rows
 }
 
-describe('GET /auth/oidc — full sign-in against a real IdP', () => {
+describe('GET /auth/oidc: full sign-in against a real IdP', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -137,7 +137,7 @@ describe('GET /auth/oidc — full sign-in against a real IdP', () => {
     // The session cookie must be SameSite=Lax: the callback is reached by a
     // redirect from the IdP's site, and browsers withhold a Strict cookie on
     // the rest of that cross-site redirect chain, so the page after sign-in
-    // would render signed out (seen on staging with GitHub, 2026-11-03).
+    // would render signed out .
     const sessionCookie = res.headers.getSetCookie().find(c => c.startsWith(`${SESSION_COOKIE}=`))
     expect(sessionCookie).toMatch(/;\s*SameSite=Lax/i)
     expect(sessionCookie).toMatch(/;\s*HttpOnly/i)
@@ -219,7 +219,7 @@ describe('GET /auth/oidc — full sign-in against a real IdP', () => {
   })
 })
 
-describe('OIDC protocol layer — ID token validation against the real IdP', () => {
+describe('OIDC protocol layer: ID token validation against the real IdP', () => {
   const REDIRECT = 'http://127.0.0.1:1/cb'
   let settings: OidcSettings
 
@@ -231,8 +231,8 @@ describe('OIDC protocol layer — ID token validation against the real IdP', () 
       NUXT_OAUTH_OIDC_CLIENT_ID: TEST_OIDC_CLIENT_ID,
       NUXT_OAUTH_OIDC_CLIENT_SECRET: TEST_OIDC_CLIENT_SECRET
     })
-    if (!resolved.settings) throw new Error(resolved.errors.join('; '))
-    settings = resolved.settings
+    if (!resolved) throw new Error('OIDC settings did not resolve')
+    settings = resolved
   })
 
   /** `code: message` of the error and every `cause` below it, newline-joined. */
@@ -283,7 +283,7 @@ describe('OIDC protocol layer — ID token validation against the real IdP', () 
 
   it('rejects an expired token', async () => {
     // The IdP issues a normal 1 h token; we redeem it with our clock two
-    // hours ahead (only `Date` is faked — network I/O is untouched).
+    // hours ahead (only `Date` is faked, network I/O is untouched).
     const cfg = await getOidcConfiguration(settings)
     const { url, flow } = await buildOidcAuthorizationRequest(cfg, settings, REDIRECT)
     const back = await loginAtIdp(url.href, 'proto-sub', {})
@@ -299,8 +299,11 @@ describe('OIDC protocol layer — ID token validation against the real IdP', () 
   /** Same IdP metadata, but the ID token is checked against `jwksUri`. */
   async function configWithJwks(jwksUri: string): Promise<oidc.Configuration> {
     const real = await getOidcConfiguration(settings)
+    // openid-client types `supportsPKCE` as an own property of the metadata, but defines it non-enumerable, so
+    // the spread carries plain metadata only.
+    const metadata = { ...real.serverMetadata(), jwks_uri: jwksUri } as unknown as oidc.ServerMetadata
     const config = new oidc.Configuration(
-      { ...real.serverMetadata(), jwks_uri: jwksUri },
+      metadata,
       TEST_OIDC_CLIENT_ID,
       undefined,
       oidc.ClientSecretBasic(TEST_OIDC_CLIENT_SECRET)
@@ -361,6 +364,6 @@ describe('OIDC protocol layer — ID token validation against the real IdP', () 
       NUXT_OAUTH_OIDC_ISSUER: TEST_OIDC_ISSUER,
       NUXT_OAUTH_OIDC_CLIENT_ID: TEST_OIDC_CLIENT_ID,
       NUXT_OAUTH_OIDC_CLIENT_SECRET: TEST_OIDC_CLIENT_SECRET
-    }).settings).toBeNull()
+    })).toBeNull()
   })
 })

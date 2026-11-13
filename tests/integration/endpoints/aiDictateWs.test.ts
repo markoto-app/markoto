@@ -5,7 +5,7 @@ import { loggedInClient } from '../setup/client'
 import { createUser, createDoc } from '../setup/fixtures'
 import { openWs, closeAllWs } from '../setup/ws'
 import { TEST_JWT_SECRET } from '../setup/env'
-import { mintDictateJwt } from '~~/shared/test-helpers/jwt'
+import { mintDictateJwt } from '~~/tests/helpers/jwt'
 
 // WS integration tests for /api/ai/dictate. The upstream realtime
 // transcription call (Mistral Voxtral Realtime) is stubbed by a mock
@@ -26,7 +26,7 @@ import { mintDictateJwt } from '~~/shared/test-helpers/jwt'
 
 async function mintDictateToken(userId: number, docId: string): Promise<string> {
   // Routed through the shared test helper so `kind` + `scope` are
-  // spread from `DICTATE_JWT_FIXED_CLAIMS` — same constant the prod
+  // spread from `DICTATE_JWT_FIXED_CLAIMS`: same constant the prod
   // mint at `server/api/ai/dictate/token.post.ts` uses. Earlier this
   // helper hand-set `{ kind: 'dictate' }` and forgot `scope`, which
   // made the dictate WS reject every test token with 4001 'scope
@@ -64,10 +64,9 @@ describe('WS /api/ai/dictate', () => {
       expect(ready).toEqual({ type: 'ready' })
     })
 
-    it('has no token in the URL — only in the first message', async () => {
-      // Guards the audit fix: the JWT used to live in ?token= which
-      // leaked into access logs. A regression that re-introduces
-      // query-string auth would require re-reading the URL here.
+    it('has no token in the URL, only in the first message', async () => {
+      // The JWT must not travel in ?token= (it leaks into access logs); query-string auth would require
+      // re-reading the URL here.
       const ws = await openWs('/api/ai/dictate')
       expect(ws.raw.url).not.toMatch(/token=/)
       ws.close()
@@ -132,7 +131,7 @@ describe('WS /api/ai/dictate', () => {
   describe('pre-auth protection', () => {
     it('closes with 4000 when the first frame is binary', async () => {
       // Guards against a malicious client that skips auth and ships
-      // audio directly — the server must never route to STT before
+      // audio directly: the server must never route to STT before
       // verifying the JWT.
       const ws = await openWs('/api/ai/dictate')
       await ws.nextMessageOfType('hello')
@@ -159,7 +158,7 @@ describe('WS /api/ai/dictate', () => {
       // The MOCK SpeechClient (dictateSpeechClient.ts) emits a canned
       // sequence keyed to chunk-count: chunk 1 → partial "hello",
       // chunk 2 → partial "hello world", chunk 3 → final
-      // "hello world". This test pins the wire contract — partials
+      // "hello world". This test pins the wire contract, partials
       // are interim and never committed; finals are what the client
       // writes to Y.js.
       const { user, doc } = await setupUserAndDoc()
@@ -169,7 +168,7 @@ describe('WS /api/ai/dictate', () => {
       ws.sendJson({ type: 'auth', token })
       await ws.nextMessageOfType('ready')
 
-      // Send fake PCM chunks. Size doesn't matter for the mock —
+      // Send fake PCM chunks. Size doesn't matter for the mock,
       // what matters is the chunk COUNT, which the mock uses to
       // time its scripted responses.
       for (let i = 0; i < 3; i++) {
@@ -186,10 +185,8 @@ describe('WS /api/ai/dictate', () => {
     })
 
     it('cleanly handles stop without emitting a spurious error', async () => {
-      // The "write after end" race was a real bug: audio chunks in
-      // flight after `stop` landed on an ended STT stream and
-      // surfaced as UI errors. The server now drops post-stop audio
-      // silently. This test guards that behavior.
+      // Audio chunks in flight after `stop` must not land on an ended STT stream (a "write after end" error
+      // surfacing in the UI). The server drops post-stop audio silently.
       const { user, doc } = await setupUserAndDoc()
       const token = await mintDictateToken(user.id, doc.docId)
       const ws = await openWs('/api/ai/dictate')
@@ -200,7 +197,7 @@ describe('WS /api/ai/dictate', () => {
       ws.send(Buffer.alloc(4096, 0)) // one chunk
       ws.sendJson({ type: 'stop' })
       // Simulate a straggler chunk that the worklet queued before
-      // the composable disconnected — should be silently dropped.
+      // the composable disconnected: should be silently dropped.
       ws.send(Buffer.alloc(4096, 0))
 
       // Close arrives naturally from the STT `end` event.
@@ -213,7 +210,7 @@ describe('WS /api/ai/dictate', () => {
 
   describe('concurrent session cap', () => {
     it('rejects a second session for the same user with 4001', async () => {
-      // Valkey-backed SET NX lock — spanning multiple workers in
+      // Valkey-backed SET NX lock, spanning multiple workers in
       // prod. In-memory would silently fail across workers but
       // pass this single-process test, so this test also exercises
       // that the lock key format (lock:ai-dictate-active:{uid})
@@ -284,7 +281,7 @@ describe('WS /api/ai/dictate', () => {
 
   describe('doc access gating', () => {
     it('returns 403 at the token endpoint if the user cannot edit the doc', async () => {
-      // The HTTP token route enforces requireDocEditAccess. A second
+      // The HTTP token route enforces `write-content` access. A second
       // user trying to mint a dictation token for someone else's
       // private doc must be blocked BEFORE they can even open the
       // WS. This test pins the HTTP gate; the WS itself only sees
@@ -311,25 +308,16 @@ describe('WS /api/ai/dictate', () => {
       expect(res.status).toBe(401)
     })
 
-    // Budget enforcement at the dictate token + WS endpoints is gone:
-    // Phase 6 retired the app-side `ai_usage_period` counter so neither
-    // the token mint nor the WS open pre-checks budget. Exhaustion is
-    // enforced at proxy call time (the first voice-tick), which surfaces
-    // as a 429 from the SDK and closes the WS. End-to-end coverage is
-    // in the flow tests; unit-level coverage of the 429 → close-frame
-    // translation is in the runLoop budget-exhaustion test file.
+    // There is no app-side budget pre-check at the dictate token + WS endpoints. Exhaustion is enforced at
+    // proxy call time (the first voice-tick), which surfaces as a 429 from the SDK and closes the WS.
+    // End-to-end coverage is in the flow tests; unit-level coverage of the 429 → close-frame translation is in
+    // the runLoop budget-exhaustion test file.
   })
 
-  // ─── Budget exhaustion (Phase 6 — moved to LiteLLM) ────────────────────
+  // Budget exhaustion (enforced by LiteLLM)
   //
-  // Pre-Phase-6, the dictate handler had two budget checks at WS open:
-  //   (1) Daily audio-ms budget (Valkey)
-  //   (2) Monthly interaction budget (Postgres `ai_usage_period`)
-  //
-  // Phase 6 retired (1) (no app-side limit) and (2) (no app-side counter).
-  // Voice-tick metering posts to LiteLLM via the user's virtual key — the
-  // proxy returns 429 once `max_budget` is exhausted, which the orchestrator
-  // surfaces as a structured close frame. End-to-end exhaustion is exercised
-  // in the flow tests (real proxy round-trip); the unit tests cover the
-  // 429 → close-frame translation in `voiceTickOrchestrator`.
+  // Voice-tick metering posts to LiteLLM via the user's virtual key; the proxy returns 429 once `max_budget`
+  // is exhausted, which the orchestrator surfaces as a structured close frame. End-to-end exhaustion is
+  // exercised in the flow tests (real proxy round-trip); the unit tests cover the 429 → close-frame
+  // translation in `voiceTickOrchestrator`.
 })

@@ -1,17 +1,17 @@
 // The production build serves paged.js, Mermaid, KaTeX, highlight.js and the
-// web fonts itself under /vendor/ (shared/utils/vendorAssets.ts). The
+// web fonts itself under /vendor/ (shared/utils/vendor/vendorAssets.ts). The
 // preview / print iframes run in an opaque origin, so these responses must
-// be loadable cross-origin (CORP) and in CORS mode (fonts, SRI tags) — and
+// be loadable cross-origin (CORP) and in CORS mode (fonts, SRI tags), and
 // cache headers must match the versioned / unversioned split.
 
 import { createHash } from 'node:crypto'
 import { describe, it, expect } from 'vitest'
 import { anonClient } from '../setup/client'
-import { MERMAID_SRI, MERMAID_URL } from '../../../shared/utils/mermaidAssets'
-import { PAGEDJS_POLYFILL_SRI, PAGEDJS_POLYFILL_URL } from '../../../shared/utils/pagedjsAssets'
-import { KATEX_CSS_SRI, KATEX_CSS_URL } from '../../../shared/utils/katexAssets'
-import { hljsTheme } from '../../../shared/utils/hljsAssets'
-import { fontStylesheetUrl } from '../../../shared/utils/themeFonts'
+import { MERMAID_SRI, MERMAID_URL } from '../../../shared/utils/vendor/mermaidAssets'
+import { PAGEDJS_POLYFILL_SRI, PAGEDJS_POLYFILL_URL } from '../../../shared/utils/vendor/pagedjsAssets'
+import { KATEX_CSS_SRI, KATEX_CSS_URL } from '../../../shared/utils/vendor/katexAssets'
+import { hljsTheme } from '../../../shared/utils/vendor/hljsAssets'
+import { fontStylesheetUrl } from '../../../shared/utils/theme/themeFonts'
 
 const sri = (bytes: ArrayBuffer) => `sha384-${createHash('sha384').update(Buffer.from(bytes)).digest('base64')}`
 

@@ -11,43 +11,13 @@
 //   - Notes input attached to action submission for the audit row.
 //
 // Backwards transitions (closed → open) are intentionally NOT
-// supported — see the endpoint comment.
+// supported: see the endpoint comment.
 
+import type { ApiResponse } from '~/utils/api/client'
 import { MODERATION_RULES, isModerationRule, type ModerationRule } from '~~/shared/config/moderation'
 
-interface ModerationNotice {
-  kind: 'receipt' | 'decision' | 'statement_of_reasons'
-  recipientRole: 'reporter' | 'owner'
-  status: 'sent' | 'not_delivered_no_contact' | 'failed'
-  subject: string
-  body: string
-  createdAt: string
-}
-
-interface AbuseReport {
-  reportId: string
-  docId: string | null
-  contentUrl: string | null
-  goodFaithConfirmedAt: string | null
-  decision: { action: string, rule: string | null, explanation: string | null } | null
-  notices: ModerationNotice[]
-  category: string
-  body: string
-  status: 'open' | 'acknowledged' | 'actioned' | 'dismissed'
-  notes: string | null
-  createdAt: string
-  acknowledgedAt: string | null
-  actionedAt: string | null
-  reporterIpTruncated: string | null
-  reporter: {
-    userId: number | null
-    name: string | null
-    email: string | null
-    stillExists: boolean
-    signedIn: boolean
-  } | null
-  actionedBy: { userId: number, name: string | null, email: string | null } | null
-}
+type AbuseReport = ApiResponse<'/api/admin/abuse-reports', 'get'>[number]
+type ModerationNotice = AbuseReport['notices'][number]
 
 const router = useRouter()
 const { t } = useI18n()
@@ -56,6 +26,7 @@ const { loggedIn } = useUserSession()
 const { primaryLoginPath } = useInstanceConfig()
 const { status: accountStatus } = useAccountStatus()
 const toast = useToast()
+const { extractError } = useErrorHandler()
 
 useHead({ title: 'Abuse reports · Admin' })
 
@@ -66,17 +37,18 @@ if (import.meta.client) {
     if (!loggedIn.value) {
       globalThis.location.href = primaryLoginPath.value ?? '/'
     } else if (accountStatus.value && !accountStatus.value.isAdmin) {
-      router.push('/')
+      void router.push('/')
     }
   })
 }
 
-const filter = ref<'open' | 'acknowledged' | 'actioned' | 'dismissed' | 'open+acknowledged' | 'all'>('open+acknowledged')
+type StatusFilter = 'open' | 'acknowledged' | 'actioned' | 'dismissed' | 'open+acknowledged' | 'all'
+const filter = ref<StatusFilter>('open+acknowledged')
 const reports = ref<AbuseReport[]>([])
 const loading = ref(false)
 const noteDrafts = ref<Record<string, string>>({})
 // Decision drafts per report. The explanation and rule are SENT (to the
-// reporter, and to the owner as the statement of reasons) — unlike notes.
+// reporter, and to the owner as the statement of reasons), unlike notes.
 interface DecisionDraft {
   action: 'content_removed' | 'access_restricted'
   rule: ModerationRule
@@ -113,7 +85,7 @@ const NOTICE_LABEL: Record<ModerationNotice['kind'], string> = {
 }
 const NOTICE_STATUS_LABEL: Record<ModerationNotice['status'], string> = {
   sent: 'sent',
-  not_delivered_no_contact: 'not delivered — no contact',
+  not_delivered_no_contact: 'not delivered, no contact',
   failed: 'failed'
 }
 const acting = ref<Record<string, boolean>>({})
@@ -122,17 +94,16 @@ async function refresh(): Promise<void> {
   if (!accountStatus.value?.isAdmin) return
   loading.value = true
   try {
-    // Map our two-status default to a server query — server treats
+    // Map our two-status default to a server query, server treats
     // 'open+acknowledged' as the default when no `status=` is given.
     const statusParam = filter.value === 'open+acknowledged' ? '' : filter.value
-    reports.value = await $fetch<AbuseReport[]>('/api/admin/abuse-reports', {
+    reports.value = await apiFetch('/api/admin/abuse-reports', {
       query: statusParam ? { status: statusParam } : {}
     })
   } catch (e) {
-    const err = e as { message?: string, data?: { message?: string } }
     toast.add({
       title: 'Could not load reports',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -158,8 +129,9 @@ async function transition(reportId: string, status: 'acknowledged' | 'actioned' 
   acting.value[reportId] = true
   try {
     const draft = draftFor(reportId)
-    await $fetch(`/api/admin/abuse-reports/${reportId}`, {
-      method: 'PATCH',
+    await apiFetch('/api/admin/abuse-reports/:reportId', {
+      method: 'patch',
+      path: { reportId },
       body: {
         status,
         notes: (noteDrafts.value[reportId] ?? '').trim() || undefined,
@@ -185,7 +157,7 @@ async function transition(reportId: string, status: 'acknowledged' | 'actioned' 
   } catch (e) {
     toast.add({
       title: `Could not ${status} report`,
-      description: fetchErrorMessage(e) ?? 'Unknown error',
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -195,7 +167,7 @@ async function transition(reportId: string, status: 'acknowledged' | 'actioned' 
 }
 
 function fmtDate(iso: string | null): string {
-  if (!iso) return '—'
+  if (!iso) return '-'
   try {
     return new Date(iso).toLocaleString(undefined, {
       year: 'numeric', month: 'short', day: 'numeric',
@@ -207,7 +179,7 @@ function fmtDate(iso: string | null): string {
 }
 
 function onClose(): void {
-  router.push('/')
+  void router.push('/')
 }
 
 const STATUS_TONE: Record<AbuseReport['status'], string> = {
@@ -225,14 +197,14 @@ const CATEGORY_LABEL: Record<string, string> = {
   other: 'Other'
 }
 
-const FILTER_OPTIONS = [
+const FILTER_OPTIONS: { value: StatusFilter, label: string }[] = [
   { value: 'open+acknowledged', label: 'Active queue' },
   { value: 'open', label: 'Open' },
   { value: 'acknowledged', label: 'Acknowledged' },
   { value: 'actioned', label: 'Actioned' },
   { value: 'dismissed', label: 'Dismissed' },
   { value: 'all', label: 'All' }
-] as const
+]
 </script>
 
 <template>
@@ -329,7 +301,7 @@ const FILTER_OPTIONS = [
           </header>
 
           <div class="px-4 py-4 space-y-3">
-            <!-- Reporter — name + email + mailto: link for follow-
+            <!-- Reporter: name + email + mailto: link for follow-
                  up. Strikethrough name when the user has deleted
                  their account; the email snapshot still works as
                  a follow-up channel. -->
@@ -362,7 +334,7 @@ const FILTER_OPTIONS = [
                 v-if="!report.reporter.stillExists"
                 class="font-mono text-[11px] text-muted"
               >
-                (account deleted — email snapshot)
+                (account deleted, email snapshot)
               </span>
             </div>
             <div
@@ -406,7 +378,7 @@ const FILTER_OPTIONS = [
               class="text-xs text-muted font-mono"
             >
               {{ report.reporter?.signedIn ? 'signed-in reporter' : 'reporter not signed in' }}
-              · good-faith statement {{ report.goodFaithConfirmedAt ? 'confirmed' : '— (legacy report)' }}
+              · good-faith statement {{ report.goodFaithConfirmedAt ? 'confirmed' : '- (legacy report)' }}
             </p>
 
             <div
@@ -460,7 +432,7 @@ const FILTER_OPTIONS = [
               {{ fmtDate(report.actionedAt ?? report.acknowledgedAt) }}
             </div>
 
-            <!-- Action panel — visible only for open + acknowledged
+            <!-- Action panel: visible only for open + acknowledged
                  reports. The PATCH endpoint enforces backwards-
                  transition refusal but we hide the buttons too. -->
             <div
@@ -493,7 +465,7 @@ const FILTER_OPTIONS = [
               />
               <UTextarea
                 v-model="noteDrafts[report.reportId]"
-                placeholder="Notes (optional, internal — added to the audit trail)"
+                placeholder="Notes (optional, internal, added to the audit trail)"
                 :rows="2"
                 class="w-full"
                 :ui="{ base: 'w-full' }"

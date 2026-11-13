@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { CUSTOM_CSS_MAX_BYTES } from './customCss'
-import { THEME_IMAGE_URL_RE } from '../utils/themeImages'
-import { isIsoDate } from '../utils/documentLocale'
+import { THEME_IMAGE_URL_RE } from '../utils/theme/themeImages'
+import { isIsoDate } from '../contracts/isoDate'
 
 /**
  * Per-document theme. Drives both the live paged preview and the printed
@@ -10,18 +10,18 @@ import { isIsoDate } from '../utils/documentLocale'
  * The shape is intentionally granular: separate `body` / `headings`
  * blocks, dedicated `tables` and `code` sections, so users can tune each
  * surface without touching unrelated knobs. The cost is more validator
- * code and a larger editor panel — the win is themes that actually
+ * code and a larger editor panel, the win is themes that actually
  * express publication-grade design.
  *
  * The Zod schemas below are the source of truth. `DocTheme` is derived
  * via `z.infer<typeof DocThemeSchema>`, and the meta.put endpoint +
  * server-side code paths validate against these schemas directly
- * (see `shared/utils/themeValidation.ts`). Every range / enum / regex
+ * (see `shared/utils/theme/themeValidation.ts`). Every range / enum / regex
  * bound lives here, so "what a valid theme looks like" has exactly one
  * definition.
  */
 
-// ── Primitives ──────────────────────────────────────────────────────────
+// Primitives
 
 /**
  * Conservative font-name pattern: letters, digits, spaces (every
@@ -45,7 +45,7 @@ const HEX_COLOR_REGEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
 
 /**
  * Exported so non-theme code (e.g. the AI `update_theme` tool schema in
- * `server/utils/agentic/functionTools.ts`) can reuse the same regex
+ * `server/utils/ai/tools/themeSchema.ts`) can reuse the same regex
  * rather than maintain a parallel copy that could drift. Any change to
  * what "valid hex" means now propagates automatically.
  */
@@ -59,8 +59,8 @@ const fontName = z.string().regex(FONT_NAME_REGEX, 'must be a valid font name (l
  * bundled `/markoto-logos/*` asset. These values are interpolated into
  * an HTML attribute and a CSS `url()`, so nothing else is accepted.
  * Whether an upload path belongs to THE document is checked where the
- * document is known (`meta.put`, AI `update_theme`, render time) — see
- * `shared/utils/themeImages.ts`.
+ * document is known (`meta.put`, AI `update_theme`, render time), see
+ * `shared/utils/theme/themeImages.ts`.
  */
 const themeImageUrl = z.string().max(500).regex(THEME_IMAGE_URL_RE, 'must be empty or an image uploaded to the document')
 
@@ -69,7 +69,7 @@ const slotTemplate = z.string().max(200).refine(
   { message: String.raw`contains forbidden characters (", \, <, >, newline)` }
 )
 
-// ── Enum types (exported so consumers that import them still work) ──────
+// Enum types (exported so consumers that import them still work)
 
 export const PageSizeSchema = z.enum(['A4', 'A5', 'Letter', 'Legal'])
 export type PageSize = z.infer<typeof PageSizeSchema>
@@ -77,36 +77,30 @@ export type PageSize = z.infer<typeof PageSizeSchema>
 export const PageOrientationSchema = z.enum(['portrait', 'landscape'])
 export type PageOrientation = z.infer<typeof PageOrientationSchema>
 
-export const ColumnCountSchema = z.union([z.literal(1), z.literal(2), z.literal(3)])
-export type ColumnCount = z.infer<typeof ColumnCountSchema>
+const ColumnCountSchema = z.union([z.literal(1), z.literal(2), z.literal(3)])
 
 export const TextAlignSchema = z.enum(['left', 'justify'])
-export type TextAlign = z.infer<typeof TextAlignSchema>
 
 export const BlockquoteStyleSchema = z.enum(['border', 'background', 'none'])
-export type BlockquoteStyle = z.infer<typeof BlockquoteStyleSchema>
 
 /**
  * `<hr>` rendering. Markdown source `---` produces an `<hr>`; what we
  * draw between the surrounding paragraphs is the editorial voice.
- *  - `rule`     — solid horizontal line (the default print look)
- *  - `dashed`   — dashed line (drier, quieter)
- *  - `dotted`   — dotted line
- *  - `asterism` — Unicode `⁂` glyph centered (literary/editorial)
- *  - `none`     — invisible separator (still consumes vertical space)
+ *  - `rule`    : solid horizontal line (the default print look)
+ *  - `dashed`  : dashed line (drier, quieter)
+ *  - `dotted`  : dotted line
+ *  - `asterism`: Unicode `⁂` glyph centered (literary/editorial)
+ *  - `none`    : invisible separator (still consumes vertical space)
  */
 export const HrStyleSchema = z.enum(['rule', 'dashed', 'dotted', 'asterism', 'none'])
-export type HrStyle = z.infer<typeof HrStyleSchema>
 
-export const HeadingWeightSchema = z.union([
+const HeadingWeightSchema = z.union([
   z.literal(400), z.literal(500), z.literal(600),
   z.literal(700), z.literal(800), z.literal(900)
 ])
-export type HeadingWeight = z.infer<typeof HeadingWeightSchema>
 
 /** Any CSS font weight on the 100-step grid (per-level heading weight, cover title weight). */
 export const FontWeightSchema = z.number().int().min(100).max(900).multipleOf(100)
-export type FontWeight = z.infer<typeof FontWeightSchema>
 
 export const HeadingStyleSchema = z.enum(['normal', 'italic'])
 export type HeadingStyle = z.infer<typeof HeadingStyleSchema>
@@ -146,7 +140,7 @@ export type HeadingLevels = z.infer<typeof HeadingLevelsSchema>
 
 /**
  * Pre-curated highlight.js stylesheet. Maps to a single same-origin /vendor/ URL via
- * `shared/utils/hljsAssets.ts`. Adding more is a matter of (a) adding
+ * `shared/utils/vendor/hljsAssets.ts`. Adding more is a matter of (a) adding
  * the variant here, (b) extending the URL map, (c) adding an i18n
  * label.
  */
@@ -159,7 +153,7 @@ export type CodeTheme = z.infer<typeof CodeThemeSchema>
 /**
  * Code block fill. `auto` (default): the highlight theme's own background
  * for the dark themes, a faint tint of the text colour for the light ones
- * and for `none` — so a block never floats bare on the page. `tint`
+ * and for `none`: so a block never floats bare on the page. `tint`
  * always tints, `none` leaves the page colour.
  */
 export const CodeBackgroundSchema = z.enum(['auto', 'tint', 'none'])
@@ -172,10 +166,10 @@ export type CodeFrame = z.infer<typeof CodeFrameSchema>
 /**
  * Heading numbers on h1–h4 (also in the TOC):
  *  - `none`
- *  - `decimal`     — `1`, `1.1`, `1.1.1`, `1.1.1.1`
- *  - `decimal-dot` — `1.`, `1.1.`, `1.1.1.`, `1.1.1.1.` (legal / German style)
- *  - `ieee`        — `I.`, `A.`, `1)`, `a)` (IEEEtran: each level shows its own number only)
- *  - `decimal-zero` — `01`, `01.1`, `01.1.1`, … (two-digit top level: proposals, brochures)
+ *  - `decimal`    : `1`, `1.1`, `1.1.1`, `1.1.1.1`
+ *  - `decimal-dot`: `1.`, `1.1.`, `1.1.1.`, `1.1.1.1.` (legal / German style)
+ *  - `ieee`       : `I.`, `A.`, `1)`, `a)` (IEEEtran: each level shows its own number only)
+ *  - `decimal-zero`: `01`, `01.1`, `01.1.1`, … (two-digit top level: proposals, brochures)
  * The levels count from the highest heading level the document uses: a
  * document whose sections are h2 numbers them `1`, `2`, … (not `0.1`).
  */
@@ -195,7 +189,7 @@ const chapterWord = z.string().max(40).regex(TEMPLATE_SAFE_TEXT_REGEX, String.ra
 
 /**
  * Figure / table numbers: through the document (`1`, `2`, …) or within
- * each top-level section (`3.1`, `3.2`, … — theses, books).
+ * each top-level section (`3.1`, `3.2`, …, theses, books).
  */
 export const CaptionNumberingSchema = z.enum(['document', 'chapter'])
 export type CaptionNumbering = z.infer<typeof CaptionNumberingSchema>
@@ -218,43 +212,39 @@ export type DateFormat = z.infer<typeof DateFormatSchema>
 /**
  * `{section}` reads the section heading that is `first` on the page (else
  * the one running on), or the one the page `start`s in (the heading only
- * when it opens the page — the usual running head).
+ * when it opens the page, the usual running head).
  */
 export const SectionModeSchema = z.enum(['first', 'start'])
 export type SectionMode = z.infer<typeof SectionModeSchema>
 
 /** Drop cap: off, on the document's first paragraph, or on the first paragraph of every top-level section. */
 export const DropCapSchema = z.union([z.boolean(), z.literal('every-chapter')])
-export type DropCap = z.infer<typeof DropCapSchema>
 
 export const TableHeaderBgSchema = z.enum(['brand', 'muted', 'none'])
-export type TableHeaderBg = z.infer<typeof TableHeaderBgSchema>
 
 /** `auto` picks black/white based on the chosen header bg's luminance. */
 export const TableHeaderColorSchema = z.enum(['auto', 'inherit'])
-export type TableHeaderColor = z.infer<typeof TableHeaderColorSchema>
 
 export const TableBordersSchema = z.enum(['all', 'horizontal', 'minimal', 'none'])
-export type TableBorders = z.infer<typeof TableBordersSchema>
 
 /** Where a table caption (`Table: …` in the Markdown) sits. */
 export const CaptionPositionSchema = z.enum(['above', 'below'])
 export type CaptionPosition = z.infer<typeof CaptionPositionSchema>
 
 /**
- * Look of the reference list — the section headed References /
- * Bibliography / Literatur / Références … (`app/utils/references.ts`):
- *  - `plain`    — like any other list / paragraphs
- *  - `hanging`  — hanging indent (author-year lists, APA)
- *  - `brackets` — numbered lists get `[1]`, `[2]` labels (IEEE); paragraphs hang
+ * Look of the reference list, the section headed References /
+ * Bibliography / Literatur / Références … (`app/utils/markdown/references.ts`):
+ *  - `plain`   : like any other list / paragraphs
+ *  - `hanging` : hanging indent (author-year lists, APA)
+ *  - `brackets`: numbered lists get `[1]`, `[2]` labels (IEEE); paragraphs hang
  */
 export const ReferenceStyleSchema = z.enum(['plain', 'hanging', 'brackets'])
 export type ReferenceStyle = z.infer<typeof ReferenceStyleSchema>
 
 /**
  * Diagram colours. `document` (the default for new themes) derives every
- * colour from the theme itself — accent, heading ink, text, neutral and
- * paper, incl. the pie / xy-chart palettes (`shared/utils/mermaidConfig.ts`).
+ * colour from the theme itself, accent, heading ink, text, neutral and
+ * paper, incl. the pie / xy-chart palettes (`shared/utils/markdown/mermaidConfig.ts`).
  * The others are Mermaid's built-in themes, kept for an explicit choice.
  * Diagram text always uses the body font.
  */
@@ -273,35 +263,32 @@ export type TocMaxDepth = z.infer<typeof TocMaxDepthSchema>
  * Cover-page composition mode. Each layout is implemented via CSS Grid
  * placement (NOT just `justify-content`) so the visual difference is
  * obvious with even short cover content. See `coverBlock` in
- * `themeToCss.ts`.
+ * `shared/themeCss/coverCss.ts`.
  *
- *  - `classic`   — everything stacked vertically + horizontally centered (book/novel feel)
- *  - `editorial` — logo at top, title+subtitle at the upper third, author/date at the lower third (markoto default)
- *  - `banner`    — logo + title in a top band on a brand-tinted stripe, meta at bottom
- *  - `minimal`   — just title (and optional subtitle) centered, no logo/meta even when toggled on
- *  - `title-block` — no cover PAGE: title, subtitle, authors (with
+ *  - `classic`  : everything stacked vertically + horizontally centered (book/novel feel)
+ *  - `editorial`: logo at top, title+subtitle at the upper third, author/date at the lower third (markoto default)
+ *  - `banner`   : logo + title in a top band on a brand-tinted stripe, meta at bottom
+ *  - `minimal`  : just title (and optional subtitle) centered, no logo/meta even when toggled on
+ *  - `title-block`: no cover PAGE: title, subtitle, authors (with
  *                  affiliations), date and the abstract sit at the top of
  *                  page 1 and the text starts right below (papers). The
- *                  abstract is the document's own `Abstract` section — see
- *                  `app/utils/titleBlock.ts`.
+ *                  abstract is the document's own `Abstract` section, see
+ *                  `app/utils/preview/titleBlock.ts`.
  */
 export const CoverLayoutSchema = z.enum(['classic', 'editorial', 'banner', 'minimal', 'title-block'])
-export type CoverLayout = z.infer<typeof CoverLayoutSchema>
 
 /**
  * Cover text alignment. Drives `text-align` and the horizontal alignment
  * inside the layout's grid track.
  */
-export const CoverAlignSchema = z.enum(['left', 'center', 'right'])
-export type CoverAlign = z.infer<typeof CoverAlignSchema>
+const CoverAlignSchema = z.enum(['left', 'center', 'right'])
 
 /**
  * Header image position. Renders into the corresponding `@top-X` margin
  * box on every BODY page; the cover page's named `@page cover-page`
  * already nulls these so it stays clean.
  */
-export const HeaderImagePositionSchema = z.enum(['left', 'center', 'right'])
-export type HeaderImagePosition = z.infer<typeof HeaderImagePositionSchema>
+const HeaderImagePositionSchema = z.enum(['left', 'center', 'right'])
 
 /**
  * Header/footer slot. Templates support these tokens:
@@ -323,7 +310,7 @@ export const RunningSlotsSchema = z.object({
   /**
    * Optional image rendered in ONE of the three slots (driven by
    * `imagePosition`). Empty string = no image. Mutually exclusive with
-   * the text in the same slot — image wins when both are set, since
+   * the text in the same slot, image wins when both are set, since
    * users typically pick one mental model. Cover page suppresses
    * margin boxes entirely so this never appears on the cover.
    */
@@ -350,21 +337,20 @@ export type RunningSlots = z.infer<typeof RunningSlotsSchema>
  * The header carries the document-wide options of the `{section}` token
  * (they apply wherever the token is used, header or footer).
  */
-export const HeaderSlotsSchema = RunningSlotsSchema.extend({
+const HeaderSlotsSchema = RunningSlotsSchema.extend({
   /** `{section}` shows the section number before the title ("3 Procedures"). Optional: absent = title only. */
   sectionNumber: z.boolean().optional(),
   /** Which section heading `{section}` names (`SectionModeSchema`). Optional: absent = `first`. */
   sectionMode: SectionModeSchema.optional()
 }).strict()
-export type HeaderSlots = z.infer<typeof HeaderSlotsSchema>
 
-// ── DocTheme ────────────────────────────────────────────────────────────
+// DocTheme
 
 export const DocThemeSchema = z.object({
   page: z.object({
     size: PageSizeSchema,
     orientation: PageOrientationSchema,
-    // mm — uniform on all four sides. Bounded so a payload can't push
+    // mm: uniform on all four sides. Bounded so a payload can't push
     // e.g. `margin: 1e9` and crash paged.js.
     margin: z.number().min(0).max(60),
     /**
@@ -384,7 +370,7 @@ export const DocThemeSchema = z.object({
     mirrorMargins: z.boolean().optional()
   }).strict(),
   /**
-   * Optional third font slot — the "eyebrow / meta" voice. Used for
+   * Optional third font slot, the "eyebrow / meta" voice. Used for
    * header/footer text, figcaptions, footnotes and any other
    * "metadata about the document" surface where Inter body or
    * Fraunces editorial would feel out of place. Markoto's brand
@@ -403,7 +389,7 @@ export const DocThemeSchema = z.object({
     /**
      * Drop cap on the first paragraph of the document (`true`), or on
      * the first paragraph of every top-level section (`'every-chapter'`). Editorial
-     * signature — gives the page a "first chapter of a book" feel.
+     * signature: gives the page a "first chapter of a book" feel.
      * Renders the leading character at ~3.4× body size, floated left
      * over the first three lines. Uses the heading font + heading
      * colour so it reads as a typographic flourish rather than a
@@ -491,7 +477,7 @@ export const DocThemeSchema = z.object({
     secondary: hexColor
   }).strict(),
   /**
-   * Brand assets — logo image used on the cover page and (eventually)
+   * Brand assets: logo image used on the cover page and (eventually)
    * margin-box `{logo}` token. `logoUrl` is empty string when no logo
    * has been uploaded; otherwise it's a `/api/files/{docId}/{fileId}`
    * URL produced by the standard image-upload pipeline (same as
@@ -510,10 +496,10 @@ export const DocThemeSchema = z.object({
   footer: RunningSlotsSchema,
   code: z.object({
     theme: CodeThemeSchema,
-    // pt — separate from body so code can be tighter
+    // pt: separate from body so code can be tighter
     fontSize: z.number().min(6).max(16),
     // The fields below are optional: themes stored before they existed
-    // render with the defaults in `shared/utils/themeOptions.ts`.
+    // render with the defaults in `shared/utils/theme/themeOptions.ts`.
     /** Code font; absent = the system monospace stack. */
     font: fontName.optional(),
     background: CodeBackgroundSchema.optional(),
@@ -559,7 +545,7 @@ export const DocThemeSchema = z.object({
    * GitHub-style admonition palette. One color per kind drives both the
    * left-border and the (color-mixed-into-bg) tint. Required so themes
    * can't fall back to a hardcoded palette that would clash with the
-   * brand — every theme commits to its own admonition look.
+   * brand: every theme commits to its own admonition look.
    *
    * Tradition reserves these hues for these meanings (blue/info,
    * green/tip, purple/important, amber/warning, red/caution); themes
@@ -599,7 +585,7 @@ export const DocThemeSchema = z.object({
     /**
      * Publication date the author picked (`YYYY-MM-DD`), shown on the
      * cover and by the `{date}` header/footer token, written out in the
-     * document language (`shared/utils/documentLocale.ts`). Empty or
+     * document language (`shared/utils/documents/documentLocale.ts`). Empty or
      * absent = the render date ("today"). Optional so themes stored
      * before the field existed stay valid.
      */
@@ -614,13 +600,13 @@ export const DocThemeSchema = z.object({
     showAuthors: z.boolean(),
     /**
      * Multi-author list. We're a collaboration tool, so this is an
-     * array — each entry rendered on its own line. Cap of 10 authors
+     * array: each entry rendered on its own line. Cap of 10 authors
      * keeps the cover from becoming a credit roll.
      */
     authors: z.array(z.string().max(100)).max(10),
     /**
      * Affiliation per author, same order as `authors` (department,
-     * institution, address, e-mail — one per line). Shown under each
+     * institution, address, e-mail: one per line). Shown under each
      * author on every layout. Optional (absent = none).
      */
     affiliations: z.array(z.string().max(300)).max(10).optional(),
@@ -642,16 +628,16 @@ export const DocThemeSchema = z.object({
      * the original hardcoded value.
      */
     titleSize: z.number().min(0.6).max(4),
-    /** Subtitle em multiplier — same intent as titleSize, smaller range. */
+    /** Subtitle em multiplier: same intent as titleSize, smaller range. */
     subtitleSize: z.number().min(0.5).max(2.5)
   }).strict(),
   /**
    * Optional user-authored CSS appended AFTER the generated theme CSS,
-   * so its rules win. Documents only (preview, print, server PDF/PNG) —
+   * so its rules win. Documents only (preview, print, server PDF/PNG),
    * never the app chrome. Stored as typed (formatting kept).
    *
    * The schema bounds the length only (UTF-16 units; the byte cap is in
-   * the sanitizer). The content check is `shared/utils/customCss.ts`:
+   * the sanitizer). The content check is `shared/utils/theme/customCss.ts`:
    * write paths reject on any issue, and every render path sanitizes
    * again because `ymeta.theme` can be written directly over Y.js. The
    * schema deliberately does NOT run the parser, so clients can validate

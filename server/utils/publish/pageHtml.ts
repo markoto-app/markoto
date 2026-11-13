@@ -1,9 +1,10 @@
-import { KATEX_CSS_SRI, KATEX_CSS_URL } from '~~/shared/utils/katexAssets'
-import { HLJS_THEMES, HLJS_STYLES_BASE } from '~~/shared/utils/hljsAssets'
+import { KATEX_CSS_SRI, KATEX_CSS_URL } from '~~/shared/utils/vendor/katexAssets'
+import { HLJS_THEMES, HLJS_STYLES_BASE } from '~~/shared/utils/vendor/hljsAssets'
 
-// The HTML of a published page (WP13). The body is the stored snapshot:
-// markdown rendered and DOMPurify-sanitised by the print page, theme CSS
-// from `themeToCss` with the sanitised custom CSS. The page itself runs
+// The HTML of a published page. The body is the stored snapshot:
+// markdown rendered and DOMPurify-sanitised by the print page, stripped
+// again of active elements before it was stored (`sanitizeSnapshot.ts`),
+// theme CSS from `themeToCss` with the sanitised custom CSS. The page itself runs
 // no script at all (`publishedPageCsp`), so even a sanitiser bypass in the
 // stored HTML can't execute.
 
@@ -21,8 +22,9 @@ export interface PublishedPageView {
   reportUrl: string | null
 }
 
+const FOOTER_TEXT_EN = { by: 'Published with markoto', report: 'Report' }
 const FOOTER_TEXT: Record<string, { by: string, report: string }> = {
-  en: { by: 'Published with markoto', report: 'Report' },
+  en: FOOTER_TEXT_EN,
   de: { by: 'Veröffentlicht mit markoto', report: 'Melden' },
   fr: { by: 'Publié avec markoto', report: 'Signaler' },
   es: { by: 'Publicado con markoto', report: 'Denunciar' },
@@ -47,6 +49,7 @@ export function publishedHljsStylesheet(url: string | null): { url: string, sri:
 }
 
 function langTag(language: string): string {
+  // eslint-disable-next-line security/detect-unsafe-regex -- each repetition starts with `-`, so no two ways to split a tag: linear
   return /^[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8})*$/.test(language) ? language : 'en'
 }
 
@@ -66,7 +69,7 @@ body { margin: 0; }
 
 export function buildPublishedPageHtml(page: PublishedPageView): string {
   const lang = langTag(page.language)
-  const text = FOOTER_TEXT[lang.slice(0, 2).toLowerCase()] ?? FOOTER_TEXT.en!
+  const text = FOOTER_TEXT[lang.slice(0, 2).toLowerCase()] ?? FOOTER_TEXT_EN
   const hljs = publishedHljsStylesheet(page.hljsUrl)
   // The theme's paper colour for the whole page, not just the text column.
   const bg = /--doc-bg:\s*(#[0-9a-fA-F]{3,8})\s*;/.exec(page.css)?.[1] ?? '#ffffff'

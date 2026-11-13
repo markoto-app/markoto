@@ -1,16 +1,19 @@
 // @vitest-environment nuxt
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { ref, computed } from 'vue'
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { AIPromptBar, AuthUsageBadge, AuthUsageLimits } from '#components'
-import type { UserBilling } from '~/composables/useBilling'
+import type { UserBilling } from '~/composables/billing/useBilling'
 import type { AiAvailability } from '~~/shared/ai/providers'
-import type { AiCredits } from '~/composables/useAiCredits'
+import type { AiCredits } from '~/composables/ai/useAiCredits'
+import { useQueryCache } from '@pinia/colada'
+import { aiKeys } from '~/queries/ai'
+import { billingKeys } from '~/queries/billing'
 
 // Free AI allowance (hosted): when the shared monthly free-tier pool is
 // used up, the prompt bar must block platform-paid chat with the "add
-// your own key" message — even while the user's own points aren't spent —
+// your own key" message, even while the user's own points aren't spent,
 // and must NOT block a user on their own key. The top bar shows "Your own
 // AI provider" instead of points when nothing is platform-paid.
 
@@ -35,7 +38,9 @@ const BILLING: UserBilling = {
   knowledgeBytesUsed: 10 * MB,
   knowledgeBytesPerUserLimit: 50 * MB,
   imageBytesUsed: 20 * MB,
-  imageBytesPerUserLimit: 100 * MB
+  imageBytesPerUserLimit: 100 * MB,
+  credits: null,
+  coveringWorkspaces: []
 }
 let billingHits = 0
 registerEndpoint('/api/user/billing', () => {
@@ -66,39 +71,34 @@ function aiProps(): AiProp {
 
 function setAvailability(chatSource: 'user' | 'instance'): void {
   const platformBilled = chatSource === 'instance'
-  useState<AiAvailability | null>('ai-availability').value = {
+  useQueryCache().setQueryData<AiAvailability>(aiKeys.availabilityFor(null), {
     chat: { available: true, source: chatSource, platformBilled, supportsVision: true },
     image: { available: false, source: 'none', platformBilled: false },
     transcription: { available: false, source: 'none', platformBilled: false, liveDictation: false },
     webTools: { search: true, fetch: true }
-  }
+  })
 }
 
 function setCredits(poolExhausted: boolean): void {
-  useState<Record<string, AiCredits | null>>('ai-credits').value = {
-    '': {
-      pointsRemaining: 300,
-      pointsTotal: 500,
-      plan: 'free',
-      periodEnd: new Date().toISOString(),
-      attribution: 'user',
-      freeAllowance: { pooled: true, exhausted: poolExhausted, resetsAt: null }
-    }
-  }
+  useQueryCache().setQueryData<AiCredits>(aiKeys.creditsFor(null), {
+    pointsRemaining: 300,
+    pointsTotal: 500,
+    plan: 'free',
+    periodEnd: new Date().toISOString(),
+    attribution: 'user',
+    freeAllowance: { pooled: true, exhausted: poolExhausted, resetsAt: null },
+    workspace: null
+  })
 }
 
-beforeEach(() => {
-  useState<Record<string, AiCredits | null>>('ai-credits').value = {}
-})
-
-describe('AIPromptBar — free AI allowance', () => {
+describe('AIPromptBar: free AI allowance', () => {
   it('pool used up + platform-paid chat → input blocked with the "add your own key" placeholder', async () => {
     setAvailability('instance')
     setCredits(true)
     const wrapper = await mountSuspended(AIPromptBar, { props: { ai: aiProps() } })
     const input = wrapper.find('[data-testid="ai-prompt-bar-input"]')
     expect(input.attributes('disabled')).toBeDefined()
-    expect(input.attributes('placeholder')).toBe('This month\'s free AI allowance is used up — add your own key to keep going')
+    expect(input.attributes('placeholder')).toBe('This month\'s free AI allowance is used up: add your own key to keep going')
   })
 
   it('pool used up but the user is on their own key → nothing is blocked', async () => {
@@ -119,11 +119,11 @@ describe('AIPromptBar — free AI allowance', () => {
   })
 })
 
-describe('UsageBadge — whose AI it is', () => {
+describe('UsageBadge: whose AI it is', () => {
   it('only own keys → "Your own AI provider", opening the settings link + limits, no points meter', async () => {
     setAvailability('user')
     setCredits(false)
-    useState<UserBilling | null>('billing').value = BILLING
+    useQueryCache().setQueryData<UserBilling>(billingKeys.user(), BILLING)
     const wrapper = await mountSuspended(AuthUsageBadge, { attachTo: document.body })
     const chip = wrapper.find('[data-testid="usage-badge-own-provider"]')
     expect(chip.exists()).toBe(true)
@@ -145,7 +145,7 @@ describe('UsageBadge — whose AI it is', () => {
   it('platform-paid chat → the points meter, not the own-provider chip', async () => {
     setAvailability('instance')
     setCredits(false)
-    useState<UserBilling | null>('billing').value = BILLING
+    useQueryCache().setQueryData<UserBilling>(billingKeys.user(), BILLING)
     const wrapper = await mountSuspended(AuthUsageBadge, { attachTo: document.body })
     expect(wrapper.find('[data-testid="usage-badge-own-provider"]').exists()).toBe(false)
     // The points popover carries the storage & limits section below the meter.
@@ -156,7 +156,7 @@ describe('UsageBadge — whose AI it is', () => {
   })
 })
 
-describe('UsageLimits — storage & limits rows', () => {
+describe('UsageLimits: storage & limits rows', () => {
   it('renders the four rows as used / limit, coloured by fill', async () => {
     const wrapper = await mountSuspended(AuthUsageLimits, { props: { billing: BILLING } })
     const rowOf = (key: string) => wrapper.find(`[data-testid="usage-limit-${key}"]`)

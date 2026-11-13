@@ -3,8 +3,8 @@ import { resetDb } from '../setup/db'
 import { loggedInClient } from '../setup/client'
 import { createDoc, createUser } from '../setup/fixtures'
 import { TEST_BASE_URL } from '../setup/env'
-import { THEME_PRESETS } from '~~/shared/utils/themePresets'
-import { buildMarkdownExport } from '~~/shared/utils/markdownFrontmatter'
+import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
+import { buildMarkdownExport } from '~~/shared/utils/markdown/markdownFrontmatter'
 import type { DocTheme } from '~~/shared/types/theme'
 
 // "Download Markdown" → File › Import round trip (staging feedback B/12).
@@ -40,7 +40,7 @@ interface ImportBody {
   droppedCustomCssRules?: number
 }
 
-async function importMarkdown(text: string | Uint8Array, docId: string | null, filename = 'notes.md'): Promise<Response> {
+async function importMarkdown(text: string | Uint8Array<ArrayBuffer>, docId: string | null, filename = 'notes.md'): Promise<Response> {
   const form = new FormData()
   form.append('file', new File([text], filename, { type: 'text/markdown' }))
   if (docId) form.append('docId', docId)

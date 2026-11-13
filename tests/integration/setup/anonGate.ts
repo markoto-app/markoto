@@ -6,8 +6,8 @@ import { parseAltchaPayload } from '../../../server/utils/anonGate/altcha'
 
 // The test servers run the anonymous gate for real (legal surfaces on):
 // an anonymous POST /api/docs needs a fresh ALTCHA solution + the terms
-// acceptance. These helpers do what the browser does — fetch a challenge
-// from the server and solve it (test difficulty, a few ms) — so the suite
+// acceptance. These helpers do what the browser does, fetch a challenge
+// from the server and solve it (test difficulty, a few ms), so the suite
 // exercises the real verification path instead of bypassing it.
 
 function isChallenge(value: unknown): value is Challenge {

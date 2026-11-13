@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { EditorView } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
-import { snapshotEditorSelection } from '../../app/utils/editorSelection'
+import { snapshotEditorSelection } from '../../app/utils/editor/editorSelection'
 import { EDITOR_SELECTION_TEXT_MAX } from '../../shared/types/editorSelection'
 
 // Client-side snapshot helper. Covers the three states the AI prompt
@@ -54,7 +54,7 @@ describe('snapshotEditorSelection', () => {
     })
   })
 
-  it('splices marker mid-line — the "between two sentences" case', () => {
+  it('splices marker mid-line: the "between two sentences" case', () => {
     // This mirrors the user's canonical example. Line 1 = the sentence
     // pair; caret sits between them.
     const doc = 'This is sentence One. This is sentence Two.'
@@ -78,7 +78,7 @@ describe('snapshotEditorSelection', () => {
     const view = makeView(doc, doc.length, doc.length)
     const out = snapshotEditorSelection(view, true)
     if (out.kind !== 'cursor') throw new Error('expected cursor')
-    // Only ONE marker in the output — the real one, at the end.
+    // Only ONE marker in the output, the real one, at the end.
     expect(out.lineText.match(/<CURSOR_IS_HERE>/g)?.length).toBe(1)
     expect(out.lineText.endsWith('<CURSOR_IS_HERE>')).toBe(true)
   })

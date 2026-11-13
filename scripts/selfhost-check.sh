@@ -5,7 +5,7 @@
 #
 # 1. shellcheck install.sh (and this script).
 # 2. `docker compose config` for every supported COMPOSE_FILE combination,
-#    against a throwaway env file with placeholder values — catches YAML
+#    against a throwaway env file with placeholder values: catches YAML
 #    errors, missing `${VAR:?}` wiring and broken overlays without starting
 #    anything.
 # 3. The rendered config must not leak the hosted operator defaults into a
@@ -13,11 +13,15 @@
 # 4. Backup sidecar credentials + cron path.
 # 5. Network segmentation and the container hardening baseline for the
 #    selfhost / prod / local stacks; dev + test publish on loopback only.
+# 6. Service-to-service routes are not routed by the public Traefik
+#    routers, and markitdown requires its shared secret.
+# 7. Layout: every stack under deploy/compose/, seccomp paths resolve, and
+#    the host deploy paths sync every file the prod stack mounts.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-shellcheck install.sh scripts/selfhost-check.sh
+shellcheck install.sh scripts/selfhost-check.sh scripts/test-compose.sh infra/render-env.sh infra/render-env-test.sh
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
@@ -35,6 +39,8 @@ VALKEY_PASSWORD=placeholder
 NUXT_SESSION_PASSWORD=placeholder-placeholder-placeholder-00
 NUXT_JWT_SECRET=placeholder-placeholder-placeholder-000000
 NUXT_INTERNAL_API_SECRET=placeholder-placeholder-placeholder-0000
+NUXT_MARKITDOWN_API_SECRET=placeholder-placeholder-placeholder-0000
+NUXT_ENCRYPTION_KEY=placeholder-encryption-placeholder-0000
 NUXT_S3_ACCESS_KEY=placeholder
 NUXT_S3_SECRET_KEY=placeholder
 NUXT_S3_BUCKET=markoto-files
@@ -73,14 +79,14 @@ check() {
   echo "ok: $label"
 }
 
-check "http" "docker-compose.selfhost.yml"
-check "http + backup" "docker-compose.selfhost.yml" "backup"
-check "tls" "docker-compose.selfhost.yml:docker-compose.selfhost.tls.yml"
-check "tls + build + backup" "docker-compose.selfhost.yml:docker-compose.selfhost.tls.yml:docker-compose.selfhost.build.yml" "backup"
-check "http + build" "docker-compose.selfhost.yml:docker-compose.selfhost.build.yml"
-check "tls + brand" "docker-compose.selfhost.yml:docker-compose.selfhost.tls.yml:docker-compose.selfhost.brand.yml"
+check "http" "deploy/compose/compose.selfhost.yml"
+check "http + backup" "deploy/compose/compose.selfhost.yml" "backup"
+check "tls" "deploy/compose/compose.selfhost.yml:deploy/compose/compose.selfhost.tls.yml"
+check "tls + build + backup" "deploy/compose/compose.selfhost.yml:deploy/compose/compose.selfhost.tls.yml:deploy/compose/compose.selfhost.build.yml" "backup"
+check "http + build" "deploy/compose/compose.selfhost.yml:deploy/compose/compose.selfhost.build.yml"
+check "tls + brand" "deploy/compose/compose.selfhost.yml:deploy/compose/compose.selfhost.tls.yml:deploy/compose/compose.selfhost.brand.yml"
 
-# ─── Backup sidecar ───────────────────────────────────────────────────
+# Backup sidecar
 # 1. Backup credentials (BACKUP_S3_*) reach the backup service only: the app
 #    and the renderer must never see them, in any compose file.
 cat >> "$tmp/selfhost.env" <<'EOF2'
@@ -89,7 +95,7 @@ BACKUP_S3_BUCKET=backup-only-bucket
 BACKUP_S3_ACCESS_KEY=backup-only-access-key
 BACKUP_S3_SECRET_KEY=backup-only-secret-key
 EOF2
-COMPOSE_FILE="docker-compose.selfhost.yml" COMPOSE_PROFILES="backup" \
+COMPOSE_FILE="deploy/compose/compose.selfhost.yml" COMPOSE_PROFILES="backup" \
   docker compose --env-file "$tmp/selfhost.env" -p markoto-ci config --format json > "$tmp/config.json"
 for svc in app sync renderer markitdown; do
   if jq -e --arg s "$svc" '.services[$s].environment // {} | tostring | test("backup-only")' "$tmp/config.json" > /dev/null; then
@@ -123,7 +129,7 @@ if ! docker run --rm --entrypoint sh localhost/markoto-backup-ci -c "test -f '$c
 fi
 echo "ok: cron command $cron_path exists in the backup image (non-root)"
 
-# ─── Container + network isolation (docs/SECURITY-HARDENING.md) ───────
+# Container + network isolation (docs/SECURITY-HARDENING.md)
 # Rendered against placeholder values for every stack that runs the
 # product: selfhost (all overlays), prod, local. The rules:
 #   - the renderer and markitdown (they parse untrusted input) share no
@@ -151,6 +157,8 @@ VALKEY_PORT=6379
 NUXT_SESSION_PASSWORD=placeholder-placeholder-placeholder-00
 NUXT_JWT_SECRET=placeholder-placeholder-placeholder-000000
 NUXT_INTERNAL_API_SECRET=placeholder-placeholder-placeholder-0000
+NUXT_MARKITDOWN_API_SECRET=placeholder-placeholder-placeholder-0000
+NUXT_ENCRYPTION_KEY=placeholder-encryption-placeholder-0000
 NUXT_S3_ENDPOINT=https://s3.example.org
 NUXT_S3_ACCESS_KEY=placeholder
 NUXT_S3_SECRET_KEY=placeholder
@@ -162,6 +170,7 @@ BACKUP_GPG_PASSPHRASE=placeholder
 BACKUP_INTERVAL_SECONDS=86400
 BACKUP_RETENTION_COUNT=14
 NUXT_ALTCHA_HMAC_KEY=placeholder-placeholder-placeholder-0000
+NUXT_PUBLISH_PAGES_HOST=pages.docs.example.org
 EOF3
 
 render_config() { # render_config OUT ENVFILE FILES [PROFILES]
@@ -224,17 +233,17 @@ check_isolation() { # check_isolation LABEL CONFIG_JSON
 }
 
 for combo in \
-  "selfhost|docker-compose.selfhost.yml|backup" \
-  "selfhost tls|docker-compose.selfhost.yml:docker-compose.selfhost.tls.yml|backup" \
-  "selfhost build|docker-compose.selfhost.yml:docker-compose.selfhost.build.yml|backup"; do
+  "selfhost|deploy/compose/compose.selfhost.yml|backup" \
+  "selfhost tls|deploy/compose/compose.selfhost.yml:deploy/compose/compose.selfhost.tls.yml|backup" \
+  "selfhost build|deploy/compose/compose.selfhost.yml:deploy/compose/compose.selfhost.build.yml|backup"; do
   IFS='|' read -r label files profiles <<< "$combo"
   render_config "$tmp/iso.json" "$tmp/selfhost.env" "$files" "$profiles"
   check_isolation "$label" "$tmp/iso.json"
 done
-render_config "$tmp/iso.json" "$tmp/prod.env" "docker-compose.prod.yml"
+render_config "$tmp/iso.json" "$tmp/prod.env" "deploy/compose/compose.prod.yml"
 check_isolation "prod" "$tmp/iso.json"
 
-# ─── Anonymous gate (shared/config/anonGate.ts) ───────────────────────
+# Anonymous gate (shared/config/anonGate.ts)
 # Hosted: on, and the ALTCHA key is required (compose refuses without it).
 # Self-host: install.sh generates the key on install AND upgrade.
 if ! jq -e '.services.app.environment.NUXT_ANON_GATE_ENABLED == "true"' "$tmp/iso.json" > /dev/null; then
@@ -242,7 +251,7 @@ if ! jq -e '.services.app.environment.NUXT_ANON_GATE_ENABLED == "true"' "$tmp/is
   exit 1
 fi
 grep -v '^NUXT_ALTCHA_HMAC_KEY=' "$tmp/prod.env" > "$tmp/prod-nokey.env"
-if COMPOSE_FILE="docker-compose.prod.yml" docker compose --env-file "$tmp/prod-nokey.env" -p markoto-ci config > /dev/null 2>&1; then
+if COMPOSE_FILE="deploy/compose/compose.prod.yml" docker compose --env-file "$tmp/prod-nokey.env" -p markoto-ci config > /dev/null 2>&1; then
   echo "FAIL: prod compose must require NUXT_ALTCHA_HMAC_KEY" >&2
   exit 1
 fi
@@ -251,30 +260,79 @@ if [ "$(grep -c 'ensure_secret NUXT_ALTCHA_HMAC_KEY hex' install.sh)" -lt 2 ]; t
   exit 1
 fi
 echo "ok: anonymous gate wiring (prod on + key required, self-host key generated)"
-render_config "$tmp/local.json" "$tmp/prod.env" "docker-compose.local.yml"
+# Markitdown refuses unauthenticated requests: an existing install that
+# upgrades must get the secret generated too, not only a fresh one.
+if [ "$(grep -c 'ensure_secret NUXT_MARKITDOWN_API_SECRET hex' install.sh)" -lt 2 ]; then
+  echo "FAIL: install.sh must generate NUXT_MARKITDOWN_API_SECRET on install and upgrade" >&2
+  exit 1
+fi
+echo "ok: install.sh generates the markitdown secret (install + upgrade)"
+render_config "$tmp/local.json" "$tmp/prod.env" "deploy/compose/compose.local.yml"
 check_isolation "local" "$tmp/local.json"
 
-# ─── App gets the LiteLLM salt key ────────────────────────────────────
-# The app encrypts users' LiteLLM virtual-key tokens with LITELLM_SALT_KEY.
-# Every compose shape that runs the app must pass it (it reached only the
-# litellm service once, and every AI setup on staging failed with a 500).
-render_config "$tmp/salt-prod.json" "$tmp/prod.env" "docker-compose.prod.yml"
-render_config "$tmp/salt-selfhost.json" "$tmp/selfhost.env" "docker-compose.selfhost.yml"
+# App gets its own encryption key, not LiteLLM's salt
+# The app encrypts the secrets it stores (virtual keys, BYOK keys, SSO
+# secrets) with NUXT_ENCRYPTION_KEY. Every compose shape that runs the app
+# must pass it (a key reaching only one service once failed every AI setup
+# on staging), and LiteLLM's salt stays with LiteLLM: a compromised proxy
+# container must not hold the key to the app's stored credentials.
+render_config "$tmp/salt-prod.json" "$tmp/prod.env" "deploy/compose/compose.prod.yml"
+render_config "$tmp/salt-selfhost.json" "$tmp/selfhost.env" "deploy/compose/compose.selfhost.yml"
 for cfg in salt-prod salt-selfhost local; do
-  if ! jq -e '.services.app.environment.LITELLM_SALT_KEY == "sk-placeholder"' "$tmp/$cfg.json" > /dev/null; then
-    echo "FAIL: the app service must receive LITELLM_SALT_KEY ($cfg)" >&2
+  if ! jq -e '(.services.app.environment.NUXT_ENCRYPTION_KEY // "") != "" and .services.app.environment.LITELLM_SALT_KEY == null and .services.litellm.environment.LITELLM_SALT_KEY != null' "$tmp/$cfg.json" > /dev/null; then
+    echo "FAIL: the app must receive NUXT_ENCRYPTION_KEY and not LITELLM_SALT_KEY ($cfg)" >&2
     exit 1
   fi
 done
-echo "ok: the app receives LITELLM_SALT_KEY (prod, self-host, local)"
+grep -v '^NUXT_ENCRYPTION_KEY=' "$tmp/prod.env" > "$tmp/prod-noenc.env"
+if COMPOSE_FILE="deploy/compose/compose.prod.yml" docker compose --env-file "$tmp/prod-noenc.env" -p markoto-ci config > /dev/null 2>&1; then
+  echo "FAIL: prod compose must require NUXT_ENCRYPTION_KEY" >&2
+  exit 1
+fi
+if [ "$(grep -c 'ensure_secret NUXT_ENCRYPTION_KEY hex' install.sh)" -lt 2 ]; then
+  echo "FAIL: install.sh must generate NUXT_ENCRYPTION_KEY on install and upgrade" >&2
+  exit 1
+fi
+echo "ok: the app gets its own encryption key (prod, self-host, local; generated on install + upgrade)"
 
-# ─── LiteLLM is recreated when its config changes ─────────────────────
+# Third-party images are pinned by digest
+# A tag can be re-pushed; `tag@sha256:…` can't. Our own images
+# (${REGISTRY}/markoto-*) are pinned by release tag and cosign-signed.
+render_config "$tmp/img-dev.json" "$tmp/prod.env" "deploy/compose/compose.dev.yml"
+render_config "$tmp/img-test.json" "$tmp/prod.env" "deploy/compose/compose.test.yml" "flows"
+for cfg in salt-prod salt-selfhost local img-dev img-test; do
+  out="$(jq -r '.services | to_entries[] | select(.value.image != null) | .value.image
+    | select((test("/markoto-[a-z]+:") | not) and (test("@sha256:[0-9a-f]{64}$") | not))' "$tmp/$cfg.json")"
+  if [ -n "$out" ]; then
+    printf 'FAIL (%s): image not pinned by digest: %s\n' "$cfg" "$out" >&2
+    exit 1
+  fi
+done
+for df in Dockerfile sync-server/Dockerfile renderer/Dockerfile markitdown-server/Dockerfile backup-server/Dockerfile; do
+  if grep -E '^FROM ' "$df" | grep -vE '@sha256:[0-9a-f]{64}|^FROM [a-z]+ AS ' | grep -q .; then
+    echo "FAIL: $df has a FROM without a digest" >&2
+    exit 1
+  fi
+done
+echo "ok: third-party images pinned by digest (compose + Dockerfiles)"
+
+# App and sync server key their rate limits on the same X-Forwarded-For
+# entry only while both get the same trusted-proxy hop count.
+for cfg in salt-prod salt-selfhost; do
+  if ! jq -e '.services.app.environment.NUXT_TRUSTED_PROXY_HOPS != null and .services.app.environment.NUXT_TRUSTED_PROXY_HOPS == .services.sync.environment.TRUSTED_PROXY_HOPS' "$tmp/$cfg.json" > /dev/null; then
+    echo "FAIL: app NUXT_TRUSTED_PROXY_HOPS and sync TRUSTED_PROXY_HOPS must match ($cfg)" >&2
+    exit 1
+  fi
+done
+echo "ok: app and sync agree on the trusted proxy hops (prod, self-host)"
+
+# LiteLLM is recreated when its config changes
 # LiteLLM reads its config once at boot and the single-file bind mounts
 # keep the old file after a deploy replaced it (staging ran a week-old
 # model list). The deploy paths export LITELLM_CONFIG_HASH; the label must
 # carry it so `compose up -d` recreates the container.
-LITELLM_CONFIG_HASH=ci-hash-1 render_config "$tmp/hash-prod.json" "$tmp/prod.env" "docker-compose.prod.yml"
-LITELLM_CONFIG_HASH=ci-hash-1 render_config "$tmp/hash-selfhost.json" "$tmp/selfhost.env" "docker-compose.selfhost.yml"
+LITELLM_CONFIG_HASH=ci-hash-1 render_config "$tmp/hash-prod.json" "$tmp/prod.env" "deploy/compose/compose.prod.yml"
+LITELLM_CONFIG_HASH=ci-hash-1 render_config "$tmp/hash-selfhost.json" "$tmp/selfhost.env" "deploy/compose/compose.selfhost.yml"
 for cfg in hash-prod hash-selfhost; do
   if ! jq -e '.services.litellm.labels["markoto.litellm-config"] == "ci-hash-1"' "$tmp/$cfg.json" > /dev/null; then
     echo "FAIL: the litellm service must carry LITELLM_CONFIG_HASH as its markoto.litellm-config label ($cfg)" >&2
@@ -295,23 +353,118 @@ if grep -rn -- '--no-sandbox' renderer/src; then
   echo "FAIL: renderer/src passes --no-sandbox to Chromium" >&2
   exit 1
 fi
-if ! jq -e '[.syscalls[] | select(.action == "SCMP_ACT_ALLOW" and ((.includes // {}) | length) == 0 and ((.names | index("unshare")) != null))] | length == 1' renderer/seccomp.json > /dev/null; then
-  echo "FAIL: renderer/seccomp.json must allow unshare unconditionally (Chromium user-namespace sandbox)" >&2
+if ! jq -e '[.syscalls[] | select(.action == "SCMP_ACT_ALLOW" and ((.includes // {}) | length) == 0 and ((.names | index("unshare")) != null))] | length == 1' deploy/config/renderer/seccomp.json > /dev/null; then
+  echo "FAIL: deploy/config/renderer/seccomp.json must allow unshare unconditionally (Chromium user-namespace sandbox)" >&2
   exit 1
 fi
 echo "ok: renderer keeps Chromium's sandbox"
 
-# ─── Dev + test stacks publish on loopback only ───────────────────────
-# Throwaway credentials (devpassword, the committed seaweedfs/s3.json keys)
+# Internal routes stay off the public edge
+# The app's /api/internal/** (sync → app), the renderer's print page +
+# bootstrap and the sync server's /internal/** control plane are reached
+# over the Docker network only. Every public router that could match them
+# must exclude them; a catch-all that carries the exclusions is longer than
+# the routers it must yield to, so it needs the explicit lowest priority.
+check_internal_routes() { # check_internal_routes LABEL CONFIG_JSON
+  local out
+  out="$(jq -r '
+    def routers($s): (.services[$s].labels // {}) | to_entries
+      | map(select(.key | test("^traefik\\.http\\.routers\\.[^.]+\\.rule$")))
+      | map({ name: (.key | split(".")[3]), rule: .value });
+    . as $c
+    | [
+        ( routers("app")[]
+          # A router with a positive path matcher other than `/` (the
+          # Path(`/api/import`) body-limit router) cannot match internal paths.
+          | select(.rule | gsub("!Path(Prefix)?\\([^)]*\\)"; "") | test("PathPrefix\\(`/`\\)") or (test("Path") | not))
+          | . as $r
+          | ( ["!PathPrefix(`/api/internal/`)", "!PathPrefix(`/_internal/render/`)", "!Path(`/api/_internal/render-bootstrap`)"][]
+              | select(. as $x | $r.rule | contains($x) | not)
+              | "app router \($r.name) does not exclude \(.)" ),
+            ( select(($c.services.app.labels["traefik.http.routers.\($r.name).priority"] // "") != "1")
+              | "app router \($r.name) needs priority 1 (its exclusions make it outrank narrower routers)" ) ),
+        ( routers("sync")[]
+          | (if (.rule | contains("PathPrefix(`/sync`)")) then "!PathPrefix(`/sync/internal/`)" else "!PathPrefix(`/internal/`)" end) as $x
+          | select(.rule | contains($x) | not)
+          | "sync router \(.name) does not exclude \($x)" ),
+        ( select($c.services.markitdown)
+          | select(($c.services.markitdown.environment.MARKITDOWN_API_SECRET // "") == "")
+          | "markitdown has no MARKITDOWN_API_SECRET" ),
+        ( select($c.services.markitdown)
+          | select($c.services.markitdown.environment.MARKITDOWN_API_SECRET != $c.services.app.environment.NUXT_MARKITDOWN_API_SECRET)
+          | "the app and markitdown disagree on the markitdown secret" )
+      ]
+    | .[]' "$2")"
+  if [ -n "$out" ]; then
+    printf 'FAIL (%s): %s\n' "$1" "$out" >&2
+    exit 1
+  fi
+  echo "ok: internal routes stay off the public edge ($1)"
+}
+render_config "$tmp/edge-selfhost.json" "$tmp/selfhost.env" "deploy/compose/compose.selfhost.yml"
+check_internal_routes "selfhost" "$tmp/edge-selfhost.json"
+render_config "$tmp/edge-selfhost-tls.json" "$tmp/selfhost.env" "deploy/compose/compose.selfhost.yml:deploy/compose/compose.selfhost.tls.yml"
+check_internal_routes "selfhost tls" "$tmp/edge-selfhost-tls.json"
+check_internal_routes "prod" "$tmp/salt-prod.json"
+check_internal_routes "local" "$tmp/local.json"
+
+# Published pages on their own host
+# User-written HTML never shares the app's origin. The pages-host router
+# admits only a published page's paths (never `/`, never an internal
+# route); the app 404s anything else there too. Hosted: required (compose
+# refuses without it). Self-host HTTPS: optional, routed through the HTTP
+# provider, so the overlay must switch that router on.
+# shellcheck disable=SC2016 # Traefik rule syntax, backticks are literal
+pages_paths='(PathPrefix(`/p/`) || PathPrefix(`/api/published/`) || PathPrefix(`/vendor/`) || Path(`/robots.txt`) || Path(`/favicon.ico`))'
+check_pages_router() { # check_pages_router LABEL CONFIG_JSON HOST
+  local rule
+  rule="$(jq -r '.services.app.labels["traefik.http.routers.pages.rule"] // ""' "$2")"
+  if [ "$rule" != "Host(\`$3\`) && $pages_paths" ]; then
+    printf 'FAIL (%s): pages router rule is "%s"\n' "$1" "$rule" >&2
+    exit 1
+  fi
+}
+check_pages_router "prod" "$tmp/salt-prod.json" "pages.docs.example.org"
+check_pages_router "local" "$tmp/local.json" "pages.ypad.127.0.0.1.nip.io"
+if ! jq -e '.services.app.environment.NUXT_PUBLISH_PAGES_HOST == "pages.docs.example.org"' "$tmp/salt-prod.json" > /dev/null; then
+  echo "FAIL: prod must pass NUXT_PUBLISH_PAGES_HOST to the app" >&2
+  exit 1
+fi
+grep -v '^NUXT_PUBLISH_PAGES_HOST=' "$tmp/prod.env" > "$tmp/prod-nopages.env"
+if COMPOSE_FILE="deploy/compose/compose.prod.yml" docker compose --env-file "$tmp/prod-nopages.env" -p markoto-ci config > /dev/null 2>&1; then
+  echo "FAIL: prod compose must require NUXT_PUBLISH_PAGES_HOST" >&2
+  exit 1
+fi
+if ! jq -e '.services.app.environment.NUXT_PUBLISH_TRAEFIK_PAGES_ROUTER == "true"' "$tmp/edge-selfhost-tls.json" > /dev/null; then
+  echo "FAIL: the self-host HTTPS overlay must ask the HTTP provider for the pages-host router" >&2
+  exit 1
+fi
+# Prod declares the router as a label; a second one from the provider would
+# race it for the host and its certificate.
+for cfg in edge-selfhost salt-prod; do
+  if jq -e '.services.app.environment.NUXT_PUBLISH_TRAEFIK_PAGES_ROUTER != null' "$tmp/$cfg.json" > /dev/null; then
+    echo "FAIL: only the self-host HTTPS overlay asks the HTTP provider for the pages-host router ($cfg)" >&2
+    exit 1
+  fi
+done
+pages_inner="${pages_paths#(}"
+if ! grep -qF "${pages_inner%)}" server/utils/customDomains/traefikConfig.ts; then
+  echo "FAIL: the HTTP-provider pages router must admit the same paths as the compose routers" >&2
+  exit 1
+fi
+echo "ok: published pages have their own host (prod required, local, self-host HTTPS via provider)"
+
+# Dev + test stacks publish on loopback only
+# Throwaway credentials (devpassword, the committed deploy/config/seaweedfs/s3.json keys)
 # must never be reachable from the LAN. The only other binding allowed is
 # the test network's gateway address for fake-openai-test (see
-# docker-compose.test.yml).
+# deploy/compose/compose.test.yml).
 check_loopback() { # check_loopback LABEL CONFIG_JSON
   local out
   # Exception: fake-openai-test (BYOK) and oidc-test (per-workspace SSO
   # mock IdP) are also published on the test network's gateway
   # (10.213.47.x), or on TEST_FAKE_OPENAI_HOST (rootless Podman,
-  # docs/CONTAINER-ENGINES.md): the app refuses loopback provider / IdP
+  # docs/contributing/CONTAINER-ENGINES.md): the app refuses loopback provider / IdP
   # URLs, so they must sit on a private address it and the containers reach.
   out="$(jq -r --arg fakehost "${TEST_FAKE_OPENAI_HOST:-}" '
     .services | to_entries[] | .key as $s | (.value.ports // [])[]
@@ -323,8 +476,60 @@ check_loopback() { # check_loopback LABEL CONFIG_JSON
   fi
   echo "ok: $1 publishes on loopback only"
 }
-render_config "$tmp/dev.json" "$tmp/prod.env" "docker-compose.dev.yml"
+render_config "$tmp/dev.json" "$tmp/prod.env" "deploy/compose/compose.dev.yml"
 check_loopback "dev" "$tmp/dev.json"
-render_config "$tmp/test.json" "$tmp/prod.env" "docker-compose.test.yml" "flows"
+render_config "$tmp/test.json" "$tmp/prod.env" "deploy/compose/compose.test.yml" "flows"
 check_loopback "test" "$tmp/test.json"
 check_loopback "local" "$tmp/local.json"
+
+# Layout (deploy/compose, deploy/config)
+# Every stack lives in deploy/compose/ and the third-party config it mounts
+# in deploy/config/; nothing stays behind in the repository root.
+stray="$(git ls-files ':(glob)docker-compose*.yml' ':(glob)compose*.y*ml' ':(glob)docker-compose*.yaml')"
+if [ -n "$stray" ]; then
+  echo "FAIL: compose files outside deploy/compose/: $stray" >&2
+  exit 1
+fi
+# The Podman overlays render on top of their stacks too.
+render_config "$tmp/podman-selfhost.json" "$tmp/selfhost.env" "deploy/compose/compose.selfhost.yml:deploy/compose/compose.podman.yml" "backup"
+render_config "$tmp/podman-dev.json" "$tmp/prod.env" "deploy/compose/compose.dev.yml:deploy/compose/compose.podman.yml"
+render_config "$tmp/podman-test.json" "$tmp/prod.env" "deploy/compose/compose.test.yml:deploy/compose/compose.test.podman.yml" "flows"
+# Compose reads a seccomp profile at `up`, relative to the project
+# directory (the compose files' own, deploy/compose/), not at `config`:
+# a wrong path only shows when the stack starts. Resolve it here.
+for cfg in salt-prod salt-selfhost local dev test; do
+  for prof in $(jq -r '[.services[].security_opt // [] | .[] | select(startswith("seccomp=")) | ltrimstr("seccomp=")] | unique | .[]' "$tmp/$cfg.json"); do
+    if [ ! -f "deploy/compose/$prof" ]; then
+      echo "FAIL: seccomp profile $prof does not exist relative to deploy/compose/ ($cfg)" >&2
+      exit 1
+    fi
+  done
+done
+# The host gets the production stack at the same relative paths
+# (deploy.yml's tar sync, the Ansible role's copy): every repository file
+# the prod stack bind-mounts must be in both lists. The ACME store
+# (../../traefik/acme.json) is host state, created by the role.
+root="$(pwd)"
+for src in $(jq -r --arg root "$root/" '[.services[].volumes // [] | .[] | select(.type == "bind") | .source | select(startswith($root)) | ltrimstr($root)] | unique | .[]' "$tmp/salt-prod.json"); do
+  [ "$src" = "traefik/acme.json" ] && continue
+  if [ ! -e "$src" ]; then
+    echo "FAIL: prod mounts $src, which is not in the repository" >&2
+    exit 1
+  fi
+  # deploy/config/postgres/init only runs on a fresh data dir: Ansible-only.
+  if [ "$src" != "deploy/config/postgres/init" ] && ! grep -qE "^\s+$src \\\\$" .github/workflows/deploy.yml; then
+    echo "FAIL: .github/workflows/deploy.yml does not sync $src to the host" >&2
+    exit 1
+  fi
+  if [ -f "$src" ] && ! grep -qE "^\s+- $src$" infra/roles/markoto/tasks/main.yml; then
+    echo "FAIL: infra/roles/markoto does not sync $src to the host" >&2
+    exit 1
+  fi
+done
+for f in deploy/compose/compose.prod.yml deploy/compose/compose.base.yml; do
+  if ! grep -qE "^\s+$f \\\\$" .github/workflows/deploy.yml || ! grep -qE "^\s+- $f$" infra/roles/markoto/tasks/main.yml; then
+    echo "FAIL: $f must be synced by deploy.yml and the Ansible role" >&2
+    exit 1
+  fi
+done
+echo "ok: layout (stacks in deploy/compose, seccomp paths resolve, the host gets every mounted file)"

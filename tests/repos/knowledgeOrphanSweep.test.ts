@@ -2,11 +2,12 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb } from '../integration/setup/db'
 import { createUser, createWorkspace } from '../integration/setup/fixtures'
 import { createKnowledge } from '../../server/repos/knowledge'
-import { KNOWLEDGE_ORPHAN_GRACE_MS, sweepKnowledgeOrphans } from '../../server/utils/knowledgeOrphanSweep'
+import { KNOWLEDGE_ORPHAN_GRACE_MS, sweepKnowledgeOrphans } from '../../server/utils/knowledge/knowledgeOrphanSweep'
 import { makeFakeStore } from './fakeObjectStore'
+import { wsAs } from '../helpers/access'
 
 // Regression: knowledge originals that were presigned + PUT but never
-// confirmed had no DB row, and orphan-cleanup only swept `docs/` — so they
+// confirmed had no DB row, and orphan-cleanup only swept `docs/`, so they
 // stayed in the bucket forever, outside every quota.
 
 const HOUR = 60 * 60 * 1000
@@ -24,9 +25,8 @@ describe('sweepKnowledgeOrphans', () => {
     const base = `workspaces/${ws.workspaceId}/knowledge`
 
     const confirmed = `${base}/kConfirmed01.pdf`
-    await createKnowledge({
+    await createKnowledge(wsAs(ws.workspaceId), {
       knowledgeId: 'kConfirmed01',
-      workspaceId: ws.workspaceId,
       filename: 'c.pdf',
       sourceExt: 'pdf',
       mimeType: 'application/pdf',

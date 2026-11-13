@@ -1,4 +1,4 @@
-import { closeTestDb, closeTestValkey, ensureYjsTable, waitForDb } from './db'
+import { closeTestDb, closeTestValkey, waitForDb } from './db'
 import { startNuxt, stopNuxt } from './server'
 
 // vitest globalSetup: runs once for the whole integration test run in a
@@ -6,13 +6,13 @@ import { startNuxt, stopNuxt } from './server'
 //
 // Sequence:
 //   1. Verify the test Postgres is reachable (user must `docker compose
-//      -f docker-compose.test.yml up -d` before running tests).
+//      -f deploy/compose/compose.test.yml up -d` before running tests).
 //   2. Boot the Nuxt dev subprocess with TEST_MODE=1 and point its env
 //      at the test DB + stub sync-server.
 //   3. Nuxt runs migrations on boot (server/plugins/00-db-migrate.ts),
 //      so when Nuxt reports healthy the schema is ready.
 //
-// The sync-server stub is NOT started here — it's started from a
+// The sync-server stub is NOT started here, it's started from a
 // setupFile (stubSetup.ts) inside the test worker so the in-memory
 // `calls` array shares a process with the test assertions. Nuxt still
 // talks to it over HTTP: the port is fixed.
@@ -22,12 +22,6 @@ import { startNuxt, stopNuxt } from './server'
 export default async function globalSetup() {
   console.log('[integration] waiting for test DB...')
   await waitForDb()
-
-  // Create the yjs_documents table that y-postgresql would normally
-  // create at sync-server startup. Without this the duplicate-doc
-  // path (and any future server code that touches Y.js state from
-  // pg directly) 500s on a missing-relation error.
-  await ensureYjsTable()
 
   console.log('[integration] booting Nuxt subprocess (this may take ~15s)...')
   await startNuxt()

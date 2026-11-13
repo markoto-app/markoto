@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The box every purchase needs (WP6b): accepts the Paid Plans Terms
+// The box every purchase needs: accepts the Paid Plans Terms
 // (/legal/paid-terms) and, for EU consumers, asks for the immediate start
 // that the withdrawal rules hinge on (terms §6). `kind` picks the sentence:
 // a plan starts at once, AI credits are usable at once. The parent sends

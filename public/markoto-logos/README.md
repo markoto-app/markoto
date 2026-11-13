@@ -24,5 +24,3 @@ Bundle of canonical logo assets. Each variant is delivered as both SVG (vector, 
 - Dark-variant lockups have explicit sumi-950 backgrounds (cream text needs explicit dark to remain legible).
 - The seal in `seal-master-*.svg` has sharp corners. Tiny in-product instances (favicons under 32px, in-product status dots) may soften corners by 1px to reduce aliasing.
 - For iOS app icon submission, use `app-icon-{light,dark}.svg` exported as a 1024×1024 PNG with square corners; the OS applies its own squircle mask.
-
-See `markoto-logo-construction-notes.md` (separate file) for the full construction spec, refinement checklist, and brand reasoning.

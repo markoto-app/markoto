@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { performLogout, LOGOUT_CHANNEL_NAME, LOGOUT_IDB_PREFIX } from '../../app/composables/useLogout'
+import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest'
+import { performLogout, LOGOUT_CHANNEL_NAME, LOGOUT_IDB_PREFIX } from '../../app/composables/account/useLogout'
 
 // `useLogout`'s pipeline is the only thing standing between a logged-out
 // user and a stale tab acting on their behalf, so the tests here pin
@@ -9,12 +9,10 @@ import { performLogout, LOGOUT_CHANNEL_NAME, LOGOUT_IDB_PREFIX } from '../../app
 //
 // The composable references three Nuxt globals (`useUserSession`,
 // `navigateTo`) that don't exist in the `dom` project. We stub them on
-// `globalThis` before importing the SUT — happy-dom's flat global is
+// `globalThis` before importing the SUT, happy-dom's flat global is
 // the same surface auto-imports would resolve against.
 
-// ─────────────────────────────────────────────────────────────────────
 // Test doubles for Nuxt auto-imports
-// ─────────────────────────────────────────────────────────────────────
 
 interface SessionStub {
   loggedIn: { value: boolean }
@@ -24,11 +22,11 @@ interface SessionStub {
 let sessionStub: SessionStub
 let navigateToStub: ReturnType<typeof vi.fn>
 // `useLogout` does a hard reload (`window.location.href = '/'`) on
-// the client to throw away ALL Vue state on logout — the soft
+// the client to throw away ALL Vue state on logout, the soft
 // `navigateTo` path only runs in SSR. We stub both: the location
 // setter is what the tests primarily assert against; navigateTo
 // is kept as a fallback for the SSR contract test.
-let locationHrefSetter: ReturnType<typeof vi.fn>
+let locationHrefSetter: Mock<(href: string) => void>
 let originalLocation: Location
 
 beforeEach(() => {
@@ -38,14 +36,14 @@ beforeEach(() => {
   }
   navigateToStub = vi.fn(async () => {})
 
-  // Nuxt auto-imports — these are normally injected by the framework.
+  // Nuxt auto-imports: these are normally injected by the framework.
   ;(globalThis as unknown as { useUserSession: () => SessionStub }).useUserSession = () => sessionStub
   ;(globalThis as unknown as { navigateTo: typeof navigateToStub }).navigateTo = navigateToStub
 
   // Stub window.location.href so we can observe the hard-reload
   // assignment without triggering a real navigation in happy-dom.
   originalLocation = window.location
-  locationHrefSetter = vi.fn()
+  locationHrefSetter = vi.fn<(href: string) => void>()
   Object.defineProperty(window, 'location', {
     value: {
       get href() { return '/' },
@@ -73,11 +71,9 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-// ─────────────────────────────────────────────────────────────────────
 // Storage scrub
-// ─────────────────────────────────────────────────────────────────────
 
-describe('performLogout — storage scrub', () => {
+describe('performLogout: storage scrub', () => {
   it('clears localStorage', async () => {
     expect(localStorage.getItem('foo')).toBe('bar')
     await performLogout()
@@ -98,7 +94,7 @@ describe('performLogout — storage scrub', () => {
       throw new Error('disabled')
     })
     // Must not throw. We can still observe that session.clear() and
-    // the hard reload ran — meaning the pipeline didn't bail.
+    // the hard reload ran, meaning the pipeline didn't bail.
     await expect(performLogout()).resolves.toBeUndefined()
     expect(sessionStub.clear).toHaveBeenCalledTimes(1)
     expect(locationHrefSetter).toHaveBeenCalledWith('/')
@@ -106,17 +102,13 @@ describe('performLogout — storage scrub', () => {
   })
 })
 
-// ─────────────────────────────────────────────────────────────────────
 // BroadcastChannel
-// ─────────────────────────────────────────────────────────────────────
 
-describe('performLogout — BroadcastChannel', () => {
+describe('performLogout: BroadcastChannel', () => {
   it('posts a logged-out message on the markoto-auth channel', async () => {
-    // Subscribe BEFORE performLogout so the listener is wired by the time
-    // the post fires. We resolve on the actual message event instead of
-    // waiting a fixed `setTimeout(0)` — under coverage instrumentation in
-    // CI the event-loop pressure pushes the BroadcastChannel async
-    // dispatch past a single macro-tick, and the old version flaked.
+    // Subscribe BEFORE performLogout so the listener is wired by the time the post fires. We resolve on the
+    // actual message event instead of waiting a fixed `setTimeout(0)`: under coverage instrumentation in CI the
+    // event-loop pressure pushes the BroadcastChannel async dispatch past a single macro-tick.
     const listener = new BroadcastChannel(LOGOUT_CHANNEL_NAME)
     const received = new Promise<unknown>((resolve, reject) => {
       listener.addEventListener('message', (e: MessageEvent) => resolve(e.data))
@@ -163,11 +155,9 @@ describe('performLogout — BroadcastChannel', () => {
   })
 })
 
-// ─────────────────────────────────────────────────────────────────────
 // Awareness teardown ordering
-// ─────────────────────────────────────────────────────────────────────
 
-describe('performLogout — beforeClear hook', () => {
+describe('performLogout: beforeClear hook', () => {
   it('runs beforeClear before useUserSession().clear()', async () => {
     const order: string[] = []
     sessionStub.clear = vi.fn(async () => {
@@ -203,11 +193,9 @@ describe('performLogout — beforeClear hook', () => {
   })
 })
 
-// ─────────────────────────────────────────────────────────────────────
 // IndexedDB scrub
-// ─────────────────────────────────────────────────────────────────────
 
-describe('performLogout — IndexedDB', () => {
+describe('performLogout: IndexedDB', () => {
   it('deletes only IDB databases with the markoto- prefix', async () => {
     const deleted: string[] = []
     const fakeIdb = {
@@ -246,18 +234,13 @@ describe('performLogout — IndexedDB', () => {
   })
 })
 
-// ─────────────────────────────────────────────────────────────────────
 // Session clear + navigation
-// ─────────────────────────────────────────────────────────────────────
 
-describe('performLogout — session + redirect', () => {
-  // The current-tab redirect uses `window.location.href = '/'` (a
-  // hard reload) rather than `navigateTo('/')` (a soft SPA route).
-  // The hard reload throws away ALL Vue state — `loggedIn` ref,
-  // billing/account-status `useState` snapshots, the editor's
-  // awareness handle, etc. — so the page bootstraps cleanly
-  // anonymous. The soft path was leaving the topbar showing a
-  // stale avatar + triggering 401 toasts.
+describe('performLogout: session + redirect', () => {
+  // The current-tab redirect uses `window.location.href = '/'` (a hard reload) rather than
+  // `navigateTo('/')` (a soft SPA route). The hard reload throws away ALL Vue state (`loggedIn` ref,
+  // the in-memory query cache with billing / account status, the editor's awareness handle, etc.) so the page
+  // bootstraps cleanly anonymous; a soft navigation leaves a stale avatar and triggers 401 toasts.
   it('clears the session and reloads the page to /', async () => {
     await performLogout()
     expect(sessionStub.clear).toHaveBeenCalledTimes(1)

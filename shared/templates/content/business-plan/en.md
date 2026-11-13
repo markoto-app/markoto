@@ -7,7 +7,7 @@
 <!-- Describe the pain point your customers face today. Quantify it if possible (time wasted, money lost, error rate). One paragraph max. -->
 
 # Our solution
-<!-- How you address the problem. Keep this section concrete — no marketing fluff. Pair the description with a screenshot or diagram if useful. -->
+<!-- How you address the problem. Keep this section concrete, no marketing fluff. Pair the description with a screenshot or diagram if useful. -->
 
 # Market & competition
 <!-- TAM / SAM / SOM if relevant. Name the top 3 competitors and what differentiates you from each. -->

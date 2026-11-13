@@ -1,14 +1,14 @@
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import * as Y from 'yjs'
-import { ensureYjsTable, resetDb, testDb } from '../integration/setup/db'
+import { resetDb, testDb } from '../integration/setup/db'
 import { createDoc, createUser } from '../integration/setup/fixtures'
-import { runImageGc } from '../../server/utils/imageGc'
+import { runImageGc } from '../../server/utils/storage/imageGc'
 import { makeFakeStore, type FakeStore } from './fakeObjectStore'
 
 // Image GC against the real DB. The property under test is SAFETY first:
 // an image is only deleted when it is referenced nowhere (current doc,
 // any restorable version, other docs, themes, comments) for the whole
-// retention window — and the delete takes both the row and the object.
+// retention window: and the delete takes both the row and the object.
 
 const DAY = 24 * 60 * 60 * 1000
 const RETENTION_DAYS = 30
@@ -38,23 +38,26 @@ async function storeHistory(docId: string, steps: Array<(doc: Y.Doc) => void>): 
     const before = Y.encodeStateVector(doc)
     step(doc)
     await testDb().query(
-      `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1')`,
+      `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2)`,
       [docId, Buffer.from(Y.encodeStateAsUpdate(doc, before))]
     )
   }
   doc.destroy()
 }
 
+/** What the sync server's snapshot + prune leave: one snapshot row holding the merged state. */
 async function compactHistory(docId: string): Promise<void> {
   const rows = await testDb().query<{ value: Buffer }>(
-    `SELECT value FROM yjs_documents WHERE docname = $1 AND version = 'v1' ORDER BY id`, [docId]
+    `SELECT data AS value FROM yjs_updates WHERE doc_id = $1 ORDER BY id`, [docId]
   )
   const doc = new Y.Doc()
   for (const r of rows.rows) Y.applyUpdate(doc, new Uint8Array(r.value))
   const merged = Buffer.from(Y.encodeStateAsUpdate(doc))
   doc.destroy()
-  await testDb().query(`DELETE FROM yjs_documents WHERE docname = $1`, [docId])
-  await testDb().query(`INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1')`, [docId, merged])
+  const snap = await testDb().query<{ id: string }>(
+    `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'snapshot', $2) RETURNING id`, [docId, merged]
+  )
+  await testDb().query(`DELETE FROM yjs_updates WHERE doc_id = $1 AND id < $2`, [docId, snap.rows[0]?.id])
 }
 
 async function row(s3Key: string): Promise<{ unreferenced_since: Date | null, gc_checked_at: Date | null } | null> {
@@ -78,10 +81,6 @@ async function runTwice(): Promise<void> {
 }
 
 describe('runImageGc', () => {
-  beforeAll(async () => {
-    await ensureYjsTable()
-  })
-
   beforeEach(async () => {
     await resetDb()
     store = makeFakeStore()

@@ -8,7 +8,9 @@ import { createUser, createWorkspace, setMemberRole } from '../integration/setup
 
 const sent = vi.fn(async (_args: { to: string | null, subject: string, locale: string | null }) => ({ delivered: true }))
 vi.mock('../../server/utils/email/sendEmail', () => ({ safeSendTransactionalEmail: sent }))
-vi.stubGlobal('useRuntimeConfig', () => ({ siteUrl: 'https://markoto.app' }))
+beforeEach(() => {
+  vi.stubEnv('NUXT_SITE_URL', 'https://markoto.app')
+})
 
 const { notifyWorkspaceAdmins } = await import('../../server/utils/email/workspaceBillingEmails')
 

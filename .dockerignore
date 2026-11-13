@@ -1,11 +1,11 @@
-# Build output and caches — regenerated inside the image by `bun run build`.
+# Build output and caches: regenerated inside the image by `bun run build`.
 node_modules
 .nuxt
 .output
 .cache
 dist
 
-# Local dev state — must never land inside an image.
+# Local dev state: must never land inside an image.
 .env
 .env.*
 !.env.example
@@ -32,8 +32,16 @@ AGENTS.md
 renovate.json
 eslint.config.mjs
 
-# Compose / deploy files — not needed inside the image itself.
-docker-compose*.yml
+# The other workspace packages build their own images (their
+# Dockerfile.dockerignore); the app image needs only their manifests, for
+# the frozen-lockfile install.
+sync-server/*
+!sync-server/package.json
+renderer/*
+!renderer/package.json
+
+# Compose / deploy files: not needed inside the image itself.
+deploy/compose/compose*.yml
 Dockerfile
 **/Dockerfile
 .dockerignore

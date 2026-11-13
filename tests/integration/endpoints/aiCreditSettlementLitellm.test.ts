@@ -6,16 +6,17 @@ import { createUser } from '../setup/fixtures'
 import { applyTestEnv } from '../setup/testEnv'
 import { TEST_LITELLM_DB_PASSWORD, TEST_LITELLM_DB_USER } from '../setup/env'
 import { LITELLM_MASTER_KEY, LITELLM_URL, waitFor } from '../setup/byok'
+import { sys } from '../../helpers/access'
 
-// AI credit top-ups (WP4) against the REAL `litellm-test` proxy, in
+// AI credit top-ups against the REAL `litellm-test` proxy, in
 // process: a Pro user's key budget includes their credits, and the
 // settlement reads the key's spend from LiteLLM's spend logs (by the
-// stored key id) and takes what passed the plan budget from the credits —
+// stored key id) and takes what passed the plan budget from the credits,
 // the budget itself stays put for the rest of the month.
 // Spend comes from the dictation billing tick ($0.006, no upstream).
 
 const envBefore = { ...process.env }
-const globalsBefore = { useRuntimeConfig: Reflect.get(globalThis, 'useRuntimeConfig'), createError: Reflect.get(globalThis, 'createError') }
+const globalsBefore = { createError: Reflect.get(globalThis, 'createError') }
 
 applyTestEnv()
 process.env.LITELLM_TEST_STUB = ''
@@ -23,21 +24,21 @@ process.env.NUXT_BILLING_ENABLED = 'true'
 // A Pro plan budget so small that every tick is paid from credits.
 process.env.TIER_PRO_LITELLM_BUDGET_USD = '0.001'
 // Free below Pro, so a cancellation lowers today's plan budget.
-process.env.TIER_FREE_LITELLM_BUDGET_USD = '0'
+process.env.TIER_FREE_LITELLM_BUDGET_USD = '0.0005'
 process.env.NUXT_LITELLM_DB_NAME = 'litellm_test'
 process.env.NUXT_LITELLM_DB_USER = TEST_LITELLM_DB_USER
 process.env.NUXT_LITELLM_DB_PASSWORD = TEST_LITELLM_DB_PASSWORD
-Object.assign(globalThis, {
-  useRuntimeConfig: () => ({ litellm: { url: LITELLM_URL, masterKey: LITELLM_MASTER_KEY } }),
-  createError
-})
+// The code under test reads the proxy from the typed env (shared/env).
+process.env.NUXT_LITELLM_URL = LITELLM_URL
+process.env.NUXT_LITELLM_MASTER_KEY = LITELLM_MASTER_KEY
+Object.assign(globalThis, { createError })
 
 const { createUserKey, getUserKeyToken } = await import('../../../server/utils/litellm/userKeys')
 const { insertCreditGrant, sumUsableCredits } = await import('../../../server/repos/aiCreditGrants')
-const { settleSubject, monthSpendUsd } = await import('../../../server/utils/aiCredits')
-const { creditPeriod } = await import('../../../server/utils/aiCreditBudget')
-const { useLitellmForUser } = await import('../../../server/utils/litellmClient')
-const { litellmDbUrl } = await import('../../../server/utils/litellm/litellmDb')
+const { settleSubject, monthSpendUsd } = await import('../../../server/utils/billing/aiCredits')
+const { creditPeriod } = await import('../../../server/utils/billing/aiCreditBudget')
+const { useLitellmForUser } = await import('../../../server/utils/ai/litellmClient')
+const { litellmDbUrl } = await import('../../../server/db/litellm')
 
 async function keyInfo(token: string): Promise<Record<string, unknown>> {
   const res = await fetch(`${LITELLM_URL}/key/info?key=${encodeURIComponent(token)}`, { headers: { Authorization: `Bearer ${LITELLM_MASTER_KEY}` } })
@@ -61,7 +62,7 @@ describe('credit settlement (real LiteLLM)', () => {
   it('budget = plan + credits; spend above the plan comes out of the credits, the budget holds', async () => {
     const u = await createUser()
     await testDb().query(`UPDATE users SET plan = 'pro', plan_valid_until = now() + interval '30 days' WHERE id = $1`, [u.id])
-    await insertCreditGrant({
+    await insertCreditGrant(sys(), {
       subject: { type: 'user', id: String(u.id) },
       pack: '10', amountUsd: 1, amountPaid: 100, currency: 'eur',
       stripePaymentIntentId: `pi_settle_${u.id}_${Date.now()}`, stripeCheckoutSessionId: null,
@@ -78,7 +79,7 @@ describe('credit settlement (real LiteLLM)', () => {
     const token = await getUserKeyToken(u.id, 'pro')
     expect(Number((await keyInfo(token)).max_budget)).toBeCloseTo(1.001, 6)
 
-    // Two billing ticks = $0.012 — well above the $0.001 plan budget.
+    // Two billing ticks = $0.012, well above the $0.001 plan budget.
     const ai = useLitellmForUser(token)
     for (let i = 0; i < 2; i++) await ai.chat.completions.create({ model: 'voxtral-realtime-tick', messages: [{ role: 'user', content: 'tick' }] })
 
@@ -100,7 +101,7 @@ describe('credit settlement (real LiteLLM)', () => {
 
     // The plan is cancelled mid-month: the spend Pro already covered is
     // still measured against the Pro budget recorded for this month, not
-    // today's (lower) Free budget — no further credits are taken.
+    // today's (lower) Free budget, no further credits are taken.
     await testDb().query(`UPDATE users SET plan = 'free', plan_valid_until = NULL WHERE id = $1`, [u.id])
     await settleSubject(subject)
     expect(await sumUsableCredits(subject)).toBeCloseTo(1 - (spend - 0.001), 6)

@@ -1,0 +1,727 @@
+<!--
+  Iframe bootstrap document for the paged.js live preview AND the browser
+  print path (app/utils/preview/printPdf.ts).
+
+  Loaded as a raw string via ?raw and turned into the iframe's srcdoc by
+  `buildPreviewSrcdoc()` (app/utils/preview/previewFrame.ts), which substitutes the
+  placeholders: the CSP nonce (every inline script carries it), the parent
+  origin, the initial dark-mode flag, and the pinned same-origin asset URLs
+  + SRI hashes (paged.js, KaTeX CSS, Mermaid, served under /vendor/, see
+  shared/utils/vendor/vendorAssets.ts). Every such tag carries integrity= plus
+  crossorigin=anonymous: this document's origin is opaque, so even our own
+  origin is cross-origin here, and SRI on cross-origin resources only fires
+  in CORS mode (the server answers /vendor/ with ACAO: * + CORP
+  cross-origin). Mermaid is the single-file IIFE build, injected on first use with
+  its SRI hash; the highlight.js theme link gets the per-theme hash it is
+  sent with each render.
+
+  ISOLATION. The iframe is sandboxed with `allow-scripts` only (print adds
+  `allow-modals`), never `allow-same-origin`: the document runs in an
+  opaque origin, so script that ends up in rendered content cannot reach
+  the app's cookies, storage, DOM or same-origin APIs. Consequently this
+  document never touches `window.parent` beyond postMessage, and
+  everything it needs arrives as messages (protocol: previewFrame.ts):
+
+    parent → iframe   {type:'render', html, themeCss, fontsImport, hljsUrl,
+                       hljsSri, mermaidConfig, locale, print}
+                      {type:'color-mode', dark}
+                      {type:'zoom', mode, scale, animate, page}
+    iframe → parent   {type:'iframe-ready'} {type:'paginated', pageCount}
+                      {type:'iframe-error', message} {type:'print-shortcut'}
+                      {type:'print-done'}
+                      {type:'zoom-state', mode, scale, fitScale}
+                      {type:'zoom-request', action, page}
+                      {type:'zoom-gesture', scale}
+
+  ZOOM (fit width / a fixed factor / the "All pages" overview) is applied
+  by the engine from app/utils/preview/previewZoomFrame.ts, inlined below as
+  __PREVIEW_ZOOM_SCRIPT__. It only sets CSS zoom + layout classes on the
+  already paginated pages, never re-paginates, and the print block
+  below resets all of it.
+
+  Incoming messages are accepted only from window.parent with the parent's
+  exact origin; outgoing ones are posted to that origin only.
+
+  Holds the preview's CSS chrome (page card background, drop shadow,
+  scroll behavior, print reset); the theme CSS that defines @page rules,
+  body styles, and headers/footers arrives per render.
+
+  Scroll handling: capture window.scrollY before the swap, restore
+  after. Snap to bottom if the user was within 50px of the end,
+  common case where small edits at the doc bottom would otherwise
+  jump back to the previous valid scrollTop after a re-pagination
+  shrinks the doc.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Paged preview</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    /* Light-mode surround (sumi-50) matching Nuxt UI's `--ui-bg-muted`
+       (toolbar and right sidebar wrapper), so the chrome around the doc
+       reads as one field and white pages stand out. Dark mode:
+       html.dark-preview below. */
+    background: #FAF8F4;
+    scrollbar-gutter: stable;
+    /* Pinch zooms the preview (previewZoomFrame.ts), never the app. */
+    touch-action: pan-x pan-y;
+  }
+  body {
+    /* Bottom padding lets scrolling reveal the last page in full despite
+       the floating AI bar the parent overlays on the iframe's bottom
+       80-100 px. The top padding leaves a lane for the zoom control the
+       parent floats over the pane's top right. */
+    padding: 48px 16px 120px 16px;
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+  .paged-mount .pagedjs_pages {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    /* Pages are absolute-sized via @page (A4 = ~794px) and would clip on
+       narrow screens. `zoom` shrinks the layout box too (`transform:
+       scale` would leave it full size and overflow). The factor is
+       computed in JS after each pagination and on iframe resize. */
+    zoom: var(--page-zoom, 1);
+  }
+  /* Fixed zoom wider than the pane: left-aligned + horizontally
+     scrollable instead of overflowing on both sides (auto margins
+     resolve to 0 once the column is wider than the mount). */
+  html.zoom-scale #mount .pagedjs_pages {
+    width: max-content;
+    margin-inline: auto;
+  }
+  /* "All pages": the pages wrap side by side. --page-zoom and
+     --overview-gap (a constant on-screen gap) come from the engine. */
+  html.zoom-overview #mount .pagedjs_pages {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    align-content: flex-start;
+    gap: var(--overview-gap, 16px);
+  }
+  html.zoom-overview #mount .pagedjs_page {
+    cursor: zoom-in;
+  }
+  /* Light mode: the page's shadow sits inside the zoomed pages and all
+     but disappears at thumbnail size, so white pages would melt into the
+     surround. A hairline plus soft drop shadow restores the separation,
+     sized in on-screen pixels (divided by the zoom). Dark mode keeps its
+     own shadow (below). */
+  html.zoom-overview:not(.dark-preview) #mount .pagedjs_page {
+    box-shadow:
+      0 0 0 calc(1px / var(--page-zoom, 1)) rgba(20, 17, 13, 0.10),
+      0 calc(1px / var(--page-zoom, 1)) calc(3px / var(--page-zoom, 1)) rgba(0, 0, 0, 0.08),
+      0 calc(4px / var(--page-zoom, 1)) calc(12px / var(--page-zoom, 1)) rgba(0, 0, 0, 0.06);
+  }
+  /* The whole page is the click target (opens it at fit width). */
+  html.zoom-overview #mount .pagedjs_page * {
+    pointer-events: none;
+  }
+  html.zoom-overview #mount .pagedjs_page:hover {
+    outline: calc(2px / var(--page-zoom, 1)) solid rgba(20, 17, 13, 0.35);
+  }
+  html.dark-preview.zoom-overview #mount .pagedjs_page:hover {
+    outline-color: rgba(250, 248, 244, 0.55);
+  }
+  /* During the pull-back / push-in the scaled mount must not add
+     scrollbars or scroll extent. */
+  html.zoom-animating {
+    overflow: hidden;
+  }
+  .paged-mount .pagedjs_page {
+    background: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+  /* Off-screen mount paged.js paginates into. Fixed positioning keeps it
+     out of body's scroll height; it shares the visible mount's class so
+     paged.js's flex centering computes identically. */
+  #pending {
+    position: fixed;
+    left: -10000px;
+    top: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  /* Dark mode flips only the chrome behind the pages; the pages render
+     as the theme says so the preview matches the print. The sumi-950
+     surround (not the parent's sumi-900 `bg-default`) matches the
+     toolbar / sidebar / status bar; the heavier shadow separates the
+     page from the dark canvas. */
+  html.dark-preview { color-scheme: dark; }
+  html.dark-preview body { background: #14110D; }
+  body.dark-preview .paged-mount .pagedjs_page,
+  html.dark-preview .paged-mount .pagedjs_page {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Browser print (printPdf.ts reuses this document): strip the preview
+     chrome so only paged.js's pages reach the printer. paged.js ships
+     its own @media print rules for page size + page breaks. */
+  @media print {
+    html, body, html.dark-preview body {
+      background: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      min-height: 0 !important;
+    }
+    #pending { display: none !important; }
+    .paged-mount .pagedjs_pages {
+      display: block !important;
+      gap: 0 !important;
+      zoom: 1 !important;
+      width: auto !important;
+      margin: 0 !important;
+    }
+    #mount { transform: none !important; }
+    .paged-mount .pagedjs_page { box-shadow: none !important; }
+  }
+</style>
+<!-- KaTeX stylesheet: independent of the theme, loaded statically so the
+     math glyph fonts start fetching as soon as the iframe initializes. -->
+<link rel="stylesheet" href="__KATEX_CSS_URL__" integrity="__KATEX_CSS_SRI__" crossorigin="anonymous">
+<style id="theme-fonts">/* populated at runtime by the render message */</style>
+<style id="theme-css">/* populated at runtime by the render message */</style>
+</head>
+<body>
+<div id="mount" class="paged-mount"></div>
+<div id="pending" class="paged-mount"></div>
+<script nonce="__CSP_NONCE__">globalThis.PagedConfig = { auto: false };</script>
+<script src="__PAGEDJS_POLYFILL_URL__" integrity="__PAGEDJS_POLYFILL_SRI__" crossorigin="anonymous"></script>
+<!-- Pagination handlers (keep-with-next headings, unbreakable blocks,
+     row-safe table breaks + repeated header rows, orphans): the source of
+     app/utils/preview/pagedHandlers.ts, inlined by buildPreviewSrcdoc. -->
+<script nonce="__CSP_NONCE__">__PAGED_HANDLERS_SCRIPT__</script>
+<script nonce="__CSP_NONCE__">
+(function() {
+  'use strict';
+  var PARENT_ORIGIN = '__PARENT_ORIGIN__';
+  var MERMAID_URL = '__MERMAID_URL__';
+  var MERMAID_SRI = '__MERMAID_SRI__';
+  var POLL_INTERVAL = 30;
+  var POLL_TIMEOUT = 10000;
+  var pollStart = Date.now();
+
+  /** Post to the parent app, its exact origin, never '*'. */
+  function toParent(msg) {
+    window.parent.postMessage(msg, PARENT_ORIGIN);
+  }
+
+  // Mirrors the parent app's color mode (sent as a message; an opaque
+  // origin cannot read the parent's DOM). The initial value is baked into
+  // the srcdoc so the first paint is already right.
+  function applyColorMode(dark) {
+    document.documentElement.classList.toggle('dark-preview', dark === true);
+    document.body.classList.toggle('dark-preview', dark === true);
+  }
+  applyColorMode(__INITIAL_DARK__);
+
+  // Zoom engine (fit width, fixed zoom, overview grid, shortcuts, pinch).
+  // Source: app/utils/preview/previewZoomFrame.ts, self-contained and
+  // inlined by buildPreviewSrcdoc; talks to the parent through toParent.
+  var previewZoom = (__PREVIEW_ZOOM_SCRIPT__)(toParent);
+
+  function whenPagedReady(cb) {
+    if (globalThis.Paged && globalThis.Paged.Previewer) { cb(); return; }
+    if (Date.now() - pollStart > POLL_TIMEOUT) {
+      toParent({
+        type: 'iframe-error',
+        message: 'Could not load paged.js. Check your network connection.'
+      });
+      return;
+    }
+    setTimeout(function() { whenPagedReady(cb); }, POLL_INTERVAL);
+  }
+
+  // In-document anchors (TOC entries, footnote refs, any `<a href="#id">`)
+  // scroll within the preview: srcdoc iframes have no real URL, so the
+  // browser would resolve the # link against the parent's URL and navigate
+  // the iframe there. Every other link is inert: the sandboxed preview
+  // must never navigate away (the CSP's frame-src would refuse it too).
+  document.addEventListener('click', function(e) {
+    var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if (!a) return;
+    e.preventDefault();
+    var href = a.getAttribute('href') || '';
+    if (href.charAt(0) !== '#' || href.length < 2) return;
+    var id;
+    try { id = decodeURIComponent(href.slice(1)); } catch (err) { return; }
+    var target = document.getElementById(id);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  // Forward Cmd/Ctrl+P to the parent. Keydowns inside the iframe never
+  // reach the parent's document-level listener, so the browser would open
+  // its print dialog for the host page (the whole app chrome) instead of
+  // the document.
+  document.addEventListener('keydown', function(e) {
+    var isMac = /Mac|iPhone|iPad/.test(navigator.platform);
+    var modifier = isMac ? e.metaKey : e.ctrlKey;
+    if (modifier && !e.shiftKey && !e.altKey && (e.key === 'p' || e.key === 'P')) {
+      e.preventDefault();
+      toParent({ type: 'print-shortcut' });
+    }
+  }, true);
+
+  /**
+   * Caps the font wait at 1s: document.fonts.ready can stall forever on a
+   * slow font file or unresolvable font name and wedge pagination. Late
+   * arrivals are picked up by the next render.
+   */
+  function awaitFontsReady() {
+    return Promise.race([
+      document.fonts.ready,
+      new Promise(function (r) { setTimeout(r, 1000); })
+    ]);
+  }
+
+  /**
+   * Decode every <img> in a container so paged.js measures real
+   * dimensions. img.decode() rejects for broken images; per-image errors
+   * are swallowed so one bad image doesn't kill the render.
+   */
+  function decodeImagesIn(container) {
+    var imgs = container.querySelectorAll('img');
+    if (imgs.length === 0) return Promise.resolve();
+    return Promise.all(Array.prototype.map.call(imgs, function(img) {
+      return img.decode ? img.decode().catch(function() {}) : Promise.resolve();
+    }));
+  }
+
+  /** UTF-8 → base64. */
+  function utf8ToBase64(s) {
+    var bytes = new TextEncoder().encode(s);
+    var binary = '';
+    for (var i = 0; i < bytes.length; i += 0x8000) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    }
+    return btoa(binary);
+  }
+
+  /**
+   * Finish a freshly rendered mermaid SVG for the page, with the same steps
+   * as `finishMermaidSvg` in app/utils/markdown/mermaidLoader.ts:
+   *  - well-formed XML: mermaid serialises foreignObject labels as HTML
+   *    (`<br>` without a self-close) and an SVG <img> is parsed as XML;
+   *  - explicit pixel width/height from the viewBox (diagrams that still
+   *    use `useMaxWidth` come out width="100%": no intrinsic size);
+   *  - pie legend values (`showData`) and xy-chart axis ticks in the
+   *    document's number format.
+   */
+  function formatPieLegendLabel(text, locale) {
+    var m = /^(.*) \[(-?\d+(?:\.\d+)?)\]$/.exec(text);
+    if (!m || !m[1]) return text;
+    var fmt;
+    try { fmt = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }); }
+    catch (e) { fmt = new Intl.NumberFormat('en', { maximumFractionDigits: 2 }); }
+    return m[1] + '  ' + fmt.format(Number(m[2]));
+  }
+  function formatAxisNumber(text, locale) {
+    var t = text.trim();
+    if (!/^-?\d+(?:\.\d+)?$/.test(t) || Math.abs(Number(t)) < 1000) return text;
+    try { return new Intl.NumberFormat(locale, { maximumFractionDigits: 6 }).format(Number(t)); }
+    catch (e) { return text; }
+  }
+  /**
+   * Thin a crowded numeric axis to at most 8 labels on a nice step
+   * (0, 500 … 7000 → 0, 1000 … 7000); Mermaid has no tick-count option.
+   * Same as `thinAxisTicks` in mermaidLoader.ts.
+   */
+  function isNiceStep(step) {
+    if (!(step > 0) || !isFinite(step)) return false;
+    var mantissa = step / Math.pow(10, Math.floor(Math.log10(step)));
+    return [1, 2, 2.5, 5, 10].some(function (m) { return Math.abs(mantissa - m) < 1e-9; });
+  }
+  function thinAxisTicks(axis) {
+    var MAX = 8;
+    var labels = Array.prototype.slice.call(axis.querySelectorAll(':scope > g.label > text'));
+    if (labels.length <= MAX) return;
+    var values = labels.map(function (t) { return (t.textContent || '').trim(); });
+    if (!values.every(function (v) { return /^-?\d+(?:\.\d+)?$/.test(v); })) return;
+    var nums = values.map(Number);
+    var step = Math.abs(nums[1] - nums[0]);
+    if (!(step > 0)) return;
+    var onStep = function (n, s) { return Math.abs(n / s - Math.round(n / s)) < 1e-6; };
+    var factor = [2, 4, 5, 10, 20, 25, 50].find(function (f) {
+      return isNiceStep(step * f) && nums.filter(function (n) { return onStep(n, step * f); }).length <= MAX;
+    });
+    if (!factor) return;
+    var ticks = Array.prototype.slice.call(axis.querySelectorAll(':scope > g.ticks > path'));
+    nums.forEach(function (n, i) {
+      if (onStep(n, step * factor)) return;
+      labels[i].remove();
+      if (ticks.length === labels.length) ticks[i].remove();
+    });
+  }
+  function finishMermaidSvg(rawSvg, locale) {
+    var parsed = new DOMParser().parseFromString(rawSvg, 'text/html');
+    var el = parsed.querySelector('svg');
+    if (!el) return { svg: rawSvg, width: null, height: null, kind: '' };
+    // Diagram type (pie, xychart, flowchart-v2 …) → wrapper class
+    // mermaid-<kind>, as diagramKind() in mermaidLoader.ts.
+    var kind = (el.getAttribute('aria-roledescription') || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 32);
+    var vb = (el.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(Number);
+    var width = vb.length === 4 && vb[2] > 0 ? Math.ceil(vb[2]) : null;
+    var height = vb.length === 4 && vb[3] > 0 ? Math.ceil(vb[3]) : null;
+    if (width && height) {
+      el.setAttribute('width', String(width));
+      el.setAttribute('height', String(height));
+      el.style.removeProperty('max-width');
+      if (!(el.getAttribute('style') || '').trim()) el.removeAttribute('style');
+    }
+    el.querySelectorAll('g.legend text').forEach(function (t) {
+      var f = formatPieLegendLabel(t.textContent || '', locale);
+      if (f !== t.textContent) t.textContent = f;
+    });
+    el.querySelectorAll('g.left-axis, g.bottom-axis, g.right-axis, g.top-axis').forEach(thinAxisTicks);
+    el.querySelectorAll('g.left-axis text, g.bottom-axis text, g.right-axis text, g.top-axis text').forEach(function (t) {
+      var f = formatAxisNumber(t.textContent || '', locale);
+      if (f !== t.textContent) t.textContent = f;
+    });
+    return { svg: new XMLSerializer().serializeToString(el), width: width, height: height, kind: kind };
+  }
+
+  var SVG_DATA_PREFIX = 'data:image/svg+xml;base64,';
+
+  function base64ToUtf8(b64) {
+    var binary = atob(b64);
+    var bytes = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+
+  /**
+   * After pagination: swap each mermaid <img> for its inline SVG so the
+   * chart text uses the document's web fonts (an SVG loaded as an image
+   * can't). The SVG keeps the image's intrinsic size + CSS, so nothing
+   * moves. Same as `inlineMermaidSvgs` in mermaidLoader.ts, minus the
+   * sanitising (this frame is the opaque-origin sandbox). Diagrams that
+   * still use <foreignObject> stay images, as on the server.
+   */
+  function inlineMermaidSvgs(root) {
+    root.querySelectorAll('.mermaid > img').forEach(function (img) {
+      var src = img.getAttribute('src') || '';
+      if (src.indexOf(SVG_DATA_PREFIX) !== 0) return;
+      var text;
+      try { text = base64ToUtf8(src.slice(SVG_DATA_PREFIX.length)); } catch (e) { return; }
+      if (/<foreignObject/i.test(text)) return;
+      var parsed = new DOMParser().parseFromString(text, 'image/svg+xml');
+      var svg = parsed.documentElement;
+      if (!svg || svg.nodeName.toLowerCase() !== 'svg' || parsed.querySelector('parsererror')) return;
+      svg.querySelectorAll('script').forEach(function (n) { n.remove(); });
+      var w = img.getAttribute('width');
+      var h = img.getAttribute('height');
+      if (w) svg.setAttribute('width', w);
+      if (h) svg.setAttribute('height', h);
+      svg.setAttribute('role', 'img');
+      img.replaceWith(document.importNode(svg, true));
+    });
+  }
+
+  /**
+   * Render one mermaid source string and replace its <pre> with an
+   * <img data-uri> wrapper, or an inline error placeholder if mermaid
+   * threw. An <img> is atomic for paged.js (inline SVGs get split across
+   * page breaks despite break-inside:avoid), so the SVG is inlined only
+   * after pagination (inlineMermaidSvgs).
+   */
+  async function renderMermaidBlock(mer, codeEl, locale) {
+    var preEl = codeEl.parentElement;
+    var source = codeEl.textContent || '';
+    // crypto.randomUUID() needs a secure context; fall back to
+    // getRandomValues for plain-HTTP self-hosts.
+    var renderId = 'mmd-' + (self.crypto.randomUUID
+      ? self.crypto.randomUUID()
+      : (Date.now().toString(36) + Array.from(
+          self.crypto.getRandomValues(new Uint32Array(2)),
+          function (n) { return n.toString(36); }
+        ).join('')));
+    try {
+      var rendered = await mer.render(renderId, source);
+      var finished = finishMermaidSvg(rendered.svg, locale);
+      var wrap = document.createElement('div');
+      wrap.className = finished.kind ? 'mermaid mermaid-' + finished.kind : 'mermaid';
+      var img = document.createElement('img');
+      img.src = SVG_DATA_PREFIX + utf8ToBase64(finished.svg);
+      img.alt = '';
+      if (finished.width) img.setAttribute('width', finished.width);
+      if (finished.height) img.setAttribute('height', finished.height);
+      wrap.appendChild(img);
+      preEl.replaceWith(wrap);
+    } catch (err) {
+      var errEl = document.createElement('div');
+      errEl.className = 'mermaid-error';
+      errEl.textContent = 'Mermaid error: ' + (err && err.message ? err.message : 'invalid diagram');
+      preEl.replaceWith(errEl);
+    }
+  }
+
+  /** Validates a parent → iframe message; returns it or null. */
+  function readMessage(e) {
+    if (e.source !== window.parent || e.origin !== PARENT_ORIGIN) return null;
+    var data = e.data;
+    if (!data || typeof data !== 'object' || typeof data.type !== 'string') return null;
+    if (data.type === 'color-mode') {
+      return typeof data.dark === 'boolean' ? data : null;
+    }
+    if (data.type === 'zoom') {
+      var modeOk = data.mode === 'fit' || data.mode === 'scale' || data.mode === 'overview';
+      var scaleOk = typeof data.scale === 'number' && isFinite(data.scale) && data.scale > 0 && data.scale <= 10;
+      var pageOk = typeof data.page === 'number' && Math.floor(data.page) === data.page && data.page >= 0;
+      return modeOk && scaleOk && pageOk && typeof data.animate === 'boolean' ? data : null;
+    }
+    if (data.type === 'render') {
+      var strings = ['html', 'themeCss', 'fontsImport', 'hljsUrl', 'hljsSri', 'mermaidConfig', 'locale'];
+      for (var i = 0; i < strings.length; i++) {
+        if (typeof data[strings[i]] !== 'string') return null;
+      }
+      return typeof data.print === 'boolean' ? data : null;
+    }
+    return null;
+  }
+
+  whenPagedReady(function() {
+    var Previewer = globalThis.Paged.Previewer;
+    var lastFontsImport = null;
+    var lastHljsUrl = null;
+    // paged.js's <style> elements from the last render, removed after the
+    // next one so they don't pile up in the head and slow re-renders.
+    var stylesFromLastRender = [];
+
+    // Mermaid lazy loader: injects the SRI-locked single-file bundle on the
+    // first render with a mermaid block. Re-initialized only when the
+    // config changes (mermaid has no per-render override). The config is
+    // buildMermaidConfig(theme) (shared/utils/markdown/mermaidConfig.ts).
+    var mermaidPromise = null;
+    var lastMermaidConfig = null;
+    function loadMermaidScript() {
+      return new Promise(function (resolve, reject) {
+        var s = document.createElement('script');
+        s.src = MERMAID_URL;
+        s.integrity = MERMAID_SRI;
+        s.crossOrigin = 'anonymous';
+        s.onload = function () {
+          if (globalThis.mermaid) resolve(globalThis.mermaid);
+          else reject(new Error('Mermaid did not initialize.'));
+        };
+        s.onerror = function () { reject(new Error('Could not load Mermaid.')); };
+        document.head.appendChild(s);
+      });
+    }
+    function parseMermaidConfig(json) {
+      try {
+        var cfg = JSON.parse(json);
+        if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg)) return null;
+        // antiscript: no <script> / javascript: URLs, but mermaid's own
+        // <style> survives ('strict' strips it and every shape turns
+        // black). A config can never lower the level.
+        cfg.securityLevel = 'antiscript';
+        cfg.startOnLoad = false;
+        return cfg;
+      } catch (e) { return null; }
+    }
+    /**
+     * Mermaid sizes boxes by measuring labels in the configured font:
+     * load the body font first (bounded) or the inlined labels overflow.
+     */
+    function loadMermaidFont(cfg) {
+      var family = typeof cfg.fontFamily === 'string' ? cfg.fontFamily : '';
+      if (!family || !document.fonts) return Promise.resolve();
+      var loads = ['400', '600'].map(function (w) {
+        return document.fonts.load(w + ' 12px ' + family).catch(function () { return []; });
+      });
+      return Promise.race([Promise.all(loads), new Promise(function (r) { setTimeout(r, 2000); })]);
+    }
+    function ensureMermaid(configJson) {
+      var cfg = parseMermaidConfig(configJson) || { startOnLoad: false, securityLevel: 'antiscript' };
+      if (!mermaidPromise) {
+        mermaidPromise = loadMermaidScript().catch(function (err) {
+          // Reset so a transient network failure doesn't disable mermaid
+          // for the rest of the session.
+          mermaidPromise = null;
+          throw err;
+        });
+      }
+      return Promise.all([mermaidPromise, loadMermaidFont(cfg)]).then(function (res) {
+        var m = res[0];
+        if (configJson !== lastMermaidConfig) {
+          m.initialize(cfg);
+          lastMermaidConfig = configJson;
+        }
+        return m;
+      });
+    }
+
+    /** Swap the theme-fonts <style> body when the imported URL set changes. */
+    function applyFontsImport(opts) {
+      if (opts.fontsImport === lastFontsImport) return;
+      document.getElementById('theme-fonts').textContent = opts.fontsImport || '';
+      lastFontsImport = opts.fontsImport;
+    }
+
+    /**
+     * Swap the highlight.js theme stylesheet when codeBlockTheme
+     * changes. Injected lazily because a link without an href confuses
+     * paged.js's Polisher and silently wedges pagination. SRI-locked; the
+     * integrity differs per theme, so each swap creates a new <link>.
+     */
+    function applyHljsTheme(opts) {
+      if (opts.hljsUrl === lastHljsUrl) return;
+      var old = document.getElementById('hljs-theme');
+      if (old) old.remove();
+      if (opts.hljsUrl) {
+        var link = document.createElement('link');
+        link.id = 'hljs-theme';
+        link.rel = 'stylesheet';
+        link.integrity = opts.hljsSri;
+        link.crossOrigin = 'anonymous';
+        link.href = opts.hljsUrl;
+        document.head.appendChild(link);
+      }
+      lastHljsUrl = opts.hljsUrl;
+    }
+
+    /**
+     * Render every mermaid code block in the scratch DOM in place, one at a
+     * time. Returns the resulting innerHTML, or null if there were none.
+     */
+    async function preprocessMermaid(scratch, mermaidConfig, locale) {
+      var mermaidBlocks = Array.prototype.slice.call(
+        scratch.querySelectorAll('pre code.language-mermaid')
+      );
+      if (mermaidBlocks.length === 0) return null;
+      var mer;
+      try {
+        mer = await ensureMermaid(mermaidConfig);
+      } catch (err) {
+        mermaidBlocks.forEach(function (codeEl) {
+          var errEl = document.createElement('div');
+          errEl.className = 'mermaid-error';
+          errEl.textContent = 'Mermaid error: ' + (err && err.message ? err.message : 'unavailable');
+          codeEl.parentElement.replaceWith(errEl);
+        });
+        return scratch.innerHTML;
+      }
+      for (var codeEl of mermaidBlocks) {
+        await renderMermaidBlock(mer, codeEl, locale);
+      }
+      return scratch.innerHTML;
+    }
+
+    function printNow() {
+      window.addEventListener('afterprint', function () {
+        toParent({ type: 'print-done' });
+      }, { once: true });
+      requestAnimationFrame(function () { window.print(); });
+    }
+
+    async function renderDoc(opts) {
+      try {
+        applyFontsImport(opts);
+        applyHljsTheme(opts);
+        await awaitFontsReady();
+
+        var mount = document.getElementById('mount');
+        var pending = document.getElementById('pending');
+        // Same width as the visible mount so flex centering gives the same
+        // column offsets in both.
+        pending.style.width = mount.clientWidth + 'px';
+        pending.innerHTML = '';
+
+        // Decode images and render mermaid in an off-screen scratch
+        // container; `pending` must stay empty for paged.js's pages.
+        var html = opts.html;
+        var scratch = document.createElement('div');
+        scratch.style.cssText = 'position:fixed;left:-20000px;top:0;visibility:hidden;';
+        scratch.innerHTML = html;
+        document.body.appendChild(scratch);
+        try {
+          await decodeImagesIn(scratch);
+          var processedHtml = await preprocessMermaid(scratch, opts.mermaidConfig, opts.locale);
+          if (processedHtml !== null) html = processedHtml;
+        } finally {
+          scratch.remove();
+        }
+
+        var stylesBefore = new Set(document.head.querySelectorAll('style'));
+
+        var previewer = new Previewer();
+        var result = await previewer.preview(
+          '<div class="paged-doc">' + html + '</div>',
+          [{ 'theme.css': opts.themeCss }],
+          pending
+        );
+
+        // Diagrams were atomic <img>s for pagination; inline them now so
+        // their text uses the document's web fonts.
+        inlineMermaidSvgs(pending);
+
+        var stylesAfter = Array.prototype.slice.call(document.head.querySelectorAll('style'));
+        var newStyles = stylesAfter.filter(function(s) { return !stylesBefore.has(s); });
+
+        // replaceChildren is a single mutation, so the browser can't lay
+        // out an empty mount between clearing and refilling.
+        var scrollY = window.scrollY;
+        // Snap to the bottom only if the previous doc was scrollable
+        // (before the first render scrollHeight equals the viewport and
+        // would false-positive).
+        var prevScrollHeight = document.documentElement.scrollHeight;
+        var hadScrollableContent = prevScrollHeight > window.innerHeight + 100;
+        var wasNearBottom = hadScrollableContent
+          && (scrollY + window.innerHeight >= prevScrollHeight - 50);
+        mount.replaceChildren(...pending.children);
+
+        // Remove the previous render's paged.js stylesheets only AFTER
+        // the new pages are in place.
+        for (var oldStyle of stylesFromLastRender) {
+          oldStyle.remove();
+        }
+        stylesFromLastRender = newStyles;
+
+        previewZoom.reapply(true);
+
+        if (wasNearBottom) {
+          window.scrollTo(0, document.documentElement.scrollHeight);
+        } else {
+          window.scrollTo(0, scrollY);
+        }
+
+        toParent({ type: 'paginated', pageCount: (result && result.total) || 0 });
+        if (opts.print) {
+          // paged.js clones images into the pages; wait for the clones
+          // before printing.
+          await decodeImagesIn(mount);
+          printNow();
+        }
+      } catch (e) {
+        console.error('[paged-iframe] render failed:', e);
+        if (opts.print) {
+          toParent({ type: 'iframe-error', message: 'Could not prepare the document for printing.' });
+        } else {
+          toParent({ type: 'paginated', pageCount: 0 });
+        }
+      }
+    }
+
+    window.addEventListener('message', function (e) {
+      var msg = readMessage(e);
+      if (!msg) return;
+      if (msg.type === 'color-mode') applyColorMode(msg.dark);
+      else if (msg.type === 'zoom') previewZoom.set(msg);
+      else if (msg.type === 'render') renderDoc(msg);
+    });
+
+    toParent({ type: 'iframe-ready' });
+  });
+})();
+</script>
+</body>
+</html>

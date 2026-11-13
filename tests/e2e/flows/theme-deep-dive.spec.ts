@@ -2,7 +2,7 @@ import { test, expect } from '../fixtures/flow'
 
 // Tier 2: "Tune your typography, colors, and details".
 //
-// User-job: a writer landed on a preset that's CLOSE but not quite —
+// User-job: a writer landed on a preset that's CLOSE but not quite,
 // they want a serif for long reading, and to know where the colours and
 // the drop cap live. Job done when they've reached past the preset cards
 // into the per-section settings, changed the body font, and seen the
@@ -51,7 +51,7 @@ test('Tune your typography and colors', async ({ page, flow, editor }) => {
     + 'up in the preview right away. Here: a serif body font for long reading.'
   )
 
-  // ─── Open the theme panel + the Body section ────────────────────
+  // Open the theme panel + the Body section
   const themeTab = editor.isMobile
     ? editor.page.mobileTabs.theme
     : editor.page.sidebar.theme
@@ -67,7 +67,7 @@ test('Tune your typography and colors', async ({ page, flow, editor }) => {
     }
   )
 
-  // "Body text" matches `theme.section.body` exactly — a bare /body/
+  // "Body text" matches `theme.section.body` exactly, a bare /body/
   // regex would also match the menubar's "Body" item.
   const bodySection = page.getByRole('button', { name: /^body text$/i }).first()
   await flow.click(
@@ -86,7 +86,7 @@ test('Tune your typography and colors', async ({ page, flow, editor }) => {
   // it is what the reader sees on the first paragraph in the preview).
   await expect(page.locator('[data-testid="theme-body-drop-cap-switch"]')).toHaveAttribute('data-state', 'checked')
 
-  // ─── Change the body font ───────────────────────────────────────
+  // Change the body font
   await flow.heading('Switch the body text to a serif', 3)
   await flow.narrate(
     'The font list is grouped into sans-serif and serif families, each '
@@ -130,7 +130,7 @@ test('Tune your typography and colors', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Where the colours live ─────────────────────────────────────
+  // Where the colours live
   await flow.heading('Colours', 3)
   await flow.narrate(
     'The Colors section holds the brand and secondary colours: they paint '

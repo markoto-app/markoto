@@ -1,13 +1,13 @@
 import { test, expect } from '../fixtures/flow'
 
-// Tier 1: "Delete a document — for real, not by accident".
+// Tier 1: "Delete a document, for real, not by accident".
 //
 // User-job: a writer is done with a draft (or never wanted it in the
 // first place) and wants it GONE. Job done when they've opened the
 // File menu, picked Delete, typed the doc's title to confirm, and
 // landed on the dashboard with the doc no longer in the list.
 //
-// Why the type-the-title friction: deletion cascades — the row, the
+// Why the type-the-title friction: deletion cascades, the row, the
 // Y.js binary state, every uploaded image's S3 object, every
 // activity row, every comment thread. Restore is NOT possible
 // (the activity-log Tier-2 restore covers in-doc state, not the doc
@@ -27,7 +27,7 @@ test('Delete a document', async ({ page, flow, editor }) => {
 
   await editor.page.loginAsTestUser('Maya Chen')
   // A second document the user keeps, so the dashboard the flow ends
-  // on shows a real "Recent documents" list — with the deleted draft
+  // on shows a real "Recent documents" list, with the deleted draft
   // visibly missing from it.
   const keptTitle = 'Q4 planning notes'
   const kept = await page.request.post('/api/docs', { data: { title: keptTitle } })
@@ -44,16 +44,16 @@ test('Delete a document', async ({ page, flow, editor }) => {
   await flow.narrate(
     'When you\'re done with a draft and don\'t want it lingering, '
     + 'delete it from File → Delete. markoto asks you to type the '
-    + 'doc\'s title back as a confirmation — strong friction by '
+    + 'doc\'s title back as a confirmation, strong friction by '
     + 'design, because deletion is permanent. The text, its history, '
     + 'its comments and every image in it are removed, and anyone '
     + 'who has the doc open is sent back to their dashboard.'
   )
 
-  // ─── Open the menu containing Delete ────────────────────────────
+  // Open the menu containing Delete
   // Desktop has a top-level menubar (hidden on mobile via `hidden sm:block`).
   // Mobile collapses File / Edit / View / etc. into a single hamburger
-  // ("more") UDropdownMenu in the topbar — the duplicate/move/delete
+  // ("more") UDropdownMenu in the topbar, the duplicate/move/delete
   // cluster is mirrored under `mobileMenuItems` in EditorLayout.vue.
   const openMenuTrigger = editor.isMobile
     ? page.getByRole('button', { name: /^menu$/i }).first()
@@ -64,8 +64,8 @@ test('Delete a document', async ({ page, flow, editor }) => {
     openMenuTrigger,
     {
       result: editor.isMobile
-        ? 'The topbar menu opens — Delete is one of the doc actions.'
-        : 'The File menu opens — Delete sits at the bottom under its own separator.',
+        ? 'The topbar menu opens, Delete is one of the doc actions.'
+        : 'The File menu opens, Delete sits at the bottom under its own separator.',
       after: () => page.getByRole('menuitem', { name: /^delete/i }).first().waitFor({ state: 'visible' })
     }
   )
@@ -77,17 +77,17 @@ test('Delete a document', async ({ page, flow, editor }) => {
       annotations: [
         { label: 'delete', selector: '[role="menuitem"]:has-text("Delete")', kind: 'arrow' }
       ],
-      result: 'A confirm modal opens — type the doc\'s title to enable Delete.',
+      result: 'A confirm modal opens, type the doc\'s title to enable Delete.',
       after: () => page.locator('[data-testid="delete-confirm-input"]').waitFor({ state: 'visible', timeout: 5_000 })
     }
   )
 
-  // ─── Type the title to unlock the button ────────────────────────
+  // Type the title to unlock the button
   await flow.heading('Type the title to confirm', 3)
   await flow.narrate(
     'The Delete button stays disabled until the typed text exactly '
     + 'matches the doc\'s title. Same shape as GitHub\'s repo '
-    + 'deletion — friction beats a one-click slip.'
+    + 'deletion: friction beats a one-click slip.'
   )
 
   await flow.type(
@@ -99,7 +99,7 @@ test('Delete a document', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Confirm ────────────────────────────────────────────────────
+  // Confirm
   await flow.click(
     'Click "Delete"',
     page.locator('[data-testid="delete-confirm"]'),
@@ -122,7 +122,7 @@ test('Delete a document', async ({ page, flow, editor }) => {
   )
 
   // ASSERTION: we're on the dashboard root + the deleted doc's title
-  // is NOT in the recent-docs list. Negative-space assertion — proves
+  // is NOT in the recent-docs list. Negative-space assertion, proves
   // the cascade actually wiped the row.
   expect(new URL(page.url()).pathname).toBe('/')
   await expect(page.locator('[data-testid="landing-recent-documents"]')).not.toContainText(docTitle)

@@ -1,23 +1,27 @@
 ---
-# Vault template — copy to all.vault.yml, fill in, then:
+# Vault template: copy to all.vault.yml, fill in, then:
 #   ansible-vault encrypt group_vars/all.vault.yml
 #
-# Every value below is referenced in templates/env.j2 (which renders the
-# .env file the compose stack reads). Missing values cause the playbook
-# to fail loudly at template-render time, not at compose-up time.
+# Every value below is an input of infra/render-env.sh (which renders the
+# .env file the compose stack reads): the variable name is the .env key in
+# lower case (`bash infra/render-env.sh --keys` lists them all). Missing
+# required values fail the playbook at render time, not at compose-up time.
 #
-# Generation hints inline. Re-read docs/SECRETS-ROTATION.md before rotating
+# Generation hints inline. Re-read docs/operations/SECRETS-ROTATION.md before rotating
 # anything tagged "never-rotate" (the backup gpg passphrase in particular).
 
 # ─── App secrets (≥32 chars; openssl rand -hex 32) ───
 nuxt_session_password: "REPLACE_ME"        # openssl rand -base64 48
 nuxt_jwt_secret: "REPLACE_ME"              # openssl rand -hex 64
 nuxt_internal_api_secret: "REPLACE_ME"     # openssl rand -hex 32
-nuxt_altcha_hmac_key: "REPLACE_ME"         # openssl rand -hex 32 — anonymous gate (ALTCHA bot check)
+nuxt_encryption_key: "REPLACE_ME"          # openssl rand -hex 32, encrypts stored provider keys / SSO secrets; never-rotate without _previous
+nuxt_altcha_hmac_key: "REPLACE_ME"         # openssl rand -hex 32, anonymous gate (ALTCHA bot check)
+nuxt_markitdown_api_secret: "REPLACE_ME"   # openssl rand -hex 32, app <-> markitdown converter
 
-# Optional rotation slots — leave empty unless mid-rollover.
+# Optional rotation slots: leave empty unless mid-rollover.
 nuxt_jwt_secret_previous: ""
 nuxt_internal_api_secret_previous: ""
+nuxt_encryption_key_previous: ""
 
 # ─── Postgres / Valkey credentials ───
 postgres_password: "REPLACE_ME"            # ≥24 chars
@@ -31,7 +35,7 @@ nuxt_s3_bucket: "REPLACE_ME"
 
 # ─── Backup storage (optional; defaults to the nuxt_s3_* values above) ───
 # Set these to a dedicated bucket with its own backup-only key
-# (docs/LAUNCH-CHECKLIST.md). Only the backup sidecar receives them.
+# (docs/operations/LAUNCH-CHECKLIST.md). Only the backup sidecar receives them.
 # backup_s3_endpoint: "https://s3.example.com"
 # backup_s3_bucket: "markoto-backups"
 # backup_s3_access_key: "REPLACE_ME"
@@ -39,21 +43,21 @@ nuxt_s3_bucket: "REPLACE_ME"
 # backup_s3_region: "us-east-1"
 # backup_s3_prefix: "backups/postgres"
 
-# ─── AI dictate JWT (Phase 5: every AI surface routes through LiteLLM) ───
+# ─── AI dictate JWT ───
 # Optional dedicated dictation-JWT secret. Empty falls back to nuxt_jwt_secret.
 nuxt_ai_dictate_jwt_secret: ""
 
 # ─── LiteLLM proxy (self-hosted AI gateway) ───
 litellm_master_key: "REPLACE_ME"           # openssl rand -hex 32, prefix "sk-" optional
-litellm_salt_key: "REPLACE_ME"             # openssl rand -hex 32 (encrypts key tokens at rest — NEVER rotate casually)
+litellm_salt_key: "REPLACE_ME"             # openssl rand -hex 32 (encrypts key tokens at rest, NEVER rotate casually)
 
 # ─── AI provider keys (all EU-resident providers) ───
-jina_ai_api_key: "REPLACE_ME"              # jina.ai — embeddings + fetch_url reader
-staan_api_key: "REPLACE_ME"                # staan.ai — web_search (enable EU-only routing in the dashboard)
-mistral_api_key: "REPLACE_ME"              # mistral.ai — text + voice
-bfl_api_key: "REPLACE_ME"                  # blackforestlabs — image generation
+jina_ai_api_key: "REPLACE_ME"              # jina.ai, embeddings + fetch_url reader
+staan_api_key: "REPLACE_ME"                # staan.ai, web_search (enable EU-only routing in the dashboard)
+mistral_api_key: "REPLACE_ME"              # mistral.ai, text + voice
+bfl_api_key: "REPLACE_ME"                  # blackforestlabs, image generation
 
-# ─── Stripe billing — ONLY needed once nuxt_billing_enabled is true ───
+# ─── Stripe billing: ONLY needed once nuxt_billing_enabled is true ───
 # Billing is off by default (free-only + "paid plans coming soon"); leave
 # these empty ("") until paid plans launch. Then: test keys for staging,
 # live keys for prod.
@@ -61,7 +65,7 @@ nuxt_stripe_secret_key: ""                 # sk_live_… / sk_test_…
 nuxt_stripe_webhook_secret: ""             # whsec_… from the deployed webhook endpoint (NOT `stripe listen`)
 nuxt_stripe_price_ids: ""                  # optional: markoto_pro_month_eur=price_…,… (default: Stripe lookup keys)
 
-# ─── OAuth (optional pairs — both-or-neither per provider) ───
+# ─── OAuth (optional pairs: both-or-neither per provider) ───
 nuxt_oauth_github_client_id: ""
 nuxt_oauth_github_client_secret: ""
 nuxt_oauth_google_client_id: ""
@@ -71,7 +75,7 @@ nuxt_oauth_google_client_secret: ""
 nuxt_public_sentry_dsn: ""
 sentry_dsn: ""
 
-# ─── Backup encryption (NEVER-ROTATE — see SECRETS-ROTATION.md) ───
+# ─── Backup encryption (NEVER-ROTATE: see docs/operations/SECRETS-ROTATION.md) ───
 # openssl rand -base64 48
 # Copy this value into your password manager BEFORE any rotation:
 # rotating invalidates every backup taken under the old passphrase.
@@ -81,7 +85,7 @@ backup_gpg_passphrase: "REPLACE_ME"
 # Fine-scoped PAT with `read:packages` ONLY (no write, no contents access).
 # Generated at https://github.com/settings/tokens?type=beta. Used by the
 # markoto role to `docker login ghcr.io` so private GHCR images are
-# pullable. Annual rotation — see SECRETS-ROTATION.md §19.
+# pullable. Annual rotation: see docs/operations/SECRETS-ROTATION.md §19.
 ghcr_username: "REPLACE_ME"             # the GitHub username that issued the PAT
 ghcr_pat: "REPLACE_ME"                  # PAT, scope: read:packages
 

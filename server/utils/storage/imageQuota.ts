@@ -1,0 +1,78 @@
+import { getDocPlanSubject, getStoredUserPlan } from '../../repos/plans'
+import { getTiers } from '../billing/tierConfig'
+import { effectivePlan, isBillingEnabled, limitRecovery, limitUpgradeHint } from '../billing/billingMode'
+import { getPooledWorkspace, workspacePoolCaps } from '../billing/workspaceBilling'
+import type { ImageQuotaScope } from '../../repos/uploads'
+import { MIB } from '~~/shared/config/units'
+import { apiError } from '../api/apiError'
+
+// Per-user storage quota for document images (`imageBytesPerUser` in
+// shared/config/tiers.ts, overridable via TIER_<PLAN>_IMAGE_BYTES_PER_USER).
+// Usage = the sum of the user's `uploads` rows, pending AND confirmed; the
+// atomic reservation lives in server/repos/uploads.ts. Enforced at:
+//   - POST /api/upload/request   (reservePendingUpload)
+//   - POST /api/upload/confirm   (confirmOwnUploadWithinQuota)
+//   - AI generate_image          (reservePendingUpload before the S3 PUT)
+//   - POST /api/docs/:id/duplicate (copies count against the duplicator)
+
+/** The user's image byte quota under their effective plan. */
+async function resolveImageQuotaBytes(userId: number): Promise<number> {
+  const row = await getStoredUserPlan(userId)
+  const plan = row ? effectivePlan(row.plan, row.planValidUntil) : 'free'
+  return getTiers()[plan].imageBytesPerUser
+}
+
+export interface ImageQuota {
+  scope: ImageQuotaScope
+  maxBytes: number
+  /** True when the images count against a Team / Business workspace's pool. */
+  pooled: boolean
+}
+
+/**
+ * The quota an image in `docId`, uploaded / generated / copied by
+ * `userId`, counts against: the document's Team / Business workspace pool
+ * (seats × per-seat `imageBytesPerUser`) or the user's personal quota.
+ */
+export async function resolveImageQuota(userId: number, docId: string | null, targetWorkspaceId?: string | null): Promise<ImageQuota> {
+  // `targetWorkspaceId` for a document that doesn't exist yet (duplicate).
+  const workspaceId = targetWorkspaceId !== undefined
+    ? targetWorkspaceId
+    : docId
+      ? (await getDocPlanSubject(docId))?.workspaceId ?? null
+      : null
+  const pool = await getPooledWorkspace(workspaceId)
+  if (pool) {
+    return {
+      scope: { kind: 'workspace', workspaceId: pool.workspaceId },
+      maxBytes: workspacePoolCaps(pool.plan, pool.seats).imageBytes,
+      pooled: true
+    }
+  }
+  return {
+    scope: { kind: 'user', uploaderId: userId, excludePooled: isBillingEnabled() },
+    maxBytes: await resolveImageQuotaBytes(userId),
+    pooled: false
+  }
+}
+
+function formatMegabytes(bytes: number): string {
+  return `${Math.round(bytes / MIB)} MB`
+}
+
+/** English fallback sentence (tool results, clients without the i18n key). */
+export function imageQuotaMessage(limitBytes: number): string {
+  return `You've reached your image storage limit (${formatMegabytes(limitBytes)}). `
+    + `Images you remove from your documents (or deleted documents) free up space once they are cleaned up. ${limitUpgradeHint()}`
+}
+
+/**
+ * 409 `upload/storage-quota` (the client shows the code's text); never
+ * mentions a purchase that doesn't exist. The limit stays in the English
+ * message for API and MCP clients.
+ */
+export function imageQuotaError(limitBytes: number) {
+  const error = apiError('upload/storage-quota', { recovery: limitRecovery() })
+  error.message = imageQuotaMessage(limitBytes)
+  return error
+}

@@ -1,1 +1,0 @@
-ALTER TABLE "users" ADD COLUMN "billing_currency" text;

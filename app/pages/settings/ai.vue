@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// "AI provider" settings — bring your own key (WP4). One card per
+// "AI provider" settings: bring your own key. One card per
 // capability (chat / image / transcription). Each shows where the
 // capability comes from right now (own key → instance default → none)
 // and lets the user connect their own OpenAI-compatible provider.
@@ -7,21 +7,8 @@
 // Modal-style page like /settings/profile: close button returns to the
 // previous route; auth-gated client-side, endpoints are session-only.
 
-import type {
-  AiAvailability,
-  AiCapability,
-  AiProviderConfigView,
-  ProviderPreset
-} from '~~/shared/ai/providers'
-
-interface ProvidersResponse {
-  providers: AiProviderConfigView[]
-  instanceDefaults: Record<AiCapability, boolean>
-  availability: AiAvailability
-  policy: { allowedBaseUrls: string[], allowPrivate: boolean }
-  presets: ProviderPreset[]
-  capabilities: AiCapability[]
-}
+import type { AiCapability, AiProviderConfigView } from '~~/shared/ai/providers'
+import { useAiProvidersQuery, useSetAiModelTier } from '~/queries/ai'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -29,7 +16,6 @@ const toast = useToast()
 const { loggedIn } = useUserSession()
 // Login starts at the first configured OAuth provider ('/' when none).
 const { primaryLoginPath } = useInstanceConfig()
-const { refresh: refreshAvailability } = useAiAvailability()
 
 useHead({ title: () => t('aiProvider.title') })
 
@@ -41,47 +27,28 @@ function onClose(): void {
   if (globalThis.history.length > 1 && document.referrer) {
     router.back()
   } else {
-    router.push('/')
+    void router.push('/')
   }
 }
 
-const data = ref<ProvidersResponse | null>(null)
+const providers = useAiProvidersQuery()
+const data = computed(() => providers.data.value ?? null)
+const loading = computed(() => providers.isLoading.value)
+watch(() => providers.error.value, (e) => {
+  if (e) toast.add({ title: t('aiProvider.errors.loadFailed'), color: 'error', icon: 'i-lucide-alert-circle' })
+})
 
-// Fast / Strong platform chat model (WP5).
-const savingTier = ref(false)
+// Fast / Strong platform chat model. The mutation re-reads the providers
+// and the availability it changes.
+const setModelTier = useSetAiModelTier()
+const savingTier = computed(() => setModelTier.isLoading.value)
 async function saveTier(tier: 'fast' | 'strong'): Promise<void> {
-  savingTier.value = true
   try {
-    await $fetch('/api/user/ai-model', { method: 'PUT', body: { tier } })
-    await load()
-    await refreshAvailability()
+    await setModelTier.mutateAsync(tier)
   } catch {
     toast.add({ title: t('aiProvider.modelTier.saveFailed'), color: 'error', icon: 'i-lucide-alert-circle' })
-  } finally {
-    savingTier.value = false
   }
 }
-const loading = ref(false)
-
-async function load(): Promise<void> {
-  if (!loggedIn.value) return
-  loading.value = true
-  try {
-    data.value = await $fetch<ProvidersResponse>('/api/user/ai-providers')
-  } catch {
-    toast.add({ title: t('aiProvider.errors.loadFailed'), color: 'error', icon: 'i-lucide-alert-circle' })
-  } finally {
-    loading.value = false
-  }
-}
-
-async function onChanged(): Promise<void> {
-  await Promise.all([load(), refreshAvailability()])
-}
-
-onMounted(() => {
-  void load()
-})
 
 const CAPABILITIES: AiCapability[] = ['chat', 'image', 'transcription']
 
@@ -168,7 +135,7 @@ const allowlistText = computed(() => {
         v-if="data"
         class="space-y-6"
       >
-        <!-- Platform chat model: Fast / Strong (WP5). Only where the
+        <!-- Platform chat model: Fast / Strong. Only where the
              operator offers a strong model and chat runs on the platform. -->
         <section
           v-if="data.availability.chat.modelTier?.strongAvailable"
@@ -207,7 +174,6 @@ const allowlistText = computed(() => {
           :config="configFor(capability)"
           :status="data.availability[capability]"
           :presets="data.presets"
-          @changed="onChanged"
         />
       </div>
     </main>

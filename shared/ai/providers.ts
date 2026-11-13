@@ -1,28 +1,25 @@
+import { trimTrailingSlashes } from '../utils/trimTrailingSlashes'
 // Bring-your-own-key (BYOK) AI provider vocabulary, shared by the
 // server (resolution, validation, verification) and the settings UI.
 //
 // markoto only speaks OpenAI-compatible APIs for BYOK. Three
 // capabilities can be configured independently per user:
 //
-//   - chat          — the agent loop (tool calling, optionally vision),
+//   - chat         : the agent loop (tool calling, optionally vision),
 //                     the `@ai` comment trigger and the web-tool
 //                     synthesis sub-calls. Required for any AI feature.
-//   - image         — `generate_image` (OpenAI images API). Optional.
-//   - transcription — voice prompt (OpenAI `/audio/transcriptions`).
+//   - image        : `generate_image` (OpenAI images API). Optional.
+//   - transcription: voice prompt (OpenAI `/audio/transcriptions`).
 //                     Optional. Live dictation additionally needs a
 //                     Mistral key (Voxtral Realtime is Mistral-only).
 //
 // Embeddings, web search (Staan) and page fetch (Jina Reader) are
 // platform-provided and NOT configurable here.
 //
-// Pure module: no Nuxt, no Node APIs — safe in the browser bundle.
+// Pure module: no Nuxt, no Node APIs, safe in the browser bundle.
 
 export const AI_CAPABILITIES = ['chat', 'image', 'transcription'] as const
 export type AiCapability = typeof AI_CAPABILITIES[number]
-
-export function isAiCapability(value: unknown): value is AiCapability {
-  return AI_CAPABILITIES.some(c => c === value)
-}
 
 /** Where a capability's provider comes from for one user. */
 export type AiProviderSource = 'user' | 'instance' | 'none'
@@ -39,7 +36,7 @@ export interface AiCapabilityStatus {
   platformBilled: boolean
   /**
    * `'plan'`: the platform offers this capability, but not on the plan
-   * that pays here (WP5) — the UI shows a locked control with an upgrade
+   * that pays here: the UI shows a locked control with an upgrade
    * (or "ask your admin") prompt instead of hiding it. A user's own key
    * always unlocks it.
    */
@@ -61,7 +58,7 @@ export interface AiAvailability {
   transcription: AiCapabilityStatus & { liveDictation: boolean }
   /**
    * Platform-provided web tools (Staan search / Jina Reader). `false` when
-   * the operator has no upstream key — the tools are then not offered to
+   * the operator has no upstream key, the tools are then not offered to
    * the AI at all. Independent of the user's chat provider.
    */
   webTools: { search: boolean, fetch: boolean }
@@ -180,13 +177,13 @@ export const RECOMMENDED_SAAS_ALLOWED_BASE_URLS: readonly string[] = PROVIDER_PR
   .map(p => p.baseUrl)
 
 /** Host whose transcription key also unlocks Voxtral Realtime live dictation. */
-export const MISTRAL_API_HOST = 'api.mistral.ai'
+const MISTRAL_API_HOST = 'api.mistral.ai'
 
 /**
  * Mistral's EU regional endpoint (inference in EU / EFTA data centres;
  * the global `api.mistral.ai` makes no location commitment). Every call
- * the platform pays — LiteLLM deployments and the live-dictation
- * WebSocket on the operator's key — goes here. A user's own Mistral key
+ * the platform pays: LiteLLM deployments and the live-dictation
+ * WebSocket on the operator's key, goes here. A user's own Mistral key
  * works on either host.
  */
 export const MISTRAL_EU_API_HOST = 'api.eu.mistral.ai'
@@ -197,7 +194,7 @@ export const MISTRAL_LIVE_DICTATION_HOSTS: readonly string[] = [MISTRAL_API_HOST
 /**
  * Normalise a provider base URL for storage + comparison: trims
  * whitespace and trailing slashes. Returns null when the input isn't
- * an absolute URL. Does NOT apply any security policy — see
+ * an absolute URL. Does NOT apply any security policy, see
  * `server/utils/aiProviders/urlPolicy.ts` for that.
  */
 export function normalizeBaseUrl(raw: string): string | null {
@@ -209,7 +206,7 @@ export function normalizeBaseUrl(raw: string): string | null {
   } catch {
     return null
   }
-  const path = parsed.pathname.replace(/\/+$/, '')
+  const path = trimTrailingSlashes(parsed.pathname)
   return `${parsed.protocol}//${parsed.host}${path}`
 }
 

@@ -1,16 +1,19 @@
 # Publish the docs screenshots from a release run.
 #
 # Every release run (release.yml) records the whole flow suite and uploads
-# its manifests + screenshots as the `flow-output` artifact — also when a
+# its manifests + screenshots as the `flow-output` artifact: also when a
 # few flows failed: scripts/build-flows.ts republishes only variants with a
 # `.passed` sentinel, a failed variant keeps its previously published
-# frames. This workflow turns that artifact into a PR that refreshes
+# frames. A frame that looks the same as the committed one keeps its
+# committed bytes (pixel comparison, scripts/lib/flowShots.ts), so the PR
+# carries only what changed instead of re-encoded copies of every
+# screenshot. This workflow turns that artifact into a PR that refreshes
 # `public/flows/`, so the docs site always shows the released app without
 # anyone copying screenshots by hand. main stays PR-only: the change goes
 # through the normal PR gate (label `release:none`, merged by a human or
 # the release operator).
 #
-# Runs after every release run (any conclusion — a run that skipped its
+# Runs after every release run (any conclusion: a run that skipped its
 # flow job has no artifact and ends here as a no-op) or by hand with a
 # release run id.
 
@@ -83,11 +86,16 @@ jobs:
         with:
           bun-version: 1.4.4
 
-      # build-flows.ts only needs node built-ins + a shared helper; no
-      # `bun install`, so no dependency code runs next to the bot token.
+      # The pixel comparison needs sharp (prebuilt libvips, no install
+      # script). `--ignore-scripts`: no dependency code runs at install;
+      # the bot token only reaches the last step.
+      - name: Install dependencies
+        if: steps.artifact.outputs.found == 'true'
+        run: bun install --frozen-lockfile --ignore-scripts --filter markoto
+
       - name: Rebuild public/flows
         if: steps.artifact.outputs.found == 'true'
-        run: bun scripts/build-flows.ts
+        run: bun scripts/build-flows.ts --summary "${RUNNER_TEMP}/flows-summary.md"
 
       - name: Open the PR
         if: steps.artifact.outputs.found == 'true'
@@ -97,11 +105,11 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${GH_TOKEN:-}" ]; then
-            echo "::error title=Missing secret::RELEASE_BOT_TOKEN is not set in the 'release' Environment (docs/GITHUB-CONFIG.md)."
+            echo "::error title=Missing secret::RELEASE_BOT_TOKEN is not set in the 'release' Environment (docs/operations/GITHUB-CONFIG.md)."
             exit 1
           fi
           if [ -z "$(git status --porcelain -- public/flows)" ]; then
-            echo "public/flows is unchanged — nothing to publish."
+            echo "public/flows is unchanged, nothing to publish."
             exit 0
           fi
           version=$(git tag --list 'v*' --sort=-v:refname | head -1)
@@ -113,13 +121,20 @@ jobs:
           git commit -q -m "docs: publish the ${version} flow screenshots" \
             -m "From release run ${RUN_ID} (flow-output artifact, scripts/build-flows.ts)."
           git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "HEAD:refs/heads/${branch}"
+          body="$RUNNER_TEMP/pr-body.md"
+          {
+            echo "Refreshes \`public/flows/\` (the screenshots and manifests the docs embed) from the flow-output artifact of release run [${RUN_ID}](${GITHUB_SERVER_URL}/${REPO}/actions/runs/${RUN_ID}). Frames that look the same keep their committed file; variants whose flow failed in that run keep their previous frames (\`scripts/build-flows.ts\`)."
+            echo
+            cat "${RUNNER_TEMP}/flows-summary.md"
+            echo
+            echo "Opened by \`.github/workflows/publish-flow-shots.yml\`."
+          } > "$body"
           if gh pr view "$branch" --repo "$REPO" --json state --jq .state 2>/dev/null | grep -q OPEN; then
-            echo "PR for ${branch} already open — branch updated."
+            gh pr edit "$branch" --repo "$REPO" --body-file "$body"
+            echo "PR for ${branch} already open, branch and summary updated."
             exit 0
           fi
           gh pr create --repo "$REPO" --base main --head "$branch" \
             --title "docs: publish the ${version} flow screenshots" \
             --label release:none \
-            --body "Refreshes \`public/flows/\` (the screenshots and manifests the docs embed) from the flow-output artifact of release run [${RUN_ID}](${GITHUB_SERVER_URL}/${REPO}/actions/runs/${RUN_ID}). Variants whose flow failed in that run keep their previous frames (\`scripts/build-flows.ts\` only republishes passed variants).
-
-          Opened by \`.github/workflows/publish-flow-shots.yml\`."
+            --body-file "$body"

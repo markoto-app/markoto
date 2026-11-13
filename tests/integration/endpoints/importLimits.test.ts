@@ -6,18 +6,18 @@
 //     is 128 MB). The server entry (server/runtime/bunEntry.ts) now sets
 //     Bun's maxRequestBodySize to 51 MiB: a declared Content-Length over it
 //     is refused before anything is read, and a chunked body is cut off
-//     once it passes it — the response arrives while the client is still
+//     once it passes it, the response arrives while the client is still
 //     sending. (Bun answers these 413s itself, with an empty body.)
 //   - Decompression: archive formats (DOCX/PPTX/XLSX/EPUB) went to
 //     markitdown with no expansion cap; a ~300 KB DOCX that inflates to
 //     300 MB OOM-killed a converter worker. markitdown now refuses it with
-//     413 and keeps serving (tested against markitdown-test directly — the
+//     413 and keeps serving (tested against markitdown-test directly, the
 //     integration app server has no markitdown configured). The ratio
 //     check runs while inflating, so a bomb is refused after ~ratio x its
 //     upload size of work, not after inflating up to the absolute cap.
 //
 // Test stack required: postgres-test + valkey-test + markitdown-test
-// (docker-compose.test.yml).
+// (deploy/compose/compose.test.yml).
 
 import { describe, it, expect, beforeAll } from 'vitest'
 import { request } from 'node:http'
@@ -25,6 +25,8 @@ import { Zip, ZipDeflate, zipSync, strToU8 } from 'fflate'
 import { TEST_PORT } from '../setup/env'
 
 const MARKITDOWN_URL = process.env.TEST_MARKITDOWN_URL ?? 'http://127.0.0.1:8081'
+// MARKITDOWN_API_SECRET of markitdown-test (deploy/compose/compose.test.yml).
+const MARKITDOWN_SECRET = 'test-markitdown-api-secret-isolated'
 const BOUNDARY = '----markoto-import-limit-test'
 
 interface Outcome {
@@ -42,7 +44,7 @@ interface Outcome {
  * length header (omitted → chunked transfer encoding). The request is
  * only ended after ALL chunks were written. A server that answers early
  * and closes the socket may surface to the client as EPIPE / ECONNRESET
- * instead of the response — that is reported as `status: 0`.
+ * instead of the response, that is reported as `status: 0`.
  */
 function postImport(chunkCount: number, chunkBytes: number, contentLength?: number): Promise<Outcome> {
   return new Promise((resolve, reject) => {
@@ -98,20 +100,19 @@ function postImport(chunkCount: number, chunkBytes: number, contentLength?: numb
 
 describe('request-body limit (server entry) on /api/import', () => {
   it('refuses a declared Content-Length over the cap without waiting for the body', async () => {
-    // Declares 100 MB, sends only 1 KB and never ends: the old endpoint
-    // waited for the rest of the body (until the test timed out).
+    // Declares 100 MB, sends only 1 KB and never ends: the endpoint must not wait for the rest of the body
+    // (the test would time out).
     const out = await Promise.race([
       postImport(1, 1024, 100 * 1024 * 1024),
-      new Promise<Outcome>((_, reject) => setTimeout(() => reject(new Error('no early response — body was being buffered')), 10_000))
+      new Promise<Outcome>((_, reject) => setTimeout(() => reject(new Error('no early response, body was being buffered')), 10_000))
     ])
     expect(out.status).toBe(413)
   }, 20_000)
 
   it('cuts a chunked upload off at the cap instead of buffering all of it', async () => {
-    // 120 × 1 MiB, chunked (no Content-Length). The server must refuse
-    // while the client is still sending: Bun answers 413 and closes the
-    // connection, which the client sees as the 413 or as the closed socket
-    // depending on timing. The old server read all 120 MiB first.
+    // 120 × 1 MiB, chunked (no Content-Length). The server must refuse while the client is still sending: Bun
+    // answers 413 and closes the connection, which the client sees as the 413 or as the closed socket
+    // depending on timing.
     const total = 120 * 1024 * 1024
     const out = await postImport(120, 1024 * 1024)
     expect(out.endedFirst).toBe(false)
@@ -163,11 +164,22 @@ function bombDocx(megabytes: number): Promise<Uint8Array> {
 async function convert(bytes: Uint8Array, ext: string): Promise<{ status: number, text: string }> {
   const res = await fetch(`${MARKITDOWN_URL}/convert?ext=${ext}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/octet-stream' },
+    headers: { 'Content-Type': 'application/octet-stream', 'X-Markitdown-Secret': MARKITDOWN_SECRET },
     body: Buffer.from(bytes)
   })
   return { status: res.status, text: await res.text() }
 }
+
+describe('markitdown shared-secret auth', () => {
+  it('refuses /convert and /design/extract without the secret, keeps /health open', async () => {
+    const bare = { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: Buffer.from(smallDocx('x')) }
+    expect((await fetch(`${MARKITDOWN_URL}/convert?ext=docx`, bare)).status).toBe(401)
+    expect((await fetch(`${MARKITDOWN_URL}/design/extract?ext=docx`, bare)).status).toBe(401)
+    const wrong = { ...bare, headers: { ...bare.headers, 'X-Markitdown-Secret': 'wrong-secret' } }
+    expect((await fetch(`${MARKITDOWN_URL}/convert?ext=docx`, wrong)).status).toBe(401)
+    expect((await fetch(`${MARKITDOWN_URL}/health`)).status).toBe(200)
+  })
+})
 
 describe('markitdown decompression limits', () => {
   // Building a bomb is CPU-bound and blocks this process's event loop for
@@ -182,7 +194,11 @@ describe('markitdown decompression limits', () => {
   }, 120_000)
 
   it('converts an ordinary DOCX (positive control)', async () => {
-    const out = await convert(smallDocx('Hello from a small docx'), 'docx')
+    // The first request after the minutes-long beforeAll can land on a pooled
+    // keep-alive socket the server has closed meanwhile; that says nothing
+    // about the converter, so this one request is sent again.
+    const docx = smallDocx('Hello from a small docx')
+    const out = await convert(docx, 'docx').catch(() => convert(docx, 'docx'))
     expect(out.status).toBe(200)
     expect(out.text).toContain('Hello from a small docx')
   })

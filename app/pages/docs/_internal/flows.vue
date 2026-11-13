@@ -6,27 +6,19 @@
 // that hasn't been overused.
 //
 // Surface: `/docs/_internal/flows`. Not linked from the docs landing
-// (the underscore prefix is the convention for internal pages —
+// (the underscore prefix is the convention for internal pages,
 // reachable by URL, not by navigation). The data comes from the
 // `_internal/flows-index` server route which walks `public/flows/`
 // and reads each manifest's title + hero + next-link.
 
-interface FlowSummary {
-  slug: string
-  title: string
-  heroPath: string | null
-  next?: { slug: string, why: string }
-  hasMobile: boolean
-}
-
-const origin = useRequestURL().origin
+const api = useApi()
 
 // SSR fetch through the internal endpoint. The gallery is page-load
 // only; no client-side polling needed (the underlying flows directory
 // only changes when someone runs `flows:build`, which the dev server
 // picks up after a refresh).
 const { data } = await useAsyncData('docs:flows-gallery', () =>
-  $fetch<{ flows: FlowSummary[] }>(`${origin}/api/_internal/flows-index`)
+  api('/api/_internal/flows-index')
 )
 
 const flows = computed(() => data.value?.flows ?? [])
@@ -39,7 +31,7 @@ const grouped = computed(() => {
   const primaries = flows.value.filter(f => !f.slug.endsWith('-on-mobile'))
   // Quick lookup so primary cards know to surface the mobile pill
   // (the API already returns `hasMobile`, but mobile siblings are
-  // ALSO published as standalone slugs — we want them paired with
+  // ALSO published as standalone slugs, we want them paired with
   // their primary, not double-listed).
   return primaries
 })
@@ -60,7 +52,7 @@ definePageMeta({ layout: 'docs' })
 
 <template>
   <div class="max-w-6xl mx-auto px-4 sm:px-6 md:px-12 py-10 md:py-16">
-    <!-- Header — explain what this is. The fact that it's reachable
+    <!-- Header: explain what this is. The fact that it's reachable
          by URL but not linked is intentional; people who land here
          either typed it or got it from a code comment. -->
     <header class="mb-10">
@@ -179,7 +171,7 @@ definePageMeta({ layout: 'docs' })
       </li>
     </ul>
 
-    <!-- Mobile siblings — listed flat below the primary grid because
+    <!-- Mobile siblings: listed flat below the primary grid because
          they're variants, not their own stories. Compact rows so the
          page doesn't get a second 3-col grid. -->
     <section

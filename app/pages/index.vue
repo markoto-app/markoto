@@ -8,7 +8,7 @@ const { loggedIn } = useUserSession()
 const toast = useToast()
 
 // Hosted markoto.app shows the scroll-driven product page to logged-out
-// visitors (NUXT_MARKETING_SITE_ENABLED, WP11); everyone else gets the
+// visitors (NUXT_MARKETING_SITE_ENABLED); everyone else gets the
 // plain hero + dashboard (components/home/Dashboard.vue).
 const { marketingSite } = useInstanceConfig()
 const showTour = computed(() => marketingSite.value && !loggedIn.value)
@@ -27,7 +27,7 @@ useMarketingSeo({
 useHomeStructuredData()
 // The tour's colours (useTourTone): it starts light and turns dark while
 // scrolling (ProductTour.vue). Only a choice made with this page's toggle
-// during this visit switches the flip off — a colour mode stored earlier
+// during this visit switches the flip off, a colour mode stored earlier
 // doesn't (Nuxt's toggle only ever stores light/dark, so one old click
 // would disable the flip for good). The toggle shows and flips what is on
 // screen, and stores the choice for the rest of the app too.
@@ -57,19 +57,17 @@ onMounted(() => {
       color: 'success'
     })
     // Strip the query param so a reload doesn't re-fire the toast.
-    router.replace({ query: { ...route.query, linked: undefined } })
+    void router.replace({ query: { ...route.query, linked: undefined } })
   }
 })
 
-// New-doc dialog. Replaces the old one-click POST so the user gets a
-// chance to seed title/description/audience/language/theme up-front —
-// the AI then has authoritative context from the very first prompt.
-// Skip path inside the dialog ("Just give me a blank doc") preserves
-// the legacy zero-config flow for muscle memory. Mounted on first use
+// New-doc dialog: seeds title/description/audience/language/theme up
+// front, so the AI has authoritative context from the first prompt.
+// "Just give me a blank doc" inside the dialog skips the setup. Mounted on first use
 // (useNewDocDialog), so the product page doesn't ship it.
 const { mounted: newDocDialogMounted, open: showNewDocDialog, show: createDocument, warm: warmNewDocDialog } = useNewDocDialog(() => import('~/components/document/NewDocumentDialog.vue'))
 function onDocCreated(docId: string) {
-  router.push(`/d/${docId}`)
+  void router.push(`/d/${docId}`)
 }
 </script>
 
@@ -97,7 +95,7 @@ function onDocCreated(docId: string) {
       </template>
     </MarketingHeader>
 
-    <!-- Hero. Editorial register from the homepage mockup —
+    <!-- Hero. Editorial register from the homepage mockup,
          Fraunces weight 300 display, italic-400 emphasis on the
          brand's loadbearing word ("Markdown"), Inter lede capped at
          34ch. -->

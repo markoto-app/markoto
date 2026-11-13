@@ -8,7 +8,7 @@ import {
 } from '../setup/fixtures'
 
 // Knowledge-base REST endpoints. These cover the DB + authz surface.
-// Upload-request issues a presigned S3 URL — we don't exercise the PUT
+// Upload-request issues a presigned S3 URL, we don't exercise the PUT
 // itself (that's S3's problem); confirm + list + delete are tested
 // against seeded rows. processKnowledge() runs fire-and-forget and is
 // not covered here (needs markitdown); its failure path is exercised
@@ -114,7 +114,7 @@ describe('POST /api/workspaces/:wsId/knowledge/upload-request', () => {
     const owner = await createUser()
     const ws = await createWorkspace(owner.id)
     const client = await loggedInClient(owner.id)
-    // Default cap is 25 MB — go just above.
+    // Default cap is 25 MB, go just above.
     const res = await client.post(`/api/workspaces/${ws.workspaceId}/knowledge/upload-request`, {
       filename: 'big.pdf',
       size: 26 * 1024 * 1024
@@ -203,7 +203,7 @@ describe('GET /api/workspaces/:wsId/knowledge', () => {
   })
 })
 
-describe('POST /api/workspaces/:wsId/knowledge/confirm — input binding', () => {
+describe('POST /api/workspaces/:wsId/knowledge/confirm: input binding', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -213,7 +213,7 @@ describe('POST /api/workspaces/:wsId/knowledge/confirm — input binding', () =>
     const ws = await createWorkspace(owner.id)
     const client = await loggedInClient(owner.id)
     const res = await client.post(`/api/workspaces/${ws.workspaceId}/knowledge/confirm`, {
-      // knowledgeId A, but s3Key names knowledgeId B — reject before
+      // knowledgeId A, but s3Key names knowledgeId B, reject before
       // any S3 or DB work.
       knowledgeId: 'a'.repeat(12),
       s3Key: `workspaces/${ws.workspaceId}/knowledge/${'b'.repeat(12)}.pdf`,
@@ -236,7 +236,7 @@ describe('per-user knowledge caps', () => {
     const u = await createUser()
     const wsA = await createWorkspace(u.id)
     const wsB = await createWorkspace(u.id, { workspaceId: 'ws-user-fanout' })
-    // Seed 100 rows owned by this user, split across two workspaces —
+    // Seed 100 rows owned by this user, split across two workspaces,
     // each workspace has 50, well below the 500/workspace cap, but
     // the per-user count (100) matches maxFilesPerUser.
     const db = testDb()
@@ -265,7 +265,7 @@ describe('per-user knowledge caps', () => {
   })
 })
 
-describe('POST /api/workspaces — per-user workspace cap', () => {
+describe('POST /api/workspaces: per-user workspace cap', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -351,5 +351,62 @@ describe('DELETE /api/workspaces/:wsId/knowledge/:id', () => {
     const client = await loggedInClient(viewer.id)
     const res = await client.delete(`/api/workspaces/${ws.workspaceId}/knowledge/${kn.knowledge_id}`)
     expect(res.status).toBe(403)
+  })
+})
+
+// The role rules every knowledge route applies, one table: viewers list,
+// editors upload / confirm / delete their own, admins delete any (also an
+// upload whose uploader is gone), guests and outsiders get 404 everywhere.
+describe('knowledge role rules across the routes', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  async function codeOf(res: Response): Promise<string | undefined> {
+    return (await res.json() as { data?: { code?: string } }).data?.code
+  }
+
+  it('guests of the workspace get 404 on every knowledge route', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const guest = await createUser()
+    await setMemberRole(ws.workspaceId, guest.id, 'guest')
+    const kn = await seedKnowledge({ workspace_id: ws.workspaceId, uploader_id: guest.id })
+    const client = await loggedInClient(guest.id)
+    const base = `/api/workspaces/${ws.workspaceId}/knowledge`
+    for (const res of [
+      await client.get(base),
+      await client.post(`${base}/upload-request`, { filename: 'notes.md', size: 10 }),
+      await client.post(`${base}/confirm`, { knowledgeId: kn.knowledge_id, s3Key: `workspaces/${ws.workspaceId}/knowledge/${kn.knowledge_id}.md`, filename: 'notes.md', ext: 'md', mimeType: 'text/markdown' }),
+      await client.delete(`${base}/${kn.knowledge_id}`)
+    ]) {
+      expect(res.status).toBe(404)
+      expect(await codeOf(res)).toBe('workspace/not-found')
+    }
+    expect(await countRows(ws.workspaceId)).toBe(1)
+  })
+
+  it('viewers may not confirm an upload (403 knowledge/editor-required)', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const viewer = await createUser()
+    await setMemberRole(ws.workspaceId, viewer.id, 'viewer')
+    const client = await loggedInClient(viewer.id)
+    const res = await client.post(`/api/workspaces/${ws.workspaceId}/knowledge/confirm`, { knowledgeId: 'kn-x', s3Key: `workspaces/${ws.workspaceId}/knowledge/kn-x.md`, filename: 'notes.md', ext: 'md', mimeType: 'text/markdown' })
+    expect(res.status).toBe(403)
+    expect(await codeOf(res)).toBe('knowledge/editor-required')
+  })
+
+  it('an upload without an uploader: only an admin may delete it', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const editor = await createUser()
+    await setMemberRole(ws.workspaceId, editor.id, 'editor')
+    const kn = await seedKnowledge({ workspace_id: ws.workspaceId, uploader_id: null })
+    const asEditor = await (await loggedInClient(editor.id)).delete(`/api/workspaces/${ws.workspaceId}/knowledge/${kn.knowledge_id}`)
+    expect(asEditor.status).toBe(403)
+    expect(await codeOf(asEditor)).toBe('knowledge/not-uploader')
+    expect((await (await loggedInClient(admin.id)).delete(`/api/workspaces/${ws.workspaceId}/knowledge/${kn.knowledge_id}`)).status).toBe(200)
+    expect(await countRows(ws.workspaceId)).toBe(0)
   })
 })

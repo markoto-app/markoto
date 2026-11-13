@@ -2,10 +2,10 @@
 // "Storage & limits" section of the topbar usage popover: image
 // storage, knowledge files, knowledge storage and owned workspaces,
 // each as "used / limit" with a thin bar coloured by fill
-// (`usageFill` — the AI-points badge thresholds, inverted).
+// (`usageFill`: the AI-points badge thresholds, inverted).
 
-import type { UserBilling } from '~/composables/useBilling'
-import { formatBytes, usageFill, USAGE_LEVEL_BAR_CLASS, type UsageFill } from '~/utils/usageMeter'
+import type { UserBilling } from '~/composables/billing/useBilling'
+import { formatBytes, usageFill, USAGE_LEVEL_BAR_CLASS, type UsageFill } from '~/utils/billing/usageMeter'
 
 const props = defineProps<{ billing: UserBilling }>()
 

@@ -4,7 +4,7 @@ import { api, smokeDoc } from './_helpers'
 // Template bodies are read server-side from shared/templates/content/*.md by
 // templateRenderer.ts. Those files weren't in the prod Docker image, so every
 // non-blank template body came back null in prod. The token endpoint returns
-// the server-rendered initialBody — a non-empty body proves the files ship
+// the server-rendered initialBody: a non-empty body proves the files ship
 // and templateRenderer resolves them.
 test('template new-doc seeds a non-empty body', async () => {
   // Created once by globalSetup.ts with TEMPLATE_DOC_BODY (business-plan).

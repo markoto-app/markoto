@@ -23,19 +23,20 @@
 # layer. Restore needs the same passphrase.
 #
 # Same script works against any S3-compatible endpoint (SeaweedFS in dev,
-# Infomaniak / R2 / AWS in prod) — only env changes.
+# Infomaniak / R2 / AWS in prod): only env changes.
 #
-# Restore: see docs/DEPLOY.md §6 — `gpg --decrypt | gunzip | psql`.
+# Restore: see docs/operations/DEPLOY.md §6: `gpg --decrypt | gunzip | psql`.
 # Runs as an unprivileged user (see the Dockerfile): HOME and the gpg home
 # live under /tmp.
 
 set -e
 # pipefail makes a pipeline return the FIRST non-zero exit, not just the
 # last stage's. Without it, `pg_dump | gzip | gpg` reports success as long
-# as gpg succeeds — even if pg_dump died mid-stream and produced a
+# as gpg succeeds: even if pg_dump died mid-stream and produced a
 # truncated dump. That's how a silently-corrupt backup gets uploaded and
 # looks fine. Verified supported by busybox ash in postgres:16-alpine
 # (the base image); it is NOT portable POSIX, so keep the alpine base.
+# shellcheck disable=SC3040  # busybox ash (the alpine base) implements pipefail; only POSIX sh lacks it
 set -o pipefail
 
 # Writable homes for the unprivileged user (aws CLI config, gpg keyring).
@@ -97,7 +98,7 @@ backup_once() {
   # The passphrase is fed via fd 3 instead of --passphrase "$VAR" so it
   # never appears in `ps`/`/proc/<pid>/cmdline`. --batch + --pinentry-mode
   # loopback keeps gpg fully non-interactive in a containerised setting.
-  # `set -o pipefail` (above) makes this `if` false if ANY stage fails —
+  # `set -o pipefail` (above) makes this `if` false if ANY stage fails,
   # so a mid-pipeline pg_dump failure skips the upload instead of shipping
   # a truncated dump. A post-pipeline size floor (below) is the second
   # guard against a pg_dump that exits 0 but produced too little.
@@ -112,16 +113,16 @@ backup_once() {
 $BACKUP_GPG_PASSPHRASE
 EOF_PASSPHRASE
   then
-    # Size floor: a real encrypted dump — even of a near-empty schema — is
+    # Size floor: a real encrypted dump, even of a near-empty schema, is
     # comfortably over 1 KB. A tmpfile below the floor means the pipeline
     # produced almost nothing (a pg_dump that exited 0 but wrote a stub, or
     # a gpg of an empty stream); refuse to upload it over a good backup.
-    # (Don't `return` here — this function is called bare under `set -e`,
+    # (Don't `return` here: this function is called bare under `set -e`,
     # so a non-zero return would kill the whole backup loop. Skip the
     # upload and let the next interval retry.)
     bytes=$(wc -c < "$tmp" 2>/dev/null || echo 0)
     if [ "$bytes" -lt 1024 ]; then
-      echo "[backup] Refusing to upload — dump is implausibly small (${bytes} bytes). Treating as failure; will retry next interval." >&2
+      echo "[backup] Refusing to upload, dump is implausibly small (${bytes} bytes). Treating as failure; will retry next interval." >&2
       status=1
     else
       size=$(du -h "$tmp" | cut -f1)
@@ -147,7 +148,7 @@ EOF_PASSPHRASE
   rm -f "$tmp" /tmp/pg_dump.err
 
   # Retention: keep newest N, drop the rest. ISO-8601-ish timestamps sort
-  # lexically. Suffix changed from .sql.gz to .sql.gz.gpg — the grep
+  # lexically. Suffix changed from .sql.gz to .sql.gz.gpg: the grep
   # matches the new suffix; pre-existing un-encrypted backups (if any)
   # remain in the bucket and must be pruned manually after a transition.
   existing=$(aws --endpoint-url "$S3_ENDPOINT" s3 ls "s3://${S3_BUCKET}/${S3_PREFIX}/" 2>/dev/null \
@@ -162,7 +163,7 @@ EOF_PASSPHRASE
   return "$status"
 }
 
-echo "[backup] Started — interval ${BACKUP_INTERVAL_SECONDS}s, retention ${BACKUP_RETENTION_COUNT}, target s3://${S3_BUCKET}/${S3_PREFIX}/ (gpg AES256, SSE-S3)"
+echo "[backup] Started: interval ${BACKUP_INTERVAL_SECONDS}s, retention ${BACKUP_RETENTION_COUNT}, target s3://${S3_BUCKET}/${S3_PREFIX}/ (gpg AES256, SSE-S3)"
 
 # Run once at startup so a fresh deploy already has a snapshot.
 first_status=0
@@ -171,7 +172,7 @@ backup_once || first_status=1
 # `--once` mode: used by the belt-and-braces host cron (roles/backup_cron),
 # which `docker compose exec`s this script inside the running sidecar for
 # a one-shot run. Without this exit, the exec'd invocation would fall
-# into the interval loop below and never return — the cron job would hang
+# into the interval loop below and never return: the cron job would hang
 # forever and stack a new orphaned loop process every night.
 if [ "${1:-}" = "--once" ]; then
   if [ "$first_status" -ne 0 ]; then

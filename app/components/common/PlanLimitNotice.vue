@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Inline notice for a plan limit or a feature the current plan doesn't
- * include (server side: `server/utils/entitlements.ts`). Every gated
+ * include (server side: `server/utils/billing/entitlements.ts`). Every gated
  * control uses this one component so the wording and the link stay
  * consistent:
  *
@@ -10,7 +10,7 @@
  * - self-hosted → no link (the operator sets the limits; there is
  *   nothing to buy).
  *
- * TODO(WS5, Team plan): members of a paid workspace get "Ask your
+ * TODO: members of a paid workspace get "Ask your
  * admin" instead of a purchase link.
  */
 const props = defineProps<{

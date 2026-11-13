@@ -49,7 +49,7 @@ const links = computed<HeaderLink[]>(() => [
       <NuxtLink
         to="/"
         class="flex items-center shrink-0"
-        aria-label="markoto home"
+        :aria-label="t('common.homeLinkLabel')"
       >
         <CommonWordmark :size="20" />
         <CommonInstanceBrand

@@ -18,6 +18,19 @@ image_tag: latest
 nuxt_billing_enabled: false
 nuxt_plans_coming_soon: true
 
+# ─── Legal pages (shared/legal/entity.ts) ───
+# The rendered stack runs with the legal surfaces on, so these two are
+# required (the app refuses to boot without them); every other
+# nuxt_legal_* value (controller_name, privacy_contact_email,
+# abuse_contact_email, governing_law, legal_form, registered_office, uid,
+# ch_id, ehra_id) is optional and falls back to the code default.
+nuxt_legal_controller_address: ""
+nuxt_legal_represented_by: ""
+# Comma-separated emails promoted to instance admin at their next sign-in.
+nuxt_admin_user_emails: ""
+# Hostname that serves published pages, separate from the app (e.g. pages.example.org). Required.
+nuxt_publish_pages_host: ""
+
 # ─── Backup sidecar tunables ───
 backup_interval_seconds: 86400
 backup_retention_count: 30
@@ -29,7 +42,6 @@ postgres_host: "{{ ovh_pg_host | default('postgres') }}"
 postgres_port: "{{ ovh_pg_port | default(5432) }}"
 
 valkey_db: 0
-valkey_tls_enabled: false
 
 s3_endpoint: "{{ ovh_s3_endpoint | default('') }}"
 s3_bucket: "{{ ovh_s3_bucket | default('') }}"
@@ -39,7 +51,7 @@ s3_bucket: "{{ ovh_s3_bucket | default('') }}"
 ovh_pg_host: ""
 ovh_pg_port: 5432
 
-# OVH managed PG CA — drop the .pem at infra/files/ovh-pg-ca.pem and the
+# OVH managed PG CA: drop the .pem at infra/files/ovh-pg-ca.pem and the
 # markoto role will copy it in + bind-mount it. Empty string disables.
 ovh_pg_ca_local_path: "files/ovh-pg-ca.pem"
 ovh_pg_ca_remote_path: /opt/markoto/secrets/ovh-pg-ca.pem
@@ -57,5 +69,5 @@ health_endpoint: "https://{{ domain }}/api/health"
 # before turning healthy, and `app` waits for it.
 health_timeout_seconds: 300
 
-# Timezone — UTC across the fleet keeps log correlation sane.
+# Timezone: UTC across the fleet keeps log correlation sane.
 host_timezone: UTC

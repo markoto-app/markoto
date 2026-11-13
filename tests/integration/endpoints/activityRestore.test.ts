@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { ensureYjsTable, resetDb, testDb } from '../setup/db'
+import * as Y from 'yjs'
+import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import {
   createDoc,
@@ -7,27 +8,13 @@ import {
   createWorkspace,
   setMemberRole
 } from '../setup/fixtures'
+import { first } from '../../helpers/assert'
 
 // POST /api/docs/:docId/activity/:activityId/restore
 //
 // Snaps the live Y.Doc to a past state. The endpoint owns auth +
-// validation; the actual restoration goes through Hocuspocus, which
-// the integration test stack doesn't run (it has an HTTP-only sync
-// stub via `syncStub.ts`). So this suite exercises every path that
-// completes BEFORE the WS connect:
-//   - 401 unauthenticated
-//   - 400 malformed activityId
-//   - 403 read-only viewer / non-member on a private doc
-//   - 404 unknown activityId
-//   - 404 activity row from a different doc (cross-doc isolation)
-//   - 410 row predates boundary tracking
-//
-// The "actually restores doc state" path is covered by:
-//   1. The `restoreDocToYjsId` unit tests (mocked WS provider)
-//   2. The flow-test docker stack which brings up `sync-test` and
-//      can drive a real WS round-trip (see scripts/flows-ephemeral.ts)
-// Documenting the split here so the gap doesn't masquerade as a
-// missing test.
+// validation (401 / 400 / 403 / 404 / 410 below); the restoration itself
+// goes through the real sync server of the test stack (`sync-test`).
 
 async function insertActivityRow(
   docId: string,
@@ -42,26 +29,44 @@ async function insertActivityRow(
      RETURNING id`,
     [docId, options.userName ?? 'Alice', options.action ?? 'edit', yjsDocIdBefore, yjsDocIdAfter]
   )
-  return r.rows[0].id
+  return first(r.rows).id
 }
 
-async function insertYjsRow(docname: string, _content: string): Promise<number> {
+async function insertYjsRow(docname: string, _content: string, kind: 'update' | 'snapshot' = 'update'): Promise<number> {
   const db = testDb()
   // Minimal valid Y.js update encoded for the row. Doesn't need to
-  // be replayable for these tests — the auth/validation gates fire
+  // be replayable for these tests, the auth/validation gates fire
   // before any replay happens.
   const fakeBytes = Buffer.from([0, 0]) // empty Y.js update header
   const r = await db.query<{ id: number }>(
-    `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1') RETURNING id`,
-    [docname, fakeBytes]
+    `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, $3, $2) RETURNING id`,
+    [docname, fakeBytes, kind]
   )
-  return r.rows[0].id
+  return Number(first(r.rows).id)
+}
+
+async function insertYjsUpdate(docId: string, update: Uint8Array): Promise<number> {
+  const r = await testDb().query<{ id: string }>(
+    `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2) RETURNING id`,
+    [docId, Buffer.from(update)]
+  )
+  return Number(first(r.rows).id)
+}
+
+/** The document text at a row id, replayed from the stored rows. */
+async function textAt(docId: string, maxId: number): Promise<string> {
+  const r = await testDb().query<{ data: Buffer }>(
+    'SELECT data FROM yjs_updates WHERE doc_id = $1 AND id <= $2 ORDER BY id',
+    [docId, maxId]
+  )
+  const ydoc = new Y.Doc()
+  for (const row of r.rows) Y.applyUpdate(ydoc, new Uint8Array(row.data))
+  return ydoc.getText('content').toJSON()
 }
 
 describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
   beforeEach(async () => {
     await resetDb()
-    await ensureYjsTable()
   })
 
   describe('validation', () => {
@@ -101,7 +106,7 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
     })
   })
 
-  describe('auth — edit access required', () => {
+  describe('auth: edit access required', () => {
     it('returns 403 for a logged-in non-member on a private doc', async () => {
       const owner = await createUser()
       const other = await createUser()
@@ -147,7 +152,7 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
       // test stack the WS connect will time out (no real Hocuspocus),
       // so we just verify the gate passed by checking we DON'T see
       // 403 (status will be 500 from the WS timeout, which is correct
-      // for this stack — proves auth let it through).
+      // for this stack: proves auth let it through).
       const creator = await createUser()
       const member = await createUser()
       const ws = await createWorkspace(creator.id)
@@ -166,13 +171,13 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
         {}
       )
       // 200 (full sync stack), 500 (no Hocuspocus in this test
-      // harness — the request DID get past the auth gate but the
+      // harness: the request DID get past the auth gate but the
       // WS connect timed out). 403 would be a real bug.
       expect([200, 500]).toContain(res.status)
     }, 30_000)
   })
 
-  describe('404 — not found / cross-doc isolation', () => {
+  describe('404: not found / cross-doc isolation', () => {
     it('returns 404 for an unknown activityId', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
@@ -206,17 +211,17 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
       const owner = await createUser()
       const client = await loggedInClient(owner.id)
       const res = await client.post(`/api/docs/nonexistent/activity/1/restore`, {})
-      // requireDocEditAccess returns 404 when the doc doesn't exist
-      // (the standard pattern for missing-doc protection — we don't
+      // The write-content policy returns 404 when the doc doesn't exist
+      // (the standard pattern for missing-doc protection, we don't
       // expose whether the user WOULD have had access).
       expect(res.status).toBe(404)
     })
   })
 
-  describe('410 — restore unavailable', () => {
+  describe('410: restore unavailable', () => {
     it('returns 410 when the activity row has yjsDocIdBefore=null (pre-feature)', async () => {
       // Pre-Tier-1 activity rows weren't stamped with boundary ids.
-      // The endpoint can't compute a "before" state to restore TO —
+      // The endpoint can't compute a "before" state to restore TO,
       // surface this as 410 (matches the diff endpoint's contract).
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
@@ -230,21 +235,20 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
       expect(res.status).toBe(410)
     })
 
-    // F4 (data-loss guard): y-postgresql compaction physically DELETES every
-    // granular `v1` row below the merged row. Restoring to a target below that
-    // surviving floor used to reconstruct an EMPTY doc and WIPE the live doc.
-    // The compaction-floor guard must refuse with 410 instead.
-    it('returns 410 (does NOT wipe) when the target id is below the compaction floor', async () => {
+    // Data-loss guard: pruning (sync COMPACT_RETAIN_HISTORY_DAYS) DELETES every row below a snapshot.
+    // Restoring to a target below that surviving floor must be refused with 410, not reconstruct an EMPTY doc
+    // and WIPE the live doc.
+    it('returns 410 (does NOT wipe) when the target id is below the history floor', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
-      const low = await insertYjsRow(doc.docId, '') // target — gets compacted away
+      const low = await insertYjsRow(doc.docId, '') // target, gets pruned
       await insertYjsRow(doc.docId, '')
-      const merged = await insertYjsRow(doc.docId, '') // stands in for the merged row
+      const snapshot = await insertYjsRow(doc.docId, '', 'snapshot')
       const activityId = await insertActivityRow(doc.docId, low, low)
-      // Simulate `clearUpdatesRange`: delete every v1 row below the merged one.
+      // What the prune does: delete every row below the snapshot.
       await testDb().query(
-        `DELETE FROM yjs_documents WHERE docname = $1 AND version = 'v1' AND id < $2`,
-        [doc.docId, merged]
+        `DELETE FROM yjs_updates WHERE doc_id = $1 AND id < $2`,
+        [doc.docId, snapshot]
       )
 
       const client = await loggedInClient(owner.id)
@@ -253,19 +257,19 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
         {}
       )
       // 410 = guard fired pre-apply. A 200/500 here would mean it attempted the
-      // restore with an empty reconstruction — i.e. the doc-wipe bug.
+      // restore with an empty reconstruction, i.e. the doc-wipe bug.
       expect(res.status).toBe(410)
     })
 
-    it('does NOT 410 when the target id is AT the compaction floor (still reconstructable)', async () => {
+    it('does NOT 410 when the target id is AT the history floor (still reconstructable)', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
       await insertYjsRow(doc.docId, '')
       await insertYjsRow(doc.docId, '')
-      const floor = await insertYjsRow(doc.docId, '')
+      const floor = await insertYjsRow(doc.docId, '', 'snapshot')
       const activityId = await insertActivityRow(doc.docId, floor, floor)
       await testDb().query(
-        `DELETE FROM yjs_documents WHERE docname = $1 AND version = 'v1' AND id < $2`,
+        `DELETE FROM yjs_updates WHERE doc_id = $1 AND id < $2`,
         [doc.docId, floor]
       )
 
@@ -274,14 +278,45 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
         `/api/docs/${doc.docId}/activity/${activityId}/restore`,
         {}
       )
-      // target == floor → the merged row IS included by `id <= target`, so the
+      // target == floor → the snapshot IS included by `id <= target`, so the
       // guard must NOT fire. Falls through to the WS path: 200 (full stack) or
       // 500 (no Hocuspocus in this harness). Just never 410.
       expect([200, 500]).toContain(res.status)
     }, 30_000)
   })
 
-  describe('failure path — atomicity', () => {
+  describe('a restore that changes the content', () => {
+    it('stamps the restore row with the id the restore wrote, so its diff shows the change', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      const ydoc = new Y.Doc()
+      const text = ydoc.getText('content')
+      text.insert(0, 'old text')
+      const oldId = await insertYjsUpdate(doc.docId, Y.encodeStateAsUpdate(ydoc))
+      const sv = Y.encodeStateVector(ydoc)
+      text.delete(0, text.length)
+      text.insert(0, 'new text')
+      const newId = await insertYjsUpdate(doc.docId, Y.encodeStateAsUpdate(ydoc, sv))
+      const activityId = await insertActivityRow(doc.docId, oldId, newId)
+
+      const client = await loggedInClient(owner.id)
+      const res = await client.post(`/api/docs/${doc.docId}/activity/${activityId}/restore`, {})
+      expect(res.status).toBe(200)
+
+      const row = first((await testDb().query<{ before: string, after: string }>(
+        `SELECT yjs_doc_id_before AS before, yjs_doc_id_after AS after FROM activity_log WHERE doc_id = $1 AND action = 'restore'`,
+        [doc.docId]
+      )).rows)
+      expect(Number(row.before)).toBe(newId)
+      // The sync server stores after a 2 s debounce; the restore makes it
+      // store right away, so the row carries the restore's own id.
+      expect(Number(row.after)).toBeGreaterThan(Number(row.before))
+      expect(await textAt(doc.docId, Number(row.before))).toBe('new text')
+      expect(await textAt(doc.docId, Number(row.after))).toBe('old text')
+    }, 30_000)
+  })
+
+  describe('failure path: atomicity', () => {
     it('does NOT write a `restore` activity row when the restore execution fails', async () => {
       // SECURITY/CORRECTNESS: when restoreDocToYjsId throws (e.g. WS
       // timeout in this test stack), no activity row should be left
@@ -301,14 +336,17 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
       // way there should be no orphan `restore` row.
       expect([200, 500]).toContain(res.status)
 
+      // A 200 legitimately leaves a `restore` row; only the failed restore must leave none.
+      let orphanRestoreRows = 0
       if (res.status === 500) {
         const db = testDb()
         const r = await db.query<{ c: string }>(
           `SELECT COUNT(*) AS c FROM activity_log WHERE doc_id = $1 AND action = 'restore'`,
           [doc.docId]
         )
-        expect(Number(r.rows[0].c)).toBe(0)
+        orphanRestoreRows = Number(first(r.rows).c)
       }
+      expect(orphanRestoreRows).toBe(0)
     }, 30_000)
   })
 })

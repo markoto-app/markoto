@@ -5,6 +5,7 @@ import { createDoc, createUser } from '../setup/fixtures'
 import { createAnonDoc, solveAnonChallenge } from '../setup/anonGate'
 import { TEST_BILLING_OFF_BASE_URL } from '../setup/env'
 import { ANON_ABUSE_REPORT_LIMITS } from '../../../shared/config/anonLimits'
+import { first } from '../../helpers/assert'
 
 // DSA Art.16 notices without an account + the moderation decision path:
 //   - anonymous reports need a fresh ALTCHA (purpose abuse-report) and the
@@ -67,7 +68,7 @@ async function submitAnon(fields: Record<string, unknown>, opts: { headers?: Rec
   return client.post('/api/abuse-reports', { ...fields, altcha: await solveAnonChallenge(client, 'abuse-report') }, { headers: opts.headers })
 }
 
-describe('POST /api/abuse-reports — anonymous (DSA Art.16)', () => {
+describe('POST /api/abuse-reports: anonymous (DSA Art.16)', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -77,7 +78,7 @@ describe('POST /api/abuse-reports — anonymous (DSA Art.16)', () => {
     expect(res.status).toBe(200)
     const { reportId } = await res.json() as { reportId: string }
 
-    const row = (await testDb().query<ReportRow>('SELECT * FROM abuse_reports WHERE report_id = $1', [reportId])).rows[0]
+    const row = first((await testDb().query<ReportRow>('SELECT * FROM abuse_reports WHERE report_id = $1', [reportId])).rows)
     expect(row.reporter_user_id).toBeNull()
     expect(row.reporter_name).toBe('Riley Reporter')
     expect(row.reporter_email).toBe('riley@example.org')

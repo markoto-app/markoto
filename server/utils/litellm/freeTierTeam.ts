@@ -6,9 +6,9 @@
 // ceiling and no team). The proxy enforces it: before every call it checks
 // the key's own `max_budget` (the per-user allowance, `TIER_FREE_LITELLM_
 // BUDGET_USD`) AND the team's, so the pool is spent down by every
-// platform-paid call any free user makes — the agentic loop, web-tool
+// platform-paid call any free user makes, the agentic loop, web-tool
 // synthesis, MCP, transcription / image / dictation ticks on alias
-// defaults — without app-side accounting. The team's `budget_duration`
+// defaults: without app-side accounting. The team's `budget_duration`
 // is the same `30d` the keys use, which LiteLLM normalises to the 1st of
 // the month (verified on v1.106.4: `budget_reset_at` = next 1st, 00:00 UTC
 // for both), so the pool and the per-user allowance refill together.
@@ -28,7 +28,13 @@
 // `litellm-key-reconcile` sweeper (`keyReconcile.ts`).
 
 import type { PlanName } from '~~/shared/config/tiers'
+import { litellmTeamInfoResponse, type LitellmTeamInfo } from './adminResponses'
 import { litellmAdminFetch } from './litellmAdmin'
+import { useEnv } from '~~/shared/env/load'
+import type { RawEnv } from '~~/shared/env/define'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('litellm-free-tier')
 
 /** Fixed LiteLLM team id (LiteLLM accepts a caller-chosen `team_id`), so no app-side storage is needed. */
 export const FREE_TIER_TEAM_ID = 'markoto-free-tier'
@@ -46,29 +52,12 @@ export const FREE_ALLOWANCE_EXHAUSTED_MESSAGE_KEY = 'ai.freeAllowanceExhausted'
 export const FREE_ALLOWANCE_EXHAUSTED_MESSAGE
   = 'This month\'s free AI allowance is used up. Add your own key in Settings → AI provider to keep going.'
 
-type Env = Record<string, string | undefined>
+type Env = RawEnv | undefined
 
-/**
- * The configured ceiling in USD, or null when there is none (unset, empty,
- * `0`, negative or not a number — self-hosters run without a pool).
- */
-export function freeTierTotalBudgetUsd(env: Env = process.env): number | null {
-  const raw = (env.NUXT_FREE_TIER_TOTAL_BUDGET_USD ?? '').trim()
-  if (raw === '') return null
-  const value = Number(raw)
-  if (!Number.isFinite(value) || value <= 0) return null
-  return value
-}
-
-/** Problems with the configured value, logged once at boot. */
-export function freeTierTotalBudgetProblems(env: Env = process.env): string[] {
-  const raw = (env.NUXT_FREE_TIER_TOTAL_BUDGET_USD ?? '').trim()
-  if (raw === '' || raw === '0') return []
-  const value = Number(raw)
-  if (!Number.isFinite(value) || value < 0) {
-    return [`NUXT_FREE_TIER_TOTAL_BUDGET_USD="${raw.slice(0, 40)}" is not a non-negative number — no global free-tier ceiling is applied.`]
-  }
-  return []
+/** The configured ceiling in USD, or null when there is none (unset or `0`, self-hosters run without a pool). */
+export function freeTierTotalBudgetUsd(env?: Env): number | null {
+  const value = useEnv(env).ai.freeTierTotalBudgetUsd
+  return value > 0 ? value : null
 }
 
 /**
@@ -76,7 +65,7 @@ export function freeTierTotalBudgetProblems(env: Env = process.env): string[] {
  * free users while a ceiling is configured, otherwise none. Callers pass
  * the EFFECTIVE plan (billing off → always `free`).
  */
-export function teamIdForPlan(plan: PlanName, env: Env = process.env): string | null {
+export function teamIdForPlan(plan: PlanName, env?: Env): string | null {
   if (plan !== 'free') return null
   return freeTierTotalBudgetUsd(env) === null ? null : FREE_TIER_TEAM_ID
 }
@@ -96,8 +85,6 @@ export function isFreeAllowanceExhaustedError(err: unknown): boolean {
   return msg.includes(`Team=${FREE_TIER_TEAM_ID}`) && /Budget has been exceeded|budget_exceeded/i.test(msg)
 }
 
-// ─── Team provisioning ──────────────────────────────────────────────────
-
 /** Budget the team was last brought to in this process (skip the round trip when unchanged). */
 let ensuredBudget: number | null = null
 /** The provisioning round trip in flight, shared by concurrent callers. */
@@ -110,12 +97,7 @@ export function resetFreeTierTeamMemo(): void {
   poolCache = null
 }
 
-interface TeamInfo {
-  max_budget?: number | null
-  spend?: number | null
-  budget_duration?: string | null
-  budget_reset_at?: string | null
-}
+type TeamInfo = LitellmTeamInfo
 
 async function readTeam(): Promise<TeamInfo | null> {
   const res = await litellmAdminFetch(`/team/info?team_id=${encodeURIComponent(FREE_TIER_TEAM_ID)}`)
@@ -128,8 +110,7 @@ async function readTeam(): Promise<TeamInfo | null> {
     const text = await res.text().catch(() => '')
     throw new Error(`[freeTierTeam] /team/info failed: ${res.status} ${text.slice(0, 200)}`)
   }
-  const payload = await res.json() as { team_info?: TeamInfo }
-  return payload.team_info ?? null
+  return litellmTeamInfoResponse.parse(await res.json()).team_info ?? null
 }
 
 /**
@@ -137,7 +118,7 @@ async function readTeam(): Promise<TeamInfo | null> {
  * to the configured values. Idempotent; a no-op without a ceiling.
  * Returns the team id when a ceiling is active, else null.
  */
-export async function ensureFreeTierTeam(env: Env = process.env): Promise<string | null> {
+export async function ensureFreeTierTeam(env?: Env): Promise<string | null> {
   const budget = freeTierTotalBudgetUsd(env)
   if (budget === null) return null
   if (ensuredBudget === budget) return FREE_TIER_TEAM_ID
@@ -157,7 +138,7 @@ export async function ensureFreeTierTeam(env: Env = process.env): Promise<string
 
 /**
  * LiteLLM's answers when the team id is taken (v1.106.4): 400 "already
- * exists", or — when two creates race — a 500 "Unique constraint failed".
+ * exists", or, when two creates race, a 500 "Unique constraint failed".
  */
 export function isDuplicateTeamError(text: string): boolean {
   return /already exists|Unique constraint failed/i.test(text)
@@ -182,7 +163,7 @@ async function provisionTeam(budget: number): Promise<void> {
       throw new Error(`[freeTierTeam] /team/new failed: ${res.status} ${text.slice(0, 200)}`)
     }
     // Lost a create race (another request or instance): the team exists
-    // now — bring it to this budget like any existing team.
+    // now: bring it to this budget like any existing team.
     existing = await readTeam()
     if (!existing) throw new Error('[freeTierTeam] team creation raced, but the team is still missing')
   }
@@ -205,7 +186,7 @@ async function provisionTeam(budget: number): Promise<void> {
  * Make the LiteLLM user a member of the free-tier team. `/key/generate`
  * accepts a `team_id` without membership, but `/key/update` moving an
  * existing key (which carries a `user_id`) INTO the team answers 403
- * "User=<id> is not a member of the team" (v1.106.4) — so every update
+ * "User=<id> is not a member of the team" (v1.106.4), so every update
  * that joins the pool calls this first. Idempotent: "already in team" is
  * success.
  */
@@ -220,8 +201,6 @@ export async function ensureFreeTierTeamMember(userId: number): Promise<void> {
   if (/already in team|team_member_already_in_team|Unique constraint failed/i.test(text)) return
   throw new Error(`[freeTierTeam] /team/member_add failed: ${res.status} ${text.slice(0, 200)}`)
 }
-
-// ─── Pool status (for the UI) ───────────────────────────────────────────
 
 export interface FreeTierPoolStatus {
   exhausted: boolean
@@ -238,7 +217,7 @@ let poolCache: { at: number, value: FreeTierPoolStatus | null } | null = null
  * gate anyway. Null without a ceiling, or when the proxy can't be read
  * (fail open: the UI then behaves as before and the proxy still refuses).
  */
-export async function getFreeTierPoolStatus(env: Env = process.env): Promise<FreeTierPoolStatus | null> {
+export async function getFreeTierPoolStatus(env?: Env): Promise<FreeTierPoolStatus | null> {
   const budget = freeTierTotalBudgetUsd(env)
   if (budget === null) return null
   const now = Date.now()
@@ -258,7 +237,7 @@ async function readPoolStatus(budget: number): Promise<FreeTierPoolStatus | null
     // STRICTLY above max_budget (verified on v1.106.4).
     return { exhausted: spend > max, resetsAt: team.budget_reset_at ?? null }
   } catch (e) {
-    console.warn(`[freeTierTeam] could not read the free-tier pool: ${e instanceof Error ? e.message : e}`)
+    log.warn('could not read the free-tier pool', { err: e })
     return null
   }
 }

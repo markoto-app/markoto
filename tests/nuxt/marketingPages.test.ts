@@ -4,13 +4,13 @@ import { mountSuspended, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { defineComponent, h, nextTick } from 'vue'
 import { CommonLegalFooter, CompareTable, Faq, FlowStrip, MarketingHeader, NuxtPage, TourClip } from '#components'
 import { MINIMAL_INSTANCE_CONFIG, type InstanceConfig } from '~~/shared/config/instance'
-import { fetchMarketingPage } from '~/utils/marketingPage'
+import { fetchMarketingPage } from '~/utils/marketing/marketingPage'
 
 // Marketing content pages (pages/[...marketing].vue): 404 for unknown
 // slugs (fetchMarketingPage → null) and off the marketing site (the
 // middleware, also pinned in marketingSiteSeo.test.ts), hreflang only for
 // reviewed versions, noindex for unreviewed translations. The content
-// collection is faked — the route's queries are under test, not Nuxt
+// collection is faked: the route's queries are under test, not Nuxt
 // Content.
 
 interface Item { path: string, title: string, description: string, reviewed: boolean, body: { type: 'minimark', value: unknown[] }, navGroup?: string, navLabel?: string, navOrder?: number }
@@ -134,7 +134,7 @@ describe('marketing catch-all route', () => {
 })
 
 describe('::flow-strip', () => {
-  it('renders the default variant as <img> with alt, width and height — no fetch, no client-only step', async () => {
+  it('renders the default variant as <img> with alt, width and height, no fetch, no client-only step', async () => {
     const wrapper = await mountSuspended(FlowStrip, { props: { id: 'rich-content', frames: '20' } })
     const light = wrapper.find('img.mk-flow-strip__img--light')
     expect(light.attributes('src')).toBe('/flows/rich-content/en/light-desktop/20.webp')
@@ -226,7 +226,7 @@ describe('Templates link', () => {
     expect(hrefs.indexOf('/templates')).toBeLessThan(hrefs.indexOf('/templates/report'))
     expect(hrefs.indexOf('/templates/report')).toBeLessThan(hrefs.indexOf('/templates/resume'))
     footer.unmount()
-    // The header stays short: Pricing, Self-host, Docs — no content pages.
+    // The header stays short: Pricing, Self-host, Docs, no content pages.
     const header = await mountSuspended(MarketingHeader)
     const headerHrefs = header.findAll('a').map(a => a.attributes('href'))
     expect(headerHrefs.filter(h => h?.startsWith('/templates'))).toEqual([])

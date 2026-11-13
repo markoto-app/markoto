@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url'
 // Helpers for testing Stripe webhook + endpoint flows.
 //
 // Fixtures: JSON event objects committed under
-// `tests/fixtures/stripe/` — one per event type we handle. Each
+// `tests/fixtures/stripe/`: one per event type we handle. Each
 // carries a realistic shape from Stripe's docs / CLI, with IDs
 // replaced by readable placeholders (`cus_test_alice`, `sub_test_pro`,
 // etc.) so tests can set up DB state with matching references.
@@ -15,16 +15,16 @@ import { fileURLToPath } from 'url'
 // that encodes `t=<ts>,v1=<hmacsha256(ts.body, whsec)>`. The real SDK
 // verifies this in `stripe.webhooks.constructEvent`. We construct
 // legitimate signatures with our test webhook secret so the full
-// verification path runs in tests — not a bypass. That way a bug in
+// verification path runs in tests, not a bypass. That way a bug in
 // signature parsing is caught here, not at prod first-run.
 
 // ESM-safe fixture dir (`__dirname` is undefined under the Node ESM loader
-// Playwright uses — it only worked when Bun's compat polyfill was present).
+// Playwright uses: it only worked when Bun's compat polyfill was present).
 // This file is imported by upgrade-to-pro.spec.ts, so it must load in both.
 const FIXTURE_DIR = fileURLToPath(new URL('../../fixtures/stripe', import.meta.url))
 
 /**
- * Test webhook secret. Arbitrary string — must match what the
+ * Test webhook secret. Arbitrary string, must match what the
  * integration test env sets as `NUXT_STRIPE_WEBHOOK_SECRET`.
  */
 export const TEST_WEBHOOK_SECRET = 'whsec_test_integration'
@@ -56,7 +56,7 @@ export function computeStripeSig(payload: string, secret: string, now?: number):
 /**
  * Build a Stripe-style Event wrapping any arbitrary data object. Useful
  * when we want to hand-construct events without committing a JSON
- * fixture — for example, testing idempotency by replaying the same
+ * fixture: for example, testing idempotency by replaying the same
  * event twice with different timestamps.
  */
 export function makeStripeEvent(

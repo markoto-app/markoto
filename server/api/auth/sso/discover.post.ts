@@ -1,24 +1,28 @@
 import { findVerifiedDomainOwner, getSsoConnectionForWorkspace } from '../../../repos/sso'
 import { emailDomain } from '../../../utils/sso/domains'
 import { isSafeReturnTo } from '../../../utils/sso/flowCookie'
+import { MINUTE_MS } from '~~/shared/config/units'
+import { discoverSsoBody } from '~~/shared/api/sso'
 
-// POST /api/auth/sso/discover — {email, returnTo?} → {loginUrl} of the
-// workspace that verified the address's domain and has an ACTIVE
-// connection (WP14). 404 `sso/no-connection` otherwise. Public (the
-// sign-in screen), 20 / client / min. It reveals only that a domain uses
-// SSO here — what every SSO product's "continue with SSO" box reveals.
-export default defineEventHandler(async (event) => {
-  if (!(await checkRateLimit('sso-discover', getClientRateLimitKey(event), 20, 60_000))) {
-    throw createError({ statusCode: 429, message: 'Too many attempts. Try again in a minute.', data: { code: 'sso/rate-limited' } })
+// POST /api/auth/sso/discover {email, returnTo?} -> {loginUrl} of the workspace
+// that verified the address's domain and has an ACTIVE connection; 404
+// `sso/no-connection` otherwise. Public (the sign-in screen), 20 / client / min.
+// It reveals only that a domain uses SSO here, like any "continue with SSO" box:
+// every other outcome (no address, unknown or unverified domain, draft
+// connection, unreadable body) is the same 404, and every request counts
+// against the limit.
+export default defineApiHandler({
+  access: allow.public('the sign-in screen asks before anyone is signed in; rate-limited per client, answers only whether a verified domain has an active connection'),
+  body: lenientBody(discoverSsoBody),
+  rateLimit: { namespace: 'sso-discover', max: 20, windowMs: MINUTE_MS, key: 'ip', phase: 'before-access', error: 'sso/rate-limited' },
+  handler: async ({ parseBody }) => {
+    const body = await parseBody()
+    const email = body?.email?.trim().slice(0, 320) ?? ''
+    const domain = emailDomain(email)
+    const workspaceId = domain ? await findVerifiedDomainOwner(domain) : null
+    const connection = workspaceId ? await getSsoConnectionForWorkspace(workspaceId) : null
+    if (!connection || connection.status !== 'active') throw apiError('sso/no-connection')
+    const returnTo = body?.returnTo !== undefined && isSafeReturnTo(body.returnTo) ? body.returnTo : null
+    return { loginUrl: `/auth/sso/${connection.id}${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}` }
   }
-  const body = await readBody<{ email?: unknown, returnTo?: unknown }>(event).catch(() => null)
-  const email = typeof body?.email === 'string' ? body.email.trim().slice(0, 320) : ''
-  const domain = emailDomain(email)
-  const workspaceId = domain ? await findVerifiedDomainOwner(domain) : null
-  const connection = workspaceId ? await getSsoConnectionForWorkspace(workspaceId) : null
-  if (!connection || connection.status !== 'active') {
-    throw createError({ statusCode: 404, message: 'Single sign-on isn\'t set up for this email address.', data: { code: 'sso/no-connection', messageKey: 'sso.discover.notFound' } })
-  }
-  const returnTo = typeof body?.returnTo === 'string' && isSafeReturnTo(body.returnTo) ? body.returnTo : null
-  return { loginUrl: `/auth/sso/${connection.id}${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}` }
 })

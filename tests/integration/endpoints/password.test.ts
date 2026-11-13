@@ -13,7 +13,7 @@ import {
 } from '../setup/fixtures'
 import { TEST_JWT_SECRET } from '../setup/env'
 
-// POST /api/docs/:docId/password — one endpoint, three actions:
+// POST /api/docs/:docId/password: one endpoint, three actions:
 //   action: 'set'     → owner / workspace admin, 8+ char password.
 //   action: 'verify'  → public (rate-limited in prod), returns 2h JWT.
 //   action: 'remove'  → owner / workspace admin, clears password + mode.
@@ -28,7 +28,7 @@ async function scryptHash(password: string): Promise<string> {
   return new Hash(new Scrypt({})).make(password)
 }
 
-// Pre-hashed "secret123" — nuxt-auth-utils scrypt format. Let fixtures
+// Pre-hashed "secret123": nuxt-auth-utils scrypt format. Let fixtures
 // inject this directly into the DB instead of hitting the SET action
 // every time; cheap test setup + deterministic.
 async function setupPasswordDoc(ownerId: number | null, passwordClear: string) {
@@ -114,7 +114,7 @@ describe('POST /api/docs/:docId/password', () => {
       expect(res.status).toBe(200)
     })
 
-    it('workspace editor cannot set (403) — set is a manage action', async () => {
+    it('workspace editor cannot set (403), set is a manage action', async () => {
       // Regression guard: editors are allowed content edits but NOT
       // access-mode / password changes. canManageDoc must not confuse
       // "edit" with "manage".
@@ -148,6 +148,19 @@ describe('POST /api/docs/:docId/password', () => {
       }
       const ok = await client.post(`/api/docs/${doc.docId}/password`, { action: 'set', password: 'eight888' })
       expect(ok.status).toBe(200)
+    })
+
+    it('refuses an over-long password before hashing it, for set and verify (400)', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
+      const client = await loggedInClient(owner.id)
+      const huge = 'p'.repeat(1025)
+      const set = await client.post(`/api/docs/${doc.docId}/password`, { action: 'set', password: huge })
+      expect(set.status).toBe(400)
+      expect(((await set.json()) as { data?: { code?: string } }).data?.code).toBe('request/invalid')
+      expect((await client.post(`/api/docs/${doc.docId}/password`, { action: 'set', password: 'p'.repeat(1024) })).status).toBe(200)
+      const verify = await anonClient().post(`/api/docs/${doc.docId}/password`, { action: 'verify', password: 'x'.repeat(2_000_000) })
+      expect(verify.status).toBe(400)
     })
 
     it('a password set under the old 4-char minimum still verifies', async () => {

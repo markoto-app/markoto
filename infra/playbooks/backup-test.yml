@@ -1,5 +1,5 @@
 ---
-# Restore drill — proves the most recent gpg-encrypted dump is not just
+# Restore drill: proves the most recent gpg-encrypted dump is not just
 # decryptable but ACTUALLY RESTORABLE end-to-end:
 #   1. Locate the most-recent backup in S3
 #   2. Download + gpg-decrypt + gunzip + `psql` it into a THROWAWAY database
@@ -7,11 +7,10 @@
 #   3. Verify the restored schema has the tables we expect
 #   4. Drop the throwaway database + clean up tmp files
 #
-# Run periodically (it's operator-invoked, not scheduled) — the restore
+# Run periodically (it's operator-invoked, not scheduled): the restore
 # competes with prod for Postgres CPU/disk transiently, so pick a quiet
-# window. A `head -200` sniff (the previous version) could pass on a
-# TRUNCATED dump whose first 200 lines happen to look fine; a full psql
-# restore is the only thing that proves the dump applies cleanly.
+# window. A partial read of the dump could pass on a TRUNCATED file; a
+# full psql restore is the only thing that proves the dump applies cleanly.
 - name: Backup restore drill
   hosts: markoto
   become: true
@@ -26,7 +25,7 @@
       ansible.builtin.shell: |
         set -euo pipefail
         cd {{ markoto_root }}
-        docker compose -f docker-compose.prod.yml exec -T backup sh -c '
+        docker compose exec -T backup sh -c '
           export AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY"
           export AWS_SECRET_ACCESS_KEY="$S3_SECRET_KEY"
           export AWS_DEFAULT_REGION="$S3_REGION"
@@ -54,7 +53,7 @@
             set -euo pipefail
             cd {{ markoto_root }}
             BACKUP_KEY="{{ latest_backup.stdout | trim }}"
-            docker compose -f docker-compose.prod.yml exec -T backup sh -c "
+            docker compose exec -T backup sh -c "
               set -e
               set -o pipefail
               export AWS_ACCESS_KEY_ID=\"\$S3_ACCESS_KEY\"
@@ -84,7 +83,7 @@
           ansible.builtin.shell: |
             set -euo pipefail
             cd {{ markoto_root }}
-            docker compose -f docker-compose.prod.yml exec -T backup sh -c "
+            docker compose exec -T backup sh -c "
               # Both must resolve to a real relation (non-empty output) or the
               # restore was structurally incomplete. Also print the table count
               # as a sanity signal.
@@ -100,7 +99,7 @@
         - name: Fail the drill if core tables are missing
           ansible.builtin.fail:
             msg: >-
-              Restore verification FAILED — core tables (users/documents) not
+              Restore verification FAILED: core tables (users/documents) not
               present in the restored database. Backup may be truncated or
               corrupt. Verify output: {{ restore_verify.stdout | trim }}
           when: not (restore_verify.stdout | trim | lower).startswith('t|')
@@ -108,7 +107,7 @@
         - name: Report restore drill result
           ansible.builtin.debug:
             msg: >-
-              Restore drill PASSED — {{ latest_backup.stdout | trim }} applied
+              Restore drill PASSED: {{ latest_backup.stdout | trim }} applied
               cleanly into a throwaway DB; core tables present
               (verify = {{ restore_verify.stdout | trim }} as core-ok|table-count).
       always:
@@ -116,7 +115,7 @@
           ansible.builtin.shell: |
             set -euo pipefail
             cd {{ markoto_root }}
-            docker compose -f docker-compose.prod.yml exec -T backup sh -c "
+            docker compose exec -T backup sh -c "
               dropdb -h \"\$POSTGRES_HOST\" -U \"\$POSTGRES_USER\" --if-exists {{ restore_db }}
             "
           changed_when: false

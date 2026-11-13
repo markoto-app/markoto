@@ -1,26 +1,11 @@
 <script setup lang="ts">
-// Pure rendering of a structured unified diff. Caller owns the data
-// fetching + loading states; this component just paints hunks.
-//
-// Visual model: GitHub PR review style, unified (not side-by-side)
-// because the activity feed sidebar is narrow. Each hunk is preceded
-// by a separator showing line numbers; lines inside the hunk are
-// monospaced with a green / red / neutral background depending on
-// kind. A small gutter on the left shows the new-file line number
-// for context + add lines, and `-` for remove lines.
+import type { ApiResponse } from '~/utils/api/client'
+// Renders a structured unified diff; the caller owns fetching and loading
+// states. Unified rather than side-by-side because the sidebar is narrow. The
+// gutter shows the new-file line number for context/add lines and `−` for
+// removed lines.
 
-interface DiffLine {
-  kind: 'context' | 'add' | 'remove'
-  text: string
-}
-
-interface DiffHunk {
-  oldStart: number
-  oldLines: number
-  newStart: number
-  newLines: number
-  lines: DiffLine[]
-}
+type DiffHunk = ApiResponse<'/api/docs/:docId/activity/:activityId/diff', 'get'>['hunks'][number]
 
 defineProps<{
   hunks: DiffHunk[]
@@ -30,18 +15,13 @@ defineProps<{
 
 const { t } = useI18n()
 
-// Compute the per-line gutter number while iterating each hunk's
-// `lines`. We render directly inside the template via a mini state
-// machine; the helper below is exported only because the template
-// reads cleaner with a function call than an inline ternary.
 function lineNumber(hunk: DiffHunk, lineIndex: number): string {
-  // Walk from hunk.newStart, incrementing for any line that exists in
-  // the new file (context + add). Remove lines show `-` instead.
+  // Counts from hunk.newStart over lines present in the new file (context + add).
   let n = hunk.newStart
-  for (let i = 0; i < lineIndex; i++) {
-    if (hunk.lines[i].kind !== 'remove') n += 1
+  for (const line of hunk.lines.slice(0, lineIndex)) {
+    if (line.kind !== 'remove') n += 1
   }
-  return hunk.lines[lineIndex].kind === 'remove' ? '−' : String(n)
+  return hunk.lines[lineIndex]?.kind === 'remove' ? '−' : String(n)
 }
 </script>
 
@@ -69,8 +49,7 @@ function lineNumber(hunk: DiffHunk, lineIndex: number): string {
       :key="hi"
       class="diff-hunk font-mono text-[11px] leading-snug rounded border border-default/60 overflow-hidden mb-1.5 last:mb-0 bg-default"
     >
-      <!-- Hunk header — git-style "@@ -oldStart,oldLines +newStart,newLines @@".
-           Surfaces "where in the doc" without repeating the file name. -->
+      <!-- Git-style "@@ -oldStart,oldLines +newStart,newLines @@" header. -->
       <div class="px-2 py-0.5 text-muted bg-muted/40 border-b border-default/60 select-none">
         @@ -{{ hunk.oldStart }},{{ hunk.oldLines }} +{{ hunk.newStart }},{{ hunk.newLines }} @@
       </div>
@@ -84,7 +63,6 @@ function lineNumber(hunk: DiffHunk, lineIndex: number): string {
           'bg-red-500/10': line.kind === 'remove'
         }"
       >
-        <!-- Left gutter: line number for context/add, − for removed. -->
         <span
           class="select-none w-8 shrink-0 text-right pr-1.5 text-muted/70 border-r border-default/40"
           :class="{
@@ -92,7 +70,6 @@ function lineNumber(hunk: DiffHunk, lineIndex: number): string {
             'text-red-600 dark:text-red-400': line.kind === 'remove'
           }"
         >{{ lineNumber(hunk, li) }}</span>
-        <!-- Marker column: `+` / `-` / space. Reinforces the bg color. -->
         <span
           class="select-none w-3 shrink-0 text-center"
           :class="{
@@ -100,8 +77,7 @@ function lineNumber(hunk: DiffHunk, lineIndex: number): string {
             'text-red-600 dark:text-red-400': line.kind === 'remove'
           }"
         >{{ line.kind === 'add' ? '+' : line.kind === 'remove' ? '−' : ' ' }}</span>
-        <!-- Content. `whitespace-pre-wrap` so long lines wrap rather
-             than overflowing the narrow sidebar. -->
+        <!-- `whitespace-pre-wrap` wraps long lines instead of overflowing the narrow sidebar. -->
         <span class="flex-1 min-w-0 whitespace-pre-wrap break-words pl-1.5">{{ line.text }}</span>
       </div>
     </div>

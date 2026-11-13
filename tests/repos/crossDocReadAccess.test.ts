@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb } from '../integration/setup/db'
 import { createUser, createWorkspace, createDoc, setMemberRole } from '../integration/setup/fixtures'
-import { decideTokenAccess, docStateOf } from '~~/shared/utils/docPermissions'
-import { getDocWithActorRole } from '../../server/repos/documents'
+import { decideTokenAccess, docStateOf } from '~~/shared/utils/documents/docPermissions'
+import { getDocWithActorRole } from '../../server/repos/access/docAuthz'
 
 // Cross-document access matrix for `view_other_document`. The handler
 // delegates the policy decision to `getDocWithActorRole` +
@@ -11,7 +11,7 @@ import { getDocWithActorRole } from '../../server/repos/documents'
 // scope) combination so a regression there can't silently widen the
 // AI's reach beyond what a human session would see.
 //
-// We don't drive the whole tool through Hocuspocus here — the open
+// We don't drive the whole tool through Hocuspocus here, the open
 // connection requires a live sync-server. We DO exercise the same
 // access decision the tool uses, using the same composition (DB row
 // resolved → policy applied), so an over-permissive code path here
@@ -30,7 +30,7 @@ async function checkAccess(docId: string, actorUserId: number) {
   return { reachable: decision.outcome === 'allow', outcome: decision.outcome, ctx }
 }
 
-describe('cross-doc read access — owner', () => {
+describe('cross-doc read access: owner', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -55,7 +55,7 @@ describe('cross-doc read access — owner', () => {
   })
 })
 
-describe('cross-doc read access — non-owner, non-member', () => {
+describe('cross-doc read access: non-owner, non-member', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -86,7 +86,7 @@ describe('cross-doc read access — non-owner, non-member', () => {
     expect(r.reachable).toBe(true)
   })
 
-  it('stranger CANNOT read a password-protected doc — gets password-required', async () => {
+  it('stranger CANNOT read a password-protected doc, gets password-required', async () => {
     const owner = await createUser()
     const stranger = await createUser()
     const doc = await createDoc({ ownerId: owner.id, accessMode: 'password-protected', passwordHash: 'x' })
@@ -96,7 +96,7 @@ describe('cross-doc read access — non-owner, non-member', () => {
   })
 })
 
-describe('cross-doc read access — workspace member', () => {
+describe('cross-doc read access: workspace member', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -179,7 +179,7 @@ describe('cross-doc read access — workspace member', () => {
   })
 })
 
-describe('cross-doc read access — non-existent doc', () => {
+describe('cross-doc read access: non-existent doc', () => {
   beforeEach(async () => {
     await resetDb()
   })

@@ -10,19 +10,27 @@
 // env vars (read at request time, not at module load) so the prod
 // deployment can pin its real legal entity without source edits.
 //
-// **The defaults are the hosted markoto.app operator** (LatentSpace
-// Labs GmbH). They only ever surface while the legal surfaces are ON
-// (`NUXT_LEGAL_SURFACES_ENABLED`, see `shared/config/instance.ts`) —
+// **The defaults are the hosted markoto.app operator's company
+// identity** (LatentSpace Labs GmbH: name, register numbers, role
+// mailboxes). No natural person's name and no street address is a code
+// default: `controllerAddress` and `representedBy` have none, and
+// the boot validation makes it fail while the legal surfaces are on
+// and either is unset (shared/env/rules/legal.ts). The defaults only ever surface while the legal
+// surfaces are ON
+// (`NUXT_LEGAL_SURFACES_ENABLED`, see `shared/config/instance.ts`),
 // the hosted SaaS. A self-hosted instance runs with them OFF by default
 // and never presents LatentSpace Labs as its operator; a self-hoster who
 // switches them on must set every `NUXT_LEGAL_*` value (and adapt
-// `content/legal/`) — see docs/SELF-HOSTING.md#legal-pages.
+// `content/legal/`): see docs/SELF-HOSTING.md#legal-pages.
+
+import { useEnv } from '../env/load'
+import type { RawEnv } from '../env/define'
 
 export interface LegalEntity {
   // The legal entity operating markoto. Appears as "the controller"
   // in GDPR Article 4(7) terms.
   controllerName: string
-  // Street address — required by ePrivacy / DSA / German Impressum.
+  // Street address: required by ePrivacy / DSA / German Impressum.
   controllerAddress: string
   // Inbox for data-subject-rights requests + privacy questions.
   privacyContactEmail: string
@@ -31,8 +39,8 @@ export interface LegalEntity {
   // Choice-of-law for the Terms of Service. e.g. "Swiss law" /
   // "the laws of Switzerland".
   governingLaw: string
-  // ─── Provider-identification facts (Swiss UWG Art. 3(1)(s) / EU
-  //     imprint requirements). Rendered into the Impressum page. ───
+
+  // Provider-identification facts, rendered into the Impressum page.
   // Legal form, e.g. "Gesellschaft mit beschränkter Haftung (GmbH)".
   legalForm: string
   // Registered office / Sitz.
@@ -46,31 +54,20 @@ export interface LegalEntity {
   ehraId: string
 }
 
-type Env = Record<string, string | undefined>
-
-export function resolveLegalEntity(env: Env = process.env): LegalEntity {
+/** The operator identity: configured `NUXT_LEGAL_*` values over the hosted operator's defaults. */
+export function resolveLegalEntity(source?: RawEnv): LegalEntity {
+  const { legal } = useEnv(source)
   return {
-    controllerName: (env.NUXT_LEGAL_CONTROLLER_NAME?.trim())
-      || 'LatentSpace Labs GmbH',
-    controllerAddress: (env.NUXT_LEGAL_CONTROLLER_ADDRESS?.trim())
-      || 'c/o Joel Barmettler, Hirschgartnerweg 18, 8057 Zürich, Switzerland',
-    privacyContactEmail: (env.NUXT_LEGAL_PRIVACY_CONTACT_EMAIL?.trim())
-      || 'privacy@markoto.app',
-    abuseContactEmail: (env.NUXT_LEGAL_ABUSE_CONTACT_EMAIL?.trim())
-      || 'abuse@markoto.app',
-    governingLaw: (env.NUXT_LEGAL_GOVERNING_LAW?.trim())
-      || 'Swiss law',
-    legalForm: (env.NUXT_LEGAL_LEGAL_FORM?.trim())
-      || 'Gesellschaft mit beschränkter Haftung (GmbH)',
-    registeredOffice: (env.NUXT_LEGAL_REGISTERED_OFFICE?.trim())
-      || 'Zürich, Switzerland',
-    representedBy: (env.NUXT_LEGAL_REPRESENTED_BY?.trim())
-      || 'Joel Barmettler',
-    uid: (env.NUXT_LEGAL_UID?.trim())
-      || 'CHE-170.986.632',
-    chId: (env.NUXT_LEGAL_CH_ID?.trim())
-      || 'CH-020-4092420-2',
-    ehraId: (env.NUXT_LEGAL_EHRA_ID?.trim())
-      || '1753104'
+    controllerName: legal.controllerName || 'LatentSpace Labs GmbH',
+    controllerAddress: legal.controllerAddress ?? '',
+    privacyContactEmail: legal.privacyContactEmail || 'privacy@markoto.app',
+    abuseContactEmail: legal.abuseContactEmail || 'abuse@markoto.app',
+    governingLaw: legal.governingLaw || 'Swiss law',
+    legalForm: legal.legalForm || 'Gesellschaft mit beschränkter Haftung (GmbH)',
+    registeredOffice: legal.registeredOffice || 'Zürich, Switzerland',
+    representedBy: legal.representedBy ?? '',
+    uid: legal.uid || 'CHE-170.986.632',
+    chId: legal.chId || 'CH-020-4092420-2',
+    ehraId: legal.ehraId || '1753104'
   }
 }

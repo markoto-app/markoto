@@ -1,0 +1,405 @@
+{
+  "apiErrors": {
+    "abuse": {
+      "already-closed": "此举报已是“{status}”状态，无法重新打开。",
+      "body-too-long": "说明过长（最多 5000 个字符）。",
+      "body-too-short": "请说明该内容的问题（至少 10 个字符）。",
+      "conflict": "举报内容在此期间已发生变化。请刷新后重试。",
+      "contact-required": "请填写你的姓名和电子邮箱地址。",
+      "decision-action": "请选择对该内容采取的措施（删除或限制）。",
+      "decision-explanation": "说明须为 {min} 至 {max} 个字符。它会发送给举报人和内容所有者。",
+      "decision-rule": "请选择该内容违反的规则。",
+      "good-faith-required": "请确认你的举报准确且出于善意。",
+      "invalid-category": "请选择举报类型。",
+      "invalid-email": "请输入有效的电子邮箱地址。",
+      "login-required": "请登录后举报内容。",
+      "rate-limited": "来自你所在网络的举报过多。请稍后再试。",
+      "report-not-found": "此举报已不存在。",
+      "url-required": "请填写内容的地址（URL）。"
+    },
+    "account": {
+      "delete-cancel-conflict": "没有可取消的账号删除计划。",
+      "delete-conflict": "你的账号已安排删除。",
+      "delete-rate-limited": "账号删除请求过于频繁。请稍后再试。",
+      "sessions-revoke-rate-limited": "请求过于频繁。请稍候片刻后重试。"
+    },
+    "admin": {
+      "forbidden": "需要管理员权限。",
+      "spend-unavailable": "AI 用量服务返回了错误（{upstreamStatus}）。"
+    },
+    "ai": {
+      "abort-not-initiator": "只有发起此 markoto 会话的人才能停止它。",
+      "audio-missing": "未收到音频。",
+      "audio-too-long": "录音过长（最大约 5 MiB）。",
+      "audio-too-short": "录音太短，无法转写。",
+      "audio-unsupported-type": "不支持的音频 mimeType。请以 WebM、Ogg 或 WAV 格式录制。",
+      "budget-exhausted": "你本周期的 AI 预算已用完。",
+      "comment-not-author": "只有作者才能删除此评论或回复。",
+      "comment-trigger-not-eligible": "未找到该评论讨论，或其无法触发 AI。",
+      "confirmation-not-pending": "此请求已不再等待回答。",
+      "duplicate-session": "你在本文档上已有一个正在运行的 markoto 会话。",
+      "free-allowance-exhausted": "本月的免费 AI 额度已用完。",
+      "provider-error": "你的转写服务商返回了错误，请检查 AI 服务商设置。",
+      "provider-missing": "尚未为此功能设置 AI 服务商。请在设置中添加。",
+      "session-not-found": "未找到 AI 会话。",
+      "transcription-failed": "转写失败。请稍后重试。",
+      "web-tools-rate-limited": "已达到网页搜索和页面抓取的上限（每 {window} {limit} 次）。请稍后再试，或不使用网络工具继续。"
+    },
+    "ai-provider": {
+      "invalid": "服务商设置无效。",
+      "key-required": "请输入 API 密钥。添加服务商或更改 URL 时必须填写。",
+      "not-configured": "尚未为此功能配置服务商。",
+      "rate-limited": "尝试次数过多。请几分钟后再试。",
+      "url-refused": "不允许使用此服务商 URL。",
+      "verify-failed": "无法验证该服务商。请检查 URL、API 密钥和模型。"
+    },
+    "anon-gate": {
+      "bot-check-expired": "机器人检查已过期。请重试。",
+      "bot-check-failed": "自动机器人检查失败。请重试。",
+      "bot-check-replayed": "此机器人检查已被使用。请重试。",
+      "bot-check-required": "自动机器人检查失败。请重试。",
+      "misconfigured": "机器人检查暂时不可用。请稍后重试。",
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。",
+      "terms-required": "请先接受服务条款。",
+      "unavailable": "机器人检查暂时不可用。请稍后重试。"
+    },
+    "audit": {
+      "admin-required": "只有工作区管理员才能查看审计日志。",
+      "invalid-query": "审计日志筛选条件无效。",
+      "rate-limited": "导出过于频繁。请稍后再试。",
+      "too-many-rows": "事件超过 {max} 条。请选择更短的时间段。"
+    },
+    "auth": {
+      "forbidden": "你无权访问此内容。",
+      "oidc-disabled": "未配置 OpenID Connect 登录。",
+      "oidc-failed": "通过身份提供商登录失败。请重试。",
+      "oidc-misconfigured": "本实例的 OpenID Connect 登录尚未完全配置。",
+      "oidc-unavailable": "无法连接到身份提供商。",
+      "reauth-required": "为了您的安全，此操作需要近期登录。请重新登录后再试。",
+      "required": "请登录后继续。"
+    },
+    "billing": {
+      "admin-required": "只有工作区管理员才能管理账单。",
+      "already-on-plan": "你已在此套餐和计费周期上。",
+      "cancel-failed": "无法取消此工作区的订阅，因此未删除任何内容。请重试。",
+      "checkout-failed": "无法开始付款。请重试。",
+      "currency-locked": "你的订阅使用另一种货币计费，无法更改。请选择该货币以继续。",
+      "disabled": "此部署未启用计费。",
+      "invalid-member-limit": "上限必须是 0 到 {max} 之间的数字、无上限，或默认值。",
+      "invalid-seats": "席位数必须是 {min} 到 {max} 之间的整数。",
+      "member-not-found": "未找到该成员。",
+      "no-billing-history": "暂无账单记录。请先订阅，才能管理你的订阅。",
+      "no-subscription": "此工作区没有进行中的订阅。",
+      "not-configured": "未配置计费。请联系支持。",
+      "payment-failed": "付款失败，因此未做任何更改。",
+      "plan-change-failed": "无法更改套餐。未做任何更改；请重试。",
+      "portal-failed": "无法打开账单门户。请重试。",
+      "price-unavailable": "此套餐目前暂不出售。",
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。",
+      "seats-below-members": "此工作区的人数多于席位数。请移除成员或保留更多席位。",
+      "seats-busy": "另一项席位变更或邀请正在进行中。请稍后再试。",
+      "seats-full": "所有付费席位都已占用。请增加一个席位以邀请其他人。",
+      "subscription-active": "此工作区仍有进行中的订阅。请联系支持以删除它。",
+      "subscription-check-failed": "无法验证当前订阅。请重试。",
+      "terms-required": "请接受付费方案条款以继续。",
+      "topup-needs-plan": "AI 额度用于补充付费方案。升级到 Pro 即可购买。",
+      "webhook-body-empty": "请求正文为空。",
+      "webhook-failed": "无法处理该 webhook 事件。",
+      "webhook-signature-invalid": "无法验证 Stripe 签名。",
+      "webhook-signature-missing": "缺少 Stripe-Signature 请求头。",
+      "workspace-plan": "Team 和 Business 套餐需为工作区购买，请在其账单设置中操作。"
+    },
+    "brand": {
+      "admin-required": "只有工作区管理员才能更改品牌套件。",
+      "family-built-in": "“{family}”是内置字体之一。请为你的字体另起一个名称。",
+      "file-missing": "请将文件作为 multipart 表单字段“file”发送。",
+      "file-too-large": "文件过大。",
+      "font-exists": "工作区已有此字重和样式的该字体。请先删除它再替换。",
+      "font-refused": "无法使用此字体文件。",
+      "image-type": "请上传 PNG、JPEG 或 WebP 图片。",
+      "invalid": "品牌套件设置无效。",
+      "invalid-family": "字体名称可使用字母、数字和空格（最多 40 个字符）。",
+      "invalid-weight": "字重为 100–900，以 100 为单位。",
+      "licence-required": "请确认你的许可允许将此字体嵌入文档。",
+      "no-design": "还没有工作区设计。可从某个文档获取，或在设置中选择默认设计。",
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。",
+      "too-many-fonts": "一个工作区最多可有 {limit} 个字体文件。",
+      "too-many-images": "一个工作区最多可有 {limit} 张品牌图片。"
+    },
+    "common": {
+      "internal": "我们这边出了点问题。请重试，我们已收到通知。"
+    },
+    "consent": {
+      "no-decisions": "未发送任何同意选择。",
+      "no-valid-decisions": "无法记录任何同意选择。",
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。"
+    },
+    "csrf": {
+      "origin-mismatch": "已拒绝跨源请求。"
+    },
+    "custom-domain": {
+      "disabled": "本实例未设置自定义域名。",
+      "invalid": "请输入域名，例如 docs.example.com。",
+      "limit": "你最多可添加 {limit} 个域名。",
+      "not-found": "未找到该域名。",
+      "page-not-allowed": "只有所有者和工作区管理员才能在域名上显示此文档。",
+      "page-not-published": "请先将文档发布为网页。",
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。",
+      "reserved": "此域名属于本服务。",
+      "taken": "此域名已被使用。"
+    },
+    "design-import": {
+      "busy": "已有一个设计正在创建中。请等待其完成。",
+      "content-mismatch": "无法读取该文件。请确认它是能正常打开的 PDF 或 Word 文档。",
+      "mismatch": "上传的文件与请求的内容不符。",
+      "no-vision": "你的 AI 服务商无法读取图片。请选择能读取图片的模型后重试。",
+      "rate-limited": "你在过去一小时内创建了很多设计。请稍后再试。",
+      "too-large": "文件太大。请选择不超过 20 MB 的文件。",
+      "unsupported-format": "请选择 PDF 或 Word（.docx）文件。",
+      "upload-missing": "上传未到达。请重新选择文件。",
+      "upload-not-found": "未找到上传。请重新选择文件。"
+    },
+    "docs": {
+      "activity-not-found": "本文档不存在该活动记录。",
+      "comment-thread-gone": "此会话已不存在。",
+      "content-too-long": "内容过长（最多 {max} 个字符）。",
+      "delete-forbidden": "你无法删除此文档。",
+      "diff-unavailable": "此记录无法查看差异。",
+      "edit-forbidden": "你没有本文档的编辑权限。",
+      "manage-forbidden": "只有所有者和工作区管理员才能更改谁可以打开此文档。",
+      "not-a-comment": "此活动记录与评论无关。",
+      "not-found": "未找到文档。",
+      "rate-limited": "来自你所在网络的新文档过多。请登录，或稍后再试。",
+      "render-failed": "无法生成 PDF。请重试。",
+      "restore-compacted": "此还原点过旧，其历史记录已被压缩，无法再还原。请改为还原到较新的时间点。",
+      "restore-unavailable": "无法从此记录还原，它早于还原功能的引入时间。"
+    },
+    "dpa": {
+      "version-stale": "自你打开此提示以来，数据处理附录已更新。请重新查阅。"
+    },
+    "export": {
+      "conflict": "已有导出正在进行。",
+      "expired": "此导出已过期。请重新申请。",
+      "not-found": "未找到导出。",
+      "not-ready": "此导出尚未就绪。",
+      "rate-limited": "你今天已申请过导出。请明天再试。"
+    },
+    "files": {
+      "access-denied": "访问被拒绝。"
+    },
+    "import": {
+      "conversion-failed": "无法转换该文件：{detail}",
+      "file-too-large": "文件过大，无法导入。",
+      "no-file": "未提供文件。",
+      "not-configured": "此服务器未设置文档转换。",
+      "not-utf8": "此 Markdown 文件不是有效的 UTF-8 文本。",
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。",
+      "timeout": "转换耗时过长。",
+      "too-complex": "此文件过大或过于复杂，无法转换。",
+      "unavailable": "无法连接到转换服务。",
+      "unsupported-format": "不支持此文件格式。"
+    },
+    "internal": {
+      "forbidden": "凭据无效或缺失。"
+    },
+    "knowledge": {
+      "content-type-mismatch": "上传的文件类型不符合预期。",
+      "editor-required": "只有管理员和编辑者才能更改知识库。",
+      "empty-upload": "上传的文件为空。",
+      "file-too-large": "文件过大（最大 {maxMb} MB）。",
+      "invalid-key": "该存储键不属于此工作区的知识库。",
+      "key-mismatch": "knowledgeId 必须与 s3Key 一致。",
+      "not-found": "未找到知识库文件。",
+      "not-uploader": "编辑者只能删除自己上传的文件。",
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。",
+      "too-many-pending": "待处理的上传过多。请稍后再试。",
+      "unsupported-format": "不支持的格式：.{ext}。支持：{allowed}。",
+      "upload-not-found": "未找到上传。请重新发起上传后再试。",
+      "user-bytes-cap": "你已达到知识库存储上限（{maxMb} MB）。",
+      "user-file-cap": "你已达到知识库上传上限（{max} 个文件）。",
+      "workspace-bytes-cap": "此工作区已达到知识库存储上限（{maxMb} MB）。",
+      "workspace-file-cap": "此工作区已达到知识库文件数上限（{max} 个文件）。"
+    },
+    "legal": {
+      "disabled": "此部署未启用法律页面。"
+    },
+    "mcp": {
+      "doc-not-found": "未找到文档。",
+      "invalid-token-request": "令牌请求无效。",
+      "missing-doc-id": "需要 doc_id。",
+      "missing-workspace-id": "需要 workspace_id。",
+      "render-rate-limited": "渲染请求过多。请一分钟后再试。",
+      "token-not-found": "未找到令牌。",
+      "too-many-open-docs": "同时打开的文档过多（最多 {max} 个）。请等待几分钟后再试。",
+      "too-many-tokens": "你的有效 MCP 令牌已达上限。请先撤销一个。",
+      "tool-not-found": "未找到工具 {tool}。",
+      "unauthenticated": "需要 MCP 身份验证。",
+      "workspace-not-found": "未找到工作区。",
+      "tool-call-limit": "工具调用过多（上限：每 {minutes} 分钟 {limit} 次）。请稍后再试。"
+    },
+    "moderation": {
+      "not-restricted": "此文档未被限制。",
+      "note-required": "请说明解除限制的原因（1 至 {max} 个字符）。",
+      "restricted": "此文档因举报已被限制。在限制解除之前，无法共享、公开或发布。"
+    },
+    "onboarding": {
+      "age-required": "你必须确认年满 16 岁才能使用 markoto。",
+      "privacy-version-stale": "自你打开此提示以来，隐私政策已更新。请重新查阅。",
+      "required": "请先确认你的年龄，并接受当前的隐私政策和服务条款。",
+      "tos-version-stale": "自你打开此提示以来，服务条款已更新。请重新查阅。"
+    },
+    "password": {
+      "invalid": "密码无效。",
+      "locked": "请求过于频繁。请稍候片刻后重试。",
+      "not-set": "此文档没有设置密码。",
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。",
+      "required": "请输入密码。",
+      "too-short": "密码至少需要 {minLength} 个字符。"
+    },
+    "plan": {
+      "feature-unavailable": "你的套餐不包含此功能。",
+      "limit-reached": "你已达到套餐的某项上限。"
+    },
+    "publish": {
+      "busy": "此页面正在更新。请稍后再试。",
+      "invalid": "发布设置无效。",
+      "not-allowed": "只有所有者和工作区管理员才能发布此文档。",
+      "not-published": "此文档尚未发布。",
+      "rate-limited": "发布过于频繁。请稍后再试。",
+      "render-failed": "无法渲染该页面。请重试。",
+      "slug-invalid": "请使用 3–60 个小写字母、数字和单个连字符。",
+      "slug-taken": "此地址已被占用。请换一个。",
+      "too-large": "此文档过大，无法发布为网页。"
+    },
+    "published": {
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。",
+      "not-found": "此页面不存在或已不再发布。"
+    },
+    "rate": {
+      "limited": "请求过于频繁。请稍候片刻后重试。"
+    },
+    "request": {
+      "invalid": "发送的部分信息无效。",
+      "too-large": "请求过大。"
+    },
+    "resource": {
+      "not-found": "未找到。"
+    },
+    "share": {
+      "download-disabled": "所有者已关闭此文档的下载和打印功能。",
+      "expired": "此链接已过期。",
+      "expiry-past": "过期时间必须在未来。",
+      "expiry-too-far": "过期时间最多只能设在 {maxDays} 天之后。",
+      "invalid": "分享设置无效。",
+      "move-not-allowed": "只有所有者或工作区管理员才能移动此文档。",
+      "move-target-viewer": "查看者无法将文档移入此工作区。",
+      "not-a-guest": "此人不是该工作区的访客。",
+      "not-allowed": "你无权更改此文档的分享方式。",
+      "not-shared": "此文档未与此人共享。",
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。"
+    },
+    "sso": {
+      "admin-required": "只有工作区管理员才能管理单点登录。",
+      "connection-not-found": "未知的连接。",
+      "domain-not-found": "未找到该域名。",
+      "deactivated": "你对此工作区的访问权限已被你的组织关闭。",
+      "domain-cap": "每个工作区最多 {max} 个域名。",
+      "domain-exists": "此域名已添加到工作区。",
+      "domain-taken": "另一个工作区已在使用此域名。",
+      "domain-unverified": "尚未找到 TXT 记录。DNS 更改最多可能需要一小时才会生效。",
+      "incomplete": "此单点登录连接尚未完全设置。",
+      "invalid-domain": "请输入你所在组织的邮箱域名，例如 example.com。不能使用公共邮箱域名。",
+      "invalid-settings": "单点登录设置无效。",
+      "member-limit": "此工作区已达到其套餐的成员上限。",
+      "misconfigured": "单点登录需要在本实例上设置 NUXT_SITE_URL。",
+      "not-configured": "此工作区尚未设置单点登录。",
+      "no-connection": "此邮箱地址未设置单点登录。",
+      "no-seat": "此工作区的所有付费席位都已占用。",
+      "not-active": "此工作区未启用单点登录。",
+      "not-provisioned": "你的组织尚未授予你访问此工作区的权限。",
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。",
+      "required": "此工作区使用单点登录。请通过你的组织登录以继续。",
+      "test-mismatch": "测试登录使用了不同的账号。",
+      "test-not-admin": "只有工作区管理员才能测试其登录。",
+      "unknown": "未知的登录链接。",
+      "scim-needs-connection": "请先设置单点登录。",
+      "certificate-format": "请粘贴身份提供商的签名证书（PEM 或 Base64）。",
+      "certificate-invalid": "这不是有效的 X.509 证书。",
+      "certificate-expired": "此证书已过期。",
+      "client-secret-required": "请输入客户端密钥。",
+      "url-invalid": "这不是有效的 URL。",
+      "url-not-https": "URL 必须以 https:// 开头。",
+      "url-credentials": "URL 不能包含用户名或密码。",
+      "url-unresolvable": "无法解析主机名 {host}。",
+      "url-refused": "markoto 不能连接到此地址（内部服务、环回地址、链路本地地址、元数据地址或专用网络）。"
+    },
+    "template": {
+      "doc-not-found": "在此工作区中未找到该文档。",
+      "exists": "此文档已是模板。",
+      "invalid": "模板设置无效。",
+      "too-many": "一个工作区最多可有 {limit} 个模板。"
+    },
+    "theme": {
+      "custom-css-invalid": "自定义 CSS 被拒绝。",
+      "description-not-a-string": "描述必须是文本。",
+      "description-too-long": "描述过长。",
+      "image-not-in-doc": "主题图片必须上传到此文档。",
+      "name-not-a-string": "名称必须是文本。",
+      "name-required": "名称为必填项。",
+      "name-too-long": "名称过长。"
+    },
+    "upload": {
+      "confirm-in-progress": "此上传正在确认中。请稍后再试。",
+      "content-type-mismatch": "上传的文件类型不符合预期。",
+      "file-too-large": "文件过大。最大 10MB。",
+      "not-found": "未找到上传。",
+      "not-landed": "上传尚未到达。请稍后再试。",
+      "rate-limited": "上传过于频繁。请一分钟后再试。",
+      "size-mismatch": "上传的文件大小与请求的大小不符。",
+      "storage-quota": "你已达到图片存储上限。从文档中删除的图片在清理后会释放空间。",
+      "unsupported-format": "不允许此文件类型。"
+    },
+    "usage": {
+      "admin-required": "只有工作区管理员才能查看用量。"
+    },
+    "validation": {
+      "custom": "此值无效。",
+      "invalid_element": "此值无效。",
+      "invalid_format": "此值的格式不正确。",
+      "invalid_key": "此值无效。",
+      "invalid_type": "此值的类型不正确。",
+      "invalid_union": "此值无效。",
+      "invalid_value": "此值不在允许的选项之内。",
+      "not_multiple_of": "不允许此值。",
+      "too_big": "此值过长或过大。",
+      "too_small": "此值过短或过小。",
+      "unrecognized_keys": "此请求包含不允许的字段。"
+    },
+    "waitlist": {
+      "consent-required": "请勾选同意选项以加入候补名单。",
+      "disabled": "此部署不提供候补名单。",
+      "invalid-email": "请输入有效的邮箱地址。",
+      "invalid-token": "此链接无效或已过期。",
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。"
+    },
+    "workspace": {
+      "admin-required": "只有工作区管理员才能执行此操作。",
+      "already-member": "此人已是该工作区的成员。",
+      "billing-not-configured": "未配置计费。请联系支持。",
+      "cap-reached": "你已达到套餐的工作区数量上限（{plan}：{cap} 个工作区）。请删除一个不用的工作区后再创建新的。",
+      "dpa-required": "创建工作区前，你必须接受数据处理附录（DPA）。",
+      "guest-cannot-create": "访客无法在此工作区中创建文档。",
+      "guest-cap": "此工作区的访客数量已达到其套餐上限（每个付费席位 5 位）。请先移除一位访客或增加席位。",
+      "guest-role-change": "访客的访问权限通过分享管理，而不是通过角色。如需更改，请移除该访客后重新邀请。",
+      "invalid-email": "请输入有效的邮箱地址。",
+      "invite-cap": "此工作区的待处理邀请过多。请先撤销一些。",
+      "invite-not-found": "此邀请已不存在或已过期。",
+      "invite-rate-limited": "请求过于频繁。请稍候片刻后重试。",
+      "last-admin": "工作区至少需要一位管理员。请先将其他人提升为管理员，或删除该工作区。",
+      "member-not-found": "此人不是该工作区的成员。",
+      "not-found": "未找到工作区。",
+      "role-required": "查看者无法在此工作区中创建文档。",
+      "template-rate-limited": "请求过于频繁。请稍候片刻后重试。"
+    }
+  }
+}

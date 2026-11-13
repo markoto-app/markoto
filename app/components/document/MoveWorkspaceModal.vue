@@ -1,15 +1,12 @@
 <script setup lang="ts">
+import type { ApiResponse } from '~/utils/api/client'
+import { useMyWorkspaces } from '~/queries/workspaces'
+
 // Move a document into, between, or out of a workspace. Only
-// workspaces where the user is admin/editor show up as targets —
+// workspaces where the user is admin/editor show up as targets,
 // viewer workspaces would reject the move on the server anyway.
 
-interface WorkspaceOption {
-  workspaceId: string
-  name: string
-  role: 'admin' | 'editor' | 'viewer'
-  /** Team / Business plan covering the workspace, else null (WP3). */
-  plan?: 'team' | 'business' | null
-}
+type WorkspaceOption = ApiResponse<'/api/user/workspaces', 'get'>[number]
 
 const props = defineProps<{
   docId: string
@@ -26,40 +23,27 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
+const { showError } = useErrorHandler()
 
 const saving = ref(false)
 
 // Null represents "Personal" (no workspace). We use null explicitly
 // in the selection to distinguish "unpicked" from "pick Personal".
 const selected = ref<string | null>(null)
-// The Team / Business plan of the workspace the doc is in now (WP6): a
+// The caller's workspace list (shared with the dashboard), loaded while
+// the dialog is open; a failed load leaves only "Personal".
+const workspacesQuery = useMyWorkspaces(open)
+const allWorkspaces = computed(() => workspacesQuery.data.value ?? [])
+const loadingWorkspaces = computed(() => workspacesQuery.isLoading.value)
+// Only admin/editor can receive a doc, filter viewer-only workspaces
+// out so the user can't pick something the server would reject.
+const workspaces = computed<WorkspaceOption[]>(() => allWorkspaces.value.filter(w => w.role === 'admin' || w.role === 'editor'))
+// The Team / Business plan of the workspace the doc is in now: a
 // move out of it changes which plan the doc's features follow.
-const sourcePlan = ref<'team' | 'business' | null>(null)
-
-const {
-  state: workspaces,
-  isLoading: loadingWorkspaces,
-  execute: loadWorkspaces
-} = useAsyncState<WorkspaceOption[]>(
-  async () => {
-    const rows = await $fetch<WorkspaceOption[]>('/api/user/workspaces')
-    sourcePlan.value = rows.find(w => w.workspaceId === props.currentWorkspaceId)?.plan ?? null
-    // Only admin/editor can receive a doc — filter viewer-only workspaces
-    // out so the user can't pick something the server would reject.
-    return rows.filter(w => w.role === 'admin' || w.role === 'editor')
-  },
-  [],
-  {
-    immediate: false,
-    resetOnExecute: false,
-    onError: () => { workspaces.value = [] }
-  }
-)
+const sourcePlan = computed(() => allWorkspaces.value.find(w => w.workspaceId === props.currentWorkspaceId)?.plan ?? null)
 
 watch(open, (v) => {
-  if (!v) return
-  selected.value = props.currentWorkspaceId
-  loadWorkspaces()
+  if (v) selected.value = props.currentWorkspaceId
 })
 
 const hasChange = computed(() => selected.value !== props.currentWorkspaceId)
@@ -75,8 +59,9 @@ async function handleMove() {
   if (saving.value || !hasChange.value) return
   saving.value = true
   try {
-    await $fetch(`/api/docs/${props.docId}/workspace`, {
-      method: 'PATCH',
+    await apiFetch('/api/docs/:docId/workspace', {
+      method: 'patch',
+      path: { docId: props.docId },
       body: { workspaceId: selected.value }
     })
     toast.add({
@@ -93,13 +78,7 @@ async function handleMove() {
     open.value = false
     emit('moved', selected.value)
   } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
-    toast.add({
-      title: t('move.failed'),
-      description: err.data?.message || err.message,
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+    showError('move.failed', e)
   } finally {
     saving.value = false
   }
@@ -151,7 +130,7 @@ async function handleMove() {
             v-else
             class="space-y-1 border border-default rounded-lg max-h-72 overflow-y-auto"
           >
-            <!-- Personal (null) is always an option — detaches from
+            <!-- Personal (null) is always an option, detaches from
                  any workspace. -->
             <button
               type="button"

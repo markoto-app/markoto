@@ -6,18 +6,17 @@ name: sonar-baseline
 # period detection regresses to "everything is new" on every PR.
 #
 # Runs on a WEEKLY cron (+ manual dispatch after a big merge batch), not
-# on every main push — the ~10-min run (coverage suite + scan) on every
-# merge was a real Actions-budget line item, and baseline freshness only
-# affects the "new code" window, not correctness. main is strictly
-# PR-only (repository ruleset), so ci.yml's lint/typecheck/migration
-# gates have already run for every commit that can land here.
+# on every main push: the ~10-min run costs Actions budget, and baseline
+# freshness only affects the "new code" window, not correctness. main is
+# strictly PR-only, so ci.yml's gates have already run for every commit
+# that can land here.
 #
-# Secrets: SONAR_TOKEN (repo-level, see docs/GITHUB-CONFIG.md for why) and
+# Secrets: SONAR_TOKEN (repo-level, see docs/operations/GITHUB-CONFIG.md for why) and
 # APPRISE_URLS from the main-only `release` Environment (failure ping).
 
 on:
   schedule:
-    # Monday 05:20 UTC — before the work week starts.
+    # Monday 05:20 UTC: before the work week starts.
     - cron: '20 5 * * 1'
   workflow_dispatch:
 
@@ -50,12 +49,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # See ci.yml for the rationale — sync-server has its own deps that
-      # vitest's coverage.all instruments at runtime.
-      - name: Install sync-server dependencies
-        run: bun install --frozen-lockfile
-        working-directory: sync-server
-
       - name: Bring up test Postgres + Valkey
         run: bun run test:integration:up
 
@@ -71,7 +64,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           if [ -z "${SONAR_TOKEN:-}" ]; then
-            echo "::error title=Missing secret::SONAR_TOKEN is not set (repo-level Actions secret, see docs/GITHUB-CONFIG.md)."
+            echo "::error title=Missing secret::SONAR_TOKEN is not set (repo-level Actions secret, see docs/operations/GITHUB-CONFIG.md)."
             exit 1
           fi
 
@@ -104,7 +97,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           if [ -z "${APPRISE_URLS:-}" ]; then
-            echo "::warning title=Notification skipped::APPRISE_URLS is not set in the 'release' Environment (docs/GITHUB-CONFIG.md)."
+            echo "::warning title=Notification skipped::APPRISE_URLS is not set in the 'release' Environment (docs/operations/GITHUB-CONFIG.md)."
             exit 0
           fi
           apprise -t "Sonar baseline failed on main" \

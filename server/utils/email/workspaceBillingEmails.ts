@@ -1,16 +1,19 @@
-import { and, eq, isNotNull } from 'drizzle-orm'
-import { users, workspaceMembers, workspaces } from '../../db/schema'
-import { useDatabase } from '../database'
-import { useValkey } from '../valkey'
-import { emailLinkBaseUrl } from '../siteUrl'
+import { getWorkspaceAdminContacts } from '../../repos/workspaceBilling'
+import { system } from '../../repos/proofs'
+import { useValkey } from '../platform/valkey'
+import { emailLinkBaseUrl } from '../platform/siteUrl'
 import { safeSendTransactionalEmail } from './sendEmail'
-import { normaliseInviteLocale, type InviteEmailLocale } from '../workspaceInvites'
+import { normaliseInviteLocale, type InviteEmailLocale } from '../workspaces/workspaceInvites'
+import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../platform/logger'
 
-// Billing emails to a Team / Business workspace's admins (WP3):
-//   budget_80 / budget_100 — the workspace's AI budget is 80 % / fully used
-//   payment_failed         — Stripe couldn't charge (first failure only)
-//   seat_added             — another admin added a seat (to the billing admin)
-//   ending / ended         — the subscription won't renew / has ended
+const log = useLogger('workspace-billing-email')
+
+// Billing emails to a Team / Business workspace's admins:
+//   budget_80 / budget_100: the workspace's AI budget is 80 % / fully used
+//   payment_failed: Stripe couldn't charge (first failure only)
+//   seat_added: another admin added a seat (to the billing admin)
+//   ending / ended: the subscription won't renew / has ended
 // Plain text, localised per recipient (`users.locale`), link to the
 // workspace's billing tab. Members never get billing emails.
 //
@@ -42,14 +45,14 @@ const COPY: Record<InviteEmailLocale, Copy> = {
     footer: 'You get this email because you are an admin of this workspace on markoto.'
   },
   de: {
-    budget_80: { subject: v => `«${v.workspace}» hat 80 % des KI-Budgets dieses Monats verbraucht`, body: v => `Der Arbeitsbereich «${v.workspace}» hat 80 % seines KI-Budgets für diesen Monat verbraucht. Ist es aufgebraucht, pausiert die KI für alle im Arbeitsbereich bis zur Zurücksetzung. Mit zusätzlichen Plätzen erhöhen Sie es.` },
+    budget_80: { subject: v => `«${v.workspace}» hat 80 % des KI-Budgets dieses Monats verbraucht`, body: v => `Der Arbeitsbereich «${v.workspace}» hat 80 % seines KI-Budgets für diesen Monat verbraucht. Ist es aufgebraucht, pausiert die KI für alle im Arbeitsbereich bis zur Zurücksetzung. Mit zusätzlichen Plätzen erhöhst du es.` },
     budget_100: { subject: v => `«${v.workspace}» hat sein KI-Budget für diesen Monat verbraucht`, body: v => `Der Arbeitsbereich «${v.workspace}» hat sein ganzes KI-Budget für diesen Monat verbraucht. Die KI pausiert für seine Mitglieder bis zur Zurücksetzung${v.date ? ` am ${v.date}` : ''}. Zusätzliche Plätze erhöhen es sofort.` },
-    payment_failed: { subject: v => `Zahlung für «${v.workspace}» fehlgeschlagen`, body: v => `Stripe konnte die Zahlung für den Arbeitsbereich «${v.workspace}» nicht einziehen und versucht es in den nächsten Tagen erneut. Bitte aktualisieren Sie die Zahlungsmethode, damit der Arbeitsbereich seinen Plan behält.` },
+    payment_failed: { subject: v => `Zahlung für «${v.workspace}» fehlgeschlagen`, body: v => `Stripe konnte die Zahlung für den Arbeitsbereich «${v.workspace}» nicht einziehen und versucht es in den nächsten Tagen erneut. Bitte aktualisiere die Zahlungsmethode, damit der Arbeitsbereich seinen Plan behält.` },
     seat_added: { subject: v => `Ein Platz wurde zu «${v.workspace}» hinzugefügt`, body: v => `${v.actor ?? 'Ein Admin'} hat dem Arbeitsbereich «${v.workspace}» einen Platz hinzugefügt, um jemanden einzuladen. Er hat jetzt ${v.seats} Plätze; der zusätzliche Platz wird anteilig auf der nächsten Rechnung berechnet.` },
     ending: { subject: v => `Der Plan von «${v.workspace}» endet`, body: v => `Das Abonnement des Arbeitsbereichs «${v.workspace}» verlängert sich nicht${v.date ? ` und endet am ${v.date}` : ''}. Danach gilt wieder der kostenlose Plan; es wird nichts gelöscht.` },
-    ended: { subject: v => `Der Plan von «${v.workspace}» ist beendet`, body: v => `Das Abonnement des Arbeitsbereichs «${v.workspace}» ist beendet. Es gilt wieder der kostenlose Plan; es wurde nichts gelöscht. Team oder Business können Sie im Tab «Abrechnung» wieder kaufen.` },
+    ended: { subject: v => `Der Plan von «${v.workspace}» ist beendet`, body: v => `Das Abonnement des Arbeitsbereichs «${v.workspace}» ist beendet. Es gilt wieder der kostenlose Plan; es wurde nichts gelöscht. Team oder Business kannst du im Tab «Abrechnung» wieder kaufen.` },
     link: 'Abrechnung:',
-    footer: 'Sie erhalten diese E-Mail, weil Sie Admin dieses Arbeitsbereichs auf markoto sind.'
+    footer: 'Du erhältst diese E-Mail, weil du Admin dieses Arbeitsbereichs auf markoto bist.'
   },
   fr: {
     budget_80: { subject: v => `« ${v.workspace} » a utilisé 80 % du budget IA du mois`, body: v => `L’espace de travail « ${v.workspace} » a utilisé 80 % de son budget IA pour ce mois. Une fois épuisé, l’IA s’arrête pour tout l’espace jusqu’à la remise à zéro. Ajouter des places l’augmente.` },
@@ -125,15 +128,10 @@ export async function notifyWorkspaceAdmins(args: {
       const claimed = await useValkey().set(`ws-billing-email:${args.onceKey}`, '1', 'EX', ONCE_TTL_SECONDS, 'NX')
       if (claimed !== 'OK') return 0
     }
-    const db = useDatabase()
-    const ws = (await db.select({ name: workspaces.name }).from(workspaces).where(eq(workspaces.workspaceId, args.workspaceId)).limit(1))[0]
+    const ws = await getWorkspaceAdminContacts(system('workspace-billing'), args.workspaceId)
     if (!ws) return 0
-    const admins = await db
-      .select({ id: users.id, email: users.email, locale: users.locale })
-      .from(workspaceMembers)
-      .innerJoin(users, eq(users.id, workspaceMembers.userId))
-      .where(and(eq(workspaceMembers.workspaceId, args.workspaceId), eq(workspaceMembers.role, 'admin'), isNotNull(users.email)))
-    const base = emailLinkBaseUrl(useRuntimeConfig().siteUrl)
+    const admins = ws.admins
+    const base = emailLinkBaseUrl(useEnv().core.siteUrl)
     const billingUrl = base ? `${base}/w/${encodeURIComponent(args.workspaceId)}?tab=billing` : null
     let sent = 0
     for (const admin of admins) {
@@ -154,7 +152,7 @@ export async function notifyWorkspaceAdmins(args: {
     }
     return sent
   } catch (e) {
-    console.warn(`[workspaceBillingEmails] ${args.kind} for ${args.workspaceId} failed: ${e instanceof Error ? e.message : e}`)
+    log.warn('billing email failed', { kind: args.kind, workspaceId: args.workspaceId, err: e })
     return 0
   }
 }

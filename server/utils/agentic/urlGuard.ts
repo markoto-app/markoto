@@ -7,21 +7,21 @@
 // model (so it learns and can pick a different URL).
 //
 // The guard catches:
-//   - Cloud metadata endpoints (169.254.169.254, fd00:ec2::254) — would
+//   - Cloud metadata endpoints (169.254.169.254, fd00:ec2::254), would
 //     otherwise let an attacker exfiltrate IAM credentials on AWS/GCP.
 //   - In-cluster service banners (Postgres, Valkey, Hocuspocus, the
 //     Nuxt app's own internal endpoints) reachable only via the
 //     compose / k8s service network.
-//   - `file://`, `gopher://`, `dict://`, `ftp://` — schemes the
+//   - `file://`, `gopher://`, `dict://`, `ftp://`, schemes the
 //     downstream URL fetcher (Jina Reader, or a future provider) might
 //     dereference depending on backend.
-//   - DNS-resolved hostnames that map to private space — the public-DNS
+//   - DNS-resolved hostnames that map to private space, the public-DNS
 //     answer is fine but the resolved IP is not (DNS rebinding-shaped).
 //   - Every textual form of an IPv6 address that embeds an IPv4 one
 //     (`::ffff:7f00:1`, NAT64, 6to4, …): addresses are parsed into bytes.
 //
 // Rebinding: `fetch_url` forwards the URL to Jina Reader, which resolves
-// it again on its own network — nothing we can pin there. Where the app
+// it again on its own network, nothing we can pin there. Where the app
 // itself connects (`view_image`, `safeFetch.ts`), it connects to the
 // address that was checked, so a DNS answer that flips after the check
 // is never used.
@@ -32,23 +32,23 @@ import { isIP } from 'node:net'
 const ALLOWED_SCHEMES = new Set(['http:', 'https:'])
 
 /** Longest URL the URL-taking tools accept (fetch_url, view_image). */
-export const MAX_TOOL_URL_LENGTH = 2000
+const MAX_TOOL_URL_LENGTH = 2000
 
 /**
  * Address classes, from most to least restrictive:
- *   - `forbidden` — never a legitimate target, even when an operator
+ *   - `forbidden`: never a legitimate target, even when an operator
  *     allows private networks (BYOK `NUXT_AI_BYOK_ALLOW_PRIVATE_URLS`):
  *     loopback, "this network", link-local incl. cloud metadata,
  *     multicast, reserved, documentation/discard ranges, tunnelling
  *     prefixes whose real endpoint can't be verified, unparseable input.
- *   - `private` — reachable on purpose on a LAN / docker bridge
+ *   - `private`: reachable on purpose on a LAN / docker bridge
  *     (RFC 1918, CGNAT, IPv6 unique-local / site-local); refused unless
  *     the caller opts in.
- *   - `public` — anything else in global unicast space.
+ *   - `public`: anything else in global unicast space.
  *
  * Addresses are parsed into bytes (no regexes on the text form), so every
- * spelling of the same address — `::ffff:127.0.0.1`, `::ffff:7f00:1`,
- * `0:0:0:0:0:ffff:7f00:0001` — gets the same answer. IPv6 forms that
+ * spelling of the same address, `::ffff:127.0.0.1`, `::ffff:7f00:1`,
+ * `0:0:0:0:0:ffff:7f00:0001`: gets the same answer. IPv6 forms that
  * carry an IPv4 address (IPv4-mapped, IPv4-compatible, IPv4-translated,
  * NAT64 `64:ff9b::/96`, 6to4 `2002::/16`) are classified by the embedded
  * IPv4 address.
@@ -136,7 +136,7 @@ function parseHextetGroups(part: string): number[] | null {
 }
 
 /** Parse any valid IPv6 text form (zone id stripped) into 16 bytes. */
-export function parseIPv6(raw: string): number[] | null {
+function parseIPv6(raw: string): number[] | null {
   const ip = raw.split('%')[0] ?? ''
   if (isIP(ip) !== 6) return null
   let text = ip.toLowerCase()
@@ -219,10 +219,39 @@ export function isPrivateIp(ip: string): boolean {
  * Narrower check: addresses that are NEVER a legitimate target, even when
  * an operator explicitly allows private networks (the BYOK opt-in for
  * Ollama / vLLM on the LAN). RFC 1918 / CGNAT / ULA / site-local are
- * deliberately not in this set — they are governed by the opt-in.
+ * deliberately not in this set, they are governed by the opt-in.
  */
 export function isAlwaysForbiddenIp(ip: string): boolean {
   return classifyIp(ip) === 'forbidden'
+}
+
+/**
+ * Check a host's addresses in order against an "outbound to a configured
+ * server" policy (BYOK providers, SSO identity providers): the first
+ * always-forbidden address refuses, a private one refuses unless
+ * `allowPrivate`. Otherwise reports whether any address is public (plain
+ * http is only for all-private targets).
+ */
+export function screenHostAddresses(addresses: readonly string[], allowPrivate: boolean): { refused: 'forbidden' } | { refused: 'private' } | { refused: null, anyPublic: boolean } {
+  let anyPublic = false
+  for (const address of addresses) {
+    if (isAlwaysForbiddenIp(address)) return { refused: 'forbidden' }
+    if (!isPrivateIp(address)) anyPublic = true
+    else if (!allowPrivate) return { refused: 'private' }
+  }
+  return { refused: null, anyPublic }
+}
+
+/** A host's addresses: an IP literal is its own, a name goes through `resolve`. */
+export async function hostAddresses(host: string, resolve: (host: string) => Promise<string[]>): Promise<string[] | 'unresolvable' | 'no-records'> {
+  if (isIP(host) !== 0) return [host]
+  let addresses: string[]
+  try {
+    addresses = await resolve(host)
+  } catch {
+    return 'unresolvable'
+  }
+  return addresses.length === 0 ? 'no-records' : addresses
 }
 
 /**
@@ -240,7 +269,7 @@ export async function assertSafeUrl(rawUrl: string): Promise<void> {
 /**
  * Parse a tool-supplied URL (scheme-less input gets `https://`) and run
  * the structural checks: length, http(s) scheme, hostname present. The
- * returned `URL#href` is what callers forward — never the raw string, so
+ * returned `URL#href` is what callers forward, never the raw string, so
  * the URL that was checked is the URL that is used.
  */
 export function parseToolUrl(rawUrl: string): URL {
@@ -319,7 +348,7 @@ function assertPublicLiteral(host: string): void {
 
 /**
  * DNS resolution. Every A + AAAA answer is checked; ANY private resolved
- * IP fails — covers rebinding-shaped setups where one record is public
+ * IP fails: covers rebinding-shaped setups where one record is public
  * and another private.
  */
 async function assertPublicResolution(host: string, resolve: HostResolver): Promise<string[]> {

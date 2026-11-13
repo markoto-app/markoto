@@ -7,6 +7,9 @@ import { OPERATOR_URL_POLICY, resolveByokUrlPolicy } from './config'
 import { AiProviderUrlRefused, checkProviderBaseUrl } from './urlPolicy'
 import { litellmModelFor, type ResolvedAiProvider } from './resolve'
 import type { VerifyCode } from '~~/shared/ai/providers'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('ai-provider')
 
 /**
  * LiteLLM's clientside-credential fields. Only ever sent together with a
@@ -101,9 +104,9 @@ export const PROVIDER_ERROR_MESSAGES: Record<VerifyCode, string> = {
 
 const REDIRECT_PATTERN = /\bError code: 3\d\d\b|\bstatus(?: code)?:? 3\d\d\b/i
 
-/** User-facing message for a failed provider call — never includes upstream text. */
+/** User-facing message for a failed provider call, never includes upstream text. */
 export function providerErrorMessage(code: VerifyCode, e: unknown): string {
-  // Our own policy text (no upstream content) — keep it, it says what to fix.
+  // Our own policy text (no upstream content), keep it, it says what to fix.
   if (e instanceof AiProviderUrlRefused) return e.message
   const status = errorStatus(e)
   const msg = e instanceof Error ? e.message : String(e)
@@ -117,7 +120,7 @@ export function providerErrorMessage(code: VerifyCode, e: unknown): string {
  * Wrap a provider call so any thrown error is re-thrown as an
  * `AiProviderCallError` carrying a stable code and a fixed message (see
  * `providerErrorMessage`); the key-redacted upstream detail is logged
- * server-side only. Budget-exceeded errors are not wrapped — they only
+ * server-side only. Budget-exceeded errors are not wrapped, they only
  * occur on platform-billed calls, which carry no user key, and the
  * callers' `isBudgetExceededError` checks match on their message.
  */
@@ -150,6 +153,8 @@ export async function withProviderErrors<T>(provider: ResolvedAiProvider, fn: ()
 
 /** Server-log line for a failed provider call (key redacted, bounded). */
 export function logProviderFailure(code: VerifyCode, e: unknown, apiKey: string | null | undefined): void {
+  // The user's key is removed from the message before the logger sees it; the
+  // logger then masks key-shaped strings and bounds the length on top.
   const detail = redactSecret(e instanceof Error ? e.message : String(e), apiKey).slice(0, 300)
-  console.warn(`[ai-provider] call failed (${code}): ${detail}`)
+  log.warn('provider call failed', { code, detail })
 }

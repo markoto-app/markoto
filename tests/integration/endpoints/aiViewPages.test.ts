@@ -6,16 +6,17 @@
 // inlineData parts.
 //
 // Test stack: postgres-test + valkey-test + seaweedfs-test + renderer-test.
-// Tests are slow (~5-10s each) — that's the actual cost of a real render.
+// Tests are slow (~5-10s each), that's the actual cost of a real render.
 // The previous stub-based tests took ~50ms each; we trade speed for
 // confidence that the print page + paged.js + screenshot capture all work.
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import * as Y from 'yjs'
-import { resetDb, testDb, ensureYjsTable } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { loggedInClient } from '../setup/client'
 import { createUser, createDoc, createWorkspace } from '../setup/fixtures'
 import { S3Client, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
+import { first } from '../../helpers/assert'
 
 const s3 = new S3Client({
   endpoint: 'http://127.0.0.1:8334',
@@ -31,7 +32,7 @@ async function wipeRendersFor(docId: string): Promise<void> {
   await s3.send(new DeleteObjectsCommand({ Bucket: 'ypad', Delete: { Objects: keys, Quiet: true } }))
 }
 
-// Insert a Y.Doc row with REAL update bytes — the renderer replays this
+// Insert a Y.Doc row with REAL update bytes, the renderer replays this
 // into markdown, so empty docs paginate to zero pages and the renderer
 // errors. Fixture content must produce at least 1 page.
 async function insertYjsRow(docname: string, content: string): Promise<number> {
@@ -40,10 +41,10 @@ async function insertYjsRow(docname: string, content: string): Promise<number> {
   const update = Y.encodeStateAsUpdate(ydoc)
   const db = testDb()
   const r = await db.query<{ id: number }>(
-    `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1') RETURNING id`,
+    `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2) RETURNING id`,
     [docname, Buffer.from(update)]
   )
-  return r.rows[0].id
+  return Number(first(r.rows).id)
 }
 
 // Multi-page fixture (paginates to 3+ pages on the default theme). Used
@@ -76,10 +77,9 @@ async function execTool(
 
 beforeEach(async () => {
   await resetDb()
-  await ensureYjsTable()
 })
 
-describe('get_page_count tool — real renderer', () => {
+describe('get_page_count tool: real renderer', () => {
   it('returns the actual rendered page count', async () => {
     const owner = await createUser()
     const doc = await createDoc({ ownerId: owner.id })
@@ -90,7 +90,7 @@ describe('get_page_count tool — real renderer', () => {
 
     expect(status).toBe(200)
     expect(body.isError).toBe(false)
-    // Multi-page fixture paginates to ≥2 — extract the number from the
+    // Multi-page fixture paginates to ≥2, extract the number from the
     // AI-facing string and verify it's ≥2.
     const m = body.content.match(/(\d+)\s+page/i)
     expect(m).toBeTruthy()
@@ -101,7 +101,7 @@ describe('get_page_count tool — real renderer', () => {
   }, 90_000)
 })
 
-describe('view_pages tool — real renderer', () => {
+describe('view_pages tool: real renderer', () => {
   it('returns inlineData PNG parts whose bytes start with the PNG signature', async () => {
     const owner = await createUser()
     const doc = await createDoc({ ownerId: owner.id })

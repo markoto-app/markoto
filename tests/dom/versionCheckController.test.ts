@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest'
 import {
   createVersionCheckController,
   type VersionCheckPromptHandlers
-} from '../../app/utils/versionCheckController'
+} from '../../app/utils/platform/versionCheckController'
 
-// Pure controller test — no Nuxt boot, no `$fetch`, no toast renderer.
+// Pure controller test: no Nuxt boot, no `$fetch`, no toast renderer.
 // We stub the three dependencies the controller needs (fetch, reload,
 // showPrompt) and use Vitest's fake timers to drive the grace-period +
 // snooze + visibility-throttle timing assertions deterministically.
@@ -14,15 +14,15 @@ import {
 // 5min snooze, 60s visibility throttle, 5min poll interval.
 
 describe('versionCheckController', () => {
-  let fetchBuildId: ReturnType<typeof vi.fn>
-  let reload: ReturnType<typeof vi.fn>
-  let showPrompt: ReturnType<typeof vi.fn>
+  let fetchBuildId: Mock<() => Promise<string | null>>
+  let reload: Mock<() => void>
+  let showPrompt: Mock<(handlers: VersionCheckPromptHandlers) => void>
   let lastHandlers: VersionCheckPromptHandlers | null
 
   beforeEach(() => {
     vi.useFakeTimers()
-    fetchBuildId = vi.fn()
-    reload = vi.fn()
+    fetchBuildId = vi.fn<() => Promise<string | null>>()
+    reload = vi.fn<() => void>()
     lastHandlers = null
     showPrompt = vi.fn((h: VersionCheckPromptHandlers) => {
       lastHandlers = h
@@ -44,9 +44,7 @@ describe('versionCheckController', () => {
     )
   }
 
-  // ─────────────────────────────────────────────────────────────────────
   // Baseline + mismatch detection
-  // ─────────────────────────────────────────────────────────────────────
 
   it('first poll captures baseline; no prompt while build id is stable', async () => {
     fetchBuildId.mockResolvedValueOnce('build-A').mockResolvedValueOnce('build-A')
@@ -89,9 +87,7 @@ describe('versionCheckController', () => {
     ctl.dispose()
   })
 
-  // ─────────────────────────────────────────────────────────────────────
   // Auto-reload after 30s grace
-  // ─────────────────────────────────────────────────────────────────────
 
   it('auto-reloads after the 30s grace window with no user interaction', async () => {
     fetchBuildId.mockResolvedValueOnce('A').mockResolvedValueOnce('B')
@@ -100,7 +96,7 @@ describe('versionCheckController', () => {
     await ctl.poll()
 
     expect(reload).not.toHaveBeenCalled()
-    // Just under the grace window — still no reload.
+    // Just under the grace window, still no reload.
     vi.advanceTimersByTime(29_999)
     expect(reload).not.toHaveBeenCalled()
     // Tick past 30s.
@@ -109,9 +105,7 @@ describe('versionCheckController', () => {
     ctl.dispose()
   })
 
-  // ─────────────────────────────────────────────────────────────────────
   // Reload-now button
-  // ─────────────────────────────────────────────────────────────────────
 
   it('"Reload now" reloads immediately and cancels the auto-reload timer', async () => {
     fetchBuildId.mockResolvedValueOnce('A').mockResolvedValueOnce('B')
@@ -130,9 +124,7 @@ describe('versionCheckController', () => {
     ctl.dispose()
   })
 
-  // ─────────────────────────────────────────────────────────────────────
   // Snooze
-  // ─────────────────────────────────────────────────────────────────────
 
   it('"Snooze" defers the auto-reload by 5 minutes from the click', async () => {
     fetchBuildId.mockResolvedValueOnce('A').mockResolvedValueOnce('B')
@@ -144,21 +136,21 @@ describe('versionCheckController', () => {
     vi.advanceTimersByTime(10_000)
     lastHandlers!.onSnooze()
 
-    // Past the original 30s window, no reload — the snooze cleared it.
+    // Past the original 30s window, no reload, the snooze cleared it.
     vi.advanceTimersByTime(30_000)
     expect(reload).not.toHaveBeenCalled()
 
-    // Just under 5 min more — still no reload.
+    // Just under 5 min more, still no reload.
     vi.advanceTimersByTime(5 * 60 * 1000 - 31_000)
     expect(reload).not.toHaveBeenCalled()
 
-    // Cross the 5-minute mark — reload fires.
+    // Cross the 5-minute mark, reload fires.
     vi.advanceTimersByTime(2_000)
     expect(reload).toHaveBeenCalledTimes(1)
     ctl.dispose()
   })
 
-  it('Snooze can be clicked multiple times — each click resets the timer', async () => {
+  it('Snooze can be clicked multiple times, each click resets the timer', async () => {
     fetchBuildId.mockResolvedValueOnce('A').mockResolvedValueOnce('B')
     const ctl = makeController()
     await ctl.poll()
@@ -167,16 +159,14 @@ describe('versionCheckController', () => {
     lastHandlers!.onSnooze()
     vi.advanceTimersByTime(4 * 60 * 1000) // 4 min into snooze
     lastHandlers!.onSnooze() // reset
-    vi.advanceTimersByTime(4 * 60 * 1000) // 4 more min — only 4/5 into the new window
+    vi.advanceTimersByTime(4 * 60 * 1000) // 4 more min, only 4/5 into the new window
     expect(reload).not.toHaveBeenCalled()
     vi.advanceTimersByTime(60_001)
     expect(reload).toHaveBeenCalledTimes(1)
     ctl.dispose()
   })
 
-  // ─────────────────────────────────────────────────────────────────────
   // visibilitychange-driven poll
-  // ─────────────────────────────────────────────────────────────────────
 
   it('onVisible polls if past the throttle window', async () => {
     fetchBuildId.mockResolvedValue('A')
@@ -192,12 +182,12 @@ describe('versionCheckController', () => {
     await ctl.poll() // sets lastPolledAt = 1_000_000
     expect(fetchBuildId).toHaveBeenCalledTimes(1)
 
-    // 30s later — under the 60s throttle, no second poll.
+    // 30s later: under the 60s throttle, no second poll.
     nowMs += 30_000
     ctl.onVisible()
     expect(fetchBuildId).toHaveBeenCalledTimes(1)
 
-    // Past 60s — onVisible polls.
+    // Past 60s: onVisible polls.
     nowMs += 31_000
     ctl.onVisible()
     // The poll is async; flush microtasks.
@@ -229,9 +219,7 @@ describe('versionCheckController', () => {
     ctl.dispose()
   })
 
-  // ─────────────────────────────────────────────────────────────────────
   // Periodic polling via setInterval
-  // ─────────────────────────────────────────────────────────────────────
 
   it('polls again on the periodic interval', async () => {
     fetchBuildId.mockResolvedValue('A')
@@ -246,9 +234,7 @@ describe('versionCheckController', () => {
     ctl.dispose()
   })
 
-  // ─────────────────────────────────────────────────────────────────────
   // dispose
-  // ─────────────────────────────────────────────────────────────────────
 
   it('dispose clears the poll interval and any pending reload timer', async () => {
     fetchBuildId.mockResolvedValueOnce('A').mockResolvedValueOnce('B')

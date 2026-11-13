@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useCreateSavedTheme, useUpdateSavedTheme } from '~/queries/themes'
 import type { DocTheme } from '~~/shared/types/theme'
 import {
   SAVED_THEME_DESCRIPTION_MAX,
@@ -29,8 +30,8 @@ const open = defineModel<boolean>('open', { required: true })
 
 const emit = defineEmits<{ saved: [name: string] }>()
 
-const { t } = useI18n()
-const toast = useToast()
+const { t, locale } = useI18n()
+const { showError } = useErrorHandler()
 
 const name = ref('')
 const description = ref('')
@@ -54,40 +55,38 @@ const nameError = computed(() => {
     : t('theme.saved.nameRequired')
 })
 
+// Both refresh every saved-theme list on screen before resolving.
+const createTheme = useCreateSavedTheme()
+const updateTheme = useUpdateSavedTheme()
+
 async function submit() {
   triedSubmit.value = true
   const n = nameCheck.value
   const d = descriptionCheck.value
   if (!n.ok || !d.ok || submitting.value) return
+  // The create request needs the theme; callers always pass it in create mode.
+  const theme = props.theme
+  if (props.mode === 'create' && !theme) return
   submitting.value = true
   try {
-    if (props.mode === 'create') {
-      await $fetch('/api/themes', {
-        method: 'POST',
-        body: { name: n.value, description: d.value, theme: props.theme }
-      })
+    if (props.mode === 'create' && theme) {
+      await createTheme.mutateAsync({ name: n.value, description: d.value, theme })
     } else if (props.savedTheme) {
-      await $fetch(`/api/themes/${props.savedTheme.themeId}`, {
-        method: 'PATCH',
+      await updateTheme.mutateAsync({
+        themeId: props.savedTheme.themeId,
         body: { name: n.value, description: d.value }
       })
     }
     open.value = false
     emit('saved', n.value)
   } catch (e) {
-    const err = e as { data?: { message?: string }, statusMessage?: string, message?: string }
-    toast.add({
-      title: props.mode === 'create' ? t('theme.saved.saveFailedTitle') : t('theme.saved.updateFailedTitle'),
-      description: err.data?.message ?? err.statusMessage ?? err.message ?? '',
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+    showError(props.mode === 'create' ? 'theme.saved.saveFailedTitle' : 'theme.saved.updateFailedTitle', e)
   } finally {
     submitting.value = false
   }
 }
 
-const numberFormat = new Intl.NumberFormat()
+const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
 </script>
 
 <template>
@@ -95,6 +94,7 @@ const numberFormat = new Intl.NumberFormat()
     v-model:open="open"
     :title="mode === 'create' ? t('theme.saved.saveDialogTitle') : t('theme.saved.editDialogTitle')"
     :description="mode === 'create' ? t('theme.saved.saveDialogIntro') : t('theme.saved.editDialogIntro')"
+    :content="initialFocus('saved-theme-name')"
   >
     <template #content>
       <form
@@ -124,10 +124,10 @@ const numberFormat = new Intl.NumberFormat()
             </span>
           </template>
           <UInput
+            id="saved-theme-name"
             v-model="name"
             :placeholder="t('theme.saved.namePlaceholder')"
             :maxlength="SAVED_THEME_NAME_MAX"
-            autofocus
             class="w-full"
             data-testid="saved-theme-name-input"
           />

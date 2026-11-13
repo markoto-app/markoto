@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
-// Builds the Open Graph / Twitter cards (1200×630 JPEGs) in public/og/ —
+// Builds the Open Graph / Twitter cards (1200×630 JPEGs) in public/og/,
 // committed, nothing is generated at runtime. Each card is a small HTML
 // page in the brand type (Fraunces 300 with optical sizing, Inter, JetBrains
-// Mono — the same Fontsource packages the app serves, loaded from
+// Mono: the same Fontsource packages the app serves, loaded from
 // node_modules), screenshotted at 1200×630 by headless Chromium
 // (@playwright/test) and converted to JPEG by ffmpeg.
 //
@@ -13,7 +13,7 @@
 //   bun scripts/build-og-images.ts                 # every card
 //   bun scripts/build-og-images.ts pricing docs    # some cards
 //
-// Which page gets which card: shared/seo/ogImages.ts — keep its alt texts
+// Which page gets which card: shared/seo/ogImages.ts, keep its alt texts
 // in step with the text drawn here. JPEG, not WebP: some link unfurlers
 // ignore WebP og:image files.
 

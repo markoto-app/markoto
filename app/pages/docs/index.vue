@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { DOCS_LANDING_SEO } from '~~/shared/seo/meta'
 import { docsBreadcrumbs } from '~~/shared/seo/breadcrumbs'
 
 // /docs landing page. Hand-written (not driven by a markdown file)
-// because it's mostly UI affordances — category cards + featured-flow
-// shortcuts — rather than prose. The catch-all [...slug].vue handles
+// because it's mostly UI affordances, category cards + featured-flow
+// shortcuts: rather than prose. The catch-all [...slug].vue handles
 // every OTHER /docs/* path.
 //
 // Featured cards: pulled live from the docs collection where
 // `featured: true` in frontmatter. Categories: hardcoded list with
 // curated copy (more polished than auto-derived from folder names).
+
+const { t } = useI18n()
 
 const { data: featured } = await useAsyncData('docs:featured', () =>
   queryCollection('docs')
@@ -18,17 +19,19 @@ const { data: featured } = await useAsyncData('docs:featured', () =>
     .all()
 )
 
+const metaTitle = t('docs.landing.metaTitle')
+const metaDescription = t('docs.landing.metaDescription')
 const { imageUrl } = useMarketingSeo({
-  title: DOCS_LANDING_SEO.title,
-  description: DOCS_LANDING_SEO.description,
+  title: metaTitle,
+  description: metaDescription,
   imageGroup: 'docs'
 })
 usePageStructuredData(() => ({
   pageType: 'CollectionPage',
-  name: DOCS_LANDING_SEO.title,
-  description: DOCS_LANDING_SEO.description,
+  name: metaTitle,
+  description: metaDescription,
   image: imageUrl.value,
-  breadcrumbs: docsBreadcrumbs('/docs', DOCS_LANDING_SEO.title),
+  breadcrumbs: docsBreadcrumbs('/docs', metaTitle),
   about: [{ self: true }]
 }))
 
@@ -39,11 +42,11 @@ definePageMeta({ layout: 'docs' })
 // sidebar / per-page metadata. We list folders explicitly to keep
 // ordering predictable; one query per folder.
 const sectionPaths = [
-  { path: '/docs/getting-started', tagline: 'Your first ten minutes — create a doc, name it, share it.' },
-  { path: '/docs/writing', tagline: 'Markdown extensions, formatting, alerts, math, diagrams, tables.' },
-  { path: '/docs/sharing', tagline: 'Access modes, password protection, anonymous links, workspaces.' },
-  { path: '/docs/themes', tagline: 'Per-document themes that drive both live preview and PDF export.' },
-  { path: '/docs/import-export', tagline: 'Bring DOCX/PDF/PPTX in; export to clean Markdown or themed PDF.' }
+  { path: '/docs/getting-started', taglineKey: 'docs.sections.gettingStarted' },
+  { path: '/docs/writing', taglineKey: 'docs.sections.writing' },
+  { path: '/docs/sharing', taglineKey: 'docs.sections.sharing' },
+  { path: '/docs/themes', taglineKey: 'docs.sections.themes' },
+  { path: '/docs/import-export', taglineKey: 'docs.sections.importExport' }
 ]
 
 // Each section's index.md is stored at the bare folder path. Try
@@ -60,7 +63,7 @@ const { data: sections } = await useAsyncData('docs:sections', async () => {
 })
 
 // Direct handle on the search modal's open state. Toggling this is
-// equivalent to pressing Cmd-K — opens the same UContentSearch modal
+// equivalent to pressing Cmd-K, opens the same UContentSearch modal
 // mounted at the layout level. Cleaner than dispatching a synthetic
 // keyboard event (which @nuxt/ui's defineShortcuts may filter as
 // untrusted).
@@ -84,22 +87,27 @@ const { open: openSearch } = useContentSearch()
     <header class="mb-10 sm:mb-20 max-w-2xl">
       <div class="flex items-center gap-2.5 mb-4 sm:mb-6 text-muted font-mono text-[11px] tracking-[0.06em] uppercase">
         <span class="block w-[22px] h-px bg-current opacity-60" />
-        <span>field guide · vol. 01</span>
+        <span>{{ t('docs.landing.eyebrow') }}</span>
       </div>
       <h1 class="font-serif text-[34px] sm:text-5xl md:text-6xl font-light tracking-tight leading-[1.06] sm:leading-[1.04] mb-4 sm:mb-6 text-default">
-        Everything you can do<br>in <em class="italic font-normal">markoto</em>.
+        <i18n-t
+          keypath="docs.landing.title"
+          scope="global"
+        >
+          <template #product>
+            <em class="italic font-normal">markoto</em>
+          </template>
+        </i18n-t>
       </h1>
       <p class="text-[14px] leading-[1.65] text-muted max-w-[34ch]">
-        A collaborative markdown editor with optional accounts. Write
-        anonymously, share by URL, theme it, export to PDF. Every
-        screenshot in here is captured live from the running app.
+        {{ t('docs.landing.lede') }}
       </p>
       <div class="mt-8 flex flex-wrap items-center gap-6">
         <NuxtLink
           to="/docs/getting-started/quick-share"
           class="inline-flex items-center gap-1.5 font-mono text-[11px] tracking-[0.06em] uppercase text-default border-b border-default pb-0.5 hover:text-muted hover:border-default/60 transition-colors"
         >
-          <span>begin walkthrough</span>
+          <span>{{ t('docs.landing.begin') }}</span>
           <span aria-hidden="true">→</span>
         </NuxtLink>
         <button
@@ -111,15 +119,15 @@ const { open: openSearch } = useContentSearch()
             name="i-lucide-search"
             class="size-3.5"
           />
-          <span>search</span>
+          <span>{{ t('docs.landing.search') }}</span>
           <kbd class="ml-1 px-1.5 py-0.5 rounded border border-default/70 bg-default text-[10px] font-mono tracking-normal text-default normal-case">⌘K</kbd>
         </button>
       </div>
     </header>
 
-    <!-- Featured pages — "Start here" — promoted to a denser two-up
+    <!-- Featured pages, "Start here", promoted to a denser two-up
          grid right under the hero. Newcomer's first action surface. -->
-    <!-- "Start here" — the entry-point flows. Cards drop the shu
+    <!-- "Start here": the entry-point flows. Cards drop the shu
          hover (was `border-primary/40` + `bg-primary/10` arrow puck);
          shu stays AI-only. Hover is now a calm sumi border + bone fill
          lift. Section eyebrow uses the JetBrains Mono 0.06em register
@@ -130,10 +138,10 @@ const { open: openSearch } = useContentSearch()
     >
       <div class="flex items-baseline justify-between gap-4 mb-5 flex-wrap">
         <h2 class="font-serif text-2xl sm:text-3xl font-normal tracking-tight">
-          Start here
+          {{ t('docs.landing.startHere') }}
         </h2>
         <span class="hidden sm:inline font-mono text-[10.5px] tracking-[0.06em] uppercase text-muted">
-          Most-load-bearing flows
+          {{ t('docs.landing.startHereHint') }}
         </span>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -166,13 +174,13 @@ const { open: openSearch } = useContentSearch()
       </div>
     </section>
 
-    <!-- Sections — every top-level folder. Title + icon driven by
+    <!-- Sections: every top-level folder. Title + icon driven by
          each folder's index.md frontmatter. Three across on desktop
          keeps the page from feeling tall + lets the eye scan. -->
     <section>
       <div class="flex items-baseline justify-between gap-4 mb-5">
         <h2 class="font-serif text-2xl sm:text-3xl font-normal tracking-tight">
-          Browse by topic
+          {{ t('docs.landing.browse') }}
         </h2>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -192,7 +200,7 @@ const { open: openSearch } = useContentSearch()
             {{ cat.title }}
           </h3>
           <p class="text-sm text-muted leading-relaxed">
-            {{ cat.tagline }}
+            {{ t(cat.taglineKey) }}
           </p>
         </NuxtLink>
       </div>

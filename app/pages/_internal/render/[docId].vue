@@ -1,29 +1,28 @@
 <script setup lang="ts">
-import { renderMarkdown } from '~/utils/renderMarkdown'
-import { composeFinalHtml } from '~/utils/composeFinalHtml'
-import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
+import { renderMarkdown } from '~/utils/markdown/renderMarkdown'
+import { composeFinalHtml } from '~/utils/preview/composeFinalHtml'
+import { themeToCss, themeFontsImport } from '~~/shared/utils/theme/themeToCss'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 import type { DocTheme } from '~~/shared/types/theme'
-import { PAGEDJS_POLYFILL_URL, PAGEDJS_POLYFILL_SRI } from '~~/shared/utils/pagedjsAssets'
-import { hljsTheme } from '~~/shared/utils/hljsAssets'
-import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/katexAssets'
-import { transformMermaid, inlineMermaidSvgs } from '~/utils/mermaidLoader'
-import { buildMermaidConfig } from '~~/shared/utils/mermaidConfig'
-import { isPagedRuntime, registerPagedHandlers } from '~/utils/pagedHandlers'
-import { documentTexts } from '~~/shared/utils/documentLocale'
-import { sanitizeCustomCssForRender } from '~/utils/customCssLoader'
-import { themeImagesForDoc } from '~~/shared/utils/themeImages'
-import { attachRenderFileTokens, renderBrandFileUrl, withRenderFileToken, type RenderFileAccess } from '~/utils/renderFileTokens'
-import { brandFontFaceCss } from '~~/shared/utils/brandFonts'
-import type { BrandFont } from '~~/shared/config/brandKit'
+import { PAGEDJS_POLYFILL_URL, PAGEDJS_POLYFILL_SRI } from '~~/shared/utils/vendor/pagedjsAssets'
+import { hljsTheme } from '~~/shared/utils/vendor/hljsAssets'
+import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/vendor/katexAssets'
+import { transformMermaid, inlineMermaidSvgs } from '~/utils/markdown/mermaidLoader'
+import { buildMermaidConfig } from '~~/shared/utils/markdown/mermaidConfig'
+import { isPagedRuntime, registerPagedHandlers } from '~/utils/preview/pagedHandlers'
+import { documentTexts } from '~~/shared/utils/documents/documentLocale'
+import { sanitizeCustomCssForRender } from '~/utils/preview/customCssLoader'
+import { themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
+import { attachRenderFileTokens, renderBrandFileUrl, withRenderFileToken, type RenderFileAccess } from '~/utils/preview/renderFileTokens'
+import { brandFontFaceCss } from '~~/shared/utils/theme/brandFonts'
 
-// Cheap structural sanity check — the bootstrap endpoint already returns
+// Cheap structural sanity check, the bootstrap endpoint already returns
 // a DB-validated theme, so we just need a guard against truly broken
 // shapes (e.g. {}). We deliberately DON'T import looksLikeTheme from
-// shared/utils/themeValidation because it transitively pulls zod through
+// shared/utils/theme/themeValidation because it transitively pulls zod through
 // shared/types/theme.ts, and Vite's SSR transform on this page wedges
 // on the zod import (the dev SSR resolver doesn't see `z` as a value
-// for some reason — `'undefined is not an object (evaluating
+// for some reason: `'undefined is not an object (evaluating
 // __vite_ssr_import_0__.z.string)'`). The full editor pages don't hit
 // this because they import zod-using code lazily; this print page
 // loads it eagerly during SSR.
@@ -43,9 +42,9 @@ function looksLikeTheme(t: unknown): t is DocTheme {
 //   3. Waits for window.__pagedReady === true.
 //   4. Calls page.pdf() and page.locator('.pagedjs_page').screenshot().
 //
-// Server-replayed Y.Doc: the bootstrap endpoint reads the latest yjs_documents
+// Server-replayed Y.Doc: the bootstrap endpoint reads the latest yjs_updates
 // rows, replays them, and returns the materialized markdown directly. No
-// Hocuspocus connection from this page — one fewer moving part, ~1-2s saved
+// Hocuspocus connection from this page, one fewer moving part, ~1-2s saved
 // per render, and integration tests can run without a sync container.
 
 definePageMeta({
@@ -56,20 +55,7 @@ const route = useRoute()
 const docId = route.params.docId as string
 const t = route.query.t as string | undefined
 
-const { data: bootstrap, error: bootstrapError } = await useFetch<{
-  snapshotId: number
-  markdown: string
-  theme: DocTheme | null
-  title: string
-  description: string
-  audience: string
-  language: string
-  fileAccessToken: string
-  fileIds?: string[]
-  brandFonts?: BrandFont[]
-  brandFiles?: string[]
-  appOrigins?: string[]
-}>('/api/_internal/render-bootstrap', {
+const { data: bootstrap, error: bootstrapError } = await useFetch('/api/_internal/render-bootstrap', {
   query: { docId, t },
   key: `render-bootstrap-${docId}-${t ?? ''}`,
   retry: false
@@ -87,14 +73,14 @@ onMounted(async () => {
   // what wedges SSR, see above): the stored theme is validated at write
   // time, but render time must not depend on that. Invalid → default
   // theme; image URLs that don't belong to this document are dropped.
-  const { isValidTheme } = await import('~~/shared/utils/themeValidation')
+  const { isValidTheme } = await import('~~/shared/utils/theme/themeValidation')
   const stored = bootstrap.value?.theme
   const validTheme: DocTheme = themeImagesForDoc(
     looksLikeTheme(stored) && isValidTheme(stored) ? stored : defaultTheme,
     docId
   ).theme
-  // Web snapshot for a published page (WP13): the same pipeline, but no
-  // cover page and no pagination — the page shows the title itself.
+  // Web snapshot for a published page: the same pipeline, but no
+  // cover page and no pagination, the page shows the title itself.
   const webMode = route.query.mode === 'web'
   const theme: DocTheme = webMode ? { ...validTheme, cover: { ...validTheme.cover, enabled: false } } : validTheme
   const title = bootstrap.value?.title ?? ''
@@ -104,9 +90,9 @@ onMounted(async () => {
   const texts = documentTexts(theme, bootstrap.value?.language)
   // File-access token (5-min, doc-scoped, read-only JWT from the
   // bootstrap) so private / password-gated / workspace-only docs' images
-  // load — the renderer's Chromium has no session cookie. It goes ONLY to
+  // load: the renderer's Chromium has no session cookie. It goes ONLY to
   // exact `/api/files/<docId>/<fileId>` URLs of this document's confirmed
-  // uploads and to the workspace's brand-kit files (WP10): `<img src>` in
+  // uploads and to the workspace's brand-kit files: `<img src>` in
   // the body + cover logo, the header/footer images (themeToCss
   // `imageUrl`), own-upload url()s in custom CSS and the brand fonts.
   // Nothing in the content can make the page attach it to another URL.
@@ -123,7 +109,7 @@ onMounted(async () => {
 
   // Fonts first: Mermaid measures label widths with the body font, and
   // paged.js measures every line. Bounded at 3s so a slow font load
-  // doesn't wedge the whole render — paged.js will use whatever's loaded.
+  // doesn't wedge the whole render, paged.js will use whatever's loaded.
   const fontsEl = document.createElement('style')
   fontsEl.textContent = fontsImport
   document.head.appendChild(fontsEl)
@@ -148,7 +134,7 @@ onMounted(async () => {
   // via a direct Y.js write). The sanitizer keeps only exact own-upload
   // url()s (normalised to `/api/files/<docId>/<fileId>`), which get the
   // same file-access token; everything else external is already gone,
-  // and the CSP + renderer allowlist (PR #64) back that up.
+  // and the CSP + renderer allowlist back that up.
   const customCss = await sanitizeCustomCssForRender(
     typeof theme.customCss === 'string' ? theme.customCss : undefined,
     {
@@ -178,10 +164,10 @@ onMounted(async () => {
   // cssText }], mount) bypasses document scanning entirely. The Nuxt
   // UI styles can stay in the head; paged.js will never look at them.
 
-  // Web snapshot (WP13 publish): hand the composed, sanitised HTML + the
+  // Web snapshot (publish): hand the composed, sanitised HTML + the
   // theme CSS back to the renderer instead of paginating. Mermaid
   // diagrams are inlined as sanitised SVG like after pagination; the
-  // file-access token is taken off every URL — the app rewrites them to
+  // file-access token is taken off every URL, the app rewrites them to
   // the published page's own file routes.
   if (webMode) {
     const container = document.createElement('div')
@@ -208,18 +194,18 @@ onMounted(async () => {
   mount.id = 'paged-mount'
   document.body.appendChild(mount)
 
-  // Reset for clean PDF output — strip everything else from the body
+  // Reset for clean PDF output, strip everything else from the body
   // surface around our mount, and override Nuxt's chrome.
   document.body.style.margin = '0'
   document.body.style.padding = '0'
   document.body.style.background = 'white'
 
-  // KaTeX + hljs CSS — these are needed for visual correctness but they
+  // KaTeX + hljs CSS, these are needed for visual correctness but they
   // CAN sit in the head; we just don't pass them to paged.js. paged.js
   // reads them naturally as a regular browser stylesheet during render.
   const hljs = hljsTheme(theme.code.theme)
   if (hljs.url) {
-    // SRI-locked like every vendored asset (shared/utils/hljsAssets.ts).
+    // SRI-locked like every vendored asset (shared/utils/vendor/hljsAssets.ts).
     const link = document.createElement('link')
     link.rel = 'stylesheet'
     link.integrity = hljs.sri
@@ -227,7 +213,7 @@ onMounted(async () => {
     link.href = hljs.url
     document.head.appendChild(link)
   }
-  // KaTeX is SRI-locked — same rationale as the live preview iframe.
+  // KaTeX is SRI-locked: same rationale as the live preview iframe.
   const katexLink = document.createElement('link')
   katexLink.rel = 'stylesheet'
   katexLink.href = KATEX_CSS_URL
@@ -240,12 +226,12 @@ onMounted(async () => {
   // document out around them, and the resulting PDF / screenshot
   // captures whichever images happened to have loaded by the time
   // pagination ran. The original preview iframe does the same in
-  // pagedPreviewIframe.html — copying its decode pattern here so the
+  // pagedPreviewIframe.html: copying its decode pattern here so the
   // server-rendered output isn't visually inconsistent with the live
   // preview.
   //
   // We work against an off-screen scratch container instead of the
-  // mount target — paged.js needs the mount empty to write its paginated
+  // mount target: paged.js needs the mount empty to write its paginated
   // DOM there. Per-image errors are swallowed so one broken image
   // (broken-href, 403, network blip) doesn't kill the whole render.
   const scratch = document.createElement('div')
@@ -266,18 +252,18 @@ onMounted(async () => {
   await preloadImages(customCss?.urls ?? [])
 
   // PagedConfig must be set BEFORE the polyfill loads. auto:false stops
-  // the polyfill from auto-scanning the document — we drive the render
+  // the polyfill from auto-scanning the document, we drive the render
   // manually below via Previewer.preview().
   ;(globalThis as unknown as { PagedConfig: { auto: boolean } }).PagedConfig = { auto: false }
 
   // Load the polyfill, then drive the render explicitly with our theme
-  // CSS as a named stylesheet — paged.js's Polisher only processes
+  // CSS as a named stylesheet, paged.js's Polisher only processes
   // @page rules from this argument, so it never sees Nuxt's oklch().
   await new Promise<void>((resolve, reject) => {
     const polyfill = document.createElement('script')
     polyfill.src = PAGEDJS_POLYFILL_URL
     // SRI-locked + crossorigin="anonymous" (same-origin /vendor/ file,
-    // the hash pins its exact bytes — shared/utils/pagedjsAssets.ts).
+    // the hash pins its exact bytes, shared/utils/vendor/pagedjsAssets.ts).
     polyfill.integrity = PAGEDJS_POLYFILL_SRI
     polyfill.crossOrigin = 'anonymous'
     polyfill.onload = () => resolve()
@@ -288,7 +274,7 @@ onMounted(async () => {
   const Paged: unknown = Reflect.get(globalThis, 'Paged')
   if (!isPagedRuntime(Paged)) throw new Error('paged.js did not initialise')
   // Keep-with-next headings, whole-block moves, row-safe table breaks with
-  // repeated headers, orphan control — same handlers as the live preview.
+  // repeated headers, orphan control, same handlers as the live preview.
   registerPagedHandlers(Paged)
   const previewer = new Paged.Previewer()
   const result = await previewer.preview(
@@ -299,15 +285,14 @@ onMounted(async () => {
 
   // Wait for images IN THE PAGINATED DOM to decode. paged.js CLONES the
   // source HTML into new <img> nodes inside `.pagedjs_page` containers
-  // during pagination — those clones need to load independently of the
+  // during pagination: those clones need to load independently of the
   // pre-pagination decode pass we did into the scratch container. The
   // image bytes are usually browser-cached at this point so this resolves
   // fast, but on a cold cache (or a slow renderer container start)
   // page.pdf() will fire before pixels exist and the PDF comes up with
-  // missing images. element.screenshot() apparently waits for in-viewport
-  // images, but page.pdf() does not — hence images appeared on direct
-  // screenshots but were absent from the produced PDF until this wait
-  // landed.
+  // missing images. element.screenshot() waits for in-viewport images,
+  // but page.pdf() does not, so images show up on direct
+  // screenshots but are absent from the produced PDF without this wait.
   // Mermaid diagrams were atomic <img>s for pagination; now inline them
   // (sanitised) so their text uses the document's web fonts.
   inlineMermaidSvgs(mount)
@@ -317,11 +302,8 @@ onMounted(async () => {
   }
   await preloadImages(customCss?.urls ?? [])
 
-  ;(globalThis as Window & {
-    __pagedReady?: boolean
-    __pagedPageCount?: number
-  }).__pagedPageCount = result?.total ?? document.querySelectorAll('.pagedjs_page').length
-  ;(globalThis as Window & { __pagedReady?: boolean }).__pagedReady = true
+  window.__pagedPageCount = result?.total ?? document.querySelectorAll('.pagedjs_page').length
+  window.__pagedReady = true
 })
 
 /** Fetch + decode each URL as an image; failures are ignored (a broken

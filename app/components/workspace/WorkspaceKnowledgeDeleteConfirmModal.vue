@@ -1,10 +1,8 @@
 <script setup lang="ts">
-// Knowledge-file delete confirmation. Same visual idiom as
-// DeleteConfirmModal / WorkspaceDeleteConfirmModal but without the
-// "type the name to confirm" step — knowledge files are uploaded
-// artifacts, not user-authored content, so the friction bar is lower.
-// The destructive action is still framed clearly (red icon + warning
-// copy) so it can't be mistaken for a benign click.
+// Knowledge-file delete confirmation. Like DeleteConfirmModal but without
+// the "type the name" step: knowledge files are uploaded artifacts, not
+// user-authored content. The red icon + warning copy still frame it as
+// destructive.
 
 const props = defineProps<{
   workspaceId: string
@@ -20,14 +18,16 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
+const { showError } = useErrorHandler()
 
 const deleting = ref(false)
 
 async function handleDelete() {
   deleting.value = true
   try {
-    await $fetch(`/api/workspaces/${props.workspaceId}/knowledge/${props.knowledgeId}`, {
-      method: 'DELETE'
+    await apiFetch('/api/workspaces/:wsId/knowledge/:knowledgeId', {
+      method: 'delete',
+      path: { wsId: props.workspaceId, knowledgeId: props.knowledgeId }
     })
     toast.add({
       title: t('knowledge.deleted'),
@@ -38,13 +38,7 @@ async function handleDelete() {
     open.value = false
     emit('deleted')
   } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
-    toast.add({
-      title: t('knowledge.deleteFailed'),
-      description: err?.data?.message || err?.message,
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+    showError('knowledge.deleteFailed', e)
   } finally {
     deleting.value = false
   }

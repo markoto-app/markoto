@@ -1,4 +1,4 @@
-# Code owners. Combined with the `main` ruleset (docs/GITHUB-CONFIG.md) this
+# Code owners. Combined with the `main` ruleset (docs/operations/GITHUB-CONFIG.md) this
 # makes the owner the reviewer of record for every change.
 #
 # Last matching pattern wins, so the sensitive paths below are listed
@@ -16,12 +16,13 @@
 /scripts/                  @joelbarmettlerUZH
 /install.sh                @joelbarmettlerUZH
 
-# Compose files and container images
-/docker-compose*.yml       @joelbarmettlerUZH
+# Compose files, the config they mount, container images, the workspace
+/deploy/                   @joelbarmettlerUZH
 /Dockerfile                @joelbarmettlerUZH
 /*/Dockerfile              @joelbarmettlerUZH
+/*/Dockerfile.dockerignore @joelbarmettlerUZH
 /.dockerignore             @joelbarmettlerUZH
+/bunfig.toml               @joelbarmettlerUZH
 
 # Instructions that AI agents load into maintainers' sessions
 AGENTS.md                  @joelbarmettlerUZH
-/.agents/                  @joelbarmettlerUZH

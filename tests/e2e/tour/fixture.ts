@@ -4,12 +4,12 @@ import type { Locator, Page } from '@playwright/test'
 import { test as flowTest, expect } from '../fixtures/flow'
 import type { TourBeatId, TourSceneId } from '../../../shared/tour/manifest'
 
-// Product-tour capture fixture (WP11). Extends the flow fixture (same
+// Product-tour capture fixture. Extends the flow fixture (same
 // `editor` helpers, login shim, failure signals) with a
 // `tour` recorder that turns a scripted session in the real app into the
 // frames of a short looping video.
 //
-// Frames are taken STEP BY STEP — never with Playwright's screen recorder
+// Frames are taken STEP BY STEP, never with Playwright's screen recorder
 // (blurry, low bitrate): the script drives the app, and after each step
 // the recorder takes a 2x screenshot and decides how long that frame
 // lasts on the video's fixed timeline (holds = one file with a duration).
@@ -19,7 +19,7 @@ import type { TourBeatId, TourSceneId } from '../../../shared/tour/manifest'
 // are real too.
 //
 // Output: `$TOUR_OUTPUT_DIR/<mode>/<scene>/` (default
-// tests/e2e/output/tour) — PNG frames + `clip.json`. `scripts/capture-tour.ts`
+// tests/e2e/output/tour): PNG frames + `clip.json`. `scripts/capture-tour.ts`
 // encodes them (AV1 + H.264, desktop + phone cut, posters) into
 // public/tour/ and writes the manifest.
 
@@ -29,7 +29,7 @@ type Target = Locator | Rect | Point
 
 export const TOUR_OUTPUT = process.env.TOUR_OUTPUT_DIR ?? 'tests/e2e/output/tour'
 /** Frames per second of the video timeline. */
-export const TOUR_FPS = 12
+const TOUR_FPS = 12
 
 export interface ClipDone {
   /** What the clip shows (capture notes; the page's alt text is i18n). */
@@ -72,7 +72,7 @@ function isRect(t: Target): t is Rect {
   return !isLocator(t) && 'w' in t
 }
 
-export async function boxOf(target: Locator | Rect, pad = 0): Promise<Rect> {
+async function boxOf(target: Locator | Rect, pad = 0): Promise<Rect> {
   if (!isLocator(target)) return target
   const box = await target.first().boundingBox()
   if (!box) throw new Error(`[tour] element has no box: ${String(target)}`)
@@ -274,14 +274,6 @@ export async function settlePreview(page: Page, ms = 900): Promise<void> {
   await page.waitForTimeout(250)
 }
 
-/** Scroll the live preview to the LAST element matching `selector` (e.g. the newest heading). */
-export async function scrollPreviewToLast(page: Page, selector: string): Promise<void> {
-  await page.frameLocator('iframe').first().locator('#mount').evaluate((mount: HTMLElement, sel: string) => {
-    const all = mount.querySelectorAll(sel)
-    all[all.length - 1]?.scrollIntoView({ block: 'center' })
-  }, selector)
-}
-
 /** Apply a whole DocTheme live (ymeta.theme, exactly what the Theme panel writes) and persist it. */
 export async function applyTheme(page: Page, theme: unknown): Promise<void> {
   const docId = /\/d\/([^/?]+)/.exec(new URL(page.url()).pathname)?.[1]
@@ -300,14 +292,14 @@ export async function applyTheme(page: Page, theme: unknown): Promise<void> {
     set.call(meta, 'theme', t)
     return true
   }, theme)
-  if (!applied) throw new Error('[applyTheme] window.__DEBUG_ydoc is missing — run against the flow stack')
+  if (!applied) throw new Error('[applyTheme] window.__DEBUG_ydoc is missing, run against the flow stack')
 }
 
 /**
  * The hosted shape of AI: the signed-in user's own provider (bring your
  * own key). Saves the user's Mistral key through the real settings API
  * (verified by a test call), so the instance pays for nothing and the
- * app shows no AI-points meter — exactly what markoto.app users see.
+ * app shows no AI-points meter, exactly what markoto.app users see.
  */
 export async function useOwnMistralKey(page: Page): Promise<void> {
   const apiKey = process.env.MISTRAL_API_KEY
@@ -316,13 +308,6 @@ export async function useOwnMistralKey(page: Page): Promise<void> {
     data: { baseUrl: 'https://api.mistral.ai/v1', model: 'mistral-small-2603', apiKey, supportsVision: true }
   })
   if (!res.ok()) throw new Error(`[useOwnMistralKey] save failed: ${res.status()}`)
-}
-
-/** Is the element's box inside the viewport (so a ring or cursor keyframe on it makes sense)? */
-export async function onScreen(page: Page, target: Locator): Promise<boolean> {
-  const box = await target.first().boundingBox().catch(() => null)
-  const vp = page.viewportSize() ?? { width: 1440, height: 900 }
-  return Boolean(box && box.y >= 60 && box.y + box.height <= vp.height - 30 && box.width > 0)
 }
 
 /**

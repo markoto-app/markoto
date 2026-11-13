@@ -7,11 +7,13 @@ import {
   truncateIp
 } from '../../server/repos/audit'
 import { createUser } from '../integration/setup/fixtures'
+import { first, last } from '../helpers/assert'
+import { asUser, sys } from '../helpers/access'
 
 async function auditCount(): Promise<number> {
   const db = testDb()
   const r = await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM audit_log')
-  return Number(r.rows[0].c)
+  return Number(first(r.rows).c)
 }
 
 describe('truncateIp', () => {
@@ -44,52 +46,52 @@ describe('appendAuditEvent', () => {
   it('inserts a row that read-by-scope returns', async () => {
     const u = await createUser()
     await appendAuditEvent({
-      actorUserId: u.id,
+      by: asUser(u.id),
       actorIp: '192.168.1.42',
       scope: 'doc',
       scopeId: 'doc-A',
       action: 'doc.deleted',
-      before: { title: 'Old', accessMode: 'private' },
+      before: { title: 'Old', accessMode: 'private', ownerId: null, workspaceId: null },
       after: null,
       metadata: { reason: 'user_initiated' }
     })
     expect(await auditCount()).toBe(1)
-    const rows = await getAuditEventsByScope('doc', 'doc-A')
+    const rows = await getAuditEventsByScope(sys(), 'doc', 'doc-A')
     expect(rows).toHaveLength(1)
-    expect(rows[0].action).toBe('doc.deleted')
-    expect(rows[0].actorUserId).toBe(u.id)
+    expect(first(rows).action).toBe('doc.deleted')
+    expect(first(rows).actorUserId).toBe(u.id)
     // IP stored truncated.
-    expect(rows[0].actorIp).toBe('192.168.1.0')
-    expect(rows[0].before).toEqual({ title: 'Old', accessMode: 'private' })
-    expect(rows[0].metadata).toEqual({ reason: 'user_initiated' })
+    expect(first(rows).actorIp).toBe('192.168.1.0')
+    expect(first(rows).before).toEqual({ title: 'Old', accessMode: 'private', ownerId: null, workspaceId: null })
+    expect(first(rows).metadata).toEqual({ reason: 'user_initiated' })
   })
 
   it('read-by-actor returns the row for that actor', async () => {
     const u = await createUser()
     await appendAuditEvent({
-      actorUserId: u.id,
+      by: asUser(u.id),
       actorIp: null,
       scope: 'workspace',
       scopeId: 'ws-1',
       action: 'workspace.member_removed'
     })
-    const rows = await getAuditEventsByActor(u.id)
+    const rows = await getAuditEventsByActor(sys(), u.id)
     expect(rows).toHaveLength(1)
-    expect(rows[0].scope).toBe('workspace')
+    expect(first(rows).scope).toBe('workspace')
   })
 
   it('tuple-key isolation: scope=doc scopeId=A query never returns doc=B rows', async () => {
     const u = await createUser()
-    await appendAuditEvent({ actorUserId: u.id, actorIp: null, scope: 'doc', scopeId: 'doc-A', action: 'doc.deleted' })
-    await appendAuditEvent({ actorUserId: u.id, actorIp: null, scope: 'doc', scopeId: 'doc-B', action: 'doc.deleted' })
-    const rowsA = await getAuditEventsByScope('doc', 'doc-A')
+    await appendAuditEvent({ by: asUser(u.id), actorIp: null, scope: 'doc', scopeId: 'doc-A', action: 'doc.deleted' })
+    await appendAuditEvent({ by: asUser(u.id), actorIp: null, scope: 'doc', scopeId: 'doc-B', action: 'doc.deleted' })
+    const rowsA = await getAuditEventsByScope(sys(), 'doc', 'doc-A')
     expect(rowsA).toHaveLength(1)
-    expect(rowsA[0].scopeId).toBe('doc-A')
+    expect(first(rowsA).scopeId).toBe('doc-A')
   })
 
   it('accepts null actorUserId (system actions)', async () => {
     await appendAuditEvent({
-      actorUserId: null,
+      by: null,
       actorIp: null,
       scope: 'system',
       scopeId: null,
@@ -101,25 +103,25 @@ describe('appendAuditEvent', () => {
 
   it('accepts null actorIp', async () => {
     const u = await createUser()
-    await appendAuditEvent({ actorUserId: u.id, actorIp: null, scope: 'doc', scopeId: 'd', action: 'doc.deleted' })
-    const rows = await getAuditEventsByScope('doc', 'd')
-    expect(rows[0].actorIp).toBeNull()
+    await appendAuditEvent({ by: asUser(u.id), actorIp: null, scope: 'doc', scopeId: 'd', action: 'doc.deleted' })
+    const rows = await getAuditEventsByScope(sys(), 'doc', 'd')
+    expect(first(rows).actorIp).toBeNull()
   })
 
   it('truncates IPv4 actorIp on insert', async () => {
-    await appendAuditEvent({ actorUserId: null, actorIp: '203.0.113.42', scope: 'doc', scopeId: 'd', action: 'doc.deleted' })
-    const rows = await getAuditEventsByScope('doc', 'd')
-    expect(rows[0].actorIp).toBe('203.0.113.0')
+    await appendAuditEvent({ by: null, actorIp: '203.0.113.42', scope: 'doc', scopeId: 'd', action: 'doc.deleted' })
+    const rows = await getAuditEventsByScope(sys(), 'doc', 'd')
+    expect(first(rows).actorIp).toBe('203.0.113.0')
   })
 
   it('truncates IPv6 actorIp on insert', async () => {
     await appendAuditEvent({
-      actorUserId: null,
+      by: null,
       actorIp: '2001:0db8:85a3:0000:0000:8a2e:0370:7334',
       scope: 'doc', scopeId: 'd', action: 'doc.deleted'
     })
-    const rows = await getAuditEventsByScope('doc', 'd')
-    expect(rows[0].actorIp).toBe('2001:db8:85a3::')
+    const rows = await getAuditEventsByScope(sys(), 'doc', 'd')
+    expect(first(rows).actorIp).toBe('2001:db8:85a3::')
   })
 })
 
@@ -130,13 +132,13 @@ describe('getAuditEventsByScope', () => {
 
   it('returns rows ordered by ts desc (most-recent-first)', async () => {
     const u = await createUser()
-    await appendAuditEvent({ actorUserId: u.id, actorIp: null, scope: 'doc', scopeId: 'd', action: 'doc.deleted', metadata: { n: 1 } })
+    await appendAuditEvent({ by: asUser(u.id), actorIp: null, scope: 'doc', scopeId: 'd', action: 'workspace.deleted', metadata: { deletedDocs: 1, deletedKnowledge: 0 } })
     await new Promise(r => setTimeout(r, 5))
-    await appendAuditEvent({ actorUserId: u.id, actorIp: null, scope: 'doc', scopeId: 'd', action: 'doc.deleted', metadata: { n: 2 } })
+    await appendAuditEvent({ by: asUser(u.id), actorIp: null, scope: 'doc', scopeId: 'd', action: 'workspace.deleted', metadata: { deletedDocs: 2, deletedKnowledge: 0 } })
     await new Promise(r => setTimeout(r, 5))
-    await appendAuditEvent({ actorUserId: u.id, actorIp: null, scope: 'doc', scopeId: 'd', action: 'doc.deleted', metadata: { n: 3 } })
-    const rows = await getAuditEventsByScope('doc', 'd')
-    expect(rows.map(r => (r.metadata as { n: number }).n)).toEqual([3, 2, 1])
+    await appendAuditEvent({ by: asUser(u.id), actorIp: null, scope: 'doc', scopeId: 'd', action: 'workspace.deleted', metadata: { deletedDocs: 3, deletedKnowledge: 0 } })
+    const rows = await getAuditEventsByScope(sys(), 'doc', 'd')
+    expect(rows.map(r => (r.metadata as { deletedDocs: number }).deletedDocs)).toEqual([3, 2, 1])
   })
 
   it('paginates via beforeId', async () => {
@@ -144,13 +146,13 @@ describe('getAuditEventsByScope', () => {
     // 5 rows
     for (let i = 0; i < 5; i++) {
       await appendAuditEvent({
-        actorUserId: u.id, actorIp: null, scope: 'doc', scopeId: 'd',
-        action: 'doc.deleted', metadata: { n: i }
+        by: asUser(u.id), actorIp: null, scope: 'doc', scopeId: 'd',
+        action: 'workspace.deleted', metadata: { deletedDocs: i, deletedKnowledge: 0 }
       })
     }
-    const page1 = await getAuditEventsByScope('doc', 'd', { limit: 2 })
+    const page1 = await getAuditEventsByScope(sys(), 'doc', 'd', { limit: 2 })
     expect(page1).toHaveLength(2)
-    const page2 = await getAuditEventsByScope('doc', 'd', { limit: 2, beforeId: page1[page1.length - 1].id })
+    const page2 = await getAuditEventsByScope(sys(), 'doc', 'd', { limit: 2, beforeId: last(page1).id })
     expect(page2).toHaveLength(2)
     // No id overlap between pages.
     const ids1 = page1.map(r => r.id)
@@ -161,9 +163,9 @@ describe('getAuditEventsByScope', () => {
   it('respects the limit argument', async () => {
     const u = await createUser()
     for (let i = 0; i < 5; i++) {
-      await appendAuditEvent({ actorUserId: u.id, actorIp: null, scope: 'doc', scopeId: 'd', action: 'doc.deleted' })
+      await appendAuditEvent({ by: asUser(u.id), actorIp: null, scope: 'doc', scopeId: 'd', action: 'doc.deleted' })
     }
-    const rows = await getAuditEventsByScope('doc', 'd', { limit: 3 })
+    const rows = await getAuditEventsByScope(sys(), 'doc', 'd', { limit: 3 })
     expect(rows).toHaveLength(3)
   })
 })
@@ -176,21 +178,21 @@ describe('getAuditEventsByActor', () => {
   it('isolates per-actor: actor A query never returns actor B rows', async () => {
     const a = await createUser()
     const b = await createUser()
-    await appendAuditEvent({ actorUserId: a.id, actorIp: null, scope: 'doc', scopeId: 'd', action: 'doc.deleted' })
-    await appendAuditEvent({ actorUserId: b.id, actorIp: null, scope: 'doc', scopeId: 'd', action: 'doc.deleted' })
-    const aRows = await getAuditEventsByActor(a.id)
+    await appendAuditEvent({ by: asUser(a.id), actorIp: null, scope: 'doc', scopeId: 'd', action: 'doc.deleted' })
+    await appendAuditEvent({ by: asUser(b.id), actorIp: null, scope: 'doc', scopeId: 'd', action: 'doc.deleted' })
+    const aRows = await getAuditEventsByActor(sys(), a.id)
     expect(aRows).toHaveLength(1)
-    expect(aRows[0].actorUserId).toBe(a.id)
+    expect(first(aRows).actorUserId).toBe(a.id)
   })
 
   it('orders by ts desc and paginates via beforeId', async () => {
     const u = await createUser()
     for (let i = 0; i < 4; i++) {
-      await appendAuditEvent({ actorUserId: u.id, actorIp: null, scope: 'doc', scopeId: 'd', action: 'doc.deleted', metadata: { n: i } })
+      await appendAuditEvent({ by: asUser(u.id), actorIp: null, scope: 'doc', scopeId: 'd', action: 'workspace.deleted', metadata: { deletedDocs: i, deletedKnowledge: 0 } })
     }
-    const page1 = await getAuditEventsByActor(u.id, { limit: 2 })
-    expect(page1.map(r => (r.metadata as { n: number }).n)).toEqual([3, 2])
-    const page2 = await getAuditEventsByActor(u.id, { limit: 2, beforeId: page1[page1.length - 1].id })
-    expect(page2.map(r => (r.metadata as { n: number }).n)).toEqual([1, 0])
+    const page1 = await getAuditEventsByActor(sys(), u.id, { limit: 2 })
+    expect(page1.map(r => (r.metadata as { deletedDocs: number }).deletedDocs)).toEqual([3, 2])
+    const page2 = await getAuditEventsByActor(sys(), u.id, { limit: 2, beforeId: last(page1).id })
+    expect(page2.map(r => (r.metadata as { deletedDocs: number }).deletedDocs)).toEqual([1, 0])
   })
 })

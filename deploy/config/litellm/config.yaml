@@ -1,0 +1,343 @@
+# LiteLLM proxy config.
+#
+# EU only: EVERY Mistral deployment below (chat, fallbacks, transcription)
+# and the app's live-dictation WebSocket use Mistral's EU regional endpoint
+# `api.eu.mistral.ai` (EU / EFTA data centres). The default
+# `api.mistral.ai` makes no location commitment. Regional inference bills
+# 1.1x list on every token type, so the costs below are EU prices.
+#
+# Provider keys come from the container environment (compose passes them
+# in from .env). Master + salt key authenticate admin / virtual-key APIs
+# and encrypt at-rest verification tokens respectively.
+
+model_list:
+  # ---- Embeddings: jina-embeddings-v5-text-nano (custom provider) ----
+  # Used by server/utils/knowledge/embeddings.ts.
+  #
+  # Why -nano: native 768-d output (perfect fit for the existing
+  # pgvector(768) HNSW index: zero DDL), smallest model in Jina's v5
+  # family = fastest + cheapest. For writing-doc retrieval the quality vs
+  # -text-small (1024-d native) is negligible; the hybrid vector+BM25 RRF
+  # retrieval absorbs the difference. -text-small via MRL truncation to
+  # 768 is a config-only swap.
+  #
+  # Why custom provider (jina-embed/) instead of native (jina_ai/):
+  # LiteLLM's native Jina path computes spend as `input_cost_per_token ×
+  # prompt_tokens` but Jina populates `total_tokens` only: result is
+  # $0.00 on every call. The custom provider in custom_handlers.py
+  # reshapes usage so spend tracks correctly.
+  - model_name: jina-embeddings-v5-text-nano
+    litellm_params:
+      model: jina-embed/jina-embeddings-v5-text-nano
+      api_key: os.environ/JINA_AI_API_KEY
+    model_info:
+      mode: embedding
+      input_cost_per_token: 0.00000002  # ~$0.02/M tokens
+
+  # ---- Embeddings: operator-configurable deployment (self-hosting) ----
+  # Hosted markoto keeps the Jina default above and never selects this
+  # entry. A self-hoster points knowledge embeddings at ANY provider
+  # LiteLLM supports by setting, in .env:
+  #   NUXT_LITELLM_EMBEDDINGS_MODEL=custom-embeddings
+  #   NUXT_LITELLM_EMBEDDINGS_DIMS=<model output size, max 2000>
+  #   EMBEDDINGS_UPSTREAM_MODEL=openai/text-embedding-3-small  (any LiteLLM id:
+  #       openai/<m> for OpenAI-compatible servers, mistral/mistral-embed,
+  #       ollama/nomic-embed-text, ...)
+  #   EMBEDDINGS_UPSTREAM_API_BASE=https://api.openai.com/v1
+  #   EMBEDDINGS_UPSTREAM_API_KEY=sk-...
+  # LiteLLM resolves os.environ/* for model, api_base and api_key alike
+  # (verified on v1.106.4). All three variables MUST be defined (possibly
+  # with placeholder values) or the proxy crashes at startup with
+  # "argument of type 'NoneType' is not iterable"; the compose files
+  # default them. See docs/AI-MODELS.md#embeddings.
+  - model_name: custom-embeddings
+    litellm_params:
+      model: os.environ/EMBEDDINGS_UPSTREAM_MODEL
+      api_base: os.environ/EMBEDDINGS_UPSTREAM_API_BASE
+      api_key: os.environ/EMBEDDINGS_UPSTREAM_API_KEY
+    model_info:
+      mode: embedding
+
+  # Reranker intentionally NOT registered. Hybrid vector + BM25 RRF
+  # gives sufficient retrieval quality for writing-doc workloads; adding
+  # a reranker stage would burn 100-200ms latency + extra Jina-token cost
+  # per knowledge search without a justified quality win. Revisit only
+  # if recall becomes the bottleneck under real usage.
+
+  # ---- Voxtral Mini Transcribe 2 (custom provider) ----
+  # Wraps Mistral's /v1/audio/transcriptions endpoint as a fake chat-
+  # completion so LiteLLM's spend tracker bills correctly. The native
+  # transcription path ignores Mistral's `usage.prompt_audio_seconds`
+  # (it expects OpenAI Whisper's `duration` field). custom_handlers.py
+  # reshapes the response: transcript in choices[].message.content,
+  # duration_seconds in usage.completion_tokens.
+  #
+  # Pinned to the dated id `voxtral-mini-2602` (Transcribe 2, GA) to avoid
+  # silent model drift behind `-latest` aliases. See docs/AI-MODELS.md for
+  # newer Voxtral versions.
+  #
+  # Cost math (EU endpoint, 1.1x list): $0.0033/min = $0.000055/sec. With
+  # completion_tokens = duration_seconds, output_cost_per_token = 0.000055
+  # produces the exact per-second price. The handler posts to
+  # https://api.eu.mistral.ai (custom_handlers.py:_MISTRAL_TRANSCRIBE_API).
+  #
+  # Caller wraps the audio in a chat message: see custom_handlers.py
+  # for the convention. server/api/ai/transcribe.post.ts is the only
+  # consumer.
+  # Budget reservation (LiteLLM ≥ 1.10x): before every call the proxy
+  # reserves the call's worst-case cost: max_output_tokens (default
+  # 16384) × output_cost_per_token: against the key / team budget and
+  # settles it after the call. The billing-wrapped models below report
+  # their price in completion_tokens, so without a real ceiling one call
+  # would reserve $0.9–1.8, i.e. a free user's whole budget, and every
+  # other request of that user would be refused until it settled. Each
+  # sets max_output_tokens to what it can actually report.
+  - model_name: voxtral-mini-transcribe
+    litellm_params:
+      model: mistral-transcribe/voxtral-mini-2602
+      api_key: os.environ/MISTRAL_API_KEY
+    model_info:
+      input_cost_per_token: 0.0
+      output_cost_per_token: 0.000055  # × seconds reported = $0.0033/min (EU: 1.1 x $0.003)
+      # Budget reservation ceiling (see "Budget reservation" above): a
+      # clip is ≤ 60 s, so ≤ 60 "tokens": 120 leaves room.
+      max_output_tokens: 120
+
+  # ---- Mistral Small 4.0 (text agentic loop + vision) ----
+  # Native mistral/ provider, no custom wrapper: Mistral's chat-completions
+  # is OpenAI-compatible and LiteLLM's cost calc maps to its
+  # `prompt_tokens` / `completion_tokens` natively.
+  - model_name: mistral-small-2603
+    litellm_params:
+      model: mistral/mistral-small-2603
+      api_base: https://api.eu.mistral.ai/v1
+      api_key: os.environ/MISTRAL_API_KEY
+      # Prompt caching: Mistral AUTOMATICALLY caches a stable prompt prefix
+      # (system + tools, 1024+ tokens) and bills cached tokens at 10%: the
+      # same automatic behaviour LiteLLM documents for OpenAI-style providers.
+      # That is what actually cuts cost here: the app keeps the system prompt +
+      # tools a byte-identical prefix across turns/prompts
+      # (server/utils/agentic/promptAssembly.ts). Mistral's template puts the
+      # tool definitions AFTER the system message, so per-prompt data must not
+      # sit in it: measured through this proxy (v1.106.4), 0 % cached with the
+      # conversation history at the end of the system message vs 99 % with it
+      # in the user message.
+      #
+      # The app also sends `prompt_cache_key` (runLoop.ts). LiteLLM's mistral
+      # provider doesn't list it as supported, so `drop_params` would strip
+      # it; `allowed_openai_params` lets it through (v1.106.4 forwards it,
+      # checked in the provider's request transform).
+      allowed_openai_params: ["prompt_cache_key"]
+    model_info:
+      input_cost_per_token: 0.000000165   # $0.165 / M (EU: 1.1 x $0.15)
+      # Cached prompt tokens bill at 10 % of input; stated explicitly so the
+      # spend LiteLLM debits from budgets uses the cached price.
+      cache_read_input_token_cost: 0.0000000165
+      output_cost_per_token: 0.00000066   # $0.66 / M (EU: 1.1 x $0.60)
+      max_tokens: 256000
+
+  # ---- Free AI allowance (hosted SaaS): Z.ai GLM-5.3 Flash on Mistral ----
+  # The hosted SaaS's instance chat default (NUXT_AI_DEFAULT_CHAT_MODEL,
+  # rendered by infra/render-env.sh): signed-in
+  # users without their own key get a monthly allowance on this model.
+  # See docs/AI-MODELS.md#free-ai-allowance.
+  #
+  # Served BY MISTRAL on La Plateforme (third-party open model, MIT
+  # weights, "served without Mistral modifications"), so the Mistral
+  # contract, no-training opt-out and data terms apply as for Mistral's
+  # own models. GA, 1M context, function_calling + vision + reasoning.
+  #
+  # EU-pinned: `api_base` is Mistral's EU regional endpoint. The default
+  # `api.mistral.ai` makes NO location commitment; `api.eu.mistral.ai`
+  # processes inference in EU/EFTA data centres at 1.1x list price.
+  # The costs below are therefore the EU price (1.1 x list): list is
+  # $0.15 / M input, $0.03 / M cached input, $0.50 / M output.
+  #
+  # Prompt caching: Mistral reports `usage.prompt_tokens_details.cached_tokens`
+  # and LiteLLM bills those at `cache_read_input_token_cost` (verified
+  # through this proxy on v1.106.4: spend = uncached x input +
+  # cached x cache_read + output x output, to the 1e-9 $). The cache works
+  # in ~1152-token blocks and only kicks in once a prefix has been seen
+  # twice (measured: the 3rd identical-prefix request hits, with or
+  # without `prompt_cache_key`), so what matters is a prefix shared by
+  # every user and turn: see server/utils/agentic/promptAssembly.ts.
+  # `prompt_cache_key` (sent by runLoop.ts, Mistral: "increases the chance
+  # of a cache hit") is let through `drop_params` by `allowed_openai_params`.
+  #
+  # It is a reasoning model: thinking tokens bill as output and come back
+  # as `reasoning_content` (never shown to users). Thinking is switched OFF
+  # here, for every caller (agent loop, `@ai`, MCP, web-tool synthesis):
+  # Mistral accepts `reasoning_effort` low / high / max only: `none` is a
+  # 400, a Z.ai-style `thinking: {type: disabled}` a 422: and `low` produces 0 reasoning tokens on almost every
+  # turn. Set as a deployment param, so the fallback (`mistral-small-2603`,
+  # its own deployment) never receives it.
+  - model_name: zai-glm-5-3-flash
+    litellm_params:
+      model: mistral/zai-glm-5-3-flash
+      api_base: https://api.eu.mistral.ai/v1
+      api_key: os.environ/MISTRAL_API_KEY
+      reasoning_effort: low
+      allowed_openai_params: ["prompt_cache_key"]
+    model_info:
+      input_cost_per_token: 0.000000165         # $0.165 / M (EU: 1.1 x $0.15)
+      cache_read_input_token_cost: 0.000000033  # $0.033 / M (EU: 1.1 x $0.03)
+      output_cost_per_token: 0.00000055         # $0.55 / M (EU: 1.1 x $0.50)
+      max_input_tokens: 1048576
+      max_output_tokens: 131072
+      supports_function_calling: true
+      supports_vision: true
+      supports_reasoning: true
+      supports_prompt_caching: true
+
+  # ---- Fallback for mistral-small-2603 ----
+  # Ministral 3 8B (`ministral-8b-2512`, pinned instead of `-latest`) is a
+  # different model family (separate Mistral rate-limit pool from
+  # `mistral-small-*`), with the same essential
+  # capabilities: function calling, vision, 262K context. Smaller
+  # parameter count means simpler answers, but as a fallback it's
+  # near-free: same input cost, 4× CHEAPER output ($0.15 vs $0.60).
+  #
+  # This kicks in via `router_settings.fallbacks` below ONLY when the
+  # primary `mistral-small-2603` model exhausts its retry budget on a
+  # 429 (Mistral free tier rate-limit window). Steady-state traffic
+  # never sees this entry. When the fallback fires, spend tags still
+  # carry `feature:` / `workspace:` / `user:` / `doc:` so the AI Spend
+  # dashboard groups it correctly (the fallback model is recorded as
+  # the actual billed model, distinguishable in the Model axis).
+  - model_name: ministral-8b-2512
+    litellm_params:
+      model: mistral/ministral-8b-2512
+      api_base: https://api.eu.mistral.ai/v1
+      api_key: os.environ/MISTRAL_API_KEY
+    model_info:
+      input_cost_per_token: 0.000000165   # $0.165 / M (EU: 1.1 x $0.15, matches small input)
+      output_cost_per_token: 0.000000165  # $0.165 / M (EU: 1.1 x $0.15, 4× cheaper than small output)
+      max_tokens: 262144
+
+  # ---- BFL FLUX.2 [pro] image generation (custom provider) ----
+  # Wraps BFL's submission+poll API. EU-pinned to api.eu2.bfl.ai (no
+  # round-robin to api.us2.bfl.ai). Exposed via chat-completions because
+  # OSS LiteLLM's /v1/images/generations cost path doesn't fire the
+  # spend-logger callback for custom providers.
+  #
+  # Pricing: $0.030 per 1024² image (3 BFL credits × $0.01/credit). The
+  # provider reports completion_tokens = round(cost_usd / 0.0001) = 300
+  # for a 1024² image; output_cost_per_token: 0.0001 × 300 = $0.030.
+  - model_name: flux-2-pro
+    litellm_params:
+      model: bfl-flux/flux-2-pro
+      api_key: os.environ/BFL_API_KEY
+    model_info:
+      input_cost_per_token: 0.0
+      output_cost_per_token: 0.0001        # × completion_tokens (= cost_usd / 0.0001)
+      # Budget reservation ceiling: a 2048² image is ~$0.12 = 1200 tokens.
+      max_output_tokens: 1500
+
+  # ---- Voice-tick metering for live dictation ----
+  # Billing-only stub via custom_handlers.py:VoxtralTickProvider. Hit
+  # once per 60s of audio in server/routes/api/ai/dictate.ts. Reports 60
+  # completion_tokens × output_cost_per_token: 0.00011 = $0.0066/tick =
+  # 1 minute of Voxtral Realtime audio at the EU price (1.1 x $0.006). The
+  # actual transcription WS stays direct from our backend (Mistral SDK,
+  # pinned to api.eu.mistral.ai in dictateSpeechClient.ts): this stub exists only
+  # so spend appears in the same per-key budget as chat / image / etc.
+  - model_name: voxtral-realtime-tick
+    litellm_params:
+      model: voxtral-tick/voxtral-realtime-tick
+    model_info:
+      input_cost_per_token: 0.0
+      output_cost_per_token: 0.00011       # × 60 reported tokens = $0.0066/tick (EU: 1.1 x $0.006/min)
+      # Budget reservation ceiling: a tick is exactly 60 tokens.
+      max_output_tokens: 60
+
+  # ---- Bring-your-own-key (BYOK) passthrough ----
+  # Every BYOK call (chat / agent loop, web-tool synthesis, image
+  # generation, one-shot transcription) is sent as model `byok/<id>`
+  # with the user's `api_key` + `api_base` in the request body
+  # (LiteLLM "clientside credentials"). The app builds those fields in
+  # server/utils/aiProviders/requestFields.ts.
+  #
+  # Zero cost: the user's own provider account pays, so these calls
+  # must NOT debit the per-user virtual key's `max_budget`. Without the
+  # explicit zeros LiteLLM applies its built-in price table to known
+  # ids (verified on v1.106.4: `openai/gpt-4o` via a wildcard without
+  # model_info billed the key; with these zeros the key's spend stayed
+  # at 0.0). Calls still authenticate with the user's virtual key, so
+  # rpm_limit + spend-log tags keep working.
+  #
+  # No `api_key` here on purpose: a request that somehow arrives
+  # without one must fail, never fall back to an operator credential.
+  #
+  # `configurable_clientside_auth_params` opts THIS deployment (only)
+  # into a client-supplied `api_base`. The regex is defence-in-depth
+  # mirroring the app's SSRF policy for literal targets: http(s) only,
+  # no userinfo, no IPv6 literals, and not loopback / 0.x / link-local
+  # (cloud metadata) / markoto's own service hostnames. It deliberately
+  # stays the SAME for SaaS and self-host (one config file, no env
+  # templating): the per-deployment allowlist, the private-network
+  # opt-in and the DNS-resolution check live in the app
+  # (server/utils/aiProviders/urlPolicy.ts), which is the authoritative
+  # gate: LiteLLM v1.106.4 does NOT run its own `user_url_validation`
+  # DNS check on a clientside api_base for this path (verified).
+  # The name list must cover every compose service / container / alias
+  # name, each optionally followed by a trailing dot (same name to a
+  # resolver); tests/unit/aiProviders/internalHostnames.test.ts checks it against the
+  # compose files. Redirects from the provider are NOT followed
+  # (custom_handlers.py sets follow_redirects=False on LiteLLM's shared
+  # HTTP clients), so the checked host is the only host contacted.
+  - model_name: "byok/*"
+    litellm_params:
+      model: "openai/*"
+      configurable_clientside_auth_params:
+        - api_base: '^https?://(?!(?:localhost|app|markoto-app|backup|litellm|litellm-db-init|db-init|socket-proxy|markitdown|postgres|renderer|s3-init|seaweedfs|sync|traefik|valkey|redis|challtestsrv-test|fake-openai-test|litellm-test|litellm-test-db-init|markitdown-test|oidc-test|pebble-test|postgres-test|renderer-test|seaweedfs-test|stripe-mock|sync-test|traefik-test|valkey-test|metadata|metadata\.google\.internal)\.?(?:[:/]|$))(?!(?:127|0|169\.254)\.)(?!\[)[A-Za-z0-9.-]+(?::[0-9]{1,5})?(?:/[^\s?#@]*)?$'
+    model_info:
+      input_cost_per_token: 0
+      output_cost_per_token: 0
+      input_cost_per_second: 0
+      output_cost_per_second: 0
+      output_cost_per_image: 0
+
+litellm_settings:
+  drop_params: true
+  set_verbose: false
+  json_logs: true
+  # Custom provider map. It is loaded eagerly, so a regression in
+  # custom_handlers.py surfaces at boot rather than on first use.
+  custom_provider_map:
+    - {"provider": "jina-embed", "custom_handler": "custom_handlers.jina_embeddings_provider"}
+    - {"provider": "mistral-transcribe", "custom_handler": "custom_handlers.mistral_transcribe_provider"}
+    - {"provider": "bfl-flux", "custom_handler": "custom_handlers.bfl_flux_provider"}
+    - {"provider": "voxtral-tick", "custom_handler": "custom_handlers.voxtral_tick_provider"}
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  database_url: os.environ/DATABASE_URL
+  # No admin UI: the proxy is configured from this file and driven by the
+  # app over the API (master key); the UI would be one more login surface on
+  # a service that holds every provider key and per-user virtual key. It is
+  # switched off with the DISABLE_ADMIN_UI=True env var on the litellm
+  # service (deploy/compose/compose.base.yml / deploy/compose/compose.test.yml): v1.106.4
+  # ignores a `disable_admin_ui` key here.
+
+router_settings:
+  num_retries: 1
+  timeout: 60
+  # Fallback chain on RATE-LIMIT EXHAUSTION. If `mistral-small-2603`
+  # returns 429 after num_retries above are exhausted, LiteLLM
+  # transparently re-routes the same request to `ministral-8b-2512`.
+  # The SDK-level retry layer in `server/utils/litellm/createCompletion.ts`
+  # adds another 4 retries with exponential backoff (3s/6s/12s/24s)
+  # AROUND the proxy's behaviour: so a single sustained 429 burst is
+  # answered by: (proxy 1 retry) → (fallback to ministral) → (SDK 4
+  # retries on whatever LiteLLM ultimately returns). Net: in-app AI
+  # rarely surfaces "Could not reach markoto" even on Mistral throttle
+  # storms.
+  #
+  # The free-allowance model (`zai-glm-5-3-flash`) falls back to Mistral
+  # Small 4 (also on the EU endpoint) on the same conditions (LiteLLM
+  # fallbacks fire on any error left after the retry: 429, 5xx,
+  # timeout). Budget / team-budget rejections happen in the proxy's auth
+  # step, before routing, so they never trigger a fallback.
+  fallbacks:
+    - mistral-small-2603: [ministral-8b-2512]
+    - zai-glm-5-3-flash: [mistral-small-2603]

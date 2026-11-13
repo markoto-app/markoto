@@ -1,30 +1,29 @@
 name: deploy
 
-# Manual deploy dispatcher (see `on:` below — NOT event-triggered). SSHes
+# Manual deploy dispatcher (see `on:` below: NOT event-triggered). SSHes
 # to the VPS, pulls the requested tag (private GHCR via PAT mounted on the
 # VPS at provision time), runs compose up, polls /api/health,
 # auto-rollbacks on failure, sends Apprise notifications either way.
 #
 # Required secrets, all scoped to the target Environment (staging / prod; see
-# docs/GITHUB-CONFIG.md):
-#   DEPLOY_SSH_KEY     — private OpenSSH key for the deploy user on the VPS
-#   DEPLOY_HOST        — IP or DNS of the VPS
-#   DEPLOY_KNOWN_HOSTS — pinned SSH host keys (`ssh-keyscan -t ed25519 HOST`);
+# docs/operations/GITHUB-CONFIG.md):
+#   DEPLOY_SSH_KEY: private OpenSSH key for the deploy user on the VPS
+#   DEPLOY_HOST: IP or DNS of the VPS
+#   DEPLOY_KNOWN_HOSTS: pinned SSH host keys (`ssh-keyscan -t ed25519 HOST`);
 #                        the job refuses to connect without them
-#   APPRISE_URLS       — Apprise URLs (optional: notifications are skipped)
+#   APPRISE_URLS: Apprise URLs (optional: notifications are skipped)
 # plus the app + provider secrets that infra/render-env.sh renders into .env.
 #
 # The VPS must already have run `docker login ghcr.io` via the Ansible
-# `markoto` role (uses the `ghcr_pat` vault entry — see infra/group_vars/
+# `markoto` role (uses the `ghcr_pat` vault entry: see infra/group_vars/
 # all.vault.example.yml).
 
 on:
-  # MANUAL ONLY. A merge/release never auto-deploys — you pick the environment
+  # MANUAL ONLY. A merge/release never auto-deploys: you pick the environment
   # and tag, and `prod` can require an approval via the GitHub Environment
   # protection rules (Settings → Environments → prod → Required reviewers).
   # Flow: merge → release.yml builds+pushes images → you dispatch this to
-  # `staging`, verify, then dispatch to `prod`. (Previously it auto-fired on
-  # release:published, which would push straight to prod on every merge.)
+  # `staging`, verify, then dispatch to `prod`.
   workflow_dispatch:
     inputs:
       environment:
@@ -37,9 +36,8 @@ on:
         required: true
         type: string
   # staging-gate.yml reuses this exact deploy path for staging so the gate
-  # also renders .env from GitHub (before, it only synced compose files —
-  # every env var added since the host's last manual deploy never reached
-  # staging) and gets the cold-boot health budget + auto-rollback.
+  # renders .env from GitHub and gets the cold-boot health budget +
+  # auto-rollback.
   workflow_call:
     inputs:
       environment:
@@ -68,7 +66,7 @@ jobs:
     # Binds environment-scoped secrets (DEPLOY_HOST, DEPLOY_SSH_KEY) + any
     # required-reviewer protection rule for prod.
     environment: ${{ inputs.environment }}
-    # Serialize deploys per environment — never two deploys to the same host
+    # Serialize deploys per environment: never two deploys to the same host
     # at once. Job-level (not workflow-level) so it also applies when this
     # workflow is called from staging-gate.yml.
     concurrency:
@@ -79,12 +77,11 @@ jobs:
       # SSH login user on the VPS. Prod is Ansible-provisioned with a
       # dedicated `markoto` user; the manually-provisioned staging box
       # uses `debian`. Set a per-environment `DEPLOY_USER` variable
-      # (Settings → Environments → <env> → Variables) to override; the
-      # default preserves the original prod behaviour.
+      # (Settings → Environments → <env> → Variables) to override.
       DEPLOY_USER: ${{ vars.DEPLOY_USER || 'markoto' }}
       TAG: ${{ inputs.tag }}
     steps:
-      # Needed so the "Render .env" step can run infra/render-env.sh — this
+      # Needed so the "Render .env" step can run infra/render-env.sh: this
       # workflow otherwise only SSHes to the VM and wouldn't check out the repo.
       # A caller (staging-gate.yml) pins the ref to the commit the release
       # images were built from, so the synced compose files match them.
@@ -116,23 +113,37 @@ jobs:
 
       # Render /opt/markoto/.env on the VM from the GitHub Environment
       # secrets/variables (provider keys included). This makes GitHub
-      # the single source of truth for deploy config — no laptop ansible-vault
-      # in the loop. render-env.sh is a faithful, parity-tested port of env.j2;
+      # the single source of truth for deploy config: no laptop ansible-vault
+      # in the loop. render-env.sh is also what the Ansible role runs;
       # it fails loud if any required secret is empty, so a broken/partial
       # GitHub config aborts the deploy BEFORE the running stack is touched.
       # The previous .env is kept as .env.prev for manual recovery (the
       # image-tag auto-rollback below does NOT restore .env).
       - name: Render .env from GitHub secrets/variables
         env:
-          # ── secrets (Environment-scoped) ──
+          # secrets (Environment-scoped)
           NUXT_SESSION_PASSWORD: ${{ secrets.NUXT_SESSION_PASSWORD }}
           NUXT_JWT_SECRET: ${{ secrets.NUXT_JWT_SECRET }}
           NUXT_INTERNAL_API_SECRET: ${{ secrets.NUXT_INTERNAL_API_SECRET }}
           NUXT_JWT_SECRET_PREVIOUS: ${{ secrets.NUXT_JWT_SECRET_PREVIOUS }}
           NUXT_INTERNAL_API_SECRET_PREVIOUS: ${{ secrets.NUXT_INTERNAL_API_SECRET_PREVIOUS }}
+          # Encrypts stored provider keys / SSO secrets (openssl rand -hex 32). Never
+          # replace without moving the old value to _PREVIOUS (SECRETS-ROTATION.md).
+          NUXT_ENCRYPTION_KEY: ${{ secrets.NUXT_ENCRYPTION_KEY }}
+          NUXT_ENCRYPTION_KEY_PREVIOUS: ${{ secrets.NUXT_ENCRYPTION_KEY_PREVIOUS }}
           # Anonymous gate: self-hosted ALTCHA bot check HMAC key (openssl rand -hex 32).
           NUXT_ALTCHA_HMAC_KEY: ${{ secrets.NUXT_ALTCHA_HMAC_KEY }}
+          # App <-> markitdown converter shared secret (openssl rand -hex 32).
+          NUXT_MARKITDOWN_API_SECRET: ${{ secrets.NUXT_MARKITDOWN_API_SECRET }}
+          # Instance admins promoted at sign-in. A secret rather than a
+          # variable: variables are printed in the job log, and these are
+          # people's email addresses.
+          NUXT_ADMIN_USER_EMAILS: ${{ secrets.NUXT_ADMIN_USER_EMAILS }}
           NUXT_PUBLISH_DOMAINS_TARGET: ${{ vars.NUXT_PUBLISH_DOMAINS_TARGET }}
+          # Published pages' own hostname (pages.markoto.app on prod, its
+          # staging twin on staging). Required: the app refuses to boot
+          # in the hosted shape without it.
+          NUXT_PUBLISH_PAGES_HOST: ${{ vars.NUXT_PUBLISH_PAGES_HOST }}
           NUXT_PUBLISH_TRAEFIK_TOKEN: ${{ secrets.NUXT_PUBLISH_TRAEFIK_TOKEN }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           # Separate DB roles (optional; empty = POSTGRES_USER for everything).
@@ -154,12 +165,12 @@ jobs:
           NUXT_OAUTH_GOOGLE_CLIENT_SECRET: ${{ secrets.NUXT_OAUTH_GOOGLE_CLIENT_SECRET }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          # ── provider keys (Environment-scoped, like the rest) ──
+          # provider keys (Environment-scoped, like the rest)
           JINA_AI_API_KEY: ${{ secrets.JINA_AI_API_KEY }}
           STAAN_API_KEY: ${{ secrets.STAAN_API_KEY }}
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           BFL_API_KEY: ${{ secrets.BFL_API_KEY }}
-          # ── variables (Environment-scoped, non-secret) ──
+          # variables (Environment-scoped, non-secret)
           POSTGRES_USER: ${{ vars.POSTGRES_USER }}
           POSTGRES_DB: ${{ vars.POSTGRES_DB }}
           POSTGRES_HOST: ${{ vars.POSTGRES_HOST }}
@@ -167,7 +178,6 @@ jobs:
           POSTGRES_APP_USER: ${{ vars.POSTGRES_APP_USER }}
           POSTGRES_LITELLM_USER: ${{ vars.POSTGRES_LITELLM_USER }}
           VALKEY_DB: ${{ vars.VALKEY_DB }}
-          VALKEY_TLS_ENABLED: ${{ vars.VALKEY_TLS_ENABLED }}
           NUXT_S3_ENDPOINT: ${{ vars.NUXT_S3_ENDPOINT }}
           NUXT_S3_BUCKET: ${{ vars.NUXT_S3_BUCKET }}
           NUXT_STRIPE_LOOKUP_KEY_PREFIX: ${{ vars.NUXT_STRIPE_LOOKUP_KEY_PREFIX }}
@@ -189,9 +199,8 @@ jobs:
           OVH_PG_HOST: ${{ vars.OVH_PG_HOST }}
           OVH_PG_CA_REMOTE_PATH: ${{ vars.OVH_PG_CA_REMOTE_PATH }}
           # Optional hosted-shape tuning (empty = render-env.sh default:
-          # billing off, plans "coming soon", SaaS BYOK allowlist, the free
-          # AI allowance — chat default zai-glm-5-3-flash, $0.50/user and
-          # $500 total per month — committed free-tier + web-tool limits).
+          # billing off, plans "coming soon", SaaS BYOK allowlist, free AI
+          # allowance, committed free-tier + web-tool limits).
           NUXT_BILLING_ENABLED: ${{ vars.NUXT_BILLING_ENABLED }}
           NUXT_PLANS_COMING_SOON: ${{ vars.NUXT_PLANS_COMING_SOON }}
           # Only prod may be indexed; staging (and anything else) renders
@@ -238,6 +247,40 @@ jobs:
           TIER_TEAM_FEATURE_SSO: ${{ vars.TIER_TEAM_FEATURE_SSO }}
           TIER_TEAM_FEATURE_AUDIT_LOG: ${{ vars.TIER_TEAM_FEATURE_AUDIT_LOG }}
           NUXT_IMAGE_GC_RETENTION_DAYS: ${{ vars.NUXT_IMAGE_GC_RETENTION_DAYS }}
+          NUXT_INACTIVE_DOC_TTL_DAYS: ${{ vars.NUXT_INACTIVE_DOC_TTL_DAYS }}
+          NUXT_AUDIT_LOG_RETENTION_DAYS: ${{ vars.NUXT_AUDIT_LOG_RETENTION_DAYS }}
+          NUXT_ABUSE_REPORT_RETENTION_DAYS: ${{ vars.NUXT_ABUSE_REPORT_RETENTION_DAYS }}
+          NUXT_AI_REALTIME_MODEL: ${{ vars.NUXT_AI_REALTIME_MODEL }}
+          NUXT_EMAIL_PROVIDER: ${{ vars.NUXT_EMAIL_PROVIDER }}
+          # Operator identity on the legal pages (public facts, so variables).
+          # CONTROLLER_ADDRESS + REPRESENTED_BY are required: render-env.sh
+          # refuses to render without them. The rest fall back to the code
+          # defaults in shared/legal/entity.ts.
+          NUXT_LEGAL_CONTROLLER_NAME: ${{ vars.NUXT_LEGAL_CONTROLLER_NAME }}
+          NUXT_LEGAL_CONTROLLER_ADDRESS: ${{ vars.NUXT_LEGAL_CONTROLLER_ADDRESS }}
+          NUXT_LEGAL_PRIVACY_CONTACT_EMAIL: ${{ vars.NUXT_LEGAL_PRIVACY_CONTACT_EMAIL }}
+          NUXT_LEGAL_ABUSE_CONTACT_EMAIL: ${{ vars.NUXT_LEGAL_ABUSE_CONTACT_EMAIL }}
+          NUXT_LEGAL_GOVERNING_LAW: ${{ vars.NUXT_LEGAL_GOVERNING_LAW }}
+          NUXT_LEGAL_LEGAL_FORM: ${{ vars.NUXT_LEGAL_LEGAL_FORM }}
+          NUXT_LEGAL_REGISTERED_OFFICE: ${{ vars.NUXT_LEGAL_REGISTERED_OFFICE }}
+          NUXT_LEGAL_REPRESENTED_BY: ${{ vars.NUXT_LEGAL_REPRESENTED_BY }}
+          NUXT_LEGAL_UID: ${{ vars.NUXT_LEGAL_UID }}
+          NUXT_LEGAL_CH_ID: ${{ vars.NUXT_LEGAL_CH_ID }}
+          NUXT_LEGAL_EHRA_ID: ${{ vars.NUXT_LEGAL_EHRA_ID }}
+          # Edge + sync-server tuning (empty = code defaults, .env.example).
+          NUXT_TRUSTED_PROXY_HOPS: ${{ vars.NUXT_TRUSTED_PROXY_HOPS }}
+          RENDERER_ALLOWED_ORIGINS: ${{ vars.RENDERER_ALLOWED_ORIGINS }}
+          SYNC_MAX_MESSAGE_BYTES: ${{ vars.SYNC_MAX_MESSAGE_BYTES }}
+          SYNC_MAX_UPDATE_BYTES: ${{ vars.SYNC_MAX_UPDATE_BYTES }}
+          SYNC_MAX_DOCUMENT_BYTES: ${{ vars.SYNC_MAX_DOCUMENT_BYTES }}
+          SYNC_MAX_PREAUTH_BYTES: ${{ vars.SYNC_MAX_PREAUTH_BYTES }}
+          SYNC_MAX_PREAUTH_TOTAL_BYTES: ${{ vars.SYNC_MAX_PREAUTH_TOTAL_BYTES }}
+          SYNC_AUTH_TIMEOUT_MS: ${{ vars.SYNC_AUTH_TIMEOUT_MS }}
+          SYNC_MAX_CONNECTIONS_PER_IP: ${{ vars.SYNC_MAX_CONNECTIONS_PER_IP }}
+          COMPACT_THRESHOLD: ${{ vars.COMPACT_THRESHOLD }}
+          COMPACT_INTERVAL_MS: ${{ vars.COMPACT_INTERVAL_MS }}
+          COMPACT_MAX_DOCS_PER_RUN: ${{ vars.COMPACT_MAX_DOCS_PER_RUN }}
+          COMPACT_RETAIN_HISTORY_DAYS: ${{ vars.COMPACT_RETAIN_HISTORY_DAYS }}
           # the tag being deployed pins IMAGE_TAG in the rendered .env
           IMAGE_TAG: ${{ inputs.tag }}
         run: |
@@ -263,25 +306,24 @@ jobs:
 
       # Same rationale as staging-gate.yml: the host's compose files are
       # otherwise only written at Ansible provision time, so a merged
-      # compose change would never reach the box — `pull && up -d`
-      # against the stale copy silently no-ops. Sync the compose pair +
-      # every repo path they bind-mount before rolling.
+      # compose change would never reach the box (`pull && up -d` against
+      # the stale copy silently no-ops). Sync the compose pair + every repo
+      # path they bind-mount before rolling.
       - name: Sync compose + mounted config to the host
         run: |
           set -euo pipefail
-          # infra/postgres/init is deliberately NOT synced: the initdb
+          # deploy/config/postgres/init is deliberately NOT synced: the initdb
           # scripts only run on the FIRST boot of a fresh postgres data
           # dir (a provision-time concern), and the host copy is
-          # root-owned from provisioning — the deploy user can't
-          # overwrite it (tar: Permission denied). Changing an init
-          # script requires an Ansible pass anyway.
+          # root-owned from provisioning, so the deploy user can't
+          # overwrite it. Changing an init script requires an Ansible pass.
           tar czf - \
-            docker-compose.prod.yml \
-            docker-compose.base.yml \
-            infra/litellm/config.yaml \
-            infra/litellm/custom_handlers.py \
-            infra/postgres/db-init.sh \
-            renderer/seccomp.json \
+            deploy/compose/compose.prod.yml \
+            deploy/compose/compose.base.yml \
+            deploy/config/litellm/config.yaml \
+            deploy/config/litellm/custom_handlers.py \
+            deploy/config/postgres/db-init.sh \
+            deploy/config/renderer/seccomp.json \
             | ssh "${DEPLOY_USER}@${DEPLOY_HOST}" 'tar xzf - -C /opt/markoto'
 
       - name: Roll forward + health check
@@ -298,7 +340,7 @@ jobs:
 
           # Capture the version we are leaving so auto-rollback knows
           # what to roll back to. .last-deploy may not exist on the very
-          # first deploy — fall back to "latest" which is harmless.
+          # first deploy: fall back to "latest" which is harmless.
           PREV=$(cat .last-deploy 2>/dev/null || echo "latest")
           echo "$PREV" > .last-deploy.prev
           echo "Previous tag was: $PREV"
@@ -309,24 +351,23 @@ jobs:
           # LiteLLM loads its config only at boot, and its single-file
           # bind mounts keep the old file after the tar sync replaced it.
           # A changed hash changes the litellm container's label, so
-          # `up -d` recreates it (docker-compose.base.yml).
-          LITELLM_CONFIG_HASH="$(cat infra/litellm/config.yaml infra/litellm/custom_handlers.py | sha256sum | cut -c1-16)"
+          # `up -d` recreates it (deploy/compose/compose.base.yml).
+          LITELLM_CONFIG_HASH="$(cat deploy/config/litellm/config.yaml deploy/config/litellm/custom_handlers.py | sha256sum | cut -c1-16)"
           export LITELLM_CONFIG_HASH
           # Login is already established at provision time via the
-          # ghcr_pat vault entry — no additional `docker login` here.
-          docker compose -f docker-compose.prod.yml pull
-          docker compose -f docker-compose.prod.yml up -d
+          # ghcr_pat vault entry: no additional `docker login` here.
+          docker compose pull
+          docker compose up -d
 
           # Health-check loop: 60 attempts × 5 s = 300 s. Sized for a COLD
           # first boot: litellm runs ~118 Prisma migrations before turning
           # healthy (start_period 60s) and `app` gates on litellm via
-          # depends_on service_healthy — a 90 s budget could expire while a
-          # perfectly healthy deploy was still warming up and trigger a
-          # spurious auto-rollback. Warm rolls pass on early attempts, so
-          # the longer ceiling costs nothing in the common case.
+          # depends_on service_healthy: a shorter budget could expire on a
+          # healthy deploy and trigger a spurious auto-rollback. Warm rolls
+          # pass on early attempts, so the ceiling costs nothing.
           DOMAIN=$(awk -F= '/^DOMAIN=/{print $2}' .env | tr -d '"')
           if [ -z "$DOMAIN" ]; then
-            echo "DOMAIN not in .env — cannot probe health" >&2
+            echo "DOMAIN not in .env, cannot probe health" >&2
             exit 1
           fi
           ok=0
@@ -340,10 +381,10 @@ jobs:
           done
 
           if [ "$ok" -ne 1 ]; then
-            echo "Health check failed after 300s — rolling back to $PREV" >&2
+            echo "Health check failed after 300s, rolling back to $PREV" >&2
             export IMAGE_TAG="$PREV"
-            docker compose -f docker-compose.prod.yml pull || true
-            docker compose -f docker-compose.prod.yml up -d
+            docker compose pull || true
+            docker compose up -d
             # Try to confirm rollback health. If even rollback fails,
             # the workflow will surface that too.
             for i in $(seq 1 20); do
@@ -356,7 +397,7 @@ jobs:
               fi
               sleep 3
             done
-            echo "Rollback ALSO failed — manual intervention required" >&2
+            echo "Rollback ALSO failed, manual intervention required" >&2
             exit 65       # signal "rollback failed"
           fi
 
@@ -378,7 +419,7 @@ jobs:
               echo "status=failed"
             fi
           } >> "$GITHUB_OUTPUT"
-          # Don't fail the step yet — let the notify step run, then exit.
+          # Don't fail the step yet: let the notify step run, then exit.
           exit 0
 
       - name: Read previous tag (for notification)
@@ -403,7 +444,7 @@ jobs:
         env:
           APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
         run: |
-          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (docs/GITHUB-CONFIG.md)"; exit 0; fi
+          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (docs/operations/GITHUB-CONFIG.md)"; exit 0; fi
           apprise -t "Deploy ${TAG} succeeded" \
                   -b "Deployed to ${DEPLOY_HOST}.
           Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
@@ -416,8 +457,8 @@ jobs:
           APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
           PREV_TAG: ${{ steps.prev.outputs.tag }}
         run: |
-          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (docs/GITHUB-CONFIG.md)"; exit 0; fi
-          apprise -t "Deploy ${TAG} FAILED — rolled back to ${PREV_TAG}" \
+          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (docs/operations/GITHUB-CONFIG.md)"; exit 0; fi
+          apprise -t "Deploy ${TAG} FAILED, rolled back to ${PREV_TAG}" \
                   -b "Auto-rollback restored ${PREV_TAG} on ${DEPLOY_HOST}. Health check now passing under previous version. Investigate the failed release.
           Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
                   -i markdown \
@@ -429,8 +470,8 @@ jobs:
           APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
           PREV_TAG: ${{ steps.prev.outputs.tag }}
         run: |
-          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (docs/GITHUB-CONFIG.md)"; exit 0; fi
-          apprise -t "Deploy ${TAG} FAILED — ROLLBACK ALSO FAILED" \
+          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (docs/operations/GITHUB-CONFIG.md)"; exit 0; fi
+          apprise -t "Deploy ${TAG} FAILED, ROLLBACK ALSO FAILED" \
                   -b "Both ${TAG} and rollback to ${PREV_TAG} failed health on ${DEPLOY_HOST}. MANUAL INTERVENTION REQUIRED.
           Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
                   -i markdown \

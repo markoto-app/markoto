@@ -1,33 +1,36 @@
 import { readSessionChannel, toSessionView, valkeyChannelStore, type ChannelStore } from './sessionChannel'
+import { MINUTE_MS } from '~~/shared/config/units'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('ai-session-stream')
 
 // Server-Sent Events stream of one AI session's initiator-only channel
-// (`GET /api/ai/sessions/:sessionId/stream`). Replaces the prompt bar's
-// 600 ms polling of `GET /api/ai/sessions/:id` with one long-lived
-// response per session.
+// (`GET /api/ai/sessions/:sessionId/stream`): one long-lived response per
+// session instead of polling `GET /api/ai/sessions/:id`.
 //
 // How it stays current: every channel write PUBLISHes a ping (Valkey
 // pub/sub, all instances); the stream re-reads the keys on each ping and
 // sends a `status` event only when the view changed. A periodic re-read
 // (`refreshMs`) covers a ping lost to a subscriber reconnect, and its
-// comment line (`: ping`) keeps the connection from idling out — Bun's
+// comment line (`: ping`) keeps the connection from idling out, Bun's
 // default idle timeout is 10 s, Traefik's far longer, so `refreshMs`
 // stays well below 10 s.
 //
 // Events:
 //   status  data = the same JSON as `GET /api/ai/sessions/:id`
-//   end     data = {} — the session is finished (terminal phase seen and
+//   end     data = {}, the session is finished (terminal phase seen and
 //           `terminalGraceMs` passed) or its channel expired; the client
 //           closes its EventSource instead of reconnecting.
 // A stream that reaches `maxLifetimeMs` just closes (no `end`), so the
 // browser's EventSource reconnects and the client keeps following.
 //
-// Cleanup: the response body's `cancel` (client went away — Bun cancels
+// Cleanup: the response body's `cancel` (client went away, Bun cancels
 // the body; Nitro's node-compat request never emits `close` for the bun
 // preset) and every close path release the subscription and timers.
 
 export interface SessionStreamOptions {
   sessionId: string
-  /** Initiator — the stream ends if the channel ever names someone else. */
+  /** Initiator: the stream ends if the channel ever names someone else. */
   userId: number
   store?: ChannelStore
   /** Periodic re-read + keep-alive interval. */
@@ -39,12 +42,12 @@ export interface SessionStreamOptions {
   maxLifetimeMs?: number
 }
 
-export const STREAM_REFRESH_MS = 5_000
-export const STREAM_FALLBACK_REFRESH_MS = 1_000
-export const STREAM_TERMINAL_GRACE_MS = 3_000
-export const STREAM_MAX_LIFETIME_MS = 10 * 60_000
+const STREAM_REFRESH_MS = 5_000
+const STREAM_FALLBACK_REFRESH_MS = 1_000
+const STREAM_TERMINAL_GRACE_MS = 3_000
+const STREAM_MAX_LIFETIME_MS = 10 * MINUTE_MS
 /** Browser reconnect delay after a dropped stream (SSE `retry:` field). */
-export const STREAM_RETRY_MS = 2_000
+const STREAM_RETRY_MS = 2_000
 
 const TERMINAL_PHASES = new Set(['done', 'error'])
 
@@ -146,7 +149,7 @@ export function createSessionEventStream(opts: SessionStreamOptions): ReadableSt
           void refresh()
         })
       } catch (e) {
-        console.warn(`[ai/session-stream] subscribe failed, re-reading every ${fallbackRefreshMs} ms: ${e instanceof Error ? e.message : String(e)}`)
+        log.warn('subscribe failed, falling back to polling', { fallbackRefreshMs, err: e })
         interval = fallbackRefreshMs
       }
       if (closed) {

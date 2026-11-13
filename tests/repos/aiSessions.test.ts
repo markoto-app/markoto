@@ -4,12 +4,15 @@ import {
   hasUserAiSession,
   addAiSession,
   removeAiSession,
+  dropOrphanedAiSession,
   getAiSession,
   snapshotAiSessions,
   purgeStaleAiSessions,
   DuplicateSessionError
-} from '../../server/utils/aiSessions'
+} from '../../server/utils/ai/aiSessions'
 import { createUser, createDoc as seedDoc } from '../integration/setup/fixtures'
+import { first } from '../helpers/assert'
+import { asUser, docAs } from '../helpers/access'
 
 // AI session registry. Enforces the "one AI per user per doc" cap via
 // a Postgres UNIQUE index; tests verify the index actually guards the
@@ -19,10 +22,12 @@ import { createUser, createDoc as seedDoc } from '../integration/setup/fixtures'
 async function sessionRowCount(): Promise<number> {
   const db = testDb()
   const r = await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM ai_sessions')
-  return Number(r.rows[0].c)
+  return Number(first(r.rows).c)
 }
 
-function makeEntry(overrides: Partial<Parameters<typeof addAiSession>[0]> = {}): Parameters<typeof addAiSession>[0] {
+type Entry = Parameters<typeof addAiSession>[1] & { docId: string }
+
+function makeEntry(overrides: Partial<Entry> = {}): Entry {
   return {
     sessionId: 'sess-1',
     docId: 'doc-1',
@@ -35,6 +40,12 @@ function makeEntry(overrides: Partial<Parameters<typeof addAiSession>[0]> = {}):
   }
 }
 
+/** Register under a proof for the entry's document. */
+async function addEntry(entry: Entry): Promise<void> {
+  const { docId, ...session } = entry
+  await addAiSession(docAs(docId), session)
+}
+
 describe('addAiSession / getAiSession', () => {
   beforeEach(async () => {
     await resetDb()
@@ -43,8 +54,8 @@ describe('addAiSession / getAiSession', () => {
   it('round-trips a session through the registry', async () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
-    await addAiSession(makeEntry({ sessionId: 'sess-rt', docId: doc.docId, initiatorUserId: user.id }))
-    const got = await getAiSession('sess-rt')
+    await addEntry(makeEntry({ sessionId: 'sess-rt', docId: doc.docId, initiatorUserId: user.id }))
+    const got = await getAiSession(asUser(user.id), 'sess-rt')
     expect(got).not.toBeUndefined()
     expect(got!.sessionId).toBe('sess-rt')
     expect(got!.docId).toBe(doc.docId)
@@ -55,21 +66,40 @@ describe('addAiSession / getAiSession', () => {
     expect(got!.abortController).toBeInstanceOf(AbortController)
   })
 
+  it('a session id is found and released only for its initiator', async () => {
+    const user = await createUser()
+    const other = await createUser()
+    const doc = await seedDoc({ ownerId: user.id })
+    await addEntry(makeEntry({ sessionId: 'sess-own', docId: doc.docId, initiatorUserId: user.id }))
+    expect(await getAiSession(asUser(other.id), 'sess-own')).toBeUndefined()
+    await removeAiSession(asUser(other.id), 'sess-own')
+    expect(await sessionRowCount()).toBe(1)
+    expect(await getAiSession(asUser(user.id), 'sess-own')).not.toBeUndefined()
+  })
+
+  it('the sweeper drops an orphaned session whoever started it', async () => {
+    const user = await createUser()
+    const doc = await seedDoc({ ownerId: user.id })
+    await addEntry(makeEntry({ sessionId: 'sess-orphan', docId: doc.docId, initiatorUserId: user.id }))
+    await dropOrphanedAiSession('sess-orphan')
+    expect(await sessionRowCount()).toBe(0)
+  })
+
   it('getAiSession returns undefined for unknown sessionId', async () => {
-    expect(await getAiSession('does-not-exist')).toBeUndefined()
+    expect(await getAiSession(asUser(1), 'does-not-exist')).toBeUndefined()
   })
 
   it('hasUserAiSession is false when the user has no session on this doc', async () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
-    expect(await hasUserAiSession(user.id, doc.docId)).toBe(false)
+    expect(await hasUserAiSession(asUser(user.id), doc.docId)).toBe(false)
   })
 
   it('hasUserAiSession becomes true after addAiSession', async () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
-    await addAiSession(makeEntry({ sessionId: 'sess-h', docId: doc.docId, initiatorUserId: user.id }))
-    expect(await hasUserAiSession(user.id, doc.docId)).toBe(true)
+    await addEntry(makeEntry({ sessionId: 'sess-h', docId: doc.docId, initiatorUserId: user.id }))
+    expect(await hasUserAiSession(asUser(user.id), doc.docId)).toBe(true)
   })
 })
 
@@ -81,9 +111,9 @@ describe('per-user-per-doc UNIQUE cap', () => {
   it('second addAiSession for the same (user, doc) throws DuplicateSessionError', async () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
-    await addAiSession(makeEntry({ sessionId: 'first', docId: doc.docId, initiatorUserId: user.id }))
+    await addEntry(makeEntry({ sessionId: 'first', docId: doc.docId, initiatorUserId: user.id }))
     await expect(
-      addAiSession(makeEntry({ sessionId: 'second', docId: doc.docId, initiatorUserId: user.id }))
+      addEntry(makeEntry({ sessionId: 'second', docId: doc.docId, initiatorUserId: user.id }))
     ).rejects.toBeInstanceOf(DuplicateSessionError)
     // The DB row count stays at 1.
     expect(await sessionRowCount()).toBe(1)
@@ -93,8 +123,8 @@ describe('per-user-per-doc UNIQUE cap', () => {
     const user = await createUser()
     const docA = await seedDoc({ ownerId: user.id })
     const docB = await seedDoc({ ownerId: user.id })
-    await addAiSession(makeEntry({ sessionId: 'a', docId: docA.docId, initiatorUserId: user.id }))
-    await addAiSession(makeEntry({ sessionId: 'b', docId: docB.docId, initiatorUserId: user.id }))
+    await addEntry(makeEntry({ sessionId: 'a', docId: docA.docId, initiatorUserId: user.id }))
+    await addEntry(makeEntry({ sessionId: 'b', docId: docB.docId, initiatorUserId: user.id }))
     expect(await sessionRowCount()).toBe(2)
   })
 
@@ -102,20 +132,20 @@ describe('per-user-per-doc UNIQUE cap', () => {
     const alice = await createUser()
     const bob = await createUser()
     const doc = await seedDoc({ ownerId: alice.id })
-    await addAiSession(makeEntry({ sessionId: 'a', docId: doc.docId, initiatorUserId: alice.id }))
-    await addAiSession(makeEntry({ sessionId: 'b', docId: doc.docId, initiatorUserId: bob.id }))
+    await addEntry(makeEntry({ sessionId: 'a', docId: doc.docId, initiatorUserId: alice.id }))
+    await addEntry(makeEntry({ sessionId: 'b', docId: doc.docId, initiatorUserId: bob.id }))
     expect(await sessionRowCount()).toBe(2)
   })
 
   it('concurrent adds for the same (user, doc): exactly one wins', async () => {
-    // Race target — the UNIQUE index is the serialization point. Two
+    // Race target: the UNIQUE index is the serialization point. Two
     // near-simultaneous /api/ai/prompt calls from the same user on the
     // same doc must land in exactly one DB row + one DuplicateSessionError.
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
     const results = await Promise.allSettled([
-      addAiSession(makeEntry({ sessionId: 'p1', docId: doc.docId, initiatorUserId: user.id })),
-      addAiSession(makeEntry({ sessionId: 'p2', docId: doc.docId, initiatorUserId: user.id }))
+      addEntry(makeEntry({ sessionId: 'p1', docId: doc.docId, initiatorUserId: user.id })),
+      addEntry(makeEntry({ sessionId: 'p2', docId: doc.docId, initiatorUserId: user.id }))
     ])
     const fulfilled = results.filter(r => r.status === 'fulfilled').length
     const rejected = results.filter(r => r.status === 'rejected')
@@ -128,11 +158,11 @@ describe('per-user-per-doc UNIQUE cap', () => {
   it('after removeAiSession, the user can start a fresh session', async () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
-    await addAiSession(makeEntry({ sessionId: 'sess-1', docId: doc.docId, initiatorUserId: user.id }))
-    await removeAiSession('sess-1')
+    await addEntry(makeEntry({ sessionId: 'sess-1', docId: doc.docId, initiatorUserId: user.id }))
+    await removeAiSession(asUser(user.id), 'sess-1')
     // Fresh start must succeed.
-    await addAiSession(makeEntry({ sessionId: 'sess-2', docId: doc.docId, initiatorUserId: user.id }))
-    expect(await hasUserAiSession(user.id, doc.docId)).toBe(true)
+    await addEntry(makeEntry({ sessionId: 'sess-2', docId: doc.docId, initiatorUserId: user.id }))
+    expect(await hasUserAiSession(asUser(user.id), doc.docId)).toBe(true)
     expect(await sessionRowCount()).toBe(1)
   })
 })
@@ -145,15 +175,15 @@ describe('removeAiSession', () => {
   it('removes the DB row AND the local AbortController', async () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
-    await addAiSession(makeEntry({ sessionId: 'sess-rm', docId: doc.docId, initiatorUserId: user.id }))
-    await removeAiSession('sess-rm')
-    expect(await getAiSession('sess-rm')).toBeUndefined()
-    expect(await hasUserAiSession(user.id, doc.docId)).toBe(false)
+    await addEntry(makeEntry({ sessionId: 'sess-rm', docId: doc.docId, initiatorUserId: user.id }))
+    await removeAiSession(asUser(user.id), 'sess-rm')
+    expect(await getAiSession(asUser(user.id), 'sess-rm')).toBeUndefined()
+    expect(await hasUserAiSession(asUser(user.id), doc.docId)).toBe(false)
     expect(await sessionRowCount()).toBe(0)
   })
 
   it('is a no-op for an unknown sessionId', async () => {
-    await expect(removeAiSession('ghost')).resolves.toBeUndefined()
+    await expect(removeAiSession(asUser(1), 'ghost')).resolves.toBeUndefined()
   })
 })
 
@@ -166,10 +196,10 @@ describe('abortController lifecycle', () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
     const ctrl = new AbortController()
-    await addAiSession(makeEntry({
+    await addEntry(makeEntry({
       sessionId: 's-local', docId: doc.docId, initiatorUserId: user.id, abortController: ctrl
     }))
-    const got = await getAiSession('s-local')
+    const got = await getAiSession(asUser(user.id), 's-local')
     expect(got!.abortController).toBe(ctrl)
   })
 
@@ -185,7 +215,7 @@ describe('abortController lifecycle', () => {
        VALUES ('foreign', $1, $2, 'X', '#000')`,
       [doc.docId, user.id]
     )
-    const got = await getAiSession('foreign')
+    const got = await getAiSession(asUser(user.id), 'foreign')
     expect(got).not.toBeUndefined()
     expect(got!.abortController).toBeNull()
   })
@@ -200,8 +230,8 @@ describe('snapshotAiSessions', () => {
     const alice = await createUser()
     const bob = await createUser()
     const doc = await seedDoc({ ownerId: alice.id })
-    await addAiSession(makeEntry({ sessionId: 'a', docId: doc.docId, initiatorUserId: alice.id }))
-    await addAiSession(makeEntry({ sessionId: 'b', docId: doc.docId, initiatorUserId: bob.id }))
+    await addEntry(makeEntry({ sessionId: 'a', docId: doc.docId, initiatorUserId: alice.id }))
+    await addEntry(makeEntry({ sessionId: 'b', docId: doc.docId, initiatorUserId: bob.id }))
     const snap = await snapshotAiSessions()
     expect(snap.map(s => s.sessionId).sort()).toEqual(['a', 'b'])
   })
@@ -211,9 +241,9 @@ describe('snapshotAiSessions', () => {
     const bob = await createUser()
     const doc = await seedDoc({ ownerId: alice.id })
     // Alice's session is started IN this process (has a local controller).
-    await addAiSession(makeEntry({ sessionId: 'local', docId: doc.docId, initiatorUserId: alice.id }))
+    await addEntry(makeEntry({ sessionId: 'local', docId: doc.docId, initiatorUserId: alice.id }))
     // Bob's session is simulated to have been started on another Nitro
-    // worker — DB row exists but no local controller in this process.
+    // worker: DB row exists but no local controller in this process.
     const db = testDb()
     await db.query(
       `INSERT INTO ai_sessions (session_id, doc_id, initiator_user_id, initiator_name, initiator_color)
@@ -240,7 +270,7 @@ describe('purgeStaleAiSessions', () => {
   it('deletes sessions whose startedAt is older than the threshold', async () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
-    await addAiSession(makeEntry({ sessionId: 'old', docId: doc.docId, initiatorUserId: user.id }))
+    await addEntry(makeEntry({ sessionId: 'old', docId: doc.docId, initiatorUserId: user.id }))
     await setStartedAt('old', new Date(Date.now() - 10 * 60_000))
     const deleted = await purgeStaleAiSessions(7 * 60_000)
     expect(deleted).toBe(1)
@@ -248,14 +278,14 @@ describe('purgeStaleAiSessions', () => {
   })
 
   it('leaves fresh sessions alone', async () => {
-    // Regression target: the AGENTS.md invariant is "sweep threshold
-    // must exceed prompt deadline" — the 7-min sweeper can't kill a
+    // Regression target: the server/utils/agentic/AGENTS.md invariant is "sweep threshold
+    // must exceed prompt deadline", the 7-min sweeper can't kill a
     // legit 5-min session that's still running. Simulate: add a
     // session at startedAt=now, then purge with a 7-min threshold.
     // Nothing should be deleted.
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
-    await addAiSession(makeEntry({ sessionId: 'fresh', docId: doc.docId, initiatorUserId: user.id }))
+    await addEntry(makeEntry({ sessionId: 'fresh', docId: doc.docId, initiatorUserId: user.id }))
     const deleted = await purgeStaleAiSessions(7 * 60_000)
     expect(deleted).toBe(0)
     expect(await sessionRowCount()).toBe(1)
@@ -265,7 +295,7 @@ describe('purgeStaleAiSessions', () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
     // Session at exactly threshold-minus-1s → still alive.
-    await addAiSession(makeEntry({ sessionId: 'borderline', docId: doc.docId, initiatorUserId: user.id }))
+    await addEntry(makeEntry({ sessionId: 'borderline', docId: doc.docId, initiatorUserId: user.id }))
     await setStartedAt('borderline', new Date(Date.now() - (7 * 60_000 - 1000)))
     const deleted = await purgeStaleAiSessions(7 * 60_000)
     expect(deleted).toBe(0)

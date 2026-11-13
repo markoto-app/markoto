@@ -11,7 +11,7 @@
 - 
 
 ## Discussion
-<!-- One H3 per agenda item. Capture the gist, not the transcript — what was raised, what concerns surfaced, what was decided. -->
+<!-- One H3 per agenda item. Capture the gist, not the transcript: what was raised, what concerns surfaced, what was decided. -->
 
 ### 
 

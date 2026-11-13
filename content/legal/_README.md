@@ -18,9 +18,9 @@ content/legal/
 ## Authoring rules
 
 - **English is authoritative.** Bumping the English text on a material change requires bumping `PRIVACY_VERSION` (etc.) in `shared/legal/versions.ts`. Translations get the same version once they catch up.
-- **Translation banner.** Non-English pages render a "translation for convenience; English is authoritative" notice automatically. The fr/de/es files SHOULD be reviewed by a privacy-law-trained native translator before publishing — DeepL first pass is acceptable for review draft only.
+- **Translation banner.** Non-English pages render a "translation for convenience; English is authoritative" notice automatically. The fr/de/es files SHOULD be reviewed by a privacy-law-trained native translator before publishing; DeepL first pass is acceptable for review draft only.
 - **Material vs. cosmetic changes.** Adding a sub-processor, processing purpose, retention period, or user right is material → bump version. Typo fixes and pure-translation polish do NOT bump.
-- **Sub-processor list and lawful-basis table.** Don't hard-code these in markdown — render them from `server/legal/{subProcessors,lawfulBasis}.ts` so a single edit propagates.
+- **Sub-processor list and lawful-basis table.** Don't hard-code these in markdown: render them from `server/legal/{subProcessors,lawfulBasis}.ts` so a single edit propagates.
 
 `tests/unit/legal/documents.test.ts` enforces that every translation has the registry version, the same `{{placeholders}}` and the same number of `##` sections as `en.md`. The privacy page's purposes table comes from `{{processingPurposesTable}}` (generated from `server/legal/lawfulBasis.ts`, English only). German uses Swiss orthography (`ss`, no `ß`), matching the imprint.
 

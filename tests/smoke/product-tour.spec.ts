@@ -1,10 +1,10 @@
 import { test, expect, type Page } from '@playwright/test'
 
-// The hosted product page (WP11): with NUXT_MARKETING_SITE_ENABLED on, `/`
+// The hosted product page: with NUXT_MARKETING_SITE_ENABLED on, `/`
 // shows logged-out visitors the scroll-driven tour instead of the plain
 // hero. The flag is read from the instance config the server ships in the
 // Nuxt payload (`useState('instance-config')`), NOT inferred from the tour
-// markup — so an environment with the flag off skips, while one with the
+// markup: so an environment with the flag off skips, while one with the
 // flag on but a broken tour fails.
 
 /** `marketingSite` from the SSR payload; null when it can't be found. */

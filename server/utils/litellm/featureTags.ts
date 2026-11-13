@@ -2,26 +2,25 @@
 // site stamps `metadata.tags = [...]` on its request; the proxy
 // persists the tags in `LiteLLM_SpendLogs.metadata` and exposes
 // per-tag aggregation via /spend/tags. Multiple tags on a single
-// request are independently aggregatable — the same call can show
+// request are independently aggregatable, the same call can show
 // up under "feature:text-loop" AND "workspace:abc123" AND
 // "user:42" simultaneously.
 //
 // Four axes:
-//   - feature:*    — what kind of call (transcribe, text-loop, etc.).
+//   - feature:*: what kind of call (transcribe, text-loop, etc.).
 //                    Closed set; new features add a new entry here
 //                    AND in the dashboard's TAG_LABELS map.
-//   - workspace:*  — which workspace context the call originated
+//   - workspace:*: which workspace context the call originated
 //                    from. Open set (one tag per workspace_id). Used
-//                    for "where is the sponsor's (+) budget going"
-//                    breakdowns, and for workspace-owner self-serve
-//                    cost views.
-//   - user:*       — which user initiated the call. Open set (one
+//                    for per-workspace spend breakdowns and
+//                    workspace-owner self-serve cost views.
+//   - user:*: which user initiated the call. Open set (one
 //                    per user_id). Lets a workspace owner identify
 //                    which member is driving spend; also redundant
 //                    with the virtual-key-bound `user_id` field but
 //                    keeps everything queryable through the same
 //                    /spend/tags endpoint without a second axis.
-//   - doc:*        — which document the call attaches to. Open set.
+//   - doc:*: which document the call attaches to. Open set.
 //                    Lets us answer "which doc burned the most AI
 //                    Points this week" without joining LiteLLM's
 //                    spend logs against our DB by user×workspace.
@@ -48,12 +47,12 @@ export type FeatureTag = typeof FEATURE_TAGS[keyof typeof FEATURE_TAGS]
 /** Prefix discriminators for the dashboard's "other" bucket logic. */
 export const TAG_NAMESPACES = ['feature:', 'workspace:', 'user:', 'doc:'] as const
 
-/** All known feature tag values — used by the admin dashboard so unknown
+/** All known feature tag values, used by the admin dashboard so unknown
  *  feature tags surface as "other" rather than silently disappearing. */
 export const ALL_FEATURE_TAGS: FeatureTag[] = Object.values(FEATURE_TAGS)
 
 /**
- * Build the workspace-axis tag for a given workspace id. Open-set —
+ * Build the workspace-axis tag for a given workspace id. Open-set,
  * any workspace id is valid. Returned as a plain string so it can be
  * pushed straight onto a `tags: [...]` array.
  */
@@ -64,7 +63,7 @@ export function workspaceTag(workspaceId: string): `workspace:${string}` {
 /**
  * Build the user-axis tag for a given user id. Mirrors `workspaceTag`.
  * Distinct from the virtual-key-bound `user_id` field on /key/generate
- * — that's used by /spend/users; THIS surfaces through /spend/tags so
+ * that's used by /spend/users; THIS surfaces through /spend/tags so
  * the same axis system covers both queries.
  */
 export function userTag(userId: number): `user:${number}` {
@@ -93,12 +92,12 @@ interface SpendContext {
  * Build the LiteLLM `metadata` object for a given call. Always carries
  * the feature tag; conditionally carries workspace + user tags when
  * the caller has that context. Stamp the return value into the OpenAI
- * SDK request body — LiteLLM reads `metadata.tags` and forwards it
+ * SDK request body: LiteLLM reads `metadata.tags` and forwards it
  * to its spend tracker.
  *
  * The OpenAI SDK's typed body doesn't include the `metadata.tags` extension.
  * Use the typed wrappers in `./createCompletion.ts` (`litellmCompletion`
- * for one-shot, `litellmStream` for streaming) — they accept the
+ * for one-shot, `litellmStream` for streaming), they accept the
  * `metadata: { tags: string[] }` shape directly without spread casts.
  *
  * Example:

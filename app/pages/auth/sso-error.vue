@@ -1,7 +1,9 @@
 <script setup lang="ts">
-// Where a refused or failed single sign-on lands (WP14). The server only
+import { ID_RE } from '~~/shared/config/identifiers'
+
+// Where a refused or failed single sign-on lands. The server only
 // ever passes one of our fixed codes (`server/utils/sso/completeLogin.ts`
-// + the callback routes) — never text from the identity provider.
+// + the callback routes): never text from the identity provider.
 const { t } = useI18n()
 const route = useRoute()
 
@@ -13,7 +15,7 @@ const code = computed(() => {
   const raw = typeof route.query.code === 'string' ? route.query.code : ''
   return KNOWN.has(raw) ? raw.replace('sso/', '') : 'failed'
 })
-const workspaceId = computed(() => typeof route.query.workspace === 'string' && /^[\w-]{1,64}$/.test(route.query.workspace) ? route.query.workspace : null)
+const workspaceId = computed(() => typeof route.query.workspace === 'string' && ID_RE.test(route.query.workspace) ? route.query.workspace : null)
 
 useHead({ title: () => t('sso.error.title') })
 definePageMeta({ layout: false })

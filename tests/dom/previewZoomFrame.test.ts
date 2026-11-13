@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { PREVIEW_ZOOM_SCRIPT } from '../../app/utils/previewZoomFrame'
-import type { PreviewZoomEngine } from '../../app/utils/previewZoomFrame'
+import { PREVIEW_ZOOM_SCRIPT } from '../../app/utils/preview/previewZoomFrame'
+import type { PreviewZoomEngine } from '../../app/utils/preview/previewZoomFrame'
 
 // The zoom engine reaches the preview iframe as the STRINGIFIED function
 // (inlined into the opaque-origin bootstrap), so this suite evaluates

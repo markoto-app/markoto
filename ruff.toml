@@ -1,0 +1,24 @@
+# Python is small and lives in a few places: markitdown-server/ (FastAPI, 3.13),
+# deploy/config/litellm/custom_handlers.py (LiteLLM plugin, runs on the LiteLLM image's
+# Python), tests/fixtures/fake-openai/ (stdlib test double) and a few scripts.
+# Sonar pins 3.13; the markitdown Dockerfile is python:3.13-slim.
+target-version = "py313"
+line-length = 100
+# Markdown fixtures hold sample code blocks that are test data; ruff 0.17
+# would reformat them.
+extend-exclude = ["node_modules", ".nuxt", ".output", "**/*.md"]
+
+[lint]
+select = ["E", "F", "I", "B", "UP", "S", "SIM", "RUF"]
+ignore = [
+  # Formatter owns line length.
+  "E501",
+  # Ambiguous unicode in comments/docstrings (arrows, dashes) is deliberate prose.
+  "RUF001", "RUF002", "RUF003",
+]
+
+[lint.per-file-ignores]
+# Tests and the test double legitimately use assert, fixed ports, 0.0.0.0 binds
+# and http:// URLs.
+"markitdown-server/test_*.py" = ["S101", "S105", "S106", "S108"]
+"tests/**" = ["S101", "S104", "S105", "S106", "S108", "S310"]

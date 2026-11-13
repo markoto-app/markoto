@@ -1,21 +1,20 @@
-import { describe, it, expect, beforeEach, beforeAll, afterAll, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser, createWorkspace, setMemberRole } from '../integration/setup/fixtures'
-import { resolveBillingContext } from '../../server/utils/billing'
-import { resolveCaps } from '../../server/utils/knowledgeQuota'
+import { resolveBillingContext } from '../../server/utils/billing/billing'
+import { resolveCaps } from '../../server/utils/knowledge/knowledgeQuota'
 import { DEFAULT_TIERS } from '../../shared/config/tiers'
 
 // Billing OFF (the default: self-hosted + free-only SaaS). Nobody can
-// buy a plan, so every account resolves to the FREE tier — even a row
+// buy a plan, so every account resolves to the FREE tier, even a row
 // that still says `pro` (e.g. left over from a test period), and a
 // workspace subscription row never applies. Limits are raised for
 // everyone via TIER_FREE_* env vars instead.
 
-beforeAll(() => {
+// Stubbed per test: every stub is undone before the next one
+// (`unstubEnvs` in vitest.config.ts).
+beforeEach(() => {
   vi.stubEnv('NUXT_BILLING_ENABLED', 'false')
-})
-afterAll(() => {
-  vi.unstubAllEnvs()
 })
 
 async function setActivePaidPlan(userId: number, plan: 'pro'): Promise<{ past: Date, future: Date }> {
@@ -28,7 +27,7 @@ async function setActivePaidPlan(userId: number, plan: 'pro'): Promise<{ past: D
   return { past, future }
 }
 
-describe('billing off — resolveBillingContext', () => {
+describe('billing off: resolveBillingContext', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -40,7 +39,7 @@ describe('billing off — resolveBillingContext', () => {
     const ctx = await resolveBillingContext(u.id, null)
     expect(ctx.plan).toBe('free')
     expect(ctx.attribution).toBe('user')
-    // Not the Stripe anchor — the free tier's calendar month.
+    // Not the Stripe anchor, the free tier's calendar month.
     expect(ctx.periodStart.toISOString()).not.toBe(past.toISOString())
     expect(ctx.periodStart.getUTCDate()).toBe(1)
   })
@@ -64,7 +63,7 @@ describe('billing off — resolveBillingContext', () => {
   })
 })
 
-describe('billing off — knowledge caps', () => {
+describe('billing off: knowledge caps', () => {
   beforeEach(async () => {
     await resetDb()
   })

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createUser } from '../setup/fixtures'
+import { first } from '../../helpers/assert'
 
 // Integration tests for the abuse-report HTTP flow:
 //   POST /api/abuse-reports                  (submission; anonymous path in abuseReportsAnon.test.ts)
@@ -14,7 +15,7 @@ import { createUser } from '../setup/fixtures'
 
 async function countReports(): Promise<number> {
   const r = await testDb().query<{ c: string }>(`SELECT COUNT(*) AS c FROM abuse_reports`)
-  return Number(r.rows[0].c)
+  return Number(first(r.rows).c)
 }
 
 async function countAuditByAction(action: string): Promise<number> {
@@ -22,7 +23,7 @@ async function countAuditByAction(action: string): Promise<number> {
     `SELECT COUNT(*) AS c FROM audit_log WHERE action = $1`,
     [action]
   )
-  return Number(r.rows[0].c)
+  return Number(first(r.rows).c)
 }
 
 // The DSA Art.16(2) fields every valid report carries (signed-in
@@ -82,10 +83,10 @@ describe('POST /api/abuse-reports', () => {
        FROM abuse_reports WHERE report_id = $1`,
       [json.reportId]
     )
-    expect(row.rows[0].reporter_user_id).toBe(reporter.id)
-    expect(row.rows[0].reporter_email).toBe(reporter.email)
-    expect(row.rows[0].category).toBe('illegal_content')
-    expect(row.rows[0].status).toBe('open')
+    expect(first(row.rows).reporter_user_id).toBe(reporter.id)
+    expect(first(row.rows).reporter_email).toBe(reporter.email)
+    expect(first(row.rows).category).toBe('illegal_content')
+    expect(first(row.rows).status).toBe('open')
 
     // Audit row was appended.
     expect(await countAuditByAction('abuse.reported')).toBe(1)
@@ -113,8 +114,7 @@ describe('POST /api/abuse-reports', () => {
   })
 
   it('accepts free-form docId text (no FK constraint)', async () => {
-    // The FK was dropped in B-15.1 — pasting "test" (or a URL,
-    // or anything) should land cleanly.
+    // There is no FK on doc_id: pasting "test" (or a URL, or anything) should land cleanly.
     const reporter = await createUser()
     const client = await loggedInClient(reporter.id, reporter.name)
     const res = await client.request('/api/abuse-reports', {
@@ -132,7 +132,7 @@ describe('POST /api/abuse-reports', () => {
       `SELECT doc_id FROM abuse_reports WHERE report_id = $1`,
       [reportId]
     )
-    expect(row.rows[0].doc_id).toBe('test')
+    expect(first(row.rows).doc_id).toBe('test')
   })
 })
 
@@ -174,7 +174,7 @@ describe('GET /api/admin/abuse-reports', () => {
       body: report({ category: 'spam', body: 'reporter will delete their account' })
     })
     // Simulate post-submission account deletion. FK is ON DELETE
-    // SET NULL — reporter_user_id flips to null, email snapshot
+    // SET NULL: reporter_user_id flips to null, email snapshot
     // survives.
     await testDb().query(`DELETE FROM users WHERE id = $1`, [goneReporter.id])
 
@@ -280,10 +280,10 @@ describe('PATCH /api/admin/abuse-reports/:reportId', () => {
       `SELECT status, actioned_by, notes, acknowledged_at FROM abuse_reports WHERE report_id = $1`,
       [reportId]
     )
-    expect(row.rows[0].status).toBe('acknowledged')
-    expect(row.rows[0].actioned_by).toBe(admin.id)
-    expect(row.rows[0].notes).toBe('reviewing now')
-    expect(row.rows[0].acknowledged_at).not.toBeNull()
+    expect(first(row.rows).status).toBe('acknowledged')
+    expect(first(row.rows).actioned_by).toBe(admin.id)
+    expect(first(row.rows).notes).toBe('reviewing now')
+    expect(first(row.rows).acknowledged_at).not.toBeNull()
 
     expect(await countAuditByAction('abuse.acknowledged')).toBe(1)
   })
@@ -304,12 +304,12 @@ describe('PATCH /api/admin/abuse-reports/:reportId', () => {
       `SELECT status, acknowledged_at, actioned_at FROM abuse_reports WHERE report_id = $1`,
       [reportId]
     )
-    expect(row.rows[0].status).toBe('actioned')
-    // Both timestamps stamped — even though we skipped the
+    expect(first(row.rows).status).toBe('actioned')
+    // Both timestamps stamped: even though we skipped the
     // explicit acknowledge step, ops will want to know "we saw
     // it at X" regardless.
-    expect(row.rows[0].acknowledged_at).not.toBeNull()
-    expect(row.rows[0].actioned_at).not.toBeNull()
+    expect(first(row.rows).acknowledged_at).not.toBeNull()
+    expect(first(row.rows).actioned_at).not.toBeNull()
 
     expect(await countAuditByAction('abuse.actioned')).toBe(1)
   })

@@ -1,6 +1,6 @@
 // BYOK redirect SSRF (regression). The app checks a user's provider base
 // URL (and its DNS answers) before every call, but the request itself is
-// made by LiteLLM — whose OpenAI client used to FOLLOW redirects. A
+// made by LiteLLM: whose OpenAI client follows redirects by default. A
 // provider host that passes the check could answer 302/307 and make the
 // proxy fetch an internal service the check never saw; the internal
 // response then came back in the error text (or, for transcription, as
@@ -15,7 +15,7 @@
 // means "not followed", not "not reachable".
 //
 // Test stack required: postgres-test + valkey-test + litellm-test +
-// fake-openai-test (docker-compose.test.yml).
+// fake-openai-test (deploy/compose/compose.test.yml).
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { createServer, type Server } from 'node:http'
@@ -25,13 +25,13 @@ import { loggedInClient } from '../setup/client'
 import { createUser } from '../setup/fixtures'
 import { TEST_FAKE_OPENAI_HOST_URL, fakeOpenAiBaseUrl } from '../setup/env'
 import { buildTestEnv } from '../setup/testEnv'
-import { encryptToken } from '../../../server/utils/litellm/tokenCrypto'
+import { sealSecret, secretContext } from '../../../server/utils/platform/secretBox'
 
 const LITELLM_URL = 'http://127.0.0.1:4100'
 const LITELLM_MASTER_KEY = 'sk-test-litellm-master'
 const CANARY_BODY = 'CANARY-INTERNAL-BODY'
-// Same salt as the server subprocess, so the token we store decrypts there.
-process.env.LITELLM_SALT_KEY = buildTestEnv().LITELLM_SALT_KEY
+// Same encryption key as the server subprocess, so the token we store decrypts there.
+process.env.NUXT_ENCRYPTION_KEY = buildTestEnv().NUXT_ENCRYPTION_KEY
 
 const FAKE_ORIGIN = new URL(fakeOpenAiBaseUrl()).origin
 const BRIDGE_HOST = new URL(fakeOpenAiBaseUrl()).hostname
@@ -78,7 +78,7 @@ async function byokUser(): Promise<number> {
   const body: { key: string, token_id?: string, token?: string } = await res.json()
   await testDb().query(
     'UPDATE users SET litellm_key_id = $1, litellm_key_token = $2 WHERE id = $3',
-    [body.token_id ?? body.token, encryptToken(body.key), u.id]
+    [body.token_id ?? body.token, sealSecret('litellm-user-key', secretContext.litellmUserKey(u.id), body.key), u.id]
   )
   return u.id
 }

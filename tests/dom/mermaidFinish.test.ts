@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { diagramKind, finishMermaidSvg, formatAxisNumber, formatPieLegendLabel, thinAxisTicks } from '../../app/utils/mermaidLoader'
+import { diagramKind, finishMermaidSvg, formatAxisNumber, formatPieLegendLabel, thinAxisTicks } from '../../app/utils/markdown/mermaidLoader'
 
 // What mermaid 11 hands back for a pie with `showData` (trimmed): the SVG
 // still uses useMaxWidth-style sizing and the legend carries raw values.

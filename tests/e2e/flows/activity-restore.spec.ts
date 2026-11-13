@@ -1,21 +1,22 @@
 import { test, expect } from '../fixtures/flow'
+import { waitForSyncDebounce } from '../fixtures/waits'
 
 // Tier 1: "Roll the doc back to an earlier point."
 //
 // User-job: a writer made an edit they regret and wants to undo it
 // after Cmd+Z's history is gone (closed the tab, or the edit happened
 // in a separate session). Job done when they've opened the Activity
-// tab, picked the right entry, and clicked Restore — the doc snaps
+// tab, picked the right entry, and clicked Restore, the doc snaps
 // back to the past state for every connected collaborator.
 //
 // markoto's Activity tab is the per-doc audit trail: every edit,
 // comment, theme change, AI tool call gets a row. Tier 1 is the
-// diff drawer (read-only — see what changed). Tier 2 is restore
+// diff drawer (read-only: see what changed). Tier 2 is restore
 // (snap the live Y.Doc back). This flow demos Tier 2.
 //
 // Restore semantics: Restore on a row brings the document back to how
 // it was RIGHT BEFORE that row's change (`yjsDocIdBefore`). To undo the
-// mistake, the reader restores the mistake's own row — the newest.
+// mistake, the reader restores the mistake's own row, the newest.
 //
 // Runs on desktop AND mobile. Activity feed renders identically on
 // both surfaces (right-sidebar tab on desktop, bottom-tab-bar entry
@@ -46,7 +47,7 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
   await editor.silentSetup({ title: 'Launch announcement', body: LAUNCH_DRAFT, cover: false })
   // Let the seeded draft flush as its own batch so the two edits below
   // become separate activity rows (Hocuspocus batch window, see below).
-  await page.waitForTimeout(3_000)
+  await waitForSyncDebounce(page)
 
   await flow.heading('Restore an earlier version of your doc', 3)
   await flow.narrate(
@@ -57,7 +58,7 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
     + 'with the document open sees it at once.'
   )
 
-  // ─── A real edit, then a mistake ───────────────────────────────
+  // A real edit, then a mistake
   await flow.heading('An edit, then a mistake', 3)
   await flow.narrate(
     'Maya adds the release date to her announcement. A few seconds later '
@@ -79,11 +80,11 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
   // Hocuspocus's onStoreDocument is debounced 2 s in `sync-server/
   // src/index.ts`. To get TWO distinct activity rows (one per typing
   // burst) we have to let the first batch FLUSH before the second
-  // typing starts — otherwise both typings collapse into one row and
+  // typing starts: otherwise both typings collapse into one row and
   // restoring the mistake would also drop the release date. 3 s = 2 s
   // debounce + 1 s safety (polling exits at flush time, while the next
   // keystroke can still land in the same batch).
-  await page.waitForTimeout(3_000)
+  await waitForSyncDebounce(page)
 
   // The mistake: select everything and type over it.
   await cmContent.press(`${accel}+A`)
@@ -96,9 +97,9 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
   )
 
   // Let the mistake flush as its own row before opening Activity.
-  await page.waitForTimeout(3_000)
+  await waitForSyncDebounce(page)
 
-  // ─── Open Activity ─────────────────────────────────────────────
+  // Open Activity
   await flow.heading('Open the Activity tab', 3)
 
   // Desktop: right-sidebar Activity tab; mobile: bottom-tab-bar entry.
@@ -114,13 +115,13 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
       // Wait on a real activity row attribute, not `getByText(/edit/i)`.
       // The bare regex matches the (hidden-on-mobile) menubar Edit
       // button at `data-testid="menubar-edit"`, which exists in DOM
-      // under `<sm` but is `hidden sm:block`-clipped — Playwright's
+      // under `<sm` but is `hidden sm:block`-clipped, Playwright's
       // visible-state polling stalls forever on it.
       after: () => page.locator('[data-activity-id]').first().waitFor({ state: 'visible', timeout: 10_000 })
     }
   )
 
-  // ─── Restore ───────────────────────────────────────────────────
+  // Restore
   await flow.heading('Undo the mistake', 3)
   await flow.narrate(
     'Restore on an entry brings the document back to how it was just '
@@ -135,7 +136,7 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
     restoreButtons.first(),
     {
       // Mobile: restore button sits inside the Activity BottomSheet
-      // portal — pointer events intercepted. See `tests/e2e/AGENTS.md`.
+      // portal: pointer events intercepted. See `tests/e2e/AGENTS.md`.
       force: editor.isMobile,
       result: 'markoto asks you to confirm before it changes the document for everyone.',
       after: () => page.locator('[data-testid="restore-confirm"]').waitFor({ state: 'visible', timeout: 5_000 })
@@ -156,9 +157,10 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
     // On mobile the Activity bottom-sheet stays open while the
     // restore confirm modal renders above it; the sheet's
     // `mk-sheet-host` (aria-hidden) intercepts pointer events on
-    // the modal's button. Same workaround as cover-page-editor —
+    // the modal's button. Same workaround as cover-page-editor,
     // dispatch the full pointerdown→pointerup→click sequence so
     // Reka's pointer-capture chain fires and the modal commits.
+    // eslint-disable-next-line playwright/no-force-option -- mobile-only branch: the bottom-sheet portal intercepts the pointer (tests/e2e/AGENTS.md)
     await flow.hover('Click Restore in the confirmation', confirm, { force: true })
     await confirm.evaluate((el: HTMLElement) => {
       const fire = (type: string) => el.dispatchEvent(new PointerEvent(type, {

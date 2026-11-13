@@ -2,17 +2,17 @@ import { z } from 'zod'
 import { buildDocBoundTool } from '../lib/wrapDocBoundTool'
 
 // Fetches rendered PNG screenshots of specific pages from the doc and
-// inlines them into the tool response. Vision-input cost per image —
+// inlines them into the tool response. Vision-input cost per image,
 // the in-app loop caps this at 3 calls/session; MCP wrappers rely on
 // the model's own restraint + the underlying renderer's bytes ceiling.
 export default buildDocBoundTool({
   name: 'view_pages',
-  description: 'Fetch rendered PNG images of specific pages from a document and inline them into the tool response. Use when the user references a specific page number ("issue on page 3", "is page 1 too dense?") — the markdown gives you the content but not paged.js\'s page boundaries.',
+  description: 'Fetch rendered PNG images of specific pages from a document and inline them into the tool response. Use when the user references a specific page number ("issue on page 3", "is page 1 too dense?"), the markdown gives you the content but not paged.js\'s page boundaries.',
   scope: 'documents:read',
   access: 'view',
-  // Server render on a cache miss — shares the REST PDF route's allowance.
+  // Server render on a cache miss, shares the REST PDF route's allowance.
   limit: 'render',
-  // Page images carry the document out — refused on a view-only doc for visitors.
+  // Page images carry the document out, refused on a view-only doc for visitors.
   download: true,
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   inputSchema: {

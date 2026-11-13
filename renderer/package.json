@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1156.0",
+    "@markoto/shared": "workspace:*",
     "@sentry/bun": "^10.76.2",
     "jsonwebtoken": "^9.0.3",
     "playwright": "1.64.1"

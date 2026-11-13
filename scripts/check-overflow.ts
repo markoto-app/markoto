@@ -3,14 +3,15 @@
 // running instance (or the paths given) at 375 and 390 px in headless
 // Chromium and reports pages wider than the viewport, with the outermost
 // elements that stick out. Exits 1 on any overflow. Advisory, no CI job
-// (docs/CHEATSHEET.md → "SEO + page speed").
+// (docs/contributing/CHEATSHEET.md → "SEO + page speed").
 //
 //   bun scripts/check-overflow.ts http://127.0.0.1:3000 [/path …]
 
 import { chromium } from '@playwright/test'
+import { trimTrailingSlashes } from '../shared/utils/trimTrailingSlashes'
 
 const args = process.argv.slice(2)
-const base = (args[0] ?? 'http://127.0.0.1:3000').replace(/\/+$/, '')
+const base = trimTrailingSlashes(args[0] ?? 'http://127.0.0.1:3000')
 const WIDTHS = [375, 390]
 
 async function sitemapPaths(): Promise<string[]> {

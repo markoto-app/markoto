@@ -4,15 +4,15 @@ import { resetDb, testDb } from '../setup/db'
 import { createDoc, createUser, createWorkspace } from '../setup/fixtures'
 import { mcp, mintPat } from '../setup/mcpClient'
 
-// Host-style MCP tools (Phase 4):
-//   - create_document    — new doc owned by the PAT user
-//   - duplicate_document — clone of a viewable doc
-//   - export_document_as_markdown — read raw ytext
-//   - export_document_as_pdf      — render PDF, return as embedded resource
+// Host-style MCP tools:
+//   - create_document: new doc owned by the PAT user
+//   - duplicate_document: clone of a viewable doc
+//   - export_document_as_markdown: read raw ytext
+//   - export_document_as_pdf: render PDF, return as embedded resource
 //
 // All four must work end-to-end through the real stack (Nuxt + sync-test
 // + renderer-test). The ymeta seed for create_document goes through
-// Hocuspocus via the AI loop's existing trustedCommentClient — verifying
+// Hocuspocus via the AI loop's existing trustedCommentClient, verifying
 // the seed lands tests the create + connect chain in one shot.
 
 async function readDocRow(docId: string): Promise<{
@@ -45,7 +45,7 @@ function parseDocIdFromCreate(text: string): string {
   return parsed.doc_id
 }
 
-describe('MCP host tools — create_document', () => {
+describe('MCP host tools: create_document', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -100,7 +100,7 @@ describe('MCP host tools — create_document', () => {
 
   it('seeds initial_markdown into the new doc\'s ytext', async () => {
     // Verify the seed via export_document_as_markdown rather than
-    // by replaying yjs_documents binary directly — tests the same
+    // by replaying yjs_updates binary directly, tests the same
     // path a real MCP client would use to read the doc back, and
     // dodges the y-postgresql update-encoding gotcha (rows aren't
     // self-contained Y.js updates; they're chunks the persistence
@@ -114,9 +114,9 @@ describe('MCP host tools — create_document', () => {
     })
     const docId = parseDocIdFromCreate(createText)
 
-    // Wait for the Hocuspocus debounce window — the seed is written
+    // Wait for the Hocuspocus debounce window, the seed is written
     // by openTrustedCommentClient which transacts on a fresh Y.Doc;
-    // sync-server debounces 2-10s before flushing to yjs_documents
+    // sync-server debounces 2-10s before flushing to yjs_updates
     // and broadcasting to other connections.
     await new Promise(r => setTimeout(r, 12_000))
 
@@ -126,7 +126,7 @@ describe('MCP host tools — create_document', () => {
   }, 30_000)
 })
 
-describe('MCP host tools — duplicate_document', () => {
+describe('MCP host tools: duplicate_document', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -167,7 +167,7 @@ describe('MCP host tools — duplicate_document', () => {
   })
 })
 
-describe('MCP host tools — export_document_as_markdown', () => {
+describe('MCP host tools: export_document_as_markdown', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -176,13 +176,13 @@ describe('MCP host tools — export_document_as_markdown', () => {
     const user = await createUser()
     const doc = await createDoc({ ownerId: user.id })
     // Seed via direct DB insert so we don't need a Hocuspocus write to
-    // populate state — export reads through YDocPool which loads from
-    // yjs_documents on connect.
+    // populate state: export reads through YDocPool which loads from
+    // yjs_updates on connect.
     const ydoc = new Y.Doc()
     ydoc.getText('content').insert(0, '# Exported title\n\nBody text here.')
     const update = Y.encodeStateAsUpdate(ydoc)
     await testDb().query(
-      `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1')`,
+      `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2)`,
       [doc.docId, Buffer.from(update)]
     )
 
@@ -194,7 +194,7 @@ describe('MCP host tools — export_document_as_markdown', () => {
   })
 })
 
-describe('MCP host tools — export_document_as_pdf', () => {
+describe('MCP host tools: export_document_as_pdf', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -207,7 +207,7 @@ describe('MCP host tools — export_document_as_pdf', () => {
     ydoc.getText('content').insert(0, '# Hello\n\n' + 'Lorem ipsum dolor sit amet. '.repeat(40))
     const update = Y.encodeStateAsUpdate(ydoc)
     await testDb().query(
-      `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1')`,
+      `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2)`,
       [doc.docId, Buffer.from(update)]
     )
 
@@ -228,7 +228,7 @@ describe('MCP host tools — export_document_as_pdf', () => {
     expect(resourceBlock.resource.mimeType).toBe('application/pdf')
     expect(resourceBlock.resource.uri).toMatch(/^doc:\/\/\//)
     expect(resourceBlock.resource.blob).toBeTruthy()
-    // PDF magic bytes — base64 of "%PDF" is "JVBERi0".
+    // PDF magic bytes: base64 of "%PDF" is "JVBERi0".
     expect(resourceBlock.resource.blob).toMatch(/^JVBERi0/)
   }, 60_000) // renderer cold-start can take 5-15s
 })

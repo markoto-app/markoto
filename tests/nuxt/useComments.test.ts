@@ -3,7 +3,7 @@ import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { nextTick } from 'vue'
 import * as Y from 'yjs'
 import { Awareness } from 'y-protocols/awareness'
-import type { SerializedAnchor } from '../../app/utils/commentAnchors'
+import type { SerializedAnchor } from '../../app/utils/comments/commentAnchors'
 
 // Composable wrapping the Y.Array<Y.Map> "comments" structure. Tests
 // cover:
@@ -16,16 +16,14 @@ import type { SerializedAnchor } from '../../app/utils/commentAnchors'
 // Author identity is read from awareness; we stamp a name on the local
 // state before the call so the deriver doesn't fall back to "Anonymous".
 //
-// Editing comments is intentionally NOT supported (product decision —
+// Editing comments is intentionally NOT supported (product decision,
 // users can only delete their own / resolve threads). No tests for an
 // edit path.
 
-const { sessionState } = vi.hoisted(() => ({
-  sessionState: {
-    loggedIn: { value: true },
-    user: { value: { id: 1, name: 'Alice' } as { id: number, name?: string } | null }
-  }
-}))
+const { sessionState } = vi.hoisted(() => {
+  const user: { value: { id: number, name?: string } | null } = { value: { id: 1, name: 'Alice' } }
+  return { sessionState: { loggedIn: { value: true }, user } }
+})
 
 mockNuxtImport('useUserSession', () => {
   return () => ({
@@ -35,7 +33,7 @@ mockNuxtImport('useUserSession', () => {
 })
 
 // eslint-disable-next-line import/first -- mockNuxtImport must be hoisted above the import it mocks
-import { useComments } from '~/composables/useComments'
+import { useComments } from '~/composables/comments/useComments'
 
 function makeYDoc() {
   const ydoc = new Y.Doc()
@@ -46,7 +44,7 @@ function makeYDoc() {
 }
 
 function anchorRange(ytext: Y.Text, ydoc: Y.Doc, from: number, to: number): SerializedAnchor {
-  // Build a serialized anchor without going through CM's EditorView —
+  // Build a serialized anchor without going through CM's EditorView,
   // the helper expects a view, but the test only needs the underlying
   // Y.RelativePosition encoding. Re-implement the two-line equivalent
   // inline so we keep test deps minimal.

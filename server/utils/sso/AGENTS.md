@@ -1,47 +1,25 @@
-# Per-workspace single sign-on (WP14)
+# Per-workspace single sign-on
 
-A workspace connects its own identity provider (OIDC or SAML) and, optionally, SCIM provisioning. Business on markoto.app (`sso` plan feature, `TIER_{FREE,PRO,TEAM}_FEATURE_SSO=false` in `infra/render-env.sh`); every workspace on a self-hosted instance (committed tiers have it on). User docs: `content/docs/account/single-sign-on.md`.
+A workspace connects its own identity provider (OIDC or SAML) and optionally SCIM provisioning. Gated by the plan feature `sso` (on in the committed tiers; the hosted `infra/render-env.sh` turns it off below Business). User docs: `content/docs/account/single-sign-on.md`.
 
-Not to be confused with the **instance** OIDC sign-in (`server/utils/oidc/`, `NUXT_OAUTH_OIDC_*`, the operator's IdP, `users.oidc_issuer/subject`). Per-workspace SSO reuses its protocol layer (`oidc/client.ts`) but has its own tables, routes and rules.
-
-## Data (`server/db/schema.ts`, repo `server/repos/sso.ts`)
-
-| Table | What |
-|---|---|
-| `sso_connections` | one per workspace: protocol, IdP settings (OIDC client secret AES-256-GCM via `litellm/tokenCrypto`; SAML cert pasted PEM), `status` draft / active, `default_role`, `scim_token_hash` |
-| `sso_domains` | email domains + TXT verification token; verified by ONE workspace (partial unique index) |
-| `user_identities` | (connection, subject) → user; `scim_external_id`, `active`; a SCIM-created one has subject `scim:<externalId>` until the first real sign-in takes it over |
-| `sso_grants` | (user, workspace) → valid until `expires_at` (12 h), for `session_epoch` |
+Not the same as instance sign-in with OIDC (`server/utils/oidc/`, `NUXT_OAUTH_OIDC_*`). Workspace SSO reuses `oidc/client.ts` but has its own tables (`sso_connections`, `sso_domains`, `user_identities`, `sso_grants` in `server/db/schema/sso.ts`; repo `server/repos/sso.ts`), routes (`server/routes/auth/sso/[connectionId]/`, `server/routes/scim/v2/`, `server/api/workspaces/[wsId]/sso/`) and rules.
 
 ## Rules
 
-- **Enforcement:** an `active` connection is ALWAYS enforced. `ssoSatisfiedSql()` is part of `getMemberRole` AND `getDocWithActorRole` — the two queries every access path goes through (editor token, AI, MCP, knowledge, exports). No grant → no role. `getMemberRoleIgnoringSso` exists ONLY for: the SSO settings (`admin.ts#requireSsoAdmin` — the break-glass), the sign-in itself, SCIM, the "sign in with SSO" hints (`required.ts`), and admin actions about ANOTHER member (removal). Never use it for the caller's own content access.
-- **Ownership doesn't bypass enforcement.** In a workspace with an `active` connection, owning a doc (`documents.owner_id`) counts only while the owner has an effective role there (the same SSO-gated role `getMemberRole` returns): no current grant, or removed / deactivated / deleted via SCIM → treated as a non-owner (no token, files, activity, PDF, meta, AI, MCP, delete, move, password, duplicate, roster on a private / password doc; a public-link doc gives what any outsider gets). Computed in the one query: `getDocWithActorRole` returns `ownerAccessSuspended` (`ssoEnforcedSql` + no joined role); the pure decisions honour `DocState.ownerAccessSuspended`. Build `DocState` with `docStateOf(row)` and check ownership with `isEffectiveDocOwner(row, userId)` (`shared/utils/docPermissions.ts`) — never compare `ownerId` by hand in an authorization path. Workspaces without an active connection and standalone docs are unchanged (there a removed member still keeps the docs they own — pre-existing behaviour). Listing your own docs (`/api/user/documents`, AI `list_my_documents`) still shows their metadata (title, description), not content.
-- **Grants** are per user + workspace, not per browser session (background work — AI runs, MCP — has no session to check). Known trade-off: while a grant is valid, the same account signed in via GitHub in another browser also gets in. "Log out everywhere" (epoch bump) voids every grant; deprovisioning at the IdP takes effect within 12 h, at once with SCIM.
-- **Draft → active only by an admin's successful test sign-in** (`?test=1`, links the IdP identity to THAT admin). Any IdP setting change returns the connection to draft. A public-link document (`open-edit` / `open-view`) stays public — enforcement covers what membership grants.
-- **Who is who** (`completeLogin.ts`): known identity → its user (inactive = refused); test → the admin; email in a VERIFIED domain → existing account with that address (linked) or a new one; otherwise `sso/not-provisioned`. Never `NUXT_ADMIN_USER_EMAILS` bootstrap from a customer IdP.
-- **Joining** without an invite (JIT sign-in, SCIM create/reactivate: `membership.ts`): member limit + seats, never buys a seat, uses an open invite for the address; per-workspace advisory lock.
-- **Outbound (OIDC only):** every request to the customer's IdP goes through `urlPolicy.ts#createSsoFetch` (openid-client `customFetch`): https, no internal names / loopback / metadata, private only with `NUXT_SSO_ALLOW_PRIVATE_URLS=true` (self-host on-prem IdPs, the test stack), pinned address, no redirects, 1 MiB, 10 s. SAML makes no outbound request (cert pasted, browser carries the messages).
-- **SAML** (`saml.ts`, `@node-saml/node-saml`): signed assertion, issuer, audience = `/auth/sso/<id>/metadata`, recipient, time (30 s skew), `validateInResponseTo: always` with a Valkey cache that at the ACS only knows the request id from THIS browser's signed flow cookie (GETDEL), `rejectReplayedAssertions`. No IdP-initiated sign-in.
-- **Flow cookie** (`flowCookie.ts`): HMAC-signed, httpOnly, path `/auth/sso`, 10 min, single use, bound to the connection; `SameSite=None; Secure` on https (SAML posts back cross-site), Lax on plain-http dev/test.
-- **SCIM** (`scim.ts`, routes `server/routes/scim/v2/`): Users only, bearer token per connection (shown once, SHA-256), Entra (`"False"` strings, `path`) and Okta (value objects) PATCH shapes, deactivate = membership + grant + workspace AI key out, delete = out of the workspace (the account stays), last admin → 409, errors as SCIM Error bodies (`defineScimHandler`).
-
-## Routes
-
-| Route | |
-|---|---|
-| `GET /auth/sso/:id` (`?test=1`, `?returnTo=`) | start (OIDC authorize / SAML AuthnRequest) |
-| `GET /auth/sso/:id/callback` | OIDC |
-| `POST /auth/sso/:id/acs` | SAML |
-| `GET /auth/sso/:id/metadata` | SAML SP metadata (public) |
-| `GET|PUT|DELETE /api/workspaces/:wsId/sso` | settings (admins) |
-| `POST /api/workspaces/:wsId/sso/domains`, `POST …/domains/:id/verify`, `DELETE …/domains/:id` | domains |
-| `POST|DELETE /api/workspaces/:wsId/sso/scim-token` | SCIM token |
-| `POST /api/auth/sso/discover` | email → sign-in link (public, 20/min) |
-| `/scim/v2/Users[/:id]`, `ServiceProviderConfig`, `ResourceTypes` | SCIM |
-
-Refused sign-ins land on `/auth/sso-error?code=sso/…` (fixed codes only). Audit actions `sso.*` (`server/legal/auditActions.ts`).
+- **Enforcement.** An `active` connection is always enforced. `ssoSatisfiedSql()` is part of `getMemberRole` and `getDocWithActorRole`, the two queries every access path uses (editor token, AI, MCP, knowledge, exports): no current grant, no role.
+- `getMemberRoleIgnoringSso` is only for the SSO settings (`admin.ts#requireSsoAdmin`, the break-glass for admins), the sign-in itself, SCIM, and the "sign in with SSO" hints (`required.ts`). Never use it for the caller's own content access.
+- **Owners are not exempt.** In an enforced workspace, owning a document counts only while the owner has an effective role there; `getDocWithActorRole` returns `ownerAccessSuspended` and the decisions in `shared/utils/documents/docPermissions.ts` honour it. Check ownership with `isEffectiveDocOwner`, never by comparing `ownerId`.
+- **Grants** (`sso_grants`) are per user and workspace, valid 12 h, not per browser session, because background work (AI runs, MCP) has no session. While a grant is valid, the same account signed in another way also gets in. "Log out everywhere" voids every grant; SCIM deprovisioning takes effect at once.
+- **Draft → active** only through an admin's successful test sign-in (`?test=1`), which links the IdP identity to that admin. Any IdP setting change returns the connection to draft. Public-link documents stay public: enforcement covers what membership grants.
+- **Who signs in** (`completeLogin.ts`): a known identity → its user (inactive = refused); test → the admin; an email in a domain VERIFIED by DNS TXT → the existing account with that address (linked) or a new one; otherwise `sso/not-provisioned`. Never run the `NUXT_ADMIN_USER_EMAILS` bootstrap for a customer IdP.
+- **Joining** without an invite (JIT sign-in, SCIM create or reactivate, `membership.ts`) respects the member limit and seats, never buys a seat, uses an open invite for the address, and runs under a per-workspace advisory lock.
+- **Outbound requests** (OIDC only) go through `urlPolicy.ts#createSsoFetch`: https, no internal names, loopback or metadata addresses, private addresses only with `NUXT_SSO_ALLOW_PRIVATE_URLS=true`, pinned address, no redirects, 1 MiB, 10 s. SAML makes no outbound request.
+- **SAML** (`saml.ts`, `@node-saml/node-saml`): signed assertion, issuer, audience = `/auth/sso/<id>/metadata`, recipient, 30 s clock skew, `validateInResponseTo: always` against the request id from this browser's flow cookie, `rejectReplayedAssertions`. No IdP-initiated sign-in.
+- **Flow cookie** (`flowCookie.ts`): HMAC-signed, httpOnly, path `/auth/sso`, 10 min, single use, bound to the connection; `SameSite=None; Secure` on https (SAML posts back cross-site), Lax on plain-http dev and test.
+- **SCIM** (`scim.ts`): Users only; one bearer token per connection, shown once and stored as SHA-256; accepts Entra and Okta PATCH shapes. Deactivate removes membership, grant and the workspace AI key; delete removes the user from the workspace (the account stays); removing the last admin is 409. Routes declare `allow.scim()`, whose error format (`scimErrorFormat`) answers every refusal as a SCIM Error body.
+- The OIDC client secret is encrypted with `platform/secretBox.ts` (purpose `sso-client-secret`, bound to the workspace id); the settings API never returns it, the certificate body or the SCIM token.
+- Refused sign-ins redirect to `/auth/sso-error?code=sso/…` with fixed codes only. Audit actions are `sso.*` (`server/legal/auditActions.ts`).
 
 ## Tests
 
-`tests/unit/sso.test.ts` (domains, flow cookie, URL policy, SAML mapping); `tests/integration/endpoints/sso.test.ts` — OIDC against the real `oidc-test` mock IdP (published on the test network's private address, `ssoMockIdpBase()`), SAML with responses signed in-process (`tests/integration/setup/samlIdp.ts`, key pair from openssl per run — forged / misdirected / expired / unsolicited / replayed responses), enforcement on every path (incl. docs the member owns, SCIM-deprovisioned owners), linking, JIT, SCIM.
+`tests/unit/workspaces/sso.test.ts` (domains, flow cookie, URL policy, SAML mapping) and `tests/integration/endpoints/sso.test.ts` (OIDC against the `oidc-test` mock IdP, SAML responses signed in-process by `tests/integration/setup/samlIdp.ts`, enforcement on every path, linking, JIT, SCIM).

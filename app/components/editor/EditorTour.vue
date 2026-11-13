@@ -2,7 +2,7 @@
 import {
   anchorSelector, DESKTOP_TOUR_STEPS, editorTourDone, markEditorTourDone, MOBILE_TOUR_STEPS,
   type EditorTourStep
-} from '~/utils/editorTour'
+} from '~/utils/editor/editorTour'
 
 /**
  * Short first-run tour of the editor: one popover at a time, anchored to

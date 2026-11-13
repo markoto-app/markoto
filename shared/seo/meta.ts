@@ -1,19 +1,17 @@
 // Page-metadata constants shared by the title template (app/app.vue),
 // useMarketingSeo and the meta-length tests.
 
-import { OG_IMAGES } from './ogImages'
-
 export const SITE_NAME = 'markoto'
 
 /** `<title>` when a page sets none (and the home page's own title). */
-export const DEFAULT_TITLE = 'markoto — Collaborative Markdown'
+export const DEFAULT_TITLE = 'markoto · Collaborative Markdown'
 
 /** Separator the title template puts between page title and site name. */
-export const TITLE_SUFFIX = ` · ${SITE_NAME}`
+const TITLE_SUFFIX = ` · ${SITE_NAME}`
 
 /**
  * `%s · markoto`; pages without a title get DEFAULT_TITLE. On a managed
- * private instance (WP16) the customer's name follows: `%s · markoto ·
+ * private instance the customer's name follows: `%s · markoto ·
  * Kanton Musterstadt`, without a title `markoto · Kanton Musterstadt`.
  */
 export function applyTitleTemplate(title: string | null | undefined, brandName = ''): string {
@@ -24,13 +22,6 @@ export function applyTitleTemplate(title: string | null | undefined, brandName =
 /** Search-result limits the meta-length tests enforce. */
 export const MAX_TITLE_LENGTH = 60
 export const MAX_DESCRIPTION_LENGTH = 160
-
-/**
- * Default Open Graph / Twitter card image (built by
- * scripts/build-og-images.ts from a tour poster; JPEG because some
- * unfurlers ignore WebP). Per-group cards: `shared/seo/ogImages.ts`.
- */
-export const DEFAULT_OG_IMAGE = OG_IMAGES.default
 
 /**
  * `robots` meta of every indexable public page: large image previews in
@@ -47,22 +38,10 @@ export function ogLocale(bcp47: string): string {
   return `${lang.toLowerCase()}_${region.toUpperCase()}`
 }
 
-/** /docs landing page (app/pages/docs/index.vue). */
-export const DOCS_LANDING_SEO = Object.freeze({
-  title: 'Documentation',
-  description: 'Guides, walkthroughs, and reference for the markoto collaborative markdown editor.'
-})
-
 /**
- * Meta descriptions of the legal pages (English: the authoritative
- * language and the one crawlers get). Titles come from the documents.
+ * i18n key of a legal page's meta description (`legal.seoDescription.<slug>`,
+ * in every UI language). Titles come from the documents.
  */
-export const LEGAL_PAGE_DESCRIPTIONS: Readonly<Record<string, string>> = Object.freeze({
-  'privacy': 'How markoto handles personal data: what is processed, why, for how long, by which sub-processors, and your rights under the GDPR and Swiss law.',
-  'terms': 'The terms of use for markoto: accounts, documents without an account, acceptable use, AI features, liability and how the terms change.',
-  'paid-terms': 'The terms for Pro, Team and Business plans and AI credits: seats, renewal and cancellation, credits, refunds and your right of withdrawal.',
-  'dpa': 'The data processing addendum for workspace owners: markoto processes workspace content on your behalf under GDPR Article 28.',
-  'abuse-policy': 'What is not allowed on markoto, how to report illegal content or abuse, and how reports are handled and decided.',
-  'imprint': 'Legal notice for markoto: the operating company, its address and how to contact it.',
-  'sub-processors': 'Every company that processes data for markoto: what it does, where the data is stored and how transfers are covered.'
-})
+export function legalDescriptionKey(slug: string): string {
+  return `legal.seoDescription.${slug}`
+}

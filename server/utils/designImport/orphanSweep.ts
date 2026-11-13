@@ -1,14 +1,15 @@
-import type { ObjectStore } from '../objectStore'
+import type { ObjectStore } from '../storage/objectStore'
 import { DESIGN_IMPORT_OBJECT_RE } from './guard'
+import { HOUR_MS } from '~~/shared/config/units'
 
 // Layer of `orphan-cleanup`: design-import leftovers. Nothing of a design
-// run is meant to stay in storage — `start` deletes the uploaded file as
+// run is meant to stay in storage, `start` deletes the uploaded file as
 // soon as it has read it, and every sample render is deleted after its
 // PNGs were read. What is left after an hour is debris: an upload that
 // was never started (or a re-used presigned URL), a render whose
 // clean-up failed. Only these exact key shapes are touched.
 
-export const DESIGN_IMPORT_ORPHAN_GRACE_MS = 60 * 60 * 1000
+const DESIGN_IMPORT_ORPHAN_GRACE_MS = HOUR_MS
 
 const SAMPLE_RENDER_RE = /^renders\/design-sample-[A-Za-z0-9]{20}\//
 

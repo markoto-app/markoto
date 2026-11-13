@@ -4,8 +4,8 @@ import { resetDb, testDb } from '../setup/db'
 import { createDoc, createUser } from '../setup/fixtures'
 import { mcp, mintPat } from '../setup/mcpClient'
 
-// Documents:write tools — verify the mutation lands in BOTH the Y.js
-// state (durable, via sync-test → yjs_documents) AND the activity_log
+// Documents:write tools: verify the mutation lands in BOTH the Y.js
+// state (durable, via sync-test → yjs_updates) AND the activity_log
 // row tagged with `mcp:{sessionId}` actor_principal. The audit-chain
 // resolution (mcp:{sessionId} → mcp_sessions.user_id) is pinned in
 // audit-and-session.test.ts; this file asserts side-effect presence.
@@ -15,17 +15,17 @@ async function seedYjs(docname: string, body: string): Promise<void> {
   ydoc.getText('content').insert(0, body)
   const update = Y.encodeStateAsUpdate(ydoc)
   await testDb().query(
-    `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1')`,
+    `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2)`,
     [docname, Buffer.from(update)]
   )
 }
 
 async function readYtext(docname: string): Promise<string> {
-  // Replay every yjs_documents row for this docname to reconstruct
+  // Replay every yjs_updates row for this docname to reconstruct
   // current state. The MCP write goes through Hocuspocus → y-postgresql
   // append, which produces a fresh row per transact() call.
   const r = await testDb().query<{ value: Buffer }>(
-    `SELECT value FROM yjs_documents WHERE docname = $1 ORDER BY id ASC`,
+    `SELECT data AS value FROM yjs_updates WHERE doc_id = $1 ORDER BY id`,
     [docname]
   )
   const ydoc = new Y.Doc()
@@ -49,7 +49,7 @@ async function activityRowsForDoc(docId: string): Promise<Array<{
 
 const WRITE_SCOPES = ['documents:read', 'documents:write'] as const
 
-describe('MCP write tools — replace_text', () => {
+describe('MCP write tools: replace_text', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -67,7 +67,7 @@ describe('MCP write tools — replace_text', () => {
     })
     expect(res.isError).not.toBe(true)
 
-    // Hocuspocus debounces 2s before flushing — wait for the write to land.
+    // Hocuspocus debounces 2s before flushing, wait for the write to land.
     await new Promise(r => setTimeout(r, 2500))
 
     const ytext = await readYtext(doc.docId)
@@ -95,7 +95,7 @@ describe('MCP write tools — replace_text', () => {
   })
 })
 
-describe('MCP write tools — insert_text', () => {
+describe('MCP write tools: insert_text', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -119,7 +119,7 @@ describe('MCP write tools — insert_text', () => {
   }, 15_000)
 })
 
-describe('MCP write tools — set_title + update_theme persist to documents row', () => {
+describe('MCP write tools: set_title + update_theme persist to documents row', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -208,7 +208,7 @@ describe('MCP write tools — set_title + update_theme persist to documents row'
   }, 15_000)
 })
 
-describe('MCP write tools — comment lifecycle', () => {
+describe('MCP write tools: comment lifecycle', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -248,7 +248,7 @@ describe('MCP write tools — comment lifecycle', () => {
   }, 30_000)
 })
 
-describe('MCP write tools — activity_log attribution', () => {
+describe('MCP write tools: activity_log attribution', () => {
   beforeEach(async () => {
     await resetDb()
   })

@@ -3,7 +3,7 @@ import { test, expect, requireLiveAi } from '../fixtures/flow'
 // Tier 2: "Ask the AI to draw an image."
 //
 // User-job: a writer wants a hero image, a thumbnail, a diagram
-// illustration — without leaving the doc to open Photoshop or pay
+// illustration: without leaving the doc to open Photoshop or pay
 // for stock. Job done when the AI generates an image from a prompt
 // and inserts it into the doc, where it renders inline in the
 // preview just like any markdown image.
@@ -32,11 +32,11 @@ test('Ask the AI to draw an image', async ({ flow, editor }) => {
     + 'with the document.'
   )
 
-  // ─── Prompt + send ──────────────────────────────────────────────
+  // Prompt + send
   await flow.click(
     'Click into the AI prompt bar',
     editor.page.ai.promptBarInput,
-    { result: 'The prompt bar lifts and glows — ready for your prompt.' }
+    { result: 'The prompt bar lifts and glows, ready for your prompt.' }
   )
 
   // The AI picks `generate_image` to mint a real markdown reference
@@ -56,7 +56,7 @@ test('Ask the AI to draw an image', async ({ flow, editor }) => {
     'Send it',
     editor.page.ai.promptBarSend,
     {
-      result: 'The AI is working — it draws the image, then places it in the document.',
+      result: 'The AI is working, it draws the image, then places it in the document.',
       after: () => editor.page.waitForAiActive()
     }
   )
@@ -67,7 +67,7 @@ test('Ask the AI to draw an image', async ({ flow, editor }) => {
 
   // ASSERTION: an image reference to a file stored with THIS doc
   // (![…](/api/files/<docId>/…)) landed in the text, and the preview
-  // renders it as a loaded image — not a broken placeholder.
+  // renders it as a loaded image, not a broken placeholder.
   const docId = editor.page.currentDocId()
   const added = await editor.page.addedText(draft)
   expect(added, `no image reference in: ${added}`).toMatch(new RegExp(`!\\[[^\\]]*\\]\\(/api/files/${docId}/[^)]+\\)`))
@@ -112,6 +112,6 @@ test('Ask the AI to draw an image', async ({ flow, editor }) => {
 
   flow.next({
     slug: 'rich-content',
-    why: 'More markdown extensions — code, alerts, math, diagrams'
+    why: 'More markdown extensions, code, alerts, math, diagrams'
   })
 })

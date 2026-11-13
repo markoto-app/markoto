@@ -3,7 +3,7 @@ import { buildDocBoundTool } from '../lib/wrapDocBoundTool'
 
 export default buildDocBoundTool({
   name: 'get_theme',
-  description: 'Read the current theme JSON for a document — fonts, page size, colors, all layout knobs.',
+  description: 'Read the current theme JSON for a document, fonts, page size, colors, all layout knobs.',
   scope: 'documents:read',
   access: 'view',
   annotations: { readOnlyHint: true, openWorldHint: false },

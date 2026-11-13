@@ -4,8 +4,8 @@ import type { EditorPage } from '../page-objects/Editor'
 // "Zoom the preview and see all pages".
 //
 // User-job: a writer working on a long report wants to read a page up
-// close, then step back and see the whole document at once — where the
-// tables land, which page a chapter starts on — and jump straight to a
+// close, then step back and see the whole document at once, where the
+// tables land, which page a chapter starts on, and jump straight to a
 // page from there. Job done when they've zoomed in, pulled back into
 // the all-pages overview, opened a page from it, and found the preview
 // the way they left it after a reload.
@@ -94,7 +94,7 @@ test('Zoom the preview', async ({ page, flow, editor }) => {
   )
 
   if (editor.isMobile) {
-    // ─── Mobile: the zoom button next to Edit / Preview ──────────────
+    // Mobile: the zoom button next to Edit / Preview
     const zoomButton = page.getByTestId('preview-zoom-mobile')
     await flow.click('Tap the zoom button next to Edit and Preview', zoomButton, {
       annotations: [{ label: 'zoom', selector: '[data-testid="preview-zoom-mobile"]', kind: 'arrow' }],
@@ -126,7 +126,7 @@ test('Zoom the preview', async ({ page, flow, editor }) => {
     await expect.poll(async () => (await previewZoomState(editor.page)).overview).toBe(true)
     await settled()
   } else {
-    // ─── Desktop: the zoom control in the preview's corner ───────────
+    // Desktop: the zoom control in the preview's corner
     const control = page.getByTestId('preview-zoom-control')
     await expect(control).toBeVisible()
     const fitZoom = (await previewZoomState(editor.page)).zoom
@@ -205,7 +205,7 @@ test('Zoom the preview', async ({ page, flow, editor }) => {
     await flow.shot('Zoomed out past 50%, the preview shows all pages again.')
   }
 
-  // ─── Remembered for next time ───────────────────────────────────────
+  // Remembered for next time
   await flow.heading('Your zoom is remembered', 3)
   await page.reload()
   await editor.page.waitForReady(30_000)

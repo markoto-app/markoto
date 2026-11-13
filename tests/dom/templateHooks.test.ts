@@ -1,18 +1,17 @@
 // @vitest-environment jsdom
 //
-// jsdom (not happy-dom): the pipeline runs DOMPurify — see renderMarkdownXss.test.ts.
+// jsdom (not happy-dom): the pipeline runs DOMPurify, see renderMarkdownXss.test.ts.
 import { describe, it, expect } from 'vitest'
-import { renderMarkdown } from '../../app/utils/renderMarkdown'
-import { composeFinalHtml } from '../../app/utils/composeFinalHtml'
-import { markHeadingStructure, sectionNumberLabel } from '../../app/utils/headingStructure'
-import { numberCaptionsByChapter } from '../../app/utils/captionNumbers'
-import { markDocumentStructure } from '../../app/utils/documentMarkers'
-import { defaultTheme } from '../../shared/utils/defaultTheme'
+import { renderMarkdown } from '../../app/utils/markdown/renderMarkdown'
+import { composeFinalHtml } from '../../app/utils/preview/composeFinalHtml'
+import { markHeadingStructure, sectionNumberLabel } from '../../app/utils/preview/headingStructure'
+import { numberCaptionsByChapter } from '../../app/utils/markdown/captionNumbers'
+import { markDocumentStructure } from '../../app/utils/preview/documentMarkers'
+import { defaultTheme } from '../../shared/utils/theme/defaultTheme'
 import type { DocTheme } from '../../shared/types/theme'
 
-// Engine batch 2: the `{section}` label attribute, chapter-relative caption
-// numbers and the marker classes for template CSS (run-in labels, endpoint
-// lines, lead paragraph, opening words, the every-chapter drop cap).
+// Engine hooks: the `{section}` label attribute, chapter-relative caption numbers and the marker classes
+// for template CSS (run-in labels, endpoint lines, lead paragraph, opening words, the every-chapter drop cap).
 
 function parse(html: string): DocumentFragment {
   const tpl = document.createElement('template')

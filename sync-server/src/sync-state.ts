@@ -1,18 +1,17 @@
-// Per-doc state that used to live in process-local Maps in index.ts:
+// Per-doc state, kept in Valkey so multiple sync-server containers share it:
 //   - last-editor:   primary attribution source for activity-log rows.
 //   - prev-text:     diff baseline for line-add/-remove counts.
 //   - prev-meta:     title/theme baseline for "title.changed"/"theme.changed".
 //
-// Migrated to Valkey so multiple sync-server containers can share the
-// view. Each call returns the previous value (read-modify-write
-// callsites in index.ts handle their own logic).
+// Each call returns the previous value (read-modify-write callsites in
+// index.ts handle their own logic).
 //
 // Failure mode: every helper catches errors and reports them via the
 // `cause` channel back to the caller, which:
 //   - logs the warn line for ops visibility,
 //   - feeds the `cause` into the Sentry tag so we can distinguish
-//     'valkey-miss' (cold doc / restart — normal) from 'valkey-error'
-//     (Valkey down — operationally interesting).
+//     'valkey-miss' (cold doc / restart, normal) from 'valkey-error'
+//     (Valkey down: operationally interesting).
 // On error we behave the same as a miss (attribution falls back to the
 // awareness heuristic; diff baseline reseeds without emitting a row).
 //
@@ -20,8 +19,12 @@
 // rebuild attribution from awareness without harm. Saves Valkey memory.
 
 import { useValkey } from './valkey'
+import { DAY_SECONDS } from '../../shared/config/units'
+import { useLogger } from './logger'
 
-const TTL_SECONDS = 24 * 60 * 60
+const log = useLogger('sync-state')
+
+const TTL_SECONDS = DAY_SECONDS
 
 export interface LastEditor {
   userName: string | null
@@ -35,7 +38,7 @@ export interface LastEditor {
 export interface PreviousMeta {
   title: string | null
   /**
-   * SHA-256 of the JSON-serialised `ymeta.theme` — only compared for
+   * SHA-256 of the JSON-serialised `ymeta.theme`, only compared for
    * equality, so a hash keeps a theme with up to 64 KB of custom CSS
    * from being copied into Valkey per doc.
    */
@@ -78,11 +81,11 @@ async function safeDel(key: string): Promise<void> {
     await useValkey().del(key)
   } catch (e) {
     // Cleanup-only path; logging is the right thing here.
-    console.warn(`[sync-state] del failed for ${key}:`, e instanceof Error ? e.message : e)
+    log.warn('del failed', { key, err: e })
   }
 }
 
-// ───────── last-editor ─────────
+// last-editor
 
 export async function getLastEditor(docId: string): Promise<FetchResult<LastEditor>> {
   const raw = await safeGet(KEY_LAST_EDITOR(docId))
@@ -90,7 +93,7 @@ export async function getLastEditor(docId: string): Promise<FetchResult<LastEdit
   try {
     return { value: JSON.parse(raw.value) as LastEditor, cause: 'hit' }
   } catch {
-    // Treat malformed JSON as a miss — better to fall through to
+    // Treat malformed JSON as a miss, better to fall through to
     // awareness than to crash on a bad payload.
     return { value: null, cause: 'miss' }
   }
@@ -100,7 +103,7 @@ export async function setLastEditor(docId: string, value: LastEditor): Promise<v
   await safeSetEx(KEY_LAST_EDITOR(docId), JSON.stringify(value))
 }
 
-// ───────── prev-text ─────────
+// prev-text
 
 export async function getPrevText(docId: string): Promise<FetchResult<string>> {
   return safeGet(KEY_PREV_TEXT(docId))
@@ -110,7 +113,7 @@ export async function setPrevText(docId: string, value: string): Promise<void> {
   await safeSetEx(KEY_PREV_TEXT(docId), value)
 }
 
-// ───────── prev-meta ─────────
+// prev-meta
 
 export async function getPrevMeta(docId: string): Promise<FetchResult<PreviousMeta>> {
   const raw = await safeGet(KEY_PREV_META(docId))
@@ -126,7 +129,7 @@ export async function setPrevMeta(docId: string, value: PreviousMeta): Promise<v
   await safeSetEx(KEY_PREV_META(docId), JSON.stringify(value))
 }
 
-// ───────── cleanup (called on last-disconnect) ─────────
+// cleanup (called on last-disconnect)
 
 export async function dropDocState(docId: string): Promise<void> {
   await Promise.all([

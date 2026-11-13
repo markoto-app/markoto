@@ -18,7 +18,7 @@ reviewed: false
 
 # Markdown in PDF umwandeln, mit echten Seiten
 
-Fügen Sie Ihr Markdown in das Feld unten ein. Die Vorschau setzt den Text schon beim Tippen als Druckseiten, mit laufender Kopfzeile und Seitenzahlen. Sieht alles richtig aus, klicken Sie auf **PDF herunterladen**: Die Datei hat genau die Seiten der Vorschau.
+Füge dein Markdown in das Feld unten ein. Die Vorschau setzt den Text schon beim Tippen als Druckseiten, mit laufender Kopfzeile und Seitenzahlen. Sieht alles richtig aus, klicke auf **PDF herunterladen**: Die Datei hat genau die Seiten der Vorschau.
 
 ::try-it{theme="modern" height="600"}
 ---
@@ -29,7 +29,7 @@ source: |
 
   ## Zusammenfassung
 
-  Fügen Sie hier Ihr eigenes Markdown ein. Die Vorschau zeigt es als A4-Seiten, und **PDF herunterladen** liefert dieselben Seiten als Datei.
+  Füge hier dein eigenes Markdown ein. Die Vorschau zeigt es als A4-Seiten, und **PDF herunterladen** liefert dieselben Seiten als Datei.
 
   ## Ergebnisse
 
@@ -55,16 +55,16 @@ source: |
 ---
 ::
 
-Das PDF wird auf unserem Server aus einem gespeicherten Dokument erzeugt. Deshalb speichert **PDF herunterladen** Ihren Text zuerst als Dokument. Solange Sie nur im Feld tippen, wird nichts gespeichert.
+Das PDF wird auf unserem Server aus einem gespeicherten Dokument erzeugt. Deshalb speichert **PDF herunterladen** deinen Text zuerst als Dokument. Solange du nur im Feld tippst, wird nichts gespeichert.
 
 ## Was das PDF enthält
 
-Ein Konverter macht aus Markdown eine einzige lange HTML-Seite und druckt sie. markoto setzt den Text zuerst als Seiten. So sehen und bestimmen Sie, wo was landet:
+Ein Konverter macht aus Markdown eine einzige lange HTML-Seite und druckt sie. markoto setzt den Text zuerst als Seiten. So siehst und bestimmst du, wo was landet:
 
-- **Seitenformat und Ränder.** A4, Letter oder Legal, hoch oder quer, mit den Rändern, die Sie festlegen.
+- **Seitenformat und Ränder.** A4, Letter oder Legal, hoch oder quer, mit den Rändern, die du festlegst.
 - **Kopf- und Fusszeilen.** Felder links, in der Mitte und rechts für Dokumenttitel, Seitenzahl, Seitenanzahl und Datum, dazu auf Wunsch ein Logo.
 - **Ein Deckblatt.** Vier Layouts mit Titel, Untertitel, Autorinnen und Autoren, Datum und Logo. Auf dem Deckblatt fallen Kopfzeile und Seitenzahl weg.
-- **Ein Inhaltsverzeichnis mit Seitenzahlen.** Schreiben Sie `[[toc]]` an die Stelle, wo es stehen soll.
+- **Ein Inhaltsverzeichnis mit Seitenzahlen.** Schreibe `[[toc]]` an die Stelle, wo es stehen soll.
 - **Fussnoten unten auf der Seite**, nicht gesammelt am Schluss.
 - **Seitenumbrüche** dort, wo `<!-- pagebreak -->` auf einer eigenen Zeile steht.
 - **Formeln, Diagramme und Code.** LaTeX-Formeln (KaTeX), Mermaid-Diagramme, Code mit Syntaxhervorhebung, Tabellen und Hinweisboxen im GitHub-Stil erscheinen auf der Seite.
@@ -74,7 +74,7 @@ Ein Konverter macht aus Markdown eine einzige lange HTML-Seite und druckt sie. m
 
 ## Das Aussehen ändern, ohne den Text anzufassen
 
-Jedes Dokument hat ein Theme: Schriften, Farben, Ränder, Spalten, Tabellen, Kopfzeile, Fusszeile und Deckblatt. Eingebaut sind unter anderem die Vorlagen markoto, Modern, arXiv-Preprint, IEEE-Konferenzbeitrag (zweispaltig), Abschlussarbeit, Technische Dokumentation, Unternehmensbericht, Newsletter und Lebenslauf. Wählen Sie eine aus und passen Sie danach jedes Detail an. Vorschau und PDF verwenden dasselbe Theme. Reicht keine Einstellung, können Sie einem Dokument eigenes [CSS](/docs/themes/custom-css) hinzufügen.
+Jedes Dokument hat ein Theme: Schriften, Farben, Ränder, Spalten, Tabellen, Kopfzeile, Fusszeile und Deckblatt. Eingebaut sind unter anderem die Vorlagen markoto, Modern, arXiv-Preprint, IEEE-Konferenzbeitrag (zweispaltig), Abschlussarbeit, Technische Dokumentation, Unternehmensbericht, Newsletter und Lebenslauf. Wähle eine aus und passe danach jedes Detail an. Vorschau und PDF verwenden dasselbe Theme. Reicht keine Einstellung, kannst du einem Dokument eigenes [CSS](/docs/themes/custom-css) hinzufügen.
 
 ::flow-strip{id="pick-a-theme" frames="05,14"}
 ---
@@ -86,20 +86,20 @@ captions:
 
 Mehr dazu in der Dokumentation (auf Englisch): [Theme wählen](/docs/themes/pick-a-theme), [Deckblatt bearbeiten](/docs/themes/cover-page), [Schriften, Farben und Seitenlayout](/docs/themes/customize).
 
-## Sie haben schon eine .md-Datei?
+## Du hast schon eine .md-Datei?
 
-Erstellen Sie ein Dokument, wählen Sie **Datei › Importieren** und dann die Datei. Markdown-Dateien bis 10 MB werden unverändert geladen. Word- (.docx), PDF-, PowerPoint-, Excel-, HTML- und EPUB-Dateien bis 50 MB werden zuerst in Markdown umgewandelt. Danach exportieren Sie mit **Datei › Exportieren › PDF**.
+Erstelle ein Dokument, wähle **Datei › Importieren** und dann die Datei. Markdown-Dateien bis 10 MB werden unverändert geladen. Word- (.docx), PDF-, PowerPoint-, Excel-, HTML- und EPUB-Dateien bis 50 MB werden zuerst in Markdown umgewandelt. Danach exportierst du mit **Datei › Exportieren › PDF**.
 
 ::flow-strip{id="import-existing-document" frames="11" caption="Eine importierte Datei im Editor, daneben die Seitenvorschau."}
 ::
 
 ## Grenzen
 
-- **Das PDF entsteht auf dem Server.** Ein neues PDF dauert ein paar Sekunden; fordern Sie es ohne Änderungen erneut an, kommt es sofort. Aus einem Netzwerk lassen sich bis zu 10 PDFs pro Minute exportieren. Mit `Cmd/Ctrl + P` drucken Sie dieselben Seiten stattdessen über Ihren Browser.
-- **Rohes HTML wird nicht dargestellt.** HTML-Tags im Markdown erscheinen als Text. Verwenden Sie stattdessen Markdown-Syntax oder das Theme.
+- **Das PDF entsteht auf dem Server.** Ein neues PDF dauert ein paar Sekunden; fordere es ohne Änderungen erneut an, kommt es sofort. Aus einem Netzwerk lassen sich bis zu 10 PDFs pro Minute exportieren. Mit `Cmd/Ctrl + P` druckst du dieselben Seiten stattdessen über deinen Browser.
+- **Rohes HTML wird nicht dargestellt.** HTML-Tags im Markdown erscheinen als Text. Verwende stattdessen Markdown-Syntax oder das Theme.
 - **Drei Seitenformate.** A4, Letter und Legal. Eigene Seitenformate gibt es nicht.
-- **Bilder brauchen ein Konto.** Ohne Konto können Sie keine Bilder in ein Dokument hochladen.
-- **Ein Dokument nach dem anderen.** Die Seite hat keinen Stapelkonverter. Um viele Dokumente per Skript zu exportieren, nutzen Sie mit einem Konto den [MCP-Server](/docs/account/mcp).
+- **Bilder brauchen ein Konto.** Ohne Konto kannst du keine Bilder in ein Dokument hochladen.
+- **Ein Dokument nach dem anderen.** Die Seite hat keinen Stapelkonverter. Um viele Dokumente per Skript zu exportieren, nutze mit einem Konto den [MCP-Server](/docs/account/mcp).
 
 Für wissenschaftliche Arbeiten: So schneidet markoto im Vergleich mit [Overleaf](/compare/overleaf) ab (auf Englisch). Preise und Limits stehen auf der [Preisseite](/pricing).
 
@@ -109,9 +109,9 @@ Für wissenschaftliche Arbeiten: So schneidet markoto im Vergleich mit [Overleaf
 ---
 items:
   - q: Ist die Umwandlung von Markdown in PDF kostenlos?
-    a: Ja. Auf markoto.app schreiben Sie, sehen die Vorschau und laden PDFs herunter, ohne Konto und ohne zu bezahlen.
+    a: Ja. Auf markoto.app schreibst du, siehst die Vorschau und lädst PDFs herunter, ohne Konto und ohne zu bezahlen.
   - q: Muss ich mich registrieren?
-    a: Nein. Ohne Konto entsteht das PDF aus einem anonymen Dokument, das alle mit dem Link bearbeiten können und das nach 30 Tagen ohne Änderung gelöscht wird. Mit einem kostenlosen Konto gehört das Dokument Ihnen und bleibt privat.
+    a: Nein. Ohne Konto entsteht das PDF aus einem anonymen Dokument, das alle mit dem Link bearbeiten können und das nach 30 Tagen ohne Änderung gelöscht wird. Mit einem kostenlosen Konto gehört das Dokument dir und bleibt privat.
   - q: Kann das PDF Seitenzahlen und ein Inhaltsverzeichnis haben?
     a: Ja. Fuss- oder Kopfzeile können die Seitenzahl und die Seitenanzahl zeigen, und das mit [[toc]] geschriebene Inhaltsverzeichnis nennt zu jeder Überschrift die Seite.
   - q: Sieht das PDF aus wie die Vorschau?
@@ -123,6 +123,6 @@ items:
 ---
 ::
 
-::cta{title="Machen Sie aus Ihrem Markdown ein PDF." secondary-label="PDF-Anleitung lesen" secondary-to="/docs/import-export/polished-pdf"}
+::cta{title="Mache aus deinem Markdown ein PDF." secondary-label="PDF-Anleitung lesen" secondary-to="/docs/import-export/polished-pdf"}
 Dokument anlegen, Text einfügen und das PDF herunterladen, sobald die Seiten stimmen. Ohne Registrierung.
 ::

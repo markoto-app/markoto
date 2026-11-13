@@ -1,6 +1,7 @@
 import type { H3Event } from 'h3'
-import { hasScope as hasScopeRaw, type McpAuthContext, type McpScope } from '../../utils/mcpAuth'
+import { hasScope as hasScopeRaw, type McpAuthContext, type McpScope } from '../../utils/mcp/mcpAuth'
 import { mcpToolAllowed } from './toolClasses'
+import { apiError } from '../../utils/api/apiError'
 
 // Per-tool helpers shared by every wrapper in server/mcp/tools/*. Keeps
 // the wrappers themselves to ~10 lines: schema + scope guard + thin
@@ -31,11 +32,7 @@ export function toolEnabled(event: H3Event, scope: McpScope, name: string): bool
 export function requireMcpAuth(event: H3Event): McpAuthContext {
   const ctx = event.context.mcp
   if (!ctx) {
-    throw createError({
-      statusCode: 401,
-      message: 'MCP authentication required',
-      data: { code: 'mcp/unauthenticated' }
-    })
+    throw apiError('mcp/unauthenticated')
   }
   return ctx
 }

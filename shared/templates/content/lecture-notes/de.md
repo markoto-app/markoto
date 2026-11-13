@@ -1,8 +1,8 @@
-<!-- Unterlagen zu einer Vorlesungsstunde. Der Titelblock (Dokumentdesign › Titelseite) setzt die Lehrveranstaltung als Untertitel (z. B. „Kursnummer · Semester“), den Titel der Vorlesung, die Dozentin oder den Dozenten und das Datum. Die Abschnittsnummern setzt das Design: Tippen Sie keine Nummern. Nummerieren Sie Definitionen, Sätze und Beispiele nach Vorlesung (3.1, 3.2 …), damit die Studierenden sie zitieren können. -->
+<!-- Unterlagen zu einer Vorlesungsstunde. Der Titelblock (Dokumentdesign › Titelseite) setzt die Lehrveranstaltung als Untertitel (z. B. „Kursnummer · Semester“), den Titel der Vorlesung, die Dozentin oder den Dozenten und das Datum. Die Abschnittsnummern setzt das Design: Tippe keine Nummern. Nummeriere Definitionen, Sätze und Beispiele nach Vorlesung (3.1, 3.2 …), damit die Studierenden sie zitieren können. -->
 
 # Lernziele {.unnumbered}
 
-<!-- Drei bis fünf Ziele, jedes mit einem Verb, an dem sich die Studierenden selbst prüfen können: berechnen, beweisen, erklären, entscheiden, umsetzen. Knüpfen Sie in einem Satz an die letzte Vorlesung an, wenn es hilft. -->
+<!-- Drei bis fünf Ziele, jedes mit einem Verb, an dem sich die Studierenden selbst prüfen können: berechnen, beweisen, erklären, entscheiden, umsetzen. Knüpfe in einem Satz an die letzte Vorlesung an, wenn es hilft. -->
 
 Nach dieser Vorlesung können Sie:
 
@@ -12,11 +12,11 @@ Nach dieser Vorlesung können Sie:
 
 # Erstes Thema
 
-<!-- Beginnen Sie mit der Frage, die dieses Thema beantwortet, in ein bis zwei Sätzen, vor jedem Formalismus. Dann die Begriffe definieren, das Ergebnis formulieren und ein Beispiel durchrechnen. -->
+<!-- Beginne mit der Frage, die dieses Thema beantwortet, in ein bis zwei Sätzen, vor jedem Formalismus. Dann die Begriffe definieren, das Ergebnis formulieren und ein Beispiel durchrechnen. -->
 
 ## Definitionen
 
-<!-- Eine Definitionsliste: der Begriff auf einer Zeile, „: seine Definition“ auf der nächsten. Setzen Sie das definierte Wort in der Definition **fett**. Für Formeln im Text $…$. -->
+<!-- Eine Definitionsliste: der Begriff auf einer Zeile, „: seine Definition“ auf der nächsten. Setze das definierte Wort in der Definition **fett**. Für Formeln im Text $…$. -->
 
 Begriff
 : Definition in ein bis zwei Sätzen.
@@ -39,7 +39,7 @@ $$
 
 # Zweites Thema
 
-<!-- Das Hauptergebnis der Vorlesung. Formulieren Sie es als Satz, dann ein Beweis oder eine Beweisskizze, dann eine Bemerkung dazu, wann es gilt. -->
+<!-- Das Hauptergebnis der Vorlesung. Formuliere es als Satz, dann ein Beweis oder eine Beweisskizze, dann eine Bemerkung dazu, wann es gilt. -->
 
 > [!IMPORTANT]
 > **Satz 1.2.** Aussage des Satzes.
@@ -54,14 +54,14 @@ $$
 
 # Zusammenfassung
 
-<!-- Vier bis sechs Punkte, mit denen die Studierenden wiederholen können: die Definitionen, das Hauptergebnis und die Methode aus den Beispielen. Sagen Sie, worauf die nächste Vorlesung aufbaut. -->
+<!-- Vier bis sechs Punkte, mit denen die Studierenden wiederholen können: die Definitionen, das Hauptergebnis und die Methode aus den Beispielen. Sage, worauf die nächste Vorlesung aufbaut. -->
 
 - Erster Punkt.
 - Zweiter Punkt.
 
 # Übungen
 
-<!-- Vier bis sechs Aufgaben, von Routine bis schwer; markieren Sie die schweren mit ★. Teilaufgaben (a), (b), (c) als verschachtelte nummerierte Liste; das Design setzt die Buchstaben. Ergänzen Sie einen kursiven *Hinweis:*, wo die Studierenden meist hängen bleiben. -->
+<!-- Vier bis sechs Aufgaben, von Routine bis schwer; markiere die schweren mit ★. Teilaufgaben (a), (b), (c) als verschachtelte nummerierte Liste; das Design setzt die Buchstaben. Ergänze einen kursiven *Hinweis:*, wo die Studierenden meist hängen bleiben. -->
 
 1. Erste Aufgabe.
 2. Zweite Aufgabe:

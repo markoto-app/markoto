@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
+import { cancelAccountDeletion, getAccountDeletionStatus, requestAccountDeletion } from '../../server/repos/userDeletionRequests'
 import {
-  cancelAccountDeletion,
+  findSessionUser,
   findUserById,
-  findUserNameById,
-  findUserByEmail,
-  getAccountDeletionStatus,
-  getAccountStatus,
-  requestAccountDeletion,
-  setAdminFlag,
-  upsertOAuthUser
+  findUserName,
+  setAdminFlag
 } from '../../server/repos/users'
+import { getAccountStatus } from '../../server/repos/userPolicies'
+import { upsertOAuthUser } from '../../server/repos/userSignIn'
 import { ConflictError } from '../../server/repos/errors'
+import { at, first } from '../helpers/assert'
+import { asUser, sys } from '../helpers/access'
 
 // Users repository. Write-side hot spot is `upsertOAuthUser`, which
 // now has THREE outcomes:
@@ -35,7 +35,7 @@ describe('findUserById', () => {
   })
 
   it('returns null for a nonexistent id', async () => {
-    expect(await findUserById(9999)).toBeNull()
+    expect(await findUserById(asUser(9999))).toBeNull()
   })
 
   it('returns the full row for an existing user', async () => {
@@ -44,14 +44,14 @@ describe('findUserById', () => {
       login: 'a', name: 'Alice', email: 'a@t.l',
       emailVerified: true
     })
-    const row = await findUserById(id)
+    const row = await findUserById(asUser(id))
     expect(row!.name).toBe('Alice')
     expect(row!.githubId).toBe('gh-1')
     expect(row!.googleId).toBeNull()
   })
 })
 
-describe('findUserNameById', () => {
+describe('findUserName', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -62,57 +62,31 @@ describe('findUserNameById', () => {
       name: 'Bob', email: null,
       emailVerified: false
     })
-    expect(await findUserNameById(id)).toBe('Bob')
+    expect(await findUserName(asUser(id))).toBe('Bob')
   })
 
   it('returns null for nonexistent id', async () => {
-    expect(await findUserNameById(9999)).toBeNull()
+    expect(await findUserName(asUser(9999))).toBeNull()
   })
 })
 
-describe('findUserByEmail', () => {
+describe('findSessionUser', () => {
   beforeEach(async () => {
     await resetDb()
   })
 
-  it('finds a user by exact email', async () => {
-    await upsert({
-      provider: 'github', providerUserId: 'gh-1',
-      login: 'c', name: 'Charlie', email: 'charlie@test.local',
+  it('reads the same row as findUserById (the session check has no proof yet)', async () => {
+    const id = await upsert({
+      provider: 'github', providerUserId: 'gh-s',
+      login: 's', name: 'Sam', email: 's@t.l',
       emailVerified: true
     })
-    const row = await findUserByEmail('charlie@test.local')
-    expect(row!.name).toBe('Charlie')
-  })
-
-  it('is case-insensitive', async () => {
-    // Signed up via GitHub with capitalized email; looked up with
-    // lowercase — must still match.
-    await upsert({
-      provider: 'github', providerUserId: 'gh-2',
-      login: 'd', name: 'Dana', email: 'Dana@Test.Local',
-      emailVerified: true
-    })
-    expect((await findUserByEmail('dana@test.local'))?.name).toBe('Dana')
-    expect((await findUserByEmail('DANA@TEST.LOCAL'))?.name).toBe('Dana')
-  })
-
-  it('returns null when no match', async () => {
-    expect(await findUserByEmail('ghost@nowhere.test')).toBeNull()
-  })
-
-  it('ignores users with null email even on "null"-ish query', async () => {
-    // Pin behavior: null-email users never match an email lookup.
-    await upsert({
-      provider: 'google', providerUserId: 'g-nullmail',
-      name: 'Eve', email: null,
-      emailVerified: false
-    })
-    expect(await findUserByEmail('')).toBeNull()
+    expect(await findSessionUser(id)).toEqual(await findUserById(asUser(id)))
+    expect(await findSessionUser(9999)).toBeNull()
   })
 })
 
-describe('upsertOAuthUser — basic outcomes', () => {
+describe('upsertOAuthUser: basic outcomes', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -124,7 +98,7 @@ describe('upsertOAuthUser — basic outcomes', () => {
       emailVerified: true
     })
     expect(r.outcome).toBe('inserted')
-    const row = await findUserById(r.userId)
+    const row = await findUserById(asUser(r.userId))
     expect(row!.githubId).toBe('gh-insert')
     expect(row!.googleId).toBeNull()
     expect(row!.login).toBe('alice')
@@ -143,12 +117,12 @@ describe('upsertOAuthUser — basic outcomes', () => {
     })
     expect(r2.outcome).toBe('updated')
     expect(r2.userId).toBe(r1.userId)
-    const row = await findUserById(r1.userId)
+    const row = await findUserById(asUser(r1.userId))
     expect(row!.name).toBe('Alice New')
     expect(row!.login).toBe('alice-new')
     expect(row!.email).toBe('new@test.local')
     // Provider profile pictures are never stored (avatars are generated
-    // locally from the id); the column itself is gone since 0027.
+    // locally from the id); the schema has no avatar column.
     expect(row).not.toHaveProperty('avatarUrl')
   })
 
@@ -163,7 +137,7 @@ describe('upsertOAuthUser — basic outcomes', () => {
       login: 'x2', name: 'X2', email: null,
       emailVerified: false
     })
-    const row = await findUserById(id)
+    const row = await findUserById(asUser(id))
     expect(row!.googleId).toBeNull()
     expect(row!.githubId).toBe('gh-x')
   })
@@ -182,8 +156,8 @@ describe('upsertOAuthUser — basic outcomes', () => {
       emailVerified: false
     })
     expect(ghId).not.toBe(goId)
-    expect((await findUserById(ghId))!.githubId).toBe('shared-id')
-    expect((await findUserById(goId))!.googleId).toBe('shared-id')
+    expect((await findUserById(asUser(ghId)))!.githubId).toBe('shared-id')
+    expect((await findUserById(asUser(goId)))!.googleId).toBe('shared-id')
   })
 
   it('concurrent upserts on the SAME providerUserId: both return the same id', async () => {
@@ -203,11 +177,11 @@ describe('upsertOAuthUser — basic outcomes', () => {
     const r = await db.query<{ c: string }>(
       `SELECT COUNT(*) AS c FROM users WHERE github_id = 'gh-race'`
     )
-    expect(Number(r.rows[0].c)).toBe(1)
+    expect(Number(first(r.rows).c)).toBe(1)
   })
 })
 
-describe('upsertOAuthUser — email-based merge', () => {
+describe('upsertOAuthUser: email-based merge', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -231,7 +205,7 @@ describe('upsertOAuthUser — email-based merge', () => {
     expect(second.outcome).toBe('merged')
     expect(second.userId).toBe(first.userId)
 
-    const row = await findUserById(first.userId)
+    const row = await findUserById(asUser(first.userId))
     expect(row!.githubId).toBe('gh-alice')
     expect(row!.googleId).toBe('g-alice') // linked
     // Email normalises to the latest login's value. Login stays
@@ -256,7 +230,7 @@ describe('upsertOAuthUser — email-based merge', () => {
     const rows = await testDb().query<{ c: string }>(
       `SELECT COUNT(*) AS c FROM users WHERE email ILIKE 'alice@test.local'`
     )
-    expect(Number(rows.rows[0].c)).toBe(1)
+    expect(Number(first(rows.rows).c)).toBe(1)
   })
 
   it('does NOT merge when the second provider presents an unverified email (security guard)', async () => {
@@ -280,7 +254,7 @@ describe('upsertOAuthUser — email-based merge', () => {
       `SELECT COUNT(*) AS c FROM users WHERE email ILIKE 'alice@test.local'`
     )
     // Two separate rows because the merge was blocked.
-    expect(Number(rows.rows[0].c)).toBe(2)
+    expect(Number(at(rows.rows).c)).toBe(2)
   })
 
   it('does NOT merge when the incoming email is null', async () => {
@@ -323,9 +297,9 @@ describe('upsertOAuthUser — email-based merge', () => {
     //   - First tx: email lookup finds the GitHub row, sees
     //     google_id IS NULL → merges.
     //   - Second tx: blocks on `FOR UPDATE` until first commits.
-    //     Then reads the row — google_id is now set (to OUR value
+    //     Then reads the row, google_id is now set (to OUR value
     //     because providerUserId is the same). Branch 1 would
-    //     match, but we never got there — branch 2's
+    //     match, but we never got there, branch 2's
     //     `candidateHasOurProvider` is now TRUE for a row where
     //     the provider id matches ours. Falls through to INSERT,
     //     which collides with the UNIQUE constraint on google_id
@@ -352,23 +326,21 @@ describe('upsertOAuthUser — email-based merge', () => {
 
     // At least one fulfilled; a unique-violation on the second is
     // acceptable outcome (it means the lock-and-merge serialised
-    // correctly — the tx that lost the race can be retried by
+    // correctly: the tx that lost the race can be retried by
     // nuxt-auth-utils on the next click).
     const fulfilled = [a, b].filter(r => r.status === 'fulfilled')
     expect(fulfilled.length).toBeGreaterThanOrEqual(1)
 
     // Exactly ONE row with google_id=g-race-same among the matching
-    // emails — no corruption.
+    // emails: no corruption.
     const rows = await testDb().query<{ c: string }>(
       `SELECT COUNT(*) AS c FROM users WHERE email ILIKE 'race@test.local' AND google_id = 'g-race-same'`
     )
-    expect(Number(rows.rows[0].c)).toBe(1)
+    expect(Number(first(rows.rows).c)).toBe(1)
   })
 })
 
-// ────────────────────────────────────────────────────────────────────
-// Account-deletion request lifecycle (Workstream B-1)
-// ────────────────────────────────────────────────────────────────────
+// Account-deletion request lifecycle
 
 async function newUser(): Promise<number> {
   const r = await upsertOAuthUser({
@@ -390,7 +362,7 @@ describe('requestAccountDeletion', () => {
   it('marks the row with both timestamp columns and returns the new state', async () => {
     const userId = await newUser()
     const before = Date.now()
-    const status = await requestAccountDeletion(userId, 30)
+    const status = await requestAccountDeletion(asUser(userId), 30)
     const after = Date.now()
 
     expect(status.deletionRequestedAt).toBeInstanceOf(Date)
@@ -409,35 +381,35 @@ describe('requestAccountDeletion', () => {
 
   it('throws ConflictError if a deletion is already scheduled', async () => {
     const userId = await newUser()
-    await requestAccountDeletion(userId, 30)
-    await expect(requestAccountDeletion(userId, 30)).rejects.toBeInstanceOf(ConflictError)
+    await requestAccountDeletion(asUser(userId), 30)
+    await expect(requestAccountDeletion(asUser(userId), 30)).rejects.toBeInstanceOf(ConflictError)
   })
 
   it('does NOT reset the grace clock on a redundant request', async () => {
     const userId = await newUser()
-    const first = await requestAccountDeletion(userId, 30)
+    const first = await requestAccountDeletion(asUser(userId), 30)
     // Tiny sleep so any reset would produce a measurable diff.
     await new Promise(r => setTimeout(r, 50))
-    await expect(requestAccountDeletion(userId, 30)).rejects.toBeInstanceOf(ConflictError)
-    // Re-read — grace still equals the original.
-    const status = await getAccountDeletionStatus(userId)
+    await expect(requestAccountDeletion(asUser(userId), 30)).rejects.toBeInstanceOf(ConflictError)
+    // Re-read: grace still equals the original.
+    const status = await getAccountDeletionStatus(asUser(userId))
     expect(status?.deletionGraceUntil?.getTime()).toBe(first.deletionGraceUntil!.getTime())
   })
 
   it('throws on out-of-range graceDays', async () => {
     const userId = await newUser()
-    await expect(requestAccountDeletion(userId, 0)).rejects.toThrow(/out of range/)
-    await expect(requestAccountDeletion(userId, 366)).rejects.toThrow(/out of range/)
-    await expect(requestAccountDeletion(userId, -1)).rejects.toThrow(/out of range/)
+    await expect(requestAccountDeletion(asUser(userId), 0)).rejects.toThrow(/out of range/)
+    await expect(requestAccountDeletion(asUser(userId), 366)).rejects.toThrow(/out of range/)
+    await expect(requestAccountDeletion(asUser(userId), -1)).rejects.toThrow(/out of range/)
   })
 
   it('throws if the user does not exist', async () => {
-    await expect(requestAccountDeletion(99_999_999, 30)).rejects.toThrow(/not found/)
+    await expect(requestAccountDeletion(asUser(99_999_999), 30)).rejects.toThrow(/not found/)
   })
 
   it('honours a custom graceDays value', async () => {
     const userId = await newUser()
-    const status = await requestAccountDeletion(userId, 7)
+    const status = await requestAccountDeletion(asUser(userId), 7)
     const requestedMs = status.deletionRequestedAt!.getTime()
     const graceMs = status.deletionGraceUntil!.getTime()
     expect(Math.abs(graceMs - (requestedMs + 7 * 24 * 60 * 60 * 1000))).toBeLessThan(5 * 60 * 1000)
@@ -451,28 +423,28 @@ describe('cancelAccountDeletion', () => {
 
   it('clears both timestamp columns', async () => {
     const userId = await newUser()
-    await requestAccountDeletion(userId, 30)
-    await cancelAccountDeletion(userId)
-    const status = await getAccountDeletionStatus(userId)
+    await requestAccountDeletion(asUser(userId), 30)
+    await cancelAccountDeletion(asUser(userId))
+    const status = await getAccountDeletionStatus(asUser(userId))
     expect(status?.deletionRequestedAt).toBeNull()
     expect(status?.deletionGraceUntil).toBeNull()
   })
 
   it('throws ConflictError when no deletion is scheduled', async () => {
     const userId = await newUser()
-    await expect(cancelAccountDeletion(userId)).rejects.toBeInstanceOf(ConflictError)
+    await expect(cancelAccountDeletion(asUser(userId))).rejects.toBeInstanceOf(ConflictError)
   })
 
   it('throws if the user does not exist', async () => {
-    await expect(cancelAccountDeletion(99_999_999)).rejects.toThrow(/not found/)
+    await expect(cancelAccountDeletion(asUser(99_999_999))).rejects.toThrow(/not found/)
   })
 
   it('allows re-requesting after a cancel (idempotent across cycle)', async () => {
     const userId = await newUser()
-    await requestAccountDeletion(userId, 30)
-    await cancelAccountDeletion(userId)
+    await requestAccountDeletion(asUser(userId), 30)
+    await cancelAccountDeletion(asUser(userId))
     // Second request should succeed (no longer "already scheduled").
-    const status = await requestAccountDeletion(userId, 30)
+    const status = await requestAccountDeletion(asUser(userId), 30)
     expect(status.deletionRequestedAt).toBeInstanceOf(Date)
   })
 })
@@ -484,20 +456,20 @@ describe('getAccountDeletionStatus', () => {
 
   it('returns nulls for a fresh user', async () => {
     const userId = await newUser()
-    const status = await getAccountDeletionStatus(userId)
+    const status = await getAccountDeletionStatus(asUser(userId))
     expect(status).toEqual({ deletionRequestedAt: null, deletionGraceUntil: null })
   })
 
   it('returns the marks after a request', async () => {
     const userId = await newUser()
-    await requestAccountDeletion(userId, 30)
-    const status = await getAccountDeletionStatus(userId)
+    await requestAccountDeletion(asUser(userId), 30)
+    const status = await getAccountDeletionStatus(asUser(userId))
     expect(status?.deletionRequestedAt).toBeInstanceOf(Date)
     expect(status?.deletionGraceUntil).toBeInstanceOf(Date)
   })
 
   it('returns null for a nonexistent user', async () => {
-    const status = await getAccountDeletionStatus(99_999_999)
+    const status = await getAccountDeletionStatus(asUser(99_999_999))
     expect(status).toBeNull()
   })
 })
@@ -509,7 +481,7 @@ describe('getAccountStatus', () => {
 
   it('returns the privacy projection for a fresh user', async () => {
     const userId = await newUser()
-    const status = await getAccountStatus(userId)
+    const status = await getAccountStatus(asUser(userId))
     expect(status).not.toBeNull()
     expect(status!.email).toMatch(/@test\.local$/)
     expect(status!.locale).toBeNull()
@@ -522,20 +494,18 @@ describe('getAccountStatus', () => {
 
   it('reflects a scheduled deletion', async () => {
     const userId = await newUser()
-    await requestAccountDeletion(userId, 30)
-    const status = await getAccountStatus(userId)
+    await requestAccountDeletion(asUser(userId), 30)
+    const status = await getAccountStatus(asUser(userId))
     expect(status!.deletionRequestedAt).toBeInstanceOf(Date)
     expect(status!.deletionGraceUntil).toBeInstanceOf(Date)
   })
 
   it('returns null for a nonexistent user', async () => {
-    expect(await getAccountStatus(99_999_999)).toBeNull()
+    expect(await getAccountStatus(asUser(99_999_999))).toBeNull()
   })
 })
 
-// ────────────────────────────────────────────────────────────────────
-// Admin flag (B-13.x)
-// ────────────────────────────────────────────────────────────────────
+// Admin flag
 
 describe('setAdminFlag', () => {
   beforeEach(async () => {
@@ -544,50 +514,50 @@ describe('setAdminFlag', () => {
 
   it('promotes a user from non-admin to admin and returns the previous value', async () => {
     const userId = await newUser()
-    const result = await setAdminFlag(userId, true)
+    const result = await setAdminFlag(sys(), userId, true)
     expect(result).toEqual({ previous: false })
 
     // Verify the column actually flipped via findUserById.
-    const reread = await findUserById(userId)
+    const reread = await findUserById(asUser(userId))
     expect(reread?.isAdmin).toBe(true)
   })
 
   it('is a no-op when the flag is already at the requested value', async () => {
     const userId = await newUser()
-    await setAdminFlag(userId, true)
+    await setAdminFlag(sys(), userId, true)
     // Second call should report previous=true and write nothing.
-    const result = await setAdminFlag(userId, true)
+    const result = await setAdminFlag(sys(), userId, true)
     expect(result).toEqual({ previous: true })
-    const reread = await findUserById(userId)
+    const reread = await findUserById(asUser(userId))
     expect(reread?.isAdmin).toBe(true)
   })
 
   it('demotes from admin to non-admin', async () => {
     const userId = await newUser()
-    await setAdminFlag(userId, true)
-    const result = await setAdminFlag(userId, false)
+    await setAdminFlag(sys(), userId, true)
+    const result = await setAdminFlag(sys(), userId, false)
     expect(result).toEqual({ previous: true })
-    const reread = await findUserById(userId)
+    const reread = await findUserById(asUser(userId))
     expect(reread?.isAdmin).toBe(false)
   })
 
   it('returns null for a nonexistent user', async () => {
-    expect(await setAdminFlag(99_999_999, true)).toBeNull()
+    expect(await setAdminFlag(sys(), 99_999_999, true)).toBeNull()
   })
 })
 
-describe('findUserById — isAdmin projection', () => {
+describe('findUserById: isAdmin projection', () => {
   beforeEach(async () => {
     await resetDb()
   })
 
   it('exposes the isAdmin column on every read', async () => {
     const userId = await newUser()
-    const fresh = await findUserById(userId)
+    const fresh = await findUserById(asUser(userId))
     expect(fresh?.isAdmin).toBe(false)
 
-    await setAdminFlag(userId, true)
-    const promoted = await findUserById(userId)
+    await setAdminFlag(sys(), userId, true)
+    const promoted = await findUserById(asUser(userId))
     expect(promoted?.isAdmin).toBe(true)
   })
 })

@@ -25,7 +25,7 @@ const props = defineProps<{
   visible: (items: NavItem[] | undefined) => NavItem[]
 }>()
 
-// Strip out a child whose path matches the parent's own path —
+// Strip out a child whose path matches the parent's own path,
 // queryCollectionNavigation surfaces folder/index.md as both the
 // parent group AND a child of itself. Without this filter every
 // section header would render its own link twice (once as the

@@ -7,13 +7,14 @@ import {
   createWorkspace,
   setMemberRole
 } from '../setup/fixtures'
+import { at, first } from '../../helpers/assert'
 
 // End-to-end coverage for audit-log instrumentation across the six
 // security-sensitive action sites. Each test performs the action via the
 // HTTP API and asserts the audit row landed with the expected shape.
 //
 // We query the DB directly (not via the repo) because the integration
-// tests run the API as a separate Bun subprocess — we want to assert
+// tests run the API as a separate Bun subprocess, we want to assert
 // what made it to the audit table, not what `getAuditEventsByScope`
 // chose to return.
 
@@ -39,7 +40,7 @@ async function readAudit(scope: string, scopeId: string): Promise<AuditRow[]> {
   return r.rows
 }
 
-describe('audit log — doc.deleted (B1)', () => {
+describe('audit log: doc.deleted', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -57,15 +58,15 @@ describe('audit log — doc.deleted (B1)', () => {
 
     const rows = await readAudit('doc', doc.docId)
     expect(rows).toHaveLength(1)
-    expect(rows[0].action).toBe('doc.deleted')
-    expect(rows[0].actor_user_id).toBe(owner.id)
-    expect(rows[0].before).toMatchObject({
+    expect(first(rows).action).toBe('doc.deleted')
+    expect(first(rows).actor_user_id).toBe(owner.id)
+    expect(first(rows).before).toMatchObject({
       title: 'Doomed Doc',
       accessMode: 'private',
       ownerId: owner.id
     })
-    expect(rows[0].after).toBeNull()
-    expect(rows[0].metadata).toMatchObject({ reason: 'user_initiated' })
+    expect(first(rows).after).toBeNull()
+    expect(first(rows).metadata).toMatchObject({ reason: 'user_initiated' })
   })
 
   it('records workspace_cascade reason for each child doc when workspace is deleted', async () => {
@@ -79,19 +80,19 @@ describe('audit log — doc.deleted (B1)', () => {
 
     const rows1 = await readAudit('doc', doc1.docId)
     expect(rows1).toHaveLength(1)
-    expect((rows1[0].metadata as { reason: string }).reason).toBe('workspace_cascade')
+    expect((first(rows1).metadata as { reason: string }).reason).toBe('workspace_cascade')
     const rows2 = await readAudit('doc', doc2.docId)
     expect(rows2).toHaveLength(1)
-    expect((rows2[0].metadata as { reason: string }).reason).toBe('workspace_cascade')
+    expect((first(rows2).metadata as { reason: string }).reason).toBe('workspace_cascade')
 
     // Plus the workspace.deleted row itself.
     const wsRows = await readAudit('workspace', ws.workspaceId)
     expect(wsRows).toHaveLength(1)
-    expect(wsRows[0].action).toBe('workspace.deleted')
+    expect(first(wsRows).action).toBe('workspace.deleted')
   })
 })
 
-describe('audit log — doc.password_set / password_removed (B2)', () => {
+describe('audit log: doc.password_set / password_removed', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -108,8 +109,8 @@ describe('audit log — doc.password_set / password_removed (B2)', () => {
 
     const rows = await readAudit('doc', doc.docId)
     expect(rows).toHaveLength(1)
-    expect(rows[0].action).toBe('doc.password_set')
-    expect(rows[0].after).toMatchObject({ accessMode: 'password-protected', hasPassword: true })
+    expect(first(rows).action).toBe('doc.password_set')
+    expect(first(rows).after).toMatchObject({ accessMode: 'password-protected', hasPassword: true })
     // The password must NEVER appear anywhere in the audit row.
     const serialized = JSON.stringify(rows[0])
     expect(serialized).not.toContain('super-secret-password')
@@ -128,12 +129,12 @@ describe('audit log — doc.password_set / password_removed (B2)', () => {
 
     const rows = await readAudit('doc', doc.docId)
     expect(rows).toHaveLength(2)
-    expect(rows[1].action).toBe('doc.password_removed')
-    expect(rows[1].after).toMatchObject({ accessMode: 'open-edit', hasPassword: false })
+    expect(at(rows, 1).action).toBe('doc.password_removed')
+    expect(at(rows, 1).after).toMatchObject({ accessMode: 'open-edit', hasPassword: false })
   })
 })
 
-describe('audit log — doc.access_mode_changed (B3)', () => {
+describe('audit log: doc.access_mode_changed', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -147,9 +148,9 @@ describe('audit log — doc.access_mode_changed (B3)', () => {
 
     const rows = await readAudit('doc', doc.docId)
     expect(rows).toHaveLength(1)
-    expect(rows[0].action).toBe('doc.access_mode_changed')
-    expect(rows[0].before).toEqual({ accessMode: 'private' })
-    expect(rows[0].after).toEqual({ accessMode: 'open-edit' })
+    expect(first(rows).action).toBe('doc.access_mode_changed')
+    expect(first(rows).before).toEqual({ accessMode: 'private' })
+    expect(first(rows).after).toEqual({ accessMode: 'open-edit' })
   })
 
   it('does NOT record an audit row when accessMode is not changing', async () => {
@@ -163,7 +164,7 @@ describe('audit log — doc.access_mode_changed (B3)', () => {
   })
 })
 
-describe('audit log — doc.workspace_moved (B4)', () => {
+describe('audit log: doc.workspace_moved', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -178,13 +179,13 @@ describe('audit log — doc.workspace_moved (B4)', () => {
 
     const rows = await readAudit('doc', doc.docId)
     expect(rows).toHaveLength(1)
-    expect(rows[0].action).toBe('doc.workspace_moved')
-    expect(rows[0].before).toEqual({ workspaceId: null })
-    expect(rows[0].after).toEqual({ workspaceId: ws.workspaceId })
+    expect(first(rows).action).toBe('doc.workspace_moved')
+    expect(first(rows).before).toEqual({ workspaceId: null })
+    expect(first(rows).after).toEqual({ workspaceId: ws.workspaceId })
   })
 })
 
-describe('audit log — workspace.member_removed (B5)', () => {
+describe('audit log: workspace.member_removed', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -200,11 +201,11 @@ describe('audit log — workspace.member_removed (B5)', () => {
 
     const rows = await readAudit('workspace', ws.workspaceId)
     expect(rows).toHaveLength(1)
-    expect(rows[0].action).toBe('workspace.member_removed')
-    expect(rows[0].actor_user_id).toBe(admin.id)
-    expect(rows[0].before).toEqual({ role: 'editor' })
-    expect(rows[0].after).toBeNull()
-    expect(rows[0].metadata).toMatchObject({
+    expect(first(rows).action).toBe('workspace.member_removed')
+    expect(first(rows).actor_user_id).toBe(admin.id)
+    expect(first(rows).before).toEqual({ role: 'editor' })
+    expect(first(rows).after).toBeNull()
+    expect(first(rows).metadata).toMatchObject({
       affectedUserId: member.id,
       workspaceId: ws.workspaceId,
       isSelf: false
@@ -212,7 +213,7 @@ describe('audit log — workspace.member_removed (B5)', () => {
   })
 })
 
-describe('audit log — workspace.member_role_changed (B6)', () => {
+describe('audit log: workspace.member_role_changed', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -231,10 +232,10 @@ describe('audit log — workspace.member_role_changed (B6)', () => {
 
     const rows = await readAudit('workspace', ws.workspaceId)
     expect(rows).toHaveLength(1)
-    expect(rows[0].action).toBe('workspace.member_role_changed')
-    expect(rows[0].before).toEqual({ role: 'editor' })
-    expect(rows[0].after).toEqual({ role: 'admin' })
-    expect(rows[0].metadata).toMatchObject({
+    expect(first(rows).action).toBe('workspace.member_role_changed')
+    expect(first(rows).before).toEqual({ role: 'editor' })
+    expect(first(rows).after).toEqual({ role: 'admin' })
+    expect(first(rows).metadata).toMatchObject({
       affectedUserId: member.id,
       workspaceId: ws.workspaceId
     })

@@ -1,5 +1,6 @@
 import WebSocket from 'ws'
 import { TEST_BASE_URL } from './env'
+import { must } from '../../helpers/assert'
 
 // Thin WebSocket test client over the `ws` npm package (already a
 // transitive dep via Nitro). Gives our integration tests a queue-
@@ -35,7 +36,7 @@ export interface WsClient {
   closed(timeoutMs?: number): Promise<{ code: number, reason: string }>
   /** Close the socket from the test side. */
   close(): void
-  /** Underlying ws instance — escape hatch for rare edge cases. */
+  /** Underlying ws instance: escape hatch for rare edge cases. */
   raw: WebSocket
 }
 
@@ -100,7 +101,7 @@ export async function openWs(pathAndQuery: string): Promise<WsClient> {
     sendJson(obj) { ws.send(JSON.stringify(obj)) },
     nextMessage(predicate = () => true, timeoutMs = 3000) {
       const matchIdx = jsonQueue.findIndex(m => predicate(m))
-      if (matchIdx >= 0) return Promise.resolve(jsonQueue.splice(matchIdx, 1)[0])
+      if (matchIdx >= 0) return Promise.resolve(must(jsonQueue.splice(matchIdx, 1)[0], 'the queued message found by findIndex'))
       return new Promise((resolve, reject) => {
         const timer = setTimeout(() => {
           waiterResolvers.delete(predicate)

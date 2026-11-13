@@ -3,7 +3,6 @@ import { resetDb, testDb } from '../integration/setup/db'
 import {
   getDoc,
   docExists,
-  getDocWithActorRole,
   createDoc,
   updateDocMeta,
   setDocPassword,
@@ -15,8 +14,10 @@ import {
   listDocIdsInWorkspace,
   listWorkspaceDocsWithOwnerFlag
 } from '../../server/repos/documents'
+import { getDocWithActorRole } from '../../server/repos/access/docAuthz'
 import { NotFoundError } from '../../server/repos/errors'
 import { createUser, createDoc as seedDoc, createWorkspace, setMemberRole } from '../integration/setup/fixtures'
+import { asUser, docAs, sys, wsAs, wsRole } from '../helpers/access'
 
 // Documents repo. Covers CRUD round-trips, the three-way
 // getDocWithActorRole join (anonymous / member / non-member), partial
@@ -29,14 +30,14 @@ describe('getDoc / docExists', () => {
   })
 
   it('returns null for a nonexistent docId', async () => {
-    expect(await getDoc('missing')).toBeNull()
+    expect(await getDoc(docAs('missing'))).toBeNull()
     expect(await docExists('missing')).toBe(false)
   })
 
   it('returns a fully-hydrated snapshot for an existing doc', async () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id, accessMode: 'private' })
-    const snap = await getDoc(doc.docId)
+    const snap = await getDoc(docAs(doc.docId))
     expect(snap).not.toBeNull()
     expect(snap!.docId).toBe(doc.docId)
     expect(snap!.ownerId).toBe(user.id)
@@ -126,22 +127,22 @@ describe('createDoc / deleteDocRow', () => {
 
   it('creates a doc with the supplied fields', async () => {
     const user = await createUser()
-    await createDoc({ docId: 'new-doc', ownerId: user.id, workspaceId: null, accessMode: 'private' })
-    const snap = await getDoc('new-doc')
+    await createDoc(asUser(user.id), null, { docId: 'new-doc', accessMode: 'private' })
+    const snap = await getDoc(docAs('new-doc'))
     expect(snap).not.toBeNull()
     expect(snap!.accessMode).toBe('private')
   })
 
   it('supports anonymous docs (null ownerId + open-edit)', async () => {
-    await createDoc({ docId: 'anon-doc', ownerId: null, workspaceId: null, accessMode: 'open-edit' })
-    const snap = await getDoc('anon-doc')
+    await createDoc(null, null, { docId: 'anon-doc', accessMode: 'open-edit' })
+    const snap = await getDoc(docAs('anon-doc'))
     expect(snap!.ownerId).toBeNull()
   })
 
   it('deleteDocRow removes the row', async () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
-    await deleteDocRow(doc.docId)
+    await deleteDocRow(docAs(doc.docId))
     expect(await docExists(doc.docId)).toBe(false)
   })
 })
@@ -154,10 +155,10 @@ describe('updateDocMeta', () => {
   it('applies a partial title update and bumps lastActive', async () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
-    const before = (await getDoc(doc.docId))!.lastActive
+    const before = (await getDoc(docAs(doc.docId)))!.lastActive
     await new Promise(r => setTimeout(r, 10))
-    await updateDocMeta(doc.docId, { title: 'Renamed' })
-    const after = (await getDoc(doc.docId))!
+    await updateDocMeta(docAs(doc.docId), { title: 'Renamed' })
+    const after = (await getDoc(docAs(doc.docId)))!
     expect(after.title).toBe('Renamed')
     expect(after.lastActive.getTime()).toBeGreaterThan(before.getTime())
   })
@@ -165,8 +166,8 @@ describe('updateDocMeta', () => {
   it('preserves fields not in the update', async () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id, accessMode: 'private' })
-    await updateDocMeta(doc.docId, { wordCount: 123 })
-    const after = (await getDoc(doc.docId))!
+    await updateDocMeta(docAs(doc.docId), { wordCount: 123 })
+    const after = (await getDoc(docAs(doc.docId)))!
     expect(after.wordCount).toBe(123)
     expect(after.accessMode).toBe('private') // untouched
     expect(after.title).toBe('Test Doc') // untouched
@@ -176,22 +177,22 @@ describe('updateDocMeta', () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
     // Should not throw, should not bump lastActive.
-    const before = (await getDoc(doc.docId))!.lastActive
-    await updateDocMeta(doc.docId, {})
-    const after = (await getDoc(doc.docId))!
+    const before = (await getDoc(docAs(doc.docId)))!.lastActive
+    await updateDocMeta(docAs(doc.docId), {})
+    const after = (await getDoc(docAs(doc.docId)))!
     expect(after.lastActive.getTime()).toBe(before.getTime())
   })
 
   it('throws NotFoundError when the docId does not exist', async () => {
-    await expect(updateDocMeta('missing', { title: 'x' }))
+    await expect(updateDocMeta(docAs('missing'), { title: 'x' }))
       .rejects.toBeInstanceOf(NotFoundError)
   })
 
   it('accessMode change persists', async () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id, accessMode: 'private' })
-    await updateDocMeta(doc.docId, { accessMode: 'open-edit' })
-    expect((await getDoc(doc.docId))!.accessMode).toBe('open-edit')
+    await updateDocMeta(docAs(doc.docId), { accessMode: 'open-edit' })
+    expect((await getDoc(docAs(doc.docId)))!.accessMode).toBe('open-edit')
   })
 })
 
@@ -203,8 +204,8 @@ describe('setDocPassword / clearDocPassword', () => {
   it('set flips accessMode to password-protected and stores the hash', async () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id, accessMode: 'private' })
-    await setDocPassword(doc.docId, 'hash-value')
-    const after = (await getDoc(doc.docId))!
+    await setDocPassword(docAs(doc.docId), 'hash-value')
+    const after = (await getDoc(docAs(doc.docId)))!
     expect(after.accessMode).toBe('password-protected')
     expect(after.passwordHash).toBe('hash-value')
   })
@@ -212,8 +213,8 @@ describe('setDocPassword / clearDocPassword', () => {
   it('clear flips accessMode to open-edit and nulls the hash', async () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id, accessMode: 'password-protected', passwordHash: 'prior' })
-    await clearDocPassword(doc.docId)
-    const after = (await getDoc(doc.docId))!
+    await clearDocPassword(docAs(doc.docId))
+    const after = (await getDoc(docAs(doc.docId)))!
     expect(after.accessMode).toBe('open-edit')
     expect(after.passwordHash).toBeNull()
   })
@@ -229,9 +230,9 @@ describe('bumpLastActive', () => {
     const doc = await seedDoc({ ownerId: user.id, accessMode: 'private' })
     const db = testDb()
     await db.query(`UPDATE documents SET last_active = now() - interval '1 day' WHERE doc_id = $1`, [doc.docId])
-    const before = (await getDoc(doc.docId))!
-    await bumpLastActive(doc.docId)
-    const after = (await getDoc(doc.docId))!
+    const before = (await getDoc(docAs(doc.docId)))!
+    await bumpLastActive(docAs(doc.docId))
+    const after = (await getDoc(docAs(doc.docId)))!
     expect(after.lastActive.getTime()).toBeGreaterThan(before.lastActive.getTime())
     expect(after.accessMode).toBe('private')
     expect(after.title).toBe('Test Doc')
@@ -250,7 +251,7 @@ describe('list helpers', () => {
     await new Promise(r => setTimeout(r, 5))
     const a2 = await seedDoc({ ownerId: alice.id })
     await seedDoc({ ownerId: bob.id })
-    const docs = await listOwnedByUser(alice.id)
+    const docs = await listOwnedByUser(asUser(alice.id))
     expect(docs.map(d => d.docId)).toEqual([a2.docId, a1.docId])
   })
 
@@ -258,7 +259,7 @@ describe('list helpers', () => {
     const u = await createUser()
     const d1 = await seedDoc({ ownerId: u.id })
     const d2 = await seedDoc({ ownerId: u.id })
-    const ids = new Set(await listAllDocIds())
+    const ids = new Set(await listAllDocIds(sys()))
     expect(ids.has(d1.docId)).toBe(true)
     expect(ids.has(d2.docId)).toBe(true)
   })
@@ -269,7 +270,7 @@ describe('list helpers', () => {
     const wsB = await createWorkspace(creator.id)
     const a1 = await seedDoc({ ownerId: creator.id, workspaceId: wsA.workspaceId })
     await seedDoc({ ownerId: creator.id, workspaceId: wsB.workspaceId })
-    const ids = await listDocIdsInWorkspace(wsA.workspaceId)
+    const ids = await listDocIdsInWorkspace(wsAs(wsA.workspaceId))
     expect(ids).toEqual([a1.docId])
   })
 
@@ -280,7 +281,7 @@ describe('list helpers', () => {
     await setMemberRole(ws.workspaceId, other.id, 'editor')
     const mine = await seedDoc({ ownerId: other.id, workspaceId: ws.workspaceId })
     const theirs = await seedDoc({ ownerId: creator.id, workspaceId: ws.workspaceId })
-    const rows = await listWorkspaceDocsWithOwnerFlag(ws.workspaceId, other.id)
+    const rows = await listWorkspaceDocsWithOwnerFlag(wsRole(ws.workspaceId, other.id, 'editor'))
     const byId = new Map(rows.map(r => [r.docId, r]))
     expect(byId.get(mine.docId)!.isOwner).toBe(true)
     expect(byId.get(theirs.docId)!.isOwner).toBe(false)

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { usePreviewZoom } from '~/composables/usePreviewZoom'
-import { PREVIEW_ZOOM_STORAGE_KEY } from '~/utils/previewZoom'
+import { usePreviewZoom } from '~/composables/preview/usePreviewZoom'
+import { PREVIEW_ZOOM_STORAGE_KEY } from '~/utils/preview/previewZoom'
 
 // Shared preview-zoom state (desktop pill, mobile bar, View menu and the
 // iframe all go through it). Remembered per browser in localStorage.

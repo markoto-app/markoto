@@ -4,22 +4,15 @@ import { EditorState } from '@codemirror/state'
 import { yCollab } from 'y-codemirror.next'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
-import { commitDictationFinal } from '../../app/utils/dictationExtensions'
+import { commitDictationFinal } from '../../app/utils/editor/dictationExtensions'
 
-// commitDictationFinal is the bridge between Voxtral Realtime's
-// finalized transcript and the Y.js document. The logic is small
-// but carries a
-// non-obvious UX choice: if the cursor lands inside a word, we inject
-// a leading space so "fo|o" + dictated "bar" yields "fo bar o", not
-// "fobaro". Same for the trailing edge. Regressions here would be
-// visually nasty (words glued together) and hard to spot until a
-// user complained.
+// commitDictationFinal is the bridge between Voxtral Realtime's finalized transcript and the Y.js document.
+// The logic is small but carries a non-obvious UX choice: if the cursor lands inside a word, we inject
+// a leading space so "fo|o" + dictated "bar" yields "fo bar o", not "fobaro". Same for the trailing edge.
 //
-// yCollab is included in the test so Y.js text inserts flow into the
-// CM6 view's document — exactly what happens in the real editor.
-// Without it, `view.dispatch({ selection: { anchor: newPos } })`
-// would fire outside the doc and throw "Selection points outside of
-// document".
+// yCollab is included in the test so Y.js text inserts flow into the CM6 view's document, exactly as in the
+// real editor. Without it, `view.dispatch({ selection: { anchor: newPos } })` would fire outside the doc
+// and throw "Selection points outside of document".
 
 function makeViewWithY(ydoc: Y.Doc, ytext: Y.Text, initial: string, caret: number) {
   ytext.insert(0, initial)
@@ -48,7 +41,7 @@ describe('commitDictationFinal', () => {
 
   function captureOriginFrom(ydoc: Y.Doc) {
     // Y.js's `update` event receives `(update, origin, doc, tr)` and
-    // fires synchronously on every committed transaction — the
+    // fires synchronously on every committed transaction, the
     // reliable way to read the origin tag. `afterTransaction` also
     // fires but is sometimes swallowed by yCollab's batching, which
     // produced silent false negatives in these assertions.
@@ -127,7 +120,7 @@ describe('commitDictationFinal', () => {
   })
 
   it('moves the caret to the end of the inserted text', () => {
-    // CM6 doesn't auto-advance the caret on a Y.js transact — we
+    // CM6 doesn't auto-advance the caret on a Y.js transact, we
     // dispatch a selection update. Without it, the NEXT commit would
     // land at the old caret position, burying words inside the
     // previously-inserted phrase.

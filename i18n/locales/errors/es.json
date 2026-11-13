@@ -1,0 +1,405 @@
+{
+  "apiErrors": {
+    "abuse": {
+      "already-closed": "Esta denuncia ya está {status} y no se puede reabrir.",
+      "body-too-long": "La explicación es demasiado larga (5000 caracteres como máximo).",
+      "body-too-short": "Explica qué problema tiene el contenido (al menos 10 caracteres).",
+      "conflict": "La denuncia cambió mientras tanto. Recarga e inténtalo de nuevo.",
+      "contact-required": "Indica tu nombre y tu dirección de correo.",
+      "decision-action": "Elige qué se hizo con el contenido (eliminado o restringido).",
+      "decision-explanation": "La explicación debe tener entre {min} y {max} caracteres. Se envía a quien denunció y al propietario.",
+      "decision-rule": "Elige la norma que incumplía el contenido.",
+      "good-faith-required": "Confirma que tu denuncia es exacta y se hace de buena fe.",
+      "invalid-category": "Elige qué estás denunciando.",
+      "invalid-email": "Introduce una dirección de correo válida.",
+      "login-required": "Inicia sesión para denunciar contenido.",
+      "rate-limited": "Demasiadas denuncias desde tu red. Inténtalo más tarde.",
+      "report-not-found": "Esta denuncia ya no existe.",
+      "url-required": "Indica la dirección (URL) del contenido."
+    },
+    "account": {
+      "delete-cancel-conflict": "No hay ninguna eliminación de cuenta programada que cancelar.",
+      "delete-conflict": "La eliminación de tu cuenta ya está programada.",
+      "delete-rate-limited": "Demasiadas solicitudes de eliminación de cuenta. Inténtalo más tarde.",
+      "sessions-revoke-rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
+    },
+    "admin": {
+      "forbidden": "Se necesita acceso de administrador.",
+      "spend-unavailable": "El servicio de gasto de IA respondió con un error ({upstreamStatus})."
+    },
+    "ai": {
+      "abort-not-initiator": "Solo la persona que inició esta sesión de markoto puede detenerla.",
+      "audio-missing": "No se recibió ningún audio.",
+      "audio-too-long": "La grabación es demasiado larga (máximo unos 5 MiB).",
+      "audio-too-short": "La grabación es demasiado corta para transcribirla.",
+      "audio-unsupported-type": "Tipo de audio no admitido. Graba en WebM, Ogg o WAV.",
+      "budget-exhausted": "Has usado todos tus créditos de IA de este periodo.",
+      "comment-not-author": "Solo el autor puede eliminar este comentario o respuesta.",
+      "comment-trigger-not-eligible": "No se encontró el hilo de comentarios o no puede activar la IA.",
+      "confirmation-not-pending": "Esta solicitud ya no está esperando respuesta.",
+      "duplicate-session": "Ya tienes una sesión de markoto en curso en este documento.",
+      "free-allowance-exhausted": "La asignación gratuita de IA se agotó este mes.",
+      "provider-error": "Tu proveedor de transcripción devolvió un error. Revisa los ajustes de tu proveedor de IA.",
+      "provider-missing": "No hay ningún proveedor de IA configurado para esto. Añade uno en Ajustes.",
+      "session-not-found": "No se encontró la sesión de IA.",
+      "transcription-failed": "La transcripción falló. Inténtalo de nuevo en un momento.",
+      "web-tools-rate-limited": "Se alcanzó el límite de búsqueda web y obtención de páginas ({limit} por {window}). Inténtalo más tarde o continúa sin herramientas web."
+    },
+    "ai-provider": {
+      "invalid": "Ajustes de proveedor no válidos.",
+      "key-required": "Introduce la clave de API. Es obligatoria al añadir un proveedor o cambiar su URL.",
+      "not-configured": "No hay ningún proveedor configurado para esta función.",
+      "rate-limited": "Demasiados intentos. Inténtalo de nuevo en unos minutos.",
+      "url-refused": "Esta URL de proveedor no está permitida.",
+      "verify-failed": "No se pudo verificar el proveedor. Revisa la URL, la clave de API y el modelo."
+    },
+    "anon-gate": {
+      "bot-check-expired": "La comprobación contra bots ha caducado. Inténtalo de nuevo.",
+      "bot-check-failed": "La comprobación automática contra bots ha fallado. Inténtalo de nuevo.",
+      "bot-check-replayed": "Esta comprobación contra bots ya se ha usado. Inténtalo de nuevo.",
+      "bot-check-required": "La comprobación automática contra bots ha fallado. Inténtalo de nuevo.",
+      "misconfigured": "La comprobación contra bots no está disponible ahora mismo. Inténtalo de nuevo en un momento.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+      "terms-required": "Primero acepta las condiciones de uso.",
+      "unavailable": "La comprobación contra bots no está disponible ahora mismo. Inténtalo de nuevo en un momento."
+    },
+    "audit": {
+      "admin-required": "Solo los admins del espacio de trabajo pueden ver el registro de auditoría.",
+      "invalid-query": "Filtro del registro de auditoría no válido.",
+      "rate-limited": "Demasiadas exportaciones. Inténtalo más tarde.",
+      "too-many-rows": "Más de {max} eventos. Elige un periodo más corto."
+    },
+    "auth": {
+      "forbidden": "No tienes acceso a esto.",
+      "oidc-disabled": "El inicio de sesión con OpenID Connect no está configurado.",
+      "oidc-failed": "El inicio de sesión con el proveedor de identidad falló. Inténtalo de nuevo.",
+      "oidc-misconfigured": "El inicio de sesión con OpenID Connect no está completamente configurado en esta instancia.",
+      "oidc-unavailable": "No se pudo contactar con el proveedor de identidad.",
+      "reauth-required": "Por tu seguridad, esta acción requiere un inicio de sesión reciente. Vuelve a iniciar sesión e inténtalo de nuevo.",
+      "required": "Inicia sesión para continuar."
+    },
+    "billing": {
+      "admin-required": "Solo los admins del espacio de trabajo pueden gestionar la facturación.",
+      "already-on-plan": "Ya tienes este plan y este periodo de facturación.",
+      "cancel-failed": "No se pudo cancelar la suscripción del espacio, así que no se eliminó nada. Inténtalo de nuevo.",
+      "checkout-failed": "No se pudo iniciar el pago. Inténtalo de nuevo.",
+      "currency-locked": "Tu suscripción se factura en otra moneda y no puede cambiar. Elige esa moneda para continuar.",
+      "disabled": "La facturación no está activada en este despliegue.",
+      "invalid-member-limit": "El límite debe ser un número de 0 a {max}, sin límite o el valor predeterminado.",
+      "invalid-seats": "Los puestos deben ser un número entero de {min} a {max}.",
+      "member-not-found": "No se encontró al miembro.",
+      "no-billing-history": "Aún no hay historial de facturación. Suscríbete primero para gestionar tu suscripción.",
+      "no-subscription": "Este espacio de trabajo no tiene ninguna suscripción activa.",
+      "not-configured": "La facturación no está configurada. Contacta con el soporte.",
+      "payment-failed": "El pago falló, así que no se cambió nada.",
+      "plan-change-failed": "No se pudo cambiar el plan. No se cambió nada; inténtalo de nuevo.",
+      "portal-failed": "No se pudo abrir el portal de facturación. Inténtalo de nuevo.",
+      "price-unavailable": "Este plan no está a la venta ahora mismo.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+      "seats-below-members": "Hay más personas que puestos en este espacio. Quita a alguien o mantén más puestos.",
+      "seats-busy": "Hay otro cambio de puestos o invitación en curso. Inténtalo de nuevo en un momento.",
+      "seats-full": "Todos los puestos pagados están ocupados. Añade un puesto para invitar a alguien más.",
+      "subscription-active": "Este espacio todavía tiene una suscripción activa. Contacta con soporte para eliminarlo.",
+      "subscription-check-failed": "No se pudo verificar la suscripción actual. Inténtalo de nuevo.",
+      "terms-required": "Acepte las Condiciones de los planes de pago para continuar.",
+      "topup-needs-plan": "Los créditos de IA amplían un plan de pago. Pasa a Pro para comprarlos.",
+      "webhook-body-empty": "El cuerpo de la solicitud está vacío.",
+      "webhook-failed": "No se pudo procesar el evento del webhook.",
+      "webhook-signature-invalid": "No se pudo verificar la firma de Stripe.",
+      "webhook-signature-missing": "Falta la cabecera Stripe-Signature.",
+      "workspace-plan": "Team y Business se compran para un espacio de trabajo, desde sus ajustes de facturación."
+    },
+    "brand": {
+      "admin-required": "Solo los admins del espacio de trabajo pueden cambiar el kit de marca.",
+      "family-built-in": "\"{family}\" es una de las fuentes integradas. Dale otro nombre a tu fuente.",
+      "file-missing": "Envía el archivo en el campo de formulario multipart \"file\".",
+      "file-too-large": "El archivo es demasiado grande.",
+      "font-exists": "El espacio de trabajo ya tiene esta fuente con este grosor y estilo. Elimínala primero para reemplazarla.",
+      "font-refused": "Este archivo de fuente no se puede usar.",
+      "image-type": "Sube una imagen PNG, JPEG o WebP.",
+      "invalid": "Ajustes del kit de marca no válidos.",
+      "invalid-family": "El nombre de la fuente puede usar letras, cifras y espacios (hasta 40).",
+      "invalid-weight": "El grosor va de 100 a 900 en pasos de 100.",
+      "licence-required": "Confirma que tu licencia permite incrustar esta fuente en documentos.",
+      "no-design": "Aún no hay diseño del espacio de trabajo. Tómalo de un documento o elige un diseño predeterminado en Configuración.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+      "too-many-fonts": "Un espacio de trabajo puede tener hasta {limit} archivos de fuente.",
+      "too-many-images": "Un espacio de trabajo puede tener hasta {limit} imágenes de marca."
+    },
+    "common": {
+      "internal": "Algo salió mal por nuestra parte. Inténtalo de nuevo; ya nos han avisado."
+    },
+    "consent": {
+      "no-decisions": "No se envió ninguna decisión de consentimiento.",
+      "no-valid-decisions": "No se pudo registrar ninguna de las decisiones de consentimiento.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
+    },
+    "csrf": {
+      "origin-mismatch": "Solicitud de origen cruzado rechazada."
+    },
+    "custom-domain": {
+      "disabled": "Los dominios personalizados no están configurados en esta instancia.",
+      "invalid": "Introduce un nombre de dominio como docs.example.com.",
+      "limit": "Puedes añadir hasta {limit} dominios.",
+      "not-found": "No se encontró el dominio.",
+      "page-not-allowed": "Solo el propietario y los admins del espacio de trabajo pueden mostrar este documento en un dominio.",
+      "page-not-published": "Publica primero el documento como página web.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+      "reserved": "Este dominio pertenece a este servicio.",
+      "taken": "Este dominio ya está en uso."
+    },
+    "design-import": {
+      "busy": "Ya se está creando un diseño. Espera a que termine.",
+      "content-mismatch": "No se pudo leer el archivo. Comprueba que sea un documento PDF o Word que se abra con normalidad.",
+      "mismatch": "El archivo subido no coincide con lo solicitado.",
+      "no-vision": "Tu proveedor de IA no puede leer imágenes. Elige un modelo que pueda hacerlo y vuelve a intentarlo.",
+      "rate-limited": "Has creado muchos diseños en la última hora. Vuelve a intentarlo más tarde.",
+      "too-large": "El archivo es demasiado grande. Elige un archivo de hasta 20 MB.",
+      "unsupported-format": "Elige un archivo PDF o Word (.docx).",
+      "upload-missing": "La subida no llegó. Elige el archivo de nuevo.",
+      "upload-not-found": "No se encontró la subida. Elige el archivo de nuevo."
+    },
+    "docs": {
+      "activity-not-found": "Esa fila de actividad no existe para este documento.",
+      "comment-thread-gone": "Este hilo ya no existe.",
+      "content-too-long": "El contenido es demasiado largo (máximo {max} caracteres).",
+      "delete-forbidden": "No puedes eliminar este documento.",
+      "diff-unavailable": "Diferencia no disponible para esta fila.",
+      "edit-forbidden": "No tienes acceso de edición a este documento.",
+      "manage-forbidden": "Solo el propietario y los admins del espacio de trabajo pueden cambiar quién puede abrir este documento.",
+      "not-a-comment": "Esta fila de actividad no corresponde a un comentario.",
+      "not-found": "No se encontró el documento.",
+      "rate-limited": "Demasiados documentos nuevos desde tu red. Inicia sesión o inténtalo más tarde.",
+      "render-failed": "No se pudo generar el PDF. Inténtalo de nuevo.",
+      "restore-compacted": "Este punto de restauración es demasiado antiguo: su historial se compactó y ya no se puede restaurar. Restaura a un punto más reciente.",
+      "restore-unavailable": "No se puede restaurar desde esta fila: es anterior a la función de restauración."
+    },
+    "dpa": {
+      "version-stale": "El Anexo de tratamiento de datos cambió desde que abriste este aviso. Revísalo de nuevo."
+    },
+    "export": {
+      "conflict": "Ya hay una exportación en curso.",
+      "expired": "Esta exportación ha caducado. Solicita una nueva.",
+      "not-found": "No se encontró la exportación.",
+      "not-ready": "Esta exportación aún no está lista.",
+      "rate-limited": "Ya solicitaste una exportación hoy. Inténtalo de nuevo mañana."
+    },
+    "files": {
+      "access-denied": "Acceso denegado."
+    },
+    "import": {
+      "conversion-failed": "No se pudo convertir el archivo: {detail}",
+      "file-too-large": "El archivo es demasiado grande para importarlo.",
+      "no-file": "No se proporcionó ningún archivo.",
+      "not-configured": "La conversión de documentos no está configurada en este servidor.",
+      "not-utf8": "Este archivo Markdown no es texto UTF-8 válido.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+      "timeout": "La conversión tardó demasiado.",
+      "too-complex": "Este archivo es demasiado grande o complejo para convertirlo.",
+      "unavailable": "No se pudo contactar con el servicio de conversión.",
+      "unsupported-format": "Este formato de archivo no es compatible."
+    },
+    "internal": {
+      "forbidden": "Credenciales no válidas o ausentes."
+    },
+    "knowledge": {
+      "content-type-mismatch": "El archivo subido no tiene el tipo esperado.",
+      "editor-required": "Solo los admins y editores pueden cambiar la base de conocimiento.",
+      "empty-upload": "El archivo subido está vacío.",
+      "file-too-large": "El archivo es demasiado grande (como máximo {maxMb} MB).",
+      "invalid-key": "La clave de almacenamiento no pertenece a la base de conocimiento de este espacio de trabajo.",
+      "key-mismatch": "knowledgeId debe coincidir con s3Key.",
+      "not-found": "No se encontró el archivo de conocimiento.",
+      "not-uploader": "Los editores solo pueden eliminar sus propias subidas.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+      "too-many-pending": "Hay demasiadas subidas pendientes. Inténtalo de nuevo en un momento.",
+      "unsupported-format": "Formato no compatible: .{ext}. Permitidos: {allowed}.",
+      "upload-not-found": "No se encontró la subida. Solicita una nueva subida e inténtalo de nuevo.",
+      "user-bytes-cap": "Has alcanzado tu límite de almacenamiento de conocimiento ({maxMb} MB).",
+      "user-file-cap": "Has alcanzado tu límite de subidas de conocimiento ({max} archivos).",
+      "workspace-bytes-cap": "Este espacio de trabajo ha alcanzado su límite de almacenamiento de conocimiento ({maxMb} MB).",
+      "workspace-file-cap": "Este espacio de trabajo ha alcanzado su límite de archivos de conocimiento ({max} archivos)."
+    },
+    "legal": {
+      "disabled": "Las páginas legales no están activadas en este despliegue."
+    },
+    "mcp": {
+      "doc-not-found": "No se encontró el documento.",
+      "invalid-token-request": "Solicitud de token no válida.",
+      "missing-doc-id": "Se requiere doc_id.",
+      "missing-workspace-id": "Se requiere workspace_id.",
+      "render-rate-limited": "Demasiadas solicitudes de renderizado. Inténtalo de nuevo en un minuto.",
+      "token-not-found": "No se encontró el token.",
+      "too-many-open-docs": "Hay demasiados documentos abiertos a la vez (como máximo {max}). Espera unos minutos e inténtalo de nuevo.",
+      "too-many-tokens": "Ya tienes el máximo de tokens MCP activos. Revoca uno primero.",
+      "tool-not-found": "No se encontró la herramienta {tool}.",
+      "unauthenticated": "Se requiere autenticación MCP.",
+      "workspace-not-found": "No se encontró el espacio de trabajo.",
+      "tool-call-limit": "Demasiadas llamadas a herramientas (límite: {limit} cada {minutes} min). Inténtalo de nuevo más tarde."
+    },
+    "moderation": {
+      "not-restricted": "Este documento no está restringido.",
+      "note-required": "Indica por qué se levanta la restricción (de 1 a {max} caracteres).",
+      "restricted": "Este documento se restringió tras una denuncia. No se puede compartir, hacer público ni publicar hasta que se levante la restricción."
+    },
+    "onboarding": {
+      "age-required": "Debes confirmar que tienes al menos 16 años para usar markoto.",
+      "privacy-version-stale": "La Política de privacidad cambió desde que abriste este aviso. Revísala de nuevo.",
+      "required": "Confirma primero tu edad y acepta la Política de privacidad y los Términos del servicio vigentes.",
+      "tos-version-stale": "Los Términos del servicio cambiaron desde que abriste este aviso. Revísalos de nuevo."
+    },
+    "password": {
+      "invalid": "Contraseña incorrecta.",
+      "locked": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+      "not-set": "Este documento no tiene contraseña.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+      "required": "Introduce la contraseña.",
+      "too-short": "La contraseña debe tener al menos {minLength} caracteres."
+    },
+    "plan": {
+      "feature-unavailable": "Tu plan no incluye esta función.",
+      "limit-reached": "Has alcanzado un límite de tu plan."
+    },
+    "publish": {
+      "busy": "Esta página se está actualizando. Inténtalo de nuevo en un momento.",
+      "invalid": "Ajustes de publicación no válidos.",
+      "not-allowed": "Solo el propietario y los admins del espacio de trabajo pueden publicar este documento.",
+      "not-published": "Este documento no está publicado.",
+      "rate-limited": "Demasiadas publicaciones. Inténtalo más tarde.",
+      "render-failed": "No se pudo renderizar la página. Inténtalo de nuevo.",
+      "slug-invalid": "Usa de 3 a 60 letras minúsculas, cifras y guiones sueltos.",
+      "slug-taken": "Esta dirección ya está en uso. Elige otra.",
+      "too-large": "Este documento es demasiado grande para publicarlo como página web."
+    },
+    "published": {
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+      "not-found": "Esta página no existe o ya no está publicada."
+    },
+    "rate": {
+      "limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
+    },
+    "request": {
+      "invalid": "Parte de la información enviada no es válida.",
+      "too-large": "La solicitud es demasiado grande."
+    },
+    "resource": {
+      "not-found": "No encontrado."
+    },
+    "share": {
+      "download-disabled": "El propietario desactivó la descarga y la impresión de este documento.",
+      "expired": "Este enlace ha caducado.",
+      "expiry-past": "La caducidad debe estar en el futuro.",
+      "expiry-too-far": "La caducidad puede estar como máximo a {maxDays} días.",
+      "invalid": "Ajustes de uso compartido no válidos.",
+      "move-not-allowed": "Solo el propietario o un admin del espacio de trabajo pueden mover este documento.",
+      "move-target-viewer": "Los lectores no pueden mover documentos a este espacio de trabajo.",
+      "not-a-guest": "Esta persona no es invitada del espacio de trabajo.",
+      "not-allowed": "No tienes permiso para cambiar cómo se comparte este documento.",
+      "not-shared": "Este documento no está compartido con esta persona.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
+    },
+    "sso": {
+      "admin-required": "Solo los admins del espacio de trabajo pueden gestionar el inicio de sesión único.",
+      "connection-not-found": "Conexión desconocida.",
+      "domain-not-found": "No se encontró el dominio.",
+      "deactivated": "Tu organización desactivó tu acceso a este espacio de trabajo.",
+      "domain-cap": "Como máximo {max} dominios por espacio de trabajo.",
+      "domain-exists": "Este dominio ya está añadido al espacio de trabajo.",
+      "domain-taken": "Otro espacio de trabajo ya usa este dominio.",
+      "domain-unverified": "Aún no se encontró el registro TXT. Los cambios de DNS pueden tardar hasta una hora.",
+      "incomplete": "Esta conexión de inicio de sesión único no está completamente configurada.",
+      "invalid-domain": "Introduce el dominio de correo de tu organización, p. ej. example.com. No se pueden usar dominios de correo públicos.",
+      "invalid-settings": "Ajustes de inicio de sesión único no válidos.",
+      "member-limit": "Este espacio de trabajo ha alcanzado el límite de miembros de su plan.",
+      "misconfigured": "El inicio de sesión único requiere que NUXT_SITE_URL esté definida en esta instancia.",
+      "not-configured": "No hay inicio de sesión único configurado para este espacio de trabajo.",
+      "no-connection": "El inicio de sesión único no está configurado para esta dirección de correo electrónico.",
+      "no-seat": "Todos los puestos de pago de este espacio de trabajo están ocupados.",
+      "not-active": "El inicio de sesión único no está activo en este espacio de trabajo.",
+      "not-provisioned": "Tu organización aún no te ha dado acceso a este espacio de trabajo.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+      "required": "Este espacio de trabajo usa inicio de sesión único. Inicia sesión a través de tu organización para continuar.",
+      "test-mismatch": "El inicio de sesión de prueba usó otra cuenta.",
+      "test-not-admin": "Solo un admin del espacio de trabajo puede probar su inicio de sesión.",
+      "unknown": "Enlace de inicio de sesión desconocido.",
+      "scim-needs-connection": "Configure primero el inicio de sesión único.",
+      "certificate-format": "Pega el certificado de firma del proveedor de identidad (PEM o Base64).",
+      "certificate-invalid": "No es un certificado X.509 válido.",
+      "certificate-expired": "Este certificado ha caducado.",
+      "client-secret-required": "Introduce el secreto de cliente.",
+      "url-invalid": "No es una URL válida.",
+      "url-not-https": "La URL debe empezar por https://.",
+      "url-credentials": "La URL no debe contener un nombre de usuario ni una contraseña.",
+      "url-unresolvable": "No se pudo resolver el nombre de host {host}.",
+      "url-refused": "markoto no puede conectarse a esta dirección (un servicio interno, una dirección de loopback, link-local o de metadatos, o una red privada)."
+    },
+    "template": {
+      "doc-not-found": "No se encontró el documento en este espacio de trabajo.",
+      "exists": "Este documento ya es una plantilla.",
+      "invalid": "Ajustes de plantilla no válidos.",
+      "too-many": "Un espacio de trabajo puede tener hasta {limit} plantillas."
+    },
+    "theme": {
+      "custom-css-invalid": "Se rechazó el CSS personalizado.",
+      "description-not-a-string": "La descripción debe ser texto.",
+      "description-too-long": "La descripción es demasiado larga.",
+      "image-not-in-doc": "Las imágenes del tema deben subirse a este documento.",
+      "name-not-a-string": "El nombre debe ser texto.",
+      "name-required": "El nombre es obligatorio.",
+      "name-too-long": "El nombre es demasiado largo."
+    },
+    "upload": {
+      "confirm-in-progress": "Esta subida ya se está confirmando. Inténtalo de nuevo en un momento.",
+      "content-type-mismatch": "El archivo subido no tiene el tipo esperado.",
+      "file-too-large": "Archivo demasiado grande. Máximo 10 MB.",
+      "not-found": "No se encontró la subida.",
+      "not-landed": "La subida aún no ha llegado. Inténtalo de nuevo en un momento.",
+      "rate-limited": "Demasiadas subidas. Inténtalo de nuevo en un minuto.",
+      "size-mismatch": "El tamaño del archivo subido no coincide con el tamaño solicitado.",
+      "storage-quota": "Has alcanzado tu límite de almacenamiento de imágenes. Las imágenes que quitas de tus documentos liberan espacio cuando se limpian.",
+      "unsupported-format": "Este tipo de archivo no está permitido."
+    },
+    "usage": {
+      "admin-required": "Solo los admins del espacio de trabajo pueden ver el uso."
+    },
+    "validation": {
+      "custom": "Este valor no es válido.",
+      "invalid_element": "Este valor no es válido.",
+      "invalid_format": "Este valor tiene un formato incorrecto.",
+      "invalid_key": "Este valor no es válido.",
+      "invalid_type": "Este valor es de un tipo incorrecto.",
+      "invalid_union": "Este valor no es válido.",
+      "invalid_value": "Este valor no es una de las opciones permitidas.",
+      "not_multiple_of": "Este valor no está permitido.",
+      "too_big": "Este valor es demasiado largo o demasiado grande.",
+      "too_small": "Este valor es demasiado corto o demasiado pequeño.",
+      "unrecognized_keys": "Esta solicitud contiene campos que no están permitidos."
+    },
+    "waitlist": {
+      "consent-required": "Marca la casilla de consentimiento para unirte a la lista de espera.",
+      "disabled": "La lista de espera no está disponible en este despliegue.",
+      "invalid-email": "Introduce una dirección de correo válida.",
+      "invalid-token": "Este enlace no es válido o ha caducado.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
+    },
+    "workspace": {
+      "admin-required": "Solo los admins del espacio de trabajo pueden hacer esto.",
+      "already-member": "Esta persona ya es miembro del espacio de trabajo.",
+      "billing-not-configured": "La facturación no está configurada. Contacta con el soporte.",
+      "cap-reached": "Has alcanzado el límite de espacios de trabajo de tu plan ({plan}: {cap} espacios de trabajo). Elimina uno que no uses para crear otro.",
+      "dpa-required": "Debes aceptar el Anexo de tratamiento de datos (DPA) antes de crear un espacio de trabajo.",
+      "guest-cannot-create": "Los invitados no pueden crear documentos en este espacio de trabajo.",
+      "guest-cap": "Este espacio de trabajo tiene tantos invitados como permite su plan (5 por puesto de pago). Elimina un invitado o añade un puesto primero.",
+      "guest-role-change": "El acceso de un invitado se gestiona compartiendo, no con un rol. Elimina al invitado y vuelve a invitarlo para cambiarlo.",
+      "invalid-email": "Introduce una dirección de correo válida.",
+      "invite-cap": "Este espacio de trabajo tiene demasiadas invitaciones pendientes. Retira algunas primero.",
+      "invite-not-found": "Esta invitación ya no existe o ha caducado.",
+      "invite-rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+      "last-admin": "Un espacio de trabajo debe tener al menos un admin. Asciende primero a otra persona o elimina el espacio de trabajo.",
+      "member-not-found": "Esa persona no es miembro de este espacio de trabajo.",
+      "not-found": "No se encontró el espacio de trabajo.",
+      "role-required": "Los lectores no pueden crear documentos en este espacio de trabajo.",
+      "template-rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
+    }
+  }
+}

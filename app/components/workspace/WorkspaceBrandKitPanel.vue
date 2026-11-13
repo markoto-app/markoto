@@ -1,21 +1,13 @@
 <script setup lang="ts">
-// The workspace brand kit (WP10), admins: fonts and logos every document
+// The workspace brand kit, admins: fonts and logos every document
 // of the workspace can use (theme panel), the locked workspace design and
 // the workspace templates. Server: `server/api/workspaces/[wsId]/brand/`.
-import { formatBytes } from '~/utils/usageMeter'
-import { brandFontFaceCss } from '~~/shared/utils/brandFonts'
-import type { BrandFont, BrandFontFormat } from '~~/shared/config/brandKit'
+import { formatBytes } from '~/utils/billing/usageMeter'
+import { brandFontFaceCss } from '~~/shared/utils/theme/brandFonts'
+import type { BrandKit, BrandKitFontRow } from '~/utils/api/types/brandKit'
 import type { DocTheme } from '~~/shared/types/theme'
 
-interface FontRow { id: string, file: string, family: string, weight: number, style: 'normal' | 'italic', format: BrandFontFormat, sizeBytes: number }
-interface ImageRow { id: string, file: string, name: string, format: string, sizeBytes: number, url: string }
-interface BrandKit {
-  available: boolean
-  canManage: boolean
-  limits: { fonts: number, images: number }
-  fonts: FontRow[]
-  images: ImageRow[]
-}
+type FontRow = BrandKitFontRow
 
 const props = defineProps<{
   workspaceId: string
@@ -34,7 +26,7 @@ const base = computed(() => `/api/workspaces/${encodeURIComponent(props.workspac
 
 async function load(): Promise<void> {
   try {
-    kit.value = await $fetch<BrandKit>(base.value)
+    kit.value = await apiFetch('/api/workspaces/:wsId/brand', { path: { wsId: props.workspaceId } })
   } catch (e) {
     showError('brandKit.loadFailed', e)
   }
@@ -46,7 +38,7 @@ useHead(() => ({
   style: kit.value?.fonts.length
     ? [{
         key: 'brand-kit-panel-fonts',
-        textContent: brandFontFaceCss(kit.value.fonts as BrandFont[], file => `${base.value}/files/${file}`)
+        textContent: brandFontFaceCss(kit.value.fonts, file => `${base.value}/files/${file}`)
       }]
     : []
 }))
@@ -61,7 +53,9 @@ const families = computed(() => {
   return [...groups.entries()].map(([family, faces]) => ({ family, faces }))
 })
 
-// ── Font upload ────────────────────────────────────────────────────
+// `sr-only` file inputs (not `hidden`) stay reachable by keyboard; the label shows the focus ring.
+const fontInputId = useId()
+const imageInputId = useId()
 const fontFile = ref<File | null>(null)
 const fontFamily = ref('')
 const fontLicence = ref(false)
@@ -81,7 +75,7 @@ async function uploadFont(): Promise<void> {
     form.append('file', fontFile.value)
     form.append('licence', 'true')
     if (fontFamily.value.trim()) form.append('family', fontFamily.value.trim())
-    const added = await $fetch<{ family: string, weight: number, style: string }>(`${base.value}/fonts`, { method: 'POST', body: form })
+    const added = await apiFetch('/api/workspaces/:wsId/brand/fonts', { method: 'post', path: { wsId: props.workspaceId }, body: form })
     toast.add({ title: t('brandKit.fontAdded', { name: `${added.family} ${added.weight}${added.style === 'italic' ? ' italic' : ''}` }), icon: 'i-lucide-check', color: 'neutral' })
     fontFile.value = null
     await load()
@@ -93,7 +87,6 @@ async function uploadFont(): Promise<void> {
   }
 }
 
-// ── Logo upload ────────────────────────────────────────────────────
 const imageUploading = ref(false)
 async function onImageFile(e: Event): Promise<void> {
   const input = e.target as HTMLInputElement
@@ -104,7 +97,7 @@ async function onImageFile(e: Event): Promise<void> {
   try {
     const form = new FormData()
     form.append('file', file)
-    await $fetch(`${base.value}/images`, { method: 'POST', body: form })
+    await apiFetch('/api/workspaces/:wsId/brand/images', { method: 'post', path: { wsId: props.workspaceId }, body: form })
     await load()
     emit('changed')
   } catch (e) {
@@ -118,7 +111,7 @@ const busy = ref<string | null>(null)
 async function remove(id: string): Promise<void> {
   busy.value = id
   try {
-    await $fetch(`${base.value}/assets/${id}`, { method: 'DELETE' })
+    await apiFetch('/api/workspaces/:wsId/brand/assets/:assetId', { method: 'delete', path: { wsId: props.workspaceId, assetId: id } })
     await load()
     emit('changed')
   } catch (e) {
@@ -157,7 +150,6 @@ function faceLabel(f: FontRow): string {
       />
     </div>
 
-    <!-- Fonts -->
     <div class="space-y-3">
       <h3 class="font-mono text-[11px] uppercase tracking-wider text-muted">
         {{ t('brandKit.fonts') }}
@@ -218,11 +210,15 @@ function faceLabel(f: FontRow): string {
         data-testid="brand-font-upload"
       >
         <div class="flex items-center gap-2 flex-wrap">
-          <label class="flex">
+          <label
+            :for="fontInputId"
+            class="relative flex rounded-md focus-within:ring-2 focus-within:ring-inverted"
+          >
             <input
+              :id="fontInputId"
               type="file"
               accept=".woff2,.woff,.ttf,font/woff2,font/woff,font/ttf"
-              class="hidden"
+              class="sr-only"
               data-testid="brand-font-file"
               @change="onFontFile"
             >
@@ -268,7 +264,6 @@ function faceLabel(f: FontRow): string {
       </div>
     </div>
 
-    <!-- Logos -->
     <div class="space-y-3">
       <h3 class="font-mono text-[11px] uppercase tracking-wider text-muted">
         {{ t('brandKit.logos') }}
@@ -302,12 +297,14 @@ function faceLabel(f: FontRow): string {
         </div>
         <label
           v-if="kit?.canManage && kit.available"
-          class="rounded-lg border border-dashed border-default p-3 flex flex-col items-center justify-center gap-2 w-40 cursor-pointer"
+          :for="imageInputId"
+          class="relative rounded-lg border border-dashed border-default p-3 flex flex-col items-center justify-center gap-2 w-40 cursor-pointer focus-within:ring-2 focus-within:ring-inverted"
         >
           <input
+            :id="imageInputId"
             type="file"
             accept="image/png,image/jpeg,image/webp"
-            class="hidden"
+            class="sr-only"
             data-testid="brand-image-file"
             @change="onImageFile"
           >

@@ -2,7 +2,9 @@
 // reasons). Client-and-server safe: the report form, the admin queue and
 // the notice emails all read these. Labels are i18n keys
 // (`moderation.rule.<id>`, `moderation.action.<id>`); the notice emails
-// carry their own short texts (server/utils/moderationNotices.ts).
+// carry their own short texts (server/utils/privacy/moderationNotices.ts).
+
+import { ID_PATTERN, ID_RE } from './identifiers'
 
 /** Report categories the public form offers (stored on abuse_reports.category). */
 export const REPORT_CATEGORIES = ['illegal_content', 'csam', 'copyright', 'harassment', 'spam', 'other'] as const
@@ -41,11 +43,11 @@ export function isModerationRule(value: unknown): value is ModerationRule {
 
 /**
  * What the moderator did to the content.
- *   content_removed   — the document is deleted.
- *   access_restricted — the document is set to private: the owner keeps
+ *   content_removed  : the document is deleted.
+ *   access_restricted: the document is set to private: the owner keeps
  *                       access, nobody else; an anonymous document (no
  *                       owner) becomes unreachable.
- *   no_action         — reviewed, nothing changed (used with "dismissed").
+ *   no_action        : reviewed, nothing changed (used with "dismissed").
  */
 export const MODERATION_ACTIONS = ['content_removed', 'access_restricted', 'no_action'] as const
 export type ModerationAction = typeof MODERATION_ACTIONS[number]
@@ -66,17 +68,15 @@ export const REPORTER_NAME_MAX = 200
 export const DECISION_EXPLANATION_MIN = 10
 export const DECISION_EXPLANATION_MAX = 3000
 
-const DOC_ID_SHAPE = /^[\w-]{1,64}$/
-
 /**
  * The document id a reported location points at, or null. Accepts a full
  * URL or path containing `/d/<id>`, or a bare id. The host is not checked
- * (people paste the URL they see; moderators verify) — only the shape.
+ * (people paste the URL they see; moderators verify), only the shape.
  */
 export function docIdFromReportedLocation(raw: string): string | null {
   const trimmed = raw.trim()
   if (!trimmed) return null
-  const match = /\/d\/([\w-]{1,64})(?:[/?#]|$)/.exec(trimmed)
+  const match = new RegExp(`/d/(${ID_PATTERN})(?:[/?#]|$)`).exec(trimmed)
   if (match?.[1]) return match[1]
-  return DOC_ID_SHAPE.test(trimmed) ? trimmed : null
+  return ID_RE.test(trimmed) ? trimmed : null
 }

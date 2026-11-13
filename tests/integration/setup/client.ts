@@ -2,7 +2,7 @@ import { TEST_BASE_URL } from './env'
 
 // Thin fetch wrapper with a cookie jar. Tests use this instead of raw
 // `fetch` so sessions established via /api/_test/login are reused on
-// subsequent calls in the same test — exactly how a browser would.
+// subsequent calls in the same test, exactly how a browser would.
 
 export interface ClientOptions {
   method?: string
@@ -32,7 +32,7 @@ export class TestClient {
     // Browsers join with '; '. Duplicate cookie names: last wins.
     const seen = new Map<string, string>()
     for (const raw of this.cookies) {
-      const [pair] = raw.split(';')
+      const pair = raw.split(';')[0] ?? ''
       const eq = pair.indexOf('=')
       if (eq < 0) continue
       seen.set(pair.slice(0, eq), pair.slice(eq + 1))

@@ -6,11 +6,11 @@ import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protoc
 import type { H3Event } from 'h3'
 import { setResponseStatus } from 'h3'
 
-import { useAI as useAIComposable, type AiEventSource } from '~/composables/useAI'
+import { useAI as useAIComposable, type AiEventSource } from '~/composables/ai/useAI'
 
 // Signal to a registerEndpoint handler: respond with a non-2xx status
 // and the given body. We can't `throw createError({...})` from the
-// handler — h3's error path serializes the body as `{ statusCode,
+// handler: h3's error path serializes the body as `{ statusCode,
 // statusMessage, data }`, which doesn't match the shape the composable
 // reads (`err.data.message`, where `err.data` IS the response body).
 // Using setResponseStatus + return gives us full control over the body.
@@ -26,14 +26,14 @@ async function respond(event: H3Event, out: unknown): Promise<unknown> {
 }
 
 // Composable under test: awareness-driven AI session state + prompt /
-// abort actions. See app/composables/useAI.ts. Selection-scoped
+// abort actions. See app/composables/ai/useAI.ts. Selection-scoped
 // requests flow through `prompt()` with an editorSelection override;
 // there is no separate rewrite endpoint.
 //
 // External dependencies:
-//   - `useUserSession()` (auto-import) — mocked via mockNuxtImport, the
+//   - `useUserSession()` (auto-import): mocked via mockNuxtImport, the
 //     hoisted `sessionState` lets tests toggle loggedIn + user id.
-//   - `$fetch('/api/ai/prompt' | '/abort')` — stubbed with
+//   - `$fetch('/api/ai/prompt' | '/abort')`: stubbed with
 //     registerEndpoint. Each endpoint reads from a per-test config
 //     holder so tests can rewrite responses without re-registering.
 //
@@ -41,7 +41,7 @@ async function respond(event: H3Event, out: unknown): Promise<unknown> {
 // the composable to consume, and spawn secondary Awareness objects
 // representing "other clients" (the AI, a human collaborator). Their
 // state is pushed into the composable's awareness via
-// encodeAwarenessUpdate / applyAwarenessUpdate — the same path
+// encodeAwarenessUpdate / applyAwarenessUpdate: the same path
 // Hocuspocus would use in prod.
 
 const { sessionState } = vi.hoisted(() => ({
@@ -49,6 +49,20 @@ const { sessionState } = vi.hoisted(() => ({
     loggedIn: { value: false },
     user: { value: null as { id: number, name?: string } | null }
   }
+}))
+
+// The error texts come from the error's code (apiErrors.<ns>.<slug>), never the
+// server's English message: a translation table stands in for vue-i18n.
+const TEXTS: Record<string, string> = {
+  'apiErrors.common.internal': 'Text for internal',
+  'apiErrors.auth.forbidden': 'Text for forbidden',
+  'error.generic': 'Generic text'
+}
+mockNuxtImport('useToast', () => () => ({ add: vi.fn() }))
+mockNuxtImport('useI18n', () => () => ({
+  t: (key: string) => TEXTS[key] ?? `[missing:${key}]`,
+  te: (key: string) => key in TEXTS,
+  locale: ref('en')
 }))
 
 mockNuxtImport('useUserSession', () => {
@@ -61,7 +75,7 @@ mockNuxtImport('useUserSession', () => {
 interface EndpointConfig<Req = unknown, Res = unknown> {
   // Handlers return either the response body, an `ApiError` (which
   // becomes a non-2xx response with the given body), or a Promise
-  // thereof. We deliberately don't `throw` — h3's error pipeline wraps
+  // thereof. We deliberately don't `throw`, h3's error pipeline wraps
   // the body in a shape the composable doesn't expect.
   handler: (body: Req, event: H3Event) => Res | ApiError | Promise<Res | ApiError>
 }
@@ -204,7 +218,7 @@ function onlyStream(): FakeEventSource {
   return es
 }
 
-// — awareness helpers ——————————————————————————————————————————————
+// awareness helpers,
 //
 // Build a side Awareness, stamp a full state, encode-and-apply it onto
 // `target`. The composable's `refresh()` then sees the state as if a
@@ -282,11 +296,9 @@ beforeEach(() => {
   FakeEventSource.instances.length = 0
 })
 
-// ═══════════════════════════════════════════════════════════════════════
-// activeSessions — derived from awareness entries
-// ═══════════════════════════════════════════════════════════════════════
+// activeSessions: derived from awareness entries
 
-describe('useAI — activeSessions derivation', () => {
+describe('useAI: activeSessions derivation', () => {
   it('returns an empty list when no awareness entries exist', () => {
     const { awareness, docId } = makeCtx()
     const ai = useAI(docId, awareness)
@@ -334,7 +346,7 @@ describe('useAI — activeSessions derivation', () => {
     expect(ai.activeSessions.value).toHaveLength(1)
     // Only the public fields. Even if a (legacy / hostile) awareness
     // entry carries prompt or status text, the composable doesn't
-    // surface it — that belongs to the initiator's private channel.
+    // surface it: that belongs to the initiator's private channel.
     expect(ai.activeSessions.value[0]).toEqual({
       sessionId: 'sid-1',
       initiatorName: 'Alice',
@@ -382,7 +394,7 @@ describe('useAI — activeSessions derivation', () => {
     pushAiClient(awareness, {
       sessionId: 'sid-1', initiatorName: 'A', initiatorUserId: 1
     })
-    // Awareness 'change' events fire synchronously — refresh() already ran.
+    // Awareness 'change' events fire synchronously, refresh() already ran.
     expect(ai.activeSessions.value).toHaveLength(1)
   })
 
@@ -408,11 +420,9 @@ describe('useAI — activeSessions derivation', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
-// mySession / mySessionId / otherSessions — user-relative derivations
-// ═══════════════════════════════════════════════════════════════════════
+// mySession / mySessionId / otherSessions, user-relative derivations
 
-describe('useAI — mySession / otherSessions', () => {
+describe('useAI: mySession / otherSessions', () => {
   it('mySessionId is null when anonymous (loggedIn false)', () => {
     const { awareness, docId } = makeCtx()
     pushAiClient(awareness, { sessionId: 'sid-1', initiatorName: 'A', initiatorUserId: 1 })
@@ -454,7 +464,7 @@ describe('useAI — mySession / otherSessions', () => {
   })
 
   it('otherSessions equals activeSessions when anonymous', () => {
-    // Anonymous viewers see everyone's AI work — there is no "mine".
+    // Anonymous viewers see everyone's AI work, there is no "mine".
     const { awareness, docId } = makeCtx()
     pushAiClient(awareness, { sessionId: 'sid-1', initiatorName: 'A', initiatorUserId: 1 })
     pushAiClient(awareness, { sessionId: 'sid-2', initiatorName: 'B', initiatorUserId: 2 })
@@ -464,11 +474,9 @@ describe('useAI — mySession / otherSessions', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
-// Private session channel — status text, errors, answers, confirmations
-// ═══════════════════════════════════════════════════════════════════════
+// Private session channel: status text, errors, answers, confirmations
 
-describe('useAI — private session channel', () => {
+describe('useAI: private session channel', () => {
   it('merges my private status text into mySession; awareness alone has none', async () => {
     sessionState.loggedIn.value = true
     sessionState.user.value = { id: 7 }
@@ -528,7 +536,7 @@ describe('useAI — private session channel', () => {
     expect(ai.lastError.value).toBe(null)
   })
 
-  it('records how my session ended — done', async () => {
+  it('records how my session ended, done', async () => {
     sessionState.loggedIn.value = true
     sessionState.user.value = { id: 7 }
     const { awareness, docId } = makeCtx()
@@ -540,7 +548,7 @@ describe('useAI — private session channel', () => {
     await vi.waitFor(() => expect(ai.lastOutcome.value).toEqual({ sessionId: 'sid-mine', phase: 'done', message: 'Done' }))
   })
 
-  it('records how my session ended — error, kept after the session leaves awareness', async () => {
+  it('records how my session ended, error, kept after the session leaves awareness', async () => {
     sessionState.loggedIn.value = true
     sessionState.user.value = { id: 7 }
     const { awareness, docId } = makeCtx()
@@ -591,7 +599,7 @@ describe('useAI — private session channel', () => {
   })
 })
 
-describe('useAI — push stream (SSE) for my session', () => {
+describe('useAI: push stream (SSE) for my session', () => {
   function mine() {
     sessionState.loggedIn.value = true
     sessionState.user.value = { id: 7 }
@@ -600,7 +608,7 @@ describe('useAI — push stream (SSE) for my session', () => {
     return { ...ctx, peer }
   }
 
-  it('follows my session through the stream — no polling while it works', async () => {
+  it('follows my session through the stream, no polling while it works', async () => {
     const { awareness, docId } = mine()
     const ai = useAI(docId, awareness, STREAM)
     expect(FakeEventSource.instances.map(e => e.url)).toEqual(['/api/ai/sessions/sid-mine/stream'])
@@ -722,11 +730,9 @@ describe('useAI — push stream (SSE) for my session', () => {
   }, 15_000)
 })
 
-// ═══════════════════════════════════════════════════════════════════════
-// prompt() — submit gating + POST shape + error capture
-// ═══════════════════════════════════════════════════════════════════════
+// prompt(): submit gating + POST shape + error capture
 
-describe('useAI — prompt()', () => {
+describe('useAI: prompt()', () => {
   it('rejects an empty string without hitting the server', async () => {
     const { awareness, docId } = makeCtx()
     const ai = useAI(docId, awareness)
@@ -766,29 +772,21 @@ describe('useAI — prompt()', () => {
     expect(ok).toBe(true)
   })
 
-  it('returns false and captures data.message from a server error', async () => {
-    promptEp.handler = () => new ApiError(500, { message: 'Service unavailable' })
+  it('returns false and captures the code\'s text from a server error, not its English message', async () => {
+    promptEp.handler = () => new ApiError(500, { message: 'Service unavailable', code: 'internal' })
     const { awareness, docId } = makeCtx()
     const ai = useAI(docId, awareness)
     const ok = await ai.prompt('hi')
     expect(ok).toBe(false)
-    expect(ai.lastError.value).toBe('Service unavailable')
+    expect(ai.lastError.value).toBe('Text for internal')
   })
 
-  it('falls back to "Request failed" when the error carries no message payload', async () => {
-    // 5xx with an empty-object body — composable's catch sees
-    // err.data.message undefined and err.message undefined (or a
-    // generic $fetch string).
-    promptEp.handler = () => new ApiError(500, {})
+  it('falls back to the generic text when the error carries no code', async () => {
+    promptEp.handler = () => new ApiError(418, { message: 'English only' })
     const { awareness, docId } = makeCtx()
     const ai = useAI(docId, awareness)
     await ai.prompt('hi')
-    // Either "Request failed" (no fields) or $fetch's generic message
-    // fallback ("[POST] …: 500 …") — the composable picks `.message`
-    // over "Request failed" when present. What we really care about is
-    // that SOME non-null string lands; the exact fallback string
-    // depends on $fetch's error format across versions.
-    expect(ai.lastError.value).toBeTruthy()
+    expect(ai.lastError.value).toBe('Generic text')
   })
 
   it('blocks a second submit while the first is in flight', async () => {
@@ -807,7 +805,7 @@ describe('useAI — prompt()', () => {
     const ai = useAI(docId, awareness)
     const firstPromise = ai.prompt('one')
     // `submitting` flips true synchronously in the composable, so the
-    // second call bails on the guard before fetching — `second === false`
+    // second call bails on the guard before fetching, `second === false`
     // without waiting for any HTTP round trip.
     expect(ai.submitting.value).toBe(true)
     const second = await ai.prompt('two')
@@ -828,18 +826,18 @@ describe('useAI — prompt()', () => {
     })
     const ai = useAI(docId, awareness)
     // The per-user-per-doc cap is enforced server-side, but the client
-    // shouldn't even try — it skips when mySessionId is already set.
+    // shouldn't even try: it skips when mySessionId is already set.
     const ok = await ai.prompt('new request')
     expect(ok).toBe(false)
     expect(promptCalls).toHaveLength(0)
   })
 
   it('clears lastError on a fresh submit', async () => {
-    promptEp.handler = () => new ApiError(500, { message: 'first failure' })
+    promptEp.handler = () => new ApiError(500, { message: 'first failure', code: 'internal' })
     const { awareness, docId } = makeCtx()
     const ai = useAI(docId, awareness)
     await ai.prompt('one')
-    expect(ai.lastError.value).toBe('first failure')
+    expect(ai.lastError.value).toBe('Text for internal')
 
     promptEp.handler = () => ({ sessionId: 'ok' })
     await ai.prompt('two')
@@ -869,14 +867,12 @@ describe('useAI — prompt()', () => {
 })
 
 // Selection-scoped requests flow through prompt() with an
-// editorSelection override — covered by `passes editorSelection
+// editorSelection override: covered by `passes editorSelection
 // through to the request body` above. No separate rewrite path.
 
-// ═══════════════════════════════════════════════════════════════════════
-// abort() — 404 race tolerance + no-session guard
-// ═══════════════════════════════════════════════════════════════════════
+// abort(): 404 race tolerance + no-session guard
 
-describe('useAI — abort()', () => {
+describe('useAI: abort()', () => {
   it('is a no-op when there is no active session of mine', async () => {
     const { awareness, docId } = makeCtx()
     const ai = useAI(docId, awareness)
@@ -919,25 +915,23 @@ describe('useAI — abort()', () => {
     pushAiClient(awareness, {
       sessionId: 'sid-mine', initiatorName: 'Me', initiatorUserId: 7
     })
-    abortEp.handler = () => new ApiError(403, { message: 'Not the initiator' })
+    abortEp.handler = () => new ApiError(403, { message: 'Not the initiator', code: 'auth/forbidden' })
     const ai = useAI(docId, awareness)
 
     await ai.abort()
-    expect(ai.lastError.value).toBe('Not the initiator')
+    expect(ai.lastError.value).toBe('Text for forbidden')
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // clearLastError + submitting + general state contract
-// ═══════════════════════════════════════════════════════════════════════
 
-describe('useAI — clearLastError + submitting', () => {
+describe('useAI: clearLastError + submitting', () => {
   it('clearLastError resets lastError to null', async () => {
-    promptEp.handler = () => new ApiError(500, { message: 'boom' })
+    promptEp.handler = () => new ApiError(500, { message: 'boom', code: 'internal' })
     const { awareness, docId } = makeCtx()
     const ai = useAI(docId, awareness)
     await ai.prompt('hi')
-    expect(ai.lastError.value).toBe('boom')
+    expect(ai.lastError.value).toBe('Text for internal')
 
     ai.clearLastError()
     expect(ai.lastError.value).toBe(null)
@@ -946,7 +940,7 @@ describe('useAI — clearLastError + submitting', () => {
   it('submitting flips true during in-flight prompt and back to false afterwards', async () => {
     // Gate the handler on a promise we resolve from the test. We can't
     // capture `release` inside the handler factory and call it from the
-    // test body — $fetch is async, so the handler hasn't run yet when
+    // test body: $fetch is async, so the handler hasn't run yet when
     // the test reaches `release()`. Instead, the handler awaits a
     // module-scoped gate that the test can resolve at any point.
     let resolveGate: () => void = () => {}
@@ -973,7 +967,7 @@ describe('useAI — clearLastError + submitting', () => {
   })
 
   it('submitting returns to false even when the server errors', async () => {
-    promptEp.handler = () => new ApiError(500, { message: 'boom' })
+    promptEp.handler = () => new ApiError(500, { message: 'boom', code: 'internal' })
     const { awareness, docId } = makeCtx()
     const ai = useAI(docId, awareness)
     await ai.prompt('hi')

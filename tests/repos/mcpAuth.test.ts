@@ -3,24 +3,25 @@ import { eq } from 'drizzle-orm'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser } from '../integration/setup/fixtures'
 import { mcpPersonalTokens } from '../../server/db/schema'
-import { useDatabase } from '../../server/utils/database'
-import { useValkey } from '../../server/utils/valkey'
+import { useDatabase } from '../../server/db/client'
+import { useValkey } from '../../server/utils/platform/valkey'
 import {
   issueMcpToken,
   verifyMcpPat,
   invalidateMcpPatCache,
   hashToken
-} from '../../server/utils/mcpAuth'
+} from '../../server/utils/mcp/mcpAuth'
+import { asUser } from '../helpers/access'
 
 // DB-backed tests for the Personal Access Token verifier. The pure-
 // function bits (token format, header parsing, hash stability, scope
-// membership) are pinned in `tests/unit/mcpAuth.test.ts`; this file
+// membership) are pinned in `tests/unit/mcp/mcpAuth.test.ts`; this file
 // covers the round-trip + cache + lifecycle that requires a real DB
 // and a real Valkey.
 //
 // Hot path: every MCP request hits `verifyMcpPat`. Bugs here surface
 // as "tool calls silently start returning empty / failing auth even
-// though the token is correct" — exactly the regression class that
+// though the token is correct", exactly the regression class that
 // pure-function tests can't catch.
 
 describe('issueMcpToken', () => {
@@ -31,7 +32,7 @@ describe('issueMcpToken', () => {
   it('persists a row with the issued hash + tokenId + scopes', async () => {
     const user = await createUser()
     const issued = await issueMcpToken({
-      userId: user.id,
+      self: asUser(user.id),
       name: 'test',
       scopes: ['documents:read', 'documents:write']
     })
@@ -54,8 +55,8 @@ describe('issueMcpToken', () => {
 
   it('issued tokens are unique across calls', async () => {
     const user = await createUser()
-    const a = await issueMcpToken({ userId: user.id, name: 'a', scopes: ['documents:read'] })
-    const b = await issueMcpToken({ userId: user.id, name: 'b', scopes: ['documents:read'] })
+    const a = await issueMcpToken({ self: asUser(user.id), name: 'a', scopes: ['documents:read'] })
+    const b = await issueMcpToken({ self: asUser(user.id), name: 'b', scopes: ['documents:read'] })
     expect(a.plaintext).not.toBe(b.plaintext)
     expect(a.tokenId).not.toBe(b.tokenId)
   })
@@ -64,7 +65,7 @@ describe('issueMcpToken', () => {
     const user = await createUser()
     const exp = new Date(Date.now() + 24 * 60 * 60 * 1000)
     const issued = await issueMcpToken({
-      userId: user.id, name: 'exp', scopes: ['documents:read'], expiresAt: exp
+      self: asUser(user.id), name: 'exp', scopes: ['documents:read'], expiresAt: exp
     })
     const db = useDatabase()
     const rows = await db.select().from(mcpPersonalTokens).where(eq(mcpPersonalTokens.tokenId, issued.tokenId))
@@ -80,7 +81,7 @@ describe('verifyMcpPat', () => {
   it('verifies a freshly issued plaintext to {userId, scopes, tokenId}', async () => {
     const user = await createUser()
     const issued = await issueMcpToken({
-      userId: user.id, name: 't', scopes: ['documents:read', 'web:fetch']
+      self: asUser(user.id), name: 't', scopes: ['documents:read', 'web:fetch']
     })
     // Clear the cache so the first call hits the DB. (issueMcpToken
     // doesn't warm the cache, but be explicit so the test isn't
@@ -97,7 +98,7 @@ describe('verifyMcpPat', () => {
   it('accepts both raw plaintext and "Bearer <token>" header forms', async () => {
     const user = await createUser()
     const issued = await issueMcpToken({
-      userId: user.id, name: 't', scopes: ['documents:read']
+      self: asUser(user.id), name: 't', scopes: ['documents:read']
     })
     const direct = await verifyMcpPat(issued.plaintext)
     const header = await verifyMcpPat(`Bearer ${issued.plaintext}`)
@@ -119,7 +120,7 @@ describe('verifyMcpPat', () => {
   it('returns null for a revoked token (after cache invalidation)', async () => {
     const user = await createUser()
     const issued = await issueMcpToken({
-      userId: user.id, name: 't', scopes: ['documents:read']
+      self: asUser(user.id), name: 't', scopes: ['documents:read']
     })
     // Warm cache.
     expect(await verifyMcpPat(issued.plaintext)).not.toBeNull()
@@ -138,7 +139,7 @@ describe('verifyMcpPat', () => {
     const user = await createUser()
     const past = new Date(Date.now() - 60_000)
     const issued = await issueMcpToken({
-      userId: user.id, name: 't', scopes: ['documents:read'], expiresAt: past
+      self: asUser(user.id), name: 't', scopes: ['documents:read'], expiresAt: past
     })
     expect(await verifyMcpPat(issued.plaintext)).toBeNull()
   })
@@ -147,7 +148,7 @@ describe('verifyMcpPat', () => {
     const user = await createUser()
     const future = new Date(Date.now() + 60 * 60_000)
     const issued = await issueMcpToken({
-      userId: user.id, name: 't', scopes: ['documents:read'], expiresAt: future
+      self: asUser(user.id), name: 't', scopes: ['documents:read'], expiresAt: future
     })
     expect(await verifyMcpPat(issued.plaintext)).not.toBeNull()
   })
@@ -155,10 +156,10 @@ describe('verifyMcpPat', () => {
   it('filters out unknown scope values stored in the row (forward-compat narrowing)', async () => {
     // If a future version writes a scope value we don't recognise (or
     // someone hand-edits the row), `verifyMcpPat` must strip it from
-    // the returned context — never escalate to "all scopes granted".
+    // the returned context: never escalate to "all scopes granted".
     const user = await createUser()
     const issued = await issueMcpToken({
-      userId: user.id, name: 't', scopes: ['documents:read']
+      self: asUser(user.id), name: 't', scopes: ['documents:read']
     })
     const db = useDatabase()
     await db.update(mcpPersonalTokens)
@@ -173,7 +174,7 @@ describe('verifyMcpPat', () => {
   it('the verifier cache hits on the second call within TTL (no DB query)', async () => {
     const user = await createUser()
     const issued = await issueMcpToken({
-      userId: user.id, name: 't', scopes: ['documents:read']
+      self: asUser(user.id), name: 't', scopes: ['documents:read']
     })
     // First call populates cache.
     await verifyMcpPat(issued.plaintext)
@@ -192,7 +193,7 @@ describe('verifyMcpPat', () => {
   it('invalidateMcpPatCache forces the next call to re-read from the DB', async () => {
     const user = await createUser()
     const issued = await issueMcpToken({
-      userId: user.id, name: 't', scopes: ['documents:read']
+      self: asUser(user.id), name: 't', scopes: ['documents:read']
     })
     await verifyMcpPat(issued.plaintext) // warm cache
 
@@ -215,7 +216,7 @@ describe('verifyMcpPat', () => {
   it('bumps lastUsedAt on a successful verify (throttled, async)', async () => {
     const user = await createUser()
     const issued = await issueMcpToken({
-      userId: user.id, name: 't', scopes: ['documents:read']
+      self: asUser(user.id), name: 't', scopes: ['documents:read']
     })
     // Clear any throttle key from previous tests to ensure the first
     // call's bump fires.
@@ -224,7 +225,7 @@ describe('verifyMcpPat', () => {
 
     await verifyMcpPat(issued.plaintext)
 
-    // The bump is fire-and-forget (void bumpLastUsed) — give it a
+    // The bump is fire-and-forget (void bumpLastUsed), give it a
     // beat to round-trip.
     await new Promise(r => setTimeout(r, 250))
 
@@ -236,7 +237,7 @@ describe('verifyMcpPat', () => {
   })
 })
 
-describe('verifyMcpPat — cascade on user deletion', () => {
+describe('verifyMcpPat: cascade on user deletion', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -244,10 +245,10 @@ describe('verifyMcpPat — cascade on user deletion', () => {
   it('returns null after the owning user is deleted (FK cascade)', async () => {
     const user = await createUser()
     const issued = await issueMcpToken({
-      userId: user.id, name: 't', scopes: ['documents:read']
+      self: asUser(user.id), name: 't', scopes: ['documents:read']
     })
 
-    // Delete the user — FK on `mcp_personal_tokens.user_id` is `ON
+    // Delete the user: FK on `mcp_personal_tokens.user_id` is `ON
     // DELETE cascade` so the token row goes away with them.
     const tdb = testDb()
     await tdb.query('DELETE FROM users WHERE id = $1', [user.id])

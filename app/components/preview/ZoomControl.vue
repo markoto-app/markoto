@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Preview zoom control. Desktop: a small pill in the preview pane's top
- * right corner — zoom out · current zoom (menu) · zoom in · all pages.
+ * right corner: zoom out · current zoom (menu) · zoom in · all pages.
  * `compact` (mobile view-mode bar): one round button opening the same
  * menu, with zoom in / out as menu items.
  */

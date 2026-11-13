@@ -25,7 +25,7 @@ Start a line with `#` for a title, `##` for a section, `###` for a subsection.
 
 Type an `x` between the brackets to tick a box.
 
-- [ ] **Share it.** The lock icon at the top right (or **Sharing → Sharing settings…**) decides what people with the link can do: "Private — only you", "Anyone can view", "Anyone can edit" or "Password protected".
+- [ ] **Share it.** The lock icon at the top right (or **Sharing → Sharing settings…**) decides what people with the link can do: "Private: only you", "Anyone can view", "Anyone can edit" or "Password protected".
 - [ ] **Change the look.** The palette icon on the right opens the **Document theme**: presets, fonts, colours, page size, header and footer.
 - [ ] **Edit the cover page.** This document starts with one. In the theme panel, **Cover page** sets the layout, subtitle, date and authors, or turns it off.
 - [ ] **Leave a comment.** Select some text and click **Add comment**. Write `@markoto` in a comment and the AI answers in the thread.

@@ -1,22 +1,13 @@
 <script setup lang="ts">
-// Workspace usage (WP11), admins: per person, what they own and added in
-// this workspace — documents, documents shared with guests, knowledge
-// files, image storage — and, in a Team / Business workspace, their AI
+// Workspace usage, admins: per person, what they own and added in
+// this workspace: documents, documents shared with guests, knowledge
+// files, image storage: and, in a Team / Business workspace, their AI
 // spend on the shared budget this period. No activity times: this is
 // usage, not monitoring. Server: `server/api/workspaces/[wsId]/usage.get.ts`.
-import { formatBytes } from '~/utils/usageMeter'
+import { formatBytes } from '~/utils/billing/usageMeter'
+import type { ApiResponse } from '~/utils/api/client'
 
-interface UsageRow {
-  userId: number
-  name: string
-  role: 'admin' | 'editor' | 'viewer' | 'guest'
-  documents: number
-  sharedDocuments: number
-  knowledgeFiles: number
-  knowledgeBytes: number
-  imageBytes: number
-  aiSpendUsd: number | null
-}
+type UsageRow = ApiResponse<'/api/workspaces/:wsId/usage', 'get'>['members'][number]
 
 const props = defineProps<{ workspaceId: string }>()
 const { t, locale } = useI18n()
@@ -29,7 +20,7 @@ const loading = ref(false)
 async function load(): Promise<void> {
   loading.value = true
   try {
-    const res = await $fetch<{ aiBudgetShared: boolean, members: UsageRow[] }>(`/api/workspaces/${encodeURIComponent(props.workspaceId)}/usage`)
+    const res = await apiFetch('/api/workspaces/:wsId/usage', { path: { wsId: props.workspaceId } })
     rows.value = res.members
     aiBudgetShared.value = res.aiBudgetShared
   } catch (e) {
@@ -44,7 +35,7 @@ const members = computed(() => rows.value.filter(r => r.role !== 'guest'))
 const guests = computed(() => rows.value.filter(r => r.role === 'guest'))
 
 function usd(n: number | null): string {
-  if (n === null) return '—'
+  if (n === null) return '-'
   return new Intl.NumberFormat(locale.value, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n)
 }
 

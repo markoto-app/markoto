@@ -12,20 +12,16 @@ import { clearRecentKicks, waitForKick, fetchRecentKicks } from '../setup/syncPr
 // PATCH / DELETE /api/workspaces/:wsId/members/:userId
 //
 // Two high-risk invariants live here:
-//   1. "≥1 admin" — demoting or removing the last admin must 409.
-//   2. JWT revocation on membership change — after the mutation, the app
-//      MUST dispatch a kick-user to the sync-server with the target userId
-//      and every workspace doc. Regression target: pre-fix, changes
-//      silently left stale JWTs valid for up to 2 hours.
+//   1. "≥1 admin": demoting or removing the last admin must 409.
+//   2. JWT revocation on membership change: after the mutation, the app MUST dispatch a kick-user to the
+//      sync-server with the target userId and every workspace doc. Without it, changes silently leave stale
+//      JWTs valid for up to 2 hours.
 //
-// The kick-side assertion uses `waitForKick` against the real sync-test
-// container's TEST_MODE-only `/internal/_test/recent-kicks` ring buffer
-// (see `tests/integration/setup/syncProbe.ts`). Replaces the previous
-// in-process HTTP stub — same coverage, but now the kick goes through
-// the SAME code path prod uses (Nuxt → sync-test container → kickUser
-// handler). The dispatch SHAPE (URL, headers, body) is also pinned at
-// the unit tier in `tests/unit/syncNotify.test.ts` — defence in depth
-// against the dispatch site being silently removed.
+// The kick-side assertion uses `waitForKick` against the real sync-test container's TEST_MODE-only
+// `/internal/_test/recent-kicks` ring buffer (see `tests/integration/setup/syncProbe.ts`), so the kick goes
+// through the SAME code path prod uses (Nuxt → sync-test container → kickUser handler). The dispatch SHAPE
+// (URL, headers, body) is also pinned at the unit tier in `tests/unit/sync/syncNotify.test.ts`: defence in
+// depth against the dispatch site being silently removed.
 
 async function roleOf(workspaceId: string, userId: number): Promise<string | null> {
   const db = testDb()
@@ -123,7 +119,7 @@ describe('PATCH /api/workspaces/:wsId/members/:userId', () => {
     expect(res.status).toBe(200)
     const body = await res.json() as { noop?: boolean }
     expect(body.noop).toBe(true)
-    // No kick dispatched on no-op — saves a useless round-trip.
+    // No kick dispatched on no-op, saves a useless round-trip.
     // Brief settle so a buggy dispatch would have time to land.
     await new Promise(r => setTimeout(r, 200))
     const kicks = await fetchRecentKicks()
@@ -148,8 +144,7 @@ describe('PATCH /api/workspaces/:wsId/members/:userId', () => {
   })
 
   it('dispatches kick even when role LOOSENS (viewer → editor)', async () => {
-    // Over-kicking is intentional (see syncNotify.ts rationale). Regression
-    // guard: a past "optimisation" suggested only kicking on tightening.
+    // Over-kicking is intentional (see syncNotify.ts rationale); do not optimise it to kick only on tightening.
     const admin = await createUser()
     const viewer = await createUser()
     const ws = await createWorkspace(admin.id)

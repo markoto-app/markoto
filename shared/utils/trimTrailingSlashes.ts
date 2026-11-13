@@ -2,7 +2,7 @@
 // configured base URLs (`NUXT_LITELLM_URL`, sidecar health URLs, …)
 // before concatenating a path.
 //
-// Deliberately a character-scan rather than `.replace(/\/+$/, '')` —
+// Deliberately a character-scan rather than `.replace(/\/+$/, '')`,
 // that regex's unanchored-start + quantifier + `$` combination
 // backtracks super-linearly (O(n²)) on a long run of slashes, which
 // SonarQube flags (S8786). The loop is exactly linear and has the same

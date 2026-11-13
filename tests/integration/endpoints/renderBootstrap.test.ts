@@ -1,4 +1,4 @@
-// Integration tests for GET /api/_internal/render-bootstrap — the
+// Integration tests for GET /api/_internal/render-bootstrap, the
 // endpoint the renderer container hits during the SSR pass of the
 // internal print page (`app/pages/_internal/render/[docId].vue`).
 // Validates the render-token, server-replays the doc's Y.js history,
@@ -18,12 +18,12 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import jwt from 'jsonwebtoken'
 import * as Y from 'yjs'
-import { resetDb, testDb, ensureYjsTable } from '../setup/db'
-import { THEME_PRESETS } from '~~/shared/utils/themePresets'
+import { resetDb, testDb } from '../setup/db'
+import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
 import { anonClient } from '../setup/client'
 import { createUser, createDoc } from '../setup/fixtures'
 import { TEST_INTERNAL_SECRET } from '../setup/env'
-import { mintRenderJwt } from '~~/shared/test-helpers/jwt'
+import { mintRenderJwt } from '~~/tests/helpers/jwt'
 
 function mintRenderToken(docId: string, snapshotId: number, opts: {
   scope?: string
@@ -33,7 +33,7 @@ function mintRenderToken(docId: string, snapshotId: number, opts: {
   // Happy path goes through the shared `mintRenderJwt` so the wire
   // shape (`scope: 'render'` + 60s TTL) is pinned by the contract.
   // Adversarial cases (scope override, secret rotation, expired
-  // tokens) take the raw `jwt.sign` branch — those are testing the
+  // tokens) take the raw `jwt.sign` branch, those are testing the
   // verifier's reject paths so they MUST be free to mint malformed
   // shapes.
   if (opts.scope === undefined && opts.secret === undefined && opts.ttl === undefined) {
@@ -149,7 +149,7 @@ describe('GET /api/_internal/render-bootstrap', () => {
     const doc = await createDoc({ ownerId: owner.id })
     const token = mintRenderToken(doc.docId, 1)
 
-    // Delete the doc OUTSIDE the app — direct DB delete avoids the
+    // Delete the doc OUTSIDE the app, direct DB delete avoids the
     // delete cascade's S3 + sync notify side effects which are
     // irrelevant for this auth-flow test.
     const { testDb } = await import('../setup/db')
@@ -169,7 +169,7 @@ describe('GET /api/_internal/render-bootstrap', () => {
       `/api/_internal/render-bootstrap?docId=${doc.docId}&t=not.a.jwt`
     )
     expect(res.status).toBe(403)
-    // Error message should be generic — not "scope mismatch" or
+    // Error message should be generic, not "scope mismatch" or
     // "expired" or "wrong signature". The endpoint collapses every
     // verify failure into the same 403 to avoid timing/shape oracles.
     const body = await res.json() as { message?: string }
@@ -197,13 +197,10 @@ describe('GET /api/_internal/render-bootstrap', () => {
     expect(await res.json()).toMatchObject({ fileIds: ['AbCdEfGhIjKl.png'] })
   })
 
-  // Regression: an anonymous doc's theme (and any property change made by
-  // someone other than the owner) lives only in Y.js `meta` — the row's
-  // theme stays NULL because only the owner's editor persists it via
-  // PUT /meta. The bootstrap used to read the row, so the server PDF of an
-  // anonymous doc came out in the default theme.
+  // An anonymous doc's theme (and any property change made by someone other than the owner) lives only in
+  // Y.js `meta`; the row's theme stays NULL because only the owner's editor persists it via PUT /meta. The
+  // bootstrap must read Y.js meta, otherwise the server PDF of an anonymous doc comes out in the default theme.
   it('takes theme + properties from the replayed Y.js meta (anonymous doc, row theme NULL)', async () => {
-    await ensureYjsTable()
     const arxiv = THEME_PRESETS.find(p => p.id === 'arxiv')?.theme
     expect(arxiv).toBeDefined()
     const doc = await createDoc({ ownerId: null, title: 'Row title' })
@@ -214,7 +211,7 @@ describe('GET /api/_internal/render-bootstrap', () => {
     ymeta.set('title', 'Live title')
     ymeta.set('language', 'de')
     const inserted = await testDb().query<{ id: number }>(
-      `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1') RETURNING id`,
+      `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2) RETURNING id`,
       [doc.docId, Buffer.from(Y.encodeStateAsUpdate(ydoc))]
     )
     const snapshotId = Number(inserted.rows[0]?.id)

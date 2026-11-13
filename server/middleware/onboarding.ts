@@ -1,6 +1,6 @@
-import { legalSurfacesEnabled } from '../utils/instanceConfig'
-import { getValidatedOnboardingState } from '../utils/validatedSession'
-import { isOnboardingGatedRequest, onboardingIncomplete, ONBOARDING_REQUIRED_CODE } from '../utils/onboardingGate'
+import { legalSurfacesEnabled } from '../utils/platform/instanceConfig'
+import { getValidatedOnboardingState } from '../utils/auth/validatedSession'
+import { isOnboardingGatedRequest, onboardingIncomplete, ONBOARDING_REQUIRED_CODE } from '../utils/privacy/onboardingGate'
 
 // Server-side onboarding gate (hosted shape only). A signed-in user who
 // hasn't confirmed their age or accepted the current Privacy Policy +

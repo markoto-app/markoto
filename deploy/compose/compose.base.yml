@@ -1,0 +1,430 @@
+# Shared service definitions consumed by dev / local / prod via Compose's
+# `include:` directive. Overriding an included service from the including
+# file needs Docker Compose >= 5.0.0 (2.24-2.40 reject it with "conflicts
+# with imported resource"; compose-go#835 re-allowed it).
+#
+# Single source of truth for the shape shared by dev / local / prod; each env
+# file overrides only what is environment-specific.
+#
+# Semantics reminder (Compose merge):
+#   - environment: map-merged (per-key override): good
+#   - command:     REPLACED wholesale by override (gotcha)
+#   - volumes:     REPLACED wholesale by override (gotcha)
+#   - depends_on:  REPLACED wholesale by override (gotcha)
+#   - networks:    REPLACED wholesale by override (gotcha)
+#   - ports/expose: REPLACED per-key, but they're different keys so
+#                   defining `expose` in base + `ports` in override
+#                   leaves both in the merged result. Harmless.
+#
+# This file is NOT directly runnable: it has no top-level networks
+# and intentionally leaves env-specific knobs unset. Pair it with one
+# of docker-compose.{dev,local,prod}.yml.
+#
+# Container baseline (docs/SECURITY-HARDENING.md §C.1): every
+# long-running service here runs as a non-root user with `cap_drop: [ALL]`
+# and `no-new-privileges`, and on a read-only root filesystem where the
+# service allows it (writable paths are explicit tmpfs mounts / volumes).
+# Networks are NOT set here: each env file assigns its services to purpose
+# networks (data / render / import / ...), see deploy/compose/compose.prod.yml.
+#
+# `deploy/compose/compose.test.yml` does NOT include this base: test infra
+# uses suffixed service names (postgres-test, valkey-test, etc.) on
+# different ports with tmpfs storage: almost no shared shape.
+
+# Container hardening every service gets (docs/SECURITY-HARDENING.md §C):
+# no Linux capabilities, no privilege gain through setuid binaries. A service
+# that needs more (a seccomp profile, a capability) spells its keys out.
+x-hardening: &hardening
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+
+services:
+  postgres:
+    # pgvector/pgvector is Postgres 16 with the `vector` extension
+    # pre-built. Drop-in for postgres:16-alpine: data directory +
+    # client protocol identical. CREATE EXTENSION vector runs in the
+    # first migration.
+    image: pgvector/pgvector:pg16@sha256:0dd3149a06e4579a0d70d8fef9945636cd514005e7237deb27f9b67886f8dc4f
+    restart: unless-stopped
+    # Hard memory cap so a runaway query (big sort, pathological join) can't
+    # starve the box and take every other service down with it. 1 GB is
+    # comfortable for our workload (small pool, conservative default
+    # shared_buffers/work_mem) plus the tiny co-hosted `litellm` DB. Prod's
+    # intended topology is OVH managed Postgres, where this cap is moot; it
+    # protects the in-stack dev/local/staging path.
+    mem_limit: 1g
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER required}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      - POSTGRES_DB=${POSTGRES_DB:?POSTGRES_DB required}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      # `/docker-entrypoint-initdb.d/` runs once on a fresh data dir,
+      # used to create the `litellm` DB alongside the app DB. For
+      # already-initialised volumes, the litellm-db-init one-shot service
+      # below ensures the DB exists.
+      - ../config/postgres/init:/docker-entrypoint-initdb.d:ro,z
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    # The image's entrypoint starts as root only to fix data-dir ownership
+    # and then drops to the `postgres` user; these are the capabilities
+    # that step needs. Everything else is dropped.
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    security_opt:
+      - no-new-privileges:true
+
+  # Idempotent one-shot, run before the app, sync and LiteLLM start (on
+  # every `up`): creates the `litellm` database and, when configured, the
+  # separate least-privilege roles for the app (POSTGRES_APP_USER) and for
+  # LiteLLM (POSTGRES_LITELLM_USER), hands existing objects over to them and
+  # revokes cross-database CONNECT. Connects as the admin role
+  # (POSTGRES_USER). Unset role vars = both keep using the admin role, the
+  # pre-roles behaviour. Logic + rationale: deploy/config/postgres/db-init.sh.
+  # (/docker-entrypoint-initdb.d/ only fires on a *fresh* volume, so it
+  # can't carry this for existing installs.)
+  db-init:
+    image: pgvector/pgvector:pg16@sha256:0dd3149a06e4579a0d70d8fef9945636cd514005e7237deb27f9b67886f8dc4f
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    user: postgres
+    read_only: true
+    <<: *hardening
+    environment:
+      - PGHOST=postgres
+      - PGPORT=5432
+      - PGUSER=${POSTGRES_USER}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - APP_DB=${POSTGRES_DB}
+      - APP_DB_USER=${POSTGRES_APP_USER:-${POSTGRES_USER}}
+      - APP_DB_PASSWORD=${POSTGRES_APP_PASSWORD:-}
+      - LITELLM_DB=litellm
+      - LITELLM_DB_USER=${POSTGRES_LITELLM_USER:-${POSTGRES_USER}}
+      - LITELLM_DB_PASSWORD=${POSTGRES_LITELLM_PASSWORD:-}
+    volumes:
+      - ../config/postgres/db-init.sh:/db-init.sh:ro,z
+    entrypoint: ["/bin/sh", "/db-init.sh"]
+
+  litellm:
+    image: ghcr.io/berriai/litellm:v1.106.4@sha256:c169fb3adc514fcf210377c203f3de406d54f10bfdacf13948a4a839db9af7de
+    restart: unless-stopped
+    # Cap the proxy. Steady-state it's a thin Python router; the memory
+    # peak is the cold-start Prisma migration run (see start_period below).
+    # 1 GB was WRONG: empirically the boot path OOMs against a 1g memcg
+    # (kernel log on staging, 2026-08-18: `Memory cgroup out of memory:
+    # Killed process (litellm) anon-rss:611292kB`: the python process
+    # alone sits at ~640 MB before Prisma's node engine spawns). The
+    # child gets OOM-killed, the wrapper exits 0, and the container
+    # restart-loops through "Running prisma migrate deploy" forever,
+    # never turning healthy: which blocks `app` via depends_on and
+    # takes the whole deploy down. The 1g cap had only ever been
+    # config-validated: deploys didn't sync compose files to the host
+    # until the #44/#46 fix, so its first real application was also its
+    # first failure. 2 GB boots clean (verified live on staging).
+    mem_limit: 2g
+    environment:
+      # Its own role (owner of the litellm database only) when
+      # POSTGRES_LITELLM_USER is set: see db-init above.
+      - DATABASE_URL=postgresql://${POSTGRES_LITELLM_USER:-${POSTGRES_USER}}:${POSTGRES_LITELLM_PASSWORD:-${POSTGRES_PASSWORD}}@postgres:5432/litellm
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
+      - LITELLM_SALT_KEY=${LITELLM_SALT_KEY:?LITELLM_SALT_KEY required}
+      # Empty is fine when embeddings run on `custom-embeddings` (self-hosting);
+      # defined-but-empty keeps LiteLLM from crashing on an unset os.environ/ ref.
+      - JINA_AI_API_KEY=${JINA_AI_API_KEY:-}
+      # Self-hosting: operator-configurable embeddings deployment
+      # (`custom-embeddings` in deploy/config/litellm/config.yaml). Selected only when
+      # NUXT_LITELLM_EMBEDDINGS_MODEL=custom-embeddings. The proxy crashes at
+      # startup if these are undefined, hence the placeholder defaults.
+      # See docs/AI-MODELS.md#embeddings.
+      - EMBEDDINGS_UPSTREAM_MODEL=${EMBEDDINGS_UPSTREAM_MODEL:-openai/text-embedding-3-small}
+      - EMBEDDINGS_UPSTREAM_API_BASE=${EMBEDDINGS_UPSTREAM_API_BASE:-https://api.openai.com/v1}
+      - EMBEDDINGS_UPSTREAM_API_KEY=${EMBEDDINGS_UPSTREAM_API_KEY:-}
+      # Upstream provider keys. `${VAR:-}` fallbacks let the stack boot
+      # before the keys are provisioned.
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+      - BFL_API_KEY=${BFL_API_KEY:-}
+      - STORE_MODEL_IN_DB=false
+      - LITELLM_LOG=INFO
+      # No admin UI (see general_settings in deploy/config/litellm/config.yaml).
+      - DISABLE_ADMIN_UI=True
+    volumes:
+      - ../config/litellm/config.yaml:/app/config.yaml:ro,z
+      # custom_handlers.py is loaded by litellm_settings.custom_provider_map
+      # in config.yaml. Imported eagerly on every boot, so a broken file
+      # fails at startup.
+      - ../config/litellm/custom_handlers.py:/app/custom_handlers.py:ro,z
+    working_dir: /app
+    command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1"]
+    # LiteLLM reads its config once at boot, and the single-file bind
+    # mounts above keep pointing at the file the container started with
+    # when a deploy replaces it (new inode). A changed label makes
+    # `compose up -d` recreate the container, so the deploy paths export
+    # a hash of the two mounted files as LITELLM_CONFIG_HASH (deploy.yml,
+    # the Ansible markoto role, install.sh). Unset (dev, tests) = a
+    # constant, so nothing is recreated there.
+    labels:
+      markoto.litellm-config: ${LITELLM_CONFIG_HASH:-unset}
+    # Unprivileged (`nobody`), read-only image; the Prisma engine and the
+    # proxy only write temp files. Verified: cold-start migrations, key
+    # generation and spend tracking all work under this shape.
+    user: "65534:65534"
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    <<: *hardening
+    depends_on:
+      postgres:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://localhost:4000/health/liveliness', timeout=2).status == 200 else 1)"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 60s   # cold start runs 118 prisma migrations on a fresh DB
+
+  valkey:
+    image: valkey/valkey:9-alpine@sha256:48332870af354a799964c0012ae1194a0bf2bf894eb508f945810596dc2d8d11
+    restart: unless-stopped
+    # Cap set ABOVE the 1 GB `--maxmemory` below: an AOF rewrite forks the
+    # process and copy-on-write can transiently push RSS past the dataset
+    # size, so 1.5 GB leaves rewrite headroom while still bounding a runaway.
+    # (In practice our keyspace, rate limits, locks, 24h sync-state, stays
+    # far below 1 GB; allkeys-lru evicts before maxmemory anyway.)
+    mem_limit: 1536m
+    # AOF with fsync-every-second is a fine trade for rate-limit data:
+    # worst case we lose ≤1s of hits on crash, sliding windows self-heal.
+    # 1gb headroom for rate-limit + presence + render-singleflight +
+    # sweep-lock keyspaces under sustained load. allkeys-lru is correct
+    # for our shape (cache-with-some-locks); locks have short TTLs and
+    # the rate-limit fail-open path is documented.
+    #
+    # Strict `${VALKEY_PASSWORD:?required}` here. dev/test use a soft
+    # fallback (`:-devpassword`) by overriding `command:` wholesale,
+    # `command:` is REPLACED on merge, not concatenated.
+    command:
+      - "valkey-server"
+      - "--requirepass"
+      - "${VALKEY_PASSWORD:?VALKEY_PASSWORD required}"
+      - "--appendonly"
+      - "yes"
+      - "--appendfsync"
+      - "everysec"
+      - "--maxmemory"
+      - "1gb"
+      - "--maxmemory-policy"
+      - "allkeys-lru"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "--no-auth-warning", "-a", "${VALKEY_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - valkey_data:/data
+    # The image's `valkey` user (999:1000) directly, instead of an
+    # entrypoint that starts as root to chown /data. The data volume is
+    # already owned by it (the image's /data is, and older entrypoints
+    # chowned existing volumes).
+    user: "999:1000"
+    read_only: true
+    <<: *hardening
+
+  # NOTE: `seaweedfs` is defined per-env in dev/local (not in base).
+  # Compose's `include:` always merges every service from the included
+  # file: there's no way to "drop" a service downstream. Prod uses
+  # external S3 and would otherwise inherit a phantom seaweedfs +
+  # seaweed_data volume. Two-line duplication in dev/local is the
+  # cheaper trade.
+
+  sync:
+    restart: unless-stopped
+    stop_grace_period: 30s
+    # Hocuspocus holds every actively-connected doc's Y.Doc in memory. 1 GB
+    # covers a healthy number of concurrent docs for our scale; a cap here
+    # means a pathological doc (or a connection leak) restarts sync alone
+    # instead of OOMing the whole box. Sticky sessions keep a doc's clients
+    # pinned to one instance, so per-instance memory scales with local load.
+    mem_limit: 1g
+    # Same as the image's HEALTHCHECK, declared here because Podman builds
+    # OCI images, which drop HEALTHCHECK (docs/contributing/CONTAINER-ENGINES.md).
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --tries=1 --timeout=3 http://127.0.0.1:4001/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    environment:
+      - PORT=4001
+      # The app role (shared with the app: both write the app database).
+      - POSTGRES_USER=${POSTGRES_APP_USER:-${POSTGRES_USER}}
+      - POSTGRES_PASSWORD=${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - VALKEY_HOST=valkey
+      - VALKEY_PORT=6379
+      - VALKEY_PASSWORD=${VALKEY_PASSWORD}
+      - VALKEY_DB=${VALKEY_DB:-0}
+      # Size limits for client updates (bytes). Empty = built-in defaults
+      # (17 MiB frame / 16 MiB update / 16 MiB document): see
+      # sync-server/src/limits.ts and .env.example.
+      - SYNC_MAX_MESSAGE_BYTES=${SYNC_MAX_MESSAGE_BYTES:-}
+      - SYNC_MAX_UPDATE_BYTES=${SYNC_MAX_UPDATE_BYTES:-}
+      - SYNC_MAX_DOCUMENT_BYTES=${SYNC_MAX_DOCUMENT_BYTES:-}
+      # Messages queued before a document authenticates. Empty = defaults
+      # (32 MiB per socket / 256 MiB per process / 15 s for the auth frame)
+      # see sync-server/src/pre-auth-guard.ts and .env.example.
+      - SYNC_MAX_PREAUTH_BYTES=${SYNC_MAX_PREAUTH_BYTES:-}
+      - SYNC_MAX_PREAUTH_TOTAL_BYTES=${SYNC_MAX_PREAUTH_TOTAL_BYTES:-}
+      - SYNC_AUTH_TIMEOUT_MS=${SYNC_AUTH_TIMEOUT_MS:-}
+      # Open connections per client IP. Empty = 20 in production, 200
+      # otherwise (sync-server/src/rate-limiter.ts).
+      - SYNC_MAX_CONNECTIONS_PER_IP=${SYNC_MAX_CONNECTIONS_PER_IP:-}
+      # Y.js log snapshots and history retention. Empty = a snapshot after
+      # 500 updates / sweep every 900000 ms (<= 0 turns it off) / 50
+      # documents per run / keep all history (sync-server/src/compaction.ts).
+      - COMPACT_THRESHOLD=${COMPACT_THRESHOLD:-}
+      - COMPACT_INTERVAL_MS=${COMPACT_INTERVAL_MS:-}
+      - COMPACT_MAX_DOCS_PER_RUN=${COMPACT_MAX_DOCS_PER_RUN:-}
+      - COMPACT_RETAIN_HISTORY_DAYS=${COMPACT_RETAIN_HISTORY_DAYS:-}
+    # Image user `bun`; source is root-owned. Bun only needs /tmp.
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    <<: *hardening
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      # The app role (POSTGRES_APP_USER) must exist and own the database
+      # before sync reads or writes `yjs_updates`.
+      db-init:
+        condition: service_completed_successfully
+
+  markitdown:
+    restart: unless-stopped
+    # Import parsing (PDF/DOCX/PPTX/XLSX) can spike on a large or
+    # image-heavy file. 1 GB absorbs typical imports; a cap keeps a
+    # malicious/huge upload from taking the box down (the app also enforces
+    # a 50 MB import size limit upstream).
+    mem_limit: 1g
+    # Same as the image's HEALTHCHECK, declared here because Podman builds
+    # OCI images, which drop HEALTHCHECK (docs/contributing/CONTAINER-ENGINES.md).
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 5s
+      retries: 3
+    # Image user `app`. Parses untrusted files, so it gets the tightest
+    # shape: read-only, no capabilities, and (per env file) a network that
+    # reaches nothing but the app.
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    <<: *hardening
+    environment:
+      # Its own secret, not INTERNAL_API_SECRET: a converter compromised by
+      # a hostile upload must not be able to call sync or /api/internal.
+      # The app sends it as X-Markitdown-Secret; /health stays open.
+      - MARKITDOWN_API_SECRET=${NUXT_MARKITDOWN_API_SECRET:?NUXT_MARKITDOWN_API_SECRET required}
+
+  # Backend PDF + PNG renderer. Playwright + Chromium drives the
+  # paged.js preview pipeline against /_internal/render/:docId on the
+  # app. Internal-network-only in prod/local; dev publishes 9000 so the
+  # host `bun run dev` can call it directly.
+  renderer:
+    restart: unless-stopped
+    stop_grace_period: 30s
+    # Cap memory: a doc with hundreds of inline images can OOM Chromium
+    # silently. 2 GB is comfortable for typical loads (≤50 pages, ≤30
+    # images) and lets multiple concurrent renders coexist with the
+    # host. Below ~1 GB Chromium becomes unstable; above 4 GB rarely
+    # buys anything for paginated docs.
+    mem_limit: 2g
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --tries=1 --timeout=3 http://127.0.0.1:9000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      # Cold-start budget: Playwright launches Chromium lazily on the
+      # first /render request, but the HTTP server itself is up within
+      # a second. Give it 30s anyway so a slow image fetch doesn't trip
+      # the healthcheck and trigger a restart loop.
+      start_period: 30s
+      retries: 3
+    # Chromium renders user-authored HTML/CSS/SVG, so this is the most
+    # exposed process in the stack. Image user `pwuser` (renderer/Dockerfile),
+    # no capabilities, read-only root with a tmpfs /tmp (Chromium's profile,
+    # shared memory, `--disable-dev-shm-usage`, and font caches; it counts
+    # against mem_limit). Chromium keeps its own sandbox: the seccomp profile
+    # is Docker's default plus `clone`/`unshare`/`chroot`, which Chromium's
+    # user-namespace sandbox needs without CAP_SYS_ADMIN (rationale +
+    # opt-out: docs/SECURITY-HARDENING.md §C.2).
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=../config/renderer/seccomp.json
+    pids_limit: 2048
+    environment:
+      - PORT=9000
+      - INTERNAL_API_SECRET=${NUXT_INTERNAL_API_SECRET:?NUXT_INTERNAL_API_SECRET required}
+      - INTERNAL_API_SECRET_PREVIOUS=${NUXT_INTERNAL_API_SECRET_PREVIOUS:-}
+      - S3_ACCESS_KEY=${NUXT_S3_ACCESS_KEY:?NUXT_S3_ACCESS_KEY required}
+      - S3_SECRET_KEY=${NUXT_S3_SECRET_KEY:?NUXT_S3_SECRET_KEY required}
+      - S3_BUCKET=${NUXT_S3_BUCKET:?NUXT_S3_BUCKET required}
+      # Error telemetry; empty = Sentry off (renderer/src/sentry.ts).
+      - SENTRY_DSN=${SENTRY_DSN:-}
+
+  backup:
+    restart: unless-stopped
+    # The backup is a streaming pipe (pg_dump | gzip | gpg | aws s3 cp): it
+    # never buffers the whole dump in memory, so a small cap is plenty and
+    # keeps a stuck backup from competing with live services for RAM.
+    mem_limit: 512m
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      # Backup storage. ONLY this service receives these: they default to the
+      # app's bucket/keys (NUXT_S3_*) until a dedicated backup bucket with its
+      # own credentials is provisioned (docs/operations/LAUNCH-CHECKLIST.md). The
+      # endpoint is set per environment.
+      - S3_ACCESS_KEY=${BACKUP_S3_ACCESS_KEY:-${NUXT_S3_ACCESS_KEY}}
+      - S3_SECRET_KEY=${BACKUP_S3_SECRET_KEY:-${NUXT_S3_SECRET_KEY}}
+      - S3_BUCKET=${BACKUP_S3_BUCKET:-${NUXT_S3_BUCKET}}
+      - S3_REGION=${BACKUP_S3_REGION:-us-east-1}
+      - S3_PREFIX=${BACKUP_S3_PREFIX:-backups/postgres}
+    # The sidecar runs as an unprivileged user; it needs no capabilities.
+    # Not read-only: the encrypted dump is staged in /tmp before upload and
+    # can be large (a tmpfs would count it against mem_limit).
+    <<: *hardening
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pg_data:
+  valkey_data:
+  # `seaweed_data` is declared per-env in dev/local (see seaweedfs note above).

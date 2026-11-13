@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { buildUserOnlyTool } from '../lib/wrapDocBoundTool'
 
-// User-only — lists the caller's saved theme presets. Optionally
+// User-only: lists the caller's saved theme presets. Optionally
 // includes a workspace's default theme if `workspace_id` is provided.
 export default buildUserOnlyTool({
   name: 'list_themes',

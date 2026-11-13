@@ -15,7 +15,7 @@ import { flowStripData, stripCaption } from '~~/shared/docs/flowStrip'
 // Rendered on the server: the default variant (en, light, desktop) as
 // real <img> tags with alt text, width and height, so the HTML a crawler
 // gets has the pictures. The dark variant sits next to each light one and
-// CSS shows whichever matches `html.dark` (the Wordmark pattern — same DOM
+// CSS shows whichever matches `html.dark` (the Wordmark pattern, same DOM
 // on server and client, and `loading="lazy"` keeps the hidden one from
 // downloading). Unlike `<Flow>`, no slideshow and no fetch.
 const props = withDefaults(defineProps<{
@@ -27,7 +27,7 @@ const props = withDefaults(defineProps<{
   limit?: number
   /** Caption (and alt text) for a single-shot strip, replacing the flow step's own text. */
   caption?: string
-  /** One caption (and alt text) per shown shot, in order — a YAML list in the block. Wins over `caption` and the step text. */
+  /** One caption (and alt text) per shown shot, in order, a YAML list in the block. Wins over `caption` and the step text. */
   captions?: string[]
 }>(), { frames: undefined, limit: 3, caption: undefined, captions: undefined })
 

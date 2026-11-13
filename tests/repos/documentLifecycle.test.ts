@@ -5,14 +5,19 @@ import {
   type S3Client
 } from '@aws-sdk/client-s3'
 import { resetDb, testDb } from '../integration/setup/db'
+import { captureLogs } from '../helpers/logs'
 import {
   deleteDocDbRows,
   cleanupDocS3,
   notifySyncDeleted
-} from '../../server/utils/documentLifecycle'
+} from '../../server/utils/documents/documentLifecycle'
 import { appendActivity } from '../../server/repos/activity'
 import { recordPending } from '../../server/repos/uploads'
 import { createUser, createDoc as seedDoc } from '../integration/setup/fixtures'
+import { at, first, must } from '../helpers/assert'
+import { docAs } from '../helpers/access'
+
+const logs = captureLogs()
 
 // Each phase is tested independently so failure-isolation is visible:
 //   - deleteDocDbRows: touches DB only, in FK-safe order
@@ -23,7 +28,7 @@ import { createUser, createDoc as seedDoc } from '../integration/setup/fixtures'
 // The orchestrator deleteDocument is covered by the endpoint integration
 // tests (DELETE /api/docs/:id).
 
-// --- fake S3 ---------------------------------------------------------------
+// fake S3
 
 type SendFn = S3Client['send']
 
@@ -60,7 +65,7 @@ function makeFakeS3(state: FakeS3State): Pick<S3Client, 'send'> {
   return { send }
 }
 
-// --- deleteDocDbRows -------------------------------------------------------
+// deleteDocDbRows
 
 describe('deleteDocDbRows', () => {
   beforeEach(async () => {
@@ -70,36 +75,35 @@ describe('deleteDocDbRows', () => {
   it('removes activity + uploads + documents rows for the target doc', async () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
-    await appendActivity({ docId: doc.docId, userName: 'u', action: 'edit' })
-    await recordPending({
-      docId: doc.docId, fileId: 'a.png', uploaderId: user.id,
+    await appendActivity(docAs(doc.docId), { userName: 'u', action: 'edit' })
+    await recordPending(docAs(doc.docId), { fileId: 'a.png', uploaderId: user.id,
       contentType: 'image/png', sizeBytes: 1, s3Key: `docs/${doc.docId}/a.png`
     })
 
-    await deleteDocDbRows(doc.docId)
+    await deleteDocDbRows(docAs(doc.docId))
 
     const db = testDb()
-    expect(Number((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM documents WHERE doc_id = $1', [doc.docId])).rows[0].c)).toBe(0)
-    expect(Number((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM uploads WHERE doc_id = $1', [doc.docId])).rows[0].c)).toBe(0)
-    expect(Number((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM activity_log WHERE doc_id = $1', [doc.docId])).rows[0].c)).toBe(0)
+    expect(Number(first((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM documents WHERE doc_id = $1', [doc.docId])).rows).c)).toBe(0)
+    expect(Number(first((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM uploads WHERE doc_id = $1', [doc.docId])).rows).c)).toBe(0)
+    expect(Number(first((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM activity_log WHERE doc_id = $1', [doc.docId])).rows).c)).toBe(0)
   })
 
   it('leaves OTHER docs untouched', async () => {
     const user = await createUser()
     const docA = await seedDoc({ ownerId: user.id })
     const docB = await seedDoc({ ownerId: user.id })
-    await appendActivity({ docId: docA.docId, userName: 'u', action: 'edit' })
-    await appendActivity({ docId: docB.docId, userName: 'u', action: 'edit' })
+    await appendActivity(docAs(docA.docId), { userName: 'u', action: 'edit' })
+    await appendActivity(docAs(docB.docId), { userName: 'u', action: 'edit' })
 
-    await deleteDocDbRows(docA.docId)
+    await deleteDocDbRows(docAs(docA.docId))
 
     const db = testDb()
-    expect(Number((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM activity_log WHERE doc_id = $1', [docB.docId])).rows[0].c)).toBe(1)
-    expect(Number((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM documents WHERE doc_id = $1', [docB.docId])).rows[0].c)).toBe(1)
+    expect(Number(first((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM activity_log WHERE doc_id = $1', [docB.docId])).rows).c)).toBe(1)
+    expect(Number(first((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM documents WHERE doc_id = $1', [docB.docId])).rows).c)).toBe(1)
   })
 
-  it('is idempotent — deleting a nonexistent doc is a no-op (no throw)', async () => {
-    await expect(deleteDocDbRows('ghost-doc')).resolves.toBeUndefined()
+  it('is idempotent: deleting a nonexistent doc is a no-op (no throw)', async () => {
+    await expect(deleteDocDbRows(docAs('ghost-doc'))).resolves.toBeUndefined()
   })
 
   it('FK order: activity and uploads drop BEFORE the documents row', async () => {
@@ -107,20 +111,20 @@ describe('deleteDocDbRows', () => {
     // deletes would succeed (they'd have no rows to match) but the FK
     // constraint `documents.workspace_id` -> workspaces would still be
     // fine. The real risk is reversing to `documents first` in a version
-    // where activity_log has `ON DELETE RESTRICT` — then docs can't drop.
+    // where activity_log has `ON DELETE RESTRICT`, then docs can't drop.
     // We don't have RESTRICT today, but pin the order so a schema
     // change noticing it can flip both together.
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
-    await appendActivity({ docId: doc.docId, userName: 'u', action: 'edit' })
-    await deleteDocDbRows(doc.docId)
-    // Everything gone — test passes iff the FK-safe order worked.
+    await appendActivity(docAs(doc.docId), { userName: 'u', action: 'edit' })
+    await deleteDocDbRows(docAs(doc.docId))
+    // Everything gone: test passes iff the FK-safe order worked.
     const db = testDb()
-    expect(Number((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM documents WHERE doc_id = $1', [doc.docId])).rows[0].c)).toBe(0)
+    expect(Number(first((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM documents WHERE doc_id = $1', [doc.docId])).rows).c)).toBe(0)
   })
 })
 
-// --- cleanupDocS3 ----------------------------------------------------------
+// cleanupDocS3
 
 describe('cleanupDocS3', () => {
   it('deletes every object under docs/{docId}/', async () => {
@@ -156,8 +160,8 @@ describe('cleanupDocS3', () => {
     expect(state.deleteCalls.length).toBe(0)
   })
 
-  it('swallows a List failure — returns 0 and never throws', async () => {
-    // Regression target — S3 down/unreachable must NOT block the user's
+  it('swallows a List failure, returns 0 and never throws', async () => {
+    // Regression target: S3 down/unreachable must NOT block the user's
     // delete. Orphan-cleanup picks up what we miss.
     const state: FakeS3State = {
       keys: new Set(['docs/abc/a.png']),
@@ -165,34 +169,30 @@ describe('cleanupDocS3', () => {
       deleteCalls: [],
       listShouldFail: true
     }
-    const warnSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const count = await cleanupDocS3('abc', { s3: makeFakeS3(state), bucket: 'test' })
     expect(count).toBe(0)
-    expect(warnSpy).toHaveBeenCalled()
-    warnSpy.mockRestore()
+    expect(logs.find('error', 'S3 cleanup failed')).toMatchObject({ component: 'document-lifecycle', docId: 'abc' })
   })
 
-  it('swallows a Delete failure mid-batch — returns 0, never throws', async () => {
+  it('swallows a Delete failure mid-batch, returns 0, never throws', async () => {
     const state: FakeS3State = {
       keys: new Set(['docs/abc/a.png', 'docs/abc/b.png']),
       listCalls: 0,
       deleteCalls: [],
       deleteShouldFail: true
     }
-    const warnSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const count = await cleanupDocS3('abc', { s3: makeFakeS3(state), bucket: 'test' })
     expect(count).toBe(0)
     // Keys stay in S3 (fake didn't delete); orphan-cleanup will find them.
     expect(state.keys.size).toBe(2)
-    warnSpy.mockRestore()
   })
 })
 
-// --- notifySyncDeleted -----------------------------------------------------
+// notifySyncDeleted
 
 describe('notifySyncDeleted', () => {
   it('dispatches a POST with the right shape', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }))
+    const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>().mockResolvedValue(new Response(null, { status: 200 }))
     const dispatched = notifySyncDeleted('doc-1', {
       syncInternalUrl: 'http://sync.test',
       internalApiSecret: 'secret-123',
@@ -202,11 +202,12 @@ describe('notifySyncDeleted', () => {
     // Give the fire-and-forget call a tick to actually run.
     await new Promise(r => setTimeout(r, 0))
     expect(fetchMock).toHaveBeenCalledOnce()
-    const [url, init] = fetchMock.mock.calls[0]
+    const [url, rawInit] = at(fetchMock.mock.calls)
+    const init = must(rawInit)
     expect(url).toBe('http://sync.test/internal/notify-deleted')
     expect(init.method).toBe('POST')
-    expect(init.headers['X-Internal-Secret']).toBe('secret-123')
-    expect(JSON.parse(init.body).docId).toBe('doc-1')
+    expect((init.headers as Record<string, string>)['X-Internal-Secret']).toBe('secret-123')
+    expect(JSON.parse(init.body as string).docId).toBe('doc-1')
   })
 
   it('skips dispatch when syncInternalUrl is missing (dev without sync)', async () => {
@@ -231,7 +232,7 @@ describe('notifySyncDeleted', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('returns synchronously — does NOT await the HTTP call', async () => {
+  it('returns synchronously: does NOT await the HTTP call', async () => {
     // Regression target: the notify must be fire-and-forget. If the
     // caller (`deleteDocument`) awaited a wedged sync-server, the HTTP
     // delete endpoint would hang for `AbortSignal.timeout(3000)` instead
@@ -254,10 +255,9 @@ describe('notifySyncDeleted', () => {
     resolve()
   })
 
-  it('swallows a fetch rejection — does NOT propagate an unhandledRejection', async () => {
+  it('swallows a fetch rejection, does NOT propagate an unhandledRejection', async () => {
     // If the sync-server is down and fetch rejects, the caught .catch()
     // logs but the app process must not crash.
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const fetchMock = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'))
     const dispatched = notifySyncDeleted('doc-1', {
       syncInternalUrl: 'http://sync.test',
@@ -267,7 +267,6 @@ describe('notifySyncDeleted', () => {
     expect(dispatched).toBe(true)
     // Give the catch handler a tick to fire.
     await new Promise(r => setTimeout(r, 5))
-    expect(warnSpy).toHaveBeenCalled()
-    warnSpy.mockRestore()
+    expect(logs.find('warn', 'sync-server notify failed')).toMatchObject({ docId: 'doc-1' })
   })
 })

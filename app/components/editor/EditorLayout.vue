@@ -1,18 +1,19 @@
 <script setup lang="ts">
-import type { EditorView } from '@codemirror/view'
-import { insertTable } from '~/utils/editorCommands'
-import TableSizePicker from './TableSizePicker.vue'
 import RightPanelHost from './RightPanelHost.vue'
 import MobileTabBar from './MobileTabBar.vue'
 import EditorCommandsPanel from './EditorCommandsPanel.vue'
 import type { TabName } from './tabBarTypes'
-import { useProvideComments } from '~/composables/useComments'
-import type { CommentRange } from '~/utils/commentDecorations'
-import type { ImportedDocProperties } from '~~/shared/utils/markdownFrontmatter'
-import { customCssForPlan } from '~~/shared/utils/themePresets'
-import { applyBrandLock } from '~~/shared/utils/brandLock'
+import type { ImportedDocProperties } from '~~/shared/utils/markdown/markdownFrontmatter'
+import { customCssForPlan } from '~~/shared/utils/theme/themePresets'
+import { applyBrandLock } from '~~/shared/utils/theme/brandLock'
 import type { DocTheme } from '~~/shared/types/theme'
 
+/**
+ * The editor page: composes the top bar, menu and tool rows, the editor and
+ * preview panes, the right sidebar, the AI prompt bar and the status bar
+ * (pieces in `./layout/`), and owns the state they share, the document
+ * (`useDocument`), the open sidebar panel, the view mode, the modals.
+ */
 const props = defineProps<{
   docId: string
 }>()
@@ -23,7 +24,6 @@ const {
   ydoc,
   ytext,
   awareness,
-  provider: _provider,
   status,
   synced,
   userCount,
@@ -64,165 +64,65 @@ const {
   getDocJwt
 } = useDocument(props.docId)
 
-// What the preview and the browser print render: the theme without the
-// author's own custom CSS when the document's plan doesn't include it (a
-// built-in preset's template CSS stays — customCssForPlan). The CSS stays
-// in the theme (and in Y.js), so upgrading applies it again; the server
-// renderer drops it the same way (render-bootstrap).
-//
-// A locked workspace design (brand kit, WP10) replaces everything but the
-// document's cover text — same rule as the server renderer
-// (shared/utils/brandLock.ts).
+// What the preview and browser print render. The author's custom CSS is
+// dropped when the plan doesn't include it (a preset's template CSS stays,
+// `customCssForPlan`); it stays in the theme and Y.js, so upgrading applies it
+// again, and the server renderer drops it the same way (render-bootstrap).
+// A locked workspace design (brand kit) replaces everything but the
+// document's cover text, as in the server renderer (shared/utils/theme/brandLock.ts).
 const renderTheme = computed(() => {
   const base = applyBrandLock(theme.value as DocTheme, brandLockedTheme.value as DocTheme | null)
   const css = customCssForPlan(base.customCss, customCssAllowed.value)
   return css === base.customCss ? base : { ...base, customCss: css }
 })
 
-// Track whether the user has ever focused the editor in this session.
-// Consumed by the AI prompt path so "cursor not in the doc at all" can
-// be distinguished from "cursor placed somewhere" — CM6's selection
-// sits at position 0 by default, so without this flag every freshly-
-// opened doc would falsely report "cursor on line 1".
-const editorEverFocused = ref(false)
-
-// AI collaborator — joins doc as its own Y.js client; edits broadcast naturally.
-// `getEditorSelection` snapshots the current caret / selection at submit
-// time so the model can resolve "here" / "this" / "at my cursor" to a
-// concrete location instead of guessing or re-reading the doc.
+// AI collaborator: joins the doc as its own Y.js client. `getEditorSelection`
+// snapshots the caret/selection at submit time so the model can resolve
+// "here" / "this" to a concrete location.
 const ai = useAI(computed(() => props.docId), awareness, {
   getEditorSelection: () => snapshotEditorSelection(editorView.value, editorEverFocused.value)
 })
 
 const toast = useToast()
-const { showError } = useErrorHandler()
+const { loggedIn, user: sessionUser } = useUserSession()
 
-// Live voice dictation. Mic button in the toolbar opens a WebSocket
-// relay to Mistral Voxtral Realtime; interim transcripts show as ghost
-// text at the caret (see `dictationExtensions.ts`) and finalized phrases
-// commit to Y.js at the current caret. Awareness field `dictation`
-// advertises the "🎙 listening" state to collaborators.
-const dictation = useVoiceDictation({
-  docId: computed(() => props.docId),
-  onPartial: (text) => {
-    const view = editorView.value
-    if (!view) return
-    view.dispatch({ effects: setDictationInterim.of(text) })
-  },
-  onFinal: (text) => {
-    const view = editorView.value
-    if (!view) return
-    // Clear the ghost first — committing is instant enough that we
-    // want the transition interim→final to feel seamless.
-    view.dispatch({ effects: setDictationInterim.of('') })
-    const uid = (sessionUser.value?.id as number | undefined) ?? null
-    commitDictationFinal(view, ydoc, ytext, uid, text)
-  },
-  onError: (message) => {
-    toast.add({
-      title: t('ai.dictateErrorTitle'),
-      description: message,
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
-  },
-  onBudgetExhausted: () => {
-    toast.add({
-      title: t('ai.dictateBudgetExhaustedTitle'),
-      description: t('ai.dictateBudgetExhaustedDescription'),
-      icon: 'i-lucide-battery-low',
-      color: 'warning'
-    })
-  },
-  onSessionCap: () => {
-    toast.add({
-      title: t('ai.dictateSessionCapTitle'),
-      description: t('ai.dictateSessionCapDescription'),
-      icon: 'i-lucide-clock',
-      color: 'info'
-    })
-  },
-  onIdleTimeout: () => {
-    toast.add({
-      title: t('ai.dictateIdleTitle'),
-      description: t('ai.dictateIdleDescription'),
-      icon: 'i-lucide-pause',
-      color: 'info'
-    })
-  }
+const dictation = useEditorDictation({
+  docId: () => props.docId,
+  view: () => editorView.value,
+  ydoc,
+  ytext,
+  awareness,
+  userId: () => sessionUser.value?.id ?? null
 })
 
-// Broadcast dictation state to collaborators via awareness. Mirrors
-// how `aiStatus` rides on awareness — cheap channel, auto-cleans on
-// disconnect.
-watch(() => dictation.state.value, (s) => {
-  const active = s === 'recording' || s === 'connecting' || s === 'requesting-permission'
-  awareness.setLocalStateField('dictation', active ? { active: true } : null)
-})
-
-// Clear the ghost on state transitions away from recording — the
-// composable owns the socket, but only this layer knows about the
-// editor view.
-watch(() => dictation.state.value, (s) => {
-  if (s === 'idle' || s === 'error') {
-    const view = editorView.value
-    if (view) view.dispatch({ effects: setDictationInterim.of('') })
-  }
-})
-
-// Share modal state
 const showShareModal = ref(false)
-// Delete-confirmation modal — its own modal under File → Delete (and
-// available to Sharing as a backup shortcut). Was previously buried in
-// the share modal's danger-zone block; lives standalone now.
+// Delete confirmation, under File → Delete (also reachable from Sharing).
 const showDeleteModal = ref(false)
-// Duplicate + Move modals under File menu. Both round-trip the server
-// which re-checks authz, so the File menu's canManage gate is UX-only.
+// Duplicate + Move modals under the File menu. The server re-checks authz,
+// so the menu's canManage gate is UX-only.
 const showDuplicateModal = ref(false)
 const showMoveModal = ref(false)
-// Can this user change sharing/placement? Owner or workspace admin.
-// Mirrors server-side canManageDoc. Workspace editors / viewers can
-// edit content (covered by !isReadOnly) but not move the doc.
+// Owner or workspace admin; mirrors server-side canManageDoc. Editors and
+// viewers can edit content (`!isReadOnly`) but not move the doc.
 const canManageDoc = computed(() =>
   isOwner.value || docWorkspaceRole.value === 'admin'
 )
-// Import modal state
 const showImportModal = ref(false)
-// Right-sidebar slot — mutually exclusive between activity, theme,
-// knowledge, document, comments, and the new mobile-only "editor"
-// drawer (categorized command palette). All share the same column so
-// the layout shift is predictable regardless of which one is open.
-// Knowledge only appears for workspace docs (see `hasKnowledgeAccess`).
-type RightSidebarPanel = TabName
-const rightSidebar = ref<RightSidebarPanel | null>(null)
-// Insert flows the EditorCommandsPanel still hands off to the layout
-// (table-size picker, image picker) — same modal/file-dialog flows
-// that used to be triggered from the dropped MobileFormatBar.
-function toggleSidebar(panel: RightSidebarPanel) {
+// Right-sidebar slot, mutually exclusive between activity, theme, knowledge,
+// document, comments and the mobile-only "editor" drawer (command palette), so
+// the layout shift is predictable. Knowledge only appears for workspace docs
+// (`hasKnowledgeAccess`).
+const rightSidebar = ref<TabName | null>(null)
+function toggleSidebar(panel: TabName) {
   rightSidebar.value = rightSidebar.value === panel ? null : panel
 }
 function closeSidebar() {
   rightSidebar.value = null
 }
-// Mobile tab-bar handler — receives the tapped tab name from
-// MobileTabBar and toggles the corresponding drawer. The mic tab is
-// handled separately (toggle-dictation event), so this only deals
-// with panel-selecting taps.
-function onMobileTabSelect(name: TabName) {
-  toggleSidebar(name)
-}
 
-// Mobile drawer titles are now rendered by each panel's own header
-// (icon + title + × close button) — the BottomSheet host no longer
-// duplicates them. The previously-computed `rightSidebarTitle` is
-// removed; if a future caller needs the localized panel name it can
-// be reconstructed inline from `rightSidebar.value`.
-
-// Global Escape closes whichever sidebar panel is open. Skip while
-// any modal-like layer (delete/duplicate/move/import/share) is up —
-// Nuxt UI's modals own Escape inside their stack and we don't want a
-// tap on Escape to bubble through and reach for the sidebar AFTER
-// dismissing the modal.
+// Global Escape closes the open sidebar panel, except while a modal-like layer
+// (delete/duplicate/move/import/share) is up: Nuxt UI modals own Escape in
+// their stack, and it must not also reach the sidebar after dismissing the modal.
 onKeyStroke('Escape', () => {
   if (
     showShareModal.value
@@ -234,187 +134,44 @@ onKeyStroke('Escape', () => {
   if (rightSidebar.value) closeSidebar()
 })
 
-// — Comments ─────────────────────────────────────────────────────────
-//
-// Single useComments instance lives at this level so the same reactive
-// list feeds BOTH the sidebar panel (for the thread list + composer)
-// AND the editor decoration plugin (for the underlines on commented
-// ranges). Two separate instances would each observe Y.js → wasted
-// work and a brief inconsistency window between them.
-// Single-call pattern via createInjectionState: provides AND returns
-// the api so this layer can also read `comments` for the editor
-// decoration ranges below. CommentsPanel reads from the same instance
-// via useCommentsContext.
-const commentsApi = useProvideComments(ydoc, awareness, props.docId)
-const commentRanges = computed<CommentRange[]>(() =>
-  commentsApi.comments.value
-    .filter(c => c.anchor !== null && !c.resolved)
-    .map(c => ({ id: c.id, from: c.anchor!.from, to: c.anchor!.to }))
-)
-
-// OS notifications when someone replies to a thread I authored — only
-// fires while the tab is hidden and the user has granted permission.
-// Permission is asked LAZILY at the first reply we'd notify on, not on
-// page open, so users don't see a surprise prompt.
-useCommentNotifications({
-  comments: commentsApi.comments,
+const { commentRanges, commentsPanelRef, onCommentClickInEditor, triggerCreateComment, onCommentPanelFocus } = useEditorComments({
+  ydoc,
   awareness,
-  docTitle: title,
-  docId: props.docId
+  docId: props.docId,
+  title,
+  isReadOnly,
+  rightSidebar,
+  flashRange: (from, to) => editorPaneRef.value?.flashCommentRange?.(from, to)
 })
 
-// Imperative panel reference — the parent calls `startDraft()` when the
-// toolbar / menu emit `create-comment`, and `focusComment(id)` when the
-// editor emits a click on a comment underline.
-const commentsPanelRef = ref<{
-  startDraft: () => boolean
-  focusComment: (id: string) => void
-} | null>(null)
+const { hasKnowledgeAccess } = useDocWorkspaceContext(docWorkspaceId, docWorkspaceRole, rightSidebar)
 
-// Click handler for comment underlines in the editor: open the panel
-// (if not already), scroll the matching thread into view, flash the
-// editor range so the eye picks up the connection.
-function onCommentClickInEditor(id: string) {
-  rightSidebar.value = 'comments'
-  // Wait one tick so the panel mounts before we ask it to scroll.
-  nextTick(() => {
-    commentsPanelRef.value?.focusComment(id)
-    flashEditorComment(id)
-  })
-}
+const { passwordModalOpen } = useDocAccessPrompts(requiresPassword, deletedByOther)
 
-// Toolbar / menu "Comment" → start a new draft. The panel handles the
-// "no selection? toast a hint" path; we just delegate.
-function triggerCreateComment() {
-  if (isReadOnly.value) return
-  rightSidebar.value = 'comments'
-  nextTick(() => {
-    commentsPanelRef.value?.startDraft()
-  })
-}
-
-// Sidebar emitted `focus(id)` — the user clicked a thread, scroll the
-// editor and flash the anchor.
-function onCommentPanelFocus(id: string) {
-  flashEditorComment(id)
-}
-
-function flashEditorComment(id: string) {
-  const c = commentsApi.comments.value.find(x => x.id === id)
-  if (!c?.anchor) return
-  editorPaneRef.value?.flashCommentRange?.(c.anchor.from, c.anchor.to)
-}
-// Knowledge is a workspace-level concern — a standalone / anonymous doc
-// has no knowledge base attached, and non-members shouldn't see the tab
-// either. The doc composable already resolves workspace membership
-// (`docWorkspaceRole` is non-null iff the viewer is a member).
-const hasKnowledgeAccess = computed(() => Boolean(docWorkspaceId.value) && docWorkspaceRole.value !== null)
-
-// AI availability + voice follow the document's workspace (a Team /
-// Business plan may unlock what the personal plan doesn't, WP5).
-const aiWorkspaceContext = useAiWorkspaceContext()
-watch(() => (docWorkspaceRole.value !== null ? docWorkspaceId.value : null), (ws) => {
-  aiWorkspaceContext.value = ws ?? null
-}, { immediate: true })
-onUnmounted(() => {
-  aiWorkspaceContext.value = null
-})
-// If the user has knowledge open and the doc moves to a workspace they
-// aren't in (or out of a workspace entirely), close the panel so the
-// layout doesn't leave an empty column.
-watch(hasKnowledgeAccess, (allowed) => {
-  if (!allowed && rightSidebar.value === 'knowledge') rightSidebar.value = null
-})
-// Password modal: open when requiresPassword is true, closable only via verify/cancel
-const passwordModalOpen = ref(false)
-watch(requiresPassword, (val) => {
-  passwordModalOpen.value = val
-}, { immediate: true })
-
-// If the doc was deleted by someone else (e.g. the owner from another
-// session), show a toast and redirect to the landing page. A deletion
-// started here is handled by the delete modal (its own success toast +
-// redirect), so it never shows "deleted by the owner" to the deleter.
-watch(deletedByOther, (deleted) => {
-  if (!deleted) return
-  toast.add({
-    title: t('delete.remoteTitle'),
-    description: t('delete.remoteDesc'),
-    icon: 'i-lucide-trash-2',
-    color: 'warning'
-  })
-  navigateTo('/')
-})
-// PDF export state — drives the dropdown loader spinner.
-const exporting = ref(false)
-// Page count from the paged.js preview, surfaced in the status bar.
+// Page count from the paged.js preview, shown in the status bar.
 const pageCount = ref(0)
 
-// Access-mode header button — closed lock when the doc is restricted (private
-// or password-protected), open lock when anyone with the link gets in (view or
-// edit). Keeping the icon binary avoids collisions with nearby icons (the eye
-// is already used by the preview/split toggle) and matches the mental model
-// users have for "is this locked or not". The tooltip carries the precise
-// label so view-only vs open-edit is still distinguishable on hover.
-const ACCESS_LABELS: Record<string, string> = {
-  'private': 'share.private',
-  'open-edit': 'share.openEdit',
-  'open-view': 'share.openView',
-  'password-protected': 'share.passwordProtected'
-}
-const LOCKED_MODES = new Set(['private', 'password-protected'])
-const accessIcon = computed(() => LOCKED_MODES.has(accessMode.value) ? 'i-lucide-lock' : 'i-lucide-lock-open')
-const accessLabelKey = computed(() => ACCESS_LABELS[accessMode.value] ?? 'share.openEdit')
+const { textContent, wordCount, charCount } = useDocTextStats({ docId: props.docId, ydoc, ytext, synced, isOwner, requiresPassword })
 
-// Share-link controls (WP9): a view-only link — no print, PDF or Markdown
-// download for this viewer (the server refuses the PDF too).
-function refuseDownload(): boolean {
-  if (!noDownload.value) return false
-  toast.add({ title: t('share.controls.downloadDisabled'), icon: 'i-lucide-ban', color: 'neutral' })
-  return true
-}
+const { exportPdf, exportMarkdown, openServerPdf } = useEditorExports({
+  docId: props.docId,
+  ytext,
+  renderTheme,
+  theme,
+  textContent,
+  title,
+  description,
+  audience,
+  language,
+  templateId,
+  noDownload,
+  brandFonts,
+  getDocJwt
+})
 
-async function exportPdf() {
-  if (refuseDownload()) return
-  exporting.value = true
-  try {
-    // Read content fresh from ytext — shallowRef may be stale after HMR.
-    await printDocumentAsPdf({
-      source: ytext.toString(),
-      theme: renderTheme.value,
-      title: title.value,
-      docId: props.docId,
-      language: language.value,
-      getDocJwt,
-      brandFonts: brandFonts.value
-    })
-  } catch (e) {
-    showError('error.pdfExportFailedTitle', e)
-  } finally {
-    exporting.value = false
-  }
-}
-
-// The file carries the theme + document properties as YAML frontmatter
-// (shared/utils/markdownFrontmatter.ts) so importing it restores them.
-async function exportMarkdown() {
-  if (refuseDownload()) return
-  const { buildMarkdownExport } = await import('~~/shared/utils/markdownFrontmatter')
-  const content = buildMarkdownExport(textContent.value, {
-    title: title.value,
-    description: description.value,
-    audience: audience.value,
-    language: language.value,
-    templateId: templateId.value,
-    // Plain copy: the theme ref is a readonly proxy.
-    theme: structuredClone(toRaw(theme.value))
-  })
-  downloadMarkdown(content, title.value)
-}
-
-// Theme + properties from an imported markoto Markdown file. The server
-// already validated every field (server/utils/markdownImport.ts); the
-// setters below check again (setTheme: schema; ymeta: the sync server).
+// Theme + properties from an imported markoto Markdown file. The server has
+// validated every field (server/utils/documents/markdownImport.ts); the
+// setters check again (setTheme: schema; ymeta: the sync server).
 function applyImportedProperties(
   properties: ImportedDocProperties,
   notes: { ignored: string[], droppedCustomCssRules: number }
@@ -435,108 +192,11 @@ function applyImportedProperties(
   })
 }
 
-// Server-rendered PDF — bytes produced by the Playwright renderer container,
-// served via /api/docs/:id/pdf as a 302 to a presigned S3 URL. Differs from
-// `exportPdf()` (which uses the browser's print dialog + paged.js
-// client-side): the bytes are produced server-side, so the recipient
-// doesn't need the editor open.
-//
-// Opens in a new tab with `?inline=1` — the endpoint flips
-// Content-Disposition to "inline" so the browser's PDF viewer renders
-// it directly instead of triggering a download dialog.
-//
-// We use a synthetic anchor click instead of `window.open()`: Nuxt UI's
-// dropdown closes the menu on `onSelect`, which defers the callback past
-// the immediate user-gesture window — Chrome's popup blocker then
-// silently swallows `window.open()`. An `<a target="_blank">` click is
-// the canonical "this came from a user click" signal browsers honour,
-// the same pattern `downloadFile()` uses for the markdown export.
-function openServerPdf() {
-  if (refuseDownload()) return
-  const a = document.createElement('a')
-  a.href = `/api/docs/${props.docId}/pdf?inline=1`
-  a.target = '_blank'
-  a.rel = 'noopener noreferrer'
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-}
+const { tableModalOpen, onTableModalSelect, openImagePicker } = useEditorInserts(props.docId, () => editorView.value, isReadOnly)
 
-// Hijack Cmd/Ctrl+P so the shortcut shown in File → Print actually runs
-// our hidden-iframe PDF flow instead of the browser's default print
-// (which would render the entire app chrome — toolbars, sidebars, the
-// AI bar — alongside the doc and look terrible). We intercept at the
-// document level with `capture: true` so we win against any element
-// that may be focused (CodeMirror, slideovers, modals).
-//
-// Mac detection prefers `navigator.userAgentData.platform` (the modern
-// Client Hints API); falls back to `navigator.platform` for browsers
-// that don't ship userAgentData yet (Safari < 17, Firefox until recently).
-const isMacPlatform = (): boolean => {
-  const uad = (navigator as unknown as { userAgentData?: { platform?: string } }).userAgentData
-  if (uad?.platform) return /mac/i.test(uad.platform)
-  return /Mac|iPhone|iPad/.test(navigator.platform)
-}
-
-// `useEventListener` (not `onKeyStroke`) is used here because capture-
-// phase is required to win against any focused element (CodeMirror,
-// slideovers, modals) that might handle Cmd+P first. `onKeyStroke`'s
-// options surface doesn't expose `capture` — only `eventName`,
-// `target`, `passive`, `dedupe`.
-useEventListener(document, 'keydown', (e: KeyboardEvent) => {
-  const isPrint = (isMacPlatform() ? e.metaKey : e.ctrlKey) && !e.shiftKey && !e.altKey
-    && (e.key === 'p' || e.key === 'P')
-  if (!isPrint) return
-  e.preventDefault()
-  exportPdf()
-}, { capture: true })
-
-// Image insert via the menu (mirrors the same flow EditorToolbar uses
-// for its image button — keeps the upload pipeline in one place behind
-// useImageUpload). useFileDialog handles the hidden input internally.
-
-// Table size modal — opened from both the menu bar's Insert → Table
-// entry and (still anchored, less jumpy) the toolbar's Table button.
-// A modal beats anchoring to the toolbar from a menu trigger because
-// the menu and toolbar are visually distant, and the user has just
-// committed to "I want a table" — a centered, focused dialog matches
-// that intent better than a tiny popover floating elsewhere on screen.
-const tableModalOpen = ref(false)
-function onTableModalSelect(payload: { rows: number, cols: number }) {
-  if (!editorView.value || isReadOnly.value) {
-    tableModalOpen.value = false
-    return
-  }
-  insertTable(editorView.value, payload.rows, payload.cols)
-  tableModalOpen.value = false
-}
-const { uploadAndInsert: uploadImageAndInsert, error: imageUploadError } = useImageUpload(props.docId)
-watch(imageUploadError, (err) => {
-  if (!err) return
-  toast.add({
-    title: err === 'login_required' ? t('auth.loginRequired') : t('image.uploadFailed'),
-    description: err === 'login_required' ? t('image.loginToUpload') : err,
-    color: 'error'
-  })
-})
-const { open: openImagePicker, onChange: onMenuImagePicked } = useFileDialog({
-  accept: 'image/png,image/jpeg,image/gif,image/webp,image/svg+xml',
-  multiple: false,
-  reset: true
-})
-onMenuImagePicked(async (files) => {
-  const file = files?.[0]
-  if (!file || !editorView.value) return
-  await uploadImageAndInsert(file, editorView.value)
-})
-
-// Menu-driven file actions. New-document hits the same endpoint as the
-// landing-page "New" button; we navigate immediately so the user lands
-// in their fresh doc.
-// "Created by a markoto user, not by markoto · Report" on documents
-// without an owner account (anonymous creations). Waits for the first
-// sync, by which time the token endpoint has told us who owns the doc
-// (no flash on owned docs).
+// "Created by a markoto user, not by markoto · Report" on documents without
+// an owner account (anonymous creations). Waits for the first sync, when the
+// token endpoint has told us who owns the doc (no flash on owned docs).
 const { legalSurfaces } = useInstanceConfig()
 const showUserContentBar = computed(() =>
   legalSurfaces.value
@@ -546,26 +206,20 @@ const showUserContentBar = computed(() =>
   && !hasOwner.value
   && !docWorkspaceId.value
 )
-const reportContentLink = computed(() => {
-  const url = import.meta.client ? `${globalThis.location.origin}/d/${props.docId}` : `/d/${props.docId}`
-  return { path: '/legal/abuse', query: { url } }
-})
 
-// Anonymous visitors go through the same terms + bot-check gate as the
-// new-document dialog (useAnonDocCreate).
+// Anonymous visitors pass the same terms + bot-check gate as the new-document dialog (useAnonDocCreate).
 const anonDoc = useAnonDocCreate()
 async function newDocument() {
   try {
     const docId = await anonDoc.createDocument()
-    navigateTo(`/d/${docId}`)
+    void navigateTo(`/d/${docId}`)
   } catch (e) {
     if (e instanceof AnonGateCancelled) return
     toast.add({ title: t('error.documentCreateFailed'), color: 'error' })
   }
 }
 
-// Undo / redo dispatched on the local UndoManager — same instance the
-// keyboard shortcut hits, so menu and keyboard stay in lockstep.
+// Dispatched on the local UndoManager, same as the keyboard shortcut, so menu and keyboard agree.
 function undo() {
   undoManager.undo()
 }
@@ -573,130 +227,20 @@ function redo() {
   undoManager.redo()
 }
 
-// Sharing → Password opens the existing share modal — auto-scrolling to
-// the right section is a polish item; for now we just open it and the
-// user sees the password section in the panel.
+// Sharing → Password opens the share modal (no scroll to the password section).
 function openShareAtPassword() {
   showShareModal.value = true
 }
 
-// View mode: 'edit' | 'preview' | 'split'
-const viewMode = ref<'edit' | 'preview' | 'split'>('split')
-// Matches Tailwind's sm: breakpoint (640px and up = not-mobile)
-const isMobile = useMediaQuery('(max-width: 639px)')
+const { viewMode, isMobile } = useEditorViewMode(isReadOnly)
 
-// Adjust view mode based on readOnly state and screen size
-watch(isReadOnly, (readOnly) => {
-  if (readOnly) {
-    viewMode.value = 'preview'
-  } else if (viewMode.value === 'preview') {
-    // Restored edit access (e.g. after password verification) — switch to split
-    viewMode.value = isMobile.value ? 'edit' : 'split'
-  }
-}, { immediate: true })
+const { syncRejectionMessage } = useSyncProblemToasts(syncAuthFailed, syncRejection)
 
-watchEffect(() => {
-  if (isMobile.value && viewMode.value === 'split') {
-    viewMode.value = 'edit'
-  }
-})
+const { editorPaneRef, editorView, editorEverFocused } = useEditorViewRef()
 
-// Surface sync auth-failure as a toast (one-shot) so the user knows
-// the read-only state isn't a permission problem — it's a sync layer
-// issue (typically: rate-limited per-IP, sync container restarted
-// with a different JWT secret, expired clock skew). Persistent banner
-// rendered in the template carries the explanation + reload action.
-watch(syncAuthFailed, (failed) => {
-  if (!failed) return
-  toast.add({
-    title: t('editor.syncAuthFailedTitle'),
-    description: t('editor.syncAuthFailedDescription'),
-    icon: 'i-lucide-shield-alert',
-    color: 'error'
-  })
-})
-
-// The sync server refused one of our updates (too large / invalid
-// document setting) and the provider stopped. Edits from here on stay
-// local, so say so loudly: one toast plus the persistent banner below.
-const syncRejectionMessage = computed(() => {
-  switch (syncRejection.value) {
-    case 'update-too-large': return t('editor.syncRejected.updateTooLarge')
-    case 'document-too-large': return t('editor.syncRejected.documentTooLarge')
-    case 'invalid-meta': return t('editor.syncRejected.invalidMeta')
-    case 'invalid-update': return t('editor.syncRejected.invalidUpdate')
-    default: return null
-  }
-})
-watch(syncRejectionMessage, (message) => {
-  if (!message) return
-  toast.add({
-    title: t('editor.syncRejected.title'),
-    description: message,
-    icon: 'i-lucide-cloud-off',
-    color: 'error'
-  })
-})
-
-// Track editor view for toolbar.
-// Gnarly type dance: Vue's `ref<{ view: EditorView | null }>` recursively
-// applies `UnwrapRef` to the wrapped object, which turns the inner
-// `EditorView` into a `Readonly<EditorView>`. TS treats classes with private
-// fields nominally — `Readonly<EditorView>` fails the assignability check to
-// `EditorView` (missing `dispatchTransactions`, `_root`, `plugins`, …).
-// The cast inside the computed re-asserts the real runtime type; the
-// shallowRef on the child side keeps the instance unproxied so this is safe.
-const editorPaneRef = ref<{
-  view: EditorView | null
-  flashCommentRange?: (from: number, to: number) => void
-} | null>(null)
-const editorView = computed<EditorView | null>(
-  () => (editorPaneRef.value?.view ?? null) as EditorView | null
-)
-
-// First-focus tracker: once CM6 mounts, attach a one-shot focus listener
-// to its contentDOM. We use `focus` on contentDOM (not the outer `.cm-editor`
-// wrapper) because CM6 forwards keyboard focus there; that's the event
-// fired when the user clicks anywhere inside the editor surface.
-watch(editorView, (view, prev) => {
-  if (prev && !view) editorEverFocused.value = false // editor remounted — reset
-  if (!view) return
-  if (view.hasFocus) {
-    // Rare but possible if the editor auto-focuses before this watcher
-    // fires (e.g. parent restores focus after a password-gate dismiss).
-    editorEverFocused.value = true
-    return
-  }
-  const handler = () => {
-    editorEverFocused.value = true
-    view.contentDOM.removeEventListener('focus', handler)
-  }
-  view.contentDOM.addEventListener('focus', handler)
-}, { immediate: true })
-
-// Mobile dropdown menu — consolidates view mode, theme, and auth actions
-// to reduce top-bar clutter on small screens.
-// Defer color-mode read to onMounted — useColorMode() returns 'light' on SSR
-// (no prefers-color-scheme + no localStorage), so reading at top-level causes
-// hydration mismatch when the user's actual mode is dark. The brief
-// light-mode flash on first paint is acceptable for this component;
-// see app/AGENTS.md "Common Vue conventions" section.
-const colorMode = useColorMode()
-const colorModeValue = ref<'light' | 'dark'>('light')
-onMounted(() => {
-  colorModeValue.value = colorMode.value === 'dark' ? 'dark' : 'light'
-})
-watch(() => colorMode.value, (v) => {
-  colorModeValue.value = v === 'dark' ? 'dark' : 'light'
-})
-const { loggedIn, user: sessionUser } = useUserSession()
-// Login entries only for providers this instance has configured.
-const { primaryLoginPath } = useInstanceConfig()
-const { loginOptions } = useLoginOptions()
-// Logout pipeline — clears localStorage/sessionStorage/IDB + broadcasts to
-// other tabs + tears down awareness BEFORE the session goes (so other
-// collaborators see the leaving frame on a still-open WS). See
-// `composables/useLogout.ts`.
+// Logout clears localStorage/sessionStorage/IDB, broadcasts to other tabs and
+// tears down awareness BEFORE the session goes, so collaborators see the
+// leaving frame on a still-open WS. See `composables/useLogout.ts`.
 const { logout: performAuthLogout } = useLogout()
 function handleLogout() {
   return performAuthLogout({
@@ -708,564 +252,99 @@ function handleLogout() {
   })
 }
 
-const mobileMenuItems = computed(() => {
-  const viewModeGroup = [
-    {
-      label: t('editor.edit'),
-      icon: 'i-lucide-code-2',
-      checked: viewMode.value === 'edit',
-      type: 'checkbox' as const,
-      onSelect: () => { viewMode.value = 'edit' }
-    },
-    {
-      label: t('editor.preview'),
-      icon: 'i-lucide-eye',
-      checked: viewMode.value === 'preview',
-      type: 'checkbox' as const,
-      onSelect: () => { viewMode.value = 'preview' }
-    }
-  ]
-
-  const themeGroup = [
-    {
-      label: colorModeValue.value === 'dark' ? t('menu.lightMode') : t('menu.darkMode'),
-      icon: colorModeValue.value === 'dark' ? 'i-lucide-sun' : 'i-lucide-moon',
-      onSelect: () => {
-        colorMode.preference = colorModeValue.value === 'dark' ? 'light' : 'dark'
-      }
-    }
-  ]
-
-  const authGroup = loggedIn.value
-    ? [
-        {
-          label: sessionUser.value?.name || t('menu.account'),
-          icon: 'i-lucide-user',
-          disabled: true
-        },
-        {
-          label: t('auth.logout'),
-          icon: 'i-lucide-log-out',
-          onSelect: () => handleLogout()
-        }
-      ]
-    : loginOptions.value.map(option => ({
-        label: option.label,
-        icon: option.icon,
-        to: option.to,
-        external: true
-      }))
-
-  // File actions — replaces the desktop EditorMenuBar's File menu on
-  // mobile. Owner-only items (Move / Duplicate) gate via the same
-  // canManageDoc check the menu bar does; Delete via the server's
-  // `canDelete` (also true for the browser that created an anonymous doc).
-  // Order mirrors what users expect: New on top, then import/export,
-  // then doc-level (duplicate/move/delete).
-  const fileGroup = [
-    {
-      label: t('menubar.file.new'),
-      icon: 'i-lucide-file-plus',
-      onSelect: () => newDocument()
-    },
-    {
-      label: t('menubar.file.import'),
-      icon: 'i-lucide-upload',
-      onSelect: () => { showImportModal.value = true }
-    },
-    ...(noDownload.value
-      ? []
-      : [
-          {
-            label: t('menubar.file.export'),
-            icon: 'i-lucide-file-down',
-            onSelect: () => exportMarkdown()
-          },
-          {
-            label: t('menubar.file.print'),
-            icon: 'i-lucide-printer',
-            onSelect: () => exportPdf()
-          },
-          {
-            label: t('export.pdf'),
-            icon: 'i-lucide-file-output',
-            onSelect: () => openServerPdf()
-          }
-        ]),
-    ...(canManageDoc.value
-      ? [
-          {
-            label: t('menubar.file.duplicate'),
-            icon: 'i-lucide-copy',
-            onSelect: () => { showDuplicateModal.value = true }
-          },
-          {
-            label: t('menubar.file.move'),
-            icon: 'i-lucide-folder-input',
-            onSelect: () => { showMoveModal.value = true }
-          }
-        ]
-      : []),
-    ...(canDelete.value
-      ? [
-          {
-            label: t('menubar.file.delete'),
-            icon: 'i-lucide-trash-2',
-            onSelect: () => { showDeleteModal.value = true }
-          }
-        ]
-      : [])
-  ]
-
-  // Help — the phone's stand-in for the desktop Help menu (shortcuts
-  // need a keyboard, so they stay on the desktop menu).
-  const helpGroup = [
-    {
-      label: t('menubar.help.docs'),
-      icon: 'i-lucide-book-open',
-      onSelect: () => openDocs()
-    },
-    {
-      label: t('menubar.help.tour'),
-      icon: 'i-lucide-map',
-      onSelect: () => editorTour.value?.start()
-    }
-  ]
-
-  return [fileGroup, viewModeGroup, themeGroup, helpGroup, authGroup]
-})
-
-// Help → Documentation: the user docs in a new tab, so the document stays open.
+// Help → Documentation opens in a new tab so the document stays open.
 function openDocs(): void {
   window.open('/docs', '_blank', 'noopener')
 }
 
-// Help → Keyboard shortcuts.
 const showShortcuts = ref(false)
 
-// First-run tour (EditorTour.vue): shown once per browser when the editor
-// is ready to write in; Help → "Take the tour" re-opens it.
+// First-run tour (EditorTour.vue): shown once per browser when the editor is
+// ready to write in; Help → "Take the tour" re-opens it.
 const editorTour = useTemplateRef<{ start: () => void }>('editorTour')
 const tourReady = computed(() => synced.value && !isReadOnly.value && !requiresPassword.value && editorView.value !== null)
 
-// Track Y.js text content as a reactive string for preview.
-// We observe on the Y.Doc 'update' event rather than ytext.observe because
-// yCollab replaces the text binding during EditorPane's onMounted, and
-// the doc-level event is guaranteed to fire for all mutations.
-const textContent = shallowRef('')
-const updateContent = () => {
-  textContent.value = ytext.toString()
-}
-ydoc.on('update', updateContent)
-// Also update when sync completes (initial content from server doesn't always fire 'update')
-watch(synced, (isSynced) => {
-  if (isSynced) updateContent()
-})
-// Persist word count to DB — debounced, fires 10s after last content change
-const persistStats = useDebounceFn(() => {
-  if (!isOwner.value || requiresPassword.value || !textContent.value) return
-  $fetch(`/api/docs/${props.docId}/meta`, {
-    method: 'PUT',
-    body: {
-      wordCount: wordCount.value,
-      sizeBytes: new Blob([textContent.value]).size
-    }
-  }).catch(() => {})
-}, 10000)
-
-watch(textContent, () => {
-  persistStats()
-})
-// Also persist once initial sync completes
-watch(synced, (s) => {
-  if (s) persistStats()
-})
-
-onUnmounted(() => {
-  ydoc.off('update', updateContent)
-})
-
-// Word/char counts derived from polled textContent
-const wordCount = computed(() => {
-  if (!textContent.value.trim()) return 0
-  return textContent.value.trim().split(/\s+/).length
-})
-const charCount = computed(() => textContent.value.length)
-
-// Editable title — `useFocus` exposes a writable boolean we set to
-// true when entering edit mode. Pairs with a select-on-focus tick
-// because useFocus only handles focus, not text selection.
-const editingTitle = ref(false)
-const titleInput = ref('')
-const titleInputEl = ref<HTMLInputElement | null>(null)
-const { focused: titleFocused } = useFocus(titleInputEl)
-
-function startEditTitle() {
-  titleInput.value = title.value
-  editingTitle.value = true
-  nextTick(() => {
-    titleFocused.value = true
-    titleInputEl.value?.select()
-  })
-}
-
-async function saveTitle() {
-  const newTitle = titleInput.value.trim()
-  if (newTitle && newTitle !== title.value) {
-    title.value = newTitle
-    // Persist title to database so it appears in document lists
-    try {
-      await $fetch(`/api/docs/${props.docId}/meta`, {
-        method: 'PUT',
-        body: { title: newTitle }
-      })
-    } catch {
-      // Y.js sync still has the title — DB persistence is best-effort
-    }
-  }
-  editingTitle.value = false
-}
-
-// Browser tab title tracks the live doc title so a user with multiple
-// docs open can switch tabs by name. `useHead` with a function getter
-// is the SSR-safe Nuxt idiom — Y.js syncs `title` post-hydration and
-// the tab updates as soon as it lands. Falls back to "Untitled" while
-// the doc is still loading or the user clears the title.
+// Tab title follows the live doc title so several open docs can be told apart.
+// `useHead` with a getter is the SSR-safe idiom: Y.js syncs `title` after
+// hydration. Falls back to "Untitled" while loading or when cleared.
 useHead({
   title: () => title.value || t('editor.untitled')
-})
-
-const _statusColor = computed(() => {
-  switch (status.value) {
-    case 'connected': return 'success' as const
-    case 'connecting': return 'warning' as const
-    case 'disconnected': return 'error' as const
-    default: return 'neutral' as const
-  }
-})
-
-const _statusIcon = computed(() => {
-  switch (status.value) {
-    case 'connected': return 'i-lucide-wifi'
-    case 'connecting': return 'i-lucide-loader'
-    case 'disconnected': return 'i-lucide-wifi-off'
-    default: return 'i-lucide-wifi-off'
-  }
 })
 </script>
 
 <template>
-  <!-- Document doesn't exist (token endpoint 404'd). Short-circuit with a
-       dedicated screen — without it the empty token leaves the provider
-       unable to connect and the user staring at a misleading
-       "disconnected / view only" editor for a doc that was never there. -->
-  <div
-    v-if="notFound"
-    class="h-dvh flex items-center justify-center p-6 bg-[var(--ui-bg)]"
-  >
-    <div class="max-w-md w-full text-center space-y-4">
-      <div class="mx-auto size-14 rounded-full bg-muted flex items-center justify-center">
-        <UIcon
-          name="i-lucide-file-question"
-          class="size-7 text-muted"
-        />
-      </div>
-      <h1 class="text-xl font-semibold">
-        {{ t('access.notFoundTitle') }}
-      </h1>
-      <p class="text-sm text-muted">
-        {{ t('access.notFoundDesc') }}
-      </p>
-      <div class="flex justify-center gap-2 pt-2">
-        <UButton
-          variant="soft"
-          @click="navigateTo('/')"
-        >
-          {{ t('access.backHome') }}
-        </UButton>
-      </div>
-    </div>
-  </div>
+  <EditorLayoutDocNotFound v-if="notFound" />
 
-  <!-- Private document, accessed by someone who isn't the owner. Short-circuit
-       before rendering any editor chrome — we never fetched a token, there's
-       no Y.Doc content, and the user can't interact with any toolbar actions. -->
-  <div
+  <EditorLayoutDocForbidden
     v-else-if="forbidden"
-    class="h-dvh flex items-center justify-center p-6 bg-[var(--ui-bg)]"
-  >
-    <div class="max-w-md w-full text-center space-y-4">
-      <div class="mx-auto size-14 rounded-full bg-amber-500/10 flex items-center justify-center">
-        <UIcon
-          name="i-lucide-lock-keyhole"
-          class="size-7 text-amber-500"
-        />
-      </div>
-      <h1 class="text-xl font-semibold">
-        {{ shareExpired ? t('share.controls.expiredTitle') : t('access.privateTitle') }}
-      </h1>
-      <p class="text-sm text-muted">
-        {{ shareExpired ? t('share.controls.expiredBody') : ssoLoginUrl ? t('sso.requiredBody') : loggedIn ? t('access.privateDescLoggedIn') : t('access.privateDescAnon') }}
-      </p>
-      <div class="flex justify-center gap-2 pt-2">
-        <UButton
-          variant="soft"
-          @click="navigateTo('/')"
-        >
-          {{ t('access.backHome') }}
-        </UButton>
-        <UButton
-          v-if="!loggedIn && primaryLoginPath"
-          color="primary"
-          @click="navigateTo(primaryLoginPath, { external: true })"
-        >
-          {{ t('auth.login') }}
-        </UButton>
-        <!-- The doc's workspace enforces single sign-on (WP14). -->
-        <UButton
-          v-if="ssoLoginUrl"
-          color="neutral"
-          icon="i-lucide-key-round"
-          data-testid="doc-sso-sign-in"
-          @click="navigateTo(ssoLoginUrl, { external: true })"
-        >
-          {{ t('sso.signIn') }}
-        </UButton>
-      </div>
-    </div>
-  </div>
+    :share-expired="shareExpired"
+    :sso-login-url="ssoLoginUrl"
+  />
 
-  <!-- h-dvh, not h-screen: 100vh is the viewport WITHOUT the mobile
-       browser address bar, so with the bar showing the shell ran taller
-       than the screen and the AI bar (absolute, bottom of <main>) slid
-       under the fixed MobileTabBar. dvh tracks the visible height. -->
+  <!-- h-dvh, not h-screen: 100vh ignores the mobile address bar, so the shell
+       overran the screen and the AI bar slid under the fixed MobileTabBar. -->
   <div
     v-else
     class="h-dvh flex flex-col"
   >
-    <!-- Editor Header — three-column flex so the view-mode group sits
-         visually centered in the bar (the page is the doc, view mode
-         picks how you look at it; centering matches the right-pane
-         framing). Left/right sides own equal flex space and align their
-         contents inward toward the center group. -->
-    <!-- Toolbar uses `bg-muted` (= sumi-50 in light, flat sumi-950
-         in dark) so it shares the gentler chrome field with the
-         right sidebar AND the iframe preview surround. White cards
-         (`bg-default`) and the white paper sheets pop forward
-         against this softer halo. -->
+    <!-- Header: three-column flex so the view-mode group sits visually centered;
+         left and right own equal flex space and align inward. -->
+    <!-- `bg-muted` shares the gentler chrome field with the right sidebar and the
+         preview surround; white cards and paper sheets pop against it. -->
     <header class="border-b border-default/60 bg-muted px-4 py-2 flex items-center gap-3 shrink-0">
-      <div class="flex-1 min-w-0 flex items-center gap-3">
-        <!-- Brand lockup. Wordmark + seal — same anchor as the
-             dashboard and workspace pages, so the brand mark is
-             always the leftmost item on every screen. The lucide
-             file-text icon previously here was generic chrome and
-             clashed with the seal-as-brand-mark rule. -->
-        <NuxtLink
-          to="/"
-          class="flex items-center shrink-0"
-          aria-label="markoto home"
-        >
-          <CommonWordmark :size="18" />
-        </NuxtLink>
-        <!-- Managed instance (WP16): the customer's logo; the name only
-             on wide screens, the title needs the room. -->
-        <CommonInstanceBrand
-          class="hidden md:inline-flex"
-          :size="18"
-          :show-name="false"
-        />
-        <USeparator
-          orientation="vertical"
-          class="h-5"
-        />
+      <EditorLayoutDocIdentity
+        v-model:title="title"
+        :doc-id="docId"
+        :workspace-plan="workspacePlan"
+        :awareness="awareness"
+        :status="status"
+        :user-count="userCount"
+      />
 
-        <!-- Editable title -->
-        <div
-          v-if="editingTitle"
-          class="flex items-center gap-1"
-        >
-          <input
-            ref="titleInputEl"
-            v-model="titleInput"
-            :aria-label="t('editor.titleInputAria')"
-            data-testid="doc-title-input"
-            class="bg-transparent border border-default rounded px-2 py-0.5 text-sm w-48 outline-none focus:border-primary"
-            @keydown.enter="saveTitle"
-            @keydown.escape="editingTitle = false"
-            @blur="saveTitle"
-          >
-        </div>
-        <!-- Document title in the editorial register: Fraunces serif,
-             weight 400, tight tracking. The doc title is the central
-             editorial object — Inter would read "filename in
-             chrome", Fraunces reads "title of a published piece". -->
-        <button
-          v-else
-          data-testid="doc-title-button"
-          class="font-serif text-[19px] font-normal tracking-tight leading-none text-default hover:text-muted transition-colors truncate min-w-0 max-w-[180px] sm:max-w-56 md:max-w-80"
-          @click="startEditTitle"
-        >
-          {{ title }}
-        </button>
-        <!-- Team / Business plan of the doc's workspace (WP6): which plan
-             this document's features and AI follow. -->
-        <UBadge
-          v-if="workspacePlan"
-          size="xs"
-          color="neutral"
-          variant="outline"
-          class="hidden sm:inline-flex shrink-0"
-          data-testid="doc-plan-badge"
-        >
-          {{ workspacePlan === 'team' ? 'Team' : 'Business' }}
-        </UBadge>
+      <!-- View-mode toggle in its own zero-flex column so left and right groups balance around it. -->
+      <EditorLayoutViewModeToggle v-model="viewMode" />
 
-        <!-- Collaborators next to title -->
-        <CollabPresenceBar
-          :awareness="awareness"
-          :doc-id="docId"
-        />
-
-        <!-- Connection status. Only rendered when something is WRONG —
-             connected is the assumed default, so showing a chip there
-             is just noise. The chip surfaces only on `connecting` (live
-             reconnect attempt) or `disconnected` (lost the WS), where
-             the user actually needs to know. -->
-        <span
-          v-if="status !== 'connected'"
-          class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-default/70 bg-default font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase"
-          data-testid="connection-status"
-          :data-status="status"
-        >
-          <span
-            class="block size-1.5 rounded-full shrink-0"
-            :class="{
-              'bg-amber-500/80 dark:bg-amber-400/80 animate-pulse': status === 'connecting',
-              'bg-rose-500/80 dark:bg-rose-400/80': status === 'disconnected'
-            }"
-            aria-hidden="true"
-          />
-          <span class="hidden sm:inline">{{ t(`status.${status}`) }}</span>
-        </span>
-
-        <!-- User count. Same calm pastel chip as the status indicator
-             — sumi-200 hairline + mono caption, no saturated info-blue.
-             The user-count is supplementary information; the actual
-             presence is conveyed by the colored avatar rings. -->
-        <span
-          v-if="userCount > 1"
-          class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-default/70 bg-default font-mono text-[10.5px] tracking-[0.04em] text-muted"
-        >
-          <UIcon
-            name="i-lucide-users"
-            class="size-3"
-          />
-          {{ userCount }}
-        </span>
-      </div>
-
-      <!-- Center group — view-mode toggle. Sits in its own zero-flex
-           column so the left/right groups balance around it; the buttons
-           themselves are tightly packed (no `gap` here). -->
-      <div class="hidden sm:flex shrink-0 items-center justify-center">
-        <UTooltip :text="t('editor.edit')">
-          <UButton
-            icon="i-lucide-code-2"
-            size="xs"
-            :color="viewMode === 'edit' ? 'primary' : 'neutral'"
-            :variant="viewMode === 'edit' ? 'solid' : 'ghost'"
-            :aria-label="t('editor.edit')"
-            :aria-pressed="viewMode === 'edit'"
-            data-testid="view-mode-edit"
-            @click="viewMode = 'edit'"
-          />
-        </UTooltip>
-        <UTooltip :text="t('editor.splitView')">
-          <UButton
-            icon="i-lucide-columns-2"
-            size="xs"
-            :color="viewMode === 'split' ? 'primary' : 'neutral'"
-            :variant="viewMode === 'split' ? 'solid' : 'ghost'"
-            :aria-label="t('editor.splitView')"
-            :aria-pressed="viewMode === 'split'"
-            data-testid="view-mode-split"
-            @click="viewMode = 'split'"
-          />
-        </UTooltip>
-        <UTooltip :text="t('editor.preview')">
-          <UButton
-            icon="i-lucide-eye"
-            size="xs"
-            :color="viewMode === 'preview' ? 'primary' : 'neutral'"
-            :variant="viewMode === 'preview' ? 'solid' : 'ghost'"
-            :aria-label="t('editor.preview')"
-            :aria-pressed="viewMode === 'preview'"
-            data-testid="view-mode-preview"
-            @click="viewMode = 'preview'"
-          />
-        </UTooltip>
-      </div>
-
-      <!-- Right group — lock shortcut, identity, mobile menu, and the
-           right-sidebar toggles. `flex-1 justify-end` mirrors the left
-           group so the center view-mode group lands optically
-           dead-center regardless of the left group's width.
-
-           The sidebar toggles (Activity, Theme) sit at the very edge,
-           after a separator, so they're spatially aligned with the
-           sidebar column that opens directly below them. The lock /
-           identity / theme controls stay closer to the center to keep
-           the visual mapping "panel toggles → panel".  -->
+      <!-- Lock shortcut, identity, mobile menu and the right-sidebar toggles.
+           `flex-1 justify-end` mirrors the left group so the view-mode group
+           stays centered. The sidebar toggles (Activity, Theme) sit at the
+           edge after a separator, aligned with the column they open. -->
       <div class="flex-1 min-w-0 flex items-center gap-2 justify-end">
-        <!-- Access-mode shortcut. Also under Sharing → Access; kept in
-             the header because the icon doubles as a status indicator
-             (open vs closed lock = at-a-glance access tier). -->
-        <UTooltip :text="`${t('share.accessMode')}: ${t(accessLabelKey)}`">
-          <UButton
-            :icon="accessIcon"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            :aria-label="`${t('share.accessMode')}: ${t(accessLabelKey)}`"
-            data-testid="access-lock-button"
-            @click="showShareModal = true"
-          />
-        </UTooltip>
+        <!-- Also under Sharing → Access; kept here because the open/closed lock doubles as an access indicator. -->
+        <EditorLayoutAccessButton
+          :access-mode="accessMode"
+          @open-share="showShareModal = true"
+        />
 
-        <!-- Desktop: user menu + color mode inline -->
         <div class="hidden sm:flex items-center gap-2">
           <AuthUserMenu />
           <UColorModeButton />
         </div>
 
-        <!-- Mobile: everything secondary behind a single "more" menu -->
-        <UDropdownMenu
-          class="sm:hidden"
-          :items="mobileMenuItems"
-          :content="{ align: 'end' }"
-        >
-          <UButton
-            icon="i-lucide-menu"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            :aria-label="t('common.menu')"
-          />
-        </UDropdownMenu>
+        <EditorLayoutMobileMenu
+          v-model:view-mode="viewMode"
+          :no-download="noDownload"
+          :can-manage="canManageDoc"
+          :can-delete="canDelete"
+          @new-document="newDocument"
+          @open-import="showImportModal = true"
+          @export-markdown="exportMarkdown"
+          @print="exportPdf"
+          @open-server-pdf="openServerPdf"
+          @duplicate-document="showDuplicateModal = true"
+          @move-document="showMoveModal = true"
+          @delete-document="showDeleteModal = true"
+          @open-docs="openDocs"
+          @start-tour="editorTour?.start()"
+          @logout="handleLogout"
+        />
       </div>
     </header>
 
-    <!-- Everything below the header is hidden until password is verified -->
     <template v-if="!requiresPassword">
-      <!-- Top-level menu bar — File / Edit / View / Insert / Format /
-           Sharing / Help. Discoverable home for everything that's not
-           high-frequency editing. Header icons above are quick
-           shortcuts for the most common ones (view-mode, sidebars,
-           access lock); the menus duplicate them for findability.
-           Hidden on mobile — the formatting actions move to the
-           keyboard-anchored format bar; the insert items move to the
-           `+` sheet; file/auth actions are covered by the mobile
-           hamburger dropdown in the topbar. -->
+      <!-- File / Edit / View / Insert / Format / Sharing / Help. The header icons
+           duplicate the most common ones for speed; the menus aid findability.
+           Hidden on mobile: formatting moves to the "Editor" tab, file/auth
+           actions to the topbar dropdown. -->
       <div class="hidden sm:block">
         <EditorMenuBar
           :view="editorView"
@@ -1303,103 +382,26 @@ const _statusIcon = computed(() => {
         />
       </div>
 
-      <!-- Sync auth-failure banner. Distinct from the regular read-only
-           state (workspace viewer, password-gated) — this fires only
-           when the sync handshake itself was rejected. Spelled out so
-           users aren't left wondering why their edit access "vanished". -->
-      <div
-        v-if="syncAuthFailed"
-        class="border-b border-error bg-error/10 text-error px-4 py-2 flex items-center gap-3 text-sm"
-        role="alert"
-      >
-        <UIcon
-          name="i-lucide-shield-alert"
-          class="size-4 shrink-0"
-        />
-        <div class="flex-1 min-w-0">
-          <span class="font-medium">{{ t('editor.syncAuthFailedTitle') }}</span>
-          <span class="ml-2 text-xs opacity-80">{{ t('editor.syncAuthFailedDescription') }}</span>
-        </div>
-        <UButton
-          size="xs"
-          color="error"
-          variant="solid"
-          icon="i-lucide-rotate-ccw"
-          @click="$router.go(0)"
-        >
-          {{ t('editor.syncAuthFailedReload') }}
-        </UButton>
-      </div>
+      <EditorLayoutSyncBanners
+        :sync-auth-failed="syncAuthFailed"
+        :sync-rejection-message="syncRejectionMessage"
+      />
 
-      <!-- Sync rejection banner: the server refused an update (too large,
-           invalid document setting). Unlike the auth banner the editor
-           stays editable, but nothing is saved until a reload. -->
-      <div
-        v-if="syncRejectionMessage"
-        class="border-b border-error bg-error/10 text-error px-4 py-2 flex items-center gap-3 text-sm"
-        role="alert"
-        data-testid="sync-rejection-banner"
-      >
-        <UIcon
-          name="i-lucide-cloud-off"
-          class="size-4 shrink-0"
-        />
-        <div class="flex-1 min-w-0">
-          <span class="font-medium">{{ t('editor.syncRejected.title') }}</span>
-          <span class="ml-2 text-xs opacity-80">{{ syncRejectionMessage }}</span>
-        </div>
-        <UButton
-          size="xs"
-          color="error"
-          variant="solid"
-          icon="i-lucide-rotate-ccw"
-          @click="$router.go(0)"
-        >
-          {{ t('editor.syncAuthFailedReload') }}
-        </UButton>
-      </div>
-
-      <!-- User-content bar: documents created without an account are
-           written by anonymous visitors, not by the operator. Says so
-           and links the report form (prefilled with this URL). Only
-           where the legal surfaces (and so the form) exist; not on
-           owned or workspace docs, whose authors are accountable. -->
-      <div
+      <!-- Docs created without an account are written by anonymous visitors,
+           not the operator. Links the report form (prefilled with this URL);
+           only where legal surfaces exist, and not on owned or workspace docs. -->
+      <EditorLayoutUserContentBar
         v-if="showUserContentBar"
-        class="border-b border-default bg-muted px-4 py-1 flex items-center gap-2 font-mono text-[10.5px] tracking-wide text-muted shrink-0"
-        data-testid="user-content-bar"
-      >
-        <UIcon
-          name="i-lucide-info"
-          class="size-3.5 shrink-0"
-        />
-        <span class="min-w-0 truncate">{{ t('userContent.notice') }}</span>
-        <span aria-hidden="true">·</span>
-        <NuxtLink
-          :to="reportContentLink"
-          class="underline shrink-0"
-          data-testid="user-content-report"
-        >
-          {{ t('userContent.report') }}
-        </NuxtLink>
-      </div>
+        :doc-id="docId"
+      />
 
-      <!-- Toolbar row.
-           Left:  formatting actions (bold / italic / headings / list / …).
-                  High-frequency editing — kept as a visible icon row
-                  even though the same actions live under Format / Insert
-                  menus, because icons are faster once learned.
-           Right: panel toggles (Activity, Theme). Sit on the same row
-                  as the formatting buttons so they share the toolbar's
-                  visual weight, and right-aligned so they're directly
-                  above the right-sidebar column they open. -->
+      <!-- Left: formatting actions, kept as an icon row (faster once learned)
+                 even though the Format / Insert menus have them.
+           Right: panel toggles (Activity, Theme), right-aligned above the
+                  sidebar column they open. -->
       <div class="border-b border-default shrink-0 flex items-center justify-between">
-        <!-- Desktop formatting toolbar — hidden on mobile (`<sm`).
-             Mobile users access the same commands through the "Editor"
-             tab in the bottom MobileTabBar (rendered toward the end of
-             this template), which opens the EditorCommandsPanel
-             drawer with categorized formatting / heading / list /
-             insert actions. -->
+        <!-- Hidden below `sm`; mobile reaches the same commands through the
+             "Editor" tab (EditorCommandsPanel drawer). -->
         <div class="hidden sm:block flex-1 min-w-0">
           <EditorToolbar
             v-if="viewMode !== 'preview'"
@@ -1412,85 +414,17 @@ const _statusIcon = computed(() => {
             @create-comment="triggerCreateComment"
           />
         </div>
-        <!-- Mobile: panel-picker is now the bottom MobileTabBar (rendered
-             outside this header, anchored to the viewport bottom). The
-             previous in-header dropdown was removed in favour of an
-             always-visible tab strip — frees this space for connection
-             status / presence chips that live to the LEFT of this row. -->
+        <!-- Mobile: the panel picker is the bottom MobileTabBar, outside this header. -->
 
-        <!-- Desktop: explicit 5-button strip. Hidden on mobile because
-             the strip + topbar title would overflow at 390px. -->
-        <div class="hidden sm:flex items-center gap-0.5 px-2 py-1 shrink-0">
-          <UTooltip :text="t('documentPanel.title')">
-            <UButton
-              icon="i-lucide-info"
-              color="neutral"
-              :variant="rightSidebar === 'document' ? 'soft' : 'ghost'"
-              size="xs"
-              :aria-label="t('documentPanel.title')"
-              :aria-pressed="rightSidebar === 'document'"
-              data-testid="sidebar-tab-document"
-              @click="toggleSidebar('document')"
-            />
-          </UTooltip>
-          <UTooltip :text="t('comments.title')">
-            <UButton
-              icon="i-lucide-message-circle"
-              color="neutral"
-              :variant="rightSidebar === 'comments' ? 'soft' : 'ghost'"
-              size="xs"
-              :aria-label="t('comments.title')"
-              :aria-pressed="rightSidebar === 'comments'"
-              data-testid="sidebar-tab-comments"
-              @click="toggleSidebar('comments')"
-            />
-          </UTooltip>
-          <UTooltip :text="t('activity.title')">
-            <UButton
-              icon="i-lucide-activity"
-              color="neutral"
-              :variant="rightSidebar === 'activity' ? 'soft' : 'ghost'"
-              size="xs"
-              :aria-label="t('activity.title')"
-              :aria-pressed="rightSidebar === 'activity'"
-              data-testid="sidebar-tab-activity"
-              @click="toggleSidebar('activity')"
-            />
-          </UTooltip>
-          <UTooltip
-            v-if="canEditTheme"
-            :text="t('theme.title')"
-          >
-            <UButton
-              icon="i-lucide-palette"
-              color="neutral"
-              :variant="rightSidebar === 'theme' ? 'soft' : 'ghost'"
-              size="xs"
-              :aria-label="t('theme.title')"
-              :aria-pressed="rightSidebar === 'theme'"
-              data-testid="sidebar-tab-theme"
-              @click="toggleSidebar('theme')"
-            />
-          </UTooltip>
-          <UTooltip
-            v-if="hasKnowledgeAccess"
-            :text="t('knowledge.title')"
-          >
-            <UButton
-              icon="i-lucide-library"
-              color="neutral"
-              :variant="rightSidebar === 'knowledge' ? 'soft' : 'ghost'"
-              size="xs"
-              :aria-label="t('knowledge.title')"
-              :aria-pressed="rightSidebar === 'knowledge'"
-              data-testid="sidebar-tab-knowledge"
-              @click="toggleSidebar('knowledge')"
-            />
-          </UTooltip>
-        </div>
+        <!-- Desktop: 5-button strip; hidden on mobile, where it plus the title would overflow at 390px. -->
+        <EditorLayoutSidebarTabs
+          :right-sidebar="rightSidebar"
+          :can-edit-theme="canEditTheme"
+          :has-knowledge-access="hasKnowledgeAccess"
+          @toggle="toggleSidebar"
+        />
       </div>
 
-      <!-- Read-only banner -->
       <div
         v-if="isReadOnly"
         class="bg-amber-500/10 border-b border-amber-500/30 px-4 py-1.5 text-center text-sm text-amber-600 dark:text-amber-400"
@@ -1499,39 +433,28 @@ const _statusIcon = computed(() => {
           name="i-lucide-lock"
           class="size-3.5 mr-1 align-text-bottom"
         />
-        View only
+        {{ t('share.viewOnly') }}
       </div>
 
-      <!-- Main editor area.
-           Layout uses flex siblings with `flex-1`/`min-w-0` so each pane
-           grows into the remaining space. Triple-split (editor + preview +
-           activity sidebar) kicks in at `xl` (1280px+) — below that, the
-           activity replaces the preview to keep each pane legible.
-           `relative` so the floating AI prompt bar (absolute-positioned
-           inside this container) anchors to the bottom of the
-           editor + preview + sidebar zone, not the page. -->
+      <!-- Flex siblings with `flex-1` / `min-w-0` share the width. Triple-split
+           (editor + preview + sidebar) starts at `xl` (1280px); below that the
+           sidebar replaces the preview. `relative` anchors the floating AI
+           prompt bar to the bottom of this zone, not the page. -->
       <main class="flex-1 flex min-h-0 relative">
-        <!-- Editor (wrapped in ImageDropZone for drag-drop + paste uploads) -->
+        <!-- ImageDropZone handles drag-drop and paste uploads -->
         <EditorImageDropZone
           v-if="viewMode !== 'preview'"
           :doc-id="docId"
           :editor-view="editorView"
           :read-only="isReadOnly"
           :class="[
-            // Flex member — shares remaining width with preview / sidebar.
+            // Flex member: shares remaining width with preview / sidebar.
             // `min-w-0` lets the pane shrink past its intrinsic content width.
             'flex-1 min-w-0',
             // Right border only when something visible sits to its right.
             (viewMode === 'split' || rightSidebar) ? 'border-r border-default' : ''
-            // NOTE: previously had `rightSidebar ? 'hidden sm:block' : ''`
-            // here, written before the BottomSheet pattern existed when
-            // the mobile panel was a full-viewport overlay. With the
-            // BottomSheet (snapHeight 60vh, teleported), the panel
-            // intentionally covers only the bottom of the viewport and
-            // the editor MUST stay visible above it — that's the whole
-            // point of the bottom-sheet design. Hiding the editor here
-            // left mobile users staring at a blank background behind
-            // the sheet.
+            // Never hide the pane on mobile: the bottom sheet covers only the lower
+            // part of the viewport and the editor must stay visible above it.
           ]"
           class="h-full"
         >
@@ -1546,11 +469,8 @@ const _statusIcon = computed(() => {
           />
         </EditorImageDropZone>
 
-        <!-- Preview.
-             Always rendered when not in edit mode. Hidden by CSS (not v-if)
-             when the right sidebar is open AND viewport is below xl — that way
-             the preview re-appears instantly on resize past xl without
-             re-mounting the markdown-it pipeline. -->
+        <!-- Hidden by CSS (not v-if) while the sidebar is open below xl, so it
+             reappears on resize past xl without re-mounting the markdown-it pipeline. -->
         <div
           v-if="viewMode !== 'edit'"
           :class="[
@@ -1572,13 +492,10 @@ const _statusIcon = computed(() => {
           />
         </div>
 
-        <!-- Right sidebar — single slot shared between Activity and Theme.
-             Only one shows at a time; selection is mutually exclusive via
-             `toggleSidebar`. Sizing matches the prior activity layout:
+        <!-- One slot for all sidebar panels, mutually exclusive via `toggleSidebar`.
              - edit mode:           fixed sidebar (w-80), full-width on xs
-             - split/preview, <xl:  takes the right half (flex-1); preview
-                                    is hidden at that breakpoint
-             - split/preview, xl+:  fixed 320px sidebar → triple-split -->
+             - split/preview, <xl:  right half (flex-1); preview hidden
+             - split/preview, xl+:  fixed 320px sidebar (triple-split) -->
         <RightPanelHost
           :open="!!rightSidebar"
           :view-mode="viewMode"
@@ -1607,47 +524,16 @@ const _statusIcon = computed(() => {
             @focus="onCommentPanelFocus"
             @close="closeSidebar"
           />
-          <div
+          <EditorLayoutActivitySidebar
             v-else-if="rightSidebar === 'activity'"
-            class="h-full flex flex-col bg-muted"
-          >
-            <!-- Activity panel header — same Fraunces title register
-                 as the Comments panel so the right sidebar's four
-                 tabs read with one consistent voice. -->
-            <div class="p-3 border-b border-default/60 flex items-center justify-between shrink-0">
-              <div class="flex items-center gap-2">
-                <UIcon
-                  name="i-lucide-activity"
-                  class="size-4 text-muted"
-                />
-                <h3 class="font-serif text-base font-normal tracking-tight">
-                  {{ t('activity.title') }}
-                </h3>
-              </div>
-              <UButton
-                icon="i-lucide-x"
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                class="mk-panel-close"
-                data-testid="panel-close"
-                :aria-label="t('common.close')"
-                @click="closeSidebar"
-              />
-            </div>
-            <!-- Scroll container — `bg-muted` is now applied at the
-                 panel root, so this just owns padding + scrolling. -->
-            <div class="flex-1 overflow-y-auto p-2 min-h-0">
-              <CollabActivityFeed
-                :doc-id="docId"
-                :ydoc="ydoc"
-                :read-only="isReadOnly"
-              />
-            </div>
-          </div>
+            :doc-id="docId"
+            :ydoc="ydoc"
+            :read-only="isReadOnly"
+            @close="closeSidebar"
+          />
           <DocumentThemeEditorPanel
             v-else-if="rightSidebar === 'theme'"
-            :theme="theme"
+            :theme="theme as DocTheme"
             :doc-id="docId"
             :can-edit="canEditTheme"
             :custom-css-allowed="customCssAllowed"
@@ -1658,52 +544,18 @@ const _statusIcon = computed(() => {
             @reset="resetTheme"
             @close="closeSidebar"
           />
-          <!-- Knowledge panel — same upload/list/delete surface as the
-               workspace overview, scoped to this doc's workspace. Only
-               ever rendered when hasKnowledgeAccess so workspaceId /
-               docWorkspaceRole are guaranteed non-null here. -->
-          <div
+          <!-- Same upload/list/delete surface as the workspace overview, scoped to
+               this doc's workspace. Rendered only with hasKnowledgeAccess, so
+               workspaceId / docWorkspaceRole are non-null here. -->
+          <EditorLayoutKnowledgeSidebar
             v-else-if="rightSidebar === 'knowledge' && docWorkspaceId && docWorkspaceRole"
-            class="h-full flex flex-col bg-muted"
-          >
-            <div class="p-3 border-b border-default/60 flex items-center justify-between shrink-0">
-              <div class="flex items-center gap-2">
-                <UIcon
-                  name="i-lucide-library"
-                  class="size-4 text-muted"
-                />
-                <h3 class="font-serif text-base font-normal tracking-tight">
-                  {{ t('knowledge.title') }}
-                </h3>
-              </div>
-              <UButton
-                icon="i-lucide-x"
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                class="mk-panel-close"
-                data-testid="panel-close"
-                :aria-label="t('common.close')"
-                @click="closeSidebar"
-              />
-            </div>
-            <div class="flex-1 overflow-y-auto p-3 min-h-0">
-              <WorkspaceKnowledgePanel
-                :workspace-id="docWorkspaceId"
-                :my-role="docWorkspaceRole"
-                :my-user-id="(sessionUser.value as { id?: number } | null)?.id ?? null"
-                compact
-              />
-            </div>
-          </div>
-          <!-- Editor commands drawer (mobile only — the desktop top
-               toolbar covers these on `>=sm`). Categorized grid of
-               formatting / heading / list / insert commands; tapping
-               any action runs through the existing editorCommands.ts
-               helpers and emits `done` so we close the sheet and
-               return focus to the editor. Layout-level handoffs
-               (table-size picker, image picker) are forwarded
-               unchanged. -->
+            :workspace-id="docWorkspaceId"
+            :role="docWorkspaceRole"
+            @close="closeSidebar"
+          />
+          <!-- Mobile only (the desktop toolbar covers `>=sm`). Actions run through
+               the editorCommands.ts helpers and emit `done` to close the sheet and
+               refocus the editor; table-size and image picker handoffs are forwarded. -->
           <EditorCommandsPanel
             v-else-if="rightSidebar === 'editor'"
             :view="editorView"
@@ -1718,139 +570,47 @@ const _statusIcon = computed(() => {
           />
         </RightPanelHost>
 
-        <!-- Floating AI prompt bar — overlay at the bottom of the
-             content area so it spans the full editor + preview + sidebar
-             zone. Hidden in preview-only mode (no editing happens) and
-             when the doc is read-only (no edits accepted). The component
-             positions itself absolutely; we just need this `<main>` to
-             be `relative` (set above). -->
+        <!-- Overlay at the bottom of the content area, spanning editor + preview +
+             sidebar. Hidden in preview-only mode and when read-only. It positions
+             itself absolutely, so this `<main>` must stay `relative`. -->
         <AIPromptBar
           v-if="!isReadOnly && viewMode !== 'preview'"
           :ai="ai"
           :workspace-id="docWorkspaceId"
         />
 
-        <!-- Mobile bottom tab bar — the single navigation surface for
-             panels on `<sm`. Replaces the previous keyboard-anchored
-             MobileFormatBar AND the in-header panel-picker dropdown.
-             Tabs: Document, Comments, Activity, Theme, Knowledge,
-             Editor (commands drawer), Mic (toggles dictation directly
-             — no drawer). Hidden in read-only or preview mode where
-             editing tools are irrelevant. -->
+        <!-- The only panel navigation below `sm`. Tabs: Document, Comments,
+             Activity, Theme, Knowledge, Editor (commands drawer), Mic (toggles
+             dictation directly). Hidden when read-only or in preview mode. -->
         <MobileTabBar
           v-if="!isReadOnly && viewMode !== 'preview'"
           :active-panel="rightSidebar"
           :can-edit-theme="canEditTheme"
           :has-knowledge-access="hasKnowledgeAccess"
           :dictation-state="dictation.state.value"
-          @select="onMobileTabSelect"
+          @select="toggleSidebar"
           @toggle-dictation="dictation.toggle()"
         />
 
-        <!-- Mobile view-mode toggle. The desktop toggle group lives in
-             the topbar (line ~849, `hidden sm:flex`). On mobile, that
-             topbar group disappears and the toggle floats over the
-             editor content — anchored at the TOP-right corner of the
-             content area now that the bottom is occupied by the
-             AIResponsePanel + AIPromptBar + MobileTabBar stack. The
-             puck still floats (kept the rounded-full pill + shadow);
-             only the anchor moved. Mobile drops `split` (no useful
-             50/50 at 390px width) — only offers edit ⇄ preview.
-             Hidden on `>=sm`. -->
-        <div
-          class="sm:hidden absolute top-3 right-3 z-30 inline-flex items-center gap-0.5 rounded-full border border-default bg-default shadow-md p-0.5"
-          data-testid="mobile-viewmode-bar"
-        >
-          <button
-            type="button"
-            class="inline-flex items-center justify-center size-8 rounded-full transition-colors"
-            :class="viewMode === 'edit' ? 'bg-muted text-default' : 'text-muted hover:text-default'"
-            :aria-label="t('editor.edit')"
-            :aria-pressed="viewMode === 'edit'"
-            @click="viewMode = 'edit'"
-          >
-            <UIcon
-              name="i-lucide-pen"
-              class="size-4"
-            />
-          </button>
-          <button
-            type="button"
-            class="inline-flex items-center justify-center size-8 rounded-full transition-colors"
-            :class="viewMode === 'preview' ? 'bg-muted text-default' : 'text-muted hover:text-default'"
-            :aria-label="t('editor.preview')"
-            :aria-pressed="viewMode === 'preview'"
-            @click="viewMode = 'preview'"
-          >
-            <UIcon
-              name="i-lucide-eye"
-              class="size-4"
-            />
-          </button>
-          <!-- Preview zoom (fit width / all pages / fixed steps); pinch
-               on the preview zooms too. -->
-          <template v-if="viewMode === 'preview'">
-            <span
-              class="mx-0.5 h-4 w-px bg-[var(--ui-border)]"
-              aria-hidden="true"
-            />
-            <PreviewZoomControl compact />
-          </template>
-        </div>
+        <!-- Mobile view-mode toggle. The desktop group lives in the topbar
+             (`hidden sm:flex`); on mobile it floats top-right of the content
+             area, since the bottom holds the AIResponsePanel + AIPromptBar +
+             MobileTabBar stack. Offers only edit and preview (no useful 50/50
+             at 390px). Hidden on `>=sm`. -->
+        <EditorLayoutMobileViewModeBar v-model="viewMode" />
       </main>
 
-      <!-- Status bar. Editorial micro-meta from the homepage mockup —
-           JetBrains Mono at 10.5px, lowercase + 0.04em tracking, with
-           hairline middot separators. The status side mirrors the
-           same register so the whole bar reads as one slate, like a
-           film/print colophon strip rather than an app footer. -->
-      <footer class="border-t border-default/60 bg-muted px-4 py-1.5 flex items-center justify-between font-mono text-[10.5px] tracking-[0.04em] text-muted shrink-0">
-        <div class="flex items-center gap-3">
-          <span data-testid="word-count">{{ wordCount }} <span class="opacity-70">words</span></span>
-          <span
-            class="opacity-50"
-            aria-hidden="true"
-          >·</span>
-          <span
-            v-if="viewMode !== 'edit' && pageCount > 0"
-            data-testid="page-count"
-          >{{ pageCount }} <span class="opacity-70">{{ pageCount === 1 ? 'page' : 'pages' }}</span></span>
-          <span
-            v-if="viewMode !== 'edit' && pageCount > 0"
-            class="opacity-50"
-            aria-hidden="true"
-          >·</span>
-          <span data-testid="char-count">{{ charCount }} <span class="opacity-70">chars</span></span>
-        </div>
-        <div
-          class="flex items-center gap-3"
-          data-testid="sync-status"
-        >
-          <span
-            v-if="synced"
-            class="inline-flex items-center gap-1.5"
-          >
-            <span
-              class="block size-1.5 rounded-full bg-green-600 dark:bg-green-500"
-              aria-hidden="true"
-            />
-            {{ t('status.synced') }}
-          </span>
-          <span
-            v-if="isReadOnly"
-            class="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-400"
-          >
-            <UIcon
-              name="i-lucide-lock"
-              class="size-3"
-            />
-            read only
-          </span>
-        </div>
-      </footer>
+      <!-- Mono micro-meta (10.5px, lowercase, 0.04em tracking, middot separators), like a colophon strip. -->
+      <EditorLayoutStatusFooter
+        :word-count="wordCount"
+        :char-count="charCount"
+        :page-count="pageCount"
+        :view-mode="viewMode"
+        :synced="synced"
+        :read-only="isReadOnly"
+      />
     </template>
 
-    <!-- Password gate: show a clean prompt, no content behind it -->
     <div
       v-else
       class="flex-1 flex items-center justify-center"
@@ -1865,7 +625,6 @@ const _statusIcon = computed(() => {
         </p>
       </div>
     </div>
-    <!-- Import modal -->
     <DocumentImportModal
       v-model:open="showImportModal"
       :ytext="ytext"
@@ -1881,7 +640,6 @@ const _statusIcon = computed(() => {
       :is-mobile="isMobile"
     />
 
-    <!-- Share modal -->
     <SharingShareModal
       v-model:open="showShareModal"
       :doc-id="docId"
@@ -1893,9 +651,7 @@ const _statusIcon = computed(() => {
       @updated="(mode: string) => { setAccessMode(mode); showShareModal = false }"
     />
 
-    <!-- Duplicate — creates a new doc owned by the current user,
-         same content + theme + images. Redirects to the new doc on
-         success. -->
+    <!-- Creates a new doc owned by the current user (same content, theme and images) and redirects to it. -->
     <DocumentDuplicateDocModal
       v-model:open="showDuplicateModal"
       :doc-id="docId"
@@ -1903,8 +659,7 @@ const _statusIcon = computed(() => {
       @duplicated="(newDocId) => navigateTo(`/d/${newDocId}`)"
     />
 
-    <!-- Move — reassigns the doc's workspace. Manage rights only
-         (owner or workspace admin). -->
+    <!-- Reassigns the doc's workspace; owner or workspace admin only. -->
     <DocumentMoveWorkspaceModal
       v-model:open="showMoveModal"
       :doc-id="docId"
@@ -1912,7 +667,7 @@ const _statusIcon = computed(() => {
       :current-workspace-id="docWorkspaceId"
     />
 
-    <!-- Delete confirmation — owner-only entry from File → Delete. -->
+    <!-- Owner-only entry from File → Delete. -->
     <DocumentDeleteConfirmModal
       v-model:open="showDeleteModal"
       :doc-id="docId"
@@ -1922,7 +677,6 @@ const _statusIcon = computed(() => {
       @deleted="navigateTo('/')"
     />
 
-    <!-- Password gate -->
     <SharingPasswordModal
       v-model:open="passwordModalOpen"
       :doc-id="docId"
@@ -1930,23 +684,13 @@ const _statusIcon = computed(() => {
       @cancel="navigateTo('/')"
     />
 
-    <!-- Table size picker — opened from menu bar's Insert → Table or
-         the toolbar's Table button. Centered modal so the trigger
-         location doesn't matter. -->
-    <UModal
+    <!-- From the menu bar's Insert → Table or the toolbar's Table button. -->
+    <EditorLayoutTableDialog
       v-model:open="tableModalOpen"
-      :title="t('table.title')"
-      :description="t('table.description')"
-      :ui="{ content: 'max-w-fit' }"
-    >
-      <template #body>
-        <TableSizePicker @select="onTableModalSelect" />
-      </template>
-    </UModal>
+      @select="onTableModalSelect"
+    />
 
-    <!-- Floating "Comment" pill that appears on text selection — same
-         affordance as the old AI rewrite popup, redirected at the
-         comments flow. Click → toolbar's create-comment handler. -->
+    <!-- Floating "Comment" pill on text selection; click runs the toolbar's create-comment handler. -->
     <CommentsCommentSelectionPopup
       v-if="!requiresPassword"
       :view="editorView"

@@ -1,4 +1,4 @@
-import type { ObjectStore } from '../../server/utils/objectStore'
+import type { ObjectStore } from '../../server/utils/storage/objectStore'
 
 // In-memory `ObjectStore` for the storage-sweeper tests in the repos tier.
 // Real-S3 behaviour of the upload flows is covered by the integration tier.

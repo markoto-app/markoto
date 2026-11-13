@@ -1,9 +1,10 @@
 import { test, expect } from '../fixtures/flow'
 import { computeStripeSig, loadStripeFixture } from '../../integration/setup/stripeHelpers'
+import { settleAnimations } from '../fixtures/waits'
 
 // The flow-test stack uses its own webhook secret (set in
 // `scripts/flows-ephemeral.ts` as `whsec_test_flows`). The integration
-// stack's secret (`whsec_test_integration`) is different — using the
+// stack's secret (`whsec_test_integration`) is different, using the
 // helper's exported constant here would make the server reject the
 // signature with 400. Hardcode the literal that matches the env the
 // orchestrator wires in.
@@ -16,7 +17,7 @@ const FLOWS_WEBHOOK_SECRET = 'whsec_test_flows'
 // page, completed Stripe Checkout, returned to markoto, and seen
 // the "Current plan" badge move from Free to Pro.
 //
-// What this flow IS: the click-through arc — pricing → Upgrade →
+// What this flow IS: the click-through arc, pricing → Upgrade →
 // (Stripe handles checkout, off-stage) → return to markoto with the
 // new plan active. The tier columns themselves are covered by
 // `pricing-tour` (Tier 1).
@@ -24,14 +25,14 @@ const FLOWS_WEBHOOK_SECRET = 'whsec_test_flows'
 // Implementation note (Stripe in tests): real Stripe Checkout is a
 // hosted page on a different origin we can't iframe and shouldn't
 // drive end-to-end from a flow. The flow narrates the user's
-// experience honestly — they click Upgrade, get redirected to
-// Stripe, fill in payment, return — and the test simulates the
+// experience honestly: they click Upgrade, get redirected to
+// Stripe, fill in payment, return, and the test simulates the
 // post-checkout webhook directly so the "Pro is now current" payoff
 // is real (the user row really updates, the pricing page really
 // re-renders with the new badge). Same fixture + signature path
 // the integration tests use.
 //
-// Works on desktop AND mobile — pricing grid stacks the same way
+// Works on desktop AND mobile, pricing grid stacks the same way
 // across breakpoints, the post-checkout return is a full reload.
 // `@billing`: needs NUXT_BILLING_ENABLED=true on the target server (see
 // playwright.config.ts `grepInvert`).
@@ -45,7 +46,7 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
 
   // Intercept cross-origin navigations at TWO layers BEFORE the first
   // page.goto. The pricing page does `window.location.href = url` on
-  // Upgrade click where `url` is the Stripe-mock checkout URL — a
+  // Upgrade click where `url` is the Stripe-mock checkout URL, a
   // different origin we don't want the browser to follow (separate
   // hosted page; lands on a "Something went wrong / merchant" stub
   // that poisons every subsequent screenshot/assertion).
@@ -57,7 +58,7 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
   //
   //   2. JS-property level (addInitScript). Override the
   //      window.location.href setter to silently drop cross-origin
-  //      writes. Must be installed BEFORE page.goto — addInitScript
+  //      writes. Must be installed BEFORE page.goto, addInitScript
   //      applies to FUTURE page loads, not the current one. (The
   //      previous shape used page.evaluate AFTER goto; that didn't
   //      survive subsequent reloads.)
@@ -99,7 +100,7 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
     try {
       const target = new URL(reqUrl)
       // Allow the app's own origin (whatever host:port the flow stack
-      // serves on — derived from the configured baseURL, so a remapped
+      // serves on: derived from the configured baseURL, so a remapped
       // port works too) in both its localhost / 127.0.0.1 spellings;
       // block anything else (stripe-mock at 127.0.0.1:12111, real
       // checkout.stripe.com, etc.).
@@ -108,7 +109,7 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
         await route.fulfill({ status: 200, body: '', contentType: 'text/html' })
         return
       }
-    } catch { /* malformed URL — let it through */ }
+    } catch { /* malformed URL, let it through */ }
     await route.continue()
   })
 
@@ -125,8 +126,7 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
     + 'flips the moment Stripe sends us the webhook.'
   )
 
-  // ─── Accept the Paid Plans Terms, then Upgrade ─────────────────
-  // Every purchase needs the box (WP6b); Upgrade stays disabled until then.
+  // Accept the Paid Plans Terms, then Upgrade. Every purchase needs the box; Upgrade stays disabled until then.
   await flow.click(
     'Tick the box to accept the Paid Plans Terms',
     page.getByTestId('pricing-paid-terms-pro').getByRole('checkbox'),
@@ -134,7 +134,7 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
   )
   await expect(page.getByTestId('pricing-buy-pro')).toBeEnabled()
 
-  // ─── Click Upgrade on Pro ───────────────────────────────────────
+  // Click Upgrade on Pro
   // The CTA button doesn't carry its own testid; scope by the Pro
   // tier's container, then by the button's accessible name.
   const proCta = page.locator('[data-testid="pricing-tier-pro"]').getByRole('button', { name: /upgrade/i })
@@ -146,14 +146,14 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
         { label: 'Upgrade Pro', selector: '[data-testid="pricing-tier-pro"] button:has-text("Upgrade")', kind: 'arrow' }
       ],
       result: 'The button shows a spinner while markoto opens a Stripe Checkout session.',
-      after: () => page.waitForTimeout(500)
+      after: () => settleAnimations(page, 500)
     }
   )
 
-  // ─── Off-stage: Stripe Checkout ─────────────────────────────────
+  // Off-stage: Stripe Checkout
   await flow.heading('Stripe handles the payment', 3)
   await flow.narrate(
-    'You\'re redirected to Stripe\'s hosted checkout page — card '
+    'You\'re redirected to Stripe\'s hosted checkout page, card '
     + 'number, expiry, CVC. (We don\'t handle your card; Stripe '
     + 'does, on their domain.) Submit, and Stripe routes you back '
     + 'to markoto with a successful-checkout marker on the URL. '
@@ -197,17 +197,14 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
   const subObj = (subEvent.data as { object: Record<string, unknown> }).object
   subObj.id = subscriptionId
   subObj.customer = customerId
-  // The price id in the fixture should map to Pro via `NUXT_STRIPE_PRICE_IDS`.
-  // The integration tests rely on the same env-var-driven mapping;
-  // the fixture's price id is `price_test_pro` which is the value
-  // wired into the test stack (see docker-compose.test.yml).
+  // The price id in the fixture should map to Pro via `NUXT_STRIPE_PRICE_IDS`. The integration tests rely on
+  // the same env-var-driven mapping; the fixture's price id is `price_test_pro`, the value wired into the test
+  // stack (see deploy/compose/compose.test.yml).
   //
-  // Override the subscription item's period dates to "now" → "now+30d"
-  // so `resolveBillingContext` doesn't demote the plan to Free via its
-  // `planActive(plan, planValidUntil, now)` check. The fixture ships
-  // with hard-coded epoch seconds (~April-May 2026) which expire
-  // relative to wallclock — without this override the test fails the
-  // moment the calendar passes the fixture's `current_period_end`.
+  // Override the subscription item's period dates to "now" → "now+30d" so `resolveBillingContext` doesn't demote
+  // the plan to Free via its `planActive(plan, planValidUntil, now)` check. The fixture ships with hard-coded
+  // epoch seconds that expire relative to wallclock; without this override the test fails once the calendar
+  // passes the fixture's `current_period_end`.
   const items = (subObj.items as { data: Array<Record<string, unknown>> }).data
   const item = items[0]!
   const nowSec = Math.floor(Date.now() / 1000)
@@ -220,8 +217,8 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
     data: subBody
   })
 
-  // ─── Land back on /pricing with Pro current ─────────────────────
-  await flow.heading('Land back on markoto — Pro is now current', 3)
+  // Land back on /pricing with Pro current
+  await flow.heading('Land back on markoto, Pro is now current', 3)
   await flow.narrate(
     'Stripe redirects you to markoto. The pricing page reloads, '
     + 'reads your new plan from your session, and the "Current '
@@ -233,14 +230,14 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
   await page.locator('[data-testid="pricing-tier-pro"]').waitFor({ state: 'visible', timeout: 10_000 })
 
   await flow.shot(
-    'The badge moved — Pro carries the "Current plan" pill, Free '
+    'The badge moved: Pro carries the "Current plan" pill, Free '
     + 'shows the standard CTA. Behind the scenes: the webhook '
     + 'wrote `plan=pro` + `stripe_customer_id` + period anchors to '
     + 'your user row, all in one transaction.',
     {
       hero: true,
       highlights: [
-        { label: 'Current plan — Pro', selector: '[data-testid="pricing-tier-pro"] [data-testid="pricing-current-plan-badge"]' }
+        { label: 'Current plan, Pro', selector: '[data-testid="pricing-tier-pro"] [data-testid="pricing-current-plan-badge"]' }
       ]
     }
   )

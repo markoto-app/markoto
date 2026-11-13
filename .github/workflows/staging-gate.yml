@@ -2,27 +2,16 @@ name: staging-gate
 
 # After a release builds images, deploy them to STAGING and run the PUBLIC
 # smoke suite (tests/smoke) against the real deployment. This catches the
-# class of prod-only drift the ephemeral flow gate structurally can't — Docker
-# COPY gaps, insecure-context APIs, CSP, the mobile <dialog> collapse — every
+# class of prod-only drift the ephemeral flow gate structurally can't: Docker
+# COPY gaps, insecure-context APIs, CSP, the mobile <dialog> collapse: every
 # bug that shipped broken and was only found on staging.
 #
-# Flow:  merge of a release-labeled PR
-#              → release.yml builds vX.Y.Z + latest images AND runs the full
-#                flow suite incl. live-AI flows (provider keys live there —
-#                the fast PR gate skips those, see ci.yml)
-#              → THIS workflow verifies a release was actually published,
-#                then deploys `latest` to staging via deploy.yml (renders
-#                .env from GitHub, health-gated, auto-rollback)
-#              → resets the staging DB to a clean slate (public schema wiped,
-#                drizzle migration ledger preserved) so runs don't bleed state
-#              → smoke suite runs against https://staging.markoto.app
-#              → red gate ⇒ nothing should be promoted to prod
-#
-# Prod promotion is intended to be AUTOMATIC off a green smoke run (retag the
-# staging-verified image to prod + deploy + re-run smoke against prod with
-# auto-rollback) — NOT a manual approval. That leg is left dormant until the
-# prod VPS + a `prod` GitHub Environment exist; see the commented promote-prod
-# job at the bottom. main stays strictly PR-only; this never pushes to main.
+# Flow: release.yml builds the images and runs the full flow suite (incl.
+# live-AI flows; provider keys live there). This workflow then verifies a
+# release was published, deploys `latest` to staging via deploy.yml (renders
+# .env from GitHub, health-gated, auto-rollback), resets the staging DB, and
+# runs the smoke suite against https://staging.markoto.app. A red gate means
+# nothing should be promoted to prod. It never pushes to main.
 
 on:
   workflow_run:
@@ -45,9 +34,9 @@ concurrency:
 
 jobs:
   # A release run where the PR carried `release:none` (resolve-pr says
-  # should_release=false) still CONCLUDES 'success' — every downstream job
-  # just skips. Without this check, such merges would burn the full ~45-min
-  # gate re-testing and re-deploying unchanged images. Query the triggering
+  # should_release=false) still CONCLUDES 'success': every downstream job
+  # just skips. Without this check, such merges would re-deploy unchanged
+  # images. Query the triggering
   # run's jobs and only proceed when create-release actually succeeded.
   check-release:
     name: check a release was published
@@ -55,7 +44,7 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.conclusion == 'success'
     # check-release reads the triggering release run's job list via the API
-    # (GET /actions/runs/:id/jobs) — without actions:read the default token
+    # (GET /actions/runs/:id/jobs): without actions:read the default token
     # gets "Resource not accessible by integration" (HTTP 403) and the gate
     # shows a red run instead of a clean skip on release:none merges.
     permissions:
@@ -82,16 +71,15 @@ jobs:
             echo "released=true" >> "$GITHUB_OUTPUT"
           else
             echo "released=false" >> "$GITHUB_OUTPUT"
-            echo "No release published by the triggering run (release:none merge) — gate skips."
+            echo "No release published by the triggering run (release:none merge), gate skips."
           fi
 
   # Deploy through the SAME path as a manual `deploy.yml` dispatch: render
   # /opt/markoto/.env from the staging GitHub Environment (infra/render-env.sh),
   # sync compose + mounted config, pull + up, 300 s cold-boot health budget,
-  # one-hop auto-rollback. The gate used to inline only the sync + up half,
-  # so every env var added after the host's last manual deploy (billing mode,
-  # BYOK allowlist, legal surfaces, ...) silently never reached staging, and
-  # its 90 s health budget was shorter than a cold LiteLLM migration boot.
+  # one-hop auto-rollback. Rendering .env here is what makes new env vars
+  # reach staging; a 90 s health budget is shorter than a cold LiteLLM
+  # migration boot.
   deploy:
     name: deploy (staging)
     needs: check-release
@@ -105,13 +93,13 @@ jobs:
       tag: ${{ inputs.tag || 'latest' }}
       # Pin to the exact commit the triggering release was built from so
       # the compose files we sync match the images we deploy. On
-      # workflow_dispatch there is no triggering run — default-branch
+      # workflow_dispatch there is no triggering run: default-branch
       # HEAD is the right answer there.
       ref: ${{ github.event.workflow_run.head_sha || github.ref }}
     # Required even though every secret deploy.yml reads lives only in the
     # `staging` Environment: a called workflow sees an environment secret
     # only when the caller passes it (by name or via inherit). Without
-    # this the v0.2.1 staging deploy ran with empty DEPLOY_* values. The
+    # this the deploy runs with empty DEPLOY_* values. The
     # only repo-level secret (SONAR_TOKEN) is unused by deploy.yml.
     secrets: inherit
 
@@ -119,10 +107,8 @@ jobs:
     name: smoke (staging)
     # Gate: check-release verified the triggering run actually published a
     # release, which requires release.yml's run-flows job (the full suite
-    # INCLUDING live-AI flows — the provider keys moved there) to have been
-    # green on this exact commit. Re-running the same 40-min suite here
-    # doubled the per-release Actions bill for zero extra signal, so the
-    # gate goes straight to deploy + the public smoke suite.
+    # INCLUDING live-AI flows) to have been green on this exact commit, so
+    # the gate goes straight to deploy + the public smoke suite.
     needs: deploy
     permissions:
       contents: read
@@ -154,7 +140,7 @@ jobs:
       # predictable state (no doc/rate-limit/sync-state bleed between runs).
       # Truncates the `public` schema only; the drizzle migration ledger lives
       # in a separate schema and is preserved. Guards on DOMAIN containing
-      # "staging" — refuses to run against anything else.
+      # "staging": refuses to run against anything else.
       - name: Reset staging DB
         run: SSH_KEY="$HOME/.ssh/id_ed25519" ./scripts/reset-staging-db.sh
 
@@ -181,29 +167,19 @@ jobs:
           APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
         run: |
           set -euo pipefail
-          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in the staging Environment (docs/GITHUB-CONFIG.md)"; exit 0; fi
+          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in the staging Environment (docs/operations/GITHUB-CONFIG.md)"; exit 0; fi
           pip install apprise==1.9.9 >/dev/null 2>&1 || true
           apprise -t "Staging gate FAILED (tag ${TAG})" \
-                  -b "Smoke suite failed on staging (deploy.yml notifies deploy failures itself) — prod promotion is blocked. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+                  -b "Smoke suite failed on staging (deploy.yml notifies deploy failures itself), prod promotion is blocked. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
                   "${APPRISE_URLS}" || true
 
-  # ── promote-prod (DORMANT) ────────────────────────────────────────────────
+  # promote-prod (dormant)
   # Enable once the prod VPS + a `prod` GitHub Environment exist. Intended to
-  # run AUTOMATICALLY on a green smoke — no manual approval:
-  #
-  #   promote-prod:
-  #     name: promote-prod
-  #     needs: smoke
-  #     if: needs.smoke.result == 'success'
-  #     runs-on: ubuntu-latest
-  #     environment: prod          # DEPLOY_HOST/KEY + DEPLOY_USER for prod
-  #     steps:
-  #       - retag the staging-verified image → prod (or reuse the same tag)
-  #       - ssh prod: IMAGE_TAG=<tag> compose pull && up  (health-gated,
-  #         auto-rollback to previous tag on failure — same loop as deploy.yml)
-  #       - re-run `bun run smoke` with PLAYWRIGHT_BASE_URL=https://<prod>
-  #         → on failure, roll prod back and alert
+  # run AUTOMATICALLY on a green smoke (no manual approval): deploy the
+  # staging-verified tag to prod with the same health-gated, auto-rollback
+  # loop as deploy.yml, then re-run `bun run smoke` with
+  # PLAYWRIGHT_BASE_URL=https://<prod> and roll back on failure.
   #
   # Rollback is CODE-only (flip the image tag); the DB is never restored. That
-  # is safe because every migration is backward-compatible — enforced by the
+  # is safe because every migration is backward-compatible: enforced by the
   # migration-guard CI job (scripts/check-destructive-migrations.ts).

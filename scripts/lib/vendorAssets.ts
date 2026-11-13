@@ -1,22 +1,22 @@
 // Build-time generator for the same-origin browser assets served under
-// `/vendor/` (see shared/utils/vendorAssets.ts for the why). Used by
+// `/vendor/` (see shared/utils/vendor/vendorAssets.ts for the why). Used by
 // modules/vendor-assets.ts (every `nuxt build` / `nuxt dev`) and by
-// tests/unit/vendorAssets.test.ts.
+// tests/unit/rendering/vendorAssets.test.ts.
 //
 // Sources are the pinned npm packages in node_modules; nothing is
 // downloaded. The versions + SRI hashes the app's runtime code uses live
-// in shared/utils/*Assets.ts — `checkVendorPackages` fails the build when
+// in shared/utils/vendor/*Assets.ts: `checkVendorPackages` fails the build when
 // the installed packages differ from them.
 
 import { createHash } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { PAGEDJS_POLYFILL_SRI, PAGEDJS_POLYFILL_URL, PAGEDJS_VERSION } from '../../shared/utils/pagedjsAssets'
-import { MERMAID_SRI, MERMAID_URL, MERMAID_VERSION } from '../../shared/utils/mermaidAssets'
-import { KATEX_CSS_SRI, KATEX_CSS_URL, KATEX_VERSION } from '../../shared/utils/katexAssets'
-import { HLJS_STYLES_BASE, HLJS_THEMES, HLJS_VERSION } from '../../shared/utils/hljsAssets'
-import { BUNDLED_FONTS_DIR, FONT_STYLESHEET_BASE, SELF_HOSTED_FONTS, uiFontFamilyName, uiFontStylesheetName, type FontsourceSource, type SelfHostedFont } from '../../shared/utils/themeFonts'
-import { VENDOR_BASE } from '../../shared/utils/vendorAssets'
+import { PAGEDJS_POLYFILL_SRI, PAGEDJS_POLYFILL_URL, PAGEDJS_VERSION } from '../../shared/utils/vendor/pagedjsAssets'
+import { MERMAID_SRI, MERMAID_URL, MERMAID_VERSION } from '../../shared/utils/vendor/mermaidAssets'
+import { KATEX_CSS_SRI, KATEX_CSS_URL, KATEX_VERSION } from '../../shared/utils/vendor/katexAssets'
+import { HLJS_STYLES_BASE, HLJS_THEMES, HLJS_VERSION } from '../../shared/utils/vendor/hljsAssets'
+import { BUNDLED_FONTS_DIR, FONT_STYLESHEET_BASE, SELF_HOSTED_FONTS, uiFontFamilyName, uiFontStylesheetName, type FontsourceSource, type SelfHostedFont } from '../../shared/utils/theme/themeFonts'
+import { VENDOR_BASE } from '../../shared/utils/vendor/vendorAssets'
 
 /** One file copied from an npm package to `/vendor/…`. */
 export interface VendorFile {
@@ -79,13 +79,22 @@ function licenceFile(rootDir: string, pkg: string): string | null {
 
 /** Every reason the installed packages can't produce the pinned assets (empty = fine). */
 export function checkVendorPackages(rootDir: string): string[] {
+  return [...pinnedVersionProblems(rootDir), ...lockedFileProblems(rootDir), ...SELF_HOSTED_FONTS.flatMap(font => fontProblems(rootDir, font))]
+}
+
+function pinnedVersionProblems(rootDir: string): string[] {
   const problems: string[] = []
   for (const [pkg, version] of Object.entries(PINNED_VERSIONS)) {
     const installed = installedVersion(rootDir, pkg)
     if (installed !== version) {
-      problems.push(`${pkg}: shared/utils pins ${version}, node_modules has ${installed ?? 'nothing'} — bump package.json and the *Assets.ts constant together`)
+      problems.push(`${pkg}: shared/utils pins ${version}, node_modules has ${installed ?? 'nothing'}, bump package.json and the *Assets.ts constant together`)
     }
   }
+  return problems
+}
+
+function lockedFileProblems(rootDir: string): string[] {
+  const problems: string[] = []
   for (const file of lockedVendorFiles()) {
     const path = join(packageDir(rootDir, file.package), file.from)
     if (!existsSync(path)) {
@@ -97,32 +106,28 @@ export function checkVendorPackages(rootDir: string): string[] {
       problems.push(`${file.package}/${file.from}: SRI is ${actual}, the pinned constant says ${file.sri}`)
     }
   }
-  const checkFontsource = (font: SelfHostedFont, source: FontsourceSource) => {
-    if (installedVersion(rootDir, source.package) === null) {
-      problems.push(`${font.name}: ${source.package} is not installed`)
-      return
-    }
-    for (const sheet of source.stylesheets) {
-      if (!existsSync(join(packageDir(rootDir, source.package), sheet))) {
-        problems.push(`${font.name}: ${source.package}/${sheet} is missing`)
-      }
-    }
-  }
-  for (const font of SELF_HOSTED_FONTS) {
-    const source = font.source
-    if (font.ui) checkFontsource(font, font.ui)
-    if (source.kind === 'bundled') {
-      const dir = bundledFontDir(rootDir, font)
-      for (const face of source.faces) {
-        if (!existsSync(join(dir, face.file))) problems.push(`${font.name}: ${BUNDLED_FONTS_DIR}/${font.slug}/${face.file} is missing`)
-        if (face.licence && !existsSync(join(dir, face.licence))) problems.push(`${font.name}: ${BUNDLED_FONTS_DIR}/${font.slug}/${face.licence} is missing`)
-      }
-      if (!existsSync(join(dir, 'LICENSE.txt'))) problems.push(`${font.name}: ${BUNDLED_FONTS_DIR}/${font.slug}/LICENSE.txt is missing`)
-      continue
-    }
-    checkFontsource(font, source)
-  }
   return problems
+}
+
+/** A family's UI variant (Fontsource) and its document source (Fontsource or bundled in the repo). */
+function fontProblems(rootDir: string, font: SelfHostedFont): string[] {
+  const problems = font.ui ? fontsourceProblems(rootDir, font, font.ui) : []
+  const source = font.source
+  if (source.kind !== 'bundled') return [...problems, ...fontsourceProblems(rootDir, font, source)]
+  const dir = bundledFontDir(rootDir, font)
+  for (const face of source.faces) {
+    if (!existsSync(join(dir, face.file))) problems.push(`${font.name}: ${BUNDLED_FONTS_DIR}/${font.slug}/${face.file} is missing`)
+    if (face.licence && !existsSync(join(dir, face.licence))) problems.push(`${font.name}: ${BUNDLED_FONTS_DIR}/${font.slug}/${face.licence} is missing`)
+  }
+  if (!existsSync(join(dir, 'LICENSE.txt'))) problems.push(`${font.name}: ${BUNDLED_FONTS_DIR}/${font.slug}/LICENSE.txt is missing`)
+  return problems
+}
+
+function fontsourceProblems(rootDir: string, font: SelfHostedFont, source: FontsourceSource): string[] {
+  if (installedVersion(rootDir, source.package) === null) return [`${font.name}: ${source.package} is not installed`]
+  return source.stylesheets
+    .filter(sheet => !existsSync(join(packageDir(rootDir, source.package), sheet)))
+    .map(sheet => `${font.name}: ${source.package}/${sheet} is missing`)
 }
 
 /** Repo folder with a bundled family's woff2 files + licence. */
@@ -142,7 +147,7 @@ function fontOrigin(font: SelfHostedFont, version: string): string {
   return font.source.kind === 'bundled' ? `${BUNDLED_FONTS_DIR}/${font.slug} (v${version})` : `${font.source.package}@${version}`
 }
 
-// — fonts ————————————————————————————————————————————————————————————
+// fonts ────────────────────────────────────────────────────────────
 
 /** One @font-face rule of a Fontsource stylesheet, reduced to what we emit. */
 export interface FontFace {
@@ -196,12 +201,12 @@ export function buildFontCss(font: SelfHostedFont, version: string, faces: reado
     '}'
   ].join('\n'))
   return [
-    `/* ${font.name} — ${variant === 'ui' && font.ui ? `${font.ui.package}@${version}` : fontOrigin(font, version)}, licence: ${fontLicences(font, variant).map(l => `${dir}/${l}`).join(', ')}. Generated by modules/vendor-assets.ts. */`,
+    `/* ${font.name}: ${variant === 'ui' && font.ui ? `${font.ui.package}@${version}` : fontOrigin(font, version)}, licence: ${fontLicences(font, variant).map(l => `${dir}/${l}`).join(', ')}. Generated by modules/vendor-assets.ts. */`,
     ...rules
   ].join('\n') + '\n'
 }
 
-// — generation ———————————————————————————————————————————————————————
+// generation ───────────────────────────────────────────────────────
 
 export interface GeneratedSummary {
   files: number
@@ -265,7 +270,7 @@ export function generateVendorAssets(rootDir: string, outDir: string): Generated
     summary.bytes += bytes
   }
 
-  // Scripts + stylesheets (unmodified bytes — the SRI hashes are of these).
+  // Scripts + stylesheets (unmodified bytes, the SRI hashes are of these).
   for (const file of lockedVendorFiles()) {
     add(copy(join(packageDir(rootDir, file.package), file.from), vendorPath(tmp, file.url)))
   }

@@ -9,23 +9,22 @@
 // request body (see `requestFields.ts`):
 //   - user config / instance default WITH base URL → model `byok/<id>`
 //     plus `api_key` + `api_base` clientside credentials. The `byok/*`
-//     deployment in infra/litellm/config.yaml has zero cost, so these
+//     deployment in deploy/config/litellm/config.yaml has zero cost, so these
 //     calls never debit the user's LiteLLM `max_budget`.
 //   - instance default WITHOUT base URL → the model alias as-is
-//     (platform-paid, debits the budget like before BYOK).
+//     (platform-paid, debits the user's budget).
 //
 // The request still authenticates with the user's LiteLLM virtual key,
 // so per-key rpm limits and spend-log tags keep working for BYOK.
 
-import { decryptToken } from '../litellm/tokenCrypto'
+import { openProviderKey } from './keyCrypto'
 import { listAiProviders, type AiProviderRow } from '../../repos/aiProviders'
 import { readInstanceDefault, realtimeDictationModel } from './config'
-import { getWebToolAvailability } from '../webTools'
-import { planHasFeature } from '../entitlements'
-import { eq } from 'drizzle-orm'
-import { users } from '../../db/schema'
-import { useDatabase } from '../database'
+import { getWebToolAvailability } from '../ai/webTools'
+import { planHasFeature } from '../billing/entitlements'
+import { getAiModelTier } from '../../repos/users'
 import type { FeatureField, PlanName } from '~~/shared/config/tiers'
+import type { UserScope } from '../../repos/proofs'
 import {
   MISTRAL_EU_API_HOST,
   MISTRAL_LIVE_DICTATION_HOSTS,
@@ -34,9 +33,14 @@ import {
   type AiCapability,
   type AiCapabilityStatus
 } from '~~/shared/ai/providers'
+import { useEnv } from '~~/shared/env/load'
+import type { RawEnv } from '~~/shared/env/define'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('ai-providers')
 
 /** LiteLLM deployment prefix for clientside-credential (BYOK) calls. */
-export const BYOK_MODEL_PREFIX = 'byok/'
+const BYOK_MODEL_PREFIX = 'byok/'
 
 export interface ResolvedAiProvider {
   capability: AiCapability
@@ -63,12 +67,12 @@ export function litellmModelFor(provider: ResolvedAiProvider): string {
 function fromUserRow(row: AiProviderRow): ResolvedAiProvider | null {
   let apiKey: string
   try {
-    apiKey = decryptToken(row.apiKeyEncrypted)
+    apiKey = openProviderKey(row)
   } catch {
-    // Undecryptable (salt rotated without re-encrypting). Treat as
+    // Undecryptable (encryption key lost or rotated away). Treat as
     // unconfigured rather than failing every AI call; the settings page
     // shows the row so the user can re-enter the key.
-    console.warn(`[aiProviders] could not decrypt the ${row.capability} key for user ${row.userId}; ignoring the config`)
+    log.warn('could not decrypt the stored provider key; ignoring the config', { capability: row.capability, userId: row.userId })
     return null
   }
   return {
@@ -93,8 +97,8 @@ function fromInstanceDefault(capability: AiCapability): ResolvedAiProvider | nul
 }
 
 /**
- * Plan feature that unlocks a capability on the PLATFORM's provider
- * (WP5). Chat on the instance default is in every plan; a user's own key
+ * Plan feature that unlocks a capability on the PLATFORM's provider.
+ * Chat on the instance default is in every plan; a user's own key
  * is never gated.
  */
 export const CAPABILITY_PLAN_FEATURE: Partial<Record<AiCapability, FeatureField>> = {
@@ -103,9 +107,8 @@ export const CAPABILITY_PLAN_FEATURE: Partial<Record<AiCapability, FeatureField>
 }
 
 /** The stronger platform chat model (`NUXT_AI_DEFAULT_CHAT_STRONG_MODEL`), or null. */
-export function strongChatModel(env: Record<string, string | undefined> = process.env): string | null {
-  const v = (env.NUXT_AI_DEFAULT_CHAT_STRONG_MODEL ?? '').trim()
-  return v === '' ? null : v
+function strongChatModel(source?: RawEnv): string | null {
+  return useEnv(source).ai.chatStrongModel || null
 }
 
 export interface AiAccess {
@@ -119,15 +122,15 @@ export interface AiAccess {
 /**
  * Resolve the providers for a user under a plan: own config → instance
  * default (only for capabilities the plan includes) → null. `plan` is
- * the plan that pays for the call (`resolveBillingContext(...).plan` —
+ * the plan that pays for the call (`resolveBillingContext(...).plan`,
  * a Team / Business workspace's plan inside it). With the user's "Strong"
  * pick and a plan that includes `aiStrongModel`, the platform chat
  * default becomes `NUXT_AI_DEFAULT_CHAT_STRONG_MODEL`.
  */
-export async function resolveAiAccess(userId: number, plan: PlanName): Promise<AiAccess> {
+export async function resolveAiAccess(user: UserScope, plan: PlanName): Promise<AiAccess> {
   const [rows, userRow] = await Promise.all([
-    listAiProviders(userId),
-    useDatabase().select({ tier: users.aiModelTier }).from(users).where(eq(users.id, userId)).limit(1).then(r => r[0])
+    listAiProviders(user),
+    getAiModelTier(user).then(tier => ({ tier }))
   ])
   const locked: AiCapability[] = []
   const pick = (capability: AiCapability): ResolvedAiProvider | null => {
@@ -163,12 +166,8 @@ export async function resolveAiAccess(userId: number, plan: PlanName): Promise<A
   }
 }
 
-export async function resolveAiProviders(userId: number, plan: PlanName): Promise<ResolvedAiProviders> {
-  return (await resolveAiAccess(userId, plan)).providers
-}
-
-export async function resolveAiProvider(userId: number, capability: AiCapability, plan: PlanName): Promise<ResolvedAiProvider | null> {
-  return (await resolveAiProviders(userId, plan))[capability]
+export async function resolveAiProviders(user: UserScope, plan: PlanName): Promise<ResolvedAiProviders> {
+  return (await resolveAiAccess(user, plan)).providers
 }
 
 export interface LiveDictationTarget {
@@ -190,10 +189,10 @@ export function liveDictationTarget(transcription: ResolvedAiProvider | null): L
     if (!MISTRAL_LIVE_DICTATION_HOSTS.includes(host)) return null
     return { apiKey: transcription.credentials.apiKey, model, serverURL: `https://${host}`, platformBilled: false }
   }
-  const platformKey = (process.env.MISTRAL_API_KEY ?? '').trim()
+  const platformKey = useEnv().providers.mistralApiKey
   if (!platformKey) return null
   // Operator-paid: always Mistral's EU endpoint, like every LiteLLM
-  // Mistral deployment (infra/litellm/config.yaml).
+  // Mistral deployment (deploy/config/litellm/config.yaml).
   return { apiKey: platformKey, model, serverURL: `https://${MISTRAL_EU_API_HOST}`, platformBilled: true }
 }
 

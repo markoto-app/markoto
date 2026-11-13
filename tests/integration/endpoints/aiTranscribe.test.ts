@@ -3,18 +3,18 @@ import { resetDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createUser } from '../setup/fixtures'
 
-// POST /api/ai/transcribe — validation surface only. The Mistral
+// POST /api/ai/transcribe: validation surface only. The Mistral
 // Voxtral Mini Transcribe call itself isn't exercised here (tests
 // use a dummy API key) but every request passes through the full
 // validation ladder before reaching the upstream, so 4xx paths are
 // fully covered.
 //
 // Happy-path is covered indirectly: if validation lets a request
-// through, the upstream fails with its own error — that branch
+// through, the upstream fails with its own error, that branch
 // surfaces as a 502 from our endpoint and doesn't need integration
 // coverage since it's just upstream error propagation.
 
-// Minimal valid base64-encoded payload — 200 bytes of zeroes, well above
+// Minimal valid base64-encoded payload, 200 bytes of zeroes, well above
 // the 100-byte minimum. The MIME type is checked against an allowlist
 // upstream; the contents themselves never need to decode to anything
 // legitimate for validation to succeed.
@@ -61,7 +61,7 @@ describe('POST /api/ai/transcribe', () => {
     it('accepts transcription-compatible MIME types', async () => {
       // Each of these must pass OUR validation ladder. The test env
       // uses a dummy API key so the upstream call itself fails with
-      // a 502 from our endpoint — that's fine; the assertion here
+      // a 502 from our endpoint, that's fine; the assertion here
       // only distinguishes "our mimeType gate rejected this" (bad)
       // from "the transcription upstream rejected this" (fine, upstream).
       const user = await createUser()
@@ -78,20 +78,14 @@ describe('POST /api/ai/transcribe', () => {
           audio: MIN_VALID_AUDIO_B64,
           mimeType
         })
-        if (res.status === 400) {
-          const body = await res.json() as { message?: string }
-          expect(body.message ?? '', `${mimeType} must not be rejected at our mimeType gate`).not.toMatch(/mimeType/i)
-        }
+        const body: { message?: string } = res.status === 400 ? await res.json() : {}
+        expect(body.message ?? '', `${mimeType} must not be rejected at our mimeType gate`).not.toMatch(/mimeType/i)
       }
     })
 
     it('rejects MP4 / AAC (Safari MediaRecorder default)', async () => {
-      // Voxtral Mini Transcribe doesn't accept MP4 containers (and
-      // pre-Phase-5 the legacy Cloud STT path didn't either; the
-      // even-earlier Gemini-era path DID accept them, hence the
-      // explicit reject here). The server must now return 400 so
-      // the client gets a clean error — the upstream would otherwise
-      // return a confusing 400.
+      // Voxtral Mini Transcribe doesn't accept MP4 containers, so the server rejects them with 400 up front and
+      // the client gets a clean error (the upstream would otherwise return a confusing 400).
       const user = await createUser()
       const client = await loggedInClient(user.id)
       for (const mimeType of ['audio/mp4', 'audio/mpeg', 'audio/mp3']) {
@@ -117,7 +111,7 @@ describe('POST /api/ai/transcribe', () => {
     it('returns 400 with audio too short', async () => {
       const user = await createUser()
       const client = await loggedInClient(user.id)
-      // 50 bytes — well under the 100-byte minimum.
+      // 50 bytes: well under the 100-byte minimum.
       const shortAudio = Buffer.alloc(50, 0).toString('base64')
       const res = await client.post('/api/ai/transcribe', {
         audio: shortAudio,
@@ -131,7 +125,7 @@ describe('POST /api/ai/transcribe', () => {
     it('returns 413 with audio over the size limit', async () => {
       const user = await createUser()
       const client = await loggedInClient(user.id)
-      // 6 MiB — over the 5 MiB cap. Base64 inflates by ~33%, so the
+      // 6 MiB: over the 5 MiB cap. Base64 inflates by ~33%, so the
       // wire payload is ~8 MiB, but the server validates against the
       // decoded size.
       const bigAudio = Buffer.alloc(6 * 1024 * 1024, 0).toString('base64')
@@ -148,7 +142,7 @@ describe('POST /api/ai/transcribe', () => {
       // (`de` → `de-DE` etc.) is covered by the unit test for
       // `normalizeLanguageCode`; this test only verifies the field is
       // forwarded past our own validation ladder. The dummy upstream
-      // key surfaces as a 502 which is fine — we're asserting what
+      // key surfaces as a 502 which is fine, we're asserting what
       // it's NOT (a 400 from our gate).
       const user = await createUser()
       const client = await loggedInClient(user.id)
@@ -158,7 +152,7 @@ describe('POST /api/ai/transcribe', () => {
           mimeType: VALID_MIME,
           languageCode
         })
-        // Asserting NOT-400 — the test is about the validation gate,
+        // Asserting NOT-400: the test is about the validation gate,
         // not the upstream transcribe-service result (502 from a dummy
         // key is fine; what's wrong is a 400 from our own gate).
         expect(res.status, `languageCode=${languageCode} unexpectedly 400'd`).not.toBe(400)
@@ -166,19 +160,15 @@ describe('POST /api/ai/transcribe', () => {
     })
   })
 
-  // ─── Budget exhaustion ────────────────────────────────────────────────
+  // Budget exhaustion
   //
-  // Phase 6: budget enforcement moved to LiteLLM virtual keys. The proxy
-  // surfaces 429 with a budget-exceeded body when a key's spend exceeds
-  // its `max_budget`; the app translates that to its standard error
-  // shape. We can no longer simulate exhaustion via DB seeding because
-  // there is no app-side counter — exhaustion only manifests through a
-  // real LiteLLM round-trip. That is exercised end-to-end in the flow
-  // tests; HTTP-level coverage of the 429-translation path lives in the
-  // unit tests for `isBudgetExceededError` + the agentic loop's catch
-  // block.
+  // Budget enforcement lives in LiteLLM virtual keys. The proxy surfaces 429 with a budget-exceeded body when a
+  // key's spend exceeds its `max_budget`; the app translates that to its standard error shape. Exhaustion
+  // can't be simulated by DB seeding (there is no app-side counter), only through a real LiteLLM round-trip,
+  // which the flow tests exercise end to end. HTTP-level coverage of the 429-translation path lives in the
+  // unit tests for `isBudgetExceededError` + the agentic loop's catch block.
 
-  // ─── Rate limiting (anti-abuse, 60/hour/user) ─────────────────────────
+  // Rate limiting (anti-abuse, 60/hour/user)
 
   describe('rate limit (60 requests/hour/user)', () => {
     it('does not fire for a single legitimate request', async () => {

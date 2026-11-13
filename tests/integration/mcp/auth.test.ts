@@ -6,7 +6,7 @@ import { mcp, mintPat } from '../setup/mcpClient'
 // Auth surface for the /mcp endpoint. The MCP route NEVER answers 401
 // (clients interpret that as an OAuth-discovery hint and switch
 // protocols). A request without a valid token is refused with HTTP 403 +
-// a JSON-RPC error BEFORE the toolkit runs — so no server session is
+// a JSON-RPC error BEFORE the toolkit runs, so no server session is
 // ever created for it (anonymous `initialize` calls used to fill the
 // toolkit's global session table). Under-scoped callers see only the
 // tools their scopes allow.
@@ -16,9 +16,9 @@ import { mcp, mintPat } from '../setup/mcpClient'
 //   - per-scope subset → exactly the right tools surface
 //
 // Calling a hidden tool comes back as "Tool not found" (toolkit's
-// chosen shape — same as if the tool didn't exist).
+// chosen shape: same as if the tool didn't exist).
 
-describe('MCP auth — token validity', () => {
+describe('MCP auth: token validity', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -66,7 +66,7 @@ describe('MCP auth — token validity', () => {
     await expectRefused(plaintext)
   })
 
-  it('many anonymous initialize calls create no sessions — a real user still connects', async () => {
+  it('many anonymous initialize calls create no sessions, a real user still connects', async () => {
     // The toolkit keeps at most 1000 sessions per process; anonymous
     // initialize calls must not consume them.
     for (let i = 0; i < 25; i++) await expectRefused(null)
@@ -80,7 +80,7 @@ describe('MCP auth — token validity', () => {
   it('verify cache makes revocation eventual within TTL (cached hit survives DB revoke)', async () => {
     // Belt-and-braces test for the documented Valkey 60s cache window.
     // First call seeds the cache; DB revoke then doesn't immediately
-    // bite — the cached entry covers the next ~60s. Tests should expect
+    // bite: the cached entry covers the next ~60s. Tests should expect
     // this rather than be surprised by it.
     const user = await createUser()
     const { plaintext, tokenId } = await mintPat({ userId: user.id, scopes: ['documents:read'] })
@@ -97,7 +97,7 @@ describe('MCP auth — token validity', () => {
     )
     expect(result.rows[0]!.revoked_at).toBeInstanceOf(Date)
 
-    // Same token, fresh client (no per-client cache) — toolkit's
+    // Same token, fresh client (no per-client cache), toolkit's
     // verifier still sees the cached Valkey hit, so listing succeeds.
     // This is the documented behaviour, NOT a bug. Operators rotate
     // tokens with the 60s TTL in mind.
@@ -106,7 +106,7 @@ describe('MCP auth — token validity', () => {
   })
 })
 
-describe('MCP auth — scope gating', () => {
+describe('MCP auth: scope gating', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -190,7 +190,7 @@ describe('MCP auth — scope gating', () => {
     // The toolkit's chosen shape for "tool exists but not visible to
     // this caller" is the SAME as for "tool doesn't exist": a
     // CallToolResult with isError:true + text "Tool X not found".
-    // That's the right anti-enumeration shape — a separate
+    // That's the right anti-enumeration shape, a separate
     // "forbidden" response would leak the tool's existence.
     const res = await mcp(plaintext).call('replace_text', {
       doc_id: 'whatever', old_str: 'a', new_str: 'b'

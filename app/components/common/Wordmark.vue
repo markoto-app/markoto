@@ -1,25 +1,15 @@
 <script setup lang="ts">
 /**
- * The primary brand lockup. Renders the canonical SVG assets shipped
- * by the designer at `/public/markoto-logos/`:
+ * Primary brand lockup, rendered from the SVG assets in
+ * `/public/markoto-logos/` (`primary-lockup-{light,dark}.svg`; the dark one
+ * has a sumi-950 background baked in, matching the flattened dark surfaces
+ * in main.css). The text is outlined to paths, so it doesn't wait for the
+ * Fraunces web font. Aspect ratio is 333x90; `size` is the height in px.
  *
- *   - light: `primary-lockup-light.svg` — sumi paths + shu seal,
- *     transparent bg. Composites onto any warm light surface.
- *   - dark:  `primary-lockup-dark.svg`  — cream paths + brighter shu
- *     seal, sumi-950 bg baked in. We've flattened all dark-mode
- *     surfaces to sumi-950 (see main.css) so the rect blends.
- *
- * Both assets have the wordmark text outlined to paths, so they're
- * pixel-perfect from the first paint and don't depend on the Fraunces
- * web font loading. The SVG aspect ratio is 333×90; we
- * scale by `size` (height in px) and let the width follow.
- *
- * Hydration-safe color-mode swap: rather than picking the asset via
- * `useColorMode().value` (which differs between SSR and client and
- * triggers a Vue hydration warning that cascades into Suspense
- * misbehaviour on the home page), we render BOTH images and use CSS
- * to hide whichever doesn't match the current `.dark` class on
- * `<html>`. Same DOM on server and client, no swap-on-hydrate.
+ * Both images are rendered and CSS hides the one that doesn't match the
+ * `.dark` class on `<html>`. Picking via `useColorMode().value` differs
+ * between SSR and client and causes a hydration warning that cascades into
+ * Suspense misbehaviour.
  */
 const props = withDefaults(defineProps<{
   /** Wordmark height in px. Width follows the 333×90 aspect ratio. */
@@ -57,15 +47,11 @@ const width = computed(() => Math.round(props.size * 333 / 90))
 </template>
 
 <!--
-  No `scoped` attribute on this style block. Vue's scoped CSS
-  compiles `:global(.dark) .mk-wordmark__img--dark` to a plain
-  `.dark .mk-wordmark__img--dark` selector (no `[data-v-*]`
-  attribute), but the default `.mk-wordmark__img--dark` rule keeps
-  the attribute and ends up tied on specificity — and the source
-  order tiebreaker isn't reliably winning, leaving the dark variant
-  hidden in dark mode. Plain (un-scoped) styles avoid the dance
-  entirely. The `mk-wordmark__*` class names are namespaced
-  enough that leaking them globally is safe.
+  Deliberately not `scoped`: scoped CSS compiles
+  `:global(.dark) .mk-wordmark__img--dark` to a selector without `[data-v-*]`,
+  which ties on specificity with the attribute-bearing default rule and can
+  leave the dark variant hidden in dark mode. The `mk-wordmark__*` names are
+  namespaced enough to leak globally.
 -->
 <style>
 .mk-wordmark {
@@ -80,7 +66,7 @@ const width = computed(() => Math.round(props.size * 333 / 90))
 }
 /* Light by default; dark variant hidden until `.dark` lands on
    `<html>`. Server and client render the same DOM regardless of
-   color mode — no hydration mismatch. */
+   color mode: no hydration mismatch. */
 .mk-wordmark__img--dark {
   display: none;
 }

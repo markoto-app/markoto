@@ -4,9 +4,9 @@ import { resetDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser } from '../setup/fixtures'
 import { TEST_JWT_SECRET } from '../setup/env'
-import { mintSessionJwt } from '~~/shared/test-helpers/jwt'
+import { mintSessionJwt } from '~~/tests/helpers/jwt'
 
-// GET /api/docs/:docId/file-token — the image-access token for the live
+// GET /api/docs/:docId/file-token: the image-access token for the live
 // preview / print iframes, which run sandboxed in an opaque origin and so
 // send no session cookie. Same gate as /api/files; the minted
 // `file-access` token unlocks /api/files and NOTHING else.
@@ -36,7 +36,7 @@ describe('GET /api/docs/:docId/file-token', () => {
     expect(ttl).toBeGreaterThan(14 * 60_000)
     expect(ttl).toBeLessThanOrEqual(15 * 60_000)
 
-    // The token alone (no cookie — what the opaque-origin iframe sends) opens the image route.
+    // The token alone (no cookie, what the opaque-origin iframe sends) opens the image route.
     const img = await anonClient().get(`/api/files/${doc.docId}/${FILE_ID}?token=${encodeURIComponent(body.token)}`)
     expect(img.status).toBe(302)
     expect(img.headers.get('cross-origin-resource-policy')).toBe('cross-origin')

@@ -1,51 +1,27 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
+import type { ApiResponse } from '~/utils/api/client'
+import { apiErrorData, errorStatus } from '~/utils/api/errors'
 import type { WorkspaceDoc } from '~/components/workspace/WorkspaceDocTable.vue'
-import { isPaymentProblem } from '~/utils/workspaceBilling'
+import { isPaymentProblem } from '~/utils/billing/workspaceBilling'
 import type { WorkspaceMember } from '~/components/workspace/WorkspaceMemberAvatars.vue'
+import { useRemoveMember } from '~/queries/workspaces'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
-const { showError } = useErrorHandler()
+const { showError, extractError } = useErrorHandler()
 const { loggedIn, user } = useUserSession()
 
 const workspaceId = computed(() => route.params.id as string)
 
-interface WorkspaceDetail {
-  workspace: {
-    workspaceId: string
-    name: string
-    description: string | null
-    createdAt: string
-    myRole: 'admin' | 'editor' | 'viewer'
-    ownerId: number
-    // Effective plan (Team / Business subscription, else the creator's plan).
-    plan: import('~~/shared/config/tiers').PlanName
-    // NEW: workspace default theme. NULL = use the markoto preset.
-    // Read by NewDocumentDialog when seeding the theme card grid for
-    // docs created in this workspace.
-    defaultTheme: import('~~/shared/types/theme').DocTheme | null
-    // A Team / Business subscription currently covers the workspace.
-    pooled?: boolean
-    // Admins only: seats + status of the subscription (WP3).
-    billing?: import('~/utils/workspaceBilling').WorkspaceSeatBilling | null
-    /** Admins only (WP14). */
-    sso?: { available: boolean, status: 'none' | 'draft' | 'active' } | null
-    /** Admins only (WP15). */
-    auditLog?: { available: boolean } | null
-    guests?: { available: boolean } | null
-    brandKit?: { available: boolean, inUse: boolean } | null
-    brandLocked?: boolean
-  }
-  documents: WorkspaceDoc[]
-  members: WorkspaceMember[]
-}
+type WorkspaceDetail = ApiResponse<'/api/workspaces/:wsId', 'get'>
 
 const notFound = ref(false)
 const forbidden = ref(false)
 // Single sign-on enforced and no current sign-in through the workspace's
-// IdP (WP14): where to sign in, and whether this admin may still manage
+// IdP: where to sign in, and whether this admin may still manage
 // the connection (the break-glass).
 const ssoRequired = ref<{ loginUrl: string, canManageSso: boolean } | null>(null)
 
@@ -58,7 +34,7 @@ const {
     notFound.value = false
     forbidden.value = false
     ssoRequired.value = null
-    return await $fetch<WorkspaceDetail>(`/api/workspaces/${workspaceId.value}`)
+    return await apiFetch('/api/workspaces/:wsId', { path: { wsId: workspaceId.value } })
   },
   null,
   {
@@ -69,18 +45,18 @@ const {
     // useAsyncState default) wouldn't notify on those nested writes.
     shallow: false,
     onError: (e: unknown) => {
-      const err = e as { statusCode?: number, data?: { data?: { code?: string, loginUrl?: string, canManageSso?: boolean } } } | null
-      const sso = err?.data?.data
-      if (err?.statusCode === 403 && sso?.code === 'sso/required' && sso.loginUrl) {
+      const status = errorStatus(e)
+      const sso = apiErrorData(e)
+      if (status === 403 && sso?.code === 'sso/required' && typeof sso.loginUrl === 'string' && sso.loginUrl) {
         ssoRequired.value = { loginUrl: sso.loginUrl, canManageSso: sso.canManageSso === true }
-      } else if (err?.statusCode === 404) notFound.value = true
-      else if (err?.statusCode === 403 || err?.statusCode === 401) forbidden.value = true
+      } else if (status === 404) notFound.value = true
+      else if (status === 403 || status === 401) forbidden.value = true
       else showError('workspace.notFound', e)
     }
   }
 )
 
-// Defer to VueUse `tryOnMounted` — see app/pages/index.vue for the
+// Defer to VueUse `tryOnMounted`, see app/pages/index.vue for the
 // full rationale (SSR cookie-less $fetch + setup-time loading-flag
 // flip both cause hydration mismatches; deferring to client mount
 // sidesteps both).
@@ -111,30 +87,30 @@ const tabItems = computed(() => {
     { label: t('workspace.tabs.documents'), icon: 'i-lucide-file-text', slot: 'documents', value: 'documents' },
     { label: t('workspace.tabs.knowledge'), icon: 'i-lucide-library', slot: 'knowledge', value: 'knowledge' }
   ]
-  // Admin-only Settings tab. Hidden for editors / viewers — there's
+  // Admin-only Settings tab. Hidden for editors / viewers, there's
   // nothing actionable for them there. Putting the gate at tab-list
   // level (rather than inside the slot) means the tab strip is the
   // same width for everyone but the order shifts.
   if (isAdmin.value) {
     items.push({ label: t('workspace.tabs.settings'), icon: 'i-lucide-settings', slot: 'settings', value: 'settings' })
-    // Usage per person (WP11), every plan.
+    // Usage per person, every plan.
     items.push({ label: t('workspace.tabs.usage'), icon: 'i-lucide-chart-no-axes-column', slot: 'usage', value: 'usage' })
   }
-  // Brand kit (WP10): admins, where the plan includes it or something is
+  // Brand kit: admins, where the plan includes it or something is
   // set up (so it can be cleared after a downgrade).
   const brand = data.value?.workspace.brandKit
   if (isAdmin.value && brand && (brand.available || brand.inUse)) {
     items.push({ label: t('workspace.tabs.brand'), icon: 'i-lucide-palette', slot: 'brand', value: 'brand' })
   }
-  // Team / Business billing (WP3): admins, and only where something can
+  // Team / Business billing: admins, and only where something can
   // be bought. Members never see prices.
-  // Single sign-on (WP14): admins, where the plan includes it or a
+  // Single sign-on: admins, where the plan includes it or a
   // connection exists (so it can be switched off after a downgrade).
   const sso = data.value?.workspace.sso
   if (isAdmin.value && sso && (sso.available || sso.status !== 'none')) {
     items.push({ label: t('workspace.tabs.sso'), icon: 'i-lucide-key-round', slot: 'sso', value: 'sso' })
   }
-  // Audit log (WP15): admins of a plan that includes it.
+  // Audit log: admins of a plan that includes it.
   if (isAdmin.value && data.value?.workspace.auditLog?.available) {
     items.push({ label: t('workspace.tabs.audit'), icon: 'i-lucide-scroll-text', slot: 'audit', value: 'audit' })
   }
@@ -164,7 +140,7 @@ tryOnMounted(() => {
   } else if (outcome === 'cancelled') {
     toast.add({ title: t('workspace.billing.checkoutCancelled'), icon: 'i-lucide-x', color: 'neutral' })
   }
-  // Back from a single sign-on test (WP14).
+  // Back from a single sign-on test.
   if (route.query.test === 'activated') toast.add({ title: t('sso.testActivated'), icon: 'i-lucide-check', color: 'neutral' })
   else if (route.query.test === 'ok') toast.add({ title: t('sso.testOk'), icon: 'i-lucide-check', color: 'neutral' })
   if (route.query.billing || route.query.tab || route.query.credits || route.query.test) void router.replace({ query: {} })
@@ -177,7 +153,7 @@ function createDocument() {
   showNewDocDialog.value = true
 }
 function onDocCreated(docId: string) {
-  router.push(`/d/${docId}`)
+  void router.push(`/d/${docId}`)
 }
 
 // Modals
@@ -218,18 +194,19 @@ function openDocMove(doc: WorkspaceDoc) {
 }
 
 function onDocDeleted() {
-  if (!deleteTargetDoc.value || !data.value) return
-  data.value.documents = data.value.documents.filter(d => d.docId !== deleteTargetDoc.value!.docId)
+  const target = deleteTargetDoc.value
+  if (!target || !data.value) return
+  data.value.documents = data.value.documents.filter(d => d.docId !== target.docId)
   deleteTargetDoc.value = null
 }
 
 function onDocDuplicated(newDocId: string) {
-  // Send the user into their fresh copy — matches the "file → duplicate"
+  // Send the user into their fresh copy, matches the "file → duplicate"
   // flow in desktop apps, and the workspace view will re-hydrate on the
   // next visit. If the duplicate stayed in this workspace, reloading
   // here would surface it in the list too, but we'd rather the user
   // start editing immediately.
-  router.push(`/d/${newDocId}`)
+  void router.push(`/d/${newDocId}`)
 }
 
 function onDocMoved(newWorkspaceId: string | null) {
@@ -237,10 +214,11 @@ function onDocMoved(newWorkspaceId: string | null) {
   // current list. Same-workspace no-op is impossible here because the
   // row's modal doesn't allow picking the current workspace's option
   // server-side it's a no-op anyway.
-  if (!moveTargetDoc.value || !data.value) return
+  const target = moveTargetDoc.value
+  if (!target || !data.value) return
   if (newWorkspaceId !== workspaceId.value) {
     data.value.documents = data.value.documents.filter(
-      d => d.docId !== moveTargetDoc.value!.docId
+      d => d.docId !== target.docId
     )
   }
   moveTargetDoc.value = null
@@ -253,7 +231,7 @@ function onWorkspaceUpdated(payload: { name: string, description: string | null 
 }
 
 function onWorkspaceDeleted() {
-  router.replace('/')
+  void router.replace('/')
 }
 
 function onMembersUpdated(members: WorkspaceMember[]) {
@@ -267,21 +245,14 @@ function onLeftWorkspace() {
     icon: 'i-lucide-log-out',
     color: 'success'
   })
-  router.replace('/')
+  void router.replace('/')
 }
 
 // Admin vs non-admin see different workspace-level actions. Computed so the
 // dropdown content swaps based on role without two separate templates.
-interface MenuItem {
-  label: string
-  icon: string
-  color?: string
-  onSelect: () => void
-}
-
-const workspaceMenuItems = computed(() => {
+const workspaceMenuItems = computed<DropdownMenuItem[][]>(() => {
   if (!data.value) return []
-  const items: MenuItem[] = [
+  const items: DropdownMenuItem[] = [
     {
       label: t('workspace.members.manageTitle'),
       icon: 'i-lucide-users',
@@ -307,22 +278,23 @@ const workspaceMenuItems = computed(() => {
       label: t('workspace.members.leave'),
       icon: 'i-lucide-log-out',
       color: 'error',
-      onSelect: () => leaveWorkspace()
+      onSelect: () => { void leaveWorkspace() }
     })
   }
   return [items]
 })
 
+// Leaving refreshes the caller's workspace list.
+const removeMember = useRemoveMember()
 async function leaveWorkspace() {
   if (!data.value || myUserId.value == null) return
   try {
-    await $fetch(`/api/workspaces/${data.value.workspace.workspaceId}/members/${myUserId.value}`, { method: 'DELETE' })
+    await removeMember.mutateAsync({ workspaceId: data.value.workspace.workspaceId, userId: myUserId.value })
     onLeftWorkspace()
   } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
     toast.add({
       title: t('workspace.members.leaveFailed'),
-      description: err?.data?.message || err?.message,
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -334,7 +306,7 @@ async function leaveWorkspace() {
   <div class="min-h-screen flex flex-col">
     <!-- Workspace header. Lockup → back → workspace name, divided by
          hairline rules so the brand mark stays the leftmost anchor on
-         every screen. The folder icon (previously shu) is dropped —
+         every screen. The folder icon (previously shu) is dropped,
          workspace identity is carried by name + Back, and shu stays
          reserved for AI presence. -->
     <header class="border-b border-default px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
@@ -342,7 +314,7 @@ async function leaveWorkspace() {
         <NuxtLink
           to="/"
           class="flex items-center"
-          aria-label="markoto home"
+          :aria-label="t('common.homeLinkLabel')"
         >
           <CommonWordmark :size="20" />
         </NuxtLink>
@@ -455,7 +427,7 @@ async function leaveWorkspace() {
         <div class="flex items-start justify-between gap-4">
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-3 flex-wrap">
-              <!-- Workspace title in the editorial register — Fraunces
+              <!-- Workspace title in the editorial register, Fraunces
                    serif, weight 400, tight tracking. Same display as
                    the doc title in the editor toolbar; one consistent
                    editorial voice for every "name of an object" in the
@@ -498,7 +470,7 @@ async function leaveWorkspace() {
               {{ data.workspace.description }}
             </p>
             <!-- Gap between workspace description and the member
-                 roster — `mt-3` was too tight, the member rows
+                 roster: `mt-3` was too tight, the member rows
                  visually merged with the description prose. -->
             <div class="mt-6">
               <WorkspaceMemberAvatars
@@ -507,11 +479,9 @@ async function leaveWorkspace() {
               />
             </div>
           </div>
-          <!-- Page-level actions. The "New document" button used to
-               sit here, but it belongs inside the Documents tab — a
-               page-level CTA implies "this is THE primary action" and
-               on Knowledge / AI tabs that's misleading. The dropdown
-               (rename / delete / members) stays — it's truly page-level.
+          <!-- Page-level actions only (rename / delete / members); "New
+               document" lives in the Documents tab, since a page-level CTA
+               would read as the primary action on every tab.
                "Invite people" is the admins' primary page action: a
                visible button, not an entry buried in the members modal. -->
           <div class="flex items-center gap-2 shrink-0">
@@ -540,7 +510,7 @@ async function leaveWorkspace() {
           Tabs. variant=link swaps the shu pill for a subtle
           underlined-tab register that fits the editorial chrome.
           color=neutral makes the active underline sumi-950 instead
-          of shu — shu stays reserved for AI presence. The label slot
+          of shu: shu stays reserved for AI presence. The label slot
           upgrades the tab text to Fraunces serif so tabs read as
           section titles, not chrome buttons.
         -->
@@ -557,68 +527,16 @@ async function leaveWorkspace() {
           }"
         >
           <template #documents>
-            <!-- Same header pattern as the Knowledge tab: icon +
-                 Fraunces serif title + JetBrains Mono micro-count,
-                 description below, primary action right-aligned. The
-                 page-level "New document" button moved here so the
-                 CTA only fires when the user is actually looking at
-                 the documents list. -->
-            <section class="space-y-3">
-              <div class="flex items-center justify-between gap-3 flex-wrap">
-                <div class="flex items-center gap-2.5 min-w-0">
-                  <UIcon
-                    name="i-lucide-file-text"
-                    class="text-toned size-5 shrink-0"
-                  />
-                  <h2 class="font-serif text-2xl font-normal tracking-tight">
-                    {{ t('workspace.tabs.documents') }}
-                  </h2>
-                  <span
-                    v-if="data.documents.length > 0"
-                    class="font-mono text-[10.5px] tracking-[0.04em] text-muted"
-                  >{{ data.documents.length }}</span>
-                </div>
-                <UButton
-                  v-if="canCreateDoc"
-                  icon="i-lucide-plus"
-                  size="sm"
-                  color="neutral"
-                  data-testid="workspace-new-document"
-                  @click="createDocument"
-                >
-                  {{ t('workspace.newDocument') }}
-                </UButton>
-              </div>
-              <p class="text-xs text-muted">
-                {{ canCreateDoc ? t('workspace.emptyDescription') : t('workspace.emptyDescriptionViewer') }}
-              </p>
-
-              <div
-                v-if="data.documents.length > 0"
-                class="pt-2"
-              >
-                <WorkspaceDocTable
-                  :documents="data.documents"
-                  :my-role="myRole || 'viewer'"
-                  :workspace-id="data.workspace.workspaceId"
-                  @duplicate-requested="openDocDuplicate"
-                  @move-requested="openDocMove"
-                  @delete-requested="openDocDelete"
-                />
-              </div>
-              <div
-                v-else
-                class="text-center py-12 border border-dashed border-default rounded-lg bg-default"
-              >
-                <UIcon
-                  name="i-lucide-file-plus"
-                  class="size-6 text-muted mx-auto mb-2"
-                />
-                <p class="font-serif text-lg font-normal tracking-tight">
-                  {{ t('workspace.empty') }}
-                </p>
-              </div>
-            </section>
+            <WorkspaceDocumentsTab
+              :documents="data.documents"
+              :my-role="myRole || 'viewer'"
+              :workspace-id="data.workspace.workspaceId"
+              :can-create-doc="canCreateDoc"
+              @create="createDocument"
+              @duplicate-requested="openDocDuplicate"
+              @move-requested="openDocMove"
+              @delete-requested="openDocDelete"
+            />
           </template>
 
           <template #knowledge>
@@ -630,7 +548,7 @@ async function leaveWorkspace() {
           </template>
 
           <template #settings>
-            <!-- Workspace settings — admin-only. Currently houses the
+            <!-- Workspace settings: admin-only. Currently houses the
                  default-theme picker; future workspace-wide settings
                  (e.g. retention policy) sit here too. -->
             <WorkspaceSettingsPanel

@@ -6,7 +6,7 @@ import manifest from './templateThumbnails.manifest.json'
  * (`scripts/render-theme-thumbs.ts --templates`) into
  * `public/template-thumbs/<id>.webp`. The manifest maps a template id to
  * the hash of what the picture was rendered from;
- * `tests/unit/templateThumbnails.test.ts` fails when it is stale. The hash
+ * `tests/unit/theme/templateThumbnails.test.ts` fails when it is stale. The hash
  * doubles as the cache-buster.
  */
 const THUMBNAILS: Readonly<Record<string, string>> = manifest

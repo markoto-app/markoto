@@ -12,7 +12,7 @@ import { test, expect } from '../fixtures/flow'
 //
 // What this flow IS: the canonical "right of access" UX. Compliance
 // reviewers see request → background build → download in one
-// continuous demo. Useful pair to the deletion flow — the right
+// continuous demo. Useful pair to the deletion flow, the right
 // answer to "I want to leave but keep my work" is "export first,
 // then delete".
 //
@@ -20,7 +20,7 @@ import { test, expect } from '../fixtures/flow'
 // the top of the archive itself describes every entry in plain
 // English; surfacing it here would just paraphrase that text.
 //
-// Single-actor flow. The profile page is responsive — same flow
+// Single-actor flow. The profile page is responsive, same flow
 // runs in both desktop and mobile project variants. Mobile layout
 // stacks the history-row metadata vertically below each row's
 // status pill rather than packing horizontally.
@@ -29,12 +29,12 @@ test('Data export', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
   // A complete profile: the export flow opens on the profile page, so
-  // its Email and Language rows must show real values, not "—".
+  // its Email and Language rows must show real values, not ", ".
   await editor.page.loginAsTestUser('Maya Chen', { email: 'maya.chen@studio.example', locale: 'en' })
 
   // Seed a workspace + a doc so the export has real personal data
   // to surface. The story is the export pipeline, not the seeding,
-  // so we go through the API rather than a fixture composition —
+  // so we go through the API rather than a fixture composition,
   // mirrors how a real user's account would have grown.
   const wsRes = await page.request.post('/api/workspaces', {
     data: { name: 'Sample workspace' }
@@ -55,18 +55,18 @@ test('Data export', async ({ page, flow, editor }) => {
   await page.goto('/settings/profile')
   await page.locator('[data-testid="export-request-button"]').waitFor({ state: 'visible', timeout: 10_000 })
 
-  // ─── Chapter 1: Why export ─────────────────────────────────────
+  // Chapter 1: Why export
   await flow.heading('Get a copy of everything we hold about you', 3)
   await flow.narrate(
     'You have the right to a machine-readable copy of every piece of '
     + 'personal data markoto holds about you (GDPR Articles 15 and 20). '
     + 'One click starts building the archive, you get an email when it '
     + 'is ready, and a download link stays on this page for seven days. '
-    + 'The ZIP holds plain JSON and Markdown files — no special software '
+    + 'The ZIP holds plain JSON and Markdown files, no special software '
     + 'needed to open it.'
   )
 
-  // ─── Chapter 2: Request the export ─────────────────────────────
+  // Chapter 2: Request the export
   await flow.heading('Request the export', 3)
   await flow.narrate(
     'The archive covers your account profile, every document you own '
@@ -80,14 +80,14 @@ test('Data export', async ({ page, flow, editor }) => {
     'Click "Request export"',
     page.locator('[data-testid="export-request-button"]'),
     {
-      result: 'A new row appears under Recent exports with the status "queued" — markoto builds it in the background.',
+      result: 'A new row appears under Recent exports with the status "queued", markoto builds it in the background.',
       after: () => page.locator('[data-testid="export-history-row"]').first().waitFor({ state: 'visible', timeout: 10_000 })
     }
   )
 
   await expect(page.locator('[data-testid="export-history-row"]').first()).toContainText(/queued|running/i)
 
-  // ─── Chapter 3: Wait for the worker to build ───────────────────
+  // Chapter 3: Wait for the worker to build
   await flow.heading('Your archive is ready', 3)
   await flow.narrate(
     'Building the archive usually takes under a minute. You can close '
@@ -98,7 +98,7 @@ test('Data export', async ({ page, flow, editor }) => {
   // The ephemeral test stack runs the same worker plugin (1-minute
   // interval), but waiting on that here would only add a minute of
   // nothing. Tick the worker explicitly via the TEST_MODE-gated
-  // endpoint — the same code the plugin runs.
+  // endpoint: the same code the plugin runs.
   const tickRes = await page.request.post('/api/_test/run-export-worker')
   if (!tickRes.ok()) throw new Error(`worker tick failed: ${tickRes.status()}`)
 
@@ -124,16 +124,16 @@ test('Data export', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Chapter 4: Verify the download endpoint ────────────────────
+  // Chapter 4: Verify the download endpoint
   await flow.heading('Download the archive', 3)
   await flow.narrate(
     'Click Download and the ZIP lands on disk. Each click hands your '
     + 'browser a short-lived link to the file, so a link that leaks '
     + 'stops working after a few minutes. If a slow connection drops '
-    + 'mid-download, click Download again — the archive is not rebuilt.'
+    + 'mid-download, click Download again, the archive is not rebuilt.'
   )
 
-  // Resolve the download URL cleanly — Playwright's getAttribute
+  // Resolve the download URL cleanly, Playwright's getAttribute
   // returns a Promise<string|null>, so await it before passing to
   // request.get. Then issue a non-following GET to assert the
   // 302 → presigned-URL redirect contract WITHOUT actually streaming
@@ -150,7 +150,7 @@ test('Data export', async ({ page, flow, editor }) => {
 
   await flow.shot(
     'Download hands your browser a fresh, short-lived link to the '
-    + 'archive — valid long enough for a slow connection, not long '
+    + 'archive: valid long enough for a slow connection, not long '
     + 'enough to linger in someone else\'s chat history.'
   )
 

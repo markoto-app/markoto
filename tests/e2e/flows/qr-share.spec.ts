@@ -10,16 +10,16 @@ import { test, expect } from '../fixtures/flow'
 //
 // What this flow is NOT: a deep tour of the share modal. The link-
 // copy + access-mode tour lives in `quick-share` (Tier 1). This flow
-// zooms in on the QR affordance — it's collapsed by default behind a
+// zooms in on the QR affordance, it's collapsed by default behind a
 // small toolbar button next to the link, and most readers never
 // notice it exists. A 30-second flow flips that.
 //
-// Works on desktop AND mobile — the share modal stacks the same way
+// Works on desktop AND mobile, the share modal stacks the same way
 // on narrow widths and the QR sits cleanly below the link row.
 test('Share by QR code', async ({ page, flow, editor }) => {
   test.setTimeout(60_000)
 
-  // The share modal opens from any doc — no login required, no
+  // The share modal opens from any doc, no login required, no
   // template choice. Use silentSetup so the manifest starts on the
   // share story, not on doc creation.
   await editor.silentSetup({
@@ -31,12 +31,12 @@ test('Share by QR code', async ({ page, flow, editor }) => {
   await flow.narrate(
     'You\'re at your desk with a doc open and want to keep reading '
     + 'it on your phone. The share modal has a QR toggle right next '
-    + 'to the link — collapsed by default, opens to a 160-pixel '
+    + 'to the link, collapsed by default, opens to a 160-pixel '
     + 'square that any phone camera resolves into the same URL. No '
     + 'app, no clipboard handoff, no "send myself a link" detour.'
   )
 
-  // ─── Open the share modal ───────────────────────────────────────
+  // Open the share modal
   await flow.click(
     'Open the share dialog from the lock icon in the header',
     editor.page.accessLockButton,
@@ -44,22 +44,22 @@ test('Share by QR code', async ({ page, flow, editor }) => {
       annotations: [
         { label: 'lock icon', selector: '[aria-label*="access mode" i]', kind: 'arrow' }
       ],
-      result: 'The share modal opens — link at the top, QR toggle to its right.',
+      result: 'The share modal opens, link at the top, QR toggle to its right.',
       after: () => page.locator('[data-testid="share-qr-toggle"]').waitFor({ state: 'visible', timeout: 5_000 })
     }
   )
 
   // ASSERTION: the modal opened with the QR toggle present + the QR
-  // image is hidden (collapsed default — first click should reveal it).
+  // image is hidden (collapsed default, first click should reveal it).
   await expect(page.locator('[data-testid="share-modal"]')).toBeVisible()
   await expect(page.locator('[data-testid="share-qr-toggle"]')).toHaveAttribute('aria-pressed', 'false')
   await expect(page.locator('[data-testid="share-qr-image-wrapper"]')).toHaveCount(0)
 
-  // ─── Reveal the QR ──────────────────────────────────────────────
+  // Reveal the QR
   await flow.heading('Reveal the QR', 3)
   await flow.narrate(
     'Click the QR icon next to the link. The square renders below '
-    + 'the link row, encoding the same URL the link field carries — '
+    + 'the link row, encoding the same URL the link field carries, '
     + 'so changing access mode (or anything else that mutates the '
     + 'link) re-renders the QR automatically. Point your phone '
     + 'camera at it and tap the notification.'
@@ -70,7 +70,7 @@ test('Share by QR code', async ({ page, flow, editor }) => {
     page.locator('[data-testid="share-qr-toggle"]'),
     {
       hero: true,
-      result: 'The QR appears below the link — scan it from your phone to land on this doc.',
+      result: 'The QR appears below the link, scan it from your phone to land on this doc.',
       annotations: [
         { label: 'QR toggle', selector: '[data-testid="share-qr-toggle"]', kind: 'arrow' }
       ],
@@ -84,7 +84,7 @@ test('Share by QR code', async ({ page, flow, editor }) => {
   // ASSERTION: the QR image rendered + the toggle's aria-pressed
   // flipped to true (so the next click would dismiss it). The img
   // src is a data URL so the QR itself is in-DOM with no extra
-  // request — assert the src starts with `data:image`.
+  // request: assert the src starts with `data:image`.
   await expect(page.locator('[data-testid="share-qr-toggle"]')).toHaveAttribute('aria-pressed', 'true')
   const qrImg = page.locator('[data-testid="share-qr-image-wrapper"] img')
   await expect(qrImg).toBeVisible()

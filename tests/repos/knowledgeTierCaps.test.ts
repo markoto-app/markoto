@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser, createWorkspace } from '../integration/setup/fixtures'
-import { resolveCaps } from '../../server/utils/knowledgeQuota'
+import { resolveCaps } from '../../server/utils/knowledge/knowledgeQuota'
 import { DEFAULT_TIERS as TIERS } from '../../shared/config/tiers'
 
 // Tier-aware knowledge caps. `resolveCaps` reads the workspace's
 // effective plan (its Team / Business subscription, or its creator's
-// personal plan when that is better — server/utils/entitlements.ts) for
+// personal plan when that is better, server/utils/billing/entitlements.ts) for
 // per-workspace caps, and the uploader's own plan for per-user caps.
 
 async function setPlan(
@@ -35,17 +35,15 @@ async function subscribe(
 }
 
 // These cases exercise PAID-plan behaviour, which only exists with
-// billing switched on (default is off — see shared/config/billingMode.ts).
-// `isBillingEnabled()` reads process.env per call, so stub it for this
-// file and restore afterwards (repos tests share one worker).
-beforeAll(() => {
+// billing switched on (default is off, see shared/config/billingMode.ts).
+// `isBillingEnabled()` reads process.env per call.
+// Stubbed per test: every stub is undone before the next one
+// (`unstubEnvs` in vitest.config.ts).
+beforeEach(() => {
   vi.stubEnv('NUXT_BILLING_ENABLED', 'true')
 })
-afterAll(() => {
-  vi.unstubAllEnvs()
-})
 
-describe('resolveCaps — per-uploader tier', () => {
+describe('resolveCaps: per-uploader tier', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -64,7 +62,7 @@ describe('resolveCaps — per-uploader tier', () => {
     expect(caps.maxTotalBytesPerUser).toBe(TIERS.free.knowledgeBytesPerUser)
   })
 
-  it('in a Business workspace the uploader\'s personal caps don\'t apply (pooled, WP3)', async () => {
+  it('in a Business workspace the uploader\'s personal caps don\'t apply (pooled)', async () => {
     const owner = await createUser()
     const ws = await createWorkspace(owner.id)
     await subscribe(ws.workspaceId, 'business')
@@ -90,7 +88,7 @@ describe('resolveCaps — per-uploader tier', () => {
   })
 })
 
-describe('resolveCaps — per-workspace tier', () => {
+describe('resolveCaps: per-workspace tier', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -157,20 +155,6 @@ describe('resolveCaps — per-workspace tier', () => {
       ['pro', new Date(Date.now() - 24 * 60 * 60 * 1000), creator.id]
     )
     const ws = await createWorkspace(creator.id)
-
-    const caps = await resolveCaps({ workspaceId: ws.workspaceId, uploaderId: creator.id })
-    expect(caps.workspacePlan).toBe('free')
-  })
-
-  it('a leftover retired (+) sponsorship row changes nothing', async () => {
-    const creator = await createUser()
-    const sponsor = await createUser()
-    await setPlan(sponsor.id, 'pro')
-    const ws = await createWorkspace(creator.id)
-    await testDb().query(
-      'UPDATE workspaces SET ai_enabled = true, billing_owner_id = $1 WHERE workspace_id = $2',
-      [sponsor.id, ws.workspaceId]
-    )
 
     const caps = await resolveCaps({ workspaceId: ws.workspaceId, uploaderId: creator.id })
     expect(caps.workspacePlan).toBe('free')

@@ -20,7 +20,7 @@ rules:
   truthy:
     allowed-values: ["true", "false", "yes", "no"]
     check-keys: false
-  # ansible-lint requires these three settings — keep yamllint and ansible-lint
+  # ansible-lint requires these three settings: keep yamllint and ansible-lint
   # in lock-step so we don't get cross-tool warnings:
   comments-indentation: false
   octal-values:

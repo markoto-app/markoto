@@ -102,7 +102,8 @@ describe('MCP rate limits (enforced)', () => {
 
     const over = await a.call('list_my_documents', {})
     expect(over.isError).toBe(true)
-    expect(errorText(over)).toMatch(/Too many tool calls/)
+    // The agent learns the limit and its window, so it knows how long to back off.
+    expect(errorText(over)).toContain(`limit: ${max} per 1 min`)
   })
 
   it('generate_image has its own per-user allowance, checked before any work', async () => {
@@ -112,7 +113,7 @@ describe('MCP rate limits (enforced)', () => {
     const { max } = MCP_RATE_LIMITS.generateImagePerUser
 
     // A doc id the user can't reach: admitted (allowance spent), then
-    // refused by the doc check — no image is generated.
+    // refused by the doc check, no image is generated.
     for (let i = 0; i < max; i++) {
       const r = await c.call('generate_image', { doc_id: 'no-such-doc', prompt: 'a lighthouse', alt: 'lighthouse' })
       expect(r.isError).toBe(true)
@@ -120,6 +121,6 @@ describe('MCP rate limits (enforced)', () => {
     }
     const over = await c.call('generate_image', { doc_id: doc.docId, prompt: 'a lighthouse', alt: 'lighthouse' })
     expect(over.isError).toBe(true)
-    expect(errorText(over)).toMatch(/Too many generate_image calls/)
+    expect(errorText(over)).toContain(`limit: ${max} per 60 min`)
   })
 })

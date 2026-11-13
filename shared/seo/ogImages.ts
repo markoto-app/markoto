@@ -1,6 +1,6 @@
 // Social preview cards (Open Graph / Twitter), one per page group. All are
 // 1200×630 JPEGs committed under public/og/, built by
-// scripts/build-og-images.ts from the product-tour posters — nothing is
+// scripts/build-og-images.ts from the product-tour posters, nothing is
 // generated at runtime. A marketing page can override its group's card
 // with frontmatter `ogImage` (+ `ogImageAlt`); it must be 1200×630 too.
 

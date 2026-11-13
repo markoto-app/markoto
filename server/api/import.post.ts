@@ -1,102 +1,91 @@
 import type { H3Event } from 'h3'
-import { importMarkdownFile } from '../utils/markdownImport'
-import { capsFor, planLimitError, resolveUserPlan } from '../utils/entitlements'
+import { importMarkdownFile, type MarkdownImportResult } from '../utils/documents/markdownImport'
+import { capsFor, planLimitError, resolveUserPlan } from '../utils/billing/entitlements'
+import { markitdownAuthHeaders } from '../utils/platform/markitdownAuth'
+import { ID_RE } from '~~/shared/config/identifiers'
+import { MIB } from '~~/shared/config/units'
+import { IMPORT_MARKDOWN_MAX_BYTES, IMPORT_MAX_BYTES, IMPORT_REQUEST_MAX_BYTES } from '~~/shared/config/uploads'
+import { MARKITDOWN_IMPORT_TIMEOUT_MS } from '../config/markitdown'
+import { useEnv } from '~~/shared/env/load'
 
-// Subset of formats markitdown handles well as document imports. Markitdown
-// also supports CSV/JSON/XML/audio/images, but those don't make sense as a
-// "drop a doc in to seed your markdown" path — they round-trip into markdown
-// poorly or need extra LLM/OCR config. Keep the whitelist tight; widen later
-// if users ask.
-const ALLOWED_EXTENSIONS = new Set([
-  'docx',
-  'pdf',
-  'pptx',
-  'xlsx',
-  'xls',
-  'html',
-  'htm',
-  'epub'
-])
+// Subset of formats markitdown handles well as document imports. It also
+// supports CSV/JSON/XML/audio/images, but those round-trip into markdown
+// poorly or need LLM/OCR config; keep the whitelist tight.
+const CONVERTED_EXTENSIONS = ['docx', 'pdf', 'pptx', 'xlsx', 'xls', 'html', 'htm', 'epub'] as const
+type ConvertedExtension = typeof CONVERTED_EXTENSIONS[number]
+const isConvertedExtension = (ext: string): ext is ConvertedExtension => (CONVERTED_EXTENSIONS as readonly string[]).includes(ext)
+
+/**
+ * What an import answers. `source` is the file's format: only a Markdown
+ * file (`md`) can carry markoto's frontmatter (`properties`, `ignored`,
+ * `droppedCustomCssRules`); a converted file is markdown alone. One object
+ * type rather than a union, so the optional fields stay readable on the
+ * client without narrowing.
+ */
+type ImportResponse = MarkdownImportResult & { source: ConvertedExtension | 'md', filename: string }
 // Markdown needs no conversion: read as UTF-8 here, markoto's own
 // frontmatter (theme + document properties, written by Download
-// Markdown) is split off and validated (server/utils/markdownImport.ts).
+// Markdown) is split off and validated (server/utils/documents/markdownImport.ts).
 const MARKDOWN_EXTENSIONS = new Set(['md', 'markdown'])
 // A Markdown body lands in one Y.Doc (sync-server cap 16 MiB per document).
-const MARKDOWN_MAX_SIZE = 10 * 1024 * 1024
-const DOC_ID_SHAPE = /^[A-Za-z0-9_-]{1,64}$/
-const MAX_SIZE = 50 * 1024 * 1024 // 50 MB — kept in sync with markitdown-server/server.py
-// Whole request: the file plus multipart framing. Traefik's buffering
-// middleware on /api/import (prod + self-host compose) uses the same cap.
-const MAX_BODY = MAX_SIZE + 1024 * 1024
-// markitdown gives up after 60 s (MARKITDOWN_TIMEOUT_SECONDS); a little
-// headroom so its own 504 arrives rather than our abort.
-const MARKITDOWN_TIMEOUT_MS = 75_000
 
-export default defineEventHandler(async (event) => {
-  // Rate limit: 10 imports per IP per minute
-  const ip = getClientRateLimitKey(event)
-  if (!(await checkRateLimit('import', ip, 10, 60_000))) {
-    throw createError({
-      statusCode: 429,
-      message: 'Too many import requests. Try again later.',
-      data: { code: 'import/rate-limited', messageKey: 'error.rateLimited' }
-    })
+// Public with an optional session (anonymous users import too); limited per client.
+// The multipart body is read by the handler through a size-bounded reader
+// BEFORE it is parsed, so the wrapper must not read it first (`body: 'multipart'`).
+export default defineApiHandler({
+  access: allow.public('Importing converts a file and stores nothing; open to anonymous visitors, limited per client and by the caller\'s plan', { session: 'optional' }),
+  body: 'multipart',
+  // Before the optional session lookup: anonymous floods never reach the database.
+  rateLimit: { namespace: 'import', max: 10, windowMs: 60_000, key: 'ip', phase: 'before-access', error: 'import/rate-limited' },
+  handler: async ({ event, user }): Promise<ImportResponse> => {
+    // The caller's plan sets the largest file it may convert
+    // (`importMaxBytes`; anonymous = free), never above the platform cap.
+    const plan = await resolveUserPlan(user?.id ?? null)
+    const planMaxBytes = Math.min(capsFor(plan).importMaxBytes, IMPORT_MAX_BYTES)
+
+    // Size-bounded read. Bun (server/runtime/bunEntry.ts) and Traefik already
+    // refuse over 51 MiB in production; this keeps the bound in every runtime.
+    const body = await readBodyWithLimit(event, IMPORT_REQUEST_MAX_BYTES, 'import/file-too-large')
+    const form = await parseMultipart(event, body)
+    const file = form?.get('file')
+
+    if (!file || typeof file === 'string' || file.size === 0) throw apiError('import/no-file')
+    if (file.size > IMPORT_MAX_BYTES) throw apiError('import/file-too-large')
+    if (file.size > planMaxBytes) {
+      throw planLimitError(
+        plan,
+        'importMaxBytes',
+        planMaxBytes,
+        `File too large for your plan (max ${Math.floor(planMaxBytes / MIB)} MB).`
+      )
+    }
+
+    const ext = file.name.split('.').pop()?.toLowerCase() || ''
+    if (MARKDOWN_EXTENSIONS.has(ext)) {
+      return await importMarkdown(event, file, form?.get('docId'))
+    }
+
+    if (!isConvertedExtension(ext)) throw apiError('import/unsupported-format')
+
+    const markdown = await convertWithMarkitdown(file, ext)
+
+    return {
+      markdown,
+      source: ext,
+      filename: file.name
+    }
   }
+})
 
-  // The caller's plan sets the largest file it may convert
-  // (`importMaxBytes`; anonymous = free), never above the platform cap.
-  const session = await getValidatedUserSession(event)
-  const plan = await resolveUserPlan(session?.user?.id ?? null)
-  const planMaxBytes = Math.min(capsFor(plan).importMaxBytes, MAX_SIZE)
+/** A converted file's Markdown from the markitdown service; its failures map to the import error codes. */
+async function convertWithMarkitdown(file: File, ext: ConvertedExtension): Promise<string> {
+  const env = useEnv()
+  if (!env.markitdown.url) throw apiError('import/not-configured')
 
-  // Size-bounded read. In production Bun already refused anything over
-  // 51 MiB (server/runtime/bunEntry.ts) and Traefik did on this route;
-  // this keeps the same bound in every runtime.
-  const body = await readBodyWithLimit(event, MAX_BODY, 'import/file-too-large')
-  const form = await parseMultipart(event, body)
-  const file = form?.get('file')
-
-  if (!file || typeof file === 'string' || file.size === 0) {
-    throw createError({ statusCode: 400, message: 'No file provided', data: { code: 'import/no-file' } })
-  }
-  if (file.size > MAX_SIZE) {
-    throw createError({
-      statusCode: 413,
-      message: 'File too large. Max 50MB.',
-      data: { code: 'import/file-too-large' }
-    })
-  }
-  if (file.size > planMaxBytes) {
-    throw planLimitError(
-      plan,
-      'importMaxBytes',
-      planMaxBytes,
-      `File too large for your plan (max ${Math.floor(planMaxBytes / (1024 * 1024))} MB).`
-    )
-  }
-
-  const ext = file.name.split('.').pop()?.toLowerCase() || ''
-  if (MARKDOWN_EXTENSIONS.has(ext)) {
-    return await importMarkdown(event, file, form?.get('docId'))
-  }
-
-  if (!ALLOWED_EXTENSIONS.has(ext)) {
-    throw createError({
-      statusCode: 415,
-      message: `Unsupported format: .${ext}`,
-      data: { code: 'import/unsupported-format' }
-    })
-  }
-
-  const config = useRuntimeConfig()
-  if (!config.markitdownUrl) {
-    throw createError({ statusCode: 503, message: 'Markitdown service not configured' })
-  }
-
-  // Markitdown's converter routing is extension-driven (see StreamInfo in
-  // markitdown-server/server.py), so we pass the validated extension as a
-  // query param rather than relying on Content-Type sniffing.
-  const url = `${config.markitdownUrl}/convert?ext=${encodeURIComponent(ext)}`
+  // Markitdown's converter routing is extension-driven (StreamInfo in
+  // markitdown-server/server.py), so pass the validated extension as a query
+  // param instead of relying on Content-Type sniffing.
+  const url = `${env.markitdown.url}/convert?ext=${encodeURIComponent(ext)}`
 
   let response: Response
   try {
@@ -104,18 +93,15 @@ export default defineEventHandler(async (event) => {
       method: 'POST',
       headers: injectTraceHeaders({
         'Content-Type': 'application/octet-stream',
-        'Content-Length': String(file.size)
+        'Content-Length': String(file.size),
+        ...markitdownAuthHeaders()
       }),
       body: file,
-      signal: AbortSignal.timeout(MARKITDOWN_TIMEOUT_MS)
+      signal: AbortSignal.timeout(MARKITDOWN_IMPORT_TIMEOUT_MS)
     })
   } catch (e) {
     const timedOut = e instanceof Error && e.name === 'TimeoutError'
-    throw createError({
-      statusCode: timedOut ? 504 : 502,
-      message: timedOut ? 'Conversion took too long.' : 'The conversion service could not be reached.',
-      data: { code: timedOut ? 'import/timeout' : 'import/unavailable' }
-    })
+    throw apiError(timedOut ? 'import/timeout' : 'import/unavailable')
   }
 
   if (!response.ok) {
@@ -123,53 +109,26 @@ export default defineEventHandler(async (event) => {
     // markitdown answers 413 when an archive would expand past its limits
     // (zip-bomb guard) or the conversion hit its memory cap, 504 on its
     // own timeout.
-    if (response.status === 413) {
-      throw createError({
-        statusCode: 413,
-        message: 'This file is too large or too complex to convert.',
-        data: { code: 'import/too-complex' }
-      })
-    }
-    if (response.status === 504) {
-      throw createError({ statusCode: 504, message: 'Conversion took too long.', data: { code: 'import/timeout' } })
-    }
-    throw createError({
-      statusCode: response.status === 415 ? 415 : 422,
-      message: `Conversion failed: ${errorText.slice(0, 200)}`
-    })
+    if (response.status === 413) throw apiError('import/too-complex')
+    if (response.status === 504) throw apiError('import/timeout')
+    throw apiError('import/conversion-failed', { detail: errorText.slice(0, 200) }, { status: response.status === 415 ? 415 : 422 })
   }
 
-  const markdown = await response.text()
+  return await response.text()
+}
 
-  return {
-    markdown,
-    source: ext,
-    filename: file.name
-  }
-})
-
-async function importMarkdown(event: H3Event, file: File, rawDocId: FormDataEntryValue | null | undefined) {
-  if (file.size > MARKDOWN_MAX_SIZE) {
-    throw createError({
-      statusCode: 413,
-      message: 'Markdown file too large. Max 10MB.',
-      data: { code: 'import/file-too-large' }
-    })
-  }
+async function importMarkdown(event: H3Event, file: File, rawDocId: FormDataEntryValue | null | undefined): Promise<ImportResponse> {
+  if (file.size > IMPORT_MARKDOWN_MAX_BYTES) throw apiError('import/file-too-large')
   let text: string
   try {
     text = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer())
   } catch {
-    throw createError({
-      statusCode: 422,
-      message: 'This Markdown file is not valid UTF-8 text.',
-      data: { code: 'import/not-utf8' }
-    })
+    throw apiError('import/not-utf8')
   }
-  // Without the target document the theme's images and custom CSS can't
-  // be checked, so properties are only read when the editor names it
-  // (the import only converts — it never writes to the document).
-  const docId = typeof rawDocId === 'string' && DOC_ID_SHAPE.test(rawDocId) ? rawDocId : null
+  // Without the target document the theme's images and custom CSS can't be
+  // checked, so properties are only read when the editor names it (the import
+  // only converts, it never writes to the document).
+  const docId = typeof rawDocId === 'string' && ID_RE.test(rawDocId) ? rawDocId : null
   const result = docId
     ? importMarkdownFile(text, { docId, allowedOrigins: customCssAppOrigins(event) })
     : { markdown: text }

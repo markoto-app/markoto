@@ -8,36 +8,36 @@ translationStatus: machine-translated
 
 # Richtlinie zu Missbrauch und rechtswidrigen Inhalten
 
-> **Kurz gesagt:** Jede Person, mit oder ohne Konto, kann Inhalte auf markoto melden, die sie für rechtswidrig hält oder die gegen unsere Nutzungsbedingungen verstossen. Wir bestätigen den Eingang, eine Person prüft jede Meldung, und wir teilen Ihnen unseren Entscheid mit. Wenn wir Inhalte einer Person entfernen, nennen wir ihr die Gründe und zeigen ihr, wie sie sich dagegen wehren kann. Drohungen gegen Leben oder Sicherheit melden wir den Behörden.
+> **Kurz gesagt:** Jede Person, mit oder ohne Konto, kann Inhalte auf markoto melden, die sie für rechtswidrig hält oder die gegen unsere Nutzungsbedingungen verstossen. Wir bestätigen den Eingang, eine Person prüft jede Meldung, und wir teilen dir unseren Entscheid mit. Wenn wir Inhalte einer Person entfernen, nennen wir ihr die Gründe und zeigen ihr, wie sie sich dagegen wehren kann. Drohungen gegen Leben oder Sicherheit melden wir den Behörden.
 
 ## Was diese Richtlinie abdeckt
 
 Diese Richtlinie ist unser **Melde- und Abhilfeverfahren** nach Artikel 16 des **Digital Services Act** der EU (Verordnung (EU) 2022/2065, «DSA»). Sie beschreibt zudem unsere Begründungen (Art. 17), wie betroffene Nutzende Einspruch erheben können und wann wir Behörden informieren (Art. 18). Die Regeln dazu, was erlaubt ist, stehen in §6 unserer Nutzungsbedingungen ([/legal/terms](/legal/terms)), und wie wir moderieren, in §8.
 
-## So melden Sie
+## So meldest du
 
-Sie können Inhalte auf zwei Wegen melden. Beide werden gleich behandelt:
+Du kannst Inhalte auf zwei Wegen melden. Beide werden gleich behandelt:
 
-- **Das Meldeformular** unter [/legal/abuse](/legal/abuse). Es funktioniert ohne Konto; Ihr Browser löst dann eine kurze Bot-Prüfung, die auf unserem eigenen Server läuft, ohne Dritte und ohne Cookie. Anonyme Dokumente (ohne Konto erstellte Dokumente) zeigen eine Leiste mit dem Hinweis «Erstellt von einer Person ohne markoto-Konto, nicht von markoto» und einem Link «Melden». Der Link öffnet das Formular mit bereits eingetragener Adresse des Dokuments.
+- **Das Meldeformular** unter [/legal/abuse](/legal/abuse). Es funktioniert ohne Konto; dein Browser löst dann eine kurze Bot-Prüfung, die auf unserem eigenen Server läuft, ohne Dritte und ohne Cookie. Anonyme Dokumente (ohne Konto erstellte Dokumente) zeigen eine Leiste mit dem Hinweis «Erstellt von einer Person ohne markoto-Konto, nicht von markoto» und einem Link «Melden». Der Link öffnet das Formular mit bereits eingetragener Adresse des Dokuments.
 - **E-Mail** an **{{abuseContactEmail}}**.
 
 Eine vollständige Meldung enthält (Art. 16 Abs. 2 DSA):
 
-1. **Den genauen Ort** des Inhalts: die URL des Dokuments (zum Beispiel `https://markoto.app/d/…`) und, falls hilfreich, welchen Teil des Dokuments Sie meinen.
-2. **Eine Begründung**, weshalb Sie den Inhalt für rechtswidrig halten oder weshalb er gegen unsere Nutzungsbedingungen verstösst. Ist er rechtswidrig, geben Sie an, gegen welches Gesetz er verstösst, sofern Sie es wissen.
-3. **Ihren Namen und Ihre E-Mail-Adresse.** Sie dürfen diese nur weglassen, wenn Sie Darstellungen sexuellen Kindesmissbrauchs melden.
-4. **Eine Erklärung**, dass Sie in gutem Glauben davon ausgehen, dass die Angaben und Behauptungen in Ihrer Meldung richtig und vollständig sind.
+1. **Den genauen Ort** des Inhalts: die URL des Dokuments (zum Beispiel `https://markoto.app/d/…`) und, falls hilfreich, welchen Teil des Dokuments du meinst.
+2. **Eine Begründung**, weshalb du den Inhalt für rechtswidrig hältst oder weshalb er gegen unsere Nutzungsbedingungen verstösst. Ist er rechtswidrig, gib an, gegen welches Gesetz er verstösst, sofern du es weisst.
+3. **Deinen Namen und deine E-Mail-Adresse.** Du darfst diese nur weglassen, wenn du Darstellungen sexuellen Kindesmissbrauchs meldest.
+4. **Eine Erklärung**, dass du in gutem Glauben davon ausgehst, dass die Angaben und Behauptungen in deiner Meldung richtig und vollständig sind.
 
 Die Bearbeitung unvollständiger Meldungen kann länger dauern, da wir den Inhalt möglicherweise nicht auffinden oder nicht beurteilen können.
 
-**Senden Sie uns keine Kopien von Darstellungen sexuellen Kindesmissbrauchs**, auch nicht als Beweismittel. Senden Sie nur die URL. Sie können solches Material auch direkt der Polizei oder einer Meldestelle des INHOPE-Netzwerks melden.
+**Sende uns keine Kopien von Darstellungen sexuellen Kindesmissbrauchs**, auch nicht als Beweismittel. Sende nur die URL. Du kannst solches Material auch direkt der Polizei oder einer Meldestelle des INHOPE-Netzwerks melden.
 
-## Was nach Ihrer Meldung geschieht
+## Was nach deiner Meldung geschieht
 
-1. **Eingang.** Wir bestätigen den Eingang unverzüglich per E-Mail (Art. 16 Abs. 4). Das Formular zeigt Ihnen zudem eine Referenznummer an.
+1. **Eingang.** Wir bestätigen den Eingang unverzüglich per E-Mail (Art. 16 Abs. 4). Das Formular zeigt dir zudem eine Referenznummer an.
 2. **Prüfung.** Eine Person aus unserem Team prüft die Meldung anhand des Gesetzes und unserer Nutzungsbedingungen. Wir setzen keine automatisierten Werkzeuge ein, um über Meldungen zu entscheiden.
 3. **Entscheid.** Wir entscheiden zeitnah, sorgfältig und objektiv. Wir können das Dokument entfernen, den Zugang dazu einschränken (es ist dann privat und über den Link nicht mehr erreichbar), das dahinterstehende Konto sperren oder kündigen oder nichts unternehmen. Wir können zuerst die Eigentümerin oder den Eigentümer des Inhalts kontaktieren, um deren bzw. dessen Standpunkt einzuholen.
-4. **Mitteilung des Entscheids.** Wir teilen Ihnen per E-Mail unseren Entscheid, die Gründe dafür und die Möglichkeiten für Rechtsbehelfe mit (Art. 16 Abs. 5). Wenn Sie Darstellungen sexuellen Kindesmissbrauchs ohne E-Mail-Adresse gemeldet haben, können wir Ihnen diese Mitteilungen nicht senden.
+4. **Mitteilung des Entscheids.** Wir teilen dir per E-Mail unseren Entscheid, die Gründe dafür und die Möglichkeiten für Rechtsbehelfe mit (Art. 16 Abs. 5). Wenn du Darstellungen sexuellen Kindesmissbrauchs ohne E-Mail-Adresse gemeldet hast, können wir dir diese Mitteilungen nicht senden.
 
 Wir streben an, bei Meldungen zu Darstellungen sexuellen Kindesmissbrauchs und zu unmittelbaren Drohungen gegen Leben oder Sicherheit innerhalb von **24 Stunden** zu handeln, bei anderen eindeutigen Meldungen innerhalb von **3 Werktagen** und bei Meldungen, die eine eingehendere rechtliche Beurteilung erfordern, innerhalb von **14 Kalendertagen**.
 
@@ -53,19 +53,19 @@ Wir entfernen oder beschränken Inhalte, die:
 
 Wir entfernen Inhalte nicht schon deshalb, weil jemand nicht damit einverstanden ist, und auch keine rechtmässige Kritik, Berichterstattung oder Satire. Streitigkeiten zwischen Mitwirkenden über ein Workspace-Dokument sind von den Admins des Workspace zu klären.
 
-## Wenn Ihre Inhalte betroffen sind
+## Wenn deine Inhalte betroffen sind
 
-Wenn wir Ihre Inhalte entfernen oder einschränken oder Ihr Konto sperren, senden wir Ihnen per E-Mail eine **Begründung** (Art. 17), sofern für Ihr Konto eine E-Mail-Adresse hinterlegt ist. Sie erläutert:
+Wenn wir deine Inhalte entfernen oder einschränken oder dein Konto sperren, senden wir dir per E-Mail eine **Begründung** (Art. 17), sofern für dein Konto eine E-Mail-Adresse hinterlegt ist. Sie erläutert:
 
 - was wir getan haben und gegebenenfalls für wie lange;
 - die Tatsachen, auf die wir uns gestützt haben, einschliesslich der Angabe, ob wir aufgrund einer Meldung oder aus eigener Initiative gehandelt haben;
 - die gesetzliche Bestimmung oder die Klausel unserer Nutzungsbedingungen, auf der der Entscheid beruht;
 - dass der Entscheid von einer Person und nicht von einem automatisierten System getroffen wurde;
-- wie Sie Einspruch erheben können.
+- wie du Einspruch erheben kannst.
 
 **Anonyme Dokumente.** Ein anonymes Dokument hat keine Kontaktangaben. Wir können der Person, die es erstellt hat, keine Begründung zustellen, und halten die Begründung als nicht zustellbar fest. Den Text jeder Mitteilung, die wir senden oder nicht zustellen konnten, bewahren wir bei der Meldung auf.
 
-**So erheben Sie Einspruch.** Sie können sich innerhalb von **sechs Monaten** nach unserem Entscheid bei **{{abuseContactEmail}}** beschweren. Antworten Sie auf die Begründung oder geben Sie deren Referenz an und erläutern Sie, weshalb der Entscheid falsch war. Eine Person prüft Ihre Beschwerde, und wir stellen den Inhalt oder das Konto wieder her, wenn der Entscheid falsch war. Wir teilen Ihnen das Ergebnis mit. Sie können sich auch an eine zertifizierte aussergerichtliche Streitbeilegungsstelle wenden und haben jederzeit das Recht, ein Gericht anzurufen. Meldende können über denselben Kanal Einspruch dagegen erheben, dass wir aufgrund ihrer Meldung nichts unternommen haben.
+**So erhebst du Einspruch.** Du kannst dich innerhalb von **sechs Monaten** nach unserem Entscheid bei **{{abuseContactEmail}}** beschweren. Antworte auf die Begründung oder gib deren Referenz an und erläutere, weshalb der Entscheid falsch war. Eine Person prüft deine Beschwerde, und wir stellen den Inhalt oder das Konto wieder her, wenn der Entscheid falsch war. Wir teilen dir das Ergebnis mit. Du kannst dich auch an eine zertifizierte aussergerichtliche Streitbeilegungsstelle wenden und hast jederzeit das Recht, ein Gericht anzurufen. Meldende können über denselben Kanal Einspruch dagegen erheben, dass wir aufgrund ihrer Meldung nichts unternommen haben.
 
 ## Drohungen gegen Leben oder Sicherheit
 
@@ -81,7 +81,7 @@ Bei Personen, die häufig offensichtlich unbegründete Meldungen einreichen, kö
 
 ## Daten, die wir für Meldungen verarbeiten
 
-Zur Bearbeitung einer Meldung speichern wir die Adresse des gemeldeten Inhalts, Ihre Begründung, die Kategorie, Ihren Namen und Ihre E-Mail-Adresse (ausser Sie haben sie bei einer Meldung von Darstellungen sexuellen Kindesmissbrauchs weggelassen), die von Ihnen verwendete Sprache, wann Sie die Erklärung zum guten Glauben bestätigt haben, und den Zeitpunkt sowie eine gekürzte IP-Adresse und einen Hash des User-Agents Ihres Browsers gegen massenhafte Meldungen. Bei Meldungen, die im angemeldeten Zustand gesendet werden, verknüpfen wir zudem Ihr Konto. Wir bewahren eine Meldung mit den Mitteilungen dazu auf, solange der Fall offen ist, und löschen sie 1 Jahr nach seinem Abschluss. Ihr Datenexport enthält die Meldungen, die Sie im angemeldeten Zustand eingereicht haben. Einzelheiten finden Sie in der Datenschutzerklärung ([/legal/privacy](/legal/privacy)).
+Zur Bearbeitung einer Meldung speichern wir die Adresse des gemeldeten Inhalts, deine Begründung, die Kategorie, deinen Namen und deine E-Mail-Adresse (ausser du hast sie bei einer Meldung von Darstellungen sexuellen Kindesmissbrauchs weggelassen), die von dir verwendete Sprache, wann du die Erklärung zum guten Glauben bestätigt hast, und den Zeitpunkt sowie eine gekürzte IP-Adresse und einen Hash des User-Agents deines Browsers gegen massenhafte Meldungen. Bei Meldungen, die im angemeldeten Zustand gesendet werden, verknüpfen wir zudem dein Konto. Wir bewahren eine Meldung mit den Mitteilungen dazu auf, solange der Fall offen ist, und löschen sie 1 Jahr nach seinem Abschluss. Dein Datenexport enthält die Meldungen, die du im angemeldeten Zustand eingereicht hast. Einzelheiten findest du in der Datenschutzerklärung ([/legal/privacy](/legal/privacy)).
 
 ## Kontakt
 

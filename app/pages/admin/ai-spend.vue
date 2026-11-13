@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { DAY_MS } from '~~/shared/config/units'
+import type { ApiResponse } from '~/utils/api/client'
+
 // Operator dashboard: per-feature AI spend over a date window. Reads
 // LiteLLM's /spend/tags via /api/admin/ai-spend (admin-gated server-
 // side; the page also defensively redirects non-admins so the
@@ -6,25 +9,11 @@
 //
 // What this answers fast: "where is this month's AI bill going?".
 // Each row is one of the canonical feature tags from
-// `server/utils/litellm/featureTags.ts` — a tag missing here is a
+// `server/utils/litellm/featureTags.ts`: a tag missing here is a
 // regression (a call site forgot to stamp metadata). The "other"
 // row catches anything outside the known set.
 
-interface SpendRow {
-  tag: string
-  spendUsd: number
-  requests: number
-  totalTokens: number
-  sharePct: number
-}
-
-interface SpendResponse {
-  from: string
-  to: string
-  totalSpendUsd: number
-  totalRequests: number
-  breakdown: SpendRow[]
-}
+type SpendResponse = ApiResponse<'/api/admin/ai-spend', 'get'>
 
 const router = useRouter()
 const { loggedIn } = useUserSession()
@@ -32,6 +21,7 @@ const { loggedIn } = useUserSession()
 const { primaryLoginPath } = useInstanceConfig()
 const { status: accountStatus } = useAccountStatus()
 const toast = useToast()
+const { extractError } = useErrorHandler()
 
 useHead({ title: 'AI spend · Admin' })
 
@@ -40,7 +30,7 @@ if (import.meta.client) {
     if (!loggedIn.value) {
       globalThis.location.href = primaryLoginPath.value ?? '/'
     } else if (accountStatus.value && !accountStatus.value.isAdmin) {
-      router.push('/')
+      void router.push('/')
     }
   })
 }
@@ -52,7 +42,7 @@ function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
 const today = new Date()
-const thirtyAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+const thirtyAgo = new Date(today.getTime() - 30 * DAY_MS)
 const fromDate = ref(isoDate(thirtyAgo))
 const toDate = ref(isoDate(today))
 
@@ -62,14 +52,13 @@ const loading = ref(false)
 async function load(): Promise<void> {
   loading.value = true
   try {
-    data.value = await $fetch<SpendResponse>('/api/admin/ai-spend', {
+    data.value = await apiFetch('/api/admin/ai-spend', {
       query: { from: fromDate.value, to: toDate.value }
     })
   } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
     toast.add({
       title: 'Could not load AI spend',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -120,30 +109,28 @@ function formatUsd(usd: number): string {
     </p>
 
     <div class="flex items-end gap-3 mb-8">
-      <div>
-        <label
-          for="ai-spend-from"
-          class="block text-xs font-mono uppercase tracking-wide text-muted mb-1"
-        >From</label>
+      <label
+        for="ai-spend-from"
+      >
+        <span class="block text-xs font-mono uppercase tracking-wide text-muted mb-1">From</span>
         <input
           id="ai-spend-from"
           v-model="fromDate"
           type="date"
           class="px-3 py-1.5 border border-default bg-default rounded text-sm font-mono"
         >
-      </div>
-      <div>
-        <label
-          for="ai-spend-to"
-          class="block text-xs font-mono uppercase tracking-wide text-muted mb-1"
-        >To</label>
+      </label>
+      <label
+        for="ai-spend-to"
+      >
+        <span class="block text-xs font-mono uppercase tracking-wide text-muted mb-1">To</span>
         <input
           id="ai-spend-to"
           v-model="toDate"
           type="date"
           class="px-3 py-1.5 border border-default bg-default rounded text-sm font-mono"
         >
-      </div>
+      </label>
       <UButton
         color="neutral"
         :loading="loading"

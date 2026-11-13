@@ -1,4 +1,4 @@
-// Integration tests for GET /api/docs/:docId/pdf — the user-facing PDF
+// Integration tests for GET /api/docs/:docId/pdf, the user-facing PDF
 // download endpoint that hits the REAL Playwright renderer container,
 // drives the print page through paged.js, captures bytes, caches in S3,
 // and 302s to a presigned URL.
@@ -11,7 +11,7 @@
 // genuine integration test of the renderer + Nuxt + paged.js + S3 chain.
 //
 // Test stack required: postgres-test + valkey-test + seaweedfs-test +
-// renderer-test (all in docker-compose.test.yml). `bun run test:integration:up`
+// renderer-test (all in deploy/compose/compose.test.yml). `bun run test:integration:up`
 // brings them up.
 
 import { readFileSync } from 'node:fs'
@@ -19,16 +19,17 @@ import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import * as Y from 'yjs'
-import { resetDb, testDb, ensureYjsTable } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import { TEST_BASE_URL } from '../setup/env'
-import { defaultTheme } from '../../../shared/utils/defaultTheme'
-import { THEME_PRESETS } from '../../../shared/utils/themePresets'
+import { defaultTheme } from '../../../shared/utils/theme/defaultTheme'
+import { THEME_PRESETS } from '../../../shared/utils/theme/themePresets'
 import { S3Client, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
+import { first } from '../../helpers/assert'
 
 // Insert a Y.Doc row with REAL bytes. The renderer replays this back into
-// markdown — empty docs paginate to zero pages and the renderer surfaces
+// markdown: empty docs paginate to zero pages and the renderer surfaces
 // an error, so test fixtures must contain at least a few non-empty lines.
 async function insertYjsRow(docname: string, content: string): Promise<number> {
   const ydoc = new Y.Doc()
@@ -36,13 +37,13 @@ async function insertYjsRow(docname: string, content: string): Promise<number> {
   const update = Y.encodeStateAsUpdate(ydoc)
   const db = testDb()
   const r = await db.query<{ id: number }>(
-    `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1') RETURNING id`,
+    `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2) RETURNING id`,
     [docname, Buffer.from(update)]
   )
-  return r.rows[0].id
+  return Number(first(r.rows).id)
 }
 
-// Multi-page fixture body — paginates to ≥3 pages on the default theme.
+// Multi-page fixture body: paginates to ≥3 pages on the default theme.
 // Used in tests that care about real PDF output. Heavy enough that the
 // renderer takes meaningful time (~1-2s); thin enough that tests don't
 // run for hours.
@@ -82,25 +83,16 @@ async function fetchRenderBytes(key: string): Promise<Uint8Array> {
 
 beforeEach(async () => {
   await resetDb()
-  await ensureYjsTable()
 })
 
-// Pay the render chain's COLD-START cost before any measured test. The
-// first render after stack boot covers Chromium's first page load in the
-// renderer container + the print page's SSR warm-up; on a loaded 2-core
-// CI runner that cold path has taken long enough that the app server
-// killed the connection mid-request ("TypeError: fetch failed /
-// SocketError: other side closed"), failing whichever auth-matrix test
-// ran first and cascading into the next request (observed twice on
-// 2026-08-18 across unrelated PRs; never locally, where cold renders
-// finish in ~2s). One tolerated warm-up render moves that cost out of
-// the measured tests; every test below still asserts exactly what it
-// asserted before. Deliberately non-fatal: if the renderer is genuinely
-// broken, the real tests fail with far better errors than this hook
-// could produce.
+// Pay the render chain's COLD-START cost before any measured test. The first render after stack boot covers
+// Chromium's first page load in the renderer container + the print page's SSR warm-up; on a loaded 2-core CI
+// runner that cold path can take long enough that the app server kills the connection mid-request
+// ("TypeError: fetch failed / SocketError: other side closed"), failing whichever auth-matrix test ran first.
+// One tolerated warm-up render moves that cost out of the measured tests. Deliberately non-fatal: if the
+// renderer is genuinely broken, the real tests fail with far better errors than this hook could produce.
 beforeAll(async () => {
   await resetDb()
-  await ensureYjsTable()
   const owner = await createUser()
   const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
   await insertYjsRow(doc.docId, '# warmup\n\ncold-start render\n')
@@ -118,7 +110,7 @@ beforeAll(async () => {
   }
 }, 120_000)
 
-describe('GET /api/docs/:docId/pdf — real renderer', () => {
+describe('GET /api/docs/:docId/pdf: real renderer', () => {
   describe('not-found and basic shape', () => {
     it('returns 404 for a nonexistent doc', async () => {
       const res = await anonClient().get('/api/docs/nonexistent/pdf')
@@ -127,7 +119,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
   })
 
   describe('auth matrix (gates BEFORE rendering)', () => {
-    // For these tests, we don't actually need to render — the gate
+    // For these tests, we don't actually need to render, the gate
     // fires first. Use minimal content so if a regression sneaks the
     // call through, the rendering failure is clean.
     const SHORT = '# hello\n\nworld\n'
@@ -242,7 +234,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       expect(bytes[3]).toBe(0x46)
       expect(bytes[4]).toBe(0x2D)
 
-      // Manifest exists too — the renderer writes it last as the
+      // Manifest exists too: the renderer writes it last as the
       // readiness sentinel for cache-hit lookups.
       const manifestKey = `renders/${doc.docId}/${snapId}/manifest.json`
       const manifestBytes = await fetchRenderBytes(manifestKey)
@@ -288,7 +280,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(doc.docId)
     }, 90_000)
 
-    // Title block (papers): no cover page — title, authors and the leading
+    // Title block (papers): no cover page, title, authors and the leading
     // "Abstract" section open page 1 and the two-column body follows on the
     // same page and continues after it.
     it('two-column title block renders title, abstract and the whole body', async () => {
@@ -317,7 +309,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
 
     // The bundled TeX fonts (fonts/<slug>/, GUST licence) load from
     // /vendor/fonts/ like the Fontsource families and embed as real
-    // TrueType fonts — CFF outlines would be embedded as Type 3 glyph
+    // TrueType fonts: CFF outlines would be embedded as Type 3 glyph
     // procedures by Chromium (scripts/build-bundled-fonts.py converts them).
     it('embeds the bundled TeX Gyre Termes and Latin Modern Mono as TrueType fonts', async () => {
       const owner = await createUser()
@@ -346,7 +338,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(doc.docId)
     }, 90_000)
 
-    // Brand kit (WP10): a font uploaded to the workspace (the bundled TeX
+    // Brand kit: a font uploaded to the workspace (the bundled TeX
     // Gyre Heros file under another name) reaches the server PDF through
     // the locked workspace design, embedded as a real TrueType font, and
     // the render is cached under the brand fingerprint (a lock / font
@@ -379,7 +371,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       expect(heros.length, summary).toBeGreaterThan(0)
       for (const f of heros) expect(f.subtype, summary).not.toBe('Type3')
 
-      // Unlocking renders the document's own design again — a new cache entry.
+      // Unlocking renders the document's own design again, a new cache entry.
       expect((await client.put(`/api/workspaces/${ws.workspaceId}/brand/lock`, { locked: false })).status).toBe(200)
       expect((await client.get(`/api/docs/${doc.docId}/pdf`)).status).toBe(302)
       const pdfs = (await listRenderKeys(doc.docId)).filter(k => k.endsWith('/document.pdf'))
@@ -390,7 +382,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
     // The arXiv preprint preset end to end: Letter pages, title block,
     // running head with its rule, the preset's template CSS (sanitised at
     // render like any custom CSS) and the bundled Termes / Latin Modern
-    // Mono — embedded as TrueType, never as Type 3 glyph procedures.
+    // Mono: embedded as TrueType, never as Type 3 glyph procedures.
     it('renders the arXiv preprint fixture over several pages with Termes embedded as TrueType', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
@@ -459,10 +451,9 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(docId)
     }, 90_000)
 
-    // Inter and Source Serif 4 used to come from Fontsource VARIABLE fonts,
-    // which Chromium embeds as Type 3 (no BaseFont name). Documents now get
-    // the static cuts (themeFonts.ts): both embed as real (TrueType/CID)
-    // fonts, and no Type 3 font is left in the file.
+    // Inter and Source Serif 4 embed as real (TrueType/CID) fonts, not Type 3 (Chromium embeds variable fonts
+    // as Type 3, with no BaseFont name): documents get the static cuts (themeFonts.ts), and no Type 3 font is
+    // left in the file.
     it('embeds Inter and Source Serif 4 as real fonts, never Type 3', async () => {
       const { pdf, docId } = await renderBusinessReport()
       const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
@@ -516,7 +507,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       const preset = THEME_PRESETS.find(p => p.id === 'tech-docs')?.theme
       if (!preset) throw new Error('tech-docs preset missing')
       expect(preset.customCss).toBeTruthy()
-      const theme = { ...preset, cover: { ...preset.cover, subtitle: 'Durable background jobs on PostgreSQL — version 3.4', authors: ['The Ferrule maintainers'], date: '2026-11-04' } }
+      const theme = { ...preset, cover: { ...preset.cover, subtitle: 'Durable background jobs on PostgreSQL \u2014 version 3.4', authors: ['The Ferrule maintainers'], date: '2026-11-04' } }
       await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
       const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/tech-docs.md', import.meta.url))), 'utf8')
       const snapId = await insertYjsRow(doc.docId, fixture)
@@ -539,9 +530,8 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(docId)
     }, 90_000)
 
-    // Source Serif 4 and Source Sans 3 used to be Fontsource VARIABLE fonts,
-    // which Chromium embeds as Type 3 (no BaseFont name). With the static
-    // cuts all three families embed as real (TrueType/CID) fonts.
+    // Source Serif 4 and Source Sans 3 come from static cuts, not Fontsource VARIABLE fonts (which Chromium
+    // embeds as Type 3, with no BaseFont name): all three families embed as real (TrueType/CID) fonts.
     it('embeds Source Serif 4, Source Sans 3 and IBM Plex Mono as real fonts, never Type 3', async () => {
       const { pdf, docId } = await renderTechDocs()
       const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
@@ -912,7 +902,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
     // embedded as a real font, never Type 3.
     it('renders the one-pager fixture on exactly one A4 page with DM Sans embedded', async () => {
       const owner = await createUser()
-      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit', title: 'Fieldnote — field-service reports in one tap' })
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit', title: 'Fieldnote \u2014 field-service reports in one tap' })
       const preset = THEME_PRESETS.find(p => p.id === 'one-pager')?.theme
       if (!preset) throw new Error('one-pager preset missing')
       expect(preset.customCss).toBeTruthy()
@@ -1044,7 +1034,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
         const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
           .map(m => `${m[2] ?? m[3] ?? ''}:${m[1] ?? m[4] ?? ''}`)
         const type3 = (pdf.match(/\/Subtype\s*\/Type3/g) ?? []).length
-        if (type3 > 0) offenders.push(`${preset.id}: ${type3} Type 3 font(s) — ${fonts.join(', ')}`)
+        if (type3 > 0) offenders.push(`${preset.id}: ${type3} Type 3 font(s), ${fonts.join(', ')}`)
         await wipeRendersFor(doc.docId)
       }
       expect(offenders).toEqual([])

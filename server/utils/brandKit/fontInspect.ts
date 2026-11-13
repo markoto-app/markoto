@@ -1,20 +1,21 @@
 import { brotliDecompressSync, inflateSync } from 'node:zlib'
 import type { BrandFontFormat, FontRefusal } from '~~/shared/config/brandKit'
+import { MIB } from '~~/shared/config/units'
 
-// Inspects an uploaded font (brand kit, WP10) WITHOUT a font library:
+// Inspects an uploaded font (brand kit) WITHOUT a font library:
 // only the table directory and two small tables (`name`, `OS/2`) are
 // read, every offset and length is bounds-checked, and decompression is
 // size-capped. It decides two things:
 //
 //   1. Will the font print well? Chromium's PDF backend (Skia) embeds a
 //      variable font (`fvar`) or one with CFF outlines (`OTTO`, `CFF `,
-//      `CFF2`) as Type 3 glyph procedures — the reason the built-in
-//      document fonts are static TrueType cuts (shared/utils/themeFonts.ts).
+//      `CFF2`) as Type 3 glyph procedures, the reason the built-in
+//      document fonts are static TrueType cuts (shared/utils/theme/themeFonts.ts).
 //      Those are refused, as are collections (`ttcf`, several fonts in
 //      one file) and fonts whose OS/2 `fsType` forbids embedding
 //      (restricted licence: bit 1).
 //   2. What is it? Family name (typographic family, else family), weight
-//      class and italic flag — the defaults the upload form shows.
+//      class and italic flag, the defaults the upload form shows.
 //
 // What it does NOT do: validate glyph data. The browsers and the
 // renderer's Chromium run every web font through OTS (the OpenType
@@ -32,8 +33,27 @@ const TAG_WOFF = 0x774F4646 // 'wOFF'
 const TAG_WOF2 = 0x774F4632 // 'wOF2'
 
 /** Upper bound for decompressed font data (a CJK font is ~20 MB). */
-const MAX_DECOMPRESSED = 64 * 1024 * 1024
+const MAX_DECOMPRESSED = 64 * MIB
 const MAX_TABLES = 200
+/**
+ * Upper bound for the declared size of a table this module reads. Every
+ * offset and length inside `name` is a uint16, so no byte past
+ * ~6 + 12·2000 + 3·65535 ≈ 220 KB is ever addressed; OS/2 is ≤ 100 bytes
+ * in every version. A larger declaration only serves to make the inflater
+ * allocate, so it is refused.
+ */
+const MAX_READ_TABLE = MIB
+/**
+ * WOFF2: the whole Brotli stream has to be decompressed to reach `name`
+ * (encoders sort it after `glyf`), so the declared total is bounded by
+ * the stream it comes from as well as absolutely. Real fonts stay below
+ * 6:1 (≈ 4.1 across the bundled Fontsource cuts, ≈ 5.8 across a few
+ * thousand web and icon fonts); 16:1 leaves room for outliers while a
+ * few hundred bytes of Brotli can no longer claim tens of megabytes.
+ */
+const MAX_WOFF2_RATIO = 16
+/** Below this, the ratio is not checked (tiny fonts, tiny allocations). */
+const WOFF2_RATIO_FLOOR = MIB
 
 /** WOFF2 known-table tags, by index (WOFF2 spec §5.1). */
 const WOFF2_KNOWN_TAGS = [
@@ -97,59 +117,67 @@ export function inspectFont(bytes: Uint8Array): FontInspection {
   if (bytes.byteLength < 12) return { ok: false, reason: 'not-a-font' }
   const r = new Reader(bytes)
   try {
-    const signature = r.u32(0)
-    let format: BrandFontFormat
-    let flavor: number
-    let tables: Tables
-    if (signature === TAG_WOF2) {
-      format = 'woff2'
-      flavor = r.u32(4)
-      if (flavor === TAG_TTCF) return { ok: false, reason: 'collection' }
-      tables = woff2Tables(r)
-    } else if (signature === TAG_WOFF) {
-      format = 'woff'
-      flavor = r.u32(4)
-      if (flavor === TAG_TTCF) return { ok: false, reason: 'collection' }
-      tables = woffTables(r)
-    } else if (signature === SFNT_TRUETYPE || signature === TAG_TRUE || signature === TAG_OTTO) {
-      format = 'ttf'
-      flavor = signature
-      tables = sfntTables(r)
-    } else if (signature === TAG_TTCF) {
-      return { ok: false, reason: 'collection' }
-    } else {
-      return { ok: false, reason: 'not-a-font' }
-    }
+    const container = openContainer(r)
+    if ('reason' in container) return container
+    const { format, flavor, tables } = container
 
-    if (tables.tags.has('fvar') || tables.tags.has('gvar')) return { ok: false, reason: 'variable' }
-    if (flavor === TAG_OTTO || tables.tags.has('CFF ') || tables.tags.has('CFF2')) return { ok: false, reason: 'cff' }
-    for (const required of ['cmap', 'head', 'hhea', 'hmtx', 'maxp', 'glyf', 'loca'] as const) {
-      if (!tables.tags.has(required)) return { ok: false, reason: 'damaged' }
-    }
+    const outline = outlineProblem(flavor, tables)
+    if (outline) return { ok: false, reason: outline }
 
     const os2 = tables.get('OS/2')
-    let weight = 400
-    let italic = false
-    if (os2) {
-      const o = new Reader(os2)
-      const fsType = o.u16(8)
-      // Bit 1: restricted licence embedding — the font must not be
-      // embedded in documents at all. (Bits 2/3 = preview & print /
-      // editable embedding are fine; bit 9 = bitmap only.)
-      if ((fsType & 0x0002) !== 0 && (fsType & 0x000C) === 0) return { ok: false, reason: 'no-embedding' }
-      if ((fsType & 0x0200) !== 0) return { ok: false, reason: 'no-embedding' }
-      weight = clampWeight(o.u16(4))
-      if (o.length >= 64) italic = (o.u16(62) & 0x0001) !== 0
-    }
+    const style = os2 ? readOs2(new Reader(os2)) : { weight: 400, italic: false }
+    if ('reason' in style) return style
     const name = tables.get('name')
     const family = name ? familyName(new Reader(name)) : ''
-    return { ok: true, format, family: sanitizeFamily(family), weight, italic }
+    return { ok: true, format, family: sanitizeFamily(family), weight: style.weight, italic: style.italic }
   } catch (e) {
     if (e instanceof Damaged || e instanceof RangeError) return { ok: false, reason: 'damaged' }
     // zlib / brotli errors (corrupt or oversized streams)
     if (e instanceof Error && 'code' in e) return { ok: false, reason: 'damaged' }
     throw e
   }
+}
+
+type Refusal = Extract<FontInspection, { ok: false }>
+
+/** The container (WOFF2, WOFF, bare sfnt), its sfnt flavor and its table directory. */
+function openContainer(r: Reader): { format: BrandFontFormat, flavor: number, tables: Tables } | Refusal {
+  const signature = r.u32(0)
+  if (signature === TAG_WOF2 || signature === TAG_WOFF) {
+    const flavor = r.u32(4)
+    if (flavor === TAG_TTCF) return { ok: false, reason: 'collection' }
+    return signature === TAG_WOF2
+      ? { format: 'woff2', flavor, tables: woff2Tables(r) }
+      : { format: 'woff', flavor, tables: woffTables(r) }
+  }
+  if (signature === SFNT_TRUETYPE || signature === TAG_TRUE || signature === TAG_OTTO) {
+    return { format: 'ttf', flavor: signature, tables: sfntTables(r) }
+  }
+  if (signature === TAG_TTCF) return { ok: false, reason: 'collection' }
+  return { ok: false, reason: 'not-a-font' }
+}
+
+/** Only static TrueType outlines: no variable font, no CFF, every core table present. */
+function outlineProblem(flavor: number, tables: Tables): Refusal['reason'] | null {
+  if (tables.tags.has('fvar') || tables.tags.has('gvar')) return 'variable'
+  if (flavor === TAG_OTTO || tables.tags.has('CFF ') || tables.tags.has('CFF2')) return 'cff'
+  for (const required of ['cmap', 'head', 'hhea', 'hmtx', 'maxp', 'glyf', 'loca'] as const) {
+    if (!tables.tags.has(required)) return 'damaged'
+  }
+  return null
+}
+
+/** Embedding permission, weight and italic flag from the `OS/2` table. */
+function readOs2(o: Reader): { weight: number, italic: boolean } | Refusal {
+  const fsType = o.u16(8)
+  // Bit 1: restricted licence embedding, the font must not be
+  // embedded in documents at all. (Bits 2/3 = preview & print /
+  // editable embedding are fine; bit 9 = bitmap only.)
+  if ((fsType & 0x0002) !== 0 && (fsType & 0x000C) === 0) return { ok: false, reason: 'no-embedding' }
+  if ((fsType & 0x0200) !== 0) return { ok: false, reason: 'no-embedding' }
+  const weight = clampWeight(o.u16(4))
+  const italic = o.length >= 64 ? (o.u16(62) & 0x0001) !== 0 : false
+  return { weight, italic }
 }
 
 function sfntTables(r: Reader): Tables {
@@ -187,7 +215,7 @@ function woffTables(r: Reader): Tables {
     get(tag) {
       const e = entries.get(tag)
       if (!e) return null
-      if (e.origLength > MAX_DECOMPRESSED) throw new Damaged('table size')
+      if (e.origLength > MAX_READ_TABLE) throw new Damaged('table size')
       const data = r.slice(e.offset, e.compLength)
       if (e.compLength === e.origLength) return data
       if (e.compLength > e.origLength) throw new Damaged('table size')
@@ -211,6 +239,36 @@ function readBase128(r: Reader, at: number): { value: number, next: number } {
   throw new Damaged('base128 too long')
 }
 
+/** One WOFF2 table directory entry starting at `at` (spec §5.2): its tag, its length in the stream, where the next starts. */
+function readWoff2Entry(r: Reader, start: number): { tag: string, length: number, next: number } {
+  let at = start
+  const flags = r.u8(at)
+  at += 1
+  const tagIndex = flags & 0x3F
+  let tag: string
+  if (tagIndex === 63) {
+    tag = r.tag(at)
+    at += 4
+  } else {
+    const known = WOFF2_KNOWN_TAGS[tagIndex]
+    if (!known) throw new Damaged('tag index')
+    tag = known
+  }
+  const transformVersion = (flags >> 6) & 0x03
+  const orig = readBase128(r, at)
+  at = orig.next
+  let length = orig.value
+  // glyf / loca: version 0 = transformed (has transformLength), 3 = null.
+  // Every other table: version 0 = null, anything else = transformed.
+  const transformed = tag === 'glyf' || tag === 'loca' ? transformVersion === 0 : transformVersion !== 0
+  if (transformed) {
+    const t = readBase128(r, at)
+    at = t.next
+    length = t.value
+  }
+  return { tag, length, next: at }
+}
+
 function woff2Tables(r: Reader): Tables {
   const numTables = r.u16(12)
   if (numTables === 0 || numTables > MAX_TABLES) throw new Damaged('table count')
@@ -218,34 +276,17 @@ function woff2Tables(r: Reader): Tables {
   let at = 48
   const entries: Array<{ tag: string, length: number }> = []
   for (let i = 0; i < numTables; i++) {
-    const flags = r.u8(at)
-    at += 1
-    const tagIndex = flags & 0x3F
-    let tag: string
-    if (tagIndex === 63) {
-      tag = r.tag(at)
-      at += 4
-    } else {
-      const known = WOFF2_KNOWN_TAGS[tagIndex]
-      if (!known) throw new Damaged('tag index')
-      tag = known
-    }
-    const transformVersion = (flags >> 6) & 0x03
-    const orig = readBase128(r, at)
-    at = orig.next
-    let length = orig.value
-    // glyf / loca: version 0 = transformed (has transformLength), 3 = null.
-    // Every other table: version 0 = null, anything else = transformed.
-    const transformed = tag === 'glyf' || tag === 'loca' ? transformVersion === 0 : transformVersion !== 0
-    if (transformed) {
-      const t = readBase128(r, at)
-      at = t.next
-      length = t.value
-    }
-    entries.push({ tag, length })
+    const entry = readWoff2Entry(r, at)
+    at = entry.next
+    entries.push({ tag: entry.tag, length: entry.length })
   }
   const total = entries.reduce((n, e) => n + e.length, 0)
   if (total > MAX_DECOMPRESSED) throw new Damaged('decompressed size')
+  if (totalCompressed === 0 || totalCompressed > r.length - at) throw new Damaged('compressed size')
+  if (total > Math.max(WOFF2_RATIO_FLOOR, totalCompressed * MAX_WOFF2_RATIO)) throw new Damaged('compression ratio')
+  for (const e of entries) {
+    if ((e.tag === 'name' || e.tag === 'OS/2') && e.length > MAX_READ_TABLE) throw new Damaged('table size')
+  }
   let decompressed: Uint8Array | null = null
   const stream = (): Uint8Array => {
     if (!decompressed) {
@@ -285,27 +326,24 @@ function familyName(n: Reader): string {
     const length = n.u16(at + 8)
     const offset = n.u16(at + 10)
     if (nameId !== 1 && nameId !== 16) continue
-    let value: string
-    let score = nameId === 16 ? 10 : 0
-    if (platformId === 3 && (encodingId === 1 || encodingId === 10)) {
-      const raw = n.slice(stringOffset + offset, length)
-      value = ''
-      for (let j = 0; j + 1 < raw.length; j += 2) value += String.fromCharCode((raw[j]! << 8) | raw[j + 1]!)
-      score += languageId === 0x0409 ? 5 : 3
-    } else if (platformId === 1 && encodingId === 0) {
-      value = String.fromCharCode(...n.slice(stringOffset + offset, length))
-      score += languageId === 0 ? 2 : 1
-    } else if (platformId === 0) {
-      const raw = n.slice(stringOffset + offset, length)
-      value = ''
-      for (let j = 0; j + 1 < raw.length; j += 2) value += String.fromCharCode((raw[j]! << 8) | raw[j + 1]!)
-      score += 1
-    } else {
-      continue
-    }
-    if (!best || score > best.score) best = { score, value }
+    const decoded = decodeNameRecord(platformId, encodingId, languageId, () => n.slice(stringOffset + offset, length))
+    if (!decoded) continue
+    const score = (nameId === 16 ? 10 : 0) + decoded.score
+    if (!best || score > best.score) best = { score, value: decoded.value }
   }
   return best?.value ?? ''
+}
+
+/** A name record's text and how much it is preferred; null for an encoding we don't read. */
+function decodeNameRecord(platformId: number, encodingId: number, languageId: number, raw: () => Uint8Array): { value: string, score: number } | null {
+  if (platformId === 3 && (encodingId === 1 || encodingId === 10)) {
+    return { value: utf16be(raw()), score: languageId === 0x0409 ? 5 : 3 }
+  }
+  if (platformId === 1 && encodingId === 0) {
+    return { value: String.fromCharCode(...raw()), score: languageId === 0 ? 2 : 1 }
+  }
+  if (platformId === 0) return { value: utf16be(raw()), score: 1 }
+  return null
 }
 
 /** Keep only what a theme font name may contain (letters, digits, spaces, ≤ 40). */
@@ -318,4 +356,11 @@ function clampWeight(w: number): number {
   // Some fonts store 1–9 (old Apple convention) instead of 100–900.
   const v = w < 10 ? w * 100 : w
   return Math.min(900, Math.max(100, Math.round(v / 100) * 100))
+}
+
+/** A UTF-16BE name record (a trailing odd byte is ignored). */
+function utf16be(raw: Uint8Array): string {
+  let out = ''
+  for (let j = 0; j + 1 < raw.length; j += 2) out += String.fromCharCode(((raw[j] ?? 0) << 8) | (raw[j + 1] ?? 0))
+  return out
 }

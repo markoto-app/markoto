@@ -6,13 +6,13 @@ import {
   isRateLimitExhausted,
   recordRateLimitEvent,
   reserveInflightSlot
-} from '../../server/utils/rateLimit'
-import { DOC_PASSWORD_LIMITS, admitPasswordAttempt, recordPasswordFailure } from '../../server/utils/docPasswordLimits'
+} from '../../server/utils/platform/rateLimit'
+import { DOC_PASSWORD_LIMITS, admitPasswordAttempt, recordPasswordFailure } from '../../server/utils/documents/docPasswordLimits'
 import {
   claimPendingKnowledgeUpload,
   recordPendingKnowledgeUpload,
   restorePendingKnowledgeUpload
-} from '../../server/utils/knowledgePendingUpload'
+} from '../../server/utils/knowledge/knowledgePendingUpload'
 
 // Limiter semantics against the REAL Valkey test container (the unit
 // tests only pin fail-mode polarity with a mocked client). The headline
@@ -22,7 +22,7 @@ import {
 // any of them wrote.
 //
 // The repos tier runs with TEST_MODE=1 (testEnv.ts), which bypasses the
-// limiters — switched off for this file. Every test uses a fresh random
+// limiters: switched off for this file. Every test uses a fresh random
 // namespace / key, so no cleanup between cases is needed (keys TTL out).
 
 let savedTestMode: string | undefined

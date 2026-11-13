@@ -1,17 +1,17 @@
 <script setup lang="ts">
+import { useSavedThemes } from '~/queries/themes'
+import { useUpdateWorkspace } from '~/queries/workspaces'
 import type { DocTheme } from '~~/shared/types/theme'
-import { THEME_PRESETS } from '~~/shared/utils/themePresets'
+import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
 import { jsonEqual } from '~~/shared/utils/jsonEqual'
-import { fontStylesheetUrls } from '~~/shared/utils/themeFonts'
+import { fontStylesheetUrls } from '~~/shared/utils/theme/themeFonts'
 
-// Workspace settings tab — admin-only chrome around workspace-wide
-// preferences. Currently exposes the default-theme picker; new
-// settings (retention, member-policy presets, etc.) slot in as
-// additional `<section>`s as we ship them.
+// Workspace settings tab: admin-only. Currently the default-theme picker;
+// further workspace-wide settings go in as additional `<section>`s.
 //
 // Default-theme model: pick a built-in preset OR one of the admin's
 // own saved themes, OR clear (revert to "use markoto when creating
-// new docs"). The default is a SNAPSHOT — applied at creation time
+// new docs"). The default is a SNAPSHOT, applied at creation time
 // only, never retroactively. Existing docs keep whatever theme they
 // have, even if the workspace default later changes.
 
@@ -29,31 +29,12 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
+const { showError } = useErrorHandler()
 
-interface SavedTheme {
-  themeId: string
-  name: string
-  description?: string
-  theme: DocTheme
-  createdAt: string
-  updatedAt: string
-}
-
-const savedThemes = ref<SavedTheme[]>([])
+// The admin's own saved themes; a failed load leaves the built-in presets.
+const { themes: savedThemes } = useSavedThemes()
 const saving = ref(false)
-
-async function loadSavedThemes() {
-  try {
-    const res = await $fetch<{ themes: SavedTheme[] }>('/api/themes')
-    savedThemes.value = res.themes
-  } catch {
-    // Ignore — non-blocking. The built-in presets are still pickable.
-  }
-}
-
-onMounted(() => {
-  loadSavedThemes().catch(() => { /* swallowed inside loadSavedThemes */ })
-})
+const updateWorkspace = useUpdateWorkspace()
 
 // Link the (same-origin) stylesheet of every preset's heading font so
 // each card renders in its own typography. Same approach the new-doc
@@ -85,10 +66,7 @@ async function persist(theme: DocTheme | null) {
   if (saving.value) return
   saving.value = true
   try {
-    await $fetch(`/api/workspaces/${props.workspaceId}`, {
-      method: 'PUT',
-      body: { defaultTheme: theme }
-    })
+    await updateWorkspace.mutateAsync({ workspaceId: props.workspaceId, body: { defaultTheme: theme } })
     emit('updated', theme)
     toast.add({
       title: t('workspace.settings.defaultTheme.savedTitle'),
@@ -99,13 +77,7 @@ async function persist(theme: DocTheme | null) {
       color: 'success'
     })
   } catch (e) {
-    const err = e as { data?: { message?: string }, statusMessage?: string, message?: string }
-    toast.add({
-      title: t('workspace.settings.defaultTheme.failedTitle'),
-      description: err.data?.message ?? err.statusMessage ?? err.message ?? '',
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+    showError('workspace.settings.defaultTheme.failedTitle', e)
   } finally {
     saving.value = false
   }
@@ -123,7 +95,6 @@ async function persist(theme: DocTheme | null) {
       </p>
     </header>
 
-    <!-- ── Default theme ──────────────────────────────────────────── -->
     <section class="space-y-3">
       <div class="space-y-1">
         <h3 class="font-serif text-lg font-normal tracking-tight">
@@ -134,7 +105,7 @@ async function persist(theme: DocTheme | null) {
         </p>
       </div>
 
-      <!-- Clear card — sits at the top so reverting to "use markoto"
+      <!-- Clear card: sits at the top so reverting to "use markoto"
            is one tap away. Highlighted when no default is set. -->
       <button
         type="button"

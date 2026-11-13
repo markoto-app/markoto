@@ -1,12 +1,12 @@
-// Validate secrets first so a misconfigured deploy fails with a clear
-// message before any other module grabs its own process.env references.
-import './validate-secrets'
+// Validate the environment first so a misconfigured deploy fails with a
+// clear message before any other module reads its configuration.
+import './boot-env'
 // Sentry must be imported early so its Bun instrumentation patches stdlib
 // targets before any other module grabs references to them. Importing a
 // name from the module also satisfies the side-effect import.
 import { captureMessage } from './sentry'
 import { Server } from '@hocuspocus/server'
-import { ypgPersistence } from './persistence'
+import { persistence, compaction, closePersistencePool } from './persistence-instance'
 import { authFromEnv } from './auth'
 import { rateLimiter } from './rate-limiter'
 import { logActivity, mostRecentVerifiedEditor, countWords, lineDiff, type VerifiedIdentity } from './activity-logger'
@@ -14,11 +14,10 @@ import { parseSyncLimits } from './limits'
 import { createUpdateGuard, SyncRejection } from './update-guard'
 import { createPreAuthGuard, parsePreAuthLimits } from './pre-auth-guard'
 import { attachAwarenessGuard, awarenessIdentities, anonAvatarSeedForSocket, ANONYMOUS_USER_ID } from './awareness-guard'
-import { normalizeAvatarSeed } from '../../shared/utils/awarenessUser'
+import { normalizeAvatarSeed } from '../../shared/utils/documents/awarenessUser'
 import { readMetaSnapshot } from './meta-snapshot'
 import { SYNC_CLOSE_REASONS } from '../../shared/contracts/syncClose'
 import { handleInternalRequest } from './internal-http'
-import { startCompactionSweeper, stopCompactionSweeper } from './compaction'
 import { shipCommentsSnapshot, dropSnapshotCache } from './comments-snapshot'
 import {
   getLastEditor,
@@ -30,37 +29,50 @@ import {
   dropDocState
 } from './sync-state'
 import { closeValkey } from './valkey'
+import { createConnectionExpiry, type ReauthConnection } from './connection-expiry'
+import { syncEnv } from './env'
+import { useLogger } from './logger'
 
-// Auth singleton — wired from env here (not inside auth.ts) so unit tests
+const log = useLogger('hocuspocus')
+
+// Auth singleton: wired from env here (not inside auth.ts) so unit tests
 // can import `createAuth` without tripping a top-level env guard.
 const auth = authFromEnv()
 
-const port = Number.parseInt(process.env.PORT || '4001')
+const port = syncEnv().sync.port
 
 // Per-doc attribution + diff baseline state lives in Valkey (`sync-state.ts`).
-//   - last-editor: populated in onChange (authoritative — JWT payload from
+//   - last-editor: populated in onChange (authoritative, JWT payload from
 //     authenticated connection context); read in onStoreDocument. Falls back
 //     to the awareness heuristic on miss (cold doc / restart) or error
 //     (Valkey down). Sentry tag distinguishes the two.
 //   - prev-text: re-seeded from disk in onLoadDocument so the first diff
 //     after load is measured against persisted state, not "".
-//   - prev-meta: same — seeded against current title/theme so the first
+//   - prev-meta: same: seeded against current title/theme so the first
 //     store doesn't emit a spurious "title changed" with null `from`.
-// 24 h TTL on every key — a doc untouched for 24 h is "cold" and the next
+// 24 h TTL on every key, a doc untouched for 24 h is "cold" and the next
 // edit can rebuild attribution from awareness without harm. Keeping all
 // state externalised lets multiple sync-server containers share the view.
 
 // Size limits (SYNC_MAX_{MESSAGE,UPDATE,DOCUMENT}_BYTES) + pre-apply
 // validation of every client update. See limits.ts / update-guard.ts.
-const syncLimits = parseSyncLimits(process.env)
+const syncLimits = parseSyncLimits(syncEnv())
 const updateGuard = createUpdateGuard(syncLimits)
 
 // Memory cap for messages queued before a document authenticates
 // (SYNC_MAX_PREAUTH_BYTES / SYNC_MAX_PREAUTH_TOTAL_BYTES /
 // SYNC_AUTH_TIMEOUT_MS). See pre-auth-guard.ts.
-const preAuthGuard = createPreAuthGuard(parsePreAuthLimits(process.env), {
+// Closes connections whose token expired without being renewed in place.
+// See connection-expiry.ts.
+const connectionExpiry = createConnectionExpiry({
+  onExpired: (conn) => {
+    log.warn('closing connection with an expired token', { userId: String(conn.context?.userId ?? '?') })
+  }
+})
+
+const preAuthGuard = createPreAuthGuard(parsePreAuthLimits(syncEnv()), {
   onReject: (reason, detail) => {
-    console.warn(`[hocuspocus] closing socket before authentication: ${reason} (${detail})`)
+    log.warn('closing socket before authentication', { reason, detail })
     captureMessage('[hocuspocus] pre-auth socket closed', {
       level: 'warning',
       tags: { component: 'hocuspocus', event: 'preauth_rejected', reason }
@@ -74,10 +86,10 @@ const server = new Server({
   maxDebounce: 10000,
 
   async onLoadDocument(data) {
-    const doc = await ypgPersistence.onLoadDocument(data)
+    const doc = await persistence.load(data.documentName, data.document)
     // Seeding the diff baselines is best-effort: a failure here must never
     // reject the load (Hocuspocus would refuse every connection to the
-    // document — a corrupted value in it would make it unloadable and
+    // document: a corrupted value in it would make it unloadable and
     // therefore unrepairable).
     try {
       // Seed the previous-text cache so the FIRST diff after load is measured
@@ -85,7 +97,7 @@ const server = new Server({
       // otherwise report a huge "+N lines" on the next store).
       // Y.Text exposes the doc body via toString(); prefer the equivalent
       // toJSON() which TS can verify returns string (Sonar can't see Y.Text's
-      // toString override otherwise — S6551).
+      // toString override otherwise: S6551).
       const ytext = doc.getText('content')
       await setPrevText(data.documentName, ytext.toJSON())
       // Same for title + theme: seed against current state so the first
@@ -93,13 +105,21 @@ const server = new Server({
       // null `from` value.
       await setPrevMeta(data.documentName, readMetaSnapshot(doc))
     } catch (e) {
-      console.warn(`[hocuspocus] baseline seed failed for ${data.documentName}:`, e instanceof Error ? e.message : e)
+      log.warn('baseline seed failed', { docId: data.documentName, err: e })
     }
     return doc
   },
 
   async afterLoadDocument(data) {
     attachAwarenessGuard(data.document)
+  },
+
+  async beforeUnloadDocument(data) {
+    // Edits that could not be stored live only in this document's memory:
+    // throwing keeps Hocuspocus from unloading it (persistence.ts retries).
+    if (persistence.hasUnsavedChanges(data.document)) {
+      throw new Error(`document ${data.documentName} has unsaved edits, kept in memory`)
+    }
   },
 
   async beforeHandleMessage(data) {
@@ -111,7 +131,7 @@ const server = new Server({
       const rejection = e instanceof SyncRejection
         ? e
         : new SyncRejection(SYNC_CLOSE_REASONS.invalidUpdate, e instanceof Error ? e.message : 'guard error')
-      console.warn(`[hocuspocus] ${rejection.message} on ${data.documentName} (socket ${data.socketId})`)
+      log.warn('update rejected', { reason: rejection.message, docId: data.documentName, socketId: data.socketId })
       captureMessage('[hocuspocus] update rejected', {
         level: 'warning',
         tags: { component: 'hocuspocus', event: 'update_rejected', reason: rejection.reason }
@@ -142,50 +162,35 @@ const server = new Server({
   },
 
   async onStoreDocument(data) {
-    // Capture the y-postgresql row id BEFORE the store so the activity
-    // log can stamp boundary ids around this event. After the store,
-    // we'll capture the id again — together they bracket the operations
-    // that produced this debounce window's changes, so the diff
-    // endpoint can replay the doc on either side.
-    // BEFORE: capture the latest persisted row for this doc prior to
-    // our store. Null on a brand-new doc with no rows yet — the first
-    // edit is intentionally not restorable (no prior state to roll
-    // back to).
-    const yjsDocIdBefore = await ypgPersistence.getMaxYjsDocId(data.documentName)
-    // AFTER: use the row id returned BY the store itself rather than a
-    // follow-up MAX query. The follow-up query was the source of the
-    // earlier NULL-boundary bug — between INSERT and the second
-    // MAX(id) call, the queryPool's connection occasionally returned
-    // null (suspected MVCC/snapshot timing across separate pg pools,
-    // exact cause not pinned). Using the returned id is structurally
-    // correct anyway: it's the id WE wrote, not whatever the latest
-    // row happens to be by the time we re-query (which under
-    // multi-instance concurrency could be a row a different instance
-    // wrote).
-    const yjsDocIdAfter = await ypgPersistence.onStoreDocument(
-      data,
-      bytes => updateGuard.noteDocumentSize(data.document, bytes)
-    )
+    // The appended row's id and the newest id before it (read under the
+    // document's write lock, so nothing can commit in between) bracket
+    // this debounce window's changes: the activity log stamps them so the
+    // diff endpoint and restore can replay the doc on either side. Null on
+    // a failed store (no activity row then); `previousId` is null for the
+    // document's first row: the first edit has no earlier state.
+    const stored = await persistence.store(data.documentName, data.document)
+    const yjsDocIdBefore = stored?.previousId ?? null
+    const yjsDocIdAfter = stored?.id ?? null
 
     // Read the tracked editor ONCE for the whole hook so the edit-row and
     // meta-diff blocks below see consistent attribution. Valkey miss vs
-    // error are tagged separately for ops visibility (miss is normal —
-    // cold doc / restart; error is operationally interesting — Valkey down).
+    // error are tagged separately for ops visibility (miss is normal,
+    // cold doc / restart; error is operationally interesting, Valkey down).
     const trackedFetch = await getLastEditor(data.documentName)
     const tracked = trackedFetch.value
 
     await logEditActivity(data, trackedFetch, yjsDocIdBefore, yjsDocIdAfter)
     await logMetaDiffActivity(data, tracked, yjsDocIdBefore, yjsDocIdAfter)
 
-    // Postgres mirror of the comments Y.Array — fire-and-forget so a
+    // Postgres mirror of the comments Y.Array, fire-and-forget so a
     // mirror failure can't take down activity logging or sync. Internal
     // dedup ensures the round-trip is skipped when the comments array
     // didn't change since the last store. Async errors land on the
-    // explicit `.catch()` — a bare try/catch wouldn't catch them since
+    // explicit `.catch()`: a bare try/catch wouldn't catch them since
     // `shipCommentsSnapshot` returns a Promise (typescript:S4822).
     shipCommentsSnapshot(data.documentName, data.document, { yjsDocIdBefore, yjsDocIdAfter })
       .catch((e) => {
-        console.warn('[hocuspocus] comments-snapshot ship failed:', e instanceof Error ? e.message : e)
+        log.warn('comments-snapshot ship failed', { err: e })
       })
   },
 
@@ -193,9 +198,27 @@ const server = new Server({
     return auth.onAuthenticate(data)
   },
 
+  async onTokenSync(data) {
+    // The client's answer to a token request from connectionExpiry.
+    await connectionExpiry.renew(data.connection, data.token, data.documentName, auth.verifyDocToken)
+  },
+
   async connected(data) {
     // The document's pre-auth queue has been replayed: stop counting it.
     preAuthGuard.documentEstablished(data.request, data.socketId, data.documentName)
+    const conn = data.connection as ReauthConnection
+    const expiresAt = (data.context as { tokenExpiresAt?: unknown } | undefined)?.tokenExpiresAt
+    // Already gone (socket dropped while the queue replayed): its close
+    // callbacks have run, so a timer set now would never be cleared.
+    if (!data.connection.document.hasConnection(data.connection)) return
+    if (typeof expiresAt === 'number') {
+      connectionExpiry.track(conn, expiresAt)
+      data.connection.onClose(() => connectionExpiry.untrack(conn))
+    } else {
+      // onAuthenticate always sets it; a connection without one would
+      // never expire, so refuse it.
+      data.connection.close()
+    }
   },
 
   async onConnect(data) {
@@ -212,7 +235,7 @@ const server = new Server({
     //
     // CAVEAT (multi-instance): with 2+ sync containers, this only knows
     // about clients on the SAME container. Another container may still
-    // have active clients on this doc — clearing Valkey here would erase
+    // have active clients on this doc, clearing Valkey here would erase
     // their diff baseline. We accept the "leak" (state lingers under the
     // 24h TTL) over a multi-container DELETE-storm. Valkey TTL handles
     // long-tail cleanup.
@@ -247,7 +270,7 @@ const server = new Server({
 
 // Release the socket's rate-limit slots on EVERY teardown. Hocuspocus's
 // onDisconnect only fires for connections that authenticated, so failed
-// handshakes used to leak their slot for good (see rate-limiter.ts).
+// handshakes would leak their slot for good (see rate-limiter.ts).
 // Registered after Hocuspocus's own `connection` listener (set up in the
 // Server constructor), so the pre-auth guard's `message` listener runs
 // after Hocuspocus has queued each frame.
@@ -257,16 +280,28 @@ server.webSocketServer.on('connection', (socket, request) => {
 })
 
 server.listen(port, () => {
-  console.log(`[hocuspocus] Sync server listening on port ${port}`)
+  log.info('sync server listening', { port })
+}).catch((e: unknown) => {
+  // Port taken or the extensions failed to start: nothing to serve.
+  log.error('sync server failed to start', { port, err: e })
+  process.exit(1)
 })
 
-// Background compaction of the yjs_documents append-log. y-postgresql only
-// merges granular update rows on document LOAD, so an always-loaded (never
-// re-loaded) doc grows unbounded — this sweep bounds it. See compaction.ts
-// for the race-safety design.
-startCompactionSweeper()
+// Snapshots (and optional pruning) of the yjs_updates log. See compaction.ts.
+compaction.start()
 
-// ─── onStoreDocument helpers ─────────────────────────────────────────
+// Documents whose store failed stay in memory (beforeUnloadDocument); retry
+// them until they are written, then let them unload if nobody is connected.
+const UNSAVED_RETRY_MS = 15_000
+const unsavedRetry = setInterval(() => {
+  void persistence.retryUnsaved((docId) => {
+    const doc = server.hocuspocus.documents.get(docId)
+    if (doc && doc.getConnectionsCount() === 0) void server.hocuspocus.unloadDocument(doc)
+  })
+}, UNSAVED_RETRY_MS)
+unsavedRetry.unref()
+
+// onStoreDocument helpers
 
 type StoreDocumentData = Parameters<NonNullable<NonNullable<ConstructorParameters<typeof Server>[0]>['onStoreDocument']>>[0]
 
@@ -302,8 +337,7 @@ function resolveAttribution(
   let fallback: VerifiedIdentity | null = null
   if (!tracked) {
     const cause = trackedFetch.cause === 'error' ? 'valkey-error' : 'valkey-miss'
-    const errMsg = trackedFetch.error ? ` (${trackedFetch.error.message})` : ''
-    console.warn(`[hocuspocus] Attribution fallback for doc ${data.documentName}: cause=${cause}${errMsg}, using awareness heuristic`)
+    log.warn('attribution fallback, using awareness heuristic', { docId: data.documentName, cause, err: trackedFetch.error })
     captureMessage(`[hocuspocus] Attribution fallback for doc ${data.documentName}`, {
       level: 'warning',
       tags: { component: 'hocuspocus', event: 'attribution_fallback', cause }
@@ -346,7 +380,7 @@ function parseActorPrincipal(rawUserId: string | null | undefined): string | nul
  * Log an `edit` activity entry per store event (debounced 2-10s by
  * Hocuspocus). On a Valkey miss (cold doc / restart) or Valkey error,
  * we skip emitting an edit row but DO write the new baseline so the
- * next store has something to diff against — better than emitting a
+ * next store has something to diff against, better than emitting a
  * spurious "+N lines whole doc" row.
  *
  * Fire-and-forget: errors are logged so sync is never blocked.
@@ -369,13 +403,14 @@ async function logEditActivity(
     if (prevFetch.value == null) return
     const { added, removed } = lineDiff(prevFetch.value, currentText)
     // Skip the edit entry if nothing changed line-wise (this happens
-    // on join/leave-driven stores or no-op saves) — but DO NOT bail
+    // on join/leave-driven stores or no-op saves), but DO NOT bail
     // from the whole hook. Title-only / theme-only / comment-only
     // updates produce a store with zero text-line delta, and the
     // diff blocks below need to run to log them.
     if (added === 0 && removed === 0) return
 
-    logActivity({
+    // logActivity catches and reports its own failures (fire-and-forget).
+    void logActivity({
       docId: data.documentName,
       userId,
       userName,
@@ -389,16 +424,16 @@ async function logEditActivity(
       yjsDocIdAfter
     })
   } catch (e) {
-    console.warn('[hocuspocus] activity log failed:', e instanceof Error ? e.message : e)
+    log.warn('activity log failed', { err: e })
   }
 }
 
 /**
- * Title / theme diff — same debounce window as the edit row, but
+ * Title / theme diff, same debounce window as the edit row, but
  * emitted as separate activity events so the UI can render them
  * distinctly. We DON'T attribute these to a specific user via
  * ymeta.observe (which doesn't carry transaction origin in this hook),
- * so the activity row inherits whoever was tracked as the last editor —
+ * so the activity row inherits whoever was tracked as the last editor,
  * accurate in practice because rename / theme tweaks come from the
  * same active session.
  */
@@ -420,7 +455,8 @@ async function logMetaDiffActivity(
     if (!prevMeta) return
 
     if ((prevMeta.title ?? '') !== (currMeta.title ?? '')) {
-      logActivity({
+      // logActivity catches and reports its own failures (fire-and-forget).
+      void logActivity({
         docId: data.documentName,
         userId,
         userName,
@@ -437,7 +473,8 @@ async function logMetaDiffActivity(
       })
     }
     if (prevMeta.themeHash !== currMeta.themeHash) {
-      logActivity({
+      // logActivity catches and reports its own failures (fire-and-forget).
+      void logActivity({
         docId: data.documentName,
         userId,
         userName,
@@ -450,11 +487,11 @@ async function logMetaDiffActivity(
       })
     }
   } catch (e) {
-    console.warn('[hocuspocus] meta diff failed:', e instanceof Error ? e.message : e)
+    log.warn('meta diff failed', { err: e })
   }
 }
 
-// Graceful shutdown — drains WS connections, awaits pending Y.js stores via
+// Graceful shutdown: drains WS connections, awaits pending Y.js stores via
 // Hocuspocus's own destroy(), then closes the persistence pool. Without this
 // a deploy SIGTERM would kill connections mid-debounce and lose the last
 // 2-10 s of edits per active document.
@@ -462,23 +499,33 @@ let shuttingDown = false
 async function shutdown(signal: string) {
   if (shuttingDown) return
   shuttingDown = true
-  console.log(`[hocuspocus] Received ${signal}, draining…`)
+  log.info('draining', { signal })
   // Hard cap so a stuck connection can't block the process forever; SIGKILL
   // arrives after `stop_grace_period` (compose) anyway, but explicit is nicer.
   const killTimer = setTimeout(() => {
-    console.error('[hocuspocus] Drain timed out after 25s, forcing exit.')
+    log.error('Drain timed out after 25s, forcing exit.')
     process.exit(1)
   }, 25_000)
   try {
-    await stopCompactionSweeper()
+    clearInterval(unsavedRetry)
+    await compaction.stop()
+    // One last attempt for documents whose store failed, then stop keeping
+    // them in memory so the drain can finish.
+    await persistence.retryUnsaved(() => {})
+    persistence.beginShutdown()
     await server.destroy()
-    await ypgPersistence.destroy()
+    const lost = persistence.unsavedDocumentIds()
+    if (lost.length > 0) {
+      // Clients that still hold these edits send them again on reconnect.
+      log.error('shut down with unsaved edits', { docIds: lost })
+    }
+    await closePersistencePool()
     await closeValkey()
-    console.log('[hocuspocus] Shutdown complete.')
+    log.info('Shutdown complete.')
     clearTimeout(killTimer)
     process.exit(0)
   } catch (e) {
-    console.error('[hocuspocus] Shutdown error:', e)
+    log.error('Shutdown error', { err: e })
     clearTimeout(killTimer)
     process.exit(1)
   }

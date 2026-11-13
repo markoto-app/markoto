@@ -1,6 +1,5 @@
-// Per-workspace SSO (WP14) — SAML 2.0 service provider, on
-// `@node-saml/node-saml` (SP-initiated, HTTP-Redirect AuthnRequest →
-// HTTP-POST Response). The admin pastes the IdP's entity id, SSO URL and
+// SAML 2.0 service provider for workspace SSO, on `@node-saml/node-saml`
+// (SP-initiated, HTTP-Redirect AuthnRequest, HTTP-POST Response). The admin pastes the IdP's entity id, SSO URL and
 // signing certificate: the server never fetches IdP metadata.
 //
 // What a Response must pass (library + this module):
@@ -9,21 +8,23 @@
 //   - Issuer = the configured IdP entity id; Audience = our entity id
 //     for this connection; Destination / Recipient = our ACS URL;
 //     NotBefore / NotOnOrAfter with 30 s skew;
-//   - InResponseTo = the AuthnRequest THIS browser started: the cache
-//     handed to the library at the ACS only knows the request id from the
-//     browser's signed flow cookie, and consumes it atomically (Valkey
-//     GETDEL) — a response for another browser's request, an unsolicited
-//     (IdP-initiated) one, or a second copy of the same one is refused;
+//   - InResponseTo = the AuthnRequest THIS browser started: the cache handed
+//     to the library at the ACS only knows the request id from the browser's
+//     signed flow cookie and consumes it atomically (Valkey GETDEL), so a
+//     response for another browser's request, an unsolicited (IdP-initiated)
+//     one, or a second copy of the same one is refused;
 //   - an assertion id is accepted once (`rejectReplayedAssertions`,
 //     Valkey SET NX until the assertion expires).
 
 import { randomBytes } from 'node:crypto'
 import type { H3Event } from 'h3'
 import { SAML, ValidateInResponseTo, generateServiceProviderMetadata, type CacheItem, type CacheProvider, type Profile } from '@node-saml/node-saml'
-import { useValkey } from '../valkey'
+import { useValkey } from '../platform/valkey'
 import type { SsoConnectionRow } from '../../repos/sso'
 import { samlAcsUrl, samlSpEntityId } from './http'
 import type { SsoAssertion } from './completeLogin'
+import { apiError } from '../api/apiError'
+import { isPlainEmail } from '~~/shared/utils/plainEmail'
 
 const KEY_PREFIX = 'sso:saml:'
 const REQUEST_TTL_SECONDS = 10 * 60
@@ -42,7 +43,7 @@ function isAssertionKey(key: string): boolean {
  * makes every OTHER request id invisible, which ties the response to the
  * browser that started the sign-in.
  */
-export function samlCacheProvider(boundRequestId?: string): CacheProvider & {
+function samlCacheProvider(boundRequestId?: string): CacheProvider & {
   saveIfAbsentAsync(key: string, value: string, expiresAtMs: number): Promise<boolean>
 } {
   const valkey = useValkey()
@@ -73,8 +74,9 @@ export function samlCacheProvider(boundRequestId?: string): CacheProvider & {
 
 export function samlFor(event: H3Event, connection: SsoConnectionRow, opts: { requestId?: string, boundRequestId?: string } = {}): SAML {
   if (connection.protocol !== 'saml' || !connection.samlIdpEntityId || !connection.samlSsoUrl || !connection.samlIdpCert) {
-    throw createError({ statusCode: 409, message: 'This connection is not a complete SAML setup.', data: { code: 'sso/incomplete' } })
+    throw apiError('sso/incomplete')
   }
+  const requestId = opts.requestId
   const spEntityId = samlSpEntityId(event, connection.id)
   return new SAML({
     callbackUrl: samlAcsUrl(event, connection.id),
@@ -92,12 +94,12 @@ export function samlFor(event: H3Event, connection: SsoConnectionRow, opts: { re
     rejectReplayedAssertions: true,
     requestIdExpirationPeriodMs: REQUEST_TTL_SECONDS * 1000,
     acceptedClockSkewMs: 30_000,
-    // No NameIDPolicy / AuthnContext: the IdP decides (Entra ID, Okta,
-    // Google and Keycloak differ here; a mismatch is a failed sign-in).
+    // No NameIDPolicy / AuthnContext: the IdP decides (Entra ID, Okta, Google
+    // and Keycloak differ here; a mismatch fails the sign-in).
     identifierFormat: null,
     disableRequestedAuthnContext: true,
     cacheProvider: samlCacheProvider(opts.boundRequestId),
-    ...(opts.requestId ? { generateUniqueId: () => opts.requestId! } : {})
+    ...(requestId ? { generateUniqueId: () => requestId } : {})
   })
 }
 
@@ -136,15 +138,13 @@ function firstString(profile: Profile, keys: string[]): string | null {
   return null
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
 /** The validated profile as an `SsoAssertion` (subject = NameID). */
 export function assertionFromSamlProfile(profile: Profile): SsoAssertion {
   const subject = typeof profile.nameID === 'string' ? profile.nameID.trim() : ''
   if (!subject || subject.length > 255) throw new Error('SAML assertion has no usable NameID')
   let email = firstString(profile, EMAIL_ATTRIBUTES)
-  if (!email && /emailAddress$/.test(profile.nameIDFormat ?? '') && EMAIL_RE.test(subject)) email = subject
-  if (email && !EMAIL_RE.test(email)) email = null
+  if (!email && /emailAddress$/.test(profile.nameIDFormat ?? '') && isPlainEmail(subject)) email = subject
+  if (email && !isPlainEmail(email)) email = null
   const given = firstString(profile, GIVEN)
   const surname = firstString(profile, SURNAME)
   const name = firstString(profile, NAME_ATTRIBUTES) ?? ([given, surname].filter(Boolean).join(' ') || email || 'Workspace member')

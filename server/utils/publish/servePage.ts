@@ -2,23 +2,26 @@ import type { H3Event } from 'h3'
 import type { PublishedPageRow } from '../../repos/publishedPages'
 import { buildPublishedPageHtml, publishedPageCsp } from './pageHtml'
 import { publicBaseUrl, publishedPageUrl } from './access'
-import { legalSurfacesEnabled } from '../instanceConfig'
-import { emailLinkBaseUrl } from '../siteUrl'
-import { NOINDEX_VALUE } from '../robots'
+import { publishPagesSettings } from './pagesHost'
+import { legalSurfacesEnabled } from '../platform/instanceConfig'
+import { emailLinkBaseUrl } from '../platform/siteUrl'
+import { NOINDEX_VALUE } from '../platform/robots'
 import { customDomainUrlForPage } from '../customDomains/routing'
 import { resolveSiteIndexable } from '~~/shared/config/instance'
+import { useEnv } from '~~/shared/env/load'
 
-// Answer a request for a published page (WP13) — on the instance at
-// `/p/<slug>` or at the root of a verified custom domain (`pageUrl`).
+// Answer a request for a published page, at `/p/<slug>` (on the pages
+// host when one is configured, else on the instance) or at the root of a
+// verified custom domain (`pageUrl`).
 export async function sendPublishedPage(event: H3Event, page: PublishedPageRow, pageUrl?: string): Promise<string> {
-  const base = publicBaseUrl(event)
   // A page shown on a custom domain names that domain as its canonical
   // address, also when opened at /p/<slug>.
-  const url = pageUrl ?? await customDomainUrlForPage(page.id) ?? publishedPageUrl(base, page.slug)
-  const indexable = page.indexable && resolveSiteIndexable(process.env)
-  // The report form lives on the instance. On a custom domain the request
-  // origin is the customer's host, so only a configured site URL will do.
-  const reportBase = pageUrl ? emailLinkBaseUrl(useRuntimeConfig(event).siteUrl) : base
+  const url = pageUrl ?? await customDomainUrlForPage(page.id) ?? publishedPageUrl(event, page.slug)
+  const indexable = page.indexable && resolveSiteIndexable()
+  // The report form lives on the app. On a custom domain or the pages
+  // host the request origin is not the app's, so only the configured
+  // site URL will do.
+  const reportBase = pageUrl || publishPagesSettings() ? emailLinkBaseUrl(useEnv().core.siteUrl) : publicBaseUrl(event)
   setHeader(event, 'content-type', 'text/html; charset=utf-8')
   // Overrides the app CSP the request hook set: no script at all here.
   setHeader(event, 'content-security-policy', publishedPageCsp())

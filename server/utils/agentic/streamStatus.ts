@@ -3,7 +3,7 @@ import type { AgenticFunctionCall as FunctionCall } from './aiTypes'
 /**
  * Turns provider stream chunks + emitted function calls into live status
  * strings shown to clients via Y.js awareness. Kept separate from the
- * loop so `describeToolInput` is a pure function — easy to test with
+ * loop so `describeToolInput` is a pure function, easy to test with
  * fixtures, and the main loop can focus on SDK mechanics.
  *
  * Granularity note: Mistral's streaming surfaces a function call's args
@@ -11,7 +11,7 @@ import type { AgenticFunctionCall as FunctionCall } from './aiTypes'
  * translator in `messageTranslation.ts` accumulates them and yields one
  * synthesised internal-shape chunk with the complete call on stream
  * end. So we still announce one status per tool call rather than
- * per-character streaming — acceptable: users perceive tool-call-level
+ * per-character streaming: acceptable: users perceive tool-call-level
  * granularity, not token-level.
  */
 
@@ -41,7 +41,7 @@ export function newStreamState(): StreamState {
  * Process one stream chunk. For every function call visible in the chunk,
  * decide whether to update the awareness status.
  *
- * Text parts are ignored for status — they land in the final response but
+ * Text parts are ignored for status, they land in the final response but
  * we don't announce "speaking" for them.
  */
 export function processChunk(
@@ -66,9 +66,7 @@ export function processChunk(
   }
 }
 
-// ─── Per-tool formatter helpers ────────────────────────────────────────
-//
-// Each formatter takes the validated args (typed `Record<string, unknown>`
+// Per-tool formatter helpers. Each formatter takes the validated args (typed `Record<string, unknown>`
 // so unknown shapes are handled defensively) and returns a status string
 // or null. Splitting one-per-tool keeps `describeToolInput` flat (a map
 // lookup) and pushes per-shape extraction logic into 1-3 line helpers.
@@ -109,14 +107,14 @@ function describeReplaceText(args: Record<string, unknown>): string {
   const oldStr = typeof args.old_str === 'string' ? args.old_str : ''
   if (!oldStr) return 'Editing the document…'
   const preview = oldStr.slice(0, 40).replace(/\s+/g, ' ').trim()
-  // Ellipsis is keyed on the ORIGINAL length — `preview` is always
+  // Ellipsis is keyed on the ORIGINAL length, `preview` is always
   // ≤40 after the slice, so checking its length post-slice would never
   // signal truncation.
   return `Editing "${preview}${oldStr.length > 40 ? '…' : ''}"`
 }
 
 function describeUpdateTheme(args: Record<string, unknown>): string {
-  // Prefer surfacing a NAMED base source over the field-section count —
+  // Prefer surfacing a NAMED base source over the field-section count,
   // it's what the user typed ("apply my Brand red") and reads like a
   // status not a diagnostic.
   if (typeof args.preset === 'string') return `Applying preset "${args.preset}"…`
@@ -202,9 +200,9 @@ const FORMATTERS: Record<string, (args: Record<string, unknown>) => string | nul
  * Pure derivation: tool name + args → user-facing status string.
  * Exported so it can be unit-tested.
  *
- * Returns null if the tool isn't recognised — callers should leave the
+ * Returns null if the tool isn't recognised, callers should leave the
  * previous status in place rather than flash something generic
- * (philosophy carried over from pre-Phase-5: Gemini-era).
+ * (a generic status would only flash and then be replaced).
  */
 export function describeToolInput(name: string, args: Record<string, unknown>): string | null {
   const formatter = FORMATTERS[name]

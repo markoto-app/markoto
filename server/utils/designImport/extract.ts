@@ -1,10 +1,12 @@
 import { z } from 'zod'
-import { injectTraceHeaders } from '../traceHeaders'
+import { injectTraceHeaders } from '../platform/traceHeaders'
 import { DESIGN_IMPORT_MAX_PAGES, type DesignImportExt } from '~~/shared/config/designImport'
+import { markitdownAuthHeaders } from '../platform/markitdownAuth'
+import { useEnv } from '~~/shared/env/load'
 
 // Client for markitdown's `POST /design/extract` (markitdown-server/
-// design_extract.py). The uploaded file is parsed THERE — in a forked,
-// memory- and time-capped child of the sandboxed container — never in
+// design_extract.py). The uploaded file is parsed THERE, in a forked,
+// memory- and time-capped child of the sandboxed container, never in
 // the app process. What comes back is plain data: the format, PNG page
 // pictures (PDF only), measured style facts and a short text sample.
 
@@ -22,9 +24,12 @@ export interface DesignFacts {
   format: DesignImportExt
   pageCount: number | null
   pages: OriginalPage[]
-  /** Format-specific facts (`docx` / `pdf` object), passed to the model as JSON. */
+  /**
+   * Format-specific facts (`docx` / `pdf` object). Opaque on purpose: the app
+   * only forwards them to the model as JSON and collects font names from them.
+   */
   facts: Record<string, unknown>
-  /** Start of the text with style names (DOCX) — DATA from the upload, never instructions. */
+  /** Start of the text with style names (DOCX), DATA from the upload, never instructions. */
   textSample: string
 }
 
@@ -60,14 +65,15 @@ export function parseExtractResponse(json: unknown): DesignFacts {
 }
 
 export async function extractDesignFacts(bytes: Uint8Array, ext: DesignImportExt, signal?: AbortSignal): Promise<DesignFacts> {
-  const config = useRuntimeConfig()
-  if (!config.markitdownUrl) throw new DesignExtractError(503, 'markitdown service not configured')
-  const url = `${config.markitdownUrl}/design/extract?ext=${ext}&pages=${DESIGN_IMPORT_MAX_PAGES}`
+  const env = useEnv()
+  if (!env.markitdown.url) throw new DesignExtractError(503, 'markitdown service not configured')
+  const url = `${env.markitdown.url}/design/extract?ext=${ext}&pages=${DESIGN_IMPORT_MAX_PAGES}`
   const response = await fetch(url, {
     method: 'POST',
     headers: injectTraceHeaders({
       'Content-Type': 'application/octet-stream',
-      'Content-Length': String(bytes.byteLength)
+      'Content-Length': String(bytes.byteLength),
+      ...markitdownAuthHeaders()
     }),
     body: bytes as BodyInit,
     signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(EXTRACT_TIMEOUT_MS)]) : AbortSignal.timeout(EXTRACT_TIMEOUT_MS)
@@ -91,8 +97,7 @@ export function fontNamesInFacts(facts: DesignFacts): string[] {
       return
     }
     if (typeof value !== 'object' || value === null) return
-    const record = value as Record<string, unknown>
-    for (const [k, v] of Object.entries(record)) {
+    for (const [k, v] of Object.entries(value)) {
       if (k === 'font' || k === 'major' || k === 'minor') add(v)
       // `{value, share}` rows of a font histogram
       else if (k === 'value' && (key === 'fonts')) add(v)

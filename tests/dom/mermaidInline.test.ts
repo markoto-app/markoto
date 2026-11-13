@@ -3,7 +3,7 @@
 // jsdom, not happy-dom: inlineMermaidSvgs sanitises with DOMPurify, which
 // happy-dom breaks (see tests/dom/renderMarkdownXss.test.ts).
 import { describe, expect, it } from 'vitest'
-import { inlineMermaidSvgs, sanitizeMermaidSvg } from '../../app/utils/mermaidLoader'
+import { inlineMermaidSvgs, sanitizeMermaidSvg } from '../../app/utils/markdown/mermaidLoader'
 
 function b64(s: string): string {
   return btoa(String.fromCodePoint(...new TextEncoder().encode(s)))

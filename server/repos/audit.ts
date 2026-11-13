@@ -1,35 +1,45 @@
 import { and, desc, eq, gte, like, lt } from 'drizzle-orm'
 import * as Sentry from '@sentry/nuxt'
 import { auditLog, users } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../db/client'
+import { useLogger } from '../utils/platform/logger'
+import { actorUserId as userIdOfActor, type AdminActor, type AnyProof, type SystemActor, type WorkspaceAccess } from './proofs'
+import type { AuditAction, AuditAfter, AuditBefore, AuditEventParts, AuditMetadata } from '../db/columnTypes'
+
+const log = useLogger('audit')
 
 // Audit-log repository. Append-only: there is no `updateAuditEvent` and
-// no `deleteAuditEvent` on purpose — once written, a row is immutable.
+// no `deleteAuditEvent` on purpose, once written, a row is immutable.
 // The only legitimate way for a row to disappear is the `set null` FK
 // on actor_user_id (when a user account is purged) or a manual DBA
 // action.
 //
-// See `schema.ts` for the data-model rationale and §4 in AGENTS.md for
-// where audit fits in the security model.
+// See `server/db/schema/privacy.ts` and docs/contributing/database.md for the data-model
+// rationale.
 
 export type AuditScope = 'doc' | 'workspace' | 'user' | 'billing' | 'system'
 
-export interface AppendAuditEventArgs {
-  actorUserId: number | null
+export type AppendAuditEventArgs<A extends AuditAction = AuditAction> = {
+  /**
+   * Who acted: the proof (or actor) the action ran under. The stored
+   * `actor_user_id` is its user (signed-in user or admin); null for
+   * anonymous callers and named jobs. `null`: an unauthenticated caller
+   * that holds no proof (an anonymous abuse report).
+   */
+  by: AnyProof | null
   actorIp: string | null
   scope: AuditScope
   scopeId: string | null
-  action: string
-  before?: unknown
-  after?: unknown
-  metadata?: Record<string, unknown>
+  action: A
   /**
-   * The workspace the event belongs to (WP15). Defaults to `scopeId` for
+   * The workspace the event belongs to. Defaults to `scopeId` for
    * `workspace` and `billing` events (their scope id IS the workspace);
    * pass it for document events of a workspace document.
    */
   workspaceId?: string | null
-}
+} & AuditEventParts<A>
+
+type StoredAuditParts = { before?: AuditBefore | null, after?: AuditAfter | null, metadata?: AuditMetadata | null }
 
 export interface AuditEventRow {
   id: number
@@ -39,9 +49,9 @@ export interface AuditEventRow {
   scope: AuditScope
   scopeId: string | null
   action: string
-  before: unknown
-  after: unknown
-  metadata: Record<string, unknown> | null
+  before: AuditBefore | null
+  after: AuditAfter | null
+  metadata: AuditMetadata | null
 }
 
 /**
@@ -51,19 +61,25 @@ export interface AuditEventRow {
  *   IPv6: keep first 3 hextets (2001:db8:85a3:…  → 2001:db8:85a3::)
  *
  * Returns null for null / empty / unparseable input. Conservative on
- * malformed strings — if we can't reason about the format, drop the
+ * malformed strings: if we can't reason about the format, drop the
  * whole field rather than store something half-truncated.
  */
 export function truncateIp(ip: string | null): string | null {
   if (!ip) return null
   const trimmed = ip.trim()
   if (!trimmed) return null
-  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(trimmed)) return truncateIpv4(trimmed)
+  if (isDottedQuad(trimmed)) return truncateIpv4(trimmed)
   if (trimmed.includes(':')) return truncateIpv6(trimmed)
   return null
 }
 
-/** IPv4 — drop the last octet. Returns null if any octet is out of range. */
+/** Four dot-separated groups of 1–3 digits (range checked by `truncateIpv4`). */
+function isDottedQuad(value: string): boolean {
+  const parts = value.split('.')
+  return parts.length === 4 && parts.every(p => /^\d{1,3}$/.test(p))
+}
+
+/** IPv4: drop the last octet. Returns null if any octet is out of range. */
 function truncateIpv4(trimmed: string): string | null {
   const parts = trimmed.split('.')
   if (parts.some(p => Number(p) > 255)) return null
@@ -71,10 +87,10 @@ function truncateIpv4(trimmed: string): string | null {
 }
 
 /**
- * IPv6 — keep the first 3 hextets; append `::` to mark the rest masked.
+ * IPv6: keep the first 3 hextets; append `::` to mark the rest masked.
  * Accept both compressed (`::`) and full forms. Strip leading zeros per
  * RFC 5952 so the stored form is canonical. IPv4-mapped IPv6 (e.g.
- * `::ffff:192.0.2.1`) is treated as IPv6 — the hextet truncation drops
+ * `::ffff:192.0.2.1`) is treated as IPv6, the hextet truncation drops
  * the embedded address.
  */
 function truncateIpv6(trimmed: string): string | null {
@@ -107,24 +123,27 @@ function expandIpv6(trimmed: string): string[] | null {
  * Failures are reported to Sentry + logged so they're observable
  * without affecting the request path.
  */
-export async function appendAuditEvent(args: AppendAuditEventArgs): Promise<void> {
+export async function appendAuditEvent<A extends AuditAction>(args: AppendAuditEventArgs<A>): Promise<void>
+// The implementation stores the parts as given; the overload above is what
+// ties each action to its shape.
+export async function appendAuditEvent(args: AppendAuditEventArgs<AuditAction> & StoredAuditParts): Promise<void> {
   try {
     const db = useDatabase()
     await db.insert(auditLog).values({
-      actorUserId: args.actorUserId,
+      actorUserId: args.by ? userIdOfActor(args.by.actor) : null,
       actorIp: truncateIp(args.actorIp),
       scope: args.scope,
       scopeId: args.scopeId,
       action: args.action,
-      before: args.before === undefined ? null : args.before,
-      after: args.after === undefined ? null : args.after,
+      before: args.before ?? null,
+      after: args.after ?? null,
       metadata: args.metadata ?? null,
       workspaceId: args.workspaceId !== undefined
         ? args.workspaceId
         : (args.scope === 'workspace' || args.scope === 'billing') ? args.scopeId : null
     })
   } catch (e) {
-    console.error('[audit] append failed:', e instanceof Error ? e.message : e)
+    log.error('append failed', { err: e })
     Sentry.captureException(e, {
       tags: { component: 'audit', event: 'append_failed', auditAction: args.action }
     })
@@ -135,12 +154,13 @@ export async function appendAuditEvent(args: AppendAuditEventArgs): Promise<void
 /**
  * List audit events for a (scope, scopeId) tuple. Tuple-keyed so a
  * caller asking for `('doc', 'A')` cannot leak rows from `('doc', 'B')`
- * — same isolation pattern as `getActivityById` / `/diff` / `/comment-context`.
+ * same isolation pattern as `getActivityById` / `/diff` / `/comment-context`.
  *
- * Pagination via `beforeId` (cursor — most-recent-first); pass the
+ * Pagination via `beforeId` (cursor, most-recent-first); pass the
  * smallest `id` from the previous page to fetch older rows.
  */
 export async function getAuditEventsByScope(
+  _by: AdminActor | SystemActor,
   scope: AuditScope,
   scopeId: string,
   opts: { limit?: number, beforeId?: number } = {}
@@ -156,15 +176,16 @@ export async function getAuditEventsByScope(
     .where(where)
     .orderBy(desc(auditLog.ts), desc(auditLog.id))
     .limit(limit)
-  return rows as AuditEventRow[]
+  return rows
 }
 
 /**
  * List audit events triggered by a specific actor. Used for
- * "investigate compromised account" workflows — admin enters a user id,
+ * "investigate compromised account" workflows, admin enters a user id,
  * sees every security-sensitive action that user has performed.
  */
 export async function getAuditEventsByActor(
+  _by: AdminActor | SystemActor,
   actorUserId: number,
   opts: { limit?: number, beforeId?: number } = {}
 ): Promise<AuditEventRow[]> {
@@ -179,10 +200,8 @@ export async function getAuditEventsByActor(
     .where(where)
     .orderBy(desc(auditLog.ts), desc(auditLog.id))
     .limit(limit)
-  return rows as AuditEventRow[]
+  return rows
 }
-
-// ── Workspace audit log (WP15) ──────────────────────────────────────
 
 export interface WorkspaceAuditRow {
   id: number
@@ -194,9 +213,9 @@ export interface WorkspaceAuditRow {
   scope: AuditScope
   scopeId: string | null
   action: string
-  before: unknown
-  after: unknown
-  metadata: Record<string, unknown> | null
+  before: AuditBefore | null
+  after: AuditAfter | null
+  metadata: AuditMetadata | null
 }
 
 export interface WorkspaceAuditQuery {
@@ -210,7 +229,8 @@ export interface WorkspaceAuditQuery {
 }
 
 /** The workspace's audit events, newest first, with the actor's name. */
-export async function listWorkspaceAuditEvents(workspaceId: string, q: WorkspaceAuditQuery = {}): Promise<WorkspaceAuditRow[]> {
+export async function listWorkspaceAuditEvents(ws: WorkspaceAccess<'admin'>, q: WorkspaceAuditQuery = {}): Promise<WorkspaceAuditRow[]> {
+  const workspaceId = ws.workspaceId
   const limit = Math.min(Math.max(q.limit ?? 50, 1), 1000)
   const conditions = [eq(auditLog.workspaceId, workspaceId)]
   if (q.beforeId !== undefined) conditions.push(lt(auditLog.id, q.beforeId))
@@ -236,5 +256,16 @@ export async function listWorkspaceAuditEvents(workspaceId: string, q: Workspace
     .where(and(...conditions))
     .orderBy(desc(auditLog.id))
     .limit(limit)
-  return rows as WorkspaceAuditRow[]
+  return rows
 }
+
+/**
+ * Retention: delete rows older than `cutoff`. The only delete of this
+ * append-only table, run by the named retention sweep. Returns how many.
+ */
+export async function deleteAuditEventsBefore(_by: SystemActor, cutoff: Date): Promise<number> {
+  return (await useDatabase().delete(auditLog).where(lt(auditLog.ts, cutoff)).returning({ id: auditLog.id })).length
+}
+
+/** The document snapshot audit rows keep (`before` of a deletion). */
+export type { AuditDocSnapshot } from '../db/columnTypes'

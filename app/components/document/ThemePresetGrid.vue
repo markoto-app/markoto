@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TabsItem } from '@nuxt/ui'
-import { THEME_PRESETS, THEME_PRESET_CATEGORIES, type ThemePreset, type ThemePresetCategory } from '~~/shared/utils/themePresets'
-import { themeThumbnailUrl } from '~~/shared/utils/themeThumbnails'
+import { THEME_PRESETS, THEME_PRESET_CATEGORIES, type ThemePreset, type ThemePresetCategory } from '~~/shared/utils/theme/themePresets'
+import { themeThumbnailUrl } from '~~/shared/utils/theme/themeThumbnails'
 
 /**
  * The built-in design picker: audience tabs over cards that show a

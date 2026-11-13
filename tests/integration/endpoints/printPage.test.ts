@@ -10,7 +10,7 @@
 //     hardest class of bug to catch in CI before this test).
 //   - The bootstrap useFetch fires through SSR and shapes the auth
 //     surface as expected (valid token → 200 + #render-mount marker;
-//     bad token → 403 — Nuxt collapses the createError throw from
+//     bad token → 403, Nuxt collapses the createError throw from
 //     setup() into a 403 HTTP response).
 //
 // Browser-only behaviour (paged.js running, window.__pagedReady flipping
@@ -25,7 +25,7 @@ import { resetDb } from '../setup/db'
 import { anonClient } from '../setup/client'
 import { createUser, createDoc } from '../setup/fixtures'
 import { TEST_INTERNAL_SECRET } from '../setup/env'
-import { mintRenderJwt } from '~~/shared/test-helpers/jwt'
+import { mintRenderJwt } from '~~/tests/helpers/jwt'
 
 function mintRenderToken(docId: string, opts: {
   scope?: string
@@ -35,7 +35,7 @@ function mintRenderToken(docId: string, opts: {
   // Happy path goes through the shared `mintRenderJwt` so the wire
   // shape (`scope: 'render'` + 60s TTL) is pinned by the contract.
   // Adversarial cases (scope override, secret rotation, expired
-  // tokens) take the raw `jwt.sign` branch — those are testing the
+  // tokens) take the raw `jwt.sign` branch, those are testing the
   // verifier's reject paths so they MUST be free to mint malformed
   // shapes.
   if (opts.scope === undefined && opts.secret === undefined && opts.ttl === undefined) {
@@ -66,7 +66,7 @@ describe('GET /_internal/render/:docId (print page)', () => {
     const html = await res.text()
     // The pre-mount placeholder div is the load-bearing SSR marker.
     // paged.js rips it out client-side, but on the SSR pass it should
-    // be present — that's how we know the page mounted without
+    // be present: that's how we know the page mounted without
     // throwing during setup().
     expect(html).toContain('id="render-mount"')
   })
@@ -82,7 +82,7 @@ describe('GET /_internal/render/:docId (print page)', () => {
 
     const csp = res.headers.get('content-security-policy') ?? ''
     expect(csp).toContain('default-src \'none\'')
-    // Images: own origin, data/blob, the S3 host + the operator's extra origin — nothing else.
+    // Images: own origin, data/blob, the S3 host + the operator's extra origin, nothing else.
     expect(csp).toContain('img-src \'self\' data: blob: http://127.0.0.1:8334 http://host.docker.internal:3187;')
     expect(csp).not.toMatch(/img-src[^;]*\*/)
   })
@@ -132,7 +132,7 @@ describe('GET /_internal/render/:docId (print page)', () => {
   it('returns 403 on a token with the wrong scope', async () => {
     const owner = await createUser()
     const doc = await createDoc({ ownerId: owner.id })
-    // Same shape as a render token but with a non-render scope —
+    // Same shape as a render token but with a non-render scope,
     // exercises the defence-in-depth scope check in render-bootstrap.
     const token = mintRenderToken(doc.docId, { scope: 'file-access' })
 

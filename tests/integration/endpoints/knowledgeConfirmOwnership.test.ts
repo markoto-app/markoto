@@ -5,7 +5,7 @@ import { loggedInClient } from '../setup/client'
 import { createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 
 // POST /api/workspaces/:wsId/knowledge/confirm must only act on an upload
-// that upload-request issued to the CALLER in THIS workspace — mirror of
+// that upload-request issued to the CALLER in THIS workspace, mirror of
 // the image `/api/upload/confirm` ownership rule. Before, any editor who
 // learnt another member's knowledgeId + key could confirm it as their own
 // or make confirm delete that member's freshly uploaded original.
@@ -145,8 +145,19 @@ describe('knowledge presigned PUT: signed type, staging key, immutable original'
     }
   })
 
-  // Regression: `content-type` was not a signed header, so the original
-  // could be stored under any type (e.g. `text/html` for a `.md`).
+  // `content-type` must be a signed header, otherwise the original could be stored under any type (e.g.
+  // `text/html` for a `.md`).
+  it('refuses file extensions that are names every object inherits', async () => {
+    const owner = await createUser()
+    const ws = await createWorkspace(owner.id)
+    const client = await loggedInClient(owner.id)
+    for (const filename of ['notes.constructor', 'notes.toString', 'notes.__proto__']) {
+      const res = await client.post(`/api/workspaces/${ws.workspaceId}/knowledge/upload-request`, { filename, size: 10 })
+      expect(res.status, filename).toBe(415)
+      expect((await res.json() as { data?: { code?: string } }).data?.code, filename).toBe('knowledge/unsupported-format')
+    }
+  })
+
   it('the PUT refuses a Content-Type other than the issued one', async () => {
     const owner = await createUser()
     const ws = await createWorkspace(owner.id)
@@ -188,8 +199,8 @@ describe('knowledge presigned PUT: signed type, staging key, immutable original'
     expect(await knowledgeRows(ws.workspaceId)).toEqual([])
   })
 
-  // Regression: the URL targeted the key processing reads, so bytes could
-  // be swapped after confirm had sniffed them.
+  // The URL must not target the key processing reads, otherwise bytes could be swapped after confirm had
+  // sniffed them.
   it('the URL writes a staging key; confirm moves the upload to the stored key', async () => {
     const owner = await createUser()
     const ws = await createWorkspace(owner.id)

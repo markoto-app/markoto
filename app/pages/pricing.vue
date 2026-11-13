@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useInvalidatePlan, usePlanPricesQuery, useTierLimitsQuery } from '~/queries/billing'
 import { DEFAULT_TIERS, PLAN_NAMES, type PlanName } from '~~/shared/config/tiers'
 import {
   CURRENCIES,
@@ -10,8 +11,7 @@ import {
   isPerSeatPlan,
   type BillingInterval,
   type Currency,
-  type PaidPlanName,
-  type PlanPricesResponse
+  type PaidPlanName
 } from '~~/shared/config/pricing'
 import { pricingStructuredData, type FaqItem, type PricingOffer } from '~~/shared/seo/structuredData'
 import { pageBreadcrumbs } from '~~/shared/seo/breadcrumbs'
@@ -29,8 +29,8 @@ import { MIN_WORKSPACE_SEATS } from '~~/shared/config/workspaceSeats'
 //
 // Two layouts, three instance shapes (shared/config/billingMode.ts):
 //   - Options (billing ON, or billing OFF + NUXT_PLANS_COMING_SOON on the
-//     hosted site): four columns — Self-hosted / No account / Free
-//     account / Paid (tabs Pro · Team · Business) — then a comparison table
+//     hosted site): four columns, Self-hosted / No account / Free
+//     account / Paid (tabs Pro · Team · Business), then a comparison table
 //     and an FAQ.
 //       · billing on: real prices + Stripe Checkout / Customer Portal CTAs.
 //       · coming soon: PLANNED prices, labelled as planned, no purchase
@@ -48,12 +48,14 @@ const { loggedIn } = useUserSession()
 const { primaryLoginPath, anonDocTtlDays, marketingSite, siteUrl } = useInstanceConfig()
 const { billingEnabled, plansComingSoon } = useBillingMode()
 
-const [{ data: tiersData }, { data: pricesData }] = await Promise.all([
-  useFetch('/api/billing/tiers'),
-  useFetch<PlanPricesResponse>('/api/billing/prices')
-])
-const TIERS = computed(() => tiersData.value ?? DEFAULT_TIERS)
-const PRICE_TABLE = computed(() => pricesData.value?.prices ?? DEFAULT_PLAN_PRICES)
+// Shared queries: fetched during the server render (cookies forwarded) and
+// hydrated from the payload; awaited so a client-side navigation shows the
+// real numbers on first paint, as `await useFetch` did.
+const tiersQuery = useTierLimitsQuery()
+const pricesQuery = usePlanPricesQuery()
+await Promise.all([tiersQuery.refresh(), pricesQuery.refresh()])
+const TIERS = computed(() => tiersQuery.data.value ?? DEFAULT_TIERS)
+const PRICE_TABLE = computed(() => pricesQuery.data.value?.prices ?? DEFAULT_PLAN_PRICES)
 
 // Currency + billing interval the visitor looks at. EUR on the server
 // render; after mount a Swiss browser locale (de-CH, fr-CH, …) switches
@@ -92,10 +94,10 @@ function priceUnitKey(plan: PlanName): string {
   return interval.value === 'year' ? 'pricing.price.perYear' : 'pricing.price.perMonth'
 }
 
-interface UserBilling {
-  plan: PlanName
-}
-const billing = ref<UserBilling | null>(null)
+// The caller's plan (shared with the topbar badge), for the "current plan"
+// highlight. Signed out or failed: no highlight.
+const { billing, refresh: refreshBilling } = useBilling()
+const invalidatePlan = useInvalidatePlan()
 
 const optionsLayout = computed(() => billingEnabled.value || plansComingSoon.value)
 /** Paid prices are planned, not on sale. */
@@ -118,19 +120,17 @@ function paidPlanFor(value: string | number | undefined): PaidPlanName | undefin
   return PAID_PLAN_NAMES.find(plan => plan === value)
 }
 
-onMounted(async () => {
+// Open the tab of the plan the caller is on, once it is known.
+watch(() => billing.value?.plan, (plan) => {
+  const current = paidPlanFor(plan)
+  if (current) paidTab.value = current
+}, { immediate: true })
+
+onMounted(() => {
   currency.value = defaultCurrencyForLocale(globalThis.navigator?.language)
-  if (!loggedIn.value) return
-  try {
-    billing.value = await $fetch<UserBilling>('/api/user/billing')
-    // Open the tab of the plan the caller is on.
-    const current = paidPlanFor(billing.value.plan)
-    if (current) paidTab.value = current
-  } catch {
-    // Non-fatal — the page still renders for unauthenticated visitors
-    // and for logged-in users whose billing fetch errored; they just
-    // don't get the "your current plan" highlight.
-  }
+  // The page always read the plan fresh; a snapshot loaded earlier by the
+  // topbar is re-read (a first load is already under way otherwise).
+  if (billing.value) void refreshBilling()
 })
 
 const pageTitle = computed(() =>
@@ -165,8 +165,9 @@ function ctaKind(plan: PlanName): CtaKind {
 }
 
 const toast = useToast()
+const { extractError } = useErrorHandler()
 const checkoutLoading = ref<PlanName | null>(null)
-// The Paid Plans Terms box (WP6b): required for every purchase.
+// The Paid Plans Terms box: required for every purchase.
 const paidTermsAccepted = ref(false)
 
 async function onChangePlan(plan: PlanName): Promise<void> {
@@ -190,43 +191,39 @@ async function onChangePlan(plan: PlanName): Promise<void> {
   // Upgrade path. The server decides the mechanics: a first-time
   // subscriber gets a Checkout URL to redirect to; a user with a live
   // subscription gets an IN-PLACE price swap on that subscription
-  // (prorated, charged immediately) and `{ updated: true }` back —
+  // (prorated, charged immediately) and `{ updated: true }` back,
   // never a second concurrent subscription.
   checkoutLoading.value = plan
   try {
-    const resp = await $fetch<{ url?: string, sessionId?: string, updated?: boolean, plan?: PlanName }>('/api/billing/checkout', {
-      method: 'POST',
+    const resp = await apiFetch('/api/billing/checkout', {
+      method: 'post',
       body: { plan, interval: interval.value, currency: currency.value, acceptPaidTerms: true }
     })
-    if (resp.updated) {
+    if ('updated' in resp) {
       toast.add({
-        title: 'Plan updated',
-        description: `You are now on the ${resp.plan} plan. Your new AI budget is available immediately.`,
+        title: t('billing.planUpdated.title'),
+        description: t('billing.planUpdated.description', { plan: PAID_DISPLAY[resp.plan] }),
         icon: 'i-lucide-check-circle',
         color: 'success'
       })
       checkoutLoading.value = null
-      // Refresh the "current plan" highlight. The webhook that flips
-      // the plan can lag the API response by a beat — refetch once now
-      // and once shortly after so the page settles on the new state.
-      try {
-        billing.value = await $fetch<UserBilling>('/api/user/billing')
-        setTimeout(async () => {
-          try {
-            billing.value = await $fetch<UserBilling>('/api/user/billing')
-          } catch { /* highlight refresh only */ }
-        }, 2500)
-      } catch { /* highlight refresh only */ }
+      // The plan, its limits and the AI budgets changed, for this page's
+      // highlight and for the topbar badge alike. The webhook that flips
+      // the plan can lag the API response by a beat: re-read once now and
+      // once shortly after so everything settles on the new state.
+      await invalidatePlan()
+      setTimeout(() => {
+        void invalidatePlan()
+      }, 2500)
       return
     }
-    // Full-page redirect — Stripe's hosted Checkout is a separate
+    // Full-page redirect: Stripe's hosted Checkout is a separate
     // origin, can't be iframed.
     if (resp.url) globalThis.location.href = resp.url
   } catch (e) {
-    const err = e as { statusCode?: number, data?: { message?: string }, message?: string }
     toast.add({
-      title: 'Could not start checkout',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      title: t('workspace.billing.checkoutFailed'),
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -239,15 +236,14 @@ async function openPortal(): Promise<void> {
   if (!billingEnabled.value || portalLoading.value) return
   portalLoading.value = true
   try {
-    const { url } = await $fetch<{ url: string }>('/api/billing/portal', {
-      method: 'POST'
+    const { url } = await apiFetch('/api/billing/portal', {
+      method: 'post'
     })
     globalThis.location.href = url
   } catch (e) {
-    const err = e as { statusCode?: number, data?: { message?: string }, message?: string }
     toast.add({
-      title: 'Could not open billing portal',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      title: t('settings.profile.spending.portalFailed'),
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -256,7 +252,6 @@ async function openPortal(): Promise<void> {
   }
 }
 
-// ─── FAQ ───────────────────────────────────────────────────────────
 const faqItems = computed<FaqItem[]>(() => {
   const items: FaqItem[] = []
   if (plansComingSoon.value) {
@@ -264,7 +259,7 @@ const faqItems = computed<FaqItem[]>(() => {
   }
   items.push({ q: t('pricing.faq.byokQ'), a: t('pricing.faq.byokA') })
   items.push({ q: t('pricing.faq.pointsQ'), a: t('pricing.creditsHint') })
-  // The EU data path is a statement about markoto.app's own providers —
+  // The EU data path is a statement about markoto.app's own providers,
   // only true on the hosted site.
   if (marketingSite.value) {
     items.push({ q: t('pricing.faq.euQ'), a: t('pricing.faq.euA') })
@@ -279,7 +274,6 @@ const faqItems = computed<FaqItem[]>(() => {
   return items
 })
 
-// ─── SEO ───────────────────────────────────────────────────────────
 // Meta description: the hosted free-only + self-hosted subtitles are short
 // enough; with billing on, a dedicated one (the subtitle runs long).
 const metaDescription = computed(() => (billingEnabled.value ? t('pricing.metaDescription') : pageSubtitle.value))
@@ -293,29 +287,23 @@ const { imageUrl } = useMarketingSeo({
 // home page's). Offers are what someone can take up TODAY: the free
 // account always; Pro / Team / Business only while billing is on. Planned
 // prices are on the page, labelled as planned, but an Offer states a
-// price someone can pay — publishing one for a plan nobody can buy
+// price someone can pay, publishing one for a plan nobody can buy
 // would put a wrong claim into search results.
 // One graph with the page's WebPage + BreadcrumbList (usePageStructuredData
 // is marketing-site only too).
+/** One offer per plan, billing period and currency someone can pay. */
+function paidOffers(): PricingOffer[] {
+  return PAID_PLAN_NAMES.flatMap(plan => CURRENCIES.flatMap(cur => (['month', 'year'] as const).map(iv => ({
+    name: `${PAID_DISPLAY[plan]} (${iv === 'year' ? t('pricing.interval.year') : t('pricing.interval.month')}, ${cur.toUpperCase()})`,
+    price: PRICE_TABLE.value[cur][plan][iv],
+    currency: cur.toUpperCase(),
+    interval: iv,
+    perSeat: isPerSeatPlan(plan)
+  }))))
+}
 usePageStructuredData(() => {
   if (!optionsLayout.value) return null
-  const offers: PricingOffer[] = [{ name: t('pricing.freeAccount.title'), price: 0 }]
-  if (billingEnabled.value) {
-    // One offer per plan, billing period and currency someone can pay.
-    for (const plan of PAID_PLAN_NAMES) {
-      for (const cur of CURRENCIES) {
-        for (const iv of ['month', 'year'] as const) {
-          offers.push({
-            name: `${PAID_DISPLAY[plan]} (${iv === 'year' ? t('pricing.interval.year') : t('pricing.interval.month')}, ${cur.toUpperCase()})`,
-            price: PRICE_TABLE.value[cur][plan][iv],
-            currency: cur.toUpperCase(),
-            interval: iv,
-            perSeat: isPerSeatPlan(plan)
-          })
-        }
-      }
-    }
-  }
+  const offers: PricingOffer[] = [{ name: t('pricing.freeAccount.title'), price: 0 }, ...(billingEnabled.value ? paidOffers() : [])]
   return {
     name: pageTitle.value,
     description: metaDescription.value,
@@ -359,192 +347,19 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
           data-testid="pricing-options"
         >
           <!-- Self-hosted -->
-          <article
-            :class="[cardClass, 'border-default']"
-            data-testid="pricing-option-self-hosted"
-          >
-            <h2 class="font-serif text-xl font-normal tracking-tight">
-              {{ t('pricing.selfHosted.title') }}
-            </h2>
-            <p class="text-sm text-muted mt-1 lg:min-h-10">
-              {{ t('pricing.selfHosted.tagline') }}
-            </p>
-            <p class="mt-4 font-serif text-3xl font-light tracking-tight">
-              {{ t('pricing.price.free') }}
-            </p>
-            <p class="font-mono text-[11px] uppercase tracking-[0.06em] text-muted mt-1">
-              {{ t('pricing.selfHosted.priceNote') }}
-            </p>
-            <ul class="mt-5 space-y-2 text-sm flex-1">
-              <li class="flex gap-2">
-                <UIcon
-                  name="i-lucide-server"
-                  class="size-4 text-muted shrink-0 mt-0.5"
-                />
-                <span>{{ t('pricing.selfHosted.everyFeature') }}</span>
-              </li>
-              <li class="flex gap-2">
-                <UIcon
-                  name="i-lucide-key-round"
-                  class="size-4 text-muted shrink-0 mt-0.5"
-                />
-                <span>{{ t('pricing.selfHosted.byok') }}</span>
-              </li>
-              <li class="flex gap-2">
-                <UIcon
-                  name="i-lucide-scale"
-                  class="size-4 text-muted shrink-0 mt-0.5"
-                />
-                <span data-testid="pricing-licence">{{ t('pricing.selfHosted.licence') }}</span>
-              </li>
-            </ul>
-            <UButton
-              to="/docs/getting-started/self-hosting"
-              color="neutral"
-              variant="outline"
-              block
-              class="mt-6"
-              data-testid="pricing-self-hosted-cta"
-            >
-              {{ t('pricing.selfHosted.cta') }}
-            </UButton>
-          </article>
+          <PricingSelfHostedOption />
 
           <!-- No account -->
-          <article
-            :class="[cardClass, 'border-default']"
-            data-testid="pricing-option-anon"
-          >
-            <h2 class="font-serif text-xl font-normal tracking-tight">
-              {{ t('pricing.anon.title') }}
-            </h2>
-            <p class="text-sm text-muted mt-1 lg:min-h-10">
-              {{ t('pricing.anon.tagline') }}
-            </p>
-            <p class="mt-4 font-serif text-3xl font-light tracking-tight">
-              {{ t('pricing.price.free') }}
-            </p>
-            <p class="font-mono text-[11px] uppercase tracking-[0.06em] text-muted mt-1">
-              {{ t('pricing.anon.priceNote') }}
-            </p>
-            <ul class="mt-5 space-y-2 text-sm flex-1">
-              <li class="flex gap-2">
-                <UIcon
-                  name="i-lucide-users"
-                  class="size-4 text-muted shrink-0 mt-0.5"
-                />
-                <span>{{ t('pricing.anon.write') }}</span>
-              </li>
-              <li class="flex gap-2">
-                <UIcon
-                  name="i-lucide-file-down"
-                  class="size-4 text-muted shrink-0 mt-0.5"
-                />
-                <span>{{ t('pricing.anon.export') }}</span>
-              </li>
-              <li class="flex gap-2">
-                <UIcon
-                  name="i-lucide-minus"
-                  class="size-4 text-muted shrink-0 mt-0.5"
-                />
-                <span data-testid="pricing-anon-limits">{{ t('pricing.anon.noAi') }}</span>
-              </li>
-              <li
-                v-if="anonDocTtlDays > 0"
-                class="flex gap-2"
-              >
-                <UIcon
-                  name="i-lucide-clock"
-                  class="size-4 text-muted shrink-0 mt-0.5"
-                />
-                <span data-testid="pricing-anon-retention">{{ t('pricing.anon.retention', { n: formatCount(anonDocTtlDays, locale) }, anonDocTtlDays) }}</span>
-              </li>
-              <li class="flex gap-2">
-                <UIcon
-                  name="i-lucide-trash-2"
-                  class="size-4 text-muted shrink-0 mt-0.5"
-                />
-                <span>{{ t('pricing.anon.delete') }}</span>
-              </li>
-            </ul>
-            <MarketingStartButton
-              class="mt-6 block [&>button]:w-full [&>button]:justify-center"
-              testid="pricing-anon-cta"
-            />
-          </article>
+          <PricingAnonOption />
 
           <!-- Free account -->
-          <article
-            :class="[cardClass, isCurrent('free') ? 'border-inverted' : 'border-default']"
-            data-testid="pricing-tier-free"
-            :data-current="isCurrent('free')"
-            data-coming-soon="false"
-          >
-            <div
-              v-if="isCurrent('free')"
-              data-testid="pricing-current-plan-badge"
-              :class="badgeClass"
-            >
-              {{ t('pricing.currentPlan') }}
-            </div>
-            <h2 class="font-serif text-xl font-normal tracking-tight">
-              {{ t('pricing.freeAccount.title') }}
-            </h2>
-            <p class="text-sm text-muted mt-1 lg:min-h-10">
-              {{ t('pricing.tiers.free') }}
-            </p>
-            <p class="mt-4 font-serif text-3xl font-light tracking-tight">
-              {{ t('pricing.price.free') }}
-            </p>
-            <p class="font-mono text-[11px] uppercase tracking-[0.06em] text-muted mt-1">
-              {{ t('pricing.availableNow') }}
-            </p>
-            <div class="mt-5 flex-1">
-              <PricingCapsList
-                plan="free"
-                :tiers="TIERS"
-              />
-              <p class="mt-3 flex gap-2 text-sm">
-                <UIcon
-                  name="i-lucide-key-round"
-                  class="size-4 text-muted shrink-0 mt-0.5"
-                />
-                <span>{{ t('pricing.freeAccount.byok') }}</span>
-              </p>
-            </div>
-            <div class="mt-6">
-              <UButton
-                v-if="isCurrent('free')"
-                disabled
-                block
-                color="neutral"
-                variant="subtle"
-              >
-                {{ t('pricing.currentPlan') }}
-              </UButton>
-              <UButton
-                v-else-if="billingEnabled && paidPlanFor(billing?.plan)"
-                block
-                color="neutral"
-                variant="outline"
-                :loading="portalLoading"
-                @click="openPortal"
-              >
-                {{ t('pricing.downgrade') }}
-              </UButton>
-              <UButton
-                v-else-if="!loggedIn && primaryLoginPath"
-                :to="primaryLoginPath"
-                external
-                block
-                color="neutral"
-                variant="outline"
-                data-testid="pricing-free-sign-in"
-              >
-                {{ t('pricing.freeAccount.signIn') }}
-              </UButton>
-            </div>
-          </article>
+          <PricingFreeAccountOption
+            :current="isCurrent('free')"
+            :can-downgrade="billingEnabled && !!paidPlanFor(billing?.plan)"
+            :portal-loading="portalLoading"
+            :tiers="TIERS"
+            @portal="openPortal"
+          />
 
           <!-- Paid: Pro · Team · Business (Team / Business per seat) -->
           <article
@@ -662,7 +477,7 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
                       {{ t('pricing.paid.joinWaitlist') }}
                     </UButton>
                     <!-- Team / Business are bought for a workspace, from its
-                         billing settings (pricing plan WP3). -->
+                         billing settings. -->
                     <template v-else-if="isPerSeatPlan(plan)">
                       <UButton
                         to="/"
@@ -762,7 +577,7 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
           </div>
         </div>
 
-        <!-- AI credit top-ups (WP4): one-off, for paid plans. -->
+        <!-- AI credit top-ups: one-off, for paid plans. -->
         <section
           v-if="optionsLayout"
           class="mt-8 rounded-lg border border-default bg-default p-5"

@@ -1,37 +1,20 @@
-import { eq, desc, and, isNull } from 'drizzle-orm'
-import { mcpPersonalTokens } from '../../../db/schema'
-import { useDatabase } from '../../../utils/database'
+import { listActiveMcpTokens } from '../../../repos/mcpTokens'
 
-// List the caller's MCP Personal Access Tokens. Plaintext is never
-// reconstructed — the response carries metadata only. Revoked tokens
-// are excluded; the user only sees actionable rows.
+// Lists the caller's MCP Personal Access Tokens: metadata only (plaintext is
+// never reconstructed), revoked tokens excluded.
 
-export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
-  const userId = session.user.id
+export default defineApiHandler({
+  access: allow.user(),
+  handler: async ({ self }) => {
+    const rows = await listActiveMcpTokens(self)
 
-  const db = useDatabase()
-  const rows = await db.select({
-    tokenId: mcpPersonalTokens.tokenId,
-    name: mcpPersonalTokens.name,
-    scopes: mcpPersonalTokens.scopes,
-    createdAt: mcpPersonalTokens.createdAt,
-    lastUsedAt: mcpPersonalTokens.lastUsedAt,
-    expiresAt: mcpPersonalTokens.expiresAt
-  })
-    .from(mcpPersonalTokens)
-    .where(and(
-      eq(mcpPersonalTokens.userId, userId),
-      isNull(mcpPersonalTokens.revokedAt)
-    ))
-    .orderBy(desc(mcpPersonalTokens.createdAt))
-
-  return rows.map(r => ({
-    tokenId: r.tokenId,
-    name: r.name,
-    scopes: r.scopes,
-    createdAt: r.createdAt.toISOString(),
-    lastUsedAt: r.lastUsedAt?.toISOString() ?? null,
-    expiresAt: r.expiresAt?.toISOString() ?? null
-  }))
+    return rows.map(r => ({
+      tokenId: r.tokenId,
+      name: r.name,
+      scopes: r.scopes,
+      createdAt: r.createdAt.toISOString(),
+      lastUsedAt: r.lastUsedAt?.toISOString() ?? null,
+      expiresAt: r.expiresAt?.toISOString() ?? null
+    }))
+  }
 })

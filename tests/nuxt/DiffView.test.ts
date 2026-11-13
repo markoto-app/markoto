@@ -4,7 +4,7 @@ import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { CollabDiffView as DiffView } from '#components'
 
 // Component test for the unified-diff renderer. Drives the
-// drawer-side rendering — kind classes, hunk headers, line numbering,
+// drawer-side rendering: kind classes, hunk headers, line numbering,
 // truncation banner, and the empty-hunks placeholder.
 //
 // Why nuxt project: DiffView uses `useI18n()` for two strings
@@ -76,7 +76,7 @@ describe('DiffView.vue', () => {
     // index 3 → 9.
     const wrapper = await mountSuspended(DiffView, { props: { hunks: [sampleHunk] } })
     const html = wrapper.html()
-    expect(html).toContain('>7<') // context line — opens at newStart
+    expect(html).toContain('>7<') // context line, opens at newStart
     expect(html).toContain('>8<') // first non-remove after the seven
     expect(html).toContain('>9<') // tail context line
   })
@@ -95,7 +95,7 @@ describe('DiffView.vue', () => {
     expect(html).toContain('first new')
     expect(html).toContain('second new')
     expect(html).toContain('third new')
-    // No remove row — no red tint.
+    // No remove row: no red tint.
     expect(html).not.toContain('bg-red-500/10')
   })
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import * as Y from 'yjs'
-import { ensureYjsTable, resetDb, testDb } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import {
   createDoc,
@@ -9,7 +9,8 @@ import {
   setMemberRole
 } from '../setup/fixtures'
 import { TEST_JWT_SECRET } from '../setup/env'
-import { mintSessionJwt } from '~~/shared/test-helpers/jwt'
+import { mintSessionJwt } from '~~/tests/helpers/jwt'
+import { first } from '../../helpers/assert'
 
 // GET /api/docs/:docId/activity/:activityId/diff
 //
@@ -26,8 +27,8 @@ import { mintSessionJwt } from '~~/shared/test-helpers/jwt'
 //   - Real Postgres bytea round-trip: `pg` driver hands `Buffer`s
 //     that may share an ArrayBuffer; the replay's `byteOffset`
 //     handling has to work against real driver output, not a mock.
-//   - Auth gates: every variant from /activity must carry over —
-//     anon/owner/workspace-member/doc-JWT — but the diff endpoint
+//   - Auth gates: every variant from /activity must carry over,
+//     anon/owner/workspace-member/doc-JWT: but the diff endpoint
 //     duplicated the gate, so it's a separate target for regression.
 //   - 410 vs 404: rows from before boundary tracking should 410
 //     (the row exists but can't be diffed); unknown rows should 404.
@@ -42,16 +43,16 @@ function encodeYjsUpdate(content: string): Buffer {
 }
 
 /**
- * Insert a fresh `yjs_documents` row and return its `id`. The
+ * Insert a fresh `yjs_updates` row and return its `id`. The
  * activity log boundary ids reference this same `id`.
  */
 async function insertYjsRow(docname: string, content: string): Promise<number> {
   const db = testDb()
   const r = await db.query<{ id: number }>(
-    `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1') RETURNING id`,
+    `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2) RETURNING id`,
     [docname, encodeYjsUpdate(content)]
   )
-  return r.rows[0].id
+  return Number(first(r.rows).id)
 }
 
 /**
@@ -71,7 +72,7 @@ async function insertActivityRow(
      RETURNING id`,
     [docId, options.userName ?? 'Alice', options.action ?? 'edit', yjsDocIdBefore, yjsDocIdAfter]
   )
-  return r.rows[0].id
+  return first(r.rows).id
 }
 
 function mintDocJwt(docId: string): string {
@@ -84,7 +85,6 @@ function mintDocJwt(docId: string): string {
 describe('GET /api/docs/:docId/activity/:activityId/diff', () => {
   beforeEach(async () => {
     await resetDb()
-    await ensureYjsTable()
   })
 
   describe('happy path', () => {
@@ -120,7 +120,7 @@ describe('GET /api/docs/:docId/activity/:activityId/diff', () => {
 
     it('handles before=null (first edit ever)', async () => {
       // yjsDocIdBefore can legitimately be null when the very first
-      // store happens — the replay returns an empty doc and we get
+      // store happens: the replay returns an empty doc and we get
       // an all-add diff.
       const doc = await createDoc({ accessMode: 'open-edit' })
       const after = await insertYjsRow(doc.docId, 'hello\n')
@@ -134,10 +134,10 @@ describe('GET /api/docs/:docId/activity/:activityId/diff', () => {
     })
   })
 
-  describe('410 — diff unavailable', () => {
+  describe('410: diff unavailable', () => {
     it('returns 410 when yjsDocIdAfter is null (pre-feature row)', async () => {
       const doc = await createDoc({ accessMode: 'open-edit' })
-      // Both boundaries null — the row predates the feature.
+      // Both boundaries null: the row predates the feature.
       const activityId = await insertActivityRow(doc.docId, null, null)
 
       const res = await anonClient().get(`/api/docs/${doc.docId}/activity/${activityId}/diff`)
@@ -145,7 +145,7 @@ describe('GET /api/docs/:docId/activity/:activityId/diff', () => {
     })
   })
 
-  describe('404 — not found / cross-doc isolation', () => {
+  describe('404: not found / cross-doc isolation', () => {
     it('returns 404 for an unknown activityId', async () => {
       const doc = await createDoc({ accessMode: 'open-edit' })
       const res = await anonClient().get(`/api/docs/${doc.docId}/activity/99999/diff`)
@@ -187,7 +187,7 @@ describe('GET /api/docs/:docId/activity/:activityId/diff', () => {
     })
   })
 
-  describe('auth — open access', () => {
+  describe('auth: open access', () => {
     it('anonymous can read diff on open-edit doc', async () => {
       const doc = await createDoc({ accessMode: 'open-edit' })
       const before = await insertYjsRow(doc.docId, '')
@@ -210,7 +210,7 @@ describe('GET /api/docs/:docId/activity/:activityId/diff', () => {
     })
   })
 
-  describe('auth — private mode', () => {
+  describe('auth: private mode', () => {
     it('anonymous is denied (403)', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
@@ -301,7 +301,7 @@ describe('GET /api/docs/:docId/activity/:activityId/diff', () => {
     })
   })
 
-  describe('auth — password-protected mode', () => {
+  describe('auth: password-protected mode', () => {
     it('anonymous without JWT is denied', async () => {
       const owner = await createUser()
       const doc = await createDoc({

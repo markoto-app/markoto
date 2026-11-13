@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { renderTrustedMarkdown } from '~/utils/renderMarkdown'
-import { sampleHeadingsToDivs } from '~/utils/sampleHeadings'
-import { KATEX_CSS_SRI, KATEX_CSS_URL } from '~~/shared/utils/katexAssets'
-import { hljsTheme } from '~~/shared/utils/hljsAssets'
-import { buildMermaidConfig } from '~~/shared/utils/mermaidConfig'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
+import { renderTrustedMarkdown } from '~/utils/markdown/renderMarkdown'
+import { trimTrailing } from '~/utils/markdown/trimTrailing'
+import { sampleHeadingsToDivs } from '~/utils/marketing/sampleHeadings'
+import { KATEX_CSS_SRI, KATEX_CSS_URL } from '~~/shared/utils/vendor/katexAssets'
+import { hljsTheme } from '~~/shared/utils/vendor/hljsAssets'
+import { buildMermaidConfig } from '~~/shared/utils/markdown/mermaidConfig'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 
-// Markdown source next to what markoto makes of it — for marketing
+// Markdown source next to what markoto makes of it, for marketing
 // content (`::sample` in content/marketing/**):
 //
 //   ::sample{kind="gfm"}
@@ -36,7 +37,7 @@ function hashOf(text: string): string {
   return (h >>> 0).toString(36)
 }
 
-const source = computed(() => props.source.replace(/\n+$/, ''))
+const source = computed(() => trimTrailing(props.source, '\n'))
 const { data: html } = await useAsyncData(
   `sample:${hashOf(source.value)}`,
   // Headings become styled <div>s: the sample's "# Title" is not a heading of this page.
@@ -56,7 +57,7 @@ const diagramHtml = ref<string | null>(null)
 const hasDiagram = computed(() => html.value.includes('language-mermaid'))
 
 async function drawDiagrams(): Promise<void> {
-  const { transformMermaid, inlineMermaidSvgs } = await import('~/utils/mermaidLoader')
+  const { transformMermaid, inlineMermaidSvgs } = await import('~/utils/markdown/mermaidLoader')
   try {
     diagramHtml.value = await transformMermaid(html.value, { config: buildMermaidConfig(defaultTheme), locale: 'en' })
   } catch {
@@ -84,10 +85,10 @@ const CODE_THEME = hljsTheme('github-dark')
 useHead(() => ({
   link: [
     ...(html.value.includes('class="katex')
-      ? [{ key: 'katex-css', rel: 'stylesheet', href: KATEX_CSS_URL, integrity: KATEX_CSS_SRI, crossorigin: 'anonymous' as const }]
+      ? [{ key: 'katex-css', rel: 'stylesheet' as const, href: KATEX_CSS_URL, integrity: KATEX_CSS_SRI, crossorigin: 'anonymous' as const }]
       : []),
     ...(html.value.includes('class="hljs')
-      ? [{ key: 'hljs-css', rel: 'stylesheet', href: CODE_THEME.url, integrity: CODE_THEME.sri, crossorigin: 'anonymous' as const }]
+      ? [{ key: 'hljs-css', rel: 'stylesheet' as const, href: CODE_THEME.url, integrity: CODE_THEME.sri, crossorigin: 'anonymous' as const }]
       : [])
   ]
 }))
@@ -114,11 +115,13 @@ useHead(() => ({
         <span>{{ t('marketing.sample.result') }}</span>
       </div>
       <!-- Rendered from committed content only (see renderTrustedMarkdown). -->
+      <!-- eslint-disable vue/no-v-html -- committed content, never visitor input (renderTrustedMarkdown) -->
       <div
         ref="resultEl"
         class="mk-sample__result"
         v-html="diagramHtml ?? html"
       />
+      <!-- eslint-enable vue/no-v-html -->
     </div>
   </figure>
 </template>
@@ -169,7 +172,7 @@ useHead(() => ({
   border-color: var(--ui-border-accented);
 }
 /* `.mk-sample` in front: beats the article's `.prose pre/code` (and
-   their `.dark` variants) from main.css. Ligatures off — JetBrains Mono
+   their `.dark` variants) from main.css. Ligatures off, JetBrains Mono
    would draw `==` or `~~` as one glyph, and the point here is the
    characters you type. */
 .mk-sample .mk-sample__code {
@@ -274,7 +277,7 @@ html.dark .mk-sample__result :deep(:where(.mk-sample-h)) { color: var(--color-su
 .mk-sample__result :deep(.katex-display) { overflow-x: auto; overflow-y: hidden; }
 
 /* Diagrams sit on a white sheet, in the default theme's colours, also in
-   dark mode — the way they print. */
+   dark mode: the way they print. */
 .mk-sample__result :deep(.mermaid) {
   display: flex;
   justify-content: center;

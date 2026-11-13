@@ -1,6 +1,6 @@
 ---
 title: Save as Markdown
-description: Download the doc as a `.md` file — clean, portable, edit anywhere.
+description: Download the doc as a `.md` file, clean, portable, edit anywhere.
 category: import-export
 order: 3
 updated: '2026-11-04'
@@ -33,5 +33,5 @@ reachable at its link.
 
 ## What's next
 
-- [Export as PDF](/docs/import-export/polished-pdf) — same content, fully self-contained.
+- [Export as PDF](/docs/import-export/polished-pdf): same content, fully self-contained.
 - [Import a document](/docs/import-export/import-existing): File › Import takes the `.md` file back. A file saved from markoto brings its theme and document settings with it; you can choose to keep only the text.

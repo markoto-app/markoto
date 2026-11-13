@@ -1,28 +1,32 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { ypgPersistence } from './persistence'
-import { matchesCurrentOrPrevious } from '../../shared/utils/secrets'
+import { cameThroughEdgeProxy, checkInternalSecret, INTERNAL_SECRET_HEADER } from '../../shared/utils/security/internalSecret'
+import { isTestModeEnabled } from '../../shared/utils/security/testMode'
 import { performKickUser, type HocuspocusInstance } from './kickUser'
 import { flushPendingStore } from './flushDocument'
+import { performReauthDocument } from './connection-expiry'
+import { writeDocNotBefore } from './doc-not-before'
 import { Sentry } from './sentry'
+import { syncEnv } from './env'
+import { useLogger, type Logger } from './logger'
+import { flushDocumentBody, kickUserBody, notifyDeletedBody, reauthDocumentBody } from '../../shared/contracts/syncInternal'
 
-export type { HocuspocusConnection, HocuspocusDocument, HocuspocusInstance } from './kickUser'
+const log = useLogger('internal-http')
 
-const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET
-const INTERNAL_SECRET_PREVIOUS = process.env.INTERNAL_API_SECRET_PREVIOUS || undefined
+export type { HocuspocusInstance } from './kickUser'
 
 // TEST_MODE-only ring buffer for kick-user observation. Lets integration
-// tests assert "the workspace mutation actually dispatched a kick" — the
-// dispatch shape is unit-tested in `tests/unit/syncNotify.test.ts`, but
+// tests assert "the workspace mutation actually dispatched a kick", the
+// dispatch shape is unit-tested in `tests/unit/sync/syncNotify.test.ts`, but
 // without this buffer there's no way to confirm the call SITES (every
 // /api/workspaces/:wsId/members/* mutation handler) didn't silently drop
 // the dispatch in a refactor. Test/prod drift guard.
 //
 // Gated on TEST_MODE so the prod sync-server never accumulates this
-// state. Capped at 100 entries (LRU) — tests assert against recent
+// state. Capped at 100 entries (LRU), tests assert against recent
 // state and clear between cases. Both endpoints require the same
 // X-Internal-Secret as the rest of /internal/*; they are NOT a public
 // surface even in test.
-const TEST_MODE = process.env.TEST_MODE === '1'
+const TEST_MODE = isTestModeEnabled()
 const RECENT_KICKS_CAP = 100
 interface RecordedKick { userId: string, docIds: string[], at: number }
 const recentKicks: RecordedKick[] = []
@@ -55,11 +59,22 @@ async function readJsonBody(request: IncomingMessage): Promise<unknown> {
  * was handled (caller should not fall through); `false` otherwise.
  *
  * Distributed tracing: the app injects sentry-trace + baggage on every
- * outbound POST to the sync-server (server/utils/traceHeaders.ts). We
+ * outbound POST to the sync-server (server/utils/platform/traceHeaders.ts). We
  * pull those headers off and feed them into Sentry.continueTrace +
  * startSpan so the sync-server's work shows up as a child of the app's
  * transaction in Sentry's Trace Explorer.
  */
+/**
+ * A logger carrying the `x-request-id` the app sent, so this line can be
+ * matched with the app's log lines of the same request. Anything that is not
+ * id-shaped is ignored (the header is set by the app, but a log field must
+ * never be attacker-shaped).
+ */
+function requestLog(request: IncomingMessage): Logger {
+  const sent = request.headers['x-request-id']
+  return typeof sent === 'string' && /^[A-Za-z0-9._-]{8,64}$/.test(sent) ? log.with({ requestId: sent }) : log
+}
+
 export async function handleInternalRequest(
   request: IncomingMessage,
   response: ServerResponse,
@@ -68,6 +83,10 @@ export async function handleInternalRequest(
   const url = request.url || ''
 
   if (!url.startsWith('/internal/')) return false
+
+  // Authenticate before any Sentry work: an unauthenticated caller must
+  // not be able to open spans or attach itself to a trace of its choosing.
+  if (!authenticateInternalRequest(request, response)) return true
 
   // Extract upstream trace context. Both headers are case-insensitive on
   // node:http's headers object, so we read via the lowercase form.
@@ -91,7 +110,6 @@ async function handleInternalRequestInner(
   instance: HocuspocusInstance,
   url: string
 ): Promise<boolean> {
-  if (!authenticateInternalRequest(request, response)) return true
   try {
     if (url === '/internal/notify-deleted' && request.method === 'POST') {
       return await handleNotifyDeleted(request, response, instance)
@@ -101,6 +119,9 @@ async function handleInternalRequestInner(
     }
     if (url === '/internal/flush-document' && request.method === 'POST') {
       return await handleFlushDocument(request, response, instance)
+    }
+    if (url === '/internal/reauth-document' && request.method === 'POST') {
+      return await handleReauthDocument(request, response, instance)
     }
     // TEST_MODE-only inspection endpoints. The path includes `_test`
     // so it's grep-distinguishable from production paths in any audit.
@@ -117,24 +138,35 @@ async function handleInternalRequestInner(
     return true
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
-    console.warn('[internal-http]', msg)
+    requestLog(request).warn('internal request failed', { path: url, err: e })
     sendJson(response, 500, { error: msg })
     return true
   }
 }
 
-/** Verify the `X-Internal-Secret` header against current + previous secret (rotation grace). Returns false (and writes the error response) on failure. */
+/**
+ * Gate for every `/internal/*` request. The app calls these directly on
+ * the Docker network; a request that went through the public edge proxy
+ * is refused as not found (the proxy rule already excludes the prefix,
+ * this holds if a router is ever widened). Otherwise the
+ * `X-Internal-Secret` header must match the current or previous secret.
+ * Returns false (and writes the error response) on failure.
+ */
 function authenticateInternalRequest(request: IncomingMessage, response: ServerResponse): boolean {
-  if (!INTERNAL_SECRET) {
+  if (cameThroughEdgeProxy(name => request.headers[name])) {
+    sendJson(response, 404, { error: 'Not found' })
+    return false
+  }
+  const verdict = checkInternalSecret(
+    request.headers[INTERNAL_SECRET_HEADER],
+    syncEnv().auth.internalApiSecret,
+    syncEnv().auth.internalApiSecretPrevious || null
+  )
+  if (verdict === 'unconfigured') {
     sendJson(response, 500, { error: 'Internal secret not configured' })
     return false
   }
-  const providedSecret = request.headers['x-internal-secret']
-  if (typeof providedSecret !== 'string' || !matchesCurrentOrPrevious(
-    providedSecret,
-    INTERNAL_SECRET,
-    INTERNAL_SECRET_PREVIOUS
-  )) {
+  if (verdict === 'invalid') {
     sendJson(response, 401, { error: 'Invalid internal secret' })
     return false
   }
@@ -142,22 +174,23 @@ function authenticateInternalRequest(request: IncomingMessage, response: ServerR
 }
 
 /**
- * Flag the in-memory Y.Doc as deleted — connected clients observe via
+ * Flag the in-memory Y.Doc as deleted, connected clients observe via
  * ymeta and handle redirect/toast on their end. After a short delay
- * we unload the doc + clear its persisted Y.js rows so it can't be
- * revived from disk.
+ * we unload the doc. Its Y.js rows already went with the `documents`
+ * row (FK cascade), and a later store for it is refused by that same
+ * foreign key, so it can't be revived.
  */
 async function handleNotifyDeleted(
   request: IncomingMessage,
   response: ServerResponse,
   instance: HocuspocusInstance
 ): Promise<boolean> {
-  const body = await readJsonBody(request) as { docId?: unknown }
-  const docId = body?.docId
-  if (typeof docId !== 'string') {
+  const parsed = notifyDeletedBody.safeParse(await readJsonBody(request))
+  if (!parsed.success) {
     sendJson(response, 400, { error: 'Missing docId' })
     return true
   }
+  const { docId } = parsed.data
   const doc = instance.documents?.get(docId)
   if (doc) {
     doc.getMap('meta').set('_deleted', Date.now())
@@ -169,20 +202,13 @@ async function handleNotifyDeleted(
       } catch { /* ignore */ }
     }, 2000)
   }
-  // Wait briefly so any in-flight broadcast persists `_deleted` first.
-  setTimeout(() => {
-    ypgPersistence.clearDocument(docId).catch((e) => {
-      console.warn(`[internal-http] clearDocument(${docId}) failed:`, e instanceof Error ? e.message : e)
-    })
-  }, 3000)
-
   sendJson(response, 200, { success: true, notified: !!doc })
   return true
 }
 
 /**
  * Persist a loaded document's pending edits NOW instead of after the
- * store debounce, so the caller can read complete `yjs_documents` rows
+ * store debounce, so the caller can read complete `yjs_updates` rows
  * (duplicate clones them). Answers once the store finished; `outcome`
  * says whether there was anything to store (see flushDocument.ts).
  */
@@ -191,12 +217,12 @@ async function handleFlushDocument(
   response: ServerResponse,
   instance: HocuspocusInstance
 ): Promise<boolean> {
-  const body: unknown = await readJsonBody(request)
-  const docId = typeof body === 'object' && body !== null ? (body as Record<string, unknown>).docId : undefined
-  if (typeof docId !== 'string' || docId.length === 0) {
+  const parsed = flushDocumentBody.safeParse(await readJsonBody(request))
+  if (!parsed.success) {
     sendJson(response, 400, { error: 'Missing docId' })
     return true
   }
+  const { docId } = parsed.data
   const outcome = await flushPendingStore(instance, docId)
   sendJson(response, 200, { success: true, outcome })
   return true
@@ -207,7 +233,7 @@ async function handleFlushDocument(
  * given set of docs. Called by the app when a workspace membership
  * changes (role reduced, member removed, workspace deleted). The
  * client's Hocuspocus provider auto-reconnects, re-hits the token
- * endpoint, and picks up the new access level — so "kick" here
+ * endpoint, and picks up the new access level, so "kick" here
  * really means "refresh". Fire-and-forget from the app; we never
  * fail the caller's mutation on a kick failure.
  */
@@ -216,23 +242,48 @@ async function handleKickUser(
   response: ServerResponse,
   instance: HocuspocusInstance
 ): Promise<boolean> {
-  const body = await readJsonBody(request) as { userId?: unknown, docIds?: unknown }
-  const rawUserId = body?.userId
-  const rawDocIds = body?.docIds
-  if ((typeof rawUserId !== 'string' && typeof rawUserId !== 'number')
-    || !Array.isArray(rawDocIds)) {
+  const parsed = kickUserBody.safeParse(await readJsonBody(request))
+  if (!parsed.success) {
     sendJson(response, 400, { error: 'userId (string|number) and docIds (string[]) required' })
     return true
   }
   // JWT payloads may carry userId as number (logged-in) or string
   // ('anonymous'). Compare as strings to cover both shapes without
   // a silent skip on number/string mismatch.
-  const targetUserId = String(rawUserId)
-  const targetDocIds = rawDocIds.filter((d): d is string => typeof d === 'string')
+  const targetUserId = String(parsed.data.userId)
+  const targetDocIds = parsed.data.docIds
 
   const { kicked, missing } = performKickUser(instance, targetUserId, targetDocIds)
-  // Record for TEST_MODE inspection — no-op in prod.
+  // Record for TEST_MODE inspection, no-op in prod.
   recordKick(targetUserId, targetDocIds)
   sendJson(response, 200, { success: true, kicked, docsNotLoaded: missing })
+  return true
+}
+
+/**
+ * A document's access just became stricter (access mode, password, share
+ * settings, moderation, workspace move). Refuse every token issued before
+ * `notBefore` (the app's clock, epoch seconds) and close the document's
+ * connections so each client re-authenticates: an entitled one fetches a
+ * fresh token and reconnects, anyone else lands on the no-access screen.
+ * Only this instance's connections are closed; the cutoff (in Valkey)
+ * applies on every instance.
+ */
+async function handleReauthDocument(
+  request: IncomingMessage,
+  response: ServerResponse,
+  instance: HocuspocusInstance
+): Promise<boolean> {
+  const parsed = reauthDocumentBody.safeParse(await readJsonBody(request))
+  if (!parsed.success) {
+    sendJson(response, 400, { error: 'docId (string) and notBefore (epoch seconds) required' })
+    return true
+  }
+  const { docId, notBefore } = parsed.data
+  // Cutoff first: a client closed below reconnects within a second and
+  // must already be refused if it presents its old token.
+  const cutoffStored = await writeDocNotBefore(docId, notBefore)
+  const closed = performReauthDocument(instance.documents?.get(docId))
+  sendJson(response, 200, { success: true, closed, cutoffStored })
   return true
 }

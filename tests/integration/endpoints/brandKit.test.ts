@@ -1,12 +1,13 @@
 import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it } from 'vitest'
+import * as Y from 'yjs'
 import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL } from '../setup/env'
-import { THEME_PRESETS } from '../../../shared/utils/themePresets'
+import { THEME_PRESETS } from '../../../shared/utils/theme/themePresets'
 
-// Workspace brand kit (WP10): fonts + logos (upload checks, who may, how
+// Workspace brand kit: fonts + logos (upload checks, who may, how
 // documents load them), the locked workspace design, workspace templates.
 
 const STATIC_WOFF2 = new Uint8Array(readFileSync('node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2'))
@@ -22,7 +23,7 @@ async function upload(client: Client, path: string, fields: Record<string, strin
   return fetch(`${base}${path}`, { method: 'POST', body: form, headers: { cookie: client.cookieHeader() } })
 }
 
-const fontFile = (bytes: Uint8Array, name = 'font.woff2') => new File([bytes], name)
+const fontFile = (bytes: Uint8Array<ArrayBuffer>, name = 'font.woff2') => new File([bytes], name)
 
 async function setup() {
   const admin = await createUser({ name: 'Maya Admin' })
@@ -32,7 +33,7 @@ async function setup() {
   return { admin, ws, editor, adminClient: await loggedInClient(admin.id) }
 }
 
-describe('brand kit — fonts and logos', () => {
+describe('brand kit: fonts and logos', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -40,7 +41,7 @@ describe('brand kit — fonts and logos', () => {
   it('accepts a static font under its own name, refuses built-in names, variable fonts and missing licence', async () => {
     const { ws, adminClient } = await setup()
     const path = `/api/workspaces/${ws.workspaceId}/brand/fonts`
-    // The file says "Inter" — one of markoto's built-in fonts.
+    // The file says "Inter", one of markoto's built-in fonts.
     const builtIn = await upload(adminClient, path, { file: fontFile(STATIC_WOFF2), licence: 'true' })
     expect(builtIn.status).toBe(409)
     expect((await builtIn.json() as { data: { code: string } }).data.code).toBe('brand/family-built-in')
@@ -144,7 +145,7 @@ describe('brand kit — fonts and logos', () => {
   })
 })
 
-describe('brand kit — locked design', () => {
+describe('brand kit: locked design', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -179,6 +180,22 @@ describe('brand kit — locked design', () => {
     expect(audit.rows.map(r => r.after)).toEqual([{ locked: true }, { locked: false }])
   })
 
+  it('design-from-doc takes the document\'s live design (Y.js meta), not the stale row', async () => {
+    const { admin, ws, adminClient } = await setup()
+    const report = THEME_PRESETS.find(p => p.id === 'business-report')!.theme
+    const live = THEME_PRESETS.find(p => p.theme.body.font !== report.body.font)!.theme
+    // The row keeps its creation-time theme; the editor's later change
+    // lives only in the Y.js meta map (what a workspace editor's change does).
+    const source = await createDoc({ ownerId: admin.id, workspaceId: ws.workspaceId, theme: report })
+    const ydoc = new Y.Doc()
+    ydoc.getMap('meta').set('theme', live)
+    await testDb().query(`INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2)`, [source.docId, Buffer.from(Y.encodeStateAsUpdate(ydoc))])
+
+    const set = await adminClient.post(`/api/workspaces/${ws.workspaceId}/brand/design-from-doc`, { docId: source.docId })
+    expect(set.status).toBe(200)
+    expect((await set.json() as { defaultTheme: { body: { font: string } } }).defaultTheme.body.font).toBe(live.body.font)
+  })
+
   it('the lock pauses on a plan without the brand kit (markoto.app free)', async () => {
     const admin = await createUser()
     const ws = await createWorkspace(admin.id)
@@ -191,7 +208,7 @@ describe('brand kit — locked design', () => {
   })
 })
 
-describe('brand kit — workspace templates', () => {
+describe('brand kit: workspace templates', () => {
   beforeEach(async () => {
     await resetDb()
   })

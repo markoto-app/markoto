@@ -2,7 +2,13 @@
   "app": {
     "name": "markoto",
     "tagline": "Collaborative markdown editor",
-    "offline": "You're offline — edits stay local until you reconnect."
+    "offline": "You're offline: edits stay local until you reconnect.",
+    "update": {
+      "title": "New version available",
+      "description": "Reloading in 30 seconds.",
+      "reloadNow": "Reload now",
+      "snooze": "Snooze 5 min"
+    }
   },
   "landing": {
     "hero": "Beautifully rendered {markdown}.",
@@ -26,15 +32,14 @@
     "linkedTitle": "Accounts linked",
     "linkedDescription": "Your {provider} login is now connected to your existing account. You can sign in with either provider from here on.",
     "reauthTitle": "Sign in again",
-    "reauthAction": "Sign in again",
-    "reauthRequired": "For your security, this action needs a recent sign-in. Please sign in again and retry."
+    "reauthAction": "Sign in again"
   },
   "editor": {
     "untitled": "Untitled",
     "titleInputAria": "Document title",
     "placeholder": "Start writing...",
     "syncAuthFailedTitle": "Sync server rejected the connection",
-    "syncAuthFailedDescription": "You normally have edit access here. The sync server bounced the handshake — likely a per-IP rate limit or a stale token. Reload to try again.",
+    "syncAuthFailedDescription": "You normally have edit access here. The sync server bounced the handshake, likely a per-IP rate limit or a stale token. Reload to try again.",
     "syncAuthFailedReload": "Reload",
     "syncRejected": {
       "title": "Your latest changes were not saved",
@@ -64,7 +69,16 @@
     "horizontalRule": "Horizontal Rule",
     "pageBreak": "Page break",
     "table": "Table",
-    "hideFromPreview": "Make invisible (hide from preview)"
+    "hideFromPreview": "Make invisible (hide from preview)",
+    "footer": {
+      "words": "word | words",
+      "pages": "page | pages",
+      "chars": "char | chars",
+      "readOnly": "read only"
+    },
+    "previewReloadHint": "Reload the page to retry.",
+    "previewFailed": "Preview failed to load.",
+    "previewFrameTitle": "Document preview"
   },
   "previewZoom": {
     "menu": "Zoom",
@@ -90,7 +104,7 @@
     "systemShare": "Share via system…",
     "qrCode": "Show QR code",
     "accessMode": "Access Mode",
-    "private": "Private — only you",
+    "private": "Private: only you",
     "openEdit": "Anyone can edit",
     "openView": "Anyone can view",
     "passwordProtected": "Password protected",
@@ -119,7 +133,7 @@
       "expires": "Link stops working on",
       "expiresHelp": "After this, only you and members of the workspace can open the document. Leave empty to keep the link working.",
       "clearExpiry": "Remove the end date",
-      "noDownload": "View only — no download or print",
+      "noDownload": "View only: no download or print",
       "noDownloadHelp": "People with the link can read the document but not download it as PDF or Markdown or print it. Text on screen can still be copied.",
       "views": "Not opened in the last 30 days | Opened once in the last 30 days | Opened {n} times in the last 30 days",
       "lastViewed": "last on {date}",
@@ -189,18 +203,18 @@
     "restore": {
       "button": {
         "label": "Restore",
-        "tooltip": "Restore the document to this point. Reversible — you can come back via the activity log."
+        "tooltip": "Restore the document to this point. Reversible: you can come back via the activity log."
       },
       "confirm": {
         "title": "Restore the document?",
         "body": "The document will snap back to the state from {when}. Edits made since then will be removed (but stay recoverable from the activity log).",
-        "reversibleHint": "This restore is itself reversible — you can return to the current state any time.",
+        "reversibleHint": "This restore is itself reversible: you can return to the current state any time.",
         "cta": "Restore"
       },
       "success": "Document restored.",
       "error": {
         "unauthorized": "You don't have edit access to this document.",
-        "unavailable": "Can't restore from this row — it predates the restore feature.",
+        "unavailable": "Can't restore from this row: it predates the restore feature.",
         "notFound": "That activity row doesn't exist for this document.",
         "generic": "Restore failed. The document is unchanged."
       }
@@ -220,7 +234,7 @@
       "unavailable": "Diff unavailable for this row.",
       "error": "Couldn't load the diff.",
       "retry": "Retry",
-      "truncated": "Showing {shown} of {total} hunks — diff truncated."
+      "truncated": "Showing {shown} of {total} hunks: diff truncated."
     },
     "commentContext": {
       "view": "View thread",
@@ -237,8 +251,10 @@
       "sourcesHeading": "Sources",
       "noSources": "No sources surfaced.",
       "imageInDoc": "The generated image was inserted into the document.",
-      "knowledgeNote": "Workspace knowledge feature."
-    }
+      "knowledgeNote": "Workspace knowledge feature.",
+      "openViewedImage": "Open the viewed image in a new tab"
+    },
+    "viaAgent": "via {agent}"
   },
   "comments": {
     "title": "Comments",
@@ -259,6 +275,7 @@
     "activeSection": "Active",
     "orphanedSection": "Removed from document",
     "orphanedHint": "The text this comment was attached to was deleted.",
+    "showInDocument": "Show in document",
     "resolvedSection": "Resolved",
     "composerPlaceholder": "Add a comment…",
     "replyPlaceholder": "Reply…",
@@ -273,14 +290,16 @@
     "aiMentionHint": "Tip: include {'@'}markoto in a comment to ask markoto to act on it.",
     "aiResponding": "markoto is responding…",
     "aiTriggerFailed": "Couldn't reach markoto for this thread.",
-    "aiTriggerExhausted": "Quota exhausted — upgrade your plan to ask markoto from comments."
+    "aiTriggerExhausted": "Quota exhausted: upgrade your plan to ask markoto from comments.",
+    "hintPost": "post",
+    "hintCancel": "cancel",
+    "notificationFallbackTitle": "New reply"
   },
   "image": {
     "loginToUpload": "Please log in to upload images.",
     "uploadFailed": "Image upload failed",
     "dropToUpload": "Drop image to upload",
-    "uploading": "Uploading...",
-    "storageQuotaReached": "You've reached your image storage limit. Images you remove from your documents free up space once they are cleaned up."
+    "uploading": "Uploading..."
   },
   "import": {
     "title": "Import Document",
@@ -307,7 +326,7 @@
   },
   "newDoc": {
     "title": "New document",
-    "subtitle": "Give it a name and start writing. The template and details are optional — change them now or any time later.",
+    "subtitle": "Give it a name and start writing. The template and details are optional: change them now or any time later.",
     "titleLabel": "Title",
     "titlePlaceholder": "e.g. Q3 launch plan",
     "descriptionLabel": "Description",
@@ -425,7 +444,7 @@
     "title": "Document",
     "description": {
       "label": "Description",
-      "help": "One line about what this document is. The AI sees this every turn — it's how the model knows what you're working on without re-typing it.",
+      "help": "One line about what this document is. The AI sees this every turn: it's how the model knows what you're working on without re-typing it.",
       "placeholder": "e.g. Q3 launch plan for the new mobile app"
     },
     "language": {
@@ -486,7 +505,10 @@
     "loading": "Loading...",
     "menu": "Menu",
     "docs": "Docs",
-    "documentation": "Documentation"
+    "documentation": "Documentation",
+    "homeLinkLabel": "markoto home",
+    "dragToClose": "Drag to close",
+    "copyFailed": "Could not copy. Select the text and copy it manually."
   },
   "menu": {
     "lightMode": "Light mode",
@@ -555,7 +577,8 @@
       "github": "View on GitHub",
       "docs": "Documentation",
       "tour": "Take the tour"
-    }
+    },
+    "label": "Menu bar"
   },
   "ai": {
     "workingGeneric": "markoto is working…",
@@ -594,7 +617,7 @@
     "rateLimited": "Too many requests. Try again in a minute.",
     "failed": "Could not reach markoto",
     "micStart": "Start voice input",
-    "micBlocked": "Microphone blocked — enable it in your browser settings",
+    "micBlocked": "Microphone blocked: enable it in your browser settings",
     "micStop": "Stop and send",
     "micCancel": "Cancel voice input",
     "micRequestingPermission": "Waiting for microphone…",
@@ -611,36 +634,32 @@
     "dictateSessionCapTitle": "Dictation session ended",
     "dictateSessionCapDescription": "Sessions cap at 10 minutes. Start a new one to continue.",
     "dictateIdleTitle": "Dictation paused",
-    "dictateIdleDescription": "No audio for 30 seconds — dictation stopped.",
+    "dictateIdleDescription": "No audio for 30 seconds: dictation stopped.",
     "dictateErrorTitle": "Dictation failed",
     "budgetExhaustedTitle": "Out of AI credits",
     "budgetExhaustedDescription": "You've used all your AI credits for this billing period. Upgrade your plan to keep going.",
-    "exhaustedPlaceholder": "Out of AI credits — upgrade to continue",
+    "exhaustedPlaceholder": "Out of AI credits: upgrade to continue",
     "workspaceBudgetExhaustedTitle": "Workspace AI budget used up",
     "workspaceBudgetExhaustedDescription": "This workspace’s AI budget is used up for this month. Ask a workspace admin to add seats or credits.",
-    "workspaceExhaustedPlaceholder": "Workspace AI budget used up — ask an admin",
+    "workspaceExhaustedPlaceholder": "Workspace AI budget used up: ask an admin",
     "upgradeCta": "Upgrade",
     "remainingLabel": "{remaining} of {limit} AI credits left this month",
     "responseLabel": "markoto says",
     "responseQuestionLabel": "markoto is asking",
     "responseDismiss": "Dismiss",
     "responseShowLast": "Last response from markoto",
-    "errors": {
-      "duplicateSession": "You already have a markoto session running on this document.",
-      "abortNotInitiator": "Only the person who started this markoto session can stop it."
-    },
-    "exhaustedPlaceholderFree": "Out of AI credits — they refill next period",
+    "exhaustedPlaceholderFree": "Out of AI credits: they refill next period",
     "budgetExhaustedResetDescription": "You've used all your AI credits for this period. They refill when the next period starts.",
     "webToolsHourlyLimit": "You've reached the hourly limit for web search and page fetching. Try again within the hour, or continue without web tools.",
     "webToolsDailyLimit": "You've reached the daily limit for web search and page fetching. Try again tomorrow, or continue without web tools.",
-    "budgetExhaustedComingSoonDescription": "You've used all your AI credits for this period. They refill when the next period starts — paid plans with more credits are coming soon.",
+    "budgetExhaustedComingSoonDescription": "You've used all your AI credits for this period. They refill when the next period starts: paid plans with more credits are coming soon.",
     "freeAllowanceExhaustedTitle": "Free AI allowance used up",
     "freeAllowanceExhausted": "This month's free AI allowance is used up. Add your own key in Settings → AI provider to keep going.",
     "freeAllowanceCta": "Add your own key",
-    "freeAllowanceExhaustedPlaceholder": "This month's free AI allowance is used up — add your own key to keep going",
+    "freeAllowanceExhaustedPlaceholder": "This month's free AI allowance is used up: add your own key to keep going",
     "memberLimitReachedTitle": "Your AI limit is reached",
     "memberLimitReachedDescription": "You’ve used your AI limit in this workspace for this month. Ask a workspace admin to raise it.",
-    "memberLimitPlaceholder": "Your AI limit here is used up — ask an admin",
+    "memberLimitPlaceholder": "Your AI limit here is used up: ask an admin",
     "teamBudgetExhausted": "This workspace’s AI budget is used up for this month. Ask a workspace admin to add seats or credits.",
     "memberLimitReached": "You’ve reached your AI limit in this workspace for this month. Ask a workspace admin to raise it.",
     "locked": {
@@ -651,6 +670,24 @@
       "comingSoon": "It comes with the paid plans, which are coming soon. You can use your own provider key now.",
       "operator": "This instance doesn't offer it on your account. You can use your own provider key.",
       "ownKey": "Add your own key"
+    },
+    "voiceErrors": {
+      "transcription": "Transcription error.",
+      "dictationConnection": "Dictation connection error.",
+      "micDenied": "Microphone permission denied.",
+      "micNotFound": "No microphone found.",
+      "micAccess": "Could not access microphone.",
+      "streamUnavailable": "Microphone stream not available.",
+      "pipeline": "Could not start audio pipeline.",
+      "sampleRate": "Your browser forced {rate} Hz audio; dictation needs 16000 Hz.",
+      "unsupportedVoice": "Voice input is not supported in this browser.",
+      "unsupportedRecording": "Audio recording is not supported in this browser.",
+      "recorderStart": "Could not start recorder.",
+      "recordingFailed": "Recording failed.",
+      "stopFailed": "Could not stop recording.",
+      "noAudio": "No audio was captured.",
+      "tooShort": "Recording was too short.",
+      "encodeFailed": "Could not encode audio."
     }
   },
   "mobileTabBar": {
@@ -816,7 +853,6 @@
       "year": "Annual · 2 months free"
     },
     "currencyLabel": "Currency",
-    "currencyLocked": "Your subscription is billed in another currency and can't switch. Choose that currency to continue.",
     "countPerSeat": {
       "aiPoints": "{n} AI Point per seat a month, shared | {n} AI Points per seat a month, shared",
       "workspaces": "{n} workspace you own | {n} workspaces you own",
@@ -985,7 +1021,8 @@
       "sectionMode": "{token} shows",
       "sectionModeHelp": "Which section a page names in its header or footer.",
       "sectionModeFirst": "The first section heading on the page",
-      "sectionModeStart": "The section the page starts in"
+      "sectionModeStart": "The section the page starts in",
+      "imagePreview": "Header preview"
     },
     "code": {
       "theme": "Color theme",
@@ -1084,16 +1121,16 @@
     },
     "meta": {
       "font": "Meta font",
-      "fontHelp": "Used for header / footer text, figcaptions, and footnotes — the \"about the document\" voice."
+      "fontHelp": "Used for header / footer text, figcaptions, and footnotes: the \"about the document\" voice."
     },
     "cover": {
       "enabled": "Show cover page",
       "enabledHelp": "Prepends a title sheet as page 1 (suppresses page numbers + running header).",
       "layout": "Layout",
-      "layoutClassic": "Classic — everything centered",
-      "layoutEditorial": "Editorial — logo top, title at ⅓, meta at ⅔",
-      "layoutBanner": "Banner — logo + title in a brand-tinted top band",
-      "layoutMinimal": "Minimal — title only, centered (logo & meta hidden)",
+      "layoutClassic": "Classic: everything centered",
+      "layoutEditorial": "Editorial: logo top, title at ⅓, meta at ⅔",
+      "layoutBanner": "Banner: logo + title in a brand-tinted top band",
+      "layoutMinimal": "Minimal: title only, centered (logo & meta hidden)",
       "align": "Text alignment",
       "titleSize": "Title size",
       "subtitleSize": "Subtitle size",
@@ -1132,7 +1169,8 @@
       "uploadLogo": "Upload logo",
       "replaceLogo": "Replace logo",
       "clearLogo": "Remove",
-      "logoHeight": "Logo height (px)"
+      "logoHeight": "Logo height (px)",
+      "logoPreview": "Logo preview"
     },
     "toc": {
       "showTitle": "Show \"Table of Contents\" heading",
@@ -1184,7 +1222,7 @@
       "applied": "Template applied to your document",
       "markoto": {
         "name": "markoto",
-        "description": "The signature look. Fraunces editorial headings, Inter body on plain white paper, vermillion accent — calm field guide, not dashboard."
+        "description": "The signature look. Fraunces editorial headings, Inter body on plain white paper, vermillion accent: calm field guide, not dashboard."
       },
       "modern": {
         "name": "Modern",
@@ -1269,7 +1307,7 @@
       "bytes": "{used} / {max} bytes",
       "checking": "checking…",
       "applied": "applied",
-      "notApplied": "not applied — fix the errors below",
+      "notApplied": "not applied: fix the errors below",
       "position": "line {line}, col {column}",
       "droppedOnApply": "Some custom CSS rules in this theme use images from another document. They were removed.",
       "issue": {
@@ -1285,6 +1323,17 @@
         "value": "This value could not be read safely."
       },
       "docsLink": "How to write custom CSS"
+    },
+    "fontWeight": {
+      "thin": "Thin",
+      "extraLight": "Extra Light",
+      "light": "Light",
+      "regular": "Regular",
+      "medium": "Medium",
+      "semibold": "Semibold",
+      "bold": "Bold",
+      "extraBold": "Extra Bold",
+      "black": "Black"
     }
   },
   "table": {
@@ -1346,8 +1395,8 @@
       "subtitle": "Defaults for new documents created in this workspace.",
       "defaultTheme": {
         "title": "Default theme",
-        "help": "Applied to new documents created here. Existing documents are unaffected — they keep whatever theme they have.",
-        "useGlobal": "No default — use markoto",
+        "help": "Applied to new documents created here. Existing documents are unaffected: they keep whatever theme they have.",
+        "useGlobal": "No default: use markoto",
         "useGlobalHelp": "New documents start with the markoto preset until someone picks a different one.",
         "savedTitle": "Default theme updated",
         "appliedToast": "New documents in this workspace will use this theme",
@@ -1356,7 +1405,7 @@
       }
     },
     "capReached": "{used} of {limit} workspaces used on the {plan} plan. Delete one or upgrade to add more.",
-    "capReachedShort": "Workspace limit reached — upgrade",
+    "capReachedShort": "Workspace limit reached: upgrade",
     "sectionTitle": "My workspaces",
     "newWorkspace": "New workspace",
     "createTitle": "Create a workspace",
@@ -1403,7 +1452,7 @@
       "adminDescription": "Invite collaborators by email, change roles, or remove members.",
       "memberDescription": "People who have access to this workspace.",
       "addTitle": "Invite a member",
-      "addHint": "Enter their email address. They join only after accepting the invitation — in markoto when signed in with that address, or from the invitation email.",
+      "addHint": "Enter their email address. They join only after accepting the invitation: in markoto when signed in with that address, or from the invitation email.",
       "emailPlaceholder": "Enter an email address",
       "add": "Invite",
       "addFailed": "Could not send the invitation",
@@ -1420,12 +1469,6 @@
       "pendingExpires": "expires {date}",
       "revoke": "Revoke invitation",
       "revokeFailed": "Could not revoke the invitation",
-      "errors": {
-        "invalidEmail": "Enter a valid email address.",
-        "alreadyMember": "This person is already a member of the workspace.",
-        "inviteCap": "This workspace has too many open invitations. Revoke some first.",
-        "guestCap": "This workspace has as many guests as its plan allows (5 per paid seat). Remove a guest or add a seat first."
-      },
       "invitePeople": "Invite people",
       "guestHint": "A guest sees only the documents you share with them, doesn't take a seat and uses their own AI budget."
     },
@@ -1440,9 +1483,6 @@
       "accepted": "You joined {name}",
       "acceptFailed": "Could not accept the invitation",
       "declineFailed": "Could not decline the invitation",
-      "errors": {
-        "notFound": "This invitation doesn't exist any more or has expired."
-      },
       "page": {
         "title": "Workspace invitation",
         "intro": "You've been invited to join a workspace on markoto.",
@@ -1515,6 +1555,11 @@
         "subscriptionActive": "This workspace still has a running subscription. Contact support to delete it.",
         "seatsBusy": "Another seat change or invitation is in progress. Please try again in a moment."
       }
+    },
+    "dpa": {
+      "staleTitle": "Data Processing Addendum updated: please review again",
+      "heading": "One-time acceptance",
+      "body": "By creating a workspace you become a controller for personal data your members place inside it, and LatentSpace Labs GmbH becomes your processor. Our Data Processing Addendum is the contract that governs that."
     }
   },
   "knowledge": {
@@ -1523,7 +1568,7 @@
     "upload": "Upload files",
     "capFilesReached": "This workspace has reached the file limit ({limit}). Delete a file or upgrade to add more.",
     "capBytesReached": "This workspace has reached its storage limit ({limit} MB). Delete a file or upgrade to add more.",
-    "capReachedShort": "At limit — upgrade",
+    "capReachedShort": "At limit: upgrade",
     "empty": "No knowledge files yet.",
     "emptyDescription": "Upload a PDF or Word doc so markoto has context when you write.",
     "emptyDescriptionViewer": "Nothing has been uploaded to this workspace yet.",
@@ -1543,7 +1588,9 @@
     },
     "capFilesReachedFree": "This workspace has reached its file limit ({limit}). Delete a file to add another.",
     "capBytesReachedFree": "This workspace has reached its storage limit ({limit} MB). Delete a file to free up space.",
-    "capReachedShortFree": "Limit reached"
+    "capReachedShortFree": "Limit reached",
+    "uploadStorageFailed": "The file could not be uploaded to storage (status {status}).",
+    "uploadNetworkError": "Network error during upload."
   },
   "designImport": {
     "button": "Create a design from a document",
@@ -1602,7 +1649,10 @@
     "unauthorized": "Please sign in to continue.",
     "forbidden": "You don't have permission to do that.",
     "notFound": "Not found.",
-    "rateLimited": "Too many requests — please wait a moment and try again.",
+    "badRequest": "That request wasn't valid.",
+    "conflict": "That conflicts with the current state. Please reload and try again.",
+    "payloadTooLarge": "That is too large.",
+    "rateLimited": "Too many requests. Please wait a moment and try again.",
     "serverError": "Something broke on our side. We've been notified.",
     "documentCreateFailed": "Could not create document",
     "documentCreateFailedDescription": "Server refused the request.",
@@ -1611,7 +1661,14 @@
     "shareAccessModeFailed": "Could not update sharing settings",
     "sharePasswordFailed": "Could not set document password",
     "activityLoadFailed": "Could not load activity",
-    "retry": "Retry"
+    "retry": "Retry",
+    "page": {
+      "notFoundTitle": "Page not found",
+      "notFoundMessage": "This page does not exist or has moved. Check the address or head back to the start.",
+      "genericTitle": "Something went wrong",
+      "genericMessage": "An unexpected error occurred on our side. Please try again in a moment.",
+      "backHome": "Back to home"
+    }
   },
   "legal": {
     "ageGate": {
@@ -1620,7 +1677,7 @@
       "checkbox": "I confirm I am at least 16 years old",
       "continue": "Continue",
       "underage": "I am under 16",
-      "underageNotice": "We're sorry — markoto is only available to people aged 16 and over. We don't store any data about you."
+      "underageNotice": "We're sorry, markoto is only available to people aged 16 and over. We don't store any data about you."
     },
     "policyAcceptance": {
       "newVersionTitle": "Our privacy terms have changed",
@@ -1685,20 +1742,22 @@
           "removeMember": {
             "title": "You'll just be removed",
             "body": "Workspaces where you're an editor or viewer continue without you.",
-            "row": "{name} — currently {currentRole}"
+            "row": "{name}: currently {currentRole}"
           }
         },
         "manualSteps": {
           "heading": "Steps you may want to take first",
-          "exportFirst": "Use the data export feature to download everything we hold about you as a ZIP — keep that file regardless of what happens here.",
+          "exportFirst": "Use the data export feature to download everything we hold about you as a ZIP: keep that file regardless of what happens here.",
           "transferDocs": "For any document you want a collaborator to keep, either move it to a workspace they own or have them duplicate it.",
           "inviteWorkspaceMember": "For any workspace you want to preserve, invite at least one admin-role collaborator before deleting.",
           "downloadKnowledge": "For knowledge-base files you want preserved, download them outside markoto first."
         },
         "timing": "The actual cascade runs as a background job once per hour. After the grace window ends, your data is fully purged within about an hour.",
-        "noRecovery": "Once the cascade runs, your account and content are gone permanently — there is no recovery path."
+        "noRecovery": "Once the cascade runs, your account and content are gone permanently: there is no recovery path.",
+        "loading": "Reading your account…"
       },
-      "cancelledToast": "Deletion cancelled. Your account stays as it is."
+      "cancelledToast": "Deletion cancelled. Your account stays as it is.",
+      "scheduleFailed": "Could not schedule deletion"
     },
     "export": {
       "emailReadySubject": "Your markoto data export is ready",
@@ -1721,7 +1780,7 @@
       "bodyPlaceholder": "Describe what you saw and why it should be removed.",
       "emailLabel": "Email",
       "submit": "Submit report",
-      "submittedTitle": "Thank you — your report was received",
+      "submittedTitle": "Thank you, your report was received",
       "submittedBody": "We acknowledge every report. If you provided an email, we'll let you know what we decided.",
       "reportThisDoc": "Report this document",
       "policyHint": "Read the {policy} to see what we act on and how we decide.",
@@ -1740,16 +1799,7 @@
       "signIn": "Sign in",
       "errors": {
         "title": "Could not send the report",
-        "generic": "Please try again.",
-        "rateLimited": "Too many reports from your network. Please try again later.",
-        "loginRequired": "Please sign in to report content.",
-        "category": "Please choose what you are reporting.",
-        "urlRequired": "Please give the address (URL) of the content.",
-        "bodyTooShort": "Please explain what is wrong with the content (at least 10 characters).",
-        "bodyTooLong": "The explanation is too long (at most 5000 characters).",
-        "goodFaith": "Please confirm that your report is accurate and made in good faith.",
-        "email": "Please enter a valid email address.",
-        "contactRequired": "Please give your name and email address."
+        "generic": "Please try again."
       }
     },
     "aiTransparency": {
@@ -1778,7 +1828,48 @@
       "viewAuthoritative": "View English (authoritative)",
       "lastUpdated": "Last updated {date}",
       "version": "Version {version}",
-      "missingLocale": "We haven't translated this page into your language yet. Showing the authoritative English version."
+      "missingLocale": "We haven't translated this page into your language yet. Showing the authoritative English version.",
+      "notFoundTitle": "Document not found",
+      "notFoundBody": "The legal document at {path} doesn't exist."
+    },
+    "onboarding": {
+      "title": "Welcome to markoto",
+      "intro": "Before you start writing, we need a quick acknowledgement on the items below. You only see this once, or after we materially update one of the documents.",
+      "documentsTitle": "Documents to accept",
+      "documentsIntro": "We've published these in plain language: open each in a new tab to read in full. Your acceptance is recorded with the version you read so we can prove what you saw.",
+      "acceptDocument": "I have read and accept the {document}",
+      "continue": "Continue to markoto",
+      "welcomeToast": "Welcome to markoto",
+      "staleTitle": "Document updated: please review again",
+      "failedTitle": "Could not record your acceptance"
+    },
+    "subProcessors": {
+      "intro": "The third parties markoto engages to process personal data on our behalf, with the location, transfer mechanism, and public links for each. Required disclosure under GDPR Article 13(1)(e). We notify workspace-owner customers at least 30 days in advance of any new sub-processor.",
+      "dpfCertified": "EU-US Data Privacy Framework certified",
+      "dpf": "DPF",
+      "transfer": "Transfer",
+      "purpose": {
+        "ovh_postgres": "Primary application database, Y.js document state, knowledge embeddings",
+        "ovh_object_storage": "Image uploads, knowledge-base originals (deleted post-processing), database backups",
+        "mistral_ai": "AI text generation for the writing assistant: the free AI allowance (Z.ai GLM-5.3 Flash, served and processed by Mistral; Z.ai receives no data) with Mistral Small as fallback; voice transcription (Voxtral). All requests go to Mistral's EU endpoint (data centres in the EU and EFTA)",
+        "jina_ai": "Embedding generation for knowledge-base RAG; single-URL page content extraction for the fetch-URL tool (Jina Reader; the URL is sent for every user, including users with their own AI provider)",
+        "staan": "Web search for the AI writing assistant (the search query is sent for every user, including users with their own AI provider), via a proprietary European search index (EU-only routing)",
+        "bfl": "Image generation via FLUX.2 (EU-pinned data plane)",
+        "google_oauth": "Sign-in via Google account (no other Google data accessed)",
+        "github_oauth": "Sign-in via GitHub account (no other GitHub data accessed)",
+        "stripe": "Subscription billing, payment method storage, invoice generation, fraud scoring",
+        "sentry": "Application error + performance telemetry, stored in Sentry's EU (Frankfurt) data region",
+        "resend": "Transactional email delivery, account-deletion confirmations, data-export-ready notifications, breach notifications"
+      }
+    },
+    "seoDescription": {
+      "privacy": "How markoto handles personal data: what is processed, why, for how long, by which sub-processors, and your rights under the GDPR and Swiss law.",
+      "terms": "The terms of use for markoto: accounts, documents without an account, acceptable use, AI features, liability and how the terms change.",
+      "paid-terms": "The terms for Pro, Team and Business plans and AI credits: seats, renewal and cancellation, credits, refunds and your right of withdrawal.",
+      "dpa": "The data processing addendum for workspace owners: markoto processes workspace content on your behalf under GDPR Article 28.",
+      "abuse-policy": "What is not allowed on markoto, how to report illegal content or abuse, and how reports are handled and decided.",
+      "imprint": "Legal notice for markoto: the operating company, its address and how to contact it.",
+      "sub-processors": "Every company that processes data for markoto: what it does, where the data is stored and how transfers are covered."
     }
   },
   "settings": {
@@ -1795,7 +1886,7 @@
       },
       "spending": {
         "heading": "Spending and usage",
-        "comingSoon": "Coming soon — your AI credit usage, plan history, and invoices will live here. For now, manage billing from the Pricing page.",
+        "comingSoon": "Coming soon: your AI credit usage, plan history, and invoices will live here. For now, manage billing from the Pricing page.",
         "viewPricing": "View pricing",
         "plan": "Current plan: {plan}",
         "manage": "Manage billing",
@@ -1806,20 +1897,25 @@
       "data": {
         "heading": "Your data",
         "exportTitle": "Download a copy of your data",
-        "exportDescription": "We'll prepare a ZIP with everything we hold about you — your account profile, every document you own as Markdown, comments you've authored, billing history, AI usage logs, audit and consent records. The build runs in the background, usually under a minute. This page refreshes when it's ready, and we'll also email you a download link. The link is valid for 7 days.",
+        "exportDescription": "We'll prepare a ZIP with everything we hold about you: your account profile, every document you own as Markdown, comments you've authored, billing history, AI usage logs, audit and consent records. The build runs in the background, usually under a minute. This page refreshes when it's ready, and we'll also email you a download link. The link is valid for 7 days.",
         "exportButton": "Request export",
-        "exportInProgress": "Export in progress — this page refreshes when it's ready.",
+        "exportInProgress": "Export in progress: this page refreshes when it's ready.",
         "exportHistoryHeading": "Recent exports",
         "exportHistoryEmpty": "No previous exports.",
         "exportExpiresAt": "Available until {date}",
-        "exportDownload": "Download"
+        "exportDownload": "Download",
+        "loadFailed": "Could not load exports",
+        "requestFailed": "Could not request export",
+        "exportRequested": "requested",
+        "exportAvailableUntil": "available until"
       },
       "delete": {
         "heading": "Delete your account",
-        "description": "We'll keep your data for 30 days in case you change your mind. After that, everything is permanently removed — documents, comments, workspace memberships, billing history. Workspaces where you're the only member are cascade-deleted; workspaces with co-members get a new admin automatically.",
+        "description": "We'll keep your data for 30 days in case you change your mind. After that, everything is permanently removed: documents, comments, workspace memberships, billing history. Workspaces where you're the only member are cascade-deleted; workspaces with co-members get a new admin automatically.",
         "button": "Request account deletion",
         "scheduled": "Scheduled for deletion on {date}",
-        "cancel": "Cancel deletion"
+        "cancel": "Cancel deletion",
+        "cancelFailed": "Could not cancel deletion"
       },
       "legal": {
         "heading": "Legal",
@@ -1842,7 +1938,29 @@
       }
     },
     "integrations": {
-      "menu": "Integrations (MCP)"
+      "menu": "Integrations (MCP)",
+      "title": "Integrations",
+      "intro": "Personal access tokens for external MCP clients: Claude Desktop, Cursor, ChatGPT app store, or your own scripts.",
+      "loadFailed": "Could not load tokens",
+      "issueFailed": "Could not issue token",
+      "tokenCopied": "Token copied to clipboard",
+      "copyFailed": "Could not copy: select and copy manually",
+      "revoked": "Token revoked",
+      "revokeFailed": "Could not revoke token",
+      "snippetCopied": "Config snippet copied",
+      "createdTitle": "Token created: copy it now",
+      "createdBody": "For security, this token is shown exactly once. We can't recover it for you. If you lose it, revoke and create a new one.",
+      "copy": "Copy",
+      "generateTitle": "Generate token",
+      "namePlaceholder": "e.g. Claude Desktop on laptop",
+      "generate": "Generate",
+      "scopesNote": "Tokens grant the same access as your account, scoped to read, write, knowledge, and web fetch.",
+      "activeTitle": "Active tokens",
+      "empty": "No tokens yet.",
+      "createdLastUsed": "created {created} · last used {lastUsed}",
+      "revoke": "Revoke",
+      "connectTitle": "Connect Claude Desktop",
+      "connectBody": "Add this block to your {file} (Settings → Developer → Edit Config)."
     }
   },
   "billing": {
@@ -1853,6 +1971,10 @@
       "consentTopup": "I accept the {terms} and ask for the credits right away. My right of withdrawal ends once I use them.",
       "link": "Paid Plans Terms",
       "required": "Accept the Paid Plans Terms to continue."
+    },
+    "planUpdated": {
+      "title": "Plan updated",
+      "description": "You are now on the {plan} plan. Your new AI budget is available immediately."
     }
   },
   "plan": {
@@ -1947,7 +2069,7 @@
       "keyEnding": "ends in {last4}",
       "noToolSupport": "This model didn't call the test tool, so the writing assistant may not work with it. Pick a model with tool calling.",
       "liveDictation": "Live dictation is available.",
-      "locked": "Not in your plan — your own key works"
+      "locked": "Not in your plan: your own key works"
     },
     "form": {
       "preset": "Provider",
@@ -1994,8 +2116,6 @@
       "unresolvable": "This host name could not be found."
     },
     "errors": {
-      "keyRequired": "Enter the API key. It's required when you add a provider or change its URL.",
-      "transcription": "Your transcription provider returned an error. Check your AI provider settings.",
       "loadFailed": "Could not load your AI settings."
     },
     "missing": {
@@ -2027,7 +2147,7 @@
       "title": "Beautifully rendered {markdown}.",
       "markdown": "Markdown",
       "body": "A collaborative Markdown editor with a live, paginated preview. Write plain text; export a PDF that matches the preview page for page.",
-      "cta": "Start writing — no sign-up",
+      "cta": "Start writing, no sign-up",
       "next": "See how it works"
     },
     "scenes": {
@@ -2084,7 +2204,7 @@
     },
     "cta": {
       "title": "Try it with your own Markdown.",
-      "body": "Free on markoto.app, no sign-up needed — or host it yourself.",
+      "body": "Free on markoto.app, no sign-up needed, or host it yourself.",
       "start": "Start writing",
       "selfHost": "Self-host"
     },
@@ -2271,12 +2391,17 @@
   "home": {
     "title": "Home",
     "greeting": "Welcome back, {name}",
-    "description": "Your workspaces and documents."
+    "description": "Your workspaces and documents.",
+    "access": {
+      "private": "Private",
+      "protected": "Protected"
+    }
   },
   "docRow": {
     "actions": "Document actions",
     "open": "Open",
-    "openNewTab": "Open in new tab"
+    "openNewTab": "Open in new tab",
+    "words": "{n} word | {n} words"
   },
   "credits": {
     "title": "AI credits",
@@ -2323,7 +2448,7 @@
     "testAndActivate": "Test sign-in and switch on",
     "testAgain": "Test sign-in",
     "draftHint": "Not switched on yet. Test the sign-in with your own account at the identity provider; when it works, single sign-on is switched on for the workspace.",
-    "testActivated": "Sign-in works — single sign-on is now on for this workspace",
+    "testActivated": "Sign-in works: single sign-on is now on for this workspace",
     "testOk": "Sign-in works",
     "status": {
       "active": "On",
@@ -2358,7 +2483,7 @@
       "title": "Provisioning (SCIM)",
       "body": "Let your identity provider add and remove members automatically. Enter the base URL and the token in its SCIM settings. Removing someone there takes them out of this workspace at once.",
       "baseUrl": "SCIM base URL",
-      "tokenOnce": "Copy this token now — it won't be shown again.",
+      "tokenOnce": "Copy this token now: it won't be shown again.",
       "create": "Create token",
       "rotate": "Replace token",
       "revoke": "Switch off provisioning"
@@ -2461,7 +2586,7 @@
   },
   "usage": {
     "title": "Usage",
-    "intro": "What each person keeps in this workspace: documents they own, knowledge files and images they added, and — on a Team or Business plan — their AI spend on the shared budget this period. Nothing about when or how often anyone works.",
+    "intro": "What each person keeps in this workspace: documents they own, knowledge files and images they added, and (on a Team or Business plan) their AI spend on the shared budget this period. Nothing about when or how often anyone works.",
     "person": "Person",
     "documents": "Documents",
     "knowledge": "Knowledge",
@@ -2481,7 +2606,7 @@
     "uploadFailed": "Couldn't upload the file",
     "deleteFailed": "Couldn't delete the file",
     "fonts": "Fonts",
-    "fontsHint": "Upload one file per weight and style (WOFF2, WOFF or TTF). They appear under \"This workspace\" in the font pickers of every document here, and in its PDFs. Variable fonts and fonts with PostScript (CFF) outlines print badly and are not accepted — use the static TrueType cuts.",
+    "fontsHint": "Upload one file per weight and style (WOFF2, WOFF or TTF). They appear under \"This workspace\" in the font pickers of every document here, and in its PDFs. Variable fonts and fonts with PostScript (CFF) outlines print badly and are not accepted: use the static TrueType cuts.",
     "noFonts": "No fonts yet.",
     "chooseFont": "Choose a font file",
     "fontName": "Font name",
@@ -2503,7 +2628,7 @@
     "pickDocument": "Choose a document",
     "useDesign": "Use this document's design",
     "designSet": "Workspace design updated",
-    "designImagesDropped": "Images uploaded to that document were left out — choose a workspace logo for the shared design.",
+    "designImagesDropped": "Images uploaded to that document were left out: choose a workspace logo for the shared design.",
     "designFailed": "Couldn't set the workspace design",
     "lockLabel": "Lock the design for all documents",
     "lockDescription": "Every document in the workspace uses the workspace design; only its cover text (subtitle, date, authors) stays its own. Unlocking gives each document its own design back.",
@@ -2592,5 +2717,46 @@
   },
   "instanceBrand": {
     "support": "Help & support"
+  },
+  "docs": {
+    "searchLabel": "Search the docs...",
+    "openMenu": "Open documentation menu",
+    "flow": {
+      "loadFailed": "Flow {id} failed to load: {message}",
+      "first": "Jump to first slide",
+      "previous": "Previous slide",
+      "next": "Next slide",
+      "last": "Jump to last slide",
+      "play": "Play autoplay",
+      "pause": "Pause autoplay",
+      "tryNext": "try next",
+      "chapter": "chapter",
+      "toggle": "Toggle slideshow playback"
+    },
+    "sections": {
+      "gettingStarted": "Your first ten minutes: create a doc, name it, share it.",
+      "writing": "Markdown extensions, formatting, alerts, math, diagrams, tables.",
+      "sharing": "Access modes, password protection, anonymous links, workspaces.",
+      "themes": "Per-document themes that drive both live preview and PDF export.",
+      "importExport": "Bring DOCX/PDF/PPTX in; export to clean Markdown or themed PDF."
+    },
+    "landing": {
+      "eyebrow": "field guide · vol. 01",
+      "title": "Everything you can do in {product}.",
+      "lede": "A collaborative markdown editor with optional accounts. Write anonymously, share by URL, theme it, export to PDF. Every screenshot in here is captured live from the running app.",
+      "begin": "begin walkthrough",
+      "search": "search",
+      "startHere": "Start here",
+      "startHereHint": "Most-load-bearing flows",
+      "browse": "Browse by topic",
+      "metaTitle": "Documentation",
+      "metaDescription": "Guides, walkthroughs, and reference for the markoto collaborative markdown editor."
+    },
+    "pagination": {
+      "label": "Documentation pagination",
+      "previous": "previous",
+      "next": "next"
+    },
+    "onThisPage": "On this page"
   }
 }

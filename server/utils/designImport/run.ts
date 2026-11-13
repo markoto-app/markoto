@@ -6,25 +6,29 @@ import { litellmCompletion } from '../litellm/createCompletion'
 import { FEATURE_TAGS, featureMetadata } from '../litellm/featureTags'
 import { isBudgetExceededError } from '../litellm/userKeys'
 import { isFreeAllowanceExhaustedError } from '../litellm/freeTierTeam'
-import { useLitellmForUser } from '../litellmClient'
+import { useLitellmForUser } from '../ai/litellmClient'
 import { AiProviderCallError, providerRequestFields, withProviderErrors } from '../aiProviders/requestFields'
 import { AiProviderUrlRefused } from '../aiProviders/urlPolicy'
 import type { ResolvedAiProvider } from '../aiProviders/resolve'
-import { releaseSessionLock } from '../rateLimit'
+import { releaseSessionLock } from '../platform/rateLimit'
 import { DesignExtractError, extractDesignFacts } from './extract'
 import { DesignImportFailure, runDesignImportPipeline, type ModelAnswer } from './pipeline'
 import { proposeDesignTool } from './prompt'
 import { renderDesignSample } from './sampleRender'
 import { writeJob, type DesignImportJobState } from './job'
+import { MINUTE_MS } from '~~/shared/config/units'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('design-import')
 
 // Production wiring of the design-import pipeline: markitdown extract,
-// the user's chat provider through LiteLLM (their virtual key — BYOK is
+// the user's chat provider through LiteLLM (their virtual key, BYOK is
 // zero-cost there, a platform default debits their AI budget like any AI
 // chat), the renderer sample, and the Valkey job state the dialog polls.
 // Runs in the background after `POST /api/themes/from-document/start`.
 
 /** Whole run, extract to final preview. Above it the job fails with `internal`. */
-const RUN_DEADLINE_MS = 6 * 60_000
+const RUN_DEADLINE_MS = 6 * MINUTE_MS
 /** Output cap per model call: a full proposal with CSS is ~2–3 k tokens. */
 const MAX_OUTPUT_TOKENS = 6000
 
@@ -93,7 +97,7 @@ export async function runDesignImportJob(args: StartRunArgs): Promise<void> {
   } catch (e) {
     const { code, message } = classifyRunError(e)
     if (code === 'internal') {
-      console.error('[design-import] run failed:', e instanceof Error ? e.message.slice(0, 300) : e)
+      log.error('run failed', { err: e })
       Sentry.captureException(e, { tags: { component: 'design-import', event: 'run_failed' } })
     }
     await writeJob(args.jobId, { ...base, phase: 'error', round: 0, error: { code, message } }).catch(() => undefined)

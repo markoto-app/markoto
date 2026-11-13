@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { EditorView } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
-import { dictationExtensions, setDictationInterim } from '../../app/utils/dictationExtensions'
+import { dictationExtensions, setDictationInterim } from '../../app/utils/editor/dictationExtensions'
 
-// CM6 ghost-text extension — drives the grey-italic "what the model
+// CM6 ghost-text extension: drives the grey-italic "what the model
 // is hearing" overlay that sits at the caret during dictation. The
 // logic is small but carries three behaviors we want pinned:
 //   1. Dispatching `setDictationInterim.of('...')` makes a widget
 //      appear in the DOM.
 //   2. Dispatching `setDictationInterim.of('')` clears it.
-//   3. The widget repositions automatically when the caret moves —
+//   3. The widget repositions automatically when the caret moves,
 //      otherwise interim text would appear wherever the user started
 //      dictating, not where they're looking now.
 
@@ -40,7 +40,7 @@ describe('dictation ghost-text extension', () => {
 
   it('renders no widget in the idle state', () => {
     // Ensures the extension is truly no-op when dictation isn't
-    // running — important because it ships in EditorPane always on,
+    // running: important because it ships in EditorPane always on,
     // not just during dictation sessions.
     expect(ghostEl(view)).toBeNull()
   })
@@ -74,18 +74,14 @@ describe('dictation ghost-text extension', () => {
   })
 
   it('stays in the DOM after the caret moves (reposition path)', () => {
-    // Dictation's "jump to new spot and continue" flow relies on the
-    // ViewPlugin rebuilding the DecorationSet on every `selectionSet`
-    // transaction. jsdom doesn't do layout so we can't measure pixel
-    // position, but we CAN verify the widget survives the rebuild —
-    // i.e. the plugin's update hook is correctly triggered by
-    // `selectionSet: true`. Before this fix, the widget was static
-    // (only rebuilt on doc change) and the ghost would stick to
-    // wherever dictation started, not where the caret now is.
+    // Dictation's "jump to new spot and continue" flow relies on the ViewPlugin rebuilding the DecorationSet
+    // on every `selectionSet` transaction. jsdom doesn't do layout so we can't measure pixel position, but we
+    // can verify the widget survives the rebuild, i.e. the plugin's update hook is triggered by
+    // `selectionSet: true`. A widget that is only rebuilt on doc change would stick to where dictation started.
     view.dispatch({ effects: setDictationInterim.of('keep me') })
     expect(ghostEl(view)?.textContent).toBe('keep me')
     view.dispatch({ selection: { anchor: 0, head: 0 } })
-    // Widget still there, text preserved — proving the plugin's
+    // Widget still there, text preserved, proving the plugin's
     // selection-change rebuild doesn't drop state.
     expect(ghostEl(view)?.textContent).toBe('keep me')
   })
@@ -93,7 +89,7 @@ describe('dictation ghost-text extension', () => {
   it('survives an unrelated doc change without flickering', () => {
     // A collaborator typing elsewhere fires doc changes through the
     // ViewPlugin's update hook. The ghost widget rebuilds on every
-    // update — but the text should stay put; only the caret-anchored
+    // update: but the text should stay put; only the caret-anchored
     // position moves if the insert was before the caret.
     view.dispatch({ effects: setDictationInterim.of('keep me') })
     view.dispatch({ changes: { from: 11, insert: '!' } }) // append to "hello world"

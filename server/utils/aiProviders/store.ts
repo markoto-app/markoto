@@ -2,14 +2,16 @@
 // place that encrypts a provider key; the only shape that leaves the
 // server is `AiProviderConfigView` (host + last four characters).
 
-import { z } from 'zod'
-import { encryptToken, decryptToken } from '../litellm/tokenCrypto'
+import type { z } from 'zod'
+import { openProviderKey, sealProviderKey } from './keyCrypto'
 import { getAiProvider, upsertAiProvider, type AiProviderRow } from '../../repos/aiProviders'
 import { resolveByokUrlPolicy } from './config'
 import { checkProviderBaseUrl } from './urlPolicy'
 import { verifyProvider, type VerifyResult } from './verify'
 import type { ResolvedAiProvider } from './resolve'
+import type { saveAiProviderBody } from '~~/shared/api/account'
 import { apiKeyLast4, baseUrlHost, normalizeBaseUrl, type AiCapability, type AiProviderConfigView } from '~~/shared/ai/providers'
+import type { UserScope } from '../../repos/proofs'
 
 export function toProviderView(row: AiProviderRow): AiProviderConfigView {
   return {
@@ -25,21 +27,7 @@ export function toProviderView(row: AiProviderRow): AiProviderConfigView {
   }
 }
 
-/**
- * Model ids across providers use letters, digits and `._:/@+-`
- * (`gpt-5.4-mini`, `mistralai/mistral-small`, `qwen3:14b`). No spaces,
- * no URL syntax.
- */
-export const saveBodySchema = z.object({
-  baseUrl: z.string().trim().min(1).max(500),
-  model: z.string().trim().min(1).max(200).regex(/^[\w.:/@+-]+$/, 'Invalid model id'),
-  // Optional on update: omitted = keep the stored key, but ONLY while the
-  // base URL is unchanged (a stored key must never be redirected to a
-  // new host without the user re-entering it).
-  apiKey: z.string().trim().min(1).max(500).regex(/^\S+$/, 'API keys contain no whitespace').optional(),
-  supportsVision: z.boolean().optional()
-})
-export type SaveBody = z.infer<typeof saveBodySchema>
+export type SaveBody = z.infer<typeof saveAiProviderBody>
 
 export type SaveOutcome
   = | { kind: 'saved', view: AiProviderConfigView, verify: VerifyResult }
@@ -48,21 +36,22 @@ export type SaveOutcome
     | { kind: 'verify-failed', verify: VerifyResult }
 
 export async function saveUserProvider(
-  userId: number,
+  self: UserScope,
   capability: AiCapability,
   body: SaveBody,
   virtualKey: string
 ): Promise<SaveOutcome> {
+  const userId = self.userId
   const check = await checkProviderBaseUrl(body.baseUrl, resolveByokUrlPolicy())
   if (!check.ok) return { kind: 'url-refused', code: check.code, message: check.message }
   const baseUrl = check.normalized
 
-  const existing = await getAiProvider(userId, capability)
+  const existing = await getAiProvider(self, capability)
   let apiKey = body.apiKey
   if (!apiKey) {
     if (!existing || normalizeBaseUrl(existing.baseUrl) !== baseUrl) return { kind: 'key-required' }
     try {
-      apiKey = decryptToken(existing.apiKeyEncrypted)
+      apiKey = openProviderKey(existing)
     } catch {
       return { kind: 'key-required' }
     }
@@ -79,12 +68,11 @@ export async function saveUserProvider(
   const verify = await verifyProvider(capability, candidate, virtualKey)
   if (!verify.ok) return { kind: 'verify-failed', verify }
 
-  const row = await upsertAiProvider({
-    userId,
+  const row = await upsertAiProvider(self, {
     capability,
     baseUrl,
     model: body.model,
-    apiKeyEncrypted: encryptToken(apiKey),
+    apiKeyEncrypted: sealProviderKey(userId, capability, apiKey),
     apiKeyLast4: apiKeyLast4(apiKey),
     supportsVision,
     supportsTools: verify.supportsTools,
@@ -100,7 +88,7 @@ export async function reverifyUserProvider(
 ): Promise<VerifyResult> {
   let apiKey: string
   try {
-    apiKey = decryptToken(row.apiKeyEncrypted)
+    apiKey = openProviderKey(row)
   } catch {
     return { code: 'auth-failed', ok: false, supportsTools: null, message: 'The stored key can no longer be read. Enter it again.' }
   }

@@ -20,7 +20,7 @@ async function setUserPlan(
   )
 }
 
-describe('POST /api/workspaces — tier-aware workspacesOwned cap', () => {
+describe('POST /api/workspaces: tier-aware workspacesOwned cap', () => {
   beforeEach(async () => {
     await resetDb()
   })

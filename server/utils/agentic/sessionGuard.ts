@@ -2,8 +2,11 @@ import * as Y from 'yjs'
 import { getDoc } from '../../repos/documents'
 import { countOtherWorkspaceEditors, hasForeignContentActivity } from '../../repos/docProvenance'
 import type { KnowledgeBrief } from '../../repos/knowledge'
-import { accessibleDocTitle, parseDocIdFromInput } from '../aiToolAdapter'
+import { accessibleDocTitle, parseDocIdFromInput } from '../ai/tools/crossDocumentTools'
 import { CrossBoundaryGuard } from './crossBoundary'
+import { proveDocMembership } from '../access/docProof'
+import { proveWorkspaceAccess } from '../access/workspaceAccess'
+import type { WorkspaceAccess } from '../../repos/proofs'
 import type { AiSessionChannel } from './sessionChannel'
 import { isAiCommentAuthor } from '~~/shared/ai/author'
 
@@ -17,23 +20,31 @@ import { isAiCommentAuthor } from '~~/shared/ai/author'
  * can edit in its workspace (admin / editor / guest with an edit share),
  * and every content change in its activity history is theirs (directly
  * or through their own AI / MCP / restore).
- * Anything else — including an unparseable or missing reference — is
+ * Anything else, including an unparseable or missing reference, is
  * treated as shared.
  */
-export async function isDocSoloForUser(docRef: string, userId: number): Promise<boolean> {
+async function isDocSoloForUser(docRef: string, userId: number): Promise<boolean> {
   const docId = parseDocIdFromInput(docRef)
   if (!docId) return false
-  const doc = await getDoc(docId)
+  // Only an owner can have a solo document, and an owner has a membership
+  // proof; without one (including an owner whose SSO grant lapsed) the
+  // document counts as shared.
+  const proven = await proveDocMembership(userId, docId, 'view')
+  if (!proven) return false
+  const doc = await getDoc(proven.access)
   if (doc?.ownerId !== userId) return false
   if (doc.accessMode === 'open-edit') return false
-  if (doc.workspaceId && (await countOtherWorkspaceEditors(doc.workspaceId, userId)) > 0) return false
-  return !(await hasForeignContentActivity(docId, userId))
+  if (doc.workspaceId) {
+    const ws = await proveWorkspaceAccess(userId, doc.workspaceId, 'member')
+    if (!ws || (await countOtherWorkspaceEditors(ws, userId)) > 0) return false
+  }
+  return !(await hasForeignContentActivity(proven.access, userId))
 }
 
 /**
  * Does the comments array hold anything not written by `userId`?
  * AI-named comments (no user id) are the invoker's own only on a solo
- * document — elsewhere anybody who can comment could have written one
+ * document: elsewhere anybody who can comment could have written one
  * under that name, so they count as foreign.
  */
 export function commentsHaveForeignAuthors(ydoc: Y.Doc, userId: number, sessionDocSolo: boolean): boolean {
@@ -60,8 +71,8 @@ export function commentsHaveForeignAuthors(ydoc: Y.Doc, userId: number, sessionD
 export interface SessionGuardArgs {
   docId: string
   initiatorUserId: number
-  /** Session workspace (null for standalone docs / non-members). */
-  workspaceId: string | null
+  /** Session workspace proof (null for standalone docs / non-members). */
+  workspaceAccess: WorkspaceAccess<'member'> | null
   ydoc: Y.Doc
   channel: AiSessionChannel
   /** Text the initiator typed (prompt / their triggering comment). */
@@ -84,7 +95,7 @@ export async function buildSessionGuard(args: SessionGuardArgs): Promise<CrossBo
       isDocSolo: ref => isDocSoloForUser(ref, args.initiatorUserId),
       describeDoc: ref => accessibleDocTitle(args.initiatorUserId, ref),
       commentsHaveForeignAuthors: () => commentsHaveForeignAuthors(args.ydoc, args.initiatorUserId, sessionDocSolo),
-      workspaceHasOtherEditors: async () => args.workspaceId !== null && (await countOtherWorkspaceEditors(args.workspaceId, args.initiatorUserId)) > 0,
+      workspaceHasOtherEditors: async () => args.workspaceAccess !== null && (await countOtherWorkspaceEditors(args.workspaceAccess, args.initiatorUserId)) > 0,
       confirm: (request, signal) => args.channel.requestConfirmation(request, signal)
     }
   )

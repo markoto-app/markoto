@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useDeleteWorkspace } from '~/queries/workspaces'
+
 const props = defineProps<{
   workspaceId: string
   name: string
@@ -13,8 +15,11 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
+const { showError } = useErrorHandler()
 
 const deleting = ref(false)
+// Refreshes the workspace list and the owned-workspace cap.
+const deleteWorkspace = useDeleteWorkspace()
 const confirmText = ref('')
 const canConfirm = computed(() => confirmText.value === props.name)
 
@@ -22,7 +27,7 @@ async function handleDelete() {
   if (!canConfirm.value) return
   deleting.value = true
   try {
-    await $fetch(`/api/workspaces/${props.workspaceId}`, { method: 'DELETE' })
+    await deleteWorkspace.mutateAsync(props.workspaceId)
     toast.add({
       title: t('workspace.deleteSuccess'),
       icon: 'i-lucide-check-circle',
@@ -31,13 +36,7 @@ async function handleDelete() {
     open.value = false
     emit('deleted')
   } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
-    toast.add({
-      title: t('workspace.deleteFailed'),
-      description: err?.data?.message || err?.message,
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+    showError('workspace.deleteFailed', e)
   } finally {
     deleting.value = false
   }
@@ -83,21 +82,20 @@ watch(open, (v) => {
         </div>
 
         <div class="mb-4">
-          <label
-            for="workspace-delete-confirm"
-            class="block text-sm font-medium mb-2"
+          <UFormField
+            :label="t('workspace.deleteConfirmPrompt', { name })"
+            :ui="{ container: 'mt-2' }"
           >
-            {{ t('workspace.deleteConfirmPrompt', { name }) }}
-          </label>
-          <UInput
-            id="workspace-delete-confirm"
-            v-model="confirmText"
-            :placeholder="name"
-            size="md"
-            class="w-full"
-            :ui="{ base: 'w-full' }"
-            @keydown.enter="handleDelete"
-          />
+            <UInput
+              id="workspace-delete-confirm"
+              v-model="confirmText"
+              :placeholder="name"
+              size="md"
+              class="w-full"
+              :ui="{ base: 'w-full' }"
+              @keydown.enter="handleDelete"
+            />
+          </UFormField>
         </div>
 
         <div class="flex gap-2 justify-end">

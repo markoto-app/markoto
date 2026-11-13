@@ -7,7 +7,7 @@
 // NOT run its own `user_url_validation` DNS check on a clientside
 // `api_base` (a request to `http://169.254.169.254/...` was attempted, and
 // a private docker address was accepted). This module is therefore the
-// authoritative gate; the regex in `infra/litellm/config.yaml` is
+// authoritative gate; the regex in `deploy/config/litellm/config.yaml` is
 // defence-in-depth for obvious literal internal targets.
 //
 // Checked at SAVE time (settings API) AND at REQUEST time (every LLM
@@ -17,14 +17,14 @@
 // Rules, in order:
 //   1. Absolute http(s) URL, no userinfo, no query/fragment.
 //   2. Hostname is not an internal service name (`litellm`, `postgres`,
-//      `valkey`, ...) — always, even with the private-network opt-in.
+//      `valkey`, ...): always, even with the private-network opt-in.
 //   3. If an allowlist is configured (the SaaS), the URL must sit at or
 //      under one of the allowlisted base URLs.
 //   4. Every resolved address must not be "always forbidden" (loopback,
 //      link-local / cloud metadata, multicast, unspecified).
 //   5. Private addresses (RFC 1918, CGNAT, ULA) only with the operator
 //      opt-in `NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=true`.
-//   6. Plain http only with the opt-in AND only to private addresses —
+//   6. Plain http only with the opt-in AND only to private addresses,
 //      an API key never crosses the public internet unencrypted.
 //
 // Residual risk (documented in docs/AI-MODELS.md): LiteLLM resolves the
@@ -34,9 +34,9 @@
 // closes it; self-hosters accept it with free-form URLs.
 
 import { lookup } from 'node:dns/promises'
-import { isIP } from 'node:net'
-import { isAlwaysForbiddenIp, isPrivateIp } from '../agentic/urlGuard'
+import { hostAddresses, screenHostAddresses } from '../agentic/urlGuard'
 import { normalizeBaseUrl, type UrlRefusalCode } from '~~/shared/ai/providers'
+import { trimEndChars } from '~~/shared/utils/trimChars'
 
 export interface ByokUrlPolicy {
   /** Normalised allowlisted base URLs. Empty = any public URL (self-host). */
@@ -47,8 +47,8 @@ export interface ByokUrlPolicy {
 
 /**
  * Hostnames of markoto's own services: every service name, container
- * name and network alias in the `docker-compose*.yml` files (pinned by
- * `tests/unit/internalHostnames.test.ts`, which fails when a compose file
+ * name and network alias in the `deploy/compose/compose*.yml` files (pinned by
+ * `tests/unit/aiProviders/internalHostnames.test.ts`, which fails when a compose file
  * gains a name that is missing here or in the LiteLLM `api_base` regex),
  * plus cloud metadata aliases. Refused unconditionally: even a self-hoster
  * who opted into private URLs never wants the proxy to POST an API
@@ -69,8 +69,9 @@ export const INTERNAL_HOSTNAMES: ReadonlySet<string> = new Set([
 /**
  * Compose's default container names (`<project>-<service>-<n>`) resolve
  * on the compose network too, under whatever project name the operator
- * picked — match them by the service part.
+ * picked: match them by the service part.
  */
+// eslint-disable-next-line security/detect-non-literal-regexp -- built once from the fixed internal-hostname list (filtered to [a-z0-9-])
 const COMPOSE_CONTAINER_NAME = new RegExp(
   `^[a-z0-9][a-z0-9_-]*[-_](?:${[...INTERNAL_HOSTNAMES].filter(n => /^[a-z0-9-]+$/.test(n)).join('|')})[-_]\\d+$`
 )
@@ -80,8 +81,8 @@ const COMPOSE_CONTAINER_NAME = new RegExp(
  * IPv6 brackets dropped, trailing dots removed (`litellm.` is the same
  * name as `litellm` to a resolver).
  */
-export function normalizeHostname(raw: string): string {
-  return raw.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.+$/, '')
+function normalizeHostname(raw: string): string {
+  return trimEndChars(raw.toLowerCase().replace(/^\[|\]$/g, ''), '.')
 }
 
 /** Is `host` one of markoto's own service names (any spelling)? */
@@ -94,7 +95,7 @@ export function isInternalHostname(raw: string): boolean {
 
 export type Resolver = (host: string) => Promise<string[]>
 
-export const systemResolver: Resolver = async (host) => {
+const systemResolver: Resolver = async (host) => {
   const rows = await lookup(host, { all: true })
   return rows.map(r => r.address)
 }
@@ -150,34 +151,20 @@ export async function checkProviderBaseUrl(
   if (!structural.ok) return structural
   const host = structural.host ?? ''
 
-  let addresses: string[]
-  if (isIP(host) !== 0) {
-    addresses = [host]
-  } else {
-    try {
-      addresses = await resolve(host)
-    } catch {
-      return refuse('unresolvable', `The hostname "${host}" could not be resolved.`)
-    }
-    if (addresses.length === 0) return refuse('unresolvable', `The hostname "${host}" has no DNS records.`)
+  const addresses = await hostAddresses(host, resolve)
+  if (addresses === 'unresolvable') return refuse('unresolvable', `The hostname "${host}" could not be resolved.`)
+  if (addresses === 'no-records') return refuse('unresolvable', `The hostname "${host}" has no DNS records.`)
+
+  const screen = screenHostAddresses(addresses, policy.allowPrivate)
+  if (screen.refused === 'forbidden') {
+    return refuse('private-address', 'This URL points at a loopback, link-local or metadata address.')
+  }
+  if (screen.refused === 'private') {
+    return refuse('private-address', 'This URL points at a private network address, which this instance does not allow.')
   }
 
-  let anyPublic = false
-  for (const address of addresses) {
-    if (isAlwaysForbiddenIp(address)) {
-      return refuse('private-address', 'This URL points at a loopback, link-local or metadata address.')
-    }
-    if (isPrivateIp(address)) {
-      if (!policy.allowPrivate) {
-        return refuse('private-address', 'This URL points at a private network address, which this instance does not allow.')
-      }
-    } else {
-      anyPublic = true
-    }
-  }
-
-  if (structural.protocol === 'http:' && (!policy.allowPrivate || anyPublic)) {
-    return refuse('https-required', 'Use https:// — plain http is only allowed for private-network endpoints on self-hosted instances.')
+  if (structural.protocol === 'http:' && (!policy.allowPrivate || screen.anyPublic)) {
+    return refuse('https-required', 'Use https://, plain http is only allowed for private-network endpoints on self-hosted instances.')
   }
   return { ok: true, normalized: structural.normalized }
 }

@@ -2,11 +2,11 @@ import { Pool } from 'pg'
 import { test, expect } from '../fixtures/flow'
 import { PRIVACY_VERSION, TOS_VERSION } from '../../../shared/legal/versions'
 
-// "Share a document with a guest" (WP11).
+// "Share a document with a guest".
 //
 // User-job: a workspace admin wants a client to review ONE document
 // without letting them into the rest of the workspace. Job done when the
-// client — signed in as a guest of the workspace in their own browser —
+// client: signed in as a guest of the workspace in their own browser,
 // finds the document under "Shared with you" and opens it, and the
 // workspace itself stays closed to them.
 //
@@ -44,6 +44,7 @@ test('Share a document with a guest', async ({ page, flow, editor }) => {
     data: {
       workspaceId,
       title: 'Harbourline proposal',
+      // eslint-disable-next-line markoto/no-milestone-vocabulary -- sample document text, not a project label
       content: '# Harbourline proposal\n\n## Scope\n\nA shared routing model for the three Harbourline depots, delivered in two phases.\n\n## Timeline\n\n- Phase 1: data and model, six weeks\n- Phase 2: rollout and training, four weeks\n'
     }
   })
@@ -54,7 +55,7 @@ test('Share a document with a guest', async ({ page, flow, editor }) => {
 
   await flow.heading('Share one document with a guest', 3)
   await flow.narrate(
-    'A guest is someone outside your team — a client, a freelancer — whom '
+    'A guest is someone outside your team, a client, a freelancer, whom '
     + 'you invite to the workspace with the role "Guest". A guest sees only '
     + 'the documents you share with them, takes no seat, and uses their own '
     + 'AI budget. Lena from Harbourline already accepted her invitation.'
@@ -63,6 +64,7 @@ test('Share a document with a guest', async ({ page, flow, editor }) => {
     'Open the share dialog',
     editor.page.accessLockButton,
     {
+      chain: true,
       annotations: [{ label: 'Share', selector: '[aria-label*="access mode" i]', kind: 'arrow' }],
       after: () => page.getByTestId('share-guests').waitFor({ state: 'visible', timeout: 10_000 })
     }
@@ -78,14 +80,14 @@ test('Share a document with a guest', async ({ page, flow, editor }) => {
   await flow.click(
     'Share',
     page.getByTestId('share-guest-add'),
-    { after: () => page.getByTestId(`share-guest-${clientId}`).waitFor({ state: 'visible', timeout: 10_000 }) }
+    { chain: true, after: () => page.getByTestId(`share-guest-${clientId}`).waitFor({ state: 'visible', timeout: 10_000 }) }
   )
   await expect(page.getByTestId(`share-guest-${clientId}`)).toContainText('Lena Fischer')
-  await flow.shot('Lena can now edit this document — and only this one', {
+  await flow.shot('Lena can now edit this document, and only this one', {
     highlights: [{ label: 'Shared with Lena', selector: `[data-testid="share-guest-${clientId}"]` }]
   })
 
-  // ─── The guest's view ────────────────────────────────────────────
+  // The guest's view
   await flow.heading('What the guest sees', 3)
   const lena = await flow.spawn('guest')
   await lena.editor.loginAsExistingUser(clientId, 'Lena Fischer')
@@ -100,7 +102,7 @@ test('Share a document with a guest', async ({ page, flow, editor }) => {
   await lena.flow.click(
     'Open it',
     lena.page.getByTestId(`home-shared-document-${docId}`),
-    { after: () => lena.page.waitForURL(`**/d/${docId}`) }
+    { chain: true, after: () => lena.page.waitForURL(`**/d/${docId}`) }
   )
   await lena.editor.waitForReady()
   await lena.flow.shot('She edits it like any document')

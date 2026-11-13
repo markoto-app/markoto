@@ -4,7 +4,7 @@
 // image assets. The duplicator becomes the new owner so the copy
 // surfaces on their "Recent" list.
 //
-// Keeping the modal minimal — just a title input — because the
+// Keeping the modal minimal, just a title input, because the
 // "duplicate somewhere else" case is rare and can be handled by the
 // Move flow after the copy lands.
 
@@ -21,11 +21,12 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
+const { showError } = useErrorHandler()
 
 const duplicating = ref(false)
 const newTitle = ref('')
 
-// Prefill "Copy of X" whenever the modal opens — mirrors how desktop
+// Prefill "Copy of X" whenever the modal opens, mirrors how desktop
 // Finder / Drive handle duplicates. Truncate to 255 to match the DB
 // limit.
 watch(open, (v) => {
@@ -40,10 +41,11 @@ async function handleDuplicate() {
   if (title.length === 0) return
   duplicating.value = true
   try {
-    const { docId: newDocId } = await $fetch<{ docId: string }>(
-      `/api/docs/${props.docId}/duplicate`,
-      { method: 'POST', body: { title } }
-    )
+    const { docId: newDocId } = await apiFetch('/api/docs/:docId/duplicate', {
+      method: 'post',
+      path: { docId: props.docId },
+      body: { title }
+    })
     toast.add({
       title: t('duplicate.success'),
       description: t('duplicate.successDesc', { title }),
@@ -53,13 +55,7 @@ async function handleDuplicate() {
     open.value = false
     emit('duplicated', newDocId)
   } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
-    toast.add({
-      title: t('duplicate.failed'),
-      description: err.data?.message || err.message,
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+    showError('duplicate.failed', e)
   } finally {
     duplicating.value = false
   }
@@ -70,6 +66,7 @@ async function handleDuplicate() {
   <UModal
     v-model:open="open"
     :title="t('duplicate.title')"
+    :content="initialFocus('duplicate-title-input')"
   >
     <template #content>
       <div class="p-6">
@@ -91,23 +88,21 @@ async function handleDuplicate() {
         </div>
 
         <div class="mb-4">
-          <label
-            for="duplicate-title-input"
-            class="block text-sm font-medium mb-2"
+          <UFormField
+            :label="t('duplicate.titleLabel')"
+            :ui="{ container: 'mt-2' }"
           >
-            {{ t('duplicate.titleLabel') }}
-          </label>
-          <UInput
-            id="duplicate-title-input"
-            v-model="newTitle"
-            :placeholder="t('duplicate.titlePlaceholder')"
-            size="md"
-            class="w-full"
-            :ui="{ base: 'w-full' }"
-            maxlength="255"
-            autofocus
-            @keydown.enter="handleDuplicate"
-          />
+            <UInput
+              id="duplicate-title-input"
+              v-model="newTitle"
+              :placeholder="t('duplicate.titlePlaceholder')"
+              size="md"
+              class="w-full"
+              :ui="{ base: 'w-full' }"
+              maxlength="255"
+              @keydown.enter="handleDuplicate"
+            />
+          </UFormField>
         </div>
 
         <div class="flex gap-2 justify-end">

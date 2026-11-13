@@ -1,0 +1,11 @@
+{
+  "order:main": "view_document,replace_text,insert_text,web_search,update_theme,get_theme,list_themes,save_theme_as_preset,list_workspace_documents,list_my_documents,create_document,duplicate_document,export_document_as_markdown,view_other_document,set_title,view_image,generate_image,get_page_count,view_pages,fetch_url,read_comments,create_comment,reply_to_comment,resolve_comment,delete_comment,message_to_user,search_activity_log",
+  "order:knowledge": "search_knowledge,get_knowledge_file",
+  "declarations:main": "1405d0d80ed721ec8b56a793b8e9bf87dbb3539f68a39f3f2131b7b6a2842da4",
+  "declarations:knowledge": "8dbdc3e022a575f367c711cb1f0086103113e6323272fa236948e6d5a4a74dbe",
+  "openai:tools": "a4870f2af06a22721eb08ba8f7f73313d8288a3be5f7a2f4ebb5d80d7f81aefa",
+  "filtered:noVisionNoImageNoSearch": "view_document,replace_text,insert_text,update_theme,get_theme,list_themes,save_theme_as_preset,list_workspace_documents,list_my_documents,create_document,duplicate_document,export_document_as_markdown,view_other_document,set_title,get_page_count,fetch_url,read_comments,create_comment,reply_to_comment,resolve_comment,delete_comment,message_to_user,search_activity_log",
+  "validators:names": "create_comment,create_document,delete_comment,duplicate_document,export_document_as_markdown,fetch_url,generate_image,get_knowledge_file,get_page_count,get_theme,insert_text,list_my_documents,list_themes,list_workspace_documents,message_to_user,read_comments,replace_text,reply_to_comment,resolve_comment,save_theme_as_preset,search_activity_log,search_knowledge,set_title,update_theme,view_document,view_image,view_other_document,view_pages,web_search",
+  "validators:jsonSchema": "0f93d44a97f7612f5a1a4ae471644b726937091107fcc373f7ba5d5b043c3037",
+  "mcp:catalog": "c1153f84fa1d9fa647f591c2da4737496cedc2030a2827e71ca8bdfe64b20985"
+}

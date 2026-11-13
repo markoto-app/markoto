@@ -1,6 +1,6 @@
 /**
  * Document templates registry. A template is a bundle: a starting text
- * (a structural skeleton — heading hierarchy + section-level `<!-- ... -->`
+ * (a structural skeleton: heading hierarchy + section-level `<!-- ... -->`
  * comments telling the writer, or the AI, what belongs where) together with
  * the design it is written for (a built-in theme preset). The new-document
  * dialog offers the bundles as ONE choice; the design can be changed later
@@ -8,8 +8,8 @@
  *
  * THIS FILE = registry only (id, design, category, icon, i18n keys, cover
  * placeholders). The markdown bodies live in `content/<content>/<locale>.md`
- * and are loaded server-side by `server/utils/templateRenderer.ts` (via
- * fs.readFileSync). The client never touches the body files — the server
+ * and are loaded server-side by `server/utils/documents/templateRenderer.ts` (via
+ * fs.readFileSync). The client never touches the body files, the server
  * pre-renders the template and ships the result on the token endpoint.
  *
  * Why the split: Vite handles `import x from './x.md?raw'` for the
@@ -19,13 +19,13 @@
  * Adding a template:
  *   1. Drop `content/<id>/en.md` + `de.md` (both mandatory; more locales
  *      optional, a missing one falls back to English).
- *   2. Add an entry to TEMPLATES below — id, design, category, icon.
+ *   2. Add an entry to TEMPLATES below, id, design, category, icon.
  *   3. Add i18n keys `templates.<id>.label` + `.description` in every
  *      locale json.
  *   4. Render its picture (`make template-thumbs IDS=<id>`), with a sample
  *      title in `tests/fixtures/theme-shots/template-thumbs.json`.
  */
-import type { ThemePresetCategory } from '../utils/themePresets'
+import type { ThemePresetCategory } from '../utils/theme/themePresets'
 
 /** Cover fields a template fills in for its design (the theme's cover
  *  carries authors, affiliations and subtitle, not the text). Only applied
@@ -45,7 +45,7 @@ export interface TemplateMeta {
   content: string
   /**
    * Built-in theme preset the text is written for. `null` = no design of
-   * its own (Blank): the document gets the user's default design — the
+   * its own (Blank): the document gets the user's default design, the
    * workspace default, else the markoto preset.
    */
   design: string | null
@@ -63,7 +63,7 @@ export interface TemplateMeta {
 }
 
 /** Locales the renderer can match. The renderer also accepts arbitrary
- *  strings — non-listed values fall back to en. */
+ *  strings: non-listed values fall back to en. */
 export const TEMPLATE_LOCALES = ['en', 'de', 'fr', 'es', 'ja', 'zh'] as const
 export type TemplateLocale = typeof TEMPLATE_LOCALES[number]
 
@@ -87,11 +87,11 @@ function template(
   }
 }
 
-const YOUR_NAME = { en: 'Your Name', de: 'Ihr Name' }
+const YOUR_NAME = { en: 'Your Name', de: 'Dein Name' }
 const IEEE_AFFILIATION = { en: 'Department\nInstitution\nCity, Country\nname@example.org', de: 'Institut\nHochschule\nOrt, Land\nname@example.org' }
 
 export const TEMPLATES: TemplateMeta[] = [
-  // General — the guided tour (the dialog's default for a first document),
+  // General: the guided tour (the dialog's default for a first document),
   // an empty page, a filled-in one-page CV for a made-up person.
   template('demo', 'markoto', 'general', 'i-lucide-compass'),
   template('blank', null, 'general', 'i-lucide-file'),
@@ -171,7 +171,7 @@ export const TEMPLATES: TemplateMeta[] = [
   template('proposal', 'proposal', 'business', 'i-lucide-handshake', {
     cover: {
       en: { subtitle: 'Prepared for Client name', authors: ['Your company'] },
-      de: { subtitle: 'Erstellt für Kundenname', authors: ['Ihre Firma'] }
+      de: { subtitle: 'Erstellt für Kundenname', authors: ['Deine Firma'] }
     }
   }),
   template('one-pager', 'one-pager', 'business', 'i-lucide-file-badge', {
@@ -206,7 +206,7 @@ export const TEMPLATE_IDS = TEMPLATES.map(t => t.id)
  * template they became. `academic-paper` was folded into the arXiv
  * preprint template.
  */
-export const TEMPLATE_ALIASES: Readonly<Record<string, string>> = {
+const TEMPLATE_ALIASES: Readonly<Record<string, string>> = {
   'academic-paper': 'arxiv'
 }
 

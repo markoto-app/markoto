@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
-import { runAiRecordsSweep, AI_RECORD_RETENTION_DAYS } from '../../server/utils/aiRecordsSweep'
+import { runAiRecordsSweep, AI_RECORD_RETENTION_DAYS } from '../../server/utils/ai/aiRecordsSweep'
 import { appendAiMessage } from '../../server/repos/aiSessionMessages'
 import { createUser, createDoc } from '../integration/setup/fixtures'
+import { first } from '../helpers/assert'
+import { docAs } from '../helpers/access'
 
 // The 90-day AI-record retention sweep. Enforces the privacy policy's
 // "AI prompt and tool-call records are retained for 90 days, then purged"
@@ -17,12 +19,12 @@ async function backdateMessage(id: number, when: Date): Promise<void> {
 
 async function latestMessageId(): Promise<number> {
   const r = await testDb().query<{ id: number }>('SELECT id FROM ai_session_messages ORDER BY id DESC LIMIT 1')
-  return r.rows[0].id
+  return first(r.rows).id
 }
 
 async function messageCount(): Promise<number> {
   const r = await testDb().query<{ c: string }>('SELECT COUNT(*) AS c FROM ai_session_messages')
-  return Number(r.rows[0].c)
+  return Number(first(r.rows).c)
 }
 
 async function seedSession(sessionId: string, userId: number, docId: string, startedAt: Date): Promise<void> {
@@ -35,7 +37,7 @@ async function seedSession(sessionId: string, userId: number, docId: string, sta
 
 async function sessionCount(): Promise<number> {
   const r = await testDb().query<{ c: string }>('SELECT COUNT(*) AS c FROM ai_sessions')
-  return Number(r.rows[0].c)
+  return Number(first(r.rows).c)
 }
 
 describe('runAiRecordsSweep', () => {
@@ -48,14 +50,14 @@ describe('runAiRecordsSweep', () => {
     const doc = await createDoc({ ownerId: u.id })
 
     // One recent, one just-inside, one just-outside the window.
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'user_prompt', body: { text: 'recent' } })
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'recent' } })
     const recentId = await latestMessageId()
 
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'tool_call', body: { name: 'web_search' } })
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'tool_call', body: { name: 'web_search', summary: '' } })
     const insideId = await latestMessageId()
     await backdateMessage(insideId, new Date(Date.now() - 89 * DAY_MS))
 
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'message_to_user', body: { message: 'old' } })
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'message_to_user', body: { message: 'old', isQuestion: false } })
     const outsideId = await latestMessageId()
     await backdateMessage(outsideId, new Date(Date.now() - 91 * DAY_MS))
 
@@ -82,13 +84,13 @@ describe('runAiRecordsSweep', () => {
     expect(result.sessionsDeleted).toBe(1)
     expect(await sessionCount()).toBe(1)
     const r = await testDb().query<{ session_id: string }>('SELECT session_id FROM ai_sessions')
-    expect(r.rows[0].session_id).toBe('new-sess')
+    expect(first(r.rows).session_id).toBe('new-sess')
   })
 
   it('respects an injected clock for the cutoff boundary', async () => {
     const u = await createUser()
     const doc = await createDoc({ ownerId: u.id })
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'user_prompt', body: { text: 'x' } })
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'x' } })
     const id = await latestMessageId()
     // 100 days ago relative to real now.
     await backdateMessage(id, new Date(Date.now() - 100 * DAY_MS))
@@ -107,7 +109,7 @@ describe('runAiRecordsSweep', () => {
   it('is a no-op when nothing is stale', async () => {
     const u = await createUser()
     const doc = await createDoc({ ownerId: u.id })
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'user_prompt', body: { text: 'fresh' } })
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'fresh' } })
 
     const result = await runAiRecordsSweep()
     expect(result).toEqual({ messagesDeleted: 0, sessionsDeleted: 0 })

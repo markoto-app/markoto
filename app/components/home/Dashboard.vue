@@ -1,14 +1,16 @@
 <script setup lang="ts">
+import type { ApiResponse } from '~/utils/api/client'
 import type { WorkspaceListItem } from '~/components/workspace/WorkspaceList.vue'
 import type { WorkspaceInviteItem } from '~/components/workspace/WorkspaceInviteList.vue'
+import { useMyWorkspaces } from '~/queries/workspaces'
 
 // The home page for everyone who doesn't get the product tour. Logged-out
 // visitors see the plain hero with "New document"; signed-in users get an
-// app dashboard instead — a compact page header, then their invitations,
+// app dashboard instead: a compact page header, then their invitations,
 // workspaces and documents, each section with its own create button in
 // its header. Split out of pages/index.vue and mounted as a Lazy component
 // there, so its code (workspace list, document modals, Nuxt UI menus and
-// forms) stays out of the product page's chunks — a logged-out visitor
+// forms) stays out of the product page's chunks, a logged-out visitor
 // on the marketing site never downloads it. The new-document dialog
 // stays on the page (the tour opens it too): `new-document` asks for it.
 const emit = defineEmits<{
@@ -50,44 +52,31 @@ const workspaceCapShortLabel = computed(() =>
 
 function onCapReachedClick() {
   if (pricingVisible.value) {
-    router.push('/pricing')
+    void router.push('/pricing')
     return
   }
-  // Self-hosted: nothing to buy — say so instead of a dead link.
+  // Self-hosted: nothing to buy, say so instead of a dead link.
   toast.add({ title: workspaceCapShortLabel.value, description: workspaceCapTooltip.value, icon: 'i-lucide-lock', color: 'neutral' })
 }
 
-// Fetch user's documents if logged in
-interface DocumentListItem {
-  docId: string
-  title: string
-  description: string
-  language: string
-  accessMode: 'private' | 'open-edit' | 'open-view' | 'password-protected'
-  wordCount: number
-  lastActive: string | number | Date
-  sizeBytes: number
-  workspaceId: string | null
-  isOwner: boolean | number
-}
+type DocumentListItem = ApiResponse<'/api/user/documents', 'get'>[number]
 
 // Track "has the first fetch resolved" explicitly. `useAsyncState` with
 // `immediate: false` reports `isLoading: false` until the first
 // `execute()` lands, which means the spinner gated on `loadingDocs`
-// alone is invisible during the SSR→hydration window — by the time
+// alone is invisible during the SSR→hydration window, by the time
 // `tryOnMounted` fires `loadDocs`, the response often comes back
 // faster than a frame, so the user never sees a spinner. These flags
 // stay false until the first fetch resolves; the v-if uses them to
 // show the spinner consistently across SSR + the brief load window.
 const docsFetched = ref(false)
-const workspacesFetched = ref(false)
 
 const {
   state: myDocs,
   isLoading: _loadingDocs,
   execute: loadDocs
 } = useAsyncState<DocumentListItem[]>(
-  () => loggedIn.value ? $fetch<DocumentListItem[]>('/api/user/documents') : Promise.resolve([]),
+  () => loggedIn.value ? apiFetch('/api/user/documents') : Promise.resolve([]),
   [],
   {
     immediate: false,
@@ -101,27 +90,19 @@ const {
   }
 )
 
-const {
-  state: myWorkspaces,
-  isLoading: _loadingWorkspaces,
-  execute: loadWorkspaces
-} = useAsyncState<WorkspaceListItem[]>(
-  () => loggedIn.value ? $fetch<WorkspaceListItem[]>('/api/user/workspaces') : Promise.resolve([]),
-  [],
-  {
-    immediate: false,
-    resetOnExecute: false,
-    onError: (e) => {
-      myWorkspaces.value = []
-      workspacesFetched.value = true
-      showContextualError(e, 'error.generic')
-    },
-    onSuccess: () => { workspacesFetched.value = true }
-  }
-)
+// The workspace list is a shared query (also behind "Move to workspace");
+// creating, renaming, deleting, leaving or joining a workspace refreshes it.
+// It starts after mount like the loads above, so the server render and
+// the first client render both show the spinner ("pending").
+const workspacesQuery = useMyWorkspaces()
+const myWorkspaces = computed<WorkspaceListItem[]>(() => loggedIn.value ? workspacesQuery.data.value ?? [] : [])
+const workspacesFetched = computed(() => workspacesQuery.status.value !== 'pending')
+watch(() => workspacesQuery.error.value, (e) => {
+  if (e) showContextualError(e, 'error.generic')
+})
 
 // Open workspace invitations addressed to this account. Failures are
-// non-fatal (the section just stays hidden) — the workspace list and
+// non-fatal (the section just stays hidden), the workspace list and
 // documents are the primary content of the dashboard.
 const myInvites = ref<WorkspaceInviteItem[]>([])
 async function loadInvites(): Promise<void> {
@@ -130,14 +111,14 @@ async function loadInvites(): Promise<void> {
     return
   }
   try {
-    myInvites.value = await $fetch<WorkspaceInviteItem[]>('/api/user/invites')
+    myInvites.value = await apiFetch('/api/user/invites')
   } catch {
     myInvites.value = []
   }
 }
-// Documents shared with this account as a workspace GUEST (WP11) — a
+// Documents shared with this account as a workspace GUEST, a
 // guest's only way into a workspace. Hidden when there are none.
-interface SharedDoc { docId: string, title: string, access: 'view' | 'edit', workspaceId: string, workspaceName: string, lastActive: string | null }
+type SharedDoc = ApiResponse<'/api/user/shared-documents', 'get'>[number]
 const sharedDocs = ref<SharedDoc[]>([])
 async function loadSharedDocs(): Promise<void> {
   if (!loggedIn.value) {
@@ -145,7 +126,7 @@ async function loadSharedDocs(): Promise<void> {
     return
   }
   try {
-    sharedDocs.value = await $fetch<SharedDoc[]>('/api/user/shared-documents')
+    sharedDocs.value = await apiFetch('/api/user/shared-documents')
   } catch {
     sharedDocs.value = []
   }
@@ -155,14 +136,13 @@ function onInviteRemoved(inviteId: string): void {
   myInvites.value = myInvites.value.filter(i => i.inviteId !== inviteId)
 }
 function onInviteAccepted(): void {
-  workspacesFetched.value = false
-  loadWorkspaces()
+  // The accept mutation already refreshed the workspace list.
   void loadSharedDocs()
 }
 
 // Defer the load to AFTER hydration (VueUse `tryOnMounted` =
 // SSR-safe `onMounted`). Two SSR↔client mismatches collapse here:
-//   1) Bare `$fetch` on SSR doesn't forward the request's cookies, so
+//   1) A bare client fetch on SSR doesn't forward the request's cookies, so
 //      the server sees an anonymous call and 401s → onError toast
 //      lands in the SSR HTML, but the client toast queue starts empty
 //      → `<ToastRoot>` hydration mismatch → app crash.
@@ -179,14 +159,12 @@ tryOnMounted(() => {
   const pendingInvite = loggedIn.value ? readPendingInviteToken() : null
   if (pendingInvite) {
     clearPendingInviteToken()
-    router.replace({ path: '/invites/accept', query: { token: pendingInvite } })
+    void router.replace({ path: '/invites/accept', query: { token: pendingInvite } })
     return
   }
   watch(loggedIn, () => {
     docsFetched.value = false
-    workspacesFetched.value = false
-    loadDocs()
-    loadWorkspaces()
+    void loadDocs()
     void loadInvites()
     void loadSharedDocs()
   }, { immediate: true })
@@ -198,7 +176,6 @@ const pageTitle = computed(() => {
   return name ? t('home.greeting', { name }) : t('home.title')
 })
 
-// Delete modal state
 const deleteTarget = ref<DocumentListItem | null>(null)
 const showDeleteConfirm = ref(false)
 
@@ -217,7 +194,7 @@ function onDocDeleted() {
 
 // Duplicate / Move modals. Dashboard shows personal + owned-in-workspace
 // docs; every entry here is owned by the caller (`isOwner`), so the menu
-// offers every action — `isOwner` is still passed through as the gate.
+// offers every action: `isOwner` is still passed through as the gate.
 const duplicateTarget = ref<DocumentListItem | null>(null)
 const showDuplicateModal = ref(false)
 const moveTarget = ref<DocumentListItem | null>(null)
@@ -232,7 +209,7 @@ function openMove(doc: DocumentListItem) {
   showMoveModal.value = true
 }
 function onDocDuplicated(newDocId: string) {
-  router.push(`/d/${newDocId}`)
+  void router.push(`/d/${newDocId}`)
 }
 function onDocMoved(newWorkspaceId: string | null) {
   // The documents list shows every owned doc regardless of workspace,
@@ -245,14 +222,13 @@ function onDocMoved(newWorkspaceId: string | null) {
   moveTarget.value = null
 }
 
-// Workspace create
 const showCreateWorkspace = ref(false)
 
 function onWorkspaceCreated(workspaceId: string) {
-  router.push(`/w/${workspaceId}`)
+  void router.push(`/w/${workspaceId}`)
 }
 
-// Long-press a doc row to open its action menu — discoverable on
+// Long-press a doc row to open its action menu, discoverable on
 // touch where the 3-dot button is a small target. Per-row keying so
 // only the long-pressed row's menu opens. The trigger writes the same
 // state (two-way), so a click opens the menu as well.
@@ -272,7 +248,7 @@ function setMenuOpen(doc: DocumentListItem, open: boolean) {
     :class="loggedIn ? 'py-6 sm:py-10' : 'py-10 sm:py-20'"
   >
     <!-- Logged out: the plain hero. Editorial register from the homepage
-         mockup — Fraunces weight 300 display, italic-400 emphasis on the
+         mockup: Fraunces weight 300 display, italic-400 emphasis on the
          brand's loadbearing word ("Markdown"), Inter lede capped at 34ch. -->
     <div
       v-if="!loggedIn"
@@ -338,7 +314,7 @@ function setMenuOpen(doc: DocumentListItem, open: boolean) {
         />
       </section>
 
-      <!-- Shared with you as a guest of a workspace (WP11). -->
+      <!-- Shared with you as a guest of a workspace. -->
       <section
         v-if="sharedDocs.length > 0"
         class="space-y-4"
@@ -430,7 +406,7 @@ function setMenuOpen(doc: DocumentListItem, open: boolean) {
           </UButton>
         </div>
 
-        <!-- Spinner during the first fetch — `docsFetched` flips true
+        <!-- Spinner during the first fetch, `docsFetched` flips true
              after `loadDocs` resolves (success or error), so it covers
              the SSR→hydration window where `isLoading` alone reports
              false. -->
@@ -473,7 +449,7 @@ function setMenuOpen(doc: DocumentListItem, open: boolean) {
                 <!-- Description as a subtitle when set. Highest-info
                      field for picking which doc to open; collapses
                      entirely when empty so legacy/blank docs don't
-                     show "—" placeholders. -->
+                     show "-" placeholders. -->
                 <p
                   v-if="doc.description"
                   class="text-xs text-toned truncate"
@@ -493,12 +469,12 @@ function setMenuOpen(doc: DocumentListItem, open: boolean) {
                 variant="subtle"
               >
                 {{
-                  doc.accessMode === 'private' ? 'Private'
-                  : doc.accessMode === 'open-view' ? 'View only'
-                    : 'Protected'
+                  doc.accessMode === 'private' ? t('home.access.private')
+                  : doc.accessMode === 'open-view' ? t('share.viewOnly')
+                    : t('home.access.protected')
                 }}
               </UBadge>
-              <span class="hidden sm:inline text-xs text-muted">{{ doc.wordCount || 0 }} words</span>
+              <span class="hidden sm:inline text-xs text-muted">{{ t('docRow.words', { n: doc.wordCount || 0 }) }}</span>
               <DocumentDocRowMenu
                 :doc-id="doc.docId"
                 :can-edit="!!doc.isOwner"

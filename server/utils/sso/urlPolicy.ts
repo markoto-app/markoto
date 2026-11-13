@@ -1,8 +1,7 @@
-// Per-workspace SSO (WP14) — the outbound policy for a customer's identity
-// provider. A workspace admin types the OIDC issuer; the APP then fetches
-// its discovery document, JWKS, token and UserInfo endpoints. Without a
-// policy that is a server-side request forgery primitive, so every request
-// goes through `ssoFetch`:
+// Outbound policy for a customer's identity provider. A workspace admin types
+// the OIDC issuer and the APP then fetches its discovery document, JWKS, token
+// and UserInfo endpoints. Without a policy that is an SSRF primitive, so every
+// request goes through `createSsoFetch`:
 //
 //   - https only; plain http only to a private address on an instance that
 //     allows private IdPs (`NUXT_SSO_ALLOW_PRIVATE_URLS=true`: self-hosters
@@ -20,28 +19,34 @@
 
 import { isIP } from 'node:net'
 import { lookup } from 'node:dns/promises'
-import { isAlwaysForbiddenIp, isPrivateIp } from '../agentic/urlGuard'
+import { hostAddresses, screenHostAddresses } from '../agentic/urlGuard'
 import { isInternalHostname } from '../aiProviders/urlPolicy'
-import { readStreamWithCap } from '../streamCap'
-import type { PinnedRequestInit } from '../safeFetch'
+import { readStreamWithCap } from '../platform/streamCap'
+import type { PinnedRequestInit } from '../platform/safeFetch'
+import { MIB } from '~~/shared/config/units'
+import { useEnv } from '~~/shared/env/load'
+import type { RawEnv } from '~~/shared/env/define'
 
-export const SSO_FETCH_MAX_BYTES = 1024 * 1024
-export const SSO_FETCH_TIMEOUT_MS = 10_000
+export const SSO_FETCH_MAX_BYTES = MIB
+const SSO_FETCH_TIMEOUT_MS = 10_000
 
 export type SsoResolver = (host: string) => Promise<string[]>
 
-export const systemSsoResolver: SsoResolver = async (host) => {
+const systemSsoResolver: SsoResolver = async (host) => {
   const answers = await lookup(host, { all: true, verbatim: true })
   return answers.map(a => a.address)
 }
 
 /** Read per call so tests and self-hosters can switch it without a restart. */
-export function ssoAllowsPrivateUrls(env: NodeJS.ProcessEnv = process.env): boolean {
-  return ['1', 'true', 'yes', 'on'].includes((env.NUXT_SSO_ALLOW_PRIVATE_URLS ?? '').trim().toLowerCase())
+export function ssoAllowsPrivateUrls(source?: RawEnv): boolean {
+  return useEnv(source).oauth.ssoAllowPrivateUrls
 }
 
+/** Why a URL was refused: what the admin has to change. */
+export type SsoUrlRefusal = 'invalid' | 'not-https' | 'credentials' | 'unresolvable' | 'refused'
+
 export class SsoUrlRefused extends Error {
-  constructor(message: string) {
+  constructor(message: string, readonly reason: SsoUrlRefusal, readonly host?: string) {
     super(message)
     this.name = 'SsoUrlRefused'
   }
@@ -65,37 +70,23 @@ export async function checkSsoUrl(
   try {
     url = new URL(String(raw))
   } catch {
-    throw new SsoUrlRefused('This is not a valid URL.')
+    throw new SsoUrlRefused('This is not a valid URL.', 'invalid')
   }
-  if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new SsoUrlRefused('Use an https:// URL.')
-  if (url.username || url.password) throw new SsoUrlRefused('The URL must not contain a user name or password.')
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new SsoUrlRefused('Use an https:// URL.', 'not-https')
+  if (url.username || url.password) throw new SsoUrlRefused('The URL must not contain a user name or password.', 'credentials')
   const host = url.hostname.replace(/^\[|\]$/g, '')
-  if (!host) throw new SsoUrlRefused('The URL has no host name.')
-  if (isInternalHostname(host)) throw new SsoUrlRefused('This URL points at a service inside markoto.')
+  if (!host) throw new SsoUrlRefused('The URL has no host name.', 'invalid')
+  if (isInternalHostname(host)) throw new SsoUrlRefused('This URL points at a service inside markoto.', 'refused')
 
   const allowPrivate = opts.allowPrivate ?? ssoAllowsPrivateUrls()
-  let addresses: string[]
-  if (isIP(host) !== 0) {
-    addresses = [host]
-  } else {
-    try {
-      addresses = await (opts.resolve ?? systemSsoResolver)(host)
-    } catch {
-      throw new SsoUrlRefused(`The host name "${host}" could not be resolved.`)
-    }
-    if (addresses.length === 0) throw new SsoUrlRefused(`The host name "${host}" has no DNS records.`)
-  }
-  let anyPublic = false
-  for (const address of addresses) {
-    if (isAlwaysForbiddenIp(address)) throw new SsoUrlRefused('This URL points at a loopback, link-local or metadata address.')
-    if (isPrivateIp(address)) {
-      if (!allowPrivate) throw new SsoUrlRefused('This URL points at a private network address, which this instance does not allow.')
-    } else {
-      anyPublic = true
-    }
-  }
-  if (url.protocol === 'http:' && (!allowPrivate || anyPublic)) {
-    throw new SsoUrlRefused('Use https:// — plain http is only allowed for an identity provider on a private network of a self-hosted instance.')
+  const addresses = await hostAddresses(host, opts.resolve ?? systemSsoResolver)
+  if (addresses === 'unresolvable') throw new SsoUrlRefused(`The host name "${host}" could not be resolved.`, 'unresolvable', host)
+  if (addresses === 'no-records') throw new SsoUrlRefused(`The host name "${host}" has no DNS records.`, 'unresolvable', host)
+  const screen = screenHostAddresses(addresses, allowPrivate)
+  if (screen.refused === 'forbidden') throw new SsoUrlRefused('This URL points at a loopback, link-local or metadata address.', 'refused')
+  if (screen.refused === 'private') throw new SsoUrlRefused('This URL points at a private network address, which this instance does not allow.', 'refused')
+  if (url.protocol === 'http:' && (!allowPrivate || screen.anyPublic)) {
+    throw new SsoUrlRefused('Use https://, plain http is only allowed for an identity provider on a private network of a self-hosted instance.', 'not-https')
   }
   return { url, addresses }
 }
@@ -131,10 +122,10 @@ export function createSsoFetch(opts: { allowPrivate?: boolean, resolve?: SsoReso
     const response = await (opts.fetchImpl ?? ((u, i) => fetch(u, i)))(pinned.href, pinnedInit)
     if (response.status >= 300 && response.status < 400) {
       await response.body?.cancel()
-      throw new SsoUrlRefused('The identity provider answered with a redirect, which is not followed.')
+      throw new SsoUrlRefused('The identity provider answered with a redirect, which is not followed.', 'refused')
     }
     const body = response.body ? await readStreamWithCap(response.body, SSO_FETCH_MAX_BYTES) : new Uint8Array(0)
-    if (body === null) throw new SsoUrlRefused('The identity provider answered with more than 1 MiB.')
+    if (body === null) throw new SsoUrlRefused('The identity provider answered with more than 1 MiB.', 'refused')
     return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers })
   }
 }

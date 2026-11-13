@@ -1,4 +1,7 @@
-// Publish as a web page (WP13). Shared by the publish endpoints, the
+import { MIB } from './units'
+import { trimChars, trimEndChars } from '../utils/trimChars'
+
+// Publish as a web page. Shared by the publish endpoints, the
 // published-page route and the publish dialog.
 
 /** A page slug: lowercase letters, digits, single hyphens, 3–60 chars. */
@@ -14,7 +17,7 @@ export const PUBLISHED_PAGE_ID_RE = /^[A-Za-z0-9_-]{16}$/
 export const PUBLISHED_FILE_RE = /^[A-Za-z0-9_-]{1,64}\.(?:png|jpe?g|gif|webp|woff2|woff|ttf)$/
 
 /** Upper bound for a snapshot (HTML + CSS), stored in Postgres. */
-export const PUBLISH_MAX_SNAPSHOT_CHARS = 8 * 1024 * 1024
+export const PUBLISH_MAX_SNAPSHOT_CHARS = 8 * MIB
 
 /** Publishes (incl. re-publishes) per user per hour. */
 export const PUBLISH_RATE_PER_HOUR = 30
@@ -39,13 +42,11 @@ export function publishedFileUrl(pageId: string, kind: 'files' | 'brand', file: 
  * collide. The caller retries with a new suffix on a (rare) clash.
  */
 export function slugFromTitle(title: string, suffix: string): string {
-  const base = title
+  const hyphenated = title
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 48)
-    .replace(/-+$/g, '')
+  const base = trimEndChars(trimChars(hyphenated, '-').slice(0, 48), '-')
   return base.length >= 3 ? `${base}-${suffix}` : `page-${suffix}`
 }

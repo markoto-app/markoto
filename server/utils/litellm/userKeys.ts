@@ -1,15 +1,18 @@
-import { eq } from 'drizzle-orm'
-import { users } from '../../db/schema'
-import { useDatabase } from '../database'
+import { litellmKeyGenerateResponse, litellmKeyInfoResponse } from './adminResponses'
+import { getStoredUserKey, storeUserKey } from '../../repos/litellmKeys'
 import { planToBudgetUsd } from '~~/shared/billing/aiPoints'
-import { getTiers } from '~~/server/utils/tierConfig'
+import { getTiers } from '~~/server/utils/billing/tierConfig'
 import type { PlanName } from '~~/shared/config/tiers'
-import { encryptToken, decryptToken } from './tokenCrypto'
+import { openSecretOrNull, sealSecret, secretContext } from '../platform/secretBox'
 import { litellmAdminFetch } from './litellmAdmin'
 import { ensureFreeTierTeam, ensureFreeTierTeamMember, teamIdForPlan } from './freeTierTeam'
-import { creditBudgetExtraUsd } from '../aiCreditBudget'
+import { creditBudgetExtraUsd } from '../billing/aiCreditBudget'
+import { useEnv } from '~~/shared/env/load'
+import { useLogger } from '../platform/logger'
 
-/** Plan budget + the user's top-up credits (WP4), USD. */
+const log = useLogger('litellm-keys')
+
+/** Plan budget + the user's top-up credits, USD. */
 export async function userKeyBudgetUsd(userId: number, plan: PlanName): Promise<number> {
   return planToBudgetUsd(plan, getTiers()) + await creditBudgetExtraUsd({ type: 'user', id: String(userId) })
 }
@@ -19,30 +22,25 @@ export async function userKeyBudgetUsd(userId: number, plan: PlanName): Promise<
 // `useLitellmForUser(virtualKeyToken)`; LiteLLM's spend tracker
 // enforces the `max_budget` set at the user's plan tier. Stripe
 // webhooks call `updateUserKeyBudget` / `resetUserKeySpend` on plan
-// changes + monthly renewals.
+// changes.
 
-// ─── Stub mode (for harnesses without a live proxy) ────────────────────
-//
-// Phase 7: integration tests bring up a real `litellm-test` container
-// and exercise the actual /key/* admin surface. The unit-test path
-// (vitest --project=unit) doesn't bring up docker — it sets
+// Stub mode for harnesses without a live proxy: integration tests run
+// against a real `litellm-test` container, while the unit/repos tiers
+// don't start docker and set
 // `LITELLM_TEST_STUB=1` so `ensureUserKey` returns a stub handle and
 // the budget-update / spend-reset / key-info helpers no-op. Don't
 // gate on TEST_MODE alone: TEST_MODE is also set in integration where
 // the real proxy IS reachable, and stubbing there would defeat the
-// regression coverage we're adding.
+// coverage of the real /key/* admin surface.
 const TEST_STUB_TOKEN = 'sk-fake-test-virtual-key'
 const TEST_STUB_KEY_ID_PREFIX = 'test-stub-'
 function isStubMode(): boolean {
-  return process.env.LITELLM_TEST_STUB === '1'
+  return useEnv().test.litellmStub
 }
-
-// ─── Errors ────────────────────────────────────────────────────────────
 
 /**
  * Thrown when LiteLLM rejects an LLM call because the user's
- * `max_budget` has been crossed. Replaces the legacy `BudgetExhausted`
- * (Phase 6 retired the app-side counter — LiteLLM is the only gate).
+ * `max_budget` has been crossed (LiteLLM is the only budget gate).
  *
  * Caller paths catch this and emit the doc-breadcrumb upgrade message
  * via `runLoop`'s existing `emitBudgetBreadcrumb` flow.
@@ -69,12 +67,10 @@ function errorAsString(err: unknown): string {
   return JSON.stringify(err)
 }
 
-// ─── Public API ────────────────────────────────────────────────────────
-
 interface UserKeyHandle {
   /** LiteLLM's internal `token_id` (returned as `token` from /key/generate). */
   keyId: string
-  /** The `sk-...` token used as a Bearer credential — stored encrypted at rest. */
+  /** The `sk-...` token used as a Bearer credential, stored encrypted at rest. */
   token: string
 }
 
@@ -98,27 +94,26 @@ export async function createUserKey(userId: number, plan: PlanName): Promise<Use
       max_budget: budget,
       ...(teamId ? { team_id: teamId } : {}),
       // Monthly spend reset. LiteLLM resets `spend` to 0 every
-      // `budget_duration` (reset date lands on the 1st of the month —
+      // `budget_duration` (reset date lands on the 1st of the month,
       // matches the "resets on the first" copy in the AI Points UI). This
-      // is the ONLY periodic reset now: free users have no Stripe invoice
-      // to hang a reset on, so without this their "$1/month" was a lifetime
-      // $1. Paid users reset here too — we deliberately do NOT also reset on
+      // is the ONLY periodic reset: free users have no Stripe invoice
+      // to hang a reset on, so without this their "$1/month" would be a
+      // lifetime $1. Paid users reset here too, we deliberately do NOT also reset on
       // invoice.paid (that would double-reset and over-grant budget).
       budget_duration: '30d',
       user_id: String(userId),
       // Abuse cap. The user can't make more than 60 LLM calls/min from
       // a single virtual key. Generous for normal use (the agentic loop
       // fires ~5 calls per turn at most; 60/min covers a heavy session).
-      // Replaces the legacy per-app-route rate limits dropped in Phase 6.
       rpm_limit: 60,
       // Opt the key into client-supplied `metadata.tags` (the multi-
-      // axis spend tags from `featureTags.ts` — feature: / workspace:
+      // axis spend tags from `featureTags.ts`, feature: / workspace:
       // / user: / doc:). Without this, LiteLLM strips every tag we
       // attach: the proxy treats client-tag injection as a routing
       // surface and requires per-key opt-in. Set in `metadata` because
       // /key/generate stashes opaque key state there.
       metadata: { allow_client_tags: true }
-      // No `models` filter — let the user's key access every model
+      // No `models` filter: let the user's key access every model
       // registered in config.yaml. Per-user model gating would need a
       // separate config knob; right now plans differ on budget only.
     })
@@ -127,7 +122,7 @@ export async function createUserKey(userId: number, plan: PlanName): Promise<Use
     const text = await res.text().catch(() => '')
     throw new Error(`[litellmKeys] /key/generate failed: ${res.status} ${text.slice(0, 200)}`)
   }
-  const payload = await res.json() as { key?: string, token_id?: string, token?: string }
+  const payload = litellmKeyGenerateResponse.parse(await res.json())
   const token = payload.key
   // LiteLLM exposes the bookkeeping handle under either `token_id` or
   // `token` depending on version; prefer `token_id` (newer) and fall
@@ -138,13 +133,18 @@ export async function createUserKey(userId: number, plan: PlanName): Promise<Use
     throw new Error('[litellmKeys] /key/generate response missing key or token_id')
   }
 
-  const db = useDatabase()
-  await db.update(users).set({
-    litellmKeyId: keyId,
-    litellmKeyToken: encryptToken(token)
-  }).where(eq(users.id, userId))
+  await storeUserKey(userId, keyId, sealUserKey(userId, token))
 
   return { keyId, token }
+}
+
+function sealUserKey(userId: number, token: string): string {
+  return sealSecret('litellm-user-key', secretContext.litellmUserKey(userId), token)
+}
+
+/** The stored bearer token, or null when it can't be decrypted (key lost / rotated away). */
+function openUserKey(userId: number, sealed: string): string | null {
+  return openSecretOrNull('litellm-user-key', secretContext.litellmUserKey(userId), sealed)
 }
 
 /**
@@ -152,23 +152,21 @@ export async function createUserKey(userId: number, plan: PlanName): Promise<Use
  * `users.litellmKeyId` is already set; otherwise creates + persists.
  */
 export async function ensureUserKey(userId: number, plan: PlanName): Promise<UserKeyHandle> {
-  const db = useDatabase()
-  const rows = await db.select({
-    keyId: users.litellmKeyId,
-    keyToken: users.litellmKeyToken
-  }).from(users).where(eq(users.id, userId)).limit(1)
-  const row = rows[0]
+  const row = await getStoredUserKey(userId)
   if (row?.keyId && row?.keyToken) {
-    return { keyId: row.keyId, token: decryptToken(row.keyToken) }
+    const token = openUserKey(userId, row.keyToken)
+    if (token) return { keyId: row.keyId, token }
+    // Unreadable (encryption key lost or rotated without _PREVIOUS): the
+    // bearer token is gone for good, so retire the old key by its id and
+    // mint a fresh one rather than failing every AI call.
+    log.warn('stored key token is unreadable; minting a new key', { userId })
+    if (!isStubMode()) await retireKeyById(row.keyId)
   }
   if (isStubMode()) {
-    // Persist a stub so subsequent reads don't churn — same shape as
+    // Persist a stub so subsequent reads don't churn, same shape as
     // a real key, no LiteLLM round-trip.
     const stubKeyId = `${TEST_STUB_KEY_ID_PREFIX}${userId}`
-    await db.update(users).set({
-      litellmKeyId: stubKeyId,
-      litellmKeyToken: encryptToken(TEST_STUB_TOKEN)
-    }).where(eq(users.id, userId))
+    await storeUserKey(userId, stubKeyId, sealUserKey(userId, TEST_STUB_TOKEN))
     return { keyId: stubKeyId, token: TEST_STUB_TOKEN }
   }
   return await createUserKey(userId, plan)
@@ -215,7 +213,7 @@ export async function updateUserKeyBudget(userId: number, plan: PlanName): Promi
  * plan-derivation). Used by `/api/_test/exhaust-litellm-budget` to slam
  * the budget against current spend so the next call trips the proxy's
  * budget gate. Mirrors the production flow `updateUserKeyBudget` uses
- * — same `/key/update` payload, just with the budget value passed in.
+ * same `/key/update` payload, just with the budget value passed in.
  */
 export async function setUserKeyMaxBudget(userId: number, plan: PlanName, dollars: number): Promise<void> {
   if (isStubMode()) return
@@ -234,24 +232,22 @@ export async function setUserKeyMaxBudget(userId: number, plan: PlanName, dollar
 }
 
 /**
- * Reset the cumulative spend back to 0 — typically on `invoice.paid`
- * (monthly renewal). The `max_budget` stays the same; only `spend`
- * resets, giving the user a clean cycle. Returns false (after logging)
- * when the proxy refused — callers don't fail on it.
+ * Reset the cumulative spend back to 0 (used when a paid plan
+ * ends, so a user over the free cap isn't stuck until the monthly
+ * reset). The `max_budget` stays the same; only `spend` resets. Returns false (after logging)
+ * when the proxy refused, callers don't fail on it.
  */
 export async function resetUserKeySpend(userId: number): Promise<boolean> {
   if (isStubMode()) return true
-  const db = useDatabase()
-  const rows = await db.select({
-    keyToken: users.litellmKeyToken
-  }).from(users).where(eq(users.id, userId)).limit(1)
-  const encrypted = rows[0]?.keyToken
+  const encrypted = (await getStoredUserKey(userId))?.keyToken
   if (!encrypted) {
-    // No key yet — nothing to reset. The next AI call will create one
+    // No key yet: nothing to reset. The next AI call will create one
     // with the right budget via `ensureUserKey`.
     return true
   }
-  const token = decryptToken(encrypted)
+  const token = openUserKey(userId, encrypted)
+  // Unreadable: the next AI call mints a new key (ensureUserKey) with zero spend.
+  if (!token) return true
   const res = await litellmAdminFetch(`/key/${encodeURIComponent(token)}/reset_spend`, {
     method: 'POST',
     // LiteLLM >= 1.10x validates a JSON body on this route (a bodyless
@@ -262,11 +258,24 @@ export async function resetUserKeySpend(userId: number): Promise<boolean> {
     // 404 on `/key/{key}/reset_spend` means LiteLLM lost the key
     // (e.g. DB wipe on the LiteLLM side). Rather than 5xx the webhook,
     // log + recreate via ensureUserKey on the next AI call.
-    const text = await res.text().catch(() => '')
-    console.warn(`[litellmKeys] /key/reset_spend failed: ${res.status} ${text.slice(0, 200)}`)
+    log.warn('/key/reset_spend failed', { status: res.status })
     return false
   }
   return true
+}
+
+/**
+ * Best-effort delete of a key we can no longer present as a bearer token.
+ * LiteLLM's /key/delete accepts the hashed token id (`token_id`) as well as
+ * the `sk-` token, so the orphan doesn't keep a budget in the proxy.
+ */
+async function retireKeyById(keyId: string): Promise<void> {
+  try {
+    const res = await litellmAdminFetch('/key/delete', { method: 'POST', body: JSON.stringify({ keys: [keyId] }) })
+    if (!res.ok && res.status !== 404) log.warn('retiring an unreadable key failed', { status: res.status })
+  } catch (e) {
+    log.warn('retiring an unreadable key failed', { err: e })
+  }
 }
 
 type AdminFetch = (path: string, init?: RequestInit) => Promise<Response>
@@ -287,8 +296,7 @@ export async function deleteLitellmIdentity(adminFetch: AdminFetch, token: strin
         body: JSON.stringify({ keys: [token] })
       })
       if (!res.ok && res.status !== 404) {
-        const text = await res.text().catch(() => '')
-        console.warn(`[litellmKeys] /key/delete failed: ${res.status} ${text.slice(0, 200)}`)
+        log.warn('/key/delete failed', { status: res.status })
         ok = false
       }
     }
@@ -297,12 +305,11 @@ export async function deleteLitellmIdentity(adminFetch: AdminFetch, token: strin
       body: JSON.stringify({ user_ids: [String(userId)] })
     })
     if (!resUser.ok && resUser.status !== 404) {
-      const text = await resUser.text().catch(() => '')
-      console.warn(`[litellmKeys] /user/delete failed: ${resUser.status} ${text.slice(0, 200)}`)
+      log.warn('/user/delete failed', { status: resUser.status })
       ok = false
     }
   } catch (e) {
-    console.warn(`[litellmKeys] key deletion failed: ${e instanceof Error ? e.message : String(e)}`)
+    log.warn('key deletion failed', { err: e })
     ok = false
   }
   return ok
@@ -319,17 +326,11 @@ export async function deleteLitellmIdentity(adminFetch: AdminFetch, token: strin
  */
 export async function deleteUserKey(userId: number): Promise<boolean> {
   if (isStubMode()) return true
-  const db = useDatabase()
-  const rows = await db.select({ keyToken: users.litellmKeyToken })
-    .from(users).where(eq(users.id, userId)).limit(1)
-  const encrypted = rows[0]?.keyToken
+  const encrypted = (await getStoredUserKey(userId))?.keyToken
   let token: string | null = null
   if (encrypted) {
-    try {
-      token = decryptToken(encrypted)
-    } catch (e) {
-      console.warn(`[litellmKeys] could not decrypt the key token for deletion: ${e instanceof Error ? e.message : String(e)}`)
-    }
+    token = openUserKey(userId, encrypted)
+    if (!token) log.warn('could not decrypt the key token for deletion')
   }
   return deleteLitellmIdentity(litellmAdminFetch, token, userId)
 }
@@ -348,7 +349,7 @@ interface KeyInfo {
 export async function getUserKeyInfo(userId: number, plan: PlanName): Promise<KeyInfo> {
   const handle = await ensureUserKey(userId, plan)
   if (isStubMode()) {
-    // No real spend in tests — surface the static plan budget with zero
+    // No real spend in tests, surface the static plan budget with zero
     // spend so the AI Points UI renders "{full} / {full} pts".
     return { spend: 0, maxBudget: planToBudgetUsd(plan, getTiers()) }
   }
@@ -357,13 +358,10 @@ export async function getUserKeyInfo(userId: number, plan: PlanName): Promise<Ke
     const text = await res.text().catch(() => '')
     throw new Error(`[litellmKeys] /key/info failed: ${res.status} ${text.slice(0, 200)}`)
   }
-  const payload = await res.json() as {
-    info?: { spend?: number, max_budget?: number }
-  }
-  const info = payload.info ?? {}
+  const { info } = litellmKeyInfoResponse.parse(await res.json())
   return {
-    spend: typeof info.spend === 'number' ? info.spend : 0,
-    maxBudget: typeof info.max_budget === 'number' ? info.max_budget : planToBudgetUsd(plan, getTiers())
+    spend: info?.spend ?? 0,
+    maxBudget: info?.max_budget ?? planToBudgetUsd(plan, getTiers())
   }
 }
 

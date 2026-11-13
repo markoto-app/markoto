@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 //
 // jsdom (not happy-dom): DOMPurify's checks only behave like Chromium's
-// under jsdom — see renderMarkdownXss.test.ts.
+// under jsdom: see renderMarkdownXss.test.ts.
 import { describe, it, expect } from 'vitest'
-import { clobberSafeId, fenceTitle, renderMarkdown, selectorSafeId, wrapCodeLines, wrapCodeTokens } from '../../app/utils/renderMarkdown'
+import { clobberSafeId, fenceTitle, renderMarkdown, selectorSafeId, wrapCodeLines, wrapCodeTokens } from '../../app/utils/markdown/renderMarkdown'
 
 function parse(html: string): DocumentFragment {
   const tpl = document.createElement('template')
@@ -12,9 +12,8 @@ function parse(html: string): DocumentFragment {
 }
 
 describe('heading ids survive sanitising (TOC page numbers)', () => {
-  // Regression: DOMPurify (SANITIZE_DOM) drops id="method" because
-  // `method` is a property of <form>; the TOC link then pointed nowhere and
-  // paged.js printed page 0 for "Method".
+  // DOMPurify (SANITIZE_DOM) drops id="method" because `method` is a property of <form>; the TOC link
+  // would then point nowhere and paged.js would print page 0 for "Method".
   it('a heading named like a DOM property keeps an id the TOC links to', async () => {
     const html = await renderMarkdown('[[toc]]\n\n# Introduction\n\n# Method\n\n# Title\n\n# Action\n')
     const root = parse(html)
@@ -36,11 +35,10 @@ describe('heading ids survive sanitising (TOC page numbers)', () => {
 })
 
 describe('heading ids are valid CSS selectors (paged.js)', () => {
-  // Regression: "## 3.4.1 — 2026-10-28" got id="341-2026-10-28"; paged.js
-  // resolves target-counter()/links with querySelector('#…') unescaped,
-  // which threw and left the whole preview blank.
+  // A heading like "## 3.4.1, 2026-10-28" must not yield an id that paged.js resolves with an unescaped
+  // querySelector('#…') (target-counter()/links); that throws and leaves the whole preview blank.
   it('a heading starting with a digit gets an id that querySelector accepts, and the TOC links to it', async () => {
-    const html = await renderMarkdown('[[toc]]\n\n# 2024 results\n\n## 3.4.1 — 2026-10-28\n')
+    const html = await renderMarkdown('[[toc]]\n\n# 2024 results\n\n## 3.4.1 \u2014 2026-10-28\n')
     const root = parse(html)
     const ids = Array.from(root.querySelectorAll('h1, h2')).map(h => h.id)
     expect(ids).toEqual(['h-2024-results', 'h-341-2026-10-28'])

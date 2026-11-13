@@ -1,6 +1,10 @@
 import { nanoid } from 'nanoid'
-import { useValkey, useValkeySubscriber } from '../valkey'
+import { useValkey, useValkeySubscriber } from '../platform/valkey'
 import type { ToolStatusPhase } from './toolContext'
+import { MINUTE_MS } from '~~/shared/config/units'
+import { useLogger } from '../platform/logger'
+
+const log = useLogger('ai-session-channel')
 
 // Initiator-only channel for an AI session.
 //
@@ -17,7 +21,7 @@ import type { ToolStatusPhase } from './toolContext'
 //     `crossBoundary.ts`).
 //
 // The client follows it through the push stream
-// `GET /api/ai/sessions/:sessionId/stream` (SSE, initiator only — see
+// `GET /api/ai/sessions/:sessionId/stream` (SSE, initiator only, see
 // `sessionStream.ts`), falls back to polling `GET /api/ai/sessions/:id`
 // when the stream breaks, and answers confirmations through
 // `POST …/confirm`.
@@ -26,19 +30,20 @@ import type { ToolStatusPhase } from './toolContext'
 // another app instance still works. Every write also PUBLISHes a
 // "changed" ping on `ai:session-channel:{sid}:notify` (Valkey pub/sub,
 // reaches every instance) so open streams re-read right away. The ping
-// carries no data — subscribers re-read the keys, so a lost ping only
-// delays an update until the stream's periodic re-read. One key per field, each written by exactly one
-// party, so concurrent writes never read-modify-write the same value.
+// carries no data: subscribers re-read the keys, so a lost ping only
+// delays an update until the stream's periodic re-read. One key per
+// field, each written by exactly one party, so concurrent writes never
+// read-modify-write the same value.
 // Keys outlive the session by `CHANNEL_TTL_MS` so the client can pick up
 // the final answer / error after the AI client has left the document.
 //
 // Failure polarity: status / response writes are best-effort (a Valkey
 // blip only hides progress text). A confirmation that cannot be stored
-// or read is DENIED — the gate fails closed.
+// or read is DENIED, the gate fails closed.
 
-export const CHANNEL_TTL_MS = 15 * 60_000
+const CHANNEL_TTL_MS = 15 * MINUTE_MS
 /** How long the loop waits for an answer before treating it as "deny". */
-export const CONFIRMATION_TIMEOUT_MS = 90_000
+const CONFIRMATION_TIMEOUT_MS = 90_000
 const ANSWER_POLL_MS = 300
 
 export interface ChannelStore {
@@ -213,7 +218,7 @@ function readConfirmation(raw: string | null): PendingConfirmation | null {
 }
 
 function logChannelError(what: string, e: unknown): void {
-  console.warn(`[ai/session-channel] ${what} failed: ${e instanceof Error ? e.message : String(e)}`)
+  log.warn('session channel operation failed', { operation: what, err: e })
 }
 
 /**
@@ -364,7 +369,7 @@ export function toSessionView(snapshot: ChannelSnapshot): SessionView {
 /**
  * Record the initiator's answer for the pending confirmation `confirmationId`.
  * Returns false when no such confirmation is pending (expired, answered,
- * or a stale id) — the first answer wins.
+ * or a stale id), the first answer wins.
  */
 export async function answerSessionConfirmation(
   sessionId: string,

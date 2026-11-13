@@ -1,10 +1,11 @@
 import { and, asc, eq, isNull, sql } from 'drizzle-orm'
-import { workspaceBrandAssets } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { documents, workspaceBrandAssets } from '../db/schema'
+import { useDatabase } from '../db/client'
 import { DuplicateError } from './errors'
-import type { BrandAssetFormat, BrandFont } from '~~/shared/config/brandKit'
+import { BRAND_FONT_FORMATS, BRAND_IMAGE_FORMATS, type BrandAssetFormat, type BrandFont, type BrandFontFormat, type BrandImageFormat } from '~~/shared/config/brandKit'
+import type { DocAccess, WorkspaceAccess } from './proofs'
 
-// Workspace brand kit assets (WP10): fonts and logos. Writers are the
+// Workspace brand kit assets: fonts and logos. Writers are the
 // admin-only routes under /api/workspaces/:wsId/brand; readers are the
 // render paths (token endpoint, render bootstrap, the asset routes).
 
@@ -22,6 +23,19 @@ export interface BrandAssetRow {
   createdAt: Date
 }
 
+/** A font asset: its format is a font format. */
+export type BrandFontAssetRow = BrandAssetRow & { kind: 'font', format: BrandFontFormat }
+/** A logo / image asset: its format is an image format. */
+export type BrandImageAssetRow = BrandAssetRow & { kind: 'image', format: BrandImageFormat }
+
+export function isBrandFontAsset(a: BrandAssetRow): a is BrandFontAssetRow {
+  return a.kind === 'font' && (BRAND_FONT_FORMATS as readonly string[]).includes(a.format)
+}
+
+export function isBrandImageAsset(a: BrandAssetRow): a is BrandImageAssetRow {
+  return a.kind === 'image' && (BRAND_IMAGE_FORMATS as readonly string[]).includes(a.format)
+}
+
 const columns = {
   id: workspaceBrandAssets.id,
   workspaceId: workspaceBrandAssets.workspaceId,
@@ -36,20 +50,23 @@ const columns = {
   createdAt: workspaceBrandAssets.createdAt
 }
 
-export async function listBrandAssets(workspaceId: string): Promise<BrandAssetRow[]> {
+export async function listBrandAssets(ws: WorkspaceAccess<'member'>): Promise<BrandAssetRow[]> {
+  const workspaceId = ws.workspaceId
   return useDatabase().select(columns).from(workspaceBrandAssets)
     .where(eq(workspaceBrandAssets.workspaceId, workspaceId))
     .orderBy(asc(workspaceBrandAssets.kind), asc(workspaceBrandAssets.name), asc(workspaceBrandAssets.weight), asc(workspaceBrandAssets.style))
 }
 
 /** One asset, only if it belongs to `workspaceId` (tuple key). */
-export async function getBrandAsset(workspaceId: string, id: string): Promise<BrandAssetRow | null> {
+export async function getBrandAsset(ws: WorkspaceAccess<'member'>, id: string): Promise<BrandAssetRow | null> {
+  const workspaceId = ws.workspaceId
   return (await useDatabase().select(columns).from(workspaceBrandAssets)
     .where(and(eq(workspaceBrandAssets.workspaceId, workspaceId), eq(workspaceBrandAssets.id, id)))
     .limit(1))[0] ?? null
 }
 
-export async function countBrandAssets(workspaceId: string, kind: 'font' | 'image'): Promise<number> {
+export async function countBrandAssets(ws: WorkspaceAccess<'member'>, kind: 'font' | 'image'): Promise<number> {
+  const workspaceId = ws.workspaceId
   const r = await useDatabase().select({ n: sql<number>`count(*)::int` }).from(workspaceBrandAssets)
     .where(and(eq(workspaceBrandAssets.workspaceId, workspaceId), eq(workspaceBrandAssets.kind, kind)))
   return Number(r[0]?.n ?? 0)
@@ -62,9 +79,8 @@ export async function countBrandAssets(workspaceId: string, kind: 'font' | 'imag
  * an existing one case-insensitively (CSS family matching ignores case),
  * with the same weight and style, is a duplicate.
  */
-export async function insertBrandAsset(row: {
+export async function insertBrandAsset(ws: WorkspaceAccess<'admin'>, input: {
   id: string
-  workspaceId: string
   kind: 'font' | 'image'
   format: BrandAssetFormat
   name: string
@@ -75,6 +91,7 @@ export async function insertBrandAsset(row: {
   uploadedBy: number
   licenceConfirmedAt: Date | null
 }, limit: number): Promise<'inserted' | 'limit'> {
+  const row = { ...input, workspaceId: ws.workspaceId }
   try {
     return await useDatabase().transaction(async (tx) => {
       await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`brand-assets:${row.workspaceId}:${row.kind}`}))`)
@@ -101,7 +118,8 @@ export async function insertBrandAsset(row: {
   }
 }
 
-export async function deleteBrandAsset(workspaceId: string, id: string): Promise<BrandAssetRow | null> {
+export async function deleteBrandAsset(ws: WorkspaceAccess<'admin'>, id: string): Promise<BrandAssetRow | null> {
+  const workspaceId = ws.workspaceId
   const rows = await useDatabase().delete(workspaceBrandAssets)
     .where(and(eq(workspaceBrandAssets.workspaceId, workspaceId), eq(workspaceBrandAssets.id, id)))
     .returning(columns)
@@ -123,7 +141,28 @@ export function brandFontsOf(assets: BrandAssetRow[]): BrandFont[] {
 }
 
 /** S3 keys of every brand asset of a workspace (workspace deletion). */
-export async function listBrandAssetKeys(workspaceId: string): Promise<string[]> {
+export async function listBrandAssetKeys(ws: WorkspaceAccess<'admin'>): Promise<string[]> {
+  const workspaceId = ws.workspaceId
   return (await useDatabase().select({ k: workspaceBrandAssets.s3Key }).from(workspaceBrandAssets)
     .where(eq(workspaceBrandAssets.workspaceId, workspaceId))).map(r => r.k)
+}
+
+/**
+ * The brand assets of a document's workspace (empty outside a workspace):
+ * what its renderers and viewers load. Keyed on the document, so a viewer
+ * of one document reaches only its own workspace's kit.
+ */
+export async function listBrandAssetsForDoc(doc: DocAccess<'view'>): Promise<BrandAssetRow[]> {
+  return useDatabase().select(columns).from(workspaceBrandAssets)
+    .innerJoin(documents, eq(documents.workspaceId, workspaceBrandAssets.workspaceId))
+    .where(eq(documents.docId, doc.docId))
+    .orderBy(asc(workspaceBrandAssets.kind), asc(workspaceBrandAssets.name), asc(workspaceBrandAssets.weight), asc(workspaceBrandAssets.style))
+}
+
+/** One asset of the document's workspace (`/api/docs/:docId/brand/:file`). */
+export async function getBrandAssetForDoc(doc: DocAccess<'view'>, id: string): Promise<BrandAssetRow | null> {
+  return (await useDatabase().select(columns).from(workspaceBrandAssets)
+    .innerJoin(documents, eq(documents.workspaceId, workspaceBrandAssets.workspaceId))
+    .where(and(eq(documents.docId, doc.docId), eq(workspaceBrandAssets.id, id)))
+    .limit(1))[0] ?? null
 }

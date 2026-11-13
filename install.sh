@@ -21,7 +21,7 @@ MIN_COMPOSE="5.0.0"
 HEALTH_TIMEOUT="${MARKOTO_HEALTH_TIMEOUT:-900}"
 ENV_MARKER="# markoto self-host configuration"
 
-# ─── Output helpers ────────────────────────────────────────────────────
+# Output helpers
 if [ -t 1 ]; then BOLD=$'\033[1m'; DIM=$'\033[2m'; RED=$'\033[31m'; GREEN=$'\033[32m'; RESET=$'\033[0m'
 else BOLD=""; DIM=""; RED=""; GREEN=""; RESET=""; fi
 info() { printf '%s\n' "${BOLD}==>${RESET} $*"; }
@@ -76,7 +76,7 @@ Install options (each also readable from the environment variable shown):
 EOF
 }
 
-# ─── .env access ───────────────────────────────────────────────────────
+# .env access
 # Values are written single-quoted: compose treats them literally (no
 # $-interpolation), so generated or pasted secrets can't be mangled.
 env_get() {
@@ -122,7 +122,7 @@ ensure_secret() {
 }
 
 # Separate least-privilege Postgres roles for the app and for LiteLLM
-# (created by the db-init one-shot, infra/postgres/db-init.sh). POSTGRES_USER
+# (created by the db-init one-shot, deploy/config/postgres/db-init.sh). POSTGRES_USER
 # stays the admin role, used only by db-init and the backup sidecar.
 ensure_db_roles() {
   set_config POSTGRES_APP_USER "" "markoto_app"
@@ -141,7 +141,7 @@ set_config() {
   fi
 }
 
-# ─── Prompts ───────────────────────────────────────────────────────────
+# Prompts
 INTERACTIVE=1
 ask() { # ask VAR "question" default
   local __var="$1" question="$2" default="${3:-}" reply=""
@@ -151,7 +151,7 @@ ask() { # ask VAR "question" default
   fi
   printf -v "$__var" '%s' "${reply:-$default}"
 }
-ask_secret() { # ask_secret VAR "question" — input hidden, never echoed
+ask_secret() { # ask_secret VAR "question", input hidden, never echoed
   local __var="$1" question="$2" reply=""
   if [ "$INTERACTIVE" = 1 ]; then
     read -r -s -p "    $question (input hidden, Enter to skip): " reply
@@ -166,7 +166,7 @@ ask_yes_no() { # ask_yes_no "question" default(y|n) → exit status
   case "$reply" in y | Y | yes | YES) return 0 ;; *) return 1 ;; esac
 }
 
-# ─── Prerequisites ─────────────────────────────────────────────────────
+# Prerequisites
 version_ge() { # version_ge A B → A >= B
   [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n 1)" = "$2" ]
 }
@@ -208,13 +208,17 @@ engine_socket() {
 compose() {
   # LiteLLM reads its config only at boot: a changed hash changes the
   # litellm container's label, so `up -d` recreates it after an upgrade
-  # that changed infra/litellm/ (docker-compose.base.yml).
-  LITELLM_CONFIG_HASH="$(cat "$ROOT/infra/litellm/config.yaml" "$ROOT/infra/litellm/custom_handlers.py" | sha256sum | cut -c1-16)"
+  # that changed deploy/config/litellm/ (deploy/compose/compose.base.yml).
+  LITELLM_CONFIG_HASH="$(cat "$ROOT/deploy/config/litellm/config.yaml" "$ROOT/deploy/config/litellm/custom_handlers.py" | sha256sum | cut -c1-16)"
   export LITELLM_CONFIG_HASH
-  docker compose --project-directory "$ROOT" --env-file "$ENV_FILE" "$@"
+  # COMPOSE_FILE (in .env) lists deploy/compose/* relative to this checkout,
+  # and compose resolves it against the working directory. The project
+  # directory is the compose files' own: their relative paths (config
+  # mounts, the renderer's seccomp profile, ../../branding) start there.
+  (cd "$ROOT" && docker compose --project-directory "$ROOT/deploy/compose" --env-file "$ENV_FILE" "$@")
 }
 
-# ─── Configuration ─────────────────────────────────────────────────────
+# Configuration
 # Prefer an immutable release tag over the moving `latest`: the release tag
 # of the checked-out commit, else the newest release tag reachable from it,
 # else (shallow clone / no tags) `latest`.
@@ -266,7 +270,7 @@ configure() {
     env_set ACME_EMAIL "$acme_email"
     env_set MARKOTO_HTTP_PORT "80"
     env_set MARKOTO_PUBLIC_URL "$public_url"
-    COMPOSE_FILES="docker-compose.selfhost.yml:docker-compose.selfhost.tls.yml"
+    COMPOSE_FILES="deploy/compose/compose.selfhost.yml:deploy/compose/compose.selfhost.tls.yml"
   else
     env_set MARKOTO_DOMAIN ""
     http_port="${http_port:-$(env_get MARKOTO_HTTP_PORT)}"
@@ -275,7 +279,7 @@ configure() {
     env_set MARKOTO_HTTP_PORT "$http_port"
     # Explicit --public-url wins. Otherwise keep the stored URL, unless
     # there is none, the port was given explicitly, or we are switching
-    # from HTTPS mode — then derive it from this host's address.
+    # from HTTPS mode: then derive it from this host's address.
     public_url="${OPT_PUBLIC_URL:-$(env_get MARKOTO_PUBLIC_URL)}"
     if [ -z "$OPT_PUBLIC_URL" ]; then
       if [ -z "$public_url" ] || [ -n "$OPT_HTTP_PORT" ] || [ -n "$previous_domain" ]; then
@@ -287,7 +291,7 @@ configure() {
     public_url="${public_url%/}"
     case "$public_url" in http://* | https://*) ;; *) die "public URL must start with http:// or https://" ;; esac
     env_set MARKOTO_PUBLIC_URL "$public_url"
-    COMPOSE_FILES="docker-compose.selfhost.yml"
+    COMPOSE_FILES="deploy/compose/compose.selfhost.yml"
   fi
   case "$public_url" in
     https://*) sync_url="wss://${public_url#https://}/sync" ;;
@@ -299,21 +303,21 @@ configure() {
 
   if [ "$OPT_BUILD" = 1 ] || [ "$(env_get MARKOTO_BUILD)" = 1 ]; then
     env_set MARKOTO_BUILD "1"
-    COMPOSE_FILES="${COMPOSE_FILES}:docker-compose.selfhost.build.yml"
+    COMPOSE_FILES="${COMPOSE_FILES}:deploy/compose/compose.selfhost.build.yml"
   fi
-  # Managed private instance (WP16): a ./branding directory holds the
-  # customer's logo (docs/MANAGED-INSTANCE.md).
+  # Managed private instance: a ./branding directory holds the
+  # customer's logo (docs/operations/MANAGED-INSTANCE.md).
   if [ -d "$ROOT/branding" ]; then
-    COMPOSE_FILES="${COMPOSE_FILES}:docker-compose.selfhost.brand.yml"
+    COMPOSE_FILES="${COMPOSE_FILES}:deploy/compose/compose.selfhost.brand.yml"
   fi
-  # Podman: renderer seccomp overlay + the engine socket (docs/CONTAINER-ENGINES.md).
+  # Podman: renderer seccomp overlay + the engine socket (docs/contributing/CONTAINER-ENGINES.md).
   if engine_is_podman; then
-    COMPOSE_FILES="${COMPOSE_FILES}:docker-compose.podman.yml"
+    COMPOSE_FILES="${COMPOSE_FILES}:deploy/compose/compose.podman.yml"
     local unpriv
     unpriv="$(cat /proc/sys/net/ipv4/ip_unprivileged_port_start 2>/dev/null || echo 1024)"
     if [ "$(id -u)" != 0 ] && [ "$(env_get MARKOTO_HTTP_PORT)" -lt "$unpriv" ]; then
       warn "Rootless Podman can't publish port $(env_get MARKOTO_HTTP_PORT) (this host allows ports from $unpriv)."
-      warn "Lower net.ipv4.ip_unprivileged_port_start, or choose a port >= $unpriv. See docs/CONTAINER-ENGINES.md."
+      warn "Lower net.ipv4.ip_unprivileged_port_start, or choose a port >= $unpriv. See docs/contributing/CONTAINER-ENGINES.md."
     fi
   fi
   env_set CONTAINER_SOCKET "$(engine_socket)"
@@ -330,7 +334,7 @@ configure() {
   fi
   env_set COMPOSE_PROFILES "$backup_profile"
 
-  # Secrets — generated once, never printed, never regenerated.
+  # Secrets: generated once, never printed, never regenerated.
   set_config POSTGRES_USER "" "markoto"
   set_config POSTGRES_DB "" "markoto"
   ensure_secret POSTGRES_PASSWORD hex
@@ -340,8 +344,11 @@ configure() {
   ensure_secret NUXT_SESSION_PASSWORD hex
   ensure_secret NUXT_JWT_SECRET hex
   ensure_secret NUXT_INTERNAL_API_SECRET hex
+  # Encrypts stored provider keys / SSO secrets: back it up with the .env.
+  ensure_secret NUXT_ENCRYPTION_KEY hex
   ensure_secret NUXT_AI_DICTATE_JWT_SECRET hex
   ensure_secret NUXT_ALTCHA_HMAC_KEY hex
+  ensure_secret NUXT_MARKITDOWN_API_SECRET hex
   ensure_secret LITELLM_MASTER_KEY sk
   ensure_secret LITELLM_SALT_KEY sk
   ensure_secret NUXT_S3_ACCESS_KEY key
@@ -427,7 +434,7 @@ configure_ai() {
   local jina="${OPT_JINA:-$(env_get JINA_AI_API_KEY)}"
   local staan="${OPT_STAAN:-$(env_get STAAN_API_KEY)}"
   if [ "$INTERACTIVE" = 1 ] && [ -z "$mistral$jina$staan" ]; then
-    info "AI (optional — everything else works without it)"
+    info "AI (optional: everything else works without it)"
     note "Users can always bring their own key (Settings -> AI provider). Optionally"
     note "set instance-wide providers now; more options in docs/SELF-HOSTING.md#ai."
     ask_secret mistral "Mistral API key (instance default for chat + voice)"
@@ -443,7 +450,7 @@ configure_ai() {
   fi
 }
 
-# ─── Lifecycle ─────────────────────────────────────────────────────────
+# Lifecycle
 pull_or_build() {
   if [ "$(env_get MARKOTO_BUILD)" = 1 ]; then
     info "Building images from $ROOT (this takes a while the first time)"
@@ -455,7 +462,7 @@ pull_or_build() {
     warn "Pulling failed (images not published for this tag, or the registry needs a login)."
     warn "Falling back to building from this checkout. Make it permanent with --build."
     env_set MARKOTO_BUILD "1"
-    env_set COMPOSE_FILE "$(env_get COMPOSE_FILE):docker-compose.selfhost.build.yml"
+    env_set COMPOSE_FILE "$(env_get COMPOSE_FILE):deploy/compose/compose.selfhost.build.yml"
     compose build
   fi
 }
@@ -474,12 +481,12 @@ wait_healthy() {
   done
   if [ "$status" != "healthy" ]; then
     compose ps
-    die "the app did not become healthy within ${HEALTH_TIMEOUT}s — inspect: ./install.sh logs app"
+    die "the app did not become healthy within ${HEALTH_TIMEOUT}s, inspect: ./install.sh logs app"
   fi
   ok "app container healthy"
 
   # /api/health is the gating probe (Postgres, Valkey, sync, renderer,
-  # markitdown, LiteLLM). The per-component /api/health/deep needs a login.
+  # markitdown, LiteLLM). The per-component /api/health/deep needs an admin login.
   # Traefik runs its own health check on the app (every 10 s) before it
   # routes to it, and a certificate may still be being issued: retry.
   local url probe
@@ -492,7 +499,7 @@ wait_healthy() {
       if [ -n "$(env_get MARKOTO_DOMAIN)" ]; then
         warn "not reachable at $url yet (certificate issuance can take a minute; check DNS + ports 80/443)"
       else
-        warn "health check through Traefik ($probe) failed — ./install.sh logs traefik"
+        warn "health check through Traefik ($probe) failed, ./install.sh logs traefik"
       fi
       return 0
     fi
@@ -511,6 +518,9 @@ next_steps() {
     note "Login:       not configured (anonymous-only). Add an IdP or OAuth app: docs/SELF-HOSTING.md#login"
   fi
   note "Configure:   edit $ENV_FILE, then: docker compose up -d   (from $ROOT)"
+  if [ -z "$(env_get NUXT_PUBLISH_PAGES_HOST)" ]; then
+    note "Public?      serve published pages from their own hostname: docs/SELF-HOSTING.md#published-pages"
+  fi
   note "Upgrade:     ./install.sh upgrade [--tag vX.Y.Z]"
   note "Backups:     docs/SELF-HOSTING.md#backups (copy them off this machine)"
   note "Status:      ./install.sh status"
@@ -528,12 +538,14 @@ cmd_install() {
 
 cmd_upgrade() {
   check_prereqs
-  [ -f "$ENV_FILE" ] || die "no $ENV_FILE — run ./install.sh first"
+  [ -f "$ENV_FILE" ] || die "no $ENV_FILE, run ./install.sh first"
   grep -qF "$ENV_MARKER" "$ENV_FILE" || die "$ENV_FILE was not written by install.sh"
   if [ -n "$OPT_TAG" ]; then env_set IMAGE_TAG "$OPT_TAG"; fi
   # Secrets introduced by newer versions get generated; existing ones stay.
+  ensure_secret NUXT_ENCRYPTION_KEY hex
   ensure_secret NUXT_AI_DICTATE_JWT_SECRET hex
   ensure_secret NUXT_ALTCHA_HMAC_KEY hex
+  ensure_secret NUXT_MARKITDOWN_API_SECRET hex
   ensure_secret BACKUP_GPG_PASSPHRASE hex
   ensure_db_roles
   info "Upgrading to image tag $(env_get IMAGE_TAG)"
@@ -545,7 +557,7 @@ cmd_upgrade() {
   next_steps
 }
 
-# ─── Argument parsing ──────────────────────────────────────────────────
+# Argument parsing
 COMMAND="install"
 OPT_DOMAIN="${MARKOTO_DOMAIN:-}"
 OPT_ACME_EMAIL="${ACME_EMAIL:-}"

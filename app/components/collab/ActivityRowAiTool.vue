@@ -1,54 +1,35 @@
 <script setup lang="ts">
-// Per-tool detail view for an `ai.tool` activity row. We render
-// directly from the row's `metadata` blob — no extra round-trip.
-// All persistence happened at runLoop time when the tool fired, so
-// the drawer just needs to switch on `metadata.tool` and pick the
-// right sub-renderer.
-//
-// Why no API call: the data per row is small (sources array, image
-// strip, prompt text — all bounded) and travels with the activity
-// list response anyway. Saving the round-trip here keeps the
-// expansion instant.
+// Per-tool detail view for an `ai.tool` activity row, rendered straight from
+// the row's `metadata` (small, bounded, and already in the list response, so
+// no extra request).
 
-import { safeLinkUrl } from '~/utils/activityFeedHelpers'
+import { safeLinkUrl } from '~/utils/collab/activityFeedHelpers'
+import type { ActivityMetadataAiTool } from '~/utils/api/types/activity'
 
 interface Source { title: string, uri: string }
 interface FetchImage { url: string, description?: string }
 
-interface AiToolMetadata {
-  kind: 'ai.tool'
-  tool: 'web_search' | 'fetch_url' | 'generate_image' | 'view_image' | 'search_knowledge' | 'get_knowledge_file'
-  query?: string
-  url?: string
-  prompt?: string
-  src?: string
-  knowledgeId?: string
-  sources?: Source[]
-  summary?: string
-  images?: FetchImage[]
-}
-
 const props = defineProps<{
-  metadata: AiToolMetadata
+  metadata: ActivityMetadataAiTool
 }>()
 
 // Every URL below comes from a tool input or a fetched page, so it is
 // bound only after `safeLinkUrl` (http(s) or a relative path); entries
 // without a usable URL are not rendered as links/images.
-const sources = computed(() => (props.metadata.sources ?? [])
+const sources = computed(() => (props.metadata.tool === 'web_search' ? props.metadata.sources ?? [] : [])
   .map(src => ({ title: src.title, uri: safeLinkUrl(src.uri) }))
   .filter((src): src is Source => src.uri !== undefined))
-const pageUrl = computed(() => safeLinkUrl(props.metadata.url))
-const images = computed(() => (props.metadata.images ?? [])
-  .map(img => ({ description: img.description, url: safeLinkUrl(img.url) }))
-  .filter((img): img is FetchImage => img.url !== undefined))
-const viewedSrc = computed(() => safeLinkUrl(props.metadata.src))
+const pageUrl = computed(() => safeLinkUrl(props.metadata.tool === 'fetch_url' ? props.metadata.url : undefined))
+const images = computed(() => (props.metadata.tool === 'fetch_url' ? props.metadata.images ?? [] : [])
+  .flatMap((img): FetchImage[] => {
+    const url = safeLinkUrl(img.url)
+    return url === undefined ? [] : [{ description: img.description, url }]
+  }))
+const viewedSrc = computed(() => safeLinkUrl(props.metadata.tool === 'view_image' ? props.metadata.src : undefined))
 
 const { t } = useI18n()
 
-// Try to surface a host-only URL on link rows so the narrow sidebar
-// doesn't blow out on long URIs. Falls back to the raw URL on parse
-// failure (which would only happen for malformed inputs).
+// Host-only URL keeps the narrow sidebar from overflowing; falls back to the raw URL if parsing fails.
 function hostOf(rawUrl: string): string {
   try {
     return new URL(rawUrl).host
@@ -60,7 +41,6 @@ function hostOf(rawUrl: string): string {
 
 <template>
   <div class="activity-row-ai-tool space-y-2">
-    <!-- web_search: synthesized query + clickable source list -->
     <template v-if="metadata.tool === 'web_search'">
       <div
         v-if="metadata.query"
@@ -107,7 +87,6 @@ function hostOf(rawUrl: string): string {
       </div>
     </template>
 
-    <!-- fetch_url: page summary + image strip -->
     <template v-else-if="metadata.tool === 'fetch_url'">
       <a
         v-if="pageUrl"
@@ -141,10 +120,7 @@ function hostOf(rawUrl: string): string {
           :title="img.description ?? img.url"
           class="block rounded overflow-hidden border border-default/60 aspect-square bg-muted"
         >
-          <!-- Inline thumbnail. `referrerpolicy=no-referrer` so cross-
-               origin hosts don't 403 us on referer-based hotlink
-               protection. `loading=lazy` because most expansions
-               only show 0-1 images visible at a time. -->
+          <!-- `no-referrer` avoids referer-based hotlink 403s from cross-origin hosts. -->
           <img
             :src="img.url"
             :alt="img.description ?? ''"
@@ -156,7 +132,6 @@ function hostOf(rawUrl: string): string {
       </div>
     </template>
 
-    <!-- generate_image: prompt -->
     <template v-else-if="metadata.tool === 'generate_image'">
       <div
         v-if="metadata.prompt"
@@ -169,11 +144,11 @@ function hostOf(rawUrl: string): string {
       </div>
     </template>
 
-    <!-- view_image: thumbnail of the image AI looked at -->
     <template v-else-if="metadata.tool === 'view_image'">
       <a
         v-if="viewedSrc"
         :href="viewedSrc"
+        :aria-label="t('activity.aiTool.openViewedImage')"
         target="_blank"
         rel="noopener noreferrer"
         class="block rounded overflow-hidden border border-default/60 max-h-48 bg-muted"
@@ -188,9 +163,7 @@ function hostOf(rawUrl: string): string {
       </a>
     </template>
 
-    <!-- search_knowledge: just the query for now (results expansion
-         can land in a follow-up; the knowledge-base feature is
-         workspace-only and we want to validate the broad UX first). -->
+    <!-- Only the query is shown; no result expansion. -->
     <template v-else-if="metadata.tool === 'search_knowledge'">
       <div
         v-if="metadata.query"
@@ -203,7 +176,6 @@ function hostOf(rawUrl: string): string {
       </div>
     </template>
 
-    <!-- get_knowledge_file: just the id; future-work resolves to filename -->
     <template v-else-if="metadata.tool === 'get_knowledge_file'">
       <div
         v-if="metadata.knowledgeId"

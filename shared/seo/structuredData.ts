@@ -8,7 +8,7 @@
 // Only facts we can stand behind: the operating entity (from the legal
 // entity resolver, `shared/legal/entity.ts`, shipped to the client as
 // `InstanceConfig.operatorName`), the site, and the free web app. No
-// aggregateRating / reviews — there are none, and inventing them is
+// aggregateRating / reviews: there are none, and inventing them is
 // against both Google's rules and ours.
 
 import { SITE_NAME } from './meta'
@@ -151,7 +151,7 @@ export interface FaqItem {
 /**
  * FAQPage for a marketing page's `::faq` block. Valid markup, but Google
  * shows FAQ rich results only for a few government/health sites since
- * 2023 — it helps other consumers, not rankings.
+ * 2023: it helps other consumers, not rankings.
  */
 export function faqStructuredData(items: FaqItem[], inLanguage: string): Record<string, unknown> {
   return {
@@ -166,7 +166,7 @@ export function faqStructuredData(items: FaqItem[], inLanguage: string): Record<
   }
 }
 
-// ─── Page graphs (every public page below `/`) ─────────────────────────
+// Page graphs (every public page below `/`)
 
 export interface SiteIds {
   home: string
@@ -176,7 +176,7 @@ export interface SiteIds {
 }
 
 /** The site-wide node ids, as the home page defines them. */
-export function siteIds(siteUrl: string): SiteIds {
+function siteIds(siteUrl: string): SiteIds {
   const home = `${siteUrl}/`
   return { home, organization: `${home}#organization`, website: `${home}#website`, app: `${home}#app` }
 }
@@ -241,7 +241,7 @@ function absolute(siteUrl: string, path: string): string {
 }
 
 /** BreadcrumbList node for a trail (positions from 1, absolute URLs). */
-export function breadcrumbNode(siteUrl: string, pageUrl: string, crumbs: Crumb[]): Record<string, unknown> {
+function breadcrumbNode(siteUrl: string, pageUrl: string, crumbs: Crumb[]): Record<string, unknown> {
   return {
     '@type': 'BreadcrumbList',
     '@id': `${pageUrl}#breadcrumb`,
@@ -285,20 +285,20 @@ function aboutGraph(ids: SiteIds, pageUrl: string, about: AboutThing[], definedI
 export function pageStructuredData(input: PageGraphInput): Record<string, unknown> {
   const ids = siteIds(input.siteUrl)
   const url = absolute(input.siteUrl, input.path)
-  const pageId = `${url}#webpage`
-  const articleId = `${url}#article`
-  const listId = `${url}#itemlist`
-  const dateModified = isoDate(input.dateModified)
-  const publisher = input.operatorName ? { '@id': ids.organization } : undefined
   const extraNodes = (input.extraNodes ?? []).map(node =>
     Object.fromEntries(Object.entries(node).filter(([k]) => k !== '@context')))
   const definedIds = new Set(extraNodes.map(n => n['@id']).filter((id): id is string => typeof id === 'string'))
   const aboutParts = input.about?.length ? aboutGraph(ids, url, input.about, definedIds) : undefined
-  const about = aboutParts?.refs
-  const hasList = Boolean(input.itemList?.length)
-  let mainEntity: string | undefined
-  if (input.article) mainEntity = articleId
-  else if (hasList) mainEntity = listId
+  const page: PageNodeContext = {
+    ids,
+    url,
+    pageId: `${url}#webpage`,
+    articleId: `${url}#article`,
+    listId: `${url}#itemlist`,
+    dateModified: isoDate(input.dateModified),
+    publisher: input.operatorName ? { '@id': ids.organization } : undefined,
+    about: aboutParts?.refs
+  }
 
   const graph: Record<string, unknown>[] = []
   if (input.operatorName) {
@@ -309,66 +309,93 @@ export function pageStructuredData(input: PageGraphInput): Record<string, unknow
     '@id': ids.website,
     'name': SITE_NAME,
     'url': ids.home,
-    ...(publisher ? { publisher } : {})
-  }, {
+    ...(page.publisher ? { publisher: page.publisher } : {})
+  }, webPageNode(input, page), breadcrumbNode(input.siteUrl, url, input.breadcrumbs))
+
+  if (input.article) graph.push(articleNode(input, input.article, page))
+  if (input.howTo?.steps.length) graph.push(howToNode(input, input.howTo, page))
+  if (input.itemList?.length) graph.push(itemListNode(input, input.itemList, page))
+  graph.push(...(aboutParts?.nodes ?? []), ...extraNodes)
+  return { '@context': 'https://schema.org', '@graph': graph }
+}
+
+/** Ids and shared values of one page's graph. */
+interface PageNodeContext {
+  ids: SiteIds
+  url: string
+  pageId: string
+  articleId: string
+  listId: string
+  dateModified: string | undefined
+  publisher: { '@id': string } | undefined
+  about: Record<string, string>[] | undefined
+}
+
+function webPageNode(input: PageGraphInput, page: PageNodeContext): Record<string, unknown> {
+  const { dateModified, about } = page
+  let mainEntity: string | undefined
+  if (input.article) mainEntity = page.articleId
+  else if (input.itemList?.length) mainEntity = page.listId
+  return {
     '@type': input.pageType ?? 'WebPage',
-    '@id': pageId,
-    'url': url,
+    '@id': page.pageId,
+    'url': page.url,
     'name': input.name,
     'description': input.description,
     'inLanguage': input.inLanguage,
-    'isPartOf': { '@id': ids.website },
-    'breadcrumb': { '@id': `${url}#breadcrumb` },
+    'isPartOf': { '@id': page.ids.website },
+    'breadcrumb': { '@id': `${page.url}#breadcrumb` },
     ...(dateModified ? { dateModified } : {}),
     ...(about ? { about } : {}),
     ...(input.image ? { primaryImageOfPage: { '@type': 'ImageObject', 'url': input.image } } : {}),
     ...(mainEntity ? { mainEntity: { '@id': mainEntity } } : {})
-  }, breadcrumbNode(input.siteUrl, url, input.breadcrumbs))
+  }
+}
 
-  if (input.article) {
-    graph.push({
-      '@type': input.article,
-      '@id': articleId,
-      // Search engines cut headlines past 110 characters.
-      'headline': input.name.slice(0, 110),
-      'description': input.description,
-      'inLanguage': input.inLanguage,
-      'url': url,
-      'mainEntityOfPage': { '@id': pageId },
-      'isPartOf': { '@id': ids.website },
-      ...(dateModified ? { dateModified } : {}),
-      ...(input.image ? { image: input.image } : {}),
-      ...(publisher ? { publisher, author: publisher } : {}),
-      ...(about ? { about } : {})
-    })
+function articleNode(input: PageGraphInput, type: NonNullable<PageGraphInput['article']>, page: PageNodeContext): Record<string, unknown> {
+  const { dateModified, publisher, about } = page
+  return {
+    '@type': type,
+    '@id': page.articleId,
+    // Search engines cut headlines past 110 characters.
+    'headline': input.name.slice(0, 110),
+    'description': input.description,
+    'inLanguage': input.inLanguage,
+    'url': page.url,
+    'mainEntityOfPage': { '@id': page.pageId },
+    'isPartOf': { '@id': page.ids.website },
+    ...(dateModified ? { dateModified } : {}),
+    ...(input.image ? { image: input.image } : {}),
+    ...(publisher ? { publisher, author: publisher } : {}),
+    ...(about ? { about } : {})
   }
-  if (input.howTo?.steps.length) {
-    graph.push({
-      '@type': 'HowTo',
-      '@id': `${url}#howto`,
-      'name': input.howTo.name,
-      'inLanguage': input.inLanguage,
-      'isPartOf': { '@id': pageId },
-      'step': input.howTo.steps.map((step, i) => ({
-        '@type': 'HowToStep',
-        'position': i + 1,
-        'name': step.name,
-        'text': step.text
-      }))
-    })
+}
+
+function howToNode(input: PageGraphInput, howTo: NonNullable<PageGraphInput['howTo']>, page: PageNodeContext): Record<string, unknown> {
+  return {
+    '@type': 'HowTo',
+    '@id': `${page.url}#howto`,
+    'name': howTo.name,
+    'inLanguage': input.inLanguage,
+    'isPartOf': { '@id': page.pageId },
+    'step': howTo.steps.map((step, i) => ({
+      '@type': 'HowToStep',
+      'position': i + 1,
+      'name': step.name,
+      'text': step.text
+    }))
   }
-  if (input.itemList && hasList) {
-    graph.push({
-      '@type': 'ItemList',
-      '@id': listId,
-      'itemListElement': input.itemList.map((item, i) => ({
-        '@type': 'ListItem',
-        'position': i + 1,
-        'name': item.name,
-        'url': absolute(input.siteUrl, item.path)
-      }))
-    })
+}
+
+function itemListNode(input: PageGraphInput, items: NonNullable<PageGraphInput['itemList']>, page: PageNodeContext): Record<string, unknown> {
+  return {
+    '@type': 'ItemList',
+    '@id': page.listId,
+    'itemListElement': items.map((item, i) => ({
+      '@type': 'ListItem',
+      'position': i + 1,
+      'name': item.name,
+      'url': absolute(input.siteUrl, item.path)
+    }))
   }
-  graph.push(...(aboutParts?.nodes ?? []), ...extraNodes)
-  return { '@context': 'https://schema.org', '@graph': graph }
 }

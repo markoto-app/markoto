@@ -1,18 +1,10 @@
-// Internal shapes for the agentic loop. Phase 5 split: previously
-// imported from `@google/genai`, now hand-rolled so the loop has a
-// single source of truth that doesn't depend on a vendor SDK we
-// no longer talk to. The runtime path is OpenAI-shape via LiteLLM
-// (translated by `messageTranslation.ts`), but the loop's internal
-// representation stays in the historical `{role, parts}` shape
-// (pre-migration: Gemini) because (a) tools naturally produce +
-// consume parts, and (b) it keeps the diff against the historic
-// loop minimal.
-//
-// The `*Original` aliases at the bottom let migrating callers move
-// import-by-import without an atomic rename.
+// Internal shapes for the agentic loop, independent of any vendor SDK.
+// The runtime path is OpenAI-shape via LiteLLM (translated by
+// `messageTranslation.ts`), but the loop's internal representation is a
+// `{role, parts}` shape because tools naturally produce and consume parts.
 
 /**
- * Single content part. Mirrors the model's Part union — at most one
+ * Single content part. Mirrors the model's Part union, at most one
  * field on a given part is populated. Translation to OpenAI shape
  * fans these out into `text` / `image_url` / `tool_calls` /
  * `tool_response` blocks.
@@ -23,7 +15,7 @@ export interface AgenticPart {
   /**
    * `rawArgs`: the argument JSON exactly as the model streamed it. Replayed
    * verbatim in later turns (instead of re-serialising `args`) so the
-   * history stays byte-identical to what the provider generated — the
+   * history stays byte-identical to what the provider generated, the
    * prompt-cache prefix must not change between turns.
    */
   functionCall?: { id?: string, name?: string, args?: unknown, rawArgs?: string }
@@ -51,8 +43,8 @@ export interface AgenticContent {
 
 /**
  * Tool declaration shape. JSONSchema parameters are passed verbatim
- * through to the model; `functionTools.ts` builds these from Zod
- * schemas via `z.toJSONSchema`.
+ * through to the model; the tool registry (`ai/tools/`) builds these
+ * from Zod schemas via `z.toJSONSchema`.
  */
 export interface AgenticFunctionDeclaration {
   name?: string
@@ -69,7 +61,7 @@ export interface AgenticFunctionDeclaration {
 
 /**
  * A single function-call request emitted by the model. `args` is
- * raw — the loop validates it against the matching tool's Zod
+ * raw: the loop validates it against the matching tool's Zod
  * schema before invoking the handler.
  */
 export interface AgenticFunctionCall {
@@ -129,7 +121,7 @@ export interface AgenticGenerateContentResponse {
  * Minimal AI-client shape the loop's test seam consumes. Production
  * goes through `streamFromLiteLLM` and never calls this surface;
  * unit tests inject a fake whose `models.generateContentStream`
- * yields scripted chunks. Kept tight on purpose — anything more
+ * yields scripted chunks. Kept tight on purpose, anything more
  * elaborate would invite drift from the LiteLLM path.
  */
 export interface AgenticAIClient {

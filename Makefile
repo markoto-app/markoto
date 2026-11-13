@@ -1,35 +1,44 @@
 SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
 
-# Each env file pulls in docker-compose.base.yml via Compose's `include:`
-# directive (Compose v2.20+). Single -f flag is enough; the merge is
-# transparent. See AGENTS.md §5.
-LOCAL := docker compose -f docker-compose.local.yml
-DEV   := docker compose -f docker-compose.dev.yml
-PROD  := docker compose -f docker-compose.prod.yml
+# The stacks live in deploy/compose/; each pulls in compose.base.yml via
+# Compose's `include:` directive. Compose 5.0 or newer is required (the files
+# redefine included services, which older versions reject). Single -f flag is
+# enough; the merge is transparent. See docs/ARCHITECTURE.md ("Design decisions").
+# Compose reads `.env` from the compose file's directory, so the repository's
+# is handed over explicitly (when there is one).
+ENV_FILE := $(if $(wildcard .env),--env-file .env)
+LOCAL := docker compose $(ENV_FILE) -f deploy/compose/compose.local.yml
+DEV   := docker compose $(ENV_FILE) -f deploy/compose/compose.dev.yml
+PROD  := docker compose $(ENV_FILE) -f deploy/compose/compose.prod.yml
 # The test stack goes through a helper that adds the Podman overlay when
-# the engine is Podman (docs/CONTAINER-ENGINES.md).
+# the engine is Podman (docs/contributing/CONTAINER-ENGINES.md).
 TEST  := bash scripts/test-compose.sh
 
-CERT_DIR  := traefik/local
+CERT_DIR  := deploy/config/traefik/local
 CERT_NAME := ypad.127.0.0.1.nip.io
 CERT      := $(CERT_DIR)/$(CERT_NAME).pem
 KEY       := $(CERT_DIR)/$(CERT_NAME)-key.pem
 
 .PHONY: help
 help: ## Show this help
-	@printf "markoto — task runner. Run \033[1mmake <target>\033[0m or see \033[1mdocs/CHEATSHEET.md\033[0m for a use-case-keyed index.\n\n"
+	@printf "markoto: task runner. Run \033[1mmake <target>\033[0m or see \033[1mdocs/contributing/CHEATSHEET.md\033[0m for a use-case-keyed index.\n\n"
 	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 	  | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 	@printf "\nAnsible/deploy subcommands: \033[1mcd infra && make help\033[0m\n"
 	@printf "All bun scripts:            \033[1mbun run\033[0m\n"
 
 # === Local development ===
+.PHONY: setup
+setup: ## First run: create .env with generated secrets, install deps (one Bun workspace: app, shared, sync-server, renderer)
+	bash scripts/setup-env.sh
+	bun install
+
 .PHONY: dev
-dev: ## Start dev infra (Postgres, Valkey, etc) — Nuxt runs on host
+dev: ## Start dev infra (Postgres, Valkey, etc), Nuxt runs on host
 	$(DEV) up -d
 	@echo ""
-	@echo "Dev infra up. In another terminal: bun run dev --host 0.0.0.0"
+	@echo "Dev infra up (first run? 'make setup' creates .env). In another terminal: bun run dev --host 0.0.0.0"
 	@echo "Or: make dev-app"
 
 .PHONY: dev-app
@@ -58,7 +67,7 @@ test: ## Run lint + typecheck + unit + dom + repos (no integration / flows)
 	bun run test:repos
 
 .PHONY: test-unit
-test-unit: ## Run unit tests only (fast — no DB, no Docker)
+test-unit: ## Run unit tests only (fast, no DB, no Docker)
 	bun run test:unit
 
 .PHONY: test-dom
@@ -74,7 +83,7 @@ test-repos: ## Run repos tests (DB-backed; uses test stack)
 	bun run test:repos
 
 .PHONY: test-integration
-test-integration: ## Run integration tests (slow — full stack)
+test-integration: ## Run integration tests (slow, full stack)
 	bun run test:integration
 
 .PHONY: test-flows
@@ -82,7 +91,7 @@ test-flows: ## Run Playwright e2e flow tests
 	bun run flows:test
 
 .PHONY: test-all
-test-all: ## Run EVERY test suite (slow — ~15min)
+test-all: ## Run EVERY test suite (slow, ~15min)
 	$(MAKE) test
 	$(MAKE) test-integration
 	$(MAKE) test-flows
@@ -92,10 +101,17 @@ test-all: ## Run EVERY test suite (slow — ~15min)
 lint: ## Run all lint+typecheck (eslint + tsc incl. sync-server + renderer + ansible-lint + yamllint + actionlint)
 	bun run lint
 	bun run typecheck
-	cd sync-server && bun --bun run typecheck
-	cd renderer && bun --bun run typecheck
+	bun run typecheck:services
 	$(MAKE) -C infra lint
 	$(MAKE) lint-actions
+
+.PHONY: check
+check: ## The one-command local gate: generated files, graph checks, fast lint, every typecheck, unit tests
+	bun run check
+
+.PHONY: check-full
+check-full: ## `make check` + the type-aware lint rules + the checks that need external tools (shellcheck, hadolint, lychee, uv)
+	bun run check:full
 
 .PHONY: lint-actions
 lint-actions: ## Lint .github/workflows/*.yml via actionlint
@@ -247,9 +263,9 @@ theme-shots: ## PNG per page + contact sheet per theme preset from a running app
 
 # === Reference ===
 .PHONY: cheatsheet
-cheatsheet: ## Print docs/CHEATSHEET.md
-	@cat docs/CHEATSHEET.md 2>/dev/null || echo "See docs/CHEATSHEET.md"
+cheatsheet: ## Print docs/contributing/CHEATSHEET.md
+	@cat docs/contributing/CHEATSHEET.md 2>/dev/null || echo "See docs/contributing/CHEATSHEET.md"
 
 .PHONY: runbook
-runbook: ## Print docs/RUNBOOK.md
-	@cat docs/RUNBOOK.md 2>/dev/null || echo "See docs/RUNBOOK.md"
+runbook: ## Print docs/operations/RUNBOOK.md
+	@cat docs/operations/RUNBOOK.md 2>/dev/null || echo "See docs/operations/RUNBOOK.md"

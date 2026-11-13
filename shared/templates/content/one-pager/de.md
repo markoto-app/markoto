@@ -1,10 +1,10 @@
-<!-- Ein Produkt- oder Projekt-Onepager. Er muss auf EINE Seite passen: Jeder Abschnitt hat nur wenige Zeilen; kürzen Sie lieber, als die Schrift zu verkleinern. Der Titelblock oben zeigt Titel und Untertitel (Dokument-Design › Titelseite). Der fette Absatz darunter ist der Pitch: ein Satz dazu, was es ist, für wen, und was sich für diese Menschen ändert. -->
+<!-- Ein Produkt- oder Projekt-Onepager. Er muss auf EINE Seite passen: Jeder Abschnitt hat nur wenige Zeilen; kürze lieber, als die Schrift zu verkleinern. Der Titelblock oben zeigt Titel und Untertitel (Dokument-Design › Titelseite). Der fette Absatz darunter ist der Pitch: ein Satz dazu, was es ist, für wen, und was sich für diese Menschen ändert. -->
 
 **Der Pitch in einem Satz.**
 
 ## Das Problem
 
-<!-- Zwei oder drei Sätze zum Problem, das Ihre Leserschaft kennt: wer es hat, wie oft, was es kostet. Nennen Sie eine Zahl, wenn Sie eine mit Quelle haben. -->
+<!-- Zwei oder drei Sätze zum Problem, das deine Leserschaft kennt: wer es hat, wie oft, was es kostet. Nenne eine Zahl, wenn du eine mit Quelle hast. -->
 
 Wer das Problem hat, wie oft, und was es kostet.
 
@@ -37,7 +37,7 @@ Wer das Problem hat, wie oft, und was es kostet.
 
 ## Nächste Schritte
 
-<!-- Worum Sie die Leserschaft bitten, als kurze nummerierte Liste: ein Pilotversuch, ein Termin, eine Vorstellung. Schliessen Sie mit einem Absatz aus fetten Stichworten: Preis, Team, Kontakt. -->
+<!-- Worum du die Leserschaft bittest, als kurze nummerierte Liste: ein Pilotversuch, ein Termin, eine Vorstellung. Schliesse mit einem Absatz aus fetten Stichworten: Preis, Team, Kontakt. -->
 
 1. Erster Schritt.
 

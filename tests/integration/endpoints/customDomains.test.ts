@@ -1,19 +1,19 @@
 import { request as httpRequest } from 'node:http'
 import { connect as tlsConnect, type PeerCertificate } from 'node:tls'
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import * as Y from 'yjs'
-import { ensureYjsTable, resetDb, testDb } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
-import { createDoc, createUser } from '../setup/fixtures'
+import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import {
   TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_CHALLTESTSRV_URL, TEST_PUBLISH_DOMAINS_TARGET,
   TEST_TRAEFIK_IP, TEST_TRAEFIK_PROVIDER_TOKEN, TEST_TRAEFIK_TLS_PORT
 } from '../setup/env'
 
-// Custom domains (WP13): a user adds a domain, proves it with a TXT
+// Custom domains: a user adds a domain, proves it with a TXT
 // record, points it at the instance; only then Traefik gets a router for
-// it and a certificate from the ACME CA — here pebble, Let's Encrypt's
-// test CA, with challtestsrv as DNS (docker-compose.test.yml). On the
+// it and a certificate from the ACME CA, here pebble, Let's Encrypt's
+// test CA, with challtestsrv as DNS (deploy/compose/compose.test.yml). On the
 // domain only the published page and its files exist.
 
 interface DomainView {
@@ -34,10 +34,10 @@ async function challtest(path: string, body: unknown): Promise<void> {
 const fqdn = (h: string) => `${h}.`
 
 /** A plain HTTP request to the app with a chosen Host header (fetch can't set Host). */
-function getWithHost(host: string, path: string, method = 'GET'): Promise<{ status: number, headers: Record<string, string | string[] | undefined>, body: string }> {
+function getWithHost(host: string, path: string, method = 'GET', cookie?: string): Promise<{ status: number, headers: Record<string, string | string[] | undefined>, body: string }> {
   const url = new URL(TEST_BASE_URL)
   return new Promise((resolve, reject) => {
-    const req = httpRequest({ host: url.hostname, port: url.port, path, method, headers: { host } }, (res) => {
+    const req = httpRequest({ host: url.hostname, port: url.port, path, method, headers: cookie ? { host, cookie } : { host } }, (res) => {
       let body = ''
       res.setEncoding('utf8')
       res.on('data', (c: string) => {
@@ -71,11 +71,11 @@ function viaTraefik(host: string): Promise<{ cert: PeerCertificate, status: numb
   })
 }
 
-async function publishedDoc(ownerId: number, text: string): Promise<string> {
-  const doc = await createDoc({ ownerId, title: 'Harbour guide' })
+async function publishedDoc(ownerId: number, text: string, workspaceId: string | null = null): Promise<string> {
+  const doc = await createDoc({ ownerId, title: 'Harbour guide', workspaceId })
   const ydoc = new Y.Doc()
   ydoc.getText('content').insert(0, text)
-  await testDb().query(`INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1')`, [doc.docId, Buffer.from(Y.encodeStateAsUpdate(ydoc))])
+  await testDb().query(`INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2)`, [doc.docId, Buffer.from(Y.encodeStateAsUpdate(ydoc))])
   const res = await (await loggedInClient(ownerId)).post(`/api/docs/${doc.docId}/publish`, {})
   if (res.status !== 200) throw new Error(`publish: ${res.status} ${await res.text()}`)
   return doc.docId
@@ -99,14 +99,9 @@ async function providerConfig(): Promise<{ http?: { routers?: Record<string, { r
   return await res.json() as never
 }
 
-beforeAll(async () => {
-  await ensureYjsTable()
-})
-
 describe('custom domains', () => {
   beforeEach(async () => {
     await resetDb()
-    await ensureYjsTable()
   })
 
   it('a domain is routed only after its TXT record and address check out', async () => {
@@ -202,12 +197,15 @@ describe('custom domains', () => {
   })
 
   it('the provider endpoint wants its token', async () => {
-    expect((await fetch(`${TEST_BASE_URL}/api/internal/traefik/custom-domains`)).status).toBe(403)
+    const denied = await fetch(`${TEST_BASE_URL}/api/internal/traefik/custom-domains`)
+    expect(denied.status).toBe(403)
+    // Neither the answer nor the refusal may be cached by a proxy in between.
+    expect(denied.headers.get('cache-control')).toBe('no-store')
     expect((await fetch(`${TEST_BASE_URL}/api/internal/traefik/custom-domains`, { headers: { 'x-markoto-provider-token': 'x'.repeat(40) } })).status).toBe(403)
     expect((await anonClient().get('/api/internal/traefik/custom-domains')).status).toBe(403)
   })
 
-  it('on the domain only the page exists — no app, no API', async () => {
+  it('on the domain only the page exists, no app, no API', async () => {
     const user = await createUser()
     const domain = await verifiedDomain(user.id)
     expect((await getWithHost(domain.hostname, '/')).body).toContain('Nothing is published on this domain yet.')
@@ -225,9 +223,13 @@ describe('custom domains', () => {
     // The report form is on the instance; without a configured site URL
     // there is no instance address to link to from a foreign host.
     expect(page.body).not.toContain(`${domain.hostname}/legal/abuse`)
-    for (const path of ['/d/whatever', '/api/user/custom-domains', '/api/health', '/pricing', '/_nuxt/x.js', '/p/whatever']) {
-      expect((await getWithHost(domain.hostname, path)).status, path).toBe(404)
+    for (const path of ['/d/whatever', '/api/user/custom-domains', '/api/health', '/pricing', '/_nuxt/x.js', '/p/whatever', '/api/_auth/session']) {
+      // A stale session cookie sent to the domain is never answered with a fresh one.
+      const res = await getWithHost(domain.hostname, path, 'GET', 'nuxt-session=stale')
+      expect(res.status, path).toBe(404)
+      expect(res.headers['set-cookie'], path).toBeUndefined()
     }
+    expect((await getWithHost(domain.hostname, '/', 'GET', 'nuxt-session=stale')).headers['set-cookie']).toBeUndefined()
     expect((await getWithHost(domain.hostname, '/', 'POST')).status).toBe(404)
     expect((await getWithHost(domain.hostname, '/robots.txt')).body).toContain('Disallow: /')
     // The /p/ page names the domain as its address.
@@ -240,6 +242,48 @@ describe('custom domains', () => {
     expect((await client.delete(`/api/user/custom-domains/${domain.id}`)).status).toBe(200)
     expect((await providerConfig()).http?.routers ?? {}).toEqual({})
   })
+
+  it('on the domain only that page\'s files load, not another page\'s', async () => {
+    const user = await createUser()
+    const domain = await verifiedDomain(user.id)
+    const shown = await publishedDoc(user.id, '# Shown\n')
+    const other = await publishedDoc(user.id, '# Other\n')
+    await (await loggedInClient(user.id)).patch(`/api/user/custom-domains/${domain.id}`, { docId: shown })
+    const ids = await testDb().query<{ id: string, doc_id: string }>(`SELECT id, doc_id FROM published_pages`)
+    const shownId = ids.rows.find(r => r.doc_id === shown)!.id
+    const otherId = ids.rows.find(r => r.doc_id === other)!.id
+    // The middleware decides before the handler looks for the file: the
+    // bound page reaches the handler (404 for a file that doesn't exist,
+    // 'Not found' JSON), another page never does (plain-text 404).
+    const own = await getWithHost(domain.hostname, `/api/published/${shownId}/files/nothing.png`)
+    expect(own.status).toBe(404)
+    expect(String(own.headers['content-type'])).not.toContain('text/plain')
+    const foreign = await getWithHost(domain.hostname, `/api/published/${otherId}/files/nothing.png`)
+    expect(foreign.status).toBe(404)
+    expect(String(foreign.headers['content-type'])).toContain('text/plain')
+  })
+
+  it('a domain stops showing a page once its owner may no longer manage the document', async () => {
+    const owner = await createUser()
+    const admin = await createUser()
+    const ws = await createWorkspace(owner.id)
+    await setMemberRole(ws.workspaceId, admin.id, 'admin')
+    const domain = await verifiedDomain(admin.id)
+    const docId = await publishedDoc(owner.id, '# Harbour guide\n\nThe ferry leaves at seven.\n', ws.workspaceId)
+    expect((await (await loggedInClient(admin.id)).patch(`/api/user/custom-domains/${domain.id}`, { docId })).status).toBe(200)
+    expect((await getWithHost(domain.hostname, '/')).body).toContain('seven.</p>')
+
+    await setMemberRole(ws.workspaceId, admin.id, 'editor')
+    // Other changes reach the routing table within its 15-second cache.
+    const deadline = Date.now() + 25_000
+    let body = ''
+    while (Date.now() < deadline) {
+      body = (await getWithHost(domain.hostname, '/')).body
+      if (body.includes('Nothing is published on this domain yet.')) break
+      await new Promise(r => setTimeout(r, 1000))
+    }
+    expect(body).toContain('Nothing is published on this domain yet.')
+  }, 40_000)
 
   it('Traefik gets a certificate for a verified domain and serves the page over HTTPS', async () => {
     const user = await createUser()

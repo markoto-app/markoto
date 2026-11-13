@@ -6,20 +6,13 @@
 //
 // Read from the same endpoint as /legal/sub-processors
 // (`server/legal/subProcessors.ts` via `registryView.ts`, so Stripe is
-// left out while billing is off) — never retyped in a page, so a page
+// left out while billing is off), never retyped in a page, so a page
 // can't drift from the registry. Rendered on the server. Without legal
 // surfaces the endpoint answers 404 and the block renders nothing.
-interface SubProcessorRow {
-  id: string
-  name: string
-  purpose: string
-  location: 'eu' | 'us' | 'global'
-  transferMechanism: 'intra_eu' | 'dpf' | 'sccs' | 'dpf_with_sccs_fallback'
-}
-
 const { t } = useI18n()
+const { subProcessorPurpose } = useSubProcessorPurpose()
 
-const { data } = await useFetch<SubProcessorRow[]>('/api/_internal/sub-processors', {
+const { data } = await useFetch('/api/_internal/sub-processors', {
   key: 'marketing-sub-processors',
   default: () => []
 })
@@ -27,7 +20,7 @@ const { data } = await useFetch<SubProcessorRow[]>('/api/_internal/sub-processor
 const rows = computed(() => (data.value ?? []).map(sp => ({
   id: sp.id,
   name: sp.name,
-  purpose: sp.purpose,
+  purpose: subProcessorPurpose(sp),
   location: t(`marketing.subProcessors.location.${sp.location}`),
   transfer: t(`marketing.subProcessors.transfer.${sp.transferMechanism}`),
   inEu: sp.transferMechanism === 'intra_eu'

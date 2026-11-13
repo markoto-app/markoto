@@ -3,8 +3,8 @@
 // The renderer navigates straight to the app container (no Traefik in the
 // path, so no Content-Security-Policy) and renders attacker-influenced
 // markdown. Without a filter, `![](http://169.254.169.254/...)` or
-// `![](http://litellm:4000/...)` makes THIS container — which sits on the
-// internal network — issue the request (blind SSRF, and image responses land
+// `![](http://litellm:4000/...)` makes THIS container, which sits on the
+// internal network: issue the request (blind SSRF, and image responses land
 // in the PDF). Every request the browser context makes is checked against the
 // origin set built here; anything else is aborted.
 //
@@ -12,7 +12,7 @@
 //
 // No third-party origin is allowed by default: paged.js, Mermaid, KaTeX,
 // highlight.js and the web fonts are served by the app itself under
-// /vendor/ (shared/utils/vendorAssets.ts), so the print page needs only
+// /vendor/ (shared/utils/vendor/vendorAssets.ts), so the print page needs only
 // the app origin + the S3 host its images point at.
 
 export interface AllowlistEnv {
@@ -61,7 +61,7 @@ export function buildAllowedOrigins(env: AllowlistEnv): Set<string> {
 /**
  * Is the browser allowed to request this URL? `data:`, `blob:` and
  * `about:blank` never leave the browser. http(s) must match an allowed origin
- * exactly (scheme + host + port). Everything else — ws(s), ftp, file, … — is
+ * exactly (scheme + host + port). Everything else, ws(s), ftp, file, …, is
  * refused.
  */
 export function isAllowedUrl(url: string, allowedOrigins: ReadonlySet<string>): boolean {

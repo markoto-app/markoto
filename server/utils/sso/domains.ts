@@ -1,11 +1,10 @@
-// Per-workspace SSO (WP14) — email domains.
+// Per-workspace SSO email domains.
 //
 // A workspace proves it owns a domain with a DNS TXT record
-// `markoto-verification=<token>` on the domain itself. Only addresses in
-// a VERIFIED domain may (a) link to an existing markoto account with the
-// same email and (b) join the workspace on their first sign-in (JIT).
-// Without that proof an IdP admin could assert any address — e.g. a
-// CEO's private Gmail — and take over the matching account.
+// `markoto-verification=<token>` on the domain itself. Only addresses in a
+// verified domain may (a) link to an existing markoto account with the same
+// email and (b) join the workspace on first sign-in. Without that proof an
+// IdP admin could assert any address and take over the matching account.
 
 import { randomBytes } from 'node:crypto'
 import { resolveTxt } from 'node:dns/promises'
@@ -36,6 +35,7 @@ export function normalizeSsoDomain(raw: string): string | null {
   }
   const labels = domain.split('.')
   if (labels.length < 2) return null
+  // eslint-disable-next-line security/detect-unsafe-regex -- anchored, one bounded run (≤ 61): linear
   if (!labels.every(l => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(l))) return null
   if (/^\d+$/.test(labels.at(-1) ?? '')) return null // an IP address
   if (CONSUMER_DOMAINS.has(domain)) return null

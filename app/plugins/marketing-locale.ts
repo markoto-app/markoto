@@ -1,16 +1,15 @@
 import { prefixedMarketingLocale } from '~~/shared/seo/marketing'
 
 // UI language on localised marketing pages (`/de/…`, `/fr/…`, see
-// shared/seo/marketing.ts): it follows the URL, not the locale cookie, so
-// a crawler and a visitor see the same language for the same address.
+// shared/seo/marketing.ts) follows the URL, not the locale cookie, so a
+// crawler and a visitor see the same language for the same address.
 //
-// The app stays `no_prefix` with the cookie-based language everywhere
-// else, so the override is temporary: the language from before is kept
-// and restored on the first navigation to a route without a prefix.
+// The rest of the app stays `no_prefix` with the cookie language, so the
+// override is temporary: the previous language is restored on the first
+// navigation to an unprefixed route.
 //
-// The locale is set on the vue-i18n composer directly. `setLocale()`
-// would also write the `ypad_locale` cookie — a visitor reading a German
-// page doesn't choose German for the app.
+// Set on the vue-i18n composer directly: `setLocale()` would also write the
+// `ypad_locale` cookie, and reading a German page isn't choosing German for the app.
 export default defineNuxtPlugin({
   name: 'markoto:marketing-locale',
   dependsOn: ['i18n:plugin:route-locale-detect'],

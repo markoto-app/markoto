@@ -58,12 +58,16 @@ class DocxExtractTest(unittest.TestCase):
 
     def test_explicit_colour_wins_over_theme_slot(self):
         # Word writes the shaded colour next to the theme reference.
-        styles = design_extract.extract_design(fixture("memo-office.docx"), "docx")["docx"]["styles"]
+        styles = design_extract.extract_design(fixture("memo-office.docx"), "docx")["docx"][
+            "styles"
+        ]
         self.assertEqual(styles["heading1"]["color"], "#2F5597")
         self.assertEqual(styles["heading1"]["font"], "Calibri Light")
 
     def test_letter_paper(self):
-        section = design_extract.extract_design(fixture("memo-office.docx"), "docx")["docx"]["section"]
+        section = design_extract.extract_design(fixture("memo-office.docx"), "docx")["docx"][
+            "section"
+        ]
         self.assertEqual((section["pageWidthMm"], section["pageHeightMm"]), (215.9, 279.4))
 
     def test_not_a_word_document(self):
@@ -103,7 +107,9 @@ class PdfExtractTest(unittest.TestCase):
         self.assertEqual(pdf["filledShapes"][0]["value"], "#0B2545")
         self.assertIn("#F28C28", [f["value"] for f in pdf["filledShapes"]])
         heading = next(line for line in pdf["lines"] if line["text"] == "A year of steady growth")
-        self.assertEqual((heading["font"], heading["sizePt"], heading["page"]), ("LiberationSans-Bold", 18.0, 2))
+        self.assertEqual(
+            (heading["font"], heading["sizePt"], heading["page"]), ("LiberationSans-Bold", 18.0, 2)
+        )
         self.assertEqual(len(pdf["textExtentMm"]), 2)
 
     def test_page_limit(self):

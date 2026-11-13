@@ -5,7 +5,7 @@ import { mcp, mintPat } from '../setup/mcpClient'
 
 // Cross-boundary authz on the MCP surface. The contract is:
 //   - "Doc not visible" and "doc doesn't exist" return the SAME shape
-//     (404-shape isError + "not found" text). Anti-enumeration —
+//     (404-shape isError + "not found" text). Anti-enumeration,
 //     leaking "this docId exists but you can't see it" lets a PAT
 //     holder enumerate the doc namespace.
 //   - Workspace tools follow the same anti-enumeration policy
@@ -19,7 +19,7 @@ const READ_SCOPES = ['documents:read'] as const
 const WRITE_SCOPES = ['documents:read', 'documents:write'] as const
 const KNOWLEDGE_SCOPES = ['knowledge:read'] as const
 
-describe('MCP authz — cross-user document access', () => {
+describe('MCP authz: cross-user document access', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -67,7 +67,7 @@ describe('MCP authz — cross-user document access', () => {
   })
 })
 
-describe('MCP authz — workspace role boundaries', () => {
+describe('MCP authz: workspace role boundaries', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -134,7 +134,7 @@ describe('MCP authz — workspace role boundaries', () => {
   })
 })
 
-describe('MCP authz — workspace owner can\'t bypass workspace gating', () => {
+describe('MCP authz: workspace owner can\'t bypass workspace gating', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -158,7 +158,7 @@ describe('MCP authz — workspace owner can\'t bypass workspace gating', () => {
   })
 })
 
-describe('MCP authz — workspace EDITOR can write through doc-bound tools', () => {
+describe('MCP authz: workspace EDITOR can write through doc-bound tools', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -177,7 +177,7 @@ describe('MCP authz — workspace EDITOR can write through doc-bound tools', () 
       const update = Y.encodeStateAsUpdate(ydoc)
       const { testDb } = await import('../setup/db')
       await testDb().query(
-        `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1')`,
+        `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2)`,
         [doc.docId, Buffer.from(update)]
       )
     })

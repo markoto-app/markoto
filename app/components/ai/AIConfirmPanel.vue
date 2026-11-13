@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { AiConfirmationRequest } from '~/composables/useAI'
+import type { AiConfirmationRequest } from '~/composables/ai/useAI'
 
 // Inline "Allow / Deny" card above the prompt bar. Shown to the person
-// who started the AI session — and only to them (the request arrives
-// through their private session channel, never through awareness) —
+// who started the AI session, and only to them (the request arrives
+// through their private session channel, never through awareness),
 // when the AI wants to reach beyond a document that contains other
 // people's text: read another document, list documents, search or read
 // workspace knowledge, create / copy a document, search the web or open
@@ -11,7 +11,7 @@ import type { AiConfirmationRequest } from '~/composables/useAI'
 //
 // Voice: the question is markoto speaking, so it wears the AI italic
 // (Fraunces); the target (title, query, URL) is set in mono so the user
-// sees exactly what will be read or sent. Buttons are neutral — shu
+// sees exactly what will be read or sent. Buttons are neutral, shu
 // marks the AI, not a call to action.
 
 const props = defineProps<{

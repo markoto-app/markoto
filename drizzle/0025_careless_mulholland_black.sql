@@ -1,1 +1,0 @@
-ALTER TABLE "themes" ADD COLUMN "description" text DEFAULT '' NOT NULL;

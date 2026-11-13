@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { Text as YText } from 'yjs'
-import type { ImportedDocProperties } from '~~/shared/utils/markdownFrontmatter'
+import type { ImportedDocProperties } from '~~/shared/utils/markdown/markdownFrontmatter'
+import { MIB } from '~~/shared/config/units'
+import type { ApiResponse } from '~/utils/api/client'
 
 const props = defineProps<{
   ytext: YText
@@ -16,16 +18,10 @@ const emit = defineEmits<{
   'apply-properties': [properties: ImportedDocProperties, notes: { ignored: string[], droppedCustomCssRules: number }]
 }>()
 
-interface ImportResponse {
-  markdown: string
-  source: string
-  filename?: string
-  properties?: ImportedDocProperties
-  ignored?: string[]
-  droppedCustomCssRules?: number
-}
+type ImportResponse = ApiResponse<'/api/import', 'post'>
 
 const { t } = useI18n()
+const { extractError } = useErrorHandler()
 
 const selectedFile = ref<File | null>(null)
 // Last import response (for the properties of a markoto Markdown file).
@@ -50,10 +46,7 @@ const {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('docId', props.docId)
-    const result = await $fetch<ImportResponse>(
-      '/api/import',
-      { method: 'POST', body: formData }
-    )
+    const result = await apiFetch('/api/import', { method: 'post', body: formData })
     importedResult.value = result
     applyProperties.value = true
     return result.markdown
@@ -72,8 +65,7 @@ const {
       else applyImport('replace')
     },
     onError: (e) => {
-      const err = e as { data?: { message?: string }, message?: string }
-      error.value = err.data?.message || err.message || t('import.error')
+      error.value = extractError(e).message
     }
   }
 )
@@ -102,7 +94,7 @@ function clearSelection(e: Event) {
   resetFileDialog()
 }
 
-// Reset transient state whenever the modal closes — by cancel button,
+// Reset transient state whenever the modal closes, by cancel button,
 // outside-click, or escape. Otherwise re-opening still shows the previous
 // file selection, which reads as "your import is half-done" instead of
 // the fresh state the user expects.
@@ -119,7 +111,7 @@ watch(open, (isOpen) => {
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  if (bytes < MIB) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
@@ -174,7 +166,6 @@ function cancelImport() {
           {{ t('import.title') }}
         </h3>
 
-        <!-- Conflict resolution -->
         <div
           v-if="showConflict"
           class="space-y-4"
@@ -263,13 +254,13 @@ function cancelImport() {
           </div>
         </div>
 
-        <!-- File selection -->
         <div v-else>
           <p class="text-sm text-muted mb-3">
             {{ t('import.description') }}
           </p>
 
           <div
+            role="presentation"
             :class="[
               'border-2 rounded-lg p-8 text-center cursor-pointer transition-colors',
               selectedFile
@@ -313,9 +304,13 @@ function cancelImport() {
                 name="i-lucide-file-up"
                 class="size-10 text-muted mx-auto mb-2"
               />
-              <p class="text-sm text-muted">
+              <button
+                type="button"
+                class="text-sm text-muted"
+                @click.stop="selectFile()"
+              >
                 {{ t('import.selectFile') }}
-              </p>
+              </button>
               <p class="text-xs text-muted mt-1">
                 {{ t('import.formats') }}
               </p>

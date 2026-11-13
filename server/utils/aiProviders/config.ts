@@ -1,7 +1,6 @@
-// Operator configuration for AI providers, read from `process.env` on
-// every call (same reasoning as `billingMode.ts`: the resolver runs in
-// the repos/unit test tiers outside a Nitro context, and tests flip the
-// env per case).
+// Operator configuration for AI providers, read from the typed env
+// (shared/env) on every call: the resolver runs in the repos/unit test
+// tiers outside a Nitro context, and tests flip the env per case.
 //
 // Instance defaults (self-hosters; the SaaS sets none):
 //
@@ -17,7 +16,7 @@
 //   - MODEL + BASE_URL + API_KEY → routed through the zero-cost `byok/*`
 //     deployment with clientside credentials, exactly like a user key.
 //   - BASE_URL without API_KEY   → misconfiguration; treated as unset
-//     (and reported by `instanceDefaultProblems` at boot).
+//     (and reported as a boot warning, shared/env/rules/ai.ts).
 //
 // BYOK URL policy:
 //   NUXT_AI_BYOK_ALLOWED_BASE_URLS   comma-separated allowlist (SaaS);
@@ -26,19 +25,13 @@
 //                                    endpoints (Ollama, vLLM); default off
 
 import { normalizeBaseUrl, type AiCapability } from '~~/shared/ai/providers'
-import { parseBooleanFlag } from '~~/shared/config/billingMode'
+import { useEnv } from '~~/shared/env/load'
+import { ai } from '~~/shared/env/vars/ai'
+import type { RawEnv } from '~~/shared/env/define'
 import type { ByokUrlPolicy } from './urlPolicy'
 
 /** Default Voxtral Realtime model for live dictation (overridable via `NUXT_AI_REALTIME_MODEL`). */
-export const DEFAULT_REALTIME_MODEL = 'voxtral-mini-transcribe-realtime-2602'
-
-type Env = Record<string, string | undefined>
-
-const ENV_PREFIX: Record<AiCapability, string> = {
-  chat: 'NUXT_AI_DEFAULT_CHAT',
-  image: 'NUXT_AI_DEFAULT_IMAGE',
-  transcription: 'NUXT_AI_DEFAULT_TRANSCRIBE'
-}
+export const DEFAULT_REALTIME_MODEL = ai.vars.realtimeModel.default
 
 export interface InstanceDefault {
   capability: AiCapability
@@ -48,81 +41,42 @@ export interface InstanceDefault {
   supportsVision: boolean
 }
 
-function clean(raw: string | undefined): string {
-  return (raw ?? '').trim()
+function configured(capability: AiCapability, source: RawEnv | undefined): { model: string, baseUrl?: string, apiKey?: string, vision: boolean } {
+  const { ai } = useEnv(source)
+  switch (capability) {
+    case 'chat': return { model: ai.chatModel, baseUrl: ai.chatBaseUrl, apiKey: ai.chatApiKey, vision: ai.chatVision }
+    case 'image': return { model: ai.imageModel, baseUrl: ai.imageBaseUrl, apiKey: ai.imageApiKey, vision: false }
+    case 'transcription': return { model: ai.transcribeModel, baseUrl: ai.transcribeBaseUrl, apiKey: ai.transcribeApiKey, vision: false }
+  }
 }
 
-export function readInstanceDefault(capability: AiCapability, env: Env = process.env): InstanceDefault | null {
-  const prefix = ENV_PREFIX[capability]
-  const model = clean(env[`${prefix}_MODEL`])
+export function readInstanceDefault(capability: AiCapability, source?: RawEnv): InstanceDefault | null {
+  const { model, baseUrl: baseUrlRaw, apiKey, vision } = configured(capability, source)
   if (!model) return null
-  const baseUrlRaw = clean(env[`${prefix}_BASE_URL`])
-  const apiKey = clean(env[`${prefix}_API_KEY`])
   // Vision defaults ON for chat (the bundled Mistral Small alias has it);
   // an operator pointing at a text-only model sets `_VISION=false`.
-  const visionRaw = env[`${prefix}_VISION`]
-  const supportsVision = capability === 'chat' && (visionRaw === undefined || visionRaw.trim() === '' || parseBooleanFlag(visionRaw))
+  const supportsVision = capability === 'chat' && vision
   if (!baseUrlRaw) return { capability, model, credentials: null, supportsVision }
   const baseUrl = normalizeBaseUrl(baseUrlRaw)
+  // Half-configured (no key): ignored, and reported as a boot warning
+  // (shared/env/rules/ai.ts).
   if (!baseUrl || !apiKey) return null
   return { capability, model, credentials: { baseUrl, apiKey }, supportsVision }
 }
 
-/** Human-readable misconfigurations, logged once at boot. Never includes key material. */
-export function instanceDefaultProblems(env: Env = process.env): string[] {
-  const problems: string[] = []
-  for (const [capability, prefix] of Object.entries(ENV_PREFIX)) {
-    const model = clean(env[`${prefix}_MODEL`])
-    const baseUrl = clean(env[`${prefix}_BASE_URL`])
-    const apiKey = clean(env[`${prefix}_API_KEY`])
-    if (!model && (baseUrl || apiKey)) {
-      problems.push(`${prefix}_BASE_URL/_API_KEY set without ${prefix}_MODEL — the ${capability} default is ignored.`)
-    } else if (model && baseUrl && !apiKey) {
-      problems.push(`${prefix}_BASE_URL set without ${prefix}_API_KEY — the ${capability} default is ignored (use any placeholder key for servers that need none).`)
-    } else if (model && baseUrl && !normalizeBaseUrl(baseUrl)) {
-      problems.push(`${prefix}_BASE_URL is not an absolute URL — the ${capability} default is ignored.`)
-    }
-  }
-  return problems
-}
-
-export function resolveByokUrlPolicy(env: Env = process.env): ByokUrlPolicy {
-  const allowedBaseUrls = clean(env.NUXT_AI_BYOK_ALLOWED_BASE_URLS)
-    .split(',')
-    .map(entry => normalizeBaseUrl(entry))
-    .filter((entry): entry is string => entry !== null)
+export function resolveByokUrlPolicy(source?: RawEnv): ByokUrlPolicy {
+  const { ai } = useEnv(source)
   return {
-    allowedBaseUrls,
-    allowPrivate: parseBooleanFlag(env.NUXT_AI_BYOK_ALLOW_PRIVATE_URLS)
+    allowedBaseUrls: ai.byokAllowedBaseUrls
+      .map(entry => normalizeBaseUrl(entry))
+      .filter((entry): entry is string => entry !== null),
+    allowPrivate: ai.byokAllowPrivateUrls
   }
-}
-
-/**
- * Boot-time checks of the BYOK URL policy (`plugins/01-validate-secrets.ts`).
- *
- * The hosted service (detected by its legal surfaces being on — the
- * self-host default is off) must run with a provider allowlist: an empty
- * `NUXT_AI_BYOK_ALLOWED_BASE_URLS` means "any public URL", and a missing
- * line in a hand-edited `.env` would silently switch that on. So that
- * shape refuses to boot instead of failing open. Any shape: an entry that
- * is not an absolute URL is reported rather than silently dropped.
- */
-export function byokUrlPolicyErrors(env: Env, hostedShape: boolean): string[] {
-  const errors: string[] = []
-  const entries = clean(env.NUXT_AI_BYOK_ALLOWED_BASE_URLS).split(',').map(e => e.trim()).filter(e => e.length > 0)
-  const invalid = entries.filter(entry => !/^https?:\/\//i.test(entry) || normalizeBaseUrl(entry) === null)
-  if (invalid.length > 0) {
-    errors.push(`NUXT_AI_BYOK_ALLOWED_BASE_URLS has entries that are not absolute http(s) URLs: ${invalid.map(e => `"${e.slice(0, 80)}"`).join(', ')}`)
-  }
-  if (hostedShape && entries.length - invalid.length === 0) {
-    errors.push('NUXT_AI_BYOK_ALLOWED_BASE_URLS is empty, but this instance runs the hosted shape (NUXT_LEGAL_SURFACES_ENABLED=true): set the provider allowlist (see infra/render-env.sh) so user-supplied AI provider URLs are restricted')
-  }
-  return errors
 }
 
 /**
  * Policy applied to operator-configured instance defaults. The operator
- * is trusted to pick the endpoint (no allowlist, private networks OK —
+ * is trusted to pick the endpoint (no allowlist, private networks OK,
  * e.g. `http://ollama:11434/v1` on the compose network), but the
  * internal-service and loopback/metadata refusals still apply.
  */
@@ -132,6 +86,6 @@ export const OPERATOR_URL_POLICY: ByokUrlPolicy = Object.freeze({ allowedBaseUrl
  * Model id for Voxtral Realtime live dictation. Only used when the
  * transcription provider is Mistral (own key or instance default).
  */
-export function realtimeDictationModel(env: Env = process.env): string {
-  return clean(env.NUXT_AI_REALTIME_MODEL) || DEFAULT_REALTIME_MODEL
+export function realtimeDictationModel(source?: RawEnv): string {
+  return useEnv(source).ai.realtimeModel
 }

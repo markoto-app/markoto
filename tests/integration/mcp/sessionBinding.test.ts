@@ -84,7 +84,7 @@ describe('MCP session bindings are stored in Valkey', () => {
     expect((await client.listTools()).length).toBeGreaterThan(0)
 
     // Simulated restart / other instance: the app keeps nothing of its
-    // own — dropping the Valkey entry is enough to refuse the session
+    // own: dropping the Valkey entry is enough to refuse the session
     // even though this process still holds the toolkit session.
     await deleteValkeyKey(`mcp:binding:${sid}`)
     await expect(client.listTools()).rejects.toThrow(/Session not found/)
@@ -117,7 +117,7 @@ describe('MCP session bindings are stored in Valkey', () => {
     await expect(client.listTools()).rejects.toThrow()
   })
 
-  it('keeps at most 20 usable sessions per user — the least recently used one is dropped', async () => {
+  it('keeps at most 20 usable sessions per user, the least recently used one is dropped', async () => {
     const user = await createUser()
     const t = await mintPat({ userId: user.id, scopes: ['documents:read'] })
     const first = mcp(t.plaintext)

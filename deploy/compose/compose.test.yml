@@ -1,0 +1,539 @@
+# Test-only infrastructure. Mirrors deploy/compose/compose.dev.yml but on isolated
+# ports and a disposable volume so the dev database is never touched.
+#
+# Two use cases share this compose file via `profiles`:
+#
+#   1) Integration tests (vitest): postgres + valkey + seaweedfs + stripe-mock
+#      + litellm + sync + markitdown (its archive limits are tested directly).
+#      These services have NO profile, so they start by default with `up -d`.
+#
+#   2) Flow tests (Playwright): the same services; `--profile flows` is
+#      kept for anything flow-only.
+#
+# Integration:
+#   bun run test:integration:up      # postgres + valkey + seaweedfs + stripe-mock
+#   bun run test:integration         # vitest run --project=integration
+#   bun run test:integration:down
+#
+# Flows:
+#   bun run flows:up                       # same stack, flows profile
+#   bun run flows:test                     # hermetic full lifecycle (up, prod build, run, down)
+#   bun run flows:test:against-running     # run against an already-running app at PLAYWRIGHT_BASE_URL
+#   bun run flows:down
+#
+# Ports shifted from dev (5432/6379/8333/4001/8080) to (5433/6380/8334/4002/8081)
+# so dev + test stacks can run simultaneously. Test DB name is ypad_test,
+# integration tests refuse to run against any other name as a belt-and-braces
+# guard against running TRUNCATEs on a dev database.
+#
+# Every published port binds to 127.0.0.1 (the stack uses fixed, committed
+# credentials). The one exception, fake-openai-test, is ALSO bound to the
+# gateway address of this project's network (below): the BYOK base URL has
+# to be one address that both the app on the host and litellm-test in a
+# container can reach, and that is not loopback (the SSRF policy refuses
+# loopback). A fixed subnet makes that gateway address known up front
+# (tests/integration/setup/env.ts). Override both variables together if
+# 10.213.47.0/24 collides with a network on your machine.
+
+# Project name: fixed, so it does not follow this file's directory (the
+# default, `compose`) and stays the same for every checkout path.
+name: markoto-test
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${TEST_NETWORK_SUBNET:-10.213.47.0/24}
+          gateway: ${TEST_NETWORK_GATEWAY:-10.213.47.1}
+
+# Container hardening every service gets (docs/SECURITY-HARDENING.md §C):
+# no Linux capabilities, no privilege gain through setuid binaries. A service
+# that needs more (a seccomp profile, a capability) spells its keys out.
+x-hardening: &hardening
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+
+services:
+  postgres-test:
+    # pgvector/pgvector:pg16 mirrors dev/prod so schema migrations
+    # (which enable the vector extension) apply cleanly here too.
+    image: pgvector/pgvector:pg16@sha256:0dd3149a06e4579a0d70d8fef9945636cd514005e7237deb27f9b67886f8dc4f
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=ypad
+      - POSTGRES_PASSWORD=testpassword
+      - POSTGRES_DB=ypad_test
+    # tmpfs for the data dir: every container restart = clean slate. Tests
+    # still TRUNCATE between cases for speed, but if a test suite crashes
+    # mid-run a simple `down -v && up -d` gives you a pristine state.
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ypad -d ypad_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+      start_period: 2s
+    ports:
+      - "127.0.0.1:5433:5432"
+
+  valkey-test:
+    image: valkey/valkey:9-alpine@sha256:48332870af354a799964c0012ae1194a0bf2bf894eb508f945810596dc2d8d11
+    restart: unless-stopped
+    # No AOF: tests want a blank slate every boot. 512mb is plenty for
+    # short test runs; mirrors prod policy without prod sizing.
+    #
+    # `--requirepass` enforced with a hardcoded weak password. Tests run
+    # against this container from the host (port 6380) with the same
+    # literal in tests/integration/setup/testEnv.ts. Mirrors the prod
+    # auth code path so a missing-password regression breaks tests
+    # before it breaks deploy.
+    command:
+      - "valkey-server"
+      - "--requirepass"
+      - "testpassword"
+      - "--maxmemory"
+      - "512mb"
+      - "--maxmemory-policy"
+      - "allkeys-lru"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "--no-auth-warning", "-a", "testpassword", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+    # `ports:` IS correct here: vitest runs on the host machine and
+    # reaches Valkey on `localhost:6380`. Test infra is throwaway / tmpfs;
+    # nothing private lives in the container.
+    ports:
+      - "127.0.0.1:6380:6379"
+
+  seaweedfs-test:
+    image: chrislusf/seaweedfs@sha256:c2658820e763294a9e9de7b36c81e59b879e3459148351aee4e31a126ca64860
+    restart: unless-stopped
+    # `-master.volumeSizeLimitMB=256`: recent SeaweedFS derives how many
+    # volumes a server may hold from free disk / volume size limit (default
+    # 30 GB). On a small /data -- e.g. the tmpfs on a 16 GB CI runner -- that
+    # leaves no free volume slot and every PUT fails with "No writable
+    # volumes" (surfaced by the renderer as an S3 InternalError / "Renderer
+    # 500"). Small volumes keep plenty of slots on any realistic disk.
+    #
+    # S3 listens on 8334 INSIDE the container too, so the same
+    # `localhost:8334` presigned URLs the host-side app mints work from the
+    # renderer (its Chromium maps `localhost` to this container,
+    # RENDERER_LOCALHOST_TARGET below), while the published port stays on
+    # the host's loopback.
+    command: >
+      server -s3
+      -ip=seaweedfs-test -ip.bind=0.0.0.0
+      -dir=/data -s3.config=/etc/seaweedfs/s3.json -s3.port=8334
+      -master.volumeSizeLimitMB=256
+    ports:
+      - "127.0.0.1:8334:8334"
+    tmpfs:
+      - /data
+    volumes:
+      - ../config/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro,z
+
+  # Official Stripe mock server. Implements Stripe's full REST API
+  # surface from their OpenAPI spec, so our code can use the real SDK
+  # unchanged: it just talks to `stripe-mock:12111` instead of
+  # `api.stripe.com`. The mock returns well-formed fixtures with stable
+  # IDs; it does NOT emit webhooks (we test those via hand-crafted
+  # fixtures + signed payloads directly against our webhook handler).
+  stripe-mock:
+    image: stripe/stripe-mock:latest@sha256:aeb96b83e87a893d2ac005e363ac01ffa6e59a5ad85b49c155dfc9129de02e78
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:12111:12111"
+    # No healthcheck available (image has no shell + no curl); port
+    # 12111 is up as soon as the process binds, which is near-instant.
+
+  # Real renderer container: Playwright + headless Chromium that drives
+  # the actual print page through paged.js end-to-end. Tests that depend
+  # on the FULL render path (PDF + PNG capture, multi-page pagination,
+  # paged.js compatibility with the print Vue page) hit this container.
+  # A stub could not catch zod/Vite-SSR or oklch/paged.js problems.
+  #
+  # APP_URL points at the test Nuxt subprocess running on host:3101.
+  # SECRETS are pinned to the same TEST_* values setup/env.ts uses, so
+  # render-token JWTs verify on both sides without env-passing.
+  renderer-test:
+    build:
+      # Workspace root: one lockfile, and the renderer imports shared/.
+      context: ../..
+      dockerfile: renderer/Dockerfile
+    restart: unless-stopped
+    stop_grace_period: 30s
+    # Same hardening as deploy/compose/compose.base.yml's renderer, so the suites
+    # exercise the shape production runs (incl. Chromium's sandbox).
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+      # Podman can't take this profile through Compose: see
+      # deploy/compose/compose.test.podman.yml.
+      - seccomp=../config/renderer/seccomp.json
+    pids_limit: 2048
+    environment:
+      - PORT=9000
+      # MUST match TEST_INTERNAL_SECRET in tests/integration/setup/env.ts
+      # AND the sync-test container's INTERNAL_API_SECRET. Three-way pin
+      # drift between any two breaks render-token verification (Nuxt
+      # mints the JWT, renderer hits Nuxt's /_internal/render-bootstrap
+      # which verifies it; both sides need the same secret).
+      - INTERNAL_API_SECRET=test-internal-api-secret-isolated
+      # Integration tests serve the app on :3101; the flow runner serves it
+      # on :3001 and sets RENDERER_APP_URL so the renderer's Chromium navigates
+      # back to the right port. Default keeps the integration wiring.
+      - APP_URL=${RENDERER_APP_URL:-http://host.docker.internal:3101}
+      - S3_ENDPOINT=http://seaweedfs-test:8334
+      # Presigned image URLs point at localhost:8334 (the flow runner's
+      # NUXT_S3_ENDPOINT); resolve that to the SeaweedFS container.
+      - RENDERER_LOCALHOST_TARGET=seaweedfs-test
+      - S3_ACCESS_KEY=ypad-access-key
+      - S3_SECRET_KEY=ypad-secret-key
+      - S3_BUCKET=ypad
+      # SeaweedFS doesn't support SSE-S3: it returns InternalError on the
+      # ServerSideEncryption header, which surfaced as "Renderer 500" on
+      # every PDF export test. Prod (OVH) keeps SSE on (unset → AES256).
+      - S3_SSE=none
+      # Extra origin the renderer may fetch from: tests/integration/endpoints/
+      # rendererNetwork.test.ts runs its "allowed" canary image server here.
+      # MUST match ALLOWED_PORT in that test.
+      - RENDERER_ALLOWED_ORIGINS=http://host.docker.internal:3187
+    extra_hosts:
+      # CONTAINER_HOST_ADDRESS: see docs/contributing/CONTAINER-ENGINES.md (VPNs, Podman).
+      - "host.docker.internal:${CONTAINER_HOST_ADDRESS:-host-gateway}"
+    ports:
+      - "127.0.0.1:9101:9000"
+    depends_on:
+      seaweedfs-test:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --tries=1 --timeout=3 http://localhost:9000/health || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+      start_period: 5s
+
+  # LiteLLM proxy (test)
+  # Integration tests exercise the real proxy round-trip (key generate /
+  # update / info / reset_spend). Same image as prod, isolated DB and port.
+  #
+  # Master key is hard-pinned to a non-secret literal that the test
+  # harness reads via NUXT_LITELLM_MASTER_KEY in setup/server.ts. No
+  # provisioned upstream model keys: the tests don't actually
+  # invoke models, only the admin surface (/key/*).
+
+  # Same bootstrap script as the real stacks (deploy/config/postgres/db-init.sh):
+  # creates `litellm_test` owned by its own `litellm_test` role, which
+  # litellm-test and the app's spend-log paths (NUXT_LITELLM_DB_USER in
+  # tests/integration/setup/server.ts) use. The app itself stays on the
+  # `ypad` admin role here: the suites TRUNCATE across the schema.
+  litellm-test-db-init:
+    image: pgvector/pgvector:pg16@sha256:0dd3149a06e4579a0d70d8fef9945636cd514005e7237deb27f9b67886f8dc4f
+    restart: "no"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    user: postgres
+    read_only: true
+    <<: *hardening
+    environment:
+      - PGHOST=postgres-test
+      - PGUSER=ypad
+      - PGPASSWORD=testpassword
+      - APP_DB=ypad_test
+      - LITELLM_DB=litellm_test
+      - LITELLM_DB_USER=litellm_test
+      - LITELLM_DB_PASSWORD=litellmtestpassword
+    volumes:
+      - ../config/postgres/db-init.sh:/db-init.sh:ro,z
+    entrypoint: ["/bin/sh", "/db-init.sh"]
+
+  litellm-test:
+    image: ghcr.io/berriai/litellm:v1.106.4@sha256:c169fb3adc514fcf210377c203f3de406d54f10bfdacf13948a4a839db9af7de
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://litellm_test:litellmtestpassword@postgres-test:5432/litellm_test
+      - LITELLM_MASTER_KEY=sk-test-litellm-master
+      - LITELLM_SALT_KEY=sk-test-litellm-salt-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+      # Upstream provider keys. Integration tests (vitest) only hit
+      # /key/* admin endpoints and don't actually invoke models, so
+      # `stub` is fine: but flow tests (Playwright) drive REAL
+      # round-trips and need actual keys. Resolve from the host shell's
+      # env at compose-up time: defaults to `stub` so the integration
+      # suite still boots without real keys, overrides when the
+      # operator runs `bun run flows:test` with .env loaded.
+      - JINA_AI_API_KEY=${JINA_AI_API_KEY:-stub}
+      # `custom-embeddings` deployment (config.yaml): must be defined or the
+      # proxy won't boot. Never called by the suites.
+      - EMBEDDINGS_UPSTREAM_MODEL=openai/text-embedding-3-small
+      - EMBEDDINGS_UPSTREAM_API_BASE=https://api.openai.com/v1
+      - EMBEDDINGS_UPSTREAM_API_KEY=stub
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-stub}
+      - BFL_API_KEY=${BFL_API_KEY:-stub}
+      - STORE_MODEL_IN_DB=false
+      - LITELLM_LOG=ERROR
+      - DISABLE_ADMIN_UI=True
+    volumes:
+      - ../config/litellm/config.yaml:/app/config.yaml:ro,z
+      - ../config/litellm/custom_handlers.py:/app/custom_handlers.py:ro,z
+    working_dir: /app
+    command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1"]
+    user: "65534:65534"
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    <<: *hardening
+    ports:
+      - "127.0.0.1:4100:4000"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      litellm-test-db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://localhost:4000/health/liveliness', timeout=2).status == 200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 60s
+
+  # Fake OpenAI-compatible provider (BYOK tests)
+  # Stands in for "the user's own AI provider" so integration + flow
+  # tests drive a real app → LiteLLM (clientside credentials) → provider
+  # round trip without a paid upstream. Stdlib-only Python, hosted on
+  # the LiteLLM image (already pulled for litellm-test: no extra image).
+  # See tests/fixtures/fake-openai/server.py for the scripted behaviour.
+  #
+  # Published on the host so BOTH sides can reach it at this network's
+  # gateway address (http://10.213.47.1:4120/v1 by default): the app
+  # (on the host) checks that URL against the BYOK SSRF policy, and
+  # litellm-test (in a container) connects to it. A compose service
+  # name would not resolve on the host. tests/integration/setup/env.ts
+  # builds the URL (override with TEST_FAKE_OPENAI_BASE_URL). The
+  # loopback binding serves the suites' /_test/requests reads.
+  fake-openai-test:
+    image: ghcr.io/berriai/litellm:v1.106.4@sha256:c169fb3adc514fcf210377c203f3de406d54f10bfdacf13948a4a839db9af7de
+    restart: unless-stopped
+    entrypoint: ["python3", "/fake/server.py"]
+    environment:
+      - PORT=8090
+    volumes:
+      - ../../tests/fixtures/fake-openai:/fake:ro,z
+    ports:
+      - "127.0.0.1:4120:8090"
+      # Docker: the bridge gateway is a host address. Rootless Podman: it
+      # lives in Podman's network namespace, so publish on a private host
+      # address instead (TEST_FAKE_OPENAI_HOST, docs/contributing/CONTAINER-ENGINES.md).
+      - "${TEST_FAKE_OPENAI_HOST:-${TEST_NETWORK_GATEWAY:-10.213.47.1}}:4120:8090"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8090/health', timeout=2).status == 200 else 1)"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  # Custom domains
+  # Let's Encrypt's test CA + DNS test server, and a Traefik that polls the
+  # app's provider endpoint exactly like prod's does. The app (on the host)
+  # checks a domain's TXT / A records against challtestsrv (published on
+  # 127.0.0.1:8053); pebble resolves the domain there too and validates
+  # TLS-ALPN-01 against traefik-test's fixed address. See
+  # tests/fixtures/pebble/README.md + endpoints/customDomains.test.ts.
+  challtestsrv-test:
+    image: ghcr.io/letsencrypt/pebble-challtestsrv:2.10.1@sha256:12ce21884def456bcf9786542113949e1f19dc7738d2c70e156c2d0c38a1405b
+    restart: unless-stopped
+    # No default answers: a name resolves only to what a test added.
+    command: ["-defaultIPv4", "", "-defaultIPv6", "", "-http01", "", "-https01", "", "-tlsalpn01", "", "-doh", ""]
+    ports:
+      - "127.0.0.1:8053:8053/udp"
+      - "127.0.0.1:8053:8053/tcp"
+      - "127.0.0.1:8055:8055"
+    networks:
+      default:
+        ipv4_address: ${TEST_CHALLTESTSRV_IP:-10.213.47.42}
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  pebble-test:
+    image: ghcr.io/letsencrypt/pebble:2.10.1@sha256:ddf230642b1a584f519f32e347de1b05a6e4c1f6c35c1863b33effeab5f78199
+    restart: unless-stopped
+    command: ["-config", "/config/pebble-config.json", "-dnsserver", "${TEST_CHALLTESTSRV_IP:-10.213.47.42}:8053"]
+    environment:
+      - PEBBLE_VA_NOSLEEP=1
+      - PEBBLE_WFE_NONCEREJECT=0
+    volumes:
+      - ../../tests/fixtures/pebble/pebble-config.json:/config/pebble-config.json:ro,z
+    depends_on:
+      - challtestsrv-test
+    networks:
+      default:
+        aliases: [pebble]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  traefik-test:
+    image: traefik:v3@sha256:c8a121e4bb1347e8fd52657fab12f2cb70b68f8a018895e2068f92c9e519b9c2
+    restart: unless-stopped
+    command:
+      - "--global.sendAnonymousUsage=false"
+      - "--log.level=INFO"
+      - "--entrypoints.websecure.address=:443"
+      - "--providers.http.endpoint=http://host.docker.internal:3101/api/internal/traefik/custom-domains"
+      - "--providers.http.pollInterval=1s"
+      - "--providers.http.headers.X-Markoto-Provider-Token=test-provider-token-0123456789abcdef0123"
+      - "--certificatesresolvers.pebble.acme.caserver=https://pebble:14000/dir"
+      - "--certificatesresolvers.pebble.acme.cacertificates=/pebble/pebble.minica.pem"
+      - "--certificatesresolvers.pebble.acme.tlschallenge=true"
+      - "--certificatesresolvers.pebble.acme.email=ops@markoto.test"
+      - "--certificatesresolvers.pebble.acme.storage=/tmp/acme.json"
+      - "--certificatesresolvers.pebble.acme.keytype=EC256"
+    volumes:
+      - ../../tests/fixtures/pebble/pebble.minica.pem:/pebble/pebble.minica.pem:ro,z
+    tmpfs:
+      - /tmp
+    ports:
+      - "127.0.0.1:8443:443"
+    extra_hosts:
+      # CONTAINER_HOST_ADDRESS: see docs/contributing/CONTAINER-ENGINES.md (VPNs, Podman).
+      - "host.docker.internal:${CONTAINER_HOST_ADDRESS:-host-gateway}"
+    depends_on:
+      - pebble-test
+    networks:
+      default:
+        ipv4_address: ${TEST_TRAEFIK_IP:-10.213.47.40}
+    # Docker sets this in containers; rootless engines don't. Without it
+    # Traefik (no capabilities) can't bind :443.
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: 0
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  # Real OpenID Connect provider for the generic-OIDC sign-in tests
+  # (tests/integration/endpoints/oidcLogin.test.ts). NAV's
+  # mock-oauth2-server: discovery, JWKS (one RSA key per issuer path),
+  # authorization code + PKCE, signed ID tokens. `interactiveLogin`
+  # serves a login form whose POST takes the subject + arbitrary claims
+  # JSON, so a test can mint tokens with e.g. `email_verified: false` or
+  # a foreign `aud` without a second IdP. The issuer is derived from the
+  # Host header: the app and the tests both use 127.0.0.1:4130, so the
+  # issuer is `http://127.0.0.1:4130/<path>`.
+  oidc-test:
+    image: ghcr.io/navikt/mock-oauth2-server:6.0.5@sha256:5ed2f078c6503147860a5114f06414257bb7eeccc68b0e806bdf0869f2602509
+    restart: unless-stopped
+    environment:
+      - 'JSON_CONFIG={"interactiveLogin":true}'
+    ports:
+      - "127.0.0.1:4130:8080"
+      # Per-workspace SSO tests: the app refuses loopback IdPs, so
+      # the mock is also published on the private host address the fake
+      # OpenAI provider uses (same variables, docs/contributing/CONTAINER-ENGINES.md).
+      - "${TEST_FAKE_OPENAI_HOST:-${TEST_NETWORK_GATEWAY:-10.213.47.1}}:4130:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/markoto/.well-known/openid-configuration || exit 1"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  # Sync server + markitdown converter
+  # Both run in every test stack (the flows profile adds the rest of the
+  # Playwright stack). Integration tests call markitdown-test directly
+  # for its resource limits; the app server under test has no markitdown
+  # configured.
+
+  sync-test:
+    build:
+      context: ../..
+      dockerfile: sync-server/Dockerfile
+    # No profile: sync-test always runs: every MCP doc-bound tool (and the
+    # AI agentic loop) opens a real Hocuspocus WS connection. Flow tests
+    # override APP_URL to the flow runner's port.
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      - PORT=4001
+      # `shared/utils/runtime/connectionStrings.ts` reads atomic POSTGRES_*
+      # vars (not the composed URL); the URL is kept here for any code
+      # that reads the composed form.
+      - POSTGRES_USER=ypad
+      - POSTGRES_PASSWORD=testpassword
+      - POSTGRES_HOST=postgres-test
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=ypad_test
+      - DATABASE_URL=postgres://ypad:testpassword@postgres-test:5432/ypad_test
+      - JWT_SECRET=test-jwt-secret-isolated-from-dev-and-prod-stacks-64char
+      - INTERNAL_API_SECRET=test-internal-api-secret-isolated
+      # Valkey: backs per-doc attribution + diff baselines (was three
+      # process-local Maps). Shares the test Valkey container; password
+      # matches `--requirepass testpassword` on the valkey-test service.
+      - VALKEY_HOST=valkey-test
+      - VALKEY_PORT=6379
+      - VALKEY_PASSWORD=testpassword
+      - VALKEY_DB=0
+      # Sync server reaches the Nuxt app on host for activity logging.
+      # Flow tests run the app on host port 3001 (see flows-ephemeral.ts).
+      # Integration tests run the app on host port 3101: set
+      # SYNC_TEST_APP_URL=http://host.docker.internal:3101 in the env
+      # before `docker compose up` (test:integration:up does this).
+      - APP_URL=${SYNC_TEST_APP_URL:-http://host.docker.internal:3001}
+      # Enable the TEST_MODE-gated /internal/_test/recent-kicks
+      # endpoint that integration tests use to verify kick dispatches
+      # actually reached the sync server. Off in prod (no production
+      # consumer of this state); always on for the test container.
+      - TEST_MODE=1
+      # Low size limits so tests/integration/sync/syncHardening.test.ts can
+      # exercise them with modest payloads. Still far above anything the
+      # other suites (or the flow docs) write. MUST match the constants in
+      # that test file.
+      - SYNC_MAX_MESSAGE_BYTES=1572864
+      - SYNC_MAX_UPDATE_BYTES=1048576
+      - SYNC_MAX_DOCUMENT_BYTES=2097152
+      # Pre-auth queue limits, low for the same reason (syncHardening.test.ts
+      # constants). The provider authenticates within milliseconds, so the
+      # 3 s auth timeout never affects the other suites.
+      - SYNC_MAX_PREAUTH_BYTES=4194304
+      - SYNC_AUTH_TIMEOUT_MS=3000
+    extra_hosts:
+      # CONTAINER_HOST_ADDRESS: see docs/contributing/CONTAINER-ENGINES.md (VPNs, Podman).
+      - "host.docker.internal:${CONTAINER_HOST_ADDRESS:-host-gateway}"
+    ports:
+      - "127.0.0.1:4002:4001"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      valkey-test:
+        condition: service_healthy
+    healthcheck:
+      # bun base image lacks curl; use bun's built-in fetch instead.
+      test: ["CMD", "bun", "-e", "fetch('http://localhost:4001/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  # Always on (no profile): the integration suite exercises markitdown's
+  # archive / memory / time limits directly
+  # (tests/integration/endpoints/importLimits.test.ts).
+  markitdown-test:
+    build: ../../markitdown-server
+    mem_limit: 1g
+    environment:
+      # Pinned in tests/integration/setup/server.ts (NUXT_MARKITDOWN_API_SECRET)
+      # and tests/integration/endpoints/importLimits.test.ts.
+      - MARKITDOWN_API_SECRET=test-markitdown-api-secret-isolated
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health').read()"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+      start_period: 5s

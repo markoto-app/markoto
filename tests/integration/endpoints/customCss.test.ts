@@ -2,12 +2,12 @@
 //
 // Write paths: every endpoint that stores a theme runs the shared
 // sanitizer and answers 400 `theme/custom-css-invalid` with line/column
-// issues — doc meta, saved themes (POST + PATCH), workspace default.
+// issues: doc meta, saved themes (POST + PATCH), workspace default.
 // Creating / duplicating a doc re-targets upload URLs.
 //
 // Render path: the server renderer applies the sanitized CSS (a
 // distinctive page colour shows up in the PNG) and never fetches a URL
-// the sanitizer dropped — even one on the renderer's own allowlist, and
+// the sanitizer dropped: even one on the renderer's own allowlist, and
 // even when the CSS reached the DB without going through the write path
 // (as a direct Y.js write would).
 //
@@ -18,10 +18,10 @@ import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { inflateSync } from 'node:zlib'
 import * as Y from 'yjs'
-import { resetDb, testDb, ensureYjsTable } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 
 const FORBIDDEN = 'p { color: red }\n\n  @import "http://evil.test/x.css";'
 
@@ -47,7 +47,7 @@ async function expectCustomCssRejected(res: Response, line: number, column: numb
   expect(body.data?.issues).toEqual([expect.objectContaining({ code, line, column })])
 }
 
-describe('custom CSS — write paths', () => {
+describe('custom CSS: write paths', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -151,10 +151,10 @@ describe('custom CSS — write paths', () => {
   })
 })
 
-// ── Render path ──────────────────────────────────────────────────────────
+// Render path
 
-// MUST match RENDERER_ALLOWED_ORIGINS on renderer-test in docker-compose.test.yml
-// (shared with rendererNetwork.test.ts, which runs in the same process pool —
+// MUST match RENDERER_ALLOWED_ORIGINS on renderer-test in deploy/compose/compose.test.yml
+// (shared with rendererNetwork.test.ts, which runs in the same process pool,
 // vitest runs integration files serially, so the port is free here).
 const ALLOWED_PORT = 3187
 
@@ -248,7 +248,7 @@ async function insertYjsRow(docname: string, content: string): Promise<void> {
   const ydoc = new Y.Doc()
   ydoc.getText('content').insert(0, content)
   await testDb().query(
-    `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1')`,
+    `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2)`,
     [docname, Buffer.from(Y.encodeStateAsUpdate(ydoc))]
   )
 }
@@ -263,7 +263,7 @@ async function renderFirstPagePng(customCss: string): Promise<Buffer> {
   const owner = await createUser()
   const doc = await createDoc({ ownerId: owner.id })
   await insertYjsRow(doc.docId, '# Custom CSS\n\nA paragraph.\n')
-  // Straight into the DB, bypassing PUT /meta — the same position a
+  // Straight into the DB, bypassing PUT /meta, the same position a
   // direct Y.js write puts the renderer in.
   // No cover page, so page 1 is a body page whose sheet the CSS paints.
   await setDocTheme(doc.docId, { ...defaultTheme, cover: { ...defaultTheme.cover, enabled: false }, customCss })
@@ -277,10 +277,9 @@ async function renderFirstPagePng(customCss: string): Promise<Buffer> {
   return Buffer.from(data ?? '', 'base64')
 }
 
-describe('custom CSS — server renderer', () => {
+describe('custom CSS: server renderer', () => {
   beforeEach(async () => {
     await resetDb()
-    await ensureYjsTable()
     canary.hits.length = 0
   })
 
@@ -299,8 +298,7 @@ describe('custom CSS — server renderer', () => {
     expect(Math.abs(g - b)).toBeLessThan(40)
   }, 90_000)
 
-  // Regression (theme image URLs): a logo URL that breaks out of the
-  // cover `<img src>` attribute used to become a live event handler on
+  // A logo URL that breaks out of the cover `<img src>` attribute must not become a live event handler on
   // the render page. The marker handler would paint the page sheet green.
   it('a stored logo URL with an attribute breakout does not run on the render page', async () => {
     const owner = await createUser()

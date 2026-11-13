@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Live audio-level visualiser — a centered row of vertical bars whose
+// Live audio-level visualiser: a centered row of vertical bars whose
 // heights follow the 0..1 amplitude samples in `levels`. Canvas-based so
 // 30+ fps updates don't trigger layout or Vue diffs; only the 2D context
 // touches pixels.
@@ -59,11 +59,9 @@ function draw() {
   const barWidth = Math.max(1, (w - totalGap) / count)
   const minBar = props.minHeight * h
 
-  // Theme-aware fill: pull the brand shu (vermillion) from CSS vars
-  // so the bars match the prompt-bar's seal + ring + send button.
-  // Dark mode uses the brighter shu-400 stop for legibility on the
-  // darker chrome. Earlier this fill came from `--color-blue-500`
-  // — leftover from the pre-brand placeholder accent.
+  // Fill uses the brand shu from CSS vars so the bars match the prompt
+  // bar's seal, ring and send button; dark mode uses the brighter shu-400
+  // for legibility on the darker chrome.
   const styles = getComputedStyle(el)
   const isDark = document.documentElement.classList.contains('dark')
   const stop = isDark ? '--color-shu-400' : '--color-shu-500'
@@ -75,7 +73,7 @@ function draw() {
     const barHeight = Math.max(minBar, amp * h)
     const x = i * (barWidth + gapPx)
     const y = (h - barHeight) / 2
-    // Pill-shaped bars — radius = half the bar width rounds both top AND
+    // Pill-shaped bars: radius = half the bar width rounds both top AND
     // bottom to a semicircle, which reads as a clean voice waveform
     // rather than a chunky equalizer. Clamped to barHeight/2 so very
     // short bars stay proportional instead of overflowing their row.
@@ -94,9 +92,9 @@ function draw() {
 // allocates a fresh array each tick so Vue reactivity fires naturally.
 watch(() => props.levels, () => draw(), { flush: 'post' })
 watch(() => props.height, resize)
-// Wrapper width changes (parent resize, layout shift) → reapply the
-// DPR-aware sizing. Fires post-mount on the first non-zero width too,
-// so we don't need an extra onMounted to seed the canvas.
+// Wrapper width changes (parent resize, layout shift) reapply the
+// DPR-aware sizing. This also fires on the first non-zero width, so no
+// extra onMounted is needed to seed the canvas.
 watch(wrapperWidth, resize)
 </script>
 

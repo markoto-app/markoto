@@ -4,9 +4,9 @@ import { ref } from 'vue'
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { WorkspaceSettingsPanel } from '#components'
-import { THEME_PRESETS } from '~~/shared/utils/themePresets'
-import { themeThumbnailUrl } from '~~/shared/utils/themeThumbnails'
-import { isValidTheme } from '~~/shared/utils/themeValidation'
+import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
+import { themeThumbnailUrl } from '~~/shared/utils/theme/themeThumbnails'
+import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
 
 // The workspace's default design is picked with the same picker as the
 // new-document dialog and the theme panel: a picture of each design's
@@ -33,7 +33,7 @@ registerEndpoint('/api/workspaces/ws1', {
   }
 })
 
-/** Same values, keys in reverse order — like a theme read back from jsonb. */
+/** Same values, keys in reverse order, like a theme read back from jsonb. */
 function reordered(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(reordered)
   if (value && typeof value === 'object') {
@@ -50,7 +50,8 @@ describe('workspace default-design picker', () => {
       const card = wrapper.find(`[data-testid="workspace-default-theme-preset-${preset.id}"]`)
       expect(card.exists(), preset.id).toBe(true)
       const url = themeThumbnailUrl(preset.id)
-      if (url) expect(card.find('img').attributes('src')).toBe(url)
+      const img = card.find('img')
+      expect(img.exists() ? img.attributes('src') : null).toBe(url || null)
     }
     wrapper.unmount()
   })

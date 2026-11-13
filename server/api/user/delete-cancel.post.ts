@@ -1,11 +1,11 @@
-import { cancelAccountDeletionByUser } from '../../utils/accountDeletion'
-import { checkRateLimit } from '../../utils/rateLimit'
+import { cancelAccountDeletionByUser } from '../../utils/privacy/accountDeletion'
 import { isRepoError } from '../../repos/errors'
+import { HOUR_MS } from '~~/shared/config/units'
 
-// GDPR Article 17 — cancel an in-flight account deletion request.
+// GDPR Article 17: cancel an in-flight account deletion request.
 // Available throughout the 30-day grace window. Once the sweeper has
 // executed (i.e. `users` row is gone), this endpoint cannot reach
-// you — the session has been invalidated and login fails.
+// you: the session has been invalidated and login fails.
 //
 // Rate limit: shares the same per-user budget as request, so an
 // attacker who fires requests + cancels alternately can't pump the
@@ -15,43 +15,34 @@ import { isRepoError } from '../../repos/errors'
 // orchestrator). The UI should suppress the cancel button when no
 // deletion is scheduled, but the server enforces.
 
-export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
-  const userId = session.user.id
+export default defineApiHandler({
+  access: allow.user(),
+  body: 'none',
+  // Keyed on (user, client address): user-only would let a stolen session
+  // lock the owner out, address-only would be unfair behind a shared NAT.
+  // Shared with the request endpoint (same namespace), so alternating
+  // requests and cancels can't pump the audit log.
+  rateLimit: { namespace: 'account-delete-request', max: 5, windowMs: HOUR_MS, key: 'user+ip', error: 'account/delete-rate-limited' },
+  handler: async ({ event, self }) => {
+    const ip = getClientIp(event)
 
-  const ip = getClientIp(event)
-
-  // Same rate-limit key as the request endpoint so the budget is
-  // shared — a stolen session can't burst-cancel-then-burst-request.
-  const rlKey = `${userId}:${getClientRateLimitKey(event)}`
-  if (!(await checkRateLimit('account-delete-request', rlKey, 5, 60 * 60 * 1000))) {
-    throw createError({
-      statusCode: 429,
-      message: 'Too many account-deletion requests. Try again later.',
-      data: { code: 'account/delete-rate-limited' }
-    })
-  }
-
-  try {
-    const result = await cancelAccountDeletionByUser({
-      userId,
-      actorIp: ip
-    })
-
-    return {
-      ok: true,
-      deletionRequestedAt: null,
-      deletionGraceUntil: null,
-      emailAttempted: result.emailAttempted
-    }
-  } catch (e) {
-    if (isRepoError(e)) {
-      throw createError({
-        statusCode: e.httpStatus,
-        message: e.message,
-        data: { code: 'account/delete-cancel-conflict' }
+    try {
+      const result = await cancelAccountDeletionByUser({
+        self,
+        actorIp: ip
       })
+
+      return {
+        ok: true,
+        deletionRequestedAt: null,
+        deletionGraceUntil: null,
+        emailAttempted: result.emailAttempted
+      }
+    } catch (e) {
+      if (isRepoError(e)) {
+        throw apiError('account/delete-cancel-conflict', undefined, { status: e.httpStatus as 409 | 404, cause: e })
+      }
+      throw e
     }
-    throw e
   }
 })

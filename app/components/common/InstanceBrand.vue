@@ -1,10 +1,10 @@
 <script setup lang="ts">
-// The customer's mark on a managed private instance (WP16): their logo
+// The customer's mark on a managed private instance: their logo
 // and name after the markoto wordmark, behind a hairline. Renders nothing
 // unless the operator configured a brand (NUXT_INSTANCE_BRAND_*).
 
 withDefaults(defineProps<{
-  /** Logo height in px — match the wordmark beside it. */
+  /** Logo height in px, match the wordmark beside it. */
   size?: number
   /** Show the name (off where space is short; the logo's alt text carries it). */
   showName?: boolean

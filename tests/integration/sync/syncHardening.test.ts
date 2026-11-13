@@ -3,12 +3,13 @@ import * as Y from 'yjs'
 import jwt from 'jsonwebtoken'
 import WebSocket from 'ws'
 import * as encoding from 'lib0/encoding'
-import { HocuspocusProvider } from '@hocuspocus/provider'
+import type { HocuspocusProvider } from '@hocuspocus/provider'
+import { newProvider } from '../../helpers/hocuspocus'
 import { Awareness } from 'y-protocols/awareness'
-import { ensureYjsTable, resetDb, testDb } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { createDoc, createUser } from '../setup/fixtures'
 import { TEST_JWT_SECRET, TEST_SYNC_URL, TEST_SYNC_PORT } from '../setup/env'
-import { defaultTheme } from '../../../shared/utils/defaultTheme'
+import { defaultTheme } from '../../../shared/utils/theme/defaultTheme'
 
 // End-to-end hardening of the real sync-test container (Hocuspocus):
 //   - failed handshakes must not leak per-IP connection slots,
@@ -20,7 +21,7 @@ import { defaultTheme } from '../../../shared/utils/defaultTheme'
 //   - messages queued before authentication are bounded (bytes + time),
 //   - read-only connections can't broadcast stateless messages.
 //
-// The size limits come from docker-compose.test.yml (sync-test env) and
+// The size limits come from deploy/compose/compose.test.yml (sync-test env) and
 // MUST match the constants below.
 const MAX_MESSAGE_BYTES = 1_572_864
 const MAX_UPDATE_BYTES = 1_048_576
@@ -66,7 +67,7 @@ function connect(docId: string, identity: Identity): Client {
     resolveSynced = resolve
     rejectSynced = reject
   })
-  const provider = new HocuspocusProvider({
+  const provider = newProvider({
     url: WS_URL,
     name: docId,
     document: doc,
@@ -116,7 +117,6 @@ async function freshCopy(docId: string): Promise<Y.Doc> {
 
 beforeEach(async () => {
   await resetDb()
-  await ensureYjsTable()
 })
 
 afterEach(() => {
@@ -260,7 +260,7 @@ describe('ymeta validation on the WebSocket path', () => {
     })
     const update = Y.encodeStateAsUpdate(corrupt)
     await testDb().query(
-      `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1')`,
+      `INSERT INTO yjs_updates (doc_id, kind, data) VALUES ($1, 'update', $2)`,
       [doc.docId, Buffer.from(update.buffer, update.byteOffset, update.byteLength)]
     )
 
@@ -326,7 +326,7 @@ describe('activity-log attribution', () => {
   }, 30_000)
 })
 
-/** varString(doc) varUint(type) …payload — a raw Hocuspocus frame. */
+/** varString(doc) varUint(type) …payload: a raw Hocuspocus frame. */
 function rawFrame(docId: string, type: number, write: (enc: encoding.Encoder) => void): Uint8Array {
   const enc = encoding.createEncoder()
   encoding.writeVarString(enc, docId)
@@ -358,7 +358,7 @@ describe('messages queued before authentication', () => {
     const doc = await createDoc()
     const chunk = 512 * 1024
     const close = await openUnauthenticated((ws) => {
-      // Sync updates for a document that never sends its Auth frame —
+      // Sync updates for a document that never sends its Auth frame,
       // Hocuspocus would queue them all.
       for (let sent = 0; sent <= MAX_PREAUTH_BYTES + chunk; sent += chunk) {
         ws.send(rawFrame(doc.docId, 0, (enc) => {
@@ -406,7 +406,8 @@ describe('stateless messages', () => {
     const viewer = connect(doc.docId, { userId: 'anonymous', userName: null, readOnly: true })
     await Promise.all([writer.synced, viewer.synced])
     broadcastStateless(writer, 'from-writer')
-    await waitFor(() => viewer.stateless.includes('from-writer'))
+    // `waitFor` throws on timeout; the explicit expectation makes the test's one assertion visible.
+    expect(await waitFor(() => viewer.stateless.includes('from-writer'))).toBe(true)
   })
 
   it('a read-only connection\'s broadcast is dropped and its connection closed', async () => {

@@ -1,0 +1,170 @@
+import type { DocTheme } from '../../types/theme'
+
+/**
+ * Default theme: used as the initial value for newly-created documents
+ * and as the fallback when a doc's stored theme fails validation.
+ *
+ * This IS the markoto preset (kept in sync with `themePresets.ts`):
+ * Fraunces editorial headings on Inter body, plain white paper, shu
+ * vermillion brand, minimal table borders, document-matched mermaid. Every new
+ * doc opens looking like markoto by default; users pick a different
+ * preset only when they want something else.
+ */
+export const defaultTheme: DocTheme = {
+  page: {
+    size: 'A4',
+    orientation: 'portrait',
+    margin: 24,
+    mirrorMargins: false // the same margins on left and right pages
+  },
+  meta: {
+    // JetBrains Mono: the "instrument" voice. Used for header/footer
+    // text, figcaptions, footnotes. Distinguishes meta from body
+    // (Inter) and from headlines (Fraunces).
+    font: 'JetBrains Mono'
+  },
+  body: {
+    font: 'Inter',
+    size: 10.5,
+    // 1.55: proportionally generous compared to print norms (LO/Word
+    // sit ~1.15-1.2). Inter at 10.5pt with Fraunces headings reads as
+    // "calm field guide" rather than dense report; the extra leading
+    // is what carries that voice.
+    lineHeight: 1.55,
+    textAlign: 'left',
+    color: '#14110D', // sumi-950
+    // Plain white paper: a new document looks like the page it prints
+    // on. A cream page looks off to new users; it is a Theme panel choice.
+    background: '#FFFFFF',
+    dropCap: true, // editorial signature on first paragraph
+    firstLineIndent: false, // markoto uses paragraph spacing, not indent
+    paragraphSpacing: 0.6, // standard print breathing
+    hyphenate: false // left-rag prose; hyphens read clinical
+  },
+  headings: {
+    font: 'Fraunces',
+    // h1 = body·scale³ ≈ 2.1× body (see HEADING_SCALE_EXPONENTS in themeToCss)
+    scale: 1.28,
+    weight: 500, // brand cap, never 600+
+    underline: false,
+    color: '#1F1B14', // sumi-900
+    letterSpacing: -0.01, // Fraunces wants slight negative tracking
+    lineHeight: 1.25, // generous breathing for big serif headings
+    spacingScale: 1.2, // editorial top-margin breathing
+    numbering: 'none',
+    levels: {}, // every level follows the scale + weight above
+    numberingDepth: 4, // every numbered level shows its number
+    chapterLabel: false, // no "Chapter 3" over top-level headings
+    chapterWord: '' // the document language's word when the label is on
+  },
+  color: {
+    brand: '#B5371F', // shu-500, the seal lives here
+    secondary: '#A39A8A' // sumi-400, warm muted brown-grey for hairlines
+  },
+  brand: {
+    // The markoto wordmark lives in `public/markoto-logos/` (used by the
+    // app's topbar via `<CommonWordmark>`). Pre-filled here so every new
+    // doc opens with the brand mark on its cover; users replace it with
+    // their own via the theme editor's logo upload. Empty string would
+    // suppress the cover logo entirely, which is what users get when
+    // they explicitly clear it.
+    logoUrl: '/markoto-logos/primary-lockup-light.svg',
+    logoHeight: 56
+  },
+  layout: {
+    columns: 1,
+    columnGap: 8
+  },
+  header: {
+    left: '',
+    center: '',
+    right: '',
+    imageUrl: '',
+    imagePosition: 'left',
+    imageHeight: 12, // pt, proportionate to typical 9-11pt header text
+    rule: false,
+    sectionNumber: false, // {section} = the title only
+    sectionMode: 'first' // {section} = the first section heading on the page
+  },
+  footer: {
+    left: '',
+    center: '{page} · {pages}',
+    right: '',
+    imageUrl: '',
+    imagePosition: 'center',
+    imageHeight: 10,
+    rule: false
+  },
+  code: {
+    theme: 'github-light',
+    fontSize: 9,
+    font: 'JetBrains Mono', // the brand's instrument voice
+    background: 'auto', // faint tint behind light-theme code
+    frame: 'none',
+    wrap: true, // print can't scroll
+    lineNumbers: false
+  },
+  tables: {
+    headerBackground: 'none',
+    headerTextColor: 'inherit',
+    borders: 'minimal',
+    zebra: false,
+    cellPadding: 8,
+    captionPosition: 'above',
+    captionLabel: false // "Table 1: " before captions
+  },
+  blocks: {
+    imageRadius: 0, // sharp print corners, not iOS
+    imageMaxWidth: 92,
+    blockquoteStyle: 'border',
+    hrStyle: 'asterism', // editorial signature, Penguin Classics scene break
+    hrThickness: 1, // unused for asterism, kept for schema completeness
+    figureLabel: false, // "Figure 1: " before captions
+    referenceStyle: 'plain', // reference list like any other list
+    captionNumbering: 'document', // Figure 1, 2, 3 … through the document
+    captionLabelStyle: 'inline' // "Table 1: Title" on one line
+  },
+  mermaid: {
+    theme: 'document'
+  },
+  alerts: {
+    // Desaturated warm-paper palette: mirrors the markoto preset.
+    note: '#3D5A80',
+    tip: '#4A6F4D',
+    important: '#6B4F7F',
+    warning: '#9C7A2C',
+    caution: '#B5371F'
+  },
+  toc: {
+    maxDepth: 3,
+    showTitle: true,
+    showPageNumbers: true,
+    leaderStyle: 'dotted'
+  },
+  cover: {
+    enabled: true, // markoto opens with a title sheet
+    // Editorial layout matches the brand voice: logo at top, title +
+    // subtitle around the upper third, author + date around the lower
+    // third. Other layouts (`classic`, `banner`, `minimal`) are
+    // alternative compositions users pick via the theme editor.
+    layout: 'editorial',
+    align: 'center',
+    showTitle: true,
+    showSubtitle: false,
+    subtitle: '',
+    showDate: true,
+    showAuthors: false, // user fills in via theme editor when ready
+    authors: [],
+    affiliations: [],
+    rules: false,
+    smallCaps: false,
+    dateFormat: 'locale', // the document language's long date
+    repeatTitle: false,
+    // Brand logo on by default, `theme.brand.logoUrl` is pre-filled
+    // with the markoto wordmark above, so a brand-new doc opens with
+    // the mark visible on the cover.
+    showLogo: true,
+    titleSize: 2.4, // em multiplier, matches the previous hardcoded value
+    subtitleSize: 1.15
+  }
+}

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import * as Y from 'yjs'
-import { ensureYjsTable, resetDb, testDb } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import {
   createUser,
@@ -9,9 +9,10 @@ import {
 } from '../setup/fixtures'
 import { createAnonDoc } from '../setup/anonGate'
 import { INITIAL_CONTENT_MAX_LENGTH } from '../../../shared/config/docCreate'
-import { THEME_PRESETS } from '../../../shared/utils/themePresets'
+import { THEME_PRESETS } from '../../../shared/utils/theme/themePresets'
+import { first } from '../../helpers/assert'
 
-// POST /api/docs — creates a document. Defaults matter:
+// POST /api/docs: creates a document. Defaults matter:
 //   - Anonymous creator → ownerId=null, accessMode='open-edit'
 //   - Logged-in creator → ownerId=user.id, accessMode='private'
 // These defaults are load-bearing: anonymous-private would lock the
@@ -38,7 +39,7 @@ async function readDoc(docId: string) {
      FROM documents WHERE doc_id = $1`,
     [docId]
   )
-  return r.rows[0]
+  return first(r.rows, 'documents row')
 }
 
 describe('POST /api/docs', () => {
@@ -171,7 +172,7 @@ describe('POST /api/docs', () => {
       expect(row.language).toBe('de')
       expect(row.template_id).toBe('business-plan')
       // themePreset resolves server-side to the arxiv preset's full
-      // theme object — client cannot inject arbitrary JSONB.
+      // theme object: client cannot inject arbitrary JSONB.
       expect(row.theme).not.toBeNull()
       expect(row.theme).toHaveProperty('color')
     })
@@ -295,17 +296,13 @@ describe('POST /api/docs', () => {
   describe('initial content', () => {
     async function storedText(docId: string): Promise<string> {
       const r = await testDb().query<{ value: Buffer }>(
-        `SELECT value FROM yjs_documents WHERE docname = $1 AND version = 'v1' ORDER BY id`,
+        `SELECT data AS value FROM yjs_updates WHERE doc_id = $1 ORDER BY id`,
         [docId]
       )
       const doc = new Y.Doc()
       for (const row of r.rows) Y.applyUpdate(doc, new Uint8Array(row.value))
       return doc.getText('content').toString()
     }
-
-    beforeEach(async () => {
-      await ensureYjsTable()
-    })
 
     it('anonymous creation with content stores it as Y.js state', async () => {
       const res = await createAnonDoc(anonClient(), { title: 'Field notes', content: '# Field notes\n\nHello **there**.\n' })
@@ -331,7 +328,7 @@ describe('POST /api/docs', () => {
       const client = await loggedInClient(user.id)
       const res = await client.post('/api/docs', {})
       const { docId } = await res.json() as { docId: string }
-      const r = await testDb().query('SELECT 1 FROM yjs_documents WHERE docname = $1', [docId])
+      const r = await testDb().query('SELECT 1 FROM yjs_updates WHERE doc_id = $1', [docId])
       expect(r.rowCount).toBe(0)
     })
 

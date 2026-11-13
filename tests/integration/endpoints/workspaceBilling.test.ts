@@ -4,7 +4,7 @@ import { loggedInClient, anonClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import { TEST_BILLING_OFF_BASE_URL } from '../setup/env'
 
-// Team / Business workspace billing (pricing plan WP3) against the
+// Team / Business workspace billing against the
 // billing-on test server: stripe-mock for Stripe; LiteLLM runs in stub
 // mode there (`LITELLM_TEST_STUB=1`), so the team / key calls are
 // covered by unit tests and the member key is a stub.
@@ -40,7 +40,7 @@ async function addMembers(workspaceId: string, n: number): Promise<number[]> {
   return ids
 }
 
-describe('workspace billing — access', () => {
+describe('workspace billing: access', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -329,7 +329,7 @@ describe('workspace deletion with a subscription', () => {
   })
 })
 
-describe('workspace plan in the surfaces that show it (WP6)', () => {
+describe('workspace plan in the surfaces that show it', () => {
   beforeEach(async () => {
     await resetDb()
   })

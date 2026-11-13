@@ -4,9 +4,9 @@ import { ref } from 'vue'
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { DocumentThemeEditorPanel } from '#components'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 import type { DocTheme } from '~~/shared/types/theme'
-import { isValidTheme } from '~~/shared/utils/themeValidation'
+import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
 
 // Theme panel ↔ the document-structure fields: per-side page margins,
 // per-level alignment, table / figure caption labels, reference style.
@@ -53,7 +53,7 @@ async function toggle(wrapper: Awaited<ReturnType<typeof mount>>, testId: string
   await flushPromises()
 }
 
-describe('theme panel — margins, captions, references, heading alignment', () => {
+describe('theme panel: margins, captions, references, heading alignment', () => {
   it('opening the panel on a legacy theme emits nothing; the side margins stay collapsed', async () => {
     const wrapper = await mount(legacy())
     expect(wrapper.emitted('update:theme')).toBeUndefined()

@@ -5,21 +5,21 @@ import { createUser } from '../setup/fixtures'
 import { applyTestEnv } from '../setup/testEnv'
 import { fakeOpenAiBaseUrl } from '../setup/env'
 import { LITELLM_MASTER_KEY, LITELLM_URL, waitFor } from '../setup/byok'
-import { encryptToken } from '../../../server/utils/litellm/tokenCrypto'
+import { sealSecret, secretContext } from '../../../server/utils/platform/secretBox'
 import type { ResolvedAiProvider } from '../../../server/utils/aiProviders/resolve'
 
 // The global monthly ceiling on platform-paid AI for free-tier users
 // (`server/utils/litellm/freeTierTeam.ts`), against the REAL `litellm-test`
-// proxy (LiteLLM v1.106.4). Runs the production helpers in-process — the
-// integration server itself uses `LITELLM_TEST_STUB=1` — so the /key/*,
+// proxy (LiteLLM v1.106.4). Runs the production helpers in-process, the
+// integration server itself uses `LITELLM_TEST_STUB=1`, so the /key/*,
 // /team/* and budget-gate wire contracts are what LiteLLM really does:
 //
 //   - a new free-tier key joins the `markoto-free-tier` team, whose
 //     budget (NUXT_FREE_TIER_TOTAL_BUDGET_USD) resets monthly with the keys;
 //   - existing keys are migrated in (and out again) idempotently;
 //   - an exhausted team rejects platform-paid calls with an error the app
-//     maps to 402 `ai/free-allowance-exhausted` — distinct from the
-//     per-key budget — while zero-cost BYOK calls on the same key go on.
+//     maps to 402 `ai/free-allowance-exhausted`, distinct from the
+//     per-key budget: while zero-cost BYOK calls on the same key go on.
 //
 // The pre-call budget gate runs before any upstream request, so this needs
 // no real provider key. One case makes a REAL GLM-5.3 Flash call and is
@@ -29,22 +29,22 @@ import type { ResolvedAiProvider } from '../../../server/utils/aiProviders/resol
 // The integration project runs files in ONE worker without isolation:
 // snapshot what this file changes and put it back in afterAll.
 const envBefore = { ...process.env }
-const globalsBefore = { useRuntimeConfig: Reflect.get(globalThis, 'useRuntimeConfig'), createError: Reflect.get(globalThis, 'createError') }
+const globalsBefore = { createError: Reflect.get(globalThis, 'createError') }
 
 applyTestEnv()
 process.env.LITELLM_TEST_STUB = ''
 process.env.NUXT_FREE_TIER_TOTAL_BUDGET_USD = '500'
 process.env.TIER_FREE_LITELLM_BUDGET_USD = '0.5'
-Object.assign(globalThis, {
-  useRuntimeConfig: () => ({ litellm: { url: LITELLM_URL, masterKey: LITELLM_MASTER_KEY } }),
-  createError
-})
+// The code under test reads the proxy from the typed env (shared/env).
+process.env.NUXT_LITELLM_URL = LITELLM_URL
+process.env.NUXT_LITELLM_MASTER_KEY = LITELLM_MASTER_KEY
+Object.assign(globalThis, { createError })
 
 const { createUserKey, getUserKeyToken, updateUserKeyBudget } = await import('../../../server/utils/litellm/userKeys')
 const team = await import('../../../server/utils/litellm/freeTierTeam')
 const { reconcileUserKeys } = await import('../../../server/utils/litellm/keyReconcile')
-const { assertFreeAllowanceAvailable, freeAllowanceExhaustedHttpError } = await import('../../../server/utils/freeAllowance')
-const { useLitellmForUser } = await import('../../../server/utils/litellmClient')
+const { assertFreeAllowanceAvailable, freeAllowanceExhaustedHttpError } = await import('../../../server/utils/billing/freeAllowance')
+const { useLitellmForUser } = await import('../../../server/utils/ai/litellmClient')
 
 async function admin(path: string, body?: unknown): Promise<{ status: number, json: Record<string, unknown> }> {
   const res = await fetch(`${LITELLM_URL}${path}`, {
@@ -86,7 +86,7 @@ async function legacyKey(userId: number): Promise<string> {
   expect(status).toBe(200)
   const token = String(json.key)
   await testDb().query('UPDATE users SET litellm_key_id = $1, litellm_key_token = $2 WHERE id = $3',
-    [String(json.token_id ?? json.token), encryptToken(token), userId])
+    [String(json.token_id ?? json.token), sealSecret('litellm-user-key', secretContext.litellmUserKey(userId), token), userId])
   return token
 }
 
@@ -174,7 +174,7 @@ describe('free-tier pool: key membership', () => {
 })
 
 describe('free-tier pool: migrating existing keys', () => {
-  it('moves legacy keys into the pool with the current allowance — idempotently', async () => {
+  it('moves legacy keys into the pool with the current allowance, idempotently', async () => {
     const a = await createUser()
     const b = await createUser()
     const tokenA = await legacyKey(a.id)
@@ -231,10 +231,10 @@ describe('free-tier pool: migrating existing keys', () => {
 /**
  * Use the pool up for real: spend on a pool key, then lower the ceiling
  * below what the team has spent. LiteLLM refuses only once spend is
- * STRICTLY above `max_budget` (a 0 / 0 team still passes — verified), so
+ * STRICTLY above `max_budget` (a 0 / 0 team still passes, verified), so
  * the team needs real spend. The dictation billing tick
  * (`voxtral-realtime-tick`, $0.006, no upstream) provides it without a
- * provider key — and is itself a platform-paid call the pool must cover.
+ * provider key: and is itself a platform-paid call the pool must cover.
  */
 async function exhaustPool(token: string): Promise<void> {
   const before = Number((await teamInfo()).spend ?? 0)

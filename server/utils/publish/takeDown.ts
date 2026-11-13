@@ -2,10 +2,11 @@ import { deletePublishedPage, getPublishedPageById, getPublishedPageBySlug } fro
 import { prunePublishedObjects } from './publishDocument'
 import { liveCustomDomainForHost } from '../customDomains/routing'
 import { normalizeCustomHostname } from '~~/shared/config/customDomains'
+import type { DocAccess } from '../../repos/proofs'
 
 /** Take a document's web page down: the row (the address 404s at once), then its files. */
-export async function takeDownPublishedPage(docId: string): Promise<{ id: string } | null> {
-  const removed = await deletePublishedPage(docId)
+export async function takeDownPublishedPage(doc: DocAccess<'manage'> | DocAccess<'delete'>): Promise<{ id: string } | null> {
+  const removed = await deletePublishedPage(doc)
   if (removed) await prunePublishedObjects(removed.id)
   return removed
 }
@@ -13,7 +14,7 @@ export async function takeDownPublishedPage(docId: string): Promise<{ id: string
 const PUBLISHED_PATH_RE = /^\/p\/([^/?#]+)\/?$/
 
 /**
- * The document behind a reported published-page address (WP13): a
+ * The document behind a reported published-page address: a
  * `/p/<slug>` URL on any host, or the root of a live custom domain. Lets an
  * abuse report filed from a page's Report link reach the moderation flow.
  */

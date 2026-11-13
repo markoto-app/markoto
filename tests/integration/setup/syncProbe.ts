@@ -1,16 +1,12 @@
 import { TEST_INTERNAL_SECRET, TEST_SYNC_URL } from './env'
 
-// Test-side probe of the sync-test container's TEST_MODE-only
-// `/internal/_test/recent-kicks` ring buffer. Replaces the in-process
-// HTTP stub that used to record `/internal/kick-user` calls — now
-// recorded by the REAL sync-server alongside its real kick handler,
-// so a failed dispatch shows up the same way it would in prod (a
-// missing entry).
+// Test-side probe of the sync-test container's TEST_MODE-only `/internal/_test/recent-kicks` ring buffer. The
+// real sync-server records every `/internal/kick-user` call alongside its real kick handler, so a failed
+// dispatch shows up the same way it would in prod (a missing entry).
 //
-// The endpoint requires the same `X-Internal-Secret` as the rest of
-// `/internal/*` — the test process knows it via TEST_INTERNAL_SECRET
-// (which is also what the sync-test container is built with). Tests
-// don't bypass the secret check, so this code path mirrors prod auth.
+// The endpoint requires the same `X-Internal-Secret` as the rest of `/internal/*`; the test process knows it
+// via TEST_INTERNAL_SECRET (which is also what the sync-test container is built with). Tests don't bypass the
+// secret check, so this code path mirrors prod auth.
 
 export interface RecordedKick {
   userId: string
@@ -41,7 +37,7 @@ export async function clearRecentKicks(): Promise<void> {
 
 /**
  * Poll the buffer until at least one kick matches the predicate, or
- * timeout. Kicks are dispatched fire-and-forget by the Nuxt app — the
+ * timeout. Kicks are dispatched fire-and-forget by the Nuxt app, the
  * mutation HTTP response returns BEFORE the kick lands at the sync
  * server, so synchronous checks would race.
  */

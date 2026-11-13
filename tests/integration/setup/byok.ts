@@ -1,13 +1,14 @@
 import * as Y from 'yjs'
 import jwt from 'jsonwebtoken'
 import WebSocket from 'ws'
-import { HocuspocusProvider } from '@hocuspocus/provider'
+import type { HocuspocusProvider } from '@hocuspocus/provider'
+import { newProvider } from '../../helpers/hocuspocus'
 import { Awareness } from 'y-protocols/awareness'
 import { testDb } from './db'
 import { createUser, type TestUser } from './fixtures'
 import { TEST_FAKE_OPENAI_HOST_URL, TEST_JWT_SECRET, TEST_SYNC_PORT } from './env'
 import { buildTestEnv } from './testEnv'
-import { encryptToken } from '../../../server/utils/litellm/tokenCrypto'
+import { sealSecret, secretContext } from '../../../server/utils/platform/secretBox'
 
 // Shared helpers for tests that drive the real AI loop against the
 // `fake-openai-test` provider (tests/fixtures/fake-openai/server.py)
@@ -16,8 +17,8 @@ import { encryptToken } from '../../../server/utils/litellm/tokenCrypto'
 
 export const LITELLM_URL = 'http://127.0.0.1:4100'
 export const LITELLM_MASTER_KEY = 'sk-test-litellm-master'
-// Same salt as the server subprocess, so the token we store decrypts there.
-process.env.LITELLM_SALT_KEY = buildTestEnv().LITELLM_SALT_KEY
+// Same encryption key as the server subprocess, so the token we store decrypts there.
+process.env.NUXT_ENCRYPTION_KEY = buildTestEnv().NUXT_ENCRYPTION_KEY
 
 export interface FakeRequest {
   path: string
@@ -61,7 +62,7 @@ export async function waitFor<T>(probe: () => Promise<T | null>, timeoutMs: numb
  * virtual key, so provision one through the proxy's admin API and store
  * it exactly like `createUserKey` does (encrypted token + key id).
  */
-export async function provisionVirtualKey(userId: number): Promise<void> {
+async function provisionVirtualKey(userId: number): Promise<void> {
   const res = await fetch(`${LITELLM_URL}/key/generate`, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${LITELLM_MASTER_KEY}`, 'Content-Type': 'application/json' },
@@ -71,7 +72,7 @@ export async function provisionVirtualKey(userId: number): Promise<void> {
   const body: { key: string, token_id?: string, token?: string } = await res.json()
   await testDb().query(
     'UPDATE users SET litellm_key_id = $1, litellm_key_token = $2 WHERE id = $3',
-    [body.token_id ?? body.token, encryptToken(body.key), userId]
+    [body.token_id ?? body.token, sealSecret('litellm-user-key', secretContext.litellmUserKey(userId), body.key), userId]
   )
 }
 
@@ -81,7 +82,7 @@ export async function byokUser(name?: string): Promise<TestUser> {
   return u
 }
 
-// ─── Hocuspocus test client ──────────────────────────────────────────
+// Hocuspocus test client
 
 export interface SyncIdentity {
   userId: string
@@ -112,7 +113,7 @@ export function connectSync(docId: string, identity: SyncIdentity): SyncClient {
     TEST_JWT_SECRET,
     { expiresIn: '10m' }
   )
-  const provider = new HocuspocusProvider({
+  const provider = newProvider({
     url: `ws://127.0.0.1:${TEST_SYNC_PORT}`,
     name: docId,
     document: doc,

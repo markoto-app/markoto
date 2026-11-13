@@ -1,6 +1,6 @@
 ---
 # ansible-lint config for the markoto Ansible tree.
-# Profile 'production' is the strictest tier — we hold ourselves to it.
+# Profile 'production' is the strictest tier: we hold ourselves to it.
 profile: production
 
 # Tell ansible-lint where to look. Without this it scans from the git root
@@ -13,7 +13,7 @@ exclude_paths:
 # We use yamllint for whitespace; let it own the YAML rules.
 skip_list: []
 
-# Treat warnings as failures — no silent regressions.
+# Treat warnings as failures: no silent regressions.
 strict: true
 
 # Run offline by default; CI fetches Galaxy deps explicitly via `make requirements`.

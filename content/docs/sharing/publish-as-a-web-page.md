@@ -3,14 +3,16 @@ title: Publish as a web page
 description: Put a copy of a document at its own public address, keep it out of search engines or let them list it, and show it on your own domain.
 category: sharing
 order: 3
-updated: '2026-11-10'
+updated: '2026-11-11'
 ---
 
 # Publish as a web page
 
 Publishing puts a copy of a document at its own public address, like
-`markoto.app/p/harbourline-depot-guide-k3x9za`. Anyone with the address can
-read it — no account, no editor, nothing to download. The document itself
+`pages.markoto.app/p/harbourline-depot-guide-k3x9za`. Anyone with the address can
+read it: no account, no editor, nothing to download. Published pages have
+an address of their own, separate from the editor's. (A self-hosted
+instance may show them on its own address instead, at `/p/…`.) The document itself
 keeps its sharing exactly as it is: a private document stays private.
 
 The owner and the workspace's admins find **Publish as a web page** in the
@@ -32,7 +34,7 @@ Changes you make afterwards don't appear on the page until you choose
 ## Address
 
 markoto suggests an address made from the title. Change it under
-**Address** — lowercase letters, digits and hyphens. The old address stops
+**Address**: lowercase letters, digits and hyphens. The old address stops
 working at once.
 
 ## Search engines
@@ -71,7 +73,7 @@ regularly, and if they stay wrong for three days the domain stops.
 
 The certificate comes from Let's Encrypt. Like every public certificate it
 is listed in public certificate logs, so the domain name itself becomes
-public — the page's content doesn't.
+public, but the page's content doesn't.
 
 ## What's next
 

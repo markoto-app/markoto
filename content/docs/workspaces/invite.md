@@ -43,5 +43,5 @@ send.
 
 ## What's next
 
-- [Pick the right role](/docs/workspaces/roles) — admin / editor / viewer side-by-side.
-- [Set a default theme](/docs/workspaces/default-theme) — every new doc your team creates starts already styled.
+- [Pick the right role](/docs/workspaces/roles): admin / editor / viewer side-by-side.
+- [Set a default theme](/docs/workspaces/default-theme): every new doc your team creates starts already styled.

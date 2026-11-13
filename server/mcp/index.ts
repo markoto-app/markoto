@@ -1,10 +1,13 @@
 import * as Sentry from '@sentry/nuxt'
-import { verifyMcpPat, touchMcpSession, type McpAuthContext } from '../utils/mcpAuth'
-import { checkRateLimit } from '../utils/rateLimit'
-import { getClientRateLimitKey } from '../utils/clientIp'
-import { useMcpSessionBindings } from '../utils/mcpSessionBinding'
+import { verifyMcpPat, touchMcpSession, type McpAuthContext } from '../utils/mcp/mcpAuth'
+import { checkRateLimit } from '../utils/platform/rateLimit'
+import { getClientRateLimitKey } from '../utils/platform/clientIp'
+import { useMcpSessionBindings } from '../utils/mcp/mcpSessionBinding'
 import { evaluateMcpRequest, jsonRpcErrorResponse } from './lib/mcpGate'
-import { capsFor, resolveUserPlan } from '../utils/entitlements'
+import { capsFor, resolveUserPlan } from '../utils/billing/entitlements'
+import { useLogger } from '../utils/platform/logger'
+
+const log = useLogger('mcp')
 
 // Default MCP handler. The middleware is the gate in front of the MCP
 // toolkit (`lib/mcpGate.ts` holds the decision logic):
@@ -13,7 +16,7 @@ import { capsFor, resolveUserPlan } from '../utils/entitlements'
 //   - a verified personal access token is REQUIRED. Without one the
 //     request is refused with a JSON-RPC error (HTTP 403) before the
 //     toolkit runs, so an anonymous `initialize` never creates a server
-//     session (the toolkit keeps at most 1000 per process — anonymous
+//     session (the toolkit keeps at most 1000 per process, anonymous
 //     callers could otherwise exhaust them for everybody). Never 401:
 //     MCP clients treat 401 as "start OAuth discovery", which we don't
 //     offer,
@@ -29,7 +32,7 @@ import { capsFor, resolveUserPlan } from '../utils/entitlements'
 // (UPSERT, Valkey-throttled to 1/min) so `activity_log` rows tagged
 // `mcp:{mcpSessionId}` can be joined back to the real human. On
 // `initialize` the row is written right away with the client's
-// `clientInfo.name` and the creating token. Fire-and-forget — failure
+// `clientInfo.name` and the creating token. Fire-and-forget, failure
 // here is invisible to the caller, same polarity as `appendAuditEvent`.
 
 declare module 'h3' {
@@ -59,7 +62,7 @@ async function initializeClientName(event: Parameters<typeof readBody>[0]): Prom
     const name = (clientInfo as Record<string, unknown>).name
     return typeof name === 'string' && name.trim().length > 0 ? name.trim().slice(0, 200) : null
   } catch {
-    // Not JSON-RPC (GET stream, malformed body) — nothing to record.
+    // Not JSON-RPC (GET stream, malformed body), nothing to record.
     return null
   }
 }
@@ -68,21 +71,21 @@ async function initializeClientName(event: Parameters<typeof readBody>[0]): Prom
  * Bind a session the toolkit just created to the creating token. If that
  * fails (Valkey error, or the id is somehow already bound) the session
  * stays unbound: its next request is refused and the client
- * re-initializes — never served to an unverified token.
+ * re-initializes: never served to an unverified token.
  */
 async function bindNewSession(bindings: ReturnType<typeof useMcpSessionBindings>, sessionId: string, auth: McpAuthContext): Promise<void> {
   try {
     if (!(await bindings.bind(sessionId, auth.tokenId, auth.userId))) {
-      console.warn('[mcp] new session id was already bound; left unbound')
+      log.warn('new session id was already bound; left unbound')
     }
   } catch (e) {
-    console.warn(`[mcp] could not bind the new session: ${e instanceof Error ? e.message : String(e)}`)
+    log.warn('could not bind the new session', { err: e })
     Sentry.captureException(e, { tags: { component: 'mcp', event: 'session_bind_failed' } })
   }
 }
 
 export default defineMcpHandler({
-  description: 'markoto — read, search, and edit your collaborative markdown documents.',
+  description: 'markoto: read, search, and edit your collaborative markdown documents.',
   middleware: async (event, next) => {
     const sessionHeader = getHeader(event, 'mcp-session-id')
     const bindings = useMcpSessionBindings()

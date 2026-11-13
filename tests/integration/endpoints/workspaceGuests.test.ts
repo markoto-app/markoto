@@ -5,8 +5,8 @@ import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/
 import { TEST_BILLING_OFF_BASE_URL } from '../setup/env'
 import { clearRecentKicks, waitForKick } from '../setup/syncProbe'
 
-// Workspace guests (WP11): a guest sees ONLY the documents shared with
-// them — no workspace page, no other document, no knowledge — takes no
+// Workspace guests: a guest sees ONLY the documents shared with
+// them: no workspace page, no other document, no knowledge, takes no
 // seat, and is capped at 5 per paid seat in a Team / Business
 // workspace. Admins and editors share documents with them; admins see
 // per-person usage.
@@ -42,7 +42,7 @@ async function setup() {
   return { admin, ws, editor, guest, shared, other }
 }
 
-describe('workspace guests — access', () => {
+describe('workspace guests: access', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -75,6 +75,12 @@ describe('workspace guests — access', () => {
     expect((await guestClient.get(`/api/docs/${shared.docId}/shares`)).status).toBe(403)
     const mentionable = await (await guestClient.get(`/api/docs/${shared.docId}/mentionable-users`)).json() as { users: unknown[] }
     expect(mentionable.users).toEqual([])
+    // Nor the presence roster, while a real member still gets it.
+    const guestRoster = await guestClient.get(`/api/docs/${shared.docId}/members`)
+    expect(guestRoster.status).toBe(200)
+    expect(await guestRoster.json()).toEqual({ members: [] })
+    const memberRoster = await (await adminClient.get(`/api/docs/${shared.docId}/members`)).json() as { members: Array<{ userId: number }> }
+    expect(memberRoster.members.map(m => m.userId)).toContain(admin.id)
 
     // Unsharing closes it again.
     expect((await adminClient.delete(`/api/docs/${shared.docId}/shares/${guest.id}`)).status).toBe(200)
@@ -168,7 +174,7 @@ describe('workspace guests — access', () => {
   })
 })
 
-describe('workspace guests — invitations', () => {
+describe('workspace guests: invitations', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -243,7 +249,7 @@ describe('workspace usage', () => {
   })
 })
 
-describe('workspace guests — single sign-on and account deletion', () => {
+describe('workspace guests: single sign-on and account deletion', () => {
   beforeEach(async () => {
     await resetDb()
   })

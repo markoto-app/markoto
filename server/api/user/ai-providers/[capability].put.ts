@@ -1,11 +1,12 @@
-import { checkRateLimit } from '../../../utils/rateLimit'
-import { resolveBillingContext } from '../../../utils/billing'
-import { saveBodySchema, saveUserProvider } from '../../../utils/aiProviders/store'
+import { resolveBillingContext } from '../../../utils/billing/billing'
+import { saveUserProvider } from '../../../utils/aiProviders/store'
 import { appendAuditEvent, truncateIp } from '../../../repos/audit'
 import { AUDIT_AI_PROVIDER_SAVED } from '../../../legal/auditActions'
-import { baseUrlHost, codeKey, isAiCapability } from '~~/shared/ai/providers'
+import { baseUrlHost, codeKey } from '~~/shared/ai/providers'
+import { aiProviderParams, saveAiProviderBody } from '~~/shared/api/account'
+import { MINUTE_MS } from '~~/shared/config/units'
 
-// PUT /api/user/ai-providers/:capability — save (create or replace) the
+// PUT /api/user/ai-providers/:capability: save (create or replace) the
 // caller's provider for one capability. Order: URL policy (SSRF) →
 // verification through LiteLLM (same path as real calls) → encrypt +
 // store. A hard verification failure (auth / unknown model / URL /
@@ -13,58 +14,52 @@ import { baseUrlHost, codeKey, isAiCapability } from '~~/shared/ai/providers'
 // returned as a warning.
 //
 // Rate-limited: every save makes the server call the provider on the
-// user's own account, so it must not become a request amplifier.
+// user's own account, so it must not become a request amplifier (the
+// verify route shares the budget).
 
-export default defineEventHandler(async (event) => {
+export default defineApiHandler({
+  access: allow.user(),
   // Sensitive action: needs a recent sign-in (401 auth/reauth-required).
-  const session = await requireRecentLogin(event)
-  const userId = session.user.id
-  const capability = getRouterParam(event, 'capability')
-  if (!isAiCapability(capability)) {
-    throw createError({ statusCode: 400, message: 'Unknown capability' })
-  }
-  if (!(await checkRateLimit('ai-provider-save', String(userId), 20, 10 * 60_000))) {
-    throw createError({ statusCode: 429, message: 'Too many attempts. Try again in a few minutes.', data: { code: 'ai-provider/rate-limited' } })
-  }
-  const parsed = saveBodySchema.safeParse(await readBody(event))
-  if (!parsed.success) {
-    throw createError({ statusCode: 400, message: 'Invalid provider settings', data: { code: 'ai-provider/invalid' } })
-  }
+  recentLogin: true,
+  params: aiProviderParams,
+  body: saveAiProviderBody,
+  invalidCode: 'ai-provider/invalid',
+  rateLimit: { namespace: 'ai-provider-save', max: 20, windowMs: 10 * MINUTE_MS, key: 'user', error: 'ai-provider/rate-limited' },
+  handler: async ({ event, user, params, body, self }) => {
+    const userId = user.id
+    const { capability } = params
 
-  const billing = await resolveBillingContext(userId, null)
-  const outcome = await saveUserProvider(userId, capability, parsed.data, billing.virtualKey)
+    const billing = await resolveBillingContext(userId, null)
+    const outcome = await saveUserProvider(self, capability, body, billing.virtualKey)
 
-  if (outcome.kind === 'url-refused') {
-    throw createError({
-      statusCode: 422,
-      message: outcome.message,
-      data: { code: 'ai-provider/url-refused', reason: outcome.code, messageKey: `aiProvider.urlRefused.${codeKey(outcome.code)}` }
+    // The refusal sentences are fixed, key-free texts of the provider layer
+    // (`providerErrorMessage`, never upstream text); they stay the message.
+    if (outcome.kind === 'url-refused') {
+      throw Object.assign(
+        apiError('ai-provider/url-refused', { reason: outcome.code, messageKey: `aiProvider.urlRefused.${codeKey(outcome.code)}` }),
+        { message: outcome.message }
+      )
+    }
+    if (outcome.kind === 'key-required') {
+      throw apiError('ai-provider/key-required')
+    }
+    if (outcome.kind === 'verify-failed') {
+      throw Object.assign(
+        apiError('ai-provider/verify-failed', { reason: outcome.verify.code, messageKey: `aiProvider.verify.${codeKey(outcome.verify.code)}` }),
+        { message: outcome.verify.message }
+      )
+    }
+
+    const ip = getClientIp(event)
+    await appendAuditEvent({
+      by: self,
+      actorIp: truncateIp(ip),
+      scope: 'user',
+      scopeId: String(userId),
+      action: AUDIT_AI_PROVIDER_SAVED,
+      metadata: { capability, host: baseUrlHost(outcome.view.baseUrl), model: outcome.view.model }
     })
-  }
-  if (outcome.kind === 'key-required') {
-    throw createError({
-      statusCode: 400,
-      message: 'Enter the API key (required when adding a provider or changing its URL).',
-      data: { code: 'ai-provider/key-required', messageKey: 'aiProvider.errors.keyRequired' }
-    })
-  }
-  if (outcome.kind === 'verify-failed') {
-    throw createError({
-      statusCode: 422,
-      message: outcome.verify.message,
-      data: { code: 'ai-provider/verify-failed', reason: outcome.verify.code, messageKey: `aiProvider.verify.${codeKey(outcome.verify.code)}` }
-    })
-  }
 
-  const ip = getClientIp(event)
-  await appendAuditEvent({
-    actorUserId: userId,
-    actorIp: truncateIp(ip),
-    scope: 'user',
-    scopeId: String(userId),
-    action: AUDIT_AI_PROVIDER_SAVED,
-    metadata: { capability, host: baseUrlHost(outcome.view.baseUrl), model: outcome.view.model }
-  })
-
-  return { provider: outcome.view, verify: { code: outcome.verify.code, message: outcome.verify.message } }
+    return { provider: outcome.view, verify: { code: outcome.verify.code, message: outcome.verify.message } }
+  }
 })

@@ -4,7 +4,7 @@ import { loggedInClient } from '../setup/client'
 import { createUser, createWorkspace } from '../setup/fixtures'
 import { DEFAULT_TIERS as TIERS } from '../../../shared/config/tiers'
 
-// Tier-aware knowledge upload cap — integration through the real
+// Tier-aware knowledge upload cap, integration through the real
 // /api/workspaces/:wsId/knowledge/upload-request endpoint. Complements
 // the repo-level `resolveCaps` tests by proving the full request →
 // quota-check → 409 loop resolves the right plan.
@@ -45,7 +45,7 @@ async function seedReadyKnowledge(
   }
 }
 
-describe('POST /api/workspaces/:wsId/knowledge/upload-request — tier cap', () => {
+describe('POST /api/workspaces/:wsId/knowledge/upload-request: tier cap', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -97,7 +97,7 @@ describe('POST /api/workspaces/:wsId/knowledge/upload-request — tier cap', () 
 
     // Seed just above Pro's per-workspace file cap to prove the
     // resolver picked Team. Use uploader=null so the PER-USER cap
-    // doesn't interfere — we're isolating the workspace cap here.
+    // doesn't interfere: we're isolating the workspace cap here.
     await seedReadyKnowledge(ws.workspaceId, null, TIERS.pro.knowledgeFiles + 1)
 
     const client = await loggedInClient(creator.id)
@@ -110,7 +110,7 @@ describe('POST /api/workspaces/:wsId/knowledge/upload-request — tier cap', () 
     expect(res.status).not.toBe(409)
   })
 
-  // ─── Error-contract delivery (the upgrade CTA wiring) ─────────────────
+  // Error-contract delivery (the upgrade CTA wiring)
   //
   // When a user hits a knowledge cap mid-work, the WorkspaceKnowledgePanel
   // toast needs to render an "Upgrade your plan" link routing to /pricing.
@@ -144,11 +144,11 @@ describe('POST /api/workspaces/:wsId/knowledge/upload-request — tier cap', () 
     // Per-user and per-workspace knowledge file caps share the same
     // tier value (`knowledgeFiles`), so for a single workspace the
     // per-workspace check fires first. The recovery hint is
-    // consistent across both code paths — whichever cap fires, the
+    // consistent across both code paths, whichever cap fires, the
     // toast routes the user to /pricing.
     //
     // We can't easily isolate "per-user fired before per-workspace"
-    // here without the fields differing — but the contract under
+    // here without the fields differing, but the contract under
     // test is "every cap-rejection has a /pricing recovery", so
     // probing the per-workspace path is sufficient to prove the
     // delivery shape.

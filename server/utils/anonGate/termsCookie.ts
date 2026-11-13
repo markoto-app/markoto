@@ -1,10 +1,11 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import { YEAR_SECONDS } from '~~/shared/config/units'
 
 // Remembered terms acceptance for anonymous visitors.
 //
 // After an anonymous visitor ticks "I accept the Terms … and I'm at least
 // 16" once, the server sets this httpOnly cookie so the next anonymous
-// document from the same browser doesn't ask again — until the terms
+// document from the same browser doesn't ask again, until the terms
 // version changes. Value: `v1.<termsVersion>.<acceptedAtMs>.<hmac>`,
 // HMAC-SHA-256 over the first three fields with a key derived from
 // NUXT_ALTCHA_HMAC_KEY. It identifies nobody (no id, no IP) and is
@@ -17,7 +18,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 export const ANON_TERMS_COOKIE = 'markoto-anon-terms'
 // Read by doc creation, the challenge endpoint and anonymous abuse reports.
 export const ANON_TERMS_COOKIE_PATH = '/api'
-export const ANON_TERMS_COOKIE_MAX_AGE_SECONDS = 365 * 24 * 60 * 60
+export const ANON_TERMS_COOKIE_MAX_AGE_SECONDS = YEAR_SECONDS
 
 const FORMAT = /^v1\.(\d{1,6})\.(\d{10,16})\.([0-9a-f]{64})$/
 

@@ -1,6 +1,6 @@
 ---
 title: Set a default theme for your workspace
-description: Pick a theme as the workspace default — every blank doc your team creates starts already styled.
+description: Pick a theme as the workspace default, every blank doc your team creates starts already styled.
 category: workspaces
 order: 6
 updated: '2026-11-09'
@@ -30,5 +30,5 @@ applies only to docs created AFTER it was set.
 
 ## What's next
 
-- [Save your own preset](/docs/themes/save-preset) — admins can promote a personal preset to workspace default.
-- [Tune the underlying theme](/docs/themes/customize) — find the look first, then promote.
+- [Save your own preset](/docs/themes/save-preset): admins can promote a personal preset to workspace default.
+- [Tune the underlying theme](/docs/themes/customize): find the look first, then promote.

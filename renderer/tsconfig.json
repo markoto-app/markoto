@@ -9,6 +9,9 @@
     "allowImportingTsExtensions": false,
     "strict": true,
     "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
     "skipLibCheck": true,
     "esModuleInterop": true
   },

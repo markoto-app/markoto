@@ -1,9 +1,14 @@
-import { getSessionEpoch, upsertOAuthUser } from '../../repos/users'
-import { SESSION_VERSION } from '../../utils/validatedSession'
-import { bootstrapAdminFromEnv } from '../../utils/adminBootstrap'
-import { googleVerifiedEmail } from '../../utils/oauthEmail'
+import { getSessionEpoch } from '../../repos/users'
+import { upsertOAuthUser } from '../../repos/userSignIn'
+import { SESSION_VERSION } from '../../utils/auth/validatedSession'
+import { bootstrapAdminFromEnv } from '../../utils/auth/adminBootstrap'
+import { googleVerifiedEmail } from '../../utils/auth/oauthEmail'
+import type { EventHandler } from 'h3'
 
-export default defineOAuthGoogleEventHandler({
+// The Google OAuth leg of nuxt-auth-utils: without `?code` it redirects to
+// Google; with it, the module verifies `state` and exchanges the code
+// before `onSuccess` runs.
+const oauth: EventHandler = defineOAuthGoogleEventHandler({
   config: { scope: ['openid', 'email', 'profile'] },
   async onSuccess(event, { user }) {
     // Google's userinfo carries `email_verified: boolean`. Only a
@@ -39,4 +44,9 @@ export default defineOAuthGoogleEventHandler({
     const target = outcome === 'merged' ? '/?linked=google' : '/'
     return sendRedirect(event, target)
   }
+})
+
+export default defineApiHandler({
+  access: allow.public('sign-in itself: the OAuth state check of nuxt-auth-utils guards the callback'),
+  handler: async ({ event }): Promise<unknown> => oauth(event)
 })

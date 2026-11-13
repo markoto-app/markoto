@@ -4,39 +4,37 @@ import type { ShapeOutput } from '@modelcontextprotocol/sdk/server/zod-compat.js
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { defineMcpTool, type McpRequestExtra, type McpToolCallback } from '@nuxtjs/mcp-toolkit/server'
 import { stripWrapperArgs } from './stripWrapperArgs'
-import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from '../../utils/shareSettings'
-import { getDocAuthz } from '../../utils/workspaceAccess'
-import { getMemberRole } from '../../repos/workspaceMembers'
-import { findUserNameById } from '../../repos/users'
-import { connectAsMcpClient } from '../../utils/mcpHocuspocusClient'
-import {
-  TOOL_HANDLERS,
-  META_TOOL_HANDLERS,
-  type MetaToolName,
-  type ToolName
-} from '../../utils/agentic/toolHandlers'
+import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from '../../utils/access/shareSettings'
+import { proveWorkspaceAccess } from '../../utils/access/workspaceAccess'
+import { proveDocMembership } from '../../utils/access/docProof'
+import { proveSelf } from '../../utils/access/userProof'
+import type { DocAccess, WorkspaceAccess } from '../../repos/proofs'
+import { findUserName } from '../../repos/users'
+import { connectAsMcpClient } from '../../utils/mcp/mcpHocuspocusClient'
+import { executeFunctionByName, executeMetaTool, type MetaToolName, type ToolName } from '../../utils/ai/tools/registry'
 import { requireMcpAuth, hasScope, toolEnabled } from './mcpToolContext'
-import { resolveBillingContext } from '../../utils/billing'
+import { resolveBillingContext } from '../../utils/billing/billing'
 import { resolveAiProviders } from '../../utils/aiProviders/resolve'
-import type { ToolResult } from '../../utils/aiToolAdapter'
+import type { ToolResult } from '../../utils/ai/tools/toolDefinition'
 import type { MetaToolContext, ToolStatusPhase } from '../../utils/agentic/toolContext'
-import type { McpAuthContext, McpScope } from '../../utils/mcpAuth'
-import { checkRateLimit } from '../../utils/rateLimit'
-import { consumeRenderAllowance } from '../../utils/renderRateLimit'
+import type { McpAuthContext, McpScope } from '../../utils/mcp/mcpAuth'
+import { checkRateLimit } from '../../utils/platform/rateLimit'
+import { consumeRenderAllowance } from '../../utils/rendering/renderRateLimit'
 import { MCP_RATE_LIMITS, type RateLimitRule } from './mcpGate'
 import { mcpToolAllowed } from './toolClasses'
 import { PLAN_FEATURE_UNAVAILABLE_CODE, PLAN_LIMIT_REACHED_CODE } from '~~/shared/config/planErrors'
-import { limitRecovery } from '../../utils/billingMode'
+import { limitRecovery } from '../../utils/billing/billingMode'
+import { apiError } from '../../utils/api/apiError'
 
 // Wrappers that bake the per-class boilerplate every MCP tool needs.
 // Three flavors based on what context the tool needs to operate on:
 //
-//   buildDocBoundTool       — tool reads/mutates a specific doc.
+//   buildDocBoundTool: tool reads/mutates a specific doc.
 //                              Takes `doc_id` arg; opens YDocPool entry.
-//   buildWorkspaceBoundTool — tool operates on a workspace (knowledge,
+//   buildWorkspaceBoundTool: tool operates on a workspace (knowledge,
 //                              workspace docs). Takes `workspace_id` arg;
 //                              membership-checked; no Y handles.
-//   buildUserOnlyTool       — tool operates on the user's own data
+//   buildUserOnlyTool: tool operates on the user's own data
 //                              (saved themes, my docs, web/url tools).
 //                              No doc / workspace context.
 //
@@ -46,7 +44,7 @@ import { limitRecovery } from '../../utils/billingMode'
 //   - Authz-checks against the PAT-resolved userId.
 //   - Builds a ToolContext appropriate for the class (real Y handles
 //     for doc-bound, in-memory stub Y.Doc for workspace + user-only).
-//   - Dispatches to TOOL_HANDLERS[name].
+//   - Dispatches through the tool registry (`utils/ai/tools/registry.ts`).
 //   - Releases pool entries / cleans up stub Y handles in `finally`.
 //
 // Audit chain (verified end-to-end by tests/integration/mcp/audit-and-session.test.ts):
@@ -66,7 +64,7 @@ export type ToolCallLimit = 'render' | RateLimitRule
 /**
  * Admission check every MCP tool handler runs first:
  *   - authenticated (the middleware already refused anonymous requests),
- *   - the token CURRENTLY grants the tool's scope — the toolkit fixed the
+ *   - the token CURRENTLY grants the tool's scope, the toolkit fixed the
  *     session's tool list at `initialize`, so this re-check is what makes
  *     scopes binding per call,
  *   - per-user tool-call rate limit, plus the tool's extra limit.
@@ -75,7 +73,7 @@ export type ToolCallLimit = 'render' | RateLimitRule
 export async function admitToolCall(event: H3Event, name: string, scope: McpScope, limit?: ToolCallLimit): Promise<McpAuthContext> {
   const auth = requireMcpAuth(event)
   if (!hasScope(event, scope)) {
-    throw createError({ statusCode: 404, message: `Tool ${name} not found`, data: { code: 'mcp/tool-not-found' } })
+    throw apiError('mcp/tool-not-found', { tool: name })
   }
   // Plan: without `mcpWrite` only read tools run (lib/toolClasses.ts).
   const plan = event.context.mcpPlan
@@ -88,7 +86,7 @@ export async function admitToolCall(event: H3Event, name: string, scope: McpScop
   }
   const perUser = MCP_RATE_LIMITS.toolCallsPerUser
   if (!(await checkRateLimit(perUser.namespace, String(auth.userId), perUser.max, perUser.windowMs))) {
-    throw createError({ statusCode: 429, message: 'Too many tool calls. Try again in a minute.', data: { code: 'mcp/rate-limited' } })
+    throw toolCallLimitError(perUser)
   }
   // Plan: daily tool-call allowance (`mcpToolCallsPerDay`, null = none).
   const daily = plan?.mcpToolCallsPerDay ?? null
@@ -104,12 +102,16 @@ export async function admitToolCall(event: H3Event, name: string, scope: McpScop
   }
   if (limit === 'render') {
     if (!(await consumeRenderAllowance(event))) {
-      throw createError({ statusCode: 429, message: 'Too many render requests. Try again in a minute.', data: { code: 'mcp/render-rate-limited' } })
+      throw apiError('mcp/render-rate-limited')
     }
   } else if (limit && !(await checkRateLimit(limit.namespace, String(auth.userId), limit.max, limit.windowMs))) {
-    throw createError({ statusCode: 429, message: `Too many ${name} calls. Try again later.`, data: { code: 'mcp/rate-limited' } })
+    throw toolCallLimitError(limit, name)
   }
   return auth
+}
+
+function toolCallLimitError(rule: RateLimitRule, tool?: string) {
+  return apiError('mcp/tool-call-limit', { limit: rule.max, minutes: Math.round(rule.windowMs / 60_000), ...(tool ? { tool } : {}) })
 }
 
 export type ToolAnnotations = {
@@ -119,14 +121,12 @@ export type ToolAnnotations = {
   openWorldHint?: boolean
 }
 
-// ─── Doc-bound ──────────────────────────────────────────────────────
-
 export interface WrapDocBoundToolOpts<Schema extends ZodRawShape> {
   /** Any ToolName (DOC or META). The type split's load-bearing
    *  invariant runs in the OTHER direction (META wrappers can't accept
    *  DOC names, see WrapWorkspaceBoundToolOpts / WrapUserOnlyToolOpts).
    *  A META handler wrapped here gets a YDocPool checkout it doesn't
-   *  use — wasteful but not incorrect; we accept it for the case of
+   *  use: wasteful but not incorrect; we accept it for the case of
    *  doc-scoped queries like `search_activity_log` (META) that
    *  conceptually take a doc_id but never read the live Y.Doc. */
   name: ToolName
@@ -139,7 +139,7 @@ export interface WrapDocBoundToolOpts<Schema extends ZodRawShape> {
   /** Extra per-call allowance (render tools, image generation). */
   limit?: ToolCallLimit
   /** The result carries the document out (page images): refused to
-   *  visitors of a view-only document (WP9 share controls). */
+   *  visitors of a view-only document (share controls). */
   download?: boolean
 }
 
@@ -163,23 +163,20 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
       const auth = await admitToolCall(event, opts.name, opts.scope, opts.limit)
       const docId = String(args.doc_id ?? '')
       if (!docId) {
-        throw createError({
-          statusCode: 400,
-          message: `${opts.name}: doc_id is required`,
-          data: { code: 'mcp/missing-doc-id' }
-        })
+        throw apiError('mcp/missing-doc-id')
       }
 
       // `assertDocAccess` returns the resolved authz info so we can
       // thread `workspaceId` into `connectAsMcpClient` instead of
       // having that helper re-query `getDoc`. One DB round-trip per
       // tool call, not two.
-      const authz = await assertDocAccess(opts.name, auth.userId, docId, opts.access)
+      const authz = await assertDocAccess(auth.userId, docId, opts.access)
       if (opts.download && !(await userMayDownload(docId, auth.userId))) {
         return { content: [{ type: 'text', text: DOWNLOAD_DISABLED_MESSAGE }], isError: true }
       }
 
-      const userName = (await findUserNameById(auth.userId)) ?? `user-${auth.userId}`
+      const self = proveSelf(auth.userId)
+      const userName = (await findUserName(self)) ?? `user-${auth.userId}`
       const mcpSessionId = mcpSessionIdFromEvent(event) ?? `oneshot-${Date.now()}`
 
       const handle = await connectAsMcpClient({
@@ -187,12 +184,15 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
         userId: auth.userId,
         mcpSessionId,
         userName,
-        workspaceId: authz.workspaceId
+        workspaceId: authz.workspaceId,
+        docAccess: authz.access,
+        self,
+        workspaceAccess: authz.workspaceId ? await proveWorkspaceAccess(auth.userId, authz.workspaceId, 'member') : null
       })
       try {
-        // The combined TOOL_HANDLERS map covers both DOC + META names.
-        // Both accept handle.ctx (DocToolContext) — META handlers via
-        // structural subtyping (DocToolContext extends MetaToolContext).
+        // The registry runs DOC and META tools alike with handle.ctx
+        // (DocToolContext): META handlers via structural subtyping
+        // (DocToolContext extends MetaToolContext).
         // We strip wrapper-injected `doc_id` from the args before
         // dispatch so the handler receives the SAME shape the in-app
         // loop passes (the loop carries docId out-of-band on
@@ -202,7 +202,7 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
         // strict-validators reject the result. See `stripWrapperArgs`
         // for the full rationale.
         const handlerArgs = stripWrapperArgs(args, 'doc_id')
-        return toolResultToCallToolResult(await TOOL_HANDLERS[opts.name]!(handle.ctx, handlerArgs))
+        return toolResultToCallToolResult(await executeFunctionByName(handle.ctx, opts.name, handlerArgs))
       } finally {
         handle.release()
       }
@@ -210,11 +210,9 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
   })
 }
 
-// ─── Workspace-bound ────────────────────────────────────────────────
-
 export interface WrapWorkspaceBoundToolOpts<Schema extends ZodRawShape> {
-  /** Must be a key in META_TOOL_HANDLERS. Compile error if you try to
-   *  pass a doc-bound name (e.g. 'replace_text') — that's the whole
+  /** Must be a document-free (`meta`) tool. Compile error if you try to
+   *  pass a doc-bound name (e.g. 'replace_text'), that's the whole
    *  point of the type-narrowing. */
   name: MetaToolName
   description: string
@@ -241,31 +239,23 @@ export function buildWorkspaceBoundTool<Schema extends ZodRawShape>(opts: WrapWo
       const auth = await admitToolCall(event, opts.name, opts.scope)
       const workspaceId = String(args.workspace_id ?? '')
       if (!workspaceId) {
-        throw createError({
-          statusCode: 400,
-          message: `${opts.name}: workspace_id is required`,
-          data: { code: 'mcp/missing-workspace-id' }
-        })
+        throw apiError('mcp/missing-workspace-id')
       }
 
-      const role = await getMemberRole(workspaceId, auth.userId)
-      if (!isRoleSufficient(role, opts.minRole)) {
-        // Same anti-enumeration shape as `getDocAuthz` failures.
-        throw createError({
-          statusCode: 404,
-          message: `${opts.name}: workspace not found`,
-          data: { code: 'mcp/workspace-not-found' }
-        })
+      const workspaceAccess = await proveWorkspaceAccess(auth.userId, workspaceId, 'member')
+      if (!workspaceAccess || !workspaceAccess.allows(MIN_ROLE_LEVEL[opts.minRole])) {
+        // Same anti-enumeration shape as a document refusal.
+        throw apiError('mcp/workspace-not-found')
       }
 
-      const ctx = await buildStubContext(auth.userId, workspaceId, mcpSessionIdFromEvent(event))
+      const ctx = await buildStubContext(auth.userId, workspaceAccess, mcpSessionIdFromEvent(event))
       try {
         // Strip the wrapper-injected `workspace_id` for the same
-        // reason `buildDocBoundTool` strips `doc_id` — keeps the
+        // reason `buildDocBoundTool` strips `doc_id`, keeps the
         // handler's args shape identical to what the in-app loop
         // passes (loop carries workspaceId on MetaToolContext).
         const handlerArgs = stripWrapperArgs(args, 'workspace_id')
-        return toolResultToCallToolResult(await META_TOOL_HANDLERS[opts.name](ctx.ctx, handlerArgs))
+        return toolResultToCallToolResult(await executeMetaTool(ctx.ctx, opts.name, handlerArgs))
       } finally {
         ctx.dispose()
       }
@@ -273,10 +263,8 @@ export function buildWorkspaceBoundTool<Schema extends ZodRawShape>(opts: WrapWo
   })
 }
 
-// ─── User-only ──────────────────────────────────────────────────────
-
 export interface WrapUserOnlyToolOpts<Schema extends ZodRawShape> {
-  /** Must be a key in META_TOOL_HANDLERS. */
+  /** Must be a document-free (`meta`) tool. */
   name: MetaToolName
   description: string
   inputSchema: Schema
@@ -305,15 +293,13 @@ export function buildUserOnlyTool<Schema extends ZodRawShape>(opts: WrapUserOnly
       const auth = await admitToolCall(event, opts.name, opts.scope)
       const ctx = await buildStubContext(auth.userId, null, mcpSessionIdFromEvent(event))
       try {
-        return toolResultToCallToolResult(await META_TOOL_HANDLERS[opts.name](ctx.ctx, args))
+        return toolResultToCallToolResult(await executeMetaTool(ctx.ctx, opts.name, args))
       } finally {
         ctx.dispose()
       }
     }) as McpToolCallback<Schema>
   })
 }
-
-// ─── Internal helpers ──────────────────────────────────────────────
 
 /**
  * Translate the in-app loop's `ToolResult` shape into MCP's
@@ -350,60 +336,37 @@ function mcpSessionIdFromEvent(event: H3Event): string | null {
   return typeof v === 'string' && v.length > 0 ? v : null
 }
 
-// `assertKnownTool` (the previous runtime guard) is gone — the
-// type-narrow on `WrapDocBoundToolOpts.name` (DocToolName) and
-// `WrapWorkspaceBoundToolOpts.name` / `WrapUserOnlyToolOpts.name`
-// (MetaToolName) catches every typo at compile time. Cheaper +
-// stronger than a module-load runtime check.
-
 function assertSchemaContains(schema: ZodRawShape, field: string, name: string): void {
   if (!(field in schema)) {
     throw new Error(`[mcp] Tool "${name}" missing required \`${field}\` field in inputSchema.`)
   }
 }
 
-const ROLE_RANK: Record<'viewer' | 'editor' | 'admin', number> = { viewer: 0, editor: 1, admin: 2 }
-function isRoleSufficient(actual: 'viewer' | 'editor' | 'admin' | null, required: 'viewer' | 'editor' | 'admin'): boolean {
-  if (actual === null) return false
-  return ROLE_RANK[actual] >= ROLE_RANK[required]
-}
+const MIN_ROLE_LEVEL = { viewer: 'member', editor: 'editor', admin: 'admin' } as const
 
 /**
- * Authz check + return the resolved authz info so the caller can
- * forward `workspaceId` to `connectAsMcpClient` (avoiding a second
- * `getDoc` round-trip).
+ * Authz check: the token owner's membership grant on the document (`view`:
+ * owner or any workspace role; `edit`: owner, workspace admin or editor),
+ * as a proof the tool context carries, plus the workspace for the client.
  */
 async function assertDocAccess(
-  toolName: string,
   userId: number,
   docId: string,
   kind: 'view' | 'edit'
-): Promise<{ workspaceId: string | null }> {
-  const authz = await getDocAuthz(userId, docId)
-  if (!authz.exists) {
-    throw createError({
-      statusCode: 404,
-      message: `${toolName}: document not found`,
-      data: { code: 'mcp/doc-not-found' }
-    })
+): Promise<{ workspaceId: string | null, access: DocAccess<'view'> }> {
+  const proven = await proveDocMembership(userId, docId, kind)
+  if (!proven) {
+    // 404-shape (not 403) for missing and refused alike, matches the
+    // in-app endpoints' anti-enumeration policy.
+    throw apiError('mcp/doc-not-found')
   }
-  const allowed = kind === 'edit' ? authz.canEdit : authz.canView
-  if (!allowed) {
-    // 404-shape (not 403) — matches the in-app endpoints' anti-
-    // enumeration policy.
-    throw createError({
-      statusCode: 404,
-      message: `${toolName}: document not found`,
-      data: { code: 'mcp/doc-not-found' }
-    })
-  }
-  return { workspaceId: authz.workspaceId }
+  return { workspaceId: proven.workspaceId, access: proven.access }
 }
 
 /**
  * Build a `MetaToolContext` for handlers that don't touch Y.js state
  * (workspace-bound queries, user-only data fetches). MetaToolContext
- * doesn't include `ydoc`/`ytext`/`ymeta`/`awareness` — the type system
+ * doesn't include `ydoc`/`ytext`/`ymeta`/`awareness`: the type system
  * makes it impossible to misroute a doc-bound handler through here.
  *
  * Idiomatically there's no Y.Doc to dispose; the `dispose` field is
@@ -412,21 +375,26 @@ async function assertDocAccess(
  */
 async function buildStubContext(
   userId: number,
-  workspaceId: string | null,
+  workspaceAccess: WorkspaceAccess<'member'> | null,
   mcpSessionId: string | null
 ): Promise<{ ctx: MetaToolContext, dispose: () => void }> {
+  const workspaceId = workspaceAccess?.workspaceId ?? null
+  const self = proveSelf(userId)
   const billingContext = await resolveBillingContext(userId, workspaceId)
-  const aiProviders = await resolveAiProviders(userId, billingContext.plan)
+  const aiProviders = await resolveAiProviders(self, billingContext.plan)
   const sessionId = mcpSessionId ?? `oneshot-${Date.now()}`
 
   const ctx: MetaToolContext = {
-    // Sentinel — handlers that need a real doc don't take MetaToolContext
+    // Sentinel: handlers that need a real doc don't take MetaToolContext
     // (caught at compile time by the dispatch table split). Logging
     // sites that do happen to read `ctx.docId` see this string and can
     // distinguish "no doc context" from a real id.
     docId: 'mcp:no-doc-context',
     initiatorUserId: userId,
     workspaceId,
+    self,
+    docAccess: null,
+    workspaceAccess,
     sessionId,
     attributedTo: billingContext.attributedTo,
     plan: billingContext.plan,
@@ -434,16 +402,16 @@ async function buildStubContext(
     virtualKey: billingContext.virtualKey,
     aiProviders,
     updateStatus: (_phase: ToolStatusPhase, _message?: string) => {
-      // No-op — workspace/user-only tools have no doc-level awareness
+      // No-op: workspace/user-only tools have no doc-level awareness
       // to broadcast on. The MCP client gets the result via the normal
       // tool-call return; live doc collaborators can't see this work
-      // happen (which is correct — it's not on a doc).
+      // happen (which is correct, it's not on a doc).
     }
   }
   return {
     ctx,
     dispose: () => {
-      // No-op — no Y.Doc to tear down. Kept for call-site symmetry
+      // No-op: no Y.Doc to tear down. Kept for call-site symmetry
       // with `connectAsMcpClient`'s `release()`.
     }
   }

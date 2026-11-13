@@ -14,7 +14,7 @@ import type { AnonGatePurpose } from '~~/shared/config/anonGate'
 // Why not the ALTCHA Sentinel container: Sentinel is ALTCHA's
 // commercial server (30-day trial, then a paid licence; multi-replica
 // needs a Pro licence), so it can't be the default of an open-source
-// stack. The protocol itself is open — this file is the server side of
+// stack. The protocol itself is open, this file is the server side of
 // it, with the same HMAC-signed, expiring v2 challenges.
 //
 // Design:
@@ -31,7 +31,7 @@ import type { AnonGatePurpose } from '~~/shared/config/anonGate'
 //     signature, terms cookie), so a value signed for one use can never
 //     verify for another.
 
-export const ALTCHA_ALGORITHM = 'PBKDF2/SHA-256'
+const ALTCHA_ALGORITHM = 'PBKDF2/SHA-256'
 export const CHALLENGE_TTL_SECONDS = 20 * 60
 
 /**
@@ -110,7 +110,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * Parse the client's payload: base64 of `{"challenge": …, "solution": …}`
- * (the ALTCHA widget's v2 payload shape). Structural checks only — the
+ * (the ALTCHA widget's v2 payload shape). Structural checks only, the
  * signature check in `verifySolution` is what makes it trustworthy.
  */
 export function parseAltchaPayload(raw: unknown): ParsedPayload | null {
@@ -195,7 +195,7 @@ export async function verifyAnonSolution(
   }
   if (result.expired) return { ok: false, reason: 'expired' }
   if (!result.verified) return { ok: false, reason: 'invalid' }
-  // Signed field — only checked after the signature held.
+  // Signed field: only checked after the signature held.
   if (challenge.parameters.data?.purpose !== purpose) return { ok: false, reason: 'wrong-purpose' }
 
   const ttl = Math.max(1, Math.ceil(expiresAt - now / 1000) + 60)

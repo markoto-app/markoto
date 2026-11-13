@@ -2,7 +2,7 @@
 // Landing card for the two links in the waitlist email
 // (/waitlist/confirm and /waitlist/unsubscribe). The token travels in
 // the query string but is only sent to the API on an explicit button
-// click — never on page load — so mail-security scanners that prefetch
+// click, never on page load, so mail-security scanners that prefetch
 // links can neither confirm a sign-up nor unsubscribe someone.
 
 const props = defineProps<{
@@ -26,7 +26,9 @@ async function onAct(): Promise<void> {
   state.value = 'working'
   errorMessage.value = null
   try {
-    await $fetch(`/api/waitlist/${props.action}`, { method: 'POST', body: { token: token.value } })
+    const body = { token: token.value }
+    if (props.action === 'confirm') await apiFetch('/api/waitlist/confirm', { method: 'post', body })
+    else await apiFetch('/api/waitlist/unsubscribe', { method: 'post', body })
     state.value = 'done'
   } catch (e) {
     errorMessage.value = extractError(e).message

@@ -1,9 +1,10 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { customAlphabet } from 'nanoid'
 import { DocThemeSchema, type DocTheme } from '~~/shared/types/theme'
-import { cleanupRendersForDoc, renderPngUncached } from '../renderClient'
-import { useS3Client } from '../s3'
-import { useValkey } from '../valkey'
+import { cleanupRendersForDoc, renderPngUncached } from '../rendering/renderClient'
+import { useS3Client } from '../storage/s3'
+import { useValkey } from '../platform/valkey'
+import { useEnv } from '~~/shared/env/load'
 
 // Renders a fixed sample document in a proposed theme through the normal
 // renderer sidecar → print page path, so the model (and the dialog) see
@@ -22,14 +23,14 @@ const SAMPLE_TTL_SECONDS = 180
 /** Cover + the first text pages, so a cover that runs over still leaves text pages in view. */
 const SAMPLE_PAGES = 3
 
-export const DESIGN_SAMPLE_TITLE = 'Quarterly update'
+const DESIGN_SAMPLE_TITLE = 'Quarterly update'
 
 /**
  * A short document that shows every part of a design on two pages:
  * headings h1–h3, text, emphasis, a link, a list, a table, a quote, an
- * alert. Neutral English text — the model judges the design, not the words.
+ * alert. Neutral English text, the model judges the design, not the words.
  */
-export const DESIGN_SAMPLE_MARKDOWN = `# Summary
+const DESIGN_SAMPLE_MARKDOWN = `# Summary
 
 This quarter we finished the move to the new platform and opened two offices. Revenue grew by **18 %**, and costs grew more slowly than revenue for the third quarter in a row. The [full figures](https://example.com) follow below.
 
@@ -94,7 +95,7 @@ export async function loadDesignSample(id: string): Promise<DesignSample | null>
 
 /**
  * Render the sample in `theme`; returns up to three pages as base64 PNG.
- * Throws when the renderer is unavailable — the caller then goes on
+ * Throws when the renderer is unavailable, the caller then goes on
  * without a comparison round.
  */
 export async function renderDesignSample(theme: DocTheme, round: number): Promise<string[]> {
@@ -104,11 +105,11 @@ export async function renderDesignSample(theme: DocTheme, round: number): Promis
   await valkey.set(sampleKey(id), JSON.stringify(sample), 'EX', SAMPLE_TTL_SECONDS)
   try {
     const { pageKeys } = await renderPngUncached(id, round)
-    const config = useRuntimeConfig()
+    const env = useEnv()
     const s3 = useS3Client()
     const pages: string[] = []
     for (const key of pageKeys.slice(0, SAMPLE_PAGES)) {
-      const got = await s3.send(new GetObjectCommand({ Bucket: config.s3.bucket, Key: key }))
+      const got = await s3.send(new GetObjectCommand({ Bucket: env.storage.bucket, Key: key }))
       const bytes = await got.Body?.transformToByteArray()
       if (bytes) pages.push(Buffer.from(bytes).toString('base64'))
     }

@@ -288,5 +288,5 @@ were already applied stay in place in the meantime.
 
 ## What's next
 
-- [Tune your typography and colors](/docs/themes/customize) — try the theme settings first.
-- [Save your custom theme as a preset](/docs/themes/save-preset) — reuse your CSS in other documents.
+- [Tune your typography and colors](/docs/themes/customize): try the theme settings first.
+- [Save your custom theme as a preset](/docs/themes/save-preset): reuse your CSS in other documents.

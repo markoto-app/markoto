@@ -1,29 +1,30 @@
-// One-shot voice-to-text for the AI prompt bar. The user speaks, stops,
-// and the recorded clip is sent here — Voxtral (via LiteLLM) transcribes
-// it and the client auto-submits the transcript as a normal prompt. No
-// Y.js session, no agentic loop: transcription doesn't touch the doc,
-// and the downstream /api/ai/prompt call enforces the usual auth +
-// content gates. That's why this route does NOT call
-// `requireDocEditAccess`.
-//
-// Phase 7: cloud-stt path + dual-mode flag dropped. Voxtral is the only
-// path. Per-user billing is enforced inside LiteLLM via the user's
-// virtual-key `max_budget`.
+// One-shot voice-to-text for the AI prompt bar: Voxtral (via LiteLLM)
+// transcribes a recorded clip and the client submits the transcript as a normal
+// prompt. No Y.js session or agentic loop; transcription doesn't touch the doc
+// and the downstream /api/ai/prompt call enforces the usual auth + content
+// gates, so this route asks for no document access (`allow.user()`). Per-user billing
+// is the user's virtual-key `max_budget` inside LiteLLM.
 
 import * as Sentry from '@sentry/nuxt'
-import { normalizeLanguageCode } from '../../utils/agentic/transcribeHelpers'
-import { useLitellmForUser } from '../../utils/litellmClient'
-import { resolveBillingContext } from '../../utils/billing'
-import { isBudgetExceededError } from '../../utils/litellmKeys'
+import { normalizeLanguageCode } from '../../utils/agentic/dictateHelpers'
+import { useLitellmForUser } from '../../utils/ai/litellmClient'
+import { resolveBillingContext } from '../../utils/billing/billing'
+import { isBudgetExceededError } from '../../utils/litellm/userKeys'
 import { isFreeAllowanceExhaustedError } from '../../utils/litellm/freeTierTeam'
-import { freeAllowanceExhaustedHttpError } from '../../utils/freeAllowance'
+import { freeAllowanceExhaustedHttpError } from '../../utils/billing/freeAllowance'
 import { FEATURE_TAGS, featureMetadata } from '../../utils/litellm/featureTags'
 import { litellmCompletion, litellmTranscription } from '../../utils/litellm/createCompletion'
 import { providerMissingError, requireAiProviders } from '../../utils/aiProviders/guard'
 import { providerRequestFields, withProviderErrors } from '../../utils/aiProviders/requestFields'
 import type { ResolvedAiProvider } from '../../utils/aiProviders/resolve'
-import { budgetExhaustedMessage, budgetExhaustedMessageKey, limitRecovery } from '../../utils/billingMode'
-import { isTestModeEnabled } from '../../../shared/utils/testMode'
+import { budgetExhaustedMessageKey, limitRecovery } from '../../utils/billing/billingMode'
+import { isTestModeEnabled } from '../../../shared/utils/security/testMode'
+import { TRANSCRIBE_AUDIO_MAX_BYTES } from '~~/shared/config/uploads'
+import { transcribeBody } from '~~/shared/api/ai'
+import { ownValue } from '~~/shared/utils/ownValue'
+import { useLogger } from '../../utils/platform/logger'
+
+const log = useLogger('transcribe')
 
 const ALLOWED_MIME = new Set([
   'audio/webm',
@@ -34,73 +35,59 @@ const ALLOWED_MIME = new Set([
   'audio/x-wav'
 ])
 
-// Cap at ~5 MiB of raw audio. A 60-second opus/webm clip is typically
-// ≤400 KiB, so this is generous — but the ceiling exists so a malicious
-// client can't OOM the endpoint.
-const MAX_AUDIO_BYTES = 5 * 1024 * 1024
-
 function base64Padding(b64: string): 0 | 1 | 2 {
   if (b64.endsWith('==')) return 2
   if (b64.endsWith('=')) return 1
   return 0
 }
 
-export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
-  const userId = session.user.id
+export default defineApiHandler({
+  // Not document-bound: the clip is only transcribed, the prompt that follows
+  // passes the document gates.
+  access: allow.user(),
+  body: transcribeBody,
+  handler: async ({ user, self, body }) => {
+    const userId = user.id
 
-  // Phase 6: app-side rate limit dropped. LiteLLM enforces an
-  // rpm_limit (60/min) at the per-user-virtual-key level — see
-  // `createUserKey` in `litellmKeys.ts`.
+    // The per-user virtual key's rpm_limit (60/min, `createUserKey` in
+    // `litellm/userKeys.ts`) is the only rate limit.
 
-  const body = await readBody<{
-    audio?: string
-    mimeType?: string
-    languageCode?: string
-    workspaceId?: string
-  }>(event)
+    const mimeType = body.mimeType
+    const audioB64 = body.audio
 
-  const mimeType = body.mimeType
-  const audioB64 = body.audio
+    if (!mimeType || !ALLOWED_MIME.has(mimeType.toLowerCase())) throw apiError('ai/audio-unsupported-type')
+    if (!audioB64) throw apiError('ai/audio-missing')
+    // `atob` isn't available in Nitro's worker context; compute the byte length
+    // from the base64 string to reject oversize payloads before upstream.
+    const padding = base64Padding(audioB64)
+    const approxBytes = Math.floor(audioB64.length * 3 / 4) - padding
+    if (approxBytes > TRANSCRIBE_AUDIO_MAX_BYTES) {
+      throw apiError('ai/audio-too-long')
+    }
+    if (approxBytes < 100) {
+      throw apiError('ai/audio-too-short')
+    }
 
-  if (!mimeType || !ALLOWED_MIME.has(mimeType.toLowerCase())) {
-    throw createError({ statusCode: 400, message: 'Unsupported audio mimeType' })
+    const languageCode = normalizeLanguageCode(body.languageCode)
+    // BYOK: the user's transcription provider, else the instance default.
+    // Neither → 409 `ai/provider-missing` (the mic button is hidden in that
+    // case; this is the server-side backstop).
+    // The plan that pays: the open document's Team / Business workspace when
+    // the caller is a member of it (`workspaceId` is advisory,
+    // resolveBillingContext checks membership), else the caller's own.
+    const workspaceId = body.workspaceId ?? null
+    const billing = await resolveBillingContext(userId, workspaceId)
+    const providers = await requireAiProviders(self, 'transcription', billing.plan)
+    const provider = providers.transcription
+    if (!provider) throw providerMissingError('transcription')
+    // Translate the upstream BCP-47 codes (e.g. 'en-US') to the ISO shape
+    // ('en') both the OpenAI transcription API and Voxtral expect.
+    const isoLanguage = languageCode.split('-')[0]?.toLowerCase() || 'en'
+    if (provider.credentials) {
+      return await transcribeViaByok({ audioB64, mimeType, isoLanguage, provider, virtualKey: billing.virtualKey })
+    }
+    return await transcribeViaVoxtral({ audioB64, mimeType, isoLanguage, userId, model: provider.model, virtualKey: billing.virtualKey })
   }
-  if (!audioB64 || typeof audioB64 !== 'string') {
-    throw createError({ statusCode: 400, message: 'Missing audio payload' })
-  }
-  // `atob` not available in Nitro's worker context; compute byte length
-  // from the base64 string directly so we can reject oversize payloads
-  // before reaching upstream (each upstream has its own ceiling — ours is
-  // tighter for abuse prevention).
-  const padding = base64Padding(audioB64)
-  const approxBytes = Math.floor(audioB64.length * 3 / 4) - padding
-  if (approxBytes > MAX_AUDIO_BYTES) {
-    throw createError({ statusCode: 413, message: 'Audio too long (max ~5 MiB)' })
-  }
-  if (approxBytes < 100) {
-    throw createError({ statusCode: 400, message: 'Audio too short to transcribe' })
-  }
-
-  const languageCode = normalizeLanguageCode(body.languageCode)
-  // BYOK: the user's transcription provider, else the instance default.
-  // Neither → 409 `ai/provider-missing` (the mic button is hidden in that
-  // case; this is the server-side backstop).
-  // The plan that pays: the open document's Team / Business workspace when
-  // the caller is a member of it (`workspaceId` is advisory —
-  // resolveBillingContext checks membership), else the caller's own.
-  const workspaceId = typeof body.workspaceId === 'string' && body.workspaceId.length <= 64 ? body.workspaceId : null
-  const billing = await resolveBillingContext(userId, workspaceId)
-  const providers = await requireAiProviders(userId, 'transcription', billing.plan)
-  const provider = providers.transcription
-  if (!provider) throw providerMissingError('transcription')
-  // Translate the upstream BCP-47 codes (e.g. 'en-US') to the ISO shape
-  // ('en') both the OpenAI transcription API and Voxtral expect.
-  const isoLanguage = languageCode.split('-')[0]?.toLowerCase() || 'en'
-  if (provider.credentials) {
-    return await transcribeViaByok({ audioB64, mimeType, isoLanguage, provider, virtualKey: billing.virtualKey })
-  }
-  return await transcribeViaVoxtral({ audioB64, mimeType, isoLanguage, userId, model: provider.model, virtualKey: billing.virtualKey })
 })
 
 const MIME_EXT: Record<string, string> = { 'webm': 'webm', 'ogg': 'ogg', 'wav': 'wav', 'x-wav': 'wav' }
@@ -123,7 +110,7 @@ async function transcribeViaByok(args: {
     const fields = await providerRequestFields(args.provider)
     const subtype = args.mimeType.split(';')[0]?.split('/')[1] ?? 'webm'
     const form = new FormData()
-    form.append('file', new Blob([Buffer.from(args.audioB64, 'base64')], { type: args.mimeType }), `voice.${MIME_EXT[subtype] ?? 'webm'}`)
+    form.append('file', new Blob([Buffer.from(args.audioB64, 'base64')], { type: args.mimeType }), `voice.${ownValue(MIME_EXT, subtype) ?? 'webm'}`)
     form.append('model', fields.model)
     form.append('language', args.isoLanguage)
     if (fields.api_key) form.append('api_key', fields.api_key)
@@ -133,12 +120,8 @@ async function transcribeViaByok(args: {
     return text ? { text, inaudible: false } : { text: '', inaudible: true }
   } catch (e) {
     // Message is already key-free (withProviderErrors redacts it).
-    console.error('[transcribe] BYOK provider error:', (e instanceof Error ? e.message : String(e)).slice(0, 300))
-    throw createError({
-      statusCode: 502,
-      message: 'Your transcription provider returned an error. Check the provider settings.',
-      data: { code: 'ai/provider-error', messageKey: 'aiProvider.errors.transcription' }
-    })
+    log.error('BYOK provider error', { err: e })
+    throw apiError('ai/provider-error')
   }
 }
 
@@ -150,26 +133,23 @@ async function transcribeViaVoxtral(args: {
   model: string
   virtualKey: string
 }): Promise<{ text: string, inaudible: boolean }> {
-  // Test-mode short-circuit. The integration stack runs a real
-  // LiteLLM proxy, but the upstream Mistral key is a stub — so a
-  // real /v1/audio/transcriptions call would 401 and the test loop
-  // would time out waiting through SDK retries. The validation
-  // tests only need the endpoint to RESPOND past its own ladder; we
-  // satisfy that with a canned empty transcript when TEST_MODE=1.
+  // Test-mode short-circuit: the integration LiteLLM proxy has a stub Mistral
+  // key, so a real call would 401 and stall on SDK retries; validation tests
+  // only need a response, so return a canned empty transcript.
   if (isTestModeEnabled()) {
     return { text: '', inaudible: true }
   }
 
-  // Operator alias (platform-paid): billed against the user's LiteLLM
-  // budget; LiteLLM 4xx's with budget_exceeded if exhausted.
+  // Operator alias (platform-paid): billed against the user's LiteLLM budget,
+  // which 4xx's with budget_exceeded when exhausted.
   const litellm = useLitellmForUser(args.virtualKey)
   const transcribeModel = args.model
   const isoLanguage = args.isoLanguage
 
-  // Custom provider convention: single user message with JSON-encoded
-  // {audio_base64, mime, language}. See infra/litellm/custom_handlers.py:
-  // MistralTranscribeProvider. The wrapper internally hits Mistral's
-  // /v1/audio/transcriptions and reshapes the response so spend tracks.
+  // Custom provider convention: one user message with JSON-encoded
+  // {audio_base64, mime, language}; MistralTranscribeProvider
+  // (deploy/config/litellm/custom_handlers.py) wraps /v1/audio/transcriptions and
+  // reshapes the response so spend tracks.
   try {
     const resp = await litellmCompletion(litellm, {
       model: transcribeModel,
@@ -181,12 +161,9 @@ async function transcribeViaVoxtral(args: {
           language: isoLanguage
         })
       }],
-      // No max_tokens — Voxtral's transcript length is bounded by the
-      // input audio and we want the full transcript.
+      // No max_tokens: the transcript is bounded by the audio.
       temperature: 0,
-      // LiteLLM spend-tags. Transcribe never carries a workspace
-      // context (the prompt-bar mic isn't doc-scoped), so only
-      // feature + user dimensions apply.
+      // Spend tags: feature + user only; the mic isn't doc-scoped.
       ...featureMetadata(FEATURE_TAGS.transcribe, { userId: args.userId })
     })
     const text = (resp.choices?.[0]?.message?.content ?? '').trim()
@@ -195,23 +172,14 @@ async function transcribeViaVoxtral(args: {
     }
     return { text, inaudible: false }
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    console.error('[transcribe] Voxtral upstream error:', msg.slice(0, 500))
+    log.error('Voxtral upstream error', { err: e })
     Sentry.captureMessage('[transcribe] Voxtral non-2xx', {
       tags: { component: 'transcribe', event: 'voxtral_upstream_error' }
     })
     if (isFreeAllowanceExhaustedError(e)) throw freeAllowanceExhaustedHttpError()
     if (isBudgetExceededError(e)) {
-      throw createError({
-        statusCode: 402,
-        message: budgetExhaustedMessage(),
-        data: {
-          code: 'ai/budget-exhausted',
-          messageKey: budgetExhaustedMessageKey(),
-          recovery: limitRecovery()
-        }
-      })
+      throw apiError('ai/budget-exhausted', { messageKey: budgetExhaustedMessageKey(), recovery: limitRecovery() })
     }
-    throw createError({ statusCode: 502, message: 'Transcription upstream error' })
+    throw apiError('ai/transcription-failed')
   }
 }

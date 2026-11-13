@@ -1,5 +1,6 @@
+import { trimChars } from '../utils/trimChars'
 // Marketing pages (hosted markoto.app only): routes, language versions,
-// hreflang and indexing rules. Pure — shared by the catch-all page
+// hreflang and indexing rules. Pure, shared by the catch-all page
 // (app/pages/[...marketing].vue), the URL-locale plugin and the sitemap.
 //
 // Files: content/marketing/<locale>/<slug>.md (Nuxt Content collection
@@ -19,9 +20,9 @@ export const PREFIXED_MARKETING_LOCALES = ['de', 'fr'] as const
 export type PrefixedMarketingLocale = typeof PREFIXED_MARKETING_LOCALES[number]
 
 /** The install guide in the docs: where "Self-host" points off the marketing site. */
-export const SELF_HOST_DOCS_PATH = '/docs/getting-started/self-hosting'
+const SELF_HOST_DOCS_PATH = '/docs/getting-started/self-hosting'
 /** The self-hosting page of the marketing site (content/marketing/en/self-hosted-markdown-editor.md, not in the Use cases menu). */
-export const SELF_HOST_MARKETING_PATH = '/self-hosted-markdown-editor'
+const SELF_HOST_MARKETING_PATH = '/self-hosted-markdown-editor'
 
 /** Target of the header + footer "Self-host" link. */
 export function selfHostPath(marketingSite: boolean): string {
@@ -45,7 +46,7 @@ function isMarketingLocale(value: string | undefined): value is MarketingLocale 
 }
 
 function trimSlashes(path: string): string {
-  return path.replace(/^\/+|\/+$/g, '')
+  return trimChars(path, '/')
 }
 
 /**
@@ -124,7 +125,7 @@ export interface HreflangLink {
  * hreflang alternates for one slug: every indexable language version
  * that exists, in MARKETING_LOCALES order, plus `x-default` → English
  * when the English version is among them. Unreviewed translations are
- * left out — an alternate pointing at a noindex page is an error for
+ * left out: an alternate pointing at a noindex page is an error for
  * search engines.
  */
 export function hreflangLinks(slug: string, versions: MarketingVersion[]): HreflangLink[] {

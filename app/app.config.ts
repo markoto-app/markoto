@@ -6,7 +6,7 @@ export default defineAppConfig({
   ui: {
     colors: {
       // The seal. AI presence. Used by `color="primary"` on Nuxt UI
-      // components — but note that buttons override their default
+      // components: but note that buttons override their default
       // color to `neutral` below, so a "click me" button is sumi-950
       // (light) / sumi-50 (dark), NOT shu. Shu means AI, never CTA.
       primary: 'shu',
@@ -33,7 +33,7 @@ export default defineAppConfig({
         // Inputs sit one shade *down* from the page bg so they read as
         // recessed surfaces, not as raised cards. Page bg is sumi-50
         // (light) / sumi-950 (dark); input bg is sumi-100 (light) /
-        // sumi-900 (dark) — same as cards but with a tighter border.
+        // sumi-900 (dark): same as cards but with a tighter border.
         base: 'rounded'
       }
     },

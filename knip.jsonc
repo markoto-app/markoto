@@ -1,0 +1,88 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  // Run from the repo root:  bunx knip --no-progress
+  // The Nuxt plugin loads nuxt.config.ts and resolves Nuxt auto-imports
+  // (components, composables, app/utils, server/utils, #shared), so nothing in
+  // those directories needs to be listed as an entry. Pages, layouts,
+  // middleware, plugins, server/api|routes|middleware|plugins and modules/ come
+  // from the Nuxt plugin; vitest / playwright / drizzle / eslint configs from
+  // their plugins.
+  "workspaces": {
+    ".": {
+      "entry": [
+        // every standalone script is a CLI entry (called from package.json,
+        // Makefile, workflows, Dockerfiles or by hand)
+        "scripts/**/*.{ts,mjs}",
+        // @nuxtjs/mcp-toolkit auto-discovers server/mcp/{tools,prompts,resources}
+        "server/mcp/**/*.ts",
+        // MDC components used from content/**/*.md as <flow />, <sub-processors /> ...
+        "app/components/content/**/*.vue",
+        // read by @nuxt/content, not imported
+        "content.config.ts",
+        // read by @pinia/colada-nuxt from the project root, not imported
+        "colada.options.ts",
+        // wired as `nitro.errorHandler: '~~/server/error.ts'` (a string in
+        // nuxt.config.ts), so its default export has no importer
+        "server/error.ts",
+        // run with `uvx` from markitdown-server's PDF fixtures, never imported
+        "tests/fixtures/design-import/make_pdf.ts",
+        // compile-time API contract checks, read by `bun run typecheck` (vue-tsc), never run
+        "tests/nuxt/apiContract.typecheck.ts",
+        // file name the proof-rule tests lint their own text under (tests/unit/access/proofRules.test.ts)
+        "tests/fixtures/proof-forgery/probe.ts"
+      ],
+      "project": [
+        "app/**/*.{ts,vue,css}",
+        "server/**/*.ts",
+        "modules/**/*.ts",
+        "scripts/**/*.{ts,mjs}",
+        "tests/**/*.{ts,mjs}",
+        "*.{ts,mjs}"
+      ],
+      // all three playwright configs (flows at the root, smoke, tour capture)
+      "playwright": { "config": ["playwright.config.ts", "tests/smoke/playwright.config.ts", "tests/e2e/tour/playwright.config.ts"] },
+      "ignoreDependencies": [
+        // Vendored assets: modules/vendor-assets.ts + scripts/lib/vendorAssets.ts
+        // read files out of node_modules by path (fonts, pagedjs, mermaid IIFE
+        // build, katex css/fonts, highlight.js themes) instead of importing them.
+        "@fontsource/.+",
+        "@fontsource-variable/.+",
+        "pagedjs",
+        "mermaid",
+        // Icons are resolved by @nuxt/icon from `i-lucide-*` / `i-simple-icons-*`
+        // class names at build time, never imported.
+        "@iconify-json/lucide",
+        "@iconify-json/simple-icons"
+      ],
+      // System binaries called from scripts / test setup / package.json checks.
+      // uv / uvx are the Python toolchain (ruff, pyright, markitdown tests), installed
+      // on the host, not npm packages.
+      "ignoreBinaries": ["pdftoppm", "openssl", "uv", "uvx", "shellcheck", "hadolint", "lychee"]
+    },
+    // The other Bun workspaces (package.json `workspaces`). shared/ is
+    // TypeScript source without entry points of its own: its files are used
+    // through the app's, the sync server's and the renderer's imports.
+    "shared": {
+      "project": ["**/*.ts"]
+    },
+    "sync-server": {
+      "project": ["src/**/*.ts"]
+    },
+    "renderer": {
+      "project": ["src/**/*.ts"]
+    }
+  },
+  // The `workspace:*` edge to @markoto/shared makes `bun install --filter`
+  // install shared's dependencies for each package; the code itself imports
+  // shared/ by path (relative, `~~/shared`, `#shared`), not by package name.
+  "ignoreDependencies": ["@markoto/shared"],
+  "ignoreIssues": {
+    // `bun scripts/flows-ephemeral.ts` in a spawnSync argument list is not an import.
+    "scripts/flows-test-changed.ts": ["unresolved"],
+    // `#nitro-internal-pollyfills` is a Nitro virtual module, resolved by the bundler.
+    "server/runtime/bunEntry.ts": ["unresolved"],
+    // `ApiInputOf` is read by the generated .nuxt/types/api-inputs.d.ts (modules/api-contract.ts)
+    "shared/api/contract.ts": ["types"]
+  },
+  "ignoreExportsUsedInFile": { "interface": true, "type": true }
+}

@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 // Project per (locale × theme × form-factor). Each flow runs FOUR
-// times — light/dark × desktop/mobile — so docs render screenshots
+// times, light/dark × desktop/mobile, so docs render screenshots
 // matching the reader's color mode AND device. Mobile capture also
 // doubles as a responsive-design smoke test: if a flow can't drive
 // the UI at 390px wide, we find out before users do.
@@ -12,7 +12,7 @@ import { defineConfig, devices } from '@playwright/test'
 // <variant>/. `variant` is the composite `<theme>-<form>` string.
 //
 // CI defaults to `--project=en-light-desktop` for speed; the docs
-// publish pipeline runs `bun run flows:test` (hermetic — brings up
+// publish pipeline runs `bun run flows:test` (hermetic, brings up
 // infra + prod build via scripts/flows-ephemeral.ts) which executes
 // ALL projects (sequential within, since they share the dev server).
 
@@ -32,7 +32,7 @@ function excludedTags(): RegExp | undefined {
 // → ~14px displayed) and sits well above the 640px mobile breakpoint.
 const DESKTOP_VP = { width: 1280, height: 800 }
 
-// Mobile viewport — 390×720. Width matches iPhone 14 (so the app's
+// Mobile viewport: 390×720. Width matches iPhone 14 (so the app's
 // mobile branch fires below the 640px breakpoint), but the height
 // is intentionally shorter than iPhone 14's full 844 so the captured
 // frames fit on real phones when readers browse the docs from their
@@ -48,7 +48,7 @@ const MOBILE_VP = { width: 390, height: 720 }
 export default defineConfig({
   testDir: './tests/e2e/flows',
   // Honour the leading-underscore convention for throwaway / scratch
-  // specs (e.g. `_inspect-mermaid.spec.ts` — diagnostics that are
+  // specs (e.g. `_inspect-mermaid.spec.ts`: diagnostics that are
   // useful to keep around but shouldn't run on every flow build).
   testIgnore: '**/_*.spec.ts',
   // Tagged flows need a server shape the default pass doesn't have.
@@ -76,7 +76,7 @@ export default defineConfig({
     // Pre-grant clipboard + microphone. Microphone is what unblocks
     // the voice-dictate flow's `getUserMedia` call without a system
     // dialog. The fake media stream below provides synthetic audio
-    // so the prod server's mock STT (NUXT_GOOGLE_SPEECH_MOCK=1)
+    // so the prod server's mock STT (NUXT_VOXTRAL_REALTIME_MOCK=1)
     // sees real chunks land and emits its canned transcript.
     permissions: ['clipboard-read', 'clipboard-write', 'microphone'],
     launchOptions: {
@@ -146,7 +146,7 @@ export default defineConfig({
       },
       metadata: { locale: 'en', variant: 'dark-mobile' }
     }
-    // Add a new locale by duplicating all four blocks — each writes
+    // Add a new locale by duplicating all four blocks, each writes
     // to its own tests/e2e/output/flows/<slug>/<locale>/<variant>/.
   ]
 })

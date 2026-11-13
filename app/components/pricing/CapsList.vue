@@ -17,7 +17,7 @@ const { t, locale } = useI18n()
 const caps = computed(() => props.tiers[props.plan])
 const points = computed(() => planToPointsTotal(props.plan, props.tiers))
 // Team / Business: AI Points, knowledge files and storage are per seat and
-// pooled across the workspace (server/utils/workspaceBilling.ts).
+// pooled across the workspace (server/utils/billing/workspaceBilling.ts).
 const perSeat = computed(() => isPerSeatPlan(props.plan))
 const knowledgeBytes = computed(() => perSeat.value ? caps.value.knowledgeBytesPerWorkspace : caps.value.knowledgeBytesPerUser)
 

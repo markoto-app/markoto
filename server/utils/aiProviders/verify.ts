@@ -1,8 +1,9 @@
+import { z } from 'zod'
 // Verification of a BYOK provider config before it is saved (and on the
 // settings page's "Verify" button).
 //
 //   - chat: a small completion WITH one tool definition at temperature 0,
-//     through LiteLLM's `byok/*` deployment — the exact path real agent
+//     through LiteLLM's `byok/*` deployment, the exact path real agent
 //     calls take. A tool call back = OK. A plain-text answer = saved with
 //     a `no-tool-support` warning (the agent needs tool calling).
 //   - transcription: a 0.5 s silent WAV through LiteLLM's
@@ -10,7 +11,7 @@
 //     fraction of a cent on the user's account; proves auth + model.
 //   - image: NO generation (a paid image per save is not acceptable).
 //     LiteLLM has no clientside-credential passthrough for listing
-//     upstream models, so the app GETs `{baseUrl}/models` itself — same
+//     upstream models, so the app GETs `{baseUrl}/models` itself, same
 //     SSRF policy, redirects refused, short timeout. 401/403 → auth
 //     failed; model absent from a returned list → `model-not-found`
 //     warning (some providers' lists are incomplete, so it does not
@@ -20,7 +21,7 @@
 // any upstream response text reaches the user (`providerErrorMessage`).
 
 import type OpenAI from 'openai'
-import { useLitellmForUser } from '../litellmClient'
+import { useLitellmForUser } from '../ai/litellmClient'
 import { litellmCompletion, litellmTranscription } from '../litellm/createCompletion'
 import { PROVIDER_ERROR_MESSAGES, classifyProviderError, logProviderFailure, providerErrorMessage, providerRequestFields } from './requestFields'
 import type { ResolvedAiProvider } from './resolve'
@@ -145,18 +146,15 @@ async function verifyImage(provider: ResolvedAiProvider, apiKey: string): Promis
   }
 }
 
+/** OpenAI-compatible `GET /models`: `{ data: [{ id }] }`; entries without an id are skipped. */
+const modelList = z.object({
+  data: z.array(z.object({ id: z.string() }).nullable().catch(null))
+})
+
 function extractModelIds(body: unknown): string[] {
-  if (typeof body !== 'object' || body === null) return []
-  const data = (body as Record<string, unknown>).data
-  if (!Array.isArray(data)) return []
-  const ids: string[] = []
-  for (const entry of data) {
-    if (typeof entry === 'object' && entry !== null) {
-      const id = (entry as Record<string, unknown>).id
-      if (typeof id === 'string') ids.push(id)
-    }
-  }
-  return ids
+  const parsed = modelList.safeParse(body)
+  if (!parsed.success) return []
+  return parsed.data.data.flatMap(entry => (entry ? [entry.id] : []))
 }
 
 export async function verifyProvider(

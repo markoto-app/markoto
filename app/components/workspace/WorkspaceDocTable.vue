@@ -1,32 +1,22 @@
 <script setup lang="ts">
 import { languageBadge, resolveLanguageDisplayName } from '~~/shared/languages'
 
-import { workspaceDocPermissions } from '~/utils/docRowActions'
+import { workspaceDocPermissions } from '~/utils/workspace/docRowActions'
+import type { ApiResponse } from '~/utils/api/client'
 
 // Doc list for the workspace detail page. Every member gets a row menu
 // (Open / Open in new tab); the rest follows `docRowActionGroups`:
 //   - Duplicate: any editor or admin (anyone with edit access).
 //   - Move / Delete: admin OR doc owner (canManageDoc).
-// The server re-checks all rules on the underlying endpoints — the UI
+// The server re-checks all rules on the underlying endpoints, the UI
 // gates are UX-only.
 
-export interface WorkspaceDoc {
-  docId: string
-  title: string
-  description: string
-  language: string
-  accessMode: 'private' | 'open-edit' | 'open-view' | 'password-protected'
-  wordCount: number | null
-  sizeBytes: number | null
-  lastActive: string | number | Date
-  ownerId: number | null
-  isOwner: boolean
-}
+export type WorkspaceDoc = ApiResponse<'/api/workspaces/:wsId', 'get'>['documents'][number]
 
 const props = defineProps<{
   documents: WorkspaceDoc[]
   myRole: 'admin' | 'editor' | 'viewer'
-  // Current workspaceId — threaded into row actions so the Move modal
+  // Current workspaceId: threaded into row actions so the Move modal
   // can preselect "this workspace" and the server's no-op check trips.
   workspaceId: string
 }>()
@@ -43,7 +33,7 @@ function permsFor(doc: WorkspaceDoc) {
   return workspaceDocPermissions(props.myRole, doc.isOwner)
 }
 
-// Long-press to open the row's actions menu — discoverable on touch
+// Long-press to open the row's actions menu, discoverable on touch
 // where the 3-dot button is a small target. Per-row open state keyed
 // on docId so only the long-pressed row's menu opens.
 const openMenuDocId = ref<string | null>(null)
@@ -115,7 +105,7 @@ function setMenuOpen(doc: WorkspaceDoc, open: boolean) {
               : t('share.passwordProtected')
           }}
         </UBadge>
-        <span class="hidden sm:inline text-xs text-muted">{{ doc.wordCount || 0 }} words</span>
+        <span class="hidden sm:inline text-xs text-muted">{{ t('docRow.words', { n: doc.wordCount || 0 }) }}</span>
         <DocumentDocRowMenu
           :doc-id="doc.docId"
           :can-edit="permsFor(doc).canEdit"

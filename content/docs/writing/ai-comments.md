@@ -20,11 +20,11 @@ and the conversation so far, and replies in the same place.
 
 ## When to use this vs the prompt bar
 
-- **Comment with @markoto** — when the question is about a *specific
+- **Comment with @markoto**: when the question is about a *specific
   passage*. "What does this even mean?", "rewrite this clearer",
   "expand this into a paragraph". markoto sees the anchored text
   as the focus of the conversation.
-- **Prompt bar** — when the change spans the whole document or
+- **Prompt bar**: when the change spans the whole document or
   doesn't have a single anchor point. "Add a section on X", "make
   the tone more formal across the board", "structure this as a
   meeting agenda".
@@ -55,7 +55,7 @@ Both work the same way; they differ in what markoto looks at first.
 
 ## What's next
 
-- [Write with the AI prompt bar](/docs/writing/ai-prompt-bar) — the
+- [Write with the AI prompt bar](/docs/writing/ai-prompt-bar): the
   full-document version of the same AI.
-- [Discuss in your document](/docs/writing/comments) — the
+- [Discuss in your document](/docs/writing/comments): the
   human-only side of the comments system.

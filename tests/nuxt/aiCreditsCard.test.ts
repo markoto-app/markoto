@@ -5,7 +5,7 @@ import { flushPromises } from '@vue/test-utils'
 import type { H3Event } from 'h3'
 import { CommonAiCreditsCard } from '#components'
 
-// AI credit top-ups (WP4): the card shows the balance and history, sends
+// AI credit top-ups: the card shows the balance and history, sends
 // the chosen pack to checkout and follows Stripe's URL; without a paid
 // plan it explains instead of selling.
 
@@ -39,14 +39,14 @@ afterEach(() => {
 describe('AI credits card', () => {
   it('shows the balance, the packs with their prices, and buys one', async () => {
     const wrapper = await mountSuspended(CommonAiCreditsCard, {
-      props: { credits, currency: 'chf', endpoint: '/api/billing/topup', canBuy: true, testidPrefix: 'profile' }
+      props: { credits, currency: 'chf', canBuy: true, testidPrefix: 'profile' }
     })
     mounted.push(wrapper)
     expect(wrapper.text()).toContain('$32.50 in AI credits left')
     expect(wrapper.text()).toContain('$2.50 used this month')
     expect(wrapper.text()).toContain('$22.50 left')
     expect(wrapper.find('[data-testid="profile-buy-25"]').text()).toContain('CHF')
-    // Disabled until the Paid Plans Terms box is ticked (WP6b).
+    // Disabled until the Paid Plans Terms box is ticked.
     expect(wrapper.get('[data-testid="profile-buy-25"]').attributes('disabled')).toBeDefined()
     await wrapper.get('[data-testid="profile-paid-terms"] [role="checkbox"]').trigger('click')
     await flushPromises()
@@ -59,7 +59,7 @@ describe('AI credits card', () => {
 
   it('without a paid plan shows why instead of the buttons', async () => {
     const wrapper = await mountSuspended(CommonAiCreditsCard, {
-      props: { credits: null, currency: 'eur', endpoint: '/api/billing/topup', canBuy: false, blockedReason: 'Upgrade first.', testidPrefix: 'profile' }
+      props: { credits: null, currency: 'eur', canBuy: false, blockedReason: 'Upgrade first.', testidPrefix: 'profile' }
     })
     mounted.push(wrapper)
     expect(wrapper.find('[data-testid="profile-buy-10"]').exists()).toBe(false)

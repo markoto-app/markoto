@@ -15,7 +15,7 @@ cursor as faint text first and become regular text once a sentence is
 recognised. Works on desktop and on mobile.
 
 Live dictation needs a **Mistral** transcription provider: your own Mistral
-key under [Settings -> AI provider](/docs/account/ai-provider) (transcription), or an
+key under [Settings → AI provider](/docs/account/ai-provider) (transcription), or an
 instance default the operator set up with Mistral. Without it the microphone
 button is hidden. (The microphone in the AI prompt bar is different: it turns
 a spoken *prompt* into text for the AI and works with any transcription

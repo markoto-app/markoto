@@ -6,7 +6,7 @@
 // current page.
 //
 // Filters out entries that mark `navHidden: true` in their frontmatter.
-// Index pages typically set this — they're surfaced as the parent
+// Index pages typically set this, they're surfaced as the parent
 // group's clickable header, not as a duplicate child link.
 
 type NavItem = {

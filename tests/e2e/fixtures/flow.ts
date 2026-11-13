@@ -2,12 +2,13 @@ import { test as base, expect as baseExpect, type Locator, type Page } from '@pl
 import crypto from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { EDITOR_TOUR_DONE, EDITOR_TOUR_STORAGE_KEY } from '../../../app/utils/editorTour'
+import { EDITOR_TOUR_DONE, EDITOR_TOUR_STORAGE_KEY } from '../../../app/utils/editor/editorTour'
 import sharp from 'sharp'
 import { EditorPage } from '../page-objects/Editor'
+import { settleAnimations } from './waits'
 
 // One Playwright fixture that turns a normal e2e test into a "flow":
-// a sequence of slides — chapter, narration, approach, outcome — that
+// a sequence of slides, chapter, narration, approach, outcome, that
 // the docs site embeds via <Flow id="..."/>. Each click captures TWO
 // shots (approach: cursor-on-target/before; outcome: state-changed/
 // after) so every action has a visible consequence. Chains opt out of
@@ -67,7 +68,7 @@ type OutcomeEntry = {
   path: string
   highlights?: Array<{ label: string, x: number, y: number, w: number, h: number }>
   // Approach-style annotations are normally bound to approach frames,
-  // but flow.shot/step produce a single outcome frame — and authors
+  // but flow.shot/step produce a single outcome frame, and authors
   // sometimes need to direction-anchor on those (e.g. "scan for the
   // X icon in this state"). Allow them on outcomes too; the renderer
   // treats them additively to highlights.
@@ -75,7 +76,7 @@ type OutcomeEntry = {
   // Hero-frame marker. Exactly one outcome per flow may set this; the
   // first one wins. <Flow> renders the hero at large size above the
   // slideshow as a "what success looks like" preview. The frame still
-  // appears in the slideshow itself — hero rendering is additive.
+  // appears in the slideshow itself, hero rendering is additive.
   hero?: true
   /** Optional actor label (see NarrationEntry above). */
   actor?: string
@@ -121,44 +122,44 @@ export type Variant
     | 'light-mobile'
     | 'dark-mobile'
 
-export function isMobileVariant(v: Variant): boolean {
+function isMobileVariant(v: Variant): boolean {
   return v.endsWith('mobile')
 }
 
 export type Manifest = {
   // Schema version. v2 introduces approach/outcome/chapter/narration
   // kinds. The Flow.vue component reads this and refuses unknown
-  // versions (defensive — keeps old artefacts from rendering wrong).
+  // versions (defensive: keeps old artefacts from rendering wrong).
   version: 2
   title: string
   slug: string
   locale: string
   /** Color mode the app was rendering when this manifest was captured. */
   variant: Variant
-  // Source viewport size — the consumer scales cursor coordinates by
+  // Source viewport size: the consumer scales cursor coordinates by
   // (display_w / viewport.w) so overlays land in the right spot at
   // any displayed size.
   viewport: { w: number, h: number }
   entries: FlowEntry[]
   /** Forward link to the next flow a reader should try after this one.
-   *  Hand-curated per-flow rather than auto-generated — the docs gallery
+   *  Hand-curated per-flow rather than auto-generated, the docs gallery
    *  uses this to keep readers in the docs after they finish. */
   next?: NextLink
 }
 
 // `flow.click` opts: discriminated union forces authors to either
 // supply a `result` (becomes the outcome caption) or explicitly
-// opt into chaining (no outcome shot — the next step's approach
+// opt into chaining (no outcome shot, the next step's approach
 // IS the after-state of this one). TS errors out on a bare click
-// without one of these — by design.
+// without one of these, by design.
 export type ClickOpts
   = | {
-    /** Caption for the outcome shot — declarative ("Editor opens"). */
+    /** Caption for the outcome shot, declarative ("Editor opens"). */
     result: string
     /** Highlight callouts overlaid on the outcome shot only. */
     highlights?: HighlightRef[]
     /** Direction-anchoring callouts overlaid on the APPROACH shot
-     *  (the click target — helps the reader locate it before the
+     *  (the click target: helps the reader locate it before the
      *  cursor reaches it). */
     annotations?: AnnotationRef[]
     /** Mark the outcome shot as the flow's hero frame (rendered
@@ -170,7 +171,7 @@ export type ClickOpts
     after?: () => Promise<void>
     /** Bypass Playwright's actionability checks on the underlying
      *  hover + click. Required for elements inside `mk-sheet-host`
-     *  (BottomSheet) — Reka's portaled overlays intercept pointer
+     *  (BottomSheet): Reka's portaled overlays intercept pointer
      *  events at the wrong stacking layer for Playwright's coordinate-
      *  based clicks even when the target is visible + stable. Real
      *  touch dispatches the same event chain successfully; this is a
@@ -180,7 +181,7 @@ export type ClickOpts
     chain?: false
   }
   | {
-    /** Skip the outcome shot — the next slide's approach is this
+    /** Skip the outcome shot, the next slide's approach is this
      *  click's after-state. Use sparingly; the default is "show me
      *  the consequence of every action". */
     chain: true
@@ -206,7 +207,7 @@ export type TypeOpts = {
 }
 
 export type ShotOpts = {
-  /** Address-bar text for a frame whose page has no app URL — e.g. a
+  /** Address-bar text for a frame whose page has no app URL, e.g. a
    *  downloaded file shown in a viewer: `Downloads/notes.md`. Without a
    *  leading `/` the frame shows it instead of the app's domain + path. */
   addressBar?: string
@@ -248,9 +249,9 @@ export type Flow = {
   type: (caption: string, locator: Locator, text: string, opts: TypeOpts) => Promise<void>
   /** Hover (no click) → screenshot APPROACH. For "hover X to reveal Y". */
   hover: (caption: string, locator: Locator, opts?: HoverOpts) => Promise<void>
-  /** Narration slide — text overlay on a captured screenshot, cursor hidden. */
+  /** Narration slide: text overlay on a captured screenshot, cursor hidden. */
   narrate: (text: string) => Promise<void>
-  /** Chapter card — text-only slide, no screenshot, no cursor. */
+  /** Chapter card: text-only slide, no screenshot, no cursor. */
   heading: (text: string, level?: 2 | 3) => Promise<void>
   /** Suppress the next auto-screenshot (transient mid-fade states). */
   skipNext: () => void
@@ -266,7 +267,7 @@ export type Flow = {
    * SAME manifest as the primary, with `actor: <label>` stamped per
    * entry so future renderers can show context-switch indicators.
    *
-   * Use for two-context stories — owner sets a password, visitor
+   * Use for two-context stories, owner sets a password, visitor
    * (separate identity, no JWT cookie) hits the doc URL and sees the
    * password modal. The owner's `flow` and the visitor's `flow` write
    * to the same slideshow; the reader sees one linear story.
@@ -277,7 +278,7 @@ export type Flow = {
   /**
    * Declare that this flow deliberately provokes an error toast whose
    * title or description matches `pattern`. Every OTHER error toast
-   * (`color: 'error'`) seen on any actor's page fails the flow — a flow
+   * (`color: 'error'`) seen on any actor's page fails the flow, a flow
    * whose screenshots show "Something went wrong" isn't a passing flow.
    */
   expectErrorToast: (pattern: RegExp) => void
@@ -290,7 +291,7 @@ export type Flow = {
 }
 
 export type SpawnedActor = {
-  /** Flow bound to this actor — pushes into the shared manifest with
+  /** Flow bound to this actor, pushes into the shared manifest with
    *  `actor: <label>` stamped on each frame. */
   flow: Flow
   /** Playwright Page bound to a fresh BrowserContext. */
@@ -319,7 +320,7 @@ export type EditorFixture = {
    * Pass `title` so the topbar (and the cover, if any) shows a real
    * name instead of "Untitled", and `cover: false` when the preview's
    * page 1 should show the document's content rather than the title
-   * sheet — the default for any flow whose outcome is visible in the
+   * sheet: the default for any flow whose outcome is visible in the
    * preview.
    */
   silentSetup: (opts?: SetupOpts) => Promise<void>
@@ -448,7 +449,7 @@ async function wireActorPage(page: Page, theme: 'light' | 'dark'): Promise<void>
   // gated by columns on the `users` row, and `loginAsTestUser` seeds
   // those columns to "post-onboarding" values (PRIVACY/TOS/DPA
   // accepted, age confirmed). Mocking the endpoint would break tests
-  // that NEED the real shape — notably the deletion-grace banner,
+  // that NEED the real shape, notably the deletion-grace banner,
   // which mounts when the API reports `deletion.pending: true`.
 }
 
@@ -464,18 +465,14 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
     // reappears at fixture teardown if THIS run's status is OK.
     await fs.rm(path.join(outDir, '.passed'), { force: true })
 
-    // Pre-seed the color-mode preference. @nuxtjs/color-mode only
-    // understands 'light' / 'dark' / 'system' — write JUST the theme
-    // half of the composite variant (e.g. 'dark-desktop' → 'dark').
-    // Writing the full variant string was a silent no-op (falls back
-    // to 'system') and produced light-themed screenshots in the dark
-    // variant directories. Combined with project-level `colorScheme`,
-    // both signals agree.
+    // Pre-seed the color-mode preference. @nuxtjs/color-mode only understands 'light' / 'dark' / 'system', so
+    // write just the theme half of the composite variant (e.g. 'dark-desktop' becomes 'dark'); the full variant
+    // string would be ignored and fall back to 'system'. Combined with project-level `colorScheme`, both signals agree.
     const theme: 'light' | 'dark' = variant.startsWith('dark') ? 'dark' : 'light'
     await wireActorPage(page, theme)
 
     // Suite-wide failure signals. A flow passes only when no unexpected
-    // error toast appeared and the app answered no request with a 5xx —
+    // error toast appeared and the app answered no request with a 5xx,
     // "all flows passed" must mean the features worked, not merely that
     // the clicked elements existed.
     const appOrigin = new URL(String(testInfo.project.use.baseURL ?? process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000')).origin
@@ -487,7 +484,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
       const out: string[] = []
       for (const t of sink.errorToasts) {
         if (expectedToasts.some(re => re.test(t.title) || re.test(t.description))) continue
-        out.push(`error toast [${t.actor}]: "${t.title}"${t.description ? ` — ${t.description}` : ''}`)
+        out.push(`error toast [${t.actor}]: "${t.title}"${t.description ? `, ${t.description}` : ''}`)
       }
       for (const e of sink.serverErrors) {
         if (expectedServerErrors.some(re => re.test(e.path))) continue
@@ -535,7 +532,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
      * land in the same manifest in call order.
      *
      * Per-actor state (the suppress flag for `flow.skipNext()`, the
-     * cursor-tracking closure) is local to this factory — calling
+     * cursor-tracking closure) is local to this factory, calling
      * `skipNext()` on the visitor's flow only suppresses the
      * visitor's next capture, not the owner's.
      */
@@ -544,10 +541,10 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
 
       const settle = async () => {
         // Pause briefly so CSS transitions finish before the screenshot.
-        // We deliberately do NOT use waitForLoadState('networkidle') —
+        // We deliberately do NOT use waitForLoadState('networkidle'),
         // editor pages run a long-lived Y.js WebSocket so they never
         // hit networkidle in practice.
-        await actorPage.waitForTimeout(150)
+        await settleAnimations(actorPage, 150)
       }
 
       const readCursor = async (
@@ -558,7 +555,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
           // textarea/contenteditable, override to the field's left-edge
           // midpoint. Used by flow.type so typing screenshots place
           // the cursor INSIDE the input. Disabled by flow.click +
-          // flow.hover — those want the cursor on the locator we
+          // flow.hover: those want the cursor on the locator we
           // just hovered, not on a stale focused field from a
           // previous step.
           const formSnap = opts.formSnap ?? false
@@ -601,9 +598,9 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
           const loc = actorPage.locator(ref.selector).first()
           const box = await loc.boundingBox({ timeout: 5_000 }).catch(() => null)
           if (!box) {
-            const msg = `[flow${actorLabel ? `:${actorLabel}` : ''}] highlight "${ref.label}" — selector \`${ref.selector}\` resolved to no visible box`
+            const msg = `[flow${actorLabel ? `:${actorLabel}` : ''}] highlight "${ref.label}", selector \`${ref.selector}\` resolved to no visible box`
             if (STRICT_HIGHLIGHTS) {
-              throw new Error(`${msg} (FLOW_STRICT/CI is set — failing)`)
+              throw new Error(`${msg} (FLOW_STRICT/CI is set, failing)`)
             }
             console.warn(`${msg}; skipping (set FLOW_STRICT=1 to fail)`)
             continue
@@ -621,9 +618,9 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
           const loc = actorPage.locator(ref.selector).first()
           const box = await loc.boundingBox({ timeout: 5_000 }).catch(() => null)
           if (!box) {
-            const msg = `[flow${actorLabel ? `:${actorLabel}` : ''}] annotation "${ref.label}" — selector \`${ref.selector}\` resolved to no visible box`
+            const msg = `[flow${actorLabel ? `:${actorLabel}` : ''}] annotation "${ref.label}", selector \`${ref.selector}\` resolved to no visible box`
             if (STRICT_HIGHLIGHTS) {
-              throw new Error(`${msg} (FLOW_STRICT/CI is set — failing)`)
+              throw new Error(`${msg} (FLOW_STRICT/CI is set, failing)`)
             }
             console.warn(`${msg}; skipping (set FLOW_STRICT=1 to fail)`)
             continue
@@ -654,7 +651,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
           formSnap?: boolean
           /** Mark this OUTCOME frame as the hero. Ignored for
            *  approach + narration. Latch-once across the flow
-           *  (across ALL actors — first hero wins). */
+           *  (across ALL actors: first hero wins). */
           hero?: boolean
           /** See ShotOpts.addressBar. */
           addressBar?: string
@@ -794,7 +791,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
               const end = el.value.length
               try {
                 el.setSelectionRange(end, end)
-              } catch { /* contenteditable / non-input — caret moved by focus */ }
+              } catch { /* contenteditable / non-input, caret moved by focus */ }
             })
             await captureFrame('approach', caption, {
               cursor: null,
@@ -821,7 +818,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
           if (opts?.force) {
             // No real hover possible on a sheet-portaled element
             // (cursor coordinates land outside the viewport). Just
-            // capture an approach frame without cursor — the visual
+            // capture an approach frame without cursor, the visual
             // value of "show me the cursor on the target" is gone in
             // mobile sheets anyway since touch has no cursor.
             await captureFrame('approach', caption, {
@@ -857,7 +854,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
           // genuinely independent identity.
           const browser = actorPage.context().browser()
           if (!browser) {
-            throw new Error(`[flow.spawn:${label}] cannot spawn — primary page has no browser handle`)
+            throw new Error(`[flow.spawn:${label}] cannot spawn, primary page has no browser handle`)
           }
           const primaryViewport = actorPage.viewportSize() ?? { width: 1280, height: 800 }
           const newContext = await browser.newContext({
@@ -866,7 +863,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
             permissions: ['clipboard-read', 'clipboard-write']
           })
           const newPage = await newContext.newPage()
-          // Same init scripts the primary page got — without these
+          // Same init scripts the primary page got, without these
           // the spawned page screenshots would lack cursor coords,
           // would show devtools chrome, and might pick the wrong
           // theme on first paint.
@@ -888,7 +885,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
     const flow = createFlowForActor(page, undefined)
 
     // Wall-clock timing for the test body. Useful for spotting which
-    // (slug, variant) is the slowest cell in the matrix — captured at
+    // (slug, variant) is the slowest cell in the matrix, captured at
     // fixture-teardown so it includes every screenshot + sharp encode
     // for that test. Playwright's own `(Xs)` line is shown by the
     // list reporter; this one prints in the structured `[flow]`
@@ -940,14 +937,14 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
     // a half-baked manifest from a timed-out or assertion-failed run
     // can't ship to the docs site and pretend everything's fine. We
     // write the sentinel ONLY when Playwright reports the test
-    // succeeded — `testInfo.status` is set during teardown after
+    // succeeded: `testInfo.status` is set during teardown after
     // hooks + assertions ran. Stale sentinels from a prior pass
     // don't survive a re-run that fails: each test's first action is
     // to recreate the output dir (see `outDir` setup above), which
     // wipes the previous .passed.
     // Failure signals that arrived after the last capture (e.g. an
     // error toast raised by the final click) still fail the flow.
-    // Only checked when the body itself passed — a thrown assertion
+    // Only checked when the body itself passed, a thrown assertion
     // already carries the more useful message.
     if (testInfo.status === testInfo.expectedStatus) {
       assertNoUnexpectedFailures()
@@ -966,7 +963,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
 
       recordPreamble: async () => {
         // Lean preamble for flows where doc creation IS the story.
-        // Captions are user-voice — no implementation jargon.
+        // Captions are user-voice: no implementation jargon.
         await flow.step('Open markoto', async () => {
           await page.goto('/')
           await page.locator('[data-testid="landing-new-document"]').waitFor()
@@ -975,7 +972,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         // Vue hydration race: SSR makes the "+ New Document" button look
         // interactive immediately, but its @click handler may not have
         // attached yet. A single click can be a no-op. We use the same
-        // toPass retry pattern as silentSetup — converge on "dialog
+        // toPass retry pattern as silentSetup, converge on "dialog
         // visible" rather than hoping one click took.
         //
         // Split the action into hover (captures approach shot, cursor
@@ -995,7 +992,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
       silentSetup: async (opts: SetupOpts = {}) => {
         await page.goto('/')
 
-        // Wait for Vue hydration before clicking — SSR makes the
+        // Wait for Vue hydration before clicking, SSR makes the
         // button look interactive before its @click handler attaches.
         // expect.toPass converges on a stable post-condition (dialog
         // visible) rather than hoping a single click took.
@@ -1025,8 +1022,8 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         if (opts.body !== undefined) {
           await editor.setDocText(opts.body)
         }
-        // Mobile forces edit-only view (preview pane is hidden) — see
-        // AGENTS.md §11. Skip the split-view setup; flow shots will
+        // Mobile forces edit-only view (preview pane is hidden), see
+        // tests/e2e/AGENTS.md. Skip the split-view setup; flow shots will
         // capture the editor in its single-pane mobile layout.
         if (!isMobile) {
           await editor.switchToSplitView()
@@ -1044,38 +1041,21 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
 
 export const expect = baseExpect
 
-export function skipVariants(
-  info: { project: { metadata?: Record<string, unknown> } },
-  variants: Variant[],
-  reason: string
-): void {
-  const v = info.project.metadata?.variant as Variant | undefined
-  if (v && variants.includes(v)) {
-    base.skip(true, `${reason} (skipping variant=${v})`)
-  }
-}
-
-/**
- * Require the live AI upstream to be wired. Phase 5 retired Gemini —
- * AI flows now drive Mistral / Jina / BFL through the LiteLLM proxy.
- * The proxy reads `MISTRAL_API_KEY`, `JINA_AI_API_KEY`, `BFL_API_KEY`
- * inside its container; for the host-spawned flow test stack they're
- * passed in via `flows-ephemeral.ts`. Either every upstream is wired
- * or the flow can't make a real call — there's no useful "partial"
- * state.
- *
- * Call from inside an AI flow's `test('...', async ({ ... }) => { ... })`
- * body BEFORE any other setup. SKIPS the test (visibly, via `test.skip`)
- * when any required key is absent — the fast PR gate runs without the AI
- * keys so these flows skip there; the release/staging full-suite run wires
- * the keys so they execute. Locally they run whenever the keys are in `.env`.
- */
+// Require the live AI upstream to be wired. AI flows drive Mistral / Jina / BFL through the LiteLLM proxy.
+// The proxy reads `MISTRAL_API_KEY`, `JINA_AI_API_KEY`, `BFL_API_KEY` inside its container; for the
+// host-spawned flow test stack they're passed in via `flows-ephemeral.ts`. Either every upstream is wired
+// or the flow can't make a real call, so there is no useful "partial" state.
+//
+// Call from inside an AI flow's `test('...', async ({ ... }) => { ... })` body BEFORE any other setup.
+// SKIPS the test (visibly, via `test.skip`) when any required key is absent: the fast PR gate runs without
+// the AI keys so these flows skip there; the release/staging full-suite run wires the keys so they execute.
+// Locally they run whenever the keys are in `.env`.
 export function requireLiveAi(): void {
   const required = ['MISTRAL_API_KEY', 'JINA_AI_API_KEY', 'BFL_API_KEY'] as const
   const missing = required.filter(k => !process.env[k])
   test.skip(
     missing.length > 0,
-    `Live AI flow skipped — missing [${missing.join(', ')}] in the env. `
+    `Live AI flow skipped, missing [${missing.join(', ')}] in the env. `
     + 'Injected by flows-ephemeral.ts from the host/CI; present on the release + '
     + 'staging full-suite run, intentionally absent on the fast PR gate.'
   )

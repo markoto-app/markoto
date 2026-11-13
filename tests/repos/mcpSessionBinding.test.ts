@@ -1,16 +1,15 @@
 import { randomBytes } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
-import { useValkey } from '../../server/utils/valkey'
+import { at, first } from '../helpers/assert'
+import { useValkey } from '../../server/utils/platform/valkey'
 import {
   BINDING_IDLE_MS,
   MAX_SESSIONS_PER_USER,
   ValkeyMcpSessionBindings
-} from '../../server/utils/mcpSessionBinding'
+} from '../../server/utils/mcp/mcpSessionBinding'
 
-// MCP session ↔ token bindings (F-7d) against the REAL Valkey test
-// container. Bindings used to live in process memory; now they survive a
-// restart and are shared by every app instance. Each test uses fresh
-// random user ids / session ids, so no cleanup is needed (keys expire).
+// MCP session ↔ token bindings against the REAL Valkey test container: they survive a restart and are shared
+// by every app instance. Each test uses fresh random user ids / session ids, so no cleanup is needed (keys expire).
 
 function uid(): number {
   return 1_000_000 + randomBytes(3).readUIntBE(0, 3)
@@ -61,13 +60,13 @@ describe('ValkeyMcpSessionBindings', () => {
       await b.bind(id, 't1', user)
     }
     now += 1
-    expect(await b.check(ids[0], 't1')).toBe('ok') // ids[0] is now the most recently used
+    expect(await b.check(first(ids), 't1')).toBe('ok') // ids[0] is now the most recently used
     now += 1
     const fresh = sid('new')
     await b.bind(fresh, 't1', user)
     expect(await b.countForUser(user)).toBe(MAX_SESSIONS_PER_USER)
-    expect(await b.check(ids[1], 't1')).toBe('unknown') // the least recently used one went
-    expect(await b.check(ids[0], 't1')).toBe('ok')
+    expect(await b.check(at(ids, 1), 't1')).toBe('unknown') // the least recently used one went
+    expect(await b.check(first(ids), 't1')).toBe('ok')
     expect(await b.check(fresh, 't1')).toBe('ok')
     // Other users are unaffected.
     const other = sid('bob')

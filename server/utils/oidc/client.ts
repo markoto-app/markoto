@@ -1,4 +1,4 @@
-// Generic OpenID Connect sign-in (WP7b) — protocol layer.
+// Generic OpenID Connect sign-in, protocol layer.
 //
 // Built on `openid-client` (panva; certified OpenID RP library) rather than
 // nuxt-auth-utils' `defineOAuthOidcEventHandler`: as of nuxt-auth-utils
@@ -13,7 +13,7 @@
 //     fresh per attempt and bound to the browser via an httpOnly cookie
 //     (`server/routes/auth/oidc.get.ts`).
 //   - ID token REQUIRED and validated: signature against the IdP's JWKS
-//     (`enableNonRepudiationChecks`; asymmetric algorithms only — HS*
+//     (`enableNonRepudiationChecks`; asymmetric algorithms only, HS*
 //     tokens are rejected), `iss`, `aud` (+ `azp` with multiple
 //     audiences), `exp` / `iat` (30 s clock tolerance), `nonce`. The
 //     `iss` authorization-response parameter is checked when the IdP
@@ -22,14 +22,15 @@
 //
 // The module keeps one discovered `Configuration` per settings tuple for
 // an hour (up to 200 tuples: the instance IdP plus per-workspace SSO
-// connections, WP14); openid-client caches the JWKS on it and refetches
+// connections); openid-client caches the JWKS on it and refetches
 // on an unknown `kid` (key rotation).
 
 import * as oidc from 'openid-client'
 import type { OidcSettings } from './settings'
 import { profileFromClaims, type OidcProfile } from './profile'
+import { HOUR_MS } from '~~/shared/config/units'
 
-const DISCOVERY_TTL_MS = 60 * 60 * 1000
+const DISCOVERY_TTL_MS = HOUR_MS
 const HTTP_TIMEOUT_SECONDS = 10
 
 /** Per-attempt secrets that must survive the round trip to the IdP. */
@@ -52,6 +53,16 @@ function cacheKey(settings: OidcSettings): string {
   return JSON.stringify([settings.cacheScope ?? '', settings.issuer.href, settings.clientId, settings.clientSecret, settings.allowInsecureHttp])
 }
 
+/** openid-client's fetch hook, backed by the settings' (SSRF-checked) fetch. */
+function toCustomFetch(fetchFn: NonNullable<OidcSettings['fetch']>): oidc.CustomFetch {
+  return (url, { body, ...init }) => fetchFn(url, {
+    ...init,
+    // A byte body may sit on a shared buffer, which `fetch` doesn't take;
+    // the IdP requests openid-client makes send text bodies in practice.
+    body: body instanceof Uint8Array ? new Uint8Array(body) : body
+  })
+}
+
 async function discover(settings: OidcSettings): Promise<oidc.Configuration> {
   const execute = settings.allowInsecureHttp ? [oidc.allowInsecureRequests] : []
   const discovered = await oidc.discovery(
@@ -64,7 +75,7 @@ async function discover(settings: OidcSettings): Promise<oidc.Configuration> {
       timeout: HTTP_TIMEOUT_SECONDS,
       // Assigned to the Configuration too, so JWKS / token / UserInfo
       // requests use it as well.
-      ...(settings.fetch ? { [oidc.customFetch]: settings.fetch as unknown as oidc.CustomFetch } : {})
+      ...(settings.fetch ? { [oidc.customFetch]: toCustomFetch(settings.fetch) } : {})
     }
   )
   // `client_secret_basic` is the OIDC default; switch to
@@ -79,7 +90,7 @@ async function discover(settings: OidcSettings): Promise<oidc.Configuration> {
       oidc.ClientSecretPost(settings.clientSecret)
     )
     config.timeout = HTTP_TIMEOUT_SECONDS
-    if (settings.fetch) config[oidc.customFetch] = settings.fetch as unknown as oidc.CustomFetch
+    if (settings.fetch) config[oidc.customFetch] = toCustomFetch(settings.fetch)
     for (const fn of execute) fn(config)
   }
   oidc.enableNonRepudiationChecks(config)
@@ -109,11 +120,6 @@ export function getOidcConfiguration(settings: OidcSettings, now = Date.now()): 
 /** Test seam: forget the cached discovery. */
 export function resetOidcConfigurationCache(): void {
   cache.clear()
-}
-
-/** Forget one connection's discovery (after its settings changed). */
-export function forgetOidcConfiguration(settings: OidcSettings): void {
-  cache.delete(cacheKey(settings))
 }
 
 export async function buildOidcAuthorizationRequest(

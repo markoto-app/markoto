@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { DocThemeSchema } from '~~/shared/types/theme'
 import { DESIGN_IMPORT_ERROR_CODES, DESIGN_IMPORT_PHASES } from '~~/shared/config/designImport'
-import { useValkey } from '../valkey'
+import { useValkey } from '../platform/valkey'
 
 // State of one "Create a design from a document" run, polled by the
 // dialog (`GET /api/themes/from-document/jobs/:jobId`). Valkey only: the
@@ -9,7 +9,7 @@ import { useValkey } from '../valkey'
 // theme (`/api/themes`) or thrown away. Bound to the user who started it;
 // anyone else gets a 404, the same as an unknown id.
 
-export const DESIGN_IMPORT_JOB_TTL_SECONDS = 30 * 60
+const DESIGN_IMPORT_JOB_TTL_SECONDS = 30 * 60
 
 export const DesignImportJobState = z.object({
   userId: z.number().int(),

@@ -1,20 +1,14 @@
 <script setup lang="ts">
+import type { ApiResponse } from '~/utils/api/client'
+import { useAcceptInvite } from '~/queries/workspaces'
+
 // Dashboard "Invitations" section: open workspace invitations addressed
 // to the signed-in user's account email (`GET /api/user/invites`).
-// Accepting creates the membership and emits `accepted` so the parent
-// refreshes its workspace list; declining just removes the card. Renders
+// Accepting creates the membership (the mutation refreshes the workspace
+// list) and emits `accepted`; declining just removes the card. Renders
 // nothing when there are no invitations.
 
-export interface WorkspaceInviteItem {
-  inviteId: string
-  workspaceName: string
-  role: 'admin' | 'editor' | 'viewer' | 'guest'
-  invitedByName: string | null
-  /** Team / Business plan of the workspace (WP3): shown as what it includes. */
-  workspacePlan?: 'team' | 'business' | null
-  createdAt: string
-  expiresAt: string
-}
+export type WorkspaceInviteItem = ApiResponse<'/api/user/invites', 'get'>[number]
 
 const props = defineProps<{
   invites: WorkspaceInviteItem[]
@@ -29,6 +23,8 @@ const { t } = useI18n()
 const toast = useToast()
 const { showError } = useErrorHandler()
 const busy = ref<string | null>(null)
+// Refreshes the workspace list before resolving.
+const acceptInvite = useAcceptInvite()
 
 function roleLabel(role: WorkspaceInviteItem['role']): string {
   return t(`workspace.roles.${role}`)
@@ -38,18 +34,18 @@ async function act(invite: WorkspaceInviteItem, action: 'accept' | 'decline'): P
   if (busy.value) return
   busy.value = invite.inviteId
   try {
-    const res = await $fetch<{ workspaceId?: string, workspaceName?: string }>(
-      `/api/user/invites/${invite.inviteId}/${action}`,
-      { method: 'POST' }
-    )
-    emit('removed', invite.inviteId)
-    if (action === 'accept' && typeof res.workspaceId === 'string') {
+    if (action === 'accept') {
+      const res = await acceptInvite.mutateAsync(invite.inviteId)
+      emit('removed', invite.inviteId)
       toast.add({
         title: t('workspace.invites.accepted', { name: res.workspaceName ?? invite.workspaceName }),
         icon: 'i-lucide-check',
         color: 'neutral'
       })
       emit('accepted', res.workspaceId)
+    } else {
+      await apiFetch('/api/user/invites/:inviteId/decline', { method: 'post', path: { inviteId: invite.inviteId } })
+      emit('removed', invite.inviteId)
     }
   } catch (e) {
     showError(action === 'accept' ? 'workspace.invites.acceptFailed' : 'workspace.invites.declineFailed', e)

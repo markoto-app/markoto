@@ -1,9 +1,10 @@
 import { and, eq } from 'drizzle-orm'
 import { userAiProviders } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../db/client'
 import type { AiCapability } from '~~/shared/ai/providers'
+import type { UserScope } from './proofs'
 
-// `user_ai_providers` repository — bring-your-own-key provider configs.
+// `user_ai_providers` repository: bring-your-own-key provider configs.
 //
 // This layer stores and returns the ENCRYPTED key only. Encryption,
 // decryption and the "never hand the key to the client" rule live in
@@ -13,7 +14,6 @@ import type { AiCapability } from '~~/shared/ai/providers'
 export type AiProviderRow = typeof userAiProviders.$inferSelect
 
 export interface AiProviderUpsert {
-  userId: number
   capability: AiCapability
   baseUrl: string
   model: string
@@ -24,21 +24,22 @@ export interface AiProviderUpsert {
   lastVerifiedAt: Date | null
 }
 
-export async function listAiProviders(userId: number): Promise<AiProviderRow[]> {
+/** Every config of the user (encrypted keys included): their own AI calls, the settings page, the data export. */
+export async function listAiProviders(user: UserScope): Promise<AiProviderRow[]> {
   const db = useDatabase()
-  return await db.select().from(userAiProviders).where(eq(userAiProviders.userId, userId))
+  return await db.select().from(userAiProviders).where(eq(userAiProviders.userId, user.userId))
 }
 
-export async function getAiProvider(userId: number, capability: AiCapability): Promise<AiProviderRow | null> {
+export async function getAiProvider(user: UserScope, capability: AiCapability): Promise<AiProviderRow | null> {
   const db = useDatabase()
   const rows = await db.select().from(userAiProviders)
-    .where(and(eq(userAiProviders.userId, userId), eq(userAiProviders.capability, capability)))
+    .where(and(eq(userAiProviders.userId, user.userId), eq(userAiProviders.capability, capability)))
     .limit(1)
   return rows[0] ?? null
 }
 
 /** Insert or replace the user's config for one capability. */
-export async function upsertAiProvider(input: AiProviderUpsert): Promise<AiProviderRow> {
+export async function upsertAiProvider(self: UserScope, input: AiProviderUpsert): Promise<AiProviderRow> {
   const db = useDatabase()
   const now = new Date()
   const values = {
@@ -52,7 +53,7 @@ export async function upsertAiProvider(input: AiProviderUpsert): Promise<AiProvi
     updatedAt: now
   }
   const rows = await db.insert(userAiProviders)
-    .values({ userId: input.userId, capability: input.capability, ...values })
+    .values({ userId: self.userId, capability: input.capability, ...values })
     .onConflictDoUpdate({ target: [userAiProviders.userId, userAiProviders.capability], set: values })
     .returning()
   const row = rows[0]
@@ -62,10 +63,11 @@ export async function upsertAiProvider(input: AiProviderUpsert): Promise<AiProvi
 
 /** Record a verification result on an existing row. No-op when the row is gone. */
 export async function markAiProviderVerified(
-  userId: number,
+  self: UserScope,
   capability: AiCapability,
   result: { supportsTools: boolean | null, verifiedAt: Date }
 ): Promise<void> {
+  const userId = self.userId
   const db = useDatabase()
   await db.update(userAiProviders)
     .set({ supportsTools: result.supportsTools, lastVerifiedAt: result.verifiedAt })
@@ -73,7 +75,8 @@ export async function markAiProviderVerified(
 }
 
 /** Account deletion: remove every config (and encrypted key) of the user. Returns the count. */
-export async function deleteAllAiProvidersForUser(userId: number): Promise<number> {
+export async function deleteAllAiProvidersForUser(user: UserScope): Promise<number> {
+  const userId = user.userId
   const db = useDatabase()
   const rows = await db.delete(userAiProviders)
     .where(eq(userAiProviders.userId, userId))
@@ -82,7 +85,8 @@ export async function deleteAllAiProvidersForUser(userId: number): Promise<numbe
 }
 
 /** Returns true when a row was deleted. */
-export async function deleteAiProvider(userId: number, capability: AiCapability): Promise<boolean> {
+export async function deleteAiProvider(self: UserScope, capability: AiCapability): Promise<boolean> {
+  const userId = self.userId
   const db = useDatabase()
   const rows = await db.delete(userAiProviders)
     .where(and(eq(userAiProviders.userId, userId), eq(userAiProviders.capability, capability)))

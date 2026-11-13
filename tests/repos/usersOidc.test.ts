@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
-import { findUserById, upsertOAuthUser } from '../../server/repos/users'
+import { findUserById } from '../../server/repos/users'
+import { asUser } from '../helpers/access'
+import { upsertOAuthUser } from '../../server/repos/userSignIn'
 
-// Generic OIDC (WP7b): identities are keyed by (issuer, sub) — never the
-// email — and only a VERIFIED email merges into an existing account,
+// Generic OIDC: identities are keyed by (issuer, sub), never the
+// email: and only a VERIFIED email merges into an existing account,
 // same rule as GitHub/Google (tests/repos/users.test.ts).
 
 const ISSUER = 'https://idp.example.org/realms/markoto'
@@ -13,7 +15,7 @@ async function upsert(input: Parameters<typeof upsertOAuthUser>[0]): Promise<num
   return (await upsertOAuthUser(input)).userId
 }
 
-describe('upsertOAuthUser — generic OIDC', () => {
+describe('upsertOAuthUser: generic OIDC', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -29,7 +31,7 @@ describe('upsertOAuthUser — generic OIDC', () => {
       name: 'Olga Renamed', email: 'olga@test.local', emailVerified: true
     })
     expect(again).toEqual({ userId: first.userId, outcome: 'updated' })
-    const row = await findUserById(first.userId)
+    const row = await findUserById(asUser(first.userId))
     expect(row).toMatchObject({ oidcIssuer: ISSUER, oidcSubject: 'sub-1', name: 'Olga Renamed', githubId: null, googleId: null })
   })
 
@@ -69,7 +71,7 @@ describe('upsertOAuthUser — generic OIDC', () => {
       name: 'Olga', email: 'olga@test.local', emailVerified: true
     })
     expect(o).toEqual({ userId: gh, outcome: 'merged' })
-    expect(await findUserById(gh)).toMatchObject({ githubId: 'gh-olga', oidcIssuer: ISSUER, oidcSubject: 'sub-olga' })
+    expect(await findUserById(asUser(gh))).toMatchObject({ githubId: 'gh-olga', oidcIssuer: ISSUER, oidcSubject: 'sub-olga' })
     // From now on the OIDC identity resolves to the same row.
     const again = await upsertOAuthUser({
       provider: 'oidc', oidcIssuer: ISSUER, providerUserId: 'sub-olga',
@@ -89,7 +91,7 @@ describe('upsertOAuthUser — generic OIDC', () => {
     })
     expect(o.outcome).toBe('inserted')
     expect(o.userId).not.toBe(gh)
-    expect((await findUserById(gh))?.oidcSubject).toBeNull()
+    expect((await findUserById(asUser(gh)))?.oidcSubject).toBeNull()
   })
 
   it('does NOT re-point an account that already has an OIDC identity (other issuer)', async () => {
@@ -103,7 +105,7 @@ describe('upsertOAuthUser — generic OIDC', () => {
     })
     expect(second.outcome).toBe('inserted')
     expect(second.userId).not.toBe(first)
-    expect(await findUserById(first)).toMatchObject({ oidcIssuer: OTHER_ISSUER, oidcSubject: 'old-sub' })
+    expect(await findUserById(asUser(first))).toMatchObject({ oidcIssuer: OTHER_ISSUER, oidcSubject: 'old-sub' })
   })
 
   it('a later Google login merges into an OIDC-created account (verified email)', async () => {

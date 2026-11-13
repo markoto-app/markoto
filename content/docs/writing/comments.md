@@ -1,6 +1,6 @@
 ---
 title: Discuss in your document
-description: Threaded comments, anchored to the text — leave a thought, reply, resolve. Live across collaborators.
+description: Threaded comments, anchored to the text, leave a thought, reply, resolve. Live across collaborators.
 category: writing
 order: 3
 updated: '2026-10-29'
@@ -10,7 +10,7 @@ updated: '2026-10-29'
 
 Comments live next to the words they're about. Highlight any
 passage, drop a thought, and your collaborators see it the moment
-you post — with a yellow underline marking what you commented on.
+you post, with a yellow underline marking what you commented on.
 Replies thread under the original; resolved threads tuck into a
 "Resolved" section so the active list stays focused.
 
@@ -25,7 +25,7 @@ a paragraph above a comment, the underline moves down with the
 text. Type _into_ a commented passage and the comment expands to
 include what you added. If someone deletes the anchored text
 entirely, the comment moves into a "Removed from document"
-subsection of the sidebar — the discussion is preserved, just
+subsection of the sidebar: the discussion is preserved, just
 detached from the doc.
 
 ## Who can do what
@@ -40,5 +40,5 @@ detached from the doc.
 
 ## What's next
 
-- [Lock a document behind a password](/docs/sharing/password-protect) — limit who can see the discussion.
-- [Add tables, alerts, math, and diagrams](/docs/writing/rich-content) — comments work on every kind of content.
+- [Lock a document behind a password](/docs/sharing/password-protect): limit who can see the discussion.
+- [Add tables, alerts, math, and diagrams](/docs/writing/rich-content): comments work on every kind of content.

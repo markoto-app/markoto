@@ -2,7 +2,13 @@
   "app": {
     "name": "markoto",
     "tagline": "共同編集できるMarkdownエディター",
-    "offline": "オフラインです — 再接続するまで編集内容はローカルに保存されます。"
+    "offline": "オフラインです。再接続するまで編集内容はローカルに保存されます。",
+    "update": {
+      "title": "新しいバージョンがあります",
+      "description": "30秒後に再読み込みします。",
+      "reloadNow": "今すぐ再読み込み",
+      "snooze": "5分後に再通知"
+    }
   },
   "landing": {
     "hero": "{markdown}を、美しく組版。",
@@ -26,15 +32,14 @@
     "linkedTitle": "アカウントを連携しました",
     "linkedDescription": "{provider}ログインが既存のアカウントに連携されました。今後はどちらのプロバイダーでもサインインできます。",
     "reauthTitle": "もう一度サインイン",
-    "reauthAction": "サインインし直す",
-    "reauthRequired": "セキュリティのため、この操作には最近のサインインが必要です。もう一度サインインしてから再試行してください。"
+    "reauthAction": "サインインし直す"
   },
   "editor": {
     "untitled": "無題",
     "titleInputAria": "ドキュメントタイトル",
     "placeholder": "書き始めましょう...",
     "syncAuthFailedTitle": "同期サーバーが接続を拒否しました",
-    "syncAuthFailedDescription": "通常はここで編集アクセスがあります。同期サーバーがハンドシェイクを拒否しました — IPごとのレート制限か、古いトークンが原因の可能性があります。再読み込みして再試行してください。",
+    "syncAuthFailedDescription": "通常はここで編集アクセスがあります。同期サーバーがハンドシェイクを拒否しました。IPごとのレート制限か、古いトークンが原因の可能性があります。再読み込みして再試行してください。",
     "syncAuthFailedReload": "再読み込み",
     "syncRejected": {
       "title": "最新の変更は保存されていません",
@@ -64,7 +69,16 @@
     "horizontalRule": "水平線",
     "pageBreak": "改ページ",
     "table": "表",
-    "hideFromPreview": "非表示にする（プレビューから隠す）"
+    "hideFromPreview": "非表示にする（プレビューから隠す）",
+    "footer": {
+      "words": "語 | 語",
+      "pages": "ページ | ページ",
+      "chars": "文字 | 文字",
+      "readOnly": "読み取り専用"
+    },
+    "previewReloadHint": "ページを再読み込みしてもう一度お試しください。",
+    "previewFailed": "プレビューを読み込めませんでした。",
+    "previewFrameTitle": "ドキュメントのプレビュー"
   },
   "previewZoom": {
     "menu": "ズーム",
@@ -90,7 +104,7 @@
     "systemShare": "システムで共有…",
     "qrCode": "QRコードを表示",
     "accessMode": "アクセスモード",
-    "private": "非公開 — 自分のみ",
+    "private": "非公開：自分のみ",
     "openEdit": "誰でも編集可能",
     "openView": "誰でも閲覧可能",
     "passwordProtected": "パスワード保護",
@@ -189,18 +203,18 @@
     "restore": {
       "button": {
         "label": "復元",
-        "tooltip": "ドキュメントをこの時点に復元します。元に戻せます — アクティビティログからいつでも戻せます。"
+        "tooltip": "ドキュメントをこの時点に復元します。元に戻せます。アクティビティログからいつでも戻せます。"
       },
       "confirm": {
         "title": "ドキュメントを復元しますか？",
         "body": "ドキュメントは{when}の状態に戻ります。それ以降に行った編集は削除されます（ただしアクティビティログから復元可能です）。",
-        "reversibleHint": "この復元自体も元に戻せます — いつでも現在の状態に戻せます。",
+        "reversibleHint": "この復元自体も元に戻せます。いつでも現在の状態に戻せます。",
         "cta": "復元"
       },
       "success": "ドキュメントを復元しました。",
       "error": {
         "unauthorized": "このドキュメントへの編集アクセス権がありません。",
-        "unavailable": "この行からは復元できません — 復元機能の導入前のものです。",
+        "unavailable": "この行からは復元できません。復元機能の導入前のものです。",
         "notFound": "このドキュメントにそのアクティビティ行は存在しません。",
         "generic": "復元に失敗しました。ドキュメントは変更されていません。"
       }
@@ -220,7 +234,7 @@
       "unavailable": "この行の差分は利用できません。",
       "error": "差分を読み込めませんでした。",
       "retry": "再試行",
-      "truncated": "{total}件中{shown}件のハンクを表示 — 差分は省略されています。"
+      "truncated": "{total}件中{shown}件のハンクを表示、差分は省略されています。"
     },
     "commentContext": {
       "view": "スレッドを表示",
@@ -237,8 +251,10 @@
       "sourcesHeading": "ソース",
       "noSources": "ソースは見つかりませんでした。",
       "imageInDoc": "生成された画像はドキュメントに挿入されました。",
-      "knowledgeNote": "ワークスペースナレッジ機能。"
-    }
+      "knowledgeNote": "ワークスペースナレッジ機能。",
+      "openViewedImage": "閲覧した画像を新しいタブで開く"
+    },
+    "viaAgent": "{agent}経由"
   },
   "comments": {
     "title": "コメント",
@@ -259,6 +275,7 @@
     "activeSection": "アクティブ",
     "orphanedSection": "ドキュメントから削除されました",
     "orphanedHint": "このコメントが付いていたテキストは削除されました。",
+    "showInDocument": "ドキュメント内で表示",
     "resolvedSection": "解決済み",
     "composerPlaceholder": "コメントを追加…",
     "replyPlaceholder": "返信…",
@@ -273,14 +290,16 @@
     "aiMentionHint": "ヒント：コメントに{'@'}markotoを含めると、markotoに対応を依頼できます。",
     "aiResponding": "markotoが応答しています…",
     "aiTriggerFailed": "このスレッドでmarkotoに接続できませんでした。",
-    "aiTriggerExhausted": "クレジットを使い切りました — プランをアップグレードすると、コメントからmarkotoに依頼できます。"
+    "aiTriggerExhausted": "クレジットを使い切りました。プランをアップグレードすると、コメントからmarkotoに依頼できます。",
+    "hintPost": "送信",
+    "hintCancel": "キャンセル",
+    "notificationFallbackTitle": "新しい返信"
   },
   "image": {
     "loginToUpload": "画像をアップロードするにはログインしてください。",
     "uploadFailed": "画像のアップロードに失敗しました",
     "dropToUpload": "画像をドロップしてアップロード",
-    "uploading": "アップロード中...",
-    "storageQuotaReached": "画像の保存容量の上限に達しました。ドキュメントから削除した画像は、クリーンアップされると容量が空きます。"
+    "uploading": "アップロード中..."
   },
   "import": {
     "title": "ドキュメントをインポート",
@@ -425,7 +444,7 @@
     "title": "ドキュメント",
     "description": {
       "label": "説明",
-      "help": "このドキュメントが何であるかを1行で。AIは毎ターンこれを参照します — 再入力せずに、モデルがあなたの作業内容を把握できる仕組みです。",
+      "help": "このドキュメントが何であるかを1行で。AIは毎ターンこれを参照します。再入力せずに、モデルがあなたの作業内容を把握できる仕組みです。",
       "placeholder": "例：新しいモバイルアプリの第3四半期ローンチ計画"
     },
     "language": {
@@ -486,7 +505,10 @@
     "loading": "読み込み中...",
     "menu": "メニュー",
     "docs": "ドキュメント",
-    "documentation": "ドキュメンテーション"
+    "documentation": "ドキュメンテーション",
+    "homeLinkLabel": "markotoのホーム",
+    "dragToClose": "ドラッグして閉じる",
+    "copyFailed": "コピーできませんでした。テキストを選択して、手動でコピーしてください。"
   },
   "menu": {
     "lightMode": "ライトモード",
@@ -555,7 +577,8 @@
       "github": "GitHubで見る",
       "docs": "ドキュメンテーション",
       "tour": "ツアーを見る"
-    }
+    },
+    "label": "メニューバー"
   },
   "ai": {
     "workingGeneric": "markoto が作業中…",
@@ -594,7 +617,7 @@
     "rateLimited": "リクエストが多すぎます。1分後に再試行してください。",
     "failed": "markotoに接続できませんでした",
     "micStart": "音声入力を開始",
-    "micBlocked": "マイクがブロックされています — ブラウザの設定で有効にしてください",
+    "micBlocked": "マイクがブロックされています、ブラウザの設定で有効にしてください",
     "micStop": "停止して送信",
     "micCancel": "音声入力をキャンセル",
     "micRequestingPermission": "マイクを待機しています…",
@@ -615,7 +638,7 @@
     "dictateErrorTitle": "ディクテーションに失敗しました",
     "budgetExhaustedTitle": "AIクレジットがありません",
     "budgetExhaustedDescription": "この請求期間のAIクレジットをすべて使い切りました。続けるにはプランをアップグレードしてください。",
-    "exhaustedPlaceholder": "AIクレジットがありません — 続けるにはアップグレード",
+    "exhaustedPlaceholder": "AIクレジットがありません、続けるにはアップグレード",
     "workspaceBudgetExhaustedTitle": "ワークスペースのAI予算を使い切りました",
     "workspaceBudgetExhaustedDescription": "このワークスペースの今月の AI 予算を使い切りました。管理者に席数かクレジットの追加を依頼してください。",
     "workspaceExhaustedPlaceholder": "ワークスペースの AI 予算を使い切りました。管理者に依頼してください",
@@ -625,11 +648,7 @@
     "responseQuestionLabel": "markotoが質問しています",
     "responseDismiss": "閉じる",
     "responseShowLast": "markotoからの最新の返答",
-    "errors": {
-      "duplicateSession": "このドキュメントではすでにmarkotoセッションが実行中です。",
-      "abortNotInitiator": "このmarkotoセッションを停止できるのは、開始した本人だけです。"
-    },
-    "exhaustedPlaceholderFree": "AIクレジットがありません — 次の期間に補充されます",
+    "exhaustedPlaceholderFree": "AIクレジットがありません、次の期間に補充されます",
     "budgetExhaustedResetDescription": "この期間のAIクレジットをすべて使い切りました。次の期間の開始時に補充されます。",
     "webToolsHourlyLimit": "Web検索とページ取得の1時間あたりの上限に達しました。1時間以内に再試行するか、Webツールなしで続けてください。",
     "webToolsDailyLimit": "Web検索とページ取得の1日あたりの上限に達しました。明日もう一度お試しいただくか、Webツールなしで続けてください。",
@@ -651,6 +670,24 @@
       "comingSoon": "まもなく提供される有料プランに含まれます。ご自身のプロバイダーキーなら今すぐ使えます。",
       "operator": "このインスタンスではあなたのアカウントで提供されていません。ご自身のプロバイダーキーを使えます。",
       "ownKey": "自分のキーを追加"
+    },
+    "voiceErrors": {
+      "transcription": "文字起こしエラー。",
+      "dictationConnection": "音声入力の接続エラー。",
+      "micDenied": "マイクの使用が許可されていません。",
+      "micNotFound": "マイクが見つかりません。",
+      "micAccess": "マイクにアクセスできませんでした。",
+      "streamUnavailable": "マイクのストリームを利用できません。",
+      "pipeline": "オーディオ処理を開始できませんでした。",
+      "sampleRate": "ブラウザが {rate} Hz の音声を強制しましたが、音声入力には 16000 Hz が必要です。",
+      "unsupportedVoice": "このブラウザは音声入力に対応していません。",
+      "unsupportedRecording": "このブラウザは音声録音に対応していません。",
+      "recorderStart": "録音を開始できませんでした。",
+      "recordingFailed": "録音に失敗しました。",
+      "stopFailed": "録音を停止できませんでした。",
+      "noAudio": "音声が録音されませんでした。",
+      "tooShort": "録音が短すぎました。",
+      "encodeFailed": "音声をエンコードできませんでした。"
     }
   },
   "mobileTabBar": {
@@ -816,7 +853,6 @@
       "year": "年払い · 2 か月分お得"
     },
     "currencyLabel": "通貨",
-    "currencyLocked": "ご利用中のサブスクリプションは別の通貨で請求されており、変更できません。続けるにはその通貨を選択してください。",
     "countPerSeat": {
       "aiPoints": "1 席あたり月 {n} AI ポイント（共有）",
       "workspaces": "所有ワークスペース {n} 個",
@@ -985,7 +1021,8 @@
       "sectionMode": "{token} の表示",
       "sectionModeHelp": "ヘッダーやフッターにどの節を表示するかを選びます。",
       "sectionModeFirst": "ページ内の最初の節見出し",
-      "sectionModeStart": "ページが始まる節"
+      "sectionModeStart": "ページが始まる節",
+      "imagePreview": "ヘッダーのプレビュー"
     },
     "code": {
       "theme": "カラーテーマ",
@@ -1084,16 +1121,16 @@
     },
     "meta": {
       "font": "メタフォント",
-      "fontHelp": "ヘッダー／フッターのテキスト、図キャプション、脚注に使用されます — 「ドキュメントについて」を表す表現です。"
+      "fontHelp": "ヘッダー／フッターのテキスト、図キャプション、脚注に使用されます。「ドキュメントについて」を表す表現です。"
     },
     "cover": {
       "enabled": "表紙を表示",
       "enabledHelp": "1ページ目としてタイトルページを追加します（ページ番号とランニングヘッダーを抑制）。",
       "layout": "レイアウト",
-      "layoutClassic": "クラシック — すべて中央揃え",
-      "layoutEditorial": "エディトリアル — ロゴを上、タイトルを⅓、メタを⅔に",
-      "layoutBanner": "バナー — ブランドカラーの上部帯にロゴ＋タイトル",
-      "layoutMinimal": "ミニマル — タイトルのみ中央揃え（ロゴとメタは非表示）",
+      "layoutClassic": "クラシック：すべて中央揃え",
+      "layoutEditorial": "エディトリアル：ロゴを上、タイトルを⅓、メタを⅔に",
+      "layoutBanner": "バナー：ブランドカラーの上部帯にロゴ＋タイトル",
+      "layoutMinimal": "ミニマル：タイトルのみ中央揃え（ロゴとメタは非表示）",
       "align": "テキストの揃え",
       "titleSize": "タイトルサイズ",
       "subtitleSize": "サブタイトルサイズ",
@@ -1132,7 +1169,8 @@
       "uploadLogo": "ロゴをアップロード",
       "replaceLogo": "ロゴを置き換える",
       "clearLogo": "削除",
-      "logoHeight": "ロゴの高さ（px）"
+      "logoHeight": "ロゴの高さ（px）",
+      "logoPreview": "ロゴのプレビュー"
     },
     "toc": {
       "showTitle": "「目次」の見出しを表示",
@@ -1184,7 +1222,7 @@
       "applied": "テンプレートをドキュメントに適用しました",
       "markoto": {
         "name": "markoto",
-        "description": "シグネチャーの見た目。Fraunces の編集向け見出し、シンプルな白い紙に Inter 本文、朱色のアクセント — ダッシュボードではなく、落ち着いたフィールドガイド。"
+        "description": "シグネチャーの見た目。Fraunces の編集向け見出し、シンプルな白い紙に Inter 本文、朱色のアクセント、ダッシュボードではなく、落ち着いたフィールドガイド。"
       },
       "modern": {
         "name": "モダン",
@@ -1269,7 +1307,7 @@
       "bytes": "{used} / {max} バイト",
       "checking": "確認中…",
       "applied": "適用済み",
-      "notApplied": "未適用 — 下のエラーを修正してください",
+      "notApplied": "未適用、下のエラーを修正してください",
       "position": "{line} 行目、{column} 列目",
       "droppedOnApply": "このテーマの CSS ルールの一部が別のドキュメントの画像を使っていたため、削除しました。",
       "issue": {
@@ -1285,6 +1323,17 @@
         "value": "この値を安全に読み取れませんでした。"
       },
       "docsLink": "カスタム CSS の書き方"
+    },
+    "fontWeight": {
+      "thin": "極細",
+      "extraLight": "特細",
+      "light": "細字",
+      "regular": "標準",
+      "medium": "中字",
+      "semibold": "やや太字",
+      "bold": "太字",
+      "extraBold": "特太",
+      "black": "極太"
     }
   },
   "table": {
@@ -1346,8 +1395,8 @@
       "subtitle": "このワークスペースで作成する新しいドキュメントの既定値。",
       "defaultTheme": {
         "title": "既定のテーマ",
-        "help": "ここで作成される新しいドキュメントに適用されます。既存のドキュメントには影響しません — 現在のテーマがそのまま保持されます。",
-        "useGlobal": "既定なし — markotoを使用",
+        "help": "ここで作成される新しいドキュメントに適用されます。既存のドキュメントには影響しません。現在のテーマがそのまま保持されます。",
+        "useGlobal": "既定なし：markotoを使用",
         "useGlobalHelp": "誰かが別のテーマを選ぶまで、新しいドキュメントはmarkotoプリセットで始まります。",
         "savedTitle": "既定のテーマを更新しました",
         "appliedToast": "このワークスペースの新しいドキュメントはこのテーマを使用します",
@@ -1356,7 +1405,7 @@
       }
     },
     "capReached": "{plan}プランで{limit}件中{used}件のワークスペースを使用中です。追加するには1つ削除するかアップグレードしてください。",
-    "capReachedShort": "ワークスペースの上限に達しました — アップグレード",
+    "capReachedShort": "ワークスペースの上限に達しました、アップグレード",
     "sectionTitle": "マイワークスペース",
     "newWorkspace": "新しいワークスペース",
     "createTitle": "ワークスペースを作成",
@@ -1420,12 +1469,6 @@
       "pendingExpires": "有効期限 {date}",
       "revoke": "招待を取り消す",
       "revokeFailed": "招待を取り消せませんでした",
-      "errors": {
-        "invalidEmail": "有効なメールアドレスを入力してください。",
-        "alreadyMember": "この人はすでにワークスペースのメンバーです。",
-        "inviteCap": "このワークスペースには保留中の招待が多すぎます。先にいくつか取り消してください。",
-        "guestCap": "このワークスペースのゲスト数がプランの上限（有料シートあたり 5 人）に達しています。ゲストを削除するか、シートを追加してください。"
-      },
       "invitePeople": "メンバーを招待",
       "guestHint": "ゲストには共有したドキュメントだけが表示されます。シートは消費せず、ゲスト自身の AI 予算を使用します。"
     },
@@ -1440,9 +1483,6 @@
       "accepted": "{name} に参加しました",
       "acceptFailed": "招待を承認できませんでした",
       "declineFailed": "招待を辞退できませんでした",
-      "errors": {
-        "notFound": "この招待は存在しないか、期限切れです。"
-      },
       "page": {
         "title": "ワークスペースへの招待",
         "intro": "markoto のワークスペースに招待されました。",
@@ -1515,6 +1555,11 @@
         "subscriptionActive": "このワークスペースには有効なサブスクリプションが残っています。削除するにはサポートにお問い合わせください。",
         "seatsBusy": "別の席数変更または招待が処理中です。しばらくしてからもう一度お試しください。"
       }
+    },
+    "dpa": {
+      "staleTitle": "データ処理契約が更新されました、もう一度ご確認ください",
+      "heading": "一度だけの同意",
+      "body": "ワークスペースを作成すると、メンバーがその中に置く個人データについてあなたが管理者（コントローラー）となり、LatentSpace Labs GmbHがあなたの処理者（プロセッサー）となります。これを定める契約がデータ処理契約です。"
     }
   },
   "knowledge": {
@@ -1523,7 +1568,7 @@
     "upload": "ファイルをアップロード",
     "capFilesReached": "このワークスペースはファイル数の上限（{limit}）に達しました。追加するにはファイルを削除するかアップグレードしてください。",
     "capBytesReached": "このワークスペースはストレージの上限（{limit}MB）に達しました。追加するにはファイルを削除するかアップグレードしてください。",
-    "capReachedShort": "上限に達しました — アップグレード",
+    "capReachedShort": "上限に達しました、アップグレード",
     "empty": "まだナレッジファイルはありません。",
     "emptyDescription": "PDFやWord文書をアップロードすると、執筆時にmarkotoが文脈を把握できます。",
     "emptyDescriptionViewer": "このワークスペースにはまだ何もアップロードされていません。",
@@ -1543,7 +1588,9 @@
     },
     "capFilesReachedFree": "このワークスペースはファイル数の上限（{limit}）に達しました。追加するにはファイルを削除してください。",
     "capBytesReachedFree": "このワークスペースはストレージの上限（{limit} MB）に達しました。空き容量を作るにはファイルを削除してください。",
-    "capReachedShortFree": "上限に達しました"
+    "capReachedShortFree": "上限に達しました",
+    "uploadStorageFailed": "ファイルをストレージにアップロードできませんでした（ステータス {status}）。",
+    "uploadNetworkError": "アップロード中にネットワークエラーが発生しました。"
   },
   "designImport": {
     "button": "文書からデザインを作成",
@@ -1602,7 +1649,10 @@
     "unauthorized": "続けるにはサインインしてください。",
     "forbidden": "その操作を行う権限がありません。",
     "notFound": "見つかりませんでした。",
-    "rateLimited": "リクエストが多すぎます — 少し待ってから再試行してください。",
+    "badRequest": "このリクエストは無効です。",
+    "conflict": "現在の状態と競合しています。ページを再読み込みしてもう一度お試しください。",
+    "payloadTooLarge": "サイズが大きすぎます。",
+    "rateLimited": "リクエストが多すぎます。少し待ってから再試行してください。",
     "serverError": "こちら側で問題が発生しました。通知を受け取りました。",
     "documentCreateFailed": "ドキュメントを作成できませんでした",
     "documentCreateFailedDescription": "サーバーがリクエストを拒否しました。",
@@ -1611,7 +1661,14 @@
     "shareAccessModeFailed": "共有設定を更新できませんでした",
     "sharePasswordFailed": "ドキュメントのパスワードを設定できませんでした",
     "activityLoadFailed": "アクティビティを読み込めませんでした",
-    "retry": "再試行"
+    "retry": "再試行",
+    "page": {
+      "notFoundTitle": "ページが見つかりません",
+      "notFoundMessage": "このページは存在しないか、移動されました。アドレスを確認するか、ホームに戻ってください。",
+      "genericTitle": "問題が発生しました",
+      "genericMessage": "こちら側で予期しないエラーが発生しました。しばらくしてからもう一度お試しください。",
+      "backHome": "ホームに戻る"
+    }
   },
   "legal": {
     "ageGate": {
@@ -1620,7 +1677,7 @@
       "checkbox": "16歳以上であることを確認します",
       "continue": "続ける",
       "underage": "16歳未満です",
-      "underageNotice": "申し訳ありません — markoto は 16 歳以上の方のみご利用いただけます。あなたに関するデータは一切保存しません。"
+      "underageNotice": "申し訳ありません。markoto は 16 歳以上の方のみご利用いただけます。あなたに関するデータは一切保存しません。"
     },
     "policyAcceptance": {
       "newVersionTitle": "プライバシー条項が変更されました",
@@ -1685,20 +1742,22 @@
           "removeMember": {
             "title": "あなたが削除されるだけです",
             "body": "あなたが編集者または閲覧者であるワークスペースは、あなたなしで存続します。",
-            "row": "{name} — 現在は{currentRole}"
+            "row": "{name}：現在は{currentRole}"
           }
         },
         "manualSteps": {
           "heading": "先に行っておくとよい手順",
-          "exportFirst": "データエクスポート機能を使って、当社が保持するあなたに関するすべてのデータをZIPでダウンロードしてください — ここで何が起きても、そのファイルは保管しておいてください。",
+          "exportFirst": "データエクスポート機能を使って、当社が保持するあなたに関するすべてのデータをZIPでダウンロードしてください。ここで何が起きても、そのファイルは保管しておいてください。",
           "transferDocs": "共同編集者に残したいドキュメントは、その人が所有するワークスペースに移動するか、複製してもらってください。",
           "inviteWorkspaceMember": "残したいワークスペースは、削除前に少なくとも1人の管理者役割の共同編集者を招待してください。",
           "downloadKnowledge": "残したいナレッジベースのファイルは、先にmarkotoの外にダウンロードしてください。"
         },
         "timing": "実際の連鎖削除は、1時間に1回のバックグラウンドジョブとして実行されます。猶予期間の終了後、あなたのデータは約1時間以内に完全に消去されます。",
-        "noRecovery": "連鎖削除が実行されると、アカウントと内容は完全に失われます — 復元する方法はありません。"
+        "noRecovery": "連鎖削除が実行されると、アカウントと内容は完全に失われます。復元する方法はありません。",
+        "loading": "アカウントを確認しています…"
       },
-      "cancelledToast": "削除を取り消しました。アカウントはそのまま残ります。"
+      "cancelledToast": "削除を取り消しました。アカウントはそのまま残ります。",
+      "scheduleFailed": "削除を予約できませんでした"
     },
     "export": {
       "emailReadySubject": "markotoのデータエクスポートの準備ができました",
@@ -1721,7 +1780,7 @@
       "bodyPlaceholder": "見た内容と、なぜ削除すべきかを説明してください。",
       "emailLabel": "メールアドレス",
       "submit": "報告を送信",
-      "submittedTitle": "ありがとうございます — 報告を受け付けました",
+      "submittedTitle": "ありがとうございます、報告を受け付けました",
       "submittedBody": "すべての報告を確認します。メールアドレスをご提供いただいた場合は、判断内容をお知らせします。",
       "reportThisDoc": "このドキュメントを報告",
       "policyHint": "対応の対象と判断の方法は{policy}をご覧ください。",
@@ -1740,16 +1799,7 @@
       "signIn": "ログイン",
       "errors": {
         "title": "通報を送信できませんでした",
-        "generic": "もう一度お試しください。",
-        "rateLimited": "お使いのネットワークからの通報が多すぎます。後でもう一度お試しください。",
-        "loginRequired": "コンテンツを通報するにはログインしてください。",
-        "category": "通報の種類を選んでください。",
-        "urlRequired": "コンテンツのアドレス（URL）を入力してください。",
-        "bodyTooShort": "コンテンツの問題点を説明してください（10 文字以上）。",
-        "bodyTooLong": "説明が長すぎます（5000 文字以内）。",
-        "goodFaith": "通報内容が正確であり、誠実に行うものであることを確認してください。",
-        "email": "有効なメールアドレスを入力してください。",
-        "contactRequired": "お名前とメールアドレスを入力してください。"
+        "generic": "もう一度お試しください。"
       }
     },
     "aiTransparency": {
@@ -1778,7 +1828,48 @@
       "viewAuthoritative": "英語版（正文）を見る",
       "lastUpdated": "最終更新：{date}",
       "version": "バージョン{version}",
-      "missingLocale": "このページはまだあなたの言語に翻訳されていません。正文である英語版を表示しています。"
+      "missingLocale": "このページはまだあなたの言語に翻訳されていません。正文である英語版を表示しています。",
+      "notFoundTitle": "文書が見つかりません",
+      "notFoundBody": "{path}の法的文書は存在しません。"
+    },
+    "onboarding": {
+      "title": "markotoへようこそ",
+      "intro": "書き始める前に、以下の項目について簡単な確認が必要です。表示されるのは初回のみ、またはいずれかの文書が大きく更新されたときだけです。",
+      "documentsTitle": "同意が必要な文書",
+      "documentsIntro": "分かりやすい言葉で公開しています。それぞれ新しいタブで開いて全文をお読みください。同意は、あなたが読んだバージョンとともに記録され、何をご覧になったかを証明できるようにしています。",
+      "acceptDocument": "{document}を読み、同意します",
+      "continue": "markotoを開始",
+      "welcomeToast": "markotoへようこそ",
+      "staleTitle": "文書が更新されました、もう一度ご確認ください",
+      "failedTitle": "同意を記録できませんでした"
+    },
+    "subProcessors": {
+      "intro": "markotoが当社に代わって個人データを処理させている第三者です。所在地、移転の仕組み、公開リンクを併記しています。GDPR第13条第1項(e)に基づく開示事項です。新しい委託先（サブプロセッサー）を追加する場合は、ワークスペースオーナーのお客様に30日以上前に通知します。",
+      "dpfCertified": "EU-USデータプライバシーフレームワーク認証済み",
+      "dpf": "DPF",
+      "transfer": "移転",
+      "purpose": {
+        "ovh_postgres": "アプリケーションのメインデータベース、Y.js のドキュメント状態、ナレッジの埋め込み",
+        "ovh_object_storage": "画像のアップロード、ナレッジベースの元ファイル（処理後に削除）、データベースのバックアップ",
+        "mistral_ai": "文章作成アシスタントの AI テキスト生成：無料の AI 枠（Z.ai GLM-5.3 Flash。Mistral が提供・処理し、Z.ai にはデータが渡りません）と、フォールバックとしての Mistral Small。音声の文字起こし（Voxtral）。すべてのリクエストは Mistral の EU エンドポイント（EU および EFTA のデータセンター）に送られます",
+        "jina_ai": "ナレッジベース（RAG）用の埋め込みの生成。URL 取得ツールでの単一 URL のページ内容の抽出（Jina Reader。URL は独自の AI プロバイダーを使うユーザーを含め、すべてのユーザーについて送信されます）",
+        "staan": "AI 文章作成アシスタントのウェブ検索（検索語は独自の AI プロバイダーを使うユーザーを含め、すべてのユーザーについて送信されます）。独自の欧州検索インデックスを使用（EU 内のみでルーティング）",
+        "bfl": "FLUX.2 による画像生成（データ処理は EU に固定）",
+        "google_oauth": "Google アカウントでのサインイン（その他の Google データにはアクセスしません）",
+        "github_oauth": "GitHub アカウントでのサインイン（その他の GitHub データにはアクセスしません）",
+        "stripe": "サブスクリプションの請求、支払い方法の保管、請求書の発行、不正リスクの評価",
+        "sentry": "アプリケーションのエラーとパフォーマンスのテレメトリ。Sentry の EU（フランクフルト）データリージョンに保存",
+        "resend": "トランザクションメールの配信：アカウント削除の確認、データエクスポート準備完了のお知らせ、データ侵害の通知"
+      }
+    },
+    "seoDescription": {
+      "privacy": "markoto が個人データをどう扱うか：処理する内容、その理由と期間、委託先、そして GDPR とスイス法に基づくあなたの権利。",
+      "terms": "markoto の利用規約：アカウント、アカウントなしのドキュメント、許容される利用、AI 機能、責任、規約の変更方法。",
+      "paid-terms": "Pro・Team・Business プランと AI クレジットの規約：シート、更新と解約、クレジット、返金、撤回権。",
+      "dpa": "ワークスペース所有者向けのデータ処理契約：markoto は GDPR 第 28 条に基づき、あなたに代わってワークスペースの内容を処理します。",
+      "abuse-policy": "markoto で禁止されていること、違法なコンテンツや不正利用の報告方法、報告の処理と判断の方法。",
+      "imprint": "markoto の法的表示：運営会社、所在地、連絡方法。",
+      "sub-processors": "markoto のためにデータを処理するすべての企業：その役割、データの保存場所、移転の保護方法。"
     }
   },
   "settings": {
@@ -1795,7 +1886,7 @@
       },
       "spending": {
         "heading": "支出と利用",
-        "comingSoon": "近日公開 — AIクレジットの利用状況、プラン履歴、請求書がここに表示されます。当面は、料金ページから請求を管理してください。",
+        "comingSoon": "近日公開：AIクレジットの利用状況、プラン履歴、請求書がここに表示されます。当面は、料金ページから請求を管理してください。",
         "viewPricing": "料金を見る",
         "plan": "現在のプラン：{plan}",
         "manage": "請求を管理",
@@ -1806,20 +1897,25 @@
       "data": {
         "heading": "あなたのデータ",
         "exportTitle": "データのコピーをダウンロード",
-        "exportDescription": "当社が保持するあなたに関するすべてのデータをZIPで用意します — アカウントプロフィール、あなたが所有する全ドキュメントのMarkdown、あなたが書いたコメント、請求履歴、AI利用ログ、監査記録と同意記録。作成はバックグラウンドで実行され、通常は1分未満です。準備ができるとこのページが更新され、ダウンロードリンクもメールでお送りします。リンクは7日間有効です。",
+        "exportDescription": "当社が保持するあなたに関するすべてのデータをZIPで用意します：アカウントプロフィール、あなたが所有する全ドキュメントのMarkdown、あなたが書いたコメント、請求履歴、AI利用ログ、監査記録と同意記録。作成はバックグラウンドで実行され、通常は1分未満です。準備ができるとこのページが更新され、ダウンロードリンクもメールでお送りします。リンクは7日間有効です。",
         "exportButton": "エクスポートを申請",
-        "exportInProgress": "エクスポート実行中 — 準備ができるとこのページが更新されます。",
+        "exportInProgress": "エクスポート実行中、準備ができるとこのページが更新されます。",
         "exportHistoryHeading": "最近のエクスポート",
         "exportHistoryEmpty": "過去のエクスポートはありません。",
         "exportExpiresAt": "{date}まで利用可能",
-        "exportDownload": "ダウンロード"
+        "exportDownload": "ダウンロード",
+        "loadFailed": "エクスポートを読み込めませんでした",
+        "requestFailed": "エクスポートを申請できませんでした",
+        "exportRequested": "申請日時",
+        "exportAvailableUntil": "利用可能期限"
       },
       "delete": {
         "heading": "アカウントを削除",
-        "description": "お考えが変わった場合に備えて、データは30日間保持します。その後、すべてが完全に削除されます — ドキュメント、コメント、ワークスペースのメンバーシップ、請求履歴。あなたが唯一のメンバーであるワークスペースは連鎖削除され、共同メンバーがいるワークスペースには自動的に新しい管理者が割り当てられます。",
+        "description": "お考えが変わった場合に備えて、データは30日間保持します。その後、すべてが完全に削除されます：ドキュメント、コメント、ワークスペースのメンバーシップ、請求履歴。あなたが唯一のメンバーであるワークスペースは連鎖削除され、共同メンバーがいるワークスペースには自動的に新しい管理者が割り当てられます。",
         "button": "アカウントの削除を申請",
         "scheduled": "{date}に削除予定",
-        "cancel": "削除をキャンセル"
+        "cancel": "削除をキャンセル",
+        "cancelFailed": "削除をキャンセルできませんでした"
       },
       "legal": {
         "heading": "法的事項",
@@ -1842,7 +1938,29 @@
       }
     },
     "integrations": {
-      "menu": "連携 (MCP)"
+      "menu": "連携 (MCP)",
+      "title": "連携",
+      "intro": "外部のMCPクライアント（Claude Desktop、Cursor、ChatGPTアプリストア、自作のスクリプトなど）向けのパーソナルアクセストークンです。",
+      "loadFailed": "トークンを読み込めませんでした",
+      "issueFailed": "トークンを発行できませんでした",
+      "tokenCopied": "トークンをクリップボードにコピーしました",
+      "copyFailed": "コピーできませんでした、手動で選択してコピーしてください",
+      "revoked": "トークンを無効にしました",
+      "revokeFailed": "トークンを無効にできませんでした",
+      "snippetCopied": "設定スニペットをコピーしました",
+      "createdTitle": "トークンを作成しました、今すぐコピーしてください",
+      "createdBody": "セキュリティ上、このトークンは一度しか表示されません。再取得はできません。紛失した場合は、無効にして新しく作成してください。",
+      "copy": "コピー",
+      "generateTitle": "トークンを生成",
+      "namePlaceholder": "例：ノートPCのClaude Desktop",
+      "generate": "生成",
+      "scopesNote": "トークンはあなたのアカウントと同じアクセス権を持ち、読み取り、書き込み、ナレッジ、Web取得に限定されます。",
+      "activeTitle": "有効なトークン",
+      "empty": "トークンはまだありません。",
+      "createdLastUsed": "作成 {created} · 最終使用 {lastUsed}",
+      "revoke": "無効にする",
+      "connectTitle": "Claude Desktopに接続",
+      "connectBody": "このブロックを{file}に追加してください（設定 → 開発者 → 設定を編集）。"
     }
   },
   "billing": {
@@ -1853,6 +1971,10 @@
       "consentTopup": "{terms}に同意し、クレジットをすぐに受け取ります。使用を始めた時点で撤回権は終了します。",
       "link": "有料プラン規約",
       "required": "続けるには有料プラン規約に同意してください。"
+    },
+    "planUpdated": {
+      "title": "プランを更新しました",
+      "description": "{plan}プランに切り替わりました。新しいAI予算はすぐに利用できます。"
     }
   },
   "plan": {
@@ -1994,8 +2116,6 @@
       "unresolvable": "このホスト名が見つかりませんでした。"
     },
     "errors": {
-      "keyRequired": "API キーを入力してください。プロバイダーの追加時や URL の変更時に必要です。",
-      "transcription": "文字起こしプロバイダーでエラーが発生しました。AI プロバイダーの設定を確認してください。",
       "loadFailed": "AI 設定を読み込めませんでした。"
     },
     "missing": {
@@ -2027,7 +2147,7 @@
       "title": "{markdown}を、美しく組版。",
       "markdown": "Markdown",
       "body": "ライブでページ組版されるプレビューを備えた、共同編集できるMarkdownエディター。プレーンテキストで書けば、プレビューとページ単位で同じPDFを書き出せます。",
-      "cta": "書きはじめる — 登録不要",
+      "cta": "書きはじめる、登録不要",
       "next": "使い方を見る"
     },
     "scenes": {
@@ -2271,12 +2391,17 @@
   "home": {
     "title": "ホーム",
     "greeting": "おかえりなさい、{name}さん",
-    "description": "ワークスペースとドキュメント"
+    "description": "ワークスペースとドキュメント",
+    "access": {
+      "private": "非公開",
+      "protected": "保護あり"
+    }
   },
   "docRow": {
     "actions": "ドキュメントの操作",
     "open": "開く",
-    "openNewTab": "新しいタブで開く"
+    "openNewTab": "新しいタブで開く",
+    "words": "{n} 語 | {n} 語"
   },
   "credits": {
     "title": "AI クレジット",
@@ -2323,7 +2448,7 @@
     "testAndActivate": "サインインをテストしてオンにする",
     "testAgain": "サインインをテスト",
     "draftHint": "まだオンになっていません。ID プロバイダーでご自身のアカウントを使ってサインインをテストしてください。成功すると、このワークスペースのシングルサインオンがオンになります。",
-    "testActivated": "サインインできました — このワークスペースのシングルサインオンがオンになりました",
+    "testActivated": "サインインできました。このワークスペースのシングルサインオンがオンになりました",
     "testOk": "サインインできました",
     "status": {
       "active": "オン",
@@ -2358,7 +2483,7 @@
       "title": "プロビジョニング（SCIM）",
       "body": "ID プロバイダーがメンバーを自動で追加・削除できるようにします。ID プロバイダーの SCIM 設定にベース URL とトークンを入力してください。そこで削除された人は、すぐにこのワークスペースから外れます。",
       "baseUrl": "SCIM ベース URL",
-      "tokenOnce": "このトークンを今すぐコピーしてください — 再表示はされません。",
+      "tokenOnce": "このトークンを今すぐコピーしてください。再表示はされません。",
       "create": "トークンを作成",
       "rotate": "トークンを置き換え",
       "revoke": "プロビジョニングをオフにする"
@@ -2592,5 +2717,46 @@
   },
   "instanceBrand": {
     "support": "ヘルプとサポート"
+  },
+  "docs": {
+    "searchLabel": "ドキュメントを検索…",
+    "openMenu": "ドキュメントメニューを開く",
+    "flow": {
+      "loadFailed": "フロー {id} を読み込めませんでした：{message}",
+      "first": "最初のスライドへ移動",
+      "previous": "前のスライド",
+      "next": "次のスライド",
+      "last": "最後のスライドへ移動",
+      "play": "自動再生を開始",
+      "pause": "自動再生を一時停止",
+      "tryNext": "次に試す",
+      "chapter": "章",
+      "toggle": "スライドショーの再生を切り替え"
+    },
+    "sections": {
+      "gettingStarted": "最初の10分：ドキュメントを作成し、名前を付けて、共有します。",
+      "writing": "Markdown拡張、書式、アラート、数式、図、表。",
+      "sharing": "アクセスモード、パスワード保護、匿名リンク、ワークスペース。",
+      "themes": "ライブプレビューとPDF書き出しの両方に反映される、ドキュメントごとのテーマ。",
+      "importExport": "DOCX/PDF/PPTXを取り込み、クリーンなMarkdownやテーマ付きPDFに書き出します。"
+    },
+    "landing": {
+      "eyebrow": "フィールドガイド · 第1巻",
+      "title": "{product}でできることのすべて。",
+      "lede": "アカウント任意の共同編集Markdownエディター。匿名で書き、URLで共有し、テーマを整え、PDFに書き出せます。ここにあるスクリーンショットはすべて、実際に動作中のアプリから撮影したものです。",
+      "begin": "ガイドを始める",
+      "search": "検索",
+      "startHere": "はじめに",
+      "startHereHint": "最も重要なフロー",
+      "browse": "トピックから探す",
+      "metaTitle": "ドキュメント",
+      "metaDescription": "共同編集できる Markdown エディター markoto のガイド、ウォークスルー、リファレンス。"
+    },
+    "pagination": {
+      "label": "ドキュメントのページ送り",
+      "previous": "前へ",
+      "next": "次へ"
+    },
+    "onThisPage": "このページの内容"
   }
 }

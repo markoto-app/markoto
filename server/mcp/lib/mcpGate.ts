@@ -1,11 +1,15 @@
-import type { McpAuthContext } from '../../utils/mcpAuth'
-import type { BindingCheck, McpSessionBindings } from '../../utils/mcpSessionBinding'
+import type { McpAuthContext } from '../../utils/mcp/mcpAuth'
+import type { BindingCheck, McpSessionBindings } from '../../utils/mcp/mcpSessionBinding'
+import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
+import { useLogger } from '../../utils/platform/logger'
+
+const log = useLogger('mcp')
 
 // Request gate for `/mcp`, run by the handler middleware BEFORE the MCP
 // toolkit sees the request (so before it can create a session):
 //
 //   1. per-client-address rate limit (also covers unauthenticated noise),
-//   2. a valid personal access token is required — no token, no session.
+//   2. a valid personal access token is required, no token, no session.
 //      The refusal is a JSON-RPC error with HTTP 403, never 401: MCP
 //      clients treat 401 as "start OAuth discovery", which we don't offer,
 //   3. per-token rate limit,
@@ -33,16 +37,16 @@ export const MCP_RATE_LIMITS = {
   /** Every request per token. */
   perToken: { namespace: 'mcp-token', max: 240, windowMs: 60_000 },
   /** New sessions (`initialize` without a session id) per user. */
-  sessionsPerUser: { namespace: 'mcp-session-user', max: 60, windowMs: 60 * 60_000 },
+  sessionsPerUser: { namespace: 'mcp-session-user', max: 60, windowMs: HOUR_MS },
   /** Tool calls per user, across all their tokens and sessions. */
   toolCallsPerUser: { namespace: 'mcp-tool-user', max: 120, windowMs: 60_000 },
   /**
-   * Tool calls per user per day — only enforced when the plan sets
+   * Tool calls per user per day, only enforced when the plan sets
    * `mcpToolCallsPerDay` (the plan's number replaces `max`).
    */
-  toolCallsPerUserDaily: { namespace: 'mcp-tool-user-day', max: 0, windowMs: 24 * 60 * 60_000 },
+  toolCallsPerUserDaily: { namespace: 'mcp-tool-user-day', max: 0, windowMs: DAY_MS },
   /** `generate_image` per user (each call costs a paid image generation). */
-  generateImagePerUser: { namespace: 'mcp-generate-image', max: 20, windowMs: 60 * 60_000 }
+  generateImagePerUser: { namespace: 'mcp-generate-image', max: 20, windowMs: HOUR_MS }
 } as const satisfies Record<string, RateLimitRule>
 
 export interface McpGateDeps {
@@ -81,7 +85,7 @@ export async function evaluateMcpRequest(input: McpGateInput, deps: McpGateDeps)
   }
   if (input.sessionId) {
     // Unknown and foreign sessions get the same answer as the toolkit's
-    // own "unknown session" — no hint that the id exists.
+    // own "unknown session": no hint that the id exists.
     if (await checkBinding(deps.bindings, input.sessionId, auth.tokenId) !== 'ok') {
       return { kind: 'reject', status: 404, rpcCode: -32001, message: 'Session not found' }
     }
@@ -98,7 +102,7 @@ async function checkBinding(bindings: McpSessionBindings, sessionId: string, tok
   try {
     return await bindings.check(sessionId, tokenId)
   } catch (e) {
-    console.warn(`[mcp] session binding lookup failed: ${e instanceof Error ? e.message : String(e)}`)
+    log.warn('session binding lookup failed', { err: e })
     return 'unknown'
   }
 }

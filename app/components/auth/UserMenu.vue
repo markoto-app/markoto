@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Header account control: the login popover for anonymous visitors, the
-// usage badge + account menu (AuthSignedInMenu, Lazy — its code loads only
+// usage badge + account menu (AuthSignedInMenu, Lazy, its code loads only
 // for signed-in users) otherwise.
 const { t } = useI18n()
 const { loggedIn } = useUserSession()

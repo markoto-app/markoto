@@ -8,20 +8,15 @@ import { AgenticFinishReason as FinishReason } from './aiTypes'
 import type OpenAI from 'openai'
 
 /**
- * Internal-shape ↔ OpenAI message-shape translator for the Phase 4
- * dual-mode agentic loop. The loop's internal representation stays in
- * the historical `Content[]` shape (pre-migration: Gemini-derived,
- * minimises the runLoop.ts rewrite); these helpers convert to/from
- * OpenAI's messages array at the LLM boundary.
+ * Internal-shape <-> OpenAI message-shape translator. The loop keeps its
+ * own `Content[]` representation; these helpers convert to/from OpenAI's
+ * messages array at the LLM boundary.
  *
- * One-way translation guidance:
- *   - `Content[]` → `OpenAI messages[]` runs at every turn before calling
- *     LiteLLM. Includes the system prompt as a top message.
- *   - OpenAI streaming chunk → internal-shaped chunk runs inside a wrapped
- *     async iterator so the existing chunk-handler in runLoop.ts keeps
- *     working unchanged. The wrapper accumulates fragmented tool-call
- *     arguments and emits the complete `chunk.functionCalls` array on
- *     the final chunk.
+ *   - `Content[]` -> `messages[]` runs every turn before calling LiteLLM and
+ *     puts the system prompt first.
+ *   - OpenAI streaming chunks -> internal-shaped chunks runs inside a wrapped
+ *     async iterator. The wrapper accumulates fragmented tool-call arguments
+ *     and emits the complete `chunk.functionCalls` array on the final chunk.
  *
  * Vision-input mapping: the internal shape smuggles binary parts
  * (`view_image` / `view_pages`) as `extraParts` *after* the
@@ -36,16 +31,13 @@ import type OpenAI from 'openai'
  * previous tool call.
  */
 
-// ─── Outbound: internal Content[] → OpenAI messages[] ────────────────────
-
 type OAIMessage = OpenAI.Chat.Completions.ChatCompletionMessageParam
 type OAIToolMessage = OpenAI.Chat.Completions.ChatCompletionToolMessageParam
 type OAIUserContentPart = OpenAI.Chat.Completions.ChatCompletionContentPart
 
-// `Part` (= AgenticPart) is the single source of truth for content
-// parts; importing here keeps the runLoop.ts ↔ messageTranslation.ts
-// boundary structurally identical so spreading `chunk.candidates[0].
-// content.parts` into a `Content['parts']` array typechecks.
+// `Part` (= AgenticPart) is the single source of truth for content parts, so
+// spreading `chunk.candidates[0].content.parts` into `Content['parts']`
+// typechecks across the runLoop.ts boundary.
 
 /**
  * Translate the loop's internal `Content[]` into OpenAI's `messages[]`.
@@ -57,7 +49,7 @@ type OAIUserContentPart = OpenAI.Chat.Completions.ChatCompletionContentPart
  *     `role: 'user'` with multipart `[{type: 'text'}, {type: 'image_url'}]`
  *   - `role: 'user'` with `functionResponse` parts → one `role: 'tool'`
  *     message per response, matched by `tool_call_id`. Sibling
- *     `inlineData` parts (the historical "extraParts" smuggle pattern)
+ *     `inlineData` parts (the "extraParts" smuggle pattern)
  *     split off into a fresh `role: 'user'` message right after, so the
  *     model ties the image to the function it just called.
  *   - `role: 'model'` with text + functionCall parts → `role: 'assistant'`
@@ -91,17 +83,17 @@ function buildUserMessages(parts: Part[]): OAIMessage[] {
   const out: OAIMessage[] = []
   // Split into (a) tool-response parts (each becomes a `tool` message)
   // and (b) text + inlineData parts (combined into one user message).
-  const toolResponses: Part[] = []
+  const toolResponses: Array<NonNullable<Part['functionResponse']>> = []
   const userParts: Part[] = []
   for (const p of parts) {
-    if (p.functionResponse) toolResponses.push(p)
+    if (p.functionResponse) toolResponses.push(p.functionResponse)
     else userParts.push(p)
   }
 
-  // Tool messages first — OpenAI requires `tool` messages reference a
+  // Tool messages first: OpenAI requires `tool` messages reference a
   // prior assistant tool_call id, which is satisfied because
   // contents.push(model) ran before contents.push(user{functionResponse}).
-  for (const p of toolResponses) out.push(buildToolMessage(p.functionResponse!))
+  for (const fr of toolResponses) out.push(buildToolMessage(fr))
 
   const carrier = buildCarrierUserMessage(userParts)
   if (carrier) out.push(carrier)
@@ -142,7 +134,7 @@ function stringifyFunctionResponse(response: unknown): string {
  *
  * When there ARE images, we prepend a synthetic text frame so the model
  * has context for why the images are present (especially when the user
- * block carries no other text — i.e. wholly the `view_image` smuggle
+ * block carries no other text, i.e. wholly the `view_image` smuggle
  * pattern).
  */
 function buildCarrierUserMessage(userParts: Part[]): OAIMessage | null {
@@ -207,8 +199,6 @@ function buildAssistantMessage(parts: Part[]): OAIMessage {
   return assistantMsg
 }
 
-// ─── Tool declarations: internal → OpenAI ───────────────────────────────
-
 /**
  * Translate internal `FunctionDeclaration[]` into OpenAI's `tools[]`. The
  * underlying parameter schemas are JSON-Schema (Zod produces draft-7
@@ -229,14 +219,10 @@ export function internalToOpenAITools(
   }))
 }
 
-// ─── Inbound: OpenAI streaming chunks → internal-shaped chunks ──────────
-
 /**
- * Wrap an OpenAI streaming chunk iterator so the consumer (existing
- * runLoop.ts code) sees internal-shaped chunks. This lets the existing
- * chunk-handling code stay unchanged: it reads
- * `chunk.candidates[0].content.parts`, `chunk.functionCalls`, and
- * `chunk.usageMetadata` (shape pre-migration: Gemini-derived).
+ * Wrap an OpenAI streaming chunk iterator so runLoop.ts sees
+ * internal-shaped chunks: `chunk.candidates[0].content.parts`,
+ * `chunk.functionCalls` and `chunk.usageMetadata`.
  *
  * Streaming tool-call accumulator: Mistral's chat-completions stream
  * delivers `delta.tool_calls[].function.arguments` as fragmented JSON
@@ -247,12 +233,12 @@ export function internalToOpenAITools(
  *
  * We yield TWO kinds of synthetic internal chunks:
  *   1. Per-text-delta chunk: `{ candidates: [{ content: { parts: [{text}] } }] }`
- *      — drives status updates + the pure-prose-salvage path.
+ *      drives status updates + the pure-prose-salvage path.
  *   2. Terminal chunk: emits accumulated `functionCalls` + `finishReason`
  *      + `usageMetadata`. Triggered on stream end.
  *
  * This is intentionally a thin shim. It does NOT validate or dispatch
- * tool calls — that's the existing runLoop.ts loop body's job.
+ * tool calls; that is the runLoop.ts loop body's job.
  */
 
 interface AccumulatingToolCall {
@@ -261,9 +247,6 @@ interface AccumulatingToolCall {
   argsBuffer: string
 }
 
-// Streaming chunk shape — re-exported alias for callers (runLoop.ts)
-// that previously imported `GeminiStreamChunk` from here. Identical
-// shape; the rename collapses two duplicate interfaces.
 export type StreamChunk = AgenticGenerateContentResponse
 
 /**
@@ -279,7 +262,7 @@ export async function* openAIStreamToInternalChunks(
 
   for await (const chunk of stream) {
     // Usage arrives on the FINAL chunk (via `stream_options:
-    // {include_usage: true}`), which carries `choices: []` — read it
+    // {include_usage: true}`), which carries `choices: []`, read it
     // before the choice guard below, or it is skipped.
     if (chunk.usage) readStreamUsage(chunk.usage, usage)
     const choice = chunk.choices?.[0]
@@ -364,7 +347,7 @@ function buildTerminalChunk(
   for (const [, t] of accum) {
     const parsedArgs = parseToolCallArgs(t.argsBuffer)
     calls.push({ id: t.id, name: t.name, args: parsedArgs })
-    // Keep the raw argument text only when it is the JSON we parsed —
+    // Keep the raw argument text only when it is the JSON we parsed,
     // replaying a malformed buffer would make the next request invalid.
     const rawArgs = rawArgsIfValid(t.argsBuffer)
     modelParts.push({ functionCall: { id: t.id, name: t.name, args: parsedArgs, ...(rawArgs === null ? {} : { rawArgs }) } })
@@ -396,7 +379,7 @@ function rawArgsIfValid(buf: string): string | null {
 
 /**
  * Parse the accumulated `function.arguments` JSON buffer. Empty / whitespace
- * buffers and JSON-parse failures surface as empty `{}` — the loop's Zod
+ * buffers and JSON-parse failures surface as empty `{}`, the loop's Zod
  * validation then catches the malformed call and lets the model retry.
  */
 function parseToolCallArgs(buf: string): Record<string, unknown> {
@@ -409,8 +392,8 @@ function parseToolCallArgs(buf: string): Record<string, unknown> {
 }
 
 /**
- * OpenAI's `finish_reason` values → the internal `FinishReason` enum
- * (pre-migration: Gemini-derived). Anything we don't explicitly map
+ * OpenAI's `finish_reason` values → the internal `FinishReason` enum.
+ * Anything we don't explicitly map
  * falls through to `OTHER` so the existing exit-path code recognises
  * it as terminal-but-unusual.
  */

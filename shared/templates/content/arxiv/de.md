@@ -1,4 +1,4 @@
-<!-- Ein Forschungsartikel als arXiv-Preprint. Der Titelblock oben auf Seite 1 (Dokumentdesign › Titelseite) setzt Titel, „Preprint“, Autorinnen und Autoren mit ihren Institutionen und das Datum; ändern Sie diese Angaben dort, nicht im Text. Die Abschnittsnummern setzt das Design: Tippen Sie keine Nummern. -->
+<!-- Ein Forschungsartikel als arXiv-Preprint. Der Titelblock oben auf Seite 1 (Dokumentdesign › Titelseite) setzt Titel, „Preprint“, Autorinnen und Autoren mit ihren Institutionen und das Datum; ändere diese Angaben dort, nicht im Text. Die Abschnittsnummern setzt das Design: Tippe keine Nummern. -->
 
 # Zusammenfassung
 
@@ -8,15 +8,15 @@
 
 # Einleitung
 
-<!-- Vom breiten Kontext zum konkreten Problem zu Ihrem Beitrag. Zitieren Sie hier nur Schlüsselwerke; die Einzelheiten gehören in den Forschungsstand. Schliessen Sie mit einem Absatz „In dieser Arbeit …“ und, wenn es hilft, einer nummerierten Liste mit zwei bis vier Beiträgen. -->
+<!-- Vom breiten Kontext zum konkreten Problem zu deinem Beitrag. Zitiere hier nur Schlüsselwerke; die Einzelheiten gehören in den Forschungsstand. Schliesse mit einem Absatz „In dieser Arbeit …“ und, wenn es hilft, einer nummerierten Liste mit zwei bis vier Beiträgen. -->
 
 # Forschungsstand
 
-<!-- Zwei bis vier Themen, je ein Absatz: was es gibt, was fehlt, wo Ihre Arbeit ansetzt. Fassen Sie zusammen, statt aufzuzählen („X machte A. Y machte B.“). Zitieren Sie nach Autor und Jahr, z. B. Autorin und Autor [Jahr]. -->
+<!-- Zwei bis vier Themen, je ein Absatz: was es gibt, was fehlt, wo deine Arbeit ansetzt. Fasse zusammen, statt aufzuzählen („X machte A. Y machte B.“). Zitiere nach Autor und Jahr, z. B. Autorin und Autor [Jahr]. -->
 
 # Methode
 
-<!-- So genau, dass andere die Arbeit wiederholen können: Daten, Modell oder Verfahren, Annahmen und verwendete Werkzeuge. Gleichungen, auf die Sie später verweisen, nummerieren Sie mit \tag{1}. -->
+<!-- So genau, dass andere die Arbeit wiederholen können: Daten, Modell oder Verfahren, Annahmen und verwendete Werkzeuge. Gleichungen, auf die du später verweist, nummeriere mit \tag{1}. -->
 
 $$
 y = f(x; \theta) \tag{1}
@@ -34,7 +34,7 @@ Erster Schritt.[^1]
 
 # Experimente
 
-<!-- Berichten Sie, was Sie gefunden haben, nicht, was es bedeutet. Tabellen und Abbildungen tragen die Ergebnisse; der Text verweist auf sie („Tabelle 1 zeigt …“). Die Beschriftung einer Tabelle steht auf einer Zeile „Table:“ direkt darüber; das Design nummeriert sie. Eine Abbildung ist ein Bild allein in seinem Absatz; sein Alternativtext wird zur Bildunterschrift. -->
+<!-- Berichte, was du gefunden hast, nicht, was es bedeutet. Tabellen und Abbildungen tragen die Ergebnisse; der Text verweist auf sie („Tabelle 1 zeigt …“). Die Beschriftung einer Tabelle steht auf einer Zeile „Table:“ direkt darüber; das Design nummeriert sie. Eine Abbildung ist ein Bild allein in seinem Absatz; sein Alternativtext wird zur Bildunterschrift. -->
 
 ## Versuchsaufbau
 
@@ -46,12 +46,12 @@ Table: Hauptergebnisse.
 
 | Verfahren | Messgrösse A | Messgrösse B |
 |---|--:|--:|
-| Vergleichsverfahren | — | — |
-| Unser Verfahren | — | — |
+| Vergleichsverfahren | - | - |
+| Unser Verfahren | - | - |
 
 # Diskussion
 
-<!-- Jetzt deuten Sie. Wiederholen Sie die zentrale Erkenntnis, vergleichen Sie sie mit früheren Arbeiten, sagen Sie, was überrascht, und benennen Sie die Grenzen ausdrücklich. -->
+<!-- Jetzt deutest du. Wiederhole die zentrale Erkenntnis, vergleiche sie mit früheren Arbeiten, sage, was überrascht, und benenne die Grenzen ausdrücklich. -->
 
 # Fazit
 
@@ -59,7 +59,7 @@ Table: Hauptergebnisse.
 
 # Literatur {.unnumbered}
 
-<!-- Ein Absatz pro Eintrag, alphabetisch nach dem Nachnamen der Erstautorin oder des Erstautors; das Design setzt sie mit hängendem Einzug. Es gibt kein BibTeX: Schreiben Sie die Einträge von Hand in einem einheitlichen Stil. -->
+<!-- Ein Absatz pro Eintrag, alphabetisch nach dem Nachnamen der Erstautorin oder des Erstautors; das Design setzt sie mit hängendem Einzug. Es gibt kein BibTeX: Schreibe die Einträge von Hand in einem einheitlichen Stil. -->
 
 Nachname, A. und Nachname, B. Titel des Artikels. In *Tagungsband der Konferenz*, Seiten 1–10. Verlag, Jahr.
 

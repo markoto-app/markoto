@@ -1,99 +1,68 @@
-import { matchesCurrentOrPrevious } from '../../../shared/utils/secrets'
 import { docExists, bumpLastActive } from '../../repos/documents'
-import { normalizeAvatarSeed } from '../../../shared/utils/awarenessUser'
-import { appendActivity, pruneActivity, ACTIVITY_ACTIONS, type ActivityAction, type ActivityMetadata } from '../../repos/activity'
+import { system } from '../../repos/proofs'
+import { normalizeAvatarSeed } from '../../../shared/utils/documents/awarenessUser'
+import { appendActivity, pruneActivity } from '../../repos/activity'
+import { internalActivityBody } from '~~/shared/api/platform'
+import { useLogger } from '../../utils/platform/logger'
+
+const log = useLogger('activity')
 
 // Internal endpoint called by the sync-server to log user activity.
-// Auth: shared secret header X-Internal-Secret (must match INTERNAL_API_SECRET env var).
-// Never exposed publicly — public routes whitelist excludes /api/internal/*.
+// Auth: X-Internal-Secret, enforced for all of /api/internal/** by
+// server/middleware/auth.ts and again by the policy.
 
-export default defineEventHandler(async (event) => {
-  const config = useRuntimeConfig()
-  const providedSecret = getRequestHeader(event, 'x-internal-secret')
+export default defineApiHandler({
+  access: allow.internal('secret'),
+  body: internalActivityBody,
+  handler: async ({ body }) => {
+    const action = body.action
 
-  if (!config.internalApiSecret) {
-    throw createError({ statusCode: 500, message: 'Internal API secret not configured' })
+    // Anonymous/direct-URL docs without a DB row are skipped.
+    if (!(await docExists(body.docId))) {
+      return { success: true, logged: false }
+    }
+
+    const userId = typeof body.userId === 'number' ? body.userId : null
+    const actorPrincipal = typeof body.actorPrincipal === 'string' && body.actorPrincipal.length > 0
+      ? body.actorPrincipal
+      : null
+    // The sync server reports what its authorised clients did to this document.
+    const doc = system('sync-server').doc(body.docId)
+    const { inserted } = await appendActivity(doc, {
+      userId,
+      userName: body.userName || null,
+      actorPrincipal,
+      // Only an anonymous editor's row carries an avatar token (signed-in
+      // users are seeded by id, agents use the seal).
+      actorAvatarSeed: userId === null && (actorPrincipal === null || actorPrincipal === 'anonymous')
+        ? normalizeAvatarSeed(body.actorAvatarSeed)
+        : null,
+      action,
+      wordCount: body.wordCount ?? null,
+      linesAdded: body.linesAdded ?? null,
+      linesRemoved: body.linesRemoved ?? null,
+      metadata: body.metadata ?? null,
+      yjsDocIdBefore: typeof body.yjsDocIdBefore === 'number' ? body.yjsDocIdBefore : null,
+      yjsDocIdAfter: typeof body.yjsDocIdAfter === 'number' ? body.yjsDocIdAfter : null
+    })
+
+    if (!inserted) {
+      // Cross-instance dup or replay: `uq_activity_doc_yjsafter` makes the second
+      // INSERT a no-op. Expected with several sync servers, so debug-level only.
+      log.debug('dedup skipped insert', { docId: body.docId, action, yjsDocIdAfter: body.yjsDocIdAfter })
+      return { success: true, logged: false, deduped: true }
+    }
+
+    // Edit events bump `lastActive` (read by the inactive-doc sweep), so a doc
+    // edited without ever hitting `meta.put` isn't reaped. Join/leave don't
+    // count: a passive viewer shouldn't keep an abandoned doc alive.
+    if (action === 'edit') {
+      await bumpLastActive(doc)
+    }
+
+    // Cap the log at MAX_ENTRIES_PER_DOC (one count + one targeted delete).
+    await pruneActivity(doc)
+
+    return { success: true, logged: true }
   }
-  if (!providedSecret || !matchesCurrentOrPrevious(
-    providedSecret,
-    config.internalApiSecret,
-    config.internalApiSecretPrevious || undefined
-  )) {
-    throw createError({ statusCode: 401, message: 'Invalid internal secret' })
-  }
-
-  const body = await readBody<{
-    docId?: string
-    userId?: number | null
-    userName?: string | null
-    actorPrincipal?: string | null
-    actorAvatarSeed?: string | null
-    action?: ActivityAction
-    wordCount?: number | null
-    linesAdded?: number | null
-    linesRemoved?: number | null
-    metadata?: ActivityMetadata | null
-    yjsDocIdBefore?: number | null
-    yjsDocIdAfter?: number | null
-  }>(event)
-
-  if (!body.docId || typeof body.docId !== 'string') {
-    throw createError({ statusCode: 400, message: 'Missing docId' })
-  }
-  if (!body.action || !ACTIVITY_ACTIONS.includes(body.action)) {
-    throw createError({ statusCode: 400, message: 'Invalid action' })
-  }
-
-  // Only log activity for documents that exist in the DB.
-  // Anonymous/direct-URL docs without a DB row are skipped.
-  if (!(await docExists(body.docId))) {
-    return { success: true, logged: false }
-  }
-
-  const userId = typeof body.userId === 'number' ? body.userId : null
-  const actorPrincipal = typeof body.actorPrincipal === 'string' && body.actorPrincipal.length > 0
-    ? body.actorPrincipal
-    : null
-  const { inserted } = await appendActivity({
-    docId: body.docId,
-    userId,
-    userName: body.userName || null,
-    actorPrincipal,
-    // Only an anonymous editor's row carries an avatar token (signed-in
-    // users are seeded by id, agents use the seal).
-    actorAvatarSeed: userId === null && (actorPrincipal === null || actorPrincipal === 'anonymous')
-      ? normalizeAvatarSeed(body.actorAvatarSeed)
-      : null,
-    action: body.action,
-    wordCount: body.wordCount ?? null,
-    linesAdded: body.linesAdded ?? null,
-    linesRemoved: body.linesRemoved ?? null,
-    metadata: body.metadata ?? null,
-    yjsDocIdBefore: typeof body.yjsDocIdBefore === 'number' ? body.yjsDocIdBefore : null,
-    yjsDocIdAfter: typeof body.yjsDocIdAfter === 'number' ? body.yjsDocIdAfter : null
-  })
-
-  if (!inserted) {
-    // Cross-instance dup or replay — expected with the multi-sync-server
-    // rollout. The partial unique index `uq_activity_doc_yjsafter` made
-    // the second INSERT a no-op. Debug-level only; this is the documented
-    // residual race landing softly, not a Sentry-worthy event.
-    console.debug(`[activity] dedup skipped insert for doc=${body.docId} action=${body.action} yjsAfter=${body.yjsDocIdAfter}`)
-    return { success: true, logged: false, deduped: true }
-  }
-
-  // Edit events bump `lastActive`, which the inactive-doc sweep reads.
-  // Without this, a document actively being edited but never hitting
-  // `meta.put` would age out at the TTL and get reaped. Non-edit actions
-  // (join/leave) don't count — a passive viewer shouldn't keep an
-  // abandoned doc alive.
-  if (body.action === 'edit') {
-    await bumpLastActive(body.docId)
-  }
-
-  // Cap the log at MAX_ENTRIES_PER_DOC so edit-heavy docs don't grow
-  // unbounded. Cheap (one count + one targeted delete) per append.
-  await pruneActivity(body.docId)
-
-  return { success: true, logged: true }
 })

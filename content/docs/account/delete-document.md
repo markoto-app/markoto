@@ -42,5 +42,5 @@ create it.
 
 ## What's next
 
-- [Duplicate first, delete second](/docs/writing/duplicate) — for "I want a fresh copy without this one cluttering the list".
-- [Delete your account](/docs/account/delete-account) — for cleaning up everything at once.
+- [Duplicate first, delete second](/docs/writing/duplicate): for "I want a fresh copy without this one cluttering the list".
+- [Delete your account](/docs/account/delete-account): for cleaning up everything at once.

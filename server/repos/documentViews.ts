@@ -1,15 +1,17 @@
 import { and, desc, eq, gte, sql } from 'drizzle-orm'
 import { documentViewDays } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../db/client'
+import type { DocAccess } from './proofs'
 
-// View counts of shared documents (WP9): opens per document and UTC day by
+// View counts of shared documents: opens per document and UTC day by
 // people other than the owner and workspace members. Aggregate only.
 
 function utcDay(d: Date = new Date()): string {
   return d.toISOString().slice(0, 10)
 }
 
-export async function recordDocumentOpen(docId: string, now: Date = new Date()): Promise<void> {
+export async function recordDocumentOpen(doc: DocAccess<'view'>, now: Date = new Date()): Promise<void> {
+  const docId = doc.docId
   await useDatabase().insert(documentViewDays)
     .values({ docId, day: utcDay(now), opens: 1 })
     .onConflictDoUpdate({ target: [documentViewDays.docId, documentViewDays.day], set: { opens: sql`${documentViewDays.opens} + 1` } })
@@ -24,7 +26,8 @@ export interface DocumentViews {
   byDay: Array<{ day: string, opens: number }>
 }
 
-export async function documentViews(docId: string, days = 30, now: Date = new Date()): Promise<DocumentViews> {
+export async function documentViews(doc: DocAccess<'manage'>, days = 30, now: Date = new Date()): Promise<DocumentViews> {
+  const docId = doc.docId
   const since = utcDay(new Date(now.getTime() - (days - 1) * 86_400_000))
   const rows = await useDatabase().select({ day: documentViewDays.day, opens: documentViewDays.opens })
     .from(documentViewDays)

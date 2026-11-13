@@ -1,38 +1,33 @@
-// Per-workspace SSO (WP14) — the admin side: who may manage a
-// workspace's connection, how its settings are validated, and the view
-// that goes to the browser (never a secret).
+// Per-workspace SSO admin side: how a workspace's connection settings are
+// validated, and the view sent to the browser (never a secret). Who may manage
+// them is the routes' policy: `allow.workspace('admin', { ignoreSso: true })`.
 
 import { X509Certificate } from 'node:crypto'
+import type { UpdateSsoSettingsBody } from '~~/shared/api/sso'
 import type { H3Event } from 'h3'
-import { getMemberRoleIgnoringSso } from '../../repos/workspaceMembers'
 import { listSsoDomains, type SsoConnectionFields, type SsoConnectionRow, type SsoDomainRow } from '../../repos/sso'
-import { assertPlanFeature, planHasFeature, resolveWorkspacePlan } from '../entitlements'
-import { encryptToken } from '../litellm/tokenCrypto'
-import { checkSsoUrl, SsoUrlRefused } from './urlPolicy'
+import { planHasFeature, resolveWorkspacePlan } from '../billing/entitlements'
+import { sealSecret, secretContext } from '../platform/secretBox'
+import { checkSsoUrl, ssoAllowsPrivateUrls, SsoUrlRefused } from './urlPolicy'
 import { samlAcsUrl, samlSpEntityId, ssoBaseUrl, ssoCallbackUrl } from './http'
 import { DOMAIN_TXT_PREFIX } from './domains'
+import { apiError } from '../api/apiError'
+import { trimTrailingSlashes } from '~~/shared/utils/trimTrailingSlashes'
+import type { WorkspaceAccess } from '../../repos/proofs'
 
-/**
- * Session + workspace ADMIN by raw membership — deliberately without the
- * SSO condition: an admin must be able to repair or switch off a
- * connection whose IdP is broken, even while it is enforced. Everything
- * else in the workspace stays behind the SSO grant.
- */
-export async function requireSsoAdmin(event: H3Event): Promise<{ userId: number, wsId: string }> {
-  const session = await requireValidatedUserSession(event)
-  const wsId = requireWsId(event)
-  const role = await getMemberRoleIgnoringSso(wsId, session.user.id)
-  if (role === null) throw createError({ statusCode: 404, message: 'Workspace not found' })
-  if (role !== 'admin') throw createError({ statusCode: 403, message: 'Only workspace admins can manage single sign-on.', data: { code: 'sso/admin-required' } })
-  return { userId: session.user.id, wsId }
+function invalid(field: string, detail: string): Error {
+  return apiError('sso/invalid-settings', { field, detail })
 }
 
-export async function assertSsoPlan(wsId: string): Promise<void> {
-  assertPlanFeature(await resolveWorkspacePlan(wsId), 'sso', 'Single sign-on is part of the Business plan.')
-}
-
-function invalid(field: string, message: string): Error {
-  return createError({ statusCode: 400, message, data: { code: 'sso/invalid-settings', field } })
+/** A refused URL as the error that tells the admin what to change. */
+function urlRefused(field: string, e: SsoUrlRefused): Error {
+  switch (e.reason) {
+    case 'invalid': return apiError('sso/url-invalid', { field })
+    case 'not-https': return apiError('sso/url-not-https', { field })
+    case 'credentials': return apiError('sso/url-credentials', { field })
+    case 'unresolvable': return apiError('sso/url-unresolvable', { field, host: e.host ?? '' })
+    case 'refused': return apiError('sso/url-refused', { field })
+  }
 }
 
 const MAX_TEXT = 1024
@@ -45,44 +40,45 @@ function text(v: unknown, field: string, max = MAX_TEXT): string {
 }
 
 /** One PEM certificate (BEGIN/END lines optional), currently valid. */
-export function normalizeIdpCertificate(raw: unknown, now = new Date()): string {
+function normalizeIdpCertificate(raw: unknown, now = new Date()): string {
   const input = text(raw, 'samlIdpCert', MAX_CERT)
   const body = input.replace(/-----(BEGIN|END) CERTIFICATE-----/g, '').replace(/\s+/g, '')
-  if (!/^[A-Za-z0-9+/]+=*$/.test(body)) throw invalid('samlIdpCert', 'Paste the IdP signing certificate (PEM or Base64).')
-  const pem = `-----BEGIN CERTIFICATE-----\n${body.match(/.{1,64}/g)!.join('\n')}\n-----END CERTIFICATE-----\n`
+  if (!/^[A-Za-z0-9+/]+=*$/.test(body)) throw apiError('sso/certificate-format', { field: 'samlIdpCert' })
+  const lines: string[] = []
+  for (let i = 0; i < body.length; i += 64) lines.push(body.slice(i, i + 64))
+  const pem = `-----BEGIN CERTIFICATE-----\n${lines.join('\n')}\n-----END CERTIFICATE-----\n`
   let cert: X509Certificate
   try {
     cert = new X509Certificate(pem)
   } catch {
-    throw invalid('samlIdpCert', 'This is not a valid X.509 certificate.')
+    throw apiError('sso/certificate-invalid', { field: 'samlIdpCert' })
   }
-  if (new Date(cert.validTo).getTime() <= now.getTime()) throw invalid('samlIdpCert', 'This certificate has expired.')
+  if (new Date(cert.validTo).getTime() <= now.getTime()) throw apiError('sso/certificate-expired', { field: 'samlIdpCert' })
   return pem
 }
 
 /** Validate the PUT body into repo fields. The client secret is encrypted here. */
-export async function parseSsoSettings(body: unknown, existing: SsoConnectionRow | null): Promise<SsoConnectionFields> {
-  const b = (typeof body === 'object' && body !== null ? body : {}) as Record<string, unknown>
-  if (b.protocol !== 'oidc' && b.protocol !== 'saml') throw invalid('protocol', 'Choose OpenID Connect or SAML.')
-  const defaultRole = b.defaultRole === undefined ? undefined : b.defaultRole === 'editor' || b.defaultRole === 'viewer' ? b.defaultRole : null
-  if (defaultRole === null) throw invalid('defaultRole', 'The default role is editor or viewer.')
+export async function parseSsoSettings(b: UpdateSsoSettingsBody, existing: SsoConnectionRow | null, workspaceId: string): Promise<SsoConnectionFields> {
+  // `protocol` and `defaultRole` are checked by the route's schema
+  // (`updateSsoSettingsBody`); the protocol's own fields are checked here.
+  const defaultRole = b.defaultRole
 
   if (b.protocol === 'oidc') {
     const issuer = text(b.oidcIssuer, 'oidcIssuer')
     try {
       await checkSsoUrl(issuer)
     } catch (e) {
-      if (e instanceof SsoUrlRefused) throw invalid('oidcIssuer', e.message)
+      if (e instanceof SsoUrlRefused) throw urlRefused('oidcIssuer', e)
       throw e
     }
     const clientId = text(b.oidcClientId, 'oidcClientId')
     let secret: string | undefined
-    if (typeof b.oidcClientSecret === 'string' && b.oidcClientSecret.trim()) {
-      secret = encryptToken(text(b.oidcClientSecret, 'oidcClientSecret'))
+    if (b.oidcClientSecret?.trim()) {
+      secret = sealSecret('sso-client-secret', secretContext.ssoClientSecret(workspaceId), text(b.oidcClientSecret, 'oidcClientSecret'))
     } else if (!(existing?.protocol === 'oidc' && existing.oidcClientSecret)) {
-      throw invalid('oidcClientSecret', 'The client secret is required.')
+      throw apiError('sso/client-secret-required', { field: 'oidcClientSecret' })
     }
-    return { protocol: 'oidc', oidcIssuer: issuer.replace(/\/+$/, ''), oidcClientId: clientId, oidcClientSecret: secret, defaultRole }
+    return { protocol: 'oidc', oidcIssuer: trimTrailingSlashes(issuer), oidcClientId: clientId, oidcClientSecret: secret, defaultRole }
   }
 
   const entityId = text(b.samlIdpEntityId, 'samlIdpEntityId')
@@ -91,14 +87,14 @@ export async function parseSsoSettings(body: unknown, existing: SsoConnectionRow
   try {
     parsed = new URL(ssoUrl)
   } catch {
-    throw invalid('samlSsoUrl', 'The SSO URL is not a valid URL.')
+    throw apiError('sso/url-invalid', { field: 'samlSsoUrl' })
   }
-  // The browser goes there, not the server — https is all we require
+  // The browser goes there, not the server, so https is all we require
   // (http only on an instance that allows private IdPs, e.g. tests).
-  if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && ['1', 'true'].includes(process.env.NUXT_SSO_ALLOW_PRIVATE_URLS ?? ''))) {
-    throw invalid('samlSsoUrl', 'The SSO URL must start with https://.')
+  if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && ssoAllowsPrivateUrls())) {
+    throw apiError('sso/url-not-https', { field: 'samlSsoUrl' })
   }
-  if (parsed.username || parsed.password) throw invalid('samlSsoUrl', 'The SSO URL must not contain a user name or password.')
+  if (parsed.username || parsed.password) throw apiError('sso/url-credentials', { field: 'samlSsoUrl' })
   return {
     protocol: 'saml',
     samlIdpEntityId: entityId,
@@ -145,9 +141,10 @@ export function domainView(d: SsoDomainRow) {
   return { id: d.id, domain: d.domain, verified: d.verifiedAt !== null, txtName: d.domain, txtValue: `${DOMAIN_TXT_PREFIX}${d.verificationToken}` }
 }
 
-export async function ssoSettingsView(event: H3Event, wsId: string, connection: SsoConnectionRow | null): Promise<SsoSettingsView> {
+export async function ssoSettingsView(event: H3Event, ws: WorkspaceAccess<'admin'>, connection: SsoConnectionRow | null): Promise<SsoSettingsView> {
+  const wsId = ws.workspaceId
   const available = planHasFeature(await resolveWorkspacePlan(wsId), 'sso')
-  const domains = (await listSsoDomains(wsId)).map(domainView)
+  const domains = (await listSsoDomains(ws)).map(domainView)
   if (!connection) return { available, connection: null, domains }
   const base = ssoBaseUrl(event)
   return {

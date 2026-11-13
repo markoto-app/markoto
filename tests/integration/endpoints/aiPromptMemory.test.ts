@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../setup/db'
 import { loggedInClient } from '../setup/client'
 import { createUser, createDoc } from '../setup/fixtures'
+import { first } from '../../helpers/assert'
 
-// `POST /api/ai/prompt` — conversation-memory wiring. The test
+// `POST /api/ai/prompt`: conversation-memory wiring. The test
 // asserts the integration-level contract:
 //
 //   "After a successful prompt POST, a `user_prompt` row lands in
@@ -22,7 +23,7 @@ import { createUser, createDoc } from '../setup/fixtures'
 // `prompt.post.ts`, so even when the downstream loop fails (no
 // upstream), the memory row is still written. We poll for it
 // because the append fires inside the background `void async () =>
-// { ... }` block — the HTTP response returns before the row is
+// { ... }` block, the HTTP response returns before the row is
 // committed.
 
 async function pollForMessageRow(
@@ -53,7 +54,7 @@ async function pollForMessageRow(
   return r.rows
 }
 
-describe('POST /api/ai/prompt — conversation memory wiring', () => {
+describe('POST /api/ai/prompt: conversation memory wiring', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -70,7 +71,7 @@ describe('POST /api/ai/prompt — conversation memory wiring', () => {
     })
     expect([200, 202]).toContain(res.status)
 
-    // Poll — the append happens in the background async block.
+    // Poll: the append happens in the background async block.
     const rows = await pollForMessageRow(
       doc.docId,
       u.id,
@@ -82,7 +83,7 @@ describe('POST /api/ai/prompt — conversation memory wiring', () => {
     expect(userPromptRow!.body.text).toBe(promptText)
   })
 
-  it('isolates rows by (docId, userId) — does not leak across docs', async () => {
+  it('isolates rows by (docId, userId), does not leak across docs', async () => {
     const u = await createUser()
     const docA = await createDoc({ ownerId: u.id })
     const docB = await createDoc({ ownerId: u.id })
@@ -97,15 +98,11 @@ describe('POST /api/ai/prompt — conversation memory wiring', () => {
       `SELECT COUNT(*) AS c FROM ai_session_messages WHERE doc_id = $1 AND user_id = $2`,
       [docB.docId, u.id]
     )
-    expect(Number(r.rows[0].c)).toBe(0)
+    expect(Number(first(r.rows).c)).toBe(0)
   })
 
-  // Phase 6: budget enforcement moved to LiteLLM virtual keys; the
-  // app-side 402-pre-check on /api/ai/prompt is gone (no app-side
-  // counter to read). The runLoop catches the proxy's 429-translation
-  // (`LitellmBudgetExhausted` / `isBudgetExceededError`) and emits a
-  // breadcrumb instead. The pre-Phase-6 "no orphan memory row on a
-  // budget-rejected prompt" guarantee no longer holds at the
-  // session-open boundary because the open succeeds — the rejection
-  // happens once the first stream call hits the proxy.
+  // Budget enforcement lives in LiteLLM virtual keys; there is no app-side 402 pre-check on /api/ai/prompt.
+  // The runLoop catches the proxy's 429-translation (`LitellmBudgetExhausted` / `isBudgetExceededError`) and
+  // emits a breadcrumb. The session open succeeds, so the rejection happens once the first stream call hits
+  // the proxy and there is no "no orphan memory row" guarantee at the session-open boundary.
 })

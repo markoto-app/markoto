@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { anonClient } from '../setup/client'
 
-// User documents stay out of search engines (server/utils/robots.ts,
+// User documents stay out of search engines (server/utils/platform/robots.ts,
 // server/plugins/robots.ts, server/routes/robots.txt.ts); the public site
 // stays indexable.
 

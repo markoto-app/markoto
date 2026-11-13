@@ -3,9 +3,10 @@
 // trail starts at the home page and ends at the page itself. Pure.
 
 import type { Crumb } from './structuredData'
+import { trimTrailingSlashes } from '../utils/trimTrailingSlashes'
 
-export const HOME_CRUMB: Crumb = Object.freeze({ name: 'Home', path: '/' })
-export const DOCS_CRUMB_NAME = 'Docs'
+const HOME_CRUMB: Crumb = Object.freeze({ name: 'Home', path: '/' })
+const DOCS_CRUMB_NAME = 'Docs'
 
 /** `getting-started` → `Getting started` (sentence case, like the docs sidebar). */
 export function slugLabel(segment: string): string {
@@ -15,7 +16,7 @@ export function slugLabel(segment: string): string {
 
 function trimPath(path: string): string {
   const pathname = path.split(/[?#]/)[0] ?? ''
-  const trimmed = pathname.replace(/\/+$/, '')
+  const trimmed = trimTrailingSlashes(pathname)
   return trimmed || '/'
 }
 

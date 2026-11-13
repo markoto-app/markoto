@@ -10,12 +10,11 @@ import {
   setMemberRole
 } from '../setup/fixtures'
 import { TEST_JWT_SECRET } from '../setup/env'
-import { mintSessionJwt } from '~~/shared/test-helpers/jwt'
+import { mintSessionJwt } from '~~/tests/helpers/jwt'
 
-// GET /api/files/:docId/:fileId — returns 302 → presigned S3 URL when
-// allowed, 403 when denied. Critical bug-fix regression target: pre-fix,
-// the endpoint had NO authz check on private docs at all, silently leaking
-// every private doc's images to anyone who guessed the fileId.
+// GET /api/files/:docId/:fileId: returns 302 → presigned S3 URL when allowed, 403 when denied. The authz
+// check on private docs is critical: without it every private doc's images leak to anyone who guesses the
+// fileId.
 
 const FILE_ID = 'abc12345XYZ0.png'
 
@@ -65,7 +64,7 @@ describe('GET /api/files/:docId/:fileId', () => {
     })
   })
 
-  describe('private mode (regression guard for pre-fix silent leak)', () => {
+  describe('private mode: images do not leak without authz', () => {
     it('anonymous is denied', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
@@ -122,7 +121,7 @@ describe('GET /api/files/:docId/:fileId', () => {
     })
 
     it('anonymous with a JWT for a DIFFERENT doc is denied', async () => {
-      // Cross-doc JWT must not grant access — verifies the docId claim
+      // Cross-doc JWT must not grant access, verifies the docId claim
       // check in hasValidDocJwt.
       const owner = await createUser()
       const targetDoc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
@@ -178,8 +177,7 @@ describe('GET /api/files/:docId/:fileId', () => {
     })
 
     it.each(['admin', 'editor', 'viewer'] as const)('workspace %s bypasses password (no JWT needed)', async (role) => {
-      // Bug-fix regression guard: pre-fix, password-protected branch
-      // excluded workspace members. Spec says members bypass password.
+      // Workspace members bypass the password on a password-protected doc.
       const creator = await createUser()
       const member = await createUser()
       const ws = await createWorkspace(creator.id)
@@ -195,8 +193,8 @@ describe('GET /api/files/:docId/:fileId', () => {
     })
   })
 
-  // Regression: the redirect target used to serve whatever type the
-  // object was stored with, so an image key could come back as HTML.
+  // The redirect target must not serve whatever type the object was stored with (an image key could come
+  // back as HTML).
   describe('response type is forced from the extension', () => {
     const s3 = new S3Client({
       endpoint: 'http://127.0.0.1:8334',

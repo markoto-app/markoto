@@ -2,7 +2,7 @@
 # Reset the STAGING environment to a clean slate before an e2e / smoke run.
 #
 # Staging is a throwaway TEST environment (no real users). Its Postgres is the
-# in-VPS docker-compose container, so we can safely wipe it between runs — the
+# in-VPS docker-compose container, so we can safely wipe it between runs: the
 # whole point of a staging DB is that it's disposable. This:
 #   - TRUNCATEs every APP table (the `public` schema), RESTART IDENTITY CASCADE,
 #     so each run starts from empty + predictable ids. The drizzle migration
@@ -43,7 +43,7 @@ cd /opt/markoto
 DOMAIN=$(awk -F= '/^DOMAIN=/{print $2}' .env | tr -d '"')
 case "$DOMAIN" in
   *staging*) : ;;
-  *) echo "[reset-staging-db] REFUSING — DOMAIN='${DOMAIN}' is not a staging host" >&2; exit 1 ;;
+  *) echo "[reset-staging-db] REFUSING, DOMAIN='${DOMAIN}' is not a staging host" >&2; exit 1 ;;
 esac
 
 # Value of KEY from .env: everything after the first '=' (secrets may contain
@@ -72,7 +72,7 @@ END $$;
 SQL
 echo "[reset-staging-db] public schema truncated"
 
-# Best-effort Valkey flush — don't fail the reset if it's unreachable.
+# Best-effort Valkey flush: don't fail the reset if it's unreachable.
 # valkey-cli reads the password from REDISCLI_AUTH (no -a on the command line).
 printf 'REDISCLI_AUTH=%s\n' "$(envval VALKEY_PASSWORD)" > "$SECRETS_ENV"
 if sudo docker exec --env-file "$SECRETS_ENV" markoto-valkey-1 valkey-cli FLUSHALL >/dev/null 2>&1; then

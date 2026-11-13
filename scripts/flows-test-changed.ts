@@ -15,7 +15,7 @@ import { resolve } from 'node:path'
 //   - When you've edited 1-3 flows, this skips the other 17. Local
 //     full-suite is ~4 min; one flow is ~10-30 s.
 //   - The orchestrator (docker stack + bun run build + Nuxt subprocess)
-//     still has the same fixed cost — for a single flow that overhead
+//     still has the same fixed cost, for a single flow that overhead
 //     dominates and `flows:test:against-running` is faster IF you've
 //     already got the prod build + infra up. This script is for the
 //     "from cold" iteration loop.
@@ -24,7 +24,7 @@ import { resolve } from 'node:path'
 //   - Any `tests/e2e/flows/*.spec.ts` that has uncommitted modifications
 //     OR has commits between `<ref>` and HEAD.
 //   - With `--include-deps`: ALSO trigger every flow when shared infra
-//     (`tests/e2e/fixtures/*`, `tests/e2e/page-objects/*`) changed —
+//     (`tests/e2e/fixtures/*`, `tests/e2e/page-objects/*`) changed,
 //     because every spec depends on those, the safe answer is "run
 //     them all". Off by default to keep the common case fast.
 //
@@ -50,7 +50,7 @@ function parseArgs(argv: string[]): ParsedArgs {
 }
 
 function defaultDiffBase(): string {
-  // Prefer the upstream merge-base if a tracking branch is configured —
+  // Prefer the upstream merge-base if a tracking branch is configured,
   // typical iteration is "diff against what's pushed". Fall back to
   // HEAD~1 when no upstream (detached HEAD, fresh branch).
   const upstream = spawnSync('git', ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'], {
@@ -93,7 +93,7 @@ function pickSpecs(files: string[], includeDeps: boolean): string[] {
   const sharedTouched = files.some(f => SHARED_RE.test(f))
 
   if (sharedTouched && includeDeps) {
-    console.log('[flows:test:changed] shared fixture/page-object changed AND --include-deps set — running ALL flows.')
+    console.log('[flows:test:changed] shared fixture/page-object changed AND --include-deps set, running ALL flows.')
     // Empty filter → playwright runs everything.
     return []
   }

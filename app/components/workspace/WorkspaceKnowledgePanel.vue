@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import type { ApiResponse } from '~/utils/api/client'
+import { GIB, MIB } from '~~/shared/config/units'
+
 // Knowledge base panel for the workspace page. Uploads go through the
 // same presigned-PUT ceremony as document images: request-url → PUT bytes →
 // confirm. Confirm kicks off the background processing pipeline
@@ -10,28 +13,9 @@
 //   - editors can upload + delete their own rows
 //   - admins can upload + delete anything
 
-interface KnowledgeItem {
-  knowledgeId: string
-  filename: string
-  sourceExt: string
-  mimeType: string
-  sizeBytes: number
-  status: 'processing' | 'ready' | 'failed'
-  errorMessage: string | null
-  chunkCount: number
-  tokenCount: number
-  uploaderId: number | null
-  createdAt: string | Date
-  processedAt: string | Date | null
-}
-
-interface KnowledgeUsage {
-  count: number
-  totalBytes: number
-  maxFiles: number
-  maxBytes: number
-  maxFileBytes: number
-}
+type KnowledgeListing = ApiResponse<'/api/workspaces/:wsId/knowledge', 'get'>
+type KnowledgeItem = KnowledgeListing['items'][number]
+type KnowledgeUsage = KnowledgeListing['usage']
 
 const props = defineProps<{
   workspaceId: string
@@ -46,6 +30,7 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const toast = useToast()
+const { extractError, showError } = useErrorHandler()
 
 const usage = ref<KnowledgeUsage | null>(null)
 const uploading = ref(false)
@@ -57,9 +42,9 @@ const {
   execute: load
 } = useAsyncState<KnowledgeItem[]>(
   async () => {
-    const resp = await $fetch<{ items: KnowledgeItem[], usage: KnowledgeUsage }>(
-      `/api/workspaces/${props.workspaceId}/knowledge`
-    )
+    const resp = await apiFetch('/api/workspaces/:wsId/knowledge', {
+      path: { wsId: props.workspaceId }
+    })
     usage.value = resp.usage
     return resp.items
   },
@@ -67,15 +52,7 @@ const {
   {
     immediate: false,
     resetOnExecute: false,
-    onError: (e: { data?: { message?: string }, message?: string } | unknown) => {
-      const err = e as { data?: { message?: string }, message?: string }
-      toast.add({
-        title: t('knowledge.loadFailed'),
-        description: err?.data?.message || err?.message,
-        icon: 'i-lucide-alert-circle',
-        color: 'error'
-      })
-    }
+    onError: (e) => { showError('knowledge.loadFailed', e) }
   }
 )
 
@@ -87,7 +64,7 @@ const canEdit = computed(() => props.myRole === 'admin' || props.myRole === 'edi
 // bytes. `usage.maxFiles` / `usage.maxBytes` are per-workspace, tier-
 // resolved on the server (a Team / Business workspace uses its pooled caps).
 // Per-user caps are ALSO enforced server-side but aren't surfaced
-// here — if a user tops out their per-user bytes in another
+// here: if a user tops out their per-user bytes in another
 // workspace, they'd click here and see a 409 toast. Acceptable
 // corner case: per-user caps require a dedicated endpoint to surface
 // cleanly, and this is the less common cap to hit.
@@ -101,7 +78,7 @@ const uploadCapReached = computed(() => filesCapReached.value || bytesCapReached
 // just "limit reached" and a toast, never a dead purchase link.
 const { billingEnabled, plansComingSoon, pricingVisible } = useBillingMode()
 const uploadCapTooltip = computed(() => {
-  const limitMb = Math.round((usage.value?.maxBytes ?? 0) / (1024 * 1024))
+  const limitMb = Math.round((usage.value?.maxBytes ?? 0) / MIB)
   let msg = ''
   if (filesCapReached.value) {
     msg = billingEnabled.value
@@ -121,7 +98,7 @@ const uploadCapShortLabel = computed(() =>
 function onUploadClick() {
   if (uploadCapReached.value) {
     if (pricingVisible.value) {
-      router.push('/pricing')
+      void router.push('/pricing')
     } else {
       toast.add({ title: uploadCapShortLabel.value, description: uploadCapTooltip.value, icon: 'i-lucide-lock', color: 'neutral' })
     }
@@ -136,21 +113,26 @@ function canDelete(row: KnowledgeItem): boolean {
   return false
 }
 
-watch(() => props.workspaceId, () => load(), { immediate: true })
+// `load` is a `useAsyncState` execute: it reports failures through `onError`, never rejects.
+watch(() => props.workspaceId, () => {
+  void load()
+}, { immediate: true })
 
 // Poll for status transitions when processing items exist. Cheap enough
 // (one GET every 5s, only while items are in flight); stops automatically
 // once all items reach a terminal state. Also pauses while the tab is
-// hidden — `useIntervalFn` cleans up on unmount, no manual onBeforeUnmount.
+// hidden: `useIntervalFn` cleans up on unmount, no manual onBeforeUnmount.
 const visibility = useDocumentVisibility()
 const anyProcessing = computed(() => items.value.some(it => it.status === 'processing'))
 const shouldPoll = computed(() => anyProcessing.value && visibility.value === 'visible')
-const { pause, resume } = useIntervalFn(() => load(), 5000, { immediate: false })
+const { pause, resume } = useIntervalFn(() => {
+  void load()
+}, 5000, { immediate: false })
 watch(shouldPoll, (active) => {
   if (active) {
     // Catch up on the transition (any state-change that happened while
     // we were paused) before resuming the cadence.
-    load()
+    void load()
     resume()
   } else {
     pause()
@@ -165,12 +147,16 @@ const { open: pickFile, onChange: onFilesPicked } = useFileDialog({
   reset: true
 })
 
-onFilesPicked(async (fileList) => {
+async function uploadPicked(fileList: FileList | null): Promise<void> {
   const files = Array.from(fileList ?? [])
   for (const file of files) {
     await uploadOne(file)
   }
   await load()
+}
+// `uploadOne` reports its own failures; `load` reports through `onError`.
+onFilesPicked((fileList) => {
+  void uploadPicked(fileList)
 })
 
 async function uploadOne(file: File) {
@@ -178,35 +164,25 @@ async function uploadOne(file: File) {
   uploading.value = true
   uploadProgress.value = { filename: file.name, percent: 0 }
   try {
-    const step1 = await $fetch<{
-      knowledgeId: string
-      uploadUrl: string
-      s3Key: string
-      ext: string
-      mimeType: string
-    }>(
-      `/api/workspaces/${props.workspaceId}/knowledge/upload-request`,
-      {
-        method: 'POST',
-        body: { filename: file.name, size: file.size }
-      }
-    )
+    const step1 = await apiFetch('/api/workspaces/:wsId/knowledge/upload-request', {
+      method: 'post',
+      path: { wsId: props.workspaceId },
+      body: { filename: file.name, size: file.size }
+    })
     await putWithProgress(step1.uploadUrl, file, step1.mimeType, (p) => {
       uploadProgress.value = { filename: file.name, percent: p }
     })
-    await $fetch(
-      `/api/workspaces/${props.workspaceId}/knowledge/confirm`,
-      {
-        method: 'POST',
-        body: {
-          knowledgeId: step1.knowledgeId,
-          s3Key: step1.s3Key,
-          filename: file.name,
-          ext: step1.ext,
-          mimeType: step1.mimeType
-        }
+    await apiFetch('/api/workspaces/:wsId/knowledge/confirm', {
+      method: 'post',
+      path: { wsId: props.workspaceId },
+      body: {
+        knowledgeId: step1.knowledgeId,
+        s3Key: step1.s3Key,
+        filename: file.name,
+        ext: step1.ext,
+        mimeType: step1.mimeType
       }
-    )
+    })
     toast.add({
       title: t('knowledge.uploadQueued'),
       description: file.name,
@@ -214,10 +190,9 @@ async function uploadOne(file: File) {
       color: 'success'
     })
   } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
     toast.add({
       title: t('knowledge.uploadFailed'),
-      description: err?.data?.message || err?.message || String(e),
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -227,7 +202,7 @@ async function uploadOne(file: File) {
   }
 }
 
-// XHR not fetch — fetch's ReadableStream progress is supported but
+// XHR not fetch: fetch's ReadableStream progress is supported but
 // inconsistent across browsers, and the S3-compatible endpoint wants a
 // simple PUT with Content-Type anyway.
 function putWithProgress(url: string, file: File, contentType: string, onProgress: (percent: number) => void): Promise<void> {
@@ -240,9 +215,9 @@ function putWithProgress(url: string, file: File, contentType: string, onProgres
     })
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) resolve()
-      else reject(new Error(`S3 PUT failed: ${xhr.status} ${xhr.statusText}`))
+      else reject(new Error(t('knowledge.uploadStorageFailed', { status: xhr.status })))
     }
-    xhr.onerror = () => reject(new Error('Network error during upload'))
+    xhr.onerror = () => reject(new Error(t('knowledge.uploadNetworkError')))
     xhr.send(file)
   })
 }
@@ -257,8 +232,9 @@ function openDeleteModal(row: KnowledgeItem) {
 }
 
 function onItemDeleted() {
-  if (!deleteTarget.value) return
-  items.value = items.value.filter(it => it.knowledgeId !== deleteTarget.value!.knowledgeId)
+  const target = deleteTarget.value
+  if (!target) return
+  items.value = items.value.filter(it => it.knowledgeId !== target.knowledgeId)
   deleteTarget.value = null
   // Re-fetch usage so the "X MB of Y MB" footer updates.
   void load()
@@ -266,9 +242,9 @@ function onItemDeleted() {
 
 function fmtBytes(n: number): string {
   if (n < 1024) return `${n} B`
-  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`
-  if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`
-  return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`
+  if (n < MIB) return `${Math.round(n / 1024)} KB`
+  if (n < GIB) return `${(n / MIB).toFixed(1)} MB`
+  return `${(n / GIB).toFixed(2)} GB`
 }
 
 function statusColor(status: KnowledgeItem['status']): 'neutral' | 'warning' | 'success' | 'error' {
@@ -300,7 +276,7 @@ function iconFor(ext: string): string {
       v-if="!compact"
       class="flex items-center justify-between gap-3 flex-wrap"
     >
-      <!-- Knowledge-base title — Fraunces editorial register, matching
+      <!-- Knowledge-base title: Fraunces editorial register, matching
            workspace name + sidebar panel titles. The lucide icon
            drops to the toned neutral ramp (was shu, which clashed
            with the seal-only rule). The usage chip shifts to the
@@ -378,14 +354,14 @@ function iconFor(ext: string): string {
         class="size-4 text-muted"
       />
       <div class="flex-1 min-w-0">
-        <!-- Filename in the editorial register — Fraunces serif so a
+        <!-- Filename in the editorial register, Fraunces serif so a
              knowledge file reads as a "named object" the same way a
              doc title or workspace name does. -->
         <p class="font-serif text-base font-normal tracking-tight truncate">
           {{ uploadProgress.filename }}
         </p>
         <div class="mt-1 h-1 rounded-full bg-elevated overflow-hidden">
-          <!-- Progress fill stays neutral (sumi-700) — shu is reserved
+          <!-- Progress fill stays neutral (sumi-700), shu is reserved
                for AI presence; uploads aren't AI work. -->
           <div
             class="h-full bg-sumi-700 dark:bg-sumi-300 transition-all"
@@ -427,7 +403,7 @@ function iconFor(ext: string): string {
       class="space-y-2"
     >
       <!-- Per-file row. Filename in Fraunces editorial register; size
-           and chunk count in JetBrains Mono micro-meta — same colophon
+           and chunk count in JetBrains Mono micro-meta, same colophon
            voice as the editor's status bar and comment timestamps. -->
       <div
         v-for="row in items"

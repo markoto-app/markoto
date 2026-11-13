@@ -1,10 +1,10 @@
 import { test, expect } from '../fixtures/flow'
 
-// Tier 1: "Two writers, one document — in real time."
+// Tier 1: "Two writers, one document, in real time."
 //
 // User-job: a writer wants to know what "real-time collaboration" in
 // markoto actually feels like. The brand pitch is "anyone you invite
-// sees your edits arrive in real time" — but no other flow proves it.
+// sees your edits arrive in real time", but no other flow proves it.
 // Job done when the reader has watched two named users type in the
 // same doc, see each other's avatars in the topbar, and watch a
 // comment thread land between them.
@@ -35,22 +35,22 @@ test('Two writers, one document', async ({ page, flow, editor }) => {
   // Logged-in users get a `private` doc by default. Sam (spawned
   // below as a separate identity) can't access a private doc he
   // wasn't invited to. Open it up to "anyone with the link can
-  // edit" — same access mode the brand pitches in the welcome doc.
+  // edit": same access mode the brand pitches in the welcome doc.
   await editor.page.setAccessMode('open-edit')
 
   await flow.heading('Two writers, one document', 3)
   await flow.narrate(
-    'markoto syncs every keystroke live — open the '
+    'markoto syncs every keystroke live, open the '
     + 'same link on a second device or send it to a collaborator and '
     + 'their edits arrive on your screen the moment they hit a key. '
     + 'The avatars at the top show who else is in the doc; the '
     + 'coloured ring on a passage shows where their cursor is.'
   )
 
-  // ─── Maya alone ────────────────────────────────────────────────
-  await flow.heading('You\'re the only one in the doc — for now', 3)
+  // Maya alone
+  await flow.heading('You\'re the only one in the doc, for now', 3)
   await flow.narrate(
-    'You see one avatar in the topbar — yours. Type freely; the '
+    'You see one avatar in the topbar, yours. Type freely; the '
     + 'cursor is yours; the doc is yours.'
   )
 
@@ -62,7 +62,7 @@ test('Two writers, one document', async ({ page, flow, editor }) => {
   await cmContent.press(`${accel}+End`)
   await cmContent.press('Enter')
   await cmContent.press('Enter')
-  await cmContent.pressSequentially('Q3 launch — what shipped, what slipped, what we learned.')
+  await cmContent.pressSequentially('Q3 launch: what shipped, what slipped, what we learned.')
 
   await flow.shot(
     'You start a draft. Top-right: just your avatar. Nobody else here yet.'
@@ -71,15 +71,15 @@ test('Two writers, one document', async ({ page, flow, editor }) => {
   // Capture the share URL so Sam can join via the same link.
   const docUrl = page.url()
 
-  // ─── Sam joins ─────────────────────────────────────────────────
+  // Sam joins
   await flow.heading('Sam joins via the share link', 3)
   await flow.narrate(
     'You send Sam the URL. Sam logs in on their own browser, opens '
-    + 'the link, and lands in the same doc — separate identity, '
+    + 'the link, and lands in the same doc, separate identity, '
     + 'separate session, same content.'
   )
 
-  // Spawn Sam — fresh BrowserContext (clean cookies), separate
+  // Spawn Sam: fresh BrowserContext (clean cookies), separate
   // identity. Login as Sam on that context BEFORE navigating to
   // the doc so the presence ring carries Sam's name + colour
   // instead of an anonymous "Guest".
@@ -88,19 +88,19 @@ test('Two writers, one document', async ({ page, flow, editor }) => {
   await sam.page.goto(docUrl)
   await sam.editor.waitForReady()
 
-  // Sam's first capture — Sam's POV of the doc. Two avatars in the
+  // Sam's first capture: Sam's POV of the doc. Two avatars in the
   // topbar (Maya was already here; Sam just arrived).
   await sam.flow.shot(
-    'Sam lands in the doc. Both avatars show in the topbar — Sam at '
+    'Sam lands in the doc. Both avatars show in the topbar, Sam at '
     + 'the front (themselves), Maya right next to them.'
   )
 
-  // ─── Sam types — Maya sees it land ─────────────────────────────
-  await flow.heading('Sam types — you see it land in real time', 3)
+  // Sam types: Maya sees it land
+  await flow.heading('Sam types: you see it land in real time', 3)
   await flow.narrate(
     'Sam adds a paragraph. On your screen the characters appear at '
     + 'Sam\'s cursor a fraction of a second after Sam types them. There '
-    + 'is no "save" button — every keystroke is already saved, and '
+    + 'is no "save" button, every keystroke is already saved, and '
     + 'everyone in the doc sees the same text.'
   )
 
@@ -148,13 +148,13 @@ test('Two writers, one document', async ({ page, flow, editor }) => {
   expect(samText).toMatch(/Avatar regression caught early/i)
   expect(mayaText).toMatch(/what shipped, what slipped/i)
 
-  // ─── A comment thread between them ─────────────────────────────
+  // A comment thread between them
   await flow.heading('Sam leaves a comment for you', 3)
   await flow.narrate(
     'Sam highlights the line you wrote and leaves a thought. The '
     + 'comment thread appears in your sidebar within a second; the '
     + 'anchored passage gets a yellow underline. You can reply '
-    + 'inline — same thread, no email loop, no Slack tab-switch.'
+    + 'inline: same thread, no email loop, no Slack tab-switch.'
   )
 
   // Sam highlights a line + leaves a comment. Use the Comments
@@ -214,6 +214,6 @@ test('Two writers, one document', async ({ page, flow, editor }) => {
 
   flow.next({
     slug: 'have-a-discussion',
-    why: 'Want the full comments tour? Reply, resolve, archive — same surface, deeper'
+    why: 'Want the full comments tour? Reply, resolve, archive, same surface, deeper'
   })
 })

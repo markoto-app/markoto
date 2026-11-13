@@ -1,19 +1,13 @@
 <script setup lang="ts">
-// Confirmation modal for "Restore the document to this point."
-// Restore is reversible (the resulting `restore` activity row is
-// itself restorable, snapping back to the pre-restore state), so we
-// deliberately don't gate this with the type-the-doc-name pattern
-// from DeleteConfirmModal — the friction is unwarranted. Just a
-// clear preview + Cancel/Restore.
+// Confirmation modal for "Restore the document to this point." Restore is
+// reversible (the resulting `restore` row is itself restorable), so it skips
+// the type-the-name friction of DeleteConfirmModal.
 
 const props = defineProps<{
   docId: string
-  /** The activity row id we're restoring FROM (the row whose
-   *  yjsDocIdBefore the doc will snap to). */
+  /** The activity row restored from (the doc snaps to its yjsDocIdBefore). */
   activityId: number
-  /** Human-readable timestamp / relative time of the source activity
-   *  row. Surfaces as part of the body text so the user understands
-   *  WHICH past state they're going back to. */
+  /** Human-readable time of the source row, shown in the body text. */
   whenLabel: string
 }>()
 
@@ -25,16 +19,11 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
+const { extractError } = useErrorHandler()
 
 const restoring = ref(false)
 
-interface RestoreResponse {
-  ok: boolean
-  restoredFromActivityId: number
-  restoredFromTime: string
-}
-
-function restoreErrorTitleKey(status: number | undefined): string {
+function restoreErrorTitleKey(status: number | null): string {
   if (status === 403) return 'activity.restore.error.unauthorized'
   if (status === 410) return 'activity.restore.error.unavailable'
   if (status === 404) return 'activity.restore.error.notFound'
@@ -45,10 +34,10 @@ async function handleRestore() {
   restoring.value = true
 
   try {
-    await $fetch<RestoreResponse>(
-      `/api/docs/${props.docId}/activity/${props.activityId}/restore`,
-      { method: 'POST' }
-    )
+    await apiFetch('/api/docs/:docId/activity/:activityId/restore', {
+      method: 'post',
+      path: { docId: props.docId, activityId: props.activityId }
+    })
     toast.add({
       title: t('activity.restore.success'),
       icon: 'i-lucide-history',
@@ -57,13 +46,13 @@ async function handleRestore() {
     open.value = false
     emit('restored')
   } catch (e) {
-    const err = e as { statusCode?: number, data?: { message?: string }, message?: string }
-    // Per-status messaging — match the endpoint's contract from
+    const err = extractError(e)
+    // Status-specific messages follow the endpoint contract in
     // server/api/docs/[docId]/activity/[activityId]/restore.post.ts.
     const titleKey = restoreErrorTitleKey(err.statusCode)
     toast.add({
       title: t(titleKey),
-      description: err.data?.message || err.message,
+      description: err.message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -85,13 +74,7 @@ function handleClose() {
   >
     <template #content>
       <div class="p-6">
-        <!--
-          Restore-confirm dialog. Restore is a chrome action, not AI
-          presence — palette stays sumi-neutral (bg-elevated puck,
-          text-toned icon, hairline-bordered info card). CTA is a
-          neutral solid (sumi-950 light / sumi-50 dark) rather than
-          the previous color=info blue.
-        -->
+        <!-- Restore is a chrome action, not AI presence: sumi-neutral palette and CTA. -->
         <div class="flex items-start gap-3 mb-4">
           <div class="size-10 rounded-full bg-elevated flex items-center justify-center shrink-0">
             <UIcon

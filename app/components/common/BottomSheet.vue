@@ -1,45 +1,21 @@
 <script setup lang="ts">
 /**
- * Mobile-only bottom-sheet panel. Shared by every right-sidebar
- * surface (theme, comments, activity, document, knowledge, future
- * insert-sheet) so they all behave identically on mobile.
+ * Mobile-only bottom-sheet panel, shared by every right-sidebar surface so
+ * they behave identically on mobile.
  *
- * Anatomy:
+ * No backdrop: the user must see the preview update live while tweaking
+ * the theme.
  *
- *   ┌─────────────────────────────────┐
- *   │  doc preview / editor (visible) │   ← preserved above the sheet
- *   │                                 │
- *   ├─────────────────────────────────┤
- *   │             ▬▬▬                 │   ← drag handle
- *   │  Title              ✕           │
- *   ├─────────────────────────────────┤
- *   │                                 │
- *   │  panel content (slot)            │
- *   │                                 │
- *   └─────────────────────────────────┘
+ * Drag-to-dismiss: dragging the handle down more than 80px, or faster than
+ * 0.4 px/ms, closes the sheet; otherwise it springs back.
  *
- * Why no backdrop: the whole point on mobile is the user can SEE the
- * preview update live as they tweak the theme. A backdrop would
- * defeat that. The visual separation is the sheet's own surface +
- * the drag-handle affordance.
+ * Bottom padding uses `env(safe-area-inset-bottom)` for the iPhone home
+ * indicator.
  *
- * Drag-to-dismiss: pointer-down on the handle starts a drag, vertical
- * delta translates the sheet downward. Release with delta > 80px OR
- * velocity > 0.4 px/ms snaps it closed; otherwise springs back.
+ * Locks body scroll while open.
  *
- * Snap height: defaults to 60% viewport. Configurable via prop.
- *
- * Safe area: bottom padding picks up `env(safe-area-inset-bottom)` so
- * iPhone home-indicator doesn't overlap content.
- *
- * Body scroll lock: prevents background scroll while the sheet is
- * open. Released on close.
- *
- * Desktop fallback: when the consuming context is desktop (>=sm), the
- * caller doesn't render BottomSheet at all — it conditionals around
- * `useMediaQuery('(max-width: 639px)')` and uses the regular `<aside>`
- * layout instead. Keeping the component mobile-only avoids dual-mode
- * complexity here.
+ * Mobile only: desktop callers don't render it and use the regular `<aside>`
+ * layout (`useMediaQuery('(max-width: 639px)')`).
  */
 import { ref, watch, onUnmounted } from 'vue'
 
@@ -74,10 +50,8 @@ function close() {
 }
 
 function onPointerDown(e: PointerEvent) {
-  // Only the drag handle starts a drag — the rest of the header
-  // stays interactive (close button, title text). The handle wraps
-  // the touch target so taps on the visible 4px line don't require
-  // pixel precision.
+  // Only the handle starts a drag; the header's close button stays
+  // interactive. The handle wraps a larger touch target than its 4px line.
   if (!(e.target as HTMLElement)?.closest('[data-drag-handle]')) return
   dragging.value = true
   dragStartY = e.clientY
@@ -88,9 +62,7 @@ function onPointerDown(e: PointerEvent) {
 function onPointerMove(e: PointerEvent) {
   if (!dragging.value) return
   const delta = e.clientY - dragStartY
-  // Only drag DOWNWARD. Pulling up does nothing — the sheet has a
-  // single snap height. Gives the drag a concrete physical meaning
-  // (down = dismiss).
+  // Down only: there is a single snap height, so dragging up does nothing.
   dragOffset.value = Math.max(0, delta)
 }
 
@@ -101,9 +73,7 @@ function onPointerUp(e: PointerEvent) {
   const velocity = delta / elapsed // px/ms, downward = positive
   dragging.value = false
   ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
-  // Dismiss on EITHER significant distance OR fast flick. Distance
-  // covers the deliberate slow-drag-to-confirm pattern; velocity
-  // covers the quick swipe-flick most users default to.
+  // Dismiss on a long drag OR a fast flick.
   if (delta > 80 || velocity > 0.4) {
     close()
   } else {
@@ -111,10 +81,8 @@ function onPointerUp(e: PointerEvent) {
   }
 }
 
-// Body-scroll lock — without this, scrolling within the sheet's
-// content (a long theme-panel) bubbles up and scrolls the underlying
-// editor too. We toggle on `overflow: hidden` on the html element
-// for the duration of the open state.
+// Without the lock, scrolling a long panel inside the sheet scrolls the
+// editor underneath too.
 watch(() => props.modelValue, (isOpen) => {
   if (typeof document === 'undefined') return
   if (isOpen) {
@@ -153,20 +121,16 @@ onUnmounted(() => {
           @pointerup="onPointerUp"
           @pointercancel="onPointerUp"
         >
-          <!-- Drag handle. Wider tap area than the visible bar; visible
-               bar is the affordance, surrounding 24px is the touch target. -->
+          <!-- The visible bar is the affordance; the surrounding 24px is the
+               touch target. -->
           <div
             data-drag-handle
             class="mk-sheet__handle-area"
-            :aria-label="'Drag to close'"
+            :aria-label="$t('common.dragToClose')"
           >
             <div class="mk-sheet__handle" />
           </div>
 
-          <!-- Header. Title + close button. Distinct from desktop's
-               `<header>` pattern — drag-handle does the affordance, the
-               title is just informational, the close button is a
-               redundant tap-to-close for users who don't drag. -->
           <header
             v-if="title"
             class="mk-sheet__header"
@@ -184,8 +148,6 @@ onUnmounted(() => {
             </button>
           </header>
 
-          <!-- Content. `flex-1` so it grows to fill, `overflow-y-auto`
-               so it scrolls within the sheet without bubbling up. -->
           <div class="mk-sheet__content">
             <slot />
           </div>
@@ -202,9 +164,9 @@ onUnmounted(() => {
   /* Reset the UA <dialog> box. Browsers style
      `dialog { width: fit-content; height: fit-content; margin: auto;
      padding: 1em; border: solid; background: canvas }`. Without an
-     explicit width/height override the dialog collapses to 0×0 here —
+     explicit width/height override the dialog collapses to 0×0 here,
      its only child (.mk-sheet) is position:absolute, so it contributes
-     nothing to fit-content — and the absolutely-positioned sheet is then
+     nothing to fit-content: and the absolutely-positioned sheet is then
      sized against that 0×0 box and lands off-screen (width 0, y negative).
      That was the bug: the mobile bottom sheet never appeared even though
      its open state was set. Chrome AND Firefox both ship the fit-content
@@ -230,25 +192,17 @@ onUnmounted(() => {
   pointer-events: auto;
   display: flex;
   flex-direction: column;
-  /* Use `--ui-bg-muted` (the "chrome" token — sumi-50 in light,
-     sumi-800 in dark) so the sheet matches the chrome field every
-     panel inside uses for its own root (`.bg-muted` on the Activity,
-     Knowledge, EditorCommands wrappers). With `--ui-bg` (the
-     bg-default token, lighter / pure-white in light mode), the sheet
-     showed a visible step where the drag-handle area met the panel
-     body — different shades of warm bg. The design system's "ONE
-     chrome field" rule applies: toolbar / status bar / sidebar /
-     this drawer all share `--ui-bg-muted`. */
+  /* `--ui-bg-muted` is the shared "chrome" token (toolbar, status bar,
+     sidebar, this drawer); `--ui-bg` would show a step where the handle
+     meets the panel body. */
   background: var(--ui-bg-muted);
   border-top: 1px solid var(--ui-border);
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.12);
-  /* Safe-area inset on iPhone — home indicator clearance. */
   padding-bottom: env(safe-area-inset-bottom, 0px);
   transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
-  /* Prevents the rounded corners from being clipped by the slot
-     content's overflow. */
+  /* Keeps the rounded corners from being clipped by slot content. */
   overflow: hidden;
 }
 
@@ -310,8 +264,6 @@ onUnmounted(() => {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Slide-up enter / slide-down leave. Pairs with the @pointerup
-   `transform: translateY(...)` for drag-dismiss. */
 .mk-sheet-enter-active,
 .mk-sheet-leave-active {
   transition: opacity 200ms ease;

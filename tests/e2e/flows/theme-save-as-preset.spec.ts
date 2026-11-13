@@ -2,8 +2,8 @@ import { test, expect } from '../fixtures/flow'
 
 // Tier 2: "Save your custom theme as a preset".
 //
-// User-job: a writer landed on a theme that works for THEIR docs —
-// some preset + their tweaks — and wants it back next time. Job done
+// User-job: a writer landed on a theme that works for THEIR docs,
+// some preset + their tweaks, and wants it back next time. Job done
 // when they've saved the current theme as a personal preset and seen
 // it land in the saved-themes list ready to re-apply.
 //
@@ -21,7 +21,7 @@ import { test, expect } from '../fixtures/flow'
 // (`theme-preset-*`, `theme-save-current`, `theme-saved-*`) are the
 // same on both. Mobile is edit-only (`v-if="viewMode !== 'edit'"`
 // keeps the preview iframe unmounted under `<sm`), so the
-// preview-paginated waits skip on mobile — the asserted state is the
+// preview-paginated waits skip on mobile, the asserted state is the
 // saved-themes list, which doesn't depend on the preview iframe.
 test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
@@ -36,11 +36,11 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
 
   await flow.heading('Save your custom theme as a preset', 3)
   await flow.narrate(
-    'You land on a theme that fits your team\'s docs — a built-in '
+    'You land on a theme that fits your team\'s docs, a built-in '
     + 'preset with the cover page switched off. Save it '
     + 'once and every doc you create after this gets it as a '
     + 'one-click pick in the theme grid. Saved presets are '
-    + 'per-user — they don\'t leak into other people\'s drafts, '
+    + 'per-user: they don\'t leak into other people\'s drafts, '
     + 'they\'re yours.'
   )
 
@@ -56,17 +56,17 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
       annotations: editor.isMobile
         ? []
         : [{ label: 'theme tab', selector: '[data-testid="sidebar-tab-theme"]', kind: 'arrow' }],
-      result: 'The Theme panel slides in — presets grid + section list '
+      result: 'The Theme panel slides in, presets grid + section list '
         + '(Page, Body, Headings, Layout, Colors, Cover, Code, '
         + 'Mermaid, TOC).',
       after: () => editor.page.theme.preset('business-report').waitFor({ state: 'visible', timeout: 5_000 })
     }
   )
 
-  // ─── Apply a preset to start from ───────────────────────────────
+  // Apply a preset to start from
   await flow.heading('Pick a starting preset', 3)
   await flow.narrate(
-    'Saved presets live ALONGSIDE the built-in ones — you don\'t '
+    'Saved presets live ALONGSIDE the built-in ones, you don\'t '
     + 'replace anything. Pick a built-in to start (Corporate report '
     + 'here: serif headings and one petrol accent), then tweak it.'
   )
@@ -78,11 +78,11 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
       // Mobile: BottomSheet portal interception. See `tests/e2e/AGENTS.md`.
       force: editor.isMobile,
       result: editor.isMobile
-        ? 'The Corporate report preset is selected — preview iframe is hidden in mobile edit-only mode.'
+        ? 'The Corporate report preset is selected, preview iframe is hidden in mobile edit-only mode.'
         : 'The preview repaginates: a cover page with a petrol band, '
           + 'serif headings over a sans body.',
       after: async () => {
-        // Mobile is edit-only — no preview iframe to wait on.
+        // Mobile is edit-only: no preview iframe to wait on.
         if (!editor.isMobile) {
           await editor.page.waitForPreviewPaginated()
         }
@@ -90,8 +90,8 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Tweak: turn the cover off ──────────────────────────────────
-  await flow.heading('Tweak — turn the cover page off', 3)
+  // Tweak: turn the cover off
+  await flow.heading('Tweak: turn the cover page off', 3)
   await flow.narrate(
     'Corporate report opens with a cover page. For internal documents '
     + 'a title sheet often gets in the way: switch it off and page 1 '
@@ -115,8 +115,8 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
     {
       force: editor.isMobile,
       result: editor.isMobile
-        ? 'The cover toggle flips off — preview iframe hidden in mobile edit-only mode.'
-        : 'The preview repaginates — page 1 is now the document body, '
+        ? 'The cover toggle flips off, preview iframe hidden in mobile edit-only mode.'
+        : 'The preview repaginates, page 1 is now the document body, '
           + 'no title sheet.',
       after: async () => {
         if (!editor.isMobile) {
@@ -127,7 +127,7 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Save it ─────────────────────────────────────────────────────
+  // Save it
   await flow.heading('Bookmark it as a saved preset', 3)
   await flow.narrate(
     'The "Save current" button at the top of the presets list (the '
@@ -202,7 +202,7 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
   expect(savedRow?.description).toBe(PRESET_DESCRIPTION)
   if (!savedRow) throw new Error('saved theme not returned by /api/themes')
 
-  // ─── Edit name + description ────────────────────────────────────
+  // Edit name + description
   await flow.heading('Rename it later', 3)
   await flow.narrate(
     'The pencil on the card opens the same dialog with the current '
@@ -237,6 +237,6 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
 
   flow.next({
     slug: 'pick-a-theme',
-    why: 'Now switch back and forth — your saved preset sits next to the built-ins'
+    why: 'Now switch back and forth, your saved preset sits next to the built-ins'
   })
 })

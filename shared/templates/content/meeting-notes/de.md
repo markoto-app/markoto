@@ -11,7 +11,7 @@
 - 
 
 ## Diskussion
-<!-- Eine H3 pro Agendapunkt. Halte den Kern fest, nicht das Transkript — was wurde aufgeworfen, welche Bedenken, was wurde entschieden. -->
+<!-- Eine H3 pro Agendapunkt. Halte den Kern fest, nicht das Transkript: was wurde aufgeworfen, welche Bedenken, was wurde entschieden. -->
 
 ### 
 

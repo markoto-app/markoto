@@ -46,8 +46,8 @@ Table: Main results.
 
 | Method | Metric A | Metric B |
 |---|--:|--:|
-| Baseline | — | — |
-| Ours | — | — |
+| Baseline | - | - |
+| Ours | - | - |
 
 # Discussion
 

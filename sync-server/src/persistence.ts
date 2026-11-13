@@ -1,199 +1,236 @@
 import * as Y from 'yjs'
-import { Pool } from 'pg'
-import { PostgresqlPersistence } from 'y-postgresql'
-import { postgresUrlFromEnv } from '../../shared/utils/connectionStrings'
-import { resolvePostgresSsl } from '../../shared/utils/postgresSsl'
-import { captureException } from './sentry'
+import { DocumentGoneError, RowTooLargeError, type AppendResult, type YjsStore } from './yjs-store'
+import type { Logger } from './logger'
 
-const DATABASE_URL = postgresUrlFromEnv()
-// Same TLS posture as the Nuxt app's pool (server/utils/database.ts).
-// Both pools land on the same managed Postgres in prod; both must
-// verify the server cert. y-postgresql's internal pool inherits this
-// because we pass the resolved config object straight through to
-// PostgresqlPersistence.build below.
-const PG_SSL = resolvePostgresSsl()
-
-// Small dedicated pool for ad-hoc queries against the yjs_documents
-// table — separate from y-postgresql's internal pool because that
-// library doesn't expose its connection. Used by getMaxYjsDocId so
-// the activity log can stamp boundary ids around store events for the
-// diff-on-demand feature.
-const queryPool = new Pool({ connectionString: DATABASE_URL, max: 2, ssl: PG_SSL })
-
-// y-postgresql owns its own table (`yjs_documents`); it appends granular Y.js
-// updates and merges them after every `flushSize` writes. This is far more
-// durable than the previous single-blob S3 overwrite — a failed write doesn't
-// destroy the prior state, and granular history is implicit in the row log.
+// Hocuspocus ↔ `yjs_updates`: what a load and a store do for a live document.
+// The SQL lives in yjs-store.ts; the env-wired instance in persistence-instance.ts.
 //
-// useIndex is forced to `false` because y-postgresql@1.0.1 ships a SQL bug in
-// the index-creation branch (`AND indexname = $1_docname_idx` — invalid pg
-// parameter syntax). Since the library won't create the docname index, we
-// create a correct one ourselves at boot (see ensureDocnameIndex below) —
-// otherwise every `WHERE docname = ...` query (load cursor, historyReplay,
-// MAX/MIN(id) boundary reads, renderClient, dataExport) is a full table scan.
-// flushSize: 200 — library default; merges accumulated updates into a single
-//   compacted update once the row count crosses the threshold per document.
-
-const PERSISTENCE_OPTS = {
-  tableName: 'yjs_documents',
-  useIndex: false,
-  flushSize: 200
-} as const
-
-async function buildPgdb() {
-  return PostgresqlPersistence.build(
-    // PostgresqlPersistence forwards this object straight to `new
-    // pg.Pool(...)`, so the ssl key on PoolConfig propagates into the
-    // library's internal pool. Verified: y-postgresql 1.0.1 takes
-    // `pg.PoolConfig` and never overrides ssl.
-    { connectionString: DATABASE_URL, ssl: PG_SSL },
-    PERSISTENCE_OPTS
-  )
-}
-
-let pgdb = await buildPgdb()
-
-// F3: create the docname index y-postgresql can't (useIndex:false above).
-// `buildPgdb()` has already checked-and-created the `yjs_documents` table, so
-// the table exists here. CONCURRENTLY = non-blocking on an already-populated
-// prod table; IF NOT EXISTS = idempotent across sync-server restarts; on a
-// fresh (empty) table it's instant. Best-effort: a missing index only degrades
-// reads to a scan — it never breaks sync — so a failure is logged, not fatal.
-async function ensureDocnameIndex(): Promise<void> {
-  try {
-    await queryPool.query(
-      'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_yjs_documents_docname ON yjs_documents (docname)'
-    )
-    console.log('[persistence] ensured index idx_yjs_documents_docname on yjs_documents(docname)')
-  } catch (e) {
-    console.error(
-      '[persistence] could not create docname index (reads degrade to a scan):',
-      e instanceof Error ? e.message : e
-    )
-    captureException(e, { tags: { component: 'persistence', event: 'index_create_failed' } })
-  }
-}
-await ensureDocnameIndex()
-
-// Self-heal: y-postgresql checks-and-creates yjs_documents ONCE at boot.
-// If the table later vanishes (manual `DROP`, `docker compose down -v` mid-
-// session, dev reset that wipes the data dir while the sync container keeps
-// running) every subsequent read/write fails with Postgres error 42P01
-// "relation does not exist" — and the in-memory pool keeps re-issuing the
-// same prepared statements forever. Detect it, rebuild the persistence (which
-// re-runs the table-existence check + CREATE), and retry the operation once.
+// Store = append the DELTA since this process last persisted the document:
+// `Y.encodeStateAsUpdate(document, persistedStateVector)`. The state vector is
+// recorded at load and advanced only after an append has committed, so a
+// failed or unacknowledged append is simply contained in the next one (Y.js
+// updates are idempotent: a duplicate costs bytes, never content). Each
+// instance appends its own deltas; two instances on one document both land
+// in the log and merge on load. The delete set is always written whole (it
+// does not show in the state vector), so no deletion can be missed.
 //
-// We only retry once: if the table is missing AND can't be recreated, the
-// underlying problem is fatal (DB unreachable, permissions, etc.) and a
-// retry loop would just spin.
+// A store that keeps failing marks the document unsaved: it is retried in the
+// background and, while unsaved, Hocuspocus is not allowed to unload it
+// (`hasUnsavedChanges`, checked in `beforeUnloadDocument`), its edits exist
+// only in this process's memory. On shutdown the veto is lifted after one
+// last attempt.
 
-const RELATION_MISSING_CODE = '42P01'
+/** Waits between append attempts inside one store; the store hook holds the document's save mutex meanwhile. */
+const STORE_RETRY_DELAYS_MS = [250, 1000, 3000]
+const SLOW_MS = 1000
 
-function isMissingRelation(e: unknown): boolean {
-  return typeof e === 'object' && e !== null && (e as { code?: string }).code === RELATION_MISSING_CODE
+interface SaveMutex {
+  runExclusive<T>(fn: () => Promise<T>): Promise<T>
 }
 
-async function withSelfHeal<T>(op: string, fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn()
-  } catch (e) {
-    if (!isMissingRelation(e)) throw e
-    console.warn(`[persistence] yjs_documents missing during ${op} — rebuilding pool to recreate it`)
-    captureException(e, { tags: { component: 'persistence', event: 'self_heal', op } })
-    // Drop the broken pool before rebuilding — y-postgresql's PgAdapter
-    // owns a Pool that won't release its prepared statements until destroy.
-    try {
-      await pgdb.destroy()
-    } catch {
-      /* best-effort */
+/** The Hocuspocus Document is a Y.Doc with a save mutex. */
+export type LiveDocument = Y.Doc & { saveMutex?: SaveMutex }
+
+export interface PersistenceStats {
+  loads: number
+  loadMs: number
+  loadBytes: number
+  stores: number
+  storeMs: number
+  storeBytes: number
+  storeFailures: number
+  maxStoreMs: number
+}
+
+function emptyStats(): PersistenceStats {
+  return { loads: 0, loadMs: 0, loadBytes: 0, stores: 0, storeMs: 0, storeBytes: 0, storeFailures: 0, maxStoreMs: 0 }
+}
+
+export interface DocumentPersistenceDeps {
+  store: YjsStore
+  log: Logger
+  capture: (e: unknown, tags: Record<string, string>) => void
+  /** A document has accumulated this many updates since its newest snapshot. */
+  snapshotThreshold: number
+  onSnapshotDue: (docId: string) => void
+  retryDelaysMs?: number[]
+  sleep?: (ms: number) => Promise<void>
+  now?: () => number
+}
+
+export function createDocumentPersistence(deps: DocumentPersistenceDeps) {
+  const sleep = deps.sleep ?? ((ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)))
+  const now = deps.now ?? (() => performance.now())
+  const retryDelays = deps.retryDelaysMs ?? STORE_RETRY_DELAYS_MS
+  // What this process knows to be in the table, per live document.
+  const persisted = new WeakMap<Y.Doc, Uint8Array>()
+  const sinceSnapshot = new WeakMap<Y.Doc, number>()
+  const unsaved = new Map<Y.Doc, string>()
+  let stats = emptyStats()
+  let shuttingDown = false
+
+  function countUpdate(docId: string, document: Y.Doc, added: number): void {
+    const n = (sinceSnapshot.get(document) ?? 0) + added
+    if (n > deps.snapshotThreshold) {
+      sinceSnapshot.set(document, 0)
+      deps.onSnapshotDue(docId)
+    } else {
+      sinceSnapshot.set(document, n)
     }
-    pgdb = await buildPgdb()
-    return await fn()
   }
-}
 
-export const ypgPersistence = {
-  async onLoadDocument({ documentName }: { documentName: string }) {
-    try {
-      const doc = await withSelfHeal(`load:${documentName}`, () => pgdb.getYDoc(documentName))
-      console.log(`[persistence] Loaded document: ${documentName}`)
-      return doc
-    } catch (e) {
-      console.error(`[persistence] Error loading ${documentName}:`, e instanceof Error ? e.message : e)
-      captureException(e, { tags: { component: 'persistence', event: 'load_failed', docId: documentName } })
-      // Re-throw so Hocuspocus rejects the connection. A previous version
-      // returned a fresh Y.Doc here — which is catastrophic on transient
-      // read failure: clients' cached Y.js state then persists back on
-      // the next onStoreDocument as "new" writes, silently overwriting
-      // the real document. Connection rejection makes clients reconnect
-      // once the persistence layer recovers, preserving state.
-      // (y-postgresql returns an empty Y.Doc for genuinely-absent rows
-      // without throwing, so this branch only fires on real errors.)
-      throw e
+  /** One append of everything not yet persisted. Throws on failure. */
+  async function appendDelta(docId: string, document: Y.Doc): Promise<AppendResult> {
+    const known = persisted.get(document)
+    // Encoded together, with no await in between: the delta and the state
+    // vector describe the same moment.
+    const update = known ? Y.encodeStateAsUpdate(document, known) : Y.encodeStateAsUpdate(document)
+    const stateVector = Y.encodeStateVector(document)
+    const t0 = now()
+    const result = await deps.store.append(docId, update)
+    const ms = now() - t0
+    persisted.set(document, stateVector)
+    stats.stores++
+    stats.storeMs += ms
+    stats.storeBytes += update.byteLength
+    stats.maxStoreMs = Math.max(stats.maxStoreMs, ms)
+    const level = ms > SLOW_MS ? 'warn' : 'debug'
+    deps.log[level]('stored document', { docId, id: result.id, bytes: update.byteLength, durationMs: Math.round(ms) })
+    countUpdate(docId, document, 1)
+    return result
+  }
+
+  /** A failure that retrying cannot fix: the edit is dropped, the document stays usable. */
+  function isFinal(e: unknown): boolean {
+    return e instanceof DocumentGoneError || e instanceof RowTooLargeError
+  }
+
+  function reportFinal(docId: string, e: unknown): void {
+    if (e instanceof DocumentGoneError) {
+      // Deleted while open: its rows went with the documents row and must
+      // not come back. Expected around a delete, so not an error.
+      deps.log.info('document deleted, not storing', { docId })
+      return
     }
-  },
+    deps.log.error('store refused', { docId, err: e })
+    deps.capture(e, { component: 'persistence', event: 'store_refused', docId })
+  }
 
-  /**
-   * Stores the doc's current state and returns the y-postgresql row id
-   * that was just inserted. The id is what the activity-log uses as the
-   * `yjsDocIdAfter` boundary stamp — using `storeUpdate`'s returned id
-   * (rather than a follow-up `MAX(id)` query) is BOTH simpler AND
-   * race-resistant: a concurrent store from another instance can land
-   * between our INSERT and a follow-up MAX query and bump the answer
-   * to a row that isn't ours. Returns null only on a store failure.
-   */
-  async onStoreDocument(
-    { documentName, document }: { documentName: string, document: Y.Doc },
-    // Receives the encoded state size — the update guard's document-size
-    // bookkeeping reuses it instead of encoding the doc a second time.
-    onEncoded?: (bytes: number) => void
-  ): Promise<number | null> {
-    try {
-      const update = Y.encodeStateAsUpdate(document)
-      onEncoded?.(update.byteLength)
-      const id = await withSelfHeal(`store:${documentName}`, () => pgdb.storeUpdate(documentName, update))
-      return typeof id === 'number' ? id : null
-    } catch (e) {
-      // Log loudly. Hocuspocus will retry on the next debounce tick; in the
-      // meantime the in-memory Y.Doc is still the source of truth for
-      // connected clients.
-      console.error(`[persistence] Error storing ${documentName}:`, e instanceof Error ? e.message : e)
-      captureException(e, { tags: { component: 'persistence', event: 'store_failed', docId: documentName } })
-      return null
+  return {
+    /**
+     * Load a document. Throws on a database error so Hocuspocus refuses the
+     * connection: answering with an empty document would let clients' state
+     * look new and hide the real one until the next load.
+     */
+    async load(docId: string, document: Y.Doc): Promise<Y.Doc> {
+      const t0 = now()
+      try {
+        const loaded = await deps.store.load(docId)
+        const ms = now() - t0
+        if (loaded.unreadableRowIds.length > 0) {
+          const e = new Error(`unreadable Y.js rows ${loaded.unreadableRowIds.join(', ')} of ${docId}`)
+          deps.log.error('skipped unreadable rows', { docId, rows: loaded.unreadableRowIds })
+          deps.capture(e, { component: 'persistence', event: 'unreadable_rows', docId })
+        }
+        // Hocuspocus applies the loaded state into `document`, so both have
+        // this state vector.
+        persisted.set(document, Y.encodeStateVector(loaded.doc))
+        sinceSnapshot.set(document, 0)
+        countUpdate(docId, document, loaded.updatesSinceSnapshot)
+        stats.loads++
+        stats.loadMs += ms
+        stats.loadBytes += loaded.bytes
+        const level = ms > SLOW_MS ? 'warn' : 'debug'
+        deps.log[level]('loaded document', { docId, bytes: loaded.bytes, updates: loaded.updatesSinceSnapshot, durationMs: Math.round(ms) })
+        return loaded.doc
+      } catch (e) {
+        deps.log.error('load failed', { docId, err: e })
+        deps.capture(e, { component: 'persistence', event: 'load_failed', docId })
+        throw e
+      }
+    },
+
+    /**
+     * Store what changed since the last store. Retries a few times; returns
+     * the appended row (for the activity log's boundary ids) or null when
+     * nothing could be written, then the document stays marked unsaved and
+     * `retryUnsaved` keeps trying.
+     */
+    async store(docId: string, document: LiveDocument): Promise<AppendResult | null> {
+      for (let attempt = 0; ; attempt++) {
+        try {
+          const result = await appendDelta(docId, document)
+          unsaved.delete(document)
+          return result
+        } catch (e) {
+          if (isFinal(e)) {
+            unsaved.delete(document)
+            reportFinal(docId, e)
+            return null
+          }
+          const delay = retryDelays[attempt]
+          if (delay === undefined) {
+            stats.storeFailures++
+            unsaved.set(document, docId)
+            deps.log.error('store failed, keeping the document in memory', { docId, attempts: attempt + 1, err: e })
+            deps.capture(e, { component: 'persistence', event: 'store_failed', docId })
+            return null
+          }
+          deps.log.warn('store failed, retrying', { docId, attempt: attempt + 1, err: e })
+          await sleep(delay)
+        }
+      }
+    },
+
+    /** True while the document holds edits that are not in the table. */
+    hasUnsavedChanges(document: Y.Doc): boolean {
+      return !shuttingDown && unsaved.has(document)
+    },
+
+    /**
+     * Try once more to store every unsaved document (under its save mutex,
+     * so it never overlaps a Hocuspocus store). `onSaved` runs for each
+     * document that is now saved (the caller unloads it if nobody is
+     * connected).
+     */
+    async retryUnsaved(onSaved: (docId: string, document: LiveDocument) => void): Promise<void> {
+      for (const [doc, docId] of [...unsaved]) {
+        // Only documents passed to `store` are in the map: Hocuspocus Documents.
+        const document = doc as LiveDocument
+        const run = async () => {
+          try {
+            await appendDelta(docId, document)
+            unsaved.delete(document)
+            deps.log.info('stored document after earlier failures', { docId })
+            onSaved(docId, document)
+          } catch (e) {
+            if (isFinal(e)) {
+              unsaved.delete(document)
+              reportFinal(docId, e)
+              onSaved(docId, document)
+            } else {
+              deps.log.warn('retry of unsaved document failed', { docId, err: e })
+            }
+          }
+        }
+        await (document.saveMutex ? document.saveMutex.runExclusive(run) : run())
+      }
+    },
+
+    unsavedDocumentIds(): string[] {
+      return [...unsaved.values()]
+    },
+
+    /** Stop vetoing unloads: shutdown must finish even if the database is gone. */
+    beginShutdown(): void {
+      shuttingDown = true
+    },
+
+    /** Counters since the previous call. */
+    takeStats(): PersistenceStats {
+      const s = stats
+      stats = emptyStats()
+      return s
     }
-  },
-
-  async clearDocument(documentName: string): Promise<void> {
-    await withSelfHeal(`clear:${documentName}`, () => pgdb.clearDocument(documentName))
-  },
-
-  /**
-   * Returns the highest `yjs_documents.id` for this docname, or null
-   * if the doc has no rows yet (fresh load before any store). Used by
-   * the activity log to stamp boundary ids around each store event so
-   * the diff endpoint can later replay the doc on either side of an
-   * edit. Best-effort: returns null on any DB error (fail-soft so
-   * activity logging never blocks sync).
-   */
-  async getMaxYjsDocId(documentName: string): Promise<number | null> {
-    try {
-      const r = await queryPool.query<{ max_id: number | null }>(
-        'SELECT MAX(id) AS max_id FROM yjs_documents WHERE docname = $1',
-        [documentName]
-      )
-      const v = r.rows[0]?.max_id
-      return typeof v === 'number' ? v : null
-    } catch (e) {
-      // Table missing during a self-heal moment is the most common
-      // case; we still return null and let activity logging skip the
-      // boundary stamp. Don't capture to Sentry — it'd flood.
-      console.warn(`[persistence] getMaxYjsDocId(${documentName}) failed:`, e instanceof Error ? e.message : e)
-      return null
-    }
-  },
-
-  async destroy(): Promise<void> {
-    await pgdb.destroy()
-    await queryPool.end()
   }
 }

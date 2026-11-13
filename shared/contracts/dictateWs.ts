@@ -3,14 +3,14 @@
  *
  * Pins the wire shape for `/api/ai/dictate`. Both the server (under
  * `server/routes/api/ai/dictate.ts`) and the client (under
- * `app/composables/useVoiceDictation.ts`) exchange JSON control
- * frames AND binary audio frames; this module covers the JSON frames
- * — binary audio is just `ArrayBuffer`, no contract needed.
+ * `app/composables/ai/useVoiceDictation.ts`) exchange JSON control
+ * frames AND binary audio frames; this module covers the JSON frames,
+ * binary audio is just `ArrayBuffer`, no contract needed.
  *
  * Why this matters: control frames are the protocol's coordination
  * channel. A drift between sender and receiver (server adds a new
  * `type` value the client doesn't handle, or client sends a field
- * the server doesn't read) doesn't crash — it silently degrades.
+ * the server doesn't read) doesn't crash, it silently degrades.
  * The user notices "transcripts didn't appear" without any error.
  *
  * Discriminated unions on `type` let consumers narrow exhaustively:
@@ -36,7 +36,7 @@
  *   3. Land senders in lockstep.
  */
 
-// ─── Server → Client ──────────────────────────────────────────────────
+// Server → Client
 
 /**
  * Sent immediately on socket open. The 'send your auth now' signal.
@@ -64,13 +64,13 @@ export interface PartialFrame { type: 'partial', text: string }
 export interface FinalFrame { type: 'final', text: string }
 
 /**
- * Fatal error — the socket will close on the next tick. Surface
+ * Fatal error: the socket will close on the next tick. Surface
  * `message` to the user.
  *
  * Server-side `message` strings are intentionally short ('Missing
  * token', 'Invalid or expired token', 'Token scope mismatch',
  * 'Server misconfigured', 'upstream send failed', etc.). Clients
- * should NOT pattern-match on `message` — it's for human display
+ * should NOT pattern-match on `message`, it's for human display
  * only.
  */
 export interface ErrorFrame { type: 'error', message: string }
@@ -84,7 +84,7 @@ export interface ErrorFrame { type: 'error', message: string }
  * INTERACTION budget is exhausted (in which case `remaining` is
  * always 0) from the audio-ms day-budget exhaustion. Both close the
  * socket; both surface the same upgrade CTA. Omitted means the
- * audio-ms day-budget tripped — this is the original / common case.
+ * audio-ms day-budget tripped: this is the original / common case.
  */
 export interface BudgetExhaustedFrame {
   type: 'budget-exhausted'
@@ -94,7 +94,7 @@ export interface BudgetExhaustedFrame {
 
 /**
  * Per-session 10-minute cap hit. Hard ceiling regardless of daily
- * budget — protects against a user holding the mic open for hours.
+ * budget: protects against a user holding the mic open for hours.
  * The session closes after this frame.
  */
 export interface SessionCapFrame { type: 'session-cap' }
@@ -130,7 +130,7 @@ export const DICTATE_SERVER_FRAME_TYPES = [
   'idle-timeout'
 ] as const
 
-// ─── Client → Server ──────────────────────────────────────────────────
+// Client → Server
 
 /**
  * MUST be the FIRST message on the socket. The server's auth-deadline
@@ -163,11 +163,11 @@ export type DictateClientFrame = AuthClientFrame | StopClientFrame
 /** Literal-union of every client-frame type. */
 export const DICTATE_CLIENT_FRAME_TYPES = ['auth', 'stop'] as const
 
-// ─── Helpers ──────────────────────────────────────────────────────────
+// Helpers
 
 /**
  * Type-safe builder for server frames. Tests and the server handler
- * can use this to construct frames against the contract — a missing
+ * can use this to construct frames against the contract, a missing
  * field becomes a compile error.
  *
  * The narrowing is the whole point: passing `{ type: 'partial' }`

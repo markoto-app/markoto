@@ -1,6 +1,6 @@
 ---
 title: Tune your typography and colors
-description: Open the Theme tab and tweak fonts, colors, page geometry, header/footer tokens — see the preview repaginate live.
+description: Open the Theme tab and tweak fonts, colors, page geometry, header/footer tokens, and see the preview repaginate live.
 category: themes
 order: 2
 updated: '2026-11-08'
@@ -116,6 +116,6 @@ Theme changes are recorded in the activity log, so you can
 
 ## What's next
 
-- [Save what you tuned as a preset](/docs/themes/save-preset) — reuse on the next doc with one click.
-- [Set it as your workspace default](/docs/workspaces/default-theme) — every new workspace doc inherits it.
-- [Edit the cover page](/docs/themes/cover-page) — the front-page treatment is its own subsection.
+- [Save what you tuned as a preset](/docs/themes/save-preset): reuse on the next doc with one click.
+- [Set it as your workspace default](/docs/workspaces/default-theme): every new workspace doc inherits it.
+- [Edit the cover page](/docs/themes/cover-page): the front-page treatment is its own subsection.

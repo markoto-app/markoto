@@ -1,4 +1,5 @@
 import { readJob } from '../../../../utils/designImport/job'
+import { designImportJobParams } from '~~/shared/api/brand'
 
 /**
  * Progress + result of a design run started by `POST
@@ -8,13 +9,15 @@ import { readJob } from '../../../../utils/designImport/job'
  * pictures (ours, and the original's for a PDF) for the side-by-side
  * preview. Nothing is saved until the user saves it via `/api/themes`.
  */
-export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
-  const jobId = getRouterParam(event, 'jobId') ?? ''
-  if (!/^[A-Za-z0-9_-]{1,32}$/.test(jobId)) throw createError({ statusCode: 404, message: 'Not found' })
-  const job = await readJob(jobId, session.user.id)
-  if (!job) throw createError({ statusCode: 404, message: 'Not found' })
-  setResponseHeader(event, 'Cache-Control', 'private, no-store')
-  const { userId: _userId, ...view } = job
-  return view
+export default defineApiHandler({
+  access: allow.user(),
+  params: designImportJobParams,
+  handler: async ({ event, user, params: { jobId } }) => {
+    if (!/^[A-Za-z0-9_-]{1,32}$/.test(jobId)) throw apiError('resource/not-found')
+    const job = await readJob(jobId, user.id)
+    if (!job) throw apiError('resource/not-found')
+    setResponseHeader(event, 'Cache-Control', 'private, no-store')
+    const { userId: _userId, ...view } = job
+    return view
+  }
 })

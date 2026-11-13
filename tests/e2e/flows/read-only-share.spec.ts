@@ -1,9 +1,10 @@
 import { test, expect } from '../fixtures/flow'
+import { settleAnimations } from '../fixtures/waits'
 
 // Tier 1: "Share a doc as read-only."
 //
 // User-job: a writer has a doc they want to share but only as
-// reading material — no edits, no comments-from-strangers, just
+// reading material: no edits, no comments-from-strangers, just
 // "here's what I wrote, take a look". Job done when they've switched
 // the access mode to open-view, sent the link to a visitor, and
 // the visitor lands in a read-only editor (no caret, no toolbar
@@ -26,7 +27,7 @@ test('Share as read-only', async ({ page, flow, editor }) => {
 
   // Flip access mode to open-view BEFORE Maya types. Earlier ordering
   // (type first, then change mode) caused Maya's edits to never reach
-  // the visitor — the access-mode change races with the Hocuspocus
+  // the visitor: the access-mode change races with the Hocuspocus
   // flush of Maya's typed buffer in the test stack and the visitor
   // ends up with demo-only state. Doing the mode change first is
   // also what `collab-live` does (works there). The narrative in the
@@ -40,25 +41,25 @@ test('Share as read-only', async ({ page, flow, editor }) => {
   await cmContent.press(`${accel}+End`)
   await cmContent.press('Enter')
   await cmContent.press('Enter')
-  await cmContent.pressSequentially('Q3 launch postmortem — read-only copy for the wider team.')
+  await cmContent.pressSequentially('Q3 launch postmortem, read-only copy for the wider team.')
 
   await flow.heading('Share as read-only', 3)
   await flow.narrate(
     'Sometimes you want people to READ what you wrote, not edit it. '
     + 'Switch the access mode to "Anyone can view" and the share link '
-    + 'lets visitors open the doc but not change it — no caret, no '
+    + 'lets visitors open the doc but not change it, no caret, no '
     + 'toolbar actions, no AI prompt bar. The doc still syncs in real '
     + 'time, so if you keep editing they see the latest version.'
   )
 
-  // ─── Switch to open-view ────────────────────────────────────────
+  // Switch to open-view
   // Step A (story): show the share dialog so the screenshot captures
   // the four access-mode options the user picks from. We deliberately
   // do NOT click "Anyone can view" inside the modal because the
   // share-modal mutation handler can race with Maya's in-flight
   // pressSequentially edits (the click triggers a re-render that
   // momentarily detaches the editor's CodeMirror view and DROPS
-  // unflushed Y.js updates that haven't reached Hocuspocus yet — so
+  // unflushed Y.js updates that haven't reached Hocuspocus yet, so
   // the visitor connects later and gets demo-only state).
   // Step B (truth): commit the mode change via the API, which doesn't
   // touch the editor's DOM at all.
@@ -66,12 +67,12 @@ test('Share as read-only', async ({ page, flow, editor }) => {
     'Open the share dialog from the lock icon',
     editor.page.accessLockButton,
     {
-      result: 'The share dialog opens — four access modes below the link.',
+      result: 'The share dialog opens, four access modes below the link.',
       after: () => page.locator('[data-testid="share-modal"]').waitFor({ state: 'visible' })
     }
   )
   await flow.shot(
-    'Pick "Anyone can view" — anyone with the link can read the doc but not change it.',
+    'Pick "Anyone can view", anyone with the link can read the doc but not change it.',
     {
       annotations: [
         { label: 'view-only', selector: '[data-testid="share-access-open-view"]' }
@@ -82,20 +83,20 @@ test('Share as read-only', async ({ page, flow, editor }) => {
   // Commit the mode change via the API, then close the dialog.
   await editor.page.setAccessMode('open-view')
   await page.keyboard.press('Escape')
-  await page.waitForTimeout(200)
+  await settleAnimations(page, 200)
 
   const docUrl = page.url()
 
-  // ─── Visitor opens the link ─────────────────────────────────────
+  // Visitor opens the link
   await flow.heading('What your visitor sees', 3)
   await flow.narrate(
     'A visitor opens the link in their own browser. The document '
     + 'opens read-only: no caret, no formatting toolbar, no AI prompt '
-    + 'bar — and markoto refuses any change from them on the server '
+    + 'bar: and markoto refuses any change from them on the server '
     + 'too, not just in the interface. They can read; they can\'t change.'
   )
 
-  // Spawn the visitor — fresh BrowserContext, fresh identity. Login
+  // Spawn the visitor: fresh BrowserContext, fresh identity. Login
   // as a different test user so the visitor has presence (real
   // name + colour) and the Hocuspocus handshake completes the same
   // way it would for a logged-in collaborator. open-view's gate
@@ -107,16 +108,16 @@ test('Share as read-only', async ({ page, flow, editor }) => {
   await visitor.editor.loginAsTestUser('Sam Reeves')
   await visitor.page.goto(docUrl)
   // Ready = doc loaded + connected. A read-only visitor opens in
-  // Preview, so the CodeMirror surface isn't mounted yet — waiting for
+  // Preview, so the CodeMirror surface isn't mounted yet, waiting for
   // `.cm-content` here raced the view-mode switch below.
   await visitor.editor.waitForReady()
   // The visitor gets Maya's live text (the doc is open on her side, so
-  // the sync server serves its in-memory state — no flush needed).
+  // the sync server serves its in-memory state, no flush needed).
   await expect.poll(() => visitor.editor.docText(), { timeout: 15_000 }).toMatch(/read-only copy for the wider team/i)
   // Switch the visitor to Edit view (read-only-mounted CodeMirror) on
   // DESKTOP so the frame shows the locked editor next to the preview.
   //
-  // Mobile is preview-only for read-only viewers — the EditorLayout
+  // Mobile is preview-only for read-only viewers, the EditorLayout
   // hides the MobileTabBar via `v-if="!isReadOnly && viewMode !== 'preview'"`,
   // so there's no bottom-bar Editor tab AND no topbar view-mode
   // toggle. The visitor stays on the preview iframe; the screenshot
@@ -131,7 +132,7 @@ test('Share as read-only', async ({ page, flow, editor }) => {
   }
 
   await visitor.flow.shot(
-    'The visitor lands in the doc — but the editor is read-only. '
+    'The visitor lands in the doc, but the editor is read-only. '
     + 'No caret blink, no formatting toolbar, no AI prompt bar. The '
     + 'lock icon in the topbar reflects the view-only mode.',
     {
@@ -151,7 +152,7 @@ test('Share as read-only', async ({ page, flow, editor }) => {
   // read-only chrome is enforced.
   //
   // NB: we can't assert via `cm-content`.textContent() because CM6
-  // virtualizes long content — only the lines currently in the
+  // virtualizes long content: only the lines currently in the
   // viewport are in the DOM. Maya's appended line lives at the END
   // of the doc (~line 50) and won't be in the rendered span. We
   // assert against the Y.Doc directly via the test-only handle
@@ -162,7 +163,7 @@ test('Share as read-only', async ({ page, flow, editor }) => {
   await expect(visitor.page.locator('[data-testid="ai-prompt-bar"]')).toHaveCount(0)
 
   if (editor.isMobile) {
-    // Mobile read-only viewers stay in preview mode — there's no
+    // Mobile read-only viewers stay in preview mode, there's no
     // CodeMirror surface to query, and the menubar is hidden behind
     // the hamburger menu (no testid'd "Insert" / "Format" buttons
     // either). The "View only" banner is the user-facing assertion;
@@ -171,9 +172,8 @@ test('Share as read-only', async ({ page, flow, editor }) => {
   } else {
     // Desktop: CodeMirror's read-only Compartments set
     // `contenteditable="false"` on the .cm-content root. Verify
-    // directly — this is the canonical "you cannot edit" signal.
-    const editable = await visitor.page.locator('.cm-content').getAttribute('contenteditable')
-    expect(editable).toBe('false')
+    // directly: this is the canonical "you cannot edit" signal.
+    await expect(visitor.page.locator('.cm-content')).toHaveAttribute('contenteditable', 'false')
     // Also assert the menubar's edit-only commands are disabled
     // (Insert / Format require write access). These are independent
     // of the CodeMirror compartment and prove the read-only

@@ -1,38 +1,33 @@
 import * as Sentry from '@sentry/nuxt'
 import { getWorkspaceSubscription } from '../../../../repos/workspaceSubscriptions'
-import { assertBillingEnabled } from '../../../../utils/billingMode'
-import { useStripeClient } from '../../../../utils/stripeClient'
-import { requestBaseUrl } from '../../../../utils/workspaceStripe'
-import { requireWorkspaceBillingAdmin } from '../../../../utils/workspaceBilling'
+import { useStripeClient } from '../../../../utils/billing/stripeClient'
+import { requestBaseUrl } from '../../../../utils/billing/workspaceStripe'
+import { MINUTE_MS } from '~~/shared/config/units'
 
-// POST /api/workspaces/:wsId/billing/portal — Stripe Customer Portal for
+// POST /api/workspaces/:wsId/billing/portal: Stripe Customer Portal for
 // the workspace's own customer (invoices, payment method, cancelling).
 // Workspace admins only. Plan + seat changes go through our endpoints
 // (the portal should be configured without plan switching).
-export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
-  assertBillingEnabled()
-  const wsId = requireWsId(event)
-  await requireWorkspaceBillingAdmin(session.user.id, wsId)
+export default defineApiHandler({
+  access: allow.workspace('admin', { deny: 'billing/admin-required' }),
+  instance: 'billing',
+  body: 'none',
+  rateLimit: { namespace: 'billing-portal', max: 10, windowMs: MINUTE_MS, key: 'user', error: 'billing/rate-limited' },
+  handler: async ({ event, wsId }) => {
+    const stripe = useStripeClient()
+    if (!stripe) throw apiError('billing/not-configured')
 
-  if (!(await checkRateLimit('billing-portal', String(session.user.id), 10, 60_000))) {
-    throw createError({ statusCode: 429, message: 'Too many portal requests. Try again in a minute.', data: { code: 'billing/rate-limited', messageKey: 'error.rateLimited' } })
-  }
-  const stripe = useStripeClient()
-  if (!stripe) throw createError({ statusCode: 503, message: 'Billing is not configured. Contact support.' })
-
-  const row = await getWorkspaceSubscription(wsId)
-  if (!row?.stripeCustomerId) {
-    throw createError({ statusCode: 409, message: 'This workspace has no billing history yet.', data: { code: 'billing/no-subscription' } })
-  }
-  try {
-    const portal = await stripe.billingPortal.sessions.create({
-      customer: row.stripeCustomerId,
-      return_url: `${requestBaseUrl(event)}/w/${encodeURIComponent(wsId)}?tab=billing`
-    })
-    return { url: portal.url }
-  } catch (e) {
-    Sentry.captureException(e, { tags: { component: 'billing', event: 'workspace_portal_failed', workspaceId: wsId } })
-    throw createError({ statusCode: 502, message: `Could not open the billing portal: ${e instanceof Error ? e.message : 'Stripe error'}` })
+    const row = await getWorkspaceSubscription(wsId)
+    if (!row?.stripeCustomerId) throw apiError('billing/no-subscription')
+    try {
+      const portal = await stripe.billingPortal.sessions.create({
+        customer: row.stripeCustomerId,
+        return_url: `${requestBaseUrl(event)}/w/${encodeURIComponent(wsId)}?tab=billing`
+      })
+      return { url: portal.url }
+    } catch (e) {
+      Sentry.captureException(e, { tags: { component: 'billing', event: 'workspace_portal_failed', workspaceId: wsId } })
+      throw apiError('billing/portal-failed')
+    }
   }
 })

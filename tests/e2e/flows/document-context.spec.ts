@@ -9,8 +9,8 @@ import { test, expect, requireLiveAi } from '../fixtures/flow'
 // shaped by those fields.
 //
 // What this flow ISN'T: a full audience tour (six registers + every
-// language). We pick ONE meaningful combination — Marketing audience
-// + Deutsch language + a real description — and demonstrate that one
+// language). We pick ONE meaningful combination, Marketing audience
+// + Deutsch language + a real description, and demonstrate that one
 // AI call produces output shaped by the context.
 //
 // Live LiteLLM round-trip → Mistral. MISTRAL_API_KEY required (forwarded
@@ -22,10 +22,6 @@ import { test, expect, requireLiveAi } from '../fixtures/flow'
 //   - Mobile: bottom-tab-bar Info/Document tab (opens the same panel
 //     in a bottom sheet). Form fields scroll below the fold at narrow
 //     widths but the asserted server state + AI output are identical.
-// (Until Phase 6.30 there was a `document-context-mobile.spec.ts`
-//  sibling carrying mobile-specific narration. Deleted as part of the
-//  "single canonical spec per feature" cleanup — Flow.vue auto-routes
-//  variants by viewport via `useMediaQuery('(max-width: 639px)')`.)
 // Small, high-frequency function words: enough to tell a German
 // sentence from an English one without a language-detection library.
 const GERMAN_WORDS = new Set(['und', 'der', 'die', 'das', 'mit', 'sie', 'ihr', 'ihre', 'ihren', 'für', 'bei', 'ist', 'wir', 'ein', 'eine', 'einen', 'zu', 'dein', 'deine', 'deinem', 'dich', 'dir', 'du', 'willkommen', 'auf', 'in', 'von', 'nicht', 'jetzt', 'schon'])
@@ -41,17 +37,17 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
   // A short ENGLISH draft of an onboarding email, cover off so the
   // preview's first page shows the intro the AI is about to add. The
   // draft and the prompt are English; only the document's Language
-  // setting (Deutsch) asks for German — so a German intro proves the
+  // setting (Deutsch) asks for German, so a German intro proves the
   // setting, not the surrounding text, steered the AI.
   const draftBody = '# Welcome to Lumen\n\n## Your first steps\n\n- Create your profile\n- Invite your team\n- Start your first project\n'
   await editor.silentSetup({ title: 'Onboarding email', body: draftBody, cover: false })
 
-  // ─── Open the Document panel ────────────────────────────────────
+  // Open the Document panel
   await flow.heading('Tell markoto who you\'re writing for', 3)
   await flow.narrate(
     'Every doc carries four context fields beyond the title: a '
     + 'description, a target audience, a language, and the template '
-    + 'it was created from. The AI sees them on every prompt — so a '
+    + 'it was created from. The AI sees them on every prompt, so a '
     + 'one-time minute setting them up saves you re-typing context '
     + 'on every "rewrite this" / "extend this" / "draft a section".'
   )
@@ -69,18 +65,18 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
       annotations: editor.isMobile
         ? []
         : [{ label: 'document tab', selector: '[data-testid="sidebar-tab-document"]', kind: 'arrow' }],
-      result: 'The Document panel opens — Description, Language, Audience, '
+      result: 'The Document panel opens, Description, Language, Audience, '
         + 'Template, all editable in place.',
       after: () => page.locator('#doc-description').waitFor({ state: 'visible' })
     }
   )
 
-  // ─── Set the three fields ───────────────────────────────────────
+  // Set the three fields
   await flow.heading('Set the audience, language, and description', 3)
   await flow.narrate(
     'Description is one line that tells the AI what this document IS. '
     + 'Audience is a closed enum of writing registers (six of them, '
-    + 'each with a tuned tone fragment). Language is free text — '
+    + 'each with a tuned tone fragment). Language is free text, '
     + 'six curated presets plus typed input for anything else.'
   )
 
@@ -94,41 +90,36 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
       // Pointer events on the input are intercepted by Reka's overlay.
       // See `tests/e2e/AGENTS.md` "Bottom-sheet portal interception".
       force: editor.isMobile,
-      result: 'The description is captured — the AI will see this on every prompt.'
+      result: 'The description is captured, the AI will see this on every prompt.'
     }
   )
 
-  // Audience: USelect (Reka button + popover). The mobile branch used to
-  // need synthetic PointerEvents because the option popover rendered BEHIND
-  // the bottom sheet (untappable). That was a real product bug — now fixed
-  // by lifting select/combobox popovers above the sheet (main.css) — so both
-  // mobile and desktop select with plain clicks. The branch remains only
-  // because the desktop version records richer flow-doc annotations.
+  // Audience: USelect (Reka button + popover). Select/combobox popovers are lifted above the bottom sheet
+  // (main.css), so mobile and desktop both select with plain clicks. The branch remains only because the
+  // desktop version records richer flow-doc annotations.
   if (editor.isMobile) {
-    // Real clicks — the option popover now stacks above the bottom sheet
+    // Real clicks: the option popover now stacks above the bottom sheet
     // (main.css z-index fix), so no synthetic-PointerEvent workaround needed.
     await flow.step(
       'Open the Audience dropdown',
       async () => {
         await page.locator('#doc-audience').click()
         await page.getByRole('option', { name: /marketing/i }).first().waitFor({ state: 'visible' })
-      },
-      { result: 'The audience options appear.' }
+      }
     )
     await flow.step(
       'Pick "Marketing / SEO"',
       async () => {
         await page.getByRole('option', { name: /marketing/i }).first().click()
         await page.locator('#doc-audience').waitFor({ state: 'visible' })
-      },
-      { result: 'The audience switches to Marketing.' }
+      }
     )
   } else {
     await flow.click(
       'Open the Audience dropdown',
       page.locator('#doc-audience'),
       {
-        result: 'The audience options appear — six writing registers.',
+        result: 'The audience options appear, six writing registers.',
         after: () => page.getByRole('option', { name: /marketing/i }).first().waitFor({ state: 'visible' })
       }
     )
@@ -136,7 +127,7 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
       'Pick "Marketing / SEO"',
       page.getByRole('option', { name: /marketing/i }).first(),
       {
-        result: 'The audience switches to Marketing — the AI now knows to '
+        result: 'The audience switches to Marketing, the AI now knows to '
           + 'write benefit-led, scannable, customer-facing prose.',
         after: () => page.locator('#doc-audience').waitFor({ state: 'visible' })
       }
@@ -149,25 +140,23 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
       'Type "Deutsch" in Language',
       async () => {
         await page.locator('#doc-language').click()
-        // Clear the current language ("English") first — otherwise
+        // Clear the current language ("English") first, otherwise
         // pressSequentially appends to it ("DeutschEnglish") and the Deutsch
         // preset never matches.
         await page.locator('#doc-language').fill('')
         await page.locator('#doc-language').pressSequentially('Deutsch')
         await page.getByRole('option', { name: /deutsch/i }).first().waitFor({ state: 'visible', timeout: 5_000 })
-      },
-      { result: 'The Deutsch preset surfaces in the suggestions.' }
+      }
     )
     await flow.step(
       'Tap "Deutsch"',
       async () => {
         await page.getByRole('option', { name: /deutsch/i }).first().click()
         await expect(page.locator('#doc-language')).toHaveValue('Deutsch')
-      },
-      { result: 'The language switches to Deutsch.' }
+      }
     )
   } else {
-    // Clear the current language ("English") first — typing into the
+    // Clear the current language ("English") first, typing into the
     // field appends, and "EnglishDeutsch" matches no preset (that is
     // what an earlier published frame showed).
     await page.locator('#doc-language').fill('')
@@ -177,7 +166,7 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
       page.locator('#doc-language'),
       'Deutsch',
       {
-        result: 'The Deutsch preset surfaces in the suggestions — Enter to commit.',
+        result: 'The Deutsch preset surfaces in the suggestions, Enter to commit.',
         after: () => page.getByRole('option', { name: /deutsch/i }).first().waitFor({ state: 'visible', timeout: 5_000 })
       }
     )
@@ -185,7 +174,7 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
       'Pick "Deutsch"',
       page.getByRole('option', { name: /deutsch/i }).first(),
       {
-        result: 'The language switches to Deutsch — the AI now writes in German, '
+        result: 'The language switches to Deutsch, the AI now writes in German, '
           + 'whatever language you ask in.',
         after: () => expect(page.locator('#doc-language')).toHaveValue('Deutsch')
       }
@@ -193,7 +182,7 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
   }
   await expect(page.locator('#doc-language')).toHaveValue('Deutsch')
 
-  // ASSERTION: the context is saved on the document — that saved copy
+  // ASSERTION: the context is saved on the document, that saved copy
   // is what the AI reads with every prompt.
   const contextDocId = editor.page.currentDocId()
   await expect.poll(async () => {
@@ -203,11 +192,11 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
   }, { timeout: 10_000, message: 'audience / language / description never reached the server' })
     .toMatch(/(?=.*"audience":"marketing")(?=.*"language":"(de|Deutsch)")(?=.*Onboarding email for newly registered users)/)
 
-  // ─── Ask the AI ─────────────────────────────────────────────────
+  // Ask the AI
   await flow.heading('Ask the AI for an intro', 3)
   await flow.narrate(
     'With audience + language + description set, ANY prompt the AI '
-    + 'sees gets shaped by them — without you mentioning audience or '
+    + 'sees gets shaped by them, without you mentioning audience or '
     + 'language in your prompt. We ask for a one-line intro in '
     + 'plain English; the AI returns marketing-tone Deutsch.'
   )
@@ -227,7 +216,7 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
       annotations: editor.isMobile
         ? []
         : [{ label: 'prompt bar', selector: '[data-testid="ai-prompt-bar"]', kind: 'arrow' }],
-      result: 'The prompt bar lifts and glows — ready for your prompt.'
+      result: 'The prompt bar lifts and glows, ready for your prompt.'
     }
   )
 
@@ -246,7 +235,7 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
     'Send it',
     editor.page.ai.promptBarSend,
     {
-      result: 'The AI is working — the bar pulses until it is done.',
+      result: 'The AI is working, the bar pulses until it is done.',
       after: () => editor.page.waitForAiActive()
     }
   )
@@ -292,10 +281,10 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
   )
 
   // Forward route: now that the AI knows the doc's context, the
-  // next move is making it look the part — pick a theme that
+  // next move is making it look the part, pick a theme that
   // matches the marketing register.
   flow.next({
     slug: 'pick-a-theme',
-    why: 'Now match the visual style — pick a theme that fits the audience'
+    why: 'Now match the visual style, pick a theme that fits the audience'
   })
 })

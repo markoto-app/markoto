@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser, createWorkspace } from '../integration/setup/fixtures'
-import { readEmbeddingColumnDims, withEmbeddingDimensionLock } from '../../server/utils/embeddingColumn'
-import { runReembed, PENDING_VERSION } from '../../server/utils/reembedKnowledge'
+import { readEmbeddingColumnDims, withEmbeddingDimensionLock } from '../../server/db/embeddingColumn'
+import { runReembed, PENDING_VERSION } from '../../server/db/reembedKnowledge'
 
 // The re-embed driver against a real pgvector and a fake embedder.
 

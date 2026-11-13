@@ -1,36 +1,22 @@
 <script setup lang="ts">
 import { defaultCurrencyForLocale } from '~~/shared/config/pricing'
-import { formatBytes, usageFill } from '~/utils/usageMeter'
+import { formatBytes, usageFill } from '~/utils/billing/usageMeter'
 // User profile page. The single canonical surface for account-level
 // management: who you are, the data we hold about you, and the
-// controls (export + delete) for managing it. Spending and usage
-// will land here as those features ship — see the dedicated section
-// below.
+// controls (export + delete) for managing it.
 //
 // Modal-style page with a close button that returns the user to
 // their previous route (mirrors /pricing's UX). Auth-gated client-
 // side via redirect; the data-fetching endpoints are session-required
 // so deep-linking without a session lands in the 401-toast surface.
 
-interface ExportJob {
-  jobId: string
-  status: 'queued' | 'running' | 'ready' | 'expired' | 'failed'
-  sizeBytes: number | null
-  errorMessage: string | null
-  expiresAt: string | null
-  createdAt: string
-  startedAt: string | null
-  completedAt: string | null
-  downloadable: boolean
-}
-
 const router = useRouter()
-const { t } = useI18n()
-// The spending section is a billing surface — hidden entirely when
+const { t, locale } = useI18n()
+// The spending section is a billing surface, hidden entirely when
 // billing is off (self-hosted / free-only SaaS).
 const { billingEnabled } = useBillingMode()
 const toast = useToast()
-const { handleReauthRequired, showError } = useErrorHandler()
+const { showError, extractError } = useErrorHandler()
 const { loggedIn, user } = useUserSession()
 const { status, refresh: refreshAccountStatus } = useAccountStatus()
 // Legal acceptance section only where the legal surfaces
@@ -47,11 +33,10 @@ function onClose(): void {
   if (globalThis.history.length > 1 && document.referrer) {
     router.back()
   } else {
-    router.push('/')
+    void router.push('/')
   }
 }
 
-// ─────────── Sessions ───────────
 // "Log out everywhere" bumps the server-side session epoch, which
 // invalidates every session cookie (other browsers, devices, and this
 // one), then runs the normal logout clean-up + hard reload.
@@ -61,7 +46,7 @@ async function onLogoutEverywhere(): Promise<void> {
   if (revokingSessions.value) return
   revokingSessions.value = true
   try {
-    await $fetch('/api/user/sessions/revoke', { method: 'POST' })
+    await apiFetch('/api/user/sessions/revoke', { method: 'post' })
     await logout()
   } catch (e) {
     showError('settings.profile.sessions.failed', e)
@@ -69,99 +54,19 @@ async function onLogoutEverywhere(): Promise<void> {
   }
 }
 
-// ─────────── Export jobs ───────────
-const exports = ref<ExportJob[]>([])
-const exportsLoading = ref(false)
-const requestingExport = ref(false)
-
-async function refreshExports(): Promise<void> {
-  if (!loggedIn.value) return
-  exportsLoading.value = true
-  try {
-    exports.value = await $fetch<ExportJob[]>('/api/user/exports')
-  } catch (e) {
-    const err = e as { message?: string, data?: { message?: string } }
-    toast.add({
-      title: 'Could not load exports',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
-  } finally {
-    exportsLoading.value = false
-  }
-}
-
 onMounted(() => {
   void refreshAccountStatus()
-  void refreshExports()
 })
 
-const hasActiveExport = computed(() =>
-  exports.value.some(j => j.status === 'queued' || j.status === 'running')
-)
-
-// Auto-poll while a job is in flight. Worker tick is 60s in prod;
-// 5s polling means the user sees the row flip to ready within
-// seconds of the worker completing. Email is the out-of-band channel
-// for users who closed the tab; this covers everyone else. Interval
-// is set on first transition into "active" and cleared the moment
-// `hasActiveExport` flips back to false (or component unmounts).
-let pollHandle: ReturnType<typeof setInterval> | null = null
-function startPolling(): void {
-  if (pollHandle !== null) return
-  pollHandle = setInterval(() => {
-    void refreshExports()
-  }, 5000)
-}
-function stopPolling(): void {
-  if (pollHandle === null) return
-  clearInterval(pollHandle)
-  pollHandle = null
-}
-watch(hasActiveExport, (active) => {
-  if (active) startPolling()
-  else stopPolling()
-})
-onBeforeUnmount(() => stopPolling())
-
-async function onRequestExport(): Promise<void> {
-  if (requestingExport.value) return
-  requestingExport.value = true
-  try {
-    await $fetch('/api/user/export', { method: 'POST' })
-    toast.add({
-      title: t('settings.profile.data.exportInProgress'),
-      description: '',
-      icon: 'i-lucide-package',
-      color: 'neutral'
-    })
-    await refreshExports()
-  } catch (e) {
-    if (handleReauthRequired(e)) return
-    const err = e as { message?: string, data?: { message?: string } }
-    toast.add({
-      title: 'Could not request export',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
-  } finally {
-    requestingExport.value = false
-  }
-}
-
-// ─────────── Storage ───────────
 const { billing, refresh: refreshBilling } = useBilling()
 
-// ─────────── Spending (WP4) ───────────
 // Pro: manage the subscription in the Stripe portal and buy AI credits.
 const creditCurrency = ref<'eur' | 'chf'>('eur')
 const openingPortal = ref(false)
 async function openPortal(): Promise<void> {
   openingPortal.value = true
   try {
-    const res = await $fetch<{ url: string }>('/api/billing/portal', { method: 'POST' })
+    const res = await apiFetch('/api/billing/portal', { method: 'post' })
     goToExternal(res.url)
   } catch (e) {
     showError('settings.profile.spending.portalFailed', e)
@@ -187,21 +92,13 @@ const imageStoragePercent = computed(() => {
 const fmtBytes = formatBytes
 
 function fmtDate(iso: string | null): string {
-  if (!iso) return ''
-  try {
-    return new Date(iso).toLocaleString(undefined, {
-      year: 'numeric', month: 'short', day: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    })
-  } catch {
-    return iso
-  }
+  return formatDateTime(iso, locale.value)
 }
 
 function fmtDateOnly(iso: string | null): string {
   if (!iso) return ''
   try {
-    return new Date(iso).toLocaleDateString(undefined, {
+    return new Date(iso).toLocaleDateString(locale.value, {
       year: 'numeric', month: 'long', day: 'numeric'
     })
   } catch {
@@ -209,7 +106,6 @@ function fmtDateOnly(iso: string | null): string {
   }
 }
 
-// ─────────── Delete confirmation modal ───────────
 const deletionModalOpen = ref(false)
 function openDeletionModal(): void {
   deletionModalOpen.value = true
@@ -223,7 +119,7 @@ async function onCancelDeletion(): Promise<void> {
   if (cancellingDeletion.value) return
   cancellingDeletion.value = true
   try {
-    await $fetch('/api/user/delete-cancel', { method: 'POST' })
+    await apiFetch('/api/user/delete-cancel', { method: 'post' })
     await refreshAccountStatus()
     toast.add({
       title: t('legal.delete.cancelledToast'),
@@ -232,10 +128,9 @@ async function onCancelDeletion(): Promise<void> {
       color: 'neutral'
     })
   } catch (e) {
-    const err = e as { message?: string, data?: { message?: string } }
     toast.add({
-      title: 'Could not cancel deletion',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      title: t('settings.profile.delete.cancelFailed'),
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -247,7 +142,6 @@ async function onCancelDeletion(): Promise<void> {
 const deletionPending = computed(() => status.value?.deletion?.pending === true)
 const deletionGraceFormatted = computed(() => fmtDate(status.value?.deletion?.graceUntil ?? null))
 
-// ─────────── Legal acceptance ───────────
 const policies = computed(() => {
   const p = status.value?.policy
   if (!p) return []
@@ -257,7 +151,7 @@ const policies = computed(() => {
     // DPA is workspace-owner only (B2B). When the user hasn't
     // accepted, surface that as "Required when you create a
     // workspace" rather than the rose "needs re-acceptance"
-    // warning — DPA acceptance is contextual, not overdue.
+    // warning: DPA acceptance is contextual, not overdue.
     { key: 'dpa', label: t('legal.policyAcceptance.documentNames.dpa'), state: p.dpa, contextual: true }
   ]
 })
@@ -311,7 +205,7 @@ const policies = computed(() => {
         </p>
       </header>
 
-      <!-- Account meta — read-only for now (locale + age confirmation are
+      <!-- Account meta: read-only for now (locale + age confirmation are
            managed elsewhere; surfaced here for transparency). -->
       <section
         class="mb-10"
@@ -330,7 +224,7 @@ const policies = computed(() => {
               {{ t('settings.profile.account.email') }}
             </dt>
             <dd class="text-sm font-mono break-all sm:break-normal sm:text-right">
-              {{ status?.email ?? '—' }}
+              {{ status?.email ?? '-' }}
             </dd>
           </div>
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 px-4 py-3">
@@ -338,7 +232,7 @@ const policies = computed(() => {
               {{ t('settings.profile.account.locale') }}
             </dt>
             <dd class="text-sm font-mono sm:text-right">
-              {{ status?.locale ?? '—' }}
+              {{ status?.locale ?? '-' }}
             </dd>
           </div>
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 px-4 py-3">
@@ -354,7 +248,7 @@ const policies = computed(() => {
         </dl>
       </section>
 
-      <!-- Sessions — sign out of every browser and device. -->
+      <!-- Sessions: sign out of every browser and device. -->
       <section
         class="mb-10"
         data-testid="profile-sessions-section"
@@ -379,7 +273,7 @@ const policies = computed(() => {
         </div>
       </section>
 
-      <!-- Storage — document images vs. the per-user quota (shown in
+      <!-- Storage: document images vs. the per-user quota (shown in
            every billing mode: the limit is real either way). -->
       <section
         v-if="billing"
@@ -414,7 +308,7 @@ const policies = computed(() => {
       <!-- ─────────────────────────────────────────────────────────────
            Spending & usage placeholder. When the spending feature
            ships (per-period AI credit usage, plan history table,
-           invoice list, downloadable receipts), it lands HERE — same
+           invoice list, downloadable receipts), it lands HERE, same
            card shape as the other sections, between Account and
            Your data. The structural slot is reserved on purpose so a
            future implementer doesn't have to rearrange the page.
@@ -430,7 +324,7 @@ const policies = computed(() => {
         <div class="border border-default rounded-lg px-4 py-4 space-y-4">
           <div class="flex items-center justify-between gap-3 flex-wrap">
             <p class="text-sm">
-              {{ t('settings.profile.spending.plan', { plan: billing?.plan === 'pro' ? 'Pro' : 'Free' }) }}
+              {{ t('settings.profile.spending.plan', { plan: billing?.plan === 'pro' ? 'Pro' : t('pricing.price.free') }) }}
             </p>
             <div class="flex gap-2">
               <UButton
@@ -496,131 +390,10 @@ const policies = computed(() => {
         </div>
       </section>
 
-      <!-- Your data — export. -->
-      <section
-        class="mb-10"
-        data-testid="profile-data-section"
-      >
-        <h2 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-3">
-          {{ t('settings.profile.data.heading') }}
-        </h2>
-        <div class="border border-default rounded-lg px-4 py-4">
-          <p class="font-serif text-base font-normal mb-1">
-            {{ t('settings.profile.data.exportTitle') }}
-          </p>
-          <p class="text-sm text-muted mb-4">
-            {{ t('settings.profile.data.exportDescription') }}
-          </p>
-          <div class="flex items-center gap-3 mb-4">
-            <UButton
-              color="neutral"
-              :loading="requestingExport"
-              :disabled="hasActiveExport || deletionPending"
-              icon="i-lucide-package"
-              data-testid="export-request-button"
-              @click="onRequestExport"
-            >
-              {{ t('settings.profile.data.exportButton') }}
-            </UButton>
-            <span
-              v-if="hasActiveExport"
-              class="text-xs text-muted font-mono"
-            >
-              {{ t('settings.profile.data.exportInProgress') }}
-            </span>
-          </div>
+      <!-- Your data: export. -->
+      <SettingsDataExportSection :deletion-pending="deletionPending" />
 
-          <h3 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-2">
-            {{ t('settings.profile.data.exportHistoryHeading') }}
-          </h3>
-          <div
-            v-if="exportsLoading"
-            class="text-sm text-muted"
-          >
-            <UIcon
-              name="i-lucide-loader-2"
-              class="size-4 animate-spin inline mr-2"
-            />
-            Loading…
-          </div>
-          <div
-            v-else-if="exports.length === 0"
-            class="text-sm text-muted font-mono"
-          >
-            {{ t('settings.profile.data.exportHistoryEmpty') }}
-          </div>
-          <ul
-            v-else
-            class="space-y-2"
-          >
-            <li
-              v-for="job in exports"
-              :key="job.jobId"
-              class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border border-default rounded-md px-3 py-3"
-              data-testid="export-history-row"
-            >
-              <!-- Metadata stack. On mobile each fact lives on its
-                   own line with a tiny mono label so the user can
-                   tell "requested" from "available until" — earlier
-                   the two dates ran together with no separator and
-                   were visually conflated. On desktop the layout
-                   compresses to one row. -->
-              <div class="text-xs flex-1 min-w-0 space-y-0.5">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span
-                    class="font-mono uppercase tracking-wider"
-                    :class="{
-                      'text-rose-700 dark:text-rose-300': job.status === 'failed',
-                      'text-muted': job.status !== 'failed' && job.status !== 'ready',
-                      'text-default': job.status === 'ready'
-                    }"
-                  >
-                    {{ job.status }}
-                  </span>
-                  <span
-                    v-if="job.sizeBytes"
-                    class="font-mono text-muted"
-                  >
-                    {{ fmtBytes(job.sizeBytes) }}
-                  </span>
-                </div>
-                <div class="flex flex-col sm:flex-row sm:gap-3 text-muted font-mono">
-                  <span>
-                    <span class="uppercase tracking-wider">requested</span>
-                    {{ fmtDate(job.createdAt) }}
-                  </span>
-                  <span v-if="job.expiresAt && job.status === 'ready'">
-                    <span class="uppercase tracking-wider">available until</span>
-                    {{ fmtDate(job.expiresAt) }}
-                  </span>
-                </div>
-                <div
-                  v-if="job.errorMessage"
-                  class="text-rose-700 dark:text-rose-300 truncate"
-                >
-                  {{ job.errorMessage }}
-                </div>
-              </div>
-              <UButton
-                v-if="job.downloadable"
-                size="sm"
-                color="neutral"
-                variant="outline"
-                icon="i-lucide-download"
-                block
-                class="sm:!w-auto sm:!self-center shrink-0"
-                :to="`/api/user/exports/${job.jobId}/download`"
-                external
-                data-testid="export-download-button"
-              >
-                {{ t('settings.profile.data.exportDownload') }}
-              </UButton>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <!-- Delete account — last because it's the most destructive. -->
+      <!-- Delete account: last because it's the most destructive. -->
       <section
         class="mb-10"
         data-testid="profile-delete-section"
@@ -670,7 +443,7 @@ const policies = computed(() => {
         </div>
       </section>
 
-      <!-- Legal — secondary content; lists accepted document versions
+      <!-- Legal: secondary content; lists accepted document versions
            with the cookie note. Surfaced for transparency
            but visually de-emphasised: it's a reference card, not a
            call-to-action. -->

@@ -1,23 +1,17 @@
-import type { SentryClient, SentryErrorReport } from '~/utils/sentryClient'
+import type { SentryClient, SentryErrorReport } from '~/utils/platform/sentryClient'
 
-// Browser error reporting, loaded late.
+// Browser error reporting, loaded late. The @sentry/nuxt module only handles
+// the server side (`sentry.server.config.ts`): its client plugins would put
+// ~40 KB gzip of Sentry into every page's entry chunk, run before a marketing
+// page could paint. This plugin starts the browser SDK (`utils/sentryClient.ts`)
+// once the page is idle, or at once when an error comes first.
 //
-// The browser SDK used to come in through @sentry/nuxt's client plugins
-// (picked up from a root `sentry.client.config.ts`), which put ~40 KB gzip
-// of Sentry into the entry chunk of every page — downloaded and run
-// before a marketing page could paint its hero. The module now only does
-// the server side (`sentry.server.config.ts`); this plugin starts the
-// browser SDK (`utils/sentryClient.ts`) once the page is idle, or at once
-// when an error comes first.
-//
-// Nothing is lost while it loads: errors from Vue (`vue:error`), from Nuxt
-// (`app:error`) and from the window (`error` / `unhandledrejection`; this
-// plugin's listeners stay the only ones — the SDK's GlobalHandlers
-// integration is off) are queued and sent once it runs. Errors before the
-// Nuxt app starts are missed, as before (the SDK used to start in a plugin
-// too). Only initialises when `NUXT_PUBLIC_SENTRY_DSN` is set, so dev /
-// local / self-hosted instances without a DSN load no Sentry code at all.
-// Also binds the signed-in user's id (ID only, no PII) to the scope.
+// Errors from Vue (`vue:error`), Nuxt (`app:error`) and the window (`error` /
+// `unhandledrejection`; the SDK's GlobalHandlers integration is off, so these
+// listeners are the only ones) are queued while it loads and sent once it
+// runs. Errors before the Nuxt app starts are missed. Only initialises when
+// `NUXT_PUBLIC_SENTRY_DSN` is set, so instances without a DSN load no Sentry
+// code. Binds the signed-in user's id (ID only, no PII) to the scope.
 
 function isNuxtClientError(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) return false
@@ -51,7 +45,7 @@ export default defineNuxtPlugin({
     window.addEventListener('unhandledrejection', onRejection)
 
     function load(): Promise<void> {
-      loading ??= import('~/utils/sentryClient').then((m) => {
+      loading ??= import('~/utils/platform/sentryClient').then((m) => {
         const started = m.startSentry({ dsn, router: nuxtApp.$router, production: !import.meta.dev })
         client = started
         for (const r of queue.splice(0)) started.report(r)

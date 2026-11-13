@@ -1,10 +1,10 @@
-// Product tour (WP11) — the asset contract between the capture pipeline
+// Product tour: the asset contract between the capture pipeline
 // (`scripts/capture-tour.ts` + `tests/e2e/tour/*.capture.ts`) and the
 // scroll-driven product page (`app/components/landing/ProductTour.vue`).
 //
 // `public/tour/manifest.json` describes, per scene: a poster still (light
 // + dark, `srcset` widths) and a short looping video (AV1 + H.264, light +
-// dark), each also in a phone cut — the region of the capture that
+// dark), each also in a phone cut, the region of the capture that
 // matters, cropped and encoded small. Videos are recorded step by step
 // from the real app with a virtual cursor baked in; the page only plays
 // them while their scene is on stage.
@@ -12,42 +12,23 @@
 // The scroll choreography is CSS (`animation-range` on view timelines);
 // the helpers below compute those ranges and the generated keyframes for
 // the stage that alternates sides. All pure, so the page and the unit
-// tests (`tests/unit/tourManifest.test.ts`) share them.
+// tests (`tests/unit/seo/tourManifest.test.ts`) share them.
 
 // The zod schema + parser live in ./schema.ts so the page bundle (which
 // only needs these helpers and the types) never ships zod.
 import type { TourImage } from './schema'
 
-export type { TourBeat, TourImage, TourManifest, TourPhoneCut, TourScene, TourVideo } from './schema'
+export type { TourBeat, TourImage, TourManifest, TourScene, TourVideo } from './schema'
+export { TOUR_BEAT_IDS, TOUR_SCENE_IDS, type TourBeatId, type TourSceneId } from './ids'
 
-/** Scene ids, in page order. The copy for each lives under `tour.scenes.<id>` in i18n. */
-export const TOUR_SCENE_IDS = [
-  'hero',
-  'write',
-  'rich',
-  'themes',
-  'collab',
-  'ai',
-  'knowledge',
-  'history',
-  'share',
-  'yours',
-  'cta'
-] as const
-export type TourSceneId = typeof TOUR_SCENE_IDS[number]
-
-/** Beat ids double as i18n keys for their alt text (`tour.alt.<id>`). */
-export const TOUR_BEAT_IDS = ['sharePdf'] as const
-export type TourBeatId = typeof TOUR_BEAT_IDS[number]
-
-// ─── Scroll math ──────────────────────────────────────────────────────
+// Scroll math
 
 /** Scroll length of each scene section, in viewport heights. */
 export const SCENE_HEIGHT_VH = 160
 /** Height of the hero inside the pinned layout, in viewport heights. */
-export const HERO_HEIGHT_VH = 100
+const HERO_HEIGHT_VH = 100
 
-export function clamp01(n: number): number {
+function clamp01(n: number): number {
   if (Number.isNaN(n)) return 0
   return Math.min(1, Math.max(0, n))
 }
@@ -70,7 +51,7 @@ export function windowToCover(t: number, heightVh: number = SCENE_HEIGHT_VH): nu
 /**
  * Where a scroll-snap marker sits in a scene section (vh from the
  * section's top, aligned `start`) so that resting on it puts the scene's
- * window at `t` — i.e. the section's top is `t·height − 50vh` above the
+ * window at `t`: i.e. the section's top is `t·height − 50vh` above the
  * viewport top (t = 0 is the section's top at the viewport middle).
  */
 export function restOffsetVh(t: number, heightVh: number = SCENE_HEIGHT_VH): number {
@@ -109,7 +90,7 @@ export function stageSideKeyframes(name: string, sceneCount: number, flip: strin
 
 /**
  * Which frame a looping video shows `elapsedMs` into playback, given its
- * frame count, frame rate and the hold on the last frame — the capture
+ * frame count, frame rate and the hold on the last frame, the capture
  * pipeline's timeline.
  */
 export function loopFrameAt(elapsedMs: number, frameCount: number, fps: number, holdMs: number): number {
@@ -120,7 +101,7 @@ export function loopFrameAt(elapsedMs: number, frameCount: number, fps: number, 
   return t >= playMs ? frameCount - 1 : Math.min(frameCount - 1, Math.floor((t * fps) / 1000))
 }
 
-// ─── Images + video ───────────────────────────────────────────────────
+// Images + video
 
 /** `srcset` attribute for an image (the base `src` plus its variants). */
 export function srcsetFor(img: TourImage): string {

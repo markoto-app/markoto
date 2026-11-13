@@ -6,7 +6,7 @@
 //
 // The API key is write-only from the UI's point of view: the server
 // never returns it (only the last four characters). Leaving the key
-// field empty on "change" keeps the stored key — but only while the base
+// field empty on "change" keeps the stored key, but only while the base
 // URL stays the same (the server enforces this).
 
 import {
@@ -16,6 +16,9 @@ import {
   type AiProviderConfigView,
   type ProviderPreset
 } from '~~/shared/ai/providers'
+import { apiErrorData } from '~/utils/api/errors'
+import { trimTrailing } from '~/utils/markdown/trimTrailing'
+import { useRemoveAiProvider, useSaveAiProvider, useVerifyAiProvider } from '~/queries/ai'
 
 const props = defineProps<{
   capability: AiCapability
@@ -24,11 +27,9 @@ const props = defineProps<{
   presets: ProviderPreset[]
 }>()
 
-const emit = defineEmits<{ changed: [] }>()
-
 const { t, locale } = useI18n()
 const toast = useToast()
-const { handleReauthRequired } = useErrorHandler()
+const { handleReauthRequired, extractError } = useErrorHandler()
 
 const CUSTOM = 'custom'
 const editing = ref(false)
@@ -37,9 +38,13 @@ const baseUrl = ref('')
 const model = ref('')
 const apiKey = ref('')
 const supportsVision = ref(false)
-const saving = ref(false)
-const verifying = ref(false)
-const removing = ref(false)
+// Each mutation re-reads the providers and the AI availability it changes.
+const saveProvider = useSaveAiProvider()
+const verifyProvider = useVerifyAiProvider()
+const removeProvider = useRemoveAiProvider()
+const saving = computed(() => saveProvider.isLoading.value)
+const verifying = computed(() => verifyProvider.isLoading.value)
+const removing = computed(() => removeProvider.isLoading.value)
 const lastMessage = ref<{ tone: 'success' | 'warning' | 'error', text: string } | null>(null)
 
 const presetItems = computed(() => [
@@ -59,7 +64,7 @@ watch(presetId, (id) => {
 })
 
 function presetFor(url: string): string {
-  const trimmed = url.trim().replace(/\/+$/, '')
+  const trimmed = trimTrailing(url.trim(), '/')
   return props.presets.find(p => p.baseUrl === trimmed)?.id ?? CUSTOM
 }
 
@@ -96,7 +101,7 @@ function cancelEdit(): void {
 function sourceLabel(): string {
   if (props.status.source === 'user') return t('aiProvider.status.own')
   if (props.status.source === 'instance') return t('aiProvider.status.instance')
-  // The platform offers it, but not on this plan (WP5).
+  // The platform offers it, but not on this plan.
   if (props.status.locked === 'plan') return t('aiProvider.status.locked')
   return t('aiProvider.status.none')
 }
@@ -112,92 +117,64 @@ function fmtDate(iso: string | null): string {
   }
 }
 
-function field(obj: unknown, key: string): unknown {
-  if (typeof obj !== 'object' || obj === null) return undefined
-  return (obj as Record<string, unknown>)[key]
-}
-
-function str(value: unknown): string {
-  return typeof value === 'string' ? value : ''
-}
-
 /**
- * Prefer the localised server reason (`data.messageKey`); append the
- * server's own (key-free) message as detail. `$fetch` errors carry the
- * H3 error body in `.data`, whose own `.data` holds our fields.
+ * The refusal in the reader's language (the per-reason text or the code's
+ * text, app/utils/api/errors.ts), followed by the server's own (English)
+ * detail when it says something else.
  */
 function errorText(e: unknown, fallbackKey: string): string {
-  const body = field(e, 'data')
-  const key = str(field(field(body, 'data'), 'messageKey'))
-  const localised = key ? t(key) : ''
-  const detail = str(field(body, 'message')) || str(field(e, 'message'))
-  if (localised && localised !== key) return detail && detail !== localised ? `${localised} — ${detail}` : localised
+  const { code, message } = extractError(e)
+  const raw = apiErrorData(e)?.message
+  const detail = typeof raw === 'string' ? raw : ''
+  if (code !== null) return detail && detail !== message ? `${message}: ${detail}` : message
   return detail || t(fallbackKey)
 }
 
 async function onSave(): Promise<void> {
   if (saving.value) return
-  saving.value = true
   lastMessage.value = null
   try {
-    const resp = await $fetch<{ provider: AiProviderConfigView, verify: { code: string, message: string } }>(
-      `/api/user/ai-providers/${props.capability}`,
-      {
-        method: 'PUT',
-        body: {
-          baseUrl: baseUrl.value.trim(),
-          model: model.value.trim(),
-          apiKey: apiKey.value.trim() || undefined,
-          supportsVision: props.capability === 'chat' ? supportsVision.value : undefined
-        }
+    const resp = await saveProvider.mutateAsync({
+      capability: props.capability,
+      body: {
+        baseUrl: baseUrl.value.trim(),
+        model: model.value.trim(),
+        apiKey: apiKey.value.trim() || undefined,
+        supportsVision: props.capability === 'chat' ? supportsVision.value : undefined
       }
-    )
+    })
     editing.value = false
     apiKey.value = ''
     const warn = resp.verify.code !== 'ok'
     lastMessage.value = { tone: warn ? 'warning' : 'success', text: t(`aiProvider.verify.${codeKey(resp.verify.code)}`) }
     toast.add({ title: t(warn ? 'aiProvider.toast.savedWithWarning' : 'aiProvider.toast.saved'), color: warn ? 'warning' : 'success', icon: 'i-lucide-check' })
-    emit('changed')
   } catch (e) {
     if (handleReauthRequired(e)) return
     lastMessage.value = { tone: 'error', text: errorText(e, 'aiProvider.toast.saveFailed') }
-  } finally {
-    saving.value = false
   }
 }
 
 async function onVerify(): Promise<void> {
   if (verifying.value) return
-  verifying.value = true
   lastMessage.value = null
   try {
-    const resp = await $fetch<{ ok: boolean, code: string, message: string }>(
-      `/api/user/ai-providers/${props.capability}/verify`,
-      { method: 'POST' }
-    )
+    const resp = await verifyProvider.mutateAsync(props.capability)
     const text = t(`aiProvider.verify.${codeKey(resp.code)}`)
-    lastMessage.value = { tone: resp.ok ? (resp.code === 'ok' ? 'success' : 'warning') : 'error', text: resp.ok ? text : `${text} — ${resp.message}` }
-    emit('changed')
+    lastMessage.value = { tone: resp.ok ? (resp.code === 'ok' ? 'success' : 'warning') : 'error', text: resp.ok ? text : `${text}: ${resp.message}` }
   } catch (e) {
     lastMessage.value = { tone: 'error', text: errorText(e, 'aiProvider.toast.verifyFailed') }
-  } finally {
-    verifying.value = false
   }
 }
 
 async function onRemove(): Promise<void> {
   if (removing.value) return
-  removing.value = true
   lastMessage.value = null
   try {
-    await $fetch(`/api/user/ai-providers/${props.capability}`, { method: 'DELETE' })
+    await removeProvider.mutateAsync(props.capability)
     toast.add({ title: t('aiProvider.toast.removed'), color: 'neutral', icon: 'i-lucide-check' })
-    emit('changed')
   } catch (e) {
     if (handleReauthRequired(e)) return
     lastMessage.value = { tone: 'error', text: errorText(e, 'aiProvider.toast.saveFailed') }
-  } finally {
-    removing.value = false
   }
 }
 
@@ -234,7 +211,6 @@ const messageClass = computed(() => {
       </UBadge>
     </div>
 
-    <!-- Saved own-key config -->
     <dl
       v-if="config && !editing"
       class="text-sm divide-y divide-default border border-default rounded-md my-3"
@@ -287,7 +263,6 @@ const messageClass = computed(() => {
       {{ t('aiProvider.status.liveDictation') }}
     </p>
 
-    <!-- Add / change form -->
     <form
       v-if="editing"
       class="space-y-3 my-3"

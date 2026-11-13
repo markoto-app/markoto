@@ -2,7 +2,7 @@
 
 # So benutzen Sie dieses Runbook
 
-<!-- Zwei, drei Sätze: für wen das Runbook ist, welche Services es abdeckt und wie ein Ablauf aufgebaut ist (der Alarm, der hierher führt, dann die Schritte der Reihe nach). Bitten Sie die Leserin oder den Leser, im Incident-Kanal mitzuschreiben, was sie tun. -->
+<!-- Zwei, drei Sätze: für wen das Runbook ist, welche Services es abdeckt und wie ein Ablauf aufgebaut ist (der Alarm, der hierher führt, dann die Schritte der Reihe nach). Bitte die Leserin oder den Leser, im Incident-Kanal mitzuschreiben, was sie tun. -->
 
 > [!IMPORTANT]
 > Wenn Kundinnen und Kunden betroffen sind und Sie die Ursache nach 15 Minuten nicht gefunden haben: Incident ausrufen und die Incident-Leitung alarmieren.
@@ -28,7 +28,7 @@
 
 # Abläufe
 
-<!-- Ein H2 pro Alarm, genau so benannt wie im Pager, damit man danach suchen kann. Beginnen Sie mit der fetten Zeile „Alarm:“ (Bedingung und Schwellenwert), dann nummerierte Schritte in der Reihenfolge, in der sie zu tun sind: was prüfen, der genaue Befehl, welches Ergebnis was bedeutet und wann eskalieren. Mehrzeilige Befehle als Codeblock in den Schritt setzen. Den Block für jeden weiteren Alarm kopieren. -->
+<!-- Ein H2 pro Alarm, genau so benannt wie im Pager, damit man danach suchen kann. Beginne mit der fetten Zeile „Alarm:“ (Bedingung und Schwellenwert), dann nummerierte Schritte in der Reihenfolge, in der sie zu tun sind: was prüfen, der genaue Befehl, welches Ergebnis was bedeutet und wann eskalieren. Mehrzeilige Befehle als Codeblock in den Schritt setzen. Den Block für jeden weiteren Alarm kopieren. -->
 
 ## AlarmName
 
