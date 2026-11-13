@@ -10,7 +10,7 @@ import { IMAGE_PROVIDER_UNAVAILABLE_MESSAGE } from '../../../shared/utils/aiProv
 
 describe('isProviderUnavailableError', () => {
   it('recognises the BFL 503 as LiteLLM reports it', () => {
-    const e = new Error('500 litellm.APIConnectionError: Bfl-fluxException - Server error \'503 Service Temporarily Unavailable\' for url \'https://api.eu2.bfl.ai/v1/flux-2-pro\'')
+    const e = new Error('500 litellm.APIConnectionError: Bfl-fluxException - Server error \'503 Service Temporarily Unavailable\' for url \'https://api.eu2.bfl.ai/v1/flux-3-image-klein\'')
     expect(isProviderUnavailableError(e)).toBe(true)
   })
 

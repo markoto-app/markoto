@@ -189,7 +189,7 @@ export async function startNuxt(): Promise<void> {
     // can point at the fake provider on the docker bridge. The
     // billing-off twin below is shaped like the hosted SaaS instead.
     NUXT_AI_DEFAULT_CHAT_MODEL: 'mistral-small-2603',
-    NUXT_AI_DEFAULT_IMAGE_MODEL: 'flux-2-pro',
+    NUXT_AI_DEFAULT_IMAGE_MODEL: 'flux-3-image-klein',
     NUXT_AI_DEFAULT_TRANSCRIBE_MODEL: 'voxtral-mini-transcribe',
     NUXT_AI_BYOK_ALLOWED_BASE_URLS: '',
     NUXT_AI_BYOK_ALLOW_PRIVATE_URLS: 'true',

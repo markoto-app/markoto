@@ -14,7 +14,7 @@ import { isProviderUnavailableError } from './providerOutage'
 
 const log = useLogger('ai-tools')
 
-// Map the image-gen output MIME (BFL FLUX.2) to
+// Map the image-gen output MIME (BFL FLUX) to
 // the extension the upload pipeline uses. (Keep the set narrow, the
 // file-id regex in /api/files only accepts these extensions; anything
 // else would be unreachable via /api/files.)
@@ -71,7 +71,7 @@ type ImageGenResult = { bytes: Uint8Array, mimeType: GeneratedImageMime } | { er
  *     deployment (`/v1/images/generations`).
  *   - Instance default WITHOUT base URL: the operator's LiteLLM model
  *     alias, using the chat-wrapped convention of the bundled
- *     `flux-2-pro` deployment (BFL FLUX.2 [pro], EU-pinned). Platform-paid.
+ *     `flux-3-image-klein` deployment (BFL FLUX 3 Image Klein, EU-pinned). Platform-paid.
  *
  * Returns raw bytes + MIME type, or an error string. The S3 upload + Y.js
  * insertion happens in `handleGenerateImage` and is shape-agnostic.
@@ -150,7 +150,7 @@ async function generateImageBytesByok(
   }
 }
 
-// ─── BFL FLUX.2 [pro] path (operator alias) ─────────────────────────────
+// ─── BFL FLUX path (operator alias) ─────────────────────────────
 
 async function generateImageBytesBfl(
   prompt: string,
@@ -168,15 +168,13 @@ async function generateImageBytesBfl(
   // Custom provider convention (see deploy/config/litellm/custom_handlers.py:
   // BFLFluxProvider). Single user message with JSON-encoded body.
   // Response's content is JSON with {b64_json, url, cost_credits, cost_usd}.
-  // prompt_upsampling is intentionally false, the prompt is AI-written
-  // and re-LLM-ing it adds latency without benefit.
   try {
     log.debug('BFL image generation started', { model, width, height })
     const resp = await litellmCompletion(litellm, {
       model,
       messages: [{
         role: 'user',
-        content: JSON.stringify({ prompt, width, height, prompt_upsampling: false })
+        content: JSON.stringify({ prompt, width, height })
       }],
       ...featureMetadata(FEATURE_TAGS.imageGen, {
         workspaceId: opts.workspaceId,
@@ -195,7 +193,7 @@ async function generateImageBytesBfl(
       return { error: 'BFL returned no image bytes (provider error or content-moderated).' }
     }
     const bytes = Buffer.from(body.b64_json, 'base64')
-    // BFL returns image/jpeg by default for FLUX.2 [pro]. Map MIME →
+    // BFL returns image/jpeg by default. Map MIME →
     // extension via IMAGE_MIME_EXT; if the response ever changes, the
     // upload pipeline will reject unknown MIMEs at /api/files.
     const mimeType: GeneratedImageMime = 'image/jpeg'

@@ -214,24 +214,27 @@ model_list:
       output_cost_per_token: 0.000000165  # $0.165 / M (EU: 1.1 x $0.15, 4× cheaper than small output)
       max_tokens: 262144
 
-  # ---- BFL FLUX.2 [pro] image generation (custom provider) ----
-  # Wraps BFL's submission+poll API. EU-pinned to api.eu2.bfl.ai (no
-  # round-robin to api.us2.bfl.ai). Exposed via chat-completions because
+  # ---- BFL FLUX 3 Image Klein image generation (custom provider) ----
+  # Wraps BFL's submission+poll API. EU-pinned to api.eu.bfl.ai (routing
+  # limited to BFL's EU clusters). Exposed via chat-completions because
   # OSS LiteLLM's /v1/images/generations cost path doesn't fire the
   # spend-logger callback for custom providers.
   #
-  # Pricing: $0.030 per 1024² image (3 BFL credits × $0.01/credit). The
-  # provider reports completion_tokens = round(cost_usd / 0.0001) = 300
-  # for a 1024² image; output_cost_per_token: 0.0001 × 300 = $0.030.
-  - model_name: flux-2-pro
+  # Pricing: $0.009 per 1024² image (0.9 BFL credits × $0.01/credit). The
+  # provider reports completion_tokens = round(cost_usd / 0.0001) = 90
+  # for a 1024² image; output_cost_per_token: 0.0001 × 90 = $0.009.
+  - model_name: flux-3-image-klein
     litellm_params:
-      model: bfl-flux/flux-2-pro
+      model: bfl-flux/flux-3-image-klein
       api_key: os.environ/BFL_API_KEY
+      # A queued BFL job can take longer than the router default.
+      timeout: 120
     model_info:
       input_cost_per_token: 0.0
       output_cost_per_token: 0.0001        # × completion_tokens (= cost_usd / 0.0001)
-      # Budget reservation ceiling: a 2048² image is ~$0.12 = 1200 tokens.
-      max_output_tokens: 1500
+      # Budget reservation ceiling: the largest size the tools allow
+      # (1536², billed as 2k) is $0.014 = 140 tokens; 4k is $0.036.
+      max_output_tokens: 400
 
   # ---- Voice-tick metering for live dictation ----
   # Billing-only stub via custom_handlers.py:VoxtralTickProvider. Hit

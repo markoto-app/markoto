@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-// The `generate_image` tool routes through BFL FLUX.2 [pro] (EU-pinned) via the LiteLLM custom provider. The
+// The `generate_image` tool routes through BFL FLUX (EU-pinned) via the LiteLLM custom provider. The
 // full handler (`handleGenerateImage` in aiToolAdapter.ts) is exercised by the integration suite; these unit
 // tests pin the small bits of routing logic that don't need a Y.Doc session, S3 client, or LiteLLM proxy:
 //
@@ -73,14 +73,14 @@ describe('image gen: BFL response parsing', () => {
   it('extracts b64_json from a well-formed BFL response', () => {
     const content = JSON.stringify({
       b64_json: 'AAAA',
-      url: 'https://delivery.eu2.bfl.ai/durable/...',
+      url: 'https://delivery.eu9.bfl.ai/durable/...',
       cost_credits: 3,
       cost_usd: 0.03
     })
     const body = JSON.parse(content)
     expect(body.b64_json).toBe('AAAA')
     expect(body.cost_usd).toBeCloseTo(0.03, 10)
-    expect(body.url).toContain('delivery.eu2.bfl.ai')
+    expect(body.url).toContain('delivery.eu9.bfl.ai')
   })
 
   it('handles a content-moderated response with no b64_json', () => {

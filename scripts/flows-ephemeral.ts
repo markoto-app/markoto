@@ -138,7 +138,7 @@ const FLOWS_ENV: Record<string, string> = {
   // (`fake-openai-test`) at the docker bridge address.
   NUXT_AI_DEFAULT_CHAT_MODEL: 'zai-glm-5-3-flash',
   NUXT_FREE_TIER_TOTAL_BUDGET_USD: '500',
-  NUXT_AI_DEFAULT_IMAGE_MODEL: 'flux-2-pro',
+  NUXT_AI_DEFAULT_IMAGE_MODEL: 'flux-3-image-klein',
   NUXT_AI_DEFAULT_TRANSCRIBE_MODEL: 'voxtral-mini-transcribe',
   NUXT_AI_BYOK_ALLOW_PRIVATE_URLS: 'true',
   // The `workspace-sso` flow's IdP is the mock OpenID provider on the test
