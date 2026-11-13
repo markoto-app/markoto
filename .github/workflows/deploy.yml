@@ -357,6 +357,11 @@ jobs:
             deploy/config/edge/haproxy.cfg \
             deploy/config/renderer/seccomp.json \
             | ssh "${DEPLOY_USER}@${DEPLOY_HOST}" 'tar xzf - -C /opt/markoto'
+          # Traefik's certificate store. Compose would create a missing
+          # bind-mount source as a DIRECTORY, and Traefik then drops the
+          # ACME resolver; the file must also be readable by its owner only.
+          ssh "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            'mkdir -p /opt/markoto/traefik && cd /opt/markoto/traefik && { [ -f acme.json ] || install -m 600 /dev/null acme.json; } && chmod 600 acme.json'
 
       - name: Roll forward + health check
         id: roll
