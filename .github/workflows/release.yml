@@ -13,14 +13,15 @@ name: release
 #
 # main is strictly PR-only: this workflow never pushes a commit to main. The
 # only write is the vX.Y.Z tag push (tags aren't covered by the branch
-# ruleset), authenticated by RELEASE_BOT_TOKEN. See the operator runbook, kept outside this repository.
+# ruleset), pushed with a short-lived token of the organisation's release
+# GitHub App (RELEASE_APP_ID + RELEASE_APP_PRIVATE_KEY). See the operator runbook, kept outside this repository.
 
 on:
   push:
     branches: [main]
 
 # Least privilege: nothing by default, each job grants itself what it needs.
-# Jobs that need high-value secrets (RELEASE_BOT_TOKEN, live-AI provider keys,
+# Jobs that need high-value secrets (RELEASE_APP_PRIVATE_KEY, live-AI provider keys,
 # APPRISE_URLS) bind the `release` Environment, which only deploys from `main`
 # (the operator runbook, kept outside this repository). Repo-level secrets are NOT used here.
 permissions: {}
@@ -188,7 +189,8 @@ jobs:
     if: needs.resolve-pr.outputs.should_release == 'true'
     permissions:
       contents: read
-    # RELEASE_BOT_TOKEN lives in this main-only Environment.
+    # RELEASE_APP_ID (variable) + RELEASE_APP_PRIVATE_KEY (secret) live in this
+    # main-only Environment.
     environment: release
     runs-on: ubuntu-latest
     outputs:
@@ -197,29 +199,52 @@ jobs:
       # Checked out at the merged commit on main. We create + push an
       # annotated tag there: NO commit back to main (main is strictly
       # PR-only, enforced by the repository ruleset). Tags are not covered
-      # by the branch ruleset, so the tag push is allowed. RELEASE_BOT_TOKEN
-      # authenticates the push (GITHUB_TOKEN would also work for tags).
-      - name: Require RELEASE_BOT_TOKEN
+      # by the branch ruleset; the tag ruleset lists the release app as a
+      # bypass actor. The push uses a short-lived installation token of the
+      # organisation's release GitHub App, scoped to Contents: write.
+      - name: Require the release GitHub App credentials
         env:
-          RELEASE_BOT_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN }}
+          RELEASE_APP_ID: ${{ vars.RELEASE_APP_ID }}
+          RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
         run: |
-          if [ -z "${RELEASE_BOT_TOKEN:-}" ]; then
-            echo "::error title=Missing secret::RELEASE_BOT_TOKEN is not set in the 'release' Environment (the operator runbook, kept outside this repository). No tag was pushed."
+          if [ -z "${RELEASE_APP_ID:-}" ] || [ -z "${RELEASE_APP_PRIVATE_KEY:-}" ]; then
+            echo "::error title=Missing GitHub App credentials::RELEASE_APP_ID (variable) and RELEASE_APP_PRIVATE_KEY (secret) must both be set in the 'release' Environment (the operator runbook, kept outside this repository). No tag was pushed."
             exit 1
           fi
+
+      - name: Create release app token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+
+      - name: Resolve the app bot identity
+        id: bot
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+        run: |
+          set -euo pipefail
+          user_id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
+          echo "name=${APP_SLUG}[bot]" >> "$GITHUB_OUTPUT"
+          echo "email=${user_id}+${APP_SLUG}[bot]@users.noreply.github.com" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
-          token: ${{ secrets.RELEASE_BOT_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Tag release
         env:
           NEW: ${{ needs.resolve-pr.outputs.new_version }}
+          BOT_NAME: ${{ steps.bot.outputs.name }}
+          BOT_EMAIL: ${{ steps.bot.outputs.email }}
         run: |
           set -euo pipefail
-          git config user.name "markoto-release-bot"
-          git config user.email "release-bot@users.noreply.github.com"
+          git config user.name "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
           git tag -a "v${NEW}" -m "Release v${NEW}"
           git push origin "v${NEW}"
 
@@ -232,8 +257,6 @@ jobs:
       packages: write
       # cosign keyless signing (GitHub OIDC -> Fulcio certificate).
       id-token: write
-    # RELEASE_BOT_TOKEN (GHCR push credential) lives in this main-only Environment.
-    environment: release
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
@@ -301,15 +324,6 @@ jobs:
           swapon --show
           free -h
 
-      - name: Require RELEASE_BOT_TOKEN
-        env:
-          RELEASE_BOT_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN }}
-        run: |
-          if [ -z "${RELEASE_BOT_TOKEN:-}" ]; then
-            echo "::error title=Missing secret::RELEASE_BOT_TOKEN is not set in the 'release' Environment (the operator runbook, kept outside this repository)."
-            exit 1
-          fi
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
 
@@ -321,12 +335,10 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          # RELEASE_BOT_TOKEN (from the main-only `release` Environment)
-          # carries packages:write, so it doubles as the GHCR push
-          # credential. ${{ secrets.GITHUB_TOKEN }} (the job declares
-          # `packages: write`) works too once each package grants this repo
-          # Actions write access: see the owner checklist in the operator runbook, kept outside this repository.
-          password: ${{ secrets.RELEASE_BOT_TOKEN }}
+          # The job declares `packages: write`; each package must grant this
+          # repository Actions write access (the operator runbook, kept outside
+          # this repository).
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       # Installed BEFORE the build so a full disk after a large push can
       # never leave a pushed image unsigned.
