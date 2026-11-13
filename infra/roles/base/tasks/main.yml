@@ -22,6 +22,9 @@
       - ncdu
       - jq
       - python3-requests
+      # package_facts (devsec.hardening) reads the apt database through it;
+      # minimal Debian 13 images lack it.
+      - python3-apt
       # Lets Ansible hand module files to the unprivileged markoto user
       # (become_user) without making them world-readable.
       - acl
@@ -32,6 +35,15 @@
 - name: Set timezone to UTC
   community.general.timezone:
     name: "{{ host_timezone }}"
+
+# Debian 13 ships no drop-in directory for journald.
+- name: Ensure the journald drop-in directory exists
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
 
 # Container logs land here too (journald log driver, per-user journal
 # files of the markoto user, roles/podman_host): SystemMaxUse bounds both.
@@ -248,6 +260,30 @@
       fi
       /opt/markoto-tools/bin/apprise -t "$1" -b "$2" -i markdown "${APPRISE_URLS}"
 
+# The hook's logic lives in a script: apt.conf strings are not shell, and
+# Debian 13's apt rejects the escaped quotes a multi-line inline command
+# needs ("Malformed tag").
+- name: Drop the apt notification script
+  ansible.builtin.copy:
+    dest: /usr/local/sbin/markoto-apt-notify
+    owner: root
+    group: root
+    mode: "0755"
+    content: |
+      #!/bin/sh
+      # Managed by Ansible (markoto/base role). Called by apt after every
+      # run that touched packages (99-markoto-notify), including
+      # unattended-upgrades: sends the tail of its log through Apprise.
+      # Best-effort: always exits 0 so apt is never disrupted.
+      log=/var/log/unattended-upgrades/unattended-upgrades.log
+      [ -x /usr/local/bin/markoto-notify ] && [ -f "$log" ] || exit 0
+      tail="$(tail -n 30 "$log" 2>/dev/null || true)"
+      [ -n "$tail" ] || exit 0
+      /usr/local/bin/markoto-notify "OS update on $(hostname)" "Unattended-upgrades log tail:
+
+      $tail" || true
+      exit 0
+
 - name: Drop apt post-Invoke hook for unattended-upgrades
   ansible.builtin.copy:
     dest: /etc/apt/apt.conf.d/99-markoto-notify
@@ -257,17 +293,8 @@
     content: |
       // Managed by Ansible (markoto/base role).
       // Fires after every apt invocation that touched packages, including
-      // unattended-upgrades. The script tails the most recent
-      // unattended-upgrades log and notifies via Apprise. Best-effort,
-      // exits 0 even on internal failure so apt isn't disrupted.
-      DPkg::Post-Invoke {
-        "if [ -x /usr/local/bin/markoto-notify ] && [ -f /var/log/unattended-upgrades/unattended-upgrades.log ]; then \
-           tail=$(tail -n 30 /var/log/unattended-upgrades/unattended-upgrades.log 2>/dev/null || true); \
-           hostname=$(hostname); \
-           [ -n \"$tail\" ] && /usr/local/bin/markoto-notify \"OS update on ${hostname}\" \
-             \"Unattended-upgrades log tail:\n\n${tail}\" || true; \
-         fi; true";
-      };
+      // unattended-upgrades (script: /usr/local/sbin/markoto-apt-notify).
+      DPkg::Post-Invoke { "/usr/local/sbin/markoto-apt-notify || true"; };
 
 # Disable the security role's mail path (we set _mail_to: "" in vars but
 # also drop a config snippet to make sure no MTA install gets triggered).
