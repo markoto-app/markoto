@@ -16,10 +16,10 @@
     },
     {
       "kind": "narration",
-      "text": "Three roles. Admins do everything — add members, change permissions, delete the workspace. Editors write content but can't touch access controls. Viewers read; their editor is locked. Two safety rails: one workspace must always have at least one admin, and a viewer's read-only access is enforced by the server, not just hidden in the UI.",
+      "text": "Three roles. Admins do everything, add members, change permissions, delete the workspace. Editors write content but can't touch access controls. Viewers read; their editor is locked. Two safety rails: one workspace must always have at least one admin, and a viewer's read-only access is enforced by the server, not just hidden in the UI.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/rm-5r5QemR"
+      "path": "/w/6i1t7FFodR"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 541,
         "y": 184
       },
-      "path": "/w/rm-5r5QemR",
+      "path": "/w/6i1t7FFodR",
       "annotations": [
         {
           "label": "members card",
@@ -44,12 +44,12 @@
     {
       "kind": "outcome",
       "file": "03.webp",
-      "caption": "Members modal opens — admin (you), Sam (viewer), and the role chip beside each name.",
+      "caption": "Members modal opens, admin (you), Sam (viewer), and the role chip beside each name.",
       "cursor": {
         "x": 541,
         "y": 184
       },
-      "path": "/w/rm-5r5QemR"
+      "path": "/w/6i1t7FFodR"
     },
     {
       "kind": "chapter",
@@ -58,53 +58,53 @@
     },
     {
       "kind": "narration",
-      "text": "The role chip beside Sam's name opens a dropdown — Admin / Editor / Viewer. Pick Editor and the change is saved right away. Sam's documents become writable the next time they open one (an editor that is already open picks it up within two hours).",
-      "file": "03.webp",
+      "text": "The role chip beside Sam's name opens a dropdown, Admin / Editor / Viewer. Pick Editor and the change is saved right away. Sam's documents become writable the next time they open one (an editor that is already open picks it up within two hours).",
+      "file": "04.webp",
       "cursor": {
         "x": 541,
         "y": 184
       },
-      "path": "/w/rm-5r5QemR"
+      "path": "/w/6i1t7FFodR"
     },
     {
       "kind": "approach",
-      "file": "04.webp",
+      "file": "05.webp",
       "caption": "Click the role chip beside Sam",
       "cursor": {
         "x": 785,
         "y": 374
       },
-      "path": "/w/rm-5r5QemR"
+      "path": "/w/6i1t7FFodR"
     },
     {
       "kind": "outcome",
-      "file": "05.webp",
-      "caption": "The role menu opens — Admin, Editor, Viewer.",
+      "file": "06.webp",
+      "caption": "The role menu opens, Admin, Editor, Viewer.",
       "cursor": {
         "x": 785,
         "y": 374
       },
-      "path": "/w/rm-5r5QemR"
+      "path": "/w/6i1t7FFodR"
     },
     {
       "kind": "approach",
-      "file": "06.webp",
+      "file": "07.webp",
       "caption": "Pick \"Editor\"",
       "cursor": {
         "x": 759,
         "y": 446
       },
-      "path": "/w/rm-5r5QemR"
+      "path": "/w/6i1t7FFodR"
     },
     {
       "kind": "outcome",
-      "file": "07.webp",
-      "caption": "Sam's chip now reads Editor — the change is saved.",
+      "file": "08.webp",
+      "caption": "Sam's chip now reads Editor, the change is saved.",
       "cursor": {
         "x": 759,
         "y": 446
       },
-      "path": "/w/rm-5r5QemR",
+      "path": "/w/6i1t7FFodR",
       "highlights": [
         {
           "label": "Sam is now an editor",
@@ -123,23 +123,23 @@
     },
     {
       "kind": "narration",
-      "text": "A workspace must always have at least one admin — otherwise no one can manage members or close it down. While you are the only admin, the role chip on your own row is locked, and markoto refuses the change even if something tries it anyway.",
-      "file": "07.webp",
+      "text": "A workspace must always have at least one admin, otherwise no one can manage members or close it down. While you are the only admin, the role chip on your own row is locked, and markoto refuses the change even if something tries it anyway.",
+      "file": "08.webp",
       "cursor": {
         "x": 759,
         "y": 446
       },
-      "path": "/w/rm-5r5QemR"
+      "path": "/w/6i1t7FFodR"
     },
     {
       "kind": "outcome",
-      "file": "07.webp",
-      "caption": "Your own role chip is locked — you are the only admin.",
+      "file": "08.webp",
+      "caption": "Your own role chip is locked, you are the only admin.",
       "cursor": {
         "x": 759,
         "y": 446
       },
-      "path": "/w/rm-5r5QemR",
+      "path": "/w/6i1t7FFodR",
       "highlights": [
         {
           "label": "Locked: last admin",

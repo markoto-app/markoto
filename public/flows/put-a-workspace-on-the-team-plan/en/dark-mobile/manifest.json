@@ -19,7 +19,7 @@
       "text": "Team is bought for a workspace, not for a person. You pay per seat, and everyone in the workspace gets Team inside it, with one shared AI budget for the month. Only workspace admins see the Billing tab.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/PY87TVkCIG"
+      "path": "/w/6Yfscwyy6F"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 337,
         "y": 247
       },
-      "path": "/w/PY87TVkCIG",
+      "path": "/w/6Yfscwyy6F",
       "annotations": [
         {
           "label": "Billing",
@@ -49,7 +49,7 @@
         "x": 337,
         "y": 247
       },
-      "path": "/w/PY87TVkCIG"
+      "path": "/w/6Yfscwyy6F"
     },
     {
       "kind": "outcome",
@@ -59,7 +59,7 @@
         "x": 337,
         "y": 247
       },
-      "path": "/w/PY87TVkCIG",
+      "path": "/w/6Yfscwyy6F",
       "highlights": [
         {
           "label": "Total",
@@ -78,7 +78,7 @@
         "x": 41,
         "y": 549
       },
-      "path": "/w/PY87TVkCIG"
+      "path": "/w/6Yfscwyy6F"
     },
     {
       "kind": "outcome",
@@ -88,7 +88,7 @@
         "x": 41,
         "y": 549
       },
-      "path": "/w/PY87TVkCIG"
+      "path": "/w/6Yfscwyy6F"
     },
     {
       "kind": "approach",
@@ -98,7 +98,7 @@
         "x": 121,
         "y": 615
       },
-      "path": "/w/PY87TVkCIG"
+      "path": "/w/6Yfscwyy6F"
     },
     {
       "kind": "outcome",
@@ -130,7 +130,7 @@
         "x": 348,
         "y": 42
       },
-      "path": "/w/PY87TVkCIG",
+      "path": "/w/6Yfscwyy6F",
       "highlights": [
         {
           "label": "Team",
@@ -144,7 +144,7 @@
           "x": 12,
           "y": 361,
           "w": 366,
-          "h": 479.75
+          "h": 435.75
         }
       ],
       "hero": true
@@ -162,7 +162,7 @@
         "x": 348,
         "y": 42
       },
-      "path": "/w/PY87TVkCIG"
+      "path": "/w/6Yfscwyy6F"
     },
     {
       "kind": "approach",
@@ -172,7 +172,7 @@
         "x": 317,
         "y": 581
       },
-      "path": "/w/PY87TVkCIG"
+      "path": "/w/6Yfscwyy6F"
     },
     {
       "kind": "outcome",
@@ -182,7 +182,7 @@
         "x": 317,
         "y": 581
       },
-      "path": "/w/PY87TVkCIG"
+      "path": "/w/6Yfscwyy6F"
     },
     {
       "kind": "approach",
@@ -192,7 +192,7 @@
         "x": 279,
         "y": 596
       },
-      "path": "/w/PY87TVkCIG"
+      "path": "/w/6Yfscwyy6F"
     },
     {
       "kind": "outcome",
@@ -202,7 +202,7 @@
         "x": 279,
         "y": 596
       },
-      "path": "/w/PY87TVkCIG"
+      "path": "/w/6Yfscwyy6F"
     },
     {
       "kind": "chapter",
@@ -217,7 +217,7 @@
         "x": 279,
         "y": 596
       },
-      "path": "/w/PY87TVkCIG"
+      "path": "/w/6Yfscwyy6F"
     },
     {
       "kind": "approach",
@@ -225,9 +225,9 @@
       "caption": "Save Ben's limit of $3 a month",
       "cursor": {
         "x": 328,
-        "y": 520
+        "y": 705
       },
-      "path": "/w/PY87TVkCIG"
+      "path": "/w/6Yfscwyy6F"
     },
     {
       "kind": "outcome",
@@ -235,9 +235,9 @@
       "caption": "Ben can now use up to $3 of the workspace's AI budget this month.",
       "cursor": {
         "x": 328,
-        "y": 520
+        "y": 705
       },
-      "path": "/w/PY87TVkCIG"
+      "path": "/w/6Yfscwyy6F"
     },
     {
       "kind": "chapter",
@@ -250,9 +250,9 @@
       "file": "16.webp",
       "cursor": {
         "x": 328,
-        "y": 520
+        "y": 705
       },
-      "path": "/w/PY87TVkCIG"
+      "path": "/w/6Yfscwyy6F"
     },
     {
       "kind": "approach",
@@ -260,9 +260,9 @@
       "caption": "Tick the box for the credits",
       "cursor": {
         "x": 41,
-        "y": 359
+        "y": 150
       },
-      "path": "/w/PY87TVkCIG"
+      "path": "/w/6Yfscwyy6F"
     },
     {
       "kind": "outcome",
@@ -270,9 +270,9 @@
       "caption": "For credits the box also says that the right of withdrawal ends once they are used.",
       "cursor": {
         "x": 41,
-        "y": 359
+        "y": 150
       },
-      "path": "/w/PY87TVkCIG"
+      "path": "/w/6Yfscwyy6F"
     },
     {
       "kind": "approach",
@@ -280,9 +280,9 @@
       "caption": "Buy €25 of AI credits",
       "cursor": {
         "x": 195,
-        "y": 469
+        "y": 260
       },
-      "path": "/w/PY87TVkCIG"
+      "path": "/w/6Yfscwyy6F"
     },
     {
       "kind": "outcome",
@@ -290,7 +290,7 @@
       "caption": "Stripe takes the payment for the credits.",
       "cursor": {
         "x": 195,
-        "y": 469
+        "y": 260
       },
       "path": "/pay/c/cs_test_a1YS1URlnyQCN5fUUduORoQ7Pw41PJqDWkIVQCpJPqkfIhd6tVY8XB1OLY"
     },
@@ -298,11 +298,8 @@
       "kind": "outcome",
       "file": "20.webp",
       "caption": "The credits are on the workspace, with the date they expire.",
-      "cursor": {
-        "x": 348,
-        "y": 42
-      },
-      "path": "/w/PY87TVkCIG",
+      "cursor": null,
+      "path": "/w/6Yfscwyy6F",
       "highlights": [
         {
           "label": "Credits",

@@ -16,10 +16,10 @@
     },
     {
       "kind": "narration",
-      "text": "The brand kit holds what makes documents look like your organisation's. Upload each font file — one per weight and style — and confirm your licence allows embedding it in PDFs. Logos become available as the cover logo and header image of every document in the workspace.",
+      "text": "The brand kit holds what makes documents look like your organisation's. Upload each font file, one per weight and style, and confirm your licence allows embedding it in PDFs. Logos become available as the cover logo and header image of every document in the workspace.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/nTOZEQuZ7u"
+      "path": "/w/VIZT_GD5e1"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 768,
         "y": 231
       },
-      "path": "/w/nTOZEQuZ7u",
+      "path": "/w/VIZT_GD5e1",
       "annotations": [
         {
           "label": "Brand kit",
@@ -44,21 +44,12 @@
     {
       "kind": "outcome",
       "file": "03.webp",
-      "cursor": {
-        "x": 768,
-        "y": 231
-      },
-      "path": "/w/nTOZEQuZ7u"
-    },
-    {
-      "kind": "outcome",
-      "file": "04.webp",
       "caption": "Choose the font file, name it and confirm the licence",
       "cursor": {
         "x": 281,
         "y": 728
       },
-      "path": "/w/nTOZEQuZ7u",
+      "path": "/w/VIZT_GD5e1",
       "highlights": [
         {
           "label": "Font upload",
@@ -71,32 +62,23 @@
     },
     {
       "kind": "approach",
-      "file": "05.webp",
+      "file": "04.webp",
       "caption": "Upload it",
       "cursor": {
         "x": 333,
         "y": 766
       },
-      "path": "/w/nTOZEQuZ7u"
+      "path": "/w/VIZT_GD5e1"
     },
     {
       "kind": "outcome",
-      "file": "06.webp",
-      "cursor": {
-        "x": 333,
-        "y": 766
-      },
-      "path": "/w/nTOZEQuZ7u"
-    },
-    {
-      "kind": "outcome",
-      "file": "07.webp",
+      "file": "05.webp",
       "caption": "The font and the logo are in the kit",
       "cursor": {
         "x": 1238,
         "y": 42
       },
-      "path": "/w/nTOZEQuZ7u",
+      "path": "/w/VIZT_GD5e1",
       "highlights": [
         {
           "label": "Quaybridge Sans",
@@ -121,13 +103,13 @@
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
+      "file": "06.webp",
       "caption": "Take the design from the quarterly report",
       "cursor": {
         "x": 716,
         "y": 399
       },
-      "path": "/w/nTOZEQuZ7u",
+      "path": "/w/VIZT_GD5e1",
       "highlights": [
         {
           "label": "Workspace design",
@@ -140,22 +122,13 @@
     },
     {
       "kind": "approach",
-      "file": "09.webp",
+      "file": "07.webp",
       "caption": "Lock it for all documents",
       "cursor": {
         "x": 291,
         "y": 399
       },
-      "path": "/w/nTOZEQuZ7u"
-    },
-    {
-      "kind": "outcome",
-      "file": "10.webp",
-      "cursor": {
-        "x": 291,
-        "y": 399
-      },
-      "path": "/w/nTOZEQuZ7u"
+      "path": "/w/VIZT_GD5e1"
     },
     {
       "kind": "chapter",
@@ -164,32 +137,23 @@
     },
     {
       "kind": "approach",
-      "file": "11.webp",
+      "file": "08.webp",
       "caption": "Open the theme panel of another document",
       "cursor": {
         "x": 1234,
         "y": 98
       },
-      "path": "/d/QM-t09vkIe"
+      "path": "/d/05oFkRb0Z_"
     },
     {
       "kind": "outcome",
-      "file": "12.webp",
+      "file": "09.webp",
+      "caption": "It uses the workspace design, only the cover text is its own",
       "cursor": {
         "x": 1234,
         "y": 98
       },
-      "path": "/d/QM-t09vkIe"
-    },
-    {
-      "kind": "outcome",
-      "file": "12.webp",
-      "caption": "It uses the workspace design — only the cover text is its own",
-      "cursor": {
-        "x": 1234,
-        "y": 98
-      },
-      "path": "/d/QM-t09vkIe",
+      "path": "/d/05oFkRb0Z_",
       "highlights": [
         {
           "label": "Locked by the workspace",

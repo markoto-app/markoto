@@ -16,10 +16,10 @@
     },
     {
       "kind": "narration",
-      "text": "Three roles. Admins do everything — add members, change permissions, delete the workspace. Editors write content but can't touch access controls. Viewers read; their editor is locked. Two safety rails: one workspace must always have at least one admin, and a viewer's read-only access is enforced by the server, not just hidden in the UI.",
+      "text": "Three roles. Admins do everything, add members, change permissions, delete the workspace. Editors write content but can't touch access controls. Viewers read; their editor is locked. Two safety rails: one workspace must always have at least one admin, and a viewer's read-only access is enforced by the server, not just hidden in the UI.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/wbA9XBFSwi"
+      "path": "/w/K9_I3fSoL9"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 541,
         "y": 184
       },
-      "path": "/w/wbA9XBFSwi",
+      "path": "/w/K9_I3fSoL9",
       "annotations": [
         {
           "label": "members card",
@@ -44,12 +44,12 @@
     {
       "kind": "outcome",
       "file": "03.webp",
-      "caption": "Members modal opens — admin (you), Sam (viewer), and the role chip beside each name.",
+      "caption": "Members modal opens, admin (you), Sam (viewer), and the role chip beside each name.",
       "cursor": {
         "x": 541,
         "y": 184
       },
-      "path": "/w/wbA9XBFSwi"
+      "path": "/w/K9_I3fSoL9"
     },
     {
       "kind": "chapter",
@@ -58,13 +58,13 @@
     },
     {
       "kind": "narration",
-      "text": "The role chip beside Sam's name opens a dropdown — Admin / Editor / Viewer. Pick Editor and the change is saved right away. Sam's documents become writable the next time they open one (an editor that is already open picks it up within two hours).",
+      "text": "The role chip beside Sam's name opens a dropdown, Admin / Editor / Viewer. Pick Editor and the change is saved right away. Sam's documents become writable the next time they open one (an editor that is already open picks it up within two hours).",
       "file": "04.webp",
       "cursor": {
         "x": 541,
         "y": 184
       },
-      "path": "/w/wbA9XBFSwi"
+      "path": "/w/K9_I3fSoL9"
     },
     {
       "kind": "approach",
@@ -74,17 +74,17 @@
         "x": 785,
         "y": 374
       },
-      "path": "/w/wbA9XBFSwi"
+      "path": "/w/K9_I3fSoL9"
     },
     {
       "kind": "outcome",
       "file": "06.webp",
-      "caption": "The role menu opens — Admin, Editor, Viewer.",
+      "caption": "The role menu opens, Admin, Editor, Viewer.",
       "cursor": {
         "x": 785,
         "y": 374
       },
-      "path": "/w/wbA9XBFSwi"
+      "path": "/w/K9_I3fSoL9"
     },
     {
       "kind": "approach",
@@ -94,17 +94,17 @@
         "x": 759,
         "y": 446
       },
-      "path": "/w/wbA9XBFSwi"
+      "path": "/w/K9_I3fSoL9"
     },
     {
       "kind": "outcome",
       "file": "08.webp",
-      "caption": "Sam's chip now reads Editor — the change is saved.",
+      "caption": "Sam's chip now reads Editor, the change is saved.",
       "cursor": {
         "x": 759,
         "y": 446
       },
-      "path": "/w/wbA9XBFSwi",
+      "path": "/w/K9_I3fSoL9",
       "highlights": [
         {
           "label": "Sam is now an editor",
@@ -123,23 +123,23 @@
     },
     {
       "kind": "narration",
-      "text": "A workspace must always have at least one admin — otherwise no one can manage members or close it down. While you are the only admin, the role chip on your own row is locked, and markoto refuses the change even if something tries it anyway.",
+      "text": "A workspace must always have at least one admin, otherwise no one can manage members or close it down. While you are the only admin, the role chip on your own row is locked, and markoto refuses the change even if something tries it anyway.",
       "file": "08.webp",
       "cursor": {
         "x": 759,
         "y": 446
       },
-      "path": "/w/wbA9XBFSwi"
+      "path": "/w/K9_I3fSoL9"
     },
     {
       "kind": "outcome",
       "file": "08.webp",
-      "caption": "Your own role chip is locked — you are the only admin.",
+      "caption": "Your own role chip is locked, you are the only admin.",
       "cursor": {
         "x": 759,
         "y": 446
       },
-      "path": "/w/wbA9XBFSwi",
+      "path": "/w/K9_I3fSoL9",
       "highlights": [
         {
           "label": "Locked: last admin",

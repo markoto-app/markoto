@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/F8MmkUcR4L"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 1260,
         "y": 98
       },
-      "path": "/d/BCDnvTLAHk",
+      "path": "/d/F8MmkUcR4L",
       "annotations": [
         {
           "label": "theme tab",
@@ -52,7 +52,7 @@
         "x": 1260,
         "y": 98
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/F8MmkUcR4L"
     },
     {
       "kind": "approach",
@@ -62,7 +62,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/BCDnvTLAHk",
+      "path": "/d/F8MmkUcR4L",
       "annotations": [
         {
           "label": "Cover page accordion",
@@ -77,12 +77,12 @@
     {
       "kind": "outcome",
       "file": "05.webp",
-      "caption": "The cover-page editor expands — every field on one scroll-length panel.",
+      "caption": "The cover-page editor expands, every field on one scroll-length panel.",
       "cursor": {
         "x": 1120,
         "y": 438
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/F8MmkUcR4L"
     },
     {
       "kind": "chapter",
@@ -92,52 +92,52 @@
     {
       "kind": "narration",
       "text": "Editorial is the default. Banner puts the logo and the title in a tinted band across the top of the page. The preview updates as soon as you pick a layout.",
-      "file": "06.webp",
+      "file": "05.webp",
       "cursor": {
         "x": 1120,
         "y": 438
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/F8MmkUcR4L"
     },
     {
       "kind": "approach",
-      "file": "07.webp",
+      "file": "06.webp",
       "caption": "Open the layout dropdown",
       "cursor": {
         "x": 1120,
         "y": 618
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/F8MmkUcR4L"
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
-      "caption": "The four cover layouts list — pick one to preview it.",
+      "file": "07.webp",
+      "caption": "The four cover layouts list, pick one to preview it.",
       "cursor": {
         "x": 1120,
         "y": 618
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/F8MmkUcR4L"
     },
     {
       "kind": "approach",
-      "file": "09.webp",
-      "caption": "Choose \"Banner — logo + title in a brand-tinted top band\"",
+      "file": "08.webp",
+      "caption": "Choose \"Banner: logo + title in a brand-tinted top band\"",
       "cursor": {
         "x": 1120,
         "y": 511
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/F8MmkUcR4L"
     },
     {
       "kind": "outcome",
-      "file": "10.webp",
+      "file": "09.webp",
       "caption": "The cover changes: logo and title now sit in a tinted band across the top.",
       "cursor": {
         "x": 1120,
         "y": 511
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/F8MmkUcR4L"
     },
     {
       "kind": "chapter",
@@ -147,52 +147,52 @@
     {
       "kind": "narration",
       "text": "A short line under the title, such as a version, a team or \"Internal draft\". The subtitle is off by default: switch it on, then type.",
-      "file": "10.webp",
+      "file": "09.webp",
       "cursor": {
         "x": 1120,
         "y": 511
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/F8MmkUcR4L"
     },
     {
       "kind": "approach",
-      "file": "11.webp",
+      "file": "10.webp",
       "caption": "Flip the \"Show subtitle\" toggle on",
       "cursor": {
         "x": 991,
         "y": 438
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/F8MmkUcR4L"
     },
     {
       "kind": "outcome",
-      "file": "12.webp",
+      "file": "11.webp",
       "caption": "The subtitle field appears underneath, ready for input.",
       "cursor": {
         "x": 991,
         "y": 438
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/F8MmkUcR4L"
     },
     {
       "kind": "approach",
-      "file": "13.webp",
+      "file": "12.webp",
       "caption": "Type a subtitle line",
       "cursor": {
         "x": 987,
         "y": 581
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/F8MmkUcR4L"
     },
     {
       "kind": "outcome",
-      "file": "14.webp",
+      "file": "13.webp",
       "caption": "The subtitle appears on the cover. The PDF will open on this page.",
       "cursor": {
         "x": 987,
         "y": 581
       },
-      "path": "/d/BCDnvTLAHk",
+      "path": "/d/F8MmkUcR4L",
       "highlights": [
         {
           "label": "Your cover page",

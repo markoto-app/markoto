@@ -16,13 +16,13 @@
     },
     {
       "kind": "narration",
-      "text": "When you're done with a draft and don't want it lingering, delete it from File → Delete. markoto asks you to type the doc's title back as a confirmation — strong friction by design, because deletion is permanent. The text, its history, its comments and every image in it are removed, and anyone who has the doc open is sent back to their dashboard.",
+      "text": "When you're done with a draft and don't want it lingering, delete it from File → Delete. markoto asks you to type the doc's title back as a confirmation, strong friction by design, because deletion is permanent. The text, its history, its comments and every image in it are removed, and anyone who has the doc open is sent back to their dashboard.",
       "file": "01.webp",
       "cursor": {
         "x": 640,
         "y": 26
       },
-      "path": "/d/1hXGgYXP91"
+      "path": "/d/xRHyQde_Za"
     },
     {
       "kind": "approach",
@@ -32,17 +32,17 @@
         "x": 28,
         "y": 67
       },
-      "path": "/d/1hXGgYXP91"
+      "path": "/d/xRHyQde_Za"
     },
     {
       "kind": "outcome",
       "file": "03.webp",
-      "caption": "The File menu opens — Delete sits at the bottom under its own separator.",
+      "caption": "The File menu opens, Delete sits at the bottom under its own separator.",
       "cursor": {
         "x": 28,
         "y": 67
       },
-      "path": "/d/1hXGgYXP91"
+      "path": "/d/xRHyQde_Za"
     },
     {
       "kind": "approach",
@@ -52,7 +52,7 @@
         "x": 103,
         "y": 328
       },
-      "path": "/d/1hXGgYXP91",
+      "path": "/d/xRHyQde_Za",
       "annotations": [
         {
           "label": "delete",
@@ -67,12 +67,12 @@
     {
       "kind": "outcome",
       "file": "05.webp",
-      "caption": "A confirm modal opens — type the doc's title to enable Delete.",
+      "caption": "A confirm modal opens, type the doc's title to enable Delete.",
       "cursor": {
         "x": 103,
         "y": 328
       },
-      "path": "/d/1hXGgYXP91"
+      "path": "/d/xRHyQde_Za"
     },
     {
       "kind": "chapter",
@@ -81,47 +81,47 @@
     },
     {
       "kind": "narration",
-      "text": "The Delete button stays disabled until the typed text exactly matches the doc's title. Same shape as GitHub's repo deletion — friction beats a one-click slip.",
-      "file": "06.webp",
+      "text": "The Delete button stays disabled until the typed text exactly matches the doc's title. Same shape as GitHub's repo deletion: friction beats a one-click slip.",
+      "file": "05.webp",
       "cursor": {
         "x": 103,
         "y": 328
       },
-      "path": "/d/1hXGgYXP91"
+      "path": "/d/xRHyQde_Za"
     },
     {
       "kind": "approach",
-      "file": "06.webp",
+      "file": "05.webp",
       "caption": "Type the doc's title",
       "cursor": {
         "x": 422,
         "y": 465
       },
-      "path": "/d/1hXGgYXP91"
+      "path": "/d/xRHyQde_Za"
     },
     {
       "kind": "outcome",
-      "file": "07.webp",
+      "file": "06.webp",
       "caption": "The title matches, so the Delete button unlocks.",
       "cursor": {
         "x": 422,
         "y": 465
       },
-      "path": "/d/1hXGgYXP91"
+      "path": "/d/xRHyQde_Za"
     },
     {
       "kind": "approach",
-      "file": "08.webp",
+      "file": "07.webp",
       "caption": "Click \"Delete\"",
       "cursor": {
         "x": 794,
         "y": 513
       },
-      "path": "/d/1hXGgYXP91"
+      "path": "/d/xRHyQde_Za"
     },
     {
       "kind": "outcome",
-      "file": "09.webp",
+      "file": "08.webp",
       "caption": "The doc is gone. You land back on your dashboard, and your recent documents no longer list it.",
       "cursor": {
         "x": 794,
