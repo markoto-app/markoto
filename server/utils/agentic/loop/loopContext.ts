@@ -110,6 +110,7 @@ export type ResponseParts = NonNullable<Content['parts']>
 export type DispatchOutcome
   = | { kind: 'continue', responseParts: ResponseParts }
     | { kind: 'session-cap-exceeded', message: string }
+    | { kind: 'provider-unavailable', message: string }
     | { kind: 'comment-trigger-done', responseParts: ResponseParts }
 
 /**

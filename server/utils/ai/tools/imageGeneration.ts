@@ -10,6 +10,7 @@ import { FREE_ALLOWANCE_EXHAUSTED_MESSAGE, isFreeAllowanceExhaustedError } from 
 import { useEnv } from '~~/shared/env/load'
 import { useLogger } from '../../platform/logger'
 import { fetchViewableExternalImage } from './imageFetch'
+import { isProviderUnavailableError } from './providerOutage'
 
 const log = useLogger('ai-tools')
 
@@ -58,7 +59,8 @@ interface ImageGenOpts {
   docId?: string | null
 }
 
-type ImageGenResult = { bytes: Uint8Array, mimeType: GeneratedImageMime } | { error: string }
+/** `providerUnavailable`: the provider answered 5xx or could not be reached (not our fault, not the user's). */
+type ImageGenResult = { bytes: Uint8Array, mimeType: GeneratedImageMime } | { error: string, providerUnavailable?: true }
 
 /**
  * Generate an image from a text prompt. Two paths, picked by the
@@ -209,6 +211,7 @@ async function generateImageBytesBfl(
     if (msg.includes('budget_exceeded') || msg.includes('Budget has been exceeded')) {
       return { error: budgetExhaustedMessage() }
     }
+    if (isProviderUnavailableError(e)) return { error: `Image generation failed: ${msg}`, providerUnavailable: true }
     return { error: `Image generation failed: ${msg}` }
   }
 }

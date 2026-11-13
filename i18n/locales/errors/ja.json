@@ -39,6 +39,7 @@
       "confirmation-not-pending": "このリクエストは、もう回答を待っていません。",
       "duplicate-session": "このドキュメントではすでにmarkotoセッションが実行中です。",
       "free-allowance-exhausted": "今月の無料 AI 利用枠を使い切りました。",
+      "image-provider-unavailable": "画像プロバイダーは現在利用できません。しばらくしてからもう一度お試しください。",
       "provider-error": "文字起こしプロバイダーでエラーが発生しました。AI プロバイダーの設定を確認してください。",
       "provider-missing": "このための AI プロバイダーが設定されていません。設定で追加してください。",
       "session-not-found": "AI セッションが見つかりません。",

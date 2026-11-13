@@ -39,6 +39,7 @@
       "confirmation-not-pending": "This request is no longer waiting for an answer.",
       "duplicate-session": "You already have a markoto session running on this document.",
       "free-allowance-exhausted": "The free AI allowance is used up for this month.",
+      "image-provider-unavailable": "The image provider is not available right now. Try again later.",
       "provider-error": "Your transcription provider returned an error. Check your AI provider settings.",
       "provider-missing": "No AI provider is set up for this. Add one in Settings.",
       "session-not-found": "AI session not found.",
