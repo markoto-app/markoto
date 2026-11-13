@@ -1,0 +1,109 @@
+{
+  "version": 2,
+  "title": "Ask the AI about another doc",
+  "slug": "ask-the-ai-about-another-doc",
+  "locale": "en",
+  "variant": "light-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Ask the AI about another doc in your workspace"
+    },
+    {
+      "kind": "narration",
+      "text": "Inside a workspace the AI can find and read the other documents you have access to. Ask about another doc by name and it looks it up, reads it, then writes the answer into the doc you are in — naming the doc it took it from.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/d/YsMPPxKorh"
+    },
+    {
+      "kind": "approach",
+      "file": "01.webp",
+      "caption": "Click into the AI prompt bar",
+      "cursor": {
+        "x": 173,
+        "y": 602
+      },
+      "path": "/d/YsMPPxKorh"
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "The bar lifts, ready for your question.",
+      "cursor": {
+        "x": 173,
+        "y": 602
+      },
+      "path": "/d/YsMPPxKorh"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Ask about a sibling doc",
+      "cursor": {
+        "x": 76,
+        "y": 603
+      },
+      "path": "/d/YsMPPxKorh"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "Your prompt names another doc in the workspace — the AI will go and read it.",
+      "cursor": {
+        "x": 76,
+        "y": 603
+      },
+      "path": "/d/YsMPPxKorh"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Send it",
+      "cursor": {
+        "x": 350,
+        "y": 602
+      },
+      "path": "/d/YsMPPxKorh"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "The AI finds the postmortem, reads it, and writes the answer into this doc.",
+      "cursor": {
+        "x": 350,
+        "y": 602
+      },
+      "path": "/d/YsMPPxKorh"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "The AI summarised the Q3 postmortem's onboarding finding into this doc — citing the source. The user never had to open the sibling doc themselves.",
+      "cursor": {
+        "x": 350,
+        "y": 602
+      },
+      "path": "/d/YsMPPxKorh",
+      "highlights": [
+        {
+          "label": "Answer from the other doc",
+          "x": 16,
+          "y": 255.6875,
+          "w": 358,
+          "h": 271.875
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "knowledge-grounded-ai",
+    "why": "For files that aren't docs (PDFs, FAQs), the workspace knowledge base + RAG is the next step over"
+  }
+}

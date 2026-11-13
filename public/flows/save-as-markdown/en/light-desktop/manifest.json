@@ -1,0 +1,96 @@
+{
+  "version": 2,
+  "title": "Save as Markdown",
+  "slug": "save-as-markdown",
+  "locale": "en",
+  "variant": "light-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Save the doc as a .md file"
+    },
+    {
+      "kind": "narration",
+      "text": "Sometimes you want the source, not the finished page. File › Export › Markdown saves the document as a .md file straight to your downloads folder. Useful for a git repository, another Markdown editor, or an archive.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 640,
+        "y": 24
+      },
+      "path": "/d/ISzEv_xWo7"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Click the File menu",
+      "cursor": {
+        "x": 28,
+        "y": 63
+      },
+      "path": "/d/ISzEv_xWo7"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The File menu opens — Export sits between Import and Print.",
+      "cursor": {
+        "x": 28,
+        "y": 63
+      },
+      "path": "/d/ISzEv_xWo7"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Hover \"Export\" for the format submenu",
+      "cursor": {
+        "x": 94,
+        "y": 169
+      },
+      "path": "/d/ISzEv_xWo7"
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Click \"Markdown (.md)\" to download",
+      "cursor": {
+        "x": 259,
+        "y": 169
+      },
+      "path": "/d/ISzEv_xWo7"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "Your browser saves the file, named after the document.",
+      "cursor": {
+        "x": 259,
+        "y": 169
+      },
+      "path": "/d/ISzEv_xWo7"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Open the file"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "The saved file is plain Markdown: headings, lists and links as you wrote them. A short block at the top keeps the theme and the document settings for a later import.",
+      "cursor": null,
+      "path": "Downloads/Weekly sync.md",
+      "hero": true,
+      "actor": "file"
+    }
+  ],
+  "next": {
+    "slug": "polished-pdf",
+    "why": "Or download a styled PDF instead — same File menu, different format"
+  }
+}

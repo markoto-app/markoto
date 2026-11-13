@@ -1,0 +1,321 @@
+{
+  "version": 2,
+  "title": "Put a workspace on the Team plan",
+  "slug": "put-a-workspace-on-the-team-plan",
+  "locale": "en",
+  "variant": "light-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Choose Team for the whole workspace"
+    },
+    {
+      "kind": "narration",
+      "text": "Team is bought for a workspace, not for a person. You pay per seat, and everyone in the workspace gets Team inside it, with one shared AI budget for the month. Only workspace admins see the Billing tab.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/w/koDlOGl3EK"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Open the Billing tab",
+      "cursor": {
+        "x": 337,
+        "y": 247
+      },
+      "path": "/w/koDlOGl3EK",
+      "annotations": [
+        {
+          "label": "Billing",
+          "kind": "arrow",
+          "x": 300.859375,
+          "y": 225,
+          "w": 73.203125,
+          "h": 44
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The billing tab shows Team and Business, the billing period, the seats and the total.",
+      "cursor": {
+        "x": 337,
+        "y": 247
+      },
+      "path": "/w/koDlOGl3EK"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "Set four seats, one for the colleague you're about to invite",
+      "cursor": {
+        "x": 337,
+        "y": 247
+      },
+      "path": "/w/koDlOGl3EK",
+      "highlights": [
+        {
+          "label": "Total",
+          "x": 33,
+          "y": 831,
+          "w": 196.375,
+          "h": 20
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Tick the box to accept the Paid Plans Terms",
+      "cursor": {
+        "x": 41,
+        "y": 549
+      },
+      "path": "/w/koDlOGl3EK"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "Buying needs the box: it accepts the terms and asks for the plan to start right away.",
+      "cursor": {
+        "x": 41,
+        "y": 549
+      },
+      "path": "/w/koDlOGl3EK"
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
+      "caption": "Click \"Continue to payment\"",
+      "cursor": {
+        "x": 121,
+        "y": 615
+      },
+      "path": "/w/koDlOGl3EK"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "markoto opens Stripe Checkout for the workspace.",
+      "cursor": {
+        "x": 121,
+        "y": 615
+      },
+      "path": "/pay/c/cs_test_a1YS1URlnyQCN5fUUduORoQ7Pw41PJqDWkIVQCpJPqkfIhd6tVY8XB1OLY"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Pay with Stripe"
+    },
+    {
+      "kind": "narration",
+      "text": "Stripe's checkout page takes the payment (markoto never sees your card) and sends you back. The invoice names the workspace, and you become its billing admin.",
+      "file": "07.webp",
+      "cursor": null,
+      "path": "/pay/c/cs_test_a1YS1URlnyQCN5fUUduORoQ7Pw41PJqDWkIVQCpJPqkfIhd6tVY8XB1OLY"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "caption": "Back on markoto: the workspace is on Team. The tab shows the seats in use, the shared AI budget and what each person used this month.",
+      "cursor": {
+        "x": 348,
+        "y": 42
+      },
+      "path": "/w/koDlOGl3EK",
+      "highlights": [
+        {
+          "label": "Team",
+          "x": 238.203125,
+          "y": 85,
+          "w": 28.375,
+          "h": 16
+        },
+        {
+          "label": "Seats",
+          "x": 12,
+          "y": 361,
+          "w": 366,
+          "h": 479.75
+        }
+      ],
+      "hero": true
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Invite more people than you have seats for"
+    },
+    {
+      "kind": "narration",
+      "text": "The fourth seat is free, so the first invitation goes straight out. When every seat is taken, markoto asks before adding one: the extra seat is charged pro rata on the next invoice.",
+      "file": "08.webp",
+      "cursor": {
+        "x": 348,
+        "y": 42
+      },
+      "path": "/w/koDlOGl3EK"
+    },
+    {
+      "kind": "approach",
+      "file": "09.webp",
+      "caption": "Invite a fifth person",
+      "cursor": {
+        "x": 317,
+        "y": 581
+      },
+      "path": "/w/koDlOGl3EK"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "All four seats are taken, so markoto asks whether to add one.",
+      "cursor": {
+        "x": 317,
+        "y": 581
+      },
+      "path": "/w/koDlOGl3EK"
+    },
+    {
+      "kind": "approach",
+      "file": "11.webp",
+      "caption": "Click \"Add a seat and invite\"",
+      "cursor": {
+        "x": 279,
+        "y": 596
+      },
+      "path": "/w/koDlOGl3EK"
+    },
+    {
+      "kind": "outcome",
+      "file": "12.webp",
+      "caption": "The plan now has five seats and the invitation is on its way.",
+      "cursor": {
+        "x": 279,
+        "y": 596
+      },
+      "path": "/w/koDlOGl3EK"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Give one person a smaller AI allowance"
+    },
+    {
+      "kind": "narration",
+      "text": "By default each member may use up to two seats' worth of the AI budget a month. You can lower or raise it per person, or remove it; the workspace budget always applies.",
+      "file": "13.webp",
+      "cursor": {
+        "x": 279,
+        "y": 596
+      },
+      "path": "/w/koDlOGl3EK"
+    },
+    {
+      "kind": "approach",
+      "file": "14.webp",
+      "caption": "Save Ben's limit of $3 a month",
+      "cursor": {
+        "x": 328,
+        "y": 520
+      },
+      "path": "/w/koDlOGl3EK"
+    },
+    {
+      "kind": "outcome",
+      "file": "15.webp",
+      "caption": "Ben can now use up to $3 of the workspace's AI budget this month.",
+      "cursor": {
+        "x": 328,
+        "y": 520
+      },
+      "path": "/w/koDlOGl3EK"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Top up the AI budget"
+    },
+    {
+      "kind": "narration",
+      "text": "If the workspace needs more AI this month, buy credits. They are used only after the month's budget is spent and last a year.",
+      "file": "16.webp",
+      "cursor": {
+        "x": 328,
+        "y": 520
+      },
+      "path": "/w/koDlOGl3EK"
+    },
+    {
+      "kind": "approach",
+      "file": "17.webp",
+      "caption": "Tick the box for the credits",
+      "cursor": {
+        "x": 41,
+        "y": 359
+      },
+      "path": "/w/koDlOGl3EK"
+    },
+    {
+      "kind": "outcome",
+      "file": "18.webp",
+      "caption": "For credits the box also says that the right of withdrawal ends once they are used.",
+      "cursor": {
+        "x": 41,
+        "y": 359
+      },
+      "path": "/w/koDlOGl3EK"
+    },
+    {
+      "kind": "approach",
+      "file": "19.webp",
+      "caption": "Buy €25 of AI credits",
+      "cursor": {
+        "x": 195,
+        "y": 469
+      },
+      "path": "/w/koDlOGl3EK"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "Stripe takes the payment for the credits.",
+      "cursor": {
+        "x": 195,
+        "y": 469
+      },
+      "path": "/pay/c/cs_test_a1YS1URlnyQCN5fUUduORoQ7Pw41PJqDWkIVQCpJPqkfIhd6tVY8XB1OLY"
+    },
+    {
+      "kind": "outcome",
+      "file": "20.webp",
+      "caption": "The credits are on the workspace, with the date they expire.",
+      "cursor": {
+        "x": 348,
+        "y": 42
+      },
+      "path": "/w/koDlOGl3EK",
+      "highlights": [
+        {
+          "label": "Credits",
+          "x": 33,
+          "y": 183.75,
+          "w": 324,
+          "h": 353
+        }
+      ]
+    }
+  ],
+  "next": {
+    "slug": "invite-a-teammate-to-your-workspace",
+    "why": "See what your invited colleagues see when they accept"
+  }
+}

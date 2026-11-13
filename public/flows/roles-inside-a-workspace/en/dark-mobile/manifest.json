@@ -1,0 +1,158 @@
+{
+  "version": 2,
+  "title": "Roles inside a workspace",
+  "slug": "roles-inside-a-workspace",
+  "locale": "en",
+  "variant": "dark-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Roles inside a workspace"
+    },
+    {
+      "kind": "narration",
+      "text": "Three roles. Admins do everything — add members, change permissions, delete the workspace. Editors write content but can't touch access controls. Viewers read; their editor is locked. Two safety rails: one workspace must always have at least one admin, and a viewer's read-only access is enforced by the server, not just hidden in the UI.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/w/N6_g4_atK4"
+    },
+    {
+      "kind": "approach",
+      "file": "01.webp",
+      "caption": "Open the members panel",
+      "cursor": {
+        "x": 141,
+        "y": 156
+      },
+      "path": "/w/N6_g4_atK4",
+      "annotations": [
+        {
+          "label": "members card",
+          "kind": "arrow",
+          "x": 6,
+          "y": 127,
+          "w": 270,
+          "h": 58
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "Members modal opens — admin (you), Sam (viewer), and the role chip beside each name.",
+      "cursor": {
+        "x": 141,
+        "y": 156
+      },
+      "path": "/w/N6_g4_atK4"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Promote Sam to editor"
+    },
+    {
+      "kind": "narration",
+      "text": "The role chip beside Sam's name opens a dropdown — Admin / Editor / Viewer. Pick Editor and the change is saved right away. Sam's documents become writable the next time they open one (an editor that is already open picks it up within two hours).",
+      "file": "03.webp",
+      "cursor": {
+        "x": 141,
+        "y": 156
+      },
+      "path": "/w/N6_g4_atK4"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Click the role chip beside Sam",
+      "cursor": {
+        "x": 271,
+        "y": 336
+      },
+      "path": "/w/N6_g4_atK4"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "The role menu opens — Admin, Editor, Viewer.",
+      "cursor": {
+        "x": 271,
+        "y": 336
+      },
+      "path": "/w/N6_g4_atK4"
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Pick \"Editor\"",
+      "cursor": {
+        "x": 245,
+        "y": 408
+      },
+      "path": "/w/N6_g4_atK4"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "Sam's chip now reads Editor — the change is saved.",
+      "cursor": {
+        "x": 245,
+        "y": 408
+      },
+      "path": "/w/N6_g4_atK4",
+      "highlights": [
+        {
+          "label": "Sam is now an editor",
+          "x": 33,
+          "y": 306,
+          "w": 324,
+          "h": 60
+        }
+      ],
+      "hero": true
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "The last-admin invariant"
+    },
+    {
+      "kind": "narration",
+      "text": "A workspace must always have at least one admin — otherwise no one can manage members or close it down. While you are the only admin, the role chip on your own row is locked, and markoto refuses the change even if something tries it anyway.",
+      "file": "06.webp",
+      "cursor": {
+        "x": 245,
+        "y": 408
+      },
+      "path": "/w/N6_g4_atK4"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "Your own role chip is locked — you are the only admin.",
+      "cursor": {
+        "x": 245,
+        "y": 408
+      },
+      "path": "/w/N6_g4_atK4",
+      "highlights": [
+        {
+          "label": "Locked: last admin",
+          "x": 273.484375,
+          "y": 265,
+          "w": 71.515625,
+          "h": 24
+        }
+      ]
+    }
+  ],
+  "next": {
+    "slug": "invite-a-teammate-to-your-workspace",
+    "why": "Now that you know what each role can do, see how the invite flow itself works"
+  }
+}

@@ -1,0 +1,282 @@
+{
+  "version": 2,
+  "title": "Tell the AI who you're writing for",
+  "slug": "tell-the-ai-who-you-re-writing-for",
+  "locale": "en",
+  "variant": "light-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Tell markoto who you're writing for"
+    },
+    {
+      "kind": "narration",
+      "text": "Every doc carries four context fields beyond the title: a description, a target audience, a language, and the template it was created from. The AI sees them on every prompt — so a one-time minute setting them up saves you re-typing context on every \"rewrite this\" / \"extend this\" / \"draft a section\".",
+      "file": "01.webp",
+      "cursor": {
+        "x": 640,
+        "y": 26
+      },
+      "path": "/d/aJ2aBdHfoh"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Click the Document tab in the right sidebar",
+      "cursor": {
+        "x": 1182,
+        "y": 98
+      },
+      "path": "/d/aJ2aBdHfoh",
+      "annotations": [
+        {
+          "label": "document tab",
+          "kind": "arrow",
+          "x": 1170,
+          "y": 86,
+          "w": 24,
+          "h": 24
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The Document panel opens — Description, Language, Audience, Template, all editable in place.",
+      "cursor": {
+        "x": 1182,
+        "y": 98
+      },
+      "path": "/d/aJ2aBdHfoh"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Set the audience, language, and description"
+    },
+    {
+      "kind": "narration",
+      "text": "Description is one line that tells the AI what this document IS. Audience is a closed enum of writing registers (six of them, each with a tuned tone fragment). Language is free text — six curated presets plus typed input for anything else.",
+      "file": "03.webp",
+      "cursor": {
+        "x": 1182,
+        "y": 98
+      },
+      "path": "/d/aJ2aBdHfoh"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Type a one-line description",
+      "cursor": {
+        "x": 987,
+        "y": 290
+      },
+      "path": "/d/aJ2aBdHfoh"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "The description is captured — the AI will see this on every prompt.",
+      "cursor": {
+        "x": 987,
+        "y": 290
+      },
+      "path": "/d/aJ2aBdHfoh"
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
+      "caption": "Open the Audience dropdown",
+      "cursor": {
+        "x": 1120,
+        "y": 557
+      },
+      "path": "/d/aJ2aBdHfoh"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "The audience options appear — six writing registers.",
+      "cursor": {
+        "x": 1120,
+        "y": 557
+      },
+      "path": "/d/aJ2aBdHfoh"
+    },
+    {
+      "kind": "approach",
+      "file": "08.webp",
+      "caption": "Pick \"Marketing / SEO\"",
+      "cursor": {
+        "x": 1120,
+        "y": 375
+      },
+      "path": "/d/aJ2aBdHfoh"
+    },
+    {
+      "kind": "outcome",
+      "file": "09.webp",
+      "caption": "The audience switches to Marketing — the AI now knows to write benefit-led, scannable, customer-facing prose.",
+      "cursor": {
+        "x": 1120,
+        "y": 375
+      },
+      "path": "/d/aJ2aBdHfoh"
+    },
+    {
+      "kind": "approach",
+      "file": "10.webp",
+      "caption": "Type \"Deutsch\" in the Language field",
+      "cursor": {
+        "x": 987,
+        "y": 443
+      },
+      "path": "/d/aJ2aBdHfoh"
+    },
+    {
+      "kind": "outcome",
+      "file": "11.webp",
+      "caption": "The Deutsch preset surfaces in the suggestions — Enter to commit.",
+      "cursor": {
+        "x": 987,
+        "y": 443
+      },
+      "path": "/d/aJ2aBdHfoh"
+    },
+    {
+      "kind": "approach",
+      "file": "11.webp",
+      "caption": "Pick \"Deutsch\"",
+      "cursor": {
+        "x": 1120,
+        "y": 487
+      },
+      "path": "/d/aJ2aBdHfoh"
+    },
+    {
+      "kind": "outcome",
+      "file": "12.webp",
+      "caption": "The language switches to Deutsch — the AI now writes in German, whatever language you ask in.",
+      "cursor": {
+        "x": 1120,
+        "y": 487
+      },
+      "path": "/d/aJ2aBdHfoh"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Ask the AI for an intro"
+    },
+    {
+      "kind": "narration",
+      "text": "With audience + language + description set, ANY prompt the AI sees gets shaped by them — without you mentioning audience or language in your prompt. We ask for a one-line intro in plain English; the AI returns marketing-tone Deutsch.",
+      "file": "13.webp",
+      "cursor": {
+        "x": 1120,
+        "y": 487
+      },
+      "path": "/d/aJ2aBdHfoh"
+    },
+    {
+      "kind": "approach",
+      "file": "14.webp",
+      "caption": "Click into the AI prompt bar",
+      "cursor": {
+        "x": 618,
+        "y": 722
+      },
+      "path": "/d/aJ2aBdHfoh",
+      "annotations": [
+        {
+          "label": "prompt bar",
+          "kind": "arrow",
+          "x": 0,
+          "y": 697.75,
+          "w": 1280,
+          "h": 49.5
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "15.webp",
+      "caption": "The prompt bar lifts and glows — ready for your prompt.",
+      "cursor": {
+        "x": 618,
+        "y": 722
+      },
+      "path": "/d/aJ2aBdHfoh"
+    },
+    {
+      "kind": "approach",
+      "file": "15.webp",
+      "caption": "Type a plain-English ask",
+      "cursor": {
+        "x": 316,
+        "y": 723
+      },
+      "path": "/d/aJ2aBdHfoh"
+    },
+    {
+      "kind": "outcome",
+      "file": "16.webp",
+      "caption": "The ask is short and English. The audience + language fields do the rest of the work.",
+      "cursor": {
+        "x": 316,
+        "y": 723
+      },
+      "path": "/d/aJ2aBdHfoh"
+    },
+    {
+      "kind": "approach",
+      "file": "17.webp",
+      "caption": "Send it",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/aJ2aBdHfoh"
+    },
+    {
+      "kind": "outcome",
+      "file": "18.webp",
+      "caption": "The AI is working — the bar pulses until it is done.",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/aJ2aBdHfoh"
+    },
+    {
+      "kind": "outcome",
+      "file": "19.webp",
+      "caption": "The AI added a one-line intro in German with a marketing tone, although the draft and the prompt are English: the document settings did that.",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/aJ2aBdHfoh",
+      "highlights": [
+        {
+          "label": "AI's edits",
+          "x": 0,
+          "y": 115,
+          "w": 479.5,
+          "h": 536.25
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "pick-a-theme",
+    "why": "Now match the visual style — pick a theme that fits the audience"
+  }
+}

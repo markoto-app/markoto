@@ -1,0 +1,121 @@
+{
+  "version": 2,
+  "title": "See who changed what in a workspace",
+  "slug": "see-who-changed-what-in-a-workspace",
+  "locale": "en",
+  "variant": "dark-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Open the audit log"
+    },
+    {
+      "kind": "narration",
+      "text": "The audit log lists what happened in the workspace, newest first: members and roles, invitations, sharing and deletions, billing and single sign-on — with who did it and their shortened network address.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/w/AHZ1HcNzbs"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Open the Audit log tab",
+      "cursor": {
+        "x": 978,
+        "y": 257
+      },
+      "path": "/w/AHZ1HcNzbs",
+      "annotations": [
+        {
+          "label": "Audit log",
+          "kind": "arrow",
+          "x": 932.453125,
+          "y": 235,
+          "w": 91.40625,
+          "h": 44
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "cursor": {
+        "x": 978,
+        "y": 257
+      },
+      "path": "/w/AHZ1HcNzbs"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "Each change with when, what and who",
+      "cursor": {
+        "x": 978,
+        "y": 257
+      },
+      "path": "/w/AHZ1HcNzbs",
+      "highlights": [
+        {
+          "label": "Who changed what",
+          "x": 257,
+          "y": 544,
+          "w": 766,
+          "h": 45
+        }
+      ],
+      "hero": true
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "Click an entry for its details",
+      "cursor": {
+        "x": 640,
+        "y": 611
+      },
+      "path": "/w/AHZ1HcNzbs",
+      "highlights": [
+        {
+          "label": "Before and after",
+          "x": 273,
+          "y": 629,
+          "w": 734,
+          "h": 280
+        }
+      ]
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Download a copy"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "Download the selected events as CSV or JSON Lines",
+      "cursor": {
+        "x": 640,
+        "y": 611
+      },
+      "path": "/w/AHZ1HcNzbs",
+      "highlights": [
+        {
+          "label": "CSV",
+          "x": 846.53125,
+          "y": 487,
+          "w": 73.953125,
+          "h": 32
+        }
+      ]
+    }
+  ],
+  "next": {
+    "slug": "set-up-single-sign-on-for-a-workspace",
+    "why": "Make everyone sign in through your organisation's identity provider."
+  }
+}

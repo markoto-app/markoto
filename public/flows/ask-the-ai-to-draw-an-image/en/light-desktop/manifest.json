@@ -1,0 +1,112 @@
+{
+  "version": 2,
+  "title": "Ask the AI to draw an image",
+  "slug": "ask-the-ai-to-draw-an-image",
+  "locale": "en",
+  "variant": "light-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Ask the AI to draw an image"
+    },
+    {
+      "kind": "narration",
+      "text": "The AI prompt bar can do more than write. Ask it for an image and it draws one with your image provider, stores it with the document and places it in the text. It renders in the preview like any image you uploaded yourself, and it is deleted together with the document.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 640,
+        "y": 26
+      },
+      "path": "/d/fGXlFi2zVE"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Click into the AI prompt bar",
+      "cursor": {
+        "x": 618,
+        "y": 722
+      },
+      "path": "/d/fGXlFi2zVE"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The prompt bar lifts and glows — ready for your prompt.",
+      "cursor": {
+        "x": 618,
+        "y": 722
+      },
+      "path": "/d/fGXlFi2zVE"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Type the image prompt",
+      "cursor": {
+        "x": 316,
+        "y": 723
+      },
+      "path": "/d/fGXlFi2zVE"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "Your prompt is ready. Hit send.",
+      "cursor": {
+        "x": 316,
+        "y": 723
+      },
+      "path": "/d/fGXlFi2zVE"
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Send it",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/fGXlFi2zVE"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "The AI is working — it draws the image, then places it in the document.",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/fGXlFi2zVE"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "The AI drew the illustration and placed it right under the title; the preview shows the image itself.",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/fGXlFi2zVE",
+      "highlights": [
+        {
+          "label": "The image in your text",
+          "x": 24.75,
+          "y": 209.75,
+          "w": 590,
+          "h": 49.5
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "rich-content",
+    "why": "More markdown extensions — code, alerts, math, diagrams"
+  }
+}

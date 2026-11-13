@@ -1,0 +1,152 @@
+{
+  "version": 2,
+  "title": "Write with AI",
+  "slug": "write-with-ai",
+  "locale": "en",
+  "variant": "light-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Ask the AI to write for you"
+    },
+    {
+      "kind": "narration",
+      "text": "The AI prompt bar floats at the bottom of every markoto document. Type what you want, hit send, and the AI joins the doc as another collaborator — you watch it type. It can draft new sections, rewrite passages, restructure outlines, even fetch sources from the web before it writes.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 640,
+        "y": 26
+      },
+      "path": "/d/pkda_2_NWi"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Click into the AI prompt bar to focus it",
+      "cursor": {
+        "x": 618,
+        "y": 722
+      },
+      "path": "/d/pkda_2_NWi",
+      "annotations": [
+        {
+          "label": "prompt bar",
+          "kind": "arrow",
+          "x": 0,
+          "y": 697.75,
+          "w": 1280,
+          "h": 49.5
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The bar lifts and glows — ready for your prompt.",
+      "cursor": {
+        "x": 618,
+        "y": 722
+      },
+      "path": "/d/pkda_2_NWi"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Type your prompt — like talking to a teammate",
+      "cursor": {
+        "x": 316,
+        "y": 723
+      },
+      "path": "/d/pkda_2_NWi"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "Your prompt is ready. Hit send to kick off the AI.",
+      "cursor": {
+        "x": 316,
+        "y": 723
+      },
+      "path": "/d/pkda_2_NWi"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "The AI joins your document"
+    },
+    {
+      "kind": "narration",
+      "text": "The bar swaps to its active state and pulses while the AI runs. It uses tools to read your document, find the right place to insert, and apply edits. Other collaborators see the changes land live, just like a human collaborator.",
+      "file": "04.webp",
+      "cursor": {
+        "x": 618,
+        "y": 722
+      },
+      "path": "/d/pkda_2_NWi"
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Click send to submit your prompt",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/pkda_2_NWi"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "The AI is working — the bar pulses while it edits.",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/pkda_2_NWi"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "The AI is done"
+    },
+    {
+      "kind": "narration",
+      "text": "When the AI is done, the bar fades back to its idle state. The AI's edits are now part of your document — undo them with Cmd / Ctrl + Z if you don't like what it wrote, or iterate by sending another prompt that builds on its work.",
+      "file": "07.webp",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/pkda_2_NWi"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "caption": "The AI added a \"Keyboard shortcuts\" section at the end of the doc, in the editor and the preview.",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/pkda_2_NWi",
+      "highlights": [
+        {
+          "label": "The new section",
+          "x": 24.75,
+          "y": 438.5,
+          "w": 590,
+          "h": 27.75
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "summon-ai-from-a-comment",
+    "why": "Ask the AI about a specific passage — tag @markoto in a comment"
+  }
+}

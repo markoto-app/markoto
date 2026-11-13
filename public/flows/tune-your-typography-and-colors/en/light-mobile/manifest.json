@@ -1,0 +1,145 @@
+{
+  "version": 2,
+  "title": "Tune your typography and colors",
+  "slug": "tune-your-typography-and-colors",
+  "locale": "en",
+  "variant": "light-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Tune your typography and colors"
+    },
+    {
+      "kind": "narration",
+      "text": "Eight built-in presets get you to a polished starting point in one click. Below the preset cards, the theme panel has a section for every detail: page, body text, headings, colours, tables, code, table of contents, diagrams, header and footer. Every change shows up in the preview right away. Here: a serif body font for long reading.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/d/pZgmI3iTCg"
+    },
+    {
+      "kind": "approach",
+      "file": "01.webp",
+      "caption": "Tap the Theme tab on the bottom bar",
+      "cursor": {
+        "x": 357,
+        "y": 695
+      },
+      "path": "/d/pZgmI3iTCg"
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "The theme panel opens: preset cards at the top, a section per detail below.",
+      "cursor": {
+        "x": 357,
+        "y": 695
+      },
+      "path": "/d/pZgmI3iTCg"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Open the Body text section",
+      "cursor": null,
+      "path": "/d/pZgmI3iTCg"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "Font, size, line height, colour, alignment, and the drop-cap switch.",
+      "cursor": null,
+      "path": "/d/pZgmI3iTCg"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Switch the body text to a serif"
+    },
+    {
+      "kind": "narration",
+      "text": "The font list is grouped into sans-serif and serif families, each shown in its own typeface. Headings keep their own font, so only the running text changes.",
+      "file": "05.webp",
+      "cursor": {
+        "x": 357,
+        "y": 695
+      },
+      "path": "/d/pZgmI3iTCg"
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Open the font list",
+      "cursor": null,
+      "path": "/d/pZgmI3iTCg"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "Every font markoto offers, previewed in its own typeface.",
+      "cursor": null,
+      "path": "/d/pZgmI3iTCg"
+    },
+    {
+      "kind": "approach",
+      "file": "07.webp",
+      "caption": "Pick \"Source Serif 4\"",
+      "cursor": null,
+      "path": "/d/pZgmI3iTCg"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "caption": "The body font is now Source Serif 4, in the preview and in the PDF.",
+      "cursor": null,
+      "path": "/d/pZgmI3iTCg"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Colours"
+    },
+    {
+      "kind": "narration",
+      "text": "The Colors section holds the brand and secondary colours: they paint links, highlights, header bands and other accents. Click a swatch to open a colour picker, or paste any hex value.",
+      "file": "08.webp",
+      "cursor": {
+        "x": 357,
+        "y": 695
+      },
+      "path": "/d/pZgmI3iTCg"
+    },
+    {
+      "kind": "approach",
+      "file": "09.webp",
+      "caption": "Open the Colors section",
+      "cursor": null,
+      "path": "/d/pZgmI3iTCg"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "Brand and secondary colour, each behind a swatch.",
+      "cursor": null,
+      "path": "/d/pZgmI3iTCg",
+      "highlights": [
+        {
+          "label": "Brand colour",
+          "x": 12,
+          "y": 570,
+          "w": 366,
+          "h": 28
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "save-your-custom-theme-as-a-preset",
+    "why": "Save the tuned theme as a preset to reuse it on your next document"
+  }
+}

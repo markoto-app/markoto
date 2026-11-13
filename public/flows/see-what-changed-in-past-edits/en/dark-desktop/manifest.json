@@ -1,0 +1,98 @@
+{
+  "version": 2,
+  "title": "See what changed in past edits",
+  "slug": "see-what-changed-in-past-edits",
+  "locale": "en",
+  "variant": "dark-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "See what changed in past edits"
+    },
+    {
+      "kind": "narration",
+      "text": "Every edit in markoto is logged in the Activity tab — who, when, how many lines added or removed. Click any row to expand a diff drawer in place: green added lines, red removed, line numbers, git-style `@@` hunks. Read-only by default; the Restore button is one click further if you want to roll back.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 319,
+        "y": 383
+      },
+      "path": "/d/w9lLyi7goh"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Open the Activity tab",
+      "cursor": {
+        "x": 1234,
+        "y": 98
+      },
+      "path": "/d/w9lLyi7goh",
+      "annotations": [
+        {
+          "label": "Activity tab",
+          "kind": "arrow",
+          "x": 1222,
+          "y": 86,
+          "w": 24,
+          "h": 24
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The Activity feed opens — one row per edit, comment, restore, theme/title change.",
+      "cursor": {
+        "x": 1234,
+        "y": 98
+      },
+      "path": "/d/w9lLyi7goh"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Click any edit row to see the diff"
+    },
+    {
+      "kind": "narration",
+      "text": "Edit rows are clickable — chevron + \"show details\" hint. The diff drawer expands inline; the editor stays where it is. No modal, no navigation. Click again to collapse.",
+      "file": "03.webp",
+      "cursor": {
+        "x": 1234,
+        "y": 98
+      },
+      "path": "/d/w9lLyi7goh"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Click the row to expand its diff",
+      "cursor": {
+        "x": 1120,
+        "y": 274
+      },
+      "path": "/d/w9lLyi7goh"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "The diff drawer expands inline — green for added lines, red for removed, line numbers down the gutter.",
+      "cursor": {
+        "x": 1120,
+        "y": 274
+      },
+      "path": "/d/w9lLyi7goh",
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "restore-an-earlier-version",
+    "why": "Want to actually roll back to a past state? The restore flow shows the next click"
+  }
+}

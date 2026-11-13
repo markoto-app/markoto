@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "title": "Set up a workspace brand kit",
+  "slug": "set-up-a-workspace-brand-kit",
+  "locale": "en",
+  "variant": "dark-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": []
+}

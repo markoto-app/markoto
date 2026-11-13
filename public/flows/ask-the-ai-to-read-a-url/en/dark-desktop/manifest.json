@@ -1,0 +1,112 @@
+{
+  "version": 2,
+  "title": "Ask the AI to read a URL",
+  "slug": "ask-the-ai-to-read-a-url",
+  "locale": "en",
+  "variant": "dark-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Drop a URL — the AI reads it for you"
+    },
+    {
+      "kind": "narration",
+      "text": "Paste any public URL into the AI prompt bar with a question and the AI reads the page for you, then writes what you asked for into your doc with a link back to the page. Useful for articles, docs, RFC drafts, anything public on the open web. Private network addresses are refused.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 640,
+        "y": 26
+      },
+      "path": "/d/PTgX1AUNKQ"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Click into the AI prompt bar",
+      "cursor": {
+        "x": 618,
+        "y": 722
+      },
+      "path": "/d/PTgX1AUNKQ"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The bar lifts and glows — ready for the URL + question.",
+      "cursor": {
+        "x": 618,
+        "y": 722
+      },
+      "path": "/d/PTgX1AUNKQ"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Paste the URL with a question",
+      "cursor": {
+        "x": 316,
+        "y": 723
+      },
+      "path": "/d/PTgX1AUNKQ"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "Your prompt is ready — the URL tells the AI which page to read.",
+      "cursor": {
+        "x": 316,
+        "y": 723
+      },
+      "path": "/d/PTgX1AUNKQ"
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Send it",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/PTgX1AUNKQ"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "The AI is working — it reads the page, then the summary lands in the doc.",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/PTgX1AUNKQ"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "The AI read the page and wrote the summary into the doc — with a link to the source so the reader can verify.",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/PTgX1AUNKQ",
+      "highlights": [
+        {
+          "label": "AI-written summary",
+          "x": 24.75,
+          "y": 336.5,
+          "w": 590,
+          "h": 27.75
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "ask-the-ai-for-current-information",
+    "why": "Need information that's NOT at a specific URL? Web search is the next tool over"
+  }
+}

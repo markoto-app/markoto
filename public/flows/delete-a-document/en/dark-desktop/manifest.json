@@ -1,0 +1,147 @@
+{
+  "version": 2,
+  "title": "Delete a document",
+  "slug": "delete-a-document",
+  "locale": "en",
+  "variant": "dark-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Delete a document"
+    },
+    {
+      "kind": "narration",
+      "text": "When you're done with a draft and don't want it lingering, delete it from File → Delete. markoto asks you to type the doc's title back as a confirmation — strong friction by design, because deletion is permanent. The text, its history, its comments and every image in it are removed, and anyone who has the doc open is sent back to their dashboard.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 640,
+        "y": 26
+      },
+      "path": "/d/1hXGgYXP91"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Click the File menu",
+      "cursor": {
+        "x": 28,
+        "y": 67
+      },
+      "path": "/d/1hXGgYXP91"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The File menu opens — Delete sits at the bottom under its own separator.",
+      "cursor": {
+        "x": 28,
+        "y": 67
+      },
+      "path": "/d/1hXGgYXP91"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Click \"Delete document\"",
+      "cursor": {
+        "x": 103,
+        "y": 328
+      },
+      "path": "/d/1hXGgYXP91",
+      "annotations": [
+        {
+          "label": "delete",
+          "kind": "arrow",
+          "x": 12,
+          "y": 312,
+          "w": 183.125,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "A confirm modal opens — type the doc's title to enable Delete.",
+      "cursor": {
+        "x": 103,
+        "y": 328
+      },
+      "path": "/d/1hXGgYXP91"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Type the title to confirm"
+    },
+    {
+      "kind": "narration",
+      "text": "The Delete button stays disabled until the typed text exactly matches the doc's title. Same shape as GitHub's repo deletion — friction beats a one-click slip.",
+      "file": "06.webp",
+      "cursor": {
+        "x": 103,
+        "y": 328
+      },
+      "path": "/d/1hXGgYXP91"
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
+      "caption": "Type the doc's title",
+      "cursor": {
+        "x": 422,
+        "y": 465
+      },
+      "path": "/d/1hXGgYXP91"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "The title matches, so the Delete button unlocks.",
+      "cursor": {
+        "x": 422,
+        "y": 465
+      },
+      "path": "/d/1hXGgYXP91"
+    },
+    {
+      "kind": "approach",
+      "file": "08.webp",
+      "caption": "Click \"Delete\"",
+      "cursor": {
+        "x": 794,
+        "y": 513
+      },
+      "path": "/d/1hXGgYXP91"
+    },
+    {
+      "kind": "outcome",
+      "file": "09.webp",
+      "caption": "The doc is gone. You land back on your dashboard, and your recent documents no longer list it.",
+      "cursor": {
+        "x": 794,
+        "y": 513
+      },
+      "path": "/",
+      "highlights": [
+        {
+          "label": "Recent documents",
+          "x": 192,
+          "y": 370,
+          "w": 896,
+          "h": 114
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "restore-an-earlier-version",
+    "why": "Worried about losing work? The Activity log can roll a doc back to an earlier state without deleting it"
+  }
+}

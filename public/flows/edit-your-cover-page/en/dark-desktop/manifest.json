@@ -1,0 +1,212 @@
+{
+  "version": 2,
+  "title": "Edit your cover page",
+  "slug": "edit-your-cover-page",
+  "locale": "en",
+  "variant": "dark-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Edit your cover page"
+    },
+    {
+      "kind": "narration",
+      "text": "Every new document opens with a cover page in the Editorial layout: logo at the top, the title a third of the way down, today's date below. The Cover page section of the theme panel changes all of it: four layouts (Classic, Editorial, Banner, Minimal), a switch for every field, and a slider for the title size.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 640,
+        "y": 26
+      },
+      "path": "/d/-WcmtvA8wn"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Open the theme panel",
+      "cursor": {
+        "x": 1260,
+        "y": 98
+      },
+      "path": "/d/-WcmtvA8wn",
+      "annotations": [
+        {
+          "label": "theme tab",
+          "kind": "arrow",
+          "x": 1248,
+          "y": 86,
+          "w": 24,
+          "h": 24
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The theme panel opens to the preset cards + section accordions.",
+      "cursor": {
+        "x": 1260,
+        "y": 98
+      },
+      "path": "/d/-WcmtvA8wn"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Open the Cover page section",
+      "cursor": {
+        "x": 1120,
+        "y": 438
+      },
+      "path": "/d/-WcmtvA8wn",
+      "annotations": [
+        {
+          "label": "Cover page accordion",
+          "kind": "arrow",
+          "x": 973,
+          "y": 414.90625,
+          "w": 295,
+          "h": 48
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "The cover-page editor expands — every field on one scroll-length panel.",
+      "cursor": {
+        "x": 1120,
+        "y": 438
+      },
+      "path": "/d/-WcmtvA8wn"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Pick a layout"
+    },
+    {
+      "kind": "narration",
+      "text": "Editorial is the default. Banner puts the logo and the title in a tinted band across the top of the page. The preview updates as soon as you pick a layout.",
+      "file": "06.webp",
+      "cursor": {
+        "x": 1120,
+        "y": 438
+      },
+      "path": "/d/-WcmtvA8wn"
+    },
+    {
+      "kind": "approach",
+      "file": "07.webp",
+      "caption": "Open the layout dropdown",
+      "cursor": {
+        "x": 1120,
+        "y": 618
+      },
+      "path": "/d/-WcmtvA8wn"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "caption": "The four cover layouts list — pick one to preview it.",
+      "cursor": {
+        "x": 1120,
+        "y": 618
+      },
+      "path": "/d/-WcmtvA8wn"
+    },
+    {
+      "kind": "approach",
+      "file": "09.webp",
+      "caption": "Choose \"Banner — logo + title in a brand-tinted top band\"",
+      "cursor": {
+        "x": 1120,
+        "y": 511
+      },
+      "path": "/d/-WcmtvA8wn"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "The cover changes: logo and title now sit in a tinted band across the top.",
+      "cursor": {
+        "x": 1120,
+        "y": 511
+      },
+      "path": "/d/-WcmtvA8wn"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Add a subtitle line"
+    },
+    {
+      "kind": "narration",
+      "text": "A short line under the title, such as a version, a team or \"Internal draft\". The subtitle is off by default: switch it on, then type.",
+      "file": "10.webp",
+      "cursor": {
+        "x": 1120,
+        "y": 511
+      },
+      "path": "/d/-WcmtvA8wn"
+    },
+    {
+      "kind": "approach",
+      "file": "11.webp",
+      "caption": "Flip the \"Show subtitle\" toggle on",
+      "cursor": {
+        "x": 991,
+        "y": 438
+      },
+      "path": "/d/-WcmtvA8wn"
+    },
+    {
+      "kind": "outcome",
+      "file": "12.webp",
+      "caption": "The subtitle field appears underneath, ready for input.",
+      "cursor": {
+        "x": 991,
+        "y": 438
+      },
+      "path": "/d/-WcmtvA8wn"
+    },
+    {
+      "kind": "approach",
+      "file": "13.webp",
+      "caption": "Type a subtitle line",
+      "cursor": {
+        "x": 987,
+        "y": 581
+      },
+      "path": "/d/-WcmtvA8wn"
+    },
+    {
+      "kind": "outcome",
+      "file": "14.webp",
+      "caption": "The subtitle appears on the cover. The PDF will open on this page.",
+      "cursor": {
+        "x": 987,
+        "y": 581
+      },
+      "path": "/d/-WcmtvA8wn",
+      "highlights": [
+        {
+          "label": "Your cover page",
+          "x": 480.5,
+          "y": 115,
+          "w": 479.5,
+          "h": 656.25
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "save-your-custom-theme-as-a-preset",
+    "why": "Once your cover looks right, save the whole theme as a preset so the next doc starts here"
+  }
+}

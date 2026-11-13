@@ -1,0 +1,195 @@
+{
+  "version": 2,
+  "title": "Zoom the preview",
+  "slug": "zoom-the-preview",
+  "locale": "en",
+  "variant": "dark-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Zoom the preview and see all pages"
+    },
+    {
+      "kind": "narration",
+      "text": "The preview shows your document as real pages. By default one page fills the width of the preview. You can zoom in to read the small print, or step back and see every page at once.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 640,
+        "y": 24
+      },
+      "path": "/d/woPZNYtEwi"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Click + in the preview's top right corner to zoom in",
+      "cursor": {
+        "x": 1212,
+        "y": 158
+      },
+      "path": "/d/woPZNYtEwi",
+      "annotations": [
+        {
+          "label": "zoom",
+          "kind": "box",
+          "x": 1113,
+          "y": 143.75,
+          "w": 147,
+          "h": 30
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The page grows to the next zoom step. The text you were reading stays in view.",
+      "cursor": {
+        "x": 1212,
+        "y": 158
+      },
+      "path": "/d/woPZNYtEwi"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Open the zoom menu for a fixed size",
+      "cursor": {
+        "x": 1170,
+        "y": 158
+      },
+      "path": "/d/woPZNYtEwi"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "Fit width, all pages, or a fixed size from 50% to 200%.",
+      "cursor": {
+        "x": 1170,
+        "y": 158
+      },
+      "path": "/d/woPZNYtEwi"
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
+      "caption": "Choose 150%",
+      "cursor": {
+        "x": 1115,
+        "y": 400
+      },
+      "path": "/d/woPZNYtEwi"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "Large enough to check footnotes and table figures. Scroll sideways for the rest of the line.",
+      "cursor": {
+        "x": 1115,
+        "y": 400
+      },
+      "path": "/d/woPZNYtEwi"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "See all pages"
+    },
+    {
+      "kind": "approach",
+      "file": "08.webp",
+      "caption": "Click the grid button to see all pages",
+      "cursor": {
+        "x": 1245,
+        "y": 158
+      },
+      "path": "/d/woPZNYtEwi",
+      "annotations": [
+        {
+          "label": "all pages",
+          "kind": "arrow",
+          "x": 1233,
+          "y": 146.75,
+          "w": 24,
+          "h": 24
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "09.webp",
+      "caption": "The preview pulls back into an overview: all pages side by side, as many to a row as fit.",
+      "cursor": {
+        "x": 1245,
+        "y": 158
+      },
+      "path": "/d/woPZNYtEwi",
+      "hero": true
+    },
+    {
+      "kind": "approach",
+      "file": "10.webp",
+      "caption": "Click a page to open it",
+      "cursor": {
+        "x": 1245,
+        "y": 158
+      },
+      "path": "/d/woPZNYtEwi"
+    },
+    {
+      "kind": "outcome",
+      "file": "11.webp",
+      "caption": "The preview zooms back in on page 5, at full width.",
+      "cursor": {
+        "x": 1245,
+        "y": 158
+      },
+      "path": "/d/woPZNYtEwi"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Zoom from the keyboard"
+    },
+    {
+      "kind": "narration",
+      "text": "With the pointer over the preview, Ctrl and + zooms in, Ctrl and − zooms out and Ctrl and 0 goes back to fit width (Cmd on a Mac). Hold Ctrl and scroll, or pinch on a trackpad, for any size in between. The browser's own zoom stays as it is.",
+      "file": "11.webp",
+      "cursor": {
+        "x": 1245,
+        "y": 158
+      },
+      "path": "/d/woPZNYtEwi"
+    },
+    {
+      "kind": "outcome",
+      "file": "12.webp",
+      "caption": "Zoomed out past 50%, the preview shows all pages again.",
+      "cursor": {
+        "x": 1245,
+        "y": 158
+      },
+      "path": "/d/woPZNYtEwi"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Your zoom is remembered"
+    },
+    {
+      "kind": "outcome",
+      "file": "13.webp",
+      "caption": "After a reload the preview opens on all pages again. The choice is kept in this browser, for every document.",
+      "cursor": null,
+      "path": "/d/woPZNYtEwi"
+    }
+  ],
+  "next": {
+    "slug": "polished-pdf",
+    "why": "Turn the document you just looked over into a PDF"
+  }
+}

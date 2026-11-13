@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "title": "See who changed what in a workspace",
+  "slug": "see-who-changed-what-in-a-workspace",
+  "locale": "en",
+  "variant": "dark-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": []
+}

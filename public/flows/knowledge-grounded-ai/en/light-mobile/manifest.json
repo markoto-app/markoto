@@ -1,0 +1,209 @@
+{
+  "version": 2,
+  "title": "Knowledge grounded AI",
+  "slug": "knowledge-grounded-ai",
+  "locale": "en",
+  "variant": "light-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Ask the AI about a file you uploaded"
+    },
+    {
+      "kind": "narration",
+      "text": "Workspaces have a Knowledge tab — drop in PDFs, Word docs, HTML exports, the team's RFCs, customer FAQs. markoto reads each file and indexes it, so the AI can look things up in it whenever you write inside the workspace — and answer from your files instead of from general knowledge.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/d/gfdGgxZXNx"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Upload the file"
+    },
+    {
+      "kind": "approach",
+      "file": "01.webp",
+      "caption": "Tap the Knowledge tab on the bottom bar",
+      "cursor": {
+        "x": 362,
+        "y": 695
+      },
+      "path": "/d/gfdGgxZXNx"
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "The Knowledge drawer slides up — empty until you upload your first file.",
+      "cursor": {
+        "x": 362,
+        "y": 695
+      },
+      "path": "/d/gfdGgxZXNx"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "Tap Upload + choose the postmortem HTML",
+      "cursor": {
+        "x": 362,
+        "y": 695
+      },
+      "path": "/d/gfdGgxZXNx"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "markoto reads the file"
+    },
+    {
+      "kind": "narration",
+      "text": "markoto converts the file to text, splits it into sections and indexes them, both by meaning and by exact words. A small file is ready in a few seconds; the badge flips to Ready when the AI can use it.",
+      "file": "04.webp",
+      "cursor": {
+        "x": 362,
+        "y": 695
+      },
+      "path": "/d/gfdGgxZXNx"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "The file is Ready — the AI can now look things up in it.",
+      "cursor": {
+        "x": 362,
+        "y": 695
+      },
+      "path": "/d/gfdGgxZXNx"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Now ask the AI about it"
+    },
+    {
+      "kind": "narration",
+      "text": "You're already in a document inside the workspace, so the AI can search the workspace's files whenever your request refers to them. Close the Knowledge drawer so the AI prompt bar is reachable.",
+      "file": "05.webp",
+      "cursor": {
+        "x": 362,
+        "y": 695
+      },
+      "path": "/d/gfdGgxZXNx"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "Close the Knowledge drawer (Escape)",
+      "cursor": {
+        "x": 362,
+        "y": 695
+      },
+      "path": "/d/gfdGgxZXNx"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "A question grounded in the postmortem"
+    },
+    {
+      "kind": "narration",
+      "text": "The uploaded postmortem has specific facts no AI could guess: the staged rollout caught an avatar bug at 5%, and the team wants to cut the 24-hour rollout interval to 12 hours. Ask about it and the AI looks it up in the file before it writes.",
+      "file": "06.webp",
+      "cursor": {
+        "x": 362,
+        "y": 695
+      },
+      "path": "/d/gfdGgxZXNx"
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
+      "caption": "Click into the AI prompt bar",
+      "cursor": {
+        "x": 173,
+        "y": 602
+      },
+      "path": "/d/gfdGgxZXNx"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "The prompt bar lifts and glows — ready for your question.",
+      "cursor": {
+        "x": 173,
+        "y": 602
+      },
+      "path": "/d/gfdGgxZXNx"
+    },
+    {
+      "kind": "approach",
+      "file": "07.webp",
+      "caption": "Type a question only the file knows the answer to",
+      "cursor": {
+        "x": 76,
+        "y": 603
+      },
+      "path": "/d/gfdGgxZXNx"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "caption": "The question is ready. Send it and the AI searches your files first.",
+      "cursor": {
+        "x": 76,
+        "y": 603
+      },
+      "path": "/d/gfdGgxZXNx"
+    },
+    {
+      "kind": "approach",
+      "file": "08.webp",
+      "caption": "Send it",
+      "cursor": {
+        "x": 350,
+        "y": 602
+      },
+      "path": "/d/gfdGgxZXNx"
+    },
+    {
+      "kind": "outcome",
+      "file": "09.webp",
+      "caption": "The AI is working — it searches the workspace files, then writes the paragraph.",
+      "cursor": {
+        "x": 350,
+        "y": 602
+      },
+      "path": "/d/gfdGgxZXNx"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "The AI quoted the postmortem — the avatar bug caught at 5%, and the plan to cut the 24-hour rollout interval to 12 hours. None of this is generic AI knowledge — it came straight from the file.",
+      "cursor": {
+        "x": 350,
+        "y": 602
+      },
+      "path": "/d/gfdGgxZXNx",
+      "highlights": [
+        {
+          "label": "AI's grounded answer",
+          "x": 0,
+          "y": 42,
+          "w": 390,
+          "h": 529.25
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "polished-pdf",
+    "why": "Now polish the grounded answer and download it as a PDF"
+  }
+}

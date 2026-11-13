@@ -1,0 +1,83 @@
+{
+  "version": 2,
+  "title": "Save as Markdown",
+  "slug": "save-as-markdown",
+  "locale": "en",
+  "variant": "light-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Save the doc as a .md file"
+    },
+    {
+      "kind": "narration",
+      "text": "Sometimes you want the source, not the finished page. File › Export › Markdown saves the document as a .md file straight to your downloads folder. Useful for a git repository, another Markdown editor, or an archive.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/d/cLXfOl7GBQ"
+    },
+    {
+      "kind": "approach",
+      "file": "01.webp",
+      "caption": "Open the topbar menu",
+      "cursor": {
+        "x": 362,
+        "y": 20
+      },
+      "path": "/d/cLXfOl7GBQ"
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "The topbar menu opens — Export sits in the file actions.",
+      "cursor": {
+        "x": 362,
+        "y": 20
+      },
+      "path": "/d/cLXfOl7GBQ"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Tap \"Export\" to download the .md",
+      "cursor": {
+        "x": 287,
+        "y": 124
+      },
+      "path": "/d/cLXfOl7GBQ"
+    },
+    {
+      "kind": "outcome",
+      "file": "01.webp",
+      "caption": "Your browser saves the file, named after the document.",
+      "cursor": {
+        "x": 287,
+        "y": 124
+      },
+      "path": "/d/cLXfOl7GBQ"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Open the file"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "The saved file is plain Markdown: headings, lists and links as you wrote them. A short block at the top keeps the theme and the document settings for a later import.",
+      "cursor": null,
+      "path": "Downloads/Weekly sync.md",
+      "hero": true,
+      "actor": "file"
+    }
+  ],
+  "next": {
+    "slug": "polished-pdf",
+    "why": "Or download a styled PDF instead — same File menu, different format"
+  }
+}

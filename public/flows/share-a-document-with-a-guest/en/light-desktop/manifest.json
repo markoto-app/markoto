@@ -1,0 +1,167 @@
+{
+  "version": 2,
+  "title": "Share a document with a guest",
+  "slug": "share-a-document-with-a-guest",
+  "locale": "en",
+  "variant": "light-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Share one document with a guest"
+    },
+    {
+      "kind": "narration",
+      "text": "A guest is someone outside your team — a client, a freelancer — whom you invite to the workspace with the role \"Guest\". A guest sees only the documents you share with them, takes no seat, and uses their own AI budget. Lena from Harbourline already accepted her invitation.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/d/Rxp2G7ZE0J"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Open the share dialog",
+      "cursor": {
+        "x": 915,
+        "y": 26
+      },
+      "path": "/d/Rxp2G7ZE0J",
+      "annotations": [
+        {
+          "label": "Share",
+          "kind": "arrow",
+          "x": 903.59375,
+          "y": 14,
+          "w": 24,
+          "h": 24
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "cursor": {
+        "x": 915,
+        "y": 26
+      },
+      "path": "/d/Rxp2G7ZE0J"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "Choose the guest and what they may do",
+      "cursor": {
+        "x": 701,
+        "y": 465
+      },
+      "path": "/d/Rxp2G7ZE0J",
+      "highlights": [
+        {
+          "label": "Guests of the workspace",
+          "x": 408,
+          "y": 399,
+          "w": 464,
+          "h": 80
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Share",
+      "cursor": {
+        "x": 834,
+        "y": 465
+      },
+      "path": "/d/Rxp2G7ZE0J"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "cursor": {
+        "x": 834,
+        "y": 465
+      },
+      "path": "/d/Rxp2G7ZE0J"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "Lena can now edit this document — and only this one",
+      "cursor": {
+        "x": 834,
+        "y": 465
+      },
+      "path": "/d/Rxp2G7ZE0J",
+      "highlights": [
+        {
+          "label": "Shared with Lena",
+          "x": 409,
+          "y": 452,
+          "w": 462,
+          "h": 56
+        }
+      ]
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "What the guest sees"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "Lena finds the document under \"Shared with you\"",
+      "cursor": null,
+      "path": "/",
+      "highlights": [
+        {
+          "label": "Shared with you",
+          "x": 192,
+          "y": 254,
+          "w": 896,
+          "h": 114
+        }
+      ],
+      "hero": true,
+      "actor": "guest"
+    },
+    {
+      "kind": "approach",
+      "file": "08.webp",
+      "caption": "Open it",
+      "cursor": {
+        "x": 640,
+        "y": 335
+      },
+      "path": "/",
+      "actor": "guest"
+    },
+    {
+      "kind": "outcome",
+      "file": "09.webp",
+      "cursor": {
+        "x": 640,
+        "y": 335
+      },
+      "path": "/d/Rxp2G7ZE0J",
+      "actor": "guest"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "She edits it like any document",
+      "cursor": null,
+      "path": "/d/Rxp2G7ZE0J",
+      "actor": "guest"
+    }
+  ],
+  "next": {
+    "slug": "see-who-changed-what-in-a-workspace",
+    "why": "Every share and unshare is recorded in the workspace's audit log."
+  }
+}

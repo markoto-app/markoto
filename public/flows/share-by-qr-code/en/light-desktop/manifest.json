@@ -1,0 +1,117 @@
+{
+  "version": 2,
+  "title": "Share by QR code",
+  "slug": "share-by-qr-code",
+  "locale": "en",
+  "variant": "light-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Share by QR code"
+    },
+    {
+      "kind": "narration",
+      "text": "You're at your desk with a doc open and want to keep reading it on your phone. The share modal has a QR toggle right next to the link — collapsed by default, opens to a 160-pixel square that any phone camera resolves into the same URL. No app, no clipboard handoff, no \"send myself a link\" detour.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 640,
+        "y": 24
+      },
+      "path": "/d/RWtVHpzy0b"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Open the share dialog from the lock icon in the header",
+      "cursor": {
+        "x": 1119,
+        "y": 24
+      },
+      "path": "/d/RWtVHpzy0b",
+      "annotations": [
+        {
+          "label": "lock icon",
+          "kind": "arrow",
+          "x": 1107.09375,
+          "y": 12,
+          "w": 24,
+          "h": 24
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The share modal opens — link at the top, QR toggle to its right.",
+      "cursor": {
+        "x": 1119,
+        "y": 24
+      },
+      "path": "/d/RWtVHpzy0b"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Reveal the QR"
+    },
+    {
+      "kind": "narration",
+      "text": "Click the QR icon next to the link. The square renders below the link row, encoding the same URL the link field carries — so changing access mode (or anything else that mutates the link) re-renders the QR automatically. Point your phone camera at it and tap the notification.",
+      "file": "04.webp",
+      "cursor": {
+        "x": 1119,
+        "y": 24
+      },
+      "path": "/d/RWtVHpzy0b"
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Click the QR toggle",
+      "cursor": {
+        "x": 858,
+        "y": 389
+      },
+      "path": "/d/RWtVHpzy0b",
+      "annotations": [
+        {
+          "label": "QR toggle",
+          "kind": "arrow",
+          "x": 844,
+          "y": 375.5,
+          "w": 28,
+          "h": 28
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "The QR appears below the link — scan it from your phone to land on this doc.",
+      "cursor": {
+        "x": 858,
+        "y": 389
+      },
+      "path": "/d/RWtVHpzy0b",
+      "highlights": [
+        {
+          "label": "Scan with your phone camera",
+          "x": 408,
+          "y": 329.5,
+          "w": 464,
+          "h": 160
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "have-a-discussion",
+    "why": "Once you and your phone are on the same doc, comment threads make every passage discussable"
+  }
+}

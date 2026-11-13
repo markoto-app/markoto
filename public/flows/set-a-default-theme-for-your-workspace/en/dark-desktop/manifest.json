@@ -1,0 +1,199 @@
+{
+  "version": 2,
+  "title": "Set a default theme for your workspace",
+  "slug": "set-a-default-theme-for-your-workspace",
+  "locale": "en",
+  "variant": "dark-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Set a default theme for your workspace"
+    },
+    {
+      "kind": "narration",
+      "text": "Each workspace can pick the theme every new doc starts with. Admins set it once; every member who starts a blank doc in this workspace gets that design. They can still pick a template with its own design, but the baseline is yours.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/w/YAJp9RSLY3"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Open the Settings tab",
+      "cursor": {
+        "x": 563,
+        "y": 231
+      },
+      "path": "/w/YAJp9RSLY3",
+      "annotations": [
+        {
+          "label": "Settings tab",
+          "kind": "arrow",
+          "x": 521.8125,
+          "y": 209,
+          "w": 82.8125,
+          "h": 44
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The settings panel opens with the workspace default theme.",
+      "cursor": {
+        "x": 563,
+        "y": 231
+      },
+      "path": "/w/YAJp9RSLY3"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Pick a preset"
+    },
+    {
+      "kind": "narration",
+      "text": "The grid lists every built-in preset (and any themes you've saved personally). Click a card to set it as the workspace default — the change persists immediately, no save button.",
+      "file": "03.webp",
+      "cursor": {
+        "x": 563,
+        "y": 231
+      },
+      "path": "/w/YAJp9RSLY3"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Pick the Corporate report preset",
+      "cursor": {
+        "x": 834,
+        "y": 399
+      },
+      "path": "/w/YAJp9RSLY3",
+      "annotations": [
+        {
+          "label": "Corporate report preset",
+          "kind": "arrow",
+          "x": 644,
+          "y": 122.5,
+          "w": 380,
+          "h": 554.25
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "The Corporate report card is now selected — every blank doc in this workspace starts with this design.",
+      "cursor": {
+        "x": 834,
+        "y": 399
+      },
+      "path": "/w/YAJp9RSLY3"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Create a blank doc — it starts in your default"
+    },
+    {
+      "kind": "narration",
+      "text": "Hit \"+ New document\" in the workspace. Under Template, Blank is a page in the workspace design — Corporate report, your pick. The other templates bring a design of their own; the theme panel switches any document to another one later.",
+      "file": "06.webp",
+      "cursor": {
+        "x": 834,
+        "y": 399
+      },
+      "path": "/w/YAJp9RSLY3"
+    },
+    {
+      "kind": "approach",
+      "file": "07.webp",
+      "caption": "Click \"+ New document\"",
+      "cursor": {
+        "x": 961,
+        "y": 313
+      },
+      "path": "/w/YAJp9RSLY3"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "caption": "The new-doc dialog opens.",
+      "cursor": {
+        "x": 961,
+        "y": 313
+      },
+      "path": "/w/YAJp9RSLY3"
+    },
+    {
+      "kind": "approach",
+      "file": "09.webp",
+      "caption": "Open \"Template\"",
+      "cursor": {
+        "x": 640,
+        "y": 425
+      },
+      "path": "/w/YAJp9RSLY3"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "The templates open.",
+      "cursor": {
+        "x": 640,
+        "y": 425
+      },
+      "path": "/w/YAJp9RSLY3"
+    },
+    {
+      "kind": "approach",
+      "file": "11.webp",
+      "caption": "Pick \"Blank\"",
+      "cursor": {
+        "x": 640,
+        "y": 489
+      },
+      "path": "/w/YAJp9RSLY3"
+    },
+    {
+      "kind": "outcome",
+      "file": "12.webp",
+      "caption": "Blank is selected: an empty page in the workspace design.",
+      "cursor": {
+        "x": 640,
+        "y": 489
+      },
+      "path": "/w/YAJp9RSLY3"
+    },
+    {
+      "kind": "outcome",
+      "file": "13.webp",
+      "caption": "Blank starts in the workspace default: Corporate report.",
+      "cursor": {
+        "x": 640,
+        "y": 489
+      },
+      "path": "/w/YAJp9RSLY3",
+      "highlights": [
+        {
+          "label": "Workspace default",
+          "x": 559,
+          "y": 286,
+          "w": 162,
+          "h": 263.578125
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "pick-a-theme",
+    "why": "Members can still override the workspace default per-doc — here's how preset switching works in the editor"
+  }
+}

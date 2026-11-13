@@ -1,0 +1,169 @@
+{
+  "version": 2,
+  "title": "What you get on each plan",
+  "slug": "what-you-get-on-each-plan",
+  "locale": "en",
+  "variant": "light-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Four ways to use markoto"
+    },
+    {
+      "kind": "narration",
+      "text": "You can run markoto on your own server, write without an account, or sign in for a free account. Every account is on Free today. Pro, Team and Business show their planned prices and limits; nothing can be bought yet.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/pricing"
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "You are on the free account. The paid plans are marked \"coming soon\": planned prices, no checkout.",
+      "cursor": null,
+      "path": "/pricing",
+      "annotations": [
+        {
+          "label": "your plan",
+          "kind": "box",
+          "x": 16,
+          "y": 1030,
+          "w": 358,
+          "h": 426.5
+        },
+        {
+          "label": "coming soon",
+          "kind": "box",
+          "x": 16,
+          "y": 1472.5,
+          "w": 358,
+          "h": 562.5
+        }
+      ],
+      "hero": true
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Click the \"Team\" tab",
+      "cursor": {
+        "x": 194,
+        "y": 359
+      },
+      "path": "/pricing"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "Team shows its planned price per seat and the limits each seat adds to the workspace.",
+      "cursor": {
+        "x": 194,
+        "y": 359
+      },
+      "path": "/pricing"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "Below the cards, a table compares every limit side by side.",
+      "cursor": {
+        "x": 297,
+        "y": 359
+      },
+      "path": "/pricing",
+      "highlights": [
+        {
+          "label": "AI Points per month",
+          "x": 17,
+          "y": 170.203125,
+          "w": 720,
+          "h": 61
+        }
+      ]
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Hear when paid plans launch"
+    },
+    {
+      "kind": "narration",
+      "text": "Want to know when Pro, Team and Business launch? Leave your email on the waitlist. markoto sends one email when they do, and every email has an unsubscribe link.",
+      "file": "06.webp",
+      "cursor": {
+        "x": 297,
+        "y": 359
+      },
+      "path": "/pricing"
+    },
+    {
+      "kind": "approach",
+      "file": "07.webp",
+      "caption": "Type your email address",
+      "cursor": {
+        "x": 47,
+        "y": 350
+      },
+      "path": "/pricing"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "caption": "Your address is filled in.",
+      "cursor": {
+        "x": 47,
+        "y": 350
+      },
+      "path": "/pricing"
+    },
+    {
+      "kind": "approach",
+      "file": "08.webp",
+      "caption": "Tick the consent box",
+      "cursor": {
+        "x": 41,
+        "y": 388
+      },
+      "path": "/pricing"
+    },
+    {
+      "kind": "outcome",
+      "file": "09.webp",
+      "caption": "With consent given, the button becomes active.",
+      "cursor": {
+        "x": 41,
+        "y": 388
+      },
+      "path": "/pricing"
+    },
+    {
+      "kind": "approach",
+      "file": "09.webp",
+      "caption": "Click \"Join the waitlist\"",
+      "cursor": {
+        "x": 93,
+        "y": 486
+      },
+      "path": "/pricing"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "Check your inbox: the sign-up only counts once you click the confirmation link in the email.",
+      "cursor": {
+        "x": 93,
+        "y": 486
+      },
+      "path": "/pricing"
+    }
+  ],
+  "next": {
+    "slug": "use-your-own-ai-provider",
+    "why": "Use the AI today on your own provider: no plan needed"
+  }
+}

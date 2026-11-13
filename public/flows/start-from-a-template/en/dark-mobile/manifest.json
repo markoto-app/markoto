@@ -1,0 +1,259 @@
+{
+  "version": 2,
+  "title": "Start from a template",
+  "slug": "start-from-a-template",
+  "locale": "en",
+  "variant": "dark-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "outcome",
+      "file": "01.webp",
+      "caption": "Open markoto",
+      "cursor": null,
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "01.webp",
+      "caption": "Click \"New Document\" to start writing",
+      "cursor": {
+        "x": 195,
+        "y": 296
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "The new-document dialog opens: six quick choices to set up your doc",
+      "cursor": {
+        "x": 46,
+        "y": 339
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Open \"Template\"",
+      "cursor": {
+        "x": 195,
+        "y": 395
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The templates open, each as a picture of its first page. Demo is picked for your first document; after that, new documents start blank.",
+      "cursor": {
+        "x": 195,
+        "y": 395
+      },
+      "path": "/"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Start from a template instead of a blank page"
+    },
+    {
+      "kind": "narration",
+      "text": "A template is a starting text in a design that suits it: a report with a cover page and contents, a paper with a title block and numbered sections, a runbook with numbered steps and framed commands. Demo, picked for your first document, is a short tour of markdown and of markoto itself; Blank is an empty page in your default design. Grey comments in each skeleton say what goes where; the preview and the PDF never show them.",
+      "file": "03.webp",
+      "cursor": {
+        "x": 195,
+        "y": 395
+      },
+      "path": "/"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "A picture of every template"
+    },
+    {
+      "kind": "narration",
+      "text": "Each card shows the template's first page in its design, its name and one line about what is in it. The tabs sort them by who they are for: engineering, academic, business, writing.",
+      "file": "03.webp",
+      "cursor": {
+        "x": 195,
+        "y": 395
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Hover \"Demo\"",
+      "cursor": {
+        "x": 118,
+        "y": 491
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Hover \"Blank\"",
+      "cursor": {
+        "x": 272,
+        "y": 491
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Hover \"On-call runbook\"",
+      "cursor": {
+        "x": 272,
+        "y": 517
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Hover \"arXiv preprint\"",
+      "cursor": {
+        "x": 272,
+        "y": 387
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
+      "caption": "Hover \"Client proposal\"",
+      "cursor": {
+        "x": 118,
+        "y": 387
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "07.webp",
+      "caption": "Hover \"Resume\"",
+      "cursor": {
+        "x": 118,
+        "y": 388
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "08.webp",
+      "caption": "Open the \"Business\" tab",
+      "cursor": {
+        "x": 265,
+        "y": 342
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "09.webp",
+      "caption": "Only the business templates are left: report, business plan, proposal, one-pager, memo, meeting notes.",
+      "cursor": {
+        "x": 265,
+        "y": 342
+      },
+      "path": "/"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Pick \"Report\""
+    },
+    {
+      "kind": "narration",
+      "text": "The Report template brings a cover page, a table of contents, an executive summary, a key-figures table, results, an outlook and an appendix — in the Corporate report design. Pick it and the editor opens with the skeleton in place.",
+      "file": "09.webp",
+      "cursor": {
+        "x": 265,
+        "y": 342
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "09.webp",
+      "caption": "Click the \"Report\" card",
+      "cursor": {
+        "x": 118,
+        "y": 491
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "\"Report\" is selected — the card lights up and the Template row names it.",
+      "cursor": {
+        "x": 118,
+        "y": 491
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "11.webp",
+      "caption": "Give the report a title",
+      "cursor": {
+        "x": 46,
+        "y": 173
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "12.webp",
+      "caption": "The title is set.",
+      "cursor": {
+        "x": 46,
+        "y": 173
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "12.webp",
+      "caption": "Click \"Create document\"",
+      "cursor": {
+        "x": 293,
+        "y": 672
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "13.webp",
+      "caption": "The editor opens with the report skeleton in place, and the preview shows it in the report design: cover page, contents, numbered pages. The grey notes say what goes where; they never show in the preview or the PDF.",
+      "cursor": {
+        "x": 293,
+        "y": 672
+      },
+      "path": "/d/7hD-atgTS8",
+      "highlights": [
+        {
+          "label": "Ready-made structure",
+          "x": 0,
+          "y": 66.75,
+          "w": 390,
+          "h": 1849.1875
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "pick-a-theme",
+    "why": "Change the design later — every template's look is a theme you can switch"
+  }
+}

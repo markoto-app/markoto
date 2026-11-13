@@ -1,0 +1,169 @@
+{
+  "version": 2,
+  "title": "What you get on each plan",
+  "slug": "what-you-get-on-each-plan",
+  "locale": "en",
+  "variant": "dark-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Four ways to use markoto"
+    },
+    {
+      "kind": "narration",
+      "text": "You can run markoto on your own server, write without an account, or sign in for a free account. Every account is on Free today. Pro, Team and Business show their planned prices and limits; nothing can be bought yet.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/pricing"
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "You are on the free account. The paid plans are marked \"coming soon\": planned prices, no checkout.",
+      "cursor": null,
+      "path": "/pricing",
+      "annotations": [
+        {
+          "label": "your plan",
+          "kind": "box",
+          "x": 648,
+          "y": 273,
+          "w": 268,
+          "h": 630.5
+        },
+        {
+          "label": "coming soon",
+          "kind": "box",
+          "x": 932,
+          "y": 273,
+          "w": 268,
+          "h": 630.5
+        }
+      ],
+      "hero": true
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Click the \"Team\" tab",
+      "cursor": {
+        "x": 1065,
+        "y": 476
+      },
+      "path": "/pricing"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "Team shows its planned price per seat and the limits each seat adds to the workspace.",
+      "cursor": {
+        "x": 1065,
+        "y": 476
+      },
+      "path": "/pricing"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "Below the cards, a table compares every limit side by side.",
+      "cursor": {
+        "x": 1138,
+        "y": 476
+      },
+      "path": "/pricing",
+      "highlights": [
+        {
+          "label": "AI Points per month",
+          "x": 81,
+          "y": 288.703125,
+          "w": 1118,
+          "h": 41
+        }
+      ]
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Hear when paid plans launch"
+    },
+    {
+      "kind": "narration",
+      "text": "Want to know when Pro, Team and Business launch? Leave your email on the waitlist. markoto sends one email when they do, and every email has an unsubscribe link.",
+      "file": "06.webp",
+      "cursor": {
+        "x": 1138,
+        "y": 476
+      },
+      "path": "/pricing"
+    },
+    {
+      "kind": "approach",
+      "file": "07.webp",
+      "caption": "Type your email address",
+      "cursor": {
+        "x": 691,
+        "y": 390
+      },
+      "path": "/pricing"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "caption": "Your address is filled in.",
+      "cursor": {
+        "x": 691,
+        "y": 390
+      },
+      "path": "/pricing"
+    },
+    {
+      "kind": "approach",
+      "file": "08.webp",
+      "caption": "Tick the consent box",
+      "cursor": {
+        "x": 685,
+        "y": 427
+      },
+      "path": "/pricing"
+    },
+    {
+      "kind": "outcome",
+      "file": "09.webp",
+      "caption": "With consent given, the button becomes active.",
+      "cursor": {
+        "x": 685,
+        "y": 427
+      },
+      "path": "/pricing"
+    },
+    {
+      "kind": "approach",
+      "file": "10.webp",
+      "caption": "Click \"Join the waitlist\"",
+      "cursor": {
+        "x": 737,
+        "y": 505
+      },
+      "path": "/pricing"
+    },
+    {
+      "kind": "outcome",
+      "file": "11.webp",
+      "caption": "Check your inbox: the sign-up only counts once you click the confirmation link in the email.",
+      "cursor": {
+        "x": 737,
+        "y": 505
+      },
+      "path": "/pricing"
+    }
+  ],
+  "next": {
+    "slug": "use-your-own-ai-provider",
+    "why": "Use the AI today on your own provider: no plan needed"
+  }
+}

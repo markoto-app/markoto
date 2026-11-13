@@ -1,0 +1,329 @@
+{
+  "version": 2,
+  "title": "Quick share",
+  "slug": "quick-share",
+  "locale": "en",
+  "variant": "light-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Write & share your first document"
+    },
+    {
+      "kind": "narration",
+      "text": "You don't need an account to write something quickly in markoto. Open the homepage, type, copy the link — anyone you send it to sees what you wrote, in real time. About three minutes; by the end you have a named document and a shareable URL on your clipboard.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "Open markoto",
+      "cursor": null,
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Click \"New Document\" to start writing",
+      "cursor": {
+        "x": 195,
+        "y": 296
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The new-document dialog opens: six quick choices to set up your doc",
+      "cursor": {
+        "x": 46,
+        "y": 339
+      },
+      "path": "/"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Set up your document"
+    },
+    {
+      "kind": "narration",
+      "text": "Name your document and you can start. Under Details, tell markoto what you're writing, who it's for and in which language: the AI uses this every time it helps you write, so a minute here saves you re-typing context on every prompt later. All optional.",
+      "file": "03.webp",
+      "cursor": {
+        "x": 195,
+        "y": 296
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Give your document a name",
+      "cursor": {
+        "x": 46,
+        "y": 339
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "The title is set.",
+      "cursor": {
+        "x": 46,
+        "y": 339
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Open \"Details\"",
+      "cursor": {
+        "x": 195,
+        "y": 436
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "Description, language and audience open.",
+      "cursor": {
+        "x": 195,
+        "y": 436
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
+      "caption": "Add a one-line description so the AI knows what you're writing about",
+      "cursor": {
+        "x": 59,
+        "y": 391
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "The description is captured — the AI will see this on every prompt.",
+      "cursor": {
+        "x": 59,
+        "y": 391
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "07.webp",
+      "caption": "Open \"Template\" to start from a template",
+      "cursor": {
+        "x": 195,
+        "y": 230
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "caption": "The templates open: each card shows the first page of its text in its design.",
+      "cursor": {
+        "x": 195,
+        "y": 230
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "09.webp",
+      "caption": "Pick a template — Meeting notes seeds the right structure",
+      "cursor": {
+        "x": 272,
+        "y": 388
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "\"Meeting notes\" is selected — the editor will be pre-filled with its skeleton, in its design.",
+      "cursor": {
+        "x": 272,
+        "y": 388
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "10.webp",
+      "caption": "Click \"Create document\"",
+      "cursor": {
+        "x": 293,
+        "y": 672
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "11.webp",
+      "caption": "Without an account, markoto asks once: accept the Terms and confirm you're at least 16. A quick bot check runs in your browser meanwhile.",
+      "cursor": {
+        "x": 293,
+        "y": 672
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "12.webp",
+      "caption": "Tick the box to accept the Terms",
+      "cursor": {
+        "x": 44,
+        "y": 355
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "13.webp",
+      "caption": "Accepted. You won't be asked again in this browser.",
+      "cursor": {
+        "x": 44,
+        "y": 355
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "14.webp",
+      "caption": "Click \"Accept and create\" to open the editor",
+      "cursor": {
+        "x": 195,
+        "y": 521
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "15.webp",
+      "caption": "The editor opens — your skeleton is ready to fill in.",
+      "cursor": {
+        "x": 195,
+        "y": 521
+      },
+      "path": "/d/Pj4ti56XEf"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Your skeleton is ready"
+    },
+    {
+      "kind": "narration",
+      "text": "markoto pre-fills the doc with the template's structure — headings, a table layout, and HTML comments hinting what to write in each section. The comments are visible while you edit but hidden from the preview, the PDF, and anyone you share the link with.",
+      "file": "15.webp",
+      "cursor": null,
+      "path": "/d/Pj4ti56XEf"
+    },
+    {
+      "kind": "outcome",
+      "file": "15.webp",
+      "caption": "Headings, an Action items checklist, comment hints — all ready to fill in.",
+      "cursor": null,
+      "path": "/d/Pj4ti56XEf"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Share the link"
+    },
+    {
+      "kind": "narration",
+      "text": "markoto documents share by URL. Anyone with the link can read or edit, depending on the access mode you choose. The default for anonymous documents is \"open edit\" — anyone with the link can edit.",
+      "file": "15.webp",
+      "cursor": null,
+      "path": "/d/Pj4ti56XEf"
+    },
+    {
+      "kind": "approach",
+      "file": "15.webp",
+      "caption": "Open the share dialog from the lock icon",
+      "cursor": {
+        "x": 330,
+        "y": 20
+      },
+      "path": "/d/Pj4ti56XEf",
+      "annotations": [
+        {
+          "label": "lock icon",
+          "kind": "arrow",
+          "x": 318,
+          "y": 8,
+          "w": 24,
+          "h": 24
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "16.webp",
+      "caption": "The share dialog opens — your shareable link is right at the top.",
+      "cursor": {
+        "x": 330,
+        "y": 20
+      },
+      "path": "/d/Pj4ti56XEf",
+      "highlights": [
+        {
+          "label": "The link to share",
+          "x": 40.118743896484375,
+          "y": 335.5187683105469,
+          "w": 169.55751037597656,
+          "h": 27.978546142578125
+        },
+        {
+          "label": "One-click copy",
+          "x": 217.6701202392578,
+          "y": 335.5187683105469,
+          "w": 96.23869323730469,
+          "h": 27.978546142578125
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "17.webp",
+      "caption": "Click \"Copy link\" to copy it to your clipboard",
+      "cursor": {
+        "x": 265,
+        "y": 349
+      },
+      "path": "/d/Pj4ti56XEf"
+    },
+    {
+      "kind": "outcome",
+      "file": "18.webp",
+      "caption": "Done — your link is on your clipboard. Paste it anywhere to share.",
+      "cursor": {
+        "x": 265,
+        "y": 349
+      },
+      "path": "/d/Pj4ti56XEf",
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "have-a-discussion",
+    "why": "Now invite a teammate — leave a comment on a passage they wrote"
+  }
+}

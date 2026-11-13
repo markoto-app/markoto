@@ -1,0 +1,136 @@
+{
+  "version": 2,
+  "title": "Restore an earlier version",
+  "slug": "restore-an-earlier-version",
+  "locale": "en",
+  "variant": "light-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Restore an earlier version of your doc"
+    },
+    {
+      "kind": "narration",
+      "text": "markoto records every change to a document (edits, comments, theme changes, AI edits) in the Activity tab. Each entry remembers how the document looked before that change, so you can bring that version back. Restoring takes one click and a confirmation, and everyone with the document open sees it at once.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/d/QXogFAicCS"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "An edit, then a mistake"
+    },
+    {
+      "kind": "narration",
+      "text": "Maya adds the release date to her announcement. A few seconds later she types her meeting notes into the wrong window: the whole announcement is selected and replaced.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/d/QXogFAicCS"
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "Maya adds the release date at the end of the announcement.",
+      "cursor": {
+        "x": 14,
+        "y": 342
+      },
+      "path": "/d/QXogFAicCS"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "Oops: the announcement is gone, replaced by a line of meeting notes. Undo would fix it right away, but not after the tab is closed.",
+      "cursor": {
+        "x": 14,
+        "y": 307
+      },
+      "path": "/d/QXogFAicCS"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Open the Activity tab"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Click the Activity tab",
+      "cursor": {
+        "x": 292,
+        "y": 695
+      },
+      "path": "/d/QXogFAicCS"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "The newest change is at the top: the edit that replaced the announcement.",
+      "cursor": {
+        "x": 292,
+        "y": 695
+      },
+      "path": "/d/QXogFAicCS"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Undo the mistake"
+    },
+    {
+      "kind": "narration",
+      "text": "Restore on an entry brings the document back to how it was just before that change. To undo the mistake, use Restore on the mistake itself: the newest entry, at the top.",
+      "file": "06.webp",
+      "cursor": {
+        "x": 292,
+        "y": 695
+      },
+      "path": "/d/QXogFAicCS"
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
+      "caption": "Click Restore on the newest entry, the mistake",
+      "cursor": null,
+      "path": "/d/QXogFAicCS"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "markoto asks you to confirm before it changes the document for everyone.",
+      "cursor": null,
+      "path": "/d/QXogFAicCS"
+    },
+    {
+      "kind": "approach",
+      "file": "08.webp",
+      "caption": "Click Restore in the confirmation",
+      "cursor": {
+        "x": 292,
+        "y": 695
+      },
+      "path": "/d/QXogFAicCS"
+    },
+    {
+      "kind": "outcome",
+      "file": "09.webp",
+      "caption": "The announcement is back, release date included. Only the mistake is gone.",
+      "cursor": {
+        "x": 348,
+        "y": 42
+      },
+      "path": "/d/QXogFAicCS",
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "have-a-discussion",
+    "why": "Leave your co-authors a note on the passage you just brought back"
+  }
+}

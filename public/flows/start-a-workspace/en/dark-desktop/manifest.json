@@ -1,0 +1,171 @@
+{
+  "version": 2,
+  "title": "Start a workspace",
+  "slug": "start-a-workspace",
+  "locale": "en",
+  "variant": "dark-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Start a workspace for your team"
+    },
+    {
+      "kind": "narration",
+      "text": "A workspace is a shared place for related docs — a team's RFCs, a class's notes, a company's onboarding library. Members get role-based access (admin, editor, viewer). The workspace also has its own knowledge base — drop in PDFs, Word docs, FAQs and the AI grounds its answers in those files when working on any doc inside the workspace.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Click \"+ New workspace\""
+    },
+    {
+      "kind": "narration",
+      "text": "Each section of your home page has its own create button: \"+ New workspace\" sits next to the Workspaces heading, \"+ New document\" next to your documents. Click \"+ New workspace\" to open the create dialog.",
+      "file": "02.webp",
+      "cursor": null,
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Click the \"+ New workspace\" button",
+      "cursor": {
+        "x": 1022,
+        "y": 270
+      },
+      "path": "/",
+      "annotations": [
+        {
+          "label": "new workspace",
+          "kind": "arrow",
+          "x": 957.890625,
+          "y": 256,
+          "w": 130.109375,
+          "h": 28
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "A modal opens — name + optional description, that's the whole form.",
+      "cursor": {
+        "x": 1022,
+        "y": 270
+      },
+      "path": "/"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Name your workspace"
+    },
+    {
+      "kind": "narration",
+      "text": "The name shows in the topbar of every doc in the workspace + in the dashboard list. The description is optional but shows up in the workspace card — useful when you have several workspaces with similar names.",
+      "file": "05.webp",
+      "cursor": {
+        "x": 1022,
+        "y": 270
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Type a name",
+      "cursor": {
+        "x": 422,
+        "y": 374
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "The name lands. Submit is now enabled.",
+      "cursor": {
+        "x": 422,
+        "y": 374
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "07.webp",
+      "caption": "Add a one-line description",
+      "cursor": {
+        "x": 422,
+        "y": 470
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "caption": "The description is captured.",
+      "cursor": {
+        "x": 422,
+        "y": 470
+      },
+      "path": "/"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Create + land on the workspace"
+    },
+    {
+      "kind": "narration",
+      "text": "Submit creates the workspace, makes you the admin, and routes you to its home page. Sharing its address doesn't let anyone in: people join only when an admin invites them.",
+      "file": "08.webp",
+      "cursor": {
+        "x": 640,
+        "y": 470
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "09.webp",
+      "caption": "Click \"Create\"",
+      "cursor": {
+        "x": 790,
+        "y": 563
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "You land on the workspace home page — empty Documents + Knowledge tabs, ready for content. The topbar carries the workspace name; you're the admin (visible in the members list once we add some).",
+      "cursor": {
+        "x": 790,
+        "y": 563
+      },
+      "path": "/w/fHvFAzzgeW",
+      "highlights": [
+        {
+          "label": "Workspace tabs",
+          "x": 256,
+          "y": 233,
+          "w": 768,
+          "h": 53
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "knowledge-grounded-ai",
+    "why": "Workspaces shine when you upload reference docs and let the AI ground its answers in them"
+  }
+}

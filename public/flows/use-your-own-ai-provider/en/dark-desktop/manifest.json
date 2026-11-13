@@ -1,0 +1,142 @@
+{
+  "version": 2,
+  "title": "Use your own AI provider",
+  "slug": "use-your-own-ai-provider",
+  "locale": "en",
+  "variant": "dark-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Bring your own AI provider"
+    },
+    {
+      "kind": "narration",
+      "text": "markoto's writing assistant, image generation and voice input can run on your own AI provider account: Mistral, OpenAI, or any OpenAI-compatible service, including a model on your own server. Your provider bills you directly, and your key is stored encrypted.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/settings/ai"
+    },
+    {
+      "kind": "outcome",
+      "file": "01.webp",
+      "caption": "Each AI feature has its own provider card",
+      "cursor": null,
+      "path": "/settings/ai",
+      "highlights": [
+        {
+          "label": "Writing assistant",
+          "x": 280,
+          "y": 320.5,
+          "w": 720,
+          "h": 142
+        }
+      ]
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Connect a provider for the writing assistant"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Click \"Add your provider\"",
+      "cursor": {
+        "x": 366,
+        "y": 431
+      },
+      "path": "/settings/ai",
+      "annotations": [
+        {
+          "label": "Add your provider",
+          "kind": "box",
+          "x": 297,
+          "y": 417.5,
+          "w": 139.90625,
+          "h": 28
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The form asks for the provider, its address, the model and your key",
+      "cursor": {
+        "x": 366,
+        "y": 431
+      },
+      "path": "/settings/ai"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "Pick your provider (here: Mistral), check the model and paste your API key",
+      "cursor": {
+        "x": 311,
+        "y": 710
+      },
+      "path": "/settings/ai"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Save: markoto checks the connection first"
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Click \"Save and verify\"",
+      "cursor": {
+        "x": 356,
+        "y": 783
+      },
+      "path": "/settings/ai"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "The connection works: the assistant now runs on your provider",
+      "cursor": {
+        "x": 356,
+        "y": 783
+      },
+      "path": "/settings/ai",
+      "highlights": [
+        {
+          "label": "Verified",
+          "x": 297,
+          "y": 568.203125,
+          "w": 686,
+          "h": 20
+        },
+        {
+          "label": "Only the last four characters are shown",
+          "x": 875.90625,
+          "y": 494.5,
+          "w": 94.09375,
+          "h": 20
+        }
+      ],
+      "hero": true
+    },
+    {
+      "kind": "narration",
+      "text": "Before saving, markoto sent a small test request with a tool definition through the same path the assistant uses, so a wrong key or an unknown model is caught here, not in the middle of your writing. You can re-check it with Verify or remove it at any time.",
+      "file": "07.webp",
+      "cursor": {
+        "x": 356,
+        "y": 783
+      },
+      "path": "/settings/ai"
+    }
+  ],
+  "next": {
+    "slug": "write-with-ai",
+    "why": "Ask the assistant to write with your own provider"
+  }
+}

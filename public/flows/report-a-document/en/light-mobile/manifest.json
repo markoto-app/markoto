@@ -1,0 +1,192 @@
+{
+  "version": 2,
+  "title": "Report a document",
+  "slug": "report-a-document",
+  "locale": "en",
+  "variant": "light-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Report a document"
+    },
+    {
+      "kind": "narration",
+      "text": "Anyone can write on markoto without an account, and markoto does not check what people write. If a link you were sent contains a scam, illegal content or spam, you can report it — no account needed.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/d/x9NKjNBNsH"
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "Documents written without an account carry a note at the top: a markoto user wrote this, not markoto.",
+      "cursor": null,
+      "path": "/d/x9NKjNBNsH",
+      "highlights": [
+        {
+          "label": "Written by a user",
+          "x": 0,
+          "y": 41,
+          "w": 390,
+          "h": 24.75
+        }
+      ],
+      "actor": "visitor"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Click \"Report\"",
+      "cursor": {
+        "x": 355,
+        "y": 52
+      },
+      "path": "/d/x9NKjNBNsH",
+      "actor": "visitor"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The report form opens with the document's address already filled in.",
+      "cursor": {
+        "x": 355,
+        "y": 52
+      },
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/x9NKjNBNsH",
+      "actor": "visitor"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Say what is wrong"
+    },
+    {
+      "kind": "narration",
+      "text": "Explain why the content is illegal or breaks the rules, and leave your name and email so markoto can confirm your report and tell you what it decided. For reports of child sexual abuse material, name and email are optional.",
+      "file": "03.webp",
+      "cursor": null,
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/x9NKjNBNsH",
+      "actor": "visitor"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Explain what is wrong with it",
+      "cursor": {
+        "x": 30,
+        "y": 555
+      },
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/x9NKjNBNsH",
+      "actor": "visitor"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "The explanation is in.",
+      "cursor": {
+        "x": 30,
+        "y": 555
+      },
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/x9NKjNBNsH",
+      "actor": "visitor"
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
+      "caption": "Your name",
+      "cursor": {
+        "x": 30,
+        "y": 360
+      },
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/x9NKjNBNsH",
+      "actor": "visitor"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "Name added.",
+      "cursor": {
+        "x": 30,
+        "y": 360
+      },
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/x9NKjNBNsH",
+      "actor": "visitor"
+    },
+    {
+      "kind": "approach",
+      "file": "08.webp",
+      "caption": "Your email, for the confirmation and the decision",
+      "cursor": {
+        "x": 30,
+        "y": 428
+      },
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/x9NKjNBNsH",
+      "actor": "visitor"
+    },
+    {
+      "kind": "outcome",
+      "file": "09.webp",
+      "caption": "Email added.",
+      "cursor": {
+        "x": 30,
+        "y": 428
+      },
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/x9NKjNBNsH",
+      "actor": "visitor"
+    },
+    {
+      "kind": "approach",
+      "file": "09.webp",
+      "caption": "Confirm that the report is accurate and made in good faith",
+      "cursor": {
+        "x": 24,
+        "y": 473
+      },
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/x9NKjNBNsH",
+      "actor": "visitor"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "Confirmed. A bot check runs in your browser meanwhile — no account, no tracking.",
+      "cursor": {
+        "x": 24,
+        "y": 473
+      },
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/x9NKjNBNsH",
+      "actor": "visitor"
+    },
+    {
+      "kind": "approach",
+      "file": "10.webp",
+      "caption": "Click \"Submit report\"",
+      "cursor": {
+        "x": 307,
+        "y": 579
+      },
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/x9NKjNBNsH",
+      "actor": "visitor"
+    },
+    {
+      "kind": "outcome",
+      "file": "11.webp",
+      "caption": "The report is in. You get a confirmation by email and, later, the decision.",
+      "cursor": {
+        "x": 307,
+        "y": 579
+      },
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/x9NKjNBNsH",
+      "hero": true,
+      "actor": "visitor"
+    }
+  ],
+  "next": {
+    "slug": "quick-share",
+    "why": "write your own document and share it by link"
+  }
+}

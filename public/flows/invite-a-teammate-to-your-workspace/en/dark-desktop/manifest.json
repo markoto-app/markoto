@@ -1,0 +1,161 @@
+{
+  "version": 2,
+  "title": "Invite a teammate to your workspace",
+  "slug": "invite-a-teammate-to-your-workspace",
+  "locale": "en",
+  "variant": "dark-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Invite a teammate to your workspace"
+    },
+    {
+      "kind": "narration",
+      "text": "Workspaces start with one member — you, the admin. To bring others in, click \"Invite people\" at the top of the workspace page, type their email, pick a role (admin, editor, or viewer). Invitations are exact-email — no typeahead, so the directory isn't enumerable. Nobody joins until they accept.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/w/OVmYFm01mD"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Click \"Invite people\" at the top of the workspace page",
+      "cursor": {
+        "x": 919,
+        "y": 117
+      },
+      "path": "/w/OVmYFm01mD",
+      "annotations": [
+        {
+          "label": "invite people",
+          "kind": "arrow",
+          "x": 855.546875,
+          "y": 101,
+          "w": 128.453125,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The Members modal opens with the email field ready — current roster + invite-by-email form.",
+      "cursor": {
+        "x": 919,
+        "y": 117
+      },
+      "path": "/w/OVmYFm01mD"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Add Sam by email"
+    },
+    {
+      "kind": "narration",
+      "text": "Type the exact email Sam signed up with. The default role is \"editor\" — they can read, write, comment, but can't change access controls or remove other members. Switch to \"viewer\" for read-only access or \"admin\" to delegate full control.",
+      "file": "04.webp",
+      "cursor": {
+        "x": 919,
+        "y": 117
+      },
+      "path": "/w/OVmYFm01mD"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Type Sam's email",
+      "cursor": {
+        "x": 422,
+        "y": 484
+      },
+      "path": "/w/OVmYFm01mD"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "The email is staged. Hit Invite to send the invitation.",
+      "cursor": {
+        "x": 422,
+        "y": 484
+      },
+      "path": "/w/OVmYFm01mD"
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
+      "caption": "Click Invite",
+      "cursor": {
+        "x": 831,
+        "y": 483
+      },
+      "path": "/w/OVmYFm01mD"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "The invitation is pending — listed under the roster with its role and expiry until Sam accepts.",
+      "cursor": {
+        "x": 831,
+        "y": 483
+      },
+      "path": "/w/OVmYFm01mD"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Sam accepts"
+    },
+    {
+      "kind": "narration",
+      "text": "Sam opens markoto in their own browser, signed in with the invited email. The invitation waits under Invitations on their dashboard — workspace name, role and who invited them. (Where email is set up, Sam also gets an invitation email with a one-time link.)",
+      "file": "08.webp",
+      "cursor": {
+        "x": 831,
+        "y": 483
+      },
+      "path": "/w/OVmYFm01mD"
+    },
+    {
+      "kind": "approach",
+      "file": "09.webp",
+      "caption": "Click Accept on the invitation",
+      "cursor": {
+        "x": 972,
+        "y": 339
+      },
+      "path": "/",
+      "actor": "teammate"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "Sam is in, as an editor: the workspace now sits in My Workspaces on Sam's dashboard, ready to open.",
+      "cursor": {
+        "x": 972,
+        "y": 339
+      },
+      "path": "/",
+      "highlights": [
+        {
+          "label": "Newly joined workspace",
+          "x": 192,
+          "y": 302,
+          "w": 290.65625,
+          "h": 98
+        }
+      ],
+      "hero": true,
+      "actor": "teammate"
+    }
+  ],
+  "next": {
+    "slug": "roles-inside-a-workspace",
+    "why": "Decide who can edit, comment or manage the workspace"
+  }
+}

@@ -1,0 +1,209 @@
+{
+  "version": 2,
+  "title": "Set up a workspace brand kit",
+  "slug": "set-up-a-workspace-brand-kit",
+  "locale": "en",
+  "variant": "light-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Add your fonts and logo"
+    },
+    {
+      "kind": "narration",
+      "text": "The brand kit holds what makes documents look like your organisation's. Upload each font file — one per weight and style — and confirm your licence allows embedding it in PDFs. Logos become available as the cover logo and header image of every document in the workspace.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/w/nTOZEQuZ7u"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Open the Brand kit tab",
+      "cursor": {
+        "x": 768,
+        "y": 231
+      },
+      "path": "/w/nTOZEQuZ7u",
+      "annotations": [
+        {
+          "label": "Brand kit",
+          "kind": "arrow",
+          "x": 721.640625,
+          "y": 209,
+          "w": 93.40625,
+          "h": 44
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "cursor": {
+        "x": 768,
+        "y": 231
+      },
+      "path": "/w/nTOZEQuZ7u"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "Choose the font file, name it and confirm the licence",
+      "cursor": {
+        "x": 281,
+        "y": 728
+      },
+      "path": "/w/nTOZEQuZ7u",
+      "highlights": [
+        {
+          "label": "Font upload",
+          "x": 256,
+          "y": 541.5,
+          "w": 576,
+          "h": 258
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Upload it",
+      "cursor": {
+        "x": 333,
+        "y": 766
+      },
+      "path": "/w/nTOZEQuZ7u"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "cursor": {
+        "x": 333,
+        "y": 766
+      },
+      "path": "/w/nTOZEQuZ7u"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "The font and the logo are in the kit",
+      "cursor": {
+        "x": 1238,
+        "y": 42
+      },
+      "path": "/w/nTOZEQuZ7u",
+      "highlights": [
+        {
+          "label": "Quaybridge Sans",
+          "x": 257,
+          "y": 510.5,
+          "w": 766,
+          "h": 94
+        },
+        {
+          "label": "Logo",
+          "x": 256,
+          "y": 968,
+          "w": 160,
+          "h": 130
+        }
+      ]
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "One design for every document"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "caption": "Take the design from the quarterly report",
+      "cursor": {
+        "x": 716,
+        "y": 399
+      },
+      "path": "/w/nTOZEQuZ7u",
+      "highlights": [
+        {
+          "label": "Workspace design",
+          "x": 256,
+          "y": 1130,
+          "w": 768,
+          "h": 286.5
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "09.webp",
+      "caption": "Lock it for all documents",
+      "cursor": {
+        "x": 291,
+        "y": 399
+      },
+      "path": "/w/nTOZEQuZ7u"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "cursor": {
+        "x": 291,
+        "y": 399
+      },
+      "path": "/w/nTOZEQuZ7u"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Every document follows it"
+    },
+    {
+      "kind": "approach",
+      "file": "11.webp",
+      "caption": "Open the theme panel of another document",
+      "cursor": {
+        "x": 1234,
+        "y": 98
+      },
+      "path": "/d/QM-t09vkIe"
+    },
+    {
+      "kind": "outcome",
+      "file": "12.webp",
+      "cursor": {
+        "x": 1234,
+        "y": 98
+      },
+      "path": "/d/QM-t09vkIe"
+    },
+    {
+      "kind": "outcome",
+      "file": "12.webp",
+      "caption": "It uses the workspace design — only the cover text is its own",
+      "cursor": {
+        "x": 1234,
+        "y": 98
+      },
+      "path": "/d/QM-t09vkIe",
+      "highlights": [
+        {
+          "label": "Locked by the workspace",
+          "x": 973,
+          "y": 176,
+          "w": 295,
+          "h": 424
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "see-who-changed-what-in-a-workspace",
+    "why": "Font, logo, lock and template changes are recorded in the audit log."
+  }
+}

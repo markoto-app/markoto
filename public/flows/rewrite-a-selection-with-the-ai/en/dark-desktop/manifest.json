@@ -1,0 +1,122 @@
+{
+  "version": 2,
+  "title": "Rewrite a selection with the AI",
+  "slug": "rewrite-a-selection-with-the-ai",
+  "locale": "en",
+  "variant": "dark-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Rewrite a selection with the AI"
+    },
+    {
+      "kind": "narration",
+      "text": "The AI prompt bar is the same one you use to draft new sections. Select text first, and the AI works on exactly that passage: it rewrites it in place instead of adding text somewhere else.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 640,
+        "y": 26
+      },
+      "path": "/d/qtB3Trj4jP"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Select the passage you want to rewrite"
+    },
+    {
+      "kind": "narration",
+      "text": "Triple-click selects a paragraph; click and drag selects any range.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 640,
+        "y": 26
+      },
+      "path": "/d/qtB3Trj4jP"
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "Triple-click the wordy paragraph to select it",
+      "cursor": {
+        "x": 19,
+        "y": 383
+      },
+      "path": "/d/qtB3Trj4jP"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Ask the AI to make it shorter"
+    },
+    {
+      "kind": "narration",
+      "text": "Type what you want into the prompt bar. Short instructions work best: \"make this shorter\", \"translate to German\", \"turn this into bullet points\". Your selection stays put while you type.",
+      "file": "02.webp",
+      "cursor": {
+        "x": 319,
+        "y": 333
+      },
+      "path": "/d/qtB3Trj4jP"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Type the rewrite instruction",
+      "cursor": {
+        "x": 316,
+        "y": 723
+      },
+      "path": "/d/qtB3Trj4jP"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "Your instruction is ready; the paragraph is still selected.",
+      "cursor": {
+        "x": 316,
+        "y": 723
+      },
+      "path": "/d/qtB3Trj4jP"
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Send it",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/qtB3Trj4jP"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "The wordy paragraph is now one short sentence, in the same place: the paragraphs before and after it are untouched.",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/qtB3Trj4jP",
+      "highlights": [
+        {
+          "label": "AI-rewritten passage",
+          "x": 4.75,
+          "y": 115,
+          "w": 630,
+          "h": 536.25
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "write-with-ai",
+    "why": "Ask the AI to draft a whole new section"
+  }
+}

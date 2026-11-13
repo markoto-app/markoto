@@ -1,0 +1,116 @@
+{
+  "version": 2,
+  "title": "Polished PDF",
+  "slug": "polished-pdf",
+  "locale": "en",
+  "variant": "dark-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Download a polished PDF"
+    },
+    {
+      "kind": "narration",
+      "text": "When the document looks right in the preview on the right, the PDF looks the same: same theme, same cover page, same page breaks. markoto builds the file for you and downloads it. No print dialog, no fiddling with margins.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 640,
+        "y": 24
+      },
+      "path": "/d/8YdlLy4M6U"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Click the File menu",
+      "cursor": {
+        "x": 28,
+        "y": 63
+      },
+      "path": "/d/8YdlLy4M6U",
+      "annotations": [
+        {
+          "label": "file menu",
+          "kind": "arrow",
+          "x": 8,
+          "y": 49,
+          "w": 41.375,
+          "h": 28
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The File menu opens: New, Import, Export, Print and Delete.",
+      "cursor": {
+        "x": 28,
+        "y": 63
+      },
+      "path": "/d/8YdlLy4M6U"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Hover \"Export\" to reveal the format submenu",
+      "cursor": {
+        "x": 94,
+        "y": 169
+      },
+      "path": "/d/8YdlLy4M6U",
+      "annotations": [
+        {
+          "label": "export submenu",
+          "kind": "arrow",
+          "x": 12,
+          "y": 153,
+          "w": 165.453125,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Click \"PDF (.pdf)\" to create and download the file",
+      "cursor": {
+        "x": 259,
+        "y": 201
+      },
+      "path": "/d/8YdlLy4M6U"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "markoto renders the PDF and your browser downloads it. A new render takes a few seconds; asking again without changes is instant.",
+      "cursor": {
+        "x": 259,
+        "y": 201
+      },
+      "path": "/d/8YdlLy4M6U"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Open the PDF"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "The downloaded PDF: the cover page and the first page of content, exactly as in the preview.",
+      "cursor": null,
+      "path": "/api/docs/8YdlLy4M6U/pdf?inline=1",
+      "hero": true,
+      "actor": "pdf"
+    }
+  ],
+  "next": {
+    "slug": "password-protect",
+    "why": "Now lock the doc down — share it only with people you trust"
+  }
+}

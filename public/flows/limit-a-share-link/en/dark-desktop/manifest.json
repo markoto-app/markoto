@@ -1,0 +1,135 @@
+{
+  "version": 2,
+  "title": "Limit a share link",
+  "slug": "limit-a-share-link",
+  "locale": "en",
+  "variant": "dark-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "View only, with an end date"
+    },
+    {
+      "kind": "narration",
+      "text": "A link to an \"Anyone can view\" document can be limited: turn off downloading and printing for the people you send it to, and let the link stop working on a date. You and your workspace keep full access.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 640,
+        "y": 26
+      },
+      "path": "/d/w-F-1ASGON"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Open the share dialog",
+      "cursor": {
+        "x": 915,
+        "y": 26
+      },
+      "path": "/d/w-F-1ASGON"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "cursor": {
+        "x": 915,
+        "y": 26
+      },
+      "path": "/d/w-F-1ASGON"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Let anyone with the link view it",
+      "cursor": {
+        "x": 640,
+        "y": 398
+      },
+      "path": "/d/w-F-1ASGON"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "cursor": {
+        "x": 640,
+        "y": 398
+      },
+      "path": "/d/w-F-1ASGON"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "Turn on view only and choose when the link stops working",
+      "cursor": {
+        "x": 426,
+        "y": 610
+      },
+      "path": "/d/w-F-1ASGON",
+      "highlights": [
+        {
+          "label": "Link settings",
+          "x": 408,
+          "y": 452,
+          "w": 464,
+          "h": 255.75
+        }
+      ],
+      "hero": true
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "What the people with the link see"
+    },
+    {
+      "kind": "approach",
+      "file": "07.webp",
+      "caption": "They can read it, but File has no export or print",
+      "cursor": {
+        "x": 28,
+        "y": 67
+      },
+      "path": "/d/w-F-1ASGON",
+      "actor": "visitor"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "cursor": {
+        "x": 28,
+        "y": 67
+      },
+      "path": "/d/w-F-1ASGON",
+      "actor": "visitor"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "caption": "No export, no PDF, no print — for them only",
+      "cursor": {
+        "x": 28,
+        "y": 67
+      },
+      "path": "/d/w-F-1ASGON",
+      "actor": "visitor"
+    },
+    {
+      "kind": "outcome",
+      "file": "09.webp",
+      "caption": "After the end date the link says it expired",
+      "cursor": null,
+      "path": "/d/w-F-1ASGON",
+      "actor": "visitor"
+    }
+  ],
+  "next": {
+    "slug": "password-protect",
+    "why": "Ask for a password before anyone can open the document."
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "version": 2,
+  "title": "Zoom the preview",
+  "slug": "zoom-the-preview",
+  "locale": "en",
+  "variant": "light-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Zoom the preview and see all pages"
+    },
+    {
+      "kind": "narration",
+      "text": "The preview shows your document as real pages. By default one page fills the width of the preview. You can zoom in to read the small print, or step back and see every page at once.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 359,
+        "y": 97
+      },
+      "path": "/d/jvv9l3vQDR"
+    },
+    {
+      "kind": "approach",
+      "file": "01.webp",
+      "caption": "Tap the zoom button next to Edit and Preview",
+      "cursor": {
+        "x": 359,
+        "y": 97
+      },
+      "path": "/d/jvv9l3vQDR",
+      "annotations": [
+        {
+          "label": "zoom",
+          "kind": "arrow",
+          "x": 343,
+          "y": 81.75,
+          "w": 32,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "Pick fit width, all pages, or a fixed zoom.",
+      "cursor": {
+        "x": 359,
+        "y": 97
+      },
+      "path": "/d/jvv9l3vQDR"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Tap \"All pages\"",
+      "cursor": {
+        "x": 311,
+        "y": 247
+      },
+      "path": "/d/jvv9l3vQDR"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "The preview pulls back: every page side by side, two or three to a row.",
+      "cursor": {
+        "x": 311,
+        "y": 247
+      },
+      "path": "/d/jvv9l3vQDR",
+      "hero": true
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Tap a page to open it",
+      "cursor": {
+        "x": 311,
+        "y": 247
+      },
+      "path": "/d/jvv9l3vQDR"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "Page 4 opens at full width, right where you tapped.",
+      "cursor": {
+        "x": 311,
+        "y": 247
+      },
+      "path": "/d/jvv9l3vQDR"
+    },
+    {
+      "kind": "narration",
+      "text": "You can also pinch the preview with two fingers to zoom in and out. Pinch all the way out to see all pages.",
+      "file": "06.webp",
+      "cursor": {
+        "x": 311,
+        "y": 247
+      },
+      "path": "/d/jvv9l3vQDR"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Your zoom is remembered"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "After a reload the preview opens on all pages again. The choice is kept in this browser, for every document.",
+      "cursor": {
+        "x": 359,
+        "y": 97
+      },
+      "path": "/d/jvv9l3vQDR"
+    }
+  ],
+  "next": {
+    "slug": "polished-pdf",
+    "why": "Turn the document you just looked over into a PDF"
+  }
+}

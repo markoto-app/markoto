@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "title": "Publish a document as a web page",
+  "slug": "publish-a-document-as-a-web-page",
+  "locale": "en",
+  "variant": "light-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": []
+}

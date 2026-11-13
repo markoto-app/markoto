@@ -1,0 +1,242 @@
+{
+  "version": 2,
+  "title": "Have a discussion",
+  "slug": "have-a-discussion",
+  "locale": "en",
+  "variant": "light-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Have a discussion"
+    },
+    {
+      "kind": "narration",
+      "text": "markoto documents have threaded comments built in. Highlight a passage, leave a note, and your collaborators see it the moment you post — reply, resolve, or @-mention a workspace member without leaving the doc.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 640,
+        "y": 26
+      },
+      "path": "/d/sujQwNmQKC"
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "Highlight the passage you want to comment on",
+      "cursor": {
+        "x": 19,
+        "y": 383
+      },
+      "path": "/d/sujQwNmQKC"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Click \"Add comment\" to start a thread",
+      "cursor": {
+        "x": 391,
+        "y": 377
+      },
+      "path": "/d/sujQwNmQKC",
+      "annotations": [
+        {
+          "label": "add-comment pill",
+          "kind": "arrow",
+          "x": 331.015625,
+          "y": 363.5,
+          "w": 120.25,
+          "h": 28
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "The comments sidebar opens — the composer is focused, ready for your note.",
+      "cursor": {
+        "x": 391,
+        "y": 377
+      },
+      "path": "/d/sujQwNmQKC"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Write your comment",
+      "cursor": {
+        "x": 996,
+        "y": 236
+      },
+      "path": "/d/sujQwNmQKC"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "Your draft is ready to post.",
+      "cursor": {
+        "x": 996,
+        "y": 236
+      },
+      "path": "/d/sujQwNmQKC"
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
+      "caption": "Click Submit to post",
+      "cursor": {
+        "x": 1067,
+        "y": 313
+      },
+      "path": "/d/sujQwNmQKC"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "Your comment lands in the sidebar — the passage gets a yellow underline.",
+      "cursor": {
+        "x": 1067,
+        "y": 313
+      },
+      "path": "/d/sujQwNmQKC",
+      "highlights": [
+        {
+          "label": "Your new thread",
+          "x": 969,
+          "y": 172,
+          "w": 303,
+          "h": 211.75
+        }
+      ]
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Your collaborator replies"
+    },
+    {
+      "kind": "narration",
+      "text": "Sam opens the same document. The thread is waiting in the Comments panel, with a reply box right under it. Replies sit nested under the comment, so the conversation stays in order.",
+      "file": "08.webp",
+      "cursor": {
+        "x": 1067,
+        "y": 313
+      },
+      "path": "/d/sujQwNmQKC"
+    },
+    {
+      "kind": "approach",
+      "file": "09.webp",
+      "caption": "Sam types a reply under the comment",
+      "cursor": {
+        "x": 996,
+        "y": 308
+      },
+      "path": "/d/sujQwNmQKC",
+      "actor": "sam"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "Sam's reply is ready to send.",
+      "cursor": {
+        "x": 996,
+        "y": 308
+      },
+      "path": "/d/sujQwNmQKC",
+      "actor": "sam"
+    },
+    {
+      "kind": "outcome",
+      "file": "11.webp",
+      "caption": "On your screen, Sam's reply appears under your comment as soon as he sends it.",
+      "cursor": {
+        "x": 1067,
+        "y": 313
+      },
+      "path": "/d/sujQwNmQKC",
+      "highlights": [
+        {
+          "label": "Sam's reply",
+          "x": 969,
+          "y": 172,
+          "w": 303,
+          "h": 287.75
+        }
+      ]
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Resolve the thread when you're done"
+    },
+    {
+      "kind": "narration",
+      "text": "Question answered: resolve the thread. It moves into a \"Resolved\" section so it doesn't crowd the active list, and the whole conversation stays there in case you need it again.",
+      "file": "11.webp",
+      "cursor": {
+        "x": 1067,
+        "y": 313
+      },
+      "path": "/d/sujQwNmQKC"
+    },
+    {
+      "kind": "approach",
+      "file": "12.webp",
+      "caption": "Click Resolve on the thread",
+      "cursor": {
+        "x": 1097,
+        "y": 260
+      },
+      "path": "/d/sujQwNmQKC"
+    },
+    {
+      "kind": "outcome",
+      "file": "13.webp",
+      "caption": "The thread leaves the active list — the editor underline disappears.",
+      "cursor": {
+        "x": 1097,
+        "y": 260
+      },
+      "path": "/d/sujQwNmQKC"
+    },
+    {
+      "kind": "approach",
+      "file": "14.webp",
+      "caption": "Reveal the Resolved section to confirm it's archived",
+      "cursor": {
+        "x": 1228,
+        "y": 139
+      },
+      "path": "/d/sujQwNmQKC"
+    },
+    {
+      "kind": "outcome",
+      "file": "15.webp",
+      "caption": "Resolved threads tuck into their own section — out of the way, but recoverable.",
+      "cursor": {
+        "x": 1228,
+        "y": 139
+      },
+      "path": "/d/sujQwNmQKC",
+      "highlights": [
+        {
+          "label": "Resolved section",
+          "x": 969,
+          "y": 172,
+          "w": 303,
+          "h": 23.75
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "summon-ai-from-a-comment",
+    "why": "Tag @markoto in a comment to summon the AI on a specific passage"
+  }
+}

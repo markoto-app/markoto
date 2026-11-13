@@ -1,0 +1,161 @@
+{
+  "version": 2,
+  "title": "Edit your cover page",
+  "slug": "edit-your-cover-page",
+  "locale": "en",
+  "variant": "light-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Edit your cover page"
+    },
+    {
+      "kind": "narration",
+      "text": "Every new document opens with a cover page in the Editorial layout: logo at the top, the title a third of the way down, today's date below. The Cover page section of the theme panel changes all of it: four layouts (Classic, Editorial, Banner, Minimal), a switch for every field, and a slider for the title size.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/d/jvV1SHfkHm"
+    },
+    {
+      "kind": "approach",
+      "file": "01.webp",
+      "caption": "Tap the Theme tab on the bottom bar",
+      "cursor": {
+        "x": 357,
+        "y": 695
+      },
+      "path": "/d/jvV1SHfkHm"
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "The theme panel opens to the preset cards + section accordions.",
+      "cursor": {
+        "x": 357,
+        "y": 695
+      },
+      "path": "/d/jvV1SHfkHm"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Open the Cover page section",
+      "cursor": null,
+      "path": "/d/jvV1SHfkHm",
+      "annotations": [
+        {
+          "label": "Cover page accordion",
+          "kind": "arrow",
+          "x": 12,
+          "y": 490,
+          "w": 366,
+          "h": 48
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "The cover-page editor expands — every field on one scroll-length panel.",
+      "cursor": null,
+      "path": "/d/jvV1SHfkHm"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Pick a layout"
+    },
+    {
+      "kind": "narration",
+      "text": "Editorial is the default. Banner puts the logo and the title in a tinted band across the top of the page. The preview updates as soon as you pick a layout.",
+      "file": "05.webp",
+      "cursor": {
+        "x": 357,
+        "y": 695
+      },
+      "path": "/d/jvV1SHfkHm"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "Open the layout dropdown",
+      "cursor": {
+        "x": 195,
+        "y": 514
+      },
+      "path": "/d/jvV1SHfkHm"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "Pick \"Banner\"",
+      "cursor": {
+        "x": 26,
+        "y": 514
+      },
+      "path": "/d/jvV1SHfkHm"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Add a subtitle line"
+    },
+    {
+      "kind": "narration",
+      "text": "A short line under the title, such as a version, a team or \"Internal draft\". The subtitle is off by default: switch it on, then type.",
+      "file": "07.webp",
+      "cursor": {
+        "x": 195,
+        "y": 622
+      },
+      "path": "/d/jvV1SHfkHm"
+    },
+    {
+      "kind": "approach",
+      "file": "08.webp",
+      "caption": "Flip the \"Show subtitle\" toggle on",
+      "cursor": null,
+      "path": "/d/jvV1SHfkHm"
+    },
+    {
+      "kind": "outcome",
+      "file": "09.webp",
+      "caption": "The subtitle field appears underneath, ready for input.",
+      "cursor": null,
+      "path": "/d/jvV1SHfkHm"
+    },
+    {
+      "kind": "approach",
+      "file": "10.webp",
+      "caption": "Type a subtitle line",
+      "cursor": null,
+      "path": "/d/jvV1SHfkHm"
+    },
+    {
+      "kind": "outcome",
+      "file": "11.webp",
+      "caption": "The subtitle appears on the cover. The PDF will open on this page.",
+      "cursor": null,
+      "path": "/d/jvV1SHfkHm",
+      "highlights": [
+        {
+          "label": "Subtitle",
+          "x": 12,
+          "y": 564,
+          "w": 366,
+          "h": 32
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "save-your-custom-theme-as-a-preset",
+    "why": "Once your cover looks right, save the whole theme as a preset so the next doc starts here"
+  }
+}

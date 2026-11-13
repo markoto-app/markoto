@@ -1,0 +1,998 @@
+{
+  "version": 2,
+  "viewport": {
+    "w": 1440,
+    "h": 900
+  },
+  "scenes": [
+    {
+      "id": "hero",
+      "description": "The markoto editor with the finished Quaybridge report.",
+      "poster": {
+        "light": {
+          "src": "/tour/light/write/poster-1920.webp",
+          "width": 1920,
+          "height": 1200,
+          "srcset": [
+            {
+              "src": "/tour/light/write/poster-1280.webp",
+              "width": 1280
+            },
+            {
+              "src": "/tour/light/write/poster-800.webp",
+              "width": 800
+            }
+          ]
+        },
+        "dark": {
+          "src": "/tour/dark/write/poster-1920.webp",
+          "width": 1920,
+          "height": 1200,
+          "srcset": [
+            {
+              "src": "/tour/dark/write/poster-1280.webp",
+              "width": 1280
+            },
+            {
+              "src": "/tour/dark/write/poster-800.webp",
+              "width": 800
+            }
+          ]
+        }
+      },
+      "focus": {
+        "x": 636,
+        "y": 91,
+        "w": 804,
+        "h": 804
+      },
+      "phone": {
+        "poster": {
+          "light": {
+            "src": "/tour/light/write/phone-poster-1080.webp",
+            "width": 1080,
+            "height": 1080,
+            "srcset": [
+              {
+                "src": "/tour/light/write/phone-poster-720.webp",
+                "width": 720
+              }
+            ]
+          },
+          "dark": {
+            "src": "/tour/dark/write/phone-poster-1080.webp",
+            "width": 1080,
+            "height": 1080,
+            "srcset": [
+              {
+                "src": "/tour/dark/write/phone-poster-720.webp",
+                "width": 720
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "write",
+      "description": "The executive summary typed in Markdown while its page renders live, then the preview pulls back to the whole Quaybridge report.",
+      "poster": {
+        "light": {
+          "src": "/tour/light/write/poster-1920.webp",
+          "width": 1920,
+          "height": 1200,
+          "srcset": [
+            {
+              "src": "/tour/light/write/poster-1280.webp",
+              "width": 1280
+            },
+            {
+              "src": "/tour/light/write/poster-800.webp",
+              "width": 800
+            }
+          ]
+        },
+        "dark": {
+          "src": "/tour/dark/write/poster-1920.webp",
+          "width": 1920,
+          "height": 1200,
+          "srcset": [
+            {
+              "src": "/tour/dark/write/poster-1280.webp",
+              "width": 1280
+            },
+            {
+              "src": "/tour/dark/write/poster-800.webp",
+              "width": 800
+            }
+          ]
+        }
+      },
+      "video": {
+        "light": {
+          "av1": "/tour/light/write/video.av1.mp4",
+          "h264": "/tour/light/write/video.h264.mp4",
+          "width": 1728,
+          "height": 1080
+        },
+        "dark": {
+          "av1": "/tour/dark/write/video.av1.mp4",
+          "h264": "/tour/dark/write/video.h264.mp4",
+          "width": 1728,
+          "height": 1080
+        }
+      },
+      "duration": 9.08,
+      "focus": {
+        "x": 636,
+        "y": 91,
+        "w": 804,
+        "h": 804
+      },
+      "phone": {
+        "poster": {
+          "light": {
+            "src": "/tour/light/write/phone-poster-1080.webp",
+            "width": 1080,
+            "height": 1080,
+            "srcset": [
+              {
+                "src": "/tour/light/write/phone-poster-720.webp",
+                "width": 720
+              }
+            ]
+          },
+          "dark": {
+            "src": "/tour/dark/write/phone-poster-1080.webp",
+            "width": 1080,
+            "height": 1080,
+            "srcset": [
+              {
+                "src": "/tour/dark/write/phone-poster-720.webp",
+                "width": 720
+              }
+            ]
+          }
+        },
+        "video": {
+          "light": {
+            "av1": "/tour/light/write/phone.av1.mp4",
+            "h264": "/tour/light/write/phone.h264.mp4",
+            "width": 720,
+            "height": 720
+          },
+          "dark": {
+            "av1": "/tour/dark/write/phone.av1.mp4",
+            "h264": "/tour/dark/write/phone.h264.mp4",
+            "width": 720,
+            "height": 720
+          }
+        }
+      }
+    },
+    {
+      "id": "rich",
+      "description": "A running header and a footer with the date and page numbers are added in the theme panel and appear on every page.",
+      "poster": {
+        "light": {
+          "src": "/tour/light/rich/poster-1920.webp",
+          "width": 1920,
+          "height": 1200,
+          "srcset": [
+            {
+              "src": "/tour/light/rich/poster-1280.webp",
+              "width": 1280
+            },
+            {
+              "src": "/tour/light/rich/poster-800.webp",
+              "width": 800
+            }
+          ]
+        },
+        "dark": {
+          "src": "/tour/dark/rich/poster-1920.webp",
+          "width": 1920,
+          "height": 1200,
+          "srcset": [
+            {
+              "src": "/tour/dark/rich/poster-1280.webp",
+              "width": 1280
+            },
+            {
+              "src": "/tour/dark/rich/poster-800.webp",
+              "width": 800
+            }
+          ]
+        }
+      },
+      "video": {
+        "light": {
+          "av1": "/tour/light/rich/video.av1.mp4",
+          "h264": "/tour/light/rich/video.h264.mp4",
+          "width": 1728,
+          "height": 1080
+        },
+        "dark": {
+          "av1": "/tour/dark/rich/video.av1.mp4",
+          "h264": "/tour/dark/rich/video.h264.mp4",
+          "width": 1728,
+          "height": 1080
+        }
+      },
+      "duration": 16.58,
+      "focus": {
+        "x": 439,
+        "y": 91,
+        "w": 804,
+        "h": 804
+      },
+      "phone": {
+        "poster": {
+          "light": {
+            "src": "/tour/light/rich/phone-poster-1080.webp",
+            "width": 1080,
+            "height": 1080,
+            "srcset": [
+              {
+                "src": "/tour/light/rich/phone-poster-720.webp",
+                "width": 720
+              }
+            ]
+          },
+          "dark": {
+            "src": "/tour/dark/rich/phone-poster-1080.webp",
+            "width": 1080,
+            "height": 1080,
+            "srcset": [
+              {
+                "src": "/tour/dark/rich/phone-poster-720.webp",
+                "width": 720
+              }
+            ]
+          }
+        },
+        "video": {
+          "light": {
+            "av1": "/tour/light/rich/phone.av1.mp4",
+            "h264": "/tour/light/rich/phone.h264.mp4",
+            "width": 720,
+            "height": 720
+          },
+          "dark": {
+            "av1": "/tour/dark/rich/phone.av1.mp4",
+            "h264": "/tour/dark/rich/phone.h264.mp4",
+            "width": 720,
+            "height": 720
+          }
+        }
+      }
+    },
+    {
+      "id": "themes",
+      "description": "A different preset restyles the report, then a new accent colour and heading font, and finally a designed cover page.",
+      "poster": {
+        "light": {
+          "src": "/tour/light/themes/poster-1920.webp",
+          "width": 1920,
+          "height": 1200,
+          "srcset": [
+            {
+              "src": "/tour/light/themes/poster-1280.webp",
+              "width": 1280
+            },
+            {
+              "src": "/tour/light/themes/poster-800.webp",
+              "width": 800
+            }
+          ]
+        },
+        "dark": {
+          "src": "/tour/dark/themes/poster-1920.webp",
+          "width": 1920,
+          "height": 1200,
+          "srcset": [
+            {
+              "src": "/tour/dark/themes/poster-1280.webp",
+              "width": 1280
+            },
+            {
+              "src": "/tour/dark/themes/poster-800.webp",
+              "width": 800
+            }
+          ]
+        }
+      },
+      "video": {
+        "light": {
+          "av1": "/tour/light/themes/video.av1.mp4",
+          "h264": "/tour/light/themes/video.h264.mp4",
+          "width": 1728,
+          "height": 1080
+        },
+        "dark": {
+          "av1": "/tour/dark/themes/video.av1.mp4",
+          "h264": "/tour/dark/themes/video.h264.mp4",
+          "width": 1728,
+          "height": 1080
+        }
+      },
+      "duration": 19.75,
+      "focus": {
+        "x": 439,
+        "y": 91,
+        "w": 804,
+        "h": 804
+      },
+      "phone": {
+        "poster": {
+          "light": {
+            "src": "/tour/light/themes/phone-poster-1080.webp",
+            "width": 1080,
+            "height": 1080,
+            "srcset": [
+              {
+                "src": "/tour/light/themes/phone-poster-720.webp",
+                "width": 720
+              }
+            ]
+          },
+          "dark": {
+            "src": "/tour/dark/themes/phone-poster-1080.webp",
+            "width": 1080,
+            "height": 1080,
+            "srcset": [
+              {
+                "src": "/tour/dark/themes/phone-poster-720.webp",
+                "width": 720
+              }
+            ]
+          }
+        },
+        "video": {
+          "light": {
+            "av1": "/tour/light/themes/phone.av1.mp4",
+            "h264": "/tour/light/themes/phone.h264.mp4",
+            "width": 720,
+            "height": 720
+          },
+          "dark": {
+            "av1": "/tour/dark/themes/phone.av1.mp4",
+            "h264": "/tour/dark/themes/phone.h264.mp4",
+            "width": 720,
+            "height": 720
+          }
+        }
+      }
+    },
+    {
+      "id": "collab",
+      "description": "Two colleagues type in different sections of the report at the same time; the author comments, mentions one of them, and the reply arrives.",
+      "poster": {
+        "light": {
+          "src": "/tour/light/collab/poster-1920.webp",
+          "width": 1920,
+          "height": 1200,
+          "srcset": [
+            {
+              "src": "/tour/light/collab/poster-1280.webp",
+              "width": 1280
+            },
+            {
+              "src": "/tour/light/collab/poster-800.webp",
+              "width": 800
+            }
+          ]
+        },
+        "dark": {
+          "src": "/tour/dark/collab/poster-1920.webp",
+          "width": 1920,
+          "height": 1200,
+          "srcset": [
+            {
+              "src": "/tour/dark/collab/poster-1280.webp",
+              "width": 1280
+            },
+            {
+              "src": "/tour/dark/collab/poster-800.webp",
+              "width": 800
+            }
+          ]
+        }
+      },
+      "video": {
+        "light": {
+          "av1": "/tour/light/collab/video.av1.mp4",
+          "h264": "/tour/light/collab/video.h264.mp4",
+          "width": 1728,
+          "height": 1080
+        },
+        "dark": {
+          "av1": "/tour/dark/collab/video.av1.mp4",
+          "h264": "/tour/dark/collab/video.h264.mp4",
+          "width": 1728,
+          "height": 1080
+        }
+      },
+      "duration": 14.08,
+      "focus": {
+        "x": 880,
+        "y": 106,
+        "w": 560,
+        "h": 420
+      },
+      "phone": {
+        "poster": {
+          "light": {
+            "src": "/tour/light/collab/phone-poster-1080.webp",
+            "width": 1080,
+            "height": 810,
+            "srcset": [
+              {
+                "src": "/tour/light/collab/phone-poster-720.webp",
+                "width": 720
+              }
+            ]
+          },
+          "dark": {
+            "src": "/tour/dark/collab/phone-poster-1080.webp",
+            "width": 1080,
+            "height": 810,
+            "srcset": [
+              {
+                "src": "/tour/dark/collab/phone-poster-720.webp",
+                "width": 720
+              }
+            ]
+          }
+        },
+        "video": {
+          "light": {
+            "av1": "/tour/light/collab/phone.av1.mp4",
+            "h264": "/tour/light/collab/phone.h264.mp4",
+            "width": 720,
+            "height": 540
+          },
+          "dark": {
+            "av1": "/tour/dark/collab/phone.av1.mp4",
+            "h264": "/tour/dark/collab/phone.h264.mp4",
+            "width": 720,
+            "height": 540
+          }
+        }
+      }
+    },
+    {
+      "id": "ai",
+      "description": "From a title only, the AI writes an executive summary with a key-figures table into the report while the preview updates.",
+      "poster": {
+        "light": {
+          "src": "/tour/light/ai/poster-1920.webp",
+          "width": 1920,
+          "height": 1200,
+          "srcset": [
+            {
+              "src": "/tour/light/ai/poster-1280.webp",
+              "width": 1280
+            },
+            {
+              "src": "/tour/light/ai/poster-800.webp",
+              "width": 800
+            }
+          ]
+        },
+        "dark": {
+          "src": "/tour/dark/ai/poster-1920.webp",
+          "width": 1920,
+          "height": 1200,
+          "srcset": [
+            {
+              "src": "/tour/dark/ai/poster-1280.webp",
+              "width": 1280
+            },
+            {
+              "src": "/tour/dark/ai/poster-800.webp",
+              "width": 800
+            }
+          ]
+        }
+      },
+      "video": {
+        "light": {
+          "av1": "/tour/light/ai/video.av1.mp4",
+          "h264": "/tour/light/ai/video.h264.mp4",
+          "width": 1728,
+          "height": 1080
+        },
+        "dark": {
+          "av1": "/tour/dark/ai/video.av1.mp4",
+          "h264": "/tour/dark/ai/video.h264.mp4",
+          "width": 1728,
+          "height": 1080
+        }
+      },
+      "duration": 10.83,
+      "focus": {
+        "x": 636,
+        "y": 91,
+        "w": 804,
+        "h": 804
+      },
+      "phone": {
+        "poster": {
+          "light": {
+            "src": "/tour/light/ai/phone-poster-1080.webp",
+            "width": 1080,
+            "height": 1080,
+            "srcset": [
+              {
+                "src": "/tour/light/ai/phone-poster-720.webp",
+                "width": 720
+              }
+            ]
+          },
+          "dark": {
+            "src": "/tour/dark/ai/phone-poster-1080.webp",
+            "width": 1080,
+            "height": 1080,
+            "srcset": [
+              {
+                "src": "/tour/dark/ai/phone-poster-720.webp",
+                "width": 720
+              }
+            ]
+          }
+        },
+        "video": {
+          "light": {
+            "av1": "/tour/light/ai/phone.av1.mp4",
+            "h264": "/tour/light/ai/phone.h264.mp4",
+            "width": 720,
+            "height": 720
+          },
+          "dark": {
+            "av1": "/tour/dark/ai/phone.av1.mp4",
+            "h264": "/tour/dark/ai/phone.h264.mp4",
+            "width": 720,
+            "height": 720
+          }
+        }
+      }
+    },
+    {
+      "id": "knowledge",
+      "description": "A carrier network memo is uploaded to the workspace knowledge, processed, and the AI answers from it, quoting its figures.",
+      "poster": {
+        "light": {
+          "src": "/tour/light/knowledge/poster-1920.webp",
+          "width": 1920,
+          "height": 1200,
+          "srcset": [
+            {
+              "src": "/tour/light/knowledge/poster-1280.webp",
+              "width": 1280
+            },
+            {
+              "src": "/tour/light/knowledge/poster-800.webp",
+              "width": 800
+            }
+          ]
+        },
+        "dark": {
+          "src": "/tour/dark/knowledge/poster-1920.webp",
+          "width": 1920,
+          "height": 1200,
+          "srcset": [
+            {
+              "src": "/tour/dark/knowledge/poster-1280.webp",
+              "width": 1280
+            },
+            {
+              "src": "/tour/dark/knowledge/poster-800.webp",
+              "width": 800
+            }
+          ]
+        }
+      },
+      "video": {
+        "light": {
+          "av1": "/tour/light/knowledge/video.av1.mp4",
+          "h264": "/tour/light/knowledge/video.h264.mp4",
+          "width": 1728,
+          "height": 1080
+        },
+        "dark": {
+          "av1": "/tour/dark/knowledge/video.av1.mp4",
+          "h264": "/tour/dark/knowledge/video.h264.mp4",
+          "width": 1728,
+          "height": 1080
+        }
+      },
+      "duration": 17.67,
+      "focus": {
+        "x": 513,
+        "y": 86,
+        "w": 927,
+        "h": 751
+      },
+      "phone": {
+        "poster": {
+          "light": {
+            "src": "/tour/light/knowledge/phone-poster-1080.webp",
+            "width": 1080,
+            "height": 875,
+            "srcset": [
+              {
+                "src": "/tour/light/knowledge/phone-poster-720.webp",
+                "width": 720
+              }
+            ]
+          },
+          "dark": {
+            "src": "/tour/dark/knowledge/phone-poster-1080.webp",
+            "width": 1080,
+            "height": 875,
+            "srcset": [
+              {
+                "src": "/tour/dark/knowledge/phone-poster-720.webp",
+                "width": 720
+              }
+            ]
+          }
+        },
+        "video": {
+          "light": {
+            "av1": "/tour/light/knowledge/phone.av1.mp4",
+            "h264": "/tour/light/knowledge/phone.h264.mp4",
+            "width": 720,
+            "height": 584
+          },
+          "dark": {
+            "av1": "/tour/dark/knowledge/phone.av1.mp4",
+            "h264": "/tour/dark/knowledge/phone.h264.mp4",
+            "width": 720,
+            "height": 584
+          }
+        }
+      }
+    },
+    {
+      "id": "history",
+      "description": "The activity log of the report: edits by three people over time, one expanded into its diff, then restored.",
+      "poster": {
+        "light": {
+          "src": "/tour/light/history/poster-1920.webp",
+          "width": 1920,
+          "height": 1200,
+          "srcset": [
+            {
+              "src": "/tour/light/history/poster-1280.webp",
+              "width": 1280
+            },
+            {
+              "src": "/tour/light/history/poster-800.webp",
+              "width": 800
+            }
+          ]
+        },
+        "dark": {
+          "src": "/tour/dark/history/poster-1920.webp",
+          "width": 1920,
+          "height": 1200,
+          "srcset": [
+            {
+              "src": "/tour/dark/history/poster-1280.webp",
+              "width": 1280
+            },
+            {
+              "src": "/tour/dark/history/poster-800.webp",
+              "width": 800
+            }
+          ]
+        }
+      },
+      "video": {
+        "light": {
+          "av1": "/tour/light/history/video.av1.mp4",
+          "h264": "/tour/light/history/video.h264.mp4",
+          "width": 1728,
+          "height": 1080
+        },
+        "dark": {
+          "av1": "/tour/dark/history/video.av1.mp4",
+          "h264": "/tour/dark/history/video.h264.mp4",
+          "width": 1728,
+          "height": 1080
+        }
+      },
+      "duration": 11.92,
+      "focus": {
+        "x": 880,
+        "y": 65,
+        "w": 560,
+        "h": 420
+      },
+      "phone": {
+        "poster": {
+          "light": {
+            "src": "/tour/light/history/phone-poster-1080.webp",
+            "width": 1080,
+            "height": 810,
+            "srcset": [
+              {
+                "src": "/tour/light/history/phone-poster-720.webp",
+                "width": 720
+              }
+            ]
+          },
+          "dark": {
+            "src": "/tour/dark/history/phone-poster-1080.webp",
+            "width": 1080,
+            "height": 810,
+            "srcset": [
+              {
+                "src": "/tour/dark/history/phone-poster-720.webp",
+                "width": 720
+              }
+            ]
+          }
+        },
+        "video": {
+          "light": {
+            "av1": "/tour/light/history/phone.av1.mp4",
+            "h264": "/tour/light/history/phone.h264.mp4",
+            "width": 720,
+            "height": 540
+          },
+          "dark": {
+            "av1": "/tour/dark/history/phone.av1.mp4",
+            "h264": "/tour/dark/history/phone.h264.mp4",
+            "width": 720,
+            "height": 540
+          }
+        }
+      }
+    },
+    {
+      "id": "share",
+      "description": "The share dialog: the report link, its QR code and who may open it.",
+      "poster": {
+        "light": {
+          "src": "/tour/light/share/poster-1920.webp",
+          "width": 1920,
+          "height": 1200,
+          "srcset": [
+            {
+              "src": "/tour/light/share/poster-1280.webp",
+              "width": 1280
+            },
+            {
+              "src": "/tour/light/share/poster-800.webp",
+              "width": 800
+            }
+          ]
+        },
+        "dark": {
+          "src": "/tour/dark/share/poster-1920.webp",
+          "width": 1920,
+          "height": 1200,
+          "srcset": [
+            {
+              "src": "/tour/dark/share/poster-1280.webp",
+              "width": 1280
+            },
+            {
+              "src": "/tour/dark/share/poster-800.webp",
+              "width": 800
+            }
+          ]
+        }
+      },
+      "video": {
+        "light": {
+          "av1": "/tour/light/share/video.av1.mp4",
+          "h264": "/tour/light/share/video.h264.mp4",
+          "width": 1728,
+          "height": 1080
+        },
+        "dark": {
+          "av1": "/tour/dark/share/video.av1.mp4",
+          "h264": "/tour/dark/share/video.h264.mp4",
+          "width": 1728,
+          "height": 1080
+        }
+      },
+      "duration": 7,
+      "focus": {
+        "x": 368,
+        "y": 98,
+        "w": 704,
+        "h": 704
+      },
+      "phone": {
+        "poster": {
+          "light": {
+            "src": "/tour/light/share/phone-poster-1080.webp",
+            "width": 1080,
+            "height": 1080,
+            "srcset": [
+              {
+                "src": "/tour/light/share/phone-poster-720.webp",
+                "width": 720
+              }
+            ]
+          },
+          "dark": {
+            "src": "/tour/dark/share/phone-poster-1080.webp",
+            "width": 1080,
+            "height": 1080,
+            "srcset": [
+              {
+                "src": "/tour/dark/share/phone-poster-720.webp",
+                "width": 720
+              }
+            ]
+          }
+        },
+        "video": {
+          "light": {
+            "av1": "/tour/light/share/phone.av1.mp4",
+            "h264": "/tour/light/share/phone.h264.mp4",
+            "width": 720,
+            "height": 720
+          },
+          "dark": {
+            "av1": "/tour/dark/share/phone.av1.mp4",
+            "h264": "/tour/dark/share/phone.h264.mp4",
+            "width": 720,
+            "height": 720
+          }
+        }
+      },
+      "beats": [
+        {
+          "id": "sharePdf",
+          "t": [
+            0.55,
+            1
+          ],
+          "pages": [
+            {
+              "src": "/tour/light/share/sharePdf-0-720.webp",
+              "width": 720,
+              "height": 1019,
+              "srcset": [
+                {
+                  "src": "/tour/light/share/sharePdf-0-400.webp",
+                  "width": 400
+                }
+              ]
+            },
+            {
+              "src": "/tour/light/share/sharePdf-1-720.webp",
+              "width": 720,
+              "height": 1019,
+              "srcset": [
+                {
+                  "src": "/tour/light/share/sharePdf-1-400.webp",
+                  "width": 400
+                }
+              ]
+            },
+            {
+              "src": "/tour/light/share/sharePdf-2-720.webp",
+              "width": 720,
+              "height": 1019,
+              "srcset": [
+                {
+                  "src": "/tour/light/share/sharePdf-2-400.webp",
+                  "width": 400
+                }
+              ]
+            }
+          ],
+          "description": "Pages of the exported PDF fanned out over the share dialog."
+        }
+      ]
+    },
+    {
+      "id": "yours",
+      "description": "AI provider settings: the writing assistant connected to the user’s own provider and verified.",
+      "poster": {
+        "light": {
+          "src": "/tour/light/yours/poster-1920.webp",
+          "width": 1920,
+          "height": 1200,
+          "srcset": [
+            {
+              "src": "/tour/light/yours/poster-1280.webp",
+              "width": 1280
+            },
+            {
+              "src": "/tour/light/yours/poster-800.webp",
+              "width": 800
+            }
+          ]
+        },
+        "dark": {
+          "src": "/tour/dark/yours/poster-1920.webp",
+          "width": 1920,
+          "height": 1200,
+          "srcset": [
+            {
+              "src": "/tour/dark/yours/poster-1280.webp",
+              "width": 1280
+            },
+            {
+              "src": "/tour/dark/yours/poster-800.webp",
+              "width": 800
+            }
+          ]
+        }
+      },
+      "video": {
+        "light": {
+          "av1": "/tour/light/yours/video.av1.mp4",
+          "h264": "/tour/light/yours/video.h264.mp4",
+          "width": 1728,
+          "height": 1080
+        },
+        "dark": {
+          "av1": "/tour/dark/yours/video.av1.mp4",
+          "h264": "/tour/dark/yours/video.h264.mp4",
+          "width": 1728,
+          "height": 1080
+        }
+      },
+      "duration": 10.92,
+      "focus": {
+        "x": 336,
+        "y": 151,
+        "w": 768,
+        "h": 576
+      },
+      "phone": {
+        "poster": {
+          "light": {
+            "src": "/tour/light/yours/phone-poster-1080.webp",
+            "width": 1080,
+            "height": 810,
+            "srcset": [
+              {
+                "src": "/tour/light/yours/phone-poster-720.webp",
+                "width": 720
+              }
+            ]
+          },
+          "dark": {
+            "src": "/tour/dark/yours/phone-poster-1080.webp",
+            "width": 1080,
+            "height": 810,
+            "srcset": [
+              {
+                "src": "/tour/dark/yours/phone-poster-720.webp",
+                "width": 720
+              }
+            ]
+          }
+        },
+        "video": {
+          "light": {
+            "av1": "/tour/light/yours/phone.av1.mp4",
+            "h264": "/tour/light/yours/phone.h264.mp4",
+            "width": 720,
+            "height": 540
+          },
+          "dark": {
+            "av1": "/tour/dark/yours/phone.av1.mp4",
+            "h264": "/tour/dark/yours/phone.h264.mp4",
+            "width": 720,
+            "height": 540
+          }
+        }
+      }
+    },
+    {
+      "id": "cta"
+    }
+  ]
+}

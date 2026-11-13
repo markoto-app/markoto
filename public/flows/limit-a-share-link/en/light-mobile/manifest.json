@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "title": "Limit a share link",
+  "slug": "limit-a-share-link",
+  "locale": "en",
+  "variant": "light-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": []
+}

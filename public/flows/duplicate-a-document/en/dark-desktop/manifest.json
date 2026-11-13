@@ -1,0 +1,108 @@
+{
+  "version": 2,
+  "title": "Duplicate a document",
+  "slug": "duplicate-a-document",
+  "locale": "en",
+  "variant": "dark-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Duplicate an existing document"
+    },
+    {
+      "kind": "narration",
+      "text": "A template gives you an empty structure; Duplicate copies a document you already have: its text, theme, images and document settings. Comments stay with the original. Handy when your team starts every new piece of work from a copy of a \"house\" document. The copy is independent: editing one never changes the other.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 640,
+        "y": 26
+      },
+      "path": "/d/66fsKNt5_R"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Click the File menu",
+      "cursor": {
+        "x": 28,
+        "y": 67
+      },
+      "path": "/d/66fsKNt5_R"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The File menu opens — Duplicate sits below Print.",
+      "cursor": {
+        "x": 28,
+        "y": 67
+      },
+      "path": "/d/66fsKNt5_R"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Click \"Duplicate…\"",
+      "cursor": {
+        "x": 103,
+        "y": 255
+      },
+      "path": "/d/66fsKNt5_R"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "A confirm dialog appears — markoto pre-fills the new title with \"Copy of …\".",
+      "cursor": {
+        "x": 103,
+        "y": 255
+      },
+      "path": "/d/66fsKNt5_R"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Confirm and land in the clone"
+    },
+    {
+      "kind": "narration",
+      "text": "Edit the title if you like, then confirm. markoto copies the text, the theme and every image (the copy points at its own images, so deleting the original never breaks it). A flaky connection can't leave you with two copies: a retried request returns the copy that was already made.",
+      "file": "06.webp",
+      "cursor": {
+        "x": 103,
+        "y": 255
+      },
+      "path": "/d/66fsKNt5_R"
+    },
+    {
+      "kind": "approach",
+      "file": "07.webp",
+      "caption": "Click \"Duplicate\" to commit",
+      "cursor": {
+        "x": 818,
+        "y": 482
+      },
+      "path": "/d/66fsKNt5_R"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "caption": "The new doc opens — same body, same theme, fresh URL. Edit either copy independently from now on.",
+      "cursor": {
+        "x": 818,
+        "y": 482
+      },
+      "path": "/d/zclXMbDxLL",
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "pick-a-theme",
+    "why": "Now tweak the clone's theme without touching the original"
+  }
+}

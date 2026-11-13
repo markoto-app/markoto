@@ -1,0 +1,109 @@
+{
+  "version": 2,
+  "title": "Ask the AI for current information",
+  "slug": "ask-the-ai-for-current-information",
+  "locale": "en",
+  "variant": "light-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Ask the AI for current information"
+    },
+    {
+      "kind": "narration",
+      "text": "The AI's training data has a cutoff. For anything more recent — current library versions, latest news, who shipped what last week — it can search the web and weave the result into your doc. The search runs on the instance's European search provider; your AI provider writes the answer. It links the sources it used, so you can verify before publishing.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/d/IxMvhWrrRn"
+    },
+    {
+      "kind": "approach",
+      "file": "01.webp",
+      "caption": "Click into the AI prompt bar",
+      "cursor": {
+        "x": 173,
+        "y": 602
+      },
+      "path": "/d/IxMvhWrrRn"
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "The prompt bar lifts and glows — ready for your prompt.",
+      "cursor": {
+        "x": 173,
+        "y": 602
+      },
+      "path": "/d/IxMvhWrrRn"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Type a question that needs current info",
+      "cursor": {
+        "x": 76,
+        "y": 603
+      },
+      "path": "/d/IxMvhWrrRn"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "Your prompt is ready. Asking for the \"latest\" release tells the AI to search the web.",
+      "cursor": {
+        "x": 76,
+        "y": 603
+      },
+      "path": "/d/IxMvhWrrRn"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Send it",
+      "cursor": {
+        "x": 350,
+        "y": 602
+      },
+      "path": "/d/IxMvhWrrRn"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "The AI is working — it searches the web, then writes the answer into the doc.",
+      "cursor": {
+        "x": 350,
+        "y": 602
+      },
+      "path": "/d/IxMvhWrrRn"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "The AI searched the web, found the current Vue.js release, and wrote the note into the doc — with a link to its source.",
+      "cursor": {
+        "x": 350,
+        "y": 602
+      },
+      "path": "/d/IxMvhWrrRn",
+      "highlights": [
+        {
+          "label": "Answer with its source",
+          "x": 16,
+          "y": 133.375,
+          "w": 358,
+          "h": 108.75
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "tell-the-ai-who-you-re-writing-for",
+    "why": "Steer the AI's tone + language too — set the document context"
+  }
+}
