@@ -1,6 +1,6 @@
 ---
-# Vault template: copy to all.vault.yml, fill in, then:
-#   ansible-vault encrypt group_vars/all.vault.yml
+# Vault template: copy to inventories/<env>/vault.yml, fill in, then:
+#   ansible-vault encrypt inventories/<env>/vault.yml --vault-password-file=inventories/<env>/.vault-password
 #
 # Every value below is an input of infra/render-env.sh (which renders the
 # .env file the compose stack reads): the variable name is the .env key in

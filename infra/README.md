@@ -16,7 +16,7 @@ part of the operator runbook, kept outside this repository.
   once; Ansible only configures the box. Matches the "single VPS, not a
   fleet" reality of this project.
 - **Disaster recovery is one inventory edit**: VPS dead → spin a new one →
-  update IP → re-run `make provision && make deploy`.
+  update IP → re-run `make provision ENV=prod && make deploy ENV=prod`.
 
 ## The host model
 
@@ -96,10 +96,13 @@ infra/
 ├── .ansible-lint           # production profile, offline by default
 ├── .yamllint               # 120-col, octal-strict (matches ansible-lint reqs)
 ├── requirements.yml        # Galaxy collections + roles (see §Galaxy deps)
-├── inventory.example.ini   # template, fill in VPS IP (ansible_user=debian)
+├── inventories/            # one directory per environment (git-ignored except example/)
+│   ├── example/            # template: hosts.ini, env.yml
+│   ├── staging/            # hosts.ini, env.yml, vault.yml (encrypted), .vault-password
+│   └── prod/               # same files, prod values
 ├── group_vars/
-│   ├── all.yml             # non-secret defaults (domain, image tag, paths, Compose pin, deploy key)
-│   └── all.vault.example.yml  # secret template, encrypt before commit
+│   ├── all.yml             # non-secret defaults shared by every environment (paths, Compose pin)
+│   └── all.vault.example.yml  # secret template for inventories/<env>/vault.yml
 ├── playbooks/
 │   ├── provision.yml       # one-time: base + os_hardening + podman_host + security + ssh_hardening
 │   ├── deploy.yml          # idempotent: markoto + backup_timer
@@ -128,21 +131,31 @@ The role copies the production subset to the same relative paths under
 
 ## Quick start
 
+Each environment (staging, prod) is a directory `inventories/<env>/` with
+four git-ignored files; every Make target takes `ENV=<env>`.
+
 ```bash
 cd infra/
 make requirements                            # install Galaxy collections + roles (once)
-cp inventory.example.ini inventory.ini       # set ansible_host=<VPS_IP>, ansible_user=debian
-# group_vars/all.yml: domain, markoto_deploy_pubkey (public half of DEPLOY_SSH_KEY), ...
-cp group_vars/all.vault.example.yml group_vars/all.vault.yml
-# edit group_vars/all.vault.yml: fill in every REPLACE_ME
-ansible-vault encrypt group_vars/all.vault.yml
-echo "<your vault passphrase>" > .vault-password && chmod 600 .vault-password
+cp -r inventories/example inventories/prod   # then edit the two files:
+#   hosts.ini: ansible_host=<VPS_IP>, ansible_user=debian, your admin key,
+#              markoto_deploy_pubkey (public half of DEPLOY_SSH_KEY)
+#   env.yml:   domain, acme_email, ovh_pg_host (prod: the managed cluster), ...
+cp group_vars/all.vault.example.yml inventories/prod/vault.yml
+# edit inventories/prod/vault.yml: apprise_urls at least (provisioning);
+# every REPLACE_ME only if you deploy with `make deploy` instead of the workflow
+(umask 077; openssl rand -base64 32 | tr -d '\n' > inventories/prod/.vault-password)
+ansible-vault encrypt inventories/prod/vault.yml --vault-password-file=inventories/prod/.vault-password
+# keep the password in the password manager too (Proton Pass: <env>/ANSIBLE_VAULT_PASSWORD)
 # Optional: drop the OVH managed-PG CA at files/ovh-pg-ca.pem
 
-make provision                               # ~5–10 min
-make deploy                                  # ~5 min (or the GitHub deploy workflow)
-make status                                  # curl /api/health
+make provision ENV=prod                      # ~5–10 min
+make deploy ENV=prod                         # ~5 min (or the GitHub deploy workflow)
+make status ENV=prod                         # curl /api/health
 ```
+
+Every playbook loads `group_vars/all.yml`, then `inventories/<env>/env.yml`
+and `inventories/<env>/vault.yml` (later files win).
 
 ## Operating the host
 
@@ -166,8 +179,8 @@ sudo -iu markoto              # its ~/.profile sets XDG_RUNTIME_DIR and DOCKER_H
 | Run a backup now | `markoto-backup-now` |
 | Disk | `podman system df`, `podman image prune -f` |
 
-`make logs` and `make ps` run the first two through Ansible from the
-control machine.
+`make logs ENV=<env>` and `make ps ENV=<env>` run the first two through
+Ansible from the control machine.
 
 ## Galaxy dependencies (and why)
 
@@ -197,13 +210,14 @@ A single entry point for "something noteworthy happened on the box, ping me." Dr
 
 The wrapper is intentionally tiny: it sources `/etc/markoto/apprise.env` and runs the `apprise` CLI installed under `/opt/markoto-tools/` with `markoto-notify "<title>" "<body>"`. Adding a new call site = `markoto-notify "<title>" "<body>"`. Don't shell out to `apprise` directly anywhere else; the wrapper centralises the env lookup + soft-fail behaviour.
 
-## `group_vars` / vault structure
+## Variables and vault structure
 
-- **`group_vars/all.yml`**: non-secret defaults. Domain, image tag, paths, the Compose pin, the deploy key's public half, OS-hardening overrides, anything safe to commit in plaintext. Source of truth for "what version of markoto is deployed."
+- **`group_vars/all.yml`**: non-secret defaults shared by every environment: paths, the Compose pin, OS-hardening overrides, anything safe to commit in plaintext.
+- **`inventories/<env>/env.yml`**: this environment's non-secret values (domain, ACME email, registry, image tag, managed Postgres host, the published-pages host). Git-ignored.
 - **`group_vars/all.vault.example.yml`**: the secret template. Every `*_password` / `*_secret` / `*_key` from `.env.example` lives here, plus Apprise URLs and the optional GHCR pull token (`ghcr_pull_user` / `ghcr_pull_token`). The example file has REPLACE_ME placeholders and IS committed.
-- **`group_vars/all.vault.yml`**: the encrypted secret bundle, encrypted with `ansible-vault encrypt` and gitignored: never commit it, encrypted or not (ciphertext in a public repo is an offline brute-force target). The vault password lives in `.vault-password` (mode `0600`, gitignored) so the Makefile can run unattended. CI does not use the vault: `deploy.yml` renders `.env` from GitHub Environment secrets via `render-env.sh`, and writes the GHCR login from `GHCR_PULL_USER` / `GHCR_PULL_TOKEN`.
+- **`inventories/<env>/vault.yml`**: the environment's encrypted secrets (`ansible-vault`), git-ignored: never commit it, encrypted or not (ciphertext in a public repo is an offline brute-force target). Its password is `inventories/<env>/.vault-password` (mode `0600`, git-ignored, also kept in the password manager). Provisioning needs only `apprise_urls`; the rest matters only for `make deploy`. CI does not use the vault: `deploy.yml` renders `.env` from GitHub Environment secrets via `render-env.sh`, and writes the GHCR login from `GHCR_PULL_USER` / `GHCR_PULL_TOKEN`.
 
-Editing the vault: `ansible-vault edit group_vars/all.vault.yml` opens `$EDITOR` against the decrypted contents and re-encrypts on save. Don't `cat` it then re-encrypt, that loses the per-line encryption that vault uses for diffability.
+Editing a vault: `ansible-vault edit inventories/<env>/vault.yml --vault-password-file=inventories/<env>/.vault-password` opens `$EDITOR` against the decrypted contents and re-encrypts on save.
 
 ## Private images (GHCR)
 
@@ -283,7 +297,7 @@ Documented in `playbooks/provision.yml`; reproduced here for visibility:
 ## Rollback
 
 ```bash
-make rollback TAG=v1.2.3
+make rollback ENV=prod TAG=v1.2.3
 ```
 
 Runs `playbooks/rollback.yml` with `target_image_tag=v1.2.3`: the `markoto` role re-renders `.env` with that `IMAGE_TAG`, pulls and runs `markoto-compose up -d`.
@@ -297,8 +311,8 @@ the post-deploy prune.
 Same recipe as initial deploy:
 
 1. Provision a new OVH VPS with Debian 13 (note new IP), keep the same managed-PG + S3.
-2. Edit `inventory.ini` → new IP. Pin the new host key in the GitHub Environment (`DEPLOY_KNOWN_HOSTS`).
-3. `make provision && make deploy`.
+2. Edit `inventories/prod/hosts.ini` → new IP. Pin the new host key in the GitHub Environment (`DEPLOY_KNOWN_HOSTS`).
+3. `make provision ENV=prod && make deploy ENV=prod`.
 4. Restore from latest gpg backup (`gpg --decrypt | gunzip | psql`, see the operator runbook, kept outside this repository).
 
 The managed Postgres holds all user data, so as long as it survives the
@@ -324,6 +338,6 @@ new VPS picks up the existing dataset on first boot.
 ## Secrets-in-vault (what's encrypted)
 
 Every `_password`, `_secret`, `_key` from `.env.example` lives in
-`group_vars/all.vault.yml`, encrypted with `ansible-vault encrypt` and
-gitignored (see above). The vault password lives in `.vault-password`
-(also gitignored).
+`inventories/<env>/vault.yml`, encrypted with `ansible-vault encrypt` and
+git-ignored (see above). The vault password lives in
+`inventories/<env>/.vault-password` (also git-ignored).

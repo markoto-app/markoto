@@ -30,3 +30,4 @@ rules:
 ignore: |
   .ansible/
   collections/
+  inventories/*/vault.yml

@@ -1,7 +1,7 @@
 ---
-# Non-secret defaults for the markoto stack. Override per-host in inventory or
-# group_vars/<group>.yml. Every secret lives in group_vars/all.vault.yml
-# (ansible-vault encrypted).
+# Non-secret defaults for the markoto stack, shared by every environment.
+# Each environment overrides them in inventories/<env>/env.yml and keeps its
+# secrets in inventories/<env>/vault.yml (ansible-vault encrypted).
 
 # ─── Domain + ACME ───
 domain: example.com
@@ -14,7 +14,7 @@ image_tag: latest
 # ─── Billing mode (see shared/config/billingMode.ts) ───
 # The hosted deployment runs free-only with paid plans shown as "coming
 # soon" + a waitlist. Set nuxt_billing_enabled: true (and the Stripe vars
-# in all.vault.yml) to launch paid plans.
+# in the vault) to launch paid plans.
 nuxt_billing_enabled: false
 nuxt_plans_coming_soon: true
 

@@ -21,6 +21,10 @@
   gather_facts: true
   vars_files:
     - ../group_vars/all.yml
+    # This environment's values and secrets (inventories/<env>/); the vault
+    # carries apprise_urls, which the base role writes for markoto-notify.
+    - "{{ inventory_dir }}/env.yml"
+    - "{{ inventory_dir }}/vault.yml"
   pre_tasks:
     # Podman 5.4 (pasta, netavark) comes from trixie's own archive; older
     # releases ship a Podman this setup was not built against.
