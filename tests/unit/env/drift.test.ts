@@ -85,13 +85,16 @@ describe('deploy paths ↔ compose', () => {
   const DEPLOY_ONLY = new Set(['OVH_PG_HOST', 'OVH_PG_CA_REMOTE_PATH'])
   // Docker Compose's own settings (which files make the stack), read by the
   // compose CLI on the host, not by markoto.
-  const COMPOSE_CLI = new Set(['COMPOSE_FILE'])
+  const COMPOSE_CLI = new Set(['COMPOSE_FILE', 'COMPOSE_PROFILES'])
+  // Exported on the host by the markoto-compose wrapper (the markoto user's
+  // Podman socket, infra/roles/podman_host), not rendered into .env.
+  const HOST_ENV = new Set(['CONTAINER_SOCKET'])
   const file = 'infra/render-env.sh'
   // The script's own list of inputs, not a .env line.
   const written = new Set([...assignments(file)].filter(k => k !== 'INPUTS'))
 
   it(`${file} writes every value deploy/compose/compose.prod.yml requires`, () => {
-    expect(prodNeeds.filter(k => !written.has(k))).toEqual([])
+    expect(prodNeeds.filter(k => !written.has(k) && !HOST_ENV.has(k))).toEqual([])
   })
 
   it(`${file} writes only registered variables the hosted stack uses`, () => {
@@ -100,8 +103,8 @@ describe('deploy paths ↔ compose', () => {
     expect([...written].filter(k => !used.has(k) && !DEPLOY_ONLY.has(k) && !COMPOSE_CLI.has(k))).toEqual([])
   })
 
-  it(`${file} names the production stack for the host's plain \`docker compose\``, () => {
-    expect(read(file)).toMatch(/^COMPOSE_FILE=deploy\/compose\/compose\.prod\.yml$/m)
+  it(`${file} names the production stack on Podman for the host's \`markoto-compose\``, () => {
+    expect(read(file)).toMatch(/^COMPOSE_FILE=deploy\/compose\/compose\.prod\.yml:deploy\/compose\/compose\.podman\.yml$/m)
   })
 
   it('install.sh provides every value the self-host stack requires', () => {
@@ -137,8 +140,9 @@ describe('deploy paths ↔ compose', () => {
     // The `env:` block of the render step: NAME: ${{ secrets.X }} / ${{ vars.X }}.
     const names = [...read('.github/workflows/deploy.yml').matchAll(/^\s+([A-Z][A-Z0-9_]{2,}): \$\{\{ (?:secrets|vars)\./gm)].map(m => m[1]!)
     expect(names.length).toBeGreaterThan(20)
-    // The deploy job's own SSH target and notification URL, never container settings.
-    const ciOnly = new Set(['APPRISE_URLS', 'DEPLOY_HOST', 'DEPLOY_USER'])
+    // The deploy job's own SSH target, notification URL and the host's
+    // registry login, never container settings.
+    const ciOnly = new Set(['APPRISE_URLS', 'DEPLOY_HOST', 'DEPLOY_USER', 'GHCR_PULL_USER', 'GHCR_PULL_TOKEN'])
     expect(names.filter(n => !KNOWN.has(n) && !ciOnly.has(n))).toEqual([])
   })
 })

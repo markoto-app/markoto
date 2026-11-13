@@ -115,7 +115,7 @@ export const deploy = defineNamespace({
     trustedIps: v({ name: 'TRAEFIK_TRUSTED_IPS', type: string, doc: 'Self-host: proxies whose X-Forwarded-* Traefik trusts.', services: ['compose'], scope: 'self-host' }),
     ovhPgHost: v({ name: 'OVH_PG_HOST', type: hostname, doc: 'Hosted deploy (infra/render-env.sh): managed Postgres host; set = verify its TLS against OVH_PG_CA_REMOTE_PATH.', services: ['compose'], scope: 'hosted', notPassed: 'read by the deploy paths only, which turn it into PGSSLROOTCERT' }),
     ovhPgCaRemotePath: v({ name: 'OVH_PG_CA_REMOTE_PATH', type: string, default: '/opt/markoto/secrets/ovh-pg-ca.pem', doc: 'Hosted deploy: path of the managed Postgres CA certificate on the server.', services: ['compose'], scope: 'hosted', notPassed: 'read by the deploy paths only, which turn it into PGSSLROOTCERT' }),
-    containerSocket: v({ name: 'CONTAINER_SOCKET', type: string, doc: 'Docker / Podman socket path for the socket proxy.', services: ['compose'], scope: 'self-host' })
+    containerSocket: v({ name: 'CONTAINER_SOCKET', type: string, doc: 'Docker / Podman socket path for the socket proxy. Hosted: exported by the markoto-compose wrapper (the markoto user\'s rootless Podman socket), not set in .env.', services: ['compose'], scope: 'both' })
   }
 })
 

@@ -391,7 +391,7 @@ Interpolated by the compose files; no process reads them directly.
 | `TRAEFIK_TRUSTED_IPS` | string |  |  | compose | self-host | Self-host: proxies whose X-Forwarded-* Traefik trusts. |
 | `OVH_PG_HOST` | hostname |  |  | compose | hosted | Hosted deploy (infra/render-env.sh): managed Postgres host; set = verify its TLS against OVH_PG_CA_REMOTE_PATH. Not passed by the compose files: read by the deploy paths only, which turn it into PGSSLROOTCERT. |
 | `OVH_PG_CA_REMOTE_PATH` | string | `/opt/markoto/secrets/ovh-pg-ca.pem` |  | compose | hosted | Hosted deploy: path of the managed Postgres CA certificate on the server. Not passed by the compose files: read by the deploy paths only, which turn it into PGSSLROOTCERT. |
-| `CONTAINER_SOCKET` | string |  |  | compose | self-host | Docker / Podman socket path for the socket proxy. |
+| `CONTAINER_SOCKET` | string |  |  | compose | both | Docker / Podman socket path for the socket proxy. Hosted: exported by the markoto-compose wrapper (the markoto user's rootless Podman socket), not set in .env. |
 
 ## Backups
 

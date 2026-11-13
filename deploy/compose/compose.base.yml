@@ -20,6 +20,11 @@
 # and intentionally leaves env-specific knobs unset. Pair it with one
 # of docker-compose.{dev,local,prod}.yml.
 #
+# Every dependency on `postgres` is `required: false`: the hosted stack runs
+# it only with the `bundled-postgres` profile (a managed cluster otherwise,
+# deploy/compose/compose.prod.yml). Where the service is part of the stack
+# (every other env file) Compose still waits for it to be healthy.
+#
 # Container baseline (docs/SECURITY-HARDENING.md §C.1): every
 # long-running service here runs as a non-root user with `cap_drop: [ALL]`
 # and `no-new-privileges`, and on a read-only root filesystem where the
@@ -101,6 +106,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+        required: false
     user: postgres
     read_only: true
     <<: *hardening
@@ -189,6 +195,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+        required: false
       db-init:
         condition: service_completed_successfully
     healthcheck:
@@ -310,6 +317,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+        required: false
       valkey:
         condition: service_healthy
       # The app role (POSTGRES_APP_USER) must exist and own the database
@@ -423,6 +431,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+        required: false
 
 volumes:
   pg_data:
