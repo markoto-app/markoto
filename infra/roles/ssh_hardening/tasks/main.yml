@@ -3,18 +3,27 @@
 # kicking the previous SSH session: otherwise a typo locks us out of a
 # fresh VPS. The handler-driven reload + meta:reset_connection at the end
 # ensures the next play picks up a working connection.
+#
+# The account to protect is the admin user Ansible connects as (`debian`):
+# it is the only one with sudo. The markoto service account logs in only
+# with the restricted deploy key (roles/base).
 
-- name: Sanity-check that the markoto user has at least one authorized_key
+- name: Read the admin user's account
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ ansible_user }}"
+
+- name: Sanity-check that the admin user has at least one authorized_key
   ansible.builtin.stat:
-    path: "/home/{{ markoto_user }}/.ssh/authorized_keys"
+    path: "{{ ansible_facts.getent_passwd[ansible_user][4] }}/.ssh/authorized_keys"
   register: ssh_hardening_authkeys_stat
 
-- name: Refuse to harden sshd if no pubkey is installed for markoto
+- name: Refuse to harden sshd if no pubkey is installed for the admin user
   ansible.builtin.fail:
     msg: >-
-      No authorized_keys for {{ markoto_user }} found. Hardening sshd now would
-      lock you out. Add a key via the base role (which reads
-      ~/.ssh/id_ed25519.pub) or pass `-e markoto_pubkey=...` and re-run.
+      No authorized_keys for {{ ansible_user }} found. Hardening sshd now would
+      lock you out. Install your key for {{ ansible_user }} (the image does
+      this from the OVH / cloud-init SSH key) and re-run.
   when: >
     not ssh_hardening_authkeys_stat.stat.exists
     or ssh_hardening_authkeys_stat.stat.size == 0

@@ -1,0 +1,20 @@
+---
+- name: Reload the markoto user manager
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+    scope: user
+  become: true
+  become_user: "{{ markoto_user }}"
+  environment:
+    XDG_RUNTIME_DIR: /run/user/{{ podman_host_uid }}
+
+# Podman caches the id mapping of its storage; after a new range it must
+# re-read /etc/subuid (no containers exist yet on a fresh host).
+- name: Migrate Podman to the new id range
+  ansible.builtin.command:
+    cmd: podman system migrate
+  become: true
+  become_user: "{{ markoto_user }}"
+  environment:
+    XDG_RUNTIME_DIR: /run/user/{{ podman_host_uid }}
+  changed_when: true

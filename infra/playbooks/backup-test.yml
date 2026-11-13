@@ -14,6 +14,9 @@
 - name: Backup restore drill
   hosts: markoto
   become: true
+  # Every compose command runs as the stack's owner, through the wrapper
+  # (its rootless Podman socket, /opt/markoto).
+  become_user: "{{ markoto_user }}"
   gather_facts: false
   vars:
     restore_db: markoto_restore_drill
@@ -24,8 +27,7 @@
     - name: Locate most-recent gpg backup in S3 (run inside backup container)
       ansible.builtin.shell: |
         set -euo pipefail
-        cd {{ markoto_root }}
-        docker compose exec -T backup sh -c '
+        markoto-compose exec -T backup sh -c '
           export AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY"
           export AWS_SECRET_ACCESS_KEY="$S3_SECRET_KEY"
           export AWS_DEFAULT_REGION="$S3_REGION"
@@ -33,6 +35,8 @@
             s3 ls "s3://$S3_BUCKET/$S3_PREFIX/" \
             | awk "{print \$4}" | { grep -E "[.]sql[.]gz[.]gpg$" || true; } | sort | tail -1
         '
+      args:
+        executable: /bin/bash
       register: latest_backup
       changed_when: false
 
@@ -51,9 +55,8 @@
         - name: Download + decrypt + restore into a throwaway database
           ansible.builtin.shell: |
             set -euo pipefail
-            cd {{ markoto_root }}
             BACKUP_KEY="{{ latest_backup.stdout | trim }}"
-            docker compose exec -T backup sh -c "
+            markoto-compose exec -T backup sh -c "
               set -e
               set -o pipefail
               export AWS_ACCESS_KEY_ID=\"\$S3_ACCESS_KEY\"
@@ -76,14 +79,15 @@
                        --set ON_ERROR_STOP=1 --quiet >/dev/null
               rm -f /tmp/restore-test.gpg
             "
+          args:
+            executable: /bin/bash
           register: restore_apply
           changed_when: false
 
         - name: Verify the restored schema has the expected core tables
           ansible.builtin.shell: |
             set -euo pipefail
-            cd {{ markoto_root }}
-            docker compose exec -T backup sh -c "
+            markoto-compose exec -T backup sh -c "
               # Both must resolve to a real relation (non-empty output) or the
               # restore was structurally incomplete. Also print the table count
               # as a sanity signal.
@@ -93,6 +97,8 @@
                         (SELECT count(*) FROM information_schema.tables
                            WHERE table_schema='public')\"
             "
+          args:
+            executable: /bin/bash
           register: restore_verify
           changed_when: false
 
@@ -114,8 +120,9 @@
         - name: Drop the throwaway database
           ansible.builtin.shell: |
             set -euo pipefail
-            cd {{ markoto_root }}
-            docker compose exec -T backup sh -c "
+            markoto-compose exec -T backup sh -c "
               dropdb -h \"\$POSTGRES_HOST\" -U \"\$POSTGRES_USER\" --if-exists {{ restore_db }}
             "
+          args:
+            executable: /bin/bash
           changed_when: false

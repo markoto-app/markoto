@@ -1,0 +1,314 @@
+---
+# Rootless Podman for the markoto user (the hosted stack's engine):
+#   - Debian's podman + pasta networking + newuidmap, nothing from third-party
+#     repositories;
+#   - a subordinate uid/gid range and lingering for markoto_user, so its
+#     systemd user manager (and the containers) run without a login;
+#   - the user's Podman API socket (podman.socket, a user unit), which Docker
+#     Compose drives through DOCKER_HOST;
+#   - the pinned standalone Docker Compose binary and the markoto-compose
+#     wrapper every deploy path and operator uses;
+#   - container logs to journald;
+#   - markoto-stack.service, a user unit that brings the stack up at boot.
+# Runs after base (which creates markoto_user) and devsec.hardening (whose
+# Debian vars would otherwise switch unprivileged user namespaces off;
+# provision.yml overrides that).
+
+- name: Install Podman and its rootless helpers (Debian packages)
+  ansible.builtin.apt:
+    name:
+      - podman
+      # pasta: the rootless network namespace (Podman 5 default).
+      - passt
+      # newuidmap / newgidmap for the subordinate id ranges.
+      - uidmap
+      # Container networks with DNS between services (compose service names).
+      - netavark
+      - aardvark-dns
+      # Fallback rootless network command, only if pasta is unusable.
+      - slirp4netns
+      # The user's D-Bus session: systemd user units, healthcheck timers.
+      - dbus-user-session
+      # `machinectl shell markoto@`: an operator shell with a full user session.
+      - systemd-container
+    state: present
+
+# Edge-proxy binds 80 / 443 as markoto in the host network namespace.
+# The alternative (high ports + an nftables redirect) needs a second rule
+# set for locally generated traffic and fights ufw; this host runs nothing
+# else that a low unprivileged port would let an ordinary user impersonate.
+- name: Let unprivileged processes bind ports from {{ unprivileged_port_start }}
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_unprivileged_port_start
+    value: "{{ unprivileged_port_start }}"
+    sysctl_file: /etc/sysctl.d/60-markoto-rootless.conf
+    sysctl_set: true
+    state: present
+    reload: true
+
+# Debian's own switch for unprivileged user namespaces (devsec.hardening sets
+# it to 0 on Debian unless overridden). Rootless Podman cannot start without
+# them, and the renderer's Chromium sandbox needs them inside its container.
+- name: Read kernel.unprivileged_userns_clone
+  ansible.builtin.slurp:
+    src: /proc/sys/kernel/unprivileged_userns_clone
+  register: podman_host_userns_clone
+  failed_when: false
+
+- name: Require unprivileged user namespaces
+  ansible.builtin.assert:
+    that:
+      - (podman_host_userns_clone.content | default('MQo=') | b64decode | trim) == '1'
+    fail_msg: >-
+      kernel.unprivileged_userns_clone is 0: rootless Podman cannot run.
+      provision.yml sets it to 1 through devsec.hardening's sysctl_overwrite;
+      check /etc/sysctl.d/ for a file that turns it off again.
+
+- name: Read the markoto user's account
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ markoto_user }}"
+
+- name: Remember the markoto uid and home
+  ansible.builtin.set_fact:
+    podman_host_uid: "{{ ansible_facts.getent_passwd[markoto_user][1] }}"
+    podman_host_home: "{{ ansible_facts.getent_passwd[markoto_user][4] }}"
+
+# useradd allocates a subordinate range for a new normal user; keep it.
+# Only an account created without one (an older host) gets the fixed range
+# from group_vars.
+- name: Check the subordinate uid / gid ranges of markoto
+  ansible.builtin.shell:
+    cmd: grep -q '^{{ markoto_user }}:' /etc/subuid && grep -q '^{{ markoto_user }}:' /etc/subgid
+  register: podman_host_subid_both
+  changed_when: false
+  failed_when: false
+
+- name: Add a subordinate uid / gid range for markoto
+  ansible.builtin.command:
+    cmd: >-
+      usermod
+      --add-subuids {{ markoto_subid_start }}-{{ markoto_subid_start + markoto_subid_count - 1 }}
+      --add-subgids {{ markoto_subid_start }}-{{ markoto_subid_start + markoto_subid_count - 1 }}
+      {{ markoto_user }}
+  when: podman_host_subid_both.rc != 0
+  changed_when: true
+  notify: Migrate Podman to the new id range
+
+# The user manager (and with it podman.socket, the stack unit, the backup
+# timer and Podman's healthcheck timers) runs from boot, not only while
+# someone is logged in.
+- name: Enable lingering for markoto
+  ansible.builtin.command:
+    cmd: loginctl enable-linger {{ markoto_user }}
+    creates: /var/lib/systemd/linger/{{ markoto_user }}
+
+- name: Start the markoto user manager
+  ansible.builtin.systemd_service:
+    name: user@{{ podman_host_uid }}.service
+    state: started
+
+- name: Download the pinned, checksum-verified Docker Compose {{ compose_version }}
+  ansible.builtin.get_url:
+    url: "{{ podman_host_compose_url }}/v{{ compose_version }}/docker-compose-linux-{{ ansible_facts.architecture }}"
+    dest: /usr/local/bin/docker-compose
+    checksum: "sha256:{{ compose_sha256[ansible_facts.architecture] }}"
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Read the installed Docker Compose version
+  ansible.builtin.command:
+    cmd: /usr/local/bin/docker-compose version --short
+  register: podman_host_compose_version
+  changed_when: false
+
+- name: Require the pinned Docker Compose version
+  ansible.builtin.assert:
+    that:
+      - podman_host_compose_version.stdout | trim | regex_replace('^v', '') == compose_version
+    fail_msg: >-
+      /usr/local/bin/docker-compose reports {{ podman_host_compose_version.stdout | trim }},
+      expected {{ compose_version }}.
+
+# The one way to run Compose on the host: as markoto, against its Podman
+# socket, in the stack directory (whose .env names the compose files).
+# Computes the socket from the uid instead of trusting XDG_RUNTIME_DIR,
+# which `sudo -u` and Ansible's become leave unset or wrong.
+- name: Install the markoto-compose wrapper
+  ansible.builtin.copy:
+    dest: /usr/local/bin/markoto-compose
+    owner: root
+    group: root
+    mode: "0755"
+    content: |
+      #!/bin/sh
+      # Managed by Ansible (markoto/podman_host role).
+      # Docker Compose on the {{ markoto_user }} user's rootless Podman, run in
+      # {{ markoto_root }} (its .env sets COMPOSE_FILE and COMPOSE_PROFILES).
+      # Usage: markoto-compose <compose arguments>, e.g. `markoto-compose ps`.
+      set -eu
+      if [ "$(id -un)" != "{{ markoto_user }}" ]; then
+        echo "markoto-compose: run as {{ markoto_user }} (sudo -iu {{ markoto_user }})" >&2
+        exit 1
+      fi
+      XDG_RUNTIME_DIR="/run/user/$(id -u)"
+      CONTAINER_SOCKET="$XDG_RUNTIME_DIR/podman/podman.sock"
+      DOCKER_HOST="unix://$CONTAINER_SOCKET"
+      export XDG_RUNTIME_DIR CONTAINER_SOCKET DOCKER_HOST
+      if [ ! -S "$CONTAINER_SOCKET" ]; then
+        echo "markoto-compose: no Podman socket at $CONTAINER_SOCKET (systemctl --user enable --now podman.socket)" >&2
+        exit 1
+      fi
+      cd "{{ markoto_root }}"
+      # LiteLLM reads its config once; this hash is a label on its container,
+      # so a changed config recreates it on `up` (compose.base.yml). Every
+      # entry point (deploys, the boot unit, an operator) gets the same value.
+      if [ -z "${LITELLM_CONFIG_HASH:-}" ] && [ -f deploy/config/litellm/config.yaml ]; then
+        LITELLM_CONFIG_HASH="$(cat deploy/config/litellm/config.yaml deploy/config/litellm/custom_handlers.py \
+          | sha256sum | cut -c1-16)"
+        export LITELLM_CONFIG_HASH
+      fi
+      exec /usr/local/bin/docker-compose "$@"
+
+- name: Create the markoto user's config directories
+  ansible.builtin.file:
+    path: "{{ podman_host_home }}/{{ item }}"
+    state: directory
+    owner: "{{ markoto_user }}"
+    group: "{{ markoto_user }}"
+    mode: "0700"
+  loop:
+    - .config
+    - .config/containers
+    - .config/systemd
+    - .config/systemd/user
+
+# journald keeps container logs bounded (journald.conf SystemMaxUse, roles/
+# base) and searchable: `journalctl --user CONTAINER_NAME=markoto-app-1`, or
+# `markoto-compose logs app`, which reads them back through Podman.
+- name: Configure Podman for the markoto user (logs, events)
+  ansible.builtin.copy:
+    dest: "{{ podman_host_home }}/.config/containers/containers.conf"
+    owner: "{{ markoto_user }}"
+    group: "{{ markoto_user }}"
+    mode: "0644"
+    content: |
+      # Managed by Ansible (markoto/podman_host role).
+      [containers]
+      log_driver = "journald"
+      # The journal's SYSLOG_IDENTIFIER: the container name (markoto-app-1).
+      log_tag = "{{ '{{' }}.Name{{ '}}' }}"
+
+      [engine]
+      events_logger = "journald"
+
+# `sudo -iu markoto` starts a login shell without a systemd session; this
+# gives it the runtime directory, so `systemctl --user`, `journalctl --user`
+# and `podman` work there as they do over SSH.
+- name: Shell environment for the markoto user
+  ansible.builtin.blockinfile:
+    path: "{{ podman_host_home }}/.profile"
+    create: true
+    owner: "{{ markoto_user }}"
+    group: "{{ markoto_user }}"
+    mode: "0644"
+    marker: "# {mark} markoto rootless Podman (Ansible podman_host role)"
+    block: |
+      export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+      export DOCKER_HOST="unix://$XDG_RUNTIME_DIR/podman/podman.sock"
+
+# Brings the stack up at boot. Docker Compose (not Quadlet, not
+# podman-restart.service): the same compose files, depends_on health gates
+# and db-init one-shot as every deploy; podman-restart.service would start
+# only `restart: always` containers, in no particular order.
+- name: Install the markoto-stack user unit
+  ansible.builtin.copy:
+    dest: "{{ podman_host_home }}/.config/systemd/user/markoto-stack.service"
+    owner: "{{ markoto_user }}"
+    group: "{{ markoto_user }}"
+    mode: "0644"
+    content: |
+      # Managed by Ansible (markoto/podman_host role).
+      [Unit]
+      Description=markoto stack (Docker Compose on rootless Podman)
+      Documentation=https://github.com/markoto-app/markoto/blob/main/infra/README.md
+      Wants=podman.socket
+      # Stopped before the Podman API goes away at shutdown.
+      After=podman.socket podman.service
+      # Nothing to start before the first deploy wrote the stack.
+      ConditionPathExists={{ markoto_root }}/.env
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      # A user unit cannot order itself after the system's
+      # network-online.target. pasta copies the host's addresses and routes
+      # when it creates the rootless network namespace, so wait for a
+      # default route first.
+      ExecStartPre=/bin/sh -c 'for i in $$(seq 1 120); do \
+        ip route show default | grep -q . && exit 0; sleep 1; done; \
+        echo "no default route after 120 s" >&2; exit 1'
+      ExecStart=/usr/local/bin/markoto-compose up -d --remove-orphans
+      ExecStop=/usr/local/bin/markoto-compose stop
+      # A first start after a reboot may pull images and boot LiteLLM cold.
+      TimeoutStartSec=900
+      TimeoutStopSec=180
+
+      [Install]
+      WantedBy=default.target
+  notify: Reload the markoto user manager
+
+- name: Apply a changed unit before enabling it
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable the Podman API socket for markoto
+  ansible.builtin.systemd_service:
+    name: podman.socket
+    scope: user
+    enabled: true
+    state: started
+  become: true
+  become_user: "{{ markoto_user }}"
+  environment:
+    XDG_RUNTIME_DIR: /run/user/{{ podman_host_uid }}
+
+# Enabled, not started: the first deploy starts the stack, the unit only
+# takes over at the next boot.
+- name: Enable the markoto-stack unit (starts the stack at boot)
+  ansible.builtin.systemd_service:
+    name: markoto-stack.service
+    scope: user
+    enabled: true
+  become: true
+  become_user: "{{ markoto_user }}"
+  environment:
+    XDG_RUNTIME_DIR: /run/user/{{ podman_host_uid }}
+
+- name: Ask Podman (as markoto) whether it runs rootless with pasta
+  ansible.builtin.command:
+    cmd: >-
+      podman info --format
+      '{{ '{{' }}.Host.Security.Rootless{{ '}}' }}
+      {{ '{{' }}.Host.NetworkBackend{{ '}}' }}
+      {{ '{{' }}.Host.RootlessNetworkCmd{{ '}}' }}'
+  become: true
+  become_user: "{{ markoto_user }}"
+  environment:
+    XDG_RUNTIME_DIR: /run/user/{{ podman_host_uid }}
+  register: podman_host_info
+  changed_when: false
+
+- name: Require rootless Podman with netavark + pasta
+  ansible.builtin.assert:
+    that:
+      - podman_host_info.stdout | trim == 'true netavark pasta'
+    fail_msg: "podman info as {{ markoto_user }}: {{ podman_host_info.stdout | trim }} (expected: true netavark pasta)"
+
+- name: Ensure the stack directory exists (owned by markoto)
+  ansible.builtin.file:
+    path: "{{ markoto_root }}"
+    state: directory
+    owner: "{{ markoto_user }}"
+    group: "{{ markoto_user }}"
+    mode: "0750"

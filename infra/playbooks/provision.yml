@@ -1,34 +1,71 @@
 ---
-# One-time setup of a fresh OVH VPS. Run as root (default OVH image user).
-# Brings the host from "blank Debian 12" to "ready to accept deploys".
+# One-time setup of a fresh OVH VPS running Debian 13 (trixie). Connects as
+# the image's admin user (`debian`, sudo) and becomes root. Brings the host
+# from "blank Debian 13" to "ready to accept deploys": the stack then runs
+# on rootless Podman as the unprivileged `markoto` user.
 #
 # Role order matters:
-#   1. base: apt cache, ufw, fail2ban, journald, timezone, markoto user.
-#      Keeps app-specific bits OS-hardening doesn't cover.
+#   1. base: apt cache, ufw, fail2ban, journald, timezone, the markoto
+#      service account (no sudo) + its deploy key, Apprise.
 #   2. devsec.hardening.os_hardening: CIS-aligned sysctl/perms/PAM tuning.
-#      Runs AFTER base (we need ufw on first; os_hardening doesn't touch ufw)
-#      and BEFORE docker so the sysctl_overwrite for ip_forward=1 lands before
-#      Docker probes the kernel.
-#   3. geerlingguy.docker: Docker engine + compose plugin via apt repo.
-#   4. ssh_hardening: our wrapper that refuses to lock you out if the markoto
-#      user has no authorized_keys yet. Keep our version, not devsec's, until
-#      we've port-tested the safe-not-lock-yourself-out check.
+#      Before podman_host, which checks the sysctls this role writes.
+#   3. podman_host: Podman, pasta, subordinate ids, lingering, the user's
+#      Podman socket, pinned Docker Compose + markoto-compose, the stack's
+#      boot unit.
+#   4. geerlingguy.security: unattended upgrades + reboot window.
+#   5. ssh_hardening: our wrapper that refuses to lock you out if the admin
+#      user has no authorized_keys.
 - name: Provision markoto VPS (one-time)
   hosts: markoto
   become: true
   gather_facts: true
   vars_files:
     - ../group_vars/all.yml
+  pre_tasks:
+    # Podman 5.4 (pasta, netavark) comes from trixie's own archive; older
+    # releases ship a Podman this setup was not built against.
+    - name: Require Debian 13 (trixie)
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.distribution == 'Debian'
+          - ansible_facts.distribution_major_version == '13'
+        fail_msg: >-
+          This playbook provisions Debian 13 only (found
+          {{ ansible_facts.distribution }} {{ ansible_facts.distribution_version }}).
+          Reinstall the VPS with the Debian 13 image.
+
+    # An in-place move from the Docker-era setup is not supported: the
+    # engine, the users and the volume locations all change. Reinstall.
+    - name: Look for a Docker engine
+      ansible.builtin.stat:
+        path: /usr/bin/dockerd
+      register: provision_dockerd
+
+    - name: Refuse a host that runs Docker
+      ansible.builtin.fail:
+        msg: >-
+          /usr/bin/dockerd exists: this host was set up for Docker. Reinstall
+          it with a fresh Debian 13 image (data lives in the managed Postgres
+          and S3; see the operator runbook) instead of converting it.
+      when: provision_dockerd.stat.exists
   roles:
     - role: base
     - role: devsec.hardening.os_hardening
       vars:
         # ─── Deviations from CIS defaults: document each. ───
-        # Docker bridge networking REQUIRES IPv4 forwarding. CIS sets it to 0
-        # (correct for non-routers); without this override Docker silently
-        # falls back to host-mode and breaks compose networking.
         sysctl_overwrite:
-          net.ipv4.ip_forward: 1
+          # devsec's Debian vars switch unprivileged user namespaces off
+          # (CVE-2021-33909 mitigation). Rootless Podman cannot run without
+          # them, and Chromium's sandbox in the renderer needs them too.
+          kernel.unprivileged_userns_clone: 1
+        # No ip_forward override: rootless Podman routes inside its own
+        # network namespace (pasta, in user space), so the host keeps CIS's
+        # forwarding = 0. Docker needed it on.
+        #
+        # The EFI system partition is vfat: banning the module (CIS default)
+        # would fail its mount at the next boot.
+        os_filesystem_whitelist: >-
+          {{ ['vfat'] if (ansible_facts.mounts | selectattr('fstype', 'equalto', 'vfat') | list | length > 0) else [] }}
         # auditd is heavy (its own log volume, separate forwarding pipeline).
         # We capture audit signal via Sentry (app-level) + OVH/journald (host).
         # Reconsider when we have a SIEM that ingests auditd events.
@@ -41,34 +78,18 @@
         # at the SSH layer.
         os_security_init_prompt: false
         # `os_ignore_users` defaults include `vagrant` + `kitchen`; add ours
-        # so future password-ageing checks don't accidentally lock the daemon
+        # so future password-ageing checks don't accidentally lock the
         # service account out.
         os_ignore_users: [vagrant, kitchen, "{{ markoto_user }}"]
-    - role: geerlingguy.docker
-      vars:
-        # We use the compose PLUGIN (`docker compose`), not the standalone
-        # `docker-compose` CLI. The plugin ships in `docker-compose-plugin`
-        # apt package and is what every `docker compose -f ...` call in
-        # roles/markoto/ + the cron uses.
-        docker_install_compose_plugin: true
-        docker_install_compose: false
-        docker_users:
-          - "{{ markoto_user }}"
-        # 50 MB × 5 = 250 MB max per container's log; live-restore lets us upgrade
-        # the daemon without bouncing every container.
-        docker_daemon_options:
-          log-driver: "json-file"
-          log-opts:
-            max-size: "50m"
-            max-file: "5"
-          live-restore: true
+    - role: podman_host
     # ─── geerlingguy.security ───
     # Drives unattended-upgrades + reboot scheduling. We DISABLE its SSH +
     # fail2ban knobs because devsec.hardening + our ssh_hardening role +
     # base/fail2ban already cover those, and double-configuration would
     # fight on the file watch. The reboot window is 04:30 UTC: after the
-    # 03:00 UTC backup-cron tick, before any reasonable peak-traffic
-    # window.
+    # 03:00 UTC backup timer, before any reasonable peak-traffic window.
+    # After a reboot the markoto user manager (lingering) starts the stack
+    # again (markoto-stack.service, roles/podman_host).
     - role: geerlingguy.security
       vars:
         security_ssh_password_authentication: "no"
@@ -82,7 +103,7 @@
         security_autoupdate_reboot: "true"
         security_autoupdate_reboot_time: "04:30"
         # Mail is OFF: we use Apprise via the post-Invoke hook
-        # (roles/base/templates/markoto-apt-hook.j2 calls markoto-notify).
+        # (roles/base drops it; it calls markoto-notify).
         security_autoupdate_mail_to: ""
         security_autoupdate_mail_on_error: false
         # We already configure fail2ban in roles/base. Keep the security

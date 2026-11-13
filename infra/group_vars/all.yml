@@ -56,9 +56,37 @@ ovh_pg_port: 5432
 ovh_pg_ca_local_path: "files/ovh-pg-ca.pem"
 ovh_pg_ca_remote_path: /opt/markoto/secrets/ovh-pg-ca.pem
 
-# Path on the VPS where the stack lives.
+# Path on the VPS where the stack lives (owned by markoto_user).
 markoto_root: /opt/markoto
+# The unprivileged account that owns and runs the stack on rootless Podman
+# (no sudo, no password; SSH only with the deploy key below). Ansible itself
+# connects as the image's admin user (inventory ansible_user, `debian`).
 markoto_user: markoto
+# Public half of the GitHub deploy key (the DEPLOY_SSH_KEY secret of the
+# staging / prod Environment). Installed as markoto_user's ONLY authorized
+# key, with `restrict` (no forwarding, no pty). Empty = no SSH login for
+# markoto_user (Ansible deploys still work through the admin user).
+markoto_deploy_pubkey: ""
+
+# ─── Container engine (roles/podman_host) ───
+# Docker Compose, standalone binary, driving the user's Podman socket
+# (Debian's docker-compose package is 2.x; the compose files need >= 5).
+# Bump: new version + both checksums from the release's *.sha256 files.
+compose_version: "5.7.0"
+compose_sha256:
+  x86_64: 7758048ad38e580f22559603312874fec8bb638d021a9e64182385fc17cc12a2
+  aarch64: 15861535d14e26555736b49376c95e14bfd94285366c8446bfac7156a972e76f
+# Lowest port an unprivileged process may bind on the host: edge-proxy
+# (deploy/compose/compose.prod.yml) binds 80 and 443 as the rootless user.
+unprivileged_port_start: 80
+# Subordinate uid/gid range for markoto_user, used only when useradd did not
+# allocate one (it normally does). Must not overlap another user's range.
+markoto_subid_start: 2000000
+markoto_subid_count: 65536
+
+# Daily belt-and-braces backup (roles/backup_timer), systemd calendar
+# syntax. 04:30 UTC is the unattended-upgrades reboot window, keep clear.
+backup_timer_oncalendar: "*-*-* 03:00:00 UTC"
 # Repo root on the control machine (playbooks live in infra/playbooks/), the
 # source of the compose files + bind-mounted config the markoto role syncs.
 markoto_repo_root: "{{ playbook_dir }}/../.."

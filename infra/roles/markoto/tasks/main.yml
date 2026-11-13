@@ -1,11 +1,13 @@
 ---
-# Idempotent app deploy. Re-running:
-#   - re-renders .env (atomic via template module)
-#   - re-syncs compose files
-#   - pulls images per IMAGE_TAG
-#   - `up -d` is a no-op if nothing changed, otherwise rolls services
-#   - polls /api/health
-#   - appends to deploys.log
+# Idempotent app deploy on the rootless Podman host (roles/podman_host).
+# Re-running:
+#   - re-renders .env (render-env.sh, written atomically by `copy`)
+#   - re-syncs the compose files + the config they mount
+#   - pulls images per IMAGE_TAG and runs `up -d` through markoto-compose,
+#     as the markoto user (a no-op if nothing changed)
+#   - polls /api/health, then prunes images no deploy needs any more
+#   - appends to deploys.log and records .last-deploy (what deploy.yml's
+#     automatic rollback returns to)
 
 - name: Ensure markoto root + secrets dirs exist
   ansible.builtin.file:
@@ -32,51 +34,56 @@
     group: "{{ markoto_user }}"
     mode: "0600"
 
-# Login to GitHub Container Registry so `docker compose pull` against
-# private images works. The PAT is scoped read:packages only: we never
-# push from the VPS. Login is run as the markoto user (whose
-# ~/.docker/config.json then carries the credential) to match the user
-# compose pull runs under.
-#
-# Rotation: see the operator runbook, kept outside this repository. Re-running this play
-# silently re-logs-in with the new value; old PAT can be revoked at the
-# provider after.
-- name: Login to GHCR (private image pull on the VPS)
-  become: true
-  become_user: "{{ markoto_user }}"
-  ansible.builtin.command:
-    cmd: docker login ghcr.io -u {{ ghcr_username }} --password-stdin
-    stdin: "{{ ghcr_pat }}"
-  register: markoto_ghcr_login
-  changed_when: "'Login Succeeded' in markoto_ghcr_login.stdout"
+- name: Read the markoto user's account
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ markoto_user }}"
+
+- name: Remember the markoto home
+  ansible.builtin.set_fact:
+    markoto_home: "{{ ansible_facts.getent_passwd[markoto_user][4] }}"
+
+# Read access to the private GHCR images (only while they are private). The
+# file is the Docker client config: Docker Compose sends its credentials
+# with every pull, and Podman reads the same file as a fallback. Written
+# only when a token is set; rotation = new token, re-run (or the next
+# GitHub deploy, which writes the same file from GHCR_PULL_TOKEN).
+- name: Ensure ~/.docker exists for markoto
+  ansible.builtin.file:
+    path: "{{ markoto_home }}/.docker"
+    state: directory
+    owner: "{{ markoto_user }}"
+    group: "{{ markoto_user }}"
+    mode: "0700"
+  when: ghcr_pull_token | default('') | length > 0
+
+- name: Store the GHCR pull credentials for markoto
+  ansible.builtin.copy:
+    dest: "{{ markoto_home }}/.docker/config.json"
+    content: "{{ {'auths': {'ghcr.io': {'auth': markoto_ghcr_auth}}} | to_nice_json }}\n"
+    owner: "{{ markoto_user }}"
+    group: "{{ markoto_user }}"
+    mode: "0600"
+  vars:
+    markoto_ghcr_auth: "{{ (ghcr_pull_user ~ ':' ~ ghcr_pull_token) | b64encode }}"
   no_log: true
   when:
-    - ghcr_pat is defined
-    - ghcr_pat | length > 0
-    - ghcr_username is defined
-    - ghcr_username | length > 0
+    - ghcr_pull_token | default('') | length > 0
+    - ghcr_pull_user | default('') | length > 0
 
-# The compose files use `include:` with overrides of included services,
-# which Docker Compose 2.24–2.40 rejects ("services.X conflicts with
-# imported resource"). Fail before touching the running stack instead of
-# half-applying. geerlingguy.docker installs the plugin from Docker's apt
-# repo (v5.x); on an older host: `apt-get install --only-upgrade
-# docker-compose-plugin`.
-- name: Read the Docker Compose plugin version
-  ansible.builtin.command:
-    cmd: docker compose version --short
-  register: markoto_compose_version
-  changed_when: false
+# provision.yml (roles/podman_host) installs Podman, the pinned Compose and
+# this wrapper; a host without it was never provisioned for Podman.
+- name: Require the markoto-compose wrapper (provision.yml)
+  ansible.builtin.stat:
+    path: /usr/local/bin/markoto-compose
+  register: markoto_wrapper
 
-- name: Require Docker Compose >= 5.0
-  ansible.builtin.assert:
-    that:
-      - markoto_compose_version.stdout | trim | regex_replace('^v', '') is version('5.0.0', '>=')
-    fail_msg: >-
-      Docker Compose {{ markoto_compose_version.stdout | trim }} is too old,
-      the compose files need >= 5.0. Upgrade the docker-compose-plugin apt
-      package (re-run provision.yml or apt-get install --only-upgrade
-      docker-compose-plugin).
+- name: Fail on a host that is not provisioned for rootless Podman
+  ansible.builtin.fail:
+    msg: >-
+      /usr/local/bin/markoto-compose is missing: run `make provision`
+      (playbooks/provision.yml) on this host first.
+  when: not markoto_wrapper.stat.exists
 
 # The host mirrors the repository layout below {{ markoto_root }}: the
 # production stack (deploy/compose/compose.prod.yml + the compose.base.yml it
@@ -100,6 +107,7 @@
     - deploy/config/postgres
     - deploy/config/postgres/init
     - deploy/config/renderer
+    - deploy/config/edge
 
 - name: Sync the production stack + its mounted config to the VPS
   ansible.builtin.copy:
@@ -111,13 +119,19 @@
   loop:
     - deploy/compose/compose.prod.yml
     - deploy/compose/compose.base.yml
+    # The hosted stack runs on rootless Podman: the renderer's seccomp
+    # transport (docs/contributing/CONTAINER-ENGINES.md).
+    - deploy/compose/compose.podman.yml
     - deploy/config/litellm/config.yaml
     - deploy/config/litellm/custom_handlers.py
     - deploy/config/postgres/init/01-litellm-db.sql
     # Run by the db-init one-shot (deploy/compose/compose.base.yml).
     - deploy/config/postgres/db-init.sh
-    # The renderer's seccomp profile (Chromium sandbox).
+    # The renderer's seccomp profile: named by compose.prod.yml, replaced
+    # by Podman's default profile through the overlay above.
     - deploy/config/renderer/seccomp.json
+    # The public 80/443 relay (edge-proxy).
+    - deploy/config/edge/haproxy.cfg
 
 # CA copy is best-effort: many OVH plans don't pin a CA, but if you DO drop
 # the .pem at infra/files/ovh-pg-ca.pem we honour it. `failed_when: false`
@@ -188,7 +202,8 @@
 # LiteLLM loads its config only at boot, and its single-file bind mounts
 # keep the old file after the copy above replaced it. The hash feeds a
 # label on the litellm service, so a changed config recreates it on
-# `compose up` (deploy/compose/compose.base.yml).
+# `compose up` (deploy/compose/compose.base.yml). markoto-compose computes
+# the same value itself; passed explicitly so this play's intent is visible.
 - name: Hash the LiteLLM config files
   ansible.builtin.shell:
     cmd: >-
@@ -200,30 +215,33 @@
   register: markoto_litellm_config_hash
   changed_when: false
 
-# project_src is the compose files' own directory: their relative paths
-# (config mounts, the renderer's seccomp profile, ../../traefik/acme.json)
-# start there. The .env stays at the root, where a plain `docker compose`
-# on the host finds it.
+- name: Read the tag of the last successful deploy
+  ansible.builtin.slurp:
+    src: "{{ markoto_root }}/.last-deploy"
+  register: markoto_last_deploy
+  failed_when: false
+
+# Compose runs as markoto against its Podman socket, in markoto_root, whose
+# .env names the stack (COMPOSE_FILE) and the Postgres profile.
 - name: Compose pull (refresh images per IMAGE_TAG)
-  community.docker.docker_compose_v2_pull:
-    project_src: "{{ markoto_root }}/deploy/compose"
-    files:
-      - compose.prod.yml
-    env_files:
-      - "{{ markoto_root }}/.env"
+  ansible.builtin.command:
+    cmd: /usr/local/bin/markoto-compose pull --quiet
+  become: true
+  become_user: "{{ markoto_user }}"
+  changed_when: false
 
 - name: Compose up -d (apply current state)
-  community.docker.docker_compose_v2:
-    project_src: "{{ markoto_root }}/deploy/compose"
-    files:
-      - compose.prod.yml
-    env_files:
-      - "{{ markoto_root }}/.env"
-    state: present
-    pull: missing
-    remove_orphans: true
+  ansible.builtin.command:
+    cmd: /usr/local/bin/markoto-compose up -d --remove-orphans
+  become: true
+  become_user: "{{ markoto_user }}"
   environment:
     LITELLM_CONFIG_HASH: "{{ markoto_litellm_config_hash.stdout }}"
+  register: markoto_compose_up
+  changed_when: >-
+    ('Recreate' in markoto_compose_up.stderr)
+    or ('Creat' in markoto_compose_up.stderr)
+    or ('Started' in markoto_compose_up.stderr)
 
 - name: Wait for /api/health to return 200
   ansible.builtin.uri:
@@ -243,9 +261,41 @@
   ansible.builtin.debug:
     msg: >-
       /api/health did not return 200 within {{ health_timeout_seconds }}s.
-      Check `make logs` and `docker compose ps`. The probe is non-fatal so
-      that re-runs against a partially-deployed stack still succeed.
+      Check `make logs` and `markoto-compose ps` (as {{ markoto_user }}). The
+      probe is non-fatal so that re-runs against a partially-deployed stack
+      still succeed.
   when: markoto_health_probe.status != 200
+
+- name: Record the deployed tag for the next rollback (.last-deploy)
+  ansible.builtin.copy:
+    dest: "{{ markoto_root }}/.last-deploy"
+    content: "{{ image_tag }}\n"
+    owner: "{{ markoto_user }}"
+    group: "{{ markoto_user }}"
+    mode: "0640"
+  when: markoto_health_probe.status == 200
+
+# Keep the running images and the previous release's (a rollback should not
+# need a registry round trip); everything else of ours goes, plus dangling
+# layers (e.g. a moved `latest`). Third-party images stay unless dangling.
+- name: Prune images no deploy needs any more
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      podman images --format '{{ '{{' }}.Repository{{ '}}' }}:{{ '{{' }}.Tag{{ '}}' }}' \
+        | awk -F: -v cur='{{ image_tag }}' -v prev='{{ markoto_prev_tag }}' \
+            '/\/markoto-[a-z]+:[^:]+$/ && $NF != cur && $NF != prev' \
+        | xargs -r podman rmi > /dev/null 2>&1 || true
+      podman image prune -f > /dev/null
+    executable: /bin/bash
+  vars:
+    markoto_prev_tag: "{{ (markoto_last_deploy.content | default('') | b64decode | trim) or 'none' }}"
+  become: true
+  become_user: "{{ markoto_user }}"
+  environment:
+    XDG_RUNTIME_DIR: /run/user/{{ ansible_facts.getent_passwd[markoto_user][1] }}
+  when: markoto_health_probe.status == 200
+  changed_when: false
 
 - name: Append deploy marker to deploys.log
   ansible.builtin.lineinfile:
@@ -262,8 +312,9 @@
 # Opportunistic boot diagnostic: read-only, soft-fail.
 - name: Tail last 50 app log lines (boot-cleanly check)
   ansible.builtin.command:
-    cmd: docker compose logs --tail=50 app
-    chdir: "{{ markoto_root }}"
+    cmd: /usr/local/bin/markoto-compose logs --tail=50 app
+  become: true
+  become_user: "{{ markoto_user }}"
   register: markoto_app_logs
   changed_when: false
   failed_when: false
