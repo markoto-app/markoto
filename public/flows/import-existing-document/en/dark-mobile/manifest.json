@@ -16,10 +16,10 @@
     },
     {
       "kind": "narration",
-      "text": "Already have a draft in Word, a PDF, an HTML export from a CMS? markoto converts it to markdown on the way in. The conversion preserves headings, lists, tables, and inline emphasis — what you can’t carry over (custom fonts, page chrome) is dropped, since you’re going to re-style with a markoto theme anyway.",
+      "text": "Already have a draft in Word, a PDF, an HTML export from a CMS? markoto converts it to markdown on the way in. The conversion preserves headings, lists, tables, and inline emphasis, what you can’t carry over (custom fonts, page chrome) is dropped, since you’re going to re-style with a markoto theme anyway.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/Pz2V-yT-hO"
+      "path": "/d/M1ZlAkZJHr"
     },
     {
       "kind": "approach",
@@ -29,17 +29,17 @@
         "x": 362,
         "y": 20
       },
-      "path": "/d/Pz2V-yT-hO"
+      "path": "/d/M1ZlAkZJHr"
     },
     {
       "kind": "outcome",
       "file": "02.webp",
-      "caption": "The topbar menu opens — Import sits in the file actions.",
+      "caption": "The topbar menu opens, Import sits in the file actions.",
       "cursor": {
         "x": 362,
         "y": 20
       },
-      "path": "/d/Pz2V-yT-hO"
+      "path": "/d/M1ZlAkZJHr"
     },
     {
       "kind": "approach",
@@ -49,7 +49,7 @@
         "x": 278,
         "y": 92
       },
-      "path": "/d/Pz2V-yT-hO",
+      "path": "/d/M1ZlAkZJHr",
       "annotations": [
         {
           "label": "import",
@@ -64,12 +64,12 @@
     {
       "kind": "outcome",
       "file": "04.webp",
-      "caption": "The import dialog opens — drop a file, or click to pick one.",
+      "caption": "The import dialog opens, drop a file, or click to pick one.",
       "cursor": {
         "x": 278,
         "y": 92
       },
-      "path": "/d/Pz2V-yT-hO"
+      "path": "/d/M1ZlAkZJHr"
     },
     {
       "kind": "chapter",
@@ -79,42 +79,42 @@
     {
       "kind": "narration",
       "text": "The dialog accepts Word (.docx), PDF, PowerPoint, Excel, HTML, and EPUB up to 50 MB. markoto converts it to Markdown with Microsoft’s open-source markitdown library, on its own servers.",
-      "file": "05.webp",
+      "file": "04.webp",
       "cursor": {
         "x": 278,
         "y": 92
       },
-      "path": "/d/Pz2V-yT-hO"
+      "path": "/d/M1ZlAkZJHr"
     },
     {
       "kind": "approach",
-      "file": "05.webp",
+      "file": "04.webp",
       "caption": "Click the dropzone to open the file picker",
       "cursor": {
         "x": 195,
         "y": 384
       },
-      "path": "/d/Pz2V-yT-hO",
+      "path": "/d/M1ZlAkZJHr",
       "annotations": [
         {
           "label": "dropzone",
           "kind": "box",
           "x": 40,
-          "y": 295,
+          "y": 305,
           "w": 310,
-          "h": 178
+          "h": 158
         }
       ]
     },
     {
       "kind": "outcome",
-      "file": "06.webp",
-      "caption": "Your file is selected — its name + size show up so you can confirm.",
+      "file": "05.webp",
+      "caption": "Your file is selected, its name + size show up so you can confirm.",
       "cursor": {
         "x": 195,
         "y": 384
       },
-      "path": "/d/Pz2V-yT-hO"
+      "path": "/d/M1ZlAkZJHr"
     },
     {
       "kind": "chapter",
@@ -123,58 +123,58 @@
     },
     {
       "kind": "narration",
-      "text": "Hit Import. The file is converted to Markdown and lands directly in the editor — your headings, lists, and emphasis arrive intact, ready for further editing.",
-      "file": "06.webp",
+      "text": "Hit Import. The file is converted to Markdown and lands directly in the editor, your headings, lists, and emphasis arrive intact, ready for further editing.",
+      "file": "05.webp",
       "cursor": {
         "x": 195,
         "y": 384
       },
-      "path": "/d/Pz2V-yT-hO"
+      "path": "/d/M1ZlAkZJHr"
     },
     {
       "kind": "approach",
-      "file": "06.webp",
+      "file": "05.webp",
       "caption": "Click \"Import\" to convert and load",
       "cursor": {
         "x": 306,
         "y": 511
       },
-      "path": "/d/Pz2V-yT-hO"
+      "path": "/d/M1ZlAkZJHr"
     },
     {
       "kind": "outcome",
-      "file": "07.webp",
-      "caption": "markoto asks how to merge — your existing content vs the imported markdown.",
+      "file": "06.webp",
+      "caption": "markoto asks how to merge, your existing content vs the imported markdown.",
       "cursor": {
         "x": 306,
         "y": 511
       },
-      "path": "/d/Pz2V-yT-hO"
+      "path": "/d/M1ZlAkZJHr"
     },
     {
       "kind": "approach",
-      "file": "07.webp",
-      "caption": "Click \"Replace\" — drop the demo content, use the import",
+      "file": "06.webp",
+      "caption": "Click \"Replace\": drop the demo content, use the import",
       "cursor": {
         "x": 97,
         "y": 435
       },
-      "path": "/d/Pz2V-yT-hO"
+      "path": "/d/M1ZlAkZJHr"
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
-      "caption": "Your headings, lists, and prose land in the editor — preview shows the polished version live.",
+      "file": "07.webp",
+      "caption": "Your headings, lists, and prose land in the editor, preview shows the polished version live.",
       "cursor": {
         "x": 97,
         "y": 435
       },
-      "path": "/d/Pz2V-yT-hO",
+      "path": "/d/M1ZlAkZJHr",
       "hero": true
     }
   ],
   "next": {
     "slug": "pick-a-theme",
-    "why": "Now make it look the part — pick a theme that fits your audience"
+    "why": "Now make it look the part, pick a theme that fits your audience"
   }
 }

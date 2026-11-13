@@ -16,10 +16,10 @@
     },
     {
       "kind": "narration",
-      "text": "A guest is someone outside your team — a client, a freelancer — whom you invite to the workspace with the role \"Guest\". A guest sees only the documents you share with them, takes no seat, and uses their own AI budget. Lena from Harbourline already accepted her invitation.",
+      "text": "A guest is someone outside your team, a client, a freelancer, whom you invite to the workspace with the role \"Guest\". A guest sees only the documents you share with them, takes no seat, and uses their own AI budget. Lena from Harbourline already accepted her invitation.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/Rxp2G7ZE0J"
+      "path": "/d/sibJufCV1R"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 915,
         "y": 26
       },
-      "path": "/d/Rxp2G7ZE0J",
+      "path": "/d/sibJufCV1R",
       "annotations": [
         {
           "label": "Share",
@@ -44,21 +44,12 @@
     {
       "kind": "outcome",
       "file": "03.webp",
-      "cursor": {
-        "x": 915,
-        "y": 26
-      },
-      "path": "/d/Rxp2G7ZE0J"
-    },
-    {
-      "kind": "outcome",
-      "file": "04.webp",
       "caption": "Choose the guest and what they may do",
       "cursor": {
         "x": 701,
         "y": 465
       },
-      "path": "/d/Rxp2G7ZE0J",
+      "path": "/d/sibJufCV1R",
       "highlights": [
         {
           "label": "Guests of the workspace",
@@ -71,32 +62,23 @@
     },
     {
       "kind": "approach",
-      "file": "05.webp",
+      "file": "04.webp",
       "caption": "Share",
       "cursor": {
         "x": 834,
         "y": 465
       },
-      "path": "/d/Rxp2G7ZE0J"
+      "path": "/d/sibJufCV1R"
     },
     {
       "kind": "outcome",
-      "file": "06.webp",
+      "file": "05.webp",
+      "caption": "Lena can now edit this document, and only this one",
       "cursor": {
         "x": 834,
         "y": 465
       },
-      "path": "/d/Rxp2G7ZE0J"
-    },
-    {
-      "kind": "outcome",
-      "file": "06.webp",
-      "caption": "Lena can now edit this document — and only this one",
-      "cursor": {
-        "x": 834,
-        "y": 465
-      },
-      "path": "/d/Rxp2G7ZE0J",
+      "path": "/d/sibJufCV1R",
       "highlights": [
         {
           "label": "Shared with Lena",
@@ -114,7 +96,7 @@
     },
     {
       "kind": "outcome",
-      "file": "07.webp",
+      "file": "06.webp",
       "caption": "Lena finds the document under \"Shared with you\"",
       "cursor": null,
       "path": "/",
@@ -132,7 +114,7 @@
     },
     {
       "kind": "approach",
-      "file": "08.webp",
+      "file": "07.webp",
       "caption": "Open it",
       "cursor": {
         "x": 640,
@@ -143,20 +125,10 @@
     },
     {
       "kind": "outcome",
-      "file": "09.webp",
-      "cursor": {
-        "x": 640,
-        "y": 335
-      },
-      "path": "/d/Rxp2G7ZE0J",
-      "actor": "guest"
-    },
-    {
-      "kind": "outcome",
-      "file": "10.webp",
+      "file": "08.webp",
       "caption": "She edits it like any document",
       "cursor": null,
-      "path": "/d/Rxp2G7ZE0J",
+      "path": "/d/sibJufCV1R",
       "actor": "guest"
     }
   ],

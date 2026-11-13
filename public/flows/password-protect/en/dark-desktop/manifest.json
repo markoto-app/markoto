@@ -16,13 +16,13 @@
     },
     {
       "kind": "narration",
-      "text": "Documents share by URL. To gate one, its owner switches the access mode to password-protected and chooses a passphrase. Visitors hit a blocking dialog before they see anything; only the right passphrase gets them past it. Only the owner sees the access-mode picker — sign in first, because a document created without an account has no owner and can't be locked.",
+      "text": "Documents share by URL. To gate one, its owner switches the access mode to password-protected and chooses a passphrase. Visitors hit a blocking dialog before they see anything; only the right passphrase gets them past it. Only the owner sees the access-mode picker: sign in first, because a document created without an account has no owner and can't be locked.",
       "file": "01.webp",
       "cursor": {
         "x": 640,
         "y": 26
       },
-      "path": "/d/GOMwv5SoMF"
+      "path": "/d/z4e5t5Vzyf"
     },
     {
       "kind": "narration",
@@ -32,7 +32,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/GOMwv5SoMF"
+      "path": "/d/z4e5t5Vzyf"
     },
     {
       "kind": "approach",
@@ -42,7 +42,7 @@
         "x": 915,
         "y": 26
       },
-      "path": "/d/GOMwv5SoMF",
+      "path": "/d/z4e5t5Vzyf",
       "annotations": [
         {
           "label": "lock icon",
@@ -57,12 +57,12 @@
     {
       "kind": "outcome",
       "file": "03.webp",
-      "caption": "The share dialog opens — four access modes below the link.",
+      "caption": "The share dialog opens, four access modes below the link.",
       "cursor": {
         "x": 915,
         "y": 26
       },
-      "path": "/d/GOMwv5SoMF"
+      "path": "/d/z4e5t5Vzyf"
     },
     {
       "kind": "chapter",
@@ -71,13 +71,13 @@
     },
     {
       "kind": "narration",
-      "text": "Tap \"Password protected\" to gate the doc. The password input appears below — choose at least 8 characters, memorable enough to share verbally with whoever needs in. markoto stores only a one-way hash of it, never the passphrase itself.",
+      "text": "Tap \"Password protected\" to gate the doc. The password input appears below: choose at least 8 characters, memorable enough to share verbally with whoever needs in. markoto stores only a one-way hash of it, never the passphrase itself.",
       "file": "04.webp",
       "cursor": {
         "x": 915,
         "y": 26
       },
-      "path": "/d/GOMwv5SoMF"
+      "path": "/d/z4e5t5Vzyf"
     },
     {
       "kind": "approach",
@@ -87,7 +87,7 @@
         "x": 640,
         "y": 452
       },
-      "path": "/d/GOMwv5SoMF",
+      "path": "/d/z4e5t5Vzyf",
       "annotations": [
         {
           "label": "password mode",
@@ -102,12 +102,12 @@
     {
       "kind": "outcome",
       "file": "06.webp",
-      "caption": "The password input appears — type a passphrase to lock the doc.",
+      "caption": "The password input appears, type a passphrase to lock the doc.",
       "cursor": {
         "x": 640,
         "y": 452
       },
-      "path": "/d/GOMwv5SoMF"
+      "path": "/d/z4e5t5Vzyf"
     },
     {
       "kind": "approach",
@@ -117,17 +117,17 @@
         "x": 435,
         "y": 519
       },
-      "path": "/d/GOMwv5SoMF"
+      "path": "/d/z4e5t5Vzyf"
     },
     {
       "kind": "outcome",
       "file": "08.webp",
-      "caption": "The passphrase is typed — Save locks the doc with it.",
+      "caption": "The passphrase is typed, Save locks the doc with it.",
       "cursor": {
         "x": 435,
         "y": 519
       },
-      "path": "/d/GOMwv5SoMF"
+      "path": "/d/z4e5t5Vzyf"
     },
     {
       "kind": "approach",
@@ -137,7 +137,7 @@
         "x": 835,
         "y": 519
       },
-      "path": "/d/GOMwv5SoMF"
+      "path": "/d/z4e5t5Vzyf"
     },
     {
       "kind": "outcome",
@@ -147,7 +147,7 @@
         "x": 835,
         "y": 519
       },
-      "path": "/d/GOMwv5SoMF",
+      "path": "/d/z4e5t5Vzyf",
       "highlights": [
         {
           "label": "Password protected",
@@ -165,23 +165,23 @@
     },
     {
       "kind": "narration",
-      "text": "A first-time visitor — say, in their own browser — opens the link and gets the password dialog first. Until the passphrase checks out, markoto sends them nothing of the document: not the text, not even its title.",
+      "text": "A first-time visitor: say, in their own browser, opens the link and gets the password dialog first. Until the passphrase checks out, markoto sends them nothing of the document: not the text, not even its title.",
       "file": "10.webp",
       "cursor": {
         "x": 835,
         "y": 519
       },
-      "path": "/d/GOMwv5SoMF"
+      "path": "/d/z4e5t5Vzyf"
     },
     {
       "kind": "outcome",
       "file": "11.webp",
-      "caption": "A blocking dialog asks for the password — the editor is hidden until you enter it.",
+      "caption": "A blocking dialog asks for the password, the editor is hidden until you enter it.",
       "cursor": {
         "x": 422,
         "y": 444
       },
-      "path": "/d/GOMwv5SoMF",
+      "path": "/d/z4e5t5Vzyf",
       "annotations": [
         {
           "label": "password input",
@@ -204,7 +204,7 @@
       "text": "Type the passphrase and the gate lifts. Too many wrong guesses and markoto pauses password checks on the document for a while, so a passphrase can't be brute-forced.",
       "file": "12.webp",
       "cursor": null,
-      "path": "/d/GOMwv5SoMF",
+      "path": "/d/z4e5t5Vzyf",
       "actor": "visitor"
     },
     {
@@ -215,18 +215,18 @@
         "x": 422,
         "y": 444
       },
-      "path": "/d/GOMwv5SoMF",
+      "path": "/d/z4e5t5Vzyf",
       "actor": "visitor"
     },
     {
       "kind": "outcome",
       "file": "14.webp",
-      "caption": "The passphrase is ready — Unlock submits it for verification.",
+      "caption": "The passphrase is ready, Unlock submits it for verification.",
       "cursor": {
         "x": 422,
         "y": 444
       },
-      "path": "/d/GOMwv5SoMF",
+      "path": "/d/z4e5t5Vzyf",
       "actor": "visitor"
     },
     {
@@ -237,7 +237,7 @@
         "x": 758,
         "y": 490
       },
-      "path": "/d/GOMwv5SoMF",
+      "path": "/d/z4e5t5Vzyf",
       "actor": "visitor"
     },
     {
@@ -248,13 +248,13 @@
         "x": 758,
         "y": 490
       },
-      "path": "/d/GOMwv5SoMF",
+      "path": "/d/z4e5t5Vzyf",
       "hero": true,
       "actor": "visitor"
     }
   ],
   "next": {
     "slug": "polished-pdf",
-    "why": "Now polish it and send a PDF — the password gate stays in place"
+    "why": "Now polish it and send a PDF, the password gate stays in place"
   }
 }

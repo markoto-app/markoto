@@ -16,7 +16,7 @@
     },
     {
       "kind": "narration",
-      "text": "You have the right to a machine-readable copy of every piece of personal data markoto holds about you (GDPR Articles 15 and 20). One click starts building the archive, you get an email when it is ready, and a download link stays on this page for seven days. The ZIP holds plain JSON and Markdown files — no special software needed to open it.",
+      "text": "You have the right to a machine-readable copy of every piece of personal data markoto holds about you (GDPR Articles 15 and 20). One click starts building the archive, you get an email when it is ready, and a download link stays on this page for seven days. The ZIP holds plain JSON and Markdown files, no special software needed to open it.",
       "file": "01.webp",
       "cursor": null,
       "path": "/settings/profile"
@@ -29,13 +29,13 @@
     {
       "kind": "narration",
       "text": "The archive covers your account profile, every document you own as Markdown, comments you wrote, your AI prompts and what the AI did for you, your billing records, the security log entries about your account and every consent decision you made. A README in the archive explains each file in plain English.",
-      "file": "02.webp",
+      "file": "01.webp",
       "cursor": null,
       "path": "/settings/profile"
     },
     {
       "kind": "approach",
-      "file": "03.webp",
+      "file": "02.webp",
       "caption": "Click \"Request export\"",
       "cursor": {
         "x": 104,
@@ -45,8 +45,8 @@
     },
     {
       "kind": "outcome",
-      "file": "04.webp",
-      "caption": "A new row appears under Recent exports with the status \"queued\" — markoto builds it in the background.",
+      "file": "03.webp",
+      "caption": "A new row appears under Recent exports with the status \"queued\", markoto builds it in the background.",
       "cursor": {
         "x": 104,
         "y": 359
@@ -61,7 +61,7 @@
     {
       "kind": "narration",
       "text": "Building the archive usually takes under a minute. You can close the page meanwhile: markoto emails you when it is done, and the row here switches to ready with a Download button.",
-      "file": "05.webp",
+      "file": "04.webp",
       "cursor": {
         "x": 104,
         "y": 359
@@ -70,7 +70,7 @@
     },
     {
       "kind": "outcome",
-      "file": "06.webp",
+      "file": "05.webp",
       "caption": "The row says ready, with the archive's size and the date the link expires. Download is one click away.",
       "cursor": null,
       "path": "/settings/profile",
@@ -92,15 +92,15 @@
     },
     {
       "kind": "narration",
-      "text": "Click Download and the ZIP lands on disk. Each click hands your browser a short-lived link to the file, so a link that leaks stops working after a few minutes. If a slow connection drops mid-download, click Download again — the archive is not rebuilt.",
-      "file": "06.webp",
+      "text": "Click Download and the ZIP lands on disk. Each click hands your browser a short-lived link to the file, so a link that leaks stops working after a few minutes. If a slow connection drops mid-download, click Download again, the archive is not rebuilt.",
+      "file": "05.webp",
       "cursor": null,
       "path": "/settings/profile"
     },
     {
       "kind": "outcome",
-      "file": "06.webp",
-      "caption": "Download hands your browser a fresh, short-lived link to the archive — valid long enough for a slow connection, not long enough to linger in someone else's chat history.",
+      "file": "05.webp",
+      "caption": "Download hands your browser a fresh, short-lived link to the archive: valid long enough for a slow connection, not long enough to linger in someone else's chat history.",
       "cursor": null,
       "path": "/settings/profile"
     }

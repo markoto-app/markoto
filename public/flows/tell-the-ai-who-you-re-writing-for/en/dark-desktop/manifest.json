@@ -16,13 +16,13 @@
     },
     {
       "kind": "narration",
-      "text": "Every doc carries four context fields beyond the title: a description, a target audience, a language, and the template it was created from. The AI sees them on every prompt — so a one-time minute setting them up saves you re-typing context on every \"rewrite this\" / \"extend this\" / \"draft a section\".",
+      "text": "Every doc carries four context fields beyond the title: a description, a target audience, a language, and the template it was created from. The AI sees them on every prompt, so a one-time minute setting them up saves you re-typing context on every \"rewrite this\" / \"extend this\" / \"draft a section\".",
       "file": "01.webp",
       "cursor": {
         "x": 640,
         "y": 26
       },
-      "path": "/d/9KZC3slDqI"
+      "path": "/d/StXuVBz0bs"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 1182,
         "y": 98
       },
-      "path": "/d/9KZC3slDqI",
+      "path": "/d/StXuVBz0bs",
       "annotations": [
         {
           "label": "document tab",
@@ -47,12 +47,12 @@
     {
       "kind": "outcome",
       "file": "03.webp",
-      "caption": "The Document panel opens — Description, Language, Audience, Template, all editable in place.",
+      "caption": "The Document panel opens, Description, Language, Audience, Template, all editable in place.",
       "cursor": {
         "x": 1182,
         "y": 98
       },
-      "path": "/d/9KZC3slDqI"
+      "path": "/d/StXuVBz0bs"
     },
     {
       "kind": "chapter",
@@ -61,13 +61,13 @@
     },
     {
       "kind": "narration",
-      "text": "Description is one line that tells the AI what this document IS. Audience is a closed enum of writing registers (six of them, each with a tuned tone fragment). Language is free text — six curated presets plus typed input for anything else.",
+      "text": "Description is one line that tells the AI what this document IS. Audience is a closed enum of writing registers (six of them, each with a tuned tone fragment). Language is free text, six curated presets plus typed input for anything else.",
       "file": "03.webp",
       "cursor": {
         "x": 1182,
         "y": 98
       },
-      "path": "/d/9KZC3slDqI"
+      "path": "/d/StXuVBz0bs"
     },
     {
       "kind": "approach",
@@ -75,19 +75,19 @@
       "caption": "Type a one-line description",
       "cursor": {
         "x": 987,
-        "y": 290
+        "y": 289
       },
-      "path": "/d/9KZC3slDqI"
+      "path": "/d/StXuVBz0bs"
     },
     {
       "kind": "outcome",
       "file": "05.webp",
-      "caption": "The description is captured — the AI will see this on every prompt.",
+      "caption": "The description is captured, the AI will see this on every prompt.",
       "cursor": {
         "x": 987,
-        "y": 290
+        "y": 289
       },
-      "path": "/d/9KZC3slDqI"
+      "path": "/d/StXuVBz0bs"
     },
     {
       "kind": "approach",
@@ -95,19 +95,19 @@
       "caption": "Open the Audience dropdown",
       "cursor": {
         "x": 1120,
-        "y": 557
+        "y": 554
       },
-      "path": "/d/9KZC3slDqI"
+      "path": "/d/StXuVBz0bs"
     },
     {
       "kind": "outcome",
       "file": "07.webp",
-      "caption": "The audience options appear — six writing registers.",
+      "caption": "The audience options appear, six writing registers.",
       "cursor": {
         "x": 1120,
-        "y": 557
+        "y": 554
       },
-      "path": "/d/9KZC3slDqI"
+      "path": "/d/StXuVBz0bs"
     },
     {
       "kind": "approach",
@@ -115,19 +115,19 @@
       "caption": "Pick \"Marketing / SEO\"",
       "cursor": {
         "x": 1120,
-        "y": 375
+        "y": 373
       },
-      "path": "/d/9KZC3slDqI"
+      "path": "/d/StXuVBz0bs"
     },
     {
       "kind": "outcome",
       "file": "09.webp",
-      "caption": "The audience switches to Marketing — the AI now knows to write benefit-led, scannable, customer-facing prose.",
+      "caption": "The audience switches to Marketing, the AI now knows to write benefit-led, scannable, customer-facing prose.",
       "cursor": {
         "x": 1120,
-        "y": 375
+        "y": 373
       },
-      "path": "/d/9KZC3slDqI"
+      "path": "/d/StXuVBz0bs"
     },
     {
       "kind": "approach",
@@ -135,19 +135,19 @@
       "caption": "Type \"Deutsch\" in the Language field",
       "cursor": {
         "x": 987,
-        "y": 443
+        "y": 442
       },
-      "path": "/d/9KZC3slDqI"
+      "path": "/d/StXuVBz0bs"
     },
     {
       "kind": "outcome",
       "file": "11.webp",
-      "caption": "The Deutsch preset surfaces in the suggestions — Enter to commit.",
+      "caption": "The Deutsch preset surfaces in the suggestions, Enter to commit.",
       "cursor": {
         "x": 987,
-        "y": 443
+        "y": 442
       },
-      "path": "/d/9KZC3slDqI"
+      "path": "/d/StXuVBz0bs"
     },
     {
       "kind": "approach",
@@ -155,19 +155,19 @@
       "caption": "Pick \"Deutsch\"",
       "cursor": {
         "x": 1120,
-        "y": 487
+        "y": 486
       },
-      "path": "/d/9KZC3slDqI"
+      "path": "/d/StXuVBz0bs"
     },
     {
       "kind": "outcome",
       "file": "12.webp",
-      "caption": "The language switches to Deutsch — the AI now writes in German, whatever language you ask in.",
+      "caption": "The language switches to Deutsch, the AI now writes in German, whatever language you ask in.",
       "cursor": {
         "x": 1120,
-        "y": 487
+        "y": 486
       },
-      "path": "/d/9KZC3slDqI"
+      "path": "/d/StXuVBz0bs"
     },
     {
       "kind": "chapter",
@@ -176,23 +176,23 @@
     },
     {
       "kind": "narration",
-      "text": "With audience + language + description set, ANY prompt the AI sees gets shaped by them — without you mentioning audience or language in your prompt. We ask for a one-line intro in plain English; the AI returns marketing-tone Deutsch.",
+      "text": "With audience + language + description set, ANY prompt the AI sees gets shaped by them, without you mentioning audience or language in your prompt. We ask for a one-line intro in plain English; the AI returns marketing-tone Deutsch.",
       "file": "13.webp",
       "cursor": {
         "x": 1120,
-        "y": 487
+        "y": 486
       },
-      "path": "/d/9KZC3slDqI"
+      "path": "/d/StXuVBz0bs"
     },
     {
       "kind": "approach",
-      "file": "14.webp",
+      "file": "12.webp",
       "caption": "Click into the AI prompt bar",
       "cursor": {
         "x": 618,
         "y": 722
       },
-      "path": "/d/9KZC3slDqI",
+      "path": "/d/StXuVBz0bs",
       "annotations": [
         {
           "label": "prompt bar",
@@ -206,63 +206,63 @@
     },
     {
       "kind": "outcome",
-      "file": "15.webp",
-      "caption": "The prompt bar lifts and glows — ready for your prompt.",
+      "file": "14.webp",
+      "caption": "The prompt bar lifts and glows, ready for your prompt.",
       "cursor": {
         "x": 618,
         "y": 722
       },
-      "path": "/d/9KZC3slDqI"
+      "path": "/d/StXuVBz0bs"
     },
     {
       "kind": "approach",
-      "file": "16.webp",
+      "file": "14.webp",
       "caption": "Type a plain-English ask",
       "cursor": {
         "x": 316,
         "y": 723
       },
-      "path": "/d/9KZC3slDqI"
+      "path": "/d/StXuVBz0bs"
     },
     {
       "kind": "outcome",
-      "file": "17.webp",
+      "file": "15.webp",
       "caption": "The ask is short and English. The audience + language fields do the rest of the work.",
       "cursor": {
         "x": 316,
         "y": 723
       },
-      "path": "/d/9KZC3slDqI"
+      "path": "/d/StXuVBz0bs"
     },
     {
       "kind": "approach",
-      "file": "18.webp",
+      "file": "16.webp",
       "caption": "Send it",
       "cursor": {
         "x": 1000,
         "y": 722
       },
-      "path": "/d/9KZC3slDqI"
+      "path": "/d/StXuVBz0bs"
     },
     {
       "kind": "outcome",
-      "file": "19.webp",
-      "caption": "The AI is working — the bar pulses until it is done.",
+      "file": "17.webp",
+      "caption": "The AI is working, the bar pulses until it is done.",
       "cursor": {
         "x": 1000,
         "y": 722
       },
-      "path": "/d/9KZC3slDqI"
+      "path": "/d/StXuVBz0bs"
     },
     {
       "kind": "outcome",
-      "file": "20.webp",
+      "file": "18.webp",
       "caption": "The AI added a one-line intro in German with a marketing tone, although the draft and the prompt are English: the document settings did that.",
       "cursor": {
         "x": 1000,
         "y": 722
       },
-      "path": "/d/9KZC3slDqI",
+      "path": "/d/StXuVBz0bs",
       "highlights": [
         {
           "label": "AI's edits",
@@ -277,6 +277,6 @@
   ],
   "next": {
     "slug": "pick-a-theme",
-    "why": "Now match the visual style — pick a theme that fits the audience"
+    "why": "Now match the visual style, pick a theme that fits the audience"
   }
 }

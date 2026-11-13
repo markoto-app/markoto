@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/w-F-1ASGON"
+      "path": "/d/RlIM4kwnb6"
     },
     {
       "kind": "approach",
@@ -32,45 +32,27 @@
         "x": 915,
         "y": 26
       },
-      "path": "/d/w-F-1ASGON"
-    },
-    {
-      "kind": "outcome",
-      "file": "03.webp",
-      "cursor": {
-        "x": 915,
-        "y": 26
-      },
-      "path": "/d/w-F-1ASGON"
+      "path": "/d/RlIM4kwnb6"
     },
     {
       "kind": "approach",
-      "file": "04.webp",
+      "file": "03.webp",
       "caption": "Let anyone with the link view it",
       "cursor": {
         "x": 640,
         "y": 398
       },
-      "path": "/d/w-F-1ASGON"
+      "path": "/d/RlIM4kwnb6"
     },
     {
       "kind": "outcome",
-      "file": "05.webp",
-      "cursor": {
-        "x": 640,
-        "y": 398
-      },
-      "path": "/d/w-F-1ASGON"
-    },
-    {
-      "kind": "outcome",
-      "file": "06.webp",
+      "file": "04.webp",
       "caption": "Turn on view only and choose when the link stops working",
       "cursor": {
         "x": 426,
         "y": 610
       },
-      "path": "/d/w-F-1ASGON",
+      "path": "/d/RlIM4kwnb6",
       "highlights": [
         {
           "label": "Link settings",
@@ -89,42 +71,32 @@
     },
     {
       "kind": "approach",
-      "file": "07.webp",
+      "file": "05.webp",
       "caption": "They can read it, but File has no export or print",
       "cursor": {
         "x": 28,
         "y": 67
       },
-      "path": "/d/w-F-1ASGON",
+      "path": "/d/RlIM4kwnb6",
       "actor": "visitor"
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
+      "file": "06.webp",
+      "caption": "No export, no PDF, no print, for them only",
       "cursor": {
         "x": 28,
         "y": 67
       },
-      "path": "/d/w-F-1ASGON",
+      "path": "/d/RlIM4kwnb6",
       "actor": "visitor"
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
-      "caption": "No export, no PDF, no print — for them only",
-      "cursor": {
-        "x": 28,
-        "y": 67
-      },
-      "path": "/d/w-F-1ASGON",
-      "actor": "visitor"
-    },
-    {
-      "kind": "outcome",
-      "file": "09.webp",
+      "file": "07.webp",
       "caption": "After the end date the link says it expired",
       "cursor": null,
-      "path": "/d/w-F-1ASGON",
+      "path": "/d/RlIM4kwnb6",
       "actor": "visitor"
     }
   ],

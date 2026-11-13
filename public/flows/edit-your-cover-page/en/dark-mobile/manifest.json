@@ -19,7 +19,7 @@
       "text": "Every new document opens with a cover page in the Editorial layout: logo at the top, the title a third of the way down, today's date below. The Cover page section of the theme panel changes all of it: four layouts (Classic, Editorial, Banner, Minimal), a switch for every field, and a slider for the title size.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/INKle-fIvW"
+      "path": "/d/UoiW4wFgJJ"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 357,
         "y": 695
       },
-      "path": "/d/INKle-fIvW"
+      "path": "/d/UoiW4wFgJJ"
     },
     {
       "kind": "outcome",
@@ -39,14 +39,14 @@
         "x": 357,
         "y": 695
       },
-      "path": "/d/INKle-fIvW"
+      "path": "/d/UoiW4wFgJJ"
     },
     {
       "kind": "approach",
       "file": "03.webp",
       "caption": "Open the Cover page section",
       "cursor": null,
-      "path": "/d/INKle-fIvW",
+      "path": "/d/UoiW4wFgJJ",
       "annotations": [
         {
           "label": "Cover page accordion",
@@ -61,9 +61,9 @@
     {
       "kind": "outcome",
       "file": "04.webp",
-      "caption": "The cover-page editor expands — every field on one scroll-length panel.",
+      "caption": "The cover-page editor expands, every field on one scroll-length panel.",
       "cursor": null,
-      "path": "/d/INKle-fIvW"
+      "path": "/d/UoiW4wFgJJ"
     },
     {
       "kind": "chapter",
@@ -78,7 +78,7 @@
         "x": 357,
         "y": 695
       },
-      "path": "/d/INKle-fIvW"
+      "path": "/d/UoiW4wFgJJ"
     },
     {
       "kind": "outcome",
@@ -88,7 +88,7 @@
         "x": 195,
         "y": 514
       },
-      "path": "/d/INKle-fIvW"
+      "path": "/d/UoiW4wFgJJ"
     },
     {
       "kind": "outcome",
@@ -98,7 +98,7 @@
         "x": 26,
         "y": 514
       },
-      "path": "/d/INKle-fIvW"
+      "path": "/d/UoiW4wFgJJ"
     },
     {
       "kind": "chapter",
@@ -113,35 +113,35 @@
         "x": 195,
         "y": 622
       },
-      "path": "/d/INKle-fIvW"
+      "path": "/d/UoiW4wFgJJ"
     },
     {
       "kind": "approach",
       "file": "08.webp",
       "caption": "Flip the \"Show subtitle\" toggle on",
       "cursor": null,
-      "path": "/d/INKle-fIvW"
+      "path": "/d/UoiW4wFgJJ"
     },
     {
       "kind": "outcome",
       "file": "09.webp",
       "caption": "The subtitle field appears underneath, ready for input.",
       "cursor": null,
-      "path": "/d/INKle-fIvW"
+      "path": "/d/UoiW4wFgJJ"
     },
     {
       "kind": "approach",
       "file": "10.webp",
       "caption": "Type a subtitle line",
       "cursor": null,
-      "path": "/d/INKle-fIvW"
+      "path": "/d/UoiW4wFgJJ"
     },
     {
       "kind": "outcome",
       "file": "11.webp",
       "caption": "The subtitle appears on the cover. The PDF will open on this page.",
       "cursor": null,
-      "path": "/d/INKle-fIvW",
+      "path": "/d/UoiW4wFgJJ",
       "highlights": [
         {
           "label": "Subtitle",

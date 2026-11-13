@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/lXYRrcUSeP"
+      "path": "/d/bwdQ9ctJpr"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 1260,
         "y": 98
       },
-      "path": "/d/lXYRrcUSeP",
+      "path": "/d/bwdQ9ctJpr",
       "annotations": [
         {
           "label": "theme tab",
@@ -52,7 +52,7 @@
         "x": 1260,
         "y": 98
       },
-      "path": "/d/lXYRrcUSeP"
+      "path": "/d/bwdQ9ctJpr"
     },
     {
       "kind": "approach",
@@ -62,7 +62,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/lXYRrcUSeP"
+      "path": "/d/bwdQ9ctJpr"
     },
     {
       "kind": "outcome",
@@ -72,7 +72,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/lXYRrcUSeP"
+      "path": "/d/bwdQ9ctJpr"
     },
     {
       "kind": "chapter",
@@ -82,52 +82,52 @@
     {
       "kind": "narration",
       "text": "The font list is grouped into sans-serif and serif families, each shown in its own typeface. Headings keep their own font, so only the running text changes.",
-      "file": "05.webp",
+      "file": "06.webp",
       "cursor": {
         "x": 1120,
         "y": 438
       },
-      "path": "/d/lXYRrcUSeP"
+      "path": "/d/bwdQ9ctJpr"
     },
     {
       "kind": "approach",
-      "file": "06.webp",
+      "file": "07.webp",
       "caption": "Open the font list",
       "cursor": {
         "x": 1120,
         "y": 510
       },
-      "path": "/d/lXYRrcUSeP"
+      "path": "/d/bwdQ9ctJpr"
     },
     {
       "kind": "outcome",
-      "file": "07.webp",
+      "file": "08.webp",
       "caption": "Every font markoto offers, previewed in its own typeface.",
       "cursor": {
         "x": 1120,
         "y": 510
       },
-      "path": "/d/lXYRrcUSeP"
+      "path": "/d/bwdQ9ctJpr"
     },
     {
       "kind": "approach",
-      "file": "08.webp",
+      "file": "09.webp",
       "caption": "Pick \"Source Serif 4\"",
       "cursor": {
         "x": 1120,
         "y": 671
       },
-      "path": "/d/lXYRrcUSeP"
+      "path": "/d/bwdQ9ctJpr"
     },
     {
       "kind": "outcome",
-      "file": "09.webp",
+      "file": "10.webp",
       "caption": "The preview re-renders: the paragraphs are now set in Source Serif 4, with the drop cap opening the first one.",
       "cursor": {
         "x": 1120,
         "y": 671
       },
-      "path": "/d/lXYRrcUSeP",
+      "path": "/d/bwdQ9ctJpr",
       "highlights": [
         {
           "label": "Restyled preview",
@@ -147,32 +147,32 @@
     {
       "kind": "narration",
       "text": "The Colors section holds the brand and secondary colours: they paint links, highlights, header bands and other accents. Click a swatch to open a colour picker, or paste any hex value.",
-      "file": "09.webp",
+      "file": "10.webp",
       "cursor": {
         "x": 1120,
         "y": 671
       },
-      "path": "/d/lXYRrcUSeP"
+      "path": "/d/bwdQ9ctJpr"
     },
     {
       "kind": "approach",
-      "file": "10.webp",
+      "file": "11.webp",
       "caption": "Open the Colors section",
       "cursor": {
         "x": 1120,
         "y": 438
       },
-      "path": "/d/lXYRrcUSeP"
+      "path": "/d/bwdQ9ctJpr"
     },
     {
       "kind": "outcome",
-      "file": "11.webp",
+      "file": "12.webp",
       "caption": "Brand and secondary colour, each behind a swatch.",
       "cursor": {
         "x": 1120,
         "y": 438
       },
-      "path": "/d/lXYRrcUSeP",
+      "path": "/d/bwdQ9ctJpr",
       "highlights": [
         {
           "label": "Brand colour",
