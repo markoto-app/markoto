@@ -15,7 +15,7 @@ Public address and runtime mode of this instance.
 | Variable | Type | Default | Required | Services | Scope | Description |
 |---|---|---|---|---|---|---|
 | `NODE_ENV` | string |  |  | app, sync, renderer | both | `production` turns on production checks (required NUXT_SITE_URL, Postgres TLS, Secure cookies); the images set it. Not passed by the compose files: set by each image / the dev command; compose overrides it only on some services. |
-| `LOG_LEVEL` | debug \| info \| warn \| error | `info` |  | app, sync, renderer | both | Minimum level the app, the sync server and the renderer log (`debug`, `info`, `warn`, `error`). Production writes one JSON object per line; see docs/operations/OBSERVABILITY.md. Not passed by the compose files: code default is enough; an operator who wants debug output adds it to the container environment. |
+| `LOG_LEVEL` | debug \| info \| warn \| error | `info` |  | app, sync, renderer | both | Minimum level the app, the sync server and the renderer log (`debug`, `info`, `warn`, `error`). Production writes one JSON object per line. Not passed by the compose files: code default is enough; an operator who wants debug output adds it to the container environment. |
 | `NUXT_SITE_URL` | http/https URL |  | in production | app, sync | both | Public origin of this instance (https://docs.example.org). Email links are built only from it, never from the request Host. |
 | `NUXT_CANONICAL_SITE_URL` | http/https URL |  |  | app | hosted | Origin named by canonical / og:url / JSON-LD / sitemap. Empty = NUXT_SITE_URL (staging renders https://markoto.app). |
 | `NUXT_DOCS_CANONICAL_BASE` | http/https URL |  |  | app | self-host | Origin the /docs pages' canonical links point to off the marketing site. Unset = https://markoto.app; set but empty = this instance. Set but empty is a value of its own. Not passed by the compose files: self-host compose only; the hosted instance is the marketing site and always self-canonical. |
@@ -41,7 +41,7 @@ Bun HTTP server of the app container (server/runtime/bunEntry.ts reads these bef
 
 ## Secrets
 
-Signing and service-to-service secrets (≥ 32 chars each; `openssl rand -hex 32`). *_PREVIOUS only during a rotation (docs/operations/SECRETS-ROTATION.md).
+Signing and service-to-service secrets (≥ 32 chars each; `openssl rand -hex 32`). *_PREVIOUS only during a rotation (docs/SELF-HOSTING.md, rotating secrets).
 
 | Variable | Type | Default | Required | Services | Scope | Description |
 |---|---|---|---|---|---|---|
@@ -316,7 +316,7 @@ Resend. Without RESEND_API_KEY every email is logged instead of sent.
 
 ## Instance co-branding
 
-Managed private instance: the customer's name, logo and support contact beside the markoto wordmark (docs/operations/MANAGED-INSTANCE.md). All empty = nothing changes.
+Managed private instance: the customer's name, logo and support contact beside the markoto wordmark. All empty = nothing changes.
 
 | Variable | Type | Default | Required | Services | Scope | Description |
 |---|---|---|---|---|---|---|

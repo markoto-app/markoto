@@ -11,7 +11,7 @@ const signingSecret = secret(SECRET_MIN_LENGTH)
 export const auth = defineNamespace({
   name: 'auth',
   title: 'Secrets',
-  intro: `Signing and service-to-service secrets (≥ ${SECRET_MIN_LENGTH} chars each; \`openssl rand -hex 32\`). *_PREVIOUS only during a rotation (docs/operations/SECRETS-ROTATION.md).`,
+  intro: `Signing and service-to-service secrets (≥ ${SECRET_MIN_LENGTH} chars each; \`openssl rand -hex 32\`). *_PREVIOUS only during a rotation (docs/SELF-HOSTING.md, rotating secrets).`,
   vars: {
     sessionPassword: v({
       name: 'NUXT_SESSION_PASSWORD',

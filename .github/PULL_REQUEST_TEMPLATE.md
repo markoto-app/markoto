@@ -22,4 +22,4 @@
 - [ ] Docs updated where behaviour or configuration changed (`content/docs/`, `docs/SELF-HOSTING.md`, `docs/contributing/`, the nearest `AGENTS.md`).
 - [ ] Schema changes include the generated migration and `drizzle/meta/` snapshot.
 
-<!-- Do not add a `release:*` label yourself. Releases are opt-in; a maintainer labels the PR that should ship (docs/operations/RELEASE-PROCESS.md). -->
+<!-- Do not add a `release:*` label yourself. Releases are opt-in; a maintainer labels the PR that should ship. -->

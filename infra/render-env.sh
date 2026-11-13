@@ -105,7 +105,7 @@ done
 # the new containers crash-loop into the auto-rollback.
 for v in NUXT_LEGAL_CONTROLLER_ADDRESS NUXT_LEGAL_REPRESENTED_BY; do
   if [ -z "${!v:-}" ]; then
-    echo "render-env: '$v' is empty: the legal pages need it (set it as a GitHub Environment variable, see docs/operations/LAUNCH-CHECKLIST.md)" >&2
+    echo "render-env: '$v' is empty: the legal pages need it (set it as a GitHub Environment variable)" >&2
     exit 1
   fi
 done
@@ -114,7 +114,7 @@ done
 # boot in the hosted shape without it, and prod compose routes it with its
 # own certificate). It is spliced into a Traefik rule, so: plain hostname.
 if [ -z "${NUXT_PUBLISH_PAGES_HOST:-}" ]; then
-  echo "render-env: 'NUXT_PUBLISH_PAGES_HOST' is empty: published pages need their own hostname, e.g. pages.\${DOMAIN} (set it as a GitHub Environment variable and add its DNS record, see docs/operations/LAUNCH-CHECKLIST.md)" >&2
+  echo "render-env: 'NUXT_PUBLISH_PAGES_HOST' is empty: published pages need their own hostname, e.g. pages.\${DOMAIN} (set it as a GitHub Environment variable and add its DNS record)" >&2
   exit 1
 fi
 case "$NUXT_PUBLISH_PAGES_HOST" in
@@ -204,7 +204,7 @@ POSTGRES_HOST="${POSTGRES_HOST:-postgres}"
 POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 # Separate least-privilege Postgres roles (deploy/config/postgres/db-init.sh). Empty =
 # the app and LiteLLM keep using POSTGRES_USER (the compose files fall back);
-# docs/operations/LAUNCH-CHECKLIST.md has the switch-over.
+# the switch-over is in the operator runbook, kept outside this repository.
 POSTGRES_APP_USER="${POSTGRES_APP_USER:-}"
 POSTGRES_APP_PASSWORD="${POSTGRES_APP_PASSWORD:-}"
 POSTGRES_LITELLM_USER="${POSTGRES_LITELLM_USER:-}"
@@ -214,7 +214,7 @@ BACKUP_INTERVAL_SECONDS="${BACKUP_INTERVAL_SECONDS:-86400}"
 BACKUP_RETENTION_COUNT="${BACKUP_RETENTION_COUNT:-30}"
 # Backup storage: only the backup sidecar receives these. Each falls back to
 # the app's NUXT_S3_* value (or the stock region/prefix) until a dedicated
-# backup bucket is provisioned (docs/operations/LAUNCH-CHECKLIST.md).
+# backup bucket is provisioned.
 BACKUP_S3_ENDPOINT="${BACKUP_S3_ENDPOINT:-$NUXT_S3_ENDPOINT}"
 BACKUP_S3_BUCKET="${BACKUP_S3_BUCKET:-$NUXT_S3_BUCKET}"
 BACKUP_S3_ACCESS_KEY="${BACKUP_S3_ACCESS_KEY:-$NUXT_S3_ACCESS_KEY}"

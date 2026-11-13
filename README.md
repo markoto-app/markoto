@@ -91,9 +91,6 @@ details, the test tiers and the pull-request conventions are in
 | Contributing | [CONTRIBUTING.md](./CONTRIBUTING.md) and [docs/contributing/](./docs/contributing/) |
 | Reporting a vulnerability | [SECURITY.md](./SECURITY.md) |
 
-The files in [docs/operations/](./docs/operations/) describe how the hosted
-markoto.app instance is run; they are published for transparency.
-
 ## License
 
 markoto is **source-available** under the

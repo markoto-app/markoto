@@ -409,7 +409,7 @@ services:
       - PGPASSWORD=${POSTGRES_PASSWORD}
       # Backup storage. ONLY this service receives these: they default to the
       # app's bucket/keys (NUXT_S3_*) until a dedicated backup bucket with its
-      # own credentials is provisioned (docs/operations/LAUNCH-CHECKLIST.md). The
+      # own credentials is provisioned (the operator runbook, kept outside this repository). The
       # endpoint is set per environment.
       - S3_ACCESS_KEY=${BACKUP_S3_ACCESS_KEY:-${NUXT_S3_ACCESS_KEY}}
       - S3_SECRET_KEY=${BACKUP_S3_SECRET_KEY:-${NUXT_S3_SECRET_KEY}}

@@ -26,7 +26,7 @@ import { useEnv } from '~~/shared/env/load'
 // Rotation: encryption always uses the current key, decryption tries the
 // current and then NUXT_ENCRYPTION_KEY_PREVIOUS. `bun run secrets:reencrypt`
 // rewrites every row with the current key so the previous one can go
-// (docs/operations/SECRETS-ROTATION.md).
+// (the operator runbook, kept outside this repository).
 
 const VERSION = 'v2'
 const NONCE_BYTES = 12 // 96-bit random nonce: GCM's native size

@@ -13,7 +13,7 @@ name: ci
 # `repo-checks`, `docs-checks`, `shell-docker-lint`, `python-checks`,
 # `test-unit-dom`, `migration-guard`, `selfhost-check` and
 # `test-repos-integration-flows`. `sonar` is NOT required (fork PRs never get
-# its token). See docs/operations/GITHUB-CONFIG.md.
+# its token). See the operator runbook, kept outside this repository.
 # Every job except `sonar` runs on fork PRs: none of them reads a secret.
 # Jobs skipped by path filters report as skipped, which satisfies a
 # required check.
@@ -780,7 +780,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           if [ -z "${SONAR_TOKEN:-}" ]; then
-            echo "::error title=Missing secret::SONAR_TOKEN is not set (repo-level Actions secret, see docs/operations/GITHUB-CONFIG.md)."
+            echo "::error title=Missing secret::SONAR_TOKEN is not set (repo-level Actions secret, see the operator runbook, kept outside this repository)."
             exit 1
           fi
 

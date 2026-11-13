@@ -44,7 +44,7 @@ The test stack runs through `scripts/test-compose.sh` (detects rootless Podman).
 | `infra/` | Ansible, hosted `.env` rendering (`render-env.sh`, both deploy paths) |
 | `scripts/` | Standalone Bun scripts and repo checks |
 | `tests/` | `unit/<domain>/`, `dom/`, `nuxt/`, `repos/`, `integration/`, `e2e/` |
-| `docs/` | Architecture, self-hosting, AI models, hardening, `contributing/`, `reference/`, `operations/` |
+| `docs/` | Architecture, self-hosting, AI models, hardening, `contributing/`, `reference/` |
 
 ## Rules an agent gets wrong
 
@@ -137,4 +137,3 @@ Docs (humans first, but read the relevant one before a larger change):
 | [`docs/reference/rate-limits.md`](docs/reference/rate-limits.md) | Request limits with their source files |
 | [`docs/SELF-HOSTING.md`](docs/SELF-HOSTING.md) | Install, configuration reference, upgrades, backups |
 | [`docs/AI-MODELS.md`](docs/AI-MODELS.md), [`docs/SECURITY-HARDENING.md`](docs/SECURITY-HARDENING.md), [`docs/S3-SETUP.md`](docs/S3-SETUP.md) | AI models, hardening, external S3 |
-| [`docs/operations/`](docs/operations/) | Operating the hosted service (deploy, runbook, secrets rotation, releases) |

@@ -3,7 +3,7 @@ import { createHash, timingSafeEqual } from 'node:crypto'
 // Shared-secret checks for the service-to-service HTTP calls inside the
 // stack (app ↔ sync-server, app → renderer). One implementation for every
 // side of the boundary so the comparison stays timing-safe and accepts the
-// `_PREVIOUS` value during a rotation everywhere (docs/operations/SECRETS-ROTATION.md).
+// `_PREVIOUS` value during a rotation everywhere (the operator runbook, kept outside this repository).
 //
 // Dependency-free on purpose (node:crypto only).
 

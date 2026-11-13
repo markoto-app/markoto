@@ -167,7 +167,7 @@ jobs:
           APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
         run: |
           set -euo pipefail
-          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in the staging Environment (docs/operations/GITHUB-CONFIG.md)"; exit 0; fi
+          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in the staging Environment (the operator runbook, kept outside this repository)"; exit 0; fi
           pip install apprise==1.9.9 >/dev/null 2>&1 || true
           apprise -t "Staging gate FAILED (tag ${TAG})" \
                   -b "Smoke suite failed on staging (deploy.yml notifies deploy failures itself), prod promotion is blocked. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \

@@ -35,7 +35,7 @@ runs:
           if [ -z "${!n:-}" ]; then missing="${missing} ${n}"; fi
         done
         if [ -n "$missing" ]; then
-          echo "::error title=Missing secrets::Not set in this job's Environment (docs/operations/GITHUB-CONFIG.md):${missing}"
+          echo "::error title=Missing secrets::Not set in this job's Environment (the operator runbook, kept outside this repository):${missing}"
           exit 1
         fi
 

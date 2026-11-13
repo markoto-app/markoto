@@ -85,11 +85,11 @@ First-time only for the local stack: `make mkcert-install` then `make certs` (wi
 | Tail production logs | `make prod-logs` |
 | Verify backups are restorable | `cd infra && make backup-test` |
 
-See `docs/operations/DEPLOY-OVH.md` for the OVH walkthrough and `docs/operations/DEPLOY.md` for the generic deploy notes.
+These targets drive the hosted deployment; its walkthroughs are part of the operator runbook, kept outside this repository. Self-hosting: `docs/SELF-HOSTING.md`.
 
 ## I want to investigate a problem
 
-The symptom-driven playbook is `docs/operations/RUNBOOK.md`; the queries below are a quick reference.
+The queries below are a quick reference; the symptom-driven playbook for the hosted service is part of the operator runbook, kept outside this repository.
 
 | Goal | Command or query |
 |---|---|
@@ -100,12 +100,11 @@ The symptom-driven playbook is `docs/operations/RUNBOOK.md`; the queries below a
 | Recent audit-log entries by an actor | `SELECT * FROM audit_log WHERE actor_user_id=<userId> ORDER BY ts DESC LIMIT 50;` |
 | Pending Stripe webhook events (out-of-order stash) | `SELECT * FROM pending_stripe_events WHERE processed=false;` |
 | Already-processed Stripe webhook events (idempotency) | `SELECT * FROM processed_webhook_events ORDER BY processed_at DESC LIMIT 50;` |
-| AI budget/spend for a user | `SELECT litellm_key_id FROM users WHERE id=<userId>;` then LiteLLM `/key/info`, see `docs/operations/RUNBOOK.md` "budget-exhausted" |
-| Sentry tag table for filtering | See `docs/operations/RUNBOOK.md` and `docs/operations/OBSERVABILITY.md` |
+| AI budget/spend for a user | `SELECT litellm_key_id FROM users WHERE id=<userId>;` then LiteLLM `/key/info` |
 
 ## I want to release a new version
 
-(See `docs/operations/RELEASE-PROCESS.md` for the full flow.)
+(The release labels are described in `CONTRIBUTING.md`, the workflows in `.github/workflows/README.md`.)
 
 | Goal | Command |
 |---|---|
@@ -116,7 +115,7 @@ The symptom-driven playbook is `docs/operations/RUNBOOK.md`; the queries below a
 
 ## I want to manage secrets
 
-(See `docs/operations/SECRETS-ROTATION.md` for the per-secret rotation procedure.)
+(Rotating the secrets of a self-hosted instance: `docs/SELF-HOSTING.md`.)
 
 | Goal | Command |
 |---|---|
@@ -134,15 +133,9 @@ The symptom-driven playbook is `docs/operations/RUNBOOK.md`; the queries below a
 | Contributor topic guides | `docs/contributing/` |
 | Self-hosting (install, config, upgrades, troubleshooting) | `docs/SELF-HOSTING.md` |
 | AI models and bring-your-own-key | `docs/AI-MODELS.md` |
-| Incident runbook | `docs/operations/RUNBOOK.md` |
-| Release pipeline | `docs/operations/RELEASE-PROCESS.md` |
-| Deploy walkthrough (OVH) | `docs/operations/DEPLOY-OVH.md` |
-| Generic deploy walkthrough | `docs/operations/DEPLOY.md` |
 | Local full stack | `docs/contributing/LOCAL.md` |
 | S3 setup | `docs/S3-SETUP.md` |
-| Secrets rotation | `docs/operations/SECRETS-ROTATION.md` |
 | Security hardening | `docs/SECURITY-HARDENING.md` |
-| Observability (Sentry, logs, metrics) | `docs/operations/OBSERVABILITY.md` |
-| GitHub repo configuration | `docs/operations/GITHUB-CONFIG.md` |
+| Logging | `docs/contributing/logging.md` |
 | GitHub Actions workflows | `.github/workflows/README.md` |
 | Changelog | `CHANGELOG.md` |

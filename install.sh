@@ -306,7 +306,7 @@ configure() {
     COMPOSE_FILES="${COMPOSE_FILES}:deploy/compose/compose.selfhost.build.yml"
   fi
   # Managed private instance: a ./branding directory holds the
-  # customer's logo (docs/operations/MANAGED-INSTANCE.md).
+  # customer's logo (the operator runbook, kept outside this repository).
   if [ -d "$ROOT/branding" ]; then
     COMPOSE_FILES="${COMPOSE_FILES}:deploy/compose/compose.selfhost.brand.yml"
   fi

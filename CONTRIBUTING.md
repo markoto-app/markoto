@@ -125,7 +125,7 @@ Every ESLint rule is an `error`, including the size and complexity limits: `max-
 
 **Run the type check under Node, never with `bun --bun`.** Under the Bun runtime the Vue language plugin of `vue-tsc` does not load, so every `.vue` file drops out of the check and it still exits 0. `bun run typecheck` keeps the script's Node shebang; `typecheck:guard` catches the silent case. ESLint and `depcruise` are the opposite and run under Bun (`bun --bun`).
 
-CI additionally runs a secret scan (gitleaks), actionlint, the migration guard, `scripts/selfhost-check.sh` (shellcheck on `install.sh`, `docker compose config` for every compose combination) and, for ready-for-review pull requests that touch code, the repos and integration tiers. All of these run on fork pull requests too, except SonarCloud. The required checks are listed in [`docs/operations/GITHUB-CONFIG.md`](./docs/operations/GITHUB-CONFIG.md).
+CI additionally runs a secret scan (gitleaks), actionlint, the migration guard, `scripts/selfhost-check.sh` (shellcheck on `install.sh`, `docker compose config` for every compose combination) and, for ready-for-review pull requests that touch code, the repos and integration tiers. All of these run on fork pull requests too, except SonarCloud. The required checks on `main` are `lint-typecheck`, `lint-types`, `repo-checks`, `docs-checks`, `shell-docker-lint`, `python-checks`, `test-unit-dom`, `test-repos-integration-flows`, `secret-scan`, `migration-guard`, `semantic-pr-title`, `actions-lint`, `label-check` and `selfhost-check`; `sonar` and `image-scan` are not required. A job skipped by its `if:` (drafts, docs-only changes) counts as passed.
 
 ## Coding rules
 
@@ -147,7 +147,7 @@ The ones that matter most in review:
 
 - **Branch from `main`**, keep the pull request focused, and open it as a draft while it is in progress. The heavy CI jobs skip drafts and docs-only changes.
 - **The title must be a conventional commit** with a lower-case subject: `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`, `build:`, `ci:`, `perf:` or `revert:`, with an optional scope (`fix(sync): close valkey on SIGTERM`). CI rejects anything else.
-- **The title and body are the release notes, verbatim.** A merged pull request becomes a GitHub Release when it carries a release label ([`docs/operations/RELEASE-PROCESS.md`](./docs/operations/RELEASE-PROCESS.md)). Write the description for the person reading the release page: what changed, why, how to verify, and anything an operator must do on upgrade. The [pull-request template](./.github/PULL_REQUEST_TEMPLATE.md) has the sections.
+- **The title and body are the release notes, verbatim.** A merged pull request becomes a GitHub Release when it carries a release label: the release workflow bumps the version, tags it, builds and signs the images and publishes the release with the pull request's title and body. Write the description for the person reading the release page: what changed, why, how to verify, and anything an operator must do on upgrade. The [pull-request template](./.github/PULL_REQUEST_TEMPLATE.md) has the sections.
 - **Maintainers apply the release labels, not contributors.** Releases are opt-in: a maintainer applies `release:patch`, `release:minor` or `release:major` to the pull request that should ship; `release:none` or no label means no release. CI allows at most one `release:*` label.
 - Update the docs your change touches: user docs in `content/docs/`, [`docs/SELF-HOSTING.md`](./docs/SELF-HOSTING.md) for new configuration, the relevant topic guide in `docs/contributing/`, and the nearest `AGENTS.md` when a rule changes.
 - Link the issue the pull request resolves.
@@ -166,7 +166,6 @@ Migrations are forward-only and applied at app start.
 - **User docs** (`content/docs/**`, rendered at `/docs`) are Nuxt Content pages written in the user's voice: no internals, no table names, no hand-made screenshots (pages embed flows). See [`docs/contributing/flow-docs.md`](./docs/contributing/flow-docs.md).
 - **Self-hosting** lives in `docs/SELF-HOSTING.md`; every variable and command there must match `install.sh`, `deploy/compose/compose.selfhost.yml` and `.env.example`.
 - **Contributor guides** live in `docs/contributing/`.
-- **`docs/operations/`** describes how the hosted markoto.app instance is run; it is published for transparency, not required reading.
 
 ## License and contributor agreement
 

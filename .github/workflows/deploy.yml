@@ -6,7 +6,7 @@ name: deploy
 # auto-rollbacks on failure, sends Apprise notifications either way.
 #
 # Required secrets, all scoped to the target Environment (staging / prod; see
-# docs/operations/GITHUB-CONFIG.md):
+# the operator runbook, kept outside this repository):
 #   DEPLOY_SSH_KEY: private OpenSSH key for the deploy user on the VPS
 #   DEPLOY_HOST: IP or DNS of the VPS
 #   DEPLOY_KNOWN_HOSTS: pinned SSH host keys (`ssh-keyscan -t ed25519 HOST`);
@@ -128,7 +128,7 @@ jobs:
           NUXT_JWT_SECRET_PREVIOUS: ${{ secrets.NUXT_JWT_SECRET_PREVIOUS }}
           NUXT_INTERNAL_API_SECRET_PREVIOUS: ${{ secrets.NUXT_INTERNAL_API_SECRET_PREVIOUS }}
           # Encrypts stored provider keys / SSO secrets (openssl rand -hex 32). Never
-          # replace without moving the old value to _PREVIOUS (SECRETS-ROTATION.md).
+          # replace without moving the old value to _PREVIOUS (the operator runbook, kept outside this repository).
           NUXT_ENCRYPTION_KEY: ${{ secrets.NUXT_ENCRYPTION_KEY }}
           NUXT_ENCRYPTION_KEY_PREVIOUS: ${{ secrets.NUXT_ENCRYPTION_KEY_PREVIOUS }}
           # Anonymous gate: self-hosted ALTCHA bot check HMAC key (openssl rand -hex 32).
@@ -444,7 +444,7 @@ jobs:
         env:
           APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
         run: |
-          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (docs/operations/GITHUB-CONFIG.md)"; exit 0; fi
+          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (the operator runbook, kept outside this repository)"; exit 0; fi
           apprise -t "Deploy ${TAG} succeeded" \
                   -b "Deployed to ${DEPLOY_HOST}.
           Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
@@ -457,7 +457,7 @@ jobs:
           APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
           PREV_TAG: ${{ steps.prev.outputs.tag }}
         run: |
-          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (docs/operations/GITHUB-CONFIG.md)"; exit 0; fi
+          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (the operator runbook, kept outside this repository)"; exit 0; fi
           apprise -t "Deploy ${TAG} FAILED, rolled back to ${PREV_TAG}" \
                   -b "Auto-rollback restored ${PREV_TAG} on ${DEPLOY_HOST}. Health check now passing under previous version. Investigate the failed release.
           Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
@@ -470,7 +470,7 @@ jobs:
           APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
           PREV_TAG: ${{ steps.prev.outputs.tag }}
         run: |
-          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (docs/operations/GITHUB-CONFIG.md)"; exit 0; fi
+          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (the operator runbook, kept outside this repository)"; exit 0; fi
           apprise -t "Deploy ${TAG} FAILED, ROLLBACK ALSO FAILED" \
                   -b "Both ${TAG} and rollback to ${PREV_TAG} failed health on ${DEPLOY_HOST}. MANUAL INTERVENTION REQUIRED.
           Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \

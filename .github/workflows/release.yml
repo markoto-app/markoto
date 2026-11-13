@@ -13,7 +13,7 @@ name: release
 #
 # main is strictly PR-only: this workflow never pushes a commit to main. The
 # only write is the vX.Y.Z tag push (tags aren't covered by the branch
-# ruleset), authenticated by RELEASE_BOT_TOKEN. See docs/operations/GITHUB-CONFIG.md.
+# ruleset), authenticated by RELEASE_BOT_TOKEN. See the operator runbook, kept outside this repository.
 
 on:
   push:
@@ -22,7 +22,7 @@ on:
 # Least privilege: nothing by default, each job grants itself what it needs.
 # Jobs that need high-value secrets (RELEASE_BOT_TOKEN, live-AI provider keys,
 # APPRISE_URLS) bind the `release` Environment, which only deploys from `main`
-# (docs/operations/GITHUB-CONFIG.md). Repo-level secrets are NOT used here.
+# (the operator runbook, kept outside this repository). Repo-level secrets are NOT used here.
 permissions: {}
 
 concurrency:
@@ -204,7 +204,7 @@ jobs:
           RELEASE_BOT_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN }}
         run: |
           if [ -z "${RELEASE_BOT_TOKEN:-}" ]; then
-            echo "::error title=Missing secret::RELEASE_BOT_TOKEN is not set in the 'release' Environment (docs/operations/GITHUB-CONFIG.md). No tag was pushed."
+            echo "::error title=Missing secret::RELEASE_BOT_TOKEN is not set in the 'release' Environment (the operator runbook, kept outside this repository). No tag was pushed."
             exit 1
           fi
 
@@ -306,7 +306,7 @@ jobs:
           RELEASE_BOT_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN }}
         run: |
           if [ -z "${RELEASE_BOT_TOKEN:-}" ]; then
-            echo "::error title=Missing secret::RELEASE_BOT_TOKEN is not set in the 'release' Environment (docs/operations/GITHUB-CONFIG.md)."
+            echo "::error title=Missing secret::RELEASE_BOT_TOKEN is not set in the 'release' Environment (the operator runbook, kept outside this repository)."
             exit 1
           fi
 
@@ -325,7 +325,7 @@ jobs:
           # carries packages:write, so it doubles as the GHCR push
           # credential. ${{ secrets.GITHUB_TOKEN }} (the job declares
           # `packages: write`) works too once each package grants this repo
-          # Actions write access: docs/operations/GITHUB-CONFIG.md, owner checklist.
+          # Actions write access: see the owner checklist in the operator runbook, kept outside this repository.
           password: ${{ secrets.RELEASE_BOT_TOKEN }}
 
       # Installed BEFORE the build so a full disk after a large push can
@@ -415,7 +415,7 @@ jobs:
             if [ -z "${!n:-}" ]; then missing="${missing} ${n}"; fi
           done
           if [ -n "$missing" ]; then
-            echo "::error title=Missing secrets::Not set in the 'release' Environment (docs/operations/GITHUB-CONFIG.md):${missing}"
+            echo "::error title=Missing secrets::Not set in the 'release' Environment (the operator runbook, kept outside this repository):${missing}"
             exit 1
           fi
 
@@ -599,7 +599,7 @@ jobs:
           URL: ${{ needs.create-release.outputs.release_url }}
         run: |
           if [ -z "${APPRISE_URLS:-}" ]; then
-            echo "::warning title=Notification skipped::APPRISE_URLS is not set in the 'release' Environment (docs/operations/GITHUB-CONFIG.md)."
+            echo "::warning title=Notification skipped::APPRISE_URLS is not set in the 'release' Environment (the operator runbook, kept outside this repository)."
             exit 0
           fi
           apprise -t "markoto v${NEW} released" \

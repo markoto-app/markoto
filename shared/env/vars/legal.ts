@@ -127,7 +127,7 @@ export const email = defineNamespace({
 export const brand = defineNamespace({
   name: 'brand',
   title: 'Instance co-branding',
-  intro: 'Managed private instance: the customer\'s name, logo and support contact beside the markoto wordmark (docs/operations/MANAGED-INSTANCE.md). All empty = nothing changes.',
+  intro: 'Managed private instance: the customer\'s name, logo and support contact beside the markoto wordmark. All empty = nothing changes.',
   vars: {
     name: v({
       name: 'NUXT_INSTANCE_BRAND_NAME',

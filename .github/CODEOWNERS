@@ -1,4 +1,4 @@
-# Code owners. Combined with the `main` ruleset (docs/operations/GITHUB-CONFIG.md) this
+# Code owners. Combined with the `main` ruleset (the operator runbook, kept outside this repository) this
 # makes the owner the reviewer of record for every change.
 #
 # Last matching pattern wins, so the sensitive paths below are listed

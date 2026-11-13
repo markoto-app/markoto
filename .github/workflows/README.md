@@ -12,7 +12,7 @@
 
 Path gating lives in the `changes` job of `ci.yml` (`dorny/paths-filter`) and is applied with job-level `if:`, never workflow-level `paths:`, because a workflow skipped by `paths:` leaves required checks pending forever while a skipped job satisfies them. Markdown, `docs/**`, `LICENSE` and the issue templates count as docs; workflow YAML always counts as code. Jobs that need high-value secrets bind a main-only Environment (`release`, `staging`, `prod`).
 
-See `docs/operations/RELEASE-PROCESS.md` for the release flow and `docs/operations/GITHUB-CONFIG.md` for the required secrets and branch rules.
+The release flow, the required secrets and the branch rules are described in the operator runbook, kept outside this repository; the required checks are listed in `CONTRIBUTING.md`.
 
 ## How to iterate on these workflows
 
@@ -72,6 +72,6 @@ Changes to steps that talk to the GitHub API (release creation, deploy over SSH)
 
 - Don't `uses: foo/bar@v3` or `@main`, pin every third-party action to its full commit SHA with a `# vX.Y.Z` comment (Dependabot moves the pins).
 - Don't `permissions: write-all`: every workflow starts from `permissions: {}` and each job grants itself only what it needs.
-- Don't put a high-value secret at repo level or in job-wide `env:`, use a main-only Environment and bind it to the step that needs it (`docs/operations/GITHUB-CONFIG.md`).
+- Don't put a high-value secret at repo level or in job-wide `env:`, use a main-only Environment and bind it to the step that needs it (the operator runbook, kept outside this repository).
 - Don't `ssh-keyscan` or `StrictHostKeyChecking=no` in a deploy path, host keys come from the pinned `DEPLOY_KNOWN_HOSTS`.
 - Don't write inline `${{ }}` referencing user-controlled context (`github.head_ref`, `github.event.pull_request.title`, comment bodies, etc.) inside `run:` shell, that's a script-injection vector. Pipe through an `env:` block instead. `actionlint` flags this.

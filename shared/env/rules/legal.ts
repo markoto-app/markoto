@@ -41,7 +41,7 @@ export const legalRules: Rule<AppEnv>[] = [
     check: (env) => {
       if (!env.legal.surfacesEnabled) return []
       if (!env.publish.pagesHost) {
-        return ['NUXT_PUBLISH_PAGES_HOST is empty, but this instance runs the hosted shape (NUXT_LEGAL_SURFACES_ENABLED=true): published pages must be served from their own hostname (e.g. pages.<your domain>), never the app\'s origin, see docs/operations/LAUNCH-CHECKLIST.md']
+        return ['NUXT_PUBLISH_PAGES_HOST is empty, but this instance runs the hosted shape (NUXT_LEGAL_SURFACES_ENABLED=true): published pages must be served from their own hostname (e.g. pages.<your domain>), never the app\'s origin']
       }
       if (!env.publish.traefikToken) {
         return ['NUXT_PUBLISH_PAGES_HOST is set but NUXT_PUBLISH_TRAEFIK_TOKEN is missing: Traefik learns the pages host\'s router and certificate from the app\'s HTTP provider, which only answers with the token']

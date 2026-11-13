@@ -783,7 +783,7 @@ later. All of them go through `server/utils/platform/secretBox.ts`:
 - **Rotation.** Encryption uses `NUXT_ENCRYPTION_KEY`, decryption tries it
   and then `NUXT_ENCRYPTION_KEY_PREVIOUS`; `cli/reencrypt-secrets.js`
   rewrites every row with the current key
-  ([SECRETS-ROTATION.md §24](operations/SECRETS-ROTATION.md)).
+  ([SELF-HOSTING.md](SELF-HOSTING.md), rotating secrets).
 
 SCIM tokens and MCP personal access tokens are not encrypted but stored as
 SHA-256 hashes (high-entropy random tokens, looked up by hash), and are

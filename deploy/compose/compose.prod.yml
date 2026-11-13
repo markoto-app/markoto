@@ -3,7 +3,7 @@
 # Run on the host from /opt/markoto: `docker compose pull && docker compose up -d`
 # (the .env there, infra/render-env.sh, sets COMPOSE_FILE to this file).
 #
-# See docs/operations/DEPLOY.md for DNS and TLS prerequisites.
+# DNS and TLS prerequisites: see the operator runbook, kept outside this repository.
 #
 # Policy: every `${VAR}` substitution below uses `:?` so a missing .env
 # entry crashes `docker compose up` instead of silently booting with an
@@ -115,7 +115,7 @@ services:
     # ip_unprivileged_port_start=0). DAC_OVERRIDE only because
     # ./traefik/acme.json (0600) is owned by the deploy user, not root
     # (infra/roles/markoto): drop it once the file is root-owned
-    # (docs/operations/LAUNCH-CHECKLIST.md).
+    # (the operator runbook, kept outside this repository).
     cap_add:
       - DAC_OVERRIDE
     security_opt:
@@ -345,7 +345,7 @@ services:
       - VALKEY_HOST=valkey
       - VALKEY_PORT=6379
       - VALKEY_DB=${VALKEY_DB:?VALKEY_DB required}
-      # Postgres TLS posture: see docs/operations/DEPLOY.md and shared/utils/runtime/postgresSsl.ts.
+      # Postgres TLS posture: see shared/utils/runtime/postgresSsl.ts and the operator runbook, kept outside this repository.
       # Empty PGSSLROOTCERT is fine: prod default is rejectUnauthorized
       # against the system CA bundle. Set it to a bind-mounted PEM path
       # (e.g. /run/secrets/managed_pg_ca.pem) for cert-pin verification.
@@ -481,7 +481,7 @@ services:
   # Database + roles bootstrap (deploy/config/postgres/db-init.sh). On a managed
   # cluster POSTGRES_USER is the cluster's admin user: it needs CREATEDB and
   # CREATEROLE (OVH's default admin user has both): see
-  # docs/operations/LAUNCH-CHECKLIST.md for switching the hosted DB to separate roles.
+  # the operator runbook, kept outside this repository for switching the hosted DB to separate roles.
   db-init:
     networks:
       - data
@@ -603,7 +603,7 @@ services:
       # Symmetric AES-256 passphrase for client-side backup encryption.
       # Without this the sidecar refuses to start. Rotation invalidates
       # older backups for restore: schedule rotations against the
-      # retention window. See docs/operations/DEPLOY.md §6.
+      # retention window. See the operator runbook, kept outside this repository.
       - BACKUP_GPG_PASSPHRASE=${BACKUP_GPG_PASSPHRASE:?BACKUP_GPG_PASSPHRASE required}
     networks:
       - data

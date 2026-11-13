@@ -18,7 +18,7 @@ export const core = defineNamespace({
       name: 'LOG_LEVEL',
       type: oneOf(['debug', 'info', 'warn', 'error']),
       default: 'info',
-      doc: 'Minimum level the app, the sync server and the renderer log (`debug`, `info`, `warn`, `error`). Production writes one JSON object per line; see docs/operations/OBSERVABILITY.md.',
+      doc: 'Minimum level the app, the sync server and the renderer log (`debug`, `info`, `warn`, `error`). Production writes one JSON object per line.',
       services: ['app', 'sync', 'renderer'],
       scope: 'both',
       notPassed: 'code default is enough; an operator who wants debug output adds it to the container environment'

@@ -13,7 +13,7 @@ import jwt from 'jsonwebtoken'
 // by accepting an optional `_PREVIOUS` value during the rollover window.
 // Issuers always use the current secret; verifiers accept either.
 //
-// Full procedure: see docs/operations/SECRETS-ROTATION.md.
+// Full procedure: see the operator runbook, kept outside this repository.
 
 /**
  * Verify a JWT with the current secret, falling back to the previous

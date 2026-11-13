@@ -164,7 +164,7 @@
     msg: |
       WARNING: root volume {{ base_root_device.stdout }} is NOT LUKS-encrypted
       (status={{ base_luks_status.stdout }}). Some OVH plans don't expose
-      volume-level LUKS. See docs/operations/DEPLOY.md §1. Local disk holds .env,
+      volume-level LUKS. See the operator runbook, kept outside this repository. Local disk holds .env,
       valkey AOF, traefik acme.json. Decide whether provider-side
       encryption-at-rest is sufficient for your threat model.
   when: base_luks_status.stdout != 'encrypted'

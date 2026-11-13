@@ -266,6 +266,3 @@ theme-shots: ## PNG per page + contact sheet per theme preset from a running app
 cheatsheet: ## Print docs/contributing/CHEATSHEET.md
 	@cat docs/contributing/CHEATSHEET.md 2>/dev/null || echo "See docs/contributing/CHEATSHEET.md"
 
-.PHONY: runbook
-runbook: ## Print docs/operations/RUNBOOK.md
-	@cat docs/operations/RUNBOOK.md 2>/dev/null || echo "See docs/operations/RUNBOOK.md"

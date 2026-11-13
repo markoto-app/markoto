@@ -400,7 +400,7 @@ export default defineNuxtConfig({
   // captured in prod stay minified, investigations have to map line
   // numbers by hand. Set those three vars in CI / build env (NOT in
   // the runtime `app` container, they're not needed at runtime).
-  // See docs/operations/DEPLOY.md.
+  // See the operator runbook, kept outside this repository.
   sentry: {
     sourceMapsUploadOptions: {
       // `org` + `project` come from env. Empty / undefined disables

@@ -38,7 +38,7 @@
 # ~/.docker/config.json then carries the credential) to match the user
 # compose pull runs under.
 #
-# Rotation: see docs/operations/SECRETS-ROTATION.md §19. Re-running this play
+# Rotation: see the operator runbook, kept outside this repository. Re-running this play
 # silently re-logs-in with the new value; old PAT can be revoked at the
 # provider after.
 - name: Login to GHCR (private image pull on the VPS)

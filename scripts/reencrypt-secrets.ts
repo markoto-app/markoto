@@ -7,7 +7,7 @@
  * Inside the stack (the app container has every variable below):
  *   docker compose exec app bun cli/reencrypt-secrets.js --dry-run
  *
- * Procedure (docs/operations/SECRETS-ROTATION.md): move the old key into
+ * Procedure (the operator runbook, kept outside this repository): move the old key into
  * NUXT_ENCRYPTION_KEY_PREVIOUS, set a new NUXT_ENCRYPTION_KEY, restart, run
  * this, then empty _PREVIOUS. Rows that neither key decrypts are listed and
  * left alone; the app treats them as absent (new LiteLLM key minted, BYOK

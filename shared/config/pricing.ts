@@ -76,7 +76,7 @@ export interface PlanPricesResponse {
 /**
  * Stripe Price lookup key for a plan / interval / currency. The operator
  * creates one recurring Price per key in the Stripe dashboard
- * (docs/operations/LAUNCH-CHECKLIST.md); the server finds them by key, so prices
+ * (the operator runbook, kept outside this repository); the server finds them by key, so prices
  * change in Stripe without a deploy.
  */
 export function stripePriceLookupKey(plan: PaidPlanName, interval: BillingInterval, currency: Currency, prefix = 'markoto'): string {

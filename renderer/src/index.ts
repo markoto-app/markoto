@@ -67,7 +67,7 @@ function parseRenderRequest(body: Partial<Record<keyof RenderRequest, unknown>>)
 // a sibling. End result: one trace covers browser → app → renderer
 // (and the renderer's Playwright `page.goto` to the print page is a
 // sibling trace: that hop can't carry headers via Playwright; see
-// docs/operations/OBSERVABILITY.md "Tracing limitations").
+// the operator runbook, kept outside this repository).
 function traced(req: Request, request: RenderRequest): Promise<Response> {
   // The app's request id (renderClient.ts sends it with the trace headers),
   // so these lines match the app's log lines of the same request.

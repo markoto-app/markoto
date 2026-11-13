@@ -3,8 +3,8 @@
 Agentless, GPL-3.0, OVH-targeted automation. From "fresh VPS IP + clicked
 managed Postgres + clicked S3 bucket" to a running stack in ~25 minutes.
 
-For the click-by-click walkthrough see [`../docs/operations/DEPLOY-OVH.md`](../docs/operations/DEPLOY-OVH.md).
-For the manual runbook (no Ansible) see [`../docs/operations/DEPLOY.md`](../docs/operations/DEPLOY.md).
+The click-by-click OVH walkthrough and the manual runbook (no Ansible) are
+part of the operator runbook, kept outside this repository.
 
 ## Why Ansible (vs Terraform / Pulumi / OpenTofu)
 
@@ -182,7 +182,7 @@ Same recipe as initial deploy:
 1. Provision a new OVH VPS (note new IP), keep the same managed-PG + S3.
 2. Edit `inventory.ini` → new IP.
 3. `make provision && make deploy`.
-4. Restore from latest gpg backup via the runbook in `docs/operations/DEPLOY.md` §6.
+4. Restore from latest gpg backup (`gpg --decrypt | gunzip | psql`, see the operator runbook, kept outside this repository).
 
 The managed Postgres holds all user data, so as long as it survives the
 new VPS picks up the existing dataset on first boot.

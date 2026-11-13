@@ -11,7 +11,7 @@ name: sonar-baseline
 # strictly PR-only, so ci.yml's gates have already run for every commit
 # that can land here.
 #
-# Secrets: SONAR_TOKEN (repo-level, see docs/operations/GITHUB-CONFIG.md for why) and
+# Secrets: SONAR_TOKEN (repo-level, see the operator runbook, kept outside this repository) and
 # APPRISE_URLS from the main-only `release` Environment (failure ping).
 
 on:
@@ -64,7 +64,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           if [ -z "${SONAR_TOKEN:-}" ]; then
-            echo "::error title=Missing secret::SONAR_TOKEN is not set (repo-level Actions secret, see docs/operations/GITHUB-CONFIG.md)."
+            echo "::error title=Missing secret::SONAR_TOKEN is not set (repo-level Actions secret, see the operator runbook, kept outside this repository)."
             exit 1
           fi
 
@@ -97,7 +97,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           if [ -z "${APPRISE_URLS:-}" ]; then
-            echo "::warning title=Notification skipped::APPRISE_URLS is not set in the 'release' Environment (docs/operations/GITHUB-CONFIG.md)."
+            echo "::warning title=Notification skipped::APPRISE_URLS is not set in the 'release' Environment (the operator runbook, kept outside this repository)."
             exit 0
           fi
           apprise -t "Sonar baseline failed on main" \

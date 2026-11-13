@@ -8,11 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The canonical release log lives in [GitHub Releases](https://github.com/markoto-app/markoto/releases):
 every merge to `main` produces one release, named and described from the merged
 PR's title + body, with the version derived from the git tag history. See
-[`docs/RELEASE-PROCESS.md`](./docs/RELEASE-PROCESS.md) for the labelling guide.
+[CONTRIBUTING.md](./CONTRIBUTING.md#pull-requests) for the release labels.
 
 ## [Unreleased]
 
-(Populated on next release. Each entry is sourced verbatim from the merged PR's title + description, see `docs/RELEASE-PROCESS.md`.)
+(Populated on next release. Each entry is sourced verbatim from the merged PR's title + description.)
 
 ## [0.2.2]: 2026-10-29
 

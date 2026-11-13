@@ -24,7 +24,7 @@ const log = useLogger('auth')
 //     the change (doc-not-before.ts).
 //   - Rotation: the app still issues against the current secret; we accept
 //     both current + previous during the rotation window. See
-//     docs/operations/SECRETS-ROTATION.md and shared/utils/security/secrets.ts.
+//     shared/utils/security/secrets.ts and the operator runbook, kept outside this repository.
 
 // The verifier extends the shared `SessionJwtPayload` with an OPTIONAL
 // `scope` claim: the SessionJwtPayload contract intentionally omits

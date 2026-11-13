@@ -11,7 +11,7 @@ keywords:
 navLabel: "Hébergé dans l'UE"
 updated: '2026-11-04'
 # Machine draft, not yet read by a native speaker: noindex, no hreflang,
-# not in the sitemap (shared/seo/marketing.ts). See docs/TRANSLATION-REVIEW.md.
+# not in the sitemap (shared/seo/marketing.ts). Review status: the operator runbook, kept outside this repository.
 # Legal facts follow content/legal/privacy/fr.md (version 8).
 reviewed: false
 ---

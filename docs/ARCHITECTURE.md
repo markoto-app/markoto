@@ -157,7 +157,7 @@ Development uses `deploy/compose/compose.dev.yml` (infrastructure only, app on t
 | `i18n/locales/` | UI translations |
 | `infra/` | Ansible, LiteLLM config, env rendering for the hosted deployment |
 | `tests/` | `unit/<domain>/`, `dom/`, `nuxt/`, `repos/`, `integration/`, `e2e/` (Playwright flows that double as documentation) |
-| `docs/` | This file, self-hosting, AI models, security hardening, `contributing/`, `reference/`, `operations/` |
+| `docs/` | This file, self-hosting, AI models, security hardening, `contributing/`, `reference/` |
 
 ## Design decisions
 
