@@ -519,9 +519,8 @@ services:
           - markoto-app
 
   # LiteLLM + the db-init one-shot come from deploy/compose/compose.base.yml via
-  # `include:`. Compose REPLACES `networks:` wholesale on merge, and base
-  # leaves them on the default network: so every service is pinned to its
-  # purpose networks here.
+  # `include:`. Base sets no `networks:` (they would be merged with these,
+  # not replaced): every service is pinned to its purpose networks here.
   litellm:
     networks:
       - data
