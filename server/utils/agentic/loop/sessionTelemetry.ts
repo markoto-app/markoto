@@ -18,6 +18,7 @@ export type SessionOutcome
     | 'free-allowance-exhausted'
     | 'team-budget-exhausted'
     | 'member-limit-reached'
+    | 'provider-unavailable'
     | 'turn-limit'
     | 'stalled'
 

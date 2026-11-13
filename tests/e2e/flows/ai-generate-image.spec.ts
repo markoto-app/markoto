@@ -1,4 +1,5 @@
-import { test, expect, requireLiveAi } from '../fixtures/flow'
+import { test, expect, requireLiveAi, skipForProviderOutage } from '../fixtures/flow'
+import { IMAGE_PROVIDER_UNAVAILABLE_MESSAGE } from '../../../shared/utils/aiProviderOutage'
 
 // Tier 2: "Ask the AI to draw an image."
 //
@@ -15,6 +16,9 @@ import { test, expect, requireLiveAi } from '../fixtures/flow'
 // image is owned by the doc; deletion cascades clean up.
 //
 // Live LiteLLM round-trip → BFL. Cost: ~$0.030 per 1024² image. Skipped if no key.
+// Also skipped (never failed) when the app reports the image provider as
+// unavailable (5xx / connection error): a third-party outage must not block a
+// release. Any other error still fails the flow.
 test('Ask the AI to draw an image', async ({ flow, editor }) => {
   requireLiveAi()
   test.setTimeout(360_000)
@@ -63,7 +67,11 @@ test('Ask the AI to draw an image', async ({ flow, editor }) => {
 
   // The agentic loop: generate_image (~5-15s) → insert_text → done.
   // Total budget 90s.
-  await editor.page.waitForAiIdle()
+  const sessionError = await editor.page.waitForAiSessionEnd()
+  if (sessionError === IMAGE_PROVIDER_UNAVAILABLE_MESSAGE) {
+    skipForProviderOutage('the image provider (Black Forest Labs) is unavailable')
+  }
+  await editor.page.expectAiSessionSucceeded()
 
   // ASSERTION: an image reference to a file stored with THIS doc
   // (![…](/api/files/<docId>/…)) landed in the text, and the preview

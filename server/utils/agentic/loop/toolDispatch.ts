@@ -245,6 +245,11 @@ export async function dispatchToolCall(
   const result = runResult.result
   await noteToolResult(ctx, call.name, validatedArgs, result)
 
+  if (result.endSessionWith) {
+    ctx.log(`function_call ${call.name}: provider unavailable, ending the session`)
+    return { kind: 'provider-unavailable', message: result.endSessionWith }
+  }
+
   const output = isDocEdit ? noteEditProgress(ctx, call, validatedArgs, textBefore, result) : result.content
   const responseParts = toolResponseParts(call, output, result)
   return repliedToTriggerThread(ctx, call.name, validatedArgs, result)

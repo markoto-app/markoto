@@ -15,6 +15,7 @@ export const aiErrors = defineErrors('ai', {
   'confirmation-not-pending': { status: 409 },
   'duplicate-session': { status: 409 },
   'free-allowance-exhausted': { status: 402, params: z.object({ recovery: recoveryParam.optional() }) },
+  'image-provider-unavailable': { status: 502 },
   'provider-error': { status: 502 },
   'provider-missing': { status: 409, params: z.object({ capability: z.string().optional(), recovery: recoveryParam.optional() }) },
   'session-not-found': { status: 404 },

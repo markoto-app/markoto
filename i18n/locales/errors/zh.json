@@ -39,6 +39,7 @@
       "confirmation-not-pending": "此请求已不再等待回答。",
       "duplicate-session": "你在本文档上已有一个正在运行的 markoto 会话。",
       "free-allowance-exhausted": "本月的免费 AI 额度已用完。",
+      "image-provider-unavailable": "图像服务提供方目前不可用。请稍后再试。",
       "provider-error": "你的转写服务商返回了错误，请检查 AI 服务商设置。",
       "provider-missing": "尚未为此功能设置 AI 服务商。请在设置中添加。",
       "session-not-found": "未找到 AI 会话。",

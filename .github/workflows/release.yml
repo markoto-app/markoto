@@ -473,6 +473,13 @@ jobs:
         if: always()
         run: bash scripts/test-compose.sh --profile flows down -v
 
+      # Flows skipped because a provider was down: listed in the job summary
+      # and in `.skipped-flows.md` (travels with flow-output into the release
+      # notes), so a silent skip cannot hide a long outage.
+      - name: List flows skipped for provider outages
+        if: ${{ !cancelled() }}
+        run: bun scripts/flows-skipped-summary.ts
+
       # Uploaded even when some flows failed: build-flows.ts republishes
       # only variants with a `.passed` sentinel, so publish-flow-shots.yml
       # can still refresh every flow that passed (a failed one keeps its
@@ -570,6 +577,10 @@ jobs:
               "$PR_NUMBER" "$SERVER" "$REPO" "$PR_NUMBER" "$PR_AUTHOR"
             printf '**Diff:** [%s → v%s](%s/%s/compare/%s...v%s)\n' \
               "$PREVIOUS" "$NEW" "$SERVER" "$REPO" "$PREVIOUS" "$NEW"
+            if [ -s flow-output/.skipped-flows.md ]; then
+              printf '\n'
+              cat flow-output/.skipped-flows.md
+            fi
           } > release-body.md
           echo "Wrote release-body.md ($(wc -c < release-body.md) bytes)"
 

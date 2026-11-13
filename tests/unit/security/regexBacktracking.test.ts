@@ -17,7 +17,10 @@ import { trimChars, trimEndChars } from '../../../shared/utils/trimChars'
 // IdP / SCIM emails, user-typed hostnames and titles). Each call must stay
 // fast on a pathological input and keep its result on ordinary ones.
 
-const BUDGET_MS = 250
+// Generous on purpose: a coverage-instrumented run on a shared CI runner is
+// many times slower than a laptop, while a pattern that backtracks on these
+// inputs takes several seconds or does not finish at all.
+const BUDGET_MS = 1500
 
 function timed<T>(fn: () => T): { value: T, ms: number } {
   const start = performance.now()
