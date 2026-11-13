@@ -161,6 +161,12 @@
         exit 1
       fi
       cd "{{ markoto_root }}"
+      # deploy/ holds repository files only (compose files, mounted config),
+      # read by non-root container users (LiteLLM as 65534, HAProxy, db-init
+      # as postgres). The deploy workflow extracts them with tar under this
+      # user's umask (0007 with devsec's UMASK 027), which would leave them
+      # 0640; make them readable again. .env and secrets/ keep their modes.
+      [ -d deploy ] && chmod -R u+rwX,go+rX,go-w deploy
       # LiteLLM reads its config once; this hash is a label on its container,
       # so a changed config recreates it on `up` (compose.base.yml). Every
       # entry point (deploys, the boot unit, an operator) gets the same value.
