@@ -118,6 +118,12 @@ async function dispatchToolCallsForTurn(
       ctx.opts.setStatus('error', outcome.message)
       return { kind: 'done', outcome: 'session-cap-exceeded' }
     }
+    if (outcome.kind === 'provider-unavailable') {
+      ctx.telemetry.outcome = 'provider-unavailable'
+      ctx.telemetry.errorMessage = outcome.message
+      ctx.opts.setStatus('error', outcome.message)
+      return { kind: 'done', outcome: 'provider-unavailable' }
+    }
     responseParts.push(...outcome.responseParts)
     if (outcome.kind === 'comment-trigger-done') commentTriggerDone = true
   }

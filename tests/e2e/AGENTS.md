@@ -45,6 +45,10 @@ Each spec in `tests/e2e/flows/` is both a test and a page of the user docs at `/
 - AI round-trips take 5–30 s; use `editor.waitForAiIdle()` (default timeout 240 s), don't hand-roll shorter timeouts.
 - Phrase AI prompts that must change the document imperatively ("Insert a paragraph at the end … summarising X"). A question ("Summarise X") may be answered in the prompt-bar panel instead of the document.
 
+## Live-provider outages
+
+A flow that calls a live provider (image today; chat, transcription, web search and page fetch the same way) must not fail a release because that provider is down, and must still fail for every other error. The pattern: the product reports an outage (5xx, connection error, timeout) as one stable, registered signal that the test can read (for images `IMAGE_PROVIDER_UNAVAILABLE_MESSAGE`, set as the AI session's error and shown on the prompt bar as `data-last-outcome-message`; classifier `server/utils/ai/tools/providerOutage.ts`). The flow waits for the session end (`editor.page.waitForAiSessionEnd()`), calls `skipForProviderOutage(reason)` only when that exact signal appears, and otherwise continues to its normal assertions. A skipped variant gets no `.passed` sentinel, so `build-flows.ts` keeps the published frames, and `scripts/flows-skipped-summary.ts` lists it in the release job summary and notes.
+
 ## Running and publishing
 
 - Never run `docker compose … down --remove-orphans` on the test stack: all compose files share one project namespace and the flag removes the dev stack's containers.

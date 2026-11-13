@@ -23,6 +23,11 @@ export interface ToolResult {
    * with `image_url` parts.
    */
   extraParts?: Part[]
+  /**
+   * The in-app loop ends the session with this message as its error instead
+   * of letting the model improvise around a dead provider (MCP ignores it).
+   */
+  endSessionWith?: string
 }
 
 export function toolOk(content: string): ToolResult {

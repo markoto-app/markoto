@@ -26,7 +26,7 @@ import { partial } from '../../helpers/fixtures'
 // outbound HTTP. Every test can program what each tool returns. The rest of
 // the registry (schemas, declarations) stays real: the validation-failure
 // tests rely on safeParse.
-const executeFunctionByName = vi.hoisted(() => vi.fn<(session: unknown, name: string, args: unknown) => Promise<{ content: string, isError: boolean, extraParts?: unknown[] }>>())
+const executeFunctionByName = vi.hoisted(() => vi.fn<(session: unknown, name: string, args: unknown) => Promise<{ content: string, isError: boolean, extraParts?: unknown[], endSessionWith?: string }>>())
 const webSearch = vi.hoisted(() => vi.fn<typeof import('../../../server/utils/ai/tools/webSearch').webSearch>())
 
 vi.mock('../../../server/utils/ai/tools/registry', async importOriginal => ({
@@ -928,5 +928,20 @@ describe('runAgenticLoop: image URLs must come from the session', () => {
     await runAgenticLoop(makeOpts({ ai, initialPrompt: 'Add https://example.org/logo.png under the title' }, ytext))
     expect(ytext.toJSON()).toContain('![logo](https://example.org/logo.png)')
     expect(ytext.toJSON()).toContain('![Old logo](https://example.org/old.png)')
+  })
+})
+
+describe('runAgenticLoop: provider outage', () => {
+  it('ends the session with the tool\'s message as its error instead of another model turn', async () => {
+    const ytext = docWith('# Title\n')
+    const { ai } = makeFakeAi([
+      callTurn('generate_image', { prompt: 'a notebook', alt: 'A notebook' }),
+      proseTurn('I could not draw it.')
+    ])
+    executeFunctionByName.mockResolvedValue({ content: 'Error: Image generation failed: 503', isError: true, endSessionWith: 'The image provider is down.' })
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus }, ytext))
+    expect(executeFunctionByName).toHaveBeenCalledTimes(1)
+    expect(setStatus).toHaveBeenLastCalledWith('error', 'The image provider is down.')
   })
 })

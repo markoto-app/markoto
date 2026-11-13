@@ -1,3 +1,6 @@
+import { apiErrorMessageKey } from '~~/shared/api/errors'
+import { IMAGE_PROVIDER_UNAVAILABLE_MESSAGE } from '~~/shared/utils/aiProviderOutage'
+
 /** The slice of `useAI` the budget notices read. */
 interface AiSessionErrors {
   mySessionId: Readonly<Ref<string | null>>
@@ -155,7 +158,7 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
     } else {
       toast.add({
         title: t('ai.failed'),
-        description: err,
+        description: err === IMAGE_PROVIDER_UNAVAILABLE_MESSAGE ? t(apiErrorMessageKey('ai/image-provider-unavailable')) : err,
         icon: 'i-lucide-alert-circle',
         color: 'error'
       })
