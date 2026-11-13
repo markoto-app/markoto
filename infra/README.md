@@ -322,6 +322,7 @@ new VPS picks up the existing dataset on first boot.
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
+| `kex_exchange_identification: Connection reset by peer` after a few failed logins | OpenSSH 10's `PerSourcePenalties`: sshd refuses your address for a while after failed authentications (fail2ban bans after 5 in 10 min on top) | wait a few minutes; check with the admin key that it was the key, not the account (`sudo journalctl -u ssh`) |
 | `ssh: connection refused` after provision | ssh hardening locked you out, pubkey path was wrong | OVH rescue console → restore a backed-up `~/.ssh/authorized_keys` of `debian` |
 | `/api/health` non-200 | DNS not propagated, ACME still in progress, or app crashed on boot | `make logs` → grep for `Invalid configuration` and `db-migrate` |
 | `markoto-compose: no Podman socket` | the user manager or `podman.socket` is not running | as `markoto`: `systemctl --user enable --now podman.socket`; `loginctl show-user markoto -p Linger` must say `yes` |
