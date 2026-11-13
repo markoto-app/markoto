@@ -120,7 +120,7 @@ services:
     entrypoint: ["/bin/sh", "/db-init.sh"]
 
   litellm:
-    image: ghcr.io/berriai/litellm:v1.106.4@sha256:c169fb3adc514fcf210377c203f3de406d54f10bfdacf13948a4a839db9af7de
+    image: ghcr.io/berriai/litellm:v1.109.1@sha256:11175975a3093e05e92faee2fe2fe3412a3ae2fcaa849eb0fe25d5f0d8bcb2e9
     restart: unless-stopped
     # Cap the proxy. Steady-state it's a thin Python router; the memory
     # peak is the cold-start Prisma migration run (see start_period below).
@@ -199,7 +199,7 @@ services:
       start_period: 60s   # cold start runs 118 prisma migrations on a fresh DB
 
   valkey:
-    image: valkey/valkey:9-alpine@sha256:48332870af354a799964c0012ae1194a0bf2bf894eb508f945810596dc2d8d11
+    image: valkey/valkey:9-alpine@sha256:bf09d58e96d6b4524a15396b65b242bbe18beebbcc15a04d8ee75ddac62fae0b
     restart: unless-stopped
     # Cap set ABOVE the 1 GB `--maxmemory` below: an AOF rewrite forks the
     # process and copy-on-write can transiently push RSS past the dataset
