@@ -1854,7 +1854,7 @@
         "mistral_ai": "写作助手的 AI 文本生成：免费 AI 额度（Z.ai GLM-5.3 Flash，由 Mistral 提供和处理；Z.ai 不接收任何数据），以 Mistral Small 作为备用；语音转写（Voxtral）。所有请求都发送到 Mistral 的欧盟端点（数据中心位于欧盟和欧洲自由贸易联盟）",
         "jina_ai": "为知识库（RAG）生成嵌入向量；为获取 URL 工具提取单个 URL 的页面内容（Jina Reader；所有用户的 URL 都会发送，包括使用自己 AI 提供商的用户）",
         "staan": "AI 写作助手的网页搜索（所有用户的搜索词都会发送，包括使用自己 AI 提供商的用户），使用自有的欧洲搜索索引（仅在欧盟内路由）",
-        "bfl": "使用 FLUX.2 生成图片（数据处理固定在欧盟）",
+        "bfl": "使用 FLUX 生成图片（数据处理固定在欧盟）",
         "google_oauth": "使用 Google 账号登录（不访问其他 Google 数据）",
         "github_oauth": "使用 GitHub 账号登录（不访问其他 GitHub 数据）",
         "stripe": "订阅计费、支付方式存储、开具发票、欺诈评估",

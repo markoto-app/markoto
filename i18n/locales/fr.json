@@ -1854,7 +1854,7 @@
         "mistral_ai": "Génération de texte par IA pour l’assistant d’écriture : l’allocation d’IA gratuite (Z.ai GLM-5.3 Flash, servi et traité par Mistral ; Z.ai ne reçoit aucune donnée) avec Mistral Small en secours ; transcription vocale (Voxtral). Toutes les requêtes passent par le point d’accès européen de Mistral (centres de données dans l’UE et l’AELE)",
         "jina_ai": "Génération d’embeddings pour la base de connaissances (RAG) ; extraction du contenu d’une page à partir d’une URL pour l’outil de récupération d’URL (Jina Reader ; l’URL est envoyée pour tous les utilisateurs, y compris ceux qui utilisent leur propre fournisseur d’IA)",
         "staan": "Recherche web pour l’assistant d’écriture IA (la requête est envoyée pour tous les utilisateurs, y compris ceux qui utilisent leur propre fournisseur d’IA), via un index de recherche européen propriétaire (acheminement uniquement dans l’UE)",
-        "bfl": "Génération d’images avec FLUX.2 (traitement des données fixé dans l’UE)",
+        "bfl": "Génération d’images avec FLUX (traitement des données fixé dans l’UE)",
         "google_oauth": "Connexion avec un compte Google (aucune autre donnée Google consultée)",
         "github_oauth": "Connexion avec un compte GitHub (aucune autre donnée GitHub consultée)",
         "stripe": "Facturation des abonnements, conservation des moyens de paiement, émission des factures, évaluation de la fraude",

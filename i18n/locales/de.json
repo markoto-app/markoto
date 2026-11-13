@@ -1854,7 +1854,7 @@
         "mistral_ai": "KI-Textgenerierung für den Schreibassistenten: das kostenlose KI-Kontingent (Z.ai GLM-5.3 Flash, bereitgestellt und verarbeitet von Mistral; Z.ai erhält keine Daten) mit Mistral Small als Rückfalloption; Sprachtranskription (Voxtral). Alle Anfragen gehen an Mistrals EU-Endpunkt (Rechenzentren in der EU und EFTA)",
         "jina_ai": "Erzeugung von Embeddings für die Wissensdatenbank (RAG); Extraktion des Seiteninhalts einer einzelnen URL für das Werkzeug „URL abrufen“ (Jina Reader; die URL wird für alle Nutzer gesendet, auch für Nutzer mit eigenem KI-Anbieter)",
         "staan": "Websuche für den KI-Schreibassistenten (die Suchanfrage wird für alle Nutzer gesendet, auch für Nutzer mit eigenem KI-Anbieter) über einen eigenen europäischen Suchindex (nur EU-Routing)",
-        "bfl": "Bildgenerierung mit FLUX.2 (Datenverarbeitung fest in der EU)",
+        "bfl": "Bildgenerierung mit FLUX (Datenverarbeitung fest in der EU)",
         "google_oauth": "Anmeldung mit einem Google-Konto (kein Zugriff auf andere Google-Daten)",
         "github_oauth": "Anmeldung mit einem GitHub-Konto (kein Zugriff auf andere GitHub-Daten)",
         "stripe": "Abo-Abrechnung, Speicherung von Zahlungsmitteln, Rechnungserstellung, Betrugsbewertung",
