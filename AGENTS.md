@@ -100,7 +100,7 @@ Tests
 - Errors: `throw apiError('area/reason', params)`. Every code is registered in `shared/api/errors/<area>.ts` (status + params) with its text in all six `i18n/locales/errors/<locale>.json`; the client translates it by code. 4xx pass through with `data.code`; 5xx are replaced by a generic message (`server/error.ts`).
 - New database access goes in `server/repos/`; endpoints and utils call repos (`bun run depcruise` reports the files that still query directly).
 - Put new server helpers in the matching `server/utils/<domain>/` folder (auto-imported recursively).
-- Keep this file and nested `AGENTS.md` files to rules that are not derivable from the code (budgets in `tests/unit/repoHygiene/claudeMd.test.ts`). Human documentation goes to `docs/`.
+- Keep this file and nested `AGENTS.md` files to rules that are not derivable from the code (budgets in `tests/unit/repoHygiene/agentsMd.test.ts`). Human documentation goes to `docs/`.
 
 ## Index
 

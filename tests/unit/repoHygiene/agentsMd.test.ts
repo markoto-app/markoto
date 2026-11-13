@@ -22,7 +22,7 @@ const repoRoot = join(__dirname, '..', '..', '..')
 const read = (p: string) => readFileSync(join(repoRoot, p), 'utf8')
 const lineCount = (p: string) => read(p).replace(/\n$/, '').split('\n').length
 
-const claudeFiles = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], {
+const agentFiles = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], {
   cwd: repoRoot,
   encoding: 'utf8',
   maxBuffer: 1 << 28
@@ -35,8 +35,8 @@ const budgetFor = (f: string) => (f === 'AGENTS.md' ? ROOT_MAX_LINES : NESTED_MA
 
 describe('AGENTS.md hygiene', () => {
   it('finds the AGENTS.md files', () => {
-    expect(claudeFiles).toContain('AGENTS.md')
-    expect(claudeFiles.length).toBeGreaterThan(5)
+    expect(agentFiles).toContain('AGENTS.md')
+    expect(agentFiles.length).toBeGreaterThan(5)
   })
 
   describe('root index', () => {
@@ -44,20 +44,20 @@ describe('AGENTS.md hygiene', () => {
     // The index lists each file as a backticked path in the table's first column.
     const indexed = (f: string) => rootText.includes('`' + f + '`')
 
-    for (const f of claudeFiles.filter(x => x !== 'AGENTS.md')) {
+    for (const f of agentFiles.filter(x => x !== 'AGENTS.md')) {
       it(`${f} is listed in the root index`, () => {
         expect(UNINDEXED_ALLOWANCE.has(f) || indexed(f), `add \`${f}\` to the index table in AGENTS.md`).toBe(true)
       })
     }
 
     it('has no stale index allowance', () => {
-      const stale = [...UNINDEXED_ALLOWANCE].filter(f => indexed(f) || !claudeFiles.includes(f))
+      const stale = [...UNINDEXED_ALLOWANCE].filter(f => indexed(f) || !agentFiles.includes(f))
       expect(stale, 'remove these from UNINDEXED_ALLOWANCE').toEqual([])
     })
   })
 
   describe('size budget', () => {
-    for (const f of claudeFiles) {
+    for (const f of agentFiles) {
       it(`${f} fits ${budgetFor(f)} lines (or its allowance)`, () => {
         const n = lineCount(f)
         const cap = OVER_BUDGET_ALLOWANCE[f] ?? budgetFor(f)
@@ -67,7 +67,7 @@ describe('AGENTS.md hygiene', () => {
 
     it('has no stale size allowance', () => {
       const stale = Object.keys(OVER_BUDGET_ALLOWANCE).filter(
-        f => !claudeFiles.includes(f) || lineCount(f) <= budgetFor(f)
+        f => !agentFiles.includes(f) || lineCount(f) <= budgetFor(f)
       )
       expect(stale, 'these now fit their budget: delete them from OVER_BUDGET_ALLOWANCE').toEqual([])
     })
