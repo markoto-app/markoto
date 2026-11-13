@@ -19,7 +19,7 @@
       "text": "markoto records every change to a document (edits, comments, theme changes, AI edits) in the Activity tab. Each entry remembers how the document looked before that change, so you can bring that version back. Restoring takes one click and a confirmation, and everyone with the document open sees it at once.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/nExXp-FIS_"
+      "path": "/d/38pQ7X1XFC"
     },
     {
       "kind": "chapter",
@@ -31,7 +31,7 @@
       "text": "Maya adds the release date to her announcement. A few seconds later she types her meeting notes into the wrong window: the whole announcement is selected and replaced.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/nExXp-FIS_"
+      "path": "/d/38pQ7X1XFC"
     },
     {
       "kind": "outcome",
@@ -41,7 +41,7 @@
         "x": 14,
         "y": 342
       },
-      "path": "/d/nExXp-FIS_"
+      "path": "/d/38pQ7X1XFC"
     },
     {
       "kind": "outcome",
@@ -51,7 +51,7 @@
         "x": 14,
         "y": 307
       },
-      "path": "/d/nExXp-FIS_"
+      "path": "/d/38pQ7X1XFC"
     },
     {
       "kind": "chapter",
@@ -66,7 +66,7 @@
         "x": 292,
         "y": 695
       },
-      "path": "/d/nExXp-FIS_"
+      "path": "/d/38pQ7X1XFC"
     },
     {
       "kind": "outcome",
@@ -76,7 +76,7 @@
         "x": 292,
         "y": 695
       },
-      "path": "/d/nExXp-FIS_"
+      "path": "/d/38pQ7X1XFC"
     },
     {
       "kind": "chapter",
@@ -91,41 +91,41 @@
         "x": 292,
         "y": 695
       },
-      "path": "/d/nExXp-FIS_"
+      "path": "/d/38pQ7X1XFC"
     },
     {
       "kind": "approach",
-      "file": "06.webp",
+      "file": "07.webp",
       "caption": "Click Restore on the newest entry, the mistake",
       "cursor": null,
-      "path": "/d/nExXp-FIS_"
+      "path": "/d/38pQ7X1XFC"
     },
     {
       "kind": "outcome",
-      "file": "07.webp",
+      "file": "08.webp",
       "caption": "markoto asks you to confirm before it changes the document for everyone.",
       "cursor": null,
-      "path": "/d/nExXp-FIS_"
+      "path": "/d/38pQ7X1XFC"
     },
     {
       "kind": "approach",
-      "file": "08.webp",
+      "file": "09.webp",
       "caption": "Click Restore in the confirmation",
       "cursor": {
         "x": 292,
         "y": 695
       },
-      "path": "/d/nExXp-FIS_"
+      "path": "/d/38pQ7X1XFC"
     },
     {
       "kind": "outcome",
-      "file": "09.webp",
+      "file": "10.webp",
       "caption": "The announcement is back, release date included. Only the mistake is gone.",
       "cursor": {
         "x": 348,
         "y": 42
       },
-      "path": "/d/nExXp-FIS_",
+      "path": "/d/38pQ7X1XFC",
       "hero": true
     }
   ],

@@ -19,7 +19,7 @@
       "text": "Every markoto document carries its own theme: fonts, colours, page margins, tables, the cover page. The same theme drives the preview and the PDF, so what you see on the right is what you send.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/t2kRaj0UPb"
+      "path": "/d/NPxjakqYt_"
     },
     {
       "kind": "chapter",
@@ -31,7 +31,7 @@
       "text": "New documents use the markoto theme: Fraunces headings, Inter body text, warm paper and vermillion accents. To try other looks, open the theme panel.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/t2kRaj0UPb"
+      "path": "/d/NPxjakqYt_"
     },
     {
       "kind": "approach",
@@ -41,7 +41,7 @@
         "x": 357,
         "y": 695
       },
-      "path": "/d/t2kRaj0UPb",
+      "path": "/d/NPxjakqYt_",
       "annotations": [
         {
           "label": "theme tab",
@@ -61,12 +61,12 @@
         "x": 357,
         "y": 695
       },
-      "path": "/d/t2kRaj0UPb",
+      "path": "/d/NPxjakqYt_",
       "highlights": [
         {
           "label": "Built-in presets",
           "x": 12,
-          "y": 494.759033203125,
+          "y": 494.75,
           "w": 179,
           "h": 286.25
         }
@@ -85,21 +85,21 @@
         "x": 357,
         "y": 695
       },
-      "path": "/d/t2kRaj0UPb"
+      "path": "/d/NPxjakqYt_"
     },
     {
       "kind": "approach",
       "file": "03.webp",
       "caption": "Click \"arXiv preprint\" for the look of a LaTeX paper",
       "cursor": null,
-      "path": "/d/t2kRaj0UPb"
+      "path": "/d/NPxjakqYt_"
     },
     {
       "kind": "outcome",
       "file": "04.webp",
       "caption": "arXiv preprint is applied: Times, justified text, numbered sections.",
       "cursor": null,
-      "path": "/d/t2kRaj0UPb"
+      "path": "/d/NPxjakqYt_"
     },
     {
       "kind": "chapter",
@@ -114,7 +114,7 @@
         "x": 357,
         "y": 695
       },
-      "path": "/d/t2kRaj0UPb"
+      "path": "/d/NPxjakqYt_"
     },
     {
       "kind": "approach",
@@ -124,7 +124,7 @@
         "x": 348,
         "y": 42
       },
-      "path": "/d/t2kRaj0UPb"
+      "path": "/d/NPxjakqYt_"
     },
     {
       "kind": "outcome",
@@ -134,7 +134,7 @@
         "x": 348,
         "y": 42
       },
-      "path": "/d/t2kRaj0UPb"
+      "path": "/d/NPxjakqYt_"
     }
   ],
   "next": {

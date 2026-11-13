@@ -16,10 +16,10 @@
     },
     {
       "kind": "narration",
-      "text": "The AI's training data has a cutoff. For anything more recent — current library versions, latest news, who shipped what last week — it can search the web and weave the result into your doc. The search runs on the instance's European search provider; your AI provider writes the answer. It links the sources it used, so you can verify before publishing.",
+      "text": "The AI's training data has a cutoff. For anything more recent, current library versions, latest news, who shipped what last week: it can search the web and weave the result into your doc. The search runs on the instance's European search provider; your AI provider writes the answer. It links the sources it used, so you can verify before publishing.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/IxMvhWrrRn"
+      "path": "/d/g1afbuqjMR"
     },
     {
       "kind": "approach",
@@ -29,17 +29,17 @@
         "x": 173,
         "y": 602
       },
-      "path": "/d/IxMvhWrrRn"
+      "path": "/d/g1afbuqjMR"
     },
     {
       "kind": "outcome",
       "file": "02.webp",
-      "caption": "The prompt bar lifts and glows — ready for your prompt.",
+      "caption": "The prompt bar lifts and glows, ready for your prompt.",
       "cursor": {
         "x": 173,
         "y": 602
       },
-      "path": "/d/IxMvhWrrRn"
+      "path": "/d/g1afbuqjMR"
     },
     {
       "kind": "approach",
@@ -49,7 +49,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/IxMvhWrrRn"
+      "path": "/d/g1afbuqjMR"
     },
     {
       "kind": "outcome",
@@ -59,7 +59,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/IxMvhWrrRn"
+      "path": "/d/g1afbuqjMR"
     },
     {
       "kind": "approach",
@@ -69,34 +69,34 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/IxMvhWrrRn"
+      "path": "/d/g1afbuqjMR"
     },
     {
       "kind": "outcome",
       "file": "04.webp",
-      "caption": "The AI is working — it searches the web, then writes the answer into the doc.",
+      "caption": "The AI is working, it searches the web, then writes the answer into the doc.",
       "cursor": {
         "x": 350,
         "y": 602
       },
-      "path": "/d/IxMvhWrrRn"
+      "path": "/d/g1afbuqjMR"
     },
     {
       "kind": "outcome",
       "file": "05.webp",
-      "caption": "The AI searched the web, found the current Vue.js release, and wrote the note into the doc — with a link to its source.",
+      "caption": "The AI searched the web, found the current Vue.js release, and wrote the note into the doc, with a link to its source.",
       "cursor": {
         "x": 350,
         "y": 602
       },
-      "path": "/d/IxMvhWrrRn",
+      "path": "/d/g1afbuqjMR",
       "highlights": [
         {
           "label": "Answer with its source",
           "x": 16,
-          "y": 133.375,
+          "y": 160.5625,
           "w": 358,
-          "h": 108.75
+          "h": 81.5625
         }
       ],
       "hero": true
@@ -104,6 +104,6 @@
   ],
   "next": {
     "slug": "tell-the-ai-who-you-re-writing-for",
-    "why": "Steer the AI's tone + language too — set the document context"
+    "why": "Steer the AI's tone + language too, set the document context"
   }
 }
