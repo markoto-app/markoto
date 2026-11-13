@@ -26,6 +26,8 @@
 # Host keys are verified strictly: the staging host must already be in your
 # known_hosts (CI writes the pinned DEPLOY_KNOWN_HOSTS there; locally run
 # `ssh-keyscan -t ed25519 <host>` over a trusted path once).
+# RESET_SCOPE=valkey clears only Valkey and leaves Postgres alone (what the
+# staging gate uses, so signed-in test accounts survive a release).
 set -euo pipefail
 
 HOST="${DEPLOY_HOST:?DEPLOY_HOST required}"
@@ -36,7 +38,8 @@ KEY="${SSH_KEY:-$HOME/.ssh/markoto_staging}"
 KEY="${KEY/#\~\//$HOME/}"
 
 echo "[reset-staging-db] resetting ${SSH_USER}@${HOST} ..."
-ssh -i "$KEY" -o BatchMode=yes -o StrictHostKeyChecking=yes "${SSH_USER}@${HOST}" 'bash -se' <<'REMOTE'
+ssh -i "$KEY" -o BatchMode=yes -o StrictHostKeyChecking=yes "${SSH_USER}@${HOST}" \
+  RESET_SCOPE="${RESET_SCOPE:-all}" 'bash -se' <<'REMOTE'
 set -euo pipefail
 cd /opt/markoto
 # The stack runs on this user's rootless Podman: no sudo, plain `podman`.
@@ -63,6 +66,9 @@ PU=$(envval POSTGRES_USER)
 PD=$(envval POSTGRES_DB)
 printf 'PGPASSWORD=%s\n' "$(envval POSTGRES_PASSWORD)" > "$SECRETS_ENV"
 
+if [ "${RESET_SCOPE}" = "valkey" ]; then
+  echo "[reset-staging-db] RESET_SCOPE=valkey: Postgres left untouched"
+else
 podman exec --env-file "$SECRETS_ENV" markoto-postgres-1 \
   psql -U "$PU" -d "$PD" -v ON_ERROR_STOP=1 <<'SQL'
 DO $$
@@ -74,6 +80,7 @@ BEGIN
 END $$;
 SQL
 echo "[reset-staging-db] public schema truncated"
+fi
 
 # Best-effort Valkey flush: don't fail the reset if it's unreachable.
 # valkey-cli reads the password from REDISCLI_AUTH (no -a on the command line).

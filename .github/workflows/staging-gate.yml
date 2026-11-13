@@ -9,7 +9,7 @@ name: staging-gate
 # Flow: release.yml builds the images and runs the full flow suite (incl.
 # live-AI flows; provider keys live there). This workflow then verifies a
 # release was published, deploys `latest` to staging via deploy.yml (renders
-# .env from GitHub, health-gated, auto-rollback), resets the staging DB, and
+# .env from GitHub, health-gated, auto-rollback), clears the staging rate limits, and
 # runs the smoke suite against https://staging.markoto.app. A red gate means
 # nothing should be promoted to prod. It never pushes to main.
 
@@ -136,13 +136,14 @@ jobs:
           private-key: ${{ secrets.DEPLOY_SSH_KEY }}
           known-hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
 
-      # Wipe staging to a clean slate so each smoke run starts from empty +
-      # predictable state (no doc/rate-limit/sync-state bleed between runs).
-      # Truncates the `public` schema only; the drizzle migration ledger lives
-      # in a separate schema and is preserved. Guards on DOMAIN containing
-      # "staging": refuses to run against anything else.
-      - name: Reset staging DB
-        run: SSH_KEY="$HOME/.ssh/id_ed25519" ./scripts/reset-staging-db.sh
+      # Clear Valkey only (rate-limit counters, sync state), so two releases
+      # within an hour cannot trip the anonymous limits during the smoke run.
+      # Postgres stays: staging holds signed-in test accounts and their
+      # Stripe sandbox links, and the smoke suite only uses the public,
+      # anonymous surface. A full wipe is still `scripts/reset-staging-db.sh`
+      # by hand. Guards on DOMAIN containing "staging".
+      - name: Reset staging rate limits
+        run: SSH_KEY="$HOME/.ssh/id_ed25519" RESET_SCOPE=valkey ./scripts/reset-staging-db.sh
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
