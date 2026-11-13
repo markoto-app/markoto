@@ -21,7 +21,7 @@ and the AI assistant on providers you choose, including local models.
 ## Install
 
 ```sh
-git clone https://github.com/joelbarmettlerUZH/markoto.app.git markoto
+git clone https://github.com/markoto-app/markoto.git markoto
 cd markoto
 ./install.sh
 ```
@@ -42,7 +42,7 @@ secrets, starts everything and waits until the app is healthy.
 
 Everything else (HTTPS and reverse proxies, sign-in setup, AI configuration,
 every setting, backups and restore, upgrades, troubleshooting) is in the
-[self-hosting guide](https://github.com/joelbarmettlerUZH/markoto.app/blob/main/docs/SELF-HOSTING.md).
+[self-hosting guide](https://github.com/markoto-app/markoto/blob/main/docs/SELF-HOSTING.md).
 
 ## What's next
 

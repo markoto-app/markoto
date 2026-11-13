@@ -5,10 +5,10 @@
   "homepage": "https://markoto.app",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/joelbarmettlerUZH/markoto.app.git"
+    "url": "git+https://github.com/markoto-app/markoto.git"
   },
   "bugs": {
-    "url": "https://github.com/joelbarmettlerUZH/markoto.app/issues"
+    "url": "https://github.com/markoto-app/markoto/issues"
   },
   "keywords": [
     "markdown",

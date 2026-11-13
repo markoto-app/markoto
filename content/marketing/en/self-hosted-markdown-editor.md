@@ -14,7 +14,7 @@ updated: '2026-11-04'
 markoto runs on your own Linux server with Docker Compose. A self-hosted instance runs the same code and images as markoto.app: live co-editing, the paged preview and PDF export, comments and history, workspaces, the knowledge base, the MCP server and the AI assistant on providers you choose. One script installs it.
 
 ```sh
-git clone https://github.com/joelbarmettlerUZH/markoto.app.git markoto
+git clone https://github.com/markoto-app/markoto.git markoto
 cd markoto
 ./install.sh
 ```

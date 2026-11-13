@@ -31,7 +31,7 @@ everything that differs is configuration.
 ## Install
 
 ```sh
-git clone https://github.com/joelbarmettlerUZH/markoto.app.git markoto
+git clone https://github.com/markoto-app/markoto.git markoto
 cd markoto
 git checkout v0.0.9        # optional: pin a release; the installer then uses the matching images
 ./install.sh
@@ -68,7 +68,7 @@ docker compose up -d        # after editing .env
 
 ### Images
 
-By default the stack pulls `ghcr.io/joelbarmettleruzh/markoto-{app,sync,renderer,markitdown,backup}` at `IMAGE_TAG`. The installer picks the release tag of the checked-out commit, else the newest release tag reachable from it, and only falls back to the moving `latest` when the checkout has no tags (for example a shallow clone). Pass `--tag vX.Y.Z` to choose explicitly. Release images are signed (see [Verifying images](#verifying-images)). If the images can't be pulled, it falls back to building them from the checkout.
+By default the stack pulls `ghcr.io/markoto-app/markoto-{app,sync,renderer,markitdown,backup}` at `IMAGE_TAG`. The installer picks the release tag of the checked-out commit, else the newest release tag reachable from it, and only falls back to the moving `latest` when the checkout has no tags (for example a shallow clone). Pass `--tag vX.Y.Z` to choose explicitly. Release images are signed (see [Verifying images](#verifying-images)). If the images can't be pulled, it falls back to building them from the checkout.
 
 To always build from source:
 
@@ -83,9 +83,9 @@ This adds `deploy/compose/compose.selfhost.build.yml` to `COMPOSE_FILE`. After `
 Release images are signed keyless with [cosign](https://docs.sigstore.dev/cosign/overview/) (GitHub OIDC, recorded in the public Rekor log) and carry a build provenance + SBOM attestation. Verify one before running it:
 
 ```sh
-cosign verify ghcr.io/joelbarmettleruzh/markoto-app:vX.Y.Z \
+cosign verify ghcr.io/markoto-app/markoto-app:vX.Y.Z \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  --certificate-identity 'https://github.com/joelbarmettlerUZH/markoto.app/.github/workflows/release.yml@refs/heads/main'
+  --certificate-identity 'https://github.com/markoto-app/markoto/.github/workflows/release.yml@refs/heads/main'
 ```
 
 Prefer a pinned `vX.Y.Z` tag over `latest`, which moves with every release.
@@ -243,7 +243,7 @@ This section explains the settings a self-hoster usually touches. The complete l
 | `NUXT_PUBLISH_PAGES_HOST` | (off) | The hostname published pages are served from, e.g. `pages.docs.example.org` (a bare name means `https://`; an origin like `http://pages.lan:8080` is accepted when the instance itself runs on plain HTTP). Empty: pages live at `<public URL>/p/<slug>`. Recommended for any public instance, see [Published pages](#published-pages). Required when `NUXT_LEGAL_SURFACES_ENABLED=true`. |
 | `MARKOTO_INSTANCE` | `markoto` | Instance name: compose project, network names, Traefik routing scope. Run several instances on one host with different names and ports. |
 | `COMPOSE_FILE`, `COMPOSE_PROJECT_NAME`, `COMPOSE_PROFILES` | set by `install.sh` | Which compose files and profiles `docker compose` uses. |
-| `REGISTRY` / `IMAGE_TAG` | `ghcr.io/joelbarmettleruzh` / release tag | Image source. |
+| `REGISTRY` / `IMAGE_TAG` | `ghcr.io/markoto-app` / release tag | Image source. |
 
 ### Co-branding
 
@@ -424,7 +424,7 @@ git pull                          # or: git checkout vX.Y.Z
 
 Keep the checkout and `IMAGE_TAG` on the same release: the compose files and the LiteLLM configuration come from the checkout, the code from the images.
 
-Before upgrading across several releases, read the [upgrade notes](#upgrade-notes) below and the [release notes](https://github.com/joelbarmettlerUZH/markoto.app/releases) of every release in between (each release's notes are the description of the pull request that shipped it).
+Before upgrading across several releases, read the [upgrade notes](#upgrade-notes) below and the [release notes](https://github.com/markoto-app/markoto/releases) of every release in between (each release's notes are the description of the pull request that shipped it).
 
 ## Upgrade notes
 
@@ -616,7 +616,7 @@ First look at `./install.sh status` (is every container up and healthy?) and `./
 
 ## Getting help
 
-- Questions and ideas: [GitHub Discussions](https://github.com/joelbarmettlerUZH/markoto.app/discussions).
-- Bugs: [open an issue](https://github.com/joelbarmettlerUZH/markoto.app/issues/new/choose) with your release tag, the compose files in use and the relevant log lines. Remove secrets first.
+- Questions and ideas: [GitHub Discussions](https://github.com/markoto-app/markoto/discussions).
+- Bugs: [open an issue](https://github.com/markoto-app/markoto/issues/new/choose) with your release tag, the compose files in use and the relevant log lines. Remove secrets first.
 - Security problems: never in a public issue, see [SECURITY.md](../SECURITY.md).
 - How the system fits together: [ARCHITECTURE.md](ARCHITECTURE.md).

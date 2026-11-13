@@ -9,7 +9,7 @@ markoto is a source-available project and a hosted service ([markoto.app](https:
 Preferred: GitHub private vulnerability reporting.
 
 1. Go to the repository's **Security** tab.
-2. Choose **Report a vulnerability** (direct link: <https://github.com/joelbarmettlerUZH/markoto.app/security/advisories/new>).
+2. Choose **Report a vulnerability** (direct link: <https://github.com/markoto-app/markoto/security/advisories/new>).
 3. Describe the issue.
 
 Alternative: email **[security@markoto.app](mailto:security@markoto.app)**.

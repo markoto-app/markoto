@@ -5,7 +5,7 @@ All notable changes to markoto will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The canonical release log lives in [GitHub Releases](https://github.com/joelbarmettlerUZH/markoto.app/releases):
+The canonical release log lives in [GitHub Releases](https://github.com/markoto-app/markoto/releases):
 every merge to `main` produces one release, named and described from the merged
 PR's title + body, with the version derived from the git tag history. See
 [`docs/RELEASE-PROCESS.md`](./docs/RELEASE-PROCESS.md) for the labelling guide.

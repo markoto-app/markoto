@@ -18,8 +18,8 @@ By participating you agree to the [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ## Ways to contribute
 
-- **Report a bug or propose a feature** with an [issue](https://github.com/joelbarmettlerUZH/markoto.app/issues/new/choose). For a larger change, open an issue or discussion before writing code so we can agree on the approach.
-- **Ask a question** in [GitHub Discussions](https://github.com/joelbarmettlerUZH/markoto.app/discussions) rather than an issue.
+- **Report a bug or propose a feature** with an [issue](https://github.com/markoto-app/markoto/issues/new/choose). For a larger change, open an issue or discussion before writing code so we can agree on the approach.
+- **Ask a question** in [GitHub Discussions](https://github.com/markoto-app/markoto/discussions) rather than an issue.
 - **Improve the docs**: user guides live in `content/docs/`, self-hosting in [`docs/SELF-HOSTING.md`](./docs/SELF-HOSTING.md). Typo and clarity fixes are welcome without prior discussion.
 - **Send a pull request.** Small, focused changes are reviewed fastest.
 

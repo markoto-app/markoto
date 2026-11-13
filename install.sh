@@ -325,7 +325,7 @@ configure() {
   env_set COMPOSE_PATH_SEPARATOR ":"
   set_config MARKOTO_INSTANCE "$OPT_INSTANCE" "markoto"
   env_set COMPOSE_PROJECT_NAME "$(env_get MARKOTO_INSTANCE)"
-  set_config REGISTRY "" "ghcr.io/joelbarmettleruzh"
+  set_config REGISTRY "" "ghcr.io/markoto-app"
   set_config IMAGE_TAG "$OPT_TAG" "$(default_tag)"
 
   local backup_profile="backup"

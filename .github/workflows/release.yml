@@ -341,8 +341,8 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           tags: |
-            ghcr.io/joelbarmettleruzh/${{ matrix.image }}:v${{ needs.resolve-pr.outputs.new_version }}
-            ghcr.io/joelbarmettleruzh/${{ matrix.image }}:latest
+            ghcr.io/markoto-app/${{ matrix.image }}:v${{ needs.resolve-pr.outputs.new_version }}
+            ghcr.io/markoto-app/${{ matrix.image }}:latest
           # Links the GHCR package to this repository.
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
@@ -360,7 +360,7 @@ jobs:
       # Signing the digest covers every tag that points at it.
       - name: Sign image (cosign keyless)
         env:
-          IMAGE: ghcr.io/joelbarmettleruzh/${{ matrix.image }}
+          IMAGE: ghcr.io/markoto-app/${{ matrix.image }}
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           set -euo pipefail
