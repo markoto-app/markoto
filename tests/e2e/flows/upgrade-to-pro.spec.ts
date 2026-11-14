@@ -210,6 +210,11 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
   const nowSec = Math.floor(Date.now() / 1000)
   item.current_period_start = nowSec
   item.current_period_end = nowSec + 30 * 24 * 60 * 60
+  // An event older than the stored subscription state is not applied
+  // (stripeEvents/eventAge.ts). The checkout above stamped the state with
+  // the time of Stripe's answer, so this later event needs a current time
+  // instead of the fixture's fixed one.
+  subEvent.created = nowSec
   const subBody = JSON.stringify(subEvent)
   const subSig = computeStripeSig(subBody, FLOWS_WEBHOOK_SECRET)
   await page.request.post('/api/webhooks/stripe', {
