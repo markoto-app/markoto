@@ -139,8 +139,8 @@ describe('workspace billing tab: subscription', () => {
     const wrapper = await mountPanel()
     expect(wrapper.find('[data-testid="workspace-billing-plan-name"]').text()).toContain('Team')
     expect(wrapper.find('[data-testid="workspace-billing-subscription"]').text()).toContain('4 of 5 seats used')
-    expect(wrapper.find('[data-testid="workspace-billing-team-spend"]').text()).toContain('$3.20 of $25.00 used')
-    expect(wrapper.find('[data-testid="workspace-billing-member-2"]').text()).toContain('$1.70 used · limit $10.00')
+    expect(wrapper.find('[data-testid="workspace-billing-team-spend"]').text()).toContain('3,200 of 25,000 AI Points used')
+    expect(wrapper.find('[data-testid="workspace-billing-member-2"]').text()).toContain('1,700 used · limit 10,000')
     expect(wrapper.find('[data-testid="workspace-billing-buy"]').exists()).toBe(false)
   })
 
@@ -150,6 +150,8 @@ describe('workspace billing tab: subscription', () => {
     const wrapper = await mountPanel()
     const notice = wrapper.find('[data-testid="workspace-billing-payment-problem"]')
     expect(notice.exists()).toBe(true)
+    // No "Renews on" under an overdue notice.
+    expect(wrapper.find('[data-testid="workspace-billing-renews"]').exists()).toBe(false)
     // One click from the notice to the Stripe portal, where the card is changed.
     const manage = notice.findAll('button').find(b => b.text().includes('Manage billing'))
     await manage?.trigger('click')
@@ -231,12 +233,24 @@ describe('workspace billing tab: subscription', () => {
 
   it('saves "no limit" for a member as limitUsd: null', async () => {
     const wrapper = await mountPanel()
-    const vm = wrapper.vm as unknown as { limitDrafts: Record<number, { mode: string, amount: number }> }
-    vm.limitDrafts[2] = { mode: 'none', amount: 10 }
+    const vm = wrapper.vm as unknown as { limitDrafts: Record<number, { mode: string, points: number }> }
+    vm.limitDrafts[2] = { mode: 'none', points: 10000 }
     await flushPromises()
     await wrapper.get('[data-testid="workspace-billing-limit-save-2"]').trigger('click')
     await flushPromises()
     expect(posts.find(p => p.path === 'limit')?.body).toEqual({ limitUsd: null })
+  })
+
+  it('a custom limit is entered in AI Points and saved in USD', async () => {
+    const wrapper = await mountPanel()
+    const vm = wrapper.vm as unknown as { limitDrafts: Record<number, { mode: string, points: number }> }
+    // The member's current limit ($10) is offered as points.
+    expect(vm.limitDrafts[2]?.points).toBe(10000)
+    vm.limitDrafts[2] = { mode: 'custom', points: 7500 }
+    await flushPromises()
+    await wrapper.get('[data-testid="workspace-billing-limit-save-2"]').trigger('click')
+    await flushPromises()
+    expect(posts.find(p => p.path === 'limit')?.body).toEqual({ limitUsd: 7.5 })
   })
 })
 

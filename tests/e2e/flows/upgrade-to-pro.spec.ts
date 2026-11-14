@@ -13,7 +13,7 @@ const FLOWS_WEBHOOK_SECRET = 'whsec_test_flows'
 // Tier 2: "Upgrade to Pro and watch your plan flip".
 //
 // User-job: a Free-tier writer wants to switch to Pro to get more
-// AI credits. Job done when they've clicked Upgrade on the pricing
+// AI Points. Job done when they've clicked Upgrade on the pricing
 // page, completed Stripe Checkout, returned to markoto, and seen
 // the "Current plan" badge move from Free to Pro.
 //
@@ -119,7 +119,7 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
   await flow.heading('Upgrade to Pro', 3)
   await flow.narrate(
     'Pro raises your monthly AI Points, adds more owned workspaces '
-    + 'and lets you buy AI credits when a month runs short. The upgrade is a '
+    + 'and lets you buy extra AI Points when a month runs short. The upgrade is a '
     + 'short path: tick the box to accept the Paid Plans Terms, then '
     + '"Upgrade" on the Pro card opens Stripe '
     + 'Checkout, you pay, Stripe redirects you back. The plan '

@@ -20,7 +20,9 @@ import type { UserScope, WorkspaceAccess } from '../../repos/proofs'
  * both). `pointsTotal` is the plan's monthly allotment alone, so the two are
  * told apart explicitly: `planPointsRemaining` (never above `pointsTotal`,
  * what a meter shows) and `creditPoints` (the rest, bought credits; the plan
- * budget is spent first). `freeAllowance` is the
+ * budget is spent first). `resetsAt` is when LiteLLM refills the budget,
+ * its own 30-day window, not the subscription's renewal (a yearly plan
+ * renews once a year). `freeAllowance` is the
  * shared monthly free-tier pool state (`{pooled, exhausted, resetsAt}`), null
  * when not pooled.
  *
@@ -70,6 +72,7 @@ export default defineApiHandler({
       ...points,
       plan: billing.plan,
       periodEnd: billing.periodEnd.toISOString(),
+      resetsAt: info.budgetResetAt,
       attribution: billing.attribution,
       freeAllowance,
       workspace: null
@@ -115,10 +118,13 @@ async function workspaceCredits(
     creditPoints: 0,
     plan: billing.plan,
     periodEnd: billing.periodEnd.toISOString(),
+    resetsAt: team?.budget_reset_at ?? null,
     attribution: billing.attribution,
     freeAllowance: null,
     workspace: {
       workspaceId: workspaceId,
+      // Admins can add seats or buy AI Points; members can only ask them.
+      canManage: membership?.allows('admin') ?? false,
       teamBudgetUsd: teamBudget,
       teamSpendUsd: teamSpend,
       memberLimitUsd: memberLimit,

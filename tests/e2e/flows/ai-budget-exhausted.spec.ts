@@ -3,13 +3,13 @@ import { test, expect } from '../fixtures/flow'
 // Tier 2: "What happens when you hit the AI cap".
 //
 // User-job: a Free-tier writer is mid-prompt and discovers their
-// month's AI credits are gone. Job done when they understand WHY
+// month's AI Points are gone. Job done when they understand WHY
 // the prompt bar stopped accepting input AND have a clear single
 // click to fix it (Upgrade → /pricing) instead of a generic error.
 //
 // Why this matters: a silent "the bar feels broken" is the
 // worst-case experience. markoto handles this with TWO surfaces:
-//   1. An "Out of AI credits, upgrade to continue" placeholder
+//   1. An "Out of AI Points: upgrade to continue" placeholder
 //      replaces the bar's normal hint as soon as `creditsExhausted`
 //      flips. Input + send + mic all gate on the same flag.
 //   2. Clicking the bar (or the disabled send) routes straight to
@@ -66,7 +66,7 @@ test('What happens when you hit the AI cap', { tag: '@billing' }, async ({ page,
 
   // The exhausted placeholder
   await flow.shot(
-    'The prompt bar is greyed out. "Out of AI credits, upgrade to '
+    'The prompt bar is greyed out. "Out of AI Points: upgrade to '
     + 'continue" replaces the normal placeholder. The send button, '
     + 'mic button, and even the input itself are disabled.',
     {
@@ -78,24 +78,24 @@ test('What happens when you hit the AI cap', { tag: '@billing' }, async ({ page,
   )
 
   // ASSERTION: the input carries the exhausted placeholder. The
-  // i18n key is `ai.exhaustedPlaceholder` ("Out of AI credits,
+  // i18n key is `ai.exhaustedPlaceholder` ("Out of AI Points:
   // upgrade to continue") which the bar swaps in when
   // `creditsExhausted` is true.
   const promptInput = editor.page.ai.promptBarInput
-  await expect(promptInput).toHaveAttribute('placeholder', /out of ai credits/i, { timeout: 10_000 })
+  await expect(promptInput).toHaveAttribute('placeholder', /out of ai points/i, { timeout: 10_000 })
   await expect(promptInput).toBeDisabled()
 
   // Find the upgrade path
   await flow.heading('The upgrade path is one click away', 3)
   await flow.narrate(
-    'The topbar shows your AI credit usage at all times, a small '
+    'The topbar shows your AI Points at all times, a small '
     + 'badge tucked next to your avatar. When the cap is hit, the '
     + 'badge\'s popover shows an Upgrade button that takes you '
     + 'straight to the pricing page.'
   )
 
   // Navigate via the most decisive action a user has: open the
-  // topbar AI-credits popover and pick a tier from /pricing. The
+  // topbar AI Points popover and pick a tier from /pricing. The
   // bar input itself is fully disabled and doesn't carry a click
   // handler that fires when capped (the Vue source's "click-on-bar"
   // comment is aspirational; only the send button + Enter key

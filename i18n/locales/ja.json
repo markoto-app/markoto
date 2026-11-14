@@ -290,7 +290,7 @@
     "aiMentionHint": "ヒント：コメントに{'@'}markotoを含めると、markotoに対応を依頼できます。",
     "aiResponding": "markotoが応答しています…",
     "aiTriggerFailed": "このスレッドでmarkotoに接続できませんでした。",
-    "aiTriggerExhausted": "クレジットを使い切りました。プランをアップグレードすると、コメントからmarkotoに依頼できます。",
+    "aiTriggerExhausted": "AI ポイントを使い切ったため、markoto はコメントから応答できません。",
     "hintPost": "送信",
     "hintCancel": "キャンセル",
     "notificationFallbackTitle": "新しい返信"
@@ -638,20 +638,20 @@
     "dictateIdleTitle": "ディクテーションを一時停止しました",
     "dictateIdleDescription": "30秒間音声がなかったため、ディクテーションを停止しました。",
     "dictateErrorTitle": "ディクテーションに失敗しました",
-    "budgetExhaustedTitle": "AIクレジットがありません",
-    "budgetExhaustedDescription": "この請求期間のAIクレジットをすべて使い切りました。続けるにはプランをアップグレードしてください。",
-    "exhaustedPlaceholder": "AIクレジットがありません、続けるにはアップグレード",
-    "workspaceBudgetExhaustedTitle": "ワークスペースのAI予算を使い切りました",
-    "workspaceBudgetExhaustedDescription": "このワークスペースの今月の AI 予算を使い切りました。管理者に席数かクレジットの追加を依頼してください。",
-    "workspaceExhaustedPlaceholder": "ワークスペースの AI 予算を使い切りました。管理者に依頼してください",
+    "budgetExhaustedTitle": "AI ポイントがありません",
+    "budgetExhaustedDescription": "この期間の AI ポイントを使い切りました。続けるにはプランをアップグレードしてください。",
+    "exhaustedPlaceholder": "AI ポイントがありません：続けるにはアップグレードしてください",
+    "workspaceBudgetExhaustedTitle": "ワークスペースの AI ポイントを使い切りました",
+    "workspaceBudgetExhaustedDescription": "このワークスペースの今月の AI ポイントを使い切りました。ワークスペースの管理者に追加を依頼してください。",
+    "workspaceExhaustedPlaceholder": "ワークスペースの AI ポイントがありません：管理者に依頼してください",
     "upgradeCta": "アップグレード",
-    "remainingLabel": "今月のAIクレジットは残り{limit}件中{remaining}件",
+    "remainingLabel": "今月の AI ポイントは残り {remaining}（{limit} 中）",
     "responseLabel": "markotoからの返答",
     "responseQuestionLabel": "markotoが質問しています",
     "responseDismiss": "閉じる",
     "responseShowLast": "markotoからの最新の返答",
-    "exhaustedPlaceholderFree": "AIクレジットがありません、次の期間に補充されます",
-    "budgetExhaustedResetDescription": "この期間のAIクレジットをすべて使い切りました。次の期間の開始時に補充されます。",
+    "exhaustedPlaceholderFree": "AI ポイントがありません：次の期間に補充されます",
+    "budgetExhaustedResetDescription": "この期間の AI ポイントを使い切りました。次の期間が始まると補充されます。",
     "webToolsHourlyLimit": "Web検索の1時間あたりの上限に達しました。しばらくしてから再試行するか、使わずに続けてください。",
     "webToolsDailyLimit": "Web検索とページ取得の1日あたりの上限に達しました。明日もう一度お試しいただくか、Webツールなしで続けてください。",
     "budgetExhaustedComingSoonDescription": "この期間のAIポイントを使い切りました。次の期間に補充されます。",
@@ -662,7 +662,7 @@
     "memberLimitReachedTitle": "AI の上限に達しました",
     "memberLimitReachedDescription": "今月このワークスペースでの AI の上限を使い切りました。ワークスペースの管理者に上限の引き上げを依頼してください。",
     "memberLimitPlaceholder": "ここでの AI の上限を使い切りました。管理者に依頼してください",
-    "teamBudgetExhausted": "このワークスペースの今月の AI 予算を使い切りました。管理者に席数かクレジットの追加を依頼してください。",
+    "teamBudgetExhausted": "このワークスペースの今月の AI ポイントを使い切りました。ワークスペースの管理者に追加を依頼してください。",
     "memberLimitReached": "今月このワークスペースでの AI の上限に達しました。管理者に引き上げを依頼してください。",
     "locked": {
       "aiVoice": "このプランには音声入力が含まれていません",
@@ -691,6 +691,12 @@
       "tooShort": "録音が短すぎました。",
       "encodeFailed": "音声をエンコードできませんでした。"
     },
+    "budgetExhaustedProDescription": "この期間の AI ポイントを使い切りました。続けるには追加の AI ポイントを購入してください。",
+    "buyPointsCta": "AI ポイントを購入",
+    "exhaustedPlaceholderPro": "AI ポイントがありません：続けるには追加で購入してください",
+    "workspaceBudgetExhaustedAdminDescription": "このワークスペースの今月の AI ポイントを使い切りました。席を追加するか、請求で AI ポイントを購入してください。",
+    "workspaceBillingCta": "請求を開く",
+    "workspaceExhaustedPlaceholderAdmin": "ワークスペースの AI ポイントがありません：請求で追加してください",
     "step": {
       "thinking": "考え中…",
       "done": "完了",
@@ -789,7 +795,7 @@
     "title": "料金",
     "subtitle": "プランで AI ポイント、ワークスペース、ストレージが決まります。自分のキーで使う AI は制限されません。",
     "metaDescription": "markoto のプランを比較：AI ポイント、ワークスペース、ストレージの上限。自分のプロバイダーキーで使う AI はプランで制限されません。",
-    "creditsHint": "1000 AI ポイント = モデル利用料 1 ドル。自分のキーで使う AI はポイントを消費しません。",
+    "creditsHint": "AI ポイントは、markoto があなたに代わって実行する AI の利用料に使われます。短い編集は数ポイント、長い文章や画像はより多く消費します。自分のキーで使う AI はポイントを消費しません。",
     "currentPlan": "現在のプラン",
     "manageSubscription": "サブスクリプションを管理",
     "upgrade": "アップグレード",
@@ -925,17 +931,17 @@
     "seatTotalMonth": "{seats} 席で月額 {total}",
     "seatTotalYear": "{seats} 席で年額 {total}",
     "seatsLabel": "席数",
-    "creditsBuyLink": "プロフィールで AI クレジットを購入"
+    "creditsBuyLink": "プロフィールで AI ポイントを購入"
   },
   "topbar": {
     "planBadge": "プラン：{plan}",
     "creditsTooltipTitle": "AI ポイント",
     "creditsRemaining": "残り {remaining} / {limit} ポイント",
     "creditsPercent": "残り{pct}%",
-    "creditsResetOn": "{date}にリセット",
-    "creditsExtra": "+ {points} ポイント（AI クレジット）",
+    "creditsResetOn": "{date} に補充",
+    "creditsExtra": "+ {points} 追加 AI ポイント",
     "creditsWorkspace": "このドキュメントの AI はワークスペースの予算を使います。",
-    "creditsHint": "AI ポイントはインスタンスが費用を負担する AI に使われます：1000 ポイント = モデル利用料 1 ドル。",
+    "creditsHint": "AI ポイントは、このサービスがあなたに代わって実行する AI の利用料に使われます。",
     "upgradeToPlan": "{plan}にアップグレード",
     "topPlan": "最上位プランをご利用中です。",
     "viewAllPlans": "すべてのプランを見る",
@@ -1592,7 +1598,7 @@
       "switchToAnnual": "年払いに変更",
       "switchToMonthly": "月払いに変更",
       "aiTitle": "今月の AI",
-      "teamSpend": "{budget} のうち {spent} を使用",
+      "teamSpend": "{budget} の AI ポイントのうち {spent} を使用",
       "resets": "{date} にリセット",
       "storage": "共有ストレージ：ナレッジファイル {knowledge}、画像 {images}。",
       "memberSpend": "{spent} 使用 · 上限 {limit}",
@@ -1602,7 +1608,7 @@
       "limitNone": "上限なし",
       "limitSaved": "上限を保存しました",
       "limitSaveFailed": "上限を保存できませんでした",
-      "limitFootnote": "既定では各メンバーは月に {amount} まで使えます。「上限なし」でもワークスペースの予算で止まります。",
+      "limitFootnote": "既定では各メンバーは月に {points} AI ポイントまで使えます。「上限なし」でもワークスペースの予算で止まります。",
       "checkoutFailed": "支払いを開始できませんでした",
       "planChanged": "プランを変更しました",
       "planChangeFailed": "プランを変更できませんでした",
@@ -1623,7 +1629,8 @@
         "cancelFailed": "ワークスペースのサブスクリプションを解約できなかったため、何も削除されていません。もう一度お試しください。",
         "subscriptionActive": "このワークスペースには有効なサブスクリプションが残っています。削除するにはサポートにお問い合わせください。",
         "seatsBusy": "別の席数変更または招待が処理中です。しばらくしてからもう一度お試しください。"
-      }
+      },
+      "limitPointsLabel": "AI ポイントの上限"
     },
     "dpa": {
       "staleTitle": "データ処理契約が更新されました、もう一度ご確認ください",
@@ -1963,7 +1970,9 @@
         "paymentOverdueTitle": "支払いが滞っています",
         "paymentOverdueBody": "Pro の前回の支払いに失敗しました。再度請求されます。プランを維持するには「請求を管理」で支払い方法を更新してください。",
         "coveringTitle": "あなたが含まれるワークスペース",
-        "coveringHint": "これらのワークスペースでは、そのプランと共有の AI 予算が適用されます。それ以外では、あなた自身のプランです。"
+        "coveringHint": "これらのワークスペースでは、そのプランと共有の AI 予算が適用されます。それ以外では、あなた自身のプランです。",
+        "pricePerMonth": "月額 {price}",
+        "pricePerYear": "年額 {price}"
       },
       "data": {
         "heading": "あなたのデータ",
@@ -2046,7 +2055,7 @@
     "comingSoonHint": "上限がより高い有料プランを近日公開予定です。",
     "paidTerms": {
       "consentPlan": "{terms}に同意し、プランをすぐに開始するよう求めます。EU の消費者として 14 日以内に撤回する場合、利用した期間分を支払います。",
-      "consentTopup": "{terms}に同意し、クレジットをすぐに受け取ります。使用を始めた時点で撤回権は終了します。",
+      "consentTopup": "{terms}に同意し、AI ポイントをすぐに受け取ります。使用を始めた時点で撤回権は終了します。",
       "link": "有料プラン規約",
       "required": "続けるには有料プラン規約に同意してください。"
     },
@@ -2483,16 +2492,17 @@
     "words": "{n} 語 | {n} 語"
   },
   "credits": {
-    "title": "AI クレジット",
-    "balance": "AI クレジット残高 {amount}",
-    "usedThisMonth": "今月 {amount} を使用",
-    "explainer": "クレジットはプランの月間 AI 予算に加算されます。予算を使い切ってから使われ、購入から {months} か月後に失効します。",
-    "pack": "{price} → クレジット {credit}",
+    "title": "追加の AI ポイント",
+    "balance": "追加の AI ポイントが残り {points}",
+    "usedThisMonth": "今月の使用量 {points}",
+    "explainer": "プランの月間 AI ポイントを使い切った後に使われます。購入から {months} か月で失効します。",
+    "pack": "{price}：{points} AI ポイント",
     "grantLeft": "残り {left} · {date} に失効",
-    "needsPlan": "AI クレジットは有料プランを補うものです。購入するには Pro にアップグレードしてください。",
+    "needsPlan": "追加の AI ポイントは有料プラン向けです。購入するには Pro にアップグレードしてください。",
     "buyFailed": "購入を開始できませんでした",
-    "purchased": "クレジットを購入しました",
-    "purchasedBody": "Stripe が支払いを確認するとすぐに追加されます（通常は数秒以内）。"
+    "purchased": "AI ポイントを購入しました",
+    "purchasedBody": "Stripe が支払いを確認すると、通常は数秒以内に追加されます。",
+    "points": "{points} AI ポイント"
   },
   "sso": {
     "title": "シングルサインオン（SSO）",
@@ -2671,17 +2681,17 @@
   },
   "usage": {
     "title": "使用状況",
-    "intro": "各メンバーがここで保有しているもの：ドキュメント、ナレッジファイル、画像、この期間の AI 費用。作業時間は表示されません。",
+    "intro": "各メンバーが保存しているもの：ドキュメント、ナレッジファイル、画像、この期間に使用した AI ポイント。活動時刻は含まれません。",
     "person": "メンバー",
     "documents": "ドキュメント",
     "knowledge": "ナレッジ",
     "images": "画像",
-    "aiSpend": "今期の AI",
+    "aiSpend": "今期の AI ポイント",
     "files": "ファイルなし | {n} ファイル · {size} | {n} ファイル · {size}",
     "empty": "メンバーはまだいません。",
     "guestsTitle": "ゲスト",
     "sharedDocs": "共有ドキュメントなし | 共有ドキュメント {n} 件 | 共有ドキュメント {n} 件",
-    "guestsHint": "ゲストは自身の AI 予算を使用するため、ここには費用が表示されません。",
+    "guestsHint": "ゲストは自身の AI ポイントを使用するため、ここには表示されません。",
     "loadFailed": "使用状況を読み込めませんでした"
   },
   "brandKit": {

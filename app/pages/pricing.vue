@@ -100,6 +100,7 @@ function priceUnitKey(plan: PlanName): string {
 // The caller's plan (shared with the topbar badge), for the "current plan"
 // highlight. Signed out or failed: no highlight.
 const { billing, refresh: refreshBilling } = useBilling()
+const buyPointsRoute = BUY_AI_POINTS_ROUTE
 const invalidatePlan = useInvalidatePlan()
 
 const optionsLayout = computed(() => billingEnabled.value || plansComingSoon.value)
@@ -616,7 +617,7 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
             <span
               v-for="(pack, i) in TOPUP_PACKS"
               :key="pack.id"
-            >{{ i > 0 ? ' · ' : '' }}{{ formatPrice(pack.price[currency], CURRENCY, locale) }} → {{ formatUsd(pack.creditUsd, locale) }}</span>
+            >{{ i > 0 ? ' · ' : '' }}{{ t('credits.pack', { price: formatPrice(pack.price[currency], CURRENCY, locale), points: formatAiPoints(pack.creditUsd, locale) }) }}</span>
           </p>
           <p
             v-if="pricesPlanned"
@@ -629,7 +630,7 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
             class="mt-3 text-sm"
           >
             <NuxtLink
-              to="/settings/profile#ai-credits"
+              :to="buyPointsRoute"
               class="underline"
               data-testid="pricing-credits-buy-link"
             >{{ t('pricing.creditsBuyLink') }}</NuxtLink>

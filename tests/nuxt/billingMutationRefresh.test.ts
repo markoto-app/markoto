@@ -241,7 +241,7 @@ const MUTATIONS: Mutation[] = [
     rereads: WORKSPACE,
     shows: (wrapper) => {
       expect(text(wrapper, 'workspace-billing-subscription')).toContain('4 of 9 seats used')
-      expect(text(wrapper, 'workspace-billing-team-spend')).toContain('$42.50')
+      expect(text(wrapper, 'workspace-billing-team-spend')).toContain('42,500')
     }
   },
   {
@@ -253,15 +253,15 @@ const MUTATIONS: Mutation[] = [
       workspacePoints = 7500
     },
     act: async (wrapper) => {
-      const drafts = Reflect.get(wrapper.vm, 'limitDrafts') as Record<number, { mode: string, amount: number }>
-      drafts[2] = { mode: 'custom', amount: 9 }
+      const drafts = Reflect.get(wrapper.vm, 'limitDrafts') as Record<number, { mode: string, points: number }>
+      drafts[2] = { mode: 'custom', points: 9000 }
       await flushPromises()
       await click(wrapper, 'workspace-billing-limit-save-2')
     },
     // The member's own meter inside the workspace follows the limit.
     rereads: ['workspace billing', 'AI points (workspace)'],
     shows: (wrapper) => {
-      expect(text(wrapper, 'workspace-billing-member-2')).toContain('limit $7.50')
+      expect(text(wrapper, 'workspace-billing-member-2')).toContain('limit 7,500')
     }
   }
 ]
@@ -277,6 +277,7 @@ beforeEach(() => {
   billing = {
     plan: 'pro',
     interval: 'month',
+    currency: 'eur',
     cancelAt: null,
     paymentOverdue: false,
     periodStart: '2027-01-01T00:00:00.000Z',

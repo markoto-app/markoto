@@ -15,6 +15,8 @@ export function useAccountStatus() {
 
   // Signed out → nothing, even if a previous session's answer is cached.
   const status = computed<AccountStatus | null>(() => loggedIn.value ? query.data.value ?? null : null)
+  // Signed in and not answered yet: show a placeholder, never a default value.
+  const pending = computed(() => loggedIn.value && query.status.value === 'pending')
 
-  return { status, refresh }
+  return { status, pending, refresh }
 }

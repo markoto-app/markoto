@@ -290,7 +290,7 @@
     "aiMentionHint": "Astuce : incluez {'@'}markoto dans un commentaire pour demander à markoto d'intervenir.",
     "aiResponding": "markoto répond…",
     "aiTriggerFailed": "Impossible de joindre markoto pour ce fil.",
-    "aiTriggerExhausted": "Quota épuisé : passez à un forfait supérieur pour solliciter markoto depuis les commentaires.",
+    "aiTriggerExhausted": "Plus de points IA : markoto ne peut pas répondre depuis les commentaires.",
     "hintPost": "publier",
     "hintCancel": "annuler",
     "notificationFallbackTitle": "Nouvelle réponse"
@@ -638,20 +638,20 @@
     "dictateIdleTitle": "Dictée en pause",
     "dictateIdleDescription": "Aucun son pendant 30 secondes : la dictée s'est arrêtée.",
     "dictateErrorTitle": "Échec de la dictée",
-    "budgetExhaustedTitle": "Plus de crédits IA",
-    "budgetExhaustedDescription": "Vous avez utilisé tous vos crédits IA pour cette période de facturation. Passez à un forfait supérieur pour continuer.",
-    "exhaustedPlaceholder": "Plus de crédits IA : passez à un forfait supérieur pour continuer",
-    "workspaceBudgetExhaustedTitle": "Budget IA de l'espace de travail épuisé",
-    "workspaceBudgetExhaustedDescription": "Le budget IA de cet espace est épuisé pour ce mois. Demandez à un admin d’ajouter des places ou du crédit.",
-    "workspaceExhaustedPlaceholder": "Budget IA de l’espace épuisé : demandez à un admin",
+    "budgetExhaustedTitle": "Plus de points IA",
+    "budgetExhaustedDescription": "Vous avez utilisé tous vos points IA pour cette période. Passez à un forfait supérieur pour continuer.",
+    "exhaustedPlaceholder": "Plus de points IA : passez à un forfait supérieur pour continuer",
+    "workspaceBudgetExhaustedTitle": "Points IA de l’espace épuisés",
+    "workspaceBudgetExhaustedDescription": "Les points IA de cet espace sont épuisés pour ce mois-ci. Demandez-en davantage à un administrateur de l’espace.",
+    "workspaceExhaustedPlaceholder": "Points IA de l’espace épuisés : demandez à un administrateur",
     "upgradeCta": "Mettre à niveau",
-    "remainingLabel": "{remaining} crédits IA restants sur {limit} ce mois-ci",
+    "remainingLabel": "{remaining} points IA restants sur {limit} ce mois-ci",
     "responseLabel": "markoto dit",
     "responseQuestionLabel": "markoto demande",
     "responseDismiss": "Fermer",
     "responseShowLast": "Dernière réponse de markoto",
-    "exhaustedPlaceholderFree": "Plus de crédits IA : ils se rechargent à la prochaine période",
-    "budgetExhaustedResetDescription": "Vous avez utilisé tous vos crédits IA pour cette période. Ils se rechargent au début de la prochaine période.",
+    "exhaustedPlaceholderFree": "Plus de points IA : ils sont rechargés à la prochaine période",
+    "budgetExhaustedResetDescription": "Vous avez utilisé tous vos points IA pour cette période. Ils sont rechargés au début de la période suivante.",
     "webToolsHourlyLimit": "Limite horaire de recherche web atteinte. Réessayez plus tard ou continuez sans elle.",
     "webToolsDailyLimit": "Vous avez atteint la limite quotidienne de recherche web et de récupération de pages. Réessayez demain ou continuez sans les outils web.",
     "budgetExhaustedComingSoonDescription": "Vos points IA de cette période sont épuisés. Ils se rechargent à la prochaine période.",
@@ -662,7 +662,7 @@
     "memberLimitReachedTitle": "Votre limite IA est atteinte",
     "memberLimitReachedDescription": "Vous avez utilisé votre limite IA dans cet espace pour ce mois. Demandez à un admin de l’espace de l’augmenter.",
     "memberLimitPlaceholder": "Votre limite IA ici est épuisée : demandez à un admin",
-    "teamBudgetExhausted": "Le budget IA de cet espace est épuisé pour ce mois. Demandez à un admin d’ajouter des places ou du crédit.",
+    "teamBudgetExhausted": "Les points IA de cet espace sont épuisés pour ce mois-ci. Demandez-en davantage à un administrateur de l’espace.",
     "memberLimitReached": "Vous avez atteint votre limite IA dans cet espace pour ce mois. Demandez à un admin de l’augmenter.",
     "locked": {
       "aiVoice": "La saisie vocale n’est pas incluse dans ce plan",
@@ -691,6 +691,12 @@
       "tooShort": "L’enregistrement était trop court.",
       "encodeFailed": "Impossible d’encoder l’audio."
     },
+    "budgetExhaustedProDescription": "Vous avez utilisé tous vos points IA pour cette période. Achetez des points IA supplémentaires pour continuer.",
+    "buyPointsCta": "Acheter des points IA",
+    "exhaustedPlaceholderPro": "Plus de points IA : achetez-en d’autres pour continuer",
+    "workspaceBudgetExhaustedAdminDescription": "Les points IA de cet espace sont épuisés pour ce mois-ci. Ajoutez des places ou achetez des points IA dans Facturation.",
+    "workspaceBillingCta": "Ouvrir la facturation",
+    "workspaceExhaustedPlaceholderAdmin": "Points IA de l’espace épuisés : ajoutez-en dans Facturation",
     "step": {
       "thinking": "Réflexion…",
       "done": "Terminé",
@@ -789,7 +795,7 @@
     "title": "Tarifs",
     "subtitle": "Les plans fixent vos points IA, espaces de travail et stockage. L'IA avec votre propre clé n'est jamais limitée.",
     "metaDescription": "Comparez les forfaits markoto : points IA, espaces de travail et stockage. L'IA avec votre propre clé n'est jamais limitée.",
-    "creditsHint": "1000 points IA = 1 $ US d'utilisation du modèle. L'IA avec votre propre clé ne consomme aucun point.",
+    "creditsHint": "Les points IA paient l’IA que markoto exécute pour vous. Une courte modification en utilise quelques-uns, un long texte ou une image davantage. L’IA avec votre propre clé ne consomme aucun point.",
     "currentPlan": "Forfait actuel",
     "manageSubscription": "Gérer l'abonnement",
     "upgrade": "Mettre à niveau",
@@ -925,17 +931,17 @@
     "seatTotalMonth": "{total} par mois pour {seats} places",
     "seatTotalYear": "{total} par an pour {seats} places",
     "seatsLabel": "Places",
-    "creditsBuyLink": "Acheter des crédits IA dans votre profil"
+    "creditsBuyLink": "Acheter des points IA dans votre profil"
   },
   "topbar": {
     "planBadge": "Forfait : {plan}",
     "creditsTooltipTitle": "Points IA",
     "creditsRemaining": "{remaining} points restants sur {limit}",
     "creditsPercent": "{pct} % restants",
-    "creditsResetOn": "Réinitialisation le {date}",
-    "creditsExtra": "+ {points} points de crédits IA",
+    "creditsResetOn": "Rechargés le {date}",
+    "creditsExtra": "+ {points} points IA supplémentaires",
     "creditsWorkspace": "L’IA de ce document utilise le budget de l’espace de travail.",
-    "creditsHint": "Les points IA couvrent l'IA payée par l'instance : 1000 points = 1 $ d'utilisation du modèle.",
+    "creditsHint": "Les points IA paient l’IA que ce service exécute pour vous.",
     "upgradeToPlan": "Passer au forfait {plan}",
     "topPlan": "Vous êtes au forfait le plus élevé.",
     "viewAllPlans": "Voir tous les forfaits",
@@ -1592,7 +1598,7 @@
       "switchToAnnual": "Passer à la facturation annuelle",
       "switchToMonthly": "Passer à la facturation mensuelle",
       "aiTitle": "IA ce mois-ci",
-      "teamSpend": "{spent} utilisés sur {budget}",
+      "teamSpend": "{spent} points IA utilisés sur {budget}",
       "resets": "remis à zéro le {date}",
       "storage": "Stockage partagé : {knowledge} pour les fichiers de connaissances, {images} pour les images.",
       "memberSpend": "{spent} utilisés · limite {limit}",
@@ -1602,7 +1608,7 @@
       "limitNone": "Sans limite",
       "limitSaved": "Limite enregistrée",
       "limitSaveFailed": "Impossible d’enregistrer la limite",
-      "limitFootnote": "Par défaut, chaque membre peut utiliser jusqu’à {amount} par mois. « Sans limite » s’arrête tout de même au budget de l’espace.",
+      "limitFootnote": "Par défaut, chaque membre peut utiliser jusqu’à {points} points IA par mois. « Sans limite » s’arrête tout de même au budget de l’espace.",
       "checkoutFailed": "Impossible de lancer le paiement",
       "planChanged": "Plan modifié",
       "planChangeFailed": "Impossible de modifier le plan",
@@ -1623,7 +1629,8 @@
         "cancelFailed": "L’abonnement de l’espace n’a pas pu être résilié, rien n’a donc été supprimé. Veuillez réessayer.",
         "subscriptionActive": "Cet espace a encore un abonnement en cours. Contactez le support pour le supprimer.",
         "seatsBusy": "Une autre modification des places ou invitation est en cours. Réessayez dans un instant."
-      }
+      },
+      "limitPointsLabel": "Limite en points IA"
     },
     "dpa": {
       "staleTitle": "Avenant de traitement des données mis à jour : veuillez le relire",
@@ -1963,7 +1970,9 @@
         "paymentOverdueTitle": "Paiement en retard",
         "paymentOverdueBody": "Le dernier paiement pour Pro a échoué et sera retenté. Mettez à jour le moyen de paiement sous « Gérer la facturation » pour conserver votre plan.",
         "coveringTitle": "Espaces de travail qui vous couvrent",
-        "coveringHint": "Dans ces espaces de travail, leur plan et leur budget IA partagé s’appliquent. Ailleurs, votre propre plan."
+        "coveringHint": "Dans ces espaces de travail, leur plan et leur budget IA partagé s’appliquent. Ailleurs, votre propre plan.",
+        "pricePerMonth": "{price} par mois",
+        "pricePerYear": "{price} par an"
       },
       "data": {
         "heading": "Vos données",
@@ -2046,7 +2055,7 @@
     "comingSoonHint": "Des offres payantes avec des limites plus élevées arrivent bientôt.",
     "paidTerms": {
       "consentPlan": "J’accepte les {terms} et demande que mon offre commence immédiatement. Si je me rétracte dans les 14 jours en tant que consommateur de l’UE, je paie le temps utilisé.",
-      "consentTopup": "J’accepte les {terms} et demande les crédits immédiatement. Mon droit de rétractation prend fin dès que je les utilise.",
+      "consentTopup": "J’accepte les {terms} et demande les points IA immédiatement. Mon droit de rétractation prend fin dès que je les utilise.",
       "link": "Conditions des offres payantes",
       "required": "Acceptez les Conditions des offres payantes pour continuer."
     },
@@ -2483,16 +2492,17 @@
     "words": "{n} mot | {n} mots"
   },
   "credits": {
-    "title": "Crédits IA",
-    "balance": "{amount} de crédits IA restants",
-    "usedThisMonth": "{amount} utilisés ce mois-ci",
-    "explainer": "Les crédits s’ajoutent au budget IA mensuel de votre plan. Ils sont utilisés une fois le budget dépensé et expirent {months} mois après l’achat.",
-    "pack": "{price} → {credit} de crédit",
+    "title": "Points IA supplémentaires",
+    "balance": "{points} points IA supplémentaires restants",
+    "usedThisMonth": "{points} utilisés ce mois-ci",
+    "explainer": "Utilisés une fois les points IA mensuels du forfait épuisés. Ils expirent {months} mois après l’achat.",
+    "pack": "{price} : {points} points IA",
     "grantLeft": "{left} restants · expire le {date}",
-    "needsPlan": "Les crédits IA complètent un plan payant. Passez à Pro pour en acheter.",
+    "needsPlan": "Les points IA supplémentaires sont réservés aux forfaits payants. Passez à Pro pour en acheter.",
     "buyFailed": "Impossible de lancer l’achat",
-    "purchased": "Crédits achetés",
-    "purchasedBody": "Ils sont ajoutés dès que Stripe confirme le paiement, en général en quelques secondes."
+    "purchased": "Points IA achetés",
+    "purchasedBody": "Ils sont ajoutés dès que Stripe confirme le paiement, généralement en quelques secondes.",
+    "points": "{points} points IA"
   },
   "sso": {
     "title": "Authentification unique (SSO)",
@@ -2671,17 +2681,17 @@
   },
   "usage": {
     "title": "Utilisation",
-    "intro": "Ce que chaque personne conserve ici : documents, fichiers de connaissances, images et dépenses d’IA de cette période. Pas d’horaires d’activité.",
+    "intro": "Ce que chaque personne conserve ici : documents, fichiers de connaissances, images et points IA utilisés sur cette période. Aucune heure d’activité.",
     "person": "Personne",
     "documents": "Documents",
     "knowledge": "Connaissances",
     "images": "Images",
-    "aiSpend": "IA sur cette période",
+    "aiSpend": "Points IA sur cette période",
     "files": "aucun fichier | {n} fichier · {size} | {n} fichiers · {size}",
     "empty": "Aucun membre pour le moment.",
     "guestsTitle": "Invités",
     "sharedDocs": "aucun document partagé | {n} document partagé | {n} documents partagés",
-    "guestsHint": "Les invités utilisent leur propre budget IA ; leurs dépenses ne sont donc pas affichées ici.",
+    "guestsHint": "Les invités utilisent leurs propres points IA ; ils ne sont donc pas affichés ici.",
     "loadFailed": "Impossible de charger l’utilisation"
   },
   "brandKit": {

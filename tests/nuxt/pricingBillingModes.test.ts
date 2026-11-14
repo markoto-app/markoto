@@ -274,12 +274,14 @@ describe('pricing page: seats and credits', () => {
     expect(wrapper.find('[data-testid="pricing-tier-team"]').text()).toContain('Billing tab')
   })
 
-  it('explains AI credits next to the paid plans', async () => {
+  it('explains extra AI Points next to the paid plans, in points', async () => {
     setMode({ billingEnabled: true, plansComingSoon: false })
     const wrapper = await mountPricing()
     const credits = wrapper.find('[data-testid="pricing-credits"]')
     expect(credits.exists()).toBe(true)
     expect(credits.text()).toContain('expire 12 months')
+    expect(credits.text()).toContain('10,000 AI Points')
+    expect(credits.text()).not.toContain('$')
   })
 })
 

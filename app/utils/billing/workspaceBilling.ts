@@ -1,5 +1,6 @@
 // Client shapes + pure helpers for Team / Business workspace billing.
 
+import { dollarsToPoints } from '~~/shared/billing/aiPoints'
 import type { ApiResponse } from '~/utils/api/client'
 
 /** `workspace.billing` of `GET /api/workspaces/:wsId` (admins only). */
@@ -18,7 +19,10 @@ export function minimumSeats(minSeats: number, seatsUsed: number): number {
   return Math.max(minSeats, seatsUsed)
 }
 
-/** USD amount for the usage table, e.g. "$3.20". */
-export function formatUsd(amount: number, locale: string): string {
-  return new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)
+/**
+ * A budget the server keeps in USD, as the AI Points the UI shows
+ * ("1,250"). Users never see dollars: 1000 points = $1.
+ */
+export function formatAiPoints(usd: number, locale: string): string {
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(dollarsToPoints(usd))
 }

@@ -65,7 +65,7 @@ A change of a live subscription names only what changes: a request without `inte
 
 ### Cancelled subscriptions
 
-A subscription cancelled in the Stripe portal keeps its plan until the period ends. `subscriptionCancelAt` (`stripeEvents/stripeObjects.ts`) reads that date (`cancel_at`, or the period end with `cancel_at_period_end`) from every `customer.subscription.*` event into `users.plan_cancel_at` / `workspace_subscriptions.cancel_at`; it is null while the subscription renews. `/api/user/billing` and the workspace billing overview return it as `cancelAt`, and the UI shows "Ends on" instead of "Renews on".
+A subscription cancelled in the Stripe portal keeps its plan until the period ends. `subscriptionCancelAt` (`stripeEvents/stripeObjects.ts`) reads that date (`cancel_at`, or the period end with `cancel_at_period_end`) from every `customer.subscription.*` event into `users.plan_cancel_at` / `workspace_subscriptions.cancel_at`; it is null while the subscription renews. `/api/user/billing` and the workspace billing overview return it as `cancelAt`, and the UI shows "Ends on" instead of "Renews on". A row no subscription event has written (`subscription_event_at` null) gets its end date from Stripe through `subscription-cancel-backfill` (daily, `server/utils/billing/subscriptionCancelBackfill.ts`).
 
 ### Overdue payments
 

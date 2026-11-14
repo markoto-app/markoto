@@ -136,7 +136,7 @@ Options for the exceptions: `enabled` (checked once at boot, e.g. `isBillingEnab
 | `custom-domain-recheck` | 15 min | DNS re-checks of custom domains (only with `NUXT_PUBLISH_DOMAINS_TARGET`) |
 | `litellm-key-reconcile` | at boot + 6 h | aligns LiteLLM keys and teams with plans (`utils/litellm/keyReconcile.ts`) |
 | `spend-logs-sweep` | daily | LiteLLM spend-log retention |
-| `webhook-event-sweep`, `workspace-budget-alerts`, `ai-credit-settlement` | daily / 15 min / hourly | billing jobs, started only with billing on ([billing.md](billing.md)) |
+| `webhook-event-sweep`, `subscription-cancel-backfill`, `workspace-budget-alerts`, `ai-credit-settlement` | daily / daily / 15 min / hourly | billing jobs, started only with billing on ([billing.md](billing.md)) |
 
 ## Other subsystems
 

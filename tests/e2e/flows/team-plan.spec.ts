@@ -206,32 +206,32 @@ test('Put a workspace on the Team plan', { tag: '@billing' }, async ({ page, flo
     }
   )
 
-  // AI credits
+  // Extra AI Points
   await flow.heading('Top up the AI budget', 3)
   await flow.narrate(
-    'If the workspace needs more AI this month, buy credits. They are '
-    + 'used only after the month\'s budget is spent and last a year.'
+    'If the workspace needs more AI this month, buy extra AI Points. They are '
+    + 'used only after the month\'s points are spent and last a year.'
   )
   await flow.click(
-    'Tick the box for the credits',
+    'Tick the box for the AI Points',
     page.getByTestId('workspace-billing-paid-terms').getByRole('checkbox'),
-    { result: 'For credits the box also says that the right of withdrawal ends once they are used.' }
+    { result: 'For AI Points the box also says that the right of withdrawal ends once they are used.' }
   )
   const topupPosted = page.waitForResponse(r => r.url().includes(`/api/workspaces/${workspaceId}/billing/topup`) && r.request().method() === 'POST')
   await flow.click(
-    'Buy €25 of AI credits',
+    'Buy 25,000 AI Points for €25',
     page.locator('[data-testid="workspace-billing-buy-25"]'),
-    { result: 'Stripe takes the payment for the credits.' }
+    { result: 'Stripe takes the payment.' }
   )
   expect((await topupPosted).status()).toBe(200)
   expect(await postStripeEvent(page, topupCompletedEvent({ subjectType: 'workspace', subjectId: workspaceId, pack: '25', customer }))).toBe(200)
   await page.goto(`/w/${workspaceId}?tab=billing&credits=success`)
   const creditsCard = page.locator('[data-testid="workspace-billing-credits"]')
-  await expect(creditsCard).toContainText('$25.00 in AI credits left', { timeout: 15_000 })
+  await expect(creditsCard).toContainText('25,000 extra AI Points left', { timeout: 15_000 })
   await editor.page.dismissToasts()
   await creditsCard.scrollIntoViewIfNeeded()
-  await flow.shot('The credits are on the workspace, with the date they expire.', {
-    highlights: [{ label: 'Credits', selector: '[data-testid="workspace-billing-credits"]' }]
+  await flow.shot('The AI Points are on the workspace, with the date they expire.', {
+    highlights: [{ label: 'Extra AI Points', selector: '[data-testid="workspace-billing-credits"]' }]
   })
 
   flow.next({

@@ -290,7 +290,7 @@
     "aiMentionHint": "Tipp: Erwähne {'@'}markoto in einem Kommentar, um markoto darum zu bitten, tätig zu werden.",
     "aiResponding": "markoto antwortet…",
     "aiTriggerFailed": "markoto konnte für diesen Thread nicht erreicht werden.",
-    "aiTriggerExhausted": "Kontingent aufgebraucht: Führe ein Upgrade durch, um markoto aus Kommentaren heraus zu fragen.",
+    "aiTriggerExhausted": "Keine KI-Punkte mehr: markoto kann nicht aus Kommentaren antworten.",
     "hintPost": "senden",
     "hintCancel": "abbrechen",
     "notificationFallbackTitle": "Neue Antwort"
@@ -638,20 +638,20 @@
     "dictateIdleTitle": "Diktat pausiert",
     "dictateIdleDescription": "30 Sekunden lang kein Ton: Diktat gestoppt.",
     "dictateErrorTitle": "Diktat fehlgeschlagen",
-    "budgetExhaustedTitle": "Keine KI-Credits mehr",
-    "budgetExhaustedDescription": "Du hast alle deine KI-Credits für diesen Abrechnungszeitraum aufgebraucht. Führe ein Upgrade durch, um weiterzumachen.",
-    "exhaustedPlaceholder": "Keine KI-Credits mehr: für Fortsetzung upgraden",
-    "workspaceBudgetExhaustedTitle": "Workspace-KI-Budget aufgebraucht",
-    "workspaceBudgetExhaustedDescription": "Das KI-Budget dieses Workspace ist für diesen Monat aufgebraucht. Bitte einen Admin, Plätze oder Guthaben hinzuzufügen.",
-    "workspaceExhaustedPlaceholder": "KI-Budget des Workspace aufgebraucht – frage einen Admin",
+    "budgetExhaustedTitle": "Keine KI-Punkte mehr",
+    "budgetExhaustedDescription": "Deine KI-Punkte für diese Periode sind aufgebraucht. Wechsle auf einen grösseren Plan, um weiterzumachen.",
+    "exhaustedPlaceholder": "Keine KI-Punkte mehr: wechsle den Plan, um weiterzumachen",
+    "workspaceBudgetExhaustedTitle": "KI-Punkte des Workspace aufgebraucht",
+    "workspaceBudgetExhaustedDescription": "Die KI-Punkte dieses Workspace sind für diesen Monat aufgebraucht. Frag einen Admin des Workspace nach mehr.",
+    "workspaceExhaustedPlaceholder": "KI-Punkte des Workspace aufgebraucht: frag einen Admin",
     "upgradeCta": "Upgrade",
-    "remainingLabel": "{remaining} von {limit} KI-Credits diesen Monat verbleibend",
+    "remainingLabel": "{remaining} von {limit} KI-Punkten diesen Monat übrig",
     "responseLabel": "markoto sagt",
     "responseQuestionLabel": "markoto fragt",
     "responseDismiss": "Verwerfen",
     "responseShowLast": "Letzte Antwort von markoto",
-    "exhaustedPlaceholderFree": "Keine KI-Credits mehr: Sie werden in der nächsten Periode aufgefüllt",
-    "budgetExhaustedResetDescription": "Du hast alle KI-Credits für diese Periode verbraucht. Sie werden zu Beginn der nächsten Periode wieder aufgefüllt.",
+    "exhaustedPlaceholderFree": "Keine KI-Punkte mehr: sie werden in der nächsten Periode aufgefüllt",
+    "budgetExhaustedResetDescription": "Deine KI-Punkte für diese Periode sind aufgebraucht. Sie werden zu Beginn der nächsten Periode aufgefüllt.",
     "webToolsHourlyLimit": "Stundenlimit für die Websuche erreicht. Versuche es später erneut oder arbeite ohne sie weiter.",
     "webToolsDailyLimit": "Du hast das Tageslimit für Websuche und Seitenabruf erreicht. Versuche es morgen erneut oder arbeite ohne Web-Werkzeuge weiter.",
     "budgetExhaustedComingSoonDescription": "Deine KI-Punkte für diese Periode sind aufgebraucht. Sie werden in der nächsten Periode wieder aufgefüllt.",
@@ -662,7 +662,7 @@
     "memberLimitReachedTitle": "Dein KI-Limit ist erreicht",
     "memberLimitReachedDescription": "Du hast dein KI-Limit in diesem Workspace für diesen Monat aufgebraucht. Bitte einen Admin des Workspace, es zu erhöhen.",
     "memberLimitPlaceholder": "Dein KI-Limit hier ist aufgebraucht – frage einen Admin",
-    "teamBudgetExhausted": "Das KI-Budget dieses Workspace ist für diesen Monat aufgebraucht. Bitte einen Admin, Plätze oder Guthaben hinzuzufügen.",
+    "teamBudgetExhausted": "Die KI-Punkte dieses Workspace sind für diesen Monat aufgebraucht. Frag einen Admin des Workspace nach mehr.",
     "memberLimitReached": "Du hast dein KI-Limit in diesem Workspace für diesen Monat erreicht. Bitte einen Admin, es zu erhöhen.",
     "locked": {
       "aiVoice": "Spracheingabe ist in diesem Plan nicht enthalten",
@@ -691,6 +691,12 @@
       "tooShort": "Die Aufnahme war zu kurz.",
       "encodeFailed": "Audio konnte nicht kodiert werden."
     },
+    "budgetExhaustedProDescription": "Deine KI-Punkte für diese Periode sind aufgebraucht. Kaufe zusätzliche KI-Punkte, um weiterzumachen.",
+    "buyPointsCta": "KI-Punkte kaufen",
+    "exhaustedPlaceholderPro": "Keine KI-Punkte mehr: kaufe weitere, um weiterzumachen",
+    "workspaceBudgetExhaustedAdminDescription": "Die KI-Punkte dieses Workspace sind für diesen Monat aufgebraucht. Füge unter Abrechnung Plätze hinzu oder kaufe KI-Punkte.",
+    "workspaceBillingCta": "Zur Abrechnung",
+    "workspaceExhaustedPlaceholderAdmin": "KI-Punkte des Workspace aufgebraucht: stocke unter Abrechnung auf",
     "step": {
       "thinking": "Denkt nach…",
       "done": "Fertig",
@@ -789,7 +795,7 @@
     "title": "Preise",
     "subtitle": "Die Tarife legen deine KI-Punkte, Workspaces und deinen Speicher fest. KI mit deinem eigenen Schlüssel ist nie begrenzt.",
     "metaDescription": "markoto-Tarife im Vergleich: KI-Punkte, Workspaces und Speicher pro Tarif. KI über deinen eigenen Anbieterschlüssel ist nie begrenzt.",
-    "creditsHint": "1000 KI-Punkte = 1 $ Modellnutzung. KI mit deinem eigenen Schlüssel verbraucht keine Punkte.",
+    "creditsHint": "KI-Punkte bezahlen die KI, die markoto für dich ausführt. Eine kurze Änderung braucht wenige, ein langer Text oder ein Bild mehr. KI mit deinem eigenen Schlüssel braucht keine Punkte.",
     "currentPlan": "Aktueller Tarif",
     "manageSubscription": "Abonnement verwalten",
     "upgrade": "Upgrade",
@@ -925,17 +931,17 @@
     "seatTotalMonth": "{total} pro Monat für {seats} Plätze",
     "seatTotalYear": "{total} pro Jahr für {seats} Plätze",
     "seatsLabel": "Plätze",
-    "creditsBuyLink": "KI-Guthaben in deinem Profil kaufen"
+    "creditsBuyLink": "KI-Punkte in deinem Profil kaufen"
   },
   "topbar": {
     "planBadge": "Tarif: {plan}",
     "creditsTooltipTitle": "KI-Punkte",
     "creditsRemaining": "{remaining} von {limit} Punkten übrig",
     "creditsPercent": "{pct}% verbleibend",
-    "creditsResetOn": "Zurücksetzung am {date}",
-    "creditsExtra": "+ {points} Punkte aus KI-Guthaben",
+    "creditsResetOn": "Wird am {date} aufgefüllt",
+    "creditsExtra": "+ {points} zusätzliche KI-Punkte",
     "creditsWorkspace": "Die KI in diesem Dokument nutzt das Budget des Workspace.",
-    "creditsHint": "KI-Punkte decken KI ab, die die Instanz bezahlt: 1000 Punkte = 1 $ Modellnutzung.",
+    "creditsHint": "KI-Punkte bezahlen die KI, die dieser Dienst für dich ausführt.",
     "upgradeToPlan": "Upgrade auf {plan}",
     "topPlan": "Du nutzt den höchsten Tarif.",
     "viewAllPlans": "Alle Tarife anzeigen",
@@ -1592,7 +1598,7 @@
       "switchToAnnual": "Zu jährlicher Abrechnung wechseln",
       "switchToMonthly": "Zu monatlicher Abrechnung wechseln",
       "aiTitle": "KI in diesem Monat",
-      "teamSpend": "{spent} von {budget} verbraucht",
+      "teamSpend": "{spent} von {budget} KI-Punkten verbraucht",
       "resets": "wird am {date} zurückgesetzt",
       "storage": "Gemeinsamer Speicher: {knowledge} für Wissensdateien, {images} für Bilder.",
       "memberSpend": "{spent} verbraucht · Limit {limit}",
@@ -1602,7 +1608,7 @@
       "limitNone": "Kein Limit",
       "limitSaved": "Limit gespeichert",
       "limitSaveFailed": "Limit konnte nicht gespeichert werden",
-      "limitFootnote": "Standardmässig darf jedes Mitglied bis zu {amount} pro Monat verbrauchen. «Kein Limit» endet trotzdem am Budget des Workspace.",
+      "limitFootnote": "Standardmässig darf jedes Mitglied bis zu {points} KI-Punkte pro Monat verbrauchen. «Kein Limit» endet trotzdem am Budget des Workspace.",
       "checkoutFailed": "Zahlung konnte nicht gestartet werden",
       "planChanged": "Plan geändert",
       "planChangeFailed": "Plan konnte nicht geändert werden",
@@ -1623,7 +1629,8 @@
         "cancelFailed": "Das Abonnement des Workspace konnte nicht gekündigt werden, deshalb wurde nichts gelöscht. Bitte versuche es erneut.",
         "subscriptionActive": "Dieser Workspace hat noch ein laufendes Abonnement. Wende dich an den Support, um ihn zu löschen.",
         "seatsBusy": "Gerade läuft eine andere Platzänderung oder Einladung. Bitte versuche es gleich noch einmal."
-      }
+      },
+      "limitPointsLabel": "Limite in KI-Punkten"
     },
     "dpa": {
       "staleTitle": "Auftragsverarbeitungsvertrag aktualisiert – bitte erneut prüfen",
@@ -1963,7 +1970,9 @@
         "paymentOverdueTitle": "Zahlung überfällig",
         "paymentOverdueBody": "Die letzte Zahlung für Pro ist fehlgeschlagen und wird erneut versucht. Aktualisiere die Zahlungsmethode unter «Abrechnung verwalten», damit dein Plan bleibt.",
         "coveringTitle": "Workspaces, die du abdeckst",
-        "coveringHint": "In diesen Workspaces gelten deren Plan und das gemeinsame KI-Budget. Sonst dein eigener Plan."
+        "coveringHint": "In diesen Workspaces gelten deren Plan und das gemeinsame KI-Budget. Sonst dein eigener Plan.",
+        "pricePerMonth": "{price} pro Monat",
+        "pricePerYear": "{price} pro Jahr"
       },
       "data": {
         "heading": "Deine Daten",
@@ -2046,7 +2055,7 @@
     "comingSoonHint": "Bezahlpläne mit höheren Limits folgen in Kürze.",
     "paidTerms": {
       "consentPlan": "Ich akzeptiere die {terms} und verlange, dass mein Plan sofort beginnt. Widerrufe ich als Konsument in der EU innert 14 Tagen, bezahle ich die genutzte Zeit.",
-      "consentTopup": "Ich akzeptiere die {terms} und verlange das Guthaben sofort. Mein Widerrufsrecht endet, sobald ich es nutze.",
+      "consentTopup": "Ich akzeptiere die {terms} und verlange die KI-Punkte sofort. Mein Widerrufsrecht endet, sobald ich sie nutze.",
       "link": "Bedingungen für kostenpflichtige Pläne",
       "required": "Akzeptiere die Bedingungen für kostenpflichtige Pläne, um fortzufahren."
     },
@@ -2483,16 +2492,17 @@
     "words": "{n} Wort | {n} Wörter"
   },
   "credits": {
-    "title": "KI-Guthaben",
-    "balance": "{amount} KI-Guthaben übrig",
-    "usedThisMonth": "{amount} in diesem Monat verbraucht",
-    "explainer": "Guthaben erhöht das monatliche KI-Budget deines Plans. Es wird nach dem Budget verbraucht und verfällt {months} Monate nach dem Kauf.",
-    "pack": "{price} → {credit} Guthaben",
+    "title": "Zusätzliche KI-Punkte",
+    "balance": "{points} zusätzliche KI-Punkte übrig",
+    "usedThisMonth": "{points} diesen Monat verbraucht",
+    "explainer": "Werden verbraucht, wenn die monatlichen KI-Punkte des Plans aufgebraucht sind. Sie verfallen {months} Monate nach dem Kauf.",
+    "pack": "{price}: {points} KI-Punkte",
     "grantLeft": "{left} übrig · verfällt am {date}",
-    "needsPlan": "KI-Guthaben ergänzt einen bezahlten Plan. Wechsle auf Pro, um es zu kaufen.",
+    "needsPlan": "Zusätzliche KI-Punkte gibt es für bezahlte Pläne. Wechsle auf Pro, um sie zu kaufen.",
     "buyFailed": "Kauf konnte nicht gestartet werden",
-    "purchased": "Guthaben gekauft",
-    "purchasedBody": "Es wird gutgeschrieben, sobald Stripe die Zahlung bestätigt, meist innert weniger Sekunden."
+    "purchased": "KI-Punkte gekauft",
+    "purchasedBody": "Sie werden gutgeschrieben, sobald Stripe die Zahlung bestätigt, meist innert weniger Sekunden.",
+    "points": "{points} KI-Punkte"
   },
   "sso": {
     "title": "Single Sign-on (SSO)",
@@ -2671,17 +2681,17 @@
   },
   "usage": {
     "title": "Nutzung",
-    "intro": "Was jede Person hier speichert: Dokumente, Wissensdateien, Bilder und KI-Ausgaben in diesem Zeitraum. Keine Aktivitätszeiten.",
+    "intro": "Was jede Person hier speichert: Dokumente, Wissensdateien, Bilder und die in dieser Periode verbrauchten KI-Punkte. Keine Aktivitätszeiten.",
     "person": "Person",
     "documents": "Dokumente",
     "knowledge": "Wissen",
     "images": "Bilder",
-    "aiSpend": "KI in diesem Zeitraum",
+    "aiSpend": "KI-Punkte in dieser Periode",
     "files": "keine Dateien | {n} Datei · {size} | {n} Dateien · {size}",
     "empty": "Noch keine Mitglieder.",
     "guestsTitle": "Gäste",
     "sharedDocs": "keine geteilten Dokumente | {n} geteiltes Dokument | {n} geteilte Dokumente",
-    "guestsHint": "Gäste nutzen ihr eigenes KI-Budget, daher werden ihre Ausgaben hier nicht angezeigt.",
+    "guestsHint": "Gäste nutzen ihre eigenen KI-Punkte, daher sind sie hier nicht aufgeführt.",
     "loadFailed": "Nutzung konnte nicht geladen werden"
   },
   "brandKit": {

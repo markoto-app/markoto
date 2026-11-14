@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { defaultCurrencyForLocale } from '~~/shared/config/pricing'
 import { formatBytes, usageFill } from '~/utils/billing/usageMeter'
-import { useSwitchProInterval } from '~/queries/billing'
+import { formatPrice } from '~/utils/billing/pricing'
+import { usePlanPricesQuery, useSwitchProInterval } from '~/queries/billing'
 import { accountLanguageName } from '~/utils/platform/localeName'
 // User profile page. The single canonical surface for account-level
 // management: who you are, the data we hold about you, and the
@@ -20,7 +21,7 @@ const { billingEnabled } = useBillingMode()
 const toast = useToast()
 const { showError, extractError } = useErrorHandler()
 const { loggedIn, user } = useUserSession()
-const { status, refresh: refreshAccountStatus } = useAccountStatus()
+const { status, pending: statusPending, refresh: refreshAccountStatus } = useAccountStatus()
 // An account that never stored a language shows the one the UI is in.
 const languageName = computed(() => accountLanguageName(status.value?.locale, locale.value, locales.value))
 // Legal acceptance section only where the legal surfaces
@@ -62,7 +63,7 @@ onMounted(() => {
   void refreshAccountStatus()
 })
 
-const { billing, refresh: refreshBilling } = useBilling()
+const { billing, pending: billingPending, refresh: refreshBilling } = useBilling()
 
 // Pro: manage the subscription in the Stripe portal and buy AI credits.
 const creditCurrency = ref<'eur' | 'chf'>('eur')
@@ -88,6 +89,25 @@ const planLabel = computed(() => {
   const interval = billing.value?.interval
   return interval ? `Pro · ${interval === 'year' ? t('workspace.billing.annual') : t('workspace.billing.monthly')}` : 'Pro'
 })
+// What the plan costs, in the subscription's own currency and period.
+const pricesQuery = usePlanPricesQuery()
+const planPrice = computed(() => {
+  const b = billing.value
+  const table = pricesQuery.data.value?.prices
+  if (!isPro.value || !b?.interval || !b.currency || !table) return null
+  const price = formatPrice(table[b.currency].pro[b.interval], b.currency.toUpperCase(), locale.value)
+  return t(b.interval === 'year' ? 'settings.profile.spending.pricePerYear' : 'settings.profile.spending.pricePerMonth', { price })
+})
+// The line under the plan: when a cancelled plan ends, else when it renews.
+// No renewal date while a payment is overdue: the notice below says what
+// happens instead.
+const planDateLine = computed(() => {
+  const b = billing.value
+  if (!isPro.value || !b) return null
+  if (b.cancelAt) return { testid: 'profile-plan-ends', text: t('workspace.billing.ends', { date: fmtDateOnly(b.cancelAt) }) }
+  if (b.paymentOverdue || !b.periodEnd) return null
+  return { testid: 'profile-plan-renews', text: t('workspace.billing.renews', { date: fmtDateOnly(b.periodEnd) }) }
+})
 const switchInterval = useSwitchProInterval()
 const paidTermsAccepted = ref(false)
 async function onSwitchInterval(): Promise<void> {
@@ -96,6 +116,8 @@ async function onSwitchInterval(): Promise<void> {
   try {
     const res = await switchInterval.mutateAsync(current === 'month' ? 'year' : 'month')
     if ('updated' in res) {
+      // The consent covered this change only; the next one asks again.
+      paidTermsAccepted.value = false
       toast.add({ title: t('workspace.billing.planChanged'), icon: 'i-lucide-check', color: 'neutral' })
     } else if (res.url) {
       // No live subscription after all: the server opened a Checkout.
@@ -256,7 +278,14 @@ const policies = computed(() => {
               {{ t('settings.profile.account.email') }}
             </dt>
             <dd class="text-sm font-mono break-all sm:break-normal sm:text-right">
-              {{ status?.email ?? '-' }}
+              <USkeleton
+                v-if="statusPending"
+                class="h-4 w-48"
+                data-testid="profile-account-skeleton"
+              />
+              <template v-else>
+                {{ status?.email ?? '-' }}
+              </template>
             </dd>
           </div>
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 px-4 py-3">
@@ -267,7 +296,13 @@ const policies = computed(() => {
               class="text-sm font-mono sm:text-right"
               data-testid="profile-language"
             >
-              {{ languageName }}
+              <USkeleton
+                v-if="statusPending"
+                class="h-4 w-24"
+              />
+              <template v-else>
+                {{ languageName }}
+              </template>
             </dd>
           </div>
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 px-4 py-3">
@@ -275,9 +310,15 @@ const policies = computed(() => {
               {{ t('settings.profile.account.ageConfirmed') }}
             </dt>
             <dd class="text-sm font-mono sm:text-right">
-              {{ status?.age?.confirmedAt
-                ? fmtDateOnly(status.age.confirmedAt)
-                : t('settings.profile.account.ageNotConfirmed') }}
+              <USkeleton
+                v-if="statusPending"
+                class="h-4 w-32"
+              />
+              <template v-else>
+                {{ status?.age?.confirmedAt
+                  ? fmtDateOnly(status.age.confirmedAt)
+                  : t('settings.profile.account.ageNotConfirmed') }}
+              </template>
             </dd>
           </div>
         </dl>
@@ -311,7 +352,7 @@ const policies = computed(() => {
       <!-- Storage: document images vs. the per-user quota (shown in
            every billing mode: the limit is real either way). -->
       <section
-        v-if="billing"
+        v-if="billing || billingPending"
         class="mb-10"
         data-testid="profile-storage-section"
       >
@@ -322,11 +363,16 @@ const policies = computed(() => {
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 mb-2">
             <span class="text-sm text-muted">{{ t('settings.profile.storage.images') }}</span>
             <span
+              v-if="billing"
               class="text-sm font-mono sm:text-right"
               data-testid="profile-image-storage"
             >
               {{ fmtBytes(billing.imageBytesUsed) }} / {{ fmtBytes(billing.imageBytesPerUserLimit) }}
             </span>
+            <USkeleton
+              v-else
+              class="h-4 w-32"
+            />
           </div>
           <UProgress
             :model-value="imageStoragePercent"
@@ -340,14 +386,8 @@ const policies = computed(() => {
         </div>
       </section>
 
-      <!-- ─────────────────────────────────────────────────────────────
-           Spending & usage placeholder. When the spending feature
-           ships (per-period AI credit usage, plan history table,
-           invoice list, downloadable receipts), it lands HERE, same
-           card shape as the other sections, between Account and
-           Your data. The structural slot is reserved on purpose so a
-           future implementer doesn't have to rearrange the page.
-           ───────────────────────────────────────────────────────── -->
+      <!-- Spending: the plan with its price and dates, the workspaces that
+           cover the user, and extra AI Points. -->
       <section
         v-if="billingEnabled"
         class="mb-10"
@@ -356,9 +396,21 @@ const policies = computed(() => {
         <h2 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-3">
           {{ t('settings.profile.spending.heading') }}
         </h2>
-        <div class="border border-default rounded-lg px-4 py-4 space-y-4">
-          <div class="flex items-center justify-between gap-3 flex-wrap">
-            <div>
+        <div
+          v-if="!billing && billingPending"
+          class="border border-default rounded-lg px-4 py-4 space-y-3"
+          data-testid="profile-spending-skeleton"
+        >
+          <USkeleton class="h-4 w-40" />
+          <USkeleton class="h-4 w-56" />
+          <USkeleton class="h-8 w-full" />
+        </div>
+        <div
+          v-else-if="billing"
+          class="border border-default rounded-lg px-4 py-4 space-y-4"
+        >
+          <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div class="space-y-1 min-w-0">
               <p
                 class="text-sm"
                 data-testid="profile-plan"
@@ -366,33 +418,23 @@ const policies = computed(() => {
                 {{ t('settings.profile.spending.plan', { plan: planLabel }) }}
               </p>
               <p
-                v-if="isPro && billing?.cancelAt"
-                class="text-xs text-muted mt-1"
-                data-testid="profile-plan-ends"
+                v-if="planPrice"
+                class="text-sm text-muted"
+                data-testid="profile-plan-price"
               >
-                {{ t('workspace.billing.ends', { date: fmtDateOnly(billing.cancelAt) }) }}
+                {{ planPrice }}
               </p>
               <p
-                v-else-if="isPro && billing?.periodEnd"
-                class="text-xs text-muted mt-1"
-                data-testid="profile-plan-renews"
+                v-if="planDateLine"
+                class="text-sm text-muted"
+                :data-testid="planDateLine.testid"
               >
-                {{ t('workspace.billing.renews', { date: fmtDateOnly(billing.periodEnd) }) }}
+                {{ planDateLine.text }}
               </p>
             </div>
-            <div class="flex gap-2">
+            <div class="flex gap-2 flex-wrap shrink-0">
               <UButton
-                size="sm"
-                color="neutral"
-                variant="outline"
-                icon="i-lucide-credit-card"
-                to="/pricing"
-              >
-                {{ t('settings.profile.spending.viewPricing') }}
-              </UButton>
-              <UButton
-                v-if="billing?.plan === 'pro'"
-                size="sm"
+                v-if="isPro"
                 color="neutral"
                 variant="outline"
                 icon="i-lucide-external-link"
@@ -401,6 +443,14 @@ const policies = computed(() => {
                 @click="openPortal"
               >
                 {{ t('settings.profile.spending.manage') }}
+              </UButton>
+              <UButton
+                color="neutral"
+                variant="ghost"
+                icon="i-lucide-credit-card"
+                to="/pricing"
+              >
+                {{ t('settings.profile.spending.viewPricing') }}
               </UButton>
             </div>
           </div>
@@ -458,22 +508,21 @@ const policies = computed(() => {
                 <span class="text-muted"> · {{ ws.plan === 'team' ? 'Team' : 'Business' }}</span>
               </li>
             </ul>
-            <p class="text-xs text-muted mt-2">
+            <p class="text-sm text-muted mt-2">
               {{ t('settings.profile.spending.coveringHint') }}
             </p>
           </div>
           <div
-            id="ai-credits"
+            id="ai-points"
             class="border-t border-default pt-4 scroll-mt-20"
           >
             <p class="font-mono text-[11px] uppercase tracking-wider text-muted mb-2">
               {{ t('credits.title') }}
             </p>
             <CommonAiCreditsCard
-              :credits="billing?.credits ?? null"
-              :currency="creditCurrency"
-              endpoint="/api/billing/topup"
-              :can-buy="billing?.plan === 'pro'"
+              :credits="billing.credits ?? null"
+              :currency="billing.currency ?? creditCurrency"
+              :can-buy="isPro"
               :blocked-reason="t('credits.needsPlan')"
               testid-prefix="profile"
             />
@@ -591,7 +640,7 @@ const policies = computed(() => {
           </div>
         </dl>
         <p
-          class="text-xs text-muted mt-3"
+          class="text-sm text-muted mt-3"
           data-testid="profile-cookie-note"
         >
           {{ t('settings.profile.legal.cookieNote') }}

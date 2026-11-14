@@ -8,8 +8,9 @@ import {
 import { useInvalidateAiCredits } from '~/queries/ai'
 import { useInvalidatePlan, usePlanPricesQuery } from '~/queries/billing'
 import { formatPrice, formatPlanBytes } from '~/utils/billing/pricing'
+import { dollarsToPoints } from '~~/shared/billing/aiPoints'
 import {
-  formatUsd,
+  formatAiPoints,
   minimumSeats,
   type WorkspaceBillingOverview
 } from '~/utils/billing/workspaceBilling'
@@ -190,14 +191,15 @@ async function openPortal() {
   }
 }
 
+// Member limits are edited in AI Points; the API takes USD (1000 points = $1).
 type LimitMode = 'default' | 'custom' | 'none'
-const limitDrafts = ref<Record<number, { mode: LimitMode, amount: number }>>({})
+const limitDrafts = ref<Record<number, { mode: LimitMode, points: number }>>({})
 watch(overview, (o) => {
-  const next: Record<number, { mode: LimitMode, amount: number }> = {}
+  const next: Record<number, { mode: LimitMode, points: number }> = {}
   for (const m of o?.members ?? []) {
     next[m.userId] = {
       mode: m.unlimited ? 'none' : m.limitIsDefault ? 'default' : 'custom',
-      amount: m.limitUsd ?? o?.pool?.defaultMemberLimitUsd ?? 0
+      points: dollarsToPoints(m.limitUsd ?? o?.pool?.defaultMemberLimitUsd ?? 0)
     }
   }
   limitDrafts.value = next
@@ -212,7 +214,7 @@ async function saveLimit(userId: number) {
   const draft = limitDrafts.value[userId]
   if (!draft) return
   busy.value = `limit-${userId}`
-  const body = draft.mode === 'default' ? { default: true } : draft.mode === 'none' ? { limitUsd: null } : { limitUsd: draft.amount }
+  const body = draft.mode === 'default' ? { default: true } : draft.mode === 'none' ? { limitUsd: null } : { limitUsd: draft.points / 1000 }
   try {
     await apiFetch('/api/workspaces/:wsId/billing/members/:userId', { method: 'patch', path: { wsId: props.workspaceId, userId }, body })
     toast.add({ title: t('workspace.billing.limitSaved'), icon: 'i-lucide-check', color: 'neutral' })
@@ -228,8 +230,8 @@ function fmtDate(iso: string | null | undefined): string {
   if (!iso) return ''
   return new Date(iso).toLocaleDateString(locale.value, { year: 'numeric', month: 'long', day: 'numeric' })
 }
-function usd(amount: number | null | undefined): string {
-  return amount === null || amount === undefined ? '-' : formatUsd(amount, locale.value)
+function points(usd: number | null | undefined): string {
+  return usd === null || usd === undefined ? '-' : formatAiPoints(usd, locale.value)
 }
 </script>
 
@@ -379,8 +381,9 @@ function usd(amount: number | null | undefined): string {
               >
                 {{ t('workspace.billing.ends', { date: fmtDate(sub.cancelAt) }) }}
               </p>
+              <!-- No renewal date while a payment is overdue: the notice above says what happens. -->
               <p
-                v-else-if="sub.validUntil"
+                v-else-if="sub.validUntil && !paymentProblem"
                 class="text-xs text-muted mt-1"
                 data-testid="workspace-billing-renews"
               >
@@ -490,7 +493,7 @@ function usd(amount: number | null | undefined): string {
             class="text-sm"
             data-testid="workspace-billing-team-spend"
           >
-            {{ t('workspace.billing.teamSpend', { spent: usd(overview.pool.aiSpendUsd), budget: usd(overview.pool.aiBudgetUsd) }) }}
+            {{ t('workspace.billing.teamSpend', { spent: points(overview.pool.aiSpendUsd), budget: points(overview.pool.aiBudgetUsd) }) }}
             <span
               v-if="overview.pool.resetsAt"
               class="text-muted"
@@ -512,12 +515,13 @@ function usd(amount: number | null | undefined): string {
                 :name="member.name ?? ''"
                 :size="28"
               />
-              <div class="min-w-0 flex-1">
+              <!-- At least 10rem wide, so on a phone the limit controls wrap below the name. -->
+              <div class="min-w-40 flex-1">
                 <p class="font-serif text-base font-normal tracking-tight truncate">
                   {{ member.name }}
                 </p>
                 <p class="font-mono text-[10.5px] tracking-[0.04em] text-muted">
-                  {{ t('workspace.billing.memberSpend', { spent: usd(member.spendUsd), limit: member.limitUsd === null ? t('workspace.billing.noLimitShort') : usd(member.limitUsd) }) }}
+                  {{ t('workspace.billing.memberSpend', { spent: points(member.spendUsd), limit: member.limitUsd === null ? t('workspace.billing.noLimitShort') : points(member.limitUsd) }) }}
                 </p>
               </div>
               <div
@@ -533,13 +537,13 @@ function usd(amount: number | null | undefined): string {
                 />
                 <UInputNumber
                   v-if="limitDrafts[member.userId]!.mode === 'custom'"
-                  v-model="limitDrafts[member.userId]!.amount"
+                  v-model="limitDrafts[member.userId]!.points"
                   :min="0"
-                  :max="10000"
-                  :step="1"
+                  :max="10000000"
+                  :step="500"
                   size="sm"
-                  class="w-28"
-                  :format-options="{ style: 'currency', currency: 'USD' }"
+                  class="w-32"
+                  :aria-label="t('workspace.billing.limitPointsLabel')"
                   :data-testid="`workspace-billing-limit-amount-${member.userId}`"
                 />
                 <UButton
@@ -556,7 +560,7 @@ function usd(amount: number | null | undefined): string {
             </li>
           </ul>
           <p class="text-xs text-muted">
-            {{ t('workspace.billing.limitFootnote', { amount: usd(overview.pool.defaultMemberLimitUsd) }) }}
+            {{ t('workspace.billing.limitFootnote', { points: points(overview.pool.defaultMemberLimitUsd) }) }}
           </p>
         </div>
       </template>

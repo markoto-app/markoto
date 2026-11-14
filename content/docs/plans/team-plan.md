@@ -3,7 +3,7 @@ title: Team and Business for a workspace
 description: How a workspace admin buys Team or Business per seat, adds seats, sees the shared AI budget and sets member limits. Only where paid plans are live.
 category: plans
 order: 3
-updated: '2026-11-09'
+updated: '2026-11-14'
 ---
 
 # Team and Business for a workspace
@@ -54,12 +54,12 @@ you and asks you to contact an admin. In your personal documents and in other wo
 use your own plan and budget, as before. Someone who isn't a member but
 edits an open document of the workspace uses their own budget too.
 
-## AI credits
+## Extra AI Points
 
-If the workspace needs more AI in a month, an admin can buy credits on
-the Billing tab (10, 25 or 50, in the workspace's currency, after ticking
-the Paid Plans Terms box). Credits are
-used only after the month's budget is spent, and they expire 12 months
+If the workspace needs more AI in a month, an admin can buy extra AI Points
+on the Billing tab (10, 25 or 50 in the workspace's currency for 10,000,
+25,000 or 50,000 AI Points, after ticking the Paid Plans Terms box). They are
+used only after the month's points are spent, and they expire 12 months
 after purchase. The tab shows what's left of each purchase.
 
 ## Storage

@@ -290,7 +290,7 @@
     "aiMentionHint": "Tip: include {'@'}markoto in a comment to ask markoto to act on it.",
     "aiResponding": "markoto is responding…",
     "aiTriggerFailed": "Couldn't reach markoto for this thread.",
-    "aiTriggerExhausted": "Quota exhausted: upgrade your plan to ask markoto from comments.",
+    "aiTriggerExhausted": "Out of AI Points, so markoto can’t answer from comments.",
     "hintPost": "post",
     "hintCancel": "cancel",
     "notificationFallbackTitle": "New reply"
@@ -638,20 +638,20 @@
     "dictateIdleTitle": "Dictation paused",
     "dictateIdleDescription": "No audio for 30 seconds: dictation stopped.",
     "dictateErrorTitle": "Dictation failed",
-    "budgetExhaustedTitle": "Out of AI credits",
-    "budgetExhaustedDescription": "You've used all your AI credits for this billing period. Upgrade your plan to keep going.",
-    "exhaustedPlaceholder": "Out of AI credits: upgrade to continue",
-    "workspaceBudgetExhaustedTitle": "Workspace AI budget used up",
-    "workspaceBudgetExhaustedDescription": "This workspace’s AI budget is used up for this month. Ask a workspace admin to add seats or credits.",
-    "workspaceExhaustedPlaceholder": "Workspace AI budget used up: ask an admin",
+    "budgetExhaustedTitle": "Out of AI Points",
+    "budgetExhaustedDescription": "Your AI Points for this period are used up. Upgrade your plan to keep going.",
+    "exhaustedPlaceholder": "Out of AI Points: upgrade to continue",
+    "workspaceBudgetExhaustedTitle": "Workspace AI Points used up",
+    "workspaceBudgetExhaustedDescription": "This workspace’s AI Points for this month are used up. Ask a workspace admin for more.",
+    "workspaceExhaustedPlaceholder": "Workspace AI Points used up: ask an admin",
     "upgradeCta": "Upgrade",
-    "remainingLabel": "{remaining} of {limit} AI credits left this month",
+    "remainingLabel": "{remaining} of {limit} AI Points left this month",
     "responseLabel": "markoto says",
     "responseQuestionLabel": "markoto is asking",
     "responseDismiss": "Dismiss",
     "responseShowLast": "Last response from markoto",
-    "exhaustedPlaceholderFree": "Out of AI credits: they refill next period",
-    "budgetExhaustedResetDescription": "You've used all your AI credits for this period. They refill when the next period starts.",
+    "exhaustedPlaceholderFree": "Out of AI Points: they refill next period",
+    "budgetExhaustedResetDescription": "Your AI Points for this period are used up. They refill when the next period starts.",
     "webToolsHourlyLimit": "Hourly limit for web search reached. Try again later or continue without it.",
     "webToolsDailyLimit": "You've reached the daily limit for web search and page fetching. Try again tomorrow, or continue without web tools.",
     "budgetExhaustedComingSoonDescription": "Your AI Points for this period are used up. They refill next period.",
@@ -662,7 +662,7 @@
     "memberLimitReachedTitle": "Your AI limit is reached",
     "memberLimitReachedDescription": "You’ve used your AI limit in this workspace for this month. Ask a workspace admin to raise it.",
     "memberLimitPlaceholder": "Your AI limit here is used up: ask an admin",
-    "teamBudgetExhausted": "This workspace’s AI budget is used up for this month. Ask a workspace admin to add seats or credits.",
+    "teamBudgetExhausted": "This workspace’s AI Points for this month are used up. Ask a workspace admin for more.",
     "memberLimitReached": "You’ve reached your AI limit in this workspace for this month. Ask a workspace admin to raise it.",
     "locked": {
       "aiVoice": "Voice input isn't included in this plan",
@@ -691,6 +691,12 @@
       "tooShort": "Recording was too short.",
       "encodeFailed": "Could not encode audio."
     },
+    "budgetExhaustedProDescription": "Your AI Points for this period are used up. Buy extra AI Points to keep going.",
+    "buyPointsCta": "Buy AI Points",
+    "exhaustedPlaceholderPro": "Out of AI Points: buy more to continue",
+    "workspaceBudgetExhaustedAdminDescription": "This workspace’s AI Points for this month are used up. Add seats or buy AI Points under Billing.",
+    "workspaceBillingCta": "Open billing",
+    "workspaceExhaustedPlaceholderAdmin": "Workspace AI Points used up: add more under Billing",
     "step": {
       "thinking": "Thinking…",
       "done": "Done",
@@ -789,7 +795,7 @@
     "title": "Pricing",
     "subtitle": "Plans set your AI Points, workspaces and storage. AI on your own key is never limited.",
     "metaDescription": "Compare markoto plans: AI Points, workspaces and storage per plan. AI on your own provider key is never limited by a plan.",
-    "creditsHint": "1000 AI Points = 1 US dollar of model usage. AI on your own key uses no points.",
+    "creditsHint": "AI Points pay for the AI markoto runs for you. A short edit uses a few, a long text or an image more. AI on your own key uses no points.",
     "currentPlan": "Current plan",
     "manageSubscription": "Manage subscription",
     "upgrade": "Upgrade",
@@ -925,17 +931,17 @@
     "seatTotalMonth": "{total} per month for {seats} seats",
     "seatTotalYear": "{total} per year for {seats} seats",
     "seatsLabel": "Seats",
-    "creditsBuyLink": "Buy AI credits in your profile"
+    "creditsBuyLink": "Buy AI Points in your profile"
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
     "creditsTooltipTitle": "AI Points",
     "creditsRemaining": "{remaining} of {limit} points left",
     "creditsPercent": "{pct}% remaining",
-    "creditsResetOn": "Resets {date}",
-    "creditsExtra": "+ {points} points from AI credits",
+    "creditsResetOn": "Refills on {date}",
+    "creditsExtra": "+ {points} extra AI Points",
     "creditsWorkspace": "AI in this document uses the workspace’s budget.",
-    "creditsHint": "AI Points cover AI the instance pays for: 1000 points = 1 US dollar of model usage.",
+    "creditsHint": "AI Points pay for the AI this service runs for you.",
     "upgradeToPlan": "Upgrade to {plan}",
     "topPlan": "You're on the top plan.",
     "viewAllPlans": "View all plans",
@@ -1592,7 +1598,7 @@
       "switchToAnnual": "Switch to annual billing",
       "switchToMonthly": "Switch to monthly billing",
       "aiTitle": "AI this month",
-      "teamSpend": "{spent} of {budget} used",
+      "teamSpend": "{spent} of {budget} AI Points used",
       "resets": "resets on {date}",
       "storage": "Shared storage: {knowledge} for knowledge files, {images} for images.",
       "memberSpend": "{spent} used · limit {limit}",
@@ -1602,7 +1608,7 @@
       "limitNone": "No limit",
       "limitSaved": "Limit saved",
       "limitSaveFailed": "Could not save the limit",
-      "limitFootnote": "By default each member may use up to {amount} a month. “No limit” still stops at the workspace budget.",
+      "limitFootnote": "By default each member may use up to {points} AI Points a month. “No limit” still stops at the workspace budget.",
       "checkoutFailed": "Could not start the payment",
       "planChanged": "Plan changed",
       "planChangeFailed": "Could not change the plan",
@@ -1623,7 +1629,8 @@
         "cancelFailed": "The workspace's subscription could not be cancelled, so nothing was deleted. Please try again.",
         "subscriptionActive": "This workspace still has a running subscription. Contact support to delete it.",
         "seatsBusy": "Another seat change or invitation is in progress. Please try again in a moment."
-      }
+      },
+      "limitPointsLabel": "Limit in AI Points"
     },
     "dpa": {
       "staleTitle": "Data Processing Addendum updated: please review again",
@@ -1963,7 +1970,9 @@
         "paymentOverdueTitle": "Payment overdue",
         "paymentOverdueBody": "The last payment for Pro failed and will be tried again. Update the payment method under “Manage billing” to keep your plan.",
         "coveringTitle": "Workspaces that cover you",
-        "coveringHint": "In these workspaces their plan and shared AI budget apply. Elsewhere, your own plan."
+        "coveringHint": "In these workspaces their plan and shared AI budget apply. Elsewhere, your own plan.",
+        "pricePerMonth": "{price} per month",
+        "pricePerYear": "{price} per year"
       },
       "data": {
         "heading": "Your data",
@@ -2046,7 +2055,7 @@
     "comingSoonHint": "Paid plans with higher limits are coming soon.",
     "paidTerms": {
       "consentPlan": "I accept the {terms} and ask that my plan starts right away. If I withdraw within 14 days as an EU consumer, I pay for the time used.",
-      "consentTopup": "I accept the {terms} and ask for the credits right away. My right of withdrawal ends once I use them.",
+      "consentTopup": "I accept the {terms} and ask for the AI Points right away. My right of withdrawal ends once I use them.",
       "link": "Paid Plans Terms",
       "required": "Accept the Paid Plans Terms to continue."
     },
@@ -2483,16 +2492,17 @@
     "words": "{n} word | {n} words"
   },
   "credits": {
-    "title": "AI credits",
-    "balance": "{amount} in AI credits left",
-    "usedThisMonth": "{amount} used this month",
-    "explainer": "Credits add to your plan's monthly AI budget. They are used after the budget is spent and expire {months} months after purchase.",
-    "pack": "{price} → {credit} credit",
+    "title": "Extra AI Points",
+    "balance": "{points} extra AI Points left",
+    "usedThisMonth": "{points} used this month",
+    "explainer": "Used once the plan’s monthly AI Points are spent. They expire {months} months after purchase.",
+    "pack": "{price}: {points} AI Points",
     "grantLeft": "{left} left · expires {date}",
-    "needsPlan": "AI credits extend a paid plan. Upgrade to Pro to buy them.",
+    "needsPlan": "Extra AI Points are for paid plans. Upgrade to Pro to buy them.",
     "buyFailed": "Could not start the purchase",
-    "purchased": "Credits purchased",
-    "purchasedBody": "They are added as soon as Stripe confirms the payment, usually within a few seconds."
+    "purchased": "AI Points purchased",
+    "purchasedBody": "They are added as soon as Stripe confirms the payment, usually within a few seconds.",
+    "points": "{points} AI Points"
   },
   "sso": {
     "title": "Single sign-on",
@@ -2671,17 +2681,17 @@
   },
   "usage": {
     "title": "Usage",
-    "intro": "What each person keeps here: documents, knowledge files, images and AI spend this period. No activity times.",
+    "intro": "What each person keeps here: documents, knowledge files, images and AI Points used this period. No activity times.",
     "person": "Person",
     "documents": "Documents",
     "knowledge": "Knowledge",
     "images": "Images",
-    "aiSpend": "AI this period",
+    "aiSpend": "AI Points this period",
     "files": "no files | {n} file · {size} | {n} files · {size}",
     "empty": "No members yet.",
     "guestsTitle": "Guests",
     "sharedDocs": "no shared documents | {n} shared document | {n} shared documents",
-    "guestsHint": "Guests use their own AI budget, so their spend is not shown here.",
+    "guestsHint": "Guests use their own AI Points, so they are not shown here.",
     "loadFailed": "Couldn't load usage"
   },
   "brandKit": {

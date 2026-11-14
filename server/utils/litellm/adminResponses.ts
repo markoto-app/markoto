@@ -32,7 +32,7 @@ export const litellmKeyGenerateResponse = z.object({
 
 /** GET /key/info: the key's spend and budget. */
 export const litellmKeyInfoResponse = z.object({
-  info: z.object({ spend: optionalNumber, max_budget: optionalNumber }).nullish().catch(null)
+  info: z.object({ spend: optionalNumber, max_budget: optionalNumber, budget_reset_at: optionalString }).nullish().catch(null)
 })
 
 /** One entry of GET /key/list?return_full_object=true. */

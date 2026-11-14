@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, lt, lte, or, sql, type SQL } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull, lt, lte, ne, or, sql, type SQL } from 'drizzle-orm'
 import { workspaceSubscriptions } from '../db/schema'
 import { executor, useDatabase, type TxHandle } from '../db/client'
 import type { WorkspacePlanName } from '../../shared/config/tiers'
@@ -269,4 +269,28 @@ export async function clearSeatAdjustment(_by: SystemActor, workspaceId: string,
   await useDatabase().update(workspaceSubscriptions)
     .set({ budgetSeatAdjust: 0, budgetSeatAdjustUntil: null })
     .where(and(eq(workspaceSubscriptions.workspaceId, workspaceId), eq(workspaceSubscriptions.budgetSeatAdjustUntil, until)))
+}
+
+/**
+ * Workspace subscriptions whose row no Stripe event or in-app change has
+ * written yet and that hold no end date: `backfillSubscriptionCancelDates`
+ * asks Stripe whether they were cancelled.
+ */
+export async function listWorkspaceSubscriptionsWithoutCancelState(_by: SystemActor): Promise<Array<{ workspaceId: string, subscriptionId: string }>> {
+  const rows = await useDatabase().select({ workspaceId: workspaceSubscriptions.workspaceId, subscriptionId: workspaceSubscriptions.stripeSubscriptionId })
+    .from(workspaceSubscriptions)
+    .where(and(isNotNull(workspaceSubscriptions.stripeSubscriptionId), isNull(workspaceSubscriptions.subscriptionEventAt), isNull(workspaceSubscriptions.cancelAt), ne(workspaceSubscriptions.status, 'canceled')))
+  return rows.flatMap(r => r.subscriptionId ? [{ workspaceId: r.workspaceId, subscriptionId: r.subscriptionId }] : [])
+}
+
+/** Store the end date Stripe reports for a cancelled subscription, unless an event has written the row meanwhile. */
+export async function backfillWorkspaceCancelAt(_by: SystemActor, workspaceId: string, subscriptionId: string, cancelAt: Date): Promise<number> {
+  return (await useDatabase().update(workspaceSubscriptions).set({ cancelAt })
+    .where(and(
+      eq(workspaceSubscriptions.workspaceId, workspaceId),
+      eq(workspaceSubscriptions.stripeSubscriptionId, subscriptionId),
+      isNull(workspaceSubscriptions.subscriptionEventAt),
+      isNull(workspaceSubscriptions.cancelAt)
+    ))
+    .returning({ id: workspaceSubscriptions.workspaceId })).length
 }

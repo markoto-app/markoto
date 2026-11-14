@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { TOPUP_PACKS, TOPUP_VALIDITY_MONTHS, type Currency, type TopupPackId } from '~~/shared/config/pricing'
 import { formatPrice } from '~/utils/billing/pricing'
-import { formatUsd } from '~/utils/billing/workspaceBilling'
+import { formatAiPoints } from '~/utils/billing/workspaceBilling'
 import type { CreditBalanceView } from '~/utils/billing/aiCredits'
 
-// AI credit top-ups: balance, the packs, and past purchases. Used
+// Extra AI Points (top-ups): balance, the packs, and past purchases. The
+// server keeps them in USD; the user only ever sees AI Points. Used
 // on the profile page (personal, Pro) and the workspace billing tab (Team
 // / Business). `workspaceId` picks the workspace's checkout route instead
 // of the personal one; `canBuy` false shows
@@ -42,6 +43,10 @@ async function buy(pack: TopupPackId) {
   }
 }
 
+function points(usd: number): string {
+  return formatAiPoints(usd, locale.value)
+}
+
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString(locale.value, { year: 'numeric', month: 'short', day: 'numeric' })
 }
@@ -53,17 +58,20 @@ function fmtDate(iso: string): string {
     :data-testid="`${testidPrefix}-credits`"
   >
     <div class="flex items-baseline justify-between gap-3 flex-wrap">
-      <p class="text-sm">
-        {{ t('credits.balance', { amount: formatUsd(credits?.usableUsd ?? 0, locale) }) }}
+      <p
+        class="text-sm"
+        :data-testid="`${testidPrefix}-credits-balance`"
+      >
+        {{ t('credits.balance', { points: points(credits?.usableUsd ?? 0) }) }}
       </p>
       <p
         v-if="credits && credits.usedThisMonthUsd > 0"
         class="font-mono text-[10.5px] tracking-[0.04em] text-muted"
       >
-        {{ t('credits.usedThisMonth', { amount: formatUsd(credits.usedThisMonthUsd, locale) }) }}
+        {{ t('credits.usedThisMonth', { points: points(credits.usedThisMonthUsd) }) }}
       </p>
     </div>
-    <p class="text-xs text-muted">
+    <p class="text-sm text-muted">
       {{ t('credits.explainer', { months: TOPUP_VALIDITY_MONTHS }) }}
     </p>
 
@@ -88,12 +96,12 @@ function fmtDate(iso: string): string {
         :data-testid="`${testidPrefix}-buy-${pack.id}`"
         @click="buy(pack.id)"
       >
-        {{ t('credits.pack', { price: formatPrice(pack.price[currency], currency.toUpperCase(), locale), credit: formatUsd(pack.creditUsd, locale) }) }}
+        {{ t('credits.pack', { price: formatPrice(pack.price[currency], currency.toUpperCase(), locale), points: points(pack.creditUsd) }) }}
       </UButton>
     </div>
     <p
       v-else-if="blockedReason"
-      class="text-xs text-muted"
+      class="text-sm text-muted"
     >
       {{ blockedReason }}
     </p>
@@ -107,9 +115,9 @@ function fmtDate(iso: string): string {
         :key="i"
         class="py-2 flex justify-between gap-3 flex-wrap"
       >
-        <span>{{ fmtDate(grant.createdAt) }} · {{ formatUsd(grant.amountUsd, locale) }}</span>
+        <span>{{ fmtDate(grant.createdAt) }} · {{ t('credits.points', { points: points(grant.amountUsd) }) }}</span>
         <span class="font-mono text-muted">
-          {{ t('credits.grantLeft', { left: formatUsd(grant.remainingUsd, locale), date: fmtDate(grant.expiresAt) }) }}
+          {{ t('credits.grantLeft', { left: points(grant.remainingUsd), date: fmtDate(grant.expiresAt) }) }}
         </span>
       </li>
     </ul>

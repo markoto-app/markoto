@@ -5,7 +5,8 @@ import { flushPromises } from '@vue/test-utils'
 import type { H3Event } from 'h3'
 import { CommonAiCreditsCard } from '#components'
 
-// AI credit top-ups: the card shows the balance and history, sends
+// Extra AI Points (top-ups): the card shows the balance and history in
+// AI Points (never dollars), sends
 // the chosen pack to checkout and follows Stripe's URL; without a paid
 // plan it explains instead of selling.
 
@@ -36,16 +37,18 @@ afterEach(() => {
   goToExternal.mockReset()
 })
 
-describe('AI credits card', () => {
+describe('extra AI Points card', () => {
   it('shows the balance, the packs with their prices, and buys one', async () => {
     const wrapper = await mountSuspended(CommonAiCreditsCard, {
       props: { credits, currency: 'chf', canBuy: true, testidPrefix: 'profile' }
     })
     mounted.push(wrapper)
-    expect(wrapper.text()).toContain('$32.50 in AI credits left')
-    expect(wrapper.text()).toContain('$2.50 used this month')
-    expect(wrapper.text()).toContain('$22.50 left')
-    expect(wrapper.find('[data-testid="profile-buy-25"]').text()).toContain('CHF')
+    expect(wrapper.get('[data-testid="profile-credits-balance"]').text()).toBe('32,500 extra AI Points left')
+    expect(wrapper.text()).toContain('2,500 used this month')
+    expect(wrapper.text()).toContain('25,000 AI Points')
+    expect(wrapper.text()).toContain('22,500 left')
+    expect(wrapper.get('[data-testid="profile-buy-25"]').text()).toMatch(/^CHF\s25: 25,000 AI Points$/)
+    expect(wrapper.text()).not.toContain('$')
     // Disabled until the Paid Plans Terms box is ticked.
     expect(wrapper.get('[data-testid="profile-buy-25"]').attributes('disabled')).toBeDefined()
     await wrapper.get('[data-testid="profile-paid-terms"] [role="checkbox"]').trigger('click')
@@ -64,6 +67,6 @@ describe('AI credits card', () => {
     mounted.push(wrapper)
     expect(wrapper.find('[data-testid="profile-buy-10"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('Upgrade first.')
-    expect(wrapper.text()).toContain('$0.00 in AI credits left')
+    expect(wrapper.text()).toContain('0 extra AI Points left')
   })
 })

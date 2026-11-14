@@ -94,20 +94,16 @@ watch(() => voice.errorMessage.value, (err) => {
 // Billing state: the budget gates the input, send and mic buttons so the
 // user can't type a prompt the server would reject (the bar stays visible
 // to show the way forward), and the notices explain what ran out.
-const { creditsExhausted, freePoolExhausted, creditsAreShared, isTeamBudgetExhausted, billingEnabled, onCapReached, goToAiSettings } = useAiBudgetNotices(props.ai, () => props.workspaceId)
+const { creditsExhausted, freePoolExhausted, creditsAreShared, isTeamBudgetExhausted, adminCanRefillWorkspace, canBuyPersonalPoints, billingEnabled, onCapReached, goToAiSettings } = useAiBudgetNotices(props.ai, () => props.workspaceId)
 
 const placeholder = computed(() => {
   if (!loggedIn.value) return t('ai.loginRequired')
   if (chatMissing.value) return t('aiProvider.cta.promptBar')
-  // Out of credits → swap the placeholder so the user reads the
+  // Out of AI Points → swap the placeholder so the user reads the
   // reason the bar is disabled + the path forward. Workspace-shared
-  // pool exhaustion gets its own copy because the path forward is
-  // "contact the workspace owner", not /pricing.
-  if (creditsExhausted.value) {
-    if (freePoolExhausted.value) return t('ai.freeAllowanceExhaustedPlaceholder')
-    if (creditsAreShared.value) return isTeamBudgetExhausted.value ? t('ai.workspaceExhaustedPlaceholder') : t('ai.memberLimitPlaceholder')
-    return billingEnabled.value ? t('ai.exhaustedPlaceholder') : t('ai.exhaustedPlaceholderFree')
-  }
+  // pool exhaustion gets its own copy because the path forward is the
+  // workspace's billing (admins) or an admin (members), not /pricing.
+  if (creditsExhausted.value) return exhaustedPlaceholder.value
   // Active session: mirror the session's status so the bar doubles as a
   // status indicator.
   const s = props.ai.mySession.value
@@ -115,6 +111,16 @@ const placeholder = computed(() => {
   // Idle: call-to-action copy. Usage/remaining info lives in the topbar
   // badge so it doesn't compete with the affordance.
   return t('ai.placeholder')
+})
+
+const exhaustedPlaceholder = computed(() => {
+  if (freePoolExhausted.value) return t('ai.freeAllowanceExhaustedPlaceholder')
+  if (creditsAreShared.value) {
+    if (!isTeamBudgetExhausted.value) return t('ai.memberLimitPlaceholder')
+    return adminCanRefillWorkspace.value ? t('ai.workspaceExhaustedPlaceholderAdmin') : t('ai.workspaceExhaustedPlaceholder')
+  }
+  if (canBuyPersonalPoints.value) return t('ai.exhaustedPlaceholderPro')
+  return billingEnabled.value ? t('ai.exhaustedPlaceholder') : t('ai.exhaustedPlaceholderFree')
 })
 
 const disabled = computed(() => {
@@ -419,8 +425,8 @@ const { bottomOffset } = usePromptBarOffset()
         :loading="ai.submitting.value"
         :disabled="!loggedIn || (!creditsExhausted && !input.trim())"
         :class="creditsExhausted ? 'opacity-70' : ''"
-        :aria-label="creditsExhausted ? t('ai.exhaustedPlaceholder') : t('ai.send')"
-        :title="creditsExhausted ? t('ai.exhaustedPlaceholder') : undefined"
+        :aria-label="creditsExhausted ? exhaustedPlaceholder : t('ai.send')"
+        :title="creditsExhausted ? exhaustedPlaceholder : undefined"
         data-testid="ai-prompt-bar-send"
         class="ai-prompt-bar__action"
         @click="onSubmit"
