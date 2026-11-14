@@ -45,6 +45,24 @@ function clientUpdate(server: Y.Doc, mutate: (client: Y.Doc) => void, client?: Y
   return Y.encodeStateAsUpdate(c, before)
 }
 
+/**
+ * The update a provider would send for `mutate` on `client`: only that
+ * transaction's structs and deletions (an `update` event), unlike
+ * `clientUpdate`, which diffs against a state vector and so carries the
+ * client's whole delete set.
+ */
+function transactionUpdate(client: Y.Doc, mutate: (client: Y.Doc) => void): Uint8Array {
+  const updates: Uint8Array[] = []
+  const record = (u: Uint8Array) => updates.push(u)
+  client.on('update', record)
+  try {
+    mutate(client)
+  } finally {
+    client.off('update', record)
+  }
+  return Y.mergeUpdates(updates)
+}
+
 function rejectionOf(fn: () => void): SyncRejection | null {
   try {
     fn()
@@ -206,13 +224,50 @@ describe('update guard: ymeta validation on the WebSocket path', () => {
     expect(rejectionOf(() => guard.check(server, syncMessage(big), false))?.reason).toBe('invalid-meta')
   })
 
-  it('rejects an update that references state the server never received', () => {
+  it('accepts an update that references state the server has not received yet, and checks it once it arrives', () => {
     const client = new Y.Doc()
     Y.applyUpdate(client, Y.encodeStateAsUpdate(server))
     // First write is withheld; the second one is placed relative to it.
-    clientUpdate(server, c => c.getMap('meta').set('title', 'withheld'), client)
-    const second = clientUpdate(server, c => c.getMap('meta').set('title', 'second'), client)
-    expect(rejectionOf(() => guard.check(server, syncMessage(second), false))?.reason).toBe('invalid-update')
+    const first = transactionUpdate(client, c => c.getMap('meta').set('title', 'withheld'))
+    const second = transactionUpdate(client, c => c.getMap('meta').set('title', 'second'))
+    expect(() => accept(second)).not.toThrow()
+    // Y.js parks it until the first write arrives.
+    expect(server.store.pendingStructs).not.toBeNull()
+    expect(server.getMap('meta').get('title')).toBe('Original')
+    expect(() => accept(first)).not.toThrow()
+    expect(server.store.pendingStructs).toBeNull()
+    expect(server.getMap('meta').get('title')).toBe('second')
+  })
+
+  it('never integrates a parked invalid meta write, and does not blame the update that completes it', () => {
+    const client = new Y.Doc()
+    Y.applyUpdate(client, Y.encodeStateAsUpdate(server))
+    const first = transactionUpdate(client, c => c.getMap('meta').set('title', 'valid'))
+    // Invalid, but placed relative to a write the server doesn't have: parked unchecked.
+    const invalid = transactionUpdate(client, c => c.getMap('meta').set('title', 't'.repeat(256)))
+    expect(() => accept(invalid)).not.toThrow()
+    expect(server.store.pendingStructs).not.toBeNull()
+    // The missing write arrives: the parked one would integrate with it, so
+    // it is checked now, and dropped.
+    expect(() => accept(first)).not.toThrow()
+    expect(server.store.pendingStructs).toBeNull()
+    expect(server.getMap('meta').get('title')).toBe('valid')
+  })
+
+  it('still rejects an invalid meta write that can be placed through parked state', () => {
+    const client = new Y.Doc()
+    Y.applyUpdate(client, Y.encodeStateAsUpdate(server))
+    const a = transactionUpdate(client, c => c.getMap('meta').set('title', 'a'))
+    const b = transactionUpdate(client, c => c.getMap('meta').set('title', 'b'))
+    // b is parked (it references a); an invalid write after b names b as
+    // its origin and resolves through the parked set as soon as a is known.
+    expect(() => accept(b)).not.toThrow()
+    const bad = transactionUpdate(client, c => c.getMap('meta').set('audience', 'pirate'))
+    // `audience` is a fresh key: its parent is explicit, so it is placeable
+    // right away and refused.
+    expect(rejectionOf(() => guard.check(server, syncMessage(bad), false))?.reason).toBe('invalid-meta')
+    expect(() => accept(a)).not.toThrow()
+    expect(server.getMap('meta').get('title')).toBe('b')
   })
 
   it('lets a valid theme overwrite an already-corrupted one (repair path)', () => {
@@ -284,5 +339,40 @@ describe('update guard: stateless messages', () => {
     expect(() => guard.check(server, awarenessMessage(), true)).not.toThrow()
     const update = clientUpdate(server, c => c.getText('content').insert(0, 'x'))
     expect(() => guard.check(server, syncMessage(update), true)).not.toThrow()
+  })
+})
+
+describe('update guard: edits made while the sync server restarted', () => {
+  const guard = createUpdateGuard(limitsFrom({}))
+
+  function accept(server: Y.Doc, update: Uint8Array) {
+    guard.check(server, syncMessage(update), false)
+    Y.applyUpdate(server, update)
+  }
+
+  it('accepts queued offline edits that build on edits the new process never stored, before the resync delivers them', () => {
+    // The old process stored "# Doc", then received "abc" and died before
+    // its store ran. The fresh process loads only what was stored.
+    const stored = new Y.Doc()
+    stored.getText('content').insert(0, '# Doc')
+    const client = new Y.Doc()
+    Y.applyUpdate(client, Y.encodeStateAsUpdate(stored))
+    const lost = transactionUpdate(client, c => c.getText('content').insert(5, ' abc'))
+    // Typed while offline, queued by the provider, sent right after auth.
+    const offline = [
+      transactionUpdate(client, c => c.getText('content').insert(9, 'd')),
+      transactionUpdate(client, c => c.getText('content').insert(10, 'e')),
+      transactionUpdate(client, c => c.getText('content').insert(11, 'f'))
+    ]
+    const fresh = new Y.Doc()
+    Y.applyUpdate(fresh, Y.encodeStateAsUpdate(stored))
+    for (const u of offline) expect(() => accept(fresh, u)).not.toThrow()
+    expect(fresh.getText('content').toJSON()).toBe('# Doc')
+    // Sync step 2 from the client: everything the server lacks.
+    const step2 = Y.encodeStateAsUpdate(client, Y.encodeStateVector(fresh))
+    expect(() => accept(fresh, step2)).not.toThrow()
+    expect(fresh.getText('content').toJSON()).toBe('# Doc abcdef')
+    expect(fresh.store.pendingStructs).toBeNull()
+    expect(lost.byteLength).toBeGreaterThan(0)
   })
 })
