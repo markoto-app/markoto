@@ -628,6 +628,7 @@
     "micErrorTitle": "Échec de la saisie vocale",
     "dictateStart": "Démarrer la dictée",
     "dictateStop": "Arrêter la dictée",
+    "dictateFinishing": "Fin de la dictée",
     "dictateConnecting": "Connexion…",
     "dictateListening": "Écoute…",
     "dictateBudgetExhaustedTitle": "Budget de dictée quotidien atteint",
@@ -696,6 +697,7 @@
     "editor": "Éditeur",
     "dictateStart": "Dicter",
     "dictateStop": "Arrêter",
+    "dictateFinishing": "Fin",
     "documentShort": "Infos",
     "commentsShort": "Commentaires",
     "activityShort": "Activité",
@@ -745,7 +747,7 @@
     "tiers": {
       "free": "Toutes les fonctions d'écriture, plus une première dotation de points IA.",
       "pro": "Pour les rédacteurs indépendants : plus de points IA, d'espaces de travail et de stockage.",
-      "team": "Pour les équipes : par place, AI Points et stockage partagés, gestion pour les admins.",
+      "team": "Pour les équipes : par place, points IA et stockage partagés, gestion pour les admins.",
       "business": "Pour les organisations : Team avec authentification unique, export d'audit et limites sur mesure."
     },
     "freeAllowanceNote": "L'allocation gratuite utilise un modèle hébergé par Mistral AI dans l'UE, tant que la réserve commune de ce mois dure. Pour plus, ajoutez votre propre clé.",
@@ -863,7 +865,6 @@
     "seatTotalMonth": "{total} par mois pour {seats} places",
     "seatTotalYear": "{total} par an pour {seats} places",
     "seatsLabel": "Places",
-    "creditsSection": "Les crédits IA s’ajoutent au budget IA mensuel de Pro et des espaces Team / Business. Ils sont utilisés une fois le budget dépensé et expirent {months} mois après l’achat.",
     "creditsBuyLink": "Acheter des crédits IA dans votre profil"
   },
   "topbar": {
@@ -1913,7 +1914,12 @@
         "loadFailed": "Impossible de charger les exports",
         "requestFailed": "Impossible de demander l’export",
         "exportRequested": "demandé",
-        "exportAvailableUntil": "disponible jusqu’au"
+        "exportAvailableUntil": "disponible jusqu’au",
+        "exportStatus_queued": "En attente",
+        "exportStatus_running": "En cours",
+        "exportStatus_ready": "Prêt",
+        "exportStatus_expired": "Expiré",
+        "exportStatus_failed": "Échec"
       },
       "delete": {
         "heading": "Supprimer votre compte",
@@ -1927,6 +1933,8 @@
         "heading": "Mentions légales",
         "subheading": "Les versions que vous avez acceptées. Nous redemandons lorsqu'un document change.",
         "notAccepted": "Non accepté",
+        "accepted": "Version {version}, acceptée le {date}",
+        "acceptedVersion": "Version {version}",
         "needsReacceptance": "nouvelle acceptation requise (v{version} actuelle)",
         "dpaNotApplicable": "Requis lorsque vous créez un espace de travail",
         "cookieNote": "Uniquement des cookies essentiels : connexion, langue et une clé pour supprimer les documents créés sans compte. Ni mesure d’audience, ni pistage, ni publicité. La politique de confidentialité les liste tous."
@@ -2152,7 +2160,6 @@
     "hero": {
       "title": "Du {markdown}, joliment mis en page.",
       "markdown": "Markdown",
-      "body": "Un éditeur Markdown collaboratif avec un aperçu paginé en direct. Écrivez du texte brut ; exportez un PDF identique à l’aperçu, page pour page.",
       "cta": "Commencer à écrire, sans inscription",
       "next": "Voir comment ça marche"
     },
@@ -2429,7 +2436,7 @@
     "loadFailed": "Impossible de charger les paramètres d’authentification unique.",
     "planNotice": "L’authentification unique avec votre propre fournisseur d’identité fait partie du plan Business.",
     "intro": "Les membres ouvrent cet espace de travail via votre fournisseur d’identité (OpenID Connect ou SAML). Les admins accèdent toujours à ces réglages.",
-    "enforcedNotice": "L’authentification unique est activée : les membres n’ouvrent cet espace de travail qu’après s’être connectés via votre fournisseur d’identité (valable 12 heures).",
+    "enforcedNotice": "Les membres se connectent via votre fournisseur d’identité, puis de nouveau toutes les 12 heures.",
     "idpTitle": "Fournisseur d’identité",
     "protocol": {
       "oidc": "OpenID Connect",
@@ -2440,7 +2447,9 @@
       "issuerHint": "L’adresse sous laquelle se trouve le /.well-known/openid-configuration de votre fournisseur.",
       "clientId": "ID client",
       "clientSecret": "Secret client",
-      "secretKept": "Laissez vide pour conserver le secret enregistré."
+      "secretKept": "Laissez vide pour conserver le secret enregistré.",
+      "showSecret": "Afficher le secret",
+      "hideSecret": "Masquer le secret"
     },
     "saml": {
       "entityId": "ID d’entité du fournisseur d’identité",
@@ -2515,9 +2524,11 @@
       "no-seat": "Toutes les places payées de cet espace de travail sont occupées. Demandez à un admin d’ajouter une place.",
       "member-limit": "Cet espace de travail a atteint la limite de membres de son plan.",
       "idp-unavailable": "Le fournisseur d’identité n’a pas pu être joint. Réessayez dans un instant.",
-      "failed": "La connexion n’a pas pu être finalisée. Recommencez depuis le lien de connexion.",
+      "failed": "La connexion n’a pas pu aboutir. Réessayez.",
+      "expired": "La connexion a pris trop de temps. Recommencez.",
       "unknown": "Ce lien de connexion n’existe pas.",
-      "toWorkspace": "Retour à l’espace de travail"
+      "toWorkspace": "Retour à l’espace de travail",
+      "retry": "Réessayer"
     },
     "discover": {
       "button": "Se connecter avec votre organisation",
@@ -2540,6 +2551,8 @@
     "system": "markoto",
     "deletedUser": "Utilisateur supprimé",
     "ipHint": "Adresse réseau raccourcie de la personne à l’origine de l’action",
+    "yes": "oui",
+    "no": "non",
     "kind": {
       "all": "Tous les événements",
       "members": "Membres et rôles",

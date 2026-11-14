@@ -11,9 +11,9 @@ import { mintDictateJwt } from '~~/tests/helpers/jwt'
 // transcription call (Mistral Voxtral Realtime) is stubbed by a mock
 // SpeechClient (see dictateSpeechClient.ts) so these tests can drive
 // the full server state machine without hitting the upstream. Mock
-// emits canned partial → final events on chunk-count thresholds so
-// assertions can pin the wire contract (ready → partial → final →
-// close) without real audio.
+// emits canned text deltas on chunk-count thresholds and its end text
+// after the input ended, so assertions can pin the wire contract
+// (ready → partial → final → done → close) without real audio.
 //
 // Covered:
 //   1. happy-path handshake (hello → auth → ready)
@@ -21,8 +21,9 @@ import { mintDictateJwt } from '~~/tests/helpers/jwt'
 //   3. 4000 on pre-auth binary
 //   4. 4000 on auth timeout
 //   5. 4001 on concurrent-session lock (second session rejected)
-//   6. partial + final message flow from mock SpeechClient
-//   7. graceful stop path (no "write after end" error)
+//   6. partial + final message flow from mock SpeechClient (sentences are
+//      finalised by the relay, the service finalises only at the end)
+//   7. graceful stop path (trailing final, `done`, no "write after end" error)
 
 async function mintDictateToken(userId: number, docId: string): Promise<string> {
   // Routed through the shared test helper so `kind` + `scope` are
@@ -154,13 +155,11 @@ describe('WS /api/ai/dictate', () => {
   })
 
   describe('transcription flow', () => {
-    it('emits partial → final messages as the mock stream responds', async () => {
-      // The MOCK SpeechClient (dictateSpeechClient.ts) emits a canned
-      // sequence keyed to chunk-count: chunk 1 → partial "hello",
-      // chunk 2 → partial "hello world", chunk 3 → final
-      // "hello world". This test pins the wire contract, partials
-      // are interim and never committed; finals are what the client
-      // writes to Y.js.
+    it('relays interim text and finalises a sentence once nothing follows it', async () => {
+      // The mock (dictateSpeechClient.ts) behaves like Voxtral Realtime:
+      // append-only text while audio flows, nothing final from the service
+      // until the input ends. The relay finalises a finished sentence
+      // itself (transcriptSegmenter.ts): here after the quiet time.
       const { user, doc } = await setupUserAndDoc()
       const token = await mintDictateToken(user.id, doc.docId)
       const ws = await openWs('/api/ai/dictate')
@@ -168,20 +167,96 @@ describe('WS /api/ai/dictate', () => {
       ws.sendJson({ type: 'auth', token })
       await ws.nextMessageOfType('ready')
 
-      // Send fake PCM chunks. Size doesn't matter for the mock,
-      // what matters is the chunk COUNT, which the mock uses to
-      // time its scripted responses.
+      // Size doesn't matter for the mock, the chunk COUNT times its script.
       for (let i = 0; i < 3; i++) {
         ws.send(Buffer.alloc(4096, 0))
       }
 
-      // Scripted by the canned fake in server/utils/agentic/dictateSpeechClient.ts.
       const p1 = await ws.nextMessageOfType('partial')
       expect(p1.text).toBe('Lena says')
       const p2 = await ws.nextMessageOfType('partial')
       expect(p2.text).toBe('Lena says the new templates')
+      const p3 = await ws.nextMessageOfType('partial')
+      expect(p3.text).toBe('Lena says the new templates save her about an hour a week.')
       const final = await ws.nextMessageOfType('final')
       expect(final.text).toBe('Lena says the new templates save her about an hour a week.')
+    })
+
+    it('finalises a sentence when the next one starts and keeps only the new tail interim', async () => {
+      const { user, doc } = await setupUserAndDoc()
+      const token = await mintDictateToken(user.id, doc.docId)
+      const ws = await openWs('/api/ai/dictate')
+      await ws.nextMessageOfType('hello')
+      ws.sendJson({ type: 'auth', token })
+      await ws.nextMessageOfType('ready')
+
+      for (let i = 0; i < 5; i++) {
+        ws.send(Buffer.alloc(4096, 0))
+      }
+
+      const final = await ws.nextMessageOfType('final')
+      expect(final.text).toBe('Lena says the new templates save her about an hour a week.')
+      const tail = await ws.nextMessage(m => m.type === 'partial' && m.text === 'The export')
+      expect(tail.text).toBe('The export')
+    })
+
+    it('after stop: sends the trailing final, then done, then closes', async () => {
+      // The words on screen at stop are still interim. The service
+      // finalises them only after the input ended (the mock takes 600 ms,
+      // longer than a client that closed early would have waited); the
+      // socket must stay open for that and end with an explicit `done`.
+      const { user, doc } = await setupUserAndDoc()
+      const token = await mintDictateToken(user.id, doc.docId)
+      const ws = await openWs('/api/ai/dictate')
+      await ws.nextMessageOfType('hello')
+      ws.sendJson({ type: 'auth', token })
+      await ws.nextMessageOfType('ready')
+
+      ws.send(Buffer.alloc(4096, 0))
+      ws.send(Buffer.alloc(4096, 0))
+      const interim = await ws.nextMessage(m => m.type === 'partial' && m.text === 'Lena says the new templates')
+      expect(interim.type).toBe('partial')
+
+      const order: string[] = []
+      ws.raw.on('message', (raw) => {
+        order.push(JSON.parse(String(raw)).type)
+      })
+      const stoppedAt = Date.now()
+      ws.sendJson({ type: 'stop' })
+
+      const final = await ws.nextMessageOfType('final')
+      expect(final.text).toBe('Lena says the new templates')
+      expect(Date.now() - stoppedAt).toBeGreaterThanOrEqual(500)
+      await ws.nextMessageOfType('done')
+      const close = await ws.closed()
+      expect(close.code).toBe(1000)
+      expect(order).toEqual(['final', 'done'])
+    })
+
+    it('after stop: a sentence that was final already is not sent again', async () => {
+      const { user, doc } = await setupUserAndDoc()
+      const token = await mintDictateToken(user.id, doc.docId)
+      const ws = await openWs('/api/ai/dictate')
+      await ws.nextMessageOfType('hello')
+      ws.sendJson({ type: 'auth', token })
+      await ws.nextMessageOfType('ready')
+
+      for (let i = 0; i < 5; i++) {
+        ws.send(Buffer.alloc(4096, 0))
+      }
+      await ws.nextMessageOfType('final')
+      await ws.nextMessage(m => m.type === 'partial' && m.text === 'The export')
+
+      const finals: unknown[] = []
+      ws.raw.on('message', (raw) => {
+        const msg = JSON.parse(String(raw))
+        if (msg.type === 'final') finals.push(msg.text)
+      })
+      ws.sendJson({ type: 'stop' })
+      await ws.nextMessageOfType('done')
+
+      // The service's end text repeats the whole session; only the tail goes out.
+      expect(finals).toEqual(['The export'])
     })
 
     it('cleanly handles stop without emitting a spurious error', async () => {
@@ -200,7 +275,8 @@ describe('WS /api/ai/dictate', () => {
       // the composable disconnected: should be silently dropped.
       ws.send(Buffer.alloc(4096, 0))
 
-      // Close arrives naturally from the STT `end` event.
+      // The close follows the upstream's end (and the `done` frame).
+      await ws.nextMessageOfType('done')
       const close = await ws.closed()
       // 1000 = normal; anything else (1011 = stt error) would
       // signal the write-after-end race slipped the guard.

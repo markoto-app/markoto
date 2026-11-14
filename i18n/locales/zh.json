@@ -628,6 +628,7 @@
     "micErrorTitle": "语音输入失败",
     "dictateStart": "开始听写",
     "dictateStop": "停止听写",
+    "dictateFinishing": "正在结束听写",
     "dictateConnecting": "连接中…",
     "dictateListening": "聆听中…",
     "dictateBudgetExhaustedTitle": "已达每日听写额度",
@@ -696,6 +697,7 @@
     "editor": "编辑器",
     "dictateStart": "听写",
     "dictateStop": "停止",
+    "dictateFinishing": "结束中",
     "documentShort": "信息",
     "commentsShort": "评论",
     "activityShort": "活动",
@@ -745,7 +747,7 @@
     "tiers": {
       "free": "全部写作功能，外加一份起步 AI 点数。",
       "pro": "面向个人：更多 AI 点数、工作区和存储空间。",
-      "team": "适合团队：按席位计费，共享 AI Points 和存储，管理员控制。",
+      "team": "适合团队：按席位计费，共享 AI 点数和存储，管理员控制。",
       "business": "适合组织：在 Team 基础上增加单点登录、审计导出和自定义上限。"
     },
     "freeAllowanceNote": "免费额度使用由 Mistral AI 在欧盟托管的模型，在本月共享额度用完之前可用。如需更多，请添加你自己的密钥。",
@@ -863,7 +865,6 @@
     "seatTotalMonth": "{seats} 个席位每月 {total}",
     "seatTotalYear": "{seats} 个席位每年 {total}",
     "seatsLabel": "席位",
-    "creditsSection": "AI 额度会增加 Pro 以及 Team / Business 工作区的每月 AI 预算。预算用完后才会使用，并在购买 {months} 个月后过期。",
     "creditsBuyLink": "在个人资料中购买 AI 额度"
   },
   "topbar": {
@@ -1913,7 +1914,12 @@
         "loadFailed": "无法加载导出记录",
         "requestFailed": "无法请求导出",
         "exportRequested": "请求于",
-        "exportAvailableUntil": "可下载至"
+        "exportAvailableUntil": "可下载至",
+        "exportStatus_queued": "排队中",
+        "exportStatus_running": "进行中",
+        "exportStatus_ready": "已就绪",
+        "exportStatus_expired": "已过期",
+        "exportStatus_failed": "失败"
       },
       "delete": {
         "heading": "删除你的账号",
@@ -1927,6 +1933,8 @@
         "heading": "法律",
         "subheading": "你已接受的版本。文档更新时我们会再次询问。",
         "notAccepted": "未接受",
+        "accepted": "版本 {version}，于 {date} 接受",
+        "acceptedVersion": "版本 {version}",
         "needsReacceptance": "需重新接受（当前 v{version}）",
         "dpaNotApplicable": "创建工作区时必需",
         "cookieNote": "仅使用必要的 Cookie：登录、语言，以及用于删除无账户创建文档的密钥。无分析、跟踪或广告。隐私政策列出了每一个 Cookie。"
@@ -2152,7 +2160,6 @@
     "hero": {
       "title": "排版精美的 {markdown}。",
       "markdown": "Markdown",
-      "body": "一款支持协作的 Markdown 编辑器，带实时分页预览。用纯文本写作，导出的 PDF 与预览逐页一致。",
       "cta": "开始写作，无需注册",
       "next": "看看它如何工作"
     },
@@ -2429,7 +2436,7 @@
     "loadFailed": "无法加载单点登录设置。",
     "planNotice": "使用你自己的身份提供商进行单点登录是 Business 方案的功能。",
     "intro": "成员通过你的身份提供商（OpenID Connect 或 SAML）打开此工作区。管理员始终可以访问这些设置。",
-    "enforcedNotice": "单点登录已开启：成员只有通过你的身份提供商登录后才能打开此工作区（有效期 12 小时）。",
+    "enforcedNotice": "成员通过你的身份提供商登录，之后每 12 小时重新登录一次。",
     "idpTitle": "身份提供商",
     "protocol": {
       "oidc": "OpenID Connect",
@@ -2440,7 +2447,9 @@
       "issuerHint": "你的提供商的 /.well-known/openid-configuration 所在的地址。",
       "clientId": "客户端 ID",
       "clientSecret": "客户端密钥",
-      "secretKept": "留空以保留已保存的密钥。"
+      "secretKept": "留空以保留已保存的密钥。",
+      "showSecret": "显示密钥",
+      "hideSecret": "隐藏密钥"
     },
     "saml": {
       "entityId": "身份提供商实体 ID",
@@ -2515,9 +2524,11 @@
       "no-seat": "此工作区的付费席位已全部占用。请让管理员增加席位。",
       "member-limit": "此工作区已达到其方案的成员上限。",
       "idp-unavailable": "无法连接身份提供商。请稍后重试。",
-      "failed": "无法完成登录。请从登录链接重新开始。",
+      "failed": "登录未能完成，请重试。",
+      "expired": "登录用时过长，请重新开始。",
       "unknown": "此登录链接不存在。",
-      "toWorkspace": "返回工作区"
+      "toWorkspace": "返回工作区",
+      "retry": "重试"
     },
     "discover": {
       "button": "使用你的组织登录",
@@ -2540,6 +2551,8 @@
     "system": "markoto",
     "deletedUser": "已删除的用户",
     "ipHint": "执行操作者的缩短网络地址",
+    "yes": "是",
+    "no": "否",
     "kind": {
       "all": "所有事件",
       "members": "成员和角色",

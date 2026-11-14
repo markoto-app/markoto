@@ -3,10 +3,11 @@ import { selfHostPath } from '~~/shared/seo/marketing'
 import { SOURCE_REPO_URL } from '~~/shared/config/links'
 
 // Site footer: the site map of the public pages. Mounted on /, /pricing,
-// /settings/profile, the /legal/* and /admin pages, the /docs layout and
-// layouts/marketing.vue; deliberately NOT in the editor or workspace
-// surfaces (they're chromeless work surfaces and a footer would compete
-// with the preview/editor layout).
+// the /legal/* and /admin pages, the /docs layout and layouts/marketing.vue;
+// deliberately NOT in the editor or workspace surfaces (they're chromeless
+// work surfaces and a footer would compete with the preview/editor layout)
+// and NOT on the /settings/* pages (they open like an overlay with a close
+// button; the profile lists the legal documents itself).
 //
 // Columns of plain links, each shown only when it has links:
 //   Product    Pricing (where shown), Self-host (marketing site), Docs, GitHub

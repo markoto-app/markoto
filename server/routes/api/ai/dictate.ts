@@ -28,16 +28,19 @@ const log = useLogger('dictate')
 //   Client → server (after auth):
 //     - binary frames: raw int16 PCM chunks from the AudioWorklet
 //       (2048 samples @ 16 kHz = 128 ms per chunk).
-//     - `{ type: 'stop' }` JSON: graceful shutdown; caller finalizes.
+//     - `{ type: 'stop' }` JSON: no more audio. The upstream flushes, the
+//       trailing `final` and `{ type: 'done' }` follow, then we close.
 //   Server → client (JSON, always):
 //     - `{ type: 'hello' }` immediately on open, "send auth now"
 //     - `{ type: 'ready' }` after auth + STT stream up, "send audio now"
-//     - `{ type: 'partial', text }` interim transcripts
-//     - `{ type: 'final', text }` finalized phrases
+//     - `{ type: 'partial', text }` the still-open tail of the transcript
+//     - `{ type: 'final', text }` a finished sentence (the upstream itself
+//       finalises only at the end; see `dictation/transcriptSegmenter.ts`)
+//     - `{ type: 'done' }` everything was sent; socket closes next
 //     - `{ type: 'error', message }` fatal; socket closes next
 //     - `{ type: 'budget-exhausted', remaining }` LiteLLM budget used up
-//     - `{ type: 'session-cap' }` per-session 10 min cap
-//     - `{ type: 'idle-timeout' }` 30 s without audio
+//     - `{ type: 'session-cap' }` per-session 10 min cap; ends like `stop`
+//     - `{ type: 'idle-timeout' }` 30 s without audio; ends like `stop`
 //
 // Spend is capped by the LiteLLM budget (voice ticks, `dictation/voiceTicks.ts`); there is no
 // separate audio cap. Other guards: one session per user, idle timeout,
@@ -99,7 +102,7 @@ export default defineEventHandler({
       // Post-auth branch. Control frames (`{type:'stop'}`) and audio
       // (raw binary) both land here; the type-parse above routes us.
       if (parsedControl) {
-        handlePostAuthControl(ctx, parsedControl)
+        handlePostAuthControl(p, ctx, parsedControl)
         return
       }
       await handleAudioChunk(p, ctx, message.rawData)

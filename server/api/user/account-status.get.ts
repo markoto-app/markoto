@@ -1,4 +1,5 @@
 import { getAccountStatus } from '../../repos/userPolicies'
+import { getPolicyAcceptanceTimes } from '../../repos/audit'
 import { isAdminUser } from '../../utils/auth/adminAccess'
 import {
   DPA_VERSION,
@@ -36,6 +37,8 @@ export default defineApiHandler({
     // step: every "required" flag is false. The accepted versions are
     // still reported as stored.
     const legal = legalSurfacesEnabled()
+    // The profile shows when each document was accepted.
+    const acceptedAt = await getPolicyAcceptanceTimes(self)
 
     return {
     // Drives the "Admin" entry in the avatar dropdown. Same source as
@@ -58,6 +61,7 @@ export default defineApiHandler({
           currentVersion: PRIVACY_VERSION,
           acceptedVersion: status.privacyVersionAccepted,
           acceptedLocale: status.privacyVersionAcceptedLocale,
+          acceptedAt: status.privacyVersionAccepted === null ? null : acceptedAt.privacy?.toISOString() ?? null,
           acceptanceRequired: legal && (status.privacyVersionAccepted === null
             || status.privacyVersionAccepted < PRIVACY_VERSION)
         },
@@ -65,6 +69,7 @@ export default defineApiHandler({
           currentVersion: TOS_VERSION,
           acceptedVersion: status.tosVersionAccepted,
           acceptedLocale: status.tosVersionAcceptedLocale,
+          acceptedAt: status.tosVersionAccepted === null ? null : acceptedAt.tos?.toISOString() ?? null,
           acceptanceRequired: legal && (status.tosVersionAccepted === null
             || status.tosVersionAccepted < TOS_VERSION)
         },
@@ -72,6 +77,7 @@ export default defineApiHandler({
           currentVersion: DPA_VERSION,
           acceptedVersion: status.dpaVersionAccepted,
           acceptedLocale: status.dpaVersionAcceptedLocale,
+          acceptedAt: status.dpaVersionAccepted === null ? null : acceptedAt.dpa?.toISOString() ?? null,
           // DPA acceptance is only required for workspace owners. The
           // endpoint reports the raw state; the UI gates the prompt on
           // "user owns ≥1 workspace" via a separate signal.

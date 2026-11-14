@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { parseDate, type DateValue } from '@internationalized/date'
 import type { ApiResponse } from '~/utils/api/client'
+import { auditChanges, type AuditScalar } from '~/utils/workspace/auditChange'
+import { workspaceRoleKey } from '~/utils/workspace/roleLabel'
 
 // The workspace audit log: who changed what, when and from which
 // (shortened) network address: members, roles, invitations, sharing,
@@ -19,8 +22,22 @@ const retentionDays = ref<number | null>(null)
 const loading = ref(false)
 // `all` = no filter (the select can't use an empty value).
 const kind = ref('all')
+// Calendar days as `YYYY-MM-DD` ('' = no bound).
 const from = ref('')
 const to = ref('')
+// The date fields are Nuxt UI's segmented inputs: they order and label day,
+// month and year by the UI language. A native `type="date"` input follows
+// the browser's language instead (mm/dd/yyyy in a German UI).
+function dayModel(day: Ref<string>) {
+  return computed<DateValue | undefined>({
+    get: () => day.value ? parseDate(day.value) : undefined,
+    set: (value) => {
+      day.value = value ? value.toString().slice(0, 10) : ''
+    }
+  })
+}
+const fromDate = dayModel(from)
+const toDate = dayModel(to)
 const open = ref<number | null>(null)
 
 const kindItems = computed(() => [
@@ -74,6 +91,26 @@ function actionLabel(action: string): string {
   return te(key) ? t(key) : action
 }
 
+/** One changed value in the reader's words where we have them (role, plan, billing period, yes / no, dates). */
+function valueLabel(key: string, value: AuditScalar): string {
+  if (value === null || value === '') return '–'
+  if (typeof value === 'boolean') return value ? t('audit.yes') : t('audit.no')
+  if (typeof value === 'number') return String(value)
+  if (key === 'role') return t(workspaceRoleKey(value))
+  if (key === 'interval' && (value === 'month' || value === 'year')) return t(value === 'month' ? 'workspace.billing.monthly' : 'workspace.billing.annual')
+  // Plan names are proper names: Free, Pro, Team, Business.
+  if (key === 'plan') return value.charAt(0).toUpperCase() + value.slice(1)
+  if (/^\d{4}-\d{2}-\d{2}T/.test(value)) return when(value)
+  return value
+}
+
+/** "Team → Business" for an event that carries a before / after pair; '' otherwise. */
+function changeSummary(e: AuditEvent): string {
+  return auditChanges(e.before, e.after)
+    .map(c => `${valueLabel(c.key, c.from)} → ${valueLabel(c.key, c.to)}`)
+    .join(', ')
+}
+
 function when(iso: string): string {
   return new Date(iso).toLocaleString(locale.value, { dateStyle: 'medium', timeStyle: 'short' })
 }
@@ -119,19 +156,20 @@ function detailsJson(e: AuditEvent): string {
         />
       </UFormField>
       <UFormField :label="t('audit.from')">
-        <UInput
-          v-model="from"
-          type="date"
+        <UInputDate
+          v-model="fromDate"
+          :locale="locale"
           data-testid="workspace-audit-from"
         />
       </UFormField>
       <UFormField :label="t('audit.to')">
-        <UInput
-          v-model="to"
-          type="date"
+        <UInputDate
+          v-model="toDate"
+          :locale="locale"
           data-testid="workspace-audit-to"
         />
       </UFormField>
+      <!-- Two downloads of the same list: the same kind of button. -->
       <div class="flex gap-2 ms-auto">
         <UButton
           :to="exportUrl('csv')"
@@ -149,7 +187,8 @@ function detailsJson(e: AuditEvent): string {
           external
           download
           color="neutral"
-          variant="ghost"
+          variant="outline"
+          icon="i-lucide-download"
           data-testid="workspace-audit-export-jsonl"
         >
           JSON Lines
@@ -179,6 +218,11 @@ function detailsJson(e: AuditEvent): string {
         >
           <span class="font-mono text-[10.5px] tracking-[0.04em] text-muted w-36 shrink-0">{{ when(e.at) }}</span>
           <span class="text-sm">{{ actionLabel(e.action) }}</span>
+          <span
+            v-if="changeSummary(e)"
+            class="text-sm"
+            data-testid="workspace-audit-change"
+          >{{ changeSummary(e) }}</span>
           <span class="text-sm text-muted">{{ actorLabel(e) }}</span>
           <span
             v-if="e.ip"

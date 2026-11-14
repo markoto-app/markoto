@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { captureLogs } from '../../helpers/logs'
 import {
   safeSendTransactionalEmail,
@@ -19,7 +19,63 @@ function restoreEnv(): void {
   else process.env.RESEND_API_KEY = ORIGINAL_RESEND_KEY
 }
 
+const resendSend = vi.hoisted(() => vi.fn())
+vi.mock('resend', () => ({
+  Resend: class {
+    emails = { send: resendSend }
+  }
+}))
+
 const logs = captureLogs()
+
+describe('sendTransactionalEmail (Resend)', () => {
+  beforeEach(() => {
+    delete process.env.NUXT_EMAIL_PROVIDER
+    process.env.RESEND_API_KEY = 're_test'
+    resendSend.mockReset()
+  })
+
+  afterEach(() => {
+    restoreEnv()
+  })
+
+  it('logs one info line per sent email: kind, redacted recipient, provider message id', async () => {
+    resendSend.mockResolvedValue({ data: { id: 'msg_123' }, error: null })
+    const result = await sendTransactionalEmail({
+      kind: 'data_export.ready',
+      to: 'alicelongname@example.com',
+      locale: 'de',
+      subject: 'Secret subject',
+      body: 'Secret body'
+    })
+
+    expect(result).toEqual({ delivered: true, providerMessageId: 'msg_123' })
+    expect(logs.find('info', 'email sent')).toMatchObject({
+      component: 'email',
+      kind: 'data-export-ready',
+      to: 'a***@example.com',
+      providerMessageId: 'msg_123'
+    })
+    const logged = JSON.stringify(logs.records)
+    expect(logged).not.toContain('alicelongname@example.com')
+    expect(logged).not.toContain('Secret subject')
+    expect(logged).not.toContain('Secret body')
+  })
+
+  it('logs no "sent" line when the provider refuses the message', async () => {
+    resendSend.mockResolvedValue({ data: null, error: { name: 'validation_error', message: 'API key is invalid' } })
+    const result = await safeSendTransactionalEmail({
+      kind: 'data_export.ready',
+      to: 'alice@example.com',
+      locale: 'en',
+      subject: 's', body: 'b'
+    })
+
+    expect(result).toBeNull()
+    expect(logs.find('info', 'email sent')).toBeUndefined()
+    expect(logs.find('error', 'send failed')).toBeDefined()
+  })
+})
 
 describe('sendTransactionalEmail (stub mode)', () => {
   beforeEach(() => {

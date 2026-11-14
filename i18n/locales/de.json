@@ -628,6 +628,7 @@
     "micErrorTitle": "Spracheingabe fehlgeschlagen",
     "dictateStart": "Diktat starten",
     "dictateStop": "Diktat stoppen",
+    "dictateFinishing": "Diktat wird abgeschlossen",
     "dictateConnecting": "Verbindung wird hergestellt…",
     "dictateListening": "Hört zu…",
     "dictateBudgetExhaustedTitle": "Tägliches Diktatbudget erreicht",
@@ -696,6 +697,7 @@
     "editor": "Editor",
     "dictateStart": "Diktieren",
     "dictateStop": "Stopp",
+    "dictateFinishing": "Schliesst ab",
     "documentShort": "Info",
     "commentsShort": "Kommentare",
     "activityShort": "Aktivität",
@@ -745,7 +747,7 @@
     "tiers": {
       "free": "Alle Schreibfunktionen und ein Startkontingent an KI-Punkten.",
       "pro": "Für Einzelpersonen: mehr KI-Punkte, Workspaces und Speicher.",
-      "team": "Für Teams: pro Platz, gemeinsame AI Points und Speicher, Verwaltung für Admins.",
+      "team": "Für Teams: pro Platz, gemeinsame KI-Punkte und Speicher, Verwaltung für Admins.",
       "business": "Für Organisationen: Team plus Single Sign-on, Audit-Export und eigene Limits."
     },
     "freeAllowanceNote": "Das kostenlose Kontingent läuft auf einem Modell, das Mistral AI in der EU betreibt, solange der gemeinsame Topf dieses Monats reicht. Für mehr hinterlege deinen eigenen Schlüssel.",
@@ -863,7 +865,6 @@
     "seatTotalMonth": "{total} pro Monat für {seats} Plätze",
     "seatTotalYear": "{total} pro Jahr für {seats} Plätze",
     "seatsLabel": "Plätze",
-    "creditsSection": "KI-Guthaben erhöht das monatliche KI-Budget von Pro und von Team- / Business-Workspaces. Es wird nach dem Monatsbudget verbraucht und verfällt {months} Monate nach dem Kauf.",
     "creditsBuyLink": "KI-Guthaben in deinem Profil kaufen"
   },
   "topbar": {
@@ -1913,7 +1914,12 @@
         "loadFailed": "Exporte konnten nicht geladen werden",
         "requestFailed": "Export konnte nicht angefordert werden",
         "exportRequested": "angefordert",
-        "exportAvailableUntil": "verfügbar bis"
+        "exportAvailableUntil": "verfügbar bis",
+        "exportStatus_queued": "In der Warteschlange",
+        "exportStatus_running": "Wird erstellt",
+        "exportStatus_ready": "Bereit",
+        "exportStatus_expired": "Abgelaufen",
+        "exportStatus_failed": "Fehlgeschlagen"
       },
       "delete": {
         "heading": "Konto löschen",
@@ -1927,6 +1933,8 @@
         "heading": "Rechtliches",
         "subheading": "Die Versionen, die du akzeptiert hast. Wir fragen erneut, wenn sich ein Dokument ändert.",
         "notAccepted": "Nicht akzeptiert",
+        "accepted": "Version {version}, akzeptiert am {date}",
+        "acceptedVersion": "Version {version}",
         "needsReacceptance": "erneute Zustimmung erforderlich (aktuell v{version})",
         "dpaNotApplicable": "Erforderlich, wenn du einen Workspace erstellst",
         "cookieNote": "Nur notwendige Cookies: Anmeldung, Sprache und ein Schlüssel zum Löschen von Dokumenten, die ohne Konto erstellt wurden. Keine Analyse, kein Tracking, keine Werbung. Die Datenschutzerklärung führt jedes auf."
@@ -2152,7 +2160,6 @@
     "hero": {
       "title": "Schön gesetztes {markdown}.",
       "markdown": "Markdown",
-      "body": "Ein kollaborativer Markdown-Editor mit einer Live-Vorschau in echten Seiten. Du schreibst reinen Text; das PDF entspricht der Vorschau Seite für Seite.",
       "cta": "Jetzt schreiben, ohne Anmeldung",
       "next": "So funktioniert's"
     },
@@ -2429,7 +2436,7 @@
     "loadFailed": "Die Einstellungen für Single Sign-on konnten nicht geladen werden.",
     "planNotice": "Single Sign-on mit deinem eigenen Identitätsanbieter ist Teil des Business-Plans.",
     "intro": "Mitglieder öffnen diesen Workspace über deinen Identitätsanbieter (OpenID Connect oder SAML). Admins erreichen diese Einstellungen immer.",
-    "enforcedNotice": "Single Sign-on ist eingeschaltet: Mitglieder öffnen diesen Workspace erst nach der Anmeldung über deinen Identitätsanbieter (gültig für 12 Stunden).",
+    "enforcedNotice": "Mitglieder melden sich über deinen Identitätsanbieter an, danach alle 12 Stunden erneut.",
     "idpTitle": "Identitätsanbieter",
     "protocol": {
       "oidc": "OpenID Connect",
@@ -2440,7 +2447,9 @@
       "issuerHint": "Die Adresse, unter der /.well-known/openid-configuration deines Anbieters liegt.",
       "clientId": "Client-ID",
       "clientSecret": "Client-Secret",
-      "secretKept": "Leer lassen, um das gespeicherte Secret zu behalten."
+      "secretKept": "Leer lassen, um das gespeicherte Secret zu behalten.",
+      "showSecret": "Secret anzeigen",
+      "hideSecret": "Secret verbergen"
     },
     "saml": {
       "entityId": "Entity-ID des Identitätsanbieters",
@@ -2515,9 +2524,11 @@
       "no-seat": "Alle bezahlten Plätze dieses Workspace sind belegt. Bitte einen Admin, einen Platz hinzuzufügen.",
       "member-limit": "Dieser Workspace hat das Mitgliederlimit seines Plans erreicht.",
       "idp-unavailable": "Der Identitätsanbieter war nicht erreichbar. Versuche es gleich noch einmal.",
-      "failed": "Die Anmeldung konnte nicht abgeschlossen werden. Beginne erneut über den Anmeldelink.",
+      "failed": "Die Anmeldung konnte nicht abgeschlossen werden. Versuche es erneut.",
+      "expired": "Die Anmeldung hat zu lange gedauert. Starte sie erneut.",
       "unknown": "Diesen Anmeldelink gibt es nicht.",
-      "toWorkspace": "Zurück zum Workspace"
+      "toWorkspace": "Zurück zum Workspace",
+      "retry": "Erneut versuchen"
     },
     "discover": {
       "button": "Mit deiner Organisation anmelden",
@@ -2540,6 +2551,8 @@
     "system": "markoto",
     "deletedUser": "Gelöschter Benutzer",
     "ipHint": "Gekürzte Netzwerkadresse der Person, die die Aktion ausgeführt hat",
+    "yes": "ja",
+    "no": "nein",
     "kind": {
       "all": "Alle Ereignisse",
       "members": "Mitglieder und Rollen",

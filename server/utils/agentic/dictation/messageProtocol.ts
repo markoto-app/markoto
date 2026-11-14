@@ -3,7 +3,8 @@ import { releaseSessionLock } from '../../platform/rateLimit'
 import type { tryParseControl } from '../dictateHelpers'
 import { encodeServerFrame } from '~~/shared/contracts/dictateWs'
 import { useLogger } from '../../platform/logger'
-import { rejectPeer, resetIdleTimer, type DictatePeerContext, type PeerLike } from './peerContext'
+import { rejectPeer, type DictatePeerContext, type PeerLike } from './peerContext'
+import { beginSessionEnd, resetIdleTimer } from './sessionEnd'
 import { handleAuth } from './dictationAuth'
 import { startVoiceTickOrchestrator, stopVoiceTickOrchestrator } from './voiceTicks'
 
@@ -41,12 +42,9 @@ function toBuffer(raw: unknown): Buffer | null {
 }
 
 /** Post-auth control frame handler. Today only `stop` is meaningful; other frames are ignored (forward-compat). */
-export function handlePostAuthControl(ctx: DictatePeerContext, parsedControl: ParsedControl): void {
+export function handlePostAuthControl(p: PeerLike, ctx: DictatePeerContext, parsedControl: ParsedControl): void {
   if (parsedControl.type !== 'stop') return
-  ctx.sttEnded = true
-  try {
-    ctx.stt?.end()
-  } catch { /* best-effort */ }
+  beginSessionEnd(p, ctx)
 }
 
 /**
@@ -90,6 +88,7 @@ export async function handleAudioChunk(p: PeerLike, ctx: DictatePeerContext, raw
  * one-session lock.
  */
 export function releaseDictation(ctx: DictatePeerContext): void {
+  if (ctx.flushTimer) clearTimeout(ctx.flushTimer)
   stopVoiceTickOrchestrator(ctx)
   try {
     ctx.stt?.destroy()

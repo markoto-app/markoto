@@ -14,6 +14,9 @@ import {
 import { useS3Client } from '../storage/s3'
 import { buildExportZip } from './dataExport'
 import { safeSendTransactionalEmail } from '../email/sendEmail'
+import { buildDataExportReadyEmail } from '../email/dataExportEmail'
+import { emailLinkBaseUrl } from '../platform/siteUrl'
+import { normaliseInviteLocale } from '../workspaces/workspaceInvites'
 import { DATA_EXPORT_RETENTION_DAYS } from '~~/shared/config/retention'
 import { useEnv } from '~~/shared/env/load'
 import { useLogger } from '../platform/logger'
@@ -126,14 +129,16 @@ export async function runDataExportWorker(): Promise<RunDataExportWorkerResult> 
 
     const user = await findUserById(WORKER.actingFor(job.userId))
     if (user?.email) {
+      // In the account's language; the link is built from the configured
+      // site URL only (never a request host).
+      const locale = normaliseInviteLocale(user.locale)
+      const content = buildDataExportReadyEmail(locale, emailLinkBaseUrl(useEnv().core.siteUrl), DATA_EXPORT_RETENTION_DAYS)
       void safeSendTransactionalEmail({
         kind: 'data_export.ready',
         to: user.email,
-        // user.locale isn't on findUserById's projection, so default to
-        // null and let the email template fall back to its default locale.
-        locale: null,
-        subject: 'Your markoto data export is ready',
-        body: `Your data export is ready to download. Sign in to /settings/profile and click "Download", the link expires in ${DATA_EXPORT_RETENTION_DAYS} days.`,
+        locale,
+        subject: content.subject,
+        body: content.body,
         metadata: { userId: job.userId, jobId: job.jobId, sizeBytes: bytes.byteLength }
       })
     }

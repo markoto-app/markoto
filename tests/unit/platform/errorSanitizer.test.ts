@@ -128,9 +128,21 @@ describe('buildSanitizedErrorPayload: statusMessage defaults', () => {
     expect(out.statusMessage).toBe('Server Error')
   })
 
-  it('falls back to "Bad Request" for 4xx without statusMessage', () => {
-    const out = buildSanitizedErrorPayload({ statusCode: 400 })
-    expect(out.statusMessage).toBe('Bad Request')
+  it.each([
+    [400, 'Bad Request'],
+    [401, 'Unauthorized'],
+    [402, 'Payment Required'],
+    [403, 'Forbidden'],
+    [404, 'Not Found'],
+    [409, 'Conflict'],
+    [410, 'Gone'],
+    [429, 'Too Many Requests']
+  ])('a %i without statusMessage says "%s", never the phrase of another status', (statusCode, phrase) => {
+    expect(buildSanitizedErrorPayload({ statusCode }).statusMessage).toBe(phrase)
+  })
+
+  it('a 4xx we have no phrase for is not called "Bad Request"', () => {
+    expect(buildSanitizedErrorPayload({ statusCode: 418 }).statusMessage).toBe('Client Error')
   })
 
   it('keeps explicit statusMessage when provided', () => {

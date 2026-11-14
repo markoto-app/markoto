@@ -628,6 +628,7 @@
     "micErrorTitle": "Error en la entrada de voz",
     "dictateStart": "Iniciar dictado",
     "dictateStop": "Detener dictado",
+    "dictateFinishing": "Finalizando el dictado",
     "dictateConnecting": "Conectando…",
     "dictateListening": "Escuchando…",
     "dictateBudgetExhaustedTitle": "Presupuesto diario de dictado alcanzado",
@@ -696,6 +697,7 @@
     "editor": "Editor",
     "dictateStart": "Dictar",
     "dictateStop": "Detener",
+    "dictateFinishing": "Finalizando",
     "documentShort": "Info",
     "commentsShort": "Comentarios",
     "activityShort": "Actividad",
@@ -745,7 +747,7 @@
     "tiers": {
       "free": "Todas las funciones de escritura y una asignación inicial de puntos de IA.",
       "pro": "Para quien escribe en solitario: más puntos de IA, espacios de trabajo y almacenamiento.",
-      "team": "Para equipos: por puesto, AI Points y almacenamiento compartidos, controles de administración.",
+      "team": "Para equipos: por puesto, puntos de IA y almacenamiento compartidos, controles de administración.",
       "business": "Para organizaciones: Team con inicio de sesión único, exportación de auditoría y límites a medida."
     },
     "freeAllowanceNote": "La asignación gratuita funciona con un modelo alojado por Mistral AI en la UE, mientras dure la reserva compartida de este mes. Para más, añade tu propia clave.",
@@ -863,7 +865,6 @@
     "seatTotalMonth": "{total} al mes por {seats} puestos",
     "seatTotalYear": "{total} al año por {seats} puestos",
     "seatsLabel": "Puestos",
-    "creditsSection": "Los créditos de IA se suman al presupuesto mensual de IA de Pro y de los espacios Team / Business. Se usan cuando se agota el presupuesto y caducan {months} meses después de la compra.",
     "creditsBuyLink": "Comprar créditos de IA en tu perfil"
   },
   "topbar": {
@@ -1913,7 +1914,12 @@
         "loadFailed": "No se pudieron cargar las exportaciones",
         "requestFailed": "No se pudo solicitar la exportación",
         "exportRequested": "solicitada",
-        "exportAvailableUntil": "disponible hasta"
+        "exportAvailableUntil": "disponible hasta",
+        "exportStatus_queued": "En cola",
+        "exportStatus_running": "En curso",
+        "exportStatus_ready": "Listo",
+        "exportStatus_expired": "Caducado",
+        "exportStatus_failed": "Error"
       },
       "delete": {
         "heading": "Eliminar tu cuenta",
@@ -1927,6 +1933,8 @@
         "heading": "Legal",
         "subheading": "Las versiones que aceptaste. Te lo volvemos a pedir si cambia un documento.",
         "notAccepted": "No aceptado",
+        "accepted": "Versión {version}, aceptada el {date}",
+        "acceptedVersion": "Versión {version}",
         "needsReacceptance": "requiere nueva aceptación (actual v{version})",
         "dpaNotApplicable": "Requerido cuando creas un espacio de trabajo",
         "cookieNote": "Solo cookies esenciales: inicio de sesión, idioma y una clave para eliminar documentos creados sin cuenta. Sin analítica, seguimiento ni publicidad. La política de privacidad enumera cada una."
@@ -2152,7 +2160,6 @@
     "hero": {
       "title": "{markdown}, bien maquetado.",
       "markdown": "Markdown",
-      "body": "Un editor de Markdown colaborativo con vista previa paginada en directo. Escribe texto plano y exporta un PDF idéntico a la vista previa, página a página.",
       "cta": "Empezar a escribir, sin registro",
       "next": "Ver cómo funciona"
     },
@@ -2429,7 +2436,7 @@
     "loadFailed": "No se pudo cargar la configuración del inicio de sesión único.",
     "planNotice": "El inicio de sesión único con tu propio proveedor de identidad forma parte del plan Business.",
     "intro": "Los miembros abren este espacio de trabajo con tu proveedor de identidad (OpenID Connect o SAML). Los administradores siempre pueden acceder a estos ajustes.",
-    "enforcedNotice": "El inicio de sesión único está activado: los miembros solo abren este espacio de trabajo después de iniciar sesión a través de tu proveedor de identidad (válido durante 12 horas).",
+    "enforcedNotice": "Los miembros inician sesión a través de tu proveedor de identidad y de nuevo cada 12 horas.",
     "idpTitle": "Proveedor de identidad",
     "protocol": {
       "oidc": "OpenID Connect",
@@ -2440,7 +2447,9 @@
       "issuerHint": "La dirección bajo la que se encuentra el /.well-known/openid-configuration de tu proveedor.",
       "clientId": "ID de cliente",
       "clientSecret": "Secreto de cliente",
-      "secretKept": "Déjalo vacío para conservar el secreto guardado."
+      "secretKept": "Déjalo vacío para conservar el secreto guardado.",
+      "showSecret": "Mostrar el secreto",
+      "hideSecret": "Ocultar el secreto"
     },
     "saml": {
       "entityId": "ID de entidad del proveedor de identidad",
@@ -2515,9 +2524,11 @@
       "no-seat": "Todos los puestos pagados de este espacio de trabajo están ocupados. Pide a un admin que añada un puesto.",
       "member-limit": "Este espacio de trabajo ha alcanzado el límite de miembros de su plan.",
       "idp-unavailable": "No se pudo contactar con el proveedor de identidad. Inténtalo de nuevo en un momento.",
-      "failed": "No se pudo completar el inicio de sesión. Empieza de nuevo desde el enlace de inicio de sesión.",
+      "failed": "No se pudo completar el inicio de sesión. Inténtalo de nuevo.",
+      "expired": "El inicio de sesión tardó demasiado. Empieza de nuevo.",
       "unknown": "Este enlace de inicio de sesión no existe.",
-      "toWorkspace": "Volver al espacio de trabajo"
+      "toWorkspace": "Volver al espacio de trabajo",
+      "retry": "Reintentar"
     },
     "discover": {
       "button": "Iniciar sesión con tu organización",
@@ -2540,6 +2551,8 @@
     "system": "markoto",
     "deletedUser": "Usuario eliminado",
     "ipHint": "Dirección de red abreviada de la persona que lo hizo",
+    "yes": "sí",
+    "no": "no",
     "kind": {
       "all": "Todos los eventos",
       "members": "Miembros y roles",

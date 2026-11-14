@@ -47,6 +47,7 @@ How the loop works and how to add a tool: `docs/contributing/ai-tools.md`. MCP d
 ## Dictation
 
 - `server/routes/api/ai/dictate.ts` holds only the socket's hooks; `dictation/` has the per-connection state (`peerContext.ts`), the frames (`messageProtocol.ts`), auth (`dictationAuth.ts`), the Voxtral stream (`upstreamSession.ts`) and the billing ticks (`voiceTicks.ts`).
+- Voxtral Realtime finalises nothing before the audio ends (one `transcription.done` per stream). `transcriptSegmenter.ts` decides what is `final` on the way; every path that ends a session goes through `sessionEnd.ts` (trailing `final`, `done`, close), never a bare `peer.close`.
 - The dictation JWT goes in the first WebSocket message, never in the query string (access logs).
 - The per-user dictation lock (`tryAcquireSessionLock`) fails closed; rate limits fail open. Do not flip either.
 - `useWebSocket` needs both `immediate: false` and `autoConnect: false` for manual control, or one click opens two sockets.

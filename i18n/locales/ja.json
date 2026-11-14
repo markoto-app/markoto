@@ -628,6 +628,7 @@
     "micErrorTitle": "音声入力に失敗しました",
     "dictateStart": "ディクテーションを開始",
     "dictateStop": "ディクテーションを停止",
+    "dictateFinishing": "ディクテーションを終了中",
     "dictateConnecting": "接続中…",
     "dictateListening": "聞き取り中…",
     "dictateBudgetExhaustedTitle": "本日のディクテーション上限に達しました",
@@ -696,6 +697,7 @@
     "editor": "エディター",
     "dictateStart": "音声入力",
     "dictateStop": "停止",
+    "dictateFinishing": "終了中",
     "documentShort": "情報",
     "commentsShort": "コメント",
     "activityShort": "アクティビティ",
@@ -745,7 +747,7 @@
     "tiers": {
       "free": "すべての執筆機能と、最初の AI ポイント枠。",
       "pro": "個人向け：より多くの AI ポイント、ワークスペース、ストレージ。",
-      "team": "チーム向け：席ごとの料金、共有の AI Points とストレージ、管理機能。",
+      "team": "チーム向け：席ごとの料金、共有の AI ポイントとストレージ、管理機能。",
       "business": "組織向け：Team に加えてシングルサインオン、監査エクスポート、個別の上限。"
     },
     "freeAllowanceNote": "無料枠は、EU内でMistral AIがホストするモデルで動作し、今月の共有枠がなくなるまで利用できます。さらに使うには、ご自身のキーを追加してください。",
@@ -863,7 +865,6 @@
     "seatTotalMonth": "{seats} 席で月額 {total}",
     "seatTotalYear": "{seats} 席で年額 {total}",
     "seatsLabel": "席数",
-    "creditsSection": "AI クレジットは Pro と Team / Business ワークスペースの月間 AI 予算に加算されます。予算を使い切ってから使われ、購入から {months} か月後に失効します。",
     "creditsBuyLink": "プロフィールで AI クレジットを購入"
   },
   "topbar": {
@@ -1913,7 +1914,12 @@
         "loadFailed": "エクスポートを読み込めませんでした",
         "requestFailed": "エクスポートを申請できませんでした",
         "exportRequested": "申請日時",
-        "exportAvailableUntil": "利用可能期限"
+        "exportAvailableUntil": "利用可能期限",
+        "exportStatus_queued": "待機中",
+        "exportStatus_running": "作成中",
+        "exportStatus_ready": "準備完了",
+        "exportStatus_expired": "期限切れ",
+        "exportStatus_failed": "失敗"
       },
       "delete": {
         "heading": "アカウントを削除",
@@ -1927,6 +1933,8 @@
         "heading": "法的事項",
         "subheading": "同意したバージョンです。文書が変わったときは、改めて確認します。",
         "notAccepted": "未同意",
+        "accepted": "バージョン {version}、{date} に同意",
+        "acceptedVersion": "バージョン {version}",
         "needsReacceptance": "再同意が必要（現行v{version}）",
         "dpaNotApplicable": "ワークスペースを作成する際に必要です",
         "cookieNote": "必須の Cookie のみ：サインイン、言語、アカウントなしで作成したドキュメントを削除するためのキー。解析、トラッキング、広告はありません。各 Cookie はプライバシーポリシーに記載しています。"
@@ -2152,7 +2160,6 @@
     "hero": {
       "title": "{markdown}を、美しく組版。",
       "markdown": "Markdown",
-      "body": "ライブでページ組版されるプレビューを備えた、共同編集できるMarkdownエディター。プレーンテキストで書けば、プレビューとページ単位で同じPDFを書き出せます。",
       "cta": "書きはじめる、登録不要",
       "next": "使い方を見る"
     },
@@ -2429,7 +2436,7 @@
     "loadFailed": "シングルサインオンの設定を読み込めませんでした。",
     "planNotice": "独自の ID プロバイダーを使うシングルサインオンは Business プランに含まれます。",
     "intro": "メンバーは ID プロバイダー（OpenID Connect または SAML）を通じてこのワークスペースを開きます。管理者はいつでもこの設定を開けます。",
-    "enforcedNotice": "シングルサインオンはオンです。メンバーは ID プロバイダーでサインインした後にのみこのワークスペースを開けます（有効期間 12 時間）。",
+    "enforcedNotice": "メンバーは ID プロバイダーでサインインし、その後 12 時間ごとに再度サインインします。",
     "idpTitle": "ID プロバイダー",
     "protocol": {
       "oidc": "OpenID Connect",
@@ -2440,7 +2447,9 @@
       "issuerHint": "プロバイダーの /.well-known/openid-configuration があるアドレスです。",
       "clientId": "クライアント ID",
       "clientSecret": "クライアントシークレット",
-      "secretKept": "保存済みのシークレットを使い続ける場合は空欄のままにしてください。"
+      "secretKept": "保存済みのシークレットを使い続ける場合は空欄のままにしてください。",
+      "showSecret": "シークレットを表示",
+      "hideSecret": "シークレットを隠す"
     },
     "saml": {
       "entityId": "ID プロバイダーのエンティティ ID",
@@ -2515,9 +2524,11 @@
       "no-seat": "このワークスペースの有料席はすべて使用中です。管理者に席の追加を依頼してください。",
       "member-limit": "このワークスペースはプランのメンバー上限に達しました。",
       "idp-unavailable": "ID プロバイダーに接続できませんでした。しばらくしてからもう一度お試しください。",
-      "failed": "サインインを完了できませんでした。サインインリンクからやり直してください。",
+      "failed": "サインインを完了できませんでした。もう一度お試しください。",
+      "expired": "サインインに時間がかかりすぎました。もう一度やり直してください。",
       "unknown": "このサインインリンクは存在しません。",
-      "toWorkspace": "ワークスペースに戻る"
+      "toWorkspace": "ワークスペースに戻る",
+      "retry": "もう一度試す"
     },
     "discover": {
       "button": "組織のアカウントでサインイン",
@@ -2540,6 +2551,8 @@
     "system": "markoto",
     "deletedUser": "削除されたユーザー",
     "ipHint": "操作した人の短縮されたネットワークアドレス",
+    "yes": "はい",
+    "no": "いいえ",
     "kind": {
       "all": "すべてのイベント",
       "members": "メンバーと役割",

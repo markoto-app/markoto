@@ -2,12 +2,11 @@ import type { SpeechStream } from '../dictateSpeechClient'
 import { encodeServerFrame } from '~~/shared/contracts/dictateWs'
 import { MINUTE_MS } from '~~/shared/config/units'
 
-// The state of one live-dictation WebSocket connection and the timers that
-// end it. The route (`server/routes/api/ai/dictate.ts`) owns the hooks; the
+// The state of one live-dictation WebSocket connection (the timers that end
+// it are in `sessionEnd.ts`). The route (`server/routes/api/ai/dictate.ts`) owns the hooks; the
 // modules in this folder share this state.
 
 export const SESSION_HARD_CAP_MS = 10 * MINUTE_MS
-const IDLE_TIMEOUT_MS = 30_000
 // Deadline for the client's first `auth` message. Long enough to cover
 // a slow first paint but short enough that an unauthenticated socket
 // can't sit open consuming resources indefinitely.
@@ -34,12 +33,18 @@ export class DictatePeerContext {
   closed?: boolean
   /**
    * Flipped to `true` once the client sends `{type:'stop'}` or we
-   * otherwise call `stt.end()`. Guards the audio-write path: any
+   * otherwise end the session (`beginSessionEnd`). Guards the audio-write path: any
    * chunks the worklet had queued in postMessage but hadn't yet sent
    * when the client fired stop will arrive here post-end and would
    * otherwise error with "write after end", we drop them silently.
    */
   sttEnded?: boolean
+  /** Close code + reason to use once the upstream has flushed (`sessionEnd.ts`). */
+  closeWith?: { code: number, reason: string }
+  /** Bounds the wait for the upstream's trailing transcript. */
+  flushTimer?: ReturnType<typeof setTimeout>
+  /** `done` was sent and the close requested. */
+  completed?: boolean
   idleTimer?: ReturnType<typeof setTimeout>
   hardCapTimer?: ReturnType<typeof setTimeout>
   authTimer?: ReturnType<typeof setTimeout>
@@ -64,20 +69,4 @@ export function dictateContext(peer: PeerLike): DictatePeerContext {
 export function rejectPeer(peer: PeerLike, message: string, code: number, reason: string): void {
   peer.send(encodeServerFrame({ type: 'error', message }))
   peer.close(code, reason)
-}
-
-export function resetIdleTimer(peer: PeerLike, ctx: DictatePeerContext): void {
-  if (ctx.idleTimer) clearTimeout(ctx.idleTimer)
-  ctx.idleTimer = setTimeout(() => {
-    peer.send(encodeServerFrame({ type: 'idle-timeout' }))
-    peer.close(4001, 'idle timeout')
-  }, IDLE_TIMEOUT_MS)
-}
-
-/** After auth: end the session at the hard cap regardless of activity. */
-export function armHardCap(peer: PeerLike, ctx: DictatePeerContext): void {
-  ctx.hardCapTimer = setTimeout(() => {
-    peer.send(encodeServerFrame({ type: 'session-cap' }))
-    peer.close(4003, 'session cap')
-  }, SESSION_HARD_CAP_MS)
 }

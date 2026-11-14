@@ -174,6 +174,9 @@ async function sendViaResend(args: SendEmailArgs & { to: string }, label: string
     throw new Error(`resend send failed: ${error.name}: ${error.message}`)
   }
 
+  // One line per accepted message, so delivery can be followed up in the
+  // provider's dashboard by id. Never the full address, subject or body.
+  log.info('email sent', { kind: label, to: redactEmail(args.to), providerMessageId: data?.id ?? null })
   return { delivered: true, providerMessageId: data?.id }
 }
 

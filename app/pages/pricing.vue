@@ -610,7 +610,7 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
             </h2>
           </div>
           <p class="mt-2 text-sm text-muted max-w-3xl">
-            {{ t('pricing.creditsSection', { months: TOPUP_VALIDITY_MONTHS }) }}
+            {{ t('credits.explainer', { months: TOPUP_VALIDITY_MONTHS }) }}
           </p>
           <p class="mt-3 text-sm">
             <span

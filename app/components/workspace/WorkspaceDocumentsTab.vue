@@ -21,7 +21,7 @@ const { t } = useI18n()
 <template>
   <!-- Same header pattern as the Knowledge tab: icon +
        Fraunces serif title + JetBrains Mono micro-count,
-       description below, primary action right-aligned. The
+       primary action right-aligned. The
        page-level "New document" button moved here so the
        CTA only fires when the user is actually looking at
        the documents list. -->
@@ -51,10 +51,6 @@ const { t } = useI18n()
         {{ t('workspace.newDocument') }}
       </UButton>
     </div>
-    <p class="text-xs text-muted">
-      {{ canCreateDoc ? t('workspace.emptyDescription') : t('workspace.emptyDescriptionViewer') }}
-    </p>
-
     <div
       v-if="documents.length > 0"
       class="pt-2"
@@ -78,6 +74,14 @@ const { t } = useI18n()
       />
       <p class="font-serif text-lg font-normal tracking-tight">
         {{ t('workspace.empty') }}
+      </p>
+      <!-- The "start by creating your first document" hint belongs to the
+           empty state only. -->
+      <p
+        class="text-xs text-muted mt-1"
+        data-testid="workspace-documents-empty-hint"
+      >
+        {{ canCreateDoc ? t('workspace.emptyDescription') : t('workspace.emptyDescriptionViewer') }}
       </p>
     </div>
   </section>

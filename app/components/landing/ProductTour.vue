@@ -269,7 +269,7 @@ const chips = [
             </template>
           </i18n-t>
           <p class="mk-hero__body">
-            {{ t('tour.hero.body') }}
+            {{ t('landing.subtitle') }}
           </p>
           <div class="mk-hero__actions">
             <UButton

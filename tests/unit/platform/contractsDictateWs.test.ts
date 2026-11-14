@@ -31,7 +31,8 @@ describe('DICTATE_SERVER_FRAME_TYPES', () => {
       'error',
       'budget-exhausted',
       'session-cap',
-      'idle-timeout'
+      'idle-timeout',
+      'done'
     ])
   })
 })
@@ -53,7 +54,8 @@ describe('encodeServerFrame', () => {
       { type: 'budget-exhausted', remaining: 0 },
       { type: 'budget-exhausted', remaining: 0, reason: 'interactions' },
       { type: 'session-cap' },
-      { type: 'idle-timeout' }
+      { type: 'idle-timeout' },
+      { type: 'done' }
     ]
     for (const frame of frames) {
       const encoded = encodeServerFrame(frame)

@@ -628,6 +628,7 @@
     "micErrorTitle": "Voice input failed",
     "dictateStart": "Start dictation",
     "dictateStop": "Stop dictation",
+    "dictateFinishing": "Finishing dictation",
     "dictateConnecting": "Connecting…",
     "dictateListening": "Listening…",
     "dictateBudgetExhaustedTitle": "Daily dictation budget reached",
@@ -696,6 +697,7 @@
     "editor": "Editor",
     "dictateStart": "Dictate",
     "dictateStop": "Stop",
+    "dictateFinishing": "Finishing",
     "documentShort": "Info",
     "commentsShort": "Comments",
     "activityShort": "Activity",
@@ -863,7 +865,6 @@
     "seatTotalMonth": "{total} per month for {seats} seats",
     "seatTotalYear": "{total} per year for {seats} seats",
     "seatsLabel": "Seats",
-    "creditsSection": "AI credits add to the monthly AI budget of Pro and of Team / Business workspaces. They are used after the budget is spent and expire {months} months after purchase.",
     "creditsBuyLink": "Buy AI credits in your profile"
   },
   "topbar": {
@@ -1913,7 +1914,12 @@
         "loadFailed": "Could not load exports",
         "requestFailed": "Could not request export",
         "exportRequested": "requested",
-        "exportAvailableUntil": "available until"
+        "exportAvailableUntil": "available until",
+        "exportStatus_queued": "Queued",
+        "exportStatus_running": "In progress",
+        "exportStatus_ready": "Ready",
+        "exportStatus_expired": "Expired",
+        "exportStatus_failed": "Failed"
       },
       "delete": {
         "heading": "Delete your account",
@@ -1927,6 +1933,8 @@
         "heading": "Legal",
         "subheading": "The versions you accepted. We ask again when a document changes.",
         "notAccepted": "Not accepted",
+        "accepted": "Version {version}, accepted on {date}",
+        "acceptedVersion": "Version {version}",
         "needsReacceptance": "needs re-acceptance (current v{version})",
         "dpaNotApplicable": "Required when you create a workspace",
         "cookieNote": "Only essential cookies: sign-in, language, and a key to delete documents made without an account. No analytics, tracking or ads. The privacy policy lists each one."
@@ -2152,7 +2160,6 @@
     "hero": {
       "title": "Beautifully rendered {markdown}.",
       "markdown": "Markdown",
-      "body": "A collaborative Markdown editor with a live, paginated preview. Write plain text; export a PDF that matches the preview page for page.",
       "cta": "Start writing, no sign-up",
       "next": "See how it works"
     },
@@ -2429,7 +2436,7 @@
     "loadFailed": "Couldn't load the single sign-on settings.",
     "planNotice": "Single sign-on with your own identity provider is part of the Business plan.",
     "intro": "Members open this workspace through your identity provider (OpenID Connect or SAML). Admins can always reach these settings.",
-    "enforcedNotice": "Single sign-on is on: members open this workspace only after signing in through your identity provider (valid for 12 hours).",
+    "enforcedNotice": "Members sign in through your identity provider, and again every 12 hours.",
     "idpTitle": "Identity provider",
     "protocol": {
       "oidc": "OpenID Connect",
@@ -2440,7 +2447,9 @@
       "issuerHint": "The address your provider's /.well-known/openid-configuration lives under.",
       "clientId": "Client ID",
       "clientSecret": "Client secret",
-      "secretKept": "Leave empty to keep the saved secret."
+      "secretKept": "Leave empty to keep the saved secret.",
+      "showSecret": "Show the secret",
+      "hideSecret": "Hide the secret"
     },
     "saml": {
       "entityId": "Identity provider entity ID",
@@ -2515,9 +2524,11 @@
       "no-seat": "All paid seats of this workspace are taken. Ask an admin to add a seat.",
       "member-limit": "This workspace has reached the member limit of its plan.",
       "idp-unavailable": "The identity provider couldn't be reached. Try again in a moment.",
-      "failed": "The sign-in couldn't be completed. Start again from the sign-in link.",
+      "failed": "The sign-in couldn't be completed. Try again.",
+      "expired": "The sign-in took too long. Start it again.",
       "unknown": "This sign-in link doesn't exist.",
-      "toWorkspace": "Back to the workspace"
+      "toWorkspace": "Back to the workspace",
+      "retry": "Try again"
     },
     "discover": {
       "button": "Sign in with your organisation",
@@ -2540,6 +2551,8 @@
     "system": "markoto",
     "deletedUser": "Deleted user",
     "ipHint": "Shortened network address of the person who did it",
+    "yes": "yes",
+    "no": "no",
     "kind": {
       "all": "All events",
       "members": "Members and roles",

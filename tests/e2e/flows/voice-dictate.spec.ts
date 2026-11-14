@@ -15,8 +15,10 @@ import { test, expect } from '../fixtures/flow'
 // Mock-driven test: the prod test stack runs with TEST_MODE=1 +
 // NUXT_VOXTRAL_REALTIME_MOCK=1 (set in scripts/flows-ephemeral.ts). The fake
 // SpeechClient (`server/utils/agentic/dictateSpeechClient.ts`) counts
-// incoming audio chunks and emits canned interim/final responses at
-// fixed thresholds: the real Voxtral Realtime API is never called. The audio chunks come from Chromium's
+// incoming audio chunks and emits canned text at fixed thresholds, like
+// the service does (text only, nothing final until the input ends); the
+// relay finalises each finished sentence. The real Voxtral Realtime API
+// is never called. The audio chunks come from Chromium's
 // `--use-fake-device-for-media-stream` (synthetic 16 kHz tone),
 // armed in playwright.config.ts. Combined: the test exercises every
 // real layer (mic → worklet → WS → STT abstraction → CM6 ghost text
@@ -30,7 +32,7 @@ import { test, expect } from '../fixtures/flow'
 // Mobile NOT skipped: the toolbar mic survives the wrap to mobile,
 // and the bottom tab bar surfaces the same toggle. Captions cover
 // both surfaces.
-// The fake recognizer's two final sentences (dictateSpeechClient.ts).
+// The fake recognizer's two sentences (dictateSpeechClient.ts).
 const FIRST_SENTENCE = 'Lena says the new templates save her about an hour a week.'
 const SECOND_SENTENCE = 'The export still feels slow on long reports.'
 
@@ -101,9 +103,10 @@ test('Speak instead of typing', async ({ page, flow, editor }) => {
     + 'anything you typed.'
   )
 
-  // The mock STT's chunk-counted sequence (dictateSpeechClient.ts
-  // MOCK_SEQUENCE) finalises two sentences within ~6 audio chunks
-  // (~128 ms each). Wait for the second one to be committed, then
+  // The mock STT's chunk-counted script (dictateSpeechClient.ts
+  // MOCK_DELTAS) speaks two sentences within ~6 audio chunks (~128 ms
+  // each): the first is final when the second starts, the second after
+  // the quiet time. Wait for the second one to be committed, then
   // bring it into view (clear of the prompt bar).
   await expect(page.locator('.cm-content')).toContainText(FIRST_SENTENCE, { timeout: 20_000 })
   await expect(page.locator('.cm-content')).toContainText(SECOND_SENTENCE, { timeout: 20_000 })

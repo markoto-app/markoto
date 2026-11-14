@@ -1,9 +1,9 @@
-import { and, desc, eq, gte, like, lt } from 'drizzle-orm'
+import { and, desc, eq, gte, like, lt, sql } from 'drizzle-orm'
 import * as Sentry from '@sentry/nuxt'
 import { auditLog, users } from '../db/schema'
 import { useDatabase } from '../db/client'
 import { useLogger } from '../utils/platform/logger'
-import { actorUserId as userIdOfActor, type AdminActor, type AnyProof, type SystemActor, type WorkspaceAccess } from './proofs'
+import { actorUserId as userIdOfActor, type AdminActor, type AnyProof, type SystemActor, type UserScope, type WorkspaceAccess } from './proofs'
 import type { AuditAction, AuditAfter, AuditBefore, AuditEventParts, AuditMetadata } from '../db/columnTypes'
 
 const log = useLogger('audit')
@@ -263,6 +263,26 @@ export async function listWorkspaceAuditEvents(ws: WorkspaceAccess<'admin'>, q: 
  * Retention: delete rows older than `cutoff`. The only delete of this
  * append-only table, run by the named retention sweep. Returns how many.
  */
+/**
+ * When the user last accepted each legal document, from their own
+ * `policy.accepted` rows (the account row stores only the version). A
+ * document is missing once its row is older than the audit retention.
+ */
+export async function getPolicyAcceptanceTimes(self: UserScope): Promise<Record<string, Date>> {
+  const db = useDatabase()
+  const document = sql<string | null>`${auditLog.metadata}->>'document'`
+  const rows = await db
+    .select({ document, at: sql<Date | string>`max(${auditLog.ts})` })
+    .from(auditLog)
+    .where(and(eq(auditLog.scope, 'user'), eq(auditLog.scopeId, String(self.userId)), eq(auditLog.action, 'policy.accepted')))
+    .groupBy(document)
+  const times: Record<string, Date> = {}
+  for (const row of rows) {
+    if (row.document) times[row.document] = new Date(row.at)
+  }
+  return times
+}
+
 export async function deleteAuditEventsBefore(_by: SystemActor, cutoff: Date): Promise<number> {
   return (await useDatabase().delete(auditLog).where(lt(auditLog.ts, cutoff)).returning({ id: auditLog.id })).length
 }

@@ -210,7 +210,8 @@ describe('SSO with OpenID Connect', () => {
     const ws = await createWorkspace(admin.id)
     const { id } = await setupOidc(admin.id, ws.workspaceId)
     const notYet = await fetch(`${TEST_BASE_URL}/auth/sso/${id}`, { redirect: 'manual' })
-    expect(notYet.headers.get('location')).toContain('/auth/sso-error?code=sso%2Fnot-active')
+    // Nothing to retry: the connection is not switched on.
+    expect(notYet.headers.get('location')).toBe(`/auth/sso-error?code=sso%2Fnot-active&workspace=${ws.workspaceId}`)
 
     const editor = await createUser()
     await setMemberRole(ws.workspaceId, editor.id, 'editor')
@@ -306,7 +307,9 @@ describe('SSO with OpenID Connect', () => {
     const start = await fetch(`${TEST_BASE_URL}/auth/sso/${connectionId}`, { redirect: 'manual' })
     const idp = await fetch(start.headers.get('location')!, { method: 'POST', redirect: 'manual', body: new URLSearchParams({ username: 'x', claims: '{}' }) })
     const back = await fetch(idp.headers.get('location')!, { redirect: 'manual' })
-    expect(back.headers.get('location')).toContain('code=sso%2Ffailed')
+    // Without the cookie the attempt counts as timed out; the page gets
+    // what it needs to offer "Try again" (the connection, not a URL).
+    expect(back.headers.get('location')).toBe(`/auth/sso-error?code=sso%2Fexpired&workspace=${ws.workspaceId}&connection=${connectionId}`)
     expect(cookieValue(back, SESSION_COOKIE)).toBeNull()
   })
 })
@@ -409,7 +412,7 @@ describe('SSO with SAML', () => {
     const sp = await activateSaml(admin.id, ws.workspaceId)
     const { requestId } = await samlStart(sp.id)
     const done = await samlPost(sp.id, null, samlResponse({ idp, issuer: IDP_ENTITY, inResponseTo: requestId, acsUrl: sp.acsUrl, audience: sp.entityId, nameId: 'x' }))
-    expect(done.location).toContain('code=sso%2Ffailed')
+    expect(done.location).toBe(`/auth/sso-error?code=sso%2Fexpired&workspace=${ws.workspaceId}&connection=${sp.id}`)
   })
 })
 
@@ -555,6 +558,36 @@ describe('SCIM provisioning (/scim/v2/Users)', () => {
       await expectScim(await scim(`/Users/${user.id}`, { method: 'PATCH', body: {} }), 400, err(400, 'PATCH needs an Operations array.', 'invalidSyntax'))
       await expectScim(await scim(`/Users/${user.id}`, { method: 'PATCH', body: { Operations: [{ op: 'move' }] } }), 400, err(400, 'Unsupported operation "move".', 'invalidSyntax'))
       await expectScim(await scim(`/Users/${user.id}`, { method: 'PATCH', body: { Operations: [{ op: 'replace', path: 'active', value: 'maybe' }] } }), 400, err(400, '"active" must be true or false.', 'invalidValue'))
+    })
+
+    it('endpoints we do not have (Groups, Schemas, …) answer with a SCIM 404, whatever the method', async () => {
+      const { scim } = await scimSetup()
+      const unsupported = err(404, 'This endpoint is not supported. Only Users can be provisioned.')
+      await expectScim(await scim('/Groups'), 404, unsupported)
+      await expectScim(await scim(`/Groups?filter=${encodeURIComponent('displayName eq "Engineering"')}`), 404, unsupported)
+      await expectScim(await scim('/Groups', { method: 'POST', body: { displayName: 'Engineering' } }), 404, unsupported)
+      await expectScim(await scim('/Groups/abc', { method: 'PATCH', body: { Operations: [] } }), 404, unsupported)
+      await expectScim(await scim('/Schemas'), 404, unsupported)
+      await expectScim(await scim('/Users/1/extra'), 404, unsupported)
+      // Still behind the token.
+      await expectScim(await scim('/Groups', { token: 'mkscim_wrong-token-wrong-token-wrong' }), 401, err(401, 'A valid SCIM bearer token is required.'))
+    })
+
+    it('a changed name is not applied (the account owns it); the answer shows the stored name', async () => {
+      const { scim } = await scimSetup()
+      const created = await (await scim('/Users', { method: 'POST', body: { userName: 'bob@acme.test', name: { givenName: 'Bob', familyName: 'Builder' } } })).json() as { id: string }
+      const stored = { displayName: 'Bob Builder', name: { formatted: 'Bob Builder' } }
+
+      const put = await scim(`/Users/${created.id}`, { method: 'PUT', body: { userName: 'bob@acme.test', displayName: 'Robert Builder', name: { givenName: 'Robert', familyName: 'Builder' }, active: true } })
+      expect(put.status).toBe(200)
+      expect(await put.json()).toMatchObject(stored)
+
+      const patch = await scim(`/Users/${created.id}`, { method: 'PATCH', body: { Operations: [{ op: 'replace', value: { 'displayName': 'Robert Builder', 'name.givenName': 'Robert' } }] } })
+      expect(patch.status).toBe(200)
+      expect(await patch.json()).toMatchObject(stored)
+
+      const row = (await testDb().query<{ name: string }>(`SELECT name FROM users WHERE email = 'bob@acme.test'`)).rows[0]!
+      expect(row.name).toBe('Bob Builder')
     })
 
     it('the last admin: 409 mutability', async () => {

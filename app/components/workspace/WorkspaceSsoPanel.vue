@@ -32,6 +32,8 @@ const protocol = ref<'oidc' | 'saml'>('oidc')
 const oidcIssuer = ref('')
 const oidcClientId = ref('')
 const oidcClientSecret = ref('')
+// Hidden by default: the secret must not be readable over someone's shoulder.
+const showClientSecret = ref(false)
 const samlIdpEntityId = ref('')
 const samlSsoUrl = ref('')
 const samlIdpCert = ref('')
@@ -46,6 +48,7 @@ function seedForm(v: SsoView): void {
   oidcIssuer.value = c?.oidcIssuer ?? ''
   oidcClientId.value = c?.oidcClientId ?? ''
   oidcClientSecret.value = ''
+  showClientSecret.value = false
   samlIdpEntityId.value = c?.samlIdpEntityId ?? ''
   samlSsoUrl.value = c?.samlSsoUrl ?? ''
   samlIdpCert.value = ''
@@ -261,13 +264,16 @@ const spRows = computed(() => {
           class="max-w-sm"
           data-testid="workspace-sso-protocol"
         />
+        <!-- Every hint sits BELOW its input (`help`), never beside the label
+             (`hint`): a hint next to a label wraps the label and pushes that
+             input down, out of line with its neighbour. -->
         <div
           v-if="protocol === 'oidc'"
-          class="grid gap-4 sm:grid-cols-2"
+          class="grid gap-4 sm:grid-cols-2 items-start"
         >
           <UFormField
             :label="t('sso.oidc.issuer')"
-            :hint="t('sso.oidc.issuerHint')"
+            :help="t('sso.oidc.issuerHint')"
             class="sm:col-span-2"
           >
             <UInput
@@ -286,15 +292,29 @@ const spRows = computed(() => {
           </UFormField>
           <UFormField
             :label="t('sso.oidc.clientSecret')"
-            :hint="cur.connection?.hasClientSecret ? t('sso.oidc.secretKept') : undefined"
+            :help="cur.connection?.hasClientSecret ? t('sso.oidc.secretKept') : undefined"
           >
             <UInput
               v-model="oidcClientSecret"
-              type="password"
+              :type="showClientSecret ? 'text' : 'password'"
               autocomplete="off"
               class="w-full"
+              :ui="{ trailing: 'pe-1' }"
               data-testid="workspace-sso-oidc-client-secret"
-            />
+            >
+              <template #trailing>
+                <UButton
+                  color="neutral"
+                  variant="link"
+                  size="sm"
+                  :icon="showClientSecret ? 'i-lucide-eye-off' : 'i-lucide-eye'"
+                  :aria-label="showClientSecret ? t('sso.oidc.hideSecret') : t('sso.oidc.showSecret')"
+                  :aria-pressed="showClientSecret"
+                  data-testid="workspace-sso-oidc-client-secret-reveal"
+                  @click="showClientSecret = !showClientSecret"
+                />
+              </template>
+            </UInput>
           </UFormField>
         </div>
         <div
@@ -318,7 +338,7 @@ const spRows = computed(() => {
           </UFormField>
           <UFormField
             :label="t('sso.saml.certificate')"
-            :hint="cur.connection?.samlCertificate ? t('sso.saml.certificateKept', { subject: cur.connection.samlCertificate.subject, date: d(new Date(cur.connection.samlCertificate.validTo)) }) : undefined"
+            :help="cur.connection?.samlCertificate ? t('sso.saml.certificateKept', { subject: cur.connection.samlCertificate.subject, date: d(new Date(cur.connection.samlCertificate.validTo)) }) : undefined"
           >
             <UTextarea
               v-model="samlIdpCert"
@@ -331,7 +351,7 @@ const spRows = computed(() => {
         </div>
         <UFormField
           :label="t('sso.defaultRole')"
-          :hint="t('sso.defaultRoleHint')"
+          :help="t('sso.defaultRoleHint')"
         >
           <USelect
             v-model="defaultRole"
