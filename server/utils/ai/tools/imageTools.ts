@@ -1,3 +1,4 @@
+import { aiStatus } from '~~/shared/ai/statusSteps'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
@@ -47,7 +48,7 @@ async function handleViewImage(
   input: z.output<typeof ViewImageArgs>
 ): Promise<ToolResult> {
   const src = input.src.trim()
-  session.updateStatus('tool', 'Fetching image…')
+  session.updateStatus('tool', aiStatus('fetchImage'))
 
   // Internal /api/files/... path → S3 direct fetch (bypass the HTTP
   // endpoint because we're already server-side with S3 creds). Verify
@@ -137,7 +138,7 @@ async function handleGenerateImage(
   // budget_exceeded surfaces as a `LitellmBudgetExhausted` thrown
   // from `generateImageBytesBfl` (caught + translated to a tool-result
   // error string).
-  session.updateStatus('tool', 'Generating image…')
+  session.updateStatus('tool', aiStatus('generateImageAny'))
 
   // 1. Image storage quota, checked BEFORE generating so a full quota
   //    doesn't burn the user's AI budget on an image we can't store. The
@@ -170,7 +171,7 @@ async function handleGenerateImage(
 
   // 2. Upload to S3 using the same key shape as user uploads so the
   //    existing /api/files endpoint serves it with no extra plumbing.
-  session.updateStatus('tool', 'Uploading generated image…')
+  session.updateStatus('tool', aiStatus('uploadImage'))
 
   const ext = IMAGE_MIME_EXT[gen.mimeType]
   const fileIdWithExt = `${nanoid(12)}.${ext}`

@@ -83,9 +83,13 @@ const choice = ref<Choice>({ kind: 'template', id: DEFAULT_TEMPLATE_ID })
 const designOverride = ref<string | null>(null)
 
 // The first document shows what markoto can do (Demo); after that, people
-// want their own page (Blank). Remembered per browser, reset by logout,
-// which clears localStorage, and absent in private windows: then the demo
-// shows once more, which is harmless.
+// want their own page (Blank). Signed in, "first" is per account: the
+// dialog asks whether the account owns a document yet (anonymous documents
+// made in this browser before signing up don't count). Anonymous visitors
+// have no account, so it is remembered per browser, reset by logout, which
+// clears localStorage, and absent in private windows: then the demo shows
+// once more, which is harmless.
+const { loggedIn } = useUserSession()
 const FIRST_DOC_KEY = 'markoto-created-first-doc'
 function hasCreatedDoc(): boolean {
   try {
@@ -101,6 +105,17 @@ function rememberCreatedDoc(): void {
 }
 function defaultTemplateId(): string {
   return resolveTemplateId(props.initialTemplateId) ?? (hasCreatedDoc() ? 'blank' : DEFAULT_TEMPLATE_ID)
+}
+
+/** Signed in: Demo for an account without documents, else Blank; null when unknown. */
+async function accountDefaultTemplateId(): Promise<string | null> {
+  if (!loggedIn.value || resolveTemplateId(props.initialTemplateId)) return null
+  try {
+    const docs = await apiFetch('/api/user/documents')
+    return docs.length === 0 ? DEFAULT_TEMPLATE_ID : 'blank'
+  } catch {
+    return null
+  }
 }
 
 // Which option row is expanded (one at a time); all closed on open.
@@ -201,6 +216,12 @@ watch(() => props.open, async (next) => {
   openSection.value = null
   templateTab.value = 'all'
   languageModel.value = defaultLanguageItem()
+  // Signed in, the account decides between Demo and Blank, unless the
+  // user already picked something while it loaded.
+  const guessed = choice.value
+  void accountDefaultTemplateId().then((id) => {
+    if (id !== null && choice.value === guessed) choice.value = { kind: 'template', id }
+  })
   // Pull the workspace default + templates fresh on every open.
   await loadThemeContext()
   // A workspace with its own templates opens on them.

@@ -10,6 +10,7 @@
 // a transient Hocuspocus connection so the tool reads live ytext, runs the
 // tool and returns `{ isError, content }`.
 
+import type { AiStatusInput } from '~~/shared/ai/statusSteps'
 import * as Y from 'yjs'
 import { executeFunctionByName } from '../../utils/ai/tools/registry'
 import { getDoc } from '../../repos/documents'
@@ -73,7 +74,7 @@ export default defineApiHandler({
       // Real resolution so BYOK tests can drive e.g. generate_image with
       // the caller's configured image provider.
       aiProviders: await resolveAiProviders(caller, billing.plan),
-      updateStatus: (_phase: ToolStatusPhase, _message?: string) => { /* swallow */ }
+      updateStatus: (_phase: ToolStatusPhase, _status?: AiStatusInput) => { /* swallow */ }
     }
 
     const result = await executeFunctionByName(aiSession, name, args)

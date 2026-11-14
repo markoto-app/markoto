@@ -1,3 +1,4 @@
+import { aiStatus } from '~~/shared/ai/statusSteps'
 import { z } from 'zod'
 import { defineDocTool, toolError, toolOk, type ToolResult } from './toolDefinition'
 import { describeEditedRegion, findIndexOfOnlyMatch, lineToCharOffset, withLineNumbers } from './documentText'
@@ -103,7 +104,7 @@ function handleStrReplace(
     return toolError(`${NO_OP_EDIT_ERROR_PREFIX}: new_str is identical to old_str, so the document already reads this way. Do not repeat this call. If the request is done, finish without calling another tool.`)
   }
 
-  session.updateStatus('editing', 'Applying edit…')
+  session.updateStatus('editing', aiStatus('applyEdit'))
 
   const origin = `ai:assistant:${session.sessionId}`
   session.ydoc.transact(() => {
@@ -125,7 +126,7 @@ function handleInsert(
     return toolError(`Error: insert_line ${input.insert_line} is beyond the end of the file (${lineCount} lines)`)
   }
 
-  session.updateStatus('editing', 'Applying insert…')
+  session.updateStatus('editing', aiStatus('applyInsert'))
 
   const origin = `ai:assistant:${session.sessionId}`
   // Ensure the insertion itself ends with a newline so it forms clean lines.
@@ -148,7 +149,7 @@ async function handleSetTitle(
   if (title.length === 0) return toolError('Error: title cannot be empty')
   if (title.length > 255) return toolError('Error: title too long (max 255 chars)')
 
-  session.updateStatus('editing', 'Updating title…')
+  session.updateStatus('editing', aiStatus('setTitleAny'))
 
   const origin = `ai:assistant:${session.sessionId}`
   session.ydoc.transact(() => {

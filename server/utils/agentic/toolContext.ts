@@ -2,6 +2,7 @@ import type * as Y from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
 import type { AttributedTo } from '../billing/billing'
 import type { PlanName } from '~~/shared/config/tiers'
+import type { AiStatusInput } from '~~/shared/ai/statusSteps'
 import type { ResolvedAiProviders } from '../aiProviders/resolve'
 import type { DocAccess, UserScope, WorkspaceAccess } from '../../repos/proofs'
 
@@ -98,7 +99,7 @@ export interface MetaToolContext {
    *  queries, URLs) goes to the initiator alone, the loop's session
    *  channel (`sessionChannel.ts`), nowhere for MCP (the MCP client sees
    *  the tool result). META wrappers no-op. */
-  updateStatus(phase: ToolStatusPhase, message?: string): void
+  updateStatus(phase: ToolStatusPhase, status?: AiStatusInput): void
 }
 
 /**

@@ -15,15 +15,19 @@ export const MEMBERS_BLOCK_MAX = 50
  * Grounding rule inside the `<knowledge_files>` block. Without it the
  * model often skips retrieval for a request like "summarise what the
  * Q3 postmortem said about staged rollouts" and writes plausible but
- * invented figures. The tool description alone ("Use BEFORE writing when
- * the user references uploaded material") is not enough at temperature 0.
+ * invented figures. Naming material alone was not enough either: with the
+ * editor state in the prompt, Mistral Small skipped the search for "the
+ * key figures from our research" or a bare topic ("a paragraph on no-show
+ * rates") the files cover, so the rule asks for a search before any fact
+ * the document doesn't hold.
  */
 export const KNOWLEDGE_GROUNDING_RULE
-  = 'GROUNDING: NON-NEGOTIABLE: when the request refers to material that is not in the document itself '
-    + '(a report, postmortem, brief, policy, spec, notes, "the file", "what X said"), call `search_knowledge` '
-    + '(or `get_knowledge_file` when one listed file is clearly meant) BEFORE writing, and state only facts, '
-    + 'figures and names those results contain. Never fill gaps from general knowledge or estimate numbers; '
-    + 'if the files do not cover the question, say so.'
+  = 'GROUNDING: NON-NEGOTIABLE: these files are the workspace\'s own sources. Before writing any fact, figure, '
+    + 'name or date that is not already in the document, call `search_knowledge` (or `get_knowledge_file` when one '
+    + 'listed file is clearly meant), whether or not the request names a file: "our research", "our data", '
+    + '"the memo", "what X said", or just a topic these files may cover. State only facts, figures and names '
+    + 'the results contain. Never fill gaps from general knowledge or estimate numbers; if the files do not '
+    + 'cover the question, say so.'
 
 /**
  * `<knowledge_files>` block: which ready knowledge files exist, so the
@@ -45,6 +49,23 @@ export function buildKnowledgeBlock(files: ReadonlyArray<Pick<KnowledgeBrief, 'k
     + `${lines.join('\n')}\n`
     + `</knowledge_files>`
   )
+}
+
+/**
+ * Reminder appended to the user's request when knowledge files are
+ * offered. The system-prompt rule alone left Mistral Small skipping the
+ * search (it read the document and wrote invented figures) whenever the
+ * editor state was in the prompt; next to the request it searches every
+ * time, and requests that need no facts (a title, typos, a poem) still
+ * don't search. Static text, so the cached prefix is unaffected.
+ */
+export const KNOWLEDGE_REQUEST_NOTE
+  = '<knowledge_note>This workspace has knowledge files (listed in the system prompt). '
+    + 'Call search_knowledge before writing any fact, figure, name or date the document does not already hold.</knowledge_note>'
+
+/** The request with the knowledge reminder when knowledge tools are offered. */
+export function withKnowledgeNote(request: string, exposeKnowledgeTools: boolean): string {
+  return exposeKnowledgeTools ? `${request}\n\n${KNOWLEDGE_REQUEST_NOTE}` : request
 }
 
 /**

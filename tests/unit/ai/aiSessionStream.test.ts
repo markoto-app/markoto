@@ -88,18 +88,18 @@ describe('createSessionEventStream', () => {
     const store = countingStore()
     const ch = new AiSessionChannel('s1', store)
     await ch.open(meta)
-    await ch.setStatus({ phase: 'thinking', message: null })
+    await ch.setStatus({ phase: 'thinking', message: null, step: null })
     const sse = sseReader(createSessionEventStream({ sessionId: 's1', userId: 7, store, ...SLOW }))
 
     const first = await sse.next()
     expect(first?.event).toBe('status')
     expect(JSON.parse(first?.data ?? '{}')).toEqual({
       sessionId: 's1', docId: 'doc1', prompt: 'Summarise the Q3 plan', commentThreadId: null,
-      phase: 'thinking', message: null, response: null, confirmation: null
+      phase: 'thinking', message: null, step: null, response: null, confirmation: null
     })
     expect(sse.comments.some(c => c.startsWith('retry: '))).toBe(true)
 
-    await ch.setStatus({ phase: 'tool', message: 'Reading "Q3 plan"…' })
+    await ch.setStatus({ phase: 'tool', message: 'Reading "Q3 plan"…', step: null })
     const second = await sse.next(500)
     expect(JSON.parse(second?.data ?? '{}')).toMatchObject({ phase: 'tool', message: 'Reading "Q3 plan"…' })
 
@@ -118,11 +118,11 @@ describe('createSessionEventStream', () => {
     const store = countingStore()
     const ch = new AiSessionChannel('s1', store)
     await ch.open(meta)
-    await ch.setStatus({ phase: 'tool', message: 'same' })
+    await ch.setStatus({ phase: 'tool', message: 'same', step: null })
     const sse = sseReader(createSessionEventStream({ sessionId: 's1', userId: 7, store, ...SLOW }))
     await sse.next()
-    await ch.setStatus({ phase: 'tool', message: 'same' })
-    await ch.setStatus({ phase: 'tool', message: 'changed' })
+    await ch.setStatus({ phase: 'tool', message: 'same', step: null })
+    await ch.setStatus({ phase: 'tool', message: 'changed', step: null })
     expect(JSON.parse((await sse.next(500))?.data ?? '{}').message).toBe('changed')
     await sse.cancel()
   })
@@ -134,7 +134,7 @@ describe('createSessionEventStream', () => {
     const sse = sseReader(createSessionEventStream({ sessionId: 's1', userId: 7, store, ...SLOW }))
     await sse.next()
     expect(store.live()).toBe(1)
-    await ch.setStatus({ phase: 'done', message: 'Done' })
+    await ch.setStatus({ phase: 'done', message: 'Done', step: null })
     expect(JSON.parse((await sse.next(500))?.data ?? '{}').phase).toBe('done')
     // A late answer inside the grace period still arrives.
     await ch.setResponse({ message: 'All set.', isQuestion: false, ts: 3 })
@@ -167,7 +167,7 @@ describe('createSessionEventStream', () => {
     await sse.cancel()
     expect(store.live()).toBe(0)
     // Writes after the disconnect are harmless.
-    await ch.setStatus({ phase: 'tool', message: 'after' })
+    await ch.setStatus({ phase: 'tool', message: 'after', step: null })
   })
 
   it('keeps working without pub/sub: re-reads on the fallback interval', async () => {
@@ -182,7 +182,7 @@ describe('createSessionEventStream', () => {
     await ch.open(meta)
     const sse = sseReader(createSessionEventStream({ sessionId: 's1', userId: 7, store, refreshMs: 60_000, fallbackRefreshMs: 30 }))
     await sse.next()
-    await ch.setStatus({ phase: 'tool', message: 'picked up by the re-read' })
+    await ch.setStatus({ phase: 'tool', message: 'picked up by the re-read', step: null })
     expect(JSON.parse((await sse.next(1_000))?.data ?? '{}').message).toBe('picked up by the re-read')
     expect(logs.find('warn', 'subscribe failed, falling back to polling')).toMatchObject({ fallbackRefreshMs: 30 })
     await sse.cancel()
@@ -195,7 +195,7 @@ describe('createSessionEventStream', () => {
     const sse = sseReader(createSessionEventStream({ sessionId: 's1', userId: 7, store, refreshMs: 20 }))
     await sse.next()
     await new Promise(r => setTimeout(r, 120))
-    await ch.setStatus({ phase: 'tool', message: 'x' })
+    await ch.setStatus({ phase: 'tool', message: 'x', step: null })
     await sse.next(500)
     expect(sse.comments.filter(c => c === ': ping').length).toBeGreaterThan(0)
     await sse.cancel()

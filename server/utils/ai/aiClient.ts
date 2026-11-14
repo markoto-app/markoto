@@ -5,6 +5,7 @@ import type { PlanName } from '~~/shared/config/tiers'
 import { aiClientUserId, type SessionJwtPayload } from '~~/shared/contracts/jwt'
 import { checkout, release, type PoolEntry } from '../mcp/yDocPool'
 import type { ToolContext, ToolStatusPhase } from '../agentic/toolContext'
+import { toStatusLine, type AiStatusInput } from '~~/shared/ai/statusSteps'
 import type { ResolvedAiProviders } from '../aiProviders/resolve'
 import type { AiSessionChannel } from '../agentic/sessionChannel'
 import { useEnv } from '~~/shared/env/load'
@@ -160,12 +161,13 @@ export async function createAiSession(
   // to the initiator's channel only. Awareness is only touched when the
   // phase changes.
   let broadcastPhase: ToolStatusPhase = 'thinking'
-  const updateStatus = (phase: ToolStatusPhase, message?: string): void => {
+  const updateStatus = (phase: ToolStatusPhase, status?: AiStatusInput): void => {
     if (phase !== broadcastPhase) {
       broadcastPhase = phase
       entry.awareness.setLocalStateField('aiStatus', { phase, message: null })
     }
-    void meta.channel.setStatus({ phase, message: message ?? null })
+    const line = toStatusLine(status)
+    void meta.channel.setStatus({ phase, message: line?.text ?? null, step: line?.step ?? null })
   }
 
   const deliverResponse = (response: { message: string, isQuestion: boolean, ts: number }): void => {

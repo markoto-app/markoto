@@ -26,12 +26,12 @@ describe('AiSessionChannel', () => {
     const store = createMemoryChannelStore()
     const ch = new AiSessionChannel('s1', store)
     await ch.open(meta)
-    await ch.setStatus({ phase: 'tool', message: 'Reading "Q3 plan"…' })
+    await ch.setStatus({ phase: 'tool', message: 'Reading Q3 plan…', step: { key: 'readNamedDocument', params: { title: 'Q3 plan' } } })
     await ch.setResponse({ message: 'Done', isQuestion: false, ts: 5 })
     expect(await readSessionChannel('s1', store)).toEqual({
       sessionId: 's1',
       ...meta,
-      status: { phase: 'tool', message: 'Reading "Q3 plan"…' },
+      status: { phase: 'tool', message: 'Reading Q3 plan…', step: { key: 'readNamedDocument', params: { title: 'Q3 plan' } } },
       response: { message: 'Done', isQuestion: false, ts: 5 },
       confirmation: null
     })

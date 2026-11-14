@@ -1,3 +1,4 @@
+import { aiStatus } from '~~/shared/ai/statusSteps'
 import { AgenticFinishReason as FinishReason } from '../aiTypes'
 import { executeFunctionByName } from '../../ai/tools/registry'
 import { isCommentTriggerSession, type LoopContext, type ResponseParts } from './loopContext'
@@ -80,9 +81,9 @@ function finalizeSalvageStatus(ctx: LoopContext, finishReason: FinishReason | un
   if (finishReason && finishReason !== FinishReason.STOP && finishReason !== FinishReason.MAX_TOKENS) {
     ctx.telemetry.outcome = 'error'
     ctx.telemetry.errorMessage = `finish=${finishReason}`
-    ctx.opts.setStatus('error', `Stopped: ${finishReason}`)
+    ctx.opts.setStatus('error', aiStatus('stoppedReason', { reason: String(finishReason) }))
   } else {
     ctx.telemetry.outcome = 'success'
-    ctx.opts.setStatus('done', 'Done')
+    ctx.opts.setStatus('done', aiStatus('done'))
   }
 }

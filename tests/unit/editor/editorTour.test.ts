@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, it, expect } from 'vitest'
 import {
   anchorSelector, DESKTOP_TOUR_STEPS, EDITOR_TOUR_DONE, EDITOR_TOUR_STORAGE_KEY,
-  editorTourDone, markEditorTourDone, MOBILE_TOUR_STEPS
+  editorTourDone, markEditorTourDone, MOBILE_TOUR_STEPS, TOUR_TYPING_PAUSE_MS, tourTypingWait
 } from '../../../app/utils/editor/editorTour'
 
 // The first-run editor tour: step data, anchors and the "seen" flag.
@@ -80,5 +80,26 @@ describe('tour storage', () => {
     expect(editorTourDone(blocked)).toBe(true)
     expect(() => markEditorTourDone(blocked)).not.toThrow()
     expect(editorTourDone(null)).toBe(false)
+  })
+})
+
+describe('tourTypingWait', () => {
+  it('lets the tour open when nobody typed for the pause', () => {
+    expect(tourTypingWait(10_000, 0)).toBe(0)
+    expect(tourTypingWait(10_000, 10_000 - TOUR_TYPING_PAUSE_MS)).toBe(0)
+  })
+
+  it('waits out the rest of the pause while the user is typing', () => {
+    expect(tourTypingWait(10_000, 9_000)).toBe(TOUR_TYPING_PAUSE_MS - 1_000)
+    expect(tourTypingWait(10_000, 10_000)).toBe(TOUR_TYPING_PAUSE_MS)
+  })
+})
+
+describe('EditorTour.vue', () => {
+  const source = readFileSync(new URL('../../../app/components/editor/EditorTour.vue', import.meta.url), 'utf8')
+
+  it('never moves focus when the popover opens or closes', () => {
+    // A popover that takes focus swallowed a prompt being typed into the AI bar.
+    expect(source).toMatch(/onOpenAutoFocus: keepFocus, onCloseAutoFocus: keepFocus/)
   })
 })

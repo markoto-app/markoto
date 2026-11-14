@@ -1,5 +1,6 @@
 import { onScopeDispose } from 'vue'
 import type { AiConfirmationRequest, AiEventSource, AiResponseEntry, AiSessionOutcome } from '~/types/ai/session'
+import { parseAiStatusStep, type AiStatusStep } from '~~/shared/ai/statusSteps'
 
 /**
  * The initiator's private channel of an AI session: while I have a session,
@@ -20,6 +21,7 @@ interface PrivateSessionStatus {
   prompt: string
   phase: string
   message: string | null
+  step: AiStatusStep | null
   response: { message: string, isQuestion: boolean, ts: number } | null
   confirmation: AiConfirmationRequest | null
 }
@@ -49,6 +51,7 @@ function parseStatusEvent(data: unknown): PrivateSessionStatus | null {
     prompt: typeof v.prompt === 'string' ? v.prompt : '',
     phase: v.phase,
     message: typeof v.message === 'string' ? v.message : null,
+    step: parseAiStatusStep(v.step),
     response,
     confirmation
   }
@@ -68,9 +71,11 @@ interface TrackingOptions {
   lastError: Ref<string | null>
   pollMs: number
   createEventSource: ((url: string) => AiEventSource) | null
+  /** Renders a status step in the UI language (the error toast's text). */
+  stepText: (step: AiStatusStep) => string
 }
 
-export function useAiSessionTracking({ mySessionId, lastError, pollMs, createEventSource }: TrackingOptions) {
+export function useAiSessionTracking({ mySessionId, lastError, pollMs, createEventSource, stepText }: TrackingOptions) {
   // `privateStatus` is the latest snapshot for the session I'm tracking.
   // Tracking starts as soon as `/api/ai/prompt` returns a session id
   // (before the AI client shows up in awareness) or when awareness shows
@@ -102,9 +107,9 @@ export function useAiSessionTracking({ mySessionId, lastError, pollMs, createEve
     }
     // Surface errors that happen mid-loop (server-side) through
     // `lastError` so AIPromptBar can toast them, once per session.
-    if (s.phase === 'error' && s.message && lastErrorSessionId !== s.sessionId) {
+    if (s.phase === 'error' && (s.step || s.message) && lastErrorSessionId !== s.sessionId) {
       lastErrorSessionId = s.sessionId
-      lastError.value = s.message.replace(/^Error:\s*/i, '')
+      lastError.value = s.step ? stepText(s.step) : (s.message ?? '').replace(/^Error:\s*/i, '')
     }
   }
 

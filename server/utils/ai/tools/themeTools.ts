@@ -1,3 +1,4 @@
+import { aiStatus } from '~~/shared/ai/statusSteps'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
 import * as Sentry from '@sentry/nuxt'
@@ -106,7 +107,7 @@ async function handleUpdateTheme(
   const css = resolveThemeCustomCss(merged, input.customCss !== undefined, session.docId, customCssAppOrigins())
   if (!css.ok) return toolError(css.error)
 
-  session.updateStatus('editing', 'Updating theme…')
+  session.updateStatus('editing', aiStatus('updateTheme'))
   applyThemeToYDoc(session, css.theme)
   await persistThemeBestEffort(session, css.theme)
 
@@ -343,7 +344,7 @@ async function handleSaveThemeAsPreset(
 
   const theme = await resolveCurrentTheme(session)
 
-  session.updateStatus('tool', `Saving theme as "${name.slice(0, 40)}"…`)
+  session.updateStatus('tool', aiStatus('saveTheme', { name: name.slice(0, 40) }))
 
   const themeId = nanoid(10)
   await createTheme(session.self, {

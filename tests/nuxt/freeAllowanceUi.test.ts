@@ -216,6 +216,8 @@ describe('UsageBadge: plan budget, bought credits and the workspace budget', () 
     })
     const wrapper = await mountBadge()
     expect(wrapper.get('[data-testid="usage-badge"]').text()).toContain('100%')
+    // Brand tokens, no bright palette: ink while there are points.
+    expect(wrapper.get('.usage-badge__bar-fill').classes()).toContain('bg-inverted')
     expect(document.body.querySelector('[data-testid="usage-badge-points-remaining"]')?.textContent).toBe('4,988')
     expect(document.body.querySelector('[data-testid="usage-badge-credit-points"]')?.textContent).toContain('+ 10,000 points from AI credits')
     expect(document.body.querySelector('[data-testid="usage-badge-workspace-budget"]')).toBeNull()

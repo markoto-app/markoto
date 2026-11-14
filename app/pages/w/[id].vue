@@ -635,6 +635,7 @@ async function leaveWorkspace() {
       :focus-invite="membersFocusInvite"
       :billing="data.workspace.billing ?? null"
       :guests-available="data.workspace.guests?.available ?? false"
+      :sso-active="data.workspace.sso?.status === 'active'"
       @billing-changed="loadWorkspace()"
       @updated="onMembersUpdated"
       @leave="onLeftWorkspace"

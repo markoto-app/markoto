@@ -8,7 +8,8 @@ import type { StreamStatusPhase } from '../streamStatus'
 import { buildSessionGuard } from '../sessionGuard'
 import type { CrossBoundaryGuard } from '../crossBoundary'
 import { finalizeSessionProvenance } from '../sessionProvenance'
-import { loopErrorMessage } from '../loopErrorMessage'
+import { loopErrorStatus } from '../loopErrorMessage'
+import { aiStatus, toStatusLine, type AiStatusInput } from '~~/shared/ai/statusSteps'
 import type { SessionWorkspace, OpenedSession } from './sessionSetup'
 import type { DocAccess, UserScope } from '../../../repos/proofs'
 
@@ -58,10 +59,14 @@ export async function runAgentSession(spec: AgentSessionSpec): Promise<void> {
   let aiSession: Awaited<ReturnType<typeof createAiSession>> | null = null
   let crossBoundary: CrossBoundaryGuard | null = null
   const status: { phase: StreamStatusPhase } = { phase: 'thinking' }
-  const setStatus = (phase: StreamStatusPhase, message?: string) => {
+  const setStatus = (phase: StreamStatusPhase, input?: AiStatusInput) => {
     status.phase = phase
-    if (aiSession) aiSession.updateStatus(phase, message)
-    else void session.channel.setStatus({ phase, message: message ?? null })
+    if (aiSession) {
+      aiSession.updateStatus(phase, input)
+      return
+    }
+    const line = toStatusLine(input)
+    void session.channel.setStatus({ phase, message: line?.text ?? null, step: line?.step ?? null })
   }
 
   await spec.beforeStart?.()
@@ -140,7 +145,7 @@ export async function runAgentSession(spec: AgentSessionSpec): Promise<void> {
 function reportLoopFailure(
   e: unknown,
   spec: AgentSessionSpec,
-  setStatus: (phase: StreamStatusPhase, message?: string) => void
+  setStatus: (phase: StreamStatusPhase, status?: AiStatusInput) => void
 ): void {
   // Anything after the abort signal counts as an abort: the SDK throws various
   // abort variants and our AbortController is the source of truth.
@@ -154,7 +159,12 @@ function reportLoopFailure(
   // participants just see the phase. BYOK errors are key-redacted where
   // they are raised; upstream text never reaches the user at all
   // (`loopErrorMessage`), the raw error is logged below.
-  setStatus(isAbort ? 'done' : 'error', isAbort ? 'Stopped' : `Error: ${loopErrorMessage(e)}`)
+  if (isAbort) {
+    setStatus('done', aiStatus('stopped'))
+  } else {
+    const error = loopErrorStatus(e)
+    setStatus('error', { text: `Error: ${error.text}`, step: error.step })
+  }
   if (isAbort) {
     spec.log.info('aborted by user', { sessionId: spec.session.sessionId })
   } else {

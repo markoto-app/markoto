@@ -3,6 +3,7 @@ import { useValkey, useValkeySubscriber } from '../platform/valkey'
 import type { ToolStatusPhase } from './toolContext'
 import { MINUTE_MS } from '~~/shared/config/units'
 import { useLogger } from '../platform/logger'
+import { parseAiStatusStep, type AiStatusStep } from '~~/shared/ai/statusSteps'
 
 const log = useLogger('ai-session-channel')
 
@@ -136,7 +137,10 @@ export interface ChannelMeta {
 
 export interface ChannelStatus {
   phase: ToolStatusPhase
+  /** English text of the status (also the fallback when `step` is null). */
   message: string | null
+  /** The status as a code the client renders in the UI language. */
+  step: AiStatusStep | null
 }
 
 export interface ChannelResponse {
@@ -202,7 +206,7 @@ function readMeta(raw: string | null): ChannelMeta | null {
 function readStatus(raw: string | null): ChannelStatus | null {
   const v = parseJson(raw)
   if (!isRecord(v) || !isPhase(v.phase)) return null
-  return { phase: v.phase, message: typeof v.message === 'string' ? v.message : null }
+  return { phase: v.phase, message: typeof v.message === 'string' ? v.message : null, step: parseAiStatusStep(v.step) }
 }
 
 function readResponse(raw: string | null): ChannelResponse | null {
@@ -349,6 +353,7 @@ export interface SessionView {
   commentThreadId: string | null
   phase: ToolStatusPhase
   message: string | null
+  step: AiStatusStep | null
   response: ChannelResponse | null
   confirmation: PendingConfirmation | null
 }
@@ -361,6 +366,7 @@ export function toSessionView(snapshot: ChannelSnapshot): SessionView {
     commentThreadId: snapshot.commentThreadId,
     phase: snapshot.status?.phase ?? 'thinking',
     message: snapshot.status?.message ?? null,
+    step: snapshot.status?.step ?? null,
     response: snapshot.response,
     confirmation: snapshot.confirmation
   }

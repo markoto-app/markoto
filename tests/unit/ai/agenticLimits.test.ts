@@ -146,8 +146,10 @@ describe('SESSION_INTERACTION_CAP enforcement', () => {
     // Some setStatus call should be ('error', message containing cap text)
     const errorCalls = setStatus.mock.calls.filter(c => c[0] === 'error')
     expect(errorCalls.length).toBeGreaterThanOrEqual(1)
-    const errorMsg = String(errorCalls[errorCalls.length - 1]?.[1] ?? '')
-    expect(errorMsg).toMatch(/session interaction cap|50/i)
+    expect(errorCalls[errorCalls.length - 1]?.[1]).toEqual({
+      text: 'Stopped after 50 steps. Try a more focused prompt.',
+      step: { key: 'sessionCap', params: { cap: '50' } }
+    })
   })
 
   it('does NOT abort when interactions stay below the cap', async () => {

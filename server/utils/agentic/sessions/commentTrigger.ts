@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3'
 import { getDoc } from '../../../repos/documents'
 import type { DocAccess, UserScope } from '../../../repos/proofs'
-import { buildKnowledgeBlock, buildWorkspaceMembersBlock } from '../workspacePromptBlocks'
+import { buildKnowledgeBlock, buildWorkspaceMembersBlock, withKnowledgeNote } from '../workspacePromptBlocks'
 import { buildCommentTriggerBlock, resolveCommentTrigger, COMMENT_TRIGGER_SYSTEM_PROMPT } from '../commentTriggerPrompt'
 import { assemblePromptSystemPrompt } from '../promptAssembly'
 import { openTrustedCommentClient } from '../../documents/commentsServerClient'
@@ -72,7 +72,7 @@ export async function startCommentTrigger(event: H3Event, request: CommentTrigge
     workspace: wsCtx,
     session,
     systemPrompt,
-    initialPrompt: wrappedSeedPrompt,
+    initialPrompt: withKnowledgeNote(wrappedSeedPrompt, wsCtx.exposeKnowledgeTools),
     // The triggering message is the caller's own (checked in
     // `peekTriggerThread`); the rest of the thread may not be.
     invokerText: triggerCtx.seedPrompt,

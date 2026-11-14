@@ -228,6 +228,22 @@ describe('removeMember', () => {
     await expect(removeMember(wsAs(ws.workspaceId), stranger.id))
       .rejects.toBeInstanceOf(NotFoundError)
   })
+
+  it('removes the member\'s single sign-on grant too, and only theirs', async () => {
+    const admin = await createUser()
+    const editor = await createUser()
+    const ws = await seedWorkspace(admin.id)
+    await setMemberRole(ws.workspaceId, editor.id, 'editor')
+    for (const id of [admin.id, editor.id]) {
+      await testDb().query(
+        `INSERT INTO sso_grants (user_id, workspace_id, session_epoch, expires_at) VALUES ($1, $2, 0, now() + interval '12 hours')`,
+        [id, ws.workspaceId]
+      )
+    }
+    await removeMember(wsAs(ws.workspaceId), editor.id)
+    const { rows } = await testDb().query<{ user_id: number }>('SELECT user_id FROM sso_grants WHERE workspace_id = $1', [ws.workspaceId])
+    expect(rows.map(r => r.user_id)).toEqual([admin.id])
+  })
 })
 
 describe('last-admin invariant: concurrent races', () => {

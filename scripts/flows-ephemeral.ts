@@ -153,6 +153,13 @@ const FLOWS_ENV: Record<string, string> = {
   MISTRAL_API_KEY: process.env.MISTRAL_API_KEY || 'flows-placeholder-mistral-key'
 }
 
+/** The hosted free plan's AI switches (infra/render-env.sh), for FLOWS_HOSTED_AI=1. */
+const HOSTED_FREE_PLAN_AI: Record<string, string> = {
+  TIER_FREE_FEATURE_AI_IMAGE: 'false',
+  TIER_FREE_FEATURE_AI_VOICE: 'false',
+  TIER_FREE_FEATURE_AI_STRONG_MODEL: 'false'
+}
+
 // The passes of one run. Same database + infra; only the app server
 // restarts with another shape. `grep` narrows Playwright to one tag's
 // flows; `selectEnv` tells playwright.config.ts which tags its
@@ -196,6 +203,17 @@ const MARKETING_PHASE: Phase = {
 const PHASES: readonly Phase[] = [DEFAULT_PHASE, BILLING_PHASE, MARKETING_PHASE]
 
 let nuxtProc: Subprocess | null = null
+
+/**
+ * A setup step failed with this exit code. Thrown, never `process.exit()`:
+ * exiting skips the `finally` below and leaves the stack running.
+ */
+class StepFailed extends Error {
+  constructor(message: string, readonly exitCode: number) {
+    super(message)
+    this.name = 'StepFailed'
+  }
+}
 let cleaningUp = false
 
 async function shellOut(cmd: string[]): Promise<number> {
@@ -296,8 +314,7 @@ async function bootStack() {
   console.log('[flows-ephemeral] booting docker stack')
   const upCode = await shellOut(['bash', TEST_COMPOSE, '--profile', COMPOSE_PROFILE, 'up', '-d', '--wait'])
   if (upCode !== 0) {
-    console.error('[flows-ephemeral] docker compose up failed')
-    process.exit(upCode)
+    throw new StepFailed('docker compose up failed', upCode)
   }
 }
 
@@ -314,8 +331,7 @@ async function buildApp() {
     process.env.MARKOTO_TEST_BUILD = '1'
     const buildCode = await shellOut(['bun', 'run', 'build'])
     if (buildCode !== 0) {
-      console.error('[flows-ephemeral] bun run build failed')
-      process.exit(buildCode)
+      throw new StepFailed('bun run build failed', buildCode)
     }
   }
 }
@@ -327,13 +343,14 @@ async function serveOnly() {
   let phase = DEFAULT_PHASE
   if (process.env.FLOWS_BILLING === 'on') phase = BILLING_PHASE
   else if (process.env.FLOWS_MARKETING === 'on') phase = MARKETING_PHASE
-  // FLOWS_HOSTED_AI=1: AI as on markoto.app, a chat default only (no
-  // instance image / transcription default). The product-tour and demo-video
-  // captures need it: with platform-paid defaults the editor shows an
-  // AI-points meter to a user on their own key, which markoto.app doesn't.
-  const hostedAi: Record<string, string> = process.env.FLOWS_HOSTED_AI === '1'
-    ? { NUXT_AI_DEFAULT_IMAGE_MODEL: '', NUXT_AI_DEFAULT_TRANSCRIBE_MODEL: '' }
-    : {}
+  // FLOWS_HOSTED_AI=1: the free plan as on markoto.app (infra/render-env.sh).
+  // The instance defaults are the same as there, but the hosted free plan
+  // leaves out the platform image and voice defaults and the strong model;
+  // the flow stack's free plan is the committed one (every feature on). The
+  // product-tour and demo-video captures need it: otherwise a user on their
+  // own chat key still has platform-paid image and voice, so the editor shows
+  // an AI-points meter that markoto.app doesn't.
+  const hostedAi: Record<string, string> = process.env.FLOWS_HOSTED_AI === '1' ? HOSTED_FREE_PLAN_AI : {}
   await startNuxt({ ...phase.env, ...hostedAi })
   console.log(`[flows-ephemeral] FLOWS_SERVE_ONLY=1: app up at ${NUXT_URL} (${phase.name}). Ctrl-C to tear down.`)
   await new Promise(() => {}) // wait forever; cleanup runs on SIGINT/SIGTERM
@@ -399,6 +416,10 @@ try {
   // starts.
   process.env.PLAYWRIGHT_BASE_URL = NUXT_URL
   await main()
+} catch (e) {
+  if (!(e instanceof StepFailed)) throw e
+  console.error(`[flows-ephemeral] ${e.message}`)
+  process.exitCode = e.exitCode || 1
 } finally {
   await cleanup()
 }

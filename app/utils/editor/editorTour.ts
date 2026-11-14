@@ -71,3 +71,17 @@ export function markEditorTourDone(storage: Pick<Storage, 'setItem'> | null): vo
     // Best effort.
   }
 }
+
+/** How long the user must have stopped typing before the tour may open. */
+export const TOUR_TYPING_PAUSE_MS = 3000
+
+/**
+ * Milliseconds to wait before the auto-started tour may open: 0 when the
+ * last key press is at least `TOUR_TYPING_PAUSE_MS` ago, else the rest of
+ * that pause. Someone who opens a document and types right away (a prompt,
+ * a sentence) must not have the tour take their keystrokes.
+ */
+export function tourTypingWait(now: number, lastKeyAt: number): number {
+  const since = now - lastKeyAt
+  return since >= TOUR_TYPING_PAUSE_MS ? 0 : TOUR_TYPING_PAUSE_MS - since
+}

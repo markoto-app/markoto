@@ -1,3 +1,5 @@
+import type { AiStatusStep } from '~~/shared/ai/statusSteps'
+
 // Session types shared by `useAI` and its helper modules. They live in this
 // leaf module so the helpers don't import back from `useAI.ts`, which
 // re-exports them as part of its API. A sub-folder of app/types on purpose:
@@ -46,6 +48,8 @@ export interface AiConfirmationRequest {
 export interface MyAiSessionInfo extends AiSessionInfo {
   prompt: string
   message: string | null
+  /** The status as a step code, rendered in the UI language (`ai.step.*`). */
+  step: AiStatusStep | null
   confirmation: AiConfirmationRequest | null
 }
 

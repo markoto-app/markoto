@@ -66,9 +66,15 @@ everywhere". Members who open the workspace without one see a
 also type their work email to go straight to your provider.
 
 Changing the provider settings switches single sign-on off again until the
-next successful test, so a typo can't lock everyone out. Admins can always
+next successful test, so a typo can't lock everyone out. Switching to another
+provider also ends everyone's sign-ins: they sign in again through the new
+one. Admins can always
 reach the Single sign-on settings, even without signing in through the
 provider, to fix or remove the connection.
+
+Removing someone from the workspace ends their access at once. If their
+email is in one of your verified domains, they can join again by signing in
+through your provider, so remove them there as well.
 
 Documents in the workspace that are shared with **anyone who has the link**
 stay reachable by link: the link setting applies to everyone, member or

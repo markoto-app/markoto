@@ -1,3 +1,4 @@
+import { aiStatus } from '~~/shared/ai/statusSteps'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
 import * as Y from 'yjs'
@@ -180,7 +181,7 @@ async function handleCreateComment(
     return toolError('Error: the specified line range resolves to an empty anchor. Use a range that covers at least one character.')
   }
 
-  session.updateStatus('editing', 'Adding comment…')
+  session.updateStatus('editing', aiStatus('addComment'))
 
   const startRel = Y.createRelativePositionFromTypeIndex(session.ytext, startChar, 0)
   const endRel = Y.createRelativePositionFromTypeIndex(session.ytext, endChar, -1)
@@ -242,7 +243,7 @@ function handleReplyToComment(
   const repliesArr: Y.Array<Y.Map<unknown>> = repliesArrRaw
   const parent = parentMap
 
-  session.updateStatus('editing', 'Adding reply…')
+  session.updateStatus('editing', aiStatus('replyCommentAny'))
 
   const id = nanoid(12)
   const now = Date.now()

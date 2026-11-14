@@ -56,7 +56,8 @@ const { sessionState } = vi.hoisted(() => ({
 const TEXTS: Record<string, string> = {
   'apiErrors.common.internal': 'Text for internal',
   'apiErrors.auth.forbidden': 'Text for forbidden',
-  'error.generic': 'Generic text'
+  'error.generic': 'Generic text',
+  'ai.step.aiRateLimited': 'Text for the rate limit step'
 }
 mockNuxtImport('useToast', () => () => ({ add: vi.fn() }))
 mockNuxtImport('useI18n', () => () => ({
@@ -144,6 +145,7 @@ function setPrivateStatus(sid: string, patch: Record<string, unknown>) {
     prompt: '',
     phase: 'thinking',
     message: null,
+    step: null,
     response: null,
     confirmation: null,
     ...patch
@@ -509,6 +511,18 @@ describe('useAI: private session channel', () => {
     const ai = useAI(docId, awareness, FAST)
     setPrivateStatus('sid-mine', { phase: 'error', message: 'Error: Rate limit exceeded' })
     await vi.waitFor(() => expect(ai.lastError.value).toBe('Rate limit exceeded'))
+  })
+
+  it('an error with a step code reads in the UI language, not the server\'s English', async () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    setPrivateStatus('sid-mine', { phase: 'thinking' })
+    pushAiClient(awareness, { sessionId: 'sid-mine', initiatorName: 'Me', initiatorUserId: 7 })
+    const ai = useAI(docId, awareness, FAST)
+    setPrivateStatus('sid-mine', { phase: 'error', message: 'Error: Too many AI requests in a short time.', step: { key: 'aiRateLimited' } })
+    await vi.waitFor(() => expect(ai.lastError.value).toBe('Text for the rate limit step'))
+    expect(ai.mySession.value?.step).toEqual({ key: 'aiRateLimited' })
   })
 
   it('reads the final state once more after the session leaves awareness, and keeps the error', async () => {

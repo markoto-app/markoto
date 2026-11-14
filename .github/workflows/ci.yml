@@ -188,14 +188,24 @@ jobs:
 
   label-check:
     name: label-check
-    permissions: {}
+    permissions:
+      pull-requests: read
     runs-on: ubuntu-latest
     steps:
+      # Reads the PR's CURRENT labels through the API, not the event payload:
+      # label changes don't trigger this workflow, and a re-run replays the
+      # original payload, so a payload read could never clear a failure.
       - name: Validate exactly one (or zero) release:* label
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
           script: |
-            const labels = context.payload.pull_request.labels.map(l => l.name);
+            const current = await github.paginate(github.rest.issues.listLabelsOnIssue, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              per_page: 100
+            });
+            const labels = current.map(l => l.name);
             const releaseLabels = labels.filter(n => n.startsWith('release:'));
             const allowed = ['release:major', 'release:minor', 'release:patch', 'release:none'];
             const invalid = releaseLabels.filter(n => !allowed.includes(n));

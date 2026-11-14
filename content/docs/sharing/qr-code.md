@@ -18,7 +18,7 @@ Scan, open.
 
 ## What just happened
 
-The QR code is generated client-side from the same URL the Copy Link
+The QR code is generated client-side from the same URL the Copy link
 button hands you. Whatever access mode the doc is in (private,
 open-edit, open-view, password-protected) applies to the QR-scanned
 link the same way: the QR code doesn't bypass anything.

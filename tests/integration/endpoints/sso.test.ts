@@ -300,6 +300,20 @@ describe('SSO with OpenID Connect', () => {
     expect((await connectionRow(ws.workspaceId))?.status).toBe('draft')
   })
 
+  it('switching to another IdP voids the grants of the previous one; a client-secret change keeps them', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    await activateOidc(admin.id, ws.workspaceId)
+    const grants = async () => Number((await testDb().query('SELECT count(*)::int AS n FROM sso_grants WHERE workspace_id = $1', [ws.workspaceId])).rows[0].n)
+    expect(await grants()).toBe(1)
+    const client = await loggedInClient(admin.id)
+    const issuer = (await testDb().query<{ oidc_issuer: string }>('SELECT oidc_issuer FROM sso_connections WHERE workspace_id = $1', [ws.workspaceId])).rows[0]!.oidc_issuer
+    expect((await client.put(`/api/workspaces/${ws.workspaceId}/sso`, { protocol: 'oidc', oidcIssuer: issuer, oidcClientId: 'markoto', oidcClientSecret: 'rotated' })).status).toBe(200)
+    expect(await grants()).toBe(1)
+    expect((await client.put(`/api/workspaces/${ws.workspaceId}/sso`, { protocol: 'oidc', oidcIssuer: `${ssoMockIdpBase()}/other`, oidcClientId: 'markoto' })).status).toBe(200)
+    expect(await grants()).toBe(0)
+  })
+
   it('a callback without this browser\'s flow cookie is refused', async () => {
     const admin = await createUser()
     const ws = await createWorkspace(admin.id)

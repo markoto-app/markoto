@@ -1,5 +1,11 @@
 import { SESSION_INTERACTION_CAP } from '../limits'
+import { aiStatus, type AiStatusLine } from '~~/shared/ai/statusSteps'
 import { SESSION_TOOL_CALL_CAPS } from '../../ai/tools/registry'
+
+/** The status a session ends with when it hits the interaction cap. */
+export function sessionCapStatus(): AiStatusLine {
+  return aiStatus('sessionCap', { cap: String(SESSION_INTERACTION_CAP) })
+}
 
 /**
  * Per-session SAFETY cap counter. Two-axis:
@@ -22,7 +28,7 @@ export class SessionBudget {
    */
   consumeInteractions(delta: number, reason: string, log: (m: string) => void): { ok: true } | { ok: false, message: string } {
     if (this.interactions + delta > SESSION_INTERACTION_CAP) {
-      const message = `Session interaction cap reached (${SESSION_INTERACTION_CAP}). The agentic loop ran too long; please try a more focused prompt.`
+      const message = sessionCapStatus().text
       log(`[limits] session interaction cap reached (${this.interactions}+${delta} > ${SESSION_INTERACTION_CAP}); aborting`)
       return { ok: false, message }
     }

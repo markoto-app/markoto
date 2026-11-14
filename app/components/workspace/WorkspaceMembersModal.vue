@@ -38,6 +38,9 @@ const props = defineProps<{
   // Team / Business subscription (admins only): paid seats and seats
   // in use (members + open invitations). Null = no seat limit.
   billing?: WorkspaceSeatBilling | null
+  // Single sign-on is enforced (admins only): a removed member can rejoin
+  // through the IdP, so the removal dialog says to remove them there too.
+  ssoActive?: boolean
 }>()
 
 const open = defineModel<boolean>('open', { required: true })
@@ -194,6 +197,24 @@ async function changeRole(member: WorkspaceMember, role: 'admin' | 'editor' | 'v
   }
 }
 
+// Removing someone else asks first; leaving runs at once.
+const removeTarget = ref<WorkspaceMember | null>(null)
+const removeDialogOpen = ref(false)
+function onRemoveClick(member: WorkspaceMember) {
+  if (member.userId === props.myUserId) {
+    void removeMember(member)
+    return
+  }
+  removeTarget.value = member
+  removeDialogOpen.value = true
+}
+async function confirmRemove() {
+  const member = removeTarget.value
+  if (!member) return
+  await removeMember(member)
+  removeDialogOpen.value = false
+}
+
 async function removeMember(member: WorkspaceMember) {
   rowBusy.value = member.userId
   try {
@@ -309,7 +330,9 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
                 variant="ghost"
                 size="xs"
                 :loading="rowBusy === m.userId"
-                @click="removeMember(m)"
+                :aria-label="m.userId === myUserId ? t('workspace.members.leave') : t('workspace.members.remove')"
+                :data-testid="`workspace-member-remove-${m.userId}`"
+                @click="onRemoveClick(m)"
               />
             </UTooltip>
           </li>
@@ -468,4 +491,12 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
       </div>
     </template>
   </UModal>
+
+  <WorkspaceRemoveMemberModal
+    v-model:open="removeDialogOpen"
+    :name="removeTarget?.name ?? ''"
+    :sso-active="ssoActive === true"
+    :busy="removeTarget !== null && rowBusy === removeTarget.userId"
+    @confirm="confirmRemove"
+  />
 </template>

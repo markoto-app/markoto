@@ -56,6 +56,10 @@ example *markoto wants to read "Q3 plan"*, with **Allow** and **Deny**.
 - **Deny**, or no answer within about a minute and a half, skips it. The AI carries on without it and tells you what it couldn't do.
 
 In a private document only you have written, the AI never needs to ask.
+What you type or dictate counts as yours, and so does text the AI wrote for
+you, unless that session read a web page or someone else's text: such text
+can carry hidden instructions, so the AI keeps asking first in that
+document.
 
 ## Tips for good prompts
 

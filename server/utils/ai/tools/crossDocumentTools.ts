@@ -1,3 +1,4 @@
+import { aiStatus } from '~~/shared/ai/statusSteps'
 import { z } from 'zod'
 import { defineMetaTool, toolError, toolOk, type ToolResult } from './toolDefinition'
 import type { MetaToolContext } from '../../agentic/toolContext'
@@ -170,7 +171,7 @@ async function handleViewOtherDocument(
   // comment-trigger endpoint uses for peek reads, opens just long
   // enough to get a synced ydoc, reads ytext, disconnects. Catches
   // mid-flight edits that haven't been stored yet.
-  session.updateStatus('tool', `Reading ${ctx.title || 'document'}…`)
+  session.updateStatus('tool', ctx.title ? aiStatus('readNamedDocument', { title: ctx.title }) : aiStatus('readOtherDocumentAny'))
   const bodyResult = await readOtherDocBody(session, targetId)
   if (!bodyResult.ok) return bodyResult.error
 

@@ -3,6 +3,7 @@ import type { EditorSelectionSnapshot } from '~~/shared/types/editorSelection'
 import { useAwarenessAiSessions } from './aiAwarenessSessions'
 import { aiErrorStatus, useAiSessionTracking } from './aiSessionTracking'
 import type { AiConfirmationRequest, AiEventSource, MyAiSessionInfo } from '~/types/ai/session'
+import { aiStepText } from '~/utils/ai/statusText'
 
 export type { AiConfirmationRequest, AiEventSource, AiResponseEntry, AiSessionInfo, AiSessionOutcome, MyAiSessionInfo } from '~/types/ai/session'
 
@@ -70,7 +71,10 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
   // `ai/free-allowance-exhausted`): distinct from the user's own points.
   const freeAllowanceExhausted = ref(false)
 
-  const { privateStatus, startedSessionId, lastResponse, lastOutcome } = useAiSessionTracking({ mySessionId, lastError, pollMs, createEventSource })
+  const { t } = useI18n()
+  const { privateStatus, startedSessionId, lastResponse, lastOutcome } = useAiSessionTracking({
+    mySessionId, lastError, pollMs, createEventSource, stepText: step => aiStepText(step, t)
+  })
 
   const mySession = computed<MyAiSessionInfo | null>(() => {
     const sid = mySessionId.value
@@ -83,6 +87,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
       phase: priv?.phase ?? pub.phase,
       prompt: priv?.prompt ?? '',
       message: priv?.message ?? null,
+      step: priv?.step ?? null,
       confirmation: priv?.confirmation ?? null
     }
   })

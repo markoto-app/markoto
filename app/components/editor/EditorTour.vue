@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   anchorSelector, DESKTOP_TOUR_STEPS, editorTourDone, markEditorTourDone, MOBILE_TOUR_STEPS,
-  type EditorTourStep
+  tourTypingWait, type EditorTourStep
 } from '~/utils/editor/editorTour'
 
 /**
@@ -89,21 +89,43 @@ function next(): void {
   if (!reference.value) next()
 }
 
+// When the user last pressed a key: the tour never opens on someone who is typing.
+let lastKeyAt = 0
 useEventListener(globalThis, 'keydown', (e: KeyboardEvent) => {
+  lastKeyAt = Date.now()
   if (running.value && !blocked.value && e.key === 'Escape') finish()
 })
 
 // First visit: start shortly after the editor is ready, so the page has
-// settled (and an onboarding / password dialog had its chance to open).
+// settled (and an onboarding / password dialog had its chance to open),
+// and wait while the user is typing (someone who opens a document and
+// starts a prompt or a sentence right away would lose keystrokes).
+const AUTO_START_DELAY_MS = 1500
 let autoTimer: ReturnType<typeof setTimeout> | undefined
+function scheduleAutoStart(delay: number): void {
+  clearTimeout(autoTimer)
+  autoTimer = setTimeout(() => {
+    if (!props.ready || running.value) return
+    const wait = tourTypingWait(Date.now(), lastKeyAt)
+    if (wait > 0) {
+      scheduleAutoStart(wait)
+      return
+    }
+    start()
+  }, delay)
+}
 watch(() => props.ready, (ready) => {
   clearTimeout(autoTimer)
   if (!ready || running.value) return
   if (editorTourDone(globalThis.localStorage ?? null)) return
-  autoTimer = setTimeout(() => {
-    if (props.ready && !running.value) start()
-  }, 1500)
+  scheduleAutoStart(AUTO_START_DELAY_MS)
 }, { immediate: true })
+
+// The popover never moves focus, opening or closing: whatever the user is
+// in (the prompt bar, the editor) keeps the keyboard.
+function keepFocus(e: Event): void {
+  e.preventDefault()
+}
 
 onBeforeUnmount(() => {
   clearTimeout(autoTimer)
@@ -120,7 +142,7 @@ defineExpose({ start })
     :reference="reference ?? undefined"
     :dismissible="false"
     :modal="false"
-    :content="{ side: current.side, sideOffset: 10, collisionPadding: 12 }"
+    :content="{ side: current.side, sideOffset: 10, collisionPadding: 12, onOpenAutoFocus: keepFocus, onCloseAutoFocus: keepFocus }"
     arrow
   >
     <template #content>

@@ -1,3 +1,4 @@
+import type { AiStatusInput } from '~~/shared/ai/statusSteps'
 import type { ZodRawShape } from 'zod'
 import type { H3Event } from 'h3'
 import type { ShapeOutput } from '@modelcontextprotocol/sdk/server/zod-compat.js'
@@ -401,7 +402,7 @@ async function buildStubContext(
     periodStart: billingContext.periodStart,
     virtualKey: billingContext.virtualKey,
     aiProviders,
-    updateStatus: (_phase: ToolStatusPhase, _message?: string) => {
+    updateStatus: (_phase: ToolStatusPhase, _status?: AiStatusInput) => {
       // No-op: workspace/user-only tools have no doc-level awareness
       // to broadcast on. The MCP client gets the result via the normal
       // tool-call return; live doc collaborators can't see this work
