@@ -23,6 +23,9 @@ import { fileURLToPath } from 'node:url'
 //                            Postgres from deploy/compose/compose.dev.yml and a
 //                            running app. Opted-in via the `integration`
 //                            project; bun run test runs unit + dom + nuxt.
+//   - tests/billing-sandbox/**: the app against Stripe's real test-mode
+//                            API (test clocks, real events). Skipped
+//                            unless STRIPE_SANDBOX_SECRET_KEY is set.
 // Node 25 defines its own global `localStorage` (Web Storage, on by
 // default), which shadows the DOM test environment's and has no methods
 // without `--localstorage-file` ("localStorage.setItem is not a
@@ -212,6 +215,25 @@ export default defineConfig({
           testTimeout: 30_000,
           hookTimeout: 120_000,
           globalSetup: ['./tests/integration/setup/globalSetup.ts']
+        }
+      },
+      {
+        extends: true,
+        test: {
+          name: 'billing-sandbox',
+          include: ['tests/billing-sandbox/**/*.test.ts'],
+          environment: 'node',
+          // One file per scenario, each on its own users, customers and
+          // test clock: the files run side by side (the wait is Stripe's),
+          // the steps inside a file in order. After the integration
+          // project, which truncates the database this tier shares.
+          pool: 'forks',
+          sequence: { concurrent: false, groupOrder: 2 },
+          // A test clock takes 10 to 15 s per advance; Stripe's events
+          // follow a few seconds after the call that caused them.
+          testTimeout: 300_000,
+          hookTimeout: 300_000,
+          globalSetup: ['./tests/billing-sandbox/setup/globalSetup.ts']
         }
       }
     ]
