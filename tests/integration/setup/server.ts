@@ -32,13 +32,13 @@ let billingOffProc: ChildProcess | null = null
 const BOOT_TIMEOUT_MS = 90_000
 const OUTPUT_ENTRY = '.output/server/index.mjs'
 
-export async function startNuxt(): Promise<void> {
-  if (proc) return
-
-  // Step 1: production build, unless explicitly skipped. Done synchronously
-  // because there's no point streaming progress, vitest holds the test
-  // worker until globalSetup resolves anyway, and a 30-60s pause with no
-  // output is normal.
+/**
+ * The production build the test servers run, unless explicitly skipped.
+ * Done synchronously because there's no point streaming progress, vitest
+ * holds the test worker until globalSetup resolves anyway, and a 30-60s
+ * pause with no output is normal.
+ */
+export function ensureTestBuild(): void {
   // A test build (MARKOTO_TEST_BUILD=1): the suite drives the /api/_test/*
   // routes, which a production build leaves out. A reused .output/ from a
   // production `bun run build` lacks them, so it is rebuilt.
@@ -60,10 +60,38 @@ export async function startNuxt(): Promise<void> {
   } else {
     console.log('[integration] INTEGRATION_SKIP_BUILD=1: reusing existing .output/')
   }
+}
 
-  // Step 2: env for the prod runtime. nuxt.config.ts pins
-  // `nitro.preset: 'bun'`, so the entry point is `.output/server/index.mjs`
-  // run under Bun. NODE_ENV must be 'production' so error pages render
+/** Which Stripe the primary server talks to. */
+export interface TestStripeTarget {
+  secretKey: string
+  /** Empty: the SDK default, api.stripe.com. */
+  apiBase: string
+  /** `NUXT_STRIPE_PRICE_IDS`; empty: prices are found by lookup key. */
+  priceIds: string
+}
+
+/**
+ * The integration tier's Stripe: the `stripe-mock` container for SDK calls
+ * (checkout, portal); webhook payloads are built locally and signed with
+ * `computeStripeSig`. stripe-mock accepts any key matching
+ * `sk_test_<alphanumeric>` and has no lookup keys, hence the fixed price ids.
+ * The billing-sandbox tier passes the real test-mode API instead
+ * (tests/billing-sandbox/setup/globalSetup.ts).
+ */
+const STRIPE_MOCK: TestStripeTarget = {
+  secretKey: 'sk_test_123abc',
+  apiBase: 'http://127.0.0.1:12111',
+  priceIds: TEST_STRIPE_PRICE_IDS
+}
+
+/**
+ * Env for the prod runtime of the primary (billing-on) test server.
+ * nuxt.config.ts pins `nitro.preset: 'bun'`, so the entry point is
+ * `.output/server/index.mjs` run under Bun.
+ */
+export function primaryServerEnv(stripe: TestStripeTarget = STRIPE_MOCK): NodeJS.ProcessEnv {
+  // NODE_ENV must be 'production' so error pages render
   // and runtime config picks up the prod values; TEST_MODE=1 still gates
   // the in-process test fakes (Speech mock, etc.).
   //
@@ -166,10 +194,10 @@ export async function startNuxt(): Promise<void> {
     // Anonymous gate follows the legal surfaces (on). The suite solves the
     // real (test-difficulty) ALTCHA: see setup/anonGate.ts.
     NUXT_ALTCHA_HMAC_KEY: TEST_ALTCHA_HMAC_KEY,
-    NUXT_STRIPE_SECRET_KEY: 'sk_test_123abc',
+    NUXT_STRIPE_SECRET_KEY: stripe.secretKey,
     NUXT_STRIPE_WEBHOOK_SECRET: 'whsec_test_integration',
-    NUXT_STRIPE_API_BASE: 'http://127.0.0.1:12111',
-    NUXT_STRIPE_PRICE_IDS: TEST_STRIPE_PRICE_IDS,
+    NUXT_STRIPE_API_BASE: stripe.apiBase,
+    NUXT_STRIPE_PRICE_IDS: stripe.priceIds,
     // Inactive-doc sweeper. Set TTL to 0 to disable for tests, no point
     // letting it fire during a short integration run.
     NUXT_INACTIVE_DOC_TTL_DAYS: '0',
@@ -232,14 +260,20 @@ export async function startNuxt(): Promise<void> {
       + `Override these to point at ypad_test on :5433.`
     )
   }
+  return env
+}
 
-  // Step 3: spawn the prod server.
+export async function startNuxt(): Promise<void> {
+  if (proc) return
+  ensureTestBuild()
+  const env = primaryServerEnv()
+
   console.log(`[integration] starting production server on :${TEST_PORT}`)
   const primary = spawnServer(env, 'nuxt-test')
   proc = primary
   await waitForHealth(TEST_BASE_URL, primary)
 
-  // Step 4: the billing-off twin. Started only after the primary is
+  // The billing-off twin. Started only after the primary is
   // healthy so its boot-time migrations are no-ops (no concurrent
   // migrators on the shared test DB).
   await startBillingOffServer(env)
@@ -308,7 +342,7 @@ async function startBillingOffServer(primaryEnv: NodeJS.ProcessEnv): Promise<voi
   await waitForHealth(TEST_BILLING_OFF_BASE_URL, child)
 }
 
-function spawnServer(env: NodeJS.ProcessEnv, label: string): ChildProcess {
+export function spawnServer(env: NodeJS.ProcessEnv, label: string): ChildProcess {
   const child = spawn('bun', ['run', join(process.cwd(), OUTPUT_ENTRY)], {
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -351,7 +385,7 @@ export async function stopNuxt(): Promise<void> {
   await Promise.all([billingOff, primary].map(p => (p ? stopProcess(p) : Promise.resolve())))
 }
 
-async function stopProcess(p: ChildProcess): Promise<void> {
+export async function stopProcess(p: ChildProcess): Promise<void> {
   p.kill('SIGTERM')
   // Nitro has a small graceful-shutdown window; give it ~3s before SIGKILL.
   const killTimer = setTimeout(() => {
@@ -371,7 +405,7 @@ async function stopProcess(p: ChildProcess): Promise<void> {
   clearTimeout(killTimer)
 }
 
-async function waitForHealth(baseUrl: string, child: ChildProcess): Promise<void> {
+export async function waitForHealth(baseUrl: string, child: ChildProcess): Promise<void> {
   const deadline = Date.now() + BOOT_TIMEOUT_MS
   let lastErr: unknown = null
   while (Date.now() < deadline) {
