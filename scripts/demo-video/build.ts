@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
-// Builds the two-minute demo video (.github/media/markoto-demo.mp4 + its
-// poster, and the copies the /demo page serves from public/media/) from
-// recorded footage, rendered cards and the music. See README.md here.
+// Builds the two-minute demo video (the copies the /demo page serves from
+// public/media/ and the README poster in .github/media/) from recorded
+// footage, rendered cards and the music. See README.md here.
 //
 //   bun run demo:video                     # cut from the recorded footage
 //   bun run demo:video --capture           # record the footage first (needs the flow stack)
