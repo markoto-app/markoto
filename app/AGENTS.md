@@ -34,6 +34,7 @@ Contributor docs: [design system](../docs/contributing/design-system.md), [marke
 ## Public pages (marketing, docs, legal)
 
 - **Keep logged-out first loads lean.** Pages in `app/layouts/marketing.vue`, `app/layouts/docs.vue`, `/legal/**` and the logged-out `/` call `useLeanResourceHints()`; never call it from an app page. Code a logged-out visitor doesn't need stays in `Lazy*` components (dashboard, new-document dialog, signed-in menu, onboarding overlays).
+- **The docs area is English only** (the docs are not translated). A component that can appear on a `/docs/**` page (docs layout and pages, `Flow.vue`, the shared `AuthUserMenu` and `CommonLegalFooter`) takes its texts from `useAreaI18n()`, not `useI18n()` / `$t`; never call `setLocale` there. Moving a docs page needs an entry in `shared/docs/docsRedirects.ts`. See [flow-docs.md](../docs/contributing/flow-docs.md#docs-sections-moved-pages-language).
 - **Never import `shared/tour/data` or `shared/tour/schema` from client code** (zod would ship with the home page); use `useTourManifest()`.
 - **Load Lenis only through `useTourScroll`** (dynamic import after idle, pinned desktop layout only). Don't hijack wheel input or add `mandatory` snapping.
 - **Set `loading="lazy"` before `src`** on client-created `<img>`, or the hidden colour-mode variant downloads.
