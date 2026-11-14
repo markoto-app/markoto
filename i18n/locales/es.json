@@ -1895,6 +1895,8 @@
         "plan": "Plan actual: {plan}",
         "manage": "Gestionar facturación",
         "portalFailed": "No se pudo abrir la facturación",
+        "paymentOverdueTitle": "Pago pendiente",
+        "paymentOverdueBody": "El último pago de Pro falló y se volverá a intentar. Actualiza el método de pago en «Gestionar facturación» para conservar tu plan.",
         "coveringTitle": "Espacios de trabajo que te cubren",
         "coveringHint": "En estos espacios se aplican su plan y el presupuesto de IA compartido. En el resto, tu propio plan."
       },
