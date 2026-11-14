@@ -16,10 +16,10 @@
     },
     {
       "kind": "narration",
-      "text": "markoto documents have threaded comments built in. Highlight a passage, leave a note, and your collaborators see it the moment you post — reply, resolve, or @-mention a workspace member without leaving the doc.",
+      "text": "markoto documents have threaded comments built in. Highlight a passage, leave a note, and your collaborators see it the moment you post, reply, resolve, or @-mention a workspace member without leaving the doc.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/XNZPM9RnvC"
+      "path": "/d/B3e7m5Td5g"
     },
     {
       "kind": "outcome",
@@ -29,7 +29,7 @@
         "x": 14,
         "y": 307
       },
-      "path": "/d/XNZPM9RnvC"
+      "path": "/d/B3e7m5Td5g"
     },
     {
       "kind": "approach",
@@ -39,7 +39,7 @@
         "x": 322,
         "y": 314
       },
-      "path": "/d/XNZPM9RnvC",
+      "path": "/d/B3e7m5Td5g",
       "annotations": [
         {
           "label": "add-comment pill",
@@ -54,47 +54,47 @@
     {
       "kind": "outcome",
       "file": "04.webp",
-      "caption": "The comments sidebar opens — the composer is focused, ready for your note.",
+      "caption": "The comments sidebar opens, the composer is focused, ready for your note.",
       "cursor": {
         "x": 322,
         "y": 314
       },
-      "path": "/d/XNZPM9RnvC"
+      "path": "/d/B3e7m5Td5g"
     },
     {
       "kind": "approach",
       "file": "05.webp",
       "caption": "Write your comment",
       "cursor": null,
-      "path": "/d/XNZPM9RnvC"
+      "path": "/d/B3e7m5Td5g"
     },
     {
       "kind": "outcome",
       "file": "06.webp",
       "caption": "Your draft is ready to post.",
       "cursor": null,
-      "path": "/d/XNZPM9RnvC"
+      "path": "/d/B3e7m5Td5g"
     },
     {
       "kind": "approach",
       "file": "06.webp",
       "caption": "Click Submit to post",
       "cursor": null,
-      "path": "/d/XNZPM9RnvC"
+      "path": "/d/B3e7m5Td5g"
     },
     {
       "kind": "outcome",
       "file": "07.webp",
-      "caption": "Your comment lands in the sidebar — the passage gets a yellow underline.",
+      "caption": "Your comment lands in the sidebar, the passage gets a yellow underline.",
       "cursor": null,
-      "path": "/d/XNZPM9RnvC",
+      "path": "/d/B3e7m5Td5g",
       "highlights": [
         {
           "label": "Your new thread",
           "x": 8,
           "y": 374,
           "w": 374,
-          "h": 211.75
+          "h": 241.75
         }
       ]
     },
@@ -111,14 +111,14 @@
         "x": 322,
         "y": 314
       },
-      "path": "/d/XNZPM9RnvC"
+      "path": "/d/B3e7m5Td5g"
     },
     {
       "kind": "approach",
       "file": "09.webp",
       "caption": "Sam types a reply under the comment",
       "cursor": null,
-      "path": "/d/XNZPM9RnvC",
+      "path": "/d/B3e7m5Td5g",
       "actor": "sam"
     },
     {
@@ -126,7 +126,7 @@
       "file": "10.webp",
       "caption": "Sam's reply is ready to send.",
       "cursor": null,
-      "path": "/d/XNZPM9RnvC",
+      "path": "/d/B3e7m5Td5g",
       "actor": "sam"
     },
     {
@@ -137,14 +137,14 @@
         "x": 322,
         "y": 314
       },
-      "path": "/d/XNZPM9RnvC",
+      "path": "/d/B3e7m5Td5g",
       "highlights": [
         {
           "label": "Sam's reply",
           "x": 8,
           "y": 374,
           "w": 374,
-          "h": 267.75
+          "h": 297.75
         }
       ]
     },
@@ -161,35 +161,35 @@
         "x": 322,
         "y": 314
       },
-      "path": "/d/XNZPM9RnvC"
+      "path": "/d/B3e7m5Td5g"
     },
     {
       "kind": "approach",
       "file": "11.webp",
       "caption": "Click Resolve on the thread",
       "cursor": null,
-      "path": "/d/XNZPM9RnvC"
+      "path": "/d/B3e7m5Td5g"
     },
     {
       "kind": "outcome",
       "file": "12.webp",
-      "caption": "The thread leaves the active list — the editor underline disappears.",
+      "caption": "The thread leaves the active list, the editor underline disappears.",
       "cursor": null,
-      "path": "/d/XNZPM9RnvC"
+      "path": "/d/B3e7m5Td5g"
     },
     {
       "kind": "approach",
       "file": "12.webp",
       "caption": "Reveal the Resolved section to confirm it's archived",
       "cursor": null,
-      "path": "/d/XNZPM9RnvC"
+      "path": "/d/B3e7m5Td5g"
     },
     {
       "kind": "outcome",
       "file": "13.webp",
-      "caption": "Resolved threads tuck into their own section — out of the way, but recoverable.",
+      "caption": "Resolved threads tuck into their own section, out of the way, but recoverable.",
       "cursor": null,
-      "path": "/d/XNZPM9RnvC",
+      "path": "/d/B3e7m5Td5g",
       "highlights": [
         {
           "label": "Resolved section",

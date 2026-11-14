@@ -92,7 +92,7 @@
       "caption": "Hover \"Demo\"",
       "cursor": {
         "x": 118,
-        "y": 491
+        "y": 475
       },
       "path": "/"
     },
@@ -102,7 +102,7 @@
       "caption": "Hover \"Blank\"",
       "cursor": {
         "x": 272,
-        "y": 491
+        "y": 475
       },
       "path": "/"
     },
@@ -152,7 +152,7 @@
       "caption": "Open the \"Business\" tab",
       "cursor": {
         "x": 265,
-        "y": 342
+        "y": 326
       },
       "path": "/"
     },
@@ -162,7 +162,7 @@
       "caption": "Only the business templates are left: report, business plan, proposal, one-pager, memo, meeting notes.",
       "cursor": {
         "x": 265,
-        "y": 342
+        "y": 326
       },
       "path": "/"
     },
@@ -173,11 +173,11 @@
     },
     {
       "kind": "narration",
-      "text": "The Report template brings a cover page, a table of contents, an executive summary, a key-figures table, results, an outlook and an appendix — in the Corporate report design. Pick it and the editor opens with the skeleton in place.",
+      "text": "The Report template brings a cover page, a table of contents, an executive summary, a key-figures table, results, an outlook and an appendix: in the Corporate report design. Pick it and the editor opens with the skeleton in place.",
       "file": "09.webp",
       "cursor": {
         "x": 265,
-        "y": 342
+        "y": 326
       },
       "path": "/"
     },
@@ -187,17 +187,17 @@
       "caption": "Click the \"Report\" card",
       "cursor": {
         "x": 118,
-        "y": 491
+        "y": 475
       },
       "path": "/"
     },
     {
       "kind": "outcome",
       "file": "10.webp",
-      "caption": "\"Report\" is selected — the card lights up and the Template row names it.",
+      "caption": "\"Report\" is selected, the card lights up and the Template row names it.",
       "cursor": {
         "x": 118,
-        "y": 491
+        "y": 475
       },
       "path": "/"
     },
@@ -239,7 +239,7 @@
         "x": 293,
         "y": 672
       },
-      "path": "/d/7hD-atgTS8",
+      "path": "/d/Zr9OibT5QK",
       "highlights": [
         {
           "label": "Ready-made structure",
@@ -254,6 +254,6 @@
   ],
   "next": {
     "slug": "pick-a-theme",
-    "why": "Change the design later — every template's look is a theme you can switch"
+    "why": "Change the design later, every template's look is a theme you can switch"
   }
 }

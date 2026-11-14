@@ -19,7 +19,7 @@
       "text": "When the document looks right in the preview on the right, the PDF looks the same: same theme, same cover page, same page breaks. markoto builds the file for you and downloads it. No print dialog, no fiddling with margins.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/rhpgP7JL4I"
+      "path": "/d/hb3A4V5jZJ"
     },
     {
       "kind": "approach",
@@ -29,17 +29,17 @@
         "x": 362,
         "y": 20
       },
-      "path": "/d/rhpgP7JL4I"
+      "path": "/d/hb3A4V5jZJ"
     },
     {
       "kind": "outcome",
       "file": "02.webp",
-      "caption": "The topbar menu opens — \"PDF (.pdf)\" is one of the file actions.",
+      "caption": "The topbar menu opens, \"PDF (.pdf)\" is one of the file actions.",
       "cursor": {
         "x": 362,
         "y": 20
       },
-      "path": "/d/rhpgP7JL4I"
+      "path": "/d/hb3A4V5jZJ"
     },
     {
       "kind": "approach",
@@ -49,7 +49,7 @@
         "x": 287,
         "y": 188
       },
-      "path": "/d/rhpgP7JL4I"
+      "path": "/d/hb3A4V5jZJ"
     },
     {
       "kind": "outcome",
@@ -59,7 +59,7 @@
         "x": 287,
         "y": 188
       },
-      "path": "/d/rhpgP7JL4I"
+      "path": "/d/hb3A4V5jZJ"
     },
     {
       "kind": "chapter",
@@ -71,13 +71,13 @@
       "file": "05.webp",
       "caption": "The downloaded PDF opens with the same cover page as the preview.",
       "cursor": null,
-      "path": "/api/docs/rhpgP7JL4I/pdf?inline=1",
+      "path": "/api/docs/hb3A4V5jZJ/pdf?inline=1",
       "hero": true,
       "actor": "pdf"
     }
   ],
   "next": {
     "slug": "password-protect",
-    "why": "Now lock the doc down — share it only with people you trust"
+    "why": "Now lock the doc down, share it only with people you trust"
   }
 }
