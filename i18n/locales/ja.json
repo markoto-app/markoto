@@ -865,7 +865,6 @@
     "seatTotalMonth": "{seats} 席で月額 {total}",
     "seatTotalYear": "{seats} 席で年額 {total}",
     "seatsLabel": "席数",
-    "creditsSection": "AI クレジットは Pro と Team / Business ワークスペースの月間 AI 予算に加算されます。予算を使い切ってから使われ、購入から {months} か月後に失効します。",
     "creditsBuyLink": "プロフィールで AI クレジットを購入"
   },
   "topbar": {
@@ -2161,7 +2160,6 @@
     "hero": {
       "title": "{markdown}を、美しく組版。",
       "markdown": "Markdown",
-      "body": "ライブでページ組版されるプレビューを備えた、共同編集できるMarkdownエディター。プレーンテキストで書けば、プレビューとページ単位で同じPDFを書き出せます。",
       "cta": "書きはじめる、登録不要",
       "next": "使い方を見る"
     },

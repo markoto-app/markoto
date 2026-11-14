@@ -16,7 +16,7 @@ export function useHomeStructuredData(): void {
     const json = serializeJsonLd(homeStructuredData({
       siteUrl: siteUrl.value,
       operatorName: operatorName.value,
-      description: t('tour.hero.body'),
+      description: t('landing.subtitle'),
       inLanguage: localeProperties.value.language ?? locale.value
     }))
     return { script: [{ key: 'ld-home', type: 'application/ld+json', innerHTML: json }] }

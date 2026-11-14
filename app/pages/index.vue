@@ -16,11 +16,11 @@ const showTour = computed(() => marketingSite.value && !loggedIn.value)
 // without modulepreload hints (useLeanResourceHints). Not the dashboard.
 useLeanResourceHints(() => showTour.value)
 
-// Home: the brand-led default title, untemplated. The tour's hero copy
-// doubles as the description (same sentence as landing.subtitle).
+// Home: the brand-led default title, untemplated. The hero sentence
+// (`landing.subtitle`, also the tour's hero copy) is the description.
 useMarketingSeo({
   title: DEFAULT_TITLE,
-  description: () => (showTour.value ? t('tour.hero.body') : t('landing.subtitle')),
+  description: () => t('landing.subtitle'),
   bareTitle: true
 })
 // JSON-LD (Organization + WebSite + SoftwareApplication), hosted only.

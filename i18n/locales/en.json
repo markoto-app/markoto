@@ -865,7 +865,6 @@
     "seatTotalMonth": "{total} per month for {seats} seats",
     "seatTotalYear": "{total} per year for {seats} seats",
     "seatsLabel": "Seats",
-    "creditsSection": "AI credits add to the monthly AI budget of Pro and of Team / Business workspaces. They are used after the budget is spent and expire {months} months after purchase.",
     "creditsBuyLink": "Buy AI credits in your profile"
   },
   "topbar": {
@@ -2161,7 +2160,6 @@
     "hero": {
       "title": "Beautifully rendered {markdown}.",
       "markdown": "Markdown",
-      "body": "A collaborative Markdown editor with a live, paginated preview. Write plain text; export a PDF that matches the preview page for page.",
       "cta": "Start writing, no sign-up",
       "next": "See how it works"
     },

@@ -84,7 +84,6 @@ describe('marketing pages (/, /pricing, /docs), every locale', () => {
       }
       for (const key of [
         'landing.subtitle',
-        'tour.hero.body',
         'pricing.metaDescription',
         'pricing.comingSoonSubtitle',
         'pricing.selfHostedSubtitle',

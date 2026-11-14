@@ -865,7 +865,6 @@
     "seatTotalMonth": "{total} al mes por {seats} puestos",
     "seatTotalYear": "{total} al año por {seats} puestos",
     "seatsLabel": "Puestos",
-    "creditsSection": "Los créditos de IA se suman al presupuesto mensual de IA de Pro y de los espacios Team / Business. Se usan cuando se agota el presupuesto y caducan {months} meses después de la compra.",
     "creditsBuyLink": "Comprar créditos de IA en tu perfil"
   },
   "topbar": {
@@ -2161,7 +2160,6 @@
     "hero": {
       "title": "{markdown}, bien maquetado.",
       "markdown": "Markdown",
-      "body": "Un editor de Markdown colaborativo con vista previa paginada en directo. Escribe texto plano y exporta un PDF idéntico a la vista previa, página a página.",
       "cta": "Empezar a escribir, sin registro",
       "next": "Ver cómo funciona"
     },

@@ -865,7 +865,6 @@
     "seatTotalMonth": "{total} pro Monat für {seats} Plätze",
     "seatTotalYear": "{total} pro Jahr für {seats} Plätze",
     "seatsLabel": "Plätze",
-    "creditsSection": "KI-Guthaben erhöht das monatliche KI-Budget von Pro und von Team- / Business-Workspaces. Es wird nach dem Monatsbudget verbraucht und verfällt {months} Monate nach dem Kauf.",
     "creditsBuyLink": "KI-Guthaben in deinem Profil kaufen"
   },
   "topbar": {
@@ -2161,7 +2160,6 @@
     "hero": {
       "title": "Schön gesetztes {markdown}.",
       "markdown": "Markdown",
-      "body": "Ein kollaborativer Markdown-Editor mit einer Live-Vorschau in echten Seiten. Du schreibst reinen Text; das PDF entspricht der Vorschau Seite für Seite.",
       "cta": "Jetzt schreiben, ohne Anmeldung",
       "next": "So funktioniert's"
     },

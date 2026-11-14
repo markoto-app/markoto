@@ -865,7 +865,6 @@
     "seatTotalMonth": "{seats} 个席位每月 {total}",
     "seatTotalYear": "{seats} 个席位每年 {total}",
     "seatsLabel": "席位",
-    "creditsSection": "AI 额度会增加 Pro 以及 Team / Business 工作区的每月 AI 预算。预算用完后才会使用，并在购买 {months} 个月后过期。",
     "creditsBuyLink": "在个人资料中购买 AI 额度"
   },
   "topbar": {
@@ -2161,7 +2160,6 @@
     "hero": {
       "title": "排版精美的 {markdown}。",
       "markdown": "Markdown",
-      "body": "一款支持协作的 Markdown 编辑器，带实时分页预览。用纯文本写作，导出的 PDF 与预览逐页一致。",
       "cta": "开始写作，无需注册",
       "next": "看看它如何工作"
     },
