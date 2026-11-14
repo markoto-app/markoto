@@ -1929,6 +1929,8 @@
         "heading": "Legal",
         "subheading": "The versions you accepted. We ask again when a document changes.",
         "notAccepted": "Not accepted",
+        "accepted": "Version {version}, accepted on {date}",
+        "acceptedVersion": "Version {version}",
         "needsReacceptance": "needs re-acceptance (current v{version})",
         "dpaNotApplicable": "Required when you create a workspace",
         "cookieNote": "Only essential cookies: sign-in, language, and a key to delete documents made without an account. No analytics, tracking or ads. The privacy policy lists each one."

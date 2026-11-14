@@ -1929,6 +1929,8 @@
         "heading": "Mentions légales",
         "subheading": "Les versions que vous avez acceptées. Nous redemandons lorsqu'un document change.",
         "notAccepted": "Non accepté",
+        "accepted": "Version {version}, acceptée le {date}",
+        "acceptedVersion": "Version {version}",
         "needsReacceptance": "nouvelle acceptation requise (v{version} actuelle)",
         "dpaNotApplicable": "Requis lorsque vous créez un espace de travail",
         "cookieNote": "Uniquement des cookies essentiels : connexion, langue et une clé pour supprimer les documents créés sans compte. Ni mesure d’audience, ni pistage, ni publicité. La politique de confidentialité les liste tous."

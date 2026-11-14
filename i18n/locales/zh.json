@@ -1929,6 +1929,8 @@
         "heading": "法律",
         "subheading": "你已接受的版本。文档更新时我们会再次询问。",
         "notAccepted": "未接受",
+        "accepted": "版本 {version}，于 {date} 接受",
+        "acceptedVersion": "版本 {version}",
         "needsReacceptance": "需重新接受（当前 v{version}）",
         "dpaNotApplicable": "创建工作区时必需",
         "cookieNote": "仅使用必要的 Cookie：登录、语言，以及用于删除无账户创建文档的密钥。无分析、跟踪或广告。隐私政策列出了每一个 Cookie。"

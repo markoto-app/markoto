@@ -209,6 +209,19 @@ describe('server-side onboarding gate (legal surfaces on)', () => {
 
     const allowed = await client.post('/api/docs', {})
     expect(allowed.status).toBe(200)
+
+    // The profile shows the version and the day it was accepted; the DPA
+    // was never accepted, so it has no date.
+    const status = await (await client.get('/api/user/account-status')).json() as { policy: Record<'privacy' | 'tos' | 'dpa', { acceptedVersion: number | null, acceptedAt: string | null }> }
+    expect(status.policy.privacy.acceptedVersion).toBe(PRIVACY_VERSION)
+    for (const doc of ['privacy', 'tos'] as const) {
+      const at = Date.parse(status.policy[doc].acceptedAt ?? '')
+      expect(Math.abs(Date.now() - at)).toBeLessThan(60_000)
+    }
+    expect(status.policy.dpa).toMatchObject({ acceptedVersion: null, acceptedAt: null })
+
+    // A 403 says "Forbidden", not the phrase of another status.
+    expect(blocked.statusText === '' || blocked.statusText === 'Forbidden').toBe(true)
   })
 
   it('a stale privacy acceptance blocks again until re-accepted', async () => {

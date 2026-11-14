@@ -1929,6 +1929,8 @@
         "heading": "Legal",
         "subheading": "Las versiones que aceptaste. Te lo volvemos a pedir si cambia un documento.",
         "notAccepted": "No aceptado",
+        "accepted": "Versión {version}, aceptada el {date}",
+        "acceptedVersion": "Versión {version}",
         "needsReacceptance": "requiere nueva aceptación (actual v{version})",
         "dpaNotApplicable": "Requerido cuando creas un espacio de trabajo",
         "cookieNote": "Solo cookies esenciales: inicio de sesión, idioma y una clave para eliminar documentos creados sin cuenta. Sin analítica, seguimiento ni publicidad. La política de privacidad enumera cada una."

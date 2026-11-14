@@ -564,11 +564,16 @@ const policies = computed(() => {
             </dt>
             <dd class="text-xs font-mono text-muted sm:text-right">
               <!-- Three branches:
-                   1. Document accepted at the current version → show v + locale.
+                   1. Document accepted → "Version 13, accepted on <date>" (no date once the audit row aged out).
                    2. DPA not yet relevant (workspace-owner only) → show contextual hint, no rose warning.
                    3. Document needs acceptance → "Not accepted" + rose re-acceptance flag. -->
-              <span v-if="row.state.acceptedVersion !== null">
-                v{{ row.state.acceptedVersion }}<span v-if="row.state.acceptedLocale"> · {{ row.state.acceptedLocale }}</span>
+              <span
+                v-if="row.state.acceptedVersion !== null"
+                :data-testid="`profile-legal-accepted-${row.key}`"
+              >
+                {{ row.state.acceptedAt
+                  ? t('settings.profile.legal.accepted', { version: row.state.acceptedVersion, date: fmtDateOnly(row.state.acceptedAt) })
+                  : t('settings.profile.legal.acceptedVersion', { version: row.state.acceptedVersion }) }}
                 <span
                   v-if="row.state.acceptanceRequired"
                   class="block sm:inline sm:ml-2 text-rose-700 dark:text-rose-300"

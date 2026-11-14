@@ -1929,6 +1929,8 @@
         "heading": "法的事項",
         "subheading": "同意したバージョンです。文書が変わったときは、改めて確認します。",
         "notAccepted": "未同意",
+        "accepted": "バージョン {version}、{date} に同意",
+        "acceptedVersion": "バージョン {version}",
         "needsReacceptance": "再同意が必要（現行v{version}）",
         "dpaNotApplicable": "ワークスペースを作成する際に必要です",
         "cookieNote": "必須の Cookie のみ：サインイン、言語、アカウントなしで作成したドキュメントを削除するためのキー。解析、トラッキング、広告はありません。各 Cookie はプライバシーポリシーに記載しています。"
