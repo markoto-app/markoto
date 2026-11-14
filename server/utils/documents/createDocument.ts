@@ -187,7 +187,7 @@ async function resolveWorkspace(raw: string | null | undefined, owner: UserScope
     throw createError({ statusCode: 403, message: 'Not a member of this workspace' })
   }
   if (!member.allows('editor')) {
-    throw createError({ statusCode: 403, message: 'Viewers cannot create documents' })
+    throw apiError('workspace/role-required')
   }
   return member
 }

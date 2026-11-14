@@ -104,6 +104,12 @@ describe('POST /api/docs', () => {
       const client = await loggedInClient(viewer.id)
       const res = await client.post('/api/docs', { workspaceId: ws.workspaceId })
       expect(res.status).toBe(403)
+      // A registered code the client can translate, and a status text that
+      // matches the status.
+      const body = await res.json() as { statusMessage?: string, message?: string, data?: { code?: string } }
+      expect(body.data?.code).toBe('workspace/role-required')
+      expect(body.statusMessage).toBe('Forbidden')
+      expect(body.message).toBe('Viewers can\'t create documents in this workspace.')
     })
 
     it('non-member of workspace gets 403', async () => {

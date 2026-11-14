@@ -26,6 +26,32 @@ export interface SanitizedErrorPayload {
   data?: unknown
 }
 
+// The reason phrase of the 4xx statuses our routes answer with. Errors are
+// thrown with a status code only (`apiError`), so the phrase is derived
+// here; it must match the code (a 403 that says "Bad Request" misleads
+// whoever reads a network trace or a log).
+const CLIENT_ERROR_PHRASES: Record<number, string> = {
+  400: 'Bad Request',
+  401: 'Unauthorized',
+  402: 'Payment Required',
+  403: 'Forbidden',
+  404: 'Not Found',
+  405: 'Method Not Allowed',
+  408: 'Request Timeout',
+  409: 'Conflict',
+  410: 'Gone',
+  413: 'Content Too Large',
+  415: 'Unsupported Media Type',
+  422: 'Unprocessable Content',
+  426: 'Upgrade Required',
+  429: 'Too Many Requests'
+}
+
+function defaultStatusMessage(statusCode: number): string {
+  if (statusCode >= 500) return 'Server Error'
+  return CLIENT_ERROR_PHRASES[statusCode] ?? 'Client Error'
+}
+
 /** Pure payload builder (no h3 I/O, so the policy is unit-testable). `stack` is never included. */
 export function buildSanitizedErrorPayload(error: {
   statusCode?: number
@@ -38,7 +64,7 @@ export function buildSanitizedErrorPayload(error: {
 
   const payload: SanitizedErrorPayload = {
     statusCode,
-    statusMessage: error.statusMessage || (isServerError ? 'Server Error' : 'Bad Request'),
+    statusMessage: error.statusMessage || defaultStatusMessage(statusCode),
     url
   }
 
