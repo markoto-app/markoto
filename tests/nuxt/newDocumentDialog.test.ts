@@ -11,10 +11,11 @@ import { TEMPLATES } from '~~/shared/templates'
 // The new-document dialog keeps only the title in view: the template
 // (a starting text + its design, one choice) and the details (AI context)
 // are collapsed rows that show the current choice. The first document in a
-// browser starts from the Demo, later ones from Blank.
+// browser (signed in: of an account) starts from the Demo, later ones from Blank.
 
+const account = vi.hoisted(() => ({ loggedIn: false, docs: [] as Array<{ docId: string }> }))
 mockNuxtImport('useUserSession', () => () => ({
-  loggedIn: ref(false),
+  loggedIn: ref(account.loggedIn),
   user: ref(null),
   session: ref({}),
   fetch: vi.fn(),
@@ -24,6 +25,7 @@ mockNuxtImport('useToast', () => () => ({ add: vi.fn() }))
 
 const created = vi.hoisted(() => ({ bodies: [] as Array<Record<string, unknown>> }))
 const workspace = vi.hoisted(() => ({ defaultTheme: null as unknown }))
+registerEndpoint('/api/user/documents', () => account.docs)
 registerEndpoint('/api/workspaces/ws1', () => ({ workspace: { defaultTheme: workspace.defaultTheme } }))
 
 registerEndpoint('/api/docs', {
@@ -59,6 +61,8 @@ async function expand(section: 'template' | 'details') {
 }
 
 beforeEach(() => {
+  account.loggedIn = false
+  account.docs = []
   created.bodies = []
   workspace.defaultTheme = null
   localStorage.clear()
@@ -143,6 +147,22 @@ describe('new-document dialog', () => {
     await vi.waitFor(() => expect(created.bodies).toHaveLength(2))
     expect(created.bodies[1]).toMatchObject({ templateId: 'blank', themePreset: 'markoto' })
     second.unmount()
+  })
+
+  it('signed in, the first document of the account starts from the demo even after anonymous documents in this browser', async () => {
+    account.loggedIn = true
+    localStorage.setItem('markoto-created-first-doc', '1')
+    const wrapper = await openDialog()
+    await vi.waitFor(() => expect(summary()).toBe('Demo'))
+    wrapper.unmount()
+  })
+
+  it('signed in with documents, a new one starts blank, even in a fresh browser', async () => {
+    account.loggedIn = true
+    account.docs = [{ docId: 'd1' }]
+    const wrapper = await openDialog()
+    await vi.waitFor(() => expect(summary()).toBe('Blank · markoto'))
+    wrapper.unmount()
   })
 
   it('a blank page in a workspace gets the workspace default design', async () => {
