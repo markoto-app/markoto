@@ -220,7 +220,7 @@ async function handleSubmit() {
           {{ t('common.cancel') }}
         </UButton>
         <UButton
-          color="primary"
+          color="neutral"
           :loading="saving"
           :disabled="!canSubmit"
           :icon="isEdit ? 'i-lucide-check' : 'i-lucide-plus'"

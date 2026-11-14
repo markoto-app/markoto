@@ -53,3 +53,15 @@ Every person is a DiceBear "Moods" face drawn in the browser (`app/components/co
 ## Overscroll colour
 
 `html` paints sumi-50 in light mode and shu-400 in dark mode; that colour shows only in the rubber-band overscroll area (`app/assets/css/main.css`).
+
+## Buttons
+
+One size per role, so two buttons that do the same kind of thing look the same:
+
+| Role | Where | Props |
+|---|---|---|
+| Page or section action | Beside a page or section heading ("New document", "New workspace", "Invite people", "Upload") | `size="sm"`, solid `neutral`; a second action beside it `variant="outline"` |
+| Form or dialog action | Dialog footers, form submits, the buttons of a settings card | default size (`md`, the height of an input); confirm solid `neutral` (`error` when it deletes), cancel `variant="ghost"` |
+| Inline action | Inside a list row, a table cell or a panel header (row menus, remove, copy) | `size="xs"`, `variant="ghost"` |
+
+`color="primary"` is not a button role: it marks controls that invoke the AI (see "The seal is the AI").

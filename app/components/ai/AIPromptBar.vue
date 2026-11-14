@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { aiStatusText } from '~/utils/ai/statusText'
+
 const props = defineProps<{
   ai: {
     mySession: ReturnType<typeof useAI>['mySession']
@@ -109,7 +111,7 @@ const placeholder = computed(() => {
   // Active session: mirror the session's status so the bar doubles as a
   // status indicator.
   const s = props.ai.mySession.value
-  if (s) return s.message || t('ai.statusThinking')
+  if (s) return aiStatusText(s, t)
   // Idle: call-to-action copy. Usage/remaining info lives in the topbar
   // badge so it doesn't compete with the affordance.
   return t('ai.placeholder')

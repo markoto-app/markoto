@@ -207,7 +207,7 @@ async function handleMove() {
             {{ t('common.cancel') }}
           </UButton>
           <UButton
-            color="primary"
+            color="neutral"
             :loading="saving"
             :disabled="!hasChange"
             icon="i-lucide-folder-input"

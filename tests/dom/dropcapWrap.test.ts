@@ -103,12 +103,16 @@ describe('wrapFirstLetterAsDropCap', () => {
     expect(out).toBe(`${P}<span class="markoto-dropcap">日</span>${cjk.slice(1)}</p>`)
   })
 
-  test('handles emoji (surrogate pair) as one code point', () => {
-    // 🌟 is U+1F31F (4 UTF-8 bytes, 2 UTF-16 code units). Naive
-    // .slice(0, 1) would split the surrogate pair. Array.from handles
-    // it as one code point.
-    const out = wrapFirstLetterAsDropCap(`<p>🌟 morning${TAIL}</p>`)
-    expect(out).toBe(`${P}<span class="markoto-dropcap">🌟</span> morning${TAIL}</p>`)
+  test('handles a letter outside the BMP (surrogate pair) as one code point', () => {
+    // 𝒜 is U+1D49C (2 UTF-16 code units). Naive .slice(0, 1) would
+    // split the surrogate pair. Array.from handles it as one code point.
+    const out = wrapFirstLetterAsDropCap(`<p>𝒜 morning${TAIL}</p>`)
+    expect(out).toBe(`${P}<span class="markoto-dropcap">𝒜</span> morning${TAIL}</p>`)
+  })
+
+  test('caps letters of any script', () => {
+    expect(wrapFirstLetterAsDropCap(`<p>Über den Fluss${TAIL}</p>`)).toContain('<span class="markoto-dropcap">Ü</span>ber')
+    expect(wrapFirstLetterAsDropCap(`<p>春の朝${TAIL}</p>`)).toContain('<span class="markoto-dropcap">春</span>')
   })
 
   test('case-insensitive match on the <P> tag, output is lowercase-normalized (markdown-it always emits lowercase, so this is a defensive case)', () => {
@@ -180,6 +184,26 @@ describe('wrapFirstLetterAsDropCap: when the opening paragraph gets no cap', () 
 
   test('a paragraph opening with a bold label gets no cap', () => {
     const html = `<p><strong>Summary:</strong> the launch went well${TAIL}</p>`
+    expect(wrapFirstLetterAsDropCap(html)).toBe(html)
+  })
+
+  test('a paragraph opening with a digit gets no cap ("1817" must not read as a big 1 and "817")', () => {
+    const html = `<p>1817 präsentierte Karl Drais seine Laufmaschine${TAIL}</p>`
+    expect(wrapFirstLetterAsDropCap(html)).toBe(html)
+  })
+
+  test.each([
+    ['a quotation mark', '«So begann es», sagte sie'],
+    ['a bracket', '(Vorbemerkung) Der Text'],
+    ['an emoji', '🌟 morning'],
+    ['a currency sign', '$5 were enough']
+  ])('a paragraph opening with %s gets no cap', (_what, opening) => {
+    const html = `<p>${opening}${TAIL}</p>`
+    expect(wrapFirstLetterAsDropCap(html)).toBe(html)
+  })
+
+  test('a digit opener does not move the cap to a later paragraph', () => {
+    const html = `<p>2024 was the year${TAIL}</p><p>Then the next paragraph is prose${TAIL}</p>`
     expect(wrapFirstLetterAsDropCap(html)).toBe(html)
   })
 

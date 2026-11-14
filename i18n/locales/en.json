@@ -585,7 +585,8 @@
     "otherSessionWorking": "markoto is working for {name}",
     "confirm": {
       "label": "markoto asks first",
-      "reason": "markoto has read text written by other people in this session, so it asks before reaching your other documents, workspace knowledge or the web.",
+      "reason": "markoto has read text in this session that did not come from you (for example from a web page or from another person), so it asks before reaching your other documents, workspace knowledge or the web.",
+      "waiting": "Waiting for your confirmation…",
       "allow": "Allow",
       "deny": "Deny",
       "tools": {
@@ -1584,7 +1585,7 @@
     "deleteTitle": "Remove from knowledge base",
     "deleteWarning": "The AI will no longer be able to reference this file when writing. Anything already written using it stays in your documents.",
     "deleteConfirm": "Remove file",
-    "chunks": "chunks",
+    "chunks": "{n} chunk | {n} chunks",
     "status": {
       "processing": "Processing",
       "ready": "Ready",
@@ -2327,6 +2328,8 @@
       "useCases": "Use cases",
       "templates": "Templates",
       "compare": "Compare",
+      "allComparisons": "All comparisons",
+      "allTemplates": "All templates",
       "selfHost": "Self-host",
       "github": "markoto on GitHub"
     },
