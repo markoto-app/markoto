@@ -784,7 +784,6 @@
     "paid": {
       "title": "有料",
       "tagline": "AI ポイント、ワークスペース、ストレージが増えます。",
-      "tabsLabel": "有料プラン",
       "joinWaitlist": "ウェイトリストに登録",
       "setUpInWorkspace": "ワークスペースで設定",
       "setUpInWorkspaceHint": "ワークスペースを開き、その請求タブから購入します。購入できるのはワークスペースの管理者だけです。"
