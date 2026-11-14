@@ -10,6 +10,7 @@ import type { Text as YText, UndoManager } from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
 import { dictationExtensions } from '~/utils/editor/dictationExtensions'
 import { formattingKeymap } from '~/utils/editor/editorCommands'
+import { promptBarClearance } from '~/utils/editor/promptBarClearance'
 import { markotoMarkdownHighlight } from '~/utils/markdown/markdownHighlight'
 import { commentDecorationsExtension, setCommentRanges, setFlashRange, type CommentRange } from '~/utils/comments/commentDecorations'
 
@@ -129,6 +130,11 @@ onMounted(() => {
     history(),
     drawSelection(),
     EditorView.lineWrapping,
+    // The floating AI prompt bar covers the bottom of the editor: when the
+    // editor scrolls the caret into view (typing or dictating into the
+    // last line, Ctrl+End) the line stops above the bar, not under it.
+    // The scroller's bottom padding (main.css) gives it the room.
+    EditorView.scrollMargins.of(view => ({ bottom: promptBarClearance(view.scrollDOM) })),
     EditorView.contentAttributes.of({
       autocapitalize: 'sentences',
       autocorrect: 'on',

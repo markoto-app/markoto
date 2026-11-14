@@ -25,10 +25,12 @@
      the media.
 
    Nuxt UI's surface variables are mapped onto the same tokens inside the
-   page, so the header's buttons turn too. The cookie bar (teleported to
-   <body>) keeps the app's own colours: legible in both phases. Text
-   pairs meet WCAG AA in both: ink/bg ≥ 15:1, soft ink ≥ 6:1, muted
-   (eyebrows) ≥ 5:1. */
+   page, so the header's buttons turn too. Dialogs, menus and tooltips
+   are teleported to <body>, outside the page root, where they would
+   follow `.dark` on <html> (the stored or OS colour mode) and show a
+   dark "New document" dialog over the light page: `body > :not(#__nuxt)`
+   gets the same tokens for the phase on screen. Text pairs meet WCAG AA
+   in both: ink/bg ≥ 15:1, soft ink ≥ 6:1, muted (eyebrows) ≥ 5:1. */
 @property --mk-bg { syntax: '<color>'; inherits: true; initial-value: #FAF8F4; }
 @property --mk-card { syntax: '<color>'; inherits: true; initial-value: #FFFFFF; }
 @property --mk-raised { syntax: '<color>'; inherits: true; initial-value: #F2EFE7; }
@@ -45,7 +47,8 @@
 /* `.mk-tour` alone only where it is not inside the page root, inside, it
    must inherit the root's (animated) values, not redeclare static ones. */
 .mk-tour-page,
-.mk-tour:not(.mk-tour-page *) {
+.mk-tour:not(.mk-tour-page *),
+html:has(.mk-tour-page) body > :not(#__nuxt) {
   --mk-bg: var(--color-sumi-50);
   --mk-card: #FFFFFF;
   --mk-raised: var(--color-sumi-100);
@@ -60,7 +63,8 @@
   --mk-dark: 0;
 }
 .mk-tour-page--dark,
-.mk-tour-page--auto.is-dark {
+.mk-tour-page--auto.is-dark,
+html:has(.mk-tour-page--dark, .mk-tour-page--auto.is-dark) body > :not(#__nuxt) {
   --mk-bg: var(--color-sumi-950);
   --mk-card: var(--color-sumi-900);
   --mk-raised: var(--color-sumi-900);
@@ -105,6 +109,28 @@
 .mk-tour {
   color: var(--mk-ink);
   overflow-x: clip;
+}
+/* The same mapping for what is teleported to <body> (see above). A rule
+   of its own, away from `.mk-tour-page`: written as one selector list the
+   build's CSS minifier merged the two rules and dropped this selector. */
+html:has(.mk-tour-page) body > :not(#__nuxt) {
+  /* Text without a colour class inherits <body>'s, resolved for the other mode. */
+  color: var(--mk-ink);
+  --ui-bg: var(--mk-card);
+  --ui-bg-muted: var(--mk-bg);
+  --ui-bg-elevated: var(--mk-raised);
+  --ui-bg-accented: var(--mk-raised);
+  --ui-bg-inverted: var(--mk-ink);
+  --ui-text: var(--mk-ink);
+  --ui-text-highlighted: var(--mk-ink);
+  --ui-text-toned: var(--mk-ink-soft);
+  --ui-text-muted: var(--mk-muted);
+  --ui-text-dimmed: var(--mk-muted);
+  --ui-text-inverted: var(--mk-bg);
+  --ui-border: var(--mk-rule);
+  --ui-border-muted: var(--mk-rule);
+  --ui-border-accented: var(--mk-chip-border);
+  --ui-border-inverted: var(--mk-ink);
 }
 /* The wordmark lockup has a light and a dark file: cross-fade them. */
 html .mk-tour-page--auto .mk-wordmark__img--light { display: block; opacity: calc(1 - var(--mk-dark)); }

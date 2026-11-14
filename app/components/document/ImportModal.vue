@@ -222,7 +222,7 @@ function cancelImport() {
             <UButton
               class="flex-1"
               variant="solid"
-              color="primary"
+              color="neutral"
               data-testid="import-replace-all"
               @click="applyImport('replace')"
             >

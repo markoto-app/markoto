@@ -243,7 +243,9 @@ describe('Use cases menu in another UI language', () => {
       { ...item('/marketing/en/markdown-to-pdf'), navGroup: 'use-cases', navLabel: 'Markdown to PDF', navOrder: 10 },
       { ...item('/marketing/de/markdown-to-pdf'), navLabel: 'Markdown in PDF' },
       { ...item('/marketing/en/markdown-cheat-sheet'), navGroup: 'use-cases', navLabel: 'Markdown cheat sheet', navOrder: 90 },
-      { ...item('/marketing/de/markdown-cheat-sheet', false), navLabel: 'Markdown-Spickzettel' }
+      { ...item('/marketing/de/markdown-cheat-sheet', false), navLabel: 'Markdown-Spickzettel' },
+      { ...item('/marketing/en/templates'), navGroup: 'templates', navLabel: 'All templates', navOrder: 0 },
+      { ...item('/marketing/en/compare'), navGroup: 'compare', navLabel: 'All comparisons', navOrder: 0 }
     ]
     clearNuxtData('marketing:nav')
     const i18n = useNuxtApp().$i18n
@@ -256,6 +258,9 @@ describe('Use cases menu in another UI language', () => {
       expect(footer.find('a[href="/de/markdown-to-pdf"]').text()).toBe('Markdown in PDF')
       expect(footer.find('a[href="/markdown-cheat-sheet"]').text()).toBe('Markdown cheat sheet')
       expect(footer.find('a[href="/de/markdown-cheat-sheet"]').exists()).toBe(false)
+      // The hub pages exist in English only; their generic label is a UI string.
+      expect(footer.find('a[href="/templates"]').text()).toBe('Alle Vorlagen')
+      expect(footer.find('a[href="/compare"]').text()).toBe('Alle Vergleiche')
       footer.unmount()
     } finally {
       i18n.locale.value = before

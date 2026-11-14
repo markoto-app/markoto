@@ -120,6 +120,18 @@ const tabItems = computed(() => {
   return items
 })
 
+// With every tab (a Business workspace has eight) the strip is wider than
+// the column, and always on a phone: it scrolls sideways without a
+// scrollbar and fades the edge that hides tabs. The chosen tab is kept in
+// view (deep links such as `?tab=billing` land on a tab that starts off screen).
+const tabsRef = useTemplateRef<{ $el?: HTMLElement }>('tabs')
+const tabList = computed(() => tabsRef.value?.$el?.querySelector<HTMLElement>('[role="tablist"]') ?? null)
+const { fadeClass: tabFadeClass } = useScrollFade(tabList)
+watch([activeTab, tabList], async () => {
+  await nextTick()
+  tabList.value?.querySelector('[role="tab"][data-state="active"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+}, { flush: 'post' })
+
 // Badge next to the workspace name: which plan covers it.
 const planBadge = computed(() => {
   const plan = data.value?.workspace.plan
@@ -488,6 +500,7 @@ async function leaveWorkspace() {
             <UButton
               v-if="isAdmin"
               icon="i-lucide-user-plus"
+              size="sm"
               color="neutral"
               :aria-label="t('workspace.members.invitePeople')"
               data-testid="workspace-invite-people"
@@ -498,6 +511,7 @@ async function leaveWorkspace() {
             <UDropdownMenu :items="workspaceMenuItems">
               <UButton
                 icon="i-lucide-more-vertical"
+                size="sm"
                 color="neutral"
                 variant="ghost"
                 :aria-label="t('workspace.actions')"
@@ -515,12 +529,16 @@ async function leaveWorkspace() {
           section titles, not chrome buttons.
         -->
         <UTabs
+          ref="tabs"
           v-model="activeTab"
           :items="tabItems"
           variant="link"
           color="neutral"
           :ui="{
-            list: 'border-b border-default/60 gap-4 sm:gap-6 overflow-x-auto',
+            list: `border-b border-default/60 gap-4 sm:gap-6 ${tabFadeClass}`,
+            // The underline sits inside the strip: Nuxt UI hangs it one pixel
+            // below, which made the strip scroll vertically too.
+            indicator: 'bottom-0',
             trigger: 'data-[state=active]:text-default text-muted hover:text-default px-0 py-2.5 shrink-0',
             label: 'font-serif text-base font-normal tracking-tight',
             content: 'mt-6 sm:mt-8'
