@@ -20,7 +20,7 @@ What you see depends on where markoto runs:
 
 | Where | Plans |
 |---|---|
-| **markoto.app** | Everyone is on Free. The [pricing page](/pricing) compares four ways to use markoto: self-hosted, without an account, with a free account, and paid. Pro, Team and Business are marked **coming soon**: they show the prices we plan to charge (in euros or Swiss francs, monthly or annual, per seat for Team and Business; not final) and no purchase button. You can join a waitlist (double opt-in by email; you can unsubscribe at any time) to hear when they launch. |
+| **markoto.app** | Everyone is on Free. The [pricing page](/pricing) shows one card per plan: Free, Pro, Team and Business. Before you sign in it also shows the two ways to use markoto without an account: self-hosted and without signing up. Pro, Team and Business are marked **coming soon**: they show the prices we plan to charge (in euros or Swiss francs, monthly or annual, per seat for Team and Business; not final) and no purchase button. You can join a waitlist (double opt-in by email; you can unsubscribe at any time) to hear when they launch. |
 | **A self-hosted instance** | No plans, no pricing page tiers, no waitlist, no purchase. Everyone is on the free tier, and the operator decides the limits (workspaces, knowledge storage, AI Points). |
 | **An instance with paid plans live** (later) | Free and Pro for individuals with Stripe checkout ([Upgrade](/docs/account/upgrade)); Team and Business for workspaces, billed per seat. |
 

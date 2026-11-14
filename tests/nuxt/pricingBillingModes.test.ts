@@ -20,12 +20,15 @@ beforeAll(() => {
 
 // Pins the pricing page in the three instance shapes:
 //
-//   - billing ON            → four options (self-hosted, no account, free
-//                             account, paid with Pro/Team/Business tabs), real
-//                             prices + purchase CTAs, no waitlist.
-//   - billing OFF + coming  → the same four options; paid prices shown
-//     soon (hosted SaaS)      as PLANNED, no purchase button, waitlist
-//                             under the columns, comparison table, FAQ.
+//   - billing ON            → one card per plan, real prices + purchase
+//                             CTAs, no waitlist. A visitor sees the free
+//                             options (self-hosted, no account, free
+//                             account) and then Pro / Team / Business; a
+//                             signed-in user sees Free / Pro / Team /
+//                             Business only.
+//   - billing OFF + coming  → the same cards; paid prices shown as
+//     soon (hosted SaaS)      PLANNED, no purchase button, waitlist under
+//                             the cards, comparison table, FAQ.
 //   - billing OFF           → only the limits every account on this
 //     (self-hosted)           instance gets; no options, no prices,
 //                             no waitlist.
@@ -74,6 +77,29 @@ registerEndpoint('/api/waitlist', {
 
 mockNuxtImport('useToast', () => () => ({ add: vi.fn() }))
 
+// Signed out unless a test signs in (the session is known on the server,
+// so the page renders the matching layout straight away).
+const session = vi.hoisted(() => ({ loggedIn: false, plan: 'free' }))
+mockNuxtImport('useUserSession', () => () => ({
+  loggedIn: computed(() => session.loggedIn),
+  user: computed(() => (session.loggedIn ? { id: 'u1', name: 'Maya Chen' } : null)),
+  session: ref({}),
+  ready: computed(() => true),
+  clear: vi.fn(),
+  fetch: vi.fn()
+}))
+registerEndpoint('/api/user/billing', () => ({ plan: session.plan, ownedWorkspaces: 0, workspacesOwnedLimit: 1 }))
+
+function signIn(plan = 'free'): void {
+  session.loggedIn = true
+  session.plan = plan
+}
+
+/** Test ids of the plan / option cards, in page order. */
+function cardIds(wrapper: { findAll: (selector: string) => { attributes: (name: string) => string | undefined }[] }): string[] {
+  return wrapper.findAll('[data-testid="pricing-options"] article').map(card => card.attributes('data-testid') ?? '')
+}
+
 // Pages aren't in `#components`; render the real /pricing route through
 // <NuxtPage> instead of importing the SFC (keeps the test typed).
 const PricingRoute = defineComponent({ render: () => h(NuxtPage) })
@@ -121,16 +147,26 @@ function offerPrices(data: Record<string, unknown> | null): string[] {
 
 beforeEach(() => {
   waitlistBodies.length = 0
+  session.loggedIn = false
+  session.plan = 'free'
   setConfig({ anonDocTtlDays: 30, loginProviders: ['github'] })
 })
 
 describe('pricing page: billing on', () => {
-  it('shows four options, real prices and purchase CTAs, and no waitlist', async () => {
+  it('shows a visitor the free options and three paid cards, real prices and purchase CTAs, and no waitlist', async () => {
     setMode({ billingEnabled: true, plansComingSoon: false })
     const wrapper = await mountPricing()
-    for (const id of ['pricing-option-self-hosted', 'pricing-option-anon', 'pricing-tier-free', 'pricing-option-paid']) {
-      expect(wrapper.find(`[data-testid="${id}"]`).exists(), id).toBe(true)
-    }
+    expect(cardIds(wrapper)).toEqual([
+      'pricing-option-self-hosted',
+      'pricing-option-anon',
+      'pricing-tier-free',
+      'pricing-tier-pro',
+      'pricing-tier-team',
+      'pricing-tier-business'
+    ])
+    // The free options are their own row, above the paid plans.
+    expect(wrapper.findAll('[data-testid="pricing-free-options"] article')).toHaveLength(3)
+    expect(wrapper.findAll('[data-testid="pricing-plans"] article')).toHaveLength(3)
     const expected = { pro: '€9', team: '€12', business: '€20' }
     for (const [plan, price] of Object.entries(expected)) {
       const panel = wrapper.find(`[data-testid="pricing-tier-${plan}"]`)
@@ -145,6 +181,41 @@ describe('pricing page: billing on', () => {
     expect(wrapper.find('[data-testid="pricing-coming-soon-badge"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="waitlist-section"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="pricing-compare"]').exists()).toBe(true)
+  })
+
+  it('shows a signed-in user exactly Free, Pro, Team and Business', async () => {
+    setMode({ billingEnabled: true, plansComingSoon: false })
+    signIn()
+    const wrapper = await mountPricing()
+    await flushPromises()
+    expect(cardIds(wrapper)).toEqual(['pricing-tier-free', 'pricing-tier-pro', 'pricing-tier-team', 'pricing-tier-business'])
+    expect(wrapper.find('[data-testid="pricing-free-options"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="pricing-option-self-hosted"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="pricing-option-anon"]').exists()).toBe(false)
+    // Pro is bought here, behind the Paid Plans Terms box; Team / Business
+    // are set up from a workspace.
+    const pro = wrapper.find('[data-testid="pricing-tier-pro"]')
+    expect(pro.find('[data-testid="pricing-paid-terms-pro"]').exists()).toBe(true)
+    expect(pro.find('[data-testid="pricing-buy-pro"]').text()).toBe('Upgrade')
+    expect(pro.find('[data-testid="pricing-buy-pro"]').attributes('disabled')).toBeDefined()
+    for (const plan of ['team', 'business']) {
+      expect(wrapper.find(`[data-testid="pricing-workspace-plan-${plan}"]`).exists(), plan).toBe(true)
+    }
+    // The comparison table keeps every column.
+    expect(wrapper.find('[data-testid="pricing-compare"]').text()).toContain('Self-hosted')
+  })
+
+  it('marks the plan of a signed-in user and offers the portal on it', async () => {
+    setMode({ billingEnabled: true, plansComingSoon: false })
+    signIn('pro')
+    const wrapper = await mountPricing()
+    await vi.waitFor(() => {
+      expect(wrapper.find('[data-testid="pricing-tier-pro"]').attributes('data-current')).toBe('true')
+    })
+    expect(wrapper.findAll('[data-testid="pricing-current-plan-badge"]')).toHaveLength(1)
+    expect(wrapper.find('[data-testid="pricing-tier-pro"] [data-testid="pricing-current-plan-badge"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="pricing-tier-pro"]').text()).toContain('Manage subscription')
+    expect(wrapper.find('[data-testid="pricing-tier-free"]').text()).toContain('Downgrade')
   })
 
   it('emits Offer JSON-LD for every plan, billing period and currency on the marketing site', async () => {
@@ -165,18 +236,27 @@ describe('pricing page: billing on', () => {
 })
 
 describe('pricing page: interval and currency', () => {
-  it('switches to annual prices and to CHF', async () => {
-    setMode({ billingEnabled: true, plansComingSoon: false })
-    const wrapper = await mountPricing()
-    const price = () => wrapper.find('[data-testid="pricing-tier-pro"] [data-testid="pricing-price"]').text()
-    expect(price()).toBe('€9')
-    const yearTab = wrapper.findAll('[data-testid="pricing-interval"] [role="tab"]').find(tab => tab.text().startsWith('Annual'))
-    expect(yearTab).toBeDefined()
-    await yearTab?.trigger('mousedown', { button: 0 })
-    await flushPromises()
-    expect(price()).toBe('€90')
-    expect(wrapper.find('[data-testid="pricing-tier-pro"]').text()).toContain('per year')
-  })
+  for (const viewer of ['visitor', 'signed in'] as const) {
+    it(`${viewer}: one billing-period switch changes the price of every paid plan`, async () => {
+      setMode({ billingEnabled: true, plansComingSoon: false })
+      if (viewer === 'signed in') signIn()
+      const wrapper = await mountPricing()
+      const prices = () => ['pro', 'team', 'business'].map(plan =>
+        wrapper.find(`[data-testid="pricing-tier-${plan}"] [data-testid="pricing-price"]`).text())
+      expect(prices()).toEqual(['€9', '€12', '€20'])
+      // One switch and one currency select on the page, no tabs per plan.
+      expect(wrapper.findAll('[data-testid="pricing-interval"]')).toHaveLength(1)
+      expect(wrapper.findAll('[data-testid="pricing-currency"]')).toHaveLength(1)
+      const tabs = wrapper.findAll('[role="tab"]')
+      expect(tabs.map(tab => tab.text())).toEqual(['Monthly', 'Annual · 2 months free'])
+      await tabs[1]?.trigger('mousedown', { button: 0 })
+      await flushPromises()
+      expect(prices()).toEqual(['€90', '€120', '€200'])
+      expect(wrapper.find('[data-testid="pricing-tier-pro"]').text()).toContain('per year')
+      expect(wrapper.find('[data-testid="pricing-tier-team"]').text()).toContain('per seat / year')
+      expect(wrapper.find('[data-testid="pricing-seat-total-business"]').text()).toBe('€600 per year for 3 seats')
+    })
+  }
 })
 
 describe('pricing page: seats and credits', () => {
@@ -204,11 +284,11 @@ describe('pricing page: seats and credits', () => {
 })
 
 describe('pricing page: billing off, plans coming soon (hosted SaaS)', () => {
-  it('shows the four options, paid tiers with planned prices and no purchase button, plus the waitlist', async () => {
+  it('shows the free options, paid cards with planned prices and no purchase button, plus the waitlist', async () => {
     setMode({ billingEnabled: false, plansComingSoon: true })
     const wrapper = await mountPricing()
-    const paid = wrapper.find('[data-testid="pricing-option-paid"]')
-    expect(paid.find('[data-testid="pricing-coming-soon-badge"]').exists()).toBe(true)
+    const paid = wrapper.find('[data-testid="pricing-plans"]')
+    expect(paid.findAll('[data-testid="pricing-coming-soon-badge"]')).toHaveLength(3)
     expect(paid.find('[data-testid="pricing-planned-note"]').exists()).toBe(true)
     const expected = { pro: '€9', team: '€12', business: '€20' }
     for (const [plan, price] of Object.entries(expected)) {
@@ -225,17 +305,22 @@ describe('pricing page: billing off, plans coming soon (hosted SaaS)', () => {
     expect(wrapper.find('#waitlist [data-testid="waitlist-section"]').exists()).toBe(true)
   })
 
-  it('opens on Pro, and the tabs switch the visible paid plan', async () => {
+  it('signed in: Free is the current plan next to three planned paid cards, nothing to buy', async () => {
     setMode({ billingEnabled: false, plansComingSoon: true })
+    signIn()
     const wrapper = await mountPricing()
-    const visible = () => ['pro', 'team', 'business'].filter(plan =>
-      wrapper.find(`[data-testid="pricing-tier-${plan}"]`).element.closest('[hidden]') === null)
-    expect(visible()).toEqual(['pro'])
-    const teamTab = wrapper.findAll('[role="tab"]').find(tab => tab.text() === 'Team')
-    expect(teamTab).toBeDefined()
-    await teamTab?.trigger('mousedown', { button: 0 })
-    await flushPromises()
-    expect(visible()).toEqual(['team'])
+    await vi.waitFor(() => {
+      expect(wrapper.find('[data-testid="pricing-tier-free"]').attributes('data-current')).toBe('true')
+    })
+    expect(cardIds(wrapper)).toEqual(['pricing-tier-free', 'pricing-tier-pro', 'pricing-tier-team', 'pricing-tier-business'])
+    for (const plan of ['pro', 'team', 'business']) {
+      const card = wrapper.find(`[data-testid="pricing-tier-${plan}"]`)
+      expect(card.attributes('data-coming-soon'), plan).toBe('true')
+      expect(card.find('[data-testid="pricing-coming-soon-badge"]').exists(), plan).toBe(true)
+      expect(card.find('[data-testid="pricing-join-waitlist"]').attributes('href'), plan).toBe('#waitlist')
+      expect(card.text(), plan).not.toMatch(/Upgrade|Sign up|Set up in a workspace/)
+    }
+    expect(wrapper.find('#waitlist [data-testid="waitlist-section"]').exists()).toBe(true)
   })
 
   it('takes every number from live config and counts with the right plural', async () => {

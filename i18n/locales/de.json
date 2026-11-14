@@ -785,7 +785,6 @@
     "paid": {
       "title": "Bezahlt",
       "tagline": "Mehr KI-Punkte, Workspaces und Speicher.",
-      "tabsLabel": "Bezahlpläne",
       "joinWaitlist": "Auf die Warteliste",
       "setUpInWorkspace": "In einem Workspace einrichten",
       "setUpInWorkspaceHint": "Öffne den Workspace und dort den Tab «Abrechnung». Nur Admins des Workspace können kaufen."
