@@ -39,7 +39,7 @@
     "titleInputAria": "文档标题",
     "placeholder": "开始写作…",
     "syncAuthFailedTitle": "同步服务器拒绝了此连接",
-    "syncAuthFailedDescription": "你通常在此拥有编辑权限。同步服务器拒绝了握手，很可能是单 IP 速率限制或令牌已过期。请重新加载后再试。",
+    "syncAuthFailedDescription": "无法连接以进行编辑。请重新加载后再试。",
     "syncAuthFailedReload": "重新加载",
     "syncRejected": {
       "title": "你最近的更改未保存",
@@ -207,7 +207,7 @@
       },
       "confirm": {
         "title": "要还原文档吗？",
-        "body": "文档将回退到 {when} 时的状态。之后所做的编辑将被移除（但仍可从活动记录中恢复）。",
+        "body": "文档将回到 {when} 时的状态。之后的编辑会被移除，但仍保留在活动记录中。",
         "reversibleHint": "此次还原本身也是可逆的，你可以随时返回当前状态。",
         "cta": "还原"
       },
@@ -335,7 +335,7 @@
     "languageLabel": "语言",
     "audienceLabel": "受众",
     "themeWorkspaceDefault": "工作区默认",
-    "templateHelp": "模板是一段起始文字，配有与之相称的设计。文中的灰色注释说明各处该写什么，预览和 PDF 中不会显示。设计可以随时在主题面板中更改。",
+    "templateHelp": "一段配有相称设计的起始文字。灰色注释说明各处该写什么，不会出现在 PDF 中。",
     "create": "创建文档",
     "sections": {
       "template": "模板",
@@ -444,7 +444,7 @@
     "title": "文档",
     "description": {
       "label": "描述",
-      "help": "用一句话说明本文档是什么。AI 在每一轮对话中都会看到它，这样模型无需你重复输入就能知道你在做什么。",
+      "help": "用一句话说明本文档。AI 在每次请求时都会读取它。",
       "placeholder": "例如：新移动应用的第三季度发布计划"
     },
     "language": {
@@ -585,7 +585,7 @@
     "otherSessionWorking": "markoto 正在为 {name} 工作",
     "confirm": {
       "label": "markoto 需要你的确认",
-      "reason": "在本次会话中，markoto 读取了并非由你撰写的文本（例如来自网页或其他人），因此在访问你的其他文档、工作区知识库或网络之前会先征求你的同意。",
+      "reason": "markoto 读取了并非你撰写的文本，因此在使用你的其他文档、工作区知识库或网络之前会先征求你的同意。",
       "waiting": "正在等待你的确认…",
       "allow": "允许",
       "deny": "拒绝",
@@ -651,9 +651,9 @@
     "responseShowLast": "markoto 的最新回复",
     "exhaustedPlaceholderFree": "AI 额度已用尽，下个周期将自动补充",
     "budgetExhaustedResetDescription": "您已用完本周期的全部 AI 额度。额度将在下个周期开始时补充。",
-    "webToolsHourlyLimit": "您已达到网页搜索和页面抓取的每小时上限。请在一小时内重试，或不使用网页工具继续。",
+    "webToolsHourlyLimit": "已达到网页搜索的每小时上限。请稍后重试，或不使用它继续。",
     "webToolsDailyLimit": "您已达到网页搜索和页面抓取的每日上限。请明天再试，或不使用网页工具继续。",
-    "budgetExhaustedComingSoonDescription": "您已用完本周期的全部 AI 额度。额度将在下个周期开始时补充；额度更多的付费方案即将推出。",
+    "budgetExhaustedComingSoonDescription": "您本周期的 AI 点数已用完。下个周期会补充。",
     "freeAllowanceExhaustedTitle": "免费 AI 额度已用完",
     "freeAllowanceExhausted": "本月的免费 AI 额度已用完。请在 设置 → AI 服务商 中添加你自己的密钥以继续使用。",
     "freeAllowanceCta": "添加自己的密钥",
@@ -725,9 +725,9 @@
   },
   "pricing": {
     "title": "定价",
-    "subtitle": "选择合适的套餐。套餐决定你的上限：AI 点数、工作区和存储空间。使用你自己服务商密钥的 AI 不受任何套餐限制。",
+    "subtitle": "套餐决定你的 AI 点数、工作区和存储空间。使用你自己密钥的 AI 不受限制。",
     "metaDescription": "比较 markoto 套餐：AI 点数、工作区和存储空间的上限。使用你自己服务商密钥的 AI 不受任何套餐限制。",
-    "creditsHint": "AI 点数用于由实例付费的 AI：1000 点 = 1 美元模型用量。使用你自己服务商密钥的 AI 由服务商计费，不消耗点数。",
+    "creditsHint": "1000 AI 点数 = 1 美元模型用量。使用你自己密钥的 AI 不消耗点数。",
     "currentPlan": "当前套餐",
     "manageSubscription": "管理订阅",
     "upgrade": "升级",
@@ -748,7 +748,7 @@
       "team": "适合团队：按席位计费，共享 AI Points 和存储，管理员控制。",
       "business": "适合组织：在 Team 基础上增加单点登录、审计导出和自定义上限。"
     },
-    "freeAllowanceNote": "免费 AI 额度使用由 Mistral AI 在欧盟托管的模型，在本月共享额度用完之前可用。如需更多，请在 设置 → AI 服务商 中添加你自己的密钥。",
+    "freeAllowanceNote": "免费额度使用由 Mistral AI 在欧盟托管的模型，在本月共享额度用完之前可用。如需更多，请添加你自己的密钥。",
     "price": {
       "free": "免费",
       "perMonth": "/ 月",
@@ -863,7 +863,7 @@
     "seatTotalMonth": "{seats} 个席位每月 {total}",
     "seatTotalYear": "{seats} 个席位每年 {total}",
     "seatsLabel": "席位",
-    "creditsSection": "AI 额度用于补充 Pro 以及 Team / Business 工作区的每月 AI 预算。只有在当月预算用完后才会使用，并在购买 {months} 个月后过期。",
+    "creditsSection": "AI 额度会增加 Pro 以及 Team / Business 工作区的每月 AI 预算。预算用完后才会使用，并在购买 {months} 个月后过期。",
     "creditsBuyLink": "在个人资料中购买 AI 额度"
   },
   "topbar": {
@@ -1365,7 +1365,7 @@
     "successToPersonal": "“{title}”现在是一个个人文档。",
     "successToWorkspace": "“{title}”现在位于 {workspace}。",
     "failed": "无法移动文档",
-    "leavesPlan": "此文档将离开使用 {plan} 方案的工作区。移动后将遵循新位置的方案：该方案没有的功能（如自定义 CSS 或较早的历史记录）会暂停。不会删除任何内容。"
+    "leavesPlan": "此文档将离开一个 {plan} 工作区。新位置没有的功能（如自定义 CSS 或较早的历史记录）会暂停。不会删除任何内容。"
   },
   "delete": {
     "title": "删除文档",
@@ -1430,7 +1430,7 @@
     "editTitle": "编辑工作区",
     "delete": "删除工作区",
     "deleteTitle": "删除工作区",
-    "deleteWarning": "此操作将永久删除本工作区及其中的 {count} 个文档，无法撤销。 | 此操作将永久删除本工作区及其中的 {count} 个文档，无法撤销。",
+    "deleteWarning": "此操作将永久删除本工作区及其 {count} 个文档，无法撤销。 | 此操作将永久删除本工作区及其 {count} 个文档，无法撤销。",
     "deleteWarningEmpty": "此操作将永久删除本工作区，无法撤销。",
     "deleteConfirmPrompt": "输入“{name}”以确认：",
     "deleteConfirm": "删除工作区",
@@ -1455,7 +1455,7 @@
       "adminDescription": "通过邮箱邀请协作者、更改角色或移除成员。",
       "memberDescription": "有权访问此工作区的人员。",
       "addTitle": "邀请成员",
-      "addHint": "输入对方的邮箱地址。对方接受邀请后才会加入，可在使用该邮箱登录的 markoto 中，或通过邀请邮件接受。",
+      "addHint": "对方接受后即可加入，可在 markoto 中或通过邀请邮件接受。",
       "emailPlaceholder": "输入电子邮件地址",
       "add": "邀请",
       "addFailed": "无法发送邀请",
@@ -1503,7 +1503,7 @@
       "loading": "正在加载账单…",
       "loadFailed": "无法加载账单",
       "paymentProblemTitle": "付款问题",
-      "paymentProblemBody": "此工作区的上一次付款失败。Stripe 会重试；请在“管理账单”中更新付款方式，以保留 Team 功能。",
+      "paymentProblemBody": "上一次付款失败。请在“管理账单”中更新付款方式，以保留你的套餐。",
       "buyTitle": "升级此工作区",
       "buyBody": "Team 和 Business 按席位付费。工作区中的每个人都能在其中使用该方案的功能，并共享每月的 AI 预算。",
       "planLabel": "方案",
@@ -1521,7 +1521,7 @@
       "manage": "管理账单",
       "seatCounter": "已使用 {used} / {seats} 个席位",
       "updateSeats": "更改席位",
-      "seatsFootnote": "增加的席位立即按比例收费，其 AI 预算覆盖本预算月剩余的天数。减少的席位不予抵扣，但在月底前保留其 AI 预算。席位数不能少于工作区中的人数。",
+      "seatsFootnote": "增加的席位立即按比例收费。减少的席位不予退款，其 AI 预算保留到月底。每人至少需要一个席位。",
       "switchToBusiness": "改为 Business",
       "switchToTeam": "改为 Team",
       "switchToAnnual": "改为按年付费",
@@ -1568,7 +1568,7 @@
   },
   "knowledge": {
     "title": "知识库",
-    "description": "上传 PDF、Word 文档、幻灯片或电子表格。AI 助手在本工作区任意文档中写作时都可以搜索它们。",
+    "description": "上传 PDF、Word 文件、幻灯片或电子表格。AI 可在本工作区的每个文档中搜索它们。",
     "upload": "上传文件",
     "capFilesReached": "此工作区已达文件数量上限（{limit}）。删除一个文件或升级以添加更多。",
     "capBytesReached": "此工作区已达存储上限（{limit} MB）。删除一个文件或升级以添加更多。",
@@ -1582,7 +1582,7 @@
     "deleteFailed": "无法移除文件",
     "loadFailed": "无法加载知识库",
     "deleteTitle": "从知识库中移除",
-    "deleteWarning": "AI 在写作时将无法再引用此文件。已使用它写成的任何内容仍保留在你的文档中。",
+    "deleteWarning": "AI 将无法再使用此文件。已用它写成的内容会保留。",
     "deleteConfirm": "移除文件",
     "chunks": "{n} 块",
     "status": {
@@ -1599,7 +1599,7 @@
   "designImport": {
     "button": "从文档创建设计",
     "title": "从文档创建设计",
-    "intro": "上传一份采用贵组织设计的 PDF 或 Word 文件。markoto 会读取其中的字体、颜色和版式，为新文档创建设计。",
+    "intro": "上传一份采用你设计的 PDF 或 Word 文件。markoto 会根据其中的字体、颜色和版式创建匹配的设计。",
     "chooseFile": "选择 PDF 或 Word 文件",
     "fileHint": "PDF 或 .docx，最大 20 MB",
     "costNote": "在你的 AI 服务商上运行：最多三次带页面图片的请求。字体会被替换为 markoto 提供的最接近的字体。",
@@ -1677,7 +1677,7 @@
   "legal": {
     "ageGate": {
       "title": "确认你的年龄",
-      "body": "markoto 面向 16 周岁及以上的用户。请确认你已年满 16 周岁。即使你所在国家/地区的法律规定了更低的年龄，此要求同样适用。",
+      "body": "markoto 面向 16 周岁及以上的用户，所有国家/地区均适用。",
       "checkbox": "我确认我已年满 16 周岁",
       "continue": "继续",
       "underage": "我未满 16 周岁",
@@ -1701,7 +1701,7 @@
     },
     "delete": {
       "confirmTitle": "要删除你的账号吗？",
-      "confirmBody": "为防你改变主意，我们会保留你的数据 30 天。此后，一切将被永久删除。宽限期结束后，此操作将无法撤销。",
+      "confirmBody": "为防你改变主意，我们会保留你的数据 30 天，之后将永久删除。",
       "confirmTypeIn": "输入 {phrase} 以确认",
       "confirmCta": "安排删除",
       "confirmCancel": "取消",
@@ -1712,10 +1712,10 @@
       "emailExecutedSubject": "你的 markoto 账号已被删除",
       "consequences": {
         "title": "以下是将要发生的具体情况",
-        "intro": "在你确认之前，我们希望你了解全貌。以下所有内容将在 30 天宽限期结束后自动执行。",
+        "intro": "30 天结束后将发生以下事项。",
         "deleted": {
           "heading": "永久删除",
-          "ownedDocs": "你拥有的 {count} 个文档（包括你共享的文档）。协作者也会同时失去访问权限。",
+          "ownedDocs": "你拥有的 {count} 个文档。与你共享的人将失去访问权限。",
           "themes": "你保存的主题和个人偏好。",
           "ai": "你的 AI 会话、提示历史和使用计数器。",
           "exports": "{count} 个以前的数据导出及其 ZIP 文件。",
@@ -1723,8 +1723,8 @@
         },
         "anonymised": {
           "heading": "保留在平台上但移除你的姓名",
-          "comments": "你在他人文档中写的 {count} 条评论将显示为“[已删除用户]”。正文会保留，以便其他人继续理解对话。",
-          "activity": "他人文档中的 {count} 条活动日志此后显示为“匿名”。",
+          "comments": "他人文档中的 {count} 条评论。正文保留，你的名字将变为“[已删除用户]”。",
+          "activity": "他人文档中的 {count} 条活动日志，显示为“匿名”。",
           "audit": "我们内部安全日志中的 {count} 条记录；你的用户 ID 会被移除。",
           "consent": "{count} 条同意记录，已匿名化，但根据 GDPR 第 7(1) 条作为法律证明保留。"
         },
@@ -1732,14 +1732,14 @@
           "heading": "工作区",
           "cascadeDelete": {
             "title": "将被级联删除（唯一成员）",
-            "body": "这些工作区连同其中的每个文档和知识文件都将被永久移除。如果你想保留其内容，请先邀请一位具有管理员角色的协作成员，然后再回来请求删除。",
+            "body": "将连同其中的所有文档和知识文件一并删除。如需保留，请先将另一位成员设为管理员。",
             "row": "{name}：{docs}，{files}",
             "docCount": "没有文档 | {count} 个文档 | {count} 个文档",
             "fileCount": "没有知识文件 | {count} 个知识文件 | {count} 个知识文件"
           },
           "promote": {
             "title": "将获得新管理员（存在其他成员）",
-            "body": "这些工作区会继续为其余成员保留。先于其他人加入的管理员接管；如果没有其他管理员，加入时间最长的成员成为管理员。",
+            "body": "这些工作区会为其他成员保留。加入时间最长的管理员接管；若没有其他管理员，则由加入时间最长的成员接管。",
             "row": "{name}：{newAdminName}（当前为 {newAdminPreviousRole}）成为管理员",
             "rowAlreadyAdmin": "{name}：{newAdminName} 继续担任管理员并接管"
           },
@@ -1751,12 +1751,12 @@
         },
         "manualSteps": {
           "heading": "你可能想先采取的步骤",
-          "exportFirst": "使用数据导出功能，将我们持有的关于你的一切下载为 ZIP，无论这里发生什么，都请保留该文件。",
+          "exportFirst": "如需副本，请先将你的数据下载为 ZIP。",
           "transferDocs": "对于任何你希望协作者保留的文档，可将其移至他们拥有的工作区，或让他们创建副本。",
           "inviteWorkspaceMember": "对于任何你想保留的工作区，请在删除前邀请至少一位管理员角色的协作者。",
           "downloadKnowledge": "对于你想保留的知识库文件，请先在 markoto 之外下载它们。"
         },
-        "timing": "实际的级联操作作为后台任务每小时运行一次。宽限期结束后，你的数据将在约一小时内被完全清除。",
+        "timing": "30 天结束后约一小时内，你的数据将被清除。",
         "noRecovery": "级联操作一旦执行，你的账号和内容将永久消失，无任何恢复途径。",
         "loading": "正在读取你的账户信息…"
       },
@@ -1838,9 +1838,9 @@
     },
     "onboarding": {
       "title": "欢迎使用 markoto",
-      "intro": "开始写作之前，需要你对下列事项做一次简短确认。此提示只会出现一次，或在我们对其中某份文档做出重大更新之后再次出现。",
+      "intro": "开始之前有两件事需要确认。仅在文档更新时才会再次询问。",
       "documentsTitle": "需要接受的文档",
-      "documentsIntro": "我们用通俗易懂的语言撰写了这些文档，请在新标签页中逐一打开并完整阅读。你的接受会连同你所阅读的版本一并记录，以便我们证明你当时看到的内容。",
+      "documentsIntro": "每份文档都会在新标签页中打开。我们会记录你接受的版本。",
       "acceptDocument": "我已阅读并接受{document}",
       "continue": "继续使用 markoto",
       "welcomeToast": "欢迎使用 markoto",
@@ -1890,18 +1890,18 @@
       },
       "spending": {
         "heading": "消费与使用",
-        "comingSoon": "即将推出：你的 AI 额度使用情况、套餐历史和发票将显示在这里。目前，请从定价页面管理账单。",
+        "comingSoon": "使用情况、套餐历史和发票将显示在这里。",
         "viewPricing": "查看定价",
         "plan": "当前方案：{plan}",
         "manage": "管理账单",
         "portalFailed": "无法打开账单",
         "coveringTitle": "为你提供方案的工作区",
-        "coveringHint": "在这些工作区内，其方案（包括共享 AI 预算）同样适用于你。在其他地方适用你自己的方案。"
+        "coveringHint": "在这些工作区内适用其方案和共享 AI 预算。其他地方适用你自己的方案。"
       },
       "data": {
         "heading": "你的数据",
         "exportTitle": "下载你的数据副本",
-        "exportDescription": "我们将准备一个包含我们持有的关于你的一切的 ZIP：你的账号资料、你拥有的每个文档（以 Markdown 格式）、你撰写的评论、账单历史、AI 使用日志、审计和同意记录。生成在后台运行，通常不到一分钟。就绪后本页面会刷新，我们也会将下载链接通过电子邮件发给你。该链接有效期为 7 天。",
+        "exportDescription": "一个包含我们持有的关于你的一切的 ZIP：资料、以 Markdown 格式导出的文档、评论、账单、AI 使用记录和同意记录。约一分钟即可就绪，链接 7 天内有效。",
         "exportButton": "请求导出",
         "exportInProgress": "导出进行中，就绪后本页面会刷新。",
         "exportHistoryHeading": "最近的导出",
@@ -1915,7 +1915,7 @@
       },
       "delete": {
         "heading": "删除你的账号",
-        "description": "为防你改变主意，我们会保留你的数据 30 天。此后，一切将被永久删除：文档、评论、工作区成员资格、账单历史。你是唯一成员的工作区会被级联删除；有共同成员的工作区会自动获得新管理员。",
+        "description": "你的数据将保留 30 天，之后永久删除。确认前你会看到具体受影响的内容。",
         "button": "请求删除账号",
         "scheduled": "已安排于 {date} 删除",
         "cancel": "取消删除",
@@ -1923,22 +1923,22 @@
       },
       "legal": {
         "heading": "法律",
-        "subheading": "你已接受的隐私政策、服务条款和数据处理附录的版本。如果我们对任何文档进行重大更新，你会在此看到“需重新接受”，并且在采取任何进一步操作之前，我们会再次提示你。",
+        "subheading": "你已接受的版本。文档更新时我们会再次询问。",
         "notAccepted": "未接受",
         "needsReacceptance": "需重新接受（当前 v{version}）",
         "dpaNotApplicable": "创建工作区时必需",
-        "cookieNote": "markoto 只使用必要的 Cookie：您的登录会话、语言设置，以及让您的浏览器删除其在无账户状态下创建的文档的密钥。我们不做分析、跟踪或广告，因此无需征得同意。隐私政策列出了每一个 Cookie。"
+        "cookieNote": "仅使用必要的 Cookie：登录、语言，以及用于删除无账户创建文档的密钥。无分析、跟踪或广告。隐私政策列出了每一个 Cookie。"
       },
       "sessions": {
         "heading": "会话",
-        "description": "在不再使用的设备上仍处于登录状态，或担心他人可以访问？在所有浏览器和设备（包括本设备）上退出 markoto。",
+        "description": "在所有浏览器和设备（包括本设备）上退出登录。",
         "button": "在所有设备上退出",
         "failed": "无法在所有设备上退出"
       },
       "storage": {
         "heading": "存储",
         "images": "文档图片",
-        "description": "你在文档中上传或生成的图片，包括复制文档时产生的副本。不再被任何文档使用的图片会在一段时间后自动清理。"
+        "description": "你上传或生成的图片，包括复制文档时产生的副本。未使用的图片会自动清理。"
       }
     },
     "integrations": {
@@ -1953,7 +1953,7 @@
       "revokeFailed": "无法撤销令牌",
       "snippetCopied": "配置片段已复制",
       "createdTitle": "令牌已创建，请立即复制",
-      "createdBody": "出于安全考虑，此令牌只会显示这一次，我们无法为你找回。如果丢失，请撤销并重新创建。",
+      "createdBody": "请立即复制令牌。它只显示一次；如果丢失，请重新创建。",
       "copy": "复制",
       "generateTitle": "生成令牌",
       "namePlaceholder": "例如：笔记本电脑上的 Claude Desktop",
@@ -2044,7 +2044,7 @@
     "title": "AI 服务商",
     "menu": "AI 服务商",
     "loading": "正在加载 AI 设置…",
-    "intro": "使用你自己的密钥：为每项功能接入你自己的、兼容 OpenAI 的 AI 服务商。这些调用的费用由你的服务商账户承担。markoto 会加密保存密钥，并且不会再次显示。",
+    "intro": "为每项功能接入你自己的、兼容 OpenAI 的服务商。费用由你的服务商向你收取。密钥会加密保存，且不会再次显示。",
     "privacyNote": "使用这些功能时，你的提示词、相关文档内容和录音会依据你与所选服务商之间的协议发送给该服务商。",
     "platformNote": "知识库搜索、网页搜索和网页抓取始终使用 markoto 自己的服务商。",
     "allowedProvidersNote": "本实例允许的服务商：{list}",
@@ -2133,7 +2133,7 @@
       "openSettings": "打开 AI 服务商设置"
     },
     "ownProviderBadge": "你自己的 AI 服务商",
-    "freeAllowanceNote": "没有自己的密钥时，你的账户每月可在本实例的默认模型上获得免费 AI 额度，直至共享的月度额度用完。添加自己的密钥后即改用该密钥。",
+    "freeAllowanceNote": "没有密钥时，在共享额度用完之前，你每月可获得免费 AI 额度。有密钥时则使用密钥。",
     "modelTier": {
       "title": "AI 模型",
       "description": "AI 为你使用此实例的哪个模型。如果你添加了自己的聊天密钥，始终优先使用它。",
@@ -2234,7 +2234,7 @@
   "anonGate": {
     "eyebrow": "在你的第一个文档之前",
     "title": "无需账号即可写作",
-    "pointPublic": "除非你更改共享设置，任何拿到链接的人都可以打开并编辑你的文档。请不要在其中放入机密信息。",
+    "pointPublic": "在你更改共享设置之前，任何拿到链接的人都可以打开并编辑。请勿放入机密内容。",
     "pointRetention": "文档连续 {days} 天无活动后将被删除。登录即可保留你的文档。",
     "pointRules": "markoto 不审核文档。禁止违法内容、诈骗和垃圾信息，一经举报即会删除。",
     "accept": "我接受{terms}（包括可接受使用规则），并确认我已年满 {age} 岁。",
@@ -2284,7 +2284,7 @@
     "steps": {
       "write": {
         "title": "左边 Markdown，右边页面",
-        "body": "在编辑器中输入，预览会按打印和导出的样子显示页面。这些按钮用于在编辑器、并排和预览之间切换。"
+        "body": "在左侧输入，预览会按打印的样子显示页面。这些按钮用于切换视图。"
       },
       "format": {
         "title": "不用记语法也能排版",
@@ -2413,7 +2413,7 @@
     "title": "AI 额度",
     "balance": "剩余 AI 额度 {amount}",
     "usedThisMonth": "本月已使用 {amount}",
-    "explainer": "额度用于补充方案的每月 AI 预算。只有在当月方案预算用完后才会使用，并在购买 {months} 个月后过期。",
+    "explainer": "额度会增加方案的每月 AI 预算。预算用完后才会使用，并在购买 {months} 个月后过期。",
     "pack": "{price} → {credit} 额度",
     "grantLeft": "剩余 {left} · {date} 过期",
     "needsPlan": "AI 额度用于补充付费方案。升级到 Pro 即可购买。",
@@ -2426,7 +2426,7 @@
     "loading": "正在加载单点登录…",
     "loadFailed": "无法加载单点登录设置。",
     "planNotice": "使用你自己的身份提供商进行单点登录是 Business 方案的功能。",
-    "intro": "成员通过你所在组织的身份提供商（OpenID Connect 或 SAML）登录此工作区。开启后，所有人都必须通过这种方式登录才能打开工作区；管理员随时可以回到这里更改或移除它。",
+    "intro": "成员通过你的身份提供商（OpenID Connect 或 SAML）打开此工作区。管理员始终可以访问这些设置。",
     "enforcedNotice": "单点登录已开启：成员只有通过你的身份提供商登录后才能打开此工作区（有效期 12 小时）。",
     "idpTitle": "身份提供商",
     "protocol": {
@@ -2453,7 +2453,7 @@
     "saveFailed": "无法保存单点登录设置。",
     "testAndActivate": "测试登录并开启",
     "testAgain": "测试登录",
-    "draftHint": "尚未开启。请用你自己在身份提供商的账号测试登录；测试成功后，此工作区的单点登录即会开启。",
+    "draftHint": "尚未开启。请用你自己的账号测试登录，成功后即会开启。",
     "testActivated": "登录成功，此工作区的单点登录现已开启",
     "testOk": "登录成功",
     "status": {
@@ -2473,7 +2473,7 @@
     "copied": "已复制",
     "domains": {
       "title": "邮箱域名",
-      "body": "验证你所在组织的邮箱地址使用的域名。只有已验证域名下的地址才会关联到现有的 markoto 账号，或在首次登录时加入工作区。",
+      "body": "验证你的邮箱域名。只有已验证域名下的地址才会关联到账号，或在首次登录时加入。",
       "verified": "已验证",
       "unverified": "未验证",
       "verify": "立即检查",
@@ -2487,7 +2487,7 @@
     "domainRemoveFailed": "无法移除域名。",
     "scim": {
       "title": "预配（SCIM）",
-      "body": "让你的身份提供商自动添加和移除成员。在其 SCIM 设置中填写基础 URL 和令牌。在那里移除某人后，此人会立即被移出此工作区。",
+      "body": "由你的身份提供商添加和移除成员。在其 SCIM 设置中填写基础 URL 和令牌，移除会立即生效。",
       "baseUrl": "SCIM 基础 URL",
       "tokenOnce": "请立即复制此令牌，它不会再次显示。",
       "create": "创建令牌",
@@ -2527,7 +2527,7 @@
   },
   "audit": {
     "title": "审计日志",
-    "intro": "记录谁在何时更改了此工作区中的什么：成员和角色、邀请、共享和删除、账单以及单点登录。网络地址已缩短（去掉了最后一部分）。",
+    "intro": "谁在何时更改了什么：成员、邀请、共享、删除、账单和单点登录。网络地址已缩短。",
     "retention": "事件保留 {days} 天。",
     "filter": "显示",
     "from": "从",
@@ -2592,7 +2592,7 @@
   },
   "usage": {
     "title": "用量",
-    "intro": "每个人在此工作区中保存的内容：其拥有的文档、添加的知识文件和图片，以及在 Team 或 Business 套餐中本期使用共享额度产生的 AI 支出。不包含任何人何时或多频繁工作的信息。",
+    "intro": "每个人在此保存的内容：文档、知识文件、图片以及本期 AI 支出。不含活动时间。",
     "person": "成员",
     "documents": "文档",
     "knowledge": "知识库",
@@ -2612,7 +2612,7 @@
     "uploadFailed": "无法上传文件",
     "deleteFailed": "无法删除文件",
     "fonts": "字体",
-    "fontsHint": "每种字重和样式上传一个文件（WOFF2、WOFF 或 TTF）。它们会显示在此处所有文档字体选择器的“此工作区”下，并用于这些文档的 PDF。可变字体和 PostScript（CFF）轮廓的字体打印效果不佳，不予接受，请使用静态 TrueType 字体。",
+    "fontsHint": "每种字重和样式一个文件（WOFF2、WOFF 或 TTF）。字体会显示在此处所有文档的“此工作区”下。请使用静态 TrueType 字体，不接受可变字体和 CFF 字体。",
     "noFonts": "还没有字体。",
     "chooseFont": "选择字体文件",
     "fontName": "字体名称",
@@ -2637,13 +2637,13 @@
     "designImagesDropped": "上传到该文档的图片已被略去，请为共享设计选择工作区徽标。",
     "designFailed": "无法设置工作区设计",
     "lockLabel": "为所有文档锁定设计",
-    "lockDescription": "工作区中的每个文档都使用工作区设计，只有封面文字（副标题、日期、作者）仍属于各自文档。解除锁定后，每个文档恢复自己的设计。",
+    "lockDescription": "每个文档都使用工作区设计，只保留自己的封面文字。解除锁定后，文档恢复各自的设计。",
     "lockFailed": "无法更改锁定",
     "lockedTitle": "工作区设计已锁定",
     "lockedBody": "此文档使用其工作区的设计。您仍可在下方修改封面文字。",
     "openBrandKit": "打开品牌套件",
     "templates": "模板",
-    "templatesHint": "将工作区中的文档转为模板。由它新建的文档会复制其当前文字和设计，因此修改该文档就会修改模板。",
+    "templatesHint": "将文档设为模板。新文档会复制其当前文字和设计。",
     "templateName": "模板名称",
     "templateDescription": "简短说明（可选）",
     "addTemplate": "添加模板",
@@ -2660,7 +2660,7 @@
   },
   "publish": {
     "title": "发布为网页",
-    "help": "在独立的公开地址上提供此文档的静态副本。任何拿到地址的人都可以阅读；文档本身的分享设置保持不变。再次发布即可更新页面。",
+    "help": "在独立地址上提供公开副本。文档的分享设置不变。再次发布即可更新。",
     "publish": "发布",
     "update": "更新页面",
     "unpublish": "取消发布",
@@ -2684,7 +2684,7 @@
   "customDomains": {
     "menu": "域名",
     "title": "自定义域名",
-    "intro": "让已发布的页面显示在你自己的地址上，例如 docs.example.com。添加域名后，在你的 DNS 服务商处设置下方显示的两条 DNS 记录，然后在文档的分享对话框中选择该页面。我们会自动为它获取 HTTPS 证书。",
+    "intro": "让已发布的页面显示在你自己的地址上，例如 docs.example.com。添加域名，设置其两条 DNS 记录，然后在文档的分享对话框中选择该页面。HTTPS 会为你自动配置。",
     "notOnInstance": "此实例未设置自定义域名。",
     "placeholder": "docs.example.com",
     "add": "添加域名",
@@ -2749,7 +2749,7 @@
     "landing": {
       "eyebrow": "使用指南 · 第 01 卷",
       "title": "{product} 的全部功能。",
-      "lede": "一款可选账户的协作式 Markdown 编辑器。匿名写作，通过 URL 分享，设置主题，导出为 PDF。这里的每张截图都取自正在运行的应用。",
+      "lede": "一款可选账户的协作式 Markdown 编辑器。无需账户即可写作，通过链接分享，设置样式，导出为 PDF。这里的每张截图都来自正在运行的应用。",
       "begin": "开始演示",
       "search": "搜索",
       "startHere": "从这里开始",

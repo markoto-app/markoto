@@ -39,7 +39,7 @@
     "titleInputAria": "Document title",
     "placeholder": "Start writing...",
     "syncAuthFailedTitle": "Sync server rejected the connection",
-    "syncAuthFailedDescription": "You normally have edit access here. The sync server bounced the handshake, likely a per-IP rate limit or a stale token. Reload to try again.",
+    "syncAuthFailedDescription": "Could not connect for editing. Reload to try again.",
     "syncAuthFailedReload": "Reload",
     "syncRejected": {
       "title": "Your latest changes were not saved",
@@ -207,7 +207,7 @@
       },
       "confirm": {
         "title": "Restore the document?",
-        "body": "The document will snap back to the state from {when}. Edits made since then will be removed (but stay recoverable from the activity log).",
+        "body": "The document returns to its state from {when}. Later edits are removed but stay in the activity log.",
         "reversibleHint": "This restore is itself reversible: you can return to the current state any time.",
         "cta": "Restore"
       },
@@ -335,7 +335,7 @@
     "languageLabel": "Language",
     "audienceLabel": "Audience",
     "themeWorkspaceDefault": "Workspace default",
-    "templateHelp": "A template is a starting text in a design that suits it. The grey comments in the text say what goes where; the preview and the PDF don’t show them. Change the design any time in the theme panel.",
+    "templateHelp": "A starting text with a matching design. Grey comments say what goes where and never appear in the PDF.",
     "create": "Create document",
     "sections": {
       "template": "Template",
@@ -444,7 +444,7 @@
     "title": "Document",
     "description": {
       "label": "Description",
-      "help": "One line about what this document is. The AI sees this every turn: it's how the model knows what you're working on without re-typing it.",
+      "help": "One line about this document. The AI reads it with every request.",
       "placeholder": "e.g. Q3 launch plan for the new mobile app"
     },
     "language": {
@@ -585,7 +585,7 @@
     "otherSessionWorking": "markoto is working for {name}",
     "confirm": {
       "label": "markoto asks first",
-      "reason": "markoto has read text in this session that did not come from you (for example from a web page or from another person), so it asks before reaching your other documents, workspace knowledge or the web.",
+      "reason": "markoto has read text that is not yours, so it asks before using your other documents, workspace knowledge or the web.",
       "waiting": "Waiting for your confirmation…",
       "allow": "Allow",
       "deny": "Deny",
@@ -651,9 +651,9 @@
     "responseShowLast": "Last response from markoto",
     "exhaustedPlaceholderFree": "Out of AI credits: they refill next period",
     "budgetExhaustedResetDescription": "You've used all your AI credits for this period. They refill when the next period starts.",
-    "webToolsHourlyLimit": "You've reached the hourly limit for web search and page fetching. Try again within the hour, or continue without web tools.",
+    "webToolsHourlyLimit": "Hourly limit for web search reached. Try again later or continue without it.",
     "webToolsDailyLimit": "You've reached the daily limit for web search and page fetching. Try again tomorrow, or continue without web tools.",
-    "budgetExhaustedComingSoonDescription": "You've used all your AI credits for this period. They refill when the next period starts: paid plans with more credits are coming soon.",
+    "budgetExhaustedComingSoonDescription": "Your AI Points for this period are used up. They refill next period.",
     "freeAllowanceExhaustedTitle": "Free AI allowance used up",
     "freeAllowanceExhausted": "This month's free AI allowance is used up. Add your own key in Settings → AI provider to keep going.",
     "freeAllowanceCta": "Add your own key",
@@ -725,9 +725,9 @@
   },
   "pricing": {
     "title": "Pricing",
-    "subtitle": "Pick the plan that fits. Plans set your limits: AI Points, workspaces and storage. AI on your own provider key is never limited by a plan.",
+    "subtitle": "Plans set your AI Points, workspaces and storage. AI on your own key is never limited.",
     "metaDescription": "Compare markoto plans: AI Points, workspaces and storage per plan. AI on your own provider key is never limited by a plan.",
-    "creditsHint": "AI Points cover AI the instance pays for: 1000 points = 1 US dollar of model usage. AI on your own provider key is billed by your provider and uses no points.",
+    "creditsHint": "1000 AI Points = 1 US dollar of model usage. AI on your own key uses no points.",
     "currentPlan": "Current plan",
     "manageSubscription": "Manage subscription",
     "upgrade": "Upgrade",
@@ -748,7 +748,7 @@
       "team": "For teams: per seat, pooled AI Points and storage, admin controls.",
       "business": "For organisations: Team plus single sign-on, audit export and custom limits."
     },
-    "freeAllowanceNote": "The free AI allowance runs on a model hosted by Mistral AI in the EU and is available while this month's shared free pool lasts. Add your own provider key in Settings → AI provider for more.",
+    "freeAllowanceNote": "The free allowance runs on a model hosted by Mistral AI in the EU, while this month's shared pool lasts. For more, add your own key.",
     "price": {
       "free": "Free",
       "perMonth": "per month",
@@ -863,7 +863,7 @@
     "seatTotalMonth": "{total} per month for {seats} seats",
     "seatTotalYear": "{total} per year for {seats} seats",
     "seatsLabel": "Seats",
-    "creditsSection": "AI credits top up the monthly AI budget of Pro and of Team / Business workspaces. They are used only after the month’s budget is spent and expire {months} months after purchase.",
+    "creditsSection": "AI credits add to the monthly AI budget of Pro and of Team / Business workspaces. They are used after the budget is spent and expire {months} months after purchase.",
     "creditsBuyLink": "Buy AI credits in your profile"
   },
   "topbar": {
@@ -1365,7 +1365,7 @@
     "successToPersonal": "\"{title}\" is now a personal document.",
     "successToWorkspace": "\"{title}\" is now in {workspace}.",
     "failed": "Could not move document",
-    "leavesPlan": "This document leaves a workspace on {plan}. After the move it follows the new place’s plan: features its plan lacks (like custom CSS or older history) pause. Nothing is deleted."
+    "leavesPlan": "This document leaves a {plan} workspace. Features the new place lacks, such as custom CSS or older history, pause. Nothing is deleted."
   },
   "delete": {
     "title": "Delete Document",
@@ -1430,7 +1430,7 @@
     "editTitle": "Edit workspace",
     "delete": "Delete workspace",
     "deleteTitle": "Delete workspace",
-    "deleteWarning": "This will permanently delete this workspace and {count} document inside it. This cannot be undone. | This will permanently delete this workspace and {count} documents inside it. This cannot be undone.",
+    "deleteWarning": "This permanently deletes the workspace and its {count} document. It cannot be undone. | This permanently deletes the workspace and its {count} documents. It cannot be undone.",
     "deleteWarningEmpty": "This will permanently delete this workspace. This cannot be undone.",
     "deleteConfirmPrompt": "Type \"{name}\" to confirm:",
     "deleteConfirm": "Delete workspace",
@@ -1455,7 +1455,7 @@
       "adminDescription": "Invite collaborators by email, change roles, or remove members.",
       "memberDescription": "People who have access to this workspace.",
       "addTitle": "Invite a member",
-      "addHint": "Enter their email address. They join only after accepting the invitation: in markoto when signed in with that address, or from the invitation email.",
+      "addHint": "They join once they accept, in markoto or from the invitation email.",
       "emailPlaceholder": "Enter an email address",
       "add": "Invite",
       "addFailed": "Could not send the invitation",
@@ -1503,7 +1503,7 @@
       "loading": "Loading billing…",
       "loadFailed": "Could not load billing",
       "paymentProblemTitle": "Payment problem",
-      "paymentProblemBody": "The last payment for this workspace failed. Stripe will retry; update the payment method under “Manage billing” to keep Team features.",
+      "paymentProblemBody": "The last payment failed. Update the payment method under “Manage billing” to keep your plan.",
       "buyTitle": "Upgrade this workspace",
       "buyBody": "Team and Business are paid per seat. Everyone in the workspace gets the plan’s features inside it, with a shared monthly AI budget.",
       "planLabel": "Plan",
@@ -1521,7 +1521,7 @@
       "manage": "Manage billing",
       "seatCounter": "{used} of {seats} seats used",
       "updateSeats": "Update seats",
-      "seatsFootnote": "More seats are charged pro rata right away, and their AI budget covers the days left this budget month. Fewer seats aren’t credited; they keep their AI budget until the month ends. Seats can’t go below the people in the workspace.",
+      "seatsFootnote": "Added seats are charged pro rata now. Removed seats are not refunded and keep their AI budget until the month ends. You need at least one seat per person.",
       "switchToBusiness": "Switch to Business",
       "switchToTeam": "Switch to Team",
       "switchToAnnual": "Switch to annual billing",
@@ -1568,7 +1568,7 @@
   },
   "knowledge": {
     "title": "Knowledge base",
-    "description": "Upload PDFs, Word docs, slides, or spreadsheets. The AI assistant can search them when writing in any document in this workspace.",
+    "description": "Upload PDFs, Word files, slides or spreadsheets. The AI can search them in every document of this workspace.",
     "upload": "Upload files",
     "capFilesReached": "This workspace has reached the file limit ({limit}). Delete a file or upgrade to add more.",
     "capBytesReached": "This workspace has reached its storage limit ({limit} MB). Delete a file or upgrade to add more.",
@@ -1582,7 +1582,7 @@
     "deleteFailed": "Could not remove file",
     "loadFailed": "Could not load knowledge base",
     "deleteTitle": "Remove from knowledge base",
-    "deleteWarning": "The AI will no longer be able to reference this file when writing. Anything already written using it stays in your documents.",
+    "deleteWarning": "The AI can no longer use this file. Text already written with it stays.",
     "deleteConfirm": "Remove file",
     "chunks": "{n} chunk | {n} chunks",
     "status": {
@@ -1599,7 +1599,7 @@
   "designImport": {
     "button": "Create a design from a document",
     "title": "Create a design from a document",
-    "intro": "Upload a PDF or Word file in your organisation's design. markoto reads its fonts, colours and layout and builds a design for new documents.",
+    "intro": "Upload a PDF or Word file in your design. markoto builds a matching design from its fonts, colours and layout.",
     "chooseFile": "Choose a PDF or Word file",
     "fileHint": "PDF or .docx, up to 20 MB",
     "costNote": "Runs on your AI provider: up to three requests with page images. Fonts are replaced by the closest font markoto offers.",
@@ -1677,7 +1677,7 @@
   "legal": {
     "ageGate": {
       "title": "Confirm your age",
-      "body": "markoto is for people aged 16 and over. Please confirm that you are at least 16 years old. This applies in every country, even where local law sets a lower age.",
+      "body": "markoto is for people aged 16 and over, in every country.",
       "checkbox": "I confirm I am at least 16 years old",
       "continue": "Continue",
       "underage": "I am under 16",
@@ -1701,7 +1701,7 @@
     },
     "delete": {
       "confirmTitle": "Delete your account?",
-      "confirmBody": "We'll keep your data for 30 days in case you change your mind. After that, everything is permanently removed. This action cannot be undone after the grace period ends.",
+      "confirmBody": "We keep your data for 30 days in case you change your mind. After that it is removed for good.",
       "confirmTypeIn": "Type {phrase} to confirm",
       "confirmCta": "Schedule deletion",
       "confirmCancel": "Cancel",
@@ -1712,10 +1712,10 @@
       "emailExecutedSubject": "Your markoto account has been deleted",
       "consequences": {
         "title": "Here's exactly what will happen",
-        "intro": "We want you to see the full picture before you confirm. Everything below runs automatically once the 30-day grace window ends.",
+        "intro": "This is what happens when the 30 days are over.",
         "deleted": {
           "heading": "Permanently deleted",
-          "ownedDocs": "No documents you own. | {count} document you own, including one you share with collaborators. They lose access at the same time. | {count} documents you own, including any you share with collaborators. They lose access at the same time.",
+          "ownedDocs": "No documents you own. | {count} document you own. People you shared it with lose access. | {count} documents you own. People you shared them with lose access.",
           "themes": "Your saved themes and personal preferences.",
           "ai": "Your AI sessions, prompt history, and usage counters.",
           "exports": "{count} previous data export and its ZIP file. | {count} previous data exports and their ZIP files.",
@@ -1723,8 +1723,8 @@
         },
         "anonymised": {
           "heading": "Kept on the platform with your name removed",
-          "comments": "{count} comment you wrote on documents you don't own, shown as \"[deleted user]\". The text stays so others can still follow the conversation. | {count} comments you wrote on documents you don't own, shown as \"[deleted user]\". The text stays so others can still follow the conversation.",
-          "activity": "{count} activity-log entry on documents you don't own, shown as \"Anonymous\" from then on. | {count} activity-log entries on documents you don't own, shown as \"Anonymous\" from then on.",
+          "comments": "{count} comment on other people's documents. The text stays, your name becomes \"[deleted user]\". | {count} comments on other people's documents. The text stays, your name becomes \"[deleted user]\".",
+          "activity": "{count} activity entry on other people's documents, shown as \"Anonymous\". | {count} activity entries on other people's documents, shown as \"Anonymous\".",
           "audit": "{count} entry in our internal security log; your user id is removed. | {count} entries in our internal security log; your user id is removed.",
           "consent": "{count} consent decision, anonymised but kept as legal proof under GDPR Article 7(1). | {count} consent decisions, anonymised but kept as legal proof under GDPR Article 7(1)."
         },
@@ -1732,14 +1732,14 @@
           "heading": "Workspaces",
           "cascadeDelete": {
             "title": "Will be cascade-deleted (sole member)",
-            "body": "These workspaces will be permanently removed along with every document and knowledge file inside. If you want to preserve their contents, invite a co-member with admin role first, then come back and request deletion.",
+            "body": "Deleted with every document and knowledge file inside. To keep them, make another member an admin first.",
             "row": "{name}: {docs}, {files}",
             "docCount": "no documents | {count} document | {count} documents",
             "fileCount": "no knowledge files | {count} knowledge file | {count} knowledge files"
           },
           "promote": {
             "title": "Will get a new admin (other members exist)",
-            "body": "These workspaces stay live for the remaining members. An admin who joined before the others takes over; if there is no other admin, the longest-standing member becomes one.",
+            "body": "These stay for the other members. The longest-standing admin takes over, or the longest-standing member if there is no other admin.",
             "row": "{name}: {newAdminName} (currently {newAdminPreviousRole}) becomes admin",
             "rowAlreadyAdmin": "{name}: {newAdminName} stays admin and takes over"
           },
@@ -1751,12 +1751,12 @@
         },
         "manualSteps": {
           "heading": "Steps you may want to take first",
-          "exportFirst": "Use the data export feature to download everything we hold about you as a ZIP: keep that file regardless of what happens here.",
+          "exportFirst": "Download your data as a ZIP first if you want a copy.",
           "transferDocs": "For any document you want a collaborator to keep, either move it to a workspace they own or have them duplicate it.",
           "inviteWorkspaceMember": "For any workspace you want to preserve, invite at least one admin-role collaborator before deleting.",
           "downloadKnowledge": "For knowledge-base files you want preserved, download them outside markoto first."
         },
-        "timing": "The actual cascade runs as a background job once per hour. After the grace window ends, your data is fully purged within about an hour.",
+        "timing": "Your data is gone within about an hour after the 30 days end.",
         "noRecovery": "Once the cascade runs, your account and content are gone permanently: there is no recovery path.",
         "loading": "Reading your account…"
       },
@@ -1838,9 +1838,9 @@
     },
     "onboarding": {
       "title": "Welcome to markoto",
-      "intro": "Before you start writing, we need a quick acknowledgement on the items below. You only see this once, or after we materially update one of the documents.",
+      "intro": "Two things before you start. We ask again only when a document changes.",
       "documentsTitle": "Documents to accept",
-      "documentsIntro": "We've published these in plain language: open each in a new tab to read in full. Your acceptance is recorded with the version you read so we can prove what you saw.",
+      "documentsIntro": "Each opens in a new tab. We record which version you accepted.",
       "acceptDocument": "I have read and accept the {document}",
       "continue": "Continue to markoto",
       "welcomeToast": "Welcome to markoto",
@@ -1890,18 +1890,18 @@
       },
       "spending": {
         "heading": "Spending and usage",
-        "comingSoon": "Coming soon: your AI credit usage, plan history, and invoices will live here. For now, manage billing from the Pricing page.",
+        "comingSoon": "Usage, plan history and invoices will appear here.",
         "viewPricing": "View pricing",
         "plan": "Current plan: {plan}",
         "manage": "Manage billing",
         "portalFailed": "Could not open billing",
         "coveringTitle": "Workspaces that cover you",
-        "coveringHint": "Inside these workspaces their plan applies to you, including the shared AI budget. Your own plan applies everywhere else."
+        "coveringHint": "In these workspaces their plan and shared AI budget apply. Elsewhere, your own plan."
       },
       "data": {
         "heading": "Your data",
         "exportTitle": "Download a copy of your data",
-        "exportDescription": "We'll prepare a ZIP with everything we hold about you: your account profile, every document you own as Markdown, comments you've authored, billing history, AI usage logs, audit and consent records. The build runs in the background, usually under a minute. This page refreshes when it's ready, and we'll also email you a download link. The link is valid for 7 days.",
+        "exportDescription": "A ZIP with everything we hold about you: profile, your documents as Markdown, comments, billing, AI usage and consent records. Ready in about a minute; the link works for 7 days.",
         "exportButton": "Request export",
         "exportInProgress": "Export in progress: this page refreshes when it's ready.",
         "exportHistoryHeading": "Recent exports",
@@ -1915,7 +1915,7 @@
       },
       "delete": {
         "heading": "Delete your account",
-        "description": "We'll keep your data for 30 days in case you change your mind. After that, everything is permanently removed: documents, comments, workspace memberships, billing history. Workspaces where you're the only member are cascade-deleted; workspaces with co-members get a new admin automatically.",
+        "description": "Your data is kept for 30 days, then removed for good. You see exactly what is affected before you confirm.",
         "button": "Request account deletion",
         "scheduled": "Scheduled for deletion on {date}",
         "cancel": "Cancel deletion",
@@ -1923,22 +1923,22 @@
       },
       "legal": {
         "heading": "Legal",
-        "subheading": "Versions of the Privacy Policy, Terms of Service, and Data Processing Addendum you have accepted. If we update any document materially, you'll see \"needs re-acceptance\" here and we re-prompt before any further action.",
+        "subheading": "The versions you accepted. We ask again when a document changes.",
         "notAccepted": "Not accepted",
         "needsReacceptance": "needs re-acceptance (current v{version})",
         "dpaNotApplicable": "Required when you create a workspace",
-        "cookieNote": "markoto uses only essential cookies: your sign-in session, your language, and a key that lets your browser delete documents it created without an account. There is no analytics, tracking or advertising, so there is nothing to consent to. The privacy policy lists every cookie."
+        "cookieNote": "Only essential cookies: sign-in, language, and a key to delete documents made without an account. No analytics, tracking or ads. The privacy policy lists each one."
       },
       "sessions": {
         "heading": "Sessions",
-        "description": "Signed in on a device you no longer use, or worried someone else has access? Sign out of markoto in every browser and on every device, including this one.",
+        "description": "Signs you out in every browser and on every device, including this one.",
         "button": "Log out everywhere",
         "failed": "Could not log out everywhere"
       },
       "storage": {
         "heading": "Storage",
         "images": "Document images",
-        "description": "Images you upload or generate in your documents, including copies made when you duplicate a document. Images that no document uses any more are cleaned up automatically after a while."
+        "description": "Images you upload or generate, including copies in duplicated documents. Unused images are removed automatically."
       }
     },
     "integrations": {
@@ -1953,7 +1953,7 @@
       "revokeFailed": "Could not revoke token",
       "snippetCopied": "Config snippet copied",
       "createdTitle": "Token created: copy it now",
-      "createdBody": "For security, this token is shown exactly once. We can't recover it for you. If you lose it, revoke and create a new one.",
+      "createdBody": "Copy the token now. It is shown only once; if you lose it, create a new one.",
       "copy": "Copy",
       "generateTitle": "Generate token",
       "namePlaceholder": "e.g. Claude Desktop on laptop",
@@ -2044,7 +2044,7 @@
     "title": "AI provider",
     "menu": "AI provider",
     "loading": "Loading your AI settings…",
-    "intro": "Bring your own key: connect your own OpenAI-compatible AI provider for each feature. Your provider account pays for these calls. markoto stores the key encrypted and never shows it again.",
+    "intro": "Connect your own OpenAI-compatible provider per feature. Your provider bills you. The key is stored encrypted and never shown again.",
     "privacyNote": "For these features, your prompts, the relevant document context and your recordings are sent to the provider you choose, under your own agreement with that provider.",
     "platformNote": "Knowledge-base search, web search and page fetching always run on markoto's own providers.",
     "allowedProvidersNote": "Providers allowed on this instance: {list}",
@@ -2133,7 +2133,7 @@
       "openSettings": "Open AI provider settings"
     },
     "ownProviderBadge": "Your own AI provider",
-    "freeAllowanceNote": "Without your own key, your account gets a monthly free AI allowance on this instance's default model, while the shared monthly pool lasts. As soon as you add your own key, it is used instead.",
+    "freeAllowanceNote": "Without a key you get a free monthly AI allowance while the shared pool lasts. With a key, the key is used.",
     "modelTier": {
       "title": "AI model",
       "description": "Which of this instance's models the AI uses for you. Your own chat key, if you add one, always wins.",
@@ -2234,7 +2234,7 @@
   "anonGate": {
     "eyebrow": "Before your first document",
     "title": "Writing without an account",
-    "pointPublic": "Anyone with the link can open your document and edit it, unless you change the sharing. Don't put confidential information in it.",
+    "pointPublic": "Anyone with the link can open and edit it until you change the sharing. Keep confidential text out.",
     "pointRetention": "It is deleted after {days} days without activity. Sign in to keep your documents.",
     "pointRules": "markoto does not review documents. Illegal content, scams and spam are not allowed and are removed when reported.",
     "accept": "I accept the {terms}, including the acceptable use rules, and I am at least {age} years old.",
@@ -2284,7 +2284,7 @@
     "steps": {
       "write": {
         "title": "Markdown left, pages right",
-        "body": "Type in the editor; the preview shows the pages exactly as they print and export. These buttons switch between editor, both, and preview."
+        "body": "Type on the left; the preview shows the pages as they print. These buttons switch the view."
       },
       "format": {
         "title": "Format without the syntax",
@@ -2413,7 +2413,7 @@
     "title": "AI credits",
     "balance": "{amount} in AI credits left",
     "usedThisMonth": "{amount} used this month",
-    "explainer": "Credits top up the monthly AI budget of your plan. They are used only once the plan’s budget for the month is spent, and they expire {months} months after purchase.",
+    "explainer": "Credits add to your plan's monthly AI budget. They are used after the budget is spent and expire {months} months after purchase.",
     "pack": "{price} → {credit} credit",
     "grantLeft": "{left} left · expires {date}",
     "needsPlan": "AI credits extend a paid plan. Upgrade to Pro to buy them.",
@@ -2426,7 +2426,7 @@
     "loading": "Loading single sign-on…",
     "loadFailed": "Couldn't load the single sign-on settings.",
     "planNotice": "Single sign-on with your own identity provider is part of the Business plan.",
-    "intro": "Members sign in to this workspace through your organisation's identity provider (OpenID Connect or SAML). Once switched on, everyone needs to sign in that way to open the workspace; admins can always come back here to change or remove it.",
+    "intro": "Members open this workspace through your identity provider (OpenID Connect or SAML). Admins can always reach these settings.",
     "enforcedNotice": "Single sign-on is on: members open this workspace only after signing in through your identity provider (valid for 12 hours).",
     "idpTitle": "Identity provider",
     "protocol": {
@@ -2453,7 +2453,7 @@
     "saveFailed": "Couldn't save the single sign-on settings.",
     "testAndActivate": "Test sign-in and switch on",
     "testAgain": "Test sign-in",
-    "draftHint": "Not switched on yet. Test the sign-in with your own account at the identity provider; when it works, single sign-on is switched on for the workspace.",
+    "draftHint": "Not on yet. Test the sign-in with your own account; when it works, it is switched on.",
     "testActivated": "Sign-in works: single sign-on is now on for this workspace",
     "testOk": "Sign-in works",
     "status": {
@@ -2473,7 +2473,7 @@
     "copied": "Copied",
     "domains": {
       "title": "Email domains",
-      "body": "Verify the domains your organisation's email addresses use. Only addresses in a verified domain are linked to existing markoto accounts or join the workspace on their first sign-in.",
+      "body": "Verify your email domains. Only addresses in a verified domain are linked to accounts or join on first sign-in.",
       "verified": "Verified",
       "unverified": "Not verified",
       "verify": "Check now",
@@ -2487,7 +2487,7 @@
     "domainRemoveFailed": "Couldn't remove the domain.",
     "scim": {
       "title": "Provisioning (SCIM)",
-      "body": "Let your identity provider add and remove members automatically. Enter the base URL and the token in its SCIM settings. Removing someone there takes them out of this workspace at once.",
+      "body": "Your identity provider adds and removes members. Enter the base URL and token in its SCIM settings; removals apply at once.",
       "baseUrl": "SCIM base URL",
       "tokenOnce": "Copy this token now: it won't be shown again.",
       "create": "Create token",
@@ -2527,7 +2527,7 @@
   },
   "audit": {
     "title": "Audit log",
-    "intro": "Who changed what in this workspace, and when: members and roles, invitations, sharing and deletions, billing and single sign-on. The network address is shortened (the last part removed).",
+    "intro": "Who changed what, and when: members, invitations, sharing, deletions, billing and single sign-on. Network addresses are shortened.",
     "retention": "Events are kept for {days} days.",
     "filter": "Show",
     "from": "From",
@@ -2592,7 +2592,7 @@
   },
   "usage": {
     "title": "Usage",
-    "intro": "What each person keeps in this workspace: documents they own, knowledge files and images they added, and (on a Team or Business plan) their AI spend on the shared budget this period. Nothing about when or how often anyone works.",
+    "intro": "What each person keeps here: documents, knowledge files, images and AI spend this period. No activity times.",
     "person": "Person",
     "documents": "Documents",
     "knowledge": "Knowledge",
@@ -2612,7 +2612,7 @@
     "uploadFailed": "Couldn't upload the file",
     "deleteFailed": "Couldn't delete the file",
     "fonts": "Fonts",
-    "fontsHint": "Upload one file per weight and style (WOFF2, WOFF or TTF). They appear under \"This workspace\" in the font pickers of every document here, and in its PDFs. Variable fonts and fonts with PostScript (CFF) outlines print badly and are not accepted: use the static TrueType cuts.",
+    "fontsHint": "One file per weight and style (WOFF2, WOFF or TTF). The fonts appear under \"This workspace\" in every document here. Use static TrueType fonts; variable and CFF fonts are not accepted.",
     "noFonts": "No fonts yet.",
     "chooseFont": "Choose a font file",
     "fontName": "Font name",
@@ -2637,13 +2637,13 @@
     "designImagesDropped": "Images uploaded to that document were left out: choose a workspace logo for the shared design.",
     "designFailed": "Couldn't set the workspace design",
     "lockLabel": "Lock the design for all documents",
-    "lockDescription": "Every document in the workspace uses the workspace design; only its cover text (subtitle, date, authors) stays its own. Unlocking gives each document its own design back.",
+    "lockDescription": "Every document uses the workspace design and keeps only its cover text. Unlock to give documents their own design back.",
     "lockFailed": "Couldn't change the lock",
     "lockedTitle": "The workspace design is locked",
     "lockedBody": "This document uses the design of its workspace. You can still change the cover text below.",
     "openBrandKit": "Open the brand kit",
     "templates": "Templates",
-    "templatesHint": "Turn a workspace document into a template. New documents made from it copy its current text and design, so changes to the document change the template.",
+    "templatesHint": "Make a document a template. New documents copy its current text and design.",
     "templateName": "Template name",
     "templateDescription": "Short description (optional)",
     "addTemplate": "Add template",
@@ -2660,7 +2660,7 @@
   },
   "publish": {
     "title": "Publish as a web page",
-    "help": "A static copy of this document at its own public address. Anyone with the address can read it; the document itself stays shared exactly as it is now. Publish again to update the page.",
+    "help": "A public copy at its own address. The document's sharing does not change. Publish again to update it.",
     "publish": "Publish",
     "update": "Update page",
     "unpublish": "Unpublish",
@@ -2684,7 +2684,7 @@
   "customDomains": {
     "menu": "Domains",
     "title": "Custom domains",
-    "intro": "Show a published page at your own address, such as docs.example.com. Add the domain, set the two DNS records shown below at your DNS provider, and choose the page in the document's share dialog. We get an HTTPS certificate for it automatically.",
+    "intro": "Show a published page at your own address, such as docs.example.com. Add the domain, set its two DNS records, then pick the page in the document's share dialog. HTTPS is set up for you.",
     "notOnInstance": "Custom domains are not set up on this instance.",
     "placeholder": "docs.example.com",
     "add": "Add domain",
@@ -2749,7 +2749,7 @@
     "landing": {
       "eyebrow": "field guide · vol. 01",
       "title": "Everything you can do in {product}.",
-      "lede": "A collaborative markdown editor with optional accounts. Write anonymously, share by URL, theme it, export to PDF. Every screenshot in here is captured live from the running app.",
+      "lede": "A collaborative Markdown editor with optional accounts. Write without an account, share by link, style it, export to PDF. Every screenshot here comes from the running app.",
       "begin": "begin walkthrough",
       "search": "search",
       "startHere": "Start here",

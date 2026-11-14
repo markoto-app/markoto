@@ -39,7 +39,7 @@
     "titleInputAria": "Dokumenttitel",
     "placeholder": "Beginne zu schreiben...",
     "syncAuthFailedTitle": "Sync-Server hat die Verbindung abgelehnt",
-    "syncAuthFailedDescription": "Normalerweise hast du hier Bearbeitungszugriff. Der Sync-Server hat den Handshake abgewiesen, wahrscheinlich ein IP-Ratenlimit oder ein veraltetes Token. Lade neu, um es erneut zu versuchen.",
+    "syncAuthFailedDescription": "Verbindung zum Bearbeiten nicht möglich. Lade neu und versuche es erneut.",
     "syncAuthFailedReload": "Neu laden",
     "syncRejected": {
       "title": "Deine letzten Änderungen wurden nicht gespeichert",
@@ -207,7 +207,7 @@
       },
       "confirm": {
         "title": "Dokument wiederherstellen?",
-        "body": "Das Dokument wird auf den Stand von {when} zurückgesetzt. Seitdem vorgenommene Änderungen werden entfernt (bleiben aber über das Aktivitätsprotokoll wiederherstellbar).",
+        "body": "Das Dokument kehrt zum Stand von {when} zurück. Spätere Änderungen werden entfernt, bleiben aber im Aktivitätsprotokoll.",
         "reversibleHint": "Diese Wiederherstellung ist selbst umkehrbar: du kannst jederzeit zum aktuellen Stand zurückkehren.",
         "cta": "Wiederherstellen"
       },
@@ -335,7 +335,7 @@
     "languageLabel": "Sprache",
     "audienceLabel": "Zielgruppe",
     "themeWorkspaceDefault": "Workspace-Standard",
-    "templateHelp": "Eine Vorlage ist ein Anfangstext in einem passenden Design. Die grauen Kommentare im Text sagen, was wohin gehört; Vorschau und PDF zeigen sie nicht. Das Design änderst du jederzeit im Theme-Panel.",
+    "templateHelp": "Ein Anfangstext mit passendem Design. Graue Kommentare sagen, was wohin gehört, und erscheinen nie im PDF.",
     "create": "Dokument erstellen",
     "sections": {
       "template": "Vorlage",
@@ -444,7 +444,7 @@
     "title": "Dokument",
     "description": {
       "label": "Beschreibung",
-      "help": "Eine Zeile darüber, was dieses Dokument ist. Die KI sieht dies bei jedem Zug: So weiss das Modell, woran du arbeitest, ohne dass du es erneut eintippen musst.",
+      "help": "Eine Zeile zu diesem Dokument. Die KI liest sie bei jeder Anfrage.",
       "placeholder": "z. B. Q3-Launch-Plan für die neue mobile App"
     },
     "language": {
@@ -585,7 +585,7 @@
     "otherSessionWorking": "markoto arbeitet für {name}",
     "confirm": {
       "label": "markoto fragt zuerst",
-      "reason": "markoto hat in dieser Sitzung Text gelesen, der nicht von dir stammt (zum Beispiel von einer Webseite oder von einer anderen Person). Deshalb fragt es, bevor es auf deine anderen Dokumente, das Workspace-Wissen oder das Web zugreift.",
+      "reason": "markoto hat Text gelesen, der nicht von dir ist, und fragt deshalb nach, bevor es deine anderen Dokumente, das Workspace-Wissen oder das Web nutzt.",
       "waiting": "Wartet auf deine Bestätigung…",
       "allow": "Erlauben",
       "deny": "Ablehnen",
@@ -651,9 +651,9 @@
     "responseShowLast": "Letzte Antwort von markoto",
     "exhaustedPlaceholderFree": "Keine KI-Credits mehr: Sie werden in der nächsten Periode aufgefüllt",
     "budgetExhaustedResetDescription": "Du hast alle KI-Credits für diese Periode verbraucht. Sie werden zu Beginn der nächsten Periode wieder aufgefüllt.",
-    "webToolsHourlyLimit": "Du hast das stündliche Limit für Websuche und Seitenabruf erreicht. Versuche es innerhalb der nächsten Stunde erneut oder arbeite ohne Web-Werkzeuge weiter.",
+    "webToolsHourlyLimit": "Stundenlimit für die Websuche erreicht. Versuche es später erneut oder arbeite ohne sie weiter.",
     "webToolsDailyLimit": "Du hast das Tageslimit für Websuche und Seitenabruf erreicht. Versuche es morgen erneut oder arbeite ohne Web-Werkzeuge weiter.",
-    "budgetExhaustedComingSoonDescription": "Du hast alle KI-Credits für diese Periode verbraucht. Sie werden zu Beginn der nächsten Periode wieder aufgefüllt: Bezahlpläne mit mehr Credits folgen in Kürze.",
+    "budgetExhaustedComingSoonDescription": "Deine KI-Punkte für diese Periode sind aufgebraucht. Sie werden in der nächsten Periode wieder aufgefüllt.",
     "freeAllowanceExhaustedTitle": "Kostenloses KI-Kontingent aufgebraucht",
     "freeAllowanceExhausted": "Das kostenlose KI-Kontingent für diesen Monat ist aufgebraucht. Hinterlege unter Einstellungen → KI-Anbieter deinen eigenen Schlüssel, um weiterzumachen.",
     "freeAllowanceCta": "Eigenen Schlüssel hinterlegen",
@@ -725,9 +725,9 @@
   },
   "pricing": {
     "title": "Preise",
-    "subtitle": "Wähle den passenden Tarif. Tarife legen deine Limits fest: KI-Punkte, Workspaces und Speicher. KI über deinen eigenen Anbieterschlüssel ist durch keinen Tarif begrenzt.",
+    "subtitle": "Die Tarife legen deine KI-Punkte, Workspaces und deinen Speicher fest. KI mit deinem eigenen Schlüssel ist nie begrenzt.",
     "metaDescription": "markoto-Tarife im Vergleich: KI-Punkte, Workspaces und Speicher pro Tarif. KI über deinen eigenen Anbieterschlüssel ist nie begrenzt.",
-    "creditsHint": "KI-Punkte decken KI ab, die die Instanz bezahlt: 1000 Punkte = 1 $ Modellnutzung. KI über deinen eigenen Anbieterschlüssel rechnet dein Anbieter ab; sie verbraucht keine Punkte.",
+    "creditsHint": "1000 KI-Punkte = 1 $ Modellnutzung. KI mit deinem eigenen Schlüssel verbraucht keine Punkte.",
     "currentPlan": "Aktueller Tarif",
     "manageSubscription": "Abonnement verwalten",
     "upgrade": "Upgrade",
@@ -748,7 +748,7 @@
       "team": "Für Teams: pro Platz, gemeinsame AI Points und Speicher, Verwaltung für Admins.",
       "business": "Für Organisationen: Team plus Single Sign-on, Audit-Export und eigene Limits."
     },
-    "freeAllowanceNote": "Das kostenlose KI-Kontingent läuft auf einem Modell, das Mistral AI in der EU betreibt, und steht zur Verfügung, solange der gemeinsame Topf dieses Monats reicht. Für mehr hinterlegst du unter Einstellungen → KI-Anbieter deinen eigenen Schlüssel.",
+    "freeAllowanceNote": "Das kostenlose Kontingent läuft auf einem Modell, das Mistral AI in der EU betreibt, solange der gemeinsame Topf dieses Monats reicht. Für mehr hinterlege deinen eigenen Schlüssel.",
     "price": {
       "free": "Kostenlos",
       "perMonth": "pro Monat",
@@ -863,7 +863,7 @@
     "seatTotalMonth": "{total} pro Monat für {seats} Plätze",
     "seatTotalYear": "{total} pro Jahr für {seats} Plätze",
     "seatsLabel": "Plätze",
-    "creditsSection": "KI-Guthaben ergänzt das monatliche KI-Budget von Pro und von Team- / Business-Workspaces. Es wird erst verbraucht, wenn das Monatsbudget aufgebraucht ist, und verfällt {months} Monate nach dem Kauf.",
+    "creditsSection": "KI-Guthaben erhöht das monatliche KI-Budget von Pro und von Team- / Business-Workspaces. Es wird nach dem Monatsbudget verbraucht und verfällt {months} Monate nach dem Kauf.",
     "creditsBuyLink": "KI-Guthaben in deinem Profil kaufen"
   },
   "topbar": {
@@ -1365,7 +1365,7 @@
     "successToPersonal": "\"{title}\" ist jetzt ein persönliches Dokument.",
     "successToWorkspace": "\"{title}\" befindet sich jetzt in {workspace}.",
     "failed": "Dokument konnte nicht verschoben werden",
-    "leavesPlan": "Dieses Dokument verlässt einen Workspace mit dem Plan {plan}. Danach gilt der Plan am neuen Ort: Funktionen, die dort fehlen (etwa eigenes CSS oder ältere Versionen), pausieren. Es wird nichts gelöscht."
+    "leavesPlan": "Dieses Dokument verlässt einen {plan}-Workspace. Funktionen, die dem neuen Ort fehlen, etwa eigenes CSS oder ältere Versionen, pausieren. Es wird nichts gelöscht."
   },
   "delete": {
     "title": "Dokument löschen",
@@ -1430,7 +1430,7 @@
     "editTitle": "Workspace bearbeiten",
     "delete": "Workspace löschen",
     "deleteTitle": "Workspace löschen",
-    "deleteWarning": "Dadurch werden dieser Workspace und {count} darin enthaltenes Dokument dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden. | Dadurch werden dieser Workspace und {count} darin enthaltene Dokumente dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
+    "deleteWarning": "Das löscht den Workspace und sein {count} Dokument dauerhaft. Es lässt sich nicht rückgängig machen. | Das löscht den Workspace und seine {count} Dokumente dauerhaft. Es lässt sich nicht rückgängig machen.",
     "deleteWarningEmpty": "Dadurch wird dieser Workspace dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
     "deleteConfirmPrompt": "Gib \"{name}\" ein, um zu bestätigen:",
     "deleteConfirm": "Workspace löschen",
@@ -1455,7 +1455,7 @@
       "adminDescription": "Mitwirkende per E-Mail einladen, Rollen ändern oder Mitglieder entfernen.",
       "memberDescription": "Personen, die Zugriff auf diesen Workspace haben.",
       "addTitle": "Mitglied einladen",
-      "addHint": "Gib die E-Mail-Adresse ein. Die Person tritt erst bei, wenn sie die Einladung annimmt: in markoto, angemeldet mit dieser Adresse, oder über die Einladungs-E-Mail.",
+      "addHint": "Die Person tritt bei, sobald sie annimmt, in markoto oder über die Einladungs-E-Mail.",
       "emailPlaceholder": "E-Mail-Adresse eingeben",
       "add": "Einladen",
       "addFailed": "Einladung konnte nicht gesendet werden",
@@ -1503,7 +1503,7 @@
       "loading": "Abrechnung wird geladen…",
       "loadFailed": "Abrechnung konnte nicht geladen werden",
       "paymentProblemTitle": "Zahlungsproblem",
-      "paymentProblemBody": "Die letzte Zahlung für diesen Workspace ist fehlgeschlagen. Stripe versucht es erneut; aktualisiere die Zahlungsmethode unter «Abrechnung verwalten», damit die Team-Funktionen erhalten bleiben.",
+      "paymentProblemBody": "Die letzte Zahlung ist fehlgeschlagen. Aktualisiere die Zahlungsmethode unter «Abrechnung verwalten», damit dein Plan bleibt.",
       "buyTitle": "Diesen Workspace upgraden",
       "buyBody": "Team und Business werden pro Platz bezahlt. Alle im Workspace erhalten darin die Funktionen des Plans, mit einem gemeinsamen monatlichen KI-Budget.",
       "planLabel": "Plan",
@@ -1521,7 +1521,7 @@
       "manage": "Abrechnung verwalten",
       "seatCounter": "{used} von {seats} Plätzen belegt",
       "updateSeats": "Plätze ändern",
-      "seatsFootnote": "Zusätzliche Plätze werden sofort anteilig belastet, ihr KI-Budget deckt die restlichen Tage des Budgetmonats. Entfernte Plätze werden nicht gutgeschrieben, behalten ihr KI-Budget aber bis zum Monatsende. Es kann nicht weniger Plätze als Personen im Workspace geben.",
+      "seatsFootnote": "Zusätzliche Plätze werden jetzt anteilig belastet. Entfernte Plätze werden nicht erstattet und behalten ihr KI-Budget bis Monatsende. Du brauchst mindestens einen Platz pro Person.",
       "switchToBusiness": "Zu Business wechseln",
       "switchToTeam": "Zu Team wechseln",
       "switchToAnnual": "Zu jährlicher Abrechnung wechseln",
@@ -1568,7 +1568,7 @@
   },
   "knowledge": {
     "title": "Wissensdatenbank",
-    "description": "Lade PDFs, Word-Dokumente, Folien oder Tabellen hoch. Der KI-Assistent kann sie durchsuchen, wenn du in einem beliebigen Dokument in diesem Workspace schreibst.",
+    "description": "Lade PDFs, Word-Dateien, Folien oder Tabellen hoch. Die KI kann sie in jedem Dokument dieses Workspace durchsuchen.",
     "upload": "Dateien hochladen",
     "capFilesReached": "Dieser Workspace hat das Dateilimit ({limit}) erreicht. Lösche eine Datei oder führe ein Upgrade durch, um weitere hinzuzufügen.",
     "capBytesReached": "Dieser Workspace hat sein Speicherlimit ({limit} MB) erreicht. Lösche eine Datei oder führe ein Upgrade durch, um weitere hinzuzufügen.",
@@ -1582,7 +1582,7 @@
     "deleteFailed": "Datei konnte nicht entfernt werden",
     "loadFailed": "Wissensdatenbank konnte nicht geladen werden",
     "deleteTitle": "Aus Wissensdatenbank entfernen",
-    "deleteWarning": "Die KI kann beim Schreiben nicht mehr auf diese Datei verweisen. Alles, was bereits damit geschrieben wurde, bleibt in deinen Dokumenten erhalten.",
+    "deleteWarning": "Die KI kann diese Datei nicht mehr nutzen. Bereits damit geschriebener Text bleibt.",
     "deleteConfirm": "Datei entfernen",
     "chunks": "{n} Abschnitt | {n} Abschnitte",
     "status": {
@@ -1599,7 +1599,7 @@
   "designImport": {
     "button": "Design aus einem Dokument erstellen",
     "title": "Design aus einem Dokument erstellen",
-    "intro": "Lade eine PDF- oder Word-Datei im Design deiner Organisation hoch. markoto liest Schriften, Farben und Layout und erstellt daraus ein Design für neue Dokumente.",
+    "intro": "Lade eine PDF- oder Word-Datei in deinem Design hoch. markoto erstellt aus Schriften, Farben und Layout ein passendes Design.",
     "chooseFile": "PDF- oder Word-Datei auswählen",
     "fileHint": "PDF oder .docx, bis 20 MB",
     "costNote": "Läuft über deinen KI-Anbieter: bis zu drei Anfragen mit Seitenbildern. Schriften werden durch die ähnlichste Schrift ersetzt, die markoto anbietet.",
@@ -1677,7 +1677,7 @@
   "legal": {
     "ageGate": {
       "title": "Bestätige dein Alter",
-      "body": "markoto ist für Personen ab 16 Jahren. Bitte bestätige, dass du mindestens 16 Jahre alt bist. Das gilt in jedem Land, auch wenn das dortige Recht ein tieferes Alter vorsieht.",
+      "body": "markoto ist für Personen ab 16 Jahren, in jedem Land.",
       "checkbox": "Ich bestätige, dass ich mindestens 16 Jahre alt bin",
       "continue": "Fortfahren",
       "underage": "Ich bin unter 16",
@@ -1701,7 +1701,7 @@
     },
     "delete": {
       "confirmTitle": "Konto löschen?",
-      "confirmBody": "Wir bewahren deine Daten 30 Tage lang auf, falls du es dir anders überlegst. Danach wird alles dauerhaft entfernt. Diese Aktion kann nach Ablauf der Kulanzfrist nicht rückgängig gemacht werden.",
+      "confirmBody": "Wir bewahren deine Daten 30 Tage auf, falls du es dir anders überlegst. Danach werden sie endgültig entfernt.",
       "confirmTypeIn": "Gib {phrase} ein, um zu bestätigen",
       "confirmCta": "Löschung planen",
       "confirmCancel": "Abbrechen",
@@ -1712,10 +1712,10 @@
       "emailExecutedSubject": "Dein markoto-Konto wurde gelöscht",
       "consequences": {
         "title": "Das genau wird passieren",
-        "intro": "Wir möchten, dass du das vollständige Bild siehst, bevor du bestätigst. Alles Folgende läuft automatisch ab, sobald die 30-tägige Kulanzfrist endet.",
+        "intro": "Das passiert, wenn die 30 Tage vorbei sind.",
         "deleted": {
           "heading": "Dauerhaft gelöscht",
-          "ownedDocs": "{count} Dokument, das dir gehört, auch wenn du es mit anderen teilst. Diese verlieren gleichzeitig den Zugriff. | {count} Dokumente, die dir gehören, auch die, die du mit anderen teilst. Diese verlieren gleichzeitig den Zugriff.",
+          "ownedDocs": "Keine Dokumente, die dir gehören. | {count} Dokument, das dir gehört. Personen, mit denen du es geteilt hast, verlieren den Zugriff. | {count} Dokumente, die dir gehören. Personen, mit denen du sie geteilt hast, verlieren den Zugriff.",
           "themes": "Deine gespeicherten Designs und persönlichen Einstellungen.",
           "ai": "Deine KI-Sitzungen, Prompt-Verlauf und Nutzungszähler.",
           "exports": "{count} früherer Datenexport und seine ZIP-Datei. | {count} frühere Datenexporte und ihre ZIP-Dateien.",
@@ -1723,8 +1723,8 @@
         },
         "anonymised": {
           "heading": "Auf der Plattform behalten, aber dein Name entfernt",
-          "comments": "{count} Kommentar, den du in fremden Dokumenten geschrieben hast, erscheint als „[gelöschter Nutzer]“. Der Text bleibt, damit andere der Unterhaltung weiter folgen können. | {count} Kommentare, die du in fremden Dokumenten geschrieben hast, erscheinen als „[gelöschter Nutzer]“. Der Text bleibt, damit andere der Unterhaltung weiter folgen können.",
-          "activity": "{count} Eintrag im Aktivitätsprotokoll fremder Dokumente erscheint danach als „Anonym“. | {count} Einträge im Aktivitätsprotokoll fremder Dokumente erscheinen danach als „Anonym“.",
+          "comments": "{count} Kommentar in fremden Dokumenten. Der Text bleibt, dein Name wird zu „[gelöschter Nutzer]“. | {count} Kommentare in fremden Dokumenten. Der Text bleibt, dein Name wird zu „[gelöschter Nutzer]“.",
+          "activity": "{count} Aktivitätseintrag in fremden Dokumenten, angezeigt als „Anonym“. | {count} Aktivitätseinträge in fremden Dokumenten, angezeigt als „Anonym“.",
           "audit": "{count} Eintrag in unserem internen Sicherheitsprotokoll; deine Nutzer-ID wird entfernt. | {count} Einträge in unserem internen Sicherheitsprotokoll; deine Nutzer-ID wird entfernt.",
           "consent": "{count} Einwilligungsentscheidung, anonymisiert, aber als rechtlicher Nachweis nach Art. 7 Abs. 1 DSGVO aufbewahrt. | {count} Einwilligungsentscheidungen, anonymisiert, aber als rechtlicher Nachweis nach Art. 7 Abs. 1 DSGVO aufbewahrt."
         },
@@ -1732,14 +1732,14 @@
           "heading": "Workspaces",
           "cascadeDelete": {
             "title": "Werden kaskadierend gelöscht (einziges Mitglied)",
-            "body": "Diese Workspaces werden zusammen mit jedem darin enthaltenen Dokument und jeder Wissensdatei dauerhaft entfernt. Wenn du deren Inhalte bewahren möchtest, lade zuerst ein Mitglied mit Administratorrolle ein, kehre dann zurück und beantrage die Löschung.",
+            "body": "Werden mit jedem Dokument und jeder Wissensdatei darin gelöscht. Wenn du sie behalten willst, mach zuerst ein anderes Mitglied zum Admin.",
             "row": "{name}: {docs}, {files}",
             "docCount": "keine Dokumente | {count} Dokument | {count} Dokumente",
             "fileCount": "keine Wissensdateien | {count} Wissensdatei | {count} Wissensdateien"
           },
           "promote": {
             "title": "Erhalten einen neuen Administrator (andere Mitglieder vorhanden)",
-            "body": "Diese Workspaces bleiben für die übrigen Mitglieder bestehen. Ein Admin, der vor den anderen beigetreten ist, übernimmt; gibt es keinen weiteren Admin, wird das am längsten beteiligte Mitglied Admin.",
+            "body": "Diese bleiben für die anderen Mitglieder bestehen. Der Admin mit der längsten Mitgliedschaft übernimmt, gibt es keinen weiteren Admin, das Mitglied mit der längsten Mitgliedschaft.",
             "row": "{name}: {newAdminName} (derzeit {newAdminPreviousRole}) wird Admin",
             "rowAlreadyAdmin": "{name}: {newAdminName} bleibt Admin und übernimmt"
           },
@@ -1751,12 +1751,12 @@
         },
         "manualSteps": {
           "heading": "Schritte, die du zuvor unternehmen solltest",
-          "exportFirst": "Nutze die Datenexportfunktion, um alles, was wir über dich speichern, als ZIP herunterzuladen: Bewahre diese Datei auf, unabhängig davon, was hier geschieht.",
+          "exportFirst": "Lade zuerst deine Daten als ZIP herunter, wenn du eine Kopie willst.",
           "transferDocs": "Für jedes Dokument, das ein Mitarbeiter behalten soll, verschiebe es entweder in einen Workspace, der ihm gehört, oder lass es ihn duplizieren.",
           "inviteWorkspaceMember": "Für jeden Workspace, den du bewahren möchtest, lade vor dem Löschen mindestens einen Mitarbeiter mit Administratorrolle ein.",
           "downloadKnowledge": "Für Wissensdatenbankdateien, die du bewahren möchtest, lade diese zuerst ausserhalb von markoto herunter."
         },
-        "timing": "Die eigentliche Kaskade läuft einmal pro Stunde als Hintergrundjob. Nach Ablauf der Kulanzfrist werden deine Daten innerhalb von etwa einer Stunde vollständig gelöscht.",
+        "timing": "Deine Daten sind etwa eine Stunde nach Ablauf der 30 Tage gelöscht.",
         "noRecovery": "Sobald die Kaskade läuft, sind dein Konto und deine Inhalte dauerhaft verschwunden: Es gibt keinen Wiederherstellungsweg.",
         "loading": "Dein Konto wird gelesen…"
       },
@@ -1838,9 +1838,9 @@
     },
     "onboarding": {
       "title": "Willkommen bei markoto",
-      "intro": "Bevor du mit dem Schreiben beginnst, brauchen wir kurz deine Bestätigung zu den folgenden Punkten. Du siehst dies nur einmal oder wenn wir eines der Dokumente wesentlich aktualisieren.",
+      "intro": "Zwei Dinge, bevor du loslegst. Wir fragen nur erneut, wenn sich ein Dokument ändert.",
       "documentsTitle": "Zu akzeptierende Dokumente",
-      "documentsIntro": "Wir haben diese in verständlicher Sprache verfasst – öffne jedes in einem neuen Tab, um es vollständig zu lesen. Deine Zustimmung wird mit der gelesenen Version gespeichert, damit wir nachweisen können, was du gesehen hast.",
+      "documentsIntro": "Jedes öffnet sich in einem neuen Tab. Wir speichern, welche Version du akzeptiert hast.",
       "acceptDocument": "Ich habe {document} gelesen und akzeptiere es",
       "continue": "Weiter zu markoto",
       "welcomeToast": "Willkommen bei markoto",
@@ -1890,18 +1890,18 @@
       },
       "spending": {
         "heading": "Ausgaben und Nutzung",
-        "comingSoon": "Bald verfügbar: deine KI-Credit-Nutzung, Tarifverlauf und Rechnungen werden hier angezeigt. Verwalte die Abrechnung vorerst über die Preisseite.",
+        "comingSoon": "Nutzung, Planverlauf und Rechnungen erscheinen hier.",
         "viewPricing": "Preise ansehen",
         "plan": "Aktueller Plan: {plan}",
         "manage": "Abrechnung verwalten",
         "portalFailed": "Abrechnung konnte nicht geöffnet werden",
         "coveringTitle": "Workspaces, die du abdeckst",
-        "coveringHint": "In diesen Workspaces gilt deren Plan auch für dich, einschliesslich des gemeinsamen KI-Budgets. Überall sonst gilt dein eigener Plan."
+        "coveringHint": "In diesen Workspaces gelten deren Plan und das gemeinsame KI-Budget. Sonst dein eigener Plan."
       },
       "data": {
         "heading": "Deine Daten",
         "exportTitle": "Eine Kopie deiner Daten herunterladen",
-        "exportDescription": "Wir bereiten ein ZIP mit allem vor, was wir über dich speichern: dein Kontoprofil, jedes dir gehörende Dokument als Markdown, von dir verfasste Kommentare, Abrechnungsverlauf, KI-Nutzungsprotokolle, Audit- und Einwilligungsdatensätze. Die Erstellung läuft im Hintergrund, normalerweise unter einer Minute. Diese Seite wird aktualisiert, wenn es bereit ist, und wir senden dir ausserdem einen Download-Link per E-Mail. Der Link ist 7 Tage gültig.",
+        "exportDescription": "Ein ZIP mit allem, was wir über dich speichern: Profil, deine Dokumente als Markdown, Kommentare, Abrechnung, KI-Nutzung und Einwilligungen. Bereit in etwa einer Minute; der Link gilt 7 Tage.",
         "exportButton": "Export anfordern",
         "exportInProgress": "Export läuft: diese Seite wird aktualisiert, wenn es bereit ist.",
         "exportHistoryHeading": "Letzte Exporte",
@@ -1915,7 +1915,7 @@
       },
       "delete": {
         "heading": "Konto löschen",
-        "description": "Wir bewahren deine Daten 30 Tage lang auf, falls du es dir anders überlegst. Danach wird alles dauerhaft entfernt: Dokumente, Kommentare, Workspace-Mitgliedschaften, Abrechnungsverlauf. Workspaces, in denen du das einzige Mitglied bist, werden kaskadierend gelöscht; Workspaces mit weiteren Mitgliedern erhalten automatisch einen neuen Administrator.",
+        "description": "Deine Daten werden 30 Tage aufbewahrt und dann endgültig entfernt. Du siehst genau, was betroffen ist, bevor du bestätigst.",
         "button": "Kontolöschung anfordern",
         "scheduled": "Löschung geplant für den {date}",
         "cancel": "Löschung abbrechen",
@@ -1923,22 +1923,22 @@
       },
       "legal": {
         "heading": "Rechtliches",
-        "subheading": "Versionen der Datenschutzerklärung, Nutzungsbedingungen und des Auftragsverarbeitungsvertrags, die du akzeptiert hast. Wenn wir ein Dokument wesentlich aktualisieren, siehst du hier \"erneute Zustimmung erforderlich\" und wir fragen vor jeder weiteren Aktion erneut nach.",
+        "subheading": "Die Versionen, die du akzeptiert hast. Wir fragen erneut, wenn sich ein Dokument ändert.",
         "notAccepted": "Nicht akzeptiert",
         "needsReacceptance": "erneute Zustimmung erforderlich (aktuell v{version})",
         "dpaNotApplicable": "Erforderlich, wenn du einen Workspace erstellst",
-        "cookieNote": "markoto verwendet nur notwendige Cookies: deine Anmeldesitzung, deine Sprache und einen Schlüssel, mit dem dein Browser Dokumente löschen kann, die er ohne Konto erstellt hat. Es gibt keine Analyse, kein Tracking und keine Werbung, daher ist keine Einwilligung nötig. Die Datenschutzerklärung führt jedes Cookie auf."
+        "cookieNote": "Nur notwendige Cookies: Anmeldung, Sprache und ein Schlüssel zum Löschen von Dokumenten, die ohne Konto erstellt wurden. Keine Analyse, kein Tracking, keine Werbung. Die Datenschutzerklärung führt jedes auf."
       },
       "sessions": {
         "heading": "Sitzungen",
-        "description": "Auf einem Gerät angemeldet, das du nicht mehr nutzt, oder Sorge, dass jemand anderes Zugriff hat? Melde dich in jedem Browser und auf jedem Gerät von markoto ab, auch auf diesem.",
+        "description": "Meldet dich in jedem Browser und auf jedem Gerät ab, auch auf diesem.",
         "button": "Überall abmelden",
         "failed": "Abmelden auf allen Geräten fehlgeschlagen"
       },
       "storage": {
         "heading": "Speicher",
         "images": "Bilder in Dokumenten",
-        "description": "Bilder, die du in deinen Dokumenten hochlädst oder erzeugst, einschliesslich Kopien beim Duplizieren eines Dokuments. Bilder, die kein Dokument mehr verwendet, werden nach einiger Zeit automatisch bereinigt."
+        "description": "Bilder, die du hochlädst oder erzeugst, auch Kopien in duplizierten Dokumenten. Nicht verwendete Bilder werden automatisch entfernt."
       }
     },
     "integrations": {
@@ -1953,7 +1953,7 @@
       "revokeFailed": "Token konnte nicht widerrufen werden",
       "snippetCopied": "Konfigurationsausschnitt kopiert",
       "createdTitle": "Token erstellt – jetzt kopieren",
-      "createdBody": "Aus Sicherheitsgründen wird dieses Token nur ein einziges Mal angezeigt. Wir können es nicht für dich wiederherstellen. Wenn du es verlierst, widerrufe es und erstelle ein neues.",
+      "createdBody": "Kopiere das Token jetzt. Es wird nur einmal angezeigt; wenn du es verlierst, erstelle ein neues.",
       "copy": "Kopieren",
       "generateTitle": "Token erzeugen",
       "namePlaceholder": "z. B. Claude Desktop auf dem Laptop",
@@ -2044,7 +2044,7 @@
     "title": "KI-Anbieter",
     "menu": "KI-Anbieter",
     "loading": "KI-Einstellungen werden geladen…",
-    "intro": "Eigener Schlüssel: Verbinde für jede Funktion deinen eigenen OpenAI-kompatiblen KI-Anbieter. Diese Aufrufe bezahlt dein Anbieterkonto. markoto speichert den Schlüssel verschlüsselt und zeigt ihn nie wieder an.",
+    "intro": "Verbinde pro Funktion deinen eigenen OpenAI-kompatiblen Anbieter. Dein Anbieter stellt dir die Kosten in Rechnung. Der Schlüssel wird verschlüsselt gespeichert und nie wieder angezeigt.",
     "privacyNote": "Für diese Funktionen werden deine Prompts, der relevante Dokumentkontext und deine Aufnahmen an den Anbieter gesendet, den du wählst – unter deiner eigenen Vereinbarung mit diesem Anbieter.",
     "platformNote": "Wissensdatenbank-Suche, Websuche und Seitenabruf laufen immer über markotos eigene Anbieter.",
     "allowedProvidersNote": "Auf dieser Instanz erlaubte Anbieter: {list}",
@@ -2133,7 +2133,7 @@
       "openSettings": "KI-Anbieter-Einstellungen öffnen"
     },
     "ownProviderBadge": "Eigener KI-Anbieter",
-    "freeAllowanceNote": "Ohne eigenen Schlüssel erhält dein Konto ein monatliches kostenloses KI-Kontingent auf dem Standardmodell dieser Instanz – solange der gemeinsame Monatstopf reicht. Sobald du einen eigenen Schlüssel hinterlegst, wird dieser verwendet.",
+    "freeAllowanceNote": "Ohne Schlüssel erhältst du ein kostenloses monatliches KI-Kontingent, solange der gemeinsame Topf reicht. Mit Schlüssel wird dieser verwendet.",
     "modelTier": {
       "title": "KI-Modell",
       "description": "Welches Modell dieser Instanz die KI für dich verwendet. Ein eigener Chat-Schlüssel hat immer Vorrang.",
@@ -2234,7 +2234,7 @@
   "anonGate": {
     "eyebrow": "Vor deinem ersten Dokument",
     "title": "Schreiben ohne Konto",
-    "pointPublic": "Wer den Link hat, kann dein Dokument öffnen und bearbeiten, solange du die Freigabe nicht änderst. Lege darin nichts Vertrauliches ab.",
+    "pointPublic": "Wer den Link hat, kann es öffnen und bearbeiten, bis du die Freigabe änderst. Lass Vertrauliches weg.",
     "pointRetention": "Es wird nach {days} Tagen ohne Aktivität gelöscht. Melde dich an, um deine Dokumente zu behalten.",
     "pointRules": "markoto prüft keine Dokumente. Rechtswidrige Inhalte, Betrug und Spam sind nicht erlaubt und werden auf Meldung hin entfernt.",
     "accept": "Ich akzeptiere die {terms} einschliesslich der Regeln zur zulässigen Nutzung und bin mindestens {age} Jahre alt.",
@@ -2284,7 +2284,7 @@
     "steps": {
       "write": {
         "title": "Links Markdown, rechts Seiten",
-        "body": "Tippe im Editor; die Vorschau zeigt die Seiten genau so, wie sie gedruckt und exportiert werden. Diese Schaltflächen wechseln zwischen Editor, beidem und Vorschau."
+        "body": "Tippe links; die Vorschau zeigt die Seiten, wie sie gedruckt werden. Diese Schaltflächen wechseln die Ansicht."
       },
       "format": {
         "title": "Formatieren ohne Syntax",
@@ -2413,7 +2413,7 @@
     "title": "KI-Guthaben",
     "balance": "{amount} KI-Guthaben übrig",
     "usedThisMonth": "{amount} in diesem Monat verbraucht",
-    "explainer": "Guthaben ergänzt das monatliche KI-Budget deines Plans. Es wird erst verbraucht, wenn das Monatsbudget des Plans aufgebraucht ist, und verfällt {months} Monate nach dem Kauf.",
+    "explainer": "Guthaben erhöht das monatliche KI-Budget deines Plans. Es wird nach dem Budget verbraucht und verfällt {months} Monate nach dem Kauf.",
     "pack": "{price} → {credit} Guthaben",
     "grantLeft": "{left} übrig · verfällt am {date}",
     "needsPlan": "KI-Guthaben ergänzt einen bezahlten Plan. Wechsle auf Pro, um es zu kaufen.",
@@ -2426,7 +2426,7 @@
     "loading": "Single Sign-on wird geladen…",
     "loadFailed": "Die Einstellungen für Single Sign-on konnten nicht geladen werden.",
     "planNotice": "Single Sign-on mit deinem eigenen Identitätsanbieter ist Teil des Business-Plans.",
-    "intro": "Mitglieder melden sich bei diesem Workspace über den Identitätsanbieter deiner Organisation an (OpenID Connect oder SAML). Sobald es eingeschaltet ist, müssen sich alle auf diese Weise anmelden, um den Workspace zu öffnen; Admins können jederzeit hierher zurückkehren, um es zu ändern oder zu entfernen.",
+    "intro": "Mitglieder öffnen diesen Workspace über deinen Identitätsanbieter (OpenID Connect oder SAML). Admins erreichen diese Einstellungen immer.",
     "enforcedNotice": "Single Sign-on ist eingeschaltet: Mitglieder öffnen diesen Workspace erst nach der Anmeldung über deinen Identitätsanbieter (gültig für 12 Stunden).",
     "idpTitle": "Identitätsanbieter",
     "protocol": {
@@ -2453,7 +2453,7 @@
     "saveFailed": "Die Einstellungen für Single Sign-on konnten nicht gespeichert werden.",
     "testAndActivate": "Anmeldung testen und einschalten",
     "testAgain": "Anmeldung testen",
-    "draftHint": "Noch nicht eingeschaltet. Teste die Anmeldung mit deinem eigenen Konto beim Identitätsanbieter; wenn sie funktioniert, wird Single Sign-on für den Workspace eingeschaltet.",
+    "draftHint": "Noch nicht aktiv. Teste die Anmeldung mit deinem eigenen Konto; sobald sie funktioniert, wird es aktiviert.",
     "testActivated": "Anmeldung funktioniert: Single Sign-on ist jetzt für diesen Workspace eingeschaltet",
     "testOk": "Anmeldung funktioniert",
     "status": {
@@ -2473,7 +2473,7 @@
     "copied": "Kopiert",
     "domains": {
       "title": "E-Mail-Domains",
-      "body": "Bestätige die Domains, die die E-Mail-Adressen deiner Organisation verwenden. Nur Adressen in einer bestätigten Domain werden mit bestehenden markoto-Konten verknüpft oder treten dem Workspace bei ihrer ersten Anmeldung bei.",
+      "body": "Bestätige deine E-Mail-Domains. Nur Adressen in einer bestätigten Domain werden mit Konten verknüpft oder treten bei der ersten Anmeldung bei.",
       "verified": "Bestätigt",
       "unverified": "Nicht bestätigt",
       "verify": "Jetzt prüfen",
@@ -2487,7 +2487,7 @@
     "domainRemoveFailed": "Die Domain konnte nicht entfernt werden.",
     "scim": {
       "title": "Provisioning (SCIM)",
-      "body": "Lass deinen Identitätsanbieter Mitglieder automatisch hinzufügen und entfernen. Trage die Basis-URL und das Token in dessen SCIM-Einstellungen ein. Wenn du dort jemanden entfernst, wird die Person sofort aus diesem Workspace entfernt.",
+      "body": "Dein Identitätsanbieter fügt Mitglieder hinzu und entfernt sie. Trage die Basis-URL und das Token in dessen SCIM-Einstellungen ein; Entfernungen gelten sofort.",
       "baseUrl": "SCIM-Basis-URL",
       "tokenOnce": "Kopiere dieses Token jetzt: Es wird nicht noch einmal angezeigt.",
       "create": "Token erstellen",
@@ -2527,7 +2527,7 @@
   },
   "audit": {
     "title": "Audit-Log",
-    "intro": "Wer in diesem Workspace was wann geändert hat: Mitglieder und Rollen, Einladungen, Freigaben und Löschungen, Abrechnung und Single Sign-on. Die Netzwerkadresse ist gekürzt (der letzte Teil entfernt).",
+    "intro": "Wer was wann geändert hat: Mitglieder, Einladungen, Freigaben, Löschungen, Abrechnung und Single Sign-on. Netzwerkadressen werden gekürzt.",
     "retention": "Ereignisse werden {days} Tage lang aufbewahrt.",
     "filter": "Anzeigen",
     "from": "Von",
@@ -2592,7 +2592,7 @@
   },
   "usage": {
     "title": "Nutzung",
-    "intro": "Was jede Person in diesem Workspace speichert: eigene Dokumente, hinzugefügte Wissensdateien und Bilder sowie – bei einem Team- oder Business-Plan – die KI-Ausgaben vom gemeinsamen Budget in diesem Zeitraum. Nichts darüber, wann oder wie oft jemand arbeitet.",
+    "intro": "Was jede Person hier speichert: Dokumente, Wissensdateien, Bilder und KI-Ausgaben in diesem Zeitraum. Keine Aktivitätszeiten.",
     "person": "Person",
     "documents": "Dokumente",
     "knowledge": "Wissen",
@@ -2612,7 +2612,7 @@
     "uploadFailed": "Die Datei konnte nicht hochgeladen werden",
     "deleteFailed": "Die Datei konnte nicht gelöscht werden",
     "fonts": "Schriftarten",
-    "fontsHint": "Lade pro Schnitt und Stil eine Datei hoch (WOFF2, WOFF oder TTF). Sie erscheinen unter «Dieser Workspace» in den Schriftauswahlen aller Dokumente hier und in deren PDFs. Variable Schriften und Schriften mit PostScript-Konturen (CFF) drucken schlecht und werden nicht akzeptiert – verwende die statischen TrueType-Schnitte.",
+    "fontsHint": "Eine Datei pro Schnitt und Stil (WOFF2, WOFF oder TTF). Die Schriften erscheinen unter «Dieser Workspace» in jedem Dokument hier. Nutze statische TrueType-Schriften; variable und CFF-Schriften werden nicht akzeptiert.",
     "noFonts": "Noch keine Schriftarten.",
     "chooseFont": "Schriftdatei auswählen",
     "fontName": "Schriftname",
@@ -2637,13 +2637,13 @@
     "designImagesDropped": "Bilder, die in dieses Dokument hochgeladen wurden, wurden weggelassen – wähle für das gemeinsame Design ein Logo des Workspace.",
     "designFailed": "Das Design des Workspace konnte nicht festgelegt werden",
     "lockLabel": "Design für alle Dokumente sperren",
-    "lockDescription": "Jedes Dokument im Workspace verwendet das Design des Workspace; nur der Text der Titelseite (Untertitel, Datum, Autoren) bleibt eigen. Beim Entsperren erhält jedes Dokument sein eigenes Design zurück.",
+    "lockDescription": "Jedes Dokument nutzt das Design des Workspace und behält nur seinen Titelseitentext. Entsperre, damit Dokumente wieder ihr eigenes Design haben.",
     "lockFailed": "Die Sperre konnte nicht geändert werden",
     "lockedTitle": "Das Design des Workspace ist gesperrt",
     "lockedBody": "Dieses Dokument verwendet das Design seines Workspace. Den Text der Titelseite kannst du unten weiterhin ändern.",
     "openBrandKit": "Brand-Kit öffnen",
     "templates": "Vorlagen",
-    "templatesHint": "Mache aus einem Dokument des Workspace eine Vorlage. Neue Dokumente daraus übernehmen dessen aktuellen Text und Design, Änderungen am Dokument ändern also die Vorlage.",
+    "templatesHint": "Mach ein Dokument zur Vorlage. Neue Dokumente übernehmen dessen aktuellen Text und Design.",
     "templateName": "Name der Vorlage",
     "templateDescription": "Kurze Beschreibung (optional)",
     "addTemplate": "Vorlage hinzufügen",
@@ -2660,7 +2660,7 @@
   },
   "publish": {
     "title": "Als Webseite veröffentlichen",
-    "help": "Eine statische Kopie dieses Dokuments unter einer eigenen öffentlichen Adresse. Jede Person mit der Adresse kann sie lesen; das Dokument selbst bleibt so geteilt, wie es jetzt ist. Veröffentliche erneut, um die Seite zu aktualisieren.",
+    "help": "Eine öffentliche Kopie unter eigener Adresse. Die Freigabe des Dokuments ändert sich nicht. Veröffentliche erneut, um sie zu aktualisieren.",
     "publish": "Veröffentlichen",
     "update": "Seite aktualisieren",
     "unpublish": "Veröffentlichung aufheben",
@@ -2684,7 +2684,7 @@
   "customDomains": {
     "menu": "Domains",
     "title": "Eigene Domains",
-    "intro": "Zeige eine veröffentlichte Seite unter deiner eigenen Adresse an, zum Beispiel docs.example.com. Füge die Domain hinzu, setze die beiden unten angezeigten DNS-Einträge bei deinem DNS-Anbieter und wähle die Seite im Teilen-Dialog des Dokuments aus. Ein HTTPS-Zertifikat besorgen wir automatisch.",
+    "intro": "Zeige eine veröffentlichte Seite unter deiner eigenen Adresse an, zum Beispiel docs.example.com. Füge die Domain hinzu, setze ihre zwei DNS-Einträge und wähle dann die Seite im Teilen-Dialog des Dokuments. HTTPS richten wir für dich ein.",
     "notOnInstance": "Eigene Domains sind auf dieser Instanz nicht eingerichtet.",
     "placeholder": "docs.example.com",
     "add": "Domain hinzufügen",
@@ -2749,7 +2749,7 @@
     "landing": {
       "eyebrow": "Feldführer · Bd. 01",
       "title": "Alles, was du in {product} tun kannst.",
-      "lede": "Ein kollaborativer Markdown-Editor mit optionalen Konten. Anonym schreiben, per URL teilen, gestalten, als PDF exportieren. Jeder Screenshot hier wurde live in der laufenden App aufgenommen.",
+      "lede": "Ein kollaborativer Markdown-Editor mit optionalen Konten. Schreibe ohne Konto, teile per Link, gestalte, exportiere als PDF. Jeder Screenshot hier stammt aus der laufenden App.",
       "begin": "Rundgang starten",
       "search": "suchen",
       "startHere": "Hier starten",

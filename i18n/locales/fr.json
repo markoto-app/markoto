@@ -39,7 +39,7 @@
     "titleInputAria": "Titre du document",
     "placeholder": "Commencez à écrire...",
     "syncAuthFailedTitle": "Le serveur de synchronisation a rejeté la connexion",
-    "syncAuthFailedDescription": "Vous avez normalement un accès en édition ici. Le serveur de synchronisation a refusé la négociation, probablement une limite de débit par IP ou un jeton expiré. Rechargez pour réessayer.",
+    "syncAuthFailedDescription": "Connexion pour l'édition impossible. Rechargez pour réessayer.",
     "syncAuthFailedReload": "Recharger",
     "syncRejected": {
       "title": "Vos dernières modifications n'ont pas été enregistrées",
@@ -207,7 +207,7 @@
       },
       "confirm": {
         "title": "Restaurer le document ?",
-        "body": "Le document reviendra à l'état de {when}. Les modifications effectuées depuis seront supprimées (mais restent récupérables depuis le journal d'activité).",
+        "body": "Le document revient à son état de {when}. Les modifications ultérieures sont supprimées mais restent dans le journal d'activité.",
         "reversibleHint": "Cette restauration est elle-même réversible : vous pouvez revenir à l'état actuel à tout moment.",
         "cta": "Restaurer"
       },
@@ -335,7 +335,7 @@
     "languageLabel": "Langue",
     "audienceLabel": "Public",
     "themeWorkspaceDefault": "Thème par défaut de l'espace de travail",
-    "templateHelp": "Un modèle est un texte de départ dans un design qui lui convient. Les commentaires gris du texte indiquent ce qui va où ; l’aperçu et le PDF ne les affichent pas. Vous pouvez changer le design à tout moment dans le panneau du thème.",
+    "templateHelp": "Un texte de départ avec un design adapté. Les commentaires gris indiquent quoi mettre où et n’apparaissent jamais dans le PDF.",
     "create": "Créer le document",
     "sections": {
       "template": "Modèle",
@@ -444,7 +444,7 @@
     "title": "Document",
     "description": {
       "label": "Description",
-      "help": "Une ligne sur ce qu'est ce document. L'IA la voit à chaque tour : c'est ainsi que le modèle sait sur quoi vous travaillez sans avoir à le retaper.",
+      "help": "Une ligne sur ce document. L'IA la lit à chaque requête.",
       "placeholder": "ex. Plan de lancement T3 pour la nouvelle application mobile"
     },
     "language": {
@@ -585,7 +585,7 @@
     "otherSessionWorking": "markoto travaille pour {name}",
     "confirm": {
       "label": "markoto demande d’abord",
-      "reason": "markoto a lu dans cette session du texte qui ne vient pas de vous (par exemple d’une page web ou d’une autre personne). Il demande donc avant d’accéder à vos autres documents, aux connaissances de l’espace de travail ou au web.",
+      "reason": "markoto a lu un texte qui n’est pas de vous, il demande donc avant d’utiliser vos autres documents, les connaissances de l’espace de travail ou le web.",
       "waiting": "En attente de votre confirmation…",
       "allow": "Autoriser",
       "deny": "Refuser",
@@ -651,9 +651,9 @@
     "responseShowLast": "Dernière réponse de markoto",
     "exhaustedPlaceholderFree": "Plus de crédits IA : ils se rechargent à la prochaine période",
     "budgetExhaustedResetDescription": "Vous avez utilisé tous vos crédits IA pour cette période. Ils se rechargent au début de la prochaine période.",
-    "webToolsHourlyLimit": "Vous avez atteint la limite horaire de recherche web et de récupération de pages. Réessayez dans l'heure ou continuez sans les outils web.",
+    "webToolsHourlyLimit": "Limite horaire de recherche web atteinte. Réessayez plus tard ou continuez sans elle.",
     "webToolsDailyLimit": "Vous avez atteint la limite quotidienne de recherche web et de récupération de pages. Réessayez demain ou continuez sans les outils web.",
-    "budgetExhaustedComingSoonDescription": "Vous avez utilisé tous vos crédits IA pour cette période. Ils se rechargent au début de la prochaine période : des offres payantes avec plus de crédits arrivent bientôt.",
+    "budgetExhaustedComingSoonDescription": "Vos points IA de cette période sont épuisés. Ils se rechargent à la prochaine période.",
     "freeAllowanceExhaustedTitle": "Allocation IA gratuite épuisée",
     "freeAllowanceExhausted": "L'allocation IA gratuite de ce mois est épuisée. Ajoutez votre propre clé dans Réglages → Fournisseur d'IA pour continuer.",
     "freeAllowanceCta": "Ajouter votre clé",
@@ -725,9 +725,9 @@
   },
   "pricing": {
     "title": "Tarifs",
-    "subtitle": "Choisissez le forfait qui vous convient. Les forfaits fixent vos limites : points IA, espaces de travail et stockage. L'IA utilisée avec votre propre clé de fournisseur n'est jamais limitée par un forfait.",
+    "subtitle": "Les plans fixent vos points IA, espaces de travail et stockage. L'IA avec votre propre clé n'est jamais limitée.",
     "metaDescription": "Comparez les forfaits markoto : points IA, espaces de travail et stockage. L'IA avec votre propre clé n'est jamais limitée.",
-    "creditsHint": "Les points IA couvrent l'IA payée par l'instance : 1000 points = 1 $ d'utilisation du modèle. L'IA utilisée avec votre propre clé est facturée par votre fournisseur et ne consomme aucun point.",
+    "creditsHint": "1000 points IA = 1 $ US d'utilisation du modèle. L'IA avec votre propre clé ne consomme aucun point.",
     "currentPlan": "Forfait actuel",
     "manageSubscription": "Gérer l'abonnement",
     "upgrade": "Mettre à niveau",
@@ -748,7 +748,7 @@
       "team": "Pour les équipes : par place, AI Points et stockage partagés, gestion pour les admins.",
       "business": "Pour les organisations : Team avec authentification unique, export d'audit et limites sur mesure."
     },
-    "freeAllowanceNote": "L'allocation IA gratuite utilise un modèle hébergé par Mistral AI dans l'UE et reste disponible tant que la réserve commune de ce mois n'est pas épuisée. Pour aller plus loin, ajoutez votre propre clé dans Réglages → Fournisseur d'IA.",
+    "freeAllowanceNote": "L'allocation gratuite utilise un modèle hébergé par Mistral AI dans l'UE, tant que la réserve commune de ce mois dure. Pour plus, ajoutez votre propre clé.",
     "price": {
       "free": "Gratuit",
       "perMonth": "par mois",
@@ -863,7 +863,7 @@
     "seatTotalMonth": "{total} par mois pour {seats} places",
     "seatTotalYear": "{total} par an pour {seats} places",
     "seatsLabel": "Places",
-    "creditsSection": "Les crédits IA complètent le budget IA mensuel de Pro et des espaces Team / Business. Ils ne sont utilisés qu’une fois le budget du mois épuisé et expirent {months} mois après l’achat.",
+    "creditsSection": "Les crédits IA s’ajoutent au budget IA mensuel de Pro et des espaces Team / Business. Ils sont utilisés une fois le budget dépensé et expirent {months} mois après l’achat.",
     "creditsBuyLink": "Acheter des crédits IA dans votre profil"
   },
   "topbar": {
@@ -1365,7 +1365,7 @@
     "successToPersonal": "« {title} » est désormais un document personnel.",
     "successToWorkspace": "« {title} » se trouve désormais dans {workspace}.",
     "failed": "Impossible de déplacer le document",
-    "leavesPlan": "Ce document quitte un espace de travail sur {plan}. Après le déplacement, il suit le plan du nouvel emplacement : les fonctions absentes de ce plan (comme le CSS personnalisé ou l’historique ancien) sont mises en pause. Rien n’est supprimé."
+    "leavesPlan": "Ce document quitte un espace de travail {plan}. Les fonctions absentes du nouvel emplacement, comme le CSS personnalisé ou l’historique ancien, sont mises en pause. Rien n’est supprimé."
   },
   "delete": {
     "title": "Supprimer le document",
@@ -1430,7 +1430,7 @@
     "editTitle": "Modifier l'espace de travail",
     "delete": "Supprimer l'espace de travail",
     "deleteTitle": "Supprimer l'espace de travail",
-    "deleteWarning": "Cette action supprimera définitivement cet espace de travail et le {count} document qu'il contient. Elle est irréversible. | Cette action supprimera définitivement cet espace de travail et les {count} documents qu'il contient. Elle est irréversible.",
+    "deleteWarning": "Cela supprime définitivement l'espace de travail et son {count} document. Irréversible. | Cela supprime définitivement l'espace de travail et ses {count} documents. Irréversible.",
     "deleteWarningEmpty": "Cette action supprimera définitivement cet espace de travail. Elle est irréversible.",
     "deleteConfirmPrompt": "Tapez « {name} » pour confirmer :",
     "deleteConfirm": "Supprimer l'espace de travail",
@@ -1455,7 +1455,7 @@
       "adminDescription": "Invitez des collaborateurs par e-mail, modifiez les rôles ou retirez des membres.",
       "memberDescription": "Personnes ayant accès à cet espace de travail.",
       "addTitle": "Inviter un membre",
-      "addHint": "Saisissez son adresse e-mail. La personne ne rejoint l'espace qu'après avoir accepté l'invitation : dans markoto en étant connectée avec cette adresse, ou depuis l'e-mail d'invitation.",
+      "addHint": "La personne rejoint l'espace une fois l'invitation acceptée, dans markoto ou depuis l'e-mail d'invitation.",
       "emailPlaceholder": "Saisissez une adresse e-mail",
       "add": "Inviter",
       "addFailed": "Impossible d'envoyer l'invitation",
@@ -1503,7 +1503,7 @@
       "loading": "Chargement de la facturation…",
       "loadFailed": "Impossible de charger la facturation",
       "paymentProblemTitle": "Problème de paiement",
-      "paymentProblemBody": "Le dernier paiement de cet espace de travail a échoué. Stripe va réessayer ; mettez à jour le moyen de paiement dans « Gérer la facturation » pour conserver les fonctions Team.",
+      "paymentProblemBody": "Le dernier paiement a échoué. Mettez à jour le moyen de paiement sous « Gérer la facturation » pour conserver votre plan.",
       "buyTitle": "Passer cet espace de travail à un plan payant",
       "buyBody": "Team et Business se paient par place. Toutes les personnes de l’espace de travail y bénéficient des fonctions du plan, avec un budget IA mensuel partagé.",
       "planLabel": "Plan",
@@ -1521,7 +1521,7 @@
       "manage": "Gérer la facturation",
       "seatCounter": "{used} places utilisées sur {seats}",
       "updateSeats": "Modifier les places",
-      "seatsFootnote": "Les places supplémentaires sont facturées au prorata immédiatement, et leur budget IA couvre les jours restants du mois de budget. Les places en moins ne sont pas créditées ; elles gardent leur budget IA jusqu’à la fin du mois. Il ne peut y avoir moins de places que de personnes dans l’espace.",
+      "seatsFootnote": "Les places ajoutées sont facturées au prorata immédiatement. Les places retirées ne sont pas remboursées et gardent leur budget IA jusqu’à la fin du mois. Il faut au moins une place par personne.",
       "switchToBusiness": "Passer à Business",
       "switchToTeam": "Passer à Team",
       "switchToAnnual": "Passer à la facturation annuelle",
@@ -1568,7 +1568,7 @@
   },
   "knowledge": {
     "title": "Base de connaissances",
-    "description": "Téléversez des PDF, documents Word, présentations ou feuilles de calcul. L'assistant IA peut les consulter lors de la rédaction dans n'importe quel document de cet espace de travail.",
+    "description": "Téléversez des PDF, des fichiers Word, des présentations ou des feuilles de calcul. L'IA peut les consulter dans chaque document de cet espace de travail.",
     "upload": "Téléverser des fichiers",
     "capFilesReached": "Cet espace de travail a atteint la limite de fichiers ({limit}). Supprimez un fichier ou passez à un forfait supérieur pour en ajouter.",
     "capBytesReached": "Cet espace de travail a atteint sa limite de stockage ({limit} Mo). Supprimez un fichier ou passez à un forfait supérieur pour en ajouter.",
@@ -1582,7 +1582,7 @@
     "deleteFailed": "Impossible de retirer le fichier",
     "loadFailed": "Impossible de charger la base de connaissances",
     "deleteTitle": "Retirer de la base de connaissances",
-    "deleteWarning": "L'IA ne pourra plus se référer à ce fichier lors de la rédaction. Tout ce qui a déjà été écrit à partir de celui-ci reste dans vos documents.",
+    "deleteWarning": "L'IA ne pourra plus utiliser ce fichier. Les textes déjà rédigés avec restent.",
     "deleteConfirm": "Retirer le fichier",
     "chunks": "{n} segment | {n} segments",
     "status": {
@@ -1599,7 +1599,7 @@
   "designImport": {
     "button": "Créer un design à partir d’un document",
     "title": "Créer un design à partir d’un document",
-    "intro": "Importez un fichier PDF ou Word au design de votre organisation. markoto en lit les polices, les couleurs et la mise en page et crée un design pour vos nouveaux documents.",
+    "intro": "Importez un PDF ou un fichier Word à votre design. markoto crée un design assorti à partir de ses polices, couleurs et mise en page.",
     "chooseFile": "Choisir un fichier PDF ou Word",
     "fileHint": "PDF ou .docx, jusqu’à 20 Mo",
     "costNote": "Utilise votre fournisseur d’IA : jusqu’à trois requêtes avec des images de pages. Les polices sont remplacées par la police la plus proche proposée par markoto.",
@@ -1677,7 +1677,7 @@
   "legal": {
     "ageGate": {
       "title": "Confirmez votre âge",
-      "body": "markoto s'adresse aux personnes de 16 ans et plus. Veuillez confirmer que vous avez au moins 16 ans. Cette règle s'applique dans tous les pays, même si le droit local prévoit un âge inférieur.",
+      "body": "markoto s'adresse aux personnes de 16 ans et plus, dans tous les pays.",
       "checkbox": "Je confirme avoir au moins 16 ans",
       "continue": "Continuer",
       "underage": "J'ai moins de 16 ans",
@@ -1701,7 +1701,7 @@
     },
     "delete": {
       "confirmTitle": "Supprimer votre compte ?",
-      "confirmBody": "Nous conserverons vos données pendant 30 jours au cas où vous changeriez d'avis. Passé ce délai, tout est supprimé définitivement. Cette action est irréversible une fois la période de grâce terminée.",
+      "confirmBody": "Nous conservons vos données 30 jours, au cas où vous changeriez d'avis. Ensuite, elles sont supprimées définitivement.",
       "confirmTypeIn": "Tapez {phrase} pour confirmer",
       "confirmCta": "Planifier la suppression",
       "confirmCancel": "Annuler",
@@ -1712,10 +1712,10 @@
       "emailExecutedSubject": "Votre compte markoto a été supprimé",
       "consequences": {
         "title": "Voici exactement ce qui va se passer",
-        "intro": "Nous voulons que vous ayez une vision complète avant de confirmer. Tout ce qui suit s'exécute automatiquement une fois la période de grâce de 30 jours terminée.",
+        "intro": "Voici ce qui se passe à la fin des 30 jours.",
         "deleted": {
           "heading": "Supprimé définitivement",
-          "ownedDocs": "{count} document dont vous êtes propriétaire, y compris s'il est partagé. Les personnes qui y ont accès le perdent en même temps. | {count} documents dont vous êtes propriétaire, y compris ceux que vous partagez. Les personnes qui y ont accès le perdent en même temps.",
+          "ownedDocs": "Aucun document dont vous êtes propriétaire. | {count} document dont vous êtes propriétaire. Les personnes avec qui vous l'avez partagé perdent l'accès. | {count} documents dont vous êtes propriétaire. Les personnes avec qui vous les avez partagés perdent l'accès.",
           "themes": "Vos thèmes enregistrés et préférences personnelles.",
           "ai": "Vos sessions IA, historique de requêtes et compteurs d'utilisation.",
           "exports": "{count} export de données précédent et son fichier ZIP. | {count} exports de données précédents et leurs fichiers ZIP.",
@@ -1723,8 +1723,8 @@
         },
         "anonymised": {
           "heading": "Conservé sur la plateforme avec votre nom retiré",
-          "comments": "{count} commentaire écrit sur des documents qui ne vous appartiennent pas, affiché comme « [utilisateur supprimé] ». Le texte reste pour que les autres puissent suivre la conversation. | {count} commentaires écrits sur des documents qui ne vous appartiennent pas, affichés comme « [utilisateur supprimé] ». Le texte reste pour que les autres puissent suivre la conversation.",
-          "activity": "{count} entrée du journal d'activité de documents qui ne vous appartiennent pas, affichée ensuite comme « Anonyme ». | {count} entrées du journal d'activité de documents qui ne vous appartiennent pas, affichées ensuite comme « Anonyme ».",
+          "comments": "{count} commentaire sur les documents d'autres personnes. Le texte reste, votre nom devient « [utilisateur supprimé] ». | {count} commentaires sur les documents d'autres personnes. Le texte reste, votre nom devient « [utilisateur supprimé] ».",
+          "activity": "{count} entrée d'activité sur les documents d'autres personnes, affichée comme « Anonyme ». | {count} entrées d'activité sur les documents d'autres personnes, affichées comme « Anonyme ».",
           "audit": "{count} entrée dans notre journal de sécurité interne ; votre identifiant est retiré. | {count} entrées dans notre journal de sécurité interne ; votre identifiant est retiré.",
           "consent": "{count} décision de consentement, anonymisée mais conservée comme preuve légale au titre de l'article 7(1) du RGPD. | {count} décisions de consentement, anonymisées mais conservées comme preuve légale au titre de l'article 7(1) du RGPD."
         },
@@ -1732,14 +1732,14 @@
           "heading": "Espaces de travail",
           "cascadeDelete": {
             "title": "Seront supprimés en cascade (seul membre)",
-            "body": "Ces espaces de travail seront définitivement supprimés avec tous les documents et fichiers de connaissances qu'ils contiennent. Si vous souhaitez préserver leur contenu, invitez d'abord un co-membre avec le rôle d'administrateur, puis revenez demander la suppression.",
+            "body": "Supprimés avec tous les documents et fichiers de connaissances qu'ils contiennent. Pour les garder, nommez d'abord un autre membre administrateur.",
             "row": "{name} : {docs}, {files}",
             "docCount": "aucun document | {count} document | {count} documents",
             "fileCount": "aucun fichier de connaissances | {count} fichier de connaissances | {count} fichiers de connaissances"
           },
           "promote": {
             "title": "Auront un nouvel administrateur (d'autres membres existent)",
-            "body": "Ces espaces de travail restent actifs pour les autres membres. Un admin arrivé avant les autres prend le relais ; s'il n'y a pas d'autre admin, le membre le plus ancien le devient.",
+            "body": "Ils restent pour les autres membres. L'admin le plus ancien prend le relais, ou le membre le plus ancien s'il n'y a pas d'autre admin.",
             "row": "{name} : {newAdminName} (actuellement {newAdminPreviousRole}) devient admin",
             "rowAlreadyAdmin": "{name} : {newAdminName} reste admin et prend le relais"
           },
@@ -1751,12 +1751,12 @@
         },
         "manualSteps": {
           "heading": "Étapes que vous pourriez vouloir effectuer d'abord",
-          "exportFirst": "Utilisez la fonction d'export de données pour télécharger tout ce que nous détenons sur vous sous forme de ZIP : conservez ce fichier quoi qu'il arrive ici.",
+          "exportFirst": "Téléchargez d'abord vos données en ZIP si vous voulez en garder une copie.",
           "transferDocs": "Pour tout document que vous souhaitez qu'un collaborateur conserve, déplacez-le vers un espace de travail qu'il possède ou demandez-lui de le dupliquer.",
           "inviteWorkspaceMember": "Pour tout espace de travail que vous souhaitez préserver, invitez au moins un collaborateur avec le rôle d'administrateur avant la suppression.",
           "downloadKnowledge": "Pour les fichiers de la base de connaissances que vous souhaitez conserver, téléchargez-les hors de markoto au préalable."
         },
-        "timing": "La cascade proprement dite s'exécute en tâche de fond une fois par heure. Après la fin de la période de grâce, vos données sont entièrement purgées en environ une heure.",
+        "timing": "Vos données disparaissent environ une heure après la fin des 30 jours.",
         "noRecovery": "Une fois la cascade exécutée, votre compte et votre contenu sont perdus définitivement : il n'existe aucun moyen de récupération.",
         "loading": "Lecture de votre compte…"
       },
@@ -1838,9 +1838,9 @@
     },
     "onboarding": {
       "title": "Bienvenue sur markoto",
-      "intro": "Avant de commencer à écrire, nous avons besoin de votre accord sur les points ci-dessous. Vous ne le voyez qu’une fois, ou après une mise à jour substantielle de l’un des documents.",
+      "intro": "Deux choses avant de commencer. Nous ne redemandons que lorsqu’un document change.",
       "documentsTitle": "Documents à accepter",
-      "documentsIntro": "Nous les avons rédigés en langage clair : ouvrez chacun dans un nouvel onglet pour le lire en entier. Votre acceptation est enregistrée avec la version que vous avez lue, afin que nous puissions prouver ce que vous avez vu.",
+      "documentsIntro": "Chacun s'ouvre dans un nouvel onglet. Nous enregistrons la version que vous avez acceptée.",
       "acceptDocument": "J’ai lu et j’accepte : {document}",
       "continue": "Continuer vers markoto",
       "welcomeToast": "Bienvenue sur markoto",
@@ -1890,18 +1890,18 @@
       },
       "spending": {
         "heading": "Dépenses et utilisation",
-        "comingSoon": "Bientôt disponible : votre utilisation des crédits IA, l'historique de forfait et les factures apparaîtront ici. Pour l'instant, gérez la facturation depuis la page Tarifs.",
+        "comingSoon": "L'utilisation, l'historique du plan et les factures apparaîtront ici.",
         "viewPricing": "Voir les tarifs",
         "plan": "Plan actuel : {plan}",
         "manage": "Gérer la facturation",
         "portalFailed": "Impossible d’ouvrir la facturation",
         "coveringTitle": "Espaces de travail qui vous couvrent",
-        "coveringHint": "Dans ces espaces, leur plan s’applique aussi à vous, budget IA partagé compris. Partout ailleurs, votre propre plan s’applique."
+        "coveringHint": "Dans ces espaces de travail, leur plan et leur budget IA partagé s’appliquent. Ailleurs, votre propre plan."
       },
       "data": {
         "heading": "Vos données",
         "exportTitle": "Télécharger une copie de vos données",
-        "exportDescription": "Nous préparerons un ZIP contenant tout ce que nous détenons sur vous : le profil de votre compte, chaque document que vous possédez en Markdown, les commentaires que vous avez rédigés, l'historique de facturation, les journaux d'utilisation de l'IA, les enregistrements d'audit et de consentement. La génération s'exécute en tâche de fond, généralement en moins d'une minute. Cette page s'actualise dès qu'elle est prête, et nous vous enverrons également un lien de téléchargement par e-mail. Le lien est valable 7 jours.",
+        "exportDescription": "Un ZIP avec tout ce que nous détenons sur vous : profil, vos documents en Markdown, commentaires, facturation, utilisation de l'IA et consentements. Prêt en une minute environ ; le lien est valable 7 jours.",
         "exportButton": "Demander un export",
         "exportInProgress": "Export en cours : cette page s'actualise dès qu'il est prêt.",
         "exportHistoryHeading": "Exports récents",
@@ -1915,7 +1915,7 @@
       },
       "delete": {
         "heading": "Supprimer votre compte",
-        "description": "Nous conserverons vos données pendant 30 jours au cas où vous changeriez d'avis. Passé ce délai, tout est supprimé définitivement : documents, commentaires, appartenances aux espaces de travail, historique de facturation. Les espaces de travail dont vous êtes le seul membre sont supprimés en cascade ; ceux avec des co-membres reçoivent automatiquement un nouvel administrateur.",
+        "description": "Vos données sont conservées 30 jours, puis supprimées définitivement. Vous voyez exactement ce qui est concerné avant de confirmer.",
         "button": "Demander la suppression du compte",
         "scheduled": "Planifié pour suppression le {date}",
         "cancel": "Annuler la suppression",
@@ -1923,22 +1923,22 @@
       },
       "legal": {
         "heading": "Mentions légales",
-        "subheading": "Versions de la politique de confidentialité, des conditions d'utilisation et de l'avenant de traitement des données que vous avez acceptées. Si nous mettons à jour un document de façon substantielle, vous verrez « nouvelle acceptation requise » ici et nous vous redemanderons votre accord avant toute autre action.",
+        "subheading": "Les versions que vous avez acceptées. Nous redemandons lorsqu'un document change.",
         "notAccepted": "Non accepté",
         "needsReacceptance": "nouvelle acceptation requise (v{version} actuelle)",
         "dpaNotApplicable": "Requis lorsque vous créez un espace de travail",
-        "cookieNote": "markoto n’utilise que des cookies essentiels : votre session de connexion, votre langue et une clé qui permet à votre navigateur de supprimer les documents qu’il a créés sans compte. Il n’y a ni mesure d’audience, ni pistage, ni publicité : aucun consentement n’est donc nécessaire. La politique de confidentialité liste chaque cookie."
+        "cookieNote": "Uniquement des cookies essentiels : connexion, langue et une clé pour supprimer les documents créés sans compte. Ni mesure d’audience, ni pistage, ni publicité. La politique de confidentialité les liste tous."
       },
       "sessions": {
         "heading": "Sessions",
-        "description": "Connecté sur un appareil que vous n'utilisez plus, ou inquiet qu'une autre personne y ait accès ? Déconnectez-vous de markoto dans tous les navigateurs et sur tous les appareils, y compris celui-ci.",
+        "description": "Vous déconnecte dans tous les navigateurs et sur tous les appareils, y compris celui-ci.",
         "button": "Se déconnecter partout",
         "failed": "Impossible de se déconnecter partout"
       },
       "storage": {
         "heading": "Stockage",
         "images": "Images des documents",
-        "description": "Les images que vous téléversez ou générez dans vos documents, y compris les copies créées en dupliquant un document. Les images qu'aucun document n'utilise plus sont supprimées automatiquement après un certain temps."
+        "description": "Images que vous téléversez ou générez, y compris les copies dans les documents dupliqués. Les images inutilisées sont supprimées automatiquement."
       }
     },
     "integrations": {
@@ -1953,7 +1953,7 @@
       "revokeFailed": "Impossible de révoquer le jeton",
       "snippetCopied": "Extrait de configuration copié",
       "createdTitle": "Jeton créé : copiez-le maintenant",
-      "createdBody": "Par sécurité, ce jeton n’est affiché qu’une seule fois. Nous ne pouvons pas le récupérer pour vous. Si vous le perdez, révoquez-le et créez-en un nouveau.",
+      "createdBody": "Copiez le jeton maintenant. Il n’est affiché qu’une fois ; si vous le perdez, créez-en un nouveau.",
       "copy": "Copier",
       "generateTitle": "Générer un jeton",
       "namePlaceholder": "p. ex. Claude Desktop sur le portable",
@@ -2044,7 +2044,7 @@
     "title": "Fournisseur d'IA",
     "menu": "Fournisseur d'IA",
     "loading": "Chargement de vos réglages d'IA…",
-    "intro": "Votre propre clé : connectez votre propre fournisseur d'IA compatible OpenAI pour chaque fonction. Ces appels sont facturés sur votre compte fournisseur. markoto conserve la clé chiffrée et ne l'affiche plus jamais.",
+    "intro": "Connectez votre propre fournisseur compatible OpenAI pour chaque fonction. Votre fournisseur vous facture. La clé est stockée chiffrée et n'est plus jamais affichée.",
     "privacyNote": "Pour ces fonctions, vos prompts, le contexte utile du document et vos enregistrements sont envoyés au fournisseur que vous choisissez, selon votre propre contrat avec lui.",
     "platformNote": "La recherche dans la base de connaissances, la recherche web et la récupération de pages passent toujours par les fournisseurs de markoto.",
     "allowedProvidersNote": "Fournisseurs autorisés sur cette instance : {list}",
@@ -2133,7 +2133,7 @@
       "openSettings": "Ouvrir les réglages du fournisseur d'IA"
     },
     "ownProviderBadge": "Votre propre fournisseur d'IA",
-    "freeAllowanceNote": "Sans clé personnelle, votre compte dispose d'une allocation IA gratuite mensuelle sur le modèle par défaut de cette instance, tant que la réserve mensuelle commune n'est pas épuisée. Dès que vous ajoutez votre propre clé, c'est elle qui est utilisée.",
+    "freeAllowanceNote": "Sans clé, vous avez une allocation IA mensuelle gratuite tant que la réserve commune dure. Avec une clé, c'est elle qui est utilisée.",
     "modelTier": {
       "title": "Modèle d’IA",
       "description": "Le modèle de cette instance que l’IA utilise pour vous. Votre propre clé de chat, si vous en ajoutez une, a toujours la priorité.",
@@ -2234,7 +2234,7 @@
   "anonGate": {
     "eyebrow": "Avant votre premier document",
     "title": "Écrire sans compte",
-    "pointPublic": "Toute personne disposant du lien peut ouvrir et modifier votre document, sauf si vous changez le partage. N'y mettez rien de confidentiel.",
+    "pointPublic": "Toute personne disposant du lien peut l'ouvrir et le modifier tant que vous ne changez pas le partage. Évitez les textes confidentiels.",
     "pointRetention": "Il est supprimé après {days} jours sans activité. Connectez-vous pour conserver vos documents.",
     "pointRules": "markoto n'examine pas les documents. Les contenus illicites, les arnaques et le spam sont interdits et supprimés lorsqu'ils sont signalés.",
     "accept": "J'accepte les {terms}, y compris les règles d'utilisation acceptable, et j'ai au moins {age} ans.",
@@ -2284,7 +2284,7 @@
     "steps": {
       "write": {
         "title": "Le markdown à gauche, les pages à droite",
-        "body": "Tapez dans l'éditeur ; l'aperçu montre les pages telles qu'elles seront imprimées et exportées. Ces boutons passent de l'éditeur aux deux, puis à l'aperçu."
+        "body": "Tapez à gauche ; l'aperçu montre les pages telles qu'elles s'impriment. Ces boutons changent la vue."
       },
       "format": {
         "title": "Mettre en forme sans la syntaxe",
@@ -2413,7 +2413,7 @@
     "title": "Crédits IA",
     "balance": "{amount} de crédits IA restants",
     "usedThisMonth": "{amount} utilisés ce mois-ci",
-    "explainer": "Les crédits complètent le budget IA mensuel de votre plan. Ils ne sont utilisés qu’une fois le budget du mois épuisé et expirent {months} mois après l’achat.",
+    "explainer": "Les crédits s’ajoutent au budget IA mensuel de votre plan. Ils sont utilisés une fois le budget dépensé et expirent {months} mois après l’achat.",
     "pack": "{price} → {credit} de crédit",
     "grantLeft": "{left} restants · expire le {date}",
     "needsPlan": "Les crédits IA complètent un plan payant. Passez à Pro pour en acheter.",
@@ -2426,7 +2426,7 @@
     "loading": "Chargement de l’authentification unique…",
     "loadFailed": "Impossible de charger les paramètres d’authentification unique.",
     "planNotice": "L’authentification unique avec votre propre fournisseur d’identité fait partie du plan Business.",
-    "intro": "Les membres se connectent à cet espace de travail via le fournisseur d’identité de votre organisation (OpenID Connect ou SAML). Une fois activée, tout le monde doit se connecter de cette façon pour ouvrir l’espace de travail ; les admins peuvent toujours revenir ici pour la modifier ou la supprimer.",
+    "intro": "Les membres ouvrent cet espace de travail via votre fournisseur d’identité (OpenID Connect ou SAML). Les admins accèdent toujours à ces réglages.",
     "enforcedNotice": "L’authentification unique est activée : les membres n’ouvrent cet espace de travail qu’après s’être connectés via votre fournisseur d’identité (valable 12 heures).",
     "idpTitle": "Fournisseur d’identité",
     "protocol": {
@@ -2453,7 +2453,7 @@
     "saveFailed": "Impossible d’enregistrer les paramètres d’authentification unique.",
     "testAndActivate": "Tester la connexion et activer",
     "testAgain": "Tester la connexion",
-    "draftHint": "Pas encore activée. Testez la connexion avec votre propre compte chez le fournisseur d’identité ; si elle fonctionne, l’authentification unique est activée pour l’espace de travail.",
+    "draftHint": "Pas encore activée. Testez la connexion avec votre propre compte ; si elle fonctionne, elle est activée.",
     "testActivated": "La connexion fonctionne : l’authentification unique est maintenant activée pour cet espace de travail",
     "testOk": "La connexion fonctionne",
     "status": {
@@ -2473,7 +2473,7 @@
     "copied": "Copié",
     "domains": {
       "title": "Domaines e-mail",
-      "body": "Vérifiez les domaines utilisés par les adresses e-mail de votre organisation. Seules les adresses d’un domaine vérifié sont associées à des comptes markoto existants ou rejoignent l’espace de travail lors de leur première connexion.",
+      "body": "Vérifiez vos domaines e-mail. Seules les adresses d’un domaine vérifié sont liées à des comptes ou rejoignent l’espace à la première connexion.",
       "verified": "Vérifié",
       "unverified": "Non vérifié",
       "verify": "Vérifier maintenant",
@@ -2487,7 +2487,7 @@
     "domainRemoveFailed": "Impossible de supprimer le domaine.",
     "scim": {
       "title": "Provisionnement (SCIM)",
-      "body": "Laissez votre fournisseur d’identité ajouter et retirer des membres automatiquement. Saisissez l’URL de base et le jeton dans ses paramètres SCIM. Retirer quelqu’un là-bas le retire immédiatement de cet espace de travail.",
+      "body": "Votre fournisseur d’identité ajoute et retire les membres. Saisissez l’URL de base et le jeton dans ses paramètres SCIM ; les retraits s’appliquent aussitôt.",
       "baseUrl": "URL de base SCIM",
       "tokenOnce": "Copiez ce jeton maintenant : il ne sera plus affiché.",
       "create": "Créer un jeton",
@@ -2527,7 +2527,7 @@
   },
   "audit": {
     "title": "Journal d’audit",
-    "intro": "Qui a modifié quoi dans cet espace de travail, et quand : membres et rôles, invitations, partages et suppressions, facturation et authentification unique. L’adresse réseau est raccourcie (la dernière partie est retirée).",
+    "intro": "Qui a changé quoi, et quand : membres, invitations, partages, suppressions, facturation et authentification unique. Les adresses réseau sont raccourcies.",
     "retention": "Les événements sont conservés {days} jours.",
     "filter": "Afficher",
     "from": "Du",
@@ -2592,7 +2592,7 @@
   },
   "usage": {
     "title": "Utilisation",
-    "intro": "Ce que chaque personne conserve dans cet espace de travail : les documents dont elle est propriétaire, les fichiers de connaissances et les images qu’elle a ajoutés et, avec un forfait Team ou Business, ses dépenses d’IA sur le budget partagé pour cette période. Rien sur le moment ni la fréquence de travail de qui que ce soit.",
+    "intro": "Ce que chaque personne conserve ici : documents, fichiers de connaissances, images et dépenses d’IA de cette période. Pas d’horaires d’activité.",
     "person": "Personne",
     "documents": "Documents",
     "knowledge": "Connaissances",
@@ -2612,7 +2612,7 @@
     "uploadFailed": "Impossible d’importer le fichier",
     "deleteFailed": "Impossible de supprimer le fichier",
     "fonts": "Polices",
-    "fontsHint": "Importez un fichier par graisse et par style (WOFF2, WOFF ou TTF). Elles apparaissent sous « Cet espace de travail » dans les sélecteurs de police de tous les documents ici, et dans leurs PDF. Les polices variables et celles à contours PostScript (CFF) s’impriment mal et sont refusées : utilisez les coupes TrueType statiques.",
+    "fontsHint": "Un fichier par graisse et par style (WOFF2, WOFF ou TTF). Les polices apparaissent sous « Cet espace de travail » dans chaque document ici. Utilisez des polices TrueType statiques ; les polices variables et CFF ne sont pas acceptées.",
     "noFonts": "Aucune police pour l’instant.",
     "chooseFont": "Choisir un fichier de police",
     "fontName": "Nom de la police",
@@ -2637,13 +2637,13 @@
     "designImagesDropped": "Les images importées dans ce document ont été écartées : choisissez un logo de l’espace de travail pour le design partagé.",
     "designFailed": "Impossible de définir le design de l’espace de travail",
     "lockLabel": "Verrouiller le design pour tous les documents",
-    "lockDescription": "Chaque document de l’espace de travail utilise le design de l’espace de travail ; seul le texte de sa couverture (sous-titre, date, auteurs) reste le sien. Le déverrouillage rend à chaque document son propre design.",
+    "lockDescription": "Chaque document utilise le design de l’espace de travail et ne garde que le texte de sa couverture. Déverrouillez pour rendre à chaque document son propre design.",
     "lockFailed": "Impossible de modifier le verrouillage",
     "lockedTitle": "Le design de l’espace de travail est verrouillé",
     "lockedBody": "Ce document utilise le design de son espace de travail. Vous pouvez toujours modifier le texte de la couverture ci-dessous.",
     "openBrandKit": "Ouvrir le kit de marque",
     "templates": "Modèles",
-    "templatesHint": "Transformez un document de l’espace de travail en modèle. Les nouveaux documents créés à partir de lui copient son texte et son design actuels : modifier le document modifie donc le modèle.",
+    "templatesHint": "Faites d’un document un modèle. Les nouveaux documents copient son texte et son design actuels.",
     "templateName": "Nom du modèle",
     "templateDescription": "Brève description (facultatif)",
     "addTemplate": "Ajouter un modèle",
@@ -2660,7 +2660,7 @@
   },
   "publish": {
     "title": "Publier en tant que page web",
-    "help": "Une copie statique de ce document à sa propre adresse publique. Toute personne disposant de l’adresse peut le lire ; le partage du document lui-même reste inchangé. Publiez à nouveau pour mettre la page à jour.",
+    "help": "Une copie publique à sa propre adresse. Le partage du document ne change pas. Publiez à nouveau pour la mettre à jour.",
     "publish": "Publier",
     "update": "Mettre à jour la page",
     "unpublish": "Dépublier",
@@ -2684,7 +2684,7 @@
   "customDomains": {
     "menu": "Domaines",
     "title": "Domaines personnalisés",
-    "intro": "Affichez une page publiée à votre propre adresse, par exemple docs.example.com. Ajoutez le domaine, définissez les deux enregistrements DNS indiqués ci-dessous chez votre fournisseur DNS, puis choisissez la page dans la boîte de dialogue de partage du document. Nous obtenons automatiquement un certificat HTTPS pour ce domaine.",
+    "intro": "Affichez une page publiée à votre propre adresse, par exemple docs.example.com. Ajoutez le domaine, définissez ses deux enregistrements DNS, puis choisissez la page dans la boîte de partage du document. Le HTTPS est configuré pour vous.",
     "notOnInstance": "Les domaines personnalisés ne sont pas configurés sur cette instance.",
     "placeholder": "docs.example.com",
     "add": "Ajouter le domaine",
@@ -2749,7 +2749,7 @@
     "landing": {
       "eyebrow": "guide pratique · vol. 01",
       "title": "Tout ce que vous pouvez faire dans {product}.",
-      "lede": "Un éditeur markdown collaboratif avec comptes facultatifs. Écrivez de façon anonyme, partagez par URL, appliquez un thème, exportez en PDF. Chaque capture d’écran ici est prise en direct depuis l’application en fonctionnement.",
+      "lede": "Un éditeur Markdown collaboratif avec comptes facultatifs. Écrivez sans compte, partagez par lien, mettez en forme, exportez en PDF. Chaque capture d’écran ici vient de l’application en marche.",
       "begin": "commencer la visite",
       "search": "rechercher",
       "startHere": "Commencer ici",
