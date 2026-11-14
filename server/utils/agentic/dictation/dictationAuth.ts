@@ -10,7 +10,8 @@ import type { DictateJwtPayload } from '~~/shared/contracts/jwt'
 import { encodeServerFrame } from '~~/shared/contracts/dictateWs'
 import { useEnv } from '~~/shared/env/load'
 import { useLogger } from '../../platform/logger'
-import { armHardCap, rejectPeer, resetIdleTimer, SESSION_HARD_CAP_MS, type DictatePeerContext, type PeerLike } from './peerContext'
+import { rejectPeer, SESSION_HARD_CAP_MS, type DictatePeerContext, type PeerLike } from './peerContext'
+import { armHardCap, resetIdleTimer } from './sessionEnd'
 import { openSttStream } from './upstreamSession'
 
 const log = useLogger('dictate')

@@ -51,15 +51,19 @@ export interface HelloFrame { type: 'hello' }
 export interface ReadyFrame { type: 'ready' }
 
 /**
- * Interim transcript. May be revised by future partials or replaced
- * by a final. Render as ghost text (CM6 widget) at the caret.
+ * Interim transcript: the still-open tail of what was said, growing with
+ * every frame. Replaced by the `final` that contains it. Render as ghost
+ * text (CM6 widget) at the caret and keep it until that `final` (or `done`)
+ * arrives.
  */
 export interface PartialFrame { type: 'partial', text: string }
 
 /**
  * Finalized phrase. The transcript text is committed into the doc
  * via `ydoc.transact(fn, 'dictation:{userId}')`. Subsequent partials
- * start fresh.
+ * start fresh. The relay sends one per finished sentence while audio
+ * flows, and one for the rest after the input ended (the transcription
+ * service itself finalises only then). A phrase is never sent twice.
  */
 export interface FinalFrame { type: 'final', text: string }
 
@@ -95,16 +99,27 @@ export interface BudgetExhaustedFrame {
 /**
  * Per-session 10-minute cap hit. Hard ceiling regardless of daily
  * budget: protects against a user holding the mic open for hours.
- * The session closes after this frame.
+ * No more audio is accepted; the trailing `final` and `done` follow,
+ * then the socket closes.
  */
 export interface SessionCapFrame { type: 'session-cap' }
 
 /**
- * 30-second idle (no audio chunks received). The session closes
- * after this frame. Client should auto-restart on next mic press
- * if the user re-engages quickly.
+ * 30-second idle (no audio chunks received). No more audio is
+ * accepted; the trailing `final` and `done` follow, then the socket
+ * closes. Client should auto-restart on next mic press if the user
+ * re-engages quickly.
  */
 export interface IdleTimeoutFrame { type: 'idle-timeout' }
+
+/**
+ * The stream is finished: every transcript of this session has been
+ * sent (the trailing `final` included) and the socket closes next.
+ * Sent after a client `stop`, and after `session-cap` / `idle-timeout`
+ * once the upstream has flushed. The client keeps its interim text on
+ * screen until this frame (or the close) arrives. No payload.
+ */
+export interface DoneFrame { type: 'done' }
 
 export type DictateServerFrame
   = | HelloFrame
@@ -115,6 +130,7 @@ export type DictateServerFrame
     | BudgetExhaustedFrame
     | SessionCapFrame
     | IdleTimeoutFrame
+    | DoneFrame
 
 /** Literal-union of every server-frame type. Used by tests + log
  *  consumers that need a runtime list (the type-only union isn't
@@ -127,7 +143,8 @@ export const DICTATE_SERVER_FRAME_TYPES = [
   'error',
   'budget-exhausted',
   'session-cap',
-  'idle-timeout'
+  'idle-timeout',
+  'done'
 ] as const
 
 // Client → Server
@@ -151,10 +168,11 @@ export interface AuthClientFrame {
 }
 
 /**
- * Graceful shutdown signal. The server flushes any in-flight Cloud
- * STT response, sends a final `final` frame if appropriate, and
- * closes the socket. Audio chunks that arrive AFTER `stop` are
- * silently dropped (the straggler-chunk guard).
+ * Graceful shutdown signal. The server ends the upstream audio input,
+ * forwards the trailing `final` frame(s) the upstream still emits, then
+ * sends `done` and closes the socket. The client must keep the socket
+ * open until `done` (or the close). Audio chunks that arrive AFTER
+ * `stop` are silently dropped (the straggler-chunk guard).
  */
 export interface StopClientFrame { type: 'stop' }
 

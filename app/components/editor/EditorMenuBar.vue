@@ -31,10 +31,17 @@ const props = defineProps<{
   hasKnowledgeAccess: boolean
   viewMode: 'edit' | 'split' | 'preview'
   /** Live-dictation state, so the Insert menu can flip its label and show a check while active. */
-  dictationState?: 'idle' | 'requesting-permission' | 'connecting' | 'recording' | 'error'
+  dictationState?: 'idle' | 'requesting-permission' | 'connecting' | 'recording' | 'finishing' | 'error'
   /** Share-link controls: the owner made this a view-only link, so no export or print. */
   noDownload?: boolean
 }>()
+
+const dictationMenuLabel = computed(() => {
+  if (props.dictationState === 'finishing') return t('ai.dictateFinishing')
+  return props.dictationState === 'recording' || props.dictationState === 'connecting'
+    ? t('ai.dictateStop')
+    : t('ai.dictateStart')
+})
 
 const emit = defineEmits<{
   'open-import': []
@@ -319,10 +326,10 @@ const insertItems = computed(() => {
     // doc at the caret. The label flips so "Stop dictation" is reachable when
     // the toolbar mic button isn't visible.
     {
-      label: props.dictationState === 'recording' || props.dictationState === 'connecting'
-        ? t('ai.dictateStop')
-        : t('ai.dictateStart'),
+      label: dictationMenuLabel.value,
       icon: 'i-lucide-mic',
+      // Wrapping up after stop: no second session on top.
+      disabled: props.dictationState === 'finishing',
       checked: props.dictationState === 'recording' || props.dictationState === 'connecting',
       type: 'checkbox' as const,
       onSelect: () => emit('toggle-dictation')

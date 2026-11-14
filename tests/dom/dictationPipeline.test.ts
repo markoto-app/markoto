@@ -14,6 +14,7 @@ function handlers(): MockHandlers {
     onBudgetExhausted: vi.fn(),
     onSessionCap: vi.fn(),
     onIdleTimeout: vi.fn(),
+    onDone: vi.fn(),
     onError: vi.fn()
   }
 }
@@ -27,6 +28,7 @@ describe('dictation frame dispatch', () => {
     dispatchDictationFrame(JSON.stringify({ type: 'budget-exhausted', remaining: 0 }), h)
     dispatchDictationFrame(JSON.stringify({ type: 'session-cap' }), h)
     dispatchDictationFrame(JSON.stringify({ type: 'idle-timeout' }), h)
+    dispatchDictationFrame(JSON.stringify({ type: 'done' }), h)
     dispatchDictationFrame(JSON.stringify({ type: 'error' }), h)
     expect(h.onReady).toHaveBeenCalledOnce()
     expect(h.onPartial).toHaveBeenCalledWith('hel')
@@ -34,6 +36,7 @@ describe('dictation frame dispatch', () => {
     expect(h.onBudgetExhausted).toHaveBeenCalledWith(0)
     expect(h.onSessionCap).toHaveBeenCalledOnce()
     expect(h.onIdleTimeout).toHaveBeenCalledOnce()
+    expect(h.onDone).toHaveBeenCalledOnce()
     expect(h.onError).toHaveBeenCalledOnce()
   })
 

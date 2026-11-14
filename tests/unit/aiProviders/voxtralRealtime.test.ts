@@ -28,14 +28,46 @@ describe('createDictateRealtimeClient: provider selection', () => {
     expect(typeof c.streamingRecognize).toBe('function')
   })
 
-  it('mock client emits canned partial → final events on a few writes', async () => {
+  type DataEvent = { results?: Array<{ alternatives?: Array<{ transcript?: string }>, isFinal?: boolean }> }
+  const flat = (events: DataEvent[]) => events.map(e => [e.results?.[0]?.alternatives?.[0]?.transcript, e.results?.[0]?.isFinal])
+  const immediate = () => new Promise(r => setImmediate(r))
+  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+  it('mock behaves like the service: interim text while audio flows, a sentence is final once the next one starts', async () => {
     const { createDictateRealtimeClient } = await import('../../../server/utils/agentic/dictateSpeechClient')
-    const client = createDictateRealtimeClient('any-key')
-    const stream = client.streamingRecognize({
+    const stream = createDictateRealtimeClient('any-key').streamingRecognize({
       config: { encoding: 'LINEAR16', sampleRateHertz: 16000, languageCode: 'en-US' },
       interimResults: true
     })
-    type DataEvent = { results?: Array<{ alternatives?: Array<{ transcript?: string }>, isFinal?: boolean }> }
+    const events: DataEvent[] = []
+    stream.on('data', (raw: unknown) => events.push(raw as DataEvent))
+
+    for (let i = 0; i < 3; i++) stream.write(Buffer.from([0, 0, 0, 0]))
+    await immediate()
+    await immediate()
+    // The first sentence is complete but not final yet: nothing followed it.
+    expect(flat(events)).toEqual([
+      ['Lena says', false],
+      ['Lena says the new templates', false],
+      ['Lena says the new templates save her about an hour a week.', false]
+    ])
+
+    for (let i = 0; i < 2; i++) stream.write(Buffer.from([0, 0, 0, 0]))
+    await immediate()
+    await immediate()
+    expect(flat(events).slice(3)).toEqual([
+      ['Lena says the new templates save her about an hour a week.', true],
+      ['The export', false]
+    ])
+    stream.destroy()
+  })
+
+  it('mock sends the trailing final only after the input ended, with a delay, then ends', async () => {
+    const { createDictateRealtimeClient, MOCK_DONE_DELAY_MS } = await import('../../../server/utils/agentic/dictateSpeechClient')
+    const stream = createDictateRealtimeClient('any-key').streamingRecognize({
+      config: { encoding: 'LINEAR16', sampleRateHertz: 16000, languageCode: 'en-US' },
+      interimResults: true
+    })
     const events: DataEvent[] = []
     stream.on('data', (raw: unknown) => events.push(raw as DataEvent))
     let ended = false
@@ -43,18 +75,31 @@ describe('createDictateRealtimeClient: provider selection', () => {
       ended = true
     })
 
-    // Pump 3 chunks → mock fires partial, partial, final.
-    for (let i = 0; i < 3; i++) stream.write(Buffer.from([0, 0, 0, 0]))
-    // Mock uses setImmediate: flush the microtask queue.
-    await new Promise(r => setImmediate(r))
-    await new Promise(r => setImmediate(r))
-
-    expect(events.length).toBeGreaterThanOrEqual(3)
-    expect(events[2]?.results?.[0]?.isFinal).toBe(true)
-    expect(events[2]?.results?.[0]?.alternatives?.[0]?.transcript).toBe('Lena says the new templates save her about an hour a week.')
-
+    for (let i = 0; i < 2; i++) stream.write(Buffer.from([0, 0, 0, 0]))
+    await immediate()
+    await immediate()
     stream.end()
-    await new Promise(r => setImmediate(r))
+    await sleep(MOCK_DONE_DELAY_MS / 2)
+    expect(ended).toBe(false)
+    expect(flat(events).some(e => e[1])).toBe(false)
+
+    await sleep(MOCK_DONE_DELAY_MS)
+    expect(flat(events).at(-1)).toEqual(['Lena says the new templates', true])
+    expect(ended).toBe(true)
+  })
+
+  it('mock ends at once when no audio was sent', async () => {
+    const { createDictateRealtimeClient } = await import('../../../server/utils/agentic/dictateSpeechClient')
+    const stream = createDictateRealtimeClient('any-key').streamingRecognize({
+      config: { encoding: 'LINEAR16', sampleRateHertz: 16000, languageCode: 'en-US' },
+      interimResults: true
+    })
+    let ended = false
+    stream.on('end', () => {
+      ended = true
+    })
+    stream.end()
+    await sleep(20)
     expect(ended).toBe(true)
   })
 
@@ -69,7 +114,6 @@ describe('createDictateRealtimeClient: provider selection', () => {
       lastErr = e as Error
     })
     stream.end()
-    await new Promise(r => setImmediate(r))
     stream.write(Buffer.from([0, 0]))
     await new Promise(r => queueMicrotask(r))
     expect(lastErr?.message).toBe('write after end')

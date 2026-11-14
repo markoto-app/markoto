@@ -7,7 +7,9 @@ import type { EditorView } from '@codemirror/view'
  * Realtime (`useVoiceDictation`). Interim transcripts show as ghost text at
  * the caret (`dictationExtensions.ts`), finalized phrases commit to Y.js
  * there, and the awareness field `dictation` advertises the listening state
- * to collaborators. The composable owns the socket; only the editor knows
+ * to collaborators. The ghost stays after the microphone stops (`finishing`)
+ * until its text is committed: the composable hands every leftover interim
+ * text to `onFinal` before it goes idle. The composable owns the socket; only the editor knows
  * the view, so the ghost text is managed here.
  */
 export function useEditorDictation(opts: {
@@ -75,7 +77,8 @@ export function useEditorDictation(opts: {
     opts.awareness.setLocalStateField('dictation', active ? { active: true } : null)
   })
 
-  // Clear the ghost when recording stops.
+  // Nothing may stay as ghost once the session is over. Leftover interim
+  // text was committed through `onFinal` before this state change.
   watch(() => dictation.state.value, (s) => {
     if (s === 'idle' || s === 'error') {
       const view = opts.view()

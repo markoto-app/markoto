@@ -26,7 +26,7 @@ const props = defineProps<{
   hasKnowledgeAccess: boolean
   /** Live-dictation state (from `useVoiceDictation`). 'recording' /
    *  'connecting' style the mic active. */
-  dictationState: 'idle' | 'requesting-permission' | 'connecting' | 'recording' | 'error'
+  dictationState: 'idle' | 'requesting-permission' | 'connecting' | 'recording' | 'finishing' | 'error'
 }>()
 
 const emit = defineEmits<{
@@ -39,12 +39,22 @@ const { t } = useI18n()
 const dictationActive = computed(() =>
   props.dictationState === 'recording' || props.dictationState === 'connecting'
 )
+// Microphone off, the last words are still being written in.
+const dictationFinishing = computed(() => props.dictationState === 'finishing')
+const dictationAria = computed(() => {
+  if (dictationFinishing.value) return t('ai.dictateFinishing')
+  return dictationActive.value ? t('ai.dictateStop') : t('ai.dictateStart')
+})
+const dictationShort = computed(() => {
+  if (dictationFinishing.value) return t('mobileTabBar.dictateFinishing')
+  return dictationActive.value ? t('mobileTabBar.dictateStop') : t('mobileTabBar.dictateStart')
+})
 // Live dictation needs a Mistral transcription provider (own key or instance
 // default); the tab is hidden otherwise (kept while recording).
 const { liveDictationAvailable, transcriptionLocked } = useAiAvailability()
 const { explainLocked } = useAiLockedPrompt()
 const dictationLocked = computed(() => !liveDictationAvailable.value && transcriptionLocked.value && !dictationActive.value)
-const showDictation = computed(() => liveDictationAvailable.value || dictationActive.value || dictationLocked.value)
+const showDictation = computed(() => liveDictationAvailable.value || dictationActive.value || dictationFinishing.value || dictationLocked.value)
 function onDictationClick() {
   if (dictationLocked.value) explainLocked('aiVoice')
   else emit('toggle-dictation')
@@ -106,17 +116,19 @@ const visibleTabs = computed(() => tabs.value.filter(t => t.visible))
       type="button"
       class="mk-tab"
       :class="{ 'mk-tab--dictation-active': dictationActive }"
-      :aria-label="dictationActive ? t('ai.dictateStop') : t('ai.dictateStart')"
+      :aria-label="dictationAria"
       :aria-pressed="dictationActive"
+      :disabled="dictationFinishing"
       data-testid="mobile-tab-dictate"
       :data-locked="dictationLocked ? 'true' : undefined"
       @click="onDictationClick"
     >
       <UIcon
-        :name="dictationActive ? 'i-lucide-square' : 'i-lucide-mic'"
+        :name="dictationFinishing ? 'i-lucide-loader-circle' : dictationActive ? 'i-lucide-square' : 'i-lucide-mic'"
         class="size-5"
+        :class="{ 'animate-spin': dictationFinishing }"
       />
-      <span class="mk-tab__label">{{ dictationActive ? t('mobileTabBar.dictateStop') : t('mobileTabBar.dictateStart') }}</span>
+      <span class="mk-tab__label">{{ dictationShort }}</span>
     </button>
 
     <!-- Document, Comments, Activity, Theme, Knowledge, each gated by its flag in `tabs`. -->

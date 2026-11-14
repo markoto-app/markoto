@@ -4,6 +4,7 @@ import type { LiveDictationTarget } from '../../aiProviders/resolve'
 import { encodeServerFrame } from '~~/shared/contracts/dictateWs'
 import { useLogger } from '../../platform/logger'
 import { rejectPeer, type DictatePeerContext, type PeerLike } from './peerContext'
+import { completeSession } from './sessionEnd'
 
 const log = useLogger('dictate')
 
@@ -67,7 +68,7 @@ function relayTranscripts(peer: PeerLike, ctx: DictatePeerContext, sttStream: Sp
       rejectPeer(peer, msg, 1011, 'stt error')
     }
   })
-  sttStream.on('end', () => {
-    if (!ctx.closed) peer.close(1000, 'stt ended')
-  })
+  // The upstream sent everything it had (the trailing `final` went out
+  // through `data` just before): tell the client the stream is complete.
+  sttStream.on('end', () => completeSession(peer, ctx))
 }

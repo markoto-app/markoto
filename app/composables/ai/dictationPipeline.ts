@@ -61,6 +61,8 @@ export interface DictationFrameHandlers {
   onBudgetExhausted: (remaining: number) => void
   onSessionCap: () => void
   onIdleTimeout: () => void
+  /** Every transcript of the session was sent; the socket closes next. */
+  onDone: () => void
   onError: () => void
 }
 
@@ -86,6 +88,9 @@ function routeFrame(msg: DictateServerFrame, on: DictationFrameHandlers): void {
       break
     case 'idle-timeout':
       on.onIdleTimeout()
+      break
+    case 'done':
+      on.onDone()
       break
     case 'error':
       on.onError()

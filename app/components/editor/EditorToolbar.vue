@@ -9,7 +9,7 @@ const props = defineProps<{
   readOnly: boolean
   docId: string
   /** Dictation state from the parent's `useVoiceDictation`: 'idle' shows the mic icon, anything else styles the button as active / stop. */
-  dictationState?: 'idle' | 'requesting-permission' | 'connecting' | 'recording' | 'error'
+  dictationState?: 'idle' | 'requesting-permission' | 'connecting' | 'recording' | 'finishing' | 'error'
 }>()
 
 const emit = defineEmits<{
@@ -27,6 +27,13 @@ const dictationActive = computed(() =>
 const dictationBusy = computed(() =>
   props.dictationState === 'connecting' || props.dictationState === 'requesting-permission'
 )
+// Microphone off, the last words are still being written in: the button
+// spins and takes no click, so no second session starts on top.
+const dictationFinishing = computed(() => props.dictationState === 'finishing')
+const dictationLabel = computed(() => {
+  if (dictationFinishing.value) return t('ai.dictateFinishing')
+  return dictationActive.value || dictationBusy.value ? t('ai.dictateStop') : t('ai.dictateStart')
+})
 // Live dictation is Voxtral Realtime (Mistral-only): hidden unless the user's
 // transcription provider is Mistral or the instance provides it. Stays visible
 // while availability is loading / unknown and while a session runs, so the
@@ -35,7 +42,7 @@ const { liveDictationAvailable, transcriptionLocked } = useAiAvailability()
 const { explainLocked } = useAiLockedPrompt()
 // Locked: the platform has dictation but the paying plan doesn't.
 const dictationLocked = computed(() => !liveDictationAvailable.value && transcriptionLocked.value && !dictationActive.value)
-const showDictation = computed(() => liveDictationAvailable.value || dictationActive.value || dictationBusy.value || dictationLocked.value)
+const showDictation = computed(() => liveDictationAvailable.value || dictationActive.value || dictationBusy.value || dictationFinishing.value || dictationLocked.value)
 function onDictationClick() {
   if (dictationLocked.value) explainLocked('aiVoice')
   else emit('toggle-dictation')
@@ -266,7 +273,8 @@ const diagramItems = computed(() => [[
 
     <!-- Live voice dictation, at the tail so it doesn't shift the muscle-memory
          formatting buttons. Red solid while recording; pulse + animate-ping on
-         the icon signal a live mic; the spinner covers permission / connecting. -->
+         the icon signal a live mic; the spinner covers permission / connecting
+         and the wrap-up after stop. -->
     <USeparator
       v-if="showDictation"
       orientation="vertical"
@@ -274,15 +282,17 @@ const diagramItems = computed(() => [[
     />
     <UTooltip
       v-if="showDictation"
-      :text="dictationLocked ? t('ai.locked.aiVoice') : dictationActive || dictationBusy ? t('ai.dictateStop') : t('ai.dictateStart')"
+      :text="dictationLocked ? t('ai.locked.aiVoice') : dictationLabel"
     >
       <UButton
         icon="i-lucide-mic"
         :color="dictationActive || dictationBusy ? 'error' : 'neutral'"
         :variant="dictationActive || dictationBusy ? 'solid' : 'ghost'"
-        :class="{ 'dictation-icon-busy': dictationBusy, 'animate-pulse': dictationActive, 'opacity-50': dictationLocked }"
+        :class="{ 'dictation-icon-busy': dictationBusy || dictationFinishing, 'animate-pulse': dictationActive, 'opacity-50': dictationLocked }"
         size="xs"
-        :aria-label="dictationActive || dictationBusy ? t('ai.dictateStop') : t('ai.dictateStart')"
+        :disabled="dictationFinishing"
+        :aria-label="dictationLabel"
+        :data-finishing="dictationFinishing ? 'true' : undefined"
         :data-active="dictationActive || dictationBusy ? 'true' : 'false'"
         :data-locked="dictationLocked ? 'true' : undefined"
         data-testid="toolbar-dictate-mic"
