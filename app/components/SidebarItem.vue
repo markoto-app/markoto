@@ -8,31 +8,16 @@
 //
 // Self-recursive: a child group renders another <SidebarItem>.
 
-type NavItem = {
-  title: string
-  path: string
-  children?: NavItem[]
-  navHidden?: boolean
-  order?: number
-  // Lucide icon name. Sections (folder index pages) set this in their
-  // frontmatter; leaf pages typically don't.
-  icon?: string
-}
+import { docsNavChildren, type DocsNavNode } from '~~/shared/docs/docsSections'
 
 const props = defineProps<{
-  item: NavItem
+  item: DocsNavNode
   isActiveBranch: (path: string) => boolean
-  visible: (items: NavItem[] | undefined) => NavItem[]
 }>()
 
-// Strip out a child whose path matches the parent's own path,
-// queryCollectionNavigation surfaces folder/index.md as both the
-// parent group AND a child of itself. Without this filter every
-// section header would render its own link twice (once as the
-// expandable summary, once as the first child).
-const visibleChildren = computed(() =>
-  props.visible(props.item.children).filter(c => c.path !== props.item.path)
-)
+// Sorted like every sidebar level, without the section's own index page
+// (it is the group's clickable header, not a child link).
+const visibleChildren = computed(() => docsNavChildren(props.item))
 const hasChildren = computed(() => visibleChildren.value.length > 0)
 const open = computed(() => props.isActiveBranch(props.item.path))
 </script>
@@ -71,7 +56,6 @@ const open = computed(() => props.isActiveBranch(props.item.path))
           :key="child.path"
           :item="child"
           :is-active-branch="isActiveBranch"
-          :visible="visible"
         />
       </ul>
     </details>

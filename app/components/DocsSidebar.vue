@@ -9,21 +9,10 @@
 // Index pages typically set this, they're surfaced as the parent
 // group's clickable header, not as a duplicate child link.
 
-type NavItem = {
-  title: string
-  path: string
-  // Nuxt Content's queryCollectionNavigation returns this shape; we
-  // narrow `children` recursively here for our own consumption.
-  children?: NavItem[]
-  // Frontmatter passthrough. queryCollectionNavigation surfaces these
-  // when the schema declares them.
-  navHidden?: boolean
-  order?: number
-  icon?: string
-}
+import { sortDocsNav, type DocsNavNode } from '~~/shared/docs/docsSections'
 
 defineProps<{
-  nav: NavItem[]
+  nav: DocsNavNode[]
 }>()
 
 const route = useRoute()
@@ -33,30 +22,16 @@ const route = useRoute()
 function isActiveBranch(path: string): boolean {
   return route.path === path || route.path.startsWith(path + '/')
 }
-
-function visible(items: NavItem[] | undefined): NavItem[] {
-  if (!items) return []
-  return items
-    .filter(it => !it.navHidden)
-    .sort((a, b) => {
-      // Order field wins; otherwise alphabetical by title.
-      const ao = a.order ?? Number.MAX_SAFE_INTEGER
-      const bo = b.order ?? Number.MAX_SAFE_INTEGER
-      if (ao !== bo) return ao - bo
-      return a.title.localeCompare(b.title)
-    })
-}
 </script>
 
 <template>
   <nav class="text-sm sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
     <ul class="space-y-0.5">
       <SidebarItem
-        v-for="item in visible(nav)"
+        v-for="item in sortDocsNav(nav)"
         :key="item.path"
         :item="item"
         :is-active-branch="isActiveBranch"
-        :visible="visible"
       />
     </ul>
   </nav>

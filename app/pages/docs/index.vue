@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { docsBreadcrumbs } from '~~/shared/seo/breadcrumbs'
-import { DOCS_SECTIONS } from '~~/shared/docs/docsSections'
+import { DOCS_SECTIONS, docsSectionIndex } from '~~/shared/docs/docsSections'
 
 // /docs landing page. Hand-written (not driven by a markdown file)
 // because it's mostly UI affordances, category cards + featured-flow
@@ -15,12 +15,17 @@ import { DOCS_SECTIONS } from '~~/shared/docs/docsSections'
 // English like the docs themselves (app/composables/platform/useAreaI18n.ts).
 const { t, locale: areaLocale } = useAreaI18n()
 
-const { data: featured } = await useAsyncData('docs:featured', () =>
-  queryCollection('docs')
+// At most six pages a new reader needs first, in sidebar order (section,
+// then the page's `order`).
+const { data: featured } = await useAsyncData('docs:featured', async () => {
+  const pages = await queryCollection('docs')
     .where('featured', '=', true)
-    .order('order', 'ASC')
+    .select('path', 'title', 'description', 'order')
     .all()
-)
+  return pages.sort((a, b) =>
+    docsSectionIndex(a.path) - docsSectionIndex(b.path) || (a.order ?? 0) - (b.order ?? 0)
+  )
+})
 
 const metaTitle = t('docs.landing.metaTitle')
 const metaDescription = t('docs.landing.metaDescription')

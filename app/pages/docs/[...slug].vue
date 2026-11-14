@@ -12,6 +12,7 @@
 // when the file is content/docs/getting-started/index.md.
 
 import { docsBreadcrumbs } from '~~/shared/seo/breadcrumbs'
+import { docsPagerNeighbours } from '~~/shared/docs/docsSections'
 import { docsRedirectTarget } from '~~/shared/docs/docsRedirects'
 
 definePageMeta({ layout: 'docs' })
@@ -36,13 +37,11 @@ if (!page.value) {
   throw createError({ statusCode: 404, statusMessage: 'Doc not found' })
 }
 
-// Surrounding pages for the bottom pager. Returns [prev, next],
-// either may be null at the boundaries.
-const { data: surround } = await useAsyncData(`docs:surround:${route.path}`, () =>
-  queryCollectionItemSurroundings('docs', route.path, {
-    fields: ['title', 'description']
-  })
-)
+// Previous / next page for the bottom pager, in reading order: the
+// sidebar read top to bottom (section order, then each page's `order`),
+// across sections. Either is null at the ends.
+const docsNav = await useDocsNav()
+const surround = computed(() => docsPagerNeighbours(docsNav.value, route.path))
 
 const docPage = page.value
 const { imageUrl } = useMarketingSeo({
@@ -99,13 +98,13 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
       />
 
       <!-- Bottom pager: clickable cards for prev / next. Stripe / Vue
-           docs convention. Uses fields fetched via
-           queryCollectionItemSurroundings. -->
+           docs convention. Title + description come from the
+           navigation tree. -->
       <!-- Prev / next pager. Editorial register: JetBrains Mono mini-
            label ("previous" / "next") with the value below in Fraunces.
            Hover swap stays sumi (was shu, shu means AI presence). -->
       <nav
-        v-if="surround && (surround[0] || surround[1])"
+        v-if="surround[0] || surround[1]"
         class="not-prose mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-default/60 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4"
         :aria-label="t('docs.pagination.label')"
       >

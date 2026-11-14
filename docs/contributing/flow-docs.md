@@ -143,7 +143,7 @@ By hand: dispatch `publish-flow-shots.yml` with a run id, or `gh run download <r
 1. Add stable selectors to the components involved (`data-testid`, `aria-label` on icon-only buttons).
 2. Write `tests/e2e/flows/<slug>.spec.ts`. One spec per flow; branch on `editor.isMobile` for mobile.
 3. Assert the behaviour, not only the screenshots.
-4. Write the docs page `content/docs/<section>/<slug>.md` with frontmatter (`title`, `description`, `category`, `order`, optional `featured`) and embed `::flow{id="<slug>" mode="slides" hide-title}::`.
+4. Write the docs page `content/docs/<section>/<slug>.md` with frontmatter (`title`, `description`, `category`, `order`; `featured` only for the at most six pages of "Start here" on the docs landing page) and embed `::flow{id="<slug>" mode="slides" hide-title}::`.
 5. Run `bun run flows:test:changed` (or `bun run flows`) and look at the frames in `tests/e2e/output/flows/<slug>/`.
 
 ## Docs sections, moved pages, language
@@ -166,6 +166,7 @@ The user docs are grouped by task. Each section is a folder under `content/docs/
 | `self-hosting` | Run markoto yourself (one page, the folder's `index.md`) |
 
 - **A page lives in one section.** Set `category` to the folder and `order` to its position inside the section (1, 2, 3, ..., most-needed first), and list it on the section's `index.md`. Where readers will look for it in another section, add a one-line pointer under "Elsewhere" on that section's index page instead of a second page. `tests/unit/seo/docsSections.test.ts` checks folders, categories and orders.
+- **One order everywhere.** Sidebar, prev / next pager and the search groups all follow section order, then each page's `order` (helpers in `shared/docs/docsSections.ts`, the tree comes from `useDocsNav()`); file names carry no numeric prefix.
 - **Moving or renaming a page:** `git mv` the file, add the old address to `shared/docs/docsRedirects.ts` (and point existing entries at the final address), and update every link. Old addresses answer with a 301 that keeps the query string (Nitro route rules built from the map in `nuxt.config.ts`; `app/pages/docs/[...slug].vue` uses the same map for in-app navigation). `tests/unit/seo/docsRedirects.test.ts` fails when an address that once existed has neither a page nor an entry, or when a target does not exist.
 - **English only.** The docs are not translated, so the whole docs area is shown in English whatever the UI language is: components that can appear on a docs page (layout, pages, flow player, the shared header menu and footer) take their texts from `useAreaI18n()` (`app/composables/platform/useAreaI18n.ts`) instead of `useI18n()` / `$t`. It only looks texts up in English on `/docs/**`; the visitor's language and its cookie are not changed. Pinned by `tests/nuxt/docsEnglishChrome.test.ts`.
 
