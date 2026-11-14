@@ -34,7 +34,7 @@
     {
       "kind": "outcome",
       "file": "03.webp",
-      "caption": "A menu opens — Profile is the one you want.",
+      "caption": "A menu opens, Profile is the one you want.",
       "cursor": {
         "x": 1172,
         "y": 34
@@ -64,7 +64,7 @@
     {
       "kind": "outcome",
       "file": "05.webp",
-      "caption": "Your profile page opens — account info, your data (export), the delete-account zone, and the legal record of accepted policies.",
+      "caption": "Your profile page opens, account info, your data (export), the delete-account zone, and the legal record of accepted policies.",
       "cursor": {
         "x": 1172,
         "y": 112
@@ -78,7 +78,7 @@
     },
     {
       "kind": "narration",
-      "text": "Before doing anything destructive, the page shows you which version of the Privacy Policy, Terms of Service, and Data Processing Addendum you accepted, and in which language. If we update any document materially we bump its version, you see \"needs re-acceptance\" here, and we re-prompt before any further action — so the consent record is never out of date.",
+      "text": "Before doing anything destructive, the page shows you which version of the Privacy Policy, Terms of Service, and Data Processing Addendum you accepted, and in which language. If we update any document materially we bump its version, you see \"needs re-acceptance\" here, and we re-prompt before any further action: so the consent record is never out of date.",
       "file": "05.webp",
       "cursor": null,
       "path": "/settings/profile"
@@ -86,7 +86,7 @@
     {
       "kind": "outcome",
       "file": "05.webp",
-      "caption": "The Legal section is the audit trail you have with markoto. Every signed-in user can read it directly — no support ticket required.",
+      "caption": "The Legal section is the audit trail you have with markoto. Every signed-in user can read it directly, no support ticket required.",
       "cursor": null,
       "path": "/settings/profile",
       "annotations": [
@@ -94,9 +94,9 @@
           "label": "legal record",
           "kind": "box",
           "x": 280,
-          "y": 1321.5,
+          "y": 1241.5,
           "w": 720,
-          "h": 296.5
+          "h": 240.5
         }
       ]
     },
@@ -134,17 +134,17 @@
       "highlights": [
         {
           "label": "deleted with you",
-          "x": 328.0577392578125,
-          "y": 305.017578125,
-          "w": 619.88525390625,
-          "h": 121.9774169921875
+          "x": 328.0577697753906,
+          "y": 285.02130126953125,
+          "w": 619.8852233886719,
+          "h": 105.9803466796875
         },
         {
           "label": "gets a new admin",
-          "x": 328.0577392578125,
-          "y": 438.9927673339844,
-          "w": 619.88525390625,
-          "h": 105.98037719726562
+          "x": 328.0577697753906,
+          "y": 402.99945068359375,
+          "w": 619.8852233886719,
+          "h": 105.9803466796875
         }
       ]
     },
@@ -170,7 +170,7 @@
     },
     {
       "kind": "narration",
-      "text": "The destructive button is gated behind a phrase you have to type. Same shape as GitHub repo deletion or AWS account closure — irreversible actions should never be one click away. The button stays disabled until your input matches \"delete my account\" exactly.",
+      "text": "The destructive button is gated behind a phrase you have to type. Same shape as GitHub repo deletion or AWS account closure: irreversible actions should never be one click away. The button stays disabled until your input matches \"delete my account\" exactly.",
       "file": "07.webp",
       "cursor": {
         "x": 400,
@@ -201,11 +201,11 @@
     {
       "kind": "chapter",
       "level": 3,
-      "text": "Submit — the grace banner takes over"
+      "text": "Submit: the grace banner takes over"
     },
     {
       "kind": "narration",
-      "text": "The 30-day grace clock starts. Until it elapses, a banner sits pinned across the top of every page in markoto with a one-click cancel. The page itself flips into \"scheduled for deletion\" state too — same cancel button, same date. Either path restores your account exactly as it was.",
+      "text": "The 30-day grace clock starts. Until it elapses, a banner sits pinned across the top of every page in markoto with a one-click cancel. The page itself flips into \"scheduled for deletion\" state too: same cancel button, same date. Either path restores your account exactly as it was.",
       "file": "08.webp",
       "cursor": {
         "x": 640,
@@ -260,7 +260,7 @@
     },
     {
       "kind": "narration",
-      "text": "During the grace window you can cancel from any page — click \"Cancel deletion\" in the banner and the deletion request is cleared on the spot. No data lost, no collaborators surprised. Your account is back to the state it was in before the click.",
+      "text": "During the grace window you can cancel from any page, click \"Cancel deletion\" in the banner and the deletion request is cleared on the spot. No data lost, no collaborators surprised. Your account is back to the state it was in before the click.",
       "file": "11.webp",
       "cursor": {
         "x": 1238,
@@ -273,7 +273,7 @@
       "file": "12.webp",
       "caption": "Click \"Cancel deletion\" in the banner",
       "cursor": {
-        "x": 853,
+        "x": 847,
         "y": 20
       },
       "path": "/settings/profile"
@@ -281,9 +281,9 @@
     {
       "kind": "outcome",
       "file": "13.webp",
-      "caption": "The banner disappears and your account is back to normal — nothing was deleted.",
+      "caption": "The banner disappears and your account is back to normal, nothing was deleted.",
       "cursor": {
-        "x": 853,
+        "x": 847,
         "y": 20
       },
       "path": "/settings/profile"

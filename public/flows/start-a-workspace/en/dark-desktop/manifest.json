@@ -16,7 +16,7 @@
     },
     {
       "kind": "narration",
-      "text": "A workspace is a shared place for related docs — a team's RFCs, a class's notes, a company's onboarding library. Members get role-based access (admin, editor, viewer). The workspace also has its own knowledge base — drop in PDFs, Word docs, FAQs and the AI grounds its answers in those files when working on any doc inside the workspace.",
+      "text": "A workspace is a shared place for related docs, a team's RFCs, a class's notes, a company's onboarding library. Members get role-based access (admin, editor, viewer). The workspace also has its own knowledge base, drop in PDFs, Word docs, FAQs and the AI grounds its answers in those files when working on any doc inside the workspace.",
       "file": "01.webp",
       "cursor": null,
       "path": "/"
@@ -56,7 +56,7 @@
     {
       "kind": "outcome",
       "file": "04.webp",
-      "caption": "A modal opens — name + optional description, that's the whole form.",
+      "caption": "A modal opens, name + optional description, that's the whole form.",
       "cursor": {
         "x": 1022,
         "y": 270
@@ -70,7 +70,7 @@
     },
     {
       "kind": "narration",
-      "text": "The name shows in the topbar of every doc in the workspace + in the dashboard list. The description is optional but shows up in the workspace card — useful when you have several workspaces with similar names.",
+      "text": "The name shows in the topbar of every doc in the workspace + in the dashboard list. The description is optional but shows up in the workspace card, useful when you have several workspaces with similar names.",
       "file": "05.webp",
       "cursor": {
         "x": 1022,
@@ -146,12 +146,12 @@
     {
       "kind": "outcome",
       "file": "10.webp",
-      "caption": "You land on the workspace home page — empty Documents + Knowledge tabs, ready for content. The topbar carries the workspace name; you're the admin (visible in the members list once we add some).",
+      "caption": "You land on the workspace home page, empty Documents + Knowledge tabs, ready for content. The topbar carries the workspace name; you're the admin (visible in the members list once we add some).",
       "cursor": {
         "x": 790,
         "y": 563
       },
-      "path": "/w/fHvFAzzgeW",
+      "path": "/w/hEGd7gMgor",
       "highlights": [
         {
           "label": "Workspace tabs",

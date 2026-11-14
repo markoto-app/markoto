@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/njk24uHgrY"
+      "path": "/d/iS9i2ipJuS"
     },
     {
       "kind": "chapter",
@@ -37,7 +37,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/njk24uHgrY"
+      "path": "/d/iS9i2ipJuS"
     },
     {
       "kind": "approach",
@@ -47,7 +47,7 @@
         "x": 1260,
         "y": 98
       },
-      "path": "/d/njk24uHgrY",
+      "path": "/d/iS9i2ipJuS",
       "annotations": [
         {
           "label": "theme tab",
@@ -67,7 +67,7 @@
         "x": 1260,
         "y": 98
       },
-      "path": "/d/njk24uHgrY",
+      "path": "/d/iS9i2ipJuS",
       "highlights": [
         {
           "label": "Built-in presets",
@@ -91,7 +91,7 @@
         "x": 1260,
         "y": 98
       },
-      "path": "/d/njk24uHgrY"
+      "path": "/d/iS9i2ipJuS"
     },
     {
       "kind": "approach",
@@ -101,7 +101,7 @@
         "x": 1044,
         "y": 595
       },
-      "path": "/d/njk24uHgrY"
+      "path": "/d/iS9i2ipJuS"
     },
     {
       "kind": "outcome",
@@ -111,7 +111,7 @@
         "x": 1044,
         "y": 595
       },
-      "path": "/d/njk24uHgrY"
+      "path": "/d/iS9i2ipJuS"
     },
     {
       "kind": "chapter",
@@ -126,7 +126,7 @@
         "x": 1044,
         "y": 595
       },
-      "path": "/d/njk24uHgrY"
+      "path": "/d/iS9i2ipJuS"
     },
     {
       "kind": "approach",
@@ -136,7 +136,7 @@
         "x": 1044,
         "y": 348
       },
-      "path": "/d/njk24uHgrY"
+      "path": "/d/iS9i2ipJuS"
     },
     {
       "kind": "outcome",
@@ -146,14 +146,14 @@
         "x": 1044,
         "y": 348
       },
-      "path": "/d/njk24uHgrY",
+      "path": "/d/iS9i2ipJuS",
       "highlights": [
         {
           "label": "Asterism scene break",
           "x": 480.5,
-          "y": 115,
+          "y": 155,
           "w": 479.5,
-          "h": 656.25
+          "h": 616.25
         }
       ]
     },
@@ -170,7 +170,7 @@
         "x": 1044,
         "y": 348
       },
-      "path": "/d/njk24uHgrY"
+      "path": "/d/iS9i2ipJuS"
     },
     {
       "kind": "approach",
@@ -180,7 +180,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/njk24uHgrY"
+      "path": "/d/iS9i2ipJuS"
     },
     {
       "kind": "outcome",
@@ -190,7 +190,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/njk24uHgrY"
+      "path": "/d/iS9i2ipJuS"
     },
     {
       "kind": "approach",
@@ -200,7 +200,7 @@
         "x": 991,
         "y": 504
       },
-      "path": "/d/njk24uHgrY"
+      "path": "/d/iS9i2ipJuS"
     },
     {
       "kind": "outcome",
@@ -210,7 +210,7 @@
         "x": 991,
         "y": 504
       },
-      "path": "/d/njk24uHgrY"
+      "path": "/d/iS9i2ipJuS"
     },
     {
       "kind": "approach",
@@ -220,7 +220,7 @@
         "x": 991,
         "y": 504
       },
-      "path": "/d/njk24uHgrY"
+      "path": "/d/iS9i2ipJuS"
     },
     {
       "kind": "outcome",
@@ -230,14 +230,14 @@
         "x": 991,
         "y": 504
       },
-      "path": "/d/njk24uHgrY",
+      "path": "/d/iS9i2ipJuS",
       "highlights": [
         {
           "label": "Cover page",
           "x": 480.5,
-          "y": 115,
+          "y": 155,
           "w": 479.5,
-          "h": 656.25
+          "h": 616.25
         }
       ],
       "hero": true

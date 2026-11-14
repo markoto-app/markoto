@@ -22,7 +22,7 @@
         "x": 319,
         "y": 383
       },
-      "path": "/d/w-5Yi3XU9Y"
+      "path": "/d/lHGk4kS5j_"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 762,
         "y": 98
       },
-      "path": "/d/w-5Yi3XU9Y",
+      "path": "/d/lHGk4kS5j_",
       "annotations": [
         {
           "label": "mic",
@@ -47,12 +47,12 @@
     {
       "kind": "outcome",
       "file": "03.webp",
-      "caption": "The mic lights up red — markoto is listening.",
+      "caption": "The mic lights up red, markoto is listening.",
       "cursor": {
         "x": 762,
         "y": 98
       },
-      "path": "/d/w-5Yi3XU9Y"
+      "path": "/d/lHGk4kS5j_"
     },
     {
       "kind": "chapter",
@@ -67,7 +67,7 @@
         "x": 762,
         "y": 98
       },
-      "path": "/d/w-5Yi3XU9Y"
+      "path": "/d/lHGk4kS5j_"
     },
     {
       "kind": "outcome",
@@ -77,7 +77,7 @@
         "x": 762,
         "y": 98
       },
-      "path": "/d/w-5Yi3XU9Y",
+      "path": "/d/lHGk4kS5j_",
       "highlights": [
         {
           "label": "dictated text",
@@ -102,7 +102,7 @@
         "x": 762,
         "y": 98
       },
-      "path": "/d/w-5Yi3XU9Y"
+      "path": "/d/lHGk4kS5j_"
     },
     {
       "kind": "approach",
@@ -112,21 +112,21 @@
         "x": 762,
         "y": 98
       },
-      "path": "/d/w-5Yi3XU9Y"
+      "path": "/d/lHGk4kS5j_"
     },
     {
       "kind": "outcome",
       "file": "08.webp",
-      "caption": "The mic returns to its idle state — no more streaming.",
+      "caption": "The mic returns to its idle state, no more streaming.",
       "cursor": {
         "x": 762,
         "y": 98
       },
-      "path": "/d/w-5Yi3XU9Y"
+      "path": "/d/lHGk4kS5j_"
     }
   ],
   "next": {
     "slug": "write-with-ai",
-    "why": "Now ask the AI to extend what you dictated — voice in, AI out"
+    "why": "Now ask the AI to extend what you dictated, voice in, AI out"
   }
 }

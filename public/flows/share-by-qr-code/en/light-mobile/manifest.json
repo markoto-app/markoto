@@ -16,10 +16,10 @@
     },
     {
       "kind": "narration",
-      "text": "You're at your desk with a doc open and want to keep reading it on your phone. The share modal has a QR toggle right next to the link — collapsed by default, opens to a 160-pixel square that any phone camera resolves into the same URL. No app, no clipboard handoff, no \"send myself a link\" detour.",
+      "text": "You're at your desk with a doc open and want to keep reading it on your phone. The share modal has a QR toggle right next to the link, collapsed by default, opens to a 160-pixel square that any phone camera resolves into the same URL. No app, no clipboard handoff, no \"send myself a link\" detour.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/Uo5aOSb7Br"
+      "path": "/d/BdsEPuitXw"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 330,
         "y": 20
       },
-      "path": "/d/Uo5aOSb7Br",
+      "path": "/d/BdsEPuitXw",
       "annotations": [
         {
           "label": "lock icon",
@@ -44,12 +44,12 @@
     {
       "kind": "outcome",
       "file": "02.webp",
-      "caption": "The share modal opens — link at the top, QR toggle to its right.",
+      "caption": "The share modal opens, link at the top, QR toggle to its right.",
       "cursor": {
         "x": 330,
         "y": 20
       },
-      "path": "/d/Uo5aOSb7Br"
+      "path": "/d/BdsEPuitXw"
     },
     {
       "kind": "chapter",
@@ -58,28 +58,28 @@
     },
     {
       "kind": "narration",
-      "text": "Click the QR icon next to the link. The square renders below the link row, encoding the same URL the link field carries — so changing access mode (or anything else that mutates the link) re-renders the QR automatically. Point your phone camera at it and tap the notification.",
+      "text": "Click the QR icon next to the link. The square renders below the link row, encoding the same URL the link field carries, so changing access mode (or anything else that mutates the link) re-renders the QR automatically. Point your phone camera at it and tap the notification.",
       "file": "03.webp",
       "cursor": {
         "x": 330,
         "y": 20
       },
-      "path": "/d/Uo5aOSb7Br"
+      "path": "/d/BdsEPuitXw"
     },
     {
       "kind": "approach",
-      "file": "04.webp",
+      "file": "03.webp",
       "caption": "Click the QR toggle",
       "cursor": {
-        "x": 336,
+        "x": 344,
         "y": 349
       },
-      "path": "/d/Uo5aOSb7Br",
+      "path": "/d/BdsEPuitXw",
       "annotations": [
         {
           "label": "QR toggle",
           "kind": "arrow",
-          "x": 322,
+          "x": 330,
           "y": 335.5,
           "w": 28,
           "h": 28
@@ -88,19 +88,19 @@
     },
     {
       "kind": "outcome",
-      "file": "05.webp",
-      "caption": "The QR appears below the link — scan it from your phone to land on this doc.",
+      "file": "04.webp",
+      "caption": "The QR appears below the link, scan it from your phone to land on this doc.",
       "cursor": {
-        "x": 336,
+        "x": 344,
         "y": 349
       },
-      "path": "/d/Uo5aOSb7Br",
+      "path": "/d/BdsEPuitXw",
       "highlights": [
         {
           "label": "Scan with your phone camera",
-          "x": 40,
+          "x": 32,
           "y": 289.5,
-          "w": 310,
+          "w": 326,
           "h": 160
         }
       ],
