@@ -75,6 +75,7 @@ describe.skipIf(!SANDBOX_CONFIGURED)('workspace: Team with 3 seats, through ever
       plan: 'team',
       seats: 3,
       status: 'active',
+      paymentOverdue: false,
       entitled: true,
       interval: 'month',
       currency: 'eur',

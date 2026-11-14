@@ -23,9 +23,11 @@ describe.skipIf(!SANDBOX_CONFIGURED)('Pro: a renewal whose payment fails', () =>
 
   // The contract as observed against the sandbox (its retry settings: three
   // more attempts over about three weeks, then the subscription is
-  // cancelled). The app never downgrades on a failed payment by itself.
+  // cancelled). The app never downgrades on a failed payment by itself;
+  // it says that the payment is overdue.
 
-  it('while Stripe retries, the account stays Pro and shows the next period as if it had renewed', async () => {
+  it('while Stripe retries, the account stays Pro on the next period and is told the payment is overdue', async () => {
+    expect((await userBilling(pro.app.client)).paymentOverdue).toBe(false)
     await setDefaultCard(stripe, pro.customer.id, CARD_DECLINES)
     await advanceClock(stripe, pro.clockId as string, pro.subscription.current_period_end + 3600)
     const unpaid = await retrieveSubscription(stripe, pro.subscription.id)
@@ -36,10 +38,10 @@ describe.skipIf(!SANDBOX_CONFIGURED)('Pro: a renewal whose payment fails', () =>
     const results = await deliverAll(await pro.feed.collect(['customer.subscription.updated', 'invoice.payment_failed']))
     expect(results.every(r => r.handled)).toBe(true)
 
-    // Nothing in `/api/user/billing` says a payment is overdue: the plan,
-    // the period and the budget are those of a paid renewal.
+    // The plan, the period and the budget are those of a paid renewal;
+    // `paymentOverdue` is what tells the page to ask for a working card.
     const billing = await userBilling(pro.app.client)
-    expect(billing).toMatchObject({ plan: 'pro', interval: 'month', cancelAt: null })
+    expect(billing).toMatchObject({ plan: 'pro', interval: 'month', cancelAt: null, paymentOverdue: true })
     expectSameInstant(billing.periodEnd, unpaid.current_period_end)
     expect(await aiCredits(pro.app.client)).toMatchObject({ plan: 'pro', pointsTotal: PLAN_BUDGET_USD.pro * 1000 })
     expect(await userKeyBudgetUsd(pro.app.user.id)).toBe(PLAN_BUDGET_USD.pro)
@@ -54,11 +56,11 @@ describe.skipIf(!SANDBOX_CONFIGURED)('Pro: a renewal whose payment fails', () =>
       await advanceClock(stripe, pro.clockId as string, now)
       status = (await retrieveSubscription(stripe, pro.subscription.id)).status
       await deliverAll(await pro.feed.collect(status === 'canceled' ? ['customer.subscription.deleted'] : []))
-      if (status !== 'canceled') expect((await userBilling(pro.app.client)).plan).toBe('pro')
+      if (status !== 'canceled') expect(await userBilling(pro.app.client)).toMatchObject({ plan: 'pro', paymentOverdue: true })
     }
     expect(status).toBe('canceled')
 
-    expect(await userBilling(pro.app.client)).toMatchObject({ plan: 'free', interval: null, cancelAt: null })
+    expect(await userBilling(pro.app.client)).toMatchObject({ plan: 'free', interval: null, cancelAt: null, paymentOverdue: false })
     expect(await aiCredits(pro.app.client)).toMatchObject({ plan: 'free', pointsTotal: PLAN_BUDGET_USD.free * 1000 })
     expect(await userKeyBudgetUsd(pro.app.user.id)).toBe(PLAN_BUDGET_USD.free)
     expect(await userRow(pro.app.user.id)).toMatchObject({ plan: 'free', stripe_subscription_id: null })

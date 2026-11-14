@@ -62,13 +62,13 @@ export function computeStripeSig(payload: string, secret: string, now?: number):
 export function makeStripeEvent(
   type: string,
   data: Record<string, unknown>,
-  overrides?: Partial<{ id: string, livemode: boolean }>
+  overrides?: Partial<{ id: string, livemode: boolean, created: number }>
 ): Record<string, unknown> {
   return {
     id: overrides?.id ?? `evt_test_${type.replace(/\./g, '_')}_${Math.random().toString(36).slice(2, 8)}`,
     object: 'event',
     api_version: '2024-12-18.acacia',
-    created: Math.floor(Date.now() / 1000),
+    created: overrides?.created ?? Math.floor(Date.now() / 1000),
     livemode: overrides?.livemode ?? false,
     type,
     data: { object: data },

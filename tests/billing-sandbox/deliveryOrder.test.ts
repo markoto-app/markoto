@@ -104,18 +104,12 @@ describe.skipIf(!SANDBOX_CONFIGURED)('webhook deliveries out of order and repeat
     expect(await endState(pro, live)).toEqual(RIGHT)
   })
 
-  // KNOWN BUG, kept as a failing expectation until it is fixed: a
-  // `customer.subscription.created|updated` event is applied as the
-  // subscription's state whatever its age, so an OLDER one delivered after
-  // a newer one puts the old state back. Here the monthly `created` event
-  // arrives after the annual `updated`: the account then shows monthly
-  // billing and the monthly period end (about 11 months early), and would
-  // drop to Free at that date while Stripe bills the annual plan. Stripe
-  // redelivers an event the endpoint failed to acknowledge (a deploy, a
-  // timeout) for up to three days, so later events can overtake it. The
-  // handlers (`stripeEvents/subscriptionEvents.ts`) need to ignore a
-  // snapshot older than the state they hold, or read the live subscription.
-  it.fails('a subscription event older than the one already applied does not put the old state back', async () => {
+  // The monthly `created` event arrives after the annual `updated`
+  // (Stripe redelivers an event the endpoint failed to acknowledge for up
+  // to three days, so later events can overtake it). Applied, it would
+  // put monthly billing and the monthly period end back, about 11 months
+  // early. The age rule (`stripeEvents/eventAge.ts`) ignores it.
+  it('a subscription event older than the one already applied does not put the old state back', async () => {
     const { pro, real, live } = await purchaseAndSwitch('order-reversed')
     await deliverAll([...real].reverse())
     expect(await endState(pro, live)).toEqual(RIGHT)
@@ -140,11 +134,11 @@ describe.skipIf(!SANDBOX_CONFIGURED)('webhook deliveries out of order: a workspa
     if (ws) await deleteClock(stripe, ws.clockId)
   })
 
-  // The same KNOWN BUG on the workspace side: the events of the Team to
-  // Business change are held back (a failed delivery Stripe retries later)
-  // while the switch to annual billing goes through, then arrive. The
-  // older snapshot (Business, MONTHLY) overwrites the row.
-  it.fails('an older subscription event delivered late does not undo a newer change', async () => {
+  // The same on the workspace side: the events of the Team to Business
+  // change are held back (a failed delivery Stripe retries later) while
+  // the switch to annual billing goes through, then arrive. The older
+  // snapshot (Business, MONTHLY) must not overwrite the row.
+  it('an older subscription event delivered late does not undo a newer change', async () => {
     const path = `/api/workspaces/${ws.workspaceId}/billing/checkout`
     expect((await post(ws.app.client, path, { plan: 'business', acceptPaidTerms: true })).status).toBe(200)
     const heldBack = await ws.feed.collect(['customer.subscription.updated'])
