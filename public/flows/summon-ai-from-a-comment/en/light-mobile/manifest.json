@@ -16,10 +16,10 @@
     },
     {
       "kind": "narration",
-      "text": "Comments in markoto are threaded — leave one on a specific passage and your collaborators see it the moment you post. markoto is just another collaborator: type @markoto inside any comment and it joins the thread, reads the anchored text, and replies.",
+      "text": "Comments in markoto are threaded, leave one on a specific passage and your collaborators see it the moment you post. markoto is just another collaborator: type @markoto inside any comment and it joins the thread, reads the anchored text, and replies.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/Ukl__282xc"
+      "path": "/d/yUBP6GRnZY"
     },
     {
       "kind": "outcome",
@@ -29,7 +29,7 @@
         "x": 14,
         "y": 307
       },
-      "path": "/d/Ukl__282xc"
+      "path": "/d/yUBP6GRnZY"
     },
     {
       "kind": "approach",
@@ -39,17 +39,17 @@
         "x": 322,
         "y": 232
       },
-      "path": "/d/Ukl__282xc"
+      "path": "/d/yUBP6GRnZY"
     },
     {
       "kind": "outcome",
       "file": "04.webp",
-      "caption": "The comments sidebar opens — composer focused, ready for your note.",
+      "caption": "The comments sidebar opens, composer focused, ready for your note.",
       "cursor": {
         "x": 322,
         "y": 232
       },
-      "path": "/d/Ukl__282xc"
+      "path": "/d/yUBP6GRnZY"
     },
     {
       "kind": "chapter",
@@ -58,13 +58,13 @@
     },
     {
       "kind": "narration",
-      "text": "Type @ to mention any workspace member — markoto shows up in the list with a seal, even on standalone docs without any workspace members. Pick it, finish your question, and submit.",
+      "text": "Type @ to mention any workspace member, markoto shows up in the list with a seal, even on standalone docs without any workspace members. Pick it, finish your question, and submit.",
       "file": "05.webp",
       "cursor": {
         "x": 322,
         "y": 232
       },
-      "path": "/d/Ukl__282xc"
+      "path": "/d/yUBP6GRnZY"
     },
     {
       "kind": "outcome",
@@ -74,10 +74,10 @@
         "x": 35,
         "y": 438
       },
-      "path": "/d/Ukl__282xc",
+      "path": "/d/yUBP6GRnZY",
       "highlights": [
         {
-          "label": "markoto — synthetic entry, always available",
+          "label": "markoto: synthetic entry, always available",
           "x": 30,
           "y": 440.75,
           "w": 238,
@@ -90,7 +90,7 @@
       "file": "06.webp",
       "caption": "Click the markoto entry",
       "cursor": null,
-      "path": "/d/Ukl__282xc",
+      "path": "/d/yUBP6GRnZY",
       "annotations": [
         {
           "label": "markoto entry",
@@ -105,23 +105,23 @@
     {
       "kind": "outcome",
       "file": "07.webp",
-      "caption": "The composer now reads \"@markoto \" — finish your question.",
+      "caption": "The composer now reads \"@markoto \", finish your question.",
       "cursor": null,
-      "path": "/d/Ukl__282xc"
+      "path": "/d/yUBP6GRnZY"
     },
     {
       "kind": "approach",
       "file": "07.webp",
       "caption": "Finish your question",
       "cursor": null,
-      "path": "/d/Ukl__282xc"
+      "path": "/d/yUBP6GRnZY"
     },
     {
       "kind": "outcome",
       "file": "08.webp",
-      "caption": "Your question is ready — submit to summon markoto.",
+      "caption": "Your question is ready, submit to summon markoto.",
       "cursor": null,
-      "path": "/d/Ukl__282xc"
+      "path": "/d/yUBP6GRnZY"
     },
     {
       "kind": "chapter",
@@ -130,34 +130,34 @@
     },
     {
       "kind": "narration",
-      "text": "Once you post, the comment lands like any other — but the thread card glows with a \"markoto is responding…\" badge. markoto is reading the anchored passage and the conversation so far, then replying in the same thread so the discussion stays in one place.",
+      "text": "Once you post, the comment lands like any other, but the thread card glows with a \"markoto is responding…\" badge. markoto is reading the anchored passage and the conversation so far, then replying in the same thread so the discussion stays in one place.",
       "file": "08.webp",
       "cursor": {
         "x": 322,
         "y": 232
       },
-      "path": "/d/Ukl__282xc"
+      "path": "/d/yUBP6GRnZY"
     },
     {
       "kind": "approach",
       "file": "08.webp",
       "caption": "Click Submit to post and trigger markoto",
       "cursor": null,
-      "path": "/d/Ukl__282xc"
+      "path": "/d/yUBP6GRnZY"
     },
     {
       "kind": "outcome",
       "file": "09.webp",
-      "caption": "Your comment lands — the thread glows while markoto works.",
+      "caption": "Your comment lands, the thread glows while markoto works.",
       "cursor": null,
-      "path": "/d/Ukl__282xc",
+      "path": "/d/yUBP6GRnZY",
       "highlights": [
         {
           "label": "markoto is responding",
           "x": 8,
           "y": 374,
           "w": 374,
-          "h": 235.75
+          "h": 265.75
         }
       ]
     },
@@ -168,30 +168,30 @@
     },
     {
       "kind": "narration",
-      "text": "markoto uses tools to inspect the document and craft a response. When it's done, it replies on this thread — same surface a human collaborator would use. The glow fades and the reply is just another message you can react to.",
+      "text": "markoto uses tools to inspect the document and craft a response. When it's done, it replies on this thread, same surface a human collaborator would use. The glow fades and the reply is just another message you can react to.",
       "file": "10.webp",
       "cursor": {
         "x": 322,
         "y": 232
       },
-      "path": "/d/Ukl__282xc"
+      "path": "/d/yUBP6GRnZY"
     },
     {
       "kind": "outcome",
       "file": "11.webp",
-      "caption": "markoto replied on the thread — the conversation stays in one place.",
+      "caption": "markoto replied on the thread, the conversation stays in one place.",
       "cursor": {
         "x": 322,
         "y": 232
       },
-      "path": "/d/Ukl__282xc",
+      "path": "/d/yUBP6GRnZY",
       "highlights": [
         {
           "label": "markoto's reply",
           "x": 8,
-          "y": 304,
+          "y": 274,
           "w": 374,
-          "h": 407.75
+          "h": 437.75
         }
       ],
       "hero": true
@@ -199,6 +199,6 @@
   ],
   "next": {
     "slug": "pick-a-theme",
-    "why": "Make the doc look the part — pick a theme + add a cover page"
+    "why": "Make the doc look the part, pick a theme + add a cover page"
   }
 }

@@ -16,40 +16,40 @@
     },
     {
       "kind": "narration",
-      "text": "Workspaces start with one member — you, the admin. To bring others in, click \"Invite people\" at the top of the workspace page, type their email, pick a role (admin, editor, or viewer). Invitations are exact-email — no typeahead, so the directory isn't enumerable. Nobody joins until they accept.",
+      "text": "Workspaces start with one member, you, the admin. To bring others in, click \"Invite people\" at the top of the workspace page, type their email, pick a role (admin, editor, or viewer). Invitations are exact-email, no typeahead, so the directory isn't enumerable. Nobody joins until they accept.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/y_y3z-n4nl"
+      "path": "/w/5wkXmP3O5H"
     },
     {
       "kind": "approach",
       "file": "01.webp",
       "caption": "Click \"Invite people\" at the top of the workspace page",
       "cursor": {
-        "x": 318,
-        "y": 93
+        "x": 324,
+        "y": 91
       },
-      "path": "/w/y_y3z-n4nl",
+      "path": "/w/5wkXmP3O5H",
       "annotations": [
         {
           "label": "invite people",
           "kind": "arrow",
-          "x": 298,
+          "x": 306,
           "y": 77,
-          "w": 40,
-          "h": 32
+          "w": 36,
+          "h": 28
         }
       ]
     },
     {
       "kind": "outcome",
       "file": "02.webp",
-      "caption": "The Members modal opens with the email field ready — current roster + invite-by-email form.",
+      "caption": "The Members modal opens with the email field ready, current roster + invite-by-email form.",
       "cursor": {
-        "x": 318,
-        "y": 93
+        "x": 324,
+        "y": 91
       },
-      "path": "/w/y_y3z-n4nl"
+      "path": "/w/5wkXmP3O5H"
     },
     {
       "kind": "chapter",
@@ -58,13 +58,13 @@
     },
     {
       "kind": "narration",
-      "text": "Type the exact email Sam signed up with. The default role is \"editor\" — they can read, write, comment, but can't change access controls or remove other members. Switch to \"viewer\" for read-only access or \"admin\" to delegate full control.",
+      "text": "Type the exact email Sam signed up with. The default role is \"editor\": they can read, write, comment, but can't change access controls or remove other members. Switch to \"viewer\" for read-only access or \"admin\" to delegate full control.",
       "file": "03.webp",
       "cursor": {
-        "x": 318,
-        "y": 93
+        "x": 324,
+        "y": 91
       },
-      "path": "/w/y_y3z-n4nl"
+      "path": "/w/5wkXmP3O5H"
     },
     {
       "kind": "approach",
@@ -72,9 +72,9 @@
       "caption": "Type Sam's email",
       "cursor": {
         "x": 46,
-        "y": 462
+        "y": 454
       },
-      "path": "/w/y_y3z-n4nl"
+      "path": "/w/5wkXmP3O5H"
     },
     {
       "kind": "outcome",
@@ -82,9 +82,9 @@
       "caption": "The email is staged. Hit Invite to send the invitation.",
       "cursor": {
         "x": 46,
-        "y": 462
+        "y": 454
       },
-      "path": "/w/y_y3z-n4nl"
+      "path": "/w/5wkXmP3O5H"
     },
     {
       "kind": "approach",
@@ -92,19 +92,19 @@
       "caption": "Click Invite",
       "cursor": {
         "x": 317,
-        "y": 461
+        "y": 453
       },
-      "path": "/w/y_y3z-n4nl"
+      "path": "/w/5wkXmP3O5H"
     },
     {
       "kind": "outcome",
       "file": "05.webp",
-      "caption": "The invitation is pending — listed under the roster with its role and expiry until Sam accepts.",
+      "caption": "The invitation is pending, listed under the roster with its role and expiry until Sam accepts.",
       "cursor": {
         "x": 317,
-        "y": 461
+        "y": 453
       },
-      "path": "/w/y_y3z-n4nl"
+      "path": "/w/5wkXmP3O5H"
     },
     {
       "kind": "chapter",
@@ -113,13 +113,13 @@
     },
     {
       "kind": "narration",
-      "text": "Sam opens markoto in their own browser, signed in with the invited email. The invitation waits under Invitations on their dashboard — workspace name, role and who invited them. (Where email is set up, Sam also gets an invitation email with a one-time link.)",
+      "text": "Sam opens markoto in their own browser, signed in with the invited email. The invitation waits under Invitations on their dashboard, workspace name, role and who invited them. (Where email is set up, Sam also gets an invitation email with a one-time link.)",
       "file": "06.webp",
       "cursor": {
         "x": 317,
-        "y": 461
+        "y": 453
       },
-      "path": "/w/y_y3z-n4nl"
+      "path": "/w/5wkXmP3O5H"
     },
     {
       "kind": "approach",

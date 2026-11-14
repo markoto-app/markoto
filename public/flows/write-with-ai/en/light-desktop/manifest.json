@@ -16,13 +16,13 @@
     },
     {
       "kind": "narration",
-      "text": "The AI prompt bar floats at the bottom of every markoto document. Type what you want, hit send, and the AI joins the doc as another collaborator — you watch it type. It can draft new sections, rewrite passages, restructure outlines, even fetch sources from the web before it writes.",
+      "text": "The AI prompt bar floats at the bottom of every markoto document. Type what you want, hit send, and the AI joins the doc as another collaborator: you watch it type. It can draft new sections, rewrite passages, restructure outlines, even fetch sources from the web before it writes.",
       "file": "01.webp",
       "cursor": {
         "x": 640,
         "y": 26
       },
-      "path": "/d/pkda_2_NWi"
+      "path": "/d/7iRjImnW2Q"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 618,
         "y": 722
       },
-      "path": "/d/pkda_2_NWi",
+      "path": "/d/7iRjImnW2Q",
       "annotations": [
         {
           "label": "prompt bar",
@@ -47,22 +47,22 @@
     {
       "kind": "outcome",
       "file": "03.webp",
-      "caption": "The bar lifts and glows — ready for your prompt.",
+      "caption": "The bar lifts and glows, ready for your prompt.",
       "cursor": {
         "x": 618,
         "y": 722
       },
-      "path": "/d/pkda_2_NWi"
+      "path": "/d/7iRjImnW2Q"
     },
     {
       "kind": "approach",
       "file": "03.webp",
-      "caption": "Type your prompt — like talking to a teammate",
+      "caption": "Type your prompt: like talking to a teammate",
       "cursor": {
         "x": 316,
         "y": 723
       },
-      "path": "/d/pkda_2_NWi"
+      "path": "/d/7iRjImnW2Q"
     },
     {
       "kind": "outcome",
@@ -72,7 +72,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/pkda_2_NWi"
+      "path": "/d/7iRjImnW2Q"
     },
     {
       "kind": "chapter",
@@ -87,7 +87,7 @@
         "x": 618,
         "y": 722
       },
-      "path": "/d/pkda_2_NWi"
+      "path": "/d/7iRjImnW2Q"
     },
     {
       "kind": "approach",
@@ -97,17 +97,17 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/pkda_2_NWi"
+      "path": "/d/7iRjImnW2Q"
     },
     {
       "kind": "outcome",
       "file": "06.webp",
-      "caption": "The AI is working — the bar pulses while it edits.",
+      "caption": "The AI is working, the bar pulses while it edits.",
       "cursor": {
         "x": 1000,
         "y": 722
       },
-      "path": "/d/pkda_2_NWi"
+      "path": "/d/7iRjImnW2Q"
     },
     {
       "kind": "chapter",
@@ -116,13 +116,13 @@
     },
     {
       "kind": "narration",
-      "text": "When the AI is done, the bar fades back to its idle state. The AI's edits are now part of your document — undo them with Cmd / Ctrl + Z if you don't like what it wrote, or iterate by sending another prompt that builds on its work.",
+      "text": "When the AI is done, the bar fades back to its idle state. The AI's edits are now part of your document, undo them with Cmd / Ctrl + Z if you don't like what it wrote, or iterate by sending another prompt that builds on its work.",
       "file": "07.webp",
       "cursor": {
         "x": 1000,
         "y": 722
       },
-      "path": "/d/pkda_2_NWi"
+      "path": "/d/7iRjImnW2Q"
     },
     {
       "kind": "outcome",
@@ -132,7 +132,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/pkda_2_NWi",
+      "path": "/d/7iRjImnW2Q",
       "highlights": [
         {
           "label": "The new section",
@@ -147,6 +147,6 @@
   ],
   "next": {
     "slug": "summon-ai-from-a-comment",
-    "why": "Ask the AI about a specific passage — tag @markoto in a comment"
+    "why": "Ask the AI about a specific passage, tag @markoto in a comment"
   }
 }

@@ -16,20 +16,20 @@
     },
     {
       "kind": "narration",
-      "text": "Anyone can write on markoto without an account, and markoto does not check what people write. If a link you were sent contains a scam, illegal content or spam, you can report it — no account needed.",
+      "text": "Anyone can write on markoto without an account, and markoto does not check what people write. If a link you were sent contains a scam, illegal content or spam, you can report it, no account needed.",
       "file": "01.webp",
       "cursor": {
         "x": 640,
         "y": 24
       },
-      "path": "/d/jM_Cnp-H_n"
+      "path": "/d/t_yeSHW_EI"
     },
     {
       "kind": "outcome",
       "file": "02.webp",
       "caption": "Documents written without an account carry a note at the top: a markoto user wrote this, not markoto.",
       "cursor": null,
-      "path": "/d/jM_Cnp-H_n",
+      "path": "/d/t_yeSHW_EI",
       "highlights": [
         {
           "label": "Written by a user",
@@ -49,7 +49,7 @@
         "x": 454,
         "y": 89
       },
-      "path": "/d/jM_Cnp-H_n",
+      "path": "/d/t_yeSHW_EI",
       "actor": "visitor"
     },
     {
@@ -60,7 +60,7 @@
         "x": 454,
         "y": 89
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/jM_Cnp-H_n",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/t_yeSHW_EI",
       "actor": "visitor"
     },
     {
@@ -73,7 +73,7 @@
       "text": "Explain why the content is illegal or breaks the rules, and leave your name and email so markoto can confirm your report and tell you what it decided. For reports of child sexual abuse material, name and email are optional.",
       "file": "04.webp",
       "cursor": null,
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/jM_Cnp-H_n",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/t_yeSHW_EI",
       "actor": "visitor"
     },
     {
@@ -84,7 +84,7 @@
         "x": 342,
         "y": 503
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/jM_Cnp-H_n",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/t_yeSHW_EI",
       "actor": "visitor"
     },
     {
@@ -95,7 +95,7 @@
         "x": 342,
         "y": 503
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/jM_Cnp-H_n",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/t_yeSHW_EI",
       "actor": "visitor"
     },
     {
@@ -106,7 +106,7 @@
         "x": 342,
         "y": 687
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/jM_Cnp-H_n",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/t_yeSHW_EI",
       "actor": "visitor"
     },
     {
@@ -117,7 +117,7 @@
         "x": 342,
         "y": 687
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/jM_Cnp-H_n",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/t_yeSHW_EI",
       "actor": "visitor"
     },
     {
@@ -128,7 +128,7 @@
         "x": 662,
         "y": 687
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/jM_Cnp-H_n",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/t_yeSHW_EI",
       "actor": "visitor"
     },
     {
@@ -139,7 +139,7 @@
         "x": 662,
         "y": 687
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/jM_Cnp-H_n",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/t_yeSHW_EI",
       "actor": "visitor"
     },
     {
@@ -150,18 +150,18 @@
         "x": 336,
         "y": 732
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/jM_Cnp-H_n",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/t_yeSHW_EI",
       "actor": "visitor"
     },
     {
       "kind": "outcome",
       "file": "11.webp",
-      "caption": "Confirmed. A bot check runs in your browser meanwhile — no account, no tracking.",
+      "caption": "Confirmed. A bot check runs in your browser meanwhile, no account, no tracking.",
       "cursor": {
         "x": 336,
         "y": 732
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/jM_Cnp-H_n",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/t_yeSHW_EI",
       "actor": "visitor"
     },
     {
@@ -172,7 +172,7 @@
         "x": 885,
         "y": 419
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/jM_Cnp-H_n",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/t_yeSHW_EI",
       "actor": "visitor"
     },
     {
@@ -183,7 +183,7 @@
         "x": 885,
         "y": 419
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/jM_Cnp-H_n",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/t_yeSHW_EI",
       "hero": true,
       "actor": "visitor"
     }
