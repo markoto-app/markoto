@@ -6,13 +6,15 @@ import { putBytes } from './s3'
 import { buildAllowedOrigins, hostForLog, isAllowedUrl } from './allowlist'
 import { env } from './env'
 import { useLogger } from './logger'
+import { Semaphore } from './semaphore'
 
 const log = useLogger('render')
 
 // One persistent browser, page-pool of POOL_SIZE. New BrowserContext per
 // render isolates cookies / storage between docs. The pool is a simple
-// semaphore: counter goes down when a context is acquired, back up on
-// release. POOL_WAIT_MS bounds how long we'll queue before 503-ing.
+// semaphore (./semaphore.ts): a slot is taken per render and handed to
+// the next queued render or back to the pool when it ends. POOL_WAIT_MS
+// bounds how long a render queues before the renderer answers 503.
 //
 // Sizing: ~80MB/context × 5 = 400MB peak + ~250MB Chromium baseline =
 // ~650MB worst case, well under the renderer service's mem_limit: 2g
@@ -22,6 +24,12 @@ const log = useLogger('render')
 const POOL_SIZE = 5
 const POOL_WAIT_MS = 30_000
 const RENDER_TIMEOUT_MS = 60_000
+/**
+ * Longest a /render request can legitimately take: a full queue wait plus
+ * the hard render timeout. index.ts keeps idle connections open this long
+ * (plus a margin), so Bun doesn't drop a queued render without an answer.
+ */
+export const MAX_RENDER_REQUEST_MS = POOL_WAIT_MS + RENDER_TIMEOUT_MS
 const NAV_TIMEOUT_MS = 30_000
 const PAGED_READY_TIMEOUT_MS = 45_000
 const MAX_PAGES = 50
@@ -88,42 +96,6 @@ function getBrowser(): Promise<Browser> {
   return browserPromise
 }
 
-// Simple counting semaphore: `permits` tracks free slots; `waiters` are
-// resolvers parked on `acquire()` waiting for one. `release()` either hands
-// a slot to the oldest waiter or bumps the counter.
-class Semaphore {
-  private permits: number
-  private readonly waiters: Array<() => void> = []
-  constructor(initial: number) {
-    this.permits = initial
-  }
-
-  async acquire(timeoutMs: number): Promise<void> {
-    if (this.permits > 0) {
-      this.permits--
-      return
-    }
-    return new Promise<void>((resolve, reject) => {
-      const t = setTimeout(() => {
-        const idx = this.waiters.indexOf(grant)
-        if (idx >= 0) this.waiters.splice(idx, 1)
-        reject(new Error('Pool wait timeout'))
-      }, timeoutMs)
-      const grant = () => {
-        clearTimeout(t)
-        this.permits--
-        resolve()
-      }
-      this.waiters.push(grant)
-    })
-  }
-
-  release(): void {
-    const next = this.waiters.shift()
-    if (next) next()
-    else this.permits++
-  }
-}
 const pool = new Semaphore(POOL_SIZE)
 
 /** A published page's snapshot can't exceed this (the app checks again). */
