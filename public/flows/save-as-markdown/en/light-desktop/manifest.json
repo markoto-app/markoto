@@ -22,7 +22,7 @@
         "x": 640,
         "y": 24
       },
-      "path": "/d/ISzEv_xWo7"
+      "path": "/d/wlqUTbad35"
     },
     {
       "kind": "approach",
@@ -32,17 +32,17 @@
         "x": 28,
         "y": 63
       },
-      "path": "/d/ISzEv_xWo7"
+      "path": "/d/wlqUTbad35"
     },
     {
       "kind": "outcome",
       "file": "03.webp",
-      "caption": "The File menu opens — Export sits between Import and Print.",
+      "caption": "The File menu opens, Export sits between Import and Print.",
       "cursor": {
         "x": 28,
         "y": 63
       },
-      "path": "/d/ISzEv_xWo7"
+      "path": "/d/wlqUTbad35"
     },
     {
       "kind": "approach",
@@ -52,7 +52,7 @@
         "x": 94,
         "y": 169
       },
-      "path": "/d/ISzEv_xWo7"
+      "path": "/d/wlqUTbad35"
     },
     {
       "kind": "approach",
@@ -62,7 +62,7 @@
         "x": 259,
         "y": 169
       },
-      "path": "/d/ISzEv_xWo7"
+      "path": "/d/wlqUTbad35"
     },
     {
       "kind": "outcome",
@@ -72,7 +72,7 @@
         "x": 259,
         "y": 169
       },
-      "path": "/d/ISzEv_xWo7"
+      "path": "/d/wlqUTbad35"
     },
     {
       "kind": "chapter",
@@ -91,6 +91,6 @@
   ],
   "next": {
     "slug": "polished-pdf",
-    "why": "Or download a styled PDF instead — same File menu, different format"
+    "why": "Or download a styled PDF instead, same File menu, different format"
   }
 }

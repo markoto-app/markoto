@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/namodqEAva"
+      "path": "/d/5BuiydRCK0"
     },
     {
       "kind": "chapter",
@@ -37,7 +37,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/namodqEAva"
+      "path": "/d/5BuiydRCK0"
     },
     {
       "kind": "outcome",
@@ -47,7 +47,7 @@
         "x": 19,
         "y": 383
       },
-      "path": "/d/namodqEAva"
+      "path": "/d/5BuiydRCK0"
     },
     {
       "kind": "outcome",
@@ -57,7 +57,7 @@
         "x": 19,
         "y": 383
       },
-      "path": "/d/namodqEAva"
+      "path": "/d/5BuiydRCK0"
     },
     {
       "kind": "chapter",
@@ -72,7 +72,7 @@
         "x": 1234,
         "y": 98
       },
-      "path": "/d/namodqEAva"
+      "path": "/d/5BuiydRCK0"
     },
     {
       "kind": "outcome",
@@ -82,7 +82,7 @@
         "x": 1234,
         "y": 98
       },
-      "path": "/d/namodqEAva"
+      "path": "/d/5BuiydRCK0"
     },
     {
       "kind": "chapter",
@@ -97,7 +97,7 @@
         "x": 1234,
         "y": 98
       },
-      "path": "/d/namodqEAva"
+      "path": "/d/5BuiydRCK0"
     },
     {
       "kind": "approach",
@@ -107,7 +107,7 @@
         "x": 1225,
         "y": 295
       },
-      "path": "/d/namodqEAva"
+      "path": "/d/5BuiydRCK0"
     },
     {
       "kind": "outcome",
@@ -117,7 +117,7 @@
         "x": 1225,
         "y": 295
       },
-      "path": "/d/namodqEAva"
+      "path": "/d/5BuiydRCK0"
     },
     {
       "kind": "approach",
@@ -125,9 +125,9 @@
       "caption": "Click Restore in the confirmation",
       "cursor": {
         "x": 824,
-        "y": 495
+        "y": 485
       },
-      "path": "/d/namodqEAva"
+      "path": "/d/5BuiydRCK0"
     },
     {
       "kind": "outcome",
@@ -135,9 +135,9 @@
       "caption": "The announcement is back, release date included. Only the mistake is gone.",
       "cursor": {
         "x": 824,
-        "y": 495
+        "y": 485
       },
-      "path": "/d/namodqEAva",
+      "path": "/d/5BuiydRCK0",
       "hero": true
     }
   ],

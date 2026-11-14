@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/fGXlFi2zVE"
+      "path": "/d/qzPhKz9V5w"
     },
     {
       "kind": "approach",
@@ -32,17 +32,17 @@
         "x": 618,
         "y": 722
       },
-      "path": "/d/fGXlFi2zVE"
+      "path": "/d/qzPhKz9V5w"
     },
     {
       "kind": "outcome",
       "file": "03.webp",
-      "caption": "The prompt bar lifts and glows — ready for your prompt.",
+      "caption": "The prompt bar lifts and glows, ready for your prompt.",
       "cursor": {
         "x": 618,
         "y": 722
       },
-      "path": "/d/fGXlFi2zVE"
+      "path": "/d/qzPhKz9V5w"
     },
     {
       "kind": "approach",
@@ -52,7 +52,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/fGXlFi2zVE"
+      "path": "/d/qzPhKz9V5w"
     },
     {
       "kind": "outcome",
@@ -62,7 +62,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/fGXlFi2zVE"
+      "path": "/d/qzPhKz9V5w"
     },
     {
       "kind": "approach",
@@ -72,17 +72,17 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/fGXlFi2zVE"
+      "path": "/d/qzPhKz9V5w"
     },
     {
       "kind": "outcome",
       "file": "06.webp",
-      "caption": "The AI is working — it draws the image, then places it in the document.",
+      "caption": "The AI is working, it draws the image, then places it in the document.",
       "cursor": {
         "x": 1000,
         "y": 722
       },
-      "path": "/d/fGXlFi2zVE"
+      "path": "/d/qzPhKz9V5w"
     },
     {
       "kind": "outcome",
@@ -92,12 +92,12 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/fGXlFi2zVE",
+      "path": "/d/qzPhKz9V5w",
       "highlights": [
         {
           "label": "The image in your text",
           "x": 24.75,
-          "y": 209.75,
+          "y": 234.5,
           "w": 590,
           "h": 49.5
         }
@@ -107,6 +107,6 @@
   ],
   "next": {
     "slug": "rich-content",
-    "why": "More markdown extensions — code, alerts, math, diagrams"
+    "why": "More markdown extensions, code, alerts, math, diagrams"
   }
 }

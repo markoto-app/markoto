@@ -17,7 +17,7 @@
         "x": 19,
         "y": 383
       },
-      "path": "/d/mQYZ9F1NWM"
+      "path": "/d/mxFhzuTTMA"
     },
     {
       "kind": "chapter",
@@ -26,13 +26,13 @@
     },
     {
       "kind": "narration",
-      "text": "Every time someone posts, replies, resolves, or deletes a comment, markoto keeps a snapshot of that thread in the Activity log. Click the row in Activity and the drawer expands showing the thread the way it looked at that exact moment — parent, replies, resolution state, all preserved for as long as the doc lives.",
+      "text": "Every time someone posts, replies, resolves, or deletes a comment, markoto keeps a snapshot of that thread in the Activity log. Click the row in Activity and the drawer expands showing the thread the way it looked at that exact moment, parent, replies, resolution state, all preserved for as long as the doc lives.",
       "file": "02.webp",
       "cursor": {
         "x": 1067,
         "y": 313
       },
-      "path": "/d/mQYZ9F1NWM"
+      "path": "/d/mxFhzuTTMA"
     },
     {
       "kind": "approach",
@@ -42,7 +42,7 @@
         "x": 1234,
         "y": 98
       },
-      "path": "/d/mQYZ9F1NWM",
+      "path": "/d/mxFhzuTTMA",
       "annotations": [
         {
           "label": "Activity tab",
@@ -57,12 +57,12 @@
     {
       "kind": "outcome",
       "file": "04.webp",
-      "caption": "The Activity feed opens — one row per edit, comment, restore.",
+      "caption": "The Activity feed opens, one row per edit, comment, restore.",
       "cursor": {
         "x": 1234,
         "y": 98
       },
-      "path": "/d/mQYZ9F1NWM"
+      "path": "/d/mxFhzuTTMA"
     },
     {
       "kind": "chapter",
@@ -71,13 +71,13 @@
     },
     {
       "kind": "narration",
-      "text": "Comment rows in the feed carry a chevron — click to expand. The thread appears inline, exactly as it was at that moment. No modal, no navigation; the editor stays in place.",
+      "text": "Comment rows in the feed carry a chevron, click to expand. The thread appears inline, exactly as it was at that moment. No modal, no navigation; the editor stays in place.",
       "file": "04.webp",
       "cursor": {
         "x": 1234,
         "y": 98
       },
-      "path": "/d/mQYZ9F1NWM"
+      "path": "/d/mxFhzuTTMA"
     },
     {
       "kind": "approach",
@@ -87,17 +87,17 @@
         "x": 1120,
         "y": 290
       },
-      "path": "/d/mQYZ9F1NWM"
+      "path": "/d/mxFhzuTTMA"
     },
     {
       "kind": "outcome",
       "file": "06.webp",
-      "caption": "The comment-context drawer expands — parent body, replies (none yet), resolution state. Anyone reviewing the audit can see this thread the way it looked then.",
+      "caption": "The comment-context drawer expands, parent body, replies (none yet), resolution state. Anyone reviewing the audit can see this thread the way it looked then.",
       "cursor": {
         "x": 1120,
         "y": 290
       },
-      "path": "/d/mQYZ9F1NWM",
+      "path": "/d/mxFhzuTTMA",
       "hero": true
     }
   ],

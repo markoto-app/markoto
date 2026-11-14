@@ -16,13 +16,13 @@
     },
     {
       "kind": "narration",
-      "text": "Plain markdown gets you headings, lists, and links. markoto extends that with the things people actually need to publish real documents — syntax-highlighted code, math, GitHub-style alert callouts, and eight kinds of Mermaid diagram. Everything renders in the live preview and survives PDF export.",
+      "text": "Plain markdown gets you headings, lists, and links. markoto extends that with the things people actually need to publish real documents: syntax-highlighted code, math, GitHub-style alert callouts, and eight kinds of Mermaid diagram. Everything renders in the live preview and survives PDF export.",
       "file": "01.webp",
       "cursor": {
         "x": 640,
         "y": 26
       },
-      "path": "/d/cx4NiG5e_H"
+      "path": "/d/EUrxcumRiz"
     },
     {
       "kind": "chapter",
@@ -31,13 +31,13 @@
     },
     {
       "kind": "narration",
-      "text": "Code blocks pick up syntax highlighting from the language hint, so a Python fence renders the keywords and strings the way readers expect — in the preview and in the PDF.",
+      "text": "Code blocks pick up syntax highlighting from the language hint, so a Python fence renders the keywords and strings the way readers expect: in the preview and in the PDF.",
       "file": "01.webp",
       "cursor": {
         "x": 640,
         "y": 26
       },
-      "path": "/d/cx4NiG5e_H"
+      "path": "/d/EUrxcumRiz"
     },
     {
       "kind": "approach",
@@ -47,7 +47,7 @@
         "x": 173,
         "y": 67
       },
-      "path": "/d/cx4NiG5e_H",
+      "path": "/d/EUrxcumRiz",
       "annotations": [
         {
           "label": "insert menu",
@@ -62,12 +62,12 @@
     {
       "kind": "outcome",
       "file": "03.webp",
-      "caption": "The Insert menu opens — code, alerts, math, diagrams, and more.",
+      "caption": "The Insert menu opens, code, alerts, math, diagrams, and more.",
       "cursor": {
         "x": 173,
         "y": 67
       },
-      "path": "/d/cx4NiG5e_H"
+      "path": "/d/EUrxcumRiz"
     },
     {
       "kind": "approach",
@@ -77,17 +77,17 @@
         "x": 280,
         "y": 214
       },
-      "path": "/d/cx4NiG5e_H"
+      "path": "/d/EUrxcumRiz"
     },
     {
       "kind": "outcome",
       "file": "05.webp",
-      "caption": "A fenced code block lands at the cursor — type a language hint after the opening backticks.",
+      "caption": "A fenced code block lands at the cursor, type a language hint after the opening backticks.",
       "cursor": {
         "x": 280,
         "y": 214
       },
-      "path": "/d/cx4NiG5e_H"
+      "path": "/d/EUrxcumRiz"
     },
     {
       "kind": "chapter",
@@ -96,13 +96,13 @@
     },
     {
       "kind": "narration",
-      "text": "Alerts are GitHub-style callouts — five flavours (Note, Tip, Important, Warning, Caution) each with a coloured stripe and icon in the preview. Useful for marking a callout that should stand out from the surrounding prose.",
+      "text": "Alerts are GitHub-style callouts, five flavours (Note, Tip, Important, Warning, Caution) each with a coloured stripe and icon in the preview. Useful for marking a callout that should stand out from the surrounding prose.",
       "file": "06.webp",
       "cursor": {
         "x": 280,
         "y": 214
       },
-      "path": "/d/cx4NiG5e_H"
+      "path": "/d/EUrxcumRiz"
     },
     {
       "kind": "approach",
@@ -112,7 +112,7 @@
         "x": 173,
         "y": 67
       },
-      "path": "/d/cx4NiG5e_H"
+      "path": "/d/EUrxcumRiz"
     },
     {
       "kind": "approach",
@@ -122,7 +122,7 @@
         "x": 280,
         "y": 479
       },
-      "path": "/d/cx4NiG5e_H",
+      "path": "/d/EUrxcumRiz",
       "annotations": [
         {
           "label": "alert flavours",
@@ -142,17 +142,17 @@
         "x": 480,
         "y": 511
       },
-      "path": "/d/cx4NiG5e_H"
+      "path": "/d/EUrxcumRiz"
     },
     {
       "kind": "outcome",
       "file": "10.webp",
-      "caption": "A Tip alert lands — type the body inside the blockquote.",
+      "caption": "A Tip alert lands, type the body inside the blockquote.",
       "cursor": {
         "x": 480,
         "y": 511
       },
-      "path": "/d/cx4NiG5e_H"
+      "path": "/d/EUrxcumRiz"
     },
     {
       "kind": "chapter",
@@ -161,13 +161,13 @@
     },
     {
       "kind": "narration",
-      "text": "Math is typeset like in a paper — inline with $...$, block with $$...$$. The Insert menu seeds the right delimiters so you don't have to remember which goes where.",
+      "text": "Math is typeset like in a paper, inline with $...$, block with $$...$$. The Insert menu seeds the right delimiters so you don't have to remember which goes where.",
       "file": "11.webp",
       "cursor": {
         "x": 480,
         "y": 511
       },
-      "path": "/d/cx4NiG5e_H"
+      "path": "/d/EUrxcumRiz"
     },
     {
       "kind": "approach",
@@ -177,7 +177,7 @@
         "x": 173,
         "y": 67
       },
-      "path": "/d/cx4NiG5e_H"
+      "path": "/d/EUrxcumRiz"
     },
     {
       "kind": "approach",
@@ -187,7 +187,7 @@
         "x": 280,
         "y": 511
       },
-      "path": "/d/cx4NiG5e_H"
+      "path": "/d/EUrxcumRiz"
     },
     {
       "kind": "approach",
@@ -197,17 +197,17 @@
         "x": 489,
         "y": 543
       },
-      "path": "/d/cx4NiG5e_H"
+      "path": "/d/EUrxcumRiz"
     },
     {
       "kind": "outcome",
       "file": "15.webp",
-      "caption": "A block equation placeholder lands — type the LaTeX inside the $$ fence.",
+      "caption": "A block equation placeholder lands, type the LaTeX inside the $$ fence.",
       "cursor": {
         "x": 489,
         "y": 543
       },
-      "path": "/d/cx4NiG5e_H"
+      "path": "/d/EUrxcumRiz"
     },
     {
       "kind": "chapter",
@@ -216,13 +216,13 @@
     },
     {
       "kind": "narration",
-      "text": "Diagrams use Mermaid — eight diagram kinds (flowchart, sequence, class, ER, Gantt, pie, mind-map, state). The Insert menu seeds a working starter snippet for each so you can edit the labels and see your data render without learning Mermaid's syntax.",
+      "text": "Diagrams use Mermaid: eight diagram kinds (flowchart, sequence, class, ER, Gantt, pie, mind-map, state). The Insert menu seeds a working starter snippet for each so you can edit the labels and see your data render without learning Mermaid's syntax.",
       "file": "16.webp",
       "cursor": {
         "x": 489,
         "y": 543
       },
-      "path": "/d/cx4NiG5e_H"
+      "path": "/d/EUrxcumRiz"
     },
     {
       "kind": "approach",
@@ -232,7 +232,7 @@
         "x": 173,
         "y": 67
       },
-      "path": "/d/cx4NiG5e_H"
+      "path": "/d/EUrxcumRiz"
     },
     {
       "kind": "approach",
@@ -242,7 +242,7 @@
         "x": 280,
         "y": 543
       },
-      "path": "/d/cx4NiG5e_H"
+      "path": "/d/EUrxcumRiz"
     },
     {
       "kind": "approach",
@@ -252,17 +252,17 @@
         "x": 502,
         "y": 735
       },
-      "path": "/d/cx4NiG5e_H"
+      "path": "/d/EUrxcumRiz"
     },
     {
       "kind": "outcome",
       "file": "20.webp",
-      "caption": "A working pie-chart Mermaid snippet lands — edit the slices to your data.",
+      "caption": "A working pie-chart Mermaid snippet lands, edit the slices to your data.",
       "cursor": {
         "x": 502,
         "y": 735
       },
-      "path": "/d/cx4NiG5e_H"
+      "path": "/d/EUrxcumRiz"
     },
     {
       "kind": "chapter",
@@ -277,17 +277,17 @@
         "x": 502,
         "y": 735
       },
-      "path": "/d/cx4NiG5e_H"
+      "path": "/d/EUrxcumRiz"
     },
     {
       "kind": "outcome",
       "file": "20.webp",
-      "caption": "Code block, Tip alert, math equation, pie chart — all in one doc, all rendered live.",
+      "caption": "Code block, Tip alert, math equation, pie chart, all in one doc, all rendered live.",
       "cursor": {
         "x": 502,
         "y": 735
       },
-      "path": "/d/cx4NiG5e_H",
+      "path": "/d/EUrxcumRiz",
       "hero": true
     }
   ],
