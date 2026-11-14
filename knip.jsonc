@@ -39,8 +39,8 @@
         "tests/**/*.{ts,mjs}",
         "*.{ts,mjs}"
       ],
-      // all three playwright configs (flows at the root, smoke, tour capture)
-      "playwright": { "config": ["playwright.config.ts", "tests/smoke/playwright.config.ts", "tests/e2e/tour/playwright.config.ts"] },
+      // all four playwright configs (flows at the root, smoke, tour + demo-video capture)
+      "playwright": { "config": ["playwright.config.ts", "tests/smoke/playwright.config.ts", "tests/e2e/tour/playwright.config.ts", "tests/e2e/demo-video/playwright.config.ts"] },
       "ignoreDependencies": [
         // Vendored assets: modules/vendor-assets.ts + scripts/lib/vendorAssets.ts
         // read files out of node_modules by path (fonts, pagedjs, mermaid IIFE

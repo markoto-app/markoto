@@ -68,6 +68,7 @@
     "flows:up": "bash scripts/test-compose.sh --profile flows up -d --wait",
     "flows:down": "bash scripts/test-compose.sh --profile flows down -v",
     "tour:capture": "bun scripts/capture-tour.ts",
+    "demo:video": "bun scripts/demo-video/build.ts",
     "typecheck:tests": "vue-tsc --noEmit -p tsconfig.tests.json",
     "typecheck:scripts": "vue-tsc --noEmit -p tsconfig.scripts.json",
     "knip": "knip --no-progress",

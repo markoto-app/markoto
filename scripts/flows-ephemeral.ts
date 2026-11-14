@@ -327,7 +327,14 @@ async function serveOnly() {
   let phase = DEFAULT_PHASE
   if (process.env.FLOWS_BILLING === 'on') phase = BILLING_PHASE
   else if (process.env.FLOWS_MARKETING === 'on') phase = MARKETING_PHASE
-  await startNuxt(phase.env)
+  // FLOWS_HOSTED_AI=1: AI as on markoto.app, a chat default only (no
+  // instance image / transcription default). The product-tour and demo-video
+  // captures need it: with platform-paid defaults the editor shows an
+  // AI-points meter to a user on their own key, which markoto.app doesn't.
+  const hostedAi: Record<string, string> = process.env.FLOWS_HOSTED_AI === '1'
+    ? { NUXT_AI_DEFAULT_IMAGE_MODEL: '', NUXT_AI_DEFAULT_TRANSCRIBE_MODEL: '' }
+    : {}
+  await startNuxt({ ...phase.env, ...hostedAi })
   console.log(`[flows-ephemeral] FLOWS_SERVE_ONLY=1: app up at ${NUXT_URL} (${phase.name}). Ctrl-C to tear down.`)
   await new Promise(() => {}) // wait forever; cleanup runs on SIGINT/SIGTERM
 }

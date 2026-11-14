@@ -21,6 +21,11 @@ function expectNumbersFrom(added: string, sources: string[]): void {
   expect(missing, `numbers not found in the sources:\n${added}`).toEqual([])
 }
 
+/** The footage shows the AI's text: no em-dash (U+2014), as everywhere in markoto's own copy. Retake instead. */
+function expectNoEmDash(added: string): void {
+  expect(added, 'the AI wrote an em-dash; record the scene again').not.toMatch(/\u2014/)
+}
+
 test('Tour: AI in the document', async ({ page, editor, tour }) => {
   requireLiveAi()
   test.setTimeout(600_000)
@@ -50,6 +55,7 @@ test('Tour: AI in the document', async ({ page, editor, tour }) => {
   const added = await editor.page.addedText(before)
   console.log(`[tour:ai] added text:\n${added}`)
   for (const fact of demo.aiMustMention) expect(added).toMatch(fact)
+  expectNoEmDash(added)
   // The title line stays as it was; the summary goes below it.
   expect((await editor.page.docText()).split('\n')[0]).toBe(`# ${demo.title}`)
   expectNumbersFrom(added, [demo.aiDescription, demo.markdown])
@@ -126,6 +132,7 @@ test('Tour: answers from your own files', async ({ page, editor, tour }) => {
   const quoted = knowledgeFile.facts.filter(f => f.test(added))
   expect(quoted.length, `the answer must quote the memo's figures, got:\n${added}`).toBeGreaterThanOrEqual(3)
   expect(added).toMatch(/memo|carrier/i)
+  expectNoEmDash(added)
   expectNumbersFrom(added, [fs.readFileSync(path.resolve(knowledgeFile.path), 'utf8'), knowledgeFile.docBody, knowledgeFile.prompt])
   await page.frameLocator('iframe').first().locator('#mount').evaluate((mount: HTMLElement) => {
     const ps = mount.querySelectorAll('p')

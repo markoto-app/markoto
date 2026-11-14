@@ -38,7 +38,7 @@ export const demoDocument = {
   commentAnchor: 'Q3 2026 was the quarter in which Quaybridge turned',
   collaboratorComment: 'Should we put the guidance raise into this first paragraph? The board will look for it.',
   /** An imperative, neutral prompt that edits the document. */
-  aiPrompt: 'Write the executive summary for this quarter below the title, with a table of the key figures.',
+  aiPrompt: 'Write the executive summary for this quarter below the title, under an Executive summary heading, with a table of the key figures (n/a where a change does not apply).',
   /** The document description (document context the AI reads with every prompt): the facts it may use. */
   aiDescription: 'Quaybridge Software GmbH, Q3 2026 quarterly report. Key figures, Q3 2026 vs Q3 2025: revenue EUR 6.51 m vs 5.28 m (+23.3%); ARR EUR 21.3 m vs 17.1 m (+24.6%); EBITDA EUR 0.13 m vs -0.47 m, the first positive quarter; gross margin 73.1% vs 68.4% (+4.7 pp); customers 322 vs 268 (+20.1%). Use only these figures; add no reasons, plans or other claims.',
   /** Text the AI's edit must contain. Its numbers are also checked against the prompt + report. */
@@ -56,7 +56,7 @@ export const knowledgeFile = {
   workspace: 'Quaybridge finance',
   docTitle: 'Carrier network: board notes',
   docBody: '# Carrier network: board notes\n\nNotes for the November board meeting.\n',
-  prompt: 'Add a paragraph on what the carrier memo says about no-shows and waiting times.',
+  prompt: 'Using the carrier memo in our knowledge base, add a paragraph on what it says about no-shows and waiting times.',
   /** Figures only the memo contains — the answer must quote at least three. */
   facts: [/7[.,]9\s?%/, /11[.,]2\s?%/, /28\s?min/i, /41\s?min/i, /1[,.\s]?150/]
 }
