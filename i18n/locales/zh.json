@@ -2772,5 +2772,16 @@
       "next": "下一页"
     },
     "onThisPage": "本页内容"
+  },
+  "demo": {
+    "title": "演示视频",
+    "metaDescription": "两分钟了解 markoto：带实时分页预览的 Markdown、主题、与你一起写作的 AI、实时协作、历史记录和 PDF 导出。",
+    "eyebrow": "演示 · {n} 分钟",
+    "heading": "两分钟了解 markoto。",
+    "videoLabel": "markoto 演示视频",
+    "download": "下载视频（MP4）",
+    "home": "返回首页",
+    "source": "GitHub 上的源代码",
+    "captionsLabel": "英语（屏幕文字）"
   }
 }

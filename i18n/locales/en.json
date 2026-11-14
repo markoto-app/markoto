@@ -2772,5 +2772,16 @@
       "next": "next"
     },
     "onThisPage": "On this page"
+  },
+  "demo": {
+    "title": "Demo video",
+    "metaDescription": "markoto in two minutes: Markdown with a live paged preview, themes, an AI that edits with you, live collaboration, history and PDF export.",
+    "eyebrow": "Demo · {n} min",
+    "heading": "markoto in two minutes.",
+    "videoLabel": "markoto demo video",
+    "download": "Download the video (MP4)",
+    "home": "Back to the home page",
+    "source": "Source on GitHub",
+    "captionsLabel": "English (on-screen text)"
   }
 }
