@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { workspaceRoleKey } from '~/utils/workspace/roleLabel'
 import type { WorkspaceMember } from './WorkspaceMemberAvatars.vue'
 import type { WorkspaceSeatBilling } from '~/utils/billing/workspaceBilling'
 import { formatPrice } from '~/utils/billing/pricing'
@@ -116,10 +117,7 @@ function isSoleAdmin(m: WorkspaceMember) {
 }
 
 function roleLabel(role: WorkspaceMember['role']) {
-  if (role === 'admin') return t('workspace.roles.admin')
-  if (role === 'editor') return t('workspace.roles.editor')
-  if (role === 'guest') return t('workspace.roles.guest')
-  return t('workspace.roles.viewer')
+  return t(workspaceRoleKey(role))
 }
 
 // "This adds a seat": an invite into a workspace whose paid seats
