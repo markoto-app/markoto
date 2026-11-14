@@ -22,6 +22,8 @@ registerEndpoint('/api/workspaces/ws1/billing', () => overview)
 
 const posts: Array<{ path: string, body: unknown }> = []
 let memberPostFails = 0
+/** What the server does to the overview when a change is posted (the next GET returns it). */
+let afterPost: ((path: string, body: unknown) => void) | null = null
 async function readJson(event: H3Event) {
   const { readBody } = await import('h3')
   return readBody(event)
@@ -30,7 +32,9 @@ for (const path of ['checkout', 'seats', 'portal']) {
   registerEndpoint(`/api/workspaces/ws1/billing/${path}`, {
     method: 'POST',
     handler: async (event) => {
-      posts.push({ path, body: await readJson(event) })
+      const body = await readJson(event)
+      posts.push({ path, body })
+      afterPost?.(path, body)
       return path === 'checkout' ? { url: 'https://checkout.stripe.test/s/1' } : path === 'portal' ? { url: 'https://portal.stripe.test' } : { seats: 9 }
     }
   })
@@ -63,6 +67,7 @@ mockNuxtImport('goToExternal', () => goToExternal)
 
 beforeEach(() => {
   posts.length = 0
+  afterPost = null
   memberPostFails = 0
   goToExternal.mockReset()
   overview = {
@@ -121,7 +126,7 @@ describe('workspace billing tab: subscription', () => {
   beforeEach(() => {
     overview.subscription = {
       plan: 'team', seats: 5, status: 'active', entitled: true, interval: 'month', currency: 'eur',
-      currentPeriodStart: '2027-01-01T00:00:00Z', validUntil: '2027-02-01T00:00:00Z', billingAdminId: 1
+      currentPeriodStart: '2027-01-01T00:00:00Z', validUntil: '2027-02-01T00:00:00Z', cancelAt: null, billingAdminId: 1
     }
     overview.pool = { aiBudgetUsd: 25, aiSpendUsd: 3.2, defaultMemberLimitUsd: 10, knowledgeBytes: 5 * 2 ** 30 * 5, imageBytes: 10 * 2 ** 30 * 5, resetsAt: null }
     overview.members[0]!.limitUsd = 10
@@ -145,13 +150,76 @@ describe('workspace billing tab: subscription', () => {
     expect(wrapper.find('[data-testid="workspace-billing-payment-problem"]').exists()).toBe(true)
   })
 
-  it('switching to annual keeps the plan', async () => {
-    const wrapper = await mountPanel()
+  async function acceptTermsAndClick(wrapper: Wrapper, testid: string) {
     await wrapper.get('[data-testid="workspace-billing-switch-paid-terms"] [role="checkbox"]').trigger('click')
     await flushPromises()
+    await wrapper.get(`[data-testid="${testid}"]`).trigger('click')
+    await flushPromises()
+  }
+
+  it('switching to annual sends only the billing period, so the server keeps the plan', async () => {
+    const wrapper = await mountPanel()
+    await acceptTermsAndClick(wrapper, 'workspace-billing-switch-interval')
+    expect(posts.find(p => p.path === 'checkout')?.body).toEqual({ interval: 'year', acceptPaidTerms: true })
+  })
+
+  it('switching the plan sends only the plan, so the server keeps the billing period', async () => {
+    const wrapper = await mountPanel()
+    await acceptTermsAndClick(wrapper, 'workspace-billing-switch-plan')
+    expect(posts.find(p => p.path === 'checkout')?.body).toEqual({ plan: 'business', acceptPaidTerms: true })
+  })
+
+  it('shows the new plan and billing period right after a switch, without a reload', async () => {
+    afterPost = (path, body) => {
+      if (path !== 'checkout') return
+      const change = body as { plan?: 'team' | 'business', interval?: 'month' | 'year' }
+      overview.subscription = { ...overview.subscription!, ...(change.plan ? { plan: change.plan } : {}), ...(change.interval ? { interval: change.interval } : {}) }
+    }
+    const wrapper = await mountPanel()
+    const planName = () => wrapper.find('[data-testid="workspace-billing-plan-name"]').text()
+    expect(planName()).toContain('Team')
+    expect(planName()).toContain('monthly')
+
+    await acceptTermsAndClick(wrapper, 'workspace-billing-switch-plan')
+    await vi.waitFor(() => expect(planName()).toContain('Business'))
+    expect(wrapper.get('[data-testid="workspace-billing-switch-plan"]').text()).toContain('Team')
+    expect(wrapper.emitted('changed')).toHaveLength(1)
+
     await wrapper.get('[data-testid="workspace-billing-switch-interval"]').trigger('click')
     await flushPromises()
-    expect(posts.find(p => p.path === 'checkout')?.body).toEqual({ plan: 'team', interval: 'year', currency: 'eur', acceptPaidTerms: true })
+    await vi.waitFor(() => expect(planName()).toContain('annual'))
+    expect(planName()).toContain('Business')
+    expect(wrapper.get('[data-testid="workspace-billing-switch-interval"]').text()).toContain('monthly')
+    // The second switch named only the period: Business stays Business.
+    expect(posts.filter(p => p.path === 'checkout').map(p => p.body)).toEqual([
+      { plan: 'business', acceptPaidTerms: true },
+      { interval: 'year', acceptPaidTerms: true }
+    ])
+  })
+
+  it('shows the new seat count right after a seat change', async () => {
+    afterPost = (path, body) => {
+      if (path === 'seats') overview.subscription = { ...overview.subscription!, seats: (body as { seats: number }).seats }
+    }
+    const wrapper = await mountPanel()
+    const vm = wrapper.vm as unknown as { seatsDraft: number }
+    vm.seatsDraft = 9
+    await flushPromises()
+    await wrapper.get('[data-testid="workspace-billing-save-seats"]').trigger('click')
+    await flushPromises()
+    await vi.waitFor(() => expect(wrapper.find('[data-testid="workspace-billing-subscription"]').text()).toContain('4 of 9 seats used'))
+    expect(wrapper.emitted('changed')).toHaveLength(1)
+  })
+
+  it('a renewing subscription says when it renews, a cancelled one when it ends', async () => {
+    const renewing = await mountPanel()
+    expect(renewing.find('[data-testid="workspace-billing-renews"]').text()).toContain('Renews on')
+    expect(renewing.find('[data-testid="workspace-billing-ends"]').exists()).toBe(false)
+
+    overview.subscription!.cancelAt = '2027-02-01T00:00:00Z'
+    const ending = await mountPanel()
+    expect(ending.find('[data-testid="workspace-billing-ends"]').text()).toContain('Ends on')
+    expect(ending.find('[data-testid="workspace-billing-renews"]').exists()).toBe(false)
   })
 
   it('saves "no limit" for a member as limitUsd: null', async () => {

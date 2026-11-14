@@ -6,8 +6,12 @@ import { startWorkspaceCheckout } from '../../../../utils/billing/workspaceCheck
 // workspace, or change the plan / billing period of its live subscription
 // Workspace admins only; the caller becomes the billing admin.
 //
-// Body: {plan: 'team'|'business', interval?: 'month'|'year',
+// Body: {plan?: 'team'|'business', interval?: 'month'|'year',
 //        currency?: 'eur'|'chf', seats: ≥ 3 (and ≥ members + open invites)}
+// A change of a live subscription sends only what changes: the plan OR
+// the billing period; the other one stays as the subscription has it.
+// A new subscription needs `plan` (400 `request/invalid`) and is monthly
+// unless `interval` says otherwise.
 //
 //   - no live subscription → Stripe Checkout (`mode: subscription`,
 //     quantity = seats, adjustable on the Stripe page) on the workspace's
@@ -15,7 +19,7 @@ import { startWorkspaceCheckout } from '../../../../utils/billing/workspaceCheck
 //     `{url, sessionId}`. The webhook writes plan / seats / status.
 //   - live subscription → in-place price swap (Team ↔ Business, monthly ↔
 //     annual), quantity kept (seat changes: `/billing/seats`) →
-//     `{updated: true, plan}`; same price → 409.
+//     `{updated: true, plan, interval}`; same price → 409.
 // A workspace keeps one currency (its Stripe customer's): 409
 // `billing/currency-locked` for the other. The purchase itself:
 // `utils/billing/workspaceCheckout.ts`.

@@ -863,7 +863,8 @@
     "seatTotalMonth": "{seats} 席で月額 {total}",
     "seatTotalYear": "{seats} 席で年額 {total}",
     "seatsLabel": "席数",
-    "creditsSection": "AI クレジットは Pro と Team / Business ワークスペースの月間 AI 予算を補います。その月の予算を使い切ってから使われ、購入から {months} か月後に失効します。"
+    "creditsSection": "AI クレジットは Pro と Team / Business ワークスペースの月間 AI 予算を補います。その月の予算を使い切ってから使われ、購入から {months} か月後に失効します。",
+    "creditsBuyLink": "プロフィールで AI クレジットを購入"
   },
   "topbar": {
     "planBadge": "プラン：{plan}",
@@ -871,6 +872,8 @@
     "creditsRemaining": "残り {remaining} / {limit} ポイント",
     "creditsPercent": "残り{pct}%",
     "creditsResetOn": "{date}にリセット",
+    "creditsExtra": "+ {points} ポイント（AI クレジット）",
+    "creditsWorkspace": "このドキュメントの AI はワークスペースの予算を使います。",
     "creditsHint": "AI ポイントはインスタンスが費用を負担する AI に使われます：1000 ポイント = モデル利用料 1 ドル。",
     "upgradeToPlan": "{plan}にアップグレード",
     "topPlan": "最上位プランをご利用中です。",
@@ -1514,6 +1517,7 @@
       "annual": "年払い",
       "monthly": "月払い",
       "renews": "{date} に更新",
+      "ends": "{date} に終了",
       "manage": "請求を管理",
       "seatCounter": "{seats} 席中 {used} 席を使用中",
       "updateSeats": "席数を変更",

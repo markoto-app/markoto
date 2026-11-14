@@ -1,6 +1,9 @@
 <script setup lang="ts">
-// Topbar usage badge. Shows the caller's plan name + a percentage bar
-// of remaining AI credits in the current billing period. Colours:
+// Topbar usage badge. Shows the plan name + a percentage bar of the AI
+// points left in the current billing period, for the budget that pays
+// where the user is (their own, or the workspace's inside a document of
+// a Team / Business workspace). The bar measures the plan's monthly
+// budget; bought AI credits are listed below it. Colours:
 //   ≥25% remaining → green
 //   10-25%         → orange
 //   <10%           → red
@@ -26,7 +29,11 @@ import { useAiCredits } from '~/composables/ai/useAiCredits'
 const { t, locale } = useI18n()
 const router = useRouter()
 const { billing, refresh: refreshBilling } = useBilling()
-const { pointsRemaining, pointsTotal, fillRatio, isFreeAllowanceExhausted } = useAiCredits()
+// The budget that pays where the user is: inside a document of a Team /
+// Business workspace that is the workspace's pooled budget (the member's
+// limit), everywhere else the user's own.
+const workspaceContext = useAiWorkspaceContext()
+const { state: credits, planPointsRemaining, pointsTotal, creditPoints, fillRatio, isFreeAllowanceExhausted, isWorkspaceShared } = useAiCredits(workspaceContext)
 const { billingEnabled, plansComingSoon } = useBillingMode()
 // AI Points only measure platform-paid AI (an operator's model-alias
 // defaults). Calls on the user's own key never touch them, so the meter is
@@ -44,7 +51,7 @@ const usesOwnKey = computed(() => {
 const ownProviderOnly = computed(() => !anyPlatformBilled.value && usesOwnKey.value)
 
 const planLabel = computed(() => {
-  const plan = billing.value?.plan ?? 'free'
+  const plan = (isWorkspaceShared.value ? credits.value?.plan : null) ?? billing.value?.plan ?? 'free'
   return plan.charAt(0).toUpperCase() + plan.slice(1)
 })
 
@@ -67,7 +74,7 @@ const barColor = computed(() => {
 // for free users. Deriving locally as `periodStart + 1 month` would be
 // wrong for different month lengths and would miss paid anniversaries.
 const resetDate = computed(() => {
-  const iso = billing.value?.periodEnd
+  const iso = (isWorkspaceShared.value ? credits.value?.periodEnd : null) ?? billing.value?.periodEnd
   if (!iso) return ''
   const end = new Date(iso)
   try {
@@ -84,7 +91,8 @@ const nextPlan = computed((): PlanName | null => {
   const plan = billing.value?.plan ?? 'free'
   return plan === 'free' ? 'pro' : null
 })
-const canUpgrade = computed(() => billingEnabled.value && nextPlan.value !== null)
+// A workspace's budget isn't the member's to upgrade.
+const canUpgrade = computed(() => billingEnabled.value && nextPlan.value !== null && !isWorkspaceShared.value)
 
 const open = ref(false)
 
@@ -200,7 +208,7 @@ function onManage(): void {
         <div>
           <div class="flex items-baseline justify-between text-xs text-muted mb-1">
             <span class="tabular-nums text-default font-medium">
-              {{ pointsRemaining.toLocaleString(locale) }}
+              <span data-testid="usage-badge-points-remaining">{{ planPointsRemaining.toLocaleString(locale) }}</span>
               <span class="text-muted font-normal">/ {{ pointsTotal.toLocaleString(locale) }}</span>
             </span>
             <span class="tabular-nums">{{ pctRemaining }}%</span>
@@ -213,6 +221,22 @@ function onManage(): void {
             />
           </div>
         </div>
+
+        <p
+          v-if="creditPoints > 0"
+          class="text-xs text-muted"
+          data-testid="usage-badge-credit-points"
+        >
+          {{ t('topbar.creditsExtra', { points: creditPoints.toLocaleString(locale) }) }}
+        </p>
+
+        <p
+          v-if="isWorkspaceShared"
+          class="text-xs text-muted leading-relaxed"
+          data-testid="usage-badge-workspace-budget"
+        >
+          {{ t('topbar.creditsWorkspace') }}
+        </p>
 
         <p
           v-if="isFreeAllowanceExhausted"
@@ -262,7 +286,7 @@ function onManage(): void {
             {{ t('topbar.upgradeToPlan', { plan: nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1) }) }}
           </UButton>
           <p
-            v-else-if="billingEnabled"
+            v-else-if="billingEnabled && !isWorkspaceShared"
             class="text-xs text-center text-muted italic"
           >
             {{ t('topbar.topPlan') }}

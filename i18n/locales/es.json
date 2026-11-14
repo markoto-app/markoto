@@ -863,7 +863,8 @@
     "seatTotalMonth": "{total} al mes por {seats} puestos",
     "seatTotalYear": "{total} al año por {seats} puestos",
     "seatsLabel": "Puestos",
-    "creditsSection": "Los créditos de IA amplían el presupuesto mensual de IA de Pro y de los espacios Team / Business. Solo se usan cuando se agota el presupuesto del mes y caducan {months} meses después de la compra."
+    "creditsSection": "Los créditos de IA amplían el presupuesto mensual de IA de Pro y de los espacios Team / Business. Solo se usan cuando se agota el presupuesto del mes y caducan {months} meses después de la compra.",
+    "creditsBuyLink": "Comprar créditos de IA en tu perfil"
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
@@ -871,6 +872,8 @@
     "creditsRemaining": "Quedan {remaining} de {limit} puntos",
     "creditsPercent": "{pct}% restante",
     "creditsResetOn": "Se reinicia el {date}",
+    "creditsExtra": "+ {points} puntos de créditos de IA",
+    "creditsWorkspace": "La IA de este documento usa el presupuesto del espacio de trabajo.",
     "creditsHint": "Los puntos de IA cubren la IA que paga la instancia: 1000 puntos = 1 $ de uso del modelo.",
     "upgradeToPlan": "Mejorar a {plan}",
     "topPlan": "Tienes el plan superior.",
@@ -1514,6 +1517,7 @@
       "annual": "anual",
       "monthly": "mensual",
       "renews": "Se renueva el {date}",
+      "ends": "Finaliza el {date}",
       "manage": "Gestionar facturación",
       "seatCounter": "{used} de {seats} puestos ocupados",
       "updateSeats": "Cambiar puestos",

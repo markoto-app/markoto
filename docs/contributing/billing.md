@@ -59,6 +59,12 @@ Only the subscription a row tracks is applied: a late event about an older or ca
 
 The two plan routes are declarations; the purchase is `startProCheckout` (`server/utils/billing/proCheckout.ts`) and `startWorkspaceCheckout` (`server/utils/billing/workspaceCheckout.ts`): a live subscription has its price swapped in place, otherwise a Checkout Session opens. Stripe Tax fields come from `checkoutTaxFields` (`checkoutSession.ts`).
 
+A change of a live subscription names only what changes: a request without `interval` keeps the subscription's billing period, a workspace request without `plan` keeps its plan (`requestedPlan` reads both from Stripe's own price, then from the stored row). After an in-place swap the route writes the new plan, interval and period to the row itself (`recordWorkspacePlanChange`, `recordOwnPlanChange`), so the page that made the change shows it without waiting for the webhook, which writes the same state again. A Pro subscriber switches between monthly and annual billing on the profile page.
+
+### Cancelled subscriptions
+
+A subscription cancelled in the Stripe portal keeps its plan until the period ends. `subscriptionCancelAt` (`stripeEvents/stripeObjects.ts`) reads that date (`cancel_at`, or the period end with `cancel_at_period_end`) from every `customer.subscription.*` event into `users.plan_cancel_at` / `workspace_subscriptions.cancel_at`; it is null while the subscription renews. `/api/user/billing` and the workspace billing overview return it as `cancelAt`, and the UI shows "Ends on" instead of "Renews on".
+
 ### Workspace subscriptions
 
 `server/utils/billing/workspaceBilling.ts`, `workspaceStripe.ts` and `workspaceBillingLifecycle.ts`; inviting a member (seat purchase included) is `server/utils/workspaces/inviteMember.ts`:
@@ -71,4 +77,4 @@ The two plan routes are declarations; the purchase is `startProCheckout` (`serve
 
 ### AI credit top-ups
 
-A paid top-up becomes a row in `ai_credit_grants` (12-month expiry). The LiteLLM budget is the plan budget plus credits (`creditBudgetExtraUsd` in `server/utils/billing/aiCreditBudget.ts`). The hourly `ai-credit-settlement` job (`runCreditSettlement` in `server/utils/billing/aiCredits.ts`) reads each subject's monthly spend from LiteLLM's spend logs, takes what exceeded the plan budget from the grants, and updates the budgets. Purchases go through `server/utils/billing/topupCheckout.ts`; delayed payment methods are granted on `checkout.session.async_payment_succeeded`, refunds are handled on `charge.refunded`.
+A paid top-up becomes a row in `ai_credit_grants` (12-month expiry). The LiteLLM budget is the plan budget plus credits (`creditBudgetExtraUsd` in `server/utils/billing/aiCreditBudget.ts`). `/api/ai/credits` therefore reports them apart (`splitPlanAndCreditPoints` in `shared/billing/aiPoints.ts`): `pointsTotal` is the plan's monthly allotment, `planPointsRemaining` what is left of it (what the meter shows), `creditPoints` the bought credits on top, and `pointsRemaining` the sum. The hourly `ai-credit-settlement` job (`runCreditSettlement` in `server/utils/billing/aiCredits.ts`) reads each subject's monthly spend from LiteLLM's spend logs, takes what exceeded the plan budget from the grants, and updates the budgets. Purchases go through `server/utils/billing/topupCheckout.ts`; delayed payment methods are granted on `checkout.session.async_payment_succeeded`, refunds are handled on `charge.refunded`.

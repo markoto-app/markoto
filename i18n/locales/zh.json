@@ -863,7 +863,8 @@
     "seatTotalMonth": "{seats} 个席位每月 {total}",
     "seatTotalYear": "{seats} 个席位每年 {total}",
     "seatsLabel": "席位",
-    "creditsSection": "AI 额度用于补充 Pro 以及 Team / Business 工作区的每月 AI 预算。只有在当月预算用完后才会使用，并在购买 {months} 个月后过期。"
+    "creditsSection": "AI 额度用于补充 Pro 以及 Team / Business 工作区的每月 AI 预算。只有在当月预算用完后才会使用，并在购买 {months} 个月后过期。",
+    "creditsBuyLink": "在个人资料中购买 AI 额度"
   },
   "topbar": {
     "planBadge": "套餐：{plan}",
@@ -871,6 +872,8 @@
     "creditsRemaining": "剩余 {remaining}/{limit} 点",
     "creditsPercent": "剩余 {pct}%",
     "creditsResetOn": "{date} 重置",
+    "creditsExtra": "+ {points} 点（AI 额度）",
+    "creditsWorkspace": "此文档中的 AI 使用工作区的预算。",
     "creditsHint": "AI 点数用于由实例付费的 AI：1000 点 = 1 美元模型用量。",
     "upgradeToPlan": "升级到 {plan}",
     "topPlan": "你已使用最高级别套餐。",
@@ -1514,6 +1517,7 @@
       "annual": "按年",
       "monthly": "按月",
       "renews": "将于 {date} 续订",
+      "ends": "将于 {date} 结束",
       "manage": "管理账单",
       "seatCounter": "已使用 {used} / {seats} 个席位",
       "updateSeats": "更改席位",

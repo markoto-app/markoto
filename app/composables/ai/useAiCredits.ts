@@ -10,9 +10,9 @@ export type AiCredits = ApiResponse<'/api/ai/credits', 'get'>
  *
  * The `workspaceId` argument reads the budget that pays inside that
  * workspace: a Team / Business workspace's member limit + team pool, else
- * the user's own. Each budget is its own cache entry, so the topbar badge
- * (personal) and the prompt bar of a workspace document never overwrite
- * each other.
+ * the user's own. Each budget is its own cache entry; the topbar meter and
+ * the prompt bar of a document both read the budget of that document's
+ * workspace, and share the entry.
  *
  * `refresh()` re-reads this budget. Call it after AI actions
  * that consumed budget (a prompt session ended, a voice prompt). A plan
@@ -26,15 +26,22 @@ export function useAiCredits(workspaceId?: MaybeRefOrGetter<string | null | unde
   // A failed refetch keeps the last known numbers so the badge doesn't blank.
   const state = computed<AiCredits | null>(() => loggedIn.value ? query.data.value ?? null : null)
 
+  // Everything still usable: the plan's budget and bought credits together.
   const pointsRemaining = computed(() => state.value?.pointsRemaining ?? 0)
+  // The plan's monthly allotment and what is left of it. Bought AI credits
+  // sit on top and are shown beside the meter, never inside it, so
+  // "remaining" can't exceed "total".
   const pointsTotal = computed(() => state.value?.pointsTotal ?? 0)
+  const planPointsRemaining = computed(() => Math.min(state.value?.planPointsRemaining ?? 0, pointsTotal.value))
+  const creditPoints = computed(() => state.value?.creditPoints ?? 0)
   const fillRatio = computed(() => {
     const total = pointsTotal.value
     if (total <= 0) return 0
-    return Math.max(0, Math.min(1, pointsRemaining.value / total))
+    return Math.max(0, Math.min(1, planPointsRemaining.value / total))
   })
-  const isLow = computed(() => fillRatio.value > 0 && fillRatio.value < 0.1)
-  const isExhausted = computed(() => fillRatio.value <= 0)
+  // Credits keep the AI running after the plan's budget: neither low nor empty then.
+  const isLow = computed(() => creditPoints.value <= 0 && fillRatio.value > 0 && fillRatio.value < 0.1)
+  const isExhausted = computed(() => creditPoints.value <= 0 && fillRatio.value <= 0)
   const isFreeAllowanceExhausted = computed(() => state.value?.freeAllowance?.exhausted === true)
   // Team / Business workspace: the member's AI runs on the
   // workspace's budget. A member can't buy their way out of an empty
@@ -48,6 +55,8 @@ export function useAiCredits(workspaceId?: MaybeRefOrGetter<string | null | unde
     state,
     pointsRemaining,
     pointsTotal,
+    planPointsRemaining,
+    creditPoints,
     fillRatio,
     isLow,
     isExhausted,

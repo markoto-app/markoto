@@ -85,7 +85,7 @@ export function isOrderSensitiveStripeEvent(
  * session was opened for the browser to follow (`url`).
  */
 export type PlanCheckoutResponse<P extends string>
-  = | { updated: true, plan: P }
+  = | { updated: true, plan: P, interval: 'month' | 'year' }
     | { url: string | null, sessionId: string }
 
 /**

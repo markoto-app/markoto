@@ -16,12 +16,12 @@ import { TEST_BILLING_OFF_BASE_URL } from '../setup/env'
 
 const FUTURE = new Date(Date.now() + 30 * 24 * 3600 * 1000)
 
-async function seedSubscription(workspaceId: string, opts: { seats?: number, plan?: 'team' | 'business', status?: string, adminId?: number, currency?: 'eur' | 'chf' } = {}): Promise<void> {
+async function seedSubscription(workspaceId: string, opts: { seats?: number, plan?: 'team' | 'business', status?: string, adminId?: number, currency?: 'eur' | 'chf', interval?: 'month' | 'year' } = {}): Promise<void> {
   await testDb().query(
     `INSERT INTO workspace_subscriptions
        (workspace_id, plan, seats, status, billing_admin_id, stripe_customer_id, stripe_subscription_id, current_period_start, valid_until, currency, interval)
-     VALUES ($1, $2, $3, $4, $5, 'cus_ws_seed', 'sub_existing_test', now(), $6, $7, 'month')`,
-    [workspaceId, opts.plan ?? 'team', opts.seats ?? 3, opts.status ?? 'active', opts.adminId ?? null, FUTURE, opts.currency ?? 'eur']
+     VALUES ($1, $2, $3, $4, $5, 'cus_ws_seed', 'sub_existing_test', now(), $6, $7, $8)`,
+    [workspaceId, opts.plan ?? 'team', opts.seats ?? 3, opts.status ?? 'active', opts.adminId ?? null, FUTURE, opts.currency ?? 'eur', opts.interval ?? 'month']
   )
 }
 
@@ -127,11 +127,53 @@ describe('POST /api/workspaces/:wsId/billing/checkout', () => {
     const client = await loggedInClient(admin.id)
     const res = await client.post(`/api/workspaces/${ws.workspaceId}/billing/checkout`, { acceptPaidTerms: true, plan: 'business', interval: 'year' })
     expect(res.status).toBe(200)
-    expect(await res.json()).toMatchObject({ updated: true, plan: 'business' })
+    expect(await res.json()).toMatchObject({ updated: true, plan: 'business', interval: 'year' })
+    // Written at once (no webhook has arrived): the billing tab reads the new state.
+    expect(await readSub(ws.workspaceId)).toMatchObject({ plan: 'business', interval: 'year', seats: 3 })
+    const overview = await (await client.get(`/api/workspaces/${ws.workspaceId}/billing`)).json() as { subscription: { plan: string, interval: string } }
+    expect(overview.subscription).toMatchObject({ plan: 'business', interval: 'year' })
 
     const locked = await client.post(`/api/workspaces/${ws.workspaceId}/billing/checkout`, { acceptPaidTerms: true, plan: 'business', currency: 'chf' })
     expect(locked.status).toBe(409)
     expect((await locked.json() as { data?: { code?: string } }).data?.code).toBe('billing/currency-locked')
+  })
+})
+
+describe('POST /api/workspaces/:wsId/billing/checkout: a change names only what changes', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  // stripe-mock's canned subscription carries a Pro price, not a workspace
+  // one, so "what the subscription has" comes from the stored row here;
+  // reading it from Stripe's own price is covered by the unit test of
+  // `requestedPlan`.
+
+  it('a plan switch keeps the annual billing period', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    await seedSubscription(ws.workspaceId, { adminId: admin.id, plan: 'business', interval: 'year' })
+    const res = await (await loggedInClient(admin.id)).post(`/api/workspaces/${ws.workspaceId}/billing/checkout`, { acceptPaidTerms: true, plan: 'team' })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({ updated: true, plan: 'team', interval: 'year' })
+    expect(await readSub(ws.workspaceId)).toMatchObject({ plan: 'team', interval: 'year' })
+  })
+
+  it('a billing-period switch keeps the plan', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    await seedSubscription(ws.workspaceId, { adminId: admin.id, plan: 'business', interval: 'year' })
+    const res = await (await loggedInClient(admin.id)).post(`/api/workspaces/${ws.workspaceId}/billing/checkout`, { acceptPaidTerms: true, interval: 'month' })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({ updated: true, plan: 'business', interval: 'month' })
+    expect(await readSub(ws.workspaceId)).toMatchObject({ plan: 'business', interval: 'month' })
+  })
+
+  it('400 for a new subscription without a plan', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const res = await (await loggedInClient(admin.id)).post(`/api/workspaces/${ws.workspaceId}/billing/checkout`, { acceptPaidTerms: true, interval: 'year', seats: 3 })
+    expect(res.status).toBe(400)
   })
 })
 

@@ -97,6 +97,30 @@ describe('POST /api/billing/checkout', () => {
     expect(body.url).toBeUndefined()
   })
 
+  it('a switch of the billing period shows at once in /api/user/billing; without `interval` the live one is kept', async () => {
+    // stripe-mock's canned subscription price is annual CHF Pro.
+    const u = await createUser()
+    await testDb().query(
+      `UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, plan = 'pro', billing_currency = 'chf',
+         billing_interval = 'year', stripe_current_period_start = now() - interval '1 day', plan_valid_until = now() + interval '364 days'
+       WHERE id = $3`,
+      ['cus_existing_test', 'sub_existing_test', u.id]
+    )
+    const client = await loggedInClient(u.id)
+    const readBilling = async () => await (await client.get('/api/user/billing')).json() as { plan: string, interval: string | null }
+    expect(await readBilling()).toMatchObject({ plan: 'pro', interval: 'year' })
+
+    // No interval: the subscription's own (annual), which is the price it already has.
+    const same = await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro' })
+    expect(same.status).toBe(409)
+
+    const swap = await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro', interval: 'month' })
+    expect(swap.status).toBe(200)
+    expect(await swap.json()).toMatchObject({ updated: true, plan: 'pro', interval: 'month' })
+    // No webhook has arrived: the row was written with the change.
+    expect((await readBilling()).interval).toBe('month')
+  })
+
   it('409 when requesting the price the live subscription already has', async () => {
     // stripe-mock's canned subscription price is mapped to annual CHF Pro
     // (the annual CHF Pro entry of setup/env.ts#TEST_STRIPE_PRICE_IDS).

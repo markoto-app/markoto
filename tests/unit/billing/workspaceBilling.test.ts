@@ -58,7 +58,7 @@ describe('parseSeats', () => {
 describe('pooledFromRow', () => {
   const base = {
     workspaceId: 'ws1', plan: 'team' as const, seats: 5, billingAdminId: 1, stripeCustomerId: 'cus', stripeSubscriptionId: 'sub',
-    currentPeriodStart: null, litellmTeamId: null, budgetSeatAdjust: 0, budgetSeatAdjustUntil: null, currency: 'eur' as const, interval: 'month' as const, createdAt: new Date(), updatedAt: new Date()
+    currentPeriodStart: null, cancelAt: null, litellmTeamId: null, budgetSeatAdjust: 0, budgetSeatAdjustUntil: null, currency: 'eur' as const, interval: 'month' as const, createdAt: new Date(), updatedAt: new Date()
   }
   const now = new Date('2027-01-01T00:00:00Z')
   it('pools active, trialing and past_due subscriptions that haven\'t expired', () => {
