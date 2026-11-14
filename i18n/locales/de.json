@@ -2442,7 +2442,9 @@
       "issuerHint": "Die Adresse, unter der /.well-known/openid-configuration deines Anbieters liegt.",
       "clientId": "Client-ID",
       "clientSecret": "Client-Secret",
-      "secretKept": "Leer lassen, um das gespeicherte Secret zu behalten."
+      "secretKept": "Leer lassen, um das gespeicherte Secret zu behalten.",
+      "showSecret": "Secret anzeigen",
+      "hideSecret": "Secret verbergen"
     },
     "saml": {
       "entityId": "Entity-ID des Identitätsanbieters",

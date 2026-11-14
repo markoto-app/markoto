@@ -32,6 +32,8 @@ const protocol = ref<'oidc' | 'saml'>('oidc')
 const oidcIssuer = ref('')
 const oidcClientId = ref('')
 const oidcClientSecret = ref('')
+// Hidden by default: the secret must not be readable over someone's shoulder.
+const showClientSecret = ref(false)
 const samlIdpEntityId = ref('')
 const samlSsoUrl = ref('')
 const samlIdpCert = ref('')
@@ -46,6 +48,7 @@ function seedForm(v: SsoView): void {
   oidcIssuer.value = c?.oidcIssuer ?? ''
   oidcClientId.value = c?.oidcClientId ?? ''
   oidcClientSecret.value = ''
+  showClientSecret.value = false
   samlIdpEntityId.value = c?.samlIdpEntityId ?? ''
   samlSsoUrl.value = c?.samlSsoUrl ?? ''
   samlIdpCert.value = ''
@@ -290,11 +293,25 @@ const spRows = computed(() => {
           >
             <UInput
               v-model="oidcClientSecret"
-              type="password"
+              :type="showClientSecret ? 'text' : 'password'"
               autocomplete="off"
               class="w-full"
+              :ui="{ trailing: 'pe-1' }"
               data-testid="workspace-sso-oidc-client-secret"
-            />
+            >
+              <template #trailing>
+                <UButton
+                  color="neutral"
+                  variant="link"
+                  size="sm"
+                  :icon="showClientSecret ? 'i-lucide-eye-off' : 'i-lucide-eye'"
+                  :aria-label="showClientSecret ? t('sso.oidc.hideSecret') : t('sso.oidc.showSecret')"
+                  :aria-pressed="showClientSecret"
+                  data-testid="workspace-sso-oidc-client-secret-reveal"
+                  @click="showClientSecret = !showClientSecret"
+                />
+              </template>
+            </UInput>
           </UFormField>
         </div>
         <div

@@ -2442,7 +2442,9 @@
       "issuerHint": "プロバイダーの /.well-known/openid-configuration があるアドレスです。",
       "clientId": "クライアント ID",
       "clientSecret": "クライアントシークレット",
-      "secretKept": "保存済みのシークレットを使い続ける場合は空欄のままにしてください。"
+      "secretKept": "保存済みのシークレットを使い続ける場合は空欄のままにしてください。",
+      "showSecret": "シークレットを表示",
+      "hideSecret": "シークレットを隠す"
     },
     "saml": {
       "entityId": "ID プロバイダーのエンティティ ID",

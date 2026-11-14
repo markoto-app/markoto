@@ -2442,7 +2442,9 @@
       "issuerHint": "La dirección bajo la que se encuentra el /.well-known/openid-configuration de tu proveedor.",
       "clientId": "ID de cliente",
       "clientSecret": "Secreto de cliente",
-      "secretKept": "Déjalo vacío para conservar el secreto guardado."
+      "secretKept": "Déjalo vacío para conservar el secreto guardado.",
+      "showSecret": "Mostrar el secreto",
+      "hideSecret": "Ocultar el secreto"
     },
     "saml": {
       "entityId": "ID de entidad del proveedor de identidad",

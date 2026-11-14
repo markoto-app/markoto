@@ -2442,7 +2442,9 @@
       "issuerHint": "你的提供商的 /.well-known/openid-configuration 所在的地址。",
       "clientId": "客户端 ID",
       "clientSecret": "客户端密钥",
-      "secretKept": "留空以保留已保存的密钥。"
+      "secretKept": "留空以保留已保存的密钥。",
+      "showSecret": "显示密钥",
+      "hideSecret": "隐藏密钥"
     },
     "saml": {
       "entityId": "身份提供商实体 ID",
