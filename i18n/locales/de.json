@@ -119,7 +119,7 @@
     "viewOnly": "Nur ansehen",
     "guests": {
       "title": "Gäste",
-      "hint": "Gäste dieses Arbeitsbereichs sehen nur die Dokumente, die mit ihnen geteilt wurden.",
+      "hint": "Gäste dieses Workspace sehen nur die Dokumente, die mit ihnen geteilt wurden.",
       "view": "Darf ansehen",
       "edit": "Darf bearbeiten",
       "remove": "Teilen beenden",
@@ -349,7 +349,7 @@
       "business": "Business",
       "writing": "Schreiben",
       "saved": "Meine Designs",
-      "workspace": "Dieser Arbeitsbereich"
+      "workspace": "Dieser Workspace"
     },
     "blankIn": "Leer in {design}",
     "blankWorkspaceDescription": "Eine leere Seite im Design deines Workspace: {design}."
@@ -585,7 +585,8 @@
     "otherSessionWorking": "markoto arbeitet für {name}",
     "confirm": {
       "label": "markoto fragt zuerst",
-      "reason": "markoto hat in dieser Sitzung Text gelesen, den andere geschrieben haben. Deshalb fragt es, bevor es auf deine anderen Dokumente, das Workspace-Wissen oder das Web zugreift.",
+      "reason": "markoto hat in dieser Sitzung Text gelesen, der nicht von dir stammt (zum Beispiel von einer Webseite oder von einer anderen Person). Deshalb fragt es, bevor es auf deine anderen Dokumente, das Workspace-Wissen oder das Web zugreift.",
+      "waiting": "Wartet auf deine Bestätigung…",
       "allow": "Erlauben",
       "deny": "Ablehnen",
       "tools": {
@@ -640,8 +641,8 @@
     "budgetExhaustedDescription": "Du hast alle deine KI-Credits für diesen Abrechnungszeitraum aufgebraucht. Führe ein Upgrade durch, um weiterzumachen.",
     "exhaustedPlaceholder": "Keine KI-Credits mehr: für Fortsetzung upgraden",
     "workspaceBudgetExhaustedTitle": "Workspace-KI-Budget aufgebraucht",
-    "workspaceBudgetExhaustedDescription": "Das KI-Budget dieses Arbeitsbereichs ist für diesen Monat aufgebraucht. Bitte einen Admin, Plätze oder Guthaben hinzuzufügen.",
-    "workspaceExhaustedPlaceholder": "KI-Budget des Arbeitsbereichs aufgebraucht – frage einen Admin",
+    "workspaceBudgetExhaustedDescription": "Das KI-Budget dieses Workspace ist für diesen Monat aufgebraucht. Bitte einen Admin, Plätze oder Guthaben hinzuzufügen.",
+    "workspaceExhaustedPlaceholder": "KI-Budget des Workspace aufgebraucht – frage einen Admin",
     "upgradeCta": "Upgrade",
     "remainingLabel": "{remaining} von {limit} KI-Credits diesen Monat verbleibend",
     "responseLabel": "markoto sagt",
@@ -658,14 +659,14 @@
     "freeAllowanceCta": "Eigenen Schlüssel hinterlegen",
     "freeAllowanceExhaustedPlaceholder": "Das kostenlose KI-Kontingent für diesen Monat ist aufgebraucht – hinterlege deinen eigenen Schlüssel",
     "memberLimitReachedTitle": "Dein KI-Limit ist erreicht",
-    "memberLimitReachedDescription": "Du hast dein KI-Limit in diesem Arbeitsbereich für diesen Monat aufgebraucht. Bitte einen Admin des Arbeitsbereichs, es zu erhöhen.",
+    "memberLimitReachedDescription": "Du hast dein KI-Limit in diesem Workspace für diesen Monat aufgebraucht. Bitte einen Admin des Workspace, es zu erhöhen.",
     "memberLimitPlaceholder": "Dein KI-Limit hier ist aufgebraucht – frage einen Admin",
-    "teamBudgetExhausted": "Das KI-Budget dieses Arbeitsbereichs ist für diesen Monat aufgebraucht. Bitte einen Admin, Plätze oder Guthaben hinzuzufügen.",
-    "memberLimitReached": "Du hast dein KI-Limit in diesem Arbeitsbereich für diesen Monat erreicht. Bitte einen Admin, es zu erhöhen.",
+    "teamBudgetExhausted": "Das KI-Budget dieses Workspace ist für diesen Monat aufgebraucht. Bitte einen Admin, Plätze oder Guthaben hinzuzufügen.",
+    "memberLimitReached": "Du hast dein KI-Limit in diesem Workspace für diesen Monat erreicht. Bitte einen Admin, es zu erhöhen.",
     "locked": {
       "aiVoice": "Spracheingabe ist in diesem Plan nicht enthalten",
       "aiImage": "Bildgenerierung ist in diesem Plan nicht enthalten",
-      "askAdmin": "Frage einen Admin des Arbeitsbereichs nach dessen Plan, oder verwende deinen eigenen Anbieter-Schlüssel.",
+      "askAdmin": "Frage einen Admin des Workspace nach dessen Plan, oder verwende deinen eigenen Anbieter-Schlüssel.",
       "upgrade": "Wechsle auf Pro, oder verwende deinen eigenen Anbieter-Schlüssel.",
       "comingSoon": "Das kommt mit den bezahlten Plänen, die bald verfügbar sind. Mit deinem eigenen Anbieter-Schlüssel geht es schon jetzt.",
       "operator": "Diese Instanz bietet das für dein Konto nicht an. Du kannst deinen eigenen Anbieter-Schlüssel verwenden.",
@@ -787,7 +788,7 @@
       "tabsLabel": "Bezahlpläne",
       "joinWaitlist": "Auf die Warteliste",
       "setUpInWorkspace": "In einem Workspace einrichten",
-      "setUpInWorkspaceHint": "Öffne den Arbeitsbereich und dort den Tab «Abrechnung». Nur Admins des Arbeitsbereichs können kaufen."
+      "setUpInWorkspaceHint": "Öffne den Workspace und dort den Tab «Abrechnung». Nur Admins des Workspace können kaufen."
     },
     "instance": {
       "title": "Jedes Konto"
@@ -855,7 +856,7 @@
     "currencyLabel": "Währung",
     "countPerSeat": {
       "aiPoints": "{n} KI-Punkt pro Platz und Monat, gemeinsam | {n} KI-Punkte pro Platz und Monat, gemeinsam",
-      "workspaces": "{n} eigener Arbeitsbereich | {n} eigene Arbeitsbereiche",
+      "workspaces": "{n} eigener Workspace | {n} eigene Workspaces",
       "knowledgeFiles": "{n} Wissensdatei pro Platz, gemeinsam | {n} Wissensdateien pro Platz, gemeinsam",
       "knowledgeStorage": "{size} Wissensspeicher pro Platz, gemeinsam",
       "imageStorage": "{size} Bildspeicher pro Platz, gemeinsam"
@@ -863,7 +864,7 @@
     "seatTotalMonth": "{total} pro Monat für {seats} Plätze",
     "seatTotalYear": "{total} pro Jahr für {seats} Plätze",
     "seatsLabel": "Plätze",
-    "creditsSection": "KI-Guthaben ergänzt das monatliche KI-Budget von Pro und von Team- / Business-Arbeitsbereichen. Es wird erst verbraucht, wenn das Monatsbudget aufgebraucht ist, und verfällt {months} Monate nach dem Kauf."
+    "creditsSection": "KI-Guthaben ergänzt das monatliche KI-Budget von Pro und von Team- / Business-Workspaces. Es wird erst verbraucht, wenn das Monatsbudget aufgebraucht ist, und verfällt {months} Monate nach dem Kauf."
   },
   "topbar": {
     "planBadge": "Tarif: {plan}",
@@ -1362,7 +1363,7 @@
     "successToPersonal": "\"{title}\" ist jetzt ein persönliches Dokument.",
     "successToWorkspace": "\"{title}\" befindet sich jetzt in {workspace}.",
     "failed": "Dokument konnte nicht verschoben werden",
-    "leavesPlan": "Dieses Dokument verlässt einen Arbeitsbereich mit dem Plan {plan}. Danach gilt der Plan am neuen Ort: Funktionen, die dort fehlen (etwa eigenes CSS oder ältere Versionen), pausieren. Es wird nichts gelöscht."
+    "leavesPlan": "Dieses Dokument verlässt einen Workspace mit dem Plan {plan}. Danach gilt der Plan am neuen Ort: Funktionen, die dort fehlen (etwa eigenes CSS oder ältere Versionen), pausieren. Es wird nichts gelöscht."
   },
   "delete": {
     "title": "Dokument löschen",
@@ -1484,8 +1485,8 @@
       "acceptFailed": "Einladung konnte nicht angenommen werden",
       "declineFailed": "Einladung konnte nicht abgelehnt werden",
       "page": {
-        "title": "Einladung in einen Arbeitsbereich",
-        "intro": "Du wurdest in einen Arbeitsbereich auf markoto eingeladen.",
+        "title": "Einladung in einen Workspace",
+        "intro": "Du wurdest in einen Workspace auf markoto eingeladen.",
         "signIn": "Melde dich an, um die Einladung anzunehmen.",
         "accept": "Einladung annehmen",
         "declined": "Einladung abgelehnt.",
@@ -1500,16 +1501,16 @@
       "loading": "Abrechnung wird geladen…",
       "loadFailed": "Abrechnung konnte nicht geladen werden",
       "paymentProblemTitle": "Zahlungsproblem",
-      "paymentProblemBody": "Die letzte Zahlung für diesen Arbeitsbereich ist fehlgeschlagen. Stripe versucht es erneut; aktualisiere die Zahlungsmethode unter «Abrechnung verwalten», damit die Team-Funktionen erhalten bleiben.",
-      "buyTitle": "Diesen Arbeitsbereich upgraden",
-      "buyBody": "Team und Business werden pro Platz bezahlt. Alle im Arbeitsbereich erhalten darin die Funktionen des Plans, mit einem gemeinsamen monatlichen KI-Budget.",
+      "paymentProblemBody": "Die letzte Zahlung für diesen Workspace ist fehlgeschlagen. Stripe versucht es erneut; aktualisiere die Zahlungsmethode unter «Abrechnung verwalten», damit die Team-Funktionen erhalten bleiben.",
+      "buyTitle": "Diesen Workspace upgraden",
+      "buyBody": "Team und Business werden pro Platz bezahlt. Alle im Workspace erhalten darin die Funktionen des Plans, mit einem gemeinsamen monatlichen KI-Budget.",
       "planLabel": "Plan",
       "seatsLabel": "Plätze",
-      "seatsHint": "Mindestens {min} (alle im Arbeitsbereich, Einladungen eingeschlossen)",
+      "seatsHint": "Mindestens {min} (alle im Workspace, Einladungen eingeschlossen)",
       "totalPerMonth": "{total} pro Monat ({seats} Plätze × {price})",
       "totalPerYear": "{total} pro Jahr ({seats} Plätze × {price})",
       "continueToPayment": "Weiter zur Zahlung",
-      "buyFootnote": "Du bezahlst mit Stripe. Du wirst Abrechnungsadmin dieses Arbeitsbereichs und kannst Plätze jederzeit ändern oder kündigen.",
+      "buyFootnote": "Du bezahlst mit Stripe. Du wirst Abrechnungsadmin dieses Workspace und kannst Plätze jederzeit ändern oder kündigen.",
       "currentPlan": "Aktueller Plan",
       "annual": "jährlich",
       "monthly": "monatlich",
@@ -1517,7 +1518,7 @@
       "manage": "Abrechnung verwalten",
       "seatCounter": "{used} von {seats} Plätzen belegt",
       "updateSeats": "Plätze ändern",
-      "seatsFootnote": "Zusätzliche Plätze werden sofort anteilig belastet, ihr KI-Budget deckt die restlichen Tage des Budgetmonats. Entfernte Plätze werden nicht gutgeschrieben, behalten ihr KI-Budget aber bis zum Monatsende. Es kann nicht weniger Plätze als Personen im Arbeitsbereich geben.",
+      "seatsFootnote": "Zusätzliche Plätze werden sofort anteilig belastet, ihr KI-Budget deckt die restlichen Tage des Budgetmonats. Entfernte Plätze werden nicht gutgeschrieben, behalten ihr KI-Budget aber bis zum Monatsende. Es kann nicht weniger Plätze als Personen im Workspace geben.",
       "switchToBusiness": "Zu Business wechseln",
       "switchToTeam": "Zu Team wechseln",
       "switchToAnnual": "Zu jährlicher Abrechnung wechseln",
@@ -1533,7 +1534,7 @@
       "limitNone": "Kein Limit",
       "limitSaved": "Limit gespeichert",
       "limitSaveFailed": "Limit konnte nicht gespeichert werden",
-      "limitFootnote": "Standardmässig darf jedes Mitglied bis zu {amount} pro Monat verbrauchen. «Kein Limit» endet trotzdem am Budget des Arbeitsbereichs.",
+      "limitFootnote": "Standardmässig darf jedes Mitglied bis zu {amount} pro Monat verbrauchen. «Kein Limit» endet trotzdem am Budget des Workspace.",
       "checkoutFailed": "Zahlung konnte nicht gestartet werden",
       "planChanged": "Plan geändert",
       "planChangeFailed": "Plan konnte nicht geändert werden",
@@ -1544,22 +1545,22 @@
       "checkoutSuccessBody": "Der Plan ist aktiv, sobald Stripe ihn bestätigt, meist innert weniger Sekunden.",
       "checkoutCancelled": "Zahlung abgebrochen",
       "addSeatTitle": "Alle {seats} Plätze sind belegt",
-      "addSeatBody": "Wenn du {email} einladest, kommt ein Platz zum Plan dieses Arbeitsbereichs hinzu, anteilig auf der nächsten Rechnung berechnet.",
+      "addSeatBody": "Wenn du {email} einladest, kommt ein Platz zum Plan dieses Workspace hinzu, anteilig auf der nächsten Rechnung berechnet.",
       "addSeatConfirm": "Platz hinzufügen und einladen",
       "pricePerSeatMonth": "Ein Platz kostet {price} pro Monat.",
       "pricePerSeatYear": "Ein Platz kostet {price} pro Jahr.",
       "errors": {
         "seatsFull": "Alle bezahlten Plätze sind belegt. Füge einen Platz hinzu, um jemanden einzuladen.",
-        "seatsBelowMembers": "Im Arbeitsbereich sind mehr Personen als Plätze. Entferne jemanden oder behalte mehr Plätze.",
-        "cancelFailed": "Das Abonnement des Arbeitsbereichs konnte nicht gekündigt werden, deshalb wurde nichts gelöscht. Bitte versuche es erneut.",
-        "subscriptionActive": "Dieser Arbeitsbereich hat noch ein laufendes Abonnement. Wende dich an den Support, um ihn zu löschen.",
+        "seatsBelowMembers": "Im Workspace sind mehr Personen als Plätze. Entferne jemanden oder behalte mehr Plätze.",
+        "cancelFailed": "Das Abonnement des Workspace konnte nicht gekündigt werden, deshalb wurde nichts gelöscht. Bitte versuche es erneut.",
+        "subscriptionActive": "Dieser Workspace hat noch ein laufendes Abonnement. Wende dich an den Support, um ihn zu löschen.",
         "seatsBusy": "Gerade läuft eine andere Platzänderung oder Einladung. Bitte versuche es gleich noch einmal."
       }
     },
     "dpa": {
       "staleTitle": "Auftragsverarbeitungsvertrag aktualisiert – bitte erneut prüfen",
       "heading": "Einmalige Zustimmung",
-      "body": "Mit dem Erstellen eines Arbeitsbereichs wirst du zum Verantwortlichen für die personenbezogenen Daten, die deine Mitglieder darin ablegen, und die LatentSpace Labs GmbH wird dein Auftragsverarbeiter. Unser Auftragsverarbeitungsvertrag ist der Vertrag, der dies regelt."
+      "body": "Mit dem Erstellen eines Workspace wirst du zum Verantwortlichen für die personenbezogenen Daten, die deine Mitglieder darin ablegen, und die LatentSpace Labs GmbH wird dein Auftragsverarbeiter. Unser Auftragsverarbeitungsvertrag ist der Vertrag, der dies regelt."
     }
   },
   "knowledge": {
@@ -1580,7 +1581,7 @@
     "deleteTitle": "Aus Wissensdatenbank entfernen",
     "deleteWarning": "Die KI kann beim Schreiben nicht mehr auf diese Datei verweisen. Alles, was bereits damit geschrieben wurde, bleibt in deinen Dokumenten erhalten.",
     "deleteConfirm": "Datei entfernen",
-    "chunks": "Abschnitte",
+    "chunks": "{n} Abschnitt | {n} Abschnitte",
     "status": {
       "processing": "Wird verarbeitet",
       "ready": "Bereit",
@@ -1844,7 +1845,7 @@
       "failedTitle": "Deine Zustimmung konnte nicht gespeichert werden"
     },
     "subProcessors": {
-      "intro": "Die Dritten, die markoto in unserem Auftrag mit der Verarbeitung personenbezogener Daten beauftragt, mit Standort, Übermittlungsgrundlage und öffentlichen Links. Offenlegung gemäss Art. 13 Abs. 1 lit. e DSGVO. Wir informieren Kunden mit Arbeitsbereichen mindestens 30 Tage im Voraus über jeden neuen Unterauftragsverarbeiter.",
+      "intro": "Die Dritten, die markoto in unserem Auftrag mit der Verarbeitung personenbezogener Daten beauftragt, mit Standort, Übermittlungsgrundlage und öffentlichen Links. Offenlegung gemäss Art. 13 Abs. 1 lit. e DSGVO. Wir informieren Kunden mit Workspaces mindestens 30 Tage im Voraus über jeden neuen Unterauftragsverarbeiter.",
       "dpfCertified": "Nach dem EU-US Data Privacy Framework zertifiziert",
       "dpf": "DPF",
       "transfer": "Übermittlung",
@@ -1866,7 +1867,7 @@
       "privacy": "Wie markoto mit Personendaten umgeht: was verarbeitet wird, warum, wie lange, durch welche Auftragsverarbeiter und deine Rechte nach DSGVO und Schweizer Recht.",
       "terms": "Die Nutzungsbedingungen von markoto: Konten, Dokumente ohne Konto, zulässige Nutzung, KI-Funktionen, Haftung und wie sich die Bedingungen ändern.",
       "paid-terms": "Die Bedingungen für die Pläne Pro, Team und Business und KI-Guthaben: Plätze, Verlängerung und Kündigung, Guthaben, Erstattungen, Widerrufsrecht.",
-      "dpa": "Der Auftragsverarbeitungsvertrag für Inhaber von Arbeitsbereichen: markoto verarbeitet Inhalte in deinem Auftrag nach Art. 28 DSGVO.",
+      "dpa": "Der Auftragsverarbeitungsvertrag für Inhaber von Workspaces: markoto verarbeitet Inhalte in deinem Auftrag nach Art. 28 DSGVO.",
       "abuse-policy": "Was auf markoto nicht erlaubt ist, wie du rechtswidrige Inhalte oder Missbrauch melden kannst und wie Meldungen bearbeitet und entschieden werden.",
       "imprint": "Impressum von markoto: das betreibende Unternehmen, seine Adresse und wie du es erreichst.",
       "sub-processors": "Alle Unternehmen, die Daten für markoto verarbeiten: was sie tun, wo die Daten liegen und wie Übermittlungen abgesichert sind."
@@ -1891,8 +1892,8 @@
         "plan": "Aktueller Plan: {plan}",
         "manage": "Abrechnung verwalten",
         "portalFailed": "Abrechnung konnte nicht geöffnet werden",
-        "coveringTitle": "Arbeitsbereiche, die du abdeckst",
-        "coveringHint": "In diesen Arbeitsbereichen gilt deren Plan auch für dich, einschliesslich des gemeinsamen KI-Budgets. Überall sonst gilt dein eigener Plan."
+        "coveringTitle": "Workspaces, die du abdeckst",
+        "coveringHint": "In diesen Workspaces gilt deren Plan auch für dich, einschliesslich des gemeinsamen KI-Budgets. Überall sonst gilt dein eigener Plan."
       },
       "data": {
         "heading": "Deine Daten",
@@ -1986,10 +1987,10 @@
       "aiImage": "Bildgenerierung über die KI von markoto ist in diesem Plan nicht enthalten.",
       "aiVoice": "Spracheingabe über die KI von markoto ist in diesem Plan nicht enthalten.",
       "aiStrongModel": "Das starke KI-Modell ist in diesem Plan nicht enthalten.",
-      "sso": "Single Sign-on ist im Plan dieses Arbeitsbereichs nicht enthalten.",
-      "auditLog": "Das Audit-Log ist im Plan dieses Arbeitsbereichs nicht enthalten.",
-      "guests": "Gäste sind im Plan dieses Arbeitsbereichs nicht enthalten.",
-      "brandKit": "Das Brand-Kit ist im Plan dieses Arbeitsbereichs nicht enthalten.",
+      "sso": "Single Sign-on ist im Plan dieses Workspace nicht enthalten.",
+      "auditLog": "Das Audit-Log ist im Plan dieses Workspace nicht enthalten.",
+      "guests": "Gäste sind im Plan dieses Workspace nicht enthalten.",
+      "brandKit": "Das Brand-Kit ist im Plan dieses Workspace nicht enthalten.",
       "shareControls": "Link-Ablauf, reine Ansicht und Aufrufzahlen sind im Plan dieses Dokuments nicht enthalten.",
       "customDomains": "Eigene Domains sind in deinem Plan nicht enthalten."
     },
@@ -2323,6 +2324,8 @@
       "useCases": "Anwendungsfälle",
       "templates": "Vorlagen",
       "compare": "Vergleiche",
+      "allComparisons": "Alle Vergleiche",
+      "allTemplates": "Alle Vorlagen",
       "selfHost": "Selbst hosten",
       "github": "markoto auf GitHub"
     },
@@ -2577,7 +2580,7 @@
       "doc_unshared": "Dokument nicht mehr mit einem Gast geteilt",
       "workspace_brand_asset_added": "Brand-Kit-Datei hinzugefügt",
       "workspace_brand_asset_removed": "Brand-Kit-Datei entfernt",
-      "workspace_brand_lock_changed": "Design-Sperre des Arbeitsbereichs geändert",
+      "workspace_brand_lock_changed": "Design-Sperre des Workspace geändert",
       "workspace_template_added": "Vorlage hinzugefügt",
       "workspace_template_removed": "Vorlage entfernt",
       "doc_share_settings_changed": "Link-Einstellungen geändert"
@@ -2586,7 +2589,7 @@
   },
   "usage": {
     "title": "Nutzung",
-    "intro": "Was jede Person in diesem Arbeitsbereich speichert: eigene Dokumente, hinzugefügte Wissensdateien und Bilder sowie – bei einem Team- oder Business-Plan – die KI-Ausgaben vom gemeinsamen Budget in diesem Zeitraum. Nichts darüber, wann oder wie oft jemand arbeitet.",
+    "intro": "Was jede Person in diesem Workspace speichert: eigene Dokumente, hinzugefügte Wissensdateien und Bilder sowie – bei einem Team- oder Business-Plan – die KI-Ausgaben vom gemeinsamen Budget in diesem Zeitraum. Nichts darüber, wann oder wie oft jemand arbeitet.",
     "person": "Person",
     "documents": "Dokumente",
     "knowledge": "Wissen",
@@ -2601,12 +2604,12 @@
   },
   "brandKit": {
     "title": "Brand-Kit",
-    "intro": "Schriftarten, Logos und Design deiner Organisation für jedes Dokument in diesem Arbeitsbereich sowie Vorlagen, mit denen deine Mitglieder neue Dokumente beginnen.",
+    "intro": "Schriftarten, Logos und Design deiner Organisation für jedes Dokument in diesem Workspace sowie Vorlagen, mit denen deine Mitglieder neue Dokumente beginnen.",
     "loadFailed": "Das Brand-Kit konnte nicht geladen werden",
     "uploadFailed": "Die Datei konnte nicht hochgeladen werden",
     "deleteFailed": "Die Datei konnte nicht gelöscht werden",
     "fonts": "Schriftarten",
-    "fontsHint": "Lade pro Schnitt und Stil eine Datei hoch (WOFF2, WOFF oder TTF). Sie erscheinen unter «Dieser Arbeitsbereich» in den Schriftauswahlen aller Dokumente hier und in deren PDFs. Variable Schriften und Schriften mit PostScript-Konturen (CFF) drucken schlecht und werden nicht akzeptiert – verwende die statischen TrueType-Schnitte.",
+    "fontsHint": "Lade pro Schnitt und Stil eine Datei hoch (WOFF2, WOFF oder TTF). Sie erscheinen unter «Dieser Workspace» in den Schriftauswahlen aller Dokumente hier und in deren PDFs. Variable Schriften und Schriften mit PostScript-Konturen (CFF) drucken schlecht und werden nicht akzeptiert – verwende die statischen TrueType-Schnitte.",
     "noFonts": "Noch keine Schriftarten.",
     "chooseFont": "Schriftdatei auswählen",
     "fontName": "Schriftname",
@@ -2618,26 +2621,26 @@
     "italic": "kursiv",
     "delete": "Löschen",
     "logos": "Logos",
-    "logosHint": "PNG, JPEG oder WebP. Jedes Dokument im Arbeitsbereich kann sie als Titelseiten-Logo oder Kopfbild verwenden.",
+    "logosHint": "PNG, JPEG oder WebP. Jedes Dokument im Workspace kann sie als Titelseiten-Logo oder Kopfbild verwenden.",
     "uploadLogo": "Logo hochladen",
-    "workspaceLogos": "Logos des Arbeitsbereichs",
-    "workspaceFonts": "Dieser Arbeitsbereich",
-    "design": "Design des Arbeitsbereichs",
-    "designHint": "Das Design, mit dem neue Dokumente in diesem Arbeitsbereich beginnen. Sperre es, um es für jedes Dokument zu verwenden: Autorinnen und Autoren füllen dann nur noch den Text der Titelseite aus.",
-    "noDesign": "Noch kein Design des Arbeitsbereichs. Übernehme es aus einem Dokument oder wähle in den Einstellungen ein Standarddesign.",
+    "workspaceLogos": "Logos des Workspace",
+    "workspaceFonts": "Dieser Workspace",
+    "design": "Design des Workspace",
+    "designHint": "Das Design, mit dem neue Dokumente in diesem Workspace beginnen. Sperre es, um es für jedes Dokument zu verwenden: Autorinnen und Autoren füllen dann nur noch den Text der Titelseite aus.",
+    "noDesign": "Noch kein Design des Workspace. Übernehme es aus einem Dokument oder wähle in den Einstellungen ein Standarddesign.",
     "pickDocument": "Dokument auswählen",
     "useDesign": "Design dieses Dokuments verwenden",
-    "designSet": "Design des Arbeitsbereichs aktualisiert",
-    "designImagesDropped": "Bilder, die in dieses Dokument hochgeladen wurden, wurden weggelassen – wähle für das gemeinsame Design ein Logo des Arbeitsbereichs.",
-    "designFailed": "Das Design des Arbeitsbereichs konnte nicht festgelegt werden",
+    "designSet": "Design des Workspace aktualisiert",
+    "designImagesDropped": "Bilder, die in dieses Dokument hochgeladen wurden, wurden weggelassen – wähle für das gemeinsame Design ein Logo des Workspace.",
+    "designFailed": "Das Design des Workspace konnte nicht festgelegt werden",
     "lockLabel": "Design für alle Dokumente sperren",
-    "lockDescription": "Jedes Dokument im Arbeitsbereich verwendet das Design des Arbeitsbereichs; nur der Text der Titelseite (Untertitel, Datum, Autoren) bleibt eigen. Beim Entsperren erhält jedes Dokument sein eigenes Design zurück.",
+    "lockDescription": "Jedes Dokument im Workspace verwendet das Design des Workspace; nur der Text der Titelseite (Untertitel, Datum, Autoren) bleibt eigen. Beim Entsperren erhält jedes Dokument sein eigenes Design zurück.",
     "lockFailed": "Die Sperre konnte nicht geändert werden",
-    "lockedTitle": "Das Design des Arbeitsbereichs ist gesperrt",
-    "lockedBody": "Dieses Dokument verwendet das Design seines Arbeitsbereichs. Den Text der Titelseite kannst du unten weiterhin ändern.",
+    "lockedTitle": "Das Design des Workspace ist gesperrt",
+    "lockedBody": "Dieses Dokument verwendet das Design seines Workspace. Den Text der Titelseite kannst du unten weiterhin ändern.",
     "openBrandKit": "Brand-Kit öffnen",
     "templates": "Vorlagen",
-    "templatesHint": "Mache aus einem Dokument des Arbeitsbereichs eine Vorlage. Neue Dokumente daraus übernehmen dessen aktuellen Text und Design, Änderungen am Dokument ändern also die Vorlage.",
+    "templatesHint": "Mache aus einem Dokument des Workspace eine Vorlage. Neue Dokumente daraus übernehmen dessen aktuellen Text und Design, Änderungen am Dokument ändern also die Vorlage.",
     "templateName": "Name der Vorlage",
     "templateDescription": "Kurze Beschreibung (optional)",
     "addTemplate": "Vorlage hinzufügen",
@@ -2736,7 +2739,7 @@
     "sections": {
       "gettingStarted": "Deine ersten zehn Minuten – Dokument erstellen, benennen, teilen.",
       "writing": "Markdown-Erweiterungen, Formatierung, Hinweise, Formeln, Diagramme, Tabellen.",
-      "sharing": "Zugriffsmodi, Passwortschutz, anonyme Links, Arbeitsbereiche.",
+      "sharing": "Zugriffsmodi, Passwortschutz, anonyme Links, Workspaces.",
       "themes": "Designs pro Dokument, die sowohl die Live-Vorschau als auch den PDF-Export steuern.",
       "importExport": "DOCX/PDF/PPTX importieren; als sauberes Markdown oder gestaltetes PDF exportieren."
     },

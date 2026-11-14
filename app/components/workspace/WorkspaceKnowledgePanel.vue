@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ApiResponse } from '~/utils/api/client'
-import { GIB, MIB } from '~~/shared/config/units'
+import { MIB } from '~~/shared/config/units'
+import { formatBytes } from '~/utils/billing/usageMeter'
 
 // Knowledge base panel for the workspace page. Uploads go through the
 // same presigned-PUT ceremony as document images: request-url → PUT bytes →
@@ -240,12 +241,7 @@ function onItemDeleted() {
   void load()
 }
 
-function fmtBytes(n: number): string {
-  if (n < 1024) return `${n} B`
-  if (n < MIB) return `${Math.round(n / 1024)} KB`
-  if (n < GIB) return `${(n / MIB).toFixed(1)} MB`
-  return `${(n / GIB).toFixed(2)} GB`
-}
+const fmtBytes = formatBytes
 
 function statusColor(status: KnowledgeItem['status']): 'neutral' | 'warning' | 'success' | 'error' {
   switch (status) {
@@ -421,13 +417,13 @@ function iconFor(ext: string): string {
           <p class="font-serif text-base font-normal tracking-tight truncate">
             {{ row.filename }}
           </p>
-          <p class="font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase mt-0.5">
+          <p class="font-mono text-[10.5px] tracking-[0.04em] text-muted mt-0.5">
             {{ fmtBytes(row.sizeBytes) }}
             <template v-if="row.status === 'ready'">
               <span
                 class="opacity-50 mx-1"
                 aria-hidden="true"
-              >·</span> {{ row.chunkCount }} {{ t('knowledge.chunks') }}
+              >·</span> {{ t('knowledge.chunks', { n: row.chunkCount }, row.chunkCount) }}
             </template>
             <template v-if="row.status === 'failed' && row.errorMessage">
               <span

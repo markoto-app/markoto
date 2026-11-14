@@ -368,7 +368,7 @@ function setMenuOpen(doc: DocumentListItem, open: boolean) {
           <UButton
             size="sm"
             color="neutral"
-            :variant="workspaceCapReached ? 'ghost' : 'subtle'"
+            :variant="workspaceCapReached ? 'ghost' : 'solid'"
             :icon="workspaceCapReached ? 'i-lucide-lock' : 'i-lucide-folder-plus'"
             :class="workspaceCapReached ? 'opacity-60' : ''"
             :title="workspaceCapReached ? workspaceCapTooltip : undefined"

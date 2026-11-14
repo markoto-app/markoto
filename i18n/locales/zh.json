@@ -585,7 +585,8 @@
     "otherSessionWorking": "markoto 正在为 {name} 工作",
     "confirm": {
       "label": "markoto 需要你的确认",
-      "reason": "在本次会话中，markoto 读取了其他人撰写的文本，因此在访问你的其他文档、工作区知识库或网络之前会先征求你的同意。",
+      "reason": "在本次会话中，markoto 读取了并非由你撰写的文本（例如来自网页或其他人），因此在访问你的其他文档、工作区知识库或网络之前会先征求你的同意。",
+      "waiting": "正在等待你的确认…",
       "allow": "允许",
       "deny": "拒绝",
       "tools": {
@@ -1580,7 +1581,7 @@
     "deleteTitle": "从知识库中移除",
     "deleteWarning": "AI 在写作时将无法再引用此文件。已使用它写成的任何内容仍保留在你的文档中。",
     "deleteConfirm": "移除文件",
-    "chunks": "块",
+    "chunks": "{n} 块",
     "status": {
       "processing": "处理中",
       "ready": "就绪",
@@ -2323,6 +2324,8 @@
       "useCases": "使用场景",
       "templates": "模板",
       "compare": "对比",
+      "allComparisons": "全部对比",
+      "allTemplates": "全部模板",
       "selfHost": "自托管",
       "github": "GitHub 上的 markoto"
     },
