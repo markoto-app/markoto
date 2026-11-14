@@ -59,11 +59,13 @@ async function saveTitle() {
       @blur="saveTitle"
     >
   </div>
-  <!-- Fraunces serif at weight 400: the title reads as a published piece, not a filename. -->
+  <!-- Fraunces serif at weight 400: the title reads as a published piece, not a filename.
+       No max width: it takes the room the top bar has and truncates only there. -->
   <button
     v-else
     data-testid="doc-title-button"
-    class="font-serif text-[19px] font-normal tracking-tight leading-none text-default hover:text-muted transition-colors truncate min-w-0 max-w-[180px] sm:max-w-56 md:max-w-80"
+    :title="title"
+    class="font-serif text-[19px] font-normal tracking-tight leading-none text-default hover:text-muted transition-colors truncate min-w-0"
     @click="startEditTitle"
   >
     {{ title }}

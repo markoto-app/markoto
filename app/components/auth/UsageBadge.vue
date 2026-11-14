@@ -63,10 +63,11 @@ const pctRemaining = computed(() => {
 
 const barColor = computed(() => {
   const pct = pctRemaining.value
-  // Full class names so Tailwind's JIT sees them at build time.
-  if (pct < 10) return 'bg-red-500'
-  if (pct < 25) return 'bg-orange-500'
-  return 'bg-emerald-500'
+  // Brand tokens only: ink while there is enough, the error colour when
+  // points run low. Full class names so Tailwind's JIT sees them.
+  if (pct < 10) return 'bg-error'
+  if (pct < 25) return 'bg-error/60'
+  return 'bg-inverted'
 })
 
 // Reset date = `periodEnd`, straight from the server. Matches Stripe's
