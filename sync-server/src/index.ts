@@ -114,6 +114,21 @@ const server = new Server({
     attachAwarenessGuard(data.document)
   },
 
+  async afterUnloadDocument(data) {
+    // Free attribution/diff state once the document has left memory. Not
+    // on the last disconnect: the store Hocuspocus runs right after it
+    // (pending edits) writes the baselines again, which then outlived the
+    // document by their 24 h TTL. Unloading follows that store.
+    //
+    // CAVEAT (multi-instance): this only knows about THIS container.
+    // Another container may still have the document open; clearing Valkey
+    // here erases its diff baseline (its next store then skips one
+    // activity row and re-seeds). Accepted over a cross-container
+    // reference count; the 24 h TTL is the backstop.
+    await dropDocState(data.documentName)
+    dropSnapshotCache(data.documentName)
+  },
+
   async beforeUnloadDocument(data) {
     // Edits that could not be stored live only in this document's memory:
     // throwing keeps Hocuspocus from unloading it (persistence.ts retries).
@@ -228,21 +243,7 @@ const server = new Server({
   async onDisconnect(data) {
     rateLimiter.onDisconnect(data)
     preAuthGuard.documentClosed(data.socketId, data.documentName)
-    // Free attribution/diff state when the last client leaves the room.
-    // `clientsCount` in onDisconnect reflects the count AFTER this disconnect;
-    // 0 means we just lost the last collaborator. onLoadDocument re-seeds the
-    // caches if someone reconnects.
-    //
-    // CAVEAT (multi-instance): with 2+ sync containers, this only knows
-    // about clients on the SAME container. Another container may still
-    // have active clients on this doc, clearing Valkey here would erase
-    // their diff baseline. We accept the "leak" (state lingers under the
-    // 24h TTL) over a multi-container DELETE-storm. Valkey TTL handles
-    // long-tail cleanup.
-    if (data.clientsCount === 0 && data.documentName) {
-      await dropDocState(data.documentName)
-      dropSnapshotCache(data.documentName)
-    }
+    // Per-document Valkey state is dropped in afterUnloadDocument.
   },
 
   async onRequest(data) {

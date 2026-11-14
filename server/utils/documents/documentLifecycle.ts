@@ -1,5 +1,7 @@
 import { ListObjectsV2Command, DeleteObjectsCommand, type S3Client } from '@aws-sdk/client-s3'
 import type { NotifyDeletedRequest } from '~~/shared/contracts/syncInternal'
+import { allSyncStateKeys } from '~~/shared/contracts/syncState'
+import { useValkey } from '../platform/valkey'
 import { cleanupRendersForDoc } from '../rendering/renderClient'
 import { prunePublishedObjects } from '../publish/publishDocument'
 import { getPublishedPageSummary } from '../../repos/publishedPages'
@@ -136,6 +138,21 @@ export function notifySyncDeleted(
 }
 
 /**
+ * Delete the sync server's per-document Valkey state (attribution and
+ * diff baselines, `shared/contracts/syncState.ts`). The sync server drops
+ * it when it unloads a document, but a document that is not open there
+ * (or open on another instance) would keep it for the 24 h TTL. Best
+ * effort: a Valkey error is logged, never fails the delete.
+ */
+async function dropSyncDocState(docId: string): Promise<void> {
+  try {
+    await useValkey().del(...allSyncStateKeys(docId))
+  } catch (e) {
+    log.warn('sync state cleanup failed', { docId, err: e })
+  }
+}
+
+/**
  * Orchestrator: runs the three steps in order. Production callers use
  * this; tests drive the steps directly for finer-grained assertions.
  */
@@ -154,6 +171,7 @@ export async function deleteDocument(doc: DocAccess<'delete'>): Promise<void> {
   // material and the bucket lifecycle policy will reap them eventually.
   await cleanupRendersForDoc(docId)
   if (published) await prunePublishedObjects(published.id)
+  await dropSyncDocState(docId)
   notifySyncDeleted(docId, {
     syncInternalUrl: env.sync.internalUrl,
     internalApiSecret: env.auth.internalApiSecret
