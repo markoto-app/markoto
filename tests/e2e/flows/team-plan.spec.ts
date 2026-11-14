@@ -191,17 +191,17 @@ test('Put a workspace on the Team plan', { tag: '@billing' }, async ({ page, flo
   await mode.click()
   await page.getByRole('option', { name: /custom limit/i }).click()
   const amount = page.locator(`input[data-testid="workspace-billing-limit-amount-${benId}"], [data-testid="workspace-billing-limit-amount-${benId}"] input`).first()
-  await amount.fill('3')
+  await amount.fill('3000')
   await amount.blur()
   const saved = page.waitForResponse(r => r.url().includes(`/billing/members/${benId}`) && r.request().method() === 'PATCH')
   await flow.click(
-    'Save Ben\'s limit of $3 a month',
+    'Save Ben\'s limit of 3,000 AI Points a month',
     page.locator(`[data-testid="workspace-billing-limit-save-${benId}"]`),
     {
-      result: 'Ben can now use up to $3 of the workspace\'s AI budget this month.',
+      result: 'Ben can now use up to 3,000 of the workspace\'s AI Points this month.',
       after: async () => {
         expect((await saved).status()).toBe(200)
-        await expect(page.locator(`[data-testid="workspace-billing-member-${benId}"]`)).toContainText('limit $3.00')
+        await expect(page.locator(`[data-testid="workspace-billing-member-${benId}"]`)).toContainText('limit 3,000')
       }
     }
   )

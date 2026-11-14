@@ -252,6 +252,19 @@ describe('workspace billing tab: subscription', () => {
     await flushPromises()
     expect(posts.find(p => p.path === 'limit')?.body).toEqual({ limitUsd: 7.5 })
   })
+
+  it('rounds a custom limit to whole cents and never turns a small limit into 0', async () => {
+    for (const [points, limitUsd] of [[3, 0.01], [1234, 1.23], [0, 0]] as const) {
+      posts.length = 0
+      const wrapper = await mountPanel()
+      const vm = wrapper.vm as unknown as { limitDrafts: Record<number, { mode: string, points: number }> }
+      vm.limitDrafts[2] = { mode: 'custom', points }
+      await flushPromises()
+      await wrapper.get('[data-testid="workspace-billing-limit-save-2"]').trigger('click')
+      await flushPromises()
+      expect(posts.find(p => p.path === 'limit')?.body).toEqual({ limitUsd })
+    }
+  })
 })
 
 describe('invite dialog: paid seats', () => {

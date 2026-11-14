@@ -214,7 +214,11 @@ async function saveLimit(userId: number) {
   const draft = limitDrafts.value[userId]
   if (!draft) return
   busy.value = `limit-${userId}`
-  const body = draft.mode === 'default' ? { default: true } : draft.mode === 'none' ? { limitUsd: null } : { limitUsd: draft.points / 1000 }
+  // The server stores whole cents (10 points): round here so the saved
+  // limit is the one shown, never a small value silently turned into 0.
+  const points = Math.max(0, draft.points || 0)
+  const limitUsd = points === 0 ? 0 : Math.max(1, Math.round(points / 10)) / 100
+  const body = draft.mode === 'default' ? { default: true } : draft.mode === 'none' ? { limitUsd: null } : { limitUsd }
   try {
     await apiFetch('/api/workspaces/:wsId/billing/members/:userId', { method: 'patch', path: { wsId: props.workspaceId, userId }, body })
     toast.add({ title: t('workspace.billing.limitSaved'), icon: 'i-lucide-check', color: 'neutral' })
