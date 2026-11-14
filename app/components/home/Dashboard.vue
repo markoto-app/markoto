@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useHydrated } from '~/composables/platform/useHydrated'
 import type { ApiResponse } from '~/utils/api/client'
 import type { WorkspaceListItem } from '~/components/workspace/WorkspaceList.vue'
 import type { WorkspaceInviteItem } from '~/components/workspace/WorkspaceInviteList.vue'
@@ -69,6 +70,10 @@ type DocumentListItem = ApiResponse<'/api/user/documents', 'get'>[number]
 // faster than a frame, so the user never sees a spinner. These flags
 // stay false until the first fetch resolves; the v-if uses them to
 // show the spinner consistently across SSR + the brief load window.
+// The create buttons are server-rendered; before hydration a click on
+// them would do nothing at all, so they show disabled until then.
+const hydrated = useHydrated()
+
 const docsFetched = ref(false)
 
 const {
@@ -271,6 +276,7 @@ function setMenuOpen(doc: DocumentListItem, open: boolean) {
         <UButton
           size="lg"
           icon="i-lucide-plus"
+          :disabled="!hydrated"
           data-testid="landing-new-document"
           @click="emit('new-document')"
           @pointerenter="emit('warm-new-document')"
@@ -372,6 +378,7 @@ function setMenuOpen(doc: DocumentListItem, open: boolean) {
             :icon="workspaceCapReached ? 'i-lucide-lock' : 'i-lucide-folder-plus'"
             :class="workspaceCapReached ? 'opacity-60' : ''"
             :title="workspaceCapReached ? workspaceCapTooltip : undefined"
+            :disabled="!hydrated"
             data-testid="landing-new-workspace"
             @click="workspaceCapReached ? onCapReachedClick() : (showCreateWorkspace = true)"
           >
@@ -397,6 +404,7 @@ function setMenuOpen(doc: DocumentListItem, open: boolean) {
             size="sm"
             color="neutral"
             icon="i-lucide-plus"
+            :disabled="!hydrated"
             data-testid="landing-new-document"
             @click="emit('new-document')"
             @pointerenter="emit('warm-new-document')"
