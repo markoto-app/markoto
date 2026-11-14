@@ -1,8 +1,9 @@
 ---
 title: Run markoto yourself
 description: Install markoto on your own Linux server with one script - what you get, what you need, and where the full guide lives.
-category: getting-started
-order: 5
+category: self-hosting
+order: 12
+icon: i-lucide-server
 updated: '2026-11-03'
 ---
 
@@ -33,8 +34,8 @@ secrets, starts everything and waits until the app is healthy.
 ## How a self-hosted instance differs
 
 - **Sign-in is optional configuration.** Without it, the instance is anonymous-only: anyone can create, edit and share public documents and export PDFs, but nobody can own documents, use workspaces or AI.
-- **AI works on your terms.** Users connect their own provider ([how](/docs/account/ai-provider)), or you set instance defaults, for example a local Ollama model. Nothing is sent to any AI provider unless someone uses an AI feature.
-- **No plans, no billing.** Everyone is on the free tier with the limits you set ([plans and limits](/docs/account/plans)).
+- **AI works on your terms.** Users connect their own provider ([how](/docs/ai/provider)), or you set instance defaults, for example a local Ollama model. Nothing is sent to any AI provider unless someone uses an AI feature.
+- **No plans, no billing.** Everyone is on the free tier with the limits you set ([plans and limits](/docs/plans/plans)).
 - **No hosted-service legal pages.** The privacy policy, terms and cookie banner of markoto.app describe that service and are off by default. You are the operator of your instance.
 - **Backups, upgrades and a re-embedding command** are built in.
 
@@ -46,5 +47,5 @@ every setting, backups and restore, upgrades, troubleshooting) is in the
 
 ## What's next
 
-- [Use your own AI provider](/docs/account/ai-provider)
-- [Connect Claude Desktop, Cursor or scripts](/docs/account/mcp)
+- [Use your own AI provider](/docs/ai/provider)
+- [Connect Claude Desktop, Cursor or scripts](/docs/ai/mcp)

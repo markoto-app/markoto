@@ -1,8 +1,8 @@
 ---
 title: Connect Claude Desktop, Cursor or scripts (MCP)
 description: Create a personal access token and let any MCP client read and edit your documents, with live edits visible to collaborators.
-category: account
-order: 7
+category: ai
+order: 12
 icon: i-lucide-plug
 updated: '2026-11-04'
 ---
@@ -53,7 +53,7 @@ A token acts as you, limited to its scopes. New tokens get all four:
 | Scope | Allows |
 |---|---|
 | `documents:read` | List your documents, read them, comments, themes, activity, page images, export as markdown or PDF |
-| `documents:write` | Create, edit and duplicate documents, set titles, change themes, save theme presets, add, reply to, resolve and delete comments, generate images into a document (image generation also needs an image provider under your [AI provider settings](/docs/account/ai-provider) or an instance default) |
+| `documents:write` | Create, edit and duplicate documents, set titles, change themes, save theme presets, add, reply to, resolve and delete comments, generate images into a document (image generation also needs an image provider under your [AI provider settings](/docs/ai/provider) or an instance default) |
 | `knowledge:read` | Search and read knowledge files in workspaces you belong to |
 | `web:fetch` | Web search and URL reading |
 
@@ -82,15 +82,15 @@ token if you need it.
   limited to 20 an hour.
 
 Your MCP client is your own agent, so markoto doesn't ask you to confirm
-its tool calls the way the [in-editor AI does](/docs/writing/ai-prompt-bar#when-the-ai-asks-first);
+its tool calls the way the [in-editor AI does](/docs/ai/prompt-bar#when-the-ai-asks-first);
 your client's own confirmation settings apply.
 
 ## Where edits show up
 
 Edits made through MCP appear live in the editor like any collaborator's.
-The [activity log](/docs/history) marks them as made by your MCP client
+The [activity log](/docs/import-export) marks them as made by your MCP client
 ("Claude Desktop", "Cursor", ...) on your behalf, so you can tell them apart
-from your own typing and [restore an earlier version](/docs/history/restore)
+from your own typing and [restore an earlier version](/docs/import-export/restore)
 if you don't like a result.
 
 ## Managing and revoking tokens
@@ -104,5 +104,5 @@ until it is revoked.
 
 ## What's next
 
-- [What the AI can do, and what it needs](/docs/writing/ai-overview)
+- [What the AI can do, and what it needs](/docs/ai/overview)
 - [Delete your account](/docs/account/delete-account): removes your tokens too.

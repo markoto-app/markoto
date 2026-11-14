@@ -1,8 +1,8 @@
 ---
 title: Audit log of a workspace
 description: See and download who changed what in a workspace (members, invitations, sharing, deletions, billing and single sign-on) as a workspace admin.
-category: account
-order: 4
+category: workspace-admin
+order: 3
 updated: '2026-11-09'
 ---
 
@@ -29,7 +29,7 @@ Each entry shows when it happened, what happened and who did it, plus the
 person's network address with the last part removed (for example
 `203.0.113.0`). Click an entry to see its details. Edits to the text of a
 document are not in the audit log; they are in the document's
-[history](/docs/history/see-changes).
+[history](/docs/import-export/see-changes).
 
 ## Filter and download
 
@@ -48,5 +48,5 @@ admins.
 
 ## What's next
 
-- [Single sign-on for a workspace](/docs/account/single-sign-on).
-- [Team and Business for a workspace](/docs/account/team-plan).
+- [Single sign-on for a workspace](/docs/workspace-admin/single-sign-on).
+- [Team and Business for a workspace](/docs/plans/team-plan).

@@ -2,7 +2,7 @@
 title: Share as read-only
 description: Switch the access mode to open-view, anyone with the link can read, nobody can edit.
 category: sharing
-order: 2
+order: 1
 updated: '2026-10-29'
 ---
 

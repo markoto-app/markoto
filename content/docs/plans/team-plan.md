@@ -1,7 +1,7 @@
 ---
 title: Team and Business for a workspace
 description: How a workspace admin buys Team or Business per seat, adds seats, sees the shared AI budget and sets member limits. Only where paid plans are live.
-category: account
+category: plans
 order: 3
 updated: '2026-11-09'
 ---
@@ -92,5 +92,5 @@ uploader's personal storage.
 ## What's next
 
 - [Invite a teammate](/docs/workspaces/invite)
-- [Plans and limits](/docs/account/plans)
-- [Upgrade your plan](/docs/account/upgrade): Pro for yourself.
+- [Plans and limits](/docs/plans/plans)
+- [Upgrade your plan](/docs/plans/upgrade): Pro for yourself.

@@ -1,8 +1,8 @@
 ---
 title: What the AI can do, and what it needs
 description: A map of markoto's AI features - which need a provider you connect, what leaves your document and what it costs, on markoto.app and self-hosted.
-category: writing
-order: 3.8
+category: ai
+order: 1
 icon: i-lucide-sparkles
 featured: true
 updated: '2026-11-04'
@@ -18,17 +18,17 @@ is the map. Each row links to a walkthrough.
 
 | Feature | What it does | What it needs |
 |---|---|---|
-| [Prompt bar](/docs/writing/ai-prompt-bar) | Draft, rewrite, restructure, add sections | A **writing assistant** provider |
-| [Rewrite a selection](/docs/writing/ai-rewrite-selection) | Select text, say what you want, it is replaced in place | A writing assistant provider |
-| [`@markoto` in comments](/docs/writing/ai-comments) | Ask about one passage; the answer lands in the thread | A writing assistant provider |
-| [Look at another document](/docs/writing/ai-cross-doc) | Reads other documents you can open | A writing assistant provider |
-| [Workspace knowledge](/docs/writing/knowledge-rag) | Answers from files uploaded to a workspace | A writing assistant provider, and the instance's embeddings |
-| [Web search](/docs/writing/ai-web-search) | Current facts with cited sources | A writing assistant provider (for the summary) and web search enabled on the instance |
-| [Read a URL](/docs/writing/ai-fetch-url) | Summarises a page you link | A writing assistant provider and page fetching enabled on the instance |
-| [Draw an image](/docs/writing/ai-generate-image) | Generates an image and inserts it | An **image** provider |
+| [Prompt bar](/docs/ai/prompt-bar) | Draft, rewrite, restructure, add sections | A **writing assistant** provider |
+| [Rewrite a selection](/docs/ai/rewrite-selection) | Select text, say what you want, it is replaced in place | A writing assistant provider |
+| [`@markoto` in comments](/docs/ai/comments) | Ask about one passage; the answer lands in the thread | A writing assistant provider |
+| [Look at another document](/docs/ai/cross-doc) | Reads other documents you can open | A writing assistant provider |
+| [Workspace knowledge](/docs/ai/knowledge-rag) | Answers from files uploaded to a workspace | A writing assistant provider, and the instance's embeddings |
+| [Web search](/docs/ai/web-search) | Current facts with cited sources | A writing assistant provider (for the summary) and web search enabled on the instance |
+| [Read a URL](/docs/ai/fetch-url) | Summarises a page you link | A writing assistant provider and page fetching enabled on the instance |
+| [Draw an image](/docs/ai/generate-image) | Generates an image and inserts it | An **image** provider |
 | Voice prompt (microphone in the prompt bar) | Say your prompt instead of typing it | A **voice transcription** provider |
 | [Live dictation](/docs/writing/voice-dictate) | Streams speech into the editor as you talk | A Mistral transcription provider |
-| [Connected apps (MCP)](/docs/account/mcp) | Claude Desktop, Cursor or scripts use the same document tools | A personal access token; the writing assistant is not involved |
+| [Connected apps (MCP)](/docs/ai/mcp) | Claude Desktop, Cursor or scripts use the same document tools | A personal access token; the writing assistant is not involved |
 
 You need to be signed in to use AI. If a capability isn't available, its
 button is hidden or the AI bar tells you what to add. Nothing else in markoto
@@ -39,7 +39,7 @@ depends on AI.
 For each of the three capabilities (writing assistant, image, voice
 transcription) markoto picks, in this order:
 
-1. **Your own provider**, connected under **Settings → AI provider** ([how](/docs/account/ai-provider)). Calls go to your account at that provider and are billed there.
+1. **Your own provider**, connected under **Settings → AI provider** ([how](/docs/ai/provider)). Calls go to your account at that provider and are billed there.
 2. **The instance default**, if whoever runs this markoto set one. On a self-hosted instance that is the operator's choice (including a local model). On markoto.app it is the **free AI allowance** for the writing assistant (see below); images and voice need your own provider there.
 3. Otherwise the capability is unavailable.
 
@@ -78,11 +78,11 @@ page extraction) are located in the EU.
 ## Cost and limits
 
 - On **your own provider**, your provider bills you and AI Points never apply.
-- **AI Points** only exist when a capability is paid for by the instance operator (an instance default). They are a monthly allowance per person; see [What happens when you run out](/docs/writing/ai-budget).
+- **AI Points** only exist when a capability is paid for by the instance operator (an instance default). They are a monthly allowance per person; see [What happens when you run out](/docs/plans/ai-budget).
 - Every AI session has safety limits against runaway loops (for example at most 5 generated images and 10 web searches per session).
 
 ## What's next
 
-- [Connect your own AI provider](/docs/account/ai-provider)
-- [Write with the AI prompt bar](/docs/writing/ai-prompt-bar)
-- [Use the AI from Claude Desktop or Cursor](/docs/account/mcp)
+- [Connect your own AI provider](/docs/ai/provider)
+- [Write with the AI prompt bar](/docs/ai/prompt-bar)
+- [Use the AI from Claude Desktop or Cursor](/docs/ai/mcp)

@@ -2,7 +2,7 @@
 title: Zoom the preview and see all pages
 description: Read a page up close, step back to see the whole document at once, and jump to any page from there.
 category: writing
-order: 3.6
+order: 4
 updated: '2026-11-03'
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: Ask the AI about another doc
 description: Reference another document by URL or title - the AI reads it, within the access you already have, and uses it in its reply.
-category: writing
+category: ai
 order: 8
 updated: '2026-10-29'
 ---
@@ -26,9 +26,9 @@ workspace the current document belongs to, so that part needs a workspace.
 
 If the AI has already read text other people wrote in this session, it
 asks first: a **markoto asks first** card appears above the prompt bar with
-**Allow** and **Deny**. [Why it asks](/docs/writing/ai-prompt-bar#when-the-ai-asks-first).
+**Allow** and **Deny**. [Why it asks](/docs/ai/prompt-bar#when-the-ai-asks-first).
 
 ## What's next
 
-- [Ask the AI about a file you uploaded](/docs/writing/knowledge-rag): same idea for workspace knowledge files.
-- [Ask the AI to read a URL](/docs/writing/ai-fetch-url): pull in any public page.
+- [Ask the AI about a file you uploaded](/docs/ai/knowledge-rag): same idea for workspace knowledge files.
+- [Ask the AI to read a URL](/docs/ai/fetch-url): pull in any public page.

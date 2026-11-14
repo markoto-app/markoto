@@ -1,8 +1,8 @@
 ---
 title: Replay a comment in its original context
 description: Click any old comment in the activity log and markoto opens the doc at that exact passage as it was when the comment landed.
-category: writing
-order: 13
+category: collaborate
+order: 3
 updated: '2026-10-29'
 ---
 
@@ -25,5 +25,5 @@ document isn't touched.
 
 ## What's next
 
-- [See what changed in past edits](/docs/history/see-changes): same machinery, applied to edits instead of comments.
-- [Restore an earlier version](/docs/history/restore): when you want to actually roll back, not just look.
+- [See what changed in past edits](/docs/import-export/see-changes): same machinery, applied to edits instead of comments.
+- [Restore an earlier version](/docs/import-export/restore): when you want to actually roll back, not just look.

@@ -2,7 +2,7 @@
 title: Sign out everywhere
 description: Log out of markoto in every browser at once, and why some actions ask you to sign in again.
 category: account
-order: 9
+order: 1
 updated: '2026-10-27'
 ---
 

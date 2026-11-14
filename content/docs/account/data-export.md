@@ -2,7 +2,7 @@
 title: Export all your data
 description: Profile page → "Your data" → request export. ZIP arrives in minutes; download is good for 7 days.
 category: account
-order: 3
+order: 2
 featured: true
 updated: '2026-11-04'
 ---

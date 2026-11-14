@@ -1,7 +1,7 @@
 ---
 title: Guests in a workspace
 description: Invite clients and freelancers as guests. They see only the documents you share with them, take no seat and use their own AI budget.
-category: account
+category: workspaces
 order: 4
 updated: '2026-11-09'
 ---
@@ -23,7 +23,7 @@ workspace. A guest:
 - **takes no seat** and isn't counted as a member;
 - uses **their own AI budget** (or their own AI key), never the workspace's;
 - signs in the usual way, also when the workspace requires
-  [single sign-on](/docs/account/single-sign-on): guests are outside your
+  [single sign-on](/docs/workspace-admin/single-sign-on): guests are outside your
   organisation's identity provider.
 
 ## Invite a guest
@@ -45,7 +45,7 @@ document closes for the guest straight away.
 A guest can't share a document further. Sharing ends on its own when the
 document moves to another workspace, or when the guest leaves or is removed
 from the workspace. Every share and unshare is recorded in the workspace's
-[audit log](/docs/account/audit-log).
+[audit log](/docs/workspace-admin/audit-log).
 
 ## Usage per person
 
@@ -58,5 +58,5 @@ works.
 
 ## What's next
 
-- [Team and Business for a workspace](/docs/account/team-plan).
-- [Audit log of a workspace](/docs/account/audit-log).
+- [Team and Business for a workspace](/docs/plans/team-plan).
+- [Audit log of a workspace](/docs/workspace-admin/audit-log).

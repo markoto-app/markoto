@@ -1,8 +1,8 @@
 ---
 title: See what changed in past edits
 description: Click any activity row and markoto opens a diff drawer with hunk-level highlights of what was added and removed.
-category: history
-order: 1
+category: import-export
+order: 4
 featured: true
 updated: '2026-10-29'
 ---
@@ -25,9 +25,9 @@ a little surrounding context.
 
 Very large changes (pasting over the whole document, for example) are
 cut off after 200 changed passages; to see the full earlier text, use
-[restore](/docs/history/restore).
+[restore](/docs/import-export/restore).
 
 ## What's next
 
-- [Restore an earlier version](/docs/history/restore): rewind to that exact state.
-- [Replay a comment in context](/docs/writing/comment-replay): same machinery, applied to comment threads.
+- [Restore an earlier version](/docs/import-export/restore): rewind to that exact state.
+- [Replay a comment in context](/docs/collaborate/comment-replay): same machinery, applied to comment threads.

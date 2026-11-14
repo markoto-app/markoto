@@ -112,7 +112,7 @@ Each change applies to the live preview and the PDF export at the same
 time, and everyone else in the document sees it immediately.
 
 Theme changes are recorded in the activity log, so you can
-[restore](/docs/history/restore) an earlier look like any other edit.
+[restore](/docs/import-export/restore) an earlier look like any other edit.
 
 ## What's next
 

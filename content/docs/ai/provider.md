@@ -1,8 +1,8 @@
 ---
 title: Use your own AI provider
 description: Settings → AI provider. Connect your own Mistral, OpenAI or other OpenAI-compatible account for the writing assistant, images and voice.
-category: account
-order: 6
+category: ai
+order: 11
 featured: true
 updated: '2026-11-09'
 ---
@@ -11,11 +11,11 @@ updated: '2026-11-09'
 
 markoto's AI features can run on a provider account you connect. On
 markoto.app the writing assistant also works without one, on a monthly
-[free AI allowance](/docs/writing/ai-overview#the-free-ai-allowance-on-markotoapp);
+[free AI allowance](/docs/ai/overview#the-free-ai-allowance-on-markotoapp);
 your own key takes over as soon as you add it, with no allowance or pool
 limits. Images and voice need your own provider there. Self-hosted instances
 work the same way, with whatever defaults the operator set ([what the AI
-needs](/docs/writing/ai-overview)).
+needs](/docs/ai/overview)).
 
 Open **Settings → AI provider** (at `/settings/ai`, or the key icon in the AI
 prompt bar) and connect a provider separately for each capability:
@@ -73,8 +73,8 @@ works for them.
 
 - Your key is stored encrypted and never shown again; you only see the host and its last four characters. It isn't included in your data export, and it is deleted with your account.
 - Your prompts, the relevant parts of your document and your recordings go to the provider you chose, under your own agreement with that provider.
-- Your provider bills you for these calls. They never use AI Points ([AI Points](/docs/writing/ai-budget)).
-- Knowledge-base search, web search and page fetching always run on the instance's own providers ([what the AI needs](/docs/writing/ai-overview)).
+- Your provider bills you for these calls. They never use AI Points ([AI Points](/docs/plans/ai-budget)).
+- Knowledge-base search, web search and page fetching always run on the instance's own providers ([what the AI needs](/docs/ai/overview)).
 
 ## If something doesn't work
 
@@ -88,5 +88,5 @@ works for them.
 
 ## What's next
 
-- [What the AI can do, and what it needs](/docs/writing/ai-overview)
-- [Write with the AI prompt bar](/docs/writing/ai-prompt-bar)
+- [What the AI can do, and what it needs](/docs/ai/overview)
+- [Write with the AI prompt bar](/docs/ai/prompt-bar)

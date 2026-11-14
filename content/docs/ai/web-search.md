@@ -1,8 +1,8 @@
 ---
 title: Ask the AI for current information
 description: The AI can search the web and answer from live results, with sources - names, prices, news, anything time-sensitive.
-category: writing
-order: 10
+category: ai
+order: 6
 updated: '2026-11-04'
 ---
 
@@ -26,13 +26,13 @@ When in doubt, ask it to cite.
 ## Good to know
 
 - **It needs to be set up.** Web search only appears when the instance has a search key. On a self-hosted instance the operator adds `STAAN_API_KEY` ([self-hosting guide](https://github.com/markoto-app/markoto/blob/main/docs/SELF-HOSTING.md#ai)); without it the AI doesn't offer search.
-- **You still need a writing assistant provider.** The search itself is paid for by the instance, but the AI that reads the results and writes the answer runs on your own provider or the instance default ([what the AI needs](/docs/writing/ai-overview)). Without a provider, the raw results come back unsummarised.
+- **You still need a writing assistant provider.** The search itself is paid for by the instance, but the AI that reads the results and writes the answer runs on your own provider or the instance default ([what the AI needs](/docs/ai/overview)). Without a provider, the raw results come back unsummarised.
 - **There is an allowance.** Search and page reading share a limit per person: by default 30 calls an hour and 100 a day. When it is used up the AI tells you and carries on without the web. An instance operator can change the numbers.
 - **Per session** the AI searches at most 10 times, so one prompt can't run away.
 - Searches are English-market searches today; the AI can still write the answer in your document's language.
-- **It may ask first.** If the AI has already read text other people wrote in this session, a **markoto asks first** card appears above the prompt bar with **Allow** and **Deny**. [Why it asks](/docs/writing/ai-prompt-bar#when-the-ai-asks-first).
+- **It may ask first.** If the AI has already read text other people wrote in this session, a **markoto asks first** card appears above the prompt bar with **Allow** and **Deny**. [Why it asks](/docs/ai/prompt-bar#when-the-ai-asks-first).
 
 ## What's next
 
-- [Ask the AI to read a specific URL](/docs/writing/ai-fetch-url): skip search when you already know the source.
-- [Ask the AI about a file you uploaded](/docs/writing/knowledge-rag): for facts that live inside your workspace, not on the open web.
+- [Ask the AI to read a specific URL](/docs/ai/fetch-url): skip search when you already know the source.
+- [Ask the AI about a file you uploaded](/docs/ai/knowledge-rag): for facts that live inside your workspace, not on the open web.

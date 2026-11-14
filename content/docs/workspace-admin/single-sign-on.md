@@ -1,8 +1,8 @@
 ---
 title: Single sign-on for a workspace
 description: Connect a workspace to your organisation's identity provider with OpenID Connect or SAML, verify your email domains and provision members with SCIM.
-category: account
-order: 4
+category: workspace-admin
+order: 2
 updated: '2026-11-09'
 ---
 
@@ -96,5 +96,5 @@ GitHub, Google or your instance's sign-in.
 
 ## What's next
 
-- [Team and Business for a workspace](/docs/account/team-plan): seats and the shared AI budget.
+- [Team and Business for a workspace](/docs/plans/team-plan): seats and the shared AI budget.
 - [Sessions and signing out](/docs/account/sessions): "Log out everywhere".

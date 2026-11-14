@@ -1,8 +1,8 @@
 ---
 title: Ask the AI about a file you uploaded
 description: Upload PDFs, Word documents and more to a workspace, then let the AI answer from your files.
-category: writing
-order: 6
+category: ai
+order: 9
 featured: true
 updated: '2026-11-03'
 ---
@@ -35,10 +35,10 @@ name, so it can't invent one that isn't there.
 
 ## What it needs
 
-- **A writing assistant provider** to write the answer ([what the AI needs](/docs/writing/ai-overview)).
+- **A writing assistant provider** to write the answer ([what the AI needs](/docs/ai/overview)).
 - **Embeddings, which the instance provides.** On markoto.app they are provided for you. On a self-hosted instance the operator sets them up (a Jina key by default, or any other embeddings provider); without them uploads fail with an error ([self-hosting guide](https://github.com/markoto-app/markoto/blob/main/docs/SELF-HOSTING.md#ai)).
 - **Editor or admin role** in the workspace to upload files. The AI works for people who can edit a document, so workspace viewers can read documents but not use the AI.
-- **It may ask first.** If the AI has already read text other people wrote in this session, a **markoto asks first** card appears above the prompt bar with **Allow** and **Deny**. [Why it asks](/docs/writing/ai-prompt-bar#when-the-ai-asks-first).
+- **It may ask first.** If the AI has already read text other people wrote in this session, a **markoto asks first** card appears above the prompt bar with **Allow** and **Deny**. [Why it asks](/docs/ai/prompt-bar#when-the-ai-asks-first).
 
 ## Supported files and limits
 
@@ -59,5 +59,5 @@ someone from the workspace removes their access to it immediately.
 ## What's next
 
 - [Polish the AI's grounded answer as a PDF](/docs/import-export/polished-pdf).
-- [Tell the AI who you're writing for](/docs/writing/document-context): combine audience steering with your own sources.
+- [Tell the AI who you're writing for](/docs/ai/document-context): combine audience steering with your own sources.
 - [Start a workspace](/docs/workspaces/start).

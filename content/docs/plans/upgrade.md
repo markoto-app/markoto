@@ -1,7 +1,7 @@
 ---
 title: Upgrade your plan
 description: How upgrading works on an instance with paid plans live. Not available on markoto.app yet (plans are coming soon) or on self-hosted instances.
-category: account
+category: plans
 order: 2
 updated: '2026-11-09'
 ---
@@ -35,6 +35,6 @@ is off.
 
 ## What's next
 
-- [Plans and limits](/docs/account/plans)
-- [AI Points](/docs/writing/ai-budget): what an upgrade raises.
-- [Team and Business for a workspace](/docs/account/team-plan): billed per seat, with a shared AI budget.
+- [Plans and limits](/docs/plans/plans)
+- [AI Points](/docs/plans/ai-budget): what an upgrade raises.
+- [Team and Business for a workspace](/docs/plans/team-plan): billed per seat, with a shared AI budget.

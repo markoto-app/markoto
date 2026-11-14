@@ -1,28 +1,23 @@
 ---
-title: Account, AI setup and privacy
-description: Plans and limits, connecting your AI provider, MCP access tokens, data export, and account deletion - everything that touches your profile.
+title: Account and privacy
+description: Sign out everywhere, export everything we hold on you, and delete your account.
 category: account
-order: 8
+order: 11
 icon: i-lucide-user
-updated: '2026-10-27'
+updated: '2026-11-14'
 ---
 
-# Account, AI setup and privacy
+# Account and privacy
 
 Anonymous editing works without an account. Once you sign in (where the
-instance offers sign-in), this section covers everything tied to your
-profile.
+instance offers sign-in), this section covers your sessions and your
+data.
 
-**Set up**
-- [Use your own AI provider](/docs/account/ai-provider): connect your writing assistant, image and voice providers.
-- [Connect Claude Desktop, Cursor or scripts (MCP)](/docs/account/mcp): personal access tokens for external tools.
-
-**Plans**
-- [Plans and limits](/docs/account/plans): the free tier today, paid plans coming soon, limits on self-hosted instances.
-- [Upgrade your plan](/docs/account/upgrade): only where paid plans are live.
-
-**Your data**
-- [Export all your data](/docs/account/data-export): a ZIP with everything we hold on you.
-- [Delete a document](/docs/account/delete-document): owner-only, immediate, irreversible.
-- [Delete your account](/docs/account/delete-account): 30-day grace period with a cancel button, then a full purge.
 - [Sign out everywhere](/docs/account/sessions): log out on every device, and why some actions ask you to sign in again.
+- [Export all your data](/docs/account/data-export): a ZIP with everything we hold on you.
+- [Delete your account](/docs/account/delete-account): 30-day grace period with a cancel button, then a full purge.
+
+**Elsewhere**
+- [Plans and limits](/docs/plans/plans) lives in Plans and billing.
+- [Use your own AI provider](/docs/ai/provider) and [MCP access tokens](/docs/ai/mcp) live in AI assistant.
+- [Delete a document](/docs/writing/delete-document) lives in Write.

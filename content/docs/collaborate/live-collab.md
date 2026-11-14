@@ -1,8 +1,8 @@
 ---
 title: Two writers, one document
 description: Live co-editing, cursors, selections, and edits broadcast in real-time, no save button.
-category: workspaces
-order: 4
+category: collaborate
+order: 1
 updated: '2026-11-04'
 ---
 
@@ -30,5 +30,5 @@ connection, keep typing: your changes sync when you're back online.
 
 ## What's next
 
-- [See what changed](/docs/history/see-changes): every edit is a row in the activity log.
-- [Have a discussion in your document](/docs/writing/comments): comment on a passage your collaborator just wrote.
+- [See what changed](/docs/import-export/see-changes): every edit is a row in the activity log.
+- [Have a discussion in your document](/docs/collaborate/comments): comment on a passage your collaborator just wrote.

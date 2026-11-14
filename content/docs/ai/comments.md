@@ -1,8 +1,8 @@
 ---
 title: Summon markoto inside a comment
 description: Mention @markoto in any comment thread to ask a question about a specific passage. markoto reads the anchor, replies, or edits the doc.
-category: writing
-order: 5
+category: ai
+order: 4
 icon: i-lucide-message-square-dashed
 updated: '2026-11-04'
 ---
@@ -42,7 +42,7 @@ Both work the same way; they differ in what markoto looks at first.
    its reply in the thread. If the thread has other participants and
    markoto wants to reach beyond the document (your other documents,
    workspace knowledge, the web), it asks you first in the prompt bar
-   ([when the AI asks first](/docs/writing/ai-prompt-bar#when-the-ai-asks-first)).
+   ([when the AI asks first](/docs/ai/prompt-bar#when-the-ai-asks-first)).
    If you asked for an edit, it edits the passage directly and the reply
    summarises what changed.
 
@@ -55,7 +55,7 @@ Both work the same way; they differ in what markoto looks at first.
 
 ## What's next
 
-- [Write with the AI prompt bar](/docs/writing/ai-prompt-bar): the
+- [Write with the AI prompt bar](/docs/ai/prompt-bar): the
   full-document version of the same AI.
-- [Discuss in your document](/docs/writing/comments): the
+- [Discuss in your document](/docs/collaborate/comments): the
   human-only side of the comments system.

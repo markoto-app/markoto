@@ -1,8 +1,8 @@
 ---
 title: Brand kit of a workspace
 description: Upload your organisation's fonts and logos, lock the workspace design for every document, and give members templates to start from.
-category: account
-order: 4
+category: workspace-admin
+order: 1
 updated: '2026-11-10'
 ---
 
@@ -72,6 +72,6 @@ workspace.
 
 ## What's next
 
-- [Team and Business for a workspace](/docs/account/team-plan).
-- [Audit log of a workspace](/docs/account/audit-log): font, logo, lock and
+- [Team and Business for a workspace](/docs/plans/team-plan).
+- [Audit log of a workspace](/docs/workspace-admin/audit-log): font, logo, lock and
   template changes are recorded there.
