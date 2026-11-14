@@ -278,6 +278,7 @@ beforeEach(() => {
     plan: 'pro',
     interval: 'month',
     cancelAt: null,
+    paymentOverdue: false,
     periodStart: '2027-01-01T00:00:00.000Z',
     periodEnd: '2027-02-01T00:00:00.000Z',
     ownedWorkspaces: 0,
@@ -297,7 +298,7 @@ beforeEach(() => {
     seatsUsed: 4,
     isBillingAdmin: true,
     subscription: {
-      plan: 'team', seats: 5, status: 'active', entitled: true, interval: 'month', currency: 'eur',
+      plan: 'team', seats: 5, status: 'active', paymentOverdue: false, entitled: true, interval: 'month', currency: 'eur',
       currentPeriodStart: '2027-01-01T00:00:00Z', validUntil: '2027-02-01T00:00:00Z', cancelAt: null, billingAdminId: 1
     },
     pool: { aiBudgetUsd: 25, aiSpendUsd: 3.2, defaultMemberLimitUsd: 10, knowledgeBytes: 25 * 2 ** 30, imageBytes: 50 * 2 ** 30, resetsAt: null },

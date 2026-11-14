@@ -99,3 +99,12 @@ export type StripeSubscriptionStatus = typeof STRIPE_SUBSCRIPTION_STATUSES[numbe
 export function isKnownSubscriptionStatus(status: string): status is StripeSubscriptionStatus {
   return (STRIPE_SUBSCRIPTION_STATUSES as readonly string[]).includes(status)
 }
+
+/**
+ * A payment is overdue: the last invoice was not paid and Stripe is still
+ * retrying (`past_due`) or has stopped retrying without ending the
+ * subscription (`unpaid`). The billing pages say so and link to the portal.
+ */
+export function isPaymentOverdueStatus(status: string | null | undefined): boolean {
+  return status === 'past_due' || status === 'unpaid'
+}

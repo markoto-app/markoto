@@ -10,7 +10,6 @@ import { useInvalidatePlan, usePlanPricesQuery } from '~/queries/billing'
 import { formatPrice, formatPlanBytes } from '~/utils/billing/pricing'
 import {
   formatUsd,
-  isPaymentProblem,
   minimumSeats,
   type WorkspaceBillingOverview
 } from '~/utils/billing/workspaceBilling'
@@ -90,7 +89,7 @@ onMounted(() => {
 const sub = computed(() => overview.value?.subscription ?? null)
 /** A subscription Stripe still holds (entitled, or in dunning / ending). */
 const hasLiveSubscription = computed(() => sub.value !== null && sub.value.status !== 'incomplete' && sub.value.status !== 'incomplete_expired' && sub.value.status !== 'canceled')
-const paymentProblem = computed(() => isPaymentProblem(sub.value?.status))
+const paymentProblem = computed(() => sub.value?.paymentOverdue === true)
 
 const plan = ref<'team' | 'business'>('team')
 const interval = ref<BillingInterval>('month')
@@ -264,6 +263,7 @@ function usd(amount: number | null | undefined): string {
         icon="i-lucide-alert-triangle"
         :title="t('workspace.billing.paymentProblemTitle')"
         :description="t('workspace.billing.paymentProblemBody')"
+        :actions="[{ label: t('workspace.billing.manage'), color: 'neutral', variant: 'outline', onClick: openPortal }]"
         data-testid="workspace-billing-payment-problem"
       />
 

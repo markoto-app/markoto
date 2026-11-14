@@ -8,6 +8,7 @@ import { sumImageBytesByUploader } from '../../repos/uploads'
 import { getTiers } from '~~/server/utils/billing/tierConfig'
 import { getOwnSubscriptionFacts } from '../../repos/userBilling'
 import { billingIntervalOfPeriod } from '~~/shared/config/pricing'
+import { isPaymentOverdueStatus } from '~~/shared/contracts/stripe'
 import type { UserScope } from '../../repos/proofs'
 
 /**
@@ -49,6 +50,9 @@ export default defineApiHandler({
       interval: subscription ? subscription.billingInterval ?? billingIntervalOfPeriod(ctx.periodStart, ctx.periodEnd) : null,
       // Set when the subscription was cancelled and ends then instead of renewing.
       cancelAt: subscription?.planCancelAt?.toISOString() ?? null,
+      // The last renewal was not paid and Stripe is retrying: the plan still
+      // runs, the page asks for a working payment method.
+      paymentOverdue: isPaymentOverdueStatus(subscription?.subscriptionStatus),
 
       ownedWorkspaces,
       workspacesOwnedLimit: tier.workspacesOwned,

@@ -1895,6 +1895,8 @@
         "plan": "Current plan: {plan}",
         "manage": "Manage billing",
         "portalFailed": "Could not open billing",
+        "paymentOverdueTitle": "Payment overdue",
+        "paymentOverdueBody": "The last payment for Pro failed and will be tried again. Update the payment method under “Manage billing” to keep your plan.",
         "coveringTitle": "Workspaces that cover you",
         "coveringHint": "In these workspaces their plan and shared AI budget apply. Elsewhere, your own plan."
       },
