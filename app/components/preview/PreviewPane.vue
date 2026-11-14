@@ -85,19 +85,26 @@ watch(pgCount, (n) => {
 <template>
   <div
     role="presentation"
-    class="preview-pane h-full w-full relative"
+    class="preview-pane h-full w-full relative flex flex-col"
     @mouseenter="pointerOver = true"
     @mouseleave="pointerOver = false"
     @focusin="pointerOver = true"
     @focusout="pointerOver = false"
   >
+    <!-- The zoom control sits in its own strip above the pages, never over
+         them: floating over the frame it covered whatever scrolled under
+         it. The strip is there from the start so the pages don't jump
+         when the control appears. -->
+    <div
+      v-if="zoomControl"
+      class="flex h-10 shrink-0 items-center justify-end bg-muted px-5"
+      data-testid="preview-zoom-strip"
+    >
+      <PreviewZoomControl v-if="isReady && !error" />
+    </div>
     <div
       ref="iframeHost"
-      class="iframe-host h-full w-full"
-    />
-    <PreviewZoomControl
-      v-if="zoomControl && isReady && !error"
-      class="absolute top-2 right-5 z-10"
+      class="iframe-host min-h-0 w-full flex-1"
     />
     <div
       v-if="error"

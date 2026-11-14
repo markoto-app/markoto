@@ -585,7 +585,8 @@
     "otherSessionWorking": "markoto travaille pour {name}",
     "confirm": {
       "label": "markoto demande d’abord",
-      "reason": "markoto a lu dans cette session du texte écrit par d’autres personnes. Il demande donc avant d’accéder à vos autres documents, aux connaissances de l’espace de travail ou au web.",
+      "reason": "markoto a lu dans cette session du texte qui ne vient pas de vous (par exemple d’une page web ou d’une autre personne). Il demande donc avant d’accéder à vos autres documents, aux connaissances de l’espace de travail ou au web.",
+      "waiting": "En attente de votre confirmation…",
       "allow": "Autoriser",
       "deny": "Refuser",
       "tools": {
@@ -1579,7 +1580,7 @@
     "deleteTitle": "Retirer de la base de connaissances",
     "deleteWarning": "L'IA ne pourra plus se référer à ce fichier lors de la rédaction. Tout ce qui a déjà été écrit à partir de celui-ci reste dans vos documents.",
     "deleteConfirm": "Retirer le fichier",
-    "chunks": "segments",
+    "chunks": "{n} segment | {n} segments",
     "status": {
       "processing": "Traitement en cours",
       "ready": "Prêt",
@@ -2322,6 +2323,8 @@
       "useCases": "Cas d'usage",
       "templates": "Modèles",
       "compare": "Comparer",
+      "allComparisons": "Toutes les comparaisons",
+      "allTemplates": "Tous les modèles",
       "selfHost": "Auto-héberger",
       "github": "markoto sur GitHub"
     },

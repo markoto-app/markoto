@@ -6,6 +6,7 @@
 // usage, not monitoring. Server: `server/api/workspaces/[wsId]/usage.get.ts`.
 import { formatBytes } from '~/utils/billing/usageMeter'
 import type { ApiResponse } from '~/utils/api/client'
+import { workspaceRoleKey } from '~/utils/workspace/roleLabel'
 
 type UsageRow = ApiResponse<'/api/workspaces/:wsId/usage', 'get'>['members'][number]
 
@@ -40,7 +41,7 @@ function usd(n: number | null): string {
 }
 
 function roleLabel(role: UsageRow['role']): string {
-  return t(`workspace.roles.${role}`)
+  return t(workspaceRoleKey(role))
 }
 </script>
 
@@ -94,7 +95,7 @@ function roleLabel(role: UsageRow['role']): string {
           >
             <td class="px-4 py-2">
               <span>{{ r.name }}</span>
-              <span class="ms-2 font-mono text-[10.5px] lowercase text-muted">{{ roleLabel(r.role) }}</span>
+              <span class="ms-2 font-mono text-[10.5px] text-muted">{{ roleLabel(r.role) }}</span>
             </td>
             <td class="px-4 py-2 text-right tabular-nums">
               {{ r.documents }}

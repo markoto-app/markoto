@@ -30,8 +30,12 @@
  *     no cap (see DROPCAP_MIN_CHARS).
  *   - The capped paragraph gets DROPCAP_PARAGRAPH_CLASS so the theme CSS
  *     can contain the float (`display: flow-root`).
- *   - Multibyte first character (emoji, CJK, surrogate pair): one full
- *     code point via `Array.from`.
+ *   - Only a LETTER becomes a cap: a paragraph that opens with a digit
+ *     ("1817 presented …" would read as a giant "1" before "817"),
+ *     a quotation mark, a bracket or an emoji gets none. `::first-letter`
+ *     can't test for that, one more reason for the span.
+ *   - Multibyte first letter (CJK, surrogate pair): one full code point
+ *     via `Array.from`.
  *   - Browser-only (needs `document`); all callers run client-side.
  */
 
@@ -75,6 +79,9 @@ const DROPCAP_PARAGRAPH_CLASS = 'markoto-dropcap-p'
 /** Labels ("**Date:** …") and inline-formatted openers aren't prose to decorate. */
 const NO_CAP_INSIDE = new Set(['b', 'strong', 'code'])
 
+/** One code point that is a letter in any script. */
+const LETTER = /^\p{L}$/u
+
 export function wrapFirstLetterAsDropCap(html: string): string {
   const tpl = document.createElement('template')
   tpl.innerHTML = html
@@ -99,7 +106,7 @@ export function capParagraph(p: Element): boolean {
   const leading = /^\s*/.exec(text.data)?.[0] ?? ''
   const rest = text.data.slice(leading.length)
   const first = Array.from(rest)[0]
-  if (!first) return false
+  if (!first || !LETTER.test(first)) return false
 
   const doc = text.ownerDocument
   const span = doc.createElement('span')
