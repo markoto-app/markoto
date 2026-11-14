@@ -3,7 +3,7 @@
 // them. Side-effect import + named import; `Sentry` is the namespace we
 // use for continueTrace / startSpan inside the request handler.
 import { Sentry } from './sentry'
-import { renderDocument } from './render'
+import { MAX_RENDER_REQUEST_MS, renderDocument } from './render'
 import type { RenderRequest } from '../../shared/contracts/render'
 import { checkInternalSecret, INTERNAL_SECRET_HEADER } from '../../shared/utils/security/internalSecret'
 import { env } from './env'
@@ -18,8 +18,16 @@ const INTERNAL_SECRET_PREVIOUS = env.auth.internalApiSecretPrevious ?? null
 // Bun.serve over the standalone Playwright/Bun container. Every endpoint
 // behind /render gates on the X-Internal-Secret header, the renderer is
 // only reachable from the internal network anyway, but defence-in-depth.
+// Bun closes a connection that sends nothing for `idleTimeout` seconds
+// (default 10), and a request waiting for its render sends nothing. A
+// render queued behind a full pool would be cut off with an empty reply,
+// so idle connections stay open as long as the longest legitimate render
+// plus a margin. Internal-only service: slow clients are not a concern.
+const IDLE_TIMEOUT_SECONDS = Math.ceil(MAX_RENDER_REQUEST_MS / 1000) + 10
+
 const server = Bun.serve({
   port: PORT,
+  idleTimeout: IDLE_TIMEOUT_SECONDS,
   async fetch(req) {
     const url = new URL(req.url)
     if (url.pathname === '/health' && req.method === 'GET') {

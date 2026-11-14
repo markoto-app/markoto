@@ -172,6 +172,7 @@
       "not-found": "未找到文档。",
       "rate-limited": "来自你所在网络的新文档过多。请登录，或稍后再试。",
       "render-failed": "无法生成 PDF。请重试。",
+      "render-timeout": "生成 PDF 耗时过长。请稍后重试。",
       "restore-compacted": "此还原点过旧，其历史记录已被压缩，无法再还原。请改为还原到较新的时间点。",
       "restore-unavailable": "无法从此记录还原，它早于还原功能的引入时间。"
     },

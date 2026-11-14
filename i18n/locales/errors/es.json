@@ -172,6 +172,7 @@
       "not-found": "No se encontró el documento.",
       "rate-limited": "Demasiados documentos nuevos desde tu red. Inicia sesión o inténtalo más tarde.",
       "render-failed": "No se pudo generar el PDF. Inténtalo de nuevo.",
+      "render-timeout": "Crear el PDF tardó demasiado. Inténtalo de nuevo en un momento.",
       "restore-compacted": "Este punto de restauración es demasiado antiguo: su historial se compactó y ya no se puede restaurar. Restaura a un punto más reciente.",
       "restore-unavailable": "No se puede restaurar desde esta fila: es anterior a la función de restauración."
     },

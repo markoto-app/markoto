@@ -1,4 +1,4 @@
-import { bool, nonNegativeInt, oneOf, positiveInt, port, string, url } from '../coerce'
+import { bool, int, nonNegativeInt, oneOf, positiveInt, port, string, url } from '../coerce'
 import { defineNamespace, v } from '../define'
 
 export const core = defineNamespace({
@@ -124,11 +124,12 @@ export const server = defineNamespace({
     }),
     idleTimeoutSeconds: v({
       name: 'NITRO_BUN_IDLE_TIMEOUT',
-      type: positiveInt,
-      doc: 'Seconds an idle HTTP connection stays open (Bun default 10).',
+      type: int({ min: 1, max: 255 }),
+      default: 120,
+      doc: 'Seconds an HTTP connection may stay silent, including while a slow request (PDF render, import) is still working. Must stay above the 100 s PDF render deadline.',
       services: ['app'],
       scope: 'both',
-      notPassed: 'Bun default'
+      notPassed: 'the default covers the slowest route'
     }),
     maxRequestBodyBytes: v({
       name: 'NITRO_MAX_REQUEST_BODY_BYTES',

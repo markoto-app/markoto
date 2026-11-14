@@ -44,6 +44,27 @@ export interface RenderResult {
 }
 
 const RENDER_TIMEOUT_MS = 90_000
+/**
+ * Longest one `renderDocument` call may take, waiting for another
+ * instance's render included. Below the app server's idle timeout
+ * (`server/runtime/bunEntry.ts`), so a too-slow render answers with a
+ * 504 instead of a connection dropped without a reply.
+ */
+export const RENDER_DEADLINE_MS = 100_000
+/** Time kept for our own render when another instance's render never showed up. */
+const MIN_RENDER_BUDGET_MS = 15_000
+
+/**
+ * The render did not finish in time: the renderer's queue stayed full
+ * (it answers 503 after its pool wait) or the deadline ran out. Callers
+ * answer 504 `docs/render-timeout`; anything else is `docs/render-failed`.
+ */
+export class RenderTimeoutError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options)
+    this.name = 'RenderTimeoutError'
+  }
+}
 // Lock TTL is set comfortably above RENDER_TIMEOUT_MS so the lock outlives
 // the maximum legal render, without that buffer a slow render risks
 // having its lock expire mid-flight, letting a second instance start a
@@ -123,9 +144,10 @@ async function pollManifestUntilReady(
   docId: string,
   snapshotId: number,
   wantFormat: RenderFormat,
-  variant: string | null = null
+  variant: string | null,
+  callDeadline: number
 ): Promise<RenderManifest | null> {
-  const deadline = Date.now() + RENDER_POLL_CEILING_MS
+  const deadline = Math.min(Date.now() + RENDER_POLL_CEILING_MS, callDeadline - MIN_RENDER_BUDGET_MS)
   while (Date.now() < deadline) {
     await new Promise(resolve => setTimeout(resolve, RENDER_POLL_INTERVAL_MS))
     const m = await readManifest(docId, snapshotId, variant)
@@ -182,6 +204,18 @@ async function readManifest(docId: string, snapshotId: number, variant: string |
   }
 }
 
+/** `fetch` with a timeout that surfaces as RenderTimeoutError. */
+async function postWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  try {
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) })
+  } catch (e) {
+    if (e instanceof Error && e.name === 'TimeoutError') {
+      throw new RenderTimeoutError(`Renderer gave no answer within ${timeoutMs} ms`, { cause: e })
+    }
+    throw e
+  }
+}
+
 /**
  * POST the renderer container. Throws on 4xx/5xx so callers can surface
  * the error to the user / AI tool. On success, returns the renderer's
@@ -192,7 +226,8 @@ async function callRenderer(
   docId: string,
   snapshotId: number,
   format: RenderFormat | 'html',
-  variant: string | null = null
+  variant: string | null = null,
+  timeoutMs = RENDER_TIMEOUT_MS
 ): Promise<RenderResponse> {
   const env = useEnv()
   if (!env.renderer.internalUrl) {
@@ -202,15 +237,14 @@ async function callRenderer(
     throw new Error('Renderer call requires internalApiSecret')
   }
 
-  const res = await fetch(`${env.renderer.internalUrl}/render`, {
+  const res = await postWithTimeout(`${env.renderer.internalUrl}/render`, {
     method: 'POST',
     headers: injectTraceHeaders({
       'Content-Type': 'application/json',
       'X-Internal-Secret': env.auth.internalApiSecret
     }),
-    body: JSON.stringify(variant ? { docId, snapshotId, format, variant } satisfies RenderRequest : { docId, snapshotId, format } satisfies RenderRequest),
-    signal: AbortSignal.timeout(RENDER_TIMEOUT_MS)
-  })
+    body: JSON.stringify(variant ? { docId, snapshotId, format, variant } satisfies RenderRequest : { docId, snapshotId, format } satisfies RenderRequest)
+  }, timeoutMs)
 
   if (!res.ok) {
     let detail = ''
@@ -219,10 +253,55 @@ async function callRenderer(
       detail = body.success ? body.data.error || '' : ''
     } catch { /* non-JSON body */ }
     const tail = detail ? `: ${detail}` : ''
+    // 503: the renderer's page pool stayed full for its whole queue wait.
+    if (res.status === 503) throw new RenderTimeoutError(`Renderer ${res.status}${tail}`)
     throw new Error(`Renderer ${res.status}${tail}`)
   }
 
   return renderResponseSchema.parse(await res.json())
+}
+
+interface RenderJob {
+  docId: string
+  snapshotId: number
+  format: 'pdf' | 'png' | 'both'
+  variant: string | null
+  /** Singleflight / lock key. */
+  key: string
+  /** Epoch ms the caller gives up at (RENDER_DEADLINE_MS). */
+  deadline: number
+}
+
+/**
+ * Render, or (without the cross-instance lock) wait for the instance that
+ * holds it and render ourselves if its manifest never shows up.
+ */
+async function renderOrAwait(job: RenderJob, lockHeld: boolean): Promise<RenderResult> {
+  const { docId, snapshotId, format, variant, key, deadline } = job
+  if (!lockHeld) {
+    const polled = await pollManifestUntilReady(docId, snapshotId, format, variant, deadline)
+    if (polled) return { cached: true, manifest: polled }
+    // Polling timed out without a manifest. The lock has either
+    // expired (winner crashed) or is still held by a slow render
+    // we've stopped waiting on. Either way, attempting our own
+    // render here is the correct recovery, better one extra
+    // render than an opaque timeout to the user.
+    log.warn('poll timeout, attempting own render', { key })
+  }
+  const budget = deadline - Date.now()
+  if (budget < MIN_RENDER_BUDGET_MS) {
+    throw new RenderTimeoutError(`No time left to render ${key} (${budget} ms)`)
+  }
+  const out = await callRenderer(docId, snapshotId, format, variant, Math.min(RENDER_TIMEOUT_MS, budget))
+  const manifest: RenderManifest = {
+    snapshotId,
+    pageCount: out.pageCount,
+    format,
+    renderedAt: new Date().toISOString(),
+    pdfKey: out.pdfKey ?? null,
+    pageKeys: out.pageKeys
+  }
+  return { cached: false, manifest }
 }
 
 /**
@@ -235,6 +314,9 @@ export async function renderDocument(
   opts: { format: 'pdf' | 'png' | 'both' }
 ): Promise<RenderResult> {
   const docId = doc.docId
+  // Every wait below (the sync flush, another instance's render, our own
+  // render) shares this budget. Throws RenderTimeoutError when it runs out.
+  const deadline = Date.now() + RENDER_DEADLINE_MS
   // The render reads the persisted Y.js rows (snapshot id + the print
   // page's bootstrap). Edits from the last 2–10 s may still sit in the
   // sync-server's debounced store, so a PDF exported right after typing
@@ -258,6 +340,7 @@ export async function renderDocument(
   const existing = inflight.get(key)
   if (existing) return existing
 
+  const job: RenderJob = { docId, snapshotId, format: opts.format, variant, key, deadline }
   const promise = (async () => {
     let acquired = false
     try {
@@ -265,26 +348,7 @@ export async function renderDocument(
       // path waits for the winner's manifest; winner path proceeds to
       // call the renderer.
       acquired = await tryAcquireRenderLock(key)
-      if (!acquired) {
-        const polled = await pollManifestUntilReady(docId, snapshotId, opts.format, variant)
-        if (polled) return { cached: true, manifest: polled }
-        // Polling timed out without a manifest. The lock has either
-        // expired (winner crashed) or is still held by a slow render
-        // we've stopped waiting on. Either way, attempting our own
-        // render here is the correct recovery, better one extra
-        // render than an opaque timeout to the user.
-        log.warn('poll timeout, attempting own render', { key })
-      }
-      const out = await callRenderer(docId, snapshotId, opts.format, variant)
-      const manifest: RenderManifest = {
-        snapshotId,
-        pageCount: out.pageCount,
-        format: opts.format,
-        renderedAt: new Date().toISOString(),
-        pdfKey: out.pdfKey ?? null,
-        pageKeys: out.pageKeys
-      }
-      return { cached: false, manifest }
+      return await renderOrAwait(job, acquired)
     } catch (e) {
       // Surface for ops; the calling endpoint shapes the user-facing error.
       Sentry.captureException(e, {

@@ -15,5 +15,6 @@ export const docsErrors = defineErrors('docs', {
   'restore-compacted': { status: 410 },
   'not-a-comment': { status: 410 },
   'comment-thread-gone': { status: 410 },
-  'render-failed': { status: 502 }
+  'render-failed': { status: 502 },
+  'render-timeout': { status: 504 }
 })

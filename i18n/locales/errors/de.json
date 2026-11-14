@@ -172,6 +172,7 @@
       "not-found": "Dokument nicht gefunden.",
       "rate-limited": "Zu viele neue Dokumente aus deinem Netzwerk. Melde dich an oder versuche es später noch einmal.",
       "render-failed": "Das PDF konnte nicht erstellt werden. Bitte versuche es noch einmal.",
+      "render-timeout": "Das PDF zu erstellen hat zu lange gedauert. Versuch es gleich noch einmal.",
       "restore-compacted": "Dieser Wiederherstellungspunkt ist zu alt – sein Verlauf wurde verdichtet und kann nicht mehr wiederhergestellt werden. Stelle stattdessen einen neueren Punkt wieder her.",
       "restore-unavailable": "Kann von dieser Zeile nicht wiederherstellen: Sie stammt aus der Zeit vor der Wiederherstellungsfunktion."
     },

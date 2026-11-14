@@ -1,8 +1,9 @@
 // Server entry for the production build (`nitro.entry` in nuxt.config.ts).
 // A copy of nitropack's `bun` preset entry (nitropack 2.13,
-// dist/presets/bun/runtime/bun.mjs) with two additions: a request-body
-// size limit enforced by Bun itself, and byte ranges for the bundled
-// videos (mediaRange.ts).
+// dist/presets/bun/runtime/bun.mjs) with three additions: a request-body
+// size limit enforced by Bun itself, a default idle timeout long enough
+// for the slowest routes, and byte ranges for the bundled videos
+// (mediaRange.ts).
 //
 // Why: the preset entry calls `await req.arrayBuffer()` on every request
 // before any route handler runs, so no handler can refuse an oversized
@@ -12,6 +13,9 @@
 // it passes the limit. The largest legitimate body is a document import
 // (`/api/import`: 50 MB file + multipart framing = 51 MiB); browser
 // uploads go to S3 with presigned URLs and never through the app.
+//
+// Idle timeout: Bun's own default (10 s) cut slow PDF renders and large
+// imports off with an empty reply; idleTimeout.ts explains the default.
 //
 // Left out on purpose: the preset's `startScheduleRunner()` (no Nitro
 // scheduled tasks are configured) and its `import.meta._websocket`
@@ -27,6 +31,7 @@ import '#nitro-internal-pollyfills'
 import { useNitroApp } from 'nitropack/runtime'
 import wsAdapter from 'crossws/adapters/bun'
 import { withByteRange } from './mediaRange'
+import { DEFAULT_IDLE_TIMEOUT_SECONDS } from './idleTimeout'
 
 /** Default request-body cap (51 MiB). Override: NITRO_MAX_REQUEST_BODY_BYTES. */
 export const DEFAULT_MAX_REQUEST_BODY_BYTES = 51 * 1024 * 1024
@@ -54,7 +59,7 @@ const ws = wsAdapter(nitroApp.h3App.websocket)
 const server = Bun.serve({
   port: process.env.NITRO_PORT || process.env.PORT || 3e3,
   hostname: process.env.NITRO_HOST || process.env.HOST,
-  idleTimeout: parseIntOrUndefined(process.env.NITRO_BUN_IDLE_TIMEOUT),
+  idleTimeout: parseIntOrUndefined(process.env.NITRO_BUN_IDLE_TIMEOUT) ?? DEFAULT_IDLE_TIMEOUT_SECONDS,
   maxRequestBodySize: parseIntOrUndefined(process.env.NITRO_MAX_REQUEST_BODY_BYTES) ?? DEFAULT_MAX_REQUEST_BODY_BYTES,
   websocket: ws.websocket,
   async fetch(req, server2) {
