@@ -6,6 +6,8 @@ import { countOwnedWorkspacesByUser, listWorkspacesForUser } from '../../repos/w
 import { countKnowledgeByUploader, sumKnowledgeBytesByUploader } from '../../repos/knowledge'
 import { sumImageBytesByUploader } from '../../repos/uploads'
 import { getTiers } from '~~/server/utils/billing/tierConfig'
+import { getOwnSubscriptionFacts } from '../../repos/userBilling'
+import { billingIntervalOfPeriod } from '~~/shared/config/pricing'
 import type { UserScope } from '../../repos/proofs'
 
 /**
@@ -15,7 +17,8 @@ import type { UserScope } from '../../repos/proofs'
  *   - plan badge in the workspace header
  *
  * AI budget is not here: the AI Points UI (badge + low-points warning)
- * reads `/api/ai/credits`. This endpoint returns only structural caps + plan.
+ * reads `/api/ai/credits`. This endpoint returns structural caps, the plan and
+ * the personal subscription's billing period / end date.
  */
 export default defineApiHandler({
   access: allow.user(),
@@ -33,10 +36,19 @@ export default defineApiHandler({
       sumImageBytesByUploader(self, { excludePooled: isBillingEnabled() })
     ])
 
+    // The personal subscription behind a paid plan: its billing period and,
+    // once cancelled, when it ends.
+    const subscription = ctx.plan === 'pro' ? await getOwnSubscriptionFacts(self) : null
+
     return {
       plan: ctx.plan,
       periodStart: ctx.periodStart.toISOString(),
       periodEnd: ctx.periodEnd.toISOString(),
+      // 'month' | 'year' on a paid plan, null on Free. Subscriptions stored
+      // before the interval was recorded are judged by their period length.
+      interval: subscription ? subscription.billingInterval ?? billingIntervalOfPeriod(ctx.periodStart, ctx.periodEnd) : null,
+      // Set when the subscription was cancelled and ends then instead of renewing.
+      cancelAt: subscription?.planCancelAt?.toISOString() ?? null,
 
       ownedWorkspaces,
       workspacesOwnedLimit: tier.workspacesOwned,

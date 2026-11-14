@@ -39,7 +39,7 @@
     "titleInputAria": "Título del documento",
     "placeholder": "Empieza a escribir...",
     "syncAuthFailedTitle": "El servidor de sincronización rechazó la conexión",
-    "syncAuthFailedDescription": "Normalmente tienes acceso de edición aquí. El servidor de sincronización rechazó el intercambio, probablemente un límite de solicitudes por IP o un token caducado. Recarga para intentarlo de nuevo.",
+    "syncAuthFailedDescription": "No se pudo conectar para editar. Recarga para intentarlo de nuevo.",
     "syncAuthFailedReload": "Recargar",
     "syncRejected": {
       "title": "Tus últimos cambios no se han guardado",
@@ -207,7 +207,7 @@
       },
       "confirm": {
         "title": "¿Restaurar el documento?",
-        "body": "El documento volverá al estado de {when}. Los cambios realizados desde entonces se eliminarán (pero se podrán recuperar desde el registro de actividad).",
+        "body": "El documento vuelve a su estado de {when}. Los cambios posteriores se eliminan, pero siguen en el registro de actividad.",
         "reversibleHint": "Esta restauración también es reversible: puedes volver al estado actual en cualquier momento.",
         "cta": "Restaurar"
       },
@@ -335,7 +335,7 @@
     "languageLabel": "Idioma",
     "audienceLabel": "Público",
     "themeWorkspaceDefault": "Predeterminado del espacio de trabajo",
-    "templateHelp": "Una plantilla es un texto inicial en un diseño que le va bien. Los comentarios grises del texto dicen qué va en cada parte; la vista previa y el PDF no los muestran. Cambia el diseño cuando quieras en el panel del tema.",
+    "templateHelp": "Un texto inicial con un diseño a juego. Los comentarios grises dicen qué va en cada parte y nunca aparecen en el PDF.",
     "create": "Crear documento",
     "sections": {
       "template": "Plantilla",
@@ -444,7 +444,7 @@
     "title": "Documento",
     "description": {
       "label": "Descripción",
-      "help": "Una línea sobre qué es este documento. La IA lo ve en cada turno: así es como el modelo sabe en qué estás trabajando sin volver a escribirlo.",
+      "help": "Una línea sobre este documento. La IA la lee con cada solicitud.",
       "placeholder": "p. ej. Plan de lanzamiento del T3 para la nueva app móvil"
     },
     "language": {
@@ -585,7 +585,7 @@
     "otherSessionWorking": "markoto está trabajando para {name}",
     "confirm": {
       "label": "markoto pregunta primero",
-      "reason": "En esta sesión, markoto ha leído texto que no es tuyo (por ejemplo, de una página web o de otra persona), así que pregunta antes de acceder a tus otros documentos, al conocimiento del espacio de trabajo o a la web.",
+      "reason": "markoto ha leído texto que no es tuyo, así que pregunta antes de usar tus otros documentos, el conocimiento del espacio de trabajo o la web.",
       "waiting": "Esperando tu confirmación…",
       "allow": "Permitir",
       "deny": "Denegar",
@@ -651,9 +651,9 @@
     "responseShowLast": "Última respuesta de markoto",
     "exhaustedPlaceholderFree": "Sin créditos de IA: se recargan en el próximo periodo",
     "budgetExhaustedResetDescription": "Has usado todos tus créditos de IA de este periodo. Se recargan al comenzar el próximo periodo.",
-    "webToolsHourlyLimit": "Has alcanzado el límite por hora de búsqueda web y obtención de páginas. Inténtalo de nuevo dentro de una hora o continúa sin herramientas web.",
+    "webToolsHourlyLimit": "Has alcanzado el límite por hora de búsqueda web. Inténtalo más tarde o continúa sin ella.",
     "webToolsDailyLimit": "Has alcanzado el límite diario de búsqueda web y obtención de páginas. Inténtalo de nuevo mañana o continúa sin herramientas web.",
-    "budgetExhaustedComingSoonDescription": "Has usado todos tus créditos de IA de este periodo. Se recargan al comenzar el próximo periodo; muy pronto habrá planes de pago con más créditos.",
+    "budgetExhaustedComingSoonDescription": "Se agotaron tus puntos de IA de este período. Se recargan el próximo período.",
     "freeAllowanceExhaustedTitle": "Asignación gratuita de IA agotada",
     "freeAllowanceExhausted": "La asignación gratuita de IA de este mes se ha agotado. Añade tu propia clave en Ajustes → Proveedor de IA para continuar.",
     "freeAllowanceCta": "Añadir tu clave",
@@ -725,9 +725,9 @@
   },
   "pricing": {
     "title": "Precios",
-    "subtitle": "Elige el plan que mejor se adapte. Los planes fijan tus límites: puntos de IA, espacios de trabajo y almacenamiento. La IA con tu propia clave de proveedor nunca está limitada por un plan.",
+    "subtitle": "Los planes fijan tus puntos de IA, espacios de trabajo y almacenamiento. La IA con tu propia clave nunca tiene límite.",
     "metaDescription": "Compara los planes de markoto: puntos de IA, espacios de trabajo y almacenamiento. La IA con tu propia clave nunca está limitada.",
-    "creditsHint": "Los puntos de IA cubren la IA que paga la instancia: 1000 puntos = 1 $ de uso del modelo. La IA con tu propia clave la factura tu proveedor y no consume puntos.",
+    "creditsHint": "1000 puntos de IA = 1 $ de uso del modelo. La IA con tu propia clave no consume puntos.",
     "currentPlan": "Plan actual",
     "manageSubscription": "Gestionar suscripción",
     "upgrade": "Mejorar plan",
@@ -748,7 +748,7 @@
       "team": "Para equipos: por puesto, AI Points y almacenamiento compartidos, controles de administración.",
       "business": "Para organizaciones: Team con inicio de sesión único, exportación de auditoría y límites a medida."
     },
-    "freeAllowanceNote": "La asignación gratuita de IA funciona con un modelo alojado por Mistral AI en la UE y está disponible mientras dure la reserva compartida de este mes. Para más, añade tu propia clave en Ajustes → Proveedor de IA.",
+    "freeAllowanceNote": "La asignación gratuita funciona con un modelo alojado por Mistral AI en la UE, mientras dure la reserva compartida de este mes. Para más, añade tu propia clave.",
     "price": {
       "free": "Gratis",
       "perMonth": "al mes",
@@ -863,7 +863,8 @@
     "seatTotalMonth": "{total} al mes por {seats} puestos",
     "seatTotalYear": "{total} al año por {seats} puestos",
     "seatsLabel": "Puestos",
-    "creditsSection": "Los créditos de IA amplían el presupuesto mensual de IA de Pro y de los espacios Team / Business. Solo se usan cuando se agota el presupuesto del mes y caducan {months} meses después de la compra."
+    "creditsSection": "Los créditos de IA se suman al presupuesto mensual de IA de Pro y de los espacios Team / Business. Se usan cuando se agota el presupuesto y caducan {months} meses después de la compra.",
+    "creditsBuyLink": "Comprar créditos de IA en tu perfil"
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
@@ -871,6 +872,8 @@
     "creditsRemaining": "Quedan {remaining} de {limit} puntos",
     "creditsPercent": "{pct}% restante",
     "creditsResetOn": "Se reinicia el {date}",
+    "creditsExtra": "+ {points} puntos de créditos de IA",
+    "creditsWorkspace": "La IA de este documento usa el presupuesto del espacio de trabajo.",
     "creditsHint": "Los puntos de IA cubren la IA que paga la instancia: 1000 puntos = 1 $ de uso del modelo.",
     "upgradeToPlan": "Mejorar a {plan}",
     "topPlan": "Tienes el plan superior.",
@@ -1362,7 +1365,7 @@
     "successToPersonal": "«{title}» ahora es un documento personal.",
     "successToWorkspace": "«{title}» ahora está en {workspace}.",
     "failed": "No se pudo mover el documento",
-    "leavesPlan": "Este documento sale de un espacio de trabajo con {plan}. Después del traslado sigue el plan del nuevo lugar: las funciones que ese plan no incluye (como CSS propio o el historial antiguo) quedan en pausa. No se borra nada."
+    "leavesPlan": "Este documento sale de un espacio de trabajo {plan}. Las funciones que falten en el nuevo lugar, como CSS propio o el historial antiguo, quedan en pausa. No se borra nada."
   },
   "delete": {
     "title": "Eliminar documento",
@@ -1427,7 +1430,7 @@
     "editTitle": "Editar espacio de trabajo",
     "delete": "Eliminar espacio de trabajo",
     "deleteTitle": "Eliminar espacio de trabajo",
-    "deleteWarning": "Esto eliminará permanentemente este espacio de trabajo y {count} documento en su interior. Esto no se puede deshacer. | Esto eliminará permanentemente este espacio de trabajo y {count} documentos en su interior. Esto no se puede deshacer.",
+    "deleteWarning": "Esto elimina permanentemente el espacio de trabajo y su {count} documento. No se puede deshacer. | Esto elimina permanentemente el espacio de trabajo y sus {count} documentos. No se puede deshacer.",
     "deleteWarningEmpty": "Esto eliminará permanentemente este espacio de trabajo. Esto no se puede deshacer.",
     "deleteConfirmPrompt": "Escribe «{name}» para confirmar:",
     "deleteConfirm": "Eliminar espacio de trabajo",
@@ -1452,7 +1455,7 @@
       "adminDescription": "Invita a colaboradores por correo, cambia roles o elimina miembros.",
       "memberDescription": "Personas que tienen acceso a este espacio de trabajo.",
       "addTitle": "Invitar a un miembro",
-      "addHint": "Introduce su dirección de correo. Solo se une después de aceptar la invitación: en markoto con la sesión iniciada con esa dirección o desde el correo de invitación.",
+      "addHint": "Se unen cuando aceptan, en markoto o desde el correo de invitación.",
       "emailPlaceholder": "Introduce una dirección de correo electrónico",
       "add": "Invitar",
       "addFailed": "No se pudo enviar la invitación",
@@ -1500,7 +1503,7 @@
       "loading": "Cargando la facturación…",
       "loadFailed": "No se pudo cargar la facturación",
       "paymentProblemTitle": "Problema con el pago",
-      "paymentProblemBody": "El último pago de este espacio de trabajo falló. Stripe lo volverá a intentar; actualiza el método de pago en «Gestionar facturación» para conservar las funciones de Team.",
+      "paymentProblemBody": "El último pago falló. Actualiza el método de pago en «Gestionar facturación» para conservar tu plan.",
       "buyTitle": "Mejorar este espacio de trabajo",
       "buyBody": "Team y Business se pagan por puesto. Todas las personas del espacio tienen dentro de él las funciones del plan, con un presupuesto mensual de IA compartido.",
       "planLabel": "Plan",
@@ -1514,10 +1517,11 @@
       "annual": "anual",
       "monthly": "mensual",
       "renews": "Se renueva el {date}",
+      "ends": "Finaliza el {date}",
       "manage": "Gestionar facturación",
       "seatCounter": "{used} de {seats} puestos ocupados",
       "updateSeats": "Cambiar puestos",
-      "seatsFootnote": "Los puestos adicionales se cobran de forma proporcional al momento y su presupuesto de IA cubre los días que quedan del mes de presupuesto. Los que quitas no se abonan; conservan su presupuesto de IA hasta que termina el mes. No puede haber menos puestos que personas en el espacio.",
+      "seatsFootnote": "Los puestos añadidos se cobran de forma proporcional ahora. Los puestos quitados no se reembolsan y conservan su presupuesto de IA hasta que termina el mes. Necesitas al menos un puesto por persona.",
       "switchToBusiness": "Cambiar a Business",
       "switchToTeam": "Cambiar a Team",
       "switchToAnnual": "Cambiar a facturación anual",
@@ -1564,7 +1568,7 @@
   },
   "knowledge": {
     "title": "Base de conocimiento",
-    "description": "Sube PDF, documentos de Word, presentaciones u hojas de cálculo. El asistente de IA puede buscarlos al escribir en cualquier documento de este espacio de trabajo.",
+    "description": "Sube PDF, archivos de Word, presentaciones u hojas de cálculo. La IA puede buscar en ellos en cada documento de este espacio de trabajo.",
     "upload": "Subir archivos",
     "capFilesReached": "Este espacio de trabajo ha alcanzado el límite de archivos ({limit}). Elimina un archivo o mejora el plan para añadir más.",
     "capBytesReached": "Este espacio de trabajo ha alcanzado su límite de almacenamiento ({limit} MB). Elimina un archivo o mejora el plan para añadir más.",
@@ -1578,7 +1582,7 @@
     "deleteFailed": "No se pudo eliminar el archivo",
     "loadFailed": "No se pudo cargar la base de conocimiento",
     "deleteTitle": "Eliminar de la base de conocimiento",
-    "deleteWarning": "La IA ya no podrá hacer referencia a este archivo al escribir. Todo lo ya escrito usándolo permanece en tus documentos.",
+    "deleteWarning": "La IA ya no podrá usar este archivo. El texto ya escrito con él se queda.",
     "deleteConfirm": "Eliminar archivo",
     "chunks": "{n} fragmento | {n} fragmentos",
     "status": {
@@ -1595,7 +1599,7 @@
   "designImport": {
     "button": "Crear un diseño a partir de un documento",
     "title": "Crear un diseño a partir de un documento",
-    "intro": "Sube un archivo PDF o Word con el diseño de tu organización. markoto lee sus fuentes, colores y maquetación y crea un diseño para documentos nuevos.",
+    "intro": "Sube un archivo PDF o Word con tu diseño. markoto crea un diseño a juego a partir de sus fuentes, colores y maquetación.",
     "chooseFile": "Elegir un archivo PDF o Word",
     "fileHint": "PDF o .docx, hasta 20 MB",
     "costNote": "Usa tu proveedor de IA: hasta tres solicitudes con imágenes de páginas. Las fuentes se sustituyen por la más parecida que ofrece markoto.",
@@ -1673,7 +1677,7 @@
   "legal": {
     "ageGate": {
       "title": "Confirma tu edad",
-      "body": "markoto es para personas de 16 años o más. Confirma que tienes al menos 16 años. Esto se aplica en todos los países, aunque la ley local fije una edad inferior.",
+      "body": "markoto es para personas de 16 años o más, en todos los países.",
       "checkbox": "Confirmo que tengo al menos 16 años",
       "continue": "Continuar",
       "underage": "Soy menor de 16 años",
@@ -1697,7 +1701,7 @@
     },
     "delete": {
       "confirmTitle": "¿Eliminar tu cuenta?",
-      "confirmBody": "Conservaremos tus datos durante 30 días por si cambias de opinión. Después de eso, todo se elimina permanentemente. Esta acción no se puede deshacer una vez finalizado el período de gracia.",
+      "confirmBody": "Conservamos tus datos 30 días por si cambias de opinión. Después se eliminan para siempre.",
       "confirmTypeIn": "Escribe {phrase} para confirmar",
       "confirmCta": "Programar eliminación",
       "confirmCancel": "Cancelar",
@@ -1708,10 +1712,10 @@
       "emailExecutedSubject": "Tu cuenta de markoto ha sido eliminada",
       "consequences": {
         "title": "Esto es exactamente lo que pasará",
-        "intro": "Queremos que veas el panorama completo antes de confirmar. Todo lo siguiente se ejecuta automáticamente una vez que termina la ventana de gracia de 30 días.",
+        "intro": "Esto es lo que pasa al terminar los 30 días.",
         "deleted": {
           "heading": "Eliminado permanentemente",
-          "ownedDocs": "{count} documento que te pertenece, incluso si lo compartes. Quienes tienen acceso lo pierden al mismo tiempo. | {count} documentos que te pertenecen, incluidos los que compartes. Quienes tienen acceso lo pierden al mismo tiempo.",
+          "ownedDocs": "Ningún documento tuyo. | {count} documento tuyo. Las personas con quienes lo compartiste pierden el acceso. | {count} documentos tuyos. Las personas con quienes los compartiste pierden el acceso.",
           "themes": "Tus temas guardados y preferencias personales.",
           "ai": "Tus sesiones de IA, historial de consultas y contadores de uso.",
           "exports": "{count} exportación de datos anterior y su archivo ZIP. | {count} exportaciones de datos anteriores y sus archivos ZIP.",
@@ -1719,8 +1723,8 @@
         },
         "anonymised": {
           "heading": "Se conserva en la plataforma con tu nombre eliminado",
-          "comments": "{count} comentario que escribiste en documentos ajenos, mostrado como «[usuario eliminado]». El texto se mantiene para que los demás puedan seguir la conversación. | {count} comentarios que escribiste en documentos ajenos, mostrados como «[usuario eliminado]». El texto se mantiene para que los demás puedan seguir la conversación.",
-          "activity": "{count} entrada del registro de actividad de documentos ajenos, mostrada después como «Anónimo». | {count} entradas del registro de actividad de documentos ajenos, mostradas después como «Anónimo».",
+          "comments": "{count} comentario en documentos ajenos. El texto se queda, tu nombre pasa a «[usuario eliminado]». | {count} comentarios en documentos ajenos. El texto se queda, tu nombre pasa a «[usuario eliminado]».",
+          "activity": "{count} entrada de actividad en documentos ajenos, mostrada como «Anónimo». | {count} entradas de actividad en documentos ajenos, mostradas como «Anónimo».",
           "audit": "{count} entrada en nuestro registro interno de seguridad; se elimina tu identificador. | {count} entradas en nuestro registro interno de seguridad; se elimina tu identificador.",
           "consent": "{count} decisión de consentimiento, anonimizada pero conservada como prueba legal según el artículo 7(1) del RGPD. | {count} decisiones de consentimiento, anonimizadas pero conservadas como prueba legal según el artículo 7(1) del RGPD."
         },
@@ -1728,14 +1732,14 @@
           "heading": "Espacios de trabajo",
           "cascadeDelete": {
             "title": "Se eliminarán en cascada (miembro único)",
-            "body": "Estos espacios de trabajo se eliminarán permanentemente junto con cada documento y archivo de conocimiento en su interior. Si quieres conservar su contenido, invita primero a un colaborador con rol de administrador y luego vuelve y solicita la eliminación.",
+            "body": "Se eliminan con cada documento y archivo de conocimiento que contienen. Para conservarlos, nombra antes administrador a otro miembro.",
             "row": "{name}: {docs}, {files}",
             "docCount": "ningún documento | {count} documento | {count} documentos",
             "fileCount": "ningún archivo de conocimiento | {count} archivo de conocimiento | {count} archivos de conocimiento"
           },
           "promote": {
             "title": "Recibirán un nuevo administrador (existen otros miembros)",
-            "body": "Estos espacios de trabajo siguen activos para los demás miembros. Un administrador que se unió antes que los demás toma el relevo; si no hay otro administrador, el miembro más antiguo pasa a serlo.",
+            "body": "Estos se quedan para los demás miembros. Toma el relevo el administrador más antiguo, o el miembro más antiguo si no hay otro administrador.",
             "row": "{name}: {newAdminName} (ahora {newAdminPreviousRole}) pasa a ser administrador",
             "rowAlreadyAdmin": "{name}: {newAdminName} sigue como administrador y toma el relevo"
           },
@@ -1747,12 +1751,12 @@
         },
         "manualSteps": {
           "heading": "Pasos que quizá quieras dar primero",
-          "exportFirst": "Usa la función de exportación de datos para descargar todo lo que tenemos sobre ti como un ZIP: conserva ese archivo independientemente de lo que pase aquí.",
+          "exportFirst": "Si quieres una copia, descarga antes tus datos como ZIP.",
           "transferDocs": "Para cualquier documento que quieras que un colaborador conserve, muévelo a un espacio de trabajo que le pertenezca o pídele que lo duplique.",
           "inviteWorkspaceMember": "Para cualquier espacio de trabajo que quieras preservar, invita al menos a un colaborador con rol de administrador antes de eliminar.",
           "downloadKnowledge": "Para los archivos de la base de conocimiento que quieras conservar, descárgalos fuera de markoto primero."
         },
-        "timing": "La cascada real se ejecuta como una tarea en segundo plano una vez por hora. Una vez que termina la ventana de gracia, tus datos se purgan por completo en aproximadamente una hora.",
+        "timing": "Tus datos desaparecen en aproximadamente una hora tras los 30 días.",
         "noRecovery": "Una vez que se ejecuta la cascada, tu cuenta y contenido desaparecen permanentemente: no hay forma de recuperarlos.",
         "loading": "Leyendo tu cuenta…"
       },
@@ -1834,9 +1838,9 @@
     },
     "onboarding": {
       "title": "Te damos la bienvenida a markoto",
-      "intro": "Antes de empezar a escribir, necesitamos tu conformidad con los puntos siguientes. Solo lo verás una vez, o cuando actualicemos de forma sustancial alguno de los documentos.",
+      "intro": "Dos cosas antes de empezar. Solo te lo volvemos a pedir si cambia un documento.",
       "documentsTitle": "Documentos que debes aceptar",
-      "documentsIntro": "Los hemos redactado en lenguaje claro: abre cada uno en una pestaña nueva para leerlo completo. Tu aceptación se registra con la versión que leíste, para poder demostrar lo que viste.",
+      "documentsIntro": "Cada uno se abre en una pestaña nueva. Registramos qué versión aceptaste.",
       "acceptDocument": "He leído y acepto {document}",
       "continue": "Continuar a markoto",
       "welcomeToast": "Te damos la bienvenida a markoto",
@@ -1886,18 +1890,18 @@
       },
       "spending": {
         "heading": "Gasto y uso",
-        "comingSoon": "Próximamente: tu uso de créditos de IA, historial de planes y facturas estarán aquí. Por ahora, gestiona la facturación desde la página de Precios.",
+        "comingSoon": "Aquí aparecerán el uso, el historial de planes y las facturas.",
         "viewPricing": "Ver precios",
         "plan": "Plan actual: {plan}",
         "manage": "Gestionar facturación",
         "portalFailed": "No se pudo abrir la facturación",
         "coveringTitle": "Espacios de trabajo que te cubren",
-        "coveringHint": "Dentro de estos espacios se aplica su plan, incluido el presupuesto de IA compartido. En todo lo demás se aplica tu propio plan."
+        "coveringHint": "En estos espacios se aplican su plan y el presupuesto de IA compartido. En el resto, tu propio plan."
       },
       "data": {
         "heading": "Tus datos",
         "exportTitle": "Descarga una copia de tus datos",
-        "exportDescription": "Prepararemos un ZIP con todo lo que tenemos sobre ti: el perfil de tu cuenta, cada documento de tu propiedad en Markdown, comentarios que hayas escrito, historial de facturación, registros de uso de IA, registros de auditoría y consentimiento. La generación se ejecuta en segundo plano, normalmente en menos de un minuto. Esta página se actualiza cuando esté lista, y también te enviaremos un enlace de descarga por correo electrónico. El enlace es válido durante 7 días.",
+        "exportDescription": "Un ZIP con todo lo que tenemos sobre ti: perfil, tus documentos en Markdown, comentarios, facturación, uso de IA y registros de consentimiento. Listo en aproximadamente un minuto; el enlace funciona 7 días.",
         "exportButton": "Solicitar exportación",
         "exportInProgress": "Exportación en curso: esta página se actualiza cuando esté lista.",
         "exportHistoryHeading": "Exportaciones recientes",
@@ -1911,7 +1915,7 @@
       },
       "delete": {
         "heading": "Eliminar tu cuenta",
-        "description": "Conservaremos tus datos durante 30 días por si cambias de opinión. Después de eso, todo se elimina permanentemente: documentos, comentarios, membresías de espacios de trabajo, historial de facturación. Los espacios de trabajo donde eres el único miembro se eliminan en cascada; los espacios de trabajo con otros miembros reciben un nuevo administrador automáticamente.",
+        "description": "Tus datos se conservan 30 días y luego se eliminan para siempre. Antes de confirmar ves exactamente qué se verá afectado.",
         "button": "Solicitar eliminación de la cuenta",
         "scheduled": "Programada para eliminación el {date}",
         "cancel": "Cancelar eliminación",
@@ -1919,22 +1923,22 @@
       },
       "legal": {
         "heading": "Legal",
-        "subheading": "Versiones de la Política de Privacidad, los Términos del Servicio y el Anexo de Tratamiento de Datos que has aceptado. Si actualizamos algún documento de forma sustancial, verás aquí «requiere nueva aceptación» y te lo volveremos a solicitar antes de cualquier acción adicional.",
+        "subheading": "Las versiones que aceptaste. Te lo volvemos a pedir si cambia un documento.",
         "notAccepted": "No aceptado",
         "needsReacceptance": "requiere nueva aceptación (actual v{version})",
         "dpaNotApplicable": "Requerido cuando creas un espacio de trabajo",
-        "cookieNote": "markoto solo usa cookies esenciales: su sesión, su idioma y una clave que permite a su navegador eliminar los documentos que creó sin cuenta. No hay analítica, seguimiento ni publicidad, así que no hay nada que consentir. La política de privacidad enumera cada cookie."
+        "cookieNote": "Solo cookies esenciales: inicio de sesión, idioma y una clave para eliminar documentos creados sin cuenta. Sin analítica, seguimiento ni publicidad. La política de privacidad enumera cada una."
       },
       "sessions": {
         "heading": "Sesiones",
-        "description": "¿Tienes la sesión iniciada en un dispositivo que ya no usas o te preocupa que otra persona tenga acceso? Cierra la sesión de markoto en todos los navegadores y dispositivos, incluido este.",
+        "description": "Cierra la sesión en todos los navegadores y dispositivos, incluido este.",
         "button": "Cerrar sesión en todas partes",
         "failed": "No se pudo cerrar la sesión en todas partes"
       },
       "storage": {
         "heading": "Almacenamiento",
         "images": "Imágenes de documentos",
-        "description": "Imágenes que subes o generas en tus documentos, incluidas las copias creadas al duplicar un documento. Las imágenes que ya no usa ningún documento se eliminan automáticamente al cabo de un tiempo."
+        "description": "Imágenes que subes o generas, incluidas las copias en documentos duplicados. Las imágenes sin uso se eliminan automáticamente."
       }
     },
     "integrations": {
@@ -1949,7 +1953,7 @@
       "revokeFailed": "No se pudo revocar el token",
       "snippetCopied": "Fragmento de configuración copiado",
       "createdTitle": "Token creado: cópialo ahora",
-      "createdBody": "Por seguridad, este token se muestra una sola vez. No podemos recuperarlo por ti. Si lo pierdes, revócalo y crea uno nuevo.",
+      "createdBody": "Copia el token ahora. Solo se muestra una vez; si lo pierdes, crea uno nuevo.",
       "copy": "Copiar",
       "generateTitle": "Generar token",
       "namePlaceholder": "p. ej., Claude Desktop en el portátil",
@@ -2040,7 +2044,7 @@
     "title": "Proveedor de IA",
     "menu": "Proveedor de IA",
     "loading": "Cargando tus ajustes de IA…",
-    "intro": "Tu propia clave: conecta tu propio proveedor de IA compatible con OpenAI para cada función. Estas llamadas las paga tu cuenta del proveedor. markoto guarda la clave cifrada y nunca vuelve a mostrarla.",
+    "intro": "Conecta tu propio proveedor compatible con OpenAI para cada función. Tu proveedor te factura. La clave se guarda cifrada y nunca vuelve a mostrarse.",
     "privacyNote": "Para estas funciones, tus prompts, el contexto relevante del documento y tus grabaciones se envían al proveedor que elijas, bajo tu propio acuerdo con ese proveedor.",
     "platformNote": "La búsqueda en la base de conocimiento, la búsqueda web y la descarga de páginas siempre usan los proveedores propios de markoto.",
     "allowedProvidersNote": "Proveedores permitidos en esta instancia: {list}",
@@ -2129,7 +2133,7 @@
       "openSettings": "Abrir ajustes del proveedor de IA"
     },
     "ownProviderBadge": "Tu propio proveedor de IA",
-    "freeAllowanceNote": "Sin clave propia, tu cuenta recibe una asignación gratuita mensual de IA en el modelo predeterminado de esta instancia, mientras dure la reserva mensual compartida. En cuanto añades tu propia clave, se usa esa.",
+    "freeAllowanceNote": "Sin clave tienes una asignación gratuita mensual de IA mientras dure la reserva compartida. Con clave, se usa la clave.",
     "modelTier": {
       "title": "Modelo de IA",
       "description": "Qué modelo de esta instancia usa la IA para ti. Tu propia clave de chat, si añades una, siempre tiene prioridad.",
@@ -2230,7 +2234,7 @@
   "anonGate": {
     "eyebrow": "Antes de tu primer documento",
     "title": "Escribir sin cuenta",
-    "pointPublic": "Cualquiera que tenga el enlace puede abrir y editar tu documento, salvo que cambies cómo se comparte. No pongas en él nada confidencial.",
+    "pointPublic": "Cualquiera que tenga el enlace puede abrirlo y editarlo hasta que cambies cómo se comparte. No incluyas texto confidencial.",
     "pointRetention": "Se elimina tras {days} días sin actividad. Inicia sesión para conservar tus documentos.",
     "pointRules": "markoto no revisa los documentos. El contenido ilícito, las estafas y el spam no están permitidos y se eliminan cuando se denuncian.",
     "accept": "Acepto las {terms}, incluidas las normas de uso aceptable, y tengo al menos {age} años.",
@@ -2280,7 +2284,7 @@
     "steps": {
       "write": {
         "title": "Markdown a la izquierda, páginas a la derecha",
-        "body": "Escribe en el editor; la vista previa muestra las páginas tal como se imprimen y exportan. Estos botones cambian entre editor, ambos y vista previa."
+        "body": "Escribe a la izquierda; la vista previa muestra las páginas tal como se imprimen. Estos botones cambian la vista."
       },
       "format": {
         "title": "Dar formato sin la sintaxis",
@@ -2409,7 +2413,7 @@
     "title": "Créditos de IA",
     "balance": "Te quedan {amount} en créditos de IA",
     "usedThisMonth": "{amount} usados este mes",
-    "explainer": "Los créditos amplían el presupuesto mensual de IA de tu plan. Solo se usan cuando se agota el presupuesto del mes y caducan {months} meses después de la compra.",
+    "explainer": "Los créditos se suman al presupuesto mensual de IA de tu plan. Se usan cuando se agota el presupuesto y caducan {months} meses después de la compra.",
     "pack": "{price} → {credit} de crédito",
     "grantLeft": "Quedan {left} · caduca el {date}",
     "needsPlan": "Los créditos de IA amplían un plan de pago. Pasa a Pro para comprarlos.",
@@ -2422,7 +2426,7 @@
     "loading": "Cargando el inicio de sesión único…",
     "loadFailed": "No se pudo cargar la configuración del inicio de sesión único.",
     "planNotice": "El inicio de sesión único con tu propio proveedor de identidad forma parte del plan Business.",
-    "intro": "Los miembros inician sesión en este espacio de trabajo a través del proveedor de identidad de tu organización (OpenID Connect o SAML). Una vez activado, todos tienen que iniciar sesión de esa forma para abrir el espacio de trabajo; los admins siempre pueden volver aquí para cambiarlo o quitarlo.",
+    "intro": "Los miembros abren este espacio de trabajo con tu proveedor de identidad (OpenID Connect o SAML). Los administradores siempre pueden acceder a estos ajustes.",
     "enforcedNotice": "El inicio de sesión único está activado: los miembros solo abren este espacio de trabajo después de iniciar sesión a través de tu proveedor de identidad (válido durante 12 horas).",
     "idpTitle": "Proveedor de identidad",
     "protocol": {
@@ -2449,7 +2453,7 @@
     "saveFailed": "No se pudo guardar la configuración del inicio de sesión único.",
     "testAndActivate": "Probar el inicio de sesión y activar",
     "testAgain": "Probar el inicio de sesión",
-    "draftHint": "Todavía no está activado. Prueba el inicio de sesión con tu propia cuenta en el proveedor de identidad; cuando funcione, el inicio de sesión único se activará para el espacio de trabajo.",
+    "draftHint": "Aún no está activado. Prueba el inicio de sesión con tu propia cuenta; cuando funcione, se activa.",
     "testActivated": "El inicio de sesión funciona: el inicio de sesión único ya está activado para este espacio de trabajo",
     "testOk": "El inicio de sesión funciona",
     "status": {
@@ -2469,7 +2473,7 @@
     "copied": "Copiado",
     "domains": {
       "title": "Dominios de correo electrónico",
-      "body": "Verifica los dominios que usan las direcciones de correo electrónico de tu organización. Solo las direcciones de un dominio verificado se vinculan a cuentas de markoto existentes o se unen al espacio de trabajo en su primer inicio de sesión.",
+      "body": "Verifica tus dominios de correo. Solo las direcciones de un dominio verificado se vinculan a cuentas o se unen en el primer inicio de sesión.",
       "verified": "Verificado",
       "unverified": "Sin verificar",
       "verify": "Comprobar ahora",
@@ -2483,7 +2487,7 @@
     "domainRemoveFailed": "No se pudo quitar el dominio.",
     "scim": {
       "title": "Aprovisionamiento (SCIM)",
-      "body": "Deja que tu proveedor de identidad añada y quite miembros automáticamente. Introduce la URL base y el token en su configuración de SCIM. Si quitas a alguien allí, sale de este espacio de trabajo al instante.",
+      "body": "Tu proveedor de identidad añade y quita miembros. Introduce la URL base y el token en su configuración de SCIM; las bajas se aplican al instante.",
       "baseUrl": "URL base de SCIM",
       "tokenOnce": "Copia este token ahora: no se volverá a mostrar.",
       "create": "Crear token",
@@ -2523,7 +2527,7 @@
   },
   "audit": {
     "title": "Registro de auditoría",
-    "intro": "Quién cambió qué en este espacio de trabajo y cuándo: miembros y roles, invitaciones, uso compartido y eliminaciones, facturación e inicio de sesión único. La dirección de red está abreviada (sin la última parte).",
+    "intro": "Quién cambió qué y cuándo: miembros, invitaciones, uso compartido, eliminaciones, facturación e inicio de sesión único. Las direcciones de red están abreviadas.",
     "retention": "Los eventos se conservan {days} días.",
     "filter": "Mostrar",
     "from": "Desde",
@@ -2588,7 +2592,7 @@
   },
   "usage": {
     "title": "Uso",
-    "intro": "Lo que conserva cada persona en este espacio de trabajo: los documentos que posee, los archivos de conocimiento y las imágenes que añadió y, en un plan Team o Business, su gasto de IA del presupuesto compartido en este período. Nada sobre cuándo o con qué frecuencia trabaja nadie.",
+    "intro": "Lo que conserva cada persona aquí: documentos, archivos de conocimiento, imágenes y gasto de IA de este período. Sin horarios de actividad.",
     "person": "Persona",
     "documents": "Documentos",
     "knowledge": "Conocimiento",
@@ -2608,7 +2612,7 @@
     "uploadFailed": "No se pudo subir el archivo",
     "deleteFailed": "No se pudo eliminar el archivo",
     "fonts": "Fuentes",
-    "fontsHint": "Sube un archivo por grosor y estilo (WOFF2, WOFF o TTF). Aparecen en «Este espacio de trabajo» en los selectores de fuentes de todos los documentos de aquí y en sus PDF. Las fuentes variables y las de contornos PostScript (CFF) se imprimen mal y no se aceptan: usa los cortes TrueType estáticos.",
+    "fontsHint": "Un archivo por grosor y estilo (WOFF2, WOFF o TTF). Las fuentes aparecen en «Este espacio de trabajo» en cada documento de aquí. Usa fuentes TrueType estáticas; las variables y las CFF no se aceptan.",
     "noFonts": "Aún no hay fuentes.",
     "chooseFont": "Elegir un archivo de fuente",
     "fontName": "Nombre de la fuente",
@@ -2633,13 +2637,13 @@
     "designImagesDropped": "Las imágenes subidas a ese documento se omitieron: elige un logotipo del espacio de trabajo para el diseño compartido.",
     "designFailed": "No se pudo establecer el diseño del espacio de trabajo",
     "lockLabel": "Bloquear el diseño para todos los documentos",
-    "lockDescription": "Todos los documentos del espacio de trabajo usan el diseño del espacio de trabajo; solo el texto de la portada (subtítulo, fecha, autores) sigue siendo propio. Al desbloquear, cada documento recupera su propio diseño.",
+    "lockDescription": "Cada documento usa el diseño del espacio de trabajo y solo conserva el texto de su portada. Desbloquea para devolver a los documentos su propio diseño.",
     "lockFailed": "No se pudo cambiar el bloqueo",
     "lockedTitle": "El diseño del espacio de trabajo está bloqueado",
     "lockedBody": "Este documento usa el diseño de su espacio de trabajo. Aún puedes cambiar el texto de la portada más abajo.",
     "openBrandKit": "Abrir el kit de marca",
     "templates": "Plantillas",
-    "templatesHint": "Convierte un documento del espacio de trabajo en plantilla. Los documentos nuevos creados a partir de ella copian su texto y diseño actuales, así que los cambios en el documento cambian la plantilla.",
+    "templatesHint": "Convierte un documento en plantilla. Los documentos nuevos copian su texto y diseño actuales.",
     "templateName": "Nombre de la plantilla",
     "templateDescription": "Descripción breve (opcional)",
     "addTemplate": "Añadir plantilla",
@@ -2656,7 +2660,7 @@
   },
   "publish": {
     "title": "Publicar como página web",
-    "help": "Una copia estática de este documento en su propia dirección pública. Cualquiera que tenga la dirección puede leerla; el documento sigue compartido exactamente como ahora. Vuelve a publicar para actualizar la página.",
+    "help": "Una copia pública en su propia dirección. El uso compartido del documento no cambia. Vuelve a publicar para actualizarla.",
     "publish": "Publicar",
     "update": "Actualizar página",
     "unpublish": "Despublicar",
@@ -2680,7 +2684,7 @@
   "customDomains": {
     "menu": "Dominios",
     "title": "Dominios personalizados",
-    "intro": "Muestra una página publicada en tu propia dirección, como docs.example.com. Añade el dominio, configura los dos registros DNS que se indican abajo en tu proveedor de DNS y elige la página en el cuadro de compartir del documento. Obtenemos automáticamente un certificado HTTPS para él.",
+    "intro": "Muestra una página publicada en tu propia dirección, como docs.example.com. Añade el dominio, configura sus dos registros DNS y elige la página en el cuadro de compartir del documento. El HTTPS se configura por ti.",
     "notOnInstance": "Los dominios personalizados no están configurados en esta instancia.",
     "placeholder": "docs.example.com",
     "add": "Añadir dominio",
@@ -2745,7 +2749,7 @@
     "landing": {
       "eyebrow": "guía práctica · vol. 01",
       "title": "Todo lo que puedes hacer en {product}.",
-      "lede": "Un editor de markdown colaborativo con cuentas opcionales. Escribe de forma anónima, comparte por URL, dale un tema, exporta a PDF. Cada captura de pantalla de aquí se toma en vivo de la aplicación en funcionamiento.",
+      "lede": "Un editor de Markdown colaborativo con cuentas opcionales. Escribe sin cuenta, comparte por enlace, dale estilo, exporta a PDF. Cada captura de pantalla de aquí viene de la aplicación en funcionamiento.",
       "begin": "empezar el recorrido",
       "search": "buscar",
       "startHere": "Empieza aquí",

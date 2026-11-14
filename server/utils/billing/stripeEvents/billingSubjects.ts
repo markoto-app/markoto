@@ -13,7 +13,7 @@ import {
 import { findUserIdByStripeCustomer } from '../../../repos/userBilling'
 import { getPooledWorkspace } from '../workspaceBilling'
 import { ensureWorkspaceTeam, syncAllMemberKeyLimits } from '../../litellm/workspaceTeams'
-import { subscriptionPeriod } from './stripeObjects'
+import { subscriptionCancelAt, subscriptionPeriod } from './stripeObjects'
 import type { TxHandle, DeferredAfterCommit } from './types'
 import { useLogger } from '../../platform/logger'
 import { system } from '../../../repos/proofs'
@@ -79,6 +79,7 @@ export async function upsertWorkspaceSubscriptionFromStripe(
     stripeSubscriptionId: args.sub.id,
     currentPeriodStart: period.start,
     validUntil: period.end,
+    cancelAt: subscriptionCancelAt(args.sub),
     currency: args.identity.currency,
     interval: args.identity.interval,
     updatedAt: new Date()

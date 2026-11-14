@@ -68,6 +68,8 @@ export default defineApiHandler({
             currency: sub.currency,
             currentPeriodStart: sub.currentPeriodStart?.toISOString() ?? null,
             validUntil: sub.validUntil?.toISOString() ?? null,
+            // Set when the subscription was cancelled: it ends then instead of renewing.
+            cancelAt: sub.cancelAt?.toISOString() ?? null,
             billingAdminId: sub.billingAdminId
           }
         : null,

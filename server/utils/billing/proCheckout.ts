@@ -3,11 +3,12 @@ import type Stripe from 'stripe'
 import * as Sentry from '@sentry/nuxt'
 import type { PlanCheckoutResponse } from '~~/shared/contracts/stripe'
 import type { BillingInterval, Currency } from '~~/shared/config/pricing'
-import { getUserCheckoutBilling } from '../../repos/userBilling'
+import { getUserCheckoutBilling, recordOwnPlanChange } from '../../repos/userBilling'
 import { apiError } from '../api/apiError'
 import { recordPaidTermsAcceptance, requirePaidTermsAccepted } from './paidTerms'
 import { useStripeClient } from './stripeClient'
-import { findLiveSubscription, changeSubscriptionPrice } from './stripePlanChange'
+import { findLiveSubscription, changeSubscriptionPrice, livePeriod } from './stripePlanChange'
+import { identifyItem, subscriptionCancelAt } from './stripeEvents/stripeObjects'
 import { stripePriceIdFor } from './stripePrices'
 import { requestBaseUrl } from './workspaceStripe'
 import { checkoutTaxFields } from './checkoutSession'
@@ -21,8 +22,9 @@ const log = useLogger('billing')
 // subscription it creates a Stripe Checkout Session and returns
 // `{ url, sessionId }` for a full-page redirect; with one (upgrade between
 // paid tiers) it swaps the price on the EXISTING subscription in place
-// (prorated, charged now) and returns `{ updated: true, plan }`. Never
-// creates a second concurrent subscription.
+// (prorated, charged now) and returns `{ updated: true, plan, interval }`.
+// Never creates a second concurrent subscription. Without `interval` a live
+// subscription keeps its billing period; a new one is monthly.
 //
 // `client_reference_id = userId` lets the `checkout.session.completed`
 // webhook associate the subscription with our user; `customer_email`
@@ -31,7 +33,8 @@ const log = useLogger('billing')
 export interface ProCheckoutRequest {
   /** The buyer, acting for themselves. */
   self: UserScope
-  interval: BillingInterval
+  /** Absent: keep the live subscription's billing period (a new subscription is monthly). */
+  interval: BillingInterval | undefined
   currency: Currency | undefined
   /** The request body: carries the paid-terms acceptance (`requirePaidTermsAccepted`). */
   terms: unknown
@@ -44,7 +47,7 @@ function customerOrEmailFields(stripeCustomerId: string | null, email: string | 
 }
 
 export async function startProCheckout(event: H3Event, request: ProCheckoutRequest): Promise<PlanCheckoutResponse<'pro'>> {
-  const { self, interval } = request
+  const { self } = request
   const userId = self.userId
   const plan = 'pro'
   const stripe = useStripeClient()
@@ -61,6 +64,12 @@ export async function startProCheckout(event: H3Event, request: ProCheckoutReque
   if (billingCurrency && stripeCustomerId && currency !== billingCurrency) {
     throw apiError('billing/currency-locked', { currency: billingCurrency })
   }
+  // Probed before the price is chosen: a request without `interval` means
+  // the live subscription's own.
+  const liveSub = await probeLiveSubscription(stripe, userId, userRow.stripeSubscriptionId)
+  const interval = request.interval
+    ?? (liveSub ? (await identifyItem(stripe, liveSub.items.data[0]))?.interval : undefined)
+    ?? 'month'
   const priceId = await stripePriceIdFor(stripe, plan, interval, currency)
   if (!priceId) throw apiError('billing/price-unavailable')
   requirePaidTermsAccepted(request.terms)
@@ -71,13 +80,18 @@ export async function startProCheckout(event: H3Event, request: ProCheckoutReque
   // twice. So probe the recorded subscription and, when live, swap its price;
   // the `customer.subscription.updated` webhook applies plan, period and
   // LiteLLM budget like a Checkout-born change.
-  const liveSub = await probeLiveSubscription(stripe, userId, userRow.stripeSubscriptionId)
   if (liveSub) {
-    await changeProPriceInPlace(stripe, liveSub, priceId, userId)
-    // The webhook is the source of truth for users.plan; the client may briefly
-    // read the old plan until it lands.
+    const updated = await changeProPriceInPlace(stripe, liveSub, priceId, userId)
+    // Written at once so the profile and pricing pages show the new billing
+    // period without waiting for the webhook (which writes the same state).
+    // Best-effort: the change is already paid for.
+    try {
+      await recordOwnPlanChange(self, liveSub.id, { interval, cancelAt: subscriptionCancelAt(updated), period: livePeriod(updated) })
+    } catch (e) {
+      log.warn('plan change not written locally, the webhook will', { userId, err: e })
+    }
     await recordPaidTermsAcceptance(event, self, { kind: 'plan', subject: { type: 'user', id: String(userId) }, item: `${plan}_${interval}` })
-    return { updated: true, plan }
+    return { updated: true, plan, interval }
   }
 
   try {
@@ -121,13 +135,13 @@ async function probeLiveSubscription(stripe: Stripe, userId: number, subscriptio
   }
 }
 
-async function changeProPriceInPlace(stripe: Stripe, liveSub: Stripe.Subscription, priceId: string, userId: number): Promise<void> {
+async function changeProPriceInPlace(stripe: Stripe, liveSub: Stripe.Subscription, priceId: string, userId: number): Promise<Stripe.Subscription> {
   const current = liveSub.items.data[0]?.price
   if (current?.id === priceId) {
     throw apiError('billing/already-on-plan')
   }
   try {
-    await changeSubscriptionPrice(stripe, liveSub, priceId)
+    return await changeSubscriptionPrice(stripe, liveSub, priceId)
   } catch (e) {
     log.error('in-place plan change failed', { userId, err: e })
     Sentry.captureException(e, {

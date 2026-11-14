@@ -49,6 +49,17 @@ export function subscriptionPeriod(sub: Stripe.Subscription): { start: Date | nu
 }
 
 /**
+ * When a cancelled subscription ends, or null while it renews. A portal
+ * cancellation sets `cancel_at_period_end` (the period end is the date);
+ * a scheduled cancellation sets `cancel_at` itself.
+ */
+export function subscriptionCancelAt(sub: Stripe.Subscription): Date | null {
+  const at = stripeTime(sub.cancel_at)
+  if (at) return at
+  return sub.cancel_at_period_end ? subscriptionPeriod(sub).end : null
+}
+
+/**
  * The subscription an invoice bills, or null for a one-off invoice.
  * basil: `parent.subscription_details.subscription`; acacia (pinned):
  * `invoice.subscription`.

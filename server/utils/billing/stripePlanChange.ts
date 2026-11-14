@@ -11,6 +11,7 @@
 // key budget (see stripeWebhook.ts#handleSubscriptionUpdated).
 
 import type Stripe from 'stripe'
+import { subscriptionPeriod } from './stripeEvents/stripeObjects'
 
 /**
  * Subscription statuses that mean "this customer is already being
@@ -85,4 +86,15 @@ export async function changeSubscriptionPrice(
     payment_behavior: 'error_if_incomplete',
     cancel_at_period_end: false
   })
+}
+
+/**
+ * The current period of a subscription that was just changed, for writing
+ * it locally ahead of the webhook. A live subscription's period always
+ * ends in the future, so anything else (a field the API version does not
+ * carry) is left for the webhook to write.
+ */
+export function livePeriod(sub: Stripe.Subscription, now: Date = new Date()): { start: Date, end: Date } | null {
+  const { start, end } = subscriptionPeriod(sub)
+  return start && end && end.getTime() > now.getTime() ? { start, end } : null
 }

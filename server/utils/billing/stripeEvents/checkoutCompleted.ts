@@ -4,7 +4,7 @@ import type { PersonalPlanName, PlanName } from '~~/shared/config/tiers'
 import { cancelDuplicateWorkspaceSubscription } from '../workspaceStripe'
 import { findLiveSubscription } from '../stripePlanChange'
 import { updateUserKeyBudget } from '../../litellm/userKeys'
-import { identifyItem, isWorkspaceIdentity, stripeId, subscriptionPeriod, warnUnknownPrice } from './stripeObjects'
+import { identifyItem, isWorkspaceIdentity, stripeId, subscriptionCancelAt, subscriptionPeriod, warnUnknownPrice } from './stripeObjects'
 import { deferWorkspaceTeamSync, rowHoldingOtherSubscription, upsertWorkspaceSubscriptionFromStripe } from './billingSubjects'
 import { updateUserBilling, type UserBillingUpdate } from '../../../repos/userBilling'
 import { handleTopupCheckout } from './creditTopups'
@@ -145,10 +145,14 @@ async function bindPersonalCheckout(session: Stripe.Checkout.Session, ref: strin
 
   const setFields: UserBillingUpdate['set'] = {
     stripeCustomerId: customerId,
-    stripeSubscriptionId: subscriptionId
+    stripeSubscriptionId: subscriptionId,
+    planCancelAt: subscriptionCancelAt(sub)
   }
   if (plan) setFields.plan = plan
-  if (identity) setFields.billingCurrency = identity.currency
+  if (identity) {
+    setFields.billingCurrency = identity.currency
+    setFields.billingInterval = identity.interval
+  }
   if (period.start) setFields.stripeCurrentPeriodStart = period.start
   if (period.end) setFields.planValidUntil = period.end
 

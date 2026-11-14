@@ -29,6 +29,8 @@ mockNuxtImport('useToast', () => () => ({ add: vi.fn() }))
 const MB = 1024 * 1024
 const BILLING: UserBilling = {
   plan: 'free',
+  interval: null,
+  cancelAt: null,
   periodStart: new Date().toISOString(),
   periodEnd: new Date().toISOString(),
   ownedWorkspaces: 1,
@@ -83,6 +85,8 @@ function setCredits(poolExhausted: boolean): void {
   useQueryCache().setQueryData<AiCredits>(aiKeys.creditsFor(null), {
     pointsRemaining: 300,
     pointsTotal: 500,
+    planPointsRemaining: 300,
+    creditPoints: 0,
     plan: 'free',
     periodEnd: new Date().toISOString(),
     attribution: 'user',
@@ -179,5 +183,64 @@ describe('UsageLimits: storage & limits rows', () => {
     expect(r.attributes('data-unlimited')).toBe('true')
     expect(r.text()).toContain('4 / unlimited')
     expect(r.find('[data-testid="usage-limit-bar"]').attributes('style')).toContain('width: 0%')
+  })
+})
+
+describe('UsageBadge: plan budget, bought credits and the workspace budget', () => {
+  const PRO: UserBilling = { ...BILLING, plan: 'pro', interval: 'month' }
+
+  async function mountBadge() {
+    useState<{ billingEnabled: boolean, plansComingSoon: boolean }>('billing-mode').value = { billingEnabled: true, plansComingSoon: false }
+    setAvailability('instance')
+    useQueryCache().setQueryData<UserBilling>(billingKeys.user(), PRO)
+    const wrapper = await mountSuspended(AuthUsageBadge, { attachTo: document.body })
+    await wrapper.get('[data-testid="usage-badge"]').trigger('click')
+    await flushPromises()
+    return wrapper
+  }
+
+  it('credits are listed beside the meter: remaining never exceeds the plan total', async () => {
+    useAiWorkspaceContext().value = null
+    // A Pro plan (5000 points) with a 10 000-point credit pack, 12 points spent.
+    useQueryCache().setQueryData<AiCredits>(aiKeys.creditsFor(null), {
+      pointsRemaining: 14988,
+      pointsTotal: 5000,
+      planPointsRemaining: 4988,
+      creditPoints: 10000,
+      plan: 'pro',
+      periodEnd: new Date().toISOString(),
+      attribution: 'user',
+      freeAllowance: null,
+      workspace: null
+    })
+    const wrapper = await mountBadge()
+    expect(wrapper.get('[data-testid="usage-badge"]').text()).toContain('100%')
+    expect(document.body.querySelector('[data-testid="usage-badge-points-remaining"]')?.textContent).toBe('4,988')
+    expect(document.body.querySelector('[data-testid="usage-badge-credit-points"]')?.textContent).toContain('+ 10,000 points from AI credits')
+    expect(document.body.querySelector('[data-testid="usage-badge-workspace-budget"]')).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('in a document of a Team workspace the meter shows the workspace budget, not the personal plan', async () => {
+    useAiWorkspaceContext().value = 'ws-team'
+    useQueryCache().setQueryData<AiCredits>(aiKeys.creditsFor('ws-team'), {
+      pointsRemaining: 2500,
+      pointsTotal: 10000,
+      planPointsRemaining: 2500,
+      creditPoints: 0,
+      plan: 'team',
+      periodEnd: new Date().toISOString(),
+      attribution: 'workspace',
+      freeAllowance: null,
+      workspace: { workspaceId: 'ws-team', teamBudgetUsd: 25, teamSpendUsd: 5, memberLimitUsd: 10, memberSpendUsd: 7.5, exhausted: false, teamExhausted: false }
+    })
+    const wrapper = await mountBadge()
+    const badge = wrapper.get('[data-testid="usage-badge"]').text()
+    expect(badge).toContain('Team')
+    expect(badge).not.toContain('Pro')
+    expect(badge).toContain('25%')
+    expect(document.body.querySelector('[data-testid="usage-badge-workspace-budget"]')).not.toBeNull()
+    useAiWorkspaceContext().value = null
+    wrapper.unmount()
   })
 })
