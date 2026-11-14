@@ -1580,7 +1580,7 @@
     "deleteTitle": "Retirer de la base de connaissances",
     "deleteWarning": "L'IA ne pourra plus se référer à ce fichier lors de la rédaction. Tout ce qui a déjà été écrit à partir de celui-ci reste dans vos documents.",
     "deleteConfirm": "Retirer le fichier",
-    "chunks": "segments",
+    "chunks": "{n} segment | {n} segments",
     "status": {
       "processing": "Traitement en cours",
       "ready": "Prêt",
