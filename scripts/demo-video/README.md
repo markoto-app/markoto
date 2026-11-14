@@ -51,7 +51,8 @@ Needs ffmpeg with `libx264` (point `FFMPEG` at such a build if the one on
 for `bun run tour:capture` (`docs/contributing/flow-docs.md` → Product-tour
 captures):
 
-- the flow stack and app with AI as on markoto.app (a chat default only):
+- the flow stack and app with the AI of markoto.app's free plan (no platform
+  image, voice or strong model):
   `FLOWS_SERVE_ONLY=1 FLOWS_HOSTED_AI=1 bun run flows:test`
   (`TEST_FAKE_OPENAI_HOST` / `CONTAINER_HOST_ADDRESS` set as in
   `docs/contributing/CONTAINER-ENGINES.md`). Without `FLOWS_HOSTED_AI` the
