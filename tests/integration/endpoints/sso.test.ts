@@ -560,6 +560,19 @@ describe('SCIM provisioning (/scim/v2/Users)', () => {
       await expectScim(await scim(`/Users/${user.id}`, { method: 'PATCH', body: { Operations: [{ op: 'replace', path: 'active', value: 'maybe' }] } }), 400, err(400, '"active" must be true or false.', 'invalidValue'))
     })
 
+    it('endpoints we do not have (Groups, Schemas, …) answer with a SCIM 404, whatever the method', async () => {
+      const { scim } = await scimSetup()
+      const unsupported = err(404, 'This endpoint is not supported. Only Users can be provisioned.')
+      await expectScim(await scim('/Groups'), 404, unsupported)
+      await expectScim(await scim(`/Groups?filter=${encodeURIComponent('displayName eq "Engineering"')}`), 404, unsupported)
+      await expectScim(await scim('/Groups', { method: 'POST', body: { displayName: 'Engineering' } }), 404, unsupported)
+      await expectScim(await scim('/Groups/abc', { method: 'PATCH', body: { Operations: [] } }), 404, unsupported)
+      await expectScim(await scim('/Schemas'), 404, unsupported)
+      await expectScim(await scim('/Users/1/extra'), 404, unsupported)
+      // Still behind the token.
+      await expectScim(await scim('/Groups', { token: 'mkscim_wrong-token-wrong-token-wrong' }), 401, err(401, 'A valid SCIM bearer token is required.'))
+    })
+
     it('the last admin: 409 mutability', async () => {
       const { scim } = await scimSetup()
       const list = await (await scim(`/Users?filter=${encodeURIComponent('userName eq "admin@acme.test"')}`)).json() as { Resources: Array<{ id: string }> }

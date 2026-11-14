@@ -88,6 +88,8 @@ shown once; replacing it stops the old one at once.
   account itself stays, since it may hold their own documents.
 - Roles are managed in markoto. The workspace's last admin can't be
   removed through provisioning.
+- Only users are provisioned. Requests for groups get a "not supported"
+  answer, which providers handle on their own.
 
 ## Removing single sign-on
 
