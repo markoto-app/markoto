@@ -61,8 +61,14 @@ export interface Clip {
   done: (opts: ClipDone) => Promise<void>
 }
 
+/**
+ * Scenes recorded only for the demo video (tests/e2e/demo-video/), not
+ * shown on the product page; scripts/demo-video/ reads them like the tour's.
+ */
+export type DemoVideoSceneId = 'templates'
+
 export interface TourRecorder {
-  clip: (id: TourSceneId) => Promise<Clip>
+  clip: (id: TourSceneId | DemoVideoSceneId) => Promise<Clip>
 }
 
 function isLocator(t: unknown): t is Locator {

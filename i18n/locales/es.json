@@ -2772,5 +2772,16 @@
       "next": "siguiente"
     },
     "onThisPage": "En esta página"
+  },
+  "demo": {
+    "title": "Vídeo de demostración",
+    "metaDescription": "markoto en dos minutos: Markdown con vista previa paginada en directo, temas, una IA que escribe contigo, colaboración, historial y exportación a PDF.",
+    "eyebrow": "Demo · {n} min",
+    "heading": "markoto en dos minutos.",
+    "videoLabel": "Vídeo de demostración de markoto",
+    "download": "Descargar el vídeo (MP4)",
+    "home": "Volver a la página de inicio",
+    "source": "Código fuente en GitHub",
+    "captionsLabel": "Inglés (texto en pantalla)"
   }
 }

@@ -35,12 +35,12 @@ describe('docsRoutePath', () => {
 })
 
 describe('sitemapEntries', () => {
-  it('lists /, /pricing, /docs, the docs pages and (hosted) the legal pages, deduplicated', () => {
+  it('lists /, /pricing, /demo, /docs, the docs pages and (hosted) the legal pages, deduplicated', () => {
     const locs = sitemapEntries(BASE, {
       docsPaths: ['/docs/b', '/docs/a', '/docs'],
       legalSurfaces: true
     }).map(e => e.loc)
-    expect(locs.slice(0, 3)).toEqual([`${BASE}/`, `${BASE}/pricing`, `${BASE}/docs`])
+    expect(locs.slice(0, 4)).toEqual([`${BASE}/`, `${BASE}/pricing`, `${BASE}/demo`, `${BASE}/docs`])
     expect(locs).toContain(`${BASE}/docs/a`)
     expect(locs).toContain(`${BASE}/legal/privacy`)
     expect(locs.filter(l => l === `${BASE}/docs`)).toHaveLength(1)

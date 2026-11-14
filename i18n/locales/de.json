@@ -2772,5 +2772,16 @@
       "next": "weiter"
     },
     "onThisPage": "Auf dieser Seite"
+  },
+  "demo": {
+    "title": "Demo-Video",
+    "metaDescription": "markoto in zwei Minuten: Markdown mit Live-Vorschau in Seiten, Themes, einer KI, die mit dir schreibt, gemeinsames Bearbeiten, Verlauf und PDF-Export.",
+    "eyebrow": "Demo · {n} Min.",
+    "heading": "markoto in zwei Minuten.",
+    "videoLabel": "Demo-Video von markoto",
+    "download": "Video herunterladen (MP4)",
+    "home": "Zurück zur Startseite",
+    "source": "Quellcode auf GitHub",
+    "captionsLabel": "Englisch (Text im Video)"
   }
 }

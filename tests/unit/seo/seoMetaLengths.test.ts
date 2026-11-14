@@ -71,7 +71,7 @@ describe('docs pages (content/docs frontmatter)', () => {
   }
 })
 
-describe('marketing pages (/, /pricing, /docs), every locale', () => {
+describe('marketing pages (/, /pricing, /demo, /docs), every locale', () => {
   it('home title (untemplated) fits', () => {
     expect(DEFAULT_TITLE.length).toBeLessThanOrEqual(MAX_TITLE_LENGTH)
   })
@@ -79,7 +79,7 @@ describe('marketing pages (/, /pricing, /docs), every locale', () => {
   for (const locale of LOCALES) {
     const messages: unknown = JSON.parse(readFileSync(join(ROOT, 'i18n', 'locales', `${locale}.json`), 'utf8'))
     it(`${locale}: titles and descriptions fit`, () => {
-      for (const key of ['pricing.title', 'pricing.selfHostedTitle', 'docs.landing.metaTitle']) {
+      for (const key of ['pricing.title', 'pricing.selfHostedTitle', 'demo.title', 'docs.landing.metaTitle']) {
         expect(applyTitleTemplate(lookup(messages, key)).length, key).toBeLessThanOrEqual(MAX_TITLE_LENGTH)
       }
       for (const key of [
@@ -87,6 +87,7 @@ describe('marketing pages (/, /pricing, /docs), every locale', () => {
         'pricing.metaDescription',
         'pricing.comingSoonSubtitle',
         'pricing.selfHostedSubtitle',
+        'demo.metaDescription',
         'docs.landing.metaDescription'
       ]) {
         expect(lookup(messages, key).length, key).toBeLessThanOrEqual(MAX_DESCRIPTION_LENGTH)

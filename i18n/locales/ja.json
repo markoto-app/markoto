@@ -2772,5 +2772,16 @@
       "next": "次へ"
     },
     "onThisPage": "このページの内容"
+  },
+  "demo": {
+    "title": "デモ動画",
+    "metaDescription": "2 分でわかる markoto：ページ単位のライブプレビュー付き Markdown、テーマ、一緒に書く AI、リアルタイム共同編集、履歴、PDF 書き出し。",
+    "eyebrow": "デモ · {n} 分",
+    "heading": "2 分でわかる markoto。",
+    "videoLabel": "markoto のデモ動画",
+    "download": "動画をダウンロード（MP4）",
+    "home": "ホームページに戻る",
+    "source": "GitHub のソースコード",
+    "captionsLabel": "英語（画面の文字）"
   }
 }

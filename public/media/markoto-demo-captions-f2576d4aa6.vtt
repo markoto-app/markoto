@@ -1,0 +1,59 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:11.200
+01 · Editor
+Write Markdown, get pages. A4 or Letter, as you type.
+
+00:00:11.200 --> 00:00:23.900
+02 · Layout
+Headers, footers, page numbers. Charts, diagrams, math and footnotes too.
+
+00:00:23.900 --> 00:00:34.400
+03 · Themes
+Change the look, not the Markdown. Templates and themes, your fonts, a cover.
+
+00:00:34.400 --> 00:00:42.800
+04 · AI
+An assistant that writes with you. It edits while you watch.
+
+00:00:42.800 --> 00:00:51.200
+05 · Knowledge
+Answers from your own files. PDF, Word or Excel files.
+
+00:00:51.200 --> 00:01:06.000
+06 · Collaboration
+Write together, live. Cursors, comments, @mentions.
+
+00:01:06.000 --> 00:01:18.600
+07 · History
+Every change, with a diff. Restore any version in one click.
+
+00:01:18.600 --> 00:01:25.000
+Under the hood.
+MCP server · /mcp · Self-hosting · ./install.sh · Your own AI key
+
+00:01:25.000 --> 00:01:29.000
+08 · MCP server
+Bring your own agent. Claude Code, Claude Desktop or Cursor, through /mcp.
+
+00:01:29.000 --> 00:01:33.500
+09 · Self-hosting
+Self-host with one script. The whole stack on one Linux machine, with Docker or Podman.
+
+00:01:33.500 --> 00:01:37.500
+10 · Your AI
+Bring your own key. OpenAI-compatible, or a local model.
+
+00:01:37.500 --> 00:01:41.800
+11 · Share & export
+Share a link, export the PDF. The PDF matches the preview.
+
+00:01:41.800 --> 00:01:46.000
+The exported PDF
+
+00:01:46.000 --> 00:01:50.000
+Beautifully rendered Markdown. Write plain text. Hand over a finished document.
+
+00:01:50.000 --> 00:01:58.633
+Free on markoto.app. No sign-up needed. Or host it yourself.
+Source-available · github.com/markoto-app/markoto
