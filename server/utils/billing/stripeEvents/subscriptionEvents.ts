@@ -10,10 +10,12 @@ import {
   deferWorkspaceTeamSync,
   isEndedSubscription,
   rowHoldingOtherSubscription,
+  storedStatus,
   subjectForCustomer,
   upsertWorkspaceSubscriptionFromStripe
 } from './billingSubjects'
-import { applyUserSubscriptionState, findUserIdByStripeCustomer, updateUserBilling, type UserBillingUpdate } from '../../../repos/userBilling'
+import { eventTime } from './eventAge'
+import { applyUserSubscriptionState, endUserSubscription, findUserIdByStripeCustomer, type UserBillingUpdate } from '../../../repos/userBilling'
 import type { TxHandle, DeferredAfterCommit } from './types'
 import { useLogger } from '../../platform/logger'
 import { system } from '../../../repos/proofs'
@@ -85,7 +87,12 @@ async function applyWorkspaceSubscription(
     log.warn('ignoring late event of an ended subscription', { eventType: event.type, subscriptionId: sub.id, workspaceId })
     return { matched: 0, plan: null }
   }
-  await upsertWorkspaceSubscriptionFromStripe(db, { workspaceId, sub, identity, customerId })
+  // An older snapshot than the state the row holds (a redelivery that
+  // newer events overtook) would put the old plan back: not applied.
+  if (!(await upsertWorkspaceSubscriptionFromStripe(db, { workspaceId, sub, identity, customerId, at: eventTime(event) }))) {
+    log.info('ignoring event older than the stored subscription state', { eventType: event.type, eventId: event.id, subscriptionId: sub.id, workspaceId })
+    return { matched: 0, plan: null }
+  }
   deferWorkspaceTeamSync(args.deferAfterCommit, workspaceId)
   // Cancelled to the period end (portal, or no billing admin left):
   // tell the admins once per subscription + period.
@@ -109,7 +116,8 @@ async function applyPersonalSubscription(
     plan,
     billingCurrency: identity.currency,
     billingInterval: identity.interval,
-    planCancelAt: subscriptionCancelAt(sub)
+    planCancelAt: subscriptionCancelAt(sub),
+    subscriptionStatus: storedStatus(sub)
   }
   if (period.start) setFields.stripeCurrentPeriodStart = period.start
   if (period.end) setFields.planValidUntil = period.end
@@ -117,10 +125,11 @@ async function applyPersonalSubscription(
   // applied. `customer.subscription.deleted` clears it, so a late event
   // of an ended subscription can't bring Pro back; a new subscription's
   // events that beat its checkout are covered by the checkout, which
-  // reads the live subscription.
-  const matched = await applyUserSubscriptionState(STRIPE, db, customerId, sub.id, setFields)
+  // reads the live subscription. An event older than the state the row
+  // holds is not applied either (`eventAge.ts`).
+  const matched = await applyUserSubscriptionState(STRIPE, db, customerId, sub.id, setFields, eventTime(event))
   if (matched === 0) {
-    log.warn('ignoring event: not the customer\'s current subscription', { eventType: event.type, subscriptionId: sub.id })
+    log.info('ignoring event: not the customer\'s current subscription, or older than its stored state', { eventType: event.type, eventId: event.id, subscriptionId: sub.id })
     return { matched: 0, plan: null }
   }
 
@@ -166,7 +175,9 @@ export async function handleSubscriptionDeleted(
     // Only the tracked subscription ends the workspace's plan (not a
     // cancelled duplicate, not an old subscription's late event).
     if (await rowHoldingOtherSubscription(handle, subject.workspaceId, sub.id)) return { matched: 0 }
-    const matched = await markWorkspaceSubscriptionCanceled(STRIPE, handle, subject.workspaceId)
+    const matched = await markWorkspaceSubscriptionCanceled(STRIPE, handle, subject.workspaceId, eventTime(event))
+    // Older than the state the row holds: nothing ended.
+    if (matched === 0) return { matched }
     // The team + member keys stay (unused while not entitled: members
     // fall back to their personal keys); a resubscription reuses them and
     // workspace deletion removes them (`endWorkspaceBilling`).
@@ -177,17 +188,10 @@ export async function handleSubscriptionDeleted(
     return { matched }
   }
 
-  const matched = await updateUserBilling(STRIPE, {
-    where: { stripeCustomerId: customerId },
-    set: {
-      plan: 'free',
-      stripeSubscriptionId: null,
-      stripeCurrentPeriodStart: null,
-      planValidUntil: null,
-      billingInterval: null,
-      planCancelAt: null
-    }
-  }, handle)
+  // Not applied when the row holds newer state: a subscription bought
+  // after this one ended must not be taken away by its late event.
+  const matched = await endUserSubscription(STRIPE, handle, customerId, eventTime(event))
+  if (matched === 0) return { matched }
 
   // Drop the LiteLLM key budget to the free-tier value, deferred to
   // post-commit (see handleCheckoutSessionCompleted).

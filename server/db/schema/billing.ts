@@ -31,6 +31,9 @@ export const workspaceSubscriptions = pgTable('workspace_subscriptions', {
   // When a cancelled subscription ends (Stripe `cancel_at`, or the period
   // end with `cancel_at_period_end`). NULL while it renews.
   cancelAt: timestamp('cancel_at', { withTimezone: true }),
+  // Stripe's time of the newest subscription state on this row (see
+  // `users.subscription_event_at`): an older event is not applied.
+  subscriptionEventAt: timestamp('subscription_event_at', { withTimezone: true }),
   // LiteLLM team holding the workspace's pooled AI budget.
   litellmTeamId: text('litellm_team_id'),
   // Seat changes inside the current LiteLLM budget window (30 days).

@@ -19,6 +19,7 @@ import { countSeatsUsed, getPooledWorkspace, parseSeats } from './workspaceBilli
 import { ensureWorkspaceTeam, syncAllMemberKeyLimits } from '../litellm/workspaceTeams'
 import { WORKSPACE_REF_PREFIX } from './stripeEvents/checkoutCompleted'
 import { identifyItem, isWorkspaceIdentity, subscriptionCancelAt } from './stripeEvents/stripeObjects'
+import { stripeResponseTime } from './stripeEvents/eventAge'
 import { checkoutTaxFields } from './checkoutSession'
 import { AUDIT_WORKSPACE_BILLING_CHECKOUT_STARTED, AUDIT_WORKSPACE_BILLING_PLAN_CHANGED } from '../../legal/auditActions'
 import type { UserScope, WorkspaceAccess } from '../../repos/proofs'
@@ -124,6 +125,8 @@ async function changePlanInPlace(ctx: CheckoutContext, liveSub: Stripe.Subscript
   if (item.price?.id === priceId) {
     throw apiError('billing/already-on-plan')
   }
+  // Stripe's time just before the change (see `proCheckout.ts`).
+  const changedAt = stripeResponseTime(liveSub)
   let updated: Stripe.Subscription
   try {
     updated = await stripe.subscriptions.update(liveSub.id, {
@@ -136,7 +139,7 @@ async function changePlanInPlace(ctx: CheckoutContext, liveSub: Stripe.Subscript
     Sentry.captureException(e, { tags: { component: 'billing', event: 'workspace_plan_change_failed', workspaceId: wsId } })
     throw apiError('billing/plan-change-failed')
   }
-  await applyPlanChangeLocally(ctx, updated)
+  await applyPlanChangeLocally(ctx, updated, changedAt)
   await appendAuditEvent({
     by: ws,
     actorIp: getClientIp(ctx.event),
@@ -158,14 +161,15 @@ async function changePlanInPlace(ctx: CheckoutContext, liveSub: Stripe.Subscript
  * fails the request: the change is already paid for, and the webhook and
  * `litellm-key-reconcile` repair whatever is missed here.
  */
-async function applyPlanChangeLocally(ctx: CheckoutContext, updated: Stripe.Subscription): Promise<void> {
+async function applyPlanChangeLocally(ctx: CheckoutContext, updated: Stripe.Subscription, changedAt: Date): Promise<void> {
   const wsId = ctx.ws.workspaceId
   try {
     await recordWorkspacePlanChange(ctx.ws, {
       plan: ctx.plan,
       interval: ctx.interval,
       cancelAt: subscriptionCancelAt(updated),
-      period: livePeriod(updated)
+      period: livePeriod(updated),
+      at: changedAt
     })
     const pool = await getPooledWorkspace(wsId)
     if (pool) {
