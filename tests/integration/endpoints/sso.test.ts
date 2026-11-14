@@ -210,7 +210,8 @@ describe('SSO with OpenID Connect', () => {
     const ws = await createWorkspace(admin.id)
     const { id } = await setupOidc(admin.id, ws.workspaceId)
     const notYet = await fetch(`${TEST_BASE_URL}/auth/sso/${id}`, { redirect: 'manual' })
-    expect(notYet.headers.get('location')).toContain('/auth/sso-error?code=sso%2Fnot-active')
+    // Nothing to retry: the connection is not switched on.
+    expect(notYet.headers.get('location')).toBe(`/auth/sso-error?code=sso%2Fnot-active&workspace=${ws.workspaceId}`)
 
     const editor = await createUser()
     await setMemberRole(ws.workspaceId, editor.id, 'editor')
@@ -306,7 +307,9 @@ describe('SSO with OpenID Connect', () => {
     const start = await fetch(`${TEST_BASE_URL}/auth/sso/${connectionId}`, { redirect: 'manual' })
     const idp = await fetch(start.headers.get('location')!, { method: 'POST', redirect: 'manual', body: new URLSearchParams({ username: 'x', claims: '{}' }) })
     const back = await fetch(idp.headers.get('location')!, { redirect: 'manual' })
-    expect(back.headers.get('location')).toContain('code=sso%2Ffailed')
+    // Without the cookie the attempt counts as timed out; the page gets
+    // what it needs to offer "Try again" (the connection, not a URL).
+    expect(back.headers.get('location')).toBe(`/auth/sso-error?code=sso%2Fexpired&workspace=${ws.workspaceId}&connection=${connectionId}`)
     expect(cookieValue(back, SESSION_COOKIE)).toBeNull()
   })
 })
@@ -409,7 +412,7 @@ describe('SSO with SAML', () => {
     const sp = await activateSaml(admin.id, ws.workspaceId)
     const { requestId } = await samlStart(sp.id)
     const done = await samlPost(sp.id, null, samlResponse({ idp, issuer: IDP_ENTITY, inResponseTo: requestId, acsUrl: sp.acsUrl, audience: sp.entityId, nameId: 'x' }))
-    expect(done.location).toContain('code=sso%2Ffailed')
+    expect(done.location).toBe(`/auth/sso-error?code=sso%2Fexpired&workspace=${ws.workspaceId}&connection=${sp.id}`)
   })
 })
 

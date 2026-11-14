@@ -33,7 +33,7 @@ export async function finishSsoSignIn(event: H3Event, connection: SsoConnectionR
         action: AUDIT_SSO_SIGN_IN,
         metadata: { protocol: connection.protocol, outcome: 'refused', code: e.code, test: flow.purpose === 'test' }
       })
-      return sendRedirect(event, ssoErrorPath(e.code, connection.workspaceId))
+      return sendRedirect(event, ssoErrorPath(e.code, connection, flow.purpose))
     }
     throw e
   }

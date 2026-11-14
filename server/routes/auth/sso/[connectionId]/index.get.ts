@@ -44,7 +44,7 @@ export default defineApiHandler({
       flow.purpose = 'test'
       flow.testUserId = await requireTestingAdmin(connection.workspaceId, user)
     } else if (connection.status !== 'active') {
-      return sendRedirect(event, ssoErrorPath('sso/not-active', connection.workspaceId))
+      return sendRedirect(event, ssoErrorPath('sso/not-active', connection, 'none'))
     }
     if (query.returnTo !== undefined && isSafeReturnTo(query.returnTo)) flow.returnTo = query.returnTo
 
@@ -55,7 +55,7 @@ export default defineApiHandler({
         config = await getOidcConfiguration(settings)
       } catch (err) {
         log.warn('OIDC discovery failed', { connectionId: connection.id, err })
-        return sendRedirect(event, ssoErrorPath('sso/idp-unavailable', connection.workspaceId))
+        return sendRedirect(event, ssoErrorPath('sso/idp-unavailable', connection, flow.purpose))
       }
       const { url, flow: oidcFlow } = await buildOidcAuthorizationRequest(config, settings, settings.redirectUrl)
       setSsoFlowCookie(event, { ...flow, ...oidcFlow })

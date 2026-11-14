@@ -2,7 +2,7 @@ import { AUDIT_SSO_SIGN_IN } from '../../../../legal/auditActions'
 import { appendAuditEvent } from '../../../../repos/audit'
 import { getSsoConnectionById } from '../../../../repos/sso'
 import { completeOidcAuthorization, getOidcConfiguration } from '../../../../utils/oidc/client'
-import { oidcSettingsForConnection, ssoErrorPath, takeSsoFlowCookie } from '../../../../utils/sso/http'
+import { oidcSettingsForConnection, retryPurposeWithoutFlow, ssoErrorPath, takeSsoFlowCookie } from '../../../../utils/sso/http'
 import { finishSsoSignIn } from '../../../../utils/sso/finish'
 import { ID_RE } from '~~/shared/config/identifiers'
 import { ssoConnectionParams } from '~~/shared/api/sso'
@@ -25,9 +25,15 @@ export default defineApiHandler({
     const flow = takeSsoFlowCookie(event)
     const connection = ID_RE.test(connectionId) ? await getSsoConnectionById(connectionId) : null
     if (!connection || connection.protocol !== 'oidc') return sendRedirect(event, ssoErrorPath('sso/unknown'))
-    if (!flow || flow.connectionId !== connection.id || !flow.state || !flow.nonce || !flow.codeVerifier) {
+    if (!flow) {
+      // No usable flow cookie: nearly always a sign-in that sat at the IdP
+      // longer than the cookie lives (also forged, or another browser).
       log.warn('OIDC callback without a valid flow cookie (expired, forged or another browser)')
-      return sendRedirect(event, ssoErrorPath('sso/failed', connection.workspaceId))
+      return sendRedirect(event, ssoErrorPath('sso/expired', connection, retryPurposeWithoutFlow(connection)))
+    }
+    if (flow.connectionId !== connection.id || !flow.state || !flow.nonce || !flow.codeVerifier) {
+      log.warn('OIDC callback with a flow cookie of another sign-in')
+      return sendRedirect(event, ssoErrorPath('sso/failed', connection, flow.purpose))
     }
 
     const settings = oidcSettingsForConnection(event, connection)
@@ -47,7 +53,7 @@ export default defineApiHandler({
         action: AUDIT_SSO_SIGN_IN,
         metadata: { protocol: 'oidc', outcome: 'rejected' }
       })
-      return sendRedirect(event, ssoErrorPath('sso/failed', connection.workspaceId))
+      return sendRedirect(event, ssoErrorPath('sso/failed', connection, flow.purpose))
     }
 
     return finishSsoSignIn(event, connection, flow, {

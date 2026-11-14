@@ -2519,9 +2519,11 @@
       "no-seat": "此工作区的付费席位已全部占用。请让管理员增加席位。",
       "member-limit": "此工作区已达到其方案的成员上限。",
       "idp-unavailable": "无法连接身份提供商。请稍后重试。",
-      "failed": "无法完成登录。请从登录链接重新开始。",
+      "failed": "登录未能完成，请重试。",
+      "expired": "登录用时过长，请重新开始。",
       "unknown": "此登录链接不存在。",
-      "toWorkspace": "返回工作区"
+      "toWorkspace": "返回工作区",
+      "retry": "重试"
     },
     "discover": {
       "button": "使用你的组织登录",

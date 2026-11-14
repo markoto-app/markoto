@@ -2519,9 +2519,11 @@
       "no-seat": "Alle bezahlten Plätze dieses Workspace sind belegt. Bitte einen Admin, einen Platz hinzuzufügen.",
       "member-limit": "Dieser Workspace hat das Mitgliederlimit seines Plans erreicht.",
       "idp-unavailable": "Der Identitätsanbieter war nicht erreichbar. Versuche es gleich noch einmal.",
-      "failed": "Die Anmeldung konnte nicht abgeschlossen werden. Beginne erneut über den Anmeldelink.",
+      "failed": "Die Anmeldung konnte nicht abgeschlossen werden. Versuche es erneut.",
+      "expired": "Die Anmeldung hat zu lange gedauert. Starte sie erneut.",
       "unknown": "Diesen Anmeldelink gibt es nicht.",
-      "toWorkspace": "Zurück zum Workspace"
+      "toWorkspace": "Zurück zum Workspace",
+      "retry": "Erneut versuchen"
     },
     "discover": {
       "button": "Mit deiner Organisation anmelden",

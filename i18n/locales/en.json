@@ -2519,9 +2519,11 @@
       "no-seat": "All paid seats of this workspace are taken. Ask an admin to add a seat.",
       "member-limit": "This workspace has reached the member limit of its plan.",
       "idp-unavailable": "The identity provider couldn't be reached. Try again in a moment.",
-      "failed": "The sign-in couldn't be completed. Start again from the sign-in link.",
+      "failed": "The sign-in couldn't be completed. Try again.",
+      "expired": "The sign-in took too long. Start it again.",
       "unknown": "This sign-in link doesn't exist.",
-      "toWorkspace": "Back to the workspace"
+      "toWorkspace": "Back to the workspace",
+      "retry": "Try again"
     },
     "discover": {
       "button": "Sign in with your organisation",

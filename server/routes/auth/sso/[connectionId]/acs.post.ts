@@ -1,7 +1,7 @@
 import { AUDIT_SSO_SIGN_IN } from '../../../../legal/auditActions'
 import { appendAuditEvent } from '../../../../repos/audit'
 import { getSsoConnectionById } from '../../../../repos/sso'
-import { ssoErrorPath, takeSsoFlowCookie } from '../../../../utils/sso/http'
+import { retryPurposeWithoutFlow, ssoErrorPath, takeSsoFlowCookie } from '../../../../utils/sso/http'
 import { assertionFromSamlProfile, samlFor } from '../../../../utils/sso/saml'
 import { finishSsoSignIn } from '../../../../utils/sso/finish'
 import { ID_RE } from '~~/shared/config/identifiers'
@@ -30,14 +30,20 @@ export default defineApiHandler({
     const flow = takeSsoFlowCookie(event)
     const connection = ID_RE.test(connectionId) ? await getSsoConnectionById(connectionId) : null
     if (!connection || connection.protocol !== 'saml') return sendRedirect(event, ssoErrorPath('sso/unknown'))
-    if (!flow || flow.connectionId !== connection.id || !flow.requestId) {
+    if (!flow) {
+      // No usable flow cookie: nearly always a sign-in that sat at the IdP
+      // longer than the cookie lives (also unsolicited, or another browser).
       log.warn('SAML response without a valid flow cookie (expired, unsolicited or another browser)')
-      return sendRedirect(event, ssoErrorPath('sso/failed', connection.workspaceId))
+      return sendRedirect(event, ssoErrorPath('sso/expired', connection, retryPurposeWithoutFlow(connection)))
+    }
+    if (flow.connectionId !== connection.id || !flow.requestId) {
+      log.warn('SAML response with a flow cookie of another sign-in')
+      return sendRedirect(event, ssoErrorPath('sso/failed', connection, flow.purpose))
     }
 
     const body = await parseBody()
     const samlResponse = body?.SAMLResponse ?? ''
-    if (!samlResponse || samlResponse.length > MAX_RESPONSE_BYTES) return sendRedirect(event, ssoErrorPath('sso/failed', connection.workspaceId))
+    if (!samlResponse || samlResponse.length > MAX_RESPONSE_BYTES) return sendRedirect(event, ssoErrorPath('sso/failed', connection, flow.purpose))
 
     let assertion
     try {
@@ -55,7 +61,7 @@ export default defineApiHandler({
         action: AUDIT_SSO_SIGN_IN,
         metadata: { protocol: 'saml', outcome: 'rejected' }
       })
-      return sendRedirect(event, ssoErrorPath('sso/failed', connection.workspaceId))
+      return sendRedirect(event, ssoErrorPath('sso/failed', connection, flow.purpose))
     }
     return finishSsoSignIn(event, connection, flow, assertion)
   }

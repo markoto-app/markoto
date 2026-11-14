@@ -2519,9 +2519,11 @@
       "no-seat": "Todos los puestos pagados de este espacio de trabajo están ocupados. Pide a un admin que añada un puesto.",
       "member-limit": "Este espacio de trabajo ha alcanzado el límite de miembros de su plan.",
       "idp-unavailable": "No se pudo contactar con el proveedor de identidad. Inténtalo de nuevo en un momento.",
-      "failed": "No se pudo completar el inicio de sesión. Empieza de nuevo desde el enlace de inicio de sesión.",
+      "failed": "No se pudo completar el inicio de sesión. Inténtalo de nuevo.",
+      "expired": "El inicio de sesión tardó demasiado. Empieza de nuevo.",
       "unknown": "Este enlace de inicio de sesión no existe.",
-      "toWorkspace": "Volver al espacio de trabajo"
+      "toWorkspace": "Volver al espacio de trabajo",
+      "retry": "Reintentar"
     },
     "discover": {
       "button": "Iniciar sesión con tu organización",

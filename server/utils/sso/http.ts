@@ -94,12 +94,26 @@ export function afterSsoLoginPath(result: SsoLoginResult, flow: SsoFlow): string
 
 /**
  * A refused or failed sign-in lands on a page that explains it (no raw
- * error text from the IdP, only our fixed codes).
+ * error text from the IdP, only our fixed codes). With `retry`, the page
+ * offers a button that starts the sign-in of this connection again: as the
+ * admin's test when the failed attempt was one.
  */
-export function ssoErrorPath(code: string, workspaceId?: string): string {
+export function ssoErrorPath(code: string, connection?: Pick<SsoConnectionRow, 'id' | 'workspaceId'>, retry: SsoFlow['purpose'] | 'none' = 'login'): string {
   const q = new URLSearchParams({ code })
-  if (workspaceId) q.set('workspace', workspaceId)
+  if (connection) {
+    q.set('workspace', connection.workspaceId)
+    if (retry !== 'none') q.set('connection', connection.id)
+    if (retry === 'test') q.set('test', '1')
+  }
   return `/auth/sso-error?${q.toString()}`
+}
+
+/**
+ * How to retry when the flow cookie is gone and with it the purpose of the
+ * attempt: a connection that is not active yet only signs in an admin's test.
+ */
+export function retryPurposeWithoutFlow(connection: Pick<SsoConnectionRow, 'status'>): SsoFlow['purpose'] {
+  return connection.status === 'active' ? 'login' : 'test'
 }
 
 /** openid-client settings for a workspace's OIDC connection. */

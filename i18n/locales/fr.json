@@ -2519,9 +2519,11 @@
       "no-seat": "Toutes les places payées de cet espace de travail sont occupées. Demandez à un admin d’ajouter une place.",
       "member-limit": "Cet espace de travail a atteint la limite de membres de son plan.",
       "idp-unavailable": "Le fournisseur d’identité n’a pas pu être joint. Réessayez dans un instant.",
-      "failed": "La connexion n’a pas pu être finalisée. Recommencez depuis le lien de connexion.",
+      "failed": "La connexion n’a pas pu aboutir. Réessayez.",
+      "expired": "La connexion a pris trop de temps. Recommencez.",
       "unknown": "Ce lien de connexion n’existe pas.",
-      "toWorkspace": "Retour à l’espace de travail"
+      "toWorkspace": "Retour à l’espace de travail",
+      "retry": "Réessayer"
     },
     "discover": {
       "button": "Se connecter avec votre organisation",
