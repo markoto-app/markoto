@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ApiResponse } from '~/utils/api/client'
+import { workspaceRoleKey } from '~/utils/workspace/roleLabel'
 
 // Workspace member roster. Up to THRESHOLD members render as rows (avatar,
 // name, role caption); beyond that it falls back to a compact avatar stack
@@ -30,9 +31,7 @@ const visible = computed(() => props.members.slice(0, max.value))
 const overflow = computed(() => Math.max(0, props.members.length - max.value))
 
 function roleLabel(role: WorkspaceMember['role']): string {
-  // Localized via the existing workspace.roles namespace; admin
-  // renders as "Admin", editor as "Editor", viewer as "Viewer".
-  return t(`workspace.roles.${role}`)
+  return t(workspaceRoleKey(role))
 }
 </script>
 
@@ -62,7 +61,7 @@ function roleLabel(role: WorkspaceMember['role']): string {
             :size="20"
           />
           <span class="text-sm text-default truncate">{{ m.name }}</span>
-          <span class="font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase shrink-0">{{ roleLabel(m.role) }}</span>
+          <span class="font-mono text-[10.5px] tracking-[0.04em] text-muted shrink-0">{{ roleLabel(m.role) }}</span>
         </div>
       </div>
       <span class="inline-flex items-center gap-1.5 self-start font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase shrink-0 group-hover:text-default transition-colors">
