@@ -82,6 +82,8 @@ export function makeCheckoutSessionCompletedEvent(opts: {
  *   - `data.object.items.data[0].current_period_start` (item-level
  *     since API version 2025-01-27.acacia)
  *   - `data.object.items.data[0].current_period_end`
+ *   - `data.object.cancel_at_period_end` / `cancel_at` (a cancelled
+ *     subscription that runs to a date)
  */
 export function makeSubscriptionEvent(opts: {
   type: 'customer.subscription.created' | 'customer.subscription.updated'
@@ -91,6 +93,8 @@ export function makeSubscriptionEvent(opts: {
   priceId: string
   periodStart?: number
   periodEnd?: number
+  cancelAtPeriodEnd?: boolean
+  cancelAt?: number | null
 }): Stripe.CustomerSubscriptionCreatedEvent | Stripe.CustomerSubscriptionUpdatedEvent {
   const subId = opts.subscriptionId ?? 'sub_test'
   return {
@@ -107,6 +111,8 @@ export function makeSubscriptionEvent(opts: {
         id: subId,
         object: 'subscription',
         customer: opts.customer,
+        cancel_at_period_end: opts.cancelAtPeriodEnd ?? false,
+        cancel_at: opts.cancelAt ?? null,
         items: {
           data: [{
             id: 'si_test',

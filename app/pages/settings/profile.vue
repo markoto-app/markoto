@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { defaultCurrencyForLocale } from '~~/shared/config/pricing'
 import { formatBytes, usageFill } from '~/utils/billing/usageMeter'
+import { useSwitchProInterval } from '~/queries/billing'
 import { accountLanguageName } from '~/utils/platform/localeName'
 // User profile page. The single canonical surface for account-level
 // management: who you are, the data we hold about you, and the
@@ -77,6 +78,34 @@ async function openPortal(): Promise<void> {
     openingPortal.value = false
   }
 }
+
+// Pro: switch between monthly and annual billing. The server swaps the
+// price on the live subscription; like every purchase it needs the Paid
+// Plans Terms box.
+const isPro = computed(() => billing.value?.plan === 'pro')
+const planLabel = computed(() => {
+  if (!isPro.value) return t('pricing.price.free')
+  const interval = billing.value?.interval
+  return interval ? `Pro · ${interval === 'year' ? t('workspace.billing.annual') : t('workspace.billing.monthly')}` : 'Pro'
+})
+const switchInterval = useSwitchProInterval()
+const paidTermsAccepted = ref(false)
+async function onSwitchInterval(): Promise<void> {
+  const current = billing.value?.interval
+  if (!current || !paidTermsAccepted.value) return
+  try {
+    const res = await switchInterval.mutateAsync(current === 'month' ? 'year' : 'month')
+    if ('updated' in res) {
+      toast.add({ title: t('workspace.billing.planChanged'), icon: 'i-lucide-check', color: 'neutral' })
+    } else if (res.url) {
+      // No live subscription after all: the server opened a Checkout.
+      goToExternal(res.url)
+    }
+  } catch (e) {
+    showError('workspace.billing.planChangeFailed', e)
+  }
+}
+
 const route = useRoute()
 onMounted(() => {
   creditCurrency.value = defaultCurrencyForLocale(globalThis.navigator?.language)
@@ -329,9 +358,28 @@ const policies = computed(() => {
         </h2>
         <div class="border border-default rounded-lg px-4 py-4 space-y-4">
           <div class="flex items-center justify-between gap-3 flex-wrap">
-            <p class="text-sm">
-              {{ t('settings.profile.spending.plan', { plan: billing?.plan === 'pro' ? 'Pro' : t('pricing.price.free') }) }}
-            </p>
+            <div>
+              <p
+                class="text-sm"
+                data-testid="profile-plan"
+              >
+                {{ t('settings.profile.spending.plan', { plan: planLabel }) }}
+              </p>
+              <p
+                v-if="isPro && billing?.cancelAt"
+                class="text-xs text-muted mt-1"
+                data-testid="profile-plan-ends"
+              >
+                {{ t('workspace.billing.ends', { date: fmtDateOnly(billing.cancelAt) }) }}
+              </p>
+              <p
+                v-else-if="isPro && billing?.periodEnd"
+                class="text-xs text-muted mt-1"
+                data-testid="profile-plan-renews"
+              >
+                {{ t('workspace.billing.renews', { date: fmtDateOnly(billing.periodEnd) }) }}
+              </p>
+            </div>
             <div class="flex gap-2">
               <UButton
                 size="sm"
@@ -357,6 +405,29 @@ const policies = computed(() => {
             </div>
           </div>
           <div
+            v-if="isPro && billing?.interval"
+            class="flex gap-2 flex-wrap border-t border-default pt-4"
+            data-testid="profile-interval-switch"
+          >
+            <PricingPaidTermsConsent
+              v-model="paidTermsAccepted"
+              kind="plan"
+              class="basis-full"
+              testid="profile-switch-paid-terms"
+            />
+            <UButton
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              :disabled="!paidTermsAccepted"
+              :loading="switchInterval.isLoading.value"
+              data-testid="profile-switch-interval"
+              @click="onSwitchInterval"
+            >
+              {{ billing.interval === 'month' ? t('workspace.billing.switchToAnnual') : t('workspace.billing.switchToMonthly') }}
+            </UButton>
+          </div>
+          <div
             v-if="billing?.coveringWorkspaces?.length"
             class="border-t border-default pt-4"
             data-testid="profile-covering-workspaces"
@@ -380,7 +451,10 @@ const policies = computed(() => {
               {{ t('settings.profile.spending.coveringHint') }}
             </p>
           </div>
-          <div class="border-t border-default pt-4">
+          <div
+            id="ai-credits"
+            class="border-t border-default pt-4 scroll-mt-20"
+          >
             <p class="font-mono text-[11px] uppercase tracking-wider text-muted mb-2">
               {{ t('credits.title') }}
             </p>

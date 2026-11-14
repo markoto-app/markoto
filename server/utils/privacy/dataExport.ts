@@ -189,6 +189,8 @@ function buildProfileEntry(userRow: UserProfileRow) {
     plan: userRow.plan,
     planValidUntil: userRow.planValidUntil?.toISOString() ?? null,
     billingCurrency: userRow.billingCurrency,
+    billingInterval: userRow.billingInterval,
+    planCancelAt: userRow.planCancelAt?.toISOString() ?? null,
     locale: userRow.locale,
     ageConfirmedAt: userRow.ageConfirmedAt?.toISOString() ?? null,
     deletionRequestedAt: userRow.deletionRequestedAt?.toISOString() ?? null,

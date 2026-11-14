@@ -1,6 +1,6 @@
 import { resolveBillingContext } from '../../utils/billing/billing'
 import { getUserKeyInfo } from '../../utils/litellm/userKeys'
-import { dollarsToPoints, planToPointsTotal } from '~~/shared/billing/aiPoints'
+import { dollarsToPoints, planToBudgetUsd, splitPlanAndCreditPoints } from '~~/shared/billing/aiPoints'
 import { getTiers } from '~~/server/utils/billing/tierConfig'
 import { freeAllowanceView } from '../../utils/billing/freeAllowance'
 import { readMemberKeySpend, readWorkspaceTeam } from '../../utils/litellm/workspaceTeams'
@@ -15,7 +15,12 @@ import type { UserScope, WorkspaceAccess } from '../../repos/proofs'
  * Returns the user's LiteLLM spend as AI Points plus plan and period end.
  * `resolveBillingContext` picks the effective plan and `billingUserId` (whose
  * virtual-key budget pays); `getUserKeyInfo` gives live spend + max_budget;
- * `pointsRemaining = (max_budget - spend) * 1000`. `freeAllowance` is the
+ * `pointsRemaining = (max_budget - spend) * 1000`: everything still usable,
+ * the plan's monthly budget AND bought AI credits (the key's budget holds
+ * both). `pointsTotal` is the plan's monthly allotment alone, so the two are
+ * told apart explicitly: `planPointsRemaining` (never above `pointsTotal`,
+ * what a meter shows) and `creditPoints` (the rest, bought credits; the plan
+ * budget is spent first). `freeAllowance` is the
  * shared monthly free-tier pool state (`{pooled, exhausted, resetsAt}`), null
  * when not pooled.
  *
@@ -50,9 +55,11 @@ export default defineApiHandler({
     // Read live key info from the same budget that is actually charged.
     const info = await getUserKeyInfo(billing.billingUserId, billing.plan)
 
-    const remainingDollars = Math.max(0, info.maxBudget - info.spend)
-    const pointsRemaining = dollarsToPoints(remainingDollars)
-    const pointsTotal = planToPointsTotal(billing.plan, getTiers())
+    const points = splitPlanAndCreditPoints({
+      maxBudgetUsd: info.maxBudget,
+      spendUsd: info.spend,
+      planBudgetUsd: planToBudgetUsd(billing.plan, getTiers())
+    })
     // Free tier on an instance with a global monthly ceiling: the key also
     // draws on the shared pool (`litellm/freeTierTeam.ts`). When the pool is
     // used up the user's own points don't help, the UI says so and links
@@ -60,8 +67,7 @@ export default defineApiHandler({
     const freeAllowance = await freeAllowanceView(billing.plan)
 
     return {
-      pointsRemaining,
-      pointsTotal,
+      ...points,
       plan: billing.plan,
       periodEnd: billing.periodEnd.toISOString(),
       attribution: billing.attribution,
@@ -103,6 +109,10 @@ async function workspaceCredits(
   return {
     pointsRemaining: dollarsToPoints(remaining),
     pointsTotal: dollarsToPoints(memberLimit ?? teamBudget),
+    // A workspace's bought credits are part of the team budget above (the
+    // billing tab lists them), so the whole remainder counts as budget here.
+    planPointsRemaining: dollarsToPoints(remaining),
+    creditPoints: 0,
     plan: billing.plan,
     periodEnd: billing.periodEnd.toISOString(),
     attribution: billing.attribution,

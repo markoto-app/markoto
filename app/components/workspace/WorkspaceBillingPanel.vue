@@ -5,7 +5,7 @@ import {
   type BillingInterval,
   type Currency
 } from '~~/shared/config/pricing'
-import { usePlanPricesQuery } from '~/queries/billing'
+import { useInvalidatePlan, usePlanPricesQuery } from '~/queries/billing'
 import { formatPrice, formatPlanBytes } from '~/utils/billing/pricing'
 import {
   formatUsd,
@@ -45,6 +45,15 @@ const pricesQuery = usePlanPricesQuery()
 const prices = computed(() => pricesQuery.data.value ?? null)
 const loading = ref(true)
 const busy = ref<string | null>(null)
+// A plan, billing-period or seat change moves what other views cache: the
+// workspaces that cover the user and every AI budget (the topbar meter).
+const invalidatePlan = useInvalidatePlan()
+
+/** Re-read everything a paid change touched: this tab, the cached snapshots, the page's own copy. */
+async function refreshAfterChange() {
+  await Promise.all([load(), invalidatePlan()])
+  emit('changed')
+}
 
 async function load() {
   try {
@@ -131,18 +140,20 @@ async function startCheckout() {
   }
 }
 
-async function changePlan(next: { plan?: 'team' | 'business', interval?: BillingInterval }) {
+// Sends only what the button changes (the plan OR the billing period):
+// the server keeps the other one as the subscription has it, so a tab
+// that shows an older state can't reset it.
+async function changePlan(next: { plan: 'team' | 'business' } | { interval: BillingInterval }) {
   if (!sub.value || !paidTermsAccepted.value) return
   busy.value = 'plan'
   try {
     await apiFetch('/api/workspaces/:wsId/billing/checkout', {
       method: 'post',
       path: { wsId: props.workspaceId },
-      body: { plan: next.plan ?? sub.value.plan, interval: next.interval ?? sub.value.interval, currency: sub.value.currency, acceptPaidTerms: true }
+      body: { ...next, acceptPaidTerms: true }
     })
     toast.add({ title: t('workspace.billing.planChanged'), icon: 'i-lucide-check', color: 'neutral' })
-    await load()
-    emit('changed')
+    await refreshAfterChange()
   } catch (e) {
     showError('workspace.billing.planChangeFailed', e)
   } finally {
@@ -156,8 +167,7 @@ async function saveSeats() {
   try {
     await apiFetch('/api/workspaces/:wsId/billing/seats', { method: 'post', path: { wsId: props.workspaceId }, body: { seats: seatsDraft.value } })
     toast.add({ title: t('workspace.billing.seatsChanged', { seats: seatsDraft.value }), icon: 'i-lucide-check', color: 'neutral' })
-    await load()
-    emit('changed')
+    await refreshAfterChange()
   } catch (e) {
     showError('workspace.billing.seatsChangeFailed', e)
   } finally {
@@ -359,8 +369,16 @@ function usd(amount: number | null | undefined): string {
                 {{ sub.interval === 'year' ? t('workspace.billing.annual') : t('workspace.billing.monthly') }}
               </p>
               <p
-                v-if="sub.validUntil"
+                v-if="sub.cancelAt"
                 class="text-xs text-muted mt-1"
+                data-testid="workspace-billing-ends"
+              >
+                {{ t('workspace.billing.ends', { date: fmtDate(sub.cancelAt) }) }}
+              </p>
+              <p
+                v-else-if="sub.validUntil"
+                class="text-xs text-muted mt-1"
+                data-testid="workspace-billing-renews"
               >
                 {{ t('workspace.billing.renews', { date: fmtDate(sub.validUntil) }) }}
               </p>

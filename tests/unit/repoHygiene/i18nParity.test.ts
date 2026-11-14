@@ -13,11 +13,7 @@ const SINGLE_FORM_OK = new Set(['ja', 'zh'])
 
 // Known exceptions today. Shrink-only: fix the translation, delete the entry.
 // "<locale>:<key>" -> reason.
-const PLURAL_FORM_EXCEPTIONS: Record<string, string> = {
-  'de:legal.delete.consequences.deleted.ownedDocs': 'omits the "none" form; en has 3 forms',
-  'fr:legal.delete.consequences.deleted.ownedDocs': 'omits the "none" form; en has 3 forms',
-  'es:legal.delete.consequences.deleted.ownedDocs': 'omits the "none" form; en has 3 forms'
-}
+const PLURAL_FORM_EXCEPTIONS: Record<string, string> = {}
 
 type Flat = Record<string, string>
 

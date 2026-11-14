@@ -35,6 +35,13 @@ export const users = pgTable('users', {
   // currency for life, so checkout refuses a different one (409
   // `billing/currency-locked`). NULL until the first subscription.
   billingCurrency: text('billing_currency', { enum: ['eur', 'chf'] }),
+  // Billing period of the personal subscription. NULL for free users and
+  // for subscriptions written before the column existed (readers then
+  // judge by the period length, `billingIntervalOf`).
+  billingInterval: text('billing_interval', { enum: ['month', 'year'] }),
+  // When a cancelled subscription ends (Stripe `cancel_at`, or the period
+  // end with `cancel_at_period_end`). NULL while it renews.
+  planCancelAt: timestamp('plan_cancel_at', { withTimezone: true }),
   // Platform chat model the user picked: 'fast' = the instance chat
   // default, 'strong' = NUXT_AI_DEFAULT_CHAT_STRONG_MODEL, only applied
   // while the plan includes `aiStrongModel`. Own keys are unaffected.

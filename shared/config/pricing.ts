@@ -192,3 +192,12 @@ export function topupPack(id: TopupPackId): TopupPack {
 export function stripeTopupLookupKey(pack: TopupPackId, currency: Currency, prefix = 'markoto'): string {
   return `${prefix}_topup_${pack}_${currency}`
 }
+
+/**
+ * The billing period a subscription period of this length belongs to, for
+ * subscriptions stored before their interval was recorded: a monthly
+ * period is at most 31 days, an annual one at least 365.
+ */
+export function billingIntervalOfPeriod(start: Date, end: Date): BillingInterval {
+  return end.getTime() - start.getTime() > 45 * 24 * 3600 * 1000 ? 'year' : 'month'
+}

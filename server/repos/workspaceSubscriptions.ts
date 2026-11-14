@@ -19,6 +19,7 @@ export interface WorkspaceSubscriptionRow {
   stripeSubscriptionId: string | null
   currentPeriodStart: Date | null
   validUntil: Date | null
+  cancelAt: Date | null
   litellmTeamId: string | null
   budgetSeatAdjust: number
   budgetSeatAdjustUntil: Date | null
@@ -132,6 +133,7 @@ export interface WorkspaceSubscriptionFromStripe {
   stripeSubscriptionId: string
   currentPeriodStart: Date | null
   validUntil: Date | null
+  cancelAt: Date | null
   currency: 'eur' | 'chf'
   interval: 'month' | 'year'
   updatedAt: Date
@@ -154,7 +156,7 @@ export async function upsertWorkspaceSubscription(_by: SystemActor,
 export async function markWorkspaceSubscriptionCanceled(_by: SystemActor, tx: TxHandle | undefined, workspaceId: string): Promise<number> {
   const db = executor(tx)
   const result = await db.update(workspaceSubscriptions)
-    .set({ status: 'canceled', updatedAt: new Date() })
+    .set({ status: 'canceled', cancelAt: null, updatedAt: new Date() })
     .where(eq(workspaceSubscriptions.workspaceId, workspaceId))
     .returning({ workspaceId: workspaceSubscriptions.workspaceId })
   return result.length
@@ -205,6 +207,28 @@ export async function recordWorkspaceStripeCustomer(ws: WorkspaceAccess<'admin'>
 export async function recordSeatChange(ws: WorkspaceAccess<'admin'>, change: { seats: number, budgetSeatAdjust: number, budgetSeatAdjustUntil: Date | null }): Promise<void> {
   await useDatabase().update(workspaceSubscriptions)
     .set({ ...change, updatedAt: new Date() })
+    .where(eq(workspaceSubscriptions.workspaceId, ws.workspaceId))
+}
+
+/**
+ * A plan / billing-period switch the admin made on the live subscription
+ * (already applied in Stripe), so the billing tab shows it at once; the
+ * `customer.subscription.updated` webhook writes the same state.
+ */
+export async function recordWorkspacePlanChange(ws: WorkspaceAccess<'admin'>, change: {
+  plan: WorkspacePlanName
+  interval: 'month' | 'year'
+  cancelAt: Date | null
+  period: { start: Date, end: Date } | null
+}): Promise<void> {
+  await useDatabase().update(workspaceSubscriptions)
+    .set({
+      plan: change.plan,
+      interval: change.interval,
+      cancelAt: change.cancelAt,
+      ...(change.period ? { currentPeriodStart: change.period.start, validUntil: change.period.end } : {}),
+      updatedAt: new Date()
+    })
     .where(eq(workspaceSubscriptions.workspaceId, ws.workspaceId))
 }
 
