@@ -12,9 +12,11 @@ name: ci
 # `actions-lint`, `secret-scan`, `lint-typecheck`, `lint-types`,
 # `repo-checks`, `docs-checks`, `shell-docker-lint`, `python-checks`,
 # `test-unit-dom`, `migration-guard`, `selfhost-check` and
-# `test-repos-integration-flows`. `sonar` is NOT required (fork PRs never get
-# its token). See the operator runbook, kept outside this repository.
-# Every job except `sonar` runs on fork PRs: none of them reads a secret.
+# `test-repos-integration-flows`. `sonar` and `billing-sandbox` are NOT
+# required (fork PRs never get their secrets). See the operator runbook, kept
+# outside this repository.
+# Every job except `sonar` and `billing-sandbox` runs on fork PRs: none of
+# them reads a secret. `billing-sandbox` runs there too, and skips itself.
 # Jobs skipped by path filters report as skipped, which satisfies a
 # required check.
 
@@ -45,6 +47,7 @@ jobs:
       image_services: ${{ steps.services.outputs.services }}
       markitdown: ${{ steps.markitdown.outputs.markitdown }}
       python: ${{ steps.python.outputs.python }}
+      billing: ${{ steps.billing.outputs.billing }}
     steps:
       # `code` is true when ANY changed file is NOT documentation-like
       # (`every` quantifier: a file counts only if it matches all patterns).
@@ -137,6 +140,28 @@ jobs:
               - 'markitdown-server/**'
               - 'package.json'
               - '.github/workflows/ci.yml'
+
+      # What the billing-sandbox job covers: the Stripe-facing code, the
+      # tier itself and the test-server setup it boots from. Nothing else
+      # triggers it: every run creates real objects in the Stripe sandbox.
+      - name: Detect billing changes
+        id: billing
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            billing:
+              - 'server/utils/billing/**'
+              - 'server/api/**/billing/**'
+              - 'server/api/webhooks/**'
+              - 'server/api/user/billing.get.ts'
+              - 'server/api/ai/credits.get.ts'
+              - 'server/repos/userBilling.ts'
+              - 'server/repos/workspaceSubscriptions.ts'
+              - 'server/repos/aiCreditGrants.ts'
+              - 'shared/config/pricing.ts'
+              - 'shared/contracts/stripe.ts'
+              - 'tests/billing-sandbox/**'
+              - 'tests/integration/setup/server.ts'
 
       - name: Build image-scan service list
         id: services
@@ -743,6 +768,74 @@ jobs:
           path: coverage/lcov.info
           if-no-files-found: error
           retention-days: 1
+
+  billing-sandbox:
+    # The app against Stripe's real test-mode API: test clocks, real events
+    # (tests/billing-sandbox, docs/contributing/testing.md). NOT a required
+    # check: it depends on an external service and on a secret that fork
+    # and Dependabot PRs never receive.
+    name: billing-sandbox
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    needs: changes
+    # Only when billing code changed (see `changes`), and not on drafts.
+    if: >-
+      github.event.pull_request.draft == false &&
+      needs.changes.outputs.billing == 'true'
+    # The suite takes about two minutes; the rest is install, build and
+    # the three test-stack services.
+    timeout-minutes: 20
+    env:
+      # The app build exceeds the default V8 heap on the 7 GB runner.
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      # Repository-level secret (a PR run cannot bind a main-only
+      # Environment): a Stripe TEST-mode key, sk_test_ or rk_test_. The
+      # suite refuses any other key. Without it (forks, Dependabot, a
+      # repository that has not set it) the job succeeds with a notice.
+      - name: Look for the Stripe sandbox key
+        id: key
+        env:
+          STRIPE_SANDBOX_SECRET_KEY: ${{ secrets.STRIPE_SANDBOX_SECRET_KEY }}
+        run: |
+          if [ -z "${STRIPE_SANDBOX_SECRET_KEY:-}" ]; then
+            echo "::notice title=billing-sandbox skipped::STRIPE_SANDBOX_SECRET_KEY is not available to this run, so the sandbox-backed billing suite did not run."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        if: steps.key.outputs.present == 'true'
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        if: steps.key.outputs.present == 'true'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.4
+
+      - name: Install dependencies
+        if: steps.key.outputs.present == 'true'
+        run: bun install --frozen-lockfile
+
+      # Only what the tier talks to: the database, Valkey and the LiteLLM
+      # proxy whose budgets it asserts.
+      - name: Bring up Postgres, Valkey and LiteLLM
+        if: steps.key.outputs.present == 'true'
+        run: bash scripts/test-compose.sh up -d --wait postgres-test valkey-test litellm-test
+
+      - name: Billing sandbox suite
+        if: steps.key.outputs.present == 'true'
+        env:
+          STRIPE_SANDBOX_SECRET_KEY: ${{ secrets.STRIPE_SANDBOX_SECRET_KEY }}
+        run: bun run test:billing-sandbox
+
+      - name: Tear down test stack
+        if: always() && steps.key.outputs.present == 'true'
+        run: bash scripts/test-compose.sh down -v
 
   sonar:
     name: sonar

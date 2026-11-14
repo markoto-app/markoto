@@ -78,3 +78,10 @@ A subscription cancelled in the Stripe portal keeps its plan until the period en
 ### AI credit top-ups
 
 A paid top-up becomes a row in `ai_credit_grants` (12-month expiry). The LiteLLM budget is the plan budget plus credits (`creditBudgetExtraUsd` in `server/utils/billing/aiCreditBudget.ts`). `/api/ai/credits` therefore reports them apart (`splitPlanAndCreditPoints` in `shared/billing/aiPoints.ts`): `pointsTotal` is the plan's monthly allotment, `planPointsRemaining` what is left of it (what the meter shows), `creditPoints` the bought credits on top, and `pointsRemaining` the sum. The hourly `ai-credit-settlement` job (`runCreditSettlement` in `server/utils/billing/aiCredits.ts`) reads each subject's monthly spend from LiteLLM's spend logs, takes what exceeded the plan budget from the grants, and updates the budgets. Purchases go through `server/utils/billing/topupCheckout.ts`; delayed payment methods are granted on `checkout.session.async_payment_succeeded`, refunds are handled on `charge.refunded`.
+
+## Tests
+
+- `tests/unit/billing/subscriptionTransitions.test.ts`: every change request (plan, billing period, seats, cancel, resume) against every state of a personal and a workspace subscription, with Stripe and the database in memory. One rule: a request changes only what it names.
+- `tests/nuxt/billingMutationRefresh.test.ts`: every billing change the client can make re-reads what it affects after the server answered. A new mutation gets a row in its table.
+- `tests/integration/endpoints/` (`stripeBilling`, `stripeWebhook`, `workspaceBilling`, `aiCredits`): the endpoints and the webhook against `stripe-mock` and fixture events.
+- `tests/billing-sandbox/`: the app against Stripe's real test-mode API with test clocks ([testing.md](testing.md#billing-sandbox)).
