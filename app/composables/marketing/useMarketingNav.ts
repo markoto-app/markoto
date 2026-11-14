@@ -28,6 +28,16 @@ const GROUP_OF: Record<string, NavGroup> = {
   'templates': 'templates'
 }
 
+/**
+ * The two hub pages carry a generic label ("All comparisons"), not a page
+ * title, so it reads in the UI language even where the hub itself exists
+ * in English only.
+ */
+const HUB_LABEL_KEY: Record<string, string> = {
+  compare: 'marketing.nav.allComparisons',
+  templates: 'marketing.nav.allTemplates'
+}
+
 function asMarketingLocale(code: string): MarketingLocale {
   return MARKETING_LOCALES.find(l => l === code) ?? DEFAULT_MARKETING_LOCALE
 }
@@ -37,12 +47,13 @@ function asMarketingLocale(code: string): MarketingLocale {
  * content collection (`navGroup` / `navLabel` / `navOrder` frontmatter of
  * the English pages). A page links to its version in the current UI
  * language when one exists and is reviewed, under that version's own
- * `navLabel` (or title). Empty off the marketing site
+ * `navLabel` (or title); the hub pages are labelled from the locale
+ * files. Empty off the marketing site
  * (the pages 404 there), no query is made.
  */
 export function useMarketingNav() {
   const { marketingSite } = useInstanceConfig()
-  const { locale } = useI18n()
+  const { locale, t } = useI18n()
 
   const { data } = useAsyncData('marketing:nav', async () => {
     if (!marketingSite.value) return []
@@ -69,8 +80,9 @@ export function useMarketingNav() {
       if (!target || target.locale !== DEFAULT_MARKETING_LOCALE || !group) continue
       const localisedLabel = translated.get(`${current}:${target.slug}`)
       const locale = localisedLabel === undefined ? DEFAULT_MARKETING_LOCALE : current
+      const hubKey = HUB_LABEL_KEY[target.slug]
       const link = {
-        label: localisedLabel ?? item.navLabel ?? item.title,
+        label: localisedLabel ?? (hubKey ? t(hubKey) : item.navLabel ?? item.title),
         to: marketingRoutePath(locale, target.slug),
         order: item.navOrder ?? Number.MAX_SAFE_INTEGER
       }

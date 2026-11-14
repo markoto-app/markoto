@@ -65,7 +65,7 @@
       "unavailable": "Die Bot-Prüfung ist gerade nicht verfügbar. Bitte versuche es gleich noch einmal."
     },
     "audit": {
-      "admin-required": "Nur Admins des Arbeitsbereichs können das Audit-Log sehen.",
+      "admin-required": "Nur Admins des Workspace können das Audit-Log sehen.",
       "invalid-query": "Ungültiger Filter für das Audit-Log.",
       "rate-limited": "Zu viele Exporte. Versuche es später noch einmal.",
       "too-many-rows": "Mehr als {max} Ereignisse. Wähle einen kürzeren Zeitraum."
@@ -80,9 +80,9 @@
       "required": "Bitte melde dich an, um fortzufahren."
     },
     "billing": {
-      "admin-required": "Nur Admins des Arbeitsbereichs können die Abrechnung verwalten.",
+      "admin-required": "Nur Admins des Workspace können die Abrechnung verwalten.",
       "already-on-plan": "Du nutzt diesen Plan und diesen Abrechnungszeitraum bereits.",
-      "cancel-failed": "Das Abonnement des Arbeitsbereichs konnte nicht gekündigt werden, deshalb wurde nichts gelöscht. Bitte versuche es erneut.",
+      "cancel-failed": "Das Abonnement des Workspace konnte nicht gekündigt werden, deshalb wurde nichts gelöscht. Bitte versuche es erneut.",
       "checkout-failed": "Der Bezahlvorgang konnte nicht gestartet werden. Bitte versuche es noch einmal.",
       "currency-locked": "Dein Abo wird in einer anderen Währung abgerechnet und kann nicht wechseln. Wähle diese Währung, um fortzufahren.",
       "disabled": "Die Abrechnung ist in dieser Installation nicht aktiviert.",
@@ -90,17 +90,17 @@
       "invalid-seats": "Die Anzahl Plätze muss eine ganze Zahl von {min} bis {max} sein.",
       "member-not-found": "Mitglied nicht gefunden.",
       "no-billing-history": "Noch keine Abrechnungen vorhanden. Schliesse zuerst ein Abonnement ab, um es zu verwalten.",
-      "no-subscription": "Dieser Arbeitsbereich hat kein aktives Abonnement.",
+      "no-subscription": "Dieser Workspace hat kein aktives Abonnement.",
       "not-configured": "Die Abrechnung ist nicht eingerichtet. Wende dich an den Support.",
       "payment-failed": "Die Zahlung ist fehlgeschlagen, deshalb wurde nichts geändert.",
       "plan-change-failed": "Der Plan konnte nicht gewechselt werden. Es wurde nichts geändert; bitte versuche es noch einmal.",
       "portal-failed": "Das Abrechnungsportal konnte nicht geöffnet werden. Bitte versuche es noch einmal.",
       "price-unavailable": "Dieser Plan ist gerade nicht erhältlich.",
       "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.",
-      "seats-below-members": "Im Arbeitsbereich sind mehr Personen als Plätze. Entferne jemanden oder behalte mehr Plätze.",
+      "seats-below-members": "Im Workspace sind mehr Personen als Plätze. Entferne jemanden oder behalte mehr Plätze.",
       "seats-busy": "Gerade läuft eine andere Platzänderung oder Einladung. Bitte versuche es gleich noch einmal.",
       "seats-full": "Alle bezahlten Plätze sind belegt. Füge einen Platz hinzu, um jemanden einzuladen.",
-      "subscription-active": "Dieser Arbeitsbereich hat noch ein laufendes Abonnement. Wende dich an den Support, um ihn zu löschen.",
+      "subscription-active": "Dieser Workspace hat noch ein laufendes Abonnement. Wende dich an den Support, um ihn zu löschen.",
       "subscription-check-failed": "Das aktuelle Abonnement konnte nicht überprüft werden. Bitte versuche es noch einmal.",
       "terms-required": "Akzeptiere die Bedingungen für kostenpflichtige Pläne, um fortzufahren.",
       "topup-needs-plan": "KI-Guthaben ergänzt einen bezahlten Plan. Wechsle auf Pro, um es zu kaufen.",
@@ -108,24 +108,24 @@
       "webhook-failed": "Das Webhook-Ereignis konnte nicht verarbeitet werden.",
       "webhook-signature-invalid": "Die Stripe-Signatur konnte nicht überprüft werden.",
       "webhook-signature-missing": "Der Header Stripe-Signature fehlt.",
-      "workspace-plan": "Team und Business werden für einen Arbeitsbereich gekauft, in dessen Abrechnungseinstellungen."
+      "workspace-plan": "Team und Business werden für einen Workspace gekauft, in dessen Abrechnungseinstellungen."
     },
     "brand": {
-      "admin-required": "Nur Admins des Arbeitsbereichs können das Brand-Kit ändern.",
+      "admin-required": "Nur Admins des Workspace können das Brand-Kit ändern.",
       "family-built-in": "„{family}“ ist eine der integrierten Schriften. Gib deiner Schrift einen anderen Namen.",
       "file-missing": "Sende die Datei als Multipart-Formularfeld „file“.",
       "file-too-large": "Die Datei ist zu gross.",
-      "font-exists": "Der Arbeitsbereich hat diese Schrift in dieser Stärke und diesem Stil bereits. Lösche sie zuerst, um sie zu ersetzen.",
+      "font-exists": "Der Workspace hat diese Schrift in dieser Stärke und diesem Stil bereits. Lösche sie zuerst, um sie zu ersetzen.",
       "font-refused": "Diese Schriftdatei kann nicht verwendet werden.",
       "image-type": "Lade ein PNG-, JPEG- oder WebP-Bild hoch.",
       "invalid": "Ungültige Brand-Kit-Einstellungen.",
       "invalid-family": "Der Schriftname darf Buchstaben, Ziffern und Leerzeichen enthalten (bis 40 Zeichen).",
       "invalid-weight": "Die Schriftstärke liegt zwischen 100 und 900 in Schritten von 100.",
       "licence-required": "Bestätige, dass deine Lizenz das Einbetten dieser Schrift in Dokumente erlaubt.",
-      "no-design": "Noch kein Design des Arbeitsbereichs. Übernehme es aus einem Dokument oder wähle in den Einstellungen ein Standarddesign.",
+      "no-design": "Noch kein Design des Workspace. Übernehme es aus einem Dokument oder wähle in den Einstellungen ein Standarddesign.",
       "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.",
-      "too-many-fonts": "Ein Arbeitsbereich kann bis zu {limit} Schriftdateien haben.",
-      "too-many-images": "Ein Arbeitsbereich kann bis zu {limit} Markenbilder haben."
+      "too-many-fonts": "Ein Workspace kann bis zu {limit} Schriftdateien haben.",
+      "too-many-images": "Ein Workspace kann bis zu {limit} Markenbilder haben."
     },
     "common": {
       "internal": "Auf unserer Seite ist etwas schiefgelaufen. Bitte versuche es noch einmal – wir wurden benachrichtigt."
@@ -143,7 +143,7 @@
       "invalid": "Gib einen Domainnamen wie docs.example.com ein.",
       "limit": "Du kannst bis zu {limit} Domains hinzufügen.",
       "not-found": "Domain nicht gefunden.",
-      "page-not-allowed": "Nur die Eigentümerin oder der Eigentümer und Admins des Arbeitsbereichs können dieses Dokument auf einer Domain anzeigen.",
+      "page-not-allowed": "Nur die Eigentümerin oder der Eigentümer und Admins des Workspace können dieses Dokument auf einer Domain anzeigen.",
       "page-not-published": "Veröffentliche das Dokument zuerst als Webseite.",
       "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.",
       "reserved": "Diese Domain gehört zu diesem Dienst.",
@@ -167,7 +167,7 @@
       "delete-forbidden": "Du kannst dieses Dokument nicht löschen.",
       "diff-unavailable": "Diff für diese Zeile nicht verfügbar.",
       "edit-forbidden": "Du hast keinen Bearbeitungszugriff auf dieses Dokument.",
-      "manage-forbidden": "Nur die Eigentümerin oder der Eigentümer und Admins des Arbeitsbereichs können ändern, wer dieses Dokument öffnen darf.",
+      "manage-forbidden": "Nur die Eigentümerin oder der Eigentümer und Admins des Workspace können ändern, wer dieses Dokument öffnen darf.",
       "not-a-comment": "Diese Aktivitätszeile betrifft keinen Kommentar.",
       "not-found": "Dokument nicht gefunden.",
       "rate-limited": "Zu viele neue Dokumente aus deinem Netzwerk. Melde dich an oder versuche es später noch einmal.",
@@ -208,7 +208,7 @@
       "editor-required": "Nur Admins und Bearbeiter können die Wissensdatenbank ändern.",
       "empty-upload": "Die hochgeladene Datei ist leer.",
       "file-too-large": "Die Datei ist zu gross (höchstens {maxMb} MB).",
-      "invalid-key": "Der Speicherschlüssel gehört nicht zur Wissensdatenbank dieses Arbeitsbereichs.",
+      "invalid-key": "Der Speicherschlüssel gehört nicht zur Wissensdatenbank dieses Workspace.",
       "key-mismatch": "knowledgeId muss mit dem s3Key übereinstimmen.",
       "not-found": "Wissensdatei nicht gefunden.",
       "not-uploader": "Bearbeiter können nur ihre eigenen Uploads löschen.",
@@ -218,8 +218,8 @@
       "upload-not-found": "Upload nicht gefunden. Fordere einen neuen Upload an und versuche es erneut.",
       "user-bytes-cap": "Du hast dein Speicherlimit für die Wissensdatenbank erreicht ({maxMb} MB).",
       "user-file-cap": "Du hast dein Upload-Limit für die Wissensdatenbank erreicht ({max} Dateien).",
-      "workspace-bytes-cap": "Dieser Arbeitsbereich hat sein Speicherlimit für die Wissensdatenbank erreicht ({maxMb} MB).",
-      "workspace-file-cap": "Dieser Arbeitsbereich hat sein Dateilimit für die Wissensdatenbank erreicht ({max} Dateien)."
+      "workspace-bytes-cap": "Dieser Workspace hat sein Speicherlimit für die Wissensdatenbank erreicht ({maxMb} MB).",
+      "workspace-file-cap": "Dieser Workspace hat sein Dateilimit für die Wissensdatenbank erreicht ({max} Dateien)."
     },
     "legal": {
       "disabled": "Rechtliche Seiten sind in dieser Installation nicht aktiviert."
@@ -235,7 +235,7 @@
       "too-many-tokens": "Du hast die maximale Anzahl aktiver MCP-Tokens erreicht. Widerrufe zuerst eines.",
       "tool-not-found": "Werkzeug {tool} nicht gefunden.",
       "unauthenticated": "MCP-Authentifizierung erforderlich.",
-      "workspace-not-found": "Arbeitsbereich nicht gefunden.",
+      "workspace-not-found": "Workspace nicht gefunden.",
       "tool-call-limit": "Zu viele Werkzeugaufrufe (Limit: {limit} pro {minutes} Min.). Versuche es später erneut."
     },
     "moderation": {
@@ -264,7 +264,7 @@
     "publish": {
       "busy": "Diese Seite wird gerade aktualisiert. Versuche es gleich noch einmal.",
       "invalid": "Ungültige Veröffentlichungseinstellungen.",
-      "not-allowed": "Nur die Eigentümerin oder der Eigentümer und Admins des Arbeitsbereichs können dieses Dokument veröffentlichen.",
+      "not-allowed": "Nur die Eigentümerin oder der Eigentümer und Admins des Workspace können dieses Dokument veröffentlichen.",
       "not-published": "Dieses Dokument ist nicht veröffentlicht.",
       "rate-limited": "Zu viele Veröffentlichungen. Versuche es später noch einmal.",
       "render-failed": "Die Seite konnte nicht erstellt werden. Bitte versuche es noch einmal.",
@@ -292,36 +292,36 @@
       "expiry-past": "Das Ablaufdatum muss in der Zukunft liegen.",
       "expiry-too-far": "Das Ablaufdatum darf höchstens {maxDays} Tage entfernt sein.",
       "invalid": "Ungültige Freigabeeinstellungen.",
-      "move-not-allowed": "Nur die Eigentümerin oder der Eigentümer oder ein Admin des Arbeitsbereichs kann dieses Dokument verschieben.",
-      "move-target-viewer": "Betrachter können keine Dokumente in diesen Arbeitsbereich verschieben.",
-      "not-a-guest": "Diese Person ist kein Gast des Arbeitsbereichs.",
+      "move-not-allowed": "Nur die Eigentümerin oder der Eigentümer oder ein Admin des Workspace kann dieses Dokument verschieben.",
+      "move-target-viewer": "Betrachter können keine Dokumente in diesen Workspace verschieben.",
+      "not-a-guest": "Diese Person ist kein Gast des Workspace.",
       "not-allowed": "Du darfst die Freigabe dieses Dokuments nicht ändern.",
       "not-shared": "Dieses Dokument ist nicht mit dieser Person geteilt.",
       "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut."
     },
     "sso": {
-      "admin-required": "Nur Admins des Arbeitsbereichs können Single Sign-on verwalten.",
+      "admin-required": "Nur Admins des Workspace können Single Sign-on verwalten.",
       "connection-not-found": "Unbekannte Verbindung.",
       "domain-not-found": "Domain nicht gefunden.",
-      "deactivated": "Dein Zugriff auf diesen Arbeitsbereich wurde von deiner Organisation deaktiviert.",
-      "domain-cap": "Höchstens {max} Domains pro Arbeitsbereich.",
-      "domain-exists": "Diese Domain wurde dem Arbeitsbereich bereits hinzugefügt.",
-      "domain-taken": "Ein anderer Arbeitsbereich verwendet diese Domain bereits.",
+      "deactivated": "Dein Zugriff auf diesen Workspace wurde von deiner Organisation deaktiviert.",
+      "domain-cap": "Höchstens {max} Domains pro Workspace.",
+      "domain-exists": "Diese Domain wurde dem Workspace bereits hinzugefügt.",
+      "domain-taken": "Ein anderer Workspace verwendet diese Domain bereits.",
       "domain-unverified": "Der TXT-Eintrag wurde noch nicht gefunden. DNS-Änderungen können bis zu einer Stunde dauern.",
       "incomplete": "Diese Single-Sign-on-Verbindung ist nicht vollständig eingerichtet.",
       "invalid-domain": "Gib die E-Mail-Domain deiner Organisation ein, z. B. example.com. Öffentliche Mail-Domains sind nicht möglich.",
       "invalid-settings": "Ungültige Single-Sign-on-Einstellungen.",
-      "member-limit": "Dieser Arbeitsbereich hat das Mitgliederlimit seines Plans erreicht.",
+      "member-limit": "Dieser Workspace hat das Mitgliederlimit seines Plans erreicht.",
       "misconfigured": "Für Single Sign-on muss auf dieser Instanz NUXT_SITE_URL gesetzt sein.",
-      "not-configured": "Für diesen Arbeitsbereich ist kein Single Sign-on eingerichtet.",
+      "not-configured": "Für diesen Workspace ist kein Single Sign-on eingerichtet.",
       "no-connection": "Für diese E-Mail-Adresse ist kein Single Sign-on eingerichtet.",
-      "no-seat": "Alle bezahlten Plätze dieses Arbeitsbereichs sind belegt.",
-      "not-active": "Single Sign-on ist für diesen Arbeitsbereich nicht aktiv.",
-      "not-provisioned": "Deine Organisation hat dir noch keinen Zugriff auf diesen Arbeitsbereich gegeben.",
+      "no-seat": "Alle bezahlten Plätze dieses Workspace sind belegt.",
+      "not-active": "Single Sign-on ist für diesen Workspace nicht aktiv.",
+      "not-provisioned": "Deine Organisation hat dir noch keinen Zugriff auf diesen Workspace gegeben.",
       "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.",
       "required": "Dieser Workspace verwendet Single Sign-on. Melde dich über deine Organisation an, um fortzufahren.",
       "test-mismatch": "Bei der Test-Anmeldung wurde ein anderes Konto verwendet.",
-      "test-not-admin": "Nur ein Admin des Arbeitsbereichs kann dessen Anmeldung testen.",
+      "test-not-admin": "Nur ein Admin des Workspace kann dessen Anmeldung testen.",
       "unknown": "Unbekannter Anmeldelink.",
       "scim-needs-connection": "Richte zuerst Single Sign-on ein.",
       "certificate-format": "Füge das Signaturzertifikat des Identitätsanbieters ein (PEM oder Base64).",
@@ -335,10 +335,10 @@
       "url-refused": "markoto darf sich nicht mit dieser Adresse verbinden (ein interner Dienst, eine Loopback-, Link-Local- oder Metadaten-Adresse oder ein privates Netzwerk)."
     },
     "template": {
-      "doc-not-found": "Dokument in diesem Arbeitsbereich nicht gefunden.",
+      "doc-not-found": "Dokument in diesem Workspace nicht gefunden.",
       "exists": "Dieses Dokument ist bereits eine Vorlage.",
       "invalid": "Ungültige Vorlageneinstellungen.",
-      "too-many": "Ein Arbeitsbereich kann bis zu {limit} Vorlagen haben."
+      "too-many": "Ein Workspace kann bis zu {limit} Vorlagen haben."
     },
     "theme": {
       "custom-css-invalid": "Das eigene CSS wurde abgelehnt.",
@@ -361,7 +361,7 @@
       "unsupported-format": "Dieser Dateityp ist nicht erlaubt."
     },
     "usage": {
-      "admin-required": "Nur Admins des Arbeitsbereichs können die Nutzung sehen."
+      "admin-required": "Nur Admins des Workspace können die Nutzung sehen."
     },
     "validation": {
       "custom": "Dieser Wert ist ungültig.",
@@ -384,22 +384,22 @@
       "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut."
     },
     "workspace": {
-      "admin-required": "Nur Admins des Arbeitsbereichs können das tun.",
-      "already-member": "Diese Person ist bereits Mitglied des Arbeitsbereichs.",
+      "admin-required": "Nur Admins des Workspace können das tun.",
+      "already-member": "Diese Person ist bereits Mitglied des Workspace.",
       "billing-not-configured": "Die Abrechnung ist nicht eingerichtet. Wende dich an den Support.",
-      "cap-reached": "Du hast das Arbeitsbereich-Limit deines Plans erreicht ({plan}: {cap} Arbeitsbereiche). Lösche einen ungenutzten Arbeitsbereich, um einen neuen zu erstellen.",
-      "dpa-required": "Du musst den Auftragsverarbeitungsvertrag (AVV) akzeptieren, bevor du einen Arbeitsbereich erstellst.",
-      "guest-cannot-create": "Gäste können in diesem Arbeitsbereich keine Dokumente erstellen.",
-      "guest-cap": "Dieser Arbeitsbereich hat so viele Gäste, wie sein Plan erlaubt (5 pro bezahltem Platz). Entferne einen Gast oder füge einen Platz hinzu.",
+      "cap-reached": "Du hast das Workspace-Limit deines Plans erreicht ({plan}: {cap} Workspaces). Lösche einen ungenutzten Workspace, um einen neuen zu erstellen.",
+      "dpa-required": "Du musst den Auftragsverarbeitungsvertrag (AVV) akzeptieren, bevor du einen Workspace erstellst.",
+      "guest-cannot-create": "Gäste können in diesem Workspace keine Dokumente erstellen.",
+      "guest-cap": "Dieser Workspace hat so viele Gäste, wie sein Plan erlaubt (5 pro bezahltem Platz). Entferne einen Gast oder füge einen Platz hinzu.",
       "guest-role-change": "Der Zugriff eines Gasts wird über Freigaben verwaltet, nicht über eine Rolle. Entferne den Gast und lade ihn erneut ein, um das zu ändern.",
       "invalid-email": "Gib eine gültige E-Mail-Adresse ein.",
-      "invite-cap": "Dieser Arbeitsbereich hat zu viele offene Einladungen. Ziehe zuerst einige zurück.",
+      "invite-cap": "Dieser Workspace hat zu viele offene Einladungen. Ziehe zuerst einige zurück.",
       "invite-not-found": "Diese Einladung existiert nicht mehr oder ist abgelaufen.",
       "invite-rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.",
-      "last-admin": "Ein Arbeitsbereich braucht mindestens einen Admin. Befördere zuerst jemand anderen oder lösche den Arbeitsbereich.",
-      "member-not-found": "Diese Person ist kein Mitglied dieses Arbeitsbereichs.",
-      "not-found": "Arbeitsbereich nicht gefunden.",
-      "role-required": "Betrachter können in diesem Arbeitsbereich keine Dokumente erstellen.",
+      "last-admin": "Ein Workspace braucht mindestens einen Admin. Befördere zuerst jemand anderen oder lösche den Workspace.",
+      "member-not-found": "Diese Person ist kein Mitglied dieses Workspace.",
+      "not-found": "Workspace nicht gefunden.",
+      "role-required": "Betrachter können in diesem Workspace keine Dokumente erstellen.",
       "template-rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut."
     }
   }

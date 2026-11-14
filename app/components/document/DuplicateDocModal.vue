@@ -115,7 +115,7 @@ async function handleDuplicate() {
             {{ t('common.cancel') }}
           </UButton>
           <UButton
-            color="primary"
+            color="neutral"
             :loading="duplicating"
             :disabled="newTitle.trim().length === 0"
             icon="i-lucide-copy"

@@ -138,9 +138,14 @@ async function setPassword() {
     :description="shareUrl"
   >
     <template #content>
+      <!-- The dialog is capped at the viewport height and clips what is
+           taller, so this wrapper scrolls: with every section open (guests,
+           link limits, publishing) the content is taller than a laptop
+           screen. The padding scrolls along, so the last section ends on
+           a clean edge instead of a cut-off line. -->
       <div
         data-testid="share-modal"
-        class="p-6 space-y-5"
+        class="min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5"
       >
         <div>
           <h3 class="text-lg font-semibold">
