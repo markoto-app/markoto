@@ -130,9 +130,12 @@ export async function upsertSsoConnection(ws: WorkspaceAccess<'admin'>, input: {
       ...(idpChanged ? { status: 'draft' as const, activatedAt: null } : {}),
       updatedAt: new Date()
     }).where(eq(ssoConnections.id, existing.id))
-    // Switching protocol (or IdP) makes the old identities meaningless.
+    // Switching protocol (or IdP) makes the old identities meaningless, and
+    // the grants too: they attest a sign-in through the previous IdP, so
+    // everyone signs in through the new one once it is active.
     if (idp.protocol !== existing.protocol || idp.oidcIssuer !== existing.oidcIssuer || idp.samlIdpEntityId !== existing.samlIdpEntityId) {
       await tx.delete(userIdentities).where(eq(userIdentities.connectionId, existing.id))
+      await tx.delete(ssoGrants).where(eq(ssoGrants.workspaceId, args.workspaceId))
     }
     return { connection: must(await getSsoConnectionById(existing.id, asTxHandle(tx)), 'SSO connection just updated'), idpChanged }
   })

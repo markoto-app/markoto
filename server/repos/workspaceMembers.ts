@@ -1,5 +1,5 @@
 import { and, asc, eq, ne, sql } from 'drizzle-orm'
-import { documents, workspaceMembers, users } from '../db/schema'
+import { documents, ssoGrants, workspaceMembers, users } from '../db/schema'
 import type { MembershipRole, WorkspaceRole } from '../../shared/utils/documents/docPermissions'
 import { useDatabase } from '../db/client'
 import { ConflictError, LastAdminError, NotFoundError } from './errors'
@@ -255,6 +255,11 @@ async function removeMembership(workspaceId: string, userId: number): Promise<Me
         eq(workspaceMembers.workspaceId, workspaceId),
         eq(workspaceMembers.userId, userId)
       ))
+    // The single sign-on grant goes with the membership (as on SCIM
+    // deactivation): someone invited back must sign in through the IdP again.
+    await tx
+      .delete(ssoGrants)
+      .where(and(eq(ssoGrants.workspaceId, workspaceId), eq(ssoGrants.userId, userId)))
     return role
   })
 }
