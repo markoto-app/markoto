@@ -500,6 +500,7 @@ async function leaveWorkspace() {
             <UButton
               v-if="isAdmin"
               icon="i-lucide-user-plus"
+              size="sm"
               color="neutral"
               :aria-label="t('workspace.members.invitePeople')"
               data-testid="workspace-invite-people"
@@ -510,6 +511,7 @@ async function leaveWorkspace() {
             <UDropdownMenu :items="workspaceMenuItems">
               <UButton
                 icon="i-lucide-more-vertical"
+                size="sm"
                 color="neutral"
                 variant="ghost"
                 :aria-label="t('workspace.actions')"

@@ -420,7 +420,6 @@ const policies = computed(() => {
             {{ t('settings.profile.delete.scheduled', { date: deletionGraceFormatted }) }}
           </p>
           <UButton
-            size="sm"
             color="neutral"
             variant="outline"
             :loading="cancellingDeletion"
