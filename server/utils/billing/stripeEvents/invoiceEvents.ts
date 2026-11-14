@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/nuxt'
 import { notifyWorkspaceAdmins } from '../../email/workspaceBillingEmails'
 import { invoiceServicePeriod, invoiceSubscriptionId } from './stripeObjects'
 import { rowHoldingOtherSubscription, subjectForCustomer } from './billingSubjects'
+import { eventTime } from './eventAge'
 import { advanceUserBillingPeriod } from '../../../repos/userBilling'
 import { advanceWorkspaceBillingPeriod } from '../../../repos/workspaceSubscriptions'
 import type { TxHandle, DeferredAfterCommit } from './types'
@@ -23,7 +24,10 @@ const log = useLogger('stripe-webhook')
  * the service period it paid for (user or workspace). Only ever moves
  * them forward: `customer.subscription.updated` carries the same period
  * and may arrive first, and a late event of an older invoice must not
- * pull `valid_until` back.
+ * pull `valid_until` back. An invoice older than the subscription state
+ * the row holds is not applied at all (`eventAge.ts`): that state
+ * already carries the period, and after a switch to a shorter billing
+ * period the older invoice's period would be the wrong, later one.
  *
  * No LiteLLM spend reset here: spend resets are driven by the key's
  * `budget_duration` (monthly, on the 1st) so every tier, including free,
@@ -48,10 +52,10 @@ export async function handleInvoicePaid(
   const subject = await subjectForCustomer(customerId, handle)
   if (subject?.kind === 'workspace') {
     if (await rowHoldingOtherSubscription(handle, subject.workspaceId, subscriptionId)) return { matched: 0 }
-    return { matched: await advanceWorkspaceBillingPeriod(STRIPE, handle, subject.workspaceId, period) }
+    return { matched: await advanceWorkspaceBillingPeriod(STRIPE, handle, subject.workspaceId, period, eventTime(event)) }
   }
 
-  return { matched: await advanceUserBillingPeriod(STRIPE, handle, customerId, subscriptionId, period) }
+  return { matched: await advanceUserBillingPeriod(STRIPE, handle, customerId, subscriptionId, period, eventTime(event)) }
 }
 
 /**

@@ -9,6 +9,7 @@ import { recordPaidTermsAcceptance, requirePaidTermsAccepted } from './paidTerms
 import { useStripeClient } from './stripeClient'
 import { findLiveSubscription, changeSubscriptionPrice, livePeriod } from './stripePlanChange'
 import { identifyItem, subscriptionCancelAt } from './stripeEvents/stripeObjects'
+import { stripeResponseTime } from './stripeEvents/eventAge'
 import { stripePriceIdFor } from './stripePrices'
 import { requestBaseUrl } from './workspaceStripe'
 import { checkoutTaxFields } from './checkoutSession'
@@ -81,12 +82,16 @@ export async function startProCheckout(event: H3Event, request: ProCheckoutReque
   // the `customer.subscription.updated` webhook applies plan, period and
   // LiteLLM budget like a Checkout-born change.
   if (liveSub) {
+    // Stripe's time just before the change: an event older than it is of
+    // the previous state and must not be applied over what is written
+    // below; the change's own event is created after it and applies.
+    const changedAt = stripeResponseTime(liveSub)
     const updated = await changeProPriceInPlace(stripe, liveSub, priceId, userId)
     // Written at once so the profile and pricing pages show the new billing
     // period without waiting for the webhook (which writes the same state).
     // Best-effort: the change is already paid for.
     try {
-      await recordOwnPlanChange(self, liveSub.id, { interval, cancelAt: subscriptionCancelAt(updated), period: livePeriod(updated) })
+      await recordOwnPlanChange(self, liveSub.id, { interval, cancelAt: subscriptionCancelAt(updated), period: livePeriod(updated), at: changedAt })
     } catch (e) {
       log.warn('plan change not written locally, the webhook will', { userId, err: e })
     }

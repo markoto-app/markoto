@@ -145,6 +145,7 @@ vi.mock('../../../server/repos/workspaceSubscriptions', async orig => ({
   },
   upsertWorkspaceSubscription: async (_by: unknown, _tx: unknown, _wsId: string, values: WorkspaceSubscriptionFromStripe) => {
     Object.assign(workspaceRow.current as object, values)
+    return true
   }
 }))
 
@@ -181,6 +182,7 @@ async function deliverSubscriptionUpdated(): Promise<void> {
   const event = partial<Stripe.CustomerSubscriptionUpdatedEvent>({
     id: 'evt_table',
     type: 'customer.subscription.updated',
+    created: NOW_S,
     data: { object: stripeSubscription() }
   })
   const result = await handleSubscriptionUpdated(event, { stripe: fakeStripe })

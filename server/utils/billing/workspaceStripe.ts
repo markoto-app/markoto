@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/nuxt'
 import { recordSeatChange, recordWorkspaceStripeCustomer, setWorkspaceBillingAdmin } from '../../repos/workspaceSubscriptions'
 import type { WorkspaceAccess } from '../../repos/proofs'
 import { findLiveSubscription } from './stripePlanChange'
+import { stripeResponseTime } from './stripeEvents/eventAge'
 import { changedSeatBudgetAdjust } from './workspaceBilling'
 import { readWorkspaceTeam } from '../litellm/workspaceTeams'
 import { releaseSessionLock, tryAcquireSessionLock } from '../platform/rateLimit'
@@ -110,7 +111,8 @@ export async function changeWorkspaceSeats(stripe: Stripe, ws: WorkspaceAccess<'
       : { proration_behavior: 'none' as const })
   })
   const budget = changedSeatBudgetAdjust({ current: row, from, to: seats, windowEnd, now })
-  await recordSeatChange(ws, { seats, budgetSeatAdjust: budget.adjust, budgetSeatAdjustUntil: budget.until })
+  // `at`: Stripe's time just before the change, so an event of the previous seat count is not applied over it.
+  await recordSeatChange(ws, { seats, budgetSeatAdjust: budget.adjust, budgetSeatAdjustUntil: budget.until, at: stripeResponseTime(sub) })
 }
 
 /** How long a seat lock may be held (a Stripe charge plus the invite write). */

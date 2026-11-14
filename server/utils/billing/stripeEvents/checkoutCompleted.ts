@@ -5,7 +5,8 @@ import { cancelDuplicateWorkspaceSubscription } from '../workspaceStripe'
 import { findLiveSubscription } from '../stripePlanChange'
 import { updateUserKeyBudget } from '../../litellm/userKeys'
 import { identifyItem, isWorkspaceIdentity, stripeId, subscriptionCancelAt, subscriptionPeriod, warnUnknownPrice } from './stripeObjects'
-import { deferWorkspaceTeamSync, rowHoldingOtherSubscription, upsertWorkspaceSubscriptionFromStripe } from './billingSubjects'
+import { deferWorkspaceTeamSync, rowHoldingOtherSubscription, storedStatus, upsertWorkspaceSubscriptionFromStripe } from './billingSubjects'
+import { stripeResponseTime } from './eventAge'
 import { updateUserBilling, type UserBillingUpdate } from '../../../repos/userBilling'
 import { handleTopupCheckout } from './creditTopups'
 import type { TxHandle, DeferredAfterCommit } from './types'
@@ -90,6 +91,9 @@ async function bindWorkspaceCheckout(session: Stripe.Checkout.Session, workspace
     sub,
     identity,
     customerId,
+    // The live subscription, as of Stripe's answer: events stashed before
+    // this checkout are older and are not applied over it.
+    at: stripeResponseTime(sub),
     billingAdminId: Number.isInteger(adminRaw) && adminRaw > 0 ? adminRaw : null
   })
   deferWorkspaceTeamSync(opts.deferAfterCommit, workspaceId)
@@ -146,7 +150,11 @@ async function bindPersonalCheckout(session: Stripe.Checkout.Session, ref: strin
   const setFields: UserBillingUpdate['set'] = {
     stripeCustomerId: customerId,
     stripeSubscriptionId: subscriptionId,
-    planCancelAt: subscriptionCancelAt(sub)
+    planCancelAt: subscriptionCancelAt(sub),
+    subscriptionStatus: storedStatus(sub),
+    // The live subscription, as of Stripe's answer: events stashed before
+    // this checkout are older and are not applied over it.
+    subscriptionEventAt: stripeResponseTime(sub)
   }
   if (plan) setFields.plan = plan
   if (identity) {
