@@ -1580,7 +1580,7 @@
     "deleteTitle": "从知识库中移除",
     "deleteWarning": "AI 在写作时将无法再引用此文件。已使用它写成的任何内容仍保留在你的文档中。",
     "deleteConfirm": "移除文件",
-    "chunks": "块",
+    "chunks": "{n} 块",
     "status": {
       "processing": "处理中",
       "ready": "就绪",

@@ -1580,7 +1580,7 @@
     "deleteTitle": "ナレッジベースから削除",
     "deleteWarning": "AIは執筆時にこのファイルを参照できなくなります。これを使ってすでに書かれた内容はドキュメントに残ります。",
     "deleteConfirm": "ファイルを削除",
-    "chunks": "チャンク",
+    "chunks": "{n} チャンク",
     "status": {
       "processing": "処理中",
       "ready": "準備完了",

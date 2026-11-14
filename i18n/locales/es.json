@@ -1580,7 +1580,7 @@
     "deleteTitle": "Eliminar de la base de conocimiento",
     "deleteWarning": "La IA ya no podrá hacer referencia a este archivo al escribir. Todo lo ya escrito usándolo permanece en tus documentos.",
     "deleteConfirm": "Eliminar archivo",
-    "chunks": "fragmentos",
+    "chunks": "{n} fragmento | {n} fragmentos",
     "status": {
       "processing": "Procesando",
       "ready": "Listo",

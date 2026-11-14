@@ -1580,7 +1580,7 @@
     "deleteTitle": "Aus Wissensdatenbank entfernen",
     "deleteWarning": "Die KI kann beim Schreiben nicht mehr auf diese Datei verweisen. Alles, was bereits damit geschrieben wurde, bleibt in deinen Dokumenten erhalten.",
     "deleteConfirm": "Datei entfernen",
-    "chunks": "Abschnitte",
+    "chunks": "{n} Abschnitt | {n} Abschnitte",
     "status": {
       "processing": "Wird verarbeitet",
       "ready": "Bereit",

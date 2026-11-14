@@ -1580,7 +1580,7 @@
     "deleteTitle": "Remove from knowledge base",
     "deleteWarning": "The AI will no longer be able to reference this file when writing. Anything already written using it stays in your documents.",
     "deleteConfirm": "Remove file",
-    "chunks": "chunks",
+    "chunks": "{n} chunk | {n} chunks",
     "status": {
       "processing": "Processing",
       "ready": "Ready",
