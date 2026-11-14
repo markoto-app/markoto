@@ -41,10 +41,10 @@ describe('docs redirects', () => {
   })
 
   it('resolves an old address whatever query, hash or trailing slash it carries', () => {
-    expect(docsRedirectTarget('/docs/account/plans')).toBe('/docs/plans/plans')
+    expect(docsRedirectTarget('/docs/account/plans')).toBe('/docs/plans/limits')
     expect(docsRedirectTarget('/docs/history/')).toBe('/docs/import-export')
     expect(docsRedirectTarget('/docs/writing/ai-budget?ref=mail#limits')).toBe('/docs/plans/ai-budget')
-    expect(docsRedirectTarget('/docs/plans/plans')).toBeNull()
+    expect(docsRedirectTarget('/docs/plans/limits')).toBeNull()
     expect(docsRedirectTarget('/docs/toString')).toBeNull()
   })
 

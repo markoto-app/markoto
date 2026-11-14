@@ -14,7 +14,7 @@ limits of each plan, how upgrading works where paid plans are live, and
 how the AI allowance is counted. Self-hosted instances have only the
 limits their operator sets.
 
-- [Plans and limits](/docs/plans/plans): the free tier today, paid plans coming soon, limits on self-hosted instances.
+- [Plans and limits](/docs/plans/limits): the free tier today, paid plans coming soon, limits on self-hosted instances.
 - [Upgrade your plan](/docs/plans/upgrade): only where paid plans are live.
 - [Team and Business for a workspace](/docs/plans/team-plan): seats, the shared AI budget, member limits.
 - [AI Points and what happens when you run out](/docs/plans/ai-budget): when the allowance applies, and your options.

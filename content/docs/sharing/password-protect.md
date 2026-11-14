@@ -3,7 +3,6 @@ title: Lock a document behind a password
 description: Switch the access mode to password-protected, set a passphrase, and gate the share link behind it.
 category: sharing
 order: 2
-featured: true
 updated: '2026-10-29'
 ---
 

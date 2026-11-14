@@ -3,7 +3,6 @@ title: See what changed in past edits
 description: Click any activity row and markoto opens a diff drawer with hunk-level highlights of what was added and removed.
 category: import-export
 order: 4
-featured: true
 updated: '2026-10-29'
 ---
 

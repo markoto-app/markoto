@@ -18,6 +18,6 @@ data.
 - [Delete your account](/docs/account/delete-account): 30-day grace period with a cancel button, then a full purge.
 
 **Elsewhere**
-- [Plans and limits](/docs/plans/plans) lives in Plans and billing.
+- [Plans and limits](/docs/plans/limits) lives in Plans and billing.
 - [Use your own AI provider](/docs/ai/provider) and [MCP access tokens](/docs/ai/mcp) live in AI assistant.
 - [Delete a document](/docs/writing/delete-document) lives in Write.

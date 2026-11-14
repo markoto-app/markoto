@@ -3,7 +3,6 @@ title: Get started
 description: Short tutorials that take you from the homepage to a finished, shared document.
 category: getting-started
 order: 1
-featured: true
 icon: i-lucide-rocket
 updated: '2026-11-14'
 ---

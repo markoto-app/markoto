@@ -16,7 +16,7 @@ rows:
   - feature: Price
     markoto:
       value: Free, hosted or self-hosted
-      source: /docs/plans/plans
+      source: /docs/plans/limits
       checked: '2026-11-04'
     competitor:
       value: Free

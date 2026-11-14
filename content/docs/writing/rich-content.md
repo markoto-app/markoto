@@ -3,7 +3,6 @@ title: Tables, alerts, math, and diagrams
 description: Markdown that's not just headings and lists, code with syntax highlighting, KaTeX math, alert callouts, Mermaid diagrams.
 category: writing
 order: 2
-featured: true
 updated: '2026-11-04'
 ---
 

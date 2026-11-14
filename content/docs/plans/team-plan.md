@@ -92,5 +92,5 @@ uploader's personal storage.
 ## What's next
 
 - [Invite a teammate](/docs/workspaces/invite)
-- [Plans and limits](/docs/plans/plans)
+- [Plans and limits](/docs/plans/limits)
 - [Upgrade your plan](/docs/plans/upgrade): Pro for yourself.

@@ -3,7 +3,6 @@ title: Speak instead of typing
 description: Live dictation streams what you say into the editor as you say it, and lands in the document like typed text.
 category: writing
 order: 3
-featured: true
 updated: '2026-11-02'
 ---
 

@@ -22,7 +22,7 @@ operator-paid. If you have both your own keys and an operator default, the
 meter says that calls on your own key don't use points. If everything runs on
 your own provider, the top bar shows **Your own AI provider** instead; click
 it for a link to your provider settings. Either way, the panel that opens
-also lists your [storage and workspace limits](/docs/plans/plans#what-limits-a-plan-sets).
+also lists your [storage and workspace limits](/docs/plans/limits#what-limits-a-plan-sets).
 
 ## When the allowance is used up
 
@@ -34,7 +34,7 @@ would have answered. What you can do:
 - On markoto.app the free allowance can also end for everyone at once when the shared monthly pool is used up; the AI bar then says *"This month's free AI allowance is used up"*. It comes back with the monthly refill, and your own provider keeps working in the meantime.
 - **Connect your own provider** for the writing assistant; it is unaffected by the cap.
 - **Ask the instance operator** to raise the allowance (the `TIER_FREE_LITELLM_BUDGET_USD` setting on a self-hosted instance).
-- On markoto.app, paid plans with larger allowances are **coming soon** ([plans](/docs/plans/plans)). Where paid plans are live, the AI bar shows an Upgrade button.
+- On markoto.app, paid plans with larger allowances are **coming soon** ([plans](/docs/plans/limits)). Where paid plans are live, the AI bar shows an Upgrade button.
 
 ## Not the same as the safety limits
 
@@ -47,4 +47,4 @@ points. A normal prompt uses a few steps.
 
 - [What the AI can do, and what it needs](/docs/ai/overview)
 - [Connect your own AI provider](/docs/ai/provider)
-- [Plans](/docs/plans/plans)
+- [Plans](/docs/plans/limits)

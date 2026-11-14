@@ -35,4 +35,4 @@ or remove the last one, so nobody can lock the team out by accident.
 ## What's next
 
 - [Invite a teammate](/docs/workspaces/invite): invite by email; they join once they accept.
-- [Plans](/docs/plans/plans): the Team plan covers every member of a workspace.
+- [Plans](/docs/plans/limits): the Team plan covers every member of a workspace.

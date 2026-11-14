@@ -18,7 +18,7 @@ rows:
   - feature: Price
     markoto:
       value: Free on markoto.app; paid plans not launched yet
-      source: /docs/plans/plans
+      source: /docs/plans/limits
       checked: '2026-11-04'
     competitor:
       value: Free with a Google account; paid Workspace plans on its pricing page

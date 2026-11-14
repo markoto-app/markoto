@@ -3,6 +3,7 @@ title: Markdown reference
 description: Every syntax markoto renders in the preview and PDF - formatting, attributes, images, tables, math, alerts, diagrams, table of contents and page breaks.
 category: writing
 order: 1
+featured: true
 icon: i-lucide-file-text
 updated: '2026-11-06'
 ---

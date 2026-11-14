@@ -3,7 +3,6 @@ title: Start a workspace
 description: Create a workspace and give it a name, your shared home for team docs.
 category: workspaces
 order: 1
-featured: true
 updated: '2026-10-29'
 ---
 

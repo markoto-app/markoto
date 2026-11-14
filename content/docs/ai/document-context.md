@@ -3,7 +3,6 @@ title: Tell the AI who you're writing for
 description: Set audience, language, and a one-line description once and every AI prompt picks them up automatically.
 category: ai
 order: 5
-featured: true
 updated: '2026-11-04'
 ---
 

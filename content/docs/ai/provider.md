@@ -3,7 +3,6 @@ title: Use your own AI provider
 description: Settings → AI provider. Connect your own Mistral, OpenAI or other OpenAI-compatible account for the writing assistant, images and voice.
 category: ai
 order: 11
-featured: true
 updated: '2026-11-09'
 ---
 

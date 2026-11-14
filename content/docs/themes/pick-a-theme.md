@@ -3,7 +3,6 @@ title: Pick a theme that fits your document
 description: Switch between built-in presets, see the live preview update, and turn page 1 into a dedicated cover sheet.
 category: themes
 order: 1
-featured: true
 updated: '2026-11-09'
 ---
 

@@ -3,6 +3,7 @@ title: Start from a template
 description: Pick a template when you create a document, a starting text in a design that suits it, chosen as one.
 category: getting-started
 order: 2
+featured: true
 updated: '2026-11-09'
 ---
 

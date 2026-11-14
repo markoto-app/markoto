@@ -3,7 +3,6 @@ title: Polish your doc and download it as a PDF
 description: What you see in the preview is what lands in the PDF. Export it from the File menu in one click.
 category: import-export
 order: 2
-featured: true
 updated: '2026-11-06'
 ---
 

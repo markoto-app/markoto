@@ -36,7 +36,7 @@ rows:
   - feature: Price
     markoto:
       value: Free on markoto.app; paid plans not launched yet
-      source: /docs/plans/plans
+      source: /docs/plans/limits
       checked: '2026-11-04'
     competitor:
       value: App free, also for work; optional commercial licence $50 per user/year

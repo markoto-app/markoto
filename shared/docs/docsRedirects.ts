@@ -47,7 +47,7 @@ export const DOCS_REDIRECTS: Readonly<Record<string, string>> = Object.freeze({
   '/docs/account/single-sign-on': '/docs/workspace-admin/single-sign-on',
   '/docs/account/audit-log': '/docs/workspace-admin/audit-log',
   // Plans and billing
-  '/docs/account/plans': '/docs/plans/plans',
+  '/docs/account/plans': '/docs/plans/limits',
   '/docs/account/upgrade': '/docs/plans/upgrade',
   '/docs/account/team-plan': '/docs/plans/team-plan',
   '/docs/writing/ai-budget': '/docs/plans/ai-budget',

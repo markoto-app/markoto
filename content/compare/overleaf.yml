@@ -18,7 +18,7 @@ rows:
   - feature: Price
     markoto:
       value: Free on markoto.app; paid plans not launched yet
-      source: /docs/plans/plans
+      source: /docs/plans/limits
       checked: '2026-11-04'
     competitor:
       value: Free; Student $13, Standard $25, Pro $45 per month (billed monthly)

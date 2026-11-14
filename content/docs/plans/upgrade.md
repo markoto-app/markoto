@@ -35,6 +35,6 @@ is off.
 
 ## What's next
 
-- [Plans and limits](/docs/plans/plans)
+- [Plans and limits](/docs/plans/limits)
 - [AI Points](/docs/plans/ai-budget): what an upgrade raises.
 - [Team and Business for a workspace](/docs/plans/team-plan): billed per seat, with a shared AI budget.
