@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { captureLogs } from '../../helpers/logs'
-import { createRateLimiter } from '../../../sync-server/src/rate-limiter'
+import { createRateLimiter, SyncBusyError } from '../../../sync-server/src/rate-limiter'
 import { deliberatelyInvalid } from '../../helpers/fixtures'
 
 const logs = captureLogs()
@@ -181,6 +181,38 @@ describe('createRateLimiter: room cap', () => {
     // Next connect would trip BOTH caps (same IP + rooms at 2).
     expect(() => rl.onConnect(hookData({ ip: '1.1.1.1', socketId: 'b', roomCount: 2 })))
       .toThrow('Server at capacity')
+  })
+
+  it('still lets clients join a document that is already open at the cap', () => {
+    const rl = createRateLimiter({ maxActiveRooms: 2 })
+    const instance = {
+      documents: new Map([['open-a', {}], ['open-b', {}]]),
+      loadingDocuments: new Map([['loading-c', {}]])
+    }
+    const join = (documentName: string) => rl.onConnect({ ...hookData({ socketId: `s-${documentName}` }), instance, documentName })
+    expect(() => join('open-a')).not.toThrow()
+    expect(() => join('loading-c')).not.toThrow()
+    expect(() => join('new-doc')).toThrow('Server at capacity')
+  })
+
+  it('refuses with the busy reason, not as an access denial', () => {
+    const rl = createRateLimiter({ maxConnectionsPerIP: 1, maxActiveRooms: 1 })
+    let err: unknown
+    try {
+      rl.onConnect(hookData({ roomCount: 1 }))
+    } catch (e) {
+      err = e
+    }
+    expect(err).toBeInstanceOf(SyncBusyError)
+    expect((err as SyncBusyError).reason).toBe('server-busy')
+    rl.onConnect(hookData({ ip: '9.9.9.9', socketId: 'x1' }))
+    try {
+      rl.onConnect(hookData({ ip: '9.9.9.9', socketId: 'x2' }))
+    } catch (e) {
+      err = e
+    }
+    expect((err as SyncBusyError).reason).toBe('server-busy')
+    expect((err as Error).message).toBe('Too many connections')
   })
 
   it('missing instance.documents.size is treated as no-cap', () => {

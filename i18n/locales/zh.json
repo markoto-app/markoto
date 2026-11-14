@@ -41,6 +41,10 @@
     "syncAuthFailedTitle": "同步服务器拒绝了此连接",
     "syncAuthFailedDescription": "无法连接以进行编辑。请重新加载后再试。",
     "syncAuthFailedReload": "重新加载",
+    "syncBusy": {
+      "title": "服务器繁忙",
+      "description": "稍后自动重试…"
+    },
     "syncRejected": {
       "title": "你最近的更改未保存",
       "updateTooLarge": "此更改太大，无法一次同步。请重新加载，然后分几次添加内容。",

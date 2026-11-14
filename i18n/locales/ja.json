@@ -41,6 +41,10 @@
     "syncAuthFailedTitle": "同期サーバーが接続を拒否しました",
     "syncAuthFailedDescription": "編集のために接続できませんでした。再読み込みして再試行してください。",
     "syncAuthFailedReload": "再読み込み",
+    "syncBusy": {
+      "title": "サーバーが混雑しています",
+      "description": "まもなく再試行します…"
+    },
     "syncRejected": {
       "title": "最新の変更は保存されていません",
       "updateTooLarge": "この変更は一度に同期するには大きすぎます。再読み込みしてから、内容を小さく分けて追加してください。",

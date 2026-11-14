@@ -41,6 +41,10 @@
     "syncAuthFailedTitle": "Sync server rejected the connection",
     "syncAuthFailedDescription": "Could not connect for editing. Reload to try again.",
     "syncAuthFailedReload": "Reload",
+    "syncBusy": {
+      "title": "Server busy",
+      "description": "Retrying shortly…"
+    },
     "syncRejected": {
       "title": "Your latest changes were not saved",
       "updateTooLarge": "That change is too large to sync in one go. Reload, then add the content in smaller parts.",

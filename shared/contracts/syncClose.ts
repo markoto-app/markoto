@@ -2,7 +2,8 @@
  * Reasons the sync server gives when it closes a document connection
  * because of what the client sent. The editor maps them to a user-facing
  * message and stops reconnecting, resending the same state would only
- * be rejected again.
+ * be rejected again. `invalid-update` is first retried a few times with a
+ * fresh provider (a full resync replaces whatever the old one queued).
  *
  * Wire shape: Hocuspocus delivers a server-side close to the provider as
  * a CLOSE message whose `reason` is one of these strings. An oversized
@@ -57,6 +58,18 @@ export function isReauthClose(event: { reason?: unknown } | null | undefined): b
  * instead.
  */
 export const SYNC_AUTH_TIMEOUT_REASON = 'auth-timeout'
+
+/**
+ * Authentication-failure reason when the sync server is at a capacity
+ * limit (connections from one address, open documents per process).
+ * Not an access decision: the editor shows "busy, retrying" and connects
+ * again with backoff. Sent by `sync-server/src/rate-limiter.ts`.
+ */
+export const SYNC_BUSY_REASON = 'server-busy'
+
+export function isSyncBusyReason(reason: unknown): boolean {
+  return reason === SYNC_BUSY_REASON
+}
 
 /** RFC 6455 "message too big", sent by the `ws` server on frames above maxPayload. */
 const WS_CLOSE_MESSAGE_TOO_BIG = 1009

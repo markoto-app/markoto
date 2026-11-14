@@ -41,6 +41,10 @@
     "syncAuthFailedTitle": "El servidor de sincronización rechazó la conexión",
     "syncAuthFailedDescription": "No se pudo conectar para editar. Recarga para intentarlo de nuevo.",
     "syncAuthFailedReload": "Recargar",
+    "syncBusy": {
+      "title": "Servidor ocupado",
+      "description": "Reintentando en breve…"
+    },
     "syncRejected": {
       "title": "Tus últimos cambios no se han guardado",
       "updateTooLarge": "Este cambio es demasiado grande para sincronizarlo de una vez. Recarga y añade el contenido en partes más pequeñas.",
