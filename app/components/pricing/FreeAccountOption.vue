@@ -3,14 +3,16 @@ import type { TiersMap } from '~~/shared/config/tiers'
 
 // Pricing option "Free account": the free plan's limits, and the way into it
 // (sign in, or downgrade from a paid plan through the Customer Portal).
-defineProps<{
+withDefaults(defineProps<{
   /** The viewer is on the free plan. */
   current: boolean
   /** The viewer pays for a plan and billing is on: downgrading goes through the portal. */
   canDowngrade: boolean
   portalLoading: boolean
   tiers: TiersMap
-}>()
+  /** Height reserved for the tagline, so the prices of one row line up. */
+  taglineClass?: string
+}>(), { taglineClass: 'lg:min-h-10' })
 const emit = defineEmits<{ portal: [] }>()
 const { t } = useI18n()
 const { loggedIn } = useUserSession()
@@ -34,7 +36,7 @@ const { primaryLoginPath } = useInstanceConfig()
     <h2 class="font-serif text-xl font-normal tracking-tight">
       {{ t('pricing.freeAccount.title') }}
     </h2>
-    <p class="text-sm text-muted mt-1 lg:min-h-10">
+    <p :class="['text-sm text-muted mt-1', taglineClass]">
       {{ t('pricing.tiers.free') }}
     </p>
     <p class="mt-4 font-serif text-3xl font-light tracking-tight">

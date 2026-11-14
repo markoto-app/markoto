@@ -784,7 +784,6 @@
     "paid": {
       "title": "付费",
       "tagline": "更多 AI 点数、工作区和存储空间。",
-      "tabsLabel": "付费套餐",
       "joinWaitlist": "加入候补名单",
       "setUpInWorkspace": "在工作区中设置",
       "setUpInWorkspaceHint": "打开工作区，然后进入其账单标签页。只有工作区管理员可以购买。"

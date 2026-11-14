@@ -784,7 +784,6 @@
     "paid": {
       "title": "Payant",
       "tagline": "Plus de points IA, d'espaces de travail et de stockage.",
-      "tabsLabel": "Forfaits payants",
       "joinWaitlist": "Rejoindre la liste d'attente",
       "setUpInWorkspace": "Configurer dans un espace de travail",
       "setUpInWorkspaceHint": "Ouvrez l’espace de travail, puis son onglet Facturation. Seuls les admins de l’espace peuvent acheter."

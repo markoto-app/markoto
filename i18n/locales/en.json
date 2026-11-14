@@ -784,7 +784,6 @@
     "paid": {
       "title": "Paid",
       "tagline": "More AI Points, workspaces and storage.",
-      "tabsLabel": "Paid plans",
       "joinWaitlist": "Join the waitlist",
       "setUpInWorkspace": "Set up in a workspace",
       "setUpInWorkspaceHint": "Open the workspace, then its Billing tab. Only workspace admins can buy."

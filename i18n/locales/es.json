@@ -784,7 +784,6 @@
     "paid": {
       "title": "De pago",
       "tagline": "Más puntos de IA, espacios de trabajo y almacenamiento.",
-      "tabsLabel": "Planes de pago",
       "joinWaitlist": "Unirse a la lista de espera",
       "setUpInWorkspace": "Configurar en un espacio de trabajo",
       "setUpInWorkspaceHint": "Abre el espacio de trabajo y luego su pestaña Facturación. Solo los admins del espacio pueden comprar."
