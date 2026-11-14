@@ -1915,7 +1915,12 @@
         "loadFailed": "エクスポートを読み込めませんでした",
         "requestFailed": "エクスポートを申請できませんでした",
         "exportRequested": "申請日時",
-        "exportAvailableUntil": "利用可能期限"
+        "exportAvailableUntil": "利用可能期限",
+        "exportStatus_queued": "待機中",
+        "exportStatus_running": "作成中",
+        "exportStatus_ready": "準備完了",
+        "exportStatus_expired": "期限切れ",
+        "exportStatus_failed": "失敗"
       },
       "delete": {
         "heading": "アカウントを削除",

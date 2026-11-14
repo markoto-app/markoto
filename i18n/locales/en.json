@@ -1915,7 +1915,12 @@
         "loadFailed": "Could not load exports",
         "requestFailed": "Could not request export",
         "exportRequested": "requested",
-        "exportAvailableUntil": "available until"
+        "exportAvailableUntil": "available until",
+        "exportStatus_queued": "Queued",
+        "exportStatus_running": "In progress",
+        "exportStatus_ready": "Ready",
+        "exportStatus_expired": "Expired",
+        "exportStatus_failed": "Failed"
       },
       "delete": {
         "heading": "Delete your account",

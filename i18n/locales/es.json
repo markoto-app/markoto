@@ -1915,7 +1915,12 @@
         "loadFailed": "No se pudieron cargar las exportaciones",
         "requestFailed": "No se pudo solicitar la exportación",
         "exportRequested": "solicitada",
-        "exportAvailableUntil": "disponible hasta"
+        "exportAvailableUntil": "disponible hasta",
+        "exportStatus_queued": "En cola",
+        "exportStatus_running": "En curso",
+        "exportStatus_ready": "Listo",
+        "exportStatus_expired": "Caducado",
+        "exportStatus_failed": "Error"
       },
       "delete": {
         "heading": "Eliminar tu cuenta",

@@ -93,6 +93,17 @@ async function onRequestExport(): Promise<void> {
   }
 }
 
+const STATUS_KEYS: Record<ExportJob['status'], string> = {
+  queued: 'settings.profile.data.exportStatus_queued',
+  running: 'settings.profile.data.exportStatus_running',
+  ready: 'settings.profile.data.exportStatus_ready',
+  expired: 'settings.profile.data.exportStatus_expired',
+  failed: 'settings.profile.data.exportStatus_failed'
+}
+function statusLabel(status: ExportJob['status']): string {
+  return t(STATUS_KEYS[status])
+}
+
 const fmtBytes = formatBytes
 function fmtDate(iso: string | null): string {
   return formatDateTime(iso, locale.value)
@@ -172,13 +183,14 @@ function fmtDate(iso: string | null): string {
             <div class="flex items-center gap-2 flex-wrap">
               <span
                 class="font-mono uppercase tracking-wider"
+                :data-status="job.status"
                 :class="{
                   'text-rose-700 dark:text-rose-300': job.status === 'failed',
                   'text-muted': job.status !== 'failed' && job.status !== 'ready',
                   'text-default': job.status === 'ready'
                 }"
               >
-                {{ job.status }}
+                {{ statusLabel(job.status) }}
               </span>
               <span
                 v-if="job.sizeBytes"

@@ -1915,7 +1915,12 @@
         "loadFailed": "Impossible de charger les exports",
         "requestFailed": "Impossible de demander l’export",
         "exportRequested": "demandé",
-        "exportAvailableUntil": "disponible jusqu’au"
+        "exportAvailableUntil": "disponible jusqu’au",
+        "exportStatus_queued": "En attente",
+        "exportStatus_running": "En cours",
+        "exportStatus_ready": "Prêt",
+        "exportStatus_expired": "Expiré",
+        "exportStatus_failed": "Échec"
       },
       "delete": {
         "heading": "Supprimer votre compte",

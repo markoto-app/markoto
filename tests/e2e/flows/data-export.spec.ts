@@ -85,7 +85,7 @@ test('Data export', async ({ page, flow, editor }) => {
     }
   )
 
-  await expect(page.locator('[data-testid="export-history-row"]').first()).toContainText(/queued|running/i)
+  await expect(page.locator('[data-testid="export-history-row"]').first()).toContainText(/queued|in progress/i)
 
   // Chapter 3: Wait for the worker to build
   await flow.heading('Your archive is ready', 3)

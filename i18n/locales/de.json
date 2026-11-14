@@ -1915,7 +1915,12 @@
         "loadFailed": "Exporte konnten nicht geladen werden",
         "requestFailed": "Export konnte nicht angefordert werden",
         "exportRequested": "angefordert",
-        "exportAvailableUntil": "verfügbar bis"
+        "exportAvailableUntil": "verfügbar bis",
+        "exportStatus_queued": "In der Warteschlange",
+        "exportStatus_running": "Wird erstellt",
+        "exportStatus_ready": "Bereit",
+        "exportStatus_expired": "Abgelaufen",
+        "exportStatus_failed": "Fehlgeschlagen"
       },
       "delete": {
         "heading": "Konto löschen",

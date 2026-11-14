@@ -1915,7 +1915,12 @@
         "loadFailed": "无法加载导出记录",
         "requestFailed": "无法请求导出",
         "exportRequested": "请求于",
-        "exportAvailableUntil": "可下载至"
+        "exportAvailableUntil": "可下载至",
+        "exportStatus_queued": "排队中",
+        "exportStatus_running": "进行中",
+        "exportStatus_ready": "已就绪",
+        "exportStatus_expired": "已过期",
+        "exportStatus_failed": "失败"
       },
       "delete": {
         "heading": "删除你的账号",
