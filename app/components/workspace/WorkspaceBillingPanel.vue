@@ -5,6 +5,7 @@ import {
   type BillingInterval,
   type Currency
 } from '~~/shared/config/pricing'
+import { useInvalidateAiCredits } from '~/queries/ai'
 import { useInvalidatePlan, usePlanPricesQuery } from '~/queries/billing'
 import { formatPrice, formatPlanBytes } from '~/utils/billing/pricing'
 import {
@@ -48,6 +49,9 @@ const busy = ref<string | null>(null)
 // A plan, billing-period or seat change moves what other views cache: the
 // workspaces that cover the user and every AI budget (the topbar meter).
 const invalidatePlan = useInvalidatePlan()
+// A member's limit caps that member's AI points inside this workspace (the
+// admin's own, when they set it for themselves): the meter is out of date.
+const invalidateWorkspacePoints = useInvalidateAiCredits(() => props.workspaceId)
 
 /** Re-read everything a paid change touched: this tab, the cached snapshots, the page's own copy. */
 async function refreshAfterChange() {
@@ -213,7 +217,7 @@ async function saveLimit(userId: number) {
   try {
     await apiFetch('/api/workspaces/:wsId/billing/members/:userId', { method: 'patch', path: { wsId: props.workspaceId, userId }, body })
     toast.add({ title: t('workspace.billing.limitSaved'), icon: 'i-lucide-check', color: 'neutral' })
-    await load()
+    await Promise.all([load(), invalidateWorkspacePoints()])
   } catch (e) {
     showError('workspace.billing.limitSaveFailed', e)
   } finally {
