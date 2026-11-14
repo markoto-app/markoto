@@ -540,7 +540,7 @@ async function submit() {
           {{ t('common.cancel') }}
         </UButton>
         <UButton
-          color="primary"
+          color="neutral"
           :loading="submitting"
           data-testid="newdoc-submit-create"
           @click="submit()"

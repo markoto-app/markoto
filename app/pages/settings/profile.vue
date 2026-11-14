@@ -2,6 +2,7 @@
 import { defaultCurrencyForLocale } from '~~/shared/config/pricing'
 import { formatBytes, usageFill } from '~/utils/billing/usageMeter'
 import { useSwitchProInterval } from '~/queries/billing'
+import { accountLanguageName } from '~/utils/platform/localeName'
 // User profile page. The single canonical surface for account-level
 // management: who you are, the data we hold about you, and the
 // controls (export + delete) for managing it.
@@ -12,7 +13,7 @@ import { useSwitchProInterval } from '~/queries/billing'
 // so deep-linking without a session lands in the 401-toast surface.
 
 const router = useRouter()
-const { t, locale } = useI18n()
+const { t, locale, locales } = useI18n()
 // The spending section is a billing surface, hidden entirely when
 // billing is off (self-hosted / free-only SaaS).
 const { billingEnabled } = useBillingMode()
@@ -20,6 +21,8 @@ const toast = useToast()
 const { showError, extractError } = useErrorHandler()
 const { loggedIn, user } = useUserSession()
 const { status, refresh: refreshAccountStatus } = useAccountStatus()
+// An account that never stored a language shows the one the UI is in.
+const languageName = computed(() => accountLanguageName(status.value?.locale, locale.value, locales.value))
 // Legal acceptance section only where the legal surfaces
 // exist (hosted SaaS); see shared/config/instance.ts.
 const { legalSurfaces, primaryLoginPath } = useInstanceConfig()
@@ -260,8 +263,11 @@ const policies = computed(() => {
             <dt class="text-sm text-muted shrink-0">
               {{ t('settings.profile.account.locale') }}
             </dt>
-            <dd class="text-sm font-mono sm:text-right">
-              {{ status?.locale ?? '-' }}
+            <dd
+              class="text-sm font-mono sm:text-right"
+              data-testid="profile-language"
+            >
+              {{ languageName }}
             </dd>
           </div>
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 px-4 py-3">
@@ -488,7 +494,6 @@ const policies = computed(() => {
             {{ t('settings.profile.delete.scheduled', { date: deletionGraceFormatted }) }}
           </p>
           <UButton
-            size="sm"
             color="neutral"
             variant="outline"
             :loading="cancellingDeletion"

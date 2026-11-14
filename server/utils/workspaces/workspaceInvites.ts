@@ -105,8 +105,8 @@ const INVITE_EMAIL_COPY: Record<InviteEmailLocale, InviteEmailCopy> = {
     ignore: 'If you weren\'t expecting this, ignore this email, nothing happens unless you accept.'
   },
   de: {
-    subject: w => `Einladung in den Arbeitsbereich «${w}» auf markoto`,
-    intro: (i, w, r) => `${i} hat dich in den Arbeitsbereich «${w}» auf markoto eingeladen, als ${r}.`,
+    subject: w => `Einladung in den Workspace «${w}» auf markoto`,
+    intro: (i, w, r) => `${i} hat dich in den Workspace «${w}» auf markoto eingeladen, als ${r}.`,
     roles: { admin: 'Admin', editor: 'Bearbeiter:in', viewer: 'Betrachter:in', guest: 'Gast (du siehst nur die Dokumente, die mit dir geteilt werden)' },
     acceptLabel: 'Einladung annehmen:',
     account: 'Du wirst zuerst gebeten, dich anzumelden (oder ein Konto zu erstellen). Mit dieser E-Mail-Adresse angemeldet, kannst du die Einladung auch im markoto-Dashboard annehmen oder ablehnen.',

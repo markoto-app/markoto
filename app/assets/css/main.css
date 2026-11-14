@@ -288,6 +288,23 @@ body { min-height: 100svh; }
   html, html.dark { background: none; }
 }
 
+/* A strip that scrolls sideways without a scrollbar (the workspace tab
+   strip). Never scrolls vertically; an edge that hides content fades out
+   instead (`useScrollFade` sets the modifier classes), which also tells
+   touch users there is more to swipe to. */
+.mk-scroll-fade {
+  --mk-fade-start: 0px;
+  --mk-fade-end: 0px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  mask-image: linear-gradient(to right, transparent, #000 var(--mk-fade-start), #000 calc(100% - var(--mk-fade-end)), transparent);
+}
+.mk-scroll-fade::-webkit-scrollbar { display: none; }
+.mk-scroll-fade--start { --mk-fade-start: 2rem; }
+.mk-scroll-fade--end { --mk-fade-end: 2rem; }
+
 /* Tailwind v4 dropped the default `cursor: pointer` on buttons, restore
    globally so we don't sprinkle `cursor-pointer` on every clickable. */
 @layer base {
