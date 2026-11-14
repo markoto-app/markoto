@@ -24,6 +24,7 @@ Tests (details: [`docs/contributing/testing.md`](docs/contributing/testing.md)):
 | repos (DB-backed) | `bun run test:repos` | test stack: `bun run test:integration:up` |
 | integration (REST + sync) | `bun run test:integration` | test stack; builds and starts the app itself |
 | e2e flows (Playwright, also the user docs) | `bun run flows:test` | Docker; brings up its own stack |
+| billing-sandbox (real Stripe test mode) | `bun run test:billing-sandbox` | test stack; `STRIPE_SANDBOX_SECRET_KEY` (skipped without) |
 
 The test stack runs through `scripts/test-compose.sh` (detects rootless Podman). Run the tiers your change touches before you finish.
 

@@ -1895,6 +1895,8 @@
         "plan": "Aktueller Plan: {plan}",
         "manage": "Abrechnung verwalten",
         "portalFailed": "Abrechnung konnte nicht geöffnet werden",
+        "paymentOverdueTitle": "Zahlung überfällig",
+        "paymentOverdueBody": "Die letzte Zahlung für Pro ist fehlgeschlagen und wird erneut versucht. Aktualisiere die Zahlungsmethode unter «Abrechnung verwalten», damit dein Plan bleibt.",
         "coveringTitle": "Workspaces, die du abdeckst",
         "coveringHint": "In diesen Workspaces gelten deren Plan und das gemeinsame KI-Budget. Sonst dein eigener Plan."
       },

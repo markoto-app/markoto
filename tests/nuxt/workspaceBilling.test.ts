@@ -125,7 +125,7 @@ describe('workspace billing tab: no subscription yet', () => {
 describe('workspace billing tab: subscription', () => {
   beforeEach(() => {
     overview.subscription = {
-      plan: 'team', seats: 5, status: 'active', entitled: true, interval: 'month', currency: 'eur',
+      plan: 'team', seats: 5, status: 'active', paymentOverdue: false, entitled: true, interval: 'month', currency: 'eur',
       currentPeriodStart: '2027-01-01T00:00:00Z', validUntil: '2027-02-01T00:00:00Z', cancelAt: null, billingAdminId: 1
     }
     overview.pool = { aiBudgetUsd: 25, aiSpendUsd: 3.2, defaultMemberLimitUsd: 10, knowledgeBytes: 5 * 2 ** 30 * 5, imageBytes: 10 * 2 ** 30 * 5, resetsAt: null }
@@ -146,8 +146,15 @@ describe('workspace billing tab: subscription', () => {
 
   it('a payment problem shows the notice', async () => {
     overview.subscription!.status = 'past_due'
+    overview.subscription!.paymentOverdue = true
     const wrapper = await mountPanel()
-    expect(wrapper.find('[data-testid="workspace-billing-payment-problem"]').exists()).toBe(true)
+    const notice = wrapper.find('[data-testid="workspace-billing-payment-problem"]')
+    expect(notice.exists()).toBe(true)
+    // One click from the notice to the Stripe portal, where the card is changed.
+    const manage = notice.findAll('button').find(b => b.text().includes('Manage billing'))
+    await manage?.trigger('click')
+    await flushPromises()
+    await vi.waitFor(() => expect(goToExternal).toHaveBeenCalledWith('https://portal.stripe.test'))
   })
 
   async function acceptTermsAndClick(wrapper: Wrapper, testid: string) {

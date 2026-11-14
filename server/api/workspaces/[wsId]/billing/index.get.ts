@@ -1,6 +1,7 @@
 import { listBillingMembers } from '../../../../repos/workspaceBilling'
 import { getWorkspaceSubscription, subscriptionGrantsPlan } from '../../../../repos/workspaceSubscriptions'
 import { isBillingEnabled } from '../../../../utils/billing/billingMode'
+import { isPaymentOverdueStatus } from '~~/shared/contracts/stripe'
 import { creditBalanceView } from '../../../../utils/billing/aiCreditBudget'
 import { openMemberKey, readMemberKeySpend, readWorkspaceTeam } from '../../../../utils/litellm/workspaceTeams'
 import {
@@ -63,6 +64,8 @@ export default defineApiHandler({
             plan: sub.plan,
             seats: sub.seats,
             status: sub.status,
+            // The last invoice was not paid and Stripe is retrying.
+            paymentOverdue: isPaymentOverdueStatus(sub.status),
             entitled,
             interval: sub.interval,
             currency: sub.currency,

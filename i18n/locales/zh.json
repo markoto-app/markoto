@@ -1895,6 +1895,8 @@
         "plan": "当前方案：{plan}",
         "manage": "管理账单",
         "portalFailed": "无法打开账单",
+        "paymentOverdueTitle": "付款逾期",
+        "paymentOverdueBody": "Pro 的上一次付款失败，系统会再次尝试扣款。请在“管理账单”中更新付款方式，以保留你的套餐。",
         "coveringTitle": "为你提供方案的工作区",
         "coveringHint": "在这些工作区内适用其方案和共享 AI 预算。其他地方适用你自己的方案。"
       },

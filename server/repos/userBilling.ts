@@ -1,8 +1,9 @@
-import { and, eq, isNull, lt, or } from 'drizzle-orm'
+import { and, eq, isNull, lt, lte, or } from 'drizzle-orm'
 import { users } from '../db/schema'
 import { executor, useDatabase, type TxHandle } from '../db/client'
 import type { PersonalPlanName } from '~~/shared/config/tiers'
 import type { BillingInterval, Currency } from '~~/shared/config/pricing'
+import type { StripeSubscriptionStatus } from '~~/shared/contracts/stripe'
 import type { SystemActor, UserScope } from './proofs'
 
 // The personal plan + Stripe columns of `users`. Written by the Stripe
@@ -20,7 +21,17 @@ export interface UserBillingUpdate {
     billingCurrency: Currency | null
     billingInterval: BillingInterval | null
     planCancelAt: Date | null
+    subscriptionStatus: StripeSubscriptionStatus | null
+    subscriptionEventAt: Date | null
   }>
+}
+
+/**
+ * The age rule (`stripeEvents/eventAge.ts`): the row's subscription state
+ * is not newer than `at`. Equal times pass.
+ */
+function stateNotNewerThan(at: Date) {
+  return or(isNull(users.subscriptionEventAt), lte(users.subscriptionEventAt, at))
 }
 
 /**
@@ -48,25 +59,55 @@ export async function findUserIdByStripeCustomer(_by: SystemActor, customerId: s
 }
 
 /**
- * Apply a subscription's state to the user whose CURRENT subscription it is
- * (customer + subscription id both match). Returns the rows matched.
+ * Apply a subscription's state as of `at` to the user whose CURRENT
+ * subscription it is (customer + subscription id both match), unless the
+ * row already holds newer state. Returns the rows matched.
  */
-export async function applyUserSubscriptionState(_by: SystemActor, tx: TxHandle | undefined, customerId: string, subscriptionId: string, set: UserBillingUpdate['set']): Promise<number> {
+export async function applyUserSubscriptionState(_by: SystemActor, tx: TxHandle | undefined, customerId: string, subscriptionId: string, set: UserBillingUpdate['set'], at: Date): Promise<number> {
   const db = executor(tx)
-  return (await db.update(users).set(set)
-    .where(and(eq(users.stripeCustomerId, customerId), eq(users.stripeSubscriptionId, subscriptionId)))
+  return (await db.update(users).set({ ...set, subscriptionEventAt: at })
+    .where(and(eq(users.stripeCustomerId, customerId), eq(users.stripeSubscriptionId, subscriptionId), stateNotNewerThan(at)))
     .returning({ id: users.id })).length
 }
 
-/** Move the user's period anchors forward to `period` (never back). Returns the rows matched. */
-export async function advanceUserBillingPeriod(_by: SystemActor, tx: TxHandle | undefined, customerId: string, subscriptionId: string, period: { start: Date, end: Date }): Promise<number> {
+/**
+ * The customer's subscription ended at `at`: back to Free, the Stripe
+ * anchors cleared (customer and currency stay for a later purchase).
+ * Not applied when the row holds newer state (a new subscription bought
+ * since). Returns the rows matched.
+ */
+export async function endUserSubscription(_by: SystemActor, tx: TxHandle | undefined, customerId: string, at: Date): Promise<number> {
+  const db = executor(tx)
+  return (await db.update(users)
+    .set({
+      plan: 'free',
+      stripeSubscriptionId: null,
+      stripeCurrentPeriodStart: null,
+      planValidUntil: null,
+      billingInterval: null,
+      planCancelAt: null,
+      subscriptionStatus: null,
+      subscriptionEventAt: at
+    })
+    .where(and(eq(users.stripeCustomerId, customerId), stateNotNewerThan(at)))
+    .returning({ id: users.id })).length
+}
+
+/**
+ * Move the user's period anchors forward to `period` (never back), for an
+ * invoice paid at `at`. Returns the rows matched. An invoice older than the
+ * subscription state on the row changes nothing: that state already
+ * carries the period.
+ */
+export async function advanceUserBillingPeriod(_by: SystemActor, tx: TxHandle | undefined, customerId: string, subscriptionId: string, period: { start: Date, end: Date }, at: Date): Promise<number> {
   const db = executor(tx)
   const result = await db.update(users)
     .set({ stripeCurrentPeriodStart: period.start, planValidUntil: period.end })
     .where(and(
       eq(users.stripeCustomerId, customerId),
       eq(users.stripeSubscriptionId, subscriptionId),
-      or(isNull(users.planValidUntil), lt(users.planValidUntil, period.end))
+      or(isNull(users.planValidUntil), lt(users.planValidUntil, period.end)),
+      stateNotNewerThan(at)
     ))
     .returning({ id: users.id })
   return result.length
@@ -107,19 +148,22 @@ export async function recordOwnPlanChange(self: UserScope, subscriptionId: strin
   interval: BillingInterval
   cancelAt: Date | null
   period: { start: Date, end: Date } | null
+  /** Stripe's time of the change: events older than it are of the previous state. */
+  at: Date
 }): Promise<void> {
   await useDatabase().update(users)
     .set({
       billingInterval: change.interval,
       planCancelAt: change.cancelAt,
+      subscriptionEventAt: change.at,
       ...(change.period ? { stripeCurrentPeriodStart: change.period.start, planValidUntil: change.period.end } : {})
     })
     .where(and(eq(users.id, self.userId), eq(users.stripeSubscriptionId, subscriptionId)))
 }
 
 /** What the profile and pricing pages show of the user's own subscription. */
-export async function getOwnSubscriptionFacts(self: UserScope): Promise<{ billingInterval: BillingInterval | null, planCancelAt: Date | null } | null> {
-  return (await useDatabase().select({ billingInterval: users.billingInterval, planCancelAt: users.planCancelAt })
+export async function getOwnSubscriptionFacts(self: UserScope): Promise<{ billingInterval: BillingInterval | null, planCancelAt: Date | null, subscriptionStatus: StripeSubscriptionStatus | null } | null> {
+  return (await useDatabase().select({ billingInterval: users.billingInterval, planCancelAt: users.planCancelAt, subscriptionStatus: users.subscriptionStatus })
     .from(users).where(eq(users.id, self.userId)).limit(1))[0] ?? null
 }
 

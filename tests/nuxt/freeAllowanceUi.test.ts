@@ -31,6 +31,7 @@ const BILLING: UserBilling = {
   plan: 'free',
   interval: null,
   cancelAt: null,
+  paymentOverdue: false,
   periodStart: new Date().toISOString(),
   periodEnd: new Date().toISOString(),
   ownedWorkspaces: 1,

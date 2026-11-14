@@ -41,6 +41,7 @@ function proBilling(patch: Partial<UserBilling> = {}): UserBilling {
     plan: 'pro',
     interval: 'month',
     cancelAt: null,
+    paymentOverdue: false,
     periodStart: '2027-01-01T00:00:00.000Z',
     periodEnd: '2027-02-01T00:00:00.000Z',
     ownedWorkspaces: 0,
@@ -172,6 +173,24 @@ describe('profile: spending and usage of a Pro subscriber', () => {
     const ending = await mountProfile()
     expect(ending.find('[data-testid="profile-plan-ends"]').text()).toContain('Ends on')
     expect(ending.find('[data-testid="profile-plan-renews"]').exists()).toBe(false)
+  })
+
+  it('an overdue payment shows one notice with the way to the Stripe portal', async () => {
+    registerEndpoint('/api/billing/portal', { method: 'POST', handler: () => ({ url: 'https://portal.stripe.test' }) })
+    const paid = await mountProfile()
+    expect(paid.find('[data-testid="profile-payment-overdue"]').exists()).toBe(false)
+    paid.unmount()
+
+    billing = proBilling({ paymentOverdue: true })
+    useQueryCache().setQueryData<UserBilling>(billingKeys.user(), billing)
+    const overdue = await mountProfile()
+    const notice = overdue.get('[data-testid="profile-payment-overdue"]')
+    expect(notice.text()).toContain('Payment overdue')
+    // The plan still runs while Stripe retries.
+    expect(overdue.get('[data-testid="profile-plan"]').text()).toContain('Pro')
+    await notice.findAll('button').find(b => b.text().includes('Manage billing'))?.trigger('click')
+    await flushPromises()
+    await vi.waitFor(() => expect(goToExternal).toHaveBeenCalledWith('https://portal.stripe.test'))
   })
 
   it('a Free account has no interval switch', async () => {

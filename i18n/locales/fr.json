@@ -1895,6 +1895,8 @@
         "plan": "Plan actuel : {plan}",
         "manage": "Gérer la facturation",
         "portalFailed": "Impossible d’ouvrir la facturation",
+        "paymentOverdueTitle": "Paiement en retard",
+        "paymentOverdueBody": "Le dernier paiement pour Pro a échoué et sera retenté. Mettez à jour le moyen de paiement sous « Gérer la facturation » pour conserver votre plan.",
         "coveringTitle": "Espaces de travail qui vous couvrent",
         "coveringHint": "Dans ces espaces de travail, leur plan et leur budget IA partagé s’appliquent. Ailleurs, votre propre plan."
       },

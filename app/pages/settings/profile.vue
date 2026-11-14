@@ -404,6 +404,17 @@ const policies = computed(() => {
               </UButton>
             </div>
           </div>
+          <!-- The last renewal was not paid; Stripe retries, the plan still runs. -->
+          <UAlert
+            v-if="isPro && billing?.paymentOverdue"
+            color="error"
+            variant="subtle"
+            icon="i-lucide-alert-triangle"
+            :title="t('settings.profile.spending.paymentOverdueTitle')"
+            :description="t('settings.profile.spending.paymentOverdueBody')"
+            :actions="[{ label: t('settings.profile.spending.manage'), color: 'neutral', variant: 'outline', onClick: openPortal }]"
+            data-testid="profile-payment-overdue"
+          />
           <div
             v-if="isPro && billing?.interval"
             class="flex gap-2 flex-wrap border-t border-default pt-4"

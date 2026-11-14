@@ -2,6 +2,7 @@
 
 import { pgTable, serial, integer, text, timestamp, index, uniqueIndex, boolean, check } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
+import type { StripeSubscriptionStatus } from '~~/shared/contracts/stripe'
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -42,6 +43,15 @@ export const users = pgTable('users', {
   // When a cancelled subscription ends (Stripe `cancel_at`, or the period
   // end with `cancel_at_period_end`). NULL while it renews.
   planCancelAt: timestamp('plan_cancel_at', { withTimezone: true }),
+  // Stripe status of the personal subscription, verbatim. NULL without one
+  // (and for subscriptions written before the column existed). `past_due`
+  // / `unpaid`: Stripe is retrying a failed payment, the plan still runs.
+  subscriptionStatus: text('subscription_status').$type<StripeSubscriptionStatus>(),
+  // Stripe's time of the newest subscription state on this row: the
+  // `created` of the last applied `customer.subscription.*` event, or the
+  // moment the app itself read / changed the subscription. An event older
+  // than this is not applied (`stripeEvents/eventAge.ts`).
+  subscriptionEventAt: timestamp('subscription_event_at', { withTimezone: true }),
   // Platform chat model the user picked: 'fast' = the instance chat
   // default, 'strong' = NUXT_AI_DEFAULT_CHAT_STRONG_MODEL, only applied
   // while the plan includes `aiStrongModel`. Own keys are unaffected.
