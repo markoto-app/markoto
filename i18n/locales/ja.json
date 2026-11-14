@@ -2741,13 +2741,6 @@
       "chapter": "章",
       "toggle": "スライドショーの再生を切り替え"
     },
-    "sections": {
-      "gettingStarted": "最初の10分：ドキュメントを作成し、名前を付けて、共有します。",
-      "writing": "Markdown拡張、書式、アラート、数式、図、表。",
-      "sharing": "アクセスモード、パスワード保護、匿名リンク、ワークスペース。",
-      "themes": "ライブプレビューとPDF書き出しの両方に反映される、ドキュメントごとのテーマ。",
-      "importExport": "DOCX/PDF/PPTXを取り込み、クリーンなMarkdownやテーマ付きPDFに書き出します。"
-    },
     "landing": {
       "eyebrow": "フィールドガイド · 第1巻",
       "title": "{product}でできることのすべて。",

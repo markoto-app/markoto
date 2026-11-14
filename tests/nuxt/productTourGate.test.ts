@@ -47,7 +47,7 @@ describe('home page: product tour gate', () => {
     const headings = tour.findAll('h2').map(h2 => h2.text())
     expect(headings).toContain('Write Markdown, get paged documents.')
     expect(headings).toContain('Try it with your own Markdown.')
-    expect(tour.find('[data-testid="tour-self-host"]').attributes('href')).toBe('/docs/getting-started/self-hosting')
+    expect(tour.find('[data-testid="tour-self-host"]').attributes('href')).toBe('/docs/self-hosting')
     expect(wrapper.find('[data-testid="landing-new-document"]').exists()).toBe(false)
   })
 

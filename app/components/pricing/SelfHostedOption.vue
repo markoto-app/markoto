@@ -44,7 +44,7 @@ const { t } = useI18n()
       </li>
     </ul>
     <UButton
-      to="/docs/getting-started/self-hosting"
+      to="/docs/self-hosting"
       color="neutral"
       variant="outline"
       block

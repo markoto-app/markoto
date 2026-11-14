@@ -16,7 +16,7 @@ rows:
   - feature: Price
     markoto:
       value: Free, hosted or self-hosted
-      source: /docs/account/plans
+      source: /docs/plans/limits
       checked: '2026-11-04'
     competitor:
       value: Free
@@ -25,7 +25,7 @@ rows:
   - feature: Self-hosting
     markoto:
       value: true
-      source: /docs/getting-started/self-hosting
+      source: /docs/self-hosting
       checked: '2026-11-04'
     competitor:
       value: true
@@ -34,7 +34,7 @@ rows:
   - feature: Docker setup
     markoto:
       value: App, sync server, Postgres, Valkey, S3 storage, AI gateway, PDF renderer, converter; about 6 GB RAM
-      source: /docs/getting-started/self-hosting
+      source: /docs/self-hosting
       checked: '2026-11-04'
     competitor:
       value: App and Postgres (example Compose file)
@@ -61,7 +61,7 @@ rows:
   - feature: Real-time co-editing
     markoto:
       value: true
-      source: /docs/workspaces/live-collab
+      source: /docs/collaborate/live-collab
       checked: '2026-11-04'
     competitor:
       value: true
@@ -79,7 +79,7 @@ rows:
   - feature: Version history
     markoto:
       value: Every edit, with a diff and restore
-      source: /docs/history
+      source: /docs/import-export
       checked: '2026-11-04'
     competitor:
       value: Revisions you can compare, download or revert to

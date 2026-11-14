@@ -7,7 +7,7 @@ import { test, expect } from '../fixtures/flow'
 //    side (Free, Pro, Team, Business) under one billing-period switch.
 //    Every account is on Free; the paid cards show PLANNED prices and
 //    limits with no purchase button, and the waitlist sign-up sits right
-//    under the cards. This is the flow content/docs/account/plans.md
+//    under the cards. This is the flow content/docs/plans/limits.md
 //    embeds.
 // 2. "Pricing with paid plans live" (`@billing`): the same page on an
 //    instance that sells plans. Kept for regression coverage only, no

@@ -367,7 +367,7 @@ describe('pricing page: billing off, plans coming soon (hosted SaaS)', () => {
     const card = wrapper.find('[data-testid="pricing-option-self-hosted"]')
     expect(card.find('[data-testid="pricing-licence"]').text()).toContain('Source-available')
     expect(card.text().toLowerCase()).not.toContain('open source')
-    expect(card.find('[data-testid="pricing-self-hosted-cta"]').attributes('href')).toBe('/docs/getting-started/self-hosting')
+    expect(card.find('[data-testid="pricing-self-hosted-cta"]').attributes('href')).toBe('/docs/self-hosting')
   })
 
   it('shows the FAQ, including what "coming soon" means', async () => {

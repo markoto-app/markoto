@@ -2,8 +2,7 @@
 title: Delete your account
 description: 30-day grace period. You can cancel anytime in those 30 days. After the deadline, everything goes.
 category: account
-order: 5
-featured: true
+order: 3
 updated: '2026-11-04'
 ---
 

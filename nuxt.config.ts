@@ -4,6 +4,7 @@ import { observability } from './shared/env/vars/sync'
 import { DAY_SECONDS } from './shared/config/units'
 import { scanFlowDocPages } from './scripts/lib/flowDocPagesFs'
 import { bool } from './shared/env/coerce'
+import { docsRedirectRouteRules } from './shared/docs/docsRedirects'
 
 // Test-only routes (server/api/_test/**: login shim, AI-tool exec, budget
 // helpers) are compiled in only when the test harness builds with
@@ -175,6 +176,11 @@ export default defineNuxtConfig({
       exposeTestHandles: false
     }
   },
+
+  // Old /docs addresses (before the docs were regrouped into task-based
+  // sections) answer with a 301 to the new one; the query string is kept.
+  // The map lives in shared/docs/docsRedirects.ts.
+  routeRules: docsRedirectRouteRules(),
 
   compatibilityDate: '2025-01-15',
   nitro: {

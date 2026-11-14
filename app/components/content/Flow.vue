@@ -104,7 +104,9 @@ const effectiveChromeDomain = computed(
   () => props.chromeDomain ?? runtimeConfig.public.docs.chromeDomain
 )
 
-const { locale: i18nLocale, t } = useI18n()
+// English inside the docs area, the UI language elsewhere
+// (app/composables/platform/useAreaI18n.ts).
+const { locale: i18nLocale, t } = useAreaI18n()
 // Defer color-mode read to onMounted, useColorMode() returns 'light' on SSR
 // (no prefers-color-scheme + no localStorage), so reading at top-level causes
 // hydration mismatch when the user's actual mode is dark. Manifest fetch is
@@ -479,6 +481,7 @@ const nextLink = computed<NextLink | null>(() => nextHref.value ? manifest.value
     <i18n-t
       keypath="docs.flow.loadFailed"
       scope="global"
+      :locale="i18nLocale"
     >
       <template #id>
         <code>{{ id ?? path }}</code>

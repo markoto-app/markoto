@@ -2741,13 +2741,6 @@
       "chapter": "章节",
       "toggle": "切换幻灯片播放"
     },
-    "sections": {
-      "gettingStarted": "最初的十分钟：创建文档、命名、分享。",
-      "writing": "Markdown 扩展、格式、提示框、公式、图表、表格。",
-      "sharing": "访问模式、密码保护、匿名链接、工作区。",
-      "themes": "每份文档独立的主题，同时作用于实时预览和 PDF 导出。",
-      "importExport": "导入 DOCX/PDF/PPTX；导出为简洁的 Markdown 或带主题的 PDF。"
-    },
     "landing": {
       "eyebrow": "使用指南 · 第 01 卷",
       "title": "{product} 的全部功能。",

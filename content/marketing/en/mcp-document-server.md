@@ -42,7 +42,7 @@ In Claude Code it is one command:
 claude mcp add --transport http markoto https://markoto.app/mcp --header "Authorization: Bearer <your-token>"
 ```
 
-Where the configuration goes differs between clients and versions, so check your client's own MCP documentation for how it adds a remote server with a header. The [MCP docs page](/docs/account/mcp) has the details.
+Where the configuration goes differs between clients and versions, so check your client's own MCP documentation for how it adds a remote server with a header. The [MCP docs page](/docs/ai/mcp) has the details.
 
 ## What your agent can do
 
@@ -59,7 +59,7 @@ Rendering is the part a plain Markdown file can't give an agent: `view_pages` re
 
 ## Edits you can see and undo
 
-Your agent joins the document as a separate collaborator. The edit appears live in every open editor. The [activity log](/docs/history) shows it as made by your MCP client ("Claude Desktop", "Cursor") on your behalf, with a diff, and **Restore** puts the document back to how it was before.
+Your agent joins the document as a separate collaborator. The edit appears live in every open editor. The [activity log](/docs/import-export) shows it as made by your MCP client ("Claude Desktop", "Cursor") on your behalf, with a diff, and **Restore** puts the document back to how it was before.
 
 ::tour-clip{scene="history"}
 ::
@@ -69,7 +69,7 @@ Your agent joins the document as a separate collaborator. The edit appears live 
 - **A token acts as you, never more.** It can't open a document you can't open or edit one you can only read. Tools outside the token's scopes are not even listed, and every call is checked again.
 - **Tokens are stored as a hash.** Revoke one on the Integrations page and it stops working at once. You can have up to 20.
 - **Rate limits.** 120 tool calls a minute per account, 300 requests a minute per network address and 240 per token. Rendering pages or PDFs shares the editor's PDF allowance (10 a minute); image generation is limited to 20 an hour. Up to 20 open connections per account; opening one more closes the one used least recently, and the client reconnects.
-- **Web search and page reading** share the in-app assistant's allowance (30 an hour and 100 a day by default). Their results are summarised on markoto's side by your chat provider (your own, or the free monthly allowance). Image generation needs an image provider in your [AI provider settings](/docs/account/ai-provider).
+- **Web search and page reading** share the in-app assistant's allowance (30 an hour and 100 a day by default). Their results are summarised on markoto's side by your chat provider (your own, or the free monthly allowance). Image generation needs an image provider in your [AI provider settings](/docs/ai/provider).
 - **Your agent's own model.** The thinking happens in your MCP client, with its own model and its own confirmation settings. markoto doesn't ask you to confirm the client's tool calls; your client does that.
 
 ## Also on self-hosted instances
@@ -101,6 +101,6 @@ items:
 ---
 ::
 
-::cta{title="Give your agent a document to write in." secondary-label="Read the MCP docs" secondary-to="/docs/account/mcp"}
+::cta{title="Give your agent a document to write in." secondary-label="Read the MCP docs" secondary-to="/docs/ai/mcp"}
 Sign up for free, create a token under Integrations and connect your client. Start with a document of your own.
 ::

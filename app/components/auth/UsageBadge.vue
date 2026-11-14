@@ -26,7 +26,7 @@
 import type { PlanName } from '~~/shared/config/tiers'
 import { useAiCredits } from '~/composables/ai/useAiCredits'
 
-const { t, locale } = useI18n()
+const { t, locale } = useAreaI18n()
 const router = useRouter()
 const { billing, refresh: refreshBilling } = useBilling()
 // The budget that pays where the user is: inside a document of a Team /

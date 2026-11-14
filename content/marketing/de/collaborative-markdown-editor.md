@@ -56,7 +56,7 @@ Der Tab «Aktivität» listet jede Bearbeitung mit Person, Zeitpunkt und Anzahl 
 ::flow-strip{id="restore-an-earlier-version" frames="09" caption="Nach einer Wiederherstellung: Der Text ist zurück, und die Wiederherstellung steht wie jede andere Änderung im Tab «Aktivität»."}
 ::
 
-Mehr dazu in der Dokumentation (auf Englisch): [Änderungen ansehen](/docs/history/see-changes) und [eine frühere Version wiederherstellen](/docs/history/restore).
+Mehr dazu in der Dokumentation (auf Englisch): [Änderungen ansehen](/docs/import-export/see-changes) und [eine frühere Version wiederherstellen](/docs/import-export/restore).
 
 ## Workspaces und Rollen
 
@@ -69,7 +69,7 @@ Dokumente ausserhalb eines Workspace werden per Link geteilt. Die Eigentümerin 
 
 ## Die KI arbeitet sichtbar mit
 
-Bearbeitet der KI-Assistent ein Dokument, tritt er bei wie eine weitere Person: Sein Cursor und seine Änderungen erscheinen für alle live, im Rot von markoto, und seine Bearbeitungen stehen im Verlauf wie die aller anderen. Was er geändert hat, kannst du wiederherstellen. Die KI braucht ein Konto; auf markoto.app läuft sie mit einem kleinen monatlichen Kontingent oder mit [deinem eigenen KI-Anbieter](/docs/account/ai-provider).
+Bearbeitet der KI-Assistent ein Dokument, tritt er bei wie eine weitere Person: Sein Cursor und seine Änderungen erscheinen für alle live, im Rot von markoto, und seine Bearbeitungen stehen im Verlauf wie die aller anderen. Was er geändert hat, kannst du wiederherstellen. Die KI braucht ein Konto; auf markoto.app läuft sie mit einem kleinen monatlichen Kontingent oder mit [deinem eigenen KI-Anbieter](/docs/ai/provider).
 
 ## Was es nicht kann
 
@@ -103,6 +103,6 @@ items:
 ---
 ::
 
-::cta{title="Schreibe gemeinsam, ab sofort." secondary-label="Dokumentation zur Zusammenarbeit" secondary-to="/docs/workspaces/live-collab"}
+::cta{title="Schreibe gemeinsam, ab sofort." secondary-label="Dokumentation zur Zusammenarbeit" secondary-to="/docs/collaborate/live-collab"}
 Dokument erstellen und den Link verschicken. Dein Gegenüber braucht kein Konto.
 ::

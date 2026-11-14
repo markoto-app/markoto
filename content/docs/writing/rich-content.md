@@ -2,8 +2,7 @@
 title: Tables, alerts, math, and diagrams
 description: Markdown that's not just headings and lists, code with syntax highlighting, KaTeX math, alert callouts, Mermaid diagrams.
 category: writing
-order: 3
-featured: true
+order: 2
 updated: '2026-11-04'
 ---
 
@@ -41,5 +40,5 @@ You used the Insert menu to add four non-trivial markdown extensions:
 ## What's next
 
 - [Markdown reference](/docs/writing/markdown-reference): the full syntax list, including attributes, images and footnotes.
-- [Have a discussion in your document](/docs/writing/comments): comment on a passage you just wrote.
+- [Have a discussion in your document](/docs/collaborate/comments): comment on a passage you just wrote.
 - [Pick a theme](/docs/themes/pick-a-theme): make the rendered output look the part.

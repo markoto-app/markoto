@@ -31,7 +31,7 @@ writing. Or [host it yourself](#self-hosting) with one script.
 - **Real-time collaboration**: [Y.js](https://yjs.dev) documents synced through [Hocuspocus](https://tiptap.dev/hocuspocus), with presence, comments and an Activity Log that shows each change as a diff and restores any earlier state.
 - **Workspaces and a knowledge base**: roles and email invitations; uploaded files are converted to Markdown, embedded and searched (vector plus full-text) so the AI can cite them.
 - **An AI that edits with you**: the assistant joins the document as a collaborator and edits it through tools. Bring your own OpenAI-compatible key, or use the defaults the instance operator configures. Models and providers: [docs/AI-MODELS.md](./docs/AI-MODELS.md).
-- **MCP server**: connect Claude Code, Cursor or your own script with a personal access token; see [Connect an AI agent](./content/docs/account/mcp.md).
+- **MCP server**: connect Claude Code, Cursor or your own script with a personal access token; see [Connect an AI agent](./content/docs/ai/mcp.md).
 - **Import and export**: import DOCX, PDF, PPTX, XLSX, HTML and EPUB; export PDF or plain `.md`.
 
 ## Self-hosting

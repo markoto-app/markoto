@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { t } = useI18n()
+const { t } = useAreaI18n()
 // Only providers with complete credentials are offered, an
 // unconfigured one would end in a server error. A self-hosted instance
 // without any login provider is anonymous-only.

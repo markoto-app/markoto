@@ -20,7 +20,7 @@ import { SOURCE_REPO_URL } from '~~/shared/config/links'
 // home page shouldn't send its visitors away to them. Every legal page
 // stays one click away, for anonymous and signed-in readers alike.
 
-const { t } = useI18n()
+const { t } = useAreaI18n()
 // Legal links + the cookie note only where the legal surfaces exist
 // (hosted SaaS). The copyright line names the operator when one is
 // configured: never the hosted operator on a self-hosted instance

@@ -99,7 +99,7 @@ Créez un document, choisissez **Fichier › Importer**, puis le fichier. Les fi
 - **Le HTML brut n'est pas interprété.** Les balises HTML du Markdown s'affichent comme du texte. Utilisez plutôt la syntaxe Markdown ou le thème.
 - **Trois formats de page.** A4, Letter et Legal. Il n'y a pas de format personnalisé.
 - **Les images demandent un compte.** Sans compte, vous ne pouvez pas importer d'images dans un document.
-- **Un document à la fois.** La page n'a pas de conversion par lots. Pour exporter de nombreux documents depuis un script, utilisez le [serveur MCP](/docs/account/mcp) avec un compte.
+- **Un document à la fois.** La page n'a pas de conversion par lots. Pour exporter de nombreux documents depuis un script, utilisez le [serveur MCP](/docs/ai/mcp) avec un compte.
 
 Pour les articles scientifiques, voyez comment markoto se compare à [Overleaf](/compare/overleaf) (en anglais). Les prix et les limites figurent sur la [page des tarifs](/pricing).
 

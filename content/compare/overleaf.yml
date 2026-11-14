@@ -18,7 +18,7 @@ rows:
   - feature: Price
     markoto:
       value: Free on markoto.app; paid plans not launched yet
-      source: /docs/account/plans
+      source: /docs/plans/limits
       checked: '2026-11-04'
     competitor:
       value: Free; Student $13, Standard $25, Pro $45 per month (billed monthly)
@@ -36,7 +36,7 @@ rows:
   - feature: Real-time co-editing
     markoto:
       value: true
-      source: /docs/workspaces/live-collab
+      source: /docs/collaborate/live-collab
       checked: '2026-11-04'
     competitor:
       value: true
@@ -45,7 +45,7 @@ rows:
   - feature: Comments
     markoto:
       value: true
-      source: /docs/writing/comments
+      source: /docs/collaborate/comments
       checked: '2026-11-04'
     competitor:
       value: true
@@ -55,7 +55,7 @@ rows:
     note: markoto keeps every version, with restore, instead.
     markoto:
       value: false
-      source: /docs/history
+      source: /docs/import-export
       checked: '2026-11-04'
     competitor:
       value: Paid plans
@@ -64,7 +64,7 @@ rows:
   - feature: Version history
     markoto:
       value: Every edit, with a diff and restore
-      source: /docs/history
+      source: /docs/import-export
       checked: '2026-11-04'
     competitor:
       value: Last 24 hours on Free; full history on paid plans
@@ -119,7 +119,7 @@ rows:
   - feature: AI assistance
     markoto:
       value: Built in; your own AI key or a small free monthly allowance
-      source: /docs/writing/ai-overview
+      source: /docs/ai/overview
       checked: '2026-11-04'
     competitor:
       value: 5 uses per day on Free; more on paid plans
@@ -128,7 +128,7 @@ rows:
   - feature: Self-hosting
     markoto:
       value: Free, with Docker Compose
-      source: /docs/getting-started/self-hosting
+      source: /docs/self-hosting
       checked: '2026-11-04'
     competitor:
       value: Community Edition (AGPL-3.0); Server Pro for organisations

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { sortDocsNavTree } from '~~/shared/docs/docsSections'
+
 // Shared shell for every /docs/* page.
 //
 // Desktop:
@@ -25,9 +27,13 @@
 // (useLeanResourceHints).
 useLeanResourceHints()
 
-const { data: navigation } = await useAsyncData('docs:nav', () =>
-  queryCollectionNavigation('docs', ['order', 'navHidden', 'icon'])
-)
+// The docs are English only: so is the chrome around them, whatever the
+// UI language is (app/composables/platform/useAreaI18n.ts).
+await loadAreaMessages()
+const { t } = useAreaI18n()
+
+// The sections, as stored (app/composables/docs/useDocsNav.ts).
+const sidebarNav = await useDocsNav()
 
 // Search index: every page split into per-heading sections. Used
 // only by UContentSearch (Cmd-K modal, client-only), so it is NOT part of
@@ -48,15 +54,8 @@ watch(searchOpen, (open) => {
   if (open) warmSearch()
 })
 
-// queryCollectionNavigation returns a single root "Docs" node whose
-// children are our actual sections.
-const sidebarNav = computed(() => {
-  const nav = navigation.value
-  if (!nav?.length) return []
-  const only = nav.length === 1 ? nav[0] : undefined
-  if (only?.children?.length) return only.children
-  return nav
-})
+// Search groups in the same order as the sidebar, not as stored.
+const searchNav = computed(() => sortDocsNavTree(sidebarNav.value))
 
 // Mobile drawer state. Closed by default; open via the hamburger.
 const mobileNavOpen = ref(false)
@@ -84,7 +83,7 @@ watch(() => route.path, () => {
         color="neutral"
         variant="ghost"
         size="sm"
-        :aria-label="$t('docs.openMenu')"
+        :aria-label="t('docs.openMenu')"
         @click="mobileNavOpen = true"
       />
       <!-- Topbar anchor: wordmark + hairline + Fraunces section
@@ -94,7 +93,7 @@ watch(() => route.path, () => {
       <NuxtLink
         to="/"
         class="flex items-center shrink-0"
-        :aria-label="$t('common.homeLinkLabel')"
+        :aria-label="t('common.homeLinkLabel')"
       >
         <CommonWordmark :size="20" />
       </NuxtLink>
@@ -106,7 +105,7 @@ watch(() => route.path, () => {
         to="/docs"
         class="hidden sm:inline-flex font-serif text-lg font-normal tracking-tight text-default hover:text-muted transition-colors"
       >
-        {{ $t('common.documentation') }}
+        {{ t('common.documentation') }}
       </NuxtLink>
       <!-- Search bar centered horizontally in the topbar regardless
            of viewport. `flex-1 justify-center` lets the input column
@@ -119,7 +118,7 @@ watch(() => route.path, () => {
       <div class="flex-1 min-w-0 flex justify-center">
         <UContentSearchButton
           :collapsed="false"
-          :label="$t('docs.searchLabel')"
+          :label="t('docs.searchLabel')"
           class="w-full min-w-0 max-w-md justify-start text-toned overflow-hidden"
           @pointerenter="warmSearch"
           @focus="warmSearch"
@@ -160,7 +159,7 @@ watch(() => route.path, () => {
       v-model:open="mobileNavOpen"
       side="left"
       :ui="{ content: 'max-w-[280px]' }"
-      :title="$t('common.documentation')"
+      :title="t('common.documentation')"
     >
       <template #body>
         <DocsSidebar
@@ -178,7 +177,7 @@ watch(() => route.path, () => {
     <ClientOnly>
       <LazyUContentSearch
         :files="searchSections ?? []"
-        :navigation="sidebarNav"
+        :navigation="searchNav"
       />
     </ClientOnly>
   </div>

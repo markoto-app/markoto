@@ -2,7 +2,7 @@
 title: Duplicate a document
 description: One click clones the doc (content, theme, image uploads, metadata) into a new URL you own.
 category: writing
-order: 14
+order: 5
 updated: '2026-11-02'
 ---
 
@@ -27,5 +27,5 @@ The copy has its own address, its own activity log and no collaborators; a netwo
 
 ## What's next
 
-- [Set the duplicate's audience](/docs/writing/document-context): sometimes a fork goes to a different reader.
-- [Delete the old version](/docs/account/delete-document): when the duplicate replaces the original.
+- [Set the duplicate's audience](/docs/ai/document-context): sometimes a fork goes to a different reader.
+- [Delete the old version](/docs/writing/delete-document): when the duplicate replaces the original.

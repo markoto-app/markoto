@@ -2,7 +2,7 @@
 title: Share by QR code
 description: Generate a QR code for the doc URL. Paste it in a slide deck, project it on a screen, scan it from a phone.
 category: sharing
-order: 3
+order: 4
 updated: '2026-05-05'
 ---
 

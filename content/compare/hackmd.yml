@@ -7,7 +7,7 @@ rows:
   - feature: Price
     markoto:
       value: Free on markoto.app; paid plans not launched yet
-      source: /docs/account/plans
+      source: /docs/plans/limits
       checked: '2026-11-04'
     competitor:
       value: Free; Prime $5 per seat/month, billed annually
@@ -25,7 +25,7 @@ rows:
   - feature: Real-time co-editing
     markoto:
       value: true
-      source: /docs/workspaces/live-collab
+      source: /docs/collaborate/live-collab
       checked: '2026-11-04'
     competitor:
       value: true
@@ -34,7 +34,7 @@ rows:
   - feature: Comments
     markoto:
       value: true
-      source: /docs/writing/comments
+      source: /docs/collaborate/comments
       checked: '2026-11-04'
     competitor:
       value: true
@@ -43,7 +43,7 @@ rows:
   - feature: Suggested edits
     markoto:
       value: false
-      source: /docs/history
+      source: /docs/import-export
       checked: '2026-11-04'
     competitor:
       value: Suggest edit (beta)
@@ -52,7 +52,7 @@ rows:
   - feature: Version history
     markoto:
       value: Every edit, with a diff and restore
-      source: /docs/history
+      source: /docs/import-export
       checked: '2026-11-04'
     competitor:
       value: Last 10 versions on Free; unlimited on Prime
@@ -115,7 +115,7 @@ rows:
   - feature: API for scripts and agents
     markoto:
       value: MCP server with personal access tokens
-      source: /docs/account/mcp
+      source: /docs/ai/mcp
       checked: '2026-11-04'
     competitor:
       value: REST API and CLI
@@ -124,7 +124,7 @@ rows:
   - feature: Self-hosting
     markoto:
       value: Free, with Docker Compose
-      source: /docs/getting-started/self-hosting
+      source: /docs/self-hosting
       checked: '2026-11-04'
     competitor:
       value: Enterprise plan (on-premises)

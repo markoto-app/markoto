@@ -2,7 +2,7 @@
 title: Link expiry and view-only links
 description: Let a share link stop working on a date, stop people from downloading or printing a document, and see how often the link was opened.
 category: sharing
-order: 2
+order: 3
 updated: '2026-11-10'
 ---
 

@@ -69,7 +69,7 @@ items:
 ---
 ::
 
-::cta{title="See your HedgeDoc notes as pages." label="Read the self-hosting guide" to="/docs/getting-started/self-hosting" secondary-label="All comparisons" secondary-to="/compare"}
+::cta{title="See your HedgeDoc notes as pages." label="Read the self-hosting guide" to="/docs/self-hosting" secondary-label="All comparisons" secondary-to="/compare"}
 Or try markoto.app first: free, no sign-up needed.
 ::
 

@@ -99,7 +99,7 @@ Erstelle ein Dokument, wähle **Datei › Importieren** und dann die Datei. Mark
 - **Rohes HTML wird nicht dargestellt.** HTML-Tags im Markdown erscheinen als Text. Verwende stattdessen Markdown-Syntax oder das Theme.
 - **Drei Seitenformate.** A4, Letter und Legal. Eigene Seitenformate gibt es nicht.
 - **Bilder brauchen ein Konto.** Ohne Konto kannst du keine Bilder in ein Dokument hochladen.
-- **Ein Dokument nach dem anderen.** Die Seite hat keinen Stapelkonverter. Um viele Dokumente per Skript zu exportieren, nutze mit einem Konto den [MCP-Server](/docs/account/mcp).
+- **Ein Dokument nach dem anderen.** Die Seite hat keinen Stapelkonverter. Um viele Dokumente per Skript zu exportieren, nutze mit einem Konto den [MCP-Server](/docs/ai/mcp).
 
 Für wissenschaftliche Arbeiten: So schneidet markoto im Vergleich mit [Overleaf](/compare/overleaf) ab (auf Englisch). Preise und Limits stehen auf der [Preisseite](/pricing).
 

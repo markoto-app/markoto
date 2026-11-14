@@ -22,7 +22,7 @@ describe('flowDocPages helpers', () => {
   })
 
   it('maps content files to /docs routes', () => {
-    expect(docsRouteForFile('writing/comments.md')).toBe('/docs/writing/comments')
+    expect(docsRouteForFile('collaborate/comments.md')).toBe('/docs/collaborate/comments')
     expect(docsRouteForFile('writing/index.md')).toBe('/docs/writing')
   })
 

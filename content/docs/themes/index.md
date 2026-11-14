@@ -1,13 +1,13 @@
 ---
-title: Style
+title: Design
 description: Per-document themes that drive both the live preview and the PDF export
 category: themes
-order: 4
+order: 6
 icon: i-lucide-palette
-updated: '2026-11-06'
+updated: '2026-11-14'
 ---
 
-# Style
+# Design
 
 Every markoto document carries its own theme: fonts, page size, colors,
 margin boxes, table-of-contents style. The same theme renders the
@@ -18,3 +18,4 @@ live preview AND the PDF export, so what you see is what you ship.
 - [Save your custom theme as a preset](/docs/themes/save-preset): re-use across docs.
 - [Edit your cover page](/docs/themes/cover-page): four layouts + optional header image.
 - [Add your own CSS](/docs/themes/custom-css): for the details the theme settings don't cover.
+- [Create a design from a document](/docs/themes/design-from-document): upload a PDF or Word file and get a matching theme.

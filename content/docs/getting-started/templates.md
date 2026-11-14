@@ -2,7 +2,8 @@
 title: Start from a template
 description: Pick a template when you create a document, a starting text in a design that suits it, chosen as one.
 category: getting-started
-order: 4
+order: 2
+featured: true
 updated: '2026-11-09'
 ---
 
@@ -55,5 +56,5 @@ design switches in the theme panel without touching the text.
 
 ## What's next
 
-- [Tell the AI who you're writing for](/docs/writing/document-context): the audience field carries through every AI prompt.
+- [Tell the AI who you're writing for](/docs/ai/document-context): the audience field carries through every AI prompt.
 - [Pick a theme](/docs/themes/pick-a-theme): switch the template's design for another one.

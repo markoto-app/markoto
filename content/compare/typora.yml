@@ -18,7 +18,7 @@ rows:
   - feature: Price
     markoto:
       value: Free on markoto.app; paid plans not launched yet
-      source: /docs/account/plans
+      source: /docs/plans/limits
       checked: '2026-11-04'
     competitor:
       value: $14.99 one-time, up to 3 devices; 15-day free trial
@@ -36,7 +36,7 @@ rows:
   - feature: Real-time co-editing
     markoto:
       value: true
-      source: /docs/workspaces/live-collab
+      source: /docs/collaborate/live-collab
       checked: '2026-11-04'
     competitor:
       value: Not among its listed features
@@ -45,7 +45,7 @@ rows:
   - feature: Comments and version history
     markoto:
       value: Comment threads; every edit with a diff and restore
-      source: /docs/history
+      source: /docs/import-export
       checked: '2026-11-04'
     competitor:
       value: Not among its listed features
@@ -108,7 +108,7 @@ rows:
   - feature: AI assistant
     markoto:
       value: Built in; edits the document, answers in comments
-      source: /docs/writing/ai-overview
+      source: /docs/ai/overview
       checked: '2026-11-04'
     competitor:
       value: Not among its listed features

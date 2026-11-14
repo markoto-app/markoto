@@ -27,7 +27,7 @@ rows:
     note: markoto keeps edits made during a short connection drop.
     markoto:
       value: false
-      source: /docs/workspaces/live-collab
+      source: /docs/collaborate/live-collab
       checked: '2026-11-04'
     competitor:
       value: true
@@ -36,7 +36,7 @@ rows:
   - feature: Price
     markoto:
       value: Free on markoto.app; paid plans not launched yet
-      source: /docs/account/plans
+      source: /docs/plans/limits
       checked: '2026-11-04'
     competitor:
       value: App free, also for work; optional commercial licence $50 per user/year
@@ -54,7 +54,7 @@ rows:
   - feature: Working with others
     markoto:
       value: Live co-editing with cursors, by link or in a workspace
-      source: /docs/workspaces/live-collab
+      source: /docs/collaborate/live-collab
       checked: '2026-11-04'
     competitor:
       value: Shared vaults in Sync (up to 20 people); edits merge on sync, no live co-editing of a note
@@ -63,7 +63,7 @@ rows:
   - feature: Version history
     markoto:
       value: Every edit, with a diff and restore
-      source: /docs/history
+      source: /docs/import-export
       checked: '2026-11-04'
     competitor:
       value: With Sync, 1 month (Standard) or 12 months (Plus)

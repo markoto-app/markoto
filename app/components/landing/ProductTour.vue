@@ -512,7 +512,7 @@ const chips = [
           variant="outline"
           icon="i-lucide-server"
           class="mk-cta"
-          to="/docs/getting-started/self-hosting"
+          to="/docs/self-hosting"
           data-testid="tour-self-host"
         >
           {{ t('tour.cta.selfHost') }}

@@ -2741,13 +2741,6 @@
       "chapter": "Kapitel",
       "toggle": "Wiedergabe der Diashow umschalten"
     },
-    "sections": {
-      "gettingStarted": "Deine ersten zehn Minuten – Dokument erstellen, benennen, teilen.",
-      "writing": "Markdown-Erweiterungen, Formatierung, Hinweise, Formeln, Diagramme, Tabellen.",
-      "sharing": "Zugriffsmodi, Passwortschutz, anonyme Links, Workspaces.",
-      "themes": "Designs pro Dokument, die sowohl die Live-Vorschau als auch den PDF-Export steuern.",
-      "importExport": "DOCX/PDF/PPTX importieren; als sauberes Markdown oder gestaltetes PDF exportieren."
-    },
     "landing": {
       "eyebrow": "Feldführer · Bd. 01",
       "title": "Alles, was du in {product} tun kannst.",

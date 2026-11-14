@@ -45,7 +45,7 @@ test('logged-out home page shows the product tour when the instance enables it',
   await expect(page.getByTestId('tour-start-writing')).toBeVisible()
   // All scene copy is server-rendered, and the closing CTAs are reachable.
   await expect(tour.getByRole('heading', { level: 2, name: 'Write Markdown, get paged documents.' })).toBeAttached()
-  await expect(page.getByTestId('tour-self-host')).toHaveAttribute('href', '/docs/getting-started/self-hosting')
+  await expect(page.getByTestId('tour-self-host')).toHaveAttribute('href', '/docs/self-hosting')
 
   // The CTA still creates a document, like the plain hero's button.
   await page.getByTestId('tour-start-writing').click()

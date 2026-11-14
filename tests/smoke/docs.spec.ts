@@ -24,3 +24,16 @@ test('docs pages render, server-side and on client navigation', async ({ page })
 
   expect(failedContentQueries).toEqual([])
 })
+
+// The docs were regrouped into task-based sections; every old address
+// answers with a permanent redirect to the new one, query string included
+// (shared/docs/docsRedirects.ts).
+test('an old docs address redirects permanently to the new one', async ({ request, page }) => {
+  const res = await request.get('/docs/account/plans?ref=smoke', { maxRedirects: 0 })
+  expect(res.status()).toBe(301)
+  expect(res.headers().location).toBe('/docs/plans/limits?ref=smoke')
+
+  await page.goto('/docs/history/restore#how')
+  await expect(page).toHaveURL(/\/docs\/import-export\/restore#how$/)
+  await expect(page.locator('main h1').first()).toHaveText(/restore an earlier version/i)
+})

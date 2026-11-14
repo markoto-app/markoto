@@ -12,11 +12,13 @@
 // when the file is content/docs/getting-started/index.md.
 
 import { docsBreadcrumbs } from '~~/shared/seo/breadcrumbs'
+import { docsPagerNeighbours } from '~~/shared/docs/docsSections'
+import { docsRedirectTarget } from '~~/shared/docs/docsRedirects'
 
 definePageMeta({ layout: 'docs' })
 
 const route = useRoute()
-const { t } = useI18n()
+const { t } = useAreaI18n()
 
 const { data: page } = await useAsyncData(`docs:${route.path}`, async () => {
   const direct = await queryCollection('docs').path(route.path).first()
@@ -25,16 +27,21 @@ const { data: page } = await useAsyncData(`docs:${route.path}`, async () => {
 })
 
 if (!page.value) {
+  // An address from before the docs were regrouped: the server answers
+  // those with a 301 (route rules in nuxt.config.ts); this covers in-app
+  // navigation, which never reaches the server.
+  const moved = docsRedirectTarget(route.path)
+  if (moved) {
+    await navigateTo({ path: moved, query: route.query, hash: route.hash }, { redirectCode: 301, replace: true })
+  }
   throw createError({ statusCode: 404, statusMessage: 'Doc not found' })
 }
 
-// Surrounding pages for the bottom pager. Returns [prev, next],
-// either may be null at the boundaries.
-const { data: surround } = await useAsyncData(`docs:surround:${route.path}`, () =>
-  queryCollectionItemSurroundings('docs', route.path, {
-    fields: ['title', 'description']
-  })
-)
+// Previous / next page for the bottom pager, in reading order: the
+// sidebar read top to bottom (section order, then each page's `order`),
+// across sections. Either is null at the ends.
+const docsNav = await useDocsNav()
+const surround = computed(() => docsPagerNeighbours(docsNav.value, route.path))
 
 const docPage = page.value
 const { imageUrl } = useMarketingSeo({
@@ -56,28 +63,15 @@ usePageStructuredData(() => ({
   about: [{ self: true }]
 }))
 
-// Breadcrumb items derived from the URL segments. Each segment maps
-// to its docs path so clicking a crumb navigates to that section's
-// index page. Display labels stay raw segments, the eye reads them
-// fine and i18n'ing every segment for a 2-3-deep crumb is overkill
-// for now.
-const crumbs = computed(() => {
-  const parts = route.path.split('/').filter(Boolean)
-  // First segment is always 'docs', represent as "Docs" → /docs.
-  // Subsequent segments build their own paths cumulatively.
-  const items: Array<{ label: string, to: string }> = [{ label: t('common.docs'), to: '/docs' }]
-  for (let i = 1; i < parts.length; i++) {
-    const seg = parts[i] ?? ''
-    const to = '/' + parts.slice(0, i + 1).join('/')
-    // Title-case the slug: "getting-started" → "Getting started"
-    const label = seg.replaceAll('-', ' ').replace(/^./, c => c.toUpperCase())
-    items.push({ label, to })
-  }
-  // Last crumb is the current page, non-clickable.
-  const last = items.at(-1)
-  if (last) last.to = ''
-  return items
-})
+// Visible breadcrumb: Docs › <section title> › <page title>, the same
+// trail as the BreadcrumbList JSON-LD without its Home crumb. The last
+// crumb is the current page, non-clickable.
+const crumbs = computed(() =>
+  docsBreadcrumbs(route.path, docPage.title).slice(1).map((crumb, i, all) => ({
+    label: i === 0 ? t('common.docs') : crumb.name,
+    to: i === all.length - 1 ? '' : crumb.path
+  }))
+)
 
 // Hide the on-page TOC on pages with fewer than 2 headings, it'd
 // just show the title and look thin.
@@ -104,15 +98,15 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
       />
 
       <!-- Bottom pager: clickable cards for prev / next. Stripe / Vue
-           docs convention. Uses fields fetched via
-           queryCollectionItemSurroundings. -->
+           docs convention. Title + description come from the
+           navigation tree. -->
       <!-- Prev / next pager. Editorial register: JetBrains Mono mini-
            label ("previous" / "next") with the value below in Fraunces.
            Hover swap stays sumi (was shu, shu means AI presence). -->
       <nav
-        v-if="surround && (surround[0] || surround[1])"
+        v-if="surround[0] || surround[1]"
         class="not-prose mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-default/60 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4"
-        :aria-label="$t('docs.pagination.label')"
+        :aria-label="t('docs.pagination.label')"
       >
         <NuxtLink
           v-if="surround[0]"
@@ -124,7 +118,7 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
               name="i-lucide-arrow-left"
               class="size-3"
             />
-            {{ $t('docs.pagination.previous') }}
+            {{ t('docs.pagination.previous') }}
           </div>
           <div class="font-serif text-base font-normal tracking-tight text-default">
             {{ surround[0].title }}
@@ -143,7 +137,7 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
           class="group block p-4 rounded-lg border border-default/60 bg-default hover:border-default hover:bg-default/80 transition-colors sm:text-right"
         >
           <div class="flex items-center gap-1.5 sm:justify-end font-mono text-[10.5px] tracking-[0.06em] uppercase text-muted mb-1.5">
-            {{ $t('docs.pagination.next') }}
+            {{ t('docs.pagination.next') }}
             <UIcon
               name="i-lucide-arrow-right"
               class="size-3"
@@ -172,7 +166,7 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
     >
       <div class="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto overflow-x-hidden break-words">
         <UContentToc
-          :title="$t('docs.onThisPage')"
+          :title="t('docs.onThisPage')"
           :links="page.body.toc?.links ?? []"
           highlight
           class="text-sm"

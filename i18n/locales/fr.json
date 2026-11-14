@@ -2741,13 +2741,6 @@
       "chapter": "chapitre",
       "toggle": "Activer ou désactiver la lecture du diaporama"
     },
-    "sections": {
-      "gettingStarted": "Vos dix premières minutes : créer un document, le nommer, le partager.",
-      "writing": "Extensions Markdown, mise en forme, encadrés, formules, diagrammes, tableaux.",
-      "sharing": "Modes d’accès, protection par mot de passe, liens anonymes, espaces de travail.",
-      "themes": "Des thèmes par document qui pilotent à la fois l’aperçu en direct et l’export PDF.",
-      "importExport": "Importez du DOCX/PDF/PPTX ; exportez en Markdown propre ou en PDF avec thème."
-    },
     "landing": {
       "eyebrow": "guide pratique · vol. 01",
       "title": "Tout ce que vous pouvez faire dans {product}.",

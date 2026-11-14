@@ -2,7 +2,7 @@
 title: Roles inside a workspace
 description: Three roles (admin, editor, viewer) decide who can edit, share and manage. A workspace always keeps at least one admin.
 category: workspaces
-order: 2
+order: 3
 updated: '2026-10-29'
 ---
 
@@ -35,4 +35,4 @@ or remove the last one, so nobody can lock the team out by accident.
 ## What's next
 
 - [Invite a teammate](/docs/workspaces/invite): invite by email; they join once they accept.
-- [Plans](/docs/account/plans): the Team plan covers every member of a workspace.
+- [Plans](/docs/plans/limits): the Team plan covers every member of a workspace.

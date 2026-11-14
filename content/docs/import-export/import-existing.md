@@ -2,8 +2,7 @@
 title: Bring an existing document into markoto
 description: Drop in a Word, PDF, or HTML file and markoto converts it to clean markdown ready to keep editing.
 category: import-export
-order: 2
-featured: true
+order: 1
 updated: '2026-11-04'
 ---
 

@@ -2,7 +2,7 @@
 title: Publish as a web page
 description: Put a copy of a document at its own public address, keep it out of search engines or let them list it, and show it on your own domain.
 category: sharing
-order: 3
+order: 5
 updated: '2026-11-11'
 ---
 

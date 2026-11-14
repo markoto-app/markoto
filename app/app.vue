@@ -3,7 +3,10 @@ import { uiFontStylesheetUrls } from '~~/shared/utils/theme/themeFonts'
 import { applyTitleTemplate } from '~~/shared/seo/meta'
 import { de, en, es, fr, ja, zh_cn } from '@nuxt/ui/locale'
 
-const { t, locale, localeProperties } = useI18n()
+const { t, locales } = useI18n()
+// The UI language; `en` on the docs pages, which are English only
+// (app/composables/platform/useAreaI18n.ts).
+const locale = useAreaLocale()
 const { brand: instanceBrand } = useInstanceConfig()
 
 useHead({
@@ -31,14 +34,15 @@ useHead({
     ...uiFontStylesheetUrls(['Inter', 'JetBrains Mono', 'Fraunces']).map(href => ({ rel: 'stylesheet' as const, href }))
   ],
   htmlAttrs: {
-    // The active UI language (cookie / Accept-Language, `no_prefix`).
-    lang: () => localeProperties.value.language ?? locale.value
+    // The active UI language (cookie / Accept-Language, `no_prefix`);
+    // English on the docs pages.
+    lang: () => locales.value.find(l => l.code === locale.value)?.language ?? locale.value
   }
 })
 
 // Nuxt UI's own built-in texts (modal close button, command palette, calendar,
 // pagination, ...) follow the UI language through UApp's `locale` prop.
-const uiLocales = { en, de, fr, es, ja, zh: zh_cn }
+const uiLocales: Record<string, typeof en> = { en, de, fr, es, ja, zh: zh_cn }
 const uiLocale = computed(() => uiLocales[locale.value] ?? en)
 
 // Fallback description; indexable pages set their own (useMarketingSeo,
