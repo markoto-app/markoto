@@ -1,11 +1,17 @@
 # Demo video
 
-The two-minute product video linked from the README and played on `/demo`
-(hosted marketing site only): `.github/media/markoto-demo.mp4` (1920×1080,
-H.264 High, yuv420p, AAC, faststart, under 10 MB so GitHub accepts it as an
-attachment) and its poster `.github/media/markoto-demo-poster.webp`. The
-build also copies both to `public/media/` under content-hashed names and
-writes `shared/media/demoVideo.ts`, which the `/demo` page reads.
+The two-minute product video played on `/demo` (hosted marketing site only)
+and linked from the README: 1920×1080, H.264 High, yuv420p, AAC, faststart,
+under 10 MB so GitHub accepts it as an attachment. The build writes the cut to
+`tests/e2e/output/demo-video/markoto-demo.mp4` (not committed), copies it with
+its poster and captions to `public/media/` under content-hashed names, writes
+`shared/media/demoVideo.ts`, which the `/demo` page reads, and updates the
+README poster `.github/media/markoto-demo-poster.webp`. The music is taken
+from the committed copy in `public/media/`.
+
+After a new cut, upload the video to GitHub as an attachment (drop it into a
+comment box, do not post) and put the new `github.com/user-attachments/...`
+link into the README; once markoto.app is live the README links `/demo`.
 
 ```sh
 bun run demo:video                  # cut the video from the recorded footage

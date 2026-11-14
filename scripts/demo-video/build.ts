@@ -23,7 +23,8 @@ const OUT_DIR = path.join(ROOT, 'tests/e2e/output/demo-video')
 /** Recorded clips: <mode>/<scene>/{f*.png, clip.json} (the tour recorder's layout). */
 const FOOTAGE = process.env.DEMO_VIDEO_FOOTAGE_DIR ?? path.join(OUT_DIR, 'footage')
 const WORK = path.join(OUT_DIR, 'work')
-const VIDEO = path.join(ROOT, '.github/media/markoto-demo.mp4')
+/** The finished cut. Not committed: the /demo page serves the hashed copy in public/media/, the README links a GitHub attachment. */
+const VIDEO = path.join(OUT_DIR, 'markoto-demo.mp4')
 const POSTER_FILE = path.join(ROOT, '.github/media/markoto-demo-poster.webp')
 const PUBLIC_MEDIA = path.join(ROOT, 'public/media')
 const PUBLIC_MANIFEST = path.join(ROOT, 'shared/media/demoVideo.ts')
@@ -345,10 +346,14 @@ async function main(): Promise<void> {
   if (args.capture) await capture()
 
   await fs.mkdir(WORK, { recursive: true })
-  // The music: the audio track of the committed video, copied bit for bit
-  // (Andrii Poradovskyi via Pixabay, credited in NOTICE).
+  // The music: the audio track of the committed video in public/media/,
+  // copied bit for bit (Andrii Poradovskyi via Pixabay, credited in NOTICE).
   const music = path.join(WORK, 'music.m4a')
-  if (!existsSync(music)) ffmpeg(['-i', VIDEO, '-vn', '-c:a', 'copy', music])
+  if (!existsSync(music)) {
+    const committed = readdirSync(PUBLIC_MEDIA).find(f => /^markoto-demo-[0-9a-f]+\.mp4$/.test(f))
+    if (!committed) throw new Error('no committed demo video in public/media/ to take the music from')
+    ffmpeg(['-i', path.join(PUBLIC_MEDIA, committed), '-vn', '-c:a', 'copy', music])
+  }
   // Rounded up to a whole frame: the video covers the whole track, so the
   // mux never drops the last audio frame (rebuilds copy the music from the
   // committed video, a dropped frame would shorten it every time).
