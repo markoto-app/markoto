@@ -598,8 +598,9 @@ const policies = computed(() => {
         </p>
       </section>
     </main>
-
-    <CommonLegalFooter />
+    <!-- No site footer: the settings pages open like an overlay (close
+         button top right). The legal documents are linked in the section
+         above. -->
 
     <LegalAccountDeletionConsequencesModal
       v-model:open="deletionModalOpen"
