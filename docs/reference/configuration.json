@@ -253,7 +253,7 @@
       "name": "NITRO_BUN_IDLE_TIMEOUT",
       "namespace": "server",
       "key": "idleTimeoutSeconds",
-      "type": "integer ≥ 1",
+      "type": "integer 1–255",
       "services": [
         "app"
       ],
@@ -263,7 +263,7 @@
       "scope": "both",
       "required": null,
       "secret": false,
-      "default": null,
+      "default": 120,
       "passedByCompose": false,
       "deprecatedNames": []
     },

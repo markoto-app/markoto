@@ -172,6 +172,7 @@
       "not-found": "Document not found.",
       "rate-limited": "Too many new documents from your network. Sign in, or try again later.",
       "render-failed": "The PDF could not be generated. Please try again.",
+      "render-timeout": "Creating the PDF took too long. Please try again in a moment.",
       "restore-compacted": "This restore point is too old: its history has been compacted and can no longer be restored. Restore to a more recent point instead.",
       "restore-unavailable": "Can't restore from this row: it predates the restore feature."
     },

@@ -219,6 +219,8 @@ export function useDocument(docId: string) {
     isReadOnly: readonly(tokenState.isReadOnly),
     syncAuthFailed: readonly(tokenState.syncAuthFailed),
     syncRejection: readonly(sync.syncRejection),
+    /** The sync server is at a capacity limit; the connection retries by itself. */
+    syncBusy: readonly(sync.syncBusy),
     isOwner: readonly(tokenState.isOwner),
     /** The doc has an owner account (false = created anonymously). */
     hasOwner: readonly(tokenState.hasOwner),

@@ -15,7 +15,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { stubEnv } from '../../helpers/env'
-import { renderDocument, __testing } from '../../../server/utils/rendering/renderClient'
+import { renderDocument, RenderTimeoutError, __testing } from '../../../server/utils/rendering/renderClient'
 import { docAs } from '../../helpers/access'
 
 const RENDERER_URL = 'http://renderer:9000'
@@ -177,5 +177,29 @@ describe('renderClient.renderDocument', () => {
     })
 
     await expect(renderDocument(docAs('DOC'), { format: 'pdf' })).rejects.toThrow(/Renderer 502/)
+  })
+
+  it('reports a full renderer queue (503) as a render timeout', async () => {
+    s3Miss()
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({ error: 'Pool wait timeout' })
+    })
+
+    await expect(renderDocument(docAs('DOC'), { format: 'pdf' })).rejects.toBeInstanceOf(RenderTimeoutError)
+  })
+
+  it('reports a renderer that never answers as a render timeout, within the deadline', async () => {
+    s3Miss()
+    fetchMock.mockImplementation(async () => {
+      const timeout = new Error('The operation timed out.')
+      timeout.name = 'TimeoutError'
+      throw timeout
+    })
+
+    await expect(renderDocument(docAs('DOC'), { format: 'pdf' })).rejects.toBeInstanceOf(RenderTimeoutError)
+    const init = fetchMock.mock.calls[0]![1] as { signal: AbortSignal }
+    expect(init.signal).toBeInstanceOf(AbortSignal)
   })
 })

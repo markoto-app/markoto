@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import * as Y from 'yjs'
 import { Awareness } from 'y-protocols/awareness'
 // Composable is auto-imported in Nuxt land; here we import directly.
@@ -9,7 +9,7 @@ import { Awareness } from 'y-protocols/awareness'
 // step: NOT available here, so we shim `ref` / `readonly` globally
 // before loading the composable.
 import { ref, shallowRef } from 'vue'
-import { useHocuspocusSync, type ProviderLike } from '~/composables/document/useHocuspocusSync'
+import { MAX_RESYNC_RETRIES, syncRetryDelayMs, useHocuspocusSync, type ProviderLike } from '~/composables/document/useHocuspocusSync'
 import { WebSocketStatus, type HocuspocusProviderConfiguration } from '@hocuspocus/provider'
 
 // Shim `ref` / `shallowRef` onto globalThis so the composable can read
@@ -55,7 +55,7 @@ function makeHarness(): Harness {
       fireSynced() { (config.onSynced as (() => void) | undefined)?.() },
       fireDisconnect() { (config.onDisconnect as (() => void) | undefined)?.() },
       fireAuthFailed() {
-        (config.onAuthenticationFailed as (() => void) | undefined)?.()
+        (config.onAuthenticationFailed as ((data: { reason: string }) => void) | undefined)?.({ reason: 'permission-denied' })
       },
       fireAwarenessChange(states: unknown[]) {
         const cb = config.onAwarenessChange as
@@ -460,12 +460,14 @@ function closeEvent(code: number, reason: string) {
 }
 
 function rejectionHarness() {
-  const instances: Array<{ config: HocuspocusProviderConfiguration, disconnects: number }> = []
+  const instances: Array<{ config: HocuspocusProviderConfiguration, disconnects: number, destroyed: boolean }> = []
   const factory = (config: HocuspocusProviderConfiguration): ProviderLike => {
-    const entry = { config, disconnects: 0 }
+    const entry = { config, disconnects: 0, destroyed: false }
     instances.push(entry)
     return {
-      destroy() {},
+      destroy() {
+        entry.destroyed = true
+      },
       disconnect() {
         entry.disconnects++
       }
@@ -512,6 +514,130 @@ describe('useHocuspocusSync: sync rejection', () => {
     config?.onStatus?.({ status: WebSocketStatus.Connecting })
     expect(sync.syncRejection.value).toBe(null)
     expect(h.instances[0]?.disconnects).toBe(0)
+  })
+})
+
+// An `invalid-update` rejection can be transient (an older sync server
+// refusing edits queued across its restart): the composable resyncs with a
+// fresh provider a few times before it gives up and shows the banner.
+
+describe('useHocuspocusSync: transient rejection', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('resyncs with a fresh provider after an invalid-update rejection instead of stopping', async () => {
+    const h = rejectionHarness()
+    const sync = useHocuspocusSync({ ...baseOpts(makeHarness()), providerFactory: h.factory })
+    sync.connect()
+    h.instances[0]?.config.onClose?.({ event: closeEvent(4422, 'invalid-update') })
+    await vi.advanceTimersByTimeAsync(2_000)
+    expect(sync.syncRejection.value).toBe(null)
+    expect(h.instances).toHaveLength(2)
+    expect(h.instances[0]?.destroyed).toBe(true)
+    // The new provider syncs: the editor never saw a rejection.
+    h.instances[1]?.config.onSynced?.({ state: true })
+    expect(sync.synced.value).toBe(true)
+    expect(sync.syncRejection.value).toBe(null)
+  })
+
+  it('gives up and shows the rejection when the resync keeps being refused', async () => {
+    const h = rejectionHarness()
+    const sync = useHocuspocusSync({ ...baseOpts(makeHarness()), providerFactory: h.factory })
+    sync.connect()
+    for (let i = 0; i < MAX_RESYNC_RETRIES; i++) {
+      // The resend is refused right after its sync completed.
+      h.instances[i]?.config.onSynced?.({ state: true })
+      h.instances[i]?.config.onClose?.({ event: closeEvent(4422, 'invalid-update') })
+      await vi.advanceTimersByTimeAsync(40_000)
+      expect(sync.syncRejection.value).toBe(null)
+    }
+    h.instances[MAX_RESYNC_RETRIES]?.config.onClose?.({ event: closeEvent(4422, 'invalid-update') })
+    expect(sync.syncRejection.value).toBe('invalid-update')
+    expect(h.instances[MAX_RESYNC_RETRIES]?.disconnects).toBe(1)
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(h.instances).toHaveLength(MAX_RESYNC_RETRIES + 1)
+  })
+
+  it('does not retry rejections that would repeat (too large, invalid setting)', async () => {
+    const h = rejectionHarness()
+    const sync = useHocuspocusSync({ ...baseOpts(makeHarness()), providerFactory: h.factory })
+    sync.connect()
+    h.instances[0]?.config.onClose?.({ event: closeEvent(4422, 'invalid-meta') })
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(sync.syncRejection.value).toBe('invalid-meta')
+    expect(h.instances).toHaveLength(1)
+  })
+})
+
+// Capacity limits (connections per address, open documents) refuse the
+// handshake with `server-busy`. That is not an access decision: the
+// composable shows "busy" and retries with backoff, never the auth failure.
+
+describe('useHocuspocusSync: server busy', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('retries with backoff, without reporting an auth failure, until it gets in', async () => {
+    const h = rejectionHarness()
+    const onAuthFailed = vi.fn()
+    const sync = useHocuspocusSync({ ...baseOpts(makeHarness(), { onAuthFailed }), providerFactory: h.factory })
+    sync.connect()
+    h.instances[0]?.config.onAuthenticationFailed?.({ reason: 'server-busy' })
+    expect(onAuthFailed).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(sync.syncBusy.value).toBe(true)
+    expect(sync.status.value).toBe('connecting')
+    // First retry after about a second.
+    await vi.advanceTimersByTimeAsync(1_300)
+    expect(h.instances).toHaveLength(2)
+    h.instances[1]?.config.onAuthenticationFailed?.({ reason: 'server-busy' })
+    // Second retry waits longer.
+    await vi.advanceTimersByTimeAsync(1_300)
+    expect(h.instances).toHaveLength(2)
+    await vi.advanceTimersByTimeAsync(1_500)
+    expect(h.instances).toHaveLength(3)
+    h.instances[2]?.config.onSynced?.({ state: true })
+    expect(sync.syncBusy.value).toBe(false)
+    expect(onAuthFailed).not.toHaveBeenCalled()
+  })
+
+  it('still reports a real authentication failure', () => {
+    const h = rejectionHarness()
+    const onAuthFailed = vi.fn()
+    const sync = useHocuspocusSync({ ...baseOpts(makeHarness(), { onAuthFailed }), providerFactory: h.factory })
+    sync.connect()
+    h.instances[0]?.config.onAuthenticationFailed?.({ reason: 'permission-denied' })
+    expect(onAuthFailed).toHaveBeenCalledTimes(1)
+    expect(sync.syncBusy.value).toBe(false)
+  })
+
+  it('stops retrying when the editor goes away', async () => {
+    const h = rejectionHarness()
+    const sync = useHocuspocusSync({ ...baseOpts(makeHarness()), providerFactory: h.factory })
+    sync.connect()
+    h.instances[0]?.config.onAuthenticationFailed?.({ reason: 'server-busy' })
+    await vi.advanceTimersByTimeAsync(0)
+    sync.destroy()
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(h.instances).toHaveLength(1)
+  })
+})
+
+describe('syncRetryDelayMs', () => {
+  it('doubles per attempt within ±25 % jitter and caps at 30 s', () => {
+    expect(syncRetryDelayMs(0, () => 0.5)).toBe(1_000)
+    expect(syncRetryDelayMs(3, () => 0.5)).toBe(8_000)
+    expect(syncRetryDelayMs(20, () => 0.5)).toBe(30_000)
+    expect(syncRetryDelayMs(0, () => 0)).toBe(750)
+    expect(syncRetryDelayMs(0, () => 1)).toBe(1_250)
   })
 })
 

@@ -19,7 +19,7 @@ import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import * as Y from 'yjs'
-import { resetDb, testDb } from '../setup/db'
+import { getValkeyKey, resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import { TEST_BASE_URL } from '../setup/env'
@@ -27,6 +27,7 @@ import { defaultTheme } from '../../../shared/utils/theme/defaultTheme'
 import { THEME_PRESETS } from '../../../shared/utils/theme/themePresets'
 import { S3Client, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
 import { first } from '../../helpers/assert'
+import { allSyncStateKeys } from '../../../shared/contracts/syncState'
 
 // Insert a Y.Doc row with REAL bytes. The renderer replays this back into
 // markdown: empty docs paginate to zero pages and the renderer surfaces
@@ -181,6 +182,18 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const res = await client.get(`/api/docs/${doc.docId}/pdf`)
       expect(res.status).toBe(403)
     })
+
+    it('rendering a document nobody has open leaves no sync state in Valkey', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
+      await insertYjsRow(doc.docId, SHORT)
+      const res = await (await loggedInClient(owner.id)).get(`/api/docs/${doc.docId}/pdf`)
+      expect(res.status).toBe(302)
+      // The print page replays the stored log; it never opens the document
+      // on the sync server, so no baseline is seeded for it.
+      for (const key of allSyncStateKeys(doc.docId)) expect(await getValkeyKey(key)).toBeNull()
+      await wipeRendersFor(doc.docId)
+    }, 60_000)
 
     it('owner gets 302 on private', async () => {
       const owner = await createUser()

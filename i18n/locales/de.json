@@ -41,6 +41,10 @@
     "syncAuthFailedTitle": "Sync-Server hat die Verbindung abgelehnt",
     "syncAuthFailedDescription": "Verbindung zum Bearbeiten nicht möglich. Lade neu und versuche es erneut.",
     "syncAuthFailedReload": "Neu laden",
+    "syncBusy": {
+      "title": "Server ausgelastet",
+      "description": "Neuer Versuch in Kürze…"
+    },
     "syncRejected": {
       "title": "Deine letzten Änderungen wurden nicht gespeichert",
       "updateTooLarge": "Diese Änderung ist zu gross, um sie auf einmal zu synchronisieren. Lade neu und füge den Inhalt in kleineren Teilen ein.",

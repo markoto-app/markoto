@@ -23,9 +23,21 @@
 // map key. `placementOf` follows those references through the update
 // itself and through the document's struct store until it reaches a root
 // type, iteratively and memoised, so a hostile chain can't blow the stack
-// or go quadratic. A reference to a struct the server has never seen is
-// rejected: Y.js would park such an item as "pending" and integrate it
-// later, after this check has already passed.
+// or go quadratic.
+//
+// Updates that reference state the server doesn't have yet. Y.js parks
+// such items as "pending" (`doc.store.pendingStructs`) and integrates them
+// once an update supplies what they reference. Legitimate clients send
+// these all the time after a sync-server restart: edits made while the
+// connection was down are queued and flushed right after authentication,
+// before the client's sync step 2 delivers the state the fresh process
+// lost with the old one (anything received but not yet stored). Such an
+// item is accepted unchecked while it can't be placed, and checked in the
+// update that makes it placeable: the resolver looks through the update,
+// the document AND the pending structs. A pending item that turns out to
+// be an invalid ymeta write is not blamed on the connection that
+// completed it: everything parked is discarded (clients that hold those
+// edits resend them on their next sync).
 //
 // All work is synchronous so Hocuspocus keeps applying messages in order.
 
@@ -86,7 +98,12 @@ interface Placement {
   /** True when the item lives inside a nested Y type, not on the root. */
   nested: boolean
 }
-type Resolution = Placement | 'gc' | 'missing'
+/**
+ * 'missing': references a struct the server doesn't have (yet), Y.js
+ * keeps the item pending. 'unresolvable': the walk gave up (a crafted
+ * reference chain, a broken store); such an update is refused.
+ */
+type Resolution = Placement | 'gc' | 'missing' | 'unresolvable'
 
 /** Hard ceiling on references followed for one item. Legit documents
  *  nest two levels deep (comments → replies); this only trips on a
@@ -98,7 +115,7 @@ function placementOfType(type: Y.AbstractType<unknown>, parentSub: string | null
   let nested = false
   let steps = 0
   while (t._item !== null) {
-    if (steps > MAX_REFERENCE_STEPS) return 'missing'
+    if (steps > MAX_REFERENCE_STEPS) return 'unresolvable'
     const parent: unknown = t._item.parent
     if (!(parent instanceof Y.AbstractType)) return 'gc'
     nested = true
@@ -109,49 +126,55 @@ function placementOfType(type: Y.AbstractType<unknown>, parentSub: string | null
   try {
     root = Y.findRootTypeKey(t)
   } catch {
-    return 'missing'
+    return 'unresolvable'
   }
   return { root, key: nested ? null : parentSub, nested }
 }
 
-function createPlacementResolver(doc: Y.Doc, structs: ReadonlyArray<Y.Item | Y.GC | Y.Skip>) {
-  // Structs of this update, per client, in clock order (decodeUpdate
-  // emits them that way).
-  const local = new Map<number, Array<Y.Item | Y.GC>>()
+type DecodedStruct = Y.Item | Y.GC | Y.Skip
+type StructIndex = Map<number, Array<Y.Item | Y.GC>>
+
+/** Structs per client, in clock order (decodeUpdate emits them that way). */
+function indexStructs(structs: ReadonlyArray<DecodedStruct>): StructIndex {
+  const index: StructIndex = new Map()
   for (const s of structs) {
     if (s instanceof Y.Skip) continue
-    const list = local.get(s.id.client) ?? []
+    const list = index.get(s.id.client) ?? []
     list.push(s)
-    local.set(s.id.client, list)
+    index.set(s.id.client, list)
   }
+  return index
+}
+
+function findIn(index: StructIndex, id: Y.ID): Y.Item | Y.GC | null {
+  const list = index.get(id.client)
+  if (!list) return null
+  let lo = 0
+  let hi = list.length - 1
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1
+    const s = list[mid]
+    if (!s) return null
+    if (id.clock < s.id.clock) hi = mid - 1
+    else if (id.clock >= s.id.clock + s.length) lo = mid + 1
+    else return s
+  }
+  return null
+}
+
+function createPlacementResolver(doc: Y.Doc, update: StructIndex, pending: StructIndex) {
   const memo = new Map<Y.Item, Resolution>()
 
-  function findLocal(id: Y.ID): Y.Item | Y.GC | null {
-    const list = local.get(id.client)
-    if (!list) return null
-    let lo = 0
-    let hi = list.length - 1
-    while (lo <= hi) {
-      const mid = (lo + hi) >> 1
-      const s = list[mid]
-      if (!s) return null
-      if (id.clock < s.id.clock) hi = mid - 1
-      else if (id.clock >= s.id.clock + s.length) lo = mid + 1
-      else return s
-    }
-    return null
-  }
-
-  function lookup(id: Y.ID): Y.Item | 'gc' | 'missing' {
+  function lookup(id: Y.ID): Y.Item | 'gc' | 'missing' | 'unresolvable' {
     if (Y.getState(doc.store, id.client) > id.clock) {
       try {
         const s: unknown = Y.getItem(doc.store, id)
         return s instanceof Y.Item ? s : 'gc'
       } catch {
-        return 'missing'
+        return 'unresolvable'
       }
     }
-    const s = findLocal(id)
+    const s = findIn(update, id) ?? findIn(pending, id)
     if (s === null) return 'missing'
     return s instanceof Y.Item ? s : 'gc'
   }
@@ -163,7 +186,7 @@ function createPlacementResolver(doc: Y.Doc, structs: ReadonlyArray<Y.Item | Y.G
   function resolveStep(cur: Y.Item): { result: Resolution } | { next: Y.Item, intoNested: boolean } {
     const parent: unknown = cur.parent
     let result: Resolution
-    let next: Y.Item | 'gc' | 'missing'
+    let next: Y.Item | 'gc' | 'missing' | 'unresolvable'
     let intoNested = false
     if (typeof parent === 'string') {
       result = { root: parent, key: cur.parentSub, nested: false }
@@ -179,7 +202,7 @@ function createPlacementResolver(doc: Y.Doc, structs: ReadonlyArray<Y.Item | Y.G
         const ref = cur.origin ?? cur.rightOrigin
         next = ref ? lookup(ref) : 'missing'
       }
-      if (next !== 'gc' && next !== 'missing') return { next, intoNested }
+      if (next instanceof Y.Item) return { next, intoNested }
       result = next
     }
     memo.set(cur, result)
@@ -199,7 +222,7 @@ function createPlacementResolver(doc: Y.Doc, structs: ReadonlyArray<Y.Item | Y.G
         break
       }
       if (chain.length > MAX_REFERENCE_STEPS) {
-        result = 'missing'
+        result = 'unresolvable'
         break
       }
       const step = resolveStep(cur)
@@ -222,24 +245,62 @@ function createPlacementResolver(doc: Y.Doc, structs: ReadonlyArray<Y.Item | Y.G
   }
 }
 
+/** Already integrated (a resend): Y.js skips it on apply. */
+function isIntegrated(doc: Y.Doc, s: Y.Item): boolean {
+  return Y.getState(doc.store, s.id.client) >= s.id.clock + s.length
+}
+
+// Decoded pending structs, per pending update. Y.js replaces
+// `pendingStructs.update` whenever the pending set changes, so the cache
+// decodes each version once instead of once per incoming message.
+const decodedPending = new WeakMap<Uint8Array, DecodedStruct[]>()
+
+function pendingStructsOf(doc: Y.Doc): DecodedStruct[] {
+  const pending = doc.store.pendingStructs
+  if (!pending) return []
+  let structs = decodedPending.get(pending.update)
+  if (!structs) {
+    structs = Y.decodeUpdateV2(pending.update).structs
+    decodedPending.set(pending.update, structs)
+  }
+  return structs
+}
+
 /**
  * Throw a SyncRejection if any struct of the decoded update writes an
- * invalid value into ymeta, nests a Y type inside it, or references
- * state the server doesn't have.
+ * invalid value into ymeta or nests a Y type inside it. Items that can't
+ * be placed yet stay pending in Y.js and are checked by the update that
+ * completes them (see the header).
  */
-function checkMetaWrites(doc: Y.Doc, structs: ReadonlyArray<Y.Item | Y.GC | Y.Skip>): void {
-  const placementOf = createPlacementResolver(doc, structs)
+function checkMetaWrites(doc: Y.Doc, structs: ReadonlyArray<DecodedStruct>): void {
+  const pending = pendingStructsOf(doc)
+  const placementOf = createPlacementResolver(doc, indexStructs(structs), indexStructs(pending))
   for (const s of structs) {
-    if (!(s instanceof Y.Item)) continue
-    // Already integrated (a resend), Y.js skips it on apply.
-    if (Y.getState(doc.store, s.id.client) >= s.id.clock + s.length) continue
+    if (!(s instanceof Y.Item) || isIntegrated(doc, s)) continue
     checkMetaItem(s, placementOf(s))
+  }
+  // Pending items this update makes placeable integrate together with it.
+  for (const s of pending) {
+    if (!(s instanceof Y.Item) || isIntegrated(doc, s)) continue
+    try {
+      checkMetaItem(s, placementOf(s))
+    } catch (e) {
+      if (!(e instanceof SyncRejection)) throw e
+      // Sent earlier, possibly by another connection: drop what is parked
+      // (structs and the deletions that came with them) rather than close
+      // the connection that happened to complete it.
+      doc.store.pendingStructs = null
+      doc.store.pendingDs = null
+      return
+    }
   }
 }
 
 function checkMetaItem(s: Y.Item, placement: Resolution): void {
-  if (placement === 'missing') {
-    throw new SyncRejection(SYNC_CLOSE_REASONS.invalidUpdate, 'references unknown state')
+  // Not placeable yet: Y.js keeps it pending, it is checked once it is.
+  if (placement === 'missing') return
+  if (placement === 'unresolvable') {
+    throw new SyncRejection(SYNC_CLOSE_REASONS.invalidUpdate, 'unresolvable reference chain')
   }
   if (placement === 'gc' || placement.root !== META_ROOT) return
   if (s.content instanceof Y.ContentDeleted) return
@@ -311,7 +372,7 @@ export function createUpdateGuard(limits: SyncLimits) {
         throw new SyncRejection(SYNC_CLOSE_REASONS.updateTooLarge, `${update.byteLength} bytes`)
       }
 
-      let structs: Array<Y.Item | Y.GC | Y.Skip>
+      let structs: DecodedStruct[]
       try {
         structs = Y.decodeUpdate(update).structs
       } catch {

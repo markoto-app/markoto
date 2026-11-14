@@ -1,11 +1,13 @@
 <script setup lang="ts">
-// Sync problems that need a reload. The handshake was rejected (distinct
+// Sync problems. Two need a reload: the handshake was rejected (distinct
 // from ordinary read-only states: explains why edit access vanished), or
 // the server refused an update (the editor stays editable, but nothing is
-// saved until a reload).
+// saved until a reload). The third resolves itself: the sync server is at
+// a capacity limit and the connection retries with backoff.
 defineProps<{
   syncAuthFailed: boolean
   syncRejectionMessage: string | null
+  syncBusy: boolean
 }>()
 const { t } = useI18n()
 </script>
@@ -35,6 +37,24 @@ const { t } = useI18n()
     >
       {{ t('editor.syncAuthFailedReload') }}
     </UButton>
+  </div>
+
+  <!-- Capacity limit on the sync server: not an access problem, the
+       connection retries by itself. -->
+  <div
+    v-if="syncBusy && !syncAuthFailed && !syncRejectionMessage"
+    class="border-b border-warning bg-warning/10 text-warning px-4 py-2 flex items-center gap-3 text-sm"
+    role="status"
+    data-testid="sync-busy-banner"
+  >
+    <UIcon
+      name="i-lucide-loader-circle"
+      class="size-4 shrink-0 animate-spin"
+    />
+    <div class="flex-1 min-w-0">
+      <span class="font-medium">{{ t('editor.syncBusy.title') }}</span>
+      <span class="ml-2 text-xs opacity-80">{{ t('editor.syncBusy.description') }}</span>
+    </div>
   </div>
 
   <!-- The server refused an update (too large, invalid document setting).

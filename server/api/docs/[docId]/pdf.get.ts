@@ -1,7 +1,7 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { canDownload } from '../../../../shared/utils/documents/docPermissions'
-import { renderDocument } from '../../../utils/rendering/renderClient'
+import { renderDocument, RenderTimeoutError } from '../../../utils/rendering/renderClient'
 import { RENDER_RATE_LIMIT } from '../../../utils/rendering/renderRateLimit'
 import { docPdfQuery } from '~~/shared/api/docs'
 import { useEnv } from '~~/shared/env/load'
@@ -17,13 +17,15 @@ import { useEnv } from '~~/shared/env/load'
 //   1. Auth check via decideFileAccess (`allow.doc('file')`), then the
 //      render allowance and the share link's no-download rule.
 //   2. renderDocument(format: 'pdf'): cache hit returns near-instantly,
-//      cache miss kicks the renderer container (~5-15s).
+//      cache miss kicks the renderer container (~5-15s). The call gives up
+//      after RENDER_DEADLINE_MS (504 `docs/render-timeout`), well inside the
+//      app server's idle timeout, so a slow render never ends in an empty reply.
 //   3. Mint a 120s presigned GET against the manifest's pdfKey, with the
 //      response Content-Disposition forced to attachment so browsers
 //      download instead of displaying inline.
 //   4. 302 redirect: or, with `?response=json`, `{ url }` (same
 //      presigned URL, `no-store`). The marketing `::try-it` block uses it
-//      so a refusal (429 / 502 / 503) reaches its script as an error it
+//      so a refusal (429 / 502 / 503 / 504) reaches its script as an error it
 //      can explain, instead of navigating the tab to a JSON error page.
 
 export default defineApiHandler({
@@ -47,6 +49,9 @@ export default defineApiHandler({
     try {
       result = await renderDocument(docAccess, { format: 'pdf' })
     } catch (e) {
+      // Too slow (renderer queue full, deadline reached): 504, so the
+      // client can tell "try again in a moment" from a broken render.
+      if (e instanceof RenderTimeoutError) throw apiError('docs/render-timeout', undefined, { cause: e })
       throw apiError('docs/render-failed', undefined, { cause: e })
     }
 

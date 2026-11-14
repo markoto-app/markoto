@@ -30,6 +30,7 @@ const {
   isReadOnly,
   syncAuthFailed,
   syncRejection,
+  syncBusy,
   isOwner,
   hasOwner,
   canDelete,
@@ -385,6 +386,7 @@ useHead({
       <EditorLayoutSyncBanners
         :sync-auth-failed="syncAuthFailed"
         :sync-rejection-message="syncRejectionMessage"
+        :sync-busy="syncBusy"
       />
 
       <!-- Docs created without an account are written by anonymous visitors,

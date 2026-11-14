@@ -41,6 +41,10 @@
     "syncAuthFailedTitle": "Le serveur de synchronisation a rejeté la connexion",
     "syncAuthFailedDescription": "Connexion pour l'édition impossible. Rechargez pour réessayer.",
     "syncAuthFailedReload": "Recharger",
+    "syncBusy": {
+      "title": "Serveur occupé",
+      "description": "Nouvelle tentative sous peu…"
+    },
     "syncRejected": {
       "title": "Vos dernières modifications n'ont pas été enregistrées",
       "updateTooLarge": "Cette modification est trop volumineuse pour être synchronisée en une fois. Rechargez, puis ajoutez le contenu en plusieurs parties.",

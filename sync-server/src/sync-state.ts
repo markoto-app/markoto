@@ -20,6 +20,7 @@
 
 import { useValkey } from './valkey'
 import { DAY_SECONDS } from '../../shared/config/units'
+import { syncStateKeys } from '../../shared/contracts/syncState'
 import { useLogger } from './logger'
 
 const log = useLogger('sync-state')
@@ -54,9 +55,9 @@ export interface FetchResult<T> {
   error?: Error
 }
 
-const KEY_LAST_EDITOR = (docId: string) => `sync:last-editor:${docId}`
-const KEY_PREV_TEXT = (docId: string) => `sync:prev-text:${docId}`
-const KEY_PREV_META = (docId: string) => `sync:prev-meta:${docId}`
+const KEY_LAST_EDITOR = syncStateKeys.lastEditor
+const KEY_PREV_TEXT = syncStateKeys.prevText
+const KEY_PREV_META = syncStateKeys.prevMeta
 
 async function safeGet(key: string): Promise<FetchResult<string>> {
   try {
@@ -129,7 +130,7 @@ export async function setPrevMeta(docId: string, value: PreviousMeta): Promise<v
   await safeSetEx(KEY_PREV_META(docId), JSON.stringify(value))
 }
 
-// cleanup (called on last-disconnect)
+// cleanup (called when the document is unloaded)
 
 export async function dropDocState(docId: string): Promise<void> {
   await Promise.all([

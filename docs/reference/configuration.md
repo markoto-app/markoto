@@ -34,7 +34,7 @@ Bun HTTP server of the app container (server/runtime/bunEntry.ts reads these bef
 | `NITRO_PORT` | integer 1–65535 |  |  | app | both | Overrides PORT for the app server. Not passed by the compose files: the image listens on 3000. |
 | `NITRO_HOST` | string |  |  | app | both | Address the app server binds (HOST is read as a fallback). Default: all interfaces. Not passed by the compose files: the image binds all interfaces. |
 | `HOST` | string |  |  | app | both | Fallback for NITRO_HOST. Not passed by the compose files: the image binds all interfaces. |
-| `NITRO_BUN_IDLE_TIMEOUT` | integer ≥ 1 |  |  | app | both | Seconds an idle HTTP connection stays open (Bun default 10). Not passed by the compose files: Bun default. |
+| `NITRO_BUN_IDLE_TIMEOUT` | integer 1–255 | `120` |  | app | both | Seconds an HTTP connection may stay silent, including while a slow request (PDF render, import) is still working. Must stay above the 100 s PDF render deadline. Not passed by the compose files: the default covers the slowest route. |
 | `NITRO_MAX_REQUEST_BODY_BYTES` | integer ≥ 1 | `53477376` |  | app | both | Largest request body on any route, enforced by Bun before buffering (51 MiB = a 50 MB import plus form framing). Not passed by the compose files: default fits the 50 MB import limit. |
 | `DRIZZLE_MIGRATIONS_DIR` | string | `./drizzle` |  | app | both | Directory the boot migration reads (the image ships ./drizzle). Not passed by the compose files: the image ships ./drizzle. |
 | `NUXT_DB_SLOW_QUERY_MS` | integer ≥ 1 | `200` |  | app | both | Queries slower than this (ms) raise a warning-level Sentry event. Not passed by the compose files: tuning knob, default is fine. |

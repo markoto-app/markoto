@@ -7,7 +7,14 @@
 //     Default: 20.
 //   - `maxActiveRooms`: global ceiling on distinct loaded documents.
 //     Protects against memory blowup when a crawler walks through random
-//     doc IDs and each one spawns a Y.Doc in RAM. Default: 5000.
+//     doc IDs and each one spawns a Y.Doc in RAM. Default: 5000. Joining a
+//     document that is already loaded (or loading) costs no new Y.Doc, so
+//     it is not refused at the cap; the per-IP cap still bounds it.
+//
+// Both refusals carry the reason `server-busy` (SYNC_BUSY_REASON):
+// Hocuspocus sends a thrown error's `reason` to the client as its
+// authentication-failure reason, and the editor shows "busy, retrying"
+// for it instead of an access denial.
 //
 // IP extraction: `shared/utils/security/clientIp.ts#resolveClientIp`: the
 // `TRUSTED_PROXY_HOPS`-th `x-forwarded-for` entry from the RIGHT (default
@@ -21,6 +28,7 @@
 // default singleton exported at the bottom.
 
 import { DEFAULT_TRUSTED_PROXY_HOPS, resolveClientIp } from '../../shared/utils/security/clientIp'
+import { SYNC_BUSY_REASON } from '../../shared/contracts/syncClose'
 import { syncEnv } from './env'
 import { useLogger } from './logger'
 
@@ -38,8 +46,29 @@ interface HookData {
   socketId?: string
   documentName?: string
   connection?: { readyState?: { toString?: () => string } }
-  instance?: { documents?: { size?: number } }
+  instance?: {
+    documents?: { size?: number, has?: (name: string) => boolean }
+    loadingDocuments?: { has?: (name: string) => boolean }
+  }
   __rateLimitSocketId?: string
+}
+
+/** A capacity limit refused the connection. `reason` reaches the client. */
+export class SyncBusyError extends Error {
+  readonly reason = SYNC_BUSY_REASON
+
+  constructor(message: string) {
+    super(message)
+    this.name = 'SyncBusyError'
+  }
+}
+
+/** The document is already in memory here (or being loaded): joining it adds no room. */
+function isOpenRoom(data: HookData): boolean {
+  const name = data.documentName
+  if (!name) return false
+  return data.instance?.documents?.has?.(name) === true
+    || data.instance?.loadingDocuments?.has?.(name) === true
 }
 
 // Minimal shape of the raw `ws` socket whose teardown we subscribe to.
@@ -146,9 +175,9 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
       // us from a distributed scan across many IPs that would each fit
       // under the per-IP cap but collectively exhaust memory.
       const roomCount = data.instance?.documents?.size
-      if (typeof roomCount === 'number' && roomCount >= maxActiveRooms) {
+      if (typeof roomCount === 'number' && roomCount >= maxActiveRooms && !isOpenRoom(data)) {
         log.warn('active room cap reached', { rooms: roomCount, maxActiveRooms })
-        throw new Error('Server at capacity')
+        throw new SyncBusyError('Server at capacity')
       }
 
       try {
@@ -171,7 +200,7 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
         const current = connectionsPerIP.get(ip) || 0
         if (current >= maxConnectionsPerIP) {
           log.warn('too many connections from one client', { maxConnectionsPerIP })
-          throw new Error('Too many connections')
+          throw new SyncBusyError('Too many connections')
         }
         connectionsPerIP.set(ip, current + 1)
         connectionIPs.set(key, ip)
@@ -181,10 +210,7 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
         if (request) requestSockets.set(request, socketId)
         data.__rateLimitSocketId = socketId
       } catch (e) {
-        if (e instanceof Error
-          && (e.message === 'Too many connections' || e.message === 'Server at capacity')) {
-          throw e
-        }
+        if (e instanceof SyncBusyError) throw e
         // Don't crash on unexpected data shape, fail-open on bookkeeping
         // errors. The cap is defence-in-depth; a wedged limiter
         // shouldn't DoS legitimate traffic.

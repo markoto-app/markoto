@@ -172,6 +172,7 @@
       "not-found": "Document introuvable.",
       "rate-limited": "Trop de nouveaux documents depuis votre réseau. Connectez-vous ou réessayez plus tard.",
       "render-failed": "Le PDF n’a pas pu être généré. Veuillez réessayer.",
+      "render-timeout": "La création du PDF a pris trop de temps. Réessayez dans un instant.",
       "restore-compacted": "Ce point de restauration est trop ancien : son historique a été compacté et ne peut plus être restauré. Restaurez plutôt un point plus récent.",
       "restore-unavailable": "Impossible de restaurer depuis cette entrée : elle est antérieure à la fonctionnalité de restauration."
     },
