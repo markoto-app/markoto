@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // The signed-in half of AuthUserMenu (usage badge + account menu). Its
 // own Lazy component, so anonymous visitors don't download it.
-const { t } = useI18n()
+const { t } = useAreaI18n()
 const { user } = useUserSession()
 const { logout } = useLogout()
 const { status: accountStatus } = useAccountStatus()

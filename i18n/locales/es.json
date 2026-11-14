@@ -2739,13 +2739,6 @@
       "chapter": "capítulo",
       "toggle": "Alternar la reproducción de la presentación"
     },
-    "sections": {
-      "gettingStarted": "Tus primeros diez minutos: crea un documento, ponle nombre y compártelo.",
-      "writing": "Extensiones de Markdown, formato, avisos, matemáticas, diagramas, tablas.",
-      "sharing": "Modos de acceso, protección con contraseña, enlaces anónimos, espacios de trabajo.",
-      "themes": "Temas por documento que rigen tanto la vista previa en vivo como la exportación a PDF.",
-      "importExport": "Importa DOCX/PDF/PPTX; exporta a Markdown limpio o a PDF con tema."
-    },
     "landing": {
       "eyebrow": "guía práctica · vol. 01",
       "title": "Todo lo que puedes hacer en {product}.",

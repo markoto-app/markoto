@@ -25,6 +25,11 @@
 // (useLeanResourceHints).
 useLeanResourceHints()
 
+// The docs are English only: so is the chrome around them, whatever the
+// UI language is (app/composables/platform/useAreaI18n.ts).
+await loadAreaMessages()
+const { t } = useAreaI18n()
+
 const { data: navigation } = await useAsyncData('docs:nav', () =>
   queryCollectionNavigation('docs', ['order', 'navHidden', 'icon'])
 )
@@ -84,7 +89,7 @@ watch(() => route.path, () => {
         color="neutral"
         variant="ghost"
         size="sm"
-        :aria-label="$t('docs.openMenu')"
+        :aria-label="t('docs.openMenu')"
         @click="mobileNavOpen = true"
       />
       <!-- Topbar anchor: wordmark + hairline + Fraunces section
@@ -94,7 +99,7 @@ watch(() => route.path, () => {
       <NuxtLink
         to="/"
         class="flex items-center shrink-0"
-        :aria-label="$t('common.homeLinkLabel')"
+        :aria-label="t('common.homeLinkLabel')"
       >
         <CommonWordmark :size="20" />
       </NuxtLink>
@@ -106,7 +111,7 @@ watch(() => route.path, () => {
         to="/docs"
         class="hidden sm:inline-flex font-serif text-lg font-normal tracking-tight text-default hover:text-muted transition-colors"
       >
-        {{ $t('common.documentation') }}
+        {{ t('common.documentation') }}
       </NuxtLink>
       <!-- Search bar centered horizontally in the topbar regardless
            of viewport. `flex-1 justify-center` lets the input column
@@ -119,7 +124,7 @@ watch(() => route.path, () => {
       <div class="flex-1 min-w-0 flex justify-center">
         <UContentSearchButton
           :collapsed="false"
-          :label="$t('docs.searchLabel')"
+          :label="t('docs.searchLabel')"
           class="w-full min-w-0 max-w-md justify-start text-toned overflow-hidden"
           @pointerenter="warmSearch"
           @focus="warmSearch"
@@ -160,7 +165,7 @@ watch(() => route.path, () => {
       v-model:open="mobileNavOpen"
       side="left"
       :ui="{ content: 'max-w-[280px]' }"
-      :title="$t('common.documentation')"
+      :title="t('common.documentation')"
     >
       <template #body>
         <DocsSidebar

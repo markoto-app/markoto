@@ -9,7 +9,7 @@ import { formatBytes, usageFill, USAGE_LEVEL_BAR_CLASS, type UsageFill } from '~
 
 const props = defineProps<{ billing: UserBilling }>()
 
-const { t, locale } = useI18n()
+const { t, locale } = useAreaI18n()
 
 interface LimitRow {
   key: 'images' | 'knowledgeFiles' | 'knowledgeStorage' | 'workspaces'

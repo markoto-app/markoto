@@ -17,7 +17,7 @@ type Annotation = {
 }
 type Card = { kind: 'chapter' | 'narration', text: string } | null
 
-const { t } = useI18n()
+const { t } = useAreaI18n()
 const props = defineProps<{
   /** Image URL: null when rendering a card body. */
   src: string | null

@@ -2739,13 +2739,6 @@
       "chapter": "chapter",
       "toggle": "Toggle slideshow playback"
     },
-    "sections": {
-      "gettingStarted": "Your first ten minutes: create a doc, name it, share it.",
-      "writing": "Markdown extensions, formatting, alerts, math, diagrams, tables.",
-      "sharing": "Access modes, password protection, anonymous links, workspaces.",
-      "themes": "Per-document themes that drive both live preview and PDF export.",
-      "importExport": "Bring DOCX/PDF/PPTX in; export to clean Markdown or themed PDF."
-    },
     "landing": {
       "eyebrow": "field guide · vol. 01",
       "title": "Everything you can do in {product}.",

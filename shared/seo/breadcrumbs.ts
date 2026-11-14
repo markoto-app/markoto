@@ -4,6 +4,7 @@
 
 import type { Crumb } from './structuredData'
 import { trimTrailingSlashes } from '../utils/trimTrailingSlashes'
+import { docsSectionTitle } from '../docs/docsSections'
 
 const HOME_CRUMB: Crumb = Object.freeze({ name: 'Home', path: '/' })
 const DOCS_CRUMB_NAME = 'Docs'
@@ -21,9 +22,10 @@ function trimPath(path: string): string {
 }
 
 /**
- * `/docs/writing/tables` → Home › Docs › Writing › <page title>. Folder
- * crumbs use the slug label (what the visible breadcrumb shows); the
- * last one is the page's own title. `/docs` → Home › <title>.
+ * `/docs/writing/tables` → Home › Docs › Write › <page title>. The folder
+ * crumb is the section's title (shared/docs/docsSections.ts; the slug
+ * label for an unknown folder), the last one is the page's own title.
+ * `/docs` → Home › <title>.
  */
 export function docsBreadcrumbs(path: string, pageTitle: string): Crumb[] {
   const parts = trimPath(path).split('/').filter(Boolean)
@@ -33,7 +35,7 @@ export function docsBreadcrumbs(path: string, pageTitle: string): Crumb[] {
   for (let i = 1; i < parts.length; i++) {
     const segment = parts[i] ?? ''
     const crumbPath = `/${parts.slice(0, i + 1).join('/')}`
-    trail.push({ name: i === parts.length - 1 ? pageTitle : slugLabel(segment), path: crumbPath })
+    trail.push({ name: i === parts.length - 1 ? pageTitle : (i === 1 ? docsSectionTitle(segment) : null) ?? slugLabel(segment), path: crumbPath })
   }
   return trail
 }

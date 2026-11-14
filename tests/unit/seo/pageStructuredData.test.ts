@@ -124,7 +124,7 @@ describe('pageStructuredData per page type', () => {
     expect(article?.dateModified).toBe('2026-11-04')
     expect(article?.mainEntityOfPage).toEqual({ '@id': `${SITE}/docs/writing/rich-content#webpage` })
     const crumbs = byType.get('BreadcrumbList')?.[0]?.itemListElement
-    expect(JSON.stringify(crumbs)).toContain(`"name":"Writing","item":"${SITE}/docs/writing"`)
+    expect(JSON.stringify(crumbs)).toContain(`"name":"Write","item":"${SITE}/docs/writing"`)
     expect(byType.get('WebPage')?.[0]?.mainEntity).toEqual({ '@id': `${SITE}/docs/writing/rich-content#article` })
   })
 
@@ -212,6 +212,7 @@ describe('breadcrumbs', () => {
   it('docs trails', () => {
     expect(docsBreadcrumbs('/docs', 'Documentation')).toEqual([{ name: 'Home', path: '/' }, { name: 'Documentation', path: '/docs' }])
     expect(docsBreadcrumbs('/docs/getting-started/', 'Getting started guide').map(c => c.path)).toEqual(['/', '/docs', '/docs/getting-started'])
+    expect(docsBreadcrumbs('/docs/ai/overview', 'What the AI can do').map(c => c.name)).toEqual(['Home', 'Docs', 'AI assistant', 'What the AI can do'])
     expect(slugLabel('import-export')).toBe('Import export')
   })
   it('page trails drop query and trailing slash', () => {
@@ -222,7 +223,7 @@ describe('breadcrumbs', () => {
 describe('social cards', () => {
   it('maps each page group to its 1200×630 card', () => {
     expect(ogImageForPath('/pricing')).toBe(OG_IMAGES.pricing)
-    expect(ogImageForPath('/docs/writing/comments')).toBe(OG_IMAGES.docs)
+    expect(ogImageForPath('/docs/collaborate/comments')).toBe(OG_IMAGES.docs)
     expect(ogImageForPath('/compare/hackmd')).toBe(OG_IMAGES.compare)
     expect(ogImageForPath('/de/compare')).toBe(OG_IMAGES.compare)
     expect(ogImageForPath('/markdown-to-pdf', { marketingPage: true })).toBe(OG_IMAGES.useCases)

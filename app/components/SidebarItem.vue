@@ -75,6 +75,24 @@ const open = computed(() => props.isActiveBranch(props.item.path))
         />
       </ul>
     </details>
+    <!-- A section that is a single page (no child list): same row as a
+         section header, without the chevron. -->
+    <NuxtLink
+      v-else-if="item.icon"
+      :to="item.path"
+      class="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-elevated"
+      :class="$route.path === item.path ? 'text-default font-medium' : ''"
+    >
+      <span
+        class="size-3 shrink-0"
+        aria-hidden="true"
+      />
+      <UIcon
+        :name="item.icon"
+        class="size-4 shrink-0 text-muted"
+      />
+      <span class="flex-1 truncate">{{ item.title }}</span>
+    </NuxtLink>
     <NuxtLink
       v-else
       :to="item.path"

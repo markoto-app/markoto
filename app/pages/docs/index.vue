@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { docsBreadcrumbs } from '~~/shared/seo/breadcrumbs'
+import { DOCS_SECTIONS } from '~~/shared/docs/docsSections'
 
 // /docs landing page. Hand-written (not driven by a markdown file)
 // because it's mostly UI affordances, category cards + featured-flow
@@ -7,10 +8,12 @@ import { docsBreadcrumbs } from '~~/shared/seo/breadcrumbs'
 // every OTHER /docs/* path.
 //
 // Featured cards: pulled live from the docs collection where
-// `featured: true` in frontmatter. Categories: hardcoded list with
-// curated copy (more polished than auto-derived from folder names).
+// `featured: true` in frontmatter. Sections: every folder of
+// shared/docs/docsSections.ts, with the title, icon and description of
+// its index.md.
 
-const { t } = useI18n()
+// English like the docs themselves (app/composables/platform/useAreaI18n.ts).
+const { t, locale: areaLocale } = useAreaI18n()
 
 const { data: featured } = await useAsyncData('docs:featured', () =>
   queryCollection('docs')
@@ -37,27 +40,19 @@ usePageStructuredData(() => ({
 
 definePageMeta({ layout: 'docs' })
 
-// Categories are derived live from each section's index.md so the
-// landing-page card titles + icons stay in lockstep with the
-// sidebar / per-page metadata. We list folders explicitly to keep
-// ordering predictable; one query per folder.
-const sectionPaths = [
-  { path: '/docs/getting-started', taglineKey: 'docs.sections.gettingStarted' },
-  { path: '/docs/writing', taglineKey: 'docs.sections.writing' },
-  { path: '/docs/sharing', taglineKey: 'docs.sections.sharing' },
-  { path: '/docs/themes', taglineKey: 'docs.sections.themes' },
-  { path: '/docs/import-export', taglineKey: 'docs.sections.importExport' }
-]
-
-// Each section's index.md is stored at the bare folder path. Try
-// that first; fall back to `${path}/index` for any environment where
-// Nuxt Content normalizes index pages differently.
+// Sections are derived live from each section's index.md so the
+// landing-page cards stay in lockstep with the sidebar: same order
+// (DOCS_SECTIONS), same title and icon, the index page's description as
+// the card text. Each section's index.md is stored at the bare folder
+// path; `${path}/index` is the fallback for any environment where Nuxt
+// Content normalizes index pages differently.
 const { data: sections } = await useAsyncData('docs:sections', async () => {
   const out = []
-  for (const s of sectionPaths) {
-    const page = (await queryCollection('docs').path(s.path).first())
-      ?? (await queryCollection('docs').path(`${s.path}/index`).first())
-    if (page) out.push({ ...s, title: page.title, icon: page.icon ?? 'i-lucide-folder' })
+  for (const slug of DOCS_SECTIONS) {
+    const path = `/docs/${slug}`
+    const page = (await queryCollection('docs').path(path).first())
+      ?? (await queryCollection('docs').path(`${path}/index`).first())
+    if (page) out.push({ path, title: page.title, description: page.description ?? '', icon: page.icon ?? 'i-lucide-folder' })
   }
   return out
 })
@@ -93,6 +88,7 @@ const { open: openSearch } = useContentSearch()
         <i18n-t
           keypath="docs.landing.title"
           scope="global"
+          :locale="areaLocale"
         >
           <template #product>
             <em class="italic font-normal">markoto</em>
@@ -199,8 +195,11 @@ const { open: openSearch } = useContentSearch()
           <h3 class="font-serif text-lg font-normal mb-1">
             {{ cat.title }}
           </h3>
-          <p class="text-sm text-muted leading-relaxed">
-            {{ t(cat.taglineKey) }}
+          <p
+            v-if="cat.description"
+            class="text-sm text-muted leading-relaxed"
+          >
+            {{ cat.description }}
           </p>
         </NuxtLink>
       </div>
