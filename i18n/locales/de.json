@@ -586,6 +586,7 @@
     "confirm": {
       "label": "markoto fragt zuerst",
       "reason": "markoto hat in dieser Sitzung Text gelesen, der nicht von dir stammt (zum Beispiel von einer Webseite oder von einer anderen Person). Deshalb fragt es, bevor es auf deine anderen Dokumente, das Workspace-Wissen oder das Web zugreift.",
+      "waiting": "Wartet auf deine Bestätigung…",
       "allow": "Erlauben",
       "deny": "Ablehnen",
       "tools": {
