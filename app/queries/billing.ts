@@ -1,6 +1,7 @@
 // Billing server state: the caller's plan + limits snapshot
 // (`/api/user/billing`) and the instance's price / tier tables.
-import { defineQueryOptions, useQuery, useQueryCache } from '@pinia/colada'
+import { defineQueryOptions, useMutation, useQuery, useQueryCache } from '@pinia/colada'
+import type { BillingInterval } from '~~/shared/config/pricing'
 import { apiFetch, useApi, type ApiFetcher } from '~/utils/api/client'
 import { aiKeys } from './ai'
 import { INSTANCE_CONFIG, SESSION_SNAPSHOT } from './defaults'
@@ -71,4 +72,20 @@ export function useInvalidatePlan() {
 export function useInvalidateUsage() {
   const cache = useQueryCache()
   return () => invalidate(cache, billingKeys.user())
+}
+
+/**
+ * Switch the caller's live Pro subscription between monthly and annual
+ * billing (the server swaps the price in place). The plan snapshot is
+ * re-read before the caller continues, so the page shows the new period.
+ * Without a live subscription the server answers with a Checkout URL
+ * instead, which the caller follows.
+ */
+export function useSwitchProInterval() {
+  const cache = useQueryCache()
+  return useMutation({
+    mutation: (interval: BillingInterval) =>
+      apiFetch('/api/billing/checkout', { method: 'post', body: { plan: 'pro', interval, acceptPaidTerms: true } }),
+    onSuccess: () => invalidate(cache, billingKeys.user(), aiKeys.credits())
+  })
 }

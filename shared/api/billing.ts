@@ -6,19 +6,24 @@ import { BILLING_INTERVALS, CURRENCIES, TOPUP_PACK_IDS } from '../config/pricing
 /**
  * Personal checkout. `team` / `business` parse so the handler can answer with the
  * dedicated `billing/workspace-plan` refusal. `acceptPaidTerms` is judged by the
- * handler (it runs after the price lookup, as before).
+ * handler (it runs after the price lookup, as before). Without `interval` a
+ * live subscription keeps its billing period; a new one is monthly.
  */
 export const startCheckoutBody = z.object({
   plan: z.enum(['pro', 'team', 'business']),
-  interval: z.enum(BILLING_INTERVALS).default('month'),
+  interval: z.enum(BILLING_INTERVALS).optional(),
   currency: z.enum(CURRENCIES).optional(),
   acceptPaidTerms: z.unknown().optional()
 })
 
-/** Workspace checkout. `seats` is judged lazily by `parseSeats` (only a new subscription needs it). */
+/**
+ * Workspace checkout. `seats` is judged lazily by `parseSeats` (only a new subscription needs it).
+ * A change of a live subscription names only what changes: without `plan` it keeps its plan,
+ * without `interval` its billing period. A new subscription needs `plan` and is monthly by default.
+ */
 export const startWorkspaceCheckoutBody = z.object({
-  plan: z.enum(['team', 'business']),
-  interval: z.enum(BILLING_INTERVALS).default('month'),
+  plan: z.enum(['team', 'business']).optional(),
+  interval: z.enum(BILLING_INTERVALS).optional(),
   currency: z.enum(CURRENCIES).optional(),
   seats: z.unknown().optional(),
   acceptPaidTerms: z.unknown().optional()

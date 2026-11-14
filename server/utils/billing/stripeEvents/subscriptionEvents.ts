@@ -5,7 +5,7 @@ import type { PriceIdentity } from '~~/shared/config/pricing'
 import { markWorkspaceSubscriptionCanceled, subscriptionGrantsPlan } from '../../../repos/workspaceSubscriptions'
 import { notifyWorkspaceAdmins } from '../../email/workspaceBillingEmails'
 import { updateUserKeyBudget, resetUserKeySpend } from '../../litellm/userKeys'
-import { identifyItem, isWorkspaceIdentity, subscriptionPeriod, warnUnknownPrice } from './stripeObjects'
+import { identifyItem, isWorkspaceIdentity, subscriptionCancelAt, subscriptionPeriod, warnUnknownPrice } from './stripeObjects'
 import {
   deferWorkspaceTeamSync,
   isEndedSubscription,
@@ -107,7 +107,9 @@ async function applyPersonalSubscription(
   const period = subscriptionPeriod(sub)
   const setFields: UserBillingUpdate['set'] = {
     plan,
-    billingCurrency: identity.currency
+    billingCurrency: identity.currency,
+    billingInterval: identity.interval,
+    planCancelAt: subscriptionCancelAt(sub)
   }
   if (period.start) setFields.stripeCurrentPeriodStart = period.start
   if (period.end) setFields.planValidUntil = period.end
@@ -181,7 +183,9 @@ export async function handleSubscriptionDeleted(
       plan: 'free',
       stripeSubscriptionId: null,
       stripeCurrentPeriodStart: null,
-      planValidUntil: null
+      planValidUntil: null,
+      billingInterval: null,
+      planCancelAt: null
     }
   }, handle)
 

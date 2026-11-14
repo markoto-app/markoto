@@ -863,7 +863,8 @@
     "seatTotalMonth": "{total} pro Monat für {seats} Plätze",
     "seatTotalYear": "{total} pro Jahr für {seats} Plätze",
     "seatsLabel": "Plätze",
-    "creditsSection": "KI-Guthaben ergänzt das monatliche KI-Budget von Pro und von Team- / Business-Arbeitsbereichen. Es wird erst verbraucht, wenn das Monatsbudget aufgebraucht ist, und verfällt {months} Monate nach dem Kauf."
+    "creditsSection": "KI-Guthaben ergänzt das monatliche KI-Budget von Pro und von Team- / Business-Arbeitsbereichen. Es wird erst verbraucht, wenn das Monatsbudget aufgebraucht ist, und verfällt {months} Monate nach dem Kauf.",
+    "creditsBuyLink": "KI-Guthaben in deinem Profil kaufen"
   },
   "topbar": {
     "planBadge": "Tarif: {plan}",
@@ -871,6 +872,8 @@
     "creditsRemaining": "{remaining} von {limit} Punkten übrig",
     "creditsPercent": "{pct}% verbleibend",
     "creditsResetOn": "Zurücksetzung am {date}",
+    "creditsExtra": "+ {points} Punkte aus KI-Guthaben",
+    "creditsWorkspace": "Die KI in diesem Dokument nutzt das Budget des Arbeitsbereichs.",
     "creditsHint": "KI-Punkte decken KI ab, die die Instanz bezahlt: 1000 Punkte = 1 $ Modellnutzung.",
     "upgradeToPlan": "Upgrade auf {plan}",
     "topPlan": "Du nutzt den höchsten Tarif.",
@@ -1514,6 +1517,7 @@
       "annual": "jährlich",
       "monthly": "monatlich",
       "renews": "Verlängert sich am {date}",
+      "ends": "Endet am {date}",
       "manage": "Abrechnung verwalten",
       "seatCounter": "{used} von {seats} Plätzen belegt",
       "updateSeats": "Plätze ändern",

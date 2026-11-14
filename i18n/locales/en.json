@@ -863,7 +863,8 @@
     "seatTotalMonth": "{total} per month for {seats} seats",
     "seatTotalYear": "{total} per year for {seats} seats",
     "seatsLabel": "Seats",
-    "creditsSection": "AI credits top up the monthly AI budget of Pro and of Team / Business workspaces. They are used only after the month’s budget is spent and expire {months} months after purchase."
+    "creditsSection": "AI credits top up the monthly AI budget of Pro and of Team / Business workspaces. They are used only after the month’s budget is spent and expire {months} months after purchase.",
+    "creditsBuyLink": "Buy AI credits in your profile"
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
@@ -871,6 +872,8 @@
     "creditsRemaining": "{remaining} of {limit} points left",
     "creditsPercent": "{pct}% remaining",
     "creditsResetOn": "Resets {date}",
+    "creditsExtra": "+ {points} points from AI credits",
+    "creditsWorkspace": "AI in this document uses the workspace’s budget.",
     "creditsHint": "AI Points cover AI the instance pays for: 1000 points = 1 US dollar of model usage.",
     "upgradeToPlan": "Upgrade to {plan}",
     "topPlan": "You're on the top plan.",
@@ -1514,6 +1517,7 @@
       "annual": "annual",
       "monthly": "monthly",
       "renews": "Renews on {date}",
+      "ends": "Ends on {date}",
       "manage": "Manage billing",
       "seatCounter": "{used} of {seats} seats used",
       "updateSeats": "Update seats",

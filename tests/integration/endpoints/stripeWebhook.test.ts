@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid'
 import { resetDb, testDb } from '../setup/db'
 import { TEST_BASE_URL } from '../setup/env'
 import { createUser, createWorkspace } from '../setup/fixtures'
+import { loggedInClient } from '../setup/client'
 import {
   loadStripeFixture,
   computeStripeSig,
@@ -160,6 +161,35 @@ describe('POST /api/webhooks/stripe: customer.subscription.updated', () => {
     // plan_valid_until reflects current_period_end so the resolver
     // (and the plan-lapse sweep) knows when to flip to free.
     expect(row.plan_valid_until!.getTime()).toBe(1778678400 * 1000)
+  })
+
+  it('a cancellation in the portal records when the plan ends and the billing period; resuming clears the end', async () => {
+    const u = await createUser()
+    await testDb().query(
+      `UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, plan = 'pro' WHERE id = $3`,
+      ['cus_test_alice', 'sub_test_alice_max', u.id]
+    )
+    const readEnd = async () => (await testDb().query<{ plan_cancel_at: Date | null, billing_interval: string | null }>(
+      'SELECT plan_cancel_at, billing_interval FROM users WHERE id = $1', [u.id]
+    )).rows[0]
+    // A period that is still running, so the plan is live when read back.
+    const start = Math.floor(Date.now() / 1000) - 24 * 3600
+    const end = start + 30 * 24 * 3600
+    type SubEvent = { id: string, data: { object: { cancel_at_period_end: boolean, items: { data: Array<{ current_period_start: number, current_period_end: number }> } } } }
+    const cancelled = loadStripeFixture('customer.subscription.updated-pro-scheduled-downgrade') as unknown as SubEvent
+    Object.assign(first(cancelled.data.object.items.data), { current_period_start: start, current_period_end: end })
+    await postWebhook(cancelled)
+    expect(await readEnd()).toMatchObject({ plan_cancel_at: new Date(end * 1000), billing_interval: 'month' })
+    const client = await loggedInClient(u.id)
+    const billing = await (await client.get('/api/user/billing')).json() as { plan: string, cancelAt: string | null, interval: string | null }
+    expect(billing).toMatchObject({ plan: 'pro', interval: 'month', cancelAt: new Date(end * 1000).toISOString() })
+
+    const resumed = structuredClone(cancelled)
+    resumed.id = 'evt_test_sub_resumed'
+    resumed.data.object.cancel_at_period_end = false
+    await postWebhook(resumed)
+    expect((await readEnd())?.plan_cancel_at).toBeNull()
+    expect((await (await client.get('/api/user/billing')).json() as { cancelAt: string | null }).cancelAt).toBeNull()
   })
 
   it('ignores event with an unknown price id (logs + 200)', async () => {
@@ -882,7 +912,7 @@ describe('POST /api/webhooks/stripe: workspace subscriptions (Team / Business)',
 
   async function readSub(workspaceId: string): Promise<Record<string, unknown> | undefined> {
     const r = await testDb().query(
-      `SELECT plan, seats, status, stripe_subscription_id, currency, interval, valid_until, billing_admin_id
+      `SELECT plan, seats, status, stripe_subscription_id, currency, interval, valid_until, cancel_at, billing_admin_id
        FROM workspace_subscriptions WHERE workspace_id = $1`,
       [workspaceId]
     )
@@ -933,8 +963,21 @@ describe('POST /api/webhooks/stripe: workspace subscriptions (Team / Business)',
       billing_admin_id: adminId
     })
     expect((row?.valid_until as Date).getTime()).toBe(1802678400 * 1000)
+    expect(row?.cancel_at).toBeNull()
     // The admin's personal plan is untouched.
     expect((await readUser(adminId)).plan).toBe('free')
+  })
+
+  it('a cancellation in the portal (cancel_at_period_end) shows in the billing overview as an end date, resuming clears it', async () => {
+    const { workspaceId, adminId } = await seedWorkspaceCustomer()
+    await postWebhook(subscriptionEvent('customer.subscription.updated', 'cus_ws_team', 'price_test_team', { cancel_at_period_end: true }))
+    expect(((await readSub(workspaceId))?.cancel_at as Date).getTime()).toBe(1802678400 * 1000)
+    const client = await loggedInClient(adminId)
+    const overview = await (await client.get(`/api/workspaces/${workspaceId}/billing`)).json() as { subscription: { cancelAt: string | null } }
+    expect(overview.subscription.cancelAt).toBe(new Date(1802678400 * 1000).toISOString())
+
+    await postWebhook(subscriptionEvent('customer.subscription.updated', 'cus_ws_team', 'price_test_team', { cancel_at_period_end: false }))
+    expect((await readSub(workspaceId))?.cancel_at).toBeNull()
   })
 
   it('subscription.updated with a Pro price on a workspace customer is ignored', async () => {

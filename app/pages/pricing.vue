@@ -149,6 +149,17 @@ function isCurrent(plan: PlanName): boolean {
   return billing.value?.plan === plan
 }
 
+/**
+ * The price on screen is the one the subscription pays: same plan AND the
+ * billing period of the selected tab. The "current plan" badge follows
+ * this; the CTA follows the plan alone (`isCurrent`).
+ */
+function isCurrentPrice(plan: PlanName): boolean {
+  if (!isCurrent(plan)) return false
+  const mine = billing.value?.interval ?? null
+  return mine === null || mine === interval.value
+}
+
 // Personal tier ranking. Drives the "upgrade vs downgrade" CTA split.
 // Team / Business are workspace plans with their own CTA (`isPerSeatPlan`).
 const PLAN_ORDER: readonly PlanName[] = PLAN_NAMES
@@ -428,7 +439,7 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
                     >{{ price(plan) }}</span>
                     <span class="text-sm text-muted">{{ t(priceUnitKey(plan)) }}</span>
                     <span
-                      v-if="isCurrent(plan)"
+                      v-if="isCurrentPrice(plan)"
                       data-testid="pricing-current-plan-badge"
                       class="ml-auto bg-inverted text-inverted font-mono text-[10.5px] tracking-[0.06em] uppercase px-2 py-0.5 rounded-full"
                     >
@@ -603,6 +614,16 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
             class="mt-2 text-xs text-muted"
           >
             {{ t('pricing.price.planned') }}
+          </p>
+          <p
+            v-else-if="billing?.plan === 'pro'"
+            class="mt-3 text-sm"
+          >
+            <NuxtLink
+              to="/settings/profile#ai-credits"
+              class="underline"
+              data-testid="pricing-credits-buy-link"
+            >{{ t('pricing.creditsBuyLink') }}</NuxtLink>
           </p>
         </section>
 

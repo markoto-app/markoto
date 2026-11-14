@@ -2,7 +2,7 @@ import { and, eq, isNull, lt, or } from 'drizzle-orm'
 import { users } from '../db/schema'
 import { executor, useDatabase, type TxHandle } from '../db/client'
 import type { PersonalPlanName } from '~~/shared/config/tiers'
-import type { Currency } from '~~/shared/config/pricing'
+import type { BillingInterval, Currency } from '~~/shared/config/pricing'
 import type { SystemActor, UserScope } from './proofs'
 
 // The personal plan + Stripe columns of `users`. Written by the Stripe
@@ -18,6 +18,8 @@ export interface UserBillingUpdate {
     stripeCustomerId: string | null
     stripeSubscriptionId: string | null
     billingCurrency: Currency | null
+    billingInterval: BillingInterval | null
+    planCancelAt: Date | null
   }>
 }
 
@@ -93,6 +95,32 @@ export async function getUserCheckoutBilling(self: UserScope): Promise<{
     billingCurrency: users.billingCurrency
   }).from(users).where(eq(users.id, self.userId)).limit(1)
   return rows[0] ?? null
+}
+
+/**
+ * A billing-period switch the user made on their live subscription
+ * (already applied in Stripe), so their pages show it at once; the
+ * `customer.subscription.updated` webhook writes the same state. Only
+ * the subscription the row tracks is touched.
+ */
+export async function recordOwnPlanChange(self: UserScope, subscriptionId: string, change: {
+  interval: BillingInterval
+  cancelAt: Date | null
+  period: { start: Date, end: Date } | null
+}): Promise<void> {
+  await useDatabase().update(users)
+    .set({
+      billingInterval: change.interval,
+      planCancelAt: change.cancelAt,
+      ...(change.period ? { stripeCurrentPeriodStart: change.period.start, planValidUntil: change.period.end } : {})
+    })
+    .where(and(eq(users.id, self.userId), eq(users.stripeSubscriptionId, subscriptionId)))
+}
+
+/** What the profile and pricing pages show of the user's own subscription. */
+export async function getOwnSubscriptionFacts(self: UserScope): Promise<{ billingInterval: BillingInterval | null, planCancelAt: Date | null } | null> {
+  return (await useDatabase().select({ billingInterval: users.billingInterval, planCancelAt: users.planCancelAt })
+    .from(users).where(eq(users.id, self.userId)).limit(1))[0] ?? null
 }
 
 /** The Stripe customer of the user's own billing (portal). */

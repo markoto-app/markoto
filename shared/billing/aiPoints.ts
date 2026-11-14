@@ -44,3 +44,34 @@ export function planToBudgetUsd(plan: PlanName, tiers: TiersMap): number {
 export function planToPointsTotal(plan: PlanName, tiers: TiersMap): number {
   return dollarsToPoints(tiers[plan].litellmBudgetUsd)
 }
+
+export interface AiPointsSplit {
+  /** Everything still usable: plan budget and bought credits together. */
+  pointsRemaining: number
+  /** The plan's monthly allotment, without credits. */
+  pointsTotal: number
+  /** What is left of the plan's allotment; never above `pointsTotal`. */
+  planPointsRemaining: number
+  /** What is left beyond the plan's allotment: bought AI credits. */
+  creditPoints: number
+}
+
+/**
+ * Split a LiteLLM key's remaining budget into the plan's part and the
+ * bought credits. The key's `max_budget` is plan budget + credits and the
+ * plan budget is spent first, so what is left of the plan is
+ * `planBudget - spend` (capped by what the key really has left, in case
+ * the key's budget lags the plan) and credits are the remainder.
+ */
+export function splitPlanAndCreditPoints(args: { maxBudgetUsd: number, spendUsd: number, planBudgetUsd: number }): AiPointsSplit {
+  const remainingUsd = Math.max(0, args.maxBudgetUsd - args.spendUsd)
+  const planRemainingUsd = Math.min(remainingUsd, Math.max(0, args.planBudgetUsd - args.spendUsd))
+  const pointsRemaining = dollarsToPoints(remainingUsd)
+  const planPointsRemaining = dollarsToPoints(planRemainingUsd)
+  return {
+    pointsRemaining,
+    pointsTotal: dollarsToPoints(args.planBudgetUsd),
+    planPointsRemaining,
+    creditPoints: pointsRemaining - planPointsRemaining
+  }
+}
