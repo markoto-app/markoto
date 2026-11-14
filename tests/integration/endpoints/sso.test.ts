@@ -573,6 +573,23 @@ describe('SCIM provisioning (/scim/v2/Users)', () => {
       await expectScim(await scim('/Groups', { token: 'mkscim_wrong-token-wrong-token-wrong' }), 401, err(401, 'A valid SCIM bearer token is required.'))
     })
 
+    it('a changed name is not applied (the account owns it); the answer shows the stored name', async () => {
+      const { scim } = await scimSetup()
+      const created = await (await scim('/Users', { method: 'POST', body: { userName: 'bob@acme.test', name: { givenName: 'Bob', familyName: 'Builder' } } })).json() as { id: string }
+      const stored = { displayName: 'Bob Builder', name: { formatted: 'Bob Builder' } }
+
+      const put = await scim(`/Users/${created.id}`, { method: 'PUT', body: { userName: 'bob@acme.test', displayName: 'Robert Builder', name: { givenName: 'Robert', familyName: 'Builder' }, active: true } })
+      expect(put.status).toBe(200)
+      expect(await put.json()).toMatchObject(stored)
+
+      const patch = await scim(`/Users/${created.id}`, { method: 'PATCH', body: { Operations: [{ op: 'replace', value: { 'displayName': 'Robert Builder', 'name.givenName': 'Robert' } }] } })
+      expect(patch.status).toBe(200)
+      expect(await patch.json()).toMatchObject(stored)
+
+      const row = (await testDb().query<{ name: string }>(`SELECT name FROM users WHERE email = 'bob@acme.test'`)).rows[0]!
+      expect(row.name).toBe('Bob Builder')
+    })
+
     it('the last admin: 409 mutability', async () => {
       const { scim } = await scimSetup()
       const list = await (await scim(`/Users?filter=${encodeURIComponent('userName eq "admin@acme.test"')}`)).json() as { Resources: Array<{ id: string }> }

@@ -18,7 +18,10 @@ import { z } from 'zod'
 //               account stays: the person may use it elsewhere, and only
 //               they can delete it.
 //   name / email changes are not applied to the account (it belongs to the
-//               person, not the workspace); `externalId` is stored.
+//               person, not the workspace); `externalId` is stored. PUT and
+//               PATCH answer 200 with the STORED name, so an IdP sees that
+//               its value was not taken (documented for admins in
+//               content/docs/account/single-sign-on.md).
 //
 // The last admin of a workspace can't be deactivated or deleted (409, same
 // rule as in the app).
