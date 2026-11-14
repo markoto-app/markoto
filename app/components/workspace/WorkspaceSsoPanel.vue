@@ -264,13 +264,16 @@ const spRows = computed(() => {
           class="max-w-sm"
           data-testid="workspace-sso-protocol"
         />
+        <!-- Every hint sits BELOW its input (`help`), never beside the label
+             (`hint`): a hint next to a label wraps the label and pushes that
+             input down, out of line with its neighbour. -->
         <div
           v-if="protocol === 'oidc'"
-          class="grid gap-4 sm:grid-cols-2"
+          class="grid gap-4 sm:grid-cols-2 items-start"
         >
           <UFormField
             :label="t('sso.oidc.issuer')"
-            :hint="t('sso.oidc.issuerHint')"
+            :help="t('sso.oidc.issuerHint')"
             class="sm:col-span-2"
           >
             <UInput
@@ -289,7 +292,7 @@ const spRows = computed(() => {
           </UFormField>
           <UFormField
             :label="t('sso.oidc.clientSecret')"
-            :hint="cur.connection?.hasClientSecret ? t('sso.oidc.secretKept') : undefined"
+            :help="cur.connection?.hasClientSecret ? t('sso.oidc.secretKept') : undefined"
           >
             <UInput
               v-model="oidcClientSecret"
@@ -335,7 +338,7 @@ const spRows = computed(() => {
           </UFormField>
           <UFormField
             :label="t('sso.saml.certificate')"
-            :hint="cur.connection?.samlCertificate ? t('sso.saml.certificateKept', { subject: cur.connection.samlCertificate.subject, date: d(new Date(cur.connection.samlCertificate.validTo)) }) : undefined"
+            :help="cur.connection?.samlCertificate ? t('sso.saml.certificateKept', { subject: cur.connection.samlCertificate.subject, date: d(new Date(cur.connection.samlCertificate.validTo)) }) : undefined"
           >
             <UTextarea
               v-model="samlIdpCert"
@@ -348,7 +351,7 @@ const spRows = computed(() => {
         </div>
         <UFormField
           :label="t('sso.defaultRole')"
-          :hint="t('sso.defaultRoleHint')"
+          :help="t('sso.defaultRoleHint')"
         >
           <USelect
             v-model="defaultRole"
