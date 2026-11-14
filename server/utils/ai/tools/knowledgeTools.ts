@@ -1,3 +1,4 @@
+import { aiStatus } from '~~/shared/ai/statusSteps'
 import { z } from 'zod'
 import { defineMetaTool, pickStringArg, toolError, toolOk, type ToolResult } from './toolDefinition'
 import type { MetaToolContext } from '../../agentic/toolContext'
@@ -21,7 +22,7 @@ const SearchKnowledgeArgs = z.object({
     .describe('Natural-language query. Semantic match, so ask the way you would ask a colleague, full phrases, not keyword salads. Example: "what does the procurement policy say about vendor onboarding timelines" rather than "procurement vendor timeline".'),
   top_k: z.number().int().min(1).max(15).optional()
     .describe('How many chunks to return. Default 5. Use 10–15 for research-style queries where you want to survey; use 3 when you want the single best hit.')
-}).describe('Search the workspace knowledge base (uploaded PDFs, DOCX, etc.) by meaning and return the most relevant chunks with their source filename. Use BEFORE writing when the user references uploaded material ("what did the grant proposal say about X?", "summarise the research brief"), or when asked to write something grounded in workspace context. Only available when the document is in a workspace that has knowledge files.')
+}).describe('Search the workspace knowledge base (uploaded PDFs, DOCX, etc.) by meaning and return the most relevant chunks with their source filename. Use BEFORE writing any fact, figure, name or date the document does not already hold, whether or not the user names a file: uploaded material ("what did the grant proposal say about X?", "summarise the research brief"), "our research" / "our data", or just a topic the files may cover. Only available when the document is in a workspace that has knowledge files.')
 
 const GetKnowledgeFileArgs = z.object({
   knowledge_id: z.string().trim().min(1).max(64)
@@ -68,7 +69,7 @@ async function handleSearchKnowledge(session: MetaToolContext, input: z.output<t
   const { workspace } = membership
   const topK = input.top_k ?? 5
 
-  session.updateStatus('tool', `Searching workspace knowledge for "${input.query.slice(0, 80)}"…`)
+  session.updateStatus('tool', aiStatus('searchKnowledge', { query: input.query.slice(0, 80) }))
 
   let queryEmbedding: number[]
   try {
@@ -112,7 +113,7 @@ async function handleGetKnowledgeFile(session: MetaToolContext, input: z.output<
   const membership = await verifyWorkspaceMembership(session)
   if (membership.denied !== undefined) return toolError(membership.denied)
 
-  session.updateStatus('tool', `Reading knowledge file ${input.knowledge_id}…`)
+  session.updateStatus('tool', aiStatus('openKnowledgeFile', { id: input.knowledge_id }))
 
   // Keyed on the session's workspace: an id of another workspace is not found.
   const row = await getKnowledgeWithMarkdown(membership.workspace, input.knowledge_id)

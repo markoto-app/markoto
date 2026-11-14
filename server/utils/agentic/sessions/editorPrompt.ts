@@ -4,7 +4,7 @@ import type { DocAccess, UserScope } from '../../../repos/proofs'
 import { appendAiMessage, lastActivityAt, loadRecentMessages } from '../../../repos/aiSessionMessages'
 import { buildConversationContextForPrompt, shouldRecordToolInMemory, summarizeToolCall } from '../conversationMemory'
 import { validateEditorSelection, wrapPromptWithEditorState } from '../editorStatePrompt'
-import { buildKnowledgeBlock, buildWorkspaceMembersBlock } from '../workspacePromptBlocks'
+import { buildKnowledgeBlock, buildWorkspaceMembersBlock, withKnowledgeNote } from '../workspacePromptBlocks'
 import { assemblePromptSystemPrompt, PROMPT_SYSTEM_PROMPT } from '../promptAssembly'
 import { useLogger } from '../../platform/logger'
 import { documentContextBlockFor, openAiSession, resolveSessionWorkspace } from './sessionSetup'
@@ -69,7 +69,7 @@ export async function startEditorPrompt(event: H3Event, request: EditorPromptReq
     workspace: wsCtx,
     session,
     systemPrompt,
-    initialPrompt: wrappedPrompt,
+    initialPrompt: withKnowledgeNote(wrappedPrompt, wsCtx.exposeKnowledgeTools),
     promptPreamble: conversationBlock,
     invokerText: prompt,
     toolDeclarations: wsCtx.toolDeclarations,
