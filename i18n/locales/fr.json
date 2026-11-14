@@ -585,7 +585,7 @@
     "otherSessionWorking": "markoto travaille pour {name}",
     "confirm": {
       "label": "markoto demande d’abord",
-      "reason": "markoto a lu dans cette session du texte écrit par d’autres personnes. Il demande donc avant d’accéder à vos autres documents, aux connaissances de l’espace de travail ou au web.",
+      "reason": "markoto a lu dans cette session du texte qui ne vient pas de vous (par exemple d’une page web ou d’une autre personne). Il demande donc avant d’accéder à vos autres documents, aux connaissances de l’espace de travail ou au web.",
       "allow": "Autoriser",
       "deny": "Refuser",
       "tools": {
