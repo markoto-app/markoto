@@ -48,7 +48,7 @@ export async function subjectForCustomer(customerId: string, db: TxHandle | unde
  * newer one) is stored as `incomplete`: not entitled, like any unknown
  * status would be, and reported so the version bump gets done.
  */
-function storedStatus(sub: Stripe.Subscription): StripeSubscriptionStatus {
+export function storedStatus(sub: Stripe.Subscription): StripeSubscriptionStatus {
   if (isKnownSubscriptionStatus(sub.status)) return sub.status
   log.warn('unknown subscription status stored as incomplete', { subscriptionId: sub.id, status: sub.status })
   Sentry.captureMessage('[stripe/webhook] unknown subscription status', { level: 'warning', tags: { component: 'stripeWebhook', event: 'unknown_subscription_status' } })
@@ -58,6 +58,8 @@ function storedStatus(sub: Stripe.Subscription): StripeSubscriptionStatus {
 /**
  * Write a workspace's subscription state from a Stripe subscription
  * (insert on first sight, update after). Seats = the item quantity.
+ * `at` is Stripe's time of that state; returns false, and writes nothing,
+ * when the row already holds newer state (`eventAge.ts`).
  */
 export async function upsertWorkspaceSubscriptionFromStripe(
   db: TxHandle | undefined,
@@ -66,9 +68,10 @@ export async function upsertWorkspaceSubscriptionFromStripe(
     sub: Stripe.Subscription
     identity: PriceIdentity & { plan: WorkspacePlanName }
     customerId: string
+    at: Date
     billingAdminId?: number | null
   }
-): Promise<void> {
+): Promise<boolean> {
   const item = args.sub.items.data[0]
   const period = subscriptionPeriod(args.sub)
   const values = {
@@ -82,10 +85,11 @@ export async function upsertWorkspaceSubscriptionFromStripe(
     cancelAt: subscriptionCancelAt(args.sub),
     currency: args.identity.currency,
     interval: args.identity.interval,
+    subscriptionEventAt: args.at,
     updatedAt: new Date()
   }
   const billingAdmin = args.billingAdminId === undefined ? {} : { billingAdminId: args.billingAdminId }
-  await upsertWorkspaceSubscription(STRIPE, db, args.workspaceId, values, billingAdmin)
+  return upsertWorkspaceSubscription(STRIPE, db, args.workspaceId, values, billingAdmin)
 }
 
 /**

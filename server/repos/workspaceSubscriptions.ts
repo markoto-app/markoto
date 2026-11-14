@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, lt, or, sql, type SQL } from 'drizzle-orm'
+import { and, eq, inArray, isNull, lt, lte, or, sql, type SQL } from 'drizzle-orm'
 import { workspaceSubscriptions } from '../db/schema'
 import { executor, useDatabase, type TxHandle } from '../db/client'
 import type { WorkspacePlanName } from '../../shared/config/tiers'
@@ -20,6 +20,8 @@ export interface WorkspaceSubscriptionRow {
   currentPeriodStart: Date | null
   validUntil: Date | null
   cancelAt: Date | null
+  /** Stripe's time of the newest subscription state on the row (`stripeEvents/eventAge.ts`). */
+  subscriptionEventAt: Date | null
   litellmTeamId: string | null
   budgetSeatAdjust: number
   budgetSeatAdjustUntil: Date | null
@@ -136,40 +138,61 @@ export interface WorkspaceSubscriptionFromStripe {
   cancelAt: Date | null
   currency: 'eur' | 'chf'
   interval: 'month' | 'year'
+  /** Stripe's time of this state: the event's `created`, or when the app read the subscription. */
+  subscriptionEventAt: Date
   updatedAt: Date
 }
 
-/** Insert on first sight, update after. */
+/**
+ * The age rule (`stripeEvents/eventAge.ts`): the row's subscription state
+ * is not newer than `at`. Equal times pass.
+ */
+function stateNotNewerThan(at: Date) {
+  return or(isNull(workspaceSubscriptions.subscriptionEventAt), lte(workspaceSubscriptions.subscriptionEventAt, at))
+}
+
+/**
+ * Insert on first sight, update after, unless the row already holds newer
+ * state than `values.subscriptionEventAt`. Returns whether it was written.
+ */
 export async function upsertWorkspaceSubscription(_by: SystemActor,
   tx: TxHandle | undefined,
   workspaceId: string,
   values: WorkspaceSubscriptionFromStripe,
   billingAdmin: { billingAdminId?: number | null }
-): Promise<void> {
+): Promise<boolean> {
   const db = executor(tx)
-  await db.insert(workspaceSubscriptions)
+  const rows = await db.insert(workspaceSubscriptions)
     .values({ workspaceId, ...values, ...billingAdmin })
-    .onConflictDoUpdate({ target: workspaceSubscriptions.workspaceId, set: { ...values, ...billingAdmin } })
+    .onConflictDoUpdate({
+      target: workspaceSubscriptions.workspaceId,
+      set: { ...values, ...billingAdmin },
+      setWhere: stateNotNewerThan(values.subscriptionEventAt)
+    })
+    .returning({ workspaceId: workspaceSubscriptions.workspaceId })
+  return rows.length > 0
 }
 
 /** The subscription ended: the row stays as the record, `resolveWorkspacePlan` stops granting the plan. Returns the rows matched. */
-export async function markWorkspaceSubscriptionCanceled(_by: SystemActor, tx: TxHandle | undefined, workspaceId: string): Promise<number> {
+export async function markWorkspaceSubscriptionCanceled(_by: SystemActor, tx: TxHandle | undefined, workspaceId: string, at: Date): Promise<number> {
   const db = executor(tx)
   const result = await db.update(workspaceSubscriptions)
-    .set({ status: 'canceled', cancelAt: null, updatedAt: new Date() })
-    .where(eq(workspaceSubscriptions.workspaceId, workspaceId))
+    .set({ status: 'canceled', cancelAt: null, subscriptionEventAt: at, updatedAt: new Date() })
+    .where(and(eq(workspaceSubscriptions.workspaceId, workspaceId), stateNotNewerThan(at)))
     .returning({ workspaceId: workspaceSubscriptions.workspaceId })
   return result.length
 }
 
 /** Move the workspace's period anchors forward to `period` (never back). Returns the rows matched. */
-export async function advanceWorkspaceBillingPeriod(_by: SystemActor, tx: TxHandle | undefined, workspaceId: string, period: { start: Date, end: Date }): Promise<number> {
+export async function advanceWorkspaceBillingPeriod(_by: SystemActor, tx: TxHandle | undefined, workspaceId: string, period: { start: Date, end: Date }, at: Date): Promise<number> {
   const db = executor(tx)
   const result = await db.update(workspaceSubscriptions)
     .set({ currentPeriodStart: period.start, validUntil: period.end, updatedAt: new Date() })
     .where(and(
       eq(workspaceSubscriptions.workspaceId, workspaceId),
-      or(isNull(workspaceSubscriptions.validUntil), lt(workspaceSubscriptions.validUntil, period.end))
+      or(isNull(workspaceSubscriptions.validUntil), lt(workspaceSubscriptions.validUntil, period.end)),
+      // An invoice older than the subscription state on the row: that state already carries the period.
+      stateNotNewerThan(at)
     ))
     .returning({ workspaceId: workspaceSubscriptions.workspaceId })
   return result.length
@@ -204,9 +227,10 @@ export async function recordWorkspaceStripeCustomer(ws: WorkspaceAccess<'admin'>
 }
 
 /** A seat change the admin made (paid in Stripe): the count and the budget adjustment it carries. */
-export async function recordSeatChange(ws: WorkspaceAccess<'admin'>, change: { seats: number, budgetSeatAdjust: number, budgetSeatAdjustUntil: Date | null }): Promise<void> {
+export async function recordSeatChange(ws: WorkspaceAccess<'admin'>, change: { seats: number, budgetSeatAdjust: number, budgetSeatAdjustUntil: Date | null, at: Date }): Promise<void> {
+  const { at, ...fields } = change
   await useDatabase().update(workspaceSubscriptions)
-    .set({ ...change, updatedAt: new Date() })
+    .set({ ...fields, subscriptionEventAt: at, updatedAt: new Date() })
     .where(eq(workspaceSubscriptions.workspaceId, ws.workspaceId))
 }
 
@@ -220,12 +244,15 @@ export async function recordWorkspacePlanChange(ws: WorkspaceAccess<'admin'>, ch
   interval: 'month' | 'year'
   cancelAt: Date | null
   period: { start: Date, end: Date } | null
+  /** Stripe's time of the change: events older than it are of the previous state. */
+  at: Date
 }): Promise<void> {
   await useDatabase().update(workspaceSubscriptions)
     .set({
       plan: change.plan,
       interval: change.interval,
       cancelAt: change.cancelAt,
+      subscriptionEventAt: change.at,
       ...(change.period ? { currentPeriodStart: change.period.start, validUntil: change.period.end } : {}),
       updatedAt: new Date()
     })

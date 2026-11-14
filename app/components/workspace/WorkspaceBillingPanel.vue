@@ -5,11 +5,11 @@ import {
   type BillingInterval,
   type Currency
 } from '~~/shared/config/pricing'
+import { useInvalidateAiCredits } from '~/queries/ai'
 import { useInvalidatePlan, usePlanPricesQuery } from '~/queries/billing'
 import { formatPrice, formatPlanBytes } from '~/utils/billing/pricing'
 import {
   formatUsd,
-  isPaymentProblem,
   minimumSeats,
   type WorkspaceBillingOverview
 } from '~/utils/billing/workspaceBilling'
@@ -48,6 +48,9 @@ const busy = ref<string | null>(null)
 // A plan, billing-period or seat change moves what other views cache: the
 // workspaces that cover the user and every AI budget (the topbar meter).
 const invalidatePlan = useInvalidatePlan()
+// A member's limit caps that member's AI points inside this workspace (the
+// admin's own, when they set it for themselves): the meter is out of date.
+const invalidateWorkspacePoints = useInvalidateAiCredits(() => props.workspaceId)
 
 /** Re-read everything a paid change touched: this tab, the cached snapshots, the page's own copy. */
 async function refreshAfterChange() {
@@ -86,7 +89,7 @@ onMounted(() => {
 const sub = computed(() => overview.value?.subscription ?? null)
 /** A subscription Stripe still holds (entitled, or in dunning / ending). */
 const hasLiveSubscription = computed(() => sub.value !== null && sub.value.status !== 'incomplete' && sub.value.status !== 'incomplete_expired' && sub.value.status !== 'canceled')
-const paymentProblem = computed(() => isPaymentProblem(sub.value?.status))
+const paymentProblem = computed(() => sub.value?.paymentOverdue === true)
 
 const plan = ref<'team' | 'business'>('team')
 const interval = ref<BillingInterval>('month')
@@ -213,7 +216,7 @@ async function saveLimit(userId: number) {
   try {
     await apiFetch('/api/workspaces/:wsId/billing/members/:userId', { method: 'patch', path: { wsId: props.workspaceId, userId }, body })
     toast.add({ title: t('workspace.billing.limitSaved'), icon: 'i-lucide-check', color: 'neutral' })
-    await load()
+    await Promise.all([load(), invalidateWorkspacePoints()])
   } catch (e) {
     showError('workspace.billing.limitSaveFailed', e)
   } finally {
@@ -260,6 +263,7 @@ function usd(amount: number | null | undefined): string {
         icon="i-lucide-alert-triangle"
         :title="t('workspace.billing.paymentProblemTitle')"
         :description="t('workspace.billing.paymentProblemBody')"
+        :actions="[{ label: t('workspace.billing.manage'), color: 'neutral', variant: 'outline', onClick: openPortal }]"
         data-testid="workspace-billing-payment-problem"
       />
 

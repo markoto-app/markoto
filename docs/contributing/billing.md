@@ -51,6 +51,8 @@ A Stripe customer belongs to one subject: a user (personal Pro, `users.stripe_cu
 3. **Dispatch** to the handler for the event type through the table in `server/utils/billing/stripeEvents/eventHandlers.ts`. The table is the list of handled types (`HANDLED_STRIPE_EVENT_TYPES` is derived from it): an event type without an entry is acknowledged unhandled. One module per event family under `stripeEvents/`: `checkoutCompleted.ts`, `creditTopups.ts` (top-up checkouts, delayed payments, refunds), `subscriptionEvents.ts` (created / updated / deleted), `invoiceEvents.ts` (paid / failed); `billingSubjects.ts` resolves a customer to its user or workspace, `stripeObjects.ts` reads the version-dependent fields. Their writes go through `server/repos/userBilling.ts`, `server/repos/workspaceSubscriptions.ts` and `server/repos/stripeWebhookEvents.ts`.
 4. **Drain**: after `checkout.session.completed`, stashed events for that customer are replayed in arrival order.
 
+Only state that is not older than the row's is applied. Stripe redelivers an event the endpoint did not acknowledge for up to three days, so an older `customer.subscription.*` snapshot can arrive after a newer one. Each subject's row stores Stripe's time of the newest subscription state it holds (`users.subscription_event_at`, `workspace_subscriptions.subscription_event_at`): the `created` of the last applied subscription event, or, when the app itself read or changed the subscription (the checkout's live read, an in-place plan, billing-period or seat change), Stripe's time just before that (`stripeResponseTime` in `stripeEvents/eventAge.ts`, the response's `Date` header). An event older than that time is acknowledged and recorded for deduplication but not applied; this covers `customer.subscription.created|updated|deleted`, `invoice.paid` and the events replayed from the stash. An event of the same second applies, because `created` has one-second resolution and two real changes in one second must both land; within one second the delivery order decides.
+
 Only the subscription a row tracks is applied: a late event about an older or cancelled subscription cannot bring a plan back. Version-dependent fields are read through `subscriptionPeriod`, `invoiceSubscriptionId` and `invoiceServicePeriod` (`stripeEvents/stripeObjects.ts`), because the pinned API version and the SDK types differ.
 
 `webhook-event-sweep` (daily, billing on) prunes `processed_webhook_events` after 90 days and stashed events after 7 days (processed) or 30 days (never matched).
@@ -65,6 +67,10 @@ A change of a live subscription names only what changes: a request without `inte
 
 A subscription cancelled in the Stripe portal keeps its plan until the period ends. `subscriptionCancelAt` (`stripeEvents/stripeObjects.ts`) reads that date (`cancel_at`, or the period end with `cancel_at_period_end`) from every `customer.subscription.*` event into `users.plan_cancel_at` / `workspace_subscriptions.cancel_at`; it is null while the subscription renews. `/api/user/billing` and the workspace billing overview return it as `cancelAt`, and the UI shows "Ends on" instead of "Renews on".
 
+### Overdue payments
+
+A renewal whose payment fails leaves the subscription `past_due` while Stripe retries (or `unpaid`), and the plan keeps running. The status is stored (`users.subscription_status`, `workspace_subscriptions.status`) and both billing payloads carry `paymentOverdue`; the profile and the workspace billing tab show one notice with the way to the Stripe portal. Nothing is downgraded until Stripe ends the subscription.
+
 ### Workspace subscriptions
 
 `server/utils/billing/workspaceBilling.ts`, `workspaceStripe.ts` and `workspaceBillingLifecycle.ts`; inviting a member (seat purchase included) is `server/utils/workspaces/inviteMember.ts`:
@@ -78,3 +84,10 @@ A subscription cancelled in the Stripe portal keeps its plan until the period en
 ### AI credit top-ups
 
 A paid top-up becomes a row in `ai_credit_grants` (12-month expiry). The LiteLLM budget is the plan budget plus credits (`creditBudgetExtraUsd` in `server/utils/billing/aiCreditBudget.ts`). `/api/ai/credits` therefore reports them apart (`splitPlanAndCreditPoints` in `shared/billing/aiPoints.ts`): `pointsTotal` is the plan's monthly allotment, `planPointsRemaining` what is left of it (what the meter shows), `creditPoints` the bought credits on top, and `pointsRemaining` the sum. The hourly `ai-credit-settlement` job (`runCreditSettlement` in `server/utils/billing/aiCredits.ts`) reads each subject's monthly spend from LiteLLM's spend logs, takes what exceeded the plan budget from the grants, and updates the budgets. Purchases go through `server/utils/billing/topupCheckout.ts`; delayed payment methods are granted on `checkout.session.async_payment_succeeded`, refunds are handled on `charge.refunded`.
+
+## Tests
+
+- `tests/unit/billing/subscriptionTransitions.test.ts`: every change request (plan, billing period, seats, cancel, resume) against every state of a personal and a workspace subscription, with Stripe and the database in memory. One rule: a request changes only what it names.
+- `tests/nuxt/billingMutationRefresh.test.ts`: every billing change the client can make re-reads what it affects after the server answered. A new mutation gets a row in its table.
+- `tests/integration/endpoints/` (`stripeBilling`, `stripeWebhook`, `workspaceBilling`, `aiCredits`): the endpoints and the webhook against `stripe-mock` and fixture events.
+- `tests/billing-sandbox/`: the app against Stripe's real test-mode API with test clocks ([testing.md](testing.md#billing-sandbox)).

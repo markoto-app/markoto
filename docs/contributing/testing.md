@@ -1,6 +1,6 @@
 # Testing
 
-markoto has six test tiers. Five run under Vitest (`vitest.config.ts` defines one Vitest project per tier); the browser flows run under Playwright.
+markoto has seven test tiers. Six run under Vitest (`vitest.config.ts` defines one Vitest project per tier); the browser flows run under Playwright.
 
 | Tier | Location | Runs in | Needs | Command |
 |---|---|---|---|---|
@@ -10,8 +10,9 @@ markoto has six test tiers. Five run under Vitest (`vitest.config.ts` defines on
 | repos | `tests/repos/` | Node, serial | test Postgres + Valkey | `bun run test:repos` |
 | integration | `tests/integration/` | Node, serial, against a production build | full test stack | `bun run test:integration` |
 | e2e flows | `tests/e2e/flows/` | Playwright (Chromium) | full test stack (started for you) | `bun run flows:test` |
+| billing-sandbox | `tests/billing-sandbox/` | Node, against a production build and Stripe's test-mode API | test Postgres + Valkey + LiteLLM, `STRIPE_SANDBOX_SECRET_KEY` | `bun run test:billing-sandbox` |
 
-`bun run test` runs unit + dom + nuxt (no Docker needed). `bun run test:all` runs every Vitest project. `make test` runs lint, typecheck, unit, dom and repos; `make test-all` adds integration and flows.
+`bun run test` runs unit + dom + nuxt (no Docker needed). `bun run test:all` runs every Vitest project; the billing-sandbox project reports its tests as skipped unless `STRIPE_SANDBOX_SECRET_KEY` is set. `make test` runs lint, typecheck, unit, dom and repos; `make test-all` adds integration and flows.
 
 ## Choosing a tier
 
@@ -21,6 +22,7 @@ markoto has six test tiers. Five run under Vitest (`vitest.config.ts` defines on
 - **repos**: one repository module against a real database: Drizzle queries, foreign-key cascades, advisory locks. No HTTP.
 - **integration**: the full HTTP and WebSocket stack: authentication, middleware, access control, sweepers, Stripe webhooks, MCP, sync. Most access-control tests belong here, because a unit test with mocks cannot catch a missing guard.
 - **e2e flows**: real browser behaviour, two-browser collaboration, and the end-user documentation (see [flow-docs.md](flow-docs.md)).
+- **billing-sandbox**: what the app shows after a real Stripe subscription changed: purchases, plan and seat changes, renewals, failed payments, cancellations over time. Only for behaviour that depends on what Stripe really does; a rule about our own code belongs in a unit test (`tests/unit/billing/subscriptionTransitions.test.ts` is the table of every change request).
 
 Rule of thumb: "the right rows land in the right table" is a repos test; "this request with this cookie gets this status" is an integration test; "the user sees this" is a flow.
 
@@ -83,6 +85,29 @@ The tests use a production build because the dev server does not wire WebSocket 
 
 Isolation: call `resetDb()` (`tests/integration/setup/db.ts`) in `beforeEach`. It truncates an explicit list of tables with `RESTART IDENTITY CASCADE`, so ids are predictable; add every new table to that list. `yjs_updates` is in that list too; `insertYjsUpdate` / `readYjsRows` in the same file write and read Y.js rows. `testDb()` refuses any database URL whose name is not the test database.
 
+## Billing sandbox
+
+The integration tier's Stripe is `stripe-mock`: canned objects, no state, webhooks replayed from fixture files. It cannot show that a plan switch kept the billing period, or what a subscription looks like a month later. `tests/billing-sandbox/` runs the same production build against Stripe's real test-mode API.
+
+```bash
+bun run test:integration:up                      # or only: scripts/test-compose.sh up -d --wait postgres-test valkey-test litellm-test
+export STRIPE_SANDBOX_SECRET_KEY=sk_test_...     # a TEST-mode key of an account that has the price catalogue
+bun run test:billing-sandbox                     # about two minutes
+```
+
+Without the variable every test of the tier is reported as skipped. A key that does not start with `sk_test_` or `rk_test_` is refused before anything runs. The account needs the catalogue the app looks up: prices with the lookup keys `markoto_<pro|team|business>_<month|year>_<eur|chf>` and `markoto_topup_<10|25|50>_<eur|chf>`.
+
+How it works (`tests/billing-sandbox/setup/`):
+
+- **One server.** `globalSetup.ts` starts one app server on port 3103 from the integration tier's build (`primaryServerEnv` in `tests/integration/setup/server.ts` takes the Stripe target: stripe-mock for the integration tier, the real API here), with the real `litellm-test` proxy instead of the LiteLLM stub. The tier never truncates the database: each file works on users, workspaces and Stripe customers it created, so the files run in parallel. Do not run it while the integration tier runs (that one truncates).
+- **Purchases without a browser.** The app's own checkout endpoint opens the Checkout Session, which the test asserts (mode, price, quantity, `client_reference_id`, metadata). Stripe has no API to complete a Checkout Session, so the test then does what the hosted page would do: a customer with a test card (`pm_card_visa`, `pm_card_chargeCustomerFail`), and the subscription or payment for the session's price (`setup/flows.ts`). The same holds for the customer portal: its "Cancel plan" is `cancel_at_period_end` set by API.
+- **Real webhooks.** Stripe cannot reach a local server. After each operation the test reads the events Stripe produced for its customer from the Events API (`EventFeed` in `setup/stripe.ts`) and POSTs each one to `/api/webhooks/stripe` with a valid signature. One event is built by hand: `checkout.session.completed`, from the real session object, because no API can cause the real one.
+- **Time.** Customers live on a Stripe test clock; the test advances it (a renewal, the end of a cancelled period, the retry schedule of a failed payment), waits until the clock is ready and delivers what Stripe produced. The app's own clock does not move: AI credit expiry is checked by calling `runCreditSettlement` with a later "now".
+- **API version.** The Events API renders an event in the account's default API version, whatever version the request names. The deployed webhook endpoint is pinned to `STRIPE_API_VERSION` and receives that rendering instead. The events here are therefore real but possibly in a newer shape; the handlers read the version-dependent fields from both places (`stripeEvents/stripeObjects.ts`). The acacia shape stays covered by the fixtures of the unit and integration tiers.
+- **Clean-up.** Every object carries the metadata `markoto_test_run=<run id>` (test clocks: the name prefix `markoto-test-run`). Each file deletes its clocks and customers, the global teardown deletes whatever is left of the run, and the next run removes tagged objects older than three hours that a killed run left behind. Nothing without the tag is touched: the sandbox is shared with the staging server, whose webhook endpoint also receives these events and ignores customers it does not know.
+
+Writing a scenario: assert what the app reports through its own endpoints (`/api/user/billing`, `/api/ai/credits`, `/api/workspaces/:wsId/billing`), once right after the app's own call and before any webhook is delivered, and again after the events. When a scenario exposes a bug that is not fixed in the same change, keep it as `it.fails` with a comment that names the bug.
+
 ## Flows
 
 See [flow-docs.md](flow-docs.md). `bun run flows:test` starts the test stack itself, builds, serves on port 3001 and tears down afterwards.
@@ -97,4 +122,4 @@ See [flow-docs.md](flow-docs.md). `bun run flows:test` starts the test stack its
 
 ## In CI
 
-The pull-request gate (`.github/workflows/ci.yml`) runs unit and dom tests, then unit + dom + nuxt + repos with coverage (`test:coverage:fast`), then the integration tests. Flows run only in `release.yml`, for `release:*`-labelled merges.
+The pull-request gate (`.github/workflows/ci.yml`) runs unit and dom tests, then unit + dom + nuxt + repos with coverage (`test:coverage:fast`), then the integration tests. Flows run only in `release.yml`, for `release:*`-labelled merges. The `billing-sandbox` job runs the billing-sandbox tier when a pull request changes billing code; it is not a required check, needs the repository secret `STRIPE_SANDBOX_SECRET_KEY` and skips itself (green, with a notice) where the secret is not available, as on forks.
