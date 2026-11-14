@@ -48,6 +48,8 @@ export interface UserBillingView {
   periodEnd: string
   interval: 'month' | 'year' | null
   cancelAt: string | null
+  /** The last renewal was not paid and Stripe is retrying. */
+  paymentOverdue: boolean
   credits: { usableUsd: number, usedThisMonthUsd: number, grants: Array<{ pack: string, amountUsd: number, remainingUsd: number, refundedUsd: number, expiresAt: string, createdAt: string }> } | null
   coveringWorkspaces: Array<{ workspaceId: string, plan: 'team' | 'business' }>
 }
@@ -82,6 +84,7 @@ export interface WorkspaceBillingView {
     plan: 'team' | 'business'
     seats: number
     status: string
+    paymentOverdue: boolean
     entitled: boolean
     interval: 'month' | 'year'
     currency: 'eur' | 'chf'
@@ -134,11 +137,13 @@ export interface UserBillingRow {
   plan_valid_until: Date | null
   plan_cancel_at: Date | null
   litellm_key_id: string | null
+  /** Stripe's time of the newest subscription state the row holds. */
+  subscription_event_at: Date | null
 }
 
 export async function userRow(userId: number): Promise<UserBillingRow> {
   const result = await testDb().query<UserBillingRow>(
-    `SELECT plan, stripe_customer_id, stripe_subscription_id, billing_interval, billing_currency, plan_valid_until, plan_cancel_at, litellm_key_id
+    `SELECT plan, stripe_customer_id, stripe_subscription_id, billing_interval, billing_currency, plan_valid_until, plan_cancel_at, litellm_key_id, subscription_event_at
        FROM users WHERE id = $1`,
     [userId]
   )

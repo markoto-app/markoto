@@ -80,6 +80,11 @@ describe.skipIf(!SANDBOX_CONFIGURED)('Pro: free to monthly, then monthly to annu
     const events = await pro.feed.collect(['customer.subscription.updated', 'invoice.paid'])
     const results = await deliverAll(events)
     expect(results.every(r => r.handled && !r.stashed)).toBe(true)
+    // The switch's own event was applied, not taken for an older one: the
+    // row now carries its time (the app's write carried Stripe's time just
+    // before the change).
+    const updated = events.filter(e => e.type === 'customer.subscription.updated').at(-1)
+    expect((await userRow(pro.app.user.id)).subscription_event_at?.getTime()).toBe((updated?.created ?? 0) * 1000)
 
     const live = await retrieveSubscription(stripe, pro.subscription.id)
     const billing = await userBilling(pro.app.client)

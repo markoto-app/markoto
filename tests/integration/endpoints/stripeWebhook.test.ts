@@ -710,37 +710,39 @@ describe('POST /api/webhooks/stripe: out-of-order delivery', () => {
     expect(first(drained.rows).processed_at).not.toBeNull()
   })
 
-  it('stashed subscription.updated is replayed and reflects in final user state', async () => {
-    // Tighter version of the above: explicitly assert that the stashed
-    // event's PRICE id (price_test_pro) wins over the canned price
-    // returned by stripe-mock's `subscriptions.retrieve`. This proves
-    // the drain happens AFTER the checkout's UPDATE, so the stashed
-    // event's later-applied UPDATE overrides any earlier write, the
-    // ordering required by the "received_at ASC" drain semantics.
+  // The checkout reads the LIVE subscription (stripe-mock's canned one:
+  // annual, CHF) as of that moment. A stashed event is replayed after it
+  // under the age rule: an older snapshot is not applied over the live
+  // state, a newer one is.
+  async function stashThenCheckout(stashedCreated: number): Promise<{ billing_interval: string | null, billing_currency: string | null, plan: string }> {
     const u = await createUser()
     const subEvent = loadStripeFixture('customer.subscription.updated-pro') as Record<string, unknown>
-    subEvent.id = 'evt_dropped_sub_001'
-    const r1 = await postWebhook(subEvent)
-    expect(r1.status).toBe(200)
-    const body1 = await r1.json()
-    expect(body1.stashed).toBe(true)
-
-    // User still bare: only the stash table got the data.
-    let row = await readUser(u.id)
-    expect(row.plan).toBe('free')
+    subEvent.id = `evt_stashed_${nanoid(6)}`
+    subEvent.created = stashedCreated
+    const stashed = await postWebhook(subEvent)
+    expect((await stashed.json()).stashed).toBe(true)
+    expect((await readUser(u.id)).plan).toBe('free')
 
     const checkoutEvent = loadStripeFixture('checkout.session.completed') as Record<string, unknown>
     ;(checkoutEvent.data as { object: Record<string, unknown> }).object.client_reference_id = String(u.id)
-    checkoutEvent.id = 'evt_dropped_checkout_001'
-    await postWebhook(checkoutEvent)
+    checkoutEvent.id = `evt_checkout_${nanoid(6)}`
+    expect((await postWebhook(checkoutEvent)).status).toBe(200)
 
-    row = await readUser(u.id)
-    // Customer/sub ids landed during checkout's live fetch.
+    const row = await readUser(u.id)
     expect(row.stripe_customer_id).toBe('cus_test_alice')
     expect(row.stripe_subscription_id).toBe('sub_test_alice_pro')
-    // Plan='pro' came from the stash drain (replay of the original
-    // subscription.updated payload), not from the live fetch.
-    expect(row.plan).toBe('pro')
+    const r = await testDb().query<{ billing_interval: string | null, billing_currency: string | null, plan: string }>(
+      'SELECT billing_interval, billing_currency, plan FROM users WHERE id = $1', [u.id])
+    return first(r.rows)
+  }
+
+  it('a stashed event older than the checkout is not applied over the live subscription', async () => {
+    // The stashed snapshot says monthly EUR; the live subscription is annual CHF.
+    expect(await stashThenCheckout(Math.floor(Date.now() / 1000) - 3600)).toEqual({ plan: 'pro', billing_interval: 'year', billing_currency: 'chf' })
+  })
+
+  it('a stashed event newer than the checkout\'s read is applied', async () => {
+    expect(await stashThenCheckout(Math.floor(Date.now() / 1000) + 600)).toEqual({ plan: 'pro', billing_interval: 'month', billing_currency: 'eur' })
   })
 
   it('subscription.deleted arriving BEFORE customer is known: 200 + no-op (no row matches)', async () => {
@@ -1056,5 +1058,218 @@ describe('POST /api/webhooks/stripe: workspace subscriptions (Team / Business)',
     }))
     expect(res.status).toBe(200)
     expect(await readSub(ws.workspaceId)).toBeUndefined()
+  })
+})
+
+describe('POST /api/webhooks/stripe: an event older than the stored state is not applied', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  const T = 1_790_000_000
+  const MONTH_END = T + 30 * 24 * 3600
+  const YEAR_END = T + 365 * 24 * 3600
+
+  /** A personal subscription snapshot: monthly or annual Pro, created at `created`. */
+  function proEvent(created: number, interval: 'month' | 'year', extra: Record<string, unknown> = {}): Record<string, unknown> {
+    return makeStripeEvent('customer.subscription.updated', {
+      id: 'sub_age',
+      object: 'subscription',
+      customer: 'cus_age',
+      status: 'active',
+      cancel_at_period_end: false,
+      items: {
+        data: [{
+          id: 'si_age',
+          price: { id: interval === 'year' ? 'price_test_pro_year' : 'price_test_pro', object: 'price' },
+          current_period_start: T,
+          current_period_end: interval === 'year' ? YEAR_END : MONTH_END
+        }]
+      },
+      ...extra
+    }, { created })
+  }
+
+  async function proUser(): Promise<number> {
+    const u = await createUser()
+    await testDb().query('UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2 WHERE id = $3', ['cus_age', 'sub_age', u.id])
+    return u.id
+  }
+
+  async function shownInterval(userId: number): Promise<{ interval: string | null, end: number | null, eventAt: number | null }> {
+    const r = await testDb().query<{ billing_interval: string | null, plan_valid_until: Date | null, subscription_event_at: Date | null }>(
+      'SELECT billing_interval, plan_valid_until, subscription_event_at FROM users WHERE id = $1', [userId])
+    const row = first(r.rows)
+    return {
+      interval: row.billing_interval,
+      end: row.plan_valid_until ? row.plan_valid_until.getTime() / 1000 : null,
+      eventAt: row.subscription_event_at ? row.subscription_event_at.getTime() / 1000 : null
+    }
+  }
+
+  it('personal: the monthly event delivered after the newer annual one changes nothing', async () => {
+    const userId = await proUser()
+    expect((await postWebhook(proEvent(T + 100, 'year'))).status).toBe(200)
+    expect(await shownInterval(userId)).toEqual({ interval: 'year', end: YEAR_END, eventAt: T + 100 })
+
+    // A redelivery of the earlier state: acknowledged, recorded for dedup, not applied.
+    const late = proEvent(T + 40, 'month')
+    const res = await postWebhook(late)
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({ received: true, handled: true })
+    expect(await shownInterval(userId)).toEqual({ interval: 'year', end: YEAR_END, eventAt: T + 100 })
+    const dedup = await testDb().query('SELECT 1 FROM processed_webhook_events WHERE event_id = $1', [late.id])
+    expect(dedup.rowCount).toBe(1)
+  })
+
+  it('personal: an event of the same second applies, and so does a newer one', async () => {
+    const userId = await proUser()
+    await postWebhook(proEvent(T + 100, 'month'))
+    // Stripe's `created` has whole seconds: a second change in the same second must land.
+    await postWebhook(proEvent(T + 100, 'year'))
+    expect(await shownInterval(userId)).toEqual({ interval: 'year', end: YEAR_END, eventAt: T + 100 })
+    await postWebhook(proEvent(T + 101, 'month'))
+    expect(await shownInterval(userId)).toEqual({ interval: 'month', end: MONTH_END, eventAt: T + 101 })
+  })
+
+  it('personal: a late invoice.paid of the earlier, longer period does not move the period after a newer state', async () => {
+    const userId = await proUser()
+    await postWebhook(proEvent(T + 100, 'month'))
+    const invoice = makeStripeEvent('invoice.paid', {
+      id: 'in_age', object: 'invoice', customer: 'cus_age', subscription: 'sub_age',
+      lines: { data: [{ period: { start: T, end: YEAR_END } }] }
+    }, { created: T + 40 })
+    expect((await postWebhook(invoice)).status).toBe(200)
+    expect(await shownInterval(userId)).toMatchObject({ interval: 'month', end: MONTH_END })
+  })
+
+  it('personal: a late subscription.deleted does not end a subscription whose state is newer', async () => {
+    const userId = await proUser()
+    await postWebhook(proEvent(T + 100, 'year'))
+    const res = await postWebhook(makeStripeEvent('customer.subscription.deleted', { id: 'sub_old', object: 'subscription', customer: 'cus_age', status: 'canceled' }, { created: T + 40 }))
+    expect(res.status).toBe(200)
+    expect((await readUser(userId)).plan).toBe('pro')
+    expect(await shownInterval(userId)).toMatchObject({ interval: 'year', end: YEAR_END })
+
+    // The real end, later, does end it.
+    await postWebhook(makeStripeEvent('customer.subscription.deleted', { id: 'sub_age', object: 'subscription', customer: 'cus_age', status: 'canceled' }, { created: T + 200 }))
+    expect((await readUser(userId)).plan).toBe('free')
+  })
+
+  it('personal: past_due shows as an overdue payment in /api/user/billing, a paid state clears it', async () => {
+    const userId = await proUser()
+    const client = await loggedInClient(userId)
+    const overdue = async () => (await (await client.get('/api/user/billing')).json() as { plan: string, paymentOverdue: boolean })
+
+    await postWebhook(proEvent(T + 100, 'month', { status: 'active', items: { data: [{ id: 'si_age', price: { id: 'price_test_pro', object: 'price' }, current_period_start: Math.floor(Date.now() / 1000), current_period_end: Math.floor(Date.now() / 1000) + 30 * 24 * 3600 }] } }))
+    expect(await overdue()).toMatchObject({ plan: 'pro', paymentOverdue: false })
+
+    const pastDue = proEvent(T + 101, 'month', { status: 'past_due', items: { data: [{ id: 'si_age', price: { id: 'price_test_pro', object: 'price' }, current_period_start: Math.floor(Date.now() / 1000), current_period_end: Math.floor(Date.now() / 1000) + 30 * 24 * 3600 }] } })
+    await postWebhook(pastDue)
+    expect(await overdue()).toMatchObject({ plan: 'pro', paymentOverdue: true })
+
+    const paid = proEvent(T + 102, 'month', { status: 'active', items: { data: [{ id: 'si_age', price: { id: 'price_test_pro', object: 'price' }, current_period_start: Math.floor(Date.now() / 1000), current_period_end: Math.floor(Date.now() / 1000) + 30 * 24 * 3600 }] } })
+    await postWebhook(paid)
+    expect(await overdue()).toMatchObject({ plan: 'pro', paymentOverdue: false })
+  })
+
+  function workspaceEvent(created: number, priceId: string, seats: number, extra: Record<string, unknown> = {}): Record<string, unknown> {
+    return makeStripeEvent('customer.subscription.updated', {
+      id: 'sub_ws_age',
+      object: 'subscription',
+      customer: 'cus_ws_age',
+      status: 'active',
+      items: { data: [{ id: 'si_ws_age', quantity: seats, price: { id: priceId, object: 'price' }, current_period_start: T, current_period_end: priceId.includes('year') ? YEAR_END : MONTH_END }] },
+      ...extra
+    }, { created })
+  }
+
+  async function workspaceWithCustomer(): Promise<{ workspaceId: string, adminId: number }> {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    await testDb().query(
+      `INSERT INTO workspace_subscriptions (workspace_id, plan, seats, status, billing_admin_id, stripe_customer_id, stripe_subscription_id)
+       VALUES ($1, 'team', 3, 'incomplete', $2, 'cus_ws_age', 'sub_ws_age')`,
+      [ws.workspaceId, admin.id]
+    )
+    return { workspaceId: ws.workspaceId, adminId: admin.id }
+  }
+
+  async function workspaceState(workspaceId: string): Promise<Record<string, unknown>> {
+    const r = await testDb().query(
+      `SELECT plan, seats, status, interval, extract(epoch from valid_until)::int AS end, extract(epoch from subscription_event_at)::int AS event_at
+         FROM workspace_subscriptions WHERE workspace_id = $1`, [workspaceId])
+    return first(r.rows)
+  }
+
+  it('workspace: the older event (Business monthly, 3 seats) after the newer one (Business annual, 4 seats) changes nothing', async () => {
+    const { workspaceId } = await workspaceWithCustomer()
+    await postWebhook(workspaceEvent(T + 100, 'price_test_business_year', 4))
+    const newer = { plan: 'business', seats: 4, status: 'active', interval: 'year', end: YEAR_END, event_at: T + 100 }
+    expect(await workspaceState(workspaceId)).toEqual(newer)
+
+    expect((await postWebhook(workspaceEvent(T + 40, 'price_test_business', 3))).status).toBe(200)
+    expect(await workspaceState(workspaceId)).toEqual(newer)
+    // Nor does a late end of it.
+    await postWebhook(makeStripeEvent('customer.subscription.deleted', { id: 'sub_ws_age', object: 'subscription', customer: 'cus_ws_age', status: 'canceled' }, { created: T + 40 }))
+    expect(await workspaceState(workspaceId)).toEqual(newer)
+  })
+
+  it('workspace: an event of the same second applies; past_due shows as overdue in the billing overview', async () => {
+    const { workspaceId, adminId } = await workspaceWithCustomer()
+    await postWebhook(workspaceEvent(T + 100, 'price_test_team', 3))
+    await postWebhook(workspaceEvent(T + 100, 'price_test_team', 5, { status: 'past_due' }))
+    expect(await workspaceState(workspaceId)).toMatchObject({ plan: 'team', seats: 5, status: 'past_due', event_at: T + 100 })
+
+    const client = await loggedInClient(adminId)
+    const overview = await (await client.get(`/api/workspaces/${workspaceId}/billing`)).json() as { subscription: { paymentOverdue: boolean, status: string } }
+    expect(overview.subscription).toMatchObject({ status: 'past_due', paymentOverdue: true })
+  })
+
+  // The app writes a change it made itself right away, stamped with
+  // Stripe's time just before the change (stripe-mock's Date header, now).
+  const nowS = () => Math.floor(Date.now() / 1000)
+
+  it('personal: after the app\'s own switch, an event of the previous state is ignored and the change\'s own event applies', async () => {
+    // stripe-mock's canned subscription is annual CHF Pro.
+    const userId = await proUser()
+    await testDb().query(
+      `UPDATE users SET plan = 'pro', billing_currency = 'chf', billing_interval = 'year',
+         stripe_current_period_start = now() - interval '1 day', plan_valid_until = now() + interval '364 days' WHERE id = $1`, [userId])
+    const client = await loggedInClient(userId)
+    const swap = await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro', interval: 'month' })
+    expect(swap.status).toBe(200)
+    const stamped = (await shownInterval(userId)).eventAt as number
+    expect(Math.abs(stamped - nowS())).toBeLessThan(30)
+
+    // The annual state's event, redelivered an hour late.
+    await postWebhook(proEvent(nowS() - 3600, 'year'))
+    expect((await shownInterval(userId)).interval).toBe('month')
+
+    // The event Stripe sends for the change itself is created after the stamp.
+    const future = { current_period_start: nowS(), current_period_end: nowS() + 30 * 24 * 3600 }
+    await postWebhook(proEvent(nowS() + 2, 'month', { cancel_at_period_end: true, items: { data: [{ id: 'si_age', price: { id: 'price_test_pro', object: 'price' }, ...future }] } }))
+    const billing = await (await client.get('/api/user/billing')).json() as { interval: string, cancelAt: string | null }
+    expect(billing).toMatchObject({ interval: 'month', cancelAt: new Date(future.current_period_end * 1000).toISOString() })
+  })
+
+  it('workspace: after the app\'s own seat and plan changes, an event of the previous state is ignored', async () => {
+    const { workspaceId, adminId } = await workspaceWithCustomer()
+    await testDb().query(
+      `UPDATE workspace_subscriptions SET status = 'active', seats = 3, current_period_start = now(), valid_until = now() + interval '30 days' WHERE workspace_id = $1`, [workspaceId])
+    const client = await loggedInClient(adminId)
+
+    expect((await client.post(`/api/workspaces/${workspaceId}/billing/seats`, { seats: 4 })).status).toBe(200)
+    expect(Math.abs((await workspaceState(workspaceId)).event_at as number - nowS())).toBeLessThan(30)
+    await postWebhook(workspaceEvent(nowS() - 3600, 'price_test_team', 3))
+    expect(await workspaceState(workspaceId)).toMatchObject({ plan: 'team', seats: 4 })
+
+    expect((await client.post(`/api/workspaces/${workspaceId}/billing/checkout`, { acceptPaidTerms: true, plan: 'business' })).status).toBe(200)
+    await postWebhook(workspaceEvent(nowS() - 1800, 'price_test_team', 4))
+    expect(await workspaceState(workspaceId)).toMatchObject({ plan: 'business', seats: 4 })
+
+    // The change's own event (created after the stamp) applies.
+    await postWebhook(workspaceEvent(nowS() + 2, 'price_test_business', 6))
+    expect(await workspaceState(workspaceId)).toMatchObject({ plan: 'business', seats: 6 })
   })
 })
