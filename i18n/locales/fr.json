@@ -747,7 +747,7 @@
     "tiers": {
       "free": "Toutes les fonctions d'écriture, plus une première dotation de points IA.",
       "pro": "Pour les rédacteurs indépendants : plus de points IA, d'espaces de travail et de stockage.",
-      "team": "Pour les équipes : par place, AI Points et stockage partagés, gestion pour les admins.",
+      "team": "Pour les équipes : par place, points IA et stockage partagés, gestion pour les admins.",
       "business": "Pour les organisations : Team avec authentification unique, export d'audit et limites sur mesure."
     },
     "freeAllowanceNote": "L'allocation gratuite utilise un modèle hébergé par Mistral AI dans l'UE, tant que la réserve commune de ce mois dure. Pour plus, ajoutez votre propre clé.",

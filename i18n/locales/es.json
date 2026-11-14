@@ -747,7 +747,7 @@
     "tiers": {
       "free": "Todas las funciones de escritura y una asignación inicial de puntos de IA.",
       "pro": "Para quien escribe en solitario: más puntos de IA, espacios de trabajo y almacenamiento.",
-      "team": "Para equipos: por puesto, AI Points y almacenamiento compartidos, controles de administración.",
+      "team": "Para equipos: por puesto, puntos de IA y almacenamiento compartidos, controles de administración.",
       "business": "Para organizaciones: Team con inicio de sesión único, exportación de auditoría y límites a medida."
     },
     "freeAllowanceNote": "La asignación gratuita funciona con un modelo alojado por Mistral AI en la UE, mientras dure la reserva compartida de este mes. Para más, añade tu propia clave.",

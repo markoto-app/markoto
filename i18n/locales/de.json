@@ -747,7 +747,7 @@
     "tiers": {
       "free": "Alle Schreibfunktionen und ein Startkontingent an KI-Punkten.",
       "pro": "Für Einzelpersonen: mehr KI-Punkte, Workspaces und Speicher.",
-      "team": "Für Teams: pro Platz, gemeinsame AI Points und Speicher, Verwaltung für Admins.",
+      "team": "Für Teams: pro Platz, gemeinsame KI-Punkte und Speicher, Verwaltung für Admins.",
       "business": "Für Organisationen: Team plus Single Sign-on, Audit-Export und eigene Limits."
     },
     "freeAllowanceNote": "Das kostenlose Kontingent läuft auf einem Modell, das Mistral AI in der EU betreibt, solange der gemeinsame Topf dieses Monats reicht. Für mehr hinterlege deinen eigenen Schlüssel.",
