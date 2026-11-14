@@ -12,6 +12,7 @@ import { MINIMAL_INSTANCE_CONFIG, type InstanceConfig } from '~~/shared/config/i
 import type { BillingMode } from '~~/shared/config/billingMode'
 import type { UserBilling } from '~/composables/billing/useBilling'
 import { billingKeys } from '~/queries/billing'
+import { accountKeys } from '~/queries/account'
 
 // A personal Pro subscriber: the pricing page marks only the price they
 // pay (plan AND billing period), the profile lets them switch between
@@ -40,6 +41,7 @@ function proBilling(patch: Partial<UserBilling> = {}): UserBilling {
   return {
     plan: 'pro',
     interval: 'month',
+    currency: 'eur',
     cancelAt: null,
     paymentOverdue: false,
     periodStart: '2027-01-01T00:00:00.000Z',
@@ -125,7 +127,7 @@ describe('pricing page: a Pro subscriber', () => {
     const wrapper = await mountPricing()
     const link = wrapper.find('[data-testid="pricing-credits-buy-link"]')
     expect(link.exists()).toBe(true)
-    expect(link.attributes('href')).toBe('/settings/profile#ai-credits')
+    expect(link.attributes('href')).toBe('/settings/profile#ai-points')
   })
 
   it('shows no credits link to a Free user', async () => {
@@ -158,8 +160,19 @@ describe('profile: spending and usage of a Pro subscriber', () => {
     expect(checkoutBodies).toEqual([{ plan: 'pro', interval: 'year', acceptPaidTerms: true }])
     await vi.waitFor(() => expect(wrapper.get('[data-testid="profile-plan"]').text()).toContain('Pro · annual'))
     expect(button().text()).toContain('Switch to monthly billing')
+    // The consent covered that switch only: the box is clear for the next one.
+    expect(wrapper.get('[data-testid="profile-switch-paid-terms"] [role="checkbox"]').attributes('aria-checked')).toBe('false')
+    expect(button().attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[data-testid="profile-plan-price"]').text()).toBe('€90 per year')
     expect(toastAdd).toHaveBeenCalledWith(expect.objectContaining({ title: 'Plan changed' }))
     expect(goToExternal).not.toHaveBeenCalled()
+  })
+
+  it('shows what the plan costs, in its currency and billing period', async () => {
+    billing = proBilling({ currency: 'chf' })
+    useQueryCache().setQueryData<UserBilling>(billingKeys.user(), billing)
+    const wrapper = await mountProfile()
+    expect(wrapper.get('[data-testid="profile-plan-price"]').text()).toMatch(/^CHF\s9 per month$/)
   })
 
   it('a renewing plan says when it renews, a cancelled one when it ends', async () => {
@@ -186,11 +199,30 @@ describe('profile: spending and usage of a Pro subscriber', () => {
     const overdue = await mountProfile()
     const notice = overdue.get('[data-testid="profile-payment-overdue"]')
     expect(notice.text()).toContain('Payment overdue')
+    // No "Renews on" under the overdue notice: the renewal is what failed.
+    expect(overdue.find('[data-testid="profile-plan-renews"]').exists()).toBe(false)
     // The plan still runs while Stripe retries.
     expect(overdue.get('[data-testid="profile-plan"]').text()).toContain('Pro')
     await notice.findAll('button').find(b => b.text().includes('Manage billing'))?.trigger('click')
     await flushPromises()
     await vi.waitFor(() => expect(goToExternal).toHaveBeenCalledWith('https://portal.stripe.test'))
+  })
+
+  it('shows placeholders, not default values, until the account and billing load', async () => {
+    const cache = useQueryCache()
+    for (const key of [billingKeys.user(), accountKeys.status()]) {
+      const entry = cache.get(key)
+      if (entry) cache.remove(entry)
+    }
+    registerEndpoint('/api/user/billing', () => new Promise(() => {}))
+    registerEndpoint('/api/user/account-status', () => new Promise(() => {}))
+    const wrapper = await mountProfile()
+    expect(wrapper.find('[data-testid="profile-spending-skeleton"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="profile-plan"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="profile-account-skeleton"]').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('$')
+    registerEndpoint('/api/user/billing', () => billing)
+    registerEndpoint('/api/user/account-status', () => null)
   })
 
   it('a Free account has no interval switch', async () => {

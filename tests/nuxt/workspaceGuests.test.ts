@@ -71,7 +71,9 @@ describe('WorkspaceUsagePanel', () => {
     expect(row).toContain('Maya Admin')
     expect(row).toContain('2 files · 2.0 MB')
     expect(row).toContain('512.0 KB')
-    expect(row).toContain('$1.25')
+    // AI spend in AI Points, never dollars.
+    expect(row).toContain('1,250')
+    expect(row).not.toContain('$')
     expect(w.find('[data-testid="workspace-usage-row-7"]').exists()).toBe(false)
     expect(w.get('[data-testid="workspace-usage-guest-7"]').text()).toContain('2 shared documents')
   })

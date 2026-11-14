@@ -70,12 +70,11 @@ const barColor = computed(() => {
   return 'bg-inverted'
 })
 
-// Reset date = `periodEnd`, straight from the server. Matches Stripe's
-// invoice date for paid users (anniversary) and first-of-next-month
-// for free users. Deriving locally as `periodStart + 1 month` would be
-// wrong for different month lengths and would miss paid anniversaries.
+// When the points refill: LiteLLM's own 30-day budget window, read from
+// the key (or the workspace team). Never the subscription's renewal date:
+// a yearly plan renews once a year but its points refill every month.
 const resetDate = computed(() => {
-  const iso = (isWorkspaceShared.value ? credits.value?.periodEnd : null) ?? billing.value?.periodEnd
+  const iso = credits.value?.resetsAt
   if (!iso) return ''
   const end = new Date(iso)
   try {
@@ -254,7 +253,11 @@ function onManage(): void {
           </NuxtLink>
         </p>
 
-        <div class="flex items-center gap-2 text-xs text-muted">
+        <div
+          v-if="resetDate"
+          class="flex items-center gap-2 text-xs text-muted"
+          data-testid="usage-badge-reset"
+        >
           <UIcon
             name="i-lucide-calendar"
             class="size-3.5 shrink-0"

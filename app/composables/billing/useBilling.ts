@@ -19,6 +19,8 @@ export function useBilling() {
   // A failed refetch keeps the last known data, so the plan badge doesn't
   // blink away on a transient error.
   const billing = computed<UserBilling | null>(() => loggedIn.value ? query.data.value ?? null : null)
+  // Signed in and not answered yet: show a placeholder, never a default value.
+  const pending = computed(() => loggedIn.value && query.status.value === 'pending')
 
   // "At cap" is defined here once so every gated control disables in lockstep.
   // With no billing data (anonymous / fetch failed) it is false rather than
@@ -29,5 +31,5 @@ export function useBilling() {
     return b !== null && b.ownedWorkspaces >= b.workspacesOwnedLimit
   })
 
-  return { billing, refresh, workspaceCapReached }
+  return { billing, pending, refresh, workspaceCapReached }
 }

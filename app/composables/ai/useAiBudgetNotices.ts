@@ -25,7 +25,7 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
   const toast = useToast()
   const router = useRouter()
   const { refresh: refreshBilling } = useBilling()
-  const { isExhausted: pointsExhausted, isFreeAllowanceExhausted, isWorkspaceShared: creditsAreShared, isTeamBudgetExhausted, refresh: refreshAiCredits } = useAiCredits(workspaceId)
+  const { state: credits, isKnown: creditsKnown, isExhausted: pointsExhausted, isFreeAllowanceExhausted, isWorkspaceShared: creditsAreShared, isTeamBudgetExhausted, canManageWorkspaceBudget, refresh: refreshAiCredits } = useAiCredits(workspaceId)
   const { chatPlatformBilled } = useAiAvailability()
   const { billingEnabled, plansComingSoon, pricingVisible } = useBillingMode()
 
@@ -33,20 +33,44 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
   // own points do. Only platform-paid chat is affected, an own key keeps working.
   const freePoolExhausted = computed(() => chatPlatformBilled.value && isFreeAllowanceExhausted.value)
   const creditsExhausted = computed(() => freePoolExhausted.value || (chatPlatformBilled.value && pointsExhausted.value))
+  // Pro is the top personal plan: the way forward is buying AI Points, not an upgrade.
+  const canBuyPersonalPoints = computed(() => billingEnabled.value && !creditsAreShared.value && credits.value?.plan === 'pro')
+  // The workspace pool is used up and this user is one of its admins.
+  const adminCanRefillWorkspace = computed(() => creditsAreShared.value && isTeamBudgetExhausted.value && canManageWorkspaceBudget.value)
 
   function goToAiSettings(): void {
     void router.push(AI_SETTINGS_ROUTE)
   }
 
+  function goToBuyPoints(): void {
+    void router.push(BUY_AI_POINTS_ROUTE)
+  }
+
+  function goToWorkspaceBilling(): void {
+    const ws = workspaceId()
+    if (ws) void router.push({ path: `/w/${ws}`, query: { tab: 'billing' } })
+  }
+
   // Team / Business workspace: the team pool or the member's own limit is
-  // used up. Only an admin can change either, so never "upgrade".
+  // used up. Never "upgrade": admins add seats or buy AI Points for the
+  // workspace, members ask an admin.
   function showWorkspaceBudgetToast() {
-    const team = isTeamBudgetExhausted.value
+    if (!isTeamBudgetExhausted.value) {
+      toast.add({
+        title: t('ai.memberLimitReachedTitle'),
+        description: t('ai.memberLimitReachedDescription'),
+        icon: 'i-lucide-credit-card',
+        color: 'warning'
+      })
+      return
+    }
+    const admin = adminCanRefillWorkspace.value
     toast.add({
-      title: team ? t('ai.workspaceBudgetExhaustedTitle') : t('ai.memberLimitReachedTitle'),
-      description: team ? t('ai.workspaceBudgetExhaustedDescription') : t('ai.memberLimitReachedDescription'),
+      title: t('ai.workspaceBudgetExhaustedTitle'),
+      description: admin ? t('ai.workspaceBudgetExhaustedAdminDescription') : t('ai.workspaceBudgetExhaustedDescription'),
       icon: 'i-lucide-credit-card',
-      color: 'warning'
+      color: 'warning',
+      actions: admin ? [{ label: t('ai.workspaceBillingCta'), color: 'neutral', onClick: goToWorkspaceBilling }] : undefined
     })
   }
 
@@ -63,24 +87,26 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
   }
 
   // Personal-pool exhaustion toast. Billing mode picks the copy + CTA:
-  // billing on → "Upgrade"; hosted free-only SaaS → "refills next period,
-  // paid plans coming soon" + link to the coming-soon page; self-hosted →
-  // "refills next period", no action (there is nothing to buy).
+  // billing on → "Upgrade" (Free) or "Buy AI Points" (Pro, the top personal
+  // plan); hosted free-only SaaS → "refills next period, paid plans coming
+  // soon" + link to the coming-soon page; self-hosted → "refills next
+  // period", no action (there is nothing to buy).
   function showPersonalBudgetToast() {
     let description = t('ai.budgetExhaustedDescription')
-    if (!billingEnabled.value) {
-      description = plansComingSoon.value
-        ? t('ai.budgetExhaustedComingSoonDescription')
-        : t('ai.budgetExhaustedResetDescription')
-    }
     let actions: Array<{ label: string, color: 'primary' | 'neutral', onClick: () => void }> | undefined
     const goToPricing = () => {
       globalThis.location.href = '/pricing'
     }
-    if (billingEnabled.value) {
+    if (canBuyPersonalPoints.value) {
+      description = t('ai.budgetExhaustedProDescription')
+      actions = [{ label: t('ai.buyPointsCta'), color: 'neutral', onClick: goToBuyPoints }]
+    } else if (billingEnabled.value) {
       actions = [{ label: t('ai.upgradeCta'), color: 'primary', onClick: goToPricing }]
     } else if (plansComingSoon.value) {
+      description = t('ai.budgetExhaustedComingSoonDescription')
       actions = [{ label: t('billing.comingSoonCta'), color: 'neutral', onClick: goToPricing }]
+    } else {
+      description = t('ai.budgetExhaustedResetDescription')
     }
     toast.add({
       title: t('ai.budgetExhaustedTitle'),
@@ -92,17 +118,25 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
   }
 
   /**
-   * At-cap click → /pricing instead of a doomed request (the send button and
-   * a click on the greyed-out input). No redirect when the exhausted pool is
-   * workspace-shared: the member has nothing to upgrade; the toast already
-   * told them to contact the owner.
+   * At-cap click → the way forward instead of a doomed request (the send
+   * button and a click on the greyed-out input): /pricing for Free, buying
+   * AI Points for Pro, the workspace's billing for its admins. A member of
+   * an exhausted workspace has nothing to buy; the placeholder already says
+   * to ask an admin.
    */
   function onCapReached() {
     if (freePoolExhausted.value) {
       showFreeAllowanceToast()
       return
     }
-    if (creditsAreShared.value) return
+    if (creditsAreShared.value) {
+      if (adminCanRefillWorkspace.value) goToWorkspaceBilling()
+      return
+    }
+    if (canBuyPersonalPoints.value) {
+      goToBuyPoints()
+      return
+    }
     if (pricingVisible.value) {
       void router.push('/pricing')
       return
@@ -121,24 +155,27 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
   // When the run loop's mid-loop catch fires (LitellmBudgetExhausted from
   // the proxy), the prompt request itself returned 200, so `useAI` has no
   // `budgetExhausted` flip. The session-end refresh above pulls the new
-  // credit numbers; this watch reacts to the false→true transition and
-  // surfaces the toast the user would otherwise miss.
-  watch(creditsExhausted, (now, prev) => {
-    if (now && !prev) {
-      if (freePoolExhausted.value) {
-        showFreeAllowanceToast()
-        return
-      }
-      // Workspace-shared pool exhausted: the member can't fix this by
-      // upgrading; only the workspace admin's plan / spend matters. Use
-      // the workspace copy and drop the upgrade CTA.
-      if (creditsAreShared.value) {
-        showWorkspaceBudgetToast()
-        return
-      }
-      showPersonalBudgetToast()
+  // credit numbers; this watch reacts to a budget that was known to have
+  // points and now has none, and surfaces the toast the user would
+  // otherwise miss. Only within one budget: opening a workspace document
+  // switches from the user's own budget to the workspace's, and neither the
+  // switch nor a budget that was already empty when first read is news.
+  let lastReading: { scope: string | null, exhausted: boolean } | null = null
+  watch([creditsExhausted, creditsKnown, () => workspaceId() ?? null], ([now, known, scope]) => {
+    if (!known) return
+    const prev = lastReading
+    lastReading = { scope, exhausted: now }
+    if (!now || !prev || prev.scope !== scope || prev.exhausted) return
+    if (freePoolExhausted.value) {
+      showFreeAllowanceToast()
+      return
     }
-  })
+    if (creditsAreShared.value) {
+      showWorkspaceBudgetToast()
+      return
+    }
+    showPersonalBudgetToast()
+  }, { immediate: true })
 
   // A failed prompt: the budget notice when a budget ran out, else the generic failure toast.
   watch(() => ai.lastError.value, (err) => {
@@ -147,9 +184,8 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
       showFreeAllowanceToast()
       void refreshAiCredits()
     } else if (ai.budgetExhausted.value) {
-      // Dedicated budget-exhausted toast with an Upgrade action. Users
-      // need an obvious path forward, a generic "AI request failed"
-      // toast doesn't tell them what to do.
+      // Dedicated budget-exhausted toast with the way forward. A generic
+      // "AI request failed" toast doesn't tell them what to do.
       if (creditsAreShared.value) {
         showWorkspaceBudgetToast()
         return
@@ -166,5 +202,5 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
     ai.clearLastError()
   })
 
-  return { creditsExhausted, freePoolExhausted, creditsAreShared, isTeamBudgetExhausted, billingEnabled, onCapReached, goToAiSettings }
+  return { creditsExhausted, freePoolExhausted, creditsAreShared, isTeamBudgetExhausted, adminCanRefillWorkspace, canBuyPersonalPoints, billingEnabled, onCapReached, goToAiSettings }
 }

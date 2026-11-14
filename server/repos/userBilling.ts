@@ -1,4 +1,4 @@
-import { and, eq, isNull, lt, lte, or } from 'drizzle-orm'
+import { and, eq, isNotNull, isNull, lt, lte, or } from 'drizzle-orm'
 import { users } from '../db/schema'
 import { executor, useDatabase, type TxHandle } from '../db/client'
 import type { PersonalPlanName } from '~~/shared/config/tiers'
@@ -162,8 +162,8 @@ export async function recordOwnPlanChange(self: UserScope, subscriptionId: strin
 }
 
 /** What the profile and pricing pages show of the user's own subscription. */
-export async function getOwnSubscriptionFacts(self: UserScope): Promise<{ billingInterval: BillingInterval | null, planCancelAt: Date | null, subscriptionStatus: StripeSubscriptionStatus | null } | null> {
-  return (await useDatabase().select({ billingInterval: users.billingInterval, planCancelAt: users.planCancelAt, subscriptionStatus: users.subscriptionStatus })
+export async function getOwnSubscriptionFacts(self: UserScope): Promise<{ billingInterval: BillingInterval | null, billingCurrency: Currency | null, planCancelAt: Date | null, subscriptionStatus: StripeSubscriptionStatus | null } | null> {
+  return (await useDatabase().select({ billingInterval: users.billingInterval, billingCurrency: users.billingCurrency, planCancelAt: users.planCancelAt, subscriptionStatus: users.subscriptionStatus })
     .from(users).where(eq(users.id, self.userId)).limit(1))[0] ?? null
 }
 
@@ -181,4 +181,22 @@ export async function getOwnTopupFacts(self: UserScope) {
     stripeCustomerId: users.stripeCustomerId,
     billingCurrency: users.billingCurrency
   }).from(users).where(eq(users.id, self.userId)).limit(1))[0] ?? null
+}
+
+/**
+ * Personal subscriptions whose row no Stripe event or in-app change has
+ * written yet and that hold no end date: `backfillSubscriptionCancelDates`
+ * asks Stripe whether they were cancelled.
+ */
+export async function listUserSubscriptionsWithoutCancelState(_by: SystemActor): Promise<Array<{ userId: number, subscriptionId: string }>> {
+  const rows = await useDatabase().select({ userId: users.id, subscriptionId: users.stripeSubscriptionId }).from(users)
+    .where(and(isNotNull(users.stripeSubscriptionId), isNull(users.subscriptionEventAt), isNull(users.planCancelAt)))
+  return rows.flatMap(r => r.subscriptionId ? [{ userId: r.userId, subscriptionId: r.subscriptionId }] : [])
+}
+
+/** Store the end date Stripe reports for a cancelled subscription, unless an event has written the row meanwhile. */
+export async function backfillUserPlanCancelAt(_by: SystemActor, userId: number, subscriptionId: string, cancelAt: Date): Promise<number> {
+  return (await useDatabase().update(users).set({ planCancelAt: cancelAt })
+    .where(and(eq(users.id, userId), eq(users.stripeSubscriptionId, subscriptionId), isNull(users.subscriptionEventAt), isNull(users.planCancelAt)))
+    .returning({ id: users.id })).length
 }

@@ -48,6 +48,9 @@ export default defineApiHandler({
       // 'month' | 'year' on a paid plan, null on Free. Subscriptions stored
       // before the interval was recorded are judged by their period length.
       interval: subscription ? subscription.billingInterval ?? billingIntervalOfPeriod(ctx.periodStart, ctx.periodEnd) : null,
+      // The subscription's currency (a Stripe customer keeps one), so the
+      // profile can show what the plan costs; null on Free.
+      currency: subscription?.billingCurrency ?? null,
       // Set when the subscription was cancelled and ends then instead of renewing.
       cancelAt: subscription?.planCancelAt?.toISOString() ?? null,
       // The last renewal was not paid and Stripe is retrying: the plan still

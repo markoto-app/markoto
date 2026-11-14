@@ -340,6 +340,8 @@ interface KeyInfo {
   spend: number
   /** The key's `max_budget` ceiling in dollars. */
   maxBudget: number
+  /** When LiteLLM resets the spend (its 30-day `budget_duration`), ISO; null when unknown. */
+  budgetResetAt: string | null
 }
 
 /**
@@ -351,7 +353,7 @@ export async function getUserKeyInfo(userId: number, plan: PlanName): Promise<Ke
   if (isStubMode()) {
     // No real spend in tests, surface the static plan budget with zero
     // spend so the AI Points UI renders "{full} / {full} pts".
-    return { spend: 0, maxBudget: planToBudgetUsd(plan, getTiers()) }
+    return { spend: 0, maxBudget: planToBudgetUsd(plan, getTiers()), budgetResetAt: null }
   }
   const res = await litellmAdminFetch(`/key/info?key=${encodeURIComponent(handle.token)}`)
   if (!res.ok) {
@@ -361,7 +363,8 @@ export async function getUserKeyInfo(userId: number, plan: PlanName): Promise<Ke
   const { info } = litellmKeyInfoResponse.parse(await res.json())
   return {
     spend: info?.spend ?? 0,
-    maxBudget: info?.max_budget ?? planToBudgetUsd(plan, getTiers())
+    maxBudget: info?.max_budget ?? planToBudgetUsd(plan, getTiers()),
+    budgetResetAt: info?.budget_reset_at ?? null
   }
 }
 

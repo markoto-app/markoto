@@ -30,6 +30,7 @@ const MB = 1024 * 1024
 const BILLING: UserBilling = {
   plan: 'free',
   interval: null,
+  currency: null,
   cancelAt: null,
   paymentOverdue: false,
   periodStart: new Date().toISOString(),
@@ -90,6 +91,7 @@ function setCredits(poolExhausted: boolean): void {
     creditPoints: 0,
     plan: 'free',
     periodEnd: new Date().toISOString(),
+    resetsAt: null,
     attribution: 'user',
     freeAllowance: { pooled: true, exhausted: poolExhausted, resetsAt: null },
     workspace: null
@@ -210,6 +212,7 @@ describe('UsageBadge: plan budget, bought credits and the workspace budget', () 
       creditPoints: 10000,
       plan: 'pro',
       periodEnd: new Date().toISOString(),
+      resetsAt: null,
       attribution: 'user',
       freeAllowance: null,
       workspace: null
@@ -219,8 +222,31 @@ describe('UsageBadge: plan budget, bought credits and the workspace budget', () 
     // Brand tokens, no bright palette: ink while there are points.
     expect(wrapper.get('.usage-badge__bar-fill').classes()).toContain('bg-inverted')
     expect(document.body.querySelector('[data-testid="usage-badge-points-remaining"]')?.textContent).toBe('4,988')
-    expect(document.body.querySelector('[data-testid="usage-badge-credit-points"]')?.textContent).toContain('+ 10,000 points from AI credits')
+    expect(document.body.querySelector('[data-testid="usage-badge-credit-points"]')?.textContent).toContain('+ 10,000 extra AI Points')
     expect(document.body.querySelector('[data-testid="usage-badge-workspace-budget"]')).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('a yearly plan: the points refill on LiteLLM\'s date, not on the yearly renewal', async () => {
+    useAiWorkspaceContext().value = null
+    useQueryCache().setQueryData<AiCredits>(aiKeys.creditsFor(null), {
+      pointsRemaining: 4000,
+      pointsTotal: 5000,
+      planPointsRemaining: 4000,
+      creditPoints: 0,
+      plan: 'pro',
+      // The subscription renews in a year...
+      periodEnd: '2028-01-10T00:00:00.000Z',
+      // ...the budget refills in its 30-day window.
+      resetsAt: '2027-02-09T00:00:00.000Z',
+      attribution: 'user',
+      freeAllowance: null,
+      workspace: null
+    })
+    const wrapper = await mountBadge()
+    const reset = document.body.querySelector('[data-testid="usage-badge-reset"]')?.textContent ?? ''
+    expect(reset).toContain('Refills on Feb 9, 2027')
+    expect(reset).not.toContain('2028')
     wrapper.unmount()
   })
 
@@ -233,9 +259,10 @@ describe('UsageBadge: plan budget, bought credits and the workspace budget', () 
       creditPoints: 0,
       plan: 'team',
       periodEnd: new Date().toISOString(),
+      resetsAt: null,
       attribution: 'workspace',
       freeAllowance: null,
-      workspace: { workspaceId: 'ws-team', teamBudgetUsd: 25, teamSpendUsd: 5, memberLimitUsd: 10, memberSpendUsd: 7.5, exhausted: false, teamExhausted: false }
+      workspace: { workspaceId: 'ws-team', canManage: false, teamBudgetUsd: 25, teamSpendUsd: 5, memberLimitUsd: 10, memberSpendUsd: 7.5, exhausted: false, teamExhausted: false }
     })
     const wrapper = await mountBadge()
     const badge = wrapper.get('[data-testid="usage-badge"]').text()

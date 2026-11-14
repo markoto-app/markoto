@@ -41,7 +41,11 @@ export function useAiCredits(workspaceId?: MaybeRefOrGetter<string | null | unde
   })
   // Credits keep the AI running after the plan's budget: neither low nor empty then.
   const isLow = computed(() => creditPoints.value <= 0 && fillRatio.value > 0 && fillRatio.value < 0.1)
-  const isExhausted = computed(() => creditPoints.value <= 0 && fillRatio.value <= 0)
+  // Unknown is never "used up": while this budget loads (a document's
+  // workspace resolves after the page, so the budget switches from the
+  // user's own to the workspace's), the zeros above are no reading.
+  const isKnown = computed(() => state.value !== null)
+  const isExhausted = computed(() => isKnown.value && creditPoints.value <= 0 && fillRatio.value <= 0)
   const isFreeAllowanceExhausted = computed(() => state.value?.freeAllowance?.exhausted === true)
   // Team / Business workspace: the member's AI runs on the
   // workspace's budget. A member can't buy their way out of an empty
@@ -50,6 +54,8 @@ export function useAiCredits(workspaceId?: MaybeRefOrGetter<string | null | unde
   const attribution = computed(() => state.value?.attribution ?? 'user')
   const isWorkspaceShared = computed(() => attribution.value === 'workspace')
   const isTeamBudgetExhausted = computed(() => state.value?.workspace?.teamExhausted === true)
+  // A workspace admin can add seats or buy AI Points for the pool.
+  const canManageWorkspaceBudget = computed(() => state.value?.workspace?.canManage === true)
 
   return {
     state,
@@ -59,11 +65,16 @@ export function useAiCredits(workspaceId?: MaybeRefOrGetter<string | null | unde
     creditPoints,
     fillRatio,
     isLow,
+    isKnown,
     isExhausted,
     isFreeAllowanceExhausted,
     attribution,
     isWorkspaceShared,
     isTeamBudgetExhausted,
+    canManageWorkspaceBudget,
     refresh
   }
 }
+
+/** Where a Pro user buys extra AI Points (the profile's AI Points card). */
+export const BUY_AI_POINTS_ROUTE = '/settings/profile#ai-points'

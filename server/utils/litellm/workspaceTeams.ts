@@ -38,7 +38,7 @@ const WORKSPACE_TEAM_BUDGET_DURATION = '30d'
 const TEST_STUB_TOKEN = 'sk-fake-test-workspace-key'
 
 export const TEAM_BUDGET_EXHAUSTED_MESSAGE
-  = 'This workspace\'s AI budget is used up for this month. Ask a workspace admin to add seats or credits.'
+  = 'This workspace\'s AI Points for this month are used up. Ask a workspace admin to add seats or AI Points.'
 export const MEMBER_LIMIT_REACHED_MESSAGE
   = 'You\'ve reached your AI limit in this workspace for this month. Ask a workspace admin to raise it.'
 

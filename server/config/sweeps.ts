@@ -37,6 +37,7 @@ export const SWEEPS = {
   mcpSessions: { intervalMs: DAY_MS, startupDelayMs: 30 * SECOND_MS, idleAfterDays: 90 },
   orphanCleanup: { intervalMs: HOUR_MS, startupDelayMs: 30 * SECOND_MS },
   spendLogs: { intervalMs: DAY_MS },
+  subscriptionCancelBackfill: { intervalMs: DAY_MS, startupDelayMs: 2 * MINUTE_MS },
   waitlist: { intervalMs: HOUR_MS },
   webhookEvents: { intervalMs: DAY_MS },
   workspaceBudgetAlerts: { intervalMs: 15 * MINUTE_MS },

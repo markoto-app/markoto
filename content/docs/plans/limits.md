@@ -4,7 +4,7 @@ description: What you get today - a free tier with every writing feature - and w
 category: plans
 order: 1
 featured: true
-updated: '2026-11-09'
+updated: '2026-11-14'
 ---
 
 # Plans and limits
@@ -51,12 +51,12 @@ in such a workspace show the plan next to their title. Moving a document
 out of the workspace pauses the features the new place's plan doesn't
 include; nothing is deleted.
 
-## AI credits
+## Extra AI Points
 
 When a month's AI Points run out early, Pro users and Team / Business
-workspace admins can buy AI credits. Credits are used only after the
+workspace admins can buy extra AI Points. They are used only after the
 month's plan allowance is spent, carry over from month to month and expire
-12 months after purchase. The free plan can't buy credits.
+12 months after purchase. The free plan can't buy them.
 
 ## Seeing your usage
 

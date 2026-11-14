@@ -20,7 +20,7 @@ export const AI_STATUS_STEPS = {
   pointsExhausted: 'AI Points exhausted',
   aiUnavailable: 'The AI is not available right now. Please try again in a moment.',
   aiRateLimited: 'Too many AI requests in a short time. Please wait a minute and try again.',
-  teamBudgetExhausted: 'This workspace\'s AI budget is used up for this month. Ask a workspace admin to add seats or credits.',
+  teamBudgetExhausted: 'This workspace\'s AI Points for this month are used up. Ask a workspace admin to add seats or AI Points.',
   memberLimitReached: 'You\'ve reached your AI limit in this workspace for this month. Ask a workspace admin to raise it.',
   freeAllowanceExhausted: 'This month\'s free AI allowance is used up. Add your own key in Settings → AI provider to keep going.',
   webSearch: 'Searching the web for "{query}"',

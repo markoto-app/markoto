@@ -3,7 +3,7 @@ title: Upgrade your plan
 description: How upgrading works on an instance with paid plans live. Not available on markoto.app yet (plans are coming soon) or on self-hosted instances.
 category: plans
 order: 2
-updated: '2026-11-09'
+updated: '2026-11-14'
 ---
 
 # Upgrade your plan
@@ -23,12 +23,11 @@ Managing or cancelling a subscription opens Stripe's billing portal. Changes
 take effect as Stripe reports them; if a subscription lapses, you fall back
 to the free tier and nothing is deleted.
 
-On Pro you can also buy **AI credits** under Settings → Profile → Spending
-and usage (10, 25 or 50, in euros or Swiss francs; tick the Paid Plans
-Terms box first). Credits top up the
-monthly AI budget: they are used only after the month's budget is spent,
-and they expire 12 months after purchase. A refunded purchase removes the
-refunded share of its credits.
+On Pro you can also buy **extra AI Points** under Settings → Profile → Spending
+and usage (10, 25 or 50 euros or Swiss francs for 10,000, 25,000 or 50,000
+AI Points; tick the Paid Plans Terms box first). They are used only after
+the month's AI Points are spent, and they expire 12 months after purchase.
+A refunded purchase removes the refunded share of its points.
 
 The checkout and portal links answer "billing is disabled" wherever billing
 is off.
