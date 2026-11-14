@@ -2546,6 +2546,8 @@
     "system": "markoto",
     "deletedUser": "Usuario eliminado",
     "ipHint": "Dirección de red abreviada de la persona que lo hizo",
+    "yes": "sí",
+    "no": "no",
     "kind": {
       "all": "Todos los eventos",
       "members": "Miembros y roles",

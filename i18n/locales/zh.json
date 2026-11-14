@@ -2546,6 +2546,8 @@
     "system": "markoto",
     "deletedUser": "已删除的用户",
     "ipHint": "执行操作者的缩短网络地址",
+    "yes": "是",
+    "no": "否",
     "kind": {
       "all": "所有事件",
       "members": "成员和角色",

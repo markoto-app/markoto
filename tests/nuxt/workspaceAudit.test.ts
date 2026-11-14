@@ -33,6 +33,13 @@ afterEach(() => {
   queries.length = 0
 })
 
+/** The order of the date field's editable parts (Nuxt UI orders them by locale). */
+function segmentOrder(w: Wrapper): string[] {
+  return w.get('[data-testid="workspace-audit-from"]')
+    .findAll('[role="spinbutton"]')
+    .map((segment: { attributes: (name: string) => string | undefined }) => segment.attributes('data-reka-date-field-segment') ?? '')
+}
+
 describe('WorkspaceAuditPanel', () => {
   it('lists events readably, opens details, pages with the cursor', async () => {
     const w = await mountSuspended(WorkspaceAuditPanel, { props: { workspaceId: 'ws1' } })
@@ -40,6 +47,9 @@ describe('WorkspaceAuditPanel', () => {
     await vi.waitFor(() => expect(w.find('[data-testid="workspace-audit-event-11"]').exists()).toBe(true))
     const first = w.get('[data-testid="workspace-audit-event-11"]').text()
     expect(first).toContain('Role changed')
+    // A change event says what changed, in the reader's words.
+    expect(w.get('[data-testid="workspace-audit-event-11"] [data-testid="workspace-audit-change"]').text()).toBe('Editor → Viewer')
+    expect(w.find('[data-testid="workspace-audit-event-10"] [data-testid="workspace-audit-change"]').exists()).toBe(false)
     expect(first).toContain('Maya Chen')
     expect(first).toContain('203.0.113.0')
     // Unknown action: shown as is; a deleted actor is "Deleted user".
@@ -63,5 +73,25 @@ describe('WorkspaceAuditPanel', () => {
     await vi.waitFor(() => expect(w.find('[data-testid="workspace-audit-event-11"]').exists()).toBe(true))
     expect(w.get('[data-testid="workspace-audit-export-csv"]').attributes('href')).toBe('/api/workspaces/ws1/audit/export?format=csv')
     expect(w.get('[data-testid="workspace-audit-export-jsonl"]').attributes('href')).toBe('/api/workspaces/ws1/audit/export?format=jsonl')
+    // Both downloads are the same kind of control.
+    const classes = (id: string) => w.get(`[data-testid="${id}"]`).classes().sort().join(' ')
+    expect(classes('workspace-audit-export-jsonl')).toBe(classes('workspace-audit-export-csv'))
+  })
+
+  it('the date fields follow the UI language, not the browser', async () => {
+    const w = await mountSuspended(WorkspaceAuditPanel, { props: { workspaceId: 'ws1' } })
+    mounted.push(w)
+    await vi.waitFor(() => expect(w.find('[data-testid="workspace-audit-event-11"]').exists()).toBe(true))
+    // English UI: month, day, year.
+    expect(segmentOrder(w)).toEqual(['month', 'day', 'year'])
+
+    // German UI: day, month, year, whatever the browser's language is.
+    const i18n = useNuxtApp().$i18n
+    await i18n.setLocale('de')
+    try {
+      await vi.waitFor(() => expect(segmentOrder(w)).toEqual(['day', 'month', 'year']))
+    } finally {
+      await i18n.setLocale('en')
+    }
   })
 })

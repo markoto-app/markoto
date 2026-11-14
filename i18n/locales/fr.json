@@ -2546,6 +2546,8 @@
     "system": "markoto",
     "deletedUser": "Utilisateur supprimé",
     "ipHint": "Adresse réseau raccourcie de la personne à l’origine de l’action",
+    "yes": "oui",
+    "no": "non",
     "kind": {
       "all": "Tous les événements",
       "members": "Membres et rôles",

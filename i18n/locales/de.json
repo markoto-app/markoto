@@ -2546,6 +2546,8 @@
     "system": "markoto",
     "deletedUser": "Gelöschter Benutzer",
     "ipHint": "Gekürzte Netzwerkadresse der Person, die die Aktion ausgeführt hat",
+    "yes": "ja",
+    "no": "nein",
     "kind": {
       "all": "Alle Ereignisse",
       "members": "Mitglieder und Rollen",
