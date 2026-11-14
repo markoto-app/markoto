@@ -2431,7 +2431,7 @@
     "loadFailed": "无法加载单点登录设置。",
     "planNotice": "使用你自己的身份提供商进行单点登录是 Business 方案的功能。",
     "intro": "成员通过你的身份提供商（OpenID Connect 或 SAML）打开此工作区。管理员始终可以访问这些设置。",
-    "enforcedNotice": "单点登录已开启：成员只有通过你的身份提供商登录后才能打开此工作区（有效期 12 小时）。",
+    "enforcedNotice": "成员通过你的身份提供商登录，之后每 12 小时重新登录一次。",
     "idpTitle": "身份提供商",
     "protocol": {
       "oidc": "OpenID Connect",

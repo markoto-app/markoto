@@ -2431,7 +2431,7 @@
     "loadFailed": "Couldn't load the single sign-on settings.",
     "planNotice": "Single sign-on with your own identity provider is part of the Business plan.",
     "intro": "Members open this workspace through your identity provider (OpenID Connect or SAML). Admins can always reach these settings.",
-    "enforcedNotice": "Single sign-on is on: members open this workspace only after signing in through your identity provider (valid for 12 hours).",
+    "enforcedNotice": "Members sign in through your identity provider, and again every 12 hours.",
     "idpTitle": "Identity provider",
     "protocol": {
       "oidc": "OpenID Connect",

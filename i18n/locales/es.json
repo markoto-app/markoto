@@ -2431,7 +2431,7 @@
     "loadFailed": "No se pudo cargar la configuración del inicio de sesión único.",
     "planNotice": "El inicio de sesión único con tu propio proveedor de identidad forma parte del plan Business.",
     "intro": "Los miembros abren este espacio de trabajo con tu proveedor de identidad (OpenID Connect o SAML). Los administradores siempre pueden acceder a estos ajustes.",
-    "enforcedNotice": "El inicio de sesión único está activado: los miembros solo abren este espacio de trabajo después de iniciar sesión a través de tu proveedor de identidad (válido durante 12 horas).",
+    "enforcedNotice": "Los miembros inician sesión a través de tu proveedor de identidad y de nuevo cada 12 horas.",
     "idpTitle": "Proveedor de identidad",
     "protocol": {
       "oidc": "OpenID Connect",

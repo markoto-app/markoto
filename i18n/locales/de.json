@@ -2431,7 +2431,7 @@
     "loadFailed": "Die Einstellungen für Single Sign-on konnten nicht geladen werden.",
     "planNotice": "Single Sign-on mit deinem eigenen Identitätsanbieter ist Teil des Business-Plans.",
     "intro": "Mitglieder öffnen diesen Workspace über deinen Identitätsanbieter (OpenID Connect oder SAML). Admins erreichen diese Einstellungen immer.",
-    "enforcedNotice": "Single Sign-on ist eingeschaltet: Mitglieder öffnen diesen Workspace erst nach der Anmeldung über deinen Identitätsanbieter (gültig für 12 Stunden).",
+    "enforcedNotice": "Mitglieder melden sich über deinen Identitätsanbieter an, danach alle 12 Stunden erneut.",
     "idpTitle": "Identitätsanbieter",
     "protocol": {
       "oidc": "OpenID Connect",

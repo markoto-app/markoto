@@ -2431,7 +2431,7 @@
     "loadFailed": "Impossible de charger les paramètres d’authentification unique.",
     "planNotice": "L’authentification unique avec votre propre fournisseur d’identité fait partie du plan Business.",
     "intro": "Les membres ouvrent cet espace de travail via votre fournisseur d’identité (OpenID Connect ou SAML). Les admins accèdent toujours à ces réglages.",
-    "enforcedNotice": "L’authentification unique est activée : les membres n’ouvrent cet espace de travail qu’après s’être connectés via votre fournisseur d’identité (valable 12 heures).",
+    "enforcedNotice": "Les membres se connectent via votre fournisseur d’identité, puis de nouveau toutes les 12 heures.",
     "idpTitle": "Fournisseur d’identité",
     "protocol": {
       "oidc": "OpenID Connect",
