@@ -2323,6 +2323,8 @@
       "useCases": "用途",
       "templates": "テンプレート",
       "compare": "比較",
+      "allComparisons": "すべての比較",
+      "allTemplates": "すべてのテンプレート",
       "selfHost": "セルフホスト",
       "github": "GitHub の markoto"
     },

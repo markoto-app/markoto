@@ -2323,6 +2323,8 @@
       "useCases": "Cas d'usage",
       "templates": "Modèles",
       "compare": "Comparer",
+      "allComparisons": "Toutes les comparaisons",
+      "allTemplates": "Tous les modèles",
       "selfHost": "Auto-héberger",
       "github": "markoto sur GitHub"
     },

@@ -2323,6 +2323,8 @@
       "useCases": "Use cases",
       "templates": "Templates",
       "compare": "Compare",
+      "allComparisons": "All comparisons",
+      "allTemplates": "All templates",
       "selfHost": "Self-host",
       "github": "markoto on GitHub"
     },
