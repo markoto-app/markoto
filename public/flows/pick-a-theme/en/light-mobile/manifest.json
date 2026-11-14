@@ -19,7 +19,7 @@
       "text": "Every markoto document carries its own theme: fonts, colours, page margins, tables, the cover page. The same theme drives the preview and the PDF, so what you see on the right is what you send.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/JEn8DZncbh"
+      "path": "/d/0e-QCwFNA3"
     },
     {
       "kind": "chapter",
@@ -31,7 +31,7 @@
       "text": "New documents use the markoto theme: Fraunces headings, Inter body text, warm paper and vermillion accents. To try other looks, open the theme panel.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/JEn8DZncbh"
+      "path": "/d/0e-QCwFNA3"
     },
     {
       "kind": "approach",
@@ -41,7 +41,7 @@
         "x": 357,
         "y": 695
       },
-      "path": "/d/JEn8DZncbh",
+      "path": "/d/0e-QCwFNA3",
       "annotations": [
         {
           "label": "theme tab",
@@ -61,12 +61,12 @@
         "x": 357,
         "y": 695
       },
-      "path": "/d/JEn8DZncbh",
+      "path": "/d/0e-QCwFNA3",
       "highlights": [
         {
           "label": "Built-in presets",
           "x": 12,
-          "y": 494.75,
+          "y": 497.825439453125,
           "w": 179,
           "h": 286.25
         }
@@ -80,26 +80,26 @@
     {
       "kind": "narration",
       "text": "Each preset is a complete theme. Click a card to apply it; the preview updates right away, and your text stays exactly as it is.",
-      "file": "02.webp",
+      "file": "03.webp",
       "cursor": {
         "x": 357,
         "y": 695
       },
-      "path": "/d/JEn8DZncbh"
+      "path": "/d/0e-QCwFNA3"
     },
     {
       "kind": "approach",
-      "file": "03.webp",
+      "file": "04.webp",
       "caption": "Click \"arXiv preprint\" for the look of a LaTeX paper",
       "cursor": null,
-      "path": "/d/JEn8DZncbh"
+      "path": "/d/0e-QCwFNA3"
     },
     {
       "kind": "outcome",
-      "file": "04.webp",
+      "file": "05.webp",
       "caption": "arXiv preprint is applied: Times, justified text, numbered sections.",
       "cursor": null,
-      "path": "/d/JEn8DZncbh"
+      "path": "/d/0e-QCwFNA3"
     },
     {
       "kind": "chapter",
@@ -109,32 +109,32 @@
     {
       "kind": "narration",
       "text": "Nothing is final: click another preset any time. Back to markoto for the rest of this tour.",
-      "file": "05.webp",
+      "file": "06.webp",
       "cursor": {
         "x": 357,
         "y": 695
       },
-      "path": "/d/JEn8DZncbh"
+      "path": "/d/0e-QCwFNA3"
     },
     {
       "kind": "approach",
-      "file": "06.webp",
+      "file": "07.webp",
       "caption": "Tap \"markoto\" to return to the default",
       "cursor": {
         "x": 348,
         "y": 42
       },
-      "path": "/d/JEn8DZncbh"
+      "path": "/d/0e-QCwFNA3"
     },
     {
       "kind": "outcome",
-      "file": "07.webp",
+      "file": "08.webp",
       "caption": "Back to the markoto theme.",
       "cursor": {
         "x": 348,
         "y": 42
       },
-      "path": "/d/JEn8DZncbh"
+      "path": "/d/0e-QCwFNA3"
     }
   ],
   "next": {

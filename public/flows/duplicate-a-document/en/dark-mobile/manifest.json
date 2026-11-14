@@ -19,7 +19,7 @@
       "text": "A template gives you an empty structure; Duplicate copies a document you already have: its text, theme, images and document settings. Comments stay with the original. Handy when your team starts every new piece of work from a copy of a \"house\" document. The copy is independent: editing one never changes the other.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/Rxch2POJLh"
+      "path": "/d/HN1_HEgdx9"
     },
     {
       "kind": "approach",
@@ -29,17 +29,17 @@
         "x": 362,
         "y": 20
       },
-      "path": "/d/Rxch2POJLh"
+      "path": "/d/HN1_HEgdx9"
     },
     {
       "kind": "outcome",
       "file": "02.webp",
-      "caption": "The topbar menu opens — Duplicate is one of the doc actions.",
+      "caption": "The topbar menu opens, Duplicate is one of the doc actions.",
       "cursor": {
         "x": 362,
         "y": 20
       },
-      "path": "/d/Rxch2POJLh"
+      "path": "/d/HN1_HEgdx9"
     },
     {
       "kind": "approach",
@@ -49,17 +49,17 @@
         "x": 278,
         "y": 220
       },
-      "path": "/d/Rxch2POJLh"
+      "path": "/d/HN1_HEgdx9"
     },
     {
       "kind": "outcome",
       "file": "04.webp",
-      "caption": "A confirm dialog appears — markoto pre-fills the new title with \"Copy of …\".",
+      "caption": "A confirm dialog appears, markoto pre-fills the new title with \"Copy of …\".",
       "cursor": {
         "x": 278,
         "y": 220
       },
-      "path": "/d/Rxch2POJLh"
+      "path": "/d/HN1_HEgdx9"
     },
     {
       "kind": "chapter",
@@ -74,7 +74,7 @@
         "x": 278,
         "y": 220
       },
-      "path": "/d/Rxch2POJLh"
+      "path": "/d/HN1_HEgdx9"
     },
     {
       "kind": "approach",
@@ -84,17 +84,17 @@
         "x": 296,
         "y": 452
       },
-      "path": "/d/Rxch2POJLh"
+      "path": "/d/HN1_HEgdx9"
     },
     {
       "kind": "outcome",
       "file": "06.webp",
-      "caption": "The new doc opens — same body, same theme, fresh URL. Edit either copy independently from now on.",
+      "caption": "The new doc opens, same body, same theme, fresh URL. Edit either copy independently from now on.",
       "cursor": {
         "x": 296,
         "y": 452
       },
-      "path": "/d/7ud_2R1Wp1",
+      "path": "/d/ACm1dzLUoY",
       "hero": true
     }
   ],

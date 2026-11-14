@@ -31,7 +31,7 @@
         {
           "label": "Writing assistant",
           "x": 280,
-          "y": 320.5,
+          "y": 300.5,
           "w": 720,
           "h": 142
         }
@@ -48,7 +48,7 @@
       "caption": "Click \"Add your provider\"",
       "cursor": {
         "x": 366,
-        "y": 431
+        "y": 411
       },
       "path": "/settings/ai",
       "annotations": [
@@ -56,7 +56,7 @@
           "label": "Add your provider",
           "kind": "box",
           "x": 297,
-          "y": 417.5,
+          "y": 397.5,
           "w": 139.90625,
           "h": 28
         }
@@ -68,7 +68,7 @@
       "caption": "The form asks for the provider, its address, the model and your key",
       "cursor": {
         "x": 366,
-        "y": 431
+        "y": 411
       },
       "path": "/settings/ai"
     },
@@ -78,7 +78,7 @@
       "caption": "Pick your provider (here: Mistral), check the model and paste your API key",
       "cursor": {
         "x": 311,
-        "y": 710
+        "y": 690
       },
       "path": "/settings/ai"
     },
@@ -93,7 +93,7 @@
       "caption": "Click \"Save and verify\"",
       "cursor": {
         "x": 356,
-        "y": 783
+        "y": 769
       },
       "path": "/settings/ai"
     },
@@ -103,21 +103,21 @@
       "caption": "The connection works: the assistant now runs on your provider",
       "cursor": {
         "x": 356,
-        "y": 783
+        "y": 769
       },
       "path": "/settings/ai",
       "highlights": [
         {
           "label": "Verified",
           "x": 297,
-          "y": 568.203125,
+          "y": 554.203125,
           "w": 686,
           "h": 20
         },
         {
           "label": "Only the last four characters are shown",
           "x": 875.90625,
-          "y": 494.5,
+          "y": 480.5,
           "w": 94.09375,
           "h": 20
         }
@@ -130,7 +130,7 @@
       "file": "07.webp",
       "cursor": {
         "x": 356,
-        "y": 783
+        "y": 769
       },
       "path": "/settings/ai"
     }
