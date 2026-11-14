@@ -586,6 +586,7 @@
     "confirm": {
       "label": "markoto pregunta primero",
       "reason": "En esta sesión, markoto ha leído texto que no es tuyo (por ejemplo, de una página web o de otra persona), así que pregunta antes de acceder a tus otros documentos, al conocimiento del espacio de trabajo o a la web.",
+      "waiting": "Esperando tu confirmación…",
       "allow": "Permitir",
       "deny": "Denegar",
       "tools": {

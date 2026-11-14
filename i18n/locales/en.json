@@ -586,6 +586,7 @@
     "confirm": {
       "label": "markoto asks first",
       "reason": "markoto has read text in this session that did not come from you (for example from a web page or from another person), so it asks before reaching your other documents, workspace knowledge or the web.",
+      "waiting": "Waiting for your confirmation…",
       "allow": "Allow",
       "deny": "Deny",
       "tools": {
