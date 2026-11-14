@@ -1,3 +1,4 @@
+import { aiStatus } from '~~/shared/ai/statusSteps'
 import type { AgenticFunctionCall as FunctionCall } from '../aiTypes'
 import { executeFunctionByName, toolSchema } from '../../ai/tools/registry'
 import type { ToolResult } from '../../ai/tools/toolDefinition'
@@ -128,7 +129,7 @@ async function gateCrossBoundary(ctx: LoopContext, call: FunctionCall, validated
   const guard = ctx.opts.crossBoundary
   const name = call.name ?? ''
   if (!guard.needsConfirmation(name, validatedArgs)) return null
-  ctx.opts.setStatus('tool', 'Waiting for your confirmation…')
+  ctx.opts.setStatus('tool', aiStatus('waitingConfirmation'))
   const gate = await guard.beforeTool(name, validatedArgs, ctx.opts.abortController.signal)
   throwIfAborted(ctx)
   if (gate.allowed) return null

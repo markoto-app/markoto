@@ -1,3 +1,4 @@
+import { aiStatus } from '~~/shared/ai/statusSteps'
 import {
   AgenticFinishReason as FinishReason,
   type AgenticContent as Content,
@@ -48,7 +49,7 @@ function emitBudgetBreadcrumb(ctx: LoopContext, plan: string): void {
   } catch (e) {
     ctx.log(`failed to write budget-exhausted breadcrumb: ${e instanceof Error ? e.message : e}`)
   }
-  ctx.opts.setStatus('done', 'AI Points exhausted')
+  ctx.opts.setStatus('done', aiStatus('pointsExhausted'))
 }
 
 /**
@@ -121,13 +122,15 @@ function handleBudgetRefusal(ctx: LoopContext, e: unknown): boolean {
     const team = isWorkspaceTeamBudgetError(e)
     ctx.telemetry.outcome = team ? 'team-budget-exhausted' : 'member-limit-reached'
     ctx.telemetry.errorMessage = errorText(e)
-    ctx.opts.setStatus('error', team ? TEAM_BUDGET_EXHAUSTED_MESSAGE : MEMBER_LIMIT_REACHED_MESSAGE)
+    ctx.opts.setStatus('error', team
+      ? { text: TEAM_BUDGET_EXHAUSTED_MESSAGE, step: { key: 'teamBudgetExhausted' } }
+      : { text: MEMBER_LIMIT_REACHED_MESSAGE, step: { key: 'memberLimitReached' } })
     return true
   }
   if (isFreeAllowanceExhaustedError(e)) {
     ctx.telemetry.outcome = 'free-allowance-exhausted'
     ctx.telemetry.errorMessage = errorText(e)
-    ctx.opts.setStatus('error', FREE_ALLOWANCE_EXHAUSTED_MESSAGE)
+    ctx.opts.setStatus('error', { text: FREE_ALLOWANCE_EXHAUSTED_MESSAGE, step: { key: 'freeAllowanceExhausted' } })
     return true
   }
   if (e instanceof LitellmBudgetExhausted || isBudgetExceededError(e)) {

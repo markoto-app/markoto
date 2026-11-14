@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import * as Y from 'yjs'
+import { aiStatus } from '../../../shared/ai/statusSteps'
 import { FULL_AI_PROVIDERS } from '../fixtures/aiProviders'
 import {
   AgenticFinishReason as FinishReason,
@@ -162,8 +163,8 @@ describe('runAgenticLoop: single-turn happy path', () => {
     ])
     const setStatus = vi.fn()
     await runAgenticLoop(makeOpts({ ai, setStatus }))
-    expect(setStatus).toHaveBeenCalledWith('thinking', 'Thinking…')
-    expect(setStatus).toHaveBeenLastCalledWith('done', 'Done')
+    expect(setStatus).toHaveBeenCalledWith('thinking', aiStatus('thinking'))
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
     // No tool dispatch.
     expect(executeFunctionByName).not.toHaveBeenCalled()
   })
@@ -177,7 +178,7 @@ describe('runAgenticLoop: single-turn happy path', () => {
     ])
     const setStatus = vi.fn()
     await runAgenticLoop(makeOpts({ ai, setStatus }))
-    expect(setStatus).toHaveBeenLastCalledWith('done', 'Done')
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
   })
 
   it('first chunk has no finishReason but last does, runs to completion', async () => {
@@ -189,7 +190,7 @@ describe('runAgenticLoop: single-turn happy path', () => {
     }])
     const setStatus = vi.fn()
     await runAgenticLoop(makeOpts({ ai, setStatus }))
-    expect(setStatus).toHaveBeenLastCalledWith('done', 'Done')
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
   })
 })
 
@@ -329,7 +330,7 @@ describe('runAgenticLoop: terminal finishReasons', () => {
     }])
     const setStatus = vi.fn()
     await runAgenticLoop(makeOpts({ ai, setStatus }))
-    expect(setStatus).toHaveBeenLastCalledWith('error', expect.stringContaining(`Stopped: ${reason}`))
+    expect(setStatus).toHaveBeenLastCalledWith('error', aiStatus('stoppedReason', { reason: String(reason) }))
     // And NEVER dispatched the tool, the loop saw the bail reason first.
     expect(executeFunctionByName).not.toHaveBeenCalled()
   })
@@ -340,7 +341,7 @@ describe('runAgenticLoop: terminal finishReasons', () => {
     ])
     const setStatus = vi.fn()
     await runAgenticLoop(makeOpts({ ai, setStatus }))
-    expect(setStatus).toHaveBeenLastCalledWith('error', `Stopped: ${FinishReason.SAFETY}`)
+    expect(setStatus).toHaveBeenLastCalledWith('error', aiStatus('stoppedReason', { reason: FinishReason.SAFETY }))
   })
 })
 
@@ -360,7 +361,7 @@ describe('runAgenticLoop: MAX_TURNS cap', () => {
     executeFunctionByName.mockResolvedValue({ content: 'doc', isError: false })
     const setStatus = vi.fn()
     await runAgenticLoop(makeOpts({ ai, setStatus }))
-    expect(setStatus).toHaveBeenLastCalledWith('error', 'Hit turn limit')
+    expect(setStatus).toHaveBeenLastCalledWith('error', aiStatus('turnLimit'))
     // Exactly 20 turns executed (= 20 dispatches).
     expect(executeFunctionByName).toHaveBeenCalledTimes(20)
   })
@@ -531,7 +532,7 @@ describe('runAgenticLoop: degenerate function-call shapes', () => {
     // No tool dispatch happened.
     expect(executeFunctionByName).not.toHaveBeenCalled()
     const lastStatus = setStatus.mock.calls.at(-1)
-    expect(lastStatus).toEqual(['done', 'Done'])
+    expect(lastStatus).toEqual(['done', aiStatus('done')])
   })
 
   it('multi-tool turn where ONE handler throws, others STILL execute (per-call try/catch)', async () => {
@@ -592,7 +593,7 @@ describe('runAgenticLoop: terminal finishReason behaviour (no app-side billing)'
 
     const lastStatus = setStatus.mock.calls.at(-1)
     expect(lastStatus![0]).toBe('error')
-    expect(lastStatus![1]).toContain('SAFETY')
+    expect(lastStatus![1]).toEqual(aiStatus('stoppedReason', { reason: 'SAFETY' }))
   })
 
   it('MALFORMED_FUNCTION_CALL bails without dispatching tools', async () => {
@@ -648,7 +649,7 @@ describe('runAgenticLoop: taint + confirm gate (cross-document access)', () => {
     expect(parts[0]?.functionResponse?.name).toBe('list_my_documents')
     expect(parts[0]?.functionResponse?.response?.isError).toBe(true)
     expect(parts[0]?.functionResponse?.response?.output).toMatch(/did not allow/)
-    expect(setStatus).toHaveBeenCalledWith('tool', 'Waiting for your confirmation…')
+    expect(setStatus).toHaveBeenCalledWith('tool', aiStatus('waitingConfirmation'))
     expect(callsSeen).toHaveLength(2)
   })
 
@@ -750,7 +751,7 @@ describe('runAgenticLoop: stalled edits', () => {
     await runAgenticLoop(makeOpts({ ai, setStatus }, ytext))
     // 1 real edit + 3 stalled turns, then stop.
     expect(executeFunctionByName).toHaveBeenCalledTimes(4)
-    expect(setStatus).toHaveBeenLastCalledWith('done', 'Done')
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
     expect(setStatus).not.toHaveBeenCalledWith('error', expect.anything())
   })
 
@@ -785,7 +786,7 @@ describe('runAgenticLoop: stalled edits', () => {
     // progress, progress, then three reverts → stop after the 5th turn.
     expect(executeFunctionByName).toHaveBeenCalledTimes(5)
     expect(lastFunctionOutput(callsSeen[3]?.contents ?? [])).toContain('undoing your own edits')
-    expect(setStatus).toHaveBeenLastCalledWith('done', 'Done')
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
   })
 
   it('rejected old_str === new_str replacements count as stalled even without document text', async () => {
@@ -794,7 +795,7 @@ describe('runAgenticLoop: stalled edits', () => {
     const setStatus = vi.fn()
     await runAgenticLoop(makeOpts({ ai, setStatus }))
     expect(executeFunctionByName).toHaveBeenCalledTimes(3)
-    expect(setStatus).toHaveBeenLastCalledWith('done', 'Done')
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
   })
 
   it('the same failing edit repeated is stopped', async () => {
@@ -809,7 +810,7 @@ describe('runAgenticLoop: stalled edits', () => {
     // First failure + three repeats.
     expect(executeFunctionByName).toHaveBeenCalledTimes(4)
     expect(lastFunctionOutput(callsSeen[2]?.contents ?? [])).toContain('you already made this exact call')
-    expect(setStatus).toHaveBeenLastCalledWith('done', 'Done')
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
   })
 
   it('real progress between stalled turns resets the streak', async () => {
@@ -826,7 +827,7 @@ describe('runAgenticLoop: stalled edits', () => {
     const setStatus = vi.fn()
     await runAgenticLoop(makeOpts({ ai, setStatus }, ytext))
     expect(executeFunctionByName).toHaveBeenCalledTimes(5)
-    expect(setStatus).toHaveBeenLastCalledWith('done', 'Done')
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
   })
 
   it('reading between pointless edits does not reset the streak', async () => {
@@ -857,7 +858,7 @@ describe('runAgenticLoop: finishing after the work is done', () => {
     const setStatus = vi.fn()
     await runAgenticLoop(makeOpts({ ai, setStatus }, ytext))
     expect(executeFunctionByName.mock.calls.map(c => c[1])).toEqual(['insert_text'])
-    expect(setStatus).toHaveBeenLastCalledWith('done', 'Done')
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
   })
 
   it('closing prose does not replace an answer already sent with message_to_user', async () => {

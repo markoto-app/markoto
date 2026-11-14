@@ -1,3 +1,4 @@
+import { aiStatus } from '~~/shared/ai/statusSteps'
 import { z } from 'zod'
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { defineMetaTool, toolError, toolOk, type ToolResult } from './toolDefinition'
@@ -43,7 +44,7 @@ async function handleGetPageCount(
 ): Promise<ToolResult> {
   // No app-side charging: the renderer call is server-internal, so the
   // user only pays (via LiteLLM) for the chat turn that issued this call.
-  session.updateStatus('tool', 'Counting pages…')
+  session.updateStatus('tool', aiStatus('countPages'))
 
   try {
     if (!session.docAccess) return toolError('Error: rendering needs a document.')
@@ -70,7 +71,7 @@ async function handleViewPages(
   // No app-side charging: the page images are injected into the next
   // user turn as `image_url` parts; the per-image input-token cost is
   // billed by LiteLLM on that turn's chat completion.
-  session.updateStatus('tool', `Rendering ${requestedPages.length} page${requestedPages.length === 1 ? '' : 's'}…`)
+  session.updateStatus('tool', aiStatus('renderPages', undefined, requestedPages.length))
 
   const docAccess = session.docAccess
   if (!docAccess) return toolError('Error: rendering needs a document.')

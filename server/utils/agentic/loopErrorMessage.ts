@@ -1,5 +1,6 @@
 import { AiProviderUrlRefused } from '../aiProviders/urlPolicy'
 import { AiProviderCallError, errorStatus, providerErrorMessage } from '../aiProviders/requestFields'
+import { aiStatus, type AiStatusLine } from '~~/shared/ai/statusSteps'
 
 /** Shown when a platform-provided model call fails for any reason we
  *  don't have a more specific sentence for. */
@@ -24,4 +25,16 @@ export function loopErrorMessage(e: unknown): string {
   if (e instanceof AiProviderCallError) return providerErrorMessage(e.code, e)
   if (errorStatus(e) === 429) return AI_RATE_LIMITED_MESSAGE
   return AI_UNAVAILABLE_MESSAGE
+}
+
+/**
+ * `loopErrorMessage` as a status line: the fixed sentences carry their
+ * step code (translated in the prompt bar); policy and provider texts
+ * stay English.
+ */
+export function loopErrorStatus(e: unknown): AiStatusLine {
+  const text = loopErrorMessage(e)
+  if (text === AI_UNAVAILABLE_MESSAGE) return aiStatus('aiUnavailable')
+  if (text === AI_RATE_LIMITED_MESSAGE) return aiStatus('aiRateLimited')
+  return { text, step: null }
 }

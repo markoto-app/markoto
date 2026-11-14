@@ -1,3 +1,4 @@
+import type { AiStatusInput } from '~~/shared/ai/statusSteps'
 import jwt from 'jsonwebtoken'
 import { mcpClientUserId, type SessionJwtPayload } from '~~/shared/contracts/jwt'
 import { checkout, release, type PoolKey } from './yDocPool'
@@ -212,7 +213,7 @@ export async function connectAsMcpClient(input: ConnectAsMcpClientInput): Promis
   // Only the status kind is broadcast: awareness reaches every participant of the document,
   // and status messages can name the user's other documents, queries or
   // URLs. The MCP client learns the details from the tool result.
-  const updateStatus = (phase: ToolStatusPhase, _message?: string): void => {
+  const updateStatus = (phase: ToolStatusPhase, _status?: AiStatusInput): void => {
     entry.awareness.setLocalStateField('mcpStatus', { phase, message: null })
   }
 

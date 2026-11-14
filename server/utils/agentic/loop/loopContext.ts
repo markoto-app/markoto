@@ -5,6 +5,7 @@ import type {
   AgenticAIClient as AiClient
 } from '../aiTypes'
 import type { AiSession } from '../../ai/aiClient'
+import type { AiStatusInput } from '~~/shared/ai/statusSteps'
 import type { BillingContext } from '../../billing/billing'
 import type { CrossBoundaryGuard } from '../crossBoundary'
 import type { EditProgressTracker } from '../editProgress'
@@ -38,7 +39,7 @@ export interface RunLoopOptions {
   aiSession: AiSession
   sessionId: string
   abortController: AbortController
-  setStatus: (phase: StreamStatusPhase, message?: string) => void
+  setStatus: (phase: StreamStatusPhase, status?: AiStatusInput) => void
   /** Reasoning-token knob; 0 = thinking disabled. Mistral has no equivalent, so only the test seam uses it. */
   thinkingBudget?: number
   /**

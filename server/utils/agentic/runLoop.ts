@@ -1,3 +1,4 @@
+import { aiStatus } from '~~/shared/ai/statusSteps'
 import {
   AgenticFinishReason as FinishReason,
   type AgenticFunctionCall as FunctionCall
@@ -8,7 +9,7 @@ import { EditProgressTracker, STALLED_TURN_LIMIT } from './editProgress'
 import { ImageUrlProvenance } from './imageProvenance'
 import { initialUserParts } from './promptAssembly'
 import { useLogger } from '../platform/logger'
-import { SessionBudget } from './loop/sessionBudget'
+import { SessionBudget, sessionCapStatus } from './loop/sessionBudget'
 import { SessionTelemetry } from './loop/sessionTelemetry'
 import { readDocText, throwIfAborted, type LoopContext, type ResponseParts, type RunLoopOptions, type TurnResult } from './loop/loopContext'
 import { consumeStreamTurn, openProviderStream } from './loop/providerStream'
@@ -47,7 +48,7 @@ const TERMINAL_BAIL_REASONS: ReadonlySet<FinishReason | undefined> = new Set([
 
 async function runOneTurn(ctx: LoopContext, turnCount: number): Promise<TurnResult> {
   throwIfAborted(ctx)
-  ctx.opts.setStatus('thinking', 'Thinking…')
+  ctx.opts.setStatus('thinking', aiStatus('thinking'))
   ctx.log(`turn ${turnCount}: calling LLM (${ctx.contents.length} messages)`)
 
   const capResult = chargeTurnBudget(ctx, turnCount)
@@ -76,7 +77,7 @@ async function runOneTurn(ctx: LoopContext, turnCount: number): Promise<TurnResu
   if (TERMINAL_BAIL_REASONS.has(finishReason)) {
     ctx.telemetry.outcome = 'error'
     ctx.telemetry.errorMessage = `finish=${finishReason}`
-    ctx.opts.setStatus('error', `Stopped: ${finishReason}`)
+    ctx.opts.setStatus('error', aiStatus('stoppedReason', { reason: String(finishReason) }))
     return { kind: 'done', outcome: 'error' }
   }
 
@@ -89,7 +90,7 @@ function chargeTurnBudget(ctx: LoopContext, turnCount: number): TurnResult | nul
   if (charged.ok) return null
   ctx.telemetry.outcome = 'session-cap-exceeded'
   ctx.telemetry.errorMessage = charged.message
-  ctx.opts.setStatus('error', charged.message)
+  ctx.opts.setStatus('error', sessionCapStatus())
   return { kind: 'done', outcome: 'session-cap-exceeded' }
 }
 
@@ -115,7 +116,7 @@ async function dispatchToolCallsForTurn(
     if (outcome.kind === 'session-cap-exceeded') {
       ctx.telemetry.outcome = 'session-cap-exceeded'
       ctx.telemetry.errorMessage = outcome.message
-      ctx.opts.setStatus('error', outcome.message)
+      ctx.opts.setStatus('error', sessionCapStatus())
       return { kind: 'done', outcome: 'session-cap-exceeded' }
     }
     if (outcome.kind === 'provider-unavailable') {
@@ -131,7 +132,7 @@ async function dispatchToolCallsForTurn(
   if (commentTriggerDone) {
     ctx.log(`turn ${turnCount}: reply_to_comment landed on trigger thread, terminating comment-trigger loop`)
     ctx.telemetry.outcome = 'success'
-    ctx.opts.setStatus('done', 'Done')
+    ctx.opts.setStatus('done', aiStatus('done'))
     return { kind: 'done', outcome: 'success' }
   }
 
@@ -143,7 +144,7 @@ async function dispatchToolCallsForTurn(
     // burning turns into the turn-limit error.
     ctx.log(`turn ${turnCount}: ${progress.consecutiveStalledTurns} turns in a row without real edits (limit ${STALLED_TURN_LIMIT}), ending session`)
     ctx.telemetry.outcome = 'stalled'
-    ctx.opts.setStatus('done', 'Done')
+    ctx.opts.setStatus('done', aiStatus('done'))
     return { kind: 'done', outcome: 'stalled' }
   }
 
@@ -152,7 +153,7 @@ async function dispatchToolCallsForTurn(
     // a pathological case where all names were unset.
     ctx.log('no function responses to send; ending loop defensively')
     ctx.telemetry.outcome = 'success'
-    ctx.opts.setStatus('done', 'Done')
+    ctx.opts.setStatus('done', aiStatus('done'))
     return { kind: 'done', outcome: 'success' }
   }
 
@@ -199,7 +200,7 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
     // Ran out of turns.
     ctx.telemetry.outcome = 'turn-limit'
     ctx.telemetry.errorMessage = `Hit turn limit (${MAX_TURNS})`
-    opts.setStatus('error', 'Hit turn limit')
+    opts.setStatus('error', aiStatus('turnLimit'))
   } catch (e) {
     // If the loop body already classified the throw (abort) leave the
     // outcome alone; otherwise stamp the message so the telemetry event

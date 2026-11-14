@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { FULL_AI_PROVIDERS } from '../fixtures/aiProviders'
 import * as Y from 'yjs'
+import { aiStatus } from '../../../shared/ai/statusSteps'
 import { LitellmBudgetExhausted } from '../../../server/utils/litellm/userKeys'
 import { soloSessionGuard } from '../fixtures/crossBoundary'
 
@@ -10,7 +11,7 @@ import { soloSessionGuard } from '../fixtures/crossBoundary'
 //      `isBudgetExceededError`).
 //   2. The runLoop catches it WITHOUT rethrowing.
 //   3. A breadcrumb message is inserted into the session's Y.Doc with a Markdown link to /pricing.
-//   4. `setStatus('done', 'AI Points exhausted')` is called so the client UI tears down the spinner.
+//   4. `setStatus('done', aiStatus('pointsExhausted'))` is called so the client UI tears down the spinner.
 //
 // If a refactor ever drops the catch block (or drops the breadcrumb emission), this test fails uniformly.
 
@@ -155,7 +156,7 @@ describe('runLoop: LiteLLM budget-exceeded catch path', () => {
 
     const exhaustedCall = setStatus.mock.calls.find(([phase]) => phase === 'done')
     expect(exhaustedCall).toBeDefined()
-    expect(exhaustedCall![1]).toMatch(/AI Points exhausted/i)
+    expect(exhaustedCall![1]).toEqual(aiStatus('pointsExhausted'))
   })
 
   it('also catches `isBudgetExceededError`-shape errors (raw fetch error from LiteLLM)', async () => {
@@ -195,8 +196,11 @@ describe('runLoop: free-tier pool (team budget) exhausted', () => {
     await expect(runAgenticLoop(makeOpts({ ai: makeAiThrowing(new Error(TEAM_EXHAUSTED)), aiSession, setStatus }))).resolves.toBeUndefined()
 
     const errorCall = setStatus.mock.calls.find(([phase]) => phase === 'error')
-    expect(errorCall?.[1]).toBe('This month\'s free AI allowance is used up. Add your own key in Settings → AI provider to keep going.')
-    expect(setStatus.mock.calls.some(([, message]) => /AI Points exhausted/i.test(String(message)))).toBe(false)
+    expect(errorCall?.[1]).toEqual({
+      text: 'This month\'s free AI allowance is used up. Add your own key in Settings → AI provider to keep going.',
+      step: { key: 'freeAllowanceExhausted' }
+    })
+    expect(setStatus.mock.calls.some(([, status]) => /AI Points exhausted/i.test(String((status as { text?: string } | undefined)?.text)))).toBe(false)
     expect((aiSession as unknown as { ytext: Y.Text }).ytext.toString()).toBe('')
   })
 
@@ -204,6 +208,6 @@ describe('runLoop: free-tier pool (team budget) exhausted', () => {
     const setStatus = vi.fn()
     const keyExhausted = new Error('Budget has been exceeded! Key=key (sk-...lt2Q) Current cost: 0.51, Max budget: 0.5')
     await runAgenticLoop(makeOpts({ ai: makeAiThrowing(keyExhausted), setStatus }))
-    expect(setStatus.mock.calls.find(([phase]) => phase === 'done')?.[1]).toMatch(/AI Points exhausted/i)
+    expect(setStatus.mock.calls.find(([phase]) => phase === 'done')?.[1]).toEqual(aiStatus('pointsExhausted'))
   })
 })
