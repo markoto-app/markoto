@@ -260,10 +260,10 @@
       fi
       /opt/markoto-tools/bin/apprise -t "$1" -b "$2" -i markdown "${APPRISE_URLS}"
 
-# The hook's logic lives in a script: apt.conf strings are not shell, and
-# Debian 13's apt rejects the escaped quotes a multi-line inline command
-# needs ("Malformed tag").
-- name: Drop the apt notification script
+# One message per unattended-upgrades RUN. An apt `DPkg::Post-Invoke` hook
+# fires once per dpkg call, and unattended-upgrades calls dpkg once per
+# package: a run that upgraded 37 packages sent 37 identical messages.
+- name: Drop the OS update notification script
   ansible.builtin.copy:
     dest: /usr/local/sbin/markoto-apt-notify
     owner: root
@@ -271,30 +271,56 @@
     mode: "0755"
     content: |
       #!/bin/sh
-      # Managed by Ansible (markoto/base role). Called by apt after every
-      # run that touched packages (99-markoto-notify), including
-      # unattended-upgrades: sends the tail of its log through Apprise.
-      # Best-effort: always exits 0 so apt is never disrupted.
+      # Managed by Ansible (markoto/base role). Runs once after each
+      # unattended-upgrades run (apt-daily-upgrade.service drop-in) and
+      # sends what that run logged through Apprise, but only when it
+      # upgraded packages or logged an error. Best-effort: always exits 0.
       log=/var/log/unattended-upgrades/unattended-upgrades.log
+      state=/var/lib/markoto/apt-notify.offset
       [ -x /usr/local/bin/markoto-notify ] && [ -f "$log" ] || exit 0
-      tail="$(tail -n 30 "$log" 2>/dev/null || true)"
-      [ -n "$tail" ] || exit 0
-      /usr/local/bin/markoto-notify "OS update on $(hostname)" "Unattended-upgrades log tail:
+      mkdir -p /var/lib/markoto
+      size="$(wc -c < "$log")"
+      last="$(cat "$state" 2>/dev/null || echo 0)"
+      case "$last" in ''|*[!0-9]*) last=0 ;; esac
+      # A rotated log is shorter than the stored offset: start over.
+      [ "$last" -le "$size" ] || last=0
+      echo "$size" > "$state"
+      new="$(tail -c "+$((last + 1))" "$log" 2>/dev/null || true)"
+      echo "$new" | grep -Eq 'Packages that will be upgraded|ERROR' || exit 0
+      body="$(echo "$new" | grep -E 'Packages that will be upgraded|ERROR|WARNING|reboot' | tail -n 15)"
+      [ -f /var/run/reboot-required ] && body="$body
 
-      $tail" || true
+      A reboot is pending."
+      /usr/local/bin/markoto-notify "OS update on $(hostname)" "$body" || true
       exit 0
 
-- name: Drop apt post-Invoke hook for unattended-upgrades
+- name: Remove the per-dpkg apt hook (it sent one message per package)
+  ansible.builtin.file:
+    path: /etc/apt/apt.conf.d/99-markoto-notify
+    state: absent
+
+- name: Create the apt-daily-upgrade drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/apt-daily-upgrade.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Notify once after each unattended-upgrades run
   ansible.builtin.copy:
-    dest: /etc/apt/apt.conf.d/99-markoto-notify
+    dest: /etc/systemd/system/apt-daily-upgrade.service.d/markoto-notify.conf
     owner: root
     group: root
     mode: "0644"
     content: |
-      // Managed by Ansible (markoto/base role).
-      // Fires after every apt invocation that touched packages, including
-      // unattended-upgrades (script: /usr/local/sbin/markoto-apt-notify).
-      DPkg::Post-Invoke { "/usr/local/sbin/markoto-apt-notify || true"; };
+      # Managed by Ansible (markoto/base role).
+      [Service]
+      ExecStartPost=-/usr/local/sbin/markoto-apt-notify
+
+- name: Reload systemd for the apt-daily-upgrade drop-in
+  ansible.builtin.systemd_service:
+    daemon_reload: true
 
 # Disable the security role's mail path (we set _mail_to: "" in vars but
 # also drop a config snippet to make sure no MTA install gets triggered).

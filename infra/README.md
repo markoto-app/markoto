@@ -205,7 +205,7 @@ A single entry point for "something noteworthy happened on the box, ping me." Dr
 
 **Call sites:**
 
-- **APT post-invoke hook** (`/etc/apt/apt.conf.d/99-markoto-notify` → `/usr/local/sbin/markoto-apt-notify`, written by `roles/base/tasks/main.yml`), after an apt run it sends the tail of the unattended-upgrades log, so OS updates surface in the operator's notifications without a `mail` setup.
+- **OS update notification** (`/usr/local/sbin/markoto-apt-notify`, run once after each unattended-upgrades run by a drop-in of `apt-daily-upgrade.service`, both written by `roles/base/tasks/main.yml`): when that run upgraded packages or logged an error, it sends those log lines, plus a note when a reboot is pending. One message per run, not per package.
 - **Backup timer failure path** (`roles/backup_timer/tasks/main.yml`): `markoto-backup-now` runs `/usr/local/bin/backup.sh --once` in the sidecar (non-zero exit on a failed dump/upload; `scripts/selfhost-check.sh` asserts that path exists in the built image) and fires `markoto-notify "Backup failed on <host>"` with the last lines of its output. Soft-fails if Apprise isn't configured (the wrapper exits 0 with no URLs set).
 
 The wrapper is intentionally tiny: it sources `/etc/markoto/apprise.env` and runs the `apprise` CLI installed under `/opt/markoto-tools/` with `markoto-notify "<title>" "<body>"`. Adding a new call site = `markoto-notify "<title>" "<body>"`. Don't shell out to `apprise` directly anywhere else; the wrapper centralises the env lookup + soft-fail behaviour.
