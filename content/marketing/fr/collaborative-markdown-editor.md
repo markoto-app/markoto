@@ -56,7 +56,7 @@ L'onglet Activité liste chaque modification avec son auteur, sa date et le nomb
 ::flow-strip{id="restore-an-earlier-version" frames="09" caption="Après une restauration : le texte est revenu, et la restauration figure dans l'onglet Activité comme toute autre modification."}
 ::
 
-Pour aller plus loin, dans la documentation (en anglais) : [voir ce qui a changé](/docs/history/see-changes) et [restaurer une version antérieure](/docs/history/restore).
+Pour aller plus loin, dans la documentation (en anglais) : [voir ce qui a changé](/docs/import-export/see-changes) et [restaurer une version antérieure](/docs/import-export/restore).
 
 ## Espaces de travail et rôles
 
@@ -69,7 +69,7 @@ Les documents hors d'un espace de travail se partagent par lien. Le propriétair
 
 ## L'IA, un collaborateur que vous voyez
 
-Quand l'assistant IA modifie un document, il le rejoint comme une autre personne : son curseur et ses modifications apparaissent en direct pour tout le monde, dans le rouge de markoto, et ses modifications figurent dans l'historique comme celles des autres. Vous pouvez restaurer ce qu'il a changé. L'IA demande un compte ; sur markoto.app, elle fonctionne avec une petite allocation mensuelle ou avec [votre propre fournisseur d'IA](/docs/account/ai-provider).
+Quand l'assistant IA modifie un document, il le rejoint comme une autre personne : son curseur et ses modifications apparaissent en direct pour tout le monde, dans le rouge de markoto, et ses modifications figurent dans l'historique comme celles des autres. Vous pouvez restaurer ce qu'il a changé. L'IA demande un compte ; sur markoto.app, elle fonctionne avec une petite allocation mensuelle ou avec [votre propre fournisseur d'IA](/docs/ai/provider).
 
 ## Ce qu'il ne fait pas
 
@@ -103,6 +103,6 @@ items:
 ---
 ::
 
-::cta{title="Écrivez à plusieurs, dès maintenant." secondary-label="Lire la documentation sur la collaboration" secondary-to="/docs/workspaces/live-collab"}
+::cta{title="Écrivez à plusieurs, dès maintenant." secondary-label="Lire la documentation sur la collaboration" secondary-to="/docs/collaborate/live-collab"}
 Créez un document et envoyez le lien. Votre collaborateur n'a pas besoin de compte.
 ::

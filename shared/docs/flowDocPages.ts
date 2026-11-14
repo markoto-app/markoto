@@ -21,7 +21,7 @@ export function flowEmbedSlugs(markdown: string): string[] {
 
 /**
  * The /docs route for a markdown file path relative to content/docs
- * (`writing/comments.md` → `/docs/writing/comments`,
+ * (`collaborate/comments.md` → `/docs/collaborate/comments`,
  * `writing/index.md` → `/docs/writing`).
  */
 export function docsRouteForFile(relPath: string): string {

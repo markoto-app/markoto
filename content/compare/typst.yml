@@ -27,7 +27,7 @@ rows:
   - feature: Price
     markoto:
       value: Free on markoto.app; paid plans not launched yet
-      source: /docs/account/plans
+      source: /docs/plans/plans
       checked: '2026-11-04'
     competitor:
       value: Free; Pro $7.99 per month (less with annual billing)
@@ -45,7 +45,7 @@ rows:
   - feature: Real-time co-editing
     markoto:
       value: true
-      source: /docs/workspaces/live-collab
+      source: /docs/collaborate/live-collab
       checked: '2026-11-04'
     competitor:
       value: true
@@ -54,7 +54,7 @@ rows:
   - feature: Comments
     markoto:
       value: On every plan
-      source: /docs/writing/comments
+      source: /docs/collaborate/comments
       checked: '2026-11-04'
     competitor:
       value: Pro plan
@@ -109,7 +109,7 @@ rows:
     note: markoto keeps edits made during a short connection drop.
     markoto:
       value: false
-      source: /docs/workspaces/live-collab
+      source: /docs/collaborate/live-collab
       checked: '2026-11-04'
     competitor:
       value: Open-source compiler and CLI run locally
@@ -118,7 +118,7 @@ rows:
   - feature: Self-hosting
     markoto:
       value: Free, with Docker Compose
-      source: /docs/getting-started/self-hosting
+      source: /docs/self-hosting
       checked: '2026-11-04'
     competitor:
       value: On-premises web app from 5 members (custom price)

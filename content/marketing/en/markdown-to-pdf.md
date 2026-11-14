@@ -105,7 +105,7 @@ Create a document, then choose **File › Import** and pick the file. Markdown f
 - **Raw HTML is not rendered.** HTML tags in the Markdown show as text. Use Markdown syntax or the theme instead.
 - **Three page sizes.** A4, Letter and Legal. There are no custom page sizes.
 - **Images need an account.** Without one you can't upload pictures into a document.
-- **One document at a time.** There is no batch converter on the page. To export many documents from a script, use the [MCP server](/docs/account/mcp) with an account.
+- **One document at a time.** There is no batch converter on the page. To export many documents from a script, use the [MCP server](/docs/ai/mcp) with an account.
 
 For academic papers, see how markoto compares with [Overleaf](/compare/overleaf). Prices and limits are on the [pricing page](/pricing).
 

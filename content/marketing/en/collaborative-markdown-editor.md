@@ -53,7 +53,7 @@ The Activity tab lists every edit with who made it, when, and how many lines cha
 ::flow-strip{id="restore-an-earlier-version" frames="09" caption="After a restore: the text is back, and the restore is listed in the Activity tab like any other change."}
 ::
 
-More in the docs: [see what changed](/docs/history/see-changes) and [restore an earlier version](/docs/history/restore).
+More in the docs: [see what changed](/docs/import-export/see-changes) and [restore an earlier version](/docs/import-export/restore).
 
 ## Workspaces and roles
 
@@ -66,7 +66,7 @@ Documents outside a workspace are shared by link. The owner picks one of four mo
 
 ## The AI is a collaborator you can see
 
-When the AI assistant edits a document, it joins like another person: its cursor and its changes show up live for everyone, in markoto's red, and its edits are in the history like anyone else's. You can restore what it changed. The AI needs an account; on markoto.app it runs on a small monthly allowance or on [your own AI provider](/docs/account/ai-provider).
+When the AI assistant edits a document, it joins like another person: its cursor and its changes show up live for everyone, in markoto's red, and its edits are in the history like anyone else's. You can restore what it changed. The AI needs an account; on markoto.app it runs on a small monthly allowance or on [your own AI provider](/docs/ai/provider).
 
 ## What it doesn't do
 
@@ -100,6 +100,6 @@ items:
 ---
 ::
 
-::cta{title="Write together, starting now." secondary-label="Read the collaboration docs" secondary-to="/docs/workspaces/live-collab"}
+::cta{title="Write together, starting now." secondary-label="Read the collaboration docs" secondary-to="/docs/collaborate/live-collab"}
 Create a document and send the link. Your collaborator doesn't need an account.
 ::

@@ -88,6 +88,6 @@ items:
 ---
 ::
 
-::cta{title="Install markoto on your server." label="Read the install guide" to="/docs/getting-started/self-hosting" secondary-label="See pricing" secondary-to="/pricing"}
+::cta{title="Install markoto on your server." label="Read the install guide" to="/docs/self-hosting" secondary-label="See pricing" secondary-to="/pricing"}
 The guide covers requirements, configuration, backups, upgrades and troubleshooting.
 ::

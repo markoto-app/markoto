@@ -186,13 +186,13 @@ describe('faqStructuredData (::faq json-ld)', () => {
 describe('selfHostPath (header + footer "Self-host")', () => {
   it('is the marketing page on the marketing site and the install guide everywhere else', () => {
     expect(selfHostPath(true)).toBe('/self-hosted-markdown-editor')
-    expect(selfHostPath(false)).toBe('/docs/getting-started/self-hosting')
+    expect(selfHostPath(false)).toBe('/docs/self-hosting')
   })
 
   it('both targets exist, and the page stays out of the Use cases menu (it would be listed twice)', () => {
     const page = readFileSync(resolve(__dirname, '../../../content/marketing/en/self-hosted-markdown-editor.md'), 'utf8')
     expect(page).not.toMatch(/^navGroup:/m)
-    expect(existsSync(resolve(__dirname, '../../../content/docs/getting-started/self-hosting.md'))).toBe(true)
+    expect(existsSync(resolve(__dirname, '../../../content/docs/self-hosting/index.md'))).toBe(true)
   })
 })
 

@@ -20,7 +20,7 @@ export const PREFIXED_MARKETING_LOCALES = ['de', 'fr'] as const
 export type PrefixedMarketingLocale = typeof PREFIXED_MARKETING_LOCALES[number]
 
 /** The install guide in the docs: where "Self-host" points off the marketing site. */
-const SELF_HOST_DOCS_PATH = '/docs/getting-started/self-hosting'
+const SELF_HOST_DOCS_PATH = '/docs/self-hosting'
 /** The self-hosting page of the marketing site (content/marketing/en/self-hosted-markdown-editor.md, not in the Use cases menu). */
 const SELF_HOST_MARKETING_PATH = '/self-hosted-markdown-editor'
 
