@@ -874,7 +874,7 @@
     "creditsPercent": "{pct}% verbleibend",
     "creditsResetOn": "Zurücksetzung am {date}",
     "creditsExtra": "+ {points} Punkte aus KI-Guthaben",
-    "creditsWorkspace": "Die KI in diesem Dokument nutzt das Budget des Arbeitsbereichs.",
+    "creditsWorkspace": "Die KI in diesem Dokument nutzt das Budget des Workspace.",
     "creditsHint": "KI-Punkte decken KI ab, die die Instanz bezahlt: 1000 Punkte = 1 $ Modellnutzung.",
     "upgradeToPlan": "Upgrade auf {plan}",
     "topPlan": "Du nutzt den höchsten Tarif.",
