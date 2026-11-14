@@ -662,7 +662,7 @@
     "memberLimitReachedTitle": "已达到你的 AI 上限",
     "memberLimitReachedDescription": "你本月在此工作区的 AI 上限已用完。请让工作区管理员提高上限。",
     "memberLimitPlaceholder": "你在此处的 AI 上限已用完，请联系管理员",
-    "teamBudgetExhausted": "此工作区本月的 AI 点数已用完。请向工作区管理员申请更多。",
+    "teamBudgetExhausted": "此工作区本月的 AI 点数已用完。请让管理员增加席位或 AI 点数。",
     "memberLimitReached": "你本月在此工作区的 AI 上限已用完。请让管理员提高上限。",
     "locked": {
       "aiVoice": "此方案不包含语音输入",
@@ -708,7 +708,7 @@
       "pointsExhausted": "AI 点数已用完",
       "aiUnavailable": "AI 暂时不可用，请稍后再试。",
       "aiRateLimited": "短时间内 AI 请求过多。请等一分钟后再试。",
-      "teamBudgetExhausted": "此工作区本月的 AI 预算已用完。请让管理员增加席位或额度。",
+      "teamBudgetExhausted": "此工作区本月的 AI 点数已用完。请让管理员增加席位或 AI 点数。",
       "memberLimitReached": "你本月在此工作区的 AI 上限已用完。请让管理员提高上限。",
       "freeAllowanceExhausted": "本月的免费 AI 额度已用完。请在 设置 → AI 服务商 中添加你自己的密钥以继续使用。",
       "webSearch": "正在网上搜索“{query}”",

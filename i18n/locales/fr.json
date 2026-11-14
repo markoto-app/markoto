@@ -662,7 +662,7 @@
     "memberLimitReachedTitle": "Votre limite IA est atteinte",
     "memberLimitReachedDescription": "Vous avez utilisé votre limite IA dans cet espace pour ce mois. Demandez à un admin de l’espace de l’augmenter.",
     "memberLimitPlaceholder": "Votre limite IA ici est épuisée : demandez à un admin",
-    "teamBudgetExhausted": "Les points IA de cet espace sont épuisés pour ce mois-ci. Demandez-en davantage à un administrateur de l’espace.",
+    "teamBudgetExhausted": "Les points IA de cet espace sont épuisés pour ce mois. Demandez à un admin d’ajouter des places ou des points IA.",
     "memberLimitReached": "Vous avez atteint votre limite IA dans cet espace pour ce mois. Demandez à un admin de l’augmenter.",
     "locked": {
       "aiVoice": "La saisie vocale n’est pas incluse dans ce plan",
@@ -708,7 +708,7 @@
       "pointsExhausted": "Points IA épuisés",
       "aiUnavailable": "L’IA n’est pas disponible pour le moment. Réessayez dans un instant.",
       "aiRateLimited": "Trop de requêtes IA en peu de temps. Attendez une minute et réessayez.",
-      "teamBudgetExhausted": "Le budget IA de cet espace est épuisé pour ce mois. Demandez à un admin d’ajouter des places ou du crédit.",
+      "teamBudgetExhausted": "Les points IA de cet espace sont épuisés pour ce mois. Demandez à un admin d’ajouter des places ou des points IA.",
       "memberLimitReached": "Vous avez atteint votre limite IA dans cet espace pour ce mois. Demandez à un admin de l’augmenter.",
       "freeAllowanceExhausted": "L'allocation IA gratuite de ce mois est épuisée. Ajoutez votre propre clé dans Réglages → Fournisseur d'IA pour continuer.",
       "webSearch": "Recherche de « {query} » sur le web",

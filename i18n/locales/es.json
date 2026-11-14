@@ -662,7 +662,7 @@
     "memberLimitReachedTitle": "Has alcanzado tu límite de IA",
     "memberLimitReachedDescription": "Has usado tu límite de IA en este espacio este mes. Pide a un admin del espacio que lo aumente.",
     "memberLimitPlaceholder": "Tu límite de IA aquí está agotado; pide a un admin",
-    "teamBudgetExhausted": "Los puntos de IA de este espacio se han agotado este mes. Pide más a un administrador del espacio.",
+    "teamBudgetExhausted": "Los puntos de IA de este espacio se han agotado este mes. Pide a un admin que añada puestos o puntos de IA.",
     "memberLimitReached": "Has alcanzado tu límite de IA en este espacio este mes. Pide a un admin que lo aumente.",
     "locked": {
       "aiVoice": "La entrada por voz no está incluida en este plan",
@@ -708,7 +708,7 @@
       "pointsExhausted": "Puntos de IA agotados",
       "aiUnavailable": "La IA no está disponible ahora mismo. Inténtalo de nuevo en un momento.",
       "aiRateLimited": "Demasiadas solicitudes de IA en poco tiempo. Espera un minuto y vuelve a intentarlo.",
-      "teamBudgetExhausted": "El presupuesto de IA de este espacio está agotado este mes. Pide a un admin que añada puestos o crédito.",
+      "teamBudgetExhausted": "Los puntos de IA de este espacio se han agotado este mes. Pide a un admin que añada puestos o puntos de IA.",
       "memberLimitReached": "Has alcanzado tu límite de IA en este espacio este mes. Pide a un admin que lo aumente.",
       "freeAllowanceExhausted": "La asignación gratuita de IA de este mes se ha agotado. Añade tu propia clave en Ajustes → Proveedor de IA para continuar.",
       "webSearch": "Buscando «{query}» en la web",

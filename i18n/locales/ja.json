@@ -662,7 +662,7 @@
     "memberLimitReachedTitle": "AI の上限に達しました",
     "memberLimitReachedDescription": "今月このワークスペースでの AI の上限を使い切りました。ワークスペースの管理者に上限の引き上げを依頼してください。",
     "memberLimitPlaceholder": "ここでの AI の上限を使い切りました。管理者に依頼してください",
-    "teamBudgetExhausted": "このワークスペースの今月の AI ポイントを使い切りました。ワークスペースの管理者に追加を依頼してください。",
+    "teamBudgetExhausted": "このワークスペースの今月の AI ポイントを使い切りました。管理者に席数か AI ポイントの追加を依頼してください。",
     "memberLimitReached": "今月このワークスペースでの AI の上限に達しました。管理者に引き上げを依頼してください。",
     "locked": {
       "aiVoice": "このプランには音声入力が含まれていません",
@@ -708,7 +708,7 @@
       "pointsExhausted": "AIポイントを使い切りました",
       "aiUnavailable": "現在 AI を利用できません。しばらくしてからもう一度お試しください。",
       "aiRateLimited": "短時間に AI リクエストが多すぎます。1 分待ってからもう一度お試しください。",
-      "teamBudgetExhausted": "このワークスペースの今月の AI 予算を使い切りました。管理者に席数かクレジットの追加を依頼してください。",
+      "teamBudgetExhausted": "このワークスペースの今月の AI ポイントを使い切りました。管理者に席数か AI ポイントの追加を依頼してください。",
       "memberLimitReached": "今月このワークスペースでの AI の上限に達しました。管理者に引き上げを依頼してください。",
       "freeAllowanceExhausted": "今月の無料AI枠は使い切られました。続けるには、設定 → AI プロバイダーでご自身のキーを追加してください。",
       "webSearch": "ウェブで「{query}」を検索中",
