@@ -16,13 +16,13 @@
     },
     {
       "kind": "narration",
-      "text": "Publishing puts a copy of the document at its own public address. The document itself stays exactly as shared as before — here it is private. Publish again whenever you want the page to show your latest changes.",
+      "text": "Publishing puts a copy of the document at its own public address. The document itself stays exactly as shared as before, here it is private. Publish again whenever you want the page to show your latest changes.",
       "file": "01.webp",
       "cursor": {
         "x": 640,
         "y": 26
       },
-      "path": "/d/8iAjJJqhoJ"
+      "path": "/d/fbbeZUqAKs"
     },
     {
       "kind": "approach",
@@ -32,79 +32,52 @@
         "x": 915,
         "y": 26
       },
-      "path": "/d/8iAjJJqhoJ"
-    },
-    {
-      "kind": "outcome",
-      "file": "03.webp",
-      "cursor": {
-        "x": 915,
-        "y": 26
-      },
-      "path": "/d/8iAjJJqhoJ"
+      "path": "/d/fbbeZUqAKs"
     },
     {
       "kind": "approach",
-      "file": "04.webp",
+      "file": "03.webp",
       "caption": "Publish",
       "cursor": {
         "x": 454,
-        "y": 644
+        "y": 636
       },
-      "path": "/d/8iAjJJqhoJ",
+      "path": "/d/fbbeZUqAKs",
       "annotations": [
         {
           "label": "Publish as a web page",
           "kind": "box",
           "x": 408,
-          "y": 475.5,
+          "y": 483.5,
           "w": 464,
-          "h": 185
+          "h": 169
         }
       ]
     },
     {
-      "kind": "outcome",
-      "file": "05.webp",
-      "cursor": {
-        "x": 454,
-        "y": 644
-      },
-      "path": "/d/8iAjJJqhoJ"
-    },
-    {
       "kind": "approach",
-      "file": "06.webp",
+      "file": "04.webp",
       "caption": "Copy the address",
       "cursor": {
         "x": 816,
-        "y": 569
+        "y": 553
       },
-      "path": "/d/8iAjJJqhoJ"
+      "path": "/d/fbbeZUqAKs"
     },
     {
       "kind": "outcome",
-      "file": "07.webp",
-      "cursor": {
-        "x": 816,
-        "y": 569
-      },
-      "path": "/d/8iAjJJqhoJ"
-    },
-    {
-      "kind": "outcome",
-      "file": "07.webp",
+      "file": "05.webp",
       "caption": "The page is published at its own address",
       "cursor": {
         "x": 816,
-        "y": 569
+        "y": 553
       },
-      "path": "/d/8iAjJJqhoJ",
+      "path": "/d/fbbeZUqAKs",
       "highlights": [
         {
           "label": "Public address",
           "x": 408,
-          "y": 553,
+          "y": 537,
           "w": 384,
           "h": 32
         }
@@ -117,10 +90,10 @@
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
-      "caption": "Anyone with the address reads the page — no account, no editor",
+      "file": "06.webp",
+      "caption": "Anyone with the address reads the page, no account, no editor",
       "cursor": null,
-      "path": "/p/harbourline-depot-guide-p2wk26",
+      "path": "/p/harbourline-depot-guide-gpm8ce",
       "hero": true,
       "actor": "reader"
     }

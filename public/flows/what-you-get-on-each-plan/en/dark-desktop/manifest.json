@@ -12,11 +12,11 @@
     {
       "kind": "chapter",
       "level": 3,
-      "text": "Four ways to use markoto"
+      "text": "Four plans, side by side"
     },
     {
       "kind": "narration",
-      "text": "You can run markoto on your own server, write without an account, or sign in for a free account. Every account is on Free today. Pro, Team and Business show their planned prices and limits; nothing can be bought yet.",
+      "text": "Signed in, the pricing page shows one card per plan: Free, Pro, Team and Business. Every account is on Free today. Pro, Team and Business show their planned prices and limits; nothing can be bought yet.",
       "file": "01.webp",
       "cursor": null,
       "path": "/pricing"
@@ -31,18 +31,18 @@
         {
           "label": "your plan",
           "kind": "box",
-          "x": 648,
-          "y": 273,
+          "x": 80,
+          "y": 333,
           "w": 268,
-          "h": 630.5
+          "h": 554.5
         },
         {
           "label": "coming soon",
           "kind": "box",
-          "x": 932,
-          "y": 273,
+          "x": 364,
+          "y": 333,
           "w": 268,
-          "h": 630.5
+          "h": 554.5
         }
       ],
       "hero": true
@@ -50,20 +50,20 @@
     {
       "kind": "approach",
       "file": "03.webp",
-      "caption": "Click the \"Team\" tab",
+      "caption": "Click \"Annual\"",
       "cursor": {
-        "x": 1065,
-        "y": 476
+        "x": 626,
+        "y": 291
       },
       "path": "/pricing"
     },
     {
       "kind": "outcome",
       "file": "04.webp",
-      "caption": "Team shows its planned price per seat and the limits each seat adds to the workspace.",
+      "caption": "Pro, Team and Business all switch to their annual price. Team and Business are priced per seat.",
       "cursor": {
-        "x": 1065,
-        "y": 476
+        "x": 626,
+        "y": 291
       },
       "path": "/pricing"
     },
@@ -72,8 +72,8 @@
       "file": "05.webp",
       "caption": "Below the cards, a table compares every limit side by side.",
       "cursor": {
-        "x": 1138,
-        "y": 476
+        "x": 626,
+        "y": 291
       },
       "path": "/pricing",
       "highlights": [
@@ -96,8 +96,8 @@
       "text": "Want to know when Pro, Team and Business launch? Leave your email on the waitlist. markoto sends one email when they do, and every email has an unsubscribe link.",
       "file": "06.webp",
       "cursor": {
-        "x": 1138,
-        "y": 476
+        "x": 626,
+        "y": 291
       },
       "path": "/pricing"
     },
