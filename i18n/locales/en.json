@@ -585,7 +585,7 @@
     "otherSessionWorking": "markoto is working for {name}",
     "confirm": {
       "label": "markoto asks first",
-      "reason": "markoto has read text written by other people in this session, so it asks before reaching your other documents, workspace knowledge or the web.",
+      "reason": "markoto has read text in this session that did not come from you (for example from a web page or from another person), so it asks before reaching your other documents, workspace knowledge or the web.",
       "allow": "Allow",
       "deny": "Deny",
       "tools": {

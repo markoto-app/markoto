@@ -585,7 +585,7 @@
     "otherSessionWorking": "markoto 正在为 {name} 工作",
     "confirm": {
       "label": "markoto 需要你的确认",
-      "reason": "在本次会话中，markoto 读取了其他人撰写的文本，因此在访问你的其他文档、工作区知识库或网络之前会先征求你的同意。",
+      "reason": "在本次会话中，markoto 读取了并非由你撰写的文本（例如来自网页或其他人），因此在访问你的其他文档、工作区知识库或网络之前会先征求你的同意。",
       "allow": "允许",
       "deny": "拒绝",
       "tools": {
