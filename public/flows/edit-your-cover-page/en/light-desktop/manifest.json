@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/jI8LKc2yyp"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 1260,
         "y": 98
       },
-      "path": "/d/BCDnvTLAHk",
+      "path": "/d/jI8LKc2yyp",
       "annotations": [
         {
           "label": "theme tab",
@@ -52,7 +52,7 @@
         "x": 1260,
         "y": 98
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/jI8LKc2yyp"
     },
     {
       "kind": "approach",
@@ -62,7 +62,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/BCDnvTLAHk",
+      "path": "/d/jI8LKc2yyp",
       "annotations": [
         {
           "label": "Cover page accordion",
@@ -77,12 +77,12 @@
     {
       "kind": "outcome",
       "file": "05.webp",
-      "caption": "The cover-page editor expands — every field on one scroll-length panel.",
+      "caption": "The cover-page editor expands, every field on one scroll-length panel.",
       "cursor": {
         "x": 1120,
         "y": 438
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/jI8LKc2yyp"
     },
     {
       "kind": "chapter",
@@ -97,7 +97,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/jI8LKc2yyp"
     },
     {
       "kind": "approach",
@@ -107,27 +107,27 @@
         "x": 1120,
         "y": 618
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/jI8LKc2yyp"
     },
     {
       "kind": "outcome",
       "file": "08.webp",
-      "caption": "The four cover layouts list — pick one to preview it.",
+      "caption": "The four cover layouts list, pick one to preview it.",
       "cursor": {
         "x": 1120,
         "y": 618
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/jI8LKc2yyp"
     },
     {
       "kind": "approach",
       "file": "09.webp",
-      "caption": "Choose \"Banner — logo + title in a brand-tinted top band\"",
+      "caption": "Choose \"Banner: logo + title in a brand-tinted top band\"",
       "cursor": {
         "x": 1120,
         "y": 511
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/jI8LKc2yyp"
     },
     {
       "kind": "outcome",
@@ -137,7 +137,7 @@
         "x": 1120,
         "y": 511
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/jI8LKc2yyp"
     },
     {
       "kind": "chapter",
@@ -152,7 +152,7 @@
         "x": 1120,
         "y": 511
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/jI8LKc2yyp"
     },
     {
       "kind": "approach",
@@ -162,7 +162,7 @@
         "x": 991,
         "y": 438
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/jI8LKc2yyp"
     },
     {
       "kind": "outcome",
@@ -172,7 +172,7 @@
         "x": 991,
         "y": 438
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/jI8LKc2yyp"
     },
     {
       "kind": "approach",
@@ -182,7 +182,7 @@
         "x": 987,
         "y": 581
       },
-      "path": "/d/BCDnvTLAHk"
+      "path": "/d/jI8LKc2yyp"
     },
     {
       "kind": "outcome",
@@ -192,14 +192,14 @@
         "x": 987,
         "y": 581
       },
-      "path": "/d/BCDnvTLAHk",
+      "path": "/d/jI8LKc2yyp",
       "highlights": [
         {
           "label": "Your cover page",
           "x": 480.5,
-          "y": 115,
+          "y": 155,
           "w": 479.5,
-          "h": 656.25
+          "h": 616.25
         }
       ],
       "hero": true

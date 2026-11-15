@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/-WcmtvA8wn"
+      "path": "/d/FRnpzBYuUf"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 1260,
         "y": 98
       },
-      "path": "/d/-WcmtvA8wn",
+      "path": "/d/FRnpzBYuUf",
       "annotations": [
         {
           "label": "theme tab",
@@ -52,7 +52,7 @@
         "x": 1260,
         "y": 98
       },
-      "path": "/d/-WcmtvA8wn"
+      "path": "/d/FRnpzBYuUf"
     },
     {
       "kind": "approach",
@@ -62,7 +62,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/-WcmtvA8wn",
+      "path": "/d/FRnpzBYuUf",
       "annotations": [
         {
           "label": "Cover page accordion",
@@ -77,12 +77,12 @@
     {
       "kind": "outcome",
       "file": "05.webp",
-      "caption": "The cover-page editor expands — every field on one scroll-length panel.",
+      "caption": "The cover-page editor expands, every field on one scroll-length panel.",
       "cursor": {
         "x": 1120,
         "y": 438
       },
-      "path": "/d/-WcmtvA8wn"
+      "path": "/d/FRnpzBYuUf"
     },
     {
       "kind": "chapter",
@@ -97,7 +97,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/-WcmtvA8wn"
+      "path": "/d/FRnpzBYuUf"
     },
     {
       "kind": "approach",
@@ -107,27 +107,27 @@
         "x": 1120,
         "y": 618
       },
-      "path": "/d/-WcmtvA8wn"
+      "path": "/d/FRnpzBYuUf"
     },
     {
       "kind": "outcome",
       "file": "08.webp",
-      "caption": "The four cover layouts list — pick one to preview it.",
+      "caption": "The four cover layouts list, pick one to preview it.",
       "cursor": {
         "x": 1120,
         "y": 618
       },
-      "path": "/d/-WcmtvA8wn"
+      "path": "/d/FRnpzBYuUf"
     },
     {
       "kind": "approach",
       "file": "09.webp",
-      "caption": "Choose \"Banner — logo + title in a brand-tinted top band\"",
+      "caption": "Choose \"Banner: logo + title in a brand-tinted top band\"",
       "cursor": {
         "x": 1120,
         "y": 511
       },
-      "path": "/d/-WcmtvA8wn"
+      "path": "/d/FRnpzBYuUf"
     },
     {
       "kind": "outcome",
@@ -137,7 +137,7 @@
         "x": 1120,
         "y": 511
       },
-      "path": "/d/-WcmtvA8wn"
+      "path": "/d/FRnpzBYuUf"
     },
     {
       "kind": "chapter",
@@ -147,59 +147,59 @@
     {
       "kind": "narration",
       "text": "A short line under the title, such as a version, a team or \"Internal draft\". The subtitle is off by default: switch it on, then type.",
-      "file": "10.webp",
+      "file": "11.webp",
       "cursor": {
         "x": 1120,
         "y": 511
       },
-      "path": "/d/-WcmtvA8wn"
+      "path": "/d/FRnpzBYuUf"
     },
     {
       "kind": "approach",
-      "file": "11.webp",
+      "file": "12.webp",
       "caption": "Flip the \"Show subtitle\" toggle on",
       "cursor": {
         "x": 991,
         "y": 438
       },
-      "path": "/d/-WcmtvA8wn"
+      "path": "/d/FRnpzBYuUf"
     },
     {
       "kind": "outcome",
-      "file": "12.webp",
+      "file": "13.webp",
       "caption": "The subtitle field appears underneath, ready for input.",
       "cursor": {
         "x": 991,
         "y": 438
       },
-      "path": "/d/-WcmtvA8wn"
+      "path": "/d/FRnpzBYuUf"
     },
     {
       "kind": "approach",
-      "file": "13.webp",
+      "file": "14.webp",
       "caption": "Type a subtitle line",
       "cursor": {
         "x": 987,
         "y": 581
       },
-      "path": "/d/-WcmtvA8wn"
+      "path": "/d/FRnpzBYuUf"
     },
     {
       "kind": "outcome",
-      "file": "14.webp",
+      "file": "15.webp",
       "caption": "The subtitle appears on the cover. The PDF will open on this page.",
       "cursor": {
         "x": 987,
         "y": 581
       },
-      "path": "/d/-WcmtvA8wn",
+      "path": "/d/FRnpzBYuUf",
       "highlights": [
         {
           "label": "Your cover page",
           "x": 480.5,
-          "y": 115,
+          "y": 155,
           "w": 479.5,
-          "h": 656.25
+          "h": 616.25
         }
       ],
       "hero": true
