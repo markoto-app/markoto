@@ -22,7 +22,7 @@
         "x": 195,
         "y": 306
       },
-      "path": "/d/jzEMe9afsN"
+      "path": "/d/QDeOMu91Yx"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 97,
         "y": 695
       },
-      "path": "/d/jzEMe9afsN",
+      "path": "/d/QDeOMu91Yx",
       "annotations": [
         {
           "label": "mic tab",
@@ -47,12 +47,12 @@
     {
       "kind": "outcome",
       "file": "02.webp",
-      "caption": "The mic lights up red — markoto is listening.",
+      "caption": "The mic lights up red, markoto is listening.",
       "cursor": {
         "x": 97,
         "y": 695
       },
-      "path": "/d/jzEMe9afsN"
+      "path": "/d/QDeOMu91Yx"
     },
     {
       "kind": "chapter",
@@ -67,7 +67,7 @@
         "x": 97,
         "y": 695
       },
-      "path": "/d/jzEMe9afsN"
+      "path": "/d/QDeOMu91Yx"
     },
     {
       "kind": "outcome",
@@ -77,7 +77,7 @@
         "x": 97,
         "y": 695
       },
-      "path": "/d/jzEMe9afsN",
+      "path": "/d/QDeOMu91Yx",
       "highlights": [
         {
           "label": "dictated text",
@@ -102,31 +102,31 @@
         "x": 97,
         "y": 695
       },
-      "path": "/d/jzEMe9afsN"
+      "path": "/d/QDeOMu91Yx"
     },
     {
       "kind": "approach",
-      "file": "04.webp",
+      "file": "05.webp",
       "caption": "Click the mic again to stop",
       "cursor": {
         "x": 97,
         "y": 695
       },
-      "path": "/d/jzEMe9afsN"
+      "path": "/d/QDeOMu91Yx"
     },
     {
       "kind": "outcome",
-      "file": "05.webp",
-      "caption": "The mic returns to its idle state — no more streaming.",
+      "file": "06.webp",
+      "caption": "The mic returns to its idle state, no more streaming.",
       "cursor": {
         "x": 97,
         "y": 695
       },
-      "path": "/d/jzEMe9afsN"
+      "path": "/d/QDeOMu91Yx"
     }
   ],
   "next": {
     "slug": "write-with-ai",
-    "why": "Now ask the AI to extend what you dictated — voice in, AI out"
+    "why": "Now ask the AI to extend what you dictated, voice in, AI out"
   }
 }

@@ -19,7 +19,7 @@
       "text": "markoto records every change to a document (edits, comments, theme changes, AI edits) in the Activity tab. Each entry remembers how the document looked before that change, so you can bring that version back. Restoring takes one click and a confirmation, and everyone with the document open sees it at once.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/nExXp-FIS_"
+      "path": "/d/lD7b86OfEV"
     },
     {
       "kind": "chapter",
@@ -31,17 +31,17 @@
       "text": "Maya adds the release date to her announcement. A few seconds later she types her meeting notes into the wrong window: the whole announcement is selected and replaced.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/nExXp-FIS_"
+      "path": "/d/lD7b86OfEV"
     },
     {
       "kind": "outcome",
       "file": "02.webp",
       "caption": "Maya adds the release date at the end of the announcement.",
       "cursor": {
-        "x": 14,
-        "y": 342
+        "x": 195,
+        "y": 306
       },
-      "path": "/d/nExXp-FIS_"
+      "path": "/d/lD7b86OfEV"
     },
     {
       "kind": "outcome",
@@ -51,7 +51,7 @@
         "x": 14,
         "y": 307
       },
-      "path": "/d/nExXp-FIS_"
+      "path": "/d/lD7b86OfEV"
     },
     {
       "kind": "chapter",
@@ -66,7 +66,7 @@
         "x": 292,
         "y": 695
       },
-      "path": "/d/nExXp-FIS_"
+      "path": "/d/lD7b86OfEV"
     },
     {
       "kind": "outcome",
@@ -76,7 +76,7 @@
         "x": 292,
         "y": 695
       },
-      "path": "/d/nExXp-FIS_"
+      "path": "/d/lD7b86OfEV"
     },
     {
       "kind": "chapter",
@@ -91,21 +91,21 @@
         "x": 292,
         "y": 695
       },
-      "path": "/d/nExXp-FIS_"
+      "path": "/d/lD7b86OfEV"
     },
     {
       "kind": "approach",
       "file": "06.webp",
       "caption": "Click Restore on the newest entry, the mistake",
       "cursor": null,
-      "path": "/d/nExXp-FIS_"
+      "path": "/d/lD7b86OfEV"
     },
     {
       "kind": "outcome",
       "file": "07.webp",
       "caption": "markoto asks you to confirm before it changes the document for everyone.",
       "cursor": null,
-      "path": "/d/nExXp-FIS_"
+      "path": "/d/lD7b86OfEV"
     },
     {
       "kind": "approach",
@@ -115,7 +115,7 @@
         "x": 292,
         "y": 695
       },
-      "path": "/d/nExXp-FIS_"
+      "path": "/d/lD7b86OfEV"
     },
     {
       "kind": "outcome",
@@ -125,7 +125,7 @@
         "x": 348,
         "y": 42
       },
-      "path": "/d/nExXp-FIS_",
+      "path": "/d/lD7b86OfEV",
       "hero": true
     }
   ],

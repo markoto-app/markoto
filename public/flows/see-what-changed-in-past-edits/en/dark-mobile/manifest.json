@@ -16,13 +16,13 @@
     },
     {
       "kind": "narration",
-      "text": "Every edit in markoto is logged in the Activity tab — who, when, how many lines added or removed. Click any row to expand a diff drawer in place: green added lines, red removed, line numbers, git-style `@@` hunks. Read-only by default; the Restore button is one click further if you want to roll back.",
+      "text": "Every edit in markoto is logged in the Activity tab, who, when, how many lines added or removed. Click any row to expand a diff drawer in place: green added lines, red removed, line numbers, git-style `@@` hunks. Read-only by default; the Restore button is one click further if you want to roll back.",
       "file": "01.webp",
       "cursor": {
         "x": 195,
         "y": 306
       },
-      "path": "/d/_u62FIP7Ok"
+      "path": "/d/8Aq5duJU43"
     },
     {
       "kind": "approach",
@@ -32,17 +32,17 @@
         "x": 292,
         "y": 695
       },
-      "path": "/d/_u62FIP7Ok"
+      "path": "/d/8Aq5duJU43"
     },
     {
       "kind": "outcome",
       "file": "02.webp",
-      "caption": "The Activity feed opens — one row per edit, comment, restore, theme/title change.",
+      "caption": "The Activity feed opens, one row per edit, comment, restore, theme/title change.",
       "cursor": {
         "x": 292,
         "y": 695
       },
-      "path": "/d/_u62FIP7Ok"
+      "path": "/d/8Aq5duJU43"
     },
     {
       "kind": "chapter",
@@ -51,27 +51,27 @@
     },
     {
       "kind": "narration",
-      "text": "Edit rows are clickable — chevron + \"show details\" hint. The diff drawer expands inline; the editor stays where it is. No modal, no navigation. Click again to collapse.",
+      "text": "Edit rows are clickable, chevron + \"show details\" hint. The diff drawer expands inline; the editor stays where it is. No modal, no navigation. Click again to collapse.",
       "file": "03.webp",
       "cursor": {
         "x": 292,
         "y": 695
       },
-      "path": "/d/_u62FIP7Ok"
+      "path": "/d/8Aq5duJU43"
     },
     {
       "kind": "approach",
       "file": "03.webp",
       "caption": "Click the row to expand its diff",
       "cursor": null,
-      "path": "/d/_u62FIP7Ok"
+      "path": "/d/8Aq5duJU43"
     },
     {
       "kind": "outcome",
       "file": "04.webp",
-      "caption": "The diff drawer expands inline — green for added lines, red for removed, line numbers down the gutter.",
+      "caption": "The diff drawer expands inline, green for added lines, red for removed, line numbers down the gutter.",
       "cursor": null,
-      "path": "/d/_u62FIP7Ok",
+      "path": "/d/8Aq5duJU43",
       "hero": true
     }
   ],
