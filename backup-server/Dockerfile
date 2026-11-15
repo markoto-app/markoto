@@ -1,7 +1,7 @@
-# postgres:16-alpine gives us a pg_dump that exactly matches the server version
-# in compose. We override ENTRYPOINT to skip the postgres init scripts and run
-# our backup loop instead.
-FROM postgres:16-alpine@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab
+# postgres:18-alpine gives us a pg_dump that matches the server version in
+# compose (and, being newer, can still dump an older managed server). We
+# override ENTRYPOINT to skip the postgres init scripts and run our backup loop.
+FROM postgres:18.7-alpine@sha256:b6972e1115a4ff8eba5d7f7d19184926d1e16d7d1136ae1e1a7ebf286da0f015
 
 # gnupg: pipes the gzipped pg_dump through `gpg --symmetric --cipher-algo
 # AES256` so the S3 object is opaque to anyone without BACKUP_GPG_PASSPHRASE

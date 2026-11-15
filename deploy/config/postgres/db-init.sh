@@ -14,7 +14,15 @@
 #      from PUBLIC), so the LiteLLM role cannot open the app database and
 #      vice versa;
 #   4. objects created earlier by the admin role (installs that predate
-#      separate roles) are handed over to the owning role.
+#      separate roles) are handed over to the owning role;
+#   5. the app database exists with the `vector` extension (a managed
+#      cluster starts without it; the bundled image creates it at init).
+#
+# On a managed cluster the admin is not a superuser (OVH / Aiven `avnadmin`:
+# CREATEDB + CREATEROLE only) and there may be no `postgres` database (Aiven
+# has `defaultdb`): the maintenance database is found, not assumed, and the
+# admin grants itself SET + INHERIT on each consumer role so it may create
+# databases owned by it and read its tables for backups.
 #
 # A role whose name equals POSTGRES_USER means "no separate role": that
 # consumer keeps using the admin role (compose falls back to it when
@@ -22,6 +30,8 @@
 # .env, `docker compose up -d`.
 #
 # Environment (libpq): PGHOST PGPORT PGUSER PGPASSWORD [PGSSLMODE]
+#   ADMIN_DB          maintenance database (default: `postgres`, else
+#                     `defaultdb`, whichever exists)
 #   APP_DB            app database (POSTGRES_DB)
 #   APP_DB_USER       app/sync role   APP_DB_PASSWORD
 #   LITELLM_DB        litellm database (default litellm)
@@ -48,8 +58,11 @@ q() { # q DB [psql args...]  (SQL on stdin)
 }
 
 # The server may still be starting (managed cluster failover, slow disk).
+# template1 exists everywhere; it only serves to find the maintenance
+# database (CREATE DATABASE copies template1 and fails while a session is
+# connected to it, so nothing else runs there).
 i=0
-until psql -X -q -d postgres -c 'SELECT 1' >/dev/null 2>&1; do
+until psql -X -q -d template1 -c 'SELECT 1' >/dev/null 2>&1; do
   i=$((i + 1))
   if [ "$i" -ge 30 ]; then
     log "cannot connect to ${PGHOST:-postgres}:${PGPORT:-5432} as ${PGUSER}" >&2
@@ -57,13 +70,20 @@ until psql -X -q -d postgres -c 'SELECT 1' >/dev/null 2>&1; do
   fi
   sleep 2
 done
+if [ -z "${ADMIN_DB:-}" ]; then
+  ADMIN_DB="$(psql -X -q -A -t -d template1 -c "SELECT datname FROM pg_database WHERE datname IN ('postgres', 'defaultdb') AND datallowconn ORDER BY datname = 'postgres' DESC LIMIT 1")"
+fi
+if [ -z "$ADMIN_DB" ]; then
+  log "no maintenance database (postgres or defaultdb) on ${PGHOST:-postgres}: set ADMIN_DB" >&2
+  exit 1
+fi
 
 ensure_role() { # ensure_role NAME PASSWORD
   if [ -z "$2" ]; then
     log "role $1 is configured but its password is empty" >&2
     exit 1
   fi
-  q postgres -v role="$1" -v pw="$2" <<'SQL'
+  q "$ADMIN_DB" -v role="$1" -v pw="$2" <<'SQL'
 SELECT format('CREATE ROLE %I LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION', :'role')
 WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = :'role')
 \gexec
@@ -76,17 +96,20 @@ SELECT format('ALTER ROLE %I LOGIN PASSWORD %L', :'role', :'pw')
 SELECT format('ALTER ROLE %I NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS', :'role')
 WHERE (SELECT rolsuper FROM pg_roles WHERE rolname = CURRENT_USER)
 \gexec
--- A non-superuser admin (managed Postgres) must be a member of the role to
--- hand objects over to it, and to read its tables for backups.
-SELECT format('GRANT %I TO CURRENT_USER', :'role')
+-- A non-superuser admin (managed Postgres) needs SET on the role to create
+-- a database owned by it and hand objects over to it, and INHERIT to read
+-- its tables for backups. Since Postgres 16 the admin that creates a role
+-- only gets ADMIN OPTION on it (a membership row without SET or INHERIT),
+-- so `MEMBER` alone is not enough: grant both explicitly.
+SELECT format('GRANT %I TO CURRENT_USER WITH INHERIT TRUE, SET TRUE', :'role')
 WHERE NOT (SELECT rolsuper FROM pg_roles WHERE rolname = CURRENT_USER)
-  AND NOT pg_has_role(CURRENT_USER, :'role', 'MEMBER')
+  AND NOT (pg_has_role(CURRENT_USER, :'role', 'SET') AND pg_has_role(CURRENT_USER, :'role', 'USAGE'))
 \gexec
 SQL
 }
 
 ensure_database() { # ensure_database DB OWNER
-  q postgres -v db="$1" -v owner="$2" <<'SQL'
+  q "$ADMIN_DB" -v db="$1" -v owner="$2" <<'SQL'
 SELECT format('CREATE DATABASE %I OWNER %I', :'db', :'owner')
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = :'db')
 \gexec
@@ -163,7 +186,7 @@ SQL
 
 # CONNECT/TEMP for the owner (and superusers) only.
 lock_database() { # lock_database DB
-  q postgres -v db="$1" <<'SQL'
+  q "$ADMIN_DB" -v db="$1" <<'SQL'
 SELECT format('REVOKE ALL ON DATABASE %I FROM PUBLIC', :'db')
 \gexec
 SQL
@@ -176,12 +199,14 @@ separate_litellm=0
 
 if [ "$separate_app" = 1 ]; then
   ensure_role "$APP_DB_USER" "$APP_DB_PASSWORD"
-  ensure_database "$APP_DB" "$APP_DB_USER"
-  # pgvector is not a trusted extension: a non-superuser owner can't create
-  # it, so the admin does (the app's migration then finds it present).
-  q "$APP_DB" <<'SQL'
+fi
+ensure_database "$APP_DB" "$APP_DB_USER"
+# pgvector is not a trusted extension: a non-superuser owner can't create
+# it, so the admin does (the app's migration then finds it present).
+q "$APP_DB" <<'SQL'
 CREATE EXTENSION IF NOT EXISTS vector;
 SQL
+if [ "$separate_app" = 1 ]; then
   transfer_objects "$APP_DB" "$APP_DB_USER"
   log "app database $APP_DB owned by role $APP_DB_USER"
 else

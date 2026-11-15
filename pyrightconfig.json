@@ -4,7 +4,7 @@
     "deploy/config/litellm/custom_handlers.py",
     "tests/fixtures/fake-openai"
   ],
-  "pythonVersion": "3.13",
+  "pythonVersion": "3.14",
   "typeCheckingMode": "standard",
   "reportMissingImports": "warning",
   "reportMissingModuleSource": "none",

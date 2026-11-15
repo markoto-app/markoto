@@ -94,18 +94,18 @@ Prefer a pinned `vX.Y.Z` tag over `latest`, which moves with every release.
 
 | Service | Image | Purpose |
 |---|---|---|
-| `traefik` | `traefik:v3` | The only service with a published port. Routes `/` to the app, `/sync` to Hocuspocus and `/<bucket>/…` to SeaweedFS, all on one origin. Let's Encrypt in HTTPS mode. |
+| `traefik` | `traefik:v3.7` | The only service with a published port. Routes `/` to the app, `/sync` to Hocuspocus and `/<bucket>/…` to SeaweedFS, all on one origin. Let's Encrypt in HTTPS mode. |
 | `socket-proxy` | `tecnativa/docker-socket-proxy` | Read-only Docker API for Traefik (container list and events only); Traefik never gets the Docker socket itself. |
 | `app` | `markoto-app` | Nuxt (SSR + API + OAuth). Runs database migrations on start. |
 | `sync` | `markoto-sync` | Hocuspocus (real-time collaboration over WebSocket). |
 | `renderer` | `markoto-renderer` | Headless Chromium for server-side PDF export, with Chromium's own sandbox (needs the seccomp profile `deploy/config/renderer/seccomp.json` from the checkout). |
 | `markitdown` | `markoto-markitdown` | DOCX / PDF / PPTX / XLSX / HTML / EPUB import, knowledge-file parsing. |
-| `postgres` | `pgvector/pgvector:pg16` | All application data, document state, knowledge vectors. Volume `pg_data`. |
+| `postgres` | `pgvector/pgvector` (Postgres 18) | All application data, document state, knowledge vectors. Volume `pg_data`, mounted at `/var/lib/postgresql` (the cluster lives in `18/docker/` inside it). |
 | `valkey` | `valkey/valkey:9` | Rate limits, locks, per-document sync state. Volume `valkey_data`. |
 | `seaweedfs` | `chrislusf/seaweedfs` | S3-compatible storage: images, knowledge uploads (deleted after processing), PDF renders, data exports, backups. Volume `seaweed_data`. |
 | `s3-init` | `markoto-backup` | One-shot: creates the bucket. |
 | `litellm` | `ghcr.io/berriai/litellm` | AI gateway. Starts without any provider key. Admin UI off. |
-| `db-init` | `pgvector/pgvector:pg16` | One-shot on every start: creates the `litellm` database and the separate database roles for the app and LiteLLM (`deploy/config/postgres/db-init.sh`). |
+| `db-init` | `pgvector/pgvector` (Postgres 18) | One-shot on every start: creates the `litellm` database and the separate database roles for the app and LiteLLM (`deploy/config/postgres/db-init.sh`). |
 | `backup` | `markoto-backup` | Optional (`COMPOSE_PROFILES=backup`, on by default): encrypted `pg_dump` into the bucket. |
 
 Every container runs without Linux capabilities and with `no-new-privileges`; the app, sync, renderer, markitdown, LiteLLM, Valkey and Traefik run as non-root users (Traefik: root without capabilities) on a read-only root filesystem. Details: [SECURITY-HARDENING.md, section C](SECURITY-HARDENING.md#section-c-containers-networks-and-database-roles).
@@ -445,12 +445,37 @@ Keep the checkout and `IMAGE_TAG` on the same release: the compose files and the
 
 Before upgrading across several releases, read the [upgrade notes](#upgrade-notes) below and the [release notes](https://github.com/markoto-app/markoto/releases) of every release in between (each release's notes are the description of the pull request that shipped it).
 
+### Upgrading to Postgres 18
+
+The bundled database runs Postgres 18 (it was Postgres 16). Postgres has no in-place upgrade between major versions, and the Postgres 18 image keeps its data in a different place inside the volume (`18/docker/` instead of the volume root). On a Postgres 16 volume it refuses to start with `Error: in 18+, these Docker images are configured to store database data in a format which is compatible with "pg_ctlcluster"`. Your data is not touched.
+
+`./install.sh upgrade` checks the volume first and stops with a message when it still holds Postgres 16. Then run:
+
+```sh
+git pull                          # the release with Postgres 18
+./install.sh upgrade-postgres
+```
+
+It stops the stack, starts the old Postgres 16 image on the volume (without network), counts the rows of every table and dumps everything to `postgres-upgrade/pg16-<time>.sql.gz` in the checkout. It then moves the Postgres 16 files into `pg16-pre-upgrade/` inside the same volume (nothing is deleted), starts Postgres 18, restores the dump and checks that every table has the same number of rows. After that it runs a normal `upgrade`. Expect a few minutes of downtime per GB of data, and free disk space of about twice the database size (the dump plus the new copy). Take a [backup](#backups) first as with every upgrade.
+
+Once the instance works, remove what was kept:
+
+```sh
+rm -r postgres-upgrade/
+docker compose run --rm --no-deps --entrypoint rm postgres -rf /var/lib/postgresql/pg16-pre-upgrade
+```
+
+If you start the stack with plain `docker compose`, run the same script yourself before `docker compose up -d`: `sh deploy/config/postgres/pg-major-upgrade.sh upgrade` from the checkout (`COMPOSE="docker compose ..."` if you pass compose flags, `ENGINE=podman` for the Podman CLI). `sh deploy/config/postgres/pg-major-upgrade.sh check` exits with 3 while an upgrade is needed.
+
+To go back to Postgres 16 instead (an older release), stop the stack, move the files back (`docker compose run --rm --no-deps --entrypoint sh postgres -c 'rm -rf /var/lib/postgresql/18 && mv /var/lib/postgresql/pg16-pre-upgrade/* /var/lib/postgresql/ && rmdir /var/lib/postgresql/pg16-pre-upgrade'`) and check out the older release. Anything written after the upgrade is lost that way.
+
 ## Upgrade notes
 
 Changes that can need action when you upgrade an existing instance. Newest first. Anything not listed here is backwards compatible.
 
 | Change | Affects | What to do |
 |---|---|---|
+| **Postgres 18.** The bundled database moves from Postgres 16 to Postgres 18 (pgvector 0.8.7). The volume is now mounted at `/var/lib/postgresql` and the cluster lives in `18/docker/` inside it. Postgres has no in-place major upgrade: on a Postgres 16 volume the new image refuses to start. Also updated: LiteLLM 1.108.9, Traefik 3.7.19, Valkey 9.1.3, SeaweedFS 4.53, Python 3.14 in the document converter, Playwright 1.65.1 in the renderer. | Every instance with the bundled Postgres (not a managed database) | `./install.sh upgrade` stops with a message; run `./install.sh upgrade-postgres` (dump, keep the old files, restore, verify row counts). Details and the plain `docker compose` way: [Upgrading to Postgres 18](#upgrading-to-postgres-18). A managed Postgres 16 keeps working; upgrade it on your provider's side when convenient. |
 | **Web search and page fetch use AI Points.** Each `web_search` is charged $0.005 (5 AI Points) and each `fetch_url` $0.001 (1 AI Point) to the caller's AI budget, also for users on their own key, through two new billing-only LiteLLM models (`web-search-tick`, `web-fetch-tick`) in the bundled `deploy/config/litellm/config.yaml`. When the budget is used up, the tool is refused. | Instances with `STAAN_API_KEY` / `JINA_AI_API_KEY` | Nothing with the bundled LiteLLM config. With your own config, copy the two deployments and the `web-tool-tick` provider, or set `NUXT_LITELLM_WEB_SEARCH_TICK_MODEL=` and `NUXT_LITELLM_WEB_FETCH_TICK_MODEL=` (empty) to keep the tools free. Raise `TIER_FREE_LITELLM_BUDGET_USD` if your users search a lot. |
 | **ECDSA certificates, a routing health check that ignores sync, more open documents.** Let's Encrypt certificates are requested with ECDSA P-256 keys instead of Traefik's default RSA-4096 (a TLS handshake costs a fraction of the CPU). Traefik and the app container now check `/api/health/live` (the app plus its Postgres and Valkey connections) instead of `/api/health`, so a restart of the collaboration server or a sidecar no longer takes every page offline; `/api/health` still reports every component for monitors. The collaboration server's healthcheck runs every 5 s (was 30 s), so editors reconnect seconds after it restarts. `SYNC_MAX_ROOMS` defaults to 10000 (was 5000). | Instances in HTTPS mode (certificates); everyone (the rest) | `./install.sh upgrade` replaces RSA certificates once: it sets `acme.json` aside (kept next to it as `acme.json.rsa-<time>`) and Let's Encrypt issues new ones when Traefik starts; expect a few seconds of certificate warnings. With plain `docker compose`: `docker compose stop traefik`, then `docker compose run --rm --no-deps -T --entrypoint sh traefik -s rotate /letsencrypt/acme.json < deploy/config/traefik/acme-ec-migrate.sh`, then `docker compose up -d`. Monitors that should alert on any component keep using `/api/health`. If you set `SYNC_MAX_ROOMS` yourself, see [Sizing the collaboration server](#sizing-the-collaboration-server). |
 | **Collaboration capacity settings, and Valkey no longer evicts keys.** New optional `SYNC_MAX_ROOMS` (5000 open documents, was fixed), `SYNC_MEMORY_GUARD_PERCENT` / `SYNC_MEMORY_LIMIT_BYTES` (refuse new documents above 85 % of the container memory), `SYNC_UNLOAD_GRACE_MS` (keep a closed document 30 s) and `NUXT_PUBLIC_SYNC_HIDDEN_DISCONNECT_MS` (background tabs disconnect after 4 minutes). Valkey runs with `--maxmemory-policy noeviction` instead of `allkeys-lru`, so rate-limit counters and locks are never dropped to make room; the per-document diff baseline in Valkey is now a small line digest instead of a copy of the text. | Everyone; setups that run Valkey outside the shipped compose files | Nothing with the shipped compose files. With your own Valkey, set `maxmemory-policy noeviction`. To raise the number of open documents, see [Sizing the collaboration server](#sizing-the-collaboration-server). |

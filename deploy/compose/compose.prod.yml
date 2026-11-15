@@ -137,7 +137,7 @@ services:
     <<: *hardening
 
   traefik:
-    image: traefik:v3@sha256:c8a121e4bb1347e8fd52657fab12f2cb70b68f8a018895e2068f92c9e519b9c2
+    image: traefik:v3.7.19@sha256:aa942a00bce033c909bf1f7e861d93761be4b31a035f10d2410d33e38a8f41cf
     restart: unless-stopped
     # Every client connection passes through Traefik, and a proxied
     # WebSocket costs it about 320 KiB (TLS state, copy buffers of both

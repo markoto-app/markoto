@@ -34,7 +34,7 @@ Drizzle does not emit `CREATE EXTENSION`. The extension is created by a hand-wri
 CREATE EXTENSION IF NOT EXISTS vector;--> statement-breakpoint
 ```
 
-A migration that needs another extension does the same. The `--> statement-breakpoint` marker is how the migrator splits a file into statements. Dev, local and test stacks use the `pgvector/pgvector:pg16` image, which ships the extension.
+A migration that needs another extension does the same. The `--> statement-breakpoint` marker is how the migrator splits a file into statements. Dev, local and test stacks use the `pgvector/pgvector` Postgres 18 image, which ships the extension.
 
 ### Partial unique index for cross-instance deduplication
 

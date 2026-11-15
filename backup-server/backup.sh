@@ -34,7 +34,7 @@ set -e
 # last stage's. Without it, `pg_dump | gzip | gpg` reports success as long
 # as gpg succeeds: even if pg_dump died mid-stream and produced a
 # truncated dump. That's how a silently-corrupt backup gets uploaded and
-# looks fine. Verified supported by busybox ash in postgres:16-alpine
+# looks fine. Verified supported by busybox ash in postgres:18-alpine
 # (the base image); it is NOT portable POSIX, so keep the alpine base.
 # shellcheck disable=SC3040  # busybox ash (the alpine base) implements pipefail; only POSIX sh lacks it
 set -o pipefail

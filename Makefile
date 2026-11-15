@@ -36,6 +36,7 @@ setup: ## First run: create .env with generated secrets, install deps (one Bun w
 
 .PHONY: dev
 dev: ## Start dev infra (Postgres, Valkey, etc), Nuxt runs on host
+	COMPOSE="$(DEV)" sh deploy/config/postgres/pg-major-upgrade.sh upgrade
 	$(DEV) up -d
 	@echo ""
 	@echo "Dev infra up (first run? 'make setup' creates .env). In another terminal: bun run dev --host 0.0.0.0"
@@ -130,6 +131,7 @@ secrets-scan: ## Scan git history for leaked secrets via gitleaks
 # === Compose stacks ===
 .PHONY: local-up
 local-up: $(CERT) $(KEY) ## Bring up the LOCAL stack (Traefik + mkcert TLS)
+	COMPOSE="$(LOCAL)" sh deploy/config/postgres/pg-major-upgrade.sh upgrade
 	$(LOCAL) up -d --build
 
 .PHONY: local-down

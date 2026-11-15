@@ -299,26 +299,57 @@ if [ "$(grep -c 'ensure_secret NUXT_ENCRYPTION_KEY hex' install.sh)" -lt 2 ]; th
 fi
 echo "ok: the app gets its own encryption key (prod, self-host, local; generated on install + upgrade)"
 
-# Third-party images are pinned by digest
-# A tag can be re-pushed; `tag@sha256:…` can't. Our own images
-# (${REGISTRY}/markoto-*) are pinned by release tag and cosign-signed.
+# Third-party images are pinned by version tag + digest
+# A tag can be re-pushed; `tag@sha256:…` can't. The tag names the version
+# for humans and Dependabot: no bare digests, no floating `latest` / major
+# tags. Our own images (${REGISTRY}/markoto-*) are pinned by release tag and
+# cosign-signed.
 render_config "$tmp/img-dev.json" "$tmp/prod.env" "deploy/compose/compose.dev.yml"
 render_config "$tmp/img-test.json" "$tmp/prod.env" "deploy/compose/compose.test.yml" "flows"
+pinned_re='^[^@]+:[^/@:]*[0-9][^/@:]*[.][0-9][^/@:]*@sha256:[0-9a-f]{64}$'
 for cfg in salt-prod salt-selfhost local img-dev img-test; do
-  out="$(jq -r '.services | to_entries[] | select(.value.image != null) | .value.image
-    | select((test("/markoto-[a-z]+:") | not) and (test("@sha256:[0-9a-f]{64}$") | not))' "$tmp/$cfg.json")"
+  out="$(jq -r --arg re "$pinned_re" '.services | to_entries[] | select(.value.image != null) | .value.image
+    | select((test("/markoto-[a-z]+:") | not) and (test($re) | not))' "$tmp/$cfg.json")"
   if [ -n "$out" ]; then
-    printf 'FAIL (%s): image not pinned by digest: %s\n' "$cfg" "$out" >&2
+    printf 'FAIL (%s): image not pinned by version tag + digest: %s\n' "$cfg" "$out" >&2
     exit 1
   fi
 done
 for df in Dockerfile sync-server/Dockerfile renderer/Dockerfile markitdown-server/Dockerfile backup-server/Dockerfile; do
-  if grep -E '^FROM ' "$df" | grep -vE '@sha256:[0-9a-f]{64}|^FROM [a-z]+ AS ' | grep -q .; then
-    echo "FAIL: $df has a FROM without a digest" >&2
+  if grep -E '^FROM ' "$df" | grep -vE '^FROM [a-z]+ AS ' | awk '{print $2}' | grep -vE "$pinned_re" | grep -q .; then
+    echo "FAIL: $df has a FROM without a version tag + digest" >&2
     exit 1
   fi
 done
-echo "ok: third-party images pinned by digest (compose + Dockerfiles)"
+echo "ok: third-party images pinned by version tag + digest (compose + Dockerfiles)"
+
+# Postgres 18 keeps its cluster under /var/lib/postgresql/18/docker and
+# refuses a mount at the pre-18 /var/lib/postgresql/data: every stack mounts
+# the data volume (or tmpfs) one level up, and every deploy path moves an
+# old cluster over first (deploy/config/postgres/pg-major-upgrade.sh).
+for cfg in salt-prod salt-selfhost local img-dev img-test; do
+  out="$(jq -r '.services | to_entries[] | select(.value.image // "" | test("^(docker.io/)?pgvector/pgvector:")) | select(.value.entrypoint == null)
+    | .key as $k
+    | ( (.value.volumes // [] | map(select(.target | startswith("/var/lib/postgresql"))) | map(.target))
+        + ((.value.tmpfs // []) | map(select(startswith("/var/lib/postgresql")) | split(":")[0])) ) as $t
+    | select($t != ["/var/lib/postgresql"]) | "\($k) mounts \($t)"' "$tmp/$cfg.json")"
+  if [ -n "$out" ]; then
+    printf 'FAIL (%s): Postgres data must be mounted at /var/lib/postgresql: %s\n' "$cfg" "$out" >&2
+    exit 1
+  fi
+done
+shellcheck deploy/config/postgres/pg-major-upgrade.sh
+for f in .github/workflows/deploy.yml infra/roles/markoto/tasks/main.yml; do
+  if [ "$(grep -c 'deploy/config/postgres/pg-major-upgrade.sh' "$f")" -lt 2 ]; then
+    echo "FAIL: $f must ship and run deploy/config/postgres/pg-major-upgrade.sh" >&2
+    exit 1
+  fi
+done
+if ! grep -q 'require_current_postgres' install.sh || ! grep -q 'pg-major-upgrade.sh' install.sh; then
+  echo "FAIL: install.sh must refuse a pre-18 Postgres volume and offer upgrade-postgres" >&2
+  exit 1
+fi
+echo "ok: Postgres 18 data layout (mounts at /var/lib/postgresql; deploy paths move an old cluster over)"
 
 # App and sync server key their rate limits on the same X-Forwarded-For
 # entry only while both get the same trusted-proxy hop count.

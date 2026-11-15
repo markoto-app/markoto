@@ -128,6 +128,8 @@
     - deploy/config/postgres/init/01-litellm-db.sql
     # Run by the db-init one-shot (deploy/compose/compose.base.yml).
     - deploy/config/postgres/db-init.sh
+    # Moves a bundled pre-18 Postgres cluster to Postgres 18 (run below).
+    - deploy/config/postgres/pg-major-upgrade.sh
     # The renderer's seccomp profile: named by compose.prod.yml, replaced
     # by Podman's default profile through the overlay above.
     - deploy/config/renderer/seccomp.json
@@ -263,6 +265,23 @@
   become_user: "{{ markoto_user }}"
   when: markoto_acme_check.rc == 10
   changed_when: true
+
+# Bundled Postgres only: a volume that still holds a pre-18 cluster is
+# dumped, set aside inside the volume and restored into Postgres 18. No-op on
+# a managed cluster and once upgraded (exit 0 either way).
+- name: Move a bundled pre-18 Postgres cluster to Postgres 18
+  ansible.builtin.command:
+    cmd: sh deploy/config/postgres/pg-major-upgrade.sh upgrade
+    chdir: "{{ markoto_root }}"
+  become: true
+  become_user: "{{ markoto_user }}"
+  environment:
+    COMPOSE: /usr/local/bin/markoto-compose
+    ENGINE: podman
+    BACKUP_DIR: "{{ markoto_root }}/postgres-upgrade"
+    XDG_RUNTIME_DIR: /run/user/{{ ansible_facts.getent_passwd[markoto_user][1] }}
+  register: markoto_pg_upgrade
+  changed_when: "'restored with identical row counts' in markoto_pg_upgrade.stdout"
 
 - name: Compose up -d (apply current state)
   ansible.builtin.command:

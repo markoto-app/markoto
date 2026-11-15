@@ -41,6 +41,8 @@ Commands:
   logs [service]     follow logs
   reembed [args]     re-embed the knowledge base after changing the
                      embeddings model (args: --dry-run, --force, ...)
+  upgrade-postgres   move a Postgres 16 database to Postgres 18 (dump,
+                     keep the old files, restore; docs/SELF-HOSTING.md)
   help               this text
 
 Install options (each also readable from the environment variable shown):
@@ -541,11 +543,48 @@ migrate_acme_keys() {
   compose run --rm --no-deps -T --entrypoint sh traefik -s rotate /letsencrypt/acme.json < "$script"
 }
 
+# Postgres 18 keeps its cluster in a per-major subdirectory of the volume
+# and refuses to start on the cluster an older release left at its root.
+# There is no in-place upgrade: `upgrade-postgres` dumps and restores it
+# (deploy/config/postgres/pg-major-upgrade.sh).
+pg_upgrade_script() {
+  LITELLM_CONFIG_HASH="$(cat "$ROOT/deploy/config/litellm/config.yaml" "$ROOT/deploy/config/litellm/custom_handlers.py" | sha256sum | cut -c1-16)" \
+    COMPOSE="cd '$ROOT' && docker compose --project-directory '$ROOT/deploy/compose' --env-file '$ENV_FILE'" \
+    ENGINE=docker BACKUP_DIR="$ROOT/postgres-upgrade" \
+    sh "$ROOT/deploy/config/postgres/pg-major-upgrade.sh" "$1"
+}
+
+require_current_postgres() {
+  local rc=0
+  pg_upgrade_script check > /dev/null || rc=$?
+  case "$rc" in
+    0) ;;
+    3)
+      warn "The database volume holds a Postgres 16 database; this release runs Postgres 18."
+      warn "Postgres has no in-place major upgrade. Run:  ./install.sh upgrade-postgres"
+      warn "It stops the stack, dumps the database to $ROOT/postgres-upgrade/, keeps the old"
+      warn "files inside the volume and restores into Postgres 18 (docs/SELF-HOSTING.md#upgrading-to-postgres-18)."
+      die "Postgres 16 data found: nothing was changed" ;;
+    *) die "could not check the Postgres data volume (exit $rc)" ;;
+  esac
+}
+
+cmd_upgrade_postgres() {
+  check_prereqs
+  [ -f "$ENV_FILE" ] || die "no $ENV_FILE, run ./install.sh first"
+  grep -qF "$ENV_MARKER" "$ENV_FILE" || die "$ENV_FILE was not written by install.sh"
+  pull_or_build
+  pg_upgrade_script upgrade
+  # The rest of a normal upgrade (new secrets, certificates, start, health).
+  cmd_upgrade
+}
+
 cmd_install() {
   check_prereqs
   configure
   if [ "$OPT_NO_START" = 1 ]; then ok "--no-start: configuration only"; return; fi
   pull_or_build
+  require_current_postgres
   compose up -d
   wait_healthy
   next_steps
@@ -567,6 +606,7 @@ cmd_upgrade() {
   note "Database migrations run automatically when the app starts. Back up first:"
   note "docs/SELF-HOSTING.md#backups"
   pull_or_build
+  require_current_postgres
   migrate_acme_keys
   compose up -d
   wait_healthy
@@ -614,7 +654,7 @@ COMMAND_SEEN=0
 while [ $# -gt 0 ]; do
   if [ "$COMMAND" = logs ] || [ "$COMMAND" = reembed ]; then EXTRA_ARGS+=("$1"); shift; continue; fi
   case "$1" in
-    install | upgrade | status | logs | reembed)
+    install | upgrade | upgrade-postgres | status | logs | reembed)
       [ "$COMMAND_SEEN" = 0 ] || die "only one command at a time (got '$COMMAND' and '$1')"
       COMMAND="$1"; COMMAND_SEEN=1 ;;
     help) usage; exit 0 ;;
@@ -657,6 +697,7 @@ case "$ENV_FILE" in /*) ;; *) ENV_FILE="$PWD/$ENV_FILE" ;; esac
 case "$COMMAND" in
   install) cmd_install ;;
   upgrade) cmd_upgrade ;;
+  upgrade-postgres) cmd_upgrade_postgres ;;
   status) compose ps ;;
   logs) compose logs -f --tail 200 "${EXTRA_ARGS[@]}" ;;
   reembed) compose exec app bun cli/reembed-knowledge.js "${EXTRA_ARGS[@]}" ;;
