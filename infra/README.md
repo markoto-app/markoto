@@ -73,6 +73,19 @@ address: keep the trust list and the subnets equal
 (`scripts/selfhost-check.sh` checks it). `NUXT_TRUSTED_PROXY_HOPS` stays 1:
 HAProxy adds no HTTP header, Traefik is the one HTTP proxy.
 
+Capacity: HAProxy admits at most 8000 connections (`maxconn`), and the
+memory limits of `edge-proxy` and `traefik` are sized for that number, so a
+crowd is kept waiting at the edge instead of getting a proxy OOM-killed.
+Change the three together (sizing rule and measurements:
+`docs/contributing/CONTAINER-ENGINES.md`, "Edge sizing"). Certificates use
+ECDSA keys; both deploy paths set an `acme.json` that still holds RSA
+certificates aside once (`traefik/acme.json.rsa-<time>`, with Traefik
+stopped for it) and Traefik requests new ones on start: a few seconds of
+certificate warnings on that one deploy. Delete the old file once the new
+certificates are in place. Traefik routes on `/api/health/live` (the app
+and its Postgres and Valkey connections), not on `/api/health`, so a sync
+restart does not take the site down; deploys still wait for `/api/health`.
+
 ### Postgres
 
 | | staging | prod |
@@ -329,6 +342,8 @@ new VPS picks up the existing dataset on first boot.
 | Every request comes from one IP (rate limits hit everyone, audit IPs all `10.213.80.x`) | Traefik ignores the PROXY header: its trust list and the pinned subnets differ, or `edge-proxy` is down | `markoto-compose ps edge-proxy`; compare `proxyProtocol.trustedIPs` with the `web` / `docker-api` subnets in `compose.prod.yml` |
 | `edge-proxy` exits: `cannot bind socket [0.0.0.0:80]` | `net.ipv4.ip_unprivileged_port_start` is above 80 | `sysctl net.ipv4.ip_unprivileged_port_start` (expect 80); re-run `make provision` |
 | `acme.json permission denied` | mode drifted | `chmod 600 /opt/markoto/traefik/acme.json` (the role enforces this on every run) |
+| Certificate warnings for longer than a minute after the ECDSA switch | Let's Encrypt refused or rate-limited the new orders | `markoto-compose logs traefik \| grep -i acme`; to go back, stop Traefik, move `traefik/acme.json.rsa-<time>` back to `traefik/acme.json`, start it (and deploy a compose without `acme.keytype` meanwhile, or the next deploy sets it aside again) |
+| Clients time out connecting while the host is calm | the edge is at `maxconn` (8000 open connections) | `ss -Htn state established '( sport = :443 )' \| wc -l`; raise `maxconn` with both memory limits (see "Edge and client addresses") |
 | `IMAGE_TAG required` | image_tag missing from `group_vars/all.yml` | re-edit, re-deploy |
 | Pull fails with `403 Forbidden` / `denied` from ghcr.io | the images are private and the host has no (valid) token | set `GHCR_PULL_USER` / `GHCR_PULL_TOKEN` (or the vault values) and deploy again |
 | Backup timer failures | in-stack `backup` container down | `markoto-compose ps backup`, `markoto-compose logs backup`, `journalctl --user -u markoto-backup` |

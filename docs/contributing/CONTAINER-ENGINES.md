@@ -87,3 +87,54 @@ with a `.env` produced by `infra/render-env.sh` and `CONTAINER_SOCKET` set:
 `CONTAINER_SOCKET=/run/user/1000/podman/podman.sock docker compose --env-file <that .env> config`.
 `bash scripts/selfhost-check.sh` asserts its invariants.
 
+
+### Edge sizing
+
+Every connection to the hosted stack passes HAProxy (`edge-proxy`), then
+`rootlessport` (Traefik's loopback publish), then Traefik. Measured on
+staging (4 vCPU, 7.6 GiB, a load test of up to 6000 tabs) and, for the
+relay alone, locally:
+
+| Hop | Memory | CPU | Limit in the repository |
+|---|---|---|---|
+| HAProxy | 40 MiB + 12 KiB per open connection; at most about 33 KiB per connection with both 16 KiB buffers full | 0.03 CPU-ms/s per open tab | `maxconn 8000` (`deploy/config/edge/haproxy.cfg`); `-m 320` caps its own allocations (it refuses connections past it); `mem_limit: 768m` leaves room for the kernel's socket buffers, which count against the container too |
+| Traefik | 40 MiB + about 320 KiB per proxied WebSocket (TLS state, copy buffers of both directions, goroutines) | 0.05 CPU-ms/s per open tab; about 24 CPU-ms per new connection with an RSA-4096 certificate | `mem_limit: 3g` and `GOMEMLIMIT=2560MiB` (`deploy/compose/compose.prod.yml`): 8000 x 320 KiB is about 2.5 GiB |
+| TLS handshake | | about 40 ms of host CPU per new connection with RSA-4096 (100 new connections per second saturated the host); ECDSA P-256 signs about 160 times faster (`openssl speed`: 2.5 ms vs 0.015 ms per signature on one laptop core) | `acme.keytype=EC256` on every resolver; session resumption (TLS 1.2 tickets, TLS 1.3 PSK) is on in Traefik by default, checked with `openssl s_client -sess_out` / `-sess_in` against v3.7 |
+
+Rules: keep HAProxy's `maxconn` the bound for the whole edge, so it refuses
+(clients wait in the listen queue) before Traefik or HAProxy can run out of
+memory, and raise it only together with both limits: Traefik about
+`40 MiB + 320 KiB x maxconn`, HAProxy `-m` about `40 MiB + 33 KiB x maxconn`
+with `mem_limit` above it. One browser tab holds one WebSocket to the sync
+host and shares one HTTP/2 connection to the app host with the person's
+other tabs. Memory that clients pin by not reading a large response sits in
+kernel socket buffers (tens to hundreds of KiB per connection, up to
+`net.ipv4.tcp_rmem`/`tcp_wmem`); neither `maxconn` nor `-m` bounds that,
+the container limit and the host's `net.ipv4.tcp_mem` do.
+
+### The rootless port forwarder
+
+`rootlessport` copies every byte of the HAProxy-to-Traefik hop in user
+space. Measured locally (Podman 6.1, `traefik/whoami` behind each
+forwarder, CPU of the forwarder processes only):
+
+| Workload | `rootlessport` (bridge network) | pasta (splice) |
+|---|---|---|
+| 5000 new connections, one request each | 1.3 s CPU: 0.26 ms per connection | 0.17 s: 0.03 ms per connection |
+| 2000 kept-alive connections, one small request per second each, 20 s | 1.5 s: 37 µs per exchange | 0.55 s: 14 µs per exchange |
+
+On staging (vCPUs about 3 times slower than that laptop) that is under 1 ms
+of a new connection's 40 ms, and `rootlessport` showed 6.5 % of one core at
+3000 tabs: real, but small next to TLS. The options:
+
+| Option | Saves | Why not now |
+|---|---|---|
+| ECDSA certificates (done) | most of the 40 ms per new connection | |
+| Podman 6's pasta forwarder (`rootless_port_forwarder = "pasta"` in the user's containers configuration) | `rootlessport`; and, since pasta keeps the client address, the whole HAProxy hop (publish Traefik on 80/443 directly): about 0.05 CPU-ms/s per tab (HAProxy 0.03, `rootlessport` 0.02) and HAProxy's memory | Podman 5.4 (Debian 13) has no such option; experimental in Podman 6; switching needs every container stopped |
+| `network_mode: host` for Traefik | the `rootlessport` hop | Traefik could no longer reach the containers: rootless networks live in their own namespace, the host has no route into them |
+| HAProxy straight to Traefik's container address | the `rootlessport` hop | same: unreachable from the host network namespace |
+| Drop HAProxy, publish Traefik through `rootlessport` | one copy | every request would come from one internal address (per-address rate limits and audit IPs collapse) |
+| Rootful engine (kernel NAT instead of a user-space copy) | the forwarder | gives up the rootless user namespace, the stack's main isolation |
+
+Revisit the pasta forwarder once the hosts run a Podman that has it as a
+stable option.
