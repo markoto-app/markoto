@@ -2,6 +2,7 @@ import { z } from 'zod'
 import type { AgenticAIClient as AiClient } from '../../agentic/aiTypes'
 import { litellmCompletion } from '../../litellm/createCompletion'
 import { consumeWebToolQuota, isWebToolAvailable } from '../webTools'
+import { chargeWebToolCall, type WebToolChargeContext } from '../webToolCharge'
 import { useLitellmAdmin, useLitellmForUser } from '../litellmClient'
 import { FEATURE_TAGS, featureMetadata } from '../../litellm/featureTags'
 import { providerRequestFields, withProviderErrors } from '../../aiProviders/requestFields'
@@ -9,23 +10,19 @@ import type { ResolvedAiProvider } from '../../aiProviders/resolve'
 import { useEnv } from '~~/shared/env/load'
 
 /**
- * Context threaded into the web-tool synthesis sub-calls.
+ * Context threaded into the web-tool charge and synthesis sub-calls.
  *
  * `workspaceId` / `userId` / `docId` drive the four-axis spend TAGS
  * (`featureMetadata` reads them). `virtualKey` is the LiteLLM per-user
- * virtual key the Mistral synthesis call authenticates WITH, so the
- * token spend lands on the caller's `max_budget` and a budget-exhausted
- * user's `web_search` / `fetch_url` fails at the proxy instead of
- * silently running on the master key. Both production call sites pass it
+ * virtual key the per-call charge (`chargeWebToolCall`) and the
+ * synthesis call authenticate WITH, so the call lands on the caller's
+ * `max_budget` and a budget-exhausted user's `web_search` / `fetch_url`
+ * is refused before Staan / Jina are called. Both production call sites pass it
  * (the in-app loop from `billingContext.virtualKey`, MCP from
  * `MetaToolContext.virtualKey`); the admin-key fallback exists only so a
  * key-less harness path doesn't crash.
  */
-export interface WebToolSpendContext {
-  workspaceId?: string | null
-  userId?: number | null
-  docId?: string | null
-  virtualKey?: string
+export interface WebToolSpendContext extends WebToolChargeContext {
   /**
    * The session's chat provider (BYOK key or instance default). The
    * synthesis step runs on it; when null (no provider configured) the
@@ -59,8 +56,10 @@ export async function webSearch(
   if (signal.aborted) throw new Error('aborted')
   if (!isWebToolAvailable('web_search')) throw new Error('Web search is not configured on this instance.')
   // Platform-paid upstream call: count it against the user's allowance
-  // (shared with fetch_url and with MCP) before spending anything.
+  // (shared with fetch_url and with MCP) before spending anything, then
+  // charge it to the AI budget (refused when that is used up).
   await consumeWebToolQuota(spendCtx.userId)
+  await chargeWebToolCall('web_search', spendCtx, signal)
   // Web search runs on Staan (staan.ai), a European search index (OVHcloud,
   // EU) with its own index rather than a Google/Bing fan-out through US
   // processors. EU-only routing (disabling Staan's optional US

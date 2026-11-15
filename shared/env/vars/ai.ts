@@ -167,6 +167,26 @@ export const litellm = defineNamespace({
       services: ['app'],
       scope: 'both',
       notPassed: 'matches deploy/config/litellm/config.yaml'
+    }),
+    webSearchTickModel: v({
+      name: 'NUXT_LITELLM_WEB_SEARCH_TICK_MODEL',
+      type: string,
+      default: 'web-search-tick',
+      emptyIsValue: true,
+      doc: 'Metering model billed once per `web_search` call, so it draws on the AI budget. Empty = web searches are not charged.',
+      services: ['app'],
+      scope: 'both',
+      notPassed: 'matches deploy/config/litellm/config.yaml'
+    }),
+    webFetchTickModel: v({
+      name: 'NUXT_LITELLM_WEB_FETCH_TICK_MODEL',
+      type: string,
+      default: 'web-fetch-tick',
+      emptyIsValue: true,
+      doc: 'Metering model billed once per `fetch_url` call, so it draws on the AI budget. Empty = page fetches are not charged.',
+      services: ['app'],
+      scope: 'both',
+      notPassed: 'matches deploy/config/litellm/config.yaml'
     })
   }
 })

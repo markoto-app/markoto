@@ -79,6 +79,8 @@ const TAG_LABELS: Record<string, string> = {
   'feature:transcribe': 'Voice transcribe (Voxtral)',
   'feature:text-loop': 'Text agentic loop (Mistral + sub-tools)',
   'feature:dictate-tick': 'Live dictation ticks (Voxtral Realtime)',
+  'feature:web-search': 'Web search calls (Staan)',
+  'feature:web-fetch': 'Page fetches (Jina Reader)',
   'feature:image-gen': 'Image generation (BFL FLUX)',
   'feature:embeddings': 'Knowledge embeddings (Jina)',
   'feature:design-import': 'Design from a document (vision)',

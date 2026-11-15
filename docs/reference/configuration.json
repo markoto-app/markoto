@@ -2190,6 +2190,42 @@
       "deprecatedNames": []
     },
     {
+      "name": "NUXT_LITELLM_WEB_SEARCH_TICK_MODEL",
+      "namespace": "litellm",
+      "key": "webSearchTickModel",
+      "type": "string",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_LITELLM_WEB_SEARCH_TICK_MODEL"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": "web-search-tick",
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_LITELLM_WEB_FETCH_TICK_MODEL",
+      "namespace": "litellm",
+      "key": "webFetchTickModel",
+      "type": "string",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_LITELLM_WEB_FETCH_TICK_MODEL"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": "web-fetch-tick",
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
       "name": "JINA_AI_API_KEY",
       "namespace": "providers",
       "key": "jinaApiKey",

@@ -7,8 +7,8 @@
 // the key's own `max_budget` (the per-user allowance, `TIER_FREE_LITELLM_
 // BUDGET_USD`) AND the team's, so the pool is spent down by every
 // platform-paid call any free user makes, the agentic loop, web-tool
-// synthesis, MCP, transcription / image / dictation ticks on alias
-// defaults: without app-side accounting. The team's `budget_duration`
+// charges + synthesis, MCP, transcription / image / dictation ticks on
+// alias defaults: without app-side accounting. The team's `budget_duration`
 // is the same `30d` the keys use, which LiteLLM normalises to the 1st of
 // the month (verified on v1.106.4: `budget_reset_at` = next 1st, 00:00 UTC
 // for both), so the pool and the per-user allowance refill together.
@@ -18,10 +18,10 @@
 //     budget gates for zero-cost models (verified: a BYOK call on a key
 //     whose team is exhausted is still forwarded).
 //   - paid tiers (billing on): their keys carry no team (`teamIdForPlan`).
-//   - calls the app pays outside LiteLLM or with the master key: the
-//     Staan search / Jina Reader fetch of web tools (bounded per user by
-//     `NUXT_WEB_TOOLS_*_LIMIT`) and knowledge embeddings (bounded by the
-//     knowledge file / byte caps).
+//   - calls the app pays outside LiteLLM or with the master key:
+//     knowledge embeddings (bounded by the knowledge file / byte caps).
+//     The Staan / Jina Reader half of the web tools IS covered, through
+//     its per-call tick (`ai/webToolCharge.ts`).
 //
 // Membership is set when a key is created / its budget updated
 // (`userKeys.ts`) and reconciled for existing keys by the

@@ -2,10 +2,19 @@
 Custom LiteLLM providers, registered via litellm_settings.custom_provider_map.
 
 They wrap non-chat operations (FLUX image generation, Voxtral transcription
-and voice ticks, Jina embeddings) as billable calls so OSS LiteLLM budget
-enforcement applies to them (pass-through cost_per_request is Enterprise-only).
-Cost flows through model_info.input_cost_per_token / output_cost_per_token in
-config.yaml.
+and voice ticks, web-tool ticks, Jina embeddings) as billable calls so LiteLLM's
+key / team budget enforcement and spend tags apply to them. Cost flows through
+model_info.input_cost_per_token / output_cost_per_token in config.yaml.
+
+Pass-through endpoints with `auth: true` and `cost_per_request` are NOT
+Enterprise-only (any more): v1.106.4 registers `user_api_key_auth` for them in
+OSS. We still use these providers because each one fixes something a plain
+pass-through would not: the usage shape of Jina embeddings and Voxtral
+transcription, BFL's submit + poll flow, and, for the ticks, a charge for a
+call that never goes through the proxy (live dictation streams straight to
+Mistral; the web tools keep one code path that also works on a LiteLLM config
+without the tick models, carry the same `metadata.tags` as every other call
+and leave the Staan / Jina Reader request untouched).
 """
 
 from __future__ import annotations
@@ -441,3 +450,47 @@ class VoxtralTickProvider(CustomLLM):
 
 
 voxtral_tick_provider = VoxtralTickProvider()
+
+
+# Web-tool ticks (billing-only stub)
+# `web_search` (Staan) and `fetch_url` (Jina Reader) are plain HTTP calls the
+# app makes with the operator's keys. Before each one the app sends ONE chat
+# completion on `web-search-tick` / `web-fetch-tick` with the caller's virtual
+# key, so the call is priced into the same per-key (and team) budget as every
+# other AI call, and refused by the proxy when that budget is used up. The
+# stub reports exactly one completion token; the price of one call is the
+# deployment's output_cost_per_token in config.yaml.
+
+_WEB_TOOL_TICK_TOKENS = 1  # × output_cost_per_token in config = price per call
+
+
+class WebToolTickProvider(CustomLLM):
+    """Billing-only stub for the web tools. Returns instantly and reports one
+    completion token, so LiteLLM bills the requesting key the configured
+    per-call price. Makes no outbound request."""
+
+    async def acompletion(  # type: ignore[override]
+        self, *args, **kwargs
+    ) -> ModelResponse:
+        model = kwargs.get("model") or "web-tool-tick"
+        resp = ModelResponse()
+        resp.id = f"web-tool-tick-{uuid4().hex[:12]}"
+        resp.created = int(time.time())
+        resp.model = model
+        resp.object = "chat.completion"
+        resp.choices = [
+            Choices(
+                finish_reason="stop",
+                index=0,
+                message=Message(role="assistant", content="tick"),
+            )
+        ]
+        resp.usage = Usage(
+            prompt_tokens=0,
+            completion_tokens=_WEB_TOOL_TICK_TOKENS,
+            total_tokens=_WEB_TOOL_TICK_TOKENS,
+        )
+        return resp
+
+
+web_tool_tick_provider = WebToolTickProvider()

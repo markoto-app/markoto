@@ -20,8 +20,8 @@ These are the deployments that ship in `deploy/config/litellm/config.yaml`. A se
 | Voice prompt (one-shot transcription) | Voxtral Mini Transcribe 2 (`voxtral-mini-2602`) | $0.0033 per audio minute (list $0.003) | GA |
 | Live dictation | Voxtral Mini Transcribe Realtime (`voxtral-mini-transcribe-realtime-2602`) | $0.0066 per audio minute (list $0.006) | GA, WebSocket streaming |
 | Knowledge-base embeddings | Jina `jina-embeddings-v5-text-nano` | about $0.02-0.05 per M tokens (verify) | 768 dimensions, 8K context |
-| Web page extraction | Jina Reader | billed in output tokens from a shared Jina balance | |
-| Web search | Staan | no public rate card found | |
+| Web page extraction | Jina Reader | billed in output tokens from a shared Jina balance, about $0.05 per M; charged to users as a flat $0.001 per fetch | See [Web search and page fetch](#web-search-and-page-fetch-charged-to-the-ai-budget) |
+| Web search | Staan ("Web Search for AI") | EUR 4 per 1,000 requests; charged to users as $0.005 per search | See [Web search and page fetch](#web-search-and-page-fetch-charged-to-the-ai-budget) |
 | Image generation | Black Forest Labs FLUX 3 Image Klein (`flux-3-image-klein`), EU endpoint | $0.009 per 1024x1024 image, $0.014 up to about 4 MP | BFL rewrites the prompt before generating |
 
 ## Review findings and decisions
@@ -55,7 +55,7 @@ Source: [Jina embeddings](https://jina.ai/embeddings/). The v5 family is current
 
 ### Page extraction and search: unchanged
 
-Jina Reader and Staan are unchanged. We found no deprecation notices. Staan publishes no public rate card that we could find.
+Jina Reader and Staan are unchanged. We found no deprecation notices. Staan lists its prices on [staan.ai](https://staan.ai/#pricing): EUR 2 per 1,000 requests for "Web Search" and EUR 4 per 1,000 for "Web Search for AI" (checked 2026-11).
 
 ### Image generation: FLUX 3 Image Klein
 
@@ -63,14 +63,32 @@ Source: [BFL release notes](https://docs.bfl.ai/release-notes) and [integration 
 
 Calls go to `api.eu.bfl.ai`, BFL's EU endpoint (routing limited to its EU clusters). The former host `api.eu2.bfl.ai` is no longer documented and answers 503. The job is polled on the numbered EU cluster BFL names (`api.eu<N>.bfl.ai`); the proxy refuses a polling URL on any other host. A queued job can take more than 40 seconds, so the deployment has a 120-second timeout.
 
-## Web search and page fetch: platform-paid, rate-limited
+## Web search and page fetch: charged to the AI budget
 
 `web_search` (Staan) and `fetch_url` (Jina Reader) are provided by the platform, also for users who brought their own chat key. Each call has two halves:
 
-- **Upstream call** (Staan search / Jina Reader): paid by the operator. It is a direct HTTP call from the app, so it does not appear in LiteLLM spend and never debits a user's AI Points.
+- **Upstream call** (Staan search / Jina Reader): the app calls it with the operator's key. Right before, it charges the call to the caller's AI budget: one completion on a billing-only model (`web-search-tick` / `web-fetch-tick`, `WebToolTickProvider` in `deploy/config/litellm/custom_handlers.py`) with the caller's virtual key (`server/utils/ai/webToolCharge.ts`). It appears in LiteLLM spend under `feature:web-search` / `feature:web-fetch` and in AI Points like every other AI call.
 - **Synthesis** (summarising the results): runs on the chat provider of the session that invoked the tool. With a BYOK key the user pays their own provider for those tokens; with an instance default it debits the budget like any other chat call. With no chat provider the raw results are returned unsynthesised.
 
-Because the operator pays the upstream half, each user gets an allowance shared by `web_search`, `fetch_url`, the in-editor AI and MCP: **30 calls per hour and 100 per day** by default. Tune with `NUXT_WEB_TOOLS_HOURLY_LIMIT` / `NUXT_WEB_TOOLS_DAILY_LIMIT` (`0` = unlimited). Over the limit the tool answers 429 `ai/web-tools-rate-limited`; the editor AI sees a tool error and carries on without web access. The counters live in Valkey and fail open if Valkey is down.
+**Prices** (`output_cost_per_token` of the tick deployments; each tick reports one token):
+
+| Tool | Charged per call | AI Points | Why |
+|---|---|---|---|
+| `web_search` | $0.005 | 5 | Staan "Web Search for AI" lists EUR 4 per 1,000 requests, about $0.0047 per search; rounded up for exchange-rate moves |
+| `fetch_url` | $0.001 | 1 | Jina Reader bills the tokens of the returned page (about $0.05 per M, no per-request minimum). The app caps a page at 8,000 tokens (`X-Token-Budget`), at most about $0.0004 per fetch; the flat price sits above that so a price change or an over-cap page stays covered |
+
+**Who pays.** The tick runs on the virtual key the session already uses, so it lands where every other AI call of that user lands:
+
+- free tier: the user's own allowance and, on the hosted SaaS, the shared [free-tier pool](#free-ai-allowance-hosted);
+- Pro (billing on): the user's own AI Points;
+- Team / Business member inside the workspace: the member's limit and the workspace's pooled budget;
+- own key (BYOK) for chat: still charged, because Staan and Jina are paid by the operator, not by the user's provider.
+
+**Used up.** The proxy refuses the tick before Staan / Jina are called, and the tool answers 402 with the same code and text as other AI calls: `ai/free-allowance-exhausted` (shared pool), `ai/budget-exhausted` (own AI Points), or the workspace's team-budget / member-limit text. In the editor the AI gets a tool error; on a platform-paid chat model the next turn is refused by the same budget and the session ends with the usual message. Over MCP the tool call fails with that error.
+
+**Not charged when.** Any other failure of the tick (proxy unreachable, a LiteLLM config without the tick models) is logged and the call goes ahead, still bounded by the rate limit below. `NUXT_LITELLM_WEB_SEARCH_TICK_MODEL=` / `NUXT_LITELLM_WEB_FETCH_TICK_MODEL=` (empty) switch charging off; a self-hoster with a custom LiteLLM config should either copy the two tick deployments or set those empty.
+
+Each user also keeps a rate limit shared by `web_search`, `fetch_url`, the in-editor AI and MCP: **30 calls per hour and 100 per day** by default. Tune with `NUXT_WEB_TOOLS_HOURLY_LIMIT` / `NUXT_WEB_TOOLS_DAILY_LIMIT` (`0` = unlimited). Over the limit the tool answers 429 `ai/web-tools-rate-limited` (checked before the charge, so a refused call costs nothing); the editor AI sees a tool error and carries on without web access. The counters live in Valkey and fail open if Valkey is down.
 
 **Self-hosting:** set `STAAN_API_KEY` and/or `JINA_AI_API_KEY` to enable the tools. With a key missing, that tool is not offered to the AI, is not listed over MCP, and `GET /api/ai/availability` reports `webTools.search` / `webTools.fetch` as `false`. (`JINA_AI_API_KEY` is also what the default embeddings use; with `custom-embeddings` it can stay empty.)
 
@@ -105,8 +123,8 @@ Verified on 2026-11-03 against Mistral's model page, its regional-inference docs
 Both limits are LiteLLM budgets; the app keeps no counters.
 
 - **$0.50 per user**: the `max_budget` of the user's virtual key, reset monthly (`budget_duration: 30d`, which LiteLLM normalises to the 1st of the month, 00:00 UTC).
-- **$500 in total**: every free-tier key belongs to one LiteLLM team, `markoto-free-tier`, with `max_budget = NUXT_FREE_TIER_TOTAL_BUDGET_USD` and the same `30d` reset. LiteLLM checks the key AND the team before each call, so any platform-paid call of a free user draws on the pool: the agent loop, web-search / page-fetch synthesis, MCP, and (on instances with such defaults) image generation, transcription and dictation ticks. The team id is fixed, so no app-side storage is needed (`server/utils/litellm/freeTierTeam.ts`).
-- **Not in the pool**: BYOK calls (the `byok/*` deployment is zero-cost and LiteLLM skips budget checks for zero-cost models: verified, a BYOK call on a key whose team is exhausted still goes through), paid tiers once billing is on (their keys carry no team), and what the platform pays outside LiteLLM: the Staan / Jina Reader half of the web tools (capped per user by `NUXT_WEB_TOOLS_*_LIMIT`) and knowledge-base embeddings (capped by the knowledge file / byte limits).
+- **$500 in total**: every free-tier key belongs to one LiteLLM team, `markoto-free-tier`, with `max_budget = NUXT_FREE_TIER_TOTAL_BUDGET_USD` and the same `30d` reset. LiteLLM checks the key AND the team before each call, so any platform-paid call of a free user draws on the pool: the agent loop, web search and page fetch (the per-call charge and the synthesis), MCP, and (on instances with such defaults) image generation, transcription and dictation ticks. The team id is fixed, so no app-side storage is needed (`server/utils/litellm/freeTierTeam.ts`).
+- **Not in the pool**: BYOK calls (the `byok/*` deployment is zero-cost and LiteLLM skips budget checks for zero-cost models: verified, a BYOK call on a key whose team is exhausted still goes through), paid tiers once billing is on (their keys carry no team), and what the platform pays outside LiteLLM: knowledge-base embeddings (capped by the knowledge file / byte limits). The Staan / Jina Reader half of the web tools is in the pool through its per-call charge.
 - **Membership**: new keys are created in the team; plan changes move keys in and out (`updateUserKeyBudget`); existing keys are reconciled at boot and every 6 h by the `litellm-key-reconcile` sweeper (one `/key/list` read, an update only for keys whose team, budget or reset differ, under the sweep lock), which also brings old keys to a lowered `TIER_FREE_LITELLM_BUDGET_USD`. LiteLLM only moves an existing key into a team its user belongs to, so the user is added as a team member first.
 - **When the pool is used up**: LiteLLM answers `Budget has been exceeded! Team=markoto-free-tier …` (HTTP 422). The app maps it to **402 `ai/free-allowance-exhausted`** (distinct from the per-user `ai/budget-exhausted`): the prompt endpoints refuse up front, the agent loop ends with the same message, and the prompt bar shows "This month's free AI allowance is used up. Add your own key in Settings → AI provider to keep going." with a link to `/settings/ai`. LiteLLM only refuses once spend is strictly above the budget and checks before the call, so concurrent in-flight calls can overshoot the ceiling by a few cents.
 

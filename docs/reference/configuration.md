@@ -200,6 +200,8 @@ Every platform-paid AI call goes through the self-hosted LiteLLM proxy (deploy/c
 | `NUXT_LITELLM_IMAGE_DEFAULT_WIDTH` | integer ≥ 1 | `1024` |  | app | both | Default width of generated images. Not passed by the compose files: tuning knob, default is fine. |
 | `NUXT_LITELLM_IMAGE_DEFAULT_HEIGHT` | integer ≥ 1 | `1024` |  | app | both | Default height of generated images. Not passed by the compose files: tuning knob, default is fine. |
 | `NUXT_LITELLM_REALTIME_TICK_MODEL` | string | `voxtral-realtime-tick` |  | app | both | Metering model billed once per minute of live dictation. Not passed by the compose files: matches deploy/config/litellm/config.yaml. |
+| `NUXT_LITELLM_WEB_SEARCH_TICK_MODEL` | string | `web-search-tick` |  | app | both | Metering model billed once per `web_search` call, so it draws on the AI budget. Empty = web searches are not charged. Set but empty is a value of its own. Not passed by the compose files: matches deploy/config/litellm/config.yaml. |
+| `NUXT_LITELLM_WEB_FETCH_TICK_MODEL` | string | `web-fetch-tick` |  | app | both | Metering model billed once per `fetch_url` call, so it draws on the AI budget. Empty = page fetches are not charged. Set but empty is a value of its own. Not passed by the compose files: matches deploy/config/litellm/config.yaml. |
 
 ## AI provider keys
 

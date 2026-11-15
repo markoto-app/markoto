@@ -3,7 +3,7 @@ title: Use your own AI provider
 description: Settings → AI provider. Connect your own Mistral, OpenAI or other OpenAI-compatible account for the writing assistant, images and voice.
 category: ai
 order: 11
-updated: '2026-11-09'
+updated: '2026-11-15'
 ---
 
 # Use your own AI provider
@@ -73,7 +73,7 @@ works for them.
 - Your key is stored encrypted and never shown again; you only see the host and its last four characters. It isn't included in your data export, and it is deleted with your account.
 - Your prompts, the relevant parts of your document and your recordings go to the provider you chose, under your own agreement with that provider.
 - Your provider bills you for these calls. They never use AI Points ([AI Points](/docs/plans/ai-budget)).
-- Knowledge-base search, web search and page fetching always run on the instance's own providers ([what the AI needs](/docs/ai/overview)).
+- Knowledge-base search, web search and page fetching always run on the instance's own providers ([what the AI needs](/docs/ai/overview)). Web search (5 AI Points per search) and page reading (1 AI Point per page) count against your AI Points even with your own key.
 
 ## If something doesn't work
 

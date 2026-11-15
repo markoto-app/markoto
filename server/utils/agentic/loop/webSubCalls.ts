@@ -1,6 +1,7 @@
 import { fetchUrlCitationReminder, webSearchCitationReminder } from '../citations'
 import { webSearch } from '../../ai/tools/webSearch'
 import { fetchUrl } from '../../ai/tools/fetchUrl'
+import { isWebToolBudgetRefusal } from '../../ai/webToolCharge'
 import { logAiTool } from './toolActivity'
 import type { LoopContext } from './loopContext'
 
@@ -18,9 +19,11 @@ export async function runSubCall(
     workspaceId: ctx.opts.aiSession.workspaceId ?? null,
     userId: ctx.opts.aiSession.initiatorUserId ?? null,
     docId: ctx.opts.aiSession.docId ?? null,
-    // The synthesis sub-call authenticates with the caller's virtual key
-    // (never the master key) and runs on the session's chat provider,
-    // the user's own key under BYOK, so it costs the platform nothing.
+    attributedTo: ctx.opts.billingContext.attributedTo,
+    // The per-call charge (Staan / Jina, priced into the AI budget) and the
+    // synthesis sub-call authenticate with the caller's virtual key (never
+    // the master key). The synthesis runs on the session's chat provider,
+    // the user's own key under BYOK.
     virtualKey: ctx.opts.billingContext.virtualKey,
     chatProvider: ctx.opts.aiSession.aiProviders.chat
   }
@@ -56,6 +59,13 @@ export async function runSubCall(
   } catch (e: unknown) {
     if (ctx.opts.abortController.signal.aborted) throw e
     const msg = e instanceof Error ? e.message : 'Unknown error'
+    // The AI budget refused the call's charge: nothing ran upstream. On a
+    // platform-paid chat model the next turn is refused by the same budget
+    // and ends the session with the usual message; on a chat key of its
+    // own the session goes on, so the model is asked to pass it on.
+    if (isWebToolBudgetRefusal(e)) {
+      return { content: `Error: ${name} was not run. ${msg} Tell the user, and continue without web tools.`, isError: true }
+    }
     return { content: `Error: ${name} failed: ${msg}`, isError: true }
   }
 }

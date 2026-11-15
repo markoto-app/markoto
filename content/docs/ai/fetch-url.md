@@ -3,7 +3,7 @@ title: Ask the AI to read a URL
 description: Paste any public URL into your prompt - the AI reads the page and grounds its answer in the content.
 category: ai
 order: 7
-updated: '2026-11-04'
+updated: '2026-11-15'
 ---
 
 # Ask the AI to read a URL
@@ -26,6 +26,7 @@ by the server, so the site never sees your own address.
 
 - **Public pages only.** Addresses on private networks, local addresses and non-web schemes (`file:`, `ftp:`) are refused. A page behind a login can't be read; paste the text into your document instead.
 - **It needs to be set up.** Page reading only appears when the instance has a Jina key (`JINA_AI_API_KEY` on a self-hosted instance). Without one the AI doesn't offer it.
+- **Each page uses 1 AI Point.** Reading the page is paid for by the instance, so it counts against your monthly [AI Points](/docs/plans/ai-budget), also when you use your own provider. When your points are used up, the AI tells you and reads no more pages until they refill.
 - **You still need a writing assistant provider** to summarise the page ([what the AI needs](/docs/ai/overview)). Without one, the raw page text comes back.
 - **Shared allowance.** Page reading and web search share a per-person limit, by default 30 calls an hour and 100 a day. At most 10 pages per AI session.
 - Scheme-less addresses such as `example.org/page` work; `https://` is assumed.

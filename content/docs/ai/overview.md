@@ -5,7 +5,7 @@ category: ai
 order: 1
 icon: i-lucide-sparkles
 featured: true
-updated: '2026-11-04'
+updated: '2026-11-15'
 ---
 
 # What the AI can do, and what it needs
@@ -77,7 +77,8 @@ page extraction) are located in the EU.
 
 ## Cost and limits
 
-- On **your own provider**, your provider bills you and AI Points never apply.
+- On **your own provider**, your provider bills you and AI Points don't apply to those calls.
+- **Web search and page reading** are always paid for by the instance, so they use AI Points for everyone: 5 points per search, 1 point per page.
 - **AI Points** only exist when a capability is paid for by the instance operator (an instance default). They are a monthly allowance per person; see [What happens when you run out](/docs/plans/ai-budget).
 - Every AI session has safety limits against runaway loops (for example at most 5 generated images and 10 web searches per session).
 
