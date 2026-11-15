@@ -33,6 +33,10 @@
 #
 # Documented in docs/SELF-HOSTING.md#upgrading-to-postgres-18.
 set -eu
+# Never read the caller's stdin: `compose exec` attaches it even with -T, and
+# a deploy that feeds its own script over stdin (deploy.yml) would lose the
+# rest of that script. Every psql input below is piped explicitly.
+exec < /dev/null
 
 PG_OLD_IMAGE_GIVEN="${PG_OLD_IMAGE:-}"
 PG_OLD_IMAGE="${PG_OLD_IMAGE:-docker.io/pgvector/pgvector:pg16@sha256:0dd3149a06e4579a0d70d8fef9945636cd514005e7237deb27f9b67886f8dc4f}"

@@ -378,6 +378,12 @@ jobs:
             TAG="${TAG}" \
             'bash -se' <<'REMOTE'
           set -euo pipefail
+          # The whole script is one { ... } block: bash reads all of it from
+          # stdin before running anything. Without that, a command that reads
+          # stdin (`compose exec` attaches it even with -T) swallows the rest
+          # of the script, bash exits 0 at the end of its input, and the
+          # deploy reports success without starting the stack.
+          {
           : "${TAG:?TAG must be set}"
 
           # Docker Compose on this user's rootless Podman, run in /opt/markoto
@@ -427,7 +433,7 @@ jobs:
           # dump stays in postgres-upgrade/. No-op on a managed cluster and
           # on every later deploy.
           COMPOSE=markoto-compose ENGINE=podman BACKUP_DIR=/opt/markoto/postgres-upgrade \
-            sh deploy/config/postgres/pg-major-upgrade.sh upgrade
+            sh deploy/config/postgres/pg-major-upgrade.sh upgrade < /dev/null
           markoto-compose up -d --remove-orphans
 
           # Health-check loop: 60 attempts × 5 s = 300 s. Sized for a COLD
@@ -484,6 +490,7 @@ jobs:
             | awk -F: -v cur="$TAG" -v prev="$PREV" '/\/markoto-[a-z]+:[^:]+$/ && $NF != cur && $NF != prev' \
             | xargs -r podman rmi > /dev/null 2>&1 || true
           podman image prune -f > /dev/null || true
+          }
           REMOTE
           ec=$?
           {
