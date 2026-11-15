@@ -1,6 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import { fileURLToPath } from 'node:url'
-import { observability } from './shared/env/vars/sync'
+import { observability, sync } from './shared/env/vars/sync'
 import { DAY_SECONDS } from './shared/config/units'
 import { scanFlowDocPages } from './scripts/lib/flowDocPagesFs'
 import { bool } from './shared/env/coerce'
@@ -156,6 +156,9 @@ export default defineNuxtConfig({
     // in the registry too (tests/unit/env/runtimeConfig.test.ts pins the names).
     public: {
       syncUrl: '', // NUXT_PUBLIC_SYNC_URL
+      // NUXT_PUBLIC_SYNC_HIDDEN_DISCONNECT_MS: a hidden editor tab lets go
+      // of its sync connection after this long (0 = never).
+      syncHiddenDisconnectMs: sync.vars.hiddenDisconnectMs.default,
       sentry: {
         dsn: '' // NUXT_PUBLIC_SENTRY_DSN
       },

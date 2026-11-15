@@ -216,14 +216,20 @@ services:
     # process and copy-on-write can transiently push RSS past the dataset
     # size, so 1.5 GB leaves rewrite headroom while still bounding a runaway.
     # (In practice our keyspace, rate limits, locks, 24h sync-state, stays
-    # far below 1 GB; allkeys-lru evicts before maxmemory anyway.)
+    # far below 1 GB.)
     mem_limit: 1536m
     # AOF with fsync-every-second is a fine trade for rate-limit data:
     # worst case we lose ≤1s of hits on crash, sliding windows self-heal.
-    # 1gb headroom for rate-limit + presence + render-singleflight +
-    # sweep-lock keyspaces under sustained load. allkeys-lru is correct
-    # for our shape (cache-with-some-locks); locks have short TTLs and
-    # the rate-limit fail-open path is documented.
+    #
+    # `noeviction`: Valkey never drops a key before its TTL. Every key
+    # markoto writes carries a TTL, and some of them guard security
+    # (rate-limit counters, locks, ALTCHA replay ids, token cutoffs), so
+    # an LRU policy would let a growing cache silently erase them
+    # (`volatile-lru` would too: those keys have TTLs). The only cache
+    # of size, the sync server's per-document diff baselines, is a
+    # bounded line digest (activity-logger.ts). At the 1 GB ceiling
+    # writes fail instead, and each caller's documented fallback applies:
+    # caches skip, rate limits fail open, locks fail closed.
     #
     # Strict `${VALKEY_PASSWORD:?required}` here. dev/test use a soft
     # fallback (`:-devpassword`) by overriding `command:` wholesale,
@@ -239,7 +245,7 @@ services:
       - "--maxmemory"
       - "1gb"
       - "--maxmemory-policy"
-      - "allkeys-lru"
+      - "noeviction"
     healthcheck:
       test: ["CMD", "valkey-cli", "--no-auth-warning", "-a", "${VALKEY_PASSWORD}", "ping"]
       interval: 10s
@@ -306,6 +312,14 @@ services:
       # Open connections per client IP. Empty = 20 in production, 200
       # otherwise (sync-server/src/rate-limiter.ts).
       - SYNC_MAX_CONNECTIONS_PER_IP=${SYNC_MAX_CONNECTIONS_PER_IP:-}
+      # Capacity. Empty = 5000 open documents / refuse new ones above 85 %
+      # of the memory limit (read from the cgroup, i.e. `mem_limit` above) /
+      # keep a document 30000 ms after its last tab left. Sizing:
+      # docs/SELF-HOSTING.md (sync-server/src/room-capacity.ts).
+      - SYNC_MAX_ROOMS=${SYNC_MAX_ROOMS:-}
+      - SYNC_MEMORY_GUARD_PERCENT=${SYNC_MEMORY_GUARD_PERCENT:-}
+      - SYNC_MEMORY_LIMIT_BYTES=${SYNC_MEMORY_LIMIT_BYTES:-}
+      - SYNC_UNLOAD_GRACE_MS=${SYNC_UNLOAD_GRACE_MS:-}
       # Y.js log snapshots and history retention. Empty = a snapshot after
       # 500 updates / sweep every 900000 ms (<= 0 turns it off) / 50
       # documents per run / keep all history (sync-server/src/compaction.ts).

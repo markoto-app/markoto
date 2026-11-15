@@ -69,7 +69,8 @@ The request limits the app and the sync server enforce, with the file each value
 | What | Limit | Source |
 |---|---|---|
 | WebSocket connections | 20 per client address in production (200 otherwise); `SYNC_MAX_CONNECTIONS_PER_IP` | `sync-server/src/rate-limiter.ts` |
-| Open documents per process | 5000 (joining a document that is already open is not limited) | `sync-server/src/rate-limiter.ts` |
+| Open documents per process | 5000 (joining a document that is already open is not limited); `SYNC_MAX_ROOMS` | `sync-server/src/rate-limiter.ts` |
+| New documents under memory pressure | refused above 85 % of the container memory limit; `SYNC_MEMORY_GUARD_PERCENT`, `SYNC_MEMORY_LIMIT_BYTES` | `sync-server/src/room-capacity.ts` |
 | Message / update / document size | 17 MiB / 16 MiB / 16 MiB; `SYNC_MAX_MESSAGE_BYTES`, `SYNC_MAX_UPDATE_BYTES`, `SYNC_MAX_DOCUMENT_BYTES` | `sync-server/src/limits.ts` |
 
-When either connection limit is reached, the sync server refuses with the reason `server-busy`: the editor shows "Server busy" and retries with backoff instead of reporting missing access.
+When any of these connection limits is reached, the sync server refuses with the reason `server-busy`: the editor shows "Server busy" and retries with backoff instead of reporting missing access.

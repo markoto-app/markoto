@@ -198,7 +198,9 @@ describe('sync server capacity limits', () => {
 })
 
 describe('per-document sync state in Valkey', () => {
-  const server = syncProcess(RESTART_PORT)
+  // A short grace period: the state goes when the document unloads.
+  const graceMs = 1000
+  const server = syncProcess(RESTART_PORT, { SYNC_UNLOAD_GRACE_MS: String(graceMs) })
 
   beforeAll(async () => {
     await server.start()
@@ -237,7 +239,9 @@ describe('per-document sync state in Valkey', () => {
     editor.provider.destroy()
     // Watch the log, not a client: opening the document would seed it again.
     await waitFor(async () => (await storedRows(doc.docId)) > 0 || null)
-    await sleep(1_000)
+    // Kept through the grace period (a reload would reuse it), then dropped.
+    expect((await stateKeys(doc.docId)).length).toBeGreaterThan(0)
+    await sleep(graceMs + 1_000)
     expect(await stateKeys(doc.docId)).toEqual([])
   }, 60_000)
 

@@ -152,6 +152,11 @@ Real-time collaboration. NUXT_* values are read by the app; the rest by the sync
 | `SYNC_MAX_PREAUTH_TOTAL_BYTES` | bytes (integer ≥ 1) | `268435456` |  | sync | both | Bytes all connections together may queue before authenticating. |
 | `SYNC_AUTH_TIMEOUT_MS` | milliseconds (integer ≥ 1) | `15000` |  | sync | both | A connection that sends for a document without its token within this time is closed. |
 | `SYNC_MAX_CONNECTIONS_PER_IP` | integer ≥ 1 | 20 with NODE_ENV=production, 200 otherwise |  | sync | both | Open sync connections per client IP. |
+| `SYNC_MAX_ROOMS` | integer ≥ 1 | `5000` |  | sync | both | Documents one sync server keeps open at once; a new document beyond it is refused as busy (joining an open one never is). Size it from the container memory: about 65 KiB per open document of typical size plus its text, and leave half the limit free. |
+| `SYNC_MEMORY_GUARD_PERCENT` | integer 0–100 | `85` |  | sync | both | Refuse to open new documents (busy) while the sync server uses more than this share of its memory limit; 0 = off. |
+| `SYNC_MEMORY_LIMIT_BYTES` | bytes (integer ≥ 1) | the container memory limit (cgroup); none = memory guard off |  | sync | both | Memory limit the memory guard measures against. |
+| `SYNC_UNLOAD_GRACE_MS` | integer ≥ 0 | `30000` |  | sync | both | How long a document stays open after its last tab left (ms), so reloads and quick switches skip the database; edits are still stored at once. 0 = unload immediately. |
+| `NUXT_PUBLIC_SYNC_HIDDEN_DISCONNECT_MS` | integer ≥ 0 | `240000` |  | app | both | The editor disconnects from the sync server after its tab has been hidden this long (ms) and reconnects when it is shown again (runtimeConfig.public). 0 = stay connected. |
 | `COMPACT_THRESHOLD` | integer ≥ 1 | `500` |  | sync | both | A snapshot of a document is written once it has more stored updates than this since its last snapshot (loading then starts from the snapshot; no history is removed). |
 | `COMPACT_INTERVAL_MS` | integer | `900000` |  | sync | both | How often the compaction sweep runs (ms); ≤ 0 = off. |
 | `COMPACT_MAX_DOCS_PER_RUN` | integer ≥ 1 | `50` |  | sync | both | Most documents compacted per sweep. |

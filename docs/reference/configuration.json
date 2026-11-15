@@ -1574,6 +1574,96 @@
       "deprecatedNames": []
     },
     {
+      "name": "SYNC_MAX_ROOMS",
+      "namespace": "sync",
+      "key": "maxRooms",
+      "type": "integer ≥ 1",
+      "services": [
+        "sync"
+      ],
+      "names": {
+        "sync": "SYNC_MAX_ROOMS"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": 5000,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "SYNC_MEMORY_GUARD_PERCENT",
+      "namespace": "sync",
+      "key": "memoryGuardPercent",
+      "type": "integer 0–100",
+      "services": [
+        "sync"
+      ],
+      "names": {
+        "sync": "SYNC_MEMORY_GUARD_PERCENT"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": 85,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "SYNC_MEMORY_LIMIT_BYTES",
+      "namespace": "sync",
+      "key": "memoryLimitBytes",
+      "type": "bytes (integer ≥ 1)",
+      "services": [
+        "sync"
+      ],
+      "names": {
+        "sync": "SYNC_MEMORY_LIMIT_BYTES"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "SYNC_UNLOAD_GRACE_MS",
+      "namespace": "sync",
+      "key": "unloadGraceMs",
+      "type": "integer ≥ 0",
+      "services": [
+        "sync"
+      ],
+      "names": {
+        "sync": "SYNC_UNLOAD_GRACE_MS"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": 30000,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_PUBLIC_SYNC_HIDDEN_DISCONNECT_MS",
+      "namespace": "sync",
+      "key": "hiddenDisconnectMs",
+      "type": "integer ≥ 0",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_PUBLIC_SYNC_HIDDEN_DISCONNECT_MS"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": 240000,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
       "name": "COMPACT_THRESHOLD",
       "namespace": "sync",
       "key": "compactThreshold",
