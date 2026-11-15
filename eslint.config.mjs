@@ -614,9 +614,12 @@ const composed = withNuxt(
 // `lint:types` keeps only the type-aware rules. Plugins and parsers stay
 // registered (rule configs of other blocks are just emptied), and unused
 // disable directives are not reported because the rules they name are off.
+// `onResolved` / `append` queue onto the composer and return it (it is a
+// thenable); `export default composed` is where ESLint awaits it, so the
+// returned value is dropped on purpose (`void`).
 if (LINT_TYPES === 'only') {
   const typeAwareNames = new Set([...Object.keys(typeAwareRules), 'markoto/no-proof-forgery'])
-  composed.onResolved((configs) => {
+  void composed.onResolved((configs) => {
     for (const config of configs) {
       if (!config.rules) continue
       config.rules = Object.fromEntries(Object.entries(config.rules).filter(([name]) => typeAwareNames.has(name)))
@@ -626,7 +629,7 @@ if (LINT_TYPES === 'only') {
   })
 }
 if (LINT_TYPES === 'off') {
-  composed.append({ name: 'markoto/lint-fast', linterOptions: { reportUnusedDisableDirectives: 'off' } })
+  void composed.append({ name: 'markoto/lint-fast', linterOptions: { reportUnusedDisableDirectives: 'off' } })
 }
 
 export default composed
