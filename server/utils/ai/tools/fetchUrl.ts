@@ -3,6 +3,7 @@ import type { AgenticAIClient as AiClient } from '../../agentic/aiTypes'
 import { litellmCompletion } from '../../litellm/createCompletion'
 import { assertSafeUrl, parseToolUrl } from '../../agentic/urlGuard'
 import { consumeWebToolQuota, isWebToolAvailable } from '../webTools'
+import { chargeWebToolCall } from '../webToolCharge'
 import { useLitellmAdmin, useLitellmForUser } from '../litellmClient'
 import { FEATURE_TAGS, featureMetadata } from '../../litellm/featureTags'
 import { providerRequestFields, withProviderErrors } from '../../aiProviders/requestFields'
@@ -58,9 +59,11 @@ export async function fetchUrl(
   // records resolve into private space all throw here.
   await assertSafeUrl(url)
 
-  // Platform-paid Jina Reader call, counted only for URLs that passed the
-  // SSRF guard, so a rejected URL never burns allowance.
+  // Platform-paid Jina Reader call, counted and charged to the AI budget
+  // only for URLs that passed the SSRF guard, so a rejected URL never
+  // burns allowance or AI Points.
   await consumeWebToolQuota(spendCtx.userId)
+  await chargeWebToolCall('fetch_url', spendCtx, signal)
 
   // The `ai` + `model` args are retained on the signature for harness
   // compatibility.

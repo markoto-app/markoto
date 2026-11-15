@@ -33,7 +33,8 @@ function spendContext(ctx: MetaToolContext) {
     workspaceId: ctx.workspaceId,
     userId: ctx.initiatorUserId,
     docId: ctx.docId,
-    // Authenticate the synthesis with the caller's virtual key and run
+    attributedTo: ctx.attributedTo,
+    // Authenticate the charge and the synthesis with the caller's virtual key and run
     // it on their chat provider (BYOK), matching the in-app loop.
     virtualKey: ctx.virtualKey,
     chatProvider: ctx.aiProviders.chat

@@ -36,6 +36,9 @@ export const FEATURE_TAGS = {
   transcribe: 'feature:transcribe',
   textLoop: 'feature:text-loop',
   dictateTick: 'feature:dictate-tick',
+  // Per-call charges of the web tools (Staan search, Jina Reader page fetch)
+  webSearch: 'feature:web-search',
+  webFetch: 'feature:web-fetch',
   imageGen: 'feature:image-gen',
   embeddings: 'feature:embeddings',
   // "Create a design from a document" (vision model, theme panel)

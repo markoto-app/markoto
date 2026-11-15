@@ -109,7 +109,8 @@ describe('web_search synthesis billing key', () => {
   it('returns the raw results without an LLM call when no chat provider is configured', async () => {
     stubFetch('staan')
     const out = await webSearch(undefined, '', 'query', neverAbort, { virtualKey: 'sk-user-123', chatProvider: null })
-    expect(litellmCompletion).not.toHaveBeenCalled()
+    // Only the per-call charge (webToolCharge.test.ts), no synthesis.
+    expect(litellmCompletion.mock.calls.map(c => c[1].model)).toEqual(['web-search-tick'])
     expect(out.text).toContain('https://example.com')
     expect(out.sources).toEqual([{ title: 'T', uri: 'https://example.com' }])
   })

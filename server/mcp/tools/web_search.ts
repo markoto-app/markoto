@@ -4,9 +4,10 @@ import { WebSearchArgs } from '../../utils/ai/tools/webResearchTools'
 
 // `web_search` is a 2-call pattern (Staan search → synthesis on the caller's
 // chat provider). The synthesis runs on the user's own chat model (BYOK) or
-// the instance default; the Staan call is platform-paid and bounded by the
-// per-user hourly/daily web-tool allowance (`consumeWebToolQuota`, shared
-// with `fetch_url` and the in-app loop). Not listed when `STAAN_API_KEY` is
+// the instance default; the Staan call is platform-paid, charged to the
+// caller's AI budget (`chargeWebToolCall`) and bounded by the per-user
+// hourly/daily web-tool allowance (`consumeWebToolQuota`, shared with
+// `fetch_url` and the in-app loop). Not listed when `STAAN_API_KEY` is
 // unset.
 export default buildUserOnlyTool({
   name: 'web_search',

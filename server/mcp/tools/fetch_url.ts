@@ -4,9 +4,9 @@ import { isWebToolAvailable } from '../../utils/ai/webTools'
 
 // `fetch_url` is a 2-call pattern (Jina Reader → synthesis with json_schema
 // strict on the caller's chat provider). Returns `{summary, images[]}`. The
-// Jina Reader call is platform-paid and shares the per-user hourly/daily
-// web-tool allowance (`consumeWebToolQuota`) with `web_search` and the
-// in-app loop. Not listed when `JINA_AI_API_KEY` is unset. SSRF-guarded by
+// Jina Reader call is platform-paid: charged to the caller's AI budget
+// (`chargeWebToolCall`) and sharing the per-user hourly/daily web-tool
+// allowance (`consumeWebToolQuota`) with `web_search` and the in-app loop. Not listed when `JINA_AI_API_KEY` is unset. SSRF-guarded by
 // `assertSafeUrl` inside the handler.
 export default buildUserOnlyTool({
   name: 'fetch_url',

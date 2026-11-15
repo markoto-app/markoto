@@ -6,13 +6,13 @@ import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
 import { useEnv } from '~~/shared/env/load'
 
 // Platform-provided web tools: `web_search` (Staan) and `fetch_url` (Jina
-// Reader). The operator pays the upstream search / reader call, it never
-// touches the user's LiteLLM budget, because both are plain HTTP calls made
-// by the app, not LiteLLM deployments. The synthesis step that follows runs
-// on the caller's chat provider (BYOK → the user's own key). Because the
-// upstream half is free to the user, every call is rate-limited per user
-// (shared by the in-editor loop and MCP) and the tools are only offered when
-// the operator configured the upstream key.
+// Reader). The operator's key pays the upstream search / reader call, a
+// plain HTTP call made by the app; each call is charged to the caller's AI
+// budget through a tick model first (`webToolCharge.ts`). The synthesis
+// step that follows runs on the caller's chat provider (BYOK → the user's
+// own key). Every call is also rate-limited per user (shared by the
+// in-editor loop and MCP), checked before the charge, and the tools are
+// only offered when the operator configured the upstream key.
 
 export type WebToolName = 'web_search' | 'fetch_url'
 

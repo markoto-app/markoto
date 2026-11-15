@@ -253,6 +253,43 @@ model_list:
       # Budget reservation ceiling: a tick is exactly 60 tokens.
       max_output_tokens: 60
 
+  # ---- Web-tool metering: web_search (Staan) + fetch_url (Jina Reader) ----
+  # Billing-only stubs via custom_handlers.py:WebToolTickProvider. The app
+  # calls Staan / Jina itself with the operator's keys; right before each
+  # call it sends one completion on these models with the caller's virtual
+  # key (server/utils/ai/webToolCharge.ts), so the call is charged to the
+  # same budget as all other AI (per-user key, the free-tier pool, a Team /
+  # Business workspace team) and refused when that budget is used up. The
+  # stub reports 1 completion token, so output_cost_per_token is the price
+  # of one call. Self-hosters can drop these entries and set
+  # NUXT_LITELLM_WEB_{SEARCH,FETCH}_TICK_MODEL= (empty) to stop charging.
+  #
+  # web-search-tick: Staan "Web Search for AI" lists EUR 4 per 1,000
+  # requests (staan.ai/#pricing, checked 2026-11) = EUR 0.004 per search,
+  # about $0.0047; rounded up to $0.005 to absorb exchange-rate moves.
+  - model_name: web-search-tick
+    litellm_params:
+      model: web-tool-tick/web-search-tick
+    model_info:
+      input_cost_per_token: 0.0
+      output_cost_per_token: 0.005         # × 1 reported token = $0.005 per search (5 AI Points)
+      # Budget reservation ceiling: a tick is exactly 1 token.
+      max_output_tokens: 1
+
+  # web-fetch-tick: Jina Reader bills the tokens of the page it returns
+  # (about $0.05 per 1M on paid top-ups, no per-request minimum). The app
+  # caps a page at 8,000 tokens (X-Token-Budget), so one fetch costs at most
+  # about $0.0004. Charged as a flat $0.001 per fetch: above that ceiling, so
+  # a Jina price change or a page billed above the cap stays covered, while
+  # still only 1 AI Point.
+  - model_name: web-fetch-tick
+    litellm_params:
+      model: web-tool-tick/web-fetch-tick
+    model_info:
+      input_cost_per_token: 0.0
+      output_cost_per_token: 0.001         # × 1 reported token = $0.001 per page fetch (1 AI Point)
+      max_output_tokens: 1
+
   # ---- Bring-your-own-key (BYOK) passthrough ----
   # Every BYOK call (chat / agent loop, web-tool synthesis, image
   # generation, one-shot transcription) is sent as model `byok/<id>`
@@ -311,6 +348,7 @@ litellm_settings:
     - {"provider": "mistral-transcribe", "custom_handler": "custom_handlers.mistral_transcribe_provider"}
     - {"provider": "bfl-flux", "custom_handler": "custom_handlers.bfl_flux_provider"}
     - {"provider": "voxtral-tick", "custom_handler": "custom_handlers.voxtral_tick_provider"}
+    - {"provider": "web-tool-tick", "custom_handler": "custom_handlers.web_tool_tick_provider"}
 
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
