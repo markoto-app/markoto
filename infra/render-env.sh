@@ -77,14 +77,14 @@ INPUTS=(
   TIER_PRO_FEATURE_GUESTS TIER_PRO_FEATURE_SSO TIER_TEAM_FEATURE_AUDIT_LOG
   TIER_TEAM_FEATURE_SSO VALKEY_DB VALKEY_PASSWORD
 )
-if [ "${1:-}" = --keys ]; then
+if [[ "${1:-}" = --keys ]]; then
   printf '%s\n' "${INPUTS[@]}"
   exit 0
 fi
 
 require() {  # require VAR_NAME
   local n="$1"
-  if [ -z "${!n:-}" ]; then
+  if [[ -z "${!n:-}" ]]; then
     echo "render-env: required var '$n' is empty" >&2
     exit 1
   fi
@@ -107,7 +107,7 @@ done
 # stops the deploy before the running stack is touched, instead of after
 # the new containers crash-loop into the auto-rollback.
 for v in NUXT_LEGAL_CONTROLLER_ADDRESS NUXT_LEGAL_REPRESENTED_BY; do
-  if [ -z "${!v:-}" ]; then
+  if [[ -z "${!v:-}" ]]; then
     echo "render-env: '$v' is empty: the legal pages need it (set it as a GitHub Environment variable)" >&2
     exit 1
   fi
@@ -116,7 +116,7 @@ done
 # Published pages are served from their own hostname (the app refuses to
 # boot in the hosted shape without it, and prod compose routes it with its
 # own certificate). It is spliced into a Traefik rule, so: plain hostname.
-if [ -z "${NUXT_PUBLISH_PAGES_HOST:-}" ]; then
+if [[ -z "${NUXT_PUBLISH_PAGES_HOST:-}" ]]; then
   echo "render-env: 'NUXT_PUBLISH_PAGES_HOST' is empty: published pages need their own hostname, e.g. pages.\${DOMAIN} (set it as a GitHub Environment variable and add its DNS record)" >&2
   exit 1
 fi
@@ -231,11 +231,11 @@ OVH_PG_CA_REMOTE_PATH="${OVH_PG_CA_REMOTE_PATH:-/opt/markoto/secrets/ovh-pg-ca.p
 # The bundled Postgres container runs only for the in-stack host name
 # (staging); a managed cluster (prod) gets no container at all
 # (deploy/compose/compose.prod.yml, profile `bundled-postgres`).
-if [ -n "$OVH_PG_HOST" ] && [ "$POSTGRES_HOST" = postgres ]; then
+if [[ -n "$OVH_PG_HOST" ]] && [[ "$POSTGRES_HOST" = postgres ]]; then
   echo "render-env: OVH_PG_HOST is set but POSTGRES_HOST is the bundled 'postgres': set POSTGRES_HOST to the managed cluster's host name too" >&2
   exit 1
 fi
-if [ "$POSTGRES_HOST" = postgres ]; then
+if [[ "$POSTGRES_HOST" = postgres ]]; then
   compose_profiles=bundled-postgres
 else
   compose_profiles=
@@ -537,7 +537,7 @@ BACKUP_S3_PREFIX=${BACKUP_S3_PREFIX}
 # ─── Postgres TLS ───
 EOF
 
-if [ -n "$OVH_PG_HOST" ] && [ -n "$OVH_PG_CA_REMOTE_PATH" ]; then
+if [[ -n "$OVH_PG_HOST" ]] && [[ -n "$OVH_PG_CA_REMOTE_PATH" ]]; then
   echo "PGSSLROOTCERT=${OVH_PG_CA_REMOTE_PATH}"
   echo "PGSSL="
   # libpq-style sslmode consumed by litellm's DATABASE_URL, the

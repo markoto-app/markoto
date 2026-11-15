@@ -14,7 +14,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 engine="${TEST_CONTAINER_ENGINE:-}"
-if [ -z "$engine" ]; then
+if [[ -z "$engine" ]]; then
   # Podman's Docker-compatible API names itself as a server component.
   components=$(docker version --format '{{range .Server.Components}}{{.Name}};{{end}}' 2>/dev/null || true)
   case "$components" in *[Pp]odman*) engine=podman ;; *) engine=docker ;; esac
@@ -23,14 +23,14 @@ fi
 files=(-f deploy/compose/compose.test.yml)
 # Compose reads `.env` from the compose file's directory, not from here;
 # hand it the repository's (TEST_FAKE_OPENAI_HOST and friends live there).
-if [ -f .env ]; then files=(--env-file .env "${files[@]}"); fi
-if [ "$engine" = podman ]; then
+if [[ -f .env ]]; then files=(--env-file .env "${files[@]}"); fi
+if [[ "$engine" = podman ]]; then
   files+=(-f deploy/compose/compose.test.podman.yml)
-  if [ -z "${TEST_FAKE_OPENAI_HOST:-}" ]; then
+  if [[ -z "${TEST_FAKE_OPENAI_HOST:-}" ]]; then
     # Suggest the first private IPv4 address of a physical network card.
     suggestion=""
     for dev in /sys/class/net/*; do
-      [ -e "$dev/device" ] || continue
+      [[ -e "$dev/device" ]] || continue
       addr=$(ip -4 -o addr show dev "$(basename "$dev")" scope global 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | head -n1)
       case "$addr" in 10.*|192.168.*|172.1[6-9].*|172.2[0-9].*|172.3[01].*) suggestion="$addr"; break ;; esac
     done

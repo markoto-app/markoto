@@ -143,12 +143,12 @@ backup_s3_prefix=v/backup/prefix
 PY
 
 declare -a ENVARGS=()
-while IFS='=' read -r k v; do [ -n "$k" ] && ENVARGS+=("$(echo "$k" | tr '[:lower:]' '[:upper:]')=$v"); done <<<"$VARS"
+while IFS='=' read -r k v; do [[ -n "$k" ]] && ENVARGS+=("$(echo "$k" | tr '[:lower:]' '[:upper:]')=$v"); done <<<"$VARS"
 bash_out=$(env -i "${ENVARGS[@]}" bash infra/render-env.sh)
 
 # 1. Every sample value reaches the .env unchanged.
 while IFS='=' read -r k v; do
-  [ -n "$k" ] || continue
+  [[ -n "$k" ]] || continue
   key=$(echo "$k" | tr '[:lower:]' '[:upper:]')
   # Booleans compose hands to the app verbatim are normalised to lower case.
   case "$key" in NUXT_AI_BYOK_ALLOW_PRIVATE_URLS | NUXT_SITE_INDEXABLE) v=$(echo "$v" | tr '[:upper:]' '[:lower:]') ;; esac
@@ -165,7 +165,7 @@ echo "PASSTHROUGH OK: every sample input is rendered unchanged"
 keys=$(bash infra/render-env.sh --keys | sort -u)
 read_vars=$(grep -oE '\$\{[A-Z][A-Z0-9_]*' infra/render-env.sh | cut -c3- | grep -vx INPUTS | sort -u)
 missing=$(comm -13 <(echo "$keys") <(echo "$read_vars") || true)
-if [ -n "$missing" ]; then
+if [[ -n "$missing" ]]; then
   echo "KEYS FAILED: read but not listed in INPUTS (--keys): $missing"
   exit 1
 fi
@@ -234,7 +234,7 @@ for pair in ENDPOINT:endpoint BUCKET:bucket ACCESS_KEY:access_key SECRET_KEY:sec
   suffix="${pair%%:*}"
   want=$(echo "$fallback_out" | grep -E "^NUXT_S3_${suffix}=" | cut -d= -f2-)
   got=$(echo "$fallback_out" | grep -E "^BACKUP_S3_${suffix}=" | cut -d= -f2-)
-  if [ -z "$want" ] || [ "$want" != "$got" ]; then
+  if [[ -z "$want" ]] || [[ "$want" != "$got" ]]; then
     echo "BACKUP FALLBACK FAILED, BACKUP_S3_${suffix} does not default to NUXT_S3_${suffix}"
     exit 1
   fi

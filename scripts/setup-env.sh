@@ -10,7 +10,7 @@ target="${ENV_FILE:-.env}"
 
 command -v openssl >/dev/null || { echo "setup-env: openssl is required to generate secrets" >&2; exit 1; }
 
-if [ ! -f "$target" ]; then
+if [[ ! -f "$target" ]]; then
   cp .env.example "$target"
   chmod 600 "$target"
   echo "created $target from .env.example"
