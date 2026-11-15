@@ -14,8 +14,18 @@ import { ANON_GATE_PURPOSES } from '../config/anonGate'
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/
 
-/** A `YYYY-MM-DD` day; anything else (or a repeated key) falls back to the route's default window instead of failing. */
-const isoDayOrDefault = z.string().regex(ISO_DAY).optional().catch(undefined)
+/** True for a real calendar day (`2026-13-99` has the shape but is not one). */
+const isCalendarDay = (s: string): boolean => {
+  const d = new Date(`${s}T00:00:00Z`)
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s
+}
+
+/**
+ * A `YYYY-MM-DD` calendar day; anything else (or a repeated key) falls back to
+ * the route's default window instead of failing. LiteLLM (since 1.108) answers
+ * 400 to an impossible date in `/spend/tags`, so the shape alone is not enough.
+ */
+const isoDayOrDefault = z.string().regex(ISO_DAY).refine(isCalendarDay).optional().catch(undefined)
 
 /** POST /api/abuse-reports. The anonymous bot-check solution travels as `altcha`; `docId` is an alias of `contentUrl`. */
 export const submitAbuseReportBody = z.object({
