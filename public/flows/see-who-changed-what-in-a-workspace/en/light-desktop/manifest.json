@@ -16,10 +16,10 @@
     },
     {
       "kind": "narration",
-      "text": "The audit log lists what happened in the workspace, newest first: members and roles, invitations, sharing and deletions, billing and single sign-on — with who did it and their shortened network address.",
+      "text": "The audit log lists what happened in the workspace, newest first: members and roles, invitations, sharing and deletions, billing and single sign-on: with who did it and their shortened network address.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/n3jbufLwoE"
+      "path": "/w/q87H4d9Z6_"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 978,
         "y": 257
       },
-      "path": "/w/n3jbufLwoE",
+      "path": "/w/q87H4d9Z6_",
       "annotations": [
         {
           "label": "Audit log",
@@ -44,26 +44,17 @@
     {
       "kind": "outcome",
       "file": "03.webp",
-      "cursor": {
-        "x": 978,
-        "y": 257
-      },
-      "path": "/w/n3jbufLwoE"
-    },
-    {
-      "kind": "outcome",
-      "file": "04.webp",
       "caption": "Each change with when, what and who",
       "cursor": {
         "x": 978,
         "y": 257
       },
-      "path": "/w/n3jbufLwoE",
+      "path": "/w/q87H4d9Z6_",
       "highlights": [
         {
           "label": "Who changed what",
           "x": 257,
-          "y": 544,
+          "y": 568,
           "w": 766,
           "h": 45
         }
@@ -72,18 +63,18 @@
     },
     {
       "kind": "outcome",
-      "file": "05.webp",
+      "file": "04.webp",
       "caption": "Click an entry for its details",
       "cursor": {
         "x": 640,
-        "y": 611
+        "y": 635
       },
-      "path": "/w/n3jbufLwoE",
+      "path": "/w/q87H4d9Z6_",
       "highlights": [
         {
           "label": "Before and after",
           "x": 273,
-          "y": 629,
+          "y": 653,
           "w": 734,
           "h": 280
         }
@@ -96,18 +87,18 @@
     },
     {
       "kind": "outcome",
-      "file": "05.webp",
+      "file": "04.webp",
       "caption": "Download the selected events as CSV or JSON Lines",
       "cursor": {
         "x": 640,
-        "y": 611
+        "y": 635
       },
-      "path": "/w/n3jbufLwoE",
+      "path": "/w/q87H4d9Z6_",
       "highlights": [
         {
           "label": "CSV",
-          "x": 846.53125,
-          "y": 487,
+          "x": 820.53125,
+          "y": 511,
           "w": 73.953125,
           "h": 32
         }

@@ -22,7 +22,7 @@
         "x": 640,
         "y": 24
       },
-      "path": "/d/8YdlLy4M6U"
+      "path": "/d/Hfp3e_3jYw"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 28,
         "y": 63
       },
-      "path": "/d/8YdlLy4M6U",
+      "path": "/d/Hfp3e_3jYw",
       "annotations": [
         {
           "label": "file menu",
@@ -52,7 +52,7 @@
         "x": 28,
         "y": 63
       },
-      "path": "/d/8YdlLy4M6U"
+      "path": "/d/Hfp3e_3jYw"
     },
     {
       "kind": "approach",
@@ -62,7 +62,7 @@
         "x": 94,
         "y": 169
       },
-      "path": "/d/8YdlLy4M6U",
+      "path": "/d/Hfp3e_3jYw",
       "annotations": [
         {
           "label": "export submenu",
@@ -82,7 +82,7 @@
         "x": 259,
         "y": 201
       },
-      "path": "/d/8YdlLy4M6U"
+      "path": "/d/Hfp3e_3jYw"
     },
     {
       "kind": "outcome",
@@ -92,7 +92,7 @@
         "x": 259,
         "y": 201
       },
-      "path": "/d/8YdlLy4M6U"
+      "path": "/d/Hfp3e_3jYw"
     },
     {
       "kind": "chapter",
@@ -104,13 +104,13 @@
       "file": "07.webp",
       "caption": "The downloaded PDF: the cover page and the first page of content, exactly as in the preview.",
       "cursor": null,
-      "path": "/api/docs/8YdlLy4M6U/pdf?inline=1",
+      "path": "/api/docs/Hfp3e_3jYw/pdf?inline=1",
       "hero": true,
       "actor": "pdf"
     }
   ],
   "next": {
     "slug": "password-protect",
-    "why": "Now lock the doc down — share it only with people you trust"
+    "why": "Now lock the doc down, share it only with people you trust"
   }
 }

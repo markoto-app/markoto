@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/66fsKNt5_R"
+      "path": "/d/50iX0Y76ar"
     },
     {
       "kind": "approach",
@@ -32,17 +32,17 @@
         "x": 28,
         "y": 67
       },
-      "path": "/d/66fsKNt5_R"
+      "path": "/d/50iX0Y76ar"
     },
     {
       "kind": "outcome",
       "file": "03.webp",
-      "caption": "The File menu opens — Duplicate sits below Print.",
+      "caption": "The File menu opens, Duplicate sits below Print.",
       "cursor": {
         "x": 28,
         "y": 67
       },
-      "path": "/d/66fsKNt5_R"
+      "path": "/d/50iX0Y76ar"
     },
     {
       "kind": "approach",
@@ -52,17 +52,17 @@
         "x": 103,
         "y": 255
       },
-      "path": "/d/66fsKNt5_R"
+      "path": "/d/50iX0Y76ar"
     },
     {
       "kind": "outcome",
       "file": "05.webp",
-      "caption": "A confirm dialog appears — markoto pre-fills the new title with \"Copy of …\".",
+      "caption": "A confirm dialog appears, markoto pre-fills the new title with \"Copy of …\".",
       "cursor": {
         "x": 103,
         "y": 255
       },
-      "path": "/d/66fsKNt5_R"
+      "path": "/d/50iX0Y76ar"
     },
     {
       "kind": "chapter",
@@ -72,32 +72,32 @@
     {
       "kind": "narration",
       "text": "Edit the title if you like, then confirm. markoto copies the text, the theme and every image (the copy points at its own images, so deleting the original never breaks it). A flaky connection can't leave you with two copies: a retried request returns the copy that was already made.",
-      "file": "06.webp",
+      "file": "05.webp",
       "cursor": {
         "x": 103,
         "y": 255
       },
-      "path": "/d/66fsKNt5_R"
+      "path": "/d/50iX0Y76ar"
     },
     {
       "kind": "approach",
-      "file": "07.webp",
+      "file": "06.webp",
       "caption": "Click \"Duplicate\" to commit",
       "cursor": {
         "x": 818,
         "y": 482
       },
-      "path": "/d/66fsKNt5_R"
+      "path": "/d/50iX0Y76ar"
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
-      "caption": "The new doc opens — same body, same theme, fresh URL. Edit either copy independently from now on.",
+      "file": "07.webp",
+      "caption": "The new doc opens, same body, same theme, fresh URL. Edit either copy independently from now on.",
       "cursor": {
         "x": 818,
         "y": 482
       },
-      "path": "/d/zclXMbDxLL",
+      "path": "/d/LeXDtY2YbE",
       "hero": true
     }
   ],

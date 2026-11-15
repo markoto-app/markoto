@@ -12,7 +12,7 @@
     {
       "kind": "chapter",
       "level": 3,
-      "text": "Drop a URL — the AI reads it for you"
+      "text": "Drop a URL, the AI reads it for you"
     },
     {
       "kind": "narration",
@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/qgOfCTDzlU"
+      "path": "/d/q6Twg40KRY"
     },
     {
       "kind": "approach",
@@ -32,17 +32,17 @@
         "x": 618,
         "y": 722
       },
-      "path": "/d/qgOfCTDzlU"
+      "path": "/d/q6Twg40KRY"
     },
     {
       "kind": "outcome",
       "file": "03.webp",
-      "caption": "The bar lifts and glows — ready for the URL + question.",
+      "caption": "The bar lifts and glows, ready for the URL + question.",
       "cursor": {
         "x": 618,
         "y": 722
       },
-      "path": "/d/qgOfCTDzlU"
+      "path": "/d/q6Twg40KRY"
     },
     {
       "kind": "approach",
@@ -52,17 +52,17 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/qgOfCTDzlU"
+      "path": "/d/q6Twg40KRY"
     },
     {
       "kind": "outcome",
       "file": "04.webp",
-      "caption": "Your prompt is ready — the URL tells the AI which page to read.",
+      "caption": "Your prompt is ready, the URL tells the AI which page to read.",
       "cursor": {
         "x": 316,
         "y": 723
       },
-      "path": "/d/qgOfCTDzlU"
+      "path": "/d/q6Twg40KRY"
     },
     {
       "kind": "approach",
@@ -72,27 +72,27 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/qgOfCTDzlU"
+      "path": "/d/q6Twg40KRY"
     },
     {
       "kind": "outcome",
       "file": "06.webp",
-      "caption": "The AI is working — it reads the page, then the summary lands in the doc.",
+      "caption": "The AI is working, it reads the page, then the summary lands in the doc.",
       "cursor": {
         "x": 1000,
         "y": 722
       },
-      "path": "/d/qgOfCTDzlU"
+      "path": "/d/q6Twg40KRY"
     },
     {
       "kind": "outcome",
       "file": "07.webp",
-      "caption": "The AI read the page and wrote the summary into the doc — with a link to the source so the reader can verify.",
+      "caption": "The AI read the page and wrote the summary into the doc, with a link to the source so the reader can verify.",
       "cursor": {
         "x": 1000,
         "y": 722
       },
-      "path": "/d/qgOfCTDzlU",
+      "path": "/d/q6Twg40KRY",
       "highlights": [
         {
           "label": "AI-written summary",
