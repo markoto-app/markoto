@@ -308,7 +308,7 @@ services:
     # Same as the image's HEALTHCHECK, declared here because Podman builds
     # OCI images, which drop HEALTHCHECK (docs/contributing/CONTAINER-ENGINES.md).
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- --tries=1 --timeout=5 http://127.0.0.1:3000/api/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- --tries=1 --timeout=5 http://127.0.0.1:3000/api/health/live || exit 1"]
       interval: 30s
       timeout: 10s
       start_period: 30s
@@ -549,7 +549,7 @@ services:
       - "traefik.http.routers.markoto-import.middlewares=markoto-import-limit,markoto-headers"
       - "traefik.http.middlewares.markoto-import-limit.buffering.maxRequestBodyBytes=53477376"
       - "traefik.http.services.markoto-app.loadbalancer.server.port=3000"
-      - "traefik.http.services.markoto-app.loadbalancer.healthcheck.path=/api/health"
+      - "traefik.http.services.markoto-app.loadbalancer.healthcheck.path=/api/health/live"
       - "traefik.http.services.markoto-app.loadbalancer.healthcheck.interval=10s"
       - "traefik.http.services.markoto-app.loadbalancer.healthcheck.timeout=10s"
       # Security headers (see docs/SECURITY-HARDENING.md for the rationale of

@@ -49,6 +49,7 @@ const {
   isOverallHealthy,
   getCachedHealth,
   getCachedProbeResults,
+  getCachedLiveness,
   _resetHealthCache
 } = await import('../../../server/utils/platform/healthProbes')
 
@@ -410,5 +411,42 @@ describe('runAllProbes + isOverallHealthy', () => {
     })
     const elapsed = performance.now() - t0
     expect(elapsed).toBeLessThan(250)
+  })
+})
+
+describe('getCachedLiveness (routing gate)', () => {
+  it('stays 200 while sync and the sidecars are down: it never asks them', async () => {
+    // Every HTTP dependency fails; only the in-process connections count.
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(fakeFetch(503))
+    const live = await getCachedLiveness()
+    expect(live).toEqual({ status: 200, body: { status: 'ok' } })
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('503 with the two checks when Valkey is down', async () => {
+    mockState.valkeyPing = async () => {
+      throw new Error('ECONNREFUSED')
+    }
+    const live = await getCachedLiveness()
+    expect(live).toEqual({ status: 503, body: { status: 'degraded', checks: { postgres: 'ok', valkey: 'down' } } })
+  })
+
+  it('503 when Postgres is down', async () => {
+    mockState.dbExecute = async () => {
+      throw new Error('connection terminated')
+    }
+    const live = await getCachedLiveness()
+    expect(live.status).toBe(503)
+  })
+
+  it('caches a healthy answer: two calls, one probe round', async () => {
+    let pings = 0
+    mockState.valkeyPing = async () => {
+      pings++
+      return 'PONG'
+    }
+    await getCachedLiveness()
+    await getCachedLiveness()
+    expect(pings).toBe(1)
   })
 })

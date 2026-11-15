@@ -23,6 +23,14 @@ describe('auth middleware whitelist', () => {
       expect(res.status).not.toBe(401)
     })
 
+    it('GET /api/health/live is public and answers from the app and its Postgres + Valkey alone', async () => {
+      // The routing gate Traefik and the container healthcheck use. Postgres
+      // and Valkey are up in the test stack; the body names only those two.
+      const res = await anonClient().get('/api/health/live')
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ status: 'ok' })
+    })
+
     it('GET /api/status is public and returns a per-component board', async () => {
       const res = await anonClient().get('/api/status')
       // Status is a REPORT, not a gate, always 200 so a status-page

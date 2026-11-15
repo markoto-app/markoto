@@ -8,6 +8,7 @@ import { isPublicRoute, PUBLIC_ROUTES, TEST_ONLY_PUBLIC_ROUTES } from '../../../
 
 const PREVIOUS = [
   { path: /^\/api\/health$/, methods: ['GET'] },
+  { path: /^\/api\/health\/live$/, methods: ['GET'] },
   { path: /^\/api\/status$/, methods: ['GET'] },
   { path: /^\/api\/version$/, methods: ['GET'] },
   { path: /^\/api\/_auth\/session$/, methods: ['GET', 'DELETE'] },
@@ -53,7 +54,7 @@ function previousDecision(path: string, method: string, testMode: boolean): bool
 // Probe paths: every entry's own shape, plus near misses (extra segments,
 // trailing slash, other prefixes) and routes that must stay private.
 const PATHS = [
-  '/api/health', '/api/health/', '/api/health/deep', '/api/status', '/api/version', '/api/_auth/session', '/api/_auth/session/x',
+  '/api/health', '/api/health/', '/api/health/live', '/api/health/live/', '/api/health/deep', '/api/status', '/api/version', '/api/_auth/session', '/api/_auth/session/x',
   '/api/_nuxt_icon/lucide.json', '/api/_test/login', '/api/_test/', '/api/billing/tiers', '/api/billing/prices', '/api/billing/checkout',
   '/api/docs', '/api/docs/', '/api/docs/abc', '/api/docs/abc/', '/api/docs/abc/meta', '/api/docs/abc/pdf', '/api/docs/abc/file-token',
   '/api/docs/abc/token', '/api/docs/abc/password', '/api/docs/abc/activity', '/api/docs/abc/activity/12/diff',
