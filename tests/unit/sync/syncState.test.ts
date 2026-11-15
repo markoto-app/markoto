@@ -7,8 +7,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import {
   getLastEditor,
   setLastEditor,
-  getPrevText,
-  setPrevText,
+  getPrevLines,
+  setPrevLines,
   getPrevMeta,
   setPrevMeta,
   dropDocState
@@ -105,17 +105,17 @@ describe('sync-state: Valkey-backed per-doc state', () => {
     })
   })
 
-  describe('prev-text', () => {
+  describe('prev-lines', () => {
     it('round-trips a value with 24h TTL', async () => {
       const { fake, calls } = makeFake()
       _setValkeyClientForTests(fake)
 
-      await setPrevText('doc1', '# hello\nworld')
-      const result = await getPrevText('doc1')
+      await setPrevLines('doc1', '2:AAAAAAAAAAAAAAAA')
+      const result = await getPrevLines('doc1')
 
       expect(result.cause).toBe('hit')
-      expect(result.value).toBe('# hello\nworld')
-      const setCall = calls.find(c => c.op === 'set' && c.key === 'sync:prev-text:doc1')
+      expect(result.value).toBe('2:AAAAAAAAAAAAAAAA')
+      const setCall = calls.find(c => c.op === 'set' && c.key === 'sync:prev-lines:doc1')
       expect(setCall?.ttl).toBe(86400)
     })
 
@@ -123,7 +123,7 @@ describe('sync-state: Valkey-backed per-doc state', () => {
       const { fake } = makeFake()
       _setValkeyClientForTests(fake)
 
-      const result = await getPrevText('unknown')
+      const result = await getPrevLines('unknown')
 
       expect(result.cause).toBe('miss')
       expect(result.value).toBeNull()
@@ -133,7 +133,7 @@ describe('sync-state: Valkey-backed per-doc state', () => {
       const { fake } = makeFake({ throwOnGet: true })
       _setValkeyClientForTests(fake)
 
-      const result = await getPrevText('doc1')
+      const result = await getPrevLines('doc1')
 
       expect(result.cause).toBe('error')
       expect(result.error?.message).toBe('valkey-down')
@@ -187,7 +187,7 @@ describe('sync-state: Valkey-backed per-doc state', () => {
       _setValkeyClientForTests(fake)
 
       store.set('sync:last-editor:doc1', '{"userName":"a","userId":"1","at":0}')
-      store.set('sync:prev-text:doc1', 'x')
+      store.set('sync:prev-lines:doc1', 'x')
       store.set('sync:prev-meta:doc1', '{"title":"a","themeHash":null}')
 
       await dropDocState('doc1')
@@ -196,8 +196,8 @@ describe('sync-state: Valkey-backed per-doc state', () => {
       const delKeys = calls.filter(c => c.op === 'del').map(c => c.key).sort((a, b) => a.localeCompare(b))
       expect(delKeys).toEqual([
         'sync:last-editor:doc1',
-        'sync:prev-meta:doc1',
-        'sync:prev-text:doc1'
+        'sync:prev-lines:doc1',
+        'sync:prev-meta:doc1'
       ])
     })
 
