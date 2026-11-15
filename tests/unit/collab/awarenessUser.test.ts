@@ -43,7 +43,7 @@ describe('normalizeAwarenessUser', () => {
   })
 
   it('strips control and bidi-override characters from names', () => {
-    expect(normalizeAwarenessUser({ name: 'Al‮ice\u0000' })?.name).toBe('Alice')
+    expect(normalizeAwarenessUser({ name: 'Al\u202Eice\u0000' })?.name).toBe('Alice')
   })
 
   it('drops avatar URLs of every kind, avatars are generated locally', () => {
