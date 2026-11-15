@@ -99,3 +99,30 @@ describe('<PresenceBar>: avatar seeds', () => {
     expect(wrapper.find('.mk-seal').exists()).toBe(true)
   })
 })
+
+describe('<PresenceBar>: away', () => {
+  it('dims a peer whose tab is hidden and shows them normally once back', async () => {
+    const awareness = new Awareness(new Y.Doc())
+    const wrapper = await mountBar(awareness)
+    const peer = new Awareness(new Y.Doc())
+    peer.setLocalState({ user: { id: 7, name: 'Ada', color: '#336699' }, away: true })
+    applyAwarenessUpdate(awareness, encodeAwarenessUpdate(peer, [peer.clientID]), 'remote')
+    await nextTick()
+    expect(wrapper.find('[data-away="true"]').exists()).toBe(true)
+
+    peer.setLocalStateField('away', false)
+    applyAwarenessUpdate(awareness, encodeAwarenessUpdate(peer, [peer.clientID]), 'remote')
+    await nextTick()
+    expect(wrapper.find('[data-away="true"]').exists()).toBe(false)
+  })
+
+  it('shows a person as present when one of their tabs is visible', async () => {
+    const awareness = new Awareness(new Y.Doc())
+    const wrapper = await mountBar(awareness)
+    receiveRemoteState(awareness, { user: { id: 7, name: 'Ada', color: '#336699' }, away: true })
+    receiveRemoteState(awareness, { user: { id: 7, name: 'Ada', color: '#336699' }, away: false })
+    await nextTick()
+    expect(wrapper.findAll('[data-testid="user-avatar"]')).toHaveLength(1)
+    expect(wrapper.find('[data-away="true"]').exists()).toBe(false)
+  })
+})

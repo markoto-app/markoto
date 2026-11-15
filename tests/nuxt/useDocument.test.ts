@@ -66,13 +66,16 @@ const hoisted = vi.hoisted(() => {
       status: ref<'connecting' | 'connected' | 'disconnected'>('connecting'),
       synced: ref(false),
       userCount: ref(1),
-      provider: shallowRef<unknown>(null)
+      provider: shallowRef<unknown>(null),
+      pendingChanges: ref(0)
     },
     syncMocks: {
       connect: vi.fn<() => void>(),
       disconnect: vi.fn<() => void>(),
       reconnect: vi.fn<() => void>(),
-      destroy: vi.fn<() => void>()
+      destroy: vi.fn<() => void>(),
+      pause: vi.fn<() => boolean>(() => true),
+      resume: vi.fn<() => void>()
     },
     // Captured opts passed into useHocuspocusSync, gives tests the
     // hook handles so they can simulate provider lifecycle events.
@@ -104,7 +107,7 @@ mockNuxtImport('useRuntimeConfig', () => {
   // complete shape so those plugins don't blow up at app-init time.
   return () => ({
     app: { baseURL: '/', buildId: 'test', buildAssetsDir: '/_nuxt/', cdnURL: '' },
-    public: { syncUrl: 'ws://sync.test/' }
+    public: { syncUrl: 'ws://sync.test/', syncHiddenDisconnectMs: 240000 }
   })
 })
 
@@ -173,6 +176,9 @@ mockNuxtImport('useHocuspocusSync', () => {
       synced: hoisted.syncState.synced,
       userCount: hoisted.syncState.userCount,
       docSizeBytes: hoisted.syncState.docSizeBytes,
+      pendingChanges: hoisted.syncState.pendingChanges,
+      pause: hoisted.syncMocks.pause,
+      resume: hoisted.syncMocks.resume,
       connect: hoisted.syncMocks.connect,
       disconnect: hoisted.syncMocks.disconnect,
       reconnect: hoisted.syncMocks.reconnect,
@@ -239,6 +245,9 @@ function resetHoisted() {
   hoisted.syncMocks.disconnect.mockReset()
   hoisted.syncMocks.reconnect.mockReset()
   hoisted.syncMocks.destroy.mockReset()
+  hoisted.syncMocks.pause.mockReset().mockImplementation(() => true)
+  hoisted.syncMocks.resume.mockReset()
+  hoisted.syncState.pendingChanges.value = 0
   hoisted.capturedSyncOpts = null
   hoisted.debounce.deferred = false
   hoisted.debounce.pending = null
@@ -876,5 +885,60 @@ describe('useDocument: docSizeWarning', () => {
     await nextTick()
     expect(doc.docSizeWarning.value).toBe('critical')
     doc.destroy()
+  })
+})
+
+// Hidden tab: release the sync connection, take it up again when shown
+
+describe('useDocument: hidden tab', () => {
+  function setVisibility(state: 'hidden' | 'visible') {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => state })
+    document.dispatchEvent(new Event('visibilitychange'))
+  }
+
+  it('marks the user away, pauses after the timeout once nothing is pending, resumes when shown', async () => {
+    vi.useFakeTimers()
+    try {
+      const doc = useDocument('doc-abc')
+      await flushFetchToken()
+      hoisted.syncState.status.value = 'connected'
+      hoisted.syncState.synced.value = true
+      hoisted.syncState.pendingChanges.value = 1
+
+      setVisibility('hidden')
+      expect(doc.awareness.getLocalState()?.away).toBe(true)
+      vi.advanceTimersByTime(240_000)
+      expect(hoisted.syncMocks.pause).not.toHaveBeenCalled()
+
+      // The last local change reached the server.
+      hoisted.syncState.pendingChanges.value = 0
+      await nextTick()
+      expect(hoisted.syncMocks.pause).toHaveBeenCalledTimes(1)
+
+      setVisibility('visible')
+      expect(hoisted.syncMocks.resume).toHaveBeenCalledTimes(1)
+      expect(doc.awareness.getLocalState()?.away).toBe(false)
+      doc.destroy()
+    } finally {
+      setVisibility('visible')
+      vi.useRealTimers()
+    }
+  })
+
+  it('stops listening once destroyed', async () => {
+    vi.useFakeTimers()
+    try {
+      const doc = useDocument('doc-abc')
+      await flushFetchToken()
+      hoisted.syncState.status.value = 'connected'
+      hoisted.syncState.synced.value = true
+      doc.destroy()
+      setVisibility('hidden')
+      vi.advanceTimersByTime(600_000)
+      expect(hoisted.syncMocks.pause).not.toHaveBeenCalled()
+    } finally {
+      setVisibility('visible')
+      vi.useRealTimers()
+    }
   })
 })

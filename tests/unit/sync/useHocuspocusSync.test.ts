@@ -688,3 +688,75 @@ describe('useHocuspocusSync: re-authentication', () => {
     expect(calls).toEqual([{ renewal: false }, { renewal: true }])
   })
 })
+
+// pause() / resume(): hidden-tab disconnect
+
+describe('useHocuspocusSync: pause() and resume()', () => {
+  function pausable() {
+    const calls: string[] = []
+    let config: HocuspocusProviderConfiguration | null = null
+    const factory = (c: HocuspocusProviderConfiguration): ProviderLike => {
+      config = c
+      return {
+        destroy: () => calls.push('destroy'),
+        disconnect: () => calls.push('disconnect'),
+        connect: () => {
+          calls.push('connect')
+          return Promise.resolve()
+        }
+      }
+    }
+    const fire = (name: 'onConnect' | 'onSynced' | 'onDisconnect') => {
+      (config?.[name] as (() => void) | undefined)?.()
+    }
+    const unsynced = (n: number) => {
+      (config?.onUnsyncedChanges as ((p: { number: number }) => void) | undefined)?.({ number: n })
+    }
+    return { calls, factory, fire, unsynced }
+  }
+
+  it('refuses before the connection is up and synced', () => {
+    const p = pausable()
+    const sync = useHocuspocusSync({ ...baseOpts(makeHarness()), providerFactory: p.factory })
+    sync.connect()
+    expect(sync.pause()).toBe(false)
+    p.fire('onConnect')
+    expect(sync.pause()).toBe(false)
+    expect(p.calls).toEqual([])
+  })
+
+  it('disconnects the provider without destroying it, and reconnects the same one', () => {
+    const p = pausable()
+    const sync = useHocuspocusSync({ ...baseOpts(makeHarness()), providerFactory: p.factory })
+    sync.connect()
+    p.fire('onConnect')
+    p.fire('onSynced')
+    expect(sync.pause()).toBe(true)
+    expect(sync.paused.value).toBe(true)
+    p.fire('onDisconnect')
+    expect(sync.pause()).toBe(false)
+
+    sync.resume()
+    expect(sync.paused.value).toBe(false)
+    expect(sync.status.value).toBe('connecting')
+    expect(p.calls).toEqual(['disconnect', 'connect'])
+  })
+
+  it('tracks unacknowledged local changes from the provider', () => {
+    const p = pausable()
+    const sync = useHocuspocusSync({ ...baseOpts(makeHarness()), providerFactory: p.factory })
+    sync.connect()
+    p.unsynced(2)
+    expect(sync.pendingChanges.value).toBe(2)
+    p.unsynced(0)
+    expect(sync.pendingChanges.value).toBe(0)
+  })
+
+  it('resume() without a pause does nothing', () => {
+    const p = pausable()
+    const sync = useHocuspocusSync({ ...baseOpts(makeHarness()), providerFactory: p.factory })
+    sync.connect()
+    sync.resume()
+    expect(p.calls).toEqual([])
+  })
+})

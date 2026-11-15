@@ -157,6 +157,7 @@
   },
   "presence": {
     "offline": "hors ligne",
+    "away": "absent",
     "anonymousEditor": "Éditeur anonyme",
     "guest": "Invité"
   },

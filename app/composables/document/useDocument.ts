@@ -3,6 +3,7 @@ import { Awareness } from 'y-protocols/awareness'
 import { docSizeWarning as computeDocSizeWarning } from '~~/shared/utils/documents/documentHelpers'
 import { normalizeAwarenessStates, normalizeAwarenessUser } from '~~/shared/utils/documents/awarenessUser'
 import { useDocumentMeta } from './documentMeta'
+import { createHiddenTabPause } from '~/utils/collab/hiddenTabPause'
 
 /**
  * The sync server URL as this browser reaches it. A configured
@@ -71,6 +72,33 @@ function createAwareness(ydoc: Y.Doc): Awareness {
     normalizeAwarenessStates(awareness, [...added, ...updated])
   })
   return awareness
+}
+
+/**
+ * Release the sync connection while the tab is hidden and take it up again
+ * when it is shown (`utils/collab/hiddenTabPause.ts`). Meanwhile the user's
+ * awareness state carries `away: true`, which PresenceBar shows. Returns
+ * the teardown.
+ */
+function watchHiddenTab(sync: ReturnType<typeof useHocuspocusSync>, awareness: Awareness): () => void {
+  if (!import.meta.client || typeof document === 'undefined') return () => {}
+  const controller = createHiddenTabPause({
+    isHidden: () => document.visibilityState === 'hidden',
+    canPause: () => sync.status.value === 'connected' && sync.synced.value && sync.pendingChanges.value === 0,
+    pause: () => sync.pause(),
+    resume: () => sync.resume(),
+    setAway: away => awareness.setLocalStateField('away', away)
+  }, Number(useRuntimeConfig().public.syncHiddenDisconnectMs) || 0)
+  const onVisibilityChange = () => controller.onVisibilityChange()
+  document.addEventListener('visibilitychange', onVisibilityChange)
+  const stopWatch = watch([sync.status, sync.synced, sync.pendingChanges], () => controller.check())
+  // A tab opened in the background starts hidden.
+  controller.onVisibilityChange()
+  return () => {
+    document.removeEventListener('visibilitychange', onVisibilityChange)
+    stopWatch()
+    controller.dispose()
+  }
 }
 
 /**
@@ -152,6 +180,8 @@ export function useDocument(docId: string) {
     if (ended) sync.disconnect()
   })
 
+  const stopHiddenTabWatch = watchHiddenTab(sync, awareness)
+
   function insertTemplateIfEmpty() {
     // Server pre-rendered with the doc's title/description, locale-matched
     // on doc.language; `blank` renders to null and the document stays empty.
@@ -199,6 +229,7 @@ export function useDocument(docId: string) {
 
   function destroy() {
     stopAccessWatch()
+    stopHiddenTabWatch()
     sync.destroy()
     awareness.destroy()
     ydoc.destroy()

@@ -157,6 +157,7 @@
   },
   "presence": {
     "offline": "オフライン",
+    "away": "離席中",
     "anonymousEditor": "匿名の編集者",
     "guest": "ゲスト"
   },
