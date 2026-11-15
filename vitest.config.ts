@@ -68,15 +68,30 @@ export default defineConfig({
     // map that back to source files. Averaging those blind spots into the
     // number would be misleading, so the subprocess-only paths are
     // excluded; tests/integration/ still exercises them at runtime.
+    //
+    // Every other first-party TypeScript dir is in `include`, also the ones
+    // only partly unit-tested (server/mcp, server/legal, server/runtime,
+    // app/queries, modules): SonarCloud counts each file it does not find
+    // in the lcov as 0 % covered, so leaving a unit-tested dir out of the
+    // report only hides the coverage it has (sonar-project.properties
+    // mirrors this scope in sonar.coverage.exclusions).
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary', 'html', 'json-summary', 'lcov'],
       reportsDirectory: './coverage',
       include: [
         'app/composables/**/*.ts',
+        'app/queries/**/*.ts',
         'app/utils/**/*.ts',
-        'server/utils/**/*.ts',
+        'server/config/**/*.ts',
+        'server/db/**/*.ts',
+        'server/error.ts',
+        'server/legal/**/*.ts',
+        'server/mcp/**/*.ts',
         'server/repos/**/*.ts',
+        'server/runtime/**/*.ts',
+        'server/utils/**/*.ts',
+        'modules/**/*.ts',
         'shared/**/*.ts',
         'sync-server/src/**/*.ts'
       ],
