@@ -22,11 +22,13 @@ export const END_FLUSH_DEADLINE_MS = 4_000
 
 interface CloseWith { code: number, reason: string }
 
+const STT_ENDED: CloseWith = { code: 1000, reason: 'stt ended' }
+
 /**
  * Stop taking audio and let the upstream finish. Billing stops here, not
  * at the close: the wait for the trailing transcript carries no audio.
  */
-export function beginSessionEnd(peer: PeerLike, ctx: DictatePeerContext, closeWith: CloseWith = { code: 1000, reason: 'stt ended' }): void {
+export function beginSessionEnd(peer: PeerLike, ctx: DictatePeerContext, closeWith: CloseWith = STT_ENDED): void {
   if (ctx.sttEnded || ctx.closed) return
   ctx.sttEnded = true
   ctx.closeWith = closeWith
@@ -52,7 +54,7 @@ export function completeSession(peer: PeerLike, ctx: DictatePeerContext): void {
   ctx.flushTimer = undefined
   if (ctx.closed || ctx.completed) return
   ctx.completed = true
-  const { code, reason } = ctx.closeWith ?? { code: 1000, reason: 'stt ended' }
+  const { code, reason } = ctx.closeWith ?? STT_ENDED
   try {
     peer.send(encodeServerFrame({ type: 'done' }))
   } catch { /* peer may already be gone */ }
