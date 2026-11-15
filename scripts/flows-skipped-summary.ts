@@ -11,7 +11,14 @@ import { readSkippedFlows, skippedFlowsMarkdown } from './lib/flowSkips'
 //
 //   bun scripts/flows-skipped-summary.ts [flows-dir]   (default tests/e2e/output/flows)
 
-const root = process.argv[2] ?? 'tests/e2e/output/flows'
+// The directory must lie inside the working directory: the script writes
+// into it, so an argument like `../..` must not point it anywhere else.
+const root = path.resolve(process.argv[2] ?? 'tests/e2e/output/flows')
+const fromCwd = path.relative(process.cwd(), root)
+if (fromCwd === '..' || fromCwd.startsWith(`..${path.sep}`) || path.isAbsolute(fromCwd)) {
+  console.error(`flows dir must be inside ${process.cwd()}: ${root}`)
+  process.exit(2)
+}
 const markdown = skippedFlowsMarkdown(await readSkippedFlows(root))
 if (markdown) {
   console.log(markdown)
