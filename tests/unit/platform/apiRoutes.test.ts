@@ -194,10 +194,16 @@ describe('API route declarations', () => {
       'server/api/published/[pageId]/[kind]/[file].get.ts',
       'server/api/import.post.ts'
     ]
+    // `rateLimit` is one spec or a list of them; one of them must count early.
+    const countsEarly = (spec: ts.Expression) => {
+      const phase = objectProp(spec, 'phase')
+      return !!phase && ts.isStringLiteral(phase) && phase.text === 'before-access'
+    }
     const missing = probing.filter((file) => {
       const limit = declarationOf(file).props.get('rateLimit')
-      const phase = objectProp(limit, 'phase')
-      return !phase || !ts.isStringLiteral(phase) || phase.text !== 'before-access'
+      if (!limit) return true
+      const specs = ts.isArrayLiteralExpression(limit) ? [...limit.elements] : [limit]
+      return !specs.some(countsEarly)
     })
     expect(missing).toEqual([])
   })

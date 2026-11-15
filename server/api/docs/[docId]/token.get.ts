@@ -10,7 +10,7 @@ import { renderTemplate } from '../../../utils/documents/templateRenderer'
 import { planHasFeature, resolveDocPlanFor } from '../../../utils/billing/entitlements'
 import { pooledPlansFor } from '../../../utils/billing/workspaceBilling'
 import { docTokenQuery } from '~~/shared/api/docs'
-import { MINUTE_MS } from '~~/shared/config/units'
+import { DOC_TOKEN_ADDRESS_LIMIT, DOC_TOKEN_CALLER_LIMIT } from '~~/shared/config/docTokenLimits'
 import { useEnv } from '~~/shared/env/load'
 
 // The Y.js connection token of a document, for everyone who opens its link
@@ -24,8 +24,13 @@ export default defineApiHandler({
     reason: 'decideTokenAccess on the policy\'s DocState (share expiry, SSO owner suspension applied): a usable JWT only on allow, otherwise token: null and the gate fields'
   }),
   query: docTokenQuery,
-  // Before the lookup: every request counts, so probing for document ids is throttled too.
-  rateLimit: { namespace: 'token', max: 30, windowMs: MINUTE_MS, key: 'ip', phase: 'before-access' },
+  // Per client address before the lookup (probing for ids counts too), then
+  // per signed-in user, or per address for anonymous callers
+  // (shared/config/docTokenLimits.ts).
+  rateLimit: [
+    { ...DOC_TOKEN_ADDRESS_LIMIT, key: 'ip', phase: 'before-access' },
+    { ...DOC_TOKEN_CALLER_LIMIT, key: ({ user }, event) => user ? `user:${user.id}` : `anon:${getClientRateLimitKey(event)}` }
+  ],
   handler: async ({ event, user, docId, doc: row, state: doc, actor, query, docAccess }) => {
     const env = useEnv()
     if (!env.auth.jwtSecret) {
