@@ -16,13 +16,13 @@
     },
     {
       "kind": "narration",
-      "text": "You land on a theme that fits your team's docs — a built-in preset with the cover page switched off. Save it once and every doc you create after this gets it as a one-click pick in the theme grid. Saved presets are per-user — they don't leak into other people's drafts, they're yours.",
+      "text": "You land on a theme that fits your team's docs, a built-in preset with the cover page switched off. Save it once and every doc you create after this gets it as a one-click pick in the theme grid. Saved presets are per-user: they don't leak into other people's drafts, they're yours.",
       "file": "01.webp",
       "cursor": {
         "x": 640,
         "y": 26
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 1260,
         "y": 98
       },
-      "path": "/d/s8znTHJSmW",
+      "path": "/d/ZpATg5oEUJ",
       "annotations": [
         {
           "label": "theme tab",
@@ -47,12 +47,12 @@
     {
       "kind": "outcome",
       "file": "03.webp",
-      "caption": "The Theme panel slides in — presets grid + section list (Page, Body, Headings, Layout, Colors, Cover, Code, Mermaid, TOC).",
+      "caption": "The Theme panel slides in, presets grid + section list (Page, Body, Headings, Layout, Colors, Cover, Code, Mermaid, TOC).",
       "cursor": {
         "x": 1260,
         "y": 98
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "chapter",
@@ -61,13 +61,13 @@
     },
     {
       "kind": "narration",
-      "text": "Saved presets live ALONGSIDE the built-in ones — you don't replace anything. Pick a built-in to start (Corporate report here: serif headings and one petrol accent), then tweak it.",
+      "text": "Saved presets live ALONGSIDE the built-in ones, you don't replace anything. Pick a built-in to start (Corporate report here: serif headings and one petrol accent), then tweak it.",
       "file": "03.webp",
       "cursor": {
         "x": 1260,
         "y": 98
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "approach",
@@ -77,7 +77,7 @@
         "x": 1196,
         "y": 438
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "outcome",
@@ -87,12 +87,12 @@
         "x": 1196,
         "y": 438
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "chapter",
       "level": 3,
-      "text": "Tweak — turn the cover page off"
+      "text": "Tweak: turn the cover page off"
     },
     {
       "kind": "narration",
@@ -102,7 +102,7 @@
         "x": 1196,
         "y": 438
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "approach",
@@ -112,7 +112,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "outcome",
@@ -122,7 +122,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "approach",
@@ -132,17 +132,17 @@
         "x": 991,
         "y": 504
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "outcome",
       "file": "10.webp",
-      "caption": "The preview repaginates — page 1 is now the document body, no title sheet.",
+      "caption": "The preview repaginates, page 1 is now the document body, no title sheet.",
       "cursor": {
         "x": 991,
         "y": 504
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "chapter",
@@ -157,7 +157,7 @@
         "x": 991,
         "y": 504
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "approach",
@@ -167,7 +167,7 @@
         "x": 1210,
         "y": 188
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "outcome",
@@ -177,7 +177,7 @@
         "x": 1210,
         "y": 188
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "approach",
@@ -187,7 +187,7 @@
         "x": 422,
         "y": 378
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "outcome",
@@ -197,7 +197,7 @@
         "x": 422,
         "y": 378
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "approach",
@@ -207,7 +207,7 @@
         "x": 422,
         "y": 474
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "outcome",
@@ -217,7 +217,7 @@
         "x": 422,
         "y": 474
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "approach",
@@ -227,7 +227,7 @@
         "x": 824,
         "y": 549
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "outcome",
@@ -237,7 +237,7 @@
         "x": 824,
         "y": 549
       },
-      "path": "/d/s8znTHJSmW",
+      "path": "/d/ZpATg5oEUJ",
       "highlights": [
         {
           "label": "Saved preset",
@@ -262,7 +262,7 @@
         "x": 824,
         "y": 549
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "approach",
@@ -272,7 +272,7 @@
         "x": 1223,
         "y": 218
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "outcome",
@@ -282,7 +282,7 @@
         "x": 1223,
         "y": 218
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "approach",
@@ -292,7 +292,7 @@
         "x": 422,
         "y": 378
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "outcome",
@@ -302,7 +302,7 @@
         "x": 422,
         "y": 378
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "approach",
@@ -312,7 +312,7 @@
         "x": 817,
         "y": 549
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     },
     {
       "kind": "outcome",
@@ -322,11 +322,11 @@
         "x": 817,
         "y": 549
       },
-      "path": "/d/s8znTHJSmW"
+      "path": "/d/ZpATg5oEUJ"
     }
   ],
   "next": {
     "slug": "pick-a-theme",
-    "why": "Now switch back and forth — your saved preset sits next to the built-ins"
+    "why": "Now switch back and forth, your saved preset sits next to the built-ins"
   }
 }

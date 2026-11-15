@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/NuuVIYnI_o"
+      "path": "/d/xqG4c09Iz8"
     },
     {
       "kind": "approach",
@@ -32,16 +32,7 @@
         "x": 915,
         "y": 26
       },
-      "path": "/d/NuuVIYnI_o"
-    },
-    {
-      "kind": "outcome",
-      "file": "03.webp",
-      "cursor": {
-        "x": 915,
-        "y": 26
-      },
-      "path": "/d/NuuVIYnI_o"
+      "path": "/d/xqG4c09Iz8"
     },
     {
       "kind": "approach",
@@ -49,28 +40,19 @@
       "caption": "Let anyone with the link view it",
       "cursor": {
         "x": 640,
-        "y": 398
+        "y": 406
       },
-      "path": "/d/NuuVIYnI_o"
+      "path": "/d/xqG4c09Iz8"
     },
     {
       "kind": "outcome",
       "file": "04.webp",
-      "cursor": {
-        "x": 640,
-        "y": 398
-      },
-      "path": "/d/NuuVIYnI_o"
-    },
-    {
-      "kind": "outcome",
-      "file": "05.webp",
       "caption": "Turn on view only and choose when the link stops working",
       "cursor": {
         "x": 426,
         "y": 610
       },
-      "path": "/d/NuuVIYnI_o",
+      "path": "/d/xqG4c09Iz8",
       "highlights": [
         {
           "label": "Link settings",
@@ -89,42 +71,32 @@
     },
     {
       "kind": "approach",
-      "file": "06.webp",
+      "file": "05.webp",
       "caption": "They can read it, but File has no export or print",
       "cursor": {
         "x": 28,
         "y": 67
       },
-      "path": "/d/NuuVIYnI_o",
+      "path": "/d/xqG4c09Iz8",
+      "actor": "visitor"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "No export, no PDF, no print, for them only",
+      "cursor": {
+        "x": 28,
+        "y": 67
+      },
+      "path": "/d/xqG4c09Iz8",
       "actor": "visitor"
     },
     {
       "kind": "outcome",
       "file": "07.webp",
-      "cursor": {
-        "x": 28,
-        "y": 67
-      },
-      "path": "/d/NuuVIYnI_o",
-      "actor": "visitor"
-    },
-    {
-      "kind": "outcome",
-      "file": "07.webp",
-      "caption": "No export, no PDF, no print — for them only",
-      "cursor": {
-        "x": 28,
-        "y": 67
-      },
-      "path": "/d/NuuVIYnI_o",
-      "actor": "visitor"
-    },
-    {
-      "kind": "outcome",
-      "file": "08.webp",
       "caption": "After the end date the link says it expired",
       "cursor": null,
-      "path": "/d/NuuVIYnI_o",
+      "path": "/d/xqG4c09Iz8",
       "actor": "visitor"
     }
   ],

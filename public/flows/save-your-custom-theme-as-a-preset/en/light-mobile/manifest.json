@@ -16,10 +16,10 @@
     },
     {
       "kind": "narration",
-      "text": "You land on a theme that fits your team's docs — a built-in preset with the cover page switched off. Save it once and every doc you create after this gets it as a one-click pick in the theme grid. Saved presets are per-user — they don't leak into other people's drafts, they're yours.",
+      "text": "You land on a theme that fits your team's docs, a built-in preset with the cover page switched off. Save it once and every doc you create after this gets it as a one-click pick in the theme grid. Saved presets are per-user: they don't leak into other people's drafts, they're yours.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "approach",
@@ -29,17 +29,17 @@
         "x": 357,
         "y": 695
       },
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "outcome",
       "file": "02.webp",
-      "caption": "The Theme panel slides in — presets grid + section list (Page, Body, Headings, Layout, Colors, Cover, Code, Mermaid, TOC).",
+      "caption": "The Theme panel slides in, presets grid + section list (Page, Body, Headings, Layout, Colors, Cover, Code, Mermaid, TOC).",
       "cursor": {
         "x": 357,
         "y": 695
       },
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "chapter",
@@ -48,70 +48,70 @@
     },
     {
       "kind": "narration",
-      "text": "Saved presets live ALONGSIDE the built-in ones — you don't replace anything. Pick a built-in to start (Corporate report here: serif headings and one petrol accent), then tweak it.",
-      "file": "02.webp",
+      "text": "Saved presets live ALONGSIDE the built-in ones, you don't replace anything. Pick a built-in to start (Corporate report here: serif headings and one petrol accent), then tweak it.",
+      "file": "03.webp",
       "cursor": {
         "x": 357,
         "y": 695
       },
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "approach",
-      "file": "03.webp",
+      "file": "04.webp",
       "caption": "Click \"Corporate report\"",
       "cursor": null,
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "outcome",
-      "file": "04.webp",
-      "caption": "The Corporate report preset is selected — preview iframe is hidden in mobile edit-only mode.",
+      "file": "05.webp",
+      "caption": "The Corporate report preset is selected, preview iframe is hidden in mobile edit-only mode.",
       "cursor": null,
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "chapter",
       "level": 3,
-      "text": "Tweak — turn the cover page off"
+      "text": "Tweak: turn the cover page off"
     },
     {
       "kind": "narration",
       "text": "Corporate report opens with a cover page. For internal documents a title sheet often gets in the way: switch it off and page 1 starts with the text itself. The switch is at the top of the Cover page section.",
-      "file": "05.webp",
+      "file": "06.webp",
       "cursor": {
         "x": 357,
         "y": 695
       },
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "approach",
-      "file": "06.webp",
+      "file": "07.webp",
       "caption": "Open the Cover section",
       "cursor": null,
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "outcome",
-      "file": "07.webp",
+      "file": "08.webp",
       "caption": "The Cover section expands. The on/off switch sits at the top.",
       "cursor": null,
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "approach",
-      "file": "08.webp",
+      "file": "09.webp",
       "caption": "Toggle cover OFF",
       "cursor": null,
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "outcome",
-      "file": "09.webp",
-      "caption": "The cover toggle flips off — preview iframe hidden in mobile edit-only mode.",
+      "file": "10.webp",
+      "caption": "The cover toggle flips off, preview iframe hidden in mobile edit-only mode.",
       "cursor": null,
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "chapter",
@@ -121,74 +121,74 @@
     {
       "kind": "narration",
       "text": "The \"Save current\" button at the top of the presets list (the bookmark icon) opens a small dialog: a name, and an optional line saying what the theme is for. Both show up on the card in Your themes, just like the built-in presets.",
-      "file": "10.webp",
+      "file": "11.webp",
       "cursor": {
         "x": 357,
         "y": 695
       },
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "approach",
-      "file": "11.webp",
+      "file": "12.webp",
       "caption": "Click \"Save current\" (bookmark icon)",
       "cursor": null,
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "outcome",
-      "file": "12.webp",
+      "file": "13.webp",
       "caption": "The Save theme dialog opens with an empty name field.",
       "cursor": null,
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "approach",
-      "file": "13.webp",
+      "file": "14.webp",
       "caption": "Name the theme",
       "cursor": null,
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "outcome",
-      "file": "14.webp",
+      "file": "15.webp",
       "caption": "The counter next to the label shows how much room is left (80 characters).",
       "cursor": null,
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "approach",
-      "file": "15.webp",
+      "file": "16.webp",
       "caption": "Add a short description",
       "cursor": null,
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "outcome",
-      "file": "16.webp",
+      "file": "17.webp",
       "caption": "The description is optional, up to 200 characters.",
       "cursor": null,
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "approach",
-      "file": "16.webp",
+      "file": "17.webp",
       "caption": "Click \"Save theme\"",
       "cursor": {
         "x": 302,
         "y": 521
       },
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "outcome",
-      "file": "17.webp",
+      "file": "18.webp",
       "caption": "The theme lands under Your themes, above the built-in templates, with its description. One click applies it to any doc from now on.",
       "cursor": {
         "x": 302,
         "y": 521
       },
-      "path": "/d/SxOA_tSEmJ",
+      "path": "/d/YWEpR0sMYr",
       "highlights": [
         {
           "label": "Saved preset",
@@ -208,64 +208,64 @@
     {
       "kind": "narration",
       "text": "The pencil on the card opens the same dialog with the current name and description filled in. The bin next to it removes the theme after asking once; documents that use it keep their look.",
-      "file": "18.webp",
+      "file": "19.webp",
       "cursor": {
         "x": 302,
         "y": 521
       },
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "approach",
-      "file": "19.webp",
+      "file": "20.webp",
       "caption": "Click the pencil on your theme",
       "cursor": null,
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "outcome",
-      "file": "20.webp",
+      "file": "21.webp",
       "caption": "The Edit theme dialog shows the saved name and description.",
       "cursor": null,
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "approach",
-      "file": "21.webp",
+      "file": "22.webp",
       "caption": "Type a new name",
       "cursor": null,
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "outcome",
-      "file": "22.webp",
+      "file": "23.webp",
       "caption": "The new name replaces the old one.",
       "cursor": null,
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "approach",
-      "file": "23.webp",
+      "file": "24.webp",
       "caption": "Click \"Save changes\"",
       "cursor": {
         "x": 295,
         "y": 509
       },
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     },
     {
       "kind": "outcome",
-      "file": "24.webp",
+      "file": "25.webp",
       "caption": "The card shows the new name; the description stays.",
       "cursor": {
         "x": 295,
         "y": 509
       },
-      "path": "/d/SxOA_tSEmJ"
+      "path": "/d/YWEpR0sMYr"
     }
   ],
   "next": {
     "slug": "pick-a-theme",
-    "why": "Now switch back and forth — your saved preset sits next to the built-ins"
+    "why": "Now switch back and forth, your saved preset sits next to the built-ins"
   }
 }
