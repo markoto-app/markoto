@@ -11,6 +11,7 @@
 import { join, relative } from 'node:path'
 import { addTypeTemplate, defineNuxtModule, updateTemplates } from '@nuxt/kit'
 import type { Nitro } from 'nitropack'
+import { compareCodeUnits } from '../shared/utils/compareCodeUnits'
 
 const FILENAME = 'types/api-inputs.d.ts'
 
@@ -31,7 +32,7 @@ function renderApiInputs(handlers: readonly ScannedHandler[], typesDir: string, 
     routes.set(h.route, methods)
   }
   const contract = relative(typesDir, contractFile).replace(/\\/g, '/')
-  const lines = [...routes.keys()].sort().map((route) => {
+  const lines = [...routes.keys()].sort(compareCodeUnits).map((route) => {
     const methods = [...(routes.get(route) ?? new Map<string, string>()).entries()].sort(([a], [b]) => a.localeCompare(b))
     return `    '${route}': {\n${methods.map(([m, t]) => `      '${m}': ${t}`).join('\n')}\n    }`
   })
