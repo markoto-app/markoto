@@ -602,6 +602,10 @@ jobs:
     name: notify-release
     needs: [resolve-pr, create-release]
     if: needs.resolve-pr.outputs.should_release == 'true'
+    # The release is already published here; a failed chat notification
+    # must not fail the run, or staging-gate (which needs a successful
+    # release run) never deploys it.
+    continue-on-error: true
     permissions: {}
     # APPRISE_URLS lives in this main-only Environment.
     environment: release
