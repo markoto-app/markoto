@@ -537,6 +537,10 @@ jobs:
       - name: No em-dash
         run: bun run check:em-dash
 
+      # An i18n key without a reference fails unless it is in the baseline.
+      - name: No new unused i18n keys
+        run: bun run check:i18n-unused
+
   docs-checks:
     name: docs-checks
     permissions:

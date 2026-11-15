@@ -315,6 +315,7 @@ function points(usd: number | null | undefined): string {
           >
             <UInputNumber
               v-model="seatsDraft"
+              color="neutral"
               :min="minSeats"
               :max="1000"
               data-testid="workspace-billing-seats"
@@ -323,6 +324,7 @@ function points(usd: number | null | undefined): string {
           <UFormField :label="t('pricing.currencyLabel')">
             <USelect
               v-model="currency"
+              color="neutral"
               :items="currencyItems"
               class="w-28"
               data-testid="workspace-billing-currency"
@@ -340,6 +342,7 @@ function points(usd: number | null | undefined): string {
           <PricingPaidTermsConsent
             v-model="paidTermsAccepted"
             kind="plan"
+            size="xs"
             class="basis-full"
             testid="workspace-billing-checkout-paid-terms"
           />
@@ -413,6 +416,7 @@ function points(usd: number | null | undefined): string {
             >
               <UInputNumber
                 v-model="seatsDraft"
+                color="neutral"
                 :min="minSeats"
                 :max="1000"
                 data-testid="workspace-billing-seats"
@@ -436,6 +440,7 @@ function points(usd: number | null | undefined): string {
             <PricingPaidTermsConsent
               v-model="paidTermsAccepted"
               kind="plan"
+              size="xs"
               class="basis-full"
               testid="workspace-billing-switch-paid-terms"
             />
@@ -534,6 +539,7 @@ function points(usd: number | null | undefined): string {
               >
                 <USelect
                   v-model="limitDrafts[member.userId]!.mode"
+                  color="neutral"
                   :items="limitModeItems"
                   class="w-36"
                   size="sm"
@@ -542,6 +548,7 @@ function points(usd: number | null | undefined): string {
                 <UInputNumber
                   v-if="limitDrafts[member.userId]!.mode === 'custom'"
                   v-model="limitDrafts[member.userId]!.points"
+                  color="neutral"
                   :min="0"
                   :max="10000000"
                   :step="500"

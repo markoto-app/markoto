@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { spawn, type Subprocess } from 'bun'
 import { testRoutesInBuild } from './lib/testRoutesInBuild'
+import { ensureBucket } from './lib/ensureBucket'
 
 // Orchestrator for `bun run flows:test`. Hermetic, end-to-end.
 //
@@ -316,6 +317,12 @@ async function bootStack() {
   if (upCode !== 0) {
     throw new StepFailed('docker compose up failed', upCode)
   }
+  await ensureBucket({
+    endpoint: FLOWS_ENV.NUXT_S3_ENDPOINT ?? '',
+    accessKey: FLOWS_ENV.NUXT_S3_ACCESS_KEY ?? '',
+    secretKey: FLOWS_ENV.NUXT_S3_SECRET_KEY ?? '',
+    bucket: FLOWS_ENV.NUXT_S3_BUCKET ?? ''
+  })
 }
 
 async function buildApp() {

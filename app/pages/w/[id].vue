@@ -71,6 +71,13 @@ useHead({
 })
 
 const myRole = computed(() => data.value?.workspace.myRole ?? null)
+
+// A Team / Business workspace pays its members' AI from its pool: the
+// header's AI Points meter shows that budget here, as in its documents.
+useClaimAiWorkspaceContext(() => {
+  const ws = data.value?.workspace
+  return ws?.pooled && ws.myRole && ws.workspaceId === workspaceId.value ? ws.workspaceId : null
+})
 const isAdmin = computed(() => myRole.value === 'admin')
 const canCreateDoc = computed(() => myRole.value === 'admin' || myRole.value === 'editor')
 const myUserId = computed(() => (user.value as { id?: number } | null)?.id)

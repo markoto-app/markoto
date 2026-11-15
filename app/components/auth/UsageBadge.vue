@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // Topbar usage badge. Shows the plan name + a percentage bar of the AI
 // points left in the current billing period, for the budget that pays
-// where the user is (their own, or the workspace's inside a document of
-// a Team / Business workspace). The bar measures the plan's monthly
+// where the user is (their own, or the workspace's on the page or in a
+// document of a Team / Business workspace). The bar measures the plan's monthly
 // budget; bought AI credits are listed below it. Colours:
 //   ≥25% remaining → green
 //   10-25%         → orange
@@ -29,9 +29,9 @@ import { useAiCredits } from '~/composables/ai/useAiCredits'
 const { t, locale } = useAreaI18n()
 const router = useRouter()
 const { billing, refresh: refreshBilling } = useBilling()
-// The budget that pays where the user is: inside a document of a Team /
-// Business workspace that is the workspace's pooled budget (the member's
-// limit), everywhere else the user's own.
+// The budget that pays where the user is: on the page or in a document of
+// a Team / Business workspace that is the workspace's pooled budget (the
+// member's limit), everywhere else the user's own.
 const workspaceContext = useAiWorkspaceContext()
 const { state: credits, planPointsRemaining, pointsTotal, creditPoints, fillRatio, isFreeAllowanceExhausted, isWorkspaceShared } = useAiCredits(workspaceContext)
 const { billingEnabled, plansComingSoon } = useBillingMode()
@@ -173,7 +173,7 @@ function onManage(): void {
     >
       <span
         v-if="billingEnabled"
-        class="text-xs font-semibold uppercase tracking-wide text-muted"
+        class="text-xs font-medium uppercase tracking-wide text-muted"
       >
         {{ planLabel }}
       </span>
@@ -192,7 +192,7 @@ function onManage(): void {
     <template #content>
       <div class="w-72 p-4 space-y-3">
         <div class="flex items-center justify-between">
-          <h3 class="text-sm font-semibold">
+          <h3 class="text-sm font-medium">
             {{ t('topbar.creditsTooltipTitle') }}
           </h3>
           <UBadge

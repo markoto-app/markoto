@@ -3,6 +3,7 @@
 import { defineQueryOptions, useMutation, useQuery, useQueryCache, type QueryCache } from '@pinia/colada'
 import type { AiCapability } from '~~/shared/ai/providers'
 import { apiFetch, type ApiCall, type ApiFetcher, type ApiResponse } from '~/utils/api/client'
+import { withTransientRetry } from '~/utils/api/retry'
 import { SESSION_SNAPSHOT } from './defaults'
 import { invalidate } from './invalidate'
 
@@ -23,7 +24,9 @@ export const aiKeys = {
 
 const aiCreditsQuery = defineQueryOptions(({ api, workspaceId }: { api: ApiFetcher, workspaceId: WorkspaceScope }) => ({
   key: aiKeys.creditsFor(workspaceId),
-  query: ({ signal }) => api('/api/ai/credits', { signal, query: workspaceId ? { workspaceId } : {} }),
+  // The budget lives in LiteLLM, which can still be starting (after a
+  // deploy): ask again rather than leave the meter empty for the session.
+  query: ({ signal }) => withTransientRetry(() => api('/api/ai/credits', { signal, query: workspaceId ? { workspaceId } : {} }), { signal }),
   ...SESSION_SNAPSHOT
 }))
 

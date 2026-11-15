@@ -102,7 +102,7 @@ One command runs the fast local gate, no Docker needed:
 bun run check        # or: make check
 ```
 
-In order: generated env files, Markdown paths, internal vocabulary, schema-vs-migrations drift, `depcruise`, `knip`, ESLint (everything except the type-aware rules), `nuxt typecheck` + the `.vue` guard, `typecheck:tests`, `typecheck:scripts`, sync-server + renderer typechecks and the unit tests. `bun run check:full` (`make check-full`) adds the type-aware lint rules and the checks that need an external tool: shellcheck, hadolint, lychee and `uv` (ruff, pyright).
+In order: generated env files, Markdown paths, internal vocabulary, em-dash, unused i18n keys, schema-vs-migrations drift, `depcruise`, `knip`, ESLint (everything except the type-aware rules), `nuxt typecheck` + the `.vue` guard, `typecheck:tests`, `typecheck:scripts`, sync-server + renderer typechecks and the unit tests. `bun run check:full` (`make check-full`) adds the type-aware lint rules and the checks that need an external tool: shellcheck, hadolint, lychee and `uv` (ruff, pyright).
 
 | Command | What it checks | In CI job |
 |---|---|---|
@@ -118,7 +118,7 @@ In order: generated env files, Markdown paths, internal vocabulary, schema-vs-mi
 | `bun run check:vocab`, `check:em-dash`, `check:md-paths`, `check:links` | Internal planning labels, the em-dash character (U+2014, never used), dangling paths, broken relative links and anchors in Markdown | `repo-checks`, `docs-checks` |
 | `bun run check:shell`, `check:docker` | shellcheck, hadolint (`.hadolint.yaml`) | `shell-docker-lint` |
 | `bun run check:py`, `check:pyright` | ruff (lint + format), pyright (`ruff.toml`, `pyrightconfig.json`) | `python-checks` |
-| `bun run check:i18n-unused` | Unused i18n keys (informational) | no |
+| `bun run check:i18n-unused` | No new unused i18n keys: a key in `en.json` without a reference fails unless it is listed in `scripts/checks/i18n-unused-keys.baseline` (the full candidate list: `bun scripts/checks/i18n-unused-keys.mjs`) | `repo-checks` |
 | `make lint` | ESLint, the type checks incl. `sync-server/` and `renderer/`, ansible-lint, yamllint, actionlint | partly |
 
 Every ESLint rule is an `error`, including the size and complexity limits: `max-lines` (600 per file), `max-lines-per-function` (150) and `sonarjs/cognitive-complexity` (15). When code hits one, split the file or the function. An inline `eslint-disable-next-line` for one of them is reserved for code that is clearer in one piece (a flat dispatch table, a parser) and needs a one-line reason after `--`.

@@ -5,13 +5,18 @@
 // a plan starts at once, AI credits are usable at once. The parent sends
 // `acceptPaidTerms: true` with the purchase and keeps its buy buttons
 // disabled while the box is unticked. The server refuses a purchase
-// without it (400 `billing/terms-required`).
-withDefaults(defineProps<{
+// without it (400 `billing/terms-required`). `size` matches the help text
+// around it: `sm` on the profile and in the AI Points card, `xs` next to
+// smaller notes (pricing plan cards, the workspace seat controls).
+const props = withDefaults(defineProps<{
   kind: 'plan' | 'topup'
   testid?: string
-}>(), { testid: 'paid-terms-consent' })
+  size?: 'xs' | 'sm'
+}>(), { testid: 'paid-terms-consent', size: 'sm' })
 
 const accepted = defineModel<boolean>({ default: false })
+// Full class names so Tailwind sees them.
+const textClass = computed(() => props.size === 'xs' ? 'text-xs' : 'text-sm')
 const { t } = useI18n()
 </script>
 
@@ -21,7 +26,7 @@ const { t } = useI18n()
   <div :data-testid="testid">
     <UCheckbox
       v-model="accepted"
-      :ui="{ label: 'font-normal text-xs text-muted', description: 'text-xs' }"
+      :ui="{ label: `font-normal ${textClass} text-muted`, description: textClass }"
     >
       <template #label>
         <i18n-t

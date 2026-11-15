@@ -43,10 +43,7 @@ const EXPECTED_KEYS: string[] = [
   // Response panel
   'ai.responseLabel',
   'ai.responseQuestionLabel',
-  'ai.responseDismiss',
-
-  // Topbar usage label
-  'ai.remainingLabel'
+  'ai.responseDismiss'
 ]
 
 function resolveKey(obj: Record<string, unknown>, key: string): unknown {
