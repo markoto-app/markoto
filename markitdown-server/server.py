@@ -230,7 +230,7 @@ def check_archive(body: bytes, time_budget: float = ARCHIVE_CHECK_TIMEOUT_SECOND
                             raise ArchiveRejected(f"{reason} (stopped after {total} bytes)", total)
                         if time.monotonic() > deadline:
                             raise ArchiveCheckTimeout()
-            except (ArchiveRejected, ArchiveCheckTimeout):
+            except ArchiveRejected, ArchiveCheckTimeout:
                 raise
             except (
                 zipfile.BadZipFile,

@@ -4,11 +4,11 @@
 # pandoc/extra image (~3 GB with TeXLive + fonts): markitdown lands at
 # ~250 MB, faster cold start, fewer CVEs to track.
 #
-# Pin to a python:3.13 digest so the base layer is reproducible. To bump:
-# `docker pull python:3.13-slim`, read the digest, update below, rebuild,
-# verify a docx + pdf import smoke-converts end-to-end via /api/import.
-# Pinned digest corresponds to python:3.13-slim at the time of bump.
-FROM python@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90
+# Pinned to python:3.14-slim by tag + digest so the base layer is reproducible.
+# To bump: resolve the new tag's multi-arch index digest, update below, rebuild,
+# run the Python unit tests in the image (ci.yml) and verify a docx + pdf import
+# smoke-converts end-to-end via /api/import.
+FROM python:3.14.10-slim@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f
 
 # Debian security fixes that landed after the base image was built (the
 # CI image scan flags fixable HIGH CVEs in base packages such as zlib1g).
@@ -27,7 +27,7 @@ WORKDIR /app
 # both date from there. Bump together with a smoke test.
 # `--only-binary=:all:` forces wheels: blocks setup.py / pyproject build
 # script execution from a compromised sdist (docker:S8541). markitdown's
-# transitive deps all ship manylinux wheels for python:3.13.
+# transitive deps all ship manylinux wheels for python:3.14.
 # `--chown=root:root --chmod=755` makes server.py immutable to the
 # runtime `app` user (docker:S6504).
 # pip is removed once the deps are in: nothing at runtime installs
@@ -39,7 +39,7 @@ RUN pip install --no-cache-dir --only-binary=:all: \
     'markitdown[all]==0.1.9' \
     'uvicorn[standard]==0.54.0' \
  && pip uninstall -y pip \
- && rm -rf /usr/local/lib/python3.13/ensurepip/_bundled
+ && rm -rf /usr/local/lib/python3.14/ensurepip/_bundled
 
 COPY --chown=root:root --chmod=755 server.py design_extract.py /app/
 

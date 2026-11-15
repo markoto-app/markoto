@@ -8,7 +8,7 @@
 # pin in package.json so they match. Mismatched versions wedge the launcher.
 # The digest pins the exact image (a tag can be re-pushed); Dependabot moves
 # tag + digest together.
-FROM mcr.microsoft.com/playwright:v1.64.1-jammy@sha256:a3966b653e8d48a30901889081b616307fca73e0d843a117fadf6609397dac38
+FROM mcr.microsoft.com/playwright:v1.65.1-jammy@sha256:b0ee5ce5e14ac42c394c0564a0a30adbda052153c611561bb2d31263593d6dd8
 
 # pipefail so a failed `curl` in the `curl | bash` below fails the build
 # instead of being masked by the last stage's exit code.

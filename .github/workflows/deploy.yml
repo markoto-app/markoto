@@ -359,6 +359,7 @@ jobs:
             deploy/config/litellm/config.yaml \
             deploy/config/litellm/custom_handlers.py \
             deploy/config/postgres/db-init.sh \
+            deploy/config/postgres/pg-major-upgrade.sh \
             deploy/config/edge/haproxy.cfg \
             deploy/config/traefik/acme-ec-migrate.sh \
             deploy/config/renderer/seccomp.json \
@@ -420,6 +421,13 @@ jobs:
             echo "acme-ec-migrate.sh check failed ($acme_rc)" >&2
             exit 1
           fi
+          # Bundled Postgres only: a volume that still holds a pre-18
+          # cluster is dumped, set aside inside the volume and restored into
+          # Postgres 18 (deploy/config/postgres/pg-major-upgrade.sh); the
+          # dump stays in postgres-upgrade/. No-op on a managed cluster and
+          # on every later deploy.
+          COMPOSE=markoto-compose ENGINE=podman BACKUP_DIR=/opt/markoto/postgres-upgrade \
+            sh deploy/config/postgres/pg-major-upgrade.sh upgrade
           markoto-compose up -d --remove-orphans
 
           # Health-check loop: 60 attempts × 5 s = 300 s. Sized for a COLD

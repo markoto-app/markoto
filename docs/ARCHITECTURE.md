@@ -66,7 +66,7 @@ flowchart LR
 | `markitdown` | `markitdown-server/` | Python FastAPI wrapper that converts DOCX/PDF/PPTX/XLSX/HTML/EPUB to markdown (imports, knowledge uploads, design extraction). Internal only, requires its own secret. |
 | `litellm` | `deploy/config/litellm/` | LiteLLM proxy. Every AI call goes through it: one OpenAI-shaped API, per-user virtual keys with budgets, spend tracking. Custom providers in `deploy/config/litellm/custom_handlers.py` wrap embeddings, transcription and image generation. |
 | `db-init` | `deploy/config/postgres/` | One-shot on every start: creates the app and LiteLLM database roles. |
-| `postgres` | | PostgreSQL 16 with pgvector. |
+| `postgres` | | PostgreSQL 18 with pgvector. |
 | `valkey` | | Rate limits, session locks, per-document sync state. Losing it costs only transient state. |
 | S3 storage | `deploy/config/seaweedfs/` in dev and self-host | Any S3-compatible service. |
 | `backup` | `backup-server/` | Periodic encrypted `pg_dump` into its own bucket. |

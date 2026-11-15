@@ -57,9 +57,9 @@ x-hardening: &hardening
 
 services:
   postgres-test:
-    # pgvector/pgvector:pg16 mirrors dev/prod so schema migrations
+    # pgvector/pgvector (Postgres 18) mirrors dev/prod so schema migrations
     # (which enable the vector extension) apply cleanly here too.
-    image: pgvector/pgvector:pg16@sha256:0dd3149a06e4579a0d70d8fef9945636cd514005e7237deb27f9b67886f8dc4f
+    image: pgvector/pgvector:0.8.7-pg18-trixie@sha256:ab49524d18df7200b74ac9a475e1db6297fc1eb57da4c214c63d10ecc4b754fa
     restart: unless-stopped
     environment:
       - POSTGRES_USER=ypad
@@ -68,8 +68,10 @@ services:
     # tmpfs for the data dir: every container restart = clean slate. Tests
     # still TRUNCATE between cases for speed, but if a test suite crashes
     # mid-run a simple `down -v && up -d` gives you a pristine state.
+    # Postgres 18 images keep PGDATA under /var/lib/postgresql/18/docker and
+    # refuse to start with a mount at the old /var/lib/postgresql/data.
     tmpfs:
-      - /var/lib/postgresql/data
+      - /var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ypad -d ypad_test"]
       interval: 2s
@@ -80,7 +82,7 @@ services:
       - "127.0.0.1:5433:5432"
 
   valkey-test:
-    image: valkey/valkey:9-alpine@sha256:48332870af354a799964c0012ae1194a0bf2bf894eb508f945810596dc2d8d11
+    image: valkey/valkey:9.1.3-alpine@sha256:bf09d58e96d6b4524a15396b65b242bbe18beebbcc15a04d8ee75ddac62fae0b
     restart: unless-stopped
     # No AOF: tests want a blank slate every boot. 512mb is plenty for
     # short test runs; mirrors prod policy without prod sizing.
@@ -110,7 +112,7 @@ services:
       - "127.0.0.1:6380:6379"
 
   seaweedfs-test:
-    image: chrislusf/seaweedfs@sha256:c2658820e763294a9e9de7b36c81e59b879e3459148351aee4e31a126ca64860
+    image: chrislusf/seaweedfs:4.53@sha256:ccad23e18639c8b98cee17e7100b95830a06077b56d8e5b006d6dcf8ec5e94a0
     restart: unless-stopped
     # `-master.volumeSizeLimitMB=256`: recent SeaweedFS derives how many
     # volumes a server may hold from free disk / volume size limit (default
@@ -143,7 +145,7 @@ services:
   # IDs; it does NOT emit webhooks (we test those via hand-crafted
   # fixtures + signed payloads directly against our webhook handler).
   stripe-mock:
-    image: stripe/stripe-mock:latest@sha256:aeb96b83e87a893d2ac005e363ac01ffa6e59a5ad85b49c155dfc9129de02e78
+    image: stripe/stripe-mock:v0.206.0@sha256:aeb96b83e87a893d2ac005e363ac01ffa6e59a5ad85b49c155dfc9129de02e78
     restart: unless-stopped
     ports:
       - "127.0.0.1:12111:12111"
@@ -236,7 +238,7 @@ services:
   # tests/integration/setup/server.ts) use. The app itself stays on the
   # `ypad` admin role here: the suites TRUNCATE across the schema.
   litellm-test-db-init:
-    image: pgvector/pgvector:pg16@sha256:0dd3149a06e4579a0d70d8fef9945636cd514005e7237deb27f9b67886f8dc4f
+    image: pgvector/pgvector:0.8.7-pg18-trixie@sha256:ab49524d18df7200b74ac9a475e1db6297fc1eb57da4c214c63d10ecc4b754fa
     restart: "no"
     depends_on:
       postgres-test:
@@ -257,7 +259,7 @@ services:
     entrypoint: ["/bin/sh", "/db-init.sh"]
 
   litellm-test:
-    image: ghcr.io/berriai/litellm:v1.106.4@sha256:c169fb3adc514fcf210377c203f3de406d54f10bfdacf13948a4a839db9af7de
+    image: ghcr.io/berriai/litellm:v1.108.9@sha256:d817e8e4d6698aad9f3d40b6ccbcaa1cde6c8256cb59867553f07383da3d6608
     restart: unless-stopped
     environment:
       - DATABASE_URL=postgresql://litellm_test:litellmtestpassword@postgres-test:5432/litellm_test
@@ -320,7 +322,7 @@ services:
   # builds the URL (override with TEST_FAKE_OPENAI_BASE_URL). The
   # loopback binding serves the suites' /_test/requests reads.
   fake-openai-test:
-    image: ghcr.io/berriai/litellm:v1.106.4@sha256:c169fb3adc514fcf210377c203f3de406d54f10bfdacf13948a4a839db9af7de
+    image: ghcr.io/berriai/litellm:v1.108.9@sha256:d817e8e4d6698aad9f3d40b6ccbcaa1cde6c8256cb59867553f07383da3d6608
     restart: unless-stopped
     entrypoint: ["python3", "/fake/server.py"]
     environment:
@@ -347,7 +349,7 @@ services:
   # TLS-ALPN-01 against traefik-test's fixed address. See
   # tests/fixtures/pebble/README.md + endpoints/customDomains.test.ts.
   challtestsrv-test:
-    image: ghcr.io/letsencrypt/pebble-challtestsrv:2.10.1@sha256:12ce21884def456bcf9786542113949e1f19dc7738d2c70e156c2d0c38a1405b
+    image: ghcr.io/letsencrypt/pebble-challtestsrv:2.10.3@sha256:0152c8cb506e2ecba2900ed47d23932e27e3e6575a7d2c8ef93c7719ee3dea4c
     restart: unless-stopped
     # No default answers: a name resolves only to what a test added.
     command: ["-defaultIPv4", "", "-defaultIPv6", "", "-http01", "", "-https01", "", "-tlsalpn01", "", "-doh", ""]
@@ -362,7 +364,7 @@ services:
     security_opt: ["no-new-privileges:true"]
 
   pebble-test:
-    image: ghcr.io/letsencrypt/pebble:2.10.1@sha256:ddf230642b1a584f519f32e347de1b05a6e4c1f6c35c1863b33effeab5f78199
+    image: ghcr.io/letsencrypt/pebble:2.10.3@sha256:0c81f05db371f436c97fb894bd6d2ab8fc9c8e2ce40f8bef8a8e15941bcd75ef
     restart: unless-stopped
     command: ["-config", "/config/pebble-config.json", "-dnsserver", "${TEST_CHALLTESTSRV_IP:-10.213.47.42}:8053"]
     environment:
@@ -379,7 +381,7 @@ services:
     security_opt: ["no-new-privileges:true"]
 
   traefik-test:
-    image: traefik:v3@sha256:c8a121e4bb1347e8fd52657fab12f2cb70b68f8a018895e2068f92c9e519b9c2
+    image: traefik:v3.7.19@sha256:aa942a00bce033c909bf1f7e861d93761be4b31a035f10d2410d33e38a8f41cf
     restart: unless-stopped
     command:
       - "--global.sendAnonymousUsage=false"
@@ -426,7 +428,7 @@ services:
   # Host header: the app and the tests both use 127.0.0.1:4130, so the
   # issuer is `http://127.0.0.1:4130/<path>`.
   oidc-test:
-    image: ghcr.io/navikt/mock-oauth2-server:6.0.5@sha256:5ed2f078c6503147860a5114f06414257bb7eeccc68b0e806bdf0869f2602509
+    image: ghcr.io/navikt/mock-oauth2-server:6.1.5@sha256:d88e445d55c4ff6eed59b02d86adfece47d985233b1616fb712669b98328c8a2
     restart: unless-stopped
     environment:
       - 'JSON_CONFIG={"interactiveLogin":true}'

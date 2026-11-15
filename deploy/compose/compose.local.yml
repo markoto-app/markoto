@@ -88,7 +88,7 @@ services:
       - docker-api
 
   traefik:
-    image: traefik:v3@sha256:c8a121e4bb1347e8fd52657fab12f2cb70b68f8a018895e2068f92c9e519b9c2
+    image: traefik:v3.7.19@sha256:aa942a00bce033c909bf1f7e861d93761be4b31a035f10d2410d33e38a8f41cf
     restart: unless-stopped
     command:
       - "--global.sendAnonymousUsage=false"
@@ -152,7 +152,7 @@ services:
   # Defined inline (not in base): prod uses external S3 and `include:`
   # has no "drop service" mechanic. See header in deploy/compose/compose.base.yml.
   seaweedfs:
-    image: chrislusf/seaweedfs@sha256:c2658820e763294a9e9de7b36c81e59b879e3459148351aee4e31a126ca64860
+    image: chrislusf/seaweedfs:4.53@sha256:ccad23e18639c8b98cee17e7100b95830a06077b56d8e5b006d6dcf8ec5e94a0
     restart: unless-stopped
     # `-master.volumeSizeLimitMB=256`: recent SeaweedFS derives how many
     # volumes a server may hold from free disk / volume size limit (default
