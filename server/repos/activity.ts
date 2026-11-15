@@ -94,13 +94,9 @@ export interface AppendActivityResult {
   rowId: number | null
 }
 
-export async function appendActivity(doc: DocAccess<'write'>, input: AppendInput): Promise<AppendActivityResult> {
-  const db = useDatabase()
-  // The conflict target only matches the partial index for rows inside it
-  // (non-null `yjsDocIdAfter`, actions 'edit' / 'title.changed' /
-  // 'theme.changed'); other rows insert unconditionally.
-  const result = await db.insert(activityLog).values({
-    docId: doc.docId,
+/** The column values of one row, normalised the same way for every writer. */
+function activityValues(input: AppendInput) {
+  return {
     userId: input.userId ?? null,
     userName: input.userName,
     actorPrincipal: input.actorPrincipal ?? null,
@@ -109,9 +105,22 @@ export async function appendActivity(doc: DocAccess<'write'>, input: AppendInput
     wordCount: typeof input.wordCount === 'number' ? Math.round(input.wordCount) : null,
     linesAdded: typeof input.linesAdded === 'number' ? Math.max(0, Math.round(input.linesAdded)) : null,
     linesRemoved: typeof input.linesRemoved === 'number' ? Math.max(0, Math.round(input.linesRemoved)) : null,
-    metadata: input.metadata ?? null,
+    metadata: input.metadata ? JSON.stringify(input.metadata) : null,
     yjsDocIdBefore: typeof input.yjsDocIdBefore === 'number' ? input.yjsDocIdBefore : null,
     yjsDocIdAfter: typeof input.yjsDocIdAfter === 'number' ? input.yjsDocIdAfter : null
+  }
+}
+
+export async function appendActivity(doc: DocAccess<'write'>, input: AppendInput): Promise<AppendActivityResult> {
+  const db = useDatabase()
+  // The conflict target only matches the partial index for rows inside it
+  // (non-null `yjsDocIdAfter`, actions 'edit' / 'title.changed' /
+  // 'theme.changed'); other rows insert unconditionally.
+  const { metadata: _json, ...values } = activityValues(input)
+  const result = await db.insert(activityLog).values({
+    docId: doc.docId,
+    ...values,
+    metadata: input.metadata ?? null
   })
     // `where` is the index_predicate Postgres needs to infer the partial unique
     // index `uq_activity_doc_yjsafter` as arbiter; without it ON CONFLICT
@@ -123,6 +132,68 @@ export async function appendActivity(doc: DocAccess<'write'>, input: AppendInput
     .returning({ id: activityLog.id })
 
   return { inserted: result.length > 0, rowId: result[0]?.id ?? null }
+}
+
+export type RecordActivityResult = 'inserted' | 'deduped' | 'no-doc'
+
+/** Seconds a bumped `documents.last_active` stays good enough for its readers (inactive-doc sweep, recent lists). */
+const LAST_ACTIVE_RESOLUTION_S = 60
+
+/**
+ * The sync server's per-store write (`POST /api/internal/activity`), in ONE
+ * statement instead of four round trips (existence check, insert, the
+ * `last_active` bump, the cap). That endpoint runs once per stored change of
+ * every open document, which made it the app's busiest write under load.
+ * Same outcome as `appendActivity` + `bumpLastActive` + `pruneActivity`:
+ *   - nothing is written for a document without a row (`no-doc`), and a
+ *     row the partial unique index swallows (`deduped`) changes nothing else;
+ *   - `bumpLastActive`: `last_active = now()`, skipped while it is less than
+ *     a minute old (an UPDATE that matches no row writes no new tuple);
+ *   - the cap: the sub-statements of one statement share a snapshot, so the
+ *     DELETE does not see the new row: it keeps the newest
+ *     MAX_ENTRIES_PER_DOC - 1 existing rows, and the new one makes the cap.
+ */
+export async function recordActivity(doc: DocAccess<'write'>, input: AppendInput, opts: { bumpLastActive: boolean }): Promise<RecordActivityResult> {
+  const docId = doc.docId
+  const v = activityValues(input)
+  const db = useDatabase()
+  const result = await db.execute<{ found: boolean, inserted: boolean }>(sql`
+    WITH doc AS (
+      SELECT doc_id FROM documents WHERE doc_id = ${docId}
+    ), ins AS (
+      INSERT INTO activity_log (
+        doc_id, user_id, user_name, actor_principal, actor_avatar_seed, action,
+        word_count, lines_added, lines_removed, metadata, yjs_doc_id_before, yjs_doc_id_after
+      )
+      SELECT doc_id, ${v.userId}::integer, ${v.userName}::text, ${v.actorPrincipal}::text, ${v.actorAvatarSeed}::text, ${v.action}::text,
+        ${v.wordCount}::integer, ${v.linesAdded}::integer, ${v.linesRemoved}::integer, ${v.metadata}::jsonb,
+        ${v.yjsDocIdBefore}::bigint, ${v.yjsDocIdAfter}::bigint
+      FROM doc
+      ON CONFLICT (doc_id, yjs_doc_id_after)
+        WHERE yjs_doc_id_after IS NOT NULL AND action IN ('edit', 'title.changed', 'theme.changed')
+        DO NOTHING
+      RETURNING id
+    ), capped AS (
+      DELETE FROM activity_log
+      WHERE doc_id = ${docId}
+        AND EXISTS (SELECT 1 FROM ins)
+        AND id < (
+          SELECT MIN(id) FROM (
+            SELECT id FROM activity_log WHERE doc_id = ${docId} ORDER BY id DESC LIMIT ${MAX_ENTRIES_PER_DOC - 1}
+          ) keep
+        )
+    ), bumped AS (
+      UPDATE documents SET last_active = now()
+      WHERE doc_id = ${docId}
+        AND ${opts.bumpLastActive}::boolean
+        AND EXISTS (SELECT 1 FROM ins)
+        AND last_active < now() - make_interval(secs => ${LAST_ACTIVE_RESOLUTION_S})
+    )
+    SELECT EXISTS (SELECT 1 FROM doc) AS found, EXISTS (SELECT 1 FROM ins) AS inserted
+  `)
+  const row = result.rows[0]
+  if (!row?.found) return 'no-doc'
+  return row.inserted ? 'inserted' : 'deduped'
 }
 
 /**

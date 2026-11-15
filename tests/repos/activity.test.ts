@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { Pool } from 'pg'
 import { resetDb, testDb } from '../integration/setup/db'
 import {
   appendActivity,
   pruneActivity,
+  recordActivity,
   listRecentActivity,
   deleteActivityForDoc
 } from '../../server/repos/activity'
@@ -360,5 +362,104 @@ describe('deleteActivityForDoc', () => {
     await deleteActivityForDoc(docAs(docA.docId))
     expect(await activityCount(docA.docId)).toBe(0)
     expect(await activityCount(docB.docId)).toBe(1)
+  })
+})
+
+describe('recordActivity (the sync server\'s per-store write)', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  async function lastActiveOf(docId: string): Promise<Date> {
+    const r = await testDb().query<{ la: Date }>('SELECT last_active AS la FROM documents WHERE doc_id = $1', [docId])
+    return first(r.rows).la
+  }
+
+  async function parkLastActive(docId: string, ago: string): Promise<void> {
+    await testDb().query(`UPDATE documents SET last_active = now() - interval '${ago}' WHERE doc_id = $1`, [docId])
+  }
+
+  it('one database round trip per store, where it took four (exists, insert, last_active, cap)', async () => {
+    const u = await createUser()
+    const doc = await seedDoc({ ownerId: u.id })
+    const query = vi.spyOn(Pool.prototype, 'query')
+    try {
+      // Warm-up (pool connect), then count.
+      await recordActivity(docAs(doc.docId), { userName: 'Alice', action: 'edit', yjsDocIdAfter: 1 }, { bumpLastActive: true })
+      query.mockClear()
+      for (let i = 2; i <= 11; i++) {
+        await recordActivity(docAs(doc.docId), { userName: 'Alice', action: 'edit', yjsDocIdAfter: i }, { bumpLastActive: true })
+      }
+      expect(query).toHaveBeenCalledTimes(10)
+    } finally {
+      query.mockRestore()
+    }
+    expect(await activityCount(doc.docId)).toBe(11)
+  })
+
+  it('stores the row like appendActivity does (normalised counts, metadata, avatar seed)', async () => {
+    const u = await createUser()
+    const doc = await seedDoc({ ownerId: u.id })
+    const result = await recordActivity(docAs(doc.docId), {
+      userId: u.id, userName: 'Alice', action: 'title.changed', wordCount: 12.7, linesAdded: -2, linesRemoved: 3,
+      metadata: { kind: 'title.changed', from: 'a', to: 'b' }, yjsDocIdBefore: 4, yjsDocIdAfter: 5
+    }, { bumpLastActive: true })
+    expect(result).toBe('inserted')
+    const r = await testDb().query<Record<string, unknown>>('SELECT user_id, user_name, action, word_count, lines_added, lines_removed, metadata, yjs_doc_id_before, yjs_doc_id_after FROM activity_log WHERE doc_id = $1', [doc.docId])
+    expect(first(r.rows)).toEqual({
+      user_id: u.id, user_name: 'Alice', action: 'title.changed', word_count: 13, lines_added: 0, lines_removed: 3,
+      metadata: { kind: 'title.changed', from: 'a', to: 'b' }, yjs_doc_id_before: '4', yjs_doc_id_after: '5'
+    })
+  })
+
+  it('a document without a row: nothing written, no-doc', async () => {
+    expect(await recordActivity(docAs('no-such-doc'), { userName: null, action: 'edit' }, { bumpLastActive: true })).toBe('no-doc')
+    expect(await activityCount('no-such-doc')).toBe(0)
+  })
+
+  it('the same store twice: deduped, and nothing else moves', async () => {
+    const u = await createUser()
+    const doc = await seedDoc({ ownerId: u.id })
+    expect(await recordActivity(docAs(doc.docId), { userName: 'A', action: 'edit', yjsDocIdAfter: 7 }, { bumpLastActive: true })).toBe('inserted')
+    await parkLastActive(doc.docId, '1 day')
+    const before = await lastActiveOf(doc.docId)
+    expect(await recordActivity(docAs(doc.docId), { userName: 'A', action: 'edit', yjsDocIdAfter: 7 }, { bumpLastActive: true })).toBe('deduped')
+    expect(await activityCount(doc.docId)).toBe(1)
+    expect((await lastActiveOf(doc.docId)).getTime()).toBe(before.getTime())
+  })
+
+  it('bumps last_active when asked and it is over a minute old; skips the write otherwise', async () => {
+    const u = await createUser()
+    const doc = await seedDoc({ ownerId: u.id })
+    await parkLastActive(doc.docId, '1 day')
+    const parked = await lastActiveOf(doc.docId)
+
+    await recordActivity(docAs(doc.docId), { userName: 'A', action: 'join' }, { bumpLastActive: false })
+    expect((await lastActiveOf(doc.docId)).getTime()).toBe(parked.getTime())
+
+    await recordActivity(docAs(doc.docId), { userName: 'A', action: 'edit', yjsDocIdAfter: 1 }, { bumpLastActive: true })
+    const bumped = await lastActiveOf(doc.docId)
+    expect(bumped.getTime()).toBeGreaterThan(parked.getTime())
+
+    // Within the minute: no new write (the value stays exactly as it was).
+    await parkLastActive(doc.docId, '10 seconds')
+    const recent = await lastActiveOf(doc.docId)
+    await recordActivity(docAs(doc.docId), { userName: 'A', action: 'edit', yjsDocIdAfter: 2 }, { bumpLastActive: true })
+    expect((await lastActiveOf(doc.docId)).getTime()).toBe(recent.getTime())
+  })
+
+  it('keeps the newest 500 rows, the new one included', async () => {
+    const u = await createUser()
+    const doc = await seedDoc({ ownerId: u.id })
+    const values = Array.from({ length: 520 }, (_, i) => `('${doc.docId}', 'edit', 'u', ${i})`).join(',')
+    await testDb().query(`INSERT INTO activity_log (doc_id, action, user_name, word_count) VALUES ${values}`)
+    await recordActivity(docAs(doc.docId), { userName: 'u', action: 'edit', wordCount: 999 }, { bumpLastActive: true })
+    expect(await activityCount(doc.docId)).toBe(500)
+    const range = await testDb().query<{ mn: number, mx: number }>('SELECT MIN(word_count) AS mn, MAX(word_count) AS mx FROM activity_log WHERE doc_id = $1', [doc.docId])
+    expect(Number(first(range.rows).mn)).toBe(21)
+    expect(Number(first(range.rows).mx)).toBe(999)
+    // At the cap, every further row replaces the oldest one.
+    await recordActivity(docAs(doc.docId), { userName: 'u', action: 'edit', wordCount: 1000 }, { bumpLastActive: true })
+    expect(await activityCount(doc.docId)).toBe(500)
   })
 })

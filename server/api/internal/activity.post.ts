@@ -1,7 +1,6 @@
-import { docExists, bumpLastActive } from '../../repos/documents'
 import { system } from '../../repos/proofs'
 import { normalizeAvatarSeed } from '../../../shared/utils/documents/awarenessUser'
-import { appendActivity, pruneActivity } from '../../repos/activity'
+import { recordActivity } from '../../repos/activity'
 import { internalActivityBody } from '~~/shared/api/platform'
 import { useLogger } from '../../utils/platform/logger'
 
@@ -16,19 +15,20 @@ export default defineApiHandler({
   body: internalActivityBody,
   handler: async ({ body }) => {
     const action = body.action
-
-    // Anonymous/direct-URL docs without a DB row are skipped.
-    if (!(await docExists(body.docId))) {
-      return { success: true, logged: false }
-    }
-
     const userId = typeof body.userId === 'number' ? body.userId : null
     const actorPrincipal = typeof body.actorPrincipal === 'string' && body.actorPrincipal.length > 0
       ? body.actorPrincipal
       : null
     // The sync server reports what its authorised clients did to this document.
     const doc = system('sync-server').doc(body.docId)
-    const { inserted } = await appendActivity(doc, {
+    // One statement (repos/activity.ts): this runs once per stored change of
+    // every open document. It also:
+    //   - skips documents without a row (anonymous / direct-URL docs);
+    //   - bumps `lastActive` on edits (read by the inactive-doc sweep), so a
+    //     doc edited without ever hitting `meta.put` isn't reaped. Join/leave
+    //     don't count: a passive viewer shouldn't keep an abandoned doc alive;
+    //   - caps the log at its per-document maximum.
+    const result = await recordActivity(doc, {
       userId,
       userName: body.userName || null,
       actorPrincipal,
@@ -44,25 +44,17 @@ export default defineApiHandler({
       metadata: body.metadata ?? null,
       yjsDocIdBefore: typeof body.yjsDocIdBefore === 'number' ? body.yjsDocIdBefore : null,
       yjsDocIdAfter: typeof body.yjsDocIdAfter === 'number' ? body.yjsDocIdAfter : null
-    })
+    }, { bumpLastActive: action === 'edit' })
 
-    if (!inserted) {
+    if (result === 'no-doc') {
+      return { success: true, logged: false }
+    }
+    if (result === 'deduped') {
       // Cross-instance dup or replay: `uq_activity_doc_yjsafter` makes the second
       // INSERT a no-op. Expected with several sync servers, so debug-level only.
       log.debug('dedup skipped insert', { docId: body.docId, action, yjsDocIdAfter: body.yjsDocIdAfter })
       return { success: true, logged: false, deduped: true }
     }
-
-    // Edit events bump `lastActive` (read by the inactive-doc sweep), so a doc
-    // edited without ever hitting `meta.put` isn't reaped. Join/leave don't
-    // count: a passive viewer shouldn't keep an abandoned doc alive.
-    if (action === 'edit') {
-      await bumpLastActive(doc)
-    }
-
-    // Cap the log at MAX_ENTRIES_PER_DOC (one count + one targeted delete).
-    await pruneActivity(doc)
-
     return { success: true, logged: true }
   }
 })
