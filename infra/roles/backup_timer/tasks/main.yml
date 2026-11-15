@@ -27,8 +27,10 @@
   ansible.builtin.copy:
     dest: /usr/local/bin/markoto-backup-now
     owner: root
-    group: root
-    mode: "0755"
+    # Run by the markoto user (its backup.service, or an operator after
+    # `sudo -iu markoto`): it needs that user's Podman socket anyway.
+    group: "{{ markoto_user }}"
+    mode: "0750"
     content: |
       #!/usr/bin/env bash
       # Managed by Ansible (markoto/backup_timer role). Run as {{ markoto_user }}.
@@ -52,7 +54,7 @@
     dest: "{{ backup_timer_home }}/.config/systemd/user/{{ item.name }}"
     owner: "{{ markoto_user }}"
     group: "{{ markoto_user }}"
-    mode: "0644"
+    mode: "0600"
     content: "{{ item.content }}"
   loop:
     - name: markoto-backup.service
