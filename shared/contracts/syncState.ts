@@ -8,11 +8,11 @@
 
 export const syncStateKeys = {
   lastEditor: (docId: string) => `sync:last-editor:${docId}`,
-  prevText: (docId: string) => `sync:prev-text:${docId}`,
+  prevLines: (docId: string) => `sync:prev-lines:${docId}`,
   prevMeta: (docId: string) => `sync:prev-meta:${docId}`
 } as const
 
 /** Every per-document key, for deletion. */
 export function allSyncStateKeys(docId: string): string[] {
-  return [syncStateKeys.lastEditor(docId), syncStateKeys.prevText(docId), syncStateKeys.prevMeta(docId)]
+  return [syncStateKeys.lastEditor(docId), syncStateKeys.prevLines(docId), syncStateKeys.prevMeta(docId)]
 }

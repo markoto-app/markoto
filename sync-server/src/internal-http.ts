@@ -5,6 +5,7 @@ import { performKickUser, type HocuspocusInstance } from './kickUser'
 import { flushPendingStore } from './flushDocument'
 import { performReauthDocument } from './connection-expiry'
 import { writeDocNotBefore } from './doc-not-before'
+import { graceRooms } from './room-capacity'
 import { Sentry } from './sentry'
 import { syncEnv } from './env'
 import { useLogger, type Logger } from './logger'
@@ -196,6 +197,8 @@ async function handleNotifyDeleted(
     doc.getMap('meta').set('_deleted', Date.now())
     // Let Hocuspocus broadcast the update, then unload after a short
     // delay so clients receive the message before the room closes.
+    // No grace period: nobody may open it again.
+    graceRooms.skip(docId)
     setTimeout(() => {
       try {
         instance.unloadDocument?.(doc)

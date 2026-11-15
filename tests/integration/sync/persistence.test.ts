@@ -12,6 +12,10 @@ import { connectSync, waitFor, waitForAcked, type SyncClient } from '../setup/by
 
 const clients: SyncClient[] = []
 
+// SYNC_UNLOAD_GRACE_MS of the sync-test container (compose.test.yml): how
+// long a document stays loaded after its last client left.
+const UNLOAD_GRACE_MS = 2000
+
 function track(c: SyncClient): SyncClient {
   clients.push(c)
   return c
@@ -72,21 +76,52 @@ describe('sync server persistence', () => {
     await writer.synced
     await typeInto(writer, 'stored before leaving.')
     writer.destroy()
-    // The last client leaving stores at once and unloads the document.
+    // The last client leaving stores at once (the grace period does not
+    // delay the store) and the document unloads after the grace period.
     await waitForStoredText(doc.docId, 'stored before leaving.')
     expect((await readYjsRows(doc.docId)).every(r => r.kind === 'update')).toBe(true)
+    await new Promise(r => setTimeout(r, UNLOAD_GRACE_MS + 1000))
 
     // Another instance appends while the document is not loaded here.
     const elsewhere = await storedState(doc.docId)
     const sv = Y.encodeStateVector(elsewhere)
     elsewhere.getText('content').insert(elsewhere.getText('content').length, ' Then elsewhere.')
     await insertYjsUpdate(doc.docId, Y.encodeStateAsUpdate(elsewhere, sv))
-    await new Promise(r => setTimeout(r, 500))
 
     // Seeing the other instance's row proves this load came from the table.
     const reader = track(connectSync(doc.docId, identity))
     await reader.synced
     expect(reader.doc.getText('content').toJSON()).toBe('stored before leaving. Then elsewhere.')
+  }, 40_000)
+
+  it('a reconnect within the grace period finds the document still in memory; after it the document loads again', async () => {
+    const owner = await createUser()
+    const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+    const identity = { userId: String(owner.id), userName: owner.name }
+
+    const writer = track(connectSync(doc.docId, identity))
+    await writer.synced
+    await typeInto(writer, 'kept in memory.')
+    writer.destroy()
+    await waitForStoredText(doc.docId, 'kept in memory.')
+
+    // A row the loaded document doesn't have: only a fresh load reads it.
+    const elsewhere = await storedState(doc.docId)
+    const sv = Y.encodeStateVector(elsewhere)
+    elsewhere.getText('content').insert(elsewhere.getText('content').length, ' Loaded again.')
+    await insertYjsUpdate(doc.docId, Y.encodeStateAsUpdate(elsewhere, sv))
+
+    // Within the grace period: served from memory, no database load.
+    const quick = track(connectSync(doc.docId, identity))
+    await quick.synced
+    expect(quick.doc.getText('content').toJSON()).toBe('kept in memory.')
+    quick.destroy()
+
+    // The reconnect restarted the grace; once it is over the document unloads.
+    await new Promise(r => setTimeout(r, UNLOAD_GRACE_MS + 1000))
+    const later = track(connectSync(doc.docId, identity))
+    await later.synced
+    expect(later.doc.getText('content').toJSON()).toBe('kept in memory. Loaded again.')
   }, 40_000)
 
   it('two clients converge, and the stored log replays to their shared state', async () => {

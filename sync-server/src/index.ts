@@ -8,8 +8,9 @@ import { captureMessage } from './sentry'
 import { Server } from '@hocuspocus/server'
 import { persistence, compaction, closePersistencePool } from './persistence-instance'
 import { authFromEnv } from './auth'
-import { rateLimiter } from './rate-limiter'
-import { logActivity, mostRecentVerifiedEditor, countWords, lineDiff, type VerifiedIdentity } from './activity-logger'
+import { memoryGuard, rateLimiter } from './rate-limiter'
+import { graceRooms, makeRoom } from './room-capacity'
+import { logActivity, mostRecentVerifiedEditor, countWords, lineDigest, lineDiffDigests, type VerifiedIdentity } from './activity-logger'
 import { parseSyncLimits } from './limits'
 import { createUpdateGuard, SyncRejection } from './update-guard'
 import { createPreAuthGuard, parsePreAuthLimits } from './pre-auth-guard'
@@ -22,8 +23,8 @@ import { shipCommentsSnapshot, dropSnapshotCache } from './comments-snapshot'
 import {
   getLastEditor,
   setLastEditor,
-  getPrevText,
-  setPrevText,
+  getPrevLines,
+  setPrevLines,
   getPrevMeta,
   setPrevMeta,
   dropDocState
@@ -46,7 +47,7 @@ const port = syncEnv().sync.port
 //     authenticated connection context); read in onStoreDocument. Falls back
 //     to the awareness heuristic on miss (cold doc / restart) or error
 //     (Valkey down). Sentry tag distinguishes the two.
-//   - prev-text: re-seeded from disk in onLoadDocument so the first diff
+//   - prev-lines: line digest of the text, re-seeded from disk in onLoadDocument so the first diff
 //     after load is measured against persisted state, not "".
 //   - prev-meta: same: seeded against current title/theme so the first
 //     store doesn't emit a spurious "title changed" with null `from`.
@@ -99,7 +100,7 @@ const server = new Server({
       // toJSON() which TS can verify returns string (Sonar can't see Y.Text's
       // toString override otherwise: S6551).
       const ytext = doc.getText('content')
-      await setPrevText(data.documentName, ytext.toJSON())
+      await setPrevLines(data.documentName, lineDigest(ytext.toJSON()))
       // Same for title + theme: seed against current state so the first
       // store after load doesn't emit a spurious "title changed" with a
       // null `from` value.
@@ -125,6 +126,7 @@ const server = new Server({
     // here erases its diff baseline (its next store then skips one
     // activity row and re-seeds). Accepted over a cross-container
     // reference count; the 24 h TTL is the backstop.
+    graceRooms.forget(data.documentName)
     await dropDocState(data.documentName)
     dropSnapshotCache(data.documentName)
   },
@@ -135,6 +137,9 @@ const server = new Server({
     if (persistence.hasUnsavedChanges(data.document)) {
       throw new Error(`document ${data.documentName} has unsaved edits, kept in memory`)
     }
+    // Keep it a little longer for a reload or a quick switch back
+    // (SYNC_UNLOAD_GRACE_MS, room-capacity.ts). Throws to veto this unload.
+    graceRooms.hold(data.instance, data.documentName)
   },
 
   async beforeHandleMessage(data) {
@@ -221,6 +226,8 @@ const server = new Server({
   async connected(data) {
     // The document's pre-auth queue has been replayed: stop counting it.
     preAuthGuard.documentEstablished(data.request, data.socketId, data.documentName)
+    // In use again: no longer a grace room.
+    graceRooms.cancel(data.documentName)
     const conn = data.connection as ReauthConnection
     const expiresAt = (data.context as { tokenExpiresAt?: unknown } | undefined)?.tokenExpiresAt
     // Already gone (socket dropped while the queue replayed): its close
@@ -237,6 +244,9 @@ const server = new Server({
   },
 
   async onConnect(data) {
+    // A new document at the room cap or the memory guard: give up grace
+    // rooms first, then let the rate limiter decide.
+    await makeRoom(data.instance, data.documentName, graceRooms, { maxRooms: syncEnv().sync.maxRooms, memory: memoryGuard })
     rateLimiter.onConnect(data)
   },
 
@@ -398,11 +408,12 @@ async function logEditActivity(
     const wordCount = countWords(currentText)
     const { userName, userId, actorPrincipal, actorAvatarSeed } = resolveAttribution(data, trackedFetch)
 
-    const prevFetch = await getPrevText(data.documentName)
-    await setPrevText(data.documentName, currentText)
+    const currentLines = lineDigest(currentText)
+    const prevFetch = await getPrevLines(data.documentName)
+    await setPrevLines(data.documentName, currentLines)
 
     if (prevFetch.value == null) return
-    const { added, removed } = lineDiff(prevFetch.value, currentText)
+    const { added, removed } = lineDiffDigests(prevFetch.value, currentLines)
     // Skip the edit entry if nothing changed line-wise (this happens
     // on join/leave-driven stores or no-op saves), but DO NOT bail
     // from the whole hook. Title-only / theme-only / comment-only
@@ -514,6 +525,8 @@ async function shutdown(signal: string) {
     // them in memory so the drain can finish.
     await persistence.retryUnsaved(() => {})
     persistence.beginShutdown()
+    // Documents nobody has open would keep destroy() waiting for their unload.
+    await graceRooms.releaseAll(server.hocuspocus)
     await server.destroy()
     const lost = persistence.unsavedDocumentIds()
     if (lost.length > 0) {

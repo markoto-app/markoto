@@ -73,7 +73,7 @@ services:
       - "--maxmemory"
       - "1gb"
       - "--maxmemory-policy"
-      - "allkeys-lru"
+      - "noeviction" # as compose.base.yml
     healthcheck:
       test: ["CMD", "valkey-cli", "--no-auth-warning", "-a", "${VALKEY_PASSWORD:-devpassword}", "ping"]
       interval: 10s

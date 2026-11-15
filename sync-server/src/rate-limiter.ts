@@ -5,11 +5,14 @@
 //     opening thousands of rooms. Counted per (socket, document), released
 //     when either the document connection or the raw socket goes away.
 //     Default: 20.
-//   - `maxActiveRooms`: global ceiling on distinct loaded documents.
-//     Protects against memory blowup when a crawler walks through random
-//     doc IDs and each one spawns a Y.Doc in RAM. Default: 5000. Joining a
-//     document that is already loaded (or loading) costs no new Y.Doc, so
-//     it is not refused at the cap; the per-IP cap still bounds it.
+//   - `maxActiveRooms`: global ceiling on distinct loaded documents
+//     (SYNC_MAX_ROOMS, default 5000). Protects against memory blowup when
+//     a crawler walks through random doc IDs and each one spawns a Y.Doc
+//     in RAM. Joining a document that is already loaded (or loading)
+//     costs no new Y.Doc, so it is not refused at the cap; the per-IP cap
+//     still bounds it. `memoryPressure` (the memory guard,
+//     room-capacity.ts) refuses new documents the same way. Grace rooms
+//     are given up before either refuses (`makeRoom`, index.ts).
 //
 // Both refusals carry the reason `server-busy` (SYNC_BUSY_REASON):
 // Hocuspocus sends a thrown error's `reason` to the client as its
@@ -30,6 +33,7 @@
 import { DEFAULT_TRUSTED_PROXY_HOPS, resolveClientIp } from '../../shared/utils/security/clientIp'
 import { SYNC_BUSY_REASON } from '../../shared/contracts/syncClose'
 import { syncEnv } from './env'
+import { cgroupMemoryLimit, createMemoryGuard } from './room-capacity'
 import { useLogger } from './logger'
 
 const log = useLogger('rate-limiter')
@@ -80,6 +84,8 @@ interface ClosableSocket {
 export interface RateLimiterOptions {
   maxConnectionsPerIP?: number
   maxActiveRooms?: number
+  /** True while a new document would push memory past the guard. */
+  memoryPressure?: () => boolean
   /** Trusted reverse proxies in front of the sync server (default 1). */
   trustedHops?: number
 }
@@ -121,6 +127,7 @@ function extractIp(data: HookData, trustedHops: number): string {
 export function createRateLimiter(options: RateLimiterOptions = {}) {
   const maxConnectionsPerIP = options.maxConnectionsPerIP ?? 20
   const maxActiveRooms = options.maxActiveRooms ?? 5000
+  const memoryPressure = options.memoryPressure ?? (() => false)
   const trustedHops = options.trustedHops ?? DEFAULT_TRUSTED_PROXY_HOPS
 
   const connectionsPerIP = new Map<string, number>()
@@ -175,9 +182,15 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
       // us from a distributed scan across many IPs that would each fit
       // under the per-IP cap but collectively exhaust memory.
       const roomCount = data.instance?.documents?.size
-      if (typeof roomCount === 'number' && roomCount >= maxActiveRooms && !isOpenRoom(data)) {
-        log.warn('active room cap reached', { rooms: roomCount, maxActiveRooms })
-        throw new SyncBusyError('Server at capacity')
+      if (typeof roomCount === 'number' && !isOpenRoom(data)) {
+        if (roomCount >= maxActiveRooms) {
+          log.warn('active room cap reached', { rooms: roomCount, maxActiveRooms })
+          throw new SyncBusyError('Server at capacity')
+        }
+        if (memoryPressure()) {
+          log.warn('memory guard refused a new document', { rooms: roomCount })
+          throw new SyncBusyError('Server at capacity')
+        }
       }
 
       try {
@@ -259,7 +272,14 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
 const isProd = process.env.NODE_ENV === 'production'
 const resolvedCap = syncEnv().sync.maxConnectionsPerIp ?? (isProd ? 20 : 200)
 
+export const memoryGuard = createMemoryGuard({
+  percent: syncEnv().sync.memoryGuardPercent,
+  limitBytes: syncEnv().sync.memoryLimitBytes ?? cgroupMemoryLimit()
+})
+
 export const rateLimiter = createRateLimiter({
   maxConnectionsPerIP: resolvedCap,
+  maxActiveRooms: syncEnv().sync.maxRooms,
+  memoryPressure: () => memoryGuard.underPressure(),
   trustedHops: syncEnv().core.trustedProxyHops
 })

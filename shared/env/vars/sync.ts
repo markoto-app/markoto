@@ -98,6 +98,46 @@ export const sync = defineNamespace({
       services: ['sync'],
       scope: 'both'
     }),
+    maxRooms: v({
+      name: 'SYNC_MAX_ROOMS',
+      type: positiveInt,
+      default: 5000,
+      doc: 'Documents one sync server keeps open at once; a new document beyond it is refused as busy (joining an open one never is). Size it from the container memory: about 65 KiB per open document of typical size plus its text, and leave half the limit free.',
+      services: ['sync'],
+      scope: 'both'
+    }),
+    memoryGuardPercent: v({
+      name: 'SYNC_MEMORY_GUARD_PERCENT',
+      type: int({ min: 0, max: 100 }),
+      default: 85,
+      doc: 'Refuse to open new documents (busy) while the sync server uses more than this share of its memory limit; 0 = off.',
+      services: ['sync'],
+      scope: 'both'
+    }),
+    memoryLimitBytes: v({
+      name: 'SYNC_MEMORY_LIMIT_BYTES',
+      type: bytes,
+      defaultDoc: 'the container memory limit (cgroup); none = memory guard off',
+      doc: 'Memory limit the memory guard measures against.',
+      services: ['sync'],
+      scope: 'both'
+    }),
+    unloadGraceMs: v({
+      name: 'SYNC_UNLOAD_GRACE_MS',
+      type: nonNegativeInt,
+      default: 30000,
+      doc: 'How long a document stays open after its last tab left (ms), so reloads and quick switches skip the database; edits are still stored at once. 0 = unload immediately.',
+      services: ['sync'],
+      scope: 'both'
+    }),
+    hiddenDisconnectMs: v({
+      name: 'NUXT_PUBLIC_SYNC_HIDDEN_DISCONNECT_MS',
+      type: nonNegativeInt,
+      default: 240000,
+      doc: 'The editor disconnects from the sync server after its tab has been hidden this long (ms) and reconnects when it is shown again (runtimeConfig.public). 0 = stay connected.',
+      services: ['app'],
+      scope: 'both'
+    }),
     compactThreshold: v({
       name: 'COMPACT_THRESHOLD',
       type: positiveInt,

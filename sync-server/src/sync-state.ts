@@ -1,6 +1,7 @@
 // Per-doc state, kept in Valkey so multiple sync-server containers share it:
 //   - last-editor:   primary attribution source for activity-log rows.
-//   - prev-text:     diff baseline for line-add/-remove counts.
+//   - prev-lines:    diff baseline for line-add/-remove counts (a line
+//                    digest, `lineDigest` in activity-logger.ts, not the text).
 //   - prev-meta:     title/theme baseline for "title.changed"/"theme.changed".
 //
 // Each call returns the previous value (read-modify-write callsites in
@@ -56,7 +57,7 @@ export interface FetchResult<T> {
 }
 
 const KEY_LAST_EDITOR = syncStateKeys.lastEditor
-const KEY_PREV_TEXT = syncStateKeys.prevText
+const KEY_PREV_LINES = syncStateKeys.prevLines
 const KEY_PREV_META = syncStateKeys.prevMeta
 
 async function safeGet(key: string): Promise<FetchResult<string>> {
@@ -104,14 +105,14 @@ export async function setLastEditor(docId: string, value: LastEditor): Promise<v
   await safeSetEx(KEY_LAST_EDITOR(docId), JSON.stringify(value))
 }
 
-// prev-text
+// prev-lines
 
-export async function getPrevText(docId: string): Promise<FetchResult<string>> {
-  return safeGet(KEY_PREV_TEXT(docId))
+export async function getPrevLines(docId: string): Promise<FetchResult<string>> {
+  return safeGet(KEY_PREV_LINES(docId))
 }
 
-export async function setPrevText(docId: string, value: string): Promise<void> {
-  await safeSetEx(KEY_PREV_TEXT(docId), value)
+export async function setPrevLines(docId: string, digest: string): Promise<void> {
+  await safeSetEx(KEY_PREV_LINES(docId), digest)
 }
 
 // prev-meta
@@ -135,7 +136,7 @@ export async function setPrevMeta(docId: string, value: PreviousMeta): Promise<v
 export async function dropDocState(docId: string): Promise<void> {
   await Promise.all([
     safeDel(KEY_LAST_EDITOR(docId)),
-    safeDel(KEY_PREV_TEXT(docId)),
+    safeDel(KEY_PREV_LINES(docId)),
     safeDel(KEY_PREV_META(docId))
   ])
 }

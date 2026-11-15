@@ -1,6 +1,7 @@
 import * as Y from 'yjs'
 import { HocuspocusProvider, WebSocketStatus, type HocuspocusProviderConfiguration } from '@hocuspocus/provider'
 import type { Awareness } from 'y-protocols/awareness'
+import type { Ref } from 'vue'
 import { isReauthClose, isSyncBusyReason, SYNC_CLOSE_REASONS, syncRejectionFromClose, type SyncCloseReason } from '~~/shared/contracts/syncClose'
 
 /**
@@ -13,6 +14,8 @@ export interface ProviderLike {
   /** Close the socket and stop reconnecting (HocuspocusProvider has it;
    *  optional so minimal test fakes don't need it). */
   disconnect?(): void
+  /** Open the socket again after `disconnect()` (HocuspocusProvider has it). */
+  connect?(): unknown
 }
 
 /**
@@ -123,6 +126,48 @@ function countPresentUsers(states: unknown[]): number {
   return unique
 }
 
+interface PauseState {
+  provider: Ref<ProviderLike | null>
+  status: Ref<'connecting' | 'connected' | 'disconnected'>
+  synced: Ref<boolean>
+  syncRejection: Ref<SyncCloseReason | null>
+  paused: Ref<boolean>
+  connect: () => void
+}
+
+/** `pause()` / `resume()` of `useHocuspocusSync` (hidden tab, `utils/collab/hiddenTabPause.ts`). */
+function pauseControls(state: PauseState) {
+  /**
+   * Release the connection on purpose. Only from a healthy, synced
+   * connection; the provider and the Y.Doc stay, so `resume()` resyncs
+   * whatever changed on either side in between. Returns whether it paused.
+   */
+  function pause(): boolean {
+    const current = state.provider.value
+    if (!current?.disconnect || !current.connect || state.paused.value) return false
+    if (state.status.value !== 'connected' || !state.synced.value || state.syncRejection.value) return false
+    state.paused.value = true
+    current.disconnect()
+    return true
+  }
+
+  /** Reconnect after `pause()`. The token accessor runs again on the new socket. */
+  function resume() {
+    if (!state.paused.value) return
+    state.paused.value = false
+    const current = state.provider.value
+    if (!current?.connect) {
+      state.connect()
+      return
+    }
+    state.status.value = 'connecting'
+    // A failed attempt is retried by the provider itself.
+    Promise.resolve(current.connect()).catch(() => {})
+  }
+
+  return { pause, resume }
+}
+
 export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
   // shallowRef: a `ref` would Proxy-wrap the provider and break reference
   // comparisons by anyone holding `.value`.
@@ -141,6 +186,12 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
   // documents): not an access decision. Retried with backoff until it
   // lets us in; the editor shows a short "busy, retrying" note meanwhile.
   const syncBusy = ref(false)
+  // Local changes the server has not acknowledged yet (the provider's
+  // `unsyncedChanges`). A paused connection would hold them back.
+  const pendingChanges = ref(0)
+  // Released on purpose while the tab is hidden (`pause()`); `resume()`
+  // takes it up again.
+  const paused = ref(false)
 
   let retryTimer: ReturnType<typeof setTimeout> | null = null
   let stableTimer: ReturnType<typeof setTimeout> | null = null
@@ -256,11 +307,17 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
       },
       onAwarenessChange: ({ states }) => {
         userCount.value = countPresentUsers(states)
+      },
+      onUnsyncedChanges: ({ number }) => {
+        pendingChanges.value = number
       }
     })
   }
 
+  const { pause, resume } = pauseControls({ provider, status, synced, syncRejection, paused, connect })
+
   function disconnect() {
+    paused.value = false
     clearTimers()
     provider.value?.destroy()
     provider.value = null
@@ -294,7 +351,11 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
     docSizeBytes,
     syncRejection,
     syncBusy,
+    pendingChanges,
+    paused,
     connect,
+    pause,
+    resume,
     disconnect,
     reconnect,
     destroy

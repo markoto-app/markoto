@@ -4,7 +4,9 @@ import type { ApiResponse } from '~/utils/api/client'
 import { normalizeAwarenessUser } from '~~/shared/utils/documents/awarenessUser'
 
 // Shows:
-//   1. Live editors: full opacity, colored ring.
+//   1. Live editors: full opacity, colored ring. A live editor whose tab is
+//      hidden (`away` in their awareness state, see
+//      utils/collab/hiddenTabPause.ts) is dimmed and marked away.
 //   2. Offline workspace members with access: 50% opacity, no ring (fetched
 //      only for workspace docs; standalone/anonymous docs show live only).
 //
@@ -48,6 +50,7 @@ interface LiveEntry {
   isAI: boolean
   aiSession?: AiSessionMeta
   aiStatus?: AiStatus
+  away: boolean
 }
 
 type WorkspaceRole = 'admin' | 'editor' | 'viewer'
@@ -78,8 +81,10 @@ function updateLive() {
   // Dedup by userId across the whole awareness set so a second tab of the same
   // signed-in user doesn't add a second avatar. Anonymous entries (no userId)
   // and AI sessions are never deduplicated: each is a distinct presence.
+  // A person counts as away only when every one of their tabs is.
   const seenUserIds = new Set<number>()
   if (me !== null) seenUserIds.add(me)
+  const entryByUserId = new Map<number, LiveEntry>()
 
   states.forEach((state, clientId) => {
     if (clientId === localId) return
@@ -94,19 +99,27 @@ function updateLive() {
     const userId = parseUserIdFromAwareness(user.id)
     // Drop other tabs of the same human user (AI sessions and anonymous
     // users without a userId fall through).
+    const away = state.away === true
     if (!user.isAI && userId !== null) {
-      if (seenUserIds.has(userId)) return
+      if (seenUserIds.has(userId)) {
+        const seen = entryByUserId.get(userId)
+        if (seen && !away) seen.away = false
+        return
+      }
       seenUserIds.add(userId)
     }
-    result.push({
+    const entry: LiveEntry = {
       kind: 'live',
       clientId,
       userId,
       user,
       isAI: !!user.isAI,
       aiSession: state.aiSession as AiSessionMeta | undefined,
-      aiStatus: state.aiStatus as AiStatus | undefined
-    })
+      aiStatus: state.aiStatus as AiStatus | undefined,
+      away
+    }
+    if (!user.isAI && userId !== null) entryByUserId.set(userId, entry)
+    result.push(entry)
   })
   liveEntries.value = result
 }
@@ -182,15 +195,18 @@ function tooltipFor(e: DisplayEntry): string {
     return base
   }
   if (e.kind === 'live') {
-    // Match the live user to a roster row to surface the role.
-    if (e.userId !== null) {
-      const match = roster.value.find(m => m.userId === e.userId)
-      if (match) return `${e.user.name} · ${roleLabel(match.role)}`
-    }
-    if (e.userId === null) return t('presence.anonymousEditor')
-    return `${e.user.name} · ${t('presence.guest')}`
+    const away = e.away ? ` (${t('presence.away')})` : ''
+    return `${liveHumanLabel(e)}${away}`
   }
   return `${e.name} · ${roleLabel(e.role)} (${t('presence.offline')})`
+}
+
+function liveHumanLabel(e: LiveEntry): string {
+  if (e.userId === null) return t('presence.anonymousEditor')
+  // Match the live user to a roster row to surface the role.
+  const match = roster.value.find(m => m.userId === e.userId)
+  if (match) return `${e.user.name} · ${roleLabel(match.role)}`
+  return `${e.user.name} · ${t('presence.guest')}`
 }
 
 function isActivePhase(status: AiStatus | undefined): boolean {
@@ -224,7 +240,8 @@ function liveSeed(e: LiveEntry): string {
         <div
           v-if="e.kind === 'live'"
           class="relative inline-flex rounded-full ring-2 shrink-0 transition-opacity duration-200"
-          :class="{ 'ai-pulse': e.isAI && isActivePhase(e.aiStatus) }"
+          :class="{ 'ai-pulse': e.isAI && isActivePhase(e.aiStatus), 'opacity-60': e.away }"
+          :data-away="e.away ? 'true' : undefined"
           :style="{ '--tw-ring-color': e.user.color }"
         >
           <!-- markoto presence: seal on a `bg-default` disc; humans get their generated face. -->
