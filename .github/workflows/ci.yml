@@ -272,25 +272,28 @@ jobs:
     # ${{ }} expression typos, shellcheck-flagged bash inside `run:` blocks,
     # unpinned action versions, etc. See `.github/workflows/README.md` for
     # how to run the same lint locally before pushing.
+    env:
+      ACTIONLINT_VERSION: 1.7.12
+      # From actionlint_<version>_checksums.txt of the release.
+      ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
-      - name: Download actionlint
-        id: get_actionlint
-        # Pinned to a commit of the download script. The script's first
-        # arg pins the binary version it fetches: both layers are pinned
-        # so a tampered `main` can't substitute a different binary.
-        run: bash <(curl -sSL https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash) 1.7.12
-        shell: bash
+      # The release tarball, checked against its pinned SHA-256 before
+      # anything in it runs (the download script used before ran unverified).
+      - name: Install actionlint
+        run: |
+          curl --proto '=https' --tlsv1.2 -fsSL -o "${RUNNER_TEMP}/actionlint.tar.gz" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          echo "${ACTIONLINT_SHA256}  ${RUNNER_TEMP}/actionlint.tar.gz" | sha256sum -c -
+          mkdir -p "${HOME}/.local/bin"
+          tar -xzf "${RUNNER_TEMP}/actionlint.tar.gz" -C "${HOME}/.local/bin" actionlint
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
 
       - name: Run actionlint
-        env:
-          ACTIONLINT: ${{ steps.get_actionlint.outputs.executable }}
-        run: |
-          "${ACTIONLINT}" -color
-        shell: bash
+        run: actionlint -color
 
   secret-scan:
     name: secret-scan
@@ -339,7 +342,7 @@ jobs:
       - name: Install Docker Compose ${{ env.COMPOSE_VERSION }}
         run: |
           mkdir -p ~/.docker/cli-plugins
-          curl -fsSL -o ~/.docker/cli-plugins/docker-compose \
+          curl --proto '=https' --tlsv1.2 -fsSL -o ~/.docker/cli-plugins/docker-compose \
             "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-x86_64"
           echo "${COMPOSE_SHA256}  $HOME/.docker/cli-plugins/docker-compose" | sha256sum -c -
           chmod +x ~/.docker/cli-plugins/docker-compose
@@ -566,7 +569,7 @@ jobs:
       # own Markdown files. The release binary is pinned by checksum.
       - name: Install lychee
         run: |
-          curl -fsSL -o "${RUNNER_TEMP}/lychee.tar.gz" \
+          curl --proto '=https' --tlsv1.2 -fsSL -o "${RUNNER_TEMP}/lychee.tar.gz" \
             "https://github.com/lycheeverse/lychee/releases/download/${LYCHEE_VERSION}/lychee-x86_64-unknown-linux-gnu.tar.gz"
           echo "${LYCHEE_SHA256}  ${RUNNER_TEMP}/lychee.tar.gz" | sha256sum -c -
           mkdir -p "${HOME}/.local/bin"
@@ -601,7 +604,7 @@ jobs:
       - name: Install hadolint
         run: |
           mkdir -p "${HOME}/.local/bin"
-          curl -fsSL -o "${HOME}/.local/bin/hadolint" \
+          curl --proto '=https' --tlsv1.2 -fsSL -o "${HOME}/.local/bin/hadolint" \
             "https://github.com/hadolint/hadolint/releases/download/${HADOLINT_VERSION}/hadolint-linux-x86_64"
           echo "${HADOLINT_SHA256}  ${HOME}/.local/bin/hadolint" | sha256sum -c -
           chmod +x "${HOME}/.local/bin/hadolint"
@@ -633,7 +636,7 @@ jobs:
           python-version: '3.14'
 
       - name: Install uv
-        run: python3 -m pip install --quiet uv==0.13.6
+        run: python3 -m pip install --quiet --only-binary=':all:' uv==0.13.6
 
       # ruff (pinned in package.json): lint + format check.
       - name: ruff
