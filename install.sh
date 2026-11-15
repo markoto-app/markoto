@@ -527,6 +527,20 @@ next_steps() {
   note "Status:      ./install.sh status"
 }
 
+# Certificates issued before the switch to ECDSA keys stay RSA on every
+# renewal (the stored key is reused): set such a store aside once so Traefik
+# requests ECDSA certificates (deploy/config/traefik/acme-ec-migrate.sh, run
+# inside the Traefik image, which has the volume). HTTPS mode only.
+migrate_acme_keys() {
+  [ -n "$(env_get MARKOTO_DOMAIN)" ] || return 0
+  local script="$ROOT/deploy/config/traefik/acme-ec-migrate.sh" rc=0
+  compose run --rm --no-deps -T --entrypoint sh traefik -s check /letsencrypt/acme.json < "$script" >/dev/null 2>&1 || rc=$?
+  [ "$rc" -eq 10 ] || return 0
+  info "Replacing RSA certificates with ECDSA ones (Let's Encrypt issues them again on start)"
+  compose rm -sf traefik
+  compose run --rm --no-deps -T --entrypoint sh traefik -s rotate /letsencrypt/acme.json < "$script"
+}
+
 cmd_install() {
   check_prereqs
   configure
@@ -553,6 +567,7 @@ cmd_upgrade() {
   note "Database migrations run automatically when the app starts. Back up first:"
   note "docs/SELF-HOSTING.md#backups"
   pull_or_build
+  migrate_acme_keys
   compose up -d
   wait_healthy
   next_steps

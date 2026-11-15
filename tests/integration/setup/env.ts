@@ -12,6 +12,7 @@
 
 import { MCP_RATE_LIMITS } from '../../../server/mcp/lib/mcpGate'
 import { ANON_ABUSE_REPORT_LIMITS, ANON_DOC_CREATE_LIMITS } from '../../../shared/config/anonLimits'
+import { DOC_TOKEN_ADDRESS_LIMIT, DOC_TOKEN_CALLER_LIMIT } from '../../../shared/config/docTokenLimits'
 
 export const TEST_PORT = 3101
 export const TEST_BASE_URL = `http://127.0.0.1:${TEST_PORT}`
@@ -30,10 +31,12 @@ export const TEST_BILLING_OFF_BASE_URL = `http://127.0.0.1:${TEST_BILLING_OFF_PO
 // (`TEST_ENFORCE_RATE_LIMITS`, shared/utils/security/testMode.ts): every MCP limit,
 // so tests/integration/mcp/rateLimits.test.ts can exercise them.
 export const TEST_ENFORCED_MCP_RATE_LIMITS: readonly string[] = Object.values(MCP_RATE_LIMITS).map(rule => rule.namespace)
-// ...and the anonymous-visitor limits (shared/config/anonLimits.ts), driven by
-// endpoints/anonGate.test.ts + abuseReportsAnon.test.ts with a fresh
-// X-Forwarded-For address per test (the bucket key).
-export const TEST_ENFORCED_ANON_RATE_LIMITS: readonly string[] = [...ANON_DOC_CREATE_LIMITS, ...ANON_ABUSE_REPORT_LIMITS].map(rule => rule.namespace)
+// ...and the anonymous-visitor limits (shared/config/anonLimits.ts) plus the
+// document-token limits (shared/config/docTokenLimits.ts), driven by
+// endpoints/anonGate.test.ts, abuseReportsAnon.test.ts and
+// tokenRateLimit.test.ts with a fresh X-Forwarded-For address per test (the
+// bucket key). resetDb flushes Valkey, so no test inherits another's counts.
+export const TEST_ENFORCED_ANON_RATE_LIMITS: readonly string[] = [...ANON_DOC_CREATE_LIMITS, ...ANON_ABUSE_REPORT_LIMITS, DOC_TOKEN_ADDRESS_LIMIT, DOC_TOKEN_CALLER_LIMIT].map(rule => rule.namespace)
 
 // The DB name guard, fixtures.ts and resetDb refuse to run unless the
 // connection string points at exactly this name. Belt and braces so a

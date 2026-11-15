@@ -108,6 +108,7 @@
     - deploy/config/postgres/init
     - deploy/config/renderer
     - deploy/config/edge
+    - deploy/config/traefik
 
 - name: Sync the production stack + its mounted config to the VPS
   ansible.builtin.copy:
@@ -132,6 +133,8 @@
     - deploy/config/renderer/seccomp.json
     # The public 80/443 relay (edge-proxy).
     - deploy/config/edge/haproxy.cfg
+    # One-time switch of the ACME store to ECDSA certificates (run below).
+    - deploy/config/traefik/acme-ec-migrate.sh
 
 # CA copy is best-effort: many OVH plans don't pin a CA, but if you DO drop
 # the .pem at infra/files/ovh-pg-ca.pem we honour it. `failed_when: false`
@@ -229,6 +232,37 @@
   become: true
   become_user: "{{ markoto_user }}"
   changed_when: false
+
+# Certificates issued with RSA keys keep them on every renewal (lego reuses
+# the stored key): a store that still holds one is set aside once, with
+# Traefik stopped, so it requests ECDSA certificates on its next start
+# (deploy/config/traefik/acme-ec-migrate.sh). Exit 10 = non-ECDSA keys found.
+- name: Check the ACME store for non-ECDSA certificates
+  ansible.builtin.command:
+    cmd: sh deploy/config/traefik/acme-ec-migrate.sh check traefik/acme.json
+    chdir: "{{ markoto_root }}"
+  become: true
+  become_user: "{{ markoto_user }}"
+  register: markoto_acme_check
+  changed_when: false
+  failed_when: markoto_acme_check.rc not in [0, 10]
+
+- name: Stop Traefik before its store is set aside
+  ansible.builtin.command:
+    cmd: /usr/local/bin/markoto-compose rm -sf traefik
+  become: true
+  become_user: "{{ markoto_user }}"
+  when: markoto_acme_check.rc == 10
+  changed_when: true
+
+- name: Set the RSA certificate store aside
+  ansible.builtin.command:
+    cmd: sh deploy/config/traefik/acme-ec-migrate.sh rotate traefik/acme.json
+    chdir: "{{ markoto_root }}"
+  become: true
+  become_user: "{{ markoto_user }}"
+  when: markoto_acme_check.rc == 10
+  changed_when: true
 
 - name: Compose up -d (apply current state)
   ansible.builtin.command:

@@ -8,7 +8,8 @@
 #   - TRUNCATEs every APP table (the `public` schema), RESTART IDENTITY CASCADE,
 #     so each run starts from empty + predictable ids. The drizzle migration
 #     ledger lives in the separate `drizzle` schema and is left UNTOUCHED, so
-#     the schema stays intact and boot-time migrations see no diff.
+#     the schema stays intact and boot-time migrations see no diff. It then
+#     counts the rows of every public table and fails if any remain.
 #   - FLUSHes Valkey (rate limits, per-doc sync attribution/diff state, sweep
 #     locks) so leftover state can't leak between runs.
 #
@@ -66,11 +67,17 @@ PU=$(envval POSTGRES_USER)
 PD=$(envval POSTGRES_DB)
 printf 'PGPASSWORD=%s\n' "$(envval POSTGRES_PASSWORD)" > "$SECRETS_ENV"
 
+PG_CONTAINER="${PG_CONTAINER:-markoto-postgres-1}"
+VALKEY_CONTAINER="${VALKEY_CONTAINER:-markoto-valkey-1}"
+
 if [ "${RESET_SCOPE}" = "valkey" ]; then
   echo "[reset-staging-db] RESET_SCOPE=valkey: Postgres left untouched"
 else
-podman exec --env-file "$SECRETS_ENV" markoto-postgres-1 \
-  psql -U "$PU" -d "$PD" -v ON_ERROR_STOP=1 <<'SQL'
+# `-i`: without it `podman exec` gives psql no stdin, psql reads an empty
+# script and exits 0, and nothing is truncated.
+podman exec -i --env-file "$SECRETS_ENV" "$PG_CONTAINER" \
+  psql -U "$PU" -d "$PD" -v ON_ERROR_STOP=1 -q <<'SQL'
+SET client_min_messages = warning;
 DO $$
 DECLARE r RECORD;
 BEGIN
@@ -79,13 +86,41 @@ BEGIN
   END LOOP;
 END $$;
 SQL
-echo "[reset-staging-db] public schema truncated"
+# Verify instead of trusting the exit code: every table of the public schema
+# must be empty now. Prints `<table> <rows>` for each one that is not.
+LEFT=$(podman exec -i --env-file "$SECRETS_ENV" "$PG_CONTAINER" \
+  psql -U "$PU" -d "$PD" -v ON_ERROR_STOP=1 -At -F ' ' <<'SQL'
+SELECT tablename, n
+FROM (
+  SELECT tablename,
+    (xpath('/row/n/text()', query_to_xml(format('SELECT count(*) AS n FROM public.%I', tablename), false, true, '')))[1]::text::bigint AS n
+  FROM pg_tables WHERE schemaname = 'public'
+) t
+WHERE n > 0
+ORDER BY tablename;
+SQL
+)
+if [ -n "$LEFT" ]; then
+  echo "[reset-staging-db] FAILED, rows remain in:" >&2
+  printf '%s\n' "$LEFT" >&2
+  exit 1
+fi
+TABLES=$(podman exec -i --env-file "$SECRETS_ENV" "$PG_CONTAINER" \
+  psql -U "$PU" -d "$PD" -v ON_ERROR_STOP=1 -At <<'SQL'
+SELECT count(*) FROM pg_tables WHERE schemaname = 'public';
+SQL
+)
+if [ "${TABLES:-0}" -eq 0 ]; then
+  echo "[reset-staging-db] FAILED, no tables found in the public schema (wrong database?)" >&2
+  exit 1
+fi
+echo "[reset-staging-db] public schema truncated and verified empty (${TABLES} tables)"
 fi
 
 # Best-effort Valkey flush: don't fail the reset if it's unreachable.
 # valkey-cli reads the password from REDISCLI_AUTH (no -a on the command line).
 printf 'REDISCLI_AUTH=%s\n' "$(envval VALKEY_PASSWORD)" > "$SECRETS_ENV"
-if podman exec --env-file "$SECRETS_ENV" markoto-valkey-1 valkey-cli FLUSHALL >/dev/null 2>&1; then
+if podman exec --env-file "$SECRETS_ENV" "$VALKEY_CONTAINER" valkey-cli FLUSHALL >/dev/null 2>&1; then
   echo "[reset-staging-db] valkey flushed"
 else
   echo "[reset-staging-db] valkey flush skipped (unreachable)"

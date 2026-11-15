@@ -14,7 +14,7 @@ The request limits the app and the sync server enforce, with the file each value
 
 | What | Limit | Source |
 |---|---|---|
-| Document token (`GET /api/docs/:id/token`) | 30 per client per minute | `server/api/docs/[docId]/token.get.ts` |
+| Document token (`GET /api/docs/:id/token`) | 240 per client per minute (every request, unknown ids included), and 60 per minute per signed-in user or, for anonymous callers, per client | `shared/config/docTokenLimits.ts` |
 | Document password check | 5 per client and document per minute; 30 per document per minute; 30 failed attempts per document per hour lock the check | `server/utils/documents/docPasswordLimits.ts` |
 | Anonymous document creation | 10 per client per hour and 30 per day | `shared/config/anonLimits.ts` |
 | Anonymous-gate challenge | 60 per client per minute | `server/api/anon-gate/challenge.get.ts` |
@@ -69,7 +69,7 @@ The request limits the app and the sync server enforce, with the file each value
 | What | Limit | Source |
 |---|---|---|
 | WebSocket connections | 20 per client address in production (200 otherwise); `SYNC_MAX_CONNECTIONS_PER_IP` | `sync-server/src/rate-limiter.ts` |
-| Open documents per process | 5000 (joining a document that is already open is not limited); `SYNC_MAX_ROOMS` | `sync-server/src/rate-limiter.ts` |
+| Open documents per process | 10000 (joining a document that is already open is not limited); `SYNC_MAX_ROOMS` | `sync-server/src/rate-limiter.ts` |
 | New documents under memory pressure | refused above 85 % of the container memory limit; `SYNC_MEMORY_GUARD_PERCENT`, `SYNC_MEMORY_LIMIT_BYTES` | `sync-server/src/room-capacity.ts` |
 | Message / update / document size | 17 MiB / 16 MiB / 16 MiB; `SYNC_MAX_MESSAGE_BYTES`, `SYNC_MAX_UPDATE_BYTES`, `SYNC_MAX_DOCUMENT_BYTES` | `sync-server/src/limits.ts` |
 

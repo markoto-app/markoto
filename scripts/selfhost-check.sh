@@ -602,3 +602,51 @@ for src in deploy/compose/compose.podman.yml $(jq -r --arg root "$root/" '[.serv
   fi
 done
 echo "ok: hosted shape (edge relay, loopback Traefik + PROXY trust, renderer on Podman, Postgres profile, synced files)"
+
+# Edge capacity (docs/contributing/CONTAINER-ENGINES.md, "Edge sizing"):
+#   - every ACME resolver requests ECDSA keys (an RSA-4096 handshake costs
+#     about 40 ms of host CPU), and the deploy paths ship the script that
+#     replaces certificates issued with RSA;
+#   - Traefik and the app route on the liveness endpoint, which leaves sync
+#     out, and sync is checked often enough to be routed seconds after a
+#     restart;
+#   - hosted: the edge relay caps connections and memory, Traefik has a
+#     memory limit sized for that cap.
+out="$(jq -r '
+  .services.traefik.command as $cmd
+  | [ $cmd[] | select(test("certificatesresolvers\\.[^.]+\\.acme\\.email=")) | capture("certificatesresolvers\\.(?<r>[^.]+)\\.") | .r ]
+  | .[] as $r
+  | select([$cmd[] | select(. == "--certificatesresolvers.\($r).acme.keytype=EC256")] | length == 0)
+  | "resolver \($r) does not request EC256 keys"
+' "$tmp/hosted.json" "$tmp/edge-selfhost-tls.json")"
+if [ -n "$out" ]; then echo "FAIL: $out" >&2; exit 1; fi
+for f in .github/workflows/deploy.yml infra/roles/markoto/tasks/main.yml; do
+  if ! grep -q "deploy/config/traefik/acme-ec-migrate.sh" "$f"; then
+    echo "FAIL: $f does not ship/run deploy/config/traefik/acme-ec-migrate.sh" >&2
+    exit 1
+  fi
+done
+if ! grep -q "acme-ec-migrate.sh" install.sh; then
+  echo "FAIL: install.sh upgrade does not replace RSA certificates (acme-ec-migrate.sh)" >&2
+  exit 1
+fi
+for cfg in hosted salt-selfhost; do
+  out="$(jq -r '
+    ( .services.app.labels // {} | to_entries[] | select(.key | test("loadbalancer\\.healthcheck\\.path$")) | select(.value != "/api/health/live") | "\(.key)=\(.value): route on /api/health/live" ),
+    ( .services.app.healthcheck.test // [] | join(" ") | select(test("/api/health(/live)?") and (test("/api/health/live") | not)) | "app container healthcheck must use /api/health/live" ),
+    ( .services.sync.healthcheck.interval // "" | select(. != "" and (rtrimstr("s") | tonumber) > 5) | "sync healthcheck interval \(.) (Traefik routes a restarted sync only after it passes): keep it at 5s or less" )
+  ' "$tmp/$cfg.json")"
+  if [ -n "$out" ]; then printf 'FAIL (%s): %s\n' "$cfg" "$out" >&2; exit 1; fi
+done
+out="$(jq -r '
+  ( select((.services.traefik.mem_limit // 0) == 0) | "traefik has no mem_limit" ),
+  ( select((.services.traefik.environment.GOMEMLIMIT // "") == "") | "traefik has no GOMEMLIMIT" ),
+  ( select((.services["edge-proxy"].mem_limit // 0) == 0) | "edge-proxy has no mem_limit" ),
+  ( select((.services["edge-proxy"].command // [] | index("-m")) == null) | "edge-proxy runs without -m (HAProxy memory cap)" )
+' "$tmp/hosted.json")"
+if [ -n "$out" ]; then echo "FAIL (hosted): $out" >&2; exit 1; fi
+if ! grep -qE '^\s+maxconn [0-9]+$' deploy/config/edge/haproxy.cfg; then
+  echo "FAIL: deploy/config/edge/haproxy.cfg must set a global maxconn" >&2
+  exit 1
+fi
+echo "ok: edge capacity (ECDSA certificates, liveness routing, sync health interval, edge + Traefik limits)"

@@ -599,6 +599,14 @@ does not:
   the header and every request appears to come from one internal address
   (per-IP rate limits and audit IPs collapse). `scripts/selfhost-check.sh`
   pins the two together. The relay handles only TCP; TLS stays in Traefik.
+- **TLS certificates use ECDSA P-256 keys** (`acme.keytype=EC256`, also in
+  the self-host TLS overlay). An RSA-4096 handshake cost about 40 ms of host
+  CPU, so about 100 new connections per second saturated the host: a cheap
+  way to exhaust it. Session resumption is on (Traefik's default).
+- **The edge refuses instead of dying.** HAProxy admits at most `maxconn`
+  connections and caps its own memory (`-m`); Traefik's memory limit is
+  sized for that number (`docs/contributing/CONTAINER-ENGINES.md`, "Edge
+  sizing"). Past the cap, clients wait in the listen queue.
 
 Verify on a host:
 

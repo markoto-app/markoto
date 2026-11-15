@@ -26,7 +26,8 @@ const log = useLogger('inactive-doc-sweep')
 // `last_active` is bumped by:
 //   - `meta.put` (title / word-count updates)
 //   - the internal activity logger on `action: edit`, fired per
-//     sync-debounce window (~2–10s of typing).
+//     sync-debounce window (~2–10s of typing), at most once a minute per
+//     document (`recordActivity`, server/repos/activity.ts).
 //
 // Set the TTL to 0 to disable sweeping entirely.
 //

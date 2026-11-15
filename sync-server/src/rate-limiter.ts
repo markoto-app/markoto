@@ -6,7 +6,7 @@
 //     when either the document connection or the raw socket goes away.
 //     Default: 20.
 //   - `maxActiveRooms`: global ceiling on distinct loaded documents
-//     (SYNC_MAX_ROOMS, default 5000). Protects against memory blowup when
+//     (SYNC_MAX_ROOMS, default 10000). Protects against memory blowup when
 //     a crawler walks through random doc IDs and each one spawns a Y.Doc
 //     in RAM. Joining a document that is already loaded (or loading)
 //     costs no new Y.Doc, so it is not refused at the cap; the per-IP cap

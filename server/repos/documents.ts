@@ -302,20 +302,6 @@ export async function clearDocPassword(doc: DocAccess<'manage'>): Promise<void> 
 }
 
 /**
- * Bump the lastActive timestamp. Called from the internal activity
- * logger on every `edit` event, separated from updateDocMeta because
- * it's hot-path and doesn't need the returning() check.
- */
-export async function bumpLastActive(doc: DocAccess<'write'>): Promise<void> {
-  const docId = doc.docId
-  const db = useDatabase()
-  await db
-    .update(documents)
-    .set({ lastActive: new Date() })
-    .where(eq(documents.docId, docId))
-}
-
-/**
  * Delete just the documents row. The full cascade (S3 + activity +
  * uploads + sync notify) lives in documentLifecycle.deleteDocument.
  */

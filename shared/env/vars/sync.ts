@@ -101,8 +101,8 @@ export const sync = defineNamespace({
     maxRooms: v({
       name: 'SYNC_MAX_ROOMS',
       type: positiveInt,
-      default: 5000,
-      doc: 'Documents one sync server keeps open at once; a new document beyond it is refused as busy (joining an open one never is). Size it from the container memory: about 65 KiB per open document of typical size plus its text, and leave half the limit free.',
+      default: 10000,
+      doc: 'Documents one sync server keeps open at once; a new document beyond it is refused as busy (joining an open one never is). Size it from the container memory: about 80 MiB plus 60 KiB per open document of typical size (one tab on it; add its text for larger ones), at most about 80 % of the memory guard line. 10000 fits the default 1 GiB; give 2 GiB for 20000.',
       services: ['sync'],
       scope: 'both'
     }),

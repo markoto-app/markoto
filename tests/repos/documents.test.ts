@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { resetDb, testDb } from '../integration/setup/db'
+import { resetDb } from '../integration/setup/db'
 import {
   getDoc,
   docExists,
@@ -7,7 +7,6 @@ import {
   updateDocMeta,
   setDocPassword,
   clearDocPassword,
-  bumpLastActive,
   deleteDocRow,
   listOwnedByUser,
   listAllDocIds,
@@ -217,25 +216,6 @@ describe('setDocPassword / clearDocPassword', () => {
     const after = (await getDoc(docAs(doc.docId)))!
     expect(after.accessMode).toBe('open-edit')
     expect(after.passwordHash).toBeNull()
-  })
-})
-
-describe('bumpLastActive', () => {
-  beforeEach(async () => {
-    await resetDb()
-  })
-
-  it('moves lastActive forward without touching other fields', async () => {
-    const user = await createUser()
-    const doc = await seedDoc({ ownerId: user.id, accessMode: 'private' })
-    const db = testDb()
-    await db.query(`UPDATE documents SET last_active = now() - interval '1 day' WHERE doc_id = $1`, [doc.docId])
-    const before = (await getDoc(docAs(doc.docId)))!
-    await bumpLastActive(docAs(doc.docId))
-    const after = (await getDoc(docAs(doc.docId)))!
-    expect(after.lastActive.getTime()).toBeGreaterThan(before.lastActive.getTime())
-    expect(after.accessMode).toBe('private')
-    expect(after.title).toBe('Test Doc')
   })
 })
 

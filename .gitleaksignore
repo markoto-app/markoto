@@ -8,3 +8,5 @@
 8e02e8a9b91002af98f19327ea7ca6386571a953:tests/unit/duplicateDocument.test.ts:generic-api-key:119
 ea76da72c87fc1e2c03a9e7f83f375d898e771eb:scripts/selfhost-check.sh:generic-api-key:159
 ea76da72c87fc1e2c03a9e7f83f375d898e771eb:scripts/selfhost-check.sh:generic-api-key:41
+# acme-ec-migrate.sh: EC_PREFIX is the base64 of the PEM header line "-----BEGIN EC PRIVATE KEY-----" (used to tell ECDSA from RSA keys in acme.json), no key material.
+80eeed4e5e28fbbfdb386fd42616fc4ced21f0f8:deploy/config/traefik/acme-ec-migrate.sh:private-key:24

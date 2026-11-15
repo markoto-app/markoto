@@ -14,6 +14,7 @@ export interface PublicRoute {
 
 export const PUBLIC_ROUTES: readonly PublicRoute[] = [
   { path: /^\/api\/health$/, methods: ['GET'] },
+  { path: /^\/api\/health\/live$/, methods: ['GET'] }, // Routing liveness for Traefik and the container healthcheck (Postgres + Valkey status only)
   { path: /^\/api\/status$/, methods: ['GET'] }, // Public per-component status board for an external status page
   { path: /^\/api\/version$/, methods: ['GET'] }, // SPA version-skew polling, anonymous sessions poll it too
   // nuxt-auth-utils session endpoint. GET returns the (possibly empty)

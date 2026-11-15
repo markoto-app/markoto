@@ -272,6 +272,32 @@ export async function getCachedProbeResults(urls: HealthProbeUrls): Promise<AllP
   return (await getCacheEntry(urls)).results
 }
 
+// Routing liveness (`/api/health/live`): this process and its own
+// connections, Postgres and Valkey. Nothing behind another container that
+// every app instance shares (sync, renderer, markitdown, LiteLLM): their
+// outage is the same for every instance, so taking an instance out of
+// routing for it only turns every page and API call into Traefik's 503.
+// A sync restart used to do exactly that for 10 to 20 s. Same TTLs as above.
+
+export interface CachedLiveness {
+  status: number
+  body: { status: 'ok' } | { status: 'degraded', checks: { postgres: ProbeStatus, valkey: ProbeStatus } }
+}
+
+let liveCache: { expiresAt: number, value: CachedLiveness } | null = null
+
+export async function getCachedLiveness(): Promise<CachedLiveness> {
+  if (liveCache && Date.now() < liveCache.expiresAt) return liveCache.value
+  const [postgres, valkey] = await Promise.all([probePostgres(), probeValkey()])
+  const healthy = postgres.status !== 'down' && valkey.status !== 'down'
+  const value: CachedLiveness = healthy
+    ? { status: 200, body: { status: 'ok' } }
+    : { status: 503, body: { status: 'degraded', checks: { postgres: postgres.status, valkey: valkey.status } } }
+  liveCache = { expiresAt: Date.now() + (healthy ? HEALTHY_TTL_MS : DEGRADED_TTL_MS), value }
+  return value
+}
+
 export function _resetHealthCache(): void {
   cache = null
+  liveCache = null
 }

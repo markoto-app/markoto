@@ -25,15 +25,20 @@ export function useDocTextStats(opts: {
   watch(opts.synced, (isSynced) => {
     if (isSynced) updateContent()
   })
+  // What this tab last stored: a pause after edits that leave both counts
+  // as they were (a fix-up, an undo, a remote edit) sends nothing. Under load
+  // every owner tab's PUT after each typing pause is a write the server pays.
+  let persisted: { wordCount: number, sizeBytes: number } | null = null
   const persistStats = useDebounceFn(() => {
     if (!opts.isOwner.value || opts.requiresPassword.value || !textContent.value) return
+    const stats = { wordCount: wordCount.value, sizeBytes: new Blob([textContent.value]).size }
+    if (persisted && persisted.wordCount === stats.wordCount && persisted.sizeBytes === stats.sizeBytes) return
     apiFetch('/api/docs/:docId/meta', {
       method: 'put',
       path: { docId: opts.docId },
-      body: {
-        wordCount: wordCount.value,
-        sizeBytes: new Blob([textContent.value]).size
-      }
+      body: stats
+    }).then(() => {
+      persisted = stats
     }).catch(() => {})
   }, 10000)
 

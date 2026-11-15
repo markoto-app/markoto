@@ -360,6 +360,7 @@ jobs:
             deploy/config/litellm/custom_handlers.py \
             deploy/config/postgres/db-init.sh \
             deploy/config/edge/haproxy.cfg \
+            deploy/config/traefik/acme-ec-migrate.sh \
             deploy/config/renderer/seccomp.json \
             | ssh "${DEPLOY_USER}@${DEPLOY_HOST}" 'tar xzf - -C /opt/markoto'
           # Traefik's certificate store. Compose would create a missing
@@ -406,6 +407,19 @@ jobs:
           export LITELLM_CONFIG_HASH
           # Registry credentials: the "Registry login on the host" step.
           markoto-compose pull
+          # Certificates issued with RSA keys keep them on every renewal:
+          # set such a store aside once so Traefik issues ECDSA ones
+          # (deploy/config/traefik/acme-ec-migrate.sh). Traefik must be
+          # stopped while the store changes; `up -d` starts it again.
+          acme_rc=0
+          sh deploy/config/traefik/acme-ec-migrate.sh check traefik/acme.json || acme_rc=$?
+          if [ "$acme_rc" -eq 10 ]; then
+            markoto-compose rm -sf traefik
+            sh deploy/config/traefik/acme-ec-migrate.sh rotate traefik/acme.json
+          elif [ "$acme_rc" -ne 0 ]; then
+            echo "acme-ec-migrate.sh check failed ($acme_rc)" >&2
+            exit 1
+          fi
           markoto-compose up -d --remove-orphans
 
           # Health-check loop: 60 attempts × 5 s = 300 s. Sized for a COLD
