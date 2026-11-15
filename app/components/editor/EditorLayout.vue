@@ -306,10 +306,11 @@ useHead({
       <EditorLayoutViewModeToggle v-model="viewMode" />
 
       <!-- Lock shortcut, identity, mobile menu and the right-sidebar toggles.
-           `flex-1 justify-end` mirrors the left group so the view-mode group
-           stays centered. The sidebar toggles (Activity, Theme) sit at the
-           edge after a separator, aligned with the column they open. -->
-      <div class="flex-1 min-w-0 flex items-center gap-2 justify-end">
+           From `sm` up, `flex-1 justify-end` mirrors the left group so the
+           view-mode group stays centered. On a phone there is no view-mode
+           group to center and only two icons here: they take their own
+           width and the title gets the rest. -->
+      <div class="shrink-0 sm:shrink sm:flex-1 min-w-0 flex items-center gap-2 justify-end">
         <!-- Also under Sharing → Access; kept here because the open/closed lock doubles as an access indicator. -->
         <EditorLayoutAccessButton
           :access-mode="accessMode"

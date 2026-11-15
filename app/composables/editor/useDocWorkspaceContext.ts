@@ -14,13 +14,7 @@ export function useDocWorkspaceContext(
 ) {
   const hasKnowledgeAccess = computed(() => Boolean(workspaceId.value) && role.value !== null)
 
-  const aiWorkspaceContext = useAiWorkspaceContext()
-  watch(() => (role.value !== null ? workspaceId.value : null), (ws) => {
-    aiWorkspaceContext.value = ws ?? null
-  }, { immediate: true })
-  onUnmounted(() => {
-    aiWorkspaceContext.value = null
-  })
+  useClaimAiWorkspaceContext(() => (role.value !== null ? workspaceId.value : null))
   // Close the knowledge panel if the doc moves to a workspace the user isn't in
   // (or out of one), so no empty column is left.
   watch(hasKnowledgeAccess, (allowed) => {

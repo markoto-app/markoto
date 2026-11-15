@@ -128,6 +128,7 @@ function fmtDate(iso: string | null): string {
       <div class="flex items-center gap-3 mb-4">
         <UButton
           color="neutral"
+          variant="outline"
           :loading="requestingExport"
           :disabled="hasActiveExport || deletionPending"
           icon="i-lucide-package"

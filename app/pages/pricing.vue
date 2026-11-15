@@ -543,6 +543,7 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
                       v-if="loggedIn"
                       v-model="paidTermsAccepted"
                       kind="plan"
+                      size="xs"
                       class="mb-3"
                       :testid="`pricing-paid-terms-${plan}`"
                     />

@@ -11,6 +11,29 @@ export function useAiWorkspaceContext() {
   return useState<string | null>('ai-workspace-context', () => null)
 }
 
+let nextClaim = 0
+
+/**
+ * Sets the AI workspace context from `source` while the calling component
+ * is mounted (the editor of a workspace document, a workspace page), and
+ * clears it on unmount. On navigation the next page mounts before the old
+ * one unmounts, so only the latest claim may clear it.
+ */
+export function useClaimAiWorkspaceContext(source: () => string | null) {
+  const context = useAiWorkspaceContext()
+  const owner = useState<number | null>('ai-workspace-context-owner', () => null)
+  const claim = ++nextClaim
+  watch(source, (ws) => {
+    owner.value = claim
+    context.value = ws ?? null
+  }, { immediate: true })
+  onUnmounted(() => {
+    if (owner.value !== claim) return
+    owner.value = null
+    context.value = null
+  })
+}
+
 /**
  * Which AI capabilities the signed-in user can use right now (their own
  * BYOK key → the instance default → none), from `GET /api/ai/availability`
