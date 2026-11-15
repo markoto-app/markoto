@@ -16,22 +16,22 @@
     },
     {
       "kind": "narration",
-      "text": "markoto syncs every keystroke live — open the same link on a second device or send it to a collaborator and their edits arrive on your screen the moment they hit a key. The avatars at the top show who else is in the doc; the coloured ring on a passage shows where their cursor is.",
+      "text": "markoto syncs every keystroke live, open the same link on a second device or send it to a collaborator and their edits arrive on your screen the moment they hit a key. The avatars at the top show who else is in the doc; the coloured ring on a passage shows where their cursor is.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/YQ6qvxMbaH"
+      "path": "/d/cawz89y5S4"
     },
     {
       "kind": "chapter",
       "level": 3,
-      "text": "You're the only one in the doc — for now"
+      "text": "You're the only one in the doc, for now"
     },
     {
       "kind": "narration",
-      "text": "You see one avatar in the topbar — yours. Type freely; the cursor is yours; the doc is yours.",
+      "text": "You see one avatar in the topbar, yours. Type freely; the cursor is yours; the doc is yours.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/YQ6qvxMbaH"
+      "path": "/d/cawz89y5S4"
     },
     {
       "kind": "outcome",
@@ -41,7 +41,7 @@
         "x": 14,
         "y": 307
       },
-      "path": "/d/YQ6qvxMbaH"
+      "path": "/d/cawz89y5S4"
     },
     {
       "kind": "chapter",
@@ -50,36 +50,36 @@
     },
     {
       "kind": "narration",
-      "text": "You send Sam the URL. Sam logs in on their own browser, opens the link, and lands in the same doc — separate identity, separate session, same content.",
+      "text": "You send Sam the URL. Sam logs in on their own browser, opens the link, and lands in the same doc, separate identity, separate session, same content.",
       "file": "02.webp",
       "cursor": {
         "x": 195,
         "y": 306
       },
-      "path": "/d/YQ6qvxMbaH"
+      "path": "/d/cawz89y5S4"
     },
     {
       "kind": "outcome",
       "file": "03.webp",
-      "caption": "Sam lands in the doc. Both avatars show in the topbar — Sam at the front (themselves), Maya right next to them.",
+      "caption": "Sam lands in the doc. Both avatars show in the topbar, Sam at the front (themselves), Maya right next to them.",
       "cursor": null,
-      "path": "/d/YQ6qvxMbaH",
+      "path": "/d/cawz89y5S4",
       "actor": "sam"
     },
     {
       "kind": "chapter",
       "level": 3,
-      "text": "Sam types — you see it land in real time"
+      "text": "Sam types: you see it land in real time"
     },
     {
       "kind": "narration",
-      "text": "Sam adds a paragraph. On your screen the characters appear at Sam's cursor a fraction of a second after Sam types them. There is no \"save\" button — every keystroke is already saved, and everyone in the doc sees the same text.",
+      "text": "Sam adds a paragraph. On your screen the characters appear at Sam's cursor a fraction of a second after Sam types them. There is no \"save\" button, every keystroke is already saved, and everyone in the doc sees the same text.",
       "file": "04.webp",
       "cursor": {
         "x": 195,
         "y": 306
       },
-      "path": "/d/YQ6qvxMbaH"
+      "path": "/d/cawz89y5S4"
     },
     {
       "kind": "outcome",
@@ -89,7 +89,7 @@
         "x": 14,
         "y": 307
       },
-      "path": "/d/YQ6qvxMbaH",
+      "path": "/d/cawz89y5S4",
       "actor": "sam"
     },
     {
@@ -100,7 +100,7 @@
         "x": 14,
         "y": 307
       },
-      "path": "/d/YQ6qvxMbaH",
+      "path": "/d/cawz89y5S4",
       "highlights": [
         {
           "label": "Sam's edit landed live",
@@ -119,47 +119,47 @@
     },
     {
       "kind": "narration",
-      "text": "Sam highlights the line you wrote and leaves a thought. The comment thread appears in your sidebar within a second; the anchored passage gets a yellow underline. You can reply inline — same thread, no email loop, no Slack tab-switch.",
-      "file": "07.webp",
+      "text": "Sam highlights the line you wrote and leaves a thought. The comment thread appears in your sidebar within a second; the anchored passage gets a yellow underline. You can reply inline: same thread, no email loop, no Slack tab-switch.",
+      "file": "06.webp",
       "cursor": {
         "x": 195,
         "y": 306
       },
-      "path": "/d/YQ6qvxMbaH"
+      "path": "/d/cawz89y5S4"
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
+      "file": "07.webp",
       "caption": "Sam posts the comment. The thread sits in their sidebar.",
       "cursor": {
-        "x": 129,
-        "y": 450
+        "x": 78,
+        "y": 368
       },
-      "path": "/d/YQ6qvxMbaH",
+      "path": "/d/cawz89y5S4",
       "actor": "sam"
     },
     {
       "kind": "outcome",
-      "file": "09.webp",
+      "file": "08.webp",
       "caption": "On YOUR screen: Sam's comment lands in your sidebar, anchored to the line you wrote. Reply inline; the conversation lives with the doc.",
       "cursor": {
         "x": 227,
         "y": 695
       },
-      "path": "/d/YQ6qvxMbaH",
+      "path": "/d/cawz89y5S4",
       "highlights": [
         {
           "label": "Sam's comment",
           "x": 8,
-          "y": 377.07373046875,
+          "y": 379.8543701171875,
           "w": 374,
-          "h": 211.75
+          "h": 241.75
         }
       ]
     }
   ],
   "next": {
     "slug": "have-a-discussion",
-    "why": "Want the full comments tour? Reply, resolve, archive — same surface, deeper"
+    "why": "Want the full comments tour? Reply, resolve, archive, same surface, deeper"
   }
 }

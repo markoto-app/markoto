@@ -92,7 +92,7 @@
       "caption": "Hover \"Demo\"",
       "cursor": {
         "x": 470,
-        "y": 489
+        "y": 473
       },
       "path": "/"
     },
@@ -102,7 +102,7 @@
       "caption": "Hover \"Blank\"",
       "cursor": {
         "x": 640,
-        "y": 489
+        "y": 473
       },
       "path": "/"
     },
@@ -173,7 +173,7 @@
     },
     {
       "kind": "narration",
-      "text": "The Report template brings a cover page, a table of contents, an executive summary, a key-figures table, results, an outlook and an appendix — in the Corporate report design. Pick it and the editor opens with the skeleton in place.",
+      "text": "The Report template brings a cover page, a table of contents, an executive summary, a key-figures table, results, an outlook and an appendix: in the Corporate report design. Pick it and the editor opens with the skeleton in place.",
       "file": "12.webp",
       "cursor": {
         "x": 609,
@@ -194,7 +194,7 @@
     {
       "kind": "outcome",
       "file": "14.webp",
-      "caption": "\"Report\" is selected — the card lights up and the Template row names it.",
+      "caption": "\"Report\" is selected, the card lights up and the Template row names it.",
       "cursor": {
         "x": 470,
         "y": 417
@@ -207,7 +207,7 @@
       "caption": "Give the report a title",
       "cursor": {
         "x": 390,
-        "y": 177
+        "y": 153
       },
       "path": "/"
     },
@@ -217,7 +217,7 @@
       "caption": "The title is set.",
       "cursor": {
         "x": 390,
-        "y": 177
+        "y": 153
       },
       "path": "/"
     },
@@ -239,7 +239,7 @@
         "x": 839,
         "y": 736
       },
-      "path": "/d/dxGX0w2UO2",
+      "path": "/d/oPPlT84FJi",
       "highlights": [
         {
           "label": "Ready-made structure",
@@ -254,6 +254,6 @@
   ],
   "next": {
     "slug": "pick-a-theme",
-    "why": "Change the design later — every template's look is a theme you can switch"
+    "why": "Change the design later, every template's look is a theme you can switch"
   }
 }

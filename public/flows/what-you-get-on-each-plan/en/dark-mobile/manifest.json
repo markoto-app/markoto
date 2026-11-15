@@ -12,11 +12,11 @@
     {
       "kind": "chapter",
       "level": 3,
-      "text": "Four ways to use markoto"
+      "text": "Four plans, side by side"
     },
     {
       "kind": "narration",
-      "text": "You can run markoto on your own server, write without an account, or sign in for a free account. Every account is on Free today. Pro, Team and Business show their planned prices and limits; nothing can be bought yet.",
+      "text": "Signed in, the pricing page shows one card per plan: Free, Pro, Team and Business. Every account is on Free today. Pro, Team and Business show their planned prices and limits; nothing can be bought yet.",
       "file": "01.webp",
       "cursor": null,
       "path": "/pricing"
@@ -32,7 +32,7 @@
           "label": "your plan",
           "kind": "box",
           "x": 16,
-          "y": 1030,
+          "y": 293,
           "w": 358,
           "h": 426.5
         },
@@ -40,40 +40,40 @@
           "label": "coming soon",
           "kind": "box",
           "x": 16,
-          "y": 1472.5,
+          "y": 743.5,
           "w": 358,
-          "h": 562.5
+          "h": 390.5
         }
       ],
       "hero": true
     },
     {
       "kind": "approach",
-      "file": "03.webp",
-      "caption": "Click the \"Team\" tab",
+      "file": "02.webp",
+      "caption": "Click \"Annual\"",
       "cursor": {
-        "x": 194,
-        "y": 359
+        "x": 181,
+        "y": 251
+      },
+      "path": "/pricing"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "Pro, Team and Business all switch to their annual price. Team and Business are priced per seat.",
+      "cursor": {
+        "x": 181,
+        "y": 251
       },
       "path": "/pricing"
     },
     {
       "kind": "outcome",
       "file": "04.webp",
-      "caption": "Team shows its planned price per seat and the limits each seat adds to the workspace.",
-      "cursor": {
-        "x": 194,
-        "y": 359
-      },
-      "path": "/pricing"
-    },
-    {
-      "kind": "outcome",
-      "file": "05.webp",
       "caption": "Below the cards, a table compares every limit side by side.",
       "cursor": {
-        "x": 297,
-        "y": 359
+        "x": 181,
+        "y": 251
       },
       "path": "/pricing",
       "highlights": [
@@ -94,16 +94,16 @@
     {
       "kind": "narration",
       "text": "Want to know when Pro, Team and Business launch? Leave your email on the waitlist. markoto sends one email when they do, and every email has an unsubscribe link.",
-      "file": "06.webp",
+      "file": "05.webp",
       "cursor": {
-        "x": 297,
-        "y": 359
+        "x": 181,
+        "y": 251
       },
       "path": "/pricing"
     },
     {
       "kind": "approach",
-      "file": "07.webp",
+      "file": "06.webp",
       "caption": "Type your email address",
       "cursor": {
         "x": 47,
@@ -113,7 +113,7 @@
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
+      "file": "07.webp",
       "caption": "Your address is filled in.",
       "cursor": {
         "x": 47,
@@ -123,7 +123,7 @@
     },
     {
       "kind": "approach",
-      "file": "08.webp",
+      "file": "07.webp",
       "caption": "Tick the consent box",
       "cursor": {
         "x": 41,
@@ -133,7 +133,7 @@
     },
     {
       "kind": "outcome",
-      "file": "09.webp",
+      "file": "08.webp",
       "caption": "With consent given, the button becomes active.",
       "cursor": {
         "x": 41,
@@ -143,7 +143,7 @@
     },
     {
       "kind": "approach",
-      "file": "09.webp",
+      "file": "08.webp",
       "caption": "Click \"Join the waitlist\"",
       "cursor": {
         "x": 93,
@@ -153,7 +153,7 @@
     },
     {
       "kind": "outcome",
-      "file": "10.webp",
+      "file": "09.webp",
       "caption": "Check your inbox: the sign-up only counts once you click the confirmation link in the email.",
       "cursor": {
         "x": 93,
