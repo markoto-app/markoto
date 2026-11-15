@@ -16,10 +16,10 @@
     },
     {
       "kind": "narration",
-      "text": "Workspaces have a Knowledge tab — drop in PDFs, Word docs, HTML exports, the team's RFCs, customer FAQs. markoto reads each file and indexes it, so the AI can look things up in it whenever you write inside the workspace — and answer from your files instead of from general knowledge.",
+      "text": "Workspaces have a Knowledge tab, drop in PDFs, Word docs, HTML exports, the team's RFCs, customer FAQs. markoto reads each file and indexes it, so the AI can look things up in it whenever you write inside the workspace, and answer from your files instead of from general knowledge.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/gfdGgxZXNx"
+      "path": "/d/6tmvJEI0Ix"
     },
     {
       "kind": "chapter",
@@ -34,17 +34,17 @@
         "x": 362,
         "y": 695
       },
-      "path": "/d/gfdGgxZXNx"
+      "path": "/d/6tmvJEI0Ix"
     },
     {
       "kind": "outcome",
       "file": "02.webp",
-      "caption": "The Knowledge drawer slides up — empty until you upload your first file.",
+      "caption": "The Knowledge drawer slides up, empty until you upload your first file.",
       "cursor": {
         "x": 362,
         "y": 695
       },
-      "path": "/d/gfdGgxZXNx"
+      "path": "/d/6tmvJEI0Ix"
     },
     {
       "kind": "outcome",
@@ -54,7 +54,7 @@
         "x": 362,
         "y": 695
       },
-      "path": "/d/gfdGgxZXNx"
+      "path": "/d/6tmvJEI0Ix"
     },
     {
       "kind": "chapter",
@@ -69,17 +69,17 @@
         "x": 362,
         "y": 695
       },
-      "path": "/d/gfdGgxZXNx"
+      "path": "/d/6tmvJEI0Ix"
     },
     {
       "kind": "outcome",
       "file": "05.webp",
-      "caption": "The file is Ready — the AI can now look things up in it.",
+      "caption": "The file is Ready, the AI can now look things up in it.",
       "cursor": {
         "x": 362,
         "y": 695
       },
-      "path": "/d/gfdGgxZXNx"
+      "path": "/d/6tmvJEI0Ix"
     },
     {
       "kind": "chapter",
@@ -94,7 +94,7 @@
         "x": 362,
         "y": 695
       },
-      "path": "/d/gfdGgxZXNx"
+      "path": "/d/6tmvJEI0Ix"
     },
     {
       "kind": "outcome",
@@ -104,7 +104,7 @@
         "x": 362,
         "y": 695
       },
-      "path": "/d/gfdGgxZXNx"
+      "path": "/d/6tmvJEI0Ix"
     },
     {
       "kind": "chapter",
@@ -119,7 +119,7 @@
         "x": 362,
         "y": 695
       },
-      "path": "/d/gfdGgxZXNx"
+      "path": "/d/6tmvJEI0Ix"
     },
     {
       "kind": "approach",
@@ -129,17 +129,17 @@
         "x": 173,
         "y": 602
       },
-      "path": "/d/gfdGgxZXNx"
+      "path": "/d/6tmvJEI0Ix"
     },
     {
       "kind": "outcome",
       "file": "07.webp",
-      "caption": "The prompt bar lifts and glows — ready for your question.",
+      "caption": "The prompt bar lifts and glows, ready for your question.",
       "cursor": {
         "x": 173,
         "y": 602
       },
-      "path": "/d/gfdGgxZXNx"
+      "path": "/d/6tmvJEI0Ix"
     },
     {
       "kind": "approach",
@@ -149,7 +149,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/gfdGgxZXNx"
+      "path": "/d/6tmvJEI0Ix"
     },
     {
       "kind": "outcome",
@@ -159,7 +159,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/gfdGgxZXNx"
+      "path": "/d/6tmvJEI0Ix"
     },
     {
       "kind": "approach",
@@ -169,27 +169,27 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/gfdGgxZXNx"
+      "path": "/d/6tmvJEI0Ix"
     },
     {
       "kind": "outcome",
       "file": "09.webp",
-      "caption": "The AI is working — it searches the workspace files, then writes the paragraph.",
+      "caption": "The AI is working, it searches the workspace files, then writes the paragraph.",
       "cursor": {
         "x": 350,
         "y": 602
       },
-      "path": "/d/gfdGgxZXNx"
+      "path": "/d/6tmvJEI0Ix"
     },
     {
       "kind": "outcome",
       "file": "10.webp",
-      "caption": "The AI quoted the postmortem — the avatar bug caught at 5%, and the plan to cut the 24-hour rollout interval to 12 hours. None of this is generic AI knowledge — it came straight from the file.",
+      "caption": "The AI quoted the postmortem, the avatar bug caught at 5%, and the plan to cut the 24-hour rollout interval to 12 hours. None of this is generic AI knowledge, it came straight from the file.",
       "cursor": {
         "x": 350,
         "y": 602
       },
-      "path": "/d/gfdGgxZXNx",
+      "path": "/d/6tmvJEI0Ix",
       "highlights": [
         {
           "label": "AI's grounded answer",

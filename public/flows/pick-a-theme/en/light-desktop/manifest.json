@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/B5AQVrhdzS"
+      "path": "/d/9S7RGOoLSH"
     },
     {
       "kind": "chapter",
@@ -37,7 +37,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/B5AQVrhdzS"
+      "path": "/d/9S7RGOoLSH"
     },
     {
       "kind": "approach",
@@ -47,7 +47,7 @@
         "x": 1260,
         "y": 98
       },
-      "path": "/d/B5AQVrhdzS",
+      "path": "/d/9S7RGOoLSH",
       "annotations": [
         {
           "label": "theme tab",
@@ -67,7 +67,7 @@
         "x": 1260,
         "y": 98
       },
-      "path": "/d/B5AQVrhdzS",
+      "path": "/d/9S7RGOoLSH",
       "highlights": [
         {
           "label": "Built-in presets",
@@ -86,32 +86,32 @@
     {
       "kind": "narration",
       "text": "Each preset is a complete theme. Click a card to apply it; the preview updates right away, and your text stays exactly as it is.",
-      "file": "04.webp",
+      "file": "03.webp",
       "cursor": {
         "x": 1260,
         "y": 98
       },
-      "path": "/d/B5AQVrhdzS"
+      "path": "/d/9S7RGOoLSH"
     },
     {
       "kind": "approach",
-      "file": "05.webp",
+      "file": "04.webp",
       "caption": "Click \"arXiv preprint\" for the look of a LaTeX paper",
       "cursor": {
         "x": 1044,
         "y": 595
       },
-      "path": "/d/B5AQVrhdzS"
+      "path": "/d/9S7RGOoLSH"
     },
     {
       "kind": "outcome",
-      "file": "06.webp",
+      "file": "05.webp",
       "caption": "The text switches to Times, justified, with numbered sections. arXiv preprint sets the title and the date in a title block at the top of page 1.",
       "cursor": {
         "x": 1044,
         "y": 595
       },
-      "path": "/d/B5AQVrhdzS"
+      "path": "/d/9S7RGOoLSH"
     },
     {
       "kind": "chapter",
@@ -121,39 +121,39 @@
     {
       "kind": "narration",
       "text": "Nothing is final: click another preset any time. Back to markoto for the rest of this tour.",
-      "file": "07.webp",
+      "file": "06.webp",
       "cursor": {
         "x": 1044,
         "y": 595
       },
-      "path": "/d/B5AQVrhdzS"
+      "path": "/d/9S7RGOoLSH"
     },
     {
       "kind": "approach",
-      "file": "08.webp",
+      "file": "07.webp",
       "caption": "Click \"markoto\" to return to the default",
       "cursor": {
         "x": 1044,
         "y": 348
       },
-      "path": "/d/B5AQVrhdzS"
+      "path": "/d/9S7RGOoLSH"
     },
     {
       "kind": "outcome",
-      "file": "09.webp",
+      "file": "08.webp",
       "caption": "Back to warm paper and Fraunces headings, with an asterism (⁂) between sections.",
       "cursor": {
         "x": 1044,
         "y": 348
       },
-      "path": "/d/B5AQVrhdzS",
+      "path": "/d/9S7RGOoLSH",
       "highlights": [
         {
           "label": "Asterism scene break",
           "x": 480.5,
-          "y": 115,
+          "y": 155,
           "w": 479.5,
-          "h": 656.25
+          "h": 616.25
         }
       ]
     },
@@ -165,79 +165,79 @@
     {
       "kind": "narration",
       "text": "The markoto preset comes with a cover page: a title sheet with the logo, the document title and the date, and no header or page number. The Cover page section switches it off and on.",
-      "file": "10.webp",
+      "file": "09.webp",
       "cursor": {
         "x": 1044,
         "y": 348
       },
-      "path": "/d/B5AQVrhdzS"
+      "path": "/d/9S7RGOoLSH"
     },
     {
       "kind": "approach",
-      "file": "11.webp",
+      "file": "10.webp",
       "caption": "Click \"Cover page\" to expand the section",
       "cursor": {
         "x": 1120,
         "y": 438
       },
-      "path": "/d/B5AQVrhdzS"
+      "path": "/d/9S7RGOoLSH"
     },
     {
       "kind": "outcome",
-      "file": "12.webp",
+      "file": "11.webp",
       "caption": "The cover page settings: the on/off switch, layout, and which fields to show.",
       "cursor": {
         "x": 1120,
         "y": 438
       },
-      "path": "/d/B5AQVrhdzS"
+      "path": "/d/9S7RGOoLSH"
     },
     {
       "kind": "approach",
-      "file": "13.webp",
+      "file": "12.webp",
       "caption": "Switch the cover page off",
       "cursor": {
         "x": 991,
         "y": 504
       },
-      "path": "/d/B5AQVrhdzS"
+      "path": "/d/9S7RGOoLSH"
     },
     {
       "kind": "outcome",
-      "file": "14.webp",
+      "file": "13.webp",
       "caption": "Without a cover, page 1 starts with the report itself.",
       "cursor": {
         "x": 991,
         "y": 504
       },
-      "path": "/d/B5AQVrhdzS"
+      "path": "/d/9S7RGOoLSH"
     },
     {
       "kind": "approach",
-      "file": "14.webp",
+      "file": "13.webp",
       "caption": "Switch it back on",
       "cursor": {
         "x": 991,
         "y": 504
       },
-      "path": "/d/B5AQVrhdzS"
+      "path": "/d/9S7RGOoLSH"
     },
     {
       "kind": "outcome",
-      "file": "15.webp",
+      "file": "14.webp",
       "caption": "Page 1 is a title sheet again: logo, title, date, and no page number.",
       "cursor": {
         "x": 991,
         "y": 504
       },
-      "path": "/d/B5AQVrhdzS",
+      "path": "/d/9S7RGOoLSH",
       "highlights": [
         {
           "label": "Cover page",
           "x": 480.5,
-          "y": 115,
+          "y": 155,
           "w": 479.5,
-          "h": 656.25
+          "h": 616.25
         }
       ],
       "hero": true

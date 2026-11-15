@@ -19,7 +19,7 @@
       "text": "The AI prompt bar can do more than write. Ask it for an image and it draws one with your image provider, stores it with the document and places it in the text. It renders in the preview like any image you uploaded yourself, and it is deleted together with the document.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/Lpa7rVg-R8"
+      "path": "/d/T2nbrJshmg"
     },
     {
       "kind": "approach",
@@ -29,17 +29,17 @@
         "x": 173,
         "y": 602
       },
-      "path": "/d/Lpa7rVg-R8"
+      "path": "/d/T2nbrJshmg"
     },
     {
       "kind": "outcome",
       "file": "02.webp",
-      "caption": "The prompt bar lifts and glows — ready for your prompt.",
+      "caption": "The prompt bar lifts and glows, ready for your prompt.",
       "cursor": {
         "x": 173,
         "y": 602
       },
-      "path": "/d/Lpa7rVg-R8"
+      "path": "/d/T2nbrJshmg"
     },
     {
       "kind": "approach",
@@ -49,7 +49,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/Lpa7rVg-R8"
+      "path": "/d/T2nbrJshmg"
     },
     {
       "kind": "outcome",
@@ -59,7 +59,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/Lpa7rVg-R8"
+      "path": "/d/T2nbrJshmg"
     },
     {
       "kind": "approach",
@@ -69,17 +69,17 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/Lpa7rVg-R8"
+      "path": "/d/T2nbrJshmg"
     },
     {
       "kind": "outcome",
       "file": "04.webp",
-      "caption": "The AI is working — it draws the image, then places it in the document.",
+      "caption": "The AI is working, it draws the image, then places it in the document.",
       "cursor": {
         "x": 350,
         "y": 602
       },
-      "path": "/d/Lpa7rVg-R8"
+      "path": "/d/T2nbrJshmg"
     },
     {
       "kind": "approach",
@@ -89,17 +89,17 @@
         "x": 359,
         "y": 73
       },
-      "path": "/d/Lpa7rVg-R8"
+      "path": "/d/T2nbrJshmg"
     },
     {
       "kind": "outcome",
       "file": "06.webp",
       "caption": "The AI drew the illustration and placed it right under the title; the preview shows the image itself.",
       "cursor": {
-        "x": 359,
+        "x": 318,
         "y": 73
       },
-      "path": "/d/Lpa7rVg-R8",
+      "path": "/d/T2nbrJshmg",
       "highlights": [
         {
           "label": "The generated image",
@@ -114,6 +114,6 @@
   ],
   "next": {
     "slug": "rich-content",
-    "why": "More markdown extensions — code, alerts, math, diagrams"
+    "why": "More markdown extensions, code, alerts, math, diagrams"
   }
 }

@@ -16,10 +16,10 @@
     },
     {
       "kind": "narration",
-      "text": "Inside a workspace the AI can find and read the other documents you have access to. Ask about another doc by name and it looks it up, reads it, then writes the answer into the doc you are in — naming the doc it took it from.",
+      "text": "Inside a workspace the AI can find and read the other documents you have access to. Ask about another doc by name and it looks it up, reads it, then writes the answer into the doc you are in : naming the doc it took it from.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/bnBfw6K8ZI"
+      "path": "/d/WD6iXDreSq"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 173,
         "y": 602
       },
-      "path": "/d/bnBfw6K8ZI"
+      "path": "/d/WD6iXDreSq"
     },
     {
       "kind": "outcome",
@@ -39,7 +39,7 @@
         "x": 173,
         "y": 602
       },
-      "path": "/d/bnBfw6K8ZI"
+      "path": "/d/WD6iXDreSq"
     },
     {
       "kind": "approach",
@@ -49,17 +49,17 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/bnBfw6K8ZI"
+      "path": "/d/WD6iXDreSq"
     },
     {
       "kind": "outcome",
       "file": "03.webp",
-      "caption": "Your prompt names another doc in the workspace — the AI will go and read it.",
+      "caption": "Your prompt names another doc in the workspace, the AI will go and read it.",
       "cursor": {
         "x": 76,
         "y": 603
       },
-      "path": "/d/bnBfw6K8ZI"
+      "path": "/d/WD6iXDreSq"
     },
     {
       "kind": "approach",
@@ -69,7 +69,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/bnBfw6K8ZI"
+      "path": "/d/WD6iXDreSq"
     },
     {
       "kind": "outcome",
@@ -79,24 +79,24 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/bnBfw6K8ZI"
+      "path": "/d/WD6iXDreSq"
     },
     {
       "kind": "outcome",
       "file": "05.webp",
-      "caption": "The AI summarised the Q3 postmortem's onboarding finding into this doc — citing the source. The user never had to open the sibling doc themselves.",
+      "caption": "The AI summarised the Q3 postmortem's onboarding finding into this doc: citing the source. The user never had to open the sibling doc themselves.",
       "cursor": {
         "x": 350,
         "y": 602
       },
-      "path": "/d/bnBfw6K8ZI",
+      "path": "/d/WD6iXDreSq",
       "highlights": [
         {
           "label": "Answer from the other doc",
           "x": 16,
-          "y": 282.6875,
+          "y": 300.5,
           "w": 358,
-          "h": 244.6875
+          "h": 190.3125
         }
       ],
       "hero": true

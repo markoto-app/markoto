@@ -38,7 +38,7 @@
     },
     {
       "kind": "approach",
-      "file": "03.webp",
+      "file": "04.webp",
       "caption": "Open \"Template\"",
       "cursor": {
         "x": 640,
@@ -48,7 +48,7 @@
     },
     {
       "kind": "outcome",
-      "file": "04.webp",
+      "file": "05.webp",
       "caption": "The templates open, each as a picture of its first page. Demo is picked for your first document; after that, new documents start blank.",
       "cursor": {
         "x": 640,
@@ -64,7 +64,7 @@
     {
       "kind": "narration",
       "text": "A template is a starting text in a design that suits it: a report with a cover page and contents, a paper with a title block and numbered sections, a runbook with numbered steps and framed commands. Demo, picked for your first document, is a short tour of markdown and of markoto itself; Blank is an empty page in your default design. Grey comments in each skeleton say what goes where; the preview and the PDF never show them.",
-      "file": "04.webp",
+      "file": "06.webp",
       "cursor": {
         "x": 640,
         "y": 425
@@ -79,7 +79,7 @@
     {
       "kind": "narration",
       "text": "Each card shows the template's first page in its design, its name and one line about what is in it. The tabs sort them by who they are for: engineering, academic, business, writing.",
-      "file": "04.webp",
+      "file": "06.webp",
       "cursor": {
         "x": 640,
         "y": 425
@@ -88,27 +88,27 @@
     },
     {
       "kind": "approach",
-      "file": "05.webp",
+      "file": "07.webp",
       "caption": "Hover \"Demo\"",
       "cursor": {
         "x": 470,
-        "y": 489
-      },
-      "path": "/"
-    },
-    {
-      "kind": "approach",
-      "file": "04.webp",
-      "caption": "Hover \"Blank\"",
-      "cursor": {
-        "x": 640,
-        "y": 489
+        "y": 473
       },
       "path": "/"
     },
     {
       "kind": "approach",
       "file": "06.webp",
+      "caption": "Hover \"Blank\"",
+      "cursor": {
+        "x": 640,
+        "y": 473
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "08.webp",
       "caption": "Hover \"On-call runbook\"",
       "cursor": {
         "x": 470,
@@ -118,7 +118,7 @@
     },
     {
       "kind": "approach",
-      "file": "07.webp",
+      "file": "09.webp",
       "caption": "Hover \"arXiv preprint\"",
       "cursor": {
         "x": 640,
@@ -128,7 +128,7 @@
     },
     {
       "kind": "approach",
-      "file": "08.webp",
+      "file": "10.webp",
       "caption": "Hover \"Client proposal\"",
       "cursor": {
         "x": 810,
@@ -138,7 +138,7 @@
     },
     {
       "kind": "approach",
-      "file": "09.webp",
+      "file": "11.webp",
       "caption": "Hover \"Resume\"",
       "cursor": {
         "x": 810,
@@ -148,7 +148,7 @@
     },
     {
       "kind": "approach",
-      "file": "10.webp",
+      "file": "12.webp",
       "caption": "Open the \"Business\" tab",
       "cursor": {
         "x": 609,
@@ -158,7 +158,7 @@
     },
     {
       "kind": "outcome",
-      "file": "11.webp",
+      "file": "13.webp",
       "caption": "Only the business templates are left: report, business plan, proposal, one-pager, memo, meeting notes.",
       "cursor": {
         "x": 609,
@@ -173,8 +173,8 @@
     },
     {
       "kind": "narration",
-      "text": "The Report template brings a cover page, a table of contents, an executive summary, a key-figures table, results, an outlook and an appendix — in the Corporate report design. Pick it and the editor opens with the skeleton in place.",
-      "file": "12.webp",
+      "text": "The Report template brings a cover page, a table of contents, an executive summary, a key-figures table, results, an outlook and an appendix: in the Corporate report design. Pick it and the editor opens with the skeleton in place.",
+      "file": "14.webp",
       "cursor": {
         "x": 609,
         "y": 258
@@ -183,7 +183,7 @@
     },
     {
       "kind": "approach",
-      "file": "13.webp",
+      "file": "15.webp",
       "caption": "Click the \"Report\" card",
       "cursor": {
         "x": 470,
@@ -193,8 +193,8 @@
     },
     {
       "kind": "outcome",
-      "file": "14.webp",
-      "caption": "\"Report\" is selected — the card lights up and the Template row names it.",
+      "file": "16.webp",
+      "caption": "\"Report\" is selected, the card lights up and the Template row names it.",
       "cursor": {
         "x": 470,
         "y": 417
@@ -203,27 +203,27 @@
     },
     {
       "kind": "approach",
-      "file": "15.webp",
+      "file": "17.webp",
       "caption": "Give the report a title",
       "cursor": {
         "x": 390,
-        "y": 177
+        "y": 153
       },
       "path": "/"
     },
     {
       "kind": "outcome",
-      "file": "16.webp",
+      "file": "18.webp",
       "caption": "The title is set.",
       "cursor": {
         "x": 390,
-        "y": 177
+        "y": 153
       },
       "path": "/"
     },
     {
       "kind": "approach",
-      "file": "17.webp",
+      "file": "19.webp",
       "caption": "Click \"Create document\"",
       "cursor": {
         "x": 839,
@@ -233,13 +233,13 @@
     },
     {
       "kind": "outcome",
-      "file": "18.webp",
+      "file": "20.webp",
       "caption": "The editor opens with the report skeleton in place, and the preview shows it in the report design: cover page, contents, numbered pages. The grey notes say what goes where; they never show in the preview or the PDF.",
       "cursor": {
         "x": 839,
         "y": 736
       },
-      "path": "/d/dxGX0w2UO2",
+      "path": "/d/s8Li8b5hPJ",
       "highlights": [
         {
           "label": "Ready-made structure",
@@ -254,6 +254,6 @@
   ],
   "next": {
     "slug": "pick-a-theme",
-    "why": "Change the design later — every template's look is a theme you can switch"
+    "why": "Change the design later, every template's look is a theme you can switch"
   }
 }
