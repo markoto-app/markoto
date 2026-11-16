@@ -41,3 +41,6 @@ cors.json     # the S3 CORS file an operator writes themselves
 
 # Intentional negative references ("there is no server/auth/ dir")
 server/auth/
+
+# Git branch names, not paths
+docs/flow-shots    # publish-flow-shots.yml screenshots branch
