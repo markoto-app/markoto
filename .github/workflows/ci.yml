@@ -11,12 +11,13 @@ name: ci
 # The `main` ruleset requires `label-check`, `semantic-pr-title`,
 # `actions-lint`, `secret-scan`, `lint-typecheck`, `lint-types`,
 # `repo-checks`, `docs-checks`, `shell-docker-lint`, `python-checks`,
-# `test-unit-dom`, `migration-guard`, `selfhost-check` and
-# `test-repos-integration-flows`. `sonar` and `billing-sandbox` are NOT
-# required (fork PRs never get their secrets). See the operator runbook, kept
-# outside this repository.
+# `test-unit-dom`, `migration-guard`, `selfhost-check`,
+# `test-repos-integration-flows` and `sonar` (which fails when the
+# SonarCloud quality gate fails). `billing-sandbox` is NOT required. See the
+# operator runbook, kept outside this repository.
 # Every job except `sonar` and `billing-sandbox` runs on fork PRs: none of
 # them reads a secret. `billing-sandbox` runs there too, and skips itself.
+# `sonar` reports skipped on fork, Dependabot, draft and docs-only PRs.
 # Jobs skipped by path filters report as skipped, which satisfies a
 # required check.
 
@@ -870,13 +871,16 @@ jobs:
     # namespace) never receive SONAR_TOKEN, so the scan could only ever fail
     # there: skip the job instead of showing a red check nobody can fix.
     # Same-repo PRs fail loudly below if the secret is missing.
+    #
+    # `sonar` is a required check. Every skip above reports as skipped,
+    # which satisfies it; when the job runs, a failed quality gate fails it.
     if: >-
       github.event.pull_request.draft == false &&
       needs.changes.outputs.code == 'true' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -899,10 +903,17 @@ jobs:
             exit 1
           fi
 
+      # Waits for the quality gate and exits non-zero when it fails, so the
+      # required `sonar` check blocks the merge. 300 s is the scanner's
+      # default wait for the server to process the report.
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@c7ee0f9df90b7aa20e8dcf9695dcfe2e7da5b4f2 # v7.2.1
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=300
 
   image-scan:
     name: image-scan
