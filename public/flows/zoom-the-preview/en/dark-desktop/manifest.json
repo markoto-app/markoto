@@ -22,7 +22,7 @@
         "x": 640,
         "y": 24
       },
-      "path": "/d/woPZNYtEwi"
+      "path": "/d/q5HBcXWaOw"
     },
     {
       "kind": "approach",
@@ -30,15 +30,15 @@
       "caption": "Click + in the preview's top right corner to zoom in",
       "cursor": {
         "x": 1212,
-        "y": 158
+        "y": 155
       },
-      "path": "/d/woPZNYtEwi",
+      "path": "/d/q5HBcXWaOw",
       "annotations": [
         {
           "label": "zoom",
           "kind": "box",
           "x": 1113,
-          "y": 143.75,
+          "y": 140.75,
           "w": 147,
           "h": 30
         }
@@ -50,9 +50,9 @@
       "caption": "The page grows to the next zoom step. The text you were reading stays in view.",
       "cursor": {
         "x": 1212,
-        "y": 158
+        "y": 155
       },
-      "path": "/d/woPZNYtEwi"
+      "path": "/d/q5HBcXWaOw"
     },
     {
       "kind": "approach",
@@ -60,9 +60,9 @@
       "caption": "Open the zoom menu for a fixed size",
       "cursor": {
         "x": 1170,
-        "y": 158
+        "y": 155
       },
-      "path": "/d/woPZNYtEwi"
+      "path": "/d/q5HBcXWaOw"
     },
     {
       "kind": "outcome",
@@ -70,9 +70,9 @@
       "caption": "Fit width, all pages, or a fixed size from 50% to 200%.",
       "cursor": {
         "x": 1170,
-        "y": 158
+        "y": 155
       },
-      "path": "/d/woPZNYtEwi"
+      "path": "/d/q5HBcXWaOw"
     },
     {
       "kind": "approach",
@@ -80,9 +80,9 @@
       "caption": "Choose 150%",
       "cursor": {
         "x": 1115,
-        "y": 400
+        "y": 397
       },
-      "path": "/d/woPZNYtEwi"
+      "path": "/d/q5HBcXWaOw"
     },
     {
       "kind": "outcome",
@@ -90,9 +90,9 @@
       "caption": "Large enough to check footnotes and table figures. Scroll sideways for the rest of the line.",
       "cursor": {
         "x": 1115,
-        "y": 400
+        "y": 397
       },
-      "path": "/d/woPZNYtEwi"
+      "path": "/d/q5HBcXWaOw"
     },
     {
       "kind": "chapter",
@@ -105,15 +105,15 @@
       "caption": "Click the grid button to see all pages",
       "cursor": {
         "x": 1245,
-        "y": 158
+        "y": 155
       },
-      "path": "/d/woPZNYtEwi",
+      "path": "/d/q5HBcXWaOw",
       "annotations": [
         {
           "label": "all pages",
           "kind": "arrow",
           "x": 1233,
-          "y": 146.75,
+          "y": 143.75,
           "w": 24,
           "h": 24
         }
@@ -125,9 +125,9 @@
       "caption": "The preview pulls back into an overview: all pages side by side, as many to a row as fit.",
       "cursor": {
         "x": 1245,
-        "y": 158
+        "y": 155
       },
-      "path": "/d/woPZNYtEwi",
+      "path": "/d/q5HBcXWaOw",
       "hero": true
     },
     {
@@ -136,9 +136,9 @@
       "caption": "Click a page to open it",
       "cursor": {
         "x": 1245,
-        "y": 158
+        "y": 155
       },
-      "path": "/d/woPZNYtEwi"
+      "path": "/d/q5HBcXWaOw"
     },
     {
       "kind": "outcome",
@@ -146,9 +146,9 @@
       "caption": "The preview zooms back in on page 5, at full width.",
       "cursor": {
         "x": 1245,
-        "y": 158
+        "y": 155
       },
-      "path": "/d/woPZNYtEwi"
+      "path": "/d/q5HBcXWaOw"
     },
     {
       "kind": "chapter",
@@ -161,9 +161,9 @@
       "file": "11.webp",
       "cursor": {
         "x": 1245,
-        "y": 158
+        "y": 155
       },
-      "path": "/d/woPZNYtEwi"
+      "path": "/d/q5HBcXWaOw"
     },
     {
       "kind": "outcome",
@@ -171,9 +171,9 @@
       "caption": "Zoomed out past 50%, the preview shows all pages again.",
       "cursor": {
         "x": 1245,
-        "y": 158
+        "y": 155
       },
-      "path": "/d/woPZNYtEwi"
+      "path": "/d/q5HBcXWaOw"
     },
     {
       "kind": "chapter",
@@ -185,7 +185,7 @@
       "file": "13.webp",
       "caption": "After a reload the preview opens on all pages again. The choice is kept in this browser, for every document.",
       "cursor": null,
-      "path": "/d/woPZNYtEwi"
+      "path": "/d/q5HBcXWaOw"
     }
   ],
   "next": {

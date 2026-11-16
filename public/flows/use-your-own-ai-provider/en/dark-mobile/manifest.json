@@ -31,7 +31,7 @@
         {
           "label": "Writing assistant",
           "x": 16,
-          "y": 436.5,
+          "y": 376.5,
           "w": 358,
           "h": 222
         }
@@ -48,7 +48,7 @@
       "caption": "Click \"Add your provider\"",
       "cursor": {
         "x": 102,
-        "y": 627
+        "y": 567
       },
       "path": "/settings/ai",
       "annotations": [
@@ -56,7 +56,7 @@
           "label": "Add your provider",
           "kind": "box",
           "x": 33,
-          "y": 613.5,
+          "y": 553.5,
           "w": 139.90625,
           "h": 28
         }
@@ -68,7 +68,7 @@
       "caption": "The form asks for the provider, its address, the model and your key",
       "cursor": {
         "x": 102,
-        "y": 627
+        "y": 567
       },
       "path": "/settings/ai"
     },
@@ -78,7 +78,7 @@
       "caption": "Pick your provider (here: Mistral), check the model and paste your API key",
       "cursor": {
         "x": 102,
-        "y": 627
+        "y": 567
       },
       "path": "/settings/ai"
     },

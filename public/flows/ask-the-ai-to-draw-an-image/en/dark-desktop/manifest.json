@@ -20,9 +20,9 @@
       "file": "01.webp",
       "cursor": {
         "x": 640,
-        "y": 27
+        "y": 26
       },
-      "path": "/d/95R4kZ5Fqz"
+      "path": "/d/r9-jhnc5tq"
     },
     {
       "kind": "approach",
@@ -30,19 +30,19 @@
       "caption": "Click into the AI prompt bar",
       "cursor": {
         "x": 618,
-        "y": 723
+        "y": 722
       },
-      "path": "/d/95R4kZ5Fqz"
+      "path": "/d/r9-jhnc5tq"
     },
     {
       "kind": "outcome",
       "file": "03.webp",
-      "caption": "The prompt bar lifts and glows — ready for your prompt.",
+      "caption": "The prompt bar lifts and glows, ready for your prompt.",
       "cursor": {
         "x": 618,
-        "y": 723
+        "y": 722
       },
-      "path": "/d/95R4kZ5Fqz"
+      "path": "/d/r9-jhnc5tq"
     },
     {
       "kind": "approach",
@@ -50,9 +50,9 @@
       "caption": "Type the image prompt",
       "cursor": {
         "x": 316,
-        "y": 724
+        "y": 723
       },
-      "path": "/d/95R4kZ5Fqz"
+      "path": "/d/r9-jhnc5tq"
     },
     {
       "kind": "outcome",
@@ -60,9 +60,9 @@
       "caption": "Your prompt is ready. Hit send.",
       "cursor": {
         "x": 316,
-        "y": 724
+        "y": 723
       },
-      "path": "/d/95R4kZ5Fqz"
+      "path": "/d/r9-jhnc5tq"
     },
     {
       "kind": "approach",
@@ -70,19 +70,19 @@
       "caption": "Send it",
       "cursor": {
         "x": 1000,
-        "y": 723
+        "y": 722
       },
-      "path": "/d/95R4kZ5Fqz"
+      "path": "/d/r9-jhnc5tq"
     },
     {
       "kind": "outcome",
       "file": "06.webp",
-      "caption": "The AI is working — it draws the image, then places it in the document.",
+      "caption": "The AI is working, it draws the image, then places it in the document.",
       "cursor": {
         "x": 1000,
-        "y": 723
+        "y": 722
       },
-      "path": "/d/95R4kZ5Fqz"
+      "path": "/d/r9-jhnc5tq"
     },
     {
       "kind": "outcome",
@@ -90,14 +90,14 @@
       "caption": "The AI drew the illustration and placed it right under the title; the preview shows the image itself.",
       "cursor": {
         "x": 1000,
-        "y": 723
+        "y": 722
       },
-      "path": "/d/95R4kZ5Fqz",
+      "path": "/d/r9-jhnc5tq",
       "highlights": [
         {
           "label": "The image in your text",
           "x": 24.75,
-          "y": 208.75,
+          "y": 209.75,
           "w": 590,
           "h": 49.5
         }
@@ -107,6 +107,6 @@
   ],
   "next": {
     "slug": "rich-content",
-    "why": "More markdown extensions — code, alerts, math, diagrams"
+    "why": "More markdown extensions, code, alerts, math, diagrams"
   }
 }
