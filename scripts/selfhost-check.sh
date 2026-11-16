@@ -489,6 +489,53 @@ if ! grep -qF "${pages_inner%)}" server/utils/customDomains/traefikConfig.ts; th
 fi
 echo "ok: published pages have their own host (prod required, local, self-host HTTPS via provider)"
 
+# Staging edge login
+# EDGE_BASIC_AUTH_USERS (an htpasswd line, rendered only for staging) puts
+# Traefik's basic auth in front of every public router of the app host and
+# the pages host; unset (prod, self-host) no router references it. The
+# machine-to-machine and preview-iframe paths keep their own router without
+# it, and the sync host never gets it.
+check_edge_auth() { # check_edge_auth LABEL CONFIG_JSON WANT(yes|no)
+  local out
+  # shellcheck disable=SC2016 # Traefik rule syntax, backticks are literal
+  out="$(jq -r --arg want "$3" '
+    .services.app.labels as $l
+    | [ ( ["app", "app-import", "pages"][] as $r
+          | ($l["traefik.http.routers.\($r).middlewares"] // "" | split(",") | index("edge-auth") != null) as $has
+          | select(($want == "yes") != $has)
+          | "router \($r): edge-auth \(if $has then "present" else "missing" end)" ),
+        ( (.services.app.environment.NUXT_PUBLISH_TRAEFIK_MIDDLEWARES // "" | split(",") | index("edge-auth@docker") != null) as $has
+          | select(($want == "yes") != $has)
+          | "custom-domain routers: edge-auth \(if $has then "present" else "missing" end)" ),
+        ( select(($l["traefik.http.routers.app-public.middlewares"] // "") | split(",") | index("edge-auth") != null)
+          | "router app-public must not carry edge-auth" ),
+        ( select(((.services.sync.labels // {}) | to_entries | map(select(.key | endswith(".middlewares"))) | map(.value) | join(",")) | test("edge-auth"))
+          | "the sync routers must not carry edge-auth" ),
+        ( select(($l["traefik.http.routers.app-public.rule"] // "") | contains("Path(`/api/webhooks/stripe`)") | not)
+          | "router app-public must admit the Stripe webhook" ),
+        ( select(($l["traefik.http.routers.app-public.rule"] // "") | contains("Path(`/api/health`)") | not)
+          | "router app-public must admit /api/health" )
+      ] | .[]' "$2")"
+  if [[ -n "$out" ]]; then
+    printf 'FAIL (%s): %s\n' "$1" "$out" >&2
+    exit 1
+  fi
+}
+check_edge_auth "prod" "$tmp/salt-prod.json" no
+# The value as render-env.sh writes it: single-quoted, the bcrypt `$` literal.
+# shellcheck disable=SC2016 # a literal htpasswd line
+edge_users='staging:$2y$05$abcdefghijklmnopqrstuuJ0123456789abcdefghijklmnopqrst'
+{ cat "$tmp/prod.env"; printf "EDGE_BASIC_AUTH_USERS='%s'\n" "$edge_users"; } > "$tmp/prod-edge.env"
+render_config "$tmp/edge-prod.json" "$tmp/prod-edge.env" "deploy/compose/compose.prod.yml"
+check_edge_auth "staging" "$tmp/edge-prod.json" yes
+# `config` prints every `$` doubled (its own escaping); the container gets one.
+if ! jq -e --arg u "$edge_users" '.services.app.labels["traefik.http.middlewares.edge-auth.basicauth.users"] | gsub("[$][$]"; "$") == $u' "$tmp/edge-prod.json" > /dev/null; then
+  echo "FAIL: the edge-auth users label must carry the htpasswd line verbatim" >&2
+  exit 1
+fi
+check_internal_routes "staging" "$tmp/edge-prod.json"
+echo "ok: the edge login is staging-only (prod without it, exempt paths and sync outside it)"
+
 # Dev + test stacks publish on loopback only
 # Throwaway credentials (devpassword, the committed deploy/config/seaweedfs/s3.json keys)
 # must never be reachable from the LAN. The only other binding allowed is

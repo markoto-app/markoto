@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { api, smokeDoc } from './_helpers'
+import { apiFetch, smokeDoc } from './_helpers'
 
 // Template bodies are read server-side from shared/templates/content/*.md by
 // templateRenderer.ts. Those files weren't in the prod Docker image, so every
@@ -10,7 +10,7 @@ test('template new-doc seeds a non-empty body', async () => {
   // Created once by globalSetup.ts with TEMPLATE_DOC_BODY (business-plan).
   const docId = smokeDoc('template')
 
-  const res = await fetch(api(`/api/docs/${docId}/token`))
+  const res = await apiFetch(`/api/docs/${docId}/token`)
   expect(res.status).toBe(200)
   const body = await res.json() as { templateId?: string, initialBody?: string }
 

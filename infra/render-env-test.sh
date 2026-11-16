@@ -223,6 +223,21 @@ for v in NUXT_LEGAL_CONTROLLER_ADDRESS NUXT_LEGAL_REPRESENTED_BY; do
 done
 echo "LEGAL GATE OK, controller address + representative are required"
 
+# 3d. Staging's edge login: empty by default (prod), a bcrypt htpasswd line
+#     is written single-quoted (compose keeps its `$` literal), anything
+#     else fails the render instead of breaking Traefik's routers.
+# shellcheck disable=SC2016 # a literal htpasswd line
+edge_line='staging:$2y$05$abcdefghijklmnopqrstuuJ0123456789abcdefghijklmnopqrst'
+edge_out=$(env -i "${ENVARGS[@]}" EDGE_BASIC_AUTH_USERS="$edge_line" bash infra/render-env.sh)
+if echo "$bash_out" | grep -qx 'EDGE_BASIC_AUTH_USERS=' \
+   && echo "$edge_out" | grep -qxF "EDGE_BASIC_AUTH_USERS='${edge_line}'" \
+   && ! env -i "${ENVARGS[@]}" EDGE_BASIC_AUTH_USERS='staging:plain-password' bash infra/render-env.sh >/dev/null 2>&1; then
+  echo "EDGE LOGIN OK, off by default, bcrypt lines quoted, anything else refused"
+else
+  echo "EDGE LOGIN FAILED, wrong EDGE_BASIC_AUTH_USERS handling"
+  exit 1
+fi
+
 # 3b. Backup storage falls back to the app's S3 values when no BACKUP_S3_* is
 #     set.
 declare -a NOBACKUP=()

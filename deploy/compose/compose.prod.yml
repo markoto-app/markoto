@@ -391,7 +391,9 @@ services:
       # Customer domains get their own headers: HSTS without
       # includeSubDomains / preload (those would bind the customer's other
       # subdomains and put their domain on the browser preload list).
-      - NUXT_PUBLISH_TRAEFIK_MIDDLEWARES=custom-domain-headers@docker,app-compress@docker
+      # On staging the edge login (`edge-auth`, below) goes in front of
+      # them too; empty EDGE_BASIC_AUTH_USERS (prod) leaves it out.
+      - NUXT_PUBLISH_TRAEFIK_MIDDLEWARES=custom-domain-headers@docker,${EDGE_BASIC_AUTH_USERS:+edge-auth@docker,}app-compress@docker
       # Number of trusted reverse proxies in front of the app (Traefik = 1).
       # See shared/utils/security/clientIp.ts.
       - NUXT_TRUSTED_PROXY_HOPS=${NUXT_TRUSTED_PROXY_HOPS:-1}
@@ -477,7 +479,39 @@ services:
       # IN ADDITION to the app's policy. See docs/SECURITY-HARDENING.md §2.
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.Cross-Origin-Opener-Policy=same-origin"
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.Permissions-Policy=camera=(), microphone=(self), geolocation=(), payment=(self)"
-      - "traefik.http.routers.app.middlewares=security-headers,app-compress"
+      - "traefik.http.routers.app.middlewares=security-headers,${EDGE_BASIC_AUTH_USERS:+edge-auth,}app-compress"
+      # Edge login (staging only). EDGE_BASIC_AUTH_USERS is an htpasswd
+      # line (`user:<bcrypt>`) that only the staging Environment renders;
+      # empty (prod, the default) means no router references `edge-auth`,
+      # so there is no login. It keeps strangers from signing up, spending
+      # the platform's AI keys or running test-card checkouts on staging.
+      # The `$` of the hash need no escaping: compose substitutes the value
+      # once and does not interpolate it again (render-env.sh single-quotes
+      # it in .env). The Authorization header is dropped before the app.
+      - "traefik.http.middlewares.edge-auth.basicauth.users=${EDGE_BASIC_AUTH_USERS:-}"
+      - "traefik.http.middlewares.edge-auth.basicauth.realm=markoto staging"
+      - "traefik.http.middlewares.edge-auth.basicauth.removeheader=true"
+      # Paths that skip the edge login (and route exactly as `app` does
+      # when there is none). Each carries its own gate, and none can sign
+      # anyone up or spend AI:
+      #   - /api/health, /api/health/live, /api/status: deploy health
+      #     loops and external monitors;
+      #   - /api/webhooks/stripe: Stripe's servers (signature-checked);
+      #   - /scim/v2/, /mcp: identity providers / MCP clients sending their
+      #     own `Authorization: Bearer` token, which a login would replace;
+      #   - GET /api/docs/<id>/meta + /file-token: the editor sends the
+      #     doc JWT as Bearer there (password-unlocked visitors);
+      #   - /api/ai/dictate: WebSocket, short-lived JWT in its first message;
+      #   - /auth/sso/<id>/metadata: SAML metadata the IdP fetches itself;
+      #   - /vendor/, /markoto-logos/, /api/files/, /api/docs/<id>/brand/:
+      #     what the sandboxed (opaque-origin) preview iframe loads, which
+      #     never carries the page's login (server/utils/rendering/csp.ts).
+      # The sync host has no login at all (see the sync router).
+      - "traefik.http.routers.app-public.rule=Host(`${DOMAIN}`) && (Path(`/api/health`) || Path(`/api/health/live`) || Path(`/api/status`) || Path(`/api/webhooks/stripe`) || PathPrefix(`/scim/v2/`) || Path(`/mcp`) || PathPrefix(`/mcp/`) || (Method(`GET`) && PathRegexp(`^/api/docs/[^/]+/(meta|file-token)$$`)) || Path(`/api/ai/dictate`) || PathRegexp(`^/auth/sso/[^/]+/metadata$$`) || PathPrefix(`/vendor/`) || PathPrefix(`/markoto-logos/`) || PathPrefix(`/api/files/`) || PathRegexp(`^/api/docs/[^/]+/brand/[^/]+$$`))"
+      - "traefik.http.routers.app-public.entrypoints=websecure"
+      - "traefik.http.routers.app-public.tls.certresolver=le"
+      - "traefik.http.routers.app-public.service=app"
+      - "traefik.http.routers.app-public.middlewares=security-headers,app-compress"
       # Published pages on customers' own domains (routers from the
       # app's HTTP provider): HSTS for that host only, never its subdomains.
       - "traefik.http.middlewares.custom-domain-headers.headers.stsSeconds=31536000"
@@ -494,7 +528,7 @@ services:
       - "traefik.http.routers.pages.entrypoints=websecure"
       - "traefik.http.routers.pages.tls.certresolver=le"
       - "traefik.http.routers.pages.service=app"
-      - "traefik.http.routers.pages.middlewares=custom-domain-headers,app-compress"
+      - "traefik.http.routers.pages.middlewares=custom-domain-headers,${EDGE_BASIC_AUTH_USERS:+edge-auth,}app-compress"
       # Compress dynamic responses (SSR HTML, API JSON, i18n messages).
       # Static assets already arrive precompressed from Nitro
       # (compressPublicAssets) and keep their Content-Encoding; media and
@@ -512,7 +546,7 @@ services:
       - "traefik.http.routers.app-import.entrypoints=websecure"
       - "traefik.http.routers.app-import.tls.certresolver=le"
       - "traefik.http.routers.app-import.service=app"
-      - "traefik.http.routers.app-import.middlewares=import-body-limit,security-headers"
+      - "traefik.http.routers.app-import.middlewares=${EDGE_BASIC_AUTH_USERS:+edge-auth,}import-body-limit,security-headers"
       - "traefik.http.middlewares.import-body-limit.buffering.maxRequestBodyBytes=53477376"
     depends_on:
       # Not required: absent with a managed cluster (see the header).
@@ -615,6 +649,10 @@ services:
       - "traefik.http.services.sync.loadbalancer.sticky.cookie.secure=true"
       # /internal/** is the app → sync control plane (kick, flush,
       # delete); the app calls http://sync:4001 directly, never via here.
+      # No edge login here, also not on staging: the sync host is another
+      # origin, so browsers would not reuse the app host's login for the
+      # WebSocket, and every connection already needs a doc-scoped JWT
+      # that only the app (behind the login) issues.
       - "traefik.http.routers.sync.rule=Host(`sync.${DOMAIN}`) && !PathPrefix(`/internal/`)"
       - "traefik.http.routers.sync.entrypoints=websecure"
       - "traefik.http.routers.sync.tls.certresolver=le"

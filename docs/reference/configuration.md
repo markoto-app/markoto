@@ -385,6 +385,7 @@ Interpolated by the compose files; no process reads them directly.
 | `ACME_EMAIL` | string |  |  | compose | hosted | Hosted: Let's Encrypt account email. |
 | `REGISTRY` | string |  |  | compose | hosted | Image registry prefix (ghcr.io/<owner>). |
 | `IMAGE_TAG` | string |  |  | compose | both | Image tag to run (pin a version; no implicit latest). |
+| `EDGE_BASIC_AUTH_USERS` | string |  |  | compose | hosted | Hosted staging: htpasswd line (`user:<bcrypt>`) for the Traefik login in front of the app and pages hosts; empty (prod) = no login. Machine-to-machine paths stay outside it (deploy/compose/compose.prod.yml). |
 | `LITELLM_CONFIG_HASH` | string |  |  | compose | both | Hash of deploy/config/litellm/*: recreates the proxy when its config changes (set by every deploy path). |
 | `NUXT_PRODUCT_TOUR_ENABLED` | boolean |  |  | compose | hosted | Deprecated alias of NUXT_MARKETING_SITE_ENABLED, resolved by deploy/compose/compose.prod.yml. |
 | `MARKOTO_INSTANCE` | string |  |  | compose | self-host | Self-host: instance name (Traefik constraint, network names). |
