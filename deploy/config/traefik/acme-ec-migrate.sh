@@ -20,8 +20,11 @@
 #
 # POSIX sh + grep only: it also runs inside the Traefik image (busybox) for the
 # self-host volume (install.sh). Traefik writes indented JSON, one
-# `"key": "<base64 PEM>"` line per certificate; lego writes ECDSA keys as
-# "-----BEGIN EC PRIVATE KEY-----", whose base64 starts with the prefix below.
+# `"key": "<base64 PEM>"` line per certificate. An ECDSA key comes either as
+# a SEC1 PEM ("EC PRIVATE KEY" header, whose base64 starts with the prefix
+# below) or, since Traefik 3.7, as a PKCS#8 PEM ("PRIVATE KEY" header) whose
+# body names the EC algorithm (EC_PKCS8_OID). Each key is decoded and checked: a
+# PKCS#8 key without that OID (RSA) is the only thing counted as non-ECDSA.
 set -eu
 
 mode="${1:-}"
@@ -33,12 +36,29 @@ fi
 
 EC_PREFIX='LS0tLS1CRUdJTiBFQyBQUklWQVRFIEtFWS0tLS0t'
 
+# The id-ecPublicKey AlgorithmIdentifier (OID 1.2.840.10045.2.1) as it
+# appears in the base64 body of a PKCS#8 EC key (P-256 and P-384 alike).
+EC_PKCS8_OID='ByqGSM49Ag'
+
 # Number of certificate keys in the store that are not ECDSA.
 non_ec_keys() {
   [ -s "$store" ] || { echo 0; return; }
-  all="$(grep -cE '^[[:space:]]*"key": *"' "$store" || true)"
-  ec="$(grep -cE "^[[:space:]]*\"key\": *\"$EC_PREFIX" "$store" || true)"
-  echo $((all - ec))
+  # One output line per non-ECDSA key, counted at the end (the loop runs in
+  # a pipeline subshell, so it can't keep a counter of its own).
+  sed -nE 's/^[[:space:]]*"key": *"([A-Za-z0-9+\/=]+)".*/\1/p' "$store" \
+    | while IFS= read -r k; do
+        case "$k" in
+          "$EC_PREFIX"*) continue ;;
+        esac
+        pem="$(printf '%s' "$k" | base64 -d 2>/dev/null || true)"
+        case "$pem" in
+          *"-----BEGIN PRIVATE KEY-----"*)
+            if printf '%s\n' "$pem" | grep -q "$EC_PKCS8_OID"; then continue; fi
+            ;;
+        esac
+        echo non-ec
+      done \
+    | wc -l | tr -d ' '
 }
 
 case "$mode" in
