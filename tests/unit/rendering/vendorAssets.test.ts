@@ -255,7 +255,7 @@ describe('generated tree', () => {
 
 describe('vendorAssetHeaders', () => {
   it('opens /vendor/ to the opaque-origin iframes and caches versioned files forever', () => {
-    expect(vendorAssetHeaders('/vendor/mermaid@11.17.2/mermaid.min.js')).toEqual({
+    expect(vendorAssetHeaders('/vendor/mermaid@12.3.0/mermaid.min.js')).toEqual({
       'Access-Control-Allow-Origin': '*',
       'Cache-Control': 'public, max-age=31536000, immutable'
     })

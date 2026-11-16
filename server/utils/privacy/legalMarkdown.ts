@@ -30,3 +30,7 @@ export const legalMarkdown = new MarkdownIt({
   .disable('replacements')
   .use(anchor, { level: [2], slugify: legalSlugify, tabIndex: false })
   .use(toc, { level: [2], slugify: legalSlugify, listType: 'ul', containerClass: 'legal-toc' })
+
+// Bare domains (`markoto.app`) stay links: linkify-it 6 (markdown-it 15)
+// only links URLs with a scheme unless asked to.
+legalMarkdown.linkify.set({ fuzzyLink: true })

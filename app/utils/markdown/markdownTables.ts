@@ -1,6 +1,4 @@
-import type MarkdownIt from 'markdown-it'
-import type StateCore from 'markdown-it/lib/rules_core/state_core.mjs'
-import type Token from 'markdown-it/lib/token.mjs'
+import type { MarkdownIt, StateCore, Token } from 'markdown-it'
 
 /**
  * Two table rules for printed pages (registered by `renderMarkdown`).

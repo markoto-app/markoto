@@ -18,7 +18,7 @@ import { vendorUrl } from './vendorAssets'
  * markup: the build fails when this constant and the installed package
  * disagree.
  */
-export const KATEX_VERSION = '0.18.11'
+export const KATEX_VERSION = '0.19.1'
 
 export const KATEX_CSS_URL = vendorUrl('katex', KATEX_VERSION, 'katex.min.css')
 
@@ -33,4 +33,4 @@ export const KATEX_CSS_URL = vendorUrl('katex', KATEX_VERSION, 'katex.min.css')
  *   openssl dgst -sha384 -binary node_modules/katex/dist/katex.min.css | openssl base64 -A
  * and replace KATEX_CSS_SRI with `sha384-<new>`.
  */
-export const KATEX_CSS_SRI = 'sha384-NJ/T2p1ROqNH3Yico+wdWm5Rv2rlinAOvV25Sw1zLOaxg8yLDPVv8GGAUccx50rh'
+export const KATEX_CSS_SRI = 'sha384-WwGtaC6ywCHxA5cstpj/3+xIZvTez8dq2IcBQaXRkenHZ7FVVq1ZROtURwfbtTlG'
