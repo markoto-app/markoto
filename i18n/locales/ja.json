@@ -1633,7 +1633,12 @@
         "subscriptionActive": "このワークスペースには有効なサブスクリプションが残っています。削除するにはサポートにお問い合わせください。",
         "seatsBusy": "別の席数変更または招待が処理中です。しばらくしてからもう一度お試しください。"
       },
-      "limitPointsLabel": "AI ポイントの上限"
+      "limitPointsLabel": "AI ポイントの上限",
+      "resume": "解約を取り消す",
+      "resumed": "解約を取り消しました。プランは再び更新されます。",
+      "resumeFailed": "解約を取り消せませんでした",
+      "resumeBillingAdminOnly": "支払い担当者のみ取り消せます。",
+      "endingSeatsHint": "席数を変更するには解約を取り消してください。"
     },
     "dpa": {
       "staleTitle": "データ処理契約が更新されました、もう一度ご確認ください",
@@ -2678,7 +2683,8 @@
       "workspace_brand_lock_changed": "ワークスペースのデザインロックを変更",
       "workspace_template_added": "テンプレートを追加",
       "workspace_template_removed": "テンプレートを削除",
-      "doc_share_settings_changed": "リンクの設定を変更"
+      "doc_share_settings_changed": "リンクの設定を変更",
+      "workspace_billing_plan_resumed": "解約を取り消し"
     },
     "planNotice": "監査ログは Business プランに含まれます。"
   },
@@ -2860,5 +2866,24 @@
     "home": "ホームページに戻る",
     "source": "GitHub のソースコード",
     "captionsLabel": "英語（画面の文字）"
+  },
+  "aiImage": {
+    "menu": "AIで画像を生成",
+    "menuShort": "AI画像",
+    "title": "画像を生成",
+    "promptLabel": "説明",
+    "promptPlaceholder": "夕暮れの灯台の水彩画",
+    "sizeLabel": "形式",
+    "size": {
+      "square": "正方形",
+      "landscape": "横長",
+      "portrait": "縦長"
+    },
+    "cost": "約 {points} AI ポイントかかります。",
+    "costUnknown": "AI ポイントを使います。",
+    "ownKey": "ご自身の画像プロバイダーで実行します。",
+    "generate": "生成",
+    "generating": "生成中…",
+    "failed": "画像を生成できませんでした"
   }
 }

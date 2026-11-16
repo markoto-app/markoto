@@ -1,15 +1,14 @@
 <script setup lang="ts">
 import { EditorView, keymap, drawSelection } from '@codemirror/view'
 import { EditorState, Compartment } from '@codemirror/state'
-import { markdown, markdownLanguage, markdownKeymap, pasteURLAsLink } from '@codemirror/lang-markdown'
+import { markdown, markdownLanguage, pasteURLAsLink } from '@codemirror/lang-markdown'
 import { languages } from '@codemirror/language-data'
 import { syntaxHighlighting } from '@codemirror/language'
-import { defaultKeymap, indentWithTab, history, historyKeymap } from '@codemirror/commands'
 import { yCollab } from 'y-codemirror.next'
 import type { Text as YText, UndoManager } from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
 import { dictationExtensions } from '~/utils/editor/dictationExtensions'
-import { formattingKeymap } from '~/utils/editor/editorCommands'
+import { editorKeymap } from '~/utils/editor/collabHistory'
 import { promptBarClearance } from '~/utils/editor/promptBarClearance'
 import { markotoMarkdownHighlight } from '~/utils/markdown/markdownHighlight'
 import { commentDecorationsExtension, setCommentRanges, setFlashRange, type CommentRange } from '~/utils/comments/commentDecorations'
@@ -121,13 +120,12 @@ onMounted(() => {
   const extensions = [
     markdown({ base: markdownLanguage, codeLanguages: languages }),
     syntaxHighlighting(markotoMarkdownHighlight),
-    // markdownKeymap continues `- `/`> `/`1. ` prefixes on Enter and strips them
-    // on Backspace at line start. It goes BEFORE defaultKeymap so it wins
-    // Enter/Backspace (the plain newline would swallow the markdown-aware behaviour).
-    // formattingKeymap: Mod-b / Mod-i (the shortcuts the Format menu shows).
-    keymap.of([...formattingKeymap, ...markdownKeymap, ...defaultKeymap, ...historyKeymap, indentWithTab]),
+    // Formatting, markdown list continuation, defaults, undo / redo on the
+    // document's UndoManager. No CodeMirror `history()`: it would record the
+    // synced document load and collaborators' edits, so undo could wipe the
+    // document (see `collabHistory.ts`).
+    keymap.of(editorKeymap),
     pasteURLAsLink,
-    history(),
     drawSelection(),
     EditorView.lineWrapping,
     // The floating AI prompt bar covers the bottom of the editor: when the

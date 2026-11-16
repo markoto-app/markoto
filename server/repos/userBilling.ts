@@ -161,6 +161,16 @@ export async function recordOwnPlanChange(self: UserScope, subscriptionId: strin
     .where(and(eq(users.id, self.userId), eq(users.stripeSubscriptionId, subscriptionId)))
 }
 
+/**
+ * The user took back the cancellation of their live subscription (already
+ * applied in Stripe): it renews again. The webhook writes the same state.
+ */
+export async function recordOwnPlanResumed(self: UserScope, subscriptionId: string, at: Date): Promise<void> {
+  await useDatabase().update(users)
+    .set({ planCancelAt: null, subscriptionEventAt: at })
+    .where(and(eq(users.id, self.userId), eq(users.stripeSubscriptionId, subscriptionId)))
+}
+
 /** What the profile and pricing pages show of the user's own subscription. */
 export async function getOwnSubscriptionFacts(self: UserScope): Promise<{ billingInterval: BillingInterval | null, billingCurrency: Currency | null, planCancelAt: Date | null, subscriptionStatus: StripeSubscriptionStatus | null } | null> {
   return (await useDatabase().select({ billingInterval: users.billingInterval, billingCurrency: users.billingCurrency, planCancelAt: users.planCancelAt, subscriptionStatus: users.subscriptionStatus })

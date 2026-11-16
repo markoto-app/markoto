@@ -1,18 +1,17 @@
 import type { Command, KeyBinding } from '@codemirror/view'
 import {
-  addCursorAbove, addCursorBelow, copyLineDown, copyLineUp, defaultKeymap, deleteLine,
-  historyKeymap, indentLess, indentMore, indentWithTab, insertBlankLine, moveLineDown,
-  moveLineUp, redo, selectLine, toggleComment, undo
+  addCursorAbove, addCursorBelow, copyLineDown, copyLineUp, deleteLine,
+  indentLess, indentMore, indentWithTab, insertBlankLine, moveLineDown,
+  moveLineUp, selectLine, toggleComment
 } from '@codemirror/commands'
-import { insertNewlineContinueMarkup, markdownKeymap } from '@codemirror/lang-markdown'
+import { insertNewlineContinueMarkup } from '@codemirror/lang-markdown'
 import { formattingKeymap } from '~/utils/editor/editorCommands'
+import { collabRedo, collabUndo, editorKeymap } from '~/utils/editor/collabHistory'
 import { isMacPlatform } from '~/utils/preview/previewZoom'
 
 /**
  * The list behind Help → Keyboard shortcuts. Editor rows are looked up in
- * the very keymaps EditorPane.vue installs (formattingKeymap,
- * markdownKeymap, defaultKeymap, historyKeymap, indentWithTab), by
- * command, so the sheet can't promise a binding the editor doesn't have.
+ * the very keymap EditorPane.vue installs (`editorKeymap`), by command, so the sheet can't promise a binding the editor doesn't have.
  * The few shortcuts handled outside CodeMirror (print, preview zoom,
  * posting a comment) are listed with the key their handler checks.
  */
@@ -32,7 +31,7 @@ export interface ShortcutGroup {
   rows: ShortcutRow[]
 }
 
-const EDITOR_KEYMAPS: readonly (readonly KeyBinding[])[] = [formattingKeymap, markdownKeymap, defaultKeymap, historyKeymap, [indentWithTab]]
+const EDITOR_KEYMAPS: readonly (readonly KeyBinding[])[] = [editorKeymap]
 
 /** The binding's key on `platform` (CodeMirror's own platform overrides), or null. */
 function keyOn(b: KeyBinding, platform: ShortcutPlatform): string | null {
@@ -98,8 +97,8 @@ export function shortcutGroups(platform: ShortcutPlatform): ShortcutGroup[] {
     {
       titleKey: 'shortcuts.groups.edit',
       rows: [
-        { labelKey: 'menubar.edit.undo', combos: present(cmd(undo)) },
-        { labelKey: 'menubar.edit.redo', combos: present(cmd(redo)) },
+        { labelKey: 'menubar.edit.undo', combos: present(cmd(collabUndo)) },
+        { labelKey: 'menubar.edit.redo', combos: present(cmd(collabRedo)) },
         { labelKey: 'shortcuts.continueList', combos: present(cmd(insertNewlineContinueMarkup)) },
         { labelKey: 'shortcuts.indent', combos: present(tab(false), tab(true)) },
         { labelKey: 'shortcuts.blankLine', combos: present(cmd(insertBlankLine)) },

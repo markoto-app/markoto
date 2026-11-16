@@ -23,7 +23,8 @@ import {
 //   - Subscription: plan, seats in use, renewal date, payment problems,
 //     seat changes, plan / billing-period switch, the Stripe portal
 //     (invoices, card, cancel), and the pooled AI budget with each
-//     member's spend and limit.
+//     member's spend and limit. A cancelled plan that still runs offers
+//     "Resume plan" instead of the seat and plan changes.
 // Members never see this tab: they never see a price.
 
 const props = defineProps<{
@@ -91,6 +92,11 @@ const sub = computed(() => overview.value?.subscription ?? null)
 /** A subscription Stripe still holds (entitled, or in dunning / ending). */
 const hasLiveSubscription = computed(() => sub.value !== null && sub.value.status !== 'incomplete' && sub.value.status !== 'incomplete_expired' && sub.value.status !== 'canceled')
 const paymentProblem = computed(() => sub.value?.paymentOverdue === true)
+// Cancelled in the portal but still running until `cancelAt`: no plan,
+// billing-period or seat changes, only "Resume plan" (the billing admin,
+// or any admin of a plan whose billing admin left).
+const ending = computed(() => !!sub.value?.cancelAt)
+const canResume = computed(() => ending.value && (overview.value?.isBillingAdmin === true || sub.value?.billingAdminId === null))
 
 const plan = ref<'team' | 'business'>('team')
 const interval = ref<BillingInterval>('month')
@@ -148,7 +154,7 @@ async function startCheckout() {
 // the server keeps the other one as the subscription has it, so a tab
 // that shows an older state can't reset it.
 async function changePlan(next: { plan: 'team' | 'business' } | { interval: BillingInterval }) {
-  if (!sub.value || !paidTermsAccepted.value) return
+  if (!sub.value || ending.value || !paidTermsAccepted.value) return
   busy.value = 'plan'
   try {
     await apiFetch('/api/workspaces/:wsId/billing/checkout', {
@@ -166,7 +172,7 @@ async function changePlan(next: { plan: 'team' | 'business' } | { interval: Bill
 }
 
 async function saveSeats() {
-  if (!sub.value || seatsDraft.value === sub.value.seats) return
+  if (!sub.value || ending.value || seatsDraft.value === sub.value.seats) return
   busy.value = 'seats'
   try {
     await apiFetch('/api/workspaces/:wsId/billing/seats', { method: 'post', path: { wsId: props.workspaceId }, body: { seats: seatsDraft.value } })
@@ -174,6 +180,19 @@ async function saveSeats() {
     await refreshAfterChange()
   } catch (e) {
     showError('workspace.billing.seatsChangeFailed', e)
+  } finally {
+    busy.value = null
+  }
+}
+
+async function resumePlan() {
+  busy.value = 'resume'
+  try {
+    await apiFetch('/api/workspaces/:wsId/billing/resume', { method: 'post', path: { wsId: props.workspaceId } })
+    toast.add({ title: t('workspace.billing.resumed'), icon: 'i-lucide-check', color: 'neutral' })
+    await refreshAfterChange()
+  } catch (e) {
+    showError('workspace.billing.resumeFailed', e)
   } finally {
     busy.value = null
   }
@@ -396,17 +415,36 @@ function points(usd: number | null | undefined): string {
               >
                 {{ t('workspace.billing.renews', { date: fmtDate(sub.validUntil) }) }}
               </p>
+              <p
+                v-if="ending && !canResume"
+                class="text-xs text-muted mt-1"
+                data-testid="workspace-billing-resume-admin-only"
+              >
+                {{ t('workspace.billing.resumeBillingAdminOnly') }}
+              </p>
             </div>
-            <UButton
-              color="neutral"
-              variant="outline"
-              icon="i-lucide-external-link"
-              :loading="busy === 'portal'"
-              data-testid="workspace-billing-portal"
-              @click="openPortal"
-            >
-              {{ t('workspace.billing.manage') }}
-            </UButton>
+            <div class="flex gap-2 flex-wrap">
+              <UButton
+                v-if="canResume"
+                color="neutral"
+                icon="i-lucide-rotate-ccw"
+                :loading="busy === 'resume'"
+                data-testid="workspace-billing-resume"
+                @click="resumePlan"
+              >
+                {{ t('workspace.billing.resume') }}
+              </UButton>
+              <UButton
+                color="neutral"
+                variant="outline"
+                icon="i-lucide-external-link"
+                :loading="busy === 'portal'"
+                data-testid="workspace-billing-portal"
+                @click="openPortal"
+              >
+                {{ t('workspace.billing.manage') }}
+              </UButton>
+            </div>
           </div>
 
           <div class="flex items-end gap-3 flex-wrap border-t border-default pt-4">
@@ -419,12 +457,13 @@ function points(usd: number | null | undefined): string {
                 color="neutral"
                 :min="minSeats"
                 :max="1000"
+                :disabled="ending"
                 data-testid="workspace-billing-seats"
               />
             </UFormField>
             <UButton
               color="neutral"
-              :disabled="seatsDraft === sub.seats"
+              :disabled="ending || seatsDraft === sub.seats"
               :loading="busy === 'seats'"
               data-testid="workspace-billing-save-seats"
               @click="saveSeats"
@@ -432,11 +471,18 @@ function points(usd: number | null | undefined): string {
               {{ t('workspace.billing.updateSeats') }}
             </UButton>
           </div>
-          <p class="text-xs text-muted">
-            {{ t('workspace.billing.seatsFootnote') }}
+          <p
+            class="text-xs text-muted"
+            data-testid="workspace-billing-seats-note"
+          >
+            {{ ending ? t('workspace.billing.endingSeatsHint') : t('workspace.billing.seatsFootnote') }}
           </p>
 
-          <div class="flex gap-2 flex-wrap border-t border-default pt-4">
+          <div
+            v-if="!ending"
+            class="flex gap-2 flex-wrap border-t border-default pt-4"
+            data-testid="workspace-billing-switches"
+          >
             <PricingPaidTermsConsent
               v-model="paidTermsAccepted"
               kind="plan"

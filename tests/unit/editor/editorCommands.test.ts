@@ -10,6 +10,7 @@ import {
   toggleOrderedList,
   insertTable,
   insertBlock,
+  insertBlockAtCursor,
   insertFootnote,
   insertAlert,
   insertMath,
@@ -472,6 +473,38 @@ describe('insertBlock', () => {
     const v = makeView('', 0)
     insertBlock(v, '<!-- hello -->')
     expect(text(v)).toContain('<!-- hello -->')
+  })
+})
+
+describe('insertBlockAtCursor (generated images)', () => {
+  const IMG = '![A lighthouse](/api/files/d/x.jpg)'
+
+  it('an empty document gets just the image', () => {
+    const v = makeView('', 0)
+    insertBlockAtCursor(v, IMG)
+    expect(text(v)).toBe(`${IMG}\n`)
+    expect(cursorAt(v)).toBe(text(v).length)
+  })
+
+  it('mid-paragraph: its own paragraph with a blank line on each side', () => {
+    const v = makeView('First half. Second half.', 12)
+    insertBlockAtCursor(v, IMG)
+    expect(text(v)).toBe(`First half. \n\n${IMG}\n\nSecond half.`)
+  })
+
+  it('never doubles a blank line that is already there', () => {
+    const v = makeView('# Title\n\n\n\nText.', 9)
+    insertBlockAtCursor(v, IMG)
+    expect(text(v)).toBe(`# Title\n\n${IMG}\n\nText.`)
+    const end = makeView('Last line.\n')
+    insertBlockAtCursor(end, IMG)
+    expect(text(end)).toBe(`Last line.\n\n${IMG}\n`)
+  })
+
+  it('replaces a selection', () => {
+    const v = makeView('Keep. Replace me. Keep.', { from: 6, to: 17 })
+    insertBlockAtCursor(v, IMG)
+    expect(text(v)).toBe(`Keep. \n\n${IMG}\n\n Keep.`)
   })
 })
 

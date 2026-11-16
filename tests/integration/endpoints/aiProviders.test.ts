@@ -350,6 +350,52 @@ describe('BYOK round trips through LiteLLM', () => {
     expect(imageCalls[0]?.model).toBe('fake-image')
   })
 
+  it('image by hand: "Generate image with AI" runs the same generation on the user\'s key and logs it as theirs', async () => {
+    const u = await byokUser()
+    const doc = await createDoc({ ownerId: u.id })
+    const client = await loggedInClient(u.id)
+    const key = uniqueKey('image')
+    expect((await saveProvider(client, 'image', { baseUrl: FAKE, model: 'fake-image', apiKey: key })).status).toBe(200)
+    const avail: { image: { platformBilled: boolean, pricePerImageUsd: number | null } } = await (await client.get('/api/ai/availability')).json()
+    expect(avail.image).toMatchObject({ platformBilled: false, pricePerImageUsd: null })
+
+    await resetFake()
+    const path = `/api/docs/${doc.docId}/images/generate`
+    expect((await client.post(path, { prompt: 'a lighthouse', size: 'huge' })).status).toBe(400)
+    expect((await client.post(path, { prompt: '   ', size: 'square' })).status).toBe(400)
+    expect((await anonClient().post(path, { prompt: 'a lighthouse', size: 'square' })).status).toBe(401)
+
+    const res = await client.post(path, { prompt: 'a lighthouse at dusk', size: 'landscape' })
+    const body: { markdown: string, url: string } = await res.json()
+    expect(res.status, JSON.stringify(body)).toBe(200)
+    expect(body.url).toMatch(new RegExp(`^/api/files/${doc.docId}/[\\w-]+\\.png$`))
+    expect(body.markdown).toBe(`![a lighthouse at dusk](${body.url})`)
+    const imageCalls = (await fakeRequests()).filter(r => r.keySuffix === key.slice(-6) && r.path.startsWith('/v1/images/generations'))
+    expect(imageCalls.map(c => c.model)).toEqual(['fake-image'])
+
+    // An upload of the document, by the user; an activity row in their name.
+    const upload = await testDb().query<{ uploader_id: number, confirmed: boolean }>('SELECT uploader_id, confirmed_at IS NOT NULL AS confirmed FROM uploads WHERE doc_id = $1', [doc.docId])
+    expect(upload.rows).toEqual([{ uploader_id: u.id, confirmed: true }])
+    const activity = await testDb().query<{ user_id: number, action: string, metadata: { tool: string, prompt: string } }>(
+      'SELECT user_id, action, metadata FROM activity_log WHERE doc_id = $1 AND action = $2', [doc.docId, 'ai.tool'])
+    expect(activity.rows).toEqual([expect.objectContaining({ user_id: u.id, metadata: expect.objectContaining({ tool: 'generate_image', prompt: 'a lighthouse at dusk' }) })])
+  })
+
+  it('image by hand: someone who can only read the document is refused; no provider → ai/provider-missing', async () => {
+    const owner = await byokUser()
+    const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-view' })
+    const reader = await byokUser()
+    const res = await (await loggedInClient(reader.id)).post(`/api/docs/${doc.docId}/images/generate`, { prompt: 'x', size: 'square' })
+    expect(res.status).toBe(403)
+
+    // The billing-off twin has no instance default: nothing generates images.
+    const own = await createDoc({ ownerId: owner.id })
+    const twin = await loggedInClient(owner.id, undefined, TEST_BILLING_OFF_BASE_URL)
+    const missing = await twin.post(`/api/docs/${own.docId}/images/generate`, { prompt: 'a lighthouse', size: 'square' })
+    expect(missing.status).toBe(409)
+    expect(((await missing.json()) as ErrorBody).data?.code).toBe('ai/provider-missing')
+  })
+
   it('transcription: the voice prompt uses the user\'s /audio/transcriptions', async () => {
     const u = await byokUser()
     const client = await loggedInClient(u.id)

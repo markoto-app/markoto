@@ -2,6 +2,7 @@
 // (server/api/ai/**, server/api/docs/[docId]/comments/**, server/api/upload/**).
 import { z } from 'zod'
 import { ID_RE } from '../config/identifiers'
+import { IMAGE_PROMPT_MAX_LENGTH, IMAGE_SIZE_NAMES } from '../ai/imageGeneration'
 
 /** Longest accepted comment / reply id (ids are minted client-side in the Y.Array). */
 const COMMENT_ID_MAX = 64
@@ -22,6 +23,12 @@ export const aiAvailabilityQuery = z.object({ workspaceId: advisoryWorkspaceId }
 
 /** GET /api/ai/credits. Any workspace id is accepted; membership is checked by the handler. */
 export const aiCreditsQuery = z.object({ workspaceId: z.string().optional().catch(undefined) })
+
+/** POST /api/docs/:docId/images/generate (the editor's "Generate image with AI"). */
+export const generateImageBody = z.object({
+  prompt: z.string().trim().min(1).max(IMAGE_PROMPT_MAX_LENGTH),
+  size: z.enum(IMAGE_SIZE_NAMES)
+})
 
 /** POST /api/ai/dictate/token */
 export const dictateTokenBody = z.object({ docId: z.string().min(1) })

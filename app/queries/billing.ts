@@ -89,3 +89,16 @@ export function useSwitchProInterval() {
     onSuccess: () => invalidate(cache, billingKeys.user(), aiKeys.credits())
   })
 }
+
+/**
+ * Take back the cancellation of the caller's Pro plan while it still
+ * runs; it renews again. The plan snapshot is re-read so the page shows
+ * the renewal date instead of the end date.
+ */
+export function useResumeProPlan() {
+  const cache = useQueryCache()
+  return useMutation({
+    mutation: () => apiFetch('/api/billing/resume', { method: 'post' }),
+    onSuccess: () => invalidate(cache, billingKeys.user())
+  })
+}

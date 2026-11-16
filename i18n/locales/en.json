@@ -1633,7 +1633,12 @@
         "subscriptionActive": "This workspace still has a running subscription. Contact support to delete it.",
         "seatsBusy": "Another seat change or invitation is in progress. Please try again in a moment."
       },
-      "limitPointsLabel": "Limit in AI Points"
+      "limitPointsLabel": "Limit in AI Points",
+      "resume": "Resume plan",
+      "resumed": "Plan resumed. It renews again.",
+      "resumeFailed": "Could not resume the plan",
+      "resumeBillingAdminOnly": "Only the billing admin can resume it.",
+      "endingSeatsHint": "Resume the plan to change seats."
     },
     "dpa": {
       "staleTitle": "Data Processing Addendum updated: please review again",
@@ -2678,7 +2683,8 @@
       "workspace_brand_lock_changed": "Workspace design lock changed",
       "workspace_template_added": "Template added",
       "workspace_template_removed": "Template removed",
-      "doc_share_settings_changed": "Link settings changed"
+      "doc_share_settings_changed": "Link settings changed",
+      "workspace_billing_plan_resumed": "Plan resumed"
     },
     "planNotice": "The audit log is part of the Business plan."
   },
@@ -2860,5 +2866,24 @@
     "home": "Back to the home page",
     "source": "Source on GitHub",
     "captionsLabel": "English (on-screen text)"
+  },
+  "aiImage": {
+    "menu": "Generate image with AI",
+    "menuShort": "AI image",
+    "title": "Generate image",
+    "promptLabel": "Description",
+    "promptPlaceholder": "A watercolour of a lighthouse at dusk",
+    "sizeLabel": "Format",
+    "size": {
+      "square": "Square",
+      "landscape": "Landscape",
+      "portrait": "Portrait"
+    },
+    "cost": "Costs about {points} AI Points.",
+    "costUnknown": "Uses AI Points.",
+    "ownKey": "Runs on your own image provider.",
+    "generate": "Generate",
+    "generating": "Generating…",
+    "failed": "Could not generate the image"
   }
 }

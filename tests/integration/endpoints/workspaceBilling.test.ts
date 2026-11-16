@@ -65,11 +65,11 @@ describe('workspace billing: access', () => {
     expect(body.members).toHaveLength(2)
   })
 
-  it('billing off: checkout / seats / portal answer 404 billing/disabled; the overview still works', async () => {
+  it('billing off: checkout / seats / portal / resume answer 404 billing/disabled; the overview still works', async () => {
     const admin = await createUser()
     const ws = await createWorkspace(admin.id)
     const client = await loggedInClient(admin.id, undefined, TEST_BILLING_OFF_BASE_URL)
-    for (const [path, body] of [['checkout', { plan: 'team', seats: 3 }], ['seats', { seats: 4 }], ['portal', {}]] as const) {
+    for (const [path, body] of [['checkout', { plan: 'team', seats: 3 }], ['seats', { seats: 4 }], ['portal', {}], ['resume', {}]] as const) {
       const res = await client.post(`/api/workspaces/${ws.workspaceId}/billing/${path}`, body)
       expect(res.status, path).toBe(404)
       expect((await res.json() as { data?: { code?: string } }).data?.code, path).toBe('billing/disabled')
@@ -199,6 +199,49 @@ describe('POST /api/workspaces/:wsId/billing/seats', () => {
     const ok = await client.post(`/api/workspaces/${ws.workspaceId}/billing/seats`, { seats: 4 })
     expect(ok.status).toBe(200)
     expect((await readSub(ws.workspaceId))?.seats).toBe(4)
+  })
+})
+
+describe('POST /api/workspaces/:wsId/billing/resume', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('409 without a subscription, 403 for an admin who does not pay; the billing admin resumes the plan', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const client = await loggedInClient(admin.id)
+    const path = `/api/workspaces/${ws.workspaceId}/billing/resume`
+    const none = await client.post(path, {})
+    expect(none.status).toBe(409)
+    expect((await none.json() as { data?: { code?: string } }).data?.code).toBe('billing/no-subscription')
+
+    const payer = await createUser()
+    await setMemberRole(ws.workspaceId, payer.id, 'admin')
+    await seedSubscription(ws.workspaceId, { adminId: payer.id })
+    const notPayer = await client.post(path, {})
+    expect(notPayer.status).toBe(403)
+    expect((await notPayer.json() as { data?: { code?: string } }).data?.code).toBe('billing/admin-required')
+    const [editorId] = await addMembers(ws.workspaceId, 1)
+    expect((await (await loggedInClient(editorId!)).post(path, {})).status).toBe(403)
+
+    // stripe-mock's canned subscription carries a `cancel_at`: it is taken
+    // back in Stripe and the row renews again at once, before any webhook.
+    await testDb().query('UPDATE workspace_subscriptions SET cancel_at = $1 WHERE workspace_id = $2', [FUTURE, ws.workspaceId])
+    const ok = await (await loggedInClient(payer.id)).post(path, {})
+    expect(ok.status).toBe(200)
+    expect(await ok.json()).toEqual({ resumed: true })
+    expect((await readSub(ws.workspaceId))?.cancel_at).toBeNull()
+    const audit = await testDb().query<{ action: string, actor_user_id: number }>('SELECT action, actor_user_id FROM audit_log WHERE scope_id = $1 AND action = $2', [ws.workspaceId, 'workspace.billing_plan_resumed'])
+    expect(audit.rows).toEqual([{ action: 'workspace.billing_plan_resumed', actor_user_id: payer.id }])
+  })
+
+  it('a plan without a billing admin can be resumed by any workspace admin', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    await seedSubscription(ws.workspaceId)
+    const res = await (await loggedInClient(admin.id)).post(`/api/workspaces/${ws.workspaceId}/billing/resume`, {})
+    expect(res.status).toBe(200)
   })
 })
 

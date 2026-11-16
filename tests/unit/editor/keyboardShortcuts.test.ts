@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { moveLineUp, redo, toggleComment, undo } from '@codemirror/commands'
+import { moveLineUp, toggleComment } from '@codemirror/commands'
+import { collabRedo as redo, collabUndo as undo } from '../../../app/utils/editor/collabHistory'
 import { comboKeys, keyForCommand, shortcutGroups, type ShortcutPlatform } from '../../../app/utils/editor/keyboardShortcuts'
 
 // Help → Keyboard shortcuts must only list bindings the editor really has.

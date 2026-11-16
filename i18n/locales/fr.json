@@ -1633,7 +1633,12 @@
         "subscriptionActive": "Cet espace a encore un abonnement en cours. Contactez le support pour le supprimer.",
         "seatsBusy": "Une autre modification des places ou invitation est en cours. Réessayez dans un instant."
       },
-      "limitPointsLabel": "Limite en points IA"
+      "limitPointsLabel": "Limite en points IA",
+      "resume": "Annuler la résiliation",
+      "resumed": "Résiliation annulée. Le plan se renouvelle à nouveau.",
+      "resumeFailed": "Impossible d’annuler la résiliation",
+      "resumeBillingAdminOnly": "Seule la personne qui paie peut l’annuler.",
+      "endingSeatsHint": "Annulez la résiliation pour modifier les places."
     },
     "dpa": {
       "staleTitle": "Avenant de traitement des données mis à jour : veuillez le relire",
@@ -2678,7 +2683,8 @@
       "workspace_brand_lock_changed": "Verrouillage du design de l’espace de travail modifié",
       "workspace_template_added": "Modèle ajouté",
       "workspace_template_removed": "Modèle supprimé",
-      "doc_share_settings_changed": "Paramètres du lien modifiés"
+      "doc_share_settings_changed": "Paramètres du lien modifiés",
+      "workspace_billing_plan_resumed": "Résiliation annulée"
     },
     "planNotice": "Le journal d’audit fait partie du plan Business."
   },
@@ -2860,5 +2866,24 @@
     "home": "Retour à l’accueil",
     "source": "Code source sur GitHub",
     "captionsLabel": "Anglais (texte à l’écran)"
+  },
+  "aiImage": {
+    "menu": "Générer une image avec l’IA",
+    "menuShort": "Image IA",
+    "title": "Générer une image",
+    "promptLabel": "Description",
+    "promptPlaceholder": "Une aquarelle d’un phare au crépuscule",
+    "sizeLabel": "Format",
+    "size": {
+      "square": "Carré",
+      "landscape": "Paysage",
+      "portrait": "Portrait"
+    },
+    "cost": "Coûte environ {points} points IA.",
+    "costUnknown": "Utilise des points IA.",
+    "ownKey": "Utilise votre propre fournisseur d’images.",
+    "generate": "Générer",
+    "generating": "Génération…",
+    "failed": "Impossible de générer l’image"
   }
 }

@@ -1633,7 +1633,12 @@
         "subscriptionActive": "Este espacio todavía tiene una suscripción activa. Contacta con soporte para eliminarlo.",
         "seatsBusy": "Hay otro cambio de puestos o invitación en curso. Inténtalo de nuevo en un momento."
       },
-      "limitPointsLabel": "Límite en puntos de IA"
+      "limitPointsLabel": "Límite en puntos de IA",
+      "resume": "Anular la cancelación",
+      "resumed": "Cancelación anulada. El plan vuelve a renovarse.",
+      "resumeFailed": "No se pudo anular la cancelación",
+      "resumeBillingAdminOnly": "Solo quien paga puede anularla.",
+      "endingSeatsHint": "Anula la cancelación para cambiar los puestos."
     },
     "dpa": {
       "staleTitle": "Anexo de Tratamiento de Datos actualizado: revísalo de nuevo",
@@ -2678,7 +2683,8 @@
       "workspace_brand_lock_changed": "Bloqueo del diseño del espacio de trabajo modificado",
       "workspace_template_added": "Plantilla añadida",
       "workspace_template_removed": "Plantilla eliminada",
-      "doc_share_settings_changed": "Ajustes del enlace modificados"
+      "doc_share_settings_changed": "Ajustes del enlace modificados",
+      "workspace_billing_plan_resumed": "Cancelación anulada"
     },
     "planNotice": "El registro de auditoría forma parte del plan Business."
   },
@@ -2860,5 +2866,24 @@
     "home": "Volver a la página de inicio",
     "source": "Código fuente en GitHub",
     "captionsLabel": "Inglés (texto en pantalla)"
+  },
+  "aiImage": {
+    "menu": "Generar imagen con IA",
+    "menuShort": "Imagen IA",
+    "title": "Generar imagen",
+    "promptLabel": "Descripción",
+    "promptPlaceholder": "Una acuarela de un faro al atardecer",
+    "sizeLabel": "Formato",
+    "size": {
+      "square": "Cuadrado",
+      "landscape": "Horizontal",
+      "portrait": "Vertical"
+    },
+    "cost": "Cuesta unos {points} puntos de IA.",
+    "costUnknown": "Usa puntos de IA.",
+    "ownKey": "Usa tu propio proveedor de imágenes.",
+    "generate": "Generar",
+    "generating": "Generando…",
+    "failed": "No se pudo generar la imagen"
   }
 }

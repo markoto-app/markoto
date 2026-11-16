@@ -28,13 +28,14 @@ async function readJson(event: H3Event) {
   const { readBody } = await import('h3')
   return readBody(event)
 }
-for (const path of ['checkout', 'seats', 'portal']) {
+for (const path of ['checkout', 'seats', 'portal', 'resume']) {
   registerEndpoint(`/api/workspaces/ws1/billing/${path}`, {
     method: 'POST',
     handler: async (event) => {
       const body = await readJson(event)
       posts.push({ path, body })
       afterPost?.(path, body)
+      if (path === 'resume') return { resumed: true }
       return path === 'checkout' ? { url: 'https://checkout.stripe.test/s/1' } : path === 'portal' ? { url: 'https://portal.stripe.test' } : { seats: 9 }
     }
   })
@@ -229,6 +230,40 @@ describe('workspace billing tab: subscription', () => {
     const ending = await mountPanel()
     expect(ending.find('[data-testid="workspace-billing-ends"]').text()).toContain('Ends on')
     expect(ending.find('[data-testid="workspace-billing-renews"]').exists()).toBe(false)
+  })
+
+  it('a cancelled plan that still runs offers no seat or plan change, only "Resume plan"', async () => {
+    overview.subscription!.cancelAt = '2027-02-01T00:00:00Z'
+    afterPost = (path) => {
+      if (path === 'resume') overview.subscription = { ...overview.subscription!, cancelAt: null }
+    }
+    const wrapper = await mountPanel()
+    expect(wrapper.find('[data-testid="workspace-billing-switches"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="workspace-billing-save-seats"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[data-testid="workspace-billing-seats-note"]').text()).toContain('Resume the plan to change seats')
+
+    await wrapper.get('[data-testid="workspace-billing-resume"]').trigger('click')
+    await flushPromises()
+    expect(posts.map(p => p.path)).toEqual(['resume'])
+    // Renewing again: the date line, the seat and plan controls come back.
+    await vi.waitFor(() => expect(wrapper.find('[data-testid="workspace-billing-renews"]').exists()).toBe(true))
+    expect(wrapper.find('[data-testid="workspace-billing-resume"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="workspace-billing-switches"]').exists()).toBe(true)
+    expect(wrapper.emitted('changed')).toHaveLength(1)
+  })
+
+  it('only the billing admin can resume a cancelled plan', async () => {
+    overview.subscription!.cancelAt = '2027-02-01T00:00:00Z'
+    overview.subscription!.billingAdminId = 7
+    overview.isBillingAdmin = false
+    const wrapper = await mountPanel()
+    expect(wrapper.find('[data-testid="workspace-billing-resume"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="workspace-billing-resume-admin-only"]').text()).toContain('Only the billing admin')
+
+    // A plan whose billing admin left: any admin may resume it.
+    overview.subscription!.billingAdminId = null
+    const orphaned = await mountPanel()
+    expect(orphaned.find('[data-testid="workspace-billing-resume"]').exists()).toBe(true)
   })
 
   it('saves "no limit" for a member as limitUsd: null', async () => {

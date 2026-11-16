@@ -249,32 +249,33 @@ describe('insert_text', () => {
       insert_text: 'hello\n'
     })
     expect(res.isError).toBe(false)
-    expect(ytext.toString()).toBe('hello\nworld\n')
+    // A new paragraph gets its blank line (blockSpacedInsertText).
+    expect(ytext.toString()).toBe('hello\n\nworld\n')
   })
 
   it('insert_line=N inserts after line N', async () => {
-    const { session, ytext } = makeSession('a\nb\nc')
+    const { session, ytext } = makeSession('- a\n- b\n- c')
     const res = await executeFunctionByName(session, 'insert_text', {
       insert_line: 1,
-      insert_text: 'X'
+      insert_text: '- X'
     })
     expect(res.isError).toBe(false)
-    // After line 1 means right before line 2 → "a\nX\nb\nc".
-    expect(ytext.toString()).toBe('a\nX\nb\nc')
+    // After line 1 means right before line 2; items of one list stay together.
+    expect(ytext.toString()).toBe('- a\n- X\n- b\n- c')
   })
 
   it('insert_line === lines.length appends at end (regression for off-by-one)', async () => {
     // The insert position must be clamped to the true end: the loop added "+1 for newline" after the last line even
     // though there's no trailing newline, so the position overshot by 1 and, depending on yjs's bounds handling,
     // silently put content in the wrong place. The `Math.min(idx, full.length)` clamp in handleInsert pins this to
-    // the true end.
+    // the true end. The text starts a new block there instead of joining the last line.
     const { session, ytext } = makeSession('hello\nworld')
     const res = await executeFunctionByName(session, 'insert_text', {
       insert_line: 2,
       insert_text: '!'
     })
     expect(res.isError).toBe(false)
-    expect(ytext.toString()).toBe('hello\nworld!\n')
+    expect(ytext.toString()).toBe('hello\nworld\n\n!\n')
   })
 
   it('insert_line === lines.length on doc with trailing newline appends cleanly', async () => {
@@ -285,7 +286,7 @@ describe('insert_text', () => {
       insert_text: '!'
     })
     expect(res.isError).toBe(false)
-    expect(ytext.toString()).toBe('hello\nworld\n!\n')
+    expect(ytext.toString()).toBe('hello\nworld\n\n!\n')
   })
 
   it('insert_line > lines.length errors', async () => {
@@ -310,23 +311,23 @@ describe('insert_text', () => {
   })
 
   it('appends auto-newline if insert_text does not end with \\n', async () => {
-    const { session, ytext } = makeSession('a\n')
+    const { session, ytext } = makeSession('- a\n')
     await executeFunctionByName(session, 'insert_text', {
       insert_line: 0,
-      insert_text: 'X' // no trailing \n
+      insert_text: '- X' // no trailing \n
     })
-    expect(ytext.toString()).toBe('X\na\n')
+    expect(ytext.toString()).toBe('- X\n- a\n')
   })
 
   it('does NOT double-append \\n if insert_text already has one', async () => {
-    const { session, ytext } = makeSession('a\n')
+    const { session, ytext } = makeSession('- a\n')
     await executeFunctionByName(session, 'insert_text', {
       insert_line: 0,
-      insert_text: 'X\n'
+      insert_text: '- X\n'
     })
-    expect(ytext.toString()).toBe('X\na\n')
-    // Specifically: no "X\n\n..." sequence.
-    expect(ytext.toString()).not.toContain('X\n\n')
+    expect(ytext.toString()).toBe('- X\n- a\n')
+    // Specifically: no "- X\n\n..." sequence.
+    expect(ytext.toString()).not.toContain('- X\n\n')
   })
 
   it('tags transaction with ai:assistant:{sessionId} origin', async () => {

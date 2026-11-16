@@ -72,6 +72,7 @@ Every tool is one definition (`server/utils/ai/tools/toolDefinition.ts`): name, 
 6. **URLs**: a tool that takes a URL must call `assertSafeUrl` (`server/utils/agentic/urlGuard.ts`); if the app itself fetches the URL, use `server/utils/platform/safeFetch.ts`.
 7. **MCP**: add a wrapper in `server/mcp/tools/` and a class in `server/mcp/lib/toolClasses.ts` if external clients should have it ([mcp.md](mcp.md)).
 8. **Privacy**: a tool that sends personal data to a new provider needs registry updates ([privacy-registries.md](privacy-registries.md)).
+9. **By hand**: everything the AI can do, a user can do manually. Give the editor a control that calls a route running the tool's own code, not a copy: Insert → "Generate image with AI" (`POST /api/docs/:docId/images/generate`) runs `generateDocumentImage`, the core of `generate_image`, with the same provider, plan, budget and quota checks.
 
 Schema tips: some providers reject Zod tuples, so use `z.array(...).min(n).max(n)`; put `.trim()` before `.min(1)`; prefer a `.refine` with a clear message over a runtime check in the handler, so the model can correct itself.
 

@@ -4,6 +4,7 @@ import { docSizeWarning as computeDocSizeWarning } from '~~/shared/utils/documen
 import { normalizeAwarenessStates, normalizeAwarenessUser } from '~~/shared/utils/documents/awarenessUser'
 import { useDocumentMeta } from './documentMeta'
 import { createHiddenTabPause } from '~/utils/collab/hiddenTabPause'
+import { TEMPLATE_SEED_ORIGIN } from '~/utils/editor/collabHistory'
 
 /**
  * The sync server URL as this browser reaches it. A configured
@@ -118,6 +119,8 @@ export function useDocument(docId: string) {
   const awareness = createAwareness(ydoc)
   exposeTestHandles(ydoc, ytext, awareness)
 
+  // Tracks this tab's own edits only: synced and AI updates carry the
+  // provider as origin, the template seed its own origin.
   const undoManager = new Y.UndoManager(ytext)
 
   const { loggedIn, user: sessionUser } = useUserSession()
@@ -187,7 +190,8 @@ export function useDocument(docId: string) {
     // on doc.language; `blank` renders to null and the document stays empty.
     const seed = tokenState.initialBody.value
     if (seed && ytext.length === 0 && !tokenState.isReadOnly.value) {
-      ytext.insert(0, seed)
+      // Not undoable: undo must never take back the starting text.
+      ydoc.transact(() => ytext.insert(0, seed), TEMPLATE_SEED_ORIGIN)
     }
   }
 
