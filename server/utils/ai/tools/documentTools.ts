@@ -1,7 +1,7 @@
 import { aiStatus } from '~~/shared/ai/statusSteps'
 import { z } from 'zod'
 import { defineDocTool, toolError, toolOk, type ToolResult } from './toolDefinition'
-import { describeEditedRegion, findIndexOfOnlyMatch, lineToCharOffset, withLineNumbers } from './documentText'
+import { blockSpacedInsertText, describeEditedRegion, findIndexOfOnlyMatch, lineToCharOffset, withLineNumbers } from './documentText'
 import { writeAccessOf, type DocToolContext } from '../../agentic/toolContext'
 import { NO_OP_EDIT_ERROR_PREFIX } from '../../agentic/editProgress'
 import { updateDocMeta } from '../../../repos/documents'
@@ -129,8 +129,8 @@ function handleInsert(
   session.updateStatus('editing', aiStatus('applyInsert'))
 
   const origin = `ai:assistant:${session.sessionId}`
-  // Ensure the insertion itself ends with a newline so it forms clean lines.
-  const insertText = input.insert_text.endsWith('\n') ? input.insert_text : input.insert_text + '\n'
+  // Newline-terminated, with the blank lines a Markdown block needs around it.
+  const insertText = blockSpacedInsertText(full, idx, input.insert_text)
   session.ydoc.transact(() => {
     session.ytext.insert(idx, insertText)
   }, origin)
@@ -193,7 +193,7 @@ export const replaceTextTool = defineDocTool({
 
 export const insertTextTool = defineDocTool({
   name: 'insert_text',
-  description: 'Insert `insert_text` after line `insert_line` (1-indexed). Use insert_line=0 to insert at the very start of the document. The inserted text is newline-terminated automatically. Put any blank line you need INSIDE `insert_text` (e.g. "\\nNew paragraph."), never call this just to add empty lines. The result shows the inserted lines as they now read.',
+  description: 'Insert `insert_text` after line `insert_line` (1-indexed). Use insert_line=0 to insert at the very start of the document. The inserted text is newline-terminated automatically, and a blank line is added where a new block (heading, paragraph, list, image) meets other content. Never call this just to add empty lines. The result shows the inserted lines as they now read.',
   schema: InsertTextArgs,
   handler: handleInsert
 })

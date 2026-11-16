@@ -72,3 +72,68 @@ export function lineToCharOffset(full: string, insertLine: number): number | nul
   }
   return Math.min(idx, full.length)
 }
+
+// Lines that may follow each other without a blank line: list items, table
+// rows, quote lines. A blank line between two list items would turn a
+// tight list into a loose one.
+const LIST_ITEM_RE = /^([-*+]|\d{1,9}[.)])(\s|$)/
+const FENCE_RE = /^ {0,3}(`{3,}|~{3,})/
+
+function lineKind(line: string): 'list' | 'table' | 'quote' | 'other' {
+  if (LIST_ITEM_RE.test(line)) return 'list'
+  if (line.startsWith('|')) return 'table'
+  if (line.startsWith('>')) return 'quote'
+  return 'other'
+}
+
+/**
+ * Whether two adjacent lines belong to different blocks that need a blank
+ * line between them. Indented lines (nested lists, continuation lines,
+ * indented code) are left alone, as are lines of the same list, table or
+ * quote.
+ */
+function needsBlankLineBetween(above: string, below: string): boolean {
+  if (above.trim() === '' || below.trim() === '') return false
+  if (/^\s/.test(above) || /^\s/.test(below)) return false
+  const kind = lineKind(above)
+  return kind === 'other' || kind !== lineKind(below)
+}
+
+/** Whether `before` (text from the start of the document) ends inside a fenced code block. */
+function endsInsideCodeFence(before: string): boolean {
+  let open: string | null = null
+  for (const line of before.split('\n')) {
+    const fence = FENCE_RE.exec(line)?.[1]
+    if (!fence) continue
+    if (open === null) open = fence
+    else if (fence[0] === open[0] && fence.length >= open.length) open = null
+  }
+  return open !== null
+}
+
+/**
+ * The text `insert_text` writes at character offset `idx` of `full`: the
+ * model's text, newline-terminated, plus the blank lines a Markdown block
+ * needs on either side (a heading or paragraph written straight after the
+ * previous paragraph would otherwise follow it with a single newline).
+ * Never adds a blank line where there already is one, between items of
+ * the same list / table / quote, next to indented lines, or inside a
+ * fenced code block. An insertion at the end of a document without a
+ * trailing newline starts on a new line instead of joining the last one.
+ */
+export function blockSpacedInsertText(full: string, idx: number, text: string): string {
+  const body = text.endsWith('\n') ? text : text + '\n'
+  const before = full.slice(0, idx)
+  const prefix = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
+  if (body.trim() === '' || endsInsideCodeFence(before)) return prefix + body
+
+  const bodyLines = body.slice(0, -1).split('\n')
+  const firstInserted = bodyLines[0] ?? ''
+  const lastInserted = bodyLines[bodyLines.length - 1] ?? ''
+  const prevLine = before.length > 0 ? before.replace(/\n$/, '').split('\n').pop() ?? '' : null
+  const nextLine = idx < full.length ? full.slice(idx).split('\n')[0] ?? '' : null
+
+  const blankAbove = prevLine !== null && needsBlankLineBetween(prevLine, firstInserted) ? '\n' : ''
+  const blankBelow = nextLine !== null && needsBlankLineBetween(lastInserted, nextLine) ? '\n' : ''
+  return prefix + blankAbove + body + blankBelow
+}
