@@ -523,8 +523,9 @@ check_edge_auth() { # check_edge_auth LABEL CONFIG_JSON WANT(yes|no)
 }
 check_edge_auth "prod" "$tmp/salt-prod.json" no
 # The value as render-env.sh writes it: single-quoted, the bcrypt `$` literal.
-# shellcheck disable=SC2016 # a literal htpasswd line
-edge_users='staging:$2y$05$abcdefghijklmnopqrstuuJ0123456789abcdefghijklmnopqrst'
+# A placeholder in htpasswd shape (no real password behind it), assembled
+# here so secret scanners do not read it as a leaked hash.
+edge_users="staging:\$2y\$05\$$(printf 'x%.0s' {1..53})"
 { cat "$tmp/prod.env"; printf "EDGE_BASIC_AUTH_USERS='%s'\n" "$edge_users"; } > "$tmp/prod-edge.env"
 render_config "$tmp/edge-prod.json" "$tmp/prod-edge.env" "deploy/compose/compose.prod.yml"
 check_edge_auth "staging" "$tmp/edge-prod.json" yes
