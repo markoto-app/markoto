@@ -188,6 +188,30 @@ describe('profile: spending and usage of a Pro subscriber', () => {
     expect(ending.find('[data-testid="profile-plan-renews"]').exists()).toBe(false)
   })
 
+  it('a cancelled plan that still runs offers "Resume plan" instead of the billing-period switch', async () => {
+    const resumes: unknown[] = []
+    registerEndpoint('/api/billing/resume', {
+      method: 'POST',
+      handler: () => {
+        resumes.push(true)
+        billing = { ...billing, cancelAt: null }
+        return { resumed: true }
+      }
+    })
+    billing = proBilling({ cancelAt: '2027-02-01T00:00:00.000Z' })
+    useQueryCache().setQueryData<UserBilling>(billingKeys.user(), billing)
+    const wrapper = await mountProfile()
+    expect(wrapper.find('[data-testid="profile-interval-switch"]').exists()).toBe(false)
+
+    await wrapper.get('[data-testid="profile-resume-plan"]').trigger('click')
+    await flushPromises()
+    expect(resumes).toHaveLength(1)
+    await vi.waitFor(() => expect(wrapper.find('[data-testid="profile-plan-renews"]').exists()).toBe(true))
+    expect(wrapper.find('[data-testid="profile-resume-plan"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="profile-interval-switch"]').exists()).toBe(true)
+    expect(toastAdd).toHaveBeenCalledWith(expect.objectContaining({ title: 'Plan resumed. It renews again.' }))
+  })
+
   it('an overdue payment shows one notice with the way to the Stripe portal', async () => {
     registerEndpoint('/api/billing/portal', { method: 'POST', handler: () => ({ url: 'https://portal.stripe.test' }) })
     const paid = await mountProfile()

@@ -46,7 +46,7 @@ The request limits the app and the sync server enforce, with the file each value
 | Abuse report | signed in: 10 per user per hour; anonymous: 5 per client per hour and 20 per day | `shared/config/anonLimits.ts` |
 | Consent record | 20 per client per 10 minutes | `server/api/consent.post.ts` |
 | Waitlist sign-up | 5 per client per hour; 3 confirmation emails per address per day; confirm / unsubscribe 30 per client per 10 minutes | `server/api/waitlist/` |
-| Billing checkout, top-up, portal, seats | 10 per user per minute | `server/api/billing/`, `server/api/workspaces/[wsId]/billing/` |
+| Billing checkout, top-up, portal, seats, resume | 10 per user per minute | `server/api/billing/`, `server/api/workspaces/[wsId]/billing/` |
 | Workspace audit export | 10 per user per hour | `server/api/workspaces/[wsId]/audit/export.get.ts` |
 | SSO discovery | 20 per client per minute | `server/api/auth/sso/discover.post.ts` |
 | SSO settings / domain verification | 20 / 30 per user per 10 minutes | `server/api/workspaces/[wsId]/sso/` |

@@ -649,7 +649,7 @@
     "workspaceBudgetExhaustedTitle": "KI-Punkte des Workspace aufgebraucht",
     "workspaceBudgetExhaustedDescription": "Die KI-Punkte dieses Workspace sind für diesen Monat aufgebraucht. Frag einen Admin des Workspace nach mehr.",
     "workspaceExhaustedPlaceholder": "KI-Punkte des Workspace aufgebraucht: frag einen Admin",
-    "upgradeCta": "Upgrade",
+    "upgradeCta": "Tarife ansehen",
     "responseLabel": "markoto sagt",
     "responseQuestionLabel": "markoto fragt",
     "responseDismiss": "Verwerfen",
@@ -801,8 +801,8 @@
     "creditsHint": "KI-Punkte bezahlen die KI, die markoto für dich ausführt. Eine kurze Änderung braucht wenige, ein langer Text oder ein Bild mehr. KI mit deinem eigenen Schlüssel braucht keine Punkte.",
     "currentPlan": "Aktueller Tarif",
     "manageSubscription": "Abonnement verwalten",
-    "upgrade": "Upgrade",
-    "downgrade": "Downgrade",
+    "upgrade": "Wechseln",
+    "downgrade": "Wechseln",
     "signUp": "Registrieren",
     "close": "Schliessen",
     "footnote": "Alle Stufen umfassen Echtzeit-Zusammenarbeit, Versionsverlauf und unbegrenzte Dokumente. KI-Punkte werden monatlich aufgefüllt.",
@@ -1633,7 +1633,12 @@
         "subscriptionActive": "Dieser Workspace hat noch ein laufendes Abonnement. Wende dich an den Support, um ihn zu löschen.",
         "seatsBusy": "Gerade läuft eine andere Platzänderung oder Einladung. Bitte versuche es gleich noch einmal."
       },
-      "limitPointsLabel": "Limite in KI-Punkten"
+      "limitPointsLabel": "Limite in KI-Punkten",
+      "resume": "Kündigung zurücknehmen",
+      "resumed": "Kündigung zurückgenommen. Der Plan verlängert sich wieder.",
+      "resumeFailed": "Kündigung konnte nicht zurückgenommen werden",
+      "resumeBillingAdminOnly": "Nur die Person, die bezahlt, kann das zurücknehmen.",
+      "endingSeatsHint": "Nimm die Kündigung zurück, um Plätze zu ändern."
     },
     "dpa": {
       "staleTitle": "Auftragsverarbeitungsvertrag aktualisiert – bitte erneut prüfen",
@@ -2678,7 +2683,8 @@
       "workspace_brand_lock_changed": "Design-Sperre des Workspace geändert",
       "workspace_template_added": "Vorlage hinzugefügt",
       "workspace_template_removed": "Vorlage entfernt",
-      "doc_share_settings_changed": "Link-Einstellungen geändert"
+      "doc_share_settings_changed": "Link-Einstellungen geändert",
+      "workspace_billing_plan_resumed": "Kündigung zurückgenommen"
     },
     "planNotice": "Der Audit-Log ist Teil des Business-Plans."
   },

@@ -51,10 +51,10 @@ describe('billing off: billing endpoints are absent', () => {
     expect(res.status).toBe(200)
   })
 
-  it('checkout + portal answer 404 billing/disabled for a signed-in user', async () => {
+  it('checkout, portal and resume answer 404 billing/disabled for a signed-in user', async () => {
     const u = await createUser()
     const client = await loggedInClient(u.id, undefined, OFF)
-    for (const path of ['/api/billing/checkout', '/api/billing/portal']) {
+    for (const path of ['/api/billing/checkout', '/api/billing/portal', '/api/billing/resume']) {
       const res = await client.post(path, { plan: 'pro' })
       expect(res.status, path).toBe(404)
       const body = await res.json() as { data?: { code?: string } }

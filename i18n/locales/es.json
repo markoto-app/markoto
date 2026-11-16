@@ -1633,7 +1633,12 @@
         "subscriptionActive": "Este espacio todavía tiene una suscripción activa. Contacta con soporte para eliminarlo.",
         "seatsBusy": "Hay otro cambio de puestos o invitación en curso. Inténtalo de nuevo en un momento."
       },
-      "limitPointsLabel": "Límite en puntos de IA"
+      "limitPointsLabel": "Límite en puntos de IA",
+      "resume": "Anular la cancelación",
+      "resumed": "Cancelación anulada. El plan vuelve a renovarse.",
+      "resumeFailed": "No se pudo anular la cancelación",
+      "resumeBillingAdminOnly": "Solo quien paga puede anularla.",
+      "endingSeatsHint": "Anula la cancelación para cambiar los puestos."
     },
     "dpa": {
       "staleTitle": "Anexo de Tratamiento de Datos actualizado: revísalo de nuevo",
@@ -2678,7 +2683,8 @@
       "workspace_brand_lock_changed": "Bloqueo del diseño del espacio de trabajo modificado",
       "workspace_template_added": "Plantilla añadida",
       "workspace_template_removed": "Plantilla eliminada",
-      "doc_share_settings_changed": "Ajustes del enlace modificados"
+      "doc_share_settings_changed": "Ajustes del enlace modificados",
+      "workspace_billing_plan_resumed": "Cancelación anulada"
     },
     "planNotice": "El registro de auditoría forma parte del plan Business."
   },

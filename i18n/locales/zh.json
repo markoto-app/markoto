@@ -1633,7 +1633,12 @@
         "subscriptionActive": "此工作区仍有进行中的订阅。请联系支持以删除它。",
         "seatsBusy": "另一项席位变更或邀请正在进行中。请稍后再试。"
       },
-      "limitPointsLabel": "AI 点数上限"
+      "limitPointsLabel": "AI 点数上限",
+      "resume": "撤销取消",
+      "resumed": "已撤销取消，方案将继续续订。",
+      "resumeFailed": "无法撤销取消",
+      "resumeBillingAdminOnly": "只有付款人可以撤销。",
+      "endingSeatsHint": "撤销取消后才能更改席位。"
     },
     "dpa": {
       "staleTitle": "数据处理附录已更新，请重新查看",
@@ -2678,7 +2683,8 @@
       "workspace_brand_lock_changed": "工作区设计锁定已更改",
       "workspace_template_added": "已添加模板",
       "workspace_template_removed": "已删除模板",
-      "doc_share_settings_changed": "链接设置已更改"
+      "doc_share_settings_changed": "链接设置已更改",
+      "workspace_billing_plan_resumed": "已撤销取消"
     },
     "planNotice": "审计日志是 Business 方案的功能。"
   },

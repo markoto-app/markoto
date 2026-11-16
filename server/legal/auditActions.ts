@@ -88,6 +88,12 @@ export const AUDIT_WORKSPACE_BILLING_SEATS_CHANGED = 'workspace.billing_seats_ch
 export const AUDIT_WORKSPACE_BILLING_ADMIN_CHANGED = 'workspace.billing_admin_changed'
 export const AUDIT_WORKSPACE_MEMBER_AI_LIMIT_CHANGED = 'workspace.member_ai_limit_changed'
 export const AUDIT_WORKSPACE_SUBSCRIPTION_CANCELLED = 'workspace.subscription_cancelled'
+// An admin took back the cancellation of a plan that still runs.
+export const AUDIT_WORKSPACE_BILLING_PLAN_RESUMED = 'workspace.billing_plan_resumed'
+
+// The user took back the cancellation of their own Pro plan. `scope`
+// user, `scope_id` the user id.
+export const AUDIT_BILLING_PLAN_RESUMED = 'billing.plan_resumed'
 
 // "Create a design from a document" started: an uploaded PDF / Word file
 // went to the sandboxed extractor and its design facts to the user's AI
@@ -179,6 +185,8 @@ export type ComplianceAuditAction
     | typeof AUDIT_WORKSPACE_BILLING_ADMIN_CHANGED
     | typeof AUDIT_WORKSPACE_MEMBER_AI_LIMIT_CHANGED
     | typeof AUDIT_WORKSPACE_SUBSCRIPTION_CANCELLED
+    | typeof AUDIT_WORKSPACE_BILLING_PLAN_RESUMED
+    | typeof AUDIT_BILLING_PLAN_RESUMED
     | typeof AUDIT_DESIGN_IMPORT_STARTED
     | typeof AUDIT_SSO_CONNECTION_SAVED
     | typeof AUDIT_SSO_CONNECTION_ACTIVATED

@@ -233,3 +233,32 @@ describe('POST /api/billing/portal', () => {
     expect(body.url).toMatch(/^https?:\/\//)
   })
 })
+
+describe('POST /api/billing/resume', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('401 anonymous, 409 without a subscription; a cancelled plan renews again', async () => {
+    expect((await anonClient().post('/api/billing/resume')).status).toBe(401)
+    const u = await createUser()
+    const client = await loggedInClient(u.id)
+    const none = await client.post('/api/billing/resume')
+    expect(none.status).toBe(409)
+    expect((await none.json() as { data?: { code?: string } }).data?.code).toBe('billing/no-subscription')
+
+    await testDb().query(
+      'UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, plan = $3, plan_cancel_at = $4 WHERE id = $5',
+      ['cus_existing_test', 'sub_existing_test', 'pro', new Date(Date.now() + 86_400_000), u.id]
+    )
+    // stripe-mock's canned subscription carries a `cancel_at`: it is taken
+    // back in Stripe and the plan renews again at once, before any webhook.
+    const ok = await client.post('/api/billing/resume')
+    expect(ok.status).toBe(200)
+    expect(await ok.json()).toEqual({ resumed: true })
+    const row = await testDb().query<{ plan_cancel_at: Date | null }>('SELECT plan_cancel_at FROM users WHERE id = $1', [u.id])
+    expect(row.rows[0]?.plan_cancel_at).toBeNull()
+    const audit = await testDb().query<{ actor_user_id: number }>('SELECT actor_user_id FROM audit_log WHERE action = $1', ['billing.plan_resumed'])
+    expect(audit.rows).toEqual([{ actor_user_id: u.id }])
+  })
+})

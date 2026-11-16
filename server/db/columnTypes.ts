@@ -108,6 +108,8 @@ export interface AuditEventShapes {
   'workspace.billing_admin_changed': { before: { billingAdminId: number }, after: { billingAdminId: number | null }, metadata: { reason: 'account_deleted', cancelledAtPeriodEnd: boolean } }
   'workspace.member_ai_limit_changed': { after: MemberAiLimit, metadata: { affectedUserId: number } }
   'workspace.subscription_cancelled': { before: { plan: string, seats: number, status: string }, metadata: { reason: 'workspace_deleted' } }
+  'workspace.billing_plan_resumed': { before: { cancelAt: string | null }, metadata: { plan: string, seats: number } }
+  'billing.plan_resumed': { before: { cancelAt: string | null }, metadata: { plan: string } }
   'workspace.audit_exported': { metadata: { format: string, rows: number, from: string | null, to: string | null } }
   'workspace.brand_asset_added': { after: BrandAsset, metadata: { assetId: string, sizeBytes: number } }
   'workspace.brand_asset_removed': { before: BrandAsset, metadata: { assetId: string } }

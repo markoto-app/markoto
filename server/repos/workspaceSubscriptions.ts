@@ -259,6 +259,16 @@ export async function recordWorkspacePlanChange(ws: WorkspaceAccess<'admin'>, ch
     .where(eq(workspaceSubscriptions.workspaceId, ws.workspaceId))
 }
 
+/**
+ * An admin took back the cancellation of the live subscription (already
+ * applied in Stripe): it renews again. The webhook writes the same state.
+ */
+export async function recordWorkspacePlanResumed(ws: WorkspaceAccess<'admin'>, subscriptionId: string, at: Date): Promise<void> {
+  await useDatabase().update(workspaceSubscriptions)
+    .set({ cancelAt: null, subscriptionEventAt: at, updatedAt: new Date() })
+    .where(and(eq(workspaceSubscriptions.workspaceId, ws.workspaceId), eq(workspaceSubscriptions.stripeSubscriptionId, subscriptionId)))
+}
+
 /** The budget alerts' scan: every workspace subscription row. */
 export async function listAllWorkspaceSubscriptions(_by: SystemActor): Promise<WorkspaceSubscriptionRow[]> {
   return useDatabase().select().from(workspaceSubscriptions)
