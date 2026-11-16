@@ -16,6 +16,7 @@ Grouped by domain (`account/`, `ai/`, `billing/`, `comments/`, `document/`, `edi
 - **One Awareness instance**, created in `useDocument`, passed to both the provider and yCollab.
 - **`ymeta` values are not Vue-reactive.** Bridge them with `ymeta.observe()` → ref + computed setter. Setters refuse writes when read-only; only the owner's editor persists to the database.
 - **Seed the template only in `onSynced`**, only into an empty text, never when read-only. Never seed on a disconnect that never synced: the local insert would merge with the server's content on reconnect. Known gap: two clients opening a brand-new document in the same handshake window can both seed.
+- **Undo is the document's `Y.UndoManager`, never CodeMirror's `history()`.** CodeMirror's history records the synced load and other people's edits, so Ctrl+Z could wipe the document. `EditorPane.vue` installs `editorKeymap` (`utils/editor/collabHistory.ts`, undo / redo from y-codemirror.next); text the editor writes by itself (the template seed) uses `TEMPLATE_SEED_ORIGIN`, which the UndoManager does not track. Pinned by `tests/dom/collabUndo.test.ts`.
 - **`pendingPasswordUnlock` is cleared only on `onSynced`** (`clearPendingUnlock`), so the editor doesn't mount on an empty doc and prepend to it.
 - **Changing `ymeta` keys:** follow the rollout order in `sync-server/AGENTS.md` → "Changing `ymeta` keys"; the sync server closes connections that write keys it can't validate.
 

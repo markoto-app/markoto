@@ -379,6 +379,18 @@ describe('useDocument: sync lifecycle wiring', () => {
     doc.destroy()
   })
 
+  it('the template body is not on the undo stack (undo never takes back the starting text)', async () => {
+    hoisted.tokenState.initialBody.value = TEMPLATE_BODY
+    const doc = useDocument('doc-abc')
+    await flushFetchToken()
+
+    hoisted.capturedSyncOpts!.onSynced!()
+    expect(doc.undoManager.canUndo()).toBe(false)
+    doc.undoManager.undo()
+    expect(doc.ytext.toString()).toBe(TEMPLATE_BODY)
+    doc.destroy()
+  })
+
   it('onSynced leaves a blank document (no template body) empty', async () => {
     const doc = useDocument('doc-abc')
     await flushFetchToken()
