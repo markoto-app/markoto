@@ -15,7 +15,8 @@
 #
 # Runs after every release run (any conclusion: a run that skipped its
 # flow job has no artifact and ends here as a no-op) or by hand with a
-# release run id.
+# release run id. There is one screenshots PR at a time (branch
+# `docs/flow-shots`, updated in place by the next release).
 
 name: publish-flow-shots
 
@@ -119,42 +120,72 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
 
-      - name: Open the PR
+      # One screenshots PR at a time: every run force-pushes the fixed
+      # branch `docs/flow-shots` (built from main, so it always carries
+      # everything since the last merged refresh) and updates the open PR's
+      # title + body instead of opening another one. PRs left over from the
+      # former per-version branches (`docs/flow-shots-vX.Y.Z`) are closed as
+      # superseded and their branches deleted. When main already matches the
+      # release's output, an open PR would only bring older frames back, so
+      # it is closed too.
+      - name: Open or update the PR
         if: steps.artifact.outputs.found == 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
           REPO: ${{ github.repository }}
+          BRANCH: docs/flow-shots
         run: |
           set -euo pipefail
+          version=$(git tag --list 'v*' --sort=-v:refname | head -1)
+          version="${version:-run-${RUN_ID}}"
+          title="docs: publish the ${version} flow screenshots"
+
+          # Closes every open screenshots PR except the one given as $1.
+          close_others() {
+            local keep="$1" note="$2" number head
+            gh pr list --repo "$REPO" --state open --base main --limit 100 \
+              --json number,headRefName \
+              --jq '.[] | select(.headRefName | startswith("docs/flow-shots")) | "\(.number) \(.headRefName)"' |
+            while read -r number head; do
+              [ "$number" = "$keep" ] && continue
+              gh pr close "$number" --repo "$REPO" --delete-branch --comment "$note"
+              echo "Closed #${number} (${head})."
+            done
+          }
+
           if [ -z "$(git status --porcelain -- public/flows)" ]; then
             echo "public/flows is unchanged, nothing to publish."
+            close_others none "Closed: public/flows on main already matches the ${version} flow output."
             exit 0
           fi
-          version=$(git tag --list 'v*' --sort=-v:refname | head -1)
-          branch="docs/flow-shots-${version:-run-${RUN_ID}}"
+
           bot_id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
           git config user.name "${APP_SLUG}[bot]"
           git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
-          git switch -c "$branch"
+          git switch -c "$BRANCH"
           git add public/flows
-          git commit -q -m "docs: publish the ${version} flow screenshots" \
+          git commit -q -m "$title" \
             -m "From release run ${RUN_ID} (flow-output artifact, scripts/build-flows.ts)."
-          git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "HEAD:refs/heads/${branch}"
+          git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "HEAD:refs/heads/${BRANCH}"
+
           body="$RUNNER_TEMP/pr-body.md"
           {
             echo "Refreshes \`public/flows/\` (the screenshots and manifests the docs embed) from the flow-output artifact of release run [${RUN_ID}](${GITHUB_SERVER_URL}/${REPO}/actions/runs/${RUN_ID}). Frames that look the same keep their committed file; variants whose flow failed in that run keep their previous frames (\`scripts/build-flows.ts\`)."
             echo
             cat "${RUNNER_TEMP}/flows-summary.md"
             echo
-            echo "Opened by \`.github/workflows/publish-flow-shots.yml\`."
+            echo "Opened by \`.github/workflows/publish-flow-shots.yml\`, which force-pushes this branch after every release, so this PR always shows the newest release's screenshots."
           } > "$body"
-          if gh pr view "$branch" --repo "$REPO" --json state --jq .state 2>/dev/null | grep -q OPEN; then
-            gh pr edit "$branch" --repo "$REPO" --body-file "$body"
-            echo "PR for ${branch} already open, branch and summary updated."
-            exit 0
+
+          number=$(gh pr list --repo "$REPO" --state open --head "$BRANCH" --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh pr edit "$number" --repo "$REPO" --title "$title" --body-file "$body"
+            echo "PR #${number} updated to ${version}."
+          else
+            url=$(gh pr create --repo "$REPO" --base main --head "$BRANCH" \
+              --title "$title" --label release:none --body-file "$body")
+            number="${url##*/}"
+            echo "Opened PR #${number}."
           fi
-          gh pr create --repo "$REPO" --base main --head "$branch" \
-            --title "docs: publish the ${version} flow screenshots" \
-            --label release:none \
-            --body-file "$body"
+          close_others "$number" "Superseded by #${number} (newer flow screenshots)."
