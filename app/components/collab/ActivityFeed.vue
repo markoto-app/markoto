@@ -188,7 +188,7 @@ function truncate(s: string, n: number): string {
 
 // Ticks every 30 s (matches the poll cadence; labels change per minute) so
 // relative-time labels roll over without waiting for a refetch.
-const now = useNow({ interval: 30_000 })
+const now = useNow({ scheduler: cb => useIntervalFn(cb, 30_000) })
 
 function formatTime(ts: string | number) {
   const date = typeof ts === 'number' ? new Date(ts * 1000) : new Date(ts)
