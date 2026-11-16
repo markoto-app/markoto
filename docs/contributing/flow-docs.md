@@ -132,7 +132,7 @@ Republishing does not churn git history. Two runs never paint a screen byte-for-
 
 ### From a release
 
-CI does not run flows on pull requests. `release.yml` (job `run-flows-and-collect-outputs`, `release:*`-labelled merges only) runs `bun run flows:test` with live AI and uploads `tests/e2e/output/flows` as the `flow-output` artifact, including the `.passed` sentinels. `.github/workflows/publish-flow-shots.yml` then rebuilds `public/flows/` from that artifact and opens a `docs: publish the vX.Y.Z flow screenshots` pull request labelled `release:none`, with the frame summary in its description. When no frame looks different and no manifest changed, it opens nothing.
+CI does not run flows on pull requests. `release.yml` (job `run-flows-and-collect-outputs`, `release:*`-labelled merges only) runs `bun run flows:test` with live AI and uploads `tests/e2e/output/flows` as the `flow-output` artifact, including the `.passed` sentinels. `.github/workflows/publish-flow-shots.yml` then rebuilds `public/flows/` from that artifact and opens a `docs: publish the vX.Y.Z flow screenshots` pull request labelled `release:none`, with the frame summary in its description. There is only ever one such pull request: it lives on the fixed branch `docs/flow-shots`, which the next release force-pushes (and retitles) instead of opening another one. When no frame looks different and no manifest changed, it opens nothing and closes a still-open screenshots pull request, which would only bring older frames back.
 
 The screenshots are part of the app image, so they reach a deployment with the next release. Never label the screenshots pull request `release:*`: its release would capture new screenshots and open another such pull request.
 
