@@ -10,7 +10,7 @@ import { deriveKey } from 'altcha-lib/algorithms/pbkdf2'
 // `page` fixture with the config's baseURL.
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://staging.markoto.app'
 
-export function api(path: string): string {
+function api(path: string): string {
   return new URL(path, BASE_URL).toString()
 }
 
