@@ -2866,5 +2866,24 @@
     "home": "返回首页",
     "source": "GitHub 上的源代码",
     "captionsLabel": "英语（屏幕文字）"
+  },
+  "aiImage": {
+    "menu": "用 AI 生成图片",
+    "menuShort": "AI 图片",
+    "title": "生成图片",
+    "promptLabel": "描述",
+    "promptPlaceholder": "黄昏时灯塔的水彩画",
+    "sizeLabel": "格式",
+    "size": {
+      "square": "方形",
+      "landscape": "横向",
+      "portrait": "纵向"
+    },
+    "cost": "约消耗 {points} AI 点数。",
+    "costUnknown": "会消耗 AI 点数。",
+    "ownKey": "使用你自己的图片服务商。",
+    "generate": "生成",
+    "generating": "正在生成…",
+    "failed": "无法生成图片"
   }
 }

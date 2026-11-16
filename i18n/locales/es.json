@@ -2866,5 +2866,24 @@
     "home": "Volver a la página de inicio",
     "source": "Código fuente en GitHub",
     "captionsLabel": "Inglés (texto en pantalla)"
+  },
+  "aiImage": {
+    "menu": "Generar imagen con IA",
+    "menuShort": "Imagen IA",
+    "title": "Generar imagen",
+    "promptLabel": "Descripción",
+    "promptPlaceholder": "Una acuarela de un faro al atardecer",
+    "sizeLabel": "Formato",
+    "size": {
+      "square": "Cuadrado",
+      "landscape": "Horizontal",
+      "portrait": "Vertical"
+    },
+    "cost": "Cuesta unos {points} puntos de IA.",
+    "costUnknown": "Usa puntos de IA.",
+    "ownKey": "Usa tu propio proveedor de imágenes.",
+    "generate": "Generar",
+    "generating": "Generando…",
+    "failed": "No se pudo generar la imagen"
   }
 }

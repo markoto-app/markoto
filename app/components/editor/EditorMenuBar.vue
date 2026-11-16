@@ -259,10 +259,14 @@ function linkAction() {
   v.focus()
 }
 
+// Insert → Generate image with AI. The dialog is mounted here (always, also
+// on mobile where the bar is hidden) and opened from the mobile Editor panel too.
+const { request: requestGenerateImage, imageLocked } = useGenerateImageDialog()
 const insertItems = computed(() => {
   if (props.isReadOnly) return [[]]
   return [[
     { label: t('editor.image'), icon: 'i-lucide-image', onSelect: () => emit('open-image-picker') },
+    ...(props.loggedIn ? [{ label: t('aiImage.menu'), icon: imageLocked.value ? 'i-lucide-lock' : 'i-lucide-image-plus', onSelect: requestGenerateImage }] : []),
     { label: t('editor.link'), icon: 'i-lucide-link', onSelect: linkAction },
     {
       label: t('editor.heading'),
@@ -483,5 +487,12 @@ const triggerClass = 'px-2.5 py-1 text-sm rounded hover:bg-elevated focus-visibl
         {{ t('menubar.help.title') }}
       </button>
     </UDropdownMenu>
+    <!-- Insert → Generate image with AI; portalled, so it shows on mobile too. -->
+    <AiGenerateImageModal
+      v-if="loggedIn && !isReadOnly"
+      :doc-id="docId"
+      :view="view"
+      :read-only="isReadOnly"
+    />
   </nav>
 </template>

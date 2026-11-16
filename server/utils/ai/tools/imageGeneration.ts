@@ -59,8 +59,14 @@ interface ImageGenOpts {
   docId?: string | null
 }
 
-/** `providerUnavailable`: the provider answered 5xx or could not be reached (not our fault, not the user's). */
-type ImageGenResult = { bytes: Uint8Array, mimeType: GeneratedImageMime } | { error: string, providerUnavailable?: true }
+/**
+ * `providerUnavailable`: the provider answered 5xx or could not be reached
+ * (not our fault, not the user's). `budget`: the platform-paid call was
+ * refused because the user's AI Points (`personal`) or the shared free
+ * allowance (`free-allowance`) are used up.
+ */
+export type ImageGenFailure = { error: string, providerUnavailable?: true, budget?: 'personal' | 'free-allowance' }
+type ImageGenResult = { bytes: Uint8Array, mimeType: GeneratedImageMime } | ImageGenFailure
 
 /**
  * Generate an image from a text prompt. Two paths, picked by the
@@ -205,9 +211,9 @@ async function generateImageBytesBfl(
     Sentry.captureException(e, {
       tags: { component: 'aiToolAdapter', event: 'image_generate_failed', provider: 'bfl' }
     })
-    if (isFreeAllowanceExhaustedError(msg)) return { error: FREE_ALLOWANCE_EXHAUSTED_MESSAGE }
+    if (isFreeAllowanceExhaustedError(msg)) return { error: FREE_ALLOWANCE_EXHAUSTED_MESSAGE, budget: 'free-allowance' }
     if (msg.includes('budget_exceeded') || msg.includes('Budget has been exceeded')) {
-      return { error: budgetExhaustedMessage() }
+      return { error: budgetExhaustedMessage(), budget: 'personal' }
     }
     if (isProviderUnavailableError(e)) return { error: `Image generation failed: ${msg}`, providerUnavailable: true }
     return { error: `Image generation failed: ${msg}` }

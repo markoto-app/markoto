@@ -34,6 +34,7 @@ import {
   type AiCapabilityStatus
 } from '~~/shared/ai/providers'
 import { useEnv } from '~~/shared/env/load'
+import { IMAGE_SIZES, platformImagePriceUsd } from '~~/shared/ai/imageGeneration'
 import type { RawEnv } from '~~/shared/env/define'
 import { useLogger } from '../platform/logger'
 
@@ -196,6 +197,13 @@ export function liveDictationTarget(transcription: ResolvedAiProvider | null): L
   return { apiKey: platformKey, model, serverURL: `https://${MISTRAL_EU_API_HOST}`, platformBilled: true }
 }
 
+/** The price of one dialog image on a platform-paid image alias (the dearest offered size), else null. */
+function platformImagePrice(provider: ResolvedAiProvider | null): number | null {
+  if (!provider || provider.credentials) return null
+  const prices = Object.values(IMAGE_SIZES).map(({ width, height }) => platformImagePriceUsd(provider.model, width, height))
+  return prices.every(p => p !== null) ? Math.max(...prices) : null
+}
+
 export function availabilityFrom(providers: ResolvedAiProviders, access?: Pick<AiAccess, 'locked' | 'modelTier'>): AiAvailability {
   const locked = access?.locked ?? []
   const status = (capability: AiCapability, p: ResolvedAiProvider | null): AiCapabilityStatus => ({
@@ -210,7 +218,7 @@ export function availabilityFrom(providers: ResolvedAiProviders, access?: Pick<A
       supportsVision: providers.chat?.supportsVision ?? false,
       modelTier: access?.modelTier ?? { selected: 'fast', strongAvailable: false, strongLocked: false }
     },
-    image: status('image', providers.image),
+    image: { ...status('image', providers.image), pricePerImageUsd: platformImagePrice(providers.image) },
     transcription: {
       ...status('transcription', providers.transcription),
       liveDictation: liveDictationTarget(providers.transcription) !== null

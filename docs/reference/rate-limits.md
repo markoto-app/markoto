@@ -59,6 +59,7 @@ The request limits the app and the sync server enforce, with the file each value
 | AI requests | 60 per minute per user virtual key, plus the key's `max_budget`, enforced by LiteLLM | `server/utils/litellm/userKeys.ts` |
 | Web tools (`web_search`, `fetch_url`), editor AI and MCP together | 30 per user per hour and 100 per day; `NUXT_WEB_TOOLS_HOURLY_LIMIT` / `NUXT_WEB_TOOLS_DAILY_LIMIT`, `0` = unlimited | `server/utils/ai/webTools.ts` |
 | Agentic loop | 50 interactions per session, plus per-tool call caps | `server/utils/agentic/limits.ts` |
+| Generate image with AI (by hand) | 20 per user per hour | `server/api/docs/[docId]/images/generate.post.ts` |
 | Live dictation | 1 session per user, 10 minutes per session, 30 s idle timeout | `server/routes/api/ai/dictate.ts` |
 | MCP requests | 300 per client per minute, 240 per token per minute | `server/mcp/lib/mcpGate.ts` |
 | MCP sessions | 60 new sessions per user per hour, at most 20 usable at once | `server/mcp/lib/mcpGate.ts` |

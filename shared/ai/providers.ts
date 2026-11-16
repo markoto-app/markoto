@@ -54,7 +54,14 @@ export interface AiModelTierStatus {
 
 export interface AiAvailability {
   chat: AiCapabilityStatus & { supportsVision: boolean, modelTier?: AiModelTierStatus }
-  image: AiCapabilityStatus
+  image: AiCapabilityStatus & {
+    /**
+     * What one image from the "Generate image with AI" dialog costs when
+     * it is platform-paid (USD, every offered size), or null when the price
+     * isn't known or the user's own key pays.
+     */
+    pricePerImageUsd?: number | null
+  }
   transcription: AiCapabilityStatus & { liveDictation: boolean }
   /**
    * Platform-provided web tools (Staan search / Jina Reader). `false` when

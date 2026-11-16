@@ -434,6 +434,34 @@ export function insertBlock(view: EditorView, text: string): void {
   view.focus()
 }
 
+/**
+ * The text that puts an image (or any Markdown block) at a cursor between
+ * `before` and `after` as its own paragraph: a blank line on either side
+ * unless one is already there, nothing extra at the start or end of the
+ * document.
+ */
+function blockAtCursor(before: string, after: string, block: string): string {
+  let prefix = '\n\n'
+  if (before === '' || before.endsWith('\n\n')) prefix = ''
+  else if (before.endsWith('\n')) prefix = '\n'
+  let suffix = '\n\n'
+  if (after === '') suffix = '\n'
+  else if (after.startsWith('\n\n')) suffix = ''
+  else if (after.startsWith('\n')) suffix = '\n'
+  return prefix + block + suffix
+}
+
+/** Insert a Markdown block (an image reference) at the cursor as its own paragraph; the cursor ends after it. */
+export function insertBlockAtCursor(view: EditorView, block: string): void {
+  const { from, to } = view.state.selection.main
+  const text = blockAtCursor(view.state.sliceDoc(0, from), view.state.sliceDoc(to), block)
+  view.dispatch({
+    changes: { from, to, insert: text },
+    selection: { anchor: from + text.length }
+  })
+  view.focus()
+}
+
 function footnoteSeparator(lastChar: string): string {
   return lastChar === '\n' ? '\n' : '\n\n'
 }

@@ -3,7 +3,7 @@ title: Ask the AI to draw an image
 description: Describe what you want - the AI generates it, stores it with your document and inserts the markdown image.
 category: ai
 order: 10
-updated: '2026-11-02'
+updated: '2026-11-16'
 ---
 
 # Ask the AI to draw an image
@@ -23,11 +23,21 @@ saved the result as an image of your document, and added the markdown image
 with a caption. You can resize it with `{width=50%}` like any other image
 ([Markdown reference](/docs/writing/markdown-reference#images)).
 
+## Or generate one yourself
+
+You don't need the assistant to get a picture. Put the cursor where the image
+should go, open **Insert → Generate image with AI** (on a phone: the Editor tab
+→ **AI image**), describe the picture and pick a format. The dialog tells you
+what one image costs before you generate it.
+
+::flow{id="generate-an-image-yourself" hide-title}
+::
+
 ## Good to know
 
 - **Image generation is optional and needs its own provider.** Connect one under [Settings → AI provider](/docs/ai/provider) (for example OpenAI's image models), or use the instance default if there is one. Without an image provider the AI doesn't offer to draw.
 - **Cost.** On your own provider, that provider bills you for each image. If the instance operator pays for the default image model, each image uses [AI Points](/docs/plans/ai-budget).
-- **At most 5 images per AI session**, so a prompt like "more, but better" can't run away.
+- **At most 5 images per AI session**, so a prompt like "more, but better" can't run away. By hand you can generate up to 20 images an hour.
 - **Images use your storage.** Generated images count toward your image storage, like the images you upload (100 MB on the free plan at markoto.app; a self-hosted instance sets its own limit). Your profile page shows how much you use. When it's full, new images are refused; images you remove from your documents free up space once they are cleaned up.
 - Generated images are stored with your document and removed with it.
 

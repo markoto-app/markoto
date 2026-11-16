@@ -2866,5 +2866,24 @@
     "home": "Zurück zur Startseite",
     "source": "Quellcode auf GitHub",
     "captionsLabel": "Englisch (Text im Video)"
+  },
+  "aiImage": {
+    "menu": "Bild mit KI erstellen",
+    "menuShort": "KI-Bild",
+    "title": "Bild erstellen",
+    "promptLabel": "Beschreibung",
+    "promptPlaceholder": "Ein Aquarell eines Leuchtturms in der Abenddämmerung",
+    "sizeLabel": "Format",
+    "size": {
+      "square": "Quadratisch",
+      "landscape": "Querformat",
+      "portrait": "Hochformat"
+    },
+    "cost": "Kostet etwa {points} KI-Punkte.",
+    "costUnknown": "Braucht KI-Punkte.",
+    "ownKey": "Läuft über deinen eigenen Bildanbieter.",
+    "generate": "Erstellen",
+    "generating": "Wird erstellt…",
+    "failed": "Bild konnte nicht erstellt werden"
   }
 }

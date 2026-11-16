@@ -6,7 +6,7 @@ import * as Sentry from '@sentry/nuxt'
 import { defineMetaTool, pickStringArg, toolError, toolOk, type ToolResult } from './toolDefinition'
 import type { MetaToolContext } from '../../agentic/toolContext'
 import { fetchViewableExternalImage, fetchFromS3, parseInternalFileRef } from './imageFetch'
-import { IMAGE_MIME_EXT, generateImageBytes } from './imageGeneration'
+import { IMAGE_MIME_EXT, generateImageBytes, type ImageGenFailure } from './imageGeneration'
 import { IMAGE_PROVIDER_UNAVAILABLE_MESSAGE } from '~~/shared/utils/aiProviderOutage'
 import { getDoc } from '../../../repos/documents'
 import { deletePending, markConfirmed, reservePendingUpload, sumImageBytesInScope } from '../../../repos/uploads'
@@ -18,7 +18,8 @@ import type { DocAccess } from '../../../repos/proofs'
 
 // Images: view_image (show the model an image of the document or of the
 // web) and generate_image (generate, store as an upload of the document,
-// return its Markdown).
+// return its Markdown; `generateDocumentImage` is shared with the editor's
+// manual "Generate image with AI").
 
 const log = useLogger('ai-tools')
 
@@ -98,15 +99,15 @@ export function sanitizeAltText(s: string): string {
  * with no row still serves and is reaped later by orphan-cleanup.
  */
 async function reserveGeneratedImageRow(
-  session: MetaToolContext,
+  session: Pick<MetaToolContext, 'docAccess'>,
   row: { fileId: string, uploaderId: number, contentType: string, sizeBytes: number, s3Key: string },
   quota: { maxBytes: number, scope: Parameters<typeof reservePendingUpload>[3] }
-): Promise<{ reservedUnder: DocAccess<'write'> | null } | { error: ToolResult }> {
+): Promise<{ reservedUnder: DocAccess<'write'> | null } | { quotaExceeded: true }> {
   const access = session.docAccess?.allows('write') ? session.docAccess : null
   if (!access || !(await getDoc(access))) return { reservedUnder: null }
   try {
     const reservation = await reservePendingUpload(access, row, quota.maxBytes, quota.scope)
-    if (!reservation.reserved) return { error: toolError(`Error: ${imageQuotaMessage(quota.maxBytes)}`) }
+    if (!reservation.reserved) return { quotaExceeded: true }
     return { reservedUnder: access }
   } catch (e) {
     log.warn('uploads row insert failed', { key: row.s3Key, err: e })
@@ -129,15 +130,40 @@ async function confirmGeneratedImageRow(access: DocAccess<'write'>, key: string)
   }
 }
 
-async function handleGenerateImage(
-  session: MetaToolContext,
-  input: z.output<typeof GenerateImageArgs>
-): Promise<ToolResult> {
+/** What `generateDocumentImage` needs of its caller: the agent's tool context, or the manual route's. */
+export type ImageGenerationContext = Pick<MetaToolContext,
+  'docId' | 'initiatorUserId' | 'workspaceId' | 'self' | 'docAccess' | 'aiProviders' | 'virtualKey' | 'updateStatus'>
+
+export interface DocumentImageRequest {
+  prompt: string
+  alt: string
+  width?: number
+  height?: number
+}
+
+export type DocumentImageResult
+  = | { ok: true, markdown: string, url: string, alt: string, mimeType: string, sizeBytes: number }
+    | { ok: false, failure: DocumentImageFailure }
+
+export type DocumentImageFailure
+  = | { kind: 'storage-quota', maxBytes: number }
+    | { kind: 'generation', failure: ImageGenFailure }
+    | { kind: 'upload', message: string }
+
+/**
+ * Generate an image and store it as an upload of the document: the one
+ * code path behind the agent's and MCP's `generate_image` and the editor's
+ * "Generate image with AI" dialog (`POST /api/docs/:docId/images/generate`).
+ * Image storage quota first (a full quota must not burn AI budget), then
+ * the image provider of the context (BYOK / instance default, billed to its
+ * virtual key), then the quota reservation and the S3 upload under
+ * `docs/{docId}/`. Returns the Markdown reference; placing it is the
+ * caller's business.
+ */
+export async function generateDocumentImage(session: ImageGenerationContext, input: DocumentImageRequest): Promise<DocumentImageResult> {
   // No app-side charging: the BFL custom provider bills the user's
   // LiteLLM virtual key directly via the chat-completion shape;
-  // budget_exceeded surfaces as a `LitellmBudgetExhausted` thrown
-  // from `generateImageBytesBfl` (caught + translated to a tool-result
-  // error string).
+  // budget_exceeded surfaces as a failure with `budget` set.
   session.updateStatus('tool', aiStatus('generateImageAny'))
 
   // 1. Image storage quota, checked BEFORE generating so a full quota
@@ -147,7 +173,7 @@ async function handleGenerateImage(
   const quota = await resolveImageQuota(session.initiatorUserId, session.docId)
   const quotaBytes = quota.maxBytes
   if (await sumImageBytesInScope(quota.scope) >= quotaBytes) {
-    return toolError(`Error: ${imageQuotaMessage(quotaBytes)}`)
+    return { ok: false, failure: { kind: 'storage-quota', maxBytes: quotaBytes } }
   }
 
   // 2. Generate. The 5-minute loop deadline is the effective cap, we
@@ -162,14 +188,9 @@ async function handleGenerateImage(
     userId: session.initiatorUserId,
     docId: session.docId
   })
-  if ('error' in gen) {
-    if (gen.providerUnavailable) {
-      return { ...toolError(`Error: ${gen.error}`), endSessionWith: IMAGE_PROVIDER_UNAVAILABLE_MESSAGE }
-    }
-    return toolError(`Error: ${gen.error}`)
-  }
+  if ('error' in gen) return { ok: false, failure: { kind: 'generation', failure: gen } }
 
-  // 2. Upload to S3 using the same key shape as user uploads so the
+  // 3. Upload to S3 using the same key shape as user uploads so the
   //    existing /api/files endpoint serves it with no extra plumbing.
   session.updateStatus('tool', aiStatus('uploadImage'))
 
@@ -188,7 +209,7 @@ async function handleGenerateImage(
     sizeBytes: gen.bytes.byteLength,
     s3Key: key
   }, quota)
-  if ('error' in reserved) return reserved.error
+  if ('quotaExceeded' in reserved) return { ok: false, failure: { kind: 'storage-quota', maxBytes: quotaBytes } }
   const rowReservedUnder = reserved.reservedUnder
 
   try {
@@ -212,24 +233,44 @@ async function handleGenerateImage(
     if (rowReservedUnder) {
       await deletePending(session.self, key).catch(() => { /* reaped after 24 h */ })
     }
-    const msg = e instanceof Error ? e.message : 'Unknown error'
-    return toolError(`Error: failed to upload generated image: ${msg}`)
+    return { ok: false, failure: { kind: 'upload', message: e instanceof Error ? e.message : 'Unknown error' } }
   }
 
   // 3b. Confirm the row so orphan-cleanup doesn't reap it. Server-written
   //     bytes never had a presigned URL, so no staging copy is needed.
   if (rowReservedUnder) await confirmGeneratedImageRow(rowReservedUnder, key)
 
-  // 4. Build and return the markdown. Caller chooses placement via a
-  //    follow-up insert_text / replace_text call.
+  // 4. The Markdown reference; the caller places it.
   const alt = sanitizeAltText(input.alt)
   const url = `/api/files/${session.docId}/${fileIdWithExt}`
-  const md = `![${alt}](${url})`
+  return { ok: true, markdown: `![${alt}](${url})`, url, alt, mimeType: gen.mimeType, sizeBytes: gen.bytes.byteLength }
+}
 
-  const sizeKB = Math.round(gen.bytes.byteLength / 1024)
+/** The agent's tool message for a failed generation (unchanged wording). */
+function generationFailureResult(failure: DocumentImageFailure): ToolResult {
+  switch (failure.kind) {
+    case 'storage-quota':
+      return toolError(`Error: ${imageQuotaMessage(failure.maxBytes)}`)
+    case 'upload':
+      return toolError(`Error: failed to upload generated image: ${failure.message}`)
+    case 'generation':
+      if (failure.failure.providerUnavailable) {
+        return { ...toolError(`Error: ${failure.failure.error}`), endSessionWith: IMAGE_PROVIDER_UNAVAILABLE_MESSAGE }
+      }
+      return toolError(`Error: ${failure.failure.error}`)
+  }
+}
+
+async function handleGenerateImage(
+  session: MetaToolContext,
+  input: z.output<typeof GenerateImageArgs>
+): Promise<ToolResult> {
+  const result = await generateDocumentImage(session, input)
+  if (!result.ok) return generationFailureResult(result.failure)
+  const sizeKB = Math.round(result.sizeBytes / 1024)
   // Placement reminder: without it the model tended to drop the image at
   // line 0 (above the title) even when asked for "below the heading".
-  return toolOk(`Generated and uploaded ${gen.mimeType} image (${sizeKB}KB). Markdown reference (copy verbatim into insert_text or replace_text): ${md}\nPlace it where the user asked: insert_text with insert_line = the line it should follow (a document's title is line 1, so "below the heading" is insert_line 1 or later, never 0). Check the line numbers with view_document if you have not seen them yet.`)
+  return toolOk(`Generated and uploaded ${result.mimeType} image (${sizeKB}KB). Markdown reference (copy verbatim into insert_text or replace_text): ${result.markdown}\nPlace it where the user asked: insert_text with insert_line = the line it should follow (a document's title is line 1, so "below the heading" is insert_line 1 or later, never 0). Check the line numbers with view_document if you have not seen them yet.`)
 }
 
 export const viewImageTool = defineMetaTool({

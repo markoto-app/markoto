@@ -127,6 +127,20 @@ describe('resolution order: own key → instance default → unavailable', () =>
     expect(availabilityFrom(p).chat).toMatchObject({ available: true, source: 'instance', platformBilled: true })
   })
 
+  it('a platform-paid image alias with a known price reports what one image costs', async () => {
+    vi.stubEnv('NUXT_AI_DEFAULT_IMAGE_MODEL', 'flux-3-image-klein')
+    const u = await createUser()
+    expect(availabilityFrom(await resolveAiProviders(asUser(u.id), 'free')).image).toMatchObject({ available: true, platformBilled: true, pricePerImageUsd: 0.009 })
+
+    // An alias the price table doesn't know: no number.
+    vi.stubEnv('NUXT_AI_DEFAULT_IMAGE_MODEL', 'some-other-image-alias')
+    expect(availabilityFrom(await resolveAiProviders(asUser(u.id), 'free')).image.pricePerImageUsd).toBeNull()
+
+    // The user's own image key: never AI Points.
+    await upsertAiProvider(asUser(u.id), row(u.id, { capability: 'image', model: 'gpt-image-1', baseUrl: 'https://api.openai.com/v1', supportsVision: false }))
+    expect(availabilityFrom(await resolveAiProviders(asUser(u.id), 'free')).image).toMatchObject({ platformBilled: false, pricePerImageUsd: null })
+  })
+
   it('the user\'s own key wins over the instance default and is not platform-billed', async () => {
     vi.stubEnv('NUXT_AI_DEFAULT_CHAT_MODEL', 'mistral-small-2603')
     const u = await createUser()

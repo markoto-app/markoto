@@ -2866,5 +2866,24 @@
     "home": "Retour à l’accueil",
     "source": "Code source sur GitHub",
     "captionsLabel": "Anglais (texte à l’écran)"
+  },
+  "aiImage": {
+    "menu": "Générer une image avec l’IA",
+    "menuShort": "Image IA",
+    "title": "Générer une image",
+    "promptLabel": "Description",
+    "promptPlaceholder": "Une aquarelle d’un phare au crépuscule",
+    "sizeLabel": "Format",
+    "size": {
+      "square": "Carré",
+      "landscape": "Paysage",
+      "portrait": "Portrait"
+    },
+    "cost": "Coûte environ {points} points IA.",
+    "costUnknown": "Utilise des points IA.",
+    "ownKey": "Utilise votre propre fournisseur d’images.",
+    "generate": "Générer",
+    "generating": "Génération…",
+    "failed": "Impossible de générer l’image"
   }
 }

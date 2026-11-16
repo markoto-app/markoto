@@ -2866,5 +2866,24 @@
     "home": "ホームページに戻る",
     "source": "GitHub のソースコード",
     "captionsLabel": "英語（画面の文字）"
+  },
+  "aiImage": {
+    "menu": "AIで画像を生成",
+    "menuShort": "AI画像",
+    "title": "画像を生成",
+    "promptLabel": "説明",
+    "promptPlaceholder": "夕暮れの灯台の水彩画",
+    "sizeLabel": "形式",
+    "size": {
+      "square": "正方形",
+      "landscape": "横長",
+      "portrait": "縦長"
+    },
+    "cost": "約 {points} AI ポイントかかります。",
+    "costUnknown": "AI ポイントを使います。",
+    "ownKey": "ご自身の画像プロバイダーで実行します。",
+    "generate": "生成",
+    "generating": "生成中…",
+    "failed": "画像を生成できませんでした"
   }
 }

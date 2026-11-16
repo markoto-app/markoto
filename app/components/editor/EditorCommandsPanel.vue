@@ -57,6 +57,8 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { loggedIn } = useUserSession()
+const { request: requestGenerateImage, imageLocked } = useGenerateImageDialog()
 
 // Sub-step state for the kind pickers.
 type Step = 'main' | 'alert' | 'diagram'
@@ -316,6 +318,18 @@ function applyDiagram(kind: MermaidKind) {
                 class="size-5"
               />
               <span>{{ t('editor.image') }}</span>
+            </button>
+            <button
+              v-if="loggedIn"
+              class="ecp__btn"
+              data-testid="ecp-generate-image"
+              @click="requestGenerateImage(); emit('done')"
+            >
+              <UIcon
+                :name="imageLocked ? 'i-lucide-lock' : 'i-lucide-image-plus'"
+                class="size-5"
+              />
+              <span>{{ t('aiImage.menuShort') }}</span>
             </button>
             <button
               class="ecp__btn"
