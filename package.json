@@ -210,7 +210,7 @@
     "@types/markdown-it": "^14.2.0",
     "@types/pg": "^8.23.1",
     "@types/qrcode": "^1.5.6",
-    "@vitest/coverage-v8": "^4.1.12",
+    "@vitest/coverage-v8": "^5.1.0",
     "@vitest/eslint-plugin": "1.6.28",
     "@vue/test-utils": "^2.5.1",
     "dependency-cruiser": "^18.7.2",
@@ -230,7 +230,7 @@
     "sharp": "^0.35.5",
     "typescript": "^6.0.3",
     "typescript-eslint": "8.72.2",
-    "vitest": "^4.1.12",
+    "vitest": "^5.1.0",
     "vue-tsc": "^3.3.13",
     "xml-crypto": "6.4.0"
   },
