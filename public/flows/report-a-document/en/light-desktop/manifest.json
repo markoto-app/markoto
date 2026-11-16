@@ -16,20 +16,20 @@
     },
     {
       "kind": "narration",
-      "text": "Anyone can write on markoto without an account, and markoto does not check what people write. If a link you were sent contains a scam, illegal content or spam, you can report it — no account needed.",
+      "text": "Anyone can write on markoto without an account, and markoto does not check what people write. If a link you were sent contains a scam, illegal content or spam, you can report it, no account needed.",
       "file": "01.webp",
       "cursor": {
         "x": 640,
         "y": 24
       },
-      "path": "/d/a2I2O9hbrM"
+      "path": "/d/8iw74JFin7"
     },
     {
       "kind": "outcome",
       "file": "02.webp",
       "caption": "Documents written without an account carry a note at the top: a markoto user wrote this, not markoto.",
       "cursor": null,
-      "path": "/d/a2I2O9hbrM",
+      "path": "/d/8iw74JFin7",
       "highlights": [
         {
           "label": "Written by a user",
@@ -43,24 +43,24 @@
     },
     {
       "kind": "approach",
-      "file": "03.webp",
+      "file": "02.webp",
       "caption": "Click \"Report\"",
       "cursor": {
         "x": 454,
         "y": 89
       },
-      "path": "/d/a2I2O9hbrM",
+      "path": "/d/8iw74JFin7",
       "actor": "visitor"
     },
     {
       "kind": "outcome",
-      "file": "04.webp",
+      "file": "03.webp",
       "caption": "The report form opens with the document's address already filled in.",
       "cursor": {
         "x": 454,
         "y": 89
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/a2I2O9hbrM",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/8iw74JFin7",
       "actor": "visitor"
     },
     {
@@ -71,119 +71,119 @@
     {
       "kind": "narration",
       "text": "Explain why the content is illegal or breaks the rules, and leave your name and email so markoto can confirm your report and tell you what it decided. For reports of child sexual abuse material, name and email are optional.",
-      "file": "04.webp",
+      "file": "03.webp",
       "cursor": null,
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/a2I2O9hbrM",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/8iw74JFin7",
       "actor": "visitor"
     },
     {
       "kind": "approach",
-      "file": "05.webp",
+      "file": "04.webp",
       "caption": "Explain what is wrong with it",
       "cursor": {
         "x": 342,
         "y": 503
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/a2I2O9hbrM",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/8iw74JFin7",
       "actor": "visitor"
     },
     {
       "kind": "outcome",
-      "file": "06.webp",
+      "file": "05.webp",
       "caption": "The explanation is in.",
       "cursor": {
         "x": 342,
         "y": 503
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/a2I2O9hbrM",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/8iw74JFin7",
       "actor": "visitor"
     },
     {
       "kind": "approach",
-      "file": "07.webp",
+      "file": "06.webp",
       "caption": "Your name",
       "cursor": {
         "x": 342,
         "y": 687
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/a2I2O9hbrM",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/8iw74JFin7",
       "actor": "visitor"
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
+      "file": "07.webp",
       "caption": "Name added.",
       "cursor": {
         "x": 342,
         "y": 687
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/a2I2O9hbrM",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/8iw74JFin7",
       "actor": "visitor"
     },
     {
       "kind": "approach",
-      "file": "09.webp",
+      "file": "08.webp",
       "caption": "Your email, for the confirmation and the decision",
       "cursor": {
         "x": 662,
         "y": 687
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/a2I2O9hbrM",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/8iw74JFin7",
       "actor": "visitor"
     },
     {
       "kind": "outcome",
-      "file": "10.webp",
+      "file": "09.webp",
       "caption": "Email added.",
       "cursor": {
         "x": 662,
         "y": 687
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/a2I2O9hbrM",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/8iw74JFin7",
       "actor": "visitor"
     },
     {
       "kind": "approach",
-      "file": "10.webp",
+      "file": "09.webp",
       "caption": "Confirm that the report is accurate and made in good faith",
       "cursor": {
         "x": 336,
         "y": 732
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/a2I2O9hbrM",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/8iw74JFin7",
       "actor": "visitor"
     },
     {
       "kind": "outcome",
-      "file": "11.webp",
-      "caption": "Confirmed. A bot check runs in your browser meanwhile — no account, no tracking.",
+      "file": "10.webp",
+      "caption": "Confirmed. A bot check runs in your browser meanwhile, no account, no tracking.",
       "cursor": {
         "x": 336,
         "y": 732
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/a2I2O9hbrM",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/8iw74JFin7",
       "actor": "visitor"
     },
     {
       "kind": "approach",
-      "file": "12.webp",
+      "file": "11.webp",
       "caption": "Click \"Submit report\"",
       "cursor": {
         "x": 885,
         "y": 419
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/a2I2O9hbrM",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/8iw74JFin7",
       "actor": "visitor"
     },
     {
       "kind": "outcome",
-      "file": "13.webp",
+      "file": "12.webp",
       "caption": "The report is in. You get a confirmation by email and, later, the decision.",
       "cursor": {
         "x": 885,
         "y": 419
       },
-      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/a2I2O9hbrM",
+      "path": "/legal/abuse?url=http://markoto.localhost:3001/d/8iw74JFin7",
       "hero": true,
       "actor": "visitor"
     }

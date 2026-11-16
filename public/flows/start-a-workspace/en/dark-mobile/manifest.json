@@ -16,7 +16,7 @@
     },
     {
       "kind": "narration",
-      "text": "A workspace is a shared place for related docs — a team's RFCs, a class's notes, a company's onboarding library. Members get role-based access (admin, editor, viewer). The workspace also has its own knowledge base — drop in PDFs, Word docs, FAQs and the AI grounds its answers in those files when working on any doc inside the workspace.",
+      "text": "A workspace is a shared place for related docs, a team's RFCs, a class's notes, a company's onboarding library. Members get role-based access (admin, editor, viewer). The workspace also has its own knowledge base, drop in PDFs, Word docs, FAQs and the AI grounds its answers in those files when working on any doc inside the workspace.",
       "file": "01.webp",
       "cursor": null,
       "path": "/"
@@ -29,13 +29,13 @@
     {
       "kind": "narration",
       "text": "Each section of your home page has its own create button: \"+ New workspace\" sits next to the Workspaces heading, \"+ New document\" next to your documents. Click \"+ New workspace\" to open the create dialog.",
-      "file": "02.webp",
+      "file": "01.webp",
       "cursor": null,
       "path": "/"
     },
     {
       "kind": "approach",
-      "file": "02.webp",
+      "file": "01.webp",
       "caption": "Click the \"+ New workspace\" button",
       "cursor": {
         "x": 308,
@@ -55,8 +55,8 @@
     },
     {
       "kind": "outcome",
-      "file": "03.webp",
-      "caption": "A modal opens — name + optional description, that's the whole form.",
+      "file": "02.webp",
+      "caption": "A modal opens, name + optional description, that's the whole form.",
       "cursor": {
         "x": 308,
         "y": 230
@@ -70,8 +70,8 @@
     },
     {
       "kind": "narration",
-      "text": "The name shows in the topbar of every doc in the workspace + in the dashboard list. The description is optional but shows up in the workspace card — useful when you have several workspaces with similar names.",
-      "file": "04.webp",
+      "text": "The name shows in the topbar of every doc in the workspace + in the dashboard list. The description is optional but shows up in the workspace card, useful when you have several workspaces with similar names.",
+      "file": "03.webp",
       "cursor": {
         "x": 308,
         "y": 230
@@ -80,7 +80,7 @@
     },
     {
       "kind": "approach",
-      "file": "04.webp",
+      "file": "03.webp",
       "caption": "Type a name",
       "cursor": {
         "x": 46,
@@ -90,7 +90,7 @@
     },
     {
       "kind": "outcome",
-      "file": "05.webp",
+      "file": "04.webp",
       "caption": "The name lands. Submit is now enabled.",
       "cursor": {
         "x": 46,
@@ -100,7 +100,7 @@
     },
     {
       "kind": "approach",
-      "file": "06.webp",
+      "file": "05.webp",
       "caption": "Add a one-line description",
       "cursor": {
         "x": 46,
@@ -110,7 +110,7 @@
     },
     {
       "kind": "outcome",
-      "file": "07.webp",
+      "file": "06.webp",
       "caption": "The description is captured.",
       "cursor": {
         "x": 46,
@@ -126,7 +126,7 @@
     {
       "kind": "narration",
       "text": "Submit creates the workspace, makes you the admin, and routes you to its home page. Sharing its address doesn't let anyone in: people join only when an admin invites them.",
-      "file": "07.webp",
+      "file": "06.webp",
       "cursor": {
         "x": 195,
         "y": 440
@@ -135,7 +135,7 @@
     },
     {
       "kind": "approach",
-      "file": "07.webp",
+      "file": "06.webp",
       "caption": "Click \"Create\"",
       "cursor": {
         "x": 276,
@@ -145,13 +145,13 @@
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
-      "caption": "You land on the workspace home page — empty Documents + Knowledge tabs, ready for content. The topbar carries the workspace name; you're the admin (visible in the members list once we add some).",
+      "file": "07.webp",
+      "caption": "You land on the workspace home page, empty Documents + Knowledge tabs, ready for content. The topbar carries the workspace name; you're the admin (visible in the members list once we add some).",
       "cursor": {
         "x": 276,
         "y": 525
       },
-      "path": "/w/-zodh06hps",
+      "path": "/w/7CbFTimor8",
       "highlights": [
         {
           "label": "Workspace tabs",

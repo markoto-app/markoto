@@ -16,10 +16,10 @@
     },
     {
       "kind": "narration",
-      "text": "Plain markdown gets you headings, lists, and links. markoto extends that with the things people actually need to publish real documents — syntax-highlighted code, math, GitHub-style alert callouts, and eight kinds of Mermaid diagram. Everything renders in the live preview and survives PDF export.",
+      "text": "Plain markdown gets you headings, lists, and links. markoto extends that with the things people actually need to publish real documents: syntax-highlighted code, math, GitHub-style alert callouts, and eight kinds of Mermaid diagram. Everything renders in the live preview and survives PDF export.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "chapter",
@@ -28,10 +28,10 @@
     },
     {
       "kind": "narration",
-      "text": "Code blocks pick up syntax highlighting from the language hint, so a Python fence renders the keywords and strings the way readers expect — in the preview and in the PDF.",
+      "text": "Code blocks pick up syntax highlighting from the language hint, so a Python fence renders the keywords and strings the way readers expect: in the preview and in the PDF.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "approach",
@@ -41,31 +41,31 @@
         "x": 32,
         "y": 695
       },
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "outcome",
       "file": "03.webp",
-      "caption": "The Editor drawer slides up — Formatting / Headings / Lists / Insert / File.",
+      "caption": "The Editor drawer slides up, Formatting / Headings / Lists / Insert / File.",
       "cursor": {
         "x": 32,
         "y": 695
       },
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "approach",
       "file": "04.webp",
       "caption": "Tap \"Code block\"",
       "cursor": null,
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "outcome",
       "file": "05.webp",
-      "caption": "A fenced code block lands at the cursor — drawer closes, editor regains focus.",
+      "caption": "A fenced code block lands at the cursor, drawer closes, editor regains focus.",
       "cursor": null,
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "chapter",
@@ -74,13 +74,13 @@
     },
     {
       "kind": "narration",
-      "text": "Alerts are GitHub-style callouts — five flavours (Note, Tip, Important, Warning, Caution) each with a coloured stripe and icon in the preview. Useful for marking a callout that should stand out from the surrounding prose.",
+      "text": "Alerts are GitHub-style callouts, five flavours (Note, Tip, Important, Warning, Caution) each with a coloured stripe and icon in the preview. Useful for marking a callout that should stand out from the surrounding prose.",
       "file": "06.webp",
       "cursor": {
         "x": 32,
         "y": 695
       },
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "approach",
@@ -90,35 +90,35 @@
         "x": 32,
         "y": 695
       },
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "approach",
       "file": "08.webp",
       "caption": "Tap \"Alert\"",
       "cursor": null,
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "outcome",
       "file": "09.webp",
-      "caption": "The flavour grid opens — Note / Tip / Important / Warning / Caution.",
+      "caption": "The flavour grid opens, Note / Tip / Important / Warning / Caution.",
       "cursor": null,
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "approach",
       "file": "09.webp",
       "caption": "Tap \"Tip\"",
       "cursor": null,
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "outcome",
       "file": "10.webp",
-      "caption": "A Tip alert lands — drawer closes, editor regains focus.",
+      "caption": "A Tip alert lands, drawer closes, editor regains focus.",
       "cursor": null,
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "chapter",
@@ -127,13 +127,13 @@
     },
     {
       "kind": "narration",
-      "text": "Math is typeset like in a paper — inline with $...$, block with $$...$$. The Insert menu seeds the right delimiters so you don't have to remember which goes where.",
+      "text": "Math is typeset like in a paper, inline with $...$, block with $$...$$. The Insert menu seeds the right delimiters so you don't have to remember which goes where.",
       "file": "11.webp",
       "cursor": {
         "x": 32,
         "y": 695
       },
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "approach",
@@ -143,21 +143,21 @@
         "x": 32,
         "y": 695
       },
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "approach",
       "file": "08.webp",
       "caption": "Tap \"Math\"",
       "cursor": null,
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "outcome",
       "file": "13.webp",
-      "caption": "A block equation placeholder lands — drawer closes, editor regains focus.",
+      "caption": "A block equation placeholder lands, drawer closes, editor regains focus.",
       "cursor": null,
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "chapter",
@@ -166,13 +166,13 @@
     },
     {
       "kind": "narration",
-      "text": "Diagrams use Mermaid — eight diagram kinds (flowchart, sequence, class, ER, Gantt, pie, mind-map, state). The Insert menu seeds a working starter snippet for each so you can edit the labels and see your data render without learning Mermaid's syntax.",
+      "text": "Diagrams use Mermaid: eight diagram kinds (flowchart, sequence, class, ER, Gantt, pie, mind-map, state). The Insert menu seeds a working starter snippet for each so you can edit the labels and see your data render without learning Mermaid's syntax.",
       "file": "14.webp",
       "cursor": {
         "x": 32,
         "y": 695
       },
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "approach",
@@ -182,35 +182,35 @@
         "x": 32,
         "y": 695
       },
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "approach",
       "file": "16.webp",
       "caption": "Tap \"Diagram\"",
       "cursor": null,
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "outcome",
       "file": "17.webp",
       "caption": "The diagram-kind grid opens.",
       "cursor": null,
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "approach",
       "file": "17.webp",
       "caption": "Tap \"Pie chart\"",
       "cursor": null,
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "outcome",
       "file": "18.webp",
-      "caption": "A working pie-chart Mermaid snippet lands — drawer closes, editor regains focus.",
+      "caption": "A working pie-chart Mermaid snippet lands, drawer closes, editor regains focus.",
       "cursor": null,
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "chapter",
@@ -225,7 +225,7 @@
         "x": 32,
         "y": 695
       },
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "approach",
@@ -235,17 +235,17 @@
         "x": 359,
         "y": 73
       },
-      "path": "/d/sKGrqN4xKS"
+      "path": "/d/hmNT1uOMjg"
     },
     {
       "kind": "outcome",
       "file": "20.webp",
-      "caption": "Code block, Tip alert, math equation, pie chart — all in one doc, all rendered live.",
+      "caption": "Code block, Tip alert, math equation, pie chart, all in one doc, all rendered live.",
       "cursor": {
         "x": 318,
         "y": 73
       },
-      "path": "/d/sKGrqN4xKS",
+      "path": "/d/hmNT1uOMjg",
       "hero": true
     }
   ],

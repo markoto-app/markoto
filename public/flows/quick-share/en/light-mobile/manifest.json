@@ -16,7 +16,7 @@
     },
     {
       "kind": "narration",
-      "text": "You don't need an account to write something quickly in markoto. Open the homepage, type, copy the link — anyone you send it to sees what you wrote, in real time. About three minutes; by the end you have a named document and a shareable URL on your clipboard.",
+      "text": "You don't need an account to write something quickly in markoto. Open the homepage, type, copy the link, anyone you send it to sees what you wrote, in real time. About three minutes; by the end you have a named document and a shareable URL on your clipboard.",
       "file": "01.webp",
       "cursor": null,
       "path": "/"
@@ -116,7 +116,7 @@
     {
       "kind": "outcome",
       "file": "07.webp",
-      "caption": "The description is captured — the AI will see this on every prompt.",
+      "caption": "The description is captured, the AI will see this on every prompt.",
       "cursor": {
         "x": 59,
         "y": 391
@@ -146,7 +146,7 @@
     {
       "kind": "approach",
       "file": "09.webp",
-      "caption": "Pick a template — Meeting notes seeds the right structure",
+      "caption": "Pick a template: Meeting notes seeds the right structure",
       "cursor": {
         "x": 272,
         "y": 388
@@ -156,7 +156,7 @@
     {
       "kind": "outcome",
       "file": "10.webp",
-      "caption": "\"Meeting notes\" is selected — the editor will be pre-filled with its skeleton, in its design.",
+      "caption": "\"Meeting notes\" is selected, the editor will be pre-filled with its skeleton, in its design.",
       "cursor": {
         "x": 272,
         "y": 388
@@ -216,12 +216,12 @@
     {
       "kind": "outcome",
       "file": "15.webp",
-      "caption": "The editor opens — your skeleton is ready to fill in.",
+      "caption": "The editor opens, your skeleton is ready to fill in.",
       "cursor": {
         "x": 195,
         "y": 521
       },
-      "path": "/d/Pj4ti56XEf"
+      "path": "/d/MfreUr1mwx"
     },
     {
       "kind": "chapter",
@@ -230,17 +230,17 @@
     },
     {
       "kind": "narration",
-      "text": "markoto pre-fills the doc with the template's structure — headings, a table layout, and HTML comments hinting what to write in each section. The comments are visible while you edit but hidden from the preview, the PDF, and anyone you share the link with.",
+      "text": "markoto pre-fills the doc with the template's structure, headings, a table layout, and HTML comments hinting what to write in each section. The comments are visible while you edit but hidden from the preview, the PDF, and anyone you share the link with.",
       "file": "15.webp",
       "cursor": null,
-      "path": "/d/Pj4ti56XEf"
+      "path": "/d/MfreUr1mwx"
     },
     {
       "kind": "outcome",
       "file": "15.webp",
-      "caption": "Headings, an Action items checklist, comment hints — all ready to fill in.",
+      "caption": "Headings, an Action items checklist, comment hints, all ready to fill in.",
       "cursor": null,
-      "path": "/d/Pj4ti56XEf"
+      "path": "/d/MfreUr1mwx"
     },
     {
       "kind": "chapter",
@@ -249,10 +249,10 @@
     },
     {
       "kind": "narration",
-      "text": "markoto documents share by URL. Anyone with the link can read or edit, depending on the access mode you choose. The default for anonymous documents is \"open edit\" — anyone with the link can edit.",
+      "text": "markoto documents share by URL. Anyone with the link can read or edit, depending on the access mode you choose. The default for anonymous documents is \"open edit\", anyone with the link can edit.",
       "file": "15.webp",
       "cursor": null,
-      "path": "/d/Pj4ti56XEf"
+      "path": "/d/MfreUr1mwx"
     },
     {
       "kind": "approach",
@@ -262,7 +262,7 @@
         "x": 330,
         "y": 20
       },
-      "path": "/d/Pj4ti56XEf",
+      "path": "/d/MfreUr1mwx",
       "annotations": [
         {
           "label": "lock icon",
@@ -277,26 +277,26 @@
     {
       "kind": "outcome",
       "file": "16.webp",
-      "caption": "The share dialog opens — your shareable link is right at the top.",
+      "caption": "The share dialog opens, your shareable link is right at the top.",
       "cursor": {
         "x": 330,
         "y": 20
       },
-      "path": "/d/Pj4ti56XEf",
+      "path": "/d/MfreUr1mwx",
       "highlights": [
         {
           "label": "The link to share",
-          "x": 40.118743896484375,
-          "y": 335.5187683105469,
-          "w": 169.55751037597656,
-          "h": 27.978546142578125
+          "x": 32.124942779541016,
+          "y": 335.518798828125,
+          "w": 189.54209518432617,
+          "h": 27.978515625
         },
         {
           "label": "One-click copy",
-          "x": 217.6701202392578,
-          "y": 335.5187683105469,
-          "w": 96.23869323730469,
-          "h": 27.978546142578125
+          "x": 229.66091918945312,
+          "y": 335.518798828125,
+          "w": 92.24172973632812,
+          "h": 27.978515625
         }
       ]
     },
@@ -305,25 +305,25 @@
       "file": "17.webp",
       "caption": "Click \"Copy link\" to copy it to your clipboard",
       "cursor": {
-        "x": 265,
+        "x": 275,
         "y": 349
       },
-      "path": "/d/Pj4ti56XEf"
+      "path": "/d/MfreUr1mwx"
     },
     {
       "kind": "outcome",
       "file": "18.webp",
-      "caption": "Done — your link is on your clipboard. Paste it anywhere to share.",
+      "caption": "Done: your link is on your clipboard. Paste it anywhere to share.",
       "cursor": {
-        "x": 265,
+        "x": 275,
         "y": 349
       },
-      "path": "/d/Pj4ti56XEf",
+      "path": "/d/MfreUr1mwx",
       "hero": true
     }
   ],
   "next": {
     "slug": "have-a-discussion",
-    "why": "Now invite a teammate — leave a comment on a passage they wrote"
+    "why": "Now invite a teammate, leave a comment on a passage they wrote"
   }
 }

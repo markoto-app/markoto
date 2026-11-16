@@ -19,7 +19,7 @@
       "text": "Team is bought for a workspace, not for a person. You pay per seat, and everyone in the workspace gets Team inside it, with one shared AI budget for the month. Only workspace admins see the Billing tab.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/PNya_Tcz89"
+      "path": "/w/62JEPAJ_ZY"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 983,
         "y": 283
       },
-      "path": "/w/PNya_Tcz89",
+      "path": "/w/62JEPAJ_ZY",
       "annotations": [
         {
           "label": "Billing",
@@ -49,7 +49,7 @@
         "x": 983,
         "y": 283
       },
-      "path": "/w/PNya_Tcz89"
+      "path": "/w/62JEPAJ_ZY"
     },
     {
       "kind": "outcome",
@@ -59,7 +59,7 @@
         "x": 983,
         "y": 283
       },
-      "path": "/w/PNya_Tcz89",
+      "path": "/w/62JEPAJ_ZY",
       "highlights": [
         {
           "label": "Total",
@@ -78,7 +78,7 @@
         "x": 285,
         "y": 749
       },
-      "path": "/w/PNya_Tcz89"
+      "path": "/w/62JEPAJ_ZY"
     },
     {
       "kind": "outcome",
@@ -88,7 +88,7 @@
         "x": 285,
         "y": 749
       },
-      "path": "/w/PNya_Tcz89"
+      "path": "/w/62JEPAJ_ZY"
     },
     {
       "kind": "approach",
@@ -98,7 +98,7 @@
         "x": 365,
         "y": 784
       },
-      "path": "/w/PNya_Tcz89"
+      "path": "/w/62JEPAJ_ZY"
     },
     {
       "kind": "outcome",
@@ -130,7 +130,7 @@
         "x": 1238,
         "y": 42
       },
-      "path": "/w/PNya_Tcz89",
+      "path": "/w/62JEPAJ_ZY",
       "highlights": [
         {
           "label": "Team",
@@ -162,7 +162,7 @@
         "x": 1238,
         "y": 42
       },
-      "path": "/w/PNya_Tcz89"
+      "path": "/w/62JEPAJ_ZY"
     },
     {
       "kind": "approach",
@@ -170,9 +170,9 @@
       "caption": "Invite a fifth person",
       "cursor": {
         "x": 831,
-        "y": 603
+        "y": 595
       },
-      "path": "/w/PNya_Tcz89"
+      "path": "/w/62JEPAJ_ZY"
     },
     {
       "kind": "outcome",
@@ -180,9 +180,9 @@
       "caption": "All four seats are taken, so markoto asks whether to add one.",
       "cursor": {
         "x": 831,
-        "y": 603
+        "y": 595
       },
-      "path": "/w/PNya_Tcz89"
+      "path": "/w/62JEPAJ_ZY"
     },
     {
       "kind": "approach",
@@ -190,9 +190,9 @@
       "caption": "Click \"Add a seat and invite\"",
       "cursor": {
         "x": 793,
-        "y": 662
+        "y": 649
       },
-      "path": "/w/PNya_Tcz89"
+      "path": "/w/62JEPAJ_ZY"
     },
     {
       "kind": "outcome",
@@ -200,9 +200,9 @@
       "caption": "The plan now has five seats and the invitation is on its way.",
       "cursor": {
         "x": 793,
-        "y": 662
+        "y": 649
       },
-      "path": "/w/PNya_Tcz89"
+      "path": "/w/62JEPAJ_ZY"
     },
     {
       "kind": "chapter",
@@ -215,29 +215,29 @@
       "file": "13.webp",
       "cursor": {
         "x": 793,
-        "y": 662
+        "y": 649
       },
-      "path": "/w/PNya_Tcz89"
+      "path": "/w/62JEPAJ_ZY"
     },
     {
       "kind": "approach",
       "file": "14.webp",
-      "caption": "Save Ben's limit of $3 a month",
+      "caption": "Save Ben's limit of 3,000 AI Points a month",
       "cursor": {
         "x": 979,
         "y": 786
       },
-      "path": "/w/PNya_Tcz89"
+      "path": "/w/62JEPAJ_ZY"
     },
     {
       "kind": "outcome",
       "file": "15.webp",
-      "caption": "Ben can now use up to $3 of the workspace's AI budget this month.",
+      "caption": "Ben can now use up to 3,000 of the workspace's AI Points this month.",
       "cursor": {
         "x": 979,
         "y": 786
       },
-      "path": "/w/PNya_Tcz89"
+      "path": "/w/62JEPAJ_ZY"
     },
     {
       "kind": "chapter",
@@ -246,48 +246,48 @@
     },
     {
       "kind": "narration",
-      "text": "If the workspace needs more AI this month, buy credits. They are used only after the month's budget is spent and last a year.",
+      "text": "If the workspace needs more AI this month, buy extra AI Points. They are used only after the month's points are spent and last a year.",
       "file": "16.webp",
       "cursor": {
         "x": 979,
         "y": 786
       },
-      "path": "/w/PNya_Tcz89"
+      "path": "/w/62JEPAJ_ZY"
     },
     {
       "kind": "approach",
       "file": "17.webp",
-      "caption": "Tick the box for the credits",
+      "caption": "Tick the box for the AI Points",
       "cursor": {
         "x": 285,
-        "y": 452
+        "y": 432
       },
-      "path": "/w/PNya_Tcz89"
+      "path": "/w/62JEPAJ_ZY"
     },
     {
       "kind": "outcome",
       "file": "18.webp",
-      "caption": "For credits the box also says that the right of withdrawal ends once they are used.",
+      "caption": "For AI Points the box also says that the right of withdrawal ends once they are used.",
       "cursor": {
         "x": 285,
-        "y": 452
+        "y": 432
       },
-      "path": "/w/PNya_Tcz89"
+      "path": "/w/62JEPAJ_ZY"
     },
     {
       "kind": "approach",
       "file": "19.webp",
-      "caption": "Buy €25 of AI credits",
+      "caption": "Buy 25,000 AI Points for €25",
       "cursor": {
         "x": 639,
         "y": 494
       },
-      "path": "/w/PNya_Tcz89"
+      "path": "/w/62JEPAJ_ZY"
     },
     {
       "kind": "outcome",
       "file": "07.webp",
-      "caption": "Stripe takes the payment for the credits.",
+      "caption": "Stripe takes the payment.",
       "cursor": {
         "x": 639,
         "y": 494
@@ -297,19 +297,19 @@
     {
       "kind": "outcome",
       "file": "20.webp",
-      "caption": "The credits are on the workspace, with the date they expire.",
+      "caption": "The AI Points are on the workspace, with the date they expire.",
       "cursor": {
         "x": 1238,
         "y": 42
       },
-      "path": "/w/PNya_Tcz89",
+      "path": "/w/62JEPAJ_ZY",
       "highlights": [
         {
-          "label": "Credits",
+          "label": "Extra AI Points",
           "x": 277,
-          "y": 299.75,
+          "y": 295.75,
           "w": 726,
-          "h": 201
+          "h": 209
         }
       ]
     }
