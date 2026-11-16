@@ -6,6 +6,7 @@ import { brandKitAvailable } from './access'
 import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
 import type { BrandFont } from '~~/shared/config/brandKit'
 import type { DocTheme } from '~~/shared/types/theme'
+import { compareCodeUnits } from '~~/shared/utils/compareCodeUnits'
 
 // What a document's renderers need from its workspace's brand kit:
 // the fonts to declare and, while the design is locked (and the plan
@@ -37,7 +38,7 @@ export async function resolveDocBrand(doc: DocAccess<'view'> | null): Promise<Do
   const fonts = brandFontsOf(assets)
   // Logos count too: deleting one a document's own theme still points at
   // must re-render its cached PDF without it.
-  const images = assets.filter(a => a.kind === 'image').map(a => a.id).sort()
+  const images = assets.filter(a => a.kind === 'image').map(a => a.id).sort(compareCodeUnits)
   let lockedTheme: DocTheme | null = null
   if (workspace.brandLocked && workspace.defaultTheme && isValidTheme(workspace.defaultTheme) && await brandKitAvailable(workspaceId)) {
     lockedTheme = workspace.defaultTheme

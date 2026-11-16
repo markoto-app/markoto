@@ -90,13 +90,18 @@
 # `include:`s) and every config file it bind-mounts (deploy/config/), so
 # the compose files' relative paths resolve the same way on both. The same
 # set the GitHub deploy workflow syncs.
+# World-readable on purpose (dirs + files below): rootless Podman maps the
+# containers' non-root users (LiteLLM as 65534, HAProxy, db-init as
+# postgres) to subordinate uids, which are "others" on the host, and they
+# read these bind mounts. Repository files only; .env and secrets/ keep
+# their own modes (markoto-compose re-applies go+rX after each deploy).
 - name: Ensure the deploy/ dirs exist
   ansible.builtin.file:
     path: "{{ markoto_root }}/{{ item }}"
     state: directory
     owner: "{{ markoto_user }}"
     group: "{{ markoto_user }}"
-    mode: "0755"
+    mode: "0755"  # NOSONAR read by container users mapped to subordinate uids, see above
   # Each level listed on its own: a parent created implicitly would be
   # root-owned, and the deploy workflow's tar sync could not write into it.
   loop:
@@ -116,7 +121,7 @@
     dest: "{{ markoto_root }}/{{ item }}"
     owner: "{{ markoto_user }}"
     group: "{{ markoto_user }}"
-    mode: "0644"
+    mode: "0644"  # NOSONAR read by container users mapped to subordinate uids, see the dirs above
   loop:
     - deploy/compose/compose.prod.yml
     - deploy/compose/compose.base.yml
@@ -149,7 +154,7 @@
     group: "{{ markoto_user }}"
     # A CA certificate is public. Readable by the unprivileged backup user
     # (uid 70) so pg_dump can verify the managed Postgres.
-    mode: "0644"
+    mode: "0644"  # NOSONAR a public CA certificate, read by a container user
   when: ovh_pg_host | length > 0
   failed_when: false
 

@@ -43,7 +43,8 @@
     state: directory
     owner: root
     group: root
-    mode: "0755"
+    # Read only by systemd-journald (root); nothing for other users here.
+    mode: "0750"
 
 # Container logs land here too (journald log driver, per-user journal
 # files of the markoto user, roles/podman_host): SystemMaxUse bounds both.
@@ -52,7 +53,7 @@
     dest: /etc/systemd/journald.conf.d/markoto.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0640"
     content: |
       # Managed by Ansible (markoto/base role).
       [Journal]
@@ -101,7 +102,8 @@
     dest: /etc/fail2ban/jail.d/sshd-markoto.conf
     owner: root
     group: root
-    mode: "0644"
+    # fail2ban runs as root.
+    mode: "0640"
     content: |
       # Managed by Ansible (markoto/base role).
       [sshd]
@@ -240,8 +242,10 @@
   ansible.builtin.copy:
     dest: /usr/local/bin/markoto-notify
     owner: root
-    group: root
-    mode: "0755"
+    # Callers: root (markoto-apt-notify) and the markoto user
+    # (markoto-backup-now); the env file it sources is root:markoto 0640.
+    group: "{{ markoto_user }}"
+    mode: "0750"
     content: |
       #!/usr/bin/env bash
       # Managed by Ansible (markoto/base role).
@@ -268,7 +272,8 @@
     dest: /usr/local/sbin/markoto-apt-notify
     owner: root
     group: root
-    mode: "0755"
+    # Run only by apt-daily-upgrade.service (root).
+    mode: "0700"
     content: |
       #!/bin/sh
       # Managed by Ansible (markoto/base role). Runs once after each
@@ -305,14 +310,15 @@
     state: directory
     owner: root
     group: root
-    mode: "0755"
+    # Read only by the system manager (root).
+    mode: "0750"
 
 - name: Notify once after each unattended-upgrades run
   ansible.builtin.copy:
     dest: /etc/systemd/system/apt-daily-upgrade.service.d/markoto-notify.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0640"
     content: |
       # Managed by Ansible (markoto/base role).
       [Service]
@@ -329,7 +335,10 @@
     dest: /etc/apt/apt.conf.d/52-markoto-no-devrelease
     owner: root
     group: root
-    mode: "0644"
+    # World-readable on purpose: every apt run reads apt.conf.d, also an
+    # unprivileged `apt list`, and aborts on a file it cannot open. No
+    # secret in it.
+    mode: "0644"  # NOSONAR apt configuration must stay readable for unprivileged apt
     content: |
       // Managed by Ansible (markoto/base role).
       Unattended-Upgrade::DevRelease "false";

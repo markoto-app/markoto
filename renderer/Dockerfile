@@ -14,14 +14,15 @@ FROM mcr.microsoft.com/playwright:v1.65.1-jammy@sha256:b0ee5ce5e14ac42c394c0564a
 # instead of being masked by the last stage's exit code.
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Bun via the official curl install. We don't need bun for Playwright (which
+# Bun from its GitHub release zip. We don't need bun for Playwright (which
 # ships its Node), but the renderer's own HTTP server runs under Bun for
-# stack consistency. The Bun installer requires `unzip` which the Playwright
-# base image doesn't ship. The installer takes the release tag as its
-# argument: pinned to the same Bun as the oven/bun images + CI
-# (`bun-version`) so all three move together; without it the build
-# silently picks up whatever Bun is latest that day. BUN_INSTALL puts the
-# binary outside /root so the unprivileged runtime user can execute it.
+# stack consistency. The zip needs `unzip`, which the Playwright base image
+# doesn't ship. Pinned to the same Bun as the oven/bun images + CI
+# (`bun-version`) so all three move together, and checked against the
+# SHA-256 from the release's SHASUMS256.txt before anything in it runs (the
+# old `curl | bash` installer ran whatever the server sent). Bumping Bun
+# means updating BUN_VERSION and both checksums. The binary lives outside
+# /root so the unprivileged runtime user can execute it.
 #
 # The base image's global npm (+ npx) is removed: nothing here uses it
 # (deps install with bun), and its vendored node_modules carry fixable
@@ -30,11 +31,26 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # in it that the image scan gates on.
 # Firefox and WebKit are removed too: only Chromium is ever launched, and
 # every browser left in the image is attack surface and image weight.
+ARG TARGETARCH=amd64
+ARG BUN_VERSION=1.4.4
+ARG BUN_SHA256_AMD64=bf8ccbfb2b0b80159e0f9a6d15c55317add8077534dbc6130a3edb52fccb395c
+ARG BUN_SHA256_ARM64=baa6bb36f51d6e58561e02bbea825038a9df454f673d6d776e8bbf86f8c7850e
 RUN apt-get update \
  && apt-get install -y --no-install-recommends unzip \
  && apt-get install -y --no-install-recommends --only-upgrade apt libapt-pkg6.0 \
  && rm -rf /var/lib/apt/lists/* \
- && curl -fsSL https://bun.sh/install | BUN_INSTALL=/opt/bun bash -s "bun-v1.4.4" \
+ && case "${TARGETARCH}" in \
+      amd64) bun_asset=bun-linux-x64; bun_sha256="${BUN_SHA256_AMD64}" ;; \
+      arm64) bun_asset=bun-linux-aarch64; bun_sha256="${BUN_SHA256_ARM64}" ;; \
+      *) echo "unsupported TARGETARCH ${TARGETARCH}" >&2; exit 1 ;; \
+    esac \
+ && curl --proto '=https' --tlsv1.2 -fsSL -o /tmp/bun.zip \
+      "https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/${bun_asset}.zip" \
+ && echo "${bun_sha256}  /tmp/bun.zip" | sha256sum -c - \
+ && mkdir -p /opt/bun/bin \
+ && unzip -j -o /tmp/bun.zip "${bun_asset}/bun" -d /opt/bun/bin \
+ && chmod 0755 /opt/bun/bin/bun \
+ && rm -f /tmp/bun.zip \
  && ln -s /opt/bun/bin/bun /usr/local/bin/bun \
  && rm -rf /usr/lib/node_modules/npm /usr/bin/npm /usr/bin/npx \
  && rm -rf /ms-playwright/firefox-* /ms-playwright/webkit-*

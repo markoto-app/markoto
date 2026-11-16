@@ -16,6 +16,7 @@ import {
   type MarketingVersion
 } from '../../../shared/seo/marketing'
 import { isoDate } from '../../../shared/seo/structuredData'
+import { compareCodeUnits } from '../../../shared/utils/compareCodeUnits'
 import {
   ABUSE_POLICY_EFFECTIVE_DATE,
   DPA_EFFECTIVE_DATE,
@@ -172,7 +173,7 @@ export function sitemapEntries(base: string, sources: SitemapSources): SitemapEn
   }
   for (const path of STATIC_SITEMAP_PATHS) add({ loc: path === '/' ? `${base}/` : `${base}${path}` })
   for (const page of sources.marketingPages ?? []) localisedEntries(base, page).forEach(add)
-  for (const path of [...sources.docsPaths].sort()) add(withLastmod(`${base}${path}`, sources.docsLastmod?.[path]))
+  for (const path of [...sources.docsPaths].sort(compareCodeUnits)) add(withLastmod(`${base}${path}`, sources.docsLastmod?.[path]))
   if (sources.legalSurfaces) for (const path of LEGAL_SITEMAP_PATHS) add(withLastmod(`${base}${path}`, LEGAL_LASTMOD[path]))
   return out
 }

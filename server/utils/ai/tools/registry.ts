@@ -137,6 +137,8 @@ export const URL_ARG_TOOLS: Readonly<Record<string, string>> = Object.fromEntrie
   ALL_TOOLS.flatMap(t => ('trustBoundary' in t && typeof t.trustBoundary === 'object' ? [[t.name, t.trustBoundary.urlArg]] : []))
 )
 
+const ALL_WEB_TOOLS: Readonly<{ search: boolean, fetch: boolean }> = { search: true, fetch: true }
+
 /**
  * Drop tools the session's providers can't serve (BYOK): no image
  * provider → no `generate_image`; a chat model without vision → no
@@ -148,7 +150,7 @@ export const URL_ARG_TOOLS: Readonly<Record<string, string>> = Object.fromEntrie
 export function filterToolsForProviders(
   declarations: FunctionDeclaration[],
   providers: { chat: { supportsVision: boolean } | null, image: unknown },
-  webTools: { search: boolean, fetch: boolean } = { search: true, fetch: true }
+  webTools: Readonly<{ search: boolean, fetch: boolean }> = ALL_WEB_TOOLS
 ): FunctionDeclaration[] {
   const available: Record<NonNullable<ToolDefinition['requires']>, boolean> = {
     vision: providers.chat?.supportsVision ?? false,

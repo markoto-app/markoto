@@ -18,7 +18,7 @@
 # Needs ImageMagick 7 (`magick`). See docs/contributing/TEMPLATE-WORKFLOW.md.
 set -euo pipefail
 
-if [ "$#" -ne 4 ]; then
+if [[ "$#" -ne 4 ]]; then
   sed -n '2,17p' "$0" >&2
   exit 2
 fi
@@ -30,8 +30,8 @@ pages=$4
 for i in $(seq 1 "$pages"); do
   ref="$ref_dir/ref-$i.png"
   page="$ours/$prefix-p$i.png"
-  [ -f "$ref" ] || { echo "missing $ref" >&2; exit 1; }
-  [ -f "$page" ] || { echo "missing $page" >&2; exit 1; }
+  [[ -f "$ref" ]] || { echo "missing $ref" >&2; exit 1; }
+  [[ -f "$page" ]] || { echo "missing $page" >&2; exit 1; }
   size=$(magick identify -format '%wx%h' "$ref")
   magick "$page" -resize "${size}!" "$ours/_o$i.png"
   magick "$ref" "$ours/_o$i.png" +append -resize 50% "$ours/side-$i.png"

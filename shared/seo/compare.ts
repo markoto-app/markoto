@@ -7,6 +7,8 @@
 // A competitor's source is an https URL; markoto's is a site path of its
 // own docs (`/docs/…`, `/legal/…`) or a path in this repository.
 
+import { compareCodeUnits } from '../utils/compareCodeUnits'
+
 export type CompareValue = boolean | string
 
 export interface CompareClaim {
@@ -63,7 +65,7 @@ export function compareClaims(data: CompareData): CompareClaim[] {
 
 /** The oldest `checked` date of a data file (what the page says it was checked on). */
 export function oldestCheck(data: CompareData): string | null {
-  const dates = compareClaims(data).map(c => c.checked).filter(d => parseCheckedDate(d) !== null).sort()
+  const dates = compareClaims(data).map(c => c.checked).filter(d => parseCheckedDate(d) !== null).sort(compareCodeUnits)
   return dates[0] ?? null
 }
 

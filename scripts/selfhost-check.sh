@@ -117,12 +117,12 @@ echo "ok: backup credentials reach only the backup service"
 #    by the unprivileged user the image runs as. Build the real image and
 #    resolve the exact path the timer task uses.
 cron_path="$(grep -oE 'exec -T backup [^ ]+' infra/roles/backup_timer/tasks/main.yml | awk '{print $4}' | head -n 1)"
-if [ -z "$cron_path" ]; then
+if [[ -z "$cron_path" ]]; then
   echo "FAIL: could not find the backup command in infra/roles/backup_timer/tasks/main.yml" >&2
   exit 1
 fi
 docker build --load -q -t localhost/markoto-backup-ci backup-server > /dev/null
-if [ "$(docker run --rm --entrypoint id localhost/markoto-backup-ci -u)" = "0" ]; then
+if [[ "$(docker run --rm --entrypoint id localhost/markoto-backup-ci -u)" = "0" ]]; then
   echo "FAIL: the backup image must not run as root" >&2
   exit 1
 fi
@@ -229,7 +229,7 @@ check_isolation() { # check_isolation LABEL CONFIG_JSON
           | "litellm admin UI is not disabled" )
       ]
     | .[]' "$cfg")"
-  if [ -n "$out" ]; then
+  if [[ -n "$out" ]]; then
     printf 'FAIL (%s): %s\n' "$label" "$out" >&2
     exit 1
   fi
@@ -259,14 +259,14 @@ if COMPOSE_FILE="deploy/compose/compose.prod.yml" docker compose --env-file "$tm
   echo "FAIL: prod compose must require NUXT_ALTCHA_HMAC_KEY" >&2
   exit 1
 fi
-if [ "$(grep -c 'ensure_secret NUXT_ALTCHA_HMAC_KEY hex' install.sh)" -lt 2 ]; then
+if [[ "$(grep -c 'ensure_secret NUXT_ALTCHA_HMAC_KEY hex' install.sh)" -lt 2 ]]; then
   echo "FAIL: install.sh must generate NUXT_ALTCHA_HMAC_KEY on install and upgrade" >&2
   exit 1
 fi
 echo "ok: anonymous gate wiring (prod on + key required, self-host key generated)"
 # Markitdown refuses unauthenticated requests: an existing install that
 # upgrades must get the secret generated too, not only a fresh one.
-if [ "$(grep -c 'ensure_secret NUXT_MARKITDOWN_API_SECRET hex' install.sh)" -lt 2 ]; then
+if [[ "$(grep -c 'ensure_secret NUXT_MARKITDOWN_API_SECRET hex' install.sh)" -lt 2 ]]; then
   echo "FAIL: install.sh must generate NUXT_MARKITDOWN_API_SECRET on install and upgrade" >&2
   exit 1
 fi
@@ -293,7 +293,7 @@ if COMPOSE_FILE="deploy/compose/compose.prod.yml" docker compose --env-file "$tm
   echo "FAIL: prod compose must require NUXT_ENCRYPTION_KEY" >&2
   exit 1
 fi
-if [ "$(grep -c 'ensure_secret NUXT_ENCRYPTION_KEY hex' install.sh)" -lt 2 ]; then
+if [[ "$(grep -c 'ensure_secret NUXT_ENCRYPTION_KEY hex' install.sh)" -lt 2 ]]; then
   echo "FAIL: install.sh must generate NUXT_ENCRYPTION_KEY on install and upgrade" >&2
   exit 1
 fi
@@ -310,7 +310,7 @@ pinned_re='^[^@]+:[^/@:]*[0-9][^/@:]*[.][0-9][^/@:]*@sha256:[0-9a-f]{64}$'
 for cfg in salt-prod salt-selfhost local img-dev img-test; do
   out="$(jq -r --arg re "$pinned_re" '.services | to_entries[] | select(.value.image != null) | .value.image
     | select((test("/markoto-[a-z]+:") | not) and (test($re) | not))' "$tmp/$cfg.json")"
-  if [ -n "$out" ]; then
+  if [[ -n "$out" ]]; then
     printf 'FAIL (%s): image not pinned by version tag + digest: %s\n' "$cfg" "$out" >&2
     exit 1
   fi
@@ -333,14 +333,14 @@ for cfg in salt-prod salt-selfhost local img-dev img-test; do
     | ( (.value.volumes // [] | map(select(.target | startswith("/var/lib/postgresql"))) | map(.target))
         + ((.value.tmpfs // []) | map(select(startswith("/var/lib/postgresql")) | split(":")[0])) ) as $t
     | select($t != ["/var/lib/postgresql"]) | "\($k) mounts \($t)"' "$tmp/$cfg.json")"
-  if [ -n "$out" ]; then
+  if [[ -n "$out" ]]; then
     printf 'FAIL (%s): Postgres data must be mounted at /var/lib/postgresql: %s\n' "$cfg" "$out" >&2
     exit 1
   fi
 done
 shellcheck deploy/config/postgres/pg-major-upgrade.sh
 for f in .github/workflows/deploy.yml infra/roles/markoto/tasks/main.yml; do
-  if [ "$(grep -c 'deploy/config/postgres/pg-major-upgrade.sh' "$f")" -lt 2 ]; then
+  if [[ "$(grep -c 'deploy/config/postgres/pg-major-upgrade.sh' "$f")" -lt 2 ]]; then
     echo "FAIL: $f must ship and run deploy/config/postgres/pg-major-upgrade.sh" >&2
     exit 1
   fi
@@ -430,7 +430,7 @@ check_internal_routes() { # check_internal_routes LABEL CONFIG_JSON
           | "the app and markitdown disagree on the markitdown secret" )
       ]
     | .[]' "$2")"
-  if [ -n "$out" ]; then
+  if [[ -n "$out" ]]; then
     printf 'FAIL (%s): %s\n' "$1" "$out" >&2
     exit 1
   fi
@@ -454,7 +454,7 @@ pages_paths='(PathPrefix(`/p/`) || PathPrefix(`/api/published/`) || PathPrefix(`
 check_pages_router() { # check_pages_router LABEL CONFIG_JSON HOST
   local rule
   rule="$(jq -r '.services.app.labels["traefik.http.routers.pages.rule"] // ""' "$2")"
-  if [ "$rule" != "Host(\`$3\`) && $pages_paths" ]; then
+  if [[ "$rule" != "Host(\`$3\`) && $pages_paths" ]]; then
     printf 'FAIL (%s): pages router rule is "%s"\n' "$1" "$rule" >&2
     exit 1
   fi
@@ -505,7 +505,7 @@ check_loopback() { # check_loopback LABEL CONFIG_JSON
     .services | to_entries[] | .key as $s | (.value.ports // [])[]
     | select((.host_ip // "") as $ip | ($ip != "127.0.0.1") and ((($s == "fake-openai-test" or $s == "oidc-test") and (($ip | startswith("10.213.47.")) or ($fakehost != "" and $ip == $fakehost))) | not))
     | "\($s) publishes \(.published) on \(.host_ip // "all interfaces")"' "$2")"
-  if [ -n "$out" ]; then
+  if [[ -n "$out" ]]; then
     printf 'FAIL (%s): %s\n' "$1" "$out" >&2
     exit 1
   fi
@@ -521,7 +521,7 @@ check_loopback "local" "$tmp/local.json"
 # Every stack lives in deploy/compose/ and the third-party config it mounts
 # in deploy/config/; nothing stays behind in the repository root.
 stray="$(git ls-files ':(glob)docker-compose*.yml' ':(glob)compose*.y*ml' ':(glob)docker-compose*.yaml')"
-if [ -n "$stray" ]; then
+if [[ -n "$stray" ]]; then
   echo "FAIL: compose files outside deploy/compose/: $stray" >&2
   exit 1
 fi
@@ -534,7 +534,7 @@ render_config "$tmp/podman-test.json" "$tmp/prod.env" "deploy/compose/compose.te
 # a wrong path only shows when the stack starts. Resolve it here.
 for cfg in salt-prod salt-selfhost local dev test; do
   for prof in $(jq -r '[.services[].security_opt // [] | .[] | select(startswith("seccomp=")) | ltrimstr("seccomp=")] | unique | .[]' "$tmp/$cfg.json"); do
-    if [ ! -f "deploy/compose/$prof" ]; then
+    if [[ ! -f "deploy/compose/$prof" ]]; then
       echo "FAIL: seccomp profile $prof does not exist relative to deploy/compose/ ($cfg)" >&2
       exit 1
     fi
@@ -546,17 +546,17 @@ done
 # (../../traefik/acme.json) is host state, created by the role.
 root="$(pwd)"
 for src in $(jq -r --arg root "$root/" '[.services[].volumes // [] | .[] | select(.type == "bind") | .source | select(startswith($root)) | ltrimstr($root)] | unique | .[]' "$tmp/salt-prod.json"); do
-  [ "$src" = "traefik/acme.json" ] && continue
-  if [ ! -e "$src" ]; then
+  [[ "$src" = "traefik/acme.json" ]] && continue
+  if [[ ! -e "$src" ]]; then
     echo "FAIL: prod mounts $src, which is not in the repository" >&2
     exit 1
   fi
   # deploy/config/postgres/init only runs on a fresh data dir: Ansible-only.
-  if [ "$src" != "deploy/config/postgres/init" ] && ! grep -qE "^\s+$src \\\\$" .github/workflows/deploy.yml; then
+  if [[ "$src" != "deploy/config/postgres/init" ]] && ! grep -qE "^\s+$src \\\\$" .github/workflows/deploy.yml; then
     echo "FAIL: .github/workflows/deploy.yml does not sync $src to the host" >&2
     exit 1
   fi
-  if [ -f "$src" ] && ! grep -qE "^\s+- $src$" infra/roles/markoto/tasks/main.yml; then
+  if [[ -f "$src" ]] && ! grep -qE "^\s+- $src$" infra/roles/markoto/tasks/main.yml; then
     echo "FAIL: infra/roles/markoto does not sync $src to the host" >&2
     exit 1
   fi
@@ -602,7 +602,7 @@ for cfg in hosted hosted-pg; do
         ( select([.services["socket-proxy"].volumes[] | select(.target == "/var/run/docker.sock") | .source] != ["/run/user/1001/podman/podman.sock"])
           | "socket-proxy does not mount CONTAINER_SOCKET" )
       ] | .[]' "$tmp/$cfg.json")"
-  if [ -n "$out" ]; then
+  if [[ -n "$out" ]]; then
     printf 'FAIL (%s): %s\n' "$cfg" "$out" >&2
     exit 1
   fi
@@ -650,7 +650,7 @@ out="$(jq -r '
   | select([$cmd[] | select(. == "--certificatesresolvers.\($r).acme.keytype=EC256")] | length == 0)
   | "resolver \($r) does not request EC256 keys"
 ' "$tmp/hosted.json" "$tmp/edge-selfhost-tls.json")"
-if [ -n "$out" ]; then echo "FAIL: $out" >&2; exit 1; fi
+if [[ -n "$out" ]]; then echo "FAIL: $out" >&2; exit 1; fi
 for f in .github/workflows/deploy.yml infra/roles/markoto/tasks/main.yml; do
   if ! grep -q "deploy/config/traefik/acme-ec-migrate.sh" "$f"; then
     echo "FAIL: $f does not ship/run deploy/config/traefik/acme-ec-migrate.sh" >&2
@@ -667,7 +667,7 @@ for cfg in hosted salt-selfhost; do
     ( .services.app.healthcheck.test // [] | join(" ") | select(test("/api/health(/live)?") and (test("/api/health/live") | not)) | "app container healthcheck must use /api/health/live" ),
     ( .services.sync.healthcheck.interval // "" | select(. != "" and (rtrimstr("s") | tonumber) > 5) | "sync healthcheck interval \(.) (Traefik routes a restarted sync only after it passes): keep it at 5s or less" )
   ' "$tmp/$cfg.json")"
-  if [ -n "$out" ]; then printf 'FAIL (%s): %s\n' "$cfg" "$out" >&2; exit 1; fi
+  if [[ -n "$out" ]]; then printf 'FAIL (%s): %s\n' "$cfg" "$out" >&2; exit 1; fi
 done
 out="$(jq -r '
   ( select((.services.traefik.mem_limit // 0) == 0) | "traefik has no mem_limit" ),
@@ -675,7 +675,7 @@ out="$(jq -r '
   ( select((.services["edge-proxy"].mem_limit // 0) == 0) | "edge-proxy has no mem_limit" ),
   ( select((.services["edge-proxy"].command // [] | index("-m")) == null) | "edge-proxy runs without -m (HAProxy memory cap)" )
 ' "$tmp/hosted.json")"
-if [ -n "$out" ]; then echo "FAIL (hosted): $out" >&2; exit 1; fi
+if [[ -n "$out" ]]; then echo "FAIL (hosted): $out" >&2; exit 1; fi
 if ! grep -qE '^\s+maxconn [0-9]+$' deploy/config/edge/haproxy.cfg; then
   echo "FAIL: deploy/config/edge/haproxy.cfg must set a global maxconn" >&2
   exit 1

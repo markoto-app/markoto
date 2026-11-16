@@ -114,8 +114,9 @@
     dest: /usr/local/bin/docker-compose
     checksum: "sha256:{{ compose_sha256[ansible_facts.architecture] }}"
     owner: root
-    group: root
-    mode: "0755"
+    # Only markoto-compose (as the markoto user) runs it.
+    group: "{{ markoto_user }}"
+    mode: "0750"
 
 - name: Read the installed Docker Compose version
   ansible.builtin.command:
@@ -139,8 +140,9 @@
   ansible.builtin.copy:
     dest: /usr/local/bin/markoto-compose
     owner: root
-    group: root
-    mode: "0755"
+    # It refuses every user but markoto anyway.
+    group: "{{ markoto_user }}"
+    mode: "0750"
     content: |
       #!/bin/sh
       # Managed by Ansible (markoto/podman_host role).
@@ -198,7 +200,7 @@
     dest: "{{ podman_host_home }}/.config/containers/containers.conf"
     owner: "{{ markoto_user }}"
     group: "{{ markoto_user }}"
-    mode: "0644"
+    mode: "0600"
     content: |
       # Managed by Ansible (markoto/podman_host role).
       [containers]
@@ -218,7 +220,7 @@
     create: true
     owner: "{{ markoto_user }}"
     group: "{{ markoto_user }}"
-    mode: "0644"
+    mode: "0600"
     marker: "# {mark} markoto rootless Podman (Ansible podman_host role)"
     block: |
       export XDG_RUNTIME_DIR="/run/user/$(id -u)"
@@ -233,7 +235,7 @@
     dest: "{{ podman_host_home }}/.config/systemd/user/markoto-stack.service"
     owner: "{{ markoto_user }}"
     group: "{{ markoto_user }}"
-    mode: "0644"
+    mode: "0600"
     content: |
       # Managed by Ansible (markoto/podman_host role).
       [Unit]

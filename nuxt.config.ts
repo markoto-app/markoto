@@ -61,7 +61,8 @@ export default defineNuxtConfig({
     content: {
       database: {
         type: 'sqlite',
-        filename: '/tmp/markoto-content.sqlite'
+        // The container's own tmpfs (one non-root user, read-only root), not a shared host /tmp.
+        filename: '/tmp/markoto-content.sqlite' // NOSONAR container-private tmpfs, see the comment above
       },
       experimental: {
         sqliteConnector: 'bun'

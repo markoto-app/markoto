@@ -523,7 +523,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install Apprise
-        run: pip install apprise==1.9.9
+        run: pip install --only-binary=':all:' apprise==1.9.9
 
       - name: Notify (success)
         if: steps.roll.outputs.status == 'succeeded'

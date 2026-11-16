@@ -336,7 +336,7 @@
    * Same as `thinAxisTicks` in mermaidLoader.ts.
    */
   function isNiceStep(step) {
-    if (!(step > 0) || !isFinite(step)) return false;
+    if (!(step > 0) || !Number.isFinite(step)) return false;
     var mantissa = step / Math.pow(10, Math.floor(Math.log10(step)));
     return [1, 2, 2.5, 5, 10].some(function (m) { return Math.abs(mantissa - m) < 1e-9; });
   }
@@ -474,7 +474,7 @@
     }
     if (data.type === 'zoom') {
       var modeOk = data.mode === 'fit' || data.mode === 'scale' || data.mode === 'overview';
-      var scaleOk = typeof data.scale === 'number' && isFinite(data.scale) && data.scale > 0 && data.scale <= 10;
+      var scaleOk = typeof data.scale === 'number' && Number.isFinite(data.scale) && data.scale > 0 && data.scale <= 10;
       var pageOk = typeof data.page === 'number' && Math.floor(data.page) === data.page && data.page >= 0;
       return modeOk && scaleOk && pageOk && typeof data.animate === 'boolean' ? data : null;
     }

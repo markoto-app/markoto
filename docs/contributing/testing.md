@@ -120,6 +120,8 @@ See [flow-docs.md](flow-docs.md). `bun run flows:test` starts the test stack its
 
 `bun run test:coverage` measures only code that runs inside the Vitest process. Integration tests exercise `server/api`, `server/middleware`, `server/plugins` and `server/routes` in a separate server process, so `vitest.config.ts` excludes those directories from the report rather than counting them as zero. Bun does not support `NODE_V8_COVERAGE`, so that gap cannot currently be closed.
 
+SonarCloud reads the same lcov. It counts every source file that is missing from the report as 0 % covered, so `sonar.coverage.exclusions` in `sonar-project.properties` mirrors the Vitest coverage scope: a directory added to or removed from `coverage.include` / `coverage.exclude` in `vitest.config.ts` needs the matching change there. The pull-request gate asks for 80 % coverage on new code; a change to code that only the integration tier reaches (for example a request schema in `shared/api/`) needs a unit test to pass it. Shell, YAML, Dockerfiles and Ansible carry no coverage metric and never count.
+
 ## In CI
 
 The pull-request gate (`.github/workflows/ci.yml`) runs unit and dom tests, then unit + dom + nuxt + repos with coverage (`test:coverage:fast`), then the integration tests. Flows run only in `release.yml`, for `release:*`-labelled merges. The `billing-sandbox` job runs the billing-sandbox tier when a pull request changes billing code; it is not a required check, needs the repository secret `STRIPE_SANDBOX_SECRET_KEY` and skips itself (green, with a notice) where the secret is not available, as on forks.

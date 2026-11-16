@@ -24,10 +24,13 @@ Most workflow bugs only show up when GitHub runs the YAML against a real event p
 make lint-actions    # runs actionlint
 ```
 
-`actionlint` catches most mistakes: YAML schema, `${{ }}` expression typos, shellcheck-flagged bash, missing required inputs, untrusted-input injection in inline scripts. The same check (`actions-lint`) runs on every PR and is required to merge. CI uses actionlint 1.7.12:
+`actionlint` catches most mistakes: YAML schema, `${{ }}` expression typos, shellcheck-flagged bash, missing required inputs, untrusted-input injection in inline scripts. The same check (`actions-lint`) runs on every PR and is required to merge. CI installs actionlint 1.7.12 from the release tarball and checks its SHA-256 first (`ACTIONLINT_SHA256` in `ci.yml`). The same on Linux x86-64:
 
 ```sh
-bash <(curl -sSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12 ~/.local/bin
+curl --proto '=https' -fsSL -o /tmp/actionlint.tar.gz \
+  https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  /tmp/actionlint.tar.gz" | sha256sum -c -
+tar -xzf /tmp/actionlint.tar.gz -C ~/.local/bin actionlint
 actionlint --version
 ```
 

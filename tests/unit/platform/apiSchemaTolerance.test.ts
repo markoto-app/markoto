@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { listAbuseReportsQuery, listAuditEventsQuery, updateAbuseReportBody } from '../../../shared/api/legal'
+import { aiSpendQuery, listAbuseReportsQuery, listAuditEventsQuery, updateAbuseReportBody } from '../../../shared/api/legal'
 import { commentsSnapshotBody, internalActivityBody, legalDocumentQuery } from '../../../shared/api/platform'
 import { acceptDpaBody, acceptOnboardingBody } from '../../../shared/api/account'
 import { updateSsoSettingsBody, discoverSsoBody, scimUserParams, listScimUsersQuery, scimResourceBody } from '../../../shared/api/sso'
@@ -38,6 +38,13 @@ describe('fallbacks instead of 400s', () => {
   it('a repeated or non-text legal locale falls back (the handler picks English)', () => {
     expect(legalDocumentQuery.parse({ locale: ['de', 'fr'] }).locale).toBeUndefined()
     expect(legalDocumentQuery.parse({ locale: 'de' }).locale).toBe('de')
+  })
+
+  it('admin AI spend range: only a real calendar day is kept, anything else is the default window', () => {
+    expect(aiSpendQuery.parse({ from: '2026-02-28', to: '2024-02-29' })).toEqual({ from: '2026-02-28', to: '2024-02-29' })
+    // Right shape, impossible day: LiteLLM answers 400 to these.
+    expect(aiSpendQuery.parse({ from: '2026-13-01', to: '2026-02-29' })).toEqual({ from: undefined, to: undefined })
+    expect(aiSpendQuery.parse({ from: '2026-1-1', to: ['2026-01-01', '2026-01-02'] })).toEqual({ from: undefined, to: undefined })
   })
 
   it('a non-text locale on onboarding / DPA acceptance falls back', () => {
