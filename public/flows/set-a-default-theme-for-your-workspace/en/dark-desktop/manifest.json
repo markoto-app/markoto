@@ -19,7 +19,7 @@
       "text": "Each workspace can pick the theme every new doc starts with. Admins set it once; every member who starts a blank doc in this workspace gets that design. They can still pick a template with its own design, but the baseline is yours.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/ssoxnRG_W8"
+      "path": "/w/nnncd9n8b0"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 563,
         "y": 231
       },
-      "path": "/w/ssoxnRG_W8",
+      "path": "/w/nnncd9n8b0",
       "annotations": [
         {
           "label": "Settings tab",
@@ -49,7 +49,7 @@
         "x": 563,
         "y": 231
       },
-      "path": "/w/ssoxnRG_W8"
+      "path": "/w/nnncd9n8b0"
     },
     {
       "kind": "chapter",
@@ -59,22 +59,22 @@
     {
       "kind": "narration",
       "text": "The grid lists every built-in preset (and any themes you've saved personally). Click a card to set it as the workspace default: the change persists immediately, no save button.",
-      "file": "04.webp",
+      "file": "03.webp",
       "cursor": {
         "x": 563,
         "y": 231
       },
-      "path": "/w/ssoxnRG_W8"
+      "path": "/w/nnncd9n8b0"
     },
     {
       "kind": "approach",
-      "file": "05.webp",
+      "file": "04.webp",
       "caption": "Pick the Corporate report preset",
       "cursor": {
         "x": 834,
         "y": 399
       },
-      "path": "/w/ssoxnRG_W8",
+      "path": "/w/nnncd9n8b0",
       "annotations": [
         {
           "label": "Corporate report preset",
@@ -88,13 +88,13 @@
     },
     {
       "kind": "outcome",
-      "file": "06.webp",
+      "file": "05.webp",
       "caption": "The Corporate report card is now selected, every blank doc in this workspace starts with this design.",
       "cursor": {
         "x": 834,
         "y": 399
       },
-      "path": "/w/ssoxnRG_W8"
+      "path": "/w/nnncd9n8b0"
     },
     {
       "kind": "chapter",
@@ -104,82 +104,82 @@
     {
       "kind": "narration",
       "text": "Hit \"+ New document\" in the workspace. Under Template, Blank is a page in the workspace design, Corporate report, your pick. The other templates bring a design of their own; the theme panel switches any document to another one later.",
-      "file": "07.webp",
+      "file": "06.webp",
       "cursor": {
         "x": 834,
         "y": 399
       },
-      "path": "/w/ssoxnRG_W8"
+      "path": "/w/nnncd9n8b0"
     },
     {
       "kind": "approach",
-      "file": "08.webp",
+      "file": "07.webp",
       "caption": "Click \"+ New document\"",
       "cursor": {
         "x": 961,
         "y": 313
       },
-      "path": "/w/ssoxnRG_W8"
+      "path": "/w/nnncd9n8b0"
     },
     {
       "kind": "outcome",
-      "file": "09.webp",
+      "file": "08.webp",
       "caption": "The new-doc dialog opens.",
       "cursor": {
         "x": 961,
         "y": 313
       },
-      "path": "/w/ssoxnRG_W8"
+      "path": "/w/nnncd9n8b0"
     },
     {
       "kind": "approach",
-      "file": "10.webp",
+      "file": "09.webp",
       "caption": "Open \"Template\"",
       "cursor": {
         "x": 640,
         "y": 425
       },
-      "path": "/w/ssoxnRG_W8"
+      "path": "/w/nnncd9n8b0"
     },
     {
       "kind": "outcome",
-      "file": "11.webp",
+      "file": "10.webp",
       "caption": "The templates open.",
       "cursor": {
         "x": 640,
         "y": 425
       },
-      "path": "/w/ssoxnRG_W8"
+      "path": "/w/nnncd9n8b0"
     },
     {
       "kind": "approach",
-      "file": "11.webp",
+      "file": "10.webp",
       "caption": "Pick \"Blank\"",
       "cursor": {
         "x": 640,
         "y": 473
       },
-      "path": "/w/ssoxnRG_W8"
+      "path": "/w/nnncd9n8b0"
     },
     {
       "kind": "outcome",
-      "file": "12.webp",
+      "file": "11.webp",
       "caption": "Blank is selected: an empty page in the workspace design.",
       "cursor": {
         "x": 640,
         "y": 473
       },
-      "path": "/w/ssoxnRG_W8"
+      "path": "/w/nnncd9n8b0"
     },
     {
       "kind": "outcome",
-      "file": "13.webp",
+      "file": "12.webp",
       "caption": "Blank starts in the workspace default: Corporate report.",
       "cursor": {
         "x": 640,
         "y": 473
       },
-      "path": "/w/ssoxnRG_W8",
+      "path": "/w/nnncd9n8b0",
       "highlights": [
         {
           "label": "Workspace default",

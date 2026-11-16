@@ -1,0 +1,151 @@
+{
+  "version": 2,
+  "title": "Generate an image yourself",
+  "slug": "generate-an-image-yourself",
+  "locale": "en",
+  "variant": "light-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Generate an image yourself"
+    },
+    {
+      "kind": "narration",
+      "text": "You don't have to ask the assistant for a picture. Describe it yourself, pick a format, and markoto draws it with your image provider and puts it where your cursor is, stored with the document like an uploaded image.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 640,
+        "y": 26
+      },
+      "path": "/d/gGN7FSzDE_"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Open the Insert menu",
+      "cursor": {
+        "x": 173,
+        "y": 67
+      },
+      "path": "/d/gGN7FSzDE_"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The Insert menu opens.",
+      "cursor": {
+        "x": 173,
+        "y": 67
+      },
+      "path": "/d/gGN7FSzDE_"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Pick \"Generate image with AI\"",
+      "cursor": {
+        "x": 280,
+        "y": 141
+      },
+      "path": "/d/gGN7FSzDE_"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "The image dialog opens.",
+      "cursor": {
+        "x": 280,
+        "y": 141
+      },
+      "path": "/d/gGN7FSzDE_"
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
+      "caption": "Describe the picture",
+      "cursor": {
+        "x": 422,
+        "y": 378
+      },
+      "path": "/d/gGN7FSzDE_"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "Your description is ready.",
+      "cursor": {
+        "x": 422,
+        "y": 378
+      },
+      "path": "/d/gGN7FSzDE_"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "caption": "Pick a format. The dialog says what one image costs before you generate it.",
+      "cursor": {
+        "x": 639,
+        "y": 482
+      },
+      "path": "/d/gGN7FSzDE_",
+      "highlights": [
+        {
+          "label": "Cost",
+          "x": 408,
+          "y": 524,
+          "w": 128.171875,
+          "h": 16
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "09.webp",
+      "caption": "Click \"Generate\"",
+      "cursor": {
+        "x": 820,
+        "y": 532
+      },
+      "path": "/d/gGN7FSzDE_"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "markoto draws the picture; this takes a few seconds.",
+      "cursor": {
+        "x": 820,
+        "y": 532
+      },
+      "path": "/d/gGN7FSzDE_"
+    },
+    {
+      "kind": "outcome",
+      "file": "11.webp",
+      "caption": "The picture is in your document, right where the cursor was.",
+      "cursor": {
+        "x": 19,
+        "y": 383
+      },
+      "path": "/d/gGN7FSzDE_",
+      "highlights": [
+        {
+          "label": "The generated image",
+          "x": 640.5,
+          "y": 155,
+          "w": 639.5,
+          "h": 616.25
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "ask-the-ai-to-draw-an-image",
+    "why": "Or let the assistant pick and place the picture"
+  }
+}

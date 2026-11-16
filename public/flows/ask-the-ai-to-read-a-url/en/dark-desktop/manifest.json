@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/lVdXrOCjtC"
+      "path": "/d/cZ39TlV8tz"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 618,
         "y": 722
       },
-      "path": "/d/lVdXrOCjtC"
+      "path": "/d/cZ39TlV8tz"
     },
     {
       "kind": "outcome",
@@ -42,7 +42,7 @@
         "x": 618,
         "y": 722
       },
-      "path": "/d/lVdXrOCjtC"
+      "path": "/d/cZ39TlV8tz"
     },
     {
       "kind": "approach",
@@ -52,7 +52,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/lVdXrOCjtC"
+      "path": "/d/cZ39TlV8tz"
     },
     {
       "kind": "outcome",
@@ -62,7 +62,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/lVdXrOCjtC"
+      "path": "/d/cZ39TlV8tz"
     },
     {
       "kind": "approach",
@@ -72,7 +72,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/lVdXrOCjtC"
+      "path": "/d/cZ39TlV8tz"
     },
     {
       "kind": "outcome",
@@ -82,7 +82,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/lVdXrOCjtC"
+      "path": "/d/cZ39TlV8tz"
     },
     {
       "kind": "outcome",
@@ -92,14 +92,14 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/lVdXrOCjtC",
+      "path": "/d/cZ39TlV8tz",
       "highlights": [
         {
           "label": "AI-written summary",
           "x": 24.75,
-          "y": 311.75,
+          "y": 330,
           "w": 590,
-          "h": 27.75
+          "h": 272.25
         }
       ],
       "hero": true

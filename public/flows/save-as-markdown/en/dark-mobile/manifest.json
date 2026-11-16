@@ -19,7 +19,7 @@
       "text": "Sometimes you want the source, not the finished page. File › Export › Markdown saves the document as a .md file straight to your downloads folder. Useful for a git repository, another Markdown editor, or an archive.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/HvBjKycjvJ"
+      "path": "/d/KZitr_scJV"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 362,
         "y": 20
       },
-      "path": "/d/HvBjKycjvJ"
+      "path": "/d/KZitr_scJV"
     },
     {
       "kind": "outcome",
@@ -39,7 +39,7 @@
         "x": 362,
         "y": 20
       },
-      "path": "/d/HvBjKycjvJ"
+      "path": "/d/KZitr_scJV"
     },
     {
       "kind": "approach",
@@ -49,17 +49,17 @@
         "x": 287,
         "y": 124
       },
-      "path": "/d/HvBjKycjvJ"
+      "path": "/d/KZitr_scJV"
     },
     {
       "kind": "outcome",
-      "file": "01.webp",
+      "file": "04.webp",
       "caption": "Your browser saves the file, named after the document.",
       "cursor": {
         "x": 287,
         "y": 124
       },
-      "path": "/d/HvBjKycjvJ"
+      "path": "/d/KZitr_scJV"
     },
     {
       "kind": "chapter",
@@ -68,7 +68,7 @@
     },
     {
       "kind": "outcome",
-      "file": "04.webp",
+      "file": "05.webp",
       "caption": "The saved file is plain Markdown: headings, lists and links as you wrote them. A short block at the top keeps the theme and the document settings for a later import.",
       "cursor": null,
       "path": "Downloads/Weekly sync.md",
