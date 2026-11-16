@@ -132,7 +132,7 @@ services:
     entrypoint: ["/bin/sh", "/db-init.sh"]
 
   litellm:
-    image: ghcr.io/berriai/litellm:v1.108.9@sha256:d817e8e4d6698aad9f3d40b6ccbcaa1cde6c8256cb59867553f07383da3d6608
+    image: ghcr.io/berriai/litellm:v1.109.1@sha256:11175975a3093e05e92faee2fe2fe3412a3ae2fcaa849eb0fe25d5f0d8bcb2e9
     restart: unless-stopped
     # Since 1.108 the proxy drains open requests for up to 30 s
     # (GRACEFUL_SHUTDOWN_TIMEOUT) on SIGTERM; compose's 10 s default would
