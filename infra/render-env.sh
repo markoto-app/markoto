@@ -21,7 +21,7 @@ INPUTS=(
   BACKUP_S3_ENDPOINT BACKUP_S3_PREFIX BACKUP_S3_REGION BACKUP_S3_SECRET_KEY
   BFL_API_KEY COMPACT_INTERVAL_MS COMPACT_MAX_DOCS_PER_RUN
   COMPACT_RETAIN_HISTORY_DAYS COMPACT_THRESHOLD DOMAIN
-  EMBEDDINGS_UPSTREAM_API_BASE EMBEDDINGS_UPSTREAM_API_KEY
+  EDGE_BASIC_AUTH_USERS EMBEDDINGS_UPSTREAM_API_BASE EMBEDDINGS_UPSTREAM_API_KEY
   EMBEDDINGS_UPSTREAM_MODEL IMAGE_TAG JINA_AI_API_KEY LITELLM_MASTER_KEY
   LITELLM_SALT_KEY MISTRAL_API_KEY NUXT_ABUSE_REPORT_RETENTION_DAYS
   NUXT_ADMIN_USER_EMAILS NUXT_AI_BYOK_ALLOWED_BASE_URLS
@@ -260,6 +260,17 @@ case "$DOMAIN" in
     exit 1
     ;;
 esac
+
+# Staging's edge login (deploy/compose/compose.prod.yml, `edge-auth`):
+# htpasswd lines with bcrypt hashes (`htpasswd -nbB user pass`), comma-
+# separated. Empty = no login (prod). Checked here because Traefik would
+# otherwise refuse the whole router and take the site offline.
+EDGE_BASIC_AUTH_USERS="${EDGE_BASIC_AUTH_USERS:-}"
+while [[ "$EDGE_BASIC_AUTH_USERS" == *$'\n' || "$EDGE_BASIC_AUTH_USERS" == *$'\r' ]]; do EDGE_BASIC_AUTH_USERS="${EDGE_BASIC_AUTH_USERS%?}"; done
+if [[ -n "$EDGE_BASIC_AUTH_USERS" ]] && ! [[ "$EDGE_BASIC_AUTH_USERS" =~ ^[A-Za-z0-9._-]+:\$2[aby]\$[0-9]{2}\$[./A-Za-z0-9]{53}(,[A-Za-z0-9._-]+:\$2[aby]\$[0-9]{2}\$[./A-Za-z0-9]{53})*$ ]]; then
+  echo "render-env: EDGE_BASIC_AUTH_USERS must be htpasswd lines with bcrypt hashes (user:\$2y\$...), comma-separated" >&2
+  exit 1
+fi
 
 for n in "${INPUTS[@]}"; do
   v="${!n:-}"
@@ -518,6 +529,9 @@ SENTRY_DSN=${SENTRY_DSN:-}
 # ─── Traefik / ACME ───
 DOMAIN=${DOMAIN}
 ACME_EMAIL=${ACME_EMAIL}
+# Staging only: htpasswd line(s) of the login in front of the app and pages
+# hosts (Traefik basic auth). Empty = no login (prod).
+EDGE_BASIC_AUTH_USERS=${EDGE_BASIC_AUTH_USERS:-}
 
 # ─── Image registry pin ───
 REGISTRY=${REGISTRY}

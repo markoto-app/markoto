@@ -114,7 +114,7 @@ See [flow-docs.md](flow-docs.md). `bun run flows:test` starts the test stack its
 
 ## Smoke tests
 
-`tests/smoke/` (`tests/smoke/playwright.config.ts`, `bun run smoke`) runs against a deployed instance, by default `https://staging.markoto.app`; set `PLAYWRIGHT_BASE_URL` for another. `staging-gate.yml` runs it after each staging deploy.
+`tests/smoke/` (`tests/smoke/playwright.config.ts`, `bun run smoke`) runs against a deployed instance, by default `https://staging.markoto.app`; set `PLAYWRIGHT_BASE_URL` for another. Staging sits behind a basic-auth login at the edge: set `EDGE_BASIC_AUTH_USER` and `EDGE_BASIC_AUTH_PASSWORD` to run against it. `staging-gate.yml` runs it after each staging deploy.
 
 ## Coverage
 

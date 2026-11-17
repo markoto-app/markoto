@@ -18,7 +18,7 @@
     "@types/css-tree": "3.2.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/pg": "^8.23.1",
-    "stripe": "^23.0.1",
+    "stripe": "^23.1.0",
     "yjs": "^13.6.33"
   }
 }

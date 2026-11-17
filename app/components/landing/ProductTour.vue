@@ -278,6 +278,7 @@ const chips = [
               icon="i-lucide-pen-line"
               class="mk-cta"
               data-testid="tour-start-writing"
+              data-early-click
               @click="emit('start')"
               @pointerenter="emit('warm')"
               @focus="emit('warm')"
@@ -500,6 +501,7 @@ const chips = [
           icon="i-lucide-pen-line"
           class="mk-cta"
           data-testid="tour-final-start"
+          data-early-click
           @click="emit('start')"
           @pointerenter="emit('warm')"
           @focus="emit('warm')"

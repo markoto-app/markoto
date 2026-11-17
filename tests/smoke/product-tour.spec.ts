@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { waitForHydration } from './_helpers'
 
 // The hosted product page: with NUXT_MARKETING_SITE_ENABLED on, `/`
 // shows logged-out visitors the scroll-driven tour instead of the plain
@@ -47,7 +48,11 @@ test('logged-out home page shows the product tour when the instance enables it',
   await expect(tour.getByRole('heading', { level: 2, name: 'Write Markdown, get paged documents.' })).toBeAttached()
   await expect(page.getByTestId('tour-self-host')).toHaveAttribute('href', '/docs/self-hosting')
 
-  // The CTA still creates a document, like the plain hero's button.
+  // The CTA still creates a document, like the plain hero's button. Only
+  // once the page has hydrated: before that the server-rendered button has
+  // no handler (the app replays such a click, see earlyClicks.ts, but the
+  // gate checks the dialog, not the race).
+  await waitForHydration(page)
   await page.getByTestId('tour-start-writing').click()
   await expect(page.getByRole('dialog')).toBeVisible()
 })

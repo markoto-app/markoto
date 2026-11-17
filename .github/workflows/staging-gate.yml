@@ -159,8 +159,33 @@ jobs:
       - name: Smoke suite against staging
         env:
           PLAYWRIGHT_BASE_URL: ${{ env.STAGING_URL }}
+          # Staging's edge login (Traefik basic auth; deploy.yml renders its
+          # htpasswd line from EDGE_BASIC_AUTH_USERS).
+          EDGE_BASIC_AUTH_USER: ${{ secrets.EDGE_BASIC_AUTH_USER }}
+          EDGE_BASIC_AUTH_PASSWORD: ${{ secrets.EDGE_BASIC_AUTH_PASSWORD }}
           CI: 'true'
         run: bun run smoke
+
+      # Traces, screenshots and videos of the failed tests (the smoke config
+      # keeps them on failure only). The repository is public, so its
+      # artifacts are too: the edge login a trace records (request headers,
+      # context options) is replaced first, and a file that still holds it
+      # is withheld.
+      - name: Redact the edge login from the test results
+        if: failure()
+        env:
+          EDGE_BASIC_AUTH_USER: ${{ secrets.EDGE_BASIC_AUTH_USER }}
+          EDGE_BASIC_AUTH_PASSWORD: ${{ secrets.EDGE_BASIC_AUTH_PASSWORD }}
+        run: python3 scripts/redact-smoke-artifacts.py test-results
+
+      - name: Upload the test results
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: smoke-test-results-${{ github.run_attempt }}
+          path: test-results/
+          retention-days: 14
+          if-no-files-found: ignore
 
       - name: Notify on failure
         if: failure()

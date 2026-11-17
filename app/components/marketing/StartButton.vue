@@ -37,6 +37,7 @@ function onCreated(docId: string): void {
       color="neutral"
       :size="size"
       :data-testid="testid"
+      data-early-click
       @click="show"
       @pointerenter="warm"
       @focus="warm"
