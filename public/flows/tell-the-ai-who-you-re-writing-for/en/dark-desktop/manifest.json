@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/22EHMp4_xL"
+      "path": "/d/BzLxhUTi1E"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 1182,
         "y": 98
       },
-      "path": "/d/22EHMp4_xL",
+      "path": "/d/BzLxhUTi1E",
       "annotations": [
         {
           "label": "document tab",
@@ -52,7 +52,7 @@
         "x": 1182,
         "y": 98
       },
-      "path": "/d/22EHMp4_xL"
+      "path": "/d/BzLxhUTi1E"
     },
     {
       "kind": "chapter",
@@ -67,7 +67,7 @@
         "x": 1182,
         "y": 98
       },
-      "path": "/d/22EHMp4_xL"
+      "path": "/d/BzLxhUTi1E"
     },
     {
       "kind": "approach",
@@ -77,7 +77,7 @@
         "x": 987,
         "y": 273
       },
-      "path": "/d/22EHMp4_xL"
+      "path": "/d/BzLxhUTi1E"
     },
     {
       "kind": "outcome",
@@ -87,7 +87,7 @@
         "x": 987,
         "y": 273
       },
-      "path": "/d/22EHMp4_xL"
+      "path": "/d/BzLxhUTi1E"
     },
     {
       "kind": "approach",
@@ -97,7 +97,7 @@
         "x": 1120,
         "y": 538
       },
-      "path": "/d/22EHMp4_xL"
+      "path": "/d/BzLxhUTi1E"
     },
     {
       "kind": "outcome",
@@ -107,7 +107,7 @@
         "x": 1120,
         "y": 538
       },
-      "path": "/d/22EHMp4_xL"
+      "path": "/d/BzLxhUTi1E"
     },
     {
       "kind": "approach",
@@ -117,7 +117,7 @@
         "x": 1120,
         "y": 357
       },
-      "path": "/d/22EHMp4_xL"
+      "path": "/d/BzLxhUTi1E"
     },
     {
       "kind": "outcome",
@@ -127,7 +127,7 @@
         "x": 1120,
         "y": 357
       },
-      "path": "/d/22EHMp4_xL"
+      "path": "/d/BzLxhUTi1E"
     },
     {
       "kind": "approach",
@@ -137,7 +137,7 @@
         "x": 987,
         "y": 426
       },
-      "path": "/d/22EHMp4_xL"
+      "path": "/d/BzLxhUTi1E"
     },
     {
       "kind": "outcome",
@@ -147,7 +147,7 @@
         "x": 987,
         "y": 426
       },
-      "path": "/d/22EHMp4_xL"
+      "path": "/d/BzLxhUTi1E"
     },
     {
       "kind": "approach",
@@ -157,7 +157,7 @@
         "x": 1120,
         "y": 470
       },
-      "path": "/d/22EHMp4_xL"
+      "path": "/d/BzLxhUTi1E"
     },
     {
       "kind": "outcome",
@@ -167,7 +167,7 @@
         "x": 1120,
         "y": 470
       },
-      "path": "/d/22EHMp4_xL"
+      "path": "/d/BzLxhUTi1E"
     },
     {
       "kind": "chapter",
@@ -182,17 +182,17 @@
         "x": 1120,
         "y": 470
       },
-      "path": "/d/22EHMp4_xL"
+      "path": "/d/BzLxhUTi1E"
     },
     {
       "kind": "approach",
-      "file": "12.webp",
+      "file": "13.webp",
       "caption": "Click into the AI prompt bar",
       "cursor": {
         "x": 618,
         "y": 722
       },
-      "path": "/d/22EHMp4_xL",
+      "path": "/d/BzLxhUTi1E",
       "annotations": [
         {
           "label": "prompt bar",
@@ -206,13 +206,13 @@
     },
     {
       "kind": "outcome",
-      "file": "13.webp",
+      "file": "14.webp",
       "caption": "The prompt bar lifts and glows, ready for your prompt.",
       "cursor": {
         "x": 618,
         "y": 722
       },
-      "path": "/d/22EHMp4_xL"
+      "path": "/d/BzLxhUTi1E"
     },
     {
       "kind": "approach",
@@ -222,7 +222,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/22EHMp4_xL"
+      "path": "/d/BzLxhUTi1E"
     },
     {
       "kind": "outcome",
@@ -232,7 +232,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/22EHMp4_xL"
+      "path": "/d/BzLxhUTi1E"
     },
     {
       "kind": "approach",
@@ -242,7 +242,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/22EHMp4_xL"
+      "path": "/d/BzLxhUTi1E"
     },
     {
       "kind": "outcome",
@@ -252,7 +252,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/22EHMp4_xL"
+      "path": "/d/BzLxhUTi1E"
     },
     {
       "kind": "outcome",
@@ -262,7 +262,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/22EHMp4_xL",
+      "path": "/d/BzLxhUTi1E",
       "highlights": [
         {
           "label": "AI's edits",
