@@ -17,6 +17,9 @@ export type McpToolClass = 'read' | 'write' | 'cost'
 
 export const MCP_TOOL_CLASSES: Readonly<Record<string, McpToolClass>> = {
   view_document: 'read',
+  outline: 'read',
+  read_section: 'read',
+  search_document: 'read',
   list_my_documents: 'read',
   list_workspace_documents: 'read',
   read_comments: 'read',

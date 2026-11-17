@@ -1,11 +1,11 @@
 {
-  "order:main": "view_document,replace_text,insert_text,web_search,update_theme,get_theme,list_themes,save_theme_as_preset,list_workspace_documents,list_my_documents,create_document,duplicate_document,export_document_as_markdown,view_other_document,set_title,view_image,generate_image,get_page_count,view_pages,fetch_url,read_comments,create_comment,reply_to_comment,resolve_comment,delete_comment,message_to_user,search_activity_log",
+  "order:main": "view_document,replace_text,insert_text,web_search,update_theme,get_theme,list_themes,save_theme_as_preset,list_workspace_documents,list_my_documents,create_document,duplicate_document,export_document_as_markdown,view_other_document,set_title,view_image,generate_image,get_page_count,view_pages,fetch_url,read_comments,create_comment,reply_to_comment,resolve_comment,delete_comment,message_to_user,search_activity_log,outline,read_section,search_document",
   "order:knowledge": "search_knowledge,get_knowledge_file",
-  "declarations:main": "f1a9683f1ef511aa4fa17149402faafd14d65966047d5fd45fe7ea4a486fb0cd",
+  "declarations:main": "ea4d2e14ae5b37dd1b97d75a4f3388818f60d3eb686a51b9a50398e7b5611152",
   "declarations:knowledge": "09ddf6cf6b6317ad0c82f6d5613e49833cdc2d2c2a45fbc01edc4f0c59defcdd",
-  "openai:tools": "8c76c07f3d982d477140f5beaa857435859fada0b914ffd9dee23e727f2bb673",
-  "filtered:noVisionNoImageNoSearch": "view_document,replace_text,insert_text,update_theme,get_theme,list_themes,save_theme_as_preset,list_workspace_documents,list_my_documents,create_document,duplicate_document,export_document_as_markdown,view_other_document,set_title,get_page_count,fetch_url,read_comments,create_comment,reply_to_comment,resolve_comment,delete_comment,message_to_user,search_activity_log",
-  "validators:names": "create_comment,create_document,delete_comment,duplicate_document,export_document_as_markdown,fetch_url,generate_image,get_knowledge_file,get_page_count,get_theme,insert_text,list_my_documents,list_themes,list_workspace_documents,message_to_user,read_comments,replace_text,reply_to_comment,resolve_comment,save_theme_as_preset,search_activity_log,search_knowledge,set_title,update_theme,view_document,view_image,view_other_document,view_pages,web_search",
-  "validators:jsonSchema": "171d04b83d55090d377a82a7e35bfbd0d7e03f60e371e01098090d45c25b86ac",
-  "mcp:catalog": "1d0809e90f76d8f1982feff81babd1ff6042a8e0777430467e933758c5be4c3c"
+  "openai:tools": "74f71968e74a1cc9ef865150df190b6aeaa652ae108e068437e46640d10c22ff",
+  "filtered:noVisionNoImageNoSearch": "view_document,replace_text,insert_text,update_theme,get_theme,list_themes,save_theme_as_preset,list_workspace_documents,list_my_documents,create_document,duplicate_document,export_document_as_markdown,view_other_document,set_title,get_page_count,fetch_url,read_comments,create_comment,reply_to_comment,resolve_comment,delete_comment,message_to_user,search_activity_log,outline,read_section,search_document",
+  "validators:names": "create_comment,create_document,delete_comment,duplicate_document,export_document_as_markdown,fetch_url,generate_image,get_knowledge_file,get_page_count,get_theme,insert_text,list_my_documents,list_themes,list_workspace_documents,message_to_user,outline,read_comments,read_section,replace_text,reply_to_comment,resolve_comment,save_theme_as_preset,search_activity_log,search_document,search_knowledge,set_title,update_theme,view_document,view_image,view_other_document,view_pages,web_search",
+  "validators:jsonSchema": "8bc52569946d896bdbb565b356b221b3a6d04fc4bbdd05e0b4e48e63524f92a7",
+  "mcp:catalog": "bc00e48abd13f17b922f3cc4e6b17d7182b4693bf7ffb8e1b5000384cc9db048"
 }

@@ -1,104 +1,96 @@
 import type { BenchTask, ScriptApi, ScriptCall, ToolOutcome } from './harness'
 
 // The benchmark tasks, scripted the way a competent model does them with
-// the current tools (view_document / replace_text / insert_text /
-// create_comment). Each script plays the model: it reads the document from
-// the real view_document results and builds old_str from them, so the edits
-// really apply. Variant `step1`: view_document on the large document returns
-// a heading outline with line ranges, so the scripts read the outline and
-// then only the ranges they need (`view_range`), following the continuation
-// hints. Keep the ids and prompts stable so results stay comparable with
-// `results/baseline.*`.
+// the current tools. Each script plays the model: it reads the document from
+// the real tool results and builds old_str from them, so the edits really
+// apply. Variant `step4`: the scripts start with `outline` (section ids,
+// numbers, line ranges), read what they need with `read_section` (several
+// sections in one turn, following the continuation hints) and find terms
+// with `search_document`; edits still go through replace_text / insert_text /
+// create_comment (structural edit tools come later). Keep the ids and
+// prompts stable so results stay comparable with `results/baseline.*` and
+// the earlier variants.
 
-const VARIANT = 'step1'
+const VARIANT = 'step4'
 
-// Reading the document through the outline (what the model reads off the
-// view_document results)
+// Reading the document through outline + read_section (what the model reads
+// off the results)
 
-interface OutlineRow { start: number, end: number, level: number, text: string }
+interface OutlineRow { id: string, number: string, start: number, end: number, level: number, title: string, words: number }
 
 interface DocReader {
   rows: OutlineRow[]
-  totalLines: number
-  /** Lines the outline says fit in one call. */
-  perCall: number
   /** Lines read so far, by line number. */
   known: Map<number, string>
 }
 
 const NUMBERED_LINE_RE = /^(\d+): (.*)$/
-const CONTINUE_RE = /Continue with view_document and view_range \[(\d+), (\d+)\]/
+const OUTLINE_ROW_RE = /^(s-\d+) {2}(\S+) {2}(#{1,6}) (.*?) {2}\[(\d+)(?:-(\d+))?\] {2}(\d+) words {2}[0-9a-f]{6}$/
+const CONTINUE_RE = /Continue with read_section section "(s-\d+)" and offset_line (\d+)\./
+/** Biggest read_section result (the tool's own cap). */
+const READ_MAX_CHARS = 22_000
 
-/** Record the "N: text" lines of a view_document result; returns the continuation range if it was cut. */
-function absorbView(reader: DocReader, view: ToolOutcome | undefined): [number, number] | null {
-  if (!view || view.isError) throw new Error(`view_document failed: ${view?.output.slice(0, 200)}`)
-  const body = view.output.includes(' follow:\n\n') ? view.output.slice(view.output.indexOf(' follow:\n\n') + 10) : view.output
-  for (const row of body.split('\n')) {
-    const m = NUMBERED_LINE_RE.exec(row)
-    if (m) reader.known.set(Number(m[1]), m[2]!)
-  }
-  const cont = CONTINUE_RE.exec(view.output)
-  return cont ? [Number(cont[1]), Number(cont[2])] : null
-}
-
-/** First call: view_document without a range gives the outline (or the whole short document). */
+/** First call: the outline, default depth (3 levels). */
 async function openDocument(api: ScriptApi): Promise<DocReader> {
-  const view = await api.call('view_document', {})
-  const reader: DocReader = { rows: [], totalLines: 0, perCall: 0, known: new Map() }
-  const total = /The document has (\d+) lines/.exec(view.output)
-  if (!total) {
-    absorbView(reader, view)
-    reader.totalLines = reader.known.size
-    reader.perCall = reader.totalLines
-    return reader
+  const res = await api.call('outline', {})
+  if (res.isError) throw new Error(`outline failed: ${res.output.slice(0, 200)}`)
+  const reader: DocReader = { rows: [], known: new Map() }
+  for (const row of res.output.split('\n')) {
+    const m = OUTLINE_ROW_RE.exec(row)
+    if (m) {
+      reader.rows.push({ id: m[1]!, number: m[2]!, level: m[3]!.length, title: m[4]!, start: Number(m[5]), end: Number(m[6] ?? m[5]), words: Number(m[7]) })
+    }
   }
-  reader.totalLines = Number(total[1])
-  reader.perCall = Number(/about (\d+) lines fit in one call/.exec(view.output)?.[1] ?? 100)
-  for (const row of view.output.split('\n')) {
-    const m = /^\[(\d+)-(\d+)\] (#{1,6}) (.*)$/.exec(row)
-    if (m) reader.rows.push({ start: Number(m[1]), end: Number(m[2]), level: m[3]!.length, text: m[4]! })
-  }
-  absorbView(reader, view)
+  if (reader.rows.length === 0) throw new Error('outline listed no sections')
   return reader
 }
 
-/** View calls covering [start, end] in chunks of the size the outline suggested. */
-function rangeCalls(reader: DocReader, start: number, end: number): ScriptCall[] {
-  const calls: ScriptCall[] = []
-  for (let from = start; from <= end; from += reader.perCall) {
-    calls.push({ name: 'view_document', args: { view_range: [from, Math.min(end, from + reader.perCall - 1)] } })
+/** Record the "N: text" lines of a read result; returns the continuation call if it was cut. */
+function absorbRead(reader: DocReader, res: ToolOutcome | undefined): ScriptCall | null {
+  if (!res || res.isError) throw new Error(`read failed: ${res?.output.slice(0, 200)}`)
+  for (const row of res.output.split('\n')) {
+    const m = NUMBERED_LINE_RE.exec(row)
+    if (m) reader.known.set(Number(m[1]), m[2]!)
   }
-  return calls
+  const cont = CONTINUE_RE.exec(res.output)
+  return cont ? { name: 'read_section', args: { section: cont[1], offset_line: Number(cont[2]), max_chars: READ_MAX_CHARS } } : null
+}
+
+function rowByNumber(reader: DocReader, number: string): OutlineRow {
+  const row = reader.rows.find(r => r.number === number)
+  if (!row) throw new Error(`section ${number} not in the outline`)
+  return row
+}
+
+function children(reader: DocReader, row: OutlineRow): OutlineRow[] {
+  return reader.rows.filter(r => r.level === row.level + 1 && r.start > row.start && r.end <= row.end)
 }
 
 /**
- * Read every line of the given ranges that is not known yet: one turn with
- * all the view calls (plus `extra` calls in the same turn), then follow-up
- * turns for results that were cut. Returns the results of `extra`.
+ * Read sections in as few turns as possible: one turn with a read_section
+ * per section (a long one as its own text plus one call per direct
+ * subsection, so each fits), then turns for the continuations. `extra`
+ * calls ride along in the first turn; their results are returned.
  */
-async function readRanges(api: ScriptApi, reader: DocReader, ranges: Array<[number, number]>, extra: ScriptCall[] = []): Promise<ToolOutcome[]> {
-  let calls: ScriptCall[] = []
-  for (const [start, end] of ranges) {
-    let from = start
-    while (from <= end && reader.known.has(from)) from += 1
-    if (from <= end) calls.push(...rangeCalls(reader, from, end))
+async function readSections(api: ScriptApi, reader: DocReader, rows: OutlineRow[], extra: ScriptCall[] = []): Promise<ToolOutcome[]> {
+  const calls: ScriptCall[] = []
+  for (const row of rows) {
+    const subs = children(reader, row)
+    // About 7 characters per word plus line numbers: a section over the cap is read per subsection.
+    if (row.words * 7 > READ_MAX_CHARS && subs.length > 0) {
+      calls.push({ name: 'read_section', args: { section: row.id, include_subsections: false, max_chars: READ_MAX_CHARS } })
+      for (const sub of subs) calls.push({ name: 'read_section', args: { section: sub.id, max_chars: READ_MAX_CHARS } })
+    } else {
+      calls.push({ name: 'read_section', args: { section: row.id, max_chars: READ_MAX_CHARS } })
+    }
   }
-  let extraResults: ToolOutcome[] = []
-  let first = true
-  while (calls.length > 0 || (first && extra.length > 0)) {
-    const results = await api.turn(first ? [...extra, ...calls] : calls)
-    if (first) extraResults = results.slice(0, extra.length)
-    const views = first ? results.slice(extra.length) : results
-    first = false
-    const next: ScriptCall[] = []
-    views.forEach((view, i) => {
-      const cont = absorbView(reader, view)
-      const wanted = calls[i]!.args.view_range as [number, number]
-      if (cont && cont[0] <= wanted[1]) next.push({ name: 'view_document', args: { view_range: [cont[0], wanted[1]] } })
-    })
-    calls = next
+  const results = await api.turn([...extra, ...calls])
+  let next = results.slice(extra.length).flatMap(r => absorbRead(reader, r) ?? [])
+  while (next.length > 0) {
+    const more = await api.turn(next)
+    next = more.flatMap(r => absorbRead(reader, r) ?? [])
   }
-  return extraResults
+  return results.slice(0, extra.length)
 }
 
 /** Lines [start, end] as read; throws when one was not read. */
@@ -112,12 +104,6 @@ function linesOf(reader: DocReader, start: number, end: number): string[] {
   return out
 }
 
-function outlineRow(reader: DocReader, level: number, prefix: string): OutlineRow {
-  const row = reader.rows.find(r => r.level === level && r.text.startsWith(prefix))
-  if (!row) throw new Error(`heading "${prefix}" not in the outline`)
-  return row
-}
-
 /** Last line of a section without the blank lines and page break before the next heading. */
 function trimmedEnd(reader: DocReader, row: OutlineRow): number {
   let end = row.end
@@ -125,15 +111,15 @@ function trimmedEnd(reader: DocReader, row: OutlineRow): number {
   return end
 }
 
-/** Read a section (outline row) and return it as a block, like `blockAt` on the full text. */
+/** Read a section and return it as a block, like `blockAt` on the full text. */
 async function readBlock(api: ScriptApi, reader: DocReader, row: OutlineRow): Promise<Block> {
-  await readRanges(api, reader, [[row.start, row.end]])
+  await readSections(api, reader, [row])
   return blockOf(reader, row)
 }
 
 function blockOf(reader: DocReader, row: OutlineRow): Block {
   const end = trimmedEnd(reader, row)
-  return { startLine: row.start, endLine: end, text: linesOf(reader, row.start, end).join('\n'), heading: row.text }
+  return { startLine: row.start, endLine: end, text: linesOf(reader, row.start, end).join('\n'), heading: reader.known.get(row.start)!.replace(/^#+ /, '') }
 }
 
 interface Heading { line: number, level: number, text: string }
@@ -211,7 +197,7 @@ const T1_REVIEW: BenchTask = {
   prompt: 'Lies Kapitel 13 und hinterlasse fünf konkrete Verbesserungsvorschläge als Kommentare.',
   async script(api) {
     const reader = await openDocument(api)
-    const ch = await readBlock(api, reader, outlineRow(reader, 1, '13 '))
+    const ch = await readBlock(api, reader, rowByNumber(reader, '13'))
     const prose: number[] = []
     for (let l = ch.startLine; l <= ch.endLine; l++) {
       const line = reader.known.get(l)!
@@ -237,9 +223,9 @@ const T2_SWAP: BenchTask = {
   prompt: 'Vertausche die Kapitel 4 und 5 und passe die Nummerierung der Überschriften an.',
   async script(api) {
     const reader = await openDocument(api)
-    const row4 = outlineRow(reader, 1, '4 ')
-    const row5 = outlineRow(reader, 1, '5 ')
-    await readRanges(api, reader, [[row4.start, row4.end], [row5.start, row5.end]])
+    const row4 = rowByNumber(reader, '4')
+    const row5 = rowByNumber(reader, '5')
+    await readSections(api, reader, [row4, row5])
     const ch4 = blockOf(reader, row4).text
     const ch5 = blockOf(reader, row5).text
     // Renumbered, the moved chapters differ from the originals, so the second
@@ -264,7 +250,7 @@ const T3_SHORTEN_INTRO: BenchTask = {
   prompt: 'Kürze die Einleitung (Kapitel 1) auf etwa ein Drittel, ohne die Abschnittsstruktur zu verlieren.',
   async script(api) {
     const reader = await openDocument(api)
-    const ch = (await readBlock(api, reader, outlineRow(reader, 1, '1 '))).text
+    const ch = (await readBlock(api, reader, rowByNumber(reader, '1'))).text
     // Keep every heading and the first paragraph under it.
     const kept: string[] = []
     let takeNext = false
@@ -295,8 +281,14 @@ const T4_TRANSLATE: BenchTask = {
   title: 'Translate section 9.2 (~1500 words) to French',
   prompt: 'Übersetze den Abschnitt 9.2 «Alarmierung» ins Französische.',
   async script(api) {
-    const reader = await openDocument(api)
-    const section = await readBlock(api, reader, outlineRow(reader, 2, '9.2 '))
+    // The section is named in the prompt: read it straight away, no outline.
+    const reader: DocReader = { rows: [], known: new Map() }
+    const res = await api.call('read_section', { section: '9.2', max_chars: READ_MAX_CHARS })
+    let next = absorbRead(reader, res)
+    while (next) next = absorbRead(reader, await api.call(next.name, next.args))
+    const range = /\(lines (\d+)-(\d+),/.exec(res.output)!
+    const row: OutlineRow = { id: '', number: '9.2', level: 2, title: '', start: Number(range[1]), end: Number(range[2]), words: 0 }
+    const section = blockOf(reader, row)
     await api.call('replace_text', { old_str: section.text, new_str: fakeRewrite(section.text) })
   },
   verify: (initial, final) => {
@@ -307,37 +299,28 @@ const T4_TRANSLATE: BenchTask = {
 
 const CUSTOMER_FORMS: Record<string, string> = { Kunde: 'Klient', Kunden: 'Klienten', Kundin: 'Klientin', Kundinnen: 'Klientinnen' }
 const CUSTOMER_RE = /\bKund(?:e|en|in|innen)\b/g
+/** Characters search_document shows on each side of a match. */
+const SNIPPET_CONTEXT = 50
 
-interface Hit { start: number, end: number }
-
-/** The shortest word-bounded window around hits[i] that is unique in `text`, and the last hit it covers. */
-function uniqueWindow(text: string, hits: readonly Hit[], i: number): { snippet: string, last: number } {
-  let last = i
-  for (let pad = 20; ; pad += 20) {
-    let start = Math.max(0, hits[i]!.start - pad)
-    let end = Math.min(text.length, hits[last]!.end + pad)
-    while (start > 0 && !/\s/.test(text[start - 1]!)) start -= 1
-    while (end < text.length && !/\s/.test(text[end]!)) end += 1
-    // A following occurrence inside the window is replaced in the same call.
-    while (hits[last + 1] && hits[last + 1]!.start < end) last += 1
-    const snippet = text.slice(start, end)
-    if (text.indexOf(snippet) === text.lastIndexOf(snippet)) return { snippet, last }
-  }
-}
+interface Hit { start: number, end: number, lineStart: number, lineEnd: number }
 
 /**
- * One replace_text per occurrence: the shortest word-bounded snippet around it
- * that is unique in the document; occurrences close together share one call.
+ * The shortest word-bounded window around the hits of one line that is
+ * unique in `text`, and how far it reaches past the outer hits. One edit per
+ * line, so no two edits overlap.
  */
-function customerEdits(text: string): Array<{ old_str: string, new_str: string }> {
-  const hits = [...text.matchAll(CUSTOMER_RE)].map(m => ({ start: m.index, end: m.index + m[0].length }))
-  const edits: Array<{ old_str: string, new_str: string }> = []
-  for (let i = 0; i < hits.length;) {
-    const { snippet, last } = uniqueWindow(text, hits, i)
-    edits.push({ old_str: snippet, new_str: snippet.replace(CUSTOMER_RE, w => CUSTOMER_FORMS[w] ?? w) })
-    i = last + 1
+function uniqueWindow(text: string, lineHits: readonly Hit[]): { snippet: string, pad: number } {
+  const first = lineHits[0]!
+  const last = lineHits[lineHits.length - 1]!
+  for (let pad = 20; ; pad += 20) {
+    let start = Math.max(first.lineStart, first.start - pad)
+    let end = Math.min(first.lineEnd, last.end + pad)
+    while (start > first.lineStart && !/\s/.test(text[start - 1]!)) start -= 1
+    while (end < first.lineEnd && !/\s/.test(text[end]!)) end += 1
+    const snippet = text.slice(start, end)
+    if (text.indexOf(snippet) === text.lastIndexOf(snippet)) return { snippet, pad }
+    if (start === first.lineStart && end === first.lineEnd) throw new Error('line not unique')
   }
-  return edits
 }
 
 const T5_RENAME: BenchTask = {
@@ -346,12 +329,34 @@ const T5_RENAME: BenchTask = {
   title: 'Rename Kunde to Klient in all forms (40x)',
   prompt: 'Ersetze im ganzen Dokument «Kunde» durch «Klient», in allen Formen (Kunden, Kundin, Kundinnen).',
   async script(api) {
-    // No search tool yet: the whole document has to be read, in parallel
-    // ranged reads.
-    const reader = await openDocument(api)
-    await readRanges(api, reader, [[1, reader.totalLines]])
-    const text = linesOf(reader, 1, reader.totalLines).join('\n')
-    const edits = customerEdits(text)
+    // search_document lists every occurrence with its line and 50 characters
+    // of context on each side; old_str is built from that context. Where it
+    // is not unique, the model first reads the whole line (view_document).
+    const found = await api.call('search_document', { query: String.raw`Kund(e|en|in|innen)\b`, regex: true, caseSensitive: true, limit: 200 })
+    if (!/^40 matches/.test(found.output)) throw new Error(`unexpected search result: ${found.output.slice(0, 200)}`)
+    const text = api.docText()
+    const lineStarts = [0]
+    for (let i = 0; i < text.length; i++) if (text[i] === '\n') lineStarts.push(i + 1)
+    const hits: Hit[] = [...text.matchAll(CUSTOMER_RE)].map((m) => {
+      let line = 0
+      while (line + 1 < lineStarts.length && lineStarts[line + 1]! <= m.index) line++
+      const lineStart = lineStarts[line]!
+      const lineEnd = line + 1 < lineStarts.length ? lineStarts[line + 1]! - 1 : text.length
+      return { start: m.index, end: m.index + m[0].length, lineStart, lineEnd }
+    })
+    const byLine = new Map<number, Hit[]>()
+    for (const h of hits) byLine.set(h.lineStart, [...(byLine.get(h.lineStart) ?? []), h])
+    const edits: Array<{ old_str: string, new_str: string }> = []
+    const lineReads = new Set<number>()
+    for (const [lineStart, lineHits] of byLine) {
+      const { snippet, pad } = uniqueWindow(text, lineHits)
+      // The snippets show 50 characters around each match; a wider window
+      // (or one spanning far-apart matches) needs the whole line first.
+      const gaps = lineHits.slice(1).some((h, k) => h.start - lineHits[k]!.end > 2 * SNIPPET_CONTEXT)
+      if (pad > SNIPPET_CONTEXT || gaps) lineReads.add(lineStarts.indexOf(lineStart) + 1)
+      edits.push({ old_str: snippet, new_str: snippet.replace(CUSTOMER_RE, w => CUSTOMER_FORMS[w] ?? w) })
+    }
+    if (lineReads.size > 0) await api.turn([...lineReads].map(line => ({ name: 'view_document', args: { view_range: [line, line] } })))
     for (let k = 0; k < edits.length; k += 10) {
       await api.turn(edits.slice(k, k + 10).map(args => ({ name: 'replace_text', args })))
     }
@@ -370,20 +375,20 @@ const T6_FORMAL_TONE: BenchTask = {
   prompt: 'Formuliere das ganze Dokument in einem formelleren, sachlicheren Ton um.',
   async script(api: ScriptApi) {
     const reader = await openDocument(api)
-    const total = Number(/\((\d+) characters\)/.exec(api.lastResult?.output ?? '')?.[1] ?? 1)
+    const total = api.docText().length
     const h2 = reader.rows.filter(r => r.level === 2)
     let done = 0
     // One H2 section per turn, in document order, until the loop stops us:
     // each turn rewrites the section read last turn and reads the next one
     // (the stand-in rewrite keeps every line count, so no line shifts).
-    await readRanges(api, reader, [[h2[0]!.start, h2[0]!.end]])
+    await readSections(api, reader, [h2[0]!])
     for (let i = 0; i < h2.length; i++) {
       const section = blockOf(reader, h2[i]!)
       done += section.text.length
       api.reportProgress(done / total)
       const rewrite = { name: 'replace_text', args: { old_str: section.text, new_str: fakeRewrite(section.text) } }
       const next = h2[i + 1]
-      if (next) await readRanges(api, reader, [[next.start, next.end]], [rewrite])
+      if (next) await readSections(api, reader, [next], [rewrite])
       else await api.turn([rewrite])
     }
   }
@@ -396,9 +401,9 @@ const T7_ADD_TABLE: BenchTask = {
   prompt: 'Füge am Ende von Kapitel 2 eine Tabelle mit den vier Teams, ihren Aufgaben und ihren Leitungen ein.',
   async script(api) {
     const reader = await openDocument(api)
-    const row = outlineRow(reader, 1, '2 ')
+    const row = rowByNumber(reader, '2')
     // Only the end of the chapter is needed to place the table.
-    await readRanges(api, reader, [[Math.max(row.start, row.end - 15), row.end]])
+    absorbRead(reader, await api.call('read_section', { section: row.id, offset_line: Math.max(row.start, row.end - 15) }))
     await api.call('insert_text', {
       insert_line: trimmedEnd(reader, row),
       insert_text: [

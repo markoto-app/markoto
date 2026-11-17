@@ -54,7 +54,7 @@ export const HOSTED_FREE_PROVIDERS: ResolvedAiProviders = {
   chat: { capability: 'chat', source: 'instance', model: 'zai-glm-5-3-flash', credentials: null, supportsVision: true },
   image: null,
   transcription: null,
-  worker: { fast: HOSTED_WORKER, strong: HOSTED_WORKER }
+  worker: { fast: HOSTED_WORKER, strong: HOSTED_WORKER, utility: HOSTED_WORKER }
 }
 
 export function tokens(chars: number): number {

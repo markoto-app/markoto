@@ -178,6 +178,9 @@ function describeResolveComment(args: Record<string, unknown>): AiStatusLine {
 const FORMATTERS: Record<string, (args: Record<string, unknown>) => AiStatusLine | null> = {
   web_search: describeWebSearch,
   view_document: () => aiStatus('readDocument'),
+  outline: () => aiStatus('readDocument'),
+  read_section: () => aiStatus('readDocument'),
+  search_document: () => aiStatus('readDocument'),
   replace_text: describeReplaceText,
   insert_text: () => aiStatus('insertText'),
   update_theme: describeUpdateTheme,

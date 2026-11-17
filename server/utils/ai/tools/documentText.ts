@@ -1,3 +1,5 @@
+import { parseSectionsCached } from './sections/parse'
+
 // Line-numbered views of the document text, shared by the read/edit tools
 // and the comment tools (line ranges → character offsets).
 
@@ -143,8 +145,6 @@ export function newlineCount(text: string): number {
 
 // Outline and bounded views
 
-const ATX_HEADING_RE = /^ {0,3}(#{1,6})(?:[ \t]|$)/
-
 export interface OutlineEntry {
   /** 1-based line of the heading. */
   line: number
@@ -156,29 +156,16 @@ export interface OutlineEntry {
 }
 
 /**
- * The document's ATX headings with the line range each section spans
- * (subsections included). Lines inside fenced code blocks are skipped, so a
+ * The document's headings with the line range each section spans
+ * (subsections included), from the section parser (`sections/parse.ts`):
+ * lines inside fenced code, math blocks and HTML comments are skipped, so a
  * `# comment` in a shell snippet is not a heading.
  */
 export function documentOutline(text: string): OutlineEntry[] {
-  const lines = text.split('\n')
-  const found: Array<{ line: number, level: number, heading: string }> = []
-  let openFence: string | null = null
-  lines.forEach((line, i) => {
-    const fence = FENCE_RE.exec(line)?.[1]
-    if (fence) {
-      if (openFence === null) openFence = fence
-      else if (fence[0] === openFence[0] && fence.length >= openFence.length) openFence = null
-      return
-    }
-    if (openFence !== null) return
-    const marks = ATX_HEADING_RE.exec(line)?.[1]
-    if (marks) found.push({ line: i + 1, level: marks.length, heading: line.trim() })
-  })
-  return found.map((h, idx) => {
-    const next = found.slice(idx + 1).find(o => o.level <= h.level)
-    return { ...h, endLine: next ? next.line - 1 : lines.length }
-  })
+  const { sections, lines } = parseSectionsCached(text)
+  return sections
+    .filter(s => s.level > 0)
+    .map(s => ({ line: s.startLine, endLine: s.endLine, level: s.level, heading: (lines[s.startLine - 1] ?? '').trim() }))
 }
 
 /**
@@ -206,7 +193,7 @@ export function formatOutline(entries: readonly OutlineEntry[], maxChars: number
  * `maxChars`. A single line longer than the budget is cut mid-line.
  * `lastLine` is the last line shown in full (or partly, when cut mid-line).
  */
-function numberedLines(lines: readonly string[], startLine: number, endLine: number, maxChars: number): { text: string, lastLine: number, cut: boolean } {
+export function numberedLines(lines: readonly string[], startLine: number, endLine: number, maxChars: number): { text: string, lastLine: number, cut: boolean } {
   const out: string[] = []
   let size = 0
   for (let n = startLine; n <= endLine && n <= lines.length; n++) {
@@ -234,7 +221,8 @@ function linesPerCall(lines: readonly string[], budget: number): number {
 /**
  * A line-numbered view of `fullText` that stays within `budget`
  * characters. `readCall` names the call that reads more ("view_document",
- * or `view_other_document (doc_id "x")`), for the continuation hints.
+ * or `view_other_document (doc_id "x")`), for the continuation hints;
+ * `longDocumentHint` is added to the advice for a document too long to show.
  *
  * - No range, document fits: the whole text.
  * - No range, too long: the heading outline (with each section's line
@@ -242,7 +230,7 @@ function linesPerCall(lines: readonly string[], budget: number): number {
  * - A range that does not fit: as many whole lines as fit, then the
  *   view_range that continues it.
  */
-export function boundedDocumentView(fullText: string, range: readonly [number, number] | undefined, budget: number, readCall: string): string {
+export function boundedDocumentView(fullText: string, range: readonly [number, number] | undefined, budget: number, readCall: string, longDocumentHint: string = ''): string {
   const lines = fullText.split('\n')
   if (!range) {
     const whole = numberedLines(lines, 1, lines.length, budget)
@@ -250,7 +238,7 @@ export function boundedDocumentView(fullText: string, range: readonly [number, n
     const outline = formatOutline(documentOutline(fullText), Math.min(OUTLINE_CHAR_BUDGET, Math.floor(budget / 2)))
     const intro = `The document has ${lines.length} lines (${fullText.length} characters), too long for one result. Outline (each heading with the line range of its section, subsections included):\n${outline || '(no headings)'}`
     const head = numberedLines(lines, 1, lines.length, Math.max(1_000, budget - intro.length - 300))
-    return `${intro}\n\nRead any part with ${readCall} and view_range [start, end]; about ${linesPerCall(lines, budget)} lines fit in one call. Lines 1-${head.lastLine} follow:\n\n${head.text}`
+    return `${intro}\n\nRead any part with ${readCall} and view_range [start, end]; about ${linesPerCall(lines, budget)} lines fit in one call.${longDocumentHint ? ` ${longDocumentHint}` : ''} Lines 1-${head.lastLine} follow:\n\n${head.text}`
   }
 
   const [start, end] = range

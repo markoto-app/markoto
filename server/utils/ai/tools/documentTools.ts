@@ -64,6 +64,9 @@ const SetTitleArgs = z.object({
  */
 const VIEW_DOCUMENT_CHAR_BUDGET = TOOL_RESULT_CHAR_CAP - 2_000
 
+/** Added to a too-long view_document result: the section tools read a long document with less noise. */
+const LONG_DOCUMENT_HINT = 'Better for a long document: outline (section ids, numbers and sizes), read_section and search_document.'
+
 function handleView(
   session: DocToolContext,
   input: { view_range?: [number, number] }
@@ -74,7 +77,7 @@ function handleView(
     if (start < 1) return toolError('Error: view_range start must be >= 1')
     if (end !== -1 && end < start) return toolError('Error: view_range end must be >= start')
   }
-  return toolOk(boundedDocumentView(fullText, input.view_range, VIEW_DOCUMENT_CHAR_BUDGET, 'view_document'))
+  return toolOk(boundedDocumentView(fullText, input.view_range, VIEW_DOCUMENT_CHAR_BUDGET, 'view_document', LONG_DOCUMENT_HINT))
 }
 
 const MIN_APPLIED_CHECK_CHARS = 4
@@ -198,7 +201,7 @@ async function handleSetTitle(
 
 export const viewDocumentTool = defineDocTool({
   name: 'view_document',
-  description: 'Read the current document with 1-indexed line numbers prepended to each line. Always read before editing so you have current content to match against. Without view_range a short document is returned in full; a long one returns a heading outline with each section\'s line range plus the first lines, then read the parts you need with view_range. A result that hits the size limit says which view_range continues it.',
+  description: 'Read the current document with 1-indexed line numbers prepended to each line. Always read before editing so you have current content to match against. Use it for short documents and for exact line ranges; for a long document start with outline and read sections with read_section, and find words with search_document. Without view_range a short document is returned in full; a long one returns a heading outline with each section\'s line range plus the first lines. A result that hits the size limit says which view_range continues it.',
   schema: ViewDocumentArgs,
   handler: (ctx, args) => {
     // The schema keeps `view_range` an array of exactly two (a tuple schema
