@@ -163,6 +163,8 @@ describe('subscription history steps', () => {
     expect(subscriptionEventKinds(ev('customer.subscription.updated', sub(), { items: {} }))).toEqual(['changed'])
     expect(subscriptionEventKinds(ev('customer.subscription.updated', sub(), { current_period_end: 1 }))).toEqual([])
     expect(subscriptionEventKinds(ev('customer.subscription.updated', sub()))).toEqual([])
+    // A change that waited for its payment, applied once paid.
+    expect(subscriptionEventKinds(ev('customer.subscription.pending_update_applied', sub(), { items: {} }))).toEqual(['changed'])
   })
 
   it('rolls up only finished days the raw logs fully cover', () => {
