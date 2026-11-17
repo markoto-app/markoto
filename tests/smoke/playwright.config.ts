@@ -44,8 +44,11 @@ export default defineConfig({
   use: {
     baseURL: BASE_URL,
     httpCredentials: EDGE_CREDENTIALS ? { ...EDGE_CREDENTIALS, origin: new URL(BASE_URL).origin } : undefined,
-    trace: 'on-first-retry',
-    video: 'off',
+    // Evidence for a failure that only shows on the deployed stack: the
+    // staging gate uploads test-results/ as an artifact when the run fails.
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
     // The editor's first-run tour counts as seen (app/utils/editor/editorTour.ts):
     // its popover would sit over the controls the specs click.
     storageState: {
