@@ -15,7 +15,7 @@
   "dependencies": {
     "@hocuspocus/server": "^3.4.4",
     "@markoto/shared": "workspace:*",
-    "@sentry/bun": "^10.76.2",
+    "@sentry/bun": "^10.78.0",
     "ioredis": "^6.0.0",
     "pg": "^8.23.1",
     "yjs": "^13.6.33"
