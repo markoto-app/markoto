@@ -805,11 +805,9 @@
     "downgrade": "ダウングレード",
     "signUp": "サインアップ",
     "close": "閉じる",
-    "footnote": "すべてのプランにリアルタイム共同編集、バージョン履歴、無制限のドキュメントが含まれます。AI ポイントは毎月補充されます。",
-    "comingSoonSubtitle": "アカウントなしでも、無料アカウントでも、自分のサーバーでも使えます。上限の高い有料プランは近日公開です。",
+    "comingSoonSubtitle": "今日から無料で始められます。上限の高い有料プランは近日公開です。",
     "comingSoonBadge": "近日公開",
     "availableNow": "現在利用可能",
-    "comingSoonFootnote": "有料プランの内容、価格、上限はまだ確定していません。ウェイトリストに登録いただくと、公開時に一度だけメールでお知らせします。",
     "freeFootnote": "すべてのアカウントで、リアルタイム共同編集、バージョン履歴、無制限のドキュメントをご利用いただけます。AI ポイントは期間ごとに補充されます。",
     "selfHostedTitle": "このインスタンスの上限",
     "selfHostedSubtitle": "この markoto インスタンスではプランを販売していません。すべてのアカウントに以下の上限が適用され、インスタンスの運営者が変更できます。",
@@ -827,35 +825,14 @@
       "perYear": "/ 年",
       "perSeatPerYear": "席 / 年",
       "planned": "予定価格",
-      "plannedNote": "予定価格です。有料プランの開始までに価格と上限は変わる可能性があります。現在は購入できません。"
-    },
-    "selfHosted": {
-      "title": "セルフホスト",
-      "tagline": "自分のサーバーで markoto を動かせます。",
-      "priceNote": "自分のサーバー、自分の上限",
-      "everyFeature": "すべての機能。上限とストレージは自分で決められます。",
-      "byok": "自分のプロバイダーキーやローカルモデルで AI を利用できます。",
-      "licence": "source-available：FSL-1.1。2 年後に Apache-2.0 になります。",
-      "cta": "セルフホストガイド"
-    },
-    "anon": {
-      "title": "アカウントなし",
-      "tagline": "すぐに書き始められます。",
-      "priceNote": "登録不要",
-      "write": "書いて、リンクで共有し、リアルタイムで一緒に編集できます。",
-      "export": "ファイルを読み込み、PDF や Markdown で書き出せます。",
-      "noAi": "AI、ワークスペース、画像アップロードは使えません。リンクを知っている人は誰でも編集できます。",
-      "retention": "編集がないまま {n} 日経つと削除されます。",
-      "delete": "ドキュメントを削除できるのは、それを作成したブラウザーだけです。"
+      "plannedNote": "予定価格です。有料プランの開始までに価格と上限は変わる可能性があります。現在は購入できません。",
+      "plannedShort": "（予定）"
     },
     "freeAccount": {
-      "title": "無料アカウント",
       "byok": "自分のプロバイダーキーなら AI は無制限です。",
       "signIn": "ログイン"
     },
     "paid": {
-      "title": "有料",
-      "tagline": "AI ポイント、ワークスペース、ストレージが増えます。",
       "joinWaitlist": "ウェイトリストに登録",
       "setUpInWorkspace": "ワークスペースで設定",
       "setUpInWorkspaceHint": "ワークスペースを開き、その請求タブから購入します。購入できるのはワークスペースの管理者だけです。"
@@ -871,17 +848,14 @@
       "imageStorage": "画像ストレージ {size}"
     },
     "compare": {
-      "title": "オプションを比較",
+      "title": "すべての詳細を比較",
       "feature": "機能",
       "price": "価格",
       "priceMonthly": "{price}/月",
       "pricePlanned": "{price}/月（予定）",
       "documents": "ドキュメント",
       "unlimited": "無制限",
-      "anonRetention": "最後の編集から {n} 日間保持",
       "writing": "エディター、リアルタイム共同編集、コメント、PDF 書き出し",
-      "sharing": "閲覧のみ・パスワード付きの共有",
-      "openEditOnly": "誰でも編集可のみ",
       "aiPoints": "AI ポイント/月",
       "ownKey": "自分のプロバイダーキーで AI",
       "workspaces": "所有できるワークスペース",
@@ -894,14 +868,19 @@
       "days": "{n} 日",
       "customCss": "ドキュメントのカスタム CSS",
       "readOnly": "読み取り専用",
-      "setByYou": "自分で設定",
       "included": "含まれる",
       "notIncluded": "含まれない",
       "perSeat": "1 席あたり {value}",
       "aiImage": "AI 画像生成",
       "aiVoice": "音声入力とライブ口述",
       "aiStrongModel": "高性能 AI モデルの選択",
-      "ownKeyOnly": "自分のキーで利用"
+      "ownKeyOnly": "自分のキーで利用",
+      "shareControls": "共有リンクの有効期限と閲覧のみ",
+      "customDomains": "公開ページの独自ドメイン",
+      "brandKit": "ブランドキットとワークスペーステンプレート",
+      "guests": "ワークスペースのゲスト",
+      "sso": "シングルサインオン (SSO) と SCIM",
+      "auditLog": "ワークスペースの監査ログ"
     },
     "faq": {
       "title": "よくある質問",
@@ -916,7 +895,8 @@
       "anonA": "リンクを知っている人は誰でも閲覧・編集できます。編集がないまま {n} 日経つと削除され、それより早く削除できるのは作成したブラウザーだけです。ドキュメントを残したり、非公開にしたり、パスワードで保護したりするにはログインしてください。",
       "anonKeptA": "リンクを知っている人は誰でも閲覧・編集でき、削除できるのは作成したブラウザーだけです。非公開にしたりパスワードで保護したりするにはログインしてください。",
       "selfHostQ": "markoto を自分のサーバーで動かせますか？",
-      "selfHostA": "はい。コードは FSL-1.1 ライセンスの source-available で、2 年後に Apache-2.0 になります。セルフホストのインスタンスにはすべての機能があり、プランはありません。上限は自分で決め、自分の AI プロバイダーやローカルモデルを接続します。インストール方法はドキュメントのセルフホストガイドにあります。"
+      "selfHostA": "はい。コードは FSL-1.1 ライセンスの source-available で、2 年後に Apache-2.0 になります。セルフホストのインスタンスにはすべての機能があり、プランはありません。上限は自分で決め、自分の AI プロバイダーやローカルモデルを接続します。インストール方法はドキュメントのセルフホストガイドにあります。",
+      "pointsPacks": "追加の AI ポイントはパックで購入できます：{packs}。"
     },
     "interval": {
       "label": "請求期間",
@@ -934,7 +914,40 @@
     "seatTotalMonth": "{seats} 席で月額 {total}",
     "seatTotalYear": "{seats} 席で年額 {total}",
     "seatsLabel": "席数",
-    "creditsBuyLink": "プロフィールで AI ポイントを購入"
+    "creditsBuyLink": "プロフィールで AI ポイントを購入",
+    "plans": {
+      "free": "無料"
+    },
+    "teams": {
+      "title": "チーム",
+      "switchLabel": "Team または Business"
+    },
+    "highlights": {
+      "members": "ワークスペースあたり最大 {n} 人",
+      "membersUnlimited": "ワークスペースの人数は無制限",
+      "writing": "リアルタイム共同編集、履歴、PDF 書き出し",
+      "aiExtras": "AI：{list}",
+      "ai": {
+        "aiStrongModel": "高性能モデル",
+        "aiImage": "画像",
+        "aiVoice": "音声入力"
+      },
+      "feature": {
+        "sso": "シングルサインオン (SSO)",
+        "auditLog": "書き出し可能な監査ログ",
+        "brandKit": "ブランドキット：フォント、ロゴ、テンプレート",
+        "guests": "共有ドキュメントだけを見られるゲスト",
+        "customDomains": "公開ページの独自ドメイン",
+        "shareControls": "期限付き・閲覧のみの共有リンク",
+        "customCss": "ドキュメントのカスタム CSS",
+        "mcpWrite": "MCP クライアントからの編集"
+      }
+    },
+    "creditsLine": "AI ポイントの追加：{packs} のパック、有効期間 {months} か月。",
+    "alt": {
+      "anon": "アカウントなしで書く",
+      "selfHost": "markoto をセルフホスト"
+    }
   },
   "topbar": {
     "planBadge": "プラン：{plan}",
@@ -2100,7 +2113,6 @@
     }
   },
   "waitlist": {
-    "title": "ウェイトリストに登録",
     "description": "有料プランの公開時にメールを一通だけお送りします。それ以外は送りません。",
     "emailLabel": "メールアドレス",
     "emailPlaceholder": "you{'@'}example.com",
@@ -2129,7 +2141,8 @@
       "button": "メールアドレスを削除",
       "successTitle": "登録を解除しました",
       "successBody": "メールアドレスはウェイトリストから削除されました。"
-    }
+    },
+    "barTitle": "有料プランは近日公開"
   },
   "aiProvider": {
     "title": "AI プロバイダー",

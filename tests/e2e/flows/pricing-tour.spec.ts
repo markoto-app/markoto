@@ -3,20 +3,17 @@ import { test, expect } from '../fixtures/flow'
 // Two flows on the pricing page.
 //
 // 1. "What you get on each plan" (untagged → billing-OFF pass, the
-//    markoto.app shape the docs describe): signed in, four plans side by
-//    side (Free, Pro, Team, Business) under one billing-period switch.
-//    Every account is on Free; the paid cards show PLANNED prices and
-//    limits with no purchase button, and the waitlist sign-up sits right
-//    under the cards. This is the flow content/docs/plans/limits.md
-//    embeds.
+//    markoto.app shape the docs describe): three cards (Free, Pro, Teams
+//    with a Team / Business switch). Every account is on Free; Pro and
+//    Teams show PLANNED prices with no purchase button, and one waitlist
+//    bar sits above the cards. This is the flow
+//    content/docs/plans/limits.md embeds.
 // 2. "Pricing with paid plans live" (`@billing`): the same page on an
 //    instance that sells plans. Kept for regression coverage only, no
 //    docs page embeds it, so scripts/build-flows.ts never publishes it.
 //
-// Works on desktop AND mobile: the cards stack below `md` and every card
+// Works on desktop AND mobile: the cards stack below `lg`, every card
 // keeps its testid.
-
-const PAID = [{ plan: 'pro' }, { plan: 'team' }, { plan: 'business' }] as const
 
 test('What you get on each plan', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
@@ -25,29 +22,25 @@ test('What you get on each plan', async ({ page, flow, editor }) => {
   await page.goto('/pricing')
   await page.getByTestId('pricing-tier-free').waitFor({ state: 'visible', timeout: 10_000 })
 
-  await flow.heading('Four plans, side by side', 3)
+  await flow.heading('Three plans', 3)
   await flow.narrate(
-    'Signed in, the pricing page shows one card per plan: Free, Pro, Team '
-    + 'and Business. Every account is on Free today. Pro, Team and Business '
-    + 'show their planned prices and limits; nothing can be bought yet.'
+    'Free, Pro and Teams side by side. Every account is on Free today. '
+    + 'Pro and Teams show their planned prices; nothing can be bought yet.'
   )
 
-  // ASSERTION: signed in, exactly the four plans (the self-hosted and
-  // no-account options are for visitors); Free is the current plan, the
-  // paid cards are marked "coming soon" with planned prices and no checkout.
-  await expect(page.getByTestId('pricing-options').locator('article')).toHaveCount(4)
-  for (const id of ['pricing-option-self-hosted', 'pricing-option-anon']) {
-    await expect(page.getByTestId(id)).toHaveCount(0)
-  }
+  // ASSERTION: three cards, Free is the current plan, the paid cards are
+  // marked "coming soon" with planned prices and no checkout.
+  const pro = page.getByTestId('pricing-tier-pro')
+  const teams = page.getByTestId('pricing-option-teams')
+  await expect(pro).toBeVisible()
+  await expect(teams).toBeVisible()
   await expect(page.getByTestId('pricing-tier-free')).toHaveAttribute('data-current', 'true')
-  const paid = page.getByTestId('pricing-plans')
-  await expect(paid.getByTestId('pricing-coming-soon-badge')).toHaveCount(3)
-  await expect(page.getByTestId('pricing-tier-pro')).toBeVisible()
-  await expect(page.getByTestId('pricing-tier-pro')).toContainText('Planned price')
+  await expect(pro.getByTestId('pricing-coming-soon-badge')).toBeVisible()
+  await expect(pro).toContainText('Planned price')
   await expect(page.getByRole('button', { name: /^upgrade$/i })).toHaveCount(0)
 
   await flow.shot(
-    'You are on the free account. The paid plans are marked "coming soon": planned prices, no checkout.',
+    'You are on the free plan. Pro and Teams are marked "coming soon": planned prices, no checkout.',
     {
       hero: true,
       annotations: [
@@ -57,37 +50,37 @@ test('What you get on each plan', async ({ page, flow, editor }) => {
     }
   )
 
-  // One billing period for every paid plan
-  const proPrice = page.getByTestId('pricing-tier-pro').getByTestId('pricing-price')
-  const monthly = await proPrice.innerText()
-  await flow.click('Click "Annual"', page.getByTestId('pricing-interval').getByRole('tab', { name: /annual/i }), {
-    result: 'Pro, Team and Business all switch to their annual price. Team and Business are priced per seat.',
-    after: async () => {
-      await expect(proPrice).not.toHaveText(monthly)
-      await expect(page.getByTestId('pricing-tier-team')).toContainText('per seat / year')
-    }
+  // Team / Business switch
+  await flow.click('Switch the Teams card to "Business"', teams.getByRole('tab', { name: 'Business' }), {
+    result: 'Business shows its planned price per seat and what it adds, such as single sign-on.',
+    after: () => expect(page.getByTestId('pricing-tier-business')).toBeVisible()
   })
-  // ASSERTION: every paid card is a preview, planned price, the
-  // waitlist link instead of a purchase button.
-  for (const { plan } of PAID) {
-    const panel = page.getByTestId(`pricing-tier-${plan}`)
-    await expect(panel).toBeVisible()
-    await expect(panel).toHaveAttribute('data-coming-soon', 'true')
-    await expect(panel.getByTestId('pricing-join-waitlist')).toBeVisible()
+  // ASSERTION: both workspace plans are previews: planned price, the
+  // waitlist button instead of a purchase button.
+  for (const [plan, label] of [['team', 'Team'], ['business', 'Business']] as const) {
+    await teams.getByRole('tab', { name: label }).click()
+    const card = page.getByTestId(`pricing-tier-${plan}`)
+    await expect(card).toHaveAttribute('data-coming-soon', 'true')
+    await expect(card.getByTestId('pricing-join-waitlist')).toBeVisible()
   }
 
-  // Comparison table
-  const compare = page.getByTestId('pricing-compare')
-  await compare.scrollIntoViewIfNeeded()
-  await expect(compare.getByTestId('pricing-compare-row-aiPoints')).toBeVisible()
-  await flow.shot('Below the cards, a table compares every limit side by side.', {
+  // Comparison table, folded away
+  const toggle = page.getByTestId('pricing-compare-toggle')
+  await toggle.scrollIntoViewIfNeeded()
+  await flow.click('Click "Compare all details"', toggle, {
+    result: 'A table compares every limit and feature of the four plans.',
+    after: () => expect(page.getByTestId('pricing-compare-row-aiPoints')).toBeVisible()
+  })
+  await flow.shot('The table lists every limit side by side.', {
     highlights: [{ label: 'AI Points per month', selector: '[data-testid="pricing-compare-row-aiPoints"]' }]
   })
 
   // Waitlist
   await flow.heading('Hear when paid plans launch', 3)
-  const section = page.getByTestId('waitlist-section')
-  await section.scrollIntoViewIfNeeded()
+  await flow.click('Click "Join the waitlist" on the Pro card', pro.getByTestId('pricing-join-waitlist'), {
+    result: 'The page scrolls to the waitlist bar above the cards, ready for your email address.',
+    after: () => expect(page.getByTestId('waitlist-section').getByRole('textbox')).toBeFocused()
+  })
   await flow.narrate(
     'Want to know when Pro, Team and Business launch? Leave your email on the '
     + 'waitlist. markoto sends one email when they do, and every email has '
@@ -136,12 +129,12 @@ test('Pricing with paid plans live', { tag: '@billing' }, async ({ page, flow, e
 
   await flow.heading('What you get on each plan', 3)
   await flow.narrate(
-    'Free, Pro, Team and Business, one card each. Plans differ in AI '
-    + 'Points per month, workspaces you can own and storage. The numbers on '
-    + 'this page are the limits markoto applies.'
+    'Free, Pro and Teams, where Teams switches between Team and Business. '
+    + 'Plans differ in AI Points per month, workspaces you can own and storage. '
+    + 'The numbers on this page are the limits markoto applies.'
   )
 
-  await expect(page.getByTestId('pricing-options').locator('article')).toHaveCount(4)
+  const teams = page.getByTestId('pricing-option-teams')
   await expect(page.getByTestId('pricing-tier-team')).toBeVisible()
 
   await flow.shot(
@@ -156,15 +149,19 @@ test('Pricing with paid plans live', { tag: '@billing' }, async ({ page, flow, e
     }
   )
 
-  // ASSERTION: every paid card shows a real price and an upgrade CTA;
-  // the user's current plan (free for a fresh test user) is marked.
-  for (const { plan } of PAID) {
-    const panel = page.getByTestId(`pricing-tier-${plan}`)
-    await expect(panel).toBeVisible()
-    await expect(panel).toHaveAttribute('data-coming-soon', 'false')
-    await expect(panel.getByTestId('pricing-price')).toContainText('€')
-    // Pro is bought personally; Team / Business are set up for a workspace.
-    await expect(plan === 'pro' ? panel.getByRole('button', { name: /upgrade/i }) : panel.getByTestId(`pricing-workspace-plan-${plan}`)).toBeVisible()
+  // ASSERTION: every paid plan shows a real price and its CTA; the
+  // user's current plan (free for a fresh test user) is marked.
+  const pro = page.getByTestId('pricing-tier-pro')
+  await expect(pro).toHaveAttribute('data-coming-soon', 'false')
+  await expect(pro.getByTestId('pricing-price')).toContainText('€')
+  // Pro is bought personally; Team / Business are set up for a workspace.
+  await expect(pro.getByRole('button', { name: /upgrade/i })).toBeVisible()
+  for (const [plan, label] of [['team', 'Team'], ['business', 'Business']] as const) {
+    await teams.getByRole('tab', { name: label }).click()
+    const card = page.getByTestId(`pricing-tier-${plan}`)
+    await expect(card).toHaveAttribute('data-coming-soon', 'false')
+    await expect(card.getByTestId('pricing-price')).toContainText('€')
+    await expect(card.getByTestId(`pricing-workspace-plan-${plan}`)).toBeVisible()
   }
   await expect(page.locator('[data-testid="pricing-tier-free"]')).toHaveAttribute('data-current', 'true')
   await expect(page.locator('[data-testid="pricing-tier-free"] [data-testid="pricing-current-plan-badge"]')).toBeVisible()

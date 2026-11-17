@@ -805,11 +805,9 @@
     "downgrade": "Downgrade",
     "signUp": "Sign up",
     "close": "Close",
-    "footnote": "All tiers include real-time collaboration, version history, and unlimited documents. AI Points refill monthly.",
-    "comingSoonSubtitle": "Write without an account, sign up for free, or run markoto on your own server. Paid plans with higher limits are coming soon.",
+    "comingSoonSubtitle": "Start free today. Paid plans with higher limits are coming soon.",
     "comingSoonBadge": "Coming soon",
     "availableNow": "Available now",
-    "comingSoonFootnote": "Paid plans, their prices and limits aren't final yet. Join the waitlist and we'll email you once when they launch.",
     "freeFootnote": "Every account includes real-time collaboration, version history, and unlimited documents. AI Points refill every period.",
     "selfHostedTitle": "Limits on this instance",
     "selfHostedSubtitle": "This markoto instance doesn't sell plans. Every account gets the limits below; the operator of this instance can change them.",
@@ -827,35 +825,14 @@
       "perYear": "per year",
       "perSeatPerYear": "per seat / year",
       "planned": "Planned price",
-      "plannedNote": "Planned prices. Prices and limits may change before paid plans launch; nothing can be bought yet."
-    },
-    "selfHosted": {
-      "title": "Self-hosted",
-      "tagline": "Run markoto on your own server.",
-      "priceNote": "Your server, your limits",
-      "everyFeature": "Every feature. Limits and storage are up to you.",
-      "byok": "AI on your own provider key or a local model.",
-      "licence": "Source-available: FSL-1.1, becomes Apache-2.0 after two years.",
-      "cta": "Self-hosting guide"
-    },
-    "anon": {
-      "title": "No account",
-      "tagline": "Start writing straight away.",
-      "priceNote": "No sign-up",
-      "write": "Write, share a link and edit together in real time.",
-      "export": "Import files and export to PDF or Markdown.",
-      "noAi": "No AI, no workspaces, no image uploads. Anyone with the link can edit the document.",
-      "retention": "Deleted after {n} day without edits. | Deleted after {n} days without edits.",
-      "delete": "Only the browser that created a document can delete it."
+      "plannedNote": "Planned prices. Prices and limits may change before paid plans launch; nothing can be bought yet.",
+      "plannedShort": "(planned)"
     },
     "freeAccount": {
-      "title": "Free account",
       "byok": "Unlimited AI on your own provider key.",
       "signIn": "Sign in"
     },
     "paid": {
-      "title": "Paid",
-      "tagline": "More AI Points, workspaces and storage.",
       "joinWaitlist": "Join the waitlist",
       "setUpInWorkspace": "Set up in a workspace",
       "setUpInWorkspaceHint": "Open the workspace, then its Billing tab. Only workspace admins can buy."
@@ -871,17 +848,14 @@
       "imageStorage": "{size} image storage"
     },
     "compare": {
-      "title": "Compare the options",
+      "title": "Compare all details",
       "feature": "Feature",
       "price": "Price",
       "priceMonthly": "{price} per month",
       "pricePlanned": "{price} per month (planned)",
       "documents": "Documents",
       "unlimited": "Unlimited",
-      "anonRetention": "Kept {n} day after the last edit | Kept {n} days after the last edit",
       "writing": "Editor, real-time collaboration, comments, PDF export",
-      "sharing": "View-only and password-protected sharing",
-      "openEditOnly": "Open edit only",
       "aiPoints": "AI Points per month",
       "ownKey": "AI on your own provider key",
       "workspaces": "Workspaces you own",
@@ -894,14 +868,19 @@
       "days": "{n} day | {n} days",
       "customCss": "Custom CSS for documents",
       "readOnly": "Read-only",
-      "setByYou": "Set by you",
       "included": "Included",
       "notIncluded": "Not included",
       "perSeat": "{value} per seat",
       "aiImage": "AI image generation",
       "aiVoice": "Voice input and live dictation",
       "aiStrongModel": "Choice of a stronger AI model",
-      "ownKeyOnly": "With your own key"
+      "ownKeyOnly": "With your own key",
+      "shareControls": "Share-link expiry and view-only links",
+      "customDomains": "Custom domains for published pages",
+      "brandKit": "Brand kit and workspace templates",
+      "guests": "Workspace guests",
+      "sso": "Single sign-on (SSO) and SCIM",
+      "auditLog": "Workspace audit log"
     },
     "faq": {
       "title": "Questions",
@@ -916,7 +895,8 @@
       "anonA": "Anyone with the link can read and edit them. They are deleted after {n} day without edits, and only the browser that created one can delete it sooner. Sign in to keep documents, make them private or lock them with a password. | Anyone with the link can read and edit them. They are deleted after {n} days without edits, and only the browser that created one can delete it sooner. Sign in to keep documents, make them private or lock them with a password.",
       "anonKeptA": "Anyone with the link can read and edit them, and only the browser that created one can delete it. Sign in to make documents private or lock them with a password.",
       "selfHostQ": "Can I run markoto on my own server?",
-      "selfHostA": "Yes. The code is source-available under the FSL-1.1 licence, which becomes Apache-2.0 after two years. A self-hosted instance has every feature and no plans: you set the limits and connect your own AI provider or a local model. The self-hosting guide in the docs covers the install."
+      "selfHostA": "Yes. The code is source-available under the FSL-1.1 licence, which becomes Apache-2.0 after two years. A self-hosted instance has every feature and no plans: you set the limits and connect your own AI provider or a local model. The self-hosting guide in the docs covers the install.",
+      "pointsPacks": "Extra AI Points come in packs: {packs}."
     },
     "interval": {
       "label": "Billing period",
@@ -934,7 +914,40 @@
     "seatTotalMonth": "{total} per month for {seats} seats",
     "seatTotalYear": "{total} per year for {seats} seats",
     "seatsLabel": "Seats",
-    "creditsBuyLink": "Buy AI Points in your profile"
+    "creditsBuyLink": "Buy AI Points in your profile",
+    "plans": {
+      "free": "Free"
+    },
+    "teams": {
+      "title": "Teams",
+      "switchLabel": "Team or Business"
+    },
+    "highlights": {
+      "members": "Up to {n} person per workspace | Up to {n} people per workspace",
+      "membersUnlimited": "Unlimited people per workspace",
+      "writing": "Real-time collaboration, history and PDF export",
+      "aiExtras": "AI with {list}",
+      "ai": {
+        "aiStrongModel": "a stronger model",
+        "aiImage": "images",
+        "aiVoice": "voice input"
+      },
+      "feature": {
+        "sso": "Single sign-on (SSO)",
+        "auditLog": "Audit log with export",
+        "brandKit": "Brand kit: fonts, logos, templates",
+        "guests": "Guests who see only shared documents",
+        "customDomains": "Custom domains for published pages",
+        "shareControls": "Share links that expire or are view-only",
+        "customCss": "Custom CSS for documents",
+        "mcpWrite": "MCP clients can edit documents"
+      }
+    },
+    "creditsLine": "More AI Points: packs of {packs}, valid {months} months.",
+    "alt": {
+      "anon": "Write without an account",
+      "selfHost": "Self-host markoto"
+    }
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
@@ -2100,7 +2113,6 @@
     }
   },
   "waitlist": {
-    "title": "Join the waitlist",
     "description": "Get one email when paid plans launch. That's all we'll send.",
     "emailLabel": "Email address",
     "emailPlaceholder": "you{'@'}example.com",
@@ -2129,7 +2141,8 @@
       "button": "Remove my address",
       "successTitle": "You've been removed",
       "successBody": "Your email address has been deleted from the waitlist."
-    }
+    },
+    "barTitle": "Paid plans are coming soon"
   },
   "aiProvider": {
     "title": "AI provider",

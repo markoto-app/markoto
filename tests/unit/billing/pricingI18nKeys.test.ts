@@ -27,21 +27,20 @@ function leaves(obj: unknown, prefix: string): string[] {
   return Object.entries(obj).flatMap(([key, value]) => leaves(value, `${prefix}.${key}`))
 }
 
-const GROUPS = ['price', 'selfHosted', 'anon', 'freeAccount', 'paid', 'instance', 'count', 'compare', 'faq']
+const GROUPS = ['price', 'plans', 'teams', 'highlights', 'alt', 'freeAccount', 'paid', 'instance', 'count', 'compare', 'faq']
 const KEYS = GROUPS.flatMap(group => leaves(resolve(en, `pricing.${group}`), `pricing.${group}`))
 
 // Plural messages: "one | other" in the languages that inflect.
 const PLURAL_KEYS = [
-  'pricing.anon.retention',
   'pricing.count.aiPoints',
   'pricing.count.workspaces',
   'pricing.count.knowledgeFiles',
-  'pricing.compare.anonRetention',
+  'pricing.highlights.members',
   'pricing.faq.anonA'
 ]
 
 // Same word in several languages (product terms, proper names).
-const MAY_MATCH_ENGLISH = new Set(['pricing.compare.documents', 'pricing.faq.title'])
+const MAY_MATCH_ENGLISH = new Set(['pricing.compare.documents', 'pricing.faq.title', 'pricing.teams.title', 'pricing.highlights.ai.aiImage'])
 
 describe('pricing i18n keys', () => {
   it('finds the pricing groups in English', () => {
@@ -60,7 +59,7 @@ describe('pricing i18n keys', () => {
     it(`${locale}: says "source-available", never "open source"`, () => {
       const text = JSON.stringify(resolve(messages, 'pricing'))
       expect(text.toLowerCase()).not.toMatch(/open[ -]source|open-source/)
-      expect(String(resolve(messages, 'pricing.selfHosted.licence')).toLowerCase()).toContain('source-available')
+      expect(String(resolve(messages, 'pricing.faq.selfHostA')).toLowerCase()).toContain('source-available')
     })
   }
 

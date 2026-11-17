@@ -805,11 +805,9 @@
     "downgrade": "降级",
     "signUp": "注册",
     "close": "关闭",
-    "footnote": "所有层级均包含实时协作、版本历史和无限文档。AI 点数每月补充。",
-    "comingSoonSubtitle": "无需账户、使用免费账户，或在你自己的服务器上运行 markoto。上限更高的付费套餐即将推出。",
+    "comingSoonSubtitle": "今天就免费开始。更高额度的付费套餐即将推出。",
     "comingSoonBadge": "即将推出",
     "availableNow": "现已可用",
-    "comingSoonFootnote": "付费方案及其价格和额度尚未最终确定。加入候补名单，方案上线时我们会给您发送一封邮件。",
     "freeFootnote": "每个账户都包含实时协作、版本历史和无限文档。AI 点数每个周期补充一次。",
     "selfHostedTitle": "此实例的使用上限",
     "selfHostedSubtitle": "此 markoto 实例不销售套餐。每个账户都享有以下上限，实例运营者可以调整。",
@@ -827,35 +825,14 @@
       "perYear": "每年",
       "perSeatPerYear": "每席位 / 年",
       "planned": "计划价格",
-      "plannedNote": "计划价格。付费套餐推出前，价格和上限可能会变化；目前还无法购买。"
-    },
-    "selfHosted": {
-      "title": "自托管",
-      "tagline": "在你自己的服务器上运行 markoto。",
-      "priceNote": "你的服务器，你的上限",
-      "everyFeature": "全部功能。上限和存储由你决定。",
-      "byok": "使用你自己的服务商密钥或本地模型运行 AI。",
-      "licence": "source-available：FSL-1.1，两年后转为 Apache-2.0。",
-      "cta": "自托管指南"
-    },
-    "anon": {
-      "title": "无需账户",
-      "tagline": "立即开始写作。",
-      "priceNote": "无需注册",
-      "write": "写作、通过链接分享，并实时共同编辑。",
-      "export": "导入文件，导出为 PDF 或 Markdown。",
-      "noAi": "没有 AI、工作区和图片上传。任何拥有链接的人都可以编辑文档。",
-      "retention": "{n} 天无编辑后删除。",
-      "delete": "只有创建文档的浏览器才能删除它。"
+      "plannedNote": "计划价格。付费套餐推出前，价格和上限可能会变化；目前还无法购买。",
+      "plannedShort": "（计划）"
     },
     "freeAccount": {
-      "title": "免费账户",
       "byok": "使用你自己的服务商密钥，AI 不限量。",
       "signIn": "登录"
     },
     "paid": {
-      "title": "付费",
-      "tagline": "更多 AI 点数、工作区和存储空间。",
       "joinWaitlist": "加入候补名单",
       "setUpInWorkspace": "在工作区中设置",
       "setUpInWorkspaceHint": "打开工作区，然后进入其账单标签页。只有工作区管理员可以购买。"
@@ -871,17 +848,14 @@
       "imageStorage": "{size} 图片存储"
     },
     "compare": {
-      "title": "比较各选项",
+      "title": "比较所有细节",
       "feature": "功能",
       "price": "价格",
       "priceMonthly": "{price} / 月",
       "pricePlanned": "{price} / 月（计划）",
       "documents": "文档",
       "unlimited": "不限",
-      "anonRetention": "最后一次编辑后保留 {n} 天",
       "writing": "编辑器、实时协作、评论、PDF 导出",
-      "sharing": "只读分享和密码保护",
-      "openEditOnly": "仅限公开编辑",
       "aiPoints": "每月 AI 点数",
       "ownKey": "使用自己的服务商密钥运行 AI",
       "workspaces": "可拥有的工作区",
@@ -894,14 +868,19 @@
       "days": "{n} 天",
       "customCss": "文档自定义 CSS",
       "readOnly": "只读",
-      "setByYou": "由你设定",
       "included": "包含",
       "notIncluded": "不包含",
       "perSeat": "每个席位 {value}",
       "aiImage": "AI 图像生成",
       "aiVoice": "语音输入和实时听写",
       "aiStrongModel": "选择更强大的 AI 模型",
-      "ownKeyOnly": "使用自己的密钥"
+      "ownKeyOnly": "使用自己的密钥",
+      "shareControls": "分享链接的到期和仅查看",
+      "customDomains": "已发布页面的自定义域名",
+      "brandKit": "品牌套件和工作区模板",
+      "guests": "工作区访客",
+      "sso": "单点登录 (SSO) 和 SCIM",
+      "auditLog": "工作区审计日志"
     },
     "faq": {
       "title": "常见问题",
@@ -916,7 +895,8 @@
       "anonA": "任何拥有链接的人都可以阅读和编辑。{n} 天无编辑后会被删除，只有创建文档的浏览器能提前删除它。登录后可以保留文档、设为私有或用密码保护。",
       "anonKeptA": "任何拥有链接的人都可以阅读和编辑，只有创建文档的浏览器才能删除它。登录后可以设为私有或用密码保护。",
       "selfHostQ": "我可以在自己的服务器上运行 markoto 吗？",
-      "selfHostA": "可以。代码以 FSL-1.1 许可证 source-available 发布，两年后转为 Apache-2.0。自托管实例拥有全部功能，没有套餐：上限由你设定，并连接你自己的 AI 服务商或本地模型。安装步骤见文档中的自托管指南。"
+      "selfHostA": "可以。代码以 FSL-1.1 许可证 source-available 发布，两年后转为 Apache-2.0。自托管实例拥有全部功能，没有套餐：上限由你设定，并连接你自己的 AI 服务商或本地模型。安装步骤见文档中的自托管指南。",
+      "pointsPacks": "额外的 AI 点数按套餐购买：{packs}。"
     },
     "interval": {
       "label": "计费周期",
@@ -934,7 +914,40 @@
     "seatTotalMonth": "{seats} 个席位每月 {total}",
     "seatTotalYear": "{seats} 个席位每年 {total}",
     "seatsLabel": "席位",
-    "creditsBuyLink": "在个人资料中购买 AI 点数"
+    "creditsBuyLink": "在个人资料中购买 AI 点数",
+    "plans": {
+      "free": "免费"
+    },
+    "teams": {
+      "title": "团队",
+      "switchLabel": "Team 或 Business"
+    },
+    "highlights": {
+      "members": "每个工作区最多 {n} 人",
+      "membersUnlimited": "每个工作区人数不限",
+      "writing": "实时协作、历史记录和 PDF 导出",
+      "aiExtras": "AI：{list}",
+      "ai": {
+        "aiStrongModel": "更强的模型",
+        "aiImage": "图像",
+        "aiVoice": "语音输入"
+      },
+      "feature": {
+        "sso": "单点登录 (SSO)",
+        "auditLog": "可导出的审计日志",
+        "brandKit": "品牌套件：字体、徽标、模板",
+        "guests": "只能看到共享文档的访客",
+        "customDomains": "已发布页面的自定义域名",
+        "shareControls": "可设到期或仅查看的分享链接",
+        "customCss": "文档自定义 CSS",
+        "mcpWrite": "MCP 客户端可编辑文档"
+      }
+    },
+    "creditsLine": "更多 AI 点数：{packs} 的套餐，有效期 {months} 个月。",
+    "alt": {
+      "anon": "无需账户直接写作",
+      "selfHost": "自托管 markoto"
+    }
   },
   "topbar": {
     "planBadge": "套餐：{plan}",
@@ -2100,7 +2113,6 @@
     }
   },
   "waitlist": {
-    "title": "加入候补名单",
     "description": "付费方案上线时，我们只会给您发送一封邮件。",
     "emailLabel": "邮箱地址",
     "emailPlaceholder": "you{'@'}example.com",
@@ -2129,7 +2141,8 @@
       "button": "删除我的地址",
       "successTitle": "您已退出",
       "successBody": "您的邮箱地址已从候补名单中删除。"
-    }
+    },
+    "barTitle": "付费套餐即将推出"
   },
   "aiProvider": {
     "title": "AI 服务商",

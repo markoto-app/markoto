@@ -15,7 +15,7 @@ import {
 } from '~~/shared/config/pricing'
 import { pricingStructuredData, type FaqItem, type PricingOffer } from '~~/shared/seo/structuredData'
 import { pageBreadcrumbs } from '~~/shared/seo/breadcrumbs'
-import { MIN_WORKSPACE_SEATS } from '~~/shared/config/workspaceSeats'
+import { MAX_WORKSPACE_SEATS, MIN_WORKSPACE_SEATS } from '~~/shared/config/workspaceSeats'
 
 // Pricing page.
 //
@@ -28,16 +28,16 @@ import { MIN_WORKSPACE_SEATS } from '~~/shared/config/workspaceSeats'
 // SSR/fetch-failure fallback.
 //
 // Two layouts, three instance shapes (shared/config/billingMode.ts):
-//   - Options (billing ON, or billing OFF + NUXT_PLANS_COMING_SOON on the
-//     hosted site): one card per plan, with one billing-period switch and
-//     one currency select for all of them, then a comparison table and an
-//     FAQ.
-//       · signed in: Free / Pro / Team / Business side by side.
-//       · visitor: a row with the free options (Self-hosted / No account /
-//         Free account), then a row with Pro / Team / Business.
+//   - Plans (billing ON, or billing OFF + NUXT_PLANS_COMING_SOON on the
+//     hosted site): one billing-period switch and one currency select,
+//     three cards, Free / Pro / Teams (a Team · Business switch with a seat
+//     stepper), one line on extra AI Points, one line to write without an
+//     account or self-host, the comparison table behind a disclosure, and
+//     an FAQ.
 //       · billing on: real prices + Stripe Checkout / Customer Portal CTAs.
 //       · coming soon: PLANNED prices, labelled as planned, no purchase
-//         button, the double-opt-in waitlist right under the columns.
+//         button; one slim waitlist bar above the cards, which the paid
+//         cards' buttons lead to.
 //   - Instance limits (billing OFF without coming soon = self-hosted):
 //     one card with the limits every account on this instance gets.
 
@@ -100,7 +100,6 @@ function priceUnitKey(plan: PlanName): string {
 // The caller's plan (shared with the topbar badge), for the "current plan"
 // highlight. Signed out or failed: no highlight.
 const { billing, refresh: refreshBilling } = useBilling()
-const buyPointsRoute = BUY_AI_POINTS_ROUTE
 const invalidatePlan = useInvalidatePlan()
 
 const optionsLayout = computed(() => billingEnabled.value || plansComingSoon.value)
@@ -117,6 +116,18 @@ const PAID_DISPLAY: Record<PaidPlanName, string> = { pro: 'Pro', team: 'Team', b
 function paidPlanFor(value: string | number | undefined): PaidPlanName | undefined {
   return PAID_PLAN_NAMES.find(plan => plan === value)
 }
+
+// The Teams card: Team or Business, the same seat stepper for both.
+type TeamPlanName = 'team' | 'business'
+const teamPlan = ref<TeamPlanName>('team')
+const teamPlanItems = [
+  { label: PAID_DISPLAY.team, value: 'team' as const },
+  { label: PAID_DISPLAY.business, value: 'business' as const }
+]
+// Show Business on the Teams card when the caller is on it.
+watch(() => billing.value?.plan, (plan) => {
+  if (plan === 'team' || plan === 'business') teamPlan.value = plan
+}, { immediate: true })
 
 onMounted(() => {
   currency.value = defaultCurrencyForLocale(globalThis.navigator?.language)
@@ -136,6 +147,24 @@ const pageSubtitle = computed(() => {
 function price(plan: PlanName): string {
   return formatPrice(PRICES.value[plan], CURRENCY.value, locale.value)
 }
+
+/** The line under a price: planned (coming soon) or on sale now. */
+function priceNote(plan: PlanName): string {
+  return pricesPlanned.value && plan !== 'free' ? t('pricing.price.planned') : t('pricing.availableNow')
+}
+
+// Coming soon: the paid cards' button leads to the waitlist bar above the
+// cards and puts the cursor into its email field.
+function focusWaitlist(): void {
+  const bar = document.getElementById('waitlist')
+  if (!bar) return
+  const reduceMotion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  bar.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' })
+  bar.querySelector<HTMLInputElement>('input[type="email"]')?.focus({ preventScroll: true })
+}
+
+// The comparison table is folded away until asked for.
+const compareOpen = ref(false)
 
 function isCurrent(plan: PlanName): boolean {
   return billing.value?.plan === plan
@@ -260,8 +289,19 @@ const faqItems = computed<FaqItem[]>(() => {
   if (plansComingSoon.value) {
     items.push({ q: t('pricing.faq.comingSoonQ'), a: t('pricing.faq.comingSoonA') })
   }
-  items.push({ q: t('pricing.faq.byokQ'), a: t('pricing.faq.byokA') })
-  items.push({ q: t('pricing.faq.pointsQ'), a: t('pricing.creditsHint') })
+  items.push({
+    q: t('pricing.faq.byokQ'),
+    a: plansComingSoon.value ? `${t('pricing.faq.byokA')} ${t('pricing.freeAllowanceNote')}` : t('pricing.faq.byokA')
+  })
+  // Extra AI Points: the packs with their points, then how they are used.
+  const packs = TOPUP_PACKS.map(pack => t('credits.pack', {
+    price: formatPrice(pack.price[currency.value], CURRENCY.value, locale.value),
+    points: formatAiPoints(pack.creditUsd, locale.value)
+  })).join(' · ')
+  items.push({
+    q: t('pricing.faq.pointsQ'),
+    a: `${t('pricing.creditsHint')} ${t('pricing.faq.pointsPacks', { packs })} ${t('credits.explainer', { months: TOPUP_VALIDITY_MONTHS })}`
+  })
   // The EU data path is a statement about markoto.app's own providers,
   // only true on the hosted site.
   if (marketingSite.value) {
@@ -306,7 +346,7 @@ function paidOffers(): PricingOffer[] {
 }
 usePageStructuredData(() => {
   if (!optionsLayout.value) return null
-  const offers: PricingOffer[] = [{ name: t('pricing.freeAccount.title'), price: 0 }, ...(billingEnabled.value ? paidOffers() : [])]
+  const offers: PricingOffer[] = [{ name: t('pricing.plans.free'), price: 0 }, ...(billingEnabled.value ? paidOffers() : [])]
   return {
     name: pageTitle.value,
     description: metaDescription.value,
@@ -322,20 +362,13 @@ usePageStructuredData(() => {
     })]
   }
 })
-
-const cardClass = 'relative rounded-lg border bg-default p-5 flex flex-col'
-// The taglines of one row reserve the same height, so the prices line up:
-// four narrow cards when signed in, three wider ones for visitors.
-const planTaglineClass = computed(() => loggedIn.value ? 'lg:min-h-20 xl:min-h-15' : 'lg:min-h-10')
-const rowLabelClass = 'font-mono text-[11px] uppercase tracking-[0.06em] text-muted'
-const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono text-[10.5px] tracking-[0.06em] uppercase px-2.5 py-0.5 rounded-full'
 </script>
 
 <template>
   <div>
     <!-- Header + footer come from the `marketing` layout. -->
     <div class="max-w-6xl mx-auto px-4 py-8 sm:py-12">
-      <div class="text-center mb-8 sm:mb-12">
+      <div class="text-center mb-8 sm:mb-10">
         <h1 class="font-serif text-3xl sm:text-5xl font-light tracking-tight">
           {{ pageTitle }}
         </h1>
@@ -345,312 +378,310 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
         >
           {{ pageSubtitle }}
         </p>
+        <div
+          v-if="optionsLayout"
+          class="mt-6 flex flex-wrap items-center justify-center gap-3"
+        >
+          <UTabs
+            v-model="interval"
+            :items="intervalItems"
+            :content="false"
+            color="neutral"
+            variant="pill"
+            size="sm"
+            :aria-label="t('pricing.interval.label')"
+            data-testid="pricing-interval"
+          />
+          <USelect
+            v-model="currency"
+            :items="currencyItems"
+            size="sm"
+            class="w-24"
+            :aria-label="t('pricing.currencyLabel')"
+            data-testid="pricing-currency"
+          />
+        </div>
       </div>
 
-      <!-- ═══ Options layout (hosted site / billing on) ═══ -->
+      <!-- ═══ Plans (hosted site / billing on) ═══ -->
       <template v-if="optionsLayout">
-        <div data-testid="pricing-options">
-          <!-- Visitors: the three ways to use markoto for free. Signed-in
-               users have an account, so their Free card sits with the
-               plans below. -->
-          <section
-            v-if="!loggedIn"
-            class="mb-10 sm:mb-12"
-            aria-labelledby="pricing-free-options-title"
-            data-testid="pricing-free-options"
-          >
-            <p
-              id="pricing-free-options-title"
-              :class="rowLabelClass"
-            >
-              {{ t('pricing.price.free') }}
-            </p>
-            <div class="mt-4 grid gap-4 lg:grid-cols-3">
-              <PricingSelfHostedOption />
-              <PricingAnonOption />
-              <PricingFreeAccountOption
-                :current="isCurrent('free')"
-                :can-downgrade="billingEnabled && !!paidPlanFor(billing?.plan)"
-                :portal-loading="portalLoading"
-                :tiers="TIERS"
-                @portal="openPortal"
-              />
-            </div>
-          </section>
+        <!-- Paid-plans waitlist (hosted free-only SaaS only). -->
+        <div
+          v-if="plansComingSoon"
+          id="waitlist"
+          class="scroll-mt-24 mb-8"
+        >
+          <PricingWaitlistForm />
+        </div>
 
-          <!-- The plans: Pro, Team and Business as one card each (after
-               Free for signed-in users). One billing period and one
-               currency for all of them. -->
-          <section
-            :aria-label="t('pricing.paid.title')"
-            data-testid="pricing-plans"
+        <div
+          class="grid gap-6 lg:gap-4 lg:grid-cols-3 max-w-xl mx-auto lg:max-w-none"
+          data-testid="pricing-options"
+        >
+          <!-- Free -->
+          <PricingPlanCard
+            :title="t('pricing.plans.free')"
+            :tagline="t('pricing.tiers.free')"
+            :price="price('free')"
+            :unit="t(priceUnitKey('free'))"
+            :price-note="priceNote('free')"
+            :current="isCurrent('free')"
+            :coming-soon="false"
+            data-testid="pricing-tier-free"
+            :data-current="isCurrent('free')"
+            data-coming-soon="false"
           >
-            <div :class="['flex flex-wrap items-end gap-x-6 gap-y-3', loggedIn ? 'justify-center' : 'justify-between']">
-              <div v-if="!loggedIn">
-                <p :class="rowLabelClass">
-                  {{ t('pricing.paid.title') }}
-                </p>
-                <p class="mt-1 text-sm text-muted">
-                  {{ t('pricing.paid.tagline') }}
-                </p>
-              </div>
-              <div class="flex flex-wrap items-center gap-3">
+            <PricingPlanHighlights
+              plan="free"
+              :tiers="TIERS"
+            />
+            <template #cta>
+              <UButton
+                v-if="isCurrent('free')"
+                disabled
+                block
+                color="neutral"
+                variant="subtle"
+              >
+                {{ t('pricing.currentPlan') }}
+              </UButton>
+              <UButton
+                v-else-if="billingEnabled && !!paidPlanFor(billing?.plan)"
+                block
+                color="neutral"
+                variant="outline"
+                :loading="portalLoading"
+                @click="openPortal"
+              >
+                {{ t('pricing.downgrade') }}
+              </UButton>
+              <UButton
+                v-else-if="!loggedIn && primaryLoginPath"
+                :to="primaryLoginPath"
+                external
+                block
+                color="neutral"
+                variant="outline"
+                data-testid="pricing-free-sign-in"
+              >
+                {{ t('pricing.freeAccount.signIn') }}
+              </UButton>
+            </template>
+          </PricingPlanCard>
+
+          <!-- Pro -->
+          <PricingPlanCard
+            :title="PAID_DISPLAY.pro"
+            :tagline="t(PAID_TAGLINE.pro)"
+            :price="price('pro')"
+            :unit="t(priceUnitKey('pro'))"
+            :price-note="priceNote('pro')"
+            :current="isCurrentPrice('pro')"
+            :coming-soon="pricesPlanned"
+            data-testid="pricing-tier-pro"
+            :data-current="isCurrent('pro')"
+            :data-coming-soon="pricesPlanned"
+          >
+            <PricingPlanHighlights
+              plan="pro"
+              :tiers="TIERS"
+            />
+            <template #cta>
+              <!-- Coming soon: nothing to buy, the waitlist is above. -->
+              <UButton
+                v-if="pricesPlanned"
+                block
+                color="neutral"
+                variant="outline"
+                data-testid="pricing-join-waitlist"
+                @click="focusWaitlist"
+              >
+                {{ t('pricing.paid.joinWaitlist') }}
+              </UButton>
+              <!-- Billing on: current → Customer Portal; higher →
+                   upgrade (Checkout or in-place swap); lower → portal
+                   downgrade; logged out → sign up. -->
+              <UButton
+                v-else-if="ctaKind('pro') === 'current'"
+                block
+                color="neutral"
+                variant="outline"
+                icon="i-lucide-external-link"
+                :loading="portalLoading"
+                @click="openPortal"
+              >
+                {{ t('pricing.manageSubscription') }}
+              </UButton>
+              <UButton
+                v-else-if="ctaKind('pro') === 'downgrade'"
+                block
+                color="neutral"
+                variant="outline"
+                :loading="portalLoading"
+                @click="onChangePlan('pro')"
+              >
+                {{ t('pricing.downgrade') }}
+              </UButton>
+              <template v-else>
+                <PricingPaidTermsConsent
+                  v-if="loggedIn"
+                  v-model="paidTermsAccepted"
+                  kind="plan"
+                  size="xs"
+                  class="mb-3"
+                  testid="pricing-paid-terms-pro"
+                />
+                <UButton
+                  block
+                  color="neutral"
+                  :disabled="loggedIn && !paidTermsAccepted"
+                  :loading="checkoutLoading === 'pro'"
+                  data-testid="pricing-buy-pro"
+                  @click="onChangePlan('pro')"
+                >
+                  {{ loggedIn ? t('pricing.upgrade') : t('pricing.signUp') }}
+                </UButton>
+              </template>
+            </template>
+          </PricingPlanCard>
+
+          <!-- Teams: Team or Business, per seat -->
+          <div
+            class="grid"
+            data-testid="pricing-option-teams"
+          >
+            <PricingPlanCard
+              :title="t('pricing.teams.title')"
+              :tagline="t(PAID_TAGLINE[teamPlan])"
+              :price="price(teamPlan)"
+              :unit="t(priceUnitKey(teamPlan))"
+              :price-note="priceNote(teamPlan)"
+              :current="isCurrentPrice(teamPlan)"
+              :coming-soon="pricesPlanned"
+              :data-testid="`pricing-tier-${teamPlan}`"
+              :data-current="isCurrent(teamPlan)"
+              :data-coming-soon="pricesPlanned"
+            >
+              <template #switch>
                 <UTabs
-                  v-model="interval"
-                  :items="intervalItems"
+                  v-model="teamPlan"
+                  :items="teamPlanItems"
                   :content="false"
                   color="neutral"
-                  size="sm"
-                  :aria-label="t('pricing.interval.label')"
-                  data-testid="pricing-interval"
+                  variant="pill"
+                  size="xs"
+                  :aria-label="t('pricing.teams.switchLabel')"
+                  data-testid="pricing-teams-switch"
                 />
-                <USelect
-                  v-model="currency"
-                  :items="currencyItems"
-                  size="sm"
-                  class="w-20"
-                  :aria-label="t('pricing.currencyLabel')"
-                  data-testid="pricing-currency"
-                />
-              </div>
-            </div>
-            <div :class="['mt-6 grid gap-x-4 gap-y-6', loggedIn ? 'md:grid-cols-2 lg:grid-cols-4' : 'lg:grid-cols-3']">
-              <PricingFreeAccountOption
-                v-if="loggedIn"
-                :tagline-class="planTaglineClass"
-                :current="isCurrent('free')"
-                :can-downgrade="billingEnabled && !!paidPlanFor(billing?.plan)"
-                :portal-loading="portalLoading"
-                :tiers="TIERS"
-                @portal="openPortal"
-              />
-              <!-- Team / Business are per seat. -->
-              <article
-                v-for="plan in PAID_PLAN_NAMES"
-                :key="plan"
-                :class="[cardClass, isCurrent(plan) ? 'border-inverted' : 'border-default']"
-                :data-testid="`pricing-tier-${plan}`"
-                :data-current="isCurrent(plan)"
-                :data-coming-soon="pricesPlanned"
-              >
-                <div
-                  v-if="isCurrentPrice(plan)"
-                  data-testid="pricing-current-plan-badge"
-                  :class="badgeClass"
-                >
-                  {{ t('pricing.currentPlan') }}
-                </div>
-                <div
-                  v-else-if="pricesPlanned"
-                  data-testid="pricing-coming-soon-badge"
-                  :class="badgeClass"
-                >
-                  {{ t('pricing.comingSoonBadge') }}
-                </div>
-                <h2 class="font-serif text-xl font-normal tracking-tight">
-                  {{ PAID_DISPLAY[plan] }}
-                </h2>
-                <p :class="['text-sm text-muted mt-1', planTaglineClass]">
-                  {{ t(PAID_TAGLINE[plan]) }}
-                </p>
-                <div class="mt-4 flex items-baseline gap-1.5 flex-wrap">
-                  <span
-                    class="font-serif text-3xl font-light tracking-tight"
-                    data-testid="pricing-price"
-                  >{{ price(plan) }}</span>
-                  <span class="text-sm text-muted">{{ t(priceUnitKey(plan)) }}</span>
-                </div>
-                <p class="font-mono text-[11px] uppercase tracking-[0.06em] text-muted mt-1">
-                  {{ pricesPlanned ? t('pricing.price.planned') : t('pricing.availableNow') }}
-                </p>
-                <div
-                  v-if="isPerSeatPlan(plan)"
-                  class="mt-3 flex items-center gap-2 flex-wrap"
-                >
+              </template>
+              <template #price-extra>
+                <div class="mt-3 flex items-center gap-2 flex-wrap">
                   <UInputNumber
                     v-model="seats"
                     :min="MIN_WORKSPACE_SEATS"
-                    :max="1000"
+                    :max="MAX_WORKSPACE_SEATS"
                     size="xs"
                     class="w-28"
                     :aria-label="t('pricing.seatsLabel')"
-                    :data-testid="`pricing-seats-${plan}`"
+                    :data-testid="`pricing-seats-${teamPlan}`"
                   />
                   <span
                     class="text-sm text-muted"
-                    :data-testid="`pricing-seat-total-${plan}`"
-                  >{{ seatTotal(plan) }}</span>
+                    :data-testid="`pricing-seat-total-${teamPlan}`"
+                  >{{ seatTotal(teamPlan) }}</span>
                 </div>
-                <PricingCapsList
-                  class="mt-4 flex-1"
-                  :plan="plan"
-                  :tiers="TIERS"
-                />
-                <div class="mt-6">
-                  <!-- Coming soon: nothing to buy, the waitlist is right below. -->
+              </template>
+              <PricingPlanHighlights
+                :plan="teamPlan"
+                :tiers="TIERS"
+              />
+              <template #cta>
+                <UButton
+                  v-if="pricesPlanned"
+                  block
+                  color="neutral"
+                  variant="outline"
+                  data-testid="pricing-join-waitlist"
+                  @click="focusWaitlist"
+                >
+                  {{ t('pricing.paid.joinWaitlist') }}
+                </UButton>
+                <!-- Team / Business are bought for a workspace, from its
+                     billing settings. -->
+                <template v-else>
+                  <p class="mb-3 text-xs text-muted">
+                    {{ t('pricing.paid.setUpInWorkspaceHint') }}
+                  </p>
                   <UButton
-                    v-if="pricesPlanned"
-                    to="#waitlist"
+                    to="/"
                     block
                     color="neutral"
                     variant="outline"
-                    data-testid="pricing-join-waitlist"
+                    :data-testid="`pricing-workspace-plan-${teamPlan}`"
                   >
-                    {{ t('pricing.paid.joinWaitlist') }}
+                    {{ t('pricing.paid.setUpInWorkspace') }}
                   </UButton>
-                  <!-- Team / Business are bought for a workspace, from its
-                       billing settings. -->
-                  <template v-else-if="isPerSeatPlan(plan)">
-                    <p class="mb-3 text-xs text-muted">
-                      {{ t('pricing.paid.setUpInWorkspaceHint') }}
-                    </p>
-                    <UButton
-                      to="/"
-                      block
-                      color="neutral"
-                      variant="outline"
-                      :data-testid="`pricing-workspace-plan-${plan}`"
-                    >
-                      {{ t('pricing.paid.setUpInWorkspace') }}
-                    </UButton>
-                  </template>
-                  <!-- Billing on: current → Customer Portal; higher →
-                       upgrade (Checkout or in-place swap); lower →
-                       portal downgrade; logged out → sign up. -->
-                  <UButton
-                    v-else-if="ctaKind(plan) === 'current'"
-                    block
-                    color="neutral"
-                    variant="outline"
-                    icon="i-lucide-external-link"
-                    :loading="portalLoading"
-                    @click="openPortal"
-                  >
-                    {{ t('pricing.manageSubscription') }}
-                  </UButton>
-                  <UButton
-                    v-else-if="ctaKind(plan) === 'downgrade'"
-                    block
-                    color="neutral"
-                    variant="outline"
-                    :loading="portalLoading"
-                    @click="onChangePlan(plan)"
-                  >
-                    {{ t('pricing.downgrade') }}
-                  </UButton>
-                  <template v-else>
-                    <PricingPaidTermsConsent
-                      v-if="loggedIn"
-                      v-model="paidTermsAccepted"
-                      kind="plan"
-                      size="xs"
-                      class="mb-3"
-                      :testid="`pricing-paid-terms-${plan}`"
-                    />
-                    <UButton
-                      block
-                      color="neutral"
-                      :disabled="loggedIn && !paidTermsAccepted"
-                      :loading="checkoutLoading === plan"
-                      :data-testid="`pricing-buy-${plan}`"
-                      @click="onChangePlan(plan)"
-                    >
-                      {{ loggedIn ? t('pricing.upgrade') : t('pricing.signUp') }}
-                    </UButton>
-                  </template>
-                </div>
-              </article>
-            </div>
-            <p
-              v-if="pricesPlanned"
-              class="mt-3 text-xs text-muted"
-              data-testid="pricing-planned-note"
-            >
-              {{ t('pricing.price.plannedNote') }}
-            </p>
-          </section>
-        </div>
-
-        <!-- Paid-plans waitlist (hosted free-only SaaS only), directly
-             under the columns (right after the Paid card on phones; on
-             wide screens under Free + Paid, the notes on the left). -->
-        <div class="mt-6 grid gap-6 lg:grid-cols-2 items-start">
-          <div
-            v-if="plansComingSoon"
-            id="waitlist"
-            class="scroll-mt-24 lg:order-2"
-          >
-            <PricingWaitlistForm />
-          </div>
-          <div class="text-sm text-muted space-y-2 lg:order-1 lg:pt-2">
-            <p>{{ billingEnabled ? t('pricing.footnote') : t('pricing.freeFootnote') }}</p>
-            <p
-              v-if="plansComingSoon"
-              data-testid="pricing-free-allowance-note"
-            >
-              {{ t('pricing.freeAllowanceNote') }}
-            </p>
-            <p
-              v-if="plansComingSoon"
-              data-testid="pricing-coming-soon-footnote"
-            >
-              {{ t('pricing.comingSoonFootnote') }}
-            </p>
+                </template>
+              </template>
+            </PricingPlanCard>
           </div>
         </div>
 
-        <!-- AI credit top-ups: one-off, for paid plans. -->
-        <section
-          v-if="optionsLayout"
-          class="mt-8 rounded-lg border border-default bg-default p-5"
-          data-testid="pricing-credits"
+        <p
+          v-if="pricesPlanned"
+          class="mt-4 text-center text-xs text-muted"
+          data-testid="pricing-planned-note"
         >
-          <div class="flex items-center gap-2">
-            <CommonSeal :size="9" />
-            <h2 class="font-serif text-lg font-normal tracking-tight">
-              {{ t('credits.title') }}
-            </h2>
-          </div>
-          <p class="mt-2 text-sm text-muted max-w-3xl">
-            {{ t('credits.explainer', { months: TOPUP_VALIDITY_MONTHS }) }}
-          </p>
-          <p class="mt-3 text-sm">
-            <span
-              v-for="(pack, i) in TOPUP_PACKS"
-              :key="pack.id"
-            >{{ i > 0 ? ' · ' : '' }}{{ t('credits.pack', { price: formatPrice(pack.price[currency], CURRENCY, locale), points: formatAiPoints(pack.creditUsd, locale) }) }}</span>
-          </p>
-          <p
-            v-if="pricesPlanned"
-            class="mt-2 text-xs text-muted"
-          >
-            {{ t('pricing.price.planned') }}
-          </p>
-          <p
-            v-else-if="billing?.plan === 'pro'"
-            class="mt-3 text-sm"
-          >
-            <NuxtLink
-              :to="buyPointsRoute"
-              class="underline"
-              data-testid="pricing-credits-buy-link"
-            >{{ t('pricing.creditsBuyLink') }}</NuxtLink>
-          </p>
-        </section>
+          {{ t('pricing.price.plannedNote') }}
+        </p>
 
-        <!-- Below the columns: hydrates when scrolled to (the server
-             render is the whole table). -->
-        <LazyPricingCompareTable
-          hydrate-on-visible
-          :tiers="TIERS"
-          :prices="MONTHLY_PRICES"
-          :currency="CURRENCY"
+        <PricingMoreOptions
+          class="mt-8"
+          :currency="currency"
           :planned="pricesPlanned"
-          :anon-ttl-days="anonDocTtlDays"
+          :can-buy="billingEnabled && billing?.plan === 'pro'"
         />
 
+        <!-- Comparison table, folded away. The table is in the server
+             render either way; it hydrates when opened. -->
         <section
-          class="mt-12 sm:mt-16 max-w-3xl"
+          class="mt-12 sm:mt-16"
+          data-testid="pricing-compare"
+          aria-labelledby="pricing-compare-title"
+        >
+          <h2
+            id="pricing-compare-title"
+            class="text-center"
+          >
+            <UButton
+              color="neutral"
+              variant="outline"
+              :trailing-icon="compareOpen ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+              :aria-expanded="compareOpen"
+              aria-controls="pricing-compare-panel"
+              data-testid="pricing-compare-toggle"
+              @click="compareOpen = !compareOpen"
+            >
+              {{ t('pricing.compare.title') }}
+            </UButton>
+          </h2>
+          <div
+            v-show="compareOpen"
+            id="pricing-compare-panel"
+            class="mt-4"
+          >
+            <LazyPricingCompareTable
+              hydrate-on-visible
+              :tiers="TIERS"
+              :prices="MONTHLY_PRICES"
+              :currency="CURRENCY"
+              :planned="pricesPlanned"
+            />
+          </div>
+        </section>
+
+        <section
+          class="mt-12 sm:mt-16 max-w-3xl mx-auto"
           aria-labelledby="pricing-faq-title"
         >
           <h2
@@ -667,37 +698,11 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
       </template>
 
       <!-- ═══ Self-hosted: the limits of this instance ═══ -->
-      <template v-else>
-        <article
-          :class="[cardClass, 'border-default max-w-sm mx-auto']"
-          data-testid="pricing-tier-free"
-          :data-current="isCurrent('free')"
-          data-coming-soon="false"
-        >
-          <h2 class="font-serif text-xl font-normal tracking-tight">
-            {{ t('pricing.instance.title') }}
-          </h2>
-          <p class="text-sm text-muted mt-1">
-            {{ t('pricing.tiers.free') }}
-          </p>
-          <PricingCapsList
-            class="mt-5"
-            plan="free"
-            :tiers="TIERS"
-          />
-          <p class="mt-3 flex gap-2 text-sm">
-            <UIcon
-              name="i-lucide-key-round"
-              class="size-4 text-muted shrink-0 mt-0.5"
-            />
-            <span>{{ t('pricing.freeAccount.byok') }}</span>
-          </p>
-        </article>
-        <div class="mt-8 text-center text-sm text-muted space-y-2 max-w-2xl mx-auto">
-          <p>{{ t('pricing.freeFootnote') }}</p>
-          <p>{{ t('pricing.creditsHint') }}</p>
-        </div>
-      </template>
+      <PricingInstanceLimits
+        v-else
+        :tiers="TIERS"
+        :current="isCurrent('free')"
+      />
     </div>
   </div>
 </template>

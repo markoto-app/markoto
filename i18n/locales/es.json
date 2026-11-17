@@ -805,11 +805,9 @@
     "downgrade": "Bajar de plan",
     "signUp": "Registrarse",
     "close": "Cerrar",
-    "footnote": "Todos los niveles incluyen colaboración en tiempo real, historial de versiones y documentos ilimitados. Los puntos de IA se recargan cada mes.",
-    "comingSoonSubtitle": "Escribe sin cuenta, con una cuenta gratuita o en tu propio servidor. Pronto llegarán planes de pago con límites más altos.",
+    "comingSoonSubtitle": "Empieza gratis hoy. Los planes de pago con límites más altos llegarán pronto.",
     "comingSoonBadge": "Muy pronto",
     "availableNow": "Disponible ahora",
-    "comingSoonFootnote": "Los planes de pago, sus precios y límites aún no son definitivos. Únete a la lista de espera y te escribiremos una vez, cuando se lancen.",
     "freeFootnote": "Cada cuenta incluye colaboración en tiempo real, historial de versiones y documentos ilimitados. Los puntos de IA se recargan cada periodo.",
     "selfHostedTitle": "Límites de esta instancia",
     "selfHostedSubtitle": "Esta instancia de markoto no vende planes. Cada cuenta recibe los límites que se indican abajo; el operador de esta instancia puede cambiarlos.",
@@ -827,35 +825,14 @@
       "perYear": "al año",
       "perSeatPerYear": "por puesto / año",
       "planned": "Precio previsto",
-      "plannedNote": "Precios previstos. Los precios y los límites pueden cambiar antes del lanzamiento de los planes de pago; todavía no se puede comprar nada."
-    },
-    "selfHosted": {
-      "title": "Autoalojado",
-      "tagline": "markoto en tu propio servidor.",
-      "priceNote": "Tu servidor, tus límites",
-      "everyFeature": "Todas las funciones. Tú decides los límites y el almacenamiento.",
-      "byok": "IA con tu propia clave de proveedor o un modelo local.",
-      "licence": "Source-available: FSL-1.1, pasa a Apache-2.0 a los dos años.",
-      "cta": "Guía de autoalojamiento"
-    },
-    "anon": {
-      "title": "Sin cuenta",
-      "tagline": "Empieza a escribir ya.",
-      "priceNote": "Sin registro",
-      "write": "Escribe, comparte un enlace y edita en tiempo real con otras personas.",
-      "export": "Importa archivos y exporta a PDF o Markdown.",
-      "noAi": "Sin IA, sin espacios de trabajo, sin subida de imágenes. Cualquiera con el enlace puede editar el documento.",
-      "retention": "Se borra tras {n} día sin cambios. | Se borra tras {n} días sin cambios.",
-      "delete": "Solo el navegador que creó un documento puede borrarlo."
+      "plannedNote": "Precios previstos. Los precios y los límites pueden cambiar antes del lanzamiento de los planes de pago; todavía no se puede comprar nada.",
+      "plannedShort": "(previsto)"
     },
     "freeAccount": {
-      "title": "Cuenta gratuita",
       "byok": "IA ilimitada con tu propia clave de proveedor.",
       "signIn": "Iniciar sesión"
     },
     "paid": {
-      "title": "De pago",
-      "tagline": "Más puntos de IA, espacios de trabajo y almacenamiento.",
       "joinWaitlist": "Unirse a la lista de espera",
       "setUpInWorkspace": "Configurar en un espacio de trabajo",
       "setUpInWorkspaceHint": "Abre el espacio de trabajo y luego su pestaña Facturación. Solo los admins del espacio pueden comprar."
@@ -871,17 +848,14 @@
       "imageStorage": "{size} de almacenamiento de imágenes"
     },
     "compare": {
-      "title": "Compara las opciones",
+      "title": "Comparar todos los detalles",
       "feature": "Función",
       "price": "Precio",
       "priceMonthly": "{price} al mes",
       "pricePlanned": "{price} al mes (previsto)",
       "documents": "Documentos",
       "unlimited": "Ilimitados",
-      "anonRetention": "Se conservan {n} día tras el último cambio | Se conservan {n} días tras el último cambio",
       "writing": "Editor, colaboración en tiempo real, comentarios, exportación a PDF",
-      "sharing": "Compartir en solo lectura o con contraseña",
-      "openEditOnly": "Solo edición abierta",
       "aiPoints": "Puntos de IA al mes",
       "ownKey": "IA con tu propia clave de proveedor",
       "workspaces": "Espacios de trabajo propios",
@@ -894,14 +868,19 @@
       "days": "{n} día | {n} días",
       "customCss": "CSS personalizado para documentos",
       "readOnly": "Solo lectura",
-      "setByYou": "Lo decides tú",
       "included": "Incluido",
       "notIncluded": "No incluido",
       "perSeat": "{value} por puesto",
       "aiImage": "Generación de imágenes con IA",
       "aiVoice": "Entrada por voz y dictado en directo",
       "aiStrongModel": "Elegir un modelo de IA más potente",
-      "ownKeyOnly": "Con tu propia clave"
+      "ownKeyOnly": "Con tu propia clave",
+      "shareControls": "Caducidad y solo lectura en enlaces compartidos",
+      "customDomains": "Dominios propios para páginas publicadas",
+      "brandKit": "Kit de marca y plantillas del espacio de trabajo",
+      "guests": "Invitados del espacio de trabajo",
+      "sso": "Inicio de sesión único (SSO) y SCIM",
+      "auditLog": "Registro de auditoría del espacio de trabajo"
     },
     "faq": {
       "title": "Preguntas",
@@ -916,7 +895,8 @@
       "anonA": "Cualquiera con el enlace puede leerlos y editarlos. Se borran tras {n} día sin cambios, y solo el navegador que creó un documento puede borrarlo antes. Inicia sesión para conservar tus documentos, hacerlos privados o protegerlos con contraseña. | Cualquiera con el enlace puede leerlos y editarlos. Se borran tras {n} días sin cambios, y solo el navegador que creó un documento puede borrarlo antes. Inicia sesión para conservar tus documentos, hacerlos privados o protegerlos con contraseña.",
       "anonKeptA": "Cualquiera con el enlace puede leerlos y editarlos, y solo el navegador que creó un documento puede borrarlo. Inicia sesión para hacer tus documentos privados o protegerlos con contraseña.",
       "selfHostQ": "¿Puedo ejecutar markoto en mi propio servidor?",
-      "selfHostA": "Sí. El código es source-available con la licencia FSL-1.1, que pasa a Apache-2.0 a los dos años. Una instancia autoalojada tiene todas las funciones y ningún plan: tú fijas los límites y conectas tu propio proveedor de IA o un modelo local. La guía de autoalojamiento de la documentación explica la instalación."
+      "selfHostA": "Sí. El código es source-available con la licencia FSL-1.1, que pasa a Apache-2.0 a los dos años. Una instancia autoalojada tiene todas las funciones y ningún plan: tú fijas los límites y conectas tu propio proveedor de IA o un modelo local. La guía de autoalojamiento de la documentación explica la instalación.",
+      "pointsPacks": "Los puntos de IA extra se venden en paquetes: {packs}."
     },
     "interval": {
       "label": "Periodo de facturación",
@@ -934,7 +914,40 @@
     "seatTotalMonth": "{total} al mes por {seats} puestos",
     "seatTotalYear": "{total} al año por {seats} puestos",
     "seatsLabel": "Puestos",
-    "creditsBuyLink": "Comprar puntos de IA en tu perfil"
+    "creditsBuyLink": "Comprar puntos de IA en tu perfil",
+    "plans": {
+      "free": "Gratis"
+    },
+    "teams": {
+      "title": "Equipos",
+      "switchLabel": "Team o Business"
+    },
+    "highlights": {
+      "members": "Hasta {n} persona por espacio de trabajo | Hasta {n} personas por espacio de trabajo",
+      "membersUnlimited": "Personas ilimitadas por espacio de trabajo",
+      "writing": "Colaboración en tiempo real, historial y exportación a PDF",
+      "aiExtras": "IA con {list}",
+      "ai": {
+        "aiStrongModel": "un modelo más potente",
+        "aiImage": "imágenes",
+        "aiVoice": "entrada de voz"
+      },
+      "feature": {
+        "sso": "Inicio de sesión único (SSO)",
+        "auditLog": "Registro de auditoría exportable",
+        "brandKit": "Kit de marca: fuentes, logotipos, plantillas",
+        "guests": "Invitados que solo ven los documentos compartidos",
+        "customDomains": "Dominios propios para páginas publicadas",
+        "shareControls": "Enlaces que caducan o son de solo lectura",
+        "customCss": "CSS personalizado para documentos",
+        "mcpWrite": "Los clientes MCP pueden editar documentos"
+      }
+    },
+    "creditsLine": "Más puntos de IA: paquetes de {packs}, válidos {months} meses.",
+    "alt": {
+      "anon": "Escribir sin cuenta",
+      "selfHost": "Alojar markoto tú mismo"
+    }
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
@@ -2100,7 +2113,6 @@
     }
   },
   "waitlist": {
-    "title": "Únete a la lista de espera",
     "description": "Recibe un correo cuando se lancen los planes de pago. Nada más.",
     "emailLabel": "Correo electrónico",
     "emailPlaceholder": "tu{'@'}ejemplo.es",
@@ -2129,7 +2141,8 @@
       "button": "Eliminar mi dirección",
       "successTitle": "Te hemos dado de baja",
       "successBody": "Tu dirección de correo se ha eliminado de la lista de espera."
-    }
+    },
+    "barTitle": "Los planes de pago llegarán pronto"
   },
   "aiProvider": {
     "title": "Proveedor de IA",
