@@ -1,5 +1,4 @@
-import { getCachedHealth } from '../utils/platform/healthProbes'
-import { useEnv } from '~~/shared/env/load'
+import { getCachedHealth, healthProbeUrlsFromEnv } from '../utils/platform/healthProbes'
 
 // Health of the whole instance, for deploys, monitors and on-call dashboards.
 //
@@ -20,14 +19,7 @@ import { useEnv } from '~~/shared/env/load'
 export default defineApiHandler({
   access: allow.public('Instance health for deploys and monitors; component status only, no hostnames or timings'),
   handler: async ({ event }) => {
-    const env = useEnv()
-    const cached = await getCachedHealth({
-      syncUrl: env.sync.internalUrl,
-      rendererUrl: env.renderer.internalUrl,
-      markitdownUrl: env.markitdown.url,
-      litellmUrl: env.litellm.url,
-      s3Bucket: env.storage.bucket
-    })
+    const cached = await getCachedHealth(healthProbeUrlsFromEnv())
     setResponseStatus(event, cached.status)
     return cached.body
   }

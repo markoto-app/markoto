@@ -42,6 +42,7 @@ const {
   probeValkey,
   probeSync,
   probeS3,
+  probeS3Cors,
   probeRenderer,
   probeMarkitdown,
   probeLitellm,
@@ -145,6 +146,56 @@ describe('probeS3', () => {
     const r = await probeS3('markoto-bucket')
     expect(r.status).toBe('down')
     expect(r.error).toContain('NoSuchBucket')
+  })
+})
+
+describe('probeS3Cors', () => {
+  const target = { bucket: 'markoto-bucket', siteUrl: 'https://markoto.example', browserEndpoint: 'https://s3.example' }
+  function s3Error(name: string): Error {
+    const e = new Error(`${name} from the store`)
+    e.name = name
+    return e
+  }
+
+  it('ok when a rule covers uploads from the site origin', async () => {
+    mockState.s3Send = async () => ({
+      CORSRules: [{ AllowedOrigins: ['https://markoto.example'], AllowedMethods: ['GET', 'PUT', 'HEAD'], AllowedHeaders: ['Content-Type', 'Content-Length'] }]
+    })
+    expect((await probeS3Cors(target)).status).toBe('ok')
+  })
+
+  it('down with the reason when the bucket has no CORS configuration (the launch-day case)', async () => {
+    mockState.s3Send = async () => {
+      throw s3Error('NoSuchCORSConfiguration')
+    }
+    const r = await probeS3Cors(target)
+    expect(r.status).toBe('down')
+    expect(r.error).toContain('https://markoto.example')
+  })
+
+  it('skipped when the store or the key cannot answer GetBucketCors', async () => {
+    for (const name of ['NotImplemented', 'AccessDenied']) {
+      mockState.s3Send = async () => {
+        throw s3Error(name)
+      }
+      expect((await probeS3Cors(target)).status).toBe('skipped')
+    }
+  })
+
+  it('skipped without a bucket, without a site URL, or when S3 shares the site origin', async () => {
+    expect((await probeS3Cors({ ...target, bucket: '' })).status).toBe('skipped')
+    expect((await probeS3Cors({ ...target, siteUrl: '' })).status).toBe('skipped')
+    expect((await probeS3Cors({ ...target, browserEndpoint: 'https://markoto.example' })).status).toBe('skipped')
+  })
+
+  it('down CORS is reported but never gates', async () => {
+    mockState.s3Send = async () => {
+      throw s3Error('NoSuchCORSConfiguration')
+    }
+    vi.spyOn(globalThis, 'fetch').mockImplementation(fakeFetch(200))
+    const r = await runAllProbes({ syncUrl: 'http://sync:4001', s3Cors: target })
+    expect(r.s3Cors.status).toBe('down')
+    expect(isOverallHealthy(r)).toBe(true)
   })
 })
 

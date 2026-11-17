@@ -37,12 +37,13 @@ Set `NUXT_S3_ACCESS_KEY` and `NUXT_S3_SECRET_KEY`. The key needs, and should get
 
 - `s3:PutObject`, `s3:GetObject`, `s3:DeleteObject` on `<bucket>/*` (HEAD and server-side copy are covered by these)
 - `s3:ListBucket` on `<bucket>` (used by the storage clean-up sweeps and the backup retention prune)
+- optional: `s3:GetBucketCORS` on `<bucket>`, read-only, so the health check can verify the CORS rule (section 4); without it that check is skipped
 
 No bucket-level create or delete permissions. The backup service can use a separate bucket and key (`BACKUP_S3_*`, see [SELF-HOSTING.md](SELF-HOSTING.md#backups)); then the app's key needs no access to the backups.
 
 ## 3. CORS policy (required)
 
-Browsers PUT uploads to presigned URLs on the bucket host. Without CORS the preflight fails and uploads never start. Apply:
+Browsers PUT uploads to presigned URLs on the bucket host. Without CORS the preflight fails and uploads never start: image pastes and knowledge uploads fail in the browser while every server-side check still passes. New buckets have no CORS rule, so this step is part of every setup. Apply:
 
 ```json
 [
@@ -68,6 +69,12 @@ aws s3api put-bucket-cors \
 where `cors.json` wraps the rules above in `{ "CORSRules": [ ... ] }`.
 
 ## 4. Verify CORS
+
+The app checks it: `/api/health/deep` (admins) reports `checks.s3Cors`, and the public `/api/status` shows its state. It reads the bucket's rules (GetBucketCors) and reports `down` with the reason when no rule allows a `PUT` with `Content-Type` and a `GET` from the origin of `NUXT_SITE_URL`. It is informational: it never changes `/api/health` or takes the instance out of rotation. It is `skipped` when the browser reaches storage under the site's own origin (the bundled SeaweedFS) or when the store or the access key can't answer GetBucketCors. The hosted deploy workflow prints a warning after a deploy when it is `down`.
+
+```bash
+aws s3api get-bucket-cors --endpoint-url "$NUXT_S3_ENDPOINT" --bucket "$NUXT_S3_BUCKET"
+```
 
 From the browser devtools console on your instance:
 
