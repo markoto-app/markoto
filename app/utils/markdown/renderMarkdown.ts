@@ -13,11 +13,7 @@
  * when output=htmlAndMathml).
  */
 
-import type MarkdownIt from 'markdown-it'
-import type Token from 'markdown-it/lib/token.mjs'
-import type Renderer from 'markdown-it/lib/renderer.mjs'
-import type StateBlock from 'markdown-it/lib/rules_block/state_block.mjs'
-import type StateInline from 'markdown-it/lib/rules_inline/state_inline.mjs'
+import type { MarkdownIt, RendererRule, StateBlock, StateInline } from 'markdown-it'
 import { createGlobalState } from '@vueuse/core'
 import { sanitizeRenderedHtml } from './sanitizeHtml'
 import { tableAttrsRowPlugin } from './markdownTableAttrs'
@@ -25,12 +21,18 @@ import { unnumberedShorthandPlugin } from './markdownUnnumbered'
 import { tablePlugin } from './markdownTables'
 import { markersPlugin } from './markdownMarkers'
 
-// Plucked from the instance shape so type resolution doesn't depend on
-// markdown-it's internal `/lib` path layout.
-type MarkdownItOptions = MarkdownIt['options']
-
 interface MarkdownPipeline {
   md: MarkdownIt
+}
+
+/**
+ * Alert title: the kind, capitalised (`> [!NOTE]` → "Note"). The kind is
+ * one of the allowed alert names (plain letters), so no escaping is needed.
+ * @mdit/plugin-alert 2 would print the kind as the author typed it ("NOTE").
+ */
+const alertTitle: RendererRule = (tokens, idx) => {
+  const name = tokens[idx]?.markup ?? ''
+  return `<p class="markdown-alert-title">${name.charAt(0).toUpperCase()}${name.slice(1)}</p>\n`
 }
 
 /** Offsets of a block-rule line (markdown-it's per-line arrays are indexed by a line the rule has already checked is in range). */
@@ -328,10 +330,10 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
     .use(sup)
     .use(dl)
     .use(abbr)
-    .use(figure, { copyAttrsOnFigure: true })
+    .use(figure)
     .use(imgSize)
   // The 5-kind GitHub set (the plugin default), explicit to keep the contract visible.
-    .use(alert, { alertNames: ['note', 'tip', 'important', 'warning', 'caution'] })
+    .use(alert, { alertNames: ['note', 'tip', 'important', 'warning', 'caution'], titleRenderer: alertTitle })
   // `htmlAndMathml` gives screen readers / copy-paste the semantic MathML.
   // throwOnError off so a malformed `$\frac{` renders in errorColor
   // instead of failing the whole render.
@@ -341,10 +343,10 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
       errorColor: '#cc0000',
       strict: false
     })
-  // Permalink off: the inserted `¶` glyphs would clutter the printed page.
+  // No permalink (the default): `¶` glyphs would clutter the printed page.
   // `[[toc]]` renders to `<nav class="table-of-contents">`; h1–h4 (the
   // plugin default is h2/h3) so a structured document gets useful depth.
-    .use(anchor, { permalink: false, slugify: defaultSlugify })
+    .use(anchor, { slugify: defaultSlugify })
     .use(toc, {
       listType: 'ul',
       level: [1, 2, 3, 4],
@@ -365,9 +367,13 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
   // endpoint lines. See markdownMarkers.ts.
     .use(markersPlugin)
 
+  // Bare domains (`example.com`, `www.example.com`) stay links: markdown-it
+  // 15's linkify-it 6 only links URLs with a scheme unless asked to.
+  md.linkify.set({ fuzzyLink: true })
+
   // ```ts title="replay.ts" → a caption bar above the block. The title is
   // escaped text; the wrapper is a plain <div> (allowed by the sanitiser).
-  const defaultFence: RenderRule | undefined = md.renderer.rules.fence
+  const defaultFence: RendererRule | undefined = md.renderer.rules.fence
   md.renderer.rules.fence = (tokens, idx, options, env, self) => {
     const html = defaultFence ? defaultFence(tokens, idx, options, env, self) : self.renderToken(tokens, idx, options)
     const title = fenceTitle(tokens[idx]?.info ?? '')
@@ -387,8 +393,7 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
 
   // Links open in a new tab; `rel="noopener noreferrer"` stops the opened
   // page from reaching back into our window.
-  type RenderRule = (tokens: Token[], idx: number, options: MarkdownItOptions, env: unknown, self: Renderer) => string
-  const defaultLinkOpen: RenderRule = md.renderer.rules.link_open
+  const defaultLinkOpen: RendererRule = md.renderer.rules.link_open
     || ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options))
   md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
     const token = tokens[idx]

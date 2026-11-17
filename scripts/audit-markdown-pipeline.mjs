@@ -100,6 +100,12 @@ function commentPlugin(md) {
   })
 }
 
+// Same as `alertTitle` in renderMarkdown.ts: the kind, capitalised.
+function alertTitle(tokens, idx) {
+  const name = tokens[idx].markup
+  return `<p class="markdown-alert-title">${name.charAt(0).toUpperCase()}${name.slice(1)}</p>\n`
+}
+
 const md = new MarkdownIt({ html: false, linkify: true, typographer: true, breaks: true })
   .use(taskLists, { enabled: true })
   .use(emoji)
@@ -111,14 +117,17 @@ const md = new MarkdownIt({ html: false, linkify: true, typographer: true, break
   .use(sup)
   .use(dl)
   .use(abbr)
-  .use(figure, { copyAttrsOnFigure: true })
+  .use(figure)
   .use(imgSize)
-  .use(alert, { alertNames: ['note', 'tip', 'important', 'warning', 'caution'] })
+  .use(alert, { alertNames: ['note', 'tip', 'important', 'warning', 'caution'], titleRenderer: alertTitle })
   .use(katex, { output: 'htmlAndMathml', throwOnError: false, strict: false })
-  .use(anchor, { permalink: false })
+  .use(anchor)
   .use(toc, { listType: 'ul', level: [1, 2, 3, 4] })
   .use(pagebreakPlugin)
   .use(commentPlugin)
+
+// Same as renderMarkdown.ts: bare domains stay links (linkify-it 6 default is off).
+md.linkify.set({ fuzzyLink: true })
 
 // SAME allow-list as app/utils/markdown/renderMarkdown.ts
 const SANITIZE_OPTS = {
@@ -170,6 +179,7 @@ run('pagebreak with weird spacing', '<!--  pagebreak  -->')
 run('reference-style link', 'See [the spec][spec] for details.\n\n[spec]: https://example.com/spec')
 run('bare URL linkify', 'Visit https://example.com for more.')
 run('email linkify', 'Contact foo@bar.com.')
+run('bare domain linkify', 'See www.example.com and example.org.')
 
 run('multiple footnotes', 'Text[^1] with [^note2] multiple.\n\n[^1]: First.\n[^note2]: Second.')
 

@@ -1,5 +1,4 @@
-import type MarkdownIt from 'markdown-it'
-import type StateCore from 'markdown-it/lib/rules_core/state_core.mjs'
+import type { MarkdownIt, StateCore } from 'markdown-it'
 
 /**
  * Pandoc's `{-}` shorthand for `{.unnumbered}` on a heading:

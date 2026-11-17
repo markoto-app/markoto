@@ -25,8 +25,8 @@ import { vendorUrl } from './vendorAssets'
  * The build refuses to start while version or hash disagree with the
  * installed package (diagrams would otherwise render as "Mermaid error").
  */
-export const MERMAID_VERSION = '11.17.2'
+export const MERMAID_VERSION = '12.3.0'
 
 export const MERMAID_URL = vendorUrl('mermaid', MERMAID_VERSION, 'mermaid.min.js')
 
-export const MERMAID_SRI = 'sha384-EOXBFmc3gx5mb+vn0vPvvGqACToJD24hhacX5Yx+8NUUQrHIle/Qi5Bg9o3zKwW2'
+export const MERMAID_SRI = 'sha384-HHW54r639fK42Ip0coGF3mz8oSiGn0eEoWNTLs75X7H63pLSDBa0Tqs0RwGmLlXE'

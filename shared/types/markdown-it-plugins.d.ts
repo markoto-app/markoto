@@ -6,35 +6,35 @@
 // If one of these ever ships proper types, delete the corresponding block.
 
 declare module 'markdown-it-task-lists' {
-  import type { PluginWithOptions } from 'markdown-it'
+  import type { MarkdownIt } from 'markdown-it'
 
-  const plugin: PluginWithOptions<{ enabled?: boolean, label?: boolean, labelAfter?: boolean }>
+  const plugin: (md: MarkdownIt, options?: { enabled?: boolean, label?: boolean, labelAfter?: boolean }) => void
   export default plugin
 }
 
 declare module 'markdown-it-emoji' {
-  import type { PluginWithOptions } from 'markdown-it'
+  import type { MarkdownIt } from 'markdown-it'
   // Upstream exports both `full` and `light`; we pick at runtime.
-  export const full: PluginWithOptions
-  export const light: PluginWithOptions
-  const plugin: PluginWithOptions
+  export const full: (md: MarkdownIt, options?: unknown) => void
+  export const light: (md: MarkdownIt, options?: unknown) => void
+  const plugin: (md: MarkdownIt, options?: unknown) => void
   export default plugin
 }
 
 declare module 'markdown-it-footnote' {
-  import type { PluginSimple } from 'markdown-it'
+  import type { MarkdownIt } from 'markdown-it'
 
-  const plugin: PluginSimple
+  const plugin: (md: MarkdownIt) => void
   export default plugin
 }
 
 declare module 'markdown-it-container' {
-  import type { PluginWithOptions } from 'markdown-it'
+  import type { MarkdownIt } from 'markdown-it'
 
-  const plugin: PluginWithOptions<{
+  const plugin: (md: MarkdownIt, options?: {
     validate?: (params: string) => boolean
     render?: (tokens: unknown[], idx: number) => string
     marker?: string
-  }>
+  }) => void
   export default plugin
 }

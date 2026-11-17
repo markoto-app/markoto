@@ -259,6 +259,11 @@ export function buildMermaidConfig(theme: DocTheme): Record<string, unknown> {
     // lives in the opaque-origin iframe (preview / print).
     securityLevel: 'antiscript',
     theme: isDocument ? 'base' : theme.mermaid.theme,
+    // Mermaid 12 lays diagrams out with ELK and draws them in the `neo`
+    // look by default; dagre + classic keep existing documents looking
+    // as they did (a diagram can still opt in through its front matter).
+    layout: 'dagre',
+    look: 'classic',
     fontFamily,
     // Plain SVG <text> labels instead of <foreignObject> HTML (root key
     // for Mermaid 11; `flowchart.htmlLabels` below for older layouts):
