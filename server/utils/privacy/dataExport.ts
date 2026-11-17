@@ -202,6 +202,7 @@ function buildProfileEntry(userRow: UserProfileRow) {
     dpaVersionAccepted: userRow.dpaVersionAccepted,
     dpaVersionAcceptedLocale: userRow.dpaVersionAcceptedLocale,
     editorTourDoneAt: userRow.editorTourDoneAt?.toISOString() ?? null,
+    lastActiveOn: userRow.lastActiveOn,
     createdAt: userRow.createdAt.toISOString()
   }
 }

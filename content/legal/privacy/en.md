@@ -1,8 +1,8 @@
 ---
 slug: privacy
 locale: en
-version: 13
-effectiveDate: 2026-11-10
+version: 14
+effectiveDate: 2026-11-17
 translationStatus: authoritative
 ---
 
@@ -30,7 +30,7 @@ We collect only what each purpose needs, and we tell you what each purpose is. T
 
 In brief, we process:
 
-- **Account data:** name, email address, the identifier from your sign-in provider (GitHub or Google), language, age confirmation, and which versions of our policies you accepted.
+- **Account data:** name, email address, the identifier from your sign-in provider (GitHub or Google), language, age confirmation, and which versions of our policies you accepted, and the last day you used markoto while signed in (the date only, replaced each day, no history).
 - **Content:** documents, comments, images, knowledge-base files, themes and who edited what.
 - **AI usage:** prompts, document context and AI results, when you use the AI features.
 - **Technical data:** IP addresses (used in short-lived form for rate limiting and stored only shortened in logs), browser type, error reports.
@@ -251,6 +251,7 @@ This is **version {{currentVersion}}**, effective **{{effectiveDate}}**. Materia
 
 ### Change log
 
+- **v14 (2026-11-17).** We now keep the last day you used markoto while signed in (§2): the date only, replaced each day, without a history. We use it only to count active accounts per day, week and month; nobody sees the day of an individual person. Added to your data export (`profile.json`, `lastActiveOn`).
 - **v13 (2026-11-10).** Described publishing a document as a web page and showing it on your own domain (§2, §5): the published copy and its address, the domain name, its verification and DNS checks, and the HTTPS certificate requested from Let's Encrypt, which makes the domain name public in Certificate Transparency logs. Added to your data export (`published_pages.json`, `custom_domains.json`).
 - **v12 (2026-11-09).** Described workspace guests (§2): who sees a guest's name and email address, the record of which documents were shared with them, and the per-person usage view for workspace admins. Added to your data export (`document_shares.json`).
 - **v11 (2026-11-09).** Workspace admins of a plan with the audit log can see and download that workspace's audit entries, including the name and shortened IP address of the person who acted (§5).

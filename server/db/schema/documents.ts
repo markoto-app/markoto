@@ -82,6 +82,8 @@ export const documents = pgTable('documents', {
 }, table => [
   index('idx_documents_owner').on(table.ownerId),
   index('idx_documents_last_active').on(table.lastActive),
+  // Admin product stats: documents created per day.
+  index('idx_documents_created').on(table.createdAt),
   index('idx_documents_workspace').on(table.workspaceId)
 ])
 

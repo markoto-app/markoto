@@ -1,8 +1,8 @@
 ---
 slug: privacy
 locale: fr
-version: 13
-effectiveDate: 2026-11-10
+version: 14
+effectiveDate: 2026-11-17
 translationStatus: machine-translated
 ---
 
@@ -30,7 +30,7 @@ Nous ne collectons que ce dont chaque finalité a besoin, et nous vous indiquons
 
 En résumé, nous traitons :
 
-- **Données de compte :** nom, adresse e-mail, identifiant fourni par votre fournisseur de connexion (GitHub ou Google), langue, confirmation d'âge et versions de nos politiques que vous avez acceptées.
+- **Données de compte :** nom, adresse e-mail, identifiant fourni par votre fournisseur de connexion (GitHub ou Google), langue, confirmation d'âge et versions de nos politiques que vous avez acceptées, ainsi que le dernier jour où vous avez utilisé markoto en étant connecté (la date seulement, remplacée chaque jour, sans historique).
 - **Contenus :** documents, commentaires, images, fichiers de la base de connaissances, thèmes et auteur de chaque modification.
 - **Utilisation de l'IA :** requêtes, contexte du document et résultats de l'IA, lorsque vous utilisez les fonctionnalités d'IA.
 - **Données techniques :** adresses IP (utilisées sous une forme éphémère pour la limitation de débit et conservées uniquement sous forme tronquée dans les journaux), type de navigateur, rapports d'erreurs.
@@ -251,6 +251,7 @@ Il s'agit de la **version {{currentVersion}}**, en vigueur le **{{effectiveDate}
 
 ### Historique des modifications
 
+- **v14 (2026-11-17).** Nous conservons désormais le dernier jour où vous avez utilisé markoto en étant connecté (point 2) : la date seulement, remplacée chaque jour, sans historique. Nous l'utilisons uniquement pour compter les comptes actifs par jour, semaine et mois ; personne ne voit le jour d'une personne en particulier. Ajouté à votre export de données (`profile.json`, `lastActiveOn`).
 - **v13 (2026-11-10).** Description de la publication d'un document sous forme de page web et de son affichage sur votre propre domaine (points 2 et 5) : la copie publiée et son adresse, le nom de domaine, sa vérification et les contrôles DNS, ainsi que le certificat HTTPS demandé à Let's Encrypt, qui rend le nom de domaine public dans les journaux Certificate Transparency. Ajouté à votre export de données (`published_pages.json`, `custom_domains.json`).
 - **v12 (2026-11-09).** Description des invités d'un espace de travail (point 2) : qui voit le nom et l'adresse e-mail d'un invité, l'enregistrement des documents partagés avec lui et la vue d'utilisation par personne pour les admins d'un espace de travail. Ajouté à votre export de données (`document_shares.json`).
 - **v11 (2026-11-09).** Les admins d'un espace de travail dont le plan inclut le journal d'audit peuvent consulter et télécharger les entrées d'audit de cet espace de travail, y compris le nom et l'adresse IP tronquée de la personne qui a agi (point 5).

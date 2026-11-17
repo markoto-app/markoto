@@ -43,8 +43,10 @@
 // v13 (2026-11-10): publish as a web page + custom domains: the
 // published copy, domain names, DNS checks, Let's Encrypt certificates
 // (domain name public in Certificate Transparency logs).
-export const PRIVACY_VERSION = 13
-export const PRIVACY_EFFECTIVE_DATE = '2026-11-10'
+// v14 (2026-11-17): the last day an account made a signed-in request
+// (`users.last_active_on`, date only, overwritten), for active-user counts.
+export const PRIVACY_VERSION = 14
+export const PRIVACY_EFFECTIVE_DATE = '2026-11-17'
 
 // v2 (2026-10-26): free-only service, BYOK responsibilities, as-is/discontinuation clauses.
 // v3 (2026-11-03): anonymous documents, acceptable-use section, DSA

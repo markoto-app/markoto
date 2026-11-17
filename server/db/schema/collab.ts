@@ -69,6 +69,9 @@ export const activityLog = pgTable('activity_log', {
   index('idx_activity_doc').on(table.docId, table.createdAt),
   // Forensic "every agent row across all docs"; partial because only
   // agent rows have a principal.
+  // Admin product stats: people who edited in a date range (distinct
+  // `user_id` per day), without scanning every document's rows.
+  index('idx_activity_created_user').on(table.createdAt, table.userId).where(sql`user_id IS NOT NULL`),
   index('idx_activity_actor_principal').on(table.actorPrincipal).where(sql`actor_principal IS NOT NULL`),
   // Closes the cross-instance flush race: two sync containers flushing the same doc
   // post identical `edit` rows with the same boundary ids; this makes the

@@ -1,8 +1,8 @@
 ---
 slug: privacy
 locale: de
-version: 13
-effectiveDate: 2026-11-10
+version: 14
+effectiveDate: 2026-11-17
 translationStatus: machine-translated
 ---
 
@@ -30,7 +30,7 @@ Wir erheben nur, was der jeweilige Zweck erfordert, und sagen dir, was der jewei
 
 Kurz zusammengefasst verarbeiten wir:
 
-- **Kontodaten:** Name, E-Mail-Adresse, die Kennung deines Anmeldeanbieters (GitHub oder Google), Sprache, Altersbestätigung und welche Versionen unserer Richtlinien du akzeptiert hast.
+- **Kontodaten:** Name, E-Mail-Adresse, die Kennung deines Anmeldeanbieters (GitHub oder Google), Sprache, Altersbestätigung und welche Versionen unserer Richtlinien du akzeptiert hast, sowie der letzte Tag, an dem du markoto angemeldet genutzt hast (nur das Datum, täglich überschrieben, ohne Verlauf).
 - **Inhalte:** Dokumente, Kommentare, Bilder, Dateien der Wissensdatenbank, Themes und wer was bearbeitet hat.
 - **KI-Nutzung:** Eingaben, Dokumentkontext und KI-Ergebnisse, wenn du die KI-Funktionen nutzt.
 - **Technische Daten:** IP-Adressen (kurzzeitig für Ratenbegrenzungen verwendet und in Protokollen nur gekürzt gespeichert), Browsertyp, Fehlerberichte.
@@ -251,6 +251,7 @@ Dies ist **Version {{currentVersion}}**, gültig ab **{{effectiveDate}}**. Wesen
 
 ### Änderungsverlauf
 
+- **v14 (2026-11-17).** Wir speichern jetzt den letzten Tag, an dem du markoto angemeldet genutzt hast (§2): nur das Datum, täglich überschrieben, ohne Verlauf. Wir verwenden es nur, um aktive Konten pro Tag, Woche und Monat zu zählen; niemand sieht den Tag einer einzelnen Person. Zu deinem Datenexport hinzugefügt (`profile.json`, `lastActiveOn`).
 - **v13 (2026-11-10).** Das Veröffentlichen eines Dokuments als Webseite und das Anzeigen unter deiner eigenen Domain beschrieben (§2, §5): die veröffentlichte Kopie und ihre Adresse, der Domainname, seine Bestätigung und die DNS-Prüfungen sowie das bei Let's Encrypt angeforderte HTTPS-Zertifikat, durch das der Domainname in den Certificate-Transparency-Logs öffentlich wird. Zu deinem Datenexport hinzugefügt (`published_pages.json`, `custom_domains.json`).
 - **v12 (2026-11-09).** Gäste eines Workspace beschrieben (§2): wer den Namen und die E-Mail-Adresse eines Gastes sieht, die Aufzeichnung, welche Dokumente mit ihm geteilt wurden, und die Nutzungsansicht pro Person für die Admins eines Workspace. Zu deinem Datenexport hinzugefügt (`document_shares.json`).
 - **v11 (2026-11-09).** Die Admins eines Workspace mit einem Plan, der das Audit-Protokoll enthält, können die Audit-Einträge dieses Workspace einsehen und herunterladen, einschliesslich des Namens und der gekürzten IP-Adresse der handelnden Person (§5).

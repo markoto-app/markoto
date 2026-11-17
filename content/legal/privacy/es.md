@@ -1,8 +1,8 @@
 ---
 slug: privacy
 locale: es
-version: 13
-effectiveDate: 2026-11-10
+version: 14
+effectiveDate: 2026-11-17
 translationStatus: machine-translated
 ---
 
@@ -30,7 +30,7 @@ Solo recogemos lo que cada fin requiere y le explicamos cuál es ese fin. La lis
 
 En resumen, tratamos:
 
-- **Datos de cuenta:** nombre, dirección de correo electrónico, el identificador de su proveedor de inicio de sesión (GitHub o Google), idioma, confirmación de edad y las versiones de nuestras políticas que ha aceptado.
+- **Datos de cuenta:** nombre, dirección de correo electrónico, el identificador de su proveedor de inicio de sesión (GitHub o Google), idioma, confirmación de edad y las versiones de nuestras políticas que ha aceptado, así como el último día en que usó markoto con la sesión iniciada (solo la fecha, sustituida cada día, sin historial).
 - **Contenido:** documentos, comentarios, imágenes, archivos de la base de conocimiento, temas y quién editó qué.
 - **Uso de la IA:** solicitudes, contexto del documento y resultados de la IA, cuando usa las funciones de IA.
 - **Datos técnicos:** direcciones IP (usadas de forma efímera para los límites de frecuencia y almacenadas en los registros solo en forma acortada), tipo de navegador e informes de errores.
@@ -251,6 +251,7 @@ Esta es la **versión {{currentVersion}}**, en vigor desde el **{{effectiveDate}
 
 ### Historial de cambios
 
+- **v14 (2026-11-17).** Ahora conservamos el último día en que usó markoto con la sesión iniciada (apartado 2): solo la fecha, sustituida cada día, sin historial. Solo la usamos para contar las cuentas activas por día, semana y mes; nadie ve el día de una persona concreta. Añadido a su exportación de datos (`profile.json`, `lastActiveOn`).
 - **v13 (2026-11-10).** Se describió la publicación de un documento como página web y su visualización en su propio dominio (apartados 2 y 5): la copia publicada y su dirección, el nombre de dominio, su verificación y las comprobaciones de DNS, y el certificado HTTPS solicitado a Let's Encrypt, que hace público el nombre de dominio en los registros de Certificate Transparency. Añadido a su exportación de datos (`published_pages.json`, `custom_domains.json`).
 - **v12 (2026-11-09).** Se describieron los invitados de un espacio de trabajo (apartado 2): quién ve el nombre y la dirección de correo electrónico de un invitado, el registro de qué documentos se compartieron con él y la vista de uso por persona para los administradores de un espacio de trabajo. Añadido a su exportación de datos (`document_shares.json`).
 - **v11 (2026-11-09).** Los administradores de un espacio de trabajo con un plan que incluye el registro de auditoría pueden ver y descargar las entradas de auditoría de ese espacio de trabajo, incluidos el nombre y la dirección IP acortada de la persona que actuó (apartado 5).

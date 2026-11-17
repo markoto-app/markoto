@@ -1,0 +1,223 @@
+// Admin product stats (`/admin/stats`, `/api/admin/stats/*`): the date
+// windows, the response shapes and the pure arithmetic behind them (period
+// change, MRR). Every number is an aggregate; no response names a person.
+// Metric definitions: docs/contributing/admin-metrics.md.
+
+import { DAY_MS } from '../config/units'
+import type { BillingInterval, Currency, PaidPlanName, PlanPriceTable } from '../config/pricing'
+
+export const STATS_RANGES = ['7', '30', '90', '365', 'all'] as const
+export type StatsRange = typeof STATS_RANGES[number]
+
+export const STATS_BUCKETS = ['day', 'week', 'month'] as const
+export type StatsBucket = typeof STATS_BUCKETS[number]
+
+/** `all` reaches back at most this many months (the series stay readable). */
+export const ALL_TIME_MAX_MONTHS = 60
+
+/**
+ * A reporting window: `[from, to)` in whole UTC days, the equally long
+ * window right before it (for the period-over-period change), and the
+ * size of one point of the time series. `all` has no previous window.
+ */
+export interface StatsWindow {
+  range: StatsRange
+  /** First day (inclusive), `YYYY-MM-DD`. */
+  from: string
+  /** Day after the last day (exclusive), `YYYY-MM-DD`: tomorrow, so today counts. */
+  to: string
+  prevFrom: string | null
+  bucket: StatsBucket
+}
+
+export function isoDay(d: Date): string {
+  return d.toISOString().slice(0, 10)
+}
+
+function addDays(day: string, n: number): string {
+  return isoDay(new Date(new Date(`${day}T00:00:00Z`).getTime() + n * DAY_MS))
+}
+
+/** The bucket a range is charted in when the caller does not choose one. */
+export function defaultBucket(range: StatsRange): StatsBucket {
+  if (range === 'all') return 'month'
+  return range === '365' ? 'week' : 'day'
+}
+
+/**
+ * The window for a range ending today. `firstDay` is the earliest day with
+ * data (the first sign-up), used as the start of `all`; it is clamped to
+ * `ALL_TIME_MAX_MONTHS` before today.
+ */
+export function statsWindow(range: StatsRange, now: Date, firstDay: string | null, bucket?: StatsBucket): StatsWindow {
+  const to = addDays(isoDay(now), 1)
+  if (range === 'all') {
+    const floor = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - ALL_TIME_MAX_MONTHS + 1, 1))
+    const from = firstDay && firstDay > isoDay(floor) ? firstDay : isoDay(floor)
+    return { range, from, to, prevFrom: null, bucket: bucket ?? 'month' }
+  }
+  const days = Number(range)
+  const from = addDays(to, -days)
+  return { range, from, to, prevFrom: addDays(from, -days), bucket: bucket ?? defaultBucket(range) }
+}
+
+/** A number with the same number for the previous window (null = no comparison). */
+export interface Kpi {
+  value: number
+  previous: number | null
+}
+
+/** Relative change in percent, or null when there is nothing to compare with. */
+export function percentChange(kpi: Kpi): number | null {
+  if (kpi.previous === null) return null
+  if (kpi.previous === 0) return kpi.value === 0 ? 0 : null
+  return ((kpi.value - kpi.previous) / kpi.previous) * 100
+}
+
+/** One point of a time series: the bucket's first day and its value. */
+export interface SeriesPoint {
+  t: string
+  v: number
+}
+
+// Revenue
+
+/** One group of live subscriptions with the same price. */
+export interface SubscriptionGroup {
+  plan: PaidPlanName
+  currency: Currency
+  interval: BillingInterval
+  /** Subscriptions in the group. */
+  subscriptions: number
+  /** Billed units: 1 per Pro subscription, the seats of a Team / Business one. */
+  units: number
+}
+
+export interface CurrencyRevenue {
+  currency: Currency
+  /** Monthly recurring revenue at list price; yearly plans count 1/12 per month. */
+  mrr: number
+  /** 12 x MRR. */
+  arr: number
+}
+
+/**
+ * MRR and ARR per currency at list price. Discounts, coupons, taxes and
+ * payment fees are not in the subscription rows, so this is gross list
+ * revenue, not cash collected.
+ */
+export function recurringRevenue(groups: readonly SubscriptionGroup[], prices: PlanPriceTable): CurrencyRevenue[] {
+  const byCurrency = new Map<Currency, number>()
+  for (const g of groups) {
+    const price = prices[g.currency][g.plan][g.interval]
+    const monthly = g.interval === 'year' ? price / 12 : price
+    byCurrency.set(g.currency, (byCurrency.get(g.currency) ?? 0) + monthly * g.units)
+  }
+  return [...byCurrency.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([currency, mrr]) => ({ currency, mrr: round2(mrr), arr: round2(mrr * 12) }))
+}
+
+export function round2(n: number): number {
+  return Math.round(n * 100) / 100
+}
+
+/** Share `part / whole` in percent with one decimal, 0 when `whole` is 0. */
+export function pct(part: number, whole: number): number {
+  return whole > 0 ? Math.round((part / whole) * 1000) / 10 : 0
+}
+
+// Response shapes
+
+export interface UsersStats {
+  window: StatsWindow
+  registered: number
+  pendingDeletion: number
+  signups: Kpi
+  signupSeries: SeriesPoint[]
+  /** From `users.last_active_on`: signed-in users seen today / in 7 / in 30 days. */
+  active: { day: number, week: number, month: number, stickinessPct: number, inWindow: number }
+  /** Signed-in people who edited a document (activity log), per window and per bucket. */
+  editors: Kpi
+  editorSeries: SeriesPoint[]
+  /** Of the accounts created in the window: how many created a document / edited / used the in-editor AI. */
+  activation: { cohort: number, createdDoc: number, edited: number, usedAi: number }
+  providers: { github: number, google: number, oidc: number, sso: number }
+  plans: { free: number, pro: number }
+  /** Weekly sign-up cohorts (oldest first): % of the cohort that edited in week 0, 1, 2, ... after signing up. */
+  cohorts: Array<{ week: string, size: number, retention: Array<number | null> }>
+}
+
+export interface ContentStats {
+  window: StatsWindow
+  documents: { total: number, owned: number, anonymous: number, inWorkspaces: number, words: number, created: Kpi, edited: Kpi }
+  documentSeries: SeriesPoint[]
+  workspaces: { total: number, created: Kpi, guests: number, memberBuckets: Array<{ bucket: string, workspaces: number }> }
+  knowledge: { files: number, ready: number, failed: number, bytes: number, chunks: number, tokens: number, uploaded: Kpi }
+  images: { files: number, bytes: number, uploaded: Kpi }
+  published: { pages: number, indexable: number, customDomains: number, verifiedDomains: number }
+  comments: { total: number, added: Kpi }
+  savedThemes: number
+}
+
+export interface AiFeatureSpend {
+  feature: string
+  spendUsd: number
+  requests: number
+}
+
+export interface AiStats {
+  window: StatsWindow
+  /** False when the LiteLLM database could not be read; spend numbers are then 0. */
+  spendAvailable: boolean
+  /** First day the spend logs still cover (LiteLLM rows are kept 90 days). */
+  spendFrom: string
+  spendUsd: Kpi
+  requests: Kpi
+  aiUsers: Kpi
+  costPerAiUserUsd: number
+  costPerActiveUserUsd: number
+  byFeature: AiFeatureSpend[]
+  series: Array<{ t: string, feature: string, spendUsd: number }>
+  freePool: { capUsd: number | null, spentThisMonthUsd: number, pct: number }
+  byok: { users: number, chat: number, image: number, transcription: number }
+  mcp: { activeTokens: number, sessions: Kpi }
+}
+
+export interface RevenueStats {
+  window: StatsWindow
+  billingEnabled: boolean
+  plansComingSoon: boolean
+  priceSource: 'stripe' | 'planned'
+  revenue: CurrencyRevenue[]
+  groups: SubscriptionGroup[]
+  payingCustomers: number
+  trialing: number
+  pastDue: number
+  /** Live subscriptions that are set to end, with the MRR they carry. */
+  scheduledCancellations: { subscriptions: number, revenue: CurrencyRevenue[] }
+  endedWorkspaceSubscriptions: Kpi
+  topups: Array<{ currency: Currency, amount: number, count: number }>
+  waitlist: { confirmed: number, unconfirmed: number, newConfirmed: Kpi }
+  planMix: { free: number, pro: number, team: number, business: number }
+}
+
+export interface OpsStats {
+  window: StatsWindow
+  storage: { databaseBytes: number, imageBytes: number, knowledgeBytes: number, publishedPages: number }
+  exports: Record<'queued' | 'running' | 'ready' | 'failed' | 'expired', number>
+  abuse: { open: number, acknowledged: number, actioned: number, dismissed: number, received: Kpi }
+  pendingDeletion: number
+  knowledgeFailed: number
+  restrictedDocuments: number
+  openInvites: number
+  pendingStripeEvents: number
+}
+
+export interface OverviewStats {
+  window: StatsWindow
+  users: Pick<UsersStats, 'registered' | 'signups' | 'active' | 'editors' | 'signupSeries' | 'editorSeries'>
+  content: { documents: number, created: Kpi, documentSeries: SeriesPoint[], workspaces: number, knowledgeFiles: number, publishedPages: number }
+  revenue: Pick<RevenueStats, 'revenue' | 'payingCustomers' | 'billingEnabled' | 'plansComingSoon'> & { waitlistConfirmed: number }
+  ai: Pick<AiStats, 'spendUsd' | 'aiUsers' | 'spendAvailable'>
+}

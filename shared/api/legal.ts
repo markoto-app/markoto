@@ -11,6 +11,7 @@
 import { z } from 'zod'
 import { PG_INTEGER_MAX } from './ids'
 import { ANON_GATE_PURPOSES } from '../config/anonGate'
+import { STATS_BUCKETS, STATS_RANGES } from '../contracts/adminStats'
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/
 
@@ -65,6 +66,12 @@ export const updateAbuseReportBody = z.object({
 
 /** GET /api/admin/ai-spend. Invalid dates fall back to the last 30 days so a typo'd URL still shows a chart. */
 export const aiSpendQuery = z.object({ from: isoDayOrDefault, to: isoDayOrDefault })
+
+/** GET /api/admin/stats/*. An unknown range shows the last 30 days; an unknown bucket the range's default. */
+export const adminStatsQuery = z.object({
+  range: z.enum(STATS_RANGES).optional().catch(undefined).transform(r => r ?? '30'),
+  bucket: z.enum(STATS_BUCKETS).optional().catch(undefined)
+})
 
 /** GET /api/admin/axis-spend. */
 export const axisSpendQuery = z.object({
