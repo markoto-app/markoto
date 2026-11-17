@@ -18,13 +18,15 @@ const STRIPE = system('stripe-webhook')
 type SubscriptionEvent
   = | Stripe.CustomerSubscriptionCreatedEvent
     | Stripe.CustomerSubscriptionUpdatedEvent
+    | Stripe.CustomerSubscriptionPendingUpdateAppliedEvent
     | Stripe.CustomerSubscriptionDeletedEvent
 
 /**
  * The lifecycle steps an event stands for. An update counts as a change
  * when the price or the quantity moved, and as a cancellation scheduled /
- * taken back when the cancellation fields moved. Period renewals and
- * status changes are no step.
+ * taken back when the cancellation fields moved. An applied pending update
+ * (a change that waited for its payment) reads like an update. Period
+ * renewals and status changes are no step.
  */
 export function subscriptionEventKinds(event: SubscriptionEvent): SubscriptionEventKind[] {
   if (event.type === 'customer.subscription.created') return ['started']
