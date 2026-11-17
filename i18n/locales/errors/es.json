@@ -99,6 +99,7 @@
       "portal-failed": "No se pudo abrir el portal de facturación. Inténtalo de nuevo.",
       "price-unavailable": "Este plan no está a la venta ahora mismo.",
       "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+      "region-unavailable": "Todavía no es posible comprar desde tu país.",
       "seats-below-members": "Hay más personas que puestos en este espacio. Quita a alguien o mantén más puestos.",
       "seats-busy": "Hay otro cambio de puestos o invitación en curso. Inténtalo de nuevo en un momento.",
       "seats-full": "Todos los puestos pagados están ocupados. Añade un puesto para invitar a alguien más.",

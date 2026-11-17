@@ -95,6 +95,19 @@ export const AUDIT_WORKSPACE_BILLING_PLAN_RESUMED = 'workspace.billing_plan_resu
 // user, `scope_id` the user id.
 export const AUDIT_BILLING_PLAN_RESUMED = 'billing.plan_resumed'
 
+// Tax compliance (Stripe Tax on), operator alerts only (never in a
+// workspace's own audit log). `scope` user / billing, `scope_id` the user or
+// workspace id (null once unknown). Metadata: Stripe ids and country codes,
+// never an IP address or card data.
+// The location evidence of a consumer sale disagrees with the billing country.
+export const AUDIT_BILLING_TAX_EVIDENCE_CONTRADICTION = 'billing.tax_evidence_contradiction'
+// A sale from a region we may not sell to was cancelled and refunded.
+export const AUDIT_BILLING_SALE_REFUSED = 'billing.sale_refused'
+// A customer's VAT / tax ID failed the government check (and was removed).
+export const AUDIT_BILLING_TAX_ID_UNVERIFIED = 'billing.tax_id_unverified'
+// A running subscription now bills a region we may not sell to: manual follow-up.
+export const AUDIT_BILLING_SALE_REGION_REVIEW = 'billing.sale_region_review'
+
 // "Create a design from a document" started: an uploaded PDF / Word file
 // went to the sandboxed extractor and its design facts to the user's AI
 // provider. `scope` user, `scope_id` the user id; metadata: format and
@@ -187,6 +200,10 @@ export type ComplianceAuditAction
     | typeof AUDIT_WORKSPACE_SUBSCRIPTION_CANCELLED
     | typeof AUDIT_WORKSPACE_BILLING_PLAN_RESUMED
     | typeof AUDIT_BILLING_PLAN_RESUMED
+    | typeof AUDIT_BILLING_TAX_EVIDENCE_CONTRADICTION
+    | typeof AUDIT_BILLING_SALE_REFUSED
+    | typeof AUDIT_BILLING_TAX_ID_UNVERIFIED
+    | typeof AUDIT_BILLING_SALE_REGION_REVIEW
     | typeof AUDIT_DESIGN_IMPORT_STARTED
     | typeof AUDIT_SSO_CONNECTION_SAVED
     | typeof AUDIT_SSO_CONNECTION_ACTIVATED

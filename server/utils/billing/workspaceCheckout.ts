@@ -20,7 +20,7 @@ import { ensureWorkspaceTeam, syncAllMemberKeyLimits } from '../litellm/workspac
 import { WORKSPACE_REF_PREFIX } from './stripeEvents/checkoutCompleted'
 import { identifyItem, isWorkspaceIdentity, subscriptionCancelAt } from './stripeEvents/stripeObjects'
 import { stripeResponseTime } from './stripeEvents/eventAge'
-import { checkoutTaxFields } from './checkoutSession'
+import { checkoutCompliance, checkoutTaxFields, type CheckoutBuyer } from './checkoutSession'
 import { AUDIT_WORKSPACE_BILLING_CHECKOUT_STARTED, AUDIT_WORKSPACE_BILLING_PLAN_CHANGED } from '../../legal/auditActions'
 import type { UserScope, WorkspaceAccess } from '../../repos/proofs'
 
@@ -53,6 +53,8 @@ export interface WorkspaceCheckoutRequest {
   currency: Currency | undefined
   /** Raw `seats` of the body, judged only when a new subscription needs it (`parseSeats`). */
   seats: unknown
+  /** Country and business declaration for the sales-region rule (new Checkout only). */
+  buyer?: CheckoutBuyer
   /** The request body: carries the paid-terms acceptance (`requirePaidTermsAccepted`). */
   terms: unknown
 }
@@ -182,7 +184,7 @@ async function applyPlanChangeLocally(ctx: CheckoutContext, updated: Stripe.Subs
 }
 
 async function openCheckout(ctx: CheckoutContext): Promise<PlanCheckoutResponse<WorkspacePlanName>> {
-  const { stripe, event, ws, self, plan, interval, currency, priceId } = ctx
+  const { stripe, event, ws, self, plan, interval, currency, priceId, buyer } = ctx
   const wsId = ws.workspaceId
   const userId = self.userId
   // New subscription: seats can't be fewer than the people already in it.
@@ -205,7 +207,9 @@ async function openCheckout(ctx: CheckoutContext): Promise<PlanCheckoutResponse<
   })
 
   const base = requestBaseUrl(event)
-  const metadata = { subject_type: 'workspace', subject_id: wsId, billing_admin_id: String(userId) }
+  // A new subscription is a new sale: region rule + IP country evidence.
+  const compliance = await checkoutCompliance(event, buyer)
+  const metadata = { subject_type: 'workspace', subject_id: wsId, billing_admin_id: String(userId), ...compliance.metadata }
   try {
     // Only the newest Checkout of a workspace can be paid.
     await expireOpenWorkspaceCheckouts(stripe, customerId)
@@ -222,7 +226,7 @@ async function openCheckout(ctx: CheckoutContext): Promise<PlanCheckoutResponse<
       subscription_data: { metadata },
       success_url: `${base}/w/${encodeURIComponent(wsId)}?billing=success`,
       cancel_url: `${base}/w/${encodeURIComponent(wsId)}?billing=cancelled`,
-      ...checkoutTaxFields(true)
+      ...checkoutTaxFields(true, { taxIdRequired: compliance.taxIdRequired })
     })
     if (!checkout.url) throw apiError('billing/checkout-failed')
     await appendAuditEvent({

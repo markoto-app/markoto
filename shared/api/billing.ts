@@ -4,6 +4,16 @@ import { serialId } from './ids'
 import { BILLING_INTERVALS, CURRENCIES, TOPUP_PACK_IDS } from '../config/pricing'
 
 /**
+ * Who buys, for the sales-region rule (`shared/config/salesRegions.ts`):
+ * the country the buyer picked (absent = the IP country) and whether they
+ * buy for a company with a VAT / tax ID (Checkout then requires the ID).
+ */
+const checkoutBuyer = {
+  country: z.string().regex(/^[A-Za-z]{2}$/).optional(),
+  business: z.boolean().optional()
+}
+
+/**
  * Personal checkout. `team` / `business` parse so the handler can answer with the
  * dedicated `billing/workspace-plan` refusal. `acceptPaidTerms` is judged by the
  * handler (it runs after the price lookup, as before). Without `interval` a
@@ -13,6 +23,7 @@ export const startCheckoutBody = z.object({
   plan: z.enum(['pro', 'team', 'business']),
   interval: z.enum(BILLING_INTERVALS).optional(),
   currency: z.enum(CURRENCIES).optional(),
+  ...checkoutBuyer,
   acceptPaidTerms: z.unknown().optional()
 })
 
@@ -26,6 +37,7 @@ export const startWorkspaceCheckoutBody = z.object({
   interval: z.enum(BILLING_INTERVALS).optional(),
   currency: z.enum(CURRENCIES).optional(),
   seats: z.unknown().optional(),
+  ...checkoutBuyer,
   acceptPaidTerms: z.unknown().optional()
 })
 

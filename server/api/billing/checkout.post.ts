@@ -18,6 +18,6 @@ export default defineApiHandler({
   rateLimit: { namespace: 'billing-checkout', max: 10, windowMs: MINUTE_MS, key: 'user', error: 'billing/rate-limited' },
   handler: ({ event, self, body }) => {
     if (body.plan !== 'pro') throw apiError('billing/workspace-plan')
-    return startProCheckout(event, { self, interval: body.interval, currency: body.currency, terms: body })
+    return startProCheckout(event, { self, interval: body.interval, currency: body.currency, buyer: { country: body.country, business: body.business }, terms: body })
   }
 })

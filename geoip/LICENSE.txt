@@ -1,0 +1,9 @@
+dbip-country-lite.csv.gz is derived from "IP to Country Lite" by DB-IP
+(https://db-ip.com), licensed under the Creative Commons Attribution 4.0
+International License (https://creativecommons.org/licenses/by/4.0/).
+
+IP Geolocation by DB-IP: https://db-ip.com
+
+Changes: the range end column is dropped (each range ends where the next one
+starts) and the file is recompressed; scripts/update-geoip.ts makes the copy.
+The source month and checksums are in source.json.

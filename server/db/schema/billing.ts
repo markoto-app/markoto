@@ -190,3 +190,48 @@ export const waitlistSignups = pgTable('waitlist_signups', {
   // Sweeper: "unconfirmed rows past their confirm window".
   index('idx_waitlist_signups_unconfirmed').on(table.confirmTokenExpiresAt).where(sql`${table.confirmedAt} IS NULL`)
 ])
+
+// Location evidence of every sale while Stripe Tax is on (one row per
+// Checkout and per paid renewal / seat invoice). An EU consumer sale needs
+// two non-contradictory pieces of evidence of the buyer's country (Art.
+// 24b/24f Implementing Regulation 282/2011); Stripe Tax decides on the
+// billing address alone, so the IP country (from the bundled offline
+// database at checkout, never the IP itself) and the card's issuing country
+// are kept beside it. `evidence` flags a contradiction for review. VAT
+// records are kept 10 years (`webhook-event-sweep` deletes older rows);
+// account deletion clears `subject_id`, the record itself stays.
+export const taxEvidence = pgTable('tax_evidence', {
+  id: serial('id').primaryKey(),
+  // The Checkout Session (`cs_…`) or invoice (`in_…`) the row is about.
+  stripeObjectId: text('stripe_object_id').notNull().unique(),
+  kind: text('kind', { enum: ['checkout', 'invoice'] }).notNull(),
+  subjectType: text('subject_type', { enum: ['user', 'workspace'] }).notNull(),
+  // User id or workspace id as text; NULL once the user's account is deleted.
+  subjectId: text('subject_id'),
+  stripeCustomerId: text('stripe_customer_id'),
+  stripeSubscriptionId: text('stripe_subscription_id'),
+  stripePaymentIntentId: text('stripe_payment_intent_id'),
+  billingCountry: text('billing_country'),
+  billingState: text('billing_state'),
+  ipCountry: text('ip_country'),
+  cardCountry: text('card_country'),
+  // The country Stripe Tax taxed the sale in (the billing address).
+  decidedCountry: text('decided_country'),
+  evidence: text('evidence', { enum: ['consistent', 'contradiction', 'insufficient'] }).notNull(),
+  // The buyer's tax ID, if any (Stripe `txi_…`, type, value, government check).
+  taxIdStripeId: text('tax_id_stripe_id'),
+  taxIdType: text('tax_id_type'),
+  taxIdValue: text('tax_id_value'),
+  taxIdVerification: text('tax_id_verification', { enum: ['pending', 'verified', 'unverified', 'unavailable'] }),
+  // The ID failed the government check and was removed from the customer,
+  // so later invoices are taxed as a consumer sale.
+  taxIdRemovedAt: timestamp('tax_id_removed_at', { withTimezone: true }),
+  // `refused`: the buyer's region may not buy (`shared/config/salesRegions.ts`);
+  // the sale was cancelled and refunded.
+  outcome: text('outcome', { enum: ['accepted', 'refused'] }).notNull().default('accepted'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, t => [
+  index('idx_tax_evidence_customer').on(t.stripeCustomerId),
+  index('idx_tax_evidence_subject').on(t.subjectType, t.subjectId),
+  index('idx_tax_evidence_created_at').on(t.createdAt)
+])

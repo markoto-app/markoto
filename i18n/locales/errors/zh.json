@@ -99,6 +99,7 @@
       "portal-failed": "无法打开账单门户。请重试。",
       "price-unavailable": "此套餐目前暂不出售。",
       "rate-limited": "请求过于频繁。请稍候片刻后重试。",
+      "region-unavailable": "暂不支持从你所在的国家或地区购买。",
       "seats-below-members": "此工作区的人数多于席位数。请移除成员或保留更多席位。",
       "seats-busy": "另一项席位变更或邀请正在进行中。请稍后再试。",
       "seats-full": "所有付费席位都已占用。请增加一个席位以邀请其他人。",

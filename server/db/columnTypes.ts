@@ -110,6 +110,10 @@ export interface AuditEventShapes {
   'workspace.subscription_cancelled': { before: { plan: string, seats: number, status: string }, metadata: { reason: 'workspace_deleted' } }
   'workspace.billing_plan_resumed': { before: { cancelAt: string | null }, metadata: { plan: string, seats: number } }
   'billing.plan_resumed': { before: { cancelAt: string | null }, metadata: { plan: string } }
+  'billing.tax_evidence_contradiction': { metadata: { stripeObjectId: string, billingCountry: string | null, ipCountry: string | null, cardCountry: string | null } }
+  'billing.sale_refused': { metadata: { stripeObjectId: string, country: string | null, state: string | null, hasTaxId: boolean, refunded: boolean } }
+  'billing.tax_id_unverified': { metadata: { customerId: string, taxIdType: string, removed: boolean, country: string | null } }
+  'billing.sale_region_review': { metadata: { stripeObjectId: string, country: string | null, state: string | null, reason: 'renewal' | 'tax_id_removed' } }
   'workspace.audit_exported': { metadata: { format: string, rows: number, from: string | null, to: string | null } }
   'workspace.brand_asset_added': { after: BrandAsset, metadata: { assetId: string, sizeBytes: number } }
   'workspace.brand_asset_removed': { before: BrandAsset, metadata: { assetId: string } }

@@ -12,7 +12,7 @@ import { identifyItem, subscriptionCancelAt } from './stripeEvents/stripeObjects
 import { stripeResponseTime } from './stripeEvents/eventAge'
 import { stripePriceIdFor } from './stripePrices'
 import { requestBaseUrl } from './workspaceStripe'
-import { checkoutTaxFields } from './checkoutSession'
+import { checkoutCompliance, checkoutTaxFields, type CheckoutBuyer } from './checkoutSession'
 import { useEnv } from '~~/shared/env/load'
 import { useLogger } from '../platform/logger'
 import type { UserScope } from '../../repos/proofs'
@@ -37,6 +37,8 @@ export interface ProCheckoutRequest {
   /** Absent: keep the live subscription's billing period (a new subscription is monthly). */
   interval: BillingInterval | undefined
   currency: Currency | undefined
+  /** Country and business declaration for the sales-region rule (new Checkout only). */
+  buyer?: CheckoutBuyer
   /** The request body: carries the paid-terms acceptance (`requirePaidTermsAccepted`). */
   terms: unknown
 }
@@ -99,18 +101,22 @@ export async function startProCheckout(event: H3Event, request: ProCheckoutReque
     return { updated: true, plan, interval }
   }
 
+  // Only a NEW subscription is a new sale: the region rule and the IP
+  // country (location evidence) apply here, not to an in-place change.
+  const compliance = await checkoutCompliance(event, request.buyer)
+  // The webhook routes by customer; metadata names the subject explicitly too.
+  const metadata = { subject_type: 'user', subject_id: String(userId), ...compliance.metadata }
   try {
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: 'subscription',
       client_reference_id: String(userId),
       line_items: [{ price: priceId, quantity: 1 }],
-      // The webhook routes by customer; metadata names the subject explicitly too.
-      metadata: { subject_type: 'user', subject_id: String(userId) },
-      subscription_data: { metadata: { subject_type: 'user', subject_id: String(userId) } },
+      metadata,
+      subscription_data: { metadata },
       ...checkoutReturnUrls(event),
       // Existing customer, else email so Stripe creates one.
       ...customerOrEmailFields(stripeCustomerId, userRow.email),
-      ...checkoutTaxFields(stripeCustomerId !== null)
+      ...checkoutTaxFields(stripeCustomerId !== null, { taxIdRequired: compliance.taxIdRequired })
     })
     if (!checkoutSession.url) {
       throw apiError('billing/checkout-failed')

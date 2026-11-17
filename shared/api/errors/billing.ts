@@ -21,6 +21,8 @@ export const billingErrors = defineErrors('billing', {
   'portal-failed': { status: 502 },
   'price-unavailable': { status: 503 },
   'rate-limited': { status: 429 },
+  // The buyer's region may not buy (yet): `shared/config/salesRegions.ts`.
+  'region-unavailable': { status: 409, params: z.object({ country: z.string().optional(), business: z.boolean().optional() }) },
   'seats-below-members': { status: 409, params: z.object({ used: z.number().optional() }) },
   'seats-busy': { status: 409 },
   'seats-full': { status: 409, params: z.object({ seats: z.number().optional(), used: z.number().optional() }) },

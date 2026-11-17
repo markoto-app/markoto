@@ -99,6 +99,7 @@
       "portal-failed": "Das Abrechnungsportal konnte nicht geöffnet werden. Bitte versuche es noch einmal.",
       "price-unavailable": "Dieser Plan ist gerade nicht erhältlich.",
       "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.",
+      "region-unavailable": "Käufe aus deinem Land sind noch nicht möglich.",
       "seats-below-members": "Im Workspace sind mehr Personen als Plätze. Entferne jemanden oder behalte mehr Plätze.",
       "seats-busy": "Gerade läuft eine andere Platzänderung oder Einladung. Bitte versuche es gleich noch einmal.",
       "seats-full": "Alle bezahlten Plätze sind belegt. Füge einen Platz hinzu, um jemanden einzuladen.",

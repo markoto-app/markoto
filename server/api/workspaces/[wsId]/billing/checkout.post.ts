@@ -35,6 +35,7 @@ export default defineApiHandler({
     interval: body.interval,
     currency: body.currency,
     seats: body.seats,
+    buyer: { country: body.country, business: body.business },
     terms: body
   })
 })

@@ -99,6 +99,7 @@
       "portal-failed": "Could not open the billing portal. Please try again.",
       "price-unavailable": "This plan is not available for sale right now.",
       "rate-limited": "Too many requests. Please wait a moment and try again.",
+      "region-unavailable": "Purchases from your country aren't available yet.",
       "seats-below-members": "There are more people in this workspace than seats. Remove someone or keep more seats.",
       "seats-busy": "Another seat change or invitation is in progress. Please try again in a moment.",
       "seats-full": "All paid seats are taken. Add a seat to invite someone else.",

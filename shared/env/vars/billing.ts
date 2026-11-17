@@ -1,7 +1,10 @@
-import { bool, pattern, positiveNumber, string, url } from '../coerce'
+import { bool, csv, pattern, positiveNumber, string, url } from '../coerce'
 import { defineNamespace, v, type AnyVar } from '../define'
 import { DEFAULT_TIERS, PLAN_NAMES, TIER_FIELDS, tierEnvName, tierOverrideType } from '../../config/tiers'
 import { BILLING_INTERVALS, CURRENCIES, DEFAULT_PLAN_PRICES, PAID_PLAN_NAMES, planPriceEnvName } from '../../config/pricing'
+import { SALES_REGION_PATTERN } from '../../config/salesRegions'
+
+const salesRegions = csv(pattern(SALES_REGION_PATTERN, 'a country code (DE) or a subdivision (US-CA)'))
 
 export const billing = defineNamespace({
   name: 'billing',
@@ -75,6 +78,30 @@ export const billing = defineNamespace({
       type: bool,
       default: false,
       doc: 'Stripe Tax on checkout (only after activating Stripe Tax in the dashboard).',
+      services: ['app'],
+      scope: 'hosted'
+    }),
+    b2cAllowedCountries: v({
+      name: 'NUXT_BILLING_B2C_ALLOWED_COUNTRIES',
+      type: salesRegions,
+      default: [],
+      doc: 'With automatic tax on: billing countries (DE) or subdivisions (US-CA) where consumers without a tax ID may buy. Empty = everywhere. List in shared/config/salesRegions.ts.',
+      services: ['app'],
+      scope: 'hosted'
+    }),
+    b2bAllowedCountries: v({
+      name: 'NUXT_BILLING_B2B_ALLOWED_COUNTRIES',
+      type: salesRegions,
+      default: [],
+      doc: 'With automatic tax on: billing countries or subdivisions where companies with a tax ID may buy. Empty = everywhere.',
+      services: ['app'],
+      scope: 'hosted'
+    }),
+    blockedCountries: v({
+      name: 'NUXT_BILLING_BLOCKED_COUNTRIES',
+      type: salesRegions,
+      default: [],
+      doc: 'With automatic tax on: billing countries or subdivisions where nobody may buy, on top of both allow lists.',
       services: ['app'],
       scope: 'hosted'
     }),
