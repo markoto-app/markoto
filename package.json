@@ -54,6 +54,7 @@
     "test:repos": "vitest run --project=repos",
     "test:integration": "vitest run --project=integration",
     "test:billing-sandbox": "vitest run --project=billing-sandbox",
+    "bench:ai": "AI_BENCH=1 vitest run --project=bench",
     "test:all": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:coverage:fast": "vitest run --project=unit --project=dom --project=nuxt --project=repos --coverage",

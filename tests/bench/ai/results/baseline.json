@@ -1,0 +1,562 @@
+{
+  "label": "baseline",
+  "document": {
+    "chars": 622052,
+    "words": 81757,
+    "lines": 3457,
+    "tokens": 172792
+  },
+  "prefix": {
+    "systemPromptChars": 22160,
+    "systemPromptTokens": 6156,
+    "toolCount": 26,
+    "toolsChars": 62387,
+    "toolsTokens": 17330
+  },
+  "tasks": [
+    {
+      "id": "T1-review-chapter",
+      "variant": "baseline",
+      "title": "Review chapter 13, five comments",
+      "outcome": "done:done",
+      "modelCalls": 3,
+      "toolCalls": 6,
+      "toolErrors": 0,
+      "inputChars": 1539195,
+      "inputTokens": 427554,
+      "prefixTokens": 70456,
+      "outputChars": 1670,
+      "outputTokens": 464,
+      "costUncachedUsd": 0.07080161,
+      "costCachedUsd": 0.061501418,
+      "estSeconds": 6,
+      "withinTurnLimit": true,
+      "withinDeadline": true,
+      "feasible": true,
+      "progress": 1,
+      "progressAtDeadline": 1,
+      "verifyProblem": null,
+      "requests": [
+        {
+          "call": 1,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 85,
+          "outputChars": 15,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 2,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 641787,
+          "outputChars": 1655,
+          "toolCalls": 5,
+          "progress": null
+        },
+        {
+          "call": 3,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 643682,
+          "outputChars": 0,
+          "toolCalls": 0,
+          "progress": null
+        }
+      ]
+    },
+    {
+      "id": "T2-swap-chapters",
+      "variant": "baseline",
+      "title": "Swap chapters 4 and 5",
+      "outcome": "done:done",
+      "modelCalls": 3,
+      "toolCalls": 3,
+      "toolErrors": 0,
+      "inputChars": 1750515,
+      "inputTokens": 486254,
+      "prefixTokens": 70456,
+      "outputChars": 213009,
+      "outputTokens": 59169,
+      "costUncachedUsd": 0.11277486000000002,
+      "costCachedUsd": 0.103474668,
+      "estSeconds": 397,
+      "withinTurnLimit": true,
+      "withinDeadline": false,
+      "feasible": false,
+      "progress": 1,
+      "progressAtDeadline": 0,
+      "verifyProblem": null,
+      "requests": [
+        {
+          "call": 1,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 79,
+          "outputChars": 15,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 2,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 641781,
+          "outputChars": 212994,
+          "toolCalls": 2,
+          "progress": null
+        },
+        {
+          "call": 3,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 855014,
+          "outputChars": 0,
+          "toolCalls": 0,
+          "progress": null
+        }
+      ]
+    },
+    {
+      "id": "T3-shorten-intro",
+      "variant": "baseline",
+      "title": "Shorten the introduction (chapter 1)",
+      "outcome": "done:done",
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "toolErrors": 0,
+      "inputChars": 1573031,
+      "inputTokens": 436953,
+      "prefixTokens": 70456,
+      "outputChars": 35598,
+      "outputTokens": 9888,
+      "costUncachedUsd": 0.077535645,
+      "costCachedUsd": 0.06823545300000002,
+      "estSeconds": 69,
+      "withinTurnLimit": true,
+      "withinDeadline": true,
+      "feasible": true,
+      "progress": 1,
+      "progressAtDeadline": 1,
+      "verifyProblem": null,
+      "requests": [
+        {
+          "call": 1,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 96,
+          "outputChars": 15,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 2,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 641798,
+          "outputChars": 35583,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 3,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 677496,
+          "outputChars": 0,
+          "toolCalls": 0,
+          "progress": null
+        }
+      ]
+    },
+    {
+      "id": "T4-translate-section",
+      "variant": "baseline",
+      "title": "Translate section 9.2 (~1500 words) to French",
+      "outcome": "done:done",
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "toolErrors": 0,
+      "inputChars": 1560140,
+      "inputTokens": 433372,
+      "prefixTokens": 70456,
+      "outputChars": 22814,
+      "outputTokens": 6337,
+      "costUncachedUsd": 0.07499173,
+      "costCachedUsd": 0.065691538,
+      "estSeconds": 45,
+      "withinTurnLimit": true,
+      "withinDeadline": true,
+      "feasible": true,
+      "progress": 1,
+      "progressAtDeadline": 1,
+      "verifyProblem": null,
+      "requests": [
+        {
+          "call": 1,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 59,
+          "outputChars": 15,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 2,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 641761,
+          "outputChars": 22799,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 3,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 664679,
+          "outputChars": 0,
+          "toolCalls": 0,
+          "progress": null
+        }
+      ]
+    },
+    {
+      "id": "T5-rename-term",
+      "variant": "baseline",
+      "title": "Rename Kunde to Klient in all forms (40x)",
+      "outcome": "done:done",
+      "modelCalls": 6,
+      "toolCalls": 39,
+      "toolErrors": 0,
+      "inputChars": 3810953,
+      "inputTokens": 1058598,
+      "prefixTokens": 140912,
+      "outputChars": 6959,
+      "outputTokens": 1933,
+      "costUncachedUsd": 0.17573182,
+      "costCachedUsd": 0.15713143599999999,
+      "estSeconds": 19,
+      "withinTurnLimit": true,
+      "withinDeadline": true,
+      "feasible": true,
+      "progress": 1,
+      "progressAtDeadline": 1,
+      "verifyProblem": null,
+      "requests": [
+        {
+          "call": 1,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 95,
+          "outputChars": 15,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 2,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 641797,
+          "outputChars": 2061,
+          "toolCalls": 10,
+          "progress": null
+        },
+        {
+          "call": 3,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 652259,
+          "outputChars": 1523,
+          "toolCalls": 10,
+          "progress": null
+        },
+        {
+          "call": 4,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 660705,
+          "outputChars": 2087,
+          "toolCalls": 10,
+          "progress": null
+        },
+        {
+          "call": 5,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 670496,
+          "outputChars": 1273,
+          "toolCalls": 8,
+          "progress": null
+        },
+        {
+          "call": 6,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 678319,
+          "outputChars": 0,
+          "toolCalls": 0,
+          "progress": null
+        }
+      ]
+    },
+    {
+      "id": "T6-formal-tone",
+      "variant": "baseline",
+      "title": "Formal tone across the whole document",
+      "outcome": "error:turnLimit",
+      "modelCalls": 20,
+      "toolCalls": 20,
+      "toolErrors": 0,
+      "inputChars": 17101985,
+      "inputTokens": 4750551,
+      "prefixTokens": 469706,
+      "outputChars": 375988,
+      "outputTokens": 104441,
+      "costUncachedUsd": 0.8412834650000001,
+      "costCachedUsd": 0.7792822730000001,
+      "estSeconds": 716,
+      "withinTurnLimit": false,
+      "withinDeadline": false,
+      "feasible": false,
+      "progress": 0.3000247567727457,
+      "progressAtDeadline": 0.11366413097297332,
+      "verifyProblem": null,
+      "requests": [
+        {
+          "call": 1,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 72,
+          "outputChars": 15,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 2,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 641774,
+          "outputChars": 16535,
+          "toolCalls": 1,
+          "progress": 0.013193430774276106
+        },
+        {
+          "call": 3,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 658424,
+          "outputChars": 12557,
+          "toolCalls": 1,
+          "progress": 0.02319741757923775
+        },
+        {
+          "call": 4,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 671096,
+          "outputChars": 14713,
+          "toolCalls": 1,
+          "progress": 0.03493437847639747
+        },
+        {
+          "call": 5,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 685925,
+          "outputChars": 10861,
+          "toolCalls": 1,
+          "progress": 0.04358799585886711
+        },
+        {
+          "call": 6,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 696903,
+          "outputChars": 21413,
+          "toolCalls": 1,
+          "progress": 0.0606814221319118
+        },
+        {
+          "call": 7,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 718433,
+          "outputChars": 24343,
+          "toolCalls": 1,
+          "progress": 0.08010905840669269
+        },
+        {
+          "call": 8,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 742893,
+          "outputChars": 18365,
+          "toolCalls": 1,
+          "progress": 0.09476538938866848
+        },
+        {
+          "call": 9,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 761375,
+          "outputChars": 23663,
+          "toolCalls": 1,
+          "progress": 0.11366413097297332
+        },
+        {
+          "call": 10,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 785155,
+          "outputChars": 16795,
+          "toolCalls": 1,
+          "progress": 0.12706815507385236
+        },
+        {
+          "call": 11,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 802067,
+          "outputChars": 27565,
+          "toolCalls": 1,
+          "progress": 0.14907596149518046
+        },
+        {
+          "call": 12,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 829749,
+          "outputChars": 24715,
+          "toolCalls": 1,
+          "progress": 0.1687833171503347
+        },
+        {
+          "call": 13,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 854581,
+          "outputChars": 20341,
+          "toolCalls": 1,
+          "progress": 0.1850118639599262
+        },
+        {
+          "call": 14,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 875039,
+          "outputChars": 19253,
+          "toolCalls": 1,
+          "progress": 0.2003787464713561
+        },
+        {
+          "call": 15,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 894409,
+          "outputChars": 20851,
+          "toolCalls": 1,
+          "progress": 0.21702687235150758
+        },
+        {
+          "call": 16,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 915377,
+          "outputChars": 18751,
+          "toolCalls": 1,
+          "progress": 0.2319902516188357
+        },
+        {
+          "call": 17,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 934245,
+          "outputChars": 24465,
+          "toolCalls": 1,
+          "progress": 0.2515191656003035
+        },
+        {
+          "call": 18,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 958827,
+          "outputChars": 22787,
+          "toolCalls": 1,
+          "progress": 0.269691279828696
+        },
+        {
+          "call": 19,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 981731,
+          "outputChars": 21121,
+          "toolCalls": 1,
+          "progress": 0.28655321420074203
+        },
+        {
+          "call": 20,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 1002970,
+          "outputChars": 16879,
+          "toolCalls": 1,
+          "progress": 0.3000247567727457
+        }
+      ]
+    },
+    {
+      "id": "T7-add-table",
+      "variant": "baseline",
+      "title": "Add a table to chapter 2",
+      "outcome": "done:done",
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "toolErrors": 0,
+      "inputChars": 1538793,
+      "inputTokens": 427443,
+      "prefixTokens": 70456,
+      "outputChars": 445,
+      "outputTokens": 124,
+      "costUncachedUsd": 0.070596295,
+      "costCachedUsd": 0.061296103000000005,
+      "estSeconds": 4,
+      "withinTurnLimit": true,
+      "withinDeadline": true,
+      "feasible": true,
+      "progress": 1,
+      "progressAtDeadline": 1,
+      "verifyProblem": null,
+      "requests": [
+        {
+          "call": 1,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 99,
+          "outputChars": 15,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 2,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 641801,
+          "outputChars": 430,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 3,
+          "systemChars": 22160,
+          "toolsChars": 62387,
+          "conversationChars": 643252,
+          "outputChars": 0,
+          "toolCalls": 0,
+          "progress": null
+        }
+      ]
+    }
+  ]
+}
