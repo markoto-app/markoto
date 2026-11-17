@@ -37,17 +37,25 @@ export interface BillingMode {
    * `billingEnabled` is true.
    */
   plansComingSoon: boolean
+  /**
+   * Billing is on and paid plans are sold through Stripe Managed Payments
+   * (Stripe / Link is the merchant of record): purchase surfaces say so.
+   * Absent = false.
+   */
+  managedPayments?: boolean
 }
 
 export const BILLING_DISABLED_MODE: BillingMode = Object.freeze({
   billingEnabled: false,
-  plansComingSoon: false
+  plansComingSoon: false,
+  managedPayments: false
 })
 
 export function resolveBillingMode(source?: RawEnv): BillingMode {
   const { billing } = useEnv(source)
   return {
     billingEnabled: billing.enabled,
-    plansComingSoon: !billing.enabled && billing.plansComingSoon
+    plansComingSoon: !billing.enabled && billing.plansComingSoon,
+    managedPayments: billing.enabled && billing.stripeManagedPayments
   }
 }

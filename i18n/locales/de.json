@@ -1955,7 +1955,7 @@
         "google_ads": "Messung von Werbe-Conversions: die Klick-ID der Anzeige und der Zeitpunkt einer Registrierung, keine weiteren Daten",
         "google_oauth": "Anmeldung mit einem Google-Konto (kein Zugriff auf andere Google-Daten)",
         "github_oauth": "Anmeldung mit einem GitHub-Konto (kein Zugriff auf andere GitHub-Daten)",
-        "stripe": "Abo-Abrechnung, Speicherung von Zahlungsmitteln, Rechnungserstellung, Betrugsbewertung",
+        "stripe": "Abo-Abrechnung und Zahlungsdaten; bei Käufen ist Link (Stripe) die Verkäuferin und eine unabhängige Verantwortliche",
         "sentry": "Telemetrie zu Anwendungsfehlern und Leistung, gespeichert in Sentrys EU-Datenregion (Frankfurt)",
         "resend": "Versand von Transaktions-E-Mails: Bestätigungen von Kontolöschungen, Hinweise auf bereitstehende Datenexporte, Meldungen von Datenschutzverletzungen"
       }
@@ -2084,6 +2084,11 @@
     "planUpdated": {
       "title": "Plan aktualisiert",
       "description": "Du nutzt jetzt den Plan {plan}. Dein neues KI-Budget steht sofort zur Verfügung."
+    },
+    "completePayment": "Zahlung abschliessen",
+    "soldThroughLink": {
+      "note": "Verkauf über Link (Stripe), das Zahlung, MWST, Rechnungen und Rückerstattungen abwickelt. Es gelten {terms}.",
+      "terms": "die Käuferbedingungen von Link"
     }
   },
   "plan": {

@@ -1,8 +1,8 @@
 ---
 slug: terms
 locale: es
-version: 3
-effectiveDate: 2026-11-03
+version: 4
+effectiveDate: 2026-11-17
 translationStatus: machine-translated
 ---
 
@@ -28,11 +28,11 @@ markoto es un editor de Markdown colaborativo operado por **{{controllerName}}**
 
 ## 3. Servicio gratuito, uso razonable y límites
 
-markoto es actualmente gratuito. No vendemos planes de pago y no hay condiciones de pago en vigor.
+Puede usar markoto de forma gratuita. Los planes de pago y los créditos de IA son opcionales; mientras no se ofrezcan en markoto.app, no hay condiciones de pago en vigor.
 
 Para que el servicio siga disponible para todos, aplicamos límites de frecuencia y de uso, por ejemplo en la creación de documentos, el uso de la IA, el almacenamiento de la base de conocimiento, el almacenamiento de imágenes, el número de espacios de trabajo que puede poseer, y la búsqueda web y la obtención de páginas por parte de la IA. Estos límites pueden cambiar. No intente eludirlos.
 
-Si introducimos planes de pago, se ofrecerán con condiciones separadas que usted aceptará antes de comprar. Nada de lo que haya usado gratis se le cobrará retroactivamente.
+Cuando los ofrezcamos, los planes de pago (Pro, Team y Business) y los créditos de IA se venden a través de **Link** (Sold through Link, LLC, una empresa de Stripe), que actúa como revendedor y comerciante de registro: Link cobra el pago, cobra y abona el IVA o el impuesto sobre las ventas aplicable, emite la factura y decide sobre los reembolsos, y a la compra se aplican las condiciones de compra de Link ([link.com/terms](https://link.com/terms)). Nuestras Condiciones de los planes de pago ([/legal/paid-terms](/legal/paid-terms)), que usted acepta antes de comprar, establecen qué incluye un plan, cómo se renueva y cómo se cancela. Nosotros prestamos el servicio que usted compra. Nada de lo que haya usado gratis se le cobrará retroactivamente.
 
 ## 4. Documentos anónimos
 
@@ -183,6 +183,7 @@ Podemos modificar estas Condiciones, por ejemplo para reflejar nuevas funciones 
 
 Esta es la **versión {{currentVersion}}**, en vigor desde el **{{effectiveDate}}**.
 
+- **v4 (2026-11-17).** Los planes de pago y los créditos de IA, cuando se ofrezcan, se venden a través de Link (Sold through Link, LLC, una empresa de Stripe) como revendedor y comerciante de registro, conforme a las condiciones de compra de Link y a nuestras Condiciones de los planes de pago (apartado 3).
 - **v3 (2026-11-03).** Documentos anónimos (comprobación contra bots, aceptación de las Condiciones, eliminación 30 días después de la última edición, eliminación solo por el navegador que los creó); apartado completo de uso aceptable; moderación de contenidos y tramitación de reclamaciones conforme al Reglamento de Servicios Digitales; edad mínima de 16 años en todos los países; sanciones y una persona por cuenta; titularidad, exactitud y transparencia de los resultados de la IA; funciones beta; nueva cláusula de responsabilidad con un límite fijo, indemnización para usuarios empresariales, tribunales; preaviso de 30 días para los cambios; disposiciones generales. Asignación gratuita de IA para los usuarios que han iniciado sesión, dentro de un límite mensual por cuenta y una reserva mensual común, sin garantía (apartado 7).
 - **v2 (2026-10-26).** Adaptación al servicio exclusivamente gratuito: sin planes de pago ni condiciones de pago en vigor, uso razonable y límites, limpieza de documentos anónimos, responsabilidades al conectar un proveedor de IA propio, cláusulas «tal cual» y de cese del servicio.
 - **v1 (2026-05-04).** Publicación inicial.

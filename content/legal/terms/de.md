@@ -1,8 +1,8 @@
 ---
 slug: terms
 locale: de
-version: 3
-effectiveDate: 2026-11-03
+version: 4
+effectiveDate: 2026-11-17
 translationStatus: machine-translated
 ---
 
@@ -28,11 +28,11 @@ markoto ist ein kollaborativer Markdown-Editor, betrieben von **{{controllerName
 
 ## 3. Kostenloser Dienst, faire Nutzung und Limiten
 
-markoto ist derzeit kostenlos. Wir verkaufen keine kostenpflichtigen Pläne, und es gelten keine Zahlungsbedingungen.
+Du kannst markoto kostenlos nutzen. Kostenpflichtige Pläne und KI-Guthaben sind optional; solange sie auf markoto.app nicht angeboten werden, gelten keine Zahlungsbedingungen.
 
 Damit der Dienst für alle verfügbar bleibt, wenden wir Ratenbegrenzungen und Nutzungslimiten an, zum Beispiel für das Erstellen von Dokumenten, die KI-Nutzung, den Speicher der Wissensdatenbank, den Bildspeicher, die Anzahl der Workspaces, die du besitzen kannst, sowie für Websuche und Seitenabruf durch die KI. Diese Limiten können sich ändern. Versuche nicht, sie zu umgehen.
 
-Wenn wir kostenpflichtige Pläne einführen, gelten dafür gesonderte Bedingungen, die du vor dem Kauf akzeptierst. Nichts, was du kostenlos genutzt hast, wird dir rückwirkend in Rechnung gestellt.
+Wenn wir sie anbieten, werden kostenpflichtige Pläne (Pro, Team und Business) und KI-Guthaben über **Link** (Sold through Link, LLC, ein Unternehmen von Stripe) verkauft, das als Wiederverkäuferin und Merchant of Record auftritt: Link zieht die Zahlung ein, erhebt und entrichtet die anfallende MWST oder Verkaufssteuer, stellt die Rechnung aus und entscheidet über Rückerstattungen, und für den Kauf gelten die Käuferbedingungen von Link ([link.com/terms](https://link.com/terms)). Unsere Bedingungen für kostenpflichtige Pläne ([/legal/paid-terms](/legal/paid-terms)), die du vor dem Kauf akzeptierst, legen fest, was ein Plan umfasst, wie er sich verlängert und wie du ihn kündigst. Wir erbringen den Dienst, den du kaufst. Nichts, was du kostenlos genutzt hast, wird dir rückwirkend in Rechnung gestellt.
 
 ## 4. Anonyme Dokumente
 
@@ -183,6 +183,7 @@ Wir können diese Bedingungen ändern, zum Beispiel um neue Funktionen oder rech
 
 Dies ist **Version {{currentVersion}}**, gültig ab **{{effectiveDate}}**.
 
+- **v4 (2026-11-17).** Kostenpflichtige Pläne und KI-Guthaben werden, sobald sie angeboten werden, über Link (Sold through Link, LLC, ein Unternehmen von Stripe) als Wiederverkäuferin und Merchant of Record verkauft, nach den Käuferbedingungen von Link und unseren Bedingungen für kostenpflichtige Pläne (§3).
 - **v3 (2026-11-03).** Anonyme Dokumente (Bot-Prüfung, Akzeptieren der Bedingungen, Löschung 30 Tage nach der letzten Bearbeitung, Löschung nur durch den erstellenden Browser); ein vollständiger Abschnitt zur zulässigen Nutzung; Moderation von Inhalten und Behandlung von Beschwerden nach dem Digital Services Act; Altersgrenze von 16 Jahren überall; Sanktionen und eine Person pro Konto; Eigentum, Genauigkeit und Transparenz von KI-Ausgaben; Beta-Funktionen; neue Haftungsklausel mit fester Obergrenze, Freistellung für geschäftliche Nutzende, Gerichtsstand; Ankündigung von Änderungen 30 Tage im Voraus; allgemeine Bestimmungen. Kostenloses KI-Kontingent für angemeldete Nutzerinnen und Nutzer im Rahmen eines monatlichen Limits pro Konto und eines gemeinsamen Monatstopfs, ohne Gewähr (§7).
 - **v2 (2026-10-26).** An den ausschliesslich kostenlosen Dienst angepasst: keine kostenpflichtigen Pläne oder Zahlungsbedingungen in Kraft, faire Nutzung und Limiten, Bereinigung anonymer Dokumente, Pflichten bei Anbindung eines eigenen KI-Anbieters, Klauseln zu «wie besehen» und zur Einstellung des Dienstes.
 - **v1 (2026-05-04).** Erstveröffentlichung.

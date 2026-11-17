@@ -43,6 +43,7 @@ export type TransactionalEmailKind
     | 'waitlist.confirm'
     | 'workspace.invite'
     | 'workspace.billing'
+    | 'billing.refund_notice'
     | 'abuse.operator_notice'
     | 'abuse.report_received'
     | 'abuse.decision'
@@ -96,6 +97,7 @@ const NORMALISED_KIND_LABELS: Record<TransactionalEmailKind, string> = {
   'waitlist.confirm': 'waitlist-confirm',
   'workspace.invite': 'workspace-invite',
   'workspace.billing': 'workspace-billing',
+  'billing.refund_notice': 'billing-refund-notice',
   'abuse.operator_notice': 'abuse-operator-notice',
   'abuse.report_received': 'abuse-report-received',
   'abuse.decision': 'abuse-decision',

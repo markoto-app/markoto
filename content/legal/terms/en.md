@@ -1,8 +1,8 @@
 ---
 slug: terms
 locale: en
-version: 3
-effectiveDate: 2026-11-03
+version: 4
+effectiveDate: 2026-11-17
 translationStatus: authoritative
 ---
 
@@ -28,11 +28,11 @@ markoto is a collaborative Markdown editor operated by **{{controllerName}}** ({
 
 ## 3. Free service, fair use and limits
 
-markoto is currently free of charge. We do not sell paid plans, and no payment terms are in force.
+You can use markoto free of charge. Paid plans and AI credits are optional; as long as they are not offered on markoto.app, no payment terms are in force.
 
 To keep the service available for everyone we apply rate limits and usage limits, for example on document creation, AI usage, knowledge-base storage, image storage, the number of workspaces you can own, and web search and page fetching by the AI. These limits may change. Do not try to get around them.
 
-If we introduce paid plans, they will come with separate terms that you accept before buying. Nothing you used for free will be charged retroactively.
+When we offer them, paid plans (Pro, Team and Business) and AI credits are sold through **Link** (Sold through Link, LLC, a Stripe company), which acts as reseller and merchant of record: Link takes the payment, charges and pays the applicable VAT or sales tax, issues the invoice and decides on refunds, and Link's buyer terms ([link.com/terms](https://link.com/terms)) apply to the purchase. Our Paid Plans Terms ([/legal/paid-terms](/legal/paid-terms)), which you accept before buying, set out what a plan includes, how it renews and how you cancel it. We provide the service you buy. Nothing you used for free will be charged retroactively.
 
 ## 4. Anonymous documents
 
@@ -183,6 +183,7 @@ We may change these Terms, for example to reflect new features or legal requirem
 
 This is **version {{currentVersion}}**, effective **{{effectiveDate}}**.
 
+- **v4 (2026-11-17).** Paid plans and AI credits, once offered, are sold through Link (Sold through Link, LLC, a Stripe company) as reseller and merchant of record under Link's buyer terms and our Paid Plans Terms (§3).
 - **v3 (2026-11-03).** Anonymous documents (bot check, accepting the Terms, deletion 30 days after the last edit, deletion only by the creating browser); a full acceptable-use section; content moderation and complaint handling under the Digital Services Act; age rule of 16 everywhere; sanctions and one person per account; AI output ownership, accuracy and transparency; beta features; new liability clause with a fixed cap, indemnity for business users, courts; 30-day notice of changes; general provisions. Free AI allowance for signed-in users within a monthly per-account limit and a shared monthly pool, without guarantee (§7).
 - **v2 (2026-10-26).** Aligned with the free-only service: no paid plans or payment terms in force, fair use and limits, anonymous-document clean-up, bring-your-own-key AI provider responsibilities, "as is" and discontinuation clauses.
 - **v1 (2026-05-04).** Initial publication.

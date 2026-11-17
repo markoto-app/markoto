@@ -44,5 +44,10 @@ const { t } = useI18n()
         </i18n-t>
       </template>
     </UCheckbox>
+    <!-- Stripe Managed Payments: who the buyer is buying from. -->
+    <PricingSoldThroughLink
+      :class="['mt-1 text-muted', textClass]"
+      data-testid="sold-through-link"
+    />
   </div>
 </template>

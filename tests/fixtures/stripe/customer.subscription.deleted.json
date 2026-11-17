@@ -1,7 +1,7 @@
 {
   "id": "evt_test_sub_deleted",
   "object": "event",
-  "api_version": "2025-01-27.acacia",
+  "api_version": "2026-09-30.endive",
   "created": 1778678500,
   "livemode": false,
   "type": "customer.subscription.deleted",

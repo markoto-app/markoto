@@ -33,10 +33,11 @@ function stripeTime(value: unknown): Date | null {
 }
 
 /**
- * Current billing period of a subscription. API 2025-03-31.basil keeps it
- * on the item (`items.data[].current_period_*`); the pinned
- * 2025-01-27.acacia version has it on the subscription itself. Read both,
- * item first, so the period is never lost to a version difference.
+ * Current billing period of a subscription. Since 2025-03-31.basil (the
+ * pinned version is newer) it is on the item (`items.data[].current_period_*`);
+ * 2025-01-27.acacia had it on the subscription itself, and events stashed
+ * or redelivered from before the version bump still do. Read both, item
+ * first, so the period is never lost to a version difference.
  */
 export function subscriptionPeriod(sub: Stripe.Subscription): { start: Date | null, end: Date | null } {
   const item = sub.items.data[0]
@@ -61,8 +62,8 @@ export function subscriptionCancelAt(sub: Stripe.Subscription): Date | null {
 
 /**
  * The subscription an invoice bills, or null for a one-off invoice.
- * basil: `parent.subscription_details.subscription`; acacia (pinned):
- * `invoice.subscription`.
+ * Since basil (pinned): `parent.subscription_details.subscription`;
+ * acacia payloads from before the version bump: `invoice.subscription`.
  */
 export function invoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
   const parentRef = invoice.parent?.subscription_details?.subscription

@@ -162,7 +162,10 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     id: 'billing',
     label: 'Billing (only when paid plans are offered)',
     basis: 'contract',
-    dataCategories: ['stripe_customer_id', 'subscription_state', 'subscription_history', 'invoice_history', 'workspace_subscription_billing_admin', 'workspace_member_ai_limits_and_spend', 'ai_credit_purchases'],
+    // Sold through Stripe Managed Payments: payment details, billing address
+    // and VAT number go to Link / Stripe as independent controllers; we get
+    // the order data (email, name, country, item, amounts, payment status).
+    dataCategories: ['stripe_customer_id', 'subscription_state', 'subscription_history', 'invoice_history', 'purchase_order_data', 'workspace_subscription_billing_admin', 'workspace_member_ai_limits_and_spend', 'ai_credit_purchases'],
     retention: 'legal_minimum',
     subProcessors: ['stripe']
   },

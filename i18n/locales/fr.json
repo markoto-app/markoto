@@ -1955,7 +1955,7 @@
         "google_ads": "Mesure des conversions publicitaires : l'identifiant de clic de l'annonce et l'heure d'une inscription, aucune autre donnée",
         "google_oauth": "Connexion avec un compte Google (aucune autre donnée Google consultée)",
         "github_oauth": "Connexion avec un compte GitHub (aucune autre donnée GitHub consultée)",
-        "stripe": "Facturation des abonnements, conservation des moyens de paiement, émission des factures, évaluation de la fraude",
+        "stripe": "Facturation des abonnements et données de paiement ; pour les achats, Link (Stripe) est le vendeur et un responsable du traitement indépendant",
         "sentry": "Télémétrie des erreurs et des performances de l’application, stockée dans la région de données européenne de Sentry (Francfort)",
         "resend": "Envoi d’e-mails transactionnels : confirmations de suppression de compte, avis de disponibilité des exports de données, notifications de violation de données"
       }
@@ -2084,6 +2084,11 @@
     "planUpdated": {
       "title": "Plan mis à jour",
       "description": "Vous êtes maintenant sur le plan {plan}. Votre nouveau budget IA est disponible immédiatement."
+    },
+    "completePayment": "Finaliser le paiement",
+    "soldThroughLink": {
+      "note": "Vendu par Link (Stripe), qui gère le paiement, la TVA, les factures et les remboursements. {terms} s’appliquent.",
+      "terms": "Les conditions acheteur de Link"
     }
   },
   "plan": {

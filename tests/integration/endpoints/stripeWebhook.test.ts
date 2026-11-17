@@ -286,8 +286,9 @@ describe('POST /api/webhooks/stripe: invoice.paid', () => {
       ['cus_test_alice', 'sub_test_alice_pro', oldStart, oldEnd, u.id]
     )
 
-    // The fixture has the pinned API version's shape (2025-01-27.acacia:
-    // `invoice.subscription` on the root). The NEW cycle is the line
+    // The fixture has the shape of an event rendered before the API
+    // version bump (2025-01-27.acacia: `invoice.subscription` on the root),
+    // which a stashed or redelivered event can still have. The NEW cycle is the line
     // item's period; the invoice's own period_start/_end is the cycle
     // that just ended and must not be used.
     const event = loadStripeFixture('invoice.paid')

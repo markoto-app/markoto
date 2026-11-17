@@ -3,11 +3,13 @@ import * as Sentry from '@sentry/nuxt'
 import { stripeTopupPriceIdFor } from './stripePrices'
 import type { Currency, TopupPackId } from '~~/shared/config/pricing'
 import type { CreditSubject } from '../../repos/aiCreditGrants'
+import { checkoutTaxFields } from './checkoutSession'
 
 // Stripe Checkout for an AI credit top-up: `mode: 'payment'`, one
 // pack, the subject in the metadata (the webhook reads it back:
-// `stripeWebhook.ts#handleTopupCheckout`). Automatic tax follows
-// `NUXT_STRIPE_AUTOMATIC_TAX` like subscriptions.
+// `stripeEvents/creditTopups.ts#handleTopupCheckout`). Tax handling
+// (Managed Payments or Stripe Tax) follows `checkoutTaxFields` like the
+// subscriptions.
 
 export async function createTopupCheckout(stripe: Stripe, args: {
   subject: CreditSubject
@@ -18,7 +20,6 @@ export async function createTopupCheckout(stripe: Stripe, args: {
   clientReferenceId: string
   successUrl: string
   cancelUrl: string
-  automaticTax: boolean
 }): Promise<{ url: string, sessionId: string }> {
   const priceId = await stripeTopupPriceIdFor(stripe, args.pack, args.currency)
   if (!priceId) {
@@ -37,14 +38,7 @@ export async function createTopupCheckout(stripe: Stripe, args: {
       ...(args.customer
         ? { customer: args.customer }
         : { customer_creation: 'always' as const, ...(args.email ? { customer_email: args.email } : {}) }),
-      ...(args.automaticTax
-        ? {
-            automatic_tax: { enabled: true },
-            billing_address_collection: 'required' as const,
-            tax_id_collection: { enabled: true },
-            ...(args.customer ? { customer_update: { address: 'auto' as const, name: 'auto' as const } } : {})
-          }
-        : {})
+      ...checkoutTaxFields(args.customer !== null)
     })
     if (!session.url) throw createError({ statusCode: 502, message: 'Stripe did not return a Checkout URL' })
     return { url: session.url, sessionId: session.id }
@@ -53,8 +47,4 @@ export async function createTopupCheckout(stripe: Stripe, args: {
     Sentry.captureException(e, { tags: { component: 'billing', event: 'topup_checkout_failed' } })
     throw createError({ statusCode: 502, message: `Could not start checkout: ${e instanceof Error ? e.message : 'Stripe error'}` })
   }
-}
-
-export function automaticTaxEnabled(value: unknown): boolean {
-  return ['1', 'true', 'yes'].includes(String(value || '').toLowerCase())
 }

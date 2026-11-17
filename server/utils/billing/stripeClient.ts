@@ -40,13 +40,8 @@ export function useStripeClient(): Stripe | null {
   const secret = env.billing.stripeSecretKey
   if (!secret) return null
   client = new Stripe(secret, {
-    // Cast required because the SDK constructor types `apiVersion` as
-    // a literal-union of the SDK's "preferred" version, but we
-    // INTENTIONALLY pin an older version (`STRIPE_API_VERSION` in
-    // `shared/contracts/stripe.ts`): see that file for the upgrade
-    // playbook. The cast routes around the SDK's narrower type to
-    // honor our explicit pin.
-    apiVersion: STRIPE_API_VERSION as NonNullable<ConstructorParameters<typeof Stripe>[1]>['apiVersion'],
+    // The SDK's own version (`shared/contracts/stripe.ts` has the upgrade playbook).
+    apiVersion: STRIPE_API_VERSION,
     // Override the API base URL when pointed at `stripe-mock`. Stripe's
     // SDK requires both `host` (hostname) and `port` + `protocol`
     // separately. Do the parsing here so callers only need one env var.

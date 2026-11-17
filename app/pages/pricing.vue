@@ -197,7 +197,7 @@ function ctaKind(plan: PlanName): CtaKind {
 }
 
 const toast = useToast()
-const { extractError } = useErrorHandler()
+const { extractError, pendingPaymentAction } = useErrorHandler()
 const checkoutLoading = ref<PlanName | null>(null)
 // The Paid Plans Terms box: required for every purchase.
 const paidTermsAccepted = ref(false)
@@ -253,11 +253,15 @@ async function onChangePlan(plan: PlanName): Promise<void> {
     // origin, can't be iframed.
     if (resp.url) globalThis.location.href = resp.url
   } catch (e) {
+    // A change that waits for its payment (3-D Secure) gets the link to pay it.
+    const extracted = extractError(e)
+    const payAction = pendingPaymentAction(extracted)
     toast.add({
       title: t('workspace.billing.checkoutFailed'),
-      description: extractError(e).message,
+      description: extracted.message,
       icon: 'i-lucide-alert-circle',
-      color: 'error'
+      color: 'error',
+      actions: payAction ? [payAction] : undefined
     })
     checkoutLoading.value = null
   }
@@ -634,6 +638,12 @@ usePageStructuredData(() => {
         >
           {{ t('pricing.price.plannedNote') }}
         </p>
+
+        <!-- Managed Payments: Link is the seller of every paid plan. -->
+        <PricingSoldThroughLink
+          class="mt-4 text-center text-xs text-muted"
+          data-testid="pricing-sold-through-link"
+        />
 
         <PricingMoreOptions
           class="mt-8"
