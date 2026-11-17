@@ -154,8 +154,9 @@ async function startCheckout() {
 // the server keeps the other one as the subscription has it, so a tab
 // that shows an older state can't reset it.
 async function changePlan(next: { plan: 'team' | 'business' } | { interval: BillingInterval }) {
-  if (!sub.value || ending.value || !paidTermsAccepted.value) return
-  busy.value = 'plan'
+  if (!sub.value || ending.value || !paidTermsAccepted.value || busy.value) return
+  // Only the clicked button spins; both stay disabled while it runs.
+  busy.value = 'plan' in next ? 'plan' : 'interval'
   try {
     await apiFetch('/api/workspaces/:wsId/billing/checkout', {
       method: 'post',
@@ -494,7 +495,7 @@ function points(usd: number | null | undefined): string {
               color="neutral"
               variant="ghost"
               size="sm"
-              :disabled="!paidTermsAccepted"
+              :disabled="!paidTermsAccepted || busy === 'interval'"
               :loading="busy === 'plan'"
               data-testid="workspace-billing-switch-plan"
               @click="changePlan({ plan: sub.plan === 'team' ? 'business' : 'team' })"
@@ -505,8 +506,8 @@ function points(usd: number | null | undefined): string {
               color="neutral"
               variant="ghost"
               size="sm"
-              :disabled="!paidTermsAccepted"
-              :loading="busy === 'plan'"
+              :disabled="!paidTermsAccepted || busy === 'plan'"
+              :loading="busy === 'interval'"
               data-testid="workspace-billing-switch-interval"
               @click="changePlan({ interval: sub.interval === 'month' ? 'year' : 'month' })"
             >
