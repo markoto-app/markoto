@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../setup/db'
 import { loggedInClient } from '../setup/client'
 import { createUser, createWorkspace } from '../setup/fixtures'
+import { PAID_TERMS_VERSION } from '../../../shared/legal/versions'
 
 // Paid Plans Terms: every purchase needs `acceptPaidTerms: true`
 // (the ticked box at checkout), and each accepted purchase leaves a
@@ -52,7 +53,7 @@ describe('Paid Plans Terms at checkout', () => {
 
     const rows = await acceptances()
     expect(rows).toHaveLength(2)
-    expect(rows[0]).toMatchObject({ scope: 'user', scope_id: String(u.id), metadata: { document: 'paid-terms', version: 1, purchase: 'plan', item: 'pro_year' } })
+    expect(rows[0]).toMatchObject({ scope: 'user', scope_id: String(u.id), metadata: { document: 'paid-terms', version: PAID_TERMS_VERSION, purchase: 'plan', item: 'pro_year' } })
     expect(rows[1]).toMatchObject({ scope: 'workspace', scope_id: ws.workspaceId, metadata: { document: 'paid-terms', purchase: 'plan', item: 'team_month' } })
   })
 })
