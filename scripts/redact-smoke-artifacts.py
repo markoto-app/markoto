@@ -93,7 +93,9 @@ def main() -> int:
         if still_leaks(path, secrets):
             os.remove(path)
             removed += 1
-            print(f"::warning title=Artifact withheld::{path} still held the edge login after redaction and was removed")
+            print(
+                f"::warning title=Artifact withheld::{path} still held the edge login after redaction and was removed"
+            )
     print(f"redacted {len(files)} file(s), withheld {removed}")
     return 0
 

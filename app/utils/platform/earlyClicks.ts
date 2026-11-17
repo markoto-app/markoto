@@ -13,7 +13,7 @@
 // (tests/smoke, tests/e2e) that must not click before it.
 
 /** Attribute on a button whose pre-hydration click is replayed. */
-export const EARLY_CLICK_ATTR = 'data-early-click'
+const EARLY_CLICK_ATTR = 'data-early-click'
 /** Set on `<html>` once the app has hydrated. */
 export const HYDRATED_ATTR = 'data-hydrated'
 /** Window property holding the elements clicked before hydration. */
