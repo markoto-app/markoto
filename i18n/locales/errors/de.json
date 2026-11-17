@@ -24,8 +24,7 @@
       "sessions-revoke-rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut."
     },
     "admin": {
-      "forbidden": "Dafür sind Administratorrechte nötig.",
-      "spend-unavailable": "Der Dienst für die KI-Ausgaben hat mit einem Fehler geantwortet ({upstreamStatus})."
+      "forbidden": "Dafür sind Administratorrechte nötig."
     },
     "ai": {
       "abort-not-initiator": "Nur die Person, die diese markoto-Sitzung gestartet hat, kann sie stoppen.",

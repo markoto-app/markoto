@@ -3,7 +3,7 @@ import { DAY_MS } from '~~/shared/config/units'
 import type { ApiResponse } from '~/utils/api/client'
 
 // Operator dashboard: per-feature AI spend over a date window. Reads
-// LiteLLM's /spend/tags via /api/admin/ai-spend (admin-gated server-
+// LiteLLM_SpendLogs via /api/admin/ai-spend (admin-gated server-
 // side; the page also defensively redirects non-admins so the
 // account-status check doesn't leak the layout to refresh).
 //
@@ -101,9 +101,9 @@ function formatUsd(usd: number): string {
       AI spend
     </h1>
     <p class="text-sm text-muted mb-8">
-      Per-feature LiteLLM spend over a date window. Sourced from the
-      proxy's <code class="font-mono text-xs">/spend/tags</code>
-      aggregator. Tag drift = a missing call site; investigate before
+      Per-feature LiteLLM spend over a date window, one row per call
+      in the proxy's <code class="font-mono text-xs">LiteLLM_SpendLogs</code>.
+      Tag drift = a missing call site; investigate before
       treating "other" as expected. Multi-axis breakdowns (per
       workspace / per user / per doc) are available via the
       <code class="font-mono text-xs">/api/admin/axis-spend</code>

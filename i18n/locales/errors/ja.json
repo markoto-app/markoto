@@ -24,8 +24,7 @@
       "sessions-revoke-rate-limited": "リクエストが多すぎます。少し待ってから再試行してください。"
     },
     "admin": {
-      "forbidden": "管理者権限が必要です。",
-      "spend-unavailable": "AI 利用額のサービスがエラーを返しました（{upstreamStatus}）。"
+      "forbidden": "管理者権限が必要です。"
     },
     "ai": {
       "abort-not-initiator": "このmarkotoセッションを停止できるのは、開始した本人だけです。",

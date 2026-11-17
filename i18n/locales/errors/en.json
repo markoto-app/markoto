@@ -24,8 +24,7 @@
       "sessions-revoke-rate-limited": "Too many requests. Please wait a moment and try again."
     },
     "admin": {
-      "forbidden": "Admin access required.",
-      "spend-unavailable": "The AI spend service answered with an error ({upstreamStatus})."
+      "forbidden": "Admin access required."
     },
     "ai": {
       "abort-not-initiator": "Only the person who started this markoto session can stop it.",

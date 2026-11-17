@@ -24,8 +24,7 @@
       "sessions-revoke-rate-limited": "Trop de requêtes. Veuillez patienter un instant et réessayer."
     },
     "admin": {
-      "forbidden": "Un accès administrateur est requis.",
-      "spend-unavailable": "Le service de suivi des dépenses IA a répondu par une erreur ({upstreamStatus})."
+      "forbidden": "Un accès administrateur est requis."
     },
     "ai": {
       "abort-not-initiator": "Seule la personne qui a démarré cette session markoto peut l'arrêter.",

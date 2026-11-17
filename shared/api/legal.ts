@@ -22,8 +22,8 @@ const isCalendarDay = (s: string): boolean => {
 
 /**
  * A `YYYY-MM-DD` calendar day; anything else (or a repeated key) falls back to
- * the route's default window instead of failing. LiteLLM (since 1.108) answers
- * 400 to an impossible date in `/spend/tags`, so the shape alone is not enough.
+ * the route's default window instead of failing. Postgres rejects an impossible
+ * date in the spend query's `::date` cast, so the shape alone is not enough.
  */
 const isoDayOrDefault = z.string().regex(ISO_DAY).refine(isCalendarDay).optional().catch(undefined)
 

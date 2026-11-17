@@ -24,8 +24,7 @@
       "sessions-revoke-rate-limited": "请求过于频繁。请稍候片刻后重试。"
     },
     "admin": {
-      "forbidden": "需要管理员权限。",
-      "spend-unavailable": "AI 用量服务返回了错误（{upstreamStatus}）。"
+      "forbidden": "需要管理员权限。"
     },
     "ai": {
       "abort-not-initiator": "只有发起此 markoto 会话的人才能停止它。",
