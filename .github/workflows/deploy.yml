@@ -135,10 +135,11 @@ jobs:
           NUXT_ALTCHA_HMAC_KEY: ${{ secrets.NUXT_ALTCHA_HMAC_KEY }}
           # App <-> markitdown converter shared secret (openssl rand -hex 32).
           NUXT_MARKITDOWN_API_SECRET: ${{ secrets.NUXT_MARKITDOWN_API_SECRET }}
-          # Instance admins promoted at sign-in. A secret rather than a
-          # variable: variables are printed in the job log, and these are
-          # people's email addresses.
-          NUXT_ADMIN_USER_EMAILS: ${{ secrets.NUXT_ADMIN_USER_EMAILS }}
+          # Instance admins promoted at sign-in. Not a credential, so it is
+          # read from the Environment's variable or its secret, whichever is
+          # set (the variable wins). A secret keeps the addresses out of the
+          # job log.
+          NUXT_ADMIN_USER_EMAILS: ${{ vars.NUXT_ADMIN_USER_EMAILS || secrets.NUXT_ADMIN_USER_EMAILS }}
           NUXT_PUBLISH_DOMAINS_TARGET: ${{ vars.NUXT_PUBLISH_DOMAINS_TARGET }}
           # Published pages' own hostname (pages.markoto.app on prod, its
           # staging twin on staging). Required: the app refuses to boot
