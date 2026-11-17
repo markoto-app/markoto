@@ -2032,7 +2032,8 @@
         "acceptedVersion": "Versión {version}",
         "needsReacceptance": "requiere nueva aceptación (actual v{version})",
         "dpaNotApplicable": "Requerido cuando creas un espacio de trabajo",
-        "cookieNote": "Solo cookies esenciales: inicio de sesión, idioma y una clave para eliminar documentos creados sin cuenta. Sin analítica, seguimiento ni publicidad. La política de privacidad enumera cada una."
+        "cookieNote": "Solo cookies esenciales: inicio de sesión, idioma y una clave para eliminar documentos creados sin cuenta. Sin analítica, seguimiento ni publicidad. La política de privacidad enumera cada una.",
+        "cookieNoteWithStats": "Solo cookies esenciales: inicio de sesión, idioma y una clave para eliminar documentos creados sin cuenta. Las visitas a nuestras páginas públicas se cuentan con nuestra propia herramienta de estadísticas, sin cookies y sin guardar nada en tu dispositivo. Sin seguimiento entre sitios ni publicidad. La política de privacidad enumera cada cookie y explica las estadísticas."
       },
       "sessions": {
         "heading": "Sesiones",

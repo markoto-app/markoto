@@ -554,6 +554,16 @@ pg_upgrade_script() {
     sh "$ROOT/deploy/config/postgres/pg-major-upgrade.sh" "$1"
 }
 
+# A container keeps the environment it was created with. After `up -d`,
+# recreate the services whose environment differs from the rendered .env
+# (an edited secret, same image tag); the others keep running
+# (deploy/config/env-converge.sh, skipped without jq).
+converge_env() {
+  LITELLM_CONFIG_HASH="$(cat "$ROOT/deploy/config/litellm/config.yaml" "$ROOT/deploy/config/litellm/custom_handlers.py" | sha256sum | cut -c1-16)" \
+    COMPOSE="cd '$ROOT' && docker compose --project-directory '$ROOT/deploy/compose' --env-file '$ENV_FILE'" \
+    ENGINE=docker sh "$ROOT/deploy/config/env-converge.sh"
+}
+
 require_current_postgres() {
   local rc=0
   pg_upgrade_script check > /dev/null || rc=$?
@@ -609,6 +619,7 @@ cmd_upgrade() {
   require_current_postgres
   migrate_acme_keys
   compose up -d
+  converge_env
   wait_healthy
   next_steps
 }

@@ -7,7 +7,7 @@ keywords:
   - markdown editor europe
   - google docs alternative eu
   - gdpr compliant collaborative editor
-updated: '2026-11-04'
+updated: '2026-11-17'
 navGroup: use-cases
 navLabel: Hosted in the EU
 navOrder: 60
@@ -54,9 +54,9 @@ The writing assistant, voice input, web search, page fetching and image generati
 ::flow-strip{id="use-your-own-ai-provider" frames="06" caption="Settings › AI provider: the writing assistant connected to a provider you chose."}
 ::
 
-## No tracking
+## No tracking cookies
 
-markoto.app uses only storage that is strictly needed to run the service: the sign-in session, your language, and a few keys for anonymous documents. There is no analytics, no session replay, no advertising and no cross-site tracking, so there is no cookie banner. The privacy policy lists every cookie and storage key.
+markoto.app uses only storage that is strictly needed to run the service: the sign-in session, your language, and a few keys for anonymous documents. Visits to the public pages, like this one, are counted with a statistics tool we run ourselves, without cookies and without storing anything on your device; documents are never counted. There is no session replay, no advertising and no cross-site tracking, so there is no cookie banner. The privacy policy lists every cookie and storage key and explains the statistics.
 
 Documents are not indexed by search engines: every document page sends a `noindex` instruction. A link can still be passed on, so treat a shared link as public.
 

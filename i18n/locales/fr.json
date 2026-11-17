@@ -2032,7 +2032,8 @@
         "acceptedVersion": "Version {version}",
         "needsReacceptance": "nouvelle acceptation requise (v{version} actuelle)",
         "dpaNotApplicable": "Requis lorsque vous créez un espace de travail",
-        "cookieNote": "Uniquement des cookies essentiels : connexion, langue et une clé pour supprimer les documents créés sans compte. Ni mesure d’audience, ni pistage, ni publicité. La politique de confidentialité les liste tous."
+        "cookieNote": "Uniquement des cookies essentiels : connexion, langue et une clé pour supprimer les documents créés sans compte. Ni mesure d’audience, ni pistage, ni publicité. La politique de confidentialité les liste tous.",
+        "cookieNoteWithStats": "Uniquement des cookies essentiels : connexion, langue et une clé pour supprimer les documents créés sans compte. Les visites de nos pages publiques sont comptées par notre propre outil de statistiques, sans cookies et sans rien enregistrer sur votre appareil. Ni pistage intersites, ni publicité. La politique de confidentialité liste chaque cookie et décrit les statistiques."
       },
       "sessions": {
         "heading": "Sessions",

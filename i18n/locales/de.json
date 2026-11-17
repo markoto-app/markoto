@@ -2032,7 +2032,8 @@
         "acceptedVersion": "Version {version}",
         "needsReacceptance": "erneute Zustimmung erforderlich (aktuell v{version})",
         "dpaNotApplicable": "Erforderlich, wenn du einen Workspace erstellst",
-        "cookieNote": "Nur notwendige Cookies: Anmeldung, Sprache und ein Schlüssel zum Löschen von Dokumenten, die ohne Konto erstellt wurden. Keine Analyse, kein Tracking, keine Werbung. Die Datenschutzerklärung führt jedes auf."
+        "cookieNote": "Nur notwendige Cookies: Anmeldung, Sprache und ein Schlüssel zum Löschen von Dokumenten, die ohne Konto erstellt wurden. Keine Analyse, kein Tracking, keine Werbung. Die Datenschutzerklärung führt jedes auf.",
+        "cookieNoteWithStats": "Nur notwendige Cookies: Anmeldung, Sprache und ein Schlüssel zum Löschen von Dokumenten, die ohne Konto erstellt wurden. Besuche unserer öffentlichen Seiten zählen wir mit einem eigenen Statistik-Tool, ohne Cookies und ohne etwas auf deinem Gerät zu speichern. Kein seitenübergreifendes Tracking, keine Werbung. Die Datenschutzerklärung führt jedes Cookie auf und erklärt die Statistik."
       },
       "sessions": {
         "heading": "Sitzungen",

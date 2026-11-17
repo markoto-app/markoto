@@ -133,6 +133,8 @@
     - deploy/config/postgres/init/01-litellm-db.sql
     # Run by the db-init one-shot (deploy/compose/compose.base.yml).
     - deploy/config/postgres/db-init.sh
+    # Recreates the services whose environment changed (below).
+    - deploy/config/env-converge.sh
     # Moves a bundled pre-18 Postgres cluster to Postgres 18 (run below).
     - deploy/config/postgres/pg-major-upgrade.sh
     # The renderer's seccomp profile: named by compose.prod.yml, replaced
@@ -300,6 +302,23 @@
     ('Recreate' in markoto_compose_up.stderr)
     or ('Creat' in markoto_compose_up.stderr)
     or ('Started' in markoto_compose_up.stderr)
+
+# A re-rendered .env (a rotated secret, same image tag) must reach the
+# running containers: recreates exactly the services whose environment
+# differs from the rendered one, the others keep running.
+- name: Recreate the services whose environment changed
+  ansible.builtin.command:
+    cmd: sh deploy/config/env-converge.sh
+    chdir: "{{ markoto_root }}"
+  become: true
+  become_user: "{{ markoto_user }}"
+  environment:
+    COMPOSE: /usr/local/bin/markoto-compose
+    ENGINE: podman
+    LITELLM_CONFIG_HASH: "{{ markoto_litellm_config_hash.stdout }}"
+    XDG_RUNTIME_DIR: /run/user/{{ ansible_facts.getent_passwd[markoto_user][1] }}
+  register: markoto_env_converge
+  changed_when: "'recreating:' in markoto_env_converge.stdout"
 
 - name: Wait for /api/health to return 200
   ansible.builtin.uri:

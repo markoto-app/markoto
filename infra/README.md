@@ -213,6 +213,24 @@ sudo -iu markoto              # its ~/.profile sets XDG_RUNTIME_DIR and DOCKER_H
 `make logs ENV=<env>` and `make ps ENV=<env>` run the first two through
 Ansible from the control machine.
 
+### Changing a secret or variable
+
+A container keeps the environment it was created with. To rotate a secret
+(say `NUXT_STRIPE_WEBHOOK_SECRET`) or change a variable, change it in the
+GitHub Environment (or the vault, for `make deploy`) and deploy again; the
+same image tag is fine. The deploy renders a new `.env`, runs `up -d`, and
+then `deploy/config/env-converge.sh` compares every running container's
+environment with the rendered one and recreates exactly the services that
+differ (the job log names them and the changed variables, never the
+values). The other containers keep running, so the change takes effect on
+that deploy with the app's usual few seconds of restart.
+
+Editing `/opt/markoto/.env` by hand is overwritten by the next deploy. For
+an emergency change on the host, edit it and run
+`COMPOSE=markoto-compose ENGINE=podman sh deploy/config/env-converge.sh`
+from `/opt/markoto` (`... env-converge.sh check` only reports), then make
+the same change in GitHub.
+
 ## Galaxy dependencies (and why)
 
 `requirements.yml` pins the roles and `devsec.hardening` to an exact version (the other collections have a minimum version). Surprise upgrades on

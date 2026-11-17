@@ -2,10 +2,11 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import type Stripe from 'stripe'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser, createWorkspace } from '../integration/setup/fixtures'
-import { asUser, wsAs } from '../helpers/access'
+import { adminAs, asUser, sys, wsAs } from '../helpers/access'
 import { resumeRecordedSubscription, resumeUpdateParams } from '../../server/utils/billing/resumeSubscription'
 import { recordOwnPlanResumed } from '../../server/repos/userBilling'
-import { recordWorkspacePlanResumed } from '../../server/repos/workspaceSubscriptions'
+import { recordWorkspacePlanResumed, upsertWorkspaceSubscription } from '../../server/repos/workspaceSubscriptions'
+import { cancellingGroups } from '../../server/repos/productStats'
 
 // "Resume plan" on a cancelled plan that still runs (staging finding
 // N21): the Stripe call undoes the field the cancellation set, and the
@@ -98,5 +99,31 @@ describe('recording a resumed plan', () => {
     await recordWorkspacePlanResumed(wsAs(ws.workspaceId, owner.id), 'sub_ws', AT)
     const row = (await testDb().query<{ cancel_at: Date | null, subscription_event_at: Date | null }>('SELECT cancel_at, subscription_event_at FROM workspace_subscriptions WHERE workspace_id = $1', [ws.workspaceId])).rows[0]
     expect(row).toEqual({ cancel_at: null, subscription_event_at: AT })
+  })
+
+  it('workspace: a resumed plan leaves the admin stats\' "scheduled to end", and a late cancel event can\'t put it back', async () => {
+    const owner = await createUser()
+    const ws = await createWorkspace(owner.id)
+    const CANCELLED = new Date('2027-09-30T08:00:00.000Z')
+    await testDb().query(
+      `INSERT INTO workspace_subscriptions (workspace_id, plan, seats, status, currency, interval, stripe_customer_id, stripe_subscription_id, valid_until, cancel_at, subscription_event_at)
+       VALUES ($1, 'team', 4, 'active', 'chf', 'month', 'cus_ws', 'sub_ws', now() + interval '20 days', now() + interval '20 days', $2)`,
+      [ws.workspaceId, CANCELLED]
+    )
+    const admin = adminAs(owner.id)
+    expect(await cancellingGroups(admin)).toEqual([{ plan: 'team', currency: 'chf', interval: 'month', subscriptions: 1, units: 4 }])
+
+    await recordWorkspacePlanResumed(wsAs(ws.workspaceId, owner.id), 'sub_ws', AT)
+    expect(await cancellingGroups(admin)).toEqual([])
+
+    // The cancellation's own customer.subscription.updated, delivered late.
+    const validUntil = new Date(Date.now() + 20 * 86_400_000)
+    const written = await upsertWorkspaceSubscription(sys(), undefined, ws.workspaceId, {
+      plan: 'team', seats: 4, status: 'active', stripeCustomerId: 'cus_ws', stripeSubscriptionId: 'sub_ws',
+      currentPeriodStart: null, validUntil, cancelAt: validUntil, currency: 'chf', interval: 'month',
+      subscriptionEventAt: CANCELLED, updatedAt: new Date()
+    }, {})
+    expect(written).toBe(false)
+    expect(await cancellingGroups(admin)).toEqual([])
   })
 })

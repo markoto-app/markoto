@@ -23,7 +23,7 @@ registerEndpoint('/api/workspaces/ws1/billing', () => overview)
 const posts: Array<{ path: string, body: unknown }> = []
 let memberPostFails = 0
 /** What the server does to the overview when a change is posted (the next GET returns it). */
-let afterPost: ((path: string, body: unknown) => void) | null = null
+let afterPost: ((path: string, body: unknown) => void | Promise<void>) | null = null
 async function readJson(event: H3Event) {
   const { readBody } = await import('h3')
   return readBody(event)
@@ -34,7 +34,7 @@ for (const path of ['checkout', 'seats', 'portal', 'resume']) {
     handler: async (event) => {
       const body = await readJson(event)
       posts.push({ path, body })
-      afterPost?.(path, body)
+      await afterPost?.(path, body)
       if (path === 'resume') return { resumed: true }
       return path === 'checkout' ? { url: 'https://checkout.stripe.test/s/1' } : path === 'portal' ? { url: 'https://portal.stripe.test' } : { seats: 9 }
     }
@@ -177,6 +177,27 @@ describe('workspace billing tab: subscription', () => {
     const wrapper = await mountPanel()
     await acceptTermsAndClick(wrapper, 'workspace-billing-switch-plan')
     expect(posts.find(p => p.path === 'checkout')?.body).toEqual({ plan: 'business', acceptPaidTerms: true })
+  })
+
+  it('only the clicked switch shows a spinner; both are disabled while it runs', async () => {
+    let release!: () => void
+    afterPost = (path) => {
+      if (path !== 'checkout') return
+      return new Promise<void>((resolve) => {
+        release = resolve
+      })
+    }
+    const wrapper = await mountPanel()
+    await acceptTermsAndClick(wrapper, 'workspace-billing-switch-interval')
+    const plan = wrapper.get('[data-testid="workspace-billing-switch-plan"]')
+    const interval = wrapper.get('[data-testid="workspace-billing-switch-interval"]')
+    await vi.waitFor(() => expect(interval.find('.animate-spin').exists()).toBe(true))
+    expect(plan.find('.animate-spin').exists()).toBe(false)
+    expect(plan.attributes('disabled')).toBeDefined()
+    expect(interval.attributes('disabled')).toBeDefined()
+    release()
+    await flushPromises()
+    await vi.waitFor(() => expect(interval.find('.animate-spin').exists()).toBe(false))
   })
 
   it('shows the new plan and billing period right after a switch, without a reload', async () => {

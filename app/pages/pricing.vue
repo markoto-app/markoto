@@ -92,7 +92,8 @@ function seatTotal(plan: PlanName): string {
   })
 }
 
-function priceUnitKey(plan: PlanName): string {
+// Paid plans only: free has no period ("0 CHF", the same in both views).
+function priceUnitKey(plan: PaidPlanName): string {
   if (isPerSeatPlan(plan)) return interval.value === 'year' ? 'pricing.price.perSeatPerYear' : 'pricing.price.perSeatPerMonth'
   return interval.value === 'year' ? 'pricing.price.perYear' : 'pricing.price.perMonth'
 }
@@ -427,7 +428,7 @@ usePageStructuredData(() => {
             :title="t('pricing.plans.free')"
             :tagline="t('pricing.tiers.free')"
             :price="price('free')"
-            :unit="t(priceUnitKey('free'))"
+            unit=""
             :price-note="priceNote('free')"
             :current="isCurrent('free')"
             :coming-soon="false"
