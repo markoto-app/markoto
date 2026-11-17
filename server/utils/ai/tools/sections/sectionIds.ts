@@ -131,6 +131,19 @@ export function sectionView(handles: SectionDocHandles): SectionView {
   return { structure, ids: out }
 }
 
+/**
+ * Point existing ids at new heading starts (after a move re-inserted the
+ * headings, their old relative positions point at the deletion point).
+ * Call after the edit, with the offsets in the current text.
+ */
+export function rebindSectionIds(handles: SectionDocHandles, placements: ReadonlyArray<{ id: string, offset: number }>): void {
+  const reg = registryFor(handles.ydoc)
+  for (const { id, offset } of placements) {
+    const entry = reg.entries.get(id)
+    if (entry) entry.rel = Y.createRelativePositionFromTypeIndex(handles.ytext, offset)
+  }
+}
+
 export type SectionResolution
   = | { ok: true, view: SectionView, section: Section, id: string }
     | { ok: false, error: string }

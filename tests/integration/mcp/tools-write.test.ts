@@ -279,3 +279,60 @@ describe('MCP write tools: activity_log attribution', () => {
     expect(mcpRow!.action).toBe('edit')
   }, 30_000)
 })
+
+describe('MCP write tools: structural edits', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  const BODY = '# 1 Intro\n\nHello MyProduct.\n\n# 2 Setup\n\nInstall MyProduct with `myproduct install`.\n\n# 3 End\n\nBye.\n'
+
+  it('replace_all previews without a change, then applies; code stays untouched', async () => {
+    const user = await createUser()
+    const doc = await createDoc({ ownerId: user.id })
+    await seedYjs(doc.docId, BODY)
+    const client = mcp((await mintPat({ userId: user.id, scopes: WRITE_SCOPES })).plaintext)
+
+    const preview = await client.callText('replace_all', { doc_id: doc.docId, query: 'MyProduct', replacement: 'Nova', wholeWord: true })
+    expect(preview).toMatch(/^Preview, nothing changed yet\. 2 matches for "MyProduct"/)
+    expect(preview).toContain('Not touched: 1 in inline code.')
+    const applied = await client.callText('replace_all', { doc_id: doc.docId, query: 'MyProduct', replacement: 'Nova', wholeWord: true, preview: false })
+    expect(applied).toMatch(/^Replaced 2 occurrences/)
+
+    await new Promise(r => setTimeout(r, 2500))
+    const text = await readYtext(doc.docId)
+    expect(text).toContain('Hello Nova.')
+    expect(text).toContain('Install Nova with `myproduct install`.')
+  }, 20_000)
+
+  it('move_section, set_heading and insert_markdown address sections by id within one MCP session', async () => {
+    const user = await createUser()
+    const doc = await createDoc({ ownerId: user.id })
+    await seedYjs(doc.docId, BODY)
+    const client = mcp((await mintPat({ userId: user.id, scopes: WRITE_SCOPES })).plaintext)
+
+    const outline = await client.callText('outline', { doc_id: doc.docId })
+    const endId = /^(s-\d+) {2}3 /m.exec(outline)![1]!
+    await client.callText('move_section', { doc_id: doc.docId, section: endId, before: '1' })
+    await client.callText('set_heading', { doc_id: doc.docId, section: endId, title: '0 Summary' })
+    await client.callText('insert_markdown', { doc_id: doc.docId, section: endId, position: 'end', markdown: 'Added.' })
+
+    await new Promise(r => setTimeout(r, 2500))
+    const text = await readYtext(doc.docId)
+    expect(text.startsWith('# 0 Summary {#h-3-end}\n\nBye.\n\nAdded.\n\n# 1 Intro')).toBe(true)
+  }, 20_000)
+
+  it('a read-only token cannot call the structural edit tools', async () => {
+    const user = await createUser()
+    const doc = await createDoc({ ownerId: user.id })
+    await seedYjs(doc.docId, BODY)
+    const client = mcp((await mintPat({ userId: user.id, scopes: ['documents:read'] })).plaintext)
+    for (const name of ['replace_all', 'delete_section', 'edit_lines']) {
+      const refused = await client.call(name, { doc_id: doc.docId, query: 'x', replacement: 'y', section: '1', base_rev: '00000000', edits: [] })
+        .then(r => r.isError === true, () => true)
+      expect(refused).toBe(true)
+    }
+    await new Promise(r => setTimeout(r, 500))
+    expect(await readYtext(doc.docId)).toBe(BODY)
+  }, 20_000)
+})

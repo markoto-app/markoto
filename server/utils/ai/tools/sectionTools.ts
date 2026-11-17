@@ -164,7 +164,7 @@ function handleReadSection(ctx: DocToolContext, args: z.output<typeof ReadSectio
     return toolError(`Error: offset_line ${from} is outside section ${id} (lines ${section.startLine}-${last}).`)
   }
   const budget = Math.min(args.max_chars ?? 20_000, RESULT_BUDGET)
-  const header = `Section ${id} "${sectionLabel(section)}" (lines ${section.startLine}-${last}, rev ${section.rev}, ${fmt(section.words)} words${subsectionNote(view, section, withSubs)})`
+  const header = `Section ${id} "${sectionLabel(section)}" (lines ${section.startLine}-${last}, rev ${section.rev}, ${fmt(section.words)} words${subsectionNote(view, section, withSubs)}; doc rev ${view.structure.rev})`
   const shown = numberedLines(view.structure.lines, from, last, Math.max(500, budget - header.length - 200))
   if (!shown.cut) return toolOk(`${header}\n${shown.text}`)
   const next = shown.lastLine + 1

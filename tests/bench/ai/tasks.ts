@@ -6,12 +6,14 @@ import type { BenchTask, ScriptApi, ScriptCall, ToolOutcome } from './harness'
 // apply. Variant `step4`: the scripts start with `outline` (section ids,
 // numbers, line ranges), read what they need with `read_section` (several
 // sections in one turn, following the continuation hints) and find terms
-// with `search_document`; edits still go through replace_text / insert_text /
-// create_comment (structural edit tools come later). Keep the ids and
-// prompts stable so results stay comparable with `results/baseline.*` and
-// the earlier variants.
+// with `search_document`. Variant `step5` adds the structural edit tools:
+// T2 moves a chapter with `move_section` and renumbers its headings with
+// `replace_all` (regex, scoped), T3 rewrites with `replace_section`, T5
+// renames with `replace_all` (two patterns, preview then apply), T7 places
+// the table with `insert_markdown`. Keep the ids and prompts stable so
+// results stay comparable with `results/baseline.*` and the earlier variants.
 
-const VARIANT = 'step4'
+const VARIANT = 'step5'
 
 // Reading the document through outline + read_section (what the model reads
 // off the results)
@@ -216,6 +218,16 @@ const T1_REVIEW: BenchTask = {
   verify: (_initial, final) => (final.length === _initial.length ? null : 'document text changed')
 }
 
+/** Renamed headings get their old anchor pinned as `{#h-4-...}`; the swap check ignores those pins. */
+function withoutPinnedAnchors(text: string): string {
+  return text.replaceAll(/ \{#h-\d[^\s{}]*\}/g, '')
+}
+
+/** Renumber a chapter in place: preview, then apply, scoped to its section id. */
+function renumberCalls(id: string, from: number, to: number, preview: boolean): ScriptCall {
+  return { name: 'replace_all', args: { query: `^(#{1,3}) ${from}(?=[ .])`, regex: true, caseSensitive: true, replacement: `$1 ${to}`, scope: id, preview } }
+}
+
 const T2_SWAP: BenchTask = {
   id: 'T2-swap-chapters',
   variant: VARIANT,
@@ -225,19 +237,18 @@ const T2_SWAP: BenchTask = {
     const reader = await openDocument(api)
     const row4 = rowByNumber(reader, '4')
     const row5 = rowByNumber(reader, '5')
-    await readSections(api, reader, [row4, row5])
-    const ch4 = blockOf(reader, row4).text
-    const ch5 = blockOf(reader, row5).text
-    // Renumbered, the moved chapters differ from the originals, so the second
-    // old_str (the original chapter 5) is still unique after the first edit.
-    await api.turn([
-      { name: 'replace_text', args: { old_str: ch4, new_str: renumber(ch5, 5, 4) } },
-      { name: 'replace_text', args: { old_str: ch5, new_str: renumber(ch4, 4, 5) } }
-    ])
+    // Server-side move: no chapter text in the model's output.
+    const moved = await api.call('move_section', { section: row5.id, before: row4.id })
+    if (moved.isError) throw new Error(`move failed: ${moved.output.slice(0, 200)}`)
+    // Ids survive the move; renumber each chapter's headings, preview first.
+    await api.turn([renumberCalls(row5.id, 5, 4, true), renumberCalls(row4.id, 4, 5, true)])
+    const applied = await api.turn([renumberCalls(row5.id, 5, 4, false), renumberCalls(row4.id, 4, 5, false)])
+    for (const r of applied) if (!r || r.isError) throw new Error(`renumber failed: ${r?.output.slice(0, 200)}`)
   },
   verify: (initial, final) => {
+    const clean = withoutPinnedAnchors(final)
     const want = chapter(initial, 5).text
-    return chapter(final, 4).text === renumber(want, 5, 4) && chapter(final, 5).text === renumber(chapter(initial, 4).text, 4, 5)
+    return chapter(clean, 4).text === renumber(want, 5, 4) && chapter(clean, 5).text === renumber(chapter(initial, 4).text, 4, 5)
       ? null
       : 'chapters not swapped'
   }
@@ -263,7 +274,7 @@ const T3_SHORTEN_INTRO: BenchTask = {
         takeNext = false
       }
     }
-    await api.call('replace_text', { old_str: ch, new_str: kept.join('\n\n') })
+    await api.call('replace_section', { section: rowByNumber(reader, '1').id, markdown: kept.join('\n\n'), keep_heading: false })
   },
   verify: (initial, final) => (words(chapter(final, 1).text) < words(chapter(initial, 1).text) / 2 ? null : 'chapter 1 not shortened')
 }
@@ -297,31 +308,7 @@ const T4_TRANSLATE: BenchTask = {
   }
 }
 
-const CUSTOMER_FORMS: Record<string, string> = { Kunde: 'Klient', Kunden: 'Klienten', Kundin: 'Klientin', Kundinnen: 'Klientinnen' }
 const CUSTOMER_RE = /\bKund(?:e|en|in|innen)\b/g
-/** Characters search_document shows on each side of a match. */
-const SNIPPET_CONTEXT = 50
-
-interface Hit { start: number, end: number, lineStart: number, lineEnd: number }
-
-/**
- * The shortest word-bounded window around the hits of one line that is
- * unique in `text`, and how far it reaches past the outer hits. One edit per
- * line, so no two edits overlap.
- */
-function uniqueWindow(text: string, lineHits: readonly Hit[]): { snippet: string, pad: number } {
-  const first = lineHits[0]!
-  const last = lineHits[lineHits.length - 1]!
-  for (let pad = 20; ; pad += 20) {
-    let start = Math.max(first.lineStart, first.start - pad)
-    let end = Math.min(first.lineEnd, last.end + pad)
-    while (start > first.lineStart && !/\s/.test(text[start - 1]!)) start -= 1
-    while (end < first.lineEnd && !/\s/.test(text[end]!)) end += 1
-    const snippet = text.slice(start, end)
-    if (text.indexOf(snippet) === text.lastIndexOf(snippet)) return { snippet, pad }
-    if (start === first.lineStart && end === first.lineEnd) throw new Error('line not unique')
-  }
-}
 
 const T5_RENAME: BenchTask = {
   id: 'T5-rename-term',
@@ -329,37 +316,18 @@ const T5_RENAME: BenchTask = {
   title: 'Rename Kunde to Klient in all forms (40x)',
   prompt: 'Ersetze im ganzen Dokument «Kunde» durch «Klient», in allen Formen (Kunden, Kundin, Kundinnen).',
   async script(api) {
-    // search_document lists every occurrence with its line and 50 characters
-    // of context on each side; old_str is built from that context. Where it
-    // is not unique, the model first reads the whole line (view_document).
-    const found = await api.call('search_document', { query: String.raw`Kund(e|en|in|innen)\b`, regex: true, caseSensitive: true, limit: 200 })
+    // search_document shows every occurrence; the forms map mechanically
+    // (Kunde → Klient, Kund-en/-in/-innen → Klient-en/-in/-innen), so two
+    // replace_all patterns cover them: preview both, then apply both.
+    const found = await api.call('search_document', { query: String.raw`Kund(e|en|in|innen)\b`, regex: true, caseSensitive: true, limit: 30 })
     if (!/^40 matches/.test(found.output)) throw new Error(`unexpected search result: ${found.output.slice(0, 200)}`)
-    const text = api.docText()
-    const lineStarts = [0]
-    for (let i = 0; i < text.length; i++) if (text[i] === '\n') lineStarts.push(i + 1)
-    const hits: Hit[] = [...text.matchAll(CUSTOMER_RE)].map((m) => {
-      let line = 0
-      while (line + 1 < lineStarts.length && lineStarts[line + 1]! <= m.index) line++
-      const lineStart = lineStarts[line]!
-      const lineEnd = line + 1 < lineStarts.length ? lineStarts[line + 1]! - 1 : text.length
-      return { start: m.index, end: m.index + m[0].length, lineStart, lineEnd }
-    })
-    const byLine = new Map<number, Hit[]>()
-    for (const h of hits) byLine.set(h.lineStart, [...(byLine.get(h.lineStart) ?? []), h])
-    const edits: Array<{ old_str: string, new_str: string }> = []
-    const lineReads = new Set<number>()
-    for (const [lineStart, lineHits] of byLine) {
-      const { snippet, pad } = uniqueWindow(text, lineHits)
-      // The snippets show 50 characters around each match; a wider window
-      // (or one spanning far-apart matches) needs the whole line first.
-      const gaps = lineHits.slice(1).some((h, k) => h.start - lineHits[k]!.end > 2 * SNIPPET_CONTEXT)
-      if (pad > SNIPPET_CONTEXT || gaps) lineReads.add(lineStarts.indexOf(lineStart) + 1)
-      edits.push({ old_str: snippet, new_str: snippet.replace(CUSTOMER_RE, w => CUSTOMER_FORMS[w] ?? w) })
-    }
-    if (lineReads.size > 0) await api.turn([...lineReads].map(line => ({ name: 'view_document', args: { view_range: [line, line] } })))
-    for (let k = 0; k < edits.length; k += 10) {
-      await api.turn(edits.slice(k, k + 10).map(args => ({ name: 'replace_text', args })))
-    }
+    const calls = (preview: boolean): ScriptCall[] => [
+      { name: 'replace_all', args: { query: String.raw`\bKunde\b`, regex: true, caseSensitive: true, replacement: 'Klient', preview } },
+      { name: 'replace_all', args: { query: String.raw`\bKund(en|in|innen)\b`, regex: true, caseSensitive: true, replacement: 'Klient$1', preview } }
+    ]
+    await api.turn(calls(true))
+    const applied = await api.turn(calls(false))
+    for (const r of applied) if (!r || r.isError) throw new Error(`replace_all failed: ${r?.output.slice(0, 200)}`)
   },
   verify: (_initial, final) => {
     const left = final.match(CUSTOMER_RE)?.length ?? 0
@@ -402,11 +370,11 @@ const T7_ADD_TABLE: BenchTask = {
   async script(api) {
     const reader = await openDocument(api)
     const row = rowByNumber(reader, '2')
-    // Only the end of the chapter is needed to place the table.
-    absorbRead(reader, await api.call('read_section', { section: row.id, offset_line: Math.max(row.start, row.end - 15) }))
-    await api.call('insert_text', {
-      insert_line: trimmedEnd(reader, row),
-      insert_text: [
+    // insert_markdown places it at the end of the chapter: nothing to read first.
+    await api.call('insert_markdown', {
+      section: row.id,
+      position: 'end',
+      markdown: [
         'Table: Teams der Abteilung Betrieb',
         '',
         '| Team | Aufgaben | Leitung |',

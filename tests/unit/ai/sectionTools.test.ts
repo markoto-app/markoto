@@ -89,7 +89,7 @@ describe('read_section', () => {
     const { session } = makeSession(large)
     const res = await run(session, 'read_section', { section: '9.2', max_chars: 4_000 })
     expect(res.isError).toBe(false)
-    const head = /^Section (s-\d+) "9\.2 Alarmierung" \(lines 2232-(\d+), rev [0-9a-f]{6}, [\d,]+ words; 4 subsections included\)\n2232: ## 9\.2 Alarmierung/.exec(res.content)
+    const head = /^Section (s-\d+) "9\.2 Alarmierung" \(lines 2232-(\d+), rev [0-9a-f]{6}, [\d,]+ words; 4 subsections included; doc rev [0-9a-f]{8}\)\n2232: ## 9\.2 Alarmierung/.exec(res.content)
     expect(head).not.toBeNull()
     const cont = /\[Shown: lines 2232-(\d+) of 2232-\d+ \(result size limit\)\. Continue with read_section section "(s-\d+)" and offset_line (\d+)\.\]$/.exec(res.content)
     expect(cont).not.toBeNull()
@@ -102,7 +102,7 @@ describe('read_section', () => {
   it('without subsections stops before the first one and names them', async () => {
     const { session } = makeSession(large)
     const res = await run(session, 'read_section', { section: '9.2', include_subsections: false })
-    expect(res.content).toMatch(/\(lines 2232-2252, rev [0-9a-f]{6}, [\d,]+ words; subsections not included: s-\d+, s-\d+, s-\d+, s-\d+\)/)
+    expect(res.content).toMatch(/\(lines 2232-2252, rev [0-9a-f]{6}, [\d,]+ words; subsections not included: s-\d+, s-\d+, s-\d+, s-\d+; doc rev [0-9a-f]{8}\)/)
     expect(res.content).not.toContain('2253: ')
   })
 

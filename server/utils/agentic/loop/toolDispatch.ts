@@ -16,12 +16,20 @@ import { runSubCall } from './webSubCalls'
 // functionResponse part(s) for the next turn, cut to the result cap
 // (`resultCap.ts`).
 
-/** Text a `replace_text` / `insert_text` call would add to the document. */
+/**
+ * Text a document edit would add: `new_str` / `insert_text` (replace_text,
+ * insert_text), `markdown` (replace_section, insert_markdown), `title`
+ * (set_heading), `replacement` (replace_all; capture groups only repeat
+ * text already in the document) and every `new_text` of edit_lines.
+ */
 function addedEditText(args: unknown): string {
   if (typeof args !== 'object' || args === null) return ''
   const fields = args as Record<string, unknown>
-  const added = fields.new_str ?? fields.insert_text
-  return typeof added === 'string' ? added : ''
+  const parts: unknown[] = [fields.new_str, fields.insert_text, fields.markdown, fields.replacement, fields.title]
+  if (Array.isArray(fields.edits)) {
+    for (const e of fields.edits) if (typeof e === 'object' && e !== null) parts.push((e as Record<string, unknown>).new_text)
+  }
+  return parts.filter((p): p is string => typeof p === 'string').join('\n')
 }
 
 /**
@@ -124,7 +132,7 @@ async function runOneTool(
   }
   try {
     const result = await executeFunctionByName(ctx.opts.aiSession, name, validatedArgs)
-    if (!result.isError) logToolActivity(ctx, name, validatedArgs)
+    if (!result.isError) logToolActivity(ctx, name, validatedArgs, result)
     return { kind: 'ok', result }
   } catch (e: unknown) {
     if (ctx.opts.abortController.signal.aborted) throw e

@@ -17,7 +17,17 @@ import { createHash } from 'node:crypto'
  */
 
 /** Tools that change the current document's text. */
-export const DOC_EDIT_TOOLS: ReadonlySet<string> = new Set(['replace_text', 'insert_text'])
+export const DOC_EDIT_TOOLS: ReadonlySet<string> = new Set([
+  'replace_text',
+  'insert_text',
+  'replace_section',
+  'insert_markdown',
+  'move_section',
+  'delete_section',
+  'set_heading',
+  'replace_all',
+  'edit_lines'
+])
 
 /**
  * Prefix of the tool error `replace_text` returns for `old_str === new_str`.

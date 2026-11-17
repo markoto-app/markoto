@@ -28,6 +28,12 @@ export interface ToolResult {
    * of letting the model improvise around a dead provider (MCP ignores it).
    */
   endSessionWith?: string
+  /**
+   * `ai.tool` activity row the in-app loop writes for this successful call,
+   * when it depends on the outcome (replace_all: how many occurrences).
+   * Takes precedence over the definition's `activity`.
+   */
+  activity?: AiToolActivityMetadata
 }
 
 export function toolOk(content: string): ToolResult {

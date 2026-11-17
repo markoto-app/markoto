@@ -945,6 +945,20 @@ describe('runAgenticLoop: image URLs must come from the session', () => {
     expect(ytext.toJSON()).toContain('![logo](https://example.org/logo.png)')
     expect(ytext.toJSON()).toContain('![Old logo](https://example.org/old.png)')
   })
+
+  it.each([
+    ['replace_section', { section: 'Field notes', markdown: '![x](https://placehold.co/1.png)' }],
+    ['insert_markdown', { position: 'end', markdown: '![x](https://placehold.co/1.png)' }],
+    ['replace_all', { query: 'notes', replacement: 'notes ![x](https://placehold.co/1.png)', preview: false }],
+    ['edit_lines', { base_rev: '00000000', edits: [{ start_line: 1, end_line: 1, expected_first_line: '# Field notes', new_text: '![x](https://placehold.co/1.png)' }] }]
+  ])('refuses a made-up image URL through %s', async (name, args) => {
+    const ytext = docWith('# Field notes\n')
+    const { ai, callsSeen } = makeFakeAi([callTurn(name, args), proseTurn('Done.')])
+    executeFunctionByName.mockImplementation(editingHandler(ytext))
+    await runAgenticLoop(makeOpts({ ai }, ytext))
+    expect(executeFunctionByName).not.toHaveBeenCalledWith(expect.anything(), name, expect.anything())
+    expect(lastFunctionOutput(callsSeen[1]?.contents ?? [])).toContain('image URL not from this session')
+  })
 })
 
 describe('runAgenticLoop: provider outage', () => {

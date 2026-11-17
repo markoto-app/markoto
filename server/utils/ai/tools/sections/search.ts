@@ -31,6 +31,8 @@ export interface SearchQuery {
   excludeCode?: boolean
   /** Skip matches in link and image targets, autolinks, bare URLs, reference definitions and attribute blocks. */
   excludeUrls?: boolean
+  /** Skip matches in link and image targets only; follows `excludeUrls` when not set (replace_all sets it on its own). */
+  excludeLinkTargets?: boolean
 }
 
 export interface SearchMatch {
@@ -161,6 +163,10 @@ function excludedClasses(q: SearchQuery): Set<MaskClass> {
   const out = new Set<MaskClass>()
   if (q.excludeCode ?? true) for (const c of CODE_MASK_CLASSES) out.add(c)
   if (q.excludeUrls ?? true) for (const c of URL_MASK_CLASSES) out.add(c)
+  if (q.excludeLinkTargets !== undefined) {
+    if (q.excludeLinkTargets) out.add('link_target')
+    else out.delete('link_target')
+  }
   return out
 }
 

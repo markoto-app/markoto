@@ -1,0 +1,37 @@
+# AI loop benchmark: step5
+
+Scripted-planner benchmark (`bun run bench:ai`, `tests/bench/ai/`): the real `runAgenticLoop` with a fake model whose tool calls are scripted per task, the real tool handlers on a Y.Doc holding the large fixture (`tests/e2e/fixtures/content/large-handbook/`). Every request the loop sends is measured.
+
+Document: 81,757 words, 622,052 chars, 3,457 lines, about 172,792 tokens.
+
+## Static prefix (sent with every request)
+
+| Part | Chars | Tokens (est.) |
+|---|--:|--:|
+| System prompt (PROMPT_SYSTEM_PROMPT; the document context opens the first user message) | 23,085 | 6,413 |
+| Tool declarations (36 tools, OpenAI JSON) | 78,404 | 21,779 |
+| Total | 101,489 | 28,192 |
+
+## Tasks
+
+| Task | What | Model calls | Tool calls | Input tokens | Input chars | Output tokens | Cost uncached | Cost cached prefix | Est. time | Outcome | Feasible | Progress (end / at 5 min) |
+|---|---|--:|--:|--:|--:|--:|--:|--:|--:|---|---|---|
+| T1-review-chapter (step5) | Review chapter 13, five comments | 4 | 11 | 157k | 564k | 538 | $0.0261 | $0.0113 | 8 s | done:done | yes | 100 % / 100 % |
+| T2-swap-chapters (step5) | Swap chapters 4 and 5 | 5 | 6 | 169k | 610k | 157 | $0.0280 | $0.0094 | 6 s | done:done | yes | 100 % / 100 % |
+| T3-shorten-intro (step5) | Shorten the introduction (chapter 1) | 4 | 7 | 151k | 543k | 2,223 | $0.0261 | $0.0112 | 19 s | done:done | yes | 100 % / 100 % |
+| T4-translate-section (step5) | Translate section 9.2 (~1500 words) to French | 3 | 2 | 99k | 355k | 6,346 | $0.0198 | $0.0086 | 45 s | done:done | yes | 100 % / 100 % |
+| T5-rename-term (step5) | Rename Kunde to Klient in all forms (40x) | 4 | 5 | 122k | 439k | 152 | $0.0202 | $0.0053 | 5 s | done:done | yes | 100 % / 100 % |
+| T6-formal-tone (step5) | Formal tone across the whole document | 21 | 40 | 2130k | 7667k | 105k | $0.4090 | $0.3309 | 719 s | error:turnLimit | no (turns: no, time: no) | 30 % / 11 % |
+| T7-add-table (step5) | Add a table to chapter 2 | 3 | 2 | 98k | 353k | 127 | $0.0162 | $0.0051 | 4 s | done:done | yes | 100 % / 100 % |
+| **Total** | | 44 | 73 | 2925k | 10530k | 114k | $0.5455 | $0.3817 | | | | |
+
+## Method and assumptions
+
+- Tokens = characters / 3.6 (German prose on current BPE tokenizers; JSON and line-numbered tool output counted the same way). Characters are the message contents and tool-call names + JSON arguments of the OpenAI-shape request the loop would send (`internalToOpenAIMessages`), plus the tool declarations JSON (`internalToOpenAITools`); no per-message framing tokens.
+- Input tokens are summed over every model call of the session (each call resends the whole history).
+- Output tokens = characters of the emitted tool calls (name + JSON arguments) / 3.6. Reasoning tokens (GLM-5.3 Flash at `reasoning_effort: low`: 0 to ~130 per edit turn) and the closing turn's text are not counted.
+- Prices: Z.ai GLM-5.3 Flash on Mistral's EU endpoint, the hosted chat default: $0.165 input, $0.033 cached input, $0.55 output per million tokens (`docs/AI-MODELS.md`, model table).
+- "Cost cached prefix": the static prefix (system prompt + tools) of every call billed at the cached input price, everything else uncached. That matches the measured behaviour in `docs/AI-MODELS.md` (hits only on the prefix every user shares; the growing session history is rarely reused). Uncached = no hit at all (about a third of calls in production).
+- Time: 1 s per model call plus output at 150 tokens/s; prefill time of the large input is NOT included, so real sessions take longer.
+- Feasible = the script finished within MAX_TURNS (20) AND the estimated time is within the 5-minute session deadline. Progress = share of the task done when the session ended / by the deadline (T6: share of the document's characters rewritten).
+- Scripts play a competent model with today's tools: read the whole document with `view_document`, then edit with `replace_text` (old_str copied from the view) / `insert_text` / `create_comment`. Rewrites (translation, tone) are same-length stand-ins.
