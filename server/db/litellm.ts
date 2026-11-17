@@ -12,7 +12,8 @@
 // LiteLLM master key, so it learning LiteLLM's DB role widens nothing; the
 // separation protects the app database FROM a compromised proxy.
 
-import { Pool } from 'pg'
+import { Pool, type PoolConfig } from 'pg'
+import { resolvePostgresSsl } from '../../shared/utils/runtime/postgresSsl'
 import { useEnv } from '~~/shared/env/load'
 import type { RawEnv } from '~~/shared/env/define'
 
@@ -37,14 +38,27 @@ export function litellmDbUrl(source?: RawEnv): string {
 // connections.
 let spendPool: Pool | null = null
 
+/**
+ * Connection settings of the spend-log pool. TLS follows the app pool
+ * (`server/db/client.ts`): verified in production (the pinned
+ * `PGSSLROOTCERT` CA, else the system bundle), off in dev and tests,
+ * `PGSSL=disable` opts out. Same Postgres instance, so the same rules; a
+ * separate `NUXT_LITELLM_DB_URL` server needs a certificate that verifies
+ * the same way.
+ */
+export function litellmPoolConfig(source?: RawEnv, production: boolean = process.env.NODE_ENV === 'production'): PoolConfig {
+  return {
+    connectionString: litellmDbUrl(source),
+    ssl: resolvePostgresSsl(useEnv(source).database, production),
+    max: 2,
+    connectionTimeoutMillis: 5000,
+    idleTimeoutMillis: 5000
+  }
+}
+
 export function useLitellmPool(): Pool {
   if (!spendPool) {
-    spendPool = new Pool({
-      connectionString: litellmDbUrl(),
-      max: 2,
-      connectionTimeoutMillis: 5000,
-      idleTimeoutMillis: 5000
-    })
+    spendPool = new Pool(litellmPoolConfig())
   }
   return spendPool
 }

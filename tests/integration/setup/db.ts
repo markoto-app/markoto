@@ -79,6 +79,8 @@ export async function resetDb(): Promise<void> {
       mcp_personal_tokens,
       ad_click_conversions,
       waitlist_signups,
+      subscription_events,
+      ai_spend_daily,
       user_ai_providers,
       moderation_notices,
       abuse_reports,

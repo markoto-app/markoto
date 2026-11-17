@@ -2824,6 +2824,96 @@
       "deprecatedNames": []
     },
     {
+      "name": "NUXT_STATS_EUR_CHF_RATE",
+      "namespace": "billing",
+      "key": "statsEurChfRate",
+      "type": "number > 0",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_STATS_EUR_CHF_RATE"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": 0.93,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_STATS_USD_CHF_RATE",
+      "namespace": "billing",
+      "key": "statsUsdChfRate",
+      "type": "number > 0",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_STATS_USD_CHF_RATE"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": 0.8,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_STATS_TAX_PCT",
+      "namespace": "billing",
+      "key": "statsTaxPct",
+      "type": "number 0–100",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_STATS_TAX_PCT"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": 8.1,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_STATS_PAYMENT_FEE_PCT",
+      "namespace": "billing",
+      "key": "statsPaymentFeePct",
+      "type": "number 0–100",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_STATS_PAYMENT_FEE_PCT"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": 3.5,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_STATS_PAYMENT_FEE_FIXED",
+      "namespace": "billing",
+      "key": "statsPaymentFeeFixed",
+      "type": "number ≥ 0",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_STATS_PAYMENT_FEE_FIXED"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": 0.3,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
       "name": "TIER_FREE_LITELLM_BUDGET_USD",
       "namespace": "tiers",
       "key": "TIER_FREE_LITELLM_BUDGET_USD",

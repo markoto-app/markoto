@@ -1,6 +1,6 @@
 // Accounts: identity, plan, LiteLLM key, policy acceptance, deletion state.
 
-import { pgTable, serial, integer, text, timestamp, index, uniqueIndex, boolean, check } from 'drizzle-orm/pg-core'
+import { pgTable, serial, integer, text, timestamp, index, uniqueIndex, boolean, check, date } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import type { StripeSubscriptionStatus } from '~~/shared/contracts/stripe'
 
@@ -110,6 +110,12 @@ export const users = pgTable('users', {
   // the account (not only in localStorage, which sign-out clears) so the
   // tour shows once per user. NULL = not seen yet.
   editorTourDoneAt: timestamp('editor_tour_done_at', { withTimezone: true }),
+  // The last UTC day the user made a signed-in request (day only, no
+  // time, no history: each day overwrites the previous one). Written at
+  // most once per day by session validation; feeds the admin's active-user
+  // counts (`docs/contributing/admin-metrics.md`). NULL = not seen since
+  // the column exists.
+  lastActiveOn: date('last_active_on', { mode: 'string' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
   // Partial indexes: the plan-lapse and account-deletion sweeps scan these

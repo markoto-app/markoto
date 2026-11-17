@@ -45,7 +45,10 @@
 // (domain name public in Certificate Transparency logs).
 // v14 (2026-11-17): cookieless visitor statistics (self-hosted Umami, 13
 // months) and Google Ads conversion measurement without a Google script
-// (click id of a converting visit, 90 days; Google Ads as recipient).
+// (click id of a converting visit, 90 days; Google Ads as recipient);
+// the last day an account made a signed-in request
+// (`users.last_active_on`, date only, overwritten), for active-user counts;
+// the subscription history (start, change, cancellation, end of a plan).
 export const PRIVACY_VERSION = 14
 export const PRIVACY_EFFECTIVE_DATE = '2026-11-17'
 

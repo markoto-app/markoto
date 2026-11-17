@@ -43,10 +43,14 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     // provisioning sent (external id, active / deactivated). Kept until
     // the link is removed (SCIM delete, connection removed, account
     // deleted).
+    // `last_active_day`: the last day (date only, overwritten daily, no
+    // history) the account made a signed-in request (`users.last_active_on`).
+    // Operators see only counts built from it (active users per day, week,
+    // month), never the day of a person.
     id: 'account_authentication',
     label: 'Sign-in and account',
     basis: 'contract',
-    dataCategories: ['email', 'oauth_identifier', 'display_name', 'workspace_sso_identity'],
+    dataCategories: ['email', 'oauth_identifier', 'display_name', 'workspace_sso_identity', 'last_active_day'],
     retention: 'until_deletion',
     subProcessors: ['github_oauth', 'google_oauth']
   },
@@ -151,10 +155,14 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: ['jina_ai', 'ovh_postgres', 'ovh_object_storage']
   },
   {
+    // `subscription_history`: when a paid plan started, changed, was set to
+    // end or ended (plan, period, currency, seats), for the revenue and churn
+    // figures. On account deletion the rows lose the account and the Stripe
+    // subscription id and stay as anonymous history.
     id: 'billing',
     label: 'Billing (only when paid plans are offered)',
     basis: 'contract',
-    dataCategories: ['stripe_customer_id', 'subscription_state', 'invoice_history', 'workspace_subscription_billing_admin', 'workspace_member_ai_limits_and_spend', 'ai_credit_purchases'],
+    dataCategories: ['stripe_customer_id', 'subscription_state', 'subscription_history', 'invoice_history', 'workspace_subscription_billing_admin', 'workspace_member_ai_limits_and_spend', 'ai_credit_purchases'],
     retention: 'legal_minimum',
     subProcessors: ['stripe']
   },

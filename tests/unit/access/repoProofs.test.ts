@@ -28,6 +28,7 @@ const EXEMPT: Record<string, keyof typeof WHY> = {
   'access/*': 'bootstrap',
   'users.ts#findSessionUser': 'bootstrap',
   'users.ts#getSessionEpoch': 'bootstrap',
+  'users.ts#markSessionUserActive': 'bootstrap',
   'userSignIn.ts#upsertOAuthUser': 'bootstrap',
   'sso.ts#getSsoConnectionById': 'bootstrap',
   'sso.ts#getSsoConnectionForWorkspace': 'bootstrap',

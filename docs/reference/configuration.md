@@ -256,6 +256,11 @@ One codebase, three shapes: self-host (both off), hosted free-only (coming soon 
 | `NUXT_STRIPE_AUTOMATIC_TAX` | boolean | `false` |  | app | hosted | Stripe Tax on checkout (only after activating Stripe Tax in the dashboard). |
 | `NUXT_STRIPE_SUCCESS_URL` | string | `/pricing?checkout=success&session={CHECKOUT_SESSION_ID}` |  | app | hosted | Path Stripe returns to after a successful checkout. Not passed by the compose files: the default is the app's own page. |
 | `NUXT_STRIPE_CANCEL_URL` | string | `/pricing?checkout=cancelled` |  | app | hosted | Path Stripe returns to after a cancelled checkout. Not passed by the compose files: the default is the app's own page. |
+| `NUXT_STATS_EUR_CHF_RATE` | number > 0 | `0.93` |  | app | both | Fixed EUR to CHF rate for the combined CHF figures of the admin product stats (an estimate, not a booking rate). |
+| `NUXT_STATS_USD_CHF_RATE` | number > 0 | `0.8` |  | app | both | Fixed USD to CHF rate for the AI cost (billed in USD) in the admin product stats' estimated contribution. |
+| `NUXT_STATS_TAX_PCT` | number 0–100 | `8.1` |  | app | both | VAT / sales tax (percent) contained in the tax-inclusive plan prices, taken out of gross revenue in the estimated contribution. Swiss VAT is 8.1; when Stripe Managed Payments sells as merchant of record it removes the buyer's local tax, so set the average rate of your buyers. |
+| `NUXT_STATS_PAYMENT_FEE_PCT` | number 0–100 | `3.5` |  | app | both | Payment fee (percent of the charged amount) in the estimated contribution; 3.5 = Stripe Managed Payments. |
+| `NUXT_STATS_PAYMENT_FEE_FIXED` | number ≥ 0 | `0.3` |  | app | both | Fixed payment fee per charge, in the charge's currency (EUR or CHF), in the estimated contribution. |
 
 ## Plan limits and feature switches
 

@@ -24,6 +24,7 @@ export const SWEEPS = {
   accountDeletion: { intervalMs: HOUR_MS },
   aiCreditSettlement: { intervalMs: HOUR_MS },
   aiRecords: { intervalMs: DAY_MS, startupDelayMs: 30 * SECOND_MS },
+  aiSpendRollup: { intervalMs: 6 * HOUR_MS, startupDelayMs: 5 * MINUTE_MS },
   // Must stay strictly longer than the 5-minute agentic-loop deadline
   // (AI_SESSION_HARD_DEADLINE_MS in server/utils/agentic/limits.ts).
   analyticsRetention: { intervalMs: DAY_MS, startupDelayMs: 5 * MINUTE_MS },

@@ -68,6 +68,11 @@ const menuItems = computed<MenuItem[]>(() => {
       icon: 'i-lucide-shield-check',
       to: '/admin/abuse-reports'
     })
+    items.push({
+      label: t('adminStats.menu'),
+      icon: 'i-lucide-chart-line',
+      to: '/admin/stats'
+    })
   }
   items.push({
     label: t('auth.logout'),

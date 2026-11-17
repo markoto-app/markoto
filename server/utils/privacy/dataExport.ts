@@ -29,6 +29,7 @@ import {
   addAiProvidersEntry,
   addBillingEntries,
   addCreditGrantsEntry,
+  addSubscriptionHistoryEntry,
   addPublishingEntries,
   addWaitlistEntry,
   addWorkspaceInvitesEntry,
@@ -141,6 +142,7 @@ export async function buildExportZip(by: SystemActor, userId: number): Promise<B
   const invoicesCount = await addBillingEntries(entries, userRow.stripeCustomerId)
   const workspaceSubscriptionsCount = await addWorkspaceSubscriptionsEntry(entries, user)
   await addCreditGrantsEntry(entries, user)
+  await addSubscriptionHistoryEntry(entries, user)
   await addSsoIdentitiesEntry(entries, user)
   await addDocumentSharesEntry(entries, user)
   await addBrandAssetsEntry(entries, user)
@@ -205,6 +207,7 @@ function buildProfileEntry(userRow: UserProfileRow) {
     dpaVersionAccepted: userRow.dpaVersionAccepted,
     dpaVersionAcceptedLocale: userRow.dpaVersionAcceptedLocale,
     editorTourDoneAt: userRow.editorTourDoneAt?.toISOString() ?? null,
+    lastActiveOn: userRow.lastActiveOn,
     createdAt: userRow.createdAt.toISOString()
   }
 }
