@@ -22,8 +22,10 @@ from __future__ import annotations
 import asyncio
 import base64
 import os
+import random
 import re
 import time
+from email.utils import parsedate_to_datetime
 from uuid import uuid4
 
 import httpx
@@ -67,8 +69,24 @@ litellm.aclient_session = httpx.AsyncClient(follow_redirects=False)
 _BFL_EU = "https://api.eu.bfl.ai"
 _BFL_POLL_INTERVAL = 0.5
 # A queued job can take well over 30 s; stay under the deployment's
-# `timeout` in config.yaml.
+# `timeout` in config.yaml (120 s): the whole call, submission retries
+# included, ends within _BFL_TOTAL_TIMEOUT.
 _BFL_POLL_TIMEOUT = 100.0
+_BFL_TOTAL_TIMEOUT = 115.0
+
+# Submission retries. BFL answers 429 when its EU capacity is short (and 503
+# while a cluster is unavailable). Both mean the job was NOT accepted, so the
+# submission is sent again after a backoff with jitter (or BFL's
+# `Retry-After`), at most _BFL_SUBMIT_ATTEMPTS times and only while the waits
+# stay within _BFL_SUBMIT_RETRY_BUDGET seconds, so a user's request can't hang
+# for long. Anything else, and every poll of an accepted job, is never
+# resubmitted: an accepted job is billed. The deployment sets
+# `num_retries: 0` in config.yaml so the router doesn't resubmit either.
+_BFL_SUBMIT_RETRY_STATUSES = frozenset({429, 503})
+_BFL_SUBMIT_ATTEMPTS = 4
+_BFL_SUBMIT_RETRY_BUDGET = 40.0
+_BFL_BACKOFF_BASE = 4.0
+_BFL_BACKOFF_CAP = 16.0
 # BFL bills per credit; 1 credit ≈ $0.01 (Klein at 1k = 0.9 credits = $0.009)
 _BFL_CREDIT_USD = 0.01
 
@@ -76,6 +94,65 @@ _BFL_CREDIT_USD = 0.01
 def _is_bfl_eu_url(url: str) -> bool:
     """https://api.eu.bfl.ai or a numbered EU cluster (api.eu9.bfl.ai)."""
     return re.fullmatch(r"https://api\.eu\d*\.bfl\.ai(/.*)?", url) is not None
+
+
+def _retry_after_seconds(value: str | None) -> float | None:
+    """`Retry-After` as seconds (delta-seconds or an HTTP date); None when absent or unreadable."""
+    if not value:
+        return None
+    value = value.strip()
+    try:
+        return max(0.0, float(value))
+    except ValueError:
+        pass
+    try:
+        when = parsedate_to_datetime(value)
+    except (TypeError, ValueError):
+        return None
+    return max(0.0, when.timestamp() - time.time())
+
+
+def _bfl_submit_delay(attempt: int, retry_after: str | None) -> float:
+    """Wait before submission attempt `attempt + 1` (attempts count from 1).
+
+    BFL's `Retry-After` wins (plus up to 1 s of jitter so parallel requests
+    don't come back in lockstep); otherwise exponential backoff with equal
+    jitter: of 4 s, 8 s, 16 s (the cap) half is fixed, half random.
+    """
+    hinted = _retry_after_seconds(retry_after)
+    if hinted is not None:
+        return hinted + random.random()  # noqa: S311 (jitter, not crypto)
+    step = min(_BFL_BACKOFF_CAP, _BFL_BACKOFF_BASE * 2 ** (attempt - 1))
+    return step / 2 + random.uniform(0, step / 2)  # noqa: S311 (jitter, not crypto)
+
+
+# Replaced by the tests so the backoff doesn't really sleep.
+_sleep = asyncio.sleep
+
+
+async def _bfl_submit(
+    http: httpx.AsyncClient, url: str, headers: dict[str, str], payload: dict
+) -> httpx.Response:
+    """POST the job, sending it again on 429 / 503 within the retry budget.
+
+    Returns the accepted (2xx) response. Raises httpx.HTTPStatusError for the
+    last refusal once attempts or budget run out, and for any other non-2xx
+    answer straight away.
+    """
+    waited = 0.0
+    attempt = 1
+    while True:
+        resp = await http.post(url, headers=headers, json=payload)
+        if resp.status_code not in _BFL_SUBMIT_RETRY_STATUSES or attempt >= _BFL_SUBMIT_ATTEMPTS:
+            resp.raise_for_status()
+            return resp
+        delay = _bfl_submit_delay(attempt, resp.headers.get("retry-after"))
+        if waited + delay > _BFL_SUBMIT_RETRY_BUDGET:
+            resp.raise_for_status()
+            return resp
+        await _sleep(delay)
+        waited += delay
+        attempt += 1
 
 
 class BFLFluxProvider(CustomLLM):
@@ -95,6 +172,9 @@ class BFLFluxProvider(CustomLLM):
     cost_credits, cost_usd}`. Our app code (aiToolAdapter.ts:generateImageBytes)
     is the only consumer.
     """
+
+    # The tests swap in an httpx.MockTransport; None = the real network.
+    transport: httpx.AsyncBaseTransport | None = None
 
     async def acompletion(  # type: ignore[override]
         self, *args, **kwargs
@@ -132,17 +212,14 @@ class BFLFluxProvider(CustomLLM):
                 h = h if h is not None else 1024
         w, h = int(w), int(h)
 
-        async with httpx.AsyncClient(timeout=30.0) as http:
-            submit = await http.post(
+        started = time.monotonic()
+        async with httpx.AsyncClient(timeout=30.0, transport=self.transport) as http:
+            submit = await _bfl_submit(
+                http,
                 f"{_BFL_EU}/v1/{bfl_model}",
-                headers={"x-key": bfl_key, "Content-Type": "application/json"},
-                json={
-                    "prompt": prompt,
-                    "width": w,
-                    "height": h,
-                },
+                {"x-key": bfl_key, "Content-Type": "application/json"},
+                {"prompt": prompt, "width": w, "height": h},
             )
-            submit.raise_for_status()
             sub = submit.json()
             polling_url = sub["polling_url"]
             # The key goes to this URL on every poll: only ever to BFL's EU hosts.
@@ -150,7 +227,7 @@ class BFLFluxProvider(CustomLLM):
                 raise RuntimeError("BFL returned a polling URL outside its EU hosts")
             cost_credits = float(sub.get("cost") or 0.0)
 
-            deadline = time.monotonic() + _BFL_POLL_TIMEOUT
+            deadline = min(time.monotonic() + _BFL_POLL_TIMEOUT, started + _BFL_TOTAL_TIMEOUT)
             sample_url = None
             while time.monotonic() < deadline:
                 pr = await http.get(polling_url, headers={"x-key": bfl_key})
@@ -164,7 +241,7 @@ class BFLFluxProvider(CustomLLM):
                     raise RuntimeError(f"BFL job ended with status={status}: {p}")
                 await asyncio.sleep(_BFL_POLL_INTERVAL)
             if not sample_url:
-                raise RuntimeError("BFL polling timed out after 90s")
+                raise RuntimeError("BFL polling timed out before the job was ready")
 
             img = await http.get(sample_url)
             img.raise_for_status()

@@ -15,7 +15,7 @@ How the Nitro server in `server/` decides who may do what, how sessions and docu
 | `server/db/` | The schema (`schema/`, one file per domain), the connection (`client.ts`), the boot migrator and the LiteLLM spend-log pool; imported only by `server/repos/` (`server/db/AGENTS.md`, [database.md](database.md)) |
 | `server/utils/access/` | The access layer: decides document and workspace access and mints the proofs repo functions take |
 | `server/utils/api/` | The handler contract: `defineApiHandler`, the `allow.*` access policies, `apiError` ([api-handlers.md](api-handlers.md)) |
-| `server/error.ts` | Nitro error handler: 4xx pass through, 5xx become a generic message with `code: 'internal'` |
+| `server/error.ts` | Nitro error handler: 4xx pass through, 5xx become a generic message with `code: 'internal'` (a registered 5xx code without params keeps just its code) |
 
 ## Request pipeline
 

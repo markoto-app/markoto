@@ -187,7 +187,9 @@ async function generateImageBytesBfl(
         userId: opts.userId,
         docId: opts.docId
       })
-    })
+    // No SDK retry on a 5xx: BFL may already have accepted (and billed) the
+    // job. The provider retries the refused submissions itself.
+    }, { maxRetries: 0 })
     const content = resp.choices?.[0]?.message?.content ?? ''
     let body: { b64_json?: string, url?: string, cost_usd?: number }
     try {

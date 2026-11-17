@@ -25,6 +25,16 @@ describe('LiteLLM body extensions', () => {
     )
   })
 
+  it('passes maxRetries to the SDK only when the caller sets it (paid image calls send 0)', async () => {
+    const create = vi.fn(async () => ({ choices: [] }))
+    const client = { chat: { completions: { create } } }
+    await litellmCompletion(client as never, body, { maxRetries: 0 })
+    expect(create).toHaveBeenCalledWith(
+      { model: 'byok/chat', messages: body.messages },
+      { signal: undefined, body, maxRetries: 0 }
+    )
+  })
+
   it('does the same for a streamed completion', async () => {
     const create = vi.fn(async () => ({ [Symbol.asyncIterator]: () => ({ next: async () => ({ done: true, value: undefined }) }) }))
     const client = { chat: { completions: { create } } }

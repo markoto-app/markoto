@@ -18,13 +18,25 @@ import { fakeOpenAiBaseUrl } from '../../integration/setup/env'
 // connects the test stack's fake OpenAI-compatible image provider as the
 // user's own key (a 1x1 PNG, "runs on your own provider"), so the dialog,
 // the route and the insertion still run end to end. A provider outage on
-// the live path skips the flow (tests/e2e/AGENTS.md → Live-provider outages).
+// the live path (the route's 502 `ai/image-provider-unavailable`, e.g. BFL
+// rate-limiting its EU endpoint past the provider's own retries) skips the
+// flow (tests/e2e/AGENTS.md → Live-provider outages); every other failure
+// still fails it.
 
 const IMAGE_PROVIDER_DOWN = 'The image provider is not available right now'
+const IMAGE_OUTAGE_REASON = 'the image provider (Black Forest Labs) is unavailable'
 
 test('Generate an image yourself', async ({ page, flow, editor }) => {
   test.setTimeout(240_000)
   const live = Boolean(process.env.BFL_API_KEY)
+
+  if (live) {
+    flow.allowProviderOutage({
+      path: /^\/api\/docs\/[^/]+\/images\/generate$/,
+      codes: ['ai/image-provider-unavailable'],
+      reason: IMAGE_OUTAGE_REASON
+    })
+  }
 
   await editor.page.loginAsTestUser('Maya Chen')
   if (!live) {
@@ -97,7 +109,7 @@ test('Generate an image yourself', async ({ page, flow, editor }) => {
   })
   if (await error.isVisible()) {
     const text = (await error.textContent()) ?? ''
-    if (text.includes(IMAGE_PROVIDER_DOWN)) skipForProviderOutage('the image provider (Black Forest Labs) is unavailable')
+    if (live && text.includes(IMAGE_PROVIDER_DOWN)) skipForProviderOutage(IMAGE_OUTAGE_REASON)
     throw new Error(`image generation failed: ${text}`)
   }
 
