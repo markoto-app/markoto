@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/iv3jHlIP5I"
+      "path": "/d/K38-IdTKgR"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 618,
         "y": 722
       },
-      "path": "/d/iv3jHlIP5I"
+      "path": "/d/K38-IdTKgR"
     },
     {
       "kind": "outcome",
@@ -42,62 +42,62 @@
         "x": 618,
         "y": 722
       },
-      "path": "/d/iv3jHlIP5I"
+      "path": "/d/K38-IdTKgR"
     },
     {
       "kind": "approach",
-      "file": "04.webp",
+      "file": "03.webp",
       "caption": "Type a question that needs current info",
       "cursor": {
         "x": 316,
         "y": 723
       },
-      "path": "/d/iv3jHlIP5I"
+      "path": "/d/K38-IdTKgR"
     },
     {
       "kind": "outcome",
-      "file": "05.webp",
+      "file": "04.webp",
       "caption": "Your prompt is ready. Asking for the \"latest\" release tells the AI to search the web.",
       "cursor": {
         "x": 316,
         "y": 723
       },
-      "path": "/d/iv3jHlIP5I"
+      "path": "/d/K38-IdTKgR"
     },
     {
       "kind": "approach",
-      "file": "06.webp",
+      "file": "05.webp",
       "caption": "Send it",
       "cursor": {
         "x": 1000,
         "y": 722
       },
-      "path": "/d/iv3jHlIP5I"
+      "path": "/d/K38-IdTKgR"
     },
     {
       "kind": "outcome",
-      "file": "07.webp",
+      "file": "06.webp",
       "caption": "The AI is working, it searches the web, then writes the answer into the doc.",
       "cursor": {
         "x": 1000,
         "y": 722
       },
-      "path": "/d/iv3jHlIP5I"
+      "path": "/d/K38-IdTKgR"
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
+      "file": "07.webp",
       "caption": "The AI searched the web, found the current Vue.js release, and wrote the note into the doc, with a link to its source.",
       "cursor": {
         "x": 1000,
         "y": 722
       },
-      "path": "/d/iv3jHlIP5I",
+      "path": "/d/K38-IdTKgR",
       "highlights": [
         {
           "label": "Answer with its source",
           "x": 24.75,
-          "y": 234.5,
+          "y": 259.25,
           "w": 590,
           "h": 49.5
         }

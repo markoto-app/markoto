@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/NdjOX-8UYk"
+      "path": "/d/7XD-my-p1Z"
     },
     {
       "kind": "outcome",
@@ -32,7 +32,7 @@
         "x": 19,
         "y": 383
       },
-      "path": "/d/NdjOX-8UYk"
+      "path": "/d/7XD-my-p1Z"
     },
     {
       "kind": "approach",
@@ -42,7 +42,7 @@
         "x": 364,
         "y": 328
       },
-      "path": "/d/NdjOX-8UYk"
+      "path": "/d/7XD-my-p1Z"
     },
     {
       "kind": "outcome",
@@ -52,7 +52,7 @@
         "x": 364,
         "y": 328
       },
-      "path": "/d/NdjOX-8UYk"
+      "path": "/d/7XD-my-p1Z"
     },
     {
       "kind": "chapter",
@@ -67,7 +67,7 @@
         "x": 364,
         "y": 328
       },
-      "path": "/d/NdjOX-8UYk"
+      "path": "/d/7XD-my-p1Z"
     },
     {
       "kind": "outcome",
@@ -77,7 +77,7 @@
         "x": 996,
         "y": 236
       },
-      "path": "/d/NdjOX-8UYk",
+      "path": "/d/7XD-my-p1Z",
       "highlights": [
         {
           "label": "markoto: synthetic entry, always available",
@@ -96,7 +96,7 @@
         "x": 1110,
         "y": 252
       },
-      "path": "/d/NdjOX-8UYk",
+      "path": "/d/7XD-my-p1Z",
       "annotations": [
         {
           "label": "markoto entry",
@@ -116,27 +116,27 @@
         "x": 1110,
         "y": 252
       },
-      "path": "/d/NdjOX-8UYk"
+      "path": "/d/7XD-my-p1Z"
     },
     {
       "kind": "approach",
-      "file": "06.webp",
+      "file": "07.webp",
       "caption": "Finish your question",
       "cursor": {
         "x": 996,
         "y": 236
       },
-      "path": "/d/NdjOX-8UYk"
+      "path": "/d/7XD-my-p1Z"
     },
     {
       "kind": "outcome",
-      "file": "07.webp",
+      "file": "08.webp",
       "caption": "Your question is ready, submit to summon markoto.",
       "cursor": {
         "x": 996,
         "y": 236
       },
-      "path": "/d/NdjOX-8UYk"
+      "path": "/d/7XD-my-p1Z"
     },
     {
       "kind": "chapter",
@@ -146,32 +146,32 @@
     {
       "kind": "narration",
       "text": "Once you post, the comment lands like any other, but the thread card glows with a \"markoto is responding…\" badge. markoto is reading the anchored passage and the conversation so far, then replying in the same thread so the discussion stays in one place.",
-      "file": "07.webp",
+      "file": "08.webp",
       "cursor": {
         "x": 1120,
         "y": 235
       },
-      "path": "/d/NdjOX-8UYk"
+      "path": "/d/7XD-my-p1Z"
     },
     {
       "kind": "approach",
-      "file": "08.webp",
+      "file": "09.webp",
       "caption": "Click Submit to post and trigger markoto",
       "cursor": {
         "x": 1067,
         "y": 313
       },
-      "path": "/d/NdjOX-8UYk"
+      "path": "/d/7XD-my-p1Z"
     },
     {
       "kind": "outcome",
-      "file": "09.webp",
+      "file": "10.webp",
       "caption": "Your comment lands, the thread glows while markoto works.",
       "cursor": {
         "x": 1067,
         "y": 313
       },
-      "path": "/d/NdjOX-8UYk",
+      "path": "/d/7XD-my-p1Z",
       "highlights": [
         {
           "label": "markoto is responding",
@@ -190,29 +190,29 @@
     {
       "kind": "narration",
       "text": "markoto uses tools to inspect the document and craft a response. When it's done, it replies on this thread, same surface a human collaborator would use. The glow fades and the reply is just another message you can react to.",
-      "file": "10.webp",
+      "file": "11.webp",
       "cursor": {
         "x": 1067,
         "y": 313
       },
-      "path": "/d/NdjOX-8UYk"
+      "path": "/d/7XD-my-p1Z"
     },
     {
       "kind": "outcome",
-      "file": "11.webp",
+      "file": "12.webp",
       "caption": "markoto replied on the thread, the conversation stays in one place.",
       "cursor": {
         "x": 1067,
         "y": 313
       },
-      "path": "/d/NdjOX-8UYk",
+      "path": "/d/7XD-my-p1Z",
       "highlights": [
         {
           "label": "markoto's reply",
           "x": 969,
           "y": 172,
           "w": 303,
-          "h": 517.75
+          "h": 497.75
         }
       ],
       "hero": true
