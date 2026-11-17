@@ -1,6 +1,6 @@
 # Admin product stats: metric definitions
 
-The admin page `/admin/stats` (tabs Overview, Users, Content, AI, Revenue, Operations) and the one-page investor summary `/admin/stats/investor` show product numbers of one instance. This page defines every number, so a figure in an investor update can be reproduced from the database.
+The admin area (`/admin`, "Admin" in the account menu of an admin; its pages are listed in `app/utils/admin/adminSections.ts`) holds the stats page `/admin/stats` (tabs Overview, Users, Content, AI, Revenue, Operations) and the one-page investor summary `/admin/stats/investor`. Both show product numbers of one instance. This page defines every number, so a figure in an investor update can be reproduced from the database.
 
 - Endpoints: `GET /api/admin/stats/{overview,users,content,ai,revenue,ops}?range=7|30|90|365|all[&bucket=day|week|month]`, admin only (`allow.admin()`).
 - Code: SQL in `server/repos/productStats.ts` and `server/repos/litellmSpend.ts`, assembly in `server/utils/adminStats/productStats.ts`, shapes and arithmetic in `shared/contracts/adminStats.ts`.
@@ -12,6 +12,7 @@ The admin page `/admin/stats` (tabs Overview, Users, Content, AI, Revenue, Opera
 - All days are UTC. A window is `[from, to)`: `to` is tomorrow, so today counts. `range=30` is today and the 29 days before.
 - Each KPI with a change compares the window with the equally long window right before it. `all` has no comparison.
 - `all` starts at the first sign-up, at most 60 months back.
+- Count charts step in whole numbers (at least 0 to 4 on the axis); money charts keep decimals.
 - Time series: daily points for 7 / 30 / 90 days, weekly (Monday) for 12 months, monthly for all time; buckets without data are 0. The investor summary asks for 12 months with monthly points.
 
 ## Users
@@ -59,8 +60,8 @@ Cost comes from LiteLLM's `LiteLLM_SpendLogs` (its own database) and, for older 
 | AI cost | Sum of `spend` (USD) of the rows in the window. Each request counts once. LiteLLM's `/spend/tags` adds a request's cost to every tag it carries (feature, user, workspace, document) and over-counts when summed; it is not used here. |
 | Cost by feature | Each row is assigned to its `feature:*` tag (the first in sort order if a row ever had two); rows without one are "other". Same query as the AI spend page (`spendByFeature`). |
 | AI requests | Rows in the window. |
-| People using AI | Distinct `user:*` tags in the window. Calls on a user's own key (bring your own key) are logged at zero cost and counted here too. |
-| Cost per AI user / per active user | AI cost / people using AI; AI cost / accounts active in the window (`last_active_on`). |
+| People using AI | Distinct `user:<id>` tags in the window whose account still exists. The spend logs keep the calls of accounts deleted since (90 days), so they are matched against `users` (`countExistingUsers`); the number can never exceed the accounts. Calls on a user's own key (bring your own key) are logged at zero cost and counted here too. |
+| Cost per AI user / per active user | AI cost / everyone with a call in the window (deleted accounts included, as their cost is in the sum); AI cost / accounts active in the window (`last_active_on`). |
 | Free AI pool | Cost this calendar month (UTC) of the LiteLLM team `markoto-free-tier` against `NUXT_FREE_TIER_TOTAL_BUDGET_USD`; the team's budget resets on the 1st. "No shared limit" when the variable is unset. |
 | Own AI key | Accounts with at least one `user_ai_providers` row (also per capability). |
 | MCP | Personal access tokens not revoked and not expired; MCP sessions started in the window. |

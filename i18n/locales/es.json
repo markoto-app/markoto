@@ -3020,7 +3020,8 @@
       "billingOff": "La facturación está desactivada en esta instancia.",
       "comingSoon": "Los planes de pago se muestran como «próximamente»; la lista de espera está abierta.",
       "aiUsersFrom": "Las personas que usan IA se cuentan desde el {day} (los registros por persona se conservan 90 días).",
-      "churnHistory": "El historial de suscripciones se registra a partir de esta versión; los planes de espacio de trabajo anteriores se añadieron a partir de sus registros."
+      "churnHistory": "El historial de suscripciones se registra a partir de esta versión; los planes de espacio de trabajo anteriores se añadieron a partir de sus registros.",
+      "aiUsersDefinition": "Solo cuentas existentes; las cuentas eliminadas no se cuentan."
     },
     "chart": {
       "signups": "Registros",
@@ -3076,7 +3077,18 @@
       "planMix": "Distribución de planes",
       "exports": "Exportaciones de datos",
       "abuse": "Denuncias de abuso",
-      "estimate": "Contribución mensual estimada"
+      "estimate": "Contribución mensual estimada",
+      "trends": "Tendencias",
+      "details": "Detalles",
+      "accounts": "Cuentas",
+      "activity": "Actividad",
+      "workspacesAndFiles": "Espacios de trabajo y archivos",
+      "aiUsage": "Uso y coste",
+      "aiAccess": "Acceso",
+      "recurring": "Ingresos recurrentes",
+      "subscriptionChanges": "Cambios de suscripción y lista de espera",
+      "storage": "Almacenamiento",
+      "queues": "Colas y mantenimiento"
     },
     "activation": {
       "signedUp": "Registrados",
@@ -3128,9 +3140,10 @@
       "revenue": "Ingresos",
       "content": "Contenido",
       "ai": "IA",
-      "footnote": "Cuentas y documentos de la base de datos de la aplicación, coste de IA de los registros del proxy de IA (90 días). Ingresos a precio de lista, brutos. Definiciones: docs/contributing/admin-metrics.md."
+      "footnote": "Cuentas y documentos de la base de datos de la aplicación, coste de IA de los registros del proxy de IA (90 días). Ingresos a precio de lista, brutos. Definiciones: docs/contributing/admin-metrics.md.",
+      "last12Months": "Últimos 12 meses",
+      "growth": "Crecimiento, 12 meses"
     },
-    "menu": "Estadísticas del producto",
     "estimate": {
       "estimated": "Estimación",
       "gross": "Bruto a precio de lista",
@@ -3142,6 +3155,118 @@
       "combined": "Total, en CHF",
       "note": "Estimado, por mes. EUR a CHF a {eur}, USD a CHF a {usd}. Los supuestos se definen con NUXT_STATS_*.",
       "aiUnavailable": "No se pudo leer el coste de IA y cuenta como 0."
+    }
+  },
+  "admin": {
+    "title": "Admin",
+    "navLabel": "Páginas de administración",
+    "nav": {
+      "overview": "Resumen",
+      "stats": "Estadísticas del producto",
+      "investor": "Resumen para inversores",
+      "aiSpend": "Coste de IA",
+      "abuseReports": "Denuncias de abuso"
+    },
+    "hub": {
+      "title": "Admin",
+      "intro": "Gestiona esta instancia: cifras, coste de IA y la cola de moderación.",
+      "aiSpend30": "Coste de IA, 30 días",
+      "abuseActive": "abiertas o en revisión",
+      "description": {
+        "stats": "Usuarios, contenido, IA, ingresos y operaciones, con tendencias y descargas en CSV.",
+        "investor": "Las cifras clave y 12 meses de crecimiento en una página imprimible.",
+        "aiSpend": "Coste de IA por función para cualquier rango de fechas, según los registros del proxy de IA.",
+        "abuseReports": "Denuncias del formulario: revísalas y decide."
+      }
+    },
+    "abuse": {
+      "title": "Denuncias de abuso",
+      "intro": "Denuncias enviadas mediante el formulario en /legal/abuse. Las denuncias por correo llegan al buzón de abusos y no aparecen aquí.",
+      "filter": {
+        "label": "Mostrar",
+        "active": "Cola activa",
+        "all": "Todas"
+      },
+      "status": {
+        "open": "Abierta",
+        "acknowledged": "Acusada de recibo",
+        "actioned": "Con medida adoptada",
+        "dismissed": "Desestimada"
+      },
+      "refresh": "Actualizar",
+      "loading": "Cargando denuncias…",
+      "empty": "No hay denuncias en esta vista.",
+      "loadFailed": "No se pudieron cargar las denuncias",
+      "updateFailed": "No se pudo actualizar la denuncia",
+      "done": {
+        "acknowledged": "Denuncia acusada de recibo",
+        "actioned": "Medida adoptada",
+        "dismissed": "Denuncia desestimada"
+      },
+      "reporter": "Denunciante",
+      "accountDeleted": "Cuenta eliminada",
+      "emailSnapshot": "Cuenta eliminada, correo conservado para el seguimiento",
+      "mailSubject": "Re: denuncia de abuso {id}",
+      "reported": "Denunciado",
+      "document": "Documento",
+      "notes": "Notas",
+      "signedIn": "Denunciante con sesión iniciada",
+      "notSignedIn": "Denunciante sin sesión iniciada",
+      "goodFaith": "declaración de buena fe confirmada",
+      "goodFaithLegacy": "sin declaración de buena fe (denuncia antigua)",
+      "decision": "Decisión",
+      "notices": "Notificaciones ({n})",
+      "noticeKind": {
+        "receipt": "Acuse de recibo al denunciante",
+        "decision": "Decisión al denunciante",
+        "statement_of_reasons": "Exposición de motivos al propietario"
+      },
+      "noticeStatus": {
+        "sent": "enviada",
+        "not_delivered_no_contact": "no enviada, sin contacto",
+        "failed": "fallida"
+      },
+      "handledBy": "{status} por {name} · {date}",
+      "actionLabel": "Medida",
+      "ruleLabel": "Norma",
+      "actionOption": {
+        "content_removed": "Eliminar el documento",
+        "access_restricted": "Restringir (poner en privado)"
+      },
+      "decisionAction": {
+        "content_removed": "Documento eliminado",
+        "access_restricted": "Acceso restringido",
+        "no_action": "Sin medidas"
+      },
+      "rule": {
+        "illegal_content": "Contenido ilegal",
+        "csam": "Material de abuso sexual infantil",
+        "phishing_or_fraud": "Phishing, estafas o fraude",
+        "malware": "Malware o descargas dañinas",
+        "spam_or_seo": "Spam o manipulación de buscadores",
+        "copyright": "Infracción de derechos de autor o propiedad intelectual",
+        "harassment_or_hate": "Acoso, amenazas o discurso de odio",
+        "privacy_violation": "Datos personales de otras personas",
+        "other_terms": "Otro incumplimiento de las condiciones"
+      },
+      "explanationPlaceholder": "Explicación. Se envía al denunciante y, si eliminas o restringes, al propietario como exposición de motivos.",
+      "notesPlaceholder": "Notas (opcional, internas, se guardan en el registro de auditoría)",
+      "acknowledge": "Acusar recibo",
+      "dismiss": "Desestimar",
+      "takeAction": "Adoptar medida"
+    },
+    "aiSpend": {
+      "title": "Coste de IA",
+      "intro": "Coste de IA por función en un rango de fechas, una fila por llamada en los registros del proxy de IA. Un \"Otros\" grande significa que algún punto de llamada no envía etiqueta de función.",
+      "from": "Desde",
+      "to": "Hasta",
+      "refresh": "Mostrar",
+      "totals": "Total",
+      "byFeature": "Por función",
+      "otherHint": "Por espacio de trabajo, persona o documento: el endpoint de la API /api/admin/axis-spend.",
+      "tokens": "Tokens",
+      "loadFailed": "No se pudo cargar el coste de IA",
+      "empty": "No hay datos para este rango."
     }
   }
 }

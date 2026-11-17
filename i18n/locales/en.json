@@ -3020,7 +3020,8 @@
       "billingOff": "Billing is off on this instance.",
       "comingSoon": "Paid plans are shown as coming soon; the waitlist is open.",
       "aiUsersFrom": "People using AI are counted from {day} (per-person logs are kept 90 days).",
-      "churnHistory": "Subscription history is recorded from this version on; workspace plans before it were added from their records."
+      "churnHistory": "Subscription history is recorded from this version on; workspace plans before it were added from their records.",
+      "aiUsersDefinition": "Existing accounts only; deleted accounts are not counted."
     },
     "chart": {
       "signups": "Sign-ups",
@@ -3076,7 +3077,18 @@
       "planMix": "Plan mix",
       "exports": "Data exports",
       "abuse": "Abuse reports",
-      "estimate": "Estimated monthly contribution"
+      "estimate": "Estimated monthly contribution",
+      "trends": "Trends",
+      "details": "Details",
+      "accounts": "Accounts",
+      "activity": "Activity",
+      "workspacesAndFiles": "Workspaces and files",
+      "aiUsage": "Usage and cost",
+      "aiAccess": "Access",
+      "recurring": "Recurring revenue",
+      "subscriptionChanges": "Subscription changes and waitlist",
+      "storage": "Storage",
+      "queues": "Queues and housekeeping"
     },
     "activation": {
       "signedUp": "Signed up",
@@ -3128,9 +3140,10 @@
       "revenue": "Revenue",
       "content": "Content",
       "ai": "AI",
-      "footnote": "Accounts and documents from the application database, AI cost from the AI proxy's logs (90 days). Revenue at list price, gross. Definitions: docs/contributing/admin-metrics.md."
+      "footnote": "Accounts and documents from the application database, AI cost from the AI proxy's logs (90 days). Revenue at list price, gross. Definitions: docs/contributing/admin-metrics.md.",
+      "last12Months": "Last 12 months",
+      "growth": "Growth, 12 months"
     },
-    "menu": "Product stats",
     "estimate": {
       "estimated": "Estimate",
       "gross": "Gross at list price",
@@ -3142,6 +3155,118 @@
       "combined": "All, in CHF",
       "note": "Estimated, per month. EUR to CHF at {eur}, USD to CHF at {usd}. The assumptions are set with NUXT_STATS_*.",
       "aiUnavailable": "The AI cost could not be read and counts as 0."
+    }
+  },
+  "admin": {
+    "title": "Admin",
+    "navLabel": "Admin pages",
+    "nav": {
+      "overview": "Overview",
+      "stats": "Product stats",
+      "investor": "Investor summary",
+      "aiSpend": "AI cost",
+      "abuseReports": "Abuse reports"
+    },
+    "hub": {
+      "title": "Admin",
+      "intro": "Run this instance: numbers, AI cost and the moderation queue.",
+      "aiSpend30": "AI cost, 30 days",
+      "abuseActive": "open or in review",
+      "description": {
+        "stats": "Users, content, AI, revenue and operations, with trends and CSV downloads.",
+        "investor": "The key numbers and 12 months of growth on one printable page.",
+        "aiSpend": "AI cost per feature for any date range, from the AI proxy's logs.",
+        "abuseReports": "Reports from the report form: review them and decide."
+      }
+    },
+    "abuse": {
+      "title": "Abuse reports",
+      "intro": "Reports sent through the form at /legal/abuse. Reports by email go to the abuse inbox and are not listed here.",
+      "filter": {
+        "label": "Show",
+        "active": "Active queue",
+        "all": "All"
+      },
+      "status": {
+        "open": "Open",
+        "acknowledged": "Acknowledged",
+        "actioned": "Actioned",
+        "dismissed": "Dismissed"
+      },
+      "refresh": "Refresh",
+      "loading": "Loading reports…",
+      "empty": "No reports in this view.",
+      "loadFailed": "Couldn't load the reports",
+      "updateFailed": "Couldn't update the report",
+      "done": {
+        "acknowledged": "Report acknowledged",
+        "actioned": "Action taken",
+        "dismissed": "Report dismissed"
+      },
+      "reporter": "Reporter",
+      "accountDeleted": "Account deleted",
+      "emailSnapshot": "Account deleted, email kept for follow-up",
+      "mailSubject": "Re: abuse report {id}",
+      "reported": "Reported",
+      "document": "Document",
+      "notes": "Notes",
+      "signedIn": "Reporter signed in",
+      "notSignedIn": "Reporter not signed in",
+      "goodFaith": "good-faith statement confirmed",
+      "goodFaithLegacy": "no good-faith statement (older report)",
+      "decision": "Decision",
+      "notices": "Notices ({n})",
+      "noticeKind": {
+        "receipt": "Receipt to the reporter",
+        "decision": "Decision to the reporter",
+        "statement_of_reasons": "Statement of reasons to the owner"
+      },
+      "noticeStatus": {
+        "sent": "sent",
+        "not_delivered_no_contact": "not sent, no contact",
+        "failed": "failed"
+      },
+      "handledBy": "{status} by {name} · {date}",
+      "actionLabel": "Action",
+      "ruleLabel": "Rule",
+      "actionOption": {
+        "content_removed": "Remove the document",
+        "access_restricted": "Restrict (set to private)"
+      },
+      "decisionAction": {
+        "content_removed": "Document removed",
+        "access_restricted": "Access restricted",
+        "no_action": "No action"
+      },
+      "rule": {
+        "illegal_content": "Illegal content",
+        "csam": "Child sexual abuse material",
+        "phishing_or_fraud": "Phishing, scams or fraud",
+        "malware": "Malware or harmful downloads",
+        "spam_or_seo": "Spam or search-engine manipulation",
+        "copyright": "Copyright or IP infringement",
+        "harassment_or_hate": "Harassment, threats or hate speech",
+        "privacy_violation": "Other people's personal data",
+        "other_terms": "Other breach of the Terms"
+      },
+      "explanationPlaceholder": "Explanation. Sent to the reporter, and to the owner as the statement of reasons when you remove or restrict.",
+      "notesPlaceholder": "Notes (optional, internal, kept in the audit log)",
+      "acknowledge": "Acknowledge",
+      "dismiss": "Dismiss",
+      "takeAction": "Take action"
+    },
+    "aiSpend": {
+      "title": "AI cost",
+      "intro": "AI cost per feature in a date range, one row per call in the AI proxy's logs. A large \"Other\" means a call site sends no feature tag.",
+      "from": "From",
+      "to": "To",
+      "refresh": "Show",
+      "totals": "Total",
+      "byFeature": "By feature",
+      "otherHint": "Per workspace, person or document: the API endpoint /api/admin/axis-spend.",
+      "tokens": "Tokens",
+      "loadFailed": "Couldn't load the AI cost",
+      "empty": "No data for this range."
     }
   }
 }

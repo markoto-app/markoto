@@ -3020,7 +3020,8 @@
       "billingOff": "La facturation est désactivée sur cette instance.",
       "comingSoon": "Les forfaits payants sont présentés comme « bientôt disponibles » ; la liste d'attente est ouverte.",
       "aiUsersFrom": "Les personnes utilisant l'IA sont comptées à partir du {day} (les journaux par personne sont conservés 90 jours).",
-      "churnHistory": "L'historique des abonnements est enregistré à partir de cette version ; les forfaits d'espace de travail antérieurs ont été ajoutés à partir de leurs données."
+      "churnHistory": "L'historique des abonnements est enregistré à partir de cette version ; les forfaits d'espace de travail antérieurs ont été ajoutés à partir de leurs données.",
+      "aiUsersDefinition": "Comptes existants uniquement ; les comptes supprimés ne sont pas comptés."
     },
     "chart": {
       "signups": "Inscriptions",
@@ -3076,7 +3077,18 @@
       "planMix": "Répartition des forfaits",
       "exports": "Exports de données",
       "abuse": "Signalements d'abus",
-      "estimate": "Contribution mensuelle estimée"
+      "estimate": "Contribution mensuelle estimée",
+      "trends": "Tendances",
+      "details": "Détails",
+      "accounts": "Comptes",
+      "activity": "Activité",
+      "workspacesAndFiles": "Espaces de travail et fichiers",
+      "aiUsage": "Utilisation et coût",
+      "aiAccess": "Accès",
+      "recurring": "Revenus récurrents",
+      "subscriptionChanges": "Évolution des abonnements et liste d'attente",
+      "storage": "Stockage",
+      "queues": "Files d'attente et maintenance"
     },
     "activation": {
       "signedUp": "Inscrit",
@@ -3128,9 +3140,10 @@
       "revenue": "Revenus",
       "content": "Contenu",
       "ai": "IA",
-      "footnote": "Comptes et documents issus de la base de données de l'application, coût de l'IA issu des journaux du proxy IA (90 jours). Revenus au prix catalogue, bruts. Définitions : docs/contributing/admin-metrics.md."
+      "footnote": "Comptes et documents issus de la base de données de l'application, coût de l'IA issu des journaux du proxy IA (90 jours). Revenus au prix catalogue, bruts. Définitions : docs/contributing/admin-metrics.md.",
+      "last12Months": "12 derniers mois",
+      "growth": "Croissance, 12 mois"
     },
-    "menu": "Statistiques produit",
     "estimate": {
       "estimated": "Estimation",
       "gross": "Brut au prix catalogue",
@@ -3142,6 +3155,118 @@
       "combined": "Total, en CHF",
       "note": "Estimé, par mois. EUR en CHF à {eur}, USD en CHF à {usd}. Les hypothèses se définissent avec NUXT_STATS_*.",
       "aiUnavailable": "Le coût de l'IA n'a pas pu être lu et compte pour 0."
+    }
+  },
+  "admin": {
+    "title": "Admin",
+    "navLabel": "Pages d'administration",
+    "nav": {
+      "overview": "Aperçu",
+      "stats": "Statistiques produit",
+      "investor": "Synthèse investisseurs",
+      "aiSpend": "Coût de l'IA",
+      "abuseReports": "Signalements d'abus"
+    },
+    "hub": {
+      "title": "Admin",
+      "intro": "Pilotez cette instance : chiffres, coût de l'IA et file de modération.",
+      "aiSpend30": "Coût de l'IA, 30 jours",
+      "abuseActive": "ouverts ou en cours d'examen",
+      "description": {
+        "stats": "Utilisateurs, contenu, IA, revenus et exploitation, avec tendances et téléchargements CSV.",
+        "investor": "Les chiffres clés et 12 mois de croissance sur une page imprimable.",
+        "aiSpend": "Coût de l'IA par fonction sur toute période, d'après les journaux du proxy IA.",
+        "abuseReports": "Signalements envoyés via le formulaire : examinez-les et décidez."
+      }
+    },
+    "abuse": {
+      "title": "Signalements d'abus",
+      "intro": "Signalements envoyés via le formulaire à l'adresse /legal/abuse. Les signalements par e-mail arrivent dans la boîte abus et ne sont pas listés ici.",
+      "filter": {
+        "label": "Afficher",
+        "active": "File active",
+        "all": "Tous"
+      },
+      "status": {
+        "open": "Ouvert",
+        "acknowledged": "Reçu",
+        "actioned": "Traité",
+        "dismissed": "Rejeté"
+      },
+      "refresh": "Actualiser",
+      "loading": "Chargement des signalements…",
+      "empty": "Aucun signalement dans cette vue.",
+      "loadFailed": "Impossible de charger les signalements",
+      "updateFailed": "Impossible de mettre à jour le signalement",
+      "done": {
+        "acknowledged": "Signalement accusé de réception",
+        "actioned": "Mesure prise",
+        "dismissed": "Signalement rejeté"
+      },
+      "reporter": "Auteur du signalement",
+      "accountDeleted": "Compte supprimé",
+      "emailSnapshot": "Compte supprimé, e-mail conservé pour le suivi",
+      "mailSubject": "Re : signalement d'abus {id}",
+      "reported": "Signalé",
+      "document": "Document",
+      "notes": "Notes",
+      "signedIn": "Auteur connecté",
+      "notSignedIn": "Auteur non connecté",
+      "goodFaith": "déclaration de bonne foi confirmée",
+      "goodFaithLegacy": "pas de déclaration de bonne foi (ancien signalement)",
+      "decision": "Décision",
+      "notices": "Notifications ({n})",
+      "noticeKind": {
+        "receipt": "Accusé de réception à l'auteur",
+        "decision": "Décision à l'auteur",
+        "statement_of_reasons": "Exposé des motifs au propriétaire"
+      },
+      "noticeStatus": {
+        "sent": "envoyée",
+        "not_delivered_no_contact": "non envoyée, pas de contact",
+        "failed": "échec"
+      },
+      "handledBy": "{status} par {name} · {date}",
+      "actionLabel": "Mesure",
+      "ruleLabel": "Règle",
+      "actionOption": {
+        "content_removed": "Supprimer le document",
+        "access_restricted": "Restreindre (passer en privé)"
+      },
+      "decisionAction": {
+        "content_removed": "Document supprimé",
+        "access_restricted": "Accès restreint",
+        "no_action": "Aucune mesure"
+      },
+      "rule": {
+        "illegal_content": "Contenu illégal",
+        "csam": "Matériel d'abus sexuel sur mineurs",
+        "phishing_or_fraud": "Hameçonnage, arnaques ou fraude",
+        "malware": "Logiciels malveillants ou téléchargements nuisibles",
+        "spam_or_seo": "Spam ou manipulation des moteurs de recherche",
+        "copyright": "Violation de droit d'auteur ou de propriété intellectuelle",
+        "harassment_or_hate": "Harcèlement, menaces ou discours haineux",
+        "privacy_violation": "Données personnelles d'autrui",
+        "other_terms": "Autre manquement aux conditions d'utilisation"
+      },
+      "explanationPlaceholder": "Explication. Envoyée à l'auteur du signalement, et au propriétaire comme exposé des motifs en cas de suppression ou de restriction.",
+      "notesPlaceholder": "Notes (facultatif, internes, conservées dans le journal d'audit)",
+      "acknowledge": "Accuser réception",
+      "dismiss": "Rejeter",
+      "takeAction": "Agir"
+    },
+    "aiSpend": {
+      "title": "Coût de l'IA",
+      "intro": "Coût de l'IA par fonction sur une période, une ligne par appel dans les journaux du proxy IA. Une grande part « Autre » signifie qu'un appel n'envoie aucune étiquette de fonction.",
+      "from": "Du",
+      "to": "Au",
+      "refresh": "Afficher",
+      "totals": "Total",
+      "byFeature": "Par fonction",
+      "otherHint": "Par espace de travail, personne ou document : le point d'accès API /api/admin/axis-spend.",
+      "tokens": "Jetons",
+      "loadFailed": "Impossible de charger le coût de l'IA",
+      "empty": "Aucune donnée pour cette période."
     }
   }
 }

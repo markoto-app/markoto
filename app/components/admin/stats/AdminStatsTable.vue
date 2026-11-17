@@ -30,7 +30,7 @@ function download(): void {
 </script>
 
 <template>
-  <section class="rounded-md bg-default p-4 break-inside-avoid">
+  <section class="rounded-md bg-default p-4 break-inside-avoid print:border print:border-default">
     <div class="flex items-center justify-between gap-3 mb-3">
       <h3 class="text-sm text-default">
         {{ title }}

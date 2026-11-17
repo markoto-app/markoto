@@ -85,8 +85,8 @@ const topupRows = computed(() => props.data.topups.map(r => ({ currency: r.curre
 </script>
 
 <template>
-  <div class="space-y-6">
-    <ul class="text-sm text-muted space-y-1">
+  <div class="space-y-8">
+    <ul class="rounded-md bg-default px-4 py-3 text-sm text-muted space-y-1">
       <li
         v-for="note in notes"
         :key="note"
@@ -94,129 +94,133 @@ const topupRows = computed(() => props.data.topups.map(r => ({ currency: r.curre
         {{ note }}
       </li>
     </ul>
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.mrrTotal')"
-        :value="money(data.combinedChf.mrr, 'chf')"
-        :hint="`${t('adminStats.kpi.arrTotal')}: ${money(data.combinedChf.arr, 'chf')}`"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.contribution')"
-        :value="money(data.estimate.combinedChf.contribution, 'chf')"
-        :hint="t('adminStats.estimate.estimated')"
-      />
-      <template
-        v-for="r in data.revenue"
-        :key="r.currency"
-      >
+    <AdminSection :title="t('adminStats.section.recurring')">
+      <AdminStatsKpiGrid>
         <AdminStatsKpi
+          :label="t('adminStats.kpi.mrrTotal')"
+          :value="money(data.combinedChf.mrr, 'chf')"
+          :hint="`${t('adminStats.kpi.arrTotal')}: ${money(data.combinedChf.arr, 'chf')}`"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.contribution')"
+          :value="money(data.estimate.combinedChf.contribution, 'chf')"
+          :hint="t('adminStats.estimate.estimated')"
+        />
+        <AdminStatsKpi
+          v-for="r in data.revenue"
+          :key="r.currency"
           :label="t('adminStats.kpi.mrr', { currency: r.currency.toUpperCase() })"
           :value="money(r.mrr, r.currency)"
+          :hint="`${t('adminStats.kpi.arr', { currency: r.currency.toUpperCase() })}: ${money(r.arr, r.currency)}`"
         />
         <AdminStatsKpi
-          :label="t('adminStats.kpi.arr', { currency: r.currency.toUpperCase() })"
-          :value="money(r.arr, r.currency)"
+          :label="t('adminStats.kpi.payingCustomers')"
+          :value="n(data.payingCustomers)"
+          :hint="data.revenue.length === 0 ? t('adminStats.hint.noRevenue') : null"
         />
-      </template>
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.payingCustomers')"
-        :value="n(data.payingCustomers)"
-        :hint="data.revenue.length === 0 ? t('adminStats.hint.noRevenue') : null"
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.trialing')"
+          :value="n(data.trialing)"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.pastDue')"
+          :value="n(data.pastDue)"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.scheduledCancellations')"
+          :value="n(data.scheduledCancellations.subscriptions)"
+          :hint="data.scheduledCancellations.revenue.map(r => t('adminStats.kpi.atRisk', { currency: r.currency.toUpperCase() }) + ': ' + money(r.mrr, r.currency)).join(' · ') || null"
+        />
+      </AdminStatsKpiGrid>
+    </AdminSection>
+    <AdminSection
+      :title="t('adminStats.section.subscriptionChanges')"
+      :note="t('adminStats.hint.churnHistory')"
+    >
+      <AdminStatsKpiGrid>
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.subsStarted')"
+          :value="n(data.churn.started.value)"
+          :kpi="data.churn.started"
+          :hint="moneyList(data.churn.newMrr, 'adminStats.kpi.newMrr')"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.cancelScheduled')"
+          :value="n(data.churn.cancelScheduled.value)"
+          :kpi="data.churn.cancelScheduled"
+          lower-is-better
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.subsEnded')"
+          :value="n(data.churn.ended.value)"
+          :kpi="data.churn.ended"
+          :hint="moneyList(data.churn.lostMrr, 'adminStats.kpi.lostMrr')"
+          lower-is-better
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.waitlistConfirmed')"
+          :value="n(data.waitlist.confirmed)"
+          :hint="`${t('adminStats.kpi.waitlistUnconfirmed')}: ${n(data.waitlist.unconfirmed)}`"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.waitlistNew')"
+          :value="n(data.waitlist.newConfirmed.value)"
+          :kpi="data.waitlist.newConfirmed"
+        />
+      </AdminStatsKpiGrid>
+      <ClientOnly>
+        <AdminStatsChart
+          type="bar"
+          :title="t('adminStats.chart.subscriptions')"
+          :labels="data.churn.startedSeries.map(p => statsBucketLabel(p.t, data.window.bucket, locale))"
+          :datasets="[
+            { label: t('adminStats.chart.started'), data: data.churn.startedSeries.map(p => p.v) },
+            { label: t('adminStats.chart.ended'), data: data.churn.endedSeries.map(p => p.v) }
+          ]"
+          :format-value="n"
+        />
+      </ClientOnly>
+    </AdminSection>
+    <div class="space-y-2">
+      <AdminStatsTable
+        :title="t('adminStats.section.estimate')"
+        name="estimated-contribution"
+        :range="range"
+        :columns="estimateColumns"
+        :rows="estimateRows"
+        :csv-rows="estimateCsv"
       />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.trialing')"
-        :value="n(data.trialing)"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.pastDue')"
-        :value="n(data.pastDue)"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.scheduledCancellations')"
-        :value="n(data.scheduledCancellations.subscriptions)"
-        :hint="data.scheduledCancellations.revenue.map(r => t('adminStats.kpi.atRisk', { currency: r.currency.toUpperCase() }) + ': ' + money(r.mrr, r.currency)).join(' · ') || null"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.subsStarted')"
-        :value="n(data.churn.started.value)"
-        :kpi="data.churn.started"
-        :hint="moneyList(data.churn.newMrr, 'adminStats.kpi.newMrr')"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.cancelScheduled')"
-        :value="n(data.churn.cancelScheduled.value)"
-        :kpi="data.churn.cancelScheduled"
-        lower-is-better
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.subsEnded')"
-        :value="n(data.churn.ended.value)"
-        :kpi="data.churn.ended"
-        :hint="moneyList(data.churn.lostMrr, 'adminStats.kpi.lostMrr')"
-        lower-is-better
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.waitlistConfirmed')"
-        :value="n(data.waitlist.confirmed)"
-        :hint="`${t('adminStats.kpi.waitlistUnconfirmed')}: ${n(data.waitlist.unconfirmed)}`"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.waitlistNew')"
-        :value="n(data.waitlist.newConfirmed.value)"
-        :kpi="data.waitlist.newConfirmed"
-      />
+      <p class="text-xs text-muted">
+        {{ estimateNote }}
+      </p>
     </div>
-    <p class="text-xs text-muted">
-      {{ t('adminStats.hint.churnHistory') }}
-    </p>
-    <ClientOnly>
-      <AdminStatsChart
-        type="bar"
-        :title="t('adminStats.chart.subscriptions')"
-        :labels="data.churn.startedSeries.map(p => statsBucketLabel(p.t, data.window.bucket, locale))"
-        :datasets="[
-          { label: t('adminStats.chart.started'), data: data.churn.startedSeries.map(p => p.v) },
-          { label: t('adminStats.chart.ended'), data: data.churn.endedSeries.map(p => p.v) }
-        ]"
-        :format-value="n"
-      />
-    </ClientOnly>
-    <AdminStatsTable
-      :title="t('adminStats.section.estimate')"
-      name="estimated-contribution"
-      :range="range"
-      :columns="estimateColumns"
-      :rows="estimateRows"
-      :csv-rows="estimateCsv"
-    />
-    <p class="text-xs text-muted">
-      {{ estimateNote }}
-    </p>
-    <div class="grid gap-3 lg:grid-cols-2">
-      <AdminStatsTable
-        :title="t('adminStats.section.subscriptions')"
-        name="subscriptions"
-        :range="range"
-        :columns="groupColumns"
-        :rows="groupRows"
-        :csv-rows="groupCsv"
-      />
-      <AdminStatsTable
-        :title="t('adminStats.section.planMix')"
-        name="plan-mix"
-        :range="range"
-        :columns="mixColumns"
-        :rows="mixRows"
-        :csv-rows="mixCsv"
-      />
-      <AdminStatsTable
-        :title="t('adminStats.section.topups')"
-        name="ai-credits"
-        :range="range"
-        :columns="topupColumns"
-        :rows="topupRows"
-        :csv-rows="topupCsv"
-      />
-    </div>
+    <AdminSection :title="t('adminStats.section.details')">
+      <div class="grid gap-3 lg:grid-cols-2">
+        <AdminStatsTable
+          :title="t('adminStats.section.subscriptions')"
+          name="subscriptions"
+          :range="range"
+          :columns="groupColumns"
+          :rows="groupRows"
+          :csv-rows="groupCsv"
+        />
+        <AdminStatsTable
+          :title="t('adminStats.section.planMix')"
+          name="plan-mix"
+          :range="range"
+          :columns="mixColumns"
+          :rows="mixRows"
+          :csv-rows="mixCsv"
+        />
+        <AdminStatsTable
+          :title="t('adminStats.section.topups')"
+          name="ai-credits"
+          :range="range"
+          :columns="topupColumns"
+          :rows="topupRows"
+          :csv-rows="topupCsv"
+        />
+      </div>
+    </AdminSection>
   </div>
 </template>

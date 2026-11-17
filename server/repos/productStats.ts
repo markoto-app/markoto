@@ -54,6 +54,14 @@ async function kpi(w: StatsWindow, count: (from: string, to: string) => SQL): Pr
   return { value, previous }
 }
 
+/** How many of these user ids are accounts that still exist (deleted accounts are gone from `users`). */
+export async function countExistingUsers(_by: AdminActor, ids: readonly number[]): Promise<number> {
+  if (ids.length === 0) return 0
+  const list = `{${ids.filter(Number.isSafeInteger).join(',')}}`
+  const r = await one<{ n: number }>(sql`SELECT count(*)::int AS n FROM users WHERE id = ANY(${list}::bigint[])`)
+  return Number(r.n)
+}
+
 /** Day of the first sign-up (start of the `all` range), null on an empty instance. */
 export async function firstSignupDay(_by: AdminActor): Promise<string | null> {
   const r = await one<{ day: string | null }>(sql`SELECT (min(created_at) AT TIME ZONE 'UTC')::date::text AS day FROM users`)

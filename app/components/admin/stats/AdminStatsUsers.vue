@@ -47,51 +47,56 @@ const planRows = computed(() => planCsv.value.map(r => ({ plan: r.plan, accounts
 </script>
 
 <template>
-  <div class="space-y-6">
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.registered')"
-        :value="n(data.registered)"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.signups')"
-        :value="n(data.signups.value)"
-        :kpi="data.signups"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.editors')"
-        :value="n(data.editors.value)"
-        :kpi="data.editors"
-        :hint="t('adminStats.hint.editorsDefinition')"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.activeInWindow')"
-        :value="n(data.active.inWindow)"
-        :hint="t('adminStats.hint.activeDefinition')"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.dau')"
-        :value="n(data.active.day)"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.wau')"
-        :value="n(data.active.week)"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.mau')"
-        :value="n(data.active.month)"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.stickiness')"
-        :value="statsPercent(data.active.stickinessPct, locale)"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.pendingDeletion')"
-        :value="n(data.pendingDeletion)"
-      />
-    </div>
-    <ClientOnly>
-      <div class="grid gap-3 lg:grid-cols-2">
+  <div class="space-y-8">
+    <AdminSection :title="t('adminStats.section.accounts')">
+      <AdminStatsKpiGrid>
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.registered')"
+          :value="n(data.registered)"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.signups')"
+          :value="n(data.signups.value)"
+          :kpi="data.signups"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.pendingDeletion')"
+          :value="n(data.pendingDeletion)"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.editors')"
+          :value="n(data.editors.value)"
+          :kpi="data.editors"
+          :hint="t('adminStats.hint.editorsDefinition')"
+        />
+      </AdminStatsKpiGrid>
+    </AdminSection>
+    <AdminSection
+      :title="t('adminStats.section.activity')"
+      :note="t('adminStats.hint.activeDefinition')"
+    >
+      <AdminStatsKpiGrid>
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.activeInWindow')"
+          :value="n(data.active.inWindow)"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.dau')"
+          :value="n(data.active.day)"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.wau')"
+          :value="n(data.active.week)"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.mau')"
+          :value="n(data.active.month)"
+          :hint="`${t('adminStats.kpi.stickiness')}: ${statsPercent(data.active.stickinessPct, locale)}`"
+        />
+      </AdminStatsKpiGrid>
+    </AdminSection>
+    <AdminSection :title="t('adminStats.section.trends')">
+      <AdminStatsChartGrid>
         <AdminStatsChart
           type="bar"
           :title="t('adminStats.chart.signups')"
@@ -113,49 +118,51 @@ const planRows = computed(() => planCsv.value.map(r => ({ plan: r.plan, accounts
           :labels="activationSteps.map(s => t(`adminStats.activation.${s.key}`))"
           :datasets="[{ label: t('adminStats.table.accounts'), data: activationSteps.map(s => s.v) }]"
           :format-value="n"
-          :height="180"
+          :height="200"
         />
-      </div>
-    </ClientOnly>
+      </AdminStatsChartGrid>
+    </AdminSection>
     <AdminStatsCohorts
       :cohorts="data.cohorts"
       :range="range"
     />
-    <div class="grid gap-3 lg:grid-cols-2">
-      <AdminStatsTable
-        :title="t('adminStats.section.growth')"
-        name="growth"
-        :range="range"
-        :columns="growthColumns"
-        :rows="growthRows"
-        :csv-rows="growthCsv"
-      />
-      <div class="space-y-3">
+    <AdminSection :title="t('adminStats.section.details')">
+      <div class="grid gap-3 lg:grid-cols-2">
         <AdminStatsTable
-          :title="t('adminStats.section.activation')"
-          name="activation"
+          :title="t('adminStats.section.growth')"
+          name="growth"
           :range="range"
-          :columns="activationColumns"
-          :rows="activationRows"
-          :csv-rows="activationCsv"
+          :columns="growthColumns"
+          :rows="growthRows"
+          :csv-rows="growthCsv"
         />
-        <AdminStatsTable
-          :title="t('adminStats.section.providers')"
-          name="providers"
-          :range="range"
-          :columns="providerColumns"
-          :rows="providerRows"
-          :csv-rows="providerCsv"
-        />
-        <AdminStatsTable
-          :title="t('adminStats.section.plans')"
-          name="plans"
-          :range="range"
-          :columns="planColumns"
-          :rows="planRows"
-          :csv-rows="planCsv"
-        />
+        <div class="space-y-3">
+          <AdminStatsTable
+            :title="t('adminStats.section.activation')"
+            name="activation"
+            :range="range"
+            :columns="activationColumns"
+            :rows="activationRows"
+            :csv-rows="activationCsv"
+          />
+          <AdminStatsTable
+            :title="t('adminStats.section.providers')"
+            name="providers"
+            :range="range"
+            :columns="providerColumns"
+            :rows="providerRows"
+            :csv-rows="providerCsv"
+          />
+          <AdminStatsTable
+            :title="t('adminStats.section.plans')"
+            name="plans"
+            :range="range"
+            :columns="planColumns"
+            :rows="planRows"
+            :csv-rows="planCsv"
+          />
+        </div>
       </div>
-    </div>
+    </AdminSection>
   </div>
 </template>

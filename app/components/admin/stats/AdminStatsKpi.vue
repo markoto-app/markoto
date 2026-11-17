@@ -30,7 +30,7 @@ const changeIcon = computed(() => {
 
 <template>
   <div
-    class="rounded-md bg-default p-4 break-inside-avoid"
+    class="h-full rounded-md bg-default p-4 break-inside-avoid print:border print:border-default print:p-3"
     data-testid="admin-stats-kpi"
   >
     <div class="text-xs text-muted mb-1">
