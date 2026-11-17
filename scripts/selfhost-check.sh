@@ -709,6 +709,11 @@ if ! grep -q "acme-ec-migrate.sh" install.sh; then
   echo "FAIL: install.sh upgrade does not replace RSA certificates (acme-ec-migrate.sh)" >&2
   exit 1
 fi
+# The check must recognise ECDSA keys in both forms (Traefik 3.7 writes
+# PKCS#8): a false "RSA" verdict rotates the store on every deploy and runs
+# into Let's Encrypt's weekly certificate limit.
+shellcheck deploy/config/traefik/acme-ec-migrate.sh deploy/config/traefik/acme-ec-migrate-test.sh
+deploy/config/traefik/acme-ec-migrate-test.sh
 for cfg in hosted salt-selfhost; do
   out="$(jq -r '
     ( .services.app.labels // {} | to_entries[] | select(.key | test("loadbalancer\\.healthcheck\\.path$")) | select(.value != "/api/health/live") | "\(.key)=\(.value): route on /api/health/live" ),
