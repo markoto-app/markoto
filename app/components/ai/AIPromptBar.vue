@@ -248,7 +248,7 @@ const { bottomOffset } = usePromptBarOffset()
       :request="props.ai.pendingConfirmation.value"
       :busy="props.ai.answeringConfirmation.value"
       @allow="props.ai.answerConfirmation(true)"
-      @deny="props.ai.answerConfirmation(false)"
+      @deny="(note?: string) => props.ai.answerConfirmation(false, note)"
     />
     <AIResponsePanel
       :response="props.ai.lastResponse.value"

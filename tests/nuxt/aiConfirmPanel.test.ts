@@ -27,7 +27,7 @@ registerEndpoint('/api/user/billing', () => ({ plan: 'free' }))
 
 type AiProp = InstanceType<typeof AIPromptBar>['$props']['ai']
 
-function aiProps(confirmation: AiConfirmationRequest | null, answer = vi.fn(async (_allow: boolean) => {})): AiProp {
+function aiProps(confirmation: AiConfirmationRequest | null, answer = vi.fn(async (_allow: boolean, _note?: string) => {})): AiProp {
   return {
     mySession: computed(() => null),
     mySessionId: computed(() => null),
@@ -64,7 +64,7 @@ describe('AIPromptBar: confirmation request', () => {
 
   it('shows what markoto wants to read, and Deny / Allow answer it', async () => {
     available()
-    const answer = vi.fn(async (_allow: boolean) => {})
+    const answer = vi.fn(async (_allow: boolean, _note?: string) => {})
     const request = { id: 'c1', tool: 'view_other_document', target: 'Q3 plan', expiresAt: Date.now() + 60_000 }
     const wrapper = await mountSuspended(AIPromptBar, { props: { ai: aiProps(request, answer) } })
     const panel = wrapper.find('[data-testid="ai-confirm-panel"]')
@@ -74,7 +74,33 @@ describe('AIPromptBar: confirmation request', () => {
 
     await wrapper.find('[data-testid="ai-confirm-deny"]').trigger('click')
     await wrapper.find('[data-testid="ai-confirm-allow"]').trigger('click')
-    expect(answer.mock.calls).toEqual([[false], [true]])
+    expect(answer.mock.calls).toEqual([[false, undefined], [true]])
+  })
+
+  it('a note typed before Deny goes with the answer, trimmed', async () => {
+    available()
+    const answer = vi.fn(async (_allow: boolean, _note?: string) => {})
+    const request = { id: 'c3', tool: 'web_search', target: 'pricing', expiresAt: Date.now() + 60_000 }
+    const wrapper = await mountSuspended(AIPromptBar, { props: { ai: aiProps(request, answer) } })
+    const input = wrapper.find('input[data-testid="ai-confirm-note"], [data-testid="ai-confirm-note"] input')
+    expect(input.exists()).toBe(true)
+    expect(input.attributes('maxlength')).toBe('300')
+    await input.setValue('  No, search for EU pricing instead  ')
+    await wrapper.find('[data-testid="ai-confirm-deny"]').trigger('click')
+    expect(answer.mock.calls).toEqual([[false, 'No, search for EU pricing instead']])
+  })
+
+  it('Enter in the note denies with it; an empty note does nothing on Enter', async () => {
+    available()
+    const answer = vi.fn(async (_allow: boolean, _note?: string) => {})
+    const request = { id: 'c4', tool: 'web_search', target: 'pricing', expiresAt: Date.now() + 60_000 }
+    const wrapper = await mountSuspended(AIPromptBar, { props: { ai: aiProps(request, answer) } })
+    const input = wrapper.find('input[data-testid="ai-confirm-note"], [data-testid="ai-confirm-note"] input')
+    await input.trigger('keydown', { key: 'Enter' })
+    expect(answer).not.toHaveBeenCalled()
+    await input.setValue('Use the knowledge base')
+    await input.trigger('keydown', { key: 'Enter' })
+    expect(answer.mock.calls).toEqual([[false, 'Use the knowledge base']])
   })
 
   it('shows the exact URL for a fetch the user did not type', async () => {

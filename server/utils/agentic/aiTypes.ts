@@ -68,6 +68,12 @@ export interface AgenticFunctionCall {
   id?: string
   name?: string
   args?: unknown
+  /**
+   * The streamed argument text was not a JSON object (cut off by the output
+   * token limit, or malformed). `args` is then `{}`; the loop answers the
+   * call with an error instead of validating it.
+   */
+  argsInvalid?: boolean
 }
 
 /**
@@ -108,6 +114,8 @@ export interface AgenticGenerateContentResponse {
     // forcing this union to drift.
     finishReason?: string
   }>
+  /** Model the provider reported in the response (OpenAI `model`), when it named one. */
+  modelVersion?: string
   usageMetadata?: {
     promptTokenCount?: number
     candidatesTokenCount?: number
@@ -134,6 +142,8 @@ export interface AgenticAIClient {
         tools?: Array<{ functionDeclarations?: AgenticFunctionDeclaration[] }>
         abortSignal?: AbortSignal
         thinkingConfig?: { thinkingBudget?: number }
+        /** Force a call to this function (`tool_choice`); unset = the model chooses. */
+        forceFunction?: string
       }
     }) => Promise<AsyncIterable<AgenticGenerateContentResponse>>
   }

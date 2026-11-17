@@ -594,6 +594,8 @@
       "waiting": "Esperando tu confirmación…",
       "allow": "Permitir",
       "deny": "Denegar",
+      "notePlaceholder": "Opcional: dile a markoto qué hacer en su lugar y pulsa Denegar",
+      "noteLabel": "Nota para markoto al denegar",
       "tools": {
         "view_other_document": "markoto quiere leer «{target}».",
         "list_my_documents": "markoto quiere listar tus documentos.",

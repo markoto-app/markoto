@@ -594,6 +594,8 @@
       "waiting": "En attente de votre confirmation…",
       "allow": "Autoriser",
       "deny": "Refuser",
+      "notePlaceholder": "Facultatif : dites à markoto quoi faire à la place, puis Refuser",
+      "noteLabel": "Note pour markoto avec Refuser",
       "tools": {
         "view_other_document": "markoto veut lire « {target} ».",
         "list_my_documents": "markoto veut lister vos documents.",

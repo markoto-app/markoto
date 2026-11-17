@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AiConfirmationRequest } from '~/composables/ai/useAI'
+import { CONFIRM_NOTE_MAX_LENGTH } from '~~/shared/api/ai'
 
 // Inline "Allow / Deny" card above the prompt bar. Shown to the person
 // who started the AI session, and only to them (the request arrives
@@ -8,6 +9,8 @@ import type { AiConfirmationRequest } from '~/composables/ai/useAI'
 // people's text: read another document, list documents, search or read
 // workspace knowledge, create / copy a document, search the web or open
 // a URL nobody typed. No answer within the server's timeout = deny.
+// With Deny the user may type a short note ("No, search for X instead");
+// the AI reads it as their instruction.
 //
 // Voice: the question is markoto speaking, so it wears the AI italic
 // (Fraunces); the target (title, query, URL) is set in mono so the user
@@ -20,8 +23,20 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'allow' | 'deny'): void
+  (e: 'allow'): void
+  (e: 'deny', note?: string): void
 }>()
+
+const note = ref('')
+// A new request starts with an empty note.
+watch(() => props.request?.id, () => {
+  note.value = ''
+})
+
+function deny(): void {
+  const text = note.value.trim()
+  emit('deny', text.length > 0 ? text : undefined)
+}
 
 const { t, te } = useI18n()
 
@@ -73,7 +88,7 @@ const question = computed(() => {
             size="sm"
             :disabled="busy"
             data-testid="ai-confirm-deny"
-            @click="emit('deny')"
+            @click="deny"
           >
             {{ t('ai.confirm.deny') }}
           </UButton>
@@ -88,6 +103,17 @@ const question = computed(() => {
           </UButton>
         </div>
       </div>
+      <UInput
+        v-model="note"
+        class="mt-2 w-full"
+        size="sm"
+        :maxlength="CONFIRM_NOTE_MAX_LENGTH"
+        :disabled="busy"
+        :placeholder="t('ai.confirm.notePlaceholder')"
+        :aria-label="t('ai.confirm.noteLabel')"
+        data-testid="ai-confirm-note"
+        @keydown.enter.prevent="note.trim() && deny()"
+      />
     </section>
   </Transition>
 </template>

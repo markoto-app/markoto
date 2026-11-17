@@ -120,6 +120,7 @@ export async function runAgentSession(spec: AgentSessionSpec): Promise<void> {
       aiSession,
       sessionId: session.sessionId,
       abortController: session.abortController,
+      deadlineAt: session.deadlineAt,
       setStatus,
       billingContext: session.billingContext,
       // Makes runLoop's salvage path call `reply_to_comment` instead of

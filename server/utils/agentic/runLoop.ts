@@ -11,10 +11,11 @@ import { initialUserParts } from './promptAssembly'
 import { useLogger } from '../platform/logger'
 import { SessionBudget, sessionCapStatus } from './loop/sessionBudget'
 import { SessionTelemetry } from './loop/sessionTelemetry'
-import { readDocText, throwIfAborted, type LoopContext, type ResponseParts, type RunLoopOptions, type TurnResult } from './loop/loopContext'
-import { consumeStreamTurn, openProviderStream } from './loop/providerStream'
+import { readDocText, throwIfAborted, toolErrorResponse, type LoopContext, type ResponseParts, type RunLoopOptions, type TurnResult, type WrapUpReason } from './loop/loopContext'
+import { streamTurn } from './loop/providerStream'
 import { salvageProseTurn } from './loop/salvage'
 import { dispatchToolCall } from './loop/toolDispatch'
+import { nearDeadline, wrapUpSession } from './loop/wrapUp'
 
 const loopLog = useLogger('ai-loop')
 
@@ -27,11 +28,22 @@ const loopLog = useLogger('ai-loop')
  * `STALLED_TURN_LIMIT` turns in a row whose edits changed nothing but
  * whitespace / reverted earlier edits (see `editProgress.ts`).
  *
+ * At the turn limit, close to the session deadline, or after
+ * `OUTPUT_LIMIT_TURNS` turns cut off by the output token limit, one
+ * closing turn tells the user what is done and what is not
+ * (`loop/wrapUp.ts`).
+ *
  * Returns normally on STOP; throws on abort. Status transitions are
  * reported via setStatus(...) at every state change.
  */
 
 const MAX_TURNS = 20
+
+/** Turns whose tool call was cut off by the output token limit before the session closes. */
+const OUTPUT_LIMIT_TURNS = 3
+
+/** Tool result for a call cut off by the output token limit (it did not run). */
+const OUTPUT_LIMIT_NOTE = 'Your last response hit the output token limit, so this call was cut off and did not run. Break the remaining work into smaller pieces: smaller edits, one section at a time.'
 
 /**
  * Terminal non-STOP finishReasons that indicate the model gave up but
@@ -54,10 +66,11 @@ async function runOneTurn(ctx: LoopContext, turnCount: number): Promise<TurnResu
   const capResult = chargeTurnBudget(ctx, turnCount)
   if (capResult) return capResult
 
-  const streamResult = await openProviderStream(ctx)
+  // A stream that breaks mid-way is re-requested once (no tool has run yet).
+  const streamResult = await streamTurn(ctx)
   if (streamResult.kind === 'budget-exhausted') return { kind: 'budget-exhausted' }
 
-  const { modelParts, functionCalls, finishReason } = await consumeStreamTurn(streamResult.stream, ctx)
+  const { modelParts, functionCalls, finishReason } = streamResult.turn
   ctx.log(`turn ${turnCount}: finishReason=${finishReason}, parts=${modelParts.length}, calls=${functionCalls.length}`)
 
   // Record the model's response so the next turn (if any) has full
@@ -81,7 +94,7 @@ async function runOneTurn(ctx: LoopContext, turnCount: number): Promise<TurnResu
     return { kind: 'done', outcome: 'error' }
   }
 
-  return dispatchToolCallsForTurn(ctx, functionCalls, turnCount)
+  return dispatchToolCallsForTurn(ctx, functionCalls, turnCount, finishReason === FinishReason.MAX_TOKENS)
 }
 
 /** Charge one interaction against the per-session cap. Returns a `done` TurnResult on cap-exceeded; null otherwise so the caller continues. */
@@ -92,6 +105,14 @@ function chargeTurnBudget(ctx: LoopContext, turnCount: number): TurnResult | nul
   ctx.telemetry.errorMessage = charged.message
   ctx.opts.setStatus('error', sessionCapStatus())
   return { kind: 'done', outcome: 'session-cap-exceeded' }
+}
+
+/** Count a turn whose calls were cut off by the output limit; true once the session should close. */
+function outputLimitReached(ctx: LoopContext, cutOff: number, turnCount: number): boolean {
+  if (cutOff === 0) return false
+  ctx.outputLimitedTurns += 1
+  ctx.log(`turn ${turnCount}: ${cutOff} tool call(s) cut off by the output token limit (${ctx.outputLimitedTurns}/${OUTPUT_LIMIT_TURNS})`)
+  return ctx.outputLimitedTurns >= OUTPUT_LIMIT_TURNS
 }
 
 /**
@@ -105,13 +126,23 @@ function chargeTurnBudget(ctx: LoopContext, turnCount: number): TurnResult | nul
 async function dispatchToolCallsForTurn(
   ctx: LoopContext,
   functionCalls: FunctionCall[],
-  turnCount: number
+  turnCount: number,
+  hitOutputLimit: boolean
 ): Promise<TurnResult> {
   const responseParts: ResponseParts = []
   let commentTriggerDone = false
+  let cutOff = 0
 
   for (const call of functionCalls) {
     throwIfAborted(ctx)
+    if (hitOutputLimit && call.argsInvalid) {
+      // finish_reason=length: this call's arguments were cut off mid-way.
+      // Never run it; tell the model to work in smaller pieces.
+      cutOff += 1
+      ctx.telemetry.noteToolAttempt(call.name ?? '')
+      responseParts.push(toolErrorResponse(call, OUTPUT_LIMIT_NOTE))
+      continue
+    }
     const outcome = await dispatchToolCall(ctx, call)
     if (outcome.kind === 'session-cap-exceeded') {
       ctx.telemetry.outcome = 'session-cap-exceeded'
@@ -134,6 +165,12 @@ async function dispatchToolCallsForTurn(
     ctx.telemetry.outcome = 'success'
     ctx.opts.setStatus('done', aiStatus('done'))
     return { kind: 'done', outcome: 'success' }
+  }
+
+  if (outputLimitReached(ctx, cutOff, turnCount)) {
+    ctx.progress.endTurn()
+    ctx.contents.push({ role: 'user', parts: responseParts })
+    return { kind: 'wrap-up', reason: 'output-limit' }
   }
 
   const progress = ctx.progress.endTurn()
@@ -182,25 +219,37 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
     // name the placeholder URLs the model must never embed.
     imageProvenance: new ImageUrlProvenance(readDocText(opts.aiSession), opts.initialPrompt),
     editedDocument: false,
-    answeredUser: false
+    answeredUser: false,
+    outputLimitedTurns: 0
   }
 
   log(`[billing] session resolved: ${opts.billingContext.attributedTo} plan=${opts.billingContext.plan}`)
 
   let turns = 0
   try {
-    while (turns < MAX_TURNS) {
+    let stop: WrapUpReason
+    for (;;) {
+      if (turns >= MAX_TURNS) {
+        stop = 'turn-limit'
+        break
+      }
+      if (nearDeadline(ctx)) {
+        stop = 'time-limit'
+        break
+      }
       turns += 1
       ctx.telemetry.turnCount = turns
 
       const result = await runOneTurn(ctx, turns)
       if (result.kind === 'done' || result.kind === 'budget-exhausted') return
+      if (result.kind === 'wrap-up') {
+        stop = result.reason
+        break
+      }
     }
-
-    // Ran out of turns.
-    ctx.telemetry.outcome = 'turn-limit'
-    ctx.telemetry.errorMessage = `Hit turn limit (${MAX_TURNS})`
-    opts.setStatus('error', aiStatus('turnLimit'))
+    // The model did not finish on its own: one closing turn tells the user
+    // what is done and what is not.
+    await wrapUpSession(ctx, stop, turns + 1)
   } catch (e) {
     // If the loop body already classified the throw (abort) leave the
     // outcome alone; otherwise stamp the message so the telemetry event

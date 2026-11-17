@@ -961,3 +961,273 @@ describe('runAgenticLoop: provider outage', () => {
     expect(setStatus).toHaveBeenLastCalledWith('error', 'The image provider is down.')
   })
 })
+
+// Loop robustness: transport retry, closing turn, output limit, argument
+// coercion, decline with feedback.
+
+type SeenContents = Array<{ role?: string, parts?: Array<Record<string, unknown>> }>
+
+interface ScriptedAttempt {
+  chunks: StreamChunk[]
+  /** Thrown after the chunks (a stream that breaks mid-way). */
+  failAfter?: Error
+  /** Thrown when the stream is opened. */
+  openError?: Error
+}
+
+function scriptedAi(attempts: ScriptedAttempt[]): {
+  ai: NonNullable<Parameters<typeof runAgenticLoop>[0]['ai']>
+  seen: Array<{ contents: SeenContents, forceFunction?: string }>
+} {
+  const seen: Array<{ contents: SeenContents, forceFunction?: string }> = []
+  let cursor = 0
+  const ai = {
+    models: {
+      generateContentStream: async (args: { contents: unknown[], config?: { forceFunction?: string } }) => {
+        seen.push({ contents: JSON.parse(JSON.stringify(args.contents)), forceFunction: args.config?.forceFunction })
+        const attempt = attempts[cursor++]
+        if (!attempt) throw new Error(`[fake-ai] unexpected call #${cursor}; scripted ${attempts.length}`)
+        if (attempt.openError) throw attempt.openError
+        return {
+          async* [Symbol.asyncIterator]() {
+            for (const c of attempt.chunks) yield shapeChunk(c)
+            if (attempt.failAfter) throw attempt.failAfter
+          }
+        }
+      }
+    }
+  } as unknown as NonNullable<Parameters<typeof runAgenticLoop>[0]['ai']>
+  return { ai, seen }
+}
+
+function withStatus(err: Error, status: number): Error {
+  return Object.assign(err, { status })
+}
+
+function toolTurn(name: string, args: unknown, id = 'c'): ScriptedAttempt {
+  return { chunks: [{ functionCalls: [{ id, name, args }], finishReason: FinishReason.STOP }] }
+}
+
+function lastUserText(contents: SeenContents): string {
+  return (contents.at(-1)?.parts ?? []).map(p => typeof p.text === 'string' ? p.text : '').join('')
+}
+
+function lastToolOutput(contents: SeenContents): string {
+  const part = (contents.at(-1)?.parts ?? []).find(p => p.functionResponse) as { functionResponse?: { response?: { output?: string } } } | undefined
+  return part?.functionResponse?.response?.output ?? ''
+}
+
+function seenAt(seen: Array<{ contents: SeenContents, forceFunction?: string }>, i: number): { contents: SeenContents, forceFunction?: string } {
+  return at(seen, i)
+}
+
+describe('runAgenticLoop: mid-stream transport failure', () => {
+  it('re-requests the turn once and discards the partial parts', async () => {
+    const { ai, seen } = scriptedAi([
+      { chunks: [{ text: 'Half a sent' }], failAfter: new Error('socket hang up') },
+      { chunks: [{ text: 'All done.', finishReason: FinishReason.STOP }] }
+    ])
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus }))
+    expect(seen).toHaveLength(2)
+    // The retry sends the same history: the failed attempt left nothing behind.
+    expect(seenAt(seen, 1).contents).toEqual(seenAt(seen, 0).contents)
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
+  })
+
+  it('a second failure ends the session with the error', async () => {
+    const { ai, seen } = scriptedAi([
+      { chunks: [], failAfter: new Error('ECONNRESET') },
+      { chunks: [{ text: 'x' }], failAfter: new Error('ECONNRESET again') }
+    ])
+    await expect(runAgenticLoop(makeOpts({ ai }))).rejects.toThrow('ECONNRESET again')
+    expect(seen).toHaveLength(2)
+  })
+
+  it('a 4xx mid-stream is not retried', async () => {
+    const { ai, seen } = scriptedAi([
+      { chunks: [], failAfter: withStatus(new Error('invalid request'), 400) }
+    ])
+    await expect(runAgenticLoop(makeOpts({ ai }))).rejects.toThrow('invalid request')
+    expect(seen).toHaveLength(1)
+  })
+
+  it('an abort mid-stream is not retried', async () => {
+    const abortController = new AbortController()
+    const { ai, seen } = scriptedAi([{ chunks: [], failAfter: new Error('stream closed') }])
+    const wrapped = {
+      models: {
+        generateContentStream: async (args: never) => {
+          const s = await ai.models.generateContentStream(args)
+          abortController.abort()
+          return s
+        }
+      }
+    } as unknown as Parameters<typeof runAgenticLoop>[0]['ai']
+    await expect(runAgenticLoop(makeOpts({ ai: wrapped, abortController }))).rejects.toThrow()
+    expect(seen).toHaveLength(1)
+  })
+})
+
+describe('runAgenticLoop: closing turn', () => {
+  it('at the turn limit, a forced message_to_user tells the user what is done', async () => {
+    executeFunctionByName.mockResolvedValue({ content: 'ok', isError: false })
+    const { ai, seen } = scriptedAi([
+      ...Array.from({ length: 20 }, () => toolTurn('view_document', {})),
+      toolTurn('message_to_user', { message: 'Fixed sections 1-3; 4-6 still need work.', is_question: false }, 'w')
+    ])
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus }))
+    expect(seen).toHaveLength(21)
+    expect(seenAt(seen, 19).forceFunction).toBeUndefined()
+    expect(seenAt(seen, 20).forceFunction).toBe('message_to_user')
+    expect(lastUserText(seenAt(seen, 20).contents)).toMatch(/^Step limit reached\. .*what is done and what is not\.$/)
+    expect(executeFunctionByName).toHaveBeenLastCalledWith(expect.anything(), 'message_to_user', { message: 'Fixed sections 1-3; 4-6 still need work.', is_question: false })
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
+  })
+
+  it('the closing turn runs only the closing tool', async () => {
+    executeFunctionByName.mockResolvedValue({ content: 'ok', isError: false })
+    const { ai } = scriptedAi([
+      ...Array.from({ length: 20 }, () => toolTurn('view_document', {})),
+      toolTurn('replace_text', { old_str: 'a', new_str: 'b' }, 'w')
+    ])
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus }))
+    expect(executeFunctionByName).toHaveBeenCalledTimes(20)
+    // No summary arrived: the turn-limit error as before.
+    expect(setStatus).toHaveBeenLastCalledWith('error', aiStatus('turnLimit'))
+  })
+
+  it('a provider that rejects a named tool_choice gets auto, and prose is delivered as the message', async () => {
+    executeFunctionByName.mockResolvedValue({ content: 'ok', isError: false })
+    const { ai, seen } = scriptedAi([
+      ...Array.from({ length: 20 }, () => toolTurn('view_document', {})),
+      { chunks: [], openError: withStatus(new Error('tool_choice not supported'), 400) },
+      { chunks: [{ parts: [{ text: 'Read the document; did not get to the edits.' }], finishReason: FinishReason.STOP }] }
+    ])
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus }))
+    expect(seenAt(seen, 20).forceFunction).toBe('message_to_user')
+    expect(seenAt(seen, 21).forceFunction).toBeUndefined()
+    expect(executeFunctionByName).toHaveBeenLastCalledWith(expect.anything(), 'message_to_user', { message: 'Read the document; did not get to the edits.', is_question: false })
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
+  })
+
+  it('close to the session deadline, the next turn is the closing turn', async () => {
+    let now = 0
+    const { ai, seen } = scriptedAi([
+      toolTurn('view_document', {}),
+      toolTurn('message_to_user', { message: 'Out of time: read it, no edits yet.', is_question: false }, 'w')
+    ])
+    executeFunctionByName.mockImplementation(async () => {
+      now = 280_000
+      return { content: 'ok', isError: false }
+    })
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus, deadlineAt: 300_000, now: () => now }))
+    expect(seen).toHaveLength(2)
+    expect(seenAt(seen, 1).forceFunction).toBe('message_to_user')
+    expect(lastUserText(seenAt(seen, 1).contents)).toMatch(/^Time limit almost reached\./)
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
+  })
+
+  it('a comment session closes with reply_to_comment on its thread', async () => {
+    executeFunctionByName.mockResolvedValue({ content: 'ok', isError: false })
+    const { ai, seen } = scriptedAi([
+      ...Array.from({ length: 20 }, () => toolTurn('view_document', {})),
+      toolTurn('reply_to_comment', { comment_id: 'thread-1', body: 'Did half of it.' }, 'w')
+    ])
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus, commentThreadId: 'thread-1' }))
+    expect(seenAt(seen, 20).forceFunction).toBe('reply_to_comment')
+    expect(lastUserText(seenAt(seen, 20).contents)).toContain('comment_id "thread-1"')
+    expect(executeFunctionByName).toHaveBeenLastCalledWith(expect.anything(), 'reply_to_comment', { comment_id: 'thread-1', body: 'Did half of it.' })
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
+  })
+})
+
+describe('runAgenticLoop: output token limit (finish_reason=length)', () => {
+  const cutTurn: ScriptedAttempt = {
+    chunks: [{ functionCalls: [{ id: 'cut', name: 'replace_text', args: {}, argsInvalid: true }], finishReason: FinishReason.MAX_TOKENS }]
+  }
+
+  it('a cut-off call never runs; the model is told to work in smaller pieces', async () => {
+    const { ai, seen } = scriptedAi([cutTurn, { chunks: [{ text: 'ok', finishReason: FinishReason.STOP }] }])
+    await runAgenticLoop(makeOpts({ ai }))
+    expect(executeFunctionByName).not.toHaveBeenCalled()
+    expect(lastToolOutput(seenAt(seen, 1).contents)).toMatch(/hit the output token limit.*Break the remaining work into smaller pieces/)
+  })
+
+  it('complete calls of a cut-off turn still run', async () => {
+    executeFunctionByName.mockResolvedValue({ content: 'doc', isError: false })
+    const { ai } = scriptedAi([
+      {
+        chunks: [{
+          functionCalls: [
+            { id: 'ok', name: 'view_document', args: {} },
+            { id: 'cut', name: 'replace_text', args: {}, argsInvalid: true }
+          ],
+          finishReason: FinishReason.MAX_TOKENS
+        }]
+      },
+      { chunks: [{ text: 'ok', finishReason: FinishReason.STOP }] }
+    ])
+    await runAgenticLoop(makeOpts({ ai }))
+    expect(executeFunctionByName).toHaveBeenCalledTimes(1)
+    expect(executeFunctionByName.mock.calls[0]?.[1]).toBe('view_document')
+  })
+
+  it('after three cut-off turns the session closes with a summary', async () => {
+    executeFunctionByName.mockResolvedValue({ content: 'ok', isError: false })
+    const { ai, seen } = scriptedAi([
+      cutTurn,
+      cutTurn,
+      cutTurn,
+      toolTurn('message_to_user', { message: 'The rewrite was too long for one step.', is_question: false }, 'w')
+    ])
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus }))
+    expect(seen).toHaveLength(4)
+    expect(seenAt(seen, 3).forceFunction).toBe('message_to_user')
+    expect(lastUserText(seenAt(seen, 3).contents)).toMatch(/output token limit/)
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
+  })
+
+  it('an invalid-JSON call outside the length limit gets a clear error', async () => {
+    const { ai, seen } = scriptedAi([
+      { chunks: [{ functionCalls: [{ id: 'bad', name: 'replace_text', args: {}, argsInvalid: true }], finishReason: FinishReason.STOP }] },
+      { chunks: [{ text: 'ok', finishReason: FinishReason.STOP }] }
+    ])
+    await runAgenticLoop(makeOpts({ ai }))
+    expect(executeFunctionByName).not.toHaveBeenCalled()
+    expect(lastToolOutput(seenAt(seen, 1).contents)).toMatch(/not a complete JSON object/)
+  })
+})
+
+describe('runAgenticLoop: argument coercion', () => {
+  it('a line number sent as a string and a stringified range still run', async () => {
+    executeFunctionByName.mockResolvedValue({ content: 'ok', isError: false })
+    const { ai } = scriptedAi([
+      toolTurn('insert_text', { insert_line: '3', insert_text: 'Hello' }),
+      toolTurn('view_document', { view_range: '[1, "4"]' }, 'v'),
+      { chunks: [{ text: 'done', finishReason: FinishReason.STOP }] }
+    ])
+    await runAgenticLoop(makeOpts({ ai }))
+    expect(executeFunctionByName.mock.calls[0]?.[2]).toEqual({ insert_line: 3, insert_text: 'Hello' })
+    expect(executeFunctionByName.mock.calls[1]?.[2]).toEqual({ view_range: [1, 4] })
+  })
+})
+
+describe('runAgenticLoop: decline with feedback', () => {
+  it('the initiator\'s note reaches the model in the decline', async () => {
+    const confirm = vi.fn(async () => ({ allowed: false, note: 'No, search for EU pricing instead' }))
+    const { ai, seen } = scriptedAi([
+      toolTurn('list_my_documents', {}),
+      { chunks: [{ text: 'ok', finishReason: FinishReason.STOP }] }
+    ])
+    await runAgenticLoop(makeOpts({ ai, crossBoundary: taintedSessionGuard({ confirm }) }))
+    expect(executeFunctionByName).not.toHaveBeenCalled()
+    expect(lastToolOutput(seenAt(seen, 1).contents)).toContain('"No, search for EU pricing instead"')
+  })
+})

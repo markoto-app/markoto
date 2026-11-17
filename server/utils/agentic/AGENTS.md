@@ -34,6 +34,9 @@ How the loop works and how to add a tool: `docs/contributing/ai-tools.md`. MCP d
 - Keep the prompt prefix byte-stable for caching (`promptAssembly.ts`): the system message is the static prompt alone, so it and the tools are identical for every user and document; per-document blocks, then per-prompt context open the first user message; history append-only, tool-call arguments replayed verbatim.
 - Runaway caps: `SESSION_INTERACTION_CAP` (`limits.ts`) aborts the session, a tool's `sessionCallCap` returns a tool error. Give a new cost-bearing tool a per-session cap.
 - The session sweeper threshold (`server/plugins/ai-session-sweep.ts`, 7 min) must stay above the session deadline (5 min, `AI_SESSION_HARD_DEADLINE_MS`, armed in `sessions/sessionSetup.ts`).
+- Stopping early goes through the closing turn (`loop/wrapUp.ts`): same tool list, `tool_choice` forcing the closing tool, and only that tool runs. Never drop tools from the request to force an answer (it breaks the cached prefix). The loop gets the deadline as `deadlineAt` from `openAiSession`.
+- Retry a turn only while no tool of it has run (`streamTurn` retries a stream that broke mid-way, once). Never retry aborts, budget refusals or 4xx.
+- Every model call goes through `streamTurn`, which writes its `ai.call.usage` record (`loop/callUsage.ts`); keep prompt and document text out of it.
 - Comment bodies are plain text: AI-written comments go through `plainCommentText`, and outgoing `@ai` is stripped so the AI cannot trigger itself. Server and client use the same `@ai` regex (`commentTriggerPrompt.ts`).
 - Encode Y.js anchors with `Buffer`, not `btoa` (server context).
 

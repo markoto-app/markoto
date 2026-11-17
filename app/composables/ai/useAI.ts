@@ -102,7 +102,8 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
   const pendingConfirmation = computed<AiConfirmationRequest | null>(() => mySession.value?.confirmation ?? null)
   const answeringConfirmation = ref(false)
 
-  async function answerConfirmation(allow: boolean): Promise<void> {
+  /** `note`: what the initiator typed with a Deny ("No, search for X instead"); ignored on allow. */
+  async function answerConfirmation(allow: boolean, note?: string): Promise<void> {
     const sid = mySessionId.value
     const c = pendingConfirmation.value
     if (!sid || !c || answeringConfirmation.value) return
@@ -111,7 +112,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
       await apiFetch('/api/ai/sessions/:sessionId/confirm', {
         method: 'post',
         path: { sessionId: sid },
-        body: { confirmationId: c.id, allow }
+        body: { confirmationId: c.id, allow, ...(!allow && note?.trim() ? { note: note.trim() } : {}) }
       })
     } catch (e) {
       // 409 = already answered / timed out, the next update shows the

@@ -594,6 +594,8 @@
       "waiting": "Wartet auf deine Bestätigung…",
       "allow": "Erlauben",
       "deny": "Ablehnen",
+      "notePlaceholder": "Optional: Sag markoto, was es stattdessen tun soll, dann Ablehnen",
+      "noteLabel": "Hinweis an markoto beim Ablehnen",
       "tools": {
         "view_other_document": "markoto möchte „{target}“ lesen.",
         "list_my_documents": "markoto möchte deine Dokumente auflisten.",

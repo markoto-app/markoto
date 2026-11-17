@@ -45,6 +45,9 @@ export const CONVERSATION_MAX_ROWS = 40
 // set in runLoop's `logAiTool`.
 const MEMORY_SKIP_TOOLS: ReadonlySet<string> = new Set([
   'view_document',
+  'outline',
+  'read_section',
+  'search_document',
   'read_comments',
   'get_theme',
   'list_themes',

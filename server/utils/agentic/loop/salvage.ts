@@ -45,7 +45,7 @@ function closingTextIsRedundant(ctx: LoopContext): boolean {
   return ctx.editedDocument || ctx.answeredUser
 }
 
-function collectProseText(modelParts: ResponseParts): string {
+export function collectProseText(modelParts: ResponseParts): string {
   return modelParts
     .map((p) => {
       const text = (p as { text?: unknown }).text
@@ -59,8 +59,9 @@ function collectProseText(modelParts: ResponseParts): string {
  * Pick the salvage tool by session shape: comment-trigger sessions
  * synthesise a `reply_to_comment` against the originating thread;
  * everyone else synthesises `message_to_user(is_question=false)`.
+ * Resolves true when the message was delivered.
  */
-async function dispatchSalvageFallback(ctx: LoopContext, proseText: string, turnCount: number): Promise<void> {
+export async function dispatchSalvageFallback(ctx: LoopContext, proseText: string, turnCount: number): Promise<boolean> {
   const message = proseText.length > SALVAGE_MESSAGE_MAX
     ? proseText.slice(0, SALVAGE_MESSAGE_MAX - 1) + '…'
     : proseText
@@ -71,9 +72,11 @@ async function dispatchSalvageFallback(ctx: LoopContext, proseText: string, turn
     : { message, is_question: false }
   ctx.log(`turn ${turnCount}: salvaging pure-prose response (${proseText.length} chars) via ${fallbackTool} fallback`)
   try {
-    await executeFunctionByName(ctx.opts.aiSession, fallbackTool, fallbackArgs)
+    const result = await executeFunctionByName(ctx.opts.aiSession, fallbackTool, fallbackArgs)
+    return !result.isError
   } catch (e) {
     ctx.log(`${fallbackTool} fallback failed: ${e instanceof Error ? e.message : e}`)
+    return false
   }
 }
 

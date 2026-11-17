@@ -594,6 +594,8 @@
       "waiting": "あなたの確認を待っています…",
       "allow": "許可",
       "deny": "拒否",
+      "notePlaceholder": "任意：代わりに何をしてほしいか markoto に伝えてから「拒否」",
+      "noteLabel": "拒否時の markoto へのメモ",
       "tools": {
         "view_other_document": "markoto が「{target}」を読もうとしています。",
         "list_my_documents": "markoto があなたのドキュメント一覧を取得しようとしています。",

@@ -5,6 +5,7 @@ import type { ToolResult } from '../../ai/tools/toolDefinition'
 import { DOC_EDIT_TOOLS, NO_OP_EDIT_ERROR_PREFIX, stalledEditNote } from '../editProgress'
 import { unseenImageError } from '../imageProvenance'
 import { readDocText, throwIfAborted, toolErrorResponse, isCommentTriggerSession, type DispatchOutcome, type LoopContext, type ResponseParts } from './loopContext'
+import { coerceToolArgs } from './argCoercion'
 import { capToolOutput } from './resultCap'
 import { logToolActivity } from './toolActivity'
 import { runSubCall } from './webSubCalls'
@@ -24,19 +25,31 @@ function addedEditText(args: unknown): string {
 }
 
 /**
- * Validate args against the registered Zod schema. Returns the
- * validated args on success; on failure returns a `continue` outcome
- * with a tool-error response part so the model sees the schema failure
- * cleanly and can retry. Tools without a registered schema get raw
- * args passed through (executeFunctionByName surfaces "unsupported").
+ * Validate args against the registered Zod schema, after repairing the
+ * usual model mistakes (numbers as strings, `null` for an optional field,
+ * stringified objects; `argCoercion.ts`). Returns the validated args on
+ * success; on failure returns a `continue` outcome with a tool-error
+ * response part so the model sees the schema failure cleanly and can
+ * retry. Tools without a registered schema get raw args passed through
+ * (executeFunctionByName surfaces "unsupported").
  */
 function validateToolArgs(
   ctx: LoopContext,
   call: FunctionCall
 ): { ok: true, args: unknown } | { ok: false, outcome: DispatchOutcome } {
+  if (call.argsInvalid) {
+    ctx.log(`function_call arguments are not valid JSON: ${call.name}`)
+    return {
+      ok: false,
+      outcome: {
+        kind: 'continue',
+        responseParts: [toolErrorResponse(call, `Error: the arguments for ${call.name} were not a complete JSON object. Send the call again with valid JSON.`)]
+      }
+    }
+  }
   const schema = toolSchema(call.name ?? '')
   if (!schema) return { ok: true, args: call.args ?? {} }
-  const parsed = schema.safeParse(call.args ?? {})
+  const parsed = schema.safeParse(coerceToolArgs(schema, call.args ?? {}))
   if (parsed.success) return { ok: true, args: parsed.data }
   const zodMsg = parsed.error.issues
     .map(i => `${i.path.join('.') || '(root)'}: ${i.message}`)

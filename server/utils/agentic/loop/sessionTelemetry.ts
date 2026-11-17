@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nuxt'
 import type { AiSession } from '../../ai/aiClient'
 import { useLogger } from '../../platform/logger'
+import { sumCallUsage, type CallUsageRecord } from './callUsage'
 
 const loopLog = useLogger('ai-loop')
 
@@ -20,6 +21,8 @@ export type SessionOutcome
     | 'member-limit-reached'
     | 'provider-unavailable'
     | 'turn-limit'
+    | 'time-limit'
+    | 'output-limit'
     | 'stalled'
 
 /**
@@ -41,12 +44,20 @@ export class SessionTelemetry {
   outcome: SessionOutcome = 'error'
   abortReason?: string
   errorMessage?: string
+  /** Turns re-requested after the stream broke mid-way (`providerStream.ts`). */
+  streamRetries = 0
   /**
    * Per-tool ATTEMPT counts (records EVERY invocation, including
    * cap-rejected and errored ones). Distinct from SessionBudget's
    * tool-cap counter which only ticks on accepted slots.
    */
   readonly toolCallCounts = new Map<string, number>()
+  /** One usage record per model call, in order (`callUsage.ts`). */
+  readonly calls: CallUsageRecord[] = []
+
+  noteCall(record: CallUsageRecord): void {
+    this.calls.push(record)
+  }
 
   noteUsage(usage: { promptTokenCount?: number, candidatesTokenCount?: number, thoughtsTokenCount?: number, cachedContentTokenCount?: number } | undefined): void {
     if (!usage) return
@@ -96,6 +107,8 @@ export class SessionTelemetry {
           totalCachedInputTokens: this.sawAnyUsageMetadata ? this.totalCachedInputTokens : -1,
           toolCallCounts: toolCounts,
           abortReason: this.abortReason,
+          streamRetries: this.streamRetries,
+          callTotals: sumCallUsage(this.calls),
           errorMessage: this.errorMessage,
           durationMs: Date.now() - this.startedAt,
           plan: args.plan,

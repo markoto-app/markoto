@@ -263,4 +263,20 @@ describe('AI session telemetry: Sentry.captureMessage("ai-session-completed")', 
     expect(o.tags.outcome).toBe('error')
     expect(o.extra.errorMessage).toBe('boom')
   })
+
+  it('the closing turn at the turn limit keeps outcome=turn-limit and the call totals count every model call', async () => {
+    executeFunctionByName.mockResolvedValue({ content: 'ok', isError: false })
+    const turns: FakeTurn[] = Array.from({ length: 20 }, (_, i) => ({
+      chunks: [{ functionCalls: [{ id: `c${i}`, name: 'view_document', args: {} }], finishReason: FinishReason.STOP, usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 1 } }]
+    }))
+    turns.push({ chunks: [{ functionCalls: [{ id: 'w', name: 'message_to_user', args: { message: 'Half done.', is_question: false } }], finishReason: FinishReason.STOP, usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 1 } }] })
+    await runAgenticLoop(makeOpts({ ai: makeFakeAi(turns) }))
+
+    expect(captureMessage).toHaveBeenCalledTimes(1)
+    const [, opts] = captureMessage.mock.calls[0]!
+    const o = opts as { tags: Record<string, string>, extra: Record<string, unknown> }
+    expect(o.tags.outcome).toBe('turn-limit')
+    expect(o.extra.turnCount).toBe(21)
+    expect(o.extra.callTotals).toMatchObject({ calls: 21, retries: 0, promptTokens: 210, outputTokens: 21 })
+  })
 })

@@ -333,8 +333,8 @@ The <comment_trigger> block at the start of the user message carries the thread 
 The user message is ALSO wrapped with an <editor_state> block of \`kind: selection\` whose \`selection_lines\` and \`selection_text\` mirror the comment's anchor. Treat that selection as the user's pointer at the document, for "rewrite this", "fix this", "translate this", "make this shorter", "replace this with X", "insert the actual <thing> here" style requests, that range IS what they're pointing at and you MUST modify it via \`replace_text\` (or a scoped \`view_document({ view_range })\` if you need more context first). Do NOT default to \`insert_text\` at the end of the document, the user attached the comment to a specific range BECAUSE that's the range they want changed.
 
 You have access to the following tools:
-- \`view_document\`: read the current document (line-numbered). Call this BEFORE any content edit to see what the surrounding doc looks like, but you don't need to dump the whole doc unless the request requires it. The anchor preview in <comment_trigger> already gives you what the thread is talking about.
-- \`replace_text\`: replace an exact-match \`old_str\` with \`new_str\`. \`old_str\` must be unique in the document; include enough surrounding context.
+- \`view_document\`: read the current document (line-numbered; a long document returns an outline with line ranges). Prefer \`view_range\` around the anchor over reading the whole document. The anchor preview in <comment_trigger> already gives you what the thread is talking about.
+- \`replace_text\`: replace \`old_str\` with \`new_str\`. \`old_str\` must match one location; include enough surrounding context. Quote, dash, non-breaking-space and trailing-whitespace differences are tolerated; a miss shows the closest lines to copy from.
 - \`insert_text\`: insert text after a specific line (1-indexed; 0 means start of file).
 - \`web_search\`: search the web for up-to-date info.
 - \`fetch_url\`: fetch a SPECIFIC URL the user named or linked.
@@ -362,7 +362,7 @@ CRITICAL RULES: NON-NEGOTIABLE:
 Editor state: selection routing (read carefully):
 - \`<editor_state>\` ships with EVERY comment-trigger session and is ALWAYS \`kind: selection\` when the comment has a resolvable anchor (the common case). \`selection_lines: X-Y\` is the line range, \`selection_text\` is the verbatim anchored text (truncated with "…" if very long; you can \`view_document({ view_range: [X, Y] })\` to recover the full range).
 - Default tool for ALL "do something to this text" requests is \`replace_text\` with old_str = the verbatim selection_text, new_str = your replacement. The user said "fix this", "translate this", "rewrite this", "insert the actual X here" specifically because they wanted THE TEXT THEY HIGHLIGHTED to change. Falling back to \`insert_text\` at the end of the document because the request "could also be an insert" is wrong, they didn't anchor the comment to the end of the document, they anchored it to the selection.
-- If \`selection_text\` is truncated, ALWAYS \`view_document({ view_range: [X, Y] })\` first to recover the full text before \`replace_text\` (so old_str matches exactly).
+- If \`selection_text\` is truncated, ALWAYS \`view_document({ view_range: [X, Y] })\` first to recover the full text before \`replace_text\` (so old_str matches).
 - For requests that genuinely add NEW content adjacent to the selection without replacing it ("add a TLDR before this section", "follow this with a bullet list"), use \`insert_text\` with insert_line = X-1 (before) or Y (after).
 - Orphaned anchor (no selection_text in <comment_trigger>): the original text was deleted. Either ignore the location and act on content as the user describes, or comment back asking for a fresh anchor.
 

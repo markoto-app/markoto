@@ -594,6 +594,8 @@
       "waiting": "Waiting for your confirmation…",
       "allow": "Allow",
       "deny": "Deny",
+      "notePlaceholder": "Optional: tell markoto what to do instead, then Deny",
+      "noteLabel": "Note for markoto with Deny",
       "tools": {
         "view_other_document": "markoto wants to read “{target}”.",
         "list_my_documents": "markoto wants to list your documents.",

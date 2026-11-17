@@ -9,7 +9,7 @@
 // cost-amplifying tools (image gen, web search) are capped per session
 // even when the budget would allow more.
 
-import { MINUTE_MS } from '~~/shared/config/units'
+import { MINUTE_MS, SECOND_MS } from '~~/shared/config/units'
 
 /**
  * Total interactions any single agentic-loop run is allowed to
@@ -35,6 +35,13 @@ export const SESSION_INTERACTION_CAP = 50
  * (`SWEEPS.aiSessions.staleAfterMs`, 7 min) must stay longer than this.
  */
 export const AI_SESSION_HARD_DEADLINE_MS = 5 * MINUTE_MS
+
+/**
+ * With less than this left before the hard deadline the loop starts no
+ * further work turn: it runs one closing turn that tells the user what is
+ * done and what is not (`loop/wrapUp.ts`), instead of being cut off.
+ */
+export const AI_SESSION_WRAP_UP_MARGIN_MS = 30 * SECOND_MS
 
 /**
  * Most characters one tool result may put into the conversation (about 6-7k

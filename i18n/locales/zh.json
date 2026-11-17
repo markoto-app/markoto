@@ -594,6 +594,8 @@
       "waiting": "正在等待你的确认…",
       "allow": "允许",
       "deny": "拒绝",
+      "notePlaceholder": "可选：告诉 markoto 改做什么，然后点“拒绝”",
+      "noteLabel": "拒绝时给 markoto 的说明",
       "tools": {
         "view_other_document": "markoto 想要读取“{target}”。",
         "list_my_documents": "markoto 想要列出你的文档。",

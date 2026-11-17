@@ -1,3 +1,4 @@
+import type OpenAI from 'openai'
 import { aiStatus } from '~~/shared/ai/statusSteps'
 import {
   AgenticFinishReason as FinishReason,
@@ -22,7 +23,11 @@ import type { ResolvedAiProvider } from '../../aiProviders/resolve'
 import { FEATURE_TAGS, featureMetadata } from '../../litellm/featureTags'
 import { budgetExhaustedBreadcrumb } from '../../billing/billingMode'
 import { newStreamState, processChunk } from '../streamStatus'
+import { useLogger } from '../../platform/logger'
+import { buildCallUsageRecord, CALL_USAGE_EVENT } from './callUsage'
 import type { LoopContext, ResponseParts } from './loopContext'
+
+const usageLog = useLogger('ai-loop')
 
 // One model call per turn: open the stream (classifying budget refusals
 // into a typed outcome) and consume it into the turn's parts, tool calls
@@ -36,6 +41,13 @@ function logTurnUsage(ctx: LoopContext, usage: StreamChunk['usageMetadata']): vo
   if (usage?.promptTokenCount === undefined) return
   const cached = usage.cachedContentTokenCount ?? 0
   ctx.log(`usage: prompt=${usage.promptTokenCount} cached=${cached} output=${usage.candidatesTokenCount ?? 0} reasoning=${usage.thoughtsTokenCount ?? 0}`)
+}
+
+/** What one call's stream reported, for its usage record (`callUsage.ts`). */
+interface CallStats {
+  firstChunkAt: number | null
+  usage: StreamChunk['usageMetadata']
+  providerModel: string | null
 }
 
 function emitBudgetBreadcrumb(ctx: LoopContext, plan: string): void {
@@ -52,15 +64,23 @@ function emitBudgetBreadcrumb(ctx: LoopContext, plan: string): void {
   ctx.opts.setStatus('done', aiStatus('pointsExhausted'))
 }
 
+function noteCallStats(stats: CallStats, chunk: StreamChunk): void {
+  stats.firstChunkAt ??= Date.now()
+  const usage = chunk.usageMetadata
+  if (usage?.promptTokenCount !== undefined || usage?.candidatesTokenCount !== undefined) stats.usage = usage
+  if (chunk.modelVersion) stats.providerModel = chunk.modelVersion
+}
+
 /**
  * Pull modelParts + functionCalls + finishReason out of one streamed
  * turn. Side effects: calls `processChunk` for status announcements,
  * accumulates token usage on `ctx.telemetry`, and throws on
  * mid-stream abort.
  */
-export async function consumeStreamTurn(
+async function consumeStreamTurn(
   stream: AsyncIterable<StreamChunk>,
-  ctx: LoopContext
+  ctx: LoopContext,
+  stats?: CallStats
 ): Promise<{ modelParts: ResponseParts, functionCalls: FunctionCall[], finishReason: FinishReason | undefined }> {
   const streamState = newStreamState()
   const modelParts: ResponseParts = []
@@ -74,6 +94,7 @@ export async function consumeStreamTurn(
       throw new Error('aborted')
     }
 
+    if (stats) noteCallStats(stats, chunk)
     processChunk(chunk, streamState, { setStatus: ctx.opts.setStatus, logger: ctx.log })
 
     const parts = chunk.candidates?.[0]?.content?.parts
@@ -142,10 +163,23 @@ function handleBudgetRefusal(ctx: LoopContext, e: unknown): boolean {
   return false
 }
 
+export interface TurnRequestOptions {
+  /** Force a call to this tool (`tool_choice`); the tool list itself stays the same (prompt-cache prefix). */
+  forceFunction?: string
+  /** For the usage record: a work turn or the closing turn. */
+  phase?: 'turn' | 'closing'
+}
+
+interface OpenedStream {
+  stream: AsyncIterable<StreamChunk>
+  /** The model / alias the request named. */
+  requestedModel: string
+}
+
 /** Open the LLM stream. Returns a tagged result so the caller can short-circuit on budget exhaustion without losing the throw vs typed-result distinction. */
-export async function openProviderStream(ctx: LoopContext): Promise<{ kind: 'stream', stream: AsyncIterable<StreamChunk> } | { kind: 'budget-exhausted' }> {
+async function openProviderStream(ctx: LoopContext, request: TurnRequestOptions = {}): Promise<({ kind: 'stream' } & OpenedStream) | { kind: 'budget-exhausted' }> {
   try {
-    const stream = await streamFromProvider({
+    const opened = await streamFromProvider({
       ai: ctx.opts.ai,
       model: ctx.opts.model,
       contents: ctx.contents,
@@ -157,9 +191,10 @@ export async function openProviderStream(ctx: LoopContext): Promise<{ kind: 'str
       chatProvider: ctx.opts.aiSession.aiProviders.chat,
       workspaceId: ctx.opts.aiSession.workspaceId ?? null,
       initiatorUserId: ctx.opts.aiSession.initiatorUserId ?? null,
-      docId: ctx.opts.aiSession.docId ?? null
+      docId: ctx.opts.aiSession.docId ?? null,
+      forceFunction: request.forceFunction
     })
-    return { kind: 'stream', stream }
+    return { kind: 'stream', ...opened }
   } catch (e) {
     if (handleBudgetRefusal(ctx, e)) return { kind: 'budget-exhausted' }
     throw e
@@ -186,24 +221,32 @@ interface StreamFromProviderOpts {
   workspaceId?: string | null
   initiatorUserId?: number | null
   docId?: string | null
+  forceFunction?: string
 }
 
-async function streamFromProvider(opts: StreamFromProviderOpts): Promise<AsyncIterable<StreamChunk>> {
+async function streamFromProvider(opts: StreamFromProviderOpts): Promise<OpenedStream> {
   if (!opts.ai) {
     return await streamFromLiteLLM(opts)
   }
-  return await opts.ai.models.generateContentStream({
+  const stream = await opts.ai.models.generateContentStream({
     model: opts.model,
     contents: opts.contents,
     config: {
       systemInstruction: opts.systemPrompt,
       tools: [{ functionDeclarations: opts.toolDeclarations }],
-      abortSignal: opts.abortSignal
+      abortSignal: opts.abortSignal,
+      ...(opts.forceFunction ? { forceFunction: opts.forceFunction } : {})
     }
   })
+  return { stream, requestedModel: opts.model }
 }
 
-async function streamFromLiteLLM(opts: StreamFromProviderOpts): Promise<AsyncIterable<StreamChunk>> {
+function toolChoice(hasTools: boolean, forceFunction: string | undefined): OpenAI.Chat.Completions.ChatCompletionToolChoiceOption | undefined {
+  if (!hasTools) return undefined
+  return forceFunction ? { type: 'function', function: { name: forceFunction } } : 'auto'
+}
+
+async function streamFromLiteLLM(opts: StreamFromProviderOpts): Promise<OpenedStream> {
   // BYOK: the chat provider was resolved at session start (user key →
   // instance default). `providerRequestFields` re-checks the base URL
   // against the SSRF policy on every turn and yields either
@@ -224,7 +267,7 @@ async function streamFromLiteLLM(opts: StreamFromProviderOpts): Promise<AsyncIte
     ...providerFields,
     messages,
     tools: tools.length > 0 ? tools : undefined,
-    tool_choice: tools.length > 0 ? 'auto' : undefined,
+    tool_choice: toolChoice(tools.length > 0, opts.forceFunction),
     stream: true,
     stream_options: { include_usage: true },
     // Temperature 0: the agentic loop is deterministic-tool-selection.
@@ -263,5 +306,74 @@ async function streamFromLiteLLM(opts: StreamFromProviderOpts): Promise<AsyncIte
   // which only covers opening the stream. Wrap the iteration too so a
   // provider that echoes the key mid-stream can't leak it into the
   // status channel, logs or Sentry.
-  return openAIStreamToInternalChunks(redactProviderStream(provider, oaiStream))
+  return { stream: openAIStreamToInternalChunks(redactProviderStream(provider, oaiStream)), requestedModel: providerFields.model }
+}
+
+export interface StreamedTurn {
+  modelParts: ResponseParts
+  functionCalls: FunctionCall[]
+  finishReason: FinishReason | undefined
+}
+
+/** One retry after a mid-stream failure. */
+const STREAM_ATTEMPTS = 2
+
+/**
+ * A stream that broke after it opened (connection reset, provider SSE
+ * error, a 5xx mid-way) is worth one more try: tools run only after a
+ * stream completes, so the failed turn has no side effects. Not retried:
+ * aborts, budget refusals and 4xx errors (the request itself is wrong).
+ */
+function isRetryableStreamFailure(ctx: LoopContext, e: unknown): boolean {
+  if (ctx.opts.abortController.signal.aborted) return false
+  if (e instanceof Error && (e.name === 'AbortError' || e.message === 'aborted')) return false
+  if (isBudgetExceededError(e) || isFreeAllowanceExhaustedError(e) || isWorkspaceTeamBudgetError(e)) return false
+  const status = typeof e === 'object' && e !== null ? (e as { status?: unknown }).status : undefined
+  return !(typeof status === 'number' && status < 500)
+}
+
+/**
+ * Open and consume one turn's stream, retrying the whole turn once when
+ * the stream fails mid-way (see `isRetryableStreamFailure`). The partial
+ * parts of the failed attempt are discarded.
+ */
+export async function streamTurn(ctx: LoopContext, request: TurnRequestOptions = {}): Promise<{ kind: 'turn', turn: StreamedTurn } | { kind: 'budget-exhausted' }> {
+  for (let attempt = 1; ; attempt++) {
+    const startedAt = Date.now()
+    const opened = await openProviderStream(ctx, request)
+    if (opened.kind === 'budget-exhausted') return opened
+    const stats: CallStats = { firstChunkAt: null, usage: undefined, providerModel: null }
+    const record = (finishReason: string | null): void => {
+      noteCallUsage(ctx, buildCallUsageRecord({
+        sessionId: ctx.opts.sessionId,
+        docId: ctx.opts.aiSession.docId ?? null,
+        turn: ctx.telemetry.turnCount,
+        phase: request.phase ?? 'turn',
+        requestedModel: opened.requestedModel,
+        providerModel: stats.providerModel,
+        usage: stats.usage,
+        startedAt,
+        firstChunkAt: stats.firstChunkAt,
+        endedAt: Date.now(),
+        finishReason,
+        retry: attempt > 1
+      }))
+    }
+    try {
+      const turn = await consumeStreamTurn(opened.stream, ctx, stats)
+      record(turn.finishReason ?? null)
+      return { kind: 'turn', turn }
+    } catch (e) {
+      record('error')
+      if (attempt >= STREAM_ATTEMPTS || !isRetryableStreamFailure(ctx, e)) throw e
+      ctx.log(`stream failed mid-turn (${errorText(e).slice(0, 200)}); retrying the turn once`)
+      ctx.telemetry.streamRetries += 1
+    }
+  }
+}
+
+/** Keep the record on the session telemetry and log it as one structured line. */
+function noteCallUsage(ctx: LoopContext, record: ReturnType<typeof buildCallUsageRecord>): void {
+  ctx.telemetry.noteCall(record)
+  usageLog.info(CALL_USAGE_EVENT, { ...record })
 }

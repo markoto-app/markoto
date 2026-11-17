@@ -43,10 +43,14 @@ export const aiPromptBody = z.object({
 /** `:sessionId` of /api/ai/sessions/:sessionId/**. */
 export const aiSessionParams = z.object({ sessionId: z.string().regex(ID_RE) })
 
-/** POST /api/ai/sessions/:sessionId/confirm */
+/** Longest note the initiator may send with a Deny ("No, search for X instead"). */
+export const CONFIRM_NOTE_MAX_LENGTH = 300
+
+/** POST /api/ai/sessions/:sessionId/confirm. `note` is read only with `allow: false`. */
 export const confirmAiSessionBody = z.object({
   confirmationId: z.string().regex(ID_RE),
-  allow: z.boolean()
+  allow: z.boolean(),
+  note: z.string().trim().max(CONFIRM_NOTE_MAX_LENGTH).optional()
 })
 
 /** POST /api/ai/transcribe. The audio rules (type, size) answer with their own codes in the handler. */

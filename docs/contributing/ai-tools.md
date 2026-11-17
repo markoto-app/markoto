@@ -34,6 +34,10 @@ Awareness reaches every participant, including read-only viewers and anonymous v
 - **Document context** (`server/utils/agentic/documentContextPrompt.ts`): title, description, language and the audience tone go into every prompt.
 - **Untrusted text** (`server/utils/agentic/untrustedText.ts`): values other people wrote (titles, descriptions, member names, knowledge filenames, comment threads) enter a prompt only through `quoteInline` or `fenceBlock`. Both system prompts include `UNTRUSTED_DATA_RULE`.
 - **Finishing**: a reply without a tool call ends the session. Everything the user should read goes through a tool (`message_to_user` in the prompt bar, `reply_to_comment` in a comment session). Prose without a tool call is turned into one of those only when it is the session's only answer.
+- **Stopping early** (`loop/wrapUp.ts`): at `MAX_TURNS`, with less than 30 seconds left before the session deadline (`AI_SESSION_WRAP_UP_MARGIN_MS`), or after three turns whose tool call was cut off by the output token limit, the loop runs one closing turn: the same tool list (the cached prefix stays valid), `tool_choice` forcing `message_to_user` (`reply_to_comment` in a comment session) and a short appended instruction to say what is done and what is not. A provider that rejects a named `tool_choice` (400 / 422) gets `auto` instead. Only the closing tool runs in that turn. The session outcome still records `turn-limit`, `time-limit` or `output-limit`; the user sees the summary, or the turn-limit error when none arrived.
+- **Transport failures** (`loop/providerStream.ts`, `streamTurn`): a stream that breaks after it opened is re-requested once with the same history. Tools only run after a stream completes, so the failed attempt has no side effects. Aborts, budget refusals and 4xx errors are not retried.
+- **Output limit**: on `finish_reason: length` a tool call whose arguments were cut off (not a JSON object, `argsInvalid` from `messageTranslation.ts`) does not run; its result tells the model to break the work into smaller pieces. Complete calls of the same turn run normally.
+- **Argument repair** (`loop/argCoercion.ts`): before Zod validation, numbers sent as strings, `null` for an optional field and objects / arrays sent as JSON strings are converted, by walking the tool's Zod schema. A value only ever becomes the type the schema asks for at that spot.
 - **Stalled edits** (`server/utils/agentic/editProgress.ts`): edits that change nothing, only whitespace, or revert earlier text get a note in the tool result; `STALLED_TURN_LIMIT` (3) such turns in a row end the session as done.
 - **Image URLs** (`server/utils/agentic/imageProvenance.ts`): an edit may only add a Markdown image whose URL the session has seen (document, prompt or a tool result). Otherwise the edit is refused and the model is told to call `generate_image`.
 - **Telemetry**: one Sentry event (`ai-session-completed`) per session from the loop's `finally` block.
@@ -42,12 +46,28 @@ Awareness reaches every participant, including read-only viewers and anonymous v
 
 | Limit | Where | Value |
 |---|---|---|
-| Turns per session | `MAX_TURNS` in `runLoop.ts` | 20 |
+| Turns per session | `MAX_TURNS` in `runLoop.ts` | 20, then one closing turn (`loop/wrapUp.ts`) |
 | Interactions per session (turns plus sub-calls; `web_search` / `fetch_url` count 4) | `SESSION_INTERACTION_CAP` in `server/utils/agentic/limits.ts` | 50, then the session aborts with an error |
 | Calls per tool per session | `sessionCallCap` on the tool definition (collected as `SESSION_TOOL_CALL_CAPS` in `server/utils/ai/tools/registry.ts`) | `view_pages` 3, `generate_image` 5, `web_search` 10, `fetch_url` 10, `search_knowledge` 20, `search_activity_log` 8; over the cap the model gets a tool error |
 | Size of one tool result | `TOOL_RESULT_CHAR_CAP` in `server/utils/agentic/limits.ts`, applied by `loop/resultCap.ts` | 24,000 characters; longer results are cut with a hint on how to read the rest. `view_document` / `view_other_document` (heading outline with line ranges plus the first lines for a long document, a continuation `view_range` for a long range), `read_comments` and `list_themes` stay below it themselves |
 | Requests and spend | the user's LiteLLM virtual key | `rpm_limit` 60 and the key's `max_budget` |
 | Web search and page fetch | `server/utils/ai/webTools.ts` | per-user hourly and daily allowance, shared with MCP |
+
+### Usage records
+
+Every model call of the loop (each turn, each retry, the closing turn) writes one structured log line at info level, component `ai-loop`, message `ai.call.usage` (`CALL_USAGE_EVENT`), with these fields (`CallUsageRecord` in `server/utils/agentic/loop/callUsage.ts`, which has no Nitro dependency):
+
+| Field | Meaning |
+|---|---|
+| `sessionId`, `docId` | The session and its document |
+| `turn`, `phase` | 1-based turn; `turn` or `closing` |
+| `requestedModel`, `providerModel` | The model / LiteLLM alias the request named; the model the response reported (null when none) |
+| `promptTokens`, `cachedTokens`, `outputTokens`, `reasoningTokens` | Token counts the provider reported (0 when it reported none) |
+| `latencyMs`, `firstTokenMs` | Request start to stream end; to the first streamed chunk (null when none arrived) |
+| `finishReason` | Internal finish reason (`STOP`, `MAX_TOKENS`, ...), `error` for a stream that failed |
+| `retry` | The call re-requested a turn whose stream failed |
+
+No prompt or document text is ever in a record. The records are also kept on `SessionTelemetry.calls`, and the `ai-session-completed` event carries their sums as `callTotals` (`calls`, `retries`, the four token counters, `latencyMs`; `sumCallUsage`).
 
 ## Taint and confirmation
 
@@ -55,7 +75,7 @@ The loop acts with the invoker's identity, so text written by someone else could
 
 - A session starts tainted when the document is not solo for the invoker (others can edit it, or its content history includes other people; `server/repos/docProvenance.ts`), or when an `@ai` thread has other participants.
 - It becomes tainted after a tool returns other people's content: `web_search`, `fetch_url`, external `view_image`, `list_workspace_documents` in a shared workspace, `view_other_document` of a non-solo document, `read_comments` with other authors, and the knowledge tools when a file comes from someone else.
-- Once tainted, the tools with `trustBoundary: 'confirm'` (`list_my_documents`, `list_workspace_documents`, `view_other_document`, `search_knowledge`, `get_knowledge_file`, `create_document`, `duplicate_document`, `web_search`) wait for the invoker's Allow in the prompt bar (`app/components/ai/AIConfirmPanel.vue`). `fetch_url` and external `view_image` (`trustBoundary: { urlArg }`) run without asking only for a URL the invoker typed in the prompt. No answer within 90 seconds counts as Deny.
+- Once tainted, the tools with `trustBoundary: 'confirm'` (`list_my_documents`, `list_workspace_documents`, `view_other_document`, `search_knowledge`, `get_knowledge_file`, `create_document`, `duplicate_document`, `web_search`) wait for the invoker's Allow in the prompt bar (`app/components/ai/AIConfirmPanel.vue`). `fetch_url` and external `view_image` (`trustBoundary: { urlArg }`) run without asking only for a URL the invoker typed in the prompt. No answer within 90 seconds counts as Deny. With Deny the invoker may type a short note ("No, search for X instead", at most 300 characters, `CONFIRM_NOTE_MAX_LENGTH`); it reaches the model in the decline as the invoker's own instruction (`declineMessage` in `crossBoundary.ts`).
 - `ai_session_provenance` (`server/utils/agentic/sessionProvenance.ts`) records whether a session stayed clean, so a later session can tell whether an `ai:assistant:` edit counts as the invoker's own text. This is intended: the owner's typing and live dictation (committed by their own editor connection) are theirs, so is text from their clean AI sessions; text an AI session wrote after reading web or other people's content is not, because it can carry injected instructions, so the document stays non-solo and later sessions ask first.
 
 MCP calls are not gated; see [mcp.md](mcp.md).
