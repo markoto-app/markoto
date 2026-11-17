@@ -12,6 +12,7 @@ export const FULL_AI_PROVIDERS: ResolvedAiProviders = {
   transcription: { capability: 'transcription', source: 'instance', model: 'voxtral-mini-transcribe', credentials: null, supportsVision: false },
   worker: {
     fast: { capability: 'chat', source: 'instance', model: 'markoto-worker', credentials: null, supportsVision: false },
-    strong: { capability: 'chat', source: 'instance', model: 'markoto-worker-strong', credentials: null, supportsVision: false }
+    strong: { capability: 'chat', source: 'instance', model: 'markoto-worker-strong', credentials: null, supportsVision: false },
+    utility: { capability: 'chat', source: 'instance', model: 'markoto-utility', credentials: null, supportsVision: false }
   }
 }

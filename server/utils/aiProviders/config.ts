@@ -8,6 +8,7 @@
 //   NUXT_AI_DEFAULT_IMAGE_MODEL / _BASE_URL / _API_KEY
 //   NUXT_AI_DEFAULT_TRANSCRIBE_MODEL / _BASE_URL / _API_KEY
 //   NUXT_AI_DEFAULT_WORKER_MODEL / _BASE_URL / _API_KEY   (+ _STRONG_MODEL)
+//   NUXT_AI_DEFAULT_UTILITY_MODEL                         (alias only)
 //
 // The worker is not a capability a user configures on its own: it is
 // the chat provider's "Fast model" for BYOK users, else this default,
@@ -69,6 +70,11 @@ export function readInstanceDefault(capability: AiCapability, source?: RawEnv): 
  */
 export function readWorkerDefault(source?: RawEnv): InstanceDefault | null {
   return readSlot('worker', 'chat', source)
+}
+
+/** The utility alias (`NUXT_AI_DEFAULT_UTILITY_MODEL`) for web-tool synthesis on the platform, or null. */
+export function utilityModel(source?: RawEnv): string | null {
+  return useEnv(source).ai.utilityModel || null
 }
 
 /** The stronger worker alias (`NUXT_AI_DEFAULT_WORKER_STRONG_MODEL`), or null. */

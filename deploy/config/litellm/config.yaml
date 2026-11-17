@@ -214,27 +214,56 @@ model_list:
       output_cost_per_token: 0.000000165  # $0.165 / M (EU: 1.1 x $0.15, 4× cheaper than small output)
       max_tokens: 262144
 
-  # ---- Worker models (hosted: NUXT_AI_DEFAULT_WORKER_MODEL / _STRONG_MODEL) ----
-  # The worker runs delegated per-section rewrites, scans and the utility
-  # sub-calls (fetch_url extraction, web_search synthesis); see
-  # docs/AI-MODELS.md#worker-model. Aliases, so the app never names a
-  # vendor model and the operator can swap the model here. Prices are
-  # mirrored in server/utils/litellm/workerPrices.ts (a unit test keeps them
-  # equal) for the cost estimate shown before a delegated job.
+  # ---- Worker models (hosted: NUXT_AI_DEFAULT_WORKER_MODEL / _STRONG_MODEL / _UTILITY_MODEL) ----
+  # The worker runs delegated per-section rewrites and scans; the utility
+  # alias runs the sub-calls (fetch_url extraction, web_search synthesis,
+  # section summaries); see docs/AI-MODELS.md#worker-model. Aliases, so the
+  # app never names a vendor model and the operator swaps a model per role
+  # here without a code change. Prices are mirrored in
+  # server/utils/litellm/workerPrices.ts (a unit test keeps them equal) for
+  # the cost estimate shown before a delegated job.
   #
-  # `markoto-worker`: Ministral 3 8B on the EU endpoint. Same input price as
-  # the chat models, output 4x cheaper than Mistral Small 4 (worker calls
-  # are output-heavy), no reasoning tokens.
+  # `markoto-worker` and `markoto-utility`: Z.ai GLM-5.3 Flash on the EU
+  # endpoint, the same model and price as the hosted chat default
+  # (`zai-glm-5-3-flash` above). Thinking off as far as Mistral allows:
+  # `zai-glm-5-3` takes `reasoning_effort` low / high / max, not `none`
+  # (docs.mistral.ai/studio/conversations/reasoning), and `low` produces
+  # ~0 reasoning tokens. Fallback: Ministral 3 8B (its output is cheaper
+  # than Small 4's, so a rate limit never makes a job dearer than its
+  # estimate).
   - model_name: markoto-worker
     litellm_params:
-      model: mistral/ministral-8b-2512
+      model: mistral/zai-glm-5-3-flash
       api_base: https://api.eu.mistral.ai/v1
       api_key: os.environ/MISTRAL_API_KEY
+      reasoning_effort: low
       allowed_openai_params: ["prompt_cache_key"]
     model_info:
-      input_cost_per_token: 0.000000165   # $0.165 / M (EU: 1.1 x $0.15)
-      output_cost_per_token: 0.000000165  # $0.165 / M (EU: 1.1 x $0.15)
-      max_tokens: 262144
+      input_cost_per_token: 0.000000165         # $0.165 / M (EU: 1.1 x $0.15)
+      cache_read_input_token_cost: 0.000000033  # $0.033 / M (EU: 1.1 x $0.03)
+      output_cost_per_token: 0.00000055         # $0.55 / M (EU: 1.1 x $0.50)
+      max_input_tokens: 1048576
+      max_output_tokens: 131072
+      supports_function_calling: true
+      supports_reasoning: true
+      supports_prompt_caching: true
+
+  - model_name: markoto-utility
+    litellm_params:
+      model: mistral/zai-glm-5-3-flash
+      api_base: https://api.eu.mistral.ai/v1
+      api_key: os.environ/MISTRAL_API_KEY
+      reasoning_effort: low
+      allowed_openai_params: ["prompt_cache_key"]
+    model_info:
+      input_cost_per_token: 0.000000165         # $0.165 / M (EU: 1.1 x $0.15)
+      cache_read_input_token_cost: 0.000000033  # $0.033 / M (EU: 1.1 x $0.03)
+      output_cost_per_token: 0.00000055         # $0.55 / M (EU: 1.1 x $0.50)
+      max_input_tokens: 1048576
+      max_output_tokens: 131072
+      supports_function_calling: true
+      supports_reasoning: true
+      supports_prompt_caching: true
 
   # `markoto-worker-strong`: Mistral Small 4 on the EU endpoint, for
   # translations and rewrites on plans with `aiStrongModel`.
@@ -423,10 +452,10 @@ router_settings:
   fallbacks:
     - mistral-small-2603: [ministral-8b-2512]
     - zai-glm-5-3-flash: [mistral-small-2603]
-    # The worker aliases sit on different Mistral rate-limit pools, like
-    # the Small 4 / Ministral pair above. The fast worker falls back to
-    # GLM-5.3 Flash, not to Small 4: same input price and a lower output
-    # price than Small 4, so a rate limit never makes a job much dearer
-    # than its estimate.
-    - markoto-worker: [zai-glm-5-3-flash]
+    # The worker aliases fall back to a different Mistral rate-limit pool,
+    # like the Small 4 / Ministral pair above. GLM-5.3 Flash falls back to
+    # Ministral 3 8B, not to Small 4: same input price and a lower output
+    # price, so a rate limit never makes a job dearer than its estimate.
+    - markoto-worker: [ministral-8b-2512]
+    - markoto-utility: [ministral-8b-2512]
     - markoto-worker-strong: [ministral-8b-2512]

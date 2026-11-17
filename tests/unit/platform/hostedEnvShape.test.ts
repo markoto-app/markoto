@@ -150,11 +150,12 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
     expect(config).toContain(`- model_name: ${vars.get('NUXT_AI_DEFAULT_CHAT_MODEL')}\n`)
   })
 
-  it('runs the worker on the markoto-worker aliases of deploy/config/litellm/config.yaml', () => {
+  it('runs the worker and utility calls on the markoto-* aliases of deploy/config/litellm/config.yaml', () => {
     expect(vars.get('NUXT_AI_DEFAULT_WORKER_MODEL')).toBe('markoto-worker')
     expect(vars.get('NUXT_AI_DEFAULT_WORKER_STRONG_MODEL')).toBe('markoto-worker-strong')
+    expect(vars.get('NUXT_AI_DEFAULT_UTILITY_MODEL')).toBe('markoto-utility')
     const config = readFileSync(resolve(ROOT, 'deploy/config/litellm/config.yaml'), 'utf8')
-    for (const k of ['NUXT_AI_DEFAULT_WORKER_MODEL', 'NUXT_AI_DEFAULT_WORKER_STRONG_MODEL']) {
+    for (const k of ['NUXT_AI_DEFAULT_WORKER_MODEL', 'NUXT_AI_DEFAULT_WORKER_STRONG_MODEL', 'NUXT_AI_DEFAULT_UTILITY_MODEL']) {
       expect(config, k).toContain(`- model_name: ${vars.get(k)}\n`)
     }
     // Aliases only: platform-paid through LiteLLM, never an operator endpoint.

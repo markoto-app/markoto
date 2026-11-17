@@ -317,7 +317,7 @@ export const ai = defineNamespace({
     transcribeApiKey: transcribe.apiKey,
     workerModel: v({
       ...worker.model,
-      doc: 'Worker model for delegated section rewrites, scans and the fetch_url / web_search synthesis: a LiteLLM alias (platform-paid), or with _BASE_URL + _API_KEY any OpenAI-compatible model. Empty = the chat default.'
+      doc: 'Worker model for delegated section rewrites, scans and (unless NUXT_AI_DEFAULT_UTILITY_MODEL is set) the fetch_url / web_search synthesis: a LiteLLM alias (platform-paid), or with _BASE_URL + _API_KEY any OpenAI-compatible model. Empty = the chat default.'
     }),
     workerBaseUrl: worker.baseUrl,
     workerApiKey: worker.apiKey,
@@ -326,6 +326,14 @@ export const ai = defineNamespace({
       type: string,
       default: 'markoto-worker-strong',
       doc: 'Stronger LiteLLM worker alias for delegated translations and rewrites, for plans with aiStrongModel. Used only while NUXT_AI_DEFAULT_WORKER_MODEL is a LiteLLM alias.',
+      services: ['app'],
+      scope: 'both'
+    }),
+    utilityModel: v({
+      name: 'NUXT_AI_DEFAULT_UTILITY_MODEL',
+      type: string,
+      default: '',
+      doc: 'LiteLLM alias (platform-paid) for the utility sub-calls: fetch_url / web_search synthesis. Empty = the worker model. A user\'s own key is never replaced.',
       services: ['app'],
       scope: 'both'
     }),

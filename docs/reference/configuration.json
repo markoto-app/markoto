@@ -2644,6 +2644,24 @@
       "deprecatedNames": []
     },
     {
+      "name": "NUXT_AI_DEFAULT_UTILITY_MODEL",
+      "namespace": "ai",
+      "key": "utilityModel",
+      "type": "string",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_AI_DEFAULT_UTILITY_MODEL"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": "",
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
       "name": "NUXT_AI_REALTIME_MODEL",
       "namespace": "ai",
       "key": "realtimeModel",

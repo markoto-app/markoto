@@ -9,7 +9,9 @@ import { saveAiProviderBody } from '../../../shared/api/account'
 // The worker model: delegated rewrites, scans and the web-tool synthesis.
 // Resolution: the user's own key (their Fast model, else their chat model)
 // → NUXT_AI_DEFAULT_WORKER_* → the chat default; the strong worker only on
-// plans with aiStrongModel, only for a platform alias.
+// plans with aiStrongModel, only for a platform alias; the utility model
+// (web-tool synthesis) is NUXT_AI_DEFAULT_UTILITY_MODEL on the platform,
+// else the fast worker.
 
 const HOSTED_CHAT: ResolvedAiProvider = { capability: 'chat', source: 'instance', model: 'zai-glm-5-3-flash', credentials: null, supportsVision: true }
 const SELFHOST_CHAT: ResolvedAiProvider = { capability: 'chat', source: 'instance', model: 'mistral-small-2603', credentials: null, supportsVision: true }
@@ -23,7 +25,7 @@ const BYOK_CHAT: ResolvedAiProvider = {
 }
 
 const WORKER_ENV_KEYS = [
-  'NUXT_AI_DEFAULT_WORKER_MODEL', 'NUXT_AI_DEFAULT_WORKER_BASE_URL', 'NUXT_AI_DEFAULT_WORKER_API_KEY', 'NUXT_AI_DEFAULT_WORKER_STRONG_MODEL',
+  'NUXT_AI_DEFAULT_WORKER_MODEL', 'NUXT_AI_DEFAULT_WORKER_BASE_URL', 'NUXT_AI_DEFAULT_WORKER_API_KEY', 'NUXT_AI_DEFAULT_WORKER_STRONG_MODEL', 'NUXT_AI_DEFAULT_UTILITY_MODEL',
   'TIER_FREE_FEATURE_AI_STRONG_MODEL', 'TIER_PRO_FEATURE_AI_STRONG_MODEL', 'NUXT_AI_BYOK_ALLOWED_BASE_URLS', 'NUXT_AI_BYOK_ALLOW_PRIVATE_URLS'
 ]
 
@@ -39,6 +41,7 @@ function hosted(): void {
   stubEnv({
     NUXT_AI_DEFAULT_WORKER_MODEL: 'markoto-worker',
     NUXT_AI_DEFAULT_WORKER_STRONG_MODEL: 'markoto-worker-strong',
+    NUXT_AI_DEFAULT_UTILITY_MODEL: 'markoto-utility',
     TIER_FREE_FEATURE_AI_STRONG_MODEL: 'false',
     TIER_PRO_FEATURE_AI_STRONG_MODEL: 'true'
   })
@@ -65,9 +68,10 @@ describe('resolveWorkerProviders', () => {
     expect(workerProviderFor(providers, 'translate')?.model).toBe('markoto-worker-strong')
     expect(workerProviderFor(providers, 'rewrite')?.model).toBe('markoto-worker-strong')
     expect(workerProviderFor(providers, { strong: true })?.model).toBe('markoto-worker-strong')
-    for (const mode of ['scan', 'terminology', 'summarise', 'comment', 'utility'] as const) {
+    for (const mode of ['scan', 'terminology', 'summarise', 'comment'] as const) {
       expect(workerProviderFor(providers, mode)?.model, mode).toBe('markoto-worker')
     }
+    expect(workerProviderFor(providers, 'utility')).toEqual({ capability: 'chat', source: 'instance', model: 'markoto-utility', credentials: null, supportsVision: false })
     expect(workerProviderFor(providers, { strong: false })?.model).toBe('markoto-worker')
     // Platform aliases: debit the budget, no clientside credentials.
     expect(workerProviderFor(providers, 'translate')?.credentials).toBeNull()
@@ -78,14 +82,15 @@ describe('resolveWorkerProviders', () => {
     const worker = resolveWorkerProviders({ chat: BYOK_CHAT, fastModel: 'gpt-5.4-nano', plan: 'pro' })
     expect(worker?.fast).toEqual({ ...BYOK_CHAT, model: 'gpt-5.4-nano', supportsVision: false })
     expect(worker?.fast.credentials).toBe(BYOK_CHAT.credentials)
-    // Never a platform-paid model for a user on their own key, also not the strong alias.
+    // Never a platform-paid model for a user on their own key, also not the strong or utility alias.
     expect(worker?.strong).toBe(BYOK_CHAT)
+    expect(workerProviderFor({ worker }, 'utility')).toBe(worker?.fast)
   })
 
   it('BYOK without a Fast model: the chat model for everything', () => {
     hosted()
     const worker = resolveWorkerProviders({ chat: BYOK_CHAT, fastModel: null, plan: 'pro' })
-    expect(worker).toEqual({ fast: BYOK_CHAT, strong: BYOK_CHAT })
+    expect(worker).toEqual({ fast: BYOK_CHAT, strong: BYOK_CHAT, utility: BYOK_CHAT })
     // A fast model equal to the chat model is the chat provider itself.
     expect(resolveWorkerProviders({ chat: BYOK_CHAT, fastModel: 'gpt-5.4-mini', plan: 'free' })?.fast).toBe(BYOK_CHAT)
   })
@@ -94,7 +99,7 @@ describe('resolveWorkerProviders', () => {
     // NUXT_AI_DEFAULT_WORKER_STRONG_MODEL keeps its default, but needs a worker alias to apply.
     vi.stubEnv('NUXT_AI_DEFAULT_WORKER_STRONG_MODEL', undefined)
     const worker = resolveWorkerProviders({ chat: SELFHOST_CHAT, fastModel: null, plan: 'free' })
-    expect(worker).toEqual({ fast: SELFHOST_CHAT, strong: SELFHOST_CHAT })
+    expect(worker).toEqual({ fast: SELFHOST_CHAT, strong: SELFHOST_CHAT, utility: SELFHOST_CHAT })
   })
 
   it('self-host with a worker alias: the alias, and the strong worker on the self-host free tier (every feature on)', () => {
@@ -113,12 +118,47 @@ describe('resolveWorkerProviders', () => {
     const worker = resolveWorkerProviders({ chat: SELFHOST_CHAT, fastModel: null, plan: 'free' })
     expect(worker?.fast).toEqual({ capability: 'chat', source: 'instance', model: 'qwen3:8b', credentials: { baseUrl: 'http://ollama:11434/v1', apiKey: 'ollama' }, supportsVision: false })
     expect(worker?.strong).toBe(worker?.fast)
+    expect(worker?.utility).toBe(worker?.fast)
   })
 
   it('a half-configured worker endpoint (no key) is ignored: the chat default', () => {
     stubEnv({ NUXT_AI_DEFAULT_WORKER_MODEL: 'qwen3:8b', NUXT_AI_DEFAULT_WORKER_BASE_URL: 'http://ollama:11434/v1' })
     expect(readWorkerDefault()).toBeNull()
     expect(resolveWorkerProviders({ chat: SELFHOST_CHAT, fastModel: null, plan: 'free' })?.fast).toBe(SELFHOST_CHAT)
+  })
+
+  it('utility on the platform: the utility alias when set, else the fast worker', () => {
+    hosted()
+    vi.stubEnv('NUXT_AI_DEFAULT_UTILITY_MODEL', '')
+    const plain = resolveWorkerProviders({ chat: HOSTED_CHAT, fastModel: null, plan: 'pro' })
+    expect(workerProviderFor({ worker: plain }, 'utility')).toBe(plain?.fast)
+    expect(plain?.fast.model).toBe('markoto-worker')
+  })
+
+  it('utility alias without a worker model: the alias for utility, the chat default for the rest', () => {
+    stubEnv({ NUXT_AI_DEFAULT_UTILITY_MODEL: 'markoto-utility' })
+    const worker = resolveWorkerProviders({ chat: SELFHOST_CHAT, fastModel: null, plan: 'free' })
+    expect(worker?.fast).toBe(SELFHOST_CHAT)
+    expect(worker?.utility.model).toBe('markoto-utility')
+    expect(worker?.utility.credentials).toBeNull()
+  })
+
+  it('utility alias next to an operator worker endpoint: the alias (platform-paid) for utility only', () => {
+    stubEnv({
+      NUXT_AI_DEFAULT_WORKER_MODEL: 'qwen3:8b',
+      NUXT_AI_DEFAULT_WORKER_BASE_URL: 'http://ollama:11434/v1/',
+      NUXT_AI_DEFAULT_WORKER_API_KEY: 'ollama',
+      NUXT_AI_DEFAULT_UTILITY_MODEL: 'markoto-utility'
+    })
+    const worker = resolveWorkerProviders({ chat: SELFHOST_CHAT, fastModel: null, plan: 'free' })
+    expect(workerProviderFor({ worker }, 'scan')?.model).toBe('qwen3:8b')
+    expect(workerProviderFor({ worker }, 'utility')).toMatchObject({ model: 'markoto-utility', credentials: null })
+  })
+
+  it('BYOK users never get the utility alias, with or without a Fast model', () => {
+    hosted()
+    expect(resolveWorkerProviders({ chat: BYOK_CHAT, fastModel: null, plan: 'free' })?.utility).toBe(BYOK_CHAT)
+    expect(resolveWorkerProviders({ chat: BYOK_CHAT, fastModel: 'gpt-5.4-nano', plan: 'free' })?.utility.model).toBe('gpt-5.4-nano')
   })
 
   it('workerProviderFor without a worker is null', () => {

@@ -16,7 +16,8 @@ These are the deployments that ship in `deploy/config/litellm/config.yaml`. A se
 |---|---|---|---|
 | AI writing assistant (tool calling, vision) | Mistral Small 4 (`mistral-small-2603`) | $0.165 in / $0.66 out per M tokens, cached input $0.0165 (list $0.15 / $0.60 / $0.015) | 262K context, function calling, vision; also the fallback of the free allowance |
 | Fallback when the primary is rate-limited | Ministral 3 8B (`ministral-8b-2512`) | $0.165 in / $0.165 out per M tokens (list $0.15 / $0.15) | 262K context, function calling, vision |
-| Worker model (hosted): delegated rewrites, scans, web-tool synthesis | Ministral 3 8B as alias `markoto-worker` | $0.165 in / $0.165 out per M tokens (list $0.15 / $0.15) | See [Worker model](#worker-model) |
+| Worker model (hosted): delegated rewrites, scans | Z.ai GLM-5.3 Flash as alias `markoto-worker` | $0.165 in / $0.55 out per M tokens, cached input $0.033 | Thinking off as far as Mistral allows. See [Worker model](#worker-model) |
+| Utility model (hosted): `fetch_url` / `web_search` synthesis | Z.ai GLM-5.3 Flash as alias `markoto-utility` | $0.165 in / $0.55 out per M tokens, cached input $0.033 | See [Worker model](#worker-model) |
 | Strong worker (hosted, plans with `aiStrongModel`): translate, rewrite | Mistral Small 4 as alias `markoto-worker-strong` | $0.165 in / $0.66 out per M tokens, cached input $0.0165 | See [Worker model](#worker-model) |
 | Free AI allowance (hosted chat default) | Z.ai GLM-5.3 Flash served by Mistral (`zai-glm-5-3-flash`) | $0.165 in / $0.55 out per M tokens, cached input $0.033 (list $0.15 / $0.50 / $0.03) | 1M context, function calling, vision, reasoning. See [Free AI allowance](#free-ai-allowance-hosted) |
 | Voice prompt (one-shot transcription) | Voxtral Mini Transcribe 2 (`voxtral-mini-2602`) | $0.0033 per audio minute (list $0.003) | GA |
@@ -104,15 +105,30 @@ The worker model does the bulk work the writing agent hands off: delegated per-s
 2. `NUXT_AI_DEFAULT_WORKER_MODEL` (+ optional `_BASE_URL` / `_API_KEY`, same meaning as for `NUXT_AI_DEFAULT_CHAT_*`).
 3. The chat default.
 
-On plans with `aiStrongModel`, translations and rewrites use `NUXT_AI_DEFAULT_WORKER_STRONG_MODEL` (default `markoto-worker-strong`) instead, but only while `NUXT_AI_DEFAULT_WORKER_MODEL` is a LiteLLM alias (an operator endpoint is used as is). Scans, summaries, comments and the utility sub-calls always use the fast worker.
+The utility sub-calls (`workerProviderFor(…, 'utility')`) use the same model, except on the platform (no user key) with `NUXT_AI_DEFAULT_UTILITY_MODEL` set: then that LiteLLM alias. A user on their own key always keeps their Fast model, else their chat model.
 
-| Deployment | Worker | Strong worker |
+On plans with `aiStrongModel`, translations and rewrites use `NUXT_AI_DEFAULT_WORKER_STRONG_MODEL` (default `markoto-worker-strong`) instead, but only while `NUXT_AI_DEFAULT_WORKER_MODEL` is a LiteLLM alias (an operator endpoint is used as is). Scans, summaries and comments always use the fast worker.
+
+| Deployment | Worker | Utility | Strong worker |
+|---|---|---|---|
+| Hosted | `markoto-worker` (GLM-5.3 Flash, EU endpoint) | `markoto-utility` (GLM-5.3 Flash, EU endpoint) | `markoto-worker-strong` (Mistral Small 4, EU endpoint), plans with `aiStrongModel` only |
+| Self-host, nothing set | the chat default | the chat default | the chat default |
+| BYOK | the user's Fast model, else their chat model | same as the worker | the user's chat model |
+
+The three aliases in `deploy/config/litellm/config.yaml`:
+
+| Alias | Model | Fallback on a rate limit |
 |---|---|---|
-| Hosted | `markoto-worker` (Ministral 3 8B, EU endpoint) | `markoto-worker-strong` (Mistral Small 4, EU endpoint), plans with `aiStrongModel` only |
-| Self-host, nothing set | the chat default | the chat default |
-| BYOK | the user's Fast model, else their chat model | the user's chat model |
+| `markoto-worker` | `mistral/zai-glm-5-3-flash`, `reasoning_effort: low` | Ministral 3 8B |
+| `markoto-utility` | `mistral/zai-glm-5-3-flash`, `reasoning_effort: low` | Ministral 3 8B |
+| `markoto-worker-strong` | `mistral/mistral-small-2603` | Ministral 3 8B |
 
-**Why Ministral 3 8B.** Its input price is the same as the chat models' ($0.165 per M tokens on the EU endpoint), and its output is 4x cheaper than Mistral Small 4 ($0.165 vs $0.66 per M). Worker calls are output-heavy (a rewrite returns about as many tokens as it reads), so that is where the saving is. It produces no reasoning tokens, and it runs on Mistral's EU endpoint like every platform-paid Mistral call. Translation and tone quality matter most for paying plans, so those modes get Mistral Small 4 there. The two aliases fall back to each other's pool on a rate limit (`router_settings.fallbacks`). Their prices are mirrored in `server/utils/litellm/workerPrices.ts` for the cost estimate shown before a delegated job (a unit test keeps the two equal).
+**Why GLM-5.3 Flash, not Ministral 3 8B.** It is the hosted chat default, so the worker inherits a model whose tool use and German quality we already watch. Ministral 3 8B would save at most about 25 % on output-heavy units ($0.165 vs $0.55 per M output; a rewrite returns about as many tokens as it reads, and input costs the same), its prompt-cache discount is undocumented, and a smaller model risks dropped placeholders and a weaker register in translations. Ministral 3 3B is too weak for section rewrites; Ministral 3 14B (`ministral-14b-2512`, list $0.20 / $0.20) costs more on input, which dominates scans. The real saving comes from delegation itself: each worker call sees one section and a short job, not the agent's whole context. Ministral 3 8B stays the fallback: its output is cheaper than Small 4's, so a rate limit never makes a job dearer than its estimate.
+
+**Thinking off.** GLM-5.3 is a reasoning model and its thinking tokens bill as output. Mistral's API takes `reasoning_effort` `low`, `high` or `max` for `zai-glm-5-3`, not `none` (["Reasoning"](https://docs.mistral.ai/studio/conversations/reasoning): "`zai-glm-5-3` supports `low`, `high`, and `max`, not `none`"); `none` is a 400 and a Z.ai-style `thinking: {type: disabled}` a 422. LiteLLM (pinned 1.108.10) has no separate thinking switch for Mistral: its Mistral provider docs cover `reasoning_effort` only (low / medium / high, for Magistral), and `none` would reach Mistral as the same 400. So both GLM aliases set `reasoning_effort: low` as a deployment param, which in our measurements produces about 0 reasoning tokens per call; the fallback deployment never receives it.
+
+**Swapping a model.** Each role is an alias, so ops change the `model:` (and the `model_info` costs) of `markoto-worker`, `markoto-utility` or `markoto-worker-strong` in `deploy/config/litellm/config.yaml` and redeploy; no code or env change. Keep `server/utils/litellm/workerPrices.ts` in step (`tests/unit/litellm/workerPrices.test.ts` compares the two) so the cost estimate before a delegated job stays right. To point a role at a different alias instead, set `NUXT_AI_DEFAULT_WORKER_MODEL`, `NUXT_AI_DEFAULT_UTILITY_MODEL` or `NUXT_AI_DEFAULT_WORKER_STRONG_MODEL`.
+
 
 ## Free AI allowance (hosted)
 
@@ -226,13 +242,14 @@ The base URLs were checked against each provider's `/models` and `/chat/completi
 | `NUXT_AI_DEFAULT_{CHAT,IMAGE,TRANSCRIBE}_BASE_URL` + `_API_KEY` | Together with `_MODEL`: an OpenAI-compatible endpoint used exactly like a user key (zero-cost to AI Points). The operator may point at private networks without the opt-in below; loopback, link-local/metadata addresses and markoto's own service names are still refused. |
 | `NUXT_AI_DEFAULT_CHAT_VISION` | `false` if the default chat model can't read images (default `true`). |
 | `NUXT_AI_DEFAULT_WORKER_MODEL` (+ `_BASE_URL` / `_API_KEY`) | The [worker model](#worker-model), same semantics as the chat default. Empty (self-host default) = the chat default. |
+| `NUXT_AI_DEFAULT_UTILITY_MODEL` | LiteLLM alias for the utility sub-calls (`fetch_url` / `web_search` synthesis) on the platform. Empty (self-host default) = the worker model; hosted `markoto-utility`. Never replaces a user's own key. |
 | `NUXT_AI_DEFAULT_WORKER_STRONG_MODEL` | Strong worker alias for translations and rewrites on plans with `aiStrongModel` (default `markoto-worker-strong`); used only while the worker model is an alias. |
 | `NUXT_AI_BYOK_ALLOWED_BASE_URLS` | Comma-separated allowlist of base URLs users may pick. Empty (self-hosted default) = any public https URL. The hosted SaaS uses the eight non-local providers in the table above; an instance with `NUXT_LEGAL_SURFACES_ENABLED=true` (the hosted shape) refuses to boot with an empty list, and an entry that is not an absolute http(s) URL is a boot error everywhere. |
 | `NUXT_AI_BYOK_ALLOW_PRIVATE_URLS` | `true` lets users point at private-network endpoints (RFC 1918, CGNAT, IPv6 ULA) and use plain http for them. Default `false`. |
 | `NUXT_AI_REALTIME_MODEL` | Voxtral Realtime model for live dictation (default `voxtral-mini-transcribe-realtime-2602`). |
 | `NUXT_FREE_TIER_TOTAL_BUDGET_USD` | Monthly ceiling in USD on platform-paid AI for all free-tier users together (a LiteLLM team budget, see [Free AI allowance](#free-ai-allowance-hosted)). Empty / `0` = none (self-host default); hosted 500. |
 
-The hosted SaaS sets `NUXT_AI_DEFAULT_CHAT_MODEL=zai-glm-5-3-flash` (the [free AI allowance](#free-ai-allowance-hosted)), the image (`flux-3-image-klein`), transcription (`voxtral-mini-transcribe`) and strong-chat (`mistral-small-2603`) aliases (locked for the free tier, so they need the user's own key there), the worker aliases `markoto-worker` / `markoto-worker-strong`, and the provider allowlist above.
+The hosted SaaS sets `NUXT_AI_DEFAULT_CHAT_MODEL=zai-glm-5-3-flash` (the [free AI allowance](#free-ai-allowance-hosted)), the image (`flux-3-image-klein`), transcription (`voxtral-mini-transcribe`) and strong-chat (`mistral-small-2603`) aliases (locked for the free tier, so they need the user's own key there), the worker aliases `markoto-worker` / `markoto-utility` / `markoto-worker-strong`, and the provider allowlist above.
 
 ### How BYOK calls flow
 

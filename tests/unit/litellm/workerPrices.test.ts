@@ -13,7 +13,7 @@ const CONFIG_PATH = fileURLToPath(new URL('../../../deploy/config/litellm/config
 
 const deployment = z.object({
   model_name: z.string(),
-  litellm_params: z.object({ model: z.string(), api_base: z.string().optional(), allowed_openai_params: z.array(z.string()).optional() }).passthrough(),
+  litellm_params: z.object({ model: z.string(), api_base: z.string().optional(), allowed_openai_params: z.array(z.string()).optional(), reasoning_effort: z.string().optional() }).passthrough(),
   model_info: z.object({
     input_cost_per_token: z.number().optional(),
     output_cost_per_token: z.number().optional(),
@@ -42,7 +42,8 @@ describe('worker prices', () => {
   })
 
   it('the worker aliases run on Mistral\'s EU endpoint and let prompt_cache_key through', () => {
-    expect(entry('markoto-worker').litellm_params.model).toBe('mistral/ministral-8b-2512')
+    expect(entry('markoto-worker').litellm_params.model).toBe('mistral/zai-glm-5-3-flash')
+    expect(entry('markoto-utility').litellm_params.model).toBe('mistral/zai-glm-5-3-flash')
     expect(entry('markoto-worker-strong').litellm_params.model).toBe('mistral/mistral-small-2603')
     for (const alias of Object.keys(WORKER_PRICES)) {
       expect(entry(alias).litellm_params.api_base, alias).toBe('https://api.eu.mistral.ai/v1')
@@ -50,16 +51,32 @@ describe('worker prices', () => {
     }
   })
 
-  it('the worker costs the same as the plain Ministral / Small 4 deployments', () => {
-    expect(entry('markoto-worker').model_info).toMatchObject({
-      input_cost_per_token: entry('ministral-8b-2512').model_info?.input_cost_per_token,
-      output_cost_per_token: entry('ministral-8b-2512').model_info?.output_cost_per_token
-    })
+  it('the worker and utility aliases cost the same as the hosted chat default (GLM-5.3 Flash), the strong worker as Small 4', () => {
+    const glm = entry('zai-glm-5-3-flash').model_info
+    for (const alias of ['markoto-worker', 'markoto-utility']) {
+      expect(entry(alias).model_info, alias).toMatchObject({
+        input_cost_per_token: glm?.input_cost_per_token,
+        output_cost_per_token: glm?.output_cost_per_token,
+        cache_read_input_token_cost: glm?.cache_read_input_token_cost
+      })
+    }
     expect(entry('markoto-worker-strong').model_info).toMatchObject({
       input_cost_per_token: entry('mistral-small-2603').model_info?.input_cost_per_token,
       output_cost_per_token: entry('mistral-small-2603').model_info?.output_cost_per_token,
       cache_read_input_token_cost: entry('mistral-small-2603').model_info?.cache_read_input_token_cost
     })
+  })
+
+  it('GLM workers think as little as Mistral allows (reasoning_effort low; `none` is a 400 for zai-glm-5-3)', () => {
+    for (const alias of ['markoto-worker', 'markoto-utility']) {
+      expect(entry(alias).litellm_params.reasoning_effort, alias).toBe('low')
+    }
+  })
+
+  it('the GLM workers fall back to Ministral 3 8B, never to a dearer model', () => {
+    const fallbacks = Object.assign({}, ...config.router_settings.fallbacks) as Record<string, string[]>
+    expect(fallbacks['markoto-worker']).toEqual(['ministral-8b-2512'])
+    expect(fallbacks['markoto-utility']).toEqual(['ministral-8b-2512'])
   })
 
   it('every fallback target is a deployment', () => {
