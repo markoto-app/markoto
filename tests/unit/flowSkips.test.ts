@@ -2,7 +2,7 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { PROVIDER_OUTAGE_MARKER, readSkippedFlows, skippedFlowsMarkdown } from '../../scripts/lib/flowSkips'
+import { PROVIDER_OUTAGE_MARKER, readSkippedFlows, skippedFlowsMarkdown, skippedFlowsWarnings } from '../../scripts/lib/flowSkips'
 
 describe('skippedFlowsMarkdown', () => {
   it('is empty when nothing was skipped', () => {
@@ -18,6 +18,20 @@ describe('skippedFlowsMarkdown', () => {
     expect(md).toContain('### Flows skipped: provider unavailable')
     expect(md).toContain('- `ask-the-ai-to-draw-an-image` (2 variants): BFL down')
     expect(md).toContain('- `another-flow` (1 variant): X down')
+  })
+})
+
+describe('skippedFlowsWarnings', () => {
+  it('is one GitHub warning annotation per flow, with escaped text', () => {
+    expect(skippedFlowsWarnings([])).toEqual([])
+    expect(skippedFlowsWarnings([
+      { slug: 'generate-an-image-yourself', variant: 'en/light-desktop', reason: 'BFL down' },
+      { slug: 'generate-an-image-yourself', variant: 'en/dark-mobile', reason: 'BFL down' },
+      { slug: 'other', variant: 'en/light-desktop', reason: '100% down\nreally' }
+    ])).toEqual([
+      '::warning title=Flow skipped (provider unavailable)::generate-an-image-yourself (2 variants): BFL down',
+      '::warning title=Flow skipped (provider unavailable)::other (1 variant): 100%25 down%0Areally'
+    ])
   })
 })
 

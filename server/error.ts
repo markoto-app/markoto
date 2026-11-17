@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/nuxt'
 import type { NitroErrorHandler } from 'nitropack/types'
 import type { H3Event } from 'h3'
 import { dropUnusedSessionCookie } from './utils/auth/sessionCookie'
-import { isApiErrorCode } from '../shared/api/errors'
+import { API_ERRORS, isApiErrorCode } from '../shared/api/errors'
 import { isTestModeEnabled } from '../shared/utils/security/testMode'
 import { useLogger } from './utils/platform/logger'
 
@@ -15,8 +15,13 @@ const log = useLogger('api-error')
 //
 // 4xx: the endpoint threw `createError(...)` on purpose; `message` and
 // `data` pass through (the UI shows them in toasts), `stack` never does.
-// 5xx: unintended escapes. Captured in Sentry and logged, but the client
-// gets only a generic message and `data: { code: 'internal' }`.
+// 5xx: captured in Sentry and logged, but the client gets only a generic
+// message and `data: { code: 'internal' }`. Exception: a 5xx a route threw on
+// purpose with a registered code that carries no params (`apiError('ai/
+// image-provider-unavailable')`) keeps `data: { code }` and nothing else, so
+// the UI can say what failed ("the image provider is down") from its own
+// translated text. The code is a fixed registry string; message, params and
+// any other data are still dropped.
 
 export interface SanitizedErrorPayload {
   statusCode: number
@@ -52,6 +57,14 @@ function defaultStatusMessage(statusCode: number): string {
   return CLIENT_ERROR_PHRASES[statusCode] ?? 'Client Error'
 }
 
+/** A registered 5xx code without params, from a route's `apiError(...)`; null for anything else. */
+function passThroughServerErrorCode(data: unknown): string | null {
+  const code = (data as { code?: unknown } | null | undefined)?.code
+  if (!isApiErrorCode(code)) return null
+  const spec: { status: number, params?: unknown } = API_ERRORS[code]
+  return spec.status >= 500 && spec.params === undefined ? code : null
+}
+
 /** Pure payload builder (no h3 I/O, so the policy is unit-testable). `stack` is never included. */
 export function buildSanitizedErrorPayload(error: {
   statusCode?: number
@@ -69,9 +82,9 @@ export function buildSanitizedErrorPayload(error: {
   }
 
   if (isServerError) {
-    // 5xx: strip everything, generic message only.
+    // 5xx: strip everything, generic message only (a registered code survives).
     payload.message = 'Something went wrong on our side. Please try again. We\'ve been notified.'
-    payload.data = { code: 'internal' }
+    payload.data = { code: passThroughServerErrorCode(error.data) ?? 'internal' }
   } else {
     // 4xx pass-through: author-controlled strings.
     if (error.message) payload.message = error.message

@@ -229,6 +229,11 @@ model_list:
       api_key: os.environ/BFL_API_KEY
       # A queued BFL job can take longer than the router default.
       timeout: 120
+      # No router retry: a failure after BFL accepted the job (polling,
+      # download) would submit and bill a second image. The provider itself
+      # resends a submission BFL refused with 429 / 503 (custom_handlers.py,
+      # `_bfl_submit`), which is the only case that is safe to repeat.
+      num_retries: 0
     model_info:
       input_cost_per_token: 0.0
       output_cost_per_token: 0.0001        # × completion_tokens (= cost_usd / 0.0001)
