@@ -10,6 +10,7 @@ import {
 import { soloSessionGuard, taintedSessionGuard } from '../fixtures/crossBoundary'
 import { at, first, last } from '../../helpers/assert'
 import { partial } from '../../helpers/fixtures'
+import { TOOL_RESULT_CHAR_CAP } from '../../../server/utils/agentic/limits'
 
 // Adversarial: budget exhaustion paths
 //
@@ -235,6 +236,20 @@ describe('runAgenticLoop: tool dispatch', () => {
     expect(fr.name).toBe('view_document')
     expect(fr.response?.output).toBe('doc text')
     expect(fr.response?.isError).toBe(false)
+  })
+
+  it('a tool result over the result cap is cut with a continuation hint', async () => {
+    const { ai, callsSeen } = makeFakeAi([
+      { chunks: [{ functionCalls: [{ id: 'c1', name: 'view_document', args: { view_range: [1, 5000] } }], finishReason: FinishReason.STOP }] },
+      { chunks: [{ text: 'ok', finishReason: FinishReason.STOP }] }
+    ])
+    const huge = Array.from({ length: 5000 }, (_, i) => `${i + 1}: ${'w'.repeat(40)}`).join('\n')
+    executeFunctionByName.mockResolvedValueOnce({ content: huge, isError: false })
+    await runAgenticLoop(makeOpts({ ai }))
+    const turn2Contents = at(callsSeen, 1).contents as Array<{ role: string, parts: Array<{ functionResponse?: { response?: { output?: string } } }> }>
+    const output = first(last(turn2Contents).parts).functionResponse!.response!.output!
+    expect(output.length).toBeLessThanOrEqual(TOOL_RESULT_CHAR_CAP)
+    expect(output).toMatch(/\[Result cut at \d+ of \d+ characters \(tool result size limit\)\. Continue with view_document and view_range \[\d+, \d+\]\.\]$/)
   })
 
   it('multiple tool calls in one turn all dispatch in order', async () => {

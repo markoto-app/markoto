@@ -27,12 +27,16 @@ import { getDoc, updateDocMeta } from '../../../repos/documents'
 import { countThemesByUser, createTheme, getThemeById, listThemesByUser } from '../../../repos/themes'
 import { getWorkspaceOfDoc } from '../../../repos/workspaces'
 import { useLogger } from '../../platform/logger'
+import { TOOL_RESULT_CHAR_CAP } from '../../agentic/limits'
 
 // The document's theme: update_theme (patch over a base: current theme,
 // preset, saved theme or workspace default), get_theme, list_themes,
 // save_theme_as_preset.
 
 const log = useLogger('ai-tools')
+
+/** Room the list_themes result gets, below the loop's result cap. */
+const LIST_THEMES_CHAR_BUDGET = TOOL_RESULT_CHAR_CAP - 2_000
 
 // Theme inspection / preset management: three thin tools so the AI can reason about styling beyond just
 // "apply a built-in preset":
@@ -290,23 +294,42 @@ async function handleListThemes(
   // useful than a prose summary because the next likely action is
   // `update_theme` with field-level overrides, the model wants to
   // diff the JSONs.
-  const payload = {
-    savedThemes: saved.map(s => ({
-      theme_id: s.themeId,
-      name: s.name,
-      description: s.description,
-      theme: s.theme
-    })),
-    workspaceDefault: workspaceDefault
-      ? { theme: workspaceDefault, scope: 'workspace' as const }
-      : null,
-    notes: [
-      'Pass theme_id to update_theme to apply a saved theme as the base.',
-      'Pass from_workspace_default: true to apply the workspace default.',
-      'Both replace the base; sibling fields (body.*, headings.*, color.*) merge on top.'
-    ]
+  const notes = [
+    'Pass theme_id to update_theme to apply a saved theme as the base.',
+    'Pass from_workspace_default: true to apply the workspace default.',
+    'Both replace the base; sibling fields (body.*, headings.*, color.*) merge on top.'
+  ]
+  const full = {
+    savedThemes: saved.map(s => ({ theme_id: s.themeId, name: s.name, description: s.description, theme: listedTheme(s.theme) })),
+    workspaceDefault: workspaceDefault ? { theme: listedTheme(workspaceDefault), scope: 'workspace' as const } : null,
+    notes
   }
-  return toolOk(JSON.stringify(payload, null, 2))
+  const pretty = JSON.stringify(full, null, 2)
+  if (pretty.length <= LIST_THEMES_CHAR_BUDGET) return toolOk(pretty)
+  // Too long with every theme in full: compact JSON, and themes past the
+  // budget by name only (applying them by theme_id still works).
+  let size = JSON.stringify({ ...full, savedThemes: [] }).length + 400
+  const savedThemes = full.savedThemes.map((t) => {
+    const entry = JSON.stringify(t)
+    if (size + entry.length > LIST_THEMES_CHAR_BUDGET) return { theme_id: t.theme_id, name: t.name, description: t.description, theme: null }
+    size += entry.length + 1
+    return t
+  })
+  return toolOk(JSON.stringify({
+    savedThemes,
+    workspaceDefault: full.workspaceDefault,
+    notes: [...notes, 'Themes with "theme": null did not fit in this result (size limit); apply one with update_theme and theme_id, then read it with get_theme.']
+  }))
+}
+
+/** Characters of a theme's custom CSS shown by list_themes; applying the theme keeps all of it. */
+const LISTED_CUSTOM_CSS_MAX = 1_500
+
+/** A theme as list_themes shows it: long custom CSS shortened. */
+function listedTheme(theme: DocTheme): DocTheme {
+  const css = theme.customCss
+  if (typeof css !== 'string' || css.length <= LISTED_CUSTOM_CSS_MAX) return theme
+  return { ...theme, customCss: `${css.slice(0, LISTED_CUSTOM_CSS_MAX)}\n/* ${css.length - LISTED_CUSTOM_CSS_MAX} more characters not shown here; applying this theme keeps them */` }
 }
 
 async function handleSaveThemeAsPreset(

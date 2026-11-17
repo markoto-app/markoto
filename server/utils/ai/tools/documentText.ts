@@ -1,24 +1,9 @@
 // Line-numbered views of the document text, shared by the read/edit tools
 // and the comment tools (line ranges → character offsets).
 
-export function withLineNumbers(text: string, startLine: number = 1): string {
+function withLineNumbers(text: string, startLine: number = 1): string {
   const lines = text.split('\n')
   return lines.map((line, i) => `${startLine + i}: ${line}`).join('\n')
-}
-
-export function findIndexOfOnlyMatch(haystack: string, needle: string): { found: number, count: number } {
-  if (needle.length === 0) return { found: -1, count: 0 }
-  let count = 0
-  let first = -1
-  let i = 0
-  while (true) {
-    const pos = haystack.indexOf(needle, i)
-    if (pos === -1) break
-    if (count === 0) first = pos
-    count += 1
-    i = pos + needle.length
-  }
-  return { found: count === 1 ? first : -1, count }
 }
 
 /** Lines shown back to the model after an edit (plus one line of context on each side). */
@@ -43,7 +28,7 @@ export function describeEditedRegion(full: string, start: number, length: number
   const to = Math.min(lines.length, lastLine + 1)
   const span = firstLine === lastLine ? `Line ${firstLine} now reads` : `Lines ${firstLine}-${lastLine} now read`
   if (lastLine - firstLine + 1 > EDIT_ECHO_MAX_LINES) {
-    return `Lines ${firstLine}-${lastLine} now hold the new text (${lastLine - firstLine + 1} lines; call view_document to read it).`
+    return `Lines ${firstLine}-${lastLine} now hold the new text (${lastLine - firstLine + 1} lines; read them with view_document and view_range [${firstLine}, ${lastLine}] if needed).`
   }
   let echo = withLineNumbers(lines.slice(from - 1, to).join('\n'), from)
   if (echo.length > EDIT_ECHO_MAX_CHARS) echo = echo.slice(0, EDIT_ECHO_MAX_CHARS) + '\n[truncated]'
@@ -136,4 +121,148 @@ export function blockSpacedInsertText(full: string, idx: number, text: string): 
   const blankAbove = prevLine !== null && needsBlankLineBetween(prevLine, firstInserted) ? '\n' : ''
   const blankBelow = nextLine !== null && needsBlankLineBetween(lastInserted, nextLine) ? '\n' : ''
   return prefix + blankAbove + body + blankBelow
+}
+
+/**
+ * The note an edit result carries when the lines below the edit moved:
+ * line numbers from an earlier view_document are wrong past `afterLine`
+ * (numbered as before the edit). Null when nothing shifted.
+ */
+export function lineShiftNote(afterLine: number, shift: number): string | null {
+  if (shift === 0) return null
+  const signed = shift > 0 ? `+${shift}` : `${shift}`
+  return `Line numbers after line ${afterLine} shifted by ${signed}; earlier views are out of date below that line.`
+}
+
+/** Number of line breaks in a string. */
+export function newlineCount(text: string): number {
+  let n = 0
+  for (let i = 0; i < text.length; i++) if (text.charCodeAt(i) === 10) n += 1
+  return n
+}
+
+// Outline and bounded views
+
+const ATX_HEADING_RE = /^ {0,3}(#{1,6})(?:[ \t]|$)/
+
+export interface OutlineEntry {
+  /** 1-based line of the heading. */
+  line: number
+  /** Last line of the section: the line before the next heading of the same or a higher level. */
+  endLine: number
+  level: number
+  /** The heading line as written (with its `#` marks). */
+  heading: string
+}
+
+/**
+ * The document's ATX headings with the line range each section spans
+ * (subsections included). Lines inside fenced code blocks are skipped, so a
+ * `# comment` in a shell snippet is not a heading.
+ */
+export function documentOutline(text: string): OutlineEntry[] {
+  const lines = text.split('\n')
+  const found: Array<{ line: number, level: number, heading: string }> = []
+  let openFence: string | null = null
+  lines.forEach((line, i) => {
+    const fence = FENCE_RE.exec(line)?.[1]
+    if (fence) {
+      if (openFence === null) openFence = fence
+      else if (fence[0] === openFence[0] && fence.length >= openFence.length) openFence = null
+      return
+    }
+    if (openFence !== null) return
+    const marks = ATX_HEADING_RE.exec(line)?.[1]
+    if (marks) found.push({ line: i + 1, level: marks.length, heading: line.trim() })
+  })
+  return found.map((h, idx) => {
+    const next = found.slice(idx + 1).find(o => o.level <= h.level)
+    return { ...h, endLine: next ? next.line - 1 : lines.length }
+  })
+}
+
+/**
+ * The outline as text, one heading per line ("[12-40] ## 1.2 Title"),
+ * limited to the deepest heading level that fits in `maxChars`. Says how
+ * many deeper headings were left out.
+ */
+export function formatOutline(entries: readonly OutlineEntry[], maxChars: number): string {
+  const row = (e: OutlineEntry): string => `[${e.line}-${e.endLine}] ${e.heading}`
+  for (let depth = 6; depth >= 1; depth--) {
+    const shown = entries.filter(e => e.level <= depth)
+    const text = shown.map(row).join('\n')
+    if (text.length <= maxChars || depth === 1) {
+      const omitted = entries.length - shown.length
+      const capped = text.length > maxChars ? `${text.slice(0, text.lastIndexOf('\n', maxChars))}\n[outline cut]` : text
+      return omitted > 0 ? `${capped}\n(${omitted} deeper headings not listed; reading a section shows them.)` : capped
+    }
+  }
+  return ''
+}
+
+/**
+ * Lines `startLine`..`endLine` (1-based, inclusive) of `lines`, numbered
+ * like view_document, cut at a whole line so the result stays within
+ * `maxChars`. A single line longer than the budget is cut mid-line.
+ * `lastLine` is the last line shown in full (or partly, when cut mid-line).
+ */
+function numberedLines(lines: readonly string[], startLine: number, endLine: number, maxChars: number): { text: string, lastLine: number, cut: boolean } {
+  const out: string[] = []
+  let size = 0
+  for (let n = startLine; n <= endLine && n <= lines.length; n++) {
+    const row = `${n}: ${lines[n - 1]}`
+    const added = row.length + (out.length > 0 ? 1 : 0)
+    if (size + added > maxChars) {
+      if (out.length === 0) return { text: `${row.slice(0, maxChars)} [line cut]`, lastLine: n, cut: true }
+      return { text: out.join('\n'), lastLine: n - 1, cut: true }
+    }
+    out.push(row)
+    size += added
+  }
+  return { text: out.join('\n'), lastLine: Math.min(endLine, lines.length), cut: false }
+}
+
+/** Part of a view's budget the outline may take before deeper heading levels are dropped. */
+const OUTLINE_CHAR_BUDGET = 8_000
+
+/** About how many lines of this document fit in one view of `budget` characters. */
+function linesPerCall(lines: readonly string[], budget: number): number {
+  const avg = lines.reduce((n, l) => n + l.length + 7, 0) / Math.max(1, lines.length)
+  return Math.max(1, Math.floor(budget / avg))
+}
+
+/**
+ * A line-numbered view of `fullText` that stays within `budget`
+ * characters. `readCall` names the call that reads more ("view_document",
+ * or `view_other_document (doc_id "x")`), for the continuation hints.
+ *
+ * - No range, document fits: the whole text.
+ * - No range, too long: the heading outline (with each section's line
+ *   range) plus the first lines, and how to read the rest.
+ * - A range that does not fit: as many whole lines as fit, then the
+ *   view_range that continues it.
+ */
+export function boundedDocumentView(fullText: string, range: readonly [number, number] | undefined, budget: number, readCall: string): string {
+  const lines = fullText.split('\n')
+  if (!range) {
+    const whole = numberedLines(lines, 1, lines.length, budget)
+    if (!whole.cut) return whole.text
+    const outline = formatOutline(documentOutline(fullText), Math.min(OUTLINE_CHAR_BUDGET, Math.floor(budget / 2)))
+    const intro = `The document has ${lines.length} lines (${fullText.length} characters), too long for one result. Outline (each heading with the line range of its section, subsections included):\n${outline || '(no headings)'}`
+    const head = numberedLines(lines, 1, lines.length, Math.max(1_000, budget - intro.length - 300))
+    return `${intro}\n\nRead any part with ${readCall} and view_range [start, end]; about ${linesPerCall(lines, budget)} lines fit in one call. Lines 1-${head.lastLine} follow:\n\n${head.text}`
+  }
+
+  const [start, end] = range
+  if (start > lines.length) {
+    return `The document has only ${lines.length} lines; view_range [${start}, ${end}] starts after the last line.`
+  }
+  const last = end === -1 ? lines.length : Math.min(end, lines.length)
+  const view = numberedLines(lines, start, last, budget)
+  if (!view.cut) return view.text
+  const next = view.lastLine + 1
+  const hint = next <= last
+    ? `Shown: lines ${start}-${view.lastLine} of the requested ${start}-${last} (result size limit). Continue with ${readCall} and view_range [${next}, ${Math.min(last, view.lastLine + linesPerCall(lines, budget))}].`
+    : `Line ${view.lastLine} is longer than one result allows and was cut.`
+  return `${view.text}\n\n[${hint}]`
 }

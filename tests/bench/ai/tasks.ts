@@ -1,18 +1,139 @@
-import type { BenchTask, ScriptApi, ToolOutcome } from './harness'
+import type { BenchTask, ScriptApi, ScriptCall, ToolOutcome } from './harness'
 
 // The benchmark tasks, scripted the way a competent model does them with
-// TODAY's tools (view_document / replace_text / insert_text / create_comment).
-// Each script plays the model: it reads the document from the real
-// view_document result and builds old_str from it, so the edits really apply.
-// A later variant re-scripts the same task ids with new tools; keep the ids
-// and prompts stable so results stay comparable.
+// the current tools (view_document / replace_text / insert_text /
+// create_comment). Each script plays the model: it reads the document from
+// the real view_document results and builds old_str from them, so the edits
+// really apply. Variant `step1`: view_document on the large document returns
+// a heading outline with line ranges, so the scripts read the outline and
+// then only the ranges they need (`view_range`), following the continuation
+// hints. Keep the ids and prompts stable so results stay comparable with
+// `results/baseline.*`.
 
-// Document helpers (what the model reads off the view_document output)
+const VARIANT = 'step1'
 
-/** The document text from a `view_document` result ("N: line" per line). */
-function textFromView(view: ToolOutcome | null): string {
-  if (!view || view.isError) throw new Error('view_document failed')
-  return view.output.split('\n').map(l => l.replace(/^\d+: /, '')).join('\n')
+// Reading the document through the outline (what the model reads off the
+// view_document results)
+
+interface OutlineRow { start: number, end: number, level: number, text: string }
+
+interface DocReader {
+  rows: OutlineRow[]
+  totalLines: number
+  /** Lines the outline says fit in one call. */
+  perCall: number
+  /** Lines read so far, by line number. */
+  known: Map<number, string>
+}
+
+const NUMBERED_LINE_RE = /^(\d+): (.*)$/
+const CONTINUE_RE = /Continue with view_document and view_range \[(\d+), (\d+)\]/
+
+/** Record the "N: text" lines of a view_document result; returns the continuation range if it was cut. */
+function absorbView(reader: DocReader, view: ToolOutcome | undefined): [number, number] | null {
+  if (!view || view.isError) throw new Error(`view_document failed: ${view?.output.slice(0, 200)}`)
+  const body = view.output.includes(' follow:\n\n') ? view.output.slice(view.output.indexOf(' follow:\n\n') + 10) : view.output
+  for (const row of body.split('\n')) {
+    const m = NUMBERED_LINE_RE.exec(row)
+    if (m) reader.known.set(Number(m[1]), m[2]!)
+  }
+  const cont = CONTINUE_RE.exec(view.output)
+  return cont ? [Number(cont[1]), Number(cont[2])] : null
+}
+
+/** First call: view_document without a range gives the outline (or the whole short document). */
+async function openDocument(api: ScriptApi): Promise<DocReader> {
+  const view = await api.call('view_document', {})
+  const reader: DocReader = { rows: [], totalLines: 0, perCall: 0, known: new Map() }
+  const total = /The document has (\d+) lines/.exec(view.output)
+  if (!total) {
+    absorbView(reader, view)
+    reader.totalLines = reader.known.size
+    reader.perCall = reader.totalLines
+    return reader
+  }
+  reader.totalLines = Number(total[1])
+  reader.perCall = Number(/about (\d+) lines fit in one call/.exec(view.output)?.[1] ?? 100)
+  for (const row of view.output.split('\n')) {
+    const m = /^\[(\d+)-(\d+)\] (#{1,6}) (.*)$/.exec(row)
+    if (m) reader.rows.push({ start: Number(m[1]), end: Number(m[2]), level: m[3]!.length, text: m[4]! })
+  }
+  absorbView(reader, view)
+  return reader
+}
+
+/** View calls covering [start, end] in chunks of the size the outline suggested. */
+function rangeCalls(reader: DocReader, start: number, end: number): ScriptCall[] {
+  const calls: ScriptCall[] = []
+  for (let from = start; from <= end; from += reader.perCall) {
+    calls.push({ name: 'view_document', args: { view_range: [from, Math.min(end, from + reader.perCall - 1)] } })
+  }
+  return calls
+}
+
+/**
+ * Read every line of the given ranges that is not known yet: one turn with
+ * all the view calls (plus `extra` calls in the same turn), then follow-up
+ * turns for results that were cut. Returns the results of `extra`.
+ */
+async function readRanges(api: ScriptApi, reader: DocReader, ranges: Array<[number, number]>, extra: ScriptCall[] = []): Promise<ToolOutcome[]> {
+  let calls: ScriptCall[] = []
+  for (const [start, end] of ranges) {
+    let from = start
+    while (from <= end && reader.known.has(from)) from += 1
+    if (from <= end) calls.push(...rangeCalls(reader, from, end))
+  }
+  let extraResults: ToolOutcome[] = []
+  let first = true
+  while (calls.length > 0 || (first && extra.length > 0)) {
+    const results = await api.turn(first ? [...extra, ...calls] : calls)
+    if (first) extraResults = results.slice(0, extra.length)
+    const views = first ? results.slice(extra.length) : results
+    first = false
+    const next: ScriptCall[] = []
+    views.forEach((view, i) => {
+      const cont = absorbView(reader, view)
+      const wanted = calls[i]!.args.view_range as [number, number]
+      if (cont && cont[0] <= wanted[1]) next.push({ name: 'view_document', args: { view_range: [cont[0], wanted[1]] } })
+    })
+    calls = next
+  }
+  return extraResults
+}
+
+/** Lines [start, end] as read; throws when one was not read. */
+function linesOf(reader: DocReader, start: number, end: number): string[] {
+  const out: string[] = []
+  for (let n = start; n <= end; n++) {
+    const line = reader.known.get(n)
+    if (line === undefined) throw new Error(`line ${n} not read`)
+    out.push(line)
+  }
+  return out
+}
+
+function outlineRow(reader: DocReader, level: number, prefix: string): OutlineRow {
+  const row = reader.rows.find(r => r.level === level && r.text.startsWith(prefix))
+  if (!row) throw new Error(`heading "${prefix}" not in the outline`)
+  return row
+}
+
+/** Last line of a section without the blank lines and page break before the next heading. */
+function trimmedEnd(reader: DocReader, row: OutlineRow): number {
+  let end = row.end
+  while (end > row.start && (reader.known.get(end)!.trim() === '' || reader.known.get(end) === '<!-- pagebreak -->')) end -= 1
+  return end
+}
+
+/** Read a section (outline row) and return it as a block, like `blockAt` on the full text. */
+async function readBlock(api: ScriptApi, reader: DocReader, row: OutlineRow): Promise<Block> {
+  await readRanges(api, reader, [[row.start, row.end]])
+  return blockOf(reader, row)
+}
+
+function blockOf(reader: DocReader, row: OutlineRow): Block {
+  const end = trimmedEnd(reader, row)
+  return { startLine: row.start, endLine: end, text: linesOf(reader, row.start, end).join('\n'), heading: row.text }
 }
 
 interface Heading { line: number, level: number, text: string }
@@ -85,16 +206,15 @@ function fakeRewrite(block: string): string {
 
 const T1_REVIEW: BenchTask = {
   id: 'T1-review-chapter',
-  variant: 'baseline',
+  variant: VARIANT,
   title: 'Review chapter 13, five comments',
   prompt: 'Lies Kapitel 13 und hinterlasse fünf konkrete Verbesserungsvorschläge als Kommentare.',
   async script(api) {
-    const text = textFromView(await api.call('view_document', {}))
-    const ch = chapter(text, 13)
-    const lines = text.split('\n')
+    const reader = await openDocument(api)
+    const ch = await readBlock(api, reader, outlineRow(reader, 1, '13 '))
     const prose: number[] = []
     for (let l = ch.startLine; l <= ch.endLine; l++) {
-      const line = lines[l - 1]!
+      const line = reader.known.get(l)!
       if (line.length > 200 && !line.startsWith('|') && !line.startsWith('#')) prose.push(l)
     }
     const picks = [0, 1, 2, 3, 4].map(i => prose[Math.floor((i + 0.5) * prose.length / 5)]!)
@@ -112,13 +232,16 @@ const T1_REVIEW: BenchTask = {
 
 const T2_SWAP: BenchTask = {
   id: 'T2-swap-chapters',
-  variant: 'baseline',
+  variant: VARIANT,
   title: 'Swap chapters 4 and 5',
   prompt: 'Vertausche die Kapitel 4 und 5 und passe die Nummerierung der Überschriften an.',
   async script(api) {
-    const text = textFromView(await api.call('view_document', {}))
-    const ch4 = chapter(text, 4).text
-    const ch5 = chapter(text, 5).text
+    const reader = await openDocument(api)
+    const row4 = outlineRow(reader, 1, '4 ')
+    const row5 = outlineRow(reader, 1, '5 ')
+    await readRanges(api, reader, [[row4.start, row4.end], [row5.start, row5.end]])
+    const ch4 = blockOf(reader, row4).text
+    const ch5 = blockOf(reader, row5).text
     // Renumbered, the moved chapters differ from the originals, so the second
     // old_str (the original chapter 5) is still unique after the first edit.
     await api.turn([
@@ -136,12 +259,12 @@ const T2_SWAP: BenchTask = {
 
 const T3_SHORTEN_INTRO: BenchTask = {
   id: 'T3-shorten-intro',
-  variant: 'baseline',
+  variant: VARIANT,
   title: 'Shorten the introduction (chapter 1)',
   prompt: 'Kürze die Einleitung (Kapitel 1) auf etwa ein Drittel, ohne die Abschnittsstruktur zu verlieren.',
   async script(api) {
-    const text = textFromView(await api.call('view_document', {}))
-    const ch = chapter(text, 1).text
+    const reader = await openDocument(api)
+    const ch = (await readBlock(api, reader, outlineRow(reader, 1, '1 '))).text
     // Keep every heading and the first paragraph under it.
     const kept: string[] = []
     let takeNext = false
@@ -168,12 +291,12 @@ function translationSection(text: string): Block {
 
 const T4_TRANSLATE: BenchTask = {
   id: 'T4-translate-section',
-  variant: 'baseline',
+  variant: VARIANT,
   title: 'Translate section 9.2 (~1500 words) to French',
   prompt: 'Übersetze den Abschnitt 9.2 «Alarmierung» ins Französische.',
   async script(api) {
-    const text = textFromView(await api.call('view_document', {}))
-    const section = translationSection(text)
+    const reader = await openDocument(api)
+    const section = await readBlock(api, reader, outlineRow(reader, 2, '9.2 '))
     await api.call('replace_text', { old_str: section.text, new_str: fakeRewrite(section.text) })
   },
   verify: (initial, final) => {
@@ -219,11 +342,15 @@ function customerEdits(text: string): Array<{ old_str: string, new_str: string }
 
 const T5_RENAME: BenchTask = {
   id: 'T5-rename-term',
-  variant: 'baseline',
+  variant: VARIANT,
   title: 'Rename Kunde to Klient in all forms (40x)',
   prompt: 'Ersetze im ganzen Dokument «Kunde» durch «Klient», in allen Formen (Kunden, Kundin, Kundinnen).',
   async script(api) {
-    const text = textFromView(await api.call('view_document', {}))
+    // No search tool yet: the whole document has to be read, in parallel
+    // ranged reads.
+    const reader = await openDocument(api)
+    await readRanges(api, reader, [[1, reader.totalLines]])
+    const text = linesOf(reader, 1, reader.totalLines).join('\n')
     const edits = customerEdits(text)
     for (let k = 0; k < edits.length; k += 10) {
       await api.turn(edits.slice(k, k + 10).map(args => ({ name: 'replace_text', args })))
@@ -238,32 +365,42 @@ const T5_RENAME: BenchTask = {
 
 const T6_FORMAL_TONE: BenchTask = {
   id: 'T6-formal-tone',
-  variant: 'baseline',
+  variant: VARIANT,
   title: 'Formal tone across the whole document',
   prompt: 'Formuliere das ganze Dokument in einem formelleren, sachlicheren Ton um.',
   async script(api: ScriptApi) {
-    const text = textFromView(await api.call('view_document', {}))
-    const total = text.length
+    const reader = await openDocument(api)
+    const total = Number(/\((\d+) characters\)/.exec(api.lastResult?.output ?? '')?.[1] ?? 1)
+    const h2 = reader.rows.filter(r => r.level === 2)
     let done = 0
-    // One H2 section per turn, in document order, until the loop stops us.
-    for (const section of sections(text)) {
+    // One H2 section per turn, in document order, until the loop stops us:
+    // each turn rewrites the section read last turn and reads the next one
+    // (the stand-in rewrite keeps every line count, so no line shifts).
+    await readRanges(api, reader, [[h2[0]!.start, h2[0]!.end]])
+    for (let i = 0; i < h2.length; i++) {
+      const section = blockOf(reader, h2[i]!)
       done += section.text.length
       api.reportProgress(done / total)
-      await api.call('replace_text', { old_str: section.text, new_str: fakeRewrite(section.text) })
+      const rewrite = { name: 'replace_text', args: { old_str: section.text, new_str: fakeRewrite(section.text) } }
+      const next = h2[i + 1]
+      if (next) await readRanges(api, reader, [[next.start, next.end]], [rewrite])
+      else await api.turn([rewrite])
     }
   }
 }
 
 const T7_ADD_TABLE: BenchTask = {
   id: 'T7-add-table',
-  variant: 'baseline',
+  variant: VARIANT,
   title: 'Add a table to chapter 2',
   prompt: 'Füge am Ende von Kapitel 2 eine Tabelle mit den vier Teams, ihren Aufgaben und ihren Leitungen ein.',
   async script(api) {
-    const text = textFromView(await api.call('view_document', {}))
-    const ch = chapter(text, 2)
+    const reader = await openDocument(api)
+    const row = outlineRow(reader, 1, '2 ')
+    // Only the end of the chapter is needed to place the table.
+    await readRanges(api, reader, [[Math.max(row.start, row.end - 15), row.end]])
     await api.call('insert_text', {
-      insert_line: ch.endLine,
+      insert_line: trimmedEnd(reader, row),
       insert_text: [
         'Table: Teams der Abteilung Betrieb',
         '',

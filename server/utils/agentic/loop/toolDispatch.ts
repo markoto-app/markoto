@@ -5,13 +5,15 @@ import type { ToolResult } from '../../ai/tools/toolDefinition'
 import { DOC_EDIT_TOOLS, NO_OP_EDIT_ERROR_PREFIX, stalledEditNote } from '../editProgress'
 import { unseenImageError } from '../imageProvenance'
 import { readDocText, throwIfAborted, toolErrorResponse, isCommentTriggerSession, type DispatchOutcome, type LoopContext, type ResponseParts } from './loopContext'
+import { capToolOutput } from './resultCap'
 import { logToolActivity } from './toolActivity'
 import { runSubCall } from './webSubCalls'
 
 // One tool call of a turn, in a fixed order: offered? → valid arguments →
 // conversation memory → per-tool cap → taint gate → image provenance (doc
 // edits) → run → taint / provenance / edit-progress bookkeeping → the
-// functionResponse part(s) for the next turn.
+// functionResponse part(s) for the next turn, cut to the result cap
+// (`resultCap.ts`).
 
 /** Text a `replace_text` / `insert_text` call would add to the document. */
 function addedEditText(args: unknown): string {
@@ -251,7 +253,7 @@ export async function dispatchToolCall(
     return { kind: 'provider-unavailable', message: result.endSessionWith }
   }
 
-  const output = isDocEdit ? noteEditProgress(ctx, call, validatedArgs, textBefore, result) : result.content
+  const output = capToolOutput(call.name, validatedArgs, isDocEdit ? noteEditProgress(ctx, call, validatedArgs, textBefore, result) : result.content)
   const responseParts = toolResponseParts(call, output, result)
   return repliedToTriggerThread(ctx, call.name, validatedArgs, result)
     ? { kind: 'comment-trigger-done', responseParts }

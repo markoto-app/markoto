@@ -35,3 +35,13 @@ export const SESSION_INTERACTION_CAP = 50
  * (`SWEEPS.aiSessions.staleAfterMs`, 7 min) must stay longer than this.
  */
 export const AI_SESSION_HARD_DEADLINE_MS = 5 * MINUTE_MS
+
+/**
+ * Most characters one tool result may put into the conversation (about 6-7k
+ * tokens). Every later model call resends the whole history, so one
+ * unbounded read (a book-length document, a long comment list) is paid for
+ * on every turn after it. Longer results are cut by the loop with a hint
+ * on how to read the rest (`loop/resultCap.ts`); the reading tools keep
+ * their own output below it and say how to continue.
+ */
+export const TOOL_RESULT_CHAR_CAP = 24_000
