@@ -4,7 +4,7 @@ description: What you get today - a free tier with every writing feature - and w
 category: plans
 order: 1
 featured: true
-updated: '2026-11-14'
+updated: '2026-11-17'
 ---
 
 # Plans and limits
@@ -20,7 +20,7 @@ What you see depends on where markoto runs:
 
 | Where | Plans |
 |---|---|
-| **markoto.app** | Everyone is on Free. The [pricing page](/pricing) shows one card per plan: Free, Pro, Team and Business. Before you sign in it also shows the two ways to use markoto without an account: self-hosted and without signing up. Pro, Team and Business are marked **coming soon**: they show the prices we plan to charge (in euros or Swiss francs, monthly or annual, per seat for Team and Business; not final) and no purchase button. You can join a waitlist (double opt-in by email; you can unsubscribe at any time) to hear when they launch. |
+| **markoto.app** | Everyone is on Free. The [pricing page](/pricing) shows three cards: Free, Pro and Teams (switch the Teams card between Team and Business). Pro and Teams are marked **coming soon**: they show the prices we plan to charge (in euros or Swiss francs, monthly or annual, per seat for Team and Business; not final) and no purchase button. The bar above the cards puts you on a waitlist (double opt-in by email; you can unsubscribe at any time) to hear when they launch. Writing without an account and self-hosting are linked under the cards. |
 | **A self-hosted instance** | No plans, no pricing page tiers, no waitlist, no purchase. Everyone is on the free tier, and the operator decides the limits (workspaces, knowledge storage, AI Points). |
 | **An instance with paid plans live** (later) | Free and Pro for individuals with Stripe checkout ([Upgrade](/docs/plans/upgrade)); Team and Business for workspaces, billed per seat. |
 
@@ -68,7 +68,7 @@ red when you are close to the limit. Your profile page shows your image
 storage too.
 
 The walkthrough above shows the pricing page on markoto.app, with paid plans
-coming soon. Under the cards, a table compares every limit for each option. The current numbers always come from the instance you are on:
+coming soon. Under the cards, **Compare all details** opens a table with every limit for each plan. The current numbers always come from the instance you are on:
 open its pricing page to see them.
 
 ## What's next

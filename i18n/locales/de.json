@@ -805,11 +805,9 @@
     "downgrade": "Wechseln",
     "signUp": "Registrieren",
     "close": "Schliessen",
-    "footnote": "Alle Stufen umfassen Echtzeit-Zusammenarbeit, Versionsverlauf und unbegrenzte Dokumente. KI-Punkte werden monatlich aufgefüllt.",
-    "comingSoonSubtitle": "Schreibe ohne Konto, mit einem kostenlosen Konto oder auf deinem eigenen Server. Bezahlpläne mit höheren Limits folgen bald.",
+    "comingSoonSubtitle": "Starte heute kostenlos. Bezahlpläne mit höheren Limits folgen bald.",
     "comingSoonBadge": "Demnächst",
     "availableNow": "Jetzt verfügbar",
-    "comingSoonFootnote": "Bezahlpläne, ihre Preise und Limits stehen noch nicht fest. Trage dich in die Warteliste ein, und wir schreiben dir einmal, sobald sie starten.",
     "freeFootnote": "Jedes Konto enthält Echtzeit-Zusammenarbeit, Versionsverlauf und unbegrenzt viele Dokumente. KI-Punkte werden jede Periode aufgefüllt.",
     "selfHostedTitle": "Limits dieser Instanz",
     "selfHostedSubtitle": "Diese markoto-Instanz verkauft keine Tarife. Jedes Konto erhält die unten aufgeführten Limits; der Betreiber dieser Instanz kann sie ändern.",
@@ -827,35 +825,14 @@
       "perYear": "pro Jahr",
       "perSeatPerYear": "pro Platz / Jahr",
       "planned": "Geplanter Preis",
-      "plannedNote": "Geplante Preise. Preise und Limits können sich bis zum Start der Bezahlpläne ändern; noch kann nichts gekauft werden."
-    },
-    "selfHosted": {
-      "title": "Selbst gehostet",
-      "tagline": "markoto auf deinem eigenen Server.",
-      "priceNote": "Dein Server, deine Limits",
-      "everyFeature": "Alle Funktionen. Limits und Speicher bestimmst du.",
-      "byok": "KI über deinen eigenen Anbieterschlüssel oder ein lokales Modell.",
-      "licence": "Source-available: FSL-1.1, wird nach zwei Jahren zu Apache-2.0.",
-      "cta": "Anleitung zum Selbsthosten"
-    },
-    "anon": {
-      "title": "Ohne Konto",
-      "tagline": "Sofort losschreiben.",
-      "priceNote": "Ohne Anmeldung",
-      "write": "Schreiben, per Link teilen und gemeinsam in Echtzeit bearbeiten.",
-      "export": "Dateien importieren und als PDF oder Markdown exportieren.",
-      "noAi": "Keine KI, keine Workspaces, kein Bild-Upload. Jeder mit dem Link kann das Dokument bearbeiten.",
-      "retention": "Wird nach {n} Tag ohne Änderung gelöscht. | Wird nach {n} Tagen ohne Änderungen gelöscht.",
-      "delete": "Nur der Browser, der ein Dokument erstellt hat, kann es löschen."
+      "plannedNote": "Geplante Preise. Preise und Limits können sich bis zum Start der Bezahlpläne ändern; noch kann nichts gekauft werden.",
+      "plannedShort": "(geplant)"
     },
     "freeAccount": {
-      "title": "Kostenloses Konto",
       "byok": "Unbegrenzte KI über deinen eigenen Anbieterschlüssel.",
       "signIn": "Anmelden"
     },
     "paid": {
-      "title": "Bezahlt",
-      "tagline": "Mehr KI-Punkte, Workspaces und Speicher.",
       "joinWaitlist": "Auf die Warteliste",
       "setUpInWorkspace": "In einem Workspace einrichten",
       "setUpInWorkspaceHint": "Öffne den Workspace und dort den Tab «Abrechnung». Nur Admins des Workspace können kaufen."
@@ -871,17 +848,14 @@
       "imageStorage": "{size} Bildspeicher"
     },
     "compare": {
-      "title": "Die Optionen im Vergleich",
+      "title": "Alle Details vergleichen",
       "feature": "Funktion",
       "price": "Preis",
       "priceMonthly": "{price} pro Monat",
       "pricePlanned": "{price} pro Monat (geplant)",
       "documents": "Dokumente",
       "unlimited": "Unbegrenzt",
-      "anonRetention": "Bis {n} Tag nach der letzten Änderung | Bis {n} Tage nach der letzten Änderung",
       "writing": "Editor, Echtzeit-Zusammenarbeit, Kommentare, PDF-Export",
-      "sharing": "Teilen nur zum Lesen oder mit Passwort",
-      "openEditOnly": "Nur offen bearbeitbar",
       "aiPoints": "KI-Punkte pro Monat",
       "ownKey": "KI über eigenen Anbieterschlüssel",
       "workspaces": "Eigene Workspaces",
@@ -894,14 +868,19 @@
       "days": "{n} Tag | {n} Tage",
       "customCss": "Eigenes CSS für Dokumente",
       "readOnly": "Nur Lesen",
-      "setByYou": "Lege fest",
       "included": "Enthalten",
       "notIncluded": "Nicht enthalten",
       "perSeat": "{value} pro Platz",
       "aiImage": "KI-Bildgenerierung",
       "aiVoice": "Spracheingabe und Live-Diktat",
       "aiStrongModel": "Wahl eines stärkeren KI-Modells",
-      "ownKeyOnly": "Mit eigenem Schlüssel"
+      "ownKeyOnly": "Mit eigenem Schlüssel",
+      "shareControls": "Ablaufdatum und Nur-Lesen für Freigabelinks",
+      "customDomains": "Eigene Domains für veröffentlichte Seiten",
+      "brandKit": "Brand-Kit und Workspace-Vorlagen",
+      "guests": "Gäste im Workspace",
+      "sso": "Single Sign-on (SSO) und SCIM",
+      "auditLog": "Audit-Log des Workspace"
     },
     "faq": {
       "title": "Fragen",
@@ -916,7 +895,8 @@
       "anonA": "Jeder mit dem Link kann sie lesen und bearbeiten. Sie werden nach {n} Tag ohne Änderung gelöscht, und nur der Browser, der ein Dokument erstellt hat, kann es früher löschen. Melde dich an, um Dokumente zu behalten, privat zu stellen oder mit einem Passwort zu schützen. | Jeder mit dem Link kann sie lesen und bearbeiten. Sie werden nach {n} Tagen ohne Änderungen gelöscht, und nur der Browser, der ein Dokument erstellt hat, kann es früher löschen. Melde dich an, um Dokumente zu behalten, privat zu stellen oder mit einem Passwort zu schützen.",
       "anonKeptA": "Jeder mit dem Link kann sie lesen und bearbeiten, und nur der Browser, der ein Dokument erstellt hat, kann es löschen. Melde dich an, um Dokumente privat zu stellen oder mit einem Passwort zu schützen.",
       "selfHostQ": "Kann ich markoto auf meinem eigenen Server betreiben?",
-      "selfHostA": "Ja. Der Code ist source-available unter der Lizenz FSL-1.1, die nach zwei Jahren zu Apache-2.0 wird. Eine selbst gehostete Instanz hat alle Funktionen und keine Tarife: du legst die Limits fest und verbindest deinen eigenen KI-Anbieter oder ein lokales Modell. Die Anleitung zum Selbsthosten in der Dokumentation beschreibt die Installation."
+      "selfHostA": "Ja. Der Code ist source-available unter der Lizenz FSL-1.1, die nach zwei Jahren zu Apache-2.0 wird. Eine selbst gehostete Instanz hat alle Funktionen und keine Tarife: du legst die Limits fest und verbindest deinen eigenen KI-Anbieter oder ein lokales Modell. Die Anleitung zum Selbsthosten in der Dokumentation beschreibt die Installation.",
+      "pointsPacks": "Zusätzliche KI-Punkte gibt es in Paketen: {packs}."
     },
     "interval": {
       "label": "Abrechnungszeitraum",
@@ -934,7 +914,40 @@
     "seatTotalMonth": "{total} pro Monat für {seats} Plätze",
     "seatTotalYear": "{total} pro Jahr für {seats} Plätze",
     "seatsLabel": "Plätze",
-    "creditsBuyLink": "KI-Punkte in deinem Profil kaufen"
+    "creditsBuyLink": "KI-Punkte in deinem Profil kaufen",
+    "plans": {
+      "free": "Kostenlos"
+    },
+    "teams": {
+      "title": "Teams",
+      "switchLabel": "Team oder Business"
+    },
+    "highlights": {
+      "members": "Bis {n} Person pro Workspace | Bis {n} Personen pro Workspace",
+      "membersUnlimited": "Beliebig viele Personen pro Workspace",
+      "writing": "Echtzeit-Zusammenarbeit, Verlauf und PDF-Export",
+      "aiExtras": "KI mit {list}",
+      "ai": {
+        "aiStrongModel": "stärkerem Modell",
+        "aiImage": "Bildern",
+        "aiVoice": "Spracheingabe"
+      },
+      "feature": {
+        "sso": "Single Sign-on (SSO)",
+        "auditLog": "Audit-Log mit Export",
+        "brandKit": "Brand-Kit: Schriften, Logos, Vorlagen",
+        "guests": "Gäste, die nur geteilte Dokumente sehen",
+        "customDomains": "Eigene Domains für veröffentlichte Seiten",
+        "shareControls": "Freigabelinks mit Ablaufdatum oder nur zum Lesen",
+        "customCss": "Eigenes CSS für Dokumente",
+        "mcpWrite": "MCP-Clients können Dokumente bearbeiten"
+      }
+    },
+    "creditsLine": "Mehr KI-Punkte: Pakete zu {packs}, gültig {months} Monate.",
+    "alt": {
+      "anon": "Ohne Konto schreiben",
+      "selfHost": "Selbst hosten"
+    }
   },
   "topbar": {
     "planBadge": "Tarif: {plan}",
@@ -2101,7 +2114,6 @@
     }
   },
   "waitlist": {
-    "title": "Auf die Warteliste",
     "description": "Erhalte eine E-Mail, sobald die Bezahlpläne starten. Mehr schicken wir nicht.",
     "emailLabel": "E-Mail-Adresse",
     "emailPlaceholder": "sie{'@'}beispiel.ch",
@@ -2130,7 +2142,8 @@
       "button": "Meine Adresse entfernen",
       "successTitle": "Du wurdest entfernt",
       "successBody": "Deine E-Mail-Adresse wurde von der Warteliste gelöscht."
-    }
+    },
+    "barTitle": "Bezahlpläne starten bald"
   },
   "aiProvider": {
     "title": "KI-Anbieter",

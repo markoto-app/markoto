@@ -13,12 +13,15 @@ withDefaults(defineProps<{
   testid?: string
   templateId?: string
   themePreset?: string
+  /** `link`: an inline text link (the pricing page's "write without an account"). */
+  variant?: 'solid' | 'link'
 }>(), {
   label: undefined,
   size: 'md',
   testid: 'marketing-start-writing',
   templateId: undefined,
-  themePreset: undefined
+  themePreset: undefined,
+  variant: 'solid'
 })
 
 const { t } = useI18n()
@@ -36,6 +39,8 @@ function onCreated(docId: string): void {
     <UButton
       color="neutral"
       :size="size"
+      :variant="variant"
+      :class="variant === 'link' ? 'p-0 underline text-default' : undefined"
       :data-testid="testid"
       data-early-click
       @click="show"

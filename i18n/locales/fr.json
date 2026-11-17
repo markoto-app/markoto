@@ -805,11 +805,9 @@
     "downgrade": "Rétrograder",
     "signUp": "S'inscrire",
     "close": "Fermer",
-    "footnote": "Tous les niveaux incluent la collaboration en temps réel, l'historique des versions et des documents illimités. Les points IA se rechargent chaque mois.",
-    "comingSoonSubtitle": "Écrivez sans compte, avec un compte gratuit ou sur votre propre serveur. Des forfaits payants aux limites plus élevées arrivent bientôt.",
+    "comingSoonSubtitle": "Commencez gratuitement dès aujourd’hui. Des forfaits payants aux limites plus élevées arrivent bientôt.",
     "comingSoonBadge": "Bientôt",
     "availableNow": "Disponible maintenant",
-    "comingSoonFootnote": "Les offres payantes, leurs prix et leurs limites ne sont pas encore définitifs. Inscrivez-vous à la liste d'attente et nous vous écrirons une fois, à leur lancement.",
     "freeFootnote": "Chaque compte inclut la collaboration en temps réel, l'historique des versions et des documents illimités. Les points IA se rechargent à chaque période.",
     "selfHostedTitle": "Limites de cette instance",
     "selfHostedSubtitle": "Cette instance markoto ne vend pas d'offres. Chaque compte bénéficie des limites ci-dessous ; l'opérateur de cette instance peut les modifier.",
@@ -827,35 +825,14 @@
       "perYear": "par an",
       "perSeatPerYear": "par place / an",
       "planned": "Prix prévu",
-      "plannedNote": "Prix prévus. Les prix et les limites peuvent changer avant le lancement des forfaits payants ; rien ne peut encore être acheté."
-    },
-    "selfHosted": {
-      "title": "Auto-hébergé",
-      "tagline": "markoto sur votre propre serveur.",
-      "priceNote": "Votre serveur, vos limites",
-      "everyFeature": "Toutes les fonctionnalités. Vous fixez les limites et le stockage.",
-      "byok": "L'IA avec votre propre clé de fournisseur ou un modèle local.",
-      "licence": "Source-available : FSL-1.1, devient Apache-2.0 après deux ans.",
-      "cta": "Guide d'auto-hébergement"
-    },
-    "anon": {
-      "title": "Sans compte",
-      "tagline": "Commencez à écrire tout de suite.",
-      "priceNote": "Sans inscription",
-      "write": "Écrivez, partagez un lien et modifiez à plusieurs en temps réel.",
-      "export": "Importez des fichiers et exportez en PDF ou en Markdown.",
-      "noAi": "Pas d'IA, pas d'espaces de travail, pas d'envoi d'images. Toute personne disposant du lien peut modifier le document.",
-      "retention": "Supprimé après {n} jour sans modification. | Supprimé après {n} jours sans modification.",
-      "delete": "Seul le navigateur qui a créé un document peut le supprimer."
+      "plannedNote": "Prix prévus. Les prix et les limites peuvent changer avant le lancement des forfaits payants ; rien ne peut encore être acheté.",
+      "plannedShort": "(prévu)"
     },
     "freeAccount": {
-      "title": "Compte gratuit",
       "byok": "IA illimitée avec votre propre clé de fournisseur.",
       "signIn": "Se connecter"
     },
     "paid": {
-      "title": "Payant",
-      "tagline": "Plus de points IA, d'espaces de travail et de stockage.",
       "joinWaitlist": "Rejoindre la liste d'attente",
       "setUpInWorkspace": "Configurer dans un espace de travail",
       "setUpInWorkspaceHint": "Ouvrez l’espace de travail, puis son onglet Facturation. Seuls les admins de l’espace peuvent acheter."
@@ -871,17 +848,14 @@
       "imageStorage": "{size} de stockage d'images"
     },
     "compare": {
-      "title": "Comparer les options",
+      "title": "Comparer tous les détails",
       "feature": "Fonctionnalité",
       "price": "Prix",
       "priceMonthly": "{price} par mois",
       "pricePlanned": "{price} par mois (prévu)",
       "documents": "Documents",
       "unlimited": "Illimité",
-      "anonRetention": "Conservé {n} jour après la dernière modification | Conservé {n} jours après la dernière modification",
       "writing": "Éditeur, collaboration en temps réel, commentaires, export PDF",
-      "sharing": "Partage en lecture seule ou protégé par mot de passe",
-      "openEditOnly": "Modification ouverte uniquement",
       "aiPoints": "Points IA par mois",
       "ownKey": "IA avec votre propre clé de fournisseur",
       "workspaces": "Espaces de travail possédés",
@@ -894,14 +868,19 @@
       "days": "{n} jour | {n} jours",
       "customCss": "CSS personnalisé pour les documents",
       "readOnly": "Lecture seule",
-      "setByYou": "Fixé par vous",
       "included": "Inclus",
       "notIncluded": "Non inclus",
       "perSeat": "{value} par place",
       "aiImage": "Génération d’images par IA",
       "aiVoice": "Saisie vocale et dictée en direct",
       "aiStrongModel": "Choix d’un modèle d’IA plus puissant",
-      "ownKeyOnly": "Avec votre propre clé"
+      "ownKeyOnly": "Avec votre propre clé",
+      "shareControls": "Expiration et lecture seule des liens de partage",
+      "customDomains": "Domaines personnalisés pour les pages publiées",
+      "brandKit": "Kit de marque et modèles d'espace de travail",
+      "guests": "Invités de l'espace de travail",
+      "sso": "Authentification unique (SSO) et SCIM",
+      "auditLog": "Journal d'audit de l'espace de travail"
     },
     "faq": {
       "title": "Questions",
@@ -916,7 +895,8 @@
       "anonA": "Toute personne disposant du lien peut les lire et les modifier. Ils sont supprimés après {n} jour sans modification, et seul le navigateur qui a créé un document peut le supprimer plus tôt. Connectez-vous pour conserver vos documents, les rendre privés ou les protéger par un mot de passe. | Toute personne disposant du lien peut les lire et les modifier. Ils sont supprimés après {n} jours sans modification, et seul le navigateur qui a créé un document peut le supprimer plus tôt. Connectez-vous pour conserver vos documents, les rendre privés ou les protéger par un mot de passe.",
       "anonKeptA": "Toute personne disposant du lien peut les lire et les modifier, et seul le navigateur qui a créé un document peut le supprimer. Connectez-vous pour rendre vos documents privés ou les protéger par un mot de passe.",
       "selfHostQ": "Puis-je héberger markoto sur mon propre serveur ?",
-      "selfHostA": "Oui. Le code est source-available sous la licence FSL-1.1, qui devient Apache-2.0 après deux ans. Une instance auto-hébergée a toutes les fonctionnalités et aucun forfait : vous fixez les limites et connectez votre propre fournisseur d'IA ou un modèle local. Le guide d'auto-hébergement de la documentation décrit l'installation."
+      "selfHostA": "Oui. Le code est source-available sous la licence FSL-1.1, qui devient Apache-2.0 après deux ans. Une instance auto-hébergée a toutes les fonctionnalités et aucun forfait : vous fixez les limites et connectez votre propre fournisseur d'IA ou un modèle local. Le guide d'auto-hébergement de la documentation décrit l'installation.",
+      "pointsPacks": "Des points IA supplémentaires sont vendus en packs : {packs}."
     },
     "interval": {
       "label": "Période de facturation",
@@ -934,7 +914,40 @@
     "seatTotalMonth": "{total} par mois pour {seats} places",
     "seatTotalYear": "{total} par an pour {seats} places",
     "seatsLabel": "Places",
-    "creditsBuyLink": "Acheter des points IA dans votre profil"
+    "creditsBuyLink": "Acheter des points IA dans votre profil",
+    "plans": {
+      "free": "Gratuit"
+    },
+    "teams": {
+      "title": "Équipes",
+      "switchLabel": "Team ou Business"
+    },
+    "highlights": {
+      "members": "Jusqu'à {n} personne par espace de travail | Jusqu'à {n} personnes par espace de travail",
+      "membersUnlimited": "Personnes illimitées par espace de travail",
+      "writing": "Collaboration en temps réel, historique et export PDF",
+      "aiExtras": "IA avec {list}",
+      "ai": {
+        "aiStrongModel": "un modèle plus puissant",
+        "aiImage": "images",
+        "aiVoice": "saisie vocale"
+      },
+      "feature": {
+        "sso": "Authentification unique (SSO)",
+        "auditLog": "Journal d'audit exportable",
+        "brandKit": "Kit de marque : polices, logos, modèles",
+        "guests": "Invités qui ne voient que les documents partagés",
+        "customDomains": "Domaines personnalisés pour les pages publiées",
+        "shareControls": "Liens de partage avec expiration ou en lecture seule",
+        "customCss": "CSS personnalisé pour les documents",
+        "mcpWrite": "Les clients MCP peuvent modifier les documents"
+      }
+    },
+    "creditsLine": "Plus de points IA : packs de {packs}, valables {months} mois.",
+    "alt": {
+      "anon": "Écrire sans compte",
+      "selfHost": "Auto-héberger markoto"
+    }
   },
   "topbar": {
     "planBadge": "Forfait : {plan}",
@@ -2101,7 +2114,6 @@
     }
   },
   "waitlist": {
-    "title": "Rejoindre la liste d'attente",
     "description": "Recevez un e-mail au lancement des offres payantes. Rien de plus.",
     "emailLabel": "Adresse e-mail",
     "emailPlaceholder": "vous{'@'}exemple.fr",
@@ -2130,7 +2142,8 @@
       "button": "Retirer mon adresse",
       "successTitle": "Vous avez été retiré",
       "successBody": "Votre adresse e-mail a été supprimée de la liste d'attente."
-    }
+    },
+    "barTitle": "Les forfaits payants arrivent bientôt"
   },
   "aiProvider": {
     "title": "Fournisseur d'IA",
