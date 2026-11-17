@@ -1,3 +1,4 @@
+import { anonymiseSubscriptionEventsOfUser } from '../../repos/subscriptionEvents'
 import { must } from '~~/shared/utils/must'
 import * as Sentry from '@sentry/nuxt'
 import { DeleteObjectCommand } from '@aws-sdk/client-s3'
@@ -29,6 +30,7 @@ import { deleteKnowledgeArtifact } from '../knowledge/knowledgeAccess'
 import { useS3Client } from '../storage/s3'
 import { useStripeClient } from '../billing/stripeClient'
 import { isBillingEnabled } from '../billing/billingMode'
+import { managedPaymentsEnabled } from '../billing/checkoutSession'
 import { AUDIT_ACCOUNT_DELETE_EXECUTED } from '../../legal/auditActions'
 import type { AccountDeletionSummary } from './accountDeletionPlan'
 import { deleteAllMemberKeys, endWorkspaceBilling, handOverBillingAdmin } from '../billing/workspaceBillingLifecycle'
@@ -115,6 +117,9 @@ export async function executeAccountDeletion(
   summary.workspaceKeysDeleted = await deleteAllMemberKeys(userId)
   // Personal AI credit top-ups (no FK to users).
   summary.creditGrantsDeleted = await deleteCreditsForSubject({ type: 'user', id: String(userId) })
+  // Subscription history stays for the revenue figures, without the account
+  // or its Stripe subscription id.
+  summary.subscriptionEventsAnonymised = await anonymiseSubscriptionEventsOfUser(user)
   const removed = await removeAllMemberships(user)
   summary.workspaceMembershipsRemoved = removed.length
 
@@ -318,6 +323,14 @@ async function deleteStripeCustomer(
     await stripe.customers.del(stripeCustomerId)
     summary.stripeCustomerDeleted = true
   } catch (e) {
+    // Under Stripe Managed Payments the buyer's purchase records belong to
+    // Stripe / Link, which deletes buyer data under its own policy; if
+    // Stripe refuses to delete such a customer that is expected, not an
+    // incident. The account deletion goes on either way.
+    if (managedPaymentsEnabled() && (e as { type?: string })?.type === 'StripeInvalidRequestError') {
+      log.warn('stripe refused customers.del (managed payments customer), continuing', { stripeCustomerId, err: e })
+      return
+    }
     log.error('stripe customers.del failed', { stripeCustomerId, err: e })
     Sentry.captureException(e, {
       tags: { component: 'accountDeletion', event: 'stripe_del_failed', userId: String(userId) }
@@ -363,6 +376,7 @@ function emptySummary(): AccountDeletionSummary {
     workspaceInvitesDeleted: 0,
     billingAdminHandovers: 0,
     workspaceKeysDeleted: 0,
-    creditGrantsDeleted: 0
+    creditGrantsDeleted: 0,
+    subscriptionEventsAnonymised: 0
   }
 }

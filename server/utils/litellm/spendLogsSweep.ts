@@ -7,8 +7,8 @@ import { useLogger } from '../platform/logger'
 const log = useLogger('spend-logs-sweep')
 
 // LiteLLM `LiteLLM_SpendLogs` retention sweeper. Every billable AI call
-// writes a row, so the table grows linearly with traffic. /spend/tags aggregation reads it on every
-// admin-dashboard refresh, so unbounded growth eventually impacts
+// writes a row, so the table grows linearly with traffic. The admin spend dashboard reads it on every
+// refresh, so unbounded growth eventually impacts
 // dashboard responsiveness.
 //
 // 90-day retention matches the window we keep `processed_webhook_events`
@@ -30,9 +30,11 @@ const log = useLogger('spend-logs-sweep')
 // Failure-tolerant: a hiccup just leaves stale rows around for one
 // more cycle. The sweep doesn't gate any user-facing behaviour.
 
-const RETENTION_DAYS = 90
+/** Days LiteLLM spend rows are kept (also the `ai_assistance` retention in the privacy register). */
+export const SPEND_LOG_RETENTION_DAYS = 90
+
 export async function runSpendLogsSweep(): Promise<{ deleted: number } | null> {
-  const cutoff = new Date(Date.now() - RETENTION_DAYS * DAY_MS)
+  const cutoff = new Date(Date.now() - SPEND_LOG_RETENTION_DAYS * DAY_MS)
   const cutoffIso = cutoff.toISOString()
 
   let result: { deleted: number }

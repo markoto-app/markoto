@@ -47,6 +47,7 @@ jobs:
       code: ${{ steps.code.outputs.code }}
       image_services: ${{ steps.services.outputs.services }}
       markitdown: ${{ steps.markitdown.outputs.markitdown }}
+      litellm: ${{ steps.litellm.outputs.litellm }}
       python: ${{ steps.python.outputs.python }}
       billing: ${{ steps.billing.outputs.billing }}
     steps:
@@ -125,6 +126,19 @@ jobs:
             markitdown:
               - 'markitdown-server/**'
               - 'tests/fixtures/design-import/**'
+              - '.github/workflows/ci.yml'
+
+      # The LiteLLM provider plugin's Python tests (BFL submission retries,
+      # redirect hardening): run whenever the plugin, its config or the
+      # pinned LiteLLM image changes.
+      - name: Detect LiteLLM plugin changes
+        id: litellm
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            litellm:
+              - 'deploy/config/litellm/**'
+              - 'deploy/compose/compose.base.yml'
               - '.github/workflows/ci.yml'
 
       # Python lives in markitdown-server/, deploy/config/litellm/, a few scripts and
@@ -384,6 +398,29 @@ jobs:
             -v "$PWD/markitdown-server:/t:ro" -w /t \
             -v "$PWD/tests/fixtures/design-import:/fixtures:ro" \
             markoto-markitdown:ci -B -m unittest -v test_server test_design_extract
+
+  # deploy/config/litellm/test_*.py run inside the pinned LiteLLM image (its
+  # Python, litellm and httpx), offline: BFL is an httpx.MockTransport.
+  litellm-handler-tests:
+    name: litellm-handler-tests
+    needs: changes
+    if: needs.changes.outputs.litellm == 'true'
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run the provider plugin tests in the LiteLLM image
+        run: |
+          image="$(grep -oE 'ghcr\.io/berriai/litellm:[^[:space:]]+' deploy/compose/compose.base.yml | head -n1)"
+          test -n "$image"
+          docker run --rm --network none --entrypoint python \
+            -e LITELLM_LOCAL_MODEL_COST_MAP=True \
+            -v "$PWD/deploy/config/litellm:/t:ro" -w /t \
+            "$image" -B -m unittest -v test_custom_handlers
 
   lint-typecheck:
     name: lint-typecheck

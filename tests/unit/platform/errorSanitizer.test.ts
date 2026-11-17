@@ -86,6 +86,24 @@ describe('buildSanitizedErrorPayload: 5xx strip', () => {
     expect(out.data).toEqual({ code: 'internal' })
   })
 
+  it('keeps a registered 5xx code without params (and nothing else)', () => {
+    const out = buildSanitizedErrorPayload({
+      statusCode: 502,
+      message: 'The image provider is not available right now. Try again later.',
+      data: { code: 'ai/image-provider-unavailable', upstream: 'Client error 429 SECRETS_HERE' }
+    }, '/api/docs/abc/images/generate')
+    expect(out.data).toEqual({ code: 'ai/image-provider-unavailable' })
+    expect(out.message).toBe('Something went wrong on our side. Please try again. We\'ve been notified.')
+    expect(JSON.stringify(out)).not.toContain('SECRETS')
+  })
+
+  it('drops a registered code that carries params, an unregistered code and a 4xx code on a 5xx', () => {
+    for (const code of ['admin/spend-unavailable', 'made-up/code', 'ai/budget-exhausted']) {
+      const out = buildSanitizedErrorPayload({ statusCode: 502, data: { code, upstreamStatus: 503 } })
+      expect(out.data, code).toEqual({ code: 'internal' })
+    }
+  })
+
   it('treats statusCode=502/503 as server-error too', () => {
     for (const code of [502, 503, 504]) {
       const out = buildSanitizedErrorPayload({

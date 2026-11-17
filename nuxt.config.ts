@@ -1,6 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import { fileURLToPath } from 'node:url'
 import { observability, sync } from './shared/env/vars/sync'
+import { analytics } from './shared/env/vars/analytics'
 import { DAY_SECONDS } from './shared/config/units'
 import { scanFlowDocPages } from './scripts/lib/flowDocPagesFs'
 import { bool } from './shared/env/coerce'
@@ -167,6 +168,13 @@ export default defineNuxtConfig({
         // NUXT_PUBLIC_DOCS_CHROME_DOMAIN: fake browser bar above the docs'
         // flow screenshots; a flow embed can pass its own.
         chromeDomain: observability.vars.docsChromeDomain.default
+      },
+      // Cookieless page analytics + click-id conversions (docs/operations-analytics.md).
+      // Empty website id = the browser sends nothing.
+      analytics: {
+        websiteId: '', // NUXT_PUBLIC_ANALYTICS_WEBSITE_ID
+        endpoint: analytics.vars.endpoint.default, // NUXT_PUBLIC_ANALYTICS_ENDPOINT
+        adsConversions: analytics.vars.adsConversions.default // NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS
       },
       // Test-only: when true, useDocument.ts exposes the active
       // ydoc + ytext on `window.__DEBUG_*` so e2e specs can assert

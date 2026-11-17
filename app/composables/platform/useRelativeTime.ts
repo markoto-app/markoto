@@ -8,6 +8,6 @@ import { formatTimeAgoIntl } from '@vueuse/core'
  */
 export function useRelativeTime(time: MaybeRefOrGetter<Date | number | string>): ComputedRef<string> {
   const { locale } = useI18n()
-  const now = useNow({ interval: 30_000 })
+  const now = useNow({ scheduler: cb => useIntervalFn(cb, 30_000) })
   return computed(() => formatTimeAgoIntl(new Date(toValue(time)), { locale: locale.value }, now.value))
 }

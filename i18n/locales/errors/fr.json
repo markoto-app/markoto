@@ -24,8 +24,7 @@
       "sessions-revoke-rate-limited": "Trop de requêtes. Veuillez patienter un instant et réessayer."
     },
     "admin": {
-      "forbidden": "Un accès administrateur est requis.",
-      "spend-unavailable": "Le service de suivi des dépenses IA a répondu par une erreur ({upstreamStatus})."
+      "forbidden": "Un accès administrateur est requis."
     },
     "ai": {
       "abort-not-initiator": "Seule la personne qui a démarré cette session markoto peut l'arrêter.",
@@ -95,6 +94,8 @@
       "no-subscription": "Cet espace de travail n’a pas d’abonnement actif.",
       "not-configured": "La facturation n’est pas configurée. Contactez le support.",
       "payment-failed": "Le paiement a échoué, rien n’a donc été modifié.",
+      "payment-pending": "Le paiement doit encore être finalisé. Le changement s’applique dès qu’il est payé ; d’ici là, rien ne change. S’il reste impayé, il expire après environ un jour.",
+      "plan-cancelled": "Cette offre est résiliée. Annulez la résiliation avant de modifier le nombre de places.",
       "plan-change-failed": "Impossible de changer de forfait. Rien n’a été modifié ; veuillez réessayer.",
       "portal-failed": "Impossible d’ouvrir le portail de facturation. Veuillez réessayer.",
       "price-unavailable": "Ce forfait n’est pas disponible à la vente pour le moment.",

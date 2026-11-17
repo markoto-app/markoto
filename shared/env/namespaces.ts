@@ -11,6 +11,7 @@ import { ai, litellm, providers } from './vars/ai'
 import { billing, tiers } from './vars/billing'
 import { brand, email, legal } from './vars/legal'
 import { backup, deploy, publish } from './vars/publish'
+import { analytics } from './vars/analytics'
 
 export const NAMESPACES = {
   core,
@@ -32,6 +33,7 @@ export const NAMESPACES = {
   email,
   brand,
   publish,
+  analytics,
   observability,
   test,
   deploy,

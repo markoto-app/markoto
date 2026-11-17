@@ -52,8 +52,8 @@ test('Marketing pages', { tag: '@marketing' }, async ({ page, flow, editor }) =>
   await flow.heading('Pricing', 3)
   await page.goto('/pricing')
   // ASSERTION: the options layout of the hosted site, same header.
-  await expect(page.getByTestId('pricing-option-self-hosted')).toBeVisible()
+  await expect(page.getByTestId('pricing-option-teams')).toBeVisible()
   await expect(page.getByTestId('pricing-tier-free')).toBeVisible()
   await expectMarketingHeader(page, editor.isMobile)
-  await flow.shot('Pricing: self-hosted, no account, a free account and the planned paid plans.')
+  await flow.shot('Pricing: Free, Pro and Teams, with the planned paid prices.')
 })

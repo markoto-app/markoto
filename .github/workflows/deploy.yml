@@ -135,10 +135,11 @@ jobs:
           NUXT_ALTCHA_HMAC_KEY: ${{ secrets.NUXT_ALTCHA_HMAC_KEY }}
           # App <-> markitdown converter shared secret (openssl rand -hex 32).
           NUXT_MARKITDOWN_API_SECRET: ${{ secrets.NUXT_MARKITDOWN_API_SECRET }}
-          # Instance admins promoted at sign-in. A secret rather than a
-          # variable: variables are printed in the job log, and these are
-          # people's email addresses.
-          NUXT_ADMIN_USER_EMAILS: ${{ secrets.NUXT_ADMIN_USER_EMAILS }}
+          # Instance admins promoted at sign-in. Not a credential, so it is
+          # read from the Environment's variable or its secret, whichever is
+          # set (the variable wins). A secret keeps the addresses out of the
+          # job log.
+          NUXT_ADMIN_USER_EMAILS: ${{ vars.NUXT_ADMIN_USER_EMAILS || secrets.NUXT_ADMIN_USER_EMAILS }}
           NUXT_PUBLISH_DOMAINS_TARGET: ${{ vars.NUXT_PUBLISH_DOMAINS_TARGET }}
           # Published pages' own hostname (pages.markoto.app on prod, its
           # staging twin on staging). Required: the app refuses to boot
@@ -149,6 +150,10 @@ jobs:
           # Separate DB roles (optional; empty = POSTGRES_USER for everything).
           POSTGRES_APP_PASSWORD: ${{ secrets.POSTGRES_APP_PASSWORD }}
           POSTGRES_LITELLM_PASSWORD: ${{ secrets.POSTGRES_LITELLM_PASSWORD }}
+          # Cookieless analytics (docs/operations-analytics.md); empty = off.
+          POSTGRES_UMAMI_PASSWORD: ${{ secrets.POSTGRES_UMAMI_PASSWORD }}
+          UMAMI_APP_SECRET: ${{ secrets.UMAMI_APP_SECRET }}
+          UMAMI_BASIC_AUTH_USERS: ${{ secrets.UMAMI_BASIC_AUTH_USERS }}
           VALKEY_PASSWORD: ${{ secrets.VALKEY_PASSWORD }}
           NUXT_S3_ACCESS_KEY: ${{ secrets.NUXT_S3_ACCESS_KEY }}
           NUXT_S3_SECRET_KEY: ${{ secrets.NUXT_S3_SECRET_KEY }}
@@ -177,12 +182,23 @@ jobs:
           POSTGRES_PORT: ${{ vars.POSTGRES_PORT }}
           POSTGRES_APP_USER: ${{ vars.POSTGRES_APP_USER }}
           POSTGRES_LITELLM_USER: ${{ vars.POSTGRES_LITELLM_USER }}
+          POSTGRES_UMAMI_USER: ${{ vars.POSTGRES_UMAMI_USER }}
+          UMAMI_HOST: ${{ vars.UMAMI_HOST }}
+          NUXT_PUBLIC_ANALYTICS_WEBSITE_ID: ${{ vars.NUXT_PUBLIC_ANALYTICS_WEBSITE_ID }}
+          NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS: ${{ vars.NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS }}
           VALKEY_DB: ${{ vars.VALKEY_DB }}
           NUXT_S3_ENDPOINT: ${{ vars.NUXT_S3_ENDPOINT }}
           NUXT_S3_BUCKET: ${{ vars.NUXT_S3_BUCKET }}
           NUXT_STRIPE_LOOKUP_KEY_PREFIX: ${{ vars.NUXT_STRIPE_LOOKUP_KEY_PREFIX }}
           NUXT_STRIPE_PRICE_IDS: ${{ vars.NUXT_STRIPE_PRICE_IDS }}
           NUXT_STRIPE_AUTOMATIC_TAX: ${{ vars.NUXT_STRIPE_AUTOMATIC_TAX }}
+          NUXT_STATS_EUR_CHF_RATE: ${{ vars.NUXT_STATS_EUR_CHF_RATE }}
+          NUXT_STATS_PAYMENT_FEE_FIXED: ${{ vars.NUXT_STATS_PAYMENT_FEE_FIXED }}
+          NUXT_STATS_PAYMENT_FEE_PCT: ${{ vars.NUXT_STATS_PAYMENT_FEE_PCT }}
+          NUXT_STATS_TAX_PCT: ${{ vars.NUXT_STATS_TAX_PCT }}
+          NUXT_STATS_USD_CHF_RATE: ${{ vars.NUXT_STATS_USD_CHF_RATE }}
+          NUXT_STRIPE_MANAGED_PAYMENTS: ${{ vars.NUXT_STRIPE_MANAGED_PAYMENTS }}
+          NUXT_BILLING_NOTIFY_EMAIL: ${{ vars.NUXT_BILLING_NOTIFY_EMAIL }}
           NUXT_EMAIL_FROM: ${{ vars.NUXT_EMAIL_FROM }}
           NUXT_OAUTH_GITHUB_CLIENT_ID: ${{ vars.NUXT_OAUTH_GITHUB_CLIENT_ID }}
           NUXT_OAUTH_GOOGLE_CLIENT_ID: ${{ vars.NUXT_OAUTH_GOOGLE_CLIENT_ID }}
@@ -520,6 +536,20 @@ jobs:
           PREV=$(ssh "${DEPLOY_USER}@${DEPLOY_HOST}" \
             'cat /opt/markoto/.last-deploy.prev 2>/dev/null || echo unknown')
           echo "tag=$PREV" >> "$GITHUB_OUTPUT"
+
+      # Warning only: a bucket without a CORS rule for the site breaks every
+      # browser upload while /api/health stays green (docs/S3-SETUP.md).
+      - name: Check bucket CORS (warning only)
+        if: steps.roll.outputs.status == 'succeeded'
+        env:
+          DOMAIN: ${{ vars.DOMAIN }}
+        run: |
+          if [ -z "${DOMAIN:-}" ]; then echo "DOMAIN is not set, skipping the CORS check"; exit 0; fi
+          cors=$(curl -fsS --max-time 10 "https://${DOMAIN}/api/status" | jq -r '.checks.s3Cors.status // "unknown"') || cors=unknown
+          echo "Bucket CORS check: ${cors}"
+          if [ "$cors" = "down" ]; then
+            echo "::warning title=S3 bucket CORS::The bucket has no CORS rule for https://${DOMAIN}; browser uploads fail. Apply the rule in docs/S3-SETUP.md; /api/health/deep names what is missing."
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0

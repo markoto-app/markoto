@@ -16,7 +16,10 @@
 #   4. objects created earlier by the admin role (installs that predate
 #      separate roles) are handed over to the owning role;
 #   5. the app database exists with the `vector` extension (a managed
-#      cluster starts without it; the bundled image creates it at init).
+#      cluster starts without it; the bundled image creates it at init);
+#   6. when UMAMI_DB is set (hosted analytics, docs/operations-analytics.md),
+#      the `umami` database exists with the `pgcrypto` extension Umami's
+#      migrations need, owned by its own role like LiteLLM's.
 #
 # On a managed cluster the admin is not a superuser (OVH / Aiven `avnadmin`:
 # CREATEDB + CREATEROLE only) and there may be no `postgres` database (Aiven
@@ -36,6 +39,8 @@
 #   APP_DB_USER       app/sync role   APP_DB_PASSWORD
 #   LITELLM_DB        litellm database (default litellm)
 #   LITELLM_DB_USER   LiteLLM role    LITELLM_DB_PASSWORD
+#   UMAMI_DB          umami database (empty: no analytics, nothing created)
+#   UMAMI_DB_USER     Umami role      UMAMI_DB_PASSWORD
 #
 # Values reach SQL only as psql variables (:'name' / format(%I, %L)), never
 # by string concatenation, so passwords and names can't inject SQL.
@@ -48,6 +53,9 @@ APP_DB_PASSWORD="${APP_DB_PASSWORD:-}"
 LITELLM_DB="${LITELLM_DB:-litellm}"
 LITELLM_DB_USER="${LITELLM_DB_USER:-$PGUSER}"
 LITELLM_DB_PASSWORD="${LITELLM_DB_PASSWORD:-}"
+UMAMI_DB="${UMAMI_DB:-}"
+UMAMI_DB_USER="${UMAMI_DB_USER:-$PGUSER}"
+UMAMI_DB_PASSWORD="${UMAMI_DB_PASSWORD:-}"
 
 log() { printf '[db-init] %s\n' "$*"; }
 
@@ -206,8 +214,10 @@ SQL
 
 separate_app=0
 separate_litellm=0
+separate_umami=0
 [ "$APP_DB_USER" != "$PGUSER" ] && separate_app=1
 [ "$LITELLM_DB_USER" != "$PGUSER" ] && separate_litellm=1
+[ -n "$UMAMI_DB" ] && [ "$UMAMI_DB_USER" != "$PGUSER" ] && separate_umami=1
 
 if [ "$separate_app" = 1 ]; then
   ensure_role "$APP_DB_USER" "$APP_DB_PASSWORD"
@@ -236,9 +246,32 @@ else
   log "LiteLLM uses the admin role $PGUSER (set POSTGRES_LITELLM_USER + POSTGRES_LITELLM_PASSWORD for a separate role)"
 fi
 
+if [ -n "$UMAMI_DB" ]; then
+  if [ "$separate_umami" = 1 ]; then
+    ensure_role "$UMAMI_DB_USER" "$UMAMI_DB_PASSWORD"
+  fi
+  ensure_database "$UMAMI_DB" "$UMAMI_DB_USER"
+  # Umami's first migration runs CREATE EXTENSION pgcrypto. It is a trusted
+  # extension, but a managed cluster may still keep extensions to its admin,
+  # so the admin creates it (the migration's IF NOT EXISTS then passes).
+  q "$UMAMI_DB" <<'SQL'
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+SQL
+  if [ "$separate_umami" = 1 ]; then
+    transfer_objects "$UMAMI_DB" "$UMAMI_DB_USER"
+    log "umami database $UMAMI_DB owned by role $UMAMI_DB_USER"
+  else
+    log "Umami uses the admin role $PGUSER (set POSTGRES_UMAMI_USER + POSTGRES_UMAMI_PASSWORD for a separate role)"
+  fi
+fi
+
 # Any separate role makes cross-database access meaningful to block.
-if [ "$separate_app" = 1 ] || [ "$separate_litellm" = 1 ]; then
+if [ "$separate_app" = 1 ] || [ "$separate_litellm" = 1 ] || [ "$separate_umami" = 1 ]; then
   lock_database "$APP_DB"
   lock_database "$LITELLM_DB"
   log "CONNECT on $APP_DB and $LITELLM_DB revoked from PUBLIC"
+  if [ -n "$UMAMI_DB" ]; then
+    lock_database "$UMAMI_DB"
+    log "CONNECT on $UMAMI_DB revoked from PUBLIC"
+  fi
 fi

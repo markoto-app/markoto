@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import {
-  anchorSelector, DESKTOP_TOUR_STEPS, editorTourDone, markEditorTourDone, MOBILE_TOUR_STEPS,
-  tourTypingWait, type EditorTourStep
+  anchorSelector, DESKTOP_TOUR_STEPS, editorTourAutoStart, editorTourDone, markEditorTourDone,
+  MOBILE_TOUR_STEPS, tourTypingWait, type EditorTourStep
 } from '~/utils/editor/editorTour'
 
 /**
  * Short first-run tour of the editor: one popover at a time, anchored to
  * the real control it talks about (Nuxt UI popover `reference`), with
- * Skip and Next / Done. Shown once per browser on the first editor visit
- * (localStorage, `utils/editorTour.ts`); Help → "Take the tour" (or the
- * phone menu) starts it again through `start()`.
+ * Skip and Next / Done. Shown once on the first editor visit: per account
+ * when signed in (`editorTourDone` of the account status, set through
+ * POST /api/user/editor-tour; sign-out clears localStorage), per browser
+ * otherwise (localStorage, `utils/editorTour.ts`). Help → "Take the tour"
+ * (or the phone menu) starts it again through `start()`.
  *
  * It never fights other dialogs: while any modal, sheet or alert dialog
  * is open (onboarding gate, password prompt, share dialog…) the popover
@@ -23,12 +25,23 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const { loggedIn } = useUserSession()
+const { status: accountStatus, pending: accountPending, refresh: refreshAccountStatus } = useAccountStatus()
 
 const steps = ref<EditorTourStep[]>([])
 const index = ref(0)
 const running = ref(false)
 const blocked = ref(false)
 const reference = ref<HTMLElement | null>(null)
+
+// localStorage isn't reactive: mirror the flag so `autoStart` follows `finish()`.
+const localDone = ref(editorTourDone(globalThis.localStorage ?? null))
+const autoStart = computed(() => editorTourAutoStart({
+  localDone: localDone.value,
+  loggedIn: loggedIn.value,
+  accountPending: accountPending.value,
+  accountDone: accountStatus.value?.editorTourDone ?? null
+}))
 
 const current = computed(() => steps.value[index.value] ?? null)
 const isLast = computed(() => index.value >= steps.value.length - 1)
@@ -76,6 +89,18 @@ function finish(): void {
   reference.value = null
   clearInterval(poll)
   markEditorTourDone(globalThis.localStorage ?? null)
+  localDone.value = true
+  if (loggedIn.value && accountStatus.value?.editorTourDone !== true) void rememberOnAccount()
+}
+
+/** Best effort: if it fails, this browser's flag still holds until sign-out. */
+async function rememberOnAccount(): Promise<void> {
+  try {
+    await apiFetch('/api/user/editor-tour', { method: 'post' })
+    await refreshAccountStatus()
+  } catch {
+    // Offline or signed out meanwhile.
+  }
 }
 
 function next(): void {
@@ -105,7 +130,7 @@ let autoTimer: ReturnType<typeof setTimeout> | undefined
 function scheduleAutoStart(delay: number): void {
   clearTimeout(autoTimer)
   autoTimer = setTimeout(() => {
-    if (!props.ready || running.value) return
+    if (!props.ready || running.value || autoStart.value !== 'show') return
     const wait = tourTypingWait(Date.now(), lastKeyAt)
     if (wait > 0) {
       scheduleAutoStart(wait)
@@ -114,10 +139,11 @@ function scheduleAutoStart(delay: number): void {
     start()
   }, delay)
 }
-watch(() => props.ready, (ready) => {
+// Signed in, the account status may still be loading: `autoStart` is `wait`
+// until it is in, then the watcher runs again.
+watch([() => props.ready, autoStart], ([ready, decision]) => {
   clearTimeout(autoTimer)
-  if (!ready || running.value) return
-  if (editorTourDone(globalThis.localStorage ?? null)) return
+  if (!ready || running.value || decision !== 'show') return
   scheduleAutoStart(AUTO_START_DELAY_MS)
 }, { immediate: true })
 

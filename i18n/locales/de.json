@@ -805,11 +805,9 @@
     "downgrade": "Wechseln",
     "signUp": "Registrieren",
     "close": "Schliessen",
-    "footnote": "Alle Stufen umfassen Echtzeit-Zusammenarbeit, Versionsverlauf und unbegrenzte Dokumente. KI-Punkte werden monatlich aufgefüllt.",
-    "comingSoonSubtitle": "Schreibe ohne Konto, mit einem kostenlosen Konto oder auf deinem eigenen Server. Bezahlpläne mit höheren Limits folgen bald.",
+    "comingSoonSubtitle": "Starte heute kostenlos. Bezahlpläne mit höheren Limits folgen bald.",
     "comingSoonBadge": "Demnächst",
     "availableNow": "Jetzt verfügbar",
-    "comingSoonFootnote": "Bezahlpläne, ihre Preise und Limits stehen noch nicht fest. Trage dich in die Warteliste ein, und wir schreiben dir einmal, sobald sie starten.",
     "freeFootnote": "Jedes Konto enthält Echtzeit-Zusammenarbeit, Versionsverlauf und unbegrenzt viele Dokumente. KI-Punkte werden jede Periode aufgefüllt.",
     "selfHostedTitle": "Limits dieser Instanz",
     "selfHostedSubtitle": "Diese markoto-Instanz verkauft keine Tarife. Jedes Konto erhält die unten aufgeführten Limits; der Betreiber dieser Instanz kann sie ändern.",
@@ -827,35 +825,14 @@
       "perYear": "pro Jahr",
       "perSeatPerYear": "pro Platz / Jahr",
       "planned": "Geplanter Preis",
-      "plannedNote": "Geplante Preise. Preise und Limits können sich bis zum Start der Bezahlpläne ändern; noch kann nichts gekauft werden."
-    },
-    "selfHosted": {
-      "title": "Selbst gehostet",
-      "tagline": "markoto auf deinem eigenen Server.",
-      "priceNote": "Dein Server, deine Limits",
-      "everyFeature": "Alle Funktionen. Limits und Speicher bestimmst du.",
-      "byok": "KI über deinen eigenen Anbieterschlüssel oder ein lokales Modell.",
-      "licence": "Source-available: FSL-1.1, wird nach zwei Jahren zu Apache-2.0.",
-      "cta": "Anleitung zum Selbsthosten"
-    },
-    "anon": {
-      "title": "Ohne Konto",
-      "tagline": "Sofort losschreiben.",
-      "priceNote": "Ohne Anmeldung",
-      "write": "Schreiben, per Link teilen und gemeinsam in Echtzeit bearbeiten.",
-      "export": "Dateien importieren und als PDF oder Markdown exportieren.",
-      "noAi": "Keine KI, keine Workspaces, kein Bild-Upload. Jeder mit dem Link kann das Dokument bearbeiten.",
-      "retention": "Wird nach {n} Tag ohne Änderung gelöscht. | Wird nach {n} Tagen ohne Änderungen gelöscht.",
-      "delete": "Nur der Browser, der ein Dokument erstellt hat, kann es löschen."
+      "plannedNote": "Geplante Preise. Preise und Limits können sich bis zum Start der Bezahlpläne ändern; noch kann nichts gekauft werden.",
+      "plannedShort": "(geplant)"
     },
     "freeAccount": {
-      "title": "Kostenloses Konto",
       "byok": "Unbegrenzte KI über deinen eigenen Anbieterschlüssel.",
       "signIn": "Anmelden"
     },
     "paid": {
-      "title": "Bezahlt",
-      "tagline": "Mehr KI-Punkte, Workspaces und Speicher.",
       "joinWaitlist": "Auf die Warteliste",
       "setUpInWorkspace": "In einem Workspace einrichten",
       "setUpInWorkspaceHint": "Öffne den Workspace und dort den Tab «Abrechnung». Nur Admins des Workspace können kaufen."
@@ -871,17 +848,14 @@
       "imageStorage": "{size} Bildspeicher"
     },
     "compare": {
-      "title": "Die Optionen im Vergleich",
+      "title": "Alle Details vergleichen",
       "feature": "Funktion",
       "price": "Preis",
       "priceMonthly": "{price} pro Monat",
       "pricePlanned": "{price} pro Monat (geplant)",
       "documents": "Dokumente",
       "unlimited": "Unbegrenzt",
-      "anonRetention": "Bis {n} Tag nach der letzten Änderung | Bis {n} Tage nach der letzten Änderung",
       "writing": "Editor, Echtzeit-Zusammenarbeit, Kommentare, PDF-Export",
-      "sharing": "Teilen nur zum Lesen oder mit Passwort",
-      "openEditOnly": "Nur offen bearbeitbar",
       "aiPoints": "KI-Punkte pro Monat",
       "ownKey": "KI über eigenen Anbieterschlüssel",
       "workspaces": "Eigene Workspaces",
@@ -894,14 +868,19 @@
       "days": "{n} Tag | {n} Tage",
       "customCss": "Eigenes CSS für Dokumente",
       "readOnly": "Nur Lesen",
-      "setByYou": "Lege fest",
       "included": "Enthalten",
       "notIncluded": "Nicht enthalten",
       "perSeat": "{value} pro Platz",
       "aiImage": "KI-Bildgenerierung",
       "aiVoice": "Spracheingabe und Live-Diktat",
       "aiStrongModel": "Wahl eines stärkeren KI-Modells",
-      "ownKeyOnly": "Mit eigenem Schlüssel"
+      "ownKeyOnly": "Mit eigenem Schlüssel",
+      "shareControls": "Ablaufdatum und Nur-Lesen für Freigabelinks",
+      "customDomains": "Eigene Domains für veröffentlichte Seiten",
+      "brandKit": "Brand-Kit und Workspace-Vorlagen",
+      "guests": "Gäste im Workspace",
+      "sso": "Single Sign-on (SSO) und SCIM",
+      "auditLog": "Audit-Log des Workspace"
     },
     "faq": {
       "title": "Fragen",
@@ -916,7 +895,8 @@
       "anonA": "Jeder mit dem Link kann sie lesen und bearbeiten. Sie werden nach {n} Tag ohne Änderung gelöscht, und nur der Browser, der ein Dokument erstellt hat, kann es früher löschen. Melde dich an, um Dokumente zu behalten, privat zu stellen oder mit einem Passwort zu schützen. | Jeder mit dem Link kann sie lesen und bearbeiten. Sie werden nach {n} Tagen ohne Änderungen gelöscht, und nur der Browser, der ein Dokument erstellt hat, kann es früher löschen. Melde dich an, um Dokumente zu behalten, privat zu stellen oder mit einem Passwort zu schützen.",
       "anonKeptA": "Jeder mit dem Link kann sie lesen und bearbeiten, und nur der Browser, der ein Dokument erstellt hat, kann es löschen. Melde dich an, um Dokumente privat zu stellen oder mit einem Passwort zu schützen.",
       "selfHostQ": "Kann ich markoto auf meinem eigenen Server betreiben?",
-      "selfHostA": "Ja. Der Code ist source-available unter der Lizenz FSL-1.1, die nach zwei Jahren zu Apache-2.0 wird. Eine selbst gehostete Instanz hat alle Funktionen und keine Tarife: du legst die Limits fest und verbindest deinen eigenen KI-Anbieter oder ein lokales Modell. Die Anleitung zum Selbsthosten in der Dokumentation beschreibt die Installation."
+      "selfHostA": "Ja. Der Code ist source-available unter der Lizenz FSL-1.1, die nach zwei Jahren zu Apache-2.0 wird. Eine selbst gehostete Instanz hat alle Funktionen und keine Tarife: du legst die Limits fest und verbindest deinen eigenen KI-Anbieter oder ein lokales Modell. Die Anleitung zum Selbsthosten in der Dokumentation beschreibt die Installation.",
+      "pointsPacks": "Zusätzliche KI-Punkte gibt es in Paketen: {packs}."
     },
     "interval": {
       "label": "Abrechnungszeitraum",
@@ -934,7 +914,40 @@
     "seatTotalMonth": "{total} pro Monat für {seats} Plätze",
     "seatTotalYear": "{total} pro Jahr für {seats} Plätze",
     "seatsLabel": "Plätze",
-    "creditsBuyLink": "KI-Punkte in deinem Profil kaufen"
+    "creditsBuyLink": "KI-Punkte in deinem Profil kaufen",
+    "plans": {
+      "free": "Kostenlos"
+    },
+    "teams": {
+      "title": "Teams",
+      "switchLabel": "Team oder Business"
+    },
+    "highlights": {
+      "members": "Bis {n} Person pro Workspace | Bis {n} Personen pro Workspace",
+      "membersUnlimited": "Beliebig viele Personen pro Workspace",
+      "writing": "Echtzeit-Zusammenarbeit, Verlauf und PDF-Export",
+      "aiExtras": "KI mit {list}",
+      "ai": {
+        "aiStrongModel": "stärkerem Modell",
+        "aiImage": "Bildern",
+        "aiVoice": "Spracheingabe"
+      },
+      "feature": {
+        "sso": "Single Sign-on (SSO)",
+        "auditLog": "Audit-Log mit Export",
+        "brandKit": "Brand-Kit: Schriften, Logos, Vorlagen",
+        "guests": "Gäste, die nur geteilte Dokumente sehen",
+        "customDomains": "Eigene Domains für veröffentlichte Seiten",
+        "shareControls": "Freigabelinks mit Ablaufdatum oder nur zum Lesen",
+        "customCss": "Eigenes CSS für Dokumente",
+        "mcpWrite": "MCP-Clients können Dokumente bearbeiten"
+      }
+    },
+    "creditsLine": "Mehr KI-Punkte: Pakete zu {packs}, gültig {months} Monate.",
+    "alt": {
+      "anon": "Ohne Konto schreiben",
+      "selfHost": "Selbst hosten"
+    }
   },
   "topbar": {
     "planBadge": "Tarif: {plan}",
@@ -1939,9 +1952,10 @@
         "jina_ai": "Erzeugung von Embeddings für die Wissensdatenbank (RAG); Extraktion des Seiteninhalts einer einzelnen URL für das Werkzeug „URL abrufen“ (Jina Reader; die URL wird für alle Nutzer gesendet, auch für Nutzer mit eigenem KI-Anbieter)",
         "staan": "Websuche für den KI-Schreibassistenten (die Suchanfrage wird für alle Nutzer gesendet, auch für Nutzer mit eigenem KI-Anbieter) über einen eigenen europäischen Suchindex (nur EU-Routing)",
         "bfl": "Bildgenerierung mit FLUX (Datenverarbeitung fest in der EU)",
+        "google_ads": "Messung von Werbe-Conversions: die Klick-ID der Anzeige und der Zeitpunkt einer Registrierung, keine weiteren Daten",
         "google_oauth": "Anmeldung mit einem Google-Konto (kein Zugriff auf andere Google-Daten)",
         "github_oauth": "Anmeldung mit einem GitHub-Konto (kein Zugriff auf andere GitHub-Daten)",
-        "stripe": "Abo-Abrechnung, Speicherung von Zahlungsmitteln, Rechnungserstellung, Betrugsbewertung",
+        "stripe": "Abo-Abrechnung und Zahlungsdaten; bei Käufen ist Link (Stripe) die Verkäuferin und eine unabhängige Verantwortliche",
         "sentry": "Telemetrie zu Anwendungsfehlern und Leistung, gespeichert in Sentrys EU-Datenregion (Frankfurt)",
         "resend": "Versand von Transaktions-E-Mails: Bestätigungen von Kontolöschungen, Hinweise auf bereitstehende Datenexporte, Meldungen von Datenschutzverletzungen"
       }
@@ -2070,6 +2084,11 @@
     "planUpdated": {
       "title": "Plan aktualisiert",
       "description": "Du nutzt jetzt den Plan {plan}. Dein neues KI-Budget steht sofort zur Verfügung."
+    },
+    "completePayment": "Zahlung abschliessen",
+    "soldThroughLink": {
+      "note": "Verkauf über Link (Stripe), das Zahlung, MWST, Rechnungen und Rückerstattungen abwickelt. Es gelten {terms}.",
+      "terms": "die Käuferbedingungen von Link"
     }
   },
   "plan": {
@@ -2100,7 +2119,6 @@
     }
   },
   "waitlist": {
-    "title": "Auf die Warteliste",
     "description": "Erhalte eine E-Mail, sobald die Bezahlpläne starten. Mehr schicken wir nicht.",
     "emailLabel": "E-Mail-Adresse",
     "emailPlaceholder": "sie{'@'}beispiel.ch",
@@ -2129,7 +2147,8 @@
       "button": "Meine Adresse entfernen",
       "successTitle": "Du wurdest entfernt",
       "successBody": "Deine E-Mail-Adresse wurde von der Warteliste gelöscht."
-    }
+    },
+    "barTitle": "Bezahlpläne starten bald"
   },
   "aiProvider": {
     "title": "KI-Anbieter",
@@ -2885,5 +2904,243 @@
     "generate": "Erstellen",
     "generating": "Wird erstellt…",
     "failed": "Bild konnte nicht erstellt werden"
+  },
+  "adminStats": {
+    "title": "Produktstatistik",
+    "intro": "Zahlen und Summen für diese Instanz. Keine Liste nennt eine Person.",
+    "pageTitle": "Produktstatistik · Admin",
+    "investorTitle": "Investorenübersicht",
+    "investorLink": "Investorenübersicht",
+    "back": "Zurück zur Statistik",
+    "print": "Drucken oder als PDF speichern",
+    "loadFailed": "Die Statistik konnte nicht geladen werden",
+    "loading": "Lädt…",
+    "updated": "Die Zahlen sind höchstens eine Minute alt. Tage gelten in UTC.",
+    "range": {
+      "label": "Zeitraum",
+      "7": "7 Tage",
+      "30": "30 Tage",
+      "90": "90 Tage",
+      "365": "12 Monate",
+      "all": "Gesamte Zeit"
+    },
+    "tabs": {
+      "overview": "Übersicht",
+      "users": "Nutzende",
+      "content": "Inhalte",
+      "ai": "KI",
+      "revenue": "Umsatz",
+      "ops": "Betrieb"
+    },
+    "change": {
+      "vsPrevious": "ggü. Vorperiode"
+    },
+    "csv": "CSV herunterladen",
+    "kpi": {
+      "registered": "Konten",
+      "signups": "Neue Registrierungen",
+      "dau": "Heute aktiv",
+      "wau": "Aktiv, 7 Tage",
+      "mau": "Aktiv, 30 Tage",
+      "activeInWindow": "Aktiv im Zeitraum",
+      "stickiness": "Stickiness (heute / 30 Tage)",
+      "editors": "Personen mit Bearbeitung",
+      "pendingDeletion": "Löschung ausstehend",
+      "documents": "Dokumente",
+      "documentsCreated": "Erstellte Dokumente",
+      "documentsEdited": "Bearbeitete Dokumente",
+      "ownedDocs": "Mit Eigentümer",
+      "anonymousDocs": "Anonym",
+      "workspaceDocs": "In Workspaces",
+      "words": "Geschriebene Wörter",
+      "workspaces": "Workspaces",
+      "workspacesCreated": "Erstellte Workspaces",
+      "guests": "Gäste",
+      "knowledgeFiles": "Wissensdateien",
+      "knowledgeUploaded": "Hochgeladenes Wissen",
+      "knowledgeBytes": "Grösse des Wissens",
+      "knowledgeChunks": "Chunks",
+      "knowledgeTokens": "Tokens",
+      "knowledgeFailed": "Fehlgeschlagene Dateien",
+      "images": "Bilder",
+      "imagesUploaded": "Hochgeladene Bilder",
+      "imageBytes": "Bildspeicher",
+      "publishedPages": "Veröffentlichte Seiten",
+      "indexablePages": "Für Suchmaschinen offen",
+      "customDomains": "Eigene Domains",
+      "verifiedDomains": "Aktive Domains",
+      "comments": "Kommentare",
+      "commentsAdded": "Neue Kommentare",
+      "savedThemes": "Gespeicherte Designs",
+      "mrr": "MRR {currency}",
+      "arr": "ARR {currency}",
+      "payingCustomers": "Zahlende Abos",
+      "trialing": "In der Testphase",
+      "pastDue": "Zahlung überfällig",
+      "scheduledCancellations": "Zum Ende vorgemerkt",
+      "atRisk": "MRR zum Ende vorgemerkt, {currency}",
+      "waitlistConfirmed": "Warteliste (bestätigt)",
+      "waitlistUnconfirmed": "Warteliste (nicht bestätigt)",
+      "waitlistNew": "Neu auf der Warteliste",
+      "aiSpend": "KI-Kosten",
+      "aiRequests": "KI-Anfragen",
+      "aiUsers": "Personen mit KI-Nutzung",
+      "costPerAiUser": "Kosten pro KI-Nutzer",
+      "costPerActiveUser": "Kosten pro aktive Person",
+      "freePool": "Gratis-KI-Pool diesen Monat",
+      "byokUsers": "Eigener KI-Schlüssel",
+      "mcpTokens": "Aktive MCP-Tokens",
+      "mcpSessions": "MCP-Sitzungen",
+      "databaseSize": "Datenbankgrösse",
+      "restrictedDocs": "Eingeschränkte Dokumente",
+      "openInvites": "Offene Einladungen",
+      "pendingStripeEvents": "Wartende Stripe-Ereignisse",
+      "abuseOpen": "Offene Meldungen",
+      "abuseReceived": "Eingegangene Meldungen",
+      "mrrTotal": "MRR, alles in CHF",
+      "arrTotal": "ARR, alles in CHF",
+      "contribution": "Gesch. Beitrag / Monat, CHF",
+      "subsStarted": "Gestartete Abos",
+      "subsEnded": "Beendete Abos",
+      "cancelScheduled": "Vorgemerkte Kündigungen",
+      "newMrr": "Neuer MRR {currency}",
+      "lostMrr": "Verlorener MRR {currency}"
+    },
+    "hint": {
+      "activeDefinition": "Angemeldet und markoto an diesem Tag genutzt.",
+      "editorsDefinition": "Angemeldete Personen mit einer Bearbeitung, einem Kommentar oder einer Wiederherstellung.",
+      "noRevenue": "Noch keine bezahlten Abos.",
+      "freePool": "{spent} von {cap}",
+      "freePoolOff": "Kein gemeinsames Limit auf dieser Instanz.",
+      "spendFrom": "Der Verlauf der KI-Kosten beginnt am {day}.",
+      "spendUnavailable": "Die KI-Kostenprotokolle konnten nicht gelesen werden.",
+      "listPrice": "Brutto, zum Listenpreis: vor Zahlungsgebühren, Rabatten und Steuern.",
+      "plannedPrices": "Bewertet zu den geplanten Preisen; bezahlte Pläne sind nicht im Verkauf.",
+      "billingOff": "Die Abrechnung ist auf dieser Instanz ausgeschaltet.",
+      "comingSoon": "Bezahlte Pläne werden als «bald verfügbar» angezeigt; die Warteliste ist offen.",
+      "aiUsersFrom": "Personen mit KI-Nutzung werden ab dem {day} gezählt (Protokolle pro Person werden 90 Tage aufbewahrt).",
+      "churnHistory": "Der Abo-Verlauf wird ab dieser Version erfasst; Workspace-Pläne davor wurden aus ihren Datensätzen übernommen."
+    },
+    "chart": {
+      "signups": "Registrierungen",
+      "accounts": "Konten (laufende Summe)",
+      "editors": "Personen mit Bearbeitung",
+      "documents": "Erstellte Dokumente",
+      "aiSpend": "KI-Kosten nach Funktion (USD)",
+      "members": "Workspaces nach Mitgliedern",
+      "activation": "Aktivierung neuer Konten",
+      "subscriptions": "Gestartete und beendete Abos",
+      "started": "Gestartet",
+      "ended": "Beendet"
+    },
+    "table": {
+      "period": "Zeitraum",
+      "count": "Anzahl",
+      "value": "Wert",
+      "metric": "Kennzahl",
+      "share": "Anteil",
+      "feature": "Funktion",
+      "cost": "Kosten (USD)",
+      "requests": "Anfragen",
+      "plan": "Plan",
+      "currency": "Währung",
+      "interval": "Abrechnung",
+      "subscriptions": "Abos",
+      "units": "Plätze",
+      "provider": "Anmeldung",
+      "accounts": "Konten",
+      "status": "Status",
+      "members": "Mitglieder",
+      "workspaces": "Workspaces",
+      "amount": "Betrag",
+      "purchases": "Käufe",
+      "cohort": "Registrierungswoche",
+      "size": "Konten",
+      "week": "W{n}"
+    },
+    "section": {
+      "growth": "Wachstum",
+      "activation": "Aktivierung",
+      "retention": "Bindung nach Wochenkohorte",
+      "retentionHint": "Anteil der neuen Konten jeder Woche, die in den Wochen nach der Registrierung bearbeitet haben (W0 = Registrierungswoche).",
+      "providers": "Anmeldeanbieter",
+      "plans": "Pläne",
+      "documents": "Dokumente",
+      "workspaces": "Workspaces",
+      "knowledge": "Wissensbasis",
+      "publishing": "Veröffentlichung",
+      "aiSpend": "KI-Kosten",
+      "subscriptions": "Aktive Abos",
+      "topups": "KI-Guthaben-Käufe",
+      "planMix": "Planverteilung",
+      "exports": "Datenexporte",
+      "abuse": "Missbrauchsmeldungen",
+      "estimate": "Geschätzter monatlicher Beitrag"
+    },
+    "activation": {
+      "signedUp": "Registriert",
+      "createdDoc": "Dokument erstellt",
+      "edited": "Bearbeitet",
+      "usedAi": "KI genutzt"
+    },
+    "provider": {
+      "github": "GitHub",
+      "google": "Google",
+      "oidc": "OpenID Connect",
+      "sso": "Workspace-SSO"
+    },
+    "plan": {
+      "free": "Gratis",
+      "pro": "Pro",
+      "team": "Team",
+      "business": "Business"
+    },
+    "interval": {
+      "month": "Monatlich",
+      "year": "Jährlich"
+    },
+    "status": {
+      "queued": "In Warteschlange",
+      "running": "Läuft",
+      "ready": "Bereit",
+      "failed": "Fehlgeschlagen",
+      "expired": "Abgelaufen",
+      "open": "Offen",
+      "acknowledged": "Bestätigt",
+      "actioned": "Bearbeitet",
+      "dismissed": "Abgewiesen"
+    },
+    "feature": {
+      "text-loop": "Schreibassistent",
+      "transcribe": "Spracheingabe",
+      "dictate-tick": "Live-Diktat",
+      "web-search": "Websuche",
+      "web-fetch": "Seitenabruf",
+      "image-gen": "Bilderzeugung",
+      "embeddings": "Wissens-Embeddings",
+      "design-import": "Design aus einem Dokument",
+      "other": "Andere"
+    },
+    "investor": {
+      "subtitle": "markoto, {date}. Letzte 12 Monate, monatlich.",
+      "users": "Nutzende",
+      "revenue": "Umsatz",
+      "content": "Inhalte",
+      "ai": "KI",
+      "footnote": "Konten und Dokumente aus der Anwendungsdatenbank, KI-Kosten aus den Protokollen des KI-Proxys (90 Tage). Umsatz zum Listenpreis, brutto. Definitionen: docs/contributing/admin-metrics.md."
+    },
+    "menu": "Produktstatistik",
+    "estimate": {
+      "estimated": "Schätzung",
+      "gross": "Brutto zum Listenpreis",
+      "tax": "Enthaltene Steuern ({pct} %)",
+      "fees": "Zahlungsgebühren ({pct} % + {fixed})",
+      "net": "Nettoumsatz",
+      "aiCost": "KI-Kosten der Plattform, letzte 30 Tage",
+      "contribution": "Beitrag",
+      "combined": "Alles, in CHF",
+      "note": "Geschätzt, pro Monat. EUR zu CHF bei {eur}, USD zu CHF bei {usd}. Die Annahmen werden mit NUXT_STATS_* festgelegt.",
+      "aiUnavailable": "Die KI-Kosten konnten nicht gelesen werden und zählen als 0."
+    }
   }
 }

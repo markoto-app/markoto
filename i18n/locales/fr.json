@@ -805,11 +805,9 @@
     "downgrade": "Rétrograder",
     "signUp": "S'inscrire",
     "close": "Fermer",
-    "footnote": "Tous les niveaux incluent la collaboration en temps réel, l'historique des versions et des documents illimités. Les points IA se rechargent chaque mois.",
-    "comingSoonSubtitle": "Écrivez sans compte, avec un compte gratuit ou sur votre propre serveur. Des forfaits payants aux limites plus élevées arrivent bientôt.",
+    "comingSoonSubtitle": "Commencez gratuitement dès aujourd’hui. Des forfaits payants aux limites plus élevées arrivent bientôt.",
     "comingSoonBadge": "Bientôt",
     "availableNow": "Disponible maintenant",
-    "comingSoonFootnote": "Les offres payantes, leurs prix et leurs limites ne sont pas encore définitifs. Inscrivez-vous à la liste d'attente et nous vous écrirons une fois, à leur lancement.",
     "freeFootnote": "Chaque compte inclut la collaboration en temps réel, l'historique des versions et des documents illimités. Les points IA se rechargent à chaque période.",
     "selfHostedTitle": "Limites de cette instance",
     "selfHostedSubtitle": "Cette instance markoto ne vend pas d'offres. Chaque compte bénéficie des limites ci-dessous ; l'opérateur de cette instance peut les modifier.",
@@ -827,35 +825,14 @@
       "perYear": "par an",
       "perSeatPerYear": "par place / an",
       "planned": "Prix prévu",
-      "plannedNote": "Prix prévus. Les prix et les limites peuvent changer avant le lancement des forfaits payants ; rien ne peut encore être acheté."
-    },
-    "selfHosted": {
-      "title": "Auto-hébergé",
-      "tagline": "markoto sur votre propre serveur.",
-      "priceNote": "Votre serveur, vos limites",
-      "everyFeature": "Toutes les fonctionnalités. Vous fixez les limites et le stockage.",
-      "byok": "L'IA avec votre propre clé de fournisseur ou un modèle local.",
-      "licence": "Source-available : FSL-1.1, devient Apache-2.0 après deux ans.",
-      "cta": "Guide d'auto-hébergement"
-    },
-    "anon": {
-      "title": "Sans compte",
-      "tagline": "Commencez à écrire tout de suite.",
-      "priceNote": "Sans inscription",
-      "write": "Écrivez, partagez un lien et modifiez à plusieurs en temps réel.",
-      "export": "Importez des fichiers et exportez en PDF ou en Markdown.",
-      "noAi": "Pas d'IA, pas d'espaces de travail, pas d'envoi d'images. Toute personne disposant du lien peut modifier le document.",
-      "retention": "Supprimé après {n} jour sans modification. | Supprimé après {n} jours sans modification.",
-      "delete": "Seul le navigateur qui a créé un document peut le supprimer."
+      "plannedNote": "Prix prévus. Les prix et les limites peuvent changer avant le lancement des forfaits payants ; rien ne peut encore être acheté.",
+      "plannedShort": "(prévu)"
     },
     "freeAccount": {
-      "title": "Compte gratuit",
       "byok": "IA illimitée avec votre propre clé de fournisseur.",
       "signIn": "Se connecter"
     },
     "paid": {
-      "title": "Payant",
-      "tagline": "Plus de points IA, d'espaces de travail et de stockage.",
       "joinWaitlist": "Rejoindre la liste d'attente",
       "setUpInWorkspace": "Configurer dans un espace de travail",
       "setUpInWorkspaceHint": "Ouvrez l’espace de travail, puis son onglet Facturation. Seuls les admins de l’espace peuvent acheter."
@@ -871,17 +848,14 @@
       "imageStorage": "{size} de stockage d'images"
     },
     "compare": {
-      "title": "Comparer les options",
+      "title": "Comparer tous les détails",
       "feature": "Fonctionnalité",
       "price": "Prix",
       "priceMonthly": "{price} par mois",
       "pricePlanned": "{price} par mois (prévu)",
       "documents": "Documents",
       "unlimited": "Illimité",
-      "anonRetention": "Conservé {n} jour après la dernière modification | Conservé {n} jours après la dernière modification",
       "writing": "Éditeur, collaboration en temps réel, commentaires, export PDF",
-      "sharing": "Partage en lecture seule ou protégé par mot de passe",
-      "openEditOnly": "Modification ouverte uniquement",
       "aiPoints": "Points IA par mois",
       "ownKey": "IA avec votre propre clé de fournisseur",
       "workspaces": "Espaces de travail possédés",
@@ -894,14 +868,19 @@
       "days": "{n} jour | {n} jours",
       "customCss": "CSS personnalisé pour les documents",
       "readOnly": "Lecture seule",
-      "setByYou": "Fixé par vous",
       "included": "Inclus",
       "notIncluded": "Non inclus",
       "perSeat": "{value} par place",
       "aiImage": "Génération d’images par IA",
       "aiVoice": "Saisie vocale et dictée en direct",
       "aiStrongModel": "Choix d’un modèle d’IA plus puissant",
-      "ownKeyOnly": "Avec votre propre clé"
+      "ownKeyOnly": "Avec votre propre clé",
+      "shareControls": "Expiration et lecture seule des liens de partage",
+      "customDomains": "Domaines personnalisés pour les pages publiées",
+      "brandKit": "Kit de marque et modèles d'espace de travail",
+      "guests": "Invités de l'espace de travail",
+      "sso": "Authentification unique (SSO) et SCIM",
+      "auditLog": "Journal d'audit de l'espace de travail"
     },
     "faq": {
       "title": "Questions",
@@ -916,7 +895,8 @@
       "anonA": "Toute personne disposant du lien peut les lire et les modifier. Ils sont supprimés après {n} jour sans modification, et seul le navigateur qui a créé un document peut le supprimer plus tôt. Connectez-vous pour conserver vos documents, les rendre privés ou les protéger par un mot de passe. | Toute personne disposant du lien peut les lire et les modifier. Ils sont supprimés après {n} jours sans modification, et seul le navigateur qui a créé un document peut le supprimer plus tôt. Connectez-vous pour conserver vos documents, les rendre privés ou les protéger par un mot de passe.",
       "anonKeptA": "Toute personne disposant du lien peut les lire et les modifier, et seul le navigateur qui a créé un document peut le supprimer. Connectez-vous pour rendre vos documents privés ou les protéger par un mot de passe.",
       "selfHostQ": "Puis-je héberger markoto sur mon propre serveur ?",
-      "selfHostA": "Oui. Le code est source-available sous la licence FSL-1.1, qui devient Apache-2.0 après deux ans. Une instance auto-hébergée a toutes les fonctionnalités et aucun forfait : vous fixez les limites et connectez votre propre fournisseur d'IA ou un modèle local. Le guide d'auto-hébergement de la documentation décrit l'installation."
+      "selfHostA": "Oui. Le code est source-available sous la licence FSL-1.1, qui devient Apache-2.0 après deux ans. Une instance auto-hébergée a toutes les fonctionnalités et aucun forfait : vous fixez les limites et connectez votre propre fournisseur d'IA ou un modèle local. Le guide d'auto-hébergement de la documentation décrit l'installation.",
+      "pointsPacks": "Des points IA supplémentaires sont vendus en packs : {packs}."
     },
     "interval": {
       "label": "Période de facturation",
@@ -934,7 +914,40 @@
     "seatTotalMonth": "{total} par mois pour {seats} places",
     "seatTotalYear": "{total} par an pour {seats} places",
     "seatsLabel": "Places",
-    "creditsBuyLink": "Acheter des points IA dans votre profil"
+    "creditsBuyLink": "Acheter des points IA dans votre profil",
+    "plans": {
+      "free": "Gratuit"
+    },
+    "teams": {
+      "title": "Équipes",
+      "switchLabel": "Team ou Business"
+    },
+    "highlights": {
+      "members": "Jusqu'à {n} personne par espace de travail | Jusqu'à {n} personnes par espace de travail",
+      "membersUnlimited": "Personnes illimitées par espace de travail",
+      "writing": "Collaboration en temps réel, historique et export PDF",
+      "aiExtras": "IA avec {list}",
+      "ai": {
+        "aiStrongModel": "un modèle plus puissant",
+        "aiImage": "images",
+        "aiVoice": "saisie vocale"
+      },
+      "feature": {
+        "sso": "Authentification unique (SSO)",
+        "auditLog": "Journal d'audit exportable",
+        "brandKit": "Kit de marque : polices, logos, modèles",
+        "guests": "Invités qui ne voient que les documents partagés",
+        "customDomains": "Domaines personnalisés pour les pages publiées",
+        "shareControls": "Liens de partage avec expiration ou en lecture seule",
+        "customCss": "CSS personnalisé pour les documents",
+        "mcpWrite": "Les clients MCP peuvent modifier les documents"
+      }
+    },
+    "creditsLine": "Plus de points IA : packs de {packs}, valables {months} mois.",
+    "alt": {
+      "anon": "Écrire sans compte",
+      "selfHost": "Auto-héberger markoto"
+    }
   },
   "topbar": {
     "planBadge": "Forfait : {plan}",
@@ -1939,9 +1952,10 @@
         "jina_ai": "Génération d’embeddings pour la base de connaissances (RAG) ; extraction du contenu d’une page à partir d’une URL pour l’outil de récupération d’URL (Jina Reader ; l’URL est envoyée pour tous les utilisateurs, y compris ceux qui utilisent leur propre fournisseur d’IA)",
         "staan": "Recherche web pour l’assistant d’écriture IA (la requête est envoyée pour tous les utilisateurs, y compris ceux qui utilisent leur propre fournisseur d’IA), via un index de recherche européen propriétaire (acheminement uniquement dans l’UE)",
         "bfl": "Génération d’images avec FLUX (traitement des données fixé dans l’UE)",
+        "google_ads": "Mesure des conversions publicitaires : l'identifiant de clic de l'annonce et l'heure d'une inscription, aucune autre donnée",
         "google_oauth": "Connexion avec un compte Google (aucune autre donnée Google consultée)",
         "github_oauth": "Connexion avec un compte GitHub (aucune autre donnée GitHub consultée)",
-        "stripe": "Facturation des abonnements, conservation des moyens de paiement, émission des factures, évaluation de la fraude",
+        "stripe": "Facturation des abonnements et données de paiement ; pour les achats, Link (Stripe) est le vendeur et un responsable du traitement indépendant",
         "sentry": "Télémétrie des erreurs et des performances de l’application, stockée dans la région de données européenne de Sentry (Francfort)",
         "resend": "Envoi d’e-mails transactionnels : confirmations de suppression de compte, avis de disponibilité des exports de données, notifications de violation de données"
       }
@@ -2070,6 +2084,11 @@
     "planUpdated": {
       "title": "Plan mis à jour",
       "description": "Vous êtes maintenant sur le plan {plan}. Votre nouveau budget IA est disponible immédiatement."
+    },
+    "completePayment": "Finaliser le paiement",
+    "soldThroughLink": {
+      "note": "Vendu par Link (Stripe), qui gère le paiement, la TVA, les factures et les remboursements. {terms} s’appliquent.",
+      "terms": "Les conditions acheteur de Link"
     }
   },
   "plan": {
@@ -2100,7 +2119,6 @@
     }
   },
   "waitlist": {
-    "title": "Rejoindre la liste d'attente",
     "description": "Recevez un e-mail au lancement des offres payantes. Rien de plus.",
     "emailLabel": "Adresse e-mail",
     "emailPlaceholder": "vous{'@'}exemple.fr",
@@ -2129,7 +2147,8 @@
       "button": "Retirer mon adresse",
       "successTitle": "Vous avez été retiré",
       "successBody": "Votre adresse e-mail a été supprimée de la liste d'attente."
-    }
+    },
+    "barTitle": "Les forfaits payants arrivent bientôt"
   },
   "aiProvider": {
     "title": "Fournisseur d'IA",
@@ -2885,5 +2904,243 @@
     "generate": "Générer",
     "generating": "Génération…",
     "failed": "Impossible de générer l’image"
+  },
+  "adminStats": {
+    "title": "Statistiques produit",
+    "intro": "Comptes et totaux de cette instance. Aucune liste ne nomme une personne.",
+    "pageTitle": "Statistiques produit · Admin",
+    "investorTitle": "Synthèse investisseurs",
+    "investorLink": "Synthèse investisseurs",
+    "back": "Retour aux statistiques",
+    "print": "Imprimer ou enregistrer en PDF",
+    "loadFailed": "Impossible de charger les statistiques",
+    "loading": "Chargement…",
+    "updated": "Les chiffres ont au plus une minute. Les jours sont en UTC.",
+    "range": {
+      "label": "Période",
+      "7": "7 jours",
+      "30": "30 jours",
+      "90": "90 jours",
+      "365": "12 mois",
+      "all": "Depuis le début"
+    },
+    "tabs": {
+      "overview": "Aperçu",
+      "users": "Utilisateurs",
+      "content": "Contenu",
+      "ai": "IA",
+      "revenue": "Revenus",
+      "ops": "Exploitation"
+    },
+    "change": {
+      "vsPrevious": "par rapport à la période précédente"
+    },
+    "csv": "Télécharger le CSV",
+    "kpi": {
+      "registered": "Comptes",
+      "signups": "Nouvelles inscriptions",
+      "dau": "Actifs aujourd'hui",
+      "wau": "Actifs, 7 jours",
+      "mau": "Actifs, 30 jours",
+      "activeInWindow": "Actifs sur la période",
+      "stickiness": "Stickiness (aujourd'hui / 30 jours)",
+      "editors": "Personnes ayant modifié",
+      "pendingDeletion": "Suppression en attente",
+      "documents": "Documents",
+      "documentsCreated": "Documents créés",
+      "documentsEdited": "Documents modifiés",
+      "ownedDocs": "Avec propriétaire",
+      "anonymousDocs": "Anonymes",
+      "workspaceDocs": "Dans des espaces de travail",
+      "words": "Mots écrits",
+      "workspaces": "Espaces de travail",
+      "workspacesCreated": "Espaces de travail créés",
+      "guests": "Invités",
+      "knowledgeFiles": "Fichiers de connaissances",
+      "knowledgeUploaded": "Connaissances importées",
+      "knowledgeBytes": "Taille des connaissances",
+      "knowledgeChunks": "Segments",
+      "knowledgeTokens": "Jetons",
+      "knowledgeFailed": "Fichiers en échec",
+      "images": "Images",
+      "imagesUploaded": "Images importées",
+      "imageBytes": "Stockage d'images",
+      "publishedPages": "Pages publiées",
+      "indexablePages": "Ouvertes aux moteurs de recherche",
+      "customDomains": "Domaines personnalisés",
+      "verifiedDomains": "Domaines actifs",
+      "comments": "Commentaires",
+      "commentsAdded": "Commentaires ajoutés",
+      "savedThemes": "Designs enregistrés",
+      "mrr": "MRR {currency}",
+      "arr": "ARR {currency}",
+      "payingCustomers": "Abonnements payants",
+      "trialing": "En période d'essai",
+      "pastDue": "Paiement en retard",
+      "scheduledCancellations": "Fin programmée",
+      "atRisk": "MRR avec fin programmée, {currency}",
+      "waitlistConfirmed": "Liste d'attente (confirmée)",
+      "waitlistUnconfirmed": "Liste d'attente (non confirmée)",
+      "waitlistNew": "Nouveaux sur la liste d'attente",
+      "aiSpend": "Coût de l'IA",
+      "aiRequests": "Requêtes IA",
+      "aiUsers": "Personnes utilisant l'IA",
+      "costPerAiUser": "Coût par utilisateur d'IA",
+      "costPerActiveUser": "Coût par utilisateur actif",
+      "freePool": "Réserve IA gratuite ce mois-ci",
+      "byokUsers": "Clé IA personnelle",
+      "mcpTokens": "Jetons MCP actifs",
+      "mcpSessions": "Sessions MCP",
+      "databaseSize": "Taille de la base de données",
+      "restrictedDocs": "Documents restreints",
+      "openInvites": "Invitations ouvertes",
+      "pendingStripeEvents": "Événements Stripe en attente",
+      "abuseOpen": "Signalements ouverts",
+      "abuseReceived": "Signalements reçus",
+      "mrrTotal": "MRR, tout en CHF",
+      "arrTotal": "ARR, tout en CHF",
+      "contribution": "Contribution est. / mois, CHF",
+      "subsStarted": "Abonnements démarrés",
+      "subsEnded": "Abonnements terminés",
+      "cancelScheduled": "Résiliations programmées",
+      "newMrr": "Nouveau MRR {currency}",
+      "lostMrr": "MRR perdu {currency}"
+    },
+    "hint": {
+      "activeDefinition": "Connecté et a utilisé markoto ce jour-là.",
+      "editorsDefinition": "Personnes connectées ayant fait une modification, un commentaire ou une restauration.",
+      "noRevenue": "Aucun abonnement payant pour l'instant.",
+      "freePool": "{spent} sur {cap}",
+      "freePoolOff": "Aucune limite partagée sur cette instance.",
+      "spendFrom": "L'historique du coût de l'IA commence le {day}.",
+      "spendUnavailable": "Les journaux de coût de l'IA n'ont pas pu être lus.",
+      "listPrice": "Brut, au prix catalogue : avant frais de paiement, remises et taxes.",
+      "plannedPrices": "Valorisé aux prix prévus ; les forfaits payants ne sont pas en vente.",
+      "billingOff": "La facturation est désactivée sur cette instance.",
+      "comingSoon": "Les forfaits payants sont présentés comme « bientôt disponibles » ; la liste d'attente est ouverte.",
+      "aiUsersFrom": "Les personnes utilisant l'IA sont comptées à partir du {day} (les journaux par personne sont conservés 90 jours).",
+      "churnHistory": "L'historique des abonnements est enregistré à partir de cette version ; les forfaits d'espace de travail antérieurs ont été ajoutés à partir de leurs données."
+    },
+    "chart": {
+      "signups": "Inscriptions",
+      "accounts": "Comptes (cumul)",
+      "editors": "Personnes ayant modifié",
+      "documents": "Documents créés",
+      "aiSpend": "Coût de l'IA par fonction (USD)",
+      "members": "Espaces de travail par nombre de membres",
+      "activation": "Activation des nouveaux comptes",
+      "subscriptions": "Abonnements démarrés et terminés",
+      "started": "Démarrés",
+      "ended": "Terminés"
+    },
+    "table": {
+      "period": "Période",
+      "count": "Nombre",
+      "value": "Valeur",
+      "metric": "Indicateur",
+      "share": "Part",
+      "feature": "Fonction",
+      "cost": "Coût (USD)",
+      "requests": "Requêtes",
+      "plan": "Forfait",
+      "currency": "Devise",
+      "interval": "Facturation",
+      "subscriptions": "Abonnements",
+      "units": "Places",
+      "provider": "Connexion",
+      "accounts": "Comptes",
+      "status": "Statut",
+      "members": "Membres",
+      "workspaces": "Espaces de travail",
+      "amount": "Montant",
+      "purchases": "Achats",
+      "cohort": "Semaine d'inscription",
+      "size": "Comptes",
+      "week": "S{n}"
+    },
+    "section": {
+      "growth": "Croissance",
+      "activation": "Activation",
+      "retention": "Rétention par cohorte hebdomadaire",
+      "retentionHint": "Part des nouveaux comptes de chaque semaine ayant modifié dans les semaines suivant l'inscription (S0 = la semaine d'inscription).",
+      "providers": "Fournisseurs de connexion",
+      "plans": "Forfaits",
+      "documents": "Documents",
+      "workspaces": "Espaces de travail",
+      "knowledge": "Base de connaissances",
+      "publishing": "Publication",
+      "aiSpend": "Coût de l'IA",
+      "subscriptions": "Abonnements actifs",
+      "topups": "Achats de crédits IA",
+      "planMix": "Répartition des forfaits",
+      "exports": "Exports de données",
+      "abuse": "Signalements d'abus",
+      "estimate": "Contribution mensuelle estimée"
+    },
+    "activation": {
+      "signedUp": "Inscrit",
+      "createdDoc": "A créé un document",
+      "edited": "A modifié",
+      "usedAi": "A utilisé l'IA"
+    },
+    "provider": {
+      "github": "GitHub",
+      "google": "Google",
+      "oidc": "OpenID Connect",
+      "sso": "SSO de l'espace de travail"
+    },
+    "plan": {
+      "free": "Gratuit",
+      "pro": "Pro",
+      "team": "Team",
+      "business": "Business"
+    },
+    "interval": {
+      "month": "Mensuel",
+      "year": "Annuel"
+    },
+    "status": {
+      "queued": "En file d'attente",
+      "running": "En cours",
+      "ready": "Prêt",
+      "failed": "Échoué",
+      "expired": "Expiré",
+      "open": "Ouvert",
+      "acknowledged": "Pris en compte",
+      "actioned": "Traité",
+      "dismissed": "Rejeté"
+    },
+    "feature": {
+      "text-loop": "Assistant d'écriture",
+      "transcribe": "Saisie vocale",
+      "dictate-tick": "Dictée en direct",
+      "web-search": "Recherche web",
+      "web-fetch": "Récupération de page",
+      "image-gen": "Génération d'images",
+      "embeddings": "Embeddings des connaissances",
+      "design-import": "Design à partir d'un document",
+      "other": "Autre"
+    },
+    "investor": {
+      "subtitle": "markoto, {date}. 12 derniers mois, par mois.",
+      "users": "Utilisateurs",
+      "revenue": "Revenus",
+      "content": "Contenu",
+      "ai": "IA",
+      "footnote": "Comptes et documents issus de la base de données de l'application, coût de l'IA issu des journaux du proxy IA (90 jours). Revenus au prix catalogue, bruts. Définitions : docs/contributing/admin-metrics.md."
+    },
+    "menu": "Statistiques produit",
+    "estimate": {
+      "estimated": "Estimation",
+      "gross": "Brut au prix catalogue",
+      "tax": "Taxes comprises ({pct} %)",
+      "fees": "Frais de paiement ({pct} % + {fixed})",
+      "net": "Revenu net",
+      "aiCost": "Coût de l'IA de la plateforme, 30 derniers jours",
+      "contribution": "Contribution",
+      "combined": "Total, en CHF",
+      "note": "Estimé, par mois. EUR en CHF à {eur}, USD en CHF à {usd}. Les hypothèses se définissent avec NUXT_STATS_*.",
+      "aiUnavailable": "Le coût de l'IA n'a pas pu être lu et compte pour 0."
+    }
   }
 }

@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { readSkippedFlows, skippedFlowsMarkdown } from './lib/flowSkips'
+import { readSkippedFlows, skippedFlowsMarkdown, skippedFlowsWarnings } from './lib/flowSkips'
 
 // Lists the flows a run skipped because a live provider was down. Prints the
-// list, appends it to the job summary ($GITHUB_STEP_SUMMARY) and writes it to
+// list (plus one `::warning::` annotation per flow on GitHub Actions), appends it to the job summary ($GITHUB_STEP_SUMMARY) and writes it to
 // `<flows dir>/.skipped-flows.md`, which travels with the `flow-output`
 // artifact into the release notes (release.yml). Prints nothing and writes
 // nothing when no flow was skipped.
@@ -19,7 +19,11 @@ if (fromCwd === '..' || fromCwd.startsWith(`..${path.sep}`) || path.isAbsolute(f
   console.error(`flows dir must be inside ${process.cwd()}: ${root}`)
   process.exit(2)
 }
-const markdown = skippedFlowsMarkdown(await readSkippedFlows(root))
+const skipped = await readSkippedFlows(root)
+const markdown = skippedFlowsMarkdown(skipped)
+if (process.env.GITHUB_ACTIONS === 'true') {
+  for (const line of skippedFlowsWarnings(skipped)) console.log(line)
+}
 if (markdown) {
   console.log(markdown)
   await fs.writeFile(path.join(root, '.skipped-flows.md'), `${markdown}\n`)

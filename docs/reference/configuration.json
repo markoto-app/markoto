@@ -964,6 +964,42 @@
       "deprecatedNames": []
     },
     {
+      "name": "POSTGRES_UMAMI_USER",
+      "namespace": "database",
+      "key": "umamiUser",
+      "type": "string",
+      "services": [
+        "compose"
+      ],
+      "names": {
+        "compose": "POSTGRES_UMAMI_USER"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "POSTGRES_UMAMI_PASSWORD",
+      "namespace": "database",
+      "key": "umamiPassword",
+      "type": "string",
+      "services": [
+        "compose"
+      ],
+      "names": {
+        "compose": "POSTGRES_UMAMI_PASSWORD"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": true,
+      "default": null,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
       "name": "VALKEY_HOST",
       "namespace": "valkey",
       "key": "host",
@@ -2752,6 +2788,42 @@
       "deprecatedNames": []
     },
     {
+      "name": "NUXT_STRIPE_MANAGED_PAYMENTS",
+      "namespace": "billing",
+      "key": "stripeManagedPayments",
+      "type": "boolean",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_STRIPE_MANAGED_PAYMENTS"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": false,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_BILLING_NOTIFY_EMAIL",
+      "namespace": "billing",
+      "key": "billingNotifyEmail",
+      "type": "email address",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_BILLING_NOTIFY_EMAIL"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
       "name": "NUXT_STRIPE_SUCCESS_URL",
       "namespace": "billing",
       "key": "stripeSuccessUrl",
@@ -2785,6 +2857,96 @@
       "secret": false,
       "default": "/pricing?checkout=cancelled",
       "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_STATS_EUR_CHF_RATE",
+      "namespace": "billing",
+      "key": "statsEurChfRate",
+      "type": "number > 0",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_STATS_EUR_CHF_RATE"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": 0.93,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_STATS_USD_CHF_RATE",
+      "namespace": "billing",
+      "key": "statsUsdChfRate",
+      "type": "number > 0",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_STATS_USD_CHF_RATE"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": 0.8,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_STATS_TAX_PCT",
+      "namespace": "billing",
+      "key": "statsTaxPct",
+      "type": "number 0–100",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_STATS_TAX_PCT"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": 8.1,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_STATS_PAYMENT_FEE_PCT",
+      "namespace": "billing",
+      "key": "statsPaymentFeePct",
+      "type": "number 0–100",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_STATS_PAYMENT_FEE_PCT"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": 3.5,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_STATS_PAYMENT_FEE_FIXED",
+      "namespace": "billing",
+      "key": "statsPaymentFeeFixed",
+      "type": "number ≥ 0",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_STATS_PAYMENT_FEE_FIXED"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": 0.3,
+      "passedByCompose": true,
       "deprecatedNames": []
     },
     {
@@ -5271,6 +5433,222 @@
       "secret": false,
       "default": false,
       "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_PUBLIC_ANALYTICS_WEBSITE_ID",
+      "namespace": "analytics",
+      "key": "websiteId",
+      "type": "a UUID (the Umami website id)",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_PUBLIC_ANALYTICS_WEBSITE_ID"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_PUBLIC_ANALYTICS_ENDPOINT",
+      "namespace": "analytics",
+      "key": "endpoint",
+      "type": "a same-origin path starting with /",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_PUBLIC_ANALYTICS_ENDPOINT"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": "/a/api/send",
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS",
+      "namespace": "analytics",
+      "key": "adsConversions",
+      "type": "boolean",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": false,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_ADS_CONVERSION_RETENTION_DAYS",
+      "namespace": "analytics",
+      "key": "adsConversionRetentionDays",
+      "type": "integer ≥ 1",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_ADS_CONVERSION_RETENTION_DAYS"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": 90,
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_ANALYTICS_INTERNAL_URL",
+      "namespace": "analytics",
+      "key": "internalUrl",
+      "type": "http/https URL",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_ANALYTICS_INTERNAL_URL"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_ANALYTICS_RETENTION_DAYS",
+      "namespace": "analytics",
+      "key": "retentionDays",
+      "type": "integer ≥ 1",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_ANALYTICS_RETENTION_DAYS"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": 395,
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_ANALYTICS_DB_USER",
+      "namespace": "analytics",
+      "key": "dbUser",
+      "type": "string",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_ANALYTICS_DB_USER"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_ANALYTICS_DB_PASSWORD",
+      "namespace": "analytics",
+      "key": "dbPassword",
+      "type": "string",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_ANALYTICS_DB_PASSWORD"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": true,
+      "default": null,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "NUXT_ANALYTICS_DB_NAME",
+      "namespace": "analytics",
+      "key": "dbName",
+      "type": "string",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_ANALYTICS_DB_NAME"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": "umami",
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "UMAMI_APP_SECRET",
+      "namespace": "analytics",
+      "key": "umamiAppSecret",
+      "type": "secret, ≥ 32 chars",
+      "services": [
+        "compose"
+      ],
+      "names": {
+        "compose": "UMAMI_APP_SECRET"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": true,
+      "default": null,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "UMAMI_HOST",
+      "namespace": "analytics",
+      "key": "umamiHost",
+      "type": "hostname",
+      "services": [
+        "compose"
+      ],
+      "names": {
+        "compose": "UMAMI_HOST"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "UMAMI_BASIC_AUTH_USERS",
+      "namespace": "analytics",
+      "key": "umamiBasicAuthUsers",
+      "type": "string",
+      "services": [
+        "compose"
+      ],
+      "names": {
+        "compose": "UMAMI_BASIC_AUTH_USERS"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": true,
+      "default": null,
+      "passedByCompose": true,
       "deprecatedNames": []
     },
     {

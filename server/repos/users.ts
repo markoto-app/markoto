@@ -28,6 +28,8 @@ export interface UserRow {
   locale: string | null
   /** Session revocation counter, see `server/utils/auth/sessionPolicy.ts`. */
   sessionEpoch: number
+  /** Last UTC day with a signed-in request (`YYYY-MM-DD`), NULL = not seen yet. */
+  lastActiveOn: string | null
 }
 
 /** The account row (email, locale, Stripe customer, admin flag) of the proof's user. */
@@ -48,6 +50,17 @@ async function readUserRow(id: number): Promise<UserRow | null> {
   const db = useDatabase()
   const row = (await db.select().from(users).where(eq(users.id, id)).limit(1))[0]
   return row ?? null
+}
+
+/**
+ * Record `day` as the session user's last active day. Called while the
+ * session is validated, only when the row holds an older day, so a user
+ * costs at most one write per day; the WHERE never moves the day back.
+ */
+export async function markSessionUserActive(sessionUserId: number, day: string): Promise<void> {
+  await useDatabase().update(users)
+    .set({ lastActiveOn: day })
+    .where(sql`${users.id} = ${sessionUserId} AND (${users.lastActiveOn} IS NULL OR ${users.lastActiveOn} < ${day}::date)`)
 }
 
 /** The user's current session epoch (0 for a missing user). */

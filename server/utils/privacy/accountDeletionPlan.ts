@@ -176,4 +176,6 @@ export interface AccountDeletionSummary {
   workspaceKeysDeleted: number
   /** Personal AI credit top-ups. */
   creditGrantsDeleted: number
+  /** Personal subscription history rows kept without the account. */
+  subscriptionEventsAnonymised: number
 }

@@ -22,6 +22,34 @@
       "when": 1794654536508,
       "tag": "0002_awesome_anita_blake",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794924972017,
+      "tag": "0003_mute_flatman",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794927091099,
+      "tag": "0004_wandering_luckman",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794929947275,
+      "tag": "0005_square_quicksilver",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794938017621,
+      "tag": "0006_cooing_valeria_richards",
+      "breakpoints": true
     }
   ]
 }

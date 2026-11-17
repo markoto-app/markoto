@@ -805,11 +805,9 @@
     "downgrade": "ダウングレード",
     "signUp": "サインアップ",
     "close": "閉じる",
-    "footnote": "すべてのプランにリアルタイム共同編集、バージョン履歴、無制限のドキュメントが含まれます。AI ポイントは毎月補充されます。",
-    "comingSoonSubtitle": "アカウントなしでも、無料アカウントでも、自分のサーバーでも使えます。上限の高い有料プランは近日公開です。",
+    "comingSoonSubtitle": "今日から無料で始められます。上限の高い有料プランは近日公開です。",
     "comingSoonBadge": "近日公開",
     "availableNow": "現在利用可能",
-    "comingSoonFootnote": "有料プランの内容、価格、上限はまだ確定していません。ウェイトリストに登録いただくと、公開時に一度だけメールでお知らせします。",
     "freeFootnote": "すべてのアカウントで、リアルタイム共同編集、バージョン履歴、無制限のドキュメントをご利用いただけます。AI ポイントは期間ごとに補充されます。",
     "selfHostedTitle": "このインスタンスの上限",
     "selfHostedSubtitle": "この markoto インスタンスではプランを販売していません。すべてのアカウントに以下の上限が適用され、インスタンスの運営者が変更できます。",
@@ -827,35 +825,14 @@
       "perYear": "/ 年",
       "perSeatPerYear": "席 / 年",
       "planned": "予定価格",
-      "plannedNote": "予定価格です。有料プランの開始までに価格と上限は変わる可能性があります。現在は購入できません。"
-    },
-    "selfHosted": {
-      "title": "セルフホスト",
-      "tagline": "自分のサーバーで markoto を動かせます。",
-      "priceNote": "自分のサーバー、自分の上限",
-      "everyFeature": "すべての機能。上限とストレージは自分で決められます。",
-      "byok": "自分のプロバイダーキーやローカルモデルで AI を利用できます。",
-      "licence": "source-available：FSL-1.1。2 年後に Apache-2.0 になります。",
-      "cta": "セルフホストガイド"
-    },
-    "anon": {
-      "title": "アカウントなし",
-      "tagline": "すぐに書き始められます。",
-      "priceNote": "登録不要",
-      "write": "書いて、リンクで共有し、リアルタイムで一緒に編集できます。",
-      "export": "ファイルを読み込み、PDF や Markdown で書き出せます。",
-      "noAi": "AI、ワークスペース、画像アップロードは使えません。リンクを知っている人は誰でも編集できます。",
-      "retention": "編集がないまま {n} 日経つと削除されます。",
-      "delete": "ドキュメントを削除できるのは、それを作成したブラウザーだけです。"
+      "plannedNote": "予定価格です。有料プランの開始までに価格と上限は変わる可能性があります。現在は購入できません。",
+      "plannedShort": "（予定）"
     },
     "freeAccount": {
-      "title": "無料アカウント",
       "byok": "自分のプロバイダーキーなら AI は無制限です。",
       "signIn": "ログイン"
     },
     "paid": {
-      "title": "有料",
-      "tagline": "AI ポイント、ワークスペース、ストレージが増えます。",
       "joinWaitlist": "ウェイトリストに登録",
       "setUpInWorkspace": "ワークスペースで設定",
       "setUpInWorkspaceHint": "ワークスペースを開き、その請求タブから購入します。購入できるのはワークスペースの管理者だけです。"
@@ -871,17 +848,14 @@
       "imageStorage": "画像ストレージ {size}"
     },
     "compare": {
-      "title": "オプションを比較",
+      "title": "すべての詳細を比較",
       "feature": "機能",
       "price": "価格",
       "priceMonthly": "{price}/月",
       "pricePlanned": "{price}/月（予定）",
       "documents": "ドキュメント",
       "unlimited": "無制限",
-      "anonRetention": "最後の編集から {n} 日間保持",
       "writing": "エディター、リアルタイム共同編集、コメント、PDF 書き出し",
-      "sharing": "閲覧のみ・パスワード付きの共有",
-      "openEditOnly": "誰でも編集可のみ",
       "aiPoints": "AI ポイント/月",
       "ownKey": "自分のプロバイダーキーで AI",
       "workspaces": "所有できるワークスペース",
@@ -894,14 +868,19 @@
       "days": "{n} 日",
       "customCss": "ドキュメントのカスタム CSS",
       "readOnly": "読み取り専用",
-      "setByYou": "自分で設定",
       "included": "含まれる",
       "notIncluded": "含まれない",
       "perSeat": "1 席あたり {value}",
       "aiImage": "AI 画像生成",
       "aiVoice": "音声入力とライブ口述",
       "aiStrongModel": "高性能 AI モデルの選択",
-      "ownKeyOnly": "自分のキーで利用"
+      "ownKeyOnly": "自分のキーで利用",
+      "shareControls": "共有リンクの有効期限と閲覧のみ",
+      "customDomains": "公開ページの独自ドメイン",
+      "brandKit": "ブランドキットとワークスペーステンプレート",
+      "guests": "ワークスペースのゲスト",
+      "sso": "シングルサインオン (SSO) と SCIM",
+      "auditLog": "ワークスペースの監査ログ"
     },
     "faq": {
       "title": "よくある質問",
@@ -916,7 +895,8 @@
       "anonA": "リンクを知っている人は誰でも閲覧・編集できます。編集がないまま {n} 日経つと削除され、それより早く削除できるのは作成したブラウザーだけです。ドキュメントを残したり、非公開にしたり、パスワードで保護したりするにはログインしてください。",
       "anonKeptA": "リンクを知っている人は誰でも閲覧・編集でき、削除できるのは作成したブラウザーだけです。非公開にしたりパスワードで保護したりするにはログインしてください。",
       "selfHostQ": "markoto を自分のサーバーで動かせますか？",
-      "selfHostA": "はい。コードは FSL-1.1 ライセンスの source-available で、2 年後に Apache-2.0 になります。セルフホストのインスタンスにはすべての機能があり、プランはありません。上限は自分で決め、自分の AI プロバイダーやローカルモデルを接続します。インストール方法はドキュメントのセルフホストガイドにあります。"
+      "selfHostA": "はい。コードは FSL-1.1 ライセンスの source-available で、2 年後に Apache-2.0 になります。セルフホストのインスタンスにはすべての機能があり、プランはありません。上限は自分で決め、自分の AI プロバイダーやローカルモデルを接続します。インストール方法はドキュメントのセルフホストガイドにあります。",
+      "pointsPacks": "追加の AI ポイントはパックで購入できます：{packs}。"
     },
     "interval": {
       "label": "請求期間",
@@ -934,7 +914,40 @@
     "seatTotalMonth": "{seats} 席で月額 {total}",
     "seatTotalYear": "{seats} 席で年額 {total}",
     "seatsLabel": "席数",
-    "creditsBuyLink": "プロフィールで AI ポイントを購入"
+    "creditsBuyLink": "プロフィールで AI ポイントを購入",
+    "plans": {
+      "free": "無料"
+    },
+    "teams": {
+      "title": "チーム",
+      "switchLabel": "Team または Business"
+    },
+    "highlights": {
+      "members": "ワークスペースあたり最大 {n} 人",
+      "membersUnlimited": "ワークスペースの人数は無制限",
+      "writing": "リアルタイム共同編集、履歴、PDF 書き出し",
+      "aiExtras": "AI：{list}",
+      "ai": {
+        "aiStrongModel": "高性能モデル",
+        "aiImage": "画像",
+        "aiVoice": "音声入力"
+      },
+      "feature": {
+        "sso": "シングルサインオン (SSO)",
+        "auditLog": "書き出し可能な監査ログ",
+        "brandKit": "ブランドキット：フォント、ロゴ、テンプレート",
+        "guests": "共有ドキュメントだけを見られるゲスト",
+        "customDomains": "公開ページの独自ドメイン",
+        "shareControls": "期限付き・閲覧のみの共有リンク",
+        "customCss": "ドキュメントのカスタム CSS",
+        "mcpWrite": "MCP クライアントからの編集"
+      }
+    },
+    "creditsLine": "AI ポイントの追加：{packs} のパック、有効期間 {months} か月。",
+    "alt": {
+      "anon": "アカウントなしで書く",
+      "selfHost": "markoto をセルフホスト"
+    }
   },
   "topbar": {
     "planBadge": "プラン：{plan}",
@@ -1939,9 +1952,10 @@
         "jina_ai": "ナレッジベース（RAG）用の埋め込みの生成。URL 取得ツールでの単一 URL のページ内容の抽出（Jina Reader。URL は独自の AI プロバイダーを使うユーザーを含め、すべてのユーザーについて送信されます）",
         "staan": "AI 文章作成アシスタントのウェブ検索（検索語は独自の AI プロバイダーを使うユーザーを含め、すべてのユーザーについて送信されます）。独自の欧州検索インデックスを使用（EU 内のみでルーティング）",
         "bfl": "FLUX による画像生成（データ処理は EU に固定）",
+        "google_ads": "広告コンバージョンの計測：広告のクリック ID と登録の日時のみ（その他のデータは送信しません）",
         "google_oauth": "Google アカウントでのサインイン（その他の Google データにはアクセスしません）",
         "github_oauth": "GitHub アカウントでのサインイン（その他の GitHub データにはアクセスしません）",
-        "stripe": "サブスクリプションの請求、支払い方法の保管、請求書の発行、不正リスクの評価",
+        "stripe": "サブスクリプションの請求と支払い記録。購入については Link（Stripe）が販売者であり、独立した管理者です",
         "sentry": "アプリケーションのエラーとパフォーマンスのテレメトリ。Sentry の EU（フランクフルト）データリージョンに保存",
         "resend": "トランザクションメールの配信：アカウント削除の確認、データエクスポート準備完了のお知らせ、データ侵害の通知"
       }
@@ -2070,6 +2084,11 @@
     "planUpdated": {
       "title": "プランを更新しました",
       "description": "{plan}プランに切り替わりました。新しいAI予算はすぐに利用できます。"
+    },
+    "completePayment": "支払いを完了",
+    "soldThroughLink": {
+      "note": "Link（Stripe）を通じて販売されます。支払い、VAT、請求書、返金は Link が扱います。{terms}が適用されます。",
+      "terms": "Link の購入者規約"
     }
   },
   "plan": {
@@ -2100,7 +2119,6 @@
     }
   },
   "waitlist": {
-    "title": "ウェイトリストに登録",
     "description": "有料プランの公開時にメールを一通だけお送りします。それ以外は送りません。",
     "emailLabel": "メールアドレス",
     "emailPlaceholder": "you{'@'}example.com",
@@ -2129,7 +2147,8 @@
       "button": "メールアドレスを削除",
       "successTitle": "登録を解除しました",
       "successBody": "メールアドレスはウェイトリストから削除されました。"
-    }
+    },
+    "barTitle": "有料プランは近日公開"
   },
   "aiProvider": {
     "title": "AI プロバイダー",
@@ -2885,5 +2904,243 @@
     "generate": "生成",
     "generating": "生成中…",
     "failed": "画像を生成できませんでした"
+  },
+  "adminStats": {
+    "title": "プロダクト統計",
+    "intro": "このインスタンスの件数と合計です。個人名を挙げる一覧はありません。",
+    "pageTitle": "プロダクト統計 · 管理",
+    "investorTitle": "投資家向けサマリー",
+    "investorLink": "投資家向けサマリー",
+    "back": "統計に戻る",
+    "print": "印刷またはPDFとして保存",
+    "loadFailed": "統計を読み込めませんでした",
+    "loading": "読み込み中…",
+    "updated": "数値は最大1分前のものです。日付はUTC基準です。",
+    "range": {
+      "label": "期間",
+      "7": "7日間",
+      "30": "30日間",
+      "90": "90日間",
+      "365": "12か月",
+      "all": "全期間"
+    },
+    "tabs": {
+      "overview": "概要",
+      "users": "ユーザー",
+      "content": "コンテンツ",
+      "ai": "AI",
+      "revenue": "収益",
+      "ops": "運用"
+    },
+    "change": {
+      "vsPrevious": "前期間比"
+    },
+    "csv": "CSVをダウンロード",
+    "kpi": {
+      "registered": "アカウント",
+      "signups": "新規登録",
+      "dau": "本日のアクティブ",
+      "wau": "アクティブ(7日間)",
+      "mau": "アクティブ(30日間)",
+      "activeInWindow": "期間内のアクティブ",
+      "stickiness": "定着率(本日 / 30日間)",
+      "editors": "編集した人数",
+      "pendingDeletion": "削除待ち",
+      "documents": "ドキュメント",
+      "documentsCreated": "作成されたドキュメント",
+      "documentsEdited": "編集されたドキュメント",
+      "ownedDocs": "所有者あり",
+      "anonymousDocs": "匿名",
+      "workspaceDocs": "ワークスペース内",
+      "words": "書かれた単語数",
+      "workspaces": "ワークスペース",
+      "workspacesCreated": "作成されたワークスペース",
+      "guests": "ゲスト",
+      "knowledgeFiles": "ナレッジファイル",
+      "knowledgeUploaded": "アップロードされたナレッジ",
+      "knowledgeBytes": "ナレッジのサイズ",
+      "knowledgeChunks": "チャンク",
+      "knowledgeTokens": "トークン",
+      "knowledgeFailed": "失敗したファイル",
+      "images": "画像",
+      "imagesUploaded": "アップロードされた画像",
+      "imageBytes": "画像ストレージ",
+      "publishedPages": "公開ページ",
+      "indexablePages": "検索エンジンに公開",
+      "customDomains": "カスタムドメイン",
+      "verifiedDomains": "有効なドメイン",
+      "comments": "コメント",
+      "commentsAdded": "追加されたコメント",
+      "savedThemes": "保存したデザイン",
+      "mrr": "MRR {currency}",
+      "arr": "ARR {currency}",
+      "payingCustomers": "有料サブスクリプション",
+      "trialing": "トライアル中",
+      "pastDue": "支払い期限超過",
+      "scheduledCancellations": "終了予定",
+      "atRisk": "終了予定のMRR、{currency}",
+      "waitlistConfirmed": "ウェイトリスト(確認済み)",
+      "waitlistUnconfirmed": "ウェイトリスト(未確認)",
+      "waitlistNew": "ウェイトリスト新規",
+      "aiSpend": "AIコスト",
+      "aiRequests": "AIリクエスト",
+      "aiUsers": "AI利用者数",
+      "costPerAiUser": "AI利用者あたりのコスト",
+      "costPerActiveUser": "アクティブユーザーあたりのコスト",
+      "freePool": "今月の無料AI枠",
+      "byokUsers": "独自のAIキー",
+      "mcpTokens": "有効なMCPトークン",
+      "mcpSessions": "MCPセッション",
+      "databaseSize": "データベースのサイズ",
+      "restrictedDocs": "制限付きドキュメント",
+      "openInvites": "未対応の招待",
+      "pendingStripeEvents": "待機中のStripeイベント",
+      "abuseOpen": "未対応の報告",
+      "abuseReceived": "受信した報告",
+      "mrrTotal": "MRR(すべてCHF)",
+      "arrTotal": "ARR(すべてCHF)",
+      "contribution": "推定貢献額 / 月、CHF",
+      "subsStarted": "開始したサブスクリプション",
+      "subsEnded": "終了したサブスクリプション",
+      "cancelScheduled": "解約予定",
+      "newMrr": "新規MRR {currency}",
+      "lostMrr": "失ったMRR {currency}"
+    },
+    "hint": {
+      "activeDefinition": "サインインして、その日にmarkotoを使用した人。",
+      "editorsDefinition": "編集、コメント、復元のいずれかを行ったサインイン済みの人。",
+      "noRevenue": "有料サブスクリプションはまだありません。",
+      "freePool": "{cap}のうち{spent}",
+      "freePoolOff": "このインスタンスには共有の上限がありません。",
+      "spendFrom": "AIコストの履歴は{day}から始まります。",
+      "spendUnavailable": "AIコストのログを読み取れませんでした。",
+      "listPrice": "定価ベースの総額。決済手数料、割引、税金を差し引く前の金額です。",
+      "plannedPrices": "予定価格で評価しています。有料プランはまだ販売されていません。",
+      "billingOff": "このインスタンスでは課金がオフです。",
+      "comingSoon": "有料プランは「近日公開」と表示され、ウェイトリストが開いています。",
+      "aiUsersFrom": "AIを利用した人数は{day}から集計されます(個人別のログは90日間保存されます)。",
+      "churnHistory": "サブスクリプションの履歴はこのバージョンから記録されます。それ以前のワークスペースプランは記録から追加されました。"
+    },
+    "chart": {
+      "signups": "新規登録",
+      "accounts": "アカウント(累計)",
+      "editors": "編集した人数",
+      "documents": "作成されたドキュメント",
+      "aiSpend": "機能別のAIコスト(USD)",
+      "members": "メンバー数別のワークスペース",
+      "activation": "新規アカウントのアクティベーション",
+      "subscriptions": "開始・終了したサブスクリプション",
+      "started": "開始",
+      "ended": "終了"
+    },
+    "table": {
+      "period": "期間",
+      "count": "件数",
+      "value": "値",
+      "metric": "指標",
+      "share": "割合",
+      "feature": "機能",
+      "cost": "コスト(USD)",
+      "requests": "リクエスト",
+      "plan": "プラン",
+      "currency": "通貨",
+      "interval": "課金",
+      "subscriptions": "サブスクリプション",
+      "units": "席数",
+      "provider": "サインイン",
+      "accounts": "アカウント",
+      "status": "状態",
+      "members": "メンバー",
+      "workspaces": "ワークスペース",
+      "amount": "金額",
+      "purchases": "購入",
+      "cohort": "登録週",
+      "size": "アカウント",
+      "week": "{n}週"
+    },
+    "section": {
+      "growth": "成長",
+      "activation": "アクティベーション",
+      "retention": "週次コホート別の継続率",
+      "retentionHint": "各週の新規アカウントのうち、登録後の各週に編集した割合です(0週 = 登録週)。",
+      "providers": "サインインプロバイダー",
+      "plans": "プラン",
+      "documents": "ドキュメント",
+      "workspaces": "ワークスペース",
+      "knowledge": "ナレッジベース",
+      "publishing": "公開",
+      "aiSpend": "AIコスト",
+      "subscriptions": "有効なサブスクリプション",
+      "topups": "AIクレジットの購入",
+      "planMix": "プランの内訳",
+      "exports": "データエクスポート",
+      "abuse": "不正利用の報告",
+      "estimate": "推定月間貢献額"
+    },
+    "activation": {
+      "signedUp": "登録",
+      "createdDoc": "ドキュメントを作成",
+      "edited": "編集",
+      "usedAi": "AIを利用"
+    },
+    "provider": {
+      "github": "GitHub",
+      "google": "Google",
+      "oidc": "OpenID Connect",
+      "sso": "ワークスペースSSO"
+    },
+    "plan": {
+      "free": "無料",
+      "pro": "Pro",
+      "team": "Team",
+      "business": "Business"
+    },
+    "interval": {
+      "month": "月払い",
+      "year": "年払い"
+    },
+    "status": {
+      "queued": "待機中",
+      "running": "実行中",
+      "ready": "準備完了",
+      "failed": "失敗",
+      "expired": "期限切れ",
+      "open": "未対応",
+      "acknowledged": "受領済み",
+      "actioned": "対応済み",
+      "dismissed": "却下"
+    },
+    "feature": {
+      "text-loop": "執筆アシスタント",
+      "transcribe": "音声入力",
+      "dictate-tick": "ライブ音声入力",
+      "web-search": "Web検索",
+      "web-fetch": "ページ取得",
+      "image-gen": "画像生成",
+      "embeddings": "ナレッジの埋め込み",
+      "design-import": "ドキュメントからデザイン",
+      "other": "その他"
+    },
+    "investor": {
+      "subtitle": "markoto、{date}。直近12か月、月次。",
+      "users": "ユーザー",
+      "revenue": "収益",
+      "content": "コンテンツ",
+      "ai": "AI",
+      "footnote": "アカウントとドキュメントはアプリケーションデータベース、AIコストはAIプロキシのログ(90日間)に基づきます。収益は定価ベースの総額です。定義: docs/contributing/admin-metrics.md。"
+    },
+    "menu": "プロダクト統計",
+    "estimate": {
+      "estimated": "推定",
+      "gross": "定価ベースの総額",
+      "tax": "含まれる税金({pct} %)",
+      "fees": "決済手数料({pct} % + {fixed})",
+      "net": "純収益",
+      "aiCost": "プラットフォームのAIコスト、過去30日間",
+      "contribution": "貢献額",
+      "combined": "合計(CHF)",
+      "note": "月あたりの推定値です。EUR/CHFは{eur}、USD/CHFは{usd}で換算しています。前提条件はNUXT_STATS_*で設定します。",
+      "aiUnavailable": "AIコストを読み取れなかったため、0として計算しています。"
+    }
   }
 }

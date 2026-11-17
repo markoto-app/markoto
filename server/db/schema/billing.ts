@@ -1,6 +1,6 @@
 // Subscriptions, AI credit top-ups, Stripe webhook bookkeeping and the paid-plans waitlist.
 
-import { pgTable, serial, integer, text, timestamp, primaryKey, index, jsonb, boolean, doublePrecision } from 'drizzle-orm/pg-core'
+import { pgTable, serial, integer, text, timestamp, primaryKey, index, uniqueIndex, jsonb, boolean, doublePrecision } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import type { OrderSensitiveStripeEvent, StripeSubscriptionStatus } from '~~/shared/contracts/stripe'
 import { users } from './users'
@@ -189,4 +189,44 @@ export const waitlistSignups = pgTable('waitlist_signups', {
   index('idx_waitlist_signups_user').on(table.userId),
   // Sweeper: "unconfirmed rows past their confirm window".
   index('idx_waitlist_signups_unconfirmed').on(table.confirmTokenExpiresAt).where(sql`${table.confirmedAt} IS NULL`)
+])
+
+// Subscription history: one row per lifecycle step of a paid plan
+// (started, changed, cancellation scheduled or taken back, ended), for
+// Pro on a user and Team / Business on a workspace. Append-only, written
+// by the Stripe webhook in the event's transaction; feeds the admin's
+// churn and new-subscription counts (docs/contributing/admin-metrics.md).
+// The subscription rows themselves hold only the current state, and an
+// ended Pro subscription resets its user row, so without this table no
+// history would survive.
+//
+// Privacy: `user_id` is SET NULL when the account goes and the account
+// purge also clears `stripe_subscription_id` of its rows
+// (`anonymiseSubscriptionEventsOfUser`), so what stays is anonymous
+// (plan, period, currency, seats, time). `workspace_id` has no FK so the
+// history outlives a deleted workspace; a workspace id names no person.
+export const subscriptionEvents = pgTable('subscription_events', {
+  id: serial('id').primaryKey(),
+  kind: text('kind', { enum: ['started', 'changed', 'cancel_scheduled', 'cancel_revoked', 'ended'] }).notNull(),
+  subjectType: text('subject_type', { enum: ['user', 'workspace'] }).notNull(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  workspaceId: text('workspace_id'),
+  plan: text('plan', { enum: ['pro', 'team', 'business'] }).notNull(),
+  interval: text('interval', { enum: ['month', 'year'] }).notNull(),
+  currency: text('currency', { enum: ['eur', 'chf'] }).notNull(),
+  // Billed units: 1 for Pro, the seats of a Team / Business plan.
+  seats: integer('seats').notNull().default(1),
+  stripeSubscriptionId: text('stripe_subscription_id'),
+  // NULL for rows backfilled from the subscription tables.
+  stripeEventId: text('stripe_event_id'),
+  // When it happened in Stripe (the event's `created`).
+  occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  // A redelivered event adds nothing.
+  uniqueIndex('uq_subscription_events_event_kind').on(table.stripeEventId, table.kind),
+  // A subscription starts and ends once, whichever event says so first.
+  uniqueIndex('uq_subscription_events_sub_once').on(table.stripeSubscriptionId, table.kind).where(sql`kind IN ('started', 'ended')`),
+  index('idx_subscription_events_occurred').on(table.occurredAt),
+  index('idx_subscription_events_user').on(table.userId)
 ])

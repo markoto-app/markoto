@@ -1,8 +1,8 @@
 ---
 slug: terms
 locale: fr
-version: 3
-effectiveDate: 2026-11-03
+version: 4
+effectiveDate: 2026-11-17
 translationStatus: machine-translated
 ---
 
@@ -28,11 +28,11 @@ markoto est un éditeur Markdown collaboratif exploité par **{{controllerName}}
 
 ## 3. Service gratuit, usage raisonnable et limites
 
-markoto est actuellement gratuit. Nous ne vendons aucune offre payante et aucune condition de paiement n'est en vigueur.
+Vous pouvez utiliser markoto gratuitement. Les offres payantes et les crédits IA sont facultatifs ; tant qu'ils ne sont pas proposés sur markoto.app, aucune condition de paiement n'est en vigueur.
 
 Pour que le service reste disponible pour tous, nous appliquons des limites de débit et d'utilisation, par exemple sur la création de documents, l'usage de l'IA, le stockage de la base de connaissances, le stockage d'images, le nombre d'espaces de travail que vous pouvez posséder, ainsi que la recherche web et la récupération de pages par l'IA. Ces limites peuvent évoluer. Ne cherchez pas à les contourner.
 
-Si nous introduisons des offres payantes, elles feront l'objet de conditions distinctes que vous accepterez avant tout achat. Rien de ce que vous avez utilisé gratuitement ne vous sera facturé rétroactivement.
+Lorsque nous les proposerons, les offres payantes (Pro, Team et Business) et les crédits IA seront vendus par l'intermédiaire de **Link** (Sold through Link, LLC, une société de Stripe), qui agit en tant que revendeur et marchand de référence (merchant of record) : Link encaisse le paiement, facture et reverse la TVA ou la taxe de vente applicable, émet la facture et décide des remboursements, et les conditions d'achat de Link ([link.com/terms](https://link.com/terms)) s'appliquent à l'achat. Nos conditions des offres payantes ([/legal/paid-terms](/legal/paid-terms)), que vous acceptez avant tout achat, précisent ce que comprend un plan, comment il se renouvelle et comment le résilier. Nous fournissons le service que vous achetez. Rien de ce que vous avez utilisé gratuitement ne vous sera facturé rétroactivement.
 
 ## 4. Documents anonymes
 
@@ -183,6 +183,7 @@ Nous pouvons modifier les présentes conditions, par exemple pour tenir compte d
 
 Il s'agit de la **version {{currentVersion}}**, en vigueur le **{{effectiveDate}}**.
 
+- **v4 (2026-11-17).** Les offres payantes et les crédits IA, dès qu'ils sont proposés, sont vendus par l'intermédiaire de Link (Sold through Link, LLC, une société de Stripe) en tant que revendeur et marchand de référence, selon les conditions d'achat de Link et nos conditions des offres payantes (point 3).
 - **v3 (2026-11-03).** Documents anonymes (vérification anti-robots, acceptation des conditions, suppression 30 jours après la dernière modification, suppression uniquement par le navigateur créateur) ; article complet sur l'utilisation acceptable ; modération des contenus et traitement des réclamations au titre du règlement sur les services numériques ; âge minimal de 16 ans partout ; sanctions et une personne par compte ; propriété, exactitude et transparence des résultats de l'IA ; fonctionnalités bêta ; nouvelle clause de responsabilité avec plafond fixe, garantie contre les réclamations de tiers pour les utilisateurs professionnels, for ; préavis de 30 jours pour les modifications ; dispositions générales. Allocation d'IA gratuite pour les utilisateurs connectés, dans le cadre d'une limite mensuelle par compte et d'une réserve mensuelle commune, sans garantie (point 7).
 - **v2 (2026-10-26).** Alignement sur le service exclusivement gratuit : aucune offre payante ni condition de paiement en vigueur, usage raisonnable et limites, nettoyage des documents anonymes, responsabilités liées à la connexion d'un fournisseur d'IA personnel, clauses « en l'état » et d'interruption du service.
 - **v1 (2026-05-04).** Publication initiale.

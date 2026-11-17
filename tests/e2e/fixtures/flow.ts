@@ -7,6 +7,7 @@ import sharp from 'sharp'
 import { EditorPage } from '../page-objects/Editor'
 import { settleAnimations } from './waits'
 import { PROVIDER_OUTAGE_MARKER } from '../../../scripts/lib/flowSkips'
+import { classifyFailureSignals, errorCodeOf, type ErrorToastSignal, type ProviderOutage, type ServerErrorSignal } from './failureSignals'
 
 // One Playwright fixture that turns a normal e2e test into a "flow":
 // a sequence of slides, chapter, narration, approach, outcome, that
@@ -289,6 +290,16 @@ export type Flow = {
    * the app origin fails the flow.
    */
   expectServerError: (pattern: RegExp) => void
+  /**
+   * Declare the outage signal of a live third-party provider this flow
+   * calls: a 502/503/504 from the app on `path` carrying one of `codes`
+   * (e.g. `ai/image-provider-unavailable`). When the only failure signals
+   * are such outages, the flow ends SKIPPED at its next capture
+   * (`skipForProviderOutage(reason)`); anything else still fails it. Only
+   * for flows that hit a live provider (tests/e2e/AGENTS.md → Live-provider
+   * outages).
+   */
+  allowProviderOutage: (outage: ProviderOutage) => void
 }
 
 export type SpawnedActor = {
@@ -368,8 +379,10 @@ const CURSOR_INIT_SCRIPT = `
  *  error toasts (reported by app/plugins/test-handles.client.ts) and
  *  5xx answers from the app origin. */
 export type FailureSink = {
-  errorToasts: Array<{ actor: string, title: string, description: string }>
-  serverErrors: Array<{ actor: string, status: number, method: string, path: string }>
+  errorToasts: ErrorToastSignal[]
+  serverErrors: ServerErrorSignal[]
+  /** Reads of 5xx bodies (for their error code) still in flight. */
+  pending: Array<Promise<void>>
 }
 
 async function wireFailureSignals(page: Page, sink: FailureSink, actor: string, appOrigin: string): Promise<void> {
@@ -390,12 +403,18 @@ async function wireFailureSignals(page: Page, sink: FailureSink, actor: string, 
       return
     }
     if (url.origin !== appOrigin) return
-    sink.serverErrors.push({
+    const signal: ServerErrorSignal = {
       actor,
       status: response.status(),
       method: response.request().method(),
-      path: url.pathname
-    })
+      path: url.pathname,
+      code: null
+    }
+    sink.serverErrors.push(signal)
+    // The registered error code tells a provider outage from our own bug.
+    sink.pending.push(response.json().then((body: unknown) => {
+      signal.code = errorCodeOf(body)
+    }, () => {}))
   })
 }
 
@@ -477,27 +496,25 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
     // "all flows passed" must mean the features worked, not merely that
     // the clicked elements existed.
     const appOrigin = new URL(String(testInfo.project.use.baseURL ?? process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000')).origin
-    const sink: FailureSink = { errorToasts: [], serverErrors: [] }
+    const sink: FailureSink = { errorToasts: [], serverErrors: [], pending: [] }
     const expectedToasts: RegExp[] = []
     const expectedServerErrors: RegExp[] = []
+    const allowedOutages: ProviderOutage[] = []
     await wireFailureSignals(page, sink, 'primary', appOrigin)
-    const unexpectedFailures = (): string[] => {
-      const out: string[] = []
-      for (const t of sink.errorToasts) {
-        if (expectedToasts.some(re => re.test(t.title) || re.test(t.description))) continue
-        out.push(`error toast [${t.actor}]: "${t.title}"${t.description ? `, ${t.description}` : ''}`)
-      }
-      for (const e of sink.serverErrors) {
-        if (expectedServerErrors.some(re => re.test(e.path))) continue
-        out.push(`server error [${e.actor}]: ${e.status} on ${e.method} ${e.path}`)
-      }
-      return out
-    }
-    const assertNoUnexpectedFailures = () => {
-      const failures = unexpectedFailures()
+    // Throws on any unexpected signal. A declared provider outage (and
+    // nothing else) skips the flow, unless `skipOnOutage` is false (teardown
+    // of a flow that passed anyway).
+    const assertNoUnexpectedFailures = async (skipOnOutage = true) => {
+      await Promise.all(sink.pending)
+      const { failures, outage } = classifyFailureSignals(sink, {
+        toasts: expectedToasts,
+        serverErrors: expectedServerErrors,
+        outages: allowedOutages
+      })
       if (failures.length) {
         throw new Error(`[flow] ${slug}: unexpected failure signal(s):\n  ${failures.join('\n  ')}`)
       }
+      if (outage && skipOnOutage) skipForProviderOutage(outage.reason)
     }
 
     const viewportSize = page.viewportSize() ?? { width: 1280, height: 800 }
@@ -663,7 +680,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
           return
         }
         await settle()
-        assertNoUnexpectedFailures()
+        await assertNoUnexpectedFailures()
         const cursor = opts.cursor !== undefined ? opts.cursor : await readCursor({ formSnap: opts.formSnap })
         const url = (() => {
           try {
@@ -846,6 +863,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         next: (link) => { nextLink = link },
         expectErrorToast: (pattern) => { expectedToasts.push(pattern) },
         expectServerError: (pattern) => { expectedServerErrors.push(pattern) },
+        allowProviderOutage: (outage) => { allowedOutages.push(outage) },
         spawn: async (label) => {
           // Spawn a fresh BrowserContext from the SAME browser that
           // owns the primary page. Inherit color scheme + viewport
@@ -950,7 +968,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
     // A skipped flow reports status === expectedStatus ('skipped'), but it
     // stopped part-way: its frames must never replace the published ones.
     if (testInfo.status === 'passed' && testInfo.expectedStatus === 'passed') {
-      assertNoUnexpectedFailures()
+      await assertNoUnexpectedFailures(false)
       await fs.writeFile(path.join(outDir, '.passed'), '')
     }
     // `skipForProviderOutage`: leave the reason next to the frames so the

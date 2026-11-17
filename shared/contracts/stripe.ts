@@ -22,29 +22,28 @@
 
 import type Stripe from 'stripe'
 
-// Stripe SDK 22.x exposes `StripeConfig.apiVersion` as `string`
-// rather than a literal-union, so we ship the version as a const
-// string. Earlier major versions exported `Stripe.LatestApiVersion`;
-// future bumps may bring it back. If TS narrows it again, swap the
-// cast below to `as Stripe.LatestApiVersion`.
-
 /**
  * The Stripe API version this codebase speaks. Pinning decouples our
  * code from Stripe's rolling defaults, subscription period fields
  * and other objects change shape across versions, and we want our
  * webhook handlers to see a stable schema across deployments.
  *
+ * It is the version of the installed `stripe` SDK's types, so the types
+ * describe exactly what the API returns. Stripe Managed Payments needs
+ * 2025-03-31.basil or later.
+ *
  * Bumping this value is a coordinated change:
  *   1. Read the Stripe upgrade guide for the target version
  *   2. Update the version-dependent reads in `stripeEvents/stripeObjects.ts`
- *      (`current_period_start` etc. that move locations)
+ *      (`current_period_start` etc. that move locations); keep reading the
+ *      old place too, events stashed in `pending_stripe_events` before the
+ *      bump still have the old shape
  *   3. Re-run the full webhook test suite
  *   4. Update STRIPE_API_VERSION here as the LAST step
- *
- * Cast as `Stripe.LatestApiVersion` so the SDK constructor signature
- * accepts it without each consumer having to repeat the cast.
+ *   5. Operators: the webhook endpoint in the Stripe dashboard renders
+ *      events in its own API version; set it to the same version
  */
-export const STRIPE_API_VERSION = '2025-01-27.acacia'
+export const STRIPE_API_VERSION = '2026-09-30.endive'
 
 /**
  * The handled events whose ordering matters, those that

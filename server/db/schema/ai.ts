@@ -1,6 +1,6 @@
 // AI sessions with their transcript and provenance, and bring-your-own-key providers.
 
-import { pgTable, serial, integer, text, timestamp, index, uniqueIndex, jsonb, boolean } from 'drizzle-orm/pg-core'
+import { pgTable, serial, integer, text, timestamp, index, uniqueIndex, jsonb, boolean, date, doublePrecision, primaryKey } from 'drizzle-orm/pg-core'
 import type { AiMessageBody } from '../columnTypes'
 import { users } from './users'
 import { documents } from './documents'
@@ -102,4 +102,25 @@ export const userAiProviders = pgTable('user_ai_providers', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
   uniqueIndex('uq_user_ai_providers_user_capability').on(table.userId, table.capability)
+])
+
+// Daily AI cost rollup, without any user or document identifier: per UTC
+// day, feature tag and model, the cost, the request count and how many
+// distinct users made calls. Filled from LiteLLM's spend logs by
+// `ai-spend-rollup` while the raw rows still exist (they are deleted after
+// 90 days by `spend-logs-sweep`), so the admin's AI cost history outlives
+// them. Kept indefinitely: it holds no personal data.
+export const aiSpendDaily = pgTable('ai_spend_daily', {
+  day: date('day', { mode: 'string' }).notNull(),
+  // A `feature:*` tag, or 'other' for calls without one.
+  feature: text('feature').notNull(),
+  model: text('model').notNull(),
+  // False for calls on a user's own key (`byok/*`, logged at zero cost).
+  platformPaid: boolean('platform_paid').notNull(),
+  spendUsd: doublePrecision('spend_usd').notNull(),
+  requests: integer('requests').notNull(),
+  users: integer('users').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  primaryKey({ columns: [table.day, table.feature, table.model, table.platformPaid] })
 ])

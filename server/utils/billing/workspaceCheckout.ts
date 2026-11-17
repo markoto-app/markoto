@@ -13,7 +13,7 @@ import { getWorkspaceSubscription, recordWorkspacePlanChange, type WorkspaceSubs
 import { appendAuditEvent } from '../../repos/audit'
 import { useStripeClient } from './stripeClient'
 import { stripePriceIdFor } from './stripePrices'
-import { findLiveSubscription, livePeriod } from './stripePlanChange'
+import { changeSubscriptionPrice, findLiveSubscription, livePeriod, paymentPendingError, pendingPayment } from './stripePlanChange'
 import { ensureWorkspaceCustomer, requestBaseUrl, expireOpenWorkspaceCheckouts } from './workspaceStripe'
 import { countSeatsUsed, getPooledWorkspace, parseSeats } from './workspaceBilling'
 import { ensureWorkspaceTeam, syncAllMemberKeyLimits } from '../litellm/workspaceTeams'
@@ -129,15 +129,18 @@ async function changePlanInPlace(ctx: CheckoutContext, liveSub: Stripe.Subscript
   const changedAt = stripeResponseTime(liveSub)
   let updated: Stripe.Subscription
   try {
-    updated = await stripe.subscriptions.update(liveSub.id, {
-      items: [{ id: item.id, price: priceId, quantity: item.quantity ?? existing?.seats ?? 1 }],
-      proration_behavior: 'always_invoice',
-      payment_behavior: 'error_if_incomplete',
-      cancel_at_period_end: false
-    })
+    updated = await changeSubscriptionPrice(stripe, liveSub, priceId, item.quantity ?? existing?.seats ?? 1)
   } catch (e) {
     Sentry.captureException(e, { tags: { component: 'billing', event: 'workspace_plan_change_failed', workspaceId: wsId } })
     throw apiError('billing/plan-change-failed')
+  }
+  // Waiting for its payment (3-D Secure, declined card): nothing applies,
+  // neither the plan nor the pooled budget, until the invoice is paid; the
+  // webhook writes both then.
+  const pending = pendingPayment(updated)
+  if (pending) {
+    await recordPaidTermsAcceptance(ctx.event, ws, { kind: 'plan', subject: { type: 'workspace', id: wsId }, item: `${plan}_${interval}` })
+    throw paymentPendingError(pending)
   }
   await applyPlanChangeLocally(ctx, updated, changedAt)
   await appendAuditEvent({

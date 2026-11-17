@@ -24,6 +24,7 @@ export interface AccountStatus {
   tosVersionAcceptedLocale: string | null
   dpaVersionAccepted: number | null
   dpaVersionAcceptedLocale: string | null
+  editorTourDoneAt: Date | null
 }
 
 /**
@@ -77,10 +78,18 @@ export async function getAccountStatus(self: UserScope): Promise<AccountStatus |
       tosVersionAccepted: users.tosVersionAccepted,
       tosVersionAcceptedLocale: users.tosVersionAcceptedLocale,
       dpaVersionAccepted: users.dpaVersionAccepted,
-      dpaVersionAcceptedLocale: users.dpaVersionAcceptedLocale
+      dpaVersionAcceptedLocale: users.dpaVersionAcceptedLocale,
+      editorTourDoneAt: users.editorTourDoneAt
     })
     .from(users)
     .where(eq(users.id, self.userId))
     .limit(1))[0]
   return row ?? null
+}
+
+/** The user finished or skipped the editor tour. Idempotent: the first time is kept. */
+export async function markEditorTourDone(self: UserScope): Promise<void> {
+  await useDatabase().update(users)
+    .set({ editorTourDoneAt: sql`COALESCE(${users.editorTourDoneAt}, now())` })
+    .where(eq(users.id, self.userId))
 }

@@ -15,7 +15,7 @@ How the Nitro server in `server/` decides who may do what, how sessions and docu
 | `server/db/` | The schema (`schema/`, one file per domain), the connection (`client.ts`), the boot migrator and the LiteLLM spend-log pool; imported only by `server/repos/` (`server/db/AGENTS.md`, [database.md](database.md)) |
 | `server/utils/access/` | The access layer: decides document and workspace access and mints the proofs repo functions take |
 | `server/utils/api/` | The handler contract: `defineApiHandler`, the `allow.*` access policies, `apiError` ([api-handlers.md](api-handlers.md)) |
-| `server/error.ts` | Nitro error handler: 4xx pass through, 5xx become a generic message with `code: 'internal'` |
+| `server/error.ts` | Nitro error handler: 4xx pass through, 5xx become a generic message with `code: 'internal'` (a registered 5xx code without params keeps just its code) |
 
 ## Request pipeline
 
@@ -136,6 +136,7 @@ Options for the exceptions: `enabled` (checked once at boot, e.g. `isBillingEnab
 | `custom-domain-recheck` | 15 min | DNS re-checks of custom domains (only with `NUXT_PUBLISH_DOMAINS_TARGET`) |
 | `litellm-key-reconcile` | at boot + 6 h | aligns LiteLLM keys and teams with plans (`utils/litellm/keyReconcile.ts`) |
 | `spend-logs-sweep` | daily | LiteLLM spend-log retention |
+| `ai-spend-rollup` | 6 h | daily AI cost rollup without user ids (`utils/litellm/aiSpendRollup.ts`), before the spend logs expire |
 | `webhook-event-sweep`, `subscription-cancel-backfill`, `workspace-budget-alerts`, `ai-credit-settlement` | daily / daily / 15 min / hourly | billing jobs, started only with billing on ([billing.md](billing.md)) |
 
 ## Other subsystems

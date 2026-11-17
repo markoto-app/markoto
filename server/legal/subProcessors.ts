@@ -129,9 +129,26 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
     dpaUrl: 'https://docs.github.com/en/site-policy/privacy-policies/github-data-protection-agreement'
   },
   {
+    // Recipient of offline conversions (click id + conversion time) only;
+    // no Google script runs on markoto. Listed only where ad conversions
+    // are on (server/legal/registryView.ts).
+    id: 'google_ads',
+    name: 'Google Ireland Limited (Google Ads)',
+    purpose: 'Ad conversion measurement: the ad click id and time of a sign-up, no other data',
+    location: 'global',
+    transferMechanism: 'dpf_with_sccs_fallback',
+    dpfCertified: true,
+    privacyPolicyUrl: 'https://policies.google.com/privacy',
+    dpaUrl: 'https://business.safety.google/adsprocessorterms/'
+  },
+  {
     id: 'stripe',
-    name: 'Stripe, Inc. (and Stripe Payments Europe Ltd.)',
-    purpose: 'Subscription billing, payment method storage, invoice generation, fraud scoring',
+    // Paid plans are sold through Stripe Managed Payments: for the purchase
+    // itself, Link (Sold through Link, LLC, a Stripe company) is the seller
+    // and, with Stripe, an independent controller under stripe.com/privacy.
+    // Stripe stays our processor for the subscription records we manage.
+    name: 'Stripe, Inc. (with Stripe Payments Europe Ltd. and Sold through Link, LLC)',
+    purpose: 'Subscription billing and payment records; for purchases, Link (Stripe) is the seller and an independent controller',
     location: 'global',
     transferMechanism: 'dpf_with_sccs_fallback',
     dpfCertified: true,

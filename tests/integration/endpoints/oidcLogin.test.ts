@@ -124,7 +124,8 @@ describe('GET /auth/oidc: full sign-in against a real IdP', () => {
   it('signs a new user in, keyed by (issuer, sub), with a usable session', async () => {
     const res = await signIn('alice-sub', { email: 'alice@idp.test', email_verified: true, name: 'Alice IdP' })
     expect(res.status).toBe(302)
-    expect(res.headers.get('location')).toBe('/')
+    // A new account: the client sends its cookieless sign-up event from this parameter.
+    expect(res.headers.get('location')).toBe('/?signed_up=oidc')
     // Flow cookie is single-use.
     expect(res.headers.getSetCookie().some(c => c.startsWith(`${FLOW_COOKIE}=;`))).toBe(true)
 
@@ -145,6 +146,7 @@ describe('GET /auth/oidc: full sign-in against a real IdP', () => {
     // Second sign-in: same row.
     const again = await signIn('alice-sub', { email: 'alice@idp.test', email_verified: true, name: 'Alice Renamed' })
     expect(again.status).toBe(302)
+    expect(again.headers.get('location')).toBe('/')
     expect(await usersBySubject('alice-sub')).toEqual([expect.objectContaining({ id: rows[0]?.id, name: 'Alice Renamed' })])
   })
 
@@ -153,7 +155,7 @@ describe('GET /auth/oidc: full sign-in against a real IdP', () => {
 
     // Unverified: new, separate account WITHOUT the email.
     const unverified = await signIn('mallory-sub', { email: 'bob@idp.test', email_verified: false })
-    expect(unverified.headers.get('location')).toBe('/')
+    expect(unverified.headers.get('location')).toBe('/?signed_up=oidc')
     expect(await usersBySubject('mallory-sub')).toEqual([expect.objectContaining({ email: null, github_id: null })])
 
     // Verified: merged into the existing account, flash param set.

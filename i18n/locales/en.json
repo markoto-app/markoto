@@ -805,11 +805,9 @@
     "downgrade": "Downgrade",
     "signUp": "Sign up",
     "close": "Close",
-    "footnote": "All tiers include real-time collaboration, version history, and unlimited documents. AI Points refill monthly.",
-    "comingSoonSubtitle": "Write without an account, sign up for free, or run markoto on your own server. Paid plans with higher limits are coming soon.",
+    "comingSoonSubtitle": "Start free today. Paid plans with higher limits are coming soon.",
     "comingSoonBadge": "Coming soon",
     "availableNow": "Available now",
-    "comingSoonFootnote": "Paid plans, their prices and limits aren't final yet. Join the waitlist and we'll email you once when they launch.",
     "freeFootnote": "Every account includes real-time collaboration, version history, and unlimited documents. AI Points refill every period.",
     "selfHostedTitle": "Limits on this instance",
     "selfHostedSubtitle": "This markoto instance doesn't sell plans. Every account gets the limits below; the operator of this instance can change them.",
@@ -827,35 +825,14 @@
       "perYear": "per year",
       "perSeatPerYear": "per seat / year",
       "planned": "Planned price",
-      "plannedNote": "Planned prices. Prices and limits may change before paid plans launch; nothing can be bought yet."
-    },
-    "selfHosted": {
-      "title": "Self-hosted",
-      "tagline": "Run markoto on your own server.",
-      "priceNote": "Your server, your limits",
-      "everyFeature": "Every feature. Limits and storage are up to you.",
-      "byok": "AI on your own provider key or a local model.",
-      "licence": "Source-available: FSL-1.1, becomes Apache-2.0 after two years.",
-      "cta": "Self-hosting guide"
-    },
-    "anon": {
-      "title": "No account",
-      "tagline": "Start writing straight away.",
-      "priceNote": "No sign-up",
-      "write": "Write, share a link and edit together in real time.",
-      "export": "Import files and export to PDF or Markdown.",
-      "noAi": "No AI, no workspaces, no image uploads. Anyone with the link can edit the document.",
-      "retention": "Deleted after {n} day without edits. | Deleted after {n} days without edits.",
-      "delete": "Only the browser that created a document can delete it."
+      "plannedNote": "Planned prices. Prices and limits may change before paid plans launch; nothing can be bought yet.",
+      "plannedShort": "(planned)"
     },
     "freeAccount": {
-      "title": "Free account",
       "byok": "Unlimited AI on your own provider key.",
       "signIn": "Sign in"
     },
     "paid": {
-      "title": "Paid",
-      "tagline": "More AI Points, workspaces and storage.",
       "joinWaitlist": "Join the waitlist",
       "setUpInWorkspace": "Set up in a workspace",
       "setUpInWorkspaceHint": "Open the workspace, then its Billing tab. Only workspace admins can buy."
@@ -871,17 +848,14 @@
       "imageStorage": "{size} image storage"
     },
     "compare": {
-      "title": "Compare the options",
+      "title": "Compare all details",
       "feature": "Feature",
       "price": "Price",
       "priceMonthly": "{price} per month",
       "pricePlanned": "{price} per month (planned)",
       "documents": "Documents",
       "unlimited": "Unlimited",
-      "anonRetention": "Kept {n} day after the last edit | Kept {n} days after the last edit",
       "writing": "Editor, real-time collaboration, comments, PDF export",
-      "sharing": "View-only and password-protected sharing",
-      "openEditOnly": "Open edit only",
       "aiPoints": "AI Points per month",
       "ownKey": "AI on your own provider key",
       "workspaces": "Workspaces you own",
@@ -894,14 +868,19 @@
       "days": "{n} day | {n} days",
       "customCss": "Custom CSS for documents",
       "readOnly": "Read-only",
-      "setByYou": "Set by you",
       "included": "Included",
       "notIncluded": "Not included",
       "perSeat": "{value} per seat",
       "aiImage": "AI image generation",
       "aiVoice": "Voice input and live dictation",
       "aiStrongModel": "Choice of a stronger AI model",
-      "ownKeyOnly": "With your own key"
+      "ownKeyOnly": "With your own key",
+      "shareControls": "Share-link expiry and view-only links",
+      "customDomains": "Custom domains for published pages",
+      "brandKit": "Brand kit and workspace templates",
+      "guests": "Workspace guests",
+      "sso": "Single sign-on (SSO) and SCIM",
+      "auditLog": "Workspace audit log"
     },
     "faq": {
       "title": "Questions",
@@ -916,7 +895,8 @@
       "anonA": "Anyone with the link can read and edit them. They are deleted after {n} day without edits, and only the browser that created one can delete it sooner. Sign in to keep documents, make them private or lock them with a password. | Anyone with the link can read and edit them. They are deleted after {n} days without edits, and only the browser that created one can delete it sooner. Sign in to keep documents, make them private or lock them with a password.",
       "anonKeptA": "Anyone with the link can read and edit them, and only the browser that created one can delete it. Sign in to make documents private or lock them with a password.",
       "selfHostQ": "Can I run markoto on my own server?",
-      "selfHostA": "Yes. The code is source-available under the FSL-1.1 licence, which becomes Apache-2.0 after two years. A self-hosted instance has every feature and no plans: you set the limits and connect your own AI provider or a local model. The self-hosting guide in the docs covers the install."
+      "selfHostA": "Yes. The code is source-available under the FSL-1.1 licence, which becomes Apache-2.0 after two years. A self-hosted instance has every feature and no plans: you set the limits and connect your own AI provider or a local model. The self-hosting guide in the docs covers the install.",
+      "pointsPacks": "Extra AI Points come in packs: {packs}."
     },
     "interval": {
       "label": "Billing period",
@@ -934,7 +914,40 @@
     "seatTotalMonth": "{total} per month for {seats} seats",
     "seatTotalYear": "{total} per year for {seats} seats",
     "seatsLabel": "Seats",
-    "creditsBuyLink": "Buy AI Points in your profile"
+    "creditsBuyLink": "Buy AI Points in your profile",
+    "plans": {
+      "free": "Free"
+    },
+    "teams": {
+      "title": "Teams",
+      "switchLabel": "Team or Business"
+    },
+    "highlights": {
+      "members": "Up to {n} person per workspace | Up to {n} people per workspace",
+      "membersUnlimited": "Unlimited people per workspace",
+      "writing": "Real-time collaboration, history and PDF export",
+      "aiExtras": "AI with {list}",
+      "ai": {
+        "aiStrongModel": "a stronger model",
+        "aiImage": "images",
+        "aiVoice": "voice input"
+      },
+      "feature": {
+        "sso": "Single sign-on (SSO)",
+        "auditLog": "Audit log with export",
+        "brandKit": "Brand kit: fonts, logos, templates",
+        "guests": "Guests who see only shared documents",
+        "customDomains": "Custom domains for published pages",
+        "shareControls": "Share links that expire or are view-only",
+        "customCss": "Custom CSS for documents",
+        "mcpWrite": "MCP clients can edit documents"
+      }
+    },
+    "creditsLine": "More AI Points: packs of {packs}, valid {months} months.",
+    "alt": {
+      "anon": "Write without an account",
+      "selfHost": "Self-host markoto"
+    }
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
@@ -1939,9 +1952,10 @@
         "jina_ai": "Embedding generation for knowledge-base RAG; single-URL page content extraction for the fetch-URL tool (Jina Reader; the URL is sent for every user, including users with their own AI provider)",
         "staan": "Web search for the AI writing assistant (the search query is sent for every user, including users with their own AI provider), via a proprietary European search index (EU-only routing)",
         "bfl": "Image generation via FLUX (EU-pinned data plane)",
+        "google_ads": "Ad conversion measurement: the ad click id and time of a sign-up, no other data",
         "google_oauth": "Sign-in via Google account (no other Google data accessed)",
         "github_oauth": "Sign-in via GitHub account (no other GitHub data accessed)",
-        "stripe": "Subscription billing, payment method storage, invoice generation, fraud scoring",
+        "stripe": "Subscription billing and payment records; for purchases, Link (Stripe) is the seller and an independent controller",
         "sentry": "Application error + performance telemetry, stored in Sentry's EU (Frankfurt) data region",
         "resend": "Transactional email delivery, account-deletion confirmations, data-export-ready notifications, breach notifications"
       }
@@ -2070,6 +2084,11 @@
     "planUpdated": {
       "title": "Plan updated",
       "description": "You are now on the {plan} plan. Your new AI budget is available immediately."
+    },
+    "completePayment": "Complete payment",
+    "soldThroughLink": {
+      "note": "Sold through Link (Stripe), which handles payment, VAT, invoices and refunds. {terms} apply.",
+      "terms": "Link's buyer terms"
     }
   },
   "plan": {
@@ -2100,7 +2119,6 @@
     }
   },
   "waitlist": {
-    "title": "Join the waitlist",
     "description": "Get one email when paid plans launch. That's all we'll send.",
     "emailLabel": "Email address",
     "emailPlaceholder": "you{'@'}example.com",
@@ -2129,7 +2147,8 @@
       "button": "Remove my address",
       "successTitle": "You've been removed",
       "successBody": "Your email address has been deleted from the waitlist."
-    }
+    },
+    "barTitle": "Paid plans are coming soon"
   },
   "aiProvider": {
     "title": "AI provider",
@@ -2885,5 +2904,243 @@
     "generate": "Generate",
     "generating": "Generating…",
     "failed": "Could not generate the image"
+  },
+  "adminStats": {
+    "title": "Product stats",
+    "intro": "Counts and totals for this instance. No list names a person.",
+    "pageTitle": "Product stats · Admin",
+    "investorTitle": "Investor summary",
+    "investorLink": "Investor summary",
+    "back": "Back to the stats",
+    "print": "Print or save as PDF",
+    "loadFailed": "Couldn't load the stats",
+    "loading": "Loading…",
+    "updated": "Numbers are at most a minute old. Days are in UTC.",
+    "range": {
+      "label": "Period",
+      "7": "7 days",
+      "30": "30 days",
+      "90": "90 days",
+      "365": "12 months",
+      "all": "All time"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "users": "Users",
+      "content": "Content",
+      "ai": "AI",
+      "revenue": "Revenue",
+      "ops": "Operations"
+    },
+    "change": {
+      "vsPrevious": "vs. previous period"
+    },
+    "csv": "Download CSV",
+    "kpi": {
+      "registered": "Accounts",
+      "signups": "New sign-ups",
+      "dau": "Active today",
+      "wau": "Active, 7 days",
+      "mau": "Active, 30 days",
+      "activeInWindow": "Active in period",
+      "stickiness": "Stickiness (today / 30 days)",
+      "editors": "People who edited",
+      "pendingDeletion": "Deletion pending",
+      "documents": "Documents",
+      "documentsCreated": "Documents created",
+      "documentsEdited": "Documents edited",
+      "ownedDocs": "With an owner",
+      "anonymousDocs": "Anonymous",
+      "workspaceDocs": "In workspaces",
+      "words": "Words written",
+      "workspaces": "Workspaces",
+      "workspacesCreated": "Workspaces created",
+      "guests": "Guests",
+      "knowledgeFiles": "Knowledge files",
+      "knowledgeUploaded": "Knowledge uploaded",
+      "knowledgeBytes": "Knowledge size",
+      "knowledgeChunks": "Chunks",
+      "knowledgeTokens": "Tokens",
+      "knowledgeFailed": "Failed files",
+      "images": "Images",
+      "imagesUploaded": "Images uploaded",
+      "imageBytes": "Image storage",
+      "publishedPages": "Published pages",
+      "indexablePages": "Open to search engines",
+      "customDomains": "Custom domains",
+      "verifiedDomains": "Live domains",
+      "comments": "Comments",
+      "commentsAdded": "Comments added",
+      "savedThemes": "Saved designs",
+      "mrr": "MRR {currency}",
+      "arr": "ARR {currency}",
+      "payingCustomers": "Paying subscriptions",
+      "trialing": "In a trial",
+      "pastDue": "Payment overdue",
+      "scheduledCancellations": "Set to end",
+      "atRisk": "MRR set to end, {currency}",
+      "waitlistConfirmed": "Waitlist (confirmed)",
+      "waitlistUnconfirmed": "Waitlist (not confirmed)",
+      "waitlistNew": "New on the waitlist",
+      "aiSpend": "AI cost",
+      "aiRequests": "AI requests",
+      "aiUsers": "People using AI",
+      "costPerAiUser": "Cost per AI user",
+      "costPerActiveUser": "Cost per active user",
+      "freePool": "Free AI pool this month",
+      "byokUsers": "Own AI key",
+      "mcpTokens": "Active MCP tokens",
+      "mcpSessions": "MCP sessions",
+      "databaseSize": "Database size",
+      "restrictedDocs": "Restricted documents",
+      "openInvites": "Open invitations",
+      "pendingStripeEvents": "Waiting Stripe events",
+      "abuseOpen": "Open reports",
+      "abuseReceived": "Reports received",
+      "mrrTotal": "MRR, all in CHF",
+      "arrTotal": "ARR, all in CHF",
+      "contribution": "Est. contribution / month, CHF",
+      "subsStarted": "Subscriptions started",
+      "subsEnded": "Subscriptions ended",
+      "cancelScheduled": "Cancellations scheduled",
+      "newMrr": "New MRR {currency}",
+      "lostMrr": "Lost MRR {currency}"
+    },
+    "hint": {
+      "activeDefinition": "Signed in and used markoto on that day.",
+      "editorsDefinition": "Signed-in people with an edit, comment or restore.",
+      "noRevenue": "No paid subscriptions yet.",
+      "freePool": "{spent} of {cap}",
+      "freePoolOff": "No shared limit on this instance.",
+      "spendFrom": "The AI cost history starts on {day}.",
+      "spendUnavailable": "The AI cost logs could not be read.",
+      "listPrice": "Gross, at list price: before payment fees, discounts and taxes.",
+      "plannedPrices": "Valued at the planned prices; paid plans are not on sale.",
+      "billingOff": "Billing is off on this instance.",
+      "comingSoon": "Paid plans are shown as coming soon; the waitlist is open.",
+      "aiUsersFrom": "People using AI are counted from {day} (per-person logs are kept 90 days).",
+      "churnHistory": "Subscription history is recorded from this version on; workspace plans before it were added from their records."
+    },
+    "chart": {
+      "signups": "Sign-ups",
+      "accounts": "Accounts (running total)",
+      "editors": "People who edited",
+      "documents": "Documents created",
+      "aiSpend": "AI cost by feature (USD)",
+      "members": "Workspaces by members",
+      "activation": "Activation of new accounts",
+      "subscriptions": "Subscriptions started and ended",
+      "started": "Started",
+      "ended": "Ended"
+    },
+    "table": {
+      "period": "Period",
+      "count": "Count",
+      "value": "Value",
+      "metric": "Metric",
+      "share": "Share",
+      "feature": "Feature",
+      "cost": "Cost (USD)",
+      "requests": "Requests",
+      "plan": "Plan",
+      "currency": "Currency",
+      "interval": "Billing",
+      "subscriptions": "Subscriptions",
+      "units": "Seats",
+      "provider": "Sign-in",
+      "accounts": "Accounts",
+      "status": "Status",
+      "members": "Members",
+      "workspaces": "Workspaces",
+      "amount": "Amount",
+      "purchases": "Purchases",
+      "cohort": "Week of sign-up",
+      "size": "Accounts",
+      "week": "W{n}"
+    },
+    "section": {
+      "growth": "Growth",
+      "activation": "Activation",
+      "retention": "Retention by weekly cohort",
+      "retentionHint": "Share of each week's new accounts that edited in the weeks after sign-up (W0 = the sign-up week).",
+      "providers": "Sign-in providers",
+      "plans": "Plans",
+      "documents": "Documents",
+      "workspaces": "Workspaces",
+      "knowledge": "Knowledge base",
+      "publishing": "Publishing",
+      "aiSpend": "AI cost",
+      "subscriptions": "Live subscriptions",
+      "topups": "AI credit purchases",
+      "planMix": "Plan mix",
+      "exports": "Data exports",
+      "abuse": "Abuse reports",
+      "estimate": "Estimated monthly contribution"
+    },
+    "activation": {
+      "signedUp": "Signed up",
+      "createdDoc": "Created a document",
+      "edited": "Edited",
+      "usedAi": "Used the AI"
+    },
+    "provider": {
+      "github": "GitHub",
+      "google": "Google",
+      "oidc": "OpenID Connect",
+      "sso": "Workspace SSO"
+    },
+    "plan": {
+      "free": "Free",
+      "pro": "Pro",
+      "team": "Team",
+      "business": "Business"
+    },
+    "interval": {
+      "month": "Monthly",
+      "year": "Yearly"
+    },
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "ready": "Ready",
+      "failed": "Failed",
+      "expired": "Expired",
+      "open": "Open",
+      "acknowledged": "Acknowledged",
+      "actioned": "Actioned",
+      "dismissed": "Dismissed"
+    },
+    "feature": {
+      "text-loop": "Writing assistant",
+      "transcribe": "Voice input",
+      "dictate-tick": "Live dictation",
+      "web-search": "Web search",
+      "web-fetch": "Page fetch",
+      "image-gen": "Image generation",
+      "embeddings": "Knowledge embeddings",
+      "design-import": "Design from a document",
+      "other": "Other"
+    },
+    "investor": {
+      "subtitle": "markoto, {date}. Last 12 months, monthly.",
+      "users": "Users",
+      "revenue": "Revenue",
+      "content": "Content",
+      "ai": "AI",
+      "footnote": "Accounts and documents from the application database, AI cost from the AI proxy's logs (90 days). Revenue at list price, gross. Definitions: docs/contributing/admin-metrics.md."
+    },
+    "menu": "Product stats",
+    "estimate": {
+      "estimated": "Estimate",
+      "gross": "Gross at list price",
+      "tax": "Tax contained ({pct} %)",
+      "fees": "Payment fees ({pct} % + {fixed})",
+      "net": "Net revenue",
+      "aiCost": "Platform AI cost, last 30 days",
+      "contribution": "Contribution",
+      "combined": "All, in CHF",
+      "note": "Estimated, per month. EUR to CHF at {eur}, USD to CHF at {usd}. The assumptions are set with NUXT_STATS_*.",
+      "aiUnavailable": "The AI cost could not be read and counts as 0."
+    }
   }
 }

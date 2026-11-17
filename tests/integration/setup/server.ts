@@ -198,6 +198,11 @@ export function primaryServerEnv(stripe: TestStripeTarget = STRIPE_MOCK): NodeJS
     NUXT_STRIPE_WEBHOOK_SECRET: 'whsec_test_integration',
     NUXT_STRIPE_API_BASE: stripe.apiBase,
     NUXT_STRIPE_PRICE_IDS: stripe.priceIds,
+    // The hosted shape: every Checkout Session (plans, top-ups) is sent
+    // with `managed_payments` and without Stripe Tax fields, so stripe-mock
+    // checks those parameters against Stripe's API spec. The Stripe Tax
+    // path is pinned in tests/unit/billing/managedPayments.test.ts.
+    NUXT_STRIPE_MANAGED_PAYMENTS: 'true',
     // Inactive-doc sweeper. Set TTL to 0 to disable for tests, no point
     // letting it fire during a short integration run.
     NUXT_INACTIVE_DOC_TTL_DAYS: '0',
@@ -322,6 +327,9 @@ async function startBillingOffServer(primaryEnv: NodeJS.ProcessEnv): Promise<voi
   // endpoints/publish.test.ts → "pages host"). The primary keeps the
   // single-origin default.
   env.NUXT_PUBLISH_PAGES_HOST = TEST_PUBLISH_PAGES_HOST
+  // Hosted shape: Google Ads click-id conversions on
+  // (endpoints/adConversions.test.ts). The primary keeps them off.
+  env.NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS = 'true'
   // Hosted free-tier plan limits (infra/render-env.sh), pinned by
   // tests/integration/endpoints/planEntitlements.test.ts. The MCP ones
   // (TIER_FREE_FEATURE_MCP_WRITE / _MCP_TOOL_CALLS_PER_DAY) stay at the

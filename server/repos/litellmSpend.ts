@@ -27,39 +27,55 @@ export async function sumTeamSpend(teamId: string, from: Date, to: Date): Promis
   return Number(r.rows[0]?.spend ?? 0)
 }
 
-export interface FeatureSpendRow { feature_tag: string, spend: string, requests: string, total_tokens: string }
+/** One group of spend-log rows: a feature tag, or `null` for rows without one. bigint columns arrive as strings. */
+export interface FeatureSpendRow { feature_tag: string | null, spend: number | string, requests: number | string, total_tokens: number | string, bucket?: string }
 
 /**
- * Spend per `feature:*` tag of the calls carrying `axisTag` (e.g.
- * `workspace:<id>`) between two dates (`to` inclusive). `?` tests JSONB
- * array membership; the `startTime` bound keeps it off all-time scans.
+ * Spend per `feature:*` tag between two dates (`to` inclusive), optionally
+ * only of the calls carrying `axisTag` (e.g. `workspace:<id>`; `?` tests
+ * JSONB array membership). Every spend-log row lands in exactly one group:
+ * its feature tag, or `null` when it has none. A call carries several tags
+ * (`user:`, `doc:`, `workspace:`, LiteLLM's own `User-Agent: ...`), so
+ * summing per tag would count one call several times. A row with two
+ * feature tags (no call site writes that) goes to the first in sort order.
+ * With `bucket`, the groups are also split per UTC day / week / month
+ * (`bucket` on each row: the bucket's first day, `YYYY-MM-DD`).
  */
-export async function spendByFeatureForTag(_by: AdminActor, axisTag: string, from: string, to: string): Promise<FeatureSpendRow[]> {
+export async function spendByFeature(_by: AdminActor, window: { from: string, to: string, axisTag?: string, bucket?: 'day' | 'week' | 'month' }): Promise<FeatureSpendRow[]> {
+  const params = [window.from, window.to]
+  let axisFilter = ''
+  if (window.axisTag !== undefined) {
+    params.push(window.axisTag)
+    axisFilter = `AND request_tags ? $${params.length}`
+  }
+  let bucketColumn = ''
+  let bucketGroup = ''
+  if (window.bucket !== undefined) {
+    params.push(window.bucket)
+    bucketColumn = `, date_trunc($${params.length}, "startTime")::date::text AS bucket`
+    bucketGroup = ', bucket'
+  }
   const r = await useLitellmPool().query<FeatureSpendRow>(
     `
-    WITH matched AS (
-      SELECT spend, total_tokens, request_tags AS tags
-      FROM ${TABLE}
-      WHERE "startTime" >= $2::timestamp
-        AND "startTime" < ($3::date + INTERVAL '1 day')
-        AND request_tags ? $1
-    ),
-    feature_rows AS (
-      -- Unnest the tags; only feature-prefixed entries are kept below, so
-      -- the sibling axes (workspace, user, doc) drop out.
-      SELECT jsonb_array_elements_text(tags) AS feature_tag, spend, total_tokens
-      FROM matched
-    )
     SELECT
-      feature_tag,
-      SUM(spend)::float8 AS spend,
+      (
+        SELECT min(t.tag)
+        FROM jsonb_array_elements_text(
+          CASE WHEN jsonb_typeof(request_tags) = 'array' THEN request_tags ELSE '[]'::jsonb END
+        ) AS t(tag)
+        WHERE t.tag LIKE 'feature:%'
+      ) AS feature_tag,
+      coalesce(SUM(spend), 0)::float8 AS spend,
       COUNT(*)::bigint AS requests,
-      SUM(total_tokens)::bigint AS total_tokens
-    FROM feature_rows
-    WHERE feature_tag LIKE 'feature:%'
-    GROUP BY feature_tag
+      coalesce(SUM(total_tokens), 0)::bigint AS total_tokens
+      ${bucketColumn}
+    FROM ${TABLE}
+    WHERE "startTime" >= $1::timestamp
+      AND "startTime" < ($2::date + INTERVAL '1 day')
+      ${axisFilter}
+    GROUP BY 1${bucketGroup}
     `,
-    [axisTag, from, to]
+    params
   )
   return r.rows
 }
@@ -68,4 +84,79 @@ export async function spendByFeatureForTag(_by: AdminActor, axisTag: string, fro
 export async function deleteSpendLogsBefore(_by: SystemActor, cutoff: Date): Promise<number> {
   const r = await useLitellmPool().query(`DELETE FROM ${TABLE} WHERE "startTime" < $1`, [cutoff.toISOString()])
   return r.rowCount ?? 0
+}
+
+/**
+ * Distinct users (`user:*` tag) with a logged call between two dates (`to`
+ * inclusive), for the admin's "people using AI". Spend and requests come
+ * from `spendByFeature`; a user count cannot be summed from its groups.
+ */
+export async function countSpendUsers(_by: AdminActor, window: { from: string, to: string }): Promise<number> {
+  const r = await useLitellmPool().query<{ users: number }>(
+    `
+    SELECT count(DISTINCT (
+      SELECT min(t.tag)
+      FROM jsonb_array_elements_text(
+        CASE WHEN jsonb_typeof(request_tags) = 'array' THEN request_tags ELSE '[]'::jsonb END
+      ) AS t(tag)
+      WHERE t.tag LIKE 'user:%'
+    ))::int AS users
+    FROM ${TABLE}
+    WHERE "startTime" >= $1::timestamp
+      AND "startTime" < ($2::date + INTERVAL '1 day')
+    `,
+    [window.from, window.to]
+  )
+  return Number(r.rows[0]?.users ?? 0)
+}
+
+export interface DailySpendRow {
+  day: string
+  feature: string
+  model: string
+  platformPaid: boolean
+  spendUsd: number
+  requests: number
+  users: number
+}
+
+/**
+ * Per UTC day, feature tag ('other' without one) and model between two
+ * days (`to` inclusive): cost, requests and distinct `user:*` tags. Input
+ * of the identifier-free rollup (`ai-spend-rollup`). A call on a user's
+ * own key goes through the `byok/*` deployment and is not platform-paid.
+ */
+export async function dailySpendForRollup(_by: SystemActor, window: { from: string, to: string }): Promise<DailySpendRow[]> {
+  const tag = (prefix: string) => `(
+      SELECT min(t.tag)
+      FROM jsonb_array_elements_text(
+        CASE WHEN jsonb_typeof(request_tags) = 'array' THEN request_tags ELSE '[]'::jsonb END
+      ) AS t(tag)
+      WHERE t.tag LIKE '${prefix}%'
+    )`
+  const r = await useLitellmPool().query<{ day: string, feature: string, model: string, platform_paid: boolean, spend: number, requests: number, users: number }>(
+    `
+    SELECT ("startTime")::date::text AS day,
+      coalesce(${tag('feature:')}, 'other') AS feature,
+      coalesce(model, '') AS model,
+      NOT (coalesce(model_group, '') LIKE 'byok/%' OR coalesce(model, '') LIKE 'byok/%') AS platform_paid,
+      coalesce(sum(spend), 0)::float8 AS spend,
+      count(*)::int AS requests,
+      count(DISTINCT ${tag('user:')})::int AS users
+    FROM ${TABLE}
+    WHERE "startTime" >= $1::timestamp
+      AND "startTime" < ($2::date + INTERVAL '1 day')
+    GROUP BY 1, 2, 3, 4
+    `,
+    [window.from, window.to]
+  )
+  return r.rows.map(row => ({
+    day: row.day,
+    feature: row.feature,
+    model: row.model,
+    platformPaid: row.platform_paid,
+    spendUsd: Number(row.spend),
+    requests: Number(row.requests),
+    users: Number(row.users)
+  }))
 }

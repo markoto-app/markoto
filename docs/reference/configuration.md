@@ -92,6 +92,8 @@ Connection parts (shared/utils/runtime/connectionStrings.ts builds the URL). Dev
 | `POSTGRES_APP_PASSWORD` | string |  |  | compose | both | Password of POSTGRES_APP_USER. Secret. |
 | `POSTGRES_LITELLM_USER` | string |  |  | compose | both | Role LiteLLM connects as (owner of the litellm database only). Empty = POSTGRES_USER. |
 | `POSTGRES_LITELLM_PASSWORD` | string |  |  | compose | both | Password of POSTGRES_LITELLM_USER. Secret. |
+| `POSTGRES_UMAMI_USER` | string |  |  | compose | hosted | Role Umami connects as (owner of the umami database only). Empty = POSTGRES_USER. |
+| `POSTGRES_UMAMI_PASSWORD` | string |  |  | compose | hosted | Password of POSTGRES_UMAMI_USER. Secret. |
 
 ## Valkey
 
@@ -252,8 +254,15 @@ One codebase, three shapes: self-host (both off), hosted free-only (coming soon 
 | `NUXT_STRIPE_LOOKUP_KEY_PREFIX` | letters, digits and "-" only | `markoto` |  | app | hosted | Prefix of the Stripe price lookup keys (<prefix>_<plan>_<month\|year>_<eur\|chf>). |
 | `NUXT_STRIPE_PRICE_IDS` | string | (empty) |  | app | hosted | Explicit `lookup_key=price_id` pairs, comma-separated, for setups without lookup keys. |
 | `NUXT_STRIPE_AUTOMATIC_TAX` | boolean | `false` |  | app | hosted | Stripe Tax on checkout (only after activating Stripe Tax in the dashboard). |
+| `NUXT_STRIPE_MANAGED_PAYMENTS` | boolean | `false` |  | app | hosted | Sell through Stripe Managed Payments (Stripe / Link as merchant of record handles VAT); checkouts send `managed_payments` and no Stripe Tax fields. Needs Managed Payments enabled in the Stripe dashboard and an eligible tax code on every product. |
+| `NUXT_BILLING_NOTIFY_EMAIL` | email address |  |  | app | hosted | Operator inbox for billing notices (a refund was issued). Unset = no notice, only the log. |
 | `NUXT_STRIPE_SUCCESS_URL` | string | `/pricing?checkout=success&session={CHECKOUT_SESSION_ID}` |  | app | hosted | Path Stripe returns to after a successful checkout. Not passed by the compose files: the default is the app's own page. |
 | `NUXT_STRIPE_CANCEL_URL` | string | `/pricing?checkout=cancelled` |  | app | hosted | Path Stripe returns to after a cancelled checkout. Not passed by the compose files: the default is the app's own page. |
+| `NUXT_STATS_EUR_CHF_RATE` | number > 0 | `0.93` |  | app | both | Fixed EUR to CHF rate for the combined CHF figures of the admin product stats (an estimate, not a booking rate). |
+| `NUXT_STATS_USD_CHF_RATE` | number > 0 | `0.8` |  | app | both | Fixed USD to CHF rate for the AI cost (billed in USD) in the admin product stats' estimated contribution. |
+| `NUXT_STATS_TAX_PCT` | number 0–100 | `8.1` |  | app | both | VAT / sales tax (percent) contained in the tax-inclusive plan prices, taken out of gross revenue in the estimated contribution. Swiss VAT is 8.1; when Stripe Managed Payments sells as merchant of record it removes the buyer's local tax, so set the average rate of your buyers. |
+| `NUXT_STATS_PAYMENT_FEE_PCT` | number 0–100 | `3.5` |  | app | both | Payment fee (percent of the charged amount) in the estimated contribution; 3.5 = Stripe Managed Payments. |
+| `NUXT_STATS_PAYMENT_FEE_FIXED` | number ≥ 0 | `0.3` |  | app | both | Fixed payment fee per charge, in the charge's currency (EUR or CHF), in the estimated contribution. |
 
 ## Plan limits and feature switches
 
@@ -348,6 +357,25 @@ Publishing at /p/<slug> always works. A pages host of its own is required for th
 | `NUXT_PUBLISH_TRAEFIK_UPSTREAM` | http/https URL |  |  | app | test | Upstream URL to declare a service for instead of NUXT_PUBLISH_TRAEFIK_SERVICE (test stacks). Not passed by the compose files: test stacks only. |
 | `NUXT_PUBLISH_TRAEFIK_MIDDLEWARES` | comma-separated list | (empty) |  | app | both | Traefik middlewares attached to the generated routers. |
 | `NUXT_PUBLISH_TRAEFIK_PAGES_ROUTER` | boolean | `false` |  | app | self-host | Also emit the pages host's router from the HTTP provider (self-host HTTPS overlay). Not passed by the compose files: set by deploy/compose/compose.selfhost.tls.yml. |
+
+## Analytics and ad conversions
+
+Cookieless page analytics through a self-hosted Umami on the same origin, and the click-ID conversion record for Google Ads. Off by default; docs/operations-analytics.md.
+
+| Variable | Type | Default | Required | Services | Scope | Description |
+|---|---|---|---|---|---|---|
+| `NUXT_PUBLIC_ANALYTICS_WEBSITE_ID` | a UUID (the Umami website id) |  |  | app | hosted | Umami website id. Set = the public pages send cookieless page views and conversion events to NUXT_PUBLIC_ANALYTICS_ENDPOINT; empty = no analytics request at all. |
+| `NUXT_PUBLIC_ANALYTICS_ENDPOINT` | a same-origin path starting with / | `/a/api/send` |  | app | hosted | Same-origin path the browser posts analytics events to (Traefik routes it to Umami's /api/send). Not passed by the compose files: the hosted stack uses the default, which its Traefik router matches. |
+| `NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS` | boolean | `false` |  | app | hosted | Keep the Google Ads click id (gclid / gbraid / wbraid) of a visit that converts (sign-up, waitlist, first document) for the offline conversion upload. No Google script is loaded either way. |
+| `NUXT_ADS_CONVERSION_RETENTION_DAYS` | integer ≥ 1 | `90` |  | app | hosted | Stored click-id conversions are deleted this many days after the conversion (Google Ads accepts uploads for 90 days after the click). Not passed by the compose files: the hosted stack uses the default. |
+| `NUXT_ANALYTICS_INTERNAL_URL` | http/https URL |  |  | app | hosted | Umami's in-network URL for the server-side count of published-page views (aggregate only: no visitor data, no page slug). Empty = not counted. |
+| `NUXT_ANALYTICS_RETENTION_DAYS` | integer ≥ 1 | `395` |  | app | hosted | Umami events and sessions older than this are deleted by the app (13 months). Not passed by the compose files: the hosted stack uses the default. |
+| `NUXT_ANALYTICS_DB_USER` | string |  |  | app | hosted | Role the app deletes expired Umami data as; empty = POSTGRES_USER (and POSTGRES_PASSWORD). |
+| `NUXT_ANALYTICS_DB_PASSWORD` | string |  |  | app | hosted | Password of NUXT_ANALYTICS_DB_USER. Secret. |
+| `NUXT_ANALYTICS_DB_NAME` | string | `umami` |  | app | hosted | Umami's database name. Not passed by the compose files: the hosted stack uses the default. |
+| `UMAMI_APP_SECRET` | secret, ≥ 32 chars |  |  | compose | hosted | Umami's APP_SECRET (signs its login tokens, salts its visitor hashes). Set = the `analytics` compose profile runs Umami. Secret. |
+| `UMAMI_HOST` | hostname |  |  | compose | hosted | Host name of the Umami dashboard (e.g. stats.markoto.app); needs a DNS record. |
+| `UMAMI_BASIC_AUTH_USERS` | string |  |  | compose | hosted | htpasswd line(s) (`user:<bcrypt>`) of the edge login in front of the Umami dashboard, on top of Umami's own login. Secret. |
 
 ## Error reporting (Sentry)
 

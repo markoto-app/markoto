@@ -43,15 +43,26 @@
 // v13 (2026-11-10): publish as a web page + custom domains: the
 // published copy, domain names, DNS checks, Let's Encrypt certificates
 // (domain name public in Certificate Transparency logs).
-export const PRIVACY_VERSION = 13
-export const PRIVACY_EFFECTIVE_DATE = '2026-11-10'
+// v14 (2026-11-17): cookieless visitor statistics (self-hosted Umami, 13
+// months) and Google Ads conversion measurement without a Google script
+// (click id of a converting visit, 90 days; Google Ads as recipient);
+// the last day an account made a signed-in request
+// (`users.last_active_on`, date only, overwritten), for active-user counts;
+// the subscription history (start, change, cancellation, end of a plan);
+// paid plans sold through Stripe Managed Payments: Link
+// (Sold through Link, LLC) as seller / merchant of record and, with Stripe,
+// independent controller for the purchase data.
+export const PRIVACY_VERSION = 14
+export const PRIVACY_EFFECTIVE_DATE = '2026-11-17'
 
 // v2 (2026-10-26): free-only service, BYOK responsibilities, as-is/discontinuation clauses.
 // v3 (2026-11-03): anonymous documents, acceptable-use section, DSA
 // Art.14 moderation, liability cap + indemnity + forum, AI features,
 // change notice, boilerplate.
-export const TOS_VERSION = 3
-export const TOS_EFFECTIVE_DATE = '2026-11-03'
+// v4 (2026-11-17): paid plans and AI credits are sold through Link (Stripe)
+// as reseller / merchant of record, under Link's buyer terms.
+export const TOS_VERSION = 4
+export const TOS_EFFECTIVE_DATE = '2026-11-17'
 
 // v2 (2026-10-26): members' own (BYOK) AI providers are not sub-processors.
 // v3 (2026-11-03): Swiss-processor transfer section (FADP), backups,
@@ -70,8 +81,11 @@ export const ABUSE_POLICY_EFFECTIVE_DATE = '2026-11-03'
 // users never see them). Acceptance is recorded per purchase in the audit
 // log (`policy.accepted`, document `paid-terms`), not on the user row.
 // v1 (2026-11-09): first version.
-export const PAID_TERMS_VERSION = 1
-export const PAID_TERMS_EFFECTIVE_DATE = '2026-11-09'
+// v2 (2026-11-17): sold through Link (Stripe Managed Payments) as reseller /
+// merchant of record; Link handles VAT, invoices, refunds and withdrawals;
+// renewal authorisation; paid changes wait for their payment.
+export const PAID_TERMS_VERSION = 2
+export const PAID_TERMS_EFFECTIVE_DATE = '2026-11-17'
 
 // The Impressum / provider-identification page (Swiss UWG Art. 3(1)(s),
 // EU/DSA contact-point requirement). Facts come from shared/legal/entity.ts.

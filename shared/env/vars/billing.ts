@@ -1,4 +1,4 @@
-import { bool, pattern, positiveNumber, string, url } from '../coerce'
+import { bool, email as emailAddress, number, pattern, positiveNumber, string, url } from '../coerce'
 import { defineNamespace, v, type AnyVar } from '../define'
 import { DEFAULT_TIERS, PLAN_NAMES, TIER_FIELDS, tierEnvName, tierOverrideType } from '../../config/tiers'
 import { BILLING_INTERVALS, CURRENCIES, DEFAULT_PLAN_PRICES, PAID_PLAN_NAMES, planPriceEnvName } from '../../config/pricing'
@@ -78,6 +78,21 @@ export const billing = defineNamespace({
       services: ['app'],
       scope: 'hosted'
     }),
+    stripeManagedPayments: v({
+      name: 'NUXT_STRIPE_MANAGED_PAYMENTS',
+      type: bool,
+      default: false,
+      doc: 'Sell through Stripe Managed Payments (Stripe / Link as merchant of record handles VAT); checkouts send `managed_payments` and no Stripe Tax fields. Needs Managed Payments enabled in the Stripe dashboard and an eligible tax code on every product.',
+      services: ['app'],
+      scope: 'hosted'
+    }),
+    billingNotifyEmail: v({
+      name: 'NUXT_BILLING_NOTIFY_EMAIL',
+      type: emailAddress,
+      doc: 'Operator inbox for billing notices (a refund was issued). Unset = no notice, only the log.',
+      services: ['app'],
+      scope: 'hosted'
+    }),
     stripeSuccessUrl: v({
       name: 'NUXT_STRIPE_SUCCESS_URL',
       type: string,
@@ -95,6 +110,46 @@ export const billing = defineNamespace({
       services: ['app'],
       scope: 'hosted',
       notPassed: 'the default is the app\'s own page'
+    }),
+    statsEurChfRate: v({
+      name: 'NUXT_STATS_EUR_CHF_RATE',
+      type: positiveNumber,
+      default: 0.93,
+      doc: 'Fixed EUR to CHF rate for the combined CHF figures of the admin product stats (an estimate, not a booking rate).',
+      services: ['app'],
+      scope: 'both'
+    }),
+    statsUsdChfRate: v({
+      name: 'NUXT_STATS_USD_CHF_RATE',
+      type: positiveNumber,
+      default: 0.8,
+      doc: 'Fixed USD to CHF rate for the AI cost (billed in USD) in the admin product stats\' estimated contribution.',
+      services: ['app'],
+      scope: 'both'
+    }),
+    statsTaxPct: v({
+      name: 'NUXT_STATS_TAX_PCT',
+      type: number({ min: 0, max: 100 }),
+      default: 8.1,
+      doc: 'VAT / sales tax (percent) contained in the tax-inclusive plan prices, taken out of gross revenue in the estimated contribution. Swiss VAT is 8.1; when Stripe Managed Payments sells as merchant of record it removes the buyer\'s local tax, so set the average rate of your buyers.',
+      services: ['app'],
+      scope: 'both'
+    }),
+    statsPaymentFeePct: v({
+      name: 'NUXT_STATS_PAYMENT_FEE_PCT',
+      type: number({ min: 0, max: 100 }),
+      default: 3.5,
+      doc: 'Payment fee (percent of the charged amount) in the estimated contribution; 3.5 = Stripe Managed Payments.',
+      services: ['app'],
+      scope: 'both'
+    }),
+    statsPaymentFeeFixed: v({
+      name: 'NUXT_STATS_PAYMENT_FEE_FIXED',
+      type: number({ min: 0 }),
+      default: 0.3,
+      doc: 'Fixed payment fee per charge, in the charge\'s currency (EUR or CHF), in the estimated contribution.',
+      services: ['app'],
+      scope: 'both'
     })
   }
 })

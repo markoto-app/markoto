@@ -43,10 +43,14 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     // provisioning sent (external id, active / deactivated). Kept until
     // the link is removed (SCIM delete, connection removed, account
     // deleted).
+    // `last_active_day`: the last day (date only, overwritten daily, no
+    // history) the account made a signed-in request (`users.last_active_on`).
+    // Operators see only counts built from it (active users per day, week,
+    // month), never the day of a person.
     id: 'account_authentication',
     label: 'Sign-in and account',
     basis: 'contract',
-    dataCategories: ['email', 'oauth_identifier', 'display_name', 'workspace_sso_identity'],
+    dataCategories: ['email', 'oauth_identifier', 'display_name', 'workspace_sso_identity', 'last_active_day'],
     retention: 'until_deletion',
     subProcessors: ['github_oauth', 'google_oauth']
   },
@@ -151,10 +155,17 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: ['jina_ai', 'ovh_postgres', 'ovh_object_storage']
   },
   {
+    // `subscription_history`: when a paid plan started, changed, was set to
+    // end or ended (plan, period, currency, seats), for the revenue and churn
+    // figures. On account deletion the rows lose the account and the Stripe
+    // subscription id and stay as anonymous history.
     id: 'billing',
     label: 'Billing (only when paid plans are offered)',
     basis: 'contract',
-    dataCategories: ['stripe_customer_id', 'subscription_state', 'invoice_history', 'workspace_subscription_billing_admin', 'workspace_member_ai_limits_and_spend', 'ai_credit_purchases'],
+    // Sold through Stripe Managed Payments: payment details, billing address
+    // and VAT number go to Link / Stripe as independent controllers; we get
+    // the order data (email, name, country, item, amounts, payment status).
+    dataCategories: ['stripe_customer_id', 'subscription_state', 'subscription_history', 'invoice_history', 'purchase_order_data', 'workspace_subscription_billing_admin', 'workspace_member_ai_limits_and_spend', 'ai_credit_purchases'],
     retention: 'legal_minimum',
     subProcessors: ['stripe']
   },
@@ -271,6 +282,41 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     dataCategories: ['terms_version_accepted', 'acceptance_timestamp', 'bot_check_solution', 'rate_limit_counters'],
     retention: 30,
     subProcessors: ['ovh_postgres']
+  },
+  {
+    // Cookieless page analytics: a self-hosted Umami on our own servers
+    // (no third party). Counted: page views of the public pages (never
+    // documents or published pages), the conversion events of
+    // shared/analytics/events.ts and the UTM parameters of the landing URL.
+    // Umami derives country / region / city, browser, OS and device type
+    // from the request and forms a visitor hash of IP + user agent with a
+    // salt that changes daily; the IP address itself is never stored.
+    // Nothing is stored in the browser. Global Privacy Control / Do Not
+    // Track switch it off. Deleted after 13 months by the app's
+    // `analytics-retention-sweep`. Shown only where analytics is on.
+    id: 'web_analytics',
+    label: 'Visitor statistics of the public pages (cookieless)',
+    basis: 'legitimate_interest',
+    dataCategories: ['page_path', 'campaign_parameters', 'referrer_site', 'coarse_location', 'browser_os_device', 'daily_visitor_hash', 'conversion_events'],
+    retention: 395,
+    subProcessors: ['ovh_postgres']
+  },
+  {
+    // Google Ads conversion measurement without a Google script: when a
+    // visitor who came from a Google ad (click id `gclid` / `gbraid` /
+    // `wbraid` in the landing URL) signs up, joins the waitlist (and
+    // confirms) or creates a first document, we keep that click id with
+    // the kind and time of the conversion (`ad_click_conversions`) and
+    // report it to Google Ads as an offline conversion. No email, name, IP
+    // or user agent is sent. Not recorded with Global Privacy Control / Do
+    // Not Track. Deleted 90 days after the conversion; with the account.
+    // Shown only where ad conversions are on.
+    id: 'ad_conversion_measurement',
+    label: 'Measuring which ads lead to sign-ups',
+    basis: 'legitimate_interest',
+    dataCategories: ['ad_click_id', 'conversion_kind', 'conversion_time', 'account_id_if_signed_in'],
+    retention: 90,
+    subProcessors: ['ovh_postgres', 'google_ads']
   },
   {
     id: 'error_monitoring',

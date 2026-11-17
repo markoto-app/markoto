@@ -12,6 +12,7 @@
 
 import type Stripe from 'stripe'
 import { subscriptionPeriod } from './stripeEvents/stripeObjects'
+import { apiError } from '../api/apiError'
 
 /**
  * Subscription statuses that mean "this customer is already being
@@ -61,31 +62,75 @@ export async function findLiveSubscription(
 }
 
 /**
- * Swap the subscription's (single) price item to the new plan's price.
+ * How a change that costs money is paid (plan, billing period, more seats).
  *
- * - `always_invoice`: charge the prorated difference NOW, the user
- *   expects the bigger AI budget immediately, so they pay immediately.
- * - `error_if_incomplete`: if the payment fails, the API call errors
- *   and NOTHING changes (no half-upgraded state); the caller surfaces
- *   the error and the user fixes their card in the Customer Portal.
- * - `cancel_at_period_end: false`: an upgrade is an explicit "I'm
- *   staying": it un-schedules any pending cancellation.
+ * - `always_invoice`: the prorated difference is invoiced and charged NOW;
+ *   the bigger AI budget follows at once, so it is paid at once.
+ * - `pending_if_incomplete`: the change is applied only once that invoice
+ *   is paid. When the payment needs the buyer (3-D Secure, a declined
+ *   card) Stripe keeps the change as the subscription's `pending_update`
+ *   and nothing changes: no plan, seat or budget is unlocked on credit.
+ *   Paying the invoice within about a day applies it (the
+ *   `customer.subscription.updated` webhook then writes the new state);
+ *   otherwise Stripe voids the invoice and drops the change. Stripe
+ *   Managed Payments supports it on its subscriptions, and unlike
+ *   `error_if_incomplete` it does not just fail when the bank asks for
+ *   3-D Secure.
+ * - `expand: ['latest_invoice']`: the invoice to pay when the change waits.
+ */
+export const PAID_CHANGE_PARAMS = {
+  proration_behavior: 'always_invoice',
+  payment_behavior: 'pending_if_incomplete',
+  expand: ['latest_invoice']
+} as const satisfies Stripe.SubscriptionUpdateParams
+
+/**
+ * Swap the subscription's (single) price item to the new plan's price,
+ * paid now (`PAID_CHANGE_PARAMS`). `quantity` keeps a workspace's seats.
+ * `cancel_at_period_end: false`: an upgrade is an explicit "I'm staying"
+ * and un-schedules a pending cancellation.
  */
 export async function changeSubscriptionPrice(
   stripe: Stripe,
   sub: Stripe.Subscription,
-  newPriceId: string
+  newPriceId: string,
+  quantity?: number
 ): Promise<Stripe.Subscription> {
   const item = sub.items.data[0]
   if (!item) {
     throw new Error(`Subscription ${sub.id} has no items, cannot change plan`)
   }
   return await stripe.subscriptions.update(sub.id, {
-    items: [{ id: item.id, price: newPriceId }],
-    proration_behavior: 'always_invoice',
-    payment_behavior: 'error_if_incomplete',
+    items: [{ id: item.id, price: newPriceId, ...(quantity === undefined ? {} : { quantity }) }],
+    ...PAID_CHANGE_PARAMS,
     cancel_at_period_end: false
   })
+}
+
+/**
+ * The change Stripe keeps waiting for its payment (`pending_if_incomplete`),
+ * or null when it was applied. `paymentUrl`: the hosted page of the invoice
+ * to pay, when Stripe returned one. A pending update always expires in the
+ * future (at most about a day after the request); one that has already
+ * expired holds nothing (stripe-mock answers every update with such a
+ * canned, long-expired `pending_update`).
+ */
+export function pendingPayment(sub: Stripe.Subscription, now: Date = new Date()): { paymentUrl: string | null } | null {
+  const pending = sub.pending_update
+  if (!pending || pending.expires_at * 1000 <= now.getTime()) return null
+  const invoice = sub.latest_invoice
+  const paymentUrl = invoice && typeof invoice === 'object' ? invoice.hosted_invoice_url ?? null : null
+  return { paymentUrl }
+}
+
+/**
+ * 402 `billing/payment-pending` for a change that waits for its payment;
+ * the client shows the link to pay the invoice as the toast's action.
+ */
+export function paymentPendingError(pending: { paymentUrl: string | null }) {
+  return apiError('billing/payment-pending', pending.paymentUrl
+    ? { recovery: { kind: 'link', href: pending.paymentUrl, labelKey: 'billing.completePayment' } }
+    : {})
 }
 
 /**

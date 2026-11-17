@@ -171,14 +171,23 @@ export async function litellmTranscription(
  * Non-streaming chat completion through LiteLLM. Use when you need the
  * full response in one shot, e.g. `web_search` / `fetch_url` synthesis,
  * voice transcribe, voice-tick billing.
+ *
+ * `maxRetries` overrides the OpenAI SDK's own retries (2 by default, on
+ * 5xx and connection errors) for a call that must not be repeated blindly,
+ * such as a paid image generation the provider may already have accepted.
  */
 export async function litellmCompletion(
   client: OpenAI,
   body: LitellmCreateNonStreamParams,
-  opts?: { signal?: AbortSignal }
+  opts?: { signal?: AbortSignal, maxRetries?: number }
 ): Promise<OpenAI.Chat.Completions.ChatCompletion> {
+  const requestOptions = {
+    signal: opts?.signal,
+    body,
+    ...(opts?.maxRetries === undefined ? {} : { maxRetries: opts.maxRetries })
+  }
   return withRetry(
-    () => client.chat.completions.create(sdkParams(body), { signal: opts?.signal, body }),
+    () => client.chat.completions.create(sdkParams(body), requestOptions),
     opts
   )
 }
@@ -190,7 +199,6 @@ export async function litellmCompletion(
  * SDK's `Stream<...>`: the chunk-translator in `messageTranslation.ts`
  * only consumes the iterator interface.
  */
-// eslint-disable-next-line sonarjs/no-identical-functions -- same body as litellmCompletion, but the SDK's streaming overload (and return type) is picked from the stream params
 export async function litellmStream(
   client: OpenAI,
   body: LitellmCreateStreamParams,

@@ -25,9 +25,11 @@ import { latestYjsId } from '../../repos/yjsLog'
 import { listAiSessionProvenanceForUser } from '../../repos/aiSessionProvenance'
 import { ZIP_README } from './dataExportReadme'
 import {
+  addAdConversionsEntry,
   addAiProvidersEntry,
   addBillingEntries,
   addCreditGrantsEntry,
+  addSubscriptionHistoryEntry,
   addPublishingEntries,
   addWaitlistEntry,
   addWorkspaceInvitesEntry,
@@ -61,6 +63,7 @@ import {
 //   audit.ndjson                    ← rows scoped to or by the user
 //   consent.ndjson
 //   waitlist.ndjson                 ← paid-plans waitlist sign-ups linked to the account
+//   ad_conversions.ndjson           ← Google Ads click ids of the account's sign-up / first document
 //   abuse_reports.ndjson            ← reports the user filed while signed in + notices sent to them
 //   moderation_notices.ndjson       ← statements of reasons the user got as a document owner
 //   billing/invoices.ndjson         ← Stripe invoice history (if any)
@@ -139,10 +142,12 @@ export async function buildExportZip(by: SystemActor, userId: number): Promise<B
   const invoicesCount = await addBillingEntries(entries, userRow.stripeCustomerId)
   const workspaceSubscriptionsCount = await addWorkspaceSubscriptionsEntry(entries, user)
   await addCreditGrantsEntry(entries, user)
+  await addSubscriptionHistoryEntry(entries, user)
   await addSsoIdentitiesEntry(entries, user)
   await addDocumentSharesEntry(entries, user)
   await addBrandAssetsEntry(entries, user)
   await addPublishingEntries(entries, user)
+  await addAdConversionsEntry(entries, user)
 
   return {
     bytes: zipSync(entries, { level: 6 }),
@@ -201,6 +206,8 @@ function buildProfileEntry(userRow: UserProfileRow) {
     tosVersionAcceptedLocale: userRow.tosVersionAcceptedLocale,
     dpaVersionAccepted: userRow.dpaVersionAccepted,
     dpaVersionAcceptedLocale: userRow.dpaVersionAcceptedLocale,
+    editorTourDoneAt: userRow.editorTourDoneAt?.toISOString() ?? null,
+    lastActiveOn: userRow.lastActiveOn,
     createdAt: userRow.createdAt.toISOString()
   }
 }

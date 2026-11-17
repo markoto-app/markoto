@@ -1,4 +1,4 @@
-import { getWorkspaceSubscription, recordWorkspacePlanResumed } from '../../../../repos/workspaceSubscriptions'
+import { getWorkspaceSubscription, recordWorkspacePlanResumed, setWorkspaceBillingAdmin } from '../../../../repos/workspaceSubscriptions'
 import { appendAuditEvent } from '../../../../repos/audit'
 import { useStripeClient } from '../../../../utils/billing/stripeClient'
 import { resumeRecordedSubscription } from '../../../../utils/billing/resumeSubscription'
@@ -12,7 +12,8 @@ const log = useLogger('billing')
 // of the workspace's Team / Business plan while it still runs (cancelled
 // in the Stripe portal, ends at `cancelAt`). It renews again; nothing is
 // charged now. Only the billing admin (the one who pays); a plan without
-// one (its billing admin left) can be resumed by any workspace admin.
+// one (its billing admin left) can be resumed by any workspace admin, who
+// then becomes its billing admin.
 // 409 `billing/no-subscription` once the plan has ended.
 export default defineApiHandler({
   access: allow.workspace('admin', { deny: 'billing/admin-required' }),
@@ -36,6 +37,10 @@ export default defineApiHandler({
     } catch (e) {
       log.warn('resumed plan not written locally, the webhook will', { workspaceId: wsId, err: e })
     }
+    // A plan whose billing admin left: whoever resumes it takes it over, so
+    // the renewing plan has someone who pays and gets its emails.
+    const adoptedOrphan = row.billingAdminId === null
+    if (adoptedOrphan) await setWorkspaceBillingAdmin(workspaceAccess, user.id)
     await appendAuditEvent({
       by: workspaceAccess,
       actorIp: getClientIp(event),
@@ -43,7 +48,7 @@ export default defineApiHandler({
       scopeId: wsId,
       action: AUDIT_WORKSPACE_BILLING_PLAN_RESUMED,
       before: { cancelAt: row.cancelAt?.toISOString() ?? null },
-      metadata: { plan: row.plan, seats: row.seats }
+      metadata: { plan: row.plan, seats: row.seats, ...(adoptedOrphan ? { billingAdminId: user.id } : {}) }
     })
     return { resumed: true }
   }

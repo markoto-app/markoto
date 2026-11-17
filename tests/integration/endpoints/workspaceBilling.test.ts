@@ -200,6 +200,17 @@ describe('POST /api/workspaces/:wsId/billing/seats', () => {
     expect(ok.status).toBe(200)
     expect((await readSub(ws.workspaceId))?.seats).toBe(4)
   })
+
+  it('409 billing/plan-cancelled on a cancelled plan that still runs; nothing changes', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    await seedSubscription(ws.workspaceId, { seats: 3, adminId: admin.id })
+    await testDb().query('UPDATE workspace_subscriptions SET cancel_at = $1 WHERE workspace_id = $2', [FUTURE, ws.workspaceId])
+    const res = await (await loggedInClient(admin.id)).post(`/api/workspaces/${ws.workspaceId}/billing/seats`, { seats: 5 })
+    expect(res.status).toBe(409)
+    expect((await res.json() as { data?: { code?: string } }).data?.code).toBe('billing/plan-cancelled')
+    expect((await readSub(ws.workspaceId))?.seats).toBe(3)
+  })
 })
 
 describe('POST /api/workspaces/:wsId/billing/resume', () => {
@@ -236,12 +247,15 @@ describe('POST /api/workspaces/:wsId/billing/resume', () => {
     expect(audit.rows).toEqual([{ action: 'workspace.billing_plan_resumed', actor_user_id: payer.id }])
   })
 
-  it('a plan without a billing admin can be resumed by any workspace admin', async () => {
+  it('a plan without a billing admin can be resumed by any workspace admin, who becomes its billing admin', async () => {
     const admin = await createUser()
     const ws = await createWorkspace(admin.id)
     await seedSubscription(ws.workspaceId)
+    await testDb().query('UPDATE workspace_subscriptions SET cancel_at = $1 WHERE workspace_id = $2', [FUTURE, ws.workspaceId])
     const res = await (await loggedInClient(admin.id)).post(`/api/workspaces/${ws.workspaceId}/billing/resume`, {})
     expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ resumed: true })
+    expect((await readSub(ws.workspaceId))?.billing_admin_id).toBe(admin.id)
   })
 })
 

@@ -38,7 +38,7 @@ Bring-your-own-key requests go through LiteLLM too, but on a zero-cost deploymen
 
 ## Stripe
 
-`server/utils/billing/stripeClient.ts` pins the API version to `STRIPE_API_VERSION` (`shared/contracts/stripe.ts`). Prices are found by lookup key `<prefix>_<plan>_<month|year>_<eur|chf>` (prefix `NUXT_STRIPE_LOOKUP_KEY_PREFIX`), or set explicitly with `NUXT_STRIPE_PRICE_IDS` (`server/utils/billing/stripePrices.ts`). An unknown price is logged and skipped.
+`server/utils/billing/stripeClient.ts` pins the API version to `STRIPE_API_VERSION` (`shared/contracts/stripe.ts`), the version of the installed `stripe` SDK's types. The webhook endpoint in the Stripe dashboard renders events in its own API version, so it must be set to the same one; the handlers still read the fields that moved between versions from both places, for events stashed or redelivered from before a bump. Prices are found by lookup key `<prefix>_<plan>_<month|year>_<eur|chf>` (prefix `NUXT_STRIPE_LOOKUP_KEY_PREFIX`), or set explicitly with `NUXT_STRIPE_PRICE_IDS` (`server/utils/billing/stripePrices.ts`). An unknown price is logged and skipped.
 
 A Stripe customer belongs to one subject: a user (personal Pro, `users.stripe_customer_id`) or a workspace (its own customer, `workspace_subscriptions.stripe_customer_id`). Checkout routes on `client_reference_id`: a user id, or `workspace:<id>`.
 
@@ -59,7 +59,9 @@ Only the subscription a row tracks is applied: a late event about an older or ca
 
 ### Checkout
 
-The two plan routes are declarations; the purchase is `startProCheckout` (`server/utils/billing/proCheckout.ts`) and `startWorkspaceCheckout` (`server/utils/billing/workspaceCheckout.ts`): a live subscription has its price swapped in place, otherwise a Checkout Session opens. Stripe Tax fields come from `checkoutTaxFields` (`checkoutSession.ts`).
+The two plan routes are declarations; the purchase is `startProCheckout` (`server/utils/billing/proCheckout.ts`) and `startWorkspaceCheckout` (`server/utils/billing/workspaceCheckout.ts`): a live subscription has its price swapped in place, otherwise a Checkout Session opens. Every Checkout Session (plans and top-ups) takes its tax fields from `checkoutTaxFields` (`checkoutSession.ts`), see [Managed Payments](#managed-payments).
+
+A change that costs money (plan, billing period, more seats) is invoiced at once and sent with `payment_behavior: 'pending_if_incomplete'` (`PAID_CHANGE_PARAMS` in `stripePlanChange.ts`). When the payment goes through, the change is applied and written locally as before. When it needs the buyer (3-D Secure, a declined card), Stripe keeps it as the subscription's `pending_update` and changes nothing: the route writes nothing and answers 402 `billing/payment-pending`, whose `recovery` link is the invoice's hosted page (the client shows it as the toast's button). Paid within about a day, Stripe applies the change and sends `customer.subscription.updated` / `customer.subscription.pending_update_applied`, which write plan, seats and period like any change, and the team budget follows; unpaid, Stripe voids the invoice and drops the change. Plans, seats and AI budgets are therefore never unlocked before they are paid. Seats added this way get the full per-seat budget for the running budget window (the prorated `budgetSeatAdjust` is only written by the immediate path).
 
 A change of a live subscription names only what changes: a request without `interval` keeps the subscription's billing period, a workspace request without `plan` keeps its plan (`requestedPlan` reads both from Stripe's own price, then from the stored row). After an in-place swap the route writes the new plan, interval and period to the row itself (`recordWorkspacePlanChange`, `recordOwnPlanChange`), so the page that made the change shows it without waiting for the webhook, which writes the same state again. A Pro subscriber switches between monthly and annual billing on the profile page.
 
@@ -76,7 +78,7 @@ A renewal whose payment fails leaves the subscription `past_due` while Stripe re
 `server/utils/billing/workspaceBilling.ts`, `workspaceStripe.ts` and `workspaceBillingLifecycle.ts`; inviting a member (seat purchase included) is `server/utils/workspaces/inviteMember.ts`:
 
 - Seats = members + open invites; the seat count must stay within `MIN_WORKSPACE_SEATS` and `MAX_WORKSPACE_SEATS` (`shared/config/workspaceSeats.ts`).
-- More seats are invoiced and paid immediately (`always_invoice` + `error_if_incomplete`); fewer seats are not credited (`proration_behavior: 'none'`).
+- More seats are invoiced and paid immediately (`always_invoice` + `pending_if_incomplete`: they count only once paid); fewer seats are not credited (`proration_behavior: 'none'`).
 - Invites and seat changes of one workspace are serialised by a Valkey lock (`acquireWorkspaceSeatLock`, 409 `billing/seats-busy`).
 - Deleting a workspace cancels its subscription first (`endWorkspaceBilling`); if Stripe refuses, nothing is deleted. Account deletion hands the billing role to the longest-serving other admin, or lets the subscription end at the period end when there is none (`handOverBillingAdmin`).
 - In an entitled workspace, knowledge and image storage count against the workspace pool instead of the members' personal quotas.
@@ -84,6 +86,19 @@ A renewal whose payment fails leaves the subscription `past_due` while Stripe re
 ### AI credit top-ups
 
 A paid top-up becomes a row in `ai_credit_grants` (12-month expiry). The LiteLLM budget is the plan budget plus credits (`creditBudgetExtraUsd` in `server/utils/billing/aiCreditBudget.ts`). `/api/ai/credits` therefore reports them apart (`splitPlanAndCreditPoints` in `shared/billing/aiPoints.ts`): `pointsTotal` is the plan's monthly allotment, `planPointsRemaining` what is left of it (what the meter shows), `creditPoints` the bought credits on top, and `pointsRemaining` the sum. The hourly `ai-credit-settlement` job (`runCreditSettlement` in `server/utils/billing/aiCredits.ts`) reads each subject's monthly spend from LiteLLM's spend logs, takes what exceeded the plan budget from the grants, and updates the budgets. Purchases go through `server/utils/billing/topupCheckout.ts`; delayed payment methods are granted on `checkout.session.async_payment_succeeded`, refunds are handled on `charge.refunded`.
+
+### Refund notices
+
+Every `charge.refunded` (a top-up or a plan payment) sends the operator a short email after the webhook's transaction committed (`server/utils/billing/refundNotice.ts`): customer email, plan or pack, amount and currency (and the buyer's own currency when it differed), the refund reason and the Stripe dashboard link. It goes to `NUXT_BILLING_NOTIFY_EMAIL`; without it the refund is only logged. The event-id dedup sends it once per event. Hosted ops alerts (Telegram) are a host-side script the app cannot reach, so the notice is an email.
+
+### Managed Payments
+
+`NUXT_STRIPE_MANAGED_PAYMENTS=true` sells paid plans and top-ups through Stripe Managed Payments: Stripe / Link ("Sold through Link, LLC") is the merchant of record and handles VAT, invoices, receipts, refunds and order support. `checkoutTaxFields` then sends only `managed_payments: { enabled: true }` and none of the parameters Stripe forbids with it (`automatic_tax`, `tax_id_collection`, `customer_update`, `invoice_creation`, `subscription_data.invoice_settings` / `default_tax_rates`, payment-method and shipping fields, `payment_intent_data.statement_descriptor*` / `receipt_email`); quantity, `adjustable_quantity`, metadata, `client_reference_id` and the customer fields stay. It wins over `NUXT_STRIPE_AUTOMATIC_TAX` (Stripe Tax as our own seller), which stays the path without it. Managed Payments is enabled per session, so subscriptions bought before it keep their old setup.
+
+- **Currency.** Adaptive Pricing is always on with it: the session, subscription, invoice and charge keep the price's currency (EUR / CHF); the buyer's local currency appears only in `presentment_details`. The currency guards (`isCurrency` in `creditTopups.ts`, `billing/currency-locked`) therefore keep working unchanged.
+- **Plan changes** use `pending_if_incomplete` (above), which Managed Payments subscriptions support; `subscription.default_payment_method` can't be changed through the API.
+- **Account deletion** still calls `customers.del`; if Stripe refuses it for a Managed Payments customer, that is logged and the deletion goes on (Link deletes buyer data under its own policy).
+- **UI.** `useBillingMode().managedPayments` shows "Sold through Link (Stripe)" with a link to Link's buyer terms on the pricing page and next to every purchase box (`PaidTermsConsent.vue`). The privacy policy, the Terms and the Paid Plans Terms describe Link as the seller.
 
 ## Tests
 

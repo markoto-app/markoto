@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
-import { findSessionUser } from '../../repos/users'
+import { findSessionUser, markSessionUserActive } from '../../repos/users'
+import { useLogger } from '../platform/logger'
 import type { OnboardingState } from '../privacy/onboardingGate'
 import { isRecentLogin, sessionEpochMatches } from './sessionPolicy'
 import { apiError } from '../api/apiError'
@@ -87,6 +88,8 @@ async function resolveValidatedUser(event: H3Event): Promise<ValidatedUser | nul
     return null
   }
 
+  await recordActiveDay(row.id, row.lastActiveOn)
+
   const user = { id: row.id, name: row.name }
   cache.validatedUser = user
   cache.loggedInAt = (session as { loggedInAt?: unknown }).loggedInAt
@@ -96,6 +99,21 @@ async function resolveValidatedUser(event: H3Event): Promise<ValidatedUser | nul
     tosVersionAccepted: row.tosVersionAccepted
   }
   return user
+}
+
+/**
+ * Keep `users.last_active_on` at today (UTC) for the admin's active-user
+ * counts: one write per user per day, and a failed write never fails the
+ * request it rides on.
+ */
+async function recordActiveDay(userId: number, lastActiveOn: string | null): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10)
+  if (lastActiveOn === today) return
+  try {
+    await markSessionUserActive(userId, today)
+  } catch (err) {
+    useLogger('session').warn('could not record the active day', { err })
+  }
 }
 
 /**

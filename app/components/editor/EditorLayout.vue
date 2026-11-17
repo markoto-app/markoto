@@ -260,7 +260,7 @@ function openDocs(): void {
 
 const showShortcuts = ref(false)
 
-// First-run tour (EditorTour.vue): shown once per browser when the editor is
+// First-run tour (EditorTour.vue): shown once per account (per browser when signed out) when the editor is
 // ready to write in; Help → "Take the tour" re-opens it.
 const editorTour = useTemplateRef<{ start: () => void }>('editorTour')
 const tourReady = computed(() => synced.value && !isReadOnly.value && !requiresPassword.value && editorView.value !== null)

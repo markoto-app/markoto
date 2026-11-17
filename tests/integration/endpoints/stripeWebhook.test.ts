@@ -163,6 +163,19 @@ describe('POST /api/webhooks/stripe: customer.subscription.updated', () => {
     expect(row.plan_valid_until!.getTime()).toBe(1778678400 * 1000)
   })
 
+  it('records a scheduled cancellation in the subscription history', async () => {
+    const u = await createUser()
+    await testDb().query(
+      `UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, plan = 'pro' WHERE id = $3`,
+      ['cus_test_alice', 'sub_test_alice_max', u.id]
+    )
+    const event = loadStripeFixture('customer.subscription.updated-pro-scheduled-downgrade') as { data: Record<string, unknown> }
+    event.data.previous_attributes = { cancel_at_period_end: false }
+    expect((await postWebhook(event)).status).toBe(200)
+    const history = (await testDb().query(`SELECT kind, user_id FROM subscription_events`)).rows
+    expect(history).toEqual([{ kind: 'cancel_scheduled', user_id: u.id }])
+  })
+
   it('a cancellation in the portal records when the plan ends and the billing period; resuming clears the end', async () => {
     const u = await createUser()
     await testDb().query(
@@ -232,6 +245,11 @@ describe('POST /api/webhooks/stripe: customer.subscription.deleted', () => {
     expect(row.plan_valid_until).toBeNull()
     // Customer id RETAINED: user may resubscribe later, we can re-use it.
     expect(row.stripe_customer_id).toBe('cus_test_alice')
+
+    // The end goes into the subscription history (admin churn counts), once.
+    await postWebhook({ ...(event as Record<string, unknown>), id: 'evt_deleted_again' })
+    const history = (await testDb().query(`SELECT kind, subject_type, user_id, plan FROM subscription_events`)).rows
+    expect(history).toEqual([{ kind: 'ended', subject_type: 'user', user_id: u.id, plan: 'pro' }])
   })
 
   it('a late subscription.updated after the deletion does not bring Pro back', async () => {
@@ -268,8 +286,9 @@ describe('POST /api/webhooks/stripe: invoice.paid', () => {
       ['cus_test_alice', 'sub_test_alice_pro', oldStart, oldEnd, u.id]
     )
 
-    // The fixture has the pinned API version's shape (2025-01-27.acacia:
-    // `invoice.subscription` on the root). The NEW cycle is the line
+    // The fixture has the shape of an event rendered before the API
+    // version bump (2025-01-27.acacia: `invoice.subscription` on the root),
+    // which a stashed or redelivered event can still have. The NEW cycle is the line
     // item's period; the invoice's own period_start/_end is the cycle
     // that just ended and must not be used.
     const event = loadStripeFixture('invoice.paid')

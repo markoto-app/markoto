@@ -805,11 +805,9 @@
     "downgrade": "Bajar de plan",
     "signUp": "Registrarse",
     "close": "Cerrar",
-    "footnote": "Todos los niveles incluyen colaboración en tiempo real, historial de versiones y documentos ilimitados. Los puntos de IA se recargan cada mes.",
-    "comingSoonSubtitle": "Escribe sin cuenta, con una cuenta gratuita o en tu propio servidor. Pronto llegarán planes de pago con límites más altos.",
+    "comingSoonSubtitle": "Empieza gratis hoy. Los planes de pago con límites más altos llegarán pronto.",
     "comingSoonBadge": "Muy pronto",
     "availableNow": "Disponible ahora",
-    "comingSoonFootnote": "Los planes de pago, sus precios y límites aún no son definitivos. Únete a la lista de espera y te escribiremos una vez, cuando se lancen.",
     "freeFootnote": "Cada cuenta incluye colaboración en tiempo real, historial de versiones y documentos ilimitados. Los puntos de IA se recargan cada periodo.",
     "selfHostedTitle": "Límites de esta instancia",
     "selfHostedSubtitle": "Esta instancia de markoto no vende planes. Cada cuenta recibe los límites que se indican abajo; el operador de esta instancia puede cambiarlos.",
@@ -827,35 +825,14 @@
       "perYear": "al año",
       "perSeatPerYear": "por puesto / año",
       "planned": "Precio previsto",
-      "plannedNote": "Precios previstos. Los precios y los límites pueden cambiar antes del lanzamiento de los planes de pago; todavía no se puede comprar nada."
-    },
-    "selfHosted": {
-      "title": "Autoalojado",
-      "tagline": "markoto en tu propio servidor.",
-      "priceNote": "Tu servidor, tus límites",
-      "everyFeature": "Todas las funciones. Tú decides los límites y el almacenamiento.",
-      "byok": "IA con tu propia clave de proveedor o un modelo local.",
-      "licence": "Source-available: FSL-1.1, pasa a Apache-2.0 a los dos años.",
-      "cta": "Guía de autoalojamiento"
-    },
-    "anon": {
-      "title": "Sin cuenta",
-      "tagline": "Empieza a escribir ya.",
-      "priceNote": "Sin registro",
-      "write": "Escribe, comparte un enlace y edita en tiempo real con otras personas.",
-      "export": "Importa archivos y exporta a PDF o Markdown.",
-      "noAi": "Sin IA, sin espacios de trabajo, sin subida de imágenes. Cualquiera con el enlace puede editar el documento.",
-      "retention": "Se borra tras {n} día sin cambios. | Se borra tras {n} días sin cambios.",
-      "delete": "Solo el navegador que creó un documento puede borrarlo."
+      "plannedNote": "Precios previstos. Los precios y los límites pueden cambiar antes del lanzamiento de los planes de pago; todavía no se puede comprar nada.",
+      "plannedShort": "(previsto)"
     },
     "freeAccount": {
-      "title": "Cuenta gratuita",
       "byok": "IA ilimitada con tu propia clave de proveedor.",
       "signIn": "Iniciar sesión"
     },
     "paid": {
-      "title": "De pago",
-      "tagline": "Más puntos de IA, espacios de trabajo y almacenamiento.",
       "joinWaitlist": "Unirse a la lista de espera",
       "setUpInWorkspace": "Configurar en un espacio de trabajo",
       "setUpInWorkspaceHint": "Abre el espacio de trabajo y luego su pestaña Facturación. Solo los admins del espacio pueden comprar."
@@ -871,17 +848,14 @@
       "imageStorage": "{size} de almacenamiento de imágenes"
     },
     "compare": {
-      "title": "Compara las opciones",
+      "title": "Comparar todos los detalles",
       "feature": "Función",
       "price": "Precio",
       "priceMonthly": "{price} al mes",
       "pricePlanned": "{price} al mes (previsto)",
       "documents": "Documentos",
       "unlimited": "Ilimitados",
-      "anonRetention": "Se conservan {n} día tras el último cambio | Se conservan {n} días tras el último cambio",
       "writing": "Editor, colaboración en tiempo real, comentarios, exportación a PDF",
-      "sharing": "Compartir en solo lectura o con contraseña",
-      "openEditOnly": "Solo edición abierta",
       "aiPoints": "Puntos de IA al mes",
       "ownKey": "IA con tu propia clave de proveedor",
       "workspaces": "Espacios de trabajo propios",
@@ -894,14 +868,19 @@
       "days": "{n} día | {n} días",
       "customCss": "CSS personalizado para documentos",
       "readOnly": "Solo lectura",
-      "setByYou": "Lo decides tú",
       "included": "Incluido",
       "notIncluded": "No incluido",
       "perSeat": "{value} por puesto",
       "aiImage": "Generación de imágenes con IA",
       "aiVoice": "Entrada por voz y dictado en directo",
       "aiStrongModel": "Elegir un modelo de IA más potente",
-      "ownKeyOnly": "Con tu propia clave"
+      "ownKeyOnly": "Con tu propia clave",
+      "shareControls": "Caducidad y solo lectura en enlaces compartidos",
+      "customDomains": "Dominios propios para páginas publicadas",
+      "brandKit": "Kit de marca y plantillas del espacio de trabajo",
+      "guests": "Invitados del espacio de trabajo",
+      "sso": "Inicio de sesión único (SSO) y SCIM",
+      "auditLog": "Registro de auditoría del espacio de trabajo"
     },
     "faq": {
       "title": "Preguntas",
@@ -916,7 +895,8 @@
       "anonA": "Cualquiera con el enlace puede leerlos y editarlos. Se borran tras {n} día sin cambios, y solo el navegador que creó un documento puede borrarlo antes. Inicia sesión para conservar tus documentos, hacerlos privados o protegerlos con contraseña. | Cualquiera con el enlace puede leerlos y editarlos. Se borran tras {n} días sin cambios, y solo el navegador que creó un documento puede borrarlo antes. Inicia sesión para conservar tus documentos, hacerlos privados o protegerlos con contraseña.",
       "anonKeptA": "Cualquiera con el enlace puede leerlos y editarlos, y solo el navegador que creó un documento puede borrarlo. Inicia sesión para hacer tus documentos privados o protegerlos con contraseña.",
       "selfHostQ": "¿Puedo ejecutar markoto en mi propio servidor?",
-      "selfHostA": "Sí. El código es source-available con la licencia FSL-1.1, que pasa a Apache-2.0 a los dos años. Una instancia autoalojada tiene todas las funciones y ningún plan: tú fijas los límites y conectas tu propio proveedor de IA o un modelo local. La guía de autoalojamiento de la documentación explica la instalación."
+      "selfHostA": "Sí. El código es source-available con la licencia FSL-1.1, que pasa a Apache-2.0 a los dos años. Una instancia autoalojada tiene todas las funciones y ningún plan: tú fijas los límites y conectas tu propio proveedor de IA o un modelo local. La guía de autoalojamiento de la documentación explica la instalación.",
+      "pointsPacks": "Los puntos de IA extra se venden en paquetes: {packs}."
     },
     "interval": {
       "label": "Periodo de facturación",
@@ -934,7 +914,40 @@
     "seatTotalMonth": "{total} al mes por {seats} puestos",
     "seatTotalYear": "{total} al año por {seats} puestos",
     "seatsLabel": "Puestos",
-    "creditsBuyLink": "Comprar puntos de IA en tu perfil"
+    "creditsBuyLink": "Comprar puntos de IA en tu perfil",
+    "plans": {
+      "free": "Gratis"
+    },
+    "teams": {
+      "title": "Equipos",
+      "switchLabel": "Team o Business"
+    },
+    "highlights": {
+      "members": "Hasta {n} persona por espacio de trabajo | Hasta {n} personas por espacio de trabajo",
+      "membersUnlimited": "Personas ilimitadas por espacio de trabajo",
+      "writing": "Colaboración en tiempo real, historial y exportación a PDF",
+      "aiExtras": "IA con {list}",
+      "ai": {
+        "aiStrongModel": "un modelo más potente",
+        "aiImage": "imágenes",
+        "aiVoice": "entrada de voz"
+      },
+      "feature": {
+        "sso": "Inicio de sesión único (SSO)",
+        "auditLog": "Registro de auditoría exportable",
+        "brandKit": "Kit de marca: fuentes, logotipos, plantillas",
+        "guests": "Invitados que solo ven los documentos compartidos",
+        "customDomains": "Dominios propios para páginas publicadas",
+        "shareControls": "Enlaces que caducan o son de solo lectura",
+        "customCss": "CSS personalizado para documentos",
+        "mcpWrite": "Los clientes MCP pueden editar documentos"
+      }
+    },
+    "creditsLine": "Más puntos de IA: paquetes de {packs}, válidos {months} meses.",
+    "alt": {
+      "anon": "Escribir sin cuenta",
+      "selfHost": "Alojar markoto tú mismo"
+    }
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
@@ -1939,9 +1952,10 @@
         "jina_ai": "Generación de embeddings para la base de conocimiento (RAG); extracción del contenido de una página a partir de una URL para la herramienta de obtener URL (Jina Reader; la URL se envía para todos los usuarios, también para quienes usan su propio proveedor de IA)",
         "staan": "Búsqueda web para el asistente de escritura con IA (la consulta se envía para todos los usuarios, también para quienes usan su propio proveedor de IA), mediante un índice de búsqueda europeo propio (enrutamiento solo en la UE)",
         "bfl": "Generación de imágenes con FLUX (tratamiento de datos fijado en la UE)",
+        "google_ads": "Medición de conversiones publicitarias: el identificador de clic del anuncio y la hora de un registro, ningún otro dato",
         "google_oauth": "Inicio de sesión con una cuenta de Google (no se accede a otros datos de Google)",
         "github_oauth": "Inicio de sesión con una cuenta de GitHub (no se accede a otros datos de GitHub)",
-        "stripe": "Facturación de suscripciones, almacenamiento de métodos de pago, emisión de facturas, evaluación del fraude",
+        "stripe": "Facturación de suscripciones y datos de pago; en las compras, Link (Stripe) es el vendedor y un responsable del tratamiento independiente",
         "sentry": "Telemetría de errores y rendimiento de la aplicación, almacenada en la región de datos de la UE de Sentry (Fráncfort)",
         "resend": "Envío de correos transaccionales: confirmaciones de eliminación de cuenta, avisos de exportación de datos lista, notificaciones de brechas de datos"
       }
@@ -2070,6 +2084,11 @@
     "planUpdated": {
       "title": "Plan actualizado",
       "description": "Ahora estás en el plan {plan}. Tu nuevo presupuesto de IA está disponible de inmediato."
+    },
+    "completePayment": "Completar el pago",
+    "soldThroughLink": {
+      "note": "Vendido a través de Link (Stripe), que gestiona el pago, el IVA, las facturas y los reembolsos. Se aplican {terms}.",
+      "terms": "las condiciones para compradores de Link"
     }
   },
   "plan": {
@@ -2100,7 +2119,6 @@
     }
   },
   "waitlist": {
-    "title": "Únete a la lista de espera",
     "description": "Recibe un correo cuando se lancen los planes de pago. Nada más.",
     "emailLabel": "Correo electrónico",
     "emailPlaceholder": "tu{'@'}ejemplo.es",
@@ -2129,7 +2147,8 @@
       "button": "Eliminar mi dirección",
       "successTitle": "Te hemos dado de baja",
       "successBody": "Tu dirección de correo se ha eliminado de la lista de espera."
-    }
+    },
+    "barTitle": "Los planes de pago llegarán pronto"
   },
   "aiProvider": {
     "title": "Proveedor de IA",
@@ -2885,5 +2904,243 @@
     "generate": "Generar",
     "generating": "Generando…",
     "failed": "No se pudo generar la imagen"
+  },
+  "adminStats": {
+    "title": "Estadísticas del producto",
+    "intro": "Recuentos y totales de esta instancia. Ninguna lista nombra a una persona.",
+    "pageTitle": "Estadísticas del producto · Admin",
+    "investorTitle": "Resumen para inversores",
+    "investorLink": "Resumen para inversores",
+    "back": "Volver a las estadísticas",
+    "print": "Imprimir o guardar como PDF",
+    "loadFailed": "No se pudieron cargar las estadísticas",
+    "loading": "Cargando…",
+    "updated": "Las cifras tienen como máximo un minuto. Los días son en UTC.",
+    "range": {
+      "label": "Periodo",
+      "7": "7 días",
+      "30": "30 días",
+      "90": "90 días",
+      "365": "12 meses",
+      "all": "Todo el tiempo"
+    },
+    "tabs": {
+      "overview": "Resumen",
+      "users": "Usuarios",
+      "content": "Contenido",
+      "ai": "IA",
+      "revenue": "Ingresos",
+      "ops": "Operaciones"
+    },
+    "change": {
+      "vsPrevious": "frente al periodo anterior"
+    },
+    "csv": "Descargar CSV",
+    "kpi": {
+      "registered": "Cuentas",
+      "signups": "Nuevos registros",
+      "dau": "Activos hoy",
+      "wau": "Activos, 7 días",
+      "mau": "Activos, 30 días",
+      "activeInWindow": "Activos en el periodo",
+      "stickiness": "Stickiness (hoy / 30 días)",
+      "editors": "Personas que editaron",
+      "pendingDeletion": "Eliminación pendiente",
+      "documents": "Documentos",
+      "documentsCreated": "Documentos creados",
+      "documentsEdited": "Documentos editados",
+      "ownedDocs": "Con propietario",
+      "anonymousDocs": "Anónimos",
+      "workspaceDocs": "En espacios de trabajo",
+      "words": "Palabras escritas",
+      "workspaces": "Espacios de trabajo",
+      "workspacesCreated": "Espacios de trabajo creados",
+      "guests": "Invitados",
+      "knowledgeFiles": "Archivos de conocimiento",
+      "knowledgeUploaded": "Conocimiento subido",
+      "knowledgeBytes": "Tamaño del conocimiento",
+      "knowledgeChunks": "Fragmentos",
+      "knowledgeTokens": "Tokens",
+      "knowledgeFailed": "Archivos fallidos",
+      "images": "Imágenes",
+      "imagesUploaded": "Imágenes subidas",
+      "imageBytes": "Almacenamiento de imágenes",
+      "publishedPages": "Páginas publicadas",
+      "indexablePages": "Abiertas a buscadores",
+      "customDomains": "Dominios personalizados",
+      "verifiedDomains": "Dominios activos",
+      "comments": "Comentarios",
+      "commentsAdded": "Comentarios añadidos",
+      "savedThemes": "Diseños guardados",
+      "mrr": "MRR {currency}",
+      "arr": "ARR {currency}",
+      "payingCustomers": "Suscripciones de pago",
+      "trialing": "En periodo de prueba",
+      "pastDue": "Pago vencido",
+      "scheduledCancellations": "Con fin programado",
+      "atRisk": "MRR con fin programado, {currency}",
+      "waitlistConfirmed": "Lista de espera (confirmada)",
+      "waitlistUnconfirmed": "Lista de espera (sin confirmar)",
+      "waitlistNew": "Nuevos en la lista de espera",
+      "aiSpend": "Coste de IA",
+      "aiRequests": "Solicitudes de IA",
+      "aiUsers": "Personas que usan IA",
+      "costPerAiUser": "Coste por usuario de IA",
+      "costPerActiveUser": "Coste por usuario activo",
+      "freePool": "Fondo de IA gratuita este mes",
+      "byokUsers": "Clave de IA propia",
+      "mcpTokens": "Tokens MCP activos",
+      "mcpSessions": "Sesiones MCP",
+      "databaseSize": "Tamaño de la base de datos",
+      "restrictedDocs": "Documentos restringidos",
+      "openInvites": "Invitaciones abiertas",
+      "pendingStripeEvents": "Eventos de Stripe en espera",
+      "abuseOpen": "Denuncias abiertas",
+      "abuseReceived": "Denuncias recibidas",
+      "mrrTotal": "MRR, todo en CHF",
+      "arrTotal": "ARR, todo en CHF",
+      "contribution": "Contribución est. / mes, CHF",
+      "subsStarted": "Suscripciones iniciadas",
+      "subsEnded": "Suscripciones finalizadas",
+      "cancelScheduled": "Cancelaciones programadas",
+      "newMrr": "MRR nuevo {currency}",
+      "lostMrr": "MRR perdido {currency}"
+    },
+    "hint": {
+      "activeDefinition": "Con sesión iniciada y que usó markoto ese día.",
+      "editorsDefinition": "Personas con sesión iniciada que editaron, comentaron o restauraron.",
+      "noRevenue": "Todavía no hay suscripciones de pago.",
+      "freePool": "{spent} de {cap}",
+      "freePoolOff": "Sin límite compartido en esta instancia.",
+      "spendFrom": "El historial de costes de IA empieza el {day}.",
+      "spendUnavailable": "No se pudieron leer los registros de coste de IA.",
+      "listPrice": "Bruto, a precio de lista: antes de comisiones de pago, descuentos e impuestos.",
+      "plannedPrices": "Valorado a los precios previstos; los planes de pago no están a la venta.",
+      "billingOff": "La facturación está desactivada en esta instancia.",
+      "comingSoon": "Los planes de pago se muestran como «próximamente»; la lista de espera está abierta.",
+      "aiUsersFrom": "Las personas que usan IA se cuentan desde el {day} (los registros por persona se conservan 90 días).",
+      "churnHistory": "El historial de suscripciones se registra a partir de esta versión; los planes de espacio de trabajo anteriores se añadieron a partir de sus registros."
+    },
+    "chart": {
+      "signups": "Registros",
+      "accounts": "Cuentas (total acumulado)",
+      "editors": "Personas que editaron",
+      "documents": "Documentos creados",
+      "aiSpend": "Coste de IA por función (USD)",
+      "members": "Espacios de trabajo por miembros",
+      "activation": "Activación de cuentas nuevas",
+      "subscriptions": "Suscripciones iniciadas y finalizadas",
+      "started": "Iniciadas",
+      "ended": "Finalizadas"
+    },
+    "table": {
+      "period": "Periodo",
+      "count": "Cantidad",
+      "value": "Valor",
+      "metric": "Métrica",
+      "share": "Proporción",
+      "feature": "Función",
+      "cost": "Coste (USD)",
+      "requests": "Solicitudes",
+      "plan": "Plan",
+      "currency": "Moneda",
+      "interval": "Facturación",
+      "subscriptions": "Suscripciones",
+      "units": "Puestos",
+      "provider": "Inicio de sesión",
+      "accounts": "Cuentas",
+      "status": "Estado",
+      "members": "Miembros",
+      "workspaces": "Espacios de trabajo",
+      "amount": "Importe",
+      "purchases": "Compras",
+      "cohort": "Semana de registro",
+      "size": "Cuentas",
+      "week": "S{n}"
+    },
+    "section": {
+      "growth": "Crecimiento",
+      "activation": "Activación",
+      "retention": "Retención por cohorte semanal",
+      "retentionHint": "Proporción de las cuentas nuevas de cada semana que editaron en las semanas posteriores al registro (S0 = la semana de registro).",
+      "providers": "Proveedores de inicio de sesión",
+      "plans": "Planes",
+      "documents": "Documentos",
+      "workspaces": "Espacios de trabajo",
+      "knowledge": "Base de conocimiento",
+      "publishing": "Publicación",
+      "aiSpend": "Coste de IA",
+      "subscriptions": "Suscripciones activas",
+      "topups": "Compras de crédito de IA",
+      "planMix": "Distribución de planes",
+      "exports": "Exportaciones de datos",
+      "abuse": "Denuncias de abuso",
+      "estimate": "Contribución mensual estimada"
+    },
+    "activation": {
+      "signedUp": "Registrados",
+      "createdDoc": "Crearon un documento",
+      "edited": "Editaron",
+      "usedAi": "Usaron la IA"
+    },
+    "provider": {
+      "github": "GitHub",
+      "google": "Google",
+      "oidc": "OpenID Connect",
+      "sso": "SSO del espacio de trabajo"
+    },
+    "plan": {
+      "free": "Gratis",
+      "pro": "Pro",
+      "team": "Team",
+      "business": "Business"
+    },
+    "interval": {
+      "month": "Mensual",
+      "year": "Anual"
+    },
+    "status": {
+      "queued": "En cola",
+      "running": "En curso",
+      "ready": "Listo",
+      "failed": "Fallido",
+      "expired": "Caducado",
+      "open": "Abierta",
+      "acknowledged": "Recibida",
+      "actioned": "Resuelta",
+      "dismissed": "Desestimada"
+    },
+    "feature": {
+      "text-loop": "Asistente de escritura",
+      "transcribe": "Entrada de voz",
+      "dictate-tick": "Dictado en directo",
+      "web-search": "Búsqueda web",
+      "web-fetch": "Obtención de páginas",
+      "image-gen": "Generación de imágenes",
+      "embeddings": "Embeddings de conocimiento",
+      "design-import": "Diseño a partir de un documento",
+      "other": "Otros"
+    },
+    "investor": {
+      "subtitle": "markoto, {date}. Últimos 12 meses, por mes.",
+      "users": "Usuarios",
+      "revenue": "Ingresos",
+      "content": "Contenido",
+      "ai": "IA",
+      "footnote": "Cuentas y documentos de la base de datos de la aplicación, coste de IA de los registros del proxy de IA (90 días). Ingresos a precio de lista, brutos. Definiciones: docs/contributing/admin-metrics.md."
+    },
+    "menu": "Estadísticas del producto",
+    "estimate": {
+      "estimated": "Estimación",
+      "gross": "Bruto a precio de lista",
+      "tax": "Impuestos incluidos ({pct} %)",
+      "fees": "Comisiones de pago ({pct} % + {fixed})",
+      "net": "Ingresos netos",
+      "aiCost": "Coste de IA de la plataforma, últimos 30 días",
+      "contribution": "Contribución",
+      "combined": "Total, en CHF",
+      "note": "Estimado, por mes. EUR a CHF a {eur}, USD a CHF a {usd}. Los supuestos se definen con NUXT_STATS_*.",
+      "aiUnavailable": "No se pudo leer el coste de IA y cuenta como 0."
+    }
   }
 }

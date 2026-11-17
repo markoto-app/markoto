@@ -2,7 +2,7 @@ import type Stripe from 'stripe'
 import * as Sentry from '@sentry/nuxt'
 import { recordSeatChange, recordWorkspaceStripeCustomer, setWorkspaceBillingAdmin } from '../../repos/workspaceSubscriptions'
 import type { WorkspaceAccess } from '../../repos/proofs'
-import { findLiveSubscription } from './stripePlanChange'
+import { findLiveSubscription, PAID_CHANGE_PARAMS, paymentPendingError, pendingPayment } from './stripePlanChange'
 import { stripeResponseTime } from './stripeEvents/eventAge'
 import { changedSeatBudgetAdjust } from './workspaceBilling'
 import { readWorkspaceTeam } from '../litellm/workspaceTeams'
@@ -69,10 +69,13 @@ export async function ensureWorkspaceCustomer(stripe: Stripe, ws: WorkspaceAcces
 /**
  * Change the paid seats of a live subscription.
  *
- * - More seats: invoiced and paid NOW (`always_invoice` +
- *   `error_if_incomplete`, like a plan upgrade). A failed payment throws
- *   and changes nothing: seats bought on credit would unlock the
- *   pooled AI budget before anything was paid.
+ * - More seats: invoiced and paid NOW (`PAID_CHANGE_PARAMS`, like a plan
+ *   upgrade). When the payment needs the admin (3-D Secure, a declined
+ *   card) Stripe keeps the new count pending and this throws 402
+ *   `billing/payment-pending` with nothing written: seats bought on credit
+ *   would unlock the pooled AI budget before anything was paid. Once the
+ *   invoice is paid the `customer.subscription.updated` webhook writes the
+ *   seats (and the team budget follows); unpaid, the change lapses.
  * - Fewer seats: no credit for the running period
  *   (`proration_behavior: 'none'`); the next invoice bills the new count.
  *   A credit would let an admin add seats, spend their budget and get
@@ -104,12 +107,12 @@ export async function changeWorkspaceSeats(stripe: Stripe, ws: WorkspaceAccess<'
   }
   const from = item.quantity ?? row.seats
   const adding = seats > from
-  await stripe.subscriptions.update(sub.id, {
+  const updated = await stripe.subscriptions.update(sub.id, {
     items: [{ id: item.id, quantity: seats }],
-    ...(adding
-      ? { proration_behavior: 'always_invoice' as const, payment_behavior: 'error_if_incomplete' as const }
-      : { proration_behavior: 'none' as const })
+    ...(adding ? PAID_CHANGE_PARAMS : { proration_behavior: 'none' as const })
   })
+  const pending = pendingPayment(updated)
+  if (pending) throw paymentPendingError(pending)
   const budget = changedSeatBudgetAdjust({ current: row, from, to: seats, windowEnd, now })
   // `at`: Stripe's time just before the change, so an event of the previous seat count is not applied over it.
   await recordSeatChange(ws, { seats, budgetSeatAdjust: budget.adjust, budgetSeatAdjustUntil: budget.until, at: stripeResponseTime(sub) })
@@ -181,9 +184,10 @@ export async function cancelDuplicateWorkspaceSubscription(stripe: Stripe, sub: 
 }
 
 /**
- * The payment intents that paid an invoice. The pinned API version
- * (2025-01-27.acacia) names it on the invoice (`payment_intent`, only set
- * once paid); newer versions list it under Invoice Payments.
+ * The payment intents that paid an invoice. Since basil (pinned) they are
+ * listed under Invoice Payments; acacia named it on the invoice
+ * (`payment_intent`, only set once paid), kept for a webhook endpoint
+ * that still renders the older version.
  */
 async function paidInvoicePaymentIntents(stripe: Stripe, invoiceId: string): Promise<string[]> {
   const invoice = await stripe.invoices.retrieve(invoiceId)

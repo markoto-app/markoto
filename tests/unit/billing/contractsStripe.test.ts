@@ -40,7 +40,7 @@ describe('STRIPE_API_VERSION', () => {
     // the constructor accept it. If this test starts failing after
     // an SDK upgrade, that means Stripe deprecated the version we
     // pinned: coordinate the upgrade per the contract file's notes.
-    expect(STRIPE_API_VERSION).toBe('2025-01-27.acacia')
+    expect(STRIPE_API_VERSION).toBe('2026-09-30.endive')
   })
 })
 
@@ -54,6 +54,7 @@ describe('HANDLED_STRIPE_EVENT_TYPES', () => {
       'checkout.session.async_payment_failed',
       'customer.subscription.created',
       'customer.subscription.updated',
+      'customer.subscription.pending_update_applied',
       'customer.subscription.deleted',
       'invoice.paid',
       'invoice.payment_failed',

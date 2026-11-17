@@ -99,17 +99,21 @@ export async function setDefaultCard(stripe: Stripe, customerId: string, card: s
 }
 
 /**
- * The subscription on the pinned API version: its billing period sits on
- * the subscription itself there (the SDK types describe a newer version).
+ * A subscription with its billing period lifted to the top level. Since
+ * the basil API versions (and so on the pinned one) Stripe keeps the
+ * period on each subscription item (`items.data[].current_period_*`), not
+ * on the subscription. Every plan here has exactly one item, so its period
+ * is the subscription's; the tests read it as `current_period_*`.
  */
 export type PinnedSubscription = Stripe.Subscription & { current_period_start: number, current_period_end: number }
 
-/** A subscription the API answered in the pinned version, with its period typed. */
+/** A subscription the API answered in the pinned version, with its period read from its item. */
 export function pinned(sub: Stripe.Subscription): PinnedSubscription {
-  const start: unknown = Reflect.get(sub, 'current_period_start')
-  const end: unknown = Reflect.get(sub, 'current_period_end')
+  const item: unknown = sub.items.data[0]
+  const start: unknown = item ? Reflect.get(item as object, 'current_period_start') : undefined
+  const end: unknown = item ? Reflect.get(item as object, 'current_period_end') : undefined
   if (typeof start !== 'number' || typeof end !== 'number') {
-    throw new Error(`[billing-sandbox] subscription ${sub.id} has no period on the subscription: the API did not answer in ${STRIPE_API_VERSION}`)
+    throw new Error(`[billing-sandbox] subscription ${sub.id} has no period on its item: the API did not answer in ${STRIPE_API_VERSION}`)
   }
   return Object.assign(sub, { current_period_start: start, current_period_end: end })
 }

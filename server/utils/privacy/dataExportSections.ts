@@ -1,4 +1,6 @@
+import { listSubscriptionEventsOfUser } from '../../repos/subscriptionEvents'
 import { strToU8 } from 'fflate'
+import { adConversionsForExport } from '../../repos/adConversions'
 import * as Sentry from '@sentry/nuxt'
 import { useStripeClient } from '../billing/stripeClient'
 import { isBillingEnabled } from '../billing/billingMode'
@@ -56,6 +58,13 @@ export async function addWaitlistEntry(entries: ExportEntries, user: UserScope):
   return rows.length
 }
 
+/** Google Ads click-id conversions recorded for the account (docs/operations-analytics.md). */
+export async function addAdConversionsEntry(entries: ExportEntries, user: UserScope): Promise<number> {
+  const rows = await adConversionsForExport(user)
+  entries['ad_conversions.ndjson'] = strToU8(toNdjson(rows))
+  return rows.length
+}
+
 /**
  * Bring-your-own-key AI provider configs. Exported WITHOUT the key,
  * neither the ciphertext nor the last four characters: an export ZIP
@@ -88,6 +97,19 @@ export async function addWorkspaceSubscriptionsEntry(entries: ExportEntries, use
     currency: r.currency,
     interval: r.interval,
     createdAt: r.createdAt.toISOString()
+  })), null, 2))
+  return rows.length
+}
+
+/** Personal subscription history: started, changed, cancelled, ended (always written). */
+export async function addSubscriptionHistoryEntry(entries: ExportEntries, user: UserScope): Promise<number> {
+  const rows = await listSubscriptionEventsOfUser(user)
+  entries['billing/subscription_history.json'] = strToU8(JSON.stringify(rows.map(r => ({
+    event: r.kind,
+    plan: r.plan,
+    interval: r.interval,
+    currency: r.currency,
+    occurredAt: r.occurredAt.toISOString()
   })), null, 2))
   return rows.length
 }

@@ -2,10 +2,9 @@ import { recordPaidTermsAcceptance, requirePaidTermsAccepted } from '../../../..
 import { useStripeClient } from '../../../../utils/billing/stripeClient'
 import { requestBaseUrl } from '../../../../utils/billing/workspaceStripe'
 import { getPooledWorkspace } from '../../../../utils/billing/workspaceBilling'
-import { automaticTaxEnabled, createTopupCheckout } from '../../../../utils/billing/topupCheckout'
+import { createTopupCheckout } from '../../../../utils/billing/topupCheckout'
 import { buyWorkspaceTopupBody } from '~~/shared/api/billing'
 import { MINUTE_MS } from '~~/shared/config/units'
-import { useEnv } from '~~/shared/env/load'
 
 // POST /api/workspaces/:wsId/billing/topup: buy AI credits for a Team /
 // Business workspace. Workspace admins; needs an active
@@ -31,8 +30,7 @@ export default defineApiHandler({
       email: null,
       clientReferenceId: `workspace:${wsId}`,
       successUrl: `${base}/w/${encodeURIComponent(wsId)}?tab=billing&credits=success`,
-      cancelUrl: `${base}/w/${encodeURIComponent(wsId)}?tab=billing&credits=cancelled`,
-      automaticTax: automaticTaxEnabled(useEnv().billing.stripeAutomaticTax)
+      cancelUrl: `${base}/w/${encodeURIComponent(wsId)}?tab=billing&credits=cancelled`
     })
     await recordPaidTermsAcceptance(event, workspaceAccess, { kind: 'topup', subject: { type: 'workspace', id: wsId }, item: body.pack })
     return checkout

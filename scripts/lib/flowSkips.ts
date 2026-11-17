@@ -36,6 +36,23 @@ export function skippedFlowsMarkdown(skipped: SkippedFlow[]): string {
   ].join('\n')
 }
 
+/**
+ * One GitHub Actions `::warning::` line per skipped flow, so the skip shows
+ * as an annotation on the release run, not only in its summary. Newlines and
+ * `%` are escaped as the workflow-command format requires.
+ */
+export function skippedFlowsWarnings(skipped: SkippedFlow[]): string[] {
+  const escape = (v: string) => v.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A')
+  const bySlug = new Map<string, { count: number, reason: string }>()
+  for (const s of [...skipped].sort((a, b) => a.slug.localeCompare(b.slug))) {
+    const entry = bySlug.get(s.slug) ?? { count: 0, reason: s.reason }
+    entry.count += 1
+    bySlug.set(s.slug, entry)
+  }
+  return [...bySlug].map(([slug, { count, reason }]) =>
+    `::warning title=Flow skipped (provider unavailable)::${escape(`${slug} (${count} variant${count === 1 ? '' : 's'}): ${reason}`)}`)
+}
+
 /** Read every `<slug>/<locale>/<variant>/<marker>` under `root`. */
 export async function readSkippedFlows(root: string): Promise<SkippedFlow[]> {
   const out: SkippedFlow[] = []

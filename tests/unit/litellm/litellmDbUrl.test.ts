@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { litellmDbUrl } from '../../../server/db/litellm'
+import { mkdtempSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { litellmDbUrl, litellmPoolConfig } from '../../../server/db/litellm'
 
 // The app reaches LiteLLM's own database for the spend-log sweep and the
 // admin per-axis spend query. With separate Postgres roles
@@ -42,5 +45,26 @@ describe('litellmDbUrl', () => {
     expect(litellmDbUrl({ ...base, NUXT_LITELLM_DB_NAME: 'litellm_test' }))
       .toBe('postgres://markoto_app:app-pw@postgres:5432/litellm_test')
     expect(litellmDbUrl({ ...base, NUXT_LITELLM_DB_URL: 'postgres://x:y@db:6543/l' })).toBe('postgres://x:y@db:6543/l')
+  })
+})
+
+describe('litellmPoolConfig', () => {
+  it('verifies TLS in production like the app pool', () => {
+    expect(litellmPoolConfig({ ...base }, true).ssl).toEqual({ rejectUnauthorized: true })
+  })
+
+  it('pins the configured CA', () => {
+    const ca = join(mkdtempSync(join(tmpdir(), 'pgca-')), 'ca.pem')
+    writeFileSync(ca, 'PEM')
+    expect(litellmPoolConfig({ ...base, PGSSLROOTCERT: ca }, true).ssl).toEqual({ rejectUnauthorized: true, ca: 'PEM' })
+  })
+
+  it('stays plain in dev and tests, and honours PGSSL=disable', () => {
+    expect(litellmPoolConfig({ ...base }, false).ssl).toBe(false)
+    expect(litellmPoolConfig({ ...base, PGSSL: 'disable' }, true).ssl).toBe(false)
+  })
+
+  it('keeps the small pool and the connection string', () => {
+    expect(litellmPoolConfig({ ...base }, false)).toMatchObject({ connectionString: 'postgres://markoto_app:app-pw@postgres:5432/litellm', max: 2 })
   })
 })

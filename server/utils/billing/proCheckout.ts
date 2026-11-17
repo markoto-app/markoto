@@ -7,7 +7,7 @@ import { getUserCheckoutBilling, recordOwnPlanChange } from '../../repos/userBil
 import { apiError } from '../api/apiError'
 import { recordPaidTermsAcceptance, requirePaidTermsAccepted } from './paidTerms'
 import { useStripeClient } from './stripeClient'
-import { findLiveSubscription, changeSubscriptionPrice, livePeriod } from './stripePlanChange'
+import { findLiveSubscription, changeSubscriptionPrice, livePeriod, paymentPendingError, pendingPayment } from './stripePlanChange'
 import { identifyItem, subscriptionCancelAt } from './stripeEvents/stripeObjects'
 import { stripeResponseTime } from './stripeEvents/eventAge'
 import { stripePriceIdFor } from './stripePrices'
@@ -87,6 +87,12 @@ export async function startProCheckout(event: H3Event, request: ProCheckoutReque
     // below; the change's own event is created after it and applies.
     const changedAt = stripeResponseTime(liveSub)
     const updated = await changeProPriceInPlace(stripe, liveSub, priceId, userId)
+    await recordPaidTermsAcceptance(event, self, { kind: 'plan', subject: { type: 'user', id: String(userId) }, item: `${plan}_${interval}` })
+    // The payment needs the buyer (3-D Secure, declined card): Stripe keeps
+    // the change until its invoice is paid, and the webhook applies it then.
+    // Nothing is written here, so the old plan stays until it is paid.
+    const pending = pendingPayment(updated)
+    if (pending) throw paymentPendingError(pending)
     // Written at once so the profile and pricing pages show the new billing
     // period without waiting for the webhook (which writes the same state).
     // Best-effort: the change is already paid for.
@@ -95,7 +101,6 @@ export async function startProCheckout(event: H3Event, request: ProCheckoutReque
     } catch (e) {
       log.warn('plan change not written locally, the webhook will', { userId, err: e })
     }
-    await recordPaidTermsAcceptance(event, self, { kind: 'plan', subject: { type: 'user', id: String(userId) }, item: `${plan}_${interval}` })
     return { updated: true, plan, interval }
   }
 
@@ -152,7 +157,8 @@ async function changeProPriceInPlace(stripe: Stripe, liveSub: Stripe.Subscriptio
     Sentry.captureException(e, {
       tags: { component: 'billing', event: 'plan_change_failed', userId: String(userId) }
     })
-    // `error_if_incomplete` surfaces payment failures here, nothing changed.
+    // A declined payment does not land here (`pending_if_incomplete` keeps
+    // the change pending); this is Stripe refusing the change itself.
     throw apiError('billing/plan-change-failed')
   }
 }

@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import {
   FEATURE_TAGS,
   ALL_FEATURE_TAGS,
-  TAG_NAMESPACES,
   workspaceTag,
   userTag,
   docTag,
@@ -15,10 +14,6 @@ import {
 // `featureMetadata(...)` rather than hand-rolling tag arrays.
 
 describe('featureTags: namespaces', () => {
-  it('TAG_NAMESPACES enumerates every prefix the dashboard recognises', () => {
-    expect(TAG_NAMESPACES).toEqual(['feature:', 'workspace:', 'user:', 'doc:'])
-  })
-
   it('every feature tag uses the feature: prefix', () => {
     for (const tag of ALL_FEATURE_TAGS) {
       expect(tag).toMatch(/^feature:/)

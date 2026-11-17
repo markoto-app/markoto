@@ -1,6 +1,6 @@
 // Error codes `billing/*`. Texts: `apiErrors.billing.<slug>` in i18n/locales/errors/<locale>.json.
 import { z } from 'zod'
-import { defineErrors } from './define'
+import { defineErrors, recoveryParam } from './define'
 
 export const billingErrors = defineErrors('billing', {
   'admin-required': { status: 403 },
@@ -17,6 +17,11 @@ export const billingErrors = defineErrors('billing', {
   'not-configured': { status: 503 },
   // `detail`: the payment provider's reason (e.g. the card was declined).
   'payment-failed': { status: 402, params: z.object({ detail: z.string().optional() }) },
+  // The change waits for its payment (the bank asks the buyer to confirm,
+  // or the card was declined): nothing applies until the invoice is paid.
+  // `recovery`: a link to pay that invoice, when Stripe gave one.
+  'payment-pending': { status: 402, params: z.object({ recovery: recoveryParam.optional() }) },
+  'plan-cancelled': { status: 409 },
   'plan-change-failed': { status: 502 },
   'portal-failed': { status: 502 },
   'price-unavailable': { status: 503 },

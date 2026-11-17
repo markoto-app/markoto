@@ -17,7 +17,8 @@ export function useBillingMode() {
   )
   const billingEnabled = computed(() => mode.value.billingEnabled)
   const plansComingSoon = computed(() => mode.value.plansComingSoon)
+  const managedPayments = computed(() => mode.value.managedPayments === true)
   // /pricing is worth linking when there is a plan to buy or upcoming plans + waitlist.
   const pricingVisible = computed(() => billingEnabled.value || plansComingSoon.value)
-  return { mode, billingEnabled, plansComingSoon, pricingVisible }
+  return { mode, billingEnabled, plansComingSoon, managedPayments, pricingVisible }
 }

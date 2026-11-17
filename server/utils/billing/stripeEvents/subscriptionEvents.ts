@@ -15,6 +15,7 @@ import {
   upsertWorkspaceSubscriptionFromStripe
 } from './billingSubjects'
 import { eventTime } from './eventAge'
+import { recordSubscriptionHistory } from './subscriptionHistory'
 import { applyUserSubscriptionState, endUserSubscription, findUserIdByStripeCustomer, type UserBillingUpdate } from '../../../repos/userBilling'
 import type { TxHandle, DeferredAfterCommit } from './types'
 import { useLogger } from '../../platform/logger'
@@ -31,7 +32,9 @@ const log = useLogger('stripe-webhook')
 
 type SubscriptionResult = { matched: number, plan: PlanName | null }
 
-type SubscriptionChangeEvent = Stripe.CustomerSubscriptionUpdatedEvent | Stripe.CustomerSubscriptionCreatedEvent
+// `pending_update_applied`: a change that waited for its payment (`pending_if_incomplete`)
+// was paid and applied; it carries the subscription with the new items.
+type SubscriptionChangeEvent = Stripe.CustomerSubscriptionUpdatedEvent | Stripe.CustomerSubscriptionCreatedEvent | Stripe.CustomerSubscriptionPendingUpdateAppliedEvent
 
 /**
  * `customer.subscription.created|updated` handler. Plan changes, seat
@@ -64,6 +67,7 @@ export async function handleSubscriptionUpdated(
     warnUnknownPrice(`subscription.${event.type.split('.').pop()}`, item?.price?.id, `sub=${sub.id}`)
     return { matched: 0, plan: null }
   }
+  if (subject?.kind === 'user') await recordSubscriptionHistory(event, subject, identity, db)
   return applyPersonalSubscription(event, { db, plan: identity.plan, identity, customerId, deferAfterCommit: opts.deferAfterCommit })
 }
 
@@ -87,6 +91,7 @@ async function applyWorkspaceSubscription(
     log.warn('ignoring late event of an ended subscription', { eventType: event.type, subscriptionId: sub.id, workspaceId })
     return { matched: 0, plan: null }
   }
+  await recordSubscriptionHistory(event, { kind: 'workspace', workspaceId }, identity, db)
   // An older snapshot than the state the row holds (a redelivery that
   // newer events overtook) would put the old plan back: not applied.
   if (!(await upsertWorkspaceSubscriptionFromStripe(db, { workspaceId, sub, identity, customerId, at: eventTime(event) }))) {
@@ -170,11 +175,13 @@ export async function handleSubscriptionDeleted(
   const sub = event.data.object
   const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
   const subject = await subjectForCustomer(customerId, handle)
+  const identity = await identifyItem(null, sub.items?.data[0])
 
   if (subject?.kind === 'workspace') {
     // Only the tracked subscription ends the workspace's plan (not a
     // cancelled duplicate, not an old subscription's late event).
     if (await rowHoldingOtherSubscription(handle, subject.workspaceId, sub.id)) return { matched: 0 }
+    if (isWorkspaceIdentity(identity)) await recordSubscriptionHistory(event, subject, identity, handle)
     const matched = await markWorkspaceSubscriptionCanceled(STRIPE, handle, subject.workspaceId, eventTime(event))
     // Older than the state the row holds: nothing ended.
     if (matched === 0) return { matched }
@@ -188,6 +195,7 @@ export async function handleSubscriptionDeleted(
     return { matched }
   }
 
+  if (subject?.kind === 'user' && identity?.plan === 'pro') await recordSubscriptionHistory(event, subject, identity, handle)
   // Not applied when the row holds newer state: a subscription bought
   // after this one ended must not be taken away by its late event.
   const matched = await endUserSubscription(STRIPE, handle, customerId, eventTime(event))

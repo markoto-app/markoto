@@ -217,7 +217,7 @@ check_isolation() { # check_isolation LABEL CONFIG_JSON
           | select(((.value.security_opt // []) | index("no-new-privileges:true")) == null)
           | "\(.key) lacks no-new-privileges" ),
         # read-only root filesystems
-        ( ["renderer", "markitdown", "litellm", "valkey", "sync", "app", "traefik", "socket-proxy"][] as $s
+        ( ["renderer", "markitdown", "litellm", "valkey", "sync", "app", "traefik", "socket-proxy", "umami"][] as $s
           | select($c.services[$s]) | select($c.services[$s].read_only != true)
           | "\($s) has a writable root filesystem" ),
         # Chromium sandbox profile
@@ -246,6 +246,57 @@ for combo in \
 done
 render_config "$tmp/iso.json" "$tmp/prod.env" "deploy/compose/compose.prod.yml"
 check_isolation "prod" "$tmp/iso.json"
+
+# Cookieless analytics (docs/operations-analytics.md): Umami runs only with
+# the `analytics` profile; hardened like the rest; on the main domain only
+# POST /a/api/send reaches it; its dashboard host always has a login; it
+# keeps no visitor IP beyond the daily-salted hash; the app never has an
+# analytics URL without it; db-init creates its database only then.
+if jq -e '.services.umami' "$tmp/iso.json" > /dev/null; then
+  echo "FAIL: prod must not run Umami without the analytics profile" >&2
+  exit 1
+fi
+if ! jq -e '(.services.app.environment.NUXT_ANALYTICS_INTERNAL_URL // "") == "" and (.services["db-init"].environment.UMAMI_DB // "") == ""' "$tmp/iso.json" > /dev/null; then
+  echo "FAIL: without UMAMI_APP_SECRET the app gets no analytics URL and db-init creates no umami database" >&2
+  exit 1
+fi
+cp "$tmp/prod.env" "$tmp/prod-analytics.env"
+cat >> "$tmp/prod-analytics.env" <<'EOF5'
+UMAMI_APP_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+UMAMI_HOST=stats.docs.example.org
+UMAMI_BASIC_AUTH_USERS=stats:placeholder
+POSTGRES_UMAMI_USER=umami
+POSTGRES_UMAMI_PASSWORD=placeholder
+EOF5
+render_config "$tmp/analytics.json" "$tmp/prod-analytics.env" "deploy/compose/compose.prod.yml" "analytics"
+check_isolation "prod analytics" "$tmp/analytics.json"
+out="$(jq -r '
+  .services.umami as $u
+  | [
+      ( select(($u.labels["traefik.http.routers.umami-collect.rule"] // "") != "Host(`docs.example.org`) && Method(`POST`) && Path(`/a/api/send`)")
+        | "umami-collect must route only POST /a/api/send on the main domain" ),
+      ( select(($u.labels["traefik.http.routers.umami.middlewares"] // "") | contains("umami-auth") | not)
+        | "the Umami dashboard router lacks its edge login" ),
+      ( select(($u.labels["traefik.http.routers.umami.rule"] // "") != "Host(`stats.docs.example.org`)")
+        | "the Umami dashboard must be on UMAMI_HOST only" ),
+      ( select($u.environment.SALT_ROTATION != "day") | "Umami must rotate its visitor salt daily" ),
+      ( select($u.environment.CLIENT_IP_HEADER != "x-real-ip") | "Umami must take the client IP from X-Real-Ip (set by Traefik)" ),
+      ( select($u.environment.DISABLE_TELEMETRY != "1" or $u.environment.DISABLE_UPDATES != "1") | "Umami telemetry / update checks must be off" ),
+      ( select(($u.mem_limit // "") == "") | "umami has no mem_limit" ),
+      ( select(($u.healthcheck.test // []) | length == 0) | "umami has no healthcheck" ),
+      ( select(($u.networks // {} | keys) - ["web", "data"] | length > 0) | "umami may only join web and data" ),
+      ( select(.services.app.environment.NUXT_ANALYTICS_INTERNAL_URL != "http://umami:3000") | "the app must reach Umami in-network" ),
+      ( select(.services["db-init"].environment.UMAMI_DB != "umami") | "db-init must create the umami database" )
+    ] | .[]' "$tmp/analytics.json")"
+if [[ -n "$out" ]]; then
+  printf 'FAIL (analytics): %s\n' "$out" >&2
+  exit 1
+fi
+if ! jq -r '.services.umami.image' "$tmp/analytics.json" | grep -Eq '^ghcr\.io/umami-software/umami:[0-9.]+@sha256:[0-9a-f]{64}$'; then
+  echo "FAIL: the Umami image must be pinned by tag and digest" >&2
+  exit 1
+fi
+echo "ok: analytics (Umami behind its profile, hardened, collect path only, dashboard login)"
 
 # Anonymous gate (shared/config/anonGate.ts)
 # Hosted: on, and the ALTCHA key is required (compose refuses without it).

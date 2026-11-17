@@ -49,6 +49,10 @@ Contents:
   waitlist.ndjson        your paid-plans waitlist sign-up, if you joined
                          it while signed in (email, language, consent
                          version, sign-up + confirmation dates).
+  ad_conversions.ndjson  if you arrived from a Google ad and then signed
+                         up or created your first document: the ad's
+                         click id, what it counted as, when, and when it
+                         was reported to Google Ads (kept 90 days).
   abuse_reports.ndjson   reports you filed while signed in: what you
                          reported and wrote, your contact details,
                          the status, our decision and every notice we
@@ -61,6 +65,9 @@ Contents:
   billing/workspace_subscriptions.json  Team / Business subscriptions of
                          workspaces you manage as billing admin (plan,
                          seats, status, currency, dates).
+  billing/subscription_history.json  your Pro plan's history: started,
+                         changed, cancellation scheduled or taken back,
+                         ended (plan, period, currency, date).
   billing/ai_credits.json  AI credits you bought for yourself (pack,
                          credit, what's left, amount paid, expiry).
 

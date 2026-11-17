@@ -9,8 +9,10 @@
 // typed loosely here (`z.unknown()`) and judged by the handler; the schema only
 // guarantees the body is an object (or missing).
 import { z } from 'zod'
+import { clickIdBody } from '../analytics/attribution'
 import { PG_INTEGER_MAX } from './ids'
 import { ANON_GATE_PURPOSES } from '../config/anonGate'
+import { STATS_BUCKETS, STATS_RANGES } from '../contracts/adminStats'
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/
 
@@ -22,8 +24,8 @@ const isCalendarDay = (s: string): boolean => {
 
 /**
  * A `YYYY-MM-DD` calendar day; anything else (or a repeated key) falls back to
- * the route's default window instead of failing. LiteLLM (since 1.108) answers
- * 400 to an impossible date in `/spend/tags`, so the shape alone is not enough.
+ * the route's default window instead of failing. Postgres rejects an impossible
+ * date in the spend query's `::date` cast, so the shape alone is not enough.
  */
 const isoDayOrDefault = z.string().regex(ISO_DAY).refine(isCalendarDay).optional().catch(undefined)
 
@@ -66,6 +68,12 @@ export const updateAbuseReportBody = z.object({
 /** GET /api/admin/ai-spend. Invalid dates fall back to the last 30 days so a typo'd URL still shows a chart. */
 export const aiSpendQuery = z.object({ from: isoDayOrDefault, to: isoDayOrDefault })
 
+/** GET /api/admin/stats/*. An unknown range shows the last 30 days; an unknown bucket the range's default. */
+export const adminStatsQuery = z.object({
+  range: z.enum(STATS_RANGES).optional().catch(undefined).transform(r => r ?? '30'),
+  bucket: z.enum(STATS_BUCKETS).optional().catch(undefined)
+})
+
 /** GET /api/admin/axis-spend. */
 export const axisSpendQuery = z.object({
   axis: z.enum(['workspace', 'user', 'doc']),
@@ -91,7 +99,9 @@ export const recordConsentBody = z.object({
 export const joinWaitlistBody = z.object({
   email: z.unknown().optional(),
   locale: z.unknown().optional(),
-  consent: z.unknown().optional()
+  consent: z.unknown().optional(),
+  // Google Ads click id of this visit (shared/analytics/attribution.ts).
+  attribution: clickIdBody.optional()
 }).nullish()
 
 /** POST /api/waitlist/confirm and /unsubscribe: the raw single-use token from the email link. */
