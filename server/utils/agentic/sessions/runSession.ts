@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/nuxt'
+import type * as Y from 'yjs'
 import type { Logger } from '~~/shared/logging/core'
 import { removeAiSession } from '../../ai/aiSessions'
 import { createAiSession } from '../../ai/aiClient'
@@ -12,6 +13,8 @@ import { loopErrorStatus } from '../loopErrorMessage'
 import { aiStatus, toStatusLine, type AiStatusInput } from '~~/shared/ai/statusSteps'
 import type { SessionWorkspace, OpenedSession } from './sessionSetup'
 import type { DocAccess, UserScope } from '../../../repos/proofs'
+import { preselectedSkillsBlock } from '../skills'
+import { parseSectionsCached } from '../../ai/tools/sections/parse'
 
 // The background part of an AI session (editor prompt or `@ai` comment
 // trigger): open the AI's Y.js client, build the taint gate, run the loop,
@@ -36,6 +39,8 @@ export interface AgentSessionSpec {
   promptPreamble?: string
   /** What the initiator typed for this session, their own text for the taint gate. */
   invokerText: string
+  /** The request the skill preselection reads (`agentic/skills/`); none = no preselected skills. */
+  skillRequest?: string
   toolDeclarations: typeof ALL_TOOL_DECLARATIONS
   workspaceId: string | null
   knowledgeFiles: SessionWorkspace['knowledgeFiles']
@@ -88,7 +93,8 @@ export async function runAgentSession(spec: AgentSessionSpec): Promise<void> {
       periodStart: session.billingContext.periodStart,
       virtualKey: session.billingContext.virtualKey,
       aiProviders: session.aiProviders,
-      commentThreadId: spec.commentThreadId
+      commentThreadId: spec.commentThreadId,
+      deadlineAt: session.deadlineAt
     }, session.abortController.signal)
 
     // Taint gate: other people's text (document edits, comments, web pages,
@@ -114,6 +120,7 @@ export async function runAgentSession(spec: AgentSessionSpec): Promise<void> {
       systemPrompt: spec.systemPrompt,
       initialPrompt: spec.initialPrompt,
       promptContext: spec.promptContext,
+      promptSkills: skillsFor(spec.skillRequest, aiSession.ydoc),
       promptPreamble: spec.promptPreamble,
       toolDeclarations: spec.toolDeclarations,
       thinkingBudget: 0,
@@ -144,6 +151,17 @@ export async function runAgentSession(spec: AgentSessionSpec): Promise<void> {
     await finalizeSessionProvenance(spec.docAccess, session.sessionId, crossBoundary)
     await removeAiSession(spec.self, session.sessionId)
   }
+}
+
+/**
+ * The skill bodies preselected for this request and document size; they
+ * open the first user message after the per-document context, so the
+ * system message and tools stay the shared cached prefix.
+ */
+function skillsFor(request: string | undefined, ydoc: Y.Doc): string {
+  if (request === undefined) return ''
+  const documentTokens = parseSectionsCached(ydoc.getText('content').toJSON()).totals.tokens
+  return preselectedSkillsBlock({ request, documentTokens })
 }
 
 function reportLoopFailure(

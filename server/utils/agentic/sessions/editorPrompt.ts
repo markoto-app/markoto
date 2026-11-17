@@ -75,6 +75,9 @@ export async function startEditorPrompt(event: H3Event, request: EditorPromptReq
     initialPrompt: withKnowledgeNote(wrappedPrompt, wsCtx.exposeKnowledgeTools),
     promptPreamble: conversationBlock,
     invokerText: prompt,
+    // Skills matching the prompt (or a large document) open the first user
+    // message, after the per-document blocks (`agentic/skills/`).
+    skillRequest: prompt,
     toolDeclarations: wsCtx.toolDeclarations,
     workspaceId: wsCtx.workspaceId,
     knowledgeFiles: wsCtx.knowledgeFiles,

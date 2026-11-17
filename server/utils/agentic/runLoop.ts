@@ -208,7 +208,7 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
     log,
     budget: new SessionBudget(),
     telemetry: new SessionTelemetry(),
-    contents: [{ role: 'user', parts: initialUserParts({ context: opts.promptContext, preamble: opts.promptPreamble }, opts.initialPrompt) }],
+    contents: [{ role: 'user', parts: initialUserParts({ context: opts.promptContext, skills: opts.promptSkills, preamble: opts.promptPreamble }, opts.initialPrompt) }],
     // BYOK: hide tools the session's providers can't serve (no image
     // provider → no generate_image; text-only chat model → no
     // view_image / view_pages).

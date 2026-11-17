@@ -36,6 +36,11 @@ export interface RunLoopOptions {
    */
   promptContext?: string
   /**
+   * Preselected skill bodies (`agentic/skills/`) that follow `promptContext`
+   * in the first user message. Never part of `systemPrompt`.
+   */
+  promptSkills?: string
+  /**
    * Per-prompt context (conversation memory) that follows `promptContext`
    * in the first user message, ahead of `initialPrompt`. Neither is part of
    * the image-provenance "seen" text: that stays what the user typed + the

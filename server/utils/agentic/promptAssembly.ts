@@ -15,9 +15,11 @@
 //   3. FIRST USER MESSAGE, opened by the document context (title, audience,
 //      language): stable per document
 //   4. knowledge + members: stable per workspace
-//   5. conversation memory: changes with every prompt
-//   6. editor state + prompt (or the `<comment_trigger>` thread): per prompt
-//   7. turns of the loop: append-only (runLoop.ts never rewrites history)
+//   5. preselected skills (`skills/`): per prompt, chosen from the request
+//      and the document size
+//   6. conversation memory: changes with every prompt
+//   7. editor state + prompt (or the `<comment_trigger>` thread): per prompt
+//   8. turns of the loop: append-only (runLoop.ts never rewrites history)
 //
 // Nothing per document goes in the system message: Mistral Small 4's chat
 // template puts the tool definitions AFTER the system message, so any
@@ -36,6 +38,8 @@ import { MARKDOWN_REFERENCE } from './markdownReference'
 import { UNTRUSTED_DATA_RULE } from './untrustedText'
 import { SANS_FONTS, SERIF_FONTS } from './fontLists'
 import { WRITING_STYLE_RULES } from './writingStyle'
+import { TASK_PLAYBOOK } from './taskPlaybook'
+import { SKILL_CATALOGUE } from './skills'
 
 // Tool catalog and per-tool usage hints live in the FunctionDeclarations
 // (see `server/utils/ai/tools/registry.ts`): Mistral receives them
@@ -95,6 +99,10 @@ Behavior:
 - Ambiguous style/tone? Match the doc's existing style; otherwise neutral professional prose.
 - Never narrate the plan ("I'll now search the knowledge base…"). Just do it.
 
+${TASK_PLAYBOOK}
+
+${SKILL_CATALOGUE}
+
 ${WRITING_STYLE_RULES}
 
 ${UNTRUSTED_DATA_RULE}
@@ -122,19 +130,21 @@ export function assemblePromptContext(blocks: PromptContextBlocks): string {
 export interface InitialUserContext {
   /** Per-document / per-workspace blocks (`assemblePromptContext`). */
   context?: string
+  /** Preselected skill bodies (`preselectedSkillsBlock`), per prompt. */
+  skills?: string
   /** Per-prompt preamble (conversation memory). */
   preamble?: string
 }
 
 /**
- * First user message of a session: the per-document context, then the
- * per-prompt preamble, each as its own text part, then the prompt (wrapped
- * with the editor state). The OpenAI translation joins text parts into one
- * user message.
+ * First user message of a session: the per-document context, the
+ * preselected skills, then the per-prompt preamble, each as its own text
+ * part, then the prompt (wrapped with the editor state). The OpenAI
+ * translation joins text parts into one user message.
  */
 export function initialUserParts(lead: InitialUserContext, initialPrompt: string): AgenticPart[] {
   const parts: AgenticPart[] = []
-  for (const text of [lead.context, lead.preamble]) {
+  for (const text of [lead.context, lead.skills, lead.preamble]) {
     const trimmed = text?.trim() ?? ''
     if (trimmed) parts.push({ text: `${trimmed}\n\n` })
   }

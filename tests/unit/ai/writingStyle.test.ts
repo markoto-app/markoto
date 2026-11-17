@@ -42,10 +42,11 @@ describe('writing style in the system prompts', () => {
     }
   })
 
-  it('the task playbook is not in the prompt until the tools it names exist', () => {
-    expect(PROMPT_SYSTEM_PROMPT).not.toContain(TASK_PLAYBOOK)
-    expect(PROMPT_SYSTEM_PROMPT).not.toMatch(/delegate_rewrite|replace_all/)
+  it('the task playbook is in the editor prompt, short and without an em-dash', () => {
+    expect(PROMPT_SYSTEM_PROMPT).toContain(TASK_PLAYBOOK)
     expect(TASK_PLAYBOOK).toMatch(/delegate_rewrite/)
     expect(TASK_PLAYBOOK).not.toContain(EM_DASH)
+    // Every token of it is in the prefix of every call; details go into the long-document skill.
+    expect(TASK_PLAYBOOK.length).toBeLessThan(2400)
   })
 })

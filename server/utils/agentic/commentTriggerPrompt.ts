@@ -3,6 +3,7 @@ import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
 import { SANS_FONTS, SERIF_FONTS } from './fontLists'
 import { MARKDOWN_REFERENCE } from './markdownReference'
 import { WRITING_STYLE_RULES } from './writingStyle'
+import { SKILL_CATALOGUE } from './skills'
 import { fenceBlock, quoteInline, UNTRUSTED_DATA_RULE } from './untrustedText'
 import { isAiCommentAuthor } from '~~/shared/ai/author'
 import { readYComment, type YCommentFields } from '~~/shared/utils/documents/yComment'
@@ -390,6 +391,8 @@ ${UNTRUSTED_DATA_RULE}
 Mentions in YOUR replies:
 - Mention format (workspace docs only): \`@[Display Name](user:ID)\` using IDs from \`<workspace_members>\`. Useful when responding to a thread with multiple participants, addressing by name keeps the conversation readable.
 - Reply bodies max 2000 chars.
+
+${SKILL_CATALOGUE}
 
 ${MARKDOWN_REFERENCE}`
 

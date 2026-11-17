@@ -79,6 +79,9 @@ export async function startCommentTrigger(event: H3Event, request: CommentTrigge
     // The triggering message is the caller's own (checked in
     // `peekTriggerThread`); the rest of the thread may not be.
     invokerText: triggerCtx.seedPrompt,
+    // The comment as written: the default seed for a bare `@ai` names
+    // <comment_trigger> and would read as a review request.
+    skillRequest: triggerCtx.thread.triggerBody,
     toolDeclarations: wsCtx.toolDeclarations,
     workspaceId: wsCtx.workspaceId,
     knowledgeFiles: wsCtx.knowledgeFiles,

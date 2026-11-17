@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { assemblePromptContext, initialUserParts, PROMPT_SYSTEM_PROMPT } from '../../../server/utils/agentic/promptAssembly'
 import { COMMENT_TRIGGER_SYSTEM_PROMPT } from '../../../server/utils/agentic/commentTriggerPrompt'
 import { buildDocumentContext } from '../../../server/utils/agentic/documentContextPrompt'
+import { preselectedSkillsBlock } from '../../../server/utils/agentic/skills'
 import { buildKnowledgeBlock, buildWorkspaceMembersBlock } from '../../../server/utils/agentic/workspacePromptBlocks'
 import { wrapPromptWithEditorState } from '../../../server/utils/agentic/editorStatePrompt'
 import { ALL_TOOL_DECLARATIONS, KNOWLEDGE_TOOL_DECLARATIONS, filterToolsForProviders } from '../../../server/utils/ai/tools/registry'
@@ -16,7 +17,7 @@ import type OpenAI from 'openai'
 //
 //   static system prompt → tools  (identical for every user and document)
 //   → first user message: document context → knowledge + members
-//     → conversation memory → editor state + prompt
+//     → preselected skills → conversation memory → editor state + prompt
 //   → loop turns (append-only, tool-call arguments replayed verbatim)
 //
 // Every assertion compares the serialised request body, i.e. the bytes
@@ -40,10 +41,11 @@ function contextFor(doc: DocShape): string {
   })
 }
 
-function firstRequest(doc: DocShape, history: string, prompt: string, system = PROMPT_SYSTEM_PROMPT) {
+function firstRequest(doc: DocShape, history: string, prompt: string, system = PROMPT_SYSTEM_PROMPT, documentTokens = 500) {
+  const skills = preselectedSkillsBlock({ request: prompt, documentTokens })
   const contents: AgenticContent[] = [{
     role: 'user',
-    parts: initialUserParts({ context: contextFor(doc), preamble: history }, wrapPromptWithEditorState(prompt, { kind: 'none' }))
+    parts: initialUserParts({ context: contextFor(doc), skills, preamble: history }, wrapPromptWithEditorState(prompt, { kind: 'none' }))
   }]
   return {
     tools: internalToOpenAITools(filterToolsForProviders(ALL_TOOL_DECLARATIONS, PROVIDERS)),
@@ -130,9 +132,30 @@ describe('prompt-cache prefix stability', () => {
     expect(user.indexOf('<knowledge_files>')).toBeLessThan(user.indexOf('<comment_trigger>'))
   })
 
-  it('an empty context or preamble adds no part', () => {
-    expect(initialUserParts({ context: '', preamble: '  ' }, 'p')).toEqual([{ text: 'p' }])
-    expect(initialUserParts({ context: 'c', preamble: 'm' }, 'p')).toEqual([{ text: 'c\n\n' }, { text: 'm\n\n' }, { text: 'p' }])
+  it('an empty context, skills or preamble adds no part', () => {
+    expect(initialUserParts({ context: '', skills: '', preamble: '  ' }, 'p')).toEqual([{ text: 'p' }])
+    expect(initialUserParts({ context: 'c', skills: 's', preamble: 'm' }, 'p')).toEqual([{ text: 'c\n\n' }, { text: 's\n\n' }, { text: 'm\n\n' }, { text: 'p' }])
+  })
+
+  it('preselected skills ride in the user message only: system + tools stay identical whatever is selected', () => {
+    const doc = { title: 'Handbook', members: [{ userId: 1, name: 'Ada' }] }
+    const plain = firstRequest(doc, '', 'Add a table.')
+    const translate = firstRequest(doc, HISTORY, 'Translate chapter 2 into French.', PROMPT_SYSTEM_PROMPT, 170_000)
+    const review = firstRequest(doc, '', 'Review the introduction.')
+    for (const req of [translate, review]) {
+      expect(req.messages[0]).toEqual(plain.messages[0])
+      expect(JSON.stringify(req.tools)).toBe(JSON.stringify(plain.tools))
+    }
+    expect(String(plain.messages[1]?.content)).not.toContain('<skill id=')
+    expect(String(review.messages[1]?.content)).toContain('<skill id="review">')
+    // After the per-document blocks, before the conversation memory and the prompt.
+    const user = String(translate.messages[1]?.content)
+    const order = ['<document_context>', '<workspace_members>', '<skill id="translation">', '<skill id="long-document">', '<conversation_history>', 'Translate chapter 2'].map(m => user.indexOf(m))
+    expect(order.every(i => i >= 0)).toBe(true)
+    expect([...order].sort((x, y) => x - y)).toEqual(order)
+    // The per-document blocks remain a shared prefix with a prompt that selects no skill.
+    expect(user.startsWith(contextFor(doc))).toBe(true)
+    expect(String(plain.messages[1]?.content).startsWith(contextFor(doc))).toBe(true)
   })
 
   it('within a session the history only appends, and tool-call arguments replay byte-for-byte', async () => {
