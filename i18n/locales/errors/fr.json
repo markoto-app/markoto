@@ -94,6 +94,7 @@
       "no-subscription": "Cet espace de travail n’a pas d’abonnement actif.",
       "not-configured": "La facturation n’est pas configurée. Contactez le support.",
       "payment-failed": "Le paiement a échoué, rien n’a donc été modifié.",
+      "plan-cancelled": "Cette offre est résiliée. Annulez la résiliation avant de modifier le nombre de places.",
       "plan-change-failed": "Impossible de changer de forfait. Rien n’a été modifié ; veuillez réessayer.",
       "portal-failed": "Impossible d’ouvrir le portail de facturation. Veuillez réessayer.",
       "price-unavailable": "Ce forfait n’est pas disponible à la vente pour le moment.",

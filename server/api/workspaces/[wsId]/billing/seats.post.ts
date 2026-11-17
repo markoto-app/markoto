@@ -18,7 +18,8 @@ import type { WorkspaceAccess } from '../../../../repos/proofs'
 // `billing/payment-failed` when the payment fails, nothing changes);
 // fewer seats are not credited for the running period
 // (`workspaceStripe.ts#changeWorkspaceSeats`). Seats can't go below
-// members + open invitations (409 `billing/seats-below-members`). The
+// members + open invitations (409 `billing/seats-below-members`), and
+// not change on a cancelled plan (409 `billing/plan-cancelled`). The
 // pooled AI budget follows at once: added seats for the days left in the
 // budget window, removed seats keep theirs until it ends.
 export default defineApiHandler({
@@ -45,6 +46,9 @@ async function changeSeats(event: H3Event, user: { id: number, name: string }, w
   if (!row?.stripeSubscriptionId) {
     throw apiError('billing/no-subscription')
   }
+  // A cancelled plan that still runs: seats bought now would be charged for
+  // a plan that is about to end. Resume it first (the page hides the control).
+  if (row.cancelAt !== null) throw apiError('billing/plan-cancelled')
   if (seats === row.seats) return { seats }
   const used = await countSeatsUsed(workspaceAccess)
   if (seats < used) {
