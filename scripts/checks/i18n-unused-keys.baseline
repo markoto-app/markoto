@@ -28,10 +28,8 @@ ai.alreadyRunning
 ai.rateLimited
 ai.dictateConnecting
 ai.dictateListening
-pricing.countPerSeat.aiPoints
 pricing.countPerSeat.workspaces
 pricing.countPerSeat.knowledgeFiles
-pricing.countPerSeat.knowledgeStorage
 pricing.countPerSeat.imageStorage
 topbar.planBadge
 topbar.creditsRemaining
