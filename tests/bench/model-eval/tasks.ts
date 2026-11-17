@@ -65,7 +65,10 @@ function chapters(text: string): Array<{ no: number | null, title: string, start
 function normalizeChapter(body: string): string {
   return body.split('\n')
     .filter(l => l.trim() !== '' && l.trim() !== '<!-- pagebreak -->')
-    .map(l => l.replace(/^(#{1,6}) \d+(\.\d+)* /, '$1 ').trimEnd())
+    .map(l => l.replace(/^(#{1,6}) \d+(\.\d+)* /, '$1 ')
+      // Cross-references that follow the renumbering ("Abschnitt 12.3") are fine.
+      .replace(/(Abschnitt|Abschnitte|Kapitel)(\]?\(?\s*)\d+(\.\d+)*/g, '$1$2N')
+      .trimEnd())
     .join('\n')
 }
 
@@ -116,7 +119,8 @@ export const PLANNER_TASKS: PlannerTask[] = [
       const inside = comments.filter(c => c.anchorStart !== null && c.anchorStart >= ch13.start && c.anchorStart < ch13.end).length
       const unchanged = final === initial
       const ok = unchanged && comments.length >= 3 && inside >= Math.ceil(comments.length * 0.8)
-      const score = (unchanged ? 0.3 : 0) + 0.7 * Math.min(1, inside / 5)
+      // A run that does nothing scores 0 on every task.
+      const score = (unchanged && comments.length > 0 ? 0.3 : 0) + 0.7 * Math.min(1, inside / 5)
       return { ok, score, detail: `comments=${comments.length} in_ch13=${inside} text_unchanged=${unchanged}` }
     }
   },
@@ -145,7 +149,7 @@ export const PLANNER_TASKS: PlannerTask[] = [
       const contentOk = b.every(c => byTitle.get(c.title) === normalizeChapter(c.body))
       const lengthRatio = final.length / initial.length
       const ok = orderOk && contentOk && numberingOk && subOk
-      const score = (orderOk ? 0.4 : 0) + (contentOk ? 0.3 : 0) + (numberingOk ? 0.15 : 0) + (subOk ? 0.15 : 0)
+      const score = orderOk ? 0.5 + (contentOk ? 0.3 : 0) + (numberingOk ? 0.1 : 0) + (subOk ? 0.1 : 0) : 0
       return { ok, score, detail: `order=${orderOk} content_preserved=${contentOk} chapter_numbers=${numberingOk} section_numbers=${subOk} length_ratio=${lengthRatio.toFixed(3)}` }
     }
   },
@@ -188,7 +192,7 @@ export const PLANNER_TASKS: PlannerTask[] = [
       const nearEnd = placed && (end - tableLine) < Math.max(25, (end - start) * 0.4)
       const untouched = removed.length === 0
       const ok = hasTable && placed && untouched
-      const score = (hasTable ? 0.4 : 0) + (placed ? 0.3 : 0) + (untouched ? 0.2 : 0) + (nearEnd ? 0.1 : 0)
+      const score = (hasTable ? 0.4 : 0) + (placed ? 0.3 : 0) + (hasTable && untouched ? 0.2 : 0) + (nearEnd ? 0.1 : 0)
       return { ok, score, detail: `table=${hasTable} in_9.3=${placed} near_end=${nearEnd} nothing_removed=${untouched} added_lines=${addedText.split('\n').length}` }
     }
   },
@@ -212,7 +216,7 @@ export const PLANNER_TASKS: PlannerTask[] = [
       const shorter = after.length > 0 && words(after) < words(before)
       const ratio = words(before) ? words(after) / words(before) : 0
       const ok = restSame && shorter && ratio >= 0.3
-      const score = (restSame ? 0.5 : 0) + (shorter ? 0.3 : 0) + (ratio >= 0.3 && ratio <= 0.85 ? 0.2 : 0)
+      const score = shorter ? (restSame ? 0.5 : 0) + 0.3 + (ratio >= 0.3 && ratio <= 0.85 ? 0.2 : 0) : 0
       return { ok, score, detail: `rest_unchanged=${restSame} words ${words(before)}->${words(after)} ratio=${ratio.toFixed(2)}` }
     }
   },
@@ -231,7 +235,7 @@ export const PLANNER_TASKS: PlannerTask[] = [
       const strip = (t: string): string => t.split('\n').map(l => l.replace(/^#{1,6} /, '')).filter(l => l.trim()).join('\n')
       const textSame = strip(initial) === strip(final)
       const ok = oneH1 && jumps === 0 && textSame
-      const score = (oneH1 ? 0.35 : 0) + (jumps === 0 ? 0.35 : 0) + (textSame ? 0.3 : 0)
+      const score = final === initial ? 0 : (oneH1 ? 0.35 : 0) + (jumps === 0 ? 0.35 : 0) + (textSame ? 0.3 : 0)
       return { ok, score, detail: `one_h1=${oneH1} jumps=${jumps} text_unchanged=${textSame} levels=${hs.map(h => h.level).join('')}` }
     }
   },
@@ -254,7 +258,7 @@ export const PLANNER_TASKS: PlannerTask[] = [
       const untouched = removed.length === 0
       const facts = ['2.9', '38', '150 kW', '6 %'].filter(f => block.includes(f)).length
       const ok = placed && sizeOk && untouched
-      const score = (placed ? 0.4 : 0) + (sizeOk ? 0.3 : 0) + (untouched ? 0.3 : 0)
+      const score = placed ? 0.4 + (sizeOk ? 0.3 : 0) + (untouched ? 0.3 : 0) : 0
       return { ok, score, detail: `placed=${placed} words=${w} nothing_removed=${untouched} key_facts=${facts}/4 added_chunks=${added.length}` }
     }
   }
