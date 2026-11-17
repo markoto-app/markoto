@@ -6,6 +6,9 @@
 #
 # Updates are grouped and weekly to keep the PR volume (and the Actions budget
 # each PR consumes) low. Security updates still arrive immediately.
+#
+# Upgrades we postponed on purpose are listed under `ignore`, each with the
+# reason. Remove an entry in the PR that does the upgrade.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -40,6 +43,15 @@ updates:
     groups:
       docker-base-images:
         patterns: ["*"]
+    ignore:
+      # markitdown-server: markitdown 0.1.9 (the latest release) declares
+      # Requires-Python <3.15, so `pip install markitdown[all]` finds no
+      # matching version on python:3.15. Lift once markitdown supports 3.15
+      # (then also bump sonar.python.version, ruff target-version, pyright
+      # pythonVersion, the ci.yml setup-python and the ensurepip path in the
+      # Dockerfile).
+      - dependency-name: "python"
+        versions: [">= 3.15"]
 
   # Third-party images referenced from the compose files (Postgres, LiteLLM,
   # Valkey, Traefik, test fakes), pinned as `tag@sha256:digest`.
@@ -56,6 +68,14 @@ updates:
     groups:
       compose-images:
         patterns: ["*"]
+    ignore:
+      # LiteLLM stays on the 1.108 LTS line (patches still come): 1.109 drops
+      # model_info.max_tokens, which deploy/config/litellm/config.yaml still
+      # uses, and 1.110 changes spend logging, which the AI budget reads.
+      - dependency-name: "berriai/litellm"
+        versions: [">= 1.109"]
+      - dependency-name: "ghcr.io/berriai/litellm"
+        versions: [">= 1.109"]
 
   - package-ecosystem: bun
     directories:
@@ -70,3 +90,39 @@ updates:
     groups:
       bun-dependencies:
         patterns: ["*"]
+    ignore:
+      # Hocuspocus 4: the server runs through the crossws 0.4 node adapter,
+      # which does not work on Bun; it needs its own WebSocket front. Parked.
+      - dependency-name: "@hocuspocus/*"
+        versions: ["4.x"]
+      # crossws 0.4: Nitro 2 / h3 1 need crossws 0.3.
+      - dependency-name: "crossws"
+        versions: ["0.4.x"]
+      # TypeScript 7 is the native compiler without the JS API that vue-tsc,
+      # typescript-eslint, knip and dependency-cruiser depend on.
+      - dependency-name: "typescript"
+        versions: ["7.x"]
+      # nuxt-auth-utils 0.6 seals the session cookie with NUXT_APP_SECRET:
+      # signs everyone out and needs the new secret on every deploy path.
+      - dependency-name: "nuxt-auth-utils"
+        versions: ["0.6.x"]
+      # Sentry 11 is a privacy change: the dataCollection defaults collect
+      # more, and span streaming makes the beforeSendTransaction scrubber a
+      # no-op. Needs its own PR.
+      - dependency-name: "@sentry/*"
+        versions: ["11.x"]
+      # nuxt-codemirror 0.0.12 and later (0.0.20) break the @nuxt/test-utils
+      # aliases. Plan: replace the module with our own vite.resolve.dedupe.
+      - dependency-name: "nuxt-codemirror"
+        versions: [">= 0.0.12"]
+      # Playwright on npm must equal the renderer image
+      # (renderer/Dockerfile, mcr.microsoft.com/playwright), or the launcher
+      # wedges. The docker ecosystem above bumps the image; that PR must
+      # update `playwright` and `@playwright/test` in package.json and
+      # renderer/package.json to the same version. Dependabot's
+      # multi-ecosystem groups only bundle updates into one PR, they don't
+      # keep the versions equal, so the npm side is ignored here instead.
+      - dependency-name: "playwright"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
+      - dependency-name: "@playwright/test"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
