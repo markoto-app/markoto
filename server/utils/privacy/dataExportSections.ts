@@ -1,4 +1,5 @@
 import { strToU8 } from 'fflate'
+import { adConversionsForExport } from '../../repos/adConversions'
 import * as Sentry from '@sentry/nuxt'
 import { useStripeClient } from '../billing/stripeClient'
 import { isBillingEnabled } from '../billing/billingMode'
@@ -53,6 +54,13 @@ export async function addWorkspaceInvitesEntry(entries: ExportEntries, user: Use
 export async function addWaitlistEntry(entries: ExportEntries, user: UserScope): Promise<number> {
   const rows = await listWaitlistSignupsForUser(user)
   entries['waitlist.ndjson'] = strToU8(toNdjson(rows))
+  return rows.length
+}
+
+/** Google Ads click-id conversions recorded for the account (docs/operations-analytics.md). */
+export async function addAdConversionsEntry(entries: ExportEntries, user: UserScope): Promise<number> {
+  const rows = await adConversionsForExport(user)
+  entries['ad_conversions.ndjson'] = strToU8(toNdjson(rows))
   return rows.length
 }
 

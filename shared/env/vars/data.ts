@@ -103,6 +103,21 @@ export const database = defineNamespace({
       doc: 'Password of POSTGRES_LITELLM_USER.',
       services: ['compose'],
       scope: 'both'
+    }),
+    umamiUser: v({
+      name: 'POSTGRES_UMAMI_USER',
+      type: string,
+      doc: 'Role Umami connects as (owner of the umami database only). Empty = POSTGRES_USER.',
+      services: ['compose'],
+      scope: 'hosted'
+    }),
+    umamiPassword: v({
+      name: 'POSTGRES_UMAMI_PASSWORD',
+      type: string,
+      secret: true,
+      doc: 'Password of POSTGRES_UMAMI_USER.',
+      services: ['compose'],
+      scope: 'hosted'
     })
   }
 })

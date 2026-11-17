@@ -2,6 +2,7 @@ import { getPublishedPageBySlug } from '../../repos/publishedPages'
 import { sendPublishedPage } from '../../utils/publish/servePage'
 import { PUBLISH_SLUG_RE } from '~~/shared/config/publish'
 import { publishedPageParams } from '~~/shared/api/platform'
+import { countPublishedPageView } from '../../utils/analytics/serverEvent'
 
 // GET /p/:slug: a document published as a web page. A static
 // snapshot; the document itself stays as private as it is. Public and
@@ -18,6 +19,8 @@ export default defineApiHandler({
       setHeader(event, 'cache-control', 'no-store')
       throw apiError('published/not-found')
     }
+    // Aggregate view count only (no visitor data, no slug).
+    countPublishedPageView(event)
     return sendPublishedPage(event, page)
   }
 })

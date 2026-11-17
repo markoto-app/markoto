@@ -46,7 +46,8 @@ INPUTS=(
   NUXT_LITELLM_EMBEDDINGS_TASK_HINTS NUXT_MARKITDOWN_API_SECRET
   NUXT_OAUTH_GITHUB_CLIENT_ID NUXT_OAUTH_GITHUB_CLIENT_SECRET
   NUXT_OAUTH_GOOGLE_CLIENT_ID NUXT_OAUTH_GOOGLE_CLIENT_SECRET
-  NUXT_PLANS_COMING_SOON NUXT_PUBLIC_SENTRY_DSN
+  NUXT_PLANS_COMING_SOON NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS
+  NUXT_PUBLIC_ANALYTICS_WEBSITE_ID NUXT_PUBLIC_SENTRY_DSN
   NUXT_PUBLIC_SYNC_HIDDEN_DISCONNECT_MS NUXT_PUBLISH_DOMAINS_TARGET
   NUXT_PUBLISH_PAGES_HOST NUXT_PUBLISH_TRAEFIK_TOKEN NUXT_S3_ACCESS_KEY
   NUXT_S3_BUCKET NUXT_S3_ENDPOINT NUXT_S3_SECRET_KEY NUXT_SESSION_PASSWORD
@@ -56,7 +57,8 @@ INPUTS=(
   NUXT_WEB_TOOLS_HOURLY_LIMIT OVH_PG_CA_REMOTE_PATH OVH_PG_HOST
   POSTGRES_APP_PASSWORD POSTGRES_APP_USER POSTGRES_DB POSTGRES_HOST
   POSTGRES_LITELLM_PASSWORD POSTGRES_LITELLM_USER POSTGRES_PASSWORD
-  POSTGRES_PORT POSTGRES_USER REGISTRY RENDERER_ALLOWED_ORIGINS
+  POSTGRES_PORT POSTGRES_UMAMI_PASSWORD POSTGRES_UMAMI_USER POSTGRES_USER
+  REGISTRY RENDERER_ALLOWED_ORIGINS
   RESEND_API_KEY SENTRY_DSN STAAN_API_KEY SYNC_AUTH_TIMEOUT_MS
   SYNC_MAX_CONNECTIONS_PER_IP SYNC_MAX_DOCUMENT_BYTES SYNC_MAX_MESSAGE_BYTES
   SYNC_MAX_PREAUTH_BYTES SYNC_MAX_PREAUTH_TOTAL_BYTES SYNC_MAX_ROOMS
@@ -75,7 +77,8 @@ INPUTS=(
   TIER_FREE_WEB_TOOLS_PER_DAY TIER_FREE_WORKSPACES_OWNED
   TIER_PRO_FEATURE_AUDIT_LOG TIER_PRO_FEATURE_BRAND_KIT
   TIER_PRO_FEATURE_GUESTS TIER_PRO_FEATURE_SSO TIER_TEAM_FEATURE_AUDIT_LOG
-  TIER_TEAM_FEATURE_SSO VALKEY_DB VALKEY_PASSWORD
+  TIER_TEAM_FEATURE_SSO UMAMI_APP_SECRET UMAMI_BASIC_AUTH_USERS UMAMI_HOST
+  VALKEY_DB VALKEY_PASSWORD
 )
 if [[ "${1:-}" = --keys ]]; then
   printf '%s\n' "${INPUTS[@]}"
@@ -241,6 +244,49 @@ else
   compose_profiles=
 fi
 
+# Cookieless analytics (docs/operations-analytics.md). UMAMI_APP_SECRET set
+# = the `analytics` profile runs Umami (database `umami`, db-init); its
+# dashboard host needs a DNS record and always gets an edge login, since
+# Umami starts with a default admin password until the first login changes
+# it. The browser side stays off until NUXT_PUBLIC_ANALYTICS_WEBSITE_ID is
+# set (the website id Umami shows after the website is added).
+UMAMI_APP_SECRET="${UMAMI_APP_SECRET:-}"
+UMAMI_HOST="${UMAMI_HOST:-}"
+UMAMI_BASIC_AUTH_USERS="${UMAMI_BASIC_AUTH_USERS:-}"
+while [[ "$UMAMI_BASIC_AUTH_USERS" == *$'\n' || "$UMAMI_BASIC_AUTH_USERS" == *$'\r' ]]; do UMAMI_BASIC_AUTH_USERS="${UMAMI_BASIC_AUTH_USERS%?}"; done
+POSTGRES_UMAMI_USER="${POSTGRES_UMAMI_USER:-}"
+POSTGRES_UMAMI_PASSWORD="${POSTGRES_UMAMI_PASSWORD:-}"
+NUXT_PUBLIC_ANALYTICS_WEBSITE_ID="${NUXT_PUBLIC_ANALYTICS_WEBSITE_ID:-}"
+NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS="$(echo "${NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS:-false}" | tr '[:upper:]' '[:lower:]')"
+if [[ -n "$UMAMI_APP_SECRET" ]]; then
+  if [[ ${#UMAMI_APP_SECRET} -lt 32 ]]; then
+    echo "render-env: UMAMI_APP_SECRET must be at least 32 characters" >&2
+    exit 1
+  fi
+  case "$UMAMI_HOST" in
+    ''|*[!A-Za-z0-9.-]*)
+      echo "render-env: UMAMI_APP_SECRET is set, so UMAMI_HOST must be the dashboard's plain hostname (e.g. stats.\${DOMAIN})" >&2
+      exit 1
+      ;;
+  esac
+  if ! [[ "$UMAMI_BASIC_AUTH_USERS" =~ ^[A-Za-z0-9._-]+:\$2[aby]\$[0-9]{2}\$[./A-Za-z0-9]{53}(,[A-Za-z0-9._-]+:\$2[aby]\$[0-9]{2}\$[./A-Za-z0-9]{53})*$ ]]; then
+    echo "render-env: UMAMI_APP_SECRET is set, so UMAMI_BASIC_AUTH_USERS must be htpasswd lines with bcrypt hashes (user:\$2y\$...), comma-separated" >&2
+    exit 1
+  fi
+  if [[ -n "$POSTGRES_UMAMI_USER" && -z "$POSTGRES_UMAMI_PASSWORD" ]]; then
+    echo "render-env: POSTGRES_UMAMI_USER is set but POSTGRES_UMAMI_PASSWORD is empty" >&2
+    exit 1
+  fi
+  compose_profiles="${compose_profiles:+${compose_profiles},}analytics"
+elif [[ -n "$NUXT_PUBLIC_ANALYTICS_WEBSITE_ID" ]]; then
+  echo "render-env: NUXT_PUBLIC_ANALYTICS_WEBSITE_ID is set but UMAMI_APP_SECRET is empty: there would be no Umami to receive the events" >&2
+  exit 1
+fi
+if [[ -n "$NUXT_PUBLIC_ANALYTICS_WEBSITE_ID" ]] && ! [[ "$NUXT_PUBLIC_ANALYTICS_WEBSITE_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+  echo "render-env: NUXT_PUBLIC_ANALYTICS_WEBSITE_ID must be the website's UUID from the Umami dashboard" >&2
+  exit 1
+fi
+
 # ─── Value safety ───
 # Compose parses the rendered file, so an unquoted `$`, `#`, quote, backslash
 # or backtick in a value would be interpolated, truncated or mangled, and a
@@ -307,7 +353,8 @@ cat <<EOF
 # The Podman overlay swaps the renderer's seccomp transport
 # (docs/contributing/CONTAINER-ENGINES.md).
 COMPOSE_FILE=deploy/compose/compose.prod.yml:deploy/compose/compose.podman.yml
-# bundled-postgres = run the Postgres container (POSTGRES_HOST=postgres).
+# bundled-postgres = run the Postgres container (POSTGRES_HOST=postgres);
+# analytics = run Umami (UMAMI_APP_SECRET set).
 COMPOSE_PROFILES=${compose_profiles}
 
 # ─── App secrets ───
@@ -344,6 +391,8 @@ POSTGRES_APP_USER=${POSTGRES_APP_USER}
 POSTGRES_APP_PASSWORD=${POSTGRES_APP_PASSWORD}
 POSTGRES_LITELLM_USER=${POSTGRES_LITELLM_USER}
 POSTGRES_LITELLM_PASSWORD=${POSTGRES_LITELLM_PASSWORD}
+POSTGRES_UMAMI_USER=${POSTGRES_UMAMI_USER}
+POSTGRES_UMAMI_PASSWORD=${POSTGRES_UMAMI_PASSWORD}
 
 # ─── Valkey ───
 VALKEY_PASSWORD=${VALKEY_PASSWORD}
@@ -444,6 +493,14 @@ NUXT_SITE_INDEXABLE=${NUXT_SITE_INDEXABLE}
 # Origin for canonical / og:url / JSON-LD / sitemap; empty = NUXT_SITE_URL.
 # Staging: https://markoto.app, so its copy never competes with the real site.
 NUXT_CANONICAL_SITE_URL=${NUXT_CANONICAL_SITE_URL:-}
+
+# ─── Cookieless analytics + ad conversions (docs/operations-analytics.md) ───
+# Empty UMAMI_APP_SECRET = no Umami; empty website id = the browser sends nothing.
+UMAMI_APP_SECRET=${UMAMI_APP_SECRET}
+UMAMI_HOST=${UMAMI_HOST}
+UMAMI_BASIC_AUTH_USERS=${UMAMI_BASIC_AUTH_USERS}
+NUXT_PUBLIC_ANALYTICS_WEBSITE_ID=${NUXT_PUBLIC_ANALYTICS_WEBSITE_ID}
+NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS=${NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS}
 
 # ─── Stripe billing (only read when NUXT_BILLING_ENABLED is true) ───
 NUXT_STRIPE_SECRET_KEY=${NUXT_STRIPE_SECRET_KEY:-}

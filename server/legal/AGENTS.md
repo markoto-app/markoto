@@ -6,7 +6,7 @@ What the registries hold and the full checklists: `docs/contributing/privacy-reg
 - Any new third party that receives personal data needs an entry in `SUB_PROCESSORS` (`subProcessors.ts`) and its id on every purpose that sends it data. Services inside the markoto stack and providers the user configures with their own key are not sub-processors.
 - Such a change bumps `PRIVACY_VERSION` and `PRIVACY_EFFECTIVE_DATE` in `shared/legal/versions.ts` (with a line in the version comment) and updates `content/legal/privacy/en.md`. Signed-in users are then asked to accept again.
 - New personal data must also appear in the data export (`server/utils/privacy/dataExport.ts`) and be handled by account deletion (`server/utils/privacy/accountDeletionExecute.ts`).
-- Purposes that exist only with billing on are hidden by `registryView.ts`; keep that list in step when you add billing-only entries.
+- Purposes and recipients that exist only under a deployment flag (billing, analytics, ad conversions) are hidden by `registryView.ts` (`GATED_*`); keep those maps in step when you add such entries.
 - Add new audit actions as `AUDIT_*` constants in `auditActions.ts`: lowercase, dot-separated, namespace first (`account.delete_requested`). Some older call sites still pass literals such as `'doc.deleted'`; follow the same naming.
 - Pass the raw client IP to `appendAuditEvent`; it truncates it. Never put secrets, tokens, token hashes or key material in audit `metadata`.
 - Do not fail a user's request because an audit write failed; `appendAuditEvent` already reports and swallows its errors.

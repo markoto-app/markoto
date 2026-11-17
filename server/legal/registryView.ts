@@ -3,29 +3,48 @@
 // The registries (`lawfulBasis.ts`, `subProcessors.ts`) describe every
 // processor and purpose the codebase CAN use. A deployment with billing
 // off (self-hosted, or the free-only hosted SaaS) never calls Stripe, so
-// listing Stripe as a recipient there would be a false disclosure. These
-// helpers apply that one rule in one place; the sub-processor page and
-// the privacy policy's register table both go through them.
+// listing Stripe as a recipient there would be a false disclosure; the
+// same holds for page analytics and Google Ads conversions while they are
+// off. These helpers apply those rules in one place; the sub-processor
+// page and the privacy policy's register table both go through them.
 //
-// Pure: takes the billing flag as an argument so unit tests need no env.
+// Pure: takes the flags as an argument so unit tests need no env.
 
 import { PROCESSING_PURPOSES, type ProcessingPurpose } from './lawfulBasis'
 import { SUB_PROCESSORS, type SubProcessor } from './subProcessors'
 
-/** Sub-processors that are only engaged while billing is on. */
-const BILLING_ONLY_SUB_PROCESSORS: ReadonlySet<string> = new Set(['stripe'])
-
-/** Processing purposes that only exist while billing is on. */
-const BILLING_ONLY_PURPOSES: ReadonlySet<string> = new Set(['billing'])
-
-export function visibleSubProcessors(billingEnabled: boolean): readonly SubProcessor[] {
-  if (billingEnabled) return SUB_PROCESSORS
-  return SUB_PROCESSORS.filter(sp => !BILLING_ONLY_SUB_PROCESSORS.has(sp.id))
+/** What the deployment runs, which decides what the registries show. */
+export interface RegistryFlags {
+  billing: boolean
+  /** Cookieless page analytics (NUXT_PUBLIC_ANALYTICS_WEBSITE_ID set). */
+  analytics: boolean
+  /** Google Ads click-id conversions (NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS). */
+  adsConversions: boolean
 }
 
-export function visibleProcessingPurposes(billingEnabled: boolean): readonly ProcessingPurpose[] {
-  if (billingEnabled) return PROCESSING_PURPOSES
-  return PROCESSING_PURPOSES.filter(p => !BILLING_ONLY_PURPOSES.has(p.id))
+/** Sub-processors / recipients that exist only under a flag. */
+const GATED_SUB_PROCESSORS: Record<string, keyof RegistryFlags> = {
+  stripe: 'billing',
+  google_ads: 'adsConversions'
+}
+
+/** Processing purposes that exist only under a flag. */
+const GATED_PURPOSES: Record<string, keyof RegistryFlags> = {
+  billing: 'billing',
+  web_analytics: 'analytics',
+  ad_conversion_measurement: 'adsConversions'
+}
+
+function shown(gate: keyof RegistryFlags | undefined, flags: RegistryFlags): boolean {
+  return gate === undefined || flags[gate]
+}
+
+export function visibleSubProcessors(flags: RegistryFlags): readonly SubProcessor[] {
+  return SUB_PROCESSORS.filter(sp => shown(GATED_SUB_PROCESSORS[sp.id], flags))
+}
+
+export function visibleProcessingPurposes(flags: RegistryFlags): readonly ProcessingPurpose[] {
+  return PROCESSING_PURPOSES.filter(p => shown(GATED_PURPOSES[p.id], flags))
 }
 
 const BASIS_LABEL: Record<ProcessingPurpose['basis'], string> = {
@@ -57,14 +76,14 @@ function cell(text: string): string {
  * Substituted for `{{processingPurposesTable}}` by the legal renderer.
  * Content is the English registry text (the registry is not localised).
  */
-export function renderProcessingPurposesMarkdown(billingEnabled: boolean): string {
-  const subProcessors = visibleSubProcessors(billingEnabled)
+export function renderProcessingPurposesMarkdown(flags: RegistryFlags): string {
+  const subProcessors = visibleSubProcessors(flags)
   const names = new Map(subProcessors.map(sp => [sp.id, sp.name]))
   const header = [
     '| Purpose | Lawful basis | Data categories | Retention | Recipients |',
     '| --- | --- | --- | --- | --- |'
   ]
-  const rows = visibleProcessingPurposes(billingEnabled).map((p) => {
+  const rows = visibleProcessingPurposes(flags).map((p) => {
     const recipients = p.subProcessors
       .map(id => names.get(id))
       .filter((n): n is string => n !== undefined)

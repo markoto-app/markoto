@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ANALYTICS_EVENTS } from '~~/shared/analytics/events'
+
 // Landing card for the two links in the waitlist email
 // (/waitlist/confirm and /waitlist/unsubscribe). The token travels in
 // the query string but is only sent to the API on an explicit button
@@ -12,6 +14,7 @@ const props = defineProps<{
 const { t } = useI18n()
 const route = useRoute()
 const { extractError } = useErrorHandler()
+const analytics = useAnalytics()
 
 const token = computed(() => {
   const raw = route.query.token
@@ -27,8 +30,12 @@ async function onAct(): Promise<void> {
   errorMessage.value = null
   try {
     const body = { token: token.value }
-    if (props.action === 'confirm') await apiFetch('/api/waitlist/confirm', { method: 'post', body })
-    else await apiFetch('/api/waitlist/unsubscribe', { method: 'post', body })
+    if (props.action === 'confirm') {
+      await apiFetch('/api/waitlist/confirm', { method: 'post', body })
+      analytics.track(ANALYTICS_EVENTS.waitlistConfirmed, {})
+    } else {
+      await apiFetch('/api/waitlist/unsubscribe', { method: 'post', body })
+    }
     state.value = 'done'
   } catch (e) {
     errorMessage.value = extractError(e).message

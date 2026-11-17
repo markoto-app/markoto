@@ -4,6 +4,12 @@ import { useAwarenessAiSessions } from './aiAwarenessSessions'
 import { aiErrorStatus, useAiSessionTracking } from './aiSessionTracking'
 import type { AiConfirmationRequest, AiEventSource, MyAiSessionInfo } from '~/types/ai/session'
 import { aiStepText } from '~/utils/ai/statusText'
+import { analyticsClient } from '~/utils/analytics/analyticsClient'
+import { ANALYTICS_EVENTS } from '~~/shared/analytics/events'
+import { APP_PATH } from '~~/shared/analytics/pages'
+
+// `ai_first_use` goes out once per tab (no content, no document id).
+let aiUseTracked = false
 
 export type { AiConfirmationRequest, AiEventSource, AiResponseEntry, AiSessionInfo, AiSessionOutcome, MyAiSessionInfo } from '~/types/ai/session'
 
@@ -141,6 +147,10 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
         body: { docId: docId.value, prompt: trimmed, editorSelection }
       })
       if (typeof res?.sessionId === 'string') startedSessionId.value = res.sessionId
+      if (!aiUseTracked) {
+        aiUseTracked = true
+        analyticsClient().track(ANALYTICS_EVENTS.aiFirstUse, {}, APP_PATH)
+      }
       return true
     } catch (e) {
       const { statusCode, code, message } = extractError(e)

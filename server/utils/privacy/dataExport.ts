@@ -25,6 +25,7 @@ import { latestYjsId } from '../../repos/yjsLog'
 import { listAiSessionProvenanceForUser } from '../../repos/aiSessionProvenance'
 import { ZIP_README } from './dataExportReadme'
 import {
+  addAdConversionsEntry,
   addAiProvidersEntry,
   addBillingEntries,
   addCreditGrantsEntry,
@@ -61,6 +62,7 @@ import {
 //   audit.ndjson                    ← rows scoped to or by the user
 //   consent.ndjson
 //   waitlist.ndjson                 ← paid-plans waitlist sign-ups linked to the account
+//   ad_conversions.ndjson           ← Google Ads click ids of the account's sign-up / first document
 //   abuse_reports.ndjson            ← reports the user filed while signed in + notices sent to them
 //   moderation_notices.ndjson       ← statements of reasons the user got as a document owner
 //   billing/invoices.ndjson         ← Stripe invoice history (if any)
@@ -143,6 +145,7 @@ export async function buildExportZip(by: SystemActor, userId: number): Promise<B
   await addDocumentSharesEntry(entries, user)
   await addBrandAssetsEntry(entries, user)
   await addPublishingEntries(entries, user)
+  await addAdConversionsEntry(entries, user)
 
   return {
     bytes: zipSync(entries, { level: 6 }),

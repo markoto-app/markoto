@@ -43,8 +43,11 @@
 // v13 (2026-11-10): publish as a web page + custom domains: the
 // published copy, domain names, DNS checks, Let's Encrypt certificates
 // (domain name public in Certificate Transparency logs).
-export const PRIVACY_VERSION = 13
-export const PRIVACY_EFFECTIVE_DATE = '2026-11-10'
+// v14 (2026-11-17): cookieless visitor statistics (self-hosted Umami, 13
+// months) and Google Ads conversion measurement without a Google script
+// (click id of a converting visit, 90 days; Google Ads as recipient).
+export const PRIVACY_VERSION = 14
+export const PRIVACY_EFFECTIVE_DATE = '2026-11-17'
 
 // v2 (2026-10-26): free-only service, BYOK responsibilities, as-is/discontinuation clauses.
 // v3 (2026-11-03): anonymous documents, acceptable-use section, DSA

@@ -1939,6 +1939,7 @@
         "jina_ai": "Embedding generation for knowledge-base RAG; single-URL page content extraction for the fetch-URL tool (Jina Reader; the URL is sent for every user, including users with their own AI provider)",
         "staan": "Web search for the AI writing assistant (the search query is sent for every user, including users with their own AI provider), via a proprietary European search index (EU-only routing)",
         "bfl": "Image generation via FLUX (EU-pinned data plane)",
+        "google_ads": "Ad conversion measurement: the ad click id and time of a sign-up, no other data",
         "google_oauth": "Sign-in via Google account (no other Google data accessed)",
         "github_oauth": "Sign-in via GitHub account (no other GitHub data accessed)",
         "stripe": "Subscription billing, payment method storage, invoice generation, fraud scoring",

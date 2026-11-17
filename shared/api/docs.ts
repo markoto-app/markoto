@@ -2,6 +2,7 @@
 // client, which may validate a form with the same schema before sending.
 import { z } from 'zod'
 import { serialId } from './ids'
+import { clickIdBody } from '../analytics/attribution'
 import { AUDIENCE_KINDS } from '../audiences'
 import { LANGUAGE_MAX_LENGTH } from '../languages'
 import { isTemplateId, resolveTemplateId } from '../templates'
@@ -42,7 +43,9 @@ export const createDocBody = z.object({
   themePreset: z.string().optional(),
   themeId: z.string().optional(),
   // The length cap answers `docs/content-too-long` in the handler.
-  content: z.string().optional()
+  content: z.string().optional(),
+  // Google Ads click id of this visit (shared/analytics/attribution.ts).
+  attribution: clickIdBody.optional()
 }).nullish()
 
 const WORD_COUNT_MAX = 10_000_000

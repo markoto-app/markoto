@@ -4,6 +4,7 @@ import { enforceAnonGate } from '../utils/anonGate/gate'
 import { ANON_DOC_CREATE_LIMITS } from '~~/shared/config/anonLimits'
 import { INITIAL_CONTENT_MAX_LENGTH } from '~~/shared/config/docCreate'
 import { createDocBody } from '~~/shared/api/docs'
+import { captureDocumentConversion } from '../utils/analytics/adConversions'
 
 // Document creation. Anonymous creation is allowed (falls back to `open-edit`
 // access mode, no workspace) but gated on the hosted shape
@@ -70,6 +71,8 @@ export default defineApiHandler({
       themeId: body?.themeId,
       content: body?.content
     })
+    // Google Ads conversion (off unless configured; never fails the request).
+    await captureDocumentConversion(event, body?.attribution, self)
     return { docId: result.docId }
   }
 })

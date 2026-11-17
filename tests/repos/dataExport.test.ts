@@ -61,6 +61,7 @@ describe('buildExportZip', () => {
       'README.txt',
       'abuse_reports.ndjson',
       'activity.ndjson',
+      'ad_conversions.ndjson',
       'ai/edit-provenance.ndjson',
       'ai/messages.ndjson',
       'ai/providers.json',

@@ -12,6 +12,8 @@ import {
 } from '~/utils/platform/altchaSolver'
 import { apiErrorData } from '~/utils/api/errors'
 import { useAnonTermsPrompt } from '~/composables/account/useAnonTermsPrompt'
+import { useAnalytics } from '~/composables/marketing/useAnalytics'
+import { ANALYTICS_EVENTS } from '~~/shared/analytics/events'
 
 // Client side of the anonymous gate (shared/config/anonGate.ts):
 //   - `useAnonBotCheck(purpose)` fetches an ALTCHA challenge and solves it
@@ -121,8 +123,14 @@ export function useAnonDocCreate() {
     if (gated.value) check.prepare()
   }
 
+  const analytics = useAnalytics()
+
   async function post(body: Record<string, unknown>): Promise<string> {
-    const res = await apiFetch('/api/docs', { method: 'post', body })
+    // The ad click id travels with the creation request (it is the
+    // conversion); null when there is none or conversions are off.
+    const clickId = analytics.clickId()
+    const res = await apiFetch('/api/docs', { method: 'post', body: clickId ? { ...body, attribution: clickId } : body })
+    analytics.track(ANALYTICS_EVENTS.docCreated, { anonymous: !loggedIn.value, source: body.content === undefined ? 'dialog' : 'try_it' })
     return res.docId
   }
 

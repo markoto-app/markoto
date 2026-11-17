@@ -4,7 +4,7 @@ import { legalMarkdown } from '~~/server/utils/privacy/legalMarkdown'
 import { resolveLegalEntity } from '~~/shared/legal/entity'
 import { legalDocumentParams, legalDocumentQuery } from '~~/shared/api/platform'
 import { renderProcessingPurposesMarkdown } from '~~/server/legal/registryView'
-import { isBillingEnabled } from '~~/server/utils/billing/billingMode'
+import { currentRegistryFlags } from '~~/server/utils/privacy/registryFlags'
 import {
   ABUSE_POLICY_EFFECTIVE_DATE,
   ABUSE_POLICY_VERSION,
@@ -139,7 +139,7 @@ export default defineApiHandler({
       uid: entity.uid,
       chId: entity.chId,
       ehraId: entity.ehraId,
-      processingPurposesTable: renderProcessingPurposesMarkdown(isBillingEnabled())
+      processingPurposesTable: renderProcessingPurposesMarkdown(currentRegistryFlags())
     }
     const substituted = body.replace(/\{\{(\w+)\}\}/g, (full, key: string) => {
       if (!Object.hasOwn(substitutions, key)) return full
