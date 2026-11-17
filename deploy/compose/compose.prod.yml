@@ -747,7 +747,22 @@ services:
     environment:
       # Its own role (owner of the umami database only) when
       # POSTGRES_UMAMI_USER is set: see db-init.
-      - DATABASE_URL=postgresql://${POSTGRES_UMAMI_USER:-${POSTGRES_USER}}:${POSTGRES_UMAMI_PASSWORD:-${POSTGRES_PASSWORD}}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/umami?sslmode=${POSTGRES_SSLMODE:-disable}
+      #
+      # TLS: the app's posture (shared/utils/runtime/postgresSsl.ts).
+      # PGSSL=disable (render-env, bundled Postgres) = no TLS; otherwise
+      # the certificate chain AND host name are verified, against the
+      # managed cluster's CA when PGSSLROOTCERT is set (mounted below),
+      # else the system bundle. Two URLs because two clients read them
+      # differently: DATABASE_URL is node-postgres (@prisma/adapter-pg:
+      # Umami's queries and its start-up check), which takes libpq's
+      # `sslmode=verify-full&sslrootcert=<CA>`. DIRECT_DATABASE_URL is
+      # `prisma migrate deploy` at start-up (scripts/check-db.js prefers
+      # it): its Rust schema engine ignores verify-full / sslrootcert and
+      # would connect unverified; it takes the CA as `sslcert` and
+      # verifies only with `sslaccept=strict`. (To node-postgres `sslcert`
+      # is a client certificate, so one URL cannot serve both.)
+      - DATABASE_URL=postgresql://${POSTGRES_UMAMI_USER:-${POSTGRES_USER}}:${POSTGRES_UMAMI_PASSWORD:-${POSTGRES_PASSWORD}}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/umami?sslmode=${PGSSL:-verify-full}${PGSSLROOTCERT:+&sslrootcert=${PGSSLROOTCERT}}
+      - DIRECT_DATABASE_URL=postgresql://${POSTGRES_UMAMI_USER:-${POSTGRES_USER}}:${POSTGRES_UMAMI_PASSWORD:-${POSTGRES_PASSWORD}}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/umami?sslmode=${PGSSL:-require&sslaccept=strict}${PGSSLROOTCERT:+&sslcert=${PGSSLROOTCERT}}
       - APP_SECRET=${UMAMI_APP_SECRET:-}
       - CLIENT_IP_HEADER=x-real-ip
       - SKIP_LOCATION_HEADERS=1
@@ -760,6 +775,10 @@ services:
     tmpfs:
       - /tmp:size=64m
       - /app/.next/cache:size=64m,mode=1777
+    # Managed-Postgres CA (PGSSLROOTCERT, read by both URLs above). Same
+    # read-only mount as app, sync and backup; inert in-stack.
+    volumes:
+      - /opt/markoto/secrets:/opt/markoto/secrets:ro
     <<: *hardening
     depends_on:
       postgres:

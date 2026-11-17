@@ -85,8 +85,8 @@ Connection parts (shared/utils/runtime/connectionStrings.ts builds the URL). Dev
 | `POSTGRES_HOST` | string |  | always | app, sync, backup, compose | both | Database host (compose: `postgres`, or the managed cluster endpoint). |
 | `POSTGRES_PORT` | integer 1–65535 | `5432` |  | app, sync, backup, compose | both | Database port. |
 | `POSTGRES_DB` | string |  | always | app, sync, backup, compose | both | Database of the app (LiteLLM uses its own `litellm` database). |
-| `PGSSL` | disable |  |  | app, sync | both | `disable` turns TLS to Postgres off (otherwise on in production). No other value is accepted. |
-| `PGSSLROOTCERT` | string |  |  | app, sync, backup | hosted | Path of a CA PEM the Postgres server certificate is verified against (default: system CA bundle). Unreadable = boot fails. Not passed by the compose files: hosted only: prod compose passes it; self-host runs Postgres in the stack without TLS. |
+| `PGSSL` | disable |  |  | app, sync | both | `disable` turns TLS to Postgres off (otherwise on in production, certificate verified). No other value is accepted. Prod compose applies the same posture to Umami's database URLs. |
+| `PGSSLROOTCERT` | string |  |  | app, sync, backup | hosted | Path of a CA PEM the Postgres server certificate is verified against (default: system CA bundle). Unreadable = boot fails. Prod compose also hands it to Umami (both of its database URLs). Not passed by the compose files: hosted only: prod compose passes it; self-host runs Postgres in the stack without TLS. |
 | `POSTGRES_SSLMODE` | disable \| allow \| prefer \| require \| verify-ca \| verify-full |  |  | compose | hosted | libpq sslmode for LiteLLM's DATABASE_URL, db-init and the backup sidecar (managed Postgres: require). |
 | `POSTGRES_APP_USER` | string |  |  | compose | both | Least-privilege role the app and sync server connect as (db-init creates it). Empty = POSTGRES_USER. |
 | `POSTGRES_APP_PASSWORD` | string |  |  | compose | both | Password of POSTGRES_APP_USER. Secret. |

@@ -296,7 +296,43 @@ if ! jq -r '.services.umami.image' "$tmp/analytics.json" | grep -Eq '^ghcr\.io/u
   echo "FAIL: the Umami image must be pinned by tag and digest" >&2
   exit 1
 fi
-echo "ok: analytics (Umami behind its profile, hardened, collect path only, dashboard login)"
+# Umami's database TLS follows the app (shared/utils/runtime/postgresSsl.ts).
+# Bundled Postgres (render-env: PGSSL=disable): no TLS. Managed cluster
+# (render-env: PGSSL empty, PGSSLROOTCERT = its CA): node-postgres
+# (DATABASE_URL) and the Prisma schema engine (DIRECT_DATABASE_URL, the
+# start-up migrations) both verify the CA and host name, each in its own
+# URL dialect, with the CA mounted read-only. Never an option that skips
+# the check.
+umami_url_base='postgresql://umami:placeholder@'
+cp "$tmp/prod-analytics.env" "$tmp/prod-analytics-bundled.env"
+printf 'PGSSL=disable\nPGSSLROOTCERT=\nPOSTGRES_SSLMODE=disable\n' >> "$tmp/prod-analytics-bundled.env"
+render_config "$tmp/analytics-bundled.json" "$tmp/prod-analytics-bundled.env" "deploy/compose/compose.prod.yml" "analytics"
+if ! jq -e --arg b "${umami_url_base}postgres:5432/umami?sslmode=disable" '
+    .services.umami.environment.DATABASE_URL == $b and .services.umami.environment.DIRECT_DATABASE_URL == $b' \
+    "$tmp/analytics-bundled.json" > /dev/null; then
+  echo "FAIL: with the bundled Postgres (PGSSL=disable), Umami's database URLs must be plain sslmode=disable" >&2
+  exit 1
+fi
+cp "$tmp/prod-analytics.env" "$tmp/prod-analytics-managed.env"
+printf 'POSTGRES_HOST=pg.managed.example\nPOSTGRES_PORT=20184\nPGSSL=\nPGSSLROOTCERT=/opt/markoto/secrets/ovh-pg-ca.pem\nPOSTGRES_SSLMODE=require\n' >> "$tmp/prod-analytics-managed.env"
+render_config "$tmp/analytics-managed.json" "$tmp/prod-analytics-managed.env" "deploy/compose/compose.prod.yml" "analytics"
+out="$(jq -r --arg b "${umami_url_base}pg.managed.example:20184/umami?" '
+  .services.umami as $u
+  | [
+      ( select($u.environment.DATABASE_URL != ($b + "sslmode=verify-full&sslrootcert=/opt/markoto/secrets/ovh-pg-ca.pem"))
+        | "DATABASE_URL must verify the managed CA for node-postgres (sslmode=verify-full&sslrootcert=...)" ),
+      ( select($u.environment.DIRECT_DATABASE_URL != ($b + "sslmode=require&sslaccept=strict&sslcert=/opt/markoto/secrets/ovh-pg-ca.pem"))
+        | "DIRECT_DATABASE_URL must verify the managed CA for the Prisma schema engine (sslaccept=strict&sslcert=...)" ),
+      ( select([$u.environment.DATABASE_URL, $u.environment.DIRECT_DATABASE_URL] | any(test("accept_invalid_certs|no-verify")))
+        | "Umami must never skip the certificate check" ),
+      ( select([($u.volumes // [])[] | select(.source == "/opt/markoto/secrets" and .target == "/opt/markoto/secrets" and .read_only == true)] | length != 1)
+        | "Umami must mount the CA directory /opt/markoto/secrets read-only" )
+    ] | .[]' "$tmp/analytics-managed.json")"
+if [[ -n "$out" ]]; then
+  printf 'FAIL (analytics TLS): %s\n' "$out" >&2
+  exit 1
+fi
+echo "ok: analytics (Umami behind its profile, hardened, collect path only, dashboard login, verified managed-Postgres TLS)"
 
 # Anonymous gate (shared/config/anonGate.ts)
 # Hosted: on, and the ALTCHA key is required (compose refuses without it).

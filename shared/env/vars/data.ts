@@ -55,14 +55,14 @@ export const database = defineNamespace({
     ssl: v({
       name: 'PGSSL',
       type: oneOf(['disable']),
-      doc: '`disable` turns TLS to Postgres off (otherwise on in production). No other value is accepted.',
+      doc: '`disable` turns TLS to Postgres off (otherwise on in production, certificate verified). No other value is accepted. Prod compose applies the same posture to Umami\'s database URLs.',
       services: ['app', 'sync'],
       scope: 'both'
     }),
     sslRootCert: v({
       name: 'PGSSLROOTCERT',
       type: string,
-      doc: 'Path of a CA PEM the Postgres server certificate is verified against (default: system CA bundle). Unreadable = boot fails.',
+      doc: 'Path of a CA PEM the Postgres server certificate is verified against (default: system CA bundle). Unreadable = boot fails. Prod compose also hands it to Umami (both of its database URLs).',
       services: ['app', 'sync', 'backup'],
       scope: 'hosted',
       notPassed: 'hosted only: prod compose passes it; self-host runs Postgres in the stack without TLS'
