@@ -33,7 +33,13 @@ vi.mock('../../../server/repos/documents', async orig => ({
 }))
 
 const { runAgenticLoop } = await import('../../../server/utils/agentic/runLoop')
-const { assemblePromptSystemPrompt, PROMPT_SYSTEM_PROMPT } = await import('../../../server/utils/agentic/promptAssembly')
+// The loop v2 branch moved the per-document blocks out of the system prompt
+// (`assemblePromptContext` + `promptContext`); the harness runs on both.
+const promptAssembly: Record<string, unknown> = await import('../../../server/utils/agentic/promptAssembly')
+const PROMPT_SYSTEM_PROMPT = String(promptAssembly.PROMPT_SYSTEM_PROMPT)
+type Blocks = { documentContextBlock: string, knowledgeBlock: string, membersBlock: string }
+const assemblePromptContext = promptAssembly.assemblePromptContext as ((b: Blocks) => string) | undefined
+const assemblePromptSystemPrompt = promptAssembly.assemblePromptSystemPrompt as ((p: string, b: Blocks) => string) | undefined
 const { buildDocumentContext } = await import('../../../server/utils/agentic/documentContextPrompt')
 const { validateEditorSelection, wrapPromptWithEditorState } = await import('../../../server/utils/agentic/editorStatePrompt')
 
@@ -51,8 +57,10 @@ const LARGE = largeDocument()
 const tasks = PLANNER_TASKS.filter(t => TASK_FILTER.length === 0 || TASK_FILTER.some(f => t.id.startsWith(f)))
 
 function providersFor(model: string): ResolvedAiProviders {
-  const providers: ResolvedAiProviders = { chat: { capability: 'chat', source: 'instance', model, credentials: null, supportsVision: true }, image: null, transcription: null }
-  return providers
+  const chat = { capability: 'chat' as const, source: 'instance' as const, model, credentials: null, supportsVision: true }
+  const providers: ResolvedAiProviders = { chat, image: null, transcription: null }
+  // v2 adds a worker capability (fast / strong); the planner eval gives it the planner's model.
+  return Object.assign(providers, { worker: { fast: chat, strong: chat } })
 }
 
 function readComments(ydoc: Y.Doc): EvalComment[] {
@@ -135,11 +143,14 @@ describe.skipIf(!ENABLED)('live planner eval (current loop)', () => {
             aiProviders: providersFor(model),
             updateStatus: () => {}
           })
-          const systemPrompt = assemblePromptSystemPrompt(PROMPT_SYSTEM_PROMPT, {
+          const blocks: Blocks = {
             documentContextBlock: buildDocumentContext({ title: task.doc === 'large' ? 'Betriebshandbuch IT- und Netzbetrieb' : task.doc === 'paper' ? 'Battery degradation paper' : 'Jahresbericht Werkstatt Nord', description: '', audience: task.audience as never, language: task.language }),
             knowledgeBlock: '',
             membersBlock: ''
-          })
+          }
+          const systemPrompt = assemblePromptContext ? PROMPT_SYSTEM_PROMPT : assemblePromptSystemPrompt!(PROMPT_SYSTEM_PROMPT, blocks)
+          // v2 only: per-document context in the first user message, wrap-up turn before the deadline.
+          const v2Options: Record<string, unknown> = assemblePromptContext ? { promptContext: assemblePromptContext(blocks), deadlineAt: started + 300_000 } : {}
           const billingContext: BillingContext = { attributedTo: 'user:1', billingUserId: 1, plan: 'free', periodStart: new Date(), periodEnd: new Date(), virtualKey: 'sk-eval', attribution: 'user' }
           let error: string | null = null
           // Production aborts a session after AI_SESSION_HARD_DEADLINE_MS (5 min).
@@ -160,7 +171,8 @@ describe.skipIf(!ENABLED)('live planner eval (current loop)', () => {
               },
               billingContext,
               logger: () => {},
-              crossBoundary: soloSessionGuard()
+              crossBoundary: soloSessionGuard(),
+              ...v2Options
             })
           } catch (e) {
             error = abortController.signal.aborted ? 'deadline (5 min)' : e instanceof BudgetExceeded ? `budget: ${e.message}` : (e instanceof Error ? e.message : String(e))
