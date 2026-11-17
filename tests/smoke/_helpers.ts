@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test'
 import { solveChallenge, type Challenge } from 'altcha-lib'
 import { deriveKey } from 'altcha-lib/algorithms/pbkdf2'
 
@@ -127,4 +128,22 @@ export function smokeDoc(kind: SmokeDoc): string {
   const id = isRecord(parsed) ? parsed[kind] : null
   if (typeof id !== 'string') throw new Error(`no shared smoke document "${kind}"`)
   return id
+}
+
+/**
+ * Waits until the page has hydrated, so a click reaches its Vue handler.
+ * A server-rendered button is visible (and Playwright clicks it) before
+ * its handler exists; on the lean marketing pages that is well after the
+ * `load` event (app/utils/platform/earlyClicks.ts). `<html data-hydrated>`
+ * is the app's marker; the `isHydrating` check covers a deployment from
+ * before the marker existed.
+ */
+export async function waitForHydration(page: Page): Promise<void> {
+  await page.waitForFunction(() => {
+    if (document.documentElement.hasAttribute('data-hydrated')) return true
+    const root: unknown = document.getElementById('__nuxt')
+    const app: unknown = root && Reflect.get(root, '__vue_app__')
+    const nuxt: unknown = app && Reflect.get(app, '$nuxt')
+    return !!nuxt && Reflect.get(nuxt, 'isHydrating') === false
+  })
 }
