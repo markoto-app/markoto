@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ANALYTICS_EVENTS } from '~~/shared/analytics/events'
+
 // Paid-plans waitlist sign-up (hosted free-only SaaS). Rendered by
 // /pricing only while `plansComingSoon` is true.
 //
@@ -18,6 +20,13 @@ const submitting = ref(false)
 const submitted = ref(false)
 const errorMessage = ref<string | null>(null)
 
+const analytics = useAnalytics()
+// The ad click id travels only with the sign-up itself (docs/operations-analytics.md).
+function clickIdField() {
+  const clickId = analytics.clickId()
+  return clickId ? { attribution: clickId } : {}
+}
+
 const canSubmit = computed(() => consent.value && email.value.trim().length > 0 && !submitting.value)
 
 async function onSubmit(): Promise<void> {
@@ -27,9 +36,10 @@ async function onSubmit(): Promise<void> {
   try {
     await apiFetch('/api/waitlist', {
       method: 'post',
-      body: { email: email.value.trim(), locale: locale.value, consent: consent.value }
+      body: { email: email.value.trim(), locale: locale.value, consent: consent.value, ...clickIdField() }
     })
     submitted.value = true
+    analytics.track(ANALYTICS_EVENTS.waitlistSubmitted, {})
   } catch (e) {
     errorMessage.value = extractError(e).message
   } finally {

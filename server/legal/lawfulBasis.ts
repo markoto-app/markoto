@@ -273,6 +273,41 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: ['ovh_postgres']
   },
   {
+    // Cookieless page analytics: a self-hosted Umami on our own servers
+    // (no third party). Counted: page views of the public pages (never
+    // documents or published pages), the conversion events of
+    // shared/analytics/events.ts and the UTM parameters of the landing URL.
+    // Umami derives country / region / city, browser, OS and device type
+    // from the request and forms a visitor hash of IP + user agent with a
+    // salt that changes daily; the IP address itself is never stored.
+    // Nothing is stored in the browser. Global Privacy Control / Do Not
+    // Track switch it off. Deleted after 13 months by the app's
+    // `analytics-retention-sweep`. Shown only where analytics is on.
+    id: 'web_analytics',
+    label: 'Visitor statistics of the public pages (cookieless)',
+    basis: 'legitimate_interest',
+    dataCategories: ['page_path', 'campaign_parameters', 'referrer_site', 'coarse_location', 'browser_os_device', 'daily_visitor_hash', 'conversion_events'],
+    retention: 395,
+    subProcessors: ['ovh_postgres']
+  },
+  {
+    // Google Ads conversion measurement without a Google script: when a
+    // visitor who came from a Google ad (click id `gclid` / `gbraid` /
+    // `wbraid` in the landing URL) signs up, joins the waitlist (and
+    // confirms) or creates a first document, we keep that click id with
+    // the kind and time of the conversion (`ad_click_conversions`) and
+    // report it to Google Ads as an offline conversion. No email, name, IP
+    // or user agent is sent. Not recorded with Global Privacy Control / Do
+    // Not Track. Deleted 90 days after the conversion; with the account.
+    // Shown only where ad conversions are on.
+    id: 'ad_conversion_measurement',
+    label: 'Measuring which ads lead to sign-ups',
+    basis: 'legitimate_interest',
+    dataCategories: ['ad_click_id', 'conversion_kind', 'conversion_time', 'account_id_if_signed_in'],
+    retention: 90,
+    subProcessors: ['ovh_postgres', 'google_ads']
+  },
+  {
     id: 'error_monitoring',
     label: 'Error monitoring',
     basis: 'legitimate_interest',

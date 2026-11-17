@@ -125,7 +125,7 @@ export default defineApiHandler({
       e: await getSessionEpoch(userId),
       v: SESSION_VERSION
     })
-    const target = outcome === 'merged' ? '/?linked=oidc' : '/'
+    const target = outcome === 'merged' ? '/?linked=oidc' : outcome === 'inserted' ? '/?signed_up=oidc' : '/'
     return sendRedirect(event, target)
   }
 })

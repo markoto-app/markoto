@@ -1,5 +1,6 @@
 import { closeDatabase } from '../db/client'
 import { closeLitellmPool } from '../db/litellm'
+import { closeUmamiPool } from '../db/umami'
 import { applyMigrations } from '../db/migrate'
 
 // The database lifecycle as the plugins see it: migrate at boot, close the
@@ -9,5 +10,5 @@ export { applyMigrations }
 
 /** Close the app pool and the LiteLLM spend pool (Nitro `close`). */
 export async function closeDatabaseConnections(): Promise<void> {
-  await Promise.all([closeDatabase(), closeLitellmPool()])
+  await Promise.all([closeDatabase(), closeLitellmPool(), closeUmamiPool()])
 }

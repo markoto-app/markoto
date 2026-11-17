@@ -254,6 +254,11 @@ services:
       - LITELLM_DB=litellm_test
       - LITELLM_DB_USER=litellm_test
       - LITELLM_DB_PASSWORD=litellmtestpassword
+      # Analytics database, as on the hosted stack with Umami on
+      # (tests/repos/dbInitUmami.test.ts checks the result).
+      - UMAMI_DB=umami_test
+      - UMAMI_DB_USER=umami_test
+      - UMAMI_DB_PASSWORD=umamitestpassword
     volumes:
       - ../config/postgres/db-init.sh:/db-init.sh:ro,z
     entrypoint: ["/bin/sh", "/db-init.sh"]

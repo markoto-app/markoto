@@ -137,4 +137,5 @@ Docs (humans first, but read the relevant one before a larger change):
 | [`docs/contributing/`](docs/contributing/) | `testing`, `logging`, `flow-docs`, `server`, `api-handlers`, `database`, `billing`, `knowledge-base`, `ai-tools`, `mcp`, `privacy-registries`, `sync-server`, `activity-log`, `preview-pipeline`, `design-system`, `templates`, `marketing-site`, `TEMPLATE-WORKFLOW` (design templates), `LOCAL`, `CONTAINER-ENGINES`, `CHEATSHEET` |
 | [`docs/reference/rate-limits.md`](docs/reference/rate-limits.md) | Request limits with their source files |
 | [`docs/SELF-HOSTING.md`](docs/SELF-HOSTING.md) | Install, configuration reference, upgrades, backups |
+| [`docs/operations-analytics.md`](docs/operations-analytics.md) | Cookieless analytics (Umami), events and funnels, Google Ads conversions, legal assessment |
 | [`docs/AI-MODELS.md`](docs/AI-MODELS.md), [`docs/SECURITY-HARDENING.md`](docs/SECURITY-HARDENING.md), [`docs/S3-SETUP.md`](docs/S3-SETUP.md) | AI models, hardening, external S3 |

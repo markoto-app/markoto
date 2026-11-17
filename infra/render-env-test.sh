@@ -367,3 +367,38 @@ if env -i "${ENVARGS[@]}" "NUXT_PUBLISH_PAGES_HOST=" bash infra/render-env.sh >/
   exit 1
 fi
 echo "VALUE SAFETY OK - spaces quoted, trailing newline stripped, newline/quote/bad DOMAIN/pages host rejected"
+
+# Analytics (docs/operations-analytics.md): UMAMI_APP_SECRET turns on the
+# `analytics` profile and needs the dashboard host + its edge login; a
+# website id without Umami, a bad host or a bad login line fail the render.
+# shellcheck disable=SC2016 # a literal bcrypt hash, not an expansion
+UMAMI_LOGIN='stats:$2y$05$abcdefghijklmnopqrstuuW2KvOH6tIrWw6e0kJw4l7j6HnJ6O9H2'
+UMAMI_ID='0d2c6a3e-1b4f-4a8e-9c0d-123456789abc'
+declare -a UMAMIARGS=("UMAMI_APP_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" "UMAMI_HOST=stats.example.test" "UMAMI_BASIC_AUTH_USERS=$UMAMI_LOGIN" "POSTGRES_UMAMI_USER=v_pgumami" "POSTGRES_UMAMI_PASSWORD=v_pgumamipw" "NUXT_PUBLIC_ANALYTICS_WEBSITE_ID=$UMAMI_ID" "NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS=True")
+umami_out=$(env -i "${ENVARGS[@]}" "${UMAMIARGS[@]}" bash infra/render-env.sh)
+for want in 'COMPOSE_PROFILES=analytics' 'UMAMI_HOST=stats.example.test' "UMAMI_BASIC_AUTH_USERS='$UMAMI_LOGIN'" 'POSTGRES_UMAMI_USER=v_pgumami' "NUXT_PUBLIC_ANALYTICS_WEBSITE_ID=$UMAMI_ID" 'NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS=true'; do
+  if ! grep -qxF "$want" <<<"$umami_out"; then
+    echo "ANALYTICS FAILED - expected line: $want"
+    exit 1
+  fi
+done
+umami_bundled=$(env -i "${BUNDLEDPG[@]}" "${UMAMIARGS[@]}" bash infra/render-env.sh)
+if ! grep -qx 'COMPOSE_PROFILES=bundled-postgres,analytics' <<<"$umami_bundled"; then
+  echo "ANALYTICS FAILED - bundled Postgres + analytics must render both profiles"
+  exit 1
+fi
+for bad in "UMAMI_HOST=" "UMAMI_HOST=stats.example.test\`) || Host(\`evil.test" "UMAMI_BASIC_AUTH_USERS=" "UMAMI_BASIC_AUTH_USERS=stats:plain" "UMAMI_APP_SECRET=short" "NUXT_PUBLIC_ANALYTICS_WEBSITE_ID=not-a-uuid" "POSTGRES_UMAMI_PASSWORD="; do
+  if env -i "${ENVARGS[@]}" "${UMAMIARGS[@]}" "$bad" bash infra/render-env.sh >/dev/null 2>&1; then
+    echo "ANALYTICS FAILED - must not render with $bad"
+    exit 1
+  fi
+done
+if env -i "${ENVARGS[@]}" "NUXT_PUBLIC_ANALYTICS_WEBSITE_ID=$UMAMI_ID" bash infra/render-env.sh >/dev/null 2>&1; then
+  echo "ANALYTICS FAILED - a website id without UMAMI_APP_SECRET must not render"
+  exit 1
+fi
+if ! grep -qx 'COMPOSE_PROFILES=' <<<"$bash_out" || ! grep -qx 'UMAMI_APP_SECRET=' <<<"$bash_out"; then
+  echo "ANALYTICS FAILED - without UMAMI_APP_SECRET there is no analytics profile"
+  exit 1
+fi
+echo "ANALYTICS OK - profile, dashboard host + login checks, website id needs Umami"

@@ -9,6 +9,7 @@
 // typed loosely here (`z.unknown()`) and judged by the handler; the schema only
 // guarantees the body is an object (or missing).
 import { z } from 'zod'
+import { clickIdBody } from '../analytics/attribution'
 import { PG_INTEGER_MAX } from './ids'
 import { ANON_GATE_PURPOSES } from '../config/anonGate'
 
@@ -91,7 +92,9 @@ export const recordConsentBody = z.object({
 export const joinWaitlistBody = z.object({
   email: z.unknown().optional(),
   locale: z.unknown().optional(),
-  consent: z.unknown().optional()
+  consent: z.unknown().optional(),
+  // Google Ads click id of this visit (shared/analytics/attribution.ts).
+  attribution: clickIdBody.optional()
 }).nullish()
 
 /** POST /api/waitlist/confirm and /unsubscribe: the raw single-use token from the email link. */

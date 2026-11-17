@@ -365,6 +365,16 @@ services:
       # query (server/utils/litellm/litellmDb.ts); empty = the app role.
       - NUXT_LITELLM_DB_USER=${POSTGRES_LITELLM_USER:-}
       - NUXT_LITELLM_DB_PASSWORD=${POSTGRES_LITELLM_PASSWORD:-}
+      # Cookieless analytics (docs/operations-analytics.md). The website id
+      # (from Umami, after its first login) switches the browser side on;
+      # the in-network URL counts published-page views (only while the
+      # `analytics` profile runs Umami); Umami's own role lets the app
+      # delete expired visitor data in the umami database.
+      - NUXT_PUBLIC_ANALYTICS_WEBSITE_ID=${NUXT_PUBLIC_ANALYTICS_WEBSITE_ID:-}
+      - NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS=${NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS:-false}
+      - NUXT_ANALYTICS_INTERNAL_URL=${UMAMI_APP_SECRET:+http://umami:3000}
+      - NUXT_ANALYTICS_DB_USER=${POSTGRES_UMAMI_USER:-}
+      - NUXT_ANALYTICS_DB_PASSWORD=${POSTGRES_UMAMI_PASSWORD:-}
       # Billing mode (shared/config/billingMode.ts). Default: billing OFF,
       # no Stripe calls, Stripe vars not required, everyone on the free tier.
       # NUXT_PLANS_COMING_SOON=true is the hosted free-only SaaS (pricing
@@ -605,6 +615,10 @@ services:
       - PGPORT=${POSTGRES_PORT:-5432}
       # libpq TLS: require in managed mode, disable in-stack.
       - PGSSLMODE=${POSTGRES_SSLMODE:-disable}
+      # Umami's database + role, only when analytics runs (UMAMI_APP_SECRET set).
+      - UMAMI_DB=${UMAMI_APP_SECRET:+umami}
+      - UMAMI_DB_USER=${POSTGRES_UMAMI_USER:-${POSTGRES_USER}}
+      - UMAMI_DB_PASSWORD=${POSTGRES_UMAMI_PASSWORD:-}
 
   sync:
     image: ${REGISTRY}/markoto-sync:${IMAGE_TAG}
@@ -703,6 +717,78 @@ services:
     networks:
       - render
       - renderer-egress
+
+  # Cookieless page analytics (docs/operations-analytics.md). Runs only with
+  # COMPOSE_PROFILES=analytics, which infra/render-env.sh sets when
+  # UMAMI_APP_SECRET is set. Two routers:
+  #   - `umami-collect`: ONLY POST /a/api/send on the main domain (the
+  #     browser's events, first-party, no third-party host); /a is stripped.
+  #     The tracker script is not served: the app sends its own events.
+  #   - `umami`: the dashboard on its own host (UMAMI_HOST), behind an edge
+  #     login (UMAMI_BASIC_AUTH_USERS) on top of Umami's own login.
+  # Visitor IPs come from X-Real-Ip, which Traefik sets from the PROXY
+  # header (a client cannot forge it); location headers from clients are
+  # ignored. Umami stores no IP: it hashes IP + user agent with a salt that
+  # rotates daily (SALT_ROTATION=day).
+  umami:
+    profiles:
+      - analytics
+    image: ghcr.io/umami-software/umami:3.5.0@sha256:b64f40400d77bcadd39cf5c62a1e368c99524ca442024f96e1133355a19a5dbc
+    restart: unless-stopped
+    # Next.js server + Prisma (migrations at start); ~250 MiB steady.
+    mem_limit: 768m
+    environment:
+      # Its own role (owner of the umami database only) when
+      # POSTGRES_UMAMI_USER is set: see db-init.
+      - DATABASE_URL=postgresql://${POSTGRES_UMAMI_USER:-${POSTGRES_USER}}:${POSTGRES_UMAMI_PASSWORD:-${POSTGRES_PASSWORD}}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/umami?sslmode=${POSTGRES_SSLMODE:-disable}
+      - APP_SECRET=${UMAMI_APP_SECRET:-}
+      - CLIENT_IP_HEADER=x-real-ip
+      - SKIP_LOCATION_HEADERS=1
+      - SALT_ROTATION=day
+      - DISABLE_TELEMETRY=1
+      - DISABLE_UPDATES=1
+    # Image user `nextjs`; nothing in /app is written (no COLLECT_API_ENDPOINT,
+    # so the start script leaves the tracker file alone). Next writes its cache.
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+      - /app/.next/cache:size=64m,mode=1777
+    <<: *hardening
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+      db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://localhost:3000/api/heartbeat"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    expose:
+      - "3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.umami.loadbalancer.server.port=3000"
+      - "traefik.http.routers.umami-collect.rule=Host(`${DOMAIN}`) && Method(`POST`) && Path(`/a/api/send`)"
+      - "traefik.http.routers.umami-collect.entrypoints=websecure"
+      - "traefik.http.routers.umami-collect.tls.certresolver=le"
+      - "traefik.http.routers.umami-collect.service=umami"
+      - "traefik.http.routers.umami-collect.middlewares=security-headers,${EDGE_BASIC_AUTH_USERS:+edge-auth,}umami-strip"
+      - "traefik.http.middlewares.umami-strip.stripprefix.prefixes=/a"
+      - "traefik.http.routers.umami.rule=Host(`${UMAMI_HOST:-stats.invalid}`)"
+      - "traefik.http.routers.umami.entrypoints=websecure"
+      - "traefik.http.routers.umami.tls.certresolver=le"
+      - "traefik.http.routers.umami.service=umami"
+      - "traefik.http.routers.umami.middlewares=security-headers,umami-auth"
+      - "traefik.http.middlewares.umami-auth.basicauth.users=${UMAMI_BASIC_AUTH_USERS:-}"
+      - "traefik.http.middlewares.umami-auth.basicauth.realm=markoto stats"
+      - "traefik.http.middlewares.umami-auth.basicauth.removeheader=true"
+    # web: Traefik (and a managed Postgres cluster); data: the bundled one.
+    networks:
+      - web
+      - data
 
   backup:
     image: ${REGISTRY}/markoto-backup:${IMAGE_TAG}

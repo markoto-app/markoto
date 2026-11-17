@@ -69,9 +69,11 @@ describe('legal wording', () => {
     const privacy = read('privacy', 'en')
     // Accounts have no passwords (OAuth only); only document passwords use scrypt.
     expect(privacy).not.toMatch(/scrypt password hashing/i)
-    // No analytics or session replay is loaded, and there is no cookie banner.
+    // No session replay, no browser storage for statistics or ads, and no
+    // cookie banner; visitor statistics are cookieless (Umami, section 9b).
     expect(privacy).not.toMatch(/with your consent, which you can grant or withdraw/i)
-    expect(privacy).toMatch(/no analytics, no session replay/i)
+    expect(privacy).toMatch(/no cookies or other browser storage for statistics or advertising, no session replay/i)
+    expect(privacy).toMatch(/Global Privacy Control or Do Not Track/)
     // The age rule is 16 everywhere, not "16 in most EU states".
     for (const { slug } of DOCS) {
       expect(read(slug, 'en')).not.toMatch(/most EU member states/i)

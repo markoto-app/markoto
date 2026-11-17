@@ -15,6 +15,7 @@ import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
 import { joinWaitlistBody } from '~~/shared/api/legal'
 import { useEnv } from '~~/shared/env/load'
 import { useLogger } from '../../utils/platform/logger'
+import { captureWaitlistConversion } from '../../utils/analytics/adConversions'
 
 const log = useLogger('waitlist')
 
@@ -81,6 +82,8 @@ export default defineApiHandler({
       confirmTokenExpiresAt: new Date(Date.now() + WAITLIST_CONFIRM_TTL_MS),
       unsubscribeTokenHash: hashWaitlistToken(unsubscribeToken)
     })
+    // Google Ads conversion (off unless configured; never fails the request).
+    if (outcome !== 'unchanged') await captureWaitlistConversion(event, body?.attribution, email)
 
     // Links are built from NUXT_SITE_URL only, never request Host /
     // X-Forwarded-* (client-influenced: a poisoned host would mail the

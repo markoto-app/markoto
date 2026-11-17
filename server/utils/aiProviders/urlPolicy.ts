@@ -58,7 +58,7 @@ export const INTERNAL_HOSTNAMES: ReadonlySet<string> = new Set([
   'localhost',
   // base / dev / local / prod / selfhost
   'app', 'markoto-app', 'backup', 'litellm', 'litellm-db-init', 'db-init', 'markitdown', 'postgres', 'renderer',
-  's3-init', 'seaweedfs', 'socket-proxy', 'sync', 'traefik', 'valkey', 'redis', 'edge-proxy',
+  's3-init', 'seaweedfs', 'socket-proxy', 'sync', 'traefik', 'valkey', 'redis', 'edge-proxy', 'umami',
   // test stack
   'challtestsrv-test', 'fake-openai-test', 'litellm-test', 'litellm-test-db-init', 'markitdown-test', 'oidc-test', 'pebble-test', 'postgres-test',
   'renderer-test', 'seaweedfs-test', 'stripe-mock', 'sync-test', 'traefik-test', 'valkey-test',

@@ -322,6 +322,9 @@ async function startBillingOffServer(primaryEnv: NodeJS.ProcessEnv): Promise<voi
   // endpoints/publish.test.ts → "pages host"). The primary keeps the
   // single-origin default.
   env.NUXT_PUBLISH_PAGES_HOST = TEST_PUBLISH_PAGES_HOST
+  // Hosted shape: Google Ads click-id conversions on
+  // (endpoints/adConversions.test.ts). The primary keeps them off.
+  env.NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS = 'true'
   // Hosted free-tier plan limits (infra/render-env.sh), pinned by
   // tests/integration/endpoints/planEntitlements.test.ts. The MCP ones
   // (TIER_FREE_FEATURE_MCP_WRITE / _MCP_TOOL_CALLS_PER_DAY) stay at the

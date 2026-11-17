@@ -150,6 +150,10 @@ jobs:
           # Separate DB roles (optional; empty = POSTGRES_USER for everything).
           POSTGRES_APP_PASSWORD: ${{ secrets.POSTGRES_APP_PASSWORD }}
           POSTGRES_LITELLM_PASSWORD: ${{ secrets.POSTGRES_LITELLM_PASSWORD }}
+          # Cookieless analytics (docs/operations-analytics.md); empty = off.
+          POSTGRES_UMAMI_PASSWORD: ${{ secrets.POSTGRES_UMAMI_PASSWORD }}
+          UMAMI_APP_SECRET: ${{ secrets.UMAMI_APP_SECRET }}
+          UMAMI_BASIC_AUTH_USERS: ${{ secrets.UMAMI_BASIC_AUTH_USERS }}
           VALKEY_PASSWORD: ${{ secrets.VALKEY_PASSWORD }}
           NUXT_S3_ACCESS_KEY: ${{ secrets.NUXT_S3_ACCESS_KEY }}
           NUXT_S3_SECRET_KEY: ${{ secrets.NUXT_S3_SECRET_KEY }}
@@ -178,6 +182,10 @@ jobs:
           POSTGRES_PORT: ${{ vars.POSTGRES_PORT }}
           POSTGRES_APP_USER: ${{ vars.POSTGRES_APP_USER }}
           POSTGRES_LITELLM_USER: ${{ vars.POSTGRES_LITELLM_USER }}
+          POSTGRES_UMAMI_USER: ${{ vars.POSTGRES_UMAMI_USER }}
+          UMAMI_HOST: ${{ vars.UMAMI_HOST }}
+          NUXT_PUBLIC_ANALYTICS_WEBSITE_ID: ${{ vars.NUXT_PUBLIC_ANALYTICS_WEBSITE_ID }}
+          NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS: ${{ vars.NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS }}
           VALKEY_DB: ${{ vars.VALKEY_DB }}
           NUXT_S3_ENDPOINT: ${{ vars.NUXT_S3_ENDPOINT }}
           NUXT_S3_BUCKET: ${{ vars.NUXT_S3_BUCKET }}

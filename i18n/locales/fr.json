@@ -1939,6 +1939,7 @@
         "jina_ai": "Génération d’embeddings pour la base de connaissances (RAG) ; extraction du contenu d’une page à partir d’une URL pour l’outil de récupération d’URL (Jina Reader ; l’URL est envoyée pour tous les utilisateurs, y compris ceux qui utilisent leur propre fournisseur d’IA)",
         "staan": "Recherche web pour l’assistant d’écriture IA (la requête est envoyée pour tous les utilisateurs, y compris ceux qui utilisent leur propre fournisseur d’IA), via un index de recherche européen propriétaire (acheminement uniquement dans l’UE)",
         "bfl": "Génération d’images avec FLUX (traitement des données fixé dans l’UE)",
+        "google_ads": "Mesure des conversions publicitaires : l'identifiant de clic de l'annonce et l'heure d'une inscription, aucune autre donnée",
         "google_oauth": "Connexion avec un compte Google (aucune autre donnée Google consultée)",
         "github_oauth": "Connexion avec un compte GitHub (aucune autre donnée GitHub consultée)",
         "stripe": "Facturation des abonnements, conservation des moyens de paiement, émission des factures, évaluation de la fraude",
