@@ -14,8 +14,10 @@ export interface CallUsageRecord {
   docId: string | null
   /** 1-based turn of the session; the closing turn has the next number. */
   turn: number
-  /** `turn` for a work turn, `closing` for the wrap-up turn (`wrapUp.ts`). */
-  phase: 'turn' | 'closing'
+  /** `turn` for a work turn, `closing` for the wrap-up turn (`wrapUp.ts`), `job` for a worker call of a delegated job. */
+  phase: 'turn' | 'closing' | 'job'
+  /** The delegated job of a `job` call. */
+  jobId?: string
   /** Model / LiteLLM alias the request named. */
   requestedModel: string
   /** Model the provider reported in the response, when it named one. */
@@ -38,7 +40,8 @@ export interface CallUsageInput {
   sessionId: string
   docId?: string | null
   turn: number
-  phase?: 'turn' | 'closing'
+  phase?: 'turn' | 'closing' | 'job'
+  jobId?: string
   requestedModel: string
   providerModel?: string | null
   usage?: {
@@ -65,6 +68,7 @@ export function buildCallUsageRecord(input: CallUsageInput): CallUsageRecord {
     docId: input.docId ?? null,
     turn: input.turn,
     phase: input.phase ?? 'turn',
+    ...(input.jobId ? { jobId: input.jobId } : {}),
     requestedModel: input.requestedModel,
     providerModel: input.providerModel ?? null,
     promptTokens: count(input.usage?.promptTokenCount),

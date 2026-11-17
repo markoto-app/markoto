@@ -107,7 +107,9 @@ const actionIcons: Record<ActivityEntry['action'], string> = {
   'theme.changed': 'i-lucide-palette',
   'ai.tool': 'i-lucide-wrench',
   // Same "go back" meaning as comment.reopened's rotate-ccw, told apart by the clock glyph.
-  'restore': 'i-lucide-history'
+  'restore': 'i-lucide-history',
+  'ai.job': 'i-lucide-layers',
+  'ai.job.reverted': 'i-lucide-undo-2'
 }
 
 const aiToolIcons: Record<ActivityMetadataAiTool['tool'], string> = {
@@ -116,7 +118,8 @@ const aiToolIcons: Record<ActivityMetadataAiTool['tool'], string> = {
   generate_image: 'i-lucide-image-plus',
   view_image: 'i-lucide-image',
   search_knowledge: 'i-lucide-book-open',
-  get_knowledge_file: 'i-lucide-file-text'
+  get_knowledge_file: 'i-lucide-file-text',
+  replace_all: 'i-lucide-replace-all'
 }
 
 function iconFor(entry: ActivityEntry): string {
@@ -147,6 +150,8 @@ function detailFor(entry: ActivityEntry): string | null {
       // Relative to the source row's timestamp, formatted like the row's own.
       return t('activity.detail.restoredFrom', { ago: formatTime(m.restoredFromTime) })
     case 'theme.changed':
+    case 'ai.job':
+    case 'ai.job.reverted':
     default:
       return null
   }
@@ -166,6 +171,8 @@ function detailForAiTool(m: ActivityMetadataAiTool): string | null {
       return m.src ? truncate(m.src, 120) : null
     case 'get_knowledge_file':
       return m.knowledgeId ? truncate(m.knowledgeId, 64) : null
+    case 'replace_all':
+      return t('activity.detail.replacedAll', { count: m.count, from: truncate(m.query, 60), to: truncate(m.replacement, 60) })
     default:
       return null
   }
@@ -175,6 +182,10 @@ function actionLabel(entry: ActivityEntry): string {
   if (entry.action === 'ai.tool' && entry.metadata?.kind === 'ai.tool') {
     return t(`activity.action.aiTool.${entry.metadata.tool}`)
   }
+  if (entry.action === 'ai.job') {
+    return t(entry.metadata?.kind === 'ai.job' && entry.metadata.phase === 'finished' ? 'activity.action.ai.job.finished' : 'activity.action.ai.job.started')
+  }
+  if (entry.action === 'ai.job.reverted') return t('activity.action.ai.job.reverted')
   // comment.deleted has a thread/reply variant (metadata.isReply)
   if (entry.action === 'comment.deleted' && entry.metadata?.kind === 'comment.deleted' && entry.metadata.isReply) {
     return t('activity.action.comment.deletedReply')

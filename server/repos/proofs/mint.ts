@@ -32,6 +32,8 @@ export const SYSTEM_ACTORS = [
   'account-deletion-sweep',
   'ad-conversions',
   'admin-bootstrap',
+  'ai-jobs',
+  'ai-jobs-sweep',
   'ai-records-sweep',
   'ai-session',
   'ai-spend-rollup',

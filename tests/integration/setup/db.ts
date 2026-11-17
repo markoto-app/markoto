@@ -53,6 +53,8 @@ export async function resetDb(): Promise<void> {
       ai_sessions,
       ai_session_messages,
       ai_session_provenance,
+      ai_job_units,
+      ai_jobs,
       workspace_knowledge_chunks,
       workspace_knowledge,
       workspace_invites,

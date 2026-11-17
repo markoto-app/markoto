@@ -31,7 +31,10 @@ export const activityLog = pgTable('activity_log', {
     'theme.changed',
     'title.changed',
     'ai.tool',
-    'restore'
+    'restore',
+    // Delegated AI job started / finished, and undone.
+    'ai.job',
+    'ai.job.reverted'
   ] }).notNull(),
   wordCount: integer('word_count'),
   linesAdded: integer('lines_added'),

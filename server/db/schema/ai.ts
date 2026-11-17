@@ -1,7 +1,7 @@
 // AI sessions with their transcript and provenance, and bring-your-own-key providers.
 
 import { pgTable, serial, integer, text, timestamp, index, uniqueIndex, jsonb, boolean, date, doublePrecision, primaryKey } from 'drizzle-orm/pg-core'
-import type { AiMessageBody } from '../columnTypes'
+import type { AiJobEstimate, AiJobParams, AiJobUnitOutput, AiMessageBody } from '../columnTypes'
 import { users } from './users'
 import { documents } from './documents'
 
@@ -127,4 +127,83 @@ export const aiSpendDaily = pgTable('ai_spend_daily', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
   primaryKey({ columns: [table.day, table.feature, table.model, table.platformPaid] })
+])
+
+// Delegated large-scale edits ("jobs"): the planner splits a document into
+// units, worker-model calls transform each unit, the server applies the
+// results (`server/utils/ai/jobs/`). A job outlives the AI session that
+// started it, so its state is here: status, counters, cost, and per unit
+// the Y.js positions, the revision hash and the text before the change
+// (for "Undo job"). The before texts are document content: purged 7 days
+// after the job started (`ai-jobs-sweep`), cascade with the document, and
+// with the initiator (account deletion), whose instructions the row holds.
+// Finished job rows themselves follow the AI records retention (90 days).
+export const AI_JOB_STATUSES = ['preview', 'awaiting_confirmation', 'running', 'paused_budget', 'cancelled', 'interrupted', 'done', 'failed', 'stopped_access', 'reverted'] as const
+export const AI_JOB_MODES = ['rewrite', 'translate', 'terminology', 'summarise', 'comment', 'scan'] as const
+export const AI_JOB_UNIT_STATUSES = ['pending', 'running', 'applied', 'skipped', 'flagged', 'failed', 'reverted'] as const
+
+export const aiJobs = pgTable('ai_jobs', {
+  id: text('id').primaryKey(),
+  docId: text('doc_id').notNull().references(() => documents.docId, { onDelete: 'cascade' }),
+  initiatorUserId: integer('initiator_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  // The document's workspace when the job started (spend tags, audit); not a FK.
+  workspaceId: text('workspace_id'),
+  // The AI session that started the job (not a FK: sessions are pruned at their end).
+  sessionId: text('session_id'),
+  mode: text('mode', { enum: AI_JOB_MODES }).notNull(),
+  status: text('status', { enum: AI_JOB_STATUSES }).notNull().default('preview'),
+  params: jsonb('params').$type<AiJobParams>().notNull(),
+  estimate: jsonb('estimate').$type<AiJobEstimate>(),
+  // USD on the platform budget; `cost_known = false` for a user's own key without a known price.
+  costUsd: doublePrecision('cost_usd').notNull().default(0),
+  costKnown: boolean('cost_known').notNull().default(true),
+  tokensIn: integer('tokens_in').notNull().default(0),
+  tokensOut: integer('tokens_out').notNull().default(0),
+  unitsTotal: integer('units_total').notNull().default(0),
+  unitsDone: integer('units_done').notNull().default(0),
+  unitsSkipped: integer('units_skipped').notNull().default(0),
+  unitsFlagged: integer('units_flagged').notNull().default(0),
+  unitsRetried: integer('units_retried').notNull().default(0),
+  workerModel: text('worker_model'),
+  // Why the job stopped (failed / stopped_access / paused_budget): a fixed sentence, never upstream text.
+  reason: text('reason'),
+  currentHeading: text('current_heading'),
+  // Updated by the running instance; the sweeper marks a `running` job with a stale heartbeat `interrupted`.
+  heartbeatAt: timestamp('heartbeat_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  finishedAt: timestamp('finished_at', { withTimezone: true })
+}, table => [
+  index('idx_ai_jobs_doc_created').on(table.docId, table.createdAt),
+  index('idx_ai_jobs_user_created').on(table.initiatorUserId, table.createdAt),
+  index('idx_ai_jobs_status_heartbeat').on(table.status, table.heartbeatAt)
+])
+
+export const aiJobUnits = pgTable('ai_job_units', {
+  jobId: text('job_id').notNull().references(() => aiJobs.id, { onDelete: 'cascade' }),
+  ordinal: integer('ordinal').notNull(),
+  headingPath: text('heading_path').notNull(),
+  // Y.RelativePosition of the unit's start / end (`Y.encodeRelativePosition`, base64).
+  startRel: text('start_rel').notNull(),
+  endRel: text('end_rel').notNull(),
+  // Hash of the unit text at job start; a different current hash means someone else edited it.
+  revBefore: text('rev_before').notNull(),
+  unitTokens: integer('unit_tokens').notNull().default(0),
+  status: text('status', { enum: AI_JOB_UNIT_STATUSES }).notNull().default('pending'),
+  // Why the unit was skipped / flagged / failed (fixed sentences and validator messages).
+  reason: text('reason'),
+  attempts: integer('attempts').notNull().default(0),
+  // The unit's text before the job changed it (undo, glossary check); null after the 7-day purge.
+  beforeText: text('before_text'),
+  // Hash of the text the job wrote; undo restores only while the current text still has it.
+  afterHash: text('after_hash'),
+  // Comment / scan results and preview samples: JSON, never applied to the document by the engine.
+  output: jsonb('output').$type<AiJobUnitOutput>(),
+  costUsd: doublePrecision('cost_usd').notNull().default(0),
+  tokensIn: integer('tokens_in').notNull().default(0),
+  tokensOut: integer('tokens_out').notNull().default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  primaryKey({ columns: [table.jobId, table.ordinal] }),
+  index('idx_ai_job_units_job_status').on(table.jobId, table.status, table.ordinal)
 ])

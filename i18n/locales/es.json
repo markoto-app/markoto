@@ -189,7 +189,12 @@
         "changed": "cambió el tema"
       },
       "ai": {
-        "tool": "usó una herramienta"
+        "tool": "usó una herramienta",
+        "job": {
+          "started": "inició una gran edición de IA",
+          "finished": "terminó una gran edición de IA",
+          "reverted": "deshizo una gran edición de IA"
+        }
       },
       "restore": "restauró el documento",
       "aiTool": {
@@ -198,11 +203,13 @@
         "generate_image": "generó una imagen",
         "view_image": "miró una imagen",
         "search_knowledge": "buscó en la base de conocimiento",
-        "get_knowledge_file": "leyó un archivo de conocimiento"
+        "get_knowledge_file": "leyó un archivo de conocimiento",
+        "replace_all": "reemplazó texto en todo el documento"
       }
     },
     "detail": {
       "titleChanged": "{from} → {to}",
+      "replacedAll": "{count}× “{from}” → “{to}”",
       "restoredFrom": "Desde {ago}"
     },
     "restore": {
@@ -2114,6 +2121,8 @@
       "membersPerWorkspace": "Este espacio de trabajo ha alcanzado el límite de miembros de su plan.",
       "savedThemes": "Has alcanzado el límite de temas guardados de tu plan. Elimina uno para guardar uno nuevo.",
       "importMaxBytes": "Este archivo supera el tamaño que tu plan permite para importaciones.",
+      "aiJobUnitsPerJob": "Esta tarea es mayor de lo que permite tu plan. Elige menos secciones.",
+      "aiJobsPerDay": "Has usado las tareas de IA de hoy incluidas en tu plan. Inténtalo de nuevo mañana.",
       "historyEntry": "Este cambio es más antiguo que el historial incluido en el plan de este documento.",
       "mcpToolCallsPerDay": "Has usado las llamadas a herramientas MCP de hoy incluidas en tu plan. Inténtalo de nuevo mañana."
     },

@@ -189,7 +189,12 @@
         "changed": "changed the theme"
       },
       "ai": {
-        "tool": "used a tool"
+        "tool": "used a tool",
+        "job": {
+          "started": "started a large AI edit",
+          "finished": "finished a large AI edit",
+          "reverted": "undid a large AI edit"
+        }
       },
       "restore": "restored the document",
       "aiTool": {
@@ -198,11 +203,13 @@
         "generate_image": "generated an image",
         "view_image": "looked at an image",
         "search_knowledge": "searched the knowledge base",
-        "get_knowledge_file": "read a knowledge file"
+        "get_knowledge_file": "read a knowledge file",
+        "replace_all": "replaced text throughout the document"
       }
     },
     "detail": {
       "titleChanged": "{from} → {to}",
+      "replacedAll": "{count}× “{from}” → “{to}”",
       "restoredFrom": "From {ago}"
     },
     "restore": {
@@ -2114,6 +2121,8 @@
       "membersPerWorkspace": "This workspace has reached the member limit of its plan.",
       "savedThemes": "You've reached the saved-theme limit of your plan. Delete one to save a new theme.",
       "importMaxBytes": "This file is larger than your plan allows for imports.",
+      "aiJobUnitsPerJob": "This job is larger than your plan allows. Choose fewer sections.",
+      "aiJobsPerDay": "You've started today's AI jobs included in your plan. Try again tomorrow.",
       "historyEntry": "This change is older than the history this document's plan includes.",
       "mcpToolCallsPerDay": "You've used today's MCP tool calls included in your plan. Try again tomorrow."
     },

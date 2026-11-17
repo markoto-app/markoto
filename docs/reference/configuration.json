@@ -3256,6 +3256,42 @@
       "deprecatedNames": []
     },
     {
+      "name": "TIER_FREE_AI_JOB_UNITS_PER_JOB",
+      "namespace": "tiers",
+      "key": "TIER_FREE_AI_JOB_UNITS_PER_JOB",
+      "type": "number > 0, or unlimited",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TIER_FREE_AI_JOB_UNITS_PER_JOB"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "TIER_FREE_AI_JOBS_PER_DAY",
+      "namespace": "tiers",
+      "key": "TIER_FREE_AI_JOBS_PER_DAY",
+      "type": "number > 0, or unlimited",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TIER_FREE_AI_JOBS_PER_DAY"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
       "name": "TIER_FREE_FEATURE_CUSTOM_CSS",
       "namespace": "tiers",
       "key": "TIER_FREE_FEATURE_CUSTOM_CSS",
@@ -3661,6 +3697,42 @@
       ],
       "names": {
         "app": "TIER_PRO_MCP_TOOL_CALLS_PER_DAY"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "TIER_PRO_AI_JOB_UNITS_PER_JOB",
+      "namespace": "tiers",
+      "key": "TIER_PRO_AI_JOB_UNITS_PER_JOB",
+      "type": "number > 0, or unlimited",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TIER_PRO_AI_JOB_UNITS_PER_JOB"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "TIER_PRO_AI_JOBS_PER_DAY",
+      "namespace": "tiers",
+      "key": "TIER_PRO_AI_JOBS_PER_DAY",
+      "type": "number > 0, or unlimited",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TIER_PRO_AI_JOBS_PER_DAY"
       },
       "scope": "hosted",
       "required": null,
@@ -4084,6 +4156,42 @@
       "deprecatedNames": []
     },
     {
+      "name": "TIER_TEAM_AI_JOB_UNITS_PER_JOB",
+      "namespace": "tiers",
+      "key": "TIER_TEAM_AI_JOB_UNITS_PER_JOB",
+      "type": "number > 0, or unlimited",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TIER_TEAM_AI_JOB_UNITS_PER_JOB"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "TIER_TEAM_AI_JOBS_PER_DAY",
+      "namespace": "tiers",
+      "key": "TIER_TEAM_AI_JOBS_PER_DAY",
+      "type": "number > 0, or unlimited",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TIER_TEAM_AI_JOBS_PER_DAY"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
       "name": "TIER_TEAM_FEATURE_CUSTOM_CSS",
       "namespace": "tiers",
       "key": "TIER_TEAM_FEATURE_CUSTOM_CSS",
@@ -4489,6 +4597,42 @@
       ],
       "names": {
         "app": "TIER_BUSINESS_MCP_TOOL_CALLS_PER_DAY"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "TIER_BUSINESS_AI_JOB_UNITS_PER_JOB",
+      "namespace": "tiers",
+      "key": "TIER_BUSINESS_AI_JOB_UNITS_PER_JOB",
+      "type": "number > 0, or unlimited",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TIER_BUSINESS_AI_JOB_UNITS_PER_JOB"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "TIER_BUSINESS_AI_JOBS_PER_DAY",
+      "namespace": "tiers",
+      "key": "TIER_BUSINESS_AI_JOBS_PER_DAY",
+      "type": "number > 0, or unlimited",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TIER_BUSINESS_AI_JOBS_PER_DAY"
       },
       "scope": "hosted",
       "required": null,

@@ -27,6 +27,47 @@ export function parseAiMessageEntry(kind: AiMessageKind, body: unknown): AiMessa
   return aiMessageEntry.parse({ kind, body })
 }
 
+// ── ai_jobs.params / estimate, ai_job_units.output ──────────────────────
+
+/** What a delegated job does (written by the planner's tool, read by the job engine). */
+export interface AiJobParams {
+  instruction: string
+  targetLanguage?: string | null
+  /** ISO code of the source language when known (estimate ratio, language check). */
+  sourceLanguage?: string | null
+  glossary?: Array<{ source: string, target: string, note?: string }>
+  style?: string | null
+  /** The document's audience kind (`shared/audiences`). */
+  audience?: string | null
+  /** summarise: where the summary goes. */
+  placement?: 'replace' | 'insert_at_start' | 'insert_at_end'
+  granularity?: 'auto' | 'chapter' | 'section' | 'paragraph'
+  /** Regex source: only paragraphs with a match become units. */
+  onlyMatching?: string | null
+  /** translate: pin old heading anchors as explicit ids (default true). */
+  anchors?: boolean
+  /** Approved preview outputs the workers imitate. */
+  styleAnchors?: string[]
+  /** translate: old → new heading texts. */
+  headingMap?: Array<{ from: string, to: string }>
+  /** Length band override (shorten jobs). */
+  lengthBand?: { min: number, max: number } | null
+}
+
+export interface AiJobEstimate {
+  units: number
+  inputTokens: number
+  outputTokens: number
+  usd: number | null
+  minutes: number
+}
+
+/** Result of a unit that is not applied as text: findings, scan items, or a preview. */
+export type AiJobUnitOutput
+  = | { kind: 'comments', findings: Array<{ quote: string, issue: string, suggestion?: string, severity: 'low' | 'medium' | 'high' }> }
+    | { kind: 'scan', items: Array<{ text: string, example?: string }> }
+    | { kind: 'preview', after: string, problems: string[] }
+
 // ── audit_log.before / after / metadata ─────────────────────────────────
 //
 // One entry per action written today: `before` / `after` are the state the
@@ -133,6 +174,8 @@ export interface AuditEventShapes {
   'custom_domain.verified': { metadata: { domainId: string, hostname: string, problem?: string } }
   'custom_domain.dropped': { metadata: { domainId: string, hostname: string, problem?: string } }
   'custom_domain.removed': { metadata: { domainId: string, hostname: string } }
+  'ai.job.started': { metadata: { jobId: string, mode: string, units: number, resumed: boolean } }
+  'ai.job.reverted': { metadata: { jobId: string, mode: string, reverted: number, skipped: number } }
 }
 
 export type AuditAction = keyof AuditEventShapes

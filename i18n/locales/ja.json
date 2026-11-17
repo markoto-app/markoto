@@ -189,7 +189,12 @@
         "changed": "テーマを変更しました"
       },
       "ai": {
-        "tool": "ツールを使用しました"
+        "tool": "ツールを使用しました",
+        "job": {
+          "started": "大規模な AI 編集を開始しました",
+          "finished": "大規模な AI 編集を完了しました",
+          "reverted": "大規模な AI 編集を元に戻しました"
+        }
       },
       "restore": "ドキュメントを復元しました",
       "aiTool": {
@@ -198,11 +203,13 @@
         "generate_image": "画像を生成しました",
         "view_image": "画像を確認しました",
         "search_knowledge": "ナレッジベースを検索しました",
-        "get_knowledge_file": "ナレッジファイルを読み込みました"
+        "get_knowledge_file": "ナレッジファイルを読み込みました",
+        "replace_all": "文書全体のテキストを置換しました"
       }
     },
     "detail": {
       "titleChanged": "{from} → {to}",
+      "replacedAll": "{count}× “{from}” → “{to}”",
       "restoredFrom": "{ago}の状態から"
     },
     "restore": {
@@ -2114,6 +2121,8 @@
       "membersPerWorkspace": "このワークスペースはプランのメンバー上限に達しました。",
       "savedThemes": "プランで保存できるテーマの上限に達しました。新しいテーマを保存するには、いずれかを削除してください。",
       "importMaxBytes": "このファイルは、プランでインポートできるサイズを超えています。",
+      "aiJobUnitsPerJob": "このジョブはプランの上限を超えています。セクションを減らしてください。",
+      "aiJobsPerDay": "プランに含まれる本日の AI ジョブを使い切りました。明日もう一度お試しください。",
       "historyEntry": "この変更は、このドキュメントのプランに含まれる履歴より古いものです。",
       "mcpToolCallsPerDay": "プランに含まれる本日の MCP ツール呼び出しを使い切りました。明日もう一度お試しください。"
     },

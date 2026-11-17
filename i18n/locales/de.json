@@ -189,7 +189,12 @@
         "changed": "hat das Design geändert"
       },
       "ai": {
-        "tool": "hat ein Werkzeug verwendet"
+        "tool": "hat ein Werkzeug verwendet",
+        "job": {
+          "started": "hat eine grosse KI-Bearbeitung gestartet",
+          "finished": "hat eine grosse KI-Bearbeitung abgeschlossen",
+          "reverted": "hat eine grosse KI-Bearbeitung rückgängig gemacht"
+        }
       },
       "restore": "hat das Dokument wiederhergestellt",
       "aiTool": {
@@ -198,11 +203,13 @@
         "generate_image": "hat ein Bild generiert",
         "view_image": "hat ein Bild angesehen",
         "search_knowledge": "hat die Wissensdatenbank durchsucht",
-        "get_knowledge_file": "hat eine Wissensdatei gelesen"
+        "get_knowledge_file": "hat eine Wissensdatei gelesen",
+        "replace_all": "hat Text im ganzen Dokument ersetzt"
       }
     },
     "detail": {
       "titleChanged": "{from} → {to}",
+      "replacedAll": "{count}× “{from}” → “{to}”",
       "restoredFrom": "Von {ago}"
     },
     "restore": {
@@ -2114,6 +2121,8 @@
       "membersPerWorkspace": "Dieser Workspace hat die Mitgliedergrenze seines Plans erreicht.",
       "savedThemes": "Du hast die Grenze deines Plans für gespeicherte Themes erreicht. Lösche eines, um ein neues zu speichern.",
       "importMaxBytes": "Diese Datei ist grösser, als dein Plan für Importe erlaubt.",
+      "aiJobUnitsPerJob": "Dieser Auftrag ist grösser, als dein Plan erlaubt. Wähle weniger Abschnitte.",
+      "aiJobsPerDay": "Du hast die KI-Aufträge deines Plans für heute aufgebraucht. Versuche es morgen wieder.",
       "historyEntry": "Diese Änderung ist älter als der Verlauf, den der Plan dieses Dokuments enthält.",
       "mcpToolCallsPerDay": "Du hast die MCP-Werkzeugaufrufe deines Plans für heute aufgebraucht. Versuche es morgen wieder."
     },

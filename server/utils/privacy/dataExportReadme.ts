@@ -38,6 +38,10 @@ Contents:
   ai/edit-provenance.ndjson  which AI sessions you started on which
                          document, and whether their edits count as
                          your own text for the AI's safety checks.
+  ai/jobs.ndjson         large AI edits you started in the background:
+                         instruction and settings, counts, cost. The
+                         undo copies of the earlier text are not
+                         included (the documents themselves are).
   ai/usage.ndjson        per-billing-period AI interaction counters.
   ai/providers.json      your own AI provider settings (provider URL,
                          model, last verification). API keys are never

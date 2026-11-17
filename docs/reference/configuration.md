@@ -287,6 +287,8 @@ TIER_<FREE|PRO|TEAM|BUSINESS>_<FIELD>. Numbers > 0, `unlimited` for the per-day 
 | `TIER_FREE_IMPORT_MAX_BYTES` | number > 0 | `52428800` |  | app | both | free plan: importMaxBytes (committed default in shared/config/tiers.ts). |
 | `TIER_FREE_WEB_TOOLS_PER_DAY` | number > 0, or unlimited | no limit |  | app | both | free plan: webToolsPerDay (committed default in shared/config/tiers.ts). |
 | `TIER_FREE_MCP_TOOL_CALLS_PER_DAY` | number > 0, or unlimited | no limit |  | app | both | free plan: mcpToolCallsPerDay (committed default in shared/config/tiers.ts). |
+| `TIER_FREE_AI_JOB_UNITS_PER_JOB` | number > 0, or unlimited | no limit |  | app | both | free plan: aiJobUnitsPerJob (committed default in shared/config/tiers.ts). |
+| `TIER_FREE_AI_JOBS_PER_DAY` | number > 0, or unlimited | no limit |  | app | both | free plan: aiJobsPerDay (committed default in shared/config/tiers.ts). |
 | `TIER_FREE_FEATURE_CUSTOM_CSS` | boolean | `true` |  | app | both | free plan: customCss (committed default in shared/config/tiers.ts). |
 | `TIER_FREE_FEATURE_MCP_WRITE` | boolean | `true` |  | app | both | free plan: mcpWrite (committed default in shared/config/tiers.ts). |
 | `TIER_FREE_FEATURE_AI_IMAGE` | boolean | `true` |  | app | both | free plan: aiImage (committed default in shared/config/tiers.ts). |

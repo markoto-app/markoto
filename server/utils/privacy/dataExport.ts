@@ -23,6 +23,7 @@ import type { DocAccess, SystemActor, UserScope } from '../../repos/proofs'
 import { reconstructTextAtYjsId } from '../documents/historyReplay'
 import { latestYjsId } from '../../repos/yjsLog'
 import { listAiSessionProvenanceForUser } from '../../repos/aiSessionProvenance'
+import { listAiJobsForUser } from '../../repos/aiJobs'
 import { ZIP_README } from './dataExportReadme'
 import {
   addAdConversionsEntry,
@@ -58,6 +59,7 @@ import {
 //   themes.json                     ← saved themes
 //   ai/sessions.ndjson
 //   ai/messages.ndjson              ← prompt + tool-call history
+//   ai/jobs.ndjson                  ← delegated AI edits you started (settings, counts, cost)
 //   ai/providers.json               ← BYOK provider configs (never the key)
 //   activity.ndjson                 ← rows where user_id = $userId
 //   audit.ndjson                    ← rows scoped to or by the user
@@ -318,6 +320,26 @@ async function addAiEntries(entries: Entries, user: UserScope): Promise<{ sessio
     docId: p.docId,
     countsAsYourOwnText: p.clean,
     createdAt: p.createdAt.toISOString()
+  }))))
+
+  // Delegated AI edits: the job's settings and counts. The per-unit
+  // before-texts are document content (possibly other people's, in a
+  // shared document) and stay out; the documents themselves are exported.
+  const jobRows = await listAiJobsForUser(user)
+  entries['ai/jobs.ndjson'] = strToU8(toNdjson(jobRows.map(j => ({
+    jobId: j.id,
+    docId: j.docId,
+    mode: j.mode,
+    status: j.status,
+    params: j.params,
+    unitsTotal: j.unitsTotal,
+    unitsDone: j.unitsDone,
+    unitsSkipped: j.unitsSkipped,
+    unitsFlagged: j.unitsFlagged,
+    costUsd: j.costKnown ? j.costUsd : null,
+    workerModel: j.workerModel,
+    createdAt: j.createdAt.toISOString(),
+    finishedAt: j.finishedAt?.toISOString() ?? null
   }))))
 
   return { sessionsCount: sessionsRows.length, messagesCount: aiMessagesRows.length }

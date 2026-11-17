@@ -52,8 +52,11 @@
 // paid plans sold through Stripe Managed Payments: Link
 // (Sold through Link, LLC) as seller / merchant of record and, with Stripe,
 // independent controller for the purchase data.
-export const PRIVACY_VERSION = 14
-export const PRIVACY_EFFECTIVE_DATE = '2026-11-17'
+// v15 (2026-11-18): large AI edits running in the background (jobs): the
+// instruction and settings, and per part the text before the change for
+// "Undo job" (deleted after 7 days; the job record after 90 days).
+export const PRIVACY_VERSION = 15
+export const PRIVACY_EFFECTIVE_DATE = '2026-11-18'
 
 // v2 (2026-10-26): free-only service, BYOK responsibilities, as-is/discontinuation clauses.
 // v3 (2026-11-03): anonymous documents, acceptable-use section, DSA

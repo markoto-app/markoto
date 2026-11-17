@@ -130,6 +130,9 @@ const MCP_EXPORT_TOOL = '^server/mcp/tools/export_document_as_pdf\\.ts$'
 // tools that reach another document or the workspace knowledge per call.
 const AI_SESSION = ['^server/utils/agentic/sessionGuard\\.ts$', '^server/utils/agentic/sessions/sessionSetup\\.ts$']
 const AI_TOOLS = ['^server/utils/ai/tools/libraryTools\\.ts$', '^server/utils/ai/tools/knowledgeTools\\.ts$']
+// Delegated AI jobs run after the session that started them; the engine
+// re-proves the initiator's edit membership before it runs a job.
+const AI_JOBS = '^server/utils/ai/jobs/engine\\.ts$'
 // Creation flows: the creator holds every right on the row it just inserted,
 // and proves membership of the target workspace from its own UserScope.
 const CREATION = ['^server/utils/documents/createDocument\\.ts$', '^server/utils/documents/duplicateDocument\\.ts$']
@@ -157,7 +160,7 @@ export const PROOF_ENTRY_CALLERS = {
   // A row the caller just inserted.
   proveNewDoc: CREATION,
   // Membership of a user, checked against the database.
-  proveDocMembership: [MCP_WRAPPER, MCP_EXPORT_TOOL, ...AI_SESSION, ...AI_TOOLS, POLICY_PROVER],
+  proveDocMembership: [MCP_WRAPPER, MCP_EXPORT_TOOL, ...AI_SESSION, ...AI_TOOLS, AI_JOBS, POLICY_PROVER],
   proveWorkspaceAccess: [MCP_WRAPPER, ...AI_SESSION, ...AI_TOOLS, ...CREATION, POLICY_PROVER],
   // The second-object prover for a user id: the policies hand it out as `ctx.prove`.
   proverFor: [POLICY, POLICY_DOC]

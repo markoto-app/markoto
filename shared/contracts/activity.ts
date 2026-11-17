@@ -9,7 +9,8 @@ export const ACTIVITY_ACTIONS = [
   'comment.added', 'comment.replied',
   'comment.resolved', 'comment.reopened', 'comment.deleted',
   'theme.changed', 'title.changed', 'ai.tool',
-  'restore'
+  'restore',
+  'ai.job', 'ai.job.reverted'
 ] as const
 
 export type ActivityAction = typeof ACTIVITY_ACTIONS[number]
@@ -24,7 +25,8 @@ export const aiToolActivityMetadata = z.discriminatedUnion('tool', [
   z.object({ kind: z.literal('ai.tool'), tool: z.literal('generate_image'), prompt: z.string() }),
   z.object({ kind: z.literal('ai.tool'), tool: z.literal('view_image'), src: z.string() }),
   z.object({ kind: z.literal('ai.tool'), tool: z.literal('search_knowledge'), query: z.string() }),
-  z.object({ kind: z.literal('ai.tool'), tool: z.literal('get_knowledge_file'), knowledgeId: z.string() })
+  z.object({ kind: z.literal('ai.tool'), tool: z.literal('get_knowledge_file'), knowledgeId: z.string() }),
+  z.object({ kind: z.literal('ai.tool'), tool: z.literal('replace_all'), query: z.string(), replacement: z.string(), count: z.number() })
 ])
 
 /**
@@ -42,7 +44,10 @@ export const activityMetadata = z.union([
   z.object({ kind: z.literal('title.changed'), from: z.string(), to: z.string() }),
   z.object({ kind: z.literal('theme.changed') }),
   aiToolActivityMetadata,
-  z.object({ kind: z.literal('restore'), restoredFromActivityId: z.number(), restoredFromTime: z.string() })
+  z.object({ kind: z.literal('restore'), restoredFromActivityId: z.number(), restoredFromTime: z.string() }),
+  // A delegated AI edit (job) started or finished; counts only, never text.
+  z.object({ kind: z.literal('ai.job'), jobId: z.string(), mode: z.string(), phase: z.enum(['started', 'finished']), status: z.string(), unitsTotal: z.number(), done: z.number(), skipped: z.number(), flagged: z.number() }),
+  z.object({ kind: z.literal('ai.job.reverted'), jobId: z.string(), mode: z.string(), reverted: z.number(), skipped: z.number() })
 ])
 
 export type ActivityMetadata = z.infer<typeof activityMetadata>

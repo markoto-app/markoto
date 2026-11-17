@@ -1,5 +1,5 @@
 import { and, desc, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm'
-import { activityLog, users, aiSessions, mcpSessions } from '../db/schema'
+import { activityLog, users, aiJobs, aiSessions, mcpSessions } from '../db/schema'
 import { useDatabase } from '../db/client'
 import type { ActivityAction, ActivityMetadata } from '~~/shared/contracts/activity'
 import type { DocAccess } from './proofs'
@@ -262,11 +262,25 @@ export async function hasActivityBefore(doc: DocAccess<'view'>, before: Date): P
   return rows.length > 0
 }
 
+/** Principal prefix of a delegated AI job's edits (`aiJobClientUserId`). */
+const AI_JOB_PREFIX = 'ai-job:'
+
 /** Raw activity row before agent enrichment: `ActivityEntry` minus the `agent*` fields. */
 type RawActivityRow = Omit<
   ActivityEntry,
   'agentKind' | 'agentInitiatorUserId' | 'agentInitiatorName' | 'agentClientName'
 >
+
+/** The session / job ids named by the rows' agent principals, per kind. */
+function agentPrincipalIds(rows: readonly RawActivityRow[]): { aiSessionIds: Set<string>, mcpSessionIds: Set<string>, aiJobIds: Set<string> } {
+  const out = { aiSessionIds: new Set<string>(), mcpSessionIds: new Set<string>(), aiJobIds: new Set<string>() }
+  const kinds: Array<[string, Set<string>]> = [['ai:assistant:', out.aiSessionIds], ['mcp:', out.mcpSessionIds], [AI_JOB_PREFIX, out.aiJobIds]]
+  for (const r of rows) {
+    const hit = r.actorPrincipal ? kinds.find(([prefix]) => r.actorPrincipal?.startsWith(prefix)) : undefined
+    if (hit && r.actorPrincipal) hit[1].add(r.actorPrincipal.slice(hit[0].length))
+  }
+  return out
+}
 
 /**
  * Resolve the human initiator and (MCP) client name for
@@ -275,17 +289,8 @@ type RawActivityRow = Omit<
  * (`agentInitiatorName=null`, the UI falls back to `userName`).
  */
 async function enrichActivityAgentFields(rows: RawActivityRow[]): Promise<ActivityEntry[]> {
-  const aiSessionIds = new Set<string>()
-  const mcpSessionIds = new Set<string>()
-  for (const r of rows) {
-    if (!r.actorPrincipal) continue
-    if (r.actorPrincipal.startsWith('ai:assistant:')) {
-      aiSessionIds.add(r.actorPrincipal.slice('ai:assistant:'.length))
-    } else if (r.actorPrincipal.startsWith('mcp:')) {
-      mcpSessionIds.add(r.actorPrincipal.slice('mcp:'.length))
-    }
-  }
-  if (aiSessionIds.size === 0 && mcpSessionIds.size === 0) {
+  const { aiSessionIds, mcpSessionIds, aiJobIds } = agentPrincipalIds(rows)
+  if (aiSessionIds.size === 0 && mcpSessionIds.size === 0 && aiJobIds.size === 0) {
     // No agent rows: return rows with the agent fields nulled.
     return rows.map(r => ({
       ...r,
@@ -313,12 +318,21 @@ async function enrichActivityAgentFields(rows: RawActivityRow[]): Promise<Activi
         userAgent: mcpSessions.userAgent
       }).from(mcpSessions).where(inArray(mcpSessions.mcpSessionId, Array.from(mcpSessionIds)))
 
+  const jobRows = aiJobIds.size === 0
+    ? []
+    : await db.select({
+        id: aiJobs.id,
+        initiatorUserId: aiJobs.initiatorUserId
+      }).from(aiJobs).where(inArray(aiJobs.id, Array.from(aiJobIds)))
+
   const aiBySid = new Map(aiRows.map(r => [r.sessionId, r]))
+  const jobById = new Map(jobRows.map(r => [r.id, r]))
   const mcpBySid = new Map(mcpRows.map(r => [r.mcpSessionId, r]))
 
   const initiatorIds = new Set<number>()
   for (const r of aiRows) initiatorIds.add(r.initiatorUserId)
   for (const r of mcpRows) initiatorIds.add(r.userId)
+  for (const r of jobRows) initiatorIds.add(r.initiatorUserId)
 
   const userRows = initiatorIds.size === 0
     ? []
@@ -346,6 +360,17 @@ async function enrichActivityAgentFields(rows: RawActivityRow[]): Promise<Activi
         ...r,
         agentKind: 'ai',
         agentInitiatorUserId: aiRow?.initiatorUserId ?? null,
+        agentInitiatorName: initiator?.name ?? null,
+        agentClientName: null
+      }
+    }
+    if (r.actorPrincipal.startsWith(AI_JOB_PREFIX)) {
+      const job = jobById.get(r.actorPrincipal.slice(AI_JOB_PREFIX.length))
+      const initiator = job ? userById.get(job.initiatorUserId) : undefined
+      return {
+        ...r,
+        agentKind: 'ai',
+        agentInitiatorUserId: job?.initiatorUserId ?? null,
         agentInitiatorName: initiator?.name ?? null,
         agentClientName: null
       }

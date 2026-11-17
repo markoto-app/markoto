@@ -84,6 +84,14 @@ export interface TierCaps {
   /** MCP tool calls per user per day. `null` = no plan limit. */
   mcpToolCallsPerDay: number | null
   /**
+   * Units (worker calls) one delegated AI job may have (translate / rewrite
+   * a whole document). Judged against the initiating user's plan. `null` =
+   * no plan limit; markoto.app free: 200.
+   */
+  aiJobUnitsPerJob: number | null
+  /** Delegated AI jobs a user may start per day. `null` = no plan limit; markoto.app free: 3. */
+  aiJobsPerDay: number | null
+  /**
    * Feature switch: documents may carry `theme.customCss`. Judged
    * against the DOCUMENT's plan; when off the stored CSS is kept but
    * not applied (preview + PDF) and new writes are refused.
@@ -153,7 +161,7 @@ export interface TierCaps {
 }
 
 /** Numeric cap fields that accept `unlimited` (stored as `null`). */
-export type UnlimitedCapField = 'membersPerWorkspace' | 'historyDays' | 'webToolsPerDay' | 'mcpToolCallsPerDay'
+export type UnlimitedCapField = 'membersPerWorkspace' | 'historyDays' | 'webToolsPerDay' | 'mcpToolCallsPerDay' | 'aiJobUnitsPerJob' | 'aiJobsPerDay'
 /** On/off feature switches. */
 export type FeatureField = 'customCss' | 'mcpWrite' | 'aiImage' | 'aiVoice' | 'aiStrongModel' | 'sso' | 'auditLog' | 'guests' | 'brandKit' | 'shareControls' | 'customDomains'
 /** Plain positive-number cap fields. */
@@ -163,7 +171,9 @@ export const UNLIMITED_CAP_FIELDS: readonly UnlimitedCapField[] = [
   'membersPerWorkspace',
   'historyDays',
   'webToolsPerDay',
-  'mcpToolCallsPerDay'
+  'mcpToolCallsPerDay',
+  'aiJobUnitsPerJob',
+  'aiJobsPerDay'
 ]
 
 export const FEATURE_FIELDS: readonly FeatureField[] = ['customCss', 'mcpWrite', 'aiImage', 'aiVoice', 'aiStrongModel', 'sso', 'auditLog', 'guests', 'brandKit', 'shareControls', 'customDomains']
@@ -186,6 +196,8 @@ const PAID_PLAN_ENTITLEMENTS = {
   importMaxBytes: 50 * MB,
   webToolsPerDay: null,
   mcpToolCallsPerDay: null,
+  aiJobUnitsPerJob: null,
+  aiJobsPerDay: null,
   customCss: true,
   mcpWrite: true,
   aiImage: true,
@@ -217,6 +229,8 @@ export const DEFAULT_TIERS = {
     importMaxBytes: 50 * MB,
     webToolsPerDay: null,
     mcpToolCallsPerDay: null,
+    aiJobUnitsPerJob: null,
+    aiJobsPerDay: null,
     customCss: true,
     mcpWrite: true,
     aiImage: true,
@@ -301,6 +315,8 @@ const TIER_FIELD_ENV_SUFFIX: Record<keyof TierCaps, string> = {
   importMaxBytes: 'IMPORT_MAX_BYTES',
   webToolsPerDay: 'WEB_TOOLS_PER_DAY',
   mcpToolCallsPerDay: 'MCP_TOOL_CALLS_PER_DAY',
+  aiJobUnitsPerJob: 'AI_JOB_UNITS_PER_JOB',
+  aiJobsPerDay: 'AI_JOBS_PER_DAY',
   customCss: 'FEATURE_CUSTOM_CSS',
   mcpWrite: 'FEATURE_MCP_WRITE',
   aiImage: 'FEATURE_AI_IMAGE',

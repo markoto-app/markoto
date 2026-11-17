@@ -189,7 +189,12 @@
         "changed": "更改了主题"
       },
       "ai": {
-        "tool": "使用了一个工具"
+        "tool": "使用了一个工具",
+        "job": {
+          "started": "开始了一项大型 AI 编辑",
+          "finished": "完成了一项大型 AI 编辑",
+          "reverted": "撤销了一项大型 AI 编辑"
+        }
       },
       "restore": "还原了文档",
       "aiTool": {
@@ -198,11 +203,13 @@
         "generate_image": "生成了一张图片",
         "view_image": "查看了一张图片",
         "search_knowledge": "搜索了知识库",
-        "get_knowledge_file": "读取了一个知识文件"
+        "get_knowledge_file": "读取了一个知识文件",
+        "replace_all": "在整个文档中替换了文本"
       }
     },
     "detail": {
       "titleChanged": "{from} → {to}",
+      "replacedAll": "{count}× “{from}” → “{to}”",
       "restoredFrom": "来自 {ago}"
     },
     "restore": {
@@ -2114,6 +2121,8 @@
       "membersPerWorkspace": "此工作区已达到其套餐的成员上限。",
       "savedThemes": "你已达到套餐的已保存主题上限。请删除一个后再保存新主题。",
       "importMaxBytes": "此文件超出了你的套餐允许导入的大小。",
+      "aiJobUnitsPerJob": "此任务超出了你的套餐允许的范围。请选择更少的章节。",
+      "aiJobsPerDay": "你已用完套餐中今天的 AI 任务次数。请明天再试。",
       "historyEntry": "此更改早于此文档套餐所包含的历史记录。",
       "mcpToolCallsPerDay": "你已用完套餐中今天的 MCP 工具调用次数。请明天再试。"
     },

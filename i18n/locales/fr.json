@@ -189,7 +189,12 @@
         "changed": "a changé le thème"
       },
       "ai": {
-        "tool": "a utilisé un outil"
+        "tool": "a utilisé un outil",
+        "job": {
+          "started": "a lancé une grande modification par l'IA",
+          "finished": "a terminé une grande modification par l'IA",
+          "reverted": "a annulé une grande modification par l'IA"
+        }
       },
       "restore": "a restauré le document",
       "aiTool": {
@@ -198,11 +203,13 @@
         "generate_image": "a généré une image",
         "view_image": "a examiné une image",
         "search_knowledge": "a fait une recherche dans la base de connaissances",
-        "get_knowledge_file": "a lu un fichier de connaissances"
+        "get_knowledge_file": "a lu un fichier de connaissances",
+        "replace_all": "a remplacé du texte dans tout le document"
       }
     },
     "detail": {
       "titleChanged": "{from} → {to}",
+      "replacedAll": "{count}× “{from}” → “{to}”",
       "restoredFrom": "Depuis {ago}"
     },
     "restore": {
@@ -2114,6 +2121,8 @@
       "membersPerWorkspace": "Cet espace de travail a atteint la limite de membres de son forfait.",
       "savedThemes": "Vous avez atteint la limite de thèmes enregistrés de votre forfait. Supprimez-en un pour en enregistrer un nouveau.",
       "importMaxBytes": "Ce fichier dépasse la taille que votre forfait autorise pour les imports.",
+      "aiJobUnitsPerJob": "Cette tâche dépasse ce que votre forfait permet. Choisissez moins de sections.",
+      "aiJobsPerDay": "Vous avez utilisé les tâches IA incluses dans votre forfait pour aujourd'hui. Réessayez demain.",
       "historyEntry": "Cette modification est plus ancienne que l'historique inclus dans le forfait de ce document.",
       "mcpToolCallsPerDay": "Vous avez utilisé les appels d'outils MCP inclus dans votre forfait pour aujourd'hui. Réessayez demain."
     },

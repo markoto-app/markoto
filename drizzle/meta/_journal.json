@@ -57,6 +57,13 @@
       "when": 1794953595299,
       "tag": "0007_wonderful_wong",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794956961756,
+      "tag": "0008_wise_pet_avengers",
+      "breakpoints": true
     }
   ]
 }

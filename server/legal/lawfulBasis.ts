@@ -147,6 +147,23 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: ['ovh_postgres', 'staan', 'jina_ai']
   },
   {
+    // Delegated AI edits ("jobs": translate, rewrite, terminology, summary
+    // or review of many sections in the background). Per job we keep the
+    // instruction, glossary and settings the AI assistant sent, the status,
+    // counts and cost; per part of the document its position and the text
+    // it had before the job changed it, so the whole job can be undone.
+    // These before-texts are document content and are deleted 7 days after
+    // the job started; the job record itself after 90 days (as AI records).
+    // The worker calls go to the AI provider of `ai_assistance` (or the
+    // user's own, `user_directed_ai_provider`).
+    id: 'ai_job_undo_copies',
+    label: 'Large AI edits running in the background (undo copies)',
+    basis: 'contract',
+    dataCategories: ['document_content', 'user_prompt', 'ai_usage_records'],
+    retention: 7,
+    subProcessors: ['ovh_postgres']
+  },
+  {
     id: 'workspace_knowledge_rag',
     label: 'Workspace knowledge base',
     basis: 'contract',

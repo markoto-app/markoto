@@ -18,6 +18,10 @@ export const aiErrors = defineErrors('ai', {
   'image-failed': { status: 502 },
   'image-provider-unavailable': { status: 502 },
   'image-rate-limited': { status: 429 },
+  // Delegated AI jobs: one running job per user and per document.
+  'job-busy': { status: 409 },
+  'job-not-found': { status: 404 },
+  'job-state': { status: 409, params: z.object({ status: z.string().optional() }) },
   'provider-error': { status: 502 },
   'provider-missing': { status: 409, params: z.object({ capability: z.string().optional(), recovery: recoveryParam.optional() }) },
   'session-not-found': { status: 404 },
