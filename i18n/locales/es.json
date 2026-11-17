@@ -1941,7 +1941,7 @@
         "bfl": "Generación de imágenes con FLUX (tratamiento de datos fijado en la UE)",
         "google_oauth": "Inicio de sesión con una cuenta de Google (no se accede a otros datos de Google)",
         "github_oauth": "Inicio de sesión con una cuenta de GitHub (no se accede a otros datos de GitHub)",
-        "stripe": "Facturación de suscripciones, almacenamiento de métodos de pago, emisión de facturas, evaluación del fraude",
+        "stripe": "Facturación de suscripciones y datos de pago; en las compras, Link (Stripe) es el vendedor y un responsable del tratamiento independiente",
         "sentry": "Telemetría de errores y rendimiento de la aplicación, almacenada en la región de datos de la UE de Sentry (Fráncfort)",
         "resend": "Envío de correos transaccionales: confirmaciones de eliminación de cuenta, avisos de exportación de datos lista, notificaciones de brechas de datos"
       }
@@ -2070,6 +2070,11 @@
     "planUpdated": {
       "title": "Plan actualizado",
       "description": "Ahora estás en el plan {plan}. Tu nuevo presupuesto de IA está disponible de inmediato."
+    },
+    "completePayment": "Completar el pago",
+    "soldThroughLink": {
+      "note": "Vendido a través de Link (Stripe), que gestiona el pago, el IVA, las facturas y los reembolsos. Se aplican {terms}.",
+      "terms": "las condiciones para compradores de Link"
     }
   },
   "plan": {

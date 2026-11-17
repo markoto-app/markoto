@@ -15,7 +15,7 @@ import type { WorkspaceAccess } from '../../../../repos/proofs'
 // POST /api/workspaces/:wsId/billing/seats: change the paid seat count
 // of a live Team / Business subscription. Workspace admins only.
 // Body: {seats}. More seats are charged now, pro rata (402
-// `billing/payment-failed` when the payment fails, nothing changes);
+// `billing/payment-pending` when the payment needs the admin first: nothing changes until it is paid);
 // fewer seats are not credited for the running period
 // (`workspaceStripe.ts#changeWorkspaceSeats`). Seats can't go below
 // members + open invitations (409 `billing/seats-below-members`). The

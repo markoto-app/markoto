@@ -80,19 +80,40 @@ function useErrorHandlerImpl() {
     return { statusCode, message, code, recovery, fields }
   }
 
-  /** The optional action adds a button (e.g. "Upgrade" linking to /pricing). */
+  /**
+   * A billing change that waits for its payment (`billing/payment-pending`)
+   * carries the link to Stripe's page for the invoice: the toast's button.
+   */
+  function pendingPaymentAction(extracted: ExtractedError): ToastAction | undefined {
+    const recovery = extracted.recovery
+    if (extracted.code !== 'billing/payment-pending' || recovery?.kind !== 'link' || !recovery.href || !recovery.labelKey) return undefined
+    const href = recovery.href
+    return {
+      label: t(recovery.labelKey),
+      color: 'neutral',
+      onClick: () => {
+        globalThis.location.href = href
+      }
+    }
+  }
+
+  /**
+   * The optional action adds a button (e.g. "Upgrade" linking to /pricing);
+   * without one, a pending payment's "Complete payment" link is the button.
+   */
   function showError(
     titleKey: string,
     err: unknown,
     action?: ToastAction
   ): ExtractedError {
     const extracted = extractError(err)
+    const button = action ?? pendingPaymentAction(extracted)
     toast.add({
       title: t(titleKey),
       description: extracted.message,
       icon: 'i-lucide-alert-circle',
       color: 'error',
-      actions: action ? [action] : undefined
+      actions: button ? [button] : undefined
     })
     return extracted
   }
@@ -163,6 +184,7 @@ function useErrorHandlerImpl() {
 
   return {
     extractError,
+    pendingPaymentAction,
     showError,
     showContextualError,
     handleReauthRequired

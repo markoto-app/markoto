@@ -1941,7 +1941,7 @@
         "bfl": "Image generation via FLUX (EU-pinned data plane)",
         "google_oauth": "Sign-in via Google account (no other Google data accessed)",
         "github_oauth": "Sign-in via GitHub account (no other GitHub data accessed)",
-        "stripe": "Subscription billing, payment method storage, invoice generation, fraud scoring",
+        "stripe": "Subscription billing and payment records; for purchases, Link (Stripe) is the seller and an independent controller",
         "sentry": "Application error + performance telemetry, stored in Sentry's EU (Frankfurt) data region",
         "resend": "Transactional email delivery, account-deletion confirmations, data-export-ready notifications, breach notifications"
       }
@@ -2070,6 +2070,11 @@
     "planUpdated": {
       "title": "Plan updated",
       "description": "You are now on the {plan} plan. Your new AI budget is available immediately."
+    },
+    "completePayment": "Complete payment",
+    "soldThroughLink": {
+      "note": "Sold through Link (Stripe), which handles payment, VAT, invoices and refunds. {terms} apply.",
+      "terms": "Link's buyer terms"
     }
   },
   "plan": {

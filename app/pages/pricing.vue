@@ -168,7 +168,7 @@ function ctaKind(plan: PlanName): CtaKind {
 }
 
 const toast = useToast()
-const { extractError } = useErrorHandler()
+const { extractError, pendingPaymentAction } = useErrorHandler()
 const checkoutLoading = ref<PlanName | null>(null)
 // The Paid Plans Terms box: required for every purchase.
 const paidTermsAccepted = ref(false)
@@ -224,11 +224,15 @@ async function onChangePlan(plan: PlanName): Promise<void> {
     // origin, can't be iframed.
     if (resp.url) globalThis.location.href = resp.url
   } catch (e) {
+    // A change that waits for its payment (3-D Secure) gets the link to pay it.
+    const extracted = extractError(e)
+    const payAction = pendingPaymentAction(extracted)
     toast.add({
       title: t('workspace.billing.checkoutFailed'),
-      description: extractError(e).message,
+      description: extracted.message,
       icon: 'i-lucide-alert-circle',
-      color: 'error'
+      color: 'error',
+      actions: payAction ? [payAction] : undefined
     })
     checkoutLoading.value = null
   }
@@ -584,6 +588,7 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
           </div>
           <div class="text-sm text-muted space-y-2 lg:order-1 lg:pt-2">
             <p>{{ billingEnabled ? t('pricing.footnote') : t('pricing.freeFootnote') }}</p>
+            <PricingSoldThroughLink data-testid="pricing-sold-through-link" />
             <p
               v-if="plansComingSoon"
               data-testid="pricing-free-allowance-note"

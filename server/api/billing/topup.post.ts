@@ -3,10 +3,9 @@ import { getOwnTopupFacts } from '../../repos/userBilling'
 import { useStripeClient } from '../../utils/billing/stripeClient'
 import { effectivePlan } from '../../utils/billing/billingMode'
 import { requestBaseUrl } from '../../utils/billing/workspaceStripe'
-import { automaticTaxEnabled, createTopupCheckout } from '../../utils/billing/topupCheckout'
+import { createTopupCheckout } from '../../utils/billing/topupCheckout'
 import { buyTopupBody } from '~~/shared/api/billing'
 import { MINUTE_MS } from '~~/shared/config/units'
-import { useEnv } from '~~/shared/env/load'
 
 // POST /api/billing/topup: buy AI credits for yourself. Body
 // {pack: '10'|'25'|'50', currency?}. Pro only: free accounts draw on the shared
@@ -39,8 +38,7 @@ export default defineApiHandler({
       email: row.email,
       clientReferenceId: String(userId),
       successUrl: `${base}/settings/profile?credits=success`,
-      cancelUrl: `${base}/settings/profile?credits=cancelled`,
-      automaticTax: automaticTaxEnabled(useEnv().billing.stripeAutomaticTax)
+      cancelUrl: `${base}/settings/profile?credits=cancelled`
     })
     await recordPaidTermsAcceptance(event, self, { kind: 'topup', subject: { type: 'user', id: String(userId) }, item: body.pack })
     return checkout

@@ -56,7 +56,16 @@ function identityOfPrice(priceId: string): { plan: Plan, interval: Interval } {
 
 // ── Stripe, in memory ────────────────────────────────────────────────
 
-const stripeState = { customer: USER_CUSTOMER, priceId: '', quantity: 1, ending: false, updates: 0 }
+const stripeState = {
+  customer: USER_CUSTOMER,
+  priceId: '',
+  quantity: 1,
+  ending: false,
+  updates: 0,
+  /** The bank wants the buyer (3-D Secure): a paid change waits for its invoice. */
+  paymentNeedsBuyer: false,
+  pending: null as { priceId?: string, quantity?: number } | null
+}
 
 function periodEnd(interval: Interval): number {
   return NOW_S + (interval === 'year' ? 365 : 30) * DAY_S
@@ -70,6 +79,8 @@ function stripeSubscription(): Stripe.Subscription {
     customer: stripeState.customer,
     cancel_at: null,
     cancel_at_period_end: stripeState.ending,
+    pending_update: stripeState.pending ? partial<Stripe.Subscription.PendingUpdate>({ expires_at: NOW_S + DAY_S }) : null,
+    latest_invoice: partial<Stripe.Invoice>({ id: 'in_latest', hosted_invoice_url: 'https://invoice.stripe.test/in_latest' }),
     items: partial<Stripe.Subscription['items']>({
       data: [partial<Stripe.SubscriptionItem>({
         id: 'si_1',
@@ -89,9 +100,15 @@ const fakeStripe = partial<Stripe>({
     update: (async (_id: string, params: Stripe.SubscriptionUpdateParams) => {
       stripeState.updates++
       const item = params.items?.[0]
+      if (params.cancel_at_period_end !== undefined) stripeState.ending = params.cancel_at_period_end
+      // `pending_if_incomplete` with a payment the buyer must confirm: the
+      // items wait as the pending update, the rest applies.
+      if (stripeState.paymentNeedsBuyer && params.payment_behavior === 'pending_if_incomplete' && item) {
+        stripeState.pending = { priceId: item.price, quantity: item.quantity }
+        return stripeSubscription()
+      }
       if (item?.price) stripeState.priceId = item.price
       if (item?.quantity !== undefined) stripeState.quantity = item.quantity
-      if (params.cancel_at_period_end !== undefined) stripeState.ending = params.cancel_at_period_end
       return stripeSubscription()
     }) as unknown as Stripe['subscriptions']['update']
   }),
@@ -235,7 +252,7 @@ function describeRequest(request: Request): string {
 }
 
 function seed(state: State, customer: string): void {
-  Object.assign(stripeState, { customer, priceId: priceIdOf(state.plan, state.interval), quantity: state.seats, ending: state.ending, updates: 0 })
+  Object.assign(stripeState, { customer, priceId: priceIdOf(state.plan, state.interval), quantity: state.seats, ending: state.ending, updates: 0, paymentNeedsBuyer: false, pending: null })
   const cancelAt = state.ending ? new Date(periodEnd(state.interval) * 1000) : null
   Object.assign(userRow, { plan: 'pro', billingInterval: state.interval, planCancelAt: cancelAt, planValidUntil: new Date(periodEnd(state.interval) * 1000) })
   workspaceRow.current = partial<WorkspaceSubscriptionRow>({
@@ -384,5 +401,74 @@ describe('workspace subscription (Team / Business): a request changes only what 
     await deliverSubscriptionUpdated()
     expect(stateInWorkspaceRow()).toEqual(expected)
     expect(stateInStripe()).toEqual(expected)
+  })
+})
+
+describe('a change that waits for its payment (pending_if_incomplete)', () => {
+  const ws = wsAs(WS_ID, USER_ID)
+  const PENDING = { statusCode: 402, data: { code: 'billing/payment-pending', recovery: { kind: 'link', href: 'https://invoice.stripe.test/in_latest' } } }
+
+  /** The buyer pays the invoice: Stripe applies the pending update and sends the webhook. */
+  async function payPendingInvoice(): Promise<void> {
+    const pending = stripeState.pending
+    if (!pending) throw new Error('nothing pending')
+    if (pending.priceId) stripeState.priceId = pending.priceId
+    if (pending.quantity !== undefined) stripeState.quantity = pending.quantity
+    stripeState.pending = null
+    const event = partial<Stripe.CustomerSubscriptionPendingUpdateAppliedEvent>({
+      id: 'evt_applied',
+      type: 'customer.subscription.pending_update_applied',
+      created: NOW_S,
+      data: { object: stripeSubscription() }
+    })
+    expect((await handleSubscriptionUpdated(event, { stripe: fakeStripe })).matched).toBe(1)
+  }
+
+  it('Pro monthly to annual: nothing changes until paid, then the webhook applies it', async () => {
+    const before: State = { plan: 'pro', interval: 'month', seats: 1, ending: false }
+    seed(before, USER_CUSTOMER)
+    stripeState.paymentNeedsBuyer = true
+    await expect(startProCheckout(EVENT, { self: asUser(USER_ID), interval: 'year', currency: undefined, terms: TERMS })).rejects.toMatchObject(PENDING)
+    expect(stateInStripe()).toEqual(before)
+    expect(stateInUserRow()).toEqual(before)
+    // The `updated` event Stripe sends for the pending state changes nothing.
+    await deliverSubscriptionUpdated()
+    expect(stateInUserRow()).toEqual(before)
+
+    await payPendingInvoice()
+    expect(stateInUserRow()).toEqual({ ...before, interval: 'year' })
+  })
+
+  it('Team to Business: plan and pooled budget wait for the payment', async () => {
+    const before: State = { plan: 'team', interval: 'month', seats: 5, ending: false }
+    seed(before, WS_CUSTOMER)
+    stripeState.paymentNeedsBuyer = true
+    await expect(startWorkspaceCheckout(EVENT, { ws, self: asUser(USER_ID), plan: 'business', interval: undefined, currency: undefined, seats: undefined, terms: TERMS })).rejects.toMatchObject(PENDING)
+    expect(stateInWorkspaceRow()).toEqual(before)
+    await deliverSubscriptionUpdated()
+    expect(stateInWorkspaceRow()).toEqual(before)
+
+    await payPendingInvoice()
+    expect(stateInWorkspaceRow()).toEqual({ ...before, plan: 'business' })
+  })
+
+  it('more seats: no seat is written before the payment', async () => {
+    const before: State = { plan: 'team', interval: 'month', seats: 3, ending: false }
+    seed(before, WS_CUSTOMER)
+    stripeState.paymentNeedsBuyer = true
+    await expect(changeWorkspaceSeats(fakeStripe, ws, workspaceRowNow(), 5)).rejects.toMatchObject(PENDING)
+    expect(stateInWorkspaceRow()).toEqual(before)
+    expect(stateInStripe()).toEqual(before)
+
+    await payPendingInvoice()
+    expect(stateInWorkspaceRow()).toEqual({ ...before, seats: 5 })
+  })
+
+  it('fewer seats are never charged, so they never wait', async () => {
+    const before: State = { plan: 'team', interval: 'month', seats: 5, ending: false }
+    seed(before, WS_CUSTOMER)
+    stripeState.paymentNeedsBuyer = true
+    await changeWorkspaceSeats(fakeStripe, ws, workspaceRowNow(), 3)
+    expect(stateInWorkspaceRow()).toEqual({ ...before, seats: 3 })
   })
 })

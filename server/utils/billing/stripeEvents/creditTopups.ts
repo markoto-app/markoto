@@ -5,7 +5,8 @@ import type { PlanName } from '~~/shared/config/tiers'
 import { isCurrency, isTopupPackId, topupPack, TOPUP_VALIDITY_MONTHS } from '~~/shared/config/pricing'
 import { insertCreditGrant, refundCreditGrant, type CreditSubject } from '../../../repos/aiCreditGrants'
 import { recomputeCreditBudget } from '../aiCredits'
-import type { TxHandle, DeferredAfterCommit } from './types'
+import type { TxHandle, DeferredAfterCommit, StripeHandlerOptions } from './types'
+import { sendRefundNotice } from '../refundNotice'
 import { useLogger } from '../../platform/logger'
 import { system } from '../../../repos/proofs'
 
@@ -96,14 +97,21 @@ export function handleCheckoutAsyncPaymentFailed(event: Stripe.CheckoutSessionAs
 
 /**
  * `charge.refunded`: a refunded top-up loses the refunded share of its
- * credit (credits already used stay used). Other charges are ignored.
+ * credit (credits already used stay used). Every refund, of a top-up or a
+ * plan, is also reported to the operator after commit (`sendRefundNotice`);
+ * the event-id dedup sends it once. With Adaptive Pricing the charge's
+ * `amount` / `currency` stay in the price's currency (the buyer's own is
+ * only in `presentment_details`), so the refunded share is exact.
  */
 export async function handleChargeRefunded(
   event: Stripe.ChargeRefundedEvent,
-  db?: TxHandle,
-  deferAfterCommit?: DeferredAfterCommit
+  opts: Partial<StripeHandlerOptions> = {}
 ): Promise<{ matched: number }> {
   const charge = event.data.object
+  const { db, deferAfterCommit } = opts
+  if (charge.amount_refunded > 0) {
+    deferAfterCommit?.push(() => sendRefundNotice(opts.stripe ?? null, charge))
+  }
   const paymentIntent = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id ?? null
   if (!paymentIntent || charge.amount <= 0) return { matched: 0 }
   const subject = await refundCreditGrant(STRIPE, paymentIntent, charge.amount_refunded / charge.amount, db)

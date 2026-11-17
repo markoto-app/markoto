@@ -1941,7 +1941,7 @@
         "bfl": "使用 FLUX 生成图片（数据处理固定在欧盟）",
         "google_oauth": "使用 Google 账号登录（不访问其他 Google 数据）",
         "github_oauth": "使用 GitHub 账号登录（不访问其他 GitHub 数据）",
-        "stripe": "订阅计费、支付方式存储、开具发票、欺诈评估",
+        "stripe": "订阅计费和付款记录；对于购买，Link（Stripe）是卖方，也是独立的数据控制者",
         "sentry": "应用错误和性能遥测，存储在 Sentry 的欧盟（法兰克福）数据区域",
         "resend": "发送事务性邮件：账户删除确认、数据导出就绪通知、数据泄露通知"
       }
@@ -2070,6 +2070,11 @@
     "planUpdated": {
       "title": "套餐已更新",
       "description": "你现在使用的是 {plan} 套餐。新的 AI 额度立即可用。"
+    },
+    "completePayment": "完成付款",
+    "soldThroughLink": {
+      "note": "通过 Link（Stripe）销售，由其处理付款、增值税、发票和退款。适用{terms}。",
+      "terms": "Link 买家条款"
     }
   },
   "plan": {

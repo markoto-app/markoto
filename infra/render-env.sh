@@ -51,6 +51,7 @@ INPUTS=(
   NUXT_PUBLISH_PAGES_HOST NUXT_PUBLISH_TRAEFIK_TOKEN NUXT_S3_ACCESS_KEY
   NUXT_S3_BUCKET NUXT_S3_ENDPOINT NUXT_S3_SECRET_KEY NUXT_SESSION_PASSWORD
   NUXT_SITE_INDEXABLE NUXT_STRIPE_AUTOMATIC_TAX NUXT_STRIPE_LOOKUP_KEY_PREFIX
+  NUXT_STRIPE_MANAGED_PAYMENTS NUXT_BILLING_NOTIFY_EMAIL
   NUXT_STRIPE_PRICE_IDS NUXT_STRIPE_SECRET_KEY NUXT_STRIPE_WEBHOOK_SECRET
   NUXT_TRUSTED_PROXY_HOPS NUXT_WEB_TOOLS_DAILY_LIMIT
   NUXT_WEB_TOOLS_HOURLY_LIMIT OVH_PG_CA_REMOTE_PATH OVH_PG_HOST
@@ -139,12 +140,17 @@ NUXT_PLANS_COMING_SOON="${NUXT_PLANS_COMING_SOON:-true}"
 # environment but prod, so staging answers robots.txt `Disallow: /` and
 # `X-Robots-Tag: noindex` on every response.
 NUXT_SITE_INDEXABLE="${NUXT_SITE_INDEXABLE:-true}"
+# Paid plans on the hosted service are sold through Stripe Managed Payments
+# (Stripe / Link as merchant of record), so with billing on it defaults to
+# on; set NUXT_STRIPE_MANAGED_PAYMENTS=false to sell with our own Stripe Tax.
+NUXT_STRIPE_MANAGED_PAYMENTS="${NUXT_STRIPE_MANAGED_PAYMENTS:-}"
 case "$(echo "$NUXT_BILLING_ENABLED" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')" in
   1|true|yes|on)
     for v in \
       NUXT_STRIPE_SECRET_KEY NUXT_STRIPE_WEBHOOK_SECRET ; do
       require "$v"
     done
+    NUXT_STRIPE_MANAGED_PAYMENTS="${NUXT_STRIPE_MANAGED_PAYMENTS:-true}"
     ;;
 esac
 
@@ -451,6 +457,10 @@ NUXT_STRIPE_WEBHOOK_SECRET=${NUXT_STRIPE_WEBHOOK_SECRET:-}
 NUXT_STRIPE_LOOKUP_KEY_PREFIX=${NUXT_STRIPE_LOOKUP_KEY_PREFIX:-}
 NUXT_STRIPE_PRICE_IDS=${NUXT_STRIPE_PRICE_IDS:-}
 NUXT_STRIPE_AUTOMATIC_TAX=${NUXT_STRIPE_AUTOMATIC_TAX:-}
+# Stripe Managed Payments (merchant of record): defaults to true with billing on (above).
+NUXT_STRIPE_MANAGED_PAYMENTS=${NUXT_STRIPE_MANAGED_PAYMENTS}
+# Operator inbox for billing notices (refunds). Empty = none.
+NUXT_BILLING_NOTIFY_EMAIL=${NUXT_BILLING_NOTIFY_EMAIL:-}
 
 # ─── Free-tier limit overrides (optional; empty = committed default) ───
 # With billing off every account is on the free tier, so these are the

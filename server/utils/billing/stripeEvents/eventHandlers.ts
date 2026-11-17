@@ -22,10 +22,11 @@ const STRIPE_EVENT_HANDLERS = {
   'checkout.session.async_payment_failed': event => handleCheckoutAsyncPaymentFailed(event),
   'customer.subscription.created': (event, opts) => handleSubscriptionUpdated(event, opts),
   'customer.subscription.updated': (event, opts) => handleSubscriptionUpdated(event, opts),
+  'customer.subscription.pending_update_applied': (event, opts) => handleSubscriptionUpdated(event, opts),
   'customer.subscription.deleted': (event, opts) => handleSubscriptionDeleted(event, opts.db, opts.deferAfterCommit),
   'invoice.paid': (event, opts) => handleInvoicePaid(event, opts.db, opts.deferAfterCommit),
   'invoice.payment_failed': (event, opts) => handleInvoicePaymentFailed(event, opts.db, opts.deferAfterCommit),
-  'charge.refunded': (event, opts) => handleChargeRefunded(event, opts.db, opts.deferAfterCommit)
+  'charge.refunded': (event, opts) => handleChargeRefunded(event, opts)
 } satisfies { [T in Stripe.Event['type']]?: StripeEventHandler<T> }
 
 export type HandledStripeEventType = keyof typeof STRIPE_EVENT_HANDLERS

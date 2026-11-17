@@ -31,7 +31,9 @@ const log = useLogger('stripe-webhook')
 
 type SubscriptionResult = { matched: number, plan: PlanName | null }
 
-type SubscriptionChangeEvent = Stripe.CustomerSubscriptionUpdatedEvent | Stripe.CustomerSubscriptionCreatedEvent
+// `pending_update_applied`: a change that waited for its payment (`pending_if_incomplete`)
+// was paid and applied; it carries the subscription with the new items.
+type SubscriptionChangeEvent = Stripe.CustomerSubscriptionUpdatedEvent | Stripe.CustomerSubscriptionCreatedEvent | Stripe.CustomerSubscriptionPendingUpdateAppliedEvent
 
 /**
  * `customer.subscription.created|updated` handler. Plan changes, seat

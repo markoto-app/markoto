@@ -252,6 +252,8 @@ One codebase, three shapes: self-host (both off), hosted free-only (coming soon 
 | `NUXT_STRIPE_LOOKUP_KEY_PREFIX` | letters, digits and "-" only | `markoto` |  | app | hosted | Prefix of the Stripe price lookup keys (<prefix>_<plan>_<month\|year>_<eur\|chf>). |
 | `NUXT_STRIPE_PRICE_IDS` | string | (empty) |  | app | hosted | Explicit `lookup_key=price_id` pairs, comma-separated, for setups without lookup keys. |
 | `NUXT_STRIPE_AUTOMATIC_TAX` | boolean | `false` |  | app | hosted | Stripe Tax on checkout (only after activating Stripe Tax in the dashboard). |
+| `NUXT_STRIPE_MANAGED_PAYMENTS` | boolean | `false` |  | app | hosted | Sell through Stripe Managed Payments (Stripe / Link as merchant of record handles VAT); checkouts send `managed_payments` and no Stripe Tax fields. Needs Managed Payments enabled in the Stripe dashboard and an eligible tax code on every product. |
+| `NUXT_BILLING_NOTIFY_EMAIL` | email address |  |  | app | hosted | Operator inbox for billing notices (a refund was issued). Unset = no notice, only the log. |
 | `NUXT_STRIPE_SUCCESS_URL` | string | `/pricing?checkout=success&session={CHECKOUT_SESSION_ID}` |  | app | hosted | Path Stripe returns to after a successful checkout. Not passed by the compose files: the default is the app's own page. |
 | `NUXT_STRIPE_CANCEL_URL` | string | `/pricing?checkout=cancelled` |  | app | hosted | Path Stripe returns to after a cancelled checkout. Not passed by the compose files: the default is the app's own page. |
 

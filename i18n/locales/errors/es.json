@@ -95,6 +95,7 @@
       "no-subscription": "Este espacio de trabajo no tiene ninguna suscripción activa.",
       "not-configured": "La facturación no está configurada. Contacta con el soporte.",
       "payment-failed": "El pago falló, así que no se cambió nada.",
+      "payment-pending": "Todavía falta completar el pago. El cambio se aplica en cuanto se pague; hasta entonces no cambia nada. Si queda sin pagar, caduca en aproximadamente un día.",
       "plan-change-failed": "No se pudo cambiar el plan. No se cambió nada; inténtalo de nuevo.",
       "portal-failed": "No se pudo abrir el portal de facturación. Inténtalo de nuevo.",
       "price-unavailable": "Este plan no está a la venta ahora mismo.",

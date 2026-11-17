@@ -1,4 +1,4 @@
-import { bool, pattern, positiveNumber, string, url } from '../coerce'
+import { bool, email as emailAddress, pattern, positiveNumber, string, url } from '../coerce'
 import { defineNamespace, v, type AnyVar } from '../define'
 import { DEFAULT_TIERS, PLAN_NAMES, TIER_FIELDS, tierEnvName, tierOverrideType } from '../../config/tiers'
 import { BILLING_INTERVALS, CURRENCIES, DEFAULT_PLAN_PRICES, PAID_PLAN_NAMES, planPriceEnvName } from '../../config/pricing'
@@ -75,6 +75,21 @@ export const billing = defineNamespace({
       type: bool,
       default: false,
       doc: 'Stripe Tax on checkout (only after activating Stripe Tax in the dashboard).',
+      services: ['app'],
+      scope: 'hosted'
+    }),
+    stripeManagedPayments: v({
+      name: 'NUXT_STRIPE_MANAGED_PAYMENTS',
+      type: bool,
+      default: false,
+      doc: 'Sell through Stripe Managed Payments (Stripe / Link as merchant of record handles VAT); checkouts send `managed_payments` and no Stripe Tax fields. Needs Managed Payments enabled in the Stripe dashboard and an eligible tax code on every product.',
+      services: ['app'],
+      scope: 'hosted'
+    }),
+    billingNotifyEmail: v({
+      name: 'NUXT_BILLING_NOTIFY_EMAIL',
+      type: emailAddress,
+      doc: 'Operator inbox for billing notices (a refund was issued). Unset = no notice, only the log.',
       services: ['app'],
       scope: 'hosted'
     }),

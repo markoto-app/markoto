@@ -41,6 +41,8 @@ Server logic grouped by domain (`auth/`, `documents/`, `workspaces/`, `storage/`
 - Never put `workspace_id` in a LiteLLM request body (reserved, LiteLLM answers 401); our metadata key is `markoto_workspace`.
 - Stripe webhook handlers never throw on an unknown customer; let `dispatchStripeEvent` stash the event. Read version-dependent fields through `subscriptionPeriod`, `invoiceSubscriptionId` and `invoiceServicePeriod` (`billing/stripeEvents/stripeObjects.ts`). A new handled event type is one entry in the table of `billing/stripeEvents/eventHandlers.ts` (the list of handled types is derived from it); dedup and the stash stay in `billing/stripeWebhook.ts`.
 - Fewer workspace seats are never credited, and workspace deletion calls `endWorkspaceBilling` before deleting anything. Keep both.
+- A subscription change that costs money uses `PAID_CHANGE_PARAMS` (`pending_if_incomplete`) and checks `pendingPayment(updated)` before writing anything locally: a pending change is unpaid and must not unlock a plan, seats or budget.
+- Checkout Sessions get their tax fields only from `checkoutTaxFields`; with Managed Payments on, no other tax, invoice, payment-method or customer-update parameter may be added.
 
 ## Privacy and email
 

@@ -1,3 +1,4 @@
+import { STRIPE_API_VERSION } from '../../../shared/contracts/stripe'
 import type { Page, TestInfo } from '@playwright/test'
 import { computeStripeSig } from '../../integration/setup/stripeHelpers'
 
@@ -78,7 +79,7 @@ export function subscriptionUpdatedEvent(args: {
   return {
     id: `evt_flow_sub_${args.subscription}_${Date.now()}`,
     object: 'event',
-    api_version: '2025-01-27.acacia',
+    api_version: STRIPE_API_VERSION,
     created: now,
     livemode: false,
     type: 'customer.subscription.updated',
@@ -117,7 +118,7 @@ export function topupCompletedEvent(args: {
   return {
     id: `evt_flow_topup_${pi}`,
     object: 'event',
-    api_version: '2025-01-27.acacia',
+    api_version: STRIPE_API_VERSION,
     created: now,
     livemode: false,
     type: 'checkout.session.completed',

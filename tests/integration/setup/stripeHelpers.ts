@@ -1,3 +1,4 @@
+import { STRIPE_API_VERSION } from '../../../shared/contracts/stripe'
 import { createHmac } from 'crypto'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
@@ -67,7 +68,7 @@ export function makeStripeEvent(
   return {
     id: overrides?.id ?? `evt_test_${type.replace(/\./g, '_')}_${Math.random().toString(36).slice(2, 8)}`,
     object: 'event',
-    api_version: '2024-12-18.acacia',
+    api_version: STRIPE_API_VERSION,
     created: overrides?.created ?? Math.floor(Date.now() / 1000),
     livemode: overrides?.livemode ?? false,
     type,

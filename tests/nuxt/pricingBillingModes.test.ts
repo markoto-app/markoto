@@ -205,6 +205,24 @@ describe('pricing page: billing on', () => {
     expect(wrapper.find('[data-testid="pricing-compare"]').text()).toContain('Self-hosted')
   })
 
+  it('says who sells when paid plans go through Stripe Managed Payments, and only then', async () => {
+    setMode({ billingEnabled: true, plansComingSoon: false, managedPayments: true })
+    signIn()
+    const wrapper = await mountPricing()
+    await flushPromises()
+    const footnote = wrapper.find('[data-testid="pricing-sold-through-link"]')
+    expect(footnote.text()).toContain('Sold through Link (Stripe)')
+    expect(footnote.find('a').attributes('href')).toBe('https://link.com/terms')
+    // Next to the purchase box too (it is the one every purchase needs).
+    expect(wrapper.find('[data-testid="pricing-paid-terms-pro"] [data-testid="sold-through-link"]').exists()).toBe(true)
+
+    setMode({ billingEnabled: true, plansComingSoon: false, managedPayments: false })
+    const plain = await mountPricing()
+    await flushPromises()
+    expect(plain.find('[data-testid="pricing-sold-through-link"]').exists()).toBe(false)
+    expect(plain.find('[data-testid="sold-through-link"]').exists()).toBe(false)
+  })
+
   it('marks the plan of a signed-in user and offers the portal on it', async () => {
     setMode({ billingEnabled: true, plansComingSoon: false })
     signIn('pro')

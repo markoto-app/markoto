@@ -1,7 +1,7 @@
 {
   "id": "evt_test_invoice_failed",
   "object": "event",
-  "api_version": "2024-12-18.acacia",
+  "api_version": "2026-09-30.endive",
   "created": 1778678400,
   "livemode": false,
   "type": "invoice.payment_failed",
@@ -10,9 +10,7 @@
       "id": "in_test_alice_failed",
       "object": "invoice",
       "customer": "cus_test_alice",
-      "subscription": "sub_test_alice_pro",
       "status": "open",
-      "paid": false,
       "attempt_count": 1,
       "next_payment_attempt": 1778764800,
       "billing_reason": "subscription_cycle",
