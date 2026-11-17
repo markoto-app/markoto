@@ -380,6 +380,7 @@ jobs:
             deploy/config/litellm/custom_handlers.py \
             deploy/config/postgres/db-init.sh \
             deploy/config/postgres/pg-major-upgrade.sh \
+            deploy/config/env-converge.sh \
             deploy/config/edge/haproxy.cfg \
             deploy/config/traefik/acme-ec-migrate.sh \
             deploy/config/renderer/seccomp.json \
@@ -455,6 +456,11 @@ jobs:
           COMPOSE=markoto-compose ENGINE=podman BACKUP_DIR=/opt/markoto/postgres-upgrade \
             sh deploy/config/postgres/pg-major-upgrade.sh upgrade < /dev/null
           markoto-compose up -d --remove-orphans
+          # The .env above may carry a rotated secret for the same tag.
+          # Every running container must see the rendered environment: the
+          # services whose environment differs are recreated, the others
+          # keep running (deploy/config/env-converge.sh).
+          COMPOSE=markoto-compose ENGINE=podman sh deploy/config/env-converge.sh < /dev/null
 
           # Health-check loop: 60 attempts × 5 s = 300 s. Sized for a COLD
           # first boot: litellm runs ~118 Prisma migrations before turning

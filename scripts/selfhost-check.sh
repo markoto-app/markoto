@@ -433,6 +433,30 @@ for f in .github/workflows/deploy.yml install.sh infra/roles/markoto/tasks/main.
 done
 echo "ok: litellm is recreated when its config changes (prod, self-host)"
 
+# A changed .env reaches the running containers
+# A deploy of the same tag with a rotated secret rewrites .env; every deploy
+# path must then recreate the services whose environment differs
+# (deploy/config/env-converge.sh), after its `up -d`.
+shellcheck deploy/config/env-converge.sh deploy/config/env-converge-test.sh
+deploy/config/env-converge-test.sh
+for f in .github/workflows/deploy.yml infra/roles/markoto/tasks/main.yml; do
+  if ! awk '/markoto-compose up -d --remove-orphans/ { up = 1 } up && /sh deploy\/config\/env-converge\.sh/ { found = 1 } END { exit !found }' "$f"; then
+    echo "FAIL: $f must run deploy/config/env-converge.sh after compose up -d" >&2
+    exit 1
+  fi
+done
+if ! grep -A1 '^  compose up -d$' install.sh | grep -q '^  converge_env$'; then
+  echo "FAIL: install.sh must run converge_env (env-converge.sh) right after compose up -d" >&2
+  exit 1
+fi
+for f in .github/workflows/deploy.yml infra/roles/markoto/tasks/main.yml; do
+  if ! grep -q 'deploy/config/env-converge.sh' "$f"; then
+    echo "FAIL: $f must ship deploy/config/env-converge.sh to the host" >&2
+    exit 1
+  fi
+done
+echo "ok: deploy paths recreate the services whose environment changed (deploy.yml, Ansible, install.sh)"
+
 # The renderer code must never launch Chromium without its sandbox, and the
 # profile must keep the one rule the sandbox needs.
 if grep -rn -- '--no-sandbox' renderer/src; then
