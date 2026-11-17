@@ -2032,7 +2032,8 @@
         "acceptedVersion": "Version {version}",
         "needsReacceptance": "needs re-acceptance (current v{version})",
         "dpaNotApplicable": "Required when you create a workspace",
-        "cookieNote": "Only essential cookies: sign-in, language, and a key to delete documents made without an account. No analytics, tracking or ads. The privacy policy lists each one."
+        "cookieNote": "Only essential cookies: sign-in, language, and a key to delete documents made without an account. No analytics, tracking or ads. The privacy policy lists each one.",
+        "cookieNoteWithStats": "Only essential cookies: sign-in, language, and a key to delete documents made without an account. Visits to our public pages are counted with our own statistics tool, without cookies and without storing anything on your device. No cross-site tracking, no ads. The privacy policy lists each cookie and explains the statistics."
       },
       "sessions": {
         "heading": "Sessions",

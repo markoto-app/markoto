@@ -600,12 +600,7 @@ const policies = computed(() => {
             </dd>
           </div>
         </dl>
-        <p
-          class="text-sm text-muted mt-3"
-          data-testid="profile-cookie-note"
-        >
-          {{ t('settings.profile.legal.cookieNote') }}
-        </p>
+        <LegalCookieNote class="text-sm text-muted mt-3" />
       </section>
     </main>
     <!-- No site footer: the settings pages open like an overlay (close

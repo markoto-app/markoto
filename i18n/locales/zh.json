@@ -2032,7 +2032,8 @@
         "acceptedVersion": "版本 {version}",
         "needsReacceptance": "需重新接受（当前 v{version}）",
         "dpaNotApplicable": "创建工作区时必需",
-        "cookieNote": "仅使用必要的 Cookie：登录、语言，以及用于删除无账户创建文档的密钥。无分析、跟踪或广告。隐私政策列出了每一个 Cookie。"
+        "cookieNote": "仅使用必要的 Cookie：登录、语言，以及用于删除无账户创建文档的密钥。无分析、跟踪或广告。隐私政策列出了每一个 Cookie。",
+        "cookieNoteWithStats": "仅使用必要的 Cookie：登录、语言，以及用于删除无账户创建文档的密钥。我们用自己运行的统计工具统计公开页面的访问量，不使用 Cookie，也不在你的设备上存储任何内容。无跨站跟踪，无广告。隐私政策列出了每一个 Cookie，并说明了统计方式。"
       },
       "sessions": {
         "heading": "会话",

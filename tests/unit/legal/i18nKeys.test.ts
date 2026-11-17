@@ -136,7 +136,8 @@ const EXPECTED_KEYS: string[] = [
   'settings.profile.legal.notAccepted',
   'settings.profile.legal.needsReacceptance',
   'settings.profile.legal.dpaNotApplicable',
-  'settings.profile.legal.cookieNote'
+  'settings.profile.legal.cookieNote',
+  'settings.profile.legal.cookieNoteWithStats'
 ]
 
 function resolve(obj: unknown, path: string): unknown {

@@ -9,7 +9,7 @@ keywords:
   - google docs alternative dsgvo
 # Menu label once reviewed (group + order come from the English page).
 navLabel: "Gehostet in der EU"
-updated: '2026-11-04'
+updated: '2026-11-17'
 # Machine draft, not yet read by a native speaker: noindex, no hreflang,
 # not in the sitemap (shared/seo/marketing.ts). Review status: the operator runbook, kept outside this repository.
 # Legal facts follow content/legal/privacy/de.md (version 8).
@@ -57,9 +57,9 @@ Schreibassistent, Spracheingabe, Websuche, Seitenabruf und Bilderzeugung laufen 
 ::flow-strip{id="use-your-own-ai-provider" frames="06" caption="Einstellungen › KI-Anbieter: der Schreibassistent, verbunden mit einem selbst gewählten Anbieter."}
 ::
 
-## Kein Tracking
+## Keine Tracking-Cookies
 
-markoto.app verwendet nur Speicher, der für den Betrieb unbedingt erforderlich ist: die Anmeldesitzung, deine Sprache und einige Schlüssel für anonyme Dokumente. Es gibt keine Analyse, keine Sitzungsaufzeichnung, keine Werbung und kein seitenübergreifendes Tracking, deshalb auch kein Cookie-Banner. Die Datenschutzerklärung listet jedes Cookie und jeden Speicherschlüssel auf.
+markoto.app verwendet nur Speicher, der für den Betrieb unbedingt erforderlich ist: die Anmeldesitzung, deine Sprache und einige Schlüssel für anonyme Dokumente. Besuche der öffentlichen Seiten wie dieser zählen wir mit einem Statistik-Tool, das wir selbst betreiben, ohne Cookies und ohne etwas auf deinem Gerät zu speichern; Dokumente werden nie gezählt. Es gibt keine Sitzungsaufzeichnung, keine Werbung und kein seitenübergreifendes Tracking, deshalb auch kein Cookie-Banner. Die Datenschutzerklärung listet jedes Cookie und jeden Speicherschlüssel auf und erklärt die Statistik.
 
 Dokumente werden von Suchmaschinen nicht indexiert: Jede Dokumentseite sendet eine `noindex`-Anweisung. Ein Link kann trotzdem weitergegeben werden; behandele einen geteilten Link deshalb als öffentlich.
 

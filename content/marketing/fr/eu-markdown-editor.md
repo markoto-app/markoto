@@ -9,7 +9,7 @@ keywords:
   - éditeur collaboratif conforme rgpd
 # Menu label once reviewed (group + order come from the English page).
 navLabel: "Hébergé dans l'UE"
-updated: '2026-11-04'
+updated: '2026-11-17'
 # Machine draft, not yet read by a native speaker: noindex, no hreflang,
 # not in the sitemap (shared/seo/marketing.ts). Review status: the operator runbook, kept outside this repository.
 # Legal facts follow content/legal/privacy/fr.md (version 8).
@@ -57,9 +57,9 @@ L'assistant d'écriture, la saisie vocale, la recherche web, la récupération d
 ::flow-strip{id="use-your-own-ai-provider" frames="06" caption="Paramètres › Fournisseur d'IA : l'assistant d'écriture connecté à un fournisseur de votre choix."}
 ::
 
-## Pas de pistage
+## Pas de cookies de pistage
 
-markoto.app n'utilise que le stockage strictement nécessaire au fonctionnement du service : la session de connexion, votre langue et quelques clés pour les documents anonymes. Il n'y a ni statistiques d'usage, ni enregistrement de sessions, ni publicité, ni pistage intersites, et donc pas de bandeau de cookies. La politique de confidentialité liste chaque cookie et chaque clé de stockage.
+markoto.app n'utilise que le stockage strictement nécessaire au fonctionnement du service : la session de connexion, votre langue et quelques clés pour les documents anonymes. Les visites des pages publiques, comme celle-ci, sont comptées par un outil de statistiques que nous exploitons nous-mêmes, sans cookies et sans rien enregistrer sur votre appareil ; les documents ne sont jamais comptés. Il n'y a ni enregistrement de sessions, ni publicité, ni pistage intersites, et donc pas de bandeau de cookies. La politique de confidentialité liste chaque cookie et chaque clé de stockage et décrit les statistiques.
 
 Les documents ne sont pas indexés par les moteurs de recherche : chaque page de document envoie une instruction `noindex`. Un lien peut tout de même circuler ; considérez donc un lien partagé comme public.
 
