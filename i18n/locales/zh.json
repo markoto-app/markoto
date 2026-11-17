@@ -2960,7 +2960,6 @@
       "pastDue": "逾期未付",
       "scheduledCancellations": "已设为到期终止",
       "atRisk": "已设为终止的 MRR,{currency}",
-      "endedWorkspacePlans": "已结束的工作区方案",
       "waitlistConfirmed": "候补名单(已确认)",
       "waitlistUnconfirmed": "候补名单(未确认)",
       "waitlistNew": "候补名单新增",
@@ -2978,7 +2977,15 @@
       "openInvites": "待处理邀请",
       "pendingStripeEvents": "等待中的 Stripe 事件",
       "abuseOpen": "未处理的举报",
-      "abuseReceived": "收到的举报"
+      "abuseReceived": "收到的举报",
+      "mrrTotal": "MRR,全部折合 CHF",
+      "arrTotal": "ARR,全部折合 CHF",
+      "contribution": "预估贡献 / 月,CHF",
+      "subsStarted": "已开始的订阅",
+      "subsEnded": "已结束的订阅",
+      "cancelScheduled": "已安排的取消",
+      "newMrr": "新增 MRR {currency}",
+      "lostMrr": "流失 MRR {currency}"
     },
     "hint": {
       "activeDefinition": "当天已登录并使用过 markoto。",
@@ -2986,13 +2993,14 @@
       "noRevenue": "暂无付费订阅。",
       "freePool": "{cap} 中已用 {spent}",
       "freePoolOff": "此实例没有共享上限。",
-      "spendFrom": "AI 成本日志保留 90 天;此时段从 {day} 开始。",
+      "spendFrom": "AI 成本历史从 {day} 开始。",
       "spendUnavailable": "无法读取 AI 成本日志。",
       "listPrice": "按标价计的总额:未扣除支付手续费、折扣和税费。",
       "plannedPrices": "按计划价格估值;付费方案尚未发售。",
       "billingOff": "此实例已关闭计费。",
       "comingSoon": "付费方案显示为“即将推出”;候补名单已开放。",
-      "personalChurn": "已结束的 Pro 方案不会留下记录,因此结束后仅统计工作区方案。"
+      "aiUsersFrom": "使用 AI 的人数从 {day} 起统计(按人记录的日志保留 90 天)。",
+      "churnHistory": "订阅历史从此版本起开始记录;此前的工作区方案根据其记录补入。"
     },
     "chart": {
       "signups": "新注册",
@@ -3001,7 +3009,10 @@
       "documents": "新建文档",
       "aiSpend": "按功能划分的 AI 成本(USD)",
       "members": "按成员数划分的工作区",
-      "activation": "新账户激活情况"
+      "activation": "新账户激活情况",
+      "subscriptions": "已开始和已结束的订阅",
+      "started": "已开始",
+      "ended": "已结束"
     },
     "table": {
       "period": "时段",
@@ -3044,7 +3055,8 @@
       "topups": "AI 额度购买",
       "planMix": "方案构成",
       "exports": "数据导出",
-      "abuse": "滥用举报"
+      "abuse": "滥用举报",
+      "estimate": "预估每月贡献"
     },
     "activation": {
       "signedUp": "已注册",
@@ -3098,6 +3110,18 @@
       "ai": "AI",
       "footnote": "账户和文档来自应用数据库,AI 成本来自 AI 代理的日志(90 天)。收入按标价计,为总额。定义:docs/contributing/admin-metrics.md。"
     },
-    "menu": "产品统计"
+    "menu": "产品统计",
+    "estimate": {
+      "estimated": "预估",
+      "gross": "按标价计的总额",
+      "tax": "含税费({pct} %)",
+      "fees": "支付手续费({pct} % + {fixed})",
+      "net": "净收入",
+      "aiCost": "平台 AI 成本,最近 30 天",
+      "contribution": "贡献",
+      "combined": "合计,CHF",
+      "note": "按月预估。EUR 兑 CHF 按 {eur},USD 兑 CHF 按 {usd}。假设通过 NUXT_STATS_* 设置。",
+      "aiUnavailable": "无法读取 AI 成本,按 0 计算。"
+    }
   }
 }

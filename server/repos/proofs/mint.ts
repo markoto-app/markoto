@@ -29,14 +29,15 @@ function checkToken(token: typeof MINT): void {
 /** Every named background actor. Add a name when a new job needs one. */
 export const SYSTEM_ACTORS = [
   'account-deletion',
-  'admin-bootstrap',
   'account-deletion-sweep',
+  'admin-bootstrap',
   'ai-records-sweep',
   'ai-session',
+  'ai-spend-rollup',
   'comment-trigger',
   'custom-domain-recheck',
-  'data-export-worker',
   'data-export-expiry-sweep',
+  'data-export-worker',
   'design-import',
   'image-gc',
   'inactive-doc-sweep',

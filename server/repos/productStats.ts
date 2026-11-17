@@ -360,7 +360,6 @@ export async function cancellingGroups(_by: AdminActor): Promise<SubscriptionGro
 
 export async function revenueCounts(_by: AdminActor, w: StatsWindow): Promise<{
   pastDue: number
-  endedWorkspaceSubscriptions: Kpi
   topups: Array<{ currency: Currency, amount: number, count: number }>
   waitlist: { confirmed: number, unconfirmed: number, newConfirmed: Kpi }
   planMix: { free: number, pro: number, team: number, business: number }
@@ -383,11 +382,6 @@ export async function revenueCounts(_by: AdminActor, w: StatsWindow): Promise<{
     GROUP BY 1 ORDER BY 1`)
   return {
     pastDue: Number(t.past_due),
-    // A personal subscription that ends resets its row (no history), so
-    // only workspace subscriptions can be counted after they ended.
-    endedWorkspaceSubscriptions: await kpi(w, (from, to) => sql`
-      SELECT count(*) AS n FROM workspace_subscriptions
-      WHERE status IN ('canceled', 'incomplete_expired', 'unpaid') AND updated_at >= ${utc(from)} AND updated_at < ${utc(to)}`),
     topups: topups.map(r => ({ currency: r.currency, amount: Number(r.amount), count: Number(r.count) })),
     waitlist: {
       confirmed: Number(t.wl_confirmed),
@@ -452,4 +446,25 @@ export async function opsCounts(_by: AdminActor, w: StatsWindow): Promise<{
     openInvites: Number(t.invites),
     pendingStripeEvents: Number(t.stripe_pending)
   }
+}
+
+export type SubscriptionStep = 'started' | 'changed' | 'cancel_scheduled' | 'cancel_revoked' | 'ended'
+
+/** Subscription history steps in [from, to), grouped by step and price (`subscription_events`). */
+export async function subscriptionSteps(_by: AdminActor, from: string, to: string): Promise<Array<SubscriptionGroup & { kind: SubscriptionStep }>> {
+  const r = await rows<{ kind: SubscriptionStep, plan: PaidPlanName, currency: Currency, interval: BillingInterval, subscriptions: number, units: number }>(sql`
+    SELECT kind, plan, currency, interval, count(*)::int AS subscriptions, sum(seats)::int AS units
+    FROM subscription_events
+    WHERE occurred_at >= ${utc(from)} AND occurred_at < ${utc(to)}
+    GROUP BY 1, 2, 3, 4 ORDER BY 1, 2, 3, 4`)
+  return r.map(g => ({ ...g, subscriptions: Number(g.subscriptions), units: Number(g.units) }))
+}
+
+/** Subscriptions started and ended per time bucket of the window. */
+export async function subscriptionStepSeries(_by: AdminActor, w: StatsWindow): Promise<{ started: SeriesPoint[], ended: SeriesPoint[] }> {
+  const step = (kind: SubscriptionStep) => series(w, sql`
+    SELECT ${bucketOf(w.bucket, sql`occurred_at`)} AS t, count(*) AS v
+    FROM subscription_events
+    WHERE kind = ${kind} AND occurred_at >= ${utc(w.from)} AND occurred_at < ${utc(w.to)} GROUP BY 1`)
+  return { started: await step('started'), ended: await step('ended') }
 }

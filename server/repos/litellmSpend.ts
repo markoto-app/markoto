@@ -109,3 +109,54 @@ export async function countSpendUsers(_by: AdminActor, window: { from: string, t
   )
   return Number(r.rows[0]?.users ?? 0)
 }
+
+export interface DailySpendRow {
+  day: string
+  feature: string
+  model: string
+  platformPaid: boolean
+  spendUsd: number
+  requests: number
+  users: number
+}
+
+/**
+ * Per UTC day, feature tag ('other' without one) and model between two
+ * days (`to` inclusive): cost, requests and distinct `user:*` tags. Input
+ * of the identifier-free rollup (`ai-spend-rollup`). A call on a user's
+ * own key goes through the `byok/*` deployment and is not platform-paid.
+ */
+export async function dailySpendForRollup(_by: SystemActor, window: { from: string, to: string }): Promise<DailySpendRow[]> {
+  const tag = (prefix: string) => `(
+      SELECT min(t.tag)
+      FROM jsonb_array_elements_text(
+        CASE WHEN jsonb_typeof(request_tags) = 'array' THEN request_tags ELSE '[]'::jsonb END
+      ) AS t(tag)
+      WHERE t.tag LIKE '${prefix}%'
+    )`
+  const r = await useLitellmPool().query<{ day: string, feature: string, model: string, platform_paid: boolean, spend: number, requests: number, users: number }>(
+    `
+    SELECT ("startTime")::date::text AS day,
+      coalesce(${tag('feature:')}, 'other') AS feature,
+      coalesce(model, '') AS model,
+      NOT (coalesce(model_group, '') LIKE 'byok/%' OR coalesce(model, '') LIKE 'byok/%') AS platform_paid,
+      coalesce(sum(spend), 0)::float8 AS spend,
+      count(*)::int AS requests,
+      count(DISTINCT ${tag('user:')})::int AS users
+    FROM ${TABLE}
+    WHERE "startTime" >= $1::timestamp
+      AND "startTime" < ($2::date + INTERVAL '1 day')
+    GROUP BY 1, 2, 3, 4
+    `,
+    [window.from, window.to]
+  )
+  return r.rows.map(row => ({
+    day: row.day,
+    feature: row.feature,
+    model: row.model,
+    platformPaid: row.platform_paid,
+    spendUsd: Number(row.spend),
+    requests: Number(row.requests),
+    users: Number(row.users)
+  }))
+}

@@ -155,10 +155,14 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: ['jina_ai', 'ovh_postgres', 'ovh_object_storage']
   },
   {
+    // `subscription_history`: when a paid plan started, changed, was set to
+    // end or ended (plan, period, currency, seats), for the revenue and churn
+    // figures. On account deletion the rows lose the account and the Stripe
+    // subscription id and stay as anonymous history.
     id: 'billing',
     label: 'Billing (only when paid plans are offered)',
     basis: 'contract',
-    dataCategories: ['stripe_customer_id', 'subscription_state', 'invoice_history', 'workspace_subscription_billing_admin', 'workspace_member_ai_limits_and_spend', 'ai_credit_purchases'],
+    dataCategories: ['stripe_customer_id', 'subscription_state', 'subscription_history', 'invoice_history', 'workspace_subscription_billing_admin', 'workspace_member_ai_limits_and_spend', 'ai_credit_purchases'],
     retention: 'legal_minimum',
     subProcessors: ['stripe']
   },

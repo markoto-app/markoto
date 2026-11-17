@@ -61,6 +61,9 @@ Contents:
   billing/workspace_subscriptions.json  Team / Business subscriptions of
                          workspaces you manage as billing admin (plan,
                          seats, status, currency, dates).
+  billing/subscription_history.json  your Pro plan's history: started,
+                         changed, cancellation scheduled or taken back,
+                         ended (plan, period, currency, date).
   billing/ai_credits.json  AI credits you bought for yourself (pack,
                          credit, what's left, amount paid, expiry).
 

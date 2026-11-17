@@ -30,9 +30,11 @@ const log = useLogger('spend-logs-sweep')
 // Failure-tolerant: a hiccup just leaves stale rows around for one
 // more cycle. The sweep doesn't gate any user-facing behaviour.
 
-const RETENTION_DAYS = 90
+/** Days LiteLLM spend rows are kept (also the `ai_assistance` retention in the privacy register). */
+export const SPEND_LOG_RETENTION_DAYS = 90
+
 export async function runSpendLogsSweep(): Promise<{ deleted: number } | null> {
-  const cutoff = new Date(Date.now() - RETENTION_DAYS * DAY_MS)
+  const cutoff = new Date(Date.now() - SPEND_LOG_RETENTION_DAYS * DAY_MS)
   const cutoffIso = cutoff.toISOString()
 
   let result: { deleted: number }

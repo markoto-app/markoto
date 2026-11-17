@@ -118,6 +118,85 @@ export function recurringRevenue(groups: readonly SubscriptionGroup[], prices: P
     .map(([currency, mrr]) => ({ currency, mrr: round2(mrr), arr: round2(mrr * 12) }))
 }
 
+/**
+ * The assumptions of the estimated contribution and the combined CHF
+ * figures (`NUXT_STATS_*`). Percentages are 0-100; the fixed fee is in the
+ * charge's currency.
+ */
+export interface EstimateAssumptions {
+  taxPct: number
+  paymentFeePct: number
+  paymentFeeFixed: number
+  eurChfRate: number
+  usdChfRate: number
+}
+
+export function toChf(amount: number, currency: Currency, a: EstimateAssumptions): number {
+  return currency === 'chf' ? amount : amount * a.eurChfRate
+}
+
+/** MRR and ARR of all currencies together, in CHF at the fixed rate. */
+export function combinedRevenueChf(revenue: readonly CurrencyRevenue[], a: EstimateAssumptions): { mrr: number, arr: number } {
+  const mrr = revenue.reduce((n, r) => n + toChf(r.mrr, r.currency, a), 0)
+  return { mrr: round2(mrr), arr: round2(mrr * 12) }
+}
+
+/** One month of one currency: gross list revenue, the tax it contains, payment fees, and what is left. */
+export interface CurrencyEstimate {
+  currency: Currency
+  gross: number
+  tax: number
+  fees: number
+  net: number
+}
+
+/** One month in CHF: the currencies together, minus the platform-paid AI cost. */
+export interface CombinedEstimate {
+  gross: number
+  tax: number
+  fees: number
+  net: number
+  aiCost: number
+  contribution: number
+}
+
+/**
+ * Estimated monthly contribution. Per currency: gross = MRR at list price
+ * (prices include tax); tax = gross x rate / (100 + rate); fees = gross x
+ * fee % + fixed fee x charges per month (a monthly subscription is charged
+ * once a month, a yearly one 1/12 times); net = gross - tax - fees. In CHF:
+ * the nets together minus the platform-paid AI cost of the last 30 days.
+ */
+export function estimateContribution(
+  groups: readonly SubscriptionGroup[],
+  prices: PlanPriceTable,
+  a: EstimateAssumptions,
+  aiCostUsd: number
+): { perCurrency: CurrencyEstimate[], combinedChf: CombinedEstimate } {
+  const perCurrency = recurringRevenue(groups, prices).map((r): CurrencyEstimate => {
+    const charges = groups
+      .filter(g => g.currency === r.currency)
+      .reduce((n, g) => n + (g.interval === 'year' ? g.subscriptions / 12 : g.subscriptions), 0)
+    const tax = r.mrr * a.taxPct / (100 + a.taxPct)
+    const fees = r.mrr * a.paymentFeePct / 100 + charges * a.paymentFeeFixed
+    return { currency: r.currency, gross: r.mrr, tax: round2(tax), fees: round2(fees), net: round2(r.mrr - tax - fees) }
+  })
+  const sum = (pick: (e: CurrencyEstimate) => number) => perCurrency.reduce((n, e) => n + toChf(pick(e), e.currency, a), 0)
+  const net = sum(e => e.net)
+  const aiCost = aiCostUsd * a.usdChfRate
+  return {
+    perCurrency,
+    combinedChf: {
+      gross: round2(sum(e => e.gross)),
+      tax: round2(sum(e => e.tax)),
+      fees: round2(sum(e => e.fees)),
+      net: round2(net),
+      aiCost: round2(aiCost),
+      contribution: round2(net - aiCost)
+    }
+  }
+}
+
 export function round2(n: number): number {
   return Math.round(n * 100) / 100
 }
@@ -170,8 +249,10 @@ export interface AiStats {
   window: StatsWindow
   /** False when the LiteLLM database could not be read; spend numbers are then 0. */
   spendAvailable: boolean
-  /** First day the spend logs still cover (LiteLLM rows are kept 90 days). */
+  /** First day the cost figures cover (the daily rollup, then the raw spend logs). */
   spendFrom: string
+  /** First day "people using AI" covers: distinct users exist only in the raw spend logs (90 days). */
+  aiUsersFrom: string
   spendUsd: Kpi
   requests: Kpi
   aiUsers: Kpi
@@ -196,7 +277,26 @@ export interface RevenueStats {
   pastDue: number
   /** Live subscriptions that are set to end, with the MRR they carry. */
   scheduledCancellations: { subscriptions: number, revenue: CurrencyRevenue[] }
-  endedWorkspaceSubscriptions: Kpi
+  /** From the subscription history: subscriptions started, set to end and ended in the window, and the MRR they brought or took. */
+  churn: {
+    started: Kpi
+    cancelScheduled: Kpi
+    ended: Kpi
+    newMrr: CurrencyRevenue[]
+    lostMrr: CurrencyRevenue[]
+    startedSeries: SeriesPoint[]
+    endedSeries: SeriesPoint[]
+  }
+  /** All currencies in CHF at the fixed rate. */
+  combinedChf: { mrr: number, arr: number }
+  /** Estimated monthly contribution (see `estimateContribution`). */
+  estimate: {
+    assumptions: EstimateAssumptions
+    perCurrency: CurrencyEstimate[]
+    combinedChf: CombinedEstimate
+    /** Platform-paid AI cost of the last 30 days, USD; null when the spend logs could not be read (then 0 in the contribution). */
+    aiCostUsd: number | null
+  }
   topups: Array<{ currency: Currency, amount: number, count: number }>
   waitlist: { confirmed: number, unconfirmed: number, newConfirmed: Kpi }
   planMix: { free: number, pro: number, team: number, business: number }
@@ -218,6 +318,6 @@ export interface OverviewStats {
   window: StatsWindow
   users: Pick<UsersStats, 'registered' | 'signups' | 'active' | 'editors' | 'signupSeries' | 'editorSeries'>
   content: { documents: number, created: Kpi, documentSeries: SeriesPoint[], workspaces: number, knowledgeFiles: number, publishedPages: number }
-  revenue: Pick<RevenueStats, 'revenue' | 'payingCustomers' | 'billingEnabled' | 'plansComingSoon'> & { waitlistConfirmed: number }
+  revenue: Pick<RevenueStats, 'revenue' | 'payingCustomers' | 'billingEnabled' | 'plansComingSoon' | 'combinedChf'> & { waitlistConfirmed: number, contributionChf: number }
   ai: Pick<AiStats, 'spendUsd' | 'aiUsers' | 'spendAvailable'>
 }

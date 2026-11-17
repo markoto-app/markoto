@@ -2960,7 +2960,6 @@
       "pastDue": "Payment overdue",
       "scheduledCancellations": "Set to end",
       "atRisk": "MRR set to end, {currency}",
-      "endedWorkspacePlans": "Workspace plans ended",
       "waitlistConfirmed": "Waitlist (confirmed)",
       "waitlistUnconfirmed": "Waitlist (not confirmed)",
       "waitlistNew": "New on the waitlist",
@@ -2978,7 +2977,15 @@
       "openInvites": "Open invitations",
       "pendingStripeEvents": "Waiting Stripe events",
       "abuseOpen": "Open reports",
-      "abuseReceived": "Reports received"
+      "abuseReceived": "Reports received",
+      "mrrTotal": "MRR, all in CHF",
+      "arrTotal": "ARR, all in CHF",
+      "contribution": "Est. contribution / month, CHF",
+      "subsStarted": "Subscriptions started",
+      "subsEnded": "Subscriptions ended",
+      "cancelScheduled": "Cancellations scheduled",
+      "newMrr": "New MRR {currency}",
+      "lostMrr": "Lost MRR {currency}"
     },
     "hint": {
       "activeDefinition": "Signed in and used markoto on that day.",
@@ -2986,13 +2993,14 @@
       "noRevenue": "No paid subscriptions yet.",
       "freePool": "{spent} of {cap}",
       "freePoolOff": "No shared limit on this instance.",
-      "spendFrom": "AI cost logs are kept 90 days; this period starts {day}.",
+      "spendFrom": "The AI cost history starts on {day}.",
       "spendUnavailable": "The AI cost logs could not be read.",
       "listPrice": "Gross, at list price: before payment fees, discounts and taxes.",
       "plannedPrices": "Valued at the planned prices; paid plans are not on sale.",
       "billingOff": "Billing is off on this instance.",
       "comingSoon": "Paid plans are shown as coming soon; the waitlist is open.",
-      "personalChurn": "An ended Pro plan leaves no record, so only workspace plans are counted after they end."
+      "aiUsersFrom": "People using AI are counted from {day} (per-person logs are kept 90 days).",
+      "churnHistory": "Subscription history is recorded from this version on; workspace plans before it were added from their records."
     },
     "chart": {
       "signups": "Sign-ups",
@@ -3001,7 +3009,10 @@
       "documents": "Documents created",
       "aiSpend": "AI cost by feature (USD)",
       "members": "Workspaces by members",
-      "activation": "Activation of new accounts"
+      "activation": "Activation of new accounts",
+      "subscriptions": "Subscriptions started and ended",
+      "started": "Started",
+      "ended": "Ended"
     },
     "table": {
       "period": "Period",
@@ -3044,7 +3055,8 @@
       "topups": "AI credit purchases",
       "planMix": "Plan mix",
       "exports": "Data exports",
-      "abuse": "Abuse reports"
+      "abuse": "Abuse reports",
+      "estimate": "Estimated monthly contribution"
     },
     "activation": {
       "signedUp": "Signed up",
@@ -3098,6 +3110,18 @@
       "ai": "AI",
       "footnote": "Accounts and documents from the application database, AI cost from the AI proxy's logs (90 days). Revenue at list price, gross. Definitions: docs/contributing/admin-metrics.md."
     },
-    "menu": "Product stats"
+    "menu": "Product stats",
+    "estimate": {
+      "estimated": "Estimate",
+      "gross": "Gross at list price",
+      "tax": "Tax contained ({pct} %)",
+      "fees": "Payment fees ({pct} % + {fixed})",
+      "net": "Net revenue",
+      "aiCost": "Platform AI cost, last 30 days",
+      "contribution": "Contribution",
+      "combined": "All, in CHF",
+      "note": "Estimated, per month. EUR to CHF at {eur}, USD to CHF at {usd}. The assumptions are set with NUXT_STATS_*.",
+      "aiUnavailable": "The AI cost could not be read and counts as 0."
+    }
   }
 }

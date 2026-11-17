@@ -2960,7 +2960,6 @@
       "pastDue": "Paiement en retard",
       "scheduledCancellations": "Fin programmée",
       "atRisk": "MRR avec fin programmée, {currency}",
-      "endedWorkspacePlans": "Forfaits d'espace de travail terminés",
       "waitlistConfirmed": "Liste d'attente (confirmée)",
       "waitlistUnconfirmed": "Liste d'attente (non confirmée)",
       "waitlistNew": "Nouveaux sur la liste d'attente",
@@ -2978,7 +2977,15 @@
       "openInvites": "Invitations ouvertes",
       "pendingStripeEvents": "Événements Stripe en attente",
       "abuseOpen": "Signalements ouverts",
-      "abuseReceived": "Signalements reçus"
+      "abuseReceived": "Signalements reçus",
+      "mrrTotal": "MRR, tout en CHF",
+      "arrTotal": "ARR, tout en CHF",
+      "contribution": "Contribution est. / mois, CHF",
+      "subsStarted": "Abonnements démarrés",
+      "subsEnded": "Abonnements terminés",
+      "cancelScheduled": "Résiliations programmées",
+      "newMrr": "Nouveau MRR {currency}",
+      "lostMrr": "MRR perdu {currency}"
     },
     "hint": {
       "activeDefinition": "Connecté et a utilisé markoto ce jour-là.",
@@ -2986,13 +2993,14 @@
       "noRevenue": "Aucun abonnement payant pour l'instant.",
       "freePool": "{spent} sur {cap}",
       "freePoolOff": "Aucune limite partagée sur cette instance.",
-      "spendFrom": "Les journaux de coût de l'IA sont conservés 90 jours ; cette période commence le {day}.",
+      "spendFrom": "L'historique du coût de l'IA commence le {day}.",
       "spendUnavailable": "Les journaux de coût de l'IA n'ont pas pu être lus.",
       "listPrice": "Brut, au prix catalogue : avant frais de paiement, remises et taxes.",
       "plannedPrices": "Valorisé aux prix prévus ; les forfaits payants ne sont pas en vente.",
       "billingOff": "La facturation est désactivée sur cette instance.",
       "comingSoon": "Les forfaits payants sont présentés comme « bientôt disponibles » ; la liste d'attente est ouverte.",
-      "personalChurn": "Un forfait Pro terminé ne laisse aucune trace ; seuls les forfaits d'espace de travail sont donc comptés après leur fin."
+      "aiUsersFrom": "Les personnes utilisant l'IA sont comptées à partir du {day} (les journaux par personne sont conservés 90 jours).",
+      "churnHistory": "L'historique des abonnements est enregistré à partir de cette version ; les forfaits d'espace de travail antérieurs ont été ajoutés à partir de leurs données."
     },
     "chart": {
       "signups": "Inscriptions",
@@ -3001,7 +3009,10 @@
       "documents": "Documents créés",
       "aiSpend": "Coût de l'IA par fonction (USD)",
       "members": "Espaces de travail par nombre de membres",
-      "activation": "Activation des nouveaux comptes"
+      "activation": "Activation des nouveaux comptes",
+      "subscriptions": "Abonnements démarrés et terminés",
+      "started": "Démarrés",
+      "ended": "Terminés"
     },
     "table": {
       "period": "Période",
@@ -3044,7 +3055,8 @@
       "topups": "Achats de crédits IA",
       "planMix": "Répartition des forfaits",
       "exports": "Exports de données",
-      "abuse": "Signalements d'abus"
+      "abuse": "Signalements d'abus",
+      "estimate": "Contribution mensuelle estimée"
     },
     "activation": {
       "signedUp": "Inscrit",
@@ -3098,6 +3110,18 @@
       "ai": "IA",
       "footnote": "Comptes et documents issus de la base de données de l'application, coût de l'IA issu des journaux du proxy IA (90 jours). Revenus au prix catalogue, bruts. Définitions : docs/contributing/admin-metrics.md."
     },
-    "menu": "Statistiques produit"
+    "menu": "Statistiques produit",
+    "estimate": {
+      "estimated": "Estimation",
+      "gross": "Brut au prix catalogue",
+      "tax": "Taxes comprises ({pct} %)",
+      "fees": "Frais de paiement ({pct} % + {fixed})",
+      "net": "Revenu net",
+      "aiCost": "Coût de l'IA de la plateforme, 30 derniers jours",
+      "contribution": "Contribution",
+      "combined": "Total, en CHF",
+      "note": "Estimé, par mois. EUR en CHF à {eur}, USD en CHF à {usd}. Les hypothèses se définissent avec NUXT_STATS_*.",
+      "aiUnavailable": "Le coût de l'IA n'a pas pu être lu et compte pour 0."
+    }
   }
 }

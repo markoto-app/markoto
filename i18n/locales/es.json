@@ -2960,7 +2960,6 @@
       "pastDue": "Pago vencido",
       "scheduledCancellations": "Con fin programado",
       "atRisk": "MRR con fin programado, {currency}",
-      "endedWorkspacePlans": "Planes de espacio de trabajo finalizados",
       "waitlistConfirmed": "Lista de espera (confirmada)",
       "waitlistUnconfirmed": "Lista de espera (sin confirmar)",
       "waitlistNew": "Nuevos en la lista de espera",
@@ -2978,7 +2977,15 @@
       "openInvites": "Invitaciones abiertas",
       "pendingStripeEvents": "Eventos de Stripe en espera",
       "abuseOpen": "Denuncias abiertas",
-      "abuseReceived": "Denuncias recibidas"
+      "abuseReceived": "Denuncias recibidas",
+      "mrrTotal": "MRR, todo en CHF",
+      "arrTotal": "ARR, todo en CHF",
+      "contribution": "Contribución est. / mes, CHF",
+      "subsStarted": "Suscripciones iniciadas",
+      "subsEnded": "Suscripciones finalizadas",
+      "cancelScheduled": "Cancelaciones programadas",
+      "newMrr": "MRR nuevo {currency}",
+      "lostMrr": "MRR perdido {currency}"
     },
     "hint": {
       "activeDefinition": "Con sesión iniciada y que usó markoto ese día.",
@@ -2986,13 +2993,14 @@
       "noRevenue": "Todavía no hay suscripciones de pago.",
       "freePool": "{spent} de {cap}",
       "freePoolOff": "Sin límite compartido en esta instancia.",
-      "spendFrom": "Los registros de coste de IA se conservan 90 días; este periodo empieza el {day}.",
+      "spendFrom": "El historial de costes de IA empieza el {day}.",
       "spendUnavailable": "No se pudieron leer los registros de coste de IA.",
       "listPrice": "Bruto, a precio de lista: antes de comisiones de pago, descuentos e impuestos.",
       "plannedPrices": "Valorado a los precios previstos; los planes de pago no están a la venta.",
       "billingOff": "La facturación está desactivada en esta instancia.",
       "comingSoon": "Los planes de pago se muestran como «próximamente»; la lista de espera está abierta.",
-      "personalChurn": "Un plan Pro finalizado no deja registro, así que tras su fin solo se cuentan los planes de espacio de trabajo."
+      "aiUsersFrom": "Las personas que usan IA se cuentan desde el {day} (los registros por persona se conservan 90 días).",
+      "churnHistory": "El historial de suscripciones se registra a partir de esta versión; los planes de espacio de trabajo anteriores se añadieron a partir de sus registros."
     },
     "chart": {
       "signups": "Registros",
@@ -3001,7 +3009,10 @@
       "documents": "Documentos creados",
       "aiSpend": "Coste de IA por función (USD)",
       "members": "Espacios de trabajo por miembros",
-      "activation": "Activación de cuentas nuevas"
+      "activation": "Activación de cuentas nuevas",
+      "subscriptions": "Suscripciones iniciadas y finalizadas",
+      "started": "Iniciadas",
+      "ended": "Finalizadas"
     },
     "table": {
       "period": "Periodo",
@@ -3044,7 +3055,8 @@
       "topups": "Compras de crédito de IA",
       "planMix": "Distribución de planes",
       "exports": "Exportaciones de datos",
-      "abuse": "Denuncias de abuso"
+      "abuse": "Denuncias de abuso",
+      "estimate": "Contribución mensual estimada"
     },
     "activation": {
       "signedUp": "Registrados",
@@ -3098,6 +3110,18 @@
       "ai": "IA",
       "footnote": "Cuentas y documentos de la base de datos de la aplicación, coste de IA de los registros del proxy de IA (90 días). Ingresos a precio de lista, brutos. Definiciones: docs/contributing/admin-metrics.md."
     },
-    "menu": "Estadísticas del producto"
+    "menu": "Estadísticas del producto",
+    "estimate": {
+      "estimated": "Estimación",
+      "gross": "Bruto a precio de lista",
+      "tax": "Impuestos incluidos ({pct} %)",
+      "fees": "Comisiones de pago ({pct} % + {fixed})",
+      "net": "Ingresos netos",
+      "aiCost": "Coste de IA de la plataforma, últimos 30 días",
+      "contribution": "Contribución",
+      "combined": "Total, en CHF",
+      "note": "Estimado, por mes. EUR a CHF a {eur}, USD a CHF a {usd}. Los supuestos se definen con NUXT_STATS_*.",
+      "aiUnavailable": "No se pudo leer el coste de IA y cuenta como 0."
+    }
   }
 }

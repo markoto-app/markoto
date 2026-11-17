@@ -3,17 +3,19 @@ import { Pool } from 'pg'
 import { nanoid } from 'nanoid'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createDoc, createUser, createWorkspace } from '../integration/setup/fixtures'
-import { adminAs } from '../helpers/access'
+import { adminAs, asUser, sys } from '../helpers/access'
 import { stubEnv } from '../helpers/env'
 import {
   activation, cancellingGroups, documentStats, editors, firstSignupDay, opsCounts, retentionCohorts,
   revenueCounts, signups, storedContentStats, subscriptionGroups, userTotals, workspaceStats, aiAppStats
 } from '../../server/repos/productStats'
 import { countSpendUsers, spendByFeature } from '../../server/repos/litellmSpend'
+import { anonymiseSubscriptionEventsOfUser, listSubscriptionEventsOfUser, recordSubscriptionEvent } from '../../server/repos/subscriptionEvents'
+import { runAiSpendRollup } from '../../server/utils/litellm/aiSpendRollup'
 import { markSessionUserActive, findSessionUser } from '../../server/repos/users'
 import {
   buildAiStats, buildContentStats, buildOpsStats, buildOverviewStats, buildRevenueStats, buildUsersStats,
-  mondayWeeksBack, resolveStatsWindow, sumSpendRows
+  mondayWeeksBack, resolveStatsWindow, spendLogFloor, sumSpendRows
 } from '../../server/utils/adminStats/productStats'
 import { DEFAULT_PLAN_PRICES } from '../../shared/config/pricing'
 import { isoDay, recurringRevenue, statsWindow } from '../../shared/contracts/adminStats'
@@ -88,6 +90,13 @@ async function seed(): Promise<{ u1: number, u2: number, u3: number, u4: number,
     VALUES ($1, 'chat', 'https://api.example.com/v1', 'm', 'enc', '1234'), ($1, 'image', 'https://api.example.com/v1', 'm', 'enc', '1234')`, [u2])
   await q(`INSERT INTO mcp_personal_tokens (token_id, user_id, name, token_hash, scopes) VALUES ('t1', $1, 'cli', 'hash1', '{read}')`, [u1])
   await q(`INSERT INTO mcp_sessions (mcp_session_id, user_id, token_id) VALUES ('m1', $1, 't1')`, [u1])
+  // Subscription history: u1's Pro started 3 days ago, the Business plan of ws2 ended 2 days ago, a Team plan ended 40 days ago.
+  await q(`INSERT INTO subscription_events (kind, subject_type, user_id, workspace_id, plan, interval, currency, seats, stripe_subscription_id, stripe_event_id, occurred_at) VALUES
+    ('started', 'user', $1, NULL, 'pro', 'month', 'eur', 1, 'sub_1', 'evt_1', $3),
+    ('cancel_scheduled', 'user', $1, NULL, 'pro', 'month', 'eur', 1, 'sub_1', 'evt_2', $4),
+    ('ended', 'workspace', NULL, $2, 'business', 'month', 'eur', 5, 'sub_ws2', 'evt_3', $5),
+    ('ended', 'workspace', NULL, 'gone', 'team', 'year', 'chf', 2, 'sub_old', 'evt_4', $6)`,
+  [u1, ws2, ago(3), ago(1), ago(2), ago(40)])
   return { u1, u2, u3, u4, ws }
 }
 
@@ -188,16 +197,54 @@ describe('product stats', () => {
     expect(await cancellingGroups(admin)).toEqual([{ plan: 'pro', currency: 'eur', interval: 'month', subscriptions: 1, units: 1 }])
   })
 
-  it('reports ended workspace plans, top-ups, the waitlist and the plan mix', async () => {
+  it('reports top-ups, the waitlist and the plan mix', async () => {
     const r = await revenueCounts(admin, w30)
     expect(r.pastDue).toBe(1)
-    expect(r.endedWorkspaceSubscriptions).toEqual({ value: 1, previous: 0 })
     expect(r.topups).toEqual([{ currency: 'eur', amount: 10, count: 1 }])
     expect(r.waitlist).toEqual({ confirmed: 1, unconfirmed: 1, newConfirmed: { value: 1, previous: 0 } })
     expect(r.planMix).toEqual({ free: 1, pro: 3, team: 1, business: 0 })
     const revenue = await buildRevenueStats(admin, w30)
     expect(revenue).toMatchObject({ billingEnabled: false, priceSource: 'planned', payingCustomers: 3, trialing: 1 })
     expect(revenue.scheduledCancellations).toEqual({ subscriptions: 1, revenue: [{ currency: 'eur', mrr: 9, arr: 108 }] })
+  })
+
+  it('counts started, scheduled and ended subscriptions from the history, with the MRR they moved', async () => {
+    const revenue = await buildRevenueStats(admin, w30, now)
+    expect(revenue.churn.started).toEqual({ value: 1, previous: 0 })
+    expect(revenue.churn.cancelScheduled).toEqual({ value: 1, previous: 0 })
+    expect(revenue.churn.ended).toEqual({ value: 1, previous: 1 })
+    expect(revenue.churn.newMrr).toEqual([{ currency: 'eur', mrr: 9, arr: 108 }])
+    expect(revenue.churn.lostMrr).toEqual([{ currency: 'eur', mrr: 100, arr: 1200 }])
+    expect(revenue.churn.endedSeries.reduce((n, p) => n + p.v, 0)).toBe(1)
+    // CHF 37.50 + EUR 9 at the default rate 0.93.
+    expect(revenue.combinedChf.mrr).toBeCloseTo(45.87, 2)
+    expect(revenue.estimate.assumptions).toMatchObject({ taxPct: 8.1, paymentFeePct: 3.5 })
+    expect(revenue.estimate.perCurrency.map(e => e.currency)).toEqual(['chf', 'eur'])
+    expect(revenue.estimate.combinedChf.gross).toBeCloseTo(45.87, 2)
+  })
+
+  it('records a subscription step once and anonymises it with the account', async () => {
+    const event = {
+      kind: 'started' as const,
+      subject: { kind: 'user' as const, userId: ids.u4 },
+      plan: 'pro' as const,
+      interval: 'month' as const,
+      currency: 'eur' as const,
+      seats: 1,
+      stripeSubscriptionId: 'sub_4',
+      stripeEventId: 'evt_a',
+      occurredAt: new Date()
+    }
+    expect(await recordSubscriptionEvent(sys(), undefined, event)).toBe(true)
+    expect(await recordSubscriptionEvent(sys(), undefined, event)).toBe(false)
+    // Another event that also says "started" for the same subscription adds nothing.
+    expect(await recordSubscriptionEvent(sys(), undefined, { ...event, stripeEventId: 'evt_b' })).toBe(false)
+    expect(await recordSubscriptionEvent(sys(), undefined, { ...event, kind: 'cancel_scheduled', stripeEventId: 'evt_b' })).toBe(true)
+    expect((await listSubscriptionEventsOfUser(asUser(ids.u4))).map(e => e.kind)).toEqual(['started', 'cancel_scheduled'])
+    expect(await anonymiseSubscriptionEventsOfUser(asUser(ids.u4))).toBe(2)
+    expect(await listSubscriptionEventsOfUser(asUser(ids.u4))).toEqual([])
+    const left = (await testDb().query(`SELECT count(*)::int AS n FROM subscription_events WHERE stripe_subscription_id IS NULL AND user_id IS NULL AND plan = 'pro'`)).rows[0]
+    expect(left.n).toBe(2)
   })
 
   it('reports operational counts', async () => {
@@ -242,10 +289,43 @@ describe('product stats', () => {
     expect(ai.byFeature[0]).toEqual({ feature: 'feature:text-loop', spendUsd: 0.5, requests: 1 })
   })
 
-  it('has no previous AI window once it is older than the spend-log retention', async () => {
-    const ai = await buildAiStats(admin, statsWindow('90', now, null), 0, now)
+  it('has no previous AI window once it is older than the history', async () => {
+    const w = statsWindow('90', now, null)
+    const ai = await buildAiStats(admin, w, 0, now)
     expect(ai.spendUsd.previous).toBeNull()
-    expect(ai.spendFrom).toBe(statsWindow('90', now, null).from)
+    expect(ai.spendFrom).toBe(spendLogFloor(w))
+    expect(ai.aiUsersFrom).toBe(spendLogFloor(w))
+  })
+
+  it('rolls the spend logs up per day without user ids, and reads older days from the rollup', async () => {
+    await seedSpend(['feature:text-loop', `user:${ids.u1}`], 0.5, ago(1))
+    await seedSpend(['feature:text-loop', `user:${ids.u2}`], 0.25, ago(1))
+    await seedSpend(['feature:image-gen', `user:${ids.u1}`], 0.1, ago(5))
+    await seedSpend(['feature:text-loop', `user:${ids.u1}`], 9, ago(0))
+    await litellm.query(`INSERT INTO "LiteLLM_SpendLogs" (request_id, call_type, api_key, spend, total_tokens, prompt_tokens, completion_tokens, "startTime", "endTime", model, model_group, request_tags)
+      VALUES ('stats-byok', 'completion', '', 0, 1, 1, 0, $1, $1, 'gpt-x', 'byok/*', '["feature:text-loop"]'::jsonb)`, [ago(1)])
+    const { rows } = await runAiSpendRollup(now)
+    expect(rows).toBe(3)
+    const daily = (await testDb().query(`SELECT day::text AS day, feature, model, platform_paid, spend_usd, requests, users FROM ai_spend_daily ORDER BY day, feature, platform_paid`)).rows
+    const yesterday = daily.filter(r => r.day === isoDay(new Date(ago(1))))
+    expect(yesterday).toEqual([
+      expect.objectContaining({ feature: 'feature:text-loop', model: 'gpt-x', platform_paid: false, requests: 1 }),
+      expect.objectContaining({ feature: 'feature:text-loop', model: 'm', platform_paid: true, requests: 2, users: 2 })
+    ])
+    // Today is still being written: not rolled up.
+    expect(daily.some(r => r.day === isoDay(now))).toBe(false)
+    expect(Object.keys(daily[0] ?? {})).not.toContain('user_id')
+    // Running again overwrites, it does not add.
+    await runAiSpendRollup(now)
+    expect((await testDb().query('SELECT count(*)::int AS n FROM ai_spend_daily')).rows[0].n).toBe(3)
+
+    // A day long gone from the raw logs counts through the rollup.
+    await testDb().query(`INSERT INTO ai_spend_daily (day, feature, model, platform_paid, spend_usd, requests, users) VALUES ($1, 'feature:text-loop', 'm', true, 4, 10, 3)`, [isoDay(new Date(ago(200)))])
+    const year = statsWindow('365', now, null)
+    const ai = await buildAiStats(admin, year, 1, now)
+    expect(ai.spendFrom).toBe(isoDay(new Date(ago(200))))
+    expect(ai.spendUsd.value).toBeCloseTo(4 + 0.5 + 0.25 + 0.1 + 9, 2)
+    expect(ai.aiUsersFrom).toBe(spendLogFloor(year))
   })
 
   it('answers the overview with the all-time window from the first sign-up', async () => {

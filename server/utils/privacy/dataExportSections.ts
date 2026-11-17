@@ -1,3 +1,4 @@
+import { listSubscriptionEventsOfUser } from '../../repos/subscriptionEvents'
 import { strToU8 } from 'fflate'
 import * as Sentry from '@sentry/nuxt'
 import { useStripeClient } from '../billing/stripeClient'
@@ -88,6 +89,19 @@ export async function addWorkspaceSubscriptionsEntry(entries: ExportEntries, use
     currency: r.currency,
     interval: r.interval,
     createdAt: r.createdAt.toISOString()
+  })), null, 2))
+  return rows.length
+}
+
+/** Personal subscription history: started, changed, cancelled, ended (always written). */
+export async function addSubscriptionHistoryEntry(entries: ExportEntries, user: UserScope): Promise<number> {
+  const rows = await listSubscriptionEventsOfUser(user)
+  entries['billing/subscription_history.json'] = strToU8(JSON.stringify(rows.map(r => ({
+    event: r.kind,
+    plan: r.plan,
+    interval: r.interval,
+    currency: r.currency,
+    occurredAt: r.occurredAt.toISOString()
   })), null, 2))
   return rows.length
 }

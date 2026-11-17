@@ -47,7 +47,12 @@ The accounts chart in the investor summary is the running total of sign-ups per 
 
 ## AI
 
-Cost comes from LiteLLM's `LiteLLM_SpendLogs` (its own database), which keeps 90 days. A window reaching further back covers only the last 90 days (the page says from which day) and has no comparison when the previous window is no longer covered.
+Cost comes from LiteLLM's `LiteLLM_SpendLogs` (its own database) and, for older days, from the daily rollup `ai_spend_daily`.
+
+- **Why 90 days.** LiteLLM itself deletes nothing (no retention is configured in `deploy/config/litellm/config.yaml`). The 90 days are ours: `spend-logs-sweep` (`server/utils/litellm/spendLogsSweep.ts`, `SPEND_LOG_RETENTION_DAYS`) deletes older rows, matching the 90-day retention of `ai_assistance` in `server/legal/lawfulBasis.ts`. Each row names the user, the workspace and the document (`request_tags`) and the key, so it is personal data and kept only as long as the free-pool, budget and credit accounting needs it.
+- **Rollup.** `ai-spend-rollup` (every 6 hours, advisory-locked) recomputes every finished day the raw rows still fully cover (the last 88 days) into `ai_spend_daily`: per UTC day, feature tag and model, the cost, the request count, the number of distinct users and whether the call was platform-paid (not `byok/*`). No user, workspace, document or key id. The first run backfills everything the logs hold; a day keeps its last full count after its raw rows are gone. The rollup is kept indefinitely.
+- **Reading.** Days older than the last 88 come from the rollup, the rest from the raw rows, so a 12-month or all-time chart is seamless from the first rolled-up day on. Comparisons with the previous window are shown when the history covers it.
+- **People using AI** needs the raw rows (a daily count of distinct users cannot be added up over days), so it covers at most the last 90 days; the page says from which day.
 
 | Metric | Definition |
 |---|---|
@@ -71,12 +76,55 @@ Revenue works with billing on or off. It reads the subscription rows the Stripe 
 | ARR | 12 × MRR. |
 | List prices | With billing on, the live Stripe prices found by lookup key (`server/utils/billing/stripePrices.ts`); with billing off (or if Stripe cannot be reached), the planned prices (`shared/config/pricing.ts`, `TIER_<PLAN>_PRICE_<CUR>[_YEAR]`). |
 | Set to end | Paying subscriptions with a cancellation date (`users.plan_cancel_at`, `workspace_subscriptions.cancel_at`), with the MRR they carry. |
-| Workspace plans ended | `workspace_subscriptions` in `canceled`, `incomplete_expired` or `unpaid` whose `updated_at` falls in the window. A Pro subscription that ends resets its user row, so ended Pro plans cannot be counted afterwards. |
+| Subscriptions started / cancellations scheduled / ended | Rows of the subscription history `subscription_events` in the window, with the window before for comparison. New MRR and lost MRR are the started and ended subscriptions valued like MRR. |
 | AI credit purchases | `ai_credit_grants` created in the window: paid amount per currency (refunds not subtracted). |
 | Waitlist | `waitlist_signups` confirmed / not confirmed; new = `confirmed_at` in the window. |
 | Plan mix | Accounts per personal plan; Team / Business workspaces with a billed subscription. |
 
-All revenue is gross at list price: discounts and coupons, taxes, and payment fees are not deducted. To estimate net revenue, subtract the payment provider's fees (for Stripe Managed Payments, 3.5 % plus the per-transaction fee) outside this page.
+MRR, ARR and the subscription counts are gross at list price: discounts and coupons, taxes and payment fees are not deducted.
+
+### Subscription history
+
+`subscription_events` is append-only and written by the Stripe webhook in the event's transaction (`server/utils/billing/stripeEvents/subscriptionHistory.ts`), for Pro on a user and Team / Business on a workspace:
+
+| Step | Stripe event |
+|---|---|
+| started | `customer.subscription.created` |
+| changed | `customer.subscription.updated` whose `previous_attributes` name the items, quantity or plan (price or seats changed) |
+| cancel_scheduled / cancel_revoked | `customer.subscription.updated` whose `previous_attributes` name `cancel_at_period_end` or `cancel_at`; scheduled when the subscription now has an end date, revoked when not |
+| ended | `customer.subscription.deleted` |
+
+Each row holds plan, interval, currency, seats and Stripe's event time. A redelivered event adds nothing (unique per event and step), and a subscription starts and ends once. Steps are recorded for a known customer and one of our prices, also when the event is older than the stored state (a `created` event its checkout overtook still marks the start), but not for a workspace's duplicate or already-ended subscription. A dedicated table rather than `audit_log`: audit rows are deleted after two years, carry IPs and actors, and the webhook writes no audit rows; revenue history must outlive both and stay countable by plan and price. The migration backfills the workspace subscriptions (start from `created_at`, end from `updated_at` of ended rows); Pro history starts with this version. On account deletion the rows lose the user and the Stripe subscription id and stay as anonymous history (lawful basis `billing`, category `subscription_history`; in the data export as the file billing/subscription_history.json).
+
+### Combined CHF and the estimated contribution
+
+All estimates are labelled "estimated" on the page. The assumptions are configuration (`NUXT_STATS_*`, `docs/reference/configuration.md`):
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `NUXT_STATS_EUR_CHF_RATE` | 0.93 | EUR to CHF for every combined CHF figure |
+| `NUXT_STATS_USD_CHF_RATE` | 0.8 | USD to CHF for the AI cost |
+| `NUXT_STATS_TAX_PCT` | 8.1 | Tax contained in the tax-inclusive prices (Swiss VAT). With Stripe Managed Payments, Stripe sells as merchant of record and removes the buyer's local tax before paying out; set the average rate of your buyers. |
+| `NUXT_STATS_PAYMENT_FEE_PCT` | 3.5 | Payment fee in percent of the charged amount (Stripe Managed Payments) |
+| `NUXT_STATS_PAYMENT_FEE_FIXED` | 0.3 | Fixed fee per charge, in the charge's currency |
+
+Per currency, per month:
+
+```
+gross   = MRR (list prices include tax)
+tax     = gross x rate / (100 + rate)
+charges = monthly subscriptions + yearly subscriptions / 12
+fees    = gross x fee% / 100 + charges x fixed fee
+net     = gross - tax - fees
+```
+
+In CHF: `MRR (CHF) = MRR CHF + MRR EUR x EUR rate`, `ARR (CHF) = 12 x MRR (CHF)`, and
+
+```
+contribution = sum of the nets in CHF - platform-paid AI cost of the last 30 days x USD rate
+```
+
+The AI cost is all spend-log cost of the last 30 days. Calls on a user's own key run through the zero-cost `byok/*` deployment, so they add nothing. The contribution leaves out hosting, storage, e-mail and other fixed costs, refunds, discounts and currency fluctuations.
 
 ## Operations
 
@@ -91,4 +139,9 @@ All revenue is gross at list price: discounts and coupons, taxes, and payment fe
 
 ## Privacy
 
-The only new personal data is `users.last_active_on` (a date, overwritten daily, no history), declared under `account_authentication` in `server/legal/lawfulBasis.ts` (privacy policy v14) and included in the data export (`profile.json`). It is deleted with the account. Admins see only counts built from it.
+New personal data, privacy policy v14:
+
+- `users.last_active_on` (a date, overwritten daily, no history), under `account_authentication` in `server/legal/lawfulBasis.ts`; in the data export (`profile.json`), deleted with the account. Admins see only counts built from it.
+- The subscription history `subscription_events`, under `billing` (category `subscription_history`); in the data export, anonymised on account deletion.
+
+`ai_spend_daily` holds no personal data.

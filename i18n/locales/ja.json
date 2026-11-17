@@ -2960,7 +2960,6 @@
       "pastDue": "支払い期限超過",
       "scheduledCancellations": "終了予定",
       "atRisk": "終了予定のMRR、{currency}",
-      "endedWorkspacePlans": "終了したワークスペースプラン",
       "waitlistConfirmed": "ウェイトリスト(確認済み)",
       "waitlistUnconfirmed": "ウェイトリスト(未確認)",
       "waitlistNew": "ウェイトリスト新規",
@@ -2978,7 +2977,15 @@
       "openInvites": "未対応の招待",
       "pendingStripeEvents": "待機中のStripeイベント",
       "abuseOpen": "未対応の報告",
-      "abuseReceived": "受信した報告"
+      "abuseReceived": "受信した報告",
+      "mrrTotal": "MRR(すべてCHF)",
+      "arrTotal": "ARR(すべてCHF)",
+      "contribution": "推定貢献額 / 月、CHF",
+      "subsStarted": "開始したサブスクリプション",
+      "subsEnded": "終了したサブスクリプション",
+      "cancelScheduled": "解約予定",
+      "newMrr": "新規MRR {currency}",
+      "lostMrr": "失ったMRR {currency}"
     },
     "hint": {
       "activeDefinition": "サインインして、その日にmarkotoを使用した人。",
@@ -2986,13 +2993,14 @@
       "noRevenue": "有料サブスクリプションはまだありません。",
       "freePool": "{cap}のうち{spent}",
       "freePoolOff": "このインスタンスには共有の上限がありません。",
-      "spendFrom": "AIコストのログは90日間保存されます。この期間は{day}から始まります。",
+      "spendFrom": "AIコストの履歴は{day}から始まります。",
       "spendUnavailable": "AIコストのログを読み取れませんでした。",
       "listPrice": "定価ベースの総額。決済手数料、割引、税金を差し引く前の金額です。",
       "plannedPrices": "予定価格で評価しています。有料プランはまだ販売されていません。",
       "billingOff": "このインスタンスでは課金がオフです。",
       "comingSoon": "有料プランは「近日公開」と表示され、ウェイトリストが開いています。",
-      "personalChurn": "終了したProプランは記録が残らないため、終了後はワークスペースプランのみ集計されます。"
+      "aiUsersFrom": "AIを利用した人数は{day}から集計されます(個人別のログは90日間保存されます)。",
+      "churnHistory": "サブスクリプションの履歴はこのバージョンから記録されます。それ以前のワークスペースプランは記録から追加されました。"
     },
     "chart": {
       "signups": "新規登録",
@@ -3001,7 +3009,10 @@
       "documents": "作成されたドキュメント",
       "aiSpend": "機能別のAIコスト(USD)",
       "members": "メンバー数別のワークスペース",
-      "activation": "新規アカウントのアクティベーション"
+      "activation": "新規アカウントのアクティベーション",
+      "subscriptions": "開始・終了したサブスクリプション",
+      "started": "開始",
+      "ended": "終了"
     },
     "table": {
       "period": "期間",
@@ -3044,7 +3055,8 @@
       "topups": "AIクレジットの購入",
       "planMix": "プランの内訳",
       "exports": "データエクスポート",
-      "abuse": "不正利用の報告"
+      "abuse": "不正利用の報告",
+      "estimate": "推定月間貢献額"
     },
     "activation": {
       "signedUp": "登録",
@@ -3098,6 +3110,18 @@
       "ai": "AI",
       "footnote": "アカウントとドキュメントはアプリケーションデータベース、AIコストはAIプロキシのログ(90日間)に基づきます。収益は定価ベースの総額です。定義: docs/contributing/admin-metrics.md。"
     },
-    "menu": "プロダクト統計"
+    "menu": "プロダクト統計",
+    "estimate": {
+      "estimated": "推定",
+      "gross": "定価ベースの総額",
+      "tax": "含まれる税金({pct} %)",
+      "fees": "決済手数料({pct} % + {fixed})",
+      "net": "純収益",
+      "aiCost": "プラットフォームのAIコスト、過去30日間",
+      "contribution": "貢献額",
+      "combined": "合計(CHF)",
+      "note": "月あたりの推定値です。EUR/CHFは{eur}、USD/CHFは{usd}で換算しています。前提条件はNUXT_STATS_*で設定します。",
+      "aiUnavailable": "AIコストを読み取れなかったため、0として計算しています。"
+    }
   }
 }

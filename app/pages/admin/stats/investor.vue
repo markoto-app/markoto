@@ -120,6 +120,16 @@ function print(): void {
         </h2>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <AdminStatsKpi
+            :label="t('adminStats.kpi.mrrTotal')"
+            :value="statsMoney(revenue.combinedChf.mrr, 'chf', locale)"
+            :hint="`${t('adminStats.kpi.arrTotal')}: ${statsMoney(revenue.combinedChf.arr, 'chf', locale)}`"
+          />
+          <AdminStatsKpi
+            :label="t('adminStats.kpi.contribution')"
+            :value="statsMoney(revenue.estimate.combinedChf.contribution, 'chf', locale)"
+            :hint="t('adminStats.estimate.estimated')"
+          />
+          <AdminStatsKpi
             v-for="r in revenue.revenue"
             :key="r.currency"
             :label="t('adminStats.kpi.mrr', { currency: r.currency.toUpperCase() })"

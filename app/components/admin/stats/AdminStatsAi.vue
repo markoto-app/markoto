@@ -25,7 +25,10 @@ const featureRows = computed(() => featureCsv.value.map(r => ({ feature: r.featu
 
 const spendNote = computed(() => {
   if (!props.data.spendAvailable) return t('adminStats.hint.spendUnavailable')
-  return props.data.spendFrom > props.data.window.from ? t('adminStats.hint.spendFrom', { day: props.data.spendFrom }) : null
+  const notes: string[] = []
+  if (props.data.spendFrom > props.data.window.from) notes.push(t('adminStats.hint.spendFrom', { day: props.data.spendFrom }))
+  if (props.data.aiUsersFrom > props.data.window.from) notes.push(t('adminStats.hint.aiUsersFrom', { day: props.data.aiUsersFrom }))
+  return notes.join(' ') || null
 })
 const pool = computed(() => props.data.freePool)
 </script>

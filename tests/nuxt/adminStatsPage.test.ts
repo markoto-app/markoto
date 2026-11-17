@@ -54,7 +54,7 @@ const overview: OverviewStats = {
   window,
   users: { registered: 1234, signups: kpi(30, 20), active: users.active, editors: kpi(80, 100), signupSeries: series, editorSeries: series },
   content: { documents: 5678, created: kpi(9), documentSeries: series, workspaces: 12, knowledgeFiles: 44, publishedPages: 3 },
-  revenue: { revenue: [{ currency: 'chf', mrr: 37.5, arr: 450 }], payingCustomers: 3, billingEnabled: true, plansComingSoon: false, waitlistConfirmed: 0 },
+  revenue: { revenue: [{ currency: 'chf', mrr: 37.5, arr: 450 }], combinedChf: { mrr: 37.5, arr: 450 }, contributionChf: 28.4, payingCustomers: 3, billingEnabled: true, plansComingSoon: false, waitlistConfirmed: 0 },
   ai: { spendUsd: kpi(12.5, 10), aiUsers: kpi(7), spendAvailable: true }
 }
 const content: ContentStats = {
@@ -72,6 +72,7 @@ const ai: AiStats = {
   window,
   spendAvailable: true,
   spendFrom: '2026-10-19',
+  aiUsersFrom: '2026-10-25',
   spendUsd: kpi(12.5, 10),
   requests: kpi(900),
   aiUsers: kpi(7),
@@ -94,7 +95,22 @@ const revenue: RevenueStats = {
   trialing: 0,
   pastDue: 0,
   scheduledCancellations: { subscriptions: 1, revenue: [{ currency: 'chf', mrr: 30, arr: 360 }] },
-  endedWorkspaceSubscriptions: kpi(0, 0),
+  churn: {
+    started: kpi(4, 2),
+    cancelScheduled: kpi(1, 0),
+    ended: kpi(1, 1),
+    newMrr: [{ currency: 'chf', mrr: 36, arr: 432 }],
+    lostMrr: [{ currency: 'eur', mrr: 9, arr: 108 }],
+    startedSeries: series,
+    endedSeries: series
+  },
+  combinedChf: { mrr: 37.5, arr: 450 },
+  estimate: {
+    assumptions: { taxPct: 8.1, paymentFeePct: 3.5, paymentFeeFixed: 0.3, eurChfRate: 0.93, usdChfRate: 0.8 },
+    perCurrency: [{ currency: 'chf', gross: 37.5, tax: 2.81, fees: 1.39, net: 33.3 }],
+    combinedChf: { gross: 37.5, tax: 2.81, fees: 1.39, net: 33.3, aiCost: 4.9, contribution: 28.4 },
+    aiCostUsd: null
+  },
   topups: [{ currency: 'eur', amount: 25, count: 1 }],
   waitlist: { confirmed: 321, unconfirmed: 4, newConfirmed: kpi(21) },
   planMix: { free: 1200, pro: 0, team: 1, business: 0 }
@@ -164,9 +180,14 @@ describe('admin product stats page', () => {
     expect(aiTab.text()).toContain('Writing assistant')
     expect(aiTab.text()).toContain('feature:unknown-x')
     expect(aiTab.text()).toContain('25 %')
+    expect(aiTab.text()).toContain('counted from 2026-10-25')
     const rev = await open('?tab=revenue')
     expect(rev.text()).toContain('Billing is off')
     expect(rev.text()).toContain('321')
+    expect(rev.text()).toContain('Estimated monthly contribution')
+    expect(rev.text()).toContain('Tax contained (8.1 %)')
+    expect(rev.text()).toContain('counts as 0')
+    expect(rev.text()).toContain('Lost MRR EUR')
     expect((await open('?tab=ops')).text()).toContain('2 GB')
   })
 
@@ -205,6 +226,7 @@ describe('investor summary', () => {
       { tab: 'users', query: { range: '365', bucket: 'month' } }
     ]))
     expect(w.text()).toContain('321')
+    expect(w.text()).toContain('MRR, all in CHF')
     await w.get('[data-testid="admin-stats-print"]').trigger('click')
     expect(print).toHaveBeenCalledOnce()
     vi.unstubAllGlobals()

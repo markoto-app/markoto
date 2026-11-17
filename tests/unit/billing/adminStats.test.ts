@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import {
-  defaultBucket, isoDay, pct, percentChange, recurringRevenue, round2, statsWindow, type SubscriptionGroup
+  combinedRevenueChf, defaultBucket, estimateContribution, isoDay, pct, percentChange, recurringRevenue, round2, statsWindow, type SubscriptionGroup
 } from '../../../shared/contracts/adminStats'
+import { subscriptionEventKinds } from '../../../server/utils/billing/stripeEvents/subscriptionHistory'
+import { rollupWindow } from '../../../server/utils/litellm/aiSpendRollup'
 import { DEFAULT_PLAN_PRICES } from '../../../shared/config/pricing'
 import { adminStatsQuery } from '../../../shared/api/legal'
 import { buildCohortTable, mondayWeeksBack, spendLogFloor, COHORT_WEEKS } from '../../../server/utils/adminStats/productStats'
@@ -89,7 +91,7 @@ describe('cohort table', () => {
   })
 
   it('knows where the spend logs end', () => {
-    expect(spendLogFloor(statsWindow('365', NOW, null))).toBe('2026-08-20')
+    expect(spendLogFloor(statsWindow('365', NOW, null))).toBe('2026-08-21')
   })
 })
 
@@ -121,5 +123,49 @@ describe('adminStatsQuery', () => {
     expect(adminStatsQuery.parse({})).toEqual({ range: '30', bucket: undefined })
     expect(adminStatsQuery.parse({ range: 'all', bucket: 'week' })).toEqual({ range: 'all', bucket: 'week' })
     expect(adminStatsQuery.parse({ range: '13', bucket: 'hour' })).toEqual({ range: '30', bucket: undefined })
+  })
+})
+
+describe('estimated contribution', () => {
+  const a = { taxPct: 8.1, paymentFeePct: 3.5, paymentFeeFixed: 0.3, eurChfRate: 0.9, usdChfRate: 0.8 }
+  const g = (o: Partial<SubscriptionGroup>): SubscriptionGroup => ({ plan: 'pro', currency: 'chf', interval: 'month', subscriptions: 1, units: 1, ...o })
+
+  it('takes tax, fees and the AI cost out of gross list revenue', () => {
+    // CHF: 10 monthly Pro (90) + one yearly Team with 12 seats (120 x 12 / 12 = 120) = 210.
+    const out = estimateContribution([g({ subscriptions: 10, units: 10 }), g({ plan: 'team', interval: 'year', units: 12 })], DEFAULT_PLAN_PRICES, a, 10)
+    const chf = out.perCurrency[0]!
+    expect(chf.gross).toBe(210)
+    expect(chf.tax).toBeCloseTo(210 * 8.1 / 108.1, 2)
+    // 3.5 % of 210 + 0.30 x (10 monthly charges + 1/12 yearly charge).
+    expect(chf.fees).toBeCloseTo(7.35 + 0.3 * (10 + 1 / 12), 1)
+    expect(chf.net).toBeCloseTo(210 - chf.tax - chf.fees, 1)
+    expect(out.combinedChf.aiCost).toBe(8)
+    expect(out.combinedChf.contribution).toBeCloseTo(chf.net - 8, 1)
+  })
+
+  it('converts EUR to CHF for the combined figures', () => {
+    const out = estimateContribution([g({ currency: 'eur' })], DEFAULT_PLAN_PRICES, { ...a, taxPct: 0, paymentFeePct: 0, paymentFeeFixed: 0 }, 0)
+    expect(out.combinedChf).toEqual({ gross: 8.1, tax: 0, fees: 0, net: 8.1, aiCost: 0, contribution: 8.1 })
+    expect(combinedRevenueChf([{ currency: 'eur', mrr: 10, arr: 120 }, { currency: 'chf', mrr: 5, arr: 60 }], a)).toEqual({ mrr: 14, arr: 168 })
+  })
+})
+
+describe('subscription history steps', () => {
+  const sub = (o: Record<string, unknown> = {}) => ({ id: 'sub_1', cancel_at: null, cancel_at_period_end: false, items: { data: [] }, ...o })
+  const ev = (type: string, object: Record<string, unknown>, previous?: Record<string, unknown>) =>
+    ({ id: 'evt', type, created: 1, data: { object, previous_attributes: previous } }) as unknown as Parameters<typeof subscriptionEventKinds>[0]
+
+  it('maps the subscription events to lifecycle steps', () => {
+    expect(subscriptionEventKinds(ev('customer.subscription.created', sub()))).toEqual(['started'])
+    expect(subscriptionEventKinds(ev('customer.subscription.deleted', sub()))).toEqual(['ended'])
+    expect(subscriptionEventKinds(ev('customer.subscription.updated', sub({ cancel_at: 2000000000 }), { cancel_at: null }))).toEqual(['cancel_scheduled'])
+    expect(subscriptionEventKinds(ev('customer.subscription.updated', sub(), { cancel_at: 5 }))).toEqual(['cancel_revoked'])
+    expect(subscriptionEventKinds(ev('customer.subscription.updated', sub(), { items: {} }))).toEqual(['changed'])
+    expect(subscriptionEventKinds(ev('customer.subscription.updated', sub(), { current_period_end: 1 }))).toEqual([])
+    expect(subscriptionEventKinds(ev('customer.subscription.updated', sub()))).toEqual([])
+  })
+
+  it('rolls up only finished days the raw logs fully cover', () => {
+    expect(rollupWindow(NOW)).toEqual({ from: '2026-08-21', to: '2026-11-16' })
   })
 })

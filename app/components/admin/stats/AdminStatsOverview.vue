@@ -40,6 +40,11 @@ const usd = (v: number) => statsMoney(v, 'usd', locale.value)
         :kpi="data.content.created"
       />
       <AdminStatsKpi
+        :label="t('adminStats.kpi.mrrTotal')"
+        :value="statsMoney(data.revenue.combinedChf.mrr, 'chf', locale)"
+        :hint="`${t('adminStats.kpi.contribution')}: ${statsMoney(data.revenue.contributionChf, 'chf', locale)}`"
+      />
+      <AdminStatsKpi
         v-for="r in data.revenue.revenue"
         :key="r.currency"
         :label="t('adminStats.kpi.mrr', { currency: r.currency.toUpperCase() })"

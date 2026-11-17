@@ -1,3 +1,4 @@
+import { anonymiseSubscriptionEventsOfUser } from '../../repos/subscriptionEvents'
 import { must } from '~~/shared/utils/must'
 import * as Sentry from '@sentry/nuxt'
 import { DeleteObjectCommand } from '@aws-sdk/client-s3'
@@ -115,6 +116,9 @@ export async function executeAccountDeletion(
   summary.workspaceKeysDeleted = await deleteAllMemberKeys(userId)
   // Personal AI credit top-ups (no FK to users).
   summary.creditGrantsDeleted = await deleteCreditsForSubject({ type: 'user', id: String(userId) })
+  // Subscription history stays for the revenue figures, without the account
+  // or its Stripe subscription id.
+  summary.subscriptionEventsAnonymised = await anonymiseSubscriptionEventsOfUser(user)
   const removed = await removeAllMemberships(user)
   summary.workspaceMembershipsRemoved = removed.length
 
@@ -363,6 +367,7 @@ function emptySummary(): AccountDeletionSummary {
     workspaceInvitesDeleted: 0,
     billingAdminHandovers: 0,
     workspaceKeysDeleted: 0,
-    creditGrantsDeleted: 0
+    creditGrantsDeleted: 0,
+    subscriptionEventsAnonymised: 0
   }
 }

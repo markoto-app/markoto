@@ -1,7 +1,11 @@
 import {
   activation, aiAppStats, cancellingGroups, documentStats, editors, firstSignupDay, opsCounts,
-  retentionCohorts, revenueCounts, signups, storedContentStats, subscriptionGroups, userTotals, workspaceStats
+  retentionCohorts, revenueCounts, signups, storedContentStats, subscriptionGroups, subscriptionStepSeries, subscriptionSteps,
+  userTotals, workspaceStats, type SubscriptionStep
 } from '../../repos/productStats'
+import { aiSpendDailyByBucket, earliestAiSpendDay } from '../../repos/aiSpendDaily'
+import { ROLLUP_DAYS } from '../litellm/aiSpendRollup'
+import { useEnv } from '~~/shared/env/load'
 import { countSpendUsers, spendByFeature, sumTeamSpend, type FeatureSpendRow } from '../../repos/litellmSpend'
 import type { AdminActor } from '../../repos/proofs'
 import { getBillingMode } from '../billing/billingMode'
@@ -13,16 +17,14 @@ import { useLogger } from '../platform/logger'
 import { DAY_MS } from '~~/shared/config/units'
 import type { PlanPriceTable } from '~~/shared/config/pricing'
 import {
-  isoDay, pct, recurringRevenue, round2, statsWindow,
+  combinedRevenueChf, estimateContribution, isoDay, pct, recurringRevenue, round2, statsWindow,
+  type EstimateAssumptions,
   type AiStats, type ContentStats, type Kpi, type OpsStats, type OverviewStats, type RevenueStats,
   type StatsBucket, type StatsRange, type StatsWindow, type UsersStats
 } from '~~/shared/contracts/adminStats'
 
 // Builds the admin's product stats from the repos (app database) and the
 // LiteLLM spend logs. Definitions: docs/contributing/admin-metrics.md.
-
-/** LiteLLM spend rows are deleted after 90 days (`spend-logs-sweep`). */
-const SPEND_LOG_DAYS = 90
 
 /** Weekly sign-up cohorts in the retention table, and weeks followed per cohort. */
 export const COHORT_WEEKS = 12
@@ -105,22 +107,78 @@ export function sumSpendRows(rows: readonly FeatureSpendRow[]): { spend: number,
   return rows.reduce((t, r) => ({ spend: t.spend + Number(r.spend), requests: t.requests + Number(r.requests) }), { spend: 0, requests: 0 })
 }
 
-/** First day the spend logs still cover, for a window ending `w.to`. */
+/**
+ * First day read from the raw spend logs for a window ending `w.to`; the
+ * days before come from the rollup (`ai_spend_daily`), which holds every
+ * finished day the logs fully covered (`ROLLUP_DAYS`).
+ */
 export function spendLogFloor(w: StatsWindow): string {
-  return isoDay(new Date(Date.parse(`${w.to}T00:00:00Z`) - SPEND_LOG_DAYS * DAY_MS))
+  return isoDay(new Date(Date.parse(`${w.to}T00:00:00Z`) - (ROLLUP_DAYS + 1) * DAY_MS))
+}
+
+type SpendTotals = { spend: number, requests: number }
+
+/** Cost and requests in [from, to) (days): rollup before `floor`, raw logs from it. */
+async function spendBetween(by: AdminActor, from: string, to: string, floor: string, bucket: StatsBucket): Promise<SpendBucket[]> {
+  const out: SpendBucket[] = []
+  if (from < floor) out.push(...await aiSpendDailyByBucket(by, from, floor < to ? floor : to, bucket))
+  const rawFrom = laterDay(from, floor)
+  if (rawFrom < to) {
+    const raw = await spendByFeature(by, { from: rawFrom, to: lastDay(to), bucket })
+    out.push(...raw.map(r => ({ t: r.bucket ?? rawFrom, feature: r.feature_tag ?? 'other', spend: Number(r.spend), requests: Number(r.requests) })))
+  }
+  return out
+}
+
+/** The later of two days. */
+function laterDay(a: string, b: string): string {
+  return a > b ? a : b
+}
+
+/** `w.prevFrom` when the data reaches back to it, else null (no comparison). */
+function comparableFrom(w: StatsWindow, coveredFrom: string): string | null {
+  return w.prevFrom !== null && w.prevFrom >= coveredFrom ? w.prevFrom : null
+}
+
+type SpendBucket = { t: string, feature: string, spend: number, requests: number }
+
+/** Totals per feature and the chart series (a bucket that straddles the rollup / raw boundary gets both parts). */
+function shapeSpend(buckets: readonly SpendBucket[]): Pick<AiStats, 'byFeature' | 'series'> {
+  const byFeature = new Map<string, SpendTotals>()
+  const series = new Map<string, AiStats['series'][number]>()
+  for (const b of buckets) {
+    const f = byFeature.get(b.feature) ?? { spend: 0, requests: 0 }
+    f.spend += b.spend
+    f.requests += b.requests
+    byFeature.set(b.feature, f)
+    const key = `${b.t} ${b.feature}`
+    const point = series.get(key) ?? { t: b.t, feature: b.feature, spendUsd: 0 }
+    point.spendUsd += b.spend
+    series.set(key, point)
+  }
+  return {
+    byFeature: [...byFeature.entries()]
+      .map(([feature, f]) => ({ feature, spendUsd: round2(f.spend), requests: f.requests }))
+      .sort((a, b) => b.spendUsd - a.spendUsd),
+    series: [...series.values()]
+      .map(p => ({ ...p, spendUsd: round2(p.spendUsd) }))
+      .sort((a, b) => a.t.localeCompare(b.t) || a.feature.localeCompare(b.feature))
+  }
+}
+
+function totalsOf(rows: ReadonlyArray<{ spend: number, requests: number }>): SpendTotals {
+  return rows.reduce((t, r) => ({ spend: t.spend + r.spend, requests: t.requests + r.requests }), { spend: 0, requests: 0 })
 }
 
 export async function buildAiStats(by: AdminActor, w: StatsWindow, activeUsers: number, now: Date = new Date()): Promise<AiStats> {
   const app = await aiAppStats(by, w)
   const floor = spendLogFloor(w)
-  const spendFrom = w.from > floor ? w.from : floor
-  // The previous window is comparable only while the logs still cover it.
-  const prevFrom = w.prevFrom !== null && w.prevFrom >= floor ? w.prevFrom : null
   const capUsd = freeTierTotalBudgetUsd()
   const empty: AiStats = {
     window: w,
     spendAvailable: false,
-    spendFrom,
+    spendFrom: laterDay(w.from, floor),
+    aiUsersFrom: laterDay(w.from, floor),
     spendUsd: { value: 0, previous: null },
     requests: { value: 0, previous: null },
     aiUsers: { value: 0, previous: null },
@@ -132,47 +190,65 @@ export async function buildAiStats(by: AdminActor, w: StatsWindow, activeUsers: 
     ...app
   }
   try {
+    // Cost history: the rollup's first day, else what the raw logs cover.
+    const earliest = await earliestAiSpendDay(by)
+    const historyFrom = earliest !== null && earliest < floor ? earliest : floor
+    const spendFrom = laterDay(w.from, historyFrom)
+    const usersFrom = laterDay(w.from, floor)
+    // A previous window is compared only where the history covers it.
+    const prevFrom = comparableFrom(w, historyFrom)
+    const prevUsersFrom = comparableFrom(w, floor)
     const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
     const [buckets, prevRows, users, prevUsers, freeSpent] = await Promise.all([
-      spendByFeature(by, { from: spendFrom, to: lastDay(w.to), bucket: w.bucket }),
-      prevFrom === null ? Promise.resolve(null) : spendByFeature(by, { from: prevFrom, to: lastDay(w.from) }),
-      countSpendUsers(by, { from: spendFrom, to: lastDay(w.to) }),
-      prevFrom === null ? Promise.resolve(null) : countSpendUsers(by, { from: prevFrom, to: lastDay(w.from) }),
+      spendBetween(by, spendFrom, w.to, floor, w.bucket),
+      prevFrom === null ? Promise.resolve(null) : spendBetween(by, prevFrom, w.from, floor, 'month'),
+      countSpendUsers(by, { from: usersFrom, to: lastDay(w.to) }),
+      prevUsersFrom === null ? Promise.resolve(null) : countSpendUsers(by, { from: prevUsersFrom, to: lastDay(w.from) }),
       capUsd === null ? Promise.resolve(0) : sumTeamSpend(FREE_TIER_TEAM_ID, monthStart, now)
     ])
-    const cur = { ...sumSpendRows(buckets), users }
-    const prev = prevRows === null ? null : { ...sumSpendRows(prevRows), users: prevUsers ?? 0 }
-    const kpiOf = (pick: (t: { spend: number, requests: number, users: number }) => number): Kpi =>
-      ({ value: pick(cur), previous: prev === null ? null : pick(prev) })
-    const byFeature = new Map<string, { spendUsd: number, requests: number }>()
-    const series: AiStats['series'] = []
-    for (const b of buckets) {
-      const feature = b.feature_tag ?? 'other'
-      const f = byFeature.get(feature) ?? { spendUsd: 0, requests: 0 }
-      f.spendUsd += Number(b.spend)
-      f.requests += Number(b.requests)
-      byFeature.set(feature, f)
-      series.push({ t: b.bucket ?? spendFrom, feature, spendUsd: round2(Number(b.spend)) })
-    }
-    series.sort((a, b) => a.t.localeCompare(b.t) || a.feature.localeCompare(b.feature))
+    const cur = totalsOf(buckets)
+    const prev = prevRows === null ? null : totalsOf(prevRows)
     return {
       ...empty,
+      ...shapeSpend(buckets),
       spendAvailable: true,
-      spendUsd: kpiOf(t => round2(t.spend)),
-      requests: kpiOf(t => t.requests),
-      aiUsers: kpiOf(t => t.users),
-      costPerAiUserUsd: cur.users > 0 ? round2(cur.spend / cur.users) : 0,
+      spendFrom,
+      aiUsersFrom: usersFrom,
+      spendUsd: { value: round2(cur.spend), previous: prev === null ? null : round2(prev.spend) },
+      requests: { value: cur.requests, previous: prev?.requests ?? null },
+      aiUsers: { value: users, previous: prevUsers },
+      costPerAiUserUsd: users > 0 ? round2(cur.spend / users) : 0,
       costPerActiveUserUsd: activeUsers > 0 ? round2(cur.spend / activeUsers) : 0,
-      byFeature: [...byFeature.entries()]
-        .map(([feature, f]) => ({ feature, spendUsd: round2(f.spendUsd), requests: f.requests }))
-        .sort((a, b) => b.spendUsd - a.spendUsd),
-      series,
       freePool: { capUsd, spentThisMonthUsd: round2(freeSpent), pct: capUsd ? pct(freeSpent, capUsd) : 0 }
     }
   } catch (err) {
     // The proxy database is optional for the rest of the page.
     useLogger('admin-stats').warn('LiteLLM spend logs unavailable', { err })
     return empty
+  }
+}
+
+/** Platform-paid AI cost (USD) of the 30 days ending today; null when the spend logs cannot be read. */
+async function aiCostLast30Days(by: AdminActor, now: Date): Promise<number | null> {
+  const today = isoDay(now)
+  try {
+    // Calls on a user's own key are logged at zero cost, so the sum is the platform-paid cost.
+    return round2(sumSpendRows(await spendByFeature(by, { from: isoDay(new Date(now.getTime() - 29 * DAY_MS)), to: today })).spend)
+  } catch (err) {
+    useLogger('admin-stats').warn('LiteLLM spend logs unavailable', { err })
+    return null
+  }
+}
+
+/** The estimate assumptions from the configuration (`NUXT_STATS_*`). */
+function estimateAssumptions(): EstimateAssumptions {
+  const b = useEnv().billing
+  return {
+    taxPct: b.statsTaxPct,
+    paymentFeePct: b.statsPaymentFeePct,
+    paymentFeeFixed: b.statsPaymentFeeFixed,
+    eurChfRate: b.statsEurChfRate,
+    usdChfRate: b.statsUsdChfRate
   }
 }
 
@@ -189,28 +265,51 @@ async function priceTable(billingEnabled: boolean): Promise<{ prices: PlanPriceT
   return { prices: getPlanPrices(), source: 'planned' }
 }
 
-export async function buildRevenueStats(by: AdminActor, w: StatsWindow): Promise<RevenueStats> {
+export async function buildRevenueStats(by: AdminActor, w: StatsWindow, now: Date = new Date()): Promise<RevenueStats> {
   const mode = getBillingMode()
-  const [billed, trialing, cancelling, counts, { prices, source }] = await Promise.all([
+  const [billed, trialing, cancelling, counts, { prices, source }, steps, prevSteps, stepSeries, aiCostUsd] = await Promise.all([
     subscriptionGroups(by, 'billed'),
     subscriptionGroups(by, 'trialing'),
     cancellingGroups(by),
     revenueCounts(by, w),
-    priceTable(mode.billingEnabled)
+    priceTable(mode.billingEnabled),
+    subscriptionSteps(by, w.from, w.to),
+    w.prevFrom === null ? Promise.resolve(null) : subscriptionSteps(by, w.prevFrom, w.from),
+    subscriptionStepSeries(by, w),
+    aiCostLast30Days(by, now)
   ])
+  const assumptions = estimateAssumptions()
+  const revenue = recurringRevenue(billed, prices)
+  const stepCount = (list: typeof steps | null, kind: SubscriptionStep): number | null =>
+    list === null ? null : list.filter(g => g.kind === kind).reduce((n, g) => n + g.subscriptions, 0)
+  const stepKpi = (kind: SubscriptionStep): Kpi => ({ value: stepCount(steps, kind) ?? 0, previous: stepCount(prevSteps, kind) })
   const sum = (groups: typeof billed): number => groups.reduce((n, g) => n + g.subscriptions, 0)
   return {
     window: w,
     billingEnabled: mode.billingEnabled,
     plansComingSoon: mode.plansComingSoon,
     priceSource: source,
-    revenue: recurringRevenue(billed, prices),
+    revenue,
     groups: billed,
     payingCustomers: sum(billed),
     trialing: sum(trialing),
     pastDue: counts.pastDue,
     scheduledCancellations: { subscriptions: sum(cancelling), revenue: recurringRevenue(cancelling, prices) },
-    endedWorkspaceSubscriptions: counts.endedWorkspaceSubscriptions,
+    churn: {
+      started: stepKpi('started'),
+      cancelScheduled: stepKpi('cancel_scheduled'),
+      ended: stepKpi('ended'),
+      newMrr: recurringRevenue(steps.filter(g => g.kind === 'started'), prices),
+      lostMrr: recurringRevenue(steps.filter(g => g.kind === 'ended'), prices),
+      startedSeries: stepSeries.started,
+      endedSeries: stepSeries.ended
+    },
+    combinedChf: combinedRevenueChf(revenue, assumptions),
+    estimate: {
+      assumptions,
+      ...estimateContribution(billed, prices, assumptions, aiCostUsd ?? 0),
+      aiCostUsd
+    },
     topups: counts.topups,
     waitlist: counts.waitlist,
     planMix: counts.planMix
@@ -259,6 +358,8 @@ export async function buildOverviewStats(by: AdminActor, w: StatsWindow): Promis
     },
     revenue: {
       revenue: revenue.revenue,
+      combinedChf: revenue.combinedChf,
+      contributionChf: revenue.estimate.combinedChf.contribution,
       payingCustomers: revenue.payingCustomers,
       billingEnabled: revenue.billingEnabled,
       plansComingSoon: revenue.plansComingSoon,
