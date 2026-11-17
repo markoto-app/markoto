@@ -148,7 +148,7 @@
     },
     {
       "kind": "approach",
-      "file": "03.webp",
+      "file": "08.webp",
       "caption": "Open the \"Business\" tab",
       "cursor": {
         "x": 265,
@@ -158,7 +158,7 @@
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
+      "file": "09.webp",
       "caption": "Only the business templates are left: report, business plan, proposal, one-pager, memo, meeting notes.",
       "cursor": {
         "x": 265,
@@ -174,7 +174,7 @@
     {
       "kind": "narration",
       "text": "The Report template brings a cover page, a table of contents, an executive summary, a key-figures table, results, an outlook and an appendix: in the Corporate report design. Pick it and the editor opens with the skeleton in place.",
-      "file": "08.webp",
+      "file": "09.webp",
       "cursor": {
         "x": 265,
         "y": 326
@@ -183,7 +183,7 @@
     },
     {
       "kind": "approach",
-      "file": "08.webp",
+      "file": "09.webp",
       "caption": "Click the \"Report\" card",
       "cursor": {
         "x": 118,
@@ -193,7 +193,7 @@
     },
     {
       "kind": "outcome",
-      "file": "09.webp",
+      "file": "10.webp",
       "caption": "\"Report\" is selected, the card lights up and the Template row names it.",
       "cursor": {
         "x": 118,
@@ -203,7 +203,7 @@
     },
     {
       "kind": "approach",
-      "file": "10.webp",
+      "file": "11.webp",
       "caption": "Give the report a title",
       "cursor": {
         "x": 46,
@@ -213,7 +213,7 @@
     },
     {
       "kind": "outcome",
-      "file": "11.webp",
+      "file": "12.webp",
       "caption": "The title is set.",
       "cursor": {
         "x": 46,
@@ -223,7 +223,7 @@
     },
     {
       "kind": "approach",
-      "file": "11.webp",
+      "file": "12.webp",
       "caption": "Click \"Create document\"",
       "cursor": {
         "x": 293,
@@ -233,13 +233,13 @@
     },
     {
       "kind": "outcome",
-      "file": "12.webp",
+      "file": "13.webp",
       "caption": "The editor opens with the report skeleton in place, and the preview shows it in the report design: cover page, contents, numbered pages. The grey notes say what goes where; they never show in the preview or the PDF.",
       "cursor": {
         "x": 293,
         "y": 672
       },
-      "path": "/d/3v1dUyto-q",
+      "path": "/d/7JuFZammHZ",
       "highlights": [
         {
           "label": "Ready-made structure",
