@@ -106,6 +106,10 @@ export const users = pgTable('users', {
   // cookie at once (cookies themselves can't be recalled). A cookie
   // without `e` counts as epoch 0.
   sessionEpoch: integer('session_epoch').notNull().default(0),
+  // When the user finished or skipped the editor's first-run tour. Kept on
+  // the account (not only in localStorage, which sign-out clears) so the
+  // tour shows once per user. NULL = not seen yet.
+  editorTourDoneAt: timestamp('editor_tour_done_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
   // Partial indexes: the plan-lapse and account-deletion sweeps scan these

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, it, expect } from 'vitest'
 import {
   anchorSelector, DESKTOP_TOUR_STEPS, EDITOR_TOUR_DONE, EDITOR_TOUR_STORAGE_KEY,
-  editorTourDone, markEditorTourDone, MOBILE_TOUR_STEPS, TOUR_TYPING_PAUSE_MS, tourTypingWait
+  editorTourAutoStart, editorTourDone, markEditorTourDone, MOBILE_TOUR_STEPS, TOUR_TYPING_PAUSE_MS, tourTypingWait
 } from '../../../app/utils/editor/editorTour'
 
 // The first-run editor tour: step data, anchors and the "seen" flag.
@@ -101,5 +101,31 @@ describe('EditorTour.vue', () => {
   it('never moves focus when the popover opens or closes', () => {
     // A popover that takes focus swallowed a prompt being typed into the AI bar.
     expect(source).toMatch(/onOpenAutoFocus: keepFocus, onCloseAutoFocus: keepFocus/)
+  })
+})
+
+describe('editorTourAutoStart', () => {
+  const base = { localDone: false, loggedIn: true, accountPending: false, accountDone: false }
+
+  it('signed in: the account decides, so a sign-out (cleared localStorage) does not bring it back', () => {
+    expect(editorTourAutoStart({ ...base, accountDone: true })).toBe('skip')
+    expect(editorTourAutoStart(base)).toBe('show')
+  })
+
+  it('signed in: waits for the account status before deciding', () => {
+    expect(editorTourAutoStart({ ...base, accountPending: true, accountDone: null })).toBe('wait')
+  })
+
+  it('this browser already saw it: skip, signed in or not', () => {
+    expect(editorTourAutoStart({ ...base, localDone: true, accountPending: true })).toBe('skip')
+    expect(editorTourAutoStart({ ...base, loggedIn: false, localDone: true })).toBe('skip')
+  })
+
+  it('anonymous: only the browser flag counts', () => {
+    expect(editorTourAutoStart({ localDone: false, loggedIn: false, accountPending: false, accountDone: null })).toBe('show')
+  })
+
+  it('signed in but the status failed to load: shows (finishing stores it again)', () => {
+    expect(editorTourAutoStart({ ...base, accountDone: null })).toBe('show')
   })
 })

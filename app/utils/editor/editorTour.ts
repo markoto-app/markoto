@@ -72,6 +72,24 @@ export function markEditorTourDone(storage: Pick<Storage, 'setItem'> | null): vo
   }
 }
 
+/**
+ * Whether the auto-started tour may open. Signed in, the account decides
+ * (`editorTourDone` from /api/user/account-status), so the tour shows once
+ * per user even after sign-out cleared localStorage; `wait` until that
+ * answer is in. Anonymous visitors only have this browser's flag.
+ */
+export function editorTourAutoStart(args: {
+  localDone: boolean
+  loggedIn: boolean
+  accountPending: boolean
+  accountDone: boolean | null
+}): 'show' | 'skip' | 'wait' {
+  if (args.localDone) return 'skip'
+  if (!args.loggedIn) return 'show'
+  if (args.accountPending) return 'wait'
+  return args.accountDone === true ? 'skip' : 'show'
+}
+
 /** How long the user must have stopped typing before the tour may open. */
 export const TOUR_TYPING_PAUSE_MS = 3000
 
