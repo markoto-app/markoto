@@ -49,6 +49,7 @@ const { t } = useI18n()
       <span
         v-if="unit"
         class="text-sm text-muted"
+        data-testid="pricing-price-unit"
       >{{ unit }}</span>
     </div>
     <p class="font-mono text-[11px] uppercase tracking-[0.06em] text-muted mt-1">

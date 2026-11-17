@@ -260,7 +260,11 @@ describe('pricing page: interval and currency', () => {
     const wrapper = await mountPricing()
     const prices = () => ['pro', 'team'].map(plan =>
       wrapper.find(`[data-testid="pricing-tier-${plan}"] [data-testid="pricing-price"]`).text())
+    // Free shows no billing period in either view (not "€0 per year").
+    const freeUnit = () => wrapper.find('[data-testid="pricing-tier-free"] [data-testid="pricing-price-unit"]').exists()
     expect(prices()).toEqual(['€9', '€12'])
+    expect(wrapper.find('[data-testid="pricing-tier-free"] [data-testid="pricing-price"]').text()).toBe('€0')
+    expect(freeUnit()).toBe(false)
     expect(wrapper.findAll('[data-testid="pricing-interval"]')).toHaveLength(1)
     expect(wrapper.findAll('[data-testid="pricing-currency"]')).toHaveLength(1)
     const yearTab = wrapper.findAll('[data-testid="pricing-interval"] [role="tab"]').find(tab => tab.text().startsWith('Annual'))
@@ -268,6 +272,7 @@ describe('pricing page: interval and currency', () => {
     await yearTab?.trigger('mousedown', { button: 0 })
     await flushPromises()
     expect(prices()).toEqual(['€90', '€120'])
+    expect(freeUnit()).toBe(false)
     expect(wrapper.find('[data-testid="pricing-tier-pro"]').text()).toContain('per year')
     expect(wrapper.find('[data-testid="pricing-tier-team"]').text()).toContain('per seat / year')
     await pickTeamPlan(wrapper, 'Business')
