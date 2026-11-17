@@ -7,6 +7,9 @@
 # root: bash infra/render-env-test.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."   # repo root
+# Matches read the rendered .env from here-strings, not `echo | grep -q`:
+# grep -q exits at the first match, and under pipefail the echo's SIGPIPE
+# then fails the check once the .env outgrows one pipe write.
 
 # One distinct sample value per input, by Ansible variable name (the
 # lower-case .env key, as the role passes them); render-env.sh gets the
@@ -152,7 +155,7 @@ while IFS='=' read -r k v; do
   key=$(echo "$k" | tr '[:lower:]' '[:upper:]')
   # Booleans compose hands to the app verbatim are normalised to lower case.
   case "$key" in NUXT_AI_BYOK_ALLOW_PRIVATE_URLS | NUXT_SITE_INDEXABLE) v=$(echo "$v" | tr '[:upper:]' '[:lower:]') ;; esac
-  if ! echo "$bash_out" | grep -qxF "${key}=${v}"; then
+  if ! grep -qxF "${key}=${v}" <<<"$bash_out"; then
     echo "PASSTHROUGH FAILED: ${key} is not rendered as its input value"
     exit 1
   fi
@@ -174,7 +177,7 @@ echo "KEYS OK: --keys covers every variable render-env.sh reads"
 # 3. The stack markoto-compose uses on the host: the production stack on
 #    rootless Podman (its overlay), the Postgres container only for the
 #    in-stack host name, never with a managed cluster.
-if ! echo "$bash_out" | grep -qx 'COMPOSE_FILE=deploy/compose/compose.prod.yml:deploy/compose/compose.podman.yml'; then
+if ! grep -qx 'COMPOSE_FILE=deploy/compose/compose.prod.yml:deploy/compose/compose.podman.yml' <<<"$bash_out"; then
   echo "COMPOSE_FILE FAILED: the .env must name the production stack and the Podman overlay"
   exit 1
 fi
@@ -183,8 +186,8 @@ for kv in "${ENVARGS[@]}"; do
   case "$kv" in POSTGRES_HOST=*) BUNDLEDPG+=("POSTGRES_HOST=postgres") ;; *) BUNDLEDPG+=("$kv") ;; esac
 done
 bundled_out=$(env -i "${BUNDLEDPG[@]}" bash infra/render-env.sh)
-if echo "$bundled_out" | grep -qx 'COMPOSE_PROFILES=bundled-postgres' \
-   && echo "$bash_out" | grep -qx 'COMPOSE_PROFILES='; then
+if grep -qx 'COMPOSE_PROFILES=bundled-postgres' <<<"$bundled_out" \
+   && grep -qx 'COMPOSE_PROFILES=' <<<"$bash_out"; then
   echo "PG PROFILE OK, Postgres container for the in-stack host only"
 else
   echo "PG PROFILE FAILED, COMPOSE_PROFILES must be bundled-postgres exactly when POSTGRES_HOST=postgres"
@@ -199,10 +202,10 @@ fi
 #     from OVH_PG_HOST + OVH_PG_CA_REMOTE_PATH (deploy.yml has no PGSSL*
 #     inputs); without a managed host TLS is off (in-stack Postgres).
 bash_tls=$(env -i "${ENVARGS[@]}" OVH_PG_HOST=pg.example.test OVH_PG_CA_REMOTE_PATH=/opt/markoto/secrets/ovh-pg-ca.pem bash infra/render-env.sh)
-if echo "$bash_tls" | grep -qx 'POSTGRES_SSLMODE=require' \
-   && echo "$bash_tls" | grep -qx 'PGSSLROOTCERT=/opt/markoto/secrets/ovh-pg-ca.pem' \
-   && echo "$bash_out" | grep -qx 'POSTGRES_SSLMODE=disable' \
-   && echo "$bash_out" | grep -qx 'PGSSL=disable'; then
+if grep -qx 'POSTGRES_SSLMODE=require' <<<"$bash_tls" \
+   && grep -qx 'PGSSLROOTCERT=/opt/markoto/secrets/ovh-pg-ca.pem' <<<"$bash_tls" \
+   && grep -qx 'POSTGRES_SSLMODE=disable' <<<"$bash_out" \
+   && grep -qx 'PGSSL=disable' <<<"$bash_out"; then
   echo "PG TLS OK, cert-pinned TLS for a managed host, off for the in-stack one"
 else
   echo "PG TLS FAILED, wrong managed-Postgres TLS lines"
@@ -222,6 +225,22 @@ for v in NUXT_LEGAL_CONTROLLER_ADDRESS NUXT_LEGAL_REPRESENTED_BY; do
   fi
 done
 echo "LEGAL GATE OK, controller address + representative are required"
+
+# 3d. Staging's edge login: empty by default (prod), a bcrypt htpasswd line
+#     is written single-quoted (compose keeps its `$` literal), anything
+#     else fails the render instead of breaking Traefik's routers.
+# A placeholder in htpasswd shape (no real password behind it), assembled
+# here so secret scanners do not read it as a leaked hash.
+edge_line="staging:\$2y\$05\$$(printf 'x%.0s' {1..53})"
+edge_out=$(env -i "${ENVARGS[@]}" EDGE_BASIC_AUTH_USERS="$edge_line" bash infra/render-env.sh)
+if grep -qx 'EDGE_BASIC_AUTH_USERS=' <<<"$bash_out" \
+   && grep -qxF "EDGE_BASIC_AUTH_USERS='${edge_line}'" <<<"$edge_out" \
+   && ! env -i "${ENVARGS[@]}" EDGE_BASIC_AUTH_USERS='staging:plain-password' bash infra/render-env.sh >/dev/null 2>&1; then
+  echo "EDGE LOGIN OK, off by default, bcrypt lines quoted, anything else refused"
+else
+  echo "EDGE LOGIN FAILED, wrong EDGE_BASIC_AUTH_USERS handling"
+  exit 1
+fi
 
 # 3b. Backup storage falls back to the app's S3 values when no BACKUP_S3_* is
 #     set.
@@ -252,7 +271,7 @@ if ! off_out=$(env -i "${NOSTRIPE[@]}" bash infra/render-env.sh 2>&1); then
   echo "$off_out"
   exit 1
 fi
-if ! echo "$off_out" | grep -qx 'NUXT_BILLING_ENABLED=false'; then
+if ! grep -qx 'NUXT_BILLING_ENABLED=false' <<<"$off_out"; then
   echo "BILLING GATE FAILED, billing must default to off (NUXT_BILLING_ENABLED=false)"
   exit 1
 fi
@@ -316,13 +335,13 @@ PY
 # Leading/trailing spaces are quoted too; a trailing newline (pasted secret) is
 # stripped; embedded newlines and single quotes fail loudly.
 pad_out=$(env -i "${ENVARGS[@]}" "NUXT_JWT_SECRET= padded " bash infra/render-env.sh)
-if ! echo "$pad_out" | grep -qxF "NUXT_JWT_SECRET=' padded '"; then
+if ! grep -qxF "NUXT_JWT_SECRET=' padded '" <<<"$pad_out"; then
   echo "VALUE SAFETY FAILED - leading/trailing spaces must be single-quoted"
   exit 1
 fi
 nl_out=$(env -i "${ENVARGS[@]}" "NUXT_JWT_SECRET=trailing
 " bash infra/render-env.sh 2>/dev/null)
-if ! echo "$nl_out" | grep -qxF "NUXT_JWT_SECRET=trailing"; then
+if ! grep -qxF "NUXT_JWT_SECRET=trailing" <<<"$nl_out"; then
   echo "VALUE SAFETY FAILED - a trailing newline must be stripped, not emitted"
   exit 1
 fi

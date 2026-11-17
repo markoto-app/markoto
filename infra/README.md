@@ -99,6 +99,24 @@ healthy container where it exists and ignores it where it does not.
 `db-init` runs in both shapes, against `PGHOST`. `render-env.sh` refuses an
 `OVH_PG_HOST` without a matching `POSTGRES_HOST`.
 
+### Staging edge login
+
+Staging sits behind a Traefik basic-auth login, so strangers cannot sign
+up, spend the platform's AI keys or run test-card checkouts there. The
+`staging` Environment holds `EDGE_BASIC_AUTH_USERS`, an htpasswd line
+(`htpasswd -nbB <user> <password>`), which `deploy.yml` renders for
+staging only; prod renders it empty, and empty means no login
+(`deploy/compose/compose.prod.yml`, middleware `edge-auth`). An Ansible
+deploy to staging needs it as `edge_basic_auth_users` in the vault, or the
+login is dropped. The login covers the app host, the pages host and
+custom-domain routers. Outside it: the sync host (every connection needs a
+doc JWT), `/api/health`, `/api/health/live`, `/api/status`, the Stripe
+webhook, SCIM, `/mcp`, the bearer-token reads of `/api/docs/<id>/meta` and
+`/file-token`, the dictation WebSocket, SAML metadata, and what the
+sandboxed preview iframe loads (`/vendor/`, `/markoto-logos/`,
+`/api/files/`, brand files). The smoke suite reads the same login from the
+`EDGE_BASIC_AUTH_USER` / `EDGE_BASIC_AUTH_PASSWORD` secrets.
+
 ## Layout
 
 ```

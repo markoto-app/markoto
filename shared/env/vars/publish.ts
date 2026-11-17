@@ -102,6 +102,7 @@ export const deploy = defineNamespace({
     acmeEmail: v({ name: 'ACME_EMAIL', example: '', type: string, doc: 'Hosted: Let\'s Encrypt account email.', services: ['compose'], scope: 'hosted' }),
     registry: v({ name: 'REGISTRY', example: '', type: string, doc: 'Image registry prefix (ghcr.io/<owner>).', services: ['compose'], scope: 'hosted' }),
     imageTag: v({ name: 'IMAGE_TAG', example: '', type: string, doc: 'Image tag to run (pin a version; no implicit latest).', services: ['compose'], scope: 'both' }),
+    edgeBasicAuthUsers: v({ name: 'EDGE_BASIC_AUTH_USERS', type: string, doc: 'Hosted staging: htpasswd line (`user:<bcrypt>`) for the Traefik login in front of the app and pages hosts; empty (prod) = no login. Machine-to-machine paths stay outside it (deploy/compose/compose.prod.yml).', services: ['compose'], scope: 'hosted' }),
     litellmConfigHash: v({ name: 'LITELLM_CONFIG_HASH', type: string, doc: 'Hash of deploy/config/litellm/*: recreates the proxy when its config changes (set by every deploy path).', services: ['compose'], scope: 'both' }),
     productTourEnabled: v({ name: 'NUXT_PRODUCT_TOUR_ENABLED', type: bool, doc: 'Deprecated alias of NUXT_MARKETING_SITE_ENABLED, resolved by deploy/compose/compose.prod.yml.', services: ['compose'], scope: 'hosted' }),
     instance: v({ name: 'MARKOTO_INSTANCE', type: string, doc: 'Self-host: instance name (Traefik constraint, network names).', services: ['compose'], scope: 'self-host' }),

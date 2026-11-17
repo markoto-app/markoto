@@ -159,6 +159,10 @@ jobs:
       - name: Smoke suite against staging
         env:
           PLAYWRIGHT_BASE_URL: ${{ env.STAGING_URL }}
+          # Staging's edge login (Traefik basic auth; deploy.yml renders its
+          # htpasswd line from EDGE_BASIC_AUTH_USERS).
+          EDGE_BASIC_AUTH_USER: ${{ secrets.EDGE_BASIC_AUTH_USER }}
+          EDGE_BASIC_AUTH_PASSWORD: ${{ secrets.EDGE_BASIC_AUTH_PASSWORD }}
           CI: 'true'
         run: bun run smoke
 

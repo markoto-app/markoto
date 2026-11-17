@@ -209,6 +209,10 @@ jobs:
           # Canonicals, og:url, JSON-LD and the sitemap name markoto.app on
           # every environment but prod (prod = its own NUXT_SITE_URL).
           NUXT_CANONICAL_SITE_URL: ${{ inputs.environment != 'prod' && 'https://markoto.app' || '' }}
+          # Staging only: the login Traefik puts in front of the app and
+          # pages hosts (htpasswd line, `htpasswd -nbB <user> <password>`).
+          # Never rendered for prod, whatever its Environment holds.
+          EDGE_BASIC_AUTH_USERS: ${{ inputs.environment == 'staging' && secrets.EDGE_BASIC_AUTH_USERS || '' }}
           NUXT_WEB_TOOLS_HOURLY_LIMIT: ${{ vars.NUXT_WEB_TOOLS_HOURLY_LIMIT }}
           NUXT_WEB_TOOLS_DAILY_LIMIT: ${{ vars.NUXT_WEB_TOOLS_DAILY_LIMIT }}
           NUXT_AI_DEFAULT_CHAT_MODEL: ${{ vars.NUXT_AI_DEFAULT_CHAT_MODEL }}
