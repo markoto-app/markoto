@@ -214,6 +214,42 @@ model_list:
       output_cost_per_token: 0.000000165  # $0.165 / M (EU: 1.1 x $0.15, 4× cheaper than small output)
       max_tokens: 262144
 
+  # ---- Worker models (hosted: NUXT_AI_DEFAULT_WORKER_MODEL / _STRONG_MODEL) ----
+  # The worker runs delegated per-section rewrites, scans and the utility
+  # sub-calls (fetch_url extraction, web_search synthesis); see
+  # docs/AI-MODELS.md#worker-model. Aliases, so the app never names a
+  # vendor model and the operator can swap the model here. Prices are
+  # mirrored in server/utils/litellm/workerPrices.ts (a unit test keeps them
+  # equal) for the cost estimate shown before a delegated job.
+  #
+  # `markoto-worker`: Ministral 3 8B on the EU endpoint. Same input price as
+  # the chat models, output 4x cheaper than Mistral Small 4 (worker calls
+  # are output-heavy), no reasoning tokens.
+  - model_name: markoto-worker
+    litellm_params:
+      model: mistral/ministral-8b-2512
+      api_base: https://api.eu.mistral.ai/v1
+      api_key: os.environ/MISTRAL_API_KEY
+      allowed_openai_params: ["prompt_cache_key"]
+    model_info:
+      input_cost_per_token: 0.000000165   # $0.165 / M (EU: 1.1 x $0.15)
+      output_cost_per_token: 0.000000165  # $0.165 / M (EU: 1.1 x $0.15)
+      max_tokens: 262144
+
+  # `markoto-worker-strong`: Mistral Small 4 on the EU endpoint, for
+  # translations and rewrites on plans with `aiStrongModel`.
+  - model_name: markoto-worker-strong
+    litellm_params:
+      model: mistral/mistral-small-2603
+      api_base: https://api.eu.mistral.ai/v1
+      api_key: os.environ/MISTRAL_API_KEY
+      allowed_openai_params: ["prompt_cache_key"]
+    model_info:
+      input_cost_per_token: 0.000000165   # $0.165 / M (EU: 1.1 x $0.15)
+      cache_read_input_token_cost: 0.0000000165
+      output_cost_per_token: 0.00000066   # $0.66 / M (EU: 1.1 x $0.60)
+      max_tokens: 256000
+
   # ---- BFL FLUX 3 Image Klein image generation (custom provider) ----
   # Wraps BFL's submission+poll API. EU-pinned to api.eu.bfl.ai (routing
   # limited to BFL's EU clusters). Exposed via chat-completions because
@@ -387,3 +423,10 @@ router_settings:
   fallbacks:
     - mistral-small-2603: [ministral-8b-2512]
     - zai-glm-5-3-flash: [mistral-small-2603]
+    # The worker aliases sit on different Mistral rate-limit pools, like
+    # the Small 4 / Ministral pair above. The fast worker falls back to
+    # GLM-5.3 Flash, not to Small 4: same input price and a lower output
+    # price than Small 4, so a rate limit never makes a job much dearer
+    # than its estimate.
+    - markoto-worker: [zai-glm-5-3-flash]
+    - markoto-worker-strong: [ministral-8b-2512]

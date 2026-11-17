@@ -36,6 +36,8 @@ const editing = ref(false)
 const presetId = ref<string>(CUSTOM)
 const baseUrl = ref('')
 const model = ref('')
+// Chat only: the worker model on the same endpoint and key.
+const fastModel = ref('')
 const apiKey = ref('')
 const supportsVision = ref(false)
 // Each mutation re-reads the providers and the AI availability it changes.
@@ -80,6 +82,7 @@ function startEdit(): void {
   if (props.config) {
     baseUrl.value = props.config.baseUrl
     model.value = props.config.model
+    fastModel.value = props.config.fastModel ?? ''
     supportsVision.value = props.config.supportsVision
     presetId.value = presetFor(props.config.baseUrl)
   } else {
@@ -87,6 +90,7 @@ function startEdit(): void {
     presetId.value = first?.id ?? CUSTOM
     baseUrl.value = first?.baseUrl ?? ''
     model.value = first?.models[props.capability]?.[0] ?? ''
+    fastModel.value = ''
     supportsVision.value = props.capability === 'chat'
   }
   apiKey.value = ''
@@ -139,6 +143,7 @@ async function onSave(): Promise<void> {
       body: {
         baseUrl: baseUrl.value.trim(),
         model: model.value.trim(),
+        fastModel: props.capability === 'chat' ? (fastModel.value.trim() || null) : undefined,
         apiKey: apiKey.value.trim() || undefined,
         supportsVision: props.capability === 'chat' ? supportsVision.value : undefined
       }
@@ -234,6 +239,20 @@ const messageClass = computed(() => {
           {{ config.model }}
         </dd>
       </div>
+      <div
+        v-if="config.fastModel"
+        class="flex flex-col sm:flex-row sm:justify-between gap-1 px-3 py-2"
+      >
+        <dt class="text-muted">
+          {{ t('aiProvider.form.fastModel') }}
+        </dt>
+        <dd
+          class="font-mono break-all sm:text-right"
+          :data-testid="`ai-provider-fast-model-${capability}`"
+        >
+          {{ config.fastModel }}
+        </dd>
+      </div>
       <div class="flex flex-col sm:flex-row sm:justify-between gap-1 px-3 py-2">
         <dt class="text-muted">
           {{ t('aiProvider.form.apiKey') }}
@@ -303,6 +322,19 @@ const messageClass = computed(() => {
       >
         {{ t('aiProvider.form.suggestions', { list: modelSuggestions.join(', ') }) }}
       </p>
+      <UFormField
+        v-if="capability === 'chat'"
+        :label="t('aiProvider.form.fastModel')"
+        :help="t('aiProvider.form.fastModelHint')"
+      >
+        <UInput
+          v-model="fastModel"
+          class="w-full font-mono"
+          autocomplete="off"
+          :placeholder="t('aiProvider.form.modelPlaceholder')"
+          data-testid="ai-provider-fast-model-input"
+        />
+      </UFormField>
       <UFormField
         :label="t('aiProvider.form.apiKey')"
         :help="config ? t('aiProvider.form.apiKeyKeep') : undefined"

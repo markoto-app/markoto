@@ -2193,6 +2193,8 @@
       "baseUrlHint": "服务商的 OpenAI 兼容 API 根地址，通常以 /v1 结尾。",
       "model": "模型",
       "modelPlaceholder": "服务商的模型 ID",
+      "fastModel": "快速模型（可选）",
+      "fastModelHint": "同一服务商、同一密钥下更便宜、更快的模型，用于大规模委派编辑和网页摘要。留空 = 使用上面的模型。",
       "suggestions": "推荐模型：{list}",
       "apiKey": "API 密钥",
       "apiKeyKeep": "留空则继续使用已保存的密钥。更改 URL 时必须填写。",
@@ -3132,6 +3134,8 @@
       "image-gen": "图片生成",
       "embeddings": "知识库嵌入",
       "design-import": "从文档生成设计",
+      "delegate-rewrite": "委派改写",
+      "utility": "网页摘要",
       "other": "其他"
     },
     "investor": {

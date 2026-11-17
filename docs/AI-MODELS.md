@@ -16,6 +16,8 @@ These are the deployments that ship in `deploy/config/litellm/config.yaml`. A se
 |---|---|---|---|
 | AI writing assistant (tool calling, vision) | Mistral Small 4 (`mistral-small-2603`) | $0.165 in / $0.66 out per M tokens, cached input $0.0165 (list $0.15 / $0.60 / $0.015) | 262K context, function calling, vision; also the fallback of the free allowance |
 | Fallback when the primary is rate-limited | Ministral 3 8B (`ministral-8b-2512`) | $0.165 in / $0.165 out per M tokens (list $0.15 / $0.15) | 262K context, function calling, vision |
+| Worker model (hosted): delegated rewrites, scans, web-tool synthesis | Ministral 3 8B as alias `markoto-worker` | $0.165 in / $0.165 out per M tokens (list $0.15 / $0.15) | See [Worker model](#worker-model) |
+| Strong worker (hosted, plans with `aiStrongModel`): translate, rewrite | Mistral Small 4 as alias `markoto-worker-strong` | $0.165 in / $0.66 out per M tokens, cached input $0.0165 | See [Worker model](#worker-model) |
 | Free AI allowance (hosted chat default) | Z.ai GLM-5.3 Flash served by Mistral (`zai-glm-5-3-flash`) | $0.165 in / $0.55 out per M tokens, cached input $0.033 (list $0.15 / $0.50 / $0.03) | 1M context, function calling, vision, reasoning. See [Free AI allowance](#free-ai-allowance-hosted) |
 | Voice prompt (one-shot transcription) | Voxtral Mini Transcribe 2 (`voxtral-mini-2602`) | $0.0033 per audio minute (list $0.003) | GA |
 | Live dictation | Voxtral Mini Transcribe Realtime (`voxtral-mini-transcribe-realtime-2602`) | $0.0066 per audio minute (list $0.006) | GA, WebSocket streaming |
@@ -68,7 +70,7 @@ Calls go to `api.eu.bfl.ai`, BFL's EU endpoint (routing limited to its EU cluste
 `web_search` (Staan) and `fetch_url` (Jina Reader) are provided by the platform, also for users who brought their own chat key. Each call has two halves:
 
 - **Upstream call** (Staan search / Jina Reader): the app calls it with the operator's key. Right before, it charges the call to the caller's AI budget: one completion on a billing-only model (`web-search-tick` / `web-fetch-tick`, `WebToolTickProvider` in `deploy/config/litellm/custom_handlers.py`) with the caller's virtual key (`server/utils/ai/webToolCharge.ts`). It appears in LiteLLM spend under `feature:web-search` / `feature:web-fetch` and in AI Points like every other AI call.
-- **Synthesis** (summarising the results): runs on the chat provider of the session that invoked the tool. With a BYOK key the user pays their own provider for those tokens; with an instance default it debits the budget like any other chat call. With no chat provider the raw results are returned unsynthesised.
+- **Synthesis** (summarising the results, or answering `fetch_url`'s `question`): runs on the session's [worker model](#worker-model), tagged `feature:utility`. With a BYOK key the user pays their own provider for those tokens (their "Fast model" if set); with an instance default it debits the budget like any other chat call. With no chat provider the raw results are returned unsynthesised. `fetch_url` with `mode: "extract"` makes no synthesis call: it returns the page Markdown in pages of about 8,000 characters (`page` picks one); each page is a fetch of its own and is charged and counted like one.
 
 **Prices** (`output_cost_per_token` of the tick deployments; each tick reports one token):
 
@@ -93,6 +95,24 @@ Each user also keeps a rate limit shared by `web_search`, `fetch_url`, the in-ed
 **Self-hosting:** set `STAAN_API_KEY` and/or `JINA_AI_API_KEY` to enable the tools. With a key missing, that tool is not offered to the AI, is not listed over MCP, and `GET /api/ai/availability` reports `webTools.search` / `webTools.fetch` as `false`. (`JINA_AI_API_KEY` is also what the default embeddings use; with `custom-embeddings` it can stay empty.)
 
 The free-tier AI Points budget (`TIER_FREE_LITELLM_BUDGET_USD`) resets monthly with billing off: every virtual key carries LiteLLM's `budget_duration: '30d'`, so no Stripe event is needed.
+
+## Worker model
+
+The worker model does the bulk work the writing agent hands off: delegated per-section rewrites and translations, read-only scans, and the utility sub-calls (`fetch_url` page extraction, `web_search` synthesis). Calls are tagged `feature:delegate-rewrite` (rewrite jobs) or `feature:utility` (the web-tool sub-calls), so the admin AI-spend page splits them from the loop's own turns. Resolution (`resolveWorkerProviders` / `workerProviderFor` in `server/utils/aiProviders/resolve.ts`):
+
+1. The chat provider is the user's own key: their optional **Fast model** (Settings → AI provider → Chat, a second model id on the same base URL and key; it has no URL or key of its own, so it passes the same URL policy as the chat model), else their chat model. A user's own key is never replaced by a platform-paid model; translations and rewrites use their chat model.
+2. `NUXT_AI_DEFAULT_WORKER_MODEL` (+ optional `_BASE_URL` / `_API_KEY`, same meaning as for `NUXT_AI_DEFAULT_CHAT_*`).
+3. The chat default.
+
+On plans with `aiStrongModel`, translations and rewrites use `NUXT_AI_DEFAULT_WORKER_STRONG_MODEL` (default `markoto-worker-strong`) instead, but only while `NUXT_AI_DEFAULT_WORKER_MODEL` is a LiteLLM alias (an operator endpoint is used as is). Scans, summaries, comments and the utility sub-calls always use the fast worker.
+
+| Deployment | Worker | Strong worker |
+|---|---|---|
+| Hosted | `markoto-worker` (Ministral 3 8B, EU endpoint) | `markoto-worker-strong` (Mistral Small 4, EU endpoint), plans with `aiStrongModel` only |
+| Self-host, nothing set | the chat default | the chat default |
+| BYOK | the user's Fast model, else their chat model | the user's chat model |
+
+**Why Ministral 3 8B.** Its input price is the same as the chat models' ($0.165 per M tokens on the EU endpoint), and its output is 4x cheaper than Mistral Small 4 ($0.165 vs $0.66 per M). Worker calls are output-heavy (a rewrite returns about as many tokens as it reads), so that is where the saving is. It produces no reasoning tokens, and it runs on Mistral's EU endpoint like every platform-paid Mistral call. Translation and tone quality matter most for paying plans, so those modes get Mistral Small 4 there. The two aliases fall back to each other's pool on a rate limit (`router_settings.fallbacks`). Their prices are mirrored in `server/utils/litellm/workerPrices.ts` for the cost estimate shown before a delegated job (a unit test keeps the two equal).
 
 ## Free AI allowance (hosted)
 
@@ -164,7 +184,7 @@ Under **Settings → AI provider** (`/settings/ai`) each signed-in user can conn
 
 | Capability | Used by | Required? | Without it |
 |---|---|---|---|
-| Chat | The writing agent (prompt bar, selection rewrite), `@ai` in comments, web-search / page-fetch summaries | Yes, for any AI feature (unless the instance provides a default) | The prompt bar shows "Add your API key in Settings", `@ai` shows the same hint; web search / page fetch hand raw results back instead of a summary |
+| Chat (+ optional Fast model) | The writing agent (prompt bar, selection rewrite), `@ai` in comments; the Fast model (else the chat model) runs large delegated edits and web-search / page-fetch summaries | Yes, for any AI feature (unless the instance provides a default) | The prompt bar shows "Add your API key in Settings", `@ai` shows the same hint; web search / page fetch hand raw results back instead of a summary |
 | Image | `generate_image` (the provider's OpenAI images API, `/images/generations`) | Optional | The agent is not offered the `generate_image` tool |
 | Transcription | Voice prompt (`/audio/transcriptions`); live dictation if the provider is Mistral | Optional | The microphone buttons are hidden |
 
@@ -174,7 +194,7 @@ Live dictation streams audio to Mistral's Voxtral Realtime API over a WebSocket 
 
 When the user saves a provider, markoto checks the URL (see below) and **verifies** it through the same LiteLLM path as real calls:
 
-- Chat: a small completion with one tool definition at temperature 0. A tool call back means OK. A plain-text answer is saved with a warning ("no tool support"), because the agent needs tool calling.
+- Chat: a small completion with one tool definition at temperature 0. A tool call back means OK. A plain-text answer is saved with a warning ("no tool support"), because the agent needs tool calling. A Fast model gets a plain completion of a few tokens on the same URL and key; if it fails, nothing is saved.
 - Transcription: a 0.5-second silent WAV (a fraction of a cent on the user's account).
 - Image: no image is generated (that would be a paid image per save). markoto lists the provider's models (`GET {base URL}/models`) with the key instead: a 401/403 fails, a model missing from a returned list is a warning.
 
@@ -205,12 +225,14 @@ The base URLs were checked against each provider's `/models` and `/chat/completi
 | `NUXT_AI_DEFAULT_{CHAT,IMAGE,TRANSCRIBE}_MODEL` | Instance default per capability. Alone, it names a model alias from `deploy/config/litellm/config.yaml` (platform-paid, debits AI Points; image aliases use the chat-wrapped convention of the bundled `flux-3-image-klein`, transcription aliases that of `voxtral-mini-transcribe`). |
 | `NUXT_AI_DEFAULT_{CHAT,IMAGE,TRANSCRIBE}_BASE_URL` + `_API_KEY` | Together with `_MODEL`: an OpenAI-compatible endpoint used exactly like a user key (zero-cost to AI Points). The operator may point at private networks without the opt-in below; loopback, link-local/metadata addresses and markoto's own service names are still refused. |
 | `NUXT_AI_DEFAULT_CHAT_VISION` | `false` if the default chat model can't read images (default `true`). |
+| `NUXT_AI_DEFAULT_WORKER_MODEL` (+ `_BASE_URL` / `_API_KEY`) | The [worker model](#worker-model), same semantics as the chat default. Empty (self-host default) = the chat default. |
+| `NUXT_AI_DEFAULT_WORKER_STRONG_MODEL` | Strong worker alias for translations and rewrites on plans with `aiStrongModel` (default `markoto-worker-strong`); used only while the worker model is an alias. |
 | `NUXT_AI_BYOK_ALLOWED_BASE_URLS` | Comma-separated allowlist of base URLs users may pick. Empty (self-hosted default) = any public https URL. The hosted SaaS uses the eight non-local providers in the table above; an instance with `NUXT_LEGAL_SURFACES_ENABLED=true` (the hosted shape) refuses to boot with an empty list, and an entry that is not an absolute http(s) URL is a boot error everywhere. |
 | `NUXT_AI_BYOK_ALLOW_PRIVATE_URLS` | `true` lets users point at private-network endpoints (RFC 1918, CGNAT, IPv6 ULA) and use plain http for them. Default `false`. |
 | `NUXT_AI_REALTIME_MODEL` | Voxtral Realtime model for live dictation (default `voxtral-mini-transcribe-realtime-2602`). |
 | `NUXT_FREE_TIER_TOTAL_BUDGET_USD` | Monthly ceiling in USD on platform-paid AI for all free-tier users together (a LiteLLM team budget, see [Free AI allowance](#free-ai-allowance-hosted)). Empty / `0` = none (self-host default); hosted 500. |
 
-The hosted SaaS sets `NUXT_AI_DEFAULT_CHAT_MODEL=zai-glm-5-3-flash` (the [free AI allowance](#free-ai-allowance-hosted)), the image (`flux-3-image-klein`), transcription (`voxtral-mini-transcribe`) and strong-chat (`mistral-small-2603`) aliases (locked for the free tier, so they need the user's own key there), and the provider allowlist above.
+The hosted SaaS sets `NUXT_AI_DEFAULT_CHAT_MODEL=zai-glm-5-3-flash` (the [free AI allowance](#free-ai-allowance-hosted)), the image (`flux-3-image-klein`), transcription (`voxtral-mini-transcribe`) and strong-chat (`mistral-small-2603`) aliases (locked for the free tier, so they need the user's own key there), the worker aliases `markoto-worker` / `markoto-worker-strong`, and the provider allowlist above.
 
 ### How BYOK calls flow
 
@@ -245,7 +267,7 @@ decides which of them apply (`shared/config/tiers.ts`):
 |---|---|---|
 | `aiImage` | `NUXT_AI_DEFAULT_IMAGE_*` (image generation) | `TIER_<PLAN>_FEATURE_AI_IMAGE` |
 | `aiVoice` | `NUXT_AI_DEFAULT_TRANSCRIBE_*` (voice prompt + live dictation) | `TIER_<PLAN>_FEATURE_AI_VOICE` |
-| `aiStrongModel` | the user's "Strong" pick in Settings → AI provider → `NUXT_AI_DEFAULT_CHAT_STRONG_MODEL` instead of the chat default | `TIER_<PLAN>_FEATURE_AI_STRONG_MODEL` |
+| `aiStrongModel` | the user's "Strong" pick in Settings → AI provider → `NUXT_AI_DEFAULT_CHAT_STRONG_MODEL` instead of the chat default; delegated translations and rewrites on `NUXT_AI_DEFAULT_WORKER_STRONG_MODEL` | `TIER_<PLAN>_FEATURE_AI_STRONG_MODEL` |
 
 - Chat on the platform default is in every plan. A user's own key always
   works, whatever the plan (BYOK never consumes platform budget).

@@ -48,7 +48,7 @@ export function renderMarkdownReport(label: string, doc: DocumentInfo, prefix: S
     '',
     '| Part | Chars | Tokens (est.) |',
     '|---|--:|--:|',
-    `| System prompt (PROMPT_SYSTEM_PROMPT + document context) | ${prefix.systemPromptChars.toLocaleString('en-US')} | ${prefix.systemPromptTokens.toLocaleString('en-US')} |`,
+    `| System prompt (PROMPT_SYSTEM_PROMPT; the document context opens the first user message) | ${prefix.systemPromptChars.toLocaleString('en-US')} | ${prefix.systemPromptTokens.toLocaleString('en-US')} |`,
     `| Tool declarations (${prefix.toolCount} tools, OpenAI JSON) | ${prefix.toolsChars.toLocaleString('en-US')} | ${prefix.toolsTokens.toLocaleString('en-US')} |`,
     `| Total | ${(prefix.systemPromptChars + prefix.toolsChars).toLocaleString('en-US')} | ${(prefix.systemPromptTokens + prefix.toolsTokens).toLocaleString('en-US')} |`,
     '',

@@ -3,6 +3,7 @@ import { defineMetaTool, type ToolResult } from './toolDefinition'
 import type { MetaToolContext } from '../../agentic/toolContext'
 import { webSearch } from './webSearch'
 import { fetchUrl } from './fetchUrl'
+import { workerProviderFor } from '../../aiProviders/resolve'
 
 // web_search (Staan search + synthesis) and fetch_url (Jina Reader +
 // synthesis). The in-app loop runs both itself (`agentic/loop/webSubCalls.ts`:
@@ -17,7 +18,13 @@ export const WebSearchArgs = z.object({
 
 const FetchUrlArgs = z.object({
   url: z.string().trim().min(1).max(2048)
-    .describe('The URL to fetch. Any public web page (article, blog, docs, portfolio). A missing scheme is treated as https://. Do not pass /api/files/... paths, use view_image for those.')
+    .describe('The URL to fetch. Any public web page (article, blog, docs, portfolio). A missing scheme is treated as https://. Do not pass /api/files/... paths, use view_image for those.'),
+  question: z.string().trim().max(500).optional()
+    .describe('Mode "answer": what you need from the page. The answer is extracted from the page instead of a general summary.'),
+  mode: z.enum(['answer', 'extract']).optional()
+    .describe('"answer" (default): a summary, or the answer to `question`, plus image URLs. "extract": the page\'s Markdown itself, about 8000 characters per page; use it when you need exact wording, tables or code.'),
+  page: z.number().int().min(1).max(50).optional()
+    .describe('Mode "extract": which page of the Markdown to return (1 = first). The result says how many pages there are.')
 }).describe('Fetch a specific URL and extract its readable text content plus any image URLs visible on the page. Use when the user names or links a source to draw information from. Returns both synthesised text AND a list of image URLs you can then inspect with view_image or embed verbatim via insert_text.')
 
 // MCP tool calls have no in-flight abort signal (no equivalent of the
@@ -35,9 +42,10 @@ function spendContext(ctx: MetaToolContext) {
     docId: ctx.docId,
     attributedTo: ctx.attributedTo,
     // Authenticate the charge and the synthesis with the caller's virtual key and run
-    // it on their chat provider (BYOK), matching the in-app loop.
+    // the synthesis on their worker model (BYOK: their key), matching the in-app loop.
     virtualKey: ctx.virtualKey,
-    chatProvider: ctx.aiProviders.chat
+    chatProvider: ctx.aiProviders.chat,
+    workerProvider: workerProviderFor(ctx.aiProviders, 'utility')
   }
 }
 
@@ -57,13 +65,13 @@ export const webSearchTool = defineMetaTool({
 
 export const fetchUrlTool = defineMetaTool({
   name: 'fetch_url',
-  description: 'Fetch a specific URL and extract both its readable text content AND a list of image URLs visible on the page. Use when the user names or links a source to draw information from (e.g. "write about me based on myportfolio.com"). Differs from `web_search`, that one searches the web for a topic; this one reads a URL you already have. The returned image URLs can be passed to `view_image` to inspect them or embedded directly via `insert_text` as `![alt](https://...)`.',
+  description: 'Fetch a specific URL and extract both its readable text content AND a list of image URLs visible on the page. Use when the user names or links a source to draw information from (e.g. "write about me based on myportfolio.com"). Differs from `web_search`, that one searches the web for a topic; this one reads a URL you already have. Pass `question` to get just the answer from the page; use `mode: "extract"` (with `page`) to read the page Markdown verbatim. The returned image URLs can be passed to `view_image` to inspect them or embedded directly via `insert_text` as `![alt](https://...)`.',
   schema: FetchUrlArgs,
   requires: 'webFetch',
   sessionCallCap: 10,
   trustBoundary: { urlArg: 'url' },
-  handler: async (ctx, { url }): Promise<ToolResult> => {
-    const result = await fetchUrl(undefined, '', url, neverAbortSignal(), spendContext(ctx))
+  handler: async (ctx, { url, question, mode, page }): Promise<ToolResult> => {
+    const result = await fetchUrl(undefined, '', url, neverAbortSignal(), spendContext(ctx), { question, mode, page })
     return { content: result.text, isError: false }
   }
 })

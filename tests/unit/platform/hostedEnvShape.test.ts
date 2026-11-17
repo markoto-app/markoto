@@ -150,6 +150,18 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
     expect(config).toContain(`- model_name: ${vars.get('NUXT_AI_DEFAULT_CHAT_MODEL')}\n`)
   })
 
+  it('runs the worker on the markoto-worker aliases of deploy/config/litellm/config.yaml', () => {
+    expect(vars.get('NUXT_AI_DEFAULT_WORKER_MODEL')).toBe('markoto-worker')
+    expect(vars.get('NUXT_AI_DEFAULT_WORKER_STRONG_MODEL')).toBe('markoto-worker-strong')
+    const config = readFileSync(resolve(ROOT, 'deploy/config/litellm/config.yaml'), 'utf8')
+    for (const k of ['NUXT_AI_DEFAULT_WORKER_MODEL', 'NUXT_AI_DEFAULT_WORKER_STRONG_MODEL']) {
+      expect(config, k).toContain(`- model_name: ${vars.get(k)}\n`)
+    }
+    // Aliases only: platform-paid through LiteLLM, never an operator endpoint.
+    expect(vars.has('NUXT_AI_DEFAULT_WORKER_BASE_URL')).toBe(false)
+    expect(vars.has('NUXT_AI_DEFAULT_WORKER_API_KEY')).toBe(false)
+  })
+
   it('image / voice / strong-model defaults are platform aliases, locked for the free tier', () => {
     expect(vars.get('NUXT_AI_DEFAULT_IMAGE_MODEL')).toBe('flux-3-image-klein')
     expect(vars.get('NUXT_AI_DEFAULT_TRANSCRIBE_MODEL')).toBe('voxtral-mini-transcribe')

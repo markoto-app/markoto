@@ -3,7 +3,7 @@ title: Use your own AI provider
 description: Settings → AI provider. Connect your own Mistral, OpenAI or other OpenAI-compatible account for the writing assistant, images and voice.
 category: ai
 order: 11
-updated: '2026-11-15'
+updated: '2026-11-17'
 ---
 
 # Use your own AI provider
@@ -33,12 +33,13 @@ prompt bar) and connect a provider separately for each capability:
 1. Pick a provider from the list (the base URL fills in), or choose **Other (OpenAI-compatible)** and enter the provider's API root, usually ending in `/v1`.
 2. Enter a model id (the provider's name for the model; suggestions appear for the preset providers) and your API key.
 3. For the writing assistant, tick **This model accepts images** if it can read images.
-4. Press **Save and verify**.
+4. Optional, for the writing assistant: a **Fast model**, a cheaper, faster model of the same provider. It uses the same URL and key and does the bulk work of large edits and the summaries of web pages. Empty means the main model does that too.
+5. Press **Save and verify**.
 
 markoto verifies the connection before relying on it, through the same path
 the assistant uses:
 
-- **Writing assistant:** a tiny request with a test tool. If the model answers without calling the tool you get a warning, because the assistant needs tool calling. Pick another model.
+- **Writing assistant:** a tiny request with a test tool. If the model answers without calling the tool you get a warning, because the assistant needs tool calling. Pick another model. A Fast model gets a tiny request of its own; if it fails, nothing is saved.
 - **Voice transcription:** half a second of silence is transcribed (a fraction of a cent on your account).
 - **Image generation:** no image is generated, since that would cost money on every save. markoto checks your key against the provider's model list instead.
 

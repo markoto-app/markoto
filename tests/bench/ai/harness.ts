@@ -47,11 +47,14 @@ export const MAX_TURNS = 20
 /** `AI_SESSION_HARD_DEADLINE_MS` (server/utils/agentic/sessions/sessionSetup.ts), 5 minutes. */
 export const SESSION_DEADLINE_SECONDS = 300
 
-/** The hosted free tier's providers: GLM-5.3 Flash chat with vision, no image or transcription default. */
+const HOSTED_WORKER = { capability: 'chat', source: 'instance', model: 'markoto-worker', credentials: null, supportsVision: false } as const
+
+/** The hosted free tier's providers: GLM-5.3 Flash chat with vision, the Ministral worker, no image or transcription default. */
 export const HOSTED_FREE_PROVIDERS: ResolvedAiProviders = {
   chat: { capability: 'chat', source: 'instance', model: 'zai-glm-5-3-flash', credentials: null, supportsVision: true },
   image: null,
-  transcription: null
+  transcription: null,
+  worker: { fast: HOSTED_WORKER, strong: HOSTED_WORKER }
 }
 
 export function tokens(chars: number): number {
@@ -307,6 +310,8 @@ export interface RunTaskOptions {
   runAgenticLoop: typeof runAgenticLoop
   document: string
   systemPrompt: string
+  /** Per-document blocks that open the first user message (`assemblePromptContext`). */
+  promptContext: string
   /** Builds the first user message from the prompt (editor-state wrapping). */
   wrapPrompt: (prompt: string) => string
 }
@@ -338,6 +343,7 @@ export async function runTask(task: BenchTask, opts: RunTaskOptions): Promise<Ta
     ai: model.ai,
     model: 'zai-glm-5-3-flash',
     systemPrompt: opts.systemPrompt,
+    promptContext: opts.promptContext,
     initialPrompt: opts.wrapPrompt(task.prompt),
     aiSession: session,
     sessionId: `bench-${task.id}`,

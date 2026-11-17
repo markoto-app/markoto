@@ -44,7 +44,7 @@ function row(userId: number, over: Partial<AiProviderUpsert> = {}): AiProviderUp
 
 const DEFAULT_ENV_KEYS = [
   'NUXT_AI_DEFAULT_CHAT_MODEL', 'NUXT_AI_DEFAULT_CHAT_BASE_URL', 'NUXT_AI_DEFAULT_CHAT_API_KEY',
-  'NUXT_AI_DEFAULT_IMAGE_MODEL', 'NUXT_AI_DEFAULT_TRANSCRIBE_MODEL', 'MISTRAL_API_KEY'
+  'NUXT_AI_DEFAULT_IMAGE_MODEL', 'NUXT_AI_DEFAULT_TRANSCRIBE_MODEL', 'MISTRAL_API_KEY', 'NUXT_AI_DEFAULT_WORKER_MODEL'
 ]
 
 describe('user_ai_providers repo', () => {
@@ -113,7 +113,7 @@ describe('resolution order: own key → instance default → unavailable', () =>
   it('nothing configured → every capability unavailable', async () => {
     const u = await createUser()
     const p = await resolveAiProviders(asUser(u.id), 'free')
-    expect(p).toEqual({ chat: null, image: null, transcription: null })
+    expect(p).toEqual({ chat: null, image: null, transcription: null, worker: null })
     const a = availabilityFrom(p)
     expect(a.chat).toMatchObject({ available: false, source: 'none', platformBilled: false })
     expect(a.transcription.liveDictation).toBe(false)
@@ -125,6 +125,29 @@ describe('resolution order: own key → instance default → unavailable', () =>
     const p = await resolveAiProviders(asUser(u.id), 'free')
     expect(p.chat).toMatchObject({ source: 'instance', model: 'mistral-small-2603', credentials: null })
     expect(availabilityFrom(p).chat).toMatchObject({ available: true, source: 'instance', platformBilled: true })
+  })
+
+  it('a chat config\'s fast model becomes the worker on the same key; image rows never keep one', async () => {
+    vi.stubEnv('NUXT_AI_DEFAULT_WORKER_MODEL', 'markoto-worker')
+    const u = await createUser()
+    await upsertAiProvider(asUser(u.id), row(u.id, { fastModel: 'ministral-8b-2512' }))
+    const p = await resolveAiProviders(asUser(u.id), 'free')
+    // The user's own key: never the platform worker alias.
+    expect(p.worker?.fast).toMatchObject({ source: 'user', model: 'ministral-8b-2512', credentials: { baseUrl: 'https://api.mistral.ai/v1', apiKey: SECRET } })
+    expect(p.worker?.strong).toEqual(p.chat)
+    const chatRow = await getAiProvider(asUser(u.id), 'chat')
+    expect(chatRow && toProviderView(chatRow).fastModel).toBe('ministral-8b-2512')
+
+    const image = await upsertAiProvider(asUser(u.id), row(u.id, { capability: 'image', model: 'gpt-image-1', baseUrl: 'https://api.openai.com/v1', fastModel: 'x' }))
+    expect(image.fastModel).toBeNull()
+  })
+
+  it('without an own chat key the worker is the instance worker alias', async () => {
+    vi.stubEnv('NUXT_AI_DEFAULT_CHAT_MODEL', 'zai-glm-5-3-flash')
+    vi.stubEnv('NUXT_AI_DEFAULT_WORKER_MODEL', 'markoto-worker')
+    const u = await createUser()
+    const p = await resolveAiProviders(asUser(u.id), 'free')
+    expect(p.worker?.fast).toMatchObject({ source: 'instance', model: 'markoto-worker', credentials: null })
   })
 
   it('a platform-paid image alias with a known price reports what one image costs', async () => {

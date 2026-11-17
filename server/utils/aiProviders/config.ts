@@ -7,6 +7,11 @@
 //   NUXT_AI_DEFAULT_CHAT_MODEL / _BASE_URL / _API_KEY / _VISION
 //   NUXT_AI_DEFAULT_IMAGE_MODEL / _BASE_URL / _API_KEY
 //   NUXT_AI_DEFAULT_TRANSCRIBE_MODEL / _BASE_URL / _API_KEY
+//   NUXT_AI_DEFAULT_WORKER_MODEL / _BASE_URL / _API_KEY   (+ _STRONG_MODEL)
+//
+// The worker is not a capability a user configures on its own: it is
+// the chat provider's "Fast model" for BYOK users, else this default,
+// else the chat default (see `resolveWorkerProviders` in resolve.ts).
 //
 // Semantics per capability:
 //   - MODEL unset                → no instance default.
@@ -41,17 +46,38 @@ export interface InstanceDefault {
   supportsVision: boolean
 }
 
-function configured(capability: AiCapability, source: RawEnv | undefined): { model: string, baseUrl?: string, apiKey?: string, vision: boolean } {
+/** An instance default slot: a user-configurable capability, or the worker model. */
+type InstanceDefaultSlot = AiCapability | 'worker'
+
+function configured(capability: InstanceDefaultSlot, source: RawEnv | undefined): { model: string, baseUrl?: string, apiKey?: string, vision: boolean } {
   const { ai } = useEnv(source)
   switch (capability) {
     case 'chat': return { model: ai.chatModel, baseUrl: ai.chatBaseUrl, apiKey: ai.chatApiKey, vision: ai.chatVision }
     case 'image': return { model: ai.imageModel, baseUrl: ai.imageBaseUrl, apiKey: ai.imageApiKey, vision: false }
     case 'transcription': return { model: ai.transcribeModel, baseUrl: ai.transcribeBaseUrl, apiKey: ai.transcribeApiKey, vision: false }
+    case 'worker': return { model: ai.workerModel, baseUrl: ai.workerBaseUrl, apiKey: ai.workerApiKey, vision: false }
   }
 }
 
 export function readInstanceDefault(capability: AiCapability, source?: RawEnv): InstanceDefault | null {
-  const { model, baseUrl: baseUrlRaw, apiKey, vision } = configured(capability, source)
+  return readSlot(capability, capability, source)
+}
+
+/**
+ * The operator's worker model (`NUXT_AI_DEFAULT_WORKER_*`), or null. It is
+ * a chat-completions model, so the result carries capability `chat`.
+ */
+export function readWorkerDefault(source?: RawEnv): InstanceDefault | null {
+  return readSlot('worker', 'chat', source)
+}
+
+/** The stronger worker alias (`NUXT_AI_DEFAULT_WORKER_STRONG_MODEL`), or null. */
+export function workerStrongModel(source?: RawEnv): string | null {
+  return useEnv(source).ai.workerStrongModel || null
+}
+
+function readSlot(slot: InstanceDefaultSlot, capability: AiCapability, source: RawEnv | undefined): InstanceDefault | null {
+  const { model, baseUrl: baseUrlRaw, apiKey, vision } = configured(slot, source)
   if (!model) return null
   // Vision defaults ON for chat (the bundled Mistral Small alias has it);
   // an operator pointing at a text-only model sets `_VISION=false`.

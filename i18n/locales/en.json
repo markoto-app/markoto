@@ -2193,6 +2193,8 @@
       "baseUrlHint": "The provider's OpenAI-compatible API root, usually ending in /v1.",
       "model": "Model",
       "modelPlaceholder": "The provider's model id",
+      "fastModel": "Fast model (optional)",
+      "fastModelHint": "A cheaper, faster model on the same provider and key, used for large delegated edits and web summaries. Empty = the model above.",
       "suggestions": "Suggested models: {list}",
       "apiKey": "API key",
       "apiKeyKeep": "Leave empty to keep the saved key. Required when you change the URL.",
@@ -3132,6 +3134,8 @@
       "image-gen": "Image generation",
       "embeddings": "Knowledge embeddings",
       "design-import": "Design from a document",
+      "delegate-rewrite": "Delegated rewrites",
+      "utility": "Web tool summaries",
       "other": "Other"
     },
     "investor": {

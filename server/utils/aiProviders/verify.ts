@@ -6,6 +6,9 @@ import { z } from 'zod'
 //     through LiteLLM's `byok/*` deployment, the exact path real agent
 //     calls take. A tool call back = OK. A plain-text answer = saved with
 //     a `no-tool-support` warning (the agent needs tool calling).
+//   - chat "Fast model" (the worker model on the same endpoint and key):
+//     a plain completion of a few tokens, no tools (the worker rewrites
+//     text, it never calls tools). Any answer = OK.
 //   - transcription: a 0.5 s silent WAV through LiteLLM's
 //     `/audio/transcriptions` (same path as the voice prompt). Costs a
 //     fraction of a cent on the user's account; proves auth + model.
@@ -98,6 +101,27 @@ async function verifyChat(provider: ResolvedAiProvider, virtualKey: string, apiK
       supportsTools: false,
       message: 'Connected, but the model answered without calling the test tool. The writing agent needs tool calling and may not work with this model.'
     }
+  } catch (e) {
+    return failure(e, apiKey)
+  }
+}
+
+/**
+ * Probe the chat provider's optional fast model: the candidate carries the
+ * chat provider's base URL and key with the fast model's id, so it passes
+ * the same SSRF policy (`providerRequestFields`) as every real call.
+ */
+export async function verifyFastModel(provider: ResolvedAiProvider, virtualKey: string): Promise<VerifyResult> {
+  const apiKey = provider.credentials?.apiKey ?? ''
+  try {
+    const fields = await providerRequestFields(provider)
+    await litellmCompletion(useLitellmForUser(virtualKey), {
+      ...fields,
+      messages: [{ role: 'user', content: 'Reply with the word ok.' }],
+      temperature: 0,
+      max_tokens: 8
+    })
+    return { code: 'ok', ok: true, supportsTools: null, message: 'Connected. The fast model answers.' }
   } catch (e) {
     return failure(e, apiKey)
   }

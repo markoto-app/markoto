@@ -78,6 +78,12 @@ export interface AiProviderConfigView {
   /** Host of `baseUrl`, for display ("api.mistral.ai"). */
   host: string
   model: string
+  /**
+   * Chat only: an optional second model on the same endpoint and key,
+   * used for large delegated edits and web-tool synthesis. Null = the
+   * chat model does that work too.
+   */
+  fastModel: string | null
   /** Last four characters of the API key, for recognition only. */
   apiKeyLast4: string
   supportsVision: boolean

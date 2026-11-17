@@ -42,7 +42,11 @@ export const FEATURE_TAGS = {
   imageGen: 'feature:image-gen',
   embeddings: 'feature:embeddings',
   // "Create a design from a document" (vision model, theme panel)
-  designImport: 'feature:design-import'
+  designImport: 'feature:design-import',
+  // Worker-model calls of a delegated rewrite job (per-section units)
+  delegateRewrite: 'feature:delegate-rewrite',
+  // Worker-model utility sub-calls (fetch_url extraction, web_search synthesis)
+  utility: 'feature:utility'
 } as const
 
 export type FeatureTag = typeof FEATURE_TAGS[keyof typeof FEATURE_TAGS]

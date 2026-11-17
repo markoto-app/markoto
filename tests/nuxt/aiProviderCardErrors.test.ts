@@ -21,6 +21,7 @@ const CONFIG: AiProviderConfigView = {
   baseUrl: 'https://api.mistral.ai/v1',
   host: 'api.mistral.ai',
   model: 'mistral-small-latest',
+  fastModel: null,
   apiKeyLast4: 'abcd',
   supportsVision: false,
   supportsTools: null,

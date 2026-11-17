@@ -2193,6 +2193,8 @@
       "baseUrlHint": "プロバイダーの OpenAI 互換 API のルート。通常は /v1 で終わります。",
       "model": "モデル",
       "modelPlaceholder": "プロバイダーのモデル ID",
+      "fastModel": "高速モデル（任意）",
+      "fastModelHint": "同じプロバイダーとキーで使う、安くて速いモデル。大きな委任編集と Web 要約に使います。空欄 = 上のモデル。",
       "suggestions": "おすすめのモデル：{list}",
       "apiKey": "API キー",
       "apiKeyKeep": "空欄のままにすると保存済みのキーを使い続けます。URL を変更する場合は必須です。",
@@ -3132,6 +3134,8 @@
       "image-gen": "画像生成",
       "embeddings": "ナレッジの埋め込み",
       "design-import": "ドキュメントからデザイン",
+      "delegate-rewrite": "委任された書き換え",
+      "utility": "Web要約",
       "other": "その他"
     },
     "investor": {

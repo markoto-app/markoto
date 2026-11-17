@@ -2193,6 +2193,8 @@
       "baseUrlHint": "La raíz de la API compatible con OpenAI del proveedor, que suele terminar en /v1.",
       "model": "Modelo",
       "modelPlaceholder": "El identificador del modelo en el proveedor",
+      "fastModel": "Modelo rápido (opcional)",
+      "fastModelHint": "Un modelo más barato y rápido del mismo proveedor y con la misma clave, para ediciones delegadas grandes y resúmenes web. Vacío = el modelo de arriba.",
       "suggestions": "Modelos sugeridos: {list}",
       "apiKey": "Clave de API",
       "apiKeyKeep": "Déjalo vacío para conservar la clave guardada. Es obligatoria si cambias la URL.",
@@ -3132,6 +3134,8 @@
       "image-gen": "Generación de imágenes",
       "embeddings": "Embeddings de conocimiento",
       "design-import": "Diseño a partir de un documento",
+      "delegate-rewrite": "Reescrituras delegadas",
+      "utility": "Resúmenes web",
       "other": "Otros"
     },
     "investor": {

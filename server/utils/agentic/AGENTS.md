@@ -31,7 +31,7 @@ How the loop works and how to add a tool: `docs/contributing/ai-tools.md`. MCP d
 - Keep `temperature: 0` on the loop call (`loop/providerStream.ts`); higher values make tool choice drift.
 - Do not tell the model "every turn must call a tool". A reply without a tool call is how a session ends; that wording made it edit until `MAX_TURNS`.
 - Everything the user should read goes through a tool (`message_to_user`, `reply_to_comment`). There is no chat surface for prose.
-- Keep the prompt prefix byte-stable for caching (`promptAssembly.ts`): static system prompt and tools first, per-prompt context in the first user message, history append-only, tool-call arguments replayed verbatim.
+- Keep the prompt prefix byte-stable for caching (`promptAssembly.ts`): the system message is the static prompt alone, so it and the tools are identical for every user and document; per-document blocks, then per-prompt context open the first user message; history append-only, tool-call arguments replayed verbatim.
 - Runaway caps: `SESSION_INTERACTION_CAP` (`limits.ts`) aborts the session, a tool's `sessionCallCap` returns a tool error. Give a new cost-bearing tool a per-session cap.
 - The session sweeper threshold (`server/plugins/ai-session-sweep.ts`, 7 min) must stay above the session deadline (5 min, `AI_SESSION_HARD_DEADLINE_MS`, armed in `sessions/sessionSetup.ts`).
 - Comment bodies are plain text: AI-written comments go through `plainCommentText`, and outgoing `@ai` is stripped so the AI cannot trigger itself. Server and client use the same `@ai` regex (`commentTriggerPrompt.ts`).

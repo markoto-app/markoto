@@ -4,7 +4,8 @@ import type { AppEnv } from '../namespaces'
 const CAPABILITIES = [
   { prefix: 'NUXT_AI_DEFAULT_CHAT', what: 'chat', pick: (e: AppEnv) => [e.ai.chatModel, e.ai.chatBaseUrl, e.ai.chatApiKey] },
   { prefix: 'NUXT_AI_DEFAULT_IMAGE', what: 'image', pick: (e: AppEnv) => [e.ai.imageModel, e.ai.imageBaseUrl, e.ai.imageApiKey] },
-  { prefix: 'NUXT_AI_DEFAULT_TRANSCRIBE', what: 'transcription', pick: (e: AppEnv) => [e.ai.transcribeModel, e.ai.transcribeBaseUrl, e.ai.transcribeApiKey] }
+  { prefix: 'NUXT_AI_DEFAULT_TRANSCRIBE', what: 'transcription', pick: (e: AppEnv) => [e.ai.transcribeModel, e.ai.transcribeBaseUrl, e.ai.transcribeApiKey] },
+  { prefix: 'NUXT_AI_DEFAULT_WORKER', what: 'worker', pick: (e: AppEnv) => [e.ai.workerModel, e.ai.workerBaseUrl, e.ai.workerApiKey] }
 ] as const
 
 export const aiRules: Rule<AppEnv>[] = [

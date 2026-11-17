@@ -4,6 +4,8 @@ import { fetchUrl } from '../../ai/tools/fetchUrl'
 import { isWebToolBudgetRefusal } from '../../ai/webToolCharge'
 import { logAiTool } from './toolActivity'
 import type { LoopContext } from './loopContext'
+import type { FetchUrlRequest } from '../../ai/tools/fetchUrl'
+import { workerProviderFor } from '../../aiProviders/resolve'
 
 /**
  * web_search and fetch_url share the same shape: 2-call (Jina then
@@ -22,10 +24,11 @@ export async function runSubCall(
     attributedTo: ctx.opts.billingContext.attributedTo,
     // The per-call charge (Staan / Jina, priced into the AI budget) and the
     // synthesis sub-call authenticate with the caller's virtual key (never
-    // the master key). The synthesis runs on the session's chat provider,
-    // the user's own key under BYOK.
+    // the master key). The synthesis runs on the session's worker model,
+    // the user's own key (and fast model, if set) under BYOK.
     virtualKey: ctx.opts.billingContext.virtualKey,
-    chatProvider: ctx.opts.aiSession.aiProviders.chat
+    chatProvider: ctx.opts.aiSession.aiProviders.chat,
+    workerProvider: workerProviderFor(ctx.opts.aiSession.aiProviders, 'utility')
   }
 
   try {
@@ -43,8 +46,8 @@ export async function runSubCall(
       })
       return { content: out.text + webSearchCitationReminder(out.sources), isError: false }
     }
-    const { url } = validatedArgs as { url: string }
-    const out = await fetchUrl(ctx.opts.ai, ctx.opts.model, url, ctx.opts.abortController.signal, subCallContext)
+    const { url, question, mode, page } = validatedArgs as { url: string } & FetchUrlRequest
+    const out = await fetchUrl(ctx.opts.ai, ctx.opts.model, url, ctx.opts.abortController.signal, subCallContext, { question, mode, page })
     void logAiTool(ctx.opts.aiSession.docAccess, ctx.opts.aiSession.sessionId, {
       kind: 'ai.tool',
       tool: 'fetch_url',

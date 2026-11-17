@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { generateLargeDocument, LARGE_DOC_TITLE } from '../../fixtures/largeDocument/generate'
-import { assemblePromptSystemPrompt, PROMPT_SYSTEM_PROMPT } from '../../../server/utils/agentic/promptAssembly'
+import { assemblePromptContext, PROMPT_SYSTEM_PROMPT } from '../../../server/utils/agentic/promptAssembly'
 import { buildDocumentContext } from '../../../server/utils/agentic/documentContextPrompt'
 import { validateEditorSelection, wrapPromptWithEditorState } from '../../../server/utils/agentic/editorStatePrompt'
 import { ALL_TOOL_DECLARATIONS, filterToolsForProviders } from '../../../server/utils/ai/tools/registry'
@@ -32,7 +32,8 @@ const ENABLED = process.env.AI_BENCH === '1'
 const RESULTS_DIR = fileURLToPath(new URL('./results/', import.meta.url))
 
 const document = generateLargeDocument()
-const systemPrompt = assemblePromptSystemPrompt(PROMPT_SYSTEM_PROMPT, {
+const systemPrompt = PROMPT_SYSTEM_PROMPT
+const promptContext = assemblePromptContext({
   documentContextBlock: buildDocumentContext({ title: LARGE_DOC_TITLE, description: '', audience: 'technical', language: 'de-CH' }),
   knowledgeBlock: '',
   membersBlock: ''
@@ -50,7 +51,7 @@ describe.skipIf(!ENABLED)('AI loop benchmark (scripted planner, large document)'
 
   for (const task of BASELINE_TASKS) {
     it(`${task.id} (${task.variant})`, async () => {
-      const result = await runTask(task, { runAgenticLoop, document, systemPrompt, wrapPrompt })
+      const result = await runTask(task, { runAgenticLoop, document, systemPrompt, promptContext, wrapPrompt })
       results.push(result)
       expect(result.modelCalls).toBeGreaterThan(0)
       // A finished script must have edited the document as intended.

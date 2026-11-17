@@ -51,7 +51,7 @@ function ctx(overrides: Record<string, unknown> = {}) {
     plan: 'free',
     periodStart: new Date(),
     virtualKey: 'sk-virtual',
-    aiProviders: { chat: null, image: { capability: 'image', source: 'instance', model: 'flux-3-image-klein', credentials: null, supportsVision: false }, transcription: null },
+    aiProviders: { chat: null, image: { capability: 'image', source: 'instance', model: 'flux-3-image-klein', credentials: null, supportsVision: false }, transcription: null, worker: null },
     updateStatus: vi.fn(),
     ...overrides
   } as unknown as MetaToolContext

@@ -86,6 +86,9 @@ export const aiSessionMessages = pgTable('ai_session_messages', {
 //     AND re-validated on every request (DNS can change).
 //   - `supports_tools` / `last_verified_at` record the last verification
 //     probe (chat: a tool-call round trip at temperature 0).
+//   - `fast_model` (chat only): an optional second model id on the same
+//     base URL + key, the worker model for large delegated edits and the
+//     fetch_url / web_search synthesis. Null = the chat model.
 //   - CASCADE on the user FK: account deletion removes the rows.
 export const userAiProviders = pgTable('user_ai_providers', {
   id: serial('id').primaryKey(),
@@ -93,6 +96,7 @@ export const userAiProviders = pgTable('user_ai_providers', {
   capability: text('capability', { enum: ['chat', 'image', 'transcription'] }).notNull(),
   baseUrl: text('base_url').notNull(),
   model: text('model').notNull(),
+  fastModel: text('fast_model'),
   apiKeyEncrypted: text('api_key_encrypted').notNull(),
   apiKeyLast4: text('api_key_last4').notNull(),
   supportsVision: boolean('supports_vision').notNull().default(false),
