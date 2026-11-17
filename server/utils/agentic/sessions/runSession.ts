@@ -28,6 +28,8 @@ export interface AgentSessionSpec {
   workspace: SessionWorkspace
   session: OpenedSession
   systemPrompt: string
+  /** Per-document / per-workspace blocks that open the first user message. */
+  promptContext?: string
   /** The first user message (the prompt / seed, wrapped with the editor state). */
   initialPrompt: string
   /** Per-prompt context (conversation memory) that opens the first user message. */
@@ -111,6 +113,7 @@ export async function runAgentSession(spec: AgentSessionSpec): Promise<void> {
       model: '',
       systemPrompt: spec.systemPrompt,
       initialPrompt: spec.initialPrompt,
+      promptContext: spec.promptContext,
       promptPreamble: spec.promptPreamble,
       toolDeclarations: spec.toolDeclarations,
       thinkingBudget: 0,

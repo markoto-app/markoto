@@ -28,7 +28,7 @@ export const AUDIENCES = {
   marketing: {
     label: 'audiences.marketing.label',
     description: 'audiences.marketing.description',
-    promptFragment: `Write for prospective customers and search engines. Lead with the value proposition. Use scannable structure: short paragraphs, bulleted lists, descriptive H2/H3 headings that contain natural keywords. Concrete benefits over abstract features ("save 4 hours per week" not "boost productivity"). Active voice. End sections with a clear next step.`
+    promptFragment: `Write for prospective customers and search engines. Lead with the value proposition. Use scannable structure: short paragraphs, lists for parallel items, descriptive H2/H3 headings that contain natural keywords. Concrete benefits over abstract features ("save 4 hours per week" not "boost productivity"). Active voice. End sections with a clear next step.`
   },
   academic: {
     label: 'audiences.academic.label',
@@ -43,12 +43,12 @@ export const AUDIENCES = {
   business: {
     label: 'audiences.business.label',
     description: 'audiences.business.description',
-    promptFragment: `Write for time-pressed business readers. Open with the bottom line: what, why, what's needed. Use BLUF structure. Quantify wherever possible: numbers, percentages, dates. Bullet lists for parallel items. Avoid technical jargon unless the audience is technical-business. Action items belong at the end of each section.`
+    promptFragment: `Write for time-pressed business readers. Open with the bottom line: what, why, what's needed. Use BLUF structure. Quantify wherever possible: numbers, percentages, dates. Lists for parallel items. Avoid technical jargon unless the audience is technical-business. Action items belong at the end of each section.`
   },
   creative: {
     label: 'audiences.creative.label',
     description: 'audiences.creative.description',
-    promptFragment: `Write with literary care. Show, don't tell. Vary sentence rhythm. Sensory detail over abstract description. Strong verbs over modified weak ones. Trust the reader. Avoid AI tells: no "in conclusion", no triple-adjective stacks, no symmetrical paragraph endings.`
+    promptFragment: `Write with literary care. Show, don't tell. Vary sentence rhythm. Sensory detail over abstract description. Strong verbs over modified weak ones. Trust the reader.`
   }
 } as const
 

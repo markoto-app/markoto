@@ -29,11 +29,17 @@ export interface RunLoopOptions {
   systemPrompt: string
   initialPrompt: string
   /**
-   * Per-prompt context (conversation memory) that OPENS the first user
-   * message, ahead of `initialPrompt`. Kept out of `systemPrompt` so the
-   * system message + tool definitions stay a cacheable prefix across
-   * prompts (see `promptAssembly.ts`). Not part of the image-provenance
-   * "seen" text: that stays what the user typed + the document.
+   * Per-document / per-workspace blocks (document context, knowledge files,
+   * members) that OPEN the first user message. Kept out of `systemPrompt` so
+   * the system message + tool definitions are one cacheable prefix for every
+   * user and document (see `promptAssembly.ts`).
+   */
+  promptContext?: string
+  /**
+   * Per-prompt context (conversation memory) that follows `promptContext`
+   * in the first user message, ahead of `initialPrompt`. Neither is part of
+   * the image-provenance "seen" text: that stays what the user typed + the
+   * document.
    */
   promptPreamble?: string
   aiSession: AiSession

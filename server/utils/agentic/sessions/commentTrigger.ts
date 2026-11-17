@@ -3,7 +3,7 @@ import { getDoc } from '../../../repos/documents'
 import type { DocAccess, UserScope } from '../../../repos/proofs'
 import { buildKnowledgeBlock, buildWorkspaceMembersBlock, withKnowledgeNote } from '../workspacePromptBlocks'
 import { buildCommentTriggerBlock, resolveCommentTrigger, COMMENT_TRIGGER_SYSTEM_PROMPT } from '../commentTriggerPrompt'
-import { assemblePromptSystemPrompt } from '../promptAssembly'
+import { assemblePromptContext } from '../promptAssembly'
 import { openTrustedCommentClient } from '../../documents/commentsServerClient'
 import { wrapPromptWithEditorState } from '../editorStatePrompt'
 import { EDITOR_SELECTION_TEXT_MAX } from '~~/shared/types/editorSelection'
@@ -22,9 +22,9 @@ const log = useLogger('ai-trigger')
 //      (`commentTriggerPrompt.ts`): instructs the model to end with
 //      reply_to_comment on the trigger thread, never to create_comment,
 //      never to resolve unless asked.
-//   2. The seed user-message is the `<comment_trigger>` block (the
-//      thread as quoted data) followed by the triggering message body
-//      with @ai mentions stripped.
+//   2. After the per-document blocks, the seed user-message is the
+//      `<comment_trigger>` block (the thread as quoted data) followed by
+//      the triggering message body with @ai mentions stripped.
 //   3. Awareness `aiSession` includes a `commentThreadId` so all
 //      clients can render a per-thread "AI is working" indicator.
 
@@ -46,9 +46,11 @@ export async function startCommentTrigger(event: H3Event, request: CommentTrigge
   const wsCtx = await resolveSessionWorkspace(doc?.workspaceId ?? null, userId)
   const triggerCtx = await peekTriggerThread(docId, userId, commentId, request.replyId)
   // The thread is written by whoever commented: it goes into the USER
-  // message as quoted data, never into the system prompt.
+  // message as quoted data, never into the system prompt. It follows the
+  // per-document blocks (`promptContext`), which stay a cacheable prefix
+  // across triggers on this document.
   const wrappedSeedPrompt = triggerCtx.block + '\n' + wrapSeedWithEditorState(triggerCtx.seedPrompt, triggerCtx.thread)
-  const systemPrompt = buildTriggerSystemPrompt(doc, wsCtx)
+  const promptContext = buildTriggerPromptContext(doc, wsCtx)
 
   // The (stripped) seed prompt goes to the initiator's channel; the trigger
   // thread id rides on awareness so the client can render a per-thread
@@ -71,7 +73,8 @@ export async function startCommentTrigger(event: H3Event, request: CommentTrigge
     self,
     workspace: wsCtx,
     session,
-    systemPrompt,
+    systemPrompt: COMMENT_TRIGGER_SYSTEM_PROMPT,
+    promptContext,
     initialPrompt: withKnowledgeNote(wrappedSeedPrompt, wsCtx.exposeKnowledgeTools),
     // The triggering message is the caller's own (checked in
     // `peekTriggerThread`); the rest of the thread may not be.
@@ -159,17 +162,14 @@ function wrapSeedWithEditorState(seedPrompt: string, thread: TriggerCtx['thread'
 }
 
 /**
- * Same shape as the editor prompt's system prompt but uses the
- * comment-trigger flavour SYSTEM_PROMPT (banishes create_comment,
- * forces reply_to_comment ending). The per-thread block is NOT part of
- * it: it rides in the user message as quoted data.
+ * The per-document / per-workspace blocks that open the first user
+ * message, as in an editor prompt. The system message is the static
+ * comment-trigger prompt alone (identical for every trigger session); see
+ * `agentic/promptAssembly.ts`.
  */
-function buildTriggerSystemPrompt(doc: Awaited<ReturnType<typeof getDoc>>, ws: SessionWorkspace): string {
+function buildTriggerPromptContext(doc: Awaited<ReturnType<typeof getDoc>>, ws: SessionWorkspace): string {
   const documentContextBlock = documentContextBlockFor(doc)
   const knowledgeBlock = ws.exposeKnowledgeTools ? buildKnowledgeBlock(ws.knowledgeFiles) : ''
   const membersBlock = buildWorkspaceMembersBlock(ws.members)
-  // Static prompt FIRST (identical for every trigger session), per-doc /
-  // per-workspace context after it, so the cacheable prefix is shared; see
-  // `agentic/promptAssembly.ts`.
-  return assemblePromptSystemPrompt(COMMENT_TRIGGER_SYSTEM_PROMPT, { documentContextBlock, knowledgeBlock, membersBlock })
+  return assemblePromptContext({ documentContextBlock, knowledgeBlock, membersBlock })
 }

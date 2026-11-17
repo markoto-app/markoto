@@ -39,7 +39,7 @@ Inline:
   Clickable image: [![alt](cat.jpg)](https://target.com): wraps the figure's image in an anchor.
 
 Typography (auto: don't fight it):
-  --  becomes  –  (en-dash),  ---  becomes  \u2014  (em-dash),  ...  becomes  …,  "x"/'x' become smart quotes.
+  --  becomes  –  (en-dash, for ranges such as 2019--2024),  ...  becomes  …,  "x"/'x' become smart quotes.
   A single newline inside a paragraph becomes a <br>. Use a blank line for a real paragraph break.
 
 Headings: #, ##, …, ######. Every heading auto-gets a slug \`id\`.

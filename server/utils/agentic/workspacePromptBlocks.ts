@@ -1,7 +1,7 @@
 import type { KnowledgeBrief } from '../../repos/knowledge'
 import { quoteInline } from './untrustedText'
 
-// System-prompt blocks shared by `/api/ai/prompt` and the `@ai`
+// Prompt blocks shared by `/api/ai/prompt` and the `@ai`
 // comment trigger. Filenames and member names are chosen by other
 // workspace members, so they are quoted data (`quoteInline`), capped,
 // and the member list is bounded.
@@ -53,14 +53,14 @@ export function buildKnowledgeBlock(files: ReadonlyArray<Pick<KnowledgeBrief, 'k
 
 /**
  * Reminder appended to the user's request when knowledge files are
- * offered. The system-prompt rule alone left Mistral Small skipping the
+ * offered. The rule in the block alone left Mistral Small skipping the
  * search (it read the document and wrote invented figures) whenever the
  * editor state was in the prompt; next to the request it searches every
  * time, and requests that need no facts (a title, typos, a poem) still
  * don't search. Static text, so the cached prefix is unaffected.
  */
 export const KNOWLEDGE_REQUEST_NOTE
-  = '<knowledge_note>This workspace has knowledge files (listed in the system prompt). '
+  = '<knowledge_note>This workspace has knowledge files (listed in <knowledge_files> above). '
     + 'Call search_knowledge before writing any fact, figure, name or date the document does not already hold.</knowledge_note>'
 
 /** The request with the knowledge reminder when knowledge tools are offered. */
