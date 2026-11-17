@@ -47,6 +47,8 @@ export default defineApiHandler({
       isAdmin: await isAdminUser(user.id),
       email: status.email,
       locale: status.locale,
+      // The editor's first-run tour shows once per account (EditorTour.vue).
+      editorTourDone: status.editorTourDoneAt !== null,
       age: {
         confirmedAt: status.ageConfirmedAt?.toISOString() ?? null,
         confirmationRequired: legal && status.ageConfirmedAt === null

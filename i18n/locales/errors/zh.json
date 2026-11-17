@@ -24,8 +24,7 @@
       "sessions-revoke-rate-limited": "请求过于频繁。请稍候片刻后重试。"
     },
     "admin": {
-      "forbidden": "需要管理员权限。",
-      "spend-unavailable": "AI 用量服务返回了错误（{upstreamStatus}）。"
+      "forbidden": "需要管理员权限。"
     },
     "ai": {
       "abort-not-initiator": "只有发起此 markoto 会话的人才能停止它。",
@@ -95,6 +94,7 @@
       "no-subscription": "此工作区没有进行中的订阅。",
       "not-configured": "未配置计费。请联系支持。",
       "payment-failed": "付款失败，因此未做任何更改。",
+      "plan-cancelled": "此套餐已取消。请先撤销取消，再更改席位数。",
       "plan-change-failed": "无法更改套餐。未做任何更改；请重试。",
       "portal-failed": "无法打开账单门户。请重试。",
       "price-unavailable": "此套餐目前暂不出售。",

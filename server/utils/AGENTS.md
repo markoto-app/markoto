@@ -9,7 +9,7 @@ Server logic grouped by domain (`auth/`, `documents/`, `workspaces/`, `storage/`
 - Public upload endpoints read bodies with `readBodyWithLimit` (`platform/requestBodyLimit.ts`), not `readMultipartFormData`.
 - Calls to markitdown send `markitdownAuthHeaders()` (`platform/markitdownAuth.ts`); markitdown has its own secret, never `INTERNAL_API_SECRET`.
 - Email links use `emailLinkBaseUrl` (`platform/siteUrl.ts`), never the request Host or Origin.
-- `isOverallHealthy` (`platform/healthProbes.ts`) decides whether Traefik keeps the node. Never let S3 or the embeddings check gate it.
+- `isOverallHealthy` (`platform/healthProbes.ts`) decides whether Traefik keeps the node. Never let S3, the bucket CORS check or the embeddings check gate it.
 
 ## Storage and uploads
 

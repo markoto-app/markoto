@@ -135,10 +135,11 @@ jobs:
           NUXT_ALTCHA_HMAC_KEY: ${{ secrets.NUXT_ALTCHA_HMAC_KEY }}
           # App <-> markitdown converter shared secret (openssl rand -hex 32).
           NUXT_MARKITDOWN_API_SECRET: ${{ secrets.NUXT_MARKITDOWN_API_SECRET }}
-          # Instance admins promoted at sign-in. A secret rather than a
-          # variable: variables are printed in the job log, and these are
-          # people's email addresses.
-          NUXT_ADMIN_USER_EMAILS: ${{ secrets.NUXT_ADMIN_USER_EMAILS }}
+          # Instance admins promoted at sign-in. Not a credential, so it is
+          # read from the Environment's variable or its secret, whichever is
+          # set (the variable wins). A secret keeps the addresses out of the
+          # job log.
+          NUXT_ADMIN_USER_EMAILS: ${{ vars.NUXT_ADMIN_USER_EMAILS || secrets.NUXT_ADMIN_USER_EMAILS }}
           NUXT_PUBLISH_DOMAINS_TARGET: ${{ vars.NUXT_PUBLISH_DOMAINS_TARGET }}
           # Published pages' own hostname (pages.markoto.app on prod, its
           # staging twin on staging). Required: the app refuses to boot
@@ -520,6 +521,20 @@ jobs:
           PREV=$(ssh "${DEPLOY_USER}@${DEPLOY_HOST}" \
             'cat /opt/markoto/.last-deploy.prev 2>/dev/null || echo unknown')
           echo "tag=$PREV" >> "$GITHUB_OUTPUT"
+
+      # Warning only: a bucket without a CORS rule for the site breaks every
+      # browser upload while /api/health stays green (docs/S3-SETUP.md).
+      - name: Check bucket CORS (warning only)
+        if: steps.roll.outputs.status == 'succeeded'
+        env:
+          DOMAIN: ${{ vars.DOMAIN }}
+        run: |
+          if [ -z "${DOMAIN:-}" ]; then echo "DOMAIN is not set, skipping the CORS check"; exit 0; fi
+          cors=$(curl -fsS --max-time 10 "https://${DOMAIN}/api/status" | jq -r '.checks.s3Cors.status // "unknown"') || cors=unknown
+          echo "Bucket CORS check: ${cors}"
+          if [ "$cors" = "down" ]; then
+            echo "::warning title=S3 bucket CORS::The bucket has no CORS rule for https://${DOMAIN}; browser uploads fail. Apply the rule in docs/S3-SETUP.md; /api/health/deep names what is missing."
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0

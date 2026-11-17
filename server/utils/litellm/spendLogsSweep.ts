@@ -7,8 +7,8 @@ import { useLogger } from '../platform/logger'
 const log = useLogger('spend-logs-sweep')
 
 // LiteLLM `LiteLLM_SpendLogs` retention sweeper. Every billable AI call
-// writes a row, so the table grows linearly with traffic. /spend/tags aggregation reads it on every
-// admin-dashboard refresh, so unbounded growth eventually impacts
+// writes a row, so the table grows linearly with traffic. The admin spend dashboard reads it on every
+// refresh, so unbounded growth eventually impacts
 // dashboard responsiveness.
 //
 // 90-day retention matches the window we keep `processed_webhook_events`

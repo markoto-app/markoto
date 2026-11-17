@@ -14,6 +14,8 @@ Path gating lives in the `changes` job of `ci.yml` (`dorny/paths-filter`) and is
 
 The release flow, the required secrets and the branch rules are described in the operator runbook, kept outside this repository; the required checks are listed in `CONTRIBUTING.md`.
 
+`deploy.yml` renders the hosted `.env` from the `staging` / `prod` Environment: credentials come from its secrets, the rest from its variables. `NUXT_ADMIN_USER_EMAILS` (comma-separated, promoted to instance admin at their next sign-in with a verified address) is read from either: an Environment variable of that name, or else a secret of that name. A secret keeps the addresses out of the job log.
+
 ## How to iterate on these workflows
 
 Most workflow bugs only show up when GitHub runs the YAML against a real event payload. The feedback loop, from fastest to slowest:

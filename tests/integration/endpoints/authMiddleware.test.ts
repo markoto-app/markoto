@@ -46,7 +46,7 @@ describe('auth middleware whitelist', () => {
       // full component set a status page renders.
       expect(body.checks.postgres?.status).toBe('ok')
       expect(body.checks.valkey?.status).toBe('ok')
-      for (const key of ['postgres', 'valkey', 'sync', 's3', 'renderer', 'markitdown', 'litellm']) {
+      for (const key of ['postgres', 'valkey', 'sync', 's3', 's3Cors', 'renderer', 'markitdown', 'litellm']) {
         expect(body.checks[key]).toBeDefined()
         expect(['ok', 'down', 'skipped']).toContain(body.checks[key]!.status)
       }

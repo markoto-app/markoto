@@ -1,5 +1,4 @@
-import { getCachedProbeResults, isOverallHealthy, type ProbeResult } from '../utils/platform/healthProbes'
-import { useEnv } from '~~/shared/env/load'
+import { getCachedProbeResults, healthProbeUrlsFromEnv, isOverallHealthy, type ProbeResult } from '../utils/platform/healthProbes'
 
 // Public status endpoint for an external status page (e.g. a scheduled job that
 // polls this and publishes it). Reports EVERY component's up/down state
@@ -30,14 +29,7 @@ function pick(r: ProbeResult): StatusCheck {
 export default defineApiHandler({
   access: allow.public('Status board for an external status page; up/down and latency per component, no error strings'),
   handler: async () => {
-    const env = useEnv()
-    const results = await getCachedProbeResults({
-      syncUrl: env.sync.internalUrl,
-      rendererUrl: env.renderer.internalUrl,
-      markitdownUrl: env.markitdown.url,
-      litellmUrl: env.litellm.url,
-      s3Bucket: env.storage.bucket
-    })
+    const results = await getCachedProbeResults(healthProbeUrlsFromEnv())
 
     return {
       // `ok` when every GATING component is up (S3 is non-gating, see
@@ -49,6 +41,8 @@ export default defineApiHandler({
         valkey: pick(results.valkey),
         sync: pick(results.sync),
         s3: pick(results.s3),
+        // Bucket CORS for browser uploads; deploy.yml warns when it is down.
+        s3Cors: pick(results.s3Cors),
         renderer: pick(results.renderer),
         markitdown: pick(results.markitdown),
         litellm: pick(results.litellm)

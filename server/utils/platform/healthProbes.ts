@@ -7,10 +7,12 @@
 // sidecar (renderer, markitdown) must not flag the instance as degraded.
 // Sync, Postgres and Valkey are hard-required and never skipped.
 
-import { HeadBucketCommand } from '@aws-sdk/client-s3'
+import { GetBucketCorsCommand, HeadBucketCommand } from '@aws-sdk/client-s3'
 import { pingDatabase } from '../../repos/health'
 import { useValkey } from './valkey'
 import { useS3Client } from '../storage/s3'
+import { corsOriginToCheck, corsRulesProblem } from '../storage/bucketCors'
+import { useEnv } from '~~/shared/env/load'
 import { getKnowledgeEmbeddingsStatus } from '../knowledge/knowledgeEmbeddingsStatus'
 import { trimTrailingSlashes } from '../../../shared/utils/trimTrailingSlashes'
 import { scrubText } from '../../../shared/utils/security/sentryScrub'
@@ -97,6 +99,39 @@ export async function probeS3(bucket: string | undefined | null): Promise<ProbeR
   }
 }
 
+/** S3 error names meaning "this backend or key can't answer GetBucketCors", not "no rule". */
+const CORS_CHECK_UNSUPPORTED = new Set(['NotImplemented', 'MethodNotAllowed', 'AccessDenied', 'InvalidRequest'])
+
+export interface S3CorsTarget {
+  bucket?: string | null
+  /** NUXT_SITE_URL: the origin browsers upload from. */
+  siteUrl?: string | null
+  /** The S3 base URL browsers reach (NUXT_S3_PUBLIC_ENDPOINT, else NUXT_S3_ENDPOINT). */
+  browserEndpoint?: string | null
+}
+
+// The bucket's CORS rules cover uploads from the site's origin (see
+// `storage/bucketCors.ts`). Skipped when there is nothing to check (no
+// bucket or site URL, S3 under the site's own origin) and when the backend
+// or the access key can't answer GetBucketCors: a self-hosted store without
+// the call must not show as degraded.
+export async function probeS3Cors(target: S3CorsTarget): Promise<ProbeResult> {
+  const origin = corsOriginToCheck(target.siteUrl, target.browserEndpoint)
+  if (!target.bucket || !origin) return skipped()
+  const started = performance.now()
+  const latency = () => Math.round(performance.now() - started)
+  try {
+    const res = await withTimeout(useS3Client().send(new GetBucketCorsCommand({ Bucket: target.bucket })), PROBE_TIMEOUT_MS)
+    const problem = corsRulesProblem(res.CORSRules, origin)
+    return problem === null ? ok(latency()) : down(latency(), problem)
+  } catch (e) {
+    const name = e instanceof Error ? e.name : ''
+    if (name === 'NoSuchCORSConfiguration') return down(latency(), corsRulesProblem([], origin) ?? '')
+    if (CORS_CHECK_UNSUPPORTED.has(name)) return skipped()
+    return down(latency(), e instanceof Error ? e.message : String(e))
+  }
+}
+
 function errorMessage(e: unknown): string {
   if (!(e instanceof Error)) return String(e)
   return e.name === 'TimeoutError' ? 'timeout' : e.message
@@ -159,6 +194,24 @@ export interface HealthProbeUrls {
   markitdownUrl?: string | null
   litellmUrl?: string | null
   s3Bucket?: string | null
+  s3Cors?: S3CorsTarget
+}
+
+/** The probe targets of this instance, from its configuration. */
+export function healthProbeUrlsFromEnv(): HealthProbeUrls {
+  const env = useEnv()
+  return {
+    syncUrl: env.sync.internalUrl,
+    rendererUrl: env.renderer.internalUrl,
+    markitdownUrl: env.markitdown.url,
+    litellmUrl: env.litellm.url,
+    s3Bucket: env.storage.bucket,
+    s3Cors: {
+      bucket: env.storage.bucket,
+      siteUrl: env.core.siteUrl,
+      browserEndpoint: env.storage.publicEndpoint || env.storage.endpoint
+    }
+  }
 }
 
 export interface AllProbeResults {
@@ -166,6 +219,8 @@ export interface AllProbeResults {
   valkey: ProbeResult
   sync: ProbeResult
   s3: ProbeResult
+  /** Bucket CORS for browser uploads. Reported, never gating (like `s3`). */
+  s3Cors: ProbeResult
   renderer: ProbeResult
   markitdown: ProbeResult
   litellm: ProbeResult
@@ -180,7 +235,8 @@ export async function runAllProbes(urls: HealthProbeUrls): Promise<AllProbeResul
     probeS3(urls.s3Bucket),
     probeRenderer(urls.rendererUrl),
     probeMarkitdown(urls.markitdownUrl),
-    probeLitellm(urls.litellmUrl)
+    probeLitellm(urls.litellmUrl),
+    probeS3Cors(urls.s3Cors ?? {})
   ])
   const unwrap = (s: PromiseSettledResult<ProbeResult>): ProbeResult => {
     if (s.status === 'fulfilled') return s.value
@@ -191,6 +247,7 @@ export async function runAllProbes(urls: HealthProbeUrls): Promise<AllProbeResul
     valkey: unwrap(settled[1]),
     sync: unwrap(settled[2]),
     s3: unwrap(settled[3]),
+    s3Cors: unwrap(settled[7]),
     renderer: unwrap(settled[4]),
     markitdown: unwrap(settled[5]),
     litellm: unwrap(settled[6])
@@ -206,8 +263,9 @@ export function isOverallHealthy(results: AllProbeResults): boolean {
   // lives in Postgres). Traefik treats 503 as "pull this node", so on a
   // single instance an S3 outage would take the whole site down. S3 is still
   // reported in /api/status + /api/health/deep. Renderer, markitdown and
-  // litellm do gate.
-  const { s3: _s3, ...gating } = results
+  // litellm do gate. A missing bucket CORS rule breaks browser uploads only
+  // and is fixed on the bucket, not by a restart: reported, never gating.
+  const { s3: _s3, s3Cors: _s3Cors, ...gating } = results
   return Object.values(gating).every(r => r.status !== 'down')
 }
 
@@ -239,6 +297,7 @@ function projectChecks(results: AllProbeResults): Record<string, ProbeStatus> {
     valkey: results.valkey.status,
     sync: results.sync.status,
     s3: results.s3.status,
+    s3Cors: results.s3Cors.status,
     renderer: results.renderer.status,
     markitdown: results.markitdown.status,
     litellm: results.litellm.status

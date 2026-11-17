@@ -47,9 +47,6 @@ export const FEATURE_TAGS = {
 
 export type FeatureTag = typeof FEATURE_TAGS[keyof typeof FEATURE_TAGS]
 
-/** Prefix discriminators for the dashboard's "other" bucket logic. */
-export const TAG_NAMESPACES = ['feature:', 'workspace:', 'user:', 'doc:'] as const
-
 /** All known feature tag values, used by the admin dashboard so unknown
  *  feature tags surface as "other" rather than silently disappearing. */
 export const ALL_FEATURE_TAGS: FeatureTag[] = Object.values(FEATURE_TAGS)

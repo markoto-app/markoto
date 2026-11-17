@@ -1,5 +1,4 @@
-import { runAllProbes, isOverallHealthy, probeEmbeddings, type ProbeResult } from '../../utils/platform/healthProbes'
-import { useEnv } from '~~/shared/env/load'
+import { runAllProbes, isOverallHealthy, probeEmbeddings, healthProbeUrlsFromEnv, type ProbeResult } from '../../utils/platform/healthProbes'
 
 // Auth-gated deep healthcheck: the same probes as `/api/health` plus
 // per-component latencies and (when down) the underlying error string.
@@ -24,15 +23,8 @@ function pick(r: ProbeResult): DeepCheck {
 export default defineApiHandler({
   access: allow.admin(),
   handler: async ({ event }) => {
-    const env = useEnv()
     const embeddings = await probeEmbeddings()
-    const results = await runAllProbes({
-      syncUrl: env.sync.internalUrl,
-      rendererUrl: env.renderer.internalUrl,
-      markitdownUrl: env.markitdown.url,
-      litellmUrl: env.litellm.url,
-      s3Bucket: env.storage.bucket
-    })
+    const results = await runAllProbes(healthProbeUrlsFromEnv())
 
     const healthy = isOverallHealthy(results)
     setResponseStatus(event, healthy ? 200 : 503)
@@ -44,6 +36,10 @@ export default defineApiHandler({
         valkey: pick(results.valkey),
         sync: pick(results.sync),
         s3: pick(results.s3),
+        // Informational like `embeddings`: the bucket's CORS rules cover
+        // browser uploads from NUXT_SITE_URL (`skipped` when S3 shares the
+        // site's origin or the store can't answer GetBucketCors).
+        s3Cors: pick(results.s3Cors),
         renderer: pick(results.renderer),
         markitdown: pick(results.markitdown),
         litellm: pick(results.litellm),

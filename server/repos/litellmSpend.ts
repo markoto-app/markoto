@@ -27,39 +27,45 @@ export async function sumTeamSpend(teamId: string, from: Date, to: Date): Promis
   return Number(r.rows[0]?.spend ?? 0)
 }
 
-export interface FeatureSpendRow { feature_tag: string, spend: string, requests: string, total_tokens: string }
+/** One group of spend-log rows: a feature tag, or `null` for rows without one. bigint columns arrive as strings. */
+export interface FeatureSpendRow { feature_tag: string | null, spend: number | string, requests: number | string, total_tokens: number | string }
 
 /**
- * Spend per `feature:*` tag of the calls carrying `axisTag` (e.g.
- * `workspace:<id>`) between two dates (`to` inclusive). `?` tests JSONB
- * array membership; the `startTime` bound keeps it off all-time scans.
+ * Spend per `feature:*` tag between two dates (`to` inclusive), optionally
+ * only of the calls carrying `axisTag` (e.g. `workspace:<id>`; `?` tests
+ * JSONB array membership). Every spend-log row lands in exactly one group:
+ * its feature tag, or `null` when it has none. A call carries several tags
+ * (`user:`, `doc:`, `workspace:`, LiteLLM's own `User-Agent: ...`), so
+ * summing per tag would count one call several times. A row with two
+ * feature tags (no call site writes that) goes to the first in sort order.
  */
-export async function spendByFeatureForTag(_by: AdminActor, axisTag: string, from: string, to: string): Promise<FeatureSpendRow[]> {
+export async function spendByFeature(_by: AdminActor, window: { from: string, to: string, axisTag?: string }): Promise<FeatureSpendRow[]> {
+  const params = [window.from, window.to]
+  let axisFilter = ''
+  if (window.axisTag !== undefined) {
+    params.push(window.axisTag)
+    axisFilter = 'AND request_tags ? $3'
+  }
   const r = await useLitellmPool().query<FeatureSpendRow>(
     `
-    WITH matched AS (
-      SELECT spend, total_tokens, request_tags AS tags
-      FROM ${TABLE}
-      WHERE "startTime" >= $2::timestamp
-        AND "startTime" < ($3::date + INTERVAL '1 day')
-        AND request_tags ? $1
-    ),
-    feature_rows AS (
-      -- Unnest the tags; only feature-prefixed entries are kept below, so
-      -- the sibling axes (workspace, user, doc) drop out.
-      SELECT jsonb_array_elements_text(tags) AS feature_tag, spend, total_tokens
-      FROM matched
-    )
     SELECT
-      feature_tag,
-      SUM(spend)::float8 AS spend,
+      (
+        SELECT min(t.tag)
+        FROM jsonb_array_elements_text(
+          CASE WHEN jsonb_typeof(request_tags) = 'array' THEN request_tags ELSE '[]'::jsonb END
+        ) AS t(tag)
+        WHERE t.tag LIKE 'feature:%'
+      ) AS feature_tag,
+      coalesce(SUM(spend), 0)::float8 AS spend,
       COUNT(*)::bigint AS requests,
-      SUM(total_tokens)::bigint AS total_tokens
-    FROM feature_rows
-    WHERE feature_tag LIKE 'feature:%'
-    GROUP BY feature_tag
+      coalesce(SUM(total_tokens), 0)::bigint AS total_tokens
+    FROM ${TABLE}
+    WHERE "startTime" >= $1::timestamp
+      AND "startTime" < ($2::date + INTERVAL '1 day')
+      ${axisFilter}
+    GROUP BY 1
     `,
-    [axisTag, from, to]
+    params
   )
   return r.rows
 }
