@@ -62,6 +62,7 @@ describe('buildCollectPayload', () => {
     expect(referrerOrigin('https://markoto.app/pricing', 'markoto.app')).toBeUndefined()
     expect(referrerOrigin('android-app://com.google', 'markoto.app')).toBeUndefined()
     expect(referrerOrigin('', 'markoto.app')).toBeUndefined()
+    expect(referrerOrigin('not a url', 'markoto.app')).toBeUndefined()
   })
 })
 
@@ -138,5 +139,31 @@ describe('analytics client', () => {
     await new Promise(r => setTimeout(r, 0))
     const headers = (f.mock.calls[1] as [string, RequestInit])[1].headers as Record<string, string>
     expect(headers['x-umami-cache']).toBe('tok')
+  })
+
+  it('named events: empty data is left out, resolved click events pass through, errors are swallowed', async () => {
+    const f = ok()
+    const c = createAnalyticsClient(config, env(f, ''), false)
+    c.track('waitlist_submitted', {}, '/pricing')
+    c.trackResolved({ name: 'github_clicked', data: { placement: 'header' } }, '/')
+    await new Promise(r => setTimeout(r, 0))
+    const bodies = f.mock.calls.map(call => JSON.parse(String((call as [string, RequestInit])[1].body)) as { payload: Record<string, unknown> })
+    expect(bodies[0]!.payload.name).toBe('waitlist_submitted')
+    expect(bodies[0]!.payload.data).toBeUndefined()
+    expect(bodies[1]!.payload.data).toEqual({ placement: 'header' })
+    expect(c.attribution()).toEqual({ clickId: null, utm: {} })
+
+    const failing = vi.fn(async () => {
+      throw new Error('offline')
+    }) as unknown as typeof fetch
+    const broken = createAnalyticsClient(config, env(failing, ''), false)
+    expect(() => broken.pageview('/')).not.toThrow()
+    const rejected = vi.fn(async () => new Response('no', { status: 400 })) as unknown as typeof fetch & ReturnType<typeof vi.fn>
+    const c2 = createAnalyticsClient(config, env(rejected, ''), false)
+    c2.pageview('/')
+    await new Promise(r => setTimeout(r, 0))
+    c2.pageview('/pricing')
+    await new Promise(r => setTimeout(r, 0))
+    expect(((rejected.mock.calls[1] as [string, RequestInit])[1].headers as Record<string, string>)['x-umami-cache']).toBeUndefined()
   })
 })
