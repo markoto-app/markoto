@@ -1,0 +1,142 @@
+{
+  "version": 2,
+  "title": "Generate an image yourself",
+  "slug": "generate-an-image-yourself",
+  "locale": "en",
+  "variant": "light-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Generate an image yourself"
+    },
+    {
+      "kind": "narration",
+      "text": "You don't have to ask the assistant for a picture. Describe it yourself, pick a format, and markoto draws it with your image provider and puts it where your cursor is, stored with the document like an uploaded image.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/d/0GgWgwDMuQ"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Tap the Editor tab",
+      "cursor": {
+        "x": 32,
+        "y": 695
+      },
+      "path": "/d/0GgWgwDMuQ"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The Editor drawer slides up with Formatting, Headings, Lists and Insert.",
+      "cursor": {
+        "x": 32,
+        "y": 695
+      },
+      "path": "/d/0GgWgwDMuQ"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Tap \"AI image\"",
+      "cursor": null,
+      "path": "/d/0GgWgwDMuQ"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "The image dialog opens.",
+      "cursor": null,
+      "path": "/d/0GgWgwDMuQ"
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
+      "caption": "Describe the picture",
+      "cursor": {
+        "x": 54,
+        "y": 324
+      },
+      "path": "/d/0GgWgwDMuQ"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "Your description is ready.",
+      "cursor": {
+        "x": 54,
+        "y": 324
+      },
+      "path": "/d/0GgWgwDMuQ"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "caption": "Pick a format. The dialog says what one image costs before you generate it.",
+      "cursor": {
+        "x": 194,
+        "y": 428
+      },
+      "path": "/d/0GgWgwDMuQ",
+      "highlights": [
+        {
+          "label": "Cost",
+          "x": 40,
+          "y": 462,
+          "w": 128.171875,
+          "h": 16
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "09.webp",
+      "caption": "Click \"Generate\"",
+      "cursor": {
+        "x": 298,
+        "y": 506
+      },
+      "path": "/d/0GgWgwDMuQ"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "markoto draws the picture; this takes a few seconds.",
+      "cursor": {
+        "x": 298,
+        "y": 506
+      },
+      "path": "/d/0GgWgwDMuQ"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "The picture is in your document, right where the cursor was.",
+      "cursor": {
+        "x": 298,
+        "y": 506
+      },
+      "path": "/d/0GgWgwDMuQ",
+      "highlights": [
+        {
+          "label": "The image in your text",
+          "x": 16,
+          "y": 214.9375,
+          "w": 358,
+          "h": 81.5625
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "ask-the-ai-to-draw-an-image",
+    "why": "Or let the assistant pick and place the picture"
+  }
+}

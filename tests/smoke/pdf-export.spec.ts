@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { api, smokeDoc } from './_helpers'
+import { apiFetch, smokeDoc } from './_helpers'
 import { waitForSyncDebounce } from '../e2e/fixtures/waits'
 
 // The server-rendered PDF path (renderer sidecar → headless Chromium → paged.js) must not break on the
@@ -18,7 +18,7 @@ test('server-rendered PDF export succeeds for a mermaid doc', async ({ page }) =
   // batch window so the renderer sees the persisted state.
   await waitForSyncDebounce(page, 4_000)
 
-  const res = await fetch(api(`/api/docs/${docId}/pdf`), { signal: AbortSignal.timeout(120_000) })
+  const res = await apiFetch(`/api/docs/${docId}/pdf`, { signal: AbortSignal.timeout(120_000) })
   const bytes = new Uint8Array(await res.arrayBuffer())
   expect(res.status, `PDF → ${res.status}`).toBe(200)
   expect(res.headers.get('content-type') ?? '', 'PDF content-type').toContain('application/pdf')

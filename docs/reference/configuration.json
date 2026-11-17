@@ -5568,6 +5568,24 @@
       "deprecatedNames": []
     },
     {
+      "name": "EDGE_BASIC_AUTH_USERS",
+      "namespace": "deploy",
+      "key": "edgeBasicAuthUsers",
+      "type": "string",
+      "services": [
+        "compose"
+      ],
+      "names": {
+        "compose": "EDGE_BASIC_AUTH_USERS"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
       "name": "LITELLM_CONFIG_HASH",
       "namespace": "deploy",
       "key": "litellmConfigHash",

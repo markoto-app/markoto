@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test'
 import { EDITOR_TOUR_DONE, EDITOR_TOUR_STORAGE_KEY } from '../../app/utils/editor/editorTour'
+import { edgeCredentials } from './_helpers'
 
 // Staging/prod SMOKE suite: deliberately separate from the flow-docs
 // system (playwright.config.ts). Flows need TEST_MODE (login shim, AI
@@ -18,6 +19,9 @@ import { EDITOR_TOUR_DONE, EDITOR_TOUR_STORAGE_KEY } from '../../app/utils/edito
 // only on the touch/390px project (the drawer regression is mobile-only).
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://staging.markoto.app'
+// Staging sits behind an edge login (EDGE_BASIC_AUTH_USER / _PASSWORD);
+// the browser answers its challenge for the deployment's origin only.
+const EDGE_CREDENTIALS = edgeCredentials()
 
 export default defineConfig({
   testDir: '.',
@@ -39,8 +43,12 @@ export default defineConfig({
   reporter: process.env.CI ? [['github'], ['list']] : 'list',
   use: {
     baseURL: BASE_URL,
-    trace: 'on-first-retry',
-    video: 'off',
+    httpCredentials: EDGE_CREDENTIALS ? { ...EDGE_CREDENTIALS, origin: new URL(BASE_URL).origin } : undefined,
+    // Evidence for a failure that only shows on the deployed stack: the
+    // staging gate uploads test-results/ as an artifact when the run fails.
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
     // The editor's first-run tour counts as seen (app/utils/editor/editorTour.ts):
     // its popover would sit over the controls the specs click.
     storageState: {

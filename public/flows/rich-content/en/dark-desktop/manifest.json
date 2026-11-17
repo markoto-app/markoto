@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/JaHLmCkrBy"
+      "path": "/d/Hsz6o9uLC-"
     },
     {
       "kind": "chapter",
@@ -37,7 +37,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/JaHLmCkrBy"
+      "path": "/d/Hsz6o9uLC-"
     },
     {
       "kind": "approach",
@@ -47,7 +47,7 @@
         "x": 173,
         "y": 67
       },
-      "path": "/d/JaHLmCkrBy",
+      "path": "/d/Hsz6o9uLC-",
       "annotations": [
         {
           "label": "insert menu",
@@ -67,7 +67,7 @@
         "x": 173,
         "y": 67
       },
-      "path": "/d/JaHLmCkrBy"
+      "path": "/d/Hsz6o9uLC-"
     },
     {
       "kind": "approach",
@@ -75,9 +75,9 @@
       "caption": "Pick \"Code block\"",
       "cursor": {
         "x": 280,
-        "y": 214
+        "y": 246
       },
-      "path": "/d/JaHLmCkrBy"
+      "path": "/d/Hsz6o9uLC-"
     },
     {
       "kind": "outcome",
@@ -85,9 +85,9 @@
       "caption": "A fenced code block lands at the cursor, type a language hint after the opening backticks.",
       "cursor": {
         "x": 280,
-        "y": 214
+        "y": 246
       },
-      "path": "/d/JaHLmCkrBy"
+      "path": "/d/Hsz6o9uLC-"
     },
     {
       "kind": "chapter",
@@ -100,9 +100,9 @@
       "file": "06.webp",
       "cursor": {
         "x": 280,
-        "y": 214
+        "y": 246
       },
-      "path": "/d/JaHLmCkrBy"
+      "path": "/d/Hsz6o9uLC-"
     },
     {
       "kind": "approach",
@@ -112,7 +112,7 @@
         "x": 173,
         "y": 67
       },
-      "path": "/d/JaHLmCkrBy"
+      "path": "/d/Hsz6o9uLC-"
     },
     {
       "kind": "approach",
@@ -120,15 +120,15 @@
       "caption": "Hover \"Alert\" for the flavour submenu",
       "cursor": {
         "x": 280,
-        "y": 479
+        "y": 511
       },
-      "path": "/d/JaHLmCkrBy",
+      "path": "/d/Hsz6o9uLC-",
       "annotations": [
         {
           "label": "alert flavours",
           "kind": "arrow",
           "x": 149,
-          "y": 463,
+          "y": 495,
           "w": 263.5625,
           "h": 32
         }
@@ -140,9 +140,9 @@
       "caption": "Pick \"Tip\"",
       "cursor": {
         "x": 480,
-        "y": 511
+        "y": 543
       },
-      "path": "/d/JaHLmCkrBy"
+      "path": "/d/Hsz6o9uLC-"
     },
     {
       "kind": "outcome",
@@ -150,9 +150,9 @@
       "caption": "A Tip alert lands, type the body inside the blockquote.",
       "cursor": {
         "x": 480,
-        "y": 511
+        "y": 543
       },
-      "path": "/d/JaHLmCkrBy"
+      "path": "/d/Hsz6o9uLC-"
     },
     {
       "kind": "chapter",
@@ -165,9 +165,9 @@
       "file": "11.webp",
       "cursor": {
         "x": 480,
-        "y": 511
+        "y": 543
       },
-      "path": "/d/JaHLmCkrBy"
+      "path": "/d/Hsz6o9uLC-"
     },
     {
       "kind": "approach",
@@ -177,7 +177,7 @@
         "x": 173,
         "y": 67
       },
-      "path": "/d/JaHLmCkrBy"
+      "path": "/d/Hsz6o9uLC-"
     },
     {
       "kind": "approach",
@@ -185,9 +185,9 @@
       "caption": "Hover \"Math\" for the inline / block options",
       "cursor": {
         "x": 280,
-        "y": 511
+        "y": 543
       },
-      "path": "/d/JaHLmCkrBy"
+      "path": "/d/Hsz6o9uLC-"
     },
     {
       "kind": "approach",
@@ -195,9 +195,9 @@
       "caption": "Pick \"Block equation\"",
       "cursor": {
         "x": 489,
-        "y": 543
+        "y": 575
       },
-      "path": "/d/JaHLmCkrBy"
+      "path": "/d/Hsz6o9uLC-"
     },
     {
       "kind": "outcome",
@@ -205,9 +205,9 @@
       "caption": "A block equation placeholder lands, type the LaTeX inside the $$ fence.",
       "cursor": {
         "x": 489,
-        "y": 543
+        "y": 575
       },
-      "path": "/d/JaHLmCkrBy"
+      "path": "/d/Hsz6o9uLC-"
     },
     {
       "kind": "chapter",
@@ -220,9 +220,9 @@
       "file": "16.webp",
       "cursor": {
         "x": 489,
-        "y": 543
+        "y": 575
       },
-      "path": "/d/JaHLmCkrBy"
+      "path": "/d/Hsz6o9uLC-"
     },
     {
       "kind": "approach",
@@ -232,7 +232,7 @@
         "x": 173,
         "y": 67
       },
-      "path": "/d/JaHLmCkrBy"
+      "path": "/d/Hsz6o9uLC-"
     },
     {
       "kind": "approach",
@@ -240,9 +240,9 @@
       "caption": "Hover \"Diagram\" for the kind submenu",
       "cursor": {
         "x": 280,
-        "y": 543
+        "y": 575
       },
-      "path": "/d/JaHLmCkrBy"
+      "path": "/d/Hsz6o9uLC-"
     },
     {
       "kind": "approach",
@@ -250,9 +250,9 @@
       "caption": "Pick \"Pie chart\"",
       "cursor": {
         "x": 502,
-        "y": 735
+        "y": 543
       },
-      "path": "/d/JaHLmCkrBy"
+      "path": "/d/Hsz6o9uLC-"
     },
     {
       "kind": "outcome",
@@ -260,9 +260,9 @@
       "caption": "A working pie-chart Mermaid snippet lands, edit the slices to your data.",
       "cursor": {
         "x": 502,
-        "y": 735
+        "y": 543
       },
-      "path": "/d/JaHLmCkrBy"
+      "path": "/d/Hsz6o9uLC-"
     },
     {
       "kind": "chapter",
@@ -275,9 +275,9 @@
       "file": "20.webp",
       "cursor": {
         "x": 502,
-        "y": 735
+        "y": 543
       },
-      "path": "/d/JaHLmCkrBy"
+      "path": "/d/Hsz6o9uLC-"
     },
     {
       "kind": "outcome",
@@ -285,9 +285,9 @@
       "caption": "Code block, Tip alert, math equation, pie chart, all in one doc, all rendered live.",
       "cursor": {
         "x": 502,
-        "y": 735
+        "y": 543
       },
-      "path": "/d/JaHLmCkrBy",
+      "path": "/d/Hsz6o9uLC-",
       "hero": true
     }
   ],
