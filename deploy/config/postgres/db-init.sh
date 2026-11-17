@@ -57,26 +57,38 @@ q() { # q DB [psql args...]  (SQL on stdin)
   psql -X -q -v ON_ERROR_STOP=1 -d "$db" "$@"
 }
 
-# The server may still be starting (managed cluster failover, slow disk).
-# template1 exists everywhere; it only serves to find the maintenance
-# database (CREATE DATABASE copies template1 and fails while a session is
-# connected to it, so nothing else runs there).
+# The maintenance database is found by connecting to it, never through
+# template1: managed clusters (OVH / Aiven) refuse connections to template1
+# in pg_hba.conf. Candidates: ADMIN_DB if set, else `postgres`, then
+# `defaultdb`. The server may still be starting (managed cluster failover,
+# slow disk), so the probe retries for about a minute.
+if [ -n "${ADMIN_DB:-}" ]; then
+  candidates="$ADMIN_DB"
+else
+  candidates="postgres defaultdb"
+fi
+ADMIN_DB=""
 i=0
-until psql -X -q -d template1 -c 'SELECT 1' >/dev/null 2>&1; do
+while [ -z "$ADMIN_DB" ]; do
+  for c in $candidates; do
+    if psql -X -q -d "$c" -c 'SELECT 1' >/dev/null 2>&1; then
+      ADMIN_DB="$c"
+      break
+    fi
+  done
+  [ -n "$ADMIN_DB" ] && break
   i=$((i + 1))
   if [ "$i" -ge 30 ]; then
-    log "cannot connect to ${PGHOST:-postgres}:${PGPORT:-5432} as ${PGUSER}" >&2
+    # Show libpq's own reason (pg_hba, TLS, password) for the first candidate.
+    # shellcheck disable=SC2086 # word splitting is the point: one argument per candidate
+    set -- $candidates
+    reason="$(psql -X -q -d "$1" -c 'SELECT 1' 2>&1 >/dev/null | tail -n 1 || true)"
+    log "cannot connect to ${PGHOST:-postgres}:${PGPORT:-5432} as ${PGUSER} (tried: ${candidates}): ${reason}" >&2
     exit 1
   fi
   sleep 2
 done
-if [ -z "${ADMIN_DB:-}" ]; then
-  ADMIN_DB="$(psql -X -q -A -t -d template1 -c "SELECT datname FROM pg_database WHERE datname IN ('postgres', 'defaultdb') AND datallowconn ORDER BY datname = 'postgres' DESC LIMIT 1")"
-fi
-if [ -z "$ADMIN_DB" ]; then
-  log "no maintenance database (postgres or defaultdb) on ${PGHOST:-postgres}: set ADMIN_DB" >&2
-  exit 1
-fi
+log "maintenance database: ${ADMIN_DB}"
 
 ensure_role() { # ensure_role NAME PASSWORD
   if [ -z "$2" ]; then
