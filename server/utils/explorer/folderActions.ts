@@ -52,7 +52,33 @@ export async function updateFolder(actor: Actor, folderId: string, body: z.outpu
   const proof = await proveFolderScope(actor.userId, folderId, 'editor')
   if (!proof) throw apiError('folder/not-found')
   try {
-    if (body.name !== undefined) {
+    // Rename and move together are one update: a refused move must not leave the rename applied.
+    const beforeName = body.name !== undefined && body.parentId !== undefined ? (await getFolder(proof.scope, folderId))?.name : undefined
+    if (body.name !== undefined && body.parentId !== undefined) {
+      const { before } = await moveFolder(proof.scope, folderId, body.parentId, body.name)
+      if (beforeName !== undefined && beforeName !== body.name) {
+        await appendAuditEvent({
+          by: proof.scope,
+          actorIp: actor.ip,
+          ...auditScope(proof, actor.userId),
+          action: 'folder.renamed',
+          before: { name: beforeName },
+          after: { name: body.name },
+          metadata: { folderId }
+        })
+      }
+      if (before !== body.parentId) {
+        await appendAuditEvent({
+          by: proof.scope,
+          actorIp: actor.ip,
+          ...auditScope(proof, actor.userId),
+          action: 'folder.moved',
+          before: { parentId: before },
+          after: { parentId: body.parentId },
+          metadata: { folderId }
+        })
+      }
+    } else if (body.name !== undefined) {
       const { before } = await renameFolder(proof.scope, folderId, body.name)
       if (before !== body.name) {
         await appendAuditEvent({
@@ -65,8 +91,7 @@ export async function updateFolder(actor: Actor, folderId: string, body: z.outpu
           metadata: { folderId }
         })
       }
-    }
-    if (body.parentId !== undefined) {
+    } else if (body.parentId !== undefined) {
       const { before } = await moveFolder(proof.scope, folderId, body.parentId)
       if (before !== body.parentId) {
         await appendAuditEvent({

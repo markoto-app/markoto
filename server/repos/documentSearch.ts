@@ -129,7 +129,8 @@ export async function searchDocuments(
         (CASE WHEN d.title ILIKE ${like} THEN 2 ELSE 0 END)
           + COALESCE(similarity(s.title, ${q.raw}), 0)
           + COALESCE(ts_rank_cd(s.body_tsv, (SELECT tsq FROM query)), 0) AS rank,
-        s.body IS NOT NULL AND (SELECT tsq FROM query) IS NOT NULL AND s.body_tsv @@ (SELECT tsq FROM query) AS body_match
+        -- The body's own words only (weight B): a title-only hit gets no snippet.
+        s.body IS NOT NULL AND (SELECT tsq FROM query) IS NOT NULL AND ts_filter(s.body_tsv, '{b}') @@ (SELECT tsq FROM query) AS body_match
       FROM documents d
       LEFT JOIN document_search s ON s.doc_id = d.doc_id
       WHERE (${reachSql})${folderSql}

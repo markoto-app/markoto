@@ -80,7 +80,10 @@ function parenTarget(line: string, paren: number): { start: number, end: number,
     end = i
   }
   if (end <= start) return null
-  // An optional title, then `)`.
+  // An optional title, then `)`. Anything else after the target means this
+  // is not a link (`[a](b and more)`), and its "target" must not be rewritten.
+  while (line[i] === ' ') i++
+  if (line[i] !== ')' && line[i] !== '"' && line[i] !== '\'' && line[i] !== '(') return null
   const close = line.indexOf(')', i)
   if (close === -1) return null
   return { start, end, close }

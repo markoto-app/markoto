@@ -3,8 +3,9 @@ import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createUser, createDoc, createWorkspace, setMemberRole } from '../setup/fixtures'
 
-// End-to-end integration tests for `list_workspace_documents` and
-// `view_other_document`. Drives the FULL server stack:
+// End-to-end integration tests for the cross-document tools
+// (`list_workspace_documents`, `list_my_documents`, `search_documents`,
+// `view_other_document`). Drives the FULL server stack:
 //
 //   - Auth via session cookie (loggedInClient → /_test/login)
 //   - Real workspace_members rows for access checks
@@ -25,8 +26,8 @@ import { createUser, createDoc, createWorkspace, setMemberRole } from '../setup/
 //   - All ACCESS-DENIAL branches (short-circuit before any sync open):
 //     missing doc, stranger-on-private, password-required, cross-
 //     workspace isolation, current-doc rejection, garbage URL parsing.
-//   - All `list_workspace_documents` paths (no sync needed,
-//     listWorkspaceDocsWithOwnerFlag is pure SQL).
+//   - The list and search tools (no sync needed, pure SQL through the
+//     explorer's `listDocsPage` / `searchEverywhere`).
 //   - Mid-session membership drift: confirms a member who LOSES
 //     workspace access mid-conversation gets the same denial path
 //     on subsequent reads (real DB mutation between calls).
@@ -89,17 +90,20 @@ describe('POST /api/_test/exec-ai-tool: gating', () => {
   })
 })
 
-// list_workspace_documents: full-stack
+// list_workspace_documents / list_my_documents / search_documents: full-stack
+
+interface ListPayload {
+  total: number
+  documents: Array<{ doc_id: string, title: string, current_document?: boolean }>
+  next_cursor: string | null
+}
 
 describe('list_workspace_documents: full-stack', () => {
   beforeEach(async () => {
     await resetDb()
   })
 
-  it('returns sibling docs for a workspace admin', async () => {
-    // Spec: the tool surfaces every other doc in the workspace,
-    // each tagged with the right metadata for the model to pick
-    // from. The current/anchor doc must NOT appear.
+  it('returns the workspace documents for an admin, the anchor marked as current', async () => {
     const owner = await createUser()
     const ws = await createWorkspace(owner.id)
     await setMemberRole(ws.workspaceId, owner.id, 'admin')
@@ -112,25 +116,30 @@ describe('list_workspace_documents: full-stack', () => {
 
     expect(status).toBe(200)
     expect(body.isError).toBe(false)
-    // Both siblings appear by id and by title.
-    expect(body.content).toContain(docB.docId)
-    expect(body.content).toContain(docC.docId)
-    expect(body.content).toContain('Sibling-B')
-    expect(body.content).toContain('Sibling-C')
-    // The anchor must NOT appear as one of the listed documents.
-    // Asserting on the parsed `documents` array specifically, a bare
-    // `not.toContain(anchor.docId)` would false-match the diagnostic
-    // `excluded_current_doc_id` field the payload includes for the
-    // model's benefit.
-    const parsed = JSON.parse(body.content) as { documents: Array<{ doc_id: string }> }
-    expect(parsed.documents.map(d => d.doc_id)).not.toContain(anchor.docId)
-    expect(parsed.documents.map(d => d.doc_id).sort()).toEqual([docB.docId, docC.docId].sort())
+    const parsed = JSON.parse(body.content) as ListPayload
+    expect(parsed.total).toBe(3)
+    expect(parsed.documents.map(d => d.doc_id).sort()).toEqual([anchor.docId, docB.docId, docC.docId].sort())
+    expect(parsed.documents.find(d => d.doc_id === anchor.docId)?.current_document).toBe(true)
+    expect(parsed.documents.find(d => d.doc_id === docB.docId)?.current_document).toBeUndefined()
+    expect(parsed.next_cursor).toBe(null)
+  })
+
+  it('pages with limit and cursor', async () => {
+    const owner = await createUser()
+    const ws = await createWorkspace(owner.id)
+    const anchor = await createDoc({ ownerId: owner.id, workspaceId: ws.workspaceId })
+    for (let i = 0; i < 2; i++) await createDoc({ ownerId: owner.id, workspaceId: ws.workspaceId })
+    const client = await loggedInClient(owner.id)
+    const first = JSON.parse((await execTool(client, anchor.docId, 'list_workspace_documents', { limit: 2 })).body.content) as ListPayload
+    expect(first.documents).toHaveLength(2)
+    expect(first.next_cursor).toBeTruthy()
+    const second = JSON.parse((await execTool(client, anchor.docId, 'list_workspace_documents', { limit: 2, cursor: first.next_cursor })).body.content) as ListPayload
+    expect(second.documents).toHaveLength(1)
+    expect(second.next_cursor).toBe(null)
+    expect(new Set([...first.documents, ...second.documents].map(d => d.doc_id)).size).toBe(3)
   })
 
   it('errors when the anchor doc is standalone (not in a workspace)', async () => {
-    // Spec: the tool only makes sense for workspace docs. A
-    // standalone-doc caller should get a clear error so the model
-    // can explain to the user, not silently return an empty list.
     const user = await createUser()
     const doc = await createDoc({ ownerId: user.id }) // no workspaceId
     const client = await loggedInClient(user.id)
@@ -139,22 +148,18 @@ describe('list_workspace_documents: full-stack', () => {
     expect(body.content.toLowerCase()).toContain('workspace')
   })
 
-  it('returns friendly "no other docs" when only anchor lives in the workspace', async () => {
-    // Spec: empty workspace is a normal state, not a failure. The
-    // model must be able to explain "nothing else here" without
-    // seeing isError=true.
+  it('a folder of another workspace is a tool error, not a leak', async () => {
     const owner = await createUser()
     const ws = await createWorkspace(owner.id)
-    await setMemberRole(ws.workspaceId, owner.id, 'admin')
+    const other = await createWorkspace(owner.id)
+    await testDb().query(`INSERT INTO folders (folder_id, workspace_id, name) VALUES ('f-other', $1, 'Other')`, [other.workspaceId])
     const anchor = await createDoc({ ownerId: owner.id, workspaceId: ws.workspaceId })
     const client = await loggedInClient(owner.id)
-    const { body } = await execTool(client, anchor.docId, 'list_workspace_documents', {})
-    expect(body.isError).toBe(false)
-    expect(body.content.toLowerCase()).toMatch(/no other|empty|nothing/i)
+    const { body } = await execTool(client, anchor.docId, 'list_workspace_documents', { folder_id: 'f-other' })
+    expect(body.isError).toBe(true)
   })
 
   it('viewer member can list workspace documents (read-only access is enough)', async () => {
-    // Spec: viewer access is sufficient, confirmed with the user.
     const owner = await createUser()
     const viewer = await createUser()
     const ws = await createWorkspace(owner.id)
@@ -167,31 +172,57 @@ describe('list_workspace_documents: full-stack', () => {
     const { body } = await execTool(client, anchor.docId, 'list_workspace_documents', {})
     expect(body.isError).toBe(false)
     expect(body.content).toContain(docB.docId)
-    // Same precision as the admin test: assert on the parsed
-    // `documents` array, not the raw content string.
-    const parsed = JSON.parse(body.content) as { documents: Array<{ doc_id: string }> }
-    expect(parsed.documents.map(d => d.doc_id)).not.toContain(anchor.docId)
   })
 
-  it('serialises rows with snake_case field names (contract for the AI prompt)', async () => {
-    // Spec: the JSON shape is part of the AI's tool contract. A
-    // field-name regression would break the model's expectations
-    // about how to read the response.
+  it('serialises compact rows with snake_case field names (contract for the AI prompt)', async () => {
     const owner = await createUser()
     const ws = await createWorkspace(owner.id)
-    await setMemberRole(ws.workspaceId, owner.id, 'admin')
     const anchor = await createDoc({ ownerId: owner.id, workspaceId: ws.workspaceId })
     await createDoc({ ownerId: owner.id, workspaceId: ws.workspaceId, title: 'Sibling' })
     const client = await loggedInClient(owner.id)
     const { body } = await execTool(client, anchor.docId, 'list_workspace_documents', {})
     expect(body.isError).toBe(false)
     expect(body.content).toContain('"doc_id"')
-    expect(body.content).toContain('"access_mode"')
-    expect(body.content).toContain('"last_active"')
-    expect(body.content).toContain('"is_owner"')
-    // Camel-case from the repo must NOT leak through the boundary.
+    expect(body.content).toContain('"folder"')
+    expect(body.content).toContain('"last_edited"')
+    expect(body.content).toContain('"next_cursor"')
     expect(body.content).not.toContain('"docId"')
-    expect(body.content).not.toContain('"accessMode"')
+  })
+})
+
+describe('list_my_documents and search_documents: full-stack', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('list_my_documents returns the personal documents, not the workspace ones', async () => {
+    const user = await createUser()
+    const ws = await createWorkspace(user.id)
+    const anchor = await createDoc({ ownerId: user.id, workspaceId: ws.workspaceId })
+    const personal = await createDoc({ ownerId: user.id, title: 'Personal' })
+    const client = await loggedInClient(user.id)
+    const { body } = await execTool(client, anchor.docId, 'list_my_documents', {})
+    const parsed = JSON.parse(body.content) as ListPayload
+    expect(parsed.documents.map(d => d.doc_id)).toEqual([personal.docId])
+  })
+
+  it('search_documents finds what the caller can open and nothing of other workspaces', async () => {
+    const user = await createUser()
+    const stranger = await createUser()
+    const ws = await createWorkspace(user.id, { name: 'Mine' })
+    const theirs = await createWorkspace(stranger.id)
+    const anchor = await createDoc({ ownerId: user.id, workspaceId: ws.workspaceId })
+    const hit = await createDoc({ ownerId: user.id, workspaceId: ws.workspaceId, title: 'Launch checklist' })
+    const hidden = await createDoc({ ownerId: stranger.id, workspaceId: theirs.workspaceId, title: 'Launch secrets' })
+    await testDb().query(`INSERT INTO document_search (doc_id, title, body) VALUES ($1, 'Launch checklist', 'launch steps'), ($2, 'Launch secrets', 'launch codes')`, [hit.docId, hidden.docId])
+
+    const client = await loggedInClient(user.id)
+    const { body } = await execTool(client, anchor.docId, 'search_documents', { query: 'launch' })
+    expect(body.isError).toBe(false)
+    const parsed = JSON.parse(body.content) as { results: Array<{ doc_id: string, workspace: { name: string } | null }> }
+    expect(parsed.results.map(r => r.doc_id)).toEqual([hit.docId])
+    expect(parsed.results[0]?.workspace?.name).toBe('Mine')
+    expect(body.content).not.toContain('secrets')
   })
 })
 

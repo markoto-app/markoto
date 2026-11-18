@@ -4,7 +4,8 @@ import type { DocToolContext, MetaToolContext } from '../../agentic/toolContext'
 import { toFunctionDeclaration, toolError, type ToolDefinition, type ToolResult } from './toolDefinition'
 import { insertTextTool, replaceTextTool, setTitleTool, viewDocumentTool } from './documentTools'
 import { getThemeTool, listThemesTool, saveThemeAsPresetTool, updateThemeTool } from './themeTools'
-import { listMyDocumentsTool, listWorkspaceDocumentsTool, viewOtherDocumentTool } from './crossDocumentTools'
+import { listMyDocumentsTool, listWorkspaceDocumentsTool, searchDocumentsTool, viewOtherDocumentTool } from './crossDocumentTools'
+import { createFolderTool, listFoldersTool, moveDocumentTool } from './folderTools'
 import { createDocumentTool, duplicateDocumentTool, exportDocumentAsMarkdownTool } from './libraryTools'
 import { generateImageTool, viewImageTool } from './imageTools'
 import { getPageCountTool, viewPagesTool } from './renderTools'
@@ -36,10 +37,14 @@ const CORE_TOOLS = [
   saveThemeAsPresetTool,
   listWorkspaceDocumentsTool,
   listMyDocumentsTool,
+  searchDocumentsTool,
+  listFoldersTool,
   createDocumentTool,
   duplicateDocumentTool,
   exportDocumentAsMarkdownTool,
   viewOtherDocumentTool,
+  moveDocumentTool,
+  createFolderTool,
   setTitleTool,
   viewImageTool,
   generateImageTool,

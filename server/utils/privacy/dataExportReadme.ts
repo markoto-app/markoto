@@ -33,6 +33,11 @@ Contents:
                          indexing, when (the page is your document's text).
   custom_domains.json    your custom domains, their check status and the
                          page each shows.
+  imports.json           imports you started (files, folders, archives,
+                         GitHub repositories) in the last 30 days: the
+                         source and repository URL, the outcome, and per
+                         file its path, status and the document it
+                         became. File contents are not kept.
   ai/sessions.ndjson     AI sessions you initiated.
   ai/messages.ndjson     AI prompt + tool-call history (NDJSON).
   ai/edit-provenance.ndjson  which AI sessions you started on which

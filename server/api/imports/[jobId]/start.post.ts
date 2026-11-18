@@ -6,6 +6,7 @@ import { importJobParams } from '~~/shared/api/imports'
 export default defineApiHandler({
   access: allow.user(),
   params: importJobParams,
+  body: 'none',
   handler: async ({ self, params }) => {
     if (!(await queueImportJob(self, params.jobId))) throw apiError('import/job-not-uploading')
     return { success: true }

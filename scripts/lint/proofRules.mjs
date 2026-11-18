@@ -129,7 +129,7 @@ const MCP_EXPORT_TOOL = '^server/mcp/tools/export_document_as_pdf\\.ts$'
 // The AI session: its start (document + workspace of the session) and the
 // tools that reach another document or the workspace knowledge per call.
 const AI_SESSION = ['^server/utils/agentic/sessionGuard\\.ts$', '^server/utils/agentic/sessions/sessionSetup\\.ts$']
-const AI_TOOLS = ['^server/utils/ai/tools/libraryTools\\.ts$', '^server/utils/ai/tools/knowledgeTools\\.ts$']
+const AI_TOOLS = ['^server/utils/ai/tools/libraryTools\\.ts$', '^server/utils/ai/tools/knowledgeTools\\.ts$', '^server/utils/ai/tools/folderTools\\.ts$']
 // Delegated AI jobs run after the session that started them; the engine
 // re-proves the initiator's edit membership before it runs a job.
 const AI_JOBS = '^server/utils/ai/jobs/engine\\.ts$'

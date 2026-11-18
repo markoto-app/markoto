@@ -71,7 +71,9 @@ export async function listFolders(scope: FolderScope): Promise<FolderRow[]> {
       position: folders.position,
       createdAt: folders.createdAt,
       updatedAt: folders.updatedAt,
-      docCount: sql<number>`(SELECT count(*)::int FROM ${documents} WHERE ${documents.folderId} = ${folders.folderId})`
+      // Qualified by hand: Drizzle drops table names in a one-table select,
+      // which would compare the subquery's column with itself.
+      docCount: sql<number>`(SELECT count(*)::int FROM documents d WHERE d.folder_id = "folders"."folder_id")`
     })
     .from(folders)
     .where(folderScopeSql(scope))
@@ -233,15 +235,17 @@ export async function renameFolder(scope: FolderWriteScope, folderId: string, na
  * within the scope. Refuses a move into itself or its own subtree
  * (`ConflictError('folder-cycle')`) and one that would exceed the depth
  * limit (`ConflictError('folder-too-deep')`). Serialised per scope so two
- * concurrent moves can't build a cycle together. Returns the old parent.
+ * concurrent moves can't build a cycle together. With `name`, renames in
+ * the same statement, so a refused move never leaves a half-applied rename.
+ * Returns the old parent.
  */
-export async function moveFolder(scope: FolderWriteScope, folderId: string, parentId: string | null): Promise<{ before: string | null }> {
+export async function moveFolder(scope: FolderWriteScope, folderId: string, parentId: string | null, name?: string): Promise<{ before: string | null }> {
   return useDatabase().transaction(async (dtx) => {
     const tx = asTxHandle(dtx)
     await dtx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${treeLockKey(scope)}))`)
     const folder = await getFolder(scope, folderId, tx)
     if (!folder) throw new NotFoundError('Folder')
-    if (folder.parentId === parentId) return { before: folder.parentId }
+    if (folder.parentId === parentId && (name === undefined || name === folder.name)) return { before: folder.parentId }
     let targetDepth = 0
     if (parentId !== null) {
       const path = await folderPath(scope, parentId, tx)
@@ -253,7 +257,7 @@ export async function moveFolder(scope: FolderWriteScope, folderId: string, pare
     if (targetDepth + 1 + height > FOLDER_MAX_DEPTH) throw new ConflictError('folder-too-deep')
     try {
       await dtx.update(folders)
-        .set({ parentId, updatedAt: new Date() })
+        .set({ parentId, ...(name === undefined ? {} : { name }), updatedAt: new Date() })
         .where(and(eq(folders.folderId, folderId), folderScopeSql(scope)))
     } catch (e) {
       if (isUniqueViolation(e)) throw new DuplicateError('Folder')

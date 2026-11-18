@@ -14,13 +14,14 @@ import { AUDIENCE_KINDS } from '~~/shared/audiences'
 // helper; viewers + non-members get a 403-shape tool error.
 export default buildUserOnlyTool({
   name: 'create_document',
-  description: 'Create a NEW document owned by the authenticated user. Returns { doc_id, url }. Optional initial_markdown seeds the body in one call (skip the follow-up insert_text). Optional workspace_id files into a workspace (you must be admin or editor).',
+  description: 'Create a NEW document owned by the authenticated user. Returns { doc_id, url }. Optional initial_markdown seeds the body in one call (skip the follow-up insert_text). Optional workspace_id files into a workspace (you must be admin or editor), optional folder_id into one of its folders (from list_folders).',
   scope: 'documents:write',
   annotations: { readOnlyHint: false, idempotentHint: false, openWorldHint: false },
   inputSchema: {
     title: z.string().trim().max(255).optional().describe('Doc title (≤255 chars). Empty / omitted falls back to "Untitled".'),
     initial_markdown: z.string().max(100_000).optional().describe('Optional initial body for the new doc (up to 100k chars). Saves a follow-up insert_text call.'),
-    workspace_id: z.string().min(1).optional().describe('Optional workspace id to file into. Must be admin or editor of it. Omit for personal doc.'),
+    workspace_id: z.string().min(1).optional().describe('Optional workspace id to file into. Must be admin or editor of it. Omit for personal doc, or to use folder_id\'s workspace.'),
+    folder_id: z.string().trim().min(1).max(64).optional().describe('Optional folder to file into (from list_folders). Without workspace_id the folder\'s own workspace (or your personal documents) is used.'),
     description: z.string().max(500).optional().describe('Optional one-sentence summary, ≤500 chars.'),
     audience: z.enum(AUDIENCE_KINDS as [string, ...string[]]).optional().describe(`Audience for AI tone steering. One of: ${AUDIENCE_KINDS.join(', ')}.`),
     language: z.string().trim().min(1).max(50).optional().describe('Free-form language label ("English", "Deutsch").'),

@@ -6306,6 +6306,24 @@
       "deprecatedNames": []
     },
     {
+      "name": "TEST_GITHUB_IMPORT_ORIGIN",
+      "namespace": "test",
+      "key": "githubImportOrigin",
+      "type": "string",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TEST_GITHUB_IMPORT_ORIGIN"
+      },
+      "scope": "test",
+      "required": null,
+      "secret": false,
+      "default": "",
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
       "name": "NUXT_PUBLIC_EXPOSE_TEST_HANDLES",
       "namespace": "test",
       "key": "exposeTestHandles",

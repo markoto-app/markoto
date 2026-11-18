@@ -291,7 +291,10 @@ export async function refreshJobCounters(_by: SystemActor, jobId: string): Promi
       total = c.total, done = c.done, failed = c.failed, skipped = c.skipped
     FROM (
       SELECT
-        count(*) FILTER (WHERE kind = 'doc')::int AS total,
+        -- Files skipped before the import ran (unsupported, too large) are
+        -- not part of the total, as when the job was created; ones the
+        -- user cancelled are.
+        count(*) FILTER (WHERE kind = 'doc' AND (status <> 'skipped' OR reason = 'cancelled'))::int AS total,
         count(*) FILTER (WHERE kind = 'doc' AND status = 'done')::int AS done,
         count(*) FILTER (WHERE kind = 'doc' AND status = 'failed')::int AS failed,
         count(*) FILTER (WHERE status = 'skipped')::int AS skipped

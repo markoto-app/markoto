@@ -62,6 +62,7 @@ export default defineApiHandler({
       anonCreatorKeyHash,
       anonTermsAcceptance: acceptance ?? undefined,
       workspaceId: body?.workspaceId ?? null,
+      folderId: body?.folderId ?? null,
       title: body?.title,
       description: body?.description,
       audience: body?.audience,

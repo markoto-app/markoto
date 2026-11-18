@@ -2,7 +2,7 @@ import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_STRIPE_PRICE_IDS, TEST_BILLING_OFF_PORT, TEST_ALTCHA_HMAC_KEY, TEST_ENFORCED_ANON_RATE_LIMITS, TEST_ENFORCED_MCP_RATE_LIMITS, TEST_LITELLM_DB_PASSWORD, TEST_LITELLM_DB_USER, TEST_OIDC_ADMIN_EMAIL, TEST_OIDC_CLIENT_ID, TEST_OIDC_CLIENT_SECRET, TEST_OIDC_ISSUER, TEST_PORT, TEST_PUBLISH_DOMAINS_TARGET, TEST_PUBLISH_PAGES_HOST, TEST_TRAEFIK_PROVIDER_TOKEN, TEST_INSTANCE_BRAND_NAME } from './env'
+import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_STRIPE_PRICE_IDS, TEST_BILLING_OFF_PORT, TEST_ALTCHA_HMAC_KEY, TEST_ENFORCED_ANON_RATE_LIMITS, TEST_ENFORCED_MCP_RATE_LIMITS, TEST_LITELLM_DB_PASSWORD, TEST_LITELLM_DB_USER, TEST_OIDC_ADMIN_EMAIL, TEST_OIDC_CLIENT_ID, TEST_OIDC_CLIENT_SECRET, TEST_OIDC_ISSUER, TEST_PORT, TEST_PUBLISH_DOMAINS_TARGET, TEST_PUBLISH_PAGES_HOST, TEST_TRAEFIK_PROVIDER_TOKEN, TEST_INSTANCE_BRAND_NAME, TEST_GITHUB_IMPORT_PORT } from './env'
 import { buildTestEnv } from './testEnv'
 import { RECOMMENDED_SAAS_ALLOWED_BASE_URLS } from '../../../shared/ai/providers'
 import { testRoutesInBuild } from '../../../scripts/lib/testRoutesInBuild'
@@ -247,6 +247,9 @@ export function primaryServerEnv(stripe: TestStripeTarget = STRIPE_MOCK): NodeJS
     NUXT_PUBLISH_TRAEFIK_CERT_RESOLVER: 'pebble',
     // Managed private instance co-branding: endpoints/instanceBrand.test.ts.
     NUXT_INSTANCE_BRAND_NAME: TEST_INSTANCE_BRAND_NAME,
+    // A fake GitHub served by tests/integration/endpoints/imports.test.ts
+    // (honoured only in test mode, server/utils/imports/github.ts).
+    TEST_GITHUB_IMPORT_ORIGIN: `http://127.0.0.1:${TEST_GITHUB_IMPORT_PORT}`,
     NUXT_INSTANCE_BRAND_LOGO: join(process.cwd(), 'public/markoto-logos/app-icon-light.png'),
     NUXT_INSTANCE_SUPPORT_EMAIL: 'servicedesk@musterstadt.example'
   }
@@ -295,6 +298,9 @@ const HOSTED_FREE_TIER_LIMITS = {
   TIER_FREE_HISTORY_DAYS: '30',
   TIER_FREE_SAVED_THEMES: '3',
   TIER_FREE_IMPORT_MAX_BYTES: String(10 * 1024 * 1024),
+  TIER_FREE_IMPORT_FILES_PER_JOB: '200',
+  TIER_FREE_IMPORT_BYTES_PER_JOB: String(200 * 1024 * 1024),
+  TIER_FREE_IMPORT_JOBS_PER_DAY: '10',
   TIER_FREE_WEB_TOOLS_PER_DAY: '20',
   TIER_FREE_FEATURE_CUSTOM_CSS: 'false',
   // Per-workspace SSO is Business-only on markoto.app.

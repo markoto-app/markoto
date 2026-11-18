@@ -1,5 +1,5 @@
 // Unit tests for the cross-document AI tool handlers
-// (`list_workspace_documents` and `view_other_document`).
+// (`list_workspace_documents`, `list_my_documents` and `view_other_document`).
 //
 // Tests describe the SPECIFIED CONTRACT, not the current implementation.
 // If the handler is ever refactored, the assertions should still hold
@@ -8,7 +8,7 @@
 // full output, so cosmetic tweaks don't break tests.
 //
 // Mocks: the data-access dependencies (`getDocWithActorRole`,
-// `listWorkspaceDocsWithOwnerFlag`, `openTrustedCommentClient`).
+// `listScopeDocs`, `listFolders`, `openTrustedCommentClient`).
 // Pure-function imports (`decideTokenAccess`) are called for real.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -16,7 +16,8 @@ import * as Y from 'yjs'
 
 import { executeFunctionByName } from '../../../server/utils/ai/tools/registry'
 import { TOOL_RESULT_CHAR_CAP } from '../../../server/utils/agentic/limits'
-import { listWorkspaceDocsWithOwnerFlag } from '../../../server/repos/documents'
+import { listScopeDocs } from '../../../server/repos/documents'
+import { listFolders } from '../../../server/repos/folders'
 import { getDocWithActorRole } from '../../../server/repos/access/docAuthz'
 import { openTrustedCommentClient } from '../../../server/utils/documents/commentsServerClient'
 import type { AiSession } from '../../../server/utils/ai/aiClient'
@@ -30,7 +31,7 @@ vi.mock('../../../server/repos/documents', async (importOriginal) => {
     ...actual,
     // Stubs are reset per test via `beforeEach`. The test file installs
     // a behaviour for each function via `vi.mocked(fn).mockResolvedValue(...)`.
-    listWorkspaceDocsWithOwnerFlag: vi.fn(),
+    listScopeDocs: vi.fn(),
     // The handler also calls `getDoc` for the current-theme fallback in
     // theme tools: leave it un-stubbed so unrelated branches don't trip.
     getDoc: actual && (actual as { getDoc?: unknown }).getDoc
@@ -44,6 +45,11 @@ vi.mock('../../../server/repos/access/docAuthz', async importOriginal => ({
   getDocWithActorRole: vi.fn()
 }))
 
+vi.mock('../../../server/repos/folders', async importOriginal => ({
+  ...await importOriginal<object>(),
+  listFolders: vi.fn()
+}))
+
 vi.mock('../../../server/utils/documents/commentsServerClient', () => ({
   openTrustedCommentClient: vi.fn()
 }))
@@ -54,13 +60,14 @@ vi.mock('../../../server/repos/documents', async (importOriginal) => {
   const actual = await importOriginal<object>()
   return {
     ...actual,
-    listWorkspaceDocsWithOwnerFlag: vi.fn(),
+    listScopeDocs: vi.fn(),
     updateDocMeta: vi.fn().mockResolvedValue(undefined)
   }
 })
 
 const mockedGetCtx = vi.mocked(getDocWithActorRole)
-const mockedListDocs = vi.mocked(listWorkspaceDocsWithOwnerFlag)
+const mockedListDocs = vi.mocked(listScopeDocs)
+const mockedListFolders = vi.mocked(listFolders)
 const mockedOpenTrusted = vi.mocked(openTrustedCommentClient)
 
 // Session stub. Handler reads:
@@ -563,7 +570,34 @@ describe('view_other_document: trusted-client lifecycle', () => {
   })
 })
 
-// list_workspace_documents
+// list_workspace_documents / list_my_documents
+
+type ScopeRow = Awaited<ReturnType<typeof listScopeDocs>>['rows'][number]
+function row(over: Partial<ScopeRow> & { docId: string }): ScopeRow {
+  const at = over.updatedAt ?? new Date('2026-04-30T10:00:00Z')
+  return {
+    title: 'Doc',
+    description: '',
+    language: 'en',
+    accessMode: 'private',
+    wordCount: 0,
+    sizeBytes: 0,
+    folderId: null,
+    ownerId: 100,
+    ownerName: 'Alice',
+    isOwner: true,
+    createdAt: at,
+    updatedAt: at,
+    lastActive: at,
+    sortKey: at.toISOString(),
+    ...over
+  }
+}
+
+function folder(folderId: string, name: string, parentId: string | null = null) {
+  const at = new Date('2026-01-01T00:00:00Z')
+  return { folderId, parentId, name, position: 'a', createdAt: at, updatedAt: at, docCount: 0 }
+}
 
 describe('list_workspace_documents: gating', () => {
   it('errors when the current document is not in a workspace', async () => {
@@ -576,83 +610,77 @@ describe('list_workspace_documents: gating', () => {
     expect(mockedListDocs).not.toHaveBeenCalled()
   })
 
-  it('queries with the session\'s workspaceId and initiator id', async () => {
-    mockedListDocs.mockResolvedValue([])
+  it('lists the session workspace, one page with the limit pushed into SQL', async () => {
+    mockedListDocs.mockResolvedValue({ rows: [], total: 0 })
+    mockedListFolders.mockResolvedValue([])
     const session = makeSession({ workspaceId: 'WS-A', initiatorUserId: 100 })
-    await executeFunctionByName(session, 'list_workspace_documents', {})
-    expect(mockedListDocs).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: 'WS-A', actor: { kind: 'user', userId: 100 } }))
+    await executeFunctionByName(session, 'list_workspace_documents', { limit: 20 })
+    expect(mockedListDocs).toHaveBeenCalledWith(
+      expect.objectContaining({ workspaceId: 'WS-A', actor: { kind: 'user', userId: 100 } }),
+      // One row more than the page tells whether another page follows.
+      expect.objectContaining({ folder: 'all', sort: 'updated', limit: 21 })
+    )
+  })
+
+  it('defaults to 50 rows per page', async () => {
+    mockedListDocs.mockResolvedValue({ rows: [], total: 0 })
+    mockedListFolders.mockResolvedValue([])
+    await executeFunctionByName(makeSession({ workspaceId: 'WS-A' }), 'list_workspace_documents', {})
+    expect(mockedListDocs).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ limit: 51 }))
   })
 })
 
 describe('list_workspace_documents: output shape', () => {
-  it('excludes the current document from the result list', async () => {
-    // Spec: the AI is already editing the current doc; including it
-    // in the list would tempt redundant view_other_document calls.
-    mockedListDocs.mockResolvedValue([
-      { docId: 'CURRENT', title: 'Self', description: '', language: 'en', accessMode: 'private', wordCount: 0, sizeBytes: 0, lastActive: new Date(), ownerId: 100, isOwner: true },
-      { docId: 'SIBLING', title: 'Other', description: '', language: 'en', accessMode: 'private', wordCount: 0, sizeBytes: 0, lastActive: new Date(), ownerId: 999, isOwner: false }
-    ])
-    const session = makeSession({ docId: 'CURRENT', workspaceId: 'WS-A' })
-    const res = await executeFunctionByName(session, 'list_workspace_documents', {})
+  it('returns compact rows with the folder path, total and a next_cursor while more pages follow', async () => {
+    mockedListDocs.mockResolvedValue({
+      rows: [
+        row({ docId: 'A', title: 'Alpha', folderId: 'F2', description: 'x'.repeat(400) }),
+        row({ docId: 'B', title: 'Beta' }),
+        row({ docId: 'C', title: 'Gamma' })
+      ],
+      total: 7
+    })
+    mockedListFolders.mockResolvedValue([folder('F1', 'Projects'), folder('F2', '2026', 'F1')])
+    const res = await executeFunctionByName(makeSession({ workspaceId: 'WS-A' }), 'list_workspace_documents', { limit: 2 })
     expect(res.isError).toBe(false)
-    expect(res.content).not.toContain('"doc_id": "CURRENT"')
-    expect(res.content).toContain('SIBLING')
-  })
-
-  it('returns a friendly message (not an error) for an empty workspace', async () => {
-    // Spec: an empty workspace is a normal state, not a failure.
-    // The model should be able to tell the user "nothing else here"
-    // without seeing isError=true.
-    mockedListDocs.mockResolvedValue([])
-    const session = makeSession({ workspaceId: 'WS-A' })
-    const res = await executeFunctionByName(session, 'list_workspace_documents', {})
-    expect(res.isError).toBe(false)
-    expect(res.content.toLowerCase()).toMatch(/no other|empty|nothing/i)
-  })
-
-  it('returns a workspace where the only doc is the current one as "no other documents"', async () => {
-    // Edge: workspace contains exactly one doc and it's the session's
-    // own. After filtering we should still return the friendly empty
-    // message, not an empty array shaped as a payload.
-    mockedListDocs.mockResolvedValue([
-      { docId: 'SELF', title: 'Self', description: '', language: 'en', accessMode: 'private', wordCount: 0, sizeBytes: 0, lastActive: new Date(), ownerId: 100, isOwner: true }
-    ])
-    const session = makeSession({ docId: 'SELF', workspaceId: 'WS-A' })
-    const res = await executeFunctionByName(session, 'list_workspace_documents', {})
-    expect(res.isError).toBe(false)
-    expect(res.content.toLowerCase()).toMatch(/no other|empty|nothing/i)
-  })
-
-  it('serialises each document with the contracted field names', async () => {
-    // Spec: the JSON payload has snake_case keys (doc_id, access_mode,
-    // last_active, is_owner) so it reads naturally to the model and
-    // matches the URL-shape convention. A field-name regression here
-    // would break system-prompt examples.
-    mockedListDocs.mockResolvedValue([
-      { docId: 'OTHER', title: 'X', description: 'Y', language: 'fr', accessMode: 'open-view', wordCount: 5, sizeBytes: 100, lastActive: new Date('2026-01-01T00:00:00Z'), ownerId: 999, isOwner: false }
-    ])
-    const session = makeSession({ docId: 'CURRENT', workspaceId: 'WS-A' })
-    const res = await executeFunctionByName(session, 'list_workspace_documents', {})
-    expect(res.isError).toBe(false)
-    expect(res.content).toContain('"doc_id"')
-    expect(res.content).toContain('"access_mode"')
-    expect(res.content).toContain('"last_active"')
-    expect(res.content).toContain('"is_owner"')
-    // Camel-case field names from the repo must NOT leak through.
+    const out = JSON.parse(res.content)
+    expect(out.total).toBe(7)
+    expect(out.documents).toHaveLength(2)
+    expect(out.documents[0]).toMatchObject({ doc_id: 'A', title: 'Alpha', folder: 'Projects / 2026', folder_id: 'F2', last_edited: '2026-04-30T10:00:00.000Z' })
+    // Descriptions are cut: enough to recognise a document, not to read it.
+    expect(out.documents[0].description.length).toBeLessThanOrEqual(160)
+    expect(out.documents[1]).toMatchObject({ doc_id: 'B', folder: null })
+    expect(typeof out.next_cursor).toBe('string')
+    // Repo field names must not leak through.
     expect(res.content).not.toContain('"docId"')
-    expect(res.content).not.toContain('"accessMode"')
   })
 
-  it('serialises last_active as an ISO string, not a Date object', async () => {
-    // JSON.stringify on a Date renders ISO; a string typed as Date
-    // would just stringify, but a `last_active: { toISOString: ... }`
-    // ad-hoc object would break the model's expectations. Pin it.
-    mockedListDocs.mockResolvedValue([
-      { docId: 'OTHER', title: 'X', description: '', language: 'en', accessMode: 'private', wordCount: 0, sizeBytes: 0, lastActive: new Date('2026-04-30T10:00:00Z'), ownerId: 100, isOwner: true }
-    ])
-    const session = makeSession({ docId: 'CURRENT', workspaceId: 'WS-A' })
-    const res = await executeFunctionByName(session, 'list_workspace_documents', {})
+  it('marks the current document instead of dropping it (the page and total stay exact)', async () => {
+    mockedListDocs.mockResolvedValue({ rows: [row({ docId: 'CURRENT' }), row({ docId: 'SIBLING' })], total: 2 })
+    mockedListFolders.mockResolvedValue([])
+    const res = await executeFunctionByName(makeSession({ docId: 'CURRENT', workspaceId: 'WS-A' }), 'list_workspace_documents', {})
+    const out = JSON.parse(res.content)
+    expect(out.documents.find((d: { doc_id: string }) => d.doc_id === 'CURRENT').current_document).toBe(true)
+    expect(out.documents.find((d: { doc_id: string }) => d.doc_id === 'SIBLING').current_document).toBeUndefined()
+    expect(out.next_cursor).toBe(null)
+  })
+
+  it('an invalid cursor is a tool error the model can correct, not a crash', async () => {
+    const res = await executeFunctionByName(makeSession({ workspaceId: 'WS-A' }), 'list_workspace_documents', { cursor: 'not-a-cursor' })
+    expect(res.isError).toBe(true)
+    expect(mockedListDocs).not.toHaveBeenCalled()
+  })
+})
+
+describe('list_my_documents', () => {
+  it('lists the personal documents (owner scope, no workspace) even inside a workspace session', async () => {
+    mockedListDocs.mockResolvedValue({ rows: [row({ docId: 'P1' })], total: 1 })
+    mockedListFolders.mockResolvedValue([])
+    const res = await executeFunctionByName(makeSession({ workspaceId: 'WS-A', initiatorUserId: 100 }), 'list_my_documents', { folder_id: 'root' })
     expect(res.isError).toBe(false)
-    expect(res.content).toMatch(/"last_active":\s*"2026-04-30T10:00:00\.000Z"/)
+    const scope = mockedListDocs.mock.calls[0]![0]
+    expect('workspaceId' in scope).toBe(false)
+    expect(mockedListDocs).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ folder: null }))
+    expect(JSON.parse(res.content)).toMatchObject({ scope: 'personal', total: 1 })
   })
 })

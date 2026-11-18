@@ -14,8 +14,13 @@ import { useMyWorkspaces } from '~/queries/workspaces'
 // forms) stays out of the product page's chunks, a logged-out visitor
 // on the marketing site never downloads it. The new-document dialog
 // stays on the page (the tour opens it too): `new-document` asks for it.
+const props = defineProps<{
+  /** The open personal folder (`/f/:folderId`); null = the root. */
+  folderId?: string | null
+}>()
+
 const emit = defineEmits<{
-  'new-document': []
+  'new-document': [folderId?: string | null]
   // Pointer over / focus on a "New document" button: fetch the dialog's
   // chunk a moment early (useNewDocDialog.warm).
   'warm-new-document': []
@@ -24,6 +29,9 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const router = useRouter()
 const { loggedIn, user } = useUserSession()
+// The create buttons are server-rendered; before hydration a click on them
+// would do nothing at all, so they show disabled until then.
+const hydrated = useHydrated()
 const { billing, workspaceCapReached } = useBilling()
 const toast = useToast()
 const { showContextualError } = useErrorHandler()
@@ -59,41 +67,6 @@ function onCapReachedClick() {
   // Self-hosted: nothing to buy, say so instead of a dead link.
   toast.add({ title: workspaceCapShortLabel.value, description: workspaceCapTooltip.value, icon: 'i-lucide-lock', color: 'neutral' })
 }
-
-type DocumentListItem = ApiResponse<'/api/user/documents', 'get'>[number]
-
-// Track "has the first fetch resolved" explicitly. `useAsyncState` with
-// `immediate: false` reports `isLoading: false` until the first
-// `execute()` lands, which means the spinner gated on `loadingDocs`
-// alone is invisible during the SSR→hydration window, by the time
-// `tryOnMounted` fires `loadDocs`, the response often comes back
-// faster than a frame, so the user never sees a spinner. These flags
-// stay false until the first fetch resolves; the v-if uses them to
-// show the spinner consistently across SSR + the brief load window.
-// The create buttons are server-rendered; before hydration a click on
-// them would do nothing at all, so they show disabled until then.
-const hydrated = useHydrated()
-
-const docsFetched = ref(false)
-
-const {
-  state: myDocs,
-  isLoading: _loadingDocs,
-  execute: loadDocs
-} = useAsyncState<DocumentListItem[]>(
-  () => loggedIn.value ? apiFetch('/api/user/documents') : Promise.resolve([]),
-  [],
-  {
-    immediate: false,
-    resetOnExecute: false,
-    onError: (e) => {
-      myDocs.value = []
-      docsFetched.value = true
-      showContextualError(e, 'error.generic')
-    },
-    onSuccess: () => { docsFetched.value = true }
-  }
-)
 
 // The workspace list is a shared query (also behind "Move to workspace");
 // creating, renaming, deleting, leaving or joining a workspace refreshes it.
@@ -168,8 +141,6 @@ tryOnMounted(() => {
     return
   }
   watch(loggedIn, () => {
-    docsFetched.value = false
-    void loadDocs()
     void loadInvites()
     void loadSharedDocs()
   }, { immediate: true })
@@ -181,69 +152,15 @@ const pageTitle = computed(() => {
   return name ? t('home.greeting', { name }) : t('home.title')
 })
 
-const deleteTarget = ref<DocumentListItem | null>(null)
-const showDeleteConfirm = ref(false)
-
-function openDeleteConfirm(doc: DocumentListItem) {
-  deleteTarget.value = doc
-  showDeleteConfirm.value = true
-}
-
-function onDocDeleted() {
-  const target = deleteTarget.value
-  if (!target) return
-  // Optimistically remove from list (the server call already succeeded at this point)
-  myDocs.value = myDocs.value.filter(d => d.docId !== target.docId)
-  deleteTarget.value = null
-}
-
-// Duplicate / Move modals. Dashboard shows personal + owned-in-workspace
-// docs; every entry here is owned by the caller (`isOwner`), so the menu
-// offers every action: `isOwner` is still passed through as the gate.
-const duplicateTarget = ref<DocumentListItem | null>(null)
-const showDuplicateModal = ref(false)
-const moveTarget = ref<DocumentListItem | null>(null)
-const showMoveModal = ref(false)
-
-function openDuplicate(doc: DocumentListItem) {
-  duplicateTarget.value = doc
-  showDuplicateModal.value = true
-}
-function openMove(doc: DocumentListItem) {
-  moveTarget.value = doc
-  showMoveModal.value = true
-}
-function onDocDuplicated(newDocId: string) {
-  void router.push(`/d/${newDocId}`)
-}
-function onDocMoved(newWorkspaceId: string | null) {
-  // The documents list shows every owned doc regardless of workspace,
-  // so a move keeps the row; record the new workspace so a second Move
-  // starts from the right place.
-  const target = moveTarget.value
-  if (target) {
-    myDocs.value = myDocs.value.map(d => d.docId === target.docId ? { ...d, workspaceId: newWorkspaceId } : d)
-  }
-  moveTarget.value = null
-}
-
 const showCreateWorkspace = ref(false)
+
+// The personal documents explorer lives at `/` and `/f/:folderId`.
+function folderHref(id: string | null): string {
+  return id === null ? '/' : `/f/${encodeURIComponent(id)}`
+}
 
 function onWorkspaceCreated(workspaceId: string) {
   void router.push(`/w/${workspaceId}`)
-}
-
-// Long-press a doc row to open its action menu, discoverable on
-// touch where the 3-dot button is a small target. Per-row keying so
-// only the long-pressed row's menu opens. The trigger writes the same
-// state (two-way), so a click opens the menu as well.
-const openMenuDocId = ref<string | null>(null)
-function onRowLongPress(doc: DocumentListItem) {
-  openMenuDocId.value = doc.docId
-}
-function setMenuOpen(doc: DocumentListItem, open: boolean) {
-  if (open) openMenuDocId.value = doc.docId
-  else if (openMenuDocId.value === doc.docId) openMenuDocId.value = null
 }
 </script>
 
@@ -290,7 +207,7 @@ function setMenuOpen(doc: DocumentListItem, open: boolean) {
     <!-- Logged in: an app dashboard, not a landing page. -->
     <div
       v-else
-      class="w-full max-w-4xl space-y-10 sm:space-y-12"
+      class="w-full max-w-6xl space-y-10 sm:space-y-12"
       data-testid="home-dashboard"
     >
       <UPageHeader
@@ -400,13 +317,15 @@ function setMenuOpen(doc: DocumentListItem, open: boolean) {
           <h2 class="font-serif text-2xl font-normal tracking-tight">
             {{ t('landing.recentDocuments') }}
           </h2>
+          <div class="flex-1" />
+          <ExplorerQuickSearch />
           <UButton
             size="sm"
             color="neutral"
             icon="i-lucide-plus"
             :disabled="!hydrated"
             data-testid="landing-new-document"
-            @click="emit('new-document')"
+            @click="emit('new-document', props.folderId ?? null)"
             @pointerenter="emit('warm-new-document')"
             @focus="emit('warm-new-document')"
           >
@@ -414,116 +333,16 @@ function setMenuOpen(doc: DocumentListItem, open: boolean) {
           </UButton>
         </div>
 
-        <!-- Spinner during the first fetch, `docsFetched` flips true
-             after `loadDocs` resolves (success or error), so it covers
-             the SSR→hydration window where `isLoading` alone reports
-             false. -->
-        <div
-          v-if="!docsFetched && myDocs.length === 0"
-          class="flex justify-center py-6"
-        >
-          <UIcon
-            name="i-lucide-loader"
-            class="size-6 animate-spin text-muted mx-auto"
-          />
-        </div>
-        <p
-          v-else-if="myDocs.length === 0"
-          class="text-sm text-muted"
-          data-testid="home-no-documents"
-        >
-          {{ t('landing.noRecent') }}
-        </p>
-        <div
-          v-else
-          class="space-y-2"
-        >
-          <div
-            v-for="doc in myDocs"
-            :key="doc.docId"
-            v-long-press="() => onRowLongPress(doc)"
-            class="group flex items-center gap-3 p-3 rounded-lg border border-default bg-default hover:bg-muted/50 transition-colors"
-          >
-            <NuxtLink
-              :to="`/d/${doc.docId}`"
-              class="flex items-center gap-3 min-w-0 flex-1"
-            >
-              <UIcon
-                name="i-lucide-file-text"
-                class="size-5 text-muted shrink-0"
-              />
-              <div class="min-w-0">
-                <p class="font-serif text-base font-normal tracking-tight truncate">{{ doc.title }}</p>
-                <!-- Description as a subtitle when set. Highest-info
-                     field for picking which doc to open; collapses
-                     entirely when empty so legacy/blank docs don't
-                     show "-" placeholders. -->
-                <p
-                  v-if="doc.description"
-                  class="text-xs text-toned truncate"
-                >
-                  {{ doc.description }}
-                </p>
-                <p class="text-xs text-muted">
-                  <CommonTimeAgo :ts="doc.lastActive" />
-                </p>
-              </div>
-            </NuxtLink>
-            <div class="flex items-center gap-2 shrink-0">
-              <UBadge
-                v-if="doc.accessMode !== 'open-edit'"
-                size="xs"
-                color="neutral"
-                variant="subtle"
-              >
-                {{
-                  doc.accessMode === 'private' ? t('home.access.private')
-                  : doc.accessMode === 'open-view' ? t('share.viewOnly')
-                    : t('home.access.protected')
-                }}
-              </UBadge>
-              <span class="hidden sm:inline text-xs text-muted">{{ t('docRow.words', { n: doc.wordCount || 0 }) }}</span>
-              <DocumentDocRowMenu
-                :doc-id="doc.docId"
-                :can-edit="!!doc.isOwner"
-                :can-manage="!!doc.isOwner"
-                :open="openMenuDocId === doc.docId"
-                @update:open="(v: boolean) => setMenuOpen(doc, v)"
-                @duplicate="openDuplicate(doc)"
-                @move="openMove(doc)"
-                @delete="openDeleteConfirm(doc)"
-              />
-            </div>
-          </div>
-        </div>
+        <ExplorerView
+          :scope="{ kind: 'personal' }"
+          access="owner"
+          :folder-id="props.folderId ?? null"
+          :root-label="t('explorer.personalRoot')"
+          :folder-href="folderHref"
+          @new-document="(f: string | null) => emit('new-document', f)"
+        />
       </section>
     </div>
-
-    <!-- Delete confirmation (shared across all doc rows) -->
-    <DocumentDeleteConfirmModal
-      v-if="deleteTarget"
-      v-model:open="showDeleteConfirm"
-      :doc-id="deleteTarget.docId"
-      :title="deleteTarget.title"
-      @deleted="onDocDeleted"
-    />
-
-    <DocumentDuplicateDocModal
-      v-if="duplicateTarget"
-      v-model:open="showDuplicateModal"
-      :doc-id="duplicateTarget.docId"
-      :source-title="duplicateTarget.title"
-      @duplicated="onDocDuplicated"
-    />
-
-    <DocumentMoveWorkspaceModal
-      v-if="moveTarget"
-      v-model:open="showMoveModal"
-      :doc-id="moveTarget.docId"
-      :doc-title="moveTarget.title"
-      :current-workspace-id="moveTarget.workspaceId"
-      @moved="onDocMoved"
-    />
 
     <!-- Create workspace modal -->
     <WorkspaceFormModal

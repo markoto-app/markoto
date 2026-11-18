@@ -66,8 +66,30 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     // shared with which guest (view / edit) and by whom.
     // `workspace_brand_kit`: fonts + logos a workspace's admins
     // uploaded (and who), workspace templates.
-    dataCategories: ['document_content', 'document_metadata', 'images', 'edit_attribution', 'guest_document_shares', 'workspace_brand_kit'],
+    // `document_search_index`: a plain-text copy of each document's title
+    // and body (`document_search`) that the document search reads. Deleted
+    // with the document. `document_folders`: the folders documents are
+    // filed in (name, place in the tree, who created it), deleted with the
+    // workspace or the account they belong to.
+    dataCategories: ['document_content', 'document_metadata', 'images', 'edit_attribution', 'guest_document_shares', 'workspace_brand_kit', 'document_search_index', 'document_folders'],
     retention: 'until_deletion',
+    subProcessors: ['ovh_postgres', 'ovh_object_storage']
+  },
+  {
+    // Bulk imports (server/utils/imports/): the record of an import the
+    // user started: the names and paths of the files, the repository URL
+    // of a GitHub import, which document each file became and how it
+    // ended. No file contents: uploaded files are staged in object storage
+    // only until the import worker has read them. The documents created
+    // are covered by `document_storage`. A GitHub import fetches the public
+    // repository from GitHub on the user's instruction; nothing about the
+    // user is sent to GitHub, so GitHub is not a sub-processor here. Records
+    // are deleted 30 days after the import finishes, or with the account.
+    id: 'bulk_imports',
+    label: 'Importing files and repositories',
+    basis: 'contract',
+    dataCategories: ['import_file_names', 'import_repository_url', 'import_outcomes'],
+    retention: 30,
     subProcessors: ['ovh_postgres', 'ovh_object_storage']
   },
   {

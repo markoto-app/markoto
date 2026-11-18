@@ -60,7 +60,9 @@ describe('taint sources', () => {
     ['web_search', { query: 'q' }],
     ['fetch_url', { url: 'https://a.example' }],
     ['view_image', { src: 'https://a.example/x.png' }],
-    ['list_workspace_documents', {}]
+    ['list_workspace_documents', {}],
+    ['search_documents', { query: 'q', workspace_id: 'personal' }],
+    ['list_folders', { workspace_id: 'ws-other' }]
   ])('%s taints the session', async (name, args) => {
     const { guard } = makeGuard()
     await guard.afterTool(name, args, { isError: false })
@@ -71,6 +73,21 @@ describe('taint sources', () => {
     const { guard } = makeGuard({}, { workspaceHasOtherEditors: async () => false })
     await guard.afterTool('list_workspace_documents', {}, { isError: false })
     expect(guard.tainted).toBe(false)
+  })
+
+  it('folder names taint only when they can be someone else\'s', async () => {
+    const solo = makeGuard({}, { workspaceHasOtherEditors: async () => false }).guard
+    await solo.afterTool('list_folders', {}, { isError: false })
+    await solo.afterTool('list_folders', { workspace_id: 'personal' }, { isError: false })
+    expect(solo.tainted).toBe(false)
+    const shared = makeGuard({}, { workspaceHasOtherEditors: async () => true }).guard
+    await shared.afterTool('list_folders', {}, { isError: false })
+    expect(shared.tainted).toBe(true)
+  })
+
+  it.each(['search_documents', 'list_folders', 'move_document', 'create_folder'])('%s asks first once the session is tainted', (name) => {
+    const { guard } = makeGuard({ initialTaint: 'shared document' })
+    expect(guard.needsConfirmation(name, {})).toBe(true)
   })
 
   it('a failed tool call does not taint', async () => {

@@ -52,6 +52,8 @@ const MEMORY_SKIP_TOOLS: ReadonlySet<string> = new Set([
   'get_theme',
   'list_themes',
   'list_workspace_documents',
+  'list_my_documents',
+  'list_folders',
   'get_page_count',
   // Guidance, not an action; a later prompt preselects or loads it again.
   'load_skill',
@@ -98,6 +100,15 @@ function summarizeStructuralEdit(name: string, a: Record<string, unknown>): stri
   }
 }
 
+/** Summaries of the document search and folder tools (kept apart to keep summarizeToolCall flat). */
+function summarizeLibraryCall(name: string, a: Record<string, unknown>): string {
+  const trim = (s: unknown, n: number) => (typeof s === 'string' ? s.slice(0, n) : '')
+  if (name === 'search_documents') return `query="${trim(a.query, 100)}"`
+  if (name === 'move_document') return `doc=${trim(a.doc_id, 80)} folder_id=${a.folder_id === null ? 'null' : trim(a.folder_id, 64)}`
+  const parent = typeof a.parent_id === 'string' && a.parent_id ? ` parent_id=${trim(a.parent_id, 64)}` : ''
+  return `name="${trim(a.name, 60)}"${parent}`
+}
+
 /**
  * Short arg summary for the memory row's body: the one field that conveys
  * what the call did, capped tight. Unknown tools fall back to
@@ -141,6 +152,10 @@ export function summarizeToolCall(name: string, args: unknown): string {
       return `knowledge_id=${trim(a.knowledge_id, 64)}`
     case 'view_other_document':
       return `doc=${trim(a.doc_id, 80)}`
+    case 'search_documents':
+    case 'move_document':
+    case 'create_folder':
+      return summarizeLibraryCall(name, a)
     case 'update_theme':
       // Theme patches are too varied to summarise; "preset=X" is the most
       // informative single fact, else just the touched keys.

@@ -19,6 +19,7 @@ import { duplicateDocument } from '../../documents/duplicateDocument'
 import { useS3Client } from '../../storage/s3'
 import { resolveImageQuota } from '../../storage/imageQuota'
 import { useEnv } from '~~/shared/env/load'
+import { folderWorkspace } from './folderTools'
 
 // Host-style tools: tools that operate AT the user's library level rather than inside a
 // specific doc: create + duplicate + export. Available to both the
@@ -34,7 +35,9 @@ const CreateDocumentArgs = z.object({
   initial_markdown: z.string().max(100_000).optional()
     .describe('Optional initial body for the new doc. Up to 100k chars. The new doc is opened as a Y.js client and this string is inserted at the start before the tool returns. Omit to get an empty doc.'),
   workspace_id: z.string().min(1).optional()
-    .describe('Optional workspace id to file the doc into. Caller MUST be admin or editor of the workspace; viewers and non-members get a 403. Omit for a personal (non-workspace) doc.'),
+    .describe('Optional workspace id to file the doc into. Caller MUST be admin or editor of the workspace; viewers and non-members get a 403. Omit for a personal (non-workspace) doc, or to use folder_id\'s workspace.'),
+  folder_id: z.string().trim().min(1).max(64).optional()
+    .describe('Optional folder to file the doc in (an id from list_folders). Without workspace_id the doc goes into the folder\'s own workspace (or your personal documents for a personal folder).'),
   description: z.string().max(500).optional()
     .describe('Optional one-sentence summary, ≤500 chars. Surfaced in doc listings + injected into AI prompts as the doc\'s purpose statement.'),
   audience: z.enum(AUDIENCE_KINDS as [string, ...string[]]).optional()
@@ -71,6 +74,13 @@ async function handleCreateDocument(
   // (MCP wrapper + agentic loop's prompt endpoint) requires an
   // authenticated user. The session.initiatorUserId is the real
   // human's id; we pass it through as ownerId.
+  let workspaceId = input.workspace_id ?? null
+  if (input.folder_id !== undefined && input.workspace_id === undefined) {
+    // A folder belongs to one scope; filing into it implies that scope.
+    const folderWs = await folderWorkspace(session.initiatorUserId, input.folder_id)
+    if (folderWs === undefined) return toolError(`Error: folder "${input.folder_id}" not found.`)
+    workspaceId = folderWs
+  }
   let result: { docId: string, url: string }
   try {
     result = await createDocument({
@@ -82,7 +92,8 @@ async function handleCreateDocument(
       templateId: input.template_id,
       themePreset: input.theme_preset,
       themeId: input.theme_id,
-      workspaceId: input.workspace_id ?? null
+      workspaceId,
+      folderId: input.folder_id ?? null
     })
   } catch (e) {
     // createDocument throws createError(...); bubble the user-facing
@@ -232,7 +243,7 @@ async function handleExportDocumentAsMarkdown(
 
 export const createDocumentTool = defineMetaTool({
   name: 'create_document',
-  description: 'Create a NEW document owned by the initiator. Optional initial_markdown seeds the doc body in one call (no follow-up insert_text needed). Optional workspace_id files into a workspace (caller must be admin/editor of it). Returns { doc_id, url }, share the url with the user or follow up with view_document / insert_text against the new doc_id.',
+  description: 'Create a NEW document owned by the initiator. Optional initial_markdown seeds the doc body in one call (no follow-up insert_text needed). Optional workspace_id files into a workspace (caller must be admin/editor of it), optional folder_id into one of its folders. Returns { doc_id, url }, share the url with the user or follow up with view_document / insert_text against the new doc_id.',
   schema: CreateDocumentArgs,
   trustBoundary: 'confirm',
   handler: handleCreateDocument

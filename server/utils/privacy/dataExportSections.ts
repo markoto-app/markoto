@@ -12,6 +12,7 @@ import { listGrants } from '../../repos/aiCreditGrants'
 import { listSubscriptionsByBillingAdmin } from '../../repos/workspaceSubscriptions'
 import { listPublishedPagesForOwner } from '../../repos/publishedPages'
 import { listCustomDomainsForUser } from '../../repos/customDomains'
+import { listImportJobsForExport } from '../../repos/imports'
 import type { UserScope } from '../../repos/proofs'
 
 // Sections of the GDPR export (`dataExport.ts`) that read through the
@@ -153,6 +154,33 @@ export async function addPublishingEntries(entries: ExportEntries, user: UserSco
     createdAt: d.createdAt.toISOString(),
     showsDocument: d.pageDocId
   })), null, 2))
+}
+
+/**
+ * Bulk imports you started: source (and the repository URL of a GitHub
+ * import), outcome, and per file its path, status and the document it
+ * became. File contents are never kept, so none are exported.
+ */
+export async function addImportJobsEntry(entries: ExportEntries, user: UserScope): Promise<number> {
+  const jobs = await listImportJobsForExport(user)
+  entries['imports.json'] = strToU8(JSON.stringify(jobs.map(j => ({
+    jobId: j.jobId,
+    workspaceId: j.workspaceId,
+    source: j.source,
+    repositoryUrl: j.sourceRef,
+    status: j.status,
+    error: j.error,
+    total: j.total,
+    done: j.done,
+    failed: j.failed,
+    skipped: j.skipped,
+    totalBytes: j.totalBytes,
+    createdAt: j.createdAt.toISOString(),
+    startedAt: j.startedAt?.toISOString() ?? null,
+    finishedAt: j.finishedAt?.toISOString() ?? null,
+    files: j.items.map(i => ({ path: i.relativePath, status: i.status, reason: i.reason, docId: i.docId }))
+  })), null, 2))
+  return jobs.length
 }
 
 /**

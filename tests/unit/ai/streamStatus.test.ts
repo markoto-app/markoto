@@ -155,6 +155,15 @@ describe('describeToolInput: list_workspace_documents / view_other_document', ()
       .toBe('Browsing workspace documents…')
   })
 
+  it('the document list, search and folder tools have their own labels', () => {
+    expect(textOf('list_my_documents', {})).toBe('Browsing your documents…')
+    expect(textOf('search_documents', { query: 'q3 retro' })).toBe('Searching documents for "q3 retro"')
+    expect(textOf('search_documents', {})).toBe('Browsing your documents…')
+    expect(textOf('list_folders', {})).toBe('Browsing folders…')
+    expect(textOf('move_document', { doc_id: 'abc', folder_id: null })).toBe('Moving a document to a folder…')
+    expect(textOf('create_folder', { name: 'Specs' })).toBe('Creating folder "Specs"')
+  })
+
   it('view_other_document extracts the id from a URL', () => {
     expect(textOf('view_other_document', { doc_id: 'https://markoto.app/d/xyz123abc' }))
       .toBe('Reading document xyz123abc')

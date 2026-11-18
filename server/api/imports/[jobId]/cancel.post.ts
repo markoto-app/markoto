@@ -6,6 +6,7 @@ import { importJobParams } from '~~/shared/api/imports'
 export default defineApiHandler({
   access: allow.user(),
   params: importJobParams,
+  body: 'none',
   handler: async ({ self, params }) => {
     const status = await cancelImportJob(self, params.jobId)
     if (status === null) throw apiError('import/job-not-found')

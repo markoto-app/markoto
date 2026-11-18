@@ -2,34 +2,68 @@ import { aiStatus } from '~~/shared/ai/statusSteps'
 import { z } from 'zod'
 import { defineMetaTool, toolError, toolOk, type ToolResult } from './toolDefinition'
 import type { MetaToolContext } from '../../agentic/toolContext'
-import { listWorkspaceDocsWithOwnerFlag, listOwnedByUser } from '../../../repos/documents'
+import type { FolderScope } from '../../../repos/folders'
 import { getDocWithActorRole } from '../../access/docProof'
 import { docStateOf, isEffectiveDocOwner, decideTokenAccess } from '~~/shared/utils/documents/docPermissions'
 import { openTrustedCommentClient } from '../../documents/commentsServerClient'
 import { TOOL_RESULT_CHAR_CAP } from '../../agentic/limits'
 import { boundedDocumentView } from './documentText'
+import { parseDocIdFromInput } from './docRef'
+import { listDocsPage, type DocListItem } from '../../explorer/docLists'
+import { searchEverywhere } from '../../explorer/folderActions'
+import { explorerErrorAsToolResult, folderPathsAcrossScopes, folderPathsOf, folderWorkspace, PERSONAL_SCOPE } from './folderTools'
+import { documentSearchQuery } from '~~/shared/api/explorer'
+import { splitSnippet } from '~~/shared/utils/documents/searchQuery'
 
-// Cross-document reads: two tools that let the AI reach BEYOND the current document:
+// Cross-document reads: tools that let the AI reach BEYOND the current document:
 //
-//   - list_workspace_documents: enumerate the OTHER docs in the
-//     current session's workspace (current doc excluded). Useful for
-//     "summarise everything in this workspace" or "find the doc
-//     about X that I wrote last week".
+//   - list_workspace_documents / list_my_documents: one page of a scope's
+//     documents (the current document's workspace; the caller's personal
+//     documents) in compact rows, paged with a cursor, so a workspace with
+//     thousands of documents never lands in one tool result.
+//   - search_documents: the explorer's full-text search over every
+//     document the caller can reach (or one workspace / folder).
 //   - view_other_document: read the body of any doc the user
 //     could open in their browser. Same access surface: own private
 //     docs, workspace member, public open-edit/open-view, password-
 //     protected (workspace-membership bypass only, there's no way
 //     to ship the password through the AI surface).
 //
-// Both tools share access semantics with the human session: the
-// initiator's permissions, never the AI's synthetic principal.
+// All share access semantics with the human session: the initiator's
+// permissions, never the AI's synthetic principal. Lists and search run the
+// explorer's own code (`server/utils/explorer/`), so SSO and guest rules are
+// those of the document list.
 
-const ListWorkspaceDocumentsArgs = z.object({}).describe('List all OTHER documents in the current document\'s workspace (the current document is excluded). Returns each doc\'s id, title, description, language, access_mode, last_active timestamp, and is_owner flag for the initiator. Errors if the document is not in a workspace. Use when the user asks to summarise the workspace, find a sibling doc by topic, or cross-reference content. After picking a candidate, call `view_other_document({ doc_id: ... })` to actually read it.')
+const LIST_DEFAULT_LIMIT = 50
+const LIST_MAX_LIMIT = 200
+const SEARCH_DEFAULT_LIMIT = 10
+const SEARCH_MAX_LIMIT = 20
+/** Descriptions in list rows are cut here: enough to recognise a document, not to read it. */
+const LIST_DESCRIPTION_CHARS = 160
 
-const ListMyDocumentsArgs = z.object({
-  limit: z.number().int().min(1).max(100).optional()
-    .describe('Max documents to return. Default 25, cap 100. Sorted by last-active descending so the most recently touched docs come first.')
-}).describe('List documents the initiator OWNS, across every workspace they participate in. Returns each doc\'s id, title, description, language, access_mode, workspace_id, word_count, and last_active timestamp. Use when the user references a doc by name without giving the id ("the Q3 retro doc", "my brand guidelines") so you can find the matching id, then call `view_other_document({ doc_id: ... })` to read it. Cross-workspace counterpart to `list_workspace_documents`, which is per-workspace and exposes shared (not just owned) docs.')
+const pageArgs = {
+  folder_id: z.string().trim().min(1).max(64).optional()
+    .describe('Only documents filed directly in this folder (an id from list_folders), or "root" for documents in no folder. Omit for every document, in all folders.'),
+  limit: z.number().int().min(1).max(LIST_MAX_LIMIT).optional()
+    .describe(`Documents per page. Default ${LIST_DEFAULT_LIMIT}, at most ${LIST_MAX_LIMIT}. Most recently edited first.`),
+  cursor: z.string().min(1).max(600).optional()
+    .describe('next_cursor from the previous page, to continue the list. Omit for the first page.')
+}
+
+export const ListWorkspaceDocumentsArgs = z.object(pageArgs).describe('One page of the documents in the current document\'s workspace, most recently edited first: id, title, folder path, last edited, a short description. Errors if the document is not in a workspace.')
+
+export const ListMyDocumentsArgs = z.object(pageArgs).describe('One page of your personal documents (owned by you, not in any workspace), most recently edited first: id, title, folder path, last edited, a short description.')
+
+export const SearchDocumentsArgs = z.object({
+  query: z.string().trim().min(1).max(200)
+    .describe('Words to find in titles and text (prefix matching: "budg" finds "budget").'),
+  workspace_id: z.string().trim().regex(/^[A-Za-z0-9_-]{1,64}$/).optional()
+    .describe('Only this workspace, or "personal" for your personal documents. Omit to search everything you can open: personal documents, every workspace you are a member of, and documents shared with you.'),
+  folder_id: z.string().trim().min(1).max(64).optional()
+    .describe('Only this folder and its subfolders (an id from list_folders).'),
+  limit: z.number().int().min(1).max(SEARCH_MAX_LIMIT).optional()
+    .describe(`Results to return. Default ${SEARCH_DEFAULT_LIMIT}, at most ${SEARCH_MAX_LIMIT}. Best matches first.`)
+}).describe('Full-text search over the documents you can open. Returns id, title, workspace, folder path and a snippet with the matched words in **bold**.')
 
 const ViewOtherDocumentArgs = z.object({
   doc_id: z.string().trim().min(1).max(2048)
@@ -40,115 +74,120 @@ const ViewOtherDocumentArgs = z.object({
     .describe('Optional 1-indexed inclusive line range [start, end]. Use -1 for end to read through to the end of the document. Without it a short document is returned in full, a long one as a heading outline (with line ranges) plus its first lines.')
 }).describe('Read another document\'s body + metadata. Permission check is the SAME as if the user opened the URL in their browser: their own docs, any doc in any workspace they belong to (any role, viewer is enough), and any anonymous open-edit / open-view doc. Private docs owned by other users return "not found." Password-protected docs are accessible only when the initiator is a member of that doc\'s workspace (workspace membership bypasses the password gate). Returns line-numbered body so you can quote / replace specific lines. The current document cannot be read this way, use `view_document` instead.')
 
-/**
- * Strip a markoto URL down to a bare doc id. Accepts:
- *   - `xyz123abc`
- *   - `/d/xyz123abc`
- *   - `https://markoto.app/d/xyz123abc`
- *   - `markoto.app/d/xyz123abc?slide=2`
- *   - any host (so users on `localhost:3000` or staging URLs work)
- *
- * Returns null when no recognisable id can be extracted. The id rule
- * `[A-Za-z0-9_-]+` matches nanoid output and survives any future id
- * shape change as long as the alphabet stays URL-safe.
- */
-export function parseDocIdFromInput(raw: string): string | null {
-  const trimmed = raw.trim()
-  if (!trimmed) return null
-  // Try URL-shape match first. Doesn't matter whether the input has a
-  // scheme: `/d/<id>` is the load-bearing piece.
-  const urlMatch = /\/d\/([A-Za-z0-9_-]+)(?:[/?#]|$)/.exec(trimmed)
-  if (urlMatch) return urlMatch[1] ?? null
-  // Otherwise treat as a bare id only if the WHOLE string matches the
-  // id alphabet (not "https://example.com" with no `/d/` segment).
-  if (/^[A-Za-z0-9_-]+$/.test(trimmed)) return trimmed
-  return null
+function shortDescription(text: string): string | undefined {
+  const t = text.trim()
+  if (!t) return undefined
+  return t.length > LIST_DESCRIPTION_CHARS ? `${t.slice(0, LIST_DESCRIPTION_CHARS - 1)}…` : t
+}
+
+/** One page of a scope's documents as the compact JSON both list tools return. */
+async function listPage(session: MetaToolContext, scope: FolderScope, input: z.output<typeof ListMyDocumentsArgs>, header: Record<string, unknown>): Promise<ToolResult> {
+  let page: Awaited<ReturnType<typeof listDocsPage>>
+  try {
+    page = await listDocsPage(session.self, scope, {
+      folder: input.folder_id ?? 'all',
+      sort: 'updated',
+      cursor: input.cursor,
+      limit: input.limit ?? LIST_DEFAULT_LIMIT
+    })
+  } catch (e) {
+    return explorerErrorAsToolResult(e)
+  }
+  const pathOf = await folderPathsOf(scope)
+  const row = (d: DocListItem) => ({
+    doc_id: d.docId,
+    title: d.title,
+    folder: pathOf(d.folderId),
+    folder_id: d.folderId,
+    last_edited: d.updatedAt,
+    description: shortDescription(d.description),
+    // The model already has the current document open; marking it saves a
+    // redundant view_other_document on the id it is editing.
+    ...(d.docId === session.docId ? { current_document: true } : {})
+  })
+  return toolOk(JSON.stringify({
+    ...header,
+    total: page.total,
+    returned: page.items.length,
+    documents: page.items.map(row),
+    next_cursor: page.nextCursor,
+    notes: [
+      page.nextCursor ? 'More documents: call again with cursor = next_cursor.' : null,
+      'Pass doc_id to view_other_document to read one. folder is null for documents in no folder.',
+      'To find a document by its content or name, search_documents is faster than paging.'
+    ].filter(Boolean)
+  }, null, 2))
 }
 
 async function handleListWorkspaceDocuments(
   session: MetaToolContext,
-  _input: z.output<typeof ListWorkspaceDocumentsArgs>
+  input: z.output<typeof ListWorkspaceDocumentsArgs>
 ): Promise<ToolResult> {
   // The membership proof, not the bare workspace id: a guest's session
   // carries the document's workspace id but no member proof.
   if (!session.workspaceId || !session.workspaceAccess) {
     return toolError('Error: list_workspace_documents requires the current document to be in a workspace.')
   }
-
-  // Reuse the existing repo helper that powers /api/workspaces/:id,
-  // identical fields, identical ownership flag computation, and the
-  // same membership check happens before we get here (the AI session
-  // belongs to a workspace member or it would have been rejected at
-  // /api/ai/prompt time).
-  const rows = await listWorkspaceDocsWithOwnerFlag(session.workspaceAccess)
-  // Drop the current document from the list, the AI already has it
-  // open, including it would be confusing and tempt redundant calls
-  // to view_other_document on the same id it's editing.
-  const visible = rows.filter(r => r.docId !== session.docId)
-
-  if (visible.length === 0) {
-    return toolOk('This workspace has no other documents (only the current one). Nothing to summarise or cross-reference.')
-  }
-
-  const payload = {
-    workspace_id: session.workspaceId,
-    excluded_current_doc_id: session.docId,
-    documents: visible.map(r => ({
-      doc_id: r.docId,
-      title: r.title,
-      description: r.description,
-      language: r.language,
-      access_mode: r.accessMode,
-      last_active: r.lastActive instanceof Date ? r.lastActive.toISOString() : r.lastActive,
-      is_owner: r.isOwner
-    })),
-    notes: [
-      'Pass `doc_id` to view_other_document to read a specific entry.',
-      'is_owner=true means the initiator created the doc; both owned and shared workspace docs appear here.'
-    ]
-  }
-  return toolOk(JSON.stringify(payload, null, 2))
+  return listPage(session, session.workspaceAccess, input, { workspace_id: session.workspaceId })
 }
-
-const LIST_MY_DOCUMENTS_DEFAULT_LIMIT = 25
 
 async function handleListMyDocuments(
   session: MetaToolContext,
   input: z.output<typeof ListMyDocumentsArgs>
 ): Promise<ToolResult> {
-  // Initiator-scoped: ownership is the truth source. The session's
-  // synthetic principal is irrelevant here; we always look up against
-  // the real human's id (same pattern handleListThemes,
-  // handleSaveThemeAsPreset use).
-  const limit = input.limit ?? LIST_MY_DOCUMENTS_DEFAULT_LIMIT
-  const rows = await listOwnedByUser(session.self)
-  const sliced = rows.slice(0, limit)
+  // Personal documents only (the explorer's "My documents"). Documents the
+  // caller owns inside a workspace belong to that workspace's list; the
+  // model reaches them with list_workspace_documents or search_documents.
+  return listPage(session, session.self, input, { scope: 'personal' })
+}
 
-  if (sliced.length === 0) {
-    return toolOk('You don\'t own any documents yet. Create one with `create_document` (when available), or open a public doc by URL via `view_other_document`.')
+/** A snippet with its match markers (invisible separators) turned into Markdown bold the model reads. */
+function readableSnippet(snippet: string): string {
+  return splitSnippet(snippet).map(p => (p.match ? `**${p.text}**` : p.text)).join('')
+}
+
+async function handleSearchDocuments(
+  session: MetaToolContext,
+  input: z.output<typeof SearchDocumentsArgs>
+): Promise<ToolResult> {
+  let scope = 'all'
+  if (input.workspace_id === PERSONAL_SCOPE) scope = 'personal'
+  else if (input.workspace_id) scope = `ws:${input.workspace_id}`
+  else if (input.folder_id) {
+    // A folder names its scope; the explorer's search wants both.
+    const ws = await folderWorkspace(session.initiatorUserId, input.folder_id)
+    if (ws === undefined) return toolError(`Error: folder "${input.folder_id}" not found.`)
+    scope = ws === null ? 'personal' : `ws:${ws}`
   }
-
-  const payload = {
-    documents: sliced.map(r => ({
-      doc_id: r.docId,
-      title: r.title,
-      description: r.description,
-      language: r.language,
-      access_mode: r.accessMode,
-      workspace_id: r.workspaceId,
-      word_count: r.wordCount,
-      size_bytes: r.sizeBytes,
-      last_active: r.lastActive instanceof Date ? r.lastActive.toISOString() : r.lastActive
-    })),
-    total_owned: rows.length,
-    returned: sliced.length,
+  const query = documentSearchQuery.safeParse({ q: input.query, scope, folder: input.folder_id, limit: input.limit ?? SEARCH_DEFAULT_LIMIT, offset: 0 })
+  if (!query.success) return toolError('Error: invalid workspace_id or folder_id.')
+  let found: Awaited<ReturnType<typeof searchEverywhere>>
+  try {
+    found = await searchEverywhere(session.self, query.data)
+  } catch (e) {
+    return explorerErrorAsToolResult(e)
+  }
+  if (found.results.length === 0) {
+    return toolOk(`No documents match "${input.query}". Try other or fewer words, or list documents with list_workspace_documents / list_my_documents.`)
+  }
+  const pathOf = folderPathsAcrossScopes(session)
+  const results = await Promise.all(found.results.map(async r => ({
+    doc_id: r.docId,
+    title: r.title,
+    workspace: r.workspaceId ? { id: r.workspaceId, name: r.workspaceName } : null,
+    folder: await pathOf(r.workspaceId, r.folderId),
+    last_edited: r.updatedAt,
+    snippet: readableSnippet(r.snippet)
+  })))
+  return toolOk(JSON.stringify({
+    query: input.query,
+    results,
+    has_more: found.hasMore,
     notes: [
-      'Sorted most-recently-active first.',
-      'Pass `doc_id` to view_other_document to read a specific entry.',
-      'workspace_id is null for standalone (non-workspace) documents.'
-    ]
-  }
-  return toolOk(JSON.stringify(payload, null, 2))
+      'workspace is null for personal documents. Pass doc_id to view_other_document to read one.',
+      found.hasMore ? 'More matches exist: narrow the query, or pass workspace_id / folder_id.' : null
+    ].filter(Boolean)
+  }, null, 2))
 }
 
 /**
@@ -303,7 +342,7 @@ function scopeLabelFor(ctx: CrossDocCtx, initiatorUserId: number): string {
 
 export const listWorkspaceDocumentsTool = defineMetaTool({
   name: 'list_workspace_documents',
-  description: 'List all OTHER documents in the current document\'s workspace (the current document itself is excluded). Returns id, title, description, language, access_mode, last_active, and is_owner per row. Errors if the current document is not in a workspace. Use to find sibling docs to summarise / cross-reference, or to discover what else lives in the workspace. Pair with `view_other_document` to read a specific one.',
+  description: 'List the documents in the current document\'s workspace, one page at a time (default 50, most recently edited first): id, title, folder path, last edited and a short description per row, plus total and next_cursor. Narrow to one folder with folder_id (from list_folders). Errors if the current document is not in a workspace. To find a document by name or content, prefer search_documents. Pair with `view_other_document` to read one.',
   schema: ListWorkspaceDocumentsArgs,
   trustBoundary: 'confirm',
   handler: handleListWorkspaceDocuments
@@ -311,10 +350,18 @@ export const listWorkspaceDocumentsTool = defineMetaTool({
 
 export const listMyDocumentsTool = defineMetaTool({
   name: 'list_my_documents',
-  description: 'List documents the initiator OWNS, across every workspace they participate in (NOT scoped to the current doc\'s workspace). Returns id, title, description, language, access_mode, workspace_id, word_count, and last_active per row, sorted most-recent-first. Use when the user references a doc by name without giving the id ("the Q3 retro doc", "my brand guidelines doc") so you can find the matching id and then call `view_other_document({ doc_id: ... })`. Cross-workspace counterpart to `list_workspace_documents`.',
+  description: 'List your personal documents (owned by you, not in any workspace), one page at a time (default 50, most recently edited first): id, title, folder path, last edited and a short description per row, plus total and next_cursor. Narrow to one folder with folder_id. Documents in workspaces are not listed here: use list_workspace_documents or search_documents. Pair with `view_other_document` to read one.',
   schema: ListMyDocumentsArgs,
   trustBoundary: 'confirm',
   handler: handleListMyDocuments
+})
+
+export const searchDocumentsTool = defineMetaTool({
+  name: 'search_documents',
+  description: 'Search the titles and text of every document you can open (personal, every workspace you belong to, shared with you), or only one workspace (workspace_id, "personal") or folder (folder_id, with its subfolders). Returns up to 20 best matches: id, title, workspace, folder path, last edited and a snippet with the matched words in **bold**. Use when the user names a document ("the Q3 retro", "our brand guidelines") or a topic without giving its id, then call `view_other_document` to read it.',
+  schema: SearchDocumentsArgs,
+  trustBoundary: 'confirm',
+  handler: handleSearchDocuments
 })
 
 export const viewOtherDocumentTool = defineMetaTool({

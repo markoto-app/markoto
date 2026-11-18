@@ -5,7 +5,7 @@
 //
 //   read: reads documents, comments, themes, knowledge, history; no
 //           change, no platform cost beyond a database read.
-//   write: changes content, comments, themes or creates documents.
+//   write: changes content, comments, themes, folders or creates documents.
 //   cost: costs the platform money or renderer time on every call
 //           (server render, image generation, web search / page fetch).
 //
@@ -22,6 +22,8 @@ export const MCP_TOOL_CLASSES: Readonly<Record<string, McpToolClass>> = {
   search_document: 'read',
   list_my_documents: 'read',
   list_workspace_documents: 'read',
+  search_documents: 'read',
+  list_folders: 'read',
   read_comments: 'read',
   get_theme: 'read',
   list_themes: 'read',
@@ -44,6 +46,8 @@ export const MCP_TOOL_CLASSES: Readonly<Record<string, McpToolClass>> = {
   set_title: 'write',
   create_document: 'write',
   duplicate_document: 'write',
+  move_document: 'write',
+  create_folder: 'write',
   create_comment: 'write',
   reply_to_comment: 'write',
   resolve_comment: 'write',

@@ -253,9 +253,48 @@ describe('save_theme_as_preset schema', () => {
   })
 })
 
-describe('list_workspace_documents schema', () => {
-  it('accepts an empty object (no args)', () => {
-    expect(parse('list_workspace_documents', {}).success).toBe(true)
+describe('list_workspace_documents / list_my_documents schema', () => {
+  it.each(['list_workspace_documents', 'list_my_documents'])('%s accepts no args, a folder, a page size and a cursor', (name) => {
+    expect(parse(name, {}).success).toBe(true)
+    expect(parse(name, { folder_id: 'root', limit: 200, cursor: 'abc' }).success).toBe(true)
+  })
+
+  it.each(['list_workspace_documents', 'list_my_documents'])('%s caps the page at 200', (name) => {
+    expect(parse(name, { limit: 201 }).success).toBe(false)
+    expect(parse(name, { limit: 0 }).success).toBe(false)
+  })
+})
+
+describe('search_documents schema', () => {
+  it('needs a query and caps the results at 20', () => {
+    expect(parse('search_documents', { query: 'retro' }).success).toBe(true)
+    expect(parse('search_documents', { query: '  ' }).success).toBe(false)
+    expect(parse('search_documents', { query: 'retro', limit: 21 }).success).toBe(false)
+  })
+
+  it('takes a workspace id or "personal", nothing else', () => {
+    expect(parse('search_documents', { query: 'retro', workspace_id: 'personal' }).success).toBe(true)
+    expect(parse('search_documents', { query: 'retro', workspace_id: 'ws_1-A' }).success).toBe(true)
+    expect(parse('search_documents', { query: 'retro', workspace_id: 'ws:1' }).success).toBe(false)
+  })
+})
+
+describe('folder tool schemas', () => {
+  it('move_document needs a folder id or null', () => {
+    expect(parse('move_document', { doc_id: 'd1', folder_id: 'f1' }).success).toBe(true)
+    expect(parse('move_document', { doc_id: 'd1', folder_id: null }).success).toBe(true)
+    expect(parse('move_document', { doc_id: 'd1' }).success).toBe(false)
+  })
+
+  it('create_folder refuses names with slashes', () => {
+    expect(parse('create_folder', { name: 'Specs' }).success).toBe(true)
+    expect(parse('create_folder', { name: 'a/b' }).success).toBe(false)
+    expect(parse('create_folder', { name: '  ' }).success).toBe(false)
+  })
+
+  it('list_folders takes an optional workspace', () => {
+    expect(parse('list_folders', {}).success).toBe(true)
+    expect(parse('list_folders', { workspace_id: 'personal' }).success).toBe(true)
   })
 })
 
@@ -496,6 +535,7 @@ describe('tool registry', () => {
     expect(declaredNames).toEqual([
       'create_comment',
       'create_document',
+      'create_folder',
       'delegate_rewrite',
       'delegate_scan',
       'delete_comment',
@@ -510,11 +550,13 @@ describe('tool registry', () => {
       'get_theme',
       'insert_markdown',
       'insert_text',
+      'list_folders',
       'list_my_documents',
       'list_themes',
       'list_workspace_documents',
       'load_skill',
       'message_to_user',
+      'move_document',
       'move_section',
       'outline',
       'read_comments',
@@ -527,6 +569,7 @@ describe('tool registry', () => {
       'save_theme_as_preset',
       'search_activity_log',
       'search_document',
+      'search_documents',
       'search_knowledge',
       'set_heading',
       'set_title',
