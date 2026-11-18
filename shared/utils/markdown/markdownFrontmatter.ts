@@ -108,6 +108,25 @@ export function splitMarkotoFrontmatter(text: string): FrontmatterSplit {
 }
 
 /**
+ * Any leading YAML frontmatter (markoto's or another tool's, e.g. Hugo,
+ * Docusaurus, Nuxt Content), parsed, plus the body without it. Null when
+ * there is none or it isn't a readable YAML mapping (then the text stays
+ * as it is). Used by bulk imports, where site-generator metadata is not
+ * document text.
+ */
+export function splitAnyFrontmatter(text: string): { body: string, data: Record<string, unknown> } | null {
+  const open = OPEN.exec(text)
+  if (!open) return null
+  const fence = findClosingFence(text, open[0].length)
+  if (fence === null || fence === 'too-long') return null
+  const yamlText = text.slice(open[0].length, fence.close)
+  if (yamlText.length > FRONTMATTER_MAX_BYTES) return null
+  const data = parseYamlMapping(yamlText)
+  if (!data) return null
+  return { body: text.slice(fence.after).replace(/^\r?\n/, ''), data }
+}
+
+/**
  * The line closing a frontmatter block that starts at `start`: where it
  * begins and where the body after it starts. Null without one; `too-long`
  * once the block runs past `FRONTMATTER_MAX_BYTES`.

@@ -35,7 +35,7 @@ import { useEnv } from '~~/shared/env/load'
 import { classifyImportFile, importExtension, IMPORT_DOC_MAX_CHARS, IMPORT_FILE_MAX_BYTES, type ImportItemReason } from '~~/shared/config/imports'
 import { importBaseName, importFolderChain, linkFragment, resolveImportLink } from '~~/shared/utils/documents/importPaths'
 import { folderNameFromSegment } from '~~/shared/utils/documents/folderName'
-import { splitMarkotoFrontmatter } from '~~/shared/utils/markdown/markdownFrontmatter'
+import { splitAnyFrontmatter } from '~~/shared/utils/markdown/markdownFrontmatter'
 import { DOC_TITLE_MAX_LENGTH } from '~~/shared/config/docCreate'
 
 const log = useLogger('import-worker')
@@ -138,11 +138,15 @@ function firstHeading(markdown: string): string | null {
   return null
 }
 
-/** Title: markoto frontmatter, else the first `# heading`, else the file name. Returns the body without frontmatter. */
+/**
+ * Title: the frontmatter's `title` (markoto's or a site generator's), else
+ * the first `# heading`, else the file name. Returns the body without the
+ * frontmatter block: in an imported repository it is metadata, not text.
+ */
 function titleAndBody(markdown: string, path: string): { title: string, body: string } {
-  const split = splitMarkotoFrontmatter(markdown)
-  const body = split.kind === 'markoto' ? split.body : markdown
-  const fromFrontmatter = split.kind === 'markoto' && typeof split.data.title === 'string' ? split.data.title.trim() : ''
+  const split = splitAnyFrontmatter(markdown)
+  const body = split ? split.body : markdown
+  const fromFrontmatter = split && typeof split.data.title === 'string' ? split.data.title.trim() : ''
   const title = fromFrontmatter || firstHeading(body) || importBaseName(path)
   return { title: title.slice(0, DOC_TITLE_MAX_LENGTH), body }
 }
