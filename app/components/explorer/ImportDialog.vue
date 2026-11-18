@@ -245,6 +245,7 @@ function formatBytes(n: number) {
               placeholder="https://github.com/owner/repository/tree/main/docs"
               :aria-label="t('explorer.import.githubLabel')"
               data-testid="explorer-import-github-url"
+              @keydown.enter.prevent="githubUrl.trim() !== '' && start()"
             />
             <p class="text-muted text-xs">
               {{ t('explorer.import.githubHint') }}

@@ -125,7 +125,10 @@ export function usePagedPreview(opts: PagedPreviewOptions) {
       // Drain a render request that arrived while busy.
       drainPendingRender()
     } else if (data.type === 'iframe-error') {
-      error.value = data.message || t('editor.previewFailed')
+      // The iframe's message is English and technical: show the translated
+      // one, keep the detail in the console.
+      if (data.message) console.warn('[preview]', data.message)
+      error.value = t('editor.previewFailed')
       isPaginating.value = false
       drainPendingRender()
     } else if (data.type === 'print-shortcut') {
