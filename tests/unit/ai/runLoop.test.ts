@@ -309,6 +309,24 @@ describe('runAgenticLoop: Zod validation of tool args', () => {
     expect(fr.response?.output).toContain('invalid arguments for replace_text')
   })
 
+  it('the same invalid call sent again gets a note not to repeat it', async () => {
+    // Release run, 2026-11-18: the planner resent one refused 3,500-token
+    // call until the turn limit ended the session.
+    const bad = { functionCalls: [{ id: 'c1', name: 'replace_text', args: { old_str: '', new_str: 'x' } }], finishReason: FinishReason.STOP }
+    const { ai, callsSeen } = makeFakeAi([
+      { chunks: [bad] },
+      { chunks: [{ ...bad, functionCalls: [{ ...bad.functionCalls[0]!, id: 'c2' }] }] },
+      { chunks: [{ text: 'giving up', finishReason: FinishReason.STOP }] }
+    ])
+    await runAgenticLoop(makeOpts({ ai }))
+    const outputOf = (turn: number) => {
+      const contents = at(callsSeen, turn).contents as Array<{ role: string, parts: Array<{ functionResponse?: { response?: { output?: string } } }> }>
+      return first(last(contents).parts).functionResponse?.response?.output ?? ''
+    }
+    expect(outputOf(1)).not.toContain('You sent exactly this call before')
+    expect(outputOf(2)).toContain('You sent exactly this call before')
+  })
+
   it('tool name the session did not offer → isError, handler never reached', async () => {
     // The model can name any tool (hallucination, or text in the doc
     // telling it to). Only tools offered to this session may run, the

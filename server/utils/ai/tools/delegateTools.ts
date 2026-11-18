@@ -63,6 +63,42 @@ const DelegateScanArgs = z.object({
 }).refine(a => a.extract !== 'custom' || Boolean(a.instruction), { message: 'extract "custom" needs an instruction saying what to collect', path: ['instruction'] })
   .describe('Collect an inventory from a large part of the document.')
 
+const GLOSSARY_MAX = 150
+const GLOSSARY_TERM_MAX = 120
+const GLOSSARY_NOTE_MAX = 200
+
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v)
+}
+
+/**
+ * A glossary as the planner wrote it, made usable instead of refused: an
+ * entry without a target keeps its source term (names that stay as they
+ * are), an over-long note is cut, an entry whose term is longer than a term
+ * can be is dropped, and the list is cut at its maximum. On a release run
+ * the planner built a glossary from a scan, the schema refused it with a
+ * short error, and the planner sent the same 3,500-token call again until
+ * the turn limit ended the session without a job.
+ */
+function normalizeGlossary(raw: unknown): unknown {
+  if (!Array.isArray(raw)) return raw
+  const out: Array<{ source: string, target: string, note?: string }> = []
+  for (const e of raw) {
+    if (!isPlainObject(e) || typeof e.source !== 'string') continue
+    const source = e.source.trim()
+    const target = typeof e.target === 'string' && e.target.trim() !== '' ? e.target.trim() : source
+    if (source === '' || source.length > GLOSSARY_TERM_MAX || target.length > GLOSSARY_TERM_MAX) continue
+    const note = typeof e.note === 'string' && e.note.trim() !== '' ? e.note.trim().slice(0, GLOSSARY_NOTE_MAX) : undefined
+    out.push(note ? { source, target, note } : { source, target })
+  }
+  return out.slice(0, GLOSSARY_MAX)
+}
+
+/** Cut an over-long free-text argument instead of refusing the whole call. */
+function cutTo(max: number) {
+  return (v: unknown): unknown => (typeof v === 'string' ? v.trim().slice(0, max) : v)
+}
+
 const REWRITE_MODES = ['rewrite', 'translate', 'terminology', 'summarise', 'comment'] as const
 const ACTIONS = ['start', 'status', 'rerun', 'resume', 'cancel'] as const
 
@@ -70,17 +106,17 @@ const DelegateRewriteArgs = z.object({
   targets: Targets.optional(),
   mode: z.enum(REWRITE_MODES).optional()
     .describe('translate, rewrite (tone, register, copy-edit, shorten), terminology (glossary with grammar), summarise (one summary per chapter) or comment (review findings as draft comments).'),
-  instruction: z.string().trim().min(1).max(2000).optional()
+  instruction: z.preprocess(cutTo(2000), z.string().trim().min(1).max(2000)).optional()
     .describe('The rule each part follows, in your words.'),
   target_language: z.string().trim().min(2).max(40).optional()
     .describe('translate: the language to write, e.g. "English".'),
-  glossary: z.array(z.object({
-    source: z.string().trim().min(1).max(120),
-    target: z.string().trim().min(1).max(120),
-    note: z.string().trim().max(200).optional()
-  })).max(150).optional()
-    .describe('Terms every part must render the same way (at most 150).'),
-  style: z.string().trim().max(600).optional()
+  glossary: z.preprocess(normalizeGlossary, z.array(z.object({
+    source: z.string().trim().min(1).max(GLOSSARY_TERM_MAX),
+    target: z.string().trim().min(1).max(GLOSSARY_TERM_MAX),
+    note: z.string().trim().max(GLOSSARY_NOTE_MAX).optional()
+  })).max(GLOSSARY_MAX)).optional()
+    .describe('Terms every part must render the same way (at most 150; only terms that need a decision, not every scanned item). A term that stays as it is may omit target.'),
+  style: z.preprocess(cutTo(600), z.string().trim().max(600)).optional()
     .describe('Register, person, spelling variant (at most 600 characters).'),
   placement: z.enum(['replace', 'insert_at_start', 'insert_at_end']).optional()
     .describe('summarise: where the summary goes (default insert_at_start, under the heading).'),

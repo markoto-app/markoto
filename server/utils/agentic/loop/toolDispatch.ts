@@ -9,6 +9,26 @@ import { coerceToolArgs } from './argCoercion'
 import { capToolOutput } from './resultCap'
 import { logToolActivity } from './toolActivity'
 import { runSubCall } from './webSubCalls'
+import { useLogger } from '../../platform/logger'
+import { shortHash } from '../../ai/tools/sections/parse'
+
+const dispatchLog = useLogger('ai-loop')
+
+/**
+ * Invalid arguments: logged at warn level with the tool name and the
+ * schema messages (paths and limits, never argument values), so a session
+ * that burns its turns on refused calls can be diagnosed from the app log.
+ * The same invalid call sent again gets a firmer note: at temperature 0 a
+ * model tends to resend an identical call after a short error.
+ */
+function invalidArgsText(ctx: LoopContext, call: FunctionCall, problem: string): string {
+  const key = `${call.name ?? ''}:${shortHash(JSON.stringify(call.args ?? {}))}`
+  const seen = (ctx.invalidCalls.get(key) ?? 0) + 1
+  ctx.invalidCalls.set(key, seen)
+  dispatchLog.warn('ai.tool.invalid-args', { sessionId: ctx.opts.sessionId, tool: call.name, problem: problem.slice(0, 500), repeat: seen })
+  const again = seen > 1 ? ' You sent exactly this call before and it failed the same way: change the arguments as the message says, or take another path; do not send it again.' : ''
+  return `${problem}${again}`
+}
 
 // One tool call of a turn, in a fixed order: offered? → valid arguments →
 // conversation memory → per-tool cap → taint gate → image provenance (doc
@@ -51,7 +71,7 @@ function validateToolArgs(
       ok: false,
       outcome: {
         kind: 'continue',
-        responseParts: [toolErrorResponse(call, `Error: the arguments for ${call.name} were not a complete JSON object. Send the call again with valid JSON.`)]
+        responseParts: [toolErrorResponse(call, invalidArgsText(ctx, call, `Error: the arguments for ${call.name} were not a complete JSON object. Send the call again with valid JSON.`))]
       }
     }
   }
@@ -67,7 +87,7 @@ function validateToolArgs(
     ok: false,
     outcome: {
       kind: 'continue',
-      responseParts: [toolErrorResponse(call, `Error: invalid arguments for ${call.name}: ${zodMsg}`)]
+      responseParts: [toolErrorResponse(call, invalidArgsText(ctx, call, `Error: invalid arguments for ${call.name}: ${zodMsg}`))]
     }
   }
 }
