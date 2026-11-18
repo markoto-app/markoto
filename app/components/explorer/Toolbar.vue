@@ -38,6 +38,7 @@ const newMenu = computed<DropdownMenuItem[][]>(() => [[
   <div class="flex items-center gap-2 flex-wrap">
     <UInput
       v-model="search"
+      color="neutral"
       icon="i-lucide-search"
       size="sm"
       class="w-full sm:w-64"

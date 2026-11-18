@@ -51,14 +51,15 @@ const crumbs = computed<Crumb[]>(() => {
     <UBreadcrumb
       :items="crumbs"
       class="min-w-0"
-      :ui="{ link: 'aria-[current=page]:text-highlighted' }"
+      :ui="{ link: 'text-muted font-normal' }"
       data-testid="explorer-breadcrumb"
     >
-      <template #item-label="{ item }">
+      <template #item-label="{ item, index }">
         <ExplorerTreeLabel
           v-if="item.folderId !== undefined"
           :label="String(item.label)"
           :folder-id="item.folderId ?? null"
+          :class="index === crumbs.length - 1 ? 'text-default' : ''"
         />
         <span v-else>{{ item.label }}</span>
       </template>

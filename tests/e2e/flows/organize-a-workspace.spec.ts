@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/flow'
+import { holdPointer } from '../fixtures/waits'
 import { ExplorerPage, apiCreateDoc, apiCreateWorkspace, apiListDocs, apiListFolders } from '../fixtures/explorer'
 
 // "Organize a workspace": a team's workspace has grown to a flat pile of
@@ -91,7 +92,7 @@ test('Organize a workspace', async ({ page, flow, editor }) => {
     const box = await target.boundingBox()
     if (!box) throw new Error('Planning row has no box')
     await page.mouse.move(box.x + box.width / 4, box.y + box.height / 2, { steps: 12 })
-    await page.waitForTimeout(150)
+    await holdPointer(page, 150)
     await page.mouse.up()
     await expect(explorer.row('Launch plan')).toHaveCount(0)
     await flow.shot('"Launch plan" is in Planning now.', {

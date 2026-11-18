@@ -304,10 +304,11 @@ describe('import worker: GitHub', () => {
     const job = await runJob(alice.id, { jobId: 'gh', source: 'github', sourceRef: 'https://github.com/acme/docs', items: [] })
     expect(job).toMatchObject({ status: 'done', total: 2, done: 2, failed: 0 })
     expect(requests).toEqual(['/api/repos/acme/docs', '/codeload/acme/docs/zip/main'])
-    const readme = await docOf('gh', 'README.md')
-    const guide = await docOf('gh', 'docs/guide.md')
-    expect(readme.folder_id).toBeNull()
-    expect(await folderNames(guide.folder_id)).toEqual(['docs'])
+    // The repository lands in a folder named after it, like an uploaded folder.
+    const readme = await docOf('gh', 'docs/README.md')
+    const guide = await docOf('gh', 'docs/docs/guide.md')
+    expect(await folderNames(readme.folder_id)).toEqual(['docs'])
+    expect(await folderNames(guide.folder_id)).toEqual(['docs', 'docs'])
     expect(readme.body).toContain(`(/d/${guide.doc_id})`)
     expect(guide.body).toMatch(new RegExp(`/api/files/${guide.doc_id}/[A-Za-z0-9_-]+\\.png`))
   })
@@ -317,7 +318,7 @@ describe('import worker: GitHub', () => {
     const job = await runJob(alice.id, { jobId: 'gh-sub', source: 'github', sourceRef: 'https://github.com/acme/docs/tree/main/docs', items: [] })
     expect(job).toMatchObject({ status: 'done', total: 1, done: 1 })
     expect(requests).toEqual(['/codeload/acme/docs/zip/main'])
-    expect((await items('gh-sub')).map(i => i.relative_path)).toEqual(['guide.md'])
+    expect((await items('gh-sub')).map(i => i.relative_path)).toEqual(['docs/guide.md'])
   })
 
   it('fails the job when the repository does not exist', async () => {

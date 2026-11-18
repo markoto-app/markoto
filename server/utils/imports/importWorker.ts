@@ -34,6 +34,7 @@ import { convertWithMarkitdown, type ConvertedExtension } from './markitdownConv
 import { useEnv } from '~~/shared/env/load'
 import { classifyImportFile, importExtension, IMPORT_DOC_MAX_CHARS, IMPORT_FILE_MAX_BYTES, type ImportItemReason } from '~~/shared/config/imports'
 import { importBaseName, importFolderChain, linkFragment, resolveImportLink } from '~~/shared/utils/documents/importPaths'
+import { folderNameFromSegment } from '~~/shared/utils/documents/folderName'
 import { splitMarkotoFrontmatter } from '~~/shared/utils/markdown/markdownFrontmatter'
 import { DOC_TITLE_MAX_LENGTH } from '~~/shared/config/docCreate'
 
@@ -224,7 +225,9 @@ function archiveSources(ctx: JobContext, items: ImportItemRow[]): ArchiveSource[
   if (ctx.job.source === 'github') {
     const ref = parseGithubImportUrl(ctx.job.sourceRef ?? '')
     if (!ref) return 'github-url-invalid'
-    sources.push({ id: 'github', prefix: '', load: () => downloadGithubZip(ref), opts: { stripPrefix: true, under: ref.path ?? undefined } })
+    // Like an uploaded folder, the import lands in a folder named after what was imported.
+    const name = folderNameFromSegment(ref.path?.split('/').at(-1) ?? ref.repo)
+    sources.push({ id: 'github', prefix: `${name}/`, load: () => downloadGithubZip(ref), opts: { stripPrefix: true, under: ref.path ?? undefined } })
   }
   for (const item of items) {
     if (item.kind !== 'archive' || item.status === 'failed') continue

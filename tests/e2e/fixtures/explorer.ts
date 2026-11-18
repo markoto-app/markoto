@@ -1,6 +1,7 @@
 import type { CDPSession, Locator, Page } from '@playwright/test'
 import { expect } from '@playwright/test'
 import { Pool } from 'pg'
+import { holdPointer } from './waits'
 
 // The documents explorer (dashboard "My documents" and a workspace's
 // Documents tab) for the flows: stable locators for rows, the tree and the
@@ -47,7 +48,8 @@ export class ExplorerPage {
   }
 
   get renameInput(): Locator {
-    return this.page.getByTestId('explorer-rename-input').locator('input')
+    // Nuxt UI puts the test id on the <input> itself.
+    return this.page.locator('input[data-testid="explorer-rename-input"], [data-testid="explorer-rename-input"] input')
   }
 
   get newButton(): Locator {
@@ -55,7 +57,7 @@ export class ExplorerPage {
   }
 
   get search(): Locator {
-    return this.page.getByTestId('explorer-search').locator('input')
+    return this.page.locator('input[data-testid="explorer-search"], [data-testid="explorer-search"] input')
   }
 
   get selectionBar(): Locator {
@@ -81,7 +83,7 @@ export class ExplorerPage {
    * Press Tab until a row of the list has the keyboard focus (the list is
    * one tab stop: only the focused row takes Tab). Fails after `max` presses.
    */
-  async tabIntoList(max = 40): Promise<void> {
+  async tabIntoList(max = 60): Promise<void> {
     for (let i = 0; i < max; i++) {
       const inList = await this.page.evaluate(() => !!document.activeElement?.closest('[data-testid="explorer-list"] tr[data-key]'))
       if (inList) return
@@ -107,7 +109,7 @@ export class ExplorerPage {
     const cdp: CDPSession = await this.page.context().newCDPSession(this.page)
     try {
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] })
-      await this.page.waitForTimeout(ms)
+      await holdPointer(this.page, ms)
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
     } finally {
       await cdp.detach()

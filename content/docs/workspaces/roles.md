@@ -2,7 +2,7 @@
 title: Roles inside a workspace
 description: Three roles (admin, editor, viewer) decide who can edit, share and manage. A workspace always keeps at least one admin.
 category: workspaces
-order: 3
+order: 4
 updated: '2026-10-29'
 ---
 

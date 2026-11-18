@@ -2,7 +2,7 @@
 title: Save as Markdown
 description: Download the doc as a `.md` file, clean, portable, edit anywhere.
 category: import-export
-order: 3
+order: 4
 updated: '2026-11-04'
 ---
 

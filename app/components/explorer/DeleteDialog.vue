@@ -64,7 +64,7 @@ const title = computed(() => props.items.length === 1 ? props.items[0]?.label ??
           v-else-if="counts"
           data-testid="explorer-delete-counts"
         >
-          {{ t('explorer.delete.counts', { folders: counts.folders, documents: counts.documents }) }}
+          {{ t('explorer.delete.counts', { folders: t('explorer.delete.folderCount', { n: counts.folders }, counts.folders), documents: t('explorer.delete.documentCount', { n: counts.documents }, counts.documents) }) }}
         </p>
         <UAlert
           v-if="counts && counts.blocked > 0"

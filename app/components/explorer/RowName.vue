@@ -43,6 +43,9 @@ watchEffect(() => {
   tr.dataset.kind = props.item.kind
   tr.classList.toggle('explorer-drop-over', over.value)
   tr.classList.toggle('explorer-focus', props.focused)
+  // Styled here, not through the table's row options: changing those re-renders
+  // every row, which swallowed the second click of a double click.
+  tr.classList.toggle('bg-elevated', props.selected)
 })
 
 // Inline rename: Enter or leaving the field commits, Escape cancels.
@@ -124,7 +127,7 @@ const snippet = computed(() => props.item.kind === 'doc' && props.item.doc.snipp
           v-model="draft"
           size="xs"
           class="w-full max-w-md"
-          :color="problem ? 'error' : undefined"
+          :color="problem ? 'error' : 'neutral'"
           :aria-label="t('explorer.renameLabel')"
           :aria-invalid="problem ? 'true' : 'false'"
           data-testid="explorer-rename-input"

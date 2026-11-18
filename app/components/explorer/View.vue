@@ -292,6 +292,12 @@ const contextItems = computed(() => menu.contextMenu(menuTargets.value))
 const selectionMenu = computed(() => menu.menuItems(selectedItems.value))
 
 // ---------- create, cut / paste, move, delete, duplicate ----------
+/** A folder's size column: its documents, else its subfolders, else "empty". */
+function folderSize(folder: { folderId: string, docCount: number }): string {
+  if (folder.docCount > 0) return t('explorer.items', { n: folder.docCount }, folder.docCount)
+  const sub = folders.value.filter(f => f.parentId === folder.folderId).length
+  return sub > 0 ? t('explorer.subfolders', { n: sub }, sub) : t('explorer.items', { n: 0 }, 0)
+}
 function folderName(folderId: string | null): string {
   return folderId === null ? props.rootLabel : folders.value.find(f => f.folderId === folderId)?.name ?? props.rootLabel
 }
@@ -419,9 +425,6 @@ const columns = useExplorerColumns({
     selection.value = clickSelect(selection.value, keys.value, key, { ctrl: true })
   }
 })
-const tableMeta = computed(() => ({
-  class: { tr: (row: { original: ExplorerItem }) => selection.value.selected.has(row.original.key) ? 'bg-elevated' : '' }
-}))
 
 // ARIA grid semantics on the table the component renders, and roving
 // focus: only the focused row is a tab stop.
@@ -455,7 +458,8 @@ function onLongPress(e: PointerEvent) {
   longPressTarget.value = item
 }
 const sheetItem = computed(() => longPressTarget.value
-  ? { label: longPressTarget.value.label, actions: menu.menuItems([longPressTarget.value]).flat() }
+  // No "Cut" on a phone: there is no Paste to go with it there ("Move to..." does the job).
+  ? { label: longPressTarget.value.label, actions: menu.menuItems([longPressTarget.value]).flat().filter(a => a.label !== t('explorer.action.cut')) }
   : null)
 function toggleSelectMode() {
   selectMode.value = !selectMode.value
@@ -515,8 +519,10 @@ defineExpose({ refresh: data.refresh })
         @import="openImport(folderId)"
       />
 
+      <!-- Always laid out (invisible when empty): selecting must not move the rows under the pointer. -->
       <ExplorerSelectionBar
-        v-if="selectedItems.length > 0"
+        :class="selectedItems.length === 0 ? 'invisible' : ''"
+        :aria-hidden="selectedItems.length === 0 ? 'true' : undefined"
         :count="selectedItems.length"
         :actions="selectionMenu"
         @clear="selection = EMPTY_SELECTION"
@@ -541,7 +547,6 @@ defineExpose({ refresh: data.refresh })
             :data="items"
             :columns="columns"
             :get-row-id="(row: ExplorerItem) => row.key"
-            :meta="tableMeta"
             :loading="data.docs.isLoading.value && items.length === 0"
             :virtualize="{ estimateSize: ROW_HEIGHT, overscan: 12 }"
             sticky
@@ -574,7 +579,7 @@ defineExpose({ refresh: data.refresh })
             </template>
             <template #words-cell="{ row }">
               <span v-if="row.original.kind === 'doc'">{{ t('docRow.words', { n: row.original.doc.wordCount }) }}</span>
-              <span v-else>{{ t('explorer.items', { n: row.original.folder.docCount }, row.original.folder.docCount) }}</span>
+              <span v-else>{{ folderSize(row.original.folder) }}</span>
             </template>
             <template #empty>
               <div

@@ -3463,10 +3463,12 @@
       "items": "{n} item | {n} items",
       "question": "Delete {name}?",
       "counting": "Counting what is inside...",
-      "counts": "This deletes {folders} folders and {documents} documents, including everything inside the folders.",
+      "counts": "This deletes {folders} and {documents}, including everything inside the folders.",
       "blocked": "{n} document inside belongs to someone else and can't be deleted by you. | {n} documents inside belong to someone else and can't be deleted by you.",
       "permanent": "Deleted documents can't be restored. People who have them open see that they were deleted.",
-      "confirm": "Delete"
+      "confirm": "Delete",
+      "folderCount": "no folders | {n} folder | {n} folders",
+      "documentCount": "no documents | {n} document | {n} documents"
     },
     "import": {
       "title": "Import into {name}",
@@ -3520,6 +3522,7 @@
       "empty": "No documents found",
       "personal": "My documents",
       "hint": "Searches titles and text of your documents, your workspaces and documents shared with you."
-    }
+    },
+    "subfolders": "{n} folder | {n} folders"
   }
 }

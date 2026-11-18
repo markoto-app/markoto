@@ -237,6 +237,7 @@ function formatBytes(n: number) {
           >
             <UInput
               v-model="githubUrl"
+              color="neutral"
               class="w-full"
               placeholder="https://github.com/owner/repository/tree/main/docs"
               :aria-label="t('explorer.import.githubLabel')"

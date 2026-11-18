@@ -105,6 +105,7 @@ function onKey(e: KeyboardEvent) {
         <UInput
           ref="input"
           v-model="q"
+          color="neutral"
           icon="i-lucide-search"
           class="w-full"
           :loading="loading"

@@ -28,10 +28,15 @@ export function prefixTsQuery(query: string): string | null {
 export const SNIPPET_START = '⁣['
 export const SNIPPET_STOP = ']⁣'
 
-/** Split a snippet into plain and matched parts (never HTML). */
+/** Markdown markers that only clutter a one-line excerpt (heading hashes, emphasis, code ticks). */
+function plainExcerpt(text: string): string {
+  return text.replace(/(^|\s)#{1,6}\s/g, '$1').replace(/[*_`]{1,3}/g, '').replace(/\s+/g, ' ')
+}
+
+/** Split a snippet into plain and matched parts (never HTML), without Markdown markers. */
 export function splitSnippet(snippet: string): Array<{ text: string, match: boolean }> {
   const parts: Array<{ text: string, match: boolean }> = []
-  let rest = snippet
+  let rest = plainExcerpt(snippet)
   while (rest.length > 0) {
     const start = rest.indexOf(SNIPPET_START)
     if (start === -1) {
