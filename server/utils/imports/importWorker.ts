@@ -29,7 +29,7 @@ import { useLogger } from '../platform/logger'
 import { attachImportImages } from './importImages'
 import { collectMarkdownRefs } from './markdownRefs'
 import { listArchive, extractArchiveEntries, ArchiveRejectedError, type ArchiveListing } from './archive'
-import { downloadGithubZip, parseGithubImportUrl, GithubImportError } from './github'
+import { downloadGithubFiles, parseGithubImportUrl, GithubImportError } from './github'
 import { convertWithMarkitdown, type ConvertedExtension } from './markitdownConvert'
 import { useEnv } from '~~/shared/env/load'
 import { classifyImportFile, importExtension, IMPORT_DOC_MAX_CHARS, IMPORT_FILE_MAX_BYTES, type ImportItemReason } from '~~/shared/config/imports'
@@ -227,7 +227,7 @@ function archiveSources(ctx: JobContext, items: ImportItemRow[]): ArchiveSource[
     if (!ref) return 'github-url-invalid'
     // Like an uploaded folder, the import lands in a folder named after what was imported.
     const name = folderNameFromSegment(ref.path?.split('/').at(-1) ?? ref.repo)
-    sources.push({ id: 'github', prefix: `${name}/`, load: () => downloadGithubZip(ref), opts: { stripPrefix: true, under: ref.path ?? undefined } })
+    sources.push({ id: 'github', prefix: `${name}/`, load: () => downloadGithubFiles(ref), opts: {} })
   }
   for (const item of items) {
     if (item.kind !== 'archive' || item.status === 'failed') continue

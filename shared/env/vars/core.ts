@@ -214,7 +214,7 @@ export const test = defineNamespace({
       name: 'TEST_GITHUB_IMPORT_ORIGIN',
       type: string,
       default: '',
-      doc: 'With TEST_MODE: origin of a fake GitHub that GitHub imports call instead of api.github.com / codeload.github.com (plain HTTP, no address checks).',
+      doc: 'With TEST_MODE: origin of a fake GitHub that GitHub imports call instead of api.github.com / raw.githubusercontent.com (plain HTTP, no address checks).',
       services: ['app'],
       scope: 'test',
       notPassed: 'set by the test harness only'

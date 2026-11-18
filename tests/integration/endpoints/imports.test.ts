@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, beforeAll, afterAll } from 'vitest'
-import { createServer, type Server } from 'node:http'
-import { strToU8, zipSync } from 'fflate'
+import { strToU8 } from 'fflate'
+import { startFakeGithub, type FakeGithub } from '../../helpers/fakeGithub'
 import { resetDb, testDb } from '../setup/db'
 import { loggedInClient, type TestClient } from '../setup/client'
 import { createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
@@ -115,30 +115,22 @@ describe('POST /api/imports: limits before upload', () => {
 })
 
 describe('imports end to end', () => {
-  let github: Server
-  const repoZip = zipSync({
-    'handbook-main/README.md': strToU8('# Handbook\n\nStart with [onboarding](people/onboarding.md).\n'),
-    'handbook-main/people/onboarding.md': strToU8('# Onboarding\n\nWelcome aboard.\n')
-  })
+  let github: FakeGithub
 
   beforeAll(async () => {
-    github = createServer((req, res) => {
-      if (req.url === '/api/repos/acme/handbook') {
-        res.writeHead(200, { 'content-type': 'application/json' })
-        res.end(JSON.stringify({ default_branch: 'main' }))
-      } else if (req.url === '/codeload/acme/handbook/zip/main') {
-        res.writeHead(200, { 'content-type': 'application/zip' })
-        res.end(Buffer.from(repoZip))
-      } else {
-        res.writeHead(404)
-        res.end()
+    github = await startFakeGithub([{
+      owner: 'acme',
+      repo: 'handbook',
+      defaultBranch: 'main',
+      files: {
+        'README.md': strToU8('# Handbook\n\nStart with [onboarding](people/onboarding.md).\n'),
+        'people/onboarding.md': strToU8('# Onboarding\n\nWelcome aboard.\n')
       }
-    })
-    await new Promise<void>(resolve => github.listen(TEST_GITHUB_IMPORT_PORT, '127.0.0.1', resolve))
+    }], TEST_GITHUB_IMPORT_PORT)
   })
 
   afterAll(async () => {
-    await new Promise<void>(resolve => github.close(() => resolve()))
+    await github.close()
   })
 
   beforeEach(resetDb)

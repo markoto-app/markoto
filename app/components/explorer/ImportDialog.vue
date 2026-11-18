@@ -123,6 +123,8 @@ async function start() {
 const uploadTotal = computed(() => summary.value.docs + summary.value.images + summary.value.archives)
 
 async function poll() {
+  // Quick at first (small imports finish in a second or two), then calmer.
+  let wait = 400
   while (jobId.value && (phase.value === 'running')) {
     try {
       const res = await apiFetch('/api/imports/:jobId', { path: { jobId: jobId.value } })
@@ -134,7 +136,8 @@ async function poll() {
         return
       }
     } catch { /* keep polling */ }
-    await new Promise(r => setTimeout(r, 1500))
+    await new Promise(r => setTimeout(r, wait))
+    wait = Math.min(1500, wait + 200)
   }
 }
 
@@ -254,12 +257,14 @@ function formatBytes(n: number) {
             {{ t('explorer.import.uploading', { done: uploaded, total: uploadTotal }) }}
           </p>
           <p
-            v-else-if="job"
+            v-else-if="job && !(phase === 'done' && job.total === 0)"
             data-testid="explorer-import-progress"
           >
             {{ t('explorer.import.progress', { done: job.done, failed: job.failed, total: job.total }) }}
           </p>
+          <!-- A job that failed before it listed any file has no progress to show. -->
           <UProgress
+            v-if="!(phase === 'done' && (job?.total ?? 0) === 0)"
             :model-value="progress"
             size="sm"
             color="neutral"

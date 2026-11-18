@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { stubEnv } from '../../helpers/env'
 import { safeFetch } from '../../../server/utils/platform/safeFetch'
-import { downloadGithubZip, GithubImportError, parseGithubImportUrl } from '../../../server/utils/imports/github'
+import { strFromU8, unzipSync } from 'fflate'
+import { downloadGithubFiles, GithubImportError, parseGithubImportUrl } from '../../../server/utils/imports/github'
 
 vi.mock('../../../server/utils/platform/safeFetch', async (importOriginal) => {
   const real = await importOriginal<typeof import('../../../server/utils/platform/safeFetch')>()
@@ -68,45 +69,69 @@ function ok(body: string | Uint8Array<ArrayBuffer>, headers: Record<string, stri
   return new Response(body, { status: 200, headers })
 }
 
-describe('downloadGithubZip: the real hosts', () => {
+/** A tree answer: blobs with sizes (and one directory entry, which is ignored). */
+function tree(files: Record<string, number>, truncated = false): string {
+  return JSON.stringify({ sha: 'x', truncated, tree: [{ path: 'dir', type: 'tree' }, ...Object.entries(files).map(([path, size]) => ({ path, type: 'blob', size }))] })
+}
+
+function zipNames(zip: Uint8Array): Record<string, string> {
+  return Object.fromEntries(Object.entries(unzipSync(zip)).map(([k, v]) => [k, strFromU8(v)]))
+}
+
+describe('downloadGithubFiles: the real hosts', () => {
   beforeEach(() => {
     stubEnv({ TEST_MODE: undefined, TEST_GITHUB_IMPORT_ORIGIN: 'http://127.0.0.1:9' })
     safeFetchMock.mockReset()
   })
 
-  it('asks api.github.com for the default branch, then codeload.github.com for the zip, through safeFetch only', async () => {
+  it('lists only the folder, downloads only its importable files, through safeFetch only', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch')
     safeFetchMock.mockImplementation(async (url) => {
       if (url === 'https://api.github.com/repos/acme/handbook') return { response: ok(JSON.stringify({ default_branch: 'trunk' })), url }
-      if (url === 'https://codeload.github.com/acme/handbook/zip/trunk') return { response: ok(new Uint8Array([1, 2, 3])), url }
+      if (url === 'https://api.github.com/repos/acme/handbook/git/trees/trunk:docs/ai?recursive=1') {
+        return { response: ok(tree({ 'intro.md': 7, 'deep/more.md': 6, 'tool.exe': 3, '.DS_Store': 1, 'big.png': 50 * 1024 * 1024 })), url }
+      }
+      if (url === 'https://raw.githubusercontent.com/acme/handbook/trunk/docs/ai/intro.md') return { response: ok('# Intro'), url }
+      if (url === 'https://raw.githubusercontent.com/acme/handbook/trunk/docs/ai/deep/more.md') return { response: ok('# More'), url }
       throw new Error(`unexpected ${url}`)
     })
-    const ref = parseGithubImportUrl('https://github.com/acme/handbook')
-    if (!ref) throw new Error('parse failed')
-    expect([...await downloadGithubZip(ref)]).toEqual([1, 2, 3])
-    expect(safeFetchMock.mock.calls.map(c => c[0])).toEqual([
+    const ref = { ...parseGithubImportUrl('https://github.com/acme/handbook')!, path: 'docs/ai' }
+    expect(zipNames(await downloadGithubFiles(ref))).toEqual({ 'intro.md': '# Intro', 'deep/more.md': '# More' })
+    expect(safeFetchMock.mock.calls.map(c => c[0]).slice(0, 2)).toEqual([
       'https://api.github.com/repos/acme/handbook',
-      'https://codeload.github.com/acme/handbook/zip/trunk'
+      'https://api.github.com/repos/acme/handbook/git/trees/trunk:docs/ai?recursive=1'
     ])
     // The fake origin is ignored outside test mode.
     expect(fetchSpy).not.toHaveBeenCalled()
     fetchSpy.mockRestore()
   })
 
-  it('skips the API when the URL names a ref (the first segment after /tree/)', async () => {
-    safeFetchMock.mockImplementation(async url => ({ response: ok(new Uint8Array([9])), url }))
+  it('skips the default-branch lookup when the URL names a ref', async () => {
+    safeFetchMock.mockImplementation(async url => ({ response: ok(url.includes('/git/trees/') ? tree({}) : 'x'), url }))
     const ref = parseGithubImportUrl('https://github.com/acme/handbook/tree/v2.0/docs')
     if (!ref) throw new Error('parse failed')
-    await downloadGithubZip(ref)
-    expect(safeFetchMock.mock.calls.map(c => c[0])).toEqual(['https://codeload.github.com/acme/handbook/zip/v2.0'])
+    await downloadGithubFiles(ref)
+    expect(safeFetchMock.mock.calls.map(c => c[0])).toEqual(['https://api.github.com/repos/acme/handbook/git/trees/v2.0:docs?recursive=1'])
   })
 
-  it('maps 404, other failures, network errors and oversized answers to fixed reasons', async () => {
+  it('refuses a selection over the archive cap, or a listing GitHub cut short, before any download', async () => {
+    const ref = parseGithubImportUrl('https://github.com/acme/handbook/tree/main')
+    if (!ref) throw new Error('parse failed')
+    const many: Record<string, number> = {}
+    for (let i = 0; i < 20; i++) many[`img-${i}.png`] = 9 * 1024 * 1024
+    safeFetchMock.mockImplementation(async url => ({ response: ok(tree(many)), url }))
+    await expect(downloadGithubFiles(ref)).rejects.toMatchObject({ reason: 'too-large' })
+    safeFetchMock.mockImplementation(async url => ({ response: ok(tree({ 'a.md': 1 }, true)), url }))
+    await expect(downloadGithubFiles(ref)).rejects.toMatchObject({ reason: 'too-large' })
+    expect(safeFetchMock.mock.calls.every(c => String(c[0]).includes('/git/trees/'))).toBe(true)
+  })
+
+  it('maps 404, other failures, network errors, bad listings and oversized answers to fixed reasons', async () => {
     const ref = parseGithubImportUrl('https://github.com/acme/handbook/tree/main')
     if (!ref) throw new Error('parse failed')
     const reason = async () => {
       try {
-        await downloadGithubZip(ref)
+        await downloadGithubFiles(ref)
         return null
       } catch (e) {
         return e instanceof GithubImportError ? e.reason : String(e)
@@ -119,7 +144,14 @@ describe('downloadGithubZip: the real hosts', () => {
     safeFetchMock.mockRejectedValue(new Error('URL refused: private address'))
     expect(await reason()).toBe('unavailable')
     safeFetchMock.mockReset()
+    safeFetchMock.mockImplementation(async url => ({ response: ok('not json'), url }))
+    expect(await reason()).toBe('unavailable')
+    safeFetchMock.mockImplementation(async url => ({ response: ok(JSON.stringify({ tree: 'x' })), url }))
+    expect(await reason()).toBe('unavailable')
     safeFetchMock.mockImplementation(async url => ({ response: ok('x', { 'content-length': String(500 * 1024 * 1024) }), url }))
+    expect(await reason()).toBe('too-large')
+    // A raw file larger than the listing said.
+    safeFetchMock.mockImplementation(async url => ({ response: ok(url.includes('/git/trees/') ? tree({ 'a.md': 2 }) : 'x'.repeat(5000)), url }))
     expect(await reason()).toBe('too-large')
   })
 
@@ -127,11 +159,11 @@ describe('downloadGithubZip: the real hosts', () => {
     safeFetchMock.mockImplementation(async url => ({ response: ok(JSON.stringify({ default_branch: '../x y' })), url }))
     const ref = parseGithubImportUrl('https://github.com/acme/handbook')
     if (!ref) throw new Error('parse failed')
-    await expect(downloadGithubZip(ref)).rejects.toMatchObject({ reason: 'unavailable' })
+    await expect(downloadGithubFiles(ref)).rejects.toMatchObject({ reason: 'unavailable' })
   })
 })
 
-describe('downloadGithubZip: the test seam', () => {
+describe('downloadGithubFiles: the test seam', () => {
   beforeEach(() => {
     stubEnv({ TEST_MODE: '1', NUXT_SITE_URL: undefined, TEST_GITHUB_IMPORT_ORIGIN: 'http://127.0.0.1:4555/' })
     safeFetchMock.mockReset()
@@ -142,14 +174,16 @@ describe('downloadGithubZip: the test seam', () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input)
       urls.push(url)
-      return url.endsWith('/api/repos/acme/handbook') ? ok(JSON.stringify({ default_branch: 'main' })) : ok(new Uint8Array([7]))
+      if (url.endsWith('/api/repos/acme/handbook')) return ok(JSON.stringify({ default_branch: 'main' }))
+      return url.includes('/git/trees/') ? ok(tree({ 'a.md': 3 })) : ok('# A')
     })
     const ref = parseGithubImportUrl('https://github.com/acme/handbook')
     if (!ref) throw new Error('parse failed')
-    expect([...await downloadGithubZip(ref)]).toEqual([7])
+    expect(zipNames(await downloadGithubFiles(ref))).toEqual({ 'a.md': '# A' })
     expect(urls).toEqual([
       'http://127.0.0.1:4555/api/repos/acme/handbook',
-      'http://127.0.0.1:4555/codeload/acme/handbook/zip/main'
+      'http://127.0.0.1:4555/api/repos/acme/handbook/git/trees/main?recursive=1',
+      'http://127.0.0.1:4555/raw/acme/handbook/main/a.md'
     ])
     expect(safeFetchMock).not.toHaveBeenCalled()
     fetchSpy.mockRestore()
@@ -158,11 +192,11 @@ describe('downloadGithubZip: the test seam', () => {
   it('is not honoured when the instance looks like a real deployment', async () => {
     stubEnv({ NUXT_SITE_URL: 'https://markoto.example' })
     const fetchSpy = vi.spyOn(globalThis, 'fetch')
-    safeFetchMock.mockImplementation(async url => ({ response: ok(new Uint8Array([1])), url }))
+    safeFetchMock.mockImplementation(async url => ({ response: ok(tree({})), url }))
     const ref = parseGithubImportUrl('https://github.com/acme/handbook/tree/main')
     if (!ref) throw new Error('parse failed')
-    await downloadGithubZip(ref)
-    expect(safeFetchMock.mock.calls[0]?.[0]).toBe('https://codeload.github.com/acme/handbook/zip/main')
+    await downloadGithubFiles(ref)
+    expect(safeFetchMock.mock.calls[0]?.[0]).toBe('https://api.github.com/repos/acme/handbook/git/trees/main?recursive=1')
     expect(fetchSpy).not.toHaveBeenCalled()
     fetchSpy.mockRestore()
   })

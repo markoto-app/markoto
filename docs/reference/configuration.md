@@ -411,7 +411,7 @@ Test-only switches. Ignored on an instance whose NUXT_SITE_URL is a real (non-lo
 | `TEST_ENFORCE_RATE_LIMITS` | string | (empty) |  | app | test | Comma-separated rate-limit namespaces (or *) enforced despite TEST_MODE. Not passed by the compose files: set by the test harness only. |
 | `LITELLM_TEST_STUB` | boolean | `false` |  | app | test | Skip LiteLLM key/team calls (unit/repos test tiers). Not passed by the compose files: set by the test harness only. |
 | `NUXT_VOXTRAL_REALTIME_MOCK` | boolean | `false` |  | app | test | With TEST_MODE: canned live-dictation transcripts instead of Mistral. Not passed by the compose files: set by the test harness only. |
-| `TEST_GITHUB_IMPORT_ORIGIN` | string | (empty) |  | app | test | With TEST_MODE: origin of a fake GitHub that GitHub imports call instead of api.github.com / codeload.github.com (plain HTTP, no address checks). Not passed by the compose files: set by the test harness only. |
+| `TEST_GITHUB_IMPORT_ORIGIN` | string | (empty) |  | app | test | With TEST_MODE: origin of a fake GitHub that GitHub imports call instead of api.github.com / raw.githubusercontent.com (plain HTTP, no address checks). Not passed by the compose files: set by the test harness only. |
 | `NUXT_PUBLIC_EXPOSE_TEST_HANDLES` | boolean | `false` |  | app | test | Expose the editor's Y.Doc on window for end-to-end tests (runtimeConfig.public). Not passed by the compose files: set by the flow-test stack only. |
 
 ## Deployment (compose only)

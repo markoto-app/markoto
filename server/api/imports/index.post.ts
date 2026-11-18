@@ -1,5 +1,6 @@
 import { createGithubImportJob, createUploadImportJob } from '../../utils/imports/createImportJob'
 import { createImportBody } from '~~/shared/api/imports'
+import { kickImportWorker } from '../../utils/imports/importKick'
 
 // Start a bulk import into a workspace (admins and editors) or the caller's
 // personal documents, optionally into a folder.
@@ -15,7 +16,11 @@ export default defineApiHandler({
   rateLimit: { namespace: 'import-jobs', max: 20, windowMs: 60 * 60_000, key: 'user' },
   handler: async ({ self, body }) => {
     const target = { workspaceId: body.workspaceId, folderId: body.folderId }
-    if (body.source === 'github') return { ...await createGithubImportJob(self, target, body.url), uploads: [], skipped: 0 }
+    if (body.source === 'github') {
+      const job = await createGithubImportJob(self, target, body.url)
+      kickImportWorker()
+      return { ...job, uploads: [], skipped: 0 }
+    }
     return createUploadImportJob(self, target, body.files)
   }
 })

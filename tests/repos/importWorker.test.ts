@@ -1,11 +1,10 @@
 import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest'
-import { createServer, type Server } from 'node:http'
-import type { AddressInfo } from 'node:net'
 import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import { strToU8, zipSync, type Zippable } from 'fflate'
 import { resetDb, testDb, readYjsRows } from '../integration/setup/db'
 import { createUser, createWorkspace, setMemberRole } from '../integration/setup/fixtures'
 import { stubEnv } from '../helpers/env'
+import { startFakeGithub, type FakeGithub } from '../helpers/fakeGithub'
 import { createImportJob, getImportJobForWorker, type NewImportItem } from '../../server/repos/imports'
 import { useS3Client } from '../../server/utils/storage/s3'
 import { asUser, sys } from '../helpers/access'
@@ -259,51 +258,58 @@ describe('import worker', () => {
 })
 
 describe('import worker: GitHub', () => {
-  let server: Server
+  let gh: FakeGithub
   let origin = ''
-  const requests: string[] = []
-  const repoZip = zipSync({
-    'docs-main/README.md': strToU8('# Readme\n\nSee [guide](docs/guide.md).\n'),
-    'docs-main/docs/guide.md': strToU8('# Guide\n\n![logo](../assets/logo.png)\n'),
-    'docs-main/assets/logo.png': new Uint8Array(PNG),
-    'docs-main/src/index.ts': strToU8('export {}')
-  })
+  const files: Record<string, Uint8Array> = {
+    'README.md': strToU8('# Readme\n\nSee [guide](docs/guide.md).\n'),
+    'docs/guide.md': strToU8('# Guide\n\n![logo](../assets/logo.png)\n'),
+    'assets/logo.png': new Uint8Array(PNG),
+    'src/index.ts': strToU8('export {}')
+  }
+  // A repository far larger than one import may bring in, with a small folder.
+  const big: Record<string, Uint8Array> = { 'content/docs/ai/intro.md': strToU8('# Intro\n') }
+  for (let i = 0; i < 30; i++) big[`vendor/blob-${i}.png`] = new Uint8Array(9 * 1024 * 1024)
 
   beforeAll(async () => {
-    server = createServer((req, res) => {
-      requests.push(req.url ?? '')
-      if (req.url === '/api/repos/acme/docs') {
-        res.writeHead(200, { 'content-type': 'application/json' })
-        res.end(JSON.stringify({ default_branch: 'main' }))
-        return
-      }
-      if (req.url === '/codeload/acme/docs/zip/main') {
-        res.writeHead(200, { 'content-type': 'application/zip', 'content-length': String(repoZip.byteLength) })
-        res.end(Buffer.from(repoZip))
-        return
-      }
-      res.writeHead(404)
-      res.end()
-    })
-    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
-    origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
+    gh = await startFakeGithub([
+      { owner: 'acme', repo: 'docs', defaultBranch: 'main', files },
+      { owner: 'acme', repo: 'big', defaultBranch: 'main', files: big }
+    ])
+    origin = gh.origin
   })
 
   afterAll(async () => {
-    await new Promise<void>(resolve => server.close(() => resolve()))
+    await gh.close()
   })
 
   beforeEach(async () => {
     await resetDb()
     testStorageEnv({ TEST_GITHUB_IMPORT_ORIGIN: origin })
-    requests.length = 0
+    gh.requests.length = 0
+  })
+
+  it('imports a folder of a large repository: only that folder is listed and downloaded', async () => {
+    const alice = await createUser()
+    const job = await runJob(alice.id, { jobId: 'gh-big', source: 'github', sourceRef: 'https://github.com/acme/big/tree/main/content/docs/ai', items: [] })
+    expect(job).toMatchObject({ status: 'done', total: 1, done: 1 })
+    expect(gh.requests).toEqual(['/api/repos/acme/big/git/trees/main:content/docs/ai', '/raw/acme/big/main/content/docs/ai/intro.md'])
+    expect((await items('gh-big')).map(i => i.relative_path)).toEqual(['ai/intro.md'])
+  })
+
+  it('refuses a whole repository above the archive cap before downloading any file', async () => {
+    const alice = await createUser()
+    const job = await runJob(alice.id, { jobId: 'gh-huge', source: 'github', sourceRef: 'https://github.com/acme/big', items: [] })
+    expect(job).toMatchObject({ status: 'failed', error: 'archive-too-large' })
+    expect(gh.requests.filter(r => r.startsWith('/raw/'))).toEqual([])
   })
 
   it('imports a repository from the default branch with images and links', async () => {
     const alice = await createUser()
     const job = await runJob(alice.id, { jobId: 'gh', source: 'github', sourceRef: 'https://github.com/acme/docs', items: [] })
     expect(job).toMatchObject({ status: 'done', total: 2, done: 2, failed: 0 })
-    expect(requests).toEqual(['/api/repos/acme/docs', '/codeload/acme/docs/zip/main'])
+    expect(gh.requests.slice(0, 2)).toEqual(['/api/repos/acme/docs', '/api/repos/acme/docs/git/trees/main'])
+    // Only importable files are downloaded (not src/index.ts).
+    expect(gh.requests.slice(2).toSorted()).toEqual(['/raw/acme/docs/main/README.md', '/raw/acme/docs/main/assets/logo.png', '/raw/acme/docs/main/docs/guide.md'])
     // The repository lands in a folder named after it, like an uploaded folder.
     const readme = await docOf('gh', 'docs/README.md')
     const guide = await docOf('gh', 'docs/docs/guide.md')
@@ -317,7 +323,7 @@ describe('import worker: GitHub', () => {
     const alice = await createUser()
     const job = await runJob(alice.id, { jobId: 'gh-sub', source: 'github', sourceRef: 'https://github.com/acme/docs/tree/main/docs', items: [] })
     expect(job).toMatchObject({ status: 'done', total: 1, done: 1 })
-    expect(requests).toEqual(['/codeload/acme/docs/zip/main'])
+    expect(gh.requests).toEqual(['/api/repos/acme/docs/git/trees/main:docs', '/raw/acme/docs/main/docs/guide.md'])
     expect((await items('gh-sub')).map(i => i.relative_path)).toEqual(['docs/guide.md'])
   })
 

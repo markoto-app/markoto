@@ -2,12 +2,16 @@ import { safeFetch, readBodyCapped } from '../platform/safeFetch'
 import { trimTrailingSlashes } from '~~/shared/utils/trimTrailingSlashes'
 import { isTestModeEnabled } from '~~/shared/utils/security/testMode'
 import { useEnv } from '~~/shared/env/load'
-import { IMPORT_ARCHIVE_MAX_BYTES } from '~~/shared/config/imports'
+import { zipSync } from 'fflate'
+import { classifyImportFile, IMPORT_ARCHIVE_MAX_BYTES, IMPORT_ARCHIVE_MAX_ENTRIES, IMPORT_FILE_MAX_BYTES } from '~~/shared/config/imports'
+import { isIgnoredImportPath, normalizeImportPath } from '~~/shared/utils/documents/importPaths'
 
 // Importing from a public GitHub repository (or a folder of one). Only two
 // hosts are ever contacted, both through `safeFetch` (resolved once, public
 // addresses only, every redirect re-checked, byte cap): api.github.com for
-// the default branch, codeload.github.com for the repository's zip. No token
+// the default branch and the file listing of the requested folder,
+// raw.githubusercontent.com for each importable file in it. A folder of a
+// large repository costs only that folder, never the whole archive. No token
 // is sent: private repositories are out of reach by design (the user
 // downloads the zip and imports that instead). What is sent to GitHub: the
 // repository path the user typed, from the server's address.
@@ -120,10 +124,72 @@ async function resolveRef(ref: GithubImportRef): Promise<string> {
   }
 }
 
-/** Download the repository as a zip (at most the archive cap). */
-export async function downloadGithubZip(ref: GithubImportRef): Promise<Uint8Array> {
-  const branch = await resolveRef(ref)
+const TREE_MAX_BYTES = 8 * 1024 * 1024
+/** Files fetched from raw.githubusercontent.com at the same time. */
+const RAW_CONCURRENCY = 6
+
+interface TreeEntry { path: string, type: string, size?: number }
+
+function encodePath(path: string): string {
+  return path.split('/').map(encodeURIComponent).join('/')
+}
+
+/**
+ * The importable files of the repository (or of its folder): the git tree
+ * of exactly that folder, from the API, so a large repository costs only the
+ * listing of the part that was asked for. Files that can't be imported, and
+ * files over their kind's size limit, are left out before anything is
+ * downloaded; the whole selection is refused above the archive cap.
+ */
+async function listGithubFiles(ref: GithubImportRef, branch: string): Promise<TreeEntry[]> {
   const origin = testOrigin()
-  const zipUrl = `https://codeload.github.com/${encodeURIComponent(ref.owner)}/${encodeURIComponent(ref.repo)}/zip/${branch.split('/').map(encodeURIComponent).join('/')}`
-  return get(zipUrl, origin ? `${origin}/codeload/${ref.owner}/${ref.repo}/zip/${branch}` : null, IMPORT_ARCHIVE_MAX_BYTES, 'application/zip')
+  const treeish = ref.path ? `${encodePath(branch)}:${encodePath(ref.path)}` : encodePath(branch)
+  const base = `/repos/${encodeURIComponent(ref.owner)}/${encodeURIComponent(ref.repo)}/git/trees/${treeish}?recursive=1`
+  const body = await get(`https://api.github.com${base}`, origin ? `${origin}/api${base}` : null, TREE_MAX_BYTES, 'application/vnd.github+json')
+  let tree: { tree?: unknown, truncated?: unknown }
+  try {
+    tree = JSON.parse(new TextDecoder().decode(body)) as typeof tree
+  } catch {
+    throw new GithubImportError('unavailable')
+  }
+  if (!Array.isArray(tree.tree)) throw new GithubImportError('unavailable')
+  // A listing GitHub cut short would import part of the folder silently.
+  if (tree.truncated === true) throw new GithubImportError('too-large')
+  const files: TreeEntry[] = []
+  let bytes = 0
+  for (const raw of tree.tree as TreeEntry[]) {
+    if (raw?.type !== 'blob' || typeof raw.path !== 'string' || typeof raw.size !== 'number') continue
+    const path = normalizeImportPath(raw.path)
+    if (!path || isIgnoredImportPath(path)) continue
+    const cls = classifyImportFile(path)
+    if (cls === 'other' || cls === 'archive' || raw.size > IMPORT_FILE_MAX_BYTES[cls]) continue
+    bytes += raw.size
+    if (files.length >= IMPORT_ARCHIVE_MAX_ENTRIES || bytes > IMPORT_ARCHIVE_MAX_BYTES) throw new GithubImportError('too-large')
+    files.push({ path: raw.path, type: 'blob', size: raw.size })
+  }
+  return files
+}
+
+/**
+ * Download the importable files of the repository, or of the folder in the
+ * URL, and hand them over as one zip (stored, not compressed) whose paths are
+ * relative to that folder, so they go through the same checks as an
+ * uploaded archive.
+ */
+export async function downloadGithubFiles(ref: GithubImportRef): Promise<Uint8Array> {
+  const branch = await resolveRef(ref)
+  const files = await listGithubFiles(ref, branch)
+  const origin = testOrigin()
+  const prefix = ref.path ? `${ref.path}/` : ''
+  const out: Record<string, Uint8Array> = {}
+  let next = 0
+  async function worker(): Promise<void> {
+    while (next < files.length) {
+      const file = files[next++] as TreeEntry
+      const rawPath = `/${encodeURIComponent(ref.owner)}/${encodeURIComponent(ref.repo)}/${encodePath(branch)}/${encodePath(prefix + file.path)}`
+      out[file.path] = await get(`https://raw.githubusercontent.com${rawPath}`, origin ? `${origin}/raw${rawPath}` : null, (file.size ?? 0) + 1024, 'application/octet-stream')
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(RAW_CONCURRENCY, files.length) }, () => worker()))
+  return zipSync(out, { level: 0 })
 }
