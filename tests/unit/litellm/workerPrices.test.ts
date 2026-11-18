@@ -44,14 +44,14 @@ describe('worker prices', () => {
   it('the worker aliases run on Mistral\'s EU endpoint and let prompt_cache_key through', () => {
     expect(entry('markoto-worker').litellm_params.model).toBe('mistral/zai-glm-5-3-flash')
     expect(entry('markoto-utility').litellm_params.model).toBe('mistral/zai-glm-5-3-flash')
-    expect(entry('markoto-worker-strong').litellm_params.model).toBe('mistral/mistral-small-2603')
+    expect(entry('markoto-worker-strong').litellm_params.model).toBe('mistral/deepseek-v4-1-flash-1017')
     for (const alias of Object.keys(WORKER_PRICES)) {
       expect(entry(alias).litellm_params.api_base, alias).toBe('https://api.eu.mistral.ai/v1')
       expect(entry(alias).litellm_params.allowed_openai_params, alias).toContain('prompt_cache_key')
     }
   })
 
-  it('the worker and utility aliases cost the same as the hosted chat default (GLM-5.3 Flash), the strong worker as Small 4', () => {
+  it('the worker and utility aliases cost the same as the hosted chat default (GLM-5.3 Flash), the strong worker as DeepSeek V4.1 Flash', () => {
     const glm = entry('zai-glm-5-3-flash').model_info
     for (const alias of ['markoto-worker', 'markoto-utility']) {
       expect(entry(alias).model_info, alias).toMatchObject({
@@ -60,10 +60,11 @@ describe('worker prices', () => {
         cache_read_input_token_cost: glm?.cache_read_input_token_cost
       })
     }
+    const deepseek = entry('deepseek-v4-1-flash-1017').model_info
     expect(entry('markoto-worker-strong').model_info).toMatchObject({
-      input_cost_per_token: entry('mistral-small-2603').model_info?.input_cost_per_token,
-      output_cost_per_token: entry('mistral-small-2603').model_info?.output_cost_per_token,
-      cache_read_input_token_cost: entry('mistral-small-2603').model_info?.cache_read_input_token_cost
+      input_cost_per_token: deepseek?.input_cost_per_token,
+      output_cost_per_token: deepseek?.output_cost_per_token,
+      cache_read_input_token_cost: deepseek?.cache_read_input_token_cost
     })
   })
 
@@ -73,10 +74,33 @@ describe('worker prices', () => {
     }
   })
 
-  it('the GLM workers fall back to Ministral 3 8B, never to a dearer model', () => {
+  it('DeepSeek has reasoning off, Large 4 the request shape it needs', () => {
+    for (const alias of ['deepseek-v4-1-flash-1017', 'markoto-worker-strong']) {
+      expect(entry(alias).litellm_params.reasoning_effort, alias).toBe('none')
+    }
+    expect(entry('mistral-large-4').litellm_params).toMatchObject({ model: 'mistral/mistral-large-4-0', reasoning_effort: 'low', top_p: 1 })
+  })
+
+  it('the new Mistral-served deployments bill the EU price (1.1x list)', () => {
+    expect(entry('deepseek-v4-1-flash-1017').model_info).toMatchObject({ input_cost_per_token: 0.00000033, cache_read_input_token_cost: 0.0000000077, output_cost_per_token: 0.00000132 })
+    expect(entry('mistral-large-4').model_info).toMatchObject({ input_cost_per_token: 0.00000077, cache_read_input_token_cost: 0.000000077, output_cost_per_token: 0.00000231 })
+    for (const alias of ['deepseek-v4-1-flash-1017', 'mistral-large-4']) {
+      expect(entry(alias).litellm_params.api_base, alias).toBe('https://api.eu.mistral.ai/v1')
+      expect(entry(alias).litellm_params.allowed_openai_params, alias).toContain('prompt_cache_key')
+    }
+  })
+
+  it('fallbacks go to DeepSeek V4.1 Flash, never to Mistral Small 4 (100k tokens/minute)', () => {
     const fallbacks = Object.assign({}, ...config.router_settings.fallbacks) as Record<string, string[]>
-    expect(fallbacks['markoto-worker']).toEqual(['ministral-8b-2512'])
-    expect(fallbacks['markoto-utility']).toEqual(['ministral-8b-2512'])
+    for (const alias of ['zai-glm-5-3-flash', 'markoto-worker', 'markoto-utility']) {
+      expect(fallbacks[alias], alias).toEqual(['deepseek-v4-1-flash-1017'])
+    }
+    expect(fallbacks['markoto-worker-strong']).toEqual(['zai-glm-5-3-flash'])
+    expect(fallbacks['deepseek-v4-1-flash-1017']).toBeUndefined()
+    const smallAsFallback = Object.entries(fallbacks).filter(([from, targets]) => from !== 'mistral-small-2603' && targets.includes('mistral-small-2603'))
+    expect(smallAsFallback).toEqual([])
+    const smallAsAlias = config.model_list.filter(d => d.model_name.startsWith('markoto-') && d.litellm_params.model === 'mistral/mistral-small-2603')
+    expect(smallAsAlias).toEqual([])
   })
 
   it('every fallback target is a deployment', () => {

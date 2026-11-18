@@ -102,8 +102,10 @@ describe('LiteLLM: every Mistral deployment is EU-pinned', () => {
     // Mistral accepts low / high / max only; `low` is the "off" switch
     // (0 reasoning tokens on almost every turn, verified live).
     expect(block('zai-glm-5-3-flash')).toMatch(/\n {6}reasoning_effort: low\n/)
-    expect(block('mistral-small-2603')).not.toContain('reasoning_effort')
-    expect(config).toMatch(/- zai-glm-5-3-flash: \[mistral-small-2603\]/)
+    // The fallback (DeepSeek V4.1 Flash) has its own switch: `none`, which
+    // GLM would refuse, so it never travels with the request.
+    expect(block('deepseek-v4-1-flash-1017')).toMatch(/\n {6}reasoning_effort: none\n/)
+    expect(config).toMatch(/- zai-glm-5-3-flash: \[deepseek-v4-1-flash-1017\]/)
   })
 
   it('the Voxtral transcription handler posts to the EU endpoint', () => {

@@ -16,7 +16,7 @@ export interface WorkerPrice {
 export const WORKER_PRICES = {
   'markoto-worker': { input: 0.000000165, output: 0.00000055, cachedInput: 0.000000033 },
   'markoto-utility': { input: 0.000000165, output: 0.00000055, cachedInput: 0.000000033 },
-  'markoto-worker-strong': { input: 0.000000165, output: 0.00000066, cachedInput: 0.0000000165 }
+  'markoto-worker-strong': { input: 0.00000033, output: 0.00000132, cachedInput: 0.0000000077 }
 } as const satisfies Record<string, WorkerPrice>
 
 export type WorkerAlias = keyof typeof WORKER_PRICES

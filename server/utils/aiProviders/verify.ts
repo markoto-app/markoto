@@ -26,6 +26,7 @@ import { z } from 'zod'
 import type OpenAI from 'openai'
 import { useLitellmForUser } from '../ai/litellmClient'
 import { litellmCompletion, litellmTranscription } from '../litellm/createCompletion'
+import { modelRequestParams } from '../litellm/modelParams'
 import { PROVIDER_ERROR_MESSAGES, classifyProviderError, logProviderFailure, providerErrorMessage, providerRequestFields } from './requestFields'
 import type { ResolvedAiProvider } from './resolve'
 import type { AiCapability, VerifyCode } from '~~/shared/ai/providers'
@@ -88,7 +89,7 @@ async function verifyChat(provider: ResolvedAiProvider, virtualKey: string, apiK
       ],
       tools: [PROBE_TOOL],
       tool_choice: 'auto',
-      temperature: 0,
+      ...modelRequestParams(fields.model, { temperature: 0, purpose: 'subcall' }),
       max_tokens: 64
     })
     const calls = resp.choices?.[0]?.message?.tool_calls ?? []
@@ -118,7 +119,7 @@ export async function verifyFastModel(provider: ResolvedAiProvider, virtualKey: 
     await litellmCompletion(useLitellmForUser(virtualKey), {
       ...fields,
       messages: [{ role: 'user', content: 'Reply with the word ok.' }],
-      temperature: 0,
+      ...modelRequestParams(fields.model, { temperature: 0, purpose: 'subcall' }),
       max_tokens: 8
     })
     return { code: 'ok', ok: true, supportsTools: null, message: 'Connected. The fast model answers.' }

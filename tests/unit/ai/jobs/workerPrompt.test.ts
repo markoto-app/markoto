@@ -23,7 +23,26 @@ describe('worker prompt layout', () => {
       expect(p.messages[0]).toEqual({ role: 'system', content: WORKER_SYSTEM_PROMPT })
       expect(p.parts.system).toBe(WORKER_SYSTEM_PROMPT)
     }
-    expect(WORKER_SYSTEM_PROMPT).not.toMatch(/translate into|Formal register|Netzleitstelle/i)
+    for (const value of [translate.instruction, rewrite.instruction, 'Netzleitstelle', 'British spelling.', 'Methoden']) {
+      expect(WORKER_SYSTEM_PROMPT).not.toContain(value)
+    }
+  })
+
+  it('the fixed prefix is the same bytes for every mode and long enough for GLM to cache it', () => {
+    const modes: WorkerJobSpec['mode'][] = ['rewrite', 'translate', 'terminology', 'summarise', 'comment', 'scan']
+    const systems = new Set(modes.map(mode => buildWorkerPrompt({ mode, instruction: `Job ${mode}` }, unitA).messages[0]!.content))
+    expect(systems.size).toBe(1)
+    // GLM-5.3 Flash on Mistral caches in ~1152-token blocks: below ~1.3k
+    // tokens the worker prefix was never cached (model eval 2026-11).
+    expect(WORKER_SYSTEM_PROMPT.length / 3.6).toBeGreaterThanOrEqual(1300)
+  })
+
+  it('the worked examples keep their placeholders and use no em-dash', () => {
+    expect(WORKER_SYSTEM_PROMPT).toContain('Example 1, mode rewrite')
+    expect(WORKER_SYSTEM_PROMPT).toContain('Example 2, mode translate')
+    expect(WORKER_SYSTEM_PROMPT).toContain('Example 3, mode comment')
+    expect(WORKER_SYSTEM_PROMPT.match(/⟦P\d+⟧/g)?.length).toBeGreaterThanOrEqual(10)
+    expect(WORKER_SYSTEM_PROMPT).not.toContain('\u2014')
   })
 
   it('the job part is identical for every unit of a job and opens the user message', () => {

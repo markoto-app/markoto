@@ -1,4 +1,5 @@
 import type OpenAI from 'openai'
+import { APIConnectionError } from 'openai'
 import { aiStatus } from '~~/shared/ai/statusSteps'
 import {
   AgenticFinishReason as FinishReason,
@@ -8,6 +9,7 @@ import {
   type AgenticAIClient as AiClient
 } from '../aiTypes'
 import { litellmStream } from '../../litellm/createCompletion'
+import { modelRequestParams } from '../../litellm/modelParams'
 import { LitellmBudgetExhausted, isBudgetExceededError } from '../../litellm/userKeys'
 import { FREE_ALLOWANCE_EXHAUSTED_MESSAGE, isFreeAllowanceExhaustedError } from '../../litellm/freeTierTeam'
 import { MEMBER_LIMIT_REACHED_MESSAGE, TEAM_BUDGET_EXHAUSTED_MESSAGE, isWorkspaceTeamBudgetError } from '../../litellm/workspaceTeams'
@@ -24,7 +26,9 @@ import { FEATURE_TAGS, featureMetadata } from '../../litellm/featureTags'
 import { budgetExhaustedBreadcrumb } from '../../billing/billingMode'
 import { newStreamState, processChunk } from '../streamStatus'
 import { useLogger } from '../../platform/logger'
+import { AI_SESSION_WRAP_UP_MARGIN_MS } from '../limits'
 import { buildCallUsageRecord, CALL_USAGE_EVENT } from './callUsage'
+import { withRateLimitRetry } from './rateLimitRetry'
 import type { LoopContext, ResponseParts } from './loopContext'
 
 const usageLog = useLogger('ai-loop')
@@ -120,6 +124,10 @@ async function consumeStreamTurn(
   return { modelParts, functionCalls, finishReason }
 }
 
+function isBudgetRefusal(e: unknown): boolean {
+  return isBudgetExceededError(e) || isFreeAllowanceExhaustedError(e) || isWorkspaceTeamBudgetError(e)
+}
+
 function errorText(e: unknown): string {
   return e instanceof Error ? e.message : String(e)
 }
@@ -179,7 +187,7 @@ interface OpenedStream {
 /** Open the LLM stream. Returns a tagged result so the caller can short-circuit on budget exhaustion without losing the throw vs typed-result distinction. */
 async function openProviderStream(ctx: LoopContext, request: TurnRequestOptions = {}): Promise<({ kind: 'stream' } & OpenedStream) | { kind: 'budget-exhausted' }> {
   try {
-    const opened = await streamFromProvider({
+    const opened = await withRateLimitRetry(() => streamFromProvider({
       ai: ctx.opts.ai,
       model: ctx.opts.model,
       contents: ctx.contents,
@@ -193,6 +201,13 @@ async function openProviderStream(ctx: LoopContext, request: TurnRequestOptions 
       initiatorUserId: ctx.opts.aiSession.initiatorUserId ?? null,
       docId: ctx.opts.aiSession.docId ?? null,
       forceFunction: request.forceFunction
+    }), {
+      signal: ctx.opts.abortController.signal,
+      deadlineAt: ctx.opts.deadlineAt,
+      reserveMs: AI_SESSION_WRAP_UP_MARGIN_MS,
+      now: ctx.opts.now,
+      log: ctx.log,
+      isFinal: isBudgetRefusal
     })
     return { kind: 'stream', ...opened }
   } catch (e) {
@@ -273,8 +288,9 @@ async function streamFromLiteLLM(opts: StreamFromProviderOpts): Promise<OpenedSt
     // Temperature 0: the agentic loop is deterministic-tool-selection.
     // Default Mistral sampling (~0.7) made tool choice vary run-to-run
     // and thrashed flow tests. Synthesis sub-calls already run at 0;
-    // pinning the outer loop matches that.
-    temperature: 0,
+    // pinning the outer loop matches that. `modelRequestParams` adds what a
+    // model needs on top (Mistral Large 4: `top_p: 1`, `reasoning_effort`).
+    ...modelRequestParams(providerFields.model, { temperature: 0, purpose: 'loop' }),
     // Prompt caching (Mistral + the GLM models it serves) is AUTOMATIC on a
     // byte-identical request prefix: cached tokens bill at 10 % (Mistral
     // Small) / 20 % (GLM-5.3 Flash) of the input price. The prefix is set up
@@ -299,7 +315,7 @@ async function streamFromLiteLLM(opts: StreamFromProviderOpts): Promise<OpenedSt
       userId: opts.initiatorUserId,
       docId: opts.docId
     })
-  }, { signal: opts.abortSignal }))
+  }, { signal: opts.abortSignal, callerRetries: true }))
 
   // BYOK: errors raised WHILE the stream is consumed (a provider SSE
   // error event, a dropped connection) bypass `withProviderErrors` above,
@@ -327,9 +343,22 @@ const STREAM_ATTEMPTS = 2
 function isRetryableStreamFailure(ctx: LoopContext, e: unknown): boolean {
   if (ctx.opts.abortController.signal.aborted) return false
   if (e instanceof Error && (e.name === 'AbortError' || e.message === 'aborted')) return false
-  if (isBudgetExceededError(e) || isFreeAllowanceExhaustedError(e) || isWorkspaceTeamBudgetError(e)) return false
+  if (isBudgetRefusal(e)) return false
   const status = typeof e === 'object' && e !== null ? (e as { status?: unknown }).status : undefined
   return !(typeof status === 'number' && status < 500)
+}
+
+/**
+ * Opening the stream failed for a transport reason: a 5xx from the proxy or
+ * no connection at all. Narrower than `isRetryableStreamFailure`, because an
+ * error thrown before any request (no provider configured, a refused base
+ * URL) carries no status and must not be repeated.
+ */
+function isRetryableOpenFailure(ctx: LoopContext, e: unknown): boolean {
+  if (!isRetryableStreamFailure(ctx, e)) return false
+  if (e instanceof APIConnectionError) return true
+  const status = typeof e === 'object' && e !== null ? (e as { status?: unknown }).status : undefined
+  return typeof status === 'number' && status >= 500
 }
 
 /**
@@ -340,7 +369,19 @@ function isRetryableStreamFailure(ctx: LoopContext, e: unknown): boolean {
 export async function streamTurn(ctx: LoopContext, request: TurnRequestOptions = {}): Promise<{ kind: 'turn', turn: StreamedTurn } | { kind: 'budget-exhausted' }> {
   for (let attempt = 1; ; attempt++) {
     const startedAt = Date.now()
-    const opened = await openProviderStream(ctx, request)
+    let opened: Awaited<ReturnType<typeof openProviderStream>>
+    try {
+      opened = await openProviderStream(ctx, request)
+    } catch (e) {
+      // Opening failed with a 5xx / connection error (429s were already
+      // retried in `openProviderStream`): the same one transport retry as
+      // a stream that broke mid-way. The SDK does not retry on its own
+      // (`callerRetries`).
+      if (attempt >= STREAM_ATTEMPTS || !isRetryableOpenFailure(ctx, e)) throw e
+      ctx.log(`opening the stream failed (${errorText(e).slice(0, 200)}); retrying the turn once`)
+      ctx.telemetry.streamRetries += 1
+      continue
+    }
     if (opened.kind === 'budget-exhausted') return opened
     const stats: CallStats = { firstChunkAt: null, usage: undefined, providerModel: null }
     const record = (finishReason: string | null): void => {

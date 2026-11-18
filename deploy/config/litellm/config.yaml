@@ -104,6 +104,10 @@ model_list:
       max_output_tokens: 120
 
   # ---- Mistral Small 4.0 (text agentic loop + vision) ----
+  # Rate limit: 100k tokens/minute on the staging platform key (model eval
+  # 2026-11; the other Mistral models here have 1M to 15M), so it is no
+  # fallback and no worker. It stays the self-host default
+  # (install.sh --mistral-api-key) and the hosted strong chat model.
   # Native mistral/ provider, no custom wrapper: Mistral's chat-completions
   # is OpenAI-compatible and LiteLLM's cost calc maps to its
   # `prompt_tokens` / `completion_tokens` natively.
@@ -169,8 +173,8 @@ model_list:
   # here, for every caller (agent loop, `@ai`, MCP, web-tool synthesis):
   # Mistral accepts `reasoning_effort` low / high / max only: `none` is a
   # 400, a Z.ai-style `thinking: {type: disabled}` a 422: and `low` produces 0 reasoning tokens on almost every
-  # turn. Set as a deployment param, so the fallback (`mistral-small-2603`,
-  # its own deployment) never receives it.
+  # turn. Set as a deployment param, so the fallback
+  # (`deepseek-v4-1-flash-1017`, its own deployment) never receives it.
   - model_name: zai-glm-5-3-flash
     litellm_params:
       model: mistral/zai-glm-5-3-flash
@@ -187,6 +191,7 @@ model_list:
       supports_function_calling: true
       supports_vision: true
       supports_reasoning: true
+      reasoning_effort_levels: ["low", "high", "max"]  # see "Reasoning levels" below the model list
       supports_prompt_caching: true
 
   # ---- Fallback for mistral-small-2603 ----
@@ -214,6 +219,74 @@ model_list:
       output_cost_per_token: 0.000000165  # $0.165 / M (EU: 1.1 x $0.15, 4× cheaper than small output)
       max_tokens: 262144
 
+  # ---- DeepSeek V4.1 Flash on Mistral (fallback model, not a default) ----
+  # Third-party open model served BY MISTRAL on La Plateforme (EU endpoint,
+  # Mistral contract and data terms as above). The LiteLLM fallback of the
+  # free-allowance model and of the GLM worker aliases, and the model of
+  # `markoto-worker-strong`. Model eval 2026-11: best planner on cost and
+  # speed (81 % pass, $0.010 per task, 6 s), 100 % valid worker units, 2 s
+  # per unit, 94-96 % prompt-cache reuse; rate limit ~10M tokens/minute on
+  # the platform key (Mistral Small 4: 100k, see docs/AI-MODELS.md).
+  #
+  # Reasoning off: Mistral's chat API takes `reasoning_effort` high / none
+  # (openapi ChatCompletionRequest); this model answers with 0 reasoning
+  # tokens on `none` and on the default (probed in the eval). Set on the
+  # deployment, not by the app, because a request-level `none` would follow
+  # a fallback to GLM, which refuses it with a 400. LiteLLM 1.108.10 forwards
+  # it as is (its map lists `mistral/deepseek-v4-1-flash-1017` as a
+  # reasoning model with no declared effort levels).
+  #
+  # List $0.30 / M input, $0.007 / M cached input, $1.20 / M output (the
+  # same as LiteLLM's bundled price map); EU endpoint 1.1x.
+  - model_name: deepseek-v4-1-flash-1017
+    litellm_params:
+      model: mistral/deepseek-v4-1-flash-1017
+      api_base: https://api.eu.mistral.ai/v1
+      api_key: os.environ/MISTRAL_API_KEY
+      reasoning_effort: none
+      allowed_openai_params: ["prompt_cache_key"]
+    model_info:
+      input_cost_per_token: 0.00000033           # $0.33 / M (EU: 1.1 x $0.30)
+      cache_read_input_token_cost: 0.0000000077  # $0.0077 / M (EU: 1.1 x $0.007)
+      output_cost_per_token: 0.00000132          # $1.32 / M (EU: 1.1 x $1.20)
+      max_input_tokens: 1048576
+      supports_function_calling: true
+      supports_reasoning: true
+      reasoning_effort_levels: ["none", "low", "high"]  # see "Reasoning levels" below the model list
+      supports_prompt_caching: true
+
+  # ---- Mistral Large 4 (available, not a default) ----
+  # `mistral-large-4-0` (Mistral docs, "Reasoning": adjustable reasoning via
+  # `reasoning_effort`; `mistral-large-4` / `-latest` are aliases of it). For
+  # an operator who wants it as the strong chat model
+  # (NUXT_AI_DEFAULT_CHAT_STRONG_MODEL=mistral-large-4). It always reasons:
+  # `reasoning_effort` takes low / medium / high, `none` is a 400, so `low`
+  # (fewest thinking tokens). `temperature: 0` without `top_p: 1` is a 400
+  # ("top_p must be 1 when using greedy sampling"); `top_p: 1` is the API
+  # default, so it is pinned here for every caller. The app sends the same
+  # two fields itself for any Large 4 id (server/utils/litellm/modelParams.ts),
+  # which also covers a user's own Mistral key.
+  #
+  # List $0.70 / M input, $0.07 / M cached input, $2.10 / M output; EU 1.1x.
+  - model_name: mistral-large-4
+    litellm_params:
+      model: mistral/mistral-large-4-0
+      api_base: https://api.eu.mistral.ai/v1
+      api_key: os.environ/MISTRAL_API_KEY
+      reasoning_effort: low
+      top_p: 1
+      allowed_openai_params: ["prompt_cache_key"]
+    model_info:
+      input_cost_per_token: 0.00000077          # $0.77 / M (EU: 1.1 x $0.70)
+      cache_read_input_token_cost: 0.000000077  # $0.077 / M (EU: 1.1 x $0.07)
+      output_cost_per_token: 0.00000231         # $2.31 / M (EU: 1.1 x $2.10)
+      max_input_tokens: 1048576
+      supports_function_calling: true
+      supports_vision: true
+      supports_reasoning: true
+      reasoning_effort_levels: ["low", "medium", "high"]  # see "Reasoning levels" below the model list
+      supports_prompt_caching: true
+
   # ---- Worker models (hosted: NUXT_AI_DEFAULT_WORKER_MODEL / _STRONG_MODEL / _UTILITY_MODEL) ----
   # The worker runs delegated per-section rewrites and scans; the utility
   # alias runs the sub-calls (fetch_url extraction, web_search synthesis,
@@ -228,9 +301,8 @@ model_list:
   # (`zai-glm-5-3-flash` above). Thinking off as far as Mistral allows:
   # `zai-glm-5-3` takes `reasoning_effort` low / high / max, not `none`
   # (docs.mistral.ai/studio/conversations/reasoning), and `low` produces
-  # ~0 reasoning tokens. Fallback: Ministral 3 8B (its output is cheaper
-  # than Small 4's, so a rate limit never makes a job dearer than its
-  # estimate).
+  # ~0 reasoning tokens. Fallback: DeepSeek V4.1 Flash (see the fallback
+  # list at the end).
   - model_name: markoto-worker
     litellm_params:
       model: mistral/zai-glm-5-3-flash
@@ -246,6 +318,7 @@ model_list:
       max_output_tokens: 131072
       supports_function_calling: true
       supports_reasoning: true
+      reasoning_effort_levels: ["low", "high", "max"]  # see "Reasoning levels" below the model list
       supports_prompt_caching: true
 
   - model_name: markoto-utility
@@ -263,21 +336,35 @@ model_list:
       max_output_tokens: 131072
       supports_function_calling: true
       supports_reasoning: true
+      reasoning_effort_levels: ["low", "high", "max"]  # see "Reasoning levels" below the model list
       supports_prompt_caching: true
 
-  # `markoto-worker-strong`: Mistral Small 4 on the EU endpoint, for
-  # translations and rewrites on plans with `aiStrongModel`.
+  # `markoto-worker-strong`: DeepSeek V4.1 Flash on the EU endpoint, for
+  # translations and rewrites on plans with `aiStrongModel`, and the model a
+  # unit escalates to on its last attempt. Not Mistral Small 4 any more: its
+  # 100k tokens/minute limit on the platform key sits right at one job's
+  # 40 requests/minute (model eval 2026-11). A different model family from
+  # the GLM worker, 100 % valid units and the fastest worker measured (2 s
+  # per unit). Same model, reasoning switch and price as the
+  # `deepseek-v4-1-flash-1017` deployment above. Mistral Large 4 (above) is
+  # the alternative when quality matters more than cost; it was not
+  # measured as a worker.
   - model_name: markoto-worker-strong
     litellm_params:
-      model: mistral/mistral-small-2603
+      model: mistral/deepseek-v4-1-flash-1017
       api_base: https://api.eu.mistral.ai/v1
       api_key: os.environ/MISTRAL_API_KEY
+      reasoning_effort: none
       allowed_openai_params: ["prompt_cache_key"]
     model_info:
-      input_cost_per_token: 0.000000165   # $0.165 / M (EU: 1.1 x $0.15)
-      cache_read_input_token_cost: 0.0000000165
-      output_cost_per_token: 0.00000066   # $0.66 / M (EU: 1.1 x $0.60)
-      max_tokens: 256000
+      input_cost_per_token: 0.00000033           # $0.33 / M (EU: 1.1 x $0.30)
+      cache_read_input_token_cost: 0.0000000077  # $0.0077 / M (EU: 1.1 x $0.007)
+      output_cost_per_token: 0.00000132          # $1.32 / M (EU: 1.1 x $1.20)
+      max_input_tokens: 1048576
+      supports_function_calling: true
+      supports_reasoning: true
+      reasoning_effort_levels: ["none", "low", "high"]  # see "Reasoning levels" below the model list
+      supports_prompt_caching: true
 
   # ---- BFL FLUX 3 Image Klein image generation (custom provider) ----
   # Wraps BFL's submission+poll API. EU-pinned to api.eu.bfl.ai (routing
@@ -430,6 +517,15 @@ general_settings:
   # service (deploy/compose/compose.base.yml / deploy/compose/compose.test.yml): v1.106.4
   # ignores a `disable_admin_ui` key here.
 
+# Reasoning levels: LiteLLM (>= 1.108) rounds a `reasoning_effort` the
+# model does not declare onto the nearest declared level, read from its
+# price map. The map it bundles (used when the remote map cannot be fetched
+# at boot) declares Mistral Large 4 as none / high, which would turn `low`
+# into `high`, and declares nothing for DeepSeek / GLM. Every reasoning
+# deployment above therefore states `reasoning_effort_levels` in its
+# model_info (registered at boot, wins over both maps; checked against
+# 1.108.10 with the bundled map: low stays low, none stays none).
+
 router_settings:
   num_retries: 1
   timeout: 60
@@ -442,20 +538,33 @@ router_settings:
   # answered by: (proxy 1 retry) → (fallback to ministral) → (SDK 4
   # retries on whatever LiteLLM ultimately returns). Net: in-app AI
   # rarely surfaces "Could not reach markoto" even on Mistral throttle
-  # storms.
+  # storms. The agent loop's stream skips that SDK-level layer and retries
+  # a 429 itself, at most 3 times within the session deadline
+  # (server/utils/agentic/loop/rateLimitRetry.ts).
   #
-  # The free-allowance model (`zai-glm-5-3-flash`) falls back to Mistral
-  # Small 4 (also on the EU endpoint) on the same conditions (LiteLLM
+  # The free-allowance model (`zai-glm-5-3-flash`) falls back to DeepSeek
+  # V4.1 Flash (also on the EU endpoint) on the same conditions (LiteLLM
   # fallbacks fire on any error left after the retry: 429, 5xx,
   # timeout). Budget / team-budget rejections happen in the proxy's auth
   # step, before routing, so they never trigger a fallback.
+  #
+  # Never Mistral Small 4 as a fallback: the platform key allows it 100k
+  # tokens per minute (GLM ~10.7M, DeepSeek ~10M, Large 4 ~15M), and one
+  # large-document turn is ~70k tokens, so it fails exactly when a fallback
+  # is needed (model eval 2026-11: 6 of 21 Small 4 planner runs aborted on
+  # 429). DeepSeek over Ministral 3 8B for the workers too: Ministral is
+  # cheaper per unit but leaked neighbouring context into a unit and left
+  # 9 % invalid units; DeepSeek left none. Its output costs more than GLM's
+  # ($1.32 vs $0.55 / M), so a job that runs on the fallback can cost more
+  # than its estimate; that only happens while GLM is failing.
+  #
+  # LiteLLM follows a target's own fallback too (up to `max_fallbacks`), so
+  # every chain ends at DeepSeek, which has none: the longest is
+  # markoto-worker-strong (DeepSeek) -> GLM -> DeepSeek, and no request
+  # bounces between two models indefinitely.
   fallbacks:
     - mistral-small-2603: [ministral-8b-2512]
-    - zai-glm-5-3-flash: [mistral-small-2603]
-    # The worker aliases fall back to a different Mistral rate-limit pool,
-    # like the Small 4 / Ministral pair above. GLM-5.3 Flash falls back to
-    # Ministral 3 8B, not to Small 4: same input price and a lower output
-    # price, so a rate limit never makes a job dearer than its estimate.
-    - markoto-worker: [ministral-8b-2512]
-    - markoto-utility: [ministral-8b-2512]
-    - markoto-worker-strong: [ministral-8b-2512]
+    - zai-glm-5-3-flash: [deepseek-v4-1-flash-1017]
+    - markoto-worker: [deepseek-v4-1-flash-1017]
+    - markoto-utility: [deepseek-v4-1-flash-1017]
+    - markoto-worker-strong: [zai-glm-5-3-flash]
