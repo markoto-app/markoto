@@ -1,11 +1,11 @@
 {
   "order:main": "view_document,replace_text,insert_text,web_search,update_theme,get_theme,list_themes,save_theme_as_preset,list_workspace_documents,list_my_documents,create_document,duplicate_document,export_document_as_markdown,view_other_document,set_title,view_image,generate_image,get_page_count,view_pages,fetch_url,read_comments,create_comment,reply_to_comment,resolve_comment,delete_comment,message_to_user,search_activity_log,outline,read_section,search_document,replace_section,insert_markdown,move_section,swap_sections,delete_section,set_heading,renumber_headings,replace_all,edit_lines,load_skill,delegate_scan,delegate_rewrite",
   "order:knowledge": "search_knowledge,get_knowledge_file",
-  "declarations:main": "a9a2781ea68140e6dd8bfa4f97e13eb6af0c88c32f06358fcac5f7e0177cff2a",
+  "declarations:main": "3c1e7afcc1af9bf944c4e9b315c387c0f4677f38e15d22712b4e319b39f44ff4",
   "declarations:knowledge": "09ddf6cf6b6317ad0c82f6d5613e49833cdc2d2c2a45fbc01edc4f0c59defcdd",
-  "openai:tools": "1601bc8df32be9adc81c03b391a42f0435ed26a738e6cb50c2906695e913a700",
+  "openai:tools": "02c8e3c0ee4f7ad3c2df50d0f83788f9b75e5cc5b6c5ada2077a5a71b97a70be",
   "filtered:noVisionNoImageNoSearch": "view_document,replace_text,insert_text,update_theme,get_theme,list_themes,save_theme_as_preset,list_workspace_documents,list_my_documents,create_document,duplicate_document,export_document_as_markdown,view_other_document,set_title,get_page_count,fetch_url,read_comments,create_comment,reply_to_comment,resolve_comment,delete_comment,message_to_user,search_activity_log,outline,read_section,search_document,replace_section,insert_markdown,move_section,swap_sections,delete_section,set_heading,renumber_headings,replace_all,edit_lines,load_skill,delegate_scan,delegate_rewrite",
   "validators:names": "create_comment,create_document,delegate_rewrite,delegate_scan,delete_comment,delete_section,duplicate_document,edit_lines,export_document_as_markdown,fetch_url,generate_image,get_knowledge_file,get_page_count,get_theme,insert_markdown,insert_text,list_my_documents,list_themes,list_workspace_documents,load_skill,message_to_user,move_section,outline,read_comments,read_section,renumber_headings,replace_all,replace_section,replace_text,reply_to_comment,resolve_comment,save_theme_as_preset,search_activity_log,search_document,search_knowledge,set_heading,set_title,swap_sections,update_theme,view_document,view_image,view_other_document,view_pages,web_search",
-  "validators:jsonSchema": "7fd752629b462e57b786311a3af5012da9941e3a0c8c8ffd9fff106c7a75b363",
+  "validators:jsonSchema": "fdd8ec8a0fcac10b8b4b045a4830521745702653898c75d67095bfc19a0ae461",
   "mcp:catalog": "77eb97e65d7b175095e21aa24a353a0f8bbdf730b06e3c5bef6a25b02b28ab3f"
 }

@@ -231,7 +231,8 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
     imageProvenance: new ImageUrlProvenance(readDocText(opts.aiSession), opts.initialPrompt),
     editedDocument: false,
     answeredUser: false,
-    outputLimitedTurns: 0
+    outputLimitedTurns: 0,
+    invalidCalls: new Map()
   }
 
   log(`[billing] session resolved: ${opts.billingContext.attributedTo} plan=${opts.billingContext.plan}`)
