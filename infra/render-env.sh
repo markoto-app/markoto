@@ -169,26 +169,29 @@ esac
 NUXT_AI_BYOK_ALLOWED_BASE_URLS="${NUXT_AI_BYOK_ALLOWED_BASE_URLS:-https://api.mistral.ai/v1,https://api.openai.com/v1,https://openrouter.ai/api/v1,https://api.groq.com/openai/v1,https://api.together.xyz/v1,https://api.deepinfra.com/v1/openai,https://api.fireworks.ai/inference/v1,https://api.scaleway.ai/v1}"
 NUXT_AI_BYOK_ALLOW_PRIVATE_URLS="${NUXT_AI_BYOK_ALLOW_PRIVATE_URLS:-false}"
 
-# Free AI allowance (docs/AI-MODELS.md#free-ai-allowance). Signed-in users
-# without their own key get TIER_FREE_LITELLM_BUDGET_USD per month on the
-# platform-paid chat default (Z.ai GLM-5.3 Flash served by Mistral on its
-# EU endpoint, deploy/config/litellm/config.yaml), all of them together capped at
+# Free AI allowance (docs/AI-MODELS.md#free-ai-allowance-hosted). Signed-in
+# users without their own key get TIER_FREE_LITELLM_BUDGET_USD per month on
+# the platform-paid chat default (DeepSeek V4.1 Flash served by Mistral on
+# its EU endpoint, reasoning off, falling back to GLM-5.3 Flash;
+# deploy/config/litellm/config.yaml), all of them together capped at
 # NUXT_FREE_TIER_TOTAL_BUDGET_USD per month (a LiteLLM team budget). An
 # own key always takes precedence. Override any of these with an
-# Environment variable. The strong chat model, image generation and voice
-# are platform-paid too, but only for plans that include them
-# (TIER_<PLAN>_FEATURE_AI_*; the free tier below has them off, so with
-# billing off nobody on markoto.app gets them without their own key).
-NUXT_AI_DEFAULT_CHAT_MODEL="${NUXT_AI_DEFAULT_CHAT_MODEL:-zai-glm-5-3-flash}"
+# Environment variable. Vision stays on: Mistral lists text and image input
+# for the model. The strong chat model (Mistral Large 4, falling back to
+# DeepSeek), image generation and voice are platform-paid too, but only for
+# plans that include them (TIER_<PLAN>_FEATURE_AI_*; the free tier below has
+# them off, so with billing off nobody on markoto.app gets them without
+# their own key).
+NUXT_AI_DEFAULT_CHAT_MODEL="${NUXT_AI_DEFAULT_CHAT_MODEL:-deepseek-v4-1-flash-1017}"
 NUXT_AI_DEFAULT_CHAT_VISION="${NUXT_AI_DEFAULT_CHAT_VISION:-true}"
-NUXT_AI_DEFAULT_CHAT_STRONG_MODEL="${NUXT_AI_DEFAULT_CHAT_STRONG_MODEL:-mistral-small-2603}"
+NUXT_AI_DEFAULT_CHAT_STRONG_MODEL="${NUXT_AI_DEFAULT_CHAT_STRONG_MODEL:-mistral-large-4}"
 NUXT_AI_DEFAULT_IMAGE_MODEL="${NUXT_AI_DEFAULT_IMAGE_MODEL:-flux-3-image-klein}"
 NUXT_AI_DEFAULT_TRANSCRIBE_MODEL="${NUXT_AI_DEFAULT_TRANSCRIBE_MODEL:-voxtral-mini-transcribe}"
 # Worker model (docs/AI-MODELS.md#worker-model): delegated section
 # rewrites and scans on markoto-worker, the web-tool synthesis on
-# markoto-utility (both GLM-5.3 Flash, like the chat default); the strong
-# worker (Mistral Small 4) translates and rewrites for plans with
-# aiStrongModel. All are aliases in deploy/config/litellm/config.yaml, so
+# markoto-utility (both GLM-5.3 Flash, the chat default's fallback); the
+# strong worker (DeepSeek V4.1 Flash) translates and rewrites for plans
+# with aiStrongModel. All are aliases in deploy/config/litellm/config.yaml, so
 # ops swap a role's model there.
 NUXT_AI_DEFAULT_WORKER_MODEL="${NUXT_AI_DEFAULT_WORKER_MODEL:-markoto-worker}"
 NUXT_AI_DEFAULT_WORKER_STRONG_MODEL="${NUXT_AI_DEFAULT_WORKER_STRONG_MODEL:-markoto-worker-strong}"

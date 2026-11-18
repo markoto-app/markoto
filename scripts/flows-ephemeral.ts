@@ -131,13 +131,13 @@ const FLOWS_ENV: Record<string, string> = {
   // virtualisation makes .cm-content unreliable for long docs).
   NUXT_PUBLIC_EXPOSE_TEST_HANDLES: '1',
   // AI providers: instance defaults on the bundled LiteLLM aliases. Chat
-  // runs on the hosted free-allowance model (Z.ai GLM-5.3 Flash on Mistral's
+  // runs on the hosted free-allowance model (DeepSeek V4.1 Flash on Mistral's
   // EU endpoint) inside the shared monthly pool
   // (NUXT_FREE_TIER_TOTAL_BUDGET_USD -> LiteLLM team), so live-AI flows
   // exercise the hosted default. The private-network opt-in lets the
   // `ai-provider-settings` flow save the fake OpenAI-compatible provider
   // (`fake-openai-test`) at the docker bridge address.
-  NUXT_AI_DEFAULT_CHAT_MODEL: 'zai-glm-5-3-flash',
+  NUXT_AI_DEFAULT_CHAT_MODEL: 'deepseek-v4-1-flash-1017',
   NUXT_FREE_TIER_TOTAL_BUDGET_USD: '500',
   NUXT_AI_DEFAULT_IMAGE_MODEL: 'flux-3-image-klein',
   NUXT_AI_DEFAULT_TRANSCRIBE_MODEL: 'voxtral-mini-transcribe',

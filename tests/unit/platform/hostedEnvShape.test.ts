@@ -12,7 +12,7 @@ import { bootProblems } from '../env/fixtures'
 // gets when the GitHub Environment sets only the required secrets:
 // billing off, plans "coming soon", legal surfaces on, BYOK limited to
 // the known providers (the SSRF allowlist must match shared/ai/providers.ts),
-// the free AI allowance (chat default = the GLM-5.3 Flash alias, $0.50 per
+// the free AI allowance (chat default = the DeepSeek V4.1 Flash alias, $0.50 per
 // user and $500 in total per month; image / transcription stay BYOK) and
 // no OIDC login. infra/render-env-test.sh pins the renderer's mechanics.
 
@@ -103,8 +103,9 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
     expect(vars.get('NUXT_AI_BYOK_ALLOW_PRIVATE_URLS')).toBe('false')
   })
 
-  it('gives signed-in users the free AI allowance: chat on the platform-paid GLM-5.3 Flash alias', () => {
-    expect(vars.get('NUXT_AI_DEFAULT_CHAT_MODEL')).toBe('zai-glm-5-3-flash')
+  it('gives signed-in users the free AI allowance: chat on the platform-paid DeepSeek V4.1 Flash alias', () => {
+    expect(vars.get('NUXT_AI_DEFAULT_CHAT_MODEL')).toBe('deepseek-v4-1-flash-1017')
+    // Mistral's model card lists text and image input for it.
     expect(vars.get('NUXT_AI_DEFAULT_CHAT_VISION')).toBe('true')
     // An alias, not an endpoint: platform-paid through LiteLLM, never clientside credentials.
     expect(vars.get('NUXT_AI_DEFAULT_CHAT_BASE_URL')).toBe('')
@@ -145,9 +146,18 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
     })
   })
 
-  it('the chat default is a deployment in deploy/config/litellm/config.yaml', () => {
+  it('the chat and strong chat defaults are deployments in deploy/config/litellm/config.yaml', () => {
     const config = readFileSync(resolve(ROOT, 'deploy/config/litellm/config.yaml'), 'utf8')
-    expect(config).toContain(`- model_name: ${vars.get('NUXT_AI_DEFAULT_CHAT_MODEL')}\n`)
+    for (const k of ['NUXT_AI_DEFAULT_CHAT_MODEL', 'NUXT_AI_DEFAULT_CHAT_STRONG_MODEL']) {
+      expect(config, k).toContain(`- model_name: ${vars.get(k)}\n`)
+    }
+  })
+
+  it('the chat default and the strong chat model each fall back one hop, never to Mistral Small 4', () => {
+    const config = readFileSync(resolve(ROOT, 'deploy/config/litellm/config.yaml'), 'utf8')
+    expect(config).toContain('\n    - deepseek-v4-1-flash-1017: [zai-glm-5-3-flash]\n')
+    expect(config).toContain('\n    - mistral-large-4: [deepseek-v4-1-flash-1017]\n')
+    expect(config).toContain('\n  max_fallbacks: 1\n')
   })
 
   it('runs the worker and utility calls on the markoto-* aliases of deploy/config/litellm/config.yaml', () => {
@@ -166,7 +176,7 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
   it('image / voice / strong-model defaults are platform aliases, locked for the free tier', () => {
     expect(vars.get('NUXT_AI_DEFAULT_IMAGE_MODEL')).toBe('flux-3-image-klein')
     expect(vars.get('NUXT_AI_DEFAULT_TRANSCRIBE_MODEL')).toBe('voxtral-mini-transcribe')
-    expect(vars.get('NUXT_AI_DEFAULT_CHAT_STRONG_MODEL')).toBe('mistral-small-2603')
+    expect(vars.get('NUXT_AI_DEFAULT_CHAT_STRONG_MODEL')).toBe('mistral-large-4')
     // Aliases only: never an operator endpoint + key for these.
     for (const k of ['IMAGE', 'TRANSCRIBE']) {
       expect(vars.get(`NUXT_AI_DEFAULT_${k}_BASE_URL`), k).toBe('')

@@ -22,7 +22,7 @@ const deployment = z.object({
 })
 const config = z.object({
   model_list: z.array(deployment),
-  router_settings: z.object({ fallbacks: z.array(z.record(z.string(), z.array(z.string()))) }).passthrough()
+  router_settings: z.object({ fallbacks: z.array(z.record(z.string(), z.array(z.string()))), max_fallbacks: z.number().optional() }).passthrough()
 }).passthrough().parse(parse(readFileSync(CONFIG_PATH, 'utf8')))
 
 function entry(alias: string) {
@@ -96,11 +96,16 @@ describe('worker prices', () => {
       expect(fallbacks[alias], alias).toEqual(['deepseek-v4-1-flash-1017'])
     }
     expect(fallbacks['markoto-worker-strong']).toEqual(['zai-glm-5-3-flash'])
-    expect(fallbacks['deepseek-v4-1-flash-1017']).toBeUndefined()
+    expect(fallbacks['deepseek-v4-1-flash-1017']).toEqual(['zai-glm-5-3-flash'])
+    expect(fallbacks['mistral-large-4']).toEqual(['deepseek-v4-1-flash-1017'])
     const smallAsFallback = Object.entries(fallbacks).filter(([from, targets]) => from !== 'mistral-small-2603' && targets.includes('mistral-small-2603'))
     expect(smallAsFallback).toEqual([])
     const smallAsAlias = config.model_list.filter(d => d.model_name.startsWith('markoto-') && d.litellm_params.model === 'mistral/mistral-small-2603')
     expect(smallAsAlias).toEqual([])
+  })
+
+  it('one hop only: DeepSeek and GLM both sit behind two names, so a second hop would retry the model that just failed', () => {
+    expect(config.router_settings.max_fallbacks).toBe(1)
   })
 
   it('every fallback target is a deployment', () => {

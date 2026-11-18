@@ -107,7 +107,8 @@ model_list:
   # Rate limit: 100k tokens/minute on the staging platform key (model eval
   # 2026-11; the other Mistral models here have 1M to 15M), so it is no
   # fallback and no worker. It stays the self-host default
-  # (install.sh --mistral-api-key) and the hosted strong chat model.
+  # (install.sh --mistral-api-key); the hosted strong chat model is
+  # Mistral Large 4 (below).
   # Native mistral/ provider, no custom wrapper: Mistral's chat-completions
   # is OpenAI-compatible and LiteLLM's cost calc maps to its
   # `prompt_tokens` / `completion_tokens` natively.
@@ -140,11 +141,12 @@ model_list:
       output_cost_per_token: 0.00000066   # $0.66 / M (EU: 1.1 x $0.60)
       max_tokens: 256000
 
-  # ---- Free AI allowance (hosted SaaS): Z.ai GLM-5.3 Flash on Mistral ----
-  # The hosted SaaS's instance chat default (NUXT_AI_DEFAULT_CHAT_MODEL,
-  # rendered by infra/render-env.sh): signed-in
-  # users without their own key get a monthly allowance on this model.
-  # See docs/AI-MODELS.md#free-ai-allowance.
+  # ---- Z.ai GLM-5.3 Flash on Mistral (fallback of the hosted chat default) ----
+  # The LiteLLM fallback of the hosted chat default
+  # (`deepseek-v4-1-flash-1017`, below) and of `markoto-worker-strong`; the
+  # same model runs the `markoto-worker` / `markoto-utility` aliases. It was
+  # the hosted chat default until the model eval of 2026-11. See
+  # docs/AI-MODELS.md#free-ai-allowance-hosted.
   #
   # Served BY MISTRAL on La Plateforme (third-party open model, MIT
   # weights, "served without Mistral modifications"), so the Mistral
@@ -175,6 +177,8 @@ model_list:
   # 400, a Z.ai-style `thinking: {type: disabled}` a 422: and `low` produces 0 reasoning tokens on almost every
   # turn. Set as a deployment param, so the fallback
   # (`deepseek-v4-1-flash-1017`, its own deployment) never receives it.
+  # Fallback `deepseek-v4-1-flash-1017` (for an operator who makes GLM the
+  # chat default); see the fallback list at the end.
   - model_name: zai-glm-5-3-flash
     litellm_params:
       model: mistral/zai-glm-5-3-flash
@@ -219,14 +223,27 @@ model_list:
       output_cost_per_token: 0.000000165  # $0.165 / M (EU: 1.1 x $0.15, 4× cheaper than small output)
       max_tokens: 262144
 
-  # ---- DeepSeek V4.1 Flash on Mistral (fallback model, not a default) ----
+  # ---- Free AI allowance (hosted SaaS): DeepSeek V4.1 Flash on Mistral ----
+  # The hosted SaaS's instance chat default (NUXT_AI_DEFAULT_CHAT_MODEL,
+  # rendered by infra/render-env.sh): signed-in users without their own key
+  # get a monthly allowance on this model (docs/AI-MODELS.md#free-ai-allowance-hosted).
+  # Also the LiteLLM fallback of Mistral Large 4 (the hosted strong chat
+  # model) and of the GLM worker aliases, and the model of
+  # `markoto-worker-strong`. Its own fallback is GLM-5.3 Flash.
+  #
   # Third-party open model served BY MISTRAL on La Plateforme (EU endpoint,
-  # Mistral contract and data terms as above). The LiteLLM fallback of the
-  # free-allowance model and of the GLM worker aliases, and the model of
-  # `markoto-worker-strong`. Model eval 2026-11: best planner on cost and
-  # speed (81 % pass, $0.010 per task, 6 s), 100 % valid worker units, 2 s
-  # per unit, 94-96 % prompt-cache reuse; rate limit ~10M tokens/minute on
-  # the platform key (Mistral Small 4: 100k, see docs/AI-MODELS.md).
+  # Mistral contract and data terms as above). Model eval 2026-11: best
+  # planner on cost and speed (81 % pass, $0.010 per task, 6 s on the old
+  # loop; 71 % pass, $0.005 per task, 5 s on loop v2), 100 % valid worker
+  # units, 2 s per unit, 94-96 % prompt-cache reuse; rate limit ~10M
+  # tokens/minute on the platform key (Mistral Small 4: 100k, see
+  # docs/AI-MODELS.md).
+  #
+  # Image input: Mistral's model card (docs.mistral.ai/models/deepseek-v4-flash-1017,
+  # checked 2026-11-18) lists "text and image inputs", so the hosted
+  # NUXT_AI_DEFAULT_CHAT_VISION stays true (view_image / view_pages offered).
+  # Not yet exercised through this proxy; LiteLLM 1.108.10's bundled map has
+  # no `mistral/deepseek-v4-1-flash-1017` entry, hence `supports_vision` below.
   #
   # Reasoning off: Mistral's chat API takes `reasoning_effort` high / none
   # (openapi ChatCompletionRequest); this model answers with 0 reasoning
@@ -251,21 +268,26 @@ model_list:
       output_cost_per_token: 0.00000132          # $1.32 / M (EU: 1.1 x $1.20)
       max_input_tokens: 1048576
       supports_function_calling: true
+      supports_vision: true
       supports_reasoning: true
       reasoning_effort_levels: ["none", "low", "high"]  # see "Reasoning levels" below the model list
       supports_prompt_caching: true
 
-  # ---- Mistral Large 4 (available, not a default) ----
+  # ---- Mistral Large 4 (hosted strong chat model) ----
   # `mistral-large-4-0` (Mistral docs, "Reasoning": adjustable reasoning via
-  # `reasoning_effort`; `mistral-large-4` / `-latest` are aliases of it). For
-  # an operator who wants it as the strong chat model
-  # (NUXT_AI_DEFAULT_CHAT_STRONG_MODEL=mistral-large-4). It always reasons:
+  # `reasoning_effort`; `mistral-large-4` / `-latest` are aliases of it). The
+  # hosted strong chat model (NUXT_AI_DEFAULT_CHAT_STRONG_MODEL, rendered by
+  # infra/render-env.sh, plans with `aiStrongModel`): best pass rate on loop
+  # v2 in the model eval of 2026-11 (79 %, $0.020 per task, 16 s). Fallback:
+  # DeepSeek V4.1 Flash. It always reasons:
   # `reasoning_effort` takes low / medium / high, `none` is a 400, so `low`
   # (fewest thinking tokens). `temperature: 0` without `top_p: 1` is a 400
   # ("top_p must be 1 when using greedy sampling"); `top_p: 1` is the API
   # default, so it is pinned here for every caller. The app sends the same
   # two fields itself for any Large 4 id (server/utils/litellm/modelParams.ts),
-  # which also covers a user's own Mistral key.
+  # which also covers a user's own Mistral key. On a fallback those two
+  # request fields travel along: DeepSeek accepts `low` (~50 reasoning
+  # tokens instead of 0) and `top_p: 1`, so the fallback call is valid.
   #
   # List $0.70 / M input, $0.07 / M cached input, $2.10 / M output; EU 1.1x.
   - model_name: mistral-large-4
@@ -542,11 +564,13 @@ router_settings:
   # a 429 itself, at most 3 times within the session deadline
   # (server/utils/agentic/loop/rateLimitRetry.ts).
   #
-  # The free-allowance model (`zai-glm-5-3-flash`) falls back to DeepSeek
-  # V4.1 Flash (also on the EU endpoint) on the same conditions (LiteLLM
-  # fallbacks fire on any error left after the retry: 429, 5xx,
-  # timeout). Budget / team-budget rejections happen in the proxy's auth
-  # step, before routing, so they never trigger a fallback.
+  # The hosted chat default (`deepseek-v4-1-flash-1017`) falls back to
+  # GLM-5.3 Flash, the hosted strong chat model (`mistral-large-4`) to
+  # DeepSeek, the GLM worker aliases to DeepSeek and the DeepSeek worker
+  # alias to GLM, all on the EU endpoint, on the same conditions (LiteLLM
+  # fallbacks fire on any error left after the retry: 429, 5xx, timeout).
+  # Budget / team-budget rejections happen in the proxy's auth step, before
+  # routing, so they never trigger a fallback.
   #
   # Never Mistral Small 4 as a fallback: the platform key allows it 100k
   # tokens per minute (GLM ~10.7M, DeepSeek ~10M, Large 4 ~15M), and one
@@ -558,13 +582,28 @@ router_settings:
   # ($1.32 vs $0.55 / M), so a job that runs on the fallback can cost more
   # than its estimate; that only happens while GLM is failing.
   #
-  # LiteLLM follows a target's own fallback too (up to `max_fallbacks`), so
-  # every chain ends at DeepSeek, which has none: the longest is
-  # markoto-worker-strong (DeepSeek) -> GLM -> DeepSeek, and no request
-  # bounces between two models indefinitely.
+  # One hop only (`max_fallbacks: 1`). LiteLLM (1.108) otherwise follows a
+  # target's own fallbacks too, skipping only a model GROUP it already tried
+  # for the request. DeepSeek and GLM each sit behind two names (the chat
+  # deployment and a `markoto-*` alias), so without the cap a worker call
+  # would run markoto-worker (GLM) -> DeepSeek -> zai-glm-5-3-flash (GLM
+  # again), and Large 4 -> DeepSeek -> GLM. With it every chain is exactly
+  # the one target listed below, and nothing repeats a model:
+  #   deepseek-v4-1-flash-1017 -> zai-glm-5-3-flash
+  #   zai-glm-5-3-flash        -> deepseek-v4-1-flash-1017
+  #   mistral-large-4          -> deepseek-v4-1-flash-1017
+  #   markoto-worker, markoto-utility -> deepseek-v4-1-flash-1017
+  #   markoto-worker-strong    -> zai-glm-5-3-flash
+  #   mistral-small-2603       -> ministral-8b-2512
+  # A request-level field follows the hop (request params win over the
+  # target deployment's): only Large 4 gets any from the app
+  # (`reasoning_effort: low`, `top_p: 1`), and DeepSeek accepts both.
+  max_fallbacks: 1
   fallbacks:
     - mistral-small-2603: [ministral-8b-2512]
+    - deepseek-v4-1-flash-1017: [zai-glm-5-3-flash]
     - zai-glm-5-3-flash: [deepseek-v4-1-flash-1017]
+    - mistral-large-4: [deepseek-v4-1-flash-1017]
     - markoto-worker: [deepseek-v4-1-flash-1017]
     - markoto-utility: [deepseek-v4-1-flash-1017]
     - markoto-worker-strong: [zai-glm-5-3-flash]
