@@ -203,6 +203,7 @@ const FORMATTERS: Record<string, (args: Record<string, unknown>) => AiStatusLine
   swap_sections: () => aiStatus('editDocument'),
   delete_section: () => aiStatus('editDocument'),
   set_heading: () => aiStatus('editDocument'),
+  renumber_headings: a => (a.preview === true ? aiStatus('readDocument') : aiStatus('editDocument')),
   replace_all: a => (a.preview === false ? fieldStatus(a, 'query', 'editDocument', 'editPassage', 'passage', 40) : aiStatus('readDocument')),
   edit_lines: () => aiStatus('editDocument'),
   load_skill: () => aiStatus('thinking'),

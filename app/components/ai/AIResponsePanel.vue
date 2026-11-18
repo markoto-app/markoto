@@ -66,7 +66,18 @@ watch(expanded, v => emit('update:expanded', v), { immediate: true })
           <div class="font-mono text-[10.5px] uppercase tracking-[0.06em] text-muted mb-1">
             {{ response.isQuestion ? t('ai.responseQuestionLabel') : t('ai.responseLabel') }}
           </div>
-          <p class="text-sm text-default whitespace-pre-wrap break-words">
+          <p
+            v-if="response.notice"
+            class="mb-1 text-xs text-warning"
+            data-testid="ai-response-notice"
+          >
+            {{ response.notice }}
+          </p>
+          <p
+            class="text-sm text-default whitespace-pre-wrap break-words"
+            data-testid="ai-response-message"
+            :data-synthetic="response.synthetic ? 'true' : undefined"
+          >
             {{ response.message }}
           </p>
         </div>

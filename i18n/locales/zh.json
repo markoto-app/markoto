@@ -629,12 +629,12 @@
         "generic": "markoto 想要使用 {tool}。"
       },
       "job": {
-        "question": "{what}:{cost},{minutes}。",
+        "question": "{what}，{minutes}。",
+        "questionExtra": "{what}，{minutes}（{extra}）。",
         "reason": "它在后台运行。你可以取消,也可以在活动记录中撤销。",
         "start": "开始",
         "cancel": "取消",
-        "cost": "约 {cost}",
-        "costShare": "约 {cost}(本月额度的 {share})",
+        "share": "约占本月 AI 额度的 {share}",
         "tokens": "使用你自己的密钥约 {tokens} 个令牌",
         "minutes": "约 {minutes} 分钟",
         "modes": {
@@ -645,6 +645,12 @@
           "summarise": "总结 {count} 个章",
           "comment": "审阅 {count} 个章节"
         }
+      },
+      "replace": {
+        "question": "替换 {count} 处？",
+        "reason": "在 markoto 更改之前请检查词形。可以在活动记录中撤销。",
+        "apply": "替换",
+        "cancel": "取消"
       }
     },
     "placeholder": "向 markoto 提问…",
@@ -745,6 +751,8 @@
       "stopped": "已停止",
       "stoppedReason": "已停止：{reason}",
       "turnLimit": "步骤过多，已停止。请尝试更具体的请求。",
+      "stoppedEarly": "任务完成前已停止（步骤或时间上限）。说明中写明了已完成的部分。",
+      "doneNoAnswer": "完成。更改已在文档中。",
       "sessionCap": "已在 {cap} 步后停止。请尝试更具体的请求。",
       "waitingConfirmation": "正在等待你的确认…",
       "pointsExhausted": "AI 点数已用完",
@@ -801,7 +809,7 @@
       "scanDocument": "正在扫描文档…",
       "previewJob": "正在示例章节上试用此更改…",
       "startJob": "正在启动后台编辑…",
-      "jobProgress": "后台编辑:已完成 {done}/{total} 部分",
+      "jobWaiting": "后台编辑进行中；进度显示在上方。",
       "jobStatus": "正在检查后台编辑…"
     },
     "job": {
@@ -815,7 +823,7 @@
       },
       "progress": "{done}/{total} 部分",
       "working": "正在处理 {heading}",
-      "cost": "目前费用:{cost}",
+      "finishing": "全部 {total} 部分已完成，正在收尾…",
       "cancel": "取消",
       "resume": "继续",
       "undo": "撤销",

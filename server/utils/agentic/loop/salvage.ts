@@ -24,9 +24,8 @@ export async function salvageProseTurn(
   const proseText = collectProseText(modelParts)
   if (proseText.length > 0) {
     if (closingTextIsRedundant(ctx)) {
-      // The model's finish signal after it already did the work: "Done",
-      // "Added the intro." The edit is the receipt, and an earlier
-      // `message_to_user` answer must not be replaced by this note.
+      // The session already answered with `message_to_user`; this note
+      // must not replace that answer.
       ctx.log(`turn ${turnCount}: finished; closing text not shown (${proseText.length} chars)`)
     } else {
       await dispatchSalvageFallback(ctx, proseText, turnCount)
@@ -36,13 +35,16 @@ export async function salvageProseTurn(
 }
 
 /**
- * Closing prose is only salvaged when it is the session's sole answer.
- * Comment-trigger sessions always salvage, the thread reply is the
- * deliverable, and a successful reply already ended the loop.
+ * Closing prose is salvaged unless the session already answered. After
+ * edits it is the user's only account of what changed ("Renamed 25
+ * occurrences."); dropping it left the prompt bar without an answer for
+ * the session (staging, 2026-11-18). Comment-trigger sessions always
+ * salvage, the thread reply is the deliverable, and a successful reply
+ * already ended the loop.
  */
 function closingTextIsRedundant(ctx: LoopContext): boolean {
   if (isCommentTriggerSession(ctx)) return false
-  return ctx.editedDocument || ctx.answeredUser
+  return ctx.answeredUser
 }
 
 export function collectProseText(modelParts: ResponseParts): string {

@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { defineDocTool, toolOk, type ToolResult } from './toolDefinition'
+import { defineDocTool, toolError, toolOk, type ToolResult } from './toolDefinition'
+import { changedJobsNote, jobsChangedByUser } from '../jobs/sessionJobs'
 import type { DocToolContext } from '../../agentic/toolContext'
 import { appendAiMessage } from '../../../repos/aiSessionMessages'
 import { useLogger } from '../../platform/logger'
@@ -19,16 +20,16 @@ const log = useLogger('ai-tools')
 //
 // Use cases the system prompt teaches: answer a user question that
 // doesn't belong in the doc; report a finding; ask for clarification
-// when the task is genuinely ambiguous. NOT for "Done" / status reports
-// those stay silent.
+// when the task is genuinely ambiguous; after a larger edit, one or two
+// sentences on what changed. Never a bare "Done".
 
 const MessageToUserArgs = z.object({
   message: z.string().trim().min(1).max(600)
-    .describe('Short user-facing message, max 600 characters. Plain text or lightweight markdown. Use complete sentences. NOT for status reports ("Done", "Changes applied"), silence is the correct answer there. The doc edit IS the deliverable; this is for things the user needs to read OUTSIDE the doc.'),
+    .describe('Short user-facing message, max 600 characters. Plain text or lightweight markdown. Use complete sentences. Not a bare "Done". After a larger edit, say in one or two sentences what changed, only as the tool results showed it (counts, headings), never what you intended.'),
   is_question: z.boolean().optional()
     .describe('Set true ONLY when you are asking the user something AND cannot proceed without their answer. Sticky on screen until the user dismisses or replies. Default false: the message auto-collapses after 2s and the user can re-expand it on demand.')
 }).strict()
-  .describe('Send a short ephemeral message back to the user, rendered above the AI prompt bar. Use when the user asked a question whose answer does NOT belong in the document (a status report on what you found, a brief explanation, a clarifying question), OR when the task is genuinely ambiguous and you need the user to choose. Prefer SILENCE for "Done" / "Changes applied", the diff is the receipt. Each session shows only the latest message; no history.')
+  .describe('Send a short ephemeral message back to the user, rendered above the AI prompt bar. Use when the user asked a question whose answer does NOT belong in the document (a status report on what you found, a brief explanation, a clarifying question), OR when the task is genuinely ambiguous and you need the user to choose. After a larger edit, one or two sentences on what actually changed. Each session shows only the latest message; no history.')
 
 /**
  * `message_to_user`: a short ephemeral answer for the person who ran
@@ -48,6 +49,10 @@ async function handleMessageToUser(
   session: DocToolContext,
   input: z.output<typeof MessageToUserArgs>
 ): Promise<ToolResult> {
+  // A job the user cancelled or undid since the model last looked would
+  // make the answer describe a state that no longer exists.
+  const changed = await jobsChangedByUser(session)
+  if (changed.length > 0) return toolError(changedJobsNote(changed))
   const isQuestion = input.is_question === true
   const message = withoutEmDashes(input.message)
   session.deliverResponse?.({ message, isQuestion, ts: Date.now() })
@@ -76,7 +81,7 @@ async function handleMessageToUser(
 
 export const messageToUserTool = defineDocTool({
   name: 'message_to_user',
-  description: 'Send a short ephemeral message to the user above the AI prompt bar. Use when the user asked something whose answer does NOT belong in the document (a quick finding, a brief explanation, a clarifying question), OR when the task is genuinely ambiguous and you need the user to choose before proceeding. Set `is_question: true` ONLY when you cannot proceed without an answer, that keeps the message on screen until they reply or dismiss. Plain messages auto-collapse after 2 seconds. Prefer SILENCE for "Done" / "Changes applied", the doc edit is already the receipt. Counts as a valid terminal tool call: a turn that ends with `message_to_user` (and optionally edits) is fine.',
+  description: 'Send a short ephemeral message to the user above the AI prompt bar. Use when the user asked something whose answer does NOT belong in the document (a quick finding, a brief explanation, a clarifying question), OR when the task is genuinely ambiguous and you need the user to choose before proceeding. Set `is_question: true` ONLY when you cannot proceed without an answer, that keeps the message on screen until they reply or dismiss. Plain messages auto-collapse after 2 seconds. After a larger edit (many replacements, moved or renumbered sections), say in one or two sentences what changed, as the tool results showed it; never a bare "Done" and never a state you did not see. Counts as a valid terminal tool call: a turn that ends with `message_to_user` (and optionally edits) is fine.',
   schema: MessageToUserArgs,
   handler: handleMessageToUser
 })

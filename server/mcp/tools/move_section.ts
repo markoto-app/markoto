@@ -7,7 +7,7 @@ import { MoveSectionArgs } from '../../utils/ai/tools/structuralEditTools'
 // Y.js transaction attributed to the MCP session.
 export default buildDocBoundTool({
   name: 'move_section',
-  description: 'Move a section of a document with its subsections before or after another section, or to the end, on the server. Comment threads inside it move along; section ids stay valid, and the target is found again after the cut, so ids from one outline work for several moves. To swap two sections use swap_sections. Headings keep their numbers.',
+  description: 'Move a section of a document with its subsections before or after another section, or to the end, on the server. Comment threads inside it move along; section ids stay valid, and the target is found again after the cut, so ids from one outline work for several moves. To swap two sections use swap_sections. Headings keep their numbers; put them in order with renumber_headings.',
   scope: 'documents:write',
   access: 'edit',
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },

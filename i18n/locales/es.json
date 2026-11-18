@@ -629,12 +629,12 @@
         "generic": "markoto quiere usar {tool}."
       },
       "job": {
-        "question": "{what}: {cost}, {minutes}.",
+        "question": "{what}, {minutes}.",
+        "questionExtra": "{what}, {minutes} ({extra}).",
         "reason": "Se ejecuta en segundo plano. Puedes cancelarla y deshacerla en el registro de actividad.",
         "start": "Iniciar",
         "cancel": "Cancelar",
-        "cost": "unos {cost}",
-        "costShare": "unos {cost} ({share} de tu asignación de este mes)",
+        "share": "aproximadamente {share} de tu asignación de IA de este mes",
         "tokens": "unos {tokens} tokens con tu propia clave",
         "minutes": "unos {minutes} min",
         "modes": {
@@ -645,6 +645,12 @@
           "summarise": "Resumir {count} capítulos",
           "comment": "Revisar {count} secciones"
         }
+      },
+      "replace": {
+        "question": "¿Reemplazar {count} apariciones?",
+        "reason": "Revisa las formas de las palabras antes de que markoto las cambie. Puedes deshacerlo en el registro de actividad.",
+        "apply": "Reemplazar",
+        "cancel": "Cancelar"
       }
     },
     "placeholder": "Pregúntale a markoto…",
@@ -745,6 +751,8 @@
       "stopped": "Detenido",
       "stoppedReason": "Detenido: {reason}",
       "turnLimit": "Detenido tras demasiados pasos. Prueba con una petición más concreta.",
+      "stoppedEarly": "Detenido antes de terminar la tarea (límite de pasos o de tiempo). La nota indica lo que está hecho.",
+      "doneNoAnswer": "Listo. Los cambios están en el documento.",
       "sessionCap": "Detenido tras {cap} pasos. Prueba con una petición más concreta.",
       "waitingConfirmation": "Esperando tu confirmación…",
       "pointsExhausted": "Puntos de IA agotados",
@@ -801,7 +809,7 @@
       "scanDocument": "Analizando el documento…",
       "previewJob": "Probando el cambio en secciones de muestra…",
       "startJob": "Iniciando la edición en segundo plano…",
-      "jobProgress": "Edición en segundo plano: {done} de {total} partes listas",
+      "jobWaiting": "Edición en segundo plano en curso; el progreso se muestra arriba.",
       "jobStatus": "Comprobando la edición en segundo plano…"
     },
     "job": {
@@ -815,7 +823,7 @@
       },
       "progress": "{done} de {total} partes",
       "working": "Trabajando en {heading}",
-      "cost": "Coste hasta ahora: {cost}",
+      "finishing": "Las {total} partes están listas, finalizando…",
       "cancel": "Cancelar",
       "resume": "Reanudar",
       "undo": "Deshacer",

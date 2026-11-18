@@ -90,7 +90,9 @@ function summarizeStructuralEdit(name: string, a: Record<string, unknown>): stri
     case 'set_heading':
       return `section=${cut(a.section, 60)}${typeof a.level === 'number' ? ` level=${a.level}` : ''}${a.title ? ` title="${cut(a.title, 60)}"` : ''}`
     case 'replace_all':
-      return `${a.preview === false ? 'apply' : 'preview'} "${cut(a.query, 60)}" → "${cut(a.replacement, 60)}"`
+      return `${a.preview === false ? 'apply' : 'preview'} "${cut(a.query, 60)}" → "${cut(a.replacement, 60)}"${Array.isArray(a.forms) ? ` forms=${a.forms.length}` : ''}${a.scope ? ` scope=${cut(a.scope, 30)}` : ''}`
+    case 'renumber_headings':
+      return a.preview === true ? 'preview' : 'apply'
     case 'edit_lines':
       return `edits=${Array.isArray(a.edits) ? a.edits.length : '?'}`
     default:
@@ -120,6 +122,7 @@ export function summarizeToolCall(name: string, args: unknown): string {
     case 'move_section':
     case 'swap_sections':
     case 'set_heading':
+    case 'renumber_headings':
     case 'replace_all':
     case 'edit_lines':
       return summarizeStructuralEdit(name, a)

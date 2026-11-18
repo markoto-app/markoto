@@ -219,14 +219,13 @@ const T1_REVIEW: BenchTask = {
   verify: (_initial, final) => (final.length === _initial.length ? null : 'document text changed')
 }
 
-/** Renamed headings get their old anchor pinned as `{#h-4-...}`; the swap check ignores those pins. */
-function withoutPinnedAnchors(text: string): string {
-  return text.replaceAll(/ \{#h-\d[^\s{}]*\}/g, '')
-}
-
-/** Renumber a chapter in place: preview, then apply, scoped to its section id. */
-function renumberCalls(id: string, from: number, to: number, preview: boolean): ScriptCall {
-  return { name: 'replace_all', args: { query: `^(#{1,3}) ${from}(?=[ .])`, regex: true, caseSensitive: true, replacement: `$1 ${to}`, scope: id, preview } }
+/**
+ * Section numbers in link texts ("[Abschnitt 5.3](#eskalation)") follow the
+ * renumbered headings, and links to automatic anchors their new slug; the
+ * swap check compares the chapters without them.
+ */
+function withoutLinkNumbers(text: string): string {
+  return text.replaceAll(/\[([^\]\n]*?)\d+(?:\.\d+)*\]\(#[^)]*\)/g, '[$1N](#)')
 }
 
 const T2_SWAP: BenchTask = {
@@ -241,17 +240,15 @@ const T2_SWAP: BenchTask = {
     // Server-side swap in one call: no chapter text in the model's output.
     const swapped = await api.call('swap_sections', { a: row4.id, b: row5.id })
     if (swapped.isError) throw new Error(`swap failed: ${swapped.output.slice(0, 200)}`)
-    // Ids stay with their sections; renumber each chapter's headings, preview first.
-    await api.turn([renumberCalls(row5.id, 5, 4, true), renumberCalls(row4.id, 4, 5, true)])
-    const applied = await api.turn([renumberCalls(row5.id, 5, 4, false), renumberCalls(row4.id, 4, 5, false)])
-    for (const r of applied) if (!r || r.isError) throw new Error(`renumber failed: ${r?.output.slice(0, 200)}`)
+    // One server-side renumbering of every numbered heading.
+    const renumbered = await api.call('renumber_headings', {})
+    if (renumbered.isError) throw new Error(`renumber failed: ${renumbered.output.slice(0, 200)}`)
   },
   verify: (initial, final) => {
-    const clean = withoutPinnedAnchors(final)
-    const want = chapter(initial, 5).text
-    return chapter(clean, 4).text === renumber(want, 5, 4) && chapter(clean, 5).text === renumber(chapter(initial, 4).text, 4, 5)
-      ? null
-      : 'chapters not swapped'
+    const got = (no: number) => withoutLinkNumbers(chapter(final, no).text)
+    const want = (no: number, from: number) => withoutLinkNumbers(renumber(chapter(initial, from).text, from, no))
+    if (final.match(/\{#h-\d/)) return 'explicit ids were pinned'
+    return got(4) === want(4, 5) && got(5) === want(5, 4) ? null : 'chapters not swapped'
   }
 }
 

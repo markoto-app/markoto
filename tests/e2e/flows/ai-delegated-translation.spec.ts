@@ -16,8 +16,9 @@ import { generateLargeDocument } from '../../fixtures/largeDocument/generate'
 // to a background job (delegate_rewrite) that translates each part with
 // small worker calls. A smaller target is translated by the planner itself,
 // by design: an earlier version of this flow used six short sections and
-// never saw a job. When the estimate is large the prompt bar asks before
-// the job starts; the flow confirms if asked.
+// never saw a job. The prompt bar always asks before the job starts, with
+// the number of sections and the expected time and never a currency
+// amount; the flow checks the question and confirms.
 //
 // Light variants only (desktop and mobile): the job is minutes of live
 // worker calls, and the docs page falls back to the other theme of the same
@@ -91,28 +92,28 @@ test('Translate many sections with AI', async ({ flow, editor }, testInfo) => {
     after: () => editor.page.waitForAiActive()
   })
 
-  // A large estimate is confirmed in the prompt bar; a small one starts
-  // directly. A session that ends without either never started a job:
-  // fail right away instead of waiting out the timeout.
+  // Every background job is confirmed in the prompt bar first. A session
+  // that ends without asking never started a job: fail right away instead
+  // of waiting out the timeout.
   const confirm = page.locator('[data-testid="ai-confirm-panel"][data-kind="job"]')
   const jobPanel = page.locator('[data-testid="ai-job-panel"]')
   const promptBar = editor.page.ai.promptBar
   await expect.poll(async () => (await confirm.isVisible())
-    || (await jobPanel.isVisible())
     || (await promptBar.getAttribute('data-active')) === 'false', { timeout: 300_000 }).toBe(true)
-  if (!(await confirm.isVisible()) && !(await jobPanel.isVisible())) {
+  if (!(await confirm.isVisible())) {
     const outcome = await promptBar.getAttribute('data-last-outcome')
     const message = await promptBar.getAttribute('data-last-outcome-message')
-    throw new Error(`The AI session ended (${outcome ?? 'no outcome'}${message ? `: ${message}` : ''}) without starting a background job`)
+    throw new Error(`The AI session ended (${outcome ?? 'no outcome'}${message ? `: ${message}` : ''}) without asking to start a background job`)
   }
-  if (await confirm.isVisible()) {
-    await flow.click('Start the translation', page.locator('[data-testid="ai-confirm-allow"]'), {
-      result: 'The prompt bar showed the cost and the time before anything changed.'
-    })
-  }
+  await expect(page.locator('[data-testid="ai-confirm-question"]')).toContainText(/min/)
+  await expect(confirm).not.toContainText('$')
+  await flow.click('Start the translation', page.locator('[data-testid="ai-confirm-allow"]'), {
+    result: 'The prompt bar showed how many sections change and how long it takes before anything changed.'
+  })
 
   await flow.heading('Watch it work through the sections', 3)
   await expect(jobPanel).toBeVisible({ timeout: 120_000 })
+  await expect(jobPanel).not.toContainText('$')
   await expect.poll(() => jobPanel.getAttribute('data-job-status'), { timeout: 360_000 }).toMatch(/^(done|failed|cancelled)$/)
   await expect(jobPanel).toHaveAttribute('data-job-status', 'done')
   await editor.page.waitForAiIdle()

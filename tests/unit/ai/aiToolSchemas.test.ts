@@ -519,6 +519,7 @@ describe('tool registry', () => {
       'outline',
       'read_comments',
       'read_section',
+      'renumber_headings',
       'replace_all',
       'replace_section',
       'replace_text',

@@ -4,15 +4,14 @@ import { defineDocTool, toolError, toolOk, type ToolResult } from './toolDefinit
 import { blockSpacedInsertText, describeEditedRegion, lineShiftNote, newlineCount, numberedLines } from './documentText'
 import type { DocToolContext } from '../../agentic/toolContext'
 import { NO_OP_EDIT_ERROR_PREFIX } from '../../agentic/editProgress'
-import { descendants, parseSections, sectionAtLine, sectionLabel, splitHeadingText, type DocumentStructure, type Section } from './sections/parse'
+import { descendants, parseSections, sectionLabel, splitHeadingText, type DocumentStructure, type Section } from './sections/parse'
 import { rebindSectionIds, resolveSection, sectionView, type SectionView } from './sections/sectionIds'
-import { classifyMarkdownCached } from './sections/markdownMask'
-import { describeSkipped } from './sections/search'
 import { applyMinimalDiff } from './sections/ytextDiff'
 import { commentAnchorsInRange, reanchorComments } from './sections/commentAnchors'
-import { atxClosingStart, currentHeadingAnchors, isAtxHeading } from './sections/headingAnchors'
+import { atxClosingStart, isAtxHeading } from './sections/headingAnchors'
 import { filterEmDashesAt, withoutEmDashes } from '../dashFilter'
-import { headingPinsFor, planReplaceAll, type HeadingPin, type PlannedMatch } from './sections/replaceAll'
+import { applyTextEdits, headingLinkEdits, linkNote, withoutOverlaps, type TextEdit } from './sections/anchorLinks'
+import { applyEdits, originOf, SECTION_REF_HELP, SectionRef, type Args } from './sectionEditShared'
 
 // Structural edits of the current document, addressed by section (ids from
 // outline, numbers, heading text) instead of by copied text: replace,
@@ -22,8 +21,6 @@ import { headingPinsFor, planReplaceAll, type HeadingPin, type PlannedMatch } fr
 // collaborators, one activity-log edit), and rewrites go through
 // `applyMinimalDiff`, so comment anchors and cursors on unchanged words stay.
 
-const SectionRef = z.string().trim().min(1).max(300)
-const SECTION_REF_HELP = 'An id from outline ("s-12"), a section number ("4.2") or the exact heading text.'
 const Rev = z.string().trim().regex(/^[0-9a-f]{6}$/, 'a 6-character section rev from outline or read_section')
 
 export const ReplaceSectionArgs = z.object({
@@ -66,23 +63,6 @@ export const SetHeadingArgs = z.object({
   title: z.string().trim().min(1).max(300).optional().describe('New heading text, without # marks; include the number if the document numbers its headings ("4.2 Results").')
 }).describe('Change a heading\'s level or text.')
 
-export const ReplaceAllArgs = z.object({
-  query: z.string().min(1).max(400).describe('Text to find, or a JavaScript regular expression when regex is true. Matches never span lines.'),
-  replacement: z.string().max(2_000).describe('Replacement text. With regex, $1, $2 ... insert capture groups and $& the whole match.'),
-  regex: z.boolean().optional().describe('Treat query as a regular expression (default false).'),
-  caseSensitive: z.boolean().optional().describe('Match case exactly (default false).'),
-  wholeWord: z.boolean().optional().describe('Only whole words (default false). "MyProduct" then still matches in "MyProduct\'s" but not in "MyProducts"; for plurals use regex "MyProduct(?=\'s|s\\\\b|\\\\b)" or "MyProduct(s?)\\\\b" with replacement "New$1".'),
-  scope: SectionRef.optional().describe('A section to limit it to (subsections included), or "all" (default).'),
-  excludeCode: z.boolean().optional().describe('Skip code blocks, inline code, math, HTML comments, front matter (default true).'),
-  excludeUrls: z.boolean().optional().describe('Skip URLs, reference definitions and {#id} blocks (default true).'),
-  excludeLinkTargets: z.boolean().optional().describe('Skip link and image targets, the (...) after [text] (default true). Link text is replaced.'),
-  preview: z.boolean().optional().describe('true (default): only report what would change, with match ids. false: apply.'),
-  matchIds: z.array(z.string().max(40)).min(1).max(2_000).optional()
-    .describe('Apply only these matches, ids from the preview ("m3@1a2b3c4d"). Refused when the document changed since the preview.'),
-  case: z.enum(['preserve', 'as_given']).optional()
-    .describe('preserve (default): MYPRODUCT becomes upper case, myproduct lower case, a capitalised match a capitalised replacement; a match written like the query gets the replacement as given. as_given: always exactly the replacement.')
-}).describe('Replace every occurrence of a text or pattern in the document, preview first.')
-
 export const EditLinesArgs = z.object({
   base_rev: z.string().trim().regex(/^[0-9a-f]{8}$/, 'the 8-character doc rev').describe('The doc rev the line numbers refer to (outline, read_section or search_document show it).'),
   edits: z.array(z.object({
@@ -92,12 +72,6 @@ export const EditLinesArgs = z.object({
     new_text: z.string().max(100_000).describe('Replacement lines (several lines allowed; empty string deletes the lines).')
   })).min(1).max(200).describe('The line edits, all numbered against base_rev; at most 200, no overlapping ranges.')
 }).describe('Replace several line ranges at once, all numbered against one document rev.')
-
-type Args<T extends z.ZodType> = z.output<T>
-
-function originOf(ctx: DocToolContext): string {
-  return `ai:assistant:${ctx.sessionId}`
-}
 
 const HEAD_PREVIEW_CHARS = 1_200
 
@@ -246,7 +220,7 @@ function handleInsertMarkdown(ctx: DocToolContext, args: Args<typeof InsertMarkd
 // move_section
 
 /** Added to every move / swap result: headings keep their numbers. */
-const RENUMBER_NOTE = 'Headings keep their numbers; renumber with set_heading (one heading) or replace_all with a regex (many), if the numbers must change.'
+const RENUMBER_NOTE = 'Headings keep their numbers; if they must stay in order, call renumber_headings once (it renumbers every numbered heading and keeps levels).'
 
 interface MoveTarget { section: Section, id: string, position: 'before' | 'after' }
 
@@ -422,13 +396,12 @@ function atxHeadingContent(line: string): string {
 }
 
 /** The heading's text line rebuilt with a new level and/or title (attribute block kept). */
-function rebuiltHeading(structure: DocumentStructure, s: Section, level: number, title: string, pinId: string | null): string {
+function rebuiltHeading(structure: DocumentStructure, s: Section, level: number, title: string): string {
   const line = structure.lines[s.startLine - 1] ?? ''
   const atx = isAtxHeading(s)
   const content = atx ? atxHeadingContent(line) : line.trim()
   const split = splitHeadingText(content)
-  let attr = split.title === content ? '' : content.slice(content.lastIndexOf('{'))
-  if (pinId) attr = attr ? `{#${pinId} ${attr.slice(1)}` : `{#${pinId}}`
+  const attr = split.title === content ? '' : content.slice(content.lastIndexOf('{'))
   const text = `${title}${attr ? ` ${attr}` : ''}`
   if (!atx && level <= 2) return `${text}\n${(level === 1 ? '=' : '-').repeat(Math.max(3, Math.min(title.length, 80)))}`
   return `${'#'.repeat(level)} ${text}`
@@ -443,158 +416,19 @@ function handleSetHeading(ctx: DocToolContext, args: Args<typeof SetHeadingArgs>
   const { structure } = view
   const level = args.level ?? section.level
   const title = args.title === undefined ? section.title : withoutEmDashes(args.title)
-  const titleChanged = title !== section.title
-  const pinId = titleChanged && section.explicitId === null ? currentHeadingAnchors(structure).get(section.index) ?? null : null
-  const next = rebuiltHeading(structure, section, level, title, pinId)
+  const next = rebuiltHeading(structure, section, level, title)
   const from = section.startOffset
   const lastLine = section.startLine + section.headingLines - 1
   const to = (structure.lineOffsets[lastLine - 1] ?? 0) + (structure.lines[lastLine - 1] ?? '').length
   if (structure.text.slice(from, to) === next) {
     return toolError(`${NO_OP_EDIT_ERROR_PREFIX}: the heading already reads "${next.split('\n')[0]}". Do not repeat this call.`)
   }
+  // Links to the heading's old automatic anchor follow it to the new one.
+  const headingEdit: TextEdit = { start: from, end: to, text: next }
+  const links = headingLinkEdits(structure, applyTextEdits(structure.text, [headingEdit]))
   ctx.updateStatus('editing', aiStatus('editDocument'))
-  ctx.ydoc.transact(() => {
-    applyMinimalDiff(ctx.ytext, from, to, next)
-  }, originOf(ctx))
-  const pinned = pinId ? ` The old anchor is kept as {#${pinId}}, so links to it still work.` : ''
-  return toolOk(`Heading of section ${id} now reads: ${next.split('\n')[0]}${pinned}${sectionAfter(ctx, id)}`)
-}
-
-// replace_all
-
-const PREVIEW_ROWS = 12
-const DIFF_CONTEXT = 40
-
-function diffRow(structure: DocumentStructure, view: SectionView, m: PlannedMatch, rev: string): string {
-  const line = structure.lines[m.line - 1] ?? ''
-  const col = m.start - (structure.lineOffsets[m.line - 1] ?? 0)
-  const from = Math.max(0, col - DIFF_CONTEXT)
-  const to = Math.min(line.length, col + m.before.length + DIFF_CONTEXT)
-  const clip = (s: string) => (s.length > 80 ? `${s.slice(0, 77)}...` : s)
-  const sec = sectionAtLine(structure, m.line)
-  const where = sec ? view.ids[sec.index] ?? '-' : '-'
-  return `m${m.k}@${rev}  line ${m.line}  ${where}  ${from > 0 ? '…' : ''}${line.slice(from, col)}«${clip(m.before)}» → «${clip(m.after)}»${line.slice(col + m.before.length, to)}${to < line.length ? '…' : ''}`
-}
-
-function flagsText(args: Args<typeof ReplaceAllArgs>): string {
-  return [args.regex ? 'regex' : null, args.wholeWord ? 'whole word' : null, args.caseSensitive ? 'case-sensitive' : 'any case', `case ${args.case ?? 'preserve'}`].filter(Boolean).join(', ')
-}
-
-/** The matches named by `matchIds`, or an error (unknown or stale ids). */
-function selectMatches(ids: readonly string[], matches: readonly PlannedMatch[], rev: string): PlannedMatch[] | string {
-  const wanted = new Set<number>()
-  for (const raw of ids) {
-    const m = /^m(\d{1,6})@([0-9a-f]{8})$/.exec(raw.trim())
-    if (!m) return `Error: "${raw}" is not a match id; use the ids from the replace_all preview, like "m3@${rev}".`
-    if (m[2] !== rev) return `Error: match ids are from doc rev ${m[2]}, but the document changed since (now rev ${rev}); nothing was replaced. Call replace_all with preview true again and use the new ids.`
-    const k = Number(m[1])
-    if (k < 1 || k > matches.length) return `Error: ${raw} does not exist; the preview has m1-m${matches.length}.`
-    wanted.add(k)
-  }
-  return matches.filter(m => wanted.has(m.k))
-}
-
-interface Edit { start: number, end: number, text: string }
-
-function applyEdits(ctx: DocToolContext, edits: Edit[]): void {
-  // Back to front, so earlier offsets stay valid; at one offset an insertion
-  // (a heading pin at a match's end) goes first.
-  const sorted = [...edits].sort((a, b) => b.start - a.start || (a.end - a.start) - (b.end - b.start))
-  ctx.ydoc.transact(() => {
-    for (const e of sorted) applyMinimalDiff(ctx.ytext, e.start, e.end, e.text)
-  }, originOf(ctx))
-}
-
-function pinNote(pins: readonly HeadingPin[]): string {
-  if (pins.length === 0) return ''
-  const list = pins.slice(0, 5).map(p => `{#${p.id}} (line ${p.line})`).join(', ')
-  return ` ${pins.length} renamed heading${pins.length === 1 ? '' : 's'} keep${pins.length === 1 ? 's' : ''} the old anchor as an explicit id: ${list}${pins.length > 5 ? ', ...' : ''}.`
-}
-
-interface ReplaceAllContext {
-  ctx: DocToolContext
-  args: Args<typeof ReplaceAllArgs>
-  view: SectionView
-  matches: PlannedMatch[]
-  changes: PlannedMatch[]
-  unchanged: number
-  pins: HeadingPin[]
-  head: string
-  notTouched: string
-}
-
-function previewReplaceAll(c: ReplaceAllContext): ToolResult {
-  const { structure } = c.view
-  const rows = c.changes.slice(0, PREVIEW_ROWS).map(m => diffRow(structure, c.view, m, structure.rev))
-  const parts = [
-    `Preview, nothing changed yet. ${c.head} ${c.changes.length} would change${c.unchanged > 0 ? `, ${c.unchanged} already read so` : ''}.${pinNote(c.pins)}`,
-    ...rows
-  ]
-  if (c.changes.length > PREVIEW_ROWS) parts.push(`(first ${PREVIEW_ROWS} of ${c.changes.length} shown; the rest are m-ids in document order, same rev)`)
-  parts.push('Apply all: the same call with preview false. Apply some: add matchIds with the ids to replace. Wrong hits: tighten the query (wholeWord, caseSensitive, regex, scope) and preview again.')
-  return toolOk(parts.join('\n'))
-}
-
-function applyReplaceAll(c: ReplaceAllContext): ToolResult {
-  const { ctx, args, changes, pins } = c
-  if (changes.length === 0) {
-    return toolError(`${NO_OP_EDIT_ERROR_PREFIX}: every selected match already reads like its replacement. Do not repeat this call.`)
-  }
-  ctx.updateStatus('editing', aiStatus('editDocument'))
-  applyEdits(ctx, [
-    ...changes.map(m => ({ start: m.start, end: m.end, text: m.after })),
-    ...pins.map(p => ({ start: p.offset, end: p.offset, text: p.text }))
-  ])
-  const lines = [...new Set(changes.map(m => m.line))]
-  const lineList = `${lines.slice(0, 20).join(', ')}${lines.length > 20 ? ', ...' : ''}`
-  const shift = changes.reduce((n, m) => n + newlineCount(m.after) - newlineCount(m.before), 0)
-  const shiftText = shift === 0 ? '' : ` Line numbers after line ${lines[0]} shifted; read again before line-based edits.`
-  const plural = changes.length === 1 ? '' : 's'
-  return {
-    ...toolOk(`Replaced ${changes.length} occurrence${plural} of "${args.query}" in one edit (lines ${lineList}); doc rev now ${sectionView(ctx).structure.rev}.${c.notTouched}${pinNote(pins)}${shiftText}`),
-    activity: { kind: 'ai.tool', tool: 'replace_all', query: args.query.slice(0, 200), replacement: args.replacement.slice(0, 200), count: changes.length }
-  }
-}
-
-function scopeView(ctx: DocToolContext, scope: string | undefined): { ok: true, view: SectionView, section: Section | null, id: string } | { ok: false, error: string } {
-  const ref = scope?.trim()
-  if (!ref || ref.toLowerCase() === 'all') return { ok: true, view: sectionView(ctx), section: null, id: '' }
-  return resolveSection(ctx, ref)
-}
-
-function handleReplaceAll(ctx: DocToolContext, given: Args<typeof ReplaceAllArgs>): ToolResult {
-  // The replacement is AI-written text; it is only filtered when code is excluded (a code match keeps what was asked for).
-  const args = given.excludeCode === false ? given : { ...given, replacement: withoutEmDashes(given.replacement) }
-  const r = scopeView(ctx, args.scope)
-  if (!r.ok) return toolError(r.error)
-  const { view, section: scope } = r
-  const { structure } = view
-  const planned = planReplaceAll(structure, classifyMarkdownCached(structure.text), args, scope ? { startLine: scope.startLine, endLine: scope.endLine } : {})
-  if (!planned.ok) return toolError(planned.error)
-  const { matches, skipped, truncated } = planned.plan
-  const where = scope ? `section ${r.id} "${sectionLabel(scope)}"` : 'the whole document'
-  const skippedText = describeSkipped(skipped)
-  const notTouched = skippedText ? ` Not touched: ${skippedText}.` : ''
-  if (truncated) return toolError(`Error: more than ${matches.length} matches for "${args.query}"; narrow the query or the scope.`)
-  if (matches.length === 0) {
-    const tip = args.wholeWord || args.caseSensitive ? ' Try without wholeWord / caseSensitive, or a regex for word forms.' : ''
-    return toolOk(`No match for "${args.query}" (${flagsText(args)}) in ${where}; doc rev ${structure.rev}.${notTouched}${tip}`)
-  }
-  const selected = args.matchIds ? selectMatches(args.matchIds, matches, structure.rev) : matches
-  if (typeof selected === 'string') return toolError(selected)
-  const changes = selected.filter(m => m.before !== m.after)
-  const c: ReplaceAllContext = {
-    ctx,
-    args,
-    view,
-    matches,
-    changes,
-    unchanged: selected.length - changes.length,
-    pins: headingPinsFor(structure, changes),
-    head: `${matches.length} match${matches.length === 1 ? '' : 'es'} for "${args.query}" (${flagsText(args)}) in ${where}; doc rev ${structure.rev}.${notTouched}`,
-    notTouched
-  }
-  return (args.preview ?? true) ? previewReplaceAll(c) : applyReplaceAll(c)
+  applyEdits(ctx, [headingEdit, ...withoutOverlaps(links.edits, [headingEdit])])
+  return toolOk(`Heading of section ${id} now reads: ${next.split('\n')[0]}.${linkNote(links)}${sectionAfter(ctx, id)}`)
 }
 
 // edit_lines
@@ -685,14 +519,14 @@ export const insertMarkdownTool = defineDocTool({
 
 export const moveSectionTool = defineDocTool({
   name: 'move_section',
-  description: 'Move a section with its subsections before or after another section, or to the end of the document, in one step on the server (no text to copy). Comments inside it move along; section ids stay valid, and the target is found again after the section is cut out, so ids from one outline still work for the next move. Example: to move chapter 15 before chapter 10, move_section({section: "s-15", before: "s-10"}). To swap two chapters use swap_sections, not two moves. Headings keep their numbers (renumber with set_heading or replace_all).',
+  description: 'Move a section with its subsections before or after another section, or to the end of the document, in one step on the server (no text to copy). Comments inside it move along; section ids stay valid, and the target is found again after the section is cut out, so ids from one outline still work for the next move. Example: to move chapter 15 before chapter 10, move_section({section: "s-15", before: "s-10"}). To swap two chapters use swap_sections, not two moves. Headings keep their numbers (put them in order with renumber_headings).',
   schema: MoveSectionArgs,
   handler: handleMoveSection
 })
 
 export const swapSectionsTool = defineDocTool({
   name: 'swap_sections',
-  description: 'Swap two sections, each with its subsections, in one edit on the server, adjacent or far apart: to swap chapters 10 and 15, swap_sections({a: "s-10", b: "s-15"}). Refused when one section contains the other. Comments inside both move along; ids stay with their sections. Returns the two sections\' new outline lines. Headings keep their numbers (renumber with set_heading or replace_all).',
+  description: 'Swap two sections, each with its subsections, in one edit on the server, adjacent or far apart: to swap chapters 10 and 15, swap_sections({a: "s-10", b: "s-15"}). Refused when one section contains the other. Comments inside both move along; ids stay with their sections. Returns the two sections\' new outline lines. Headings keep their numbers: when they must stay in order, call renumber_headings once afterwards.',
   schema: SwapSectionsArgs,
   handler: handleSwapSections
 })
@@ -706,16 +540,9 @@ export const deleteSectionTool = defineDocTool({
 
 export const setHeadingTool = defineDocTool({
   name: 'set_heading',
-  description: 'Change a heading\'s level (1-6) and/or text without retyping the section. Its {#id} attribute block is kept; when the text changes, the old anchor is pinned as an explicit id so links keep working. Subsection levels do not shift. The only H1 is the document\'s title: demote any other H1 to level 2 (and its subsections one level each), keep levels in order.',
+  description: 'Change a heading\'s level (1-6) and/or text without retyping the section. Its {#id} attribute block is kept; when the text changes, links in the document to the heading follow its new anchor. Subsection levels do not shift. The only H1 is the document\'s title: demote any other H1 to level 2 (and its subsections one level each), keep levels in order.',
   schema: SetHeadingArgs,
   handler: handleSetHeading
-})
-
-export const replaceAllTool = defineDocTool({
-  name: 'replace_all',
-  description: 'Replace every occurrence of a word, phrase or pattern in the document in one edit. First call previews (preview defaults to true): total count, skipped counts (code, math, URLs, link targets are left alone by default), the first diffs and match ids; then call again with preview false, optionally with matchIds to apply only some. Case is preserved by default (MYPRODUCT → MYNEWNAME). Renamed headings keep their old anchor. Use it for a deterministic change (rename a product, fix a recurring typo, change a URL); for one spot use replace_text; when the change needs grammar or judgement (German "Kunde" → "Klient" with articles and endings), use delegate_rewrite in terminology mode or per-occurrence edits.',
-  schema: ReplaceAllArgs,
-  handler: handleReplaceAll
 })
 
 export const editLinesTool = defineDocTool({

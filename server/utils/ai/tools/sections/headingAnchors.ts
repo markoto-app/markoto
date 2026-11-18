@@ -1,10 +1,10 @@
 import { headingSlugBase } from '~~/shared/utils/markdown/headingSlug'
-import { splitHeadingText, type DocumentStructure, type Section } from './parse'
+import type { DocumentStructure, Section } from './parse'
 
-// The anchor id each heading renders with today, and how to pin it as an
-// explicit `{#id}` before the heading text changes, so links and table of
-// contents entries that point at it keep working. Used by set_heading and
-// replace_all. Pure functions over the parsed structure.
+// The anchor id each heading renders with today, so the edit tools can
+// point links at a renamed heading's new anchor (`anchorLinks.ts`) instead
+// of pinning stale explicit ids. Used by set_heading, replace_all and
+// renumber_headings. Pure functions over the parsed structure.
 
 /**
  * Slugs the browser renderer suffixes with `-section` (DOMPurify drops ids
@@ -103,37 +103,6 @@ export function currentHeadingAnchors(structure: DocumentStructure): Map<number,
     out.set(s.index, id)
   }
   return out
-}
-
-/** Text of a heading line after the `#` marks (ATX) or the whole text line (setext). */
-function headingContentStart(line: string, atx: boolean): number {
-  if (!atx) return line.length - line.trimStart().length
-  const m = /^ {0,3}#{1,6}[ \t]*/.exec(line)
-  return m ? m[0].length : 0
-}
-
-/**
- * Where to write an explicit id into a heading's text line, and what to
- * write: `{#id}` appended to the text (before an ATX closing sequence), or
- * `#id ` into an attribute block that has none yet. Returns null when the
- * heading already has an explicit id.
- */
-export function explicitIdInsertion(line: string, atx: boolean, id: string): { column: number, text: string } | null {
-  const contentStart = headingContentStart(line, atx)
-  let end = line.trimEnd().length
-  if (atx) {
-    const closing = atxClosingStart(line)
-    if (closing !== -1) end = closing
-  }
-  const content = line.slice(contentStart, end)
-  const split = splitHeadingText(content)
-  if (split.explicitId) return null
-  if (split.title !== content.trim()) {
-    // An attribute block without an id: put the id first inside it.
-    const brace = contentStart + content.lastIndexOf('{')
-    return { column: brace + 1, text: `#${id} ` }
-  }
-  return { column: end, text: ` {#${id}}` }
 }
 
 /** Whether the heading is ATX (`## Title`) rather than setext (underlined). */

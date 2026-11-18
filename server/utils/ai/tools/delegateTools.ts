@@ -24,10 +24,12 @@ import type { JobTargets } from '../jobs/units'
 import type { AiJobParams, AiJobRow } from '../../../repos/aiJobs'
 import { getDoc } from '../../../repos/documents'
 import { appendAiMessage } from '../../../repos/aiSessionMessages'
+import { noteJobSeen } from '../jobs/sessionJobs'
 import { useLogger } from '../../platform/logger'
 import { aiStatus } from '~~/shared/ai/statusSteps'
 import type { JobConfirmationDetails } from '~~/shared/ai/jobConfirmation'
 import { SECOND_MS } from '~~/shared/config/units'
+import { dollarsToPoints } from '~~/shared/billing/aiPoints'
 
 const log = useLogger('ai-tools')
 
@@ -161,12 +163,20 @@ async function documentFacts(ctx: DocToolContext): Promise<{ sourceLanguage: str
   }
 }
 
+/**
+ * A cost for the planner, in AI points (the only unit users ever see). The
+ * planner relays what it reads, so a dollar amount here ended up in the
+ * user's answer; tool results never carry currency.
+ */
 function usd(n: number | null): string {
-  return n === null ? 'unknown (own key or unknown price)' : `$${n.toFixed(n < 0.01 ? 4 : 3)}`
+  if (n === null) return 'unknown (own key or unknown price)'
+  const points = dollarsToPoints(n)
+  return `${points} AI points`
 }
 
 /** One conversation-memory row per job step, so "continue" in a later prompt finds the job. */
 async function rememberJob(ctx: DocToolContext, job: Pick<AiJobRow, 'id' | 'mode' | 'status' | 'unitsDone' | 'unitsTotal'>, step: string): Promise<void> {
+  noteJobSeen(ctx, job.id, job.status)
   try {
     await appendAiMessage(ctx.docAccess, {
       sessionId: ctx.sessionId,
@@ -220,7 +230,7 @@ async function handleDelegateScan(ctx: DocToolContext, args: ScanArgs): Promise<
 function estimateLine(job: AiJobRow): string {
   const e = job.estimate
   if (!e) return 'estimate: unknown'
-  return `estimate: ${e.inputTokens} input + ${e.outputTokens} output tokens, cost ${usd(job.costKnown ? e.usd : null)}, about ${e.minutes} min`
+  return `estimate: ${e.inputTokens} input + ${e.outputTokens} output tokens, cost ${usd(job.costKnown ? e.usd : null)} (for you only, never quote costs to the user), about ${e.minutes} min`
 }
 
 /** A new job's arguments (the schema requires them without a job_id). */
@@ -372,7 +382,9 @@ async function waitForJob(ctx: DocToolContext, jobId: string, expectedMs: number
     await sleep(WAIT_POLL_MS, ctx.sessionSignal)
     const p = await getJobProgress(jobId)
     if (!p) return false
-    ctx.updateStatus('tool', aiStatus('jobProgress', { done: String(p.done + p.skipped), total: String(p.total) }))
+    // No counts here: the job panel above the prompt bar shows them live,
+    // and a second counter fed by this 2-second poll disagreed with it.
+    ctx.updateStatus('tool', aiStatus('jobWaiting'))
     if (TERMINAL.has(p.status)) return true
   }
   return false
@@ -387,6 +399,11 @@ async function gateJobStart(ctx: DocToolContext, job: AiJobRow): Promise<ToolRes
     await cancelJob(doc, job.id).catch(() => undefined)
     return toolError(`Error: this job would cost about ${usd(estimate.usd)}, more than the ${usd(remaining)} left of the user's AI allowance. Nothing was started. Offer to run it on a part of the document (targets {"under": section} or a list of sections), or tell the user the allowance renews.`)
   }
+  // In the editor every background job is confirmed first: the user sees
+  // the parts and the expected time before anything changes (a small
+  // estimate used to start straight away). Where nobody can be asked, only
+  // a large job is refused.
+  if (ctx.confirmJob) return askToStart(ctx, job, remaining)
   if (estimate && needsConfirmation(estimate, job.costKnown ? remaining : null)) return askToStart(ctx, job, remaining)
   return null
 }
@@ -436,6 +453,7 @@ async function jobAction(ctx: DocToolContext, args: RewriteArgs & { job_id: stri
     case 'cancel': {
       const row = await cancelJob(doc, jobId)
       await rememberJob(ctx, row, 'cancel')
+      if (row.status !== 'cancelled') return toolOk(`Job ${jobId} was not cancelled: all ${row.unitsTotal} parts are already done and it is finishing (status ${row.status}). Check it with action "status".`)
       return toolOk(`Cancelled job ${jobId}: ${row.unitsDone} of ${row.unitsTotal} parts were changed and stay changed (Undo is in the Activity Log). It can be resumed with action "resume".`)
     }
     case 'resume': {

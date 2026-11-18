@@ -841,7 +841,9 @@ describe('runAgenticLoop: stalled edits', () => {
     executeFunctionByName.mockImplementation(editingHandler(ytext))
     const setStatus = vi.fn()
     await runAgenticLoop(makeOpts({ ai, setStatus }, ytext))
-    expect(executeFunctionByName).toHaveBeenCalledTimes(5)
+    // Five edits, then the closing "Done." delivered as the session's answer.
+    expect(executeFunctionByName).toHaveBeenCalledTimes(6)
+    expect(executeFunctionByName).toHaveBeenLastCalledWith(expect.anything(), 'message_to_user', { message: 'Done.', is_question: false })
     expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
   })
 
@@ -863,7 +865,10 @@ describe('runAgenticLoop: stalled edits', () => {
 })
 
 describe('runAgenticLoop: finishing after the work is done', () => {
-  it('closing prose after a document edit ends the session without a message_to_user', async () => {
+  it('closing prose after a document edit is the session\'s answer when it sent none', async () => {
+    // Staging, 2026-11-18: a rename and a renumbering ended with prose that
+    // was dropped, so the prompt bar kept showing the previous session's
+    // answer as if it were the new one.
     const ytext = docWith('# Title\n')
     const { ai } = makeFakeAi([
       callTurn('insert_text', { insert_line: 1, insert_text: 'Intro.\n' }),
@@ -872,7 +877,8 @@ describe('runAgenticLoop: finishing after the work is done', () => {
     executeFunctionByName.mockImplementation(editingHandler(ytext))
     const setStatus = vi.fn()
     await runAgenticLoop(makeOpts({ ai, setStatus }, ytext))
-    expect(executeFunctionByName.mock.calls.map(c => c[1])).toEqual(['insert_text'])
+    expect(executeFunctionByName.mock.calls.map(c => c[1])).toEqual(['insert_text', 'message_to_user'])
+    expect(executeFunctionByName).toHaveBeenLastCalledWith(expect.anything(), 'message_to_user', { message: 'Added a one-line intro.', is_question: false })
     expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
   })
 
@@ -1123,9 +1129,9 @@ describe('runAgenticLoop: closing turn', () => {
     expect(seen).toHaveLength(21)
     expect(seenAt(seen, 19).forceFunction).toBeUndefined()
     expect(seenAt(seen, 20).forceFunction).toBe('message_to_user')
-    expect(lastUserText(seenAt(seen, 20).contents)).toMatch(/^Step limit reached\. .*what is done and what is not\.$/)
+    expect(lastUserText(seenAt(seen, 20).contents)).toMatch(/^Step limit reached\. .*what is done and what is not, as the document actually is now; .*$/)
     expect(executeFunctionByName).toHaveBeenLastCalledWith(expect.anything(), 'message_to_user', { message: 'Fixed sections 1-3; 4-6 still need work.', is_question: false })
-    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('stoppedEarly'))
   })
 
   it('the closing turn runs only the closing tool', async () => {
@@ -1153,7 +1159,7 @@ describe('runAgenticLoop: closing turn', () => {
     expect(seenAt(seen, 20).forceFunction).toBe('message_to_user')
     expect(seenAt(seen, 21).forceFunction).toBeUndefined()
     expect(executeFunctionByName).toHaveBeenLastCalledWith(expect.anything(), 'message_to_user', { message: 'Read the document; did not get to the edits.', is_question: false })
-    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('stoppedEarly'))
   })
 
   it('close to the session deadline, the next turn is the closing turn', async () => {
@@ -1171,7 +1177,7 @@ describe('runAgenticLoop: closing turn', () => {
     expect(seen).toHaveLength(2)
     expect(seenAt(seen, 1).forceFunction).toBe('message_to_user')
     expect(lastUserText(seenAt(seen, 1).contents)).toMatch(/^Time limit almost reached\./)
-    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('stoppedEarly'))
   })
 
   it('a comment session closes with reply_to_comment on its thread', async () => {
@@ -1185,7 +1191,7 @@ describe('runAgenticLoop: closing turn', () => {
     expect(seenAt(seen, 20).forceFunction).toBe('reply_to_comment')
     expect(lastUserText(seenAt(seen, 20).contents)).toContain('comment_id "thread-1"')
     expect(executeFunctionByName).toHaveBeenLastCalledWith(expect.anything(), 'reply_to_comment', { comment_id: 'thread-1', body: 'Did half of it.' })
-    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('stoppedEarly'))
   })
 })
 
@@ -1233,7 +1239,7 @@ describe('runAgenticLoop: output token limit (finish_reason=length)', () => {
     expect(seen).toHaveLength(4)
     expect(seenAt(seen, 3).forceFunction).toBe('message_to_user')
     expect(lastUserText(seenAt(seen, 3).contents)).toMatch(/output token limit/)
-    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('stoppedEarly'))
   })
 
   it('an invalid-JSON call outside the length limit gets a clear error', async () => {

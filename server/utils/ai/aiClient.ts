@@ -7,6 +7,7 @@ import { checkout, release, type PoolEntry } from '../mcp/yDocPool'
 import type { ToolContext, ToolStatusPhase } from '../agentic/toolContext'
 import { aiStatus, toStatusLine, type AiStatusInput } from '~~/shared/ai/statusSteps'
 import type { JobConfirmationDetails } from '~~/shared/ai/jobConfirmation'
+import type { ReplaceConfirmationDetails } from '~~/shared/ai/replaceConfirmation'
 import type { ResolvedAiProviders } from '../aiProviders/resolve'
 import type { AiSessionChannel } from '../agentic/sessionChannel'
 import { useEnv } from '~~/shared/env/load'
@@ -184,6 +185,12 @@ export async function createAiSession(
     return meta.channel.requestConfirmation({ tool: 'delegate_rewrite', target: null, kind: 'job', job: details }, signal)
   }
 
+  // A large replace_all: the user sees the count and the word forms first.
+  const confirmReplace = (details: ReplaceConfirmationDetails) => {
+    updateStatus('tool', aiStatus('waitingConfirmation'))
+    return meta.channel.requestConfirmation({ tool: 'replace_all', target: null, kind: 'replace', replace: details }, signal)
+  }
+
   const destroy = async (): Promise<void> => {
     // Broadcast the AI's disappearance before releasing, collaborators
     // see the avatar drop immediately rather than waiting for idle
@@ -221,6 +228,7 @@ export async function createAiSession(
     updateStatus,
     deliverResponse,
     confirmJob,
+    confirmReplace,
     sessionDeadlineAt: meta.deadlineAt,
     sessionSignal: signal,
     channel: meta.channel,

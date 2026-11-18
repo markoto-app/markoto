@@ -319,7 +319,26 @@ describe('MCP write tools: structural edits', () => {
 
     await new Promise(r => setTimeout(r, 2500))
     const text = await readYtext(doc.docId)
-    expect(text.startsWith('# 0 Summary {#h-3-end}\n\nBye.\n\nAdded.\n\n# 1 Intro')).toBe(true)
+    // No explicit id is pinned on the renamed heading.
+    expect(text.startsWith('# 0 Summary\n\nBye.\n\nAdded.\n\n# 1 Intro')).toBe(true)
+  }, 20_000)
+
+  it('swap two chapters and renumber: levels kept, numbers in order, links follow', async () => {
+    const user = await createUser()
+    const doc = await createDoc({ ownerId: user.id })
+    const body = '# 1 Alpha\n\nSee [Abschnitt 2.1](#h-21-beta-sub).\n\n## 1.1 Alpha sub\n\nA.\n\n# 2 Beta\n\n## 2.1 Beta sub\n\nB.\n'
+    await seedYjs(doc.docId, body)
+    const client = mcp((await mintPat({ userId: user.id, scopes: WRITE_SCOPES })).plaintext)
+    await client.callText('swap_sections', { doc_id: doc.docId, a: '1', b: '2' })
+    const renumbered = await client.callText('renumber_headings', { doc_id: doc.docId })
+    expect(renumbered).toMatch(/^Renumbered 4 of 4 numbered headings in one edit/)
+
+    await new Promise(r => setTimeout(r, 2500))
+    const text = await readYtext(doc.docId)
+    const headings = text.split('\n').filter(l => l.startsWith('#'))
+    expect(headings).toEqual(['# 1 Beta', '## 1.1 Beta sub', '# 2 Alpha', '## 2.1 Alpha sub'])
+    expect(text).toContain('See [Abschnitt 1.1](#h-11-beta-sub).')
+    expect(text).not.toContain('{#')
   }, 20_000)
 
   it('a read-only token cannot call the structural edit tools', async () => {
