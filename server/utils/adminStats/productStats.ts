@@ -1,12 +1,12 @@
 import {
-  activation, aiAppStats, cancellingGroups, documentStats, editors, firstSignupDay, opsCounts,
+  activation, aiAppStats, cancellingGroups, countExistingUsers, documentStats, editors, firstSignupDay, opsCounts,
   retentionCohorts, revenueCounts, signups, storedContentStats, subscriptionGroups, subscriptionStepSeries, subscriptionSteps,
   userTotals, workspaceStats, type SubscriptionStep
 } from '../../repos/productStats'
 import { aiSpendDailyByBucket, earliestAiSpendDay } from '../../repos/aiSpendDaily'
 import { ROLLUP_DAYS } from '../litellm/aiSpendRollup'
 import { useEnv } from '~~/shared/env/load'
-import { countSpendUsers, spendByFeature, sumTeamSpend, type FeatureSpendRow } from '../../repos/litellmSpend'
+import { listSpendUserIds, spendByFeature, sumTeamSpend, type FeatureSpendRow } from '../../repos/litellmSpend'
 import type { AdminActor } from '../../repos/proofs'
 import { getBillingMode } from '../billing/billingMode'
 import { getPlanPrices } from '../billing/tierConfig'
@@ -199,15 +199,23 @@ export async function buildAiStats(by: AdminActor, w: StatsWindow, activeUsers: 
     const prevFrom = comparableFrom(w, historyFrom)
     const prevUsersFrom = comparableFrom(w, floor)
     const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
-    const [buckets, prevRows, users, prevUsers, freeSpent] = await Promise.all([
+    const [buckets, prevRows, userIds, prevUserIds, freeSpent] = await Promise.all([
       spendBetween(by, spendFrom, w.to, floor, w.bucket),
       prevFrom === null ? Promise.resolve(null) : spendBetween(by, prevFrom, w.from, floor, 'month'),
-      countSpendUsers(by, { from: usersFrom, to: lastDay(w.to) }),
-      prevUsersFrom === null ? Promise.resolve(null) : countSpendUsers(by, { from: prevUsersFrom, to: lastDay(w.from) }),
+      listSpendUserIds(by, { from: usersFrom, to: lastDay(w.to) }),
+      prevUsersFrom === null ? Promise.resolve(null) : listSpendUserIds(by, { from: prevUsersFrom, to: lastDay(w.from) }),
       capUsd === null ? Promise.resolve(0) : sumTeamSpend(FREE_TIER_TEAM_ID, monthStart, now)
     ])
     const cur = totalsOf(buckets)
     const prev = prevRows === null ? null : totalsOf(prevRows)
+    // The spend logs keep the calls of accounts deleted since: "people
+    // using AI" counts only accounts that still exist, so it can never
+    // exceed the accounts. The cost per AI user divides by everyone who
+    // made a call, because the cost includes theirs.
+    const [users, prevUsers] = await Promise.all([
+      countExistingUsers(by, userIds),
+      prevUserIds === null ? Promise.resolve(null) : countExistingUsers(by, prevUserIds)
+    ])
     return {
       ...empty,
       ...shapeSpend(buckets),
@@ -217,7 +225,7 @@ export async function buildAiStats(by: AdminActor, w: StatsWindow, activeUsers: 
       spendUsd: { value: round2(cur.spend), previous: prev === null ? null : round2(prev.spend) },
       requests: { value: cur.requests, previous: prev?.requests ?? null },
       aiUsers: { value: users, previous: prevUsers },
-      costPerAiUserUsd: users > 0 ? round2(cur.spend / users) : 0,
+      costPerAiUserUsd: userIds.length > 0 ? round2(cur.spend / userIds.length) : 0,
       costPerActiveUserUsd: activeUsers > 0 ? round2(cur.spend / activeUsers) : 0,
       freePool: { capUsd, spentThisMonthUsd: round2(freeSpent), pct: capUsd ? pct(freeSpent, capUsd) : 0 }
     }

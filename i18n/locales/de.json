@@ -3020,7 +3020,8 @@
       "billingOff": "Die Abrechnung ist auf dieser Instanz ausgeschaltet.",
       "comingSoon": "Bezahlte Pläne werden als «bald verfügbar» angezeigt; die Warteliste ist offen.",
       "aiUsersFrom": "Personen mit KI-Nutzung werden ab dem {day} gezählt (Protokolle pro Person werden 90 Tage aufbewahrt).",
-      "churnHistory": "Der Abo-Verlauf wird ab dieser Version erfasst; Workspace-Pläne davor wurden aus ihren Datensätzen übernommen."
+      "churnHistory": "Der Abo-Verlauf wird ab dieser Version erfasst; Workspace-Pläne davor wurden aus ihren Datensätzen übernommen.",
+      "aiUsersDefinition": "Nur bestehende Konten; gelöschte Konten werden nicht gezählt."
     },
     "chart": {
       "signups": "Registrierungen",
@@ -3076,7 +3077,18 @@
       "planMix": "Planverteilung",
       "exports": "Datenexporte",
       "abuse": "Missbrauchsmeldungen",
-      "estimate": "Geschätzter monatlicher Beitrag"
+      "estimate": "Geschätzter monatlicher Beitrag",
+      "trends": "Verläufe",
+      "details": "Details",
+      "accounts": "Konten",
+      "activity": "Aktivität",
+      "workspacesAndFiles": "Workspaces und Dateien",
+      "aiUsage": "Nutzung und Kosten",
+      "aiAccess": "Zugang",
+      "recurring": "Wiederkehrender Umsatz",
+      "subscriptionChanges": "Abo-Änderungen und Warteliste",
+      "storage": "Speicher",
+      "queues": "Warteschlangen und Aufräumarbeiten"
     },
     "activation": {
       "signedUp": "Registriert",
@@ -3128,9 +3140,10 @@
       "revenue": "Umsatz",
       "content": "Inhalte",
       "ai": "KI",
-      "footnote": "Konten und Dokumente aus der Anwendungsdatenbank, KI-Kosten aus den Protokollen des KI-Proxys (90 Tage). Umsatz zum Listenpreis, brutto. Definitionen: docs/contributing/admin-metrics.md."
+      "footnote": "Konten und Dokumente aus der Anwendungsdatenbank, KI-Kosten aus den Protokollen des KI-Proxys (90 Tage). Umsatz zum Listenpreis, brutto. Definitionen: docs/contributing/admin-metrics.md.",
+      "last12Months": "Letzte 12 Monate",
+      "growth": "Wachstum, 12 Monate"
     },
-    "menu": "Produktstatistik",
     "estimate": {
       "estimated": "Schätzung",
       "gross": "Brutto zum Listenpreis",
@@ -3142,6 +3155,118 @@
       "combined": "Alles, in CHF",
       "note": "Geschätzt, pro Monat. EUR zu CHF bei {eur}, USD zu CHF bei {usd}. Die Annahmen werden mit NUXT_STATS_* festgelegt.",
       "aiUnavailable": "Die KI-Kosten konnten nicht gelesen werden und zählen als 0."
+    }
+  },
+  "admin": {
+    "title": "Admin",
+    "navLabel": "Admin-Seiten",
+    "nav": {
+      "overview": "Übersicht",
+      "stats": "Produktstatistik",
+      "investor": "Investorenübersicht",
+      "aiSpend": "KI-Kosten",
+      "abuseReports": "Missbrauchsmeldungen"
+    },
+    "hub": {
+      "title": "Admin",
+      "intro": "Betreibe diese Instanz: Zahlen, KI-Kosten und die Moderationswarteschlange.",
+      "aiSpend30": "KI-Kosten, 30 Tage",
+      "abuseActive": "offen oder in Prüfung",
+      "description": {
+        "stats": "Nutzende, Inhalte, KI, Umsatz und Betrieb, mit Verläufen und CSV-Downloads.",
+        "investor": "Die wichtigsten Zahlen und 12 Monate Wachstum auf einer druckbaren Seite.",
+        "aiSpend": "KI-Kosten pro Funktion für jeden Zeitraum, aus den Protokollen des KI-Proxys.",
+        "abuseReports": "Meldungen aus dem Meldeformular: prüfen und entscheiden."
+      }
+    },
+    "abuse": {
+      "title": "Missbrauchsmeldungen",
+      "intro": "Meldungen über das Formular unter /legal/abuse. Meldungen per E-Mail gehen an das Missbrauchspostfach und sind hier nicht aufgeführt.",
+      "filter": {
+        "label": "Anzeigen",
+        "active": "Aktive Warteschlange",
+        "all": "Alle"
+      },
+      "status": {
+        "open": "Offen",
+        "acknowledged": "Bestätigt",
+        "actioned": "Bearbeitet",
+        "dismissed": "Abgelehnt"
+      },
+      "refresh": "Aktualisieren",
+      "loading": "Meldungen werden geladen…",
+      "empty": "Keine Meldungen in dieser Ansicht.",
+      "loadFailed": "Die Meldungen konnten nicht geladen werden",
+      "updateFailed": "Die Meldung konnte nicht aktualisiert werden",
+      "done": {
+        "acknowledged": "Meldung bestätigt",
+        "actioned": "Massnahme ergriffen",
+        "dismissed": "Meldung abgelehnt"
+      },
+      "reporter": "Meldende Person",
+      "accountDeleted": "Konto gelöscht",
+      "emailSnapshot": "Konto gelöscht, E-Mail für Rückfragen aufbewahrt",
+      "mailSubject": "Re: Missbrauchsmeldung {id}",
+      "reported": "Gemeldet",
+      "document": "Dokument",
+      "notes": "Notizen",
+      "signedIn": "Meldende Person angemeldet",
+      "notSignedIn": "Meldende Person nicht angemeldet",
+      "goodFaith": "Erklärung nach bestem Wissen bestätigt",
+      "goodFaithLegacy": "keine Erklärung nach bestem Wissen (ältere Meldung)",
+      "decision": "Entscheidung",
+      "notices": "Mitteilungen ({n})",
+      "noticeKind": {
+        "receipt": "Eingangsbestätigung an die meldende Person",
+        "decision": "Entscheidung an die meldende Person",
+        "statement_of_reasons": "Begründung an die Eigentümerin oder den Eigentümer"
+      },
+      "noticeStatus": {
+        "sent": "gesendet",
+        "not_delivered_no_contact": "nicht gesendet, kein Kontakt",
+        "failed": "fehlgeschlagen"
+      },
+      "handledBy": "{status} von {name} · {date}",
+      "actionLabel": "Massnahme",
+      "ruleLabel": "Regel",
+      "actionOption": {
+        "content_removed": "Dokument entfernen",
+        "access_restricted": "Einschränken (auf privat setzen)"
+      },
+      "decisionAction": {
+        "content_removed": "Dokument entfernt",
+        "access_restricted": "Zugriff eingeschränkt",
+        "no_action": "Keine Massnahme"
+      },
+      "rule": {
+        "illegal_content": "Illegale Inhalte",
+        "csam": "Material über sexuellen Kindesmissbrauch",
+        "phishing_or_fraud": "Phishing, Betrug oder Fälschung",
+        "malware": "Schadsoftware oder schädliche Downloads",
+        "spam_or_seo": "Spam oder Manipulation von Suchmaschinen",
+        "copyright": "Verletzung von Urheber- oder Schutzrechten",
+        "harassment_or_hate": "Belästigung, Drohungen oder Hassrede",
+        "privacy_violation": "Personendaten anderer",
+        "other_terms": "Anderer Verstoss gegen die Nutzungsbedingungen"
+      },
+      "explanationPlaceholder": "Erklärung. Geht an die meldende Person und, wenn du entfernst oder einschränkst, als Begründung an die Eigentümerin oder den Eigentümer.",
+      "notesPlaceholder": "Notizen (optional, intern, im Audit-Log gespeichert)",
+      "acknowledge": "Bestätigen",
+      "dismiss": "Ablehnen",
+      "takeAction": "Massnahme ergreifen"
+    },
+    "aiSpend": {
+      "title": "KI-Kosten",
+      "intro": "KI-Kosten pro Funktion in einem Zeitraum, eine Zeile pro Aufruf in den Protokollen des KI-Proxys. Ein grosser Anteil «Andere» heisst, dass ein Aufruf keine Funktionsmarkierung sendet.",
+      "from": "Von",
+      "to": "Bis",
+      "refresh": "Anzeigen",
+      "totals": "Total",
+      "byFeature": "Nach Funktion",
+      "otherHint": "Pro Workspace, Person oder Dokument: der API-Endpunkt /api/admin/axis-spend.",
+      "tokens": "Tokens",
+      "loadFailed": "Die KI-Kosten konnten nicht geladen werden",
+      "empty": "Keine Daten für diesen Zeitraum."
     }
   }
 }

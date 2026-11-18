@@ -64,14 +64,9 @@ const menuItems = computed<MenuItem[]>(() => {
   })
   if (accountStatus.value?.isAdmin) {
     items.push({
-      label: 'Admin',
+      label: t('admin.title'),
       icon: 'i-lucide-shield-check',
-      to: '/admin/abuse-reports'
-    })
-    items.push({
-      label: t('adminStats.menu'),
-      icon: 'i-lucide-chart-line',
-      to: '/admin/stats'
+      to: '/admin'
     })
   }
   items.push({

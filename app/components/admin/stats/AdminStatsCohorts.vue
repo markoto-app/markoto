@@ -39,7 +39,7 @@ function download(): void {
 
 <template>
   <section
-    class="rounded-md bg-default p-4 break-inside-avoid"
+    class="rounded-md bg-default p-4 break-inside-avoid print:border print:border-default"
     data-testid="admin-stats-cohorts"
   >
     <div class="flex items-center justify-between gap-3 mb-1">

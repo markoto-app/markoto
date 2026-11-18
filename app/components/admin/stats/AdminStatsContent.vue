@@ -57,60 +57,74 @@ const memberRows = computed(() => memberCsv.value.map(r => ({ members: r.members
 </script>
 
 <template>
-  <div class="space-y-6">
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.documents')"
-        :value="n(data.documents.total)"
-        :hint="`${t('adminStats.kpi.anonymousDocs')}: ${n(data.documents.anonymous)}`"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.documentsCreated')"
-        :value="n(data.documents.created.value)"
-        :kpi="data.documents.created"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.documentsEdited')"
-        :value="n(data.documents.edited.value)"
-        :kpi="data.documents.edited"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.workspaces')"
-        :value="n(data.workspaces.total)"
-        :hint="`${t('adminStats.kpi.guests')}: ${n(data.workspaces.guests)}`"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.workspacesCreated')"
-        :value="n(data.workspaces.created.value)"
-        :kpi="data.workspaces.created"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.knowledgeFiles')"
-        :value="n(data.knowledge.files)"
-        :hint="bytes(data.knowledge.bytes)"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.knowledgeUploaded')"
-        :value="n(data.knowledge.uploaded.value)"
-        :kpi="data.knowledge.uploaded"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.images')"
-        :value="n(data.images.files)"
-        :hint="bytes(data.images.bytes)"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.publishedPages')"
-        :value="n(data.published.pages)"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.commentsAdded')"
-        :value="n(data.comments.added.value)"
-        :kpi="data.comments.added"
-      />
-    </div>
-    <ClientOnly>
-      <div class="grid gap-3 lg:grid-cols-2">
+  <div class="space-y-8">
+    <AdminSection :title="t('adminStats.section.documents')">
+      <AdminStatsKpiGrid>
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.documents')"
+          :value="n(data.documents.total)"
+          :hint="`${t('adminStats.kpi.anonymousDocs')}: ${n(data.documents.anonymous)}`"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.documentsCreated')"
+          :value="n(data.documents.created.value)"
+          :kpi="data.documents.created"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.documentsEdited')"
+          :value="n(data.documents.edited.value)"
+          :kpi="data.documents.edited"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.words')"
+          :value="n(data.documents.words)"
+        />
+      </AdminStatsKpiGrid>
+    </AdminSection>
+    <AdminSection :title="t('adminStats.section.workspacesAndFiles')">
+      <AdminStatsKpiGrid>
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.workspaces')"
+          :value="n(data.workspaces.total)"
+          :hint="`${t('adminStats.kpi.guests')}: ${n(data.workspaces.guests)}`"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.workspacesCreated')"
+          :value="n(data.workspaces.created.value)"
+          :kpi="data.workspaces.created"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.knowledgeFiles')"
+          :value="n(data.knowledge.files)"
+          :hint="bytes(data.knowledge.bytes)"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.knowledgeUploaded')"
+          :value="n(data.knowledge.uploaded.value)"
+          :kpi="data.knowledge.uploaded"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.images')"
+          :value="n(data.images.files)"
+          :hint="bytes(data.images.bytes)"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.publishedPages')"
+          :value="n(data.published.pages)"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.commentsAdded')"
+          :value="n(data.comments.added.value)"
+          :kpi="data.comments.added"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.savedThemes')"
+          :value="n(data.savedThemes)"
+        />
+      </AdminStatsKpiGrid>
+    </AdminSection>
+    <AdminSection :title="t('adminStats.section.trends')">
+      <AdminStatsChartGrid>
         <AdminStatsChart
           type="bar"
           :title="t('adminStats.chart.documents')"
@@ -125,41 +139,43 @@ const memberRows = computed(() => memberCsv.value.map(r => ({ members: r.members
           :datasets="[{ label: t('adminStats.table.workspaces'), data: data.workspaces.memberBuckets.map(b => b.workspaces) }]"
           :format-value="n"
         />
+      </AdminStatsChartGrid>
+    </AdminSection>
+    <AdminSection :title="t('adminStats.section.details')">
+      <div class="grid gap-3 lg:grid-cols-2">
+        <AdminStatsTable
+          :title="t('adminStats.section.documents')"
+          name="documents"
+          :range="range"
+          :columns="metricColumns"
+          :rows="docs.rows"
+          :csv-rows="docs.csv"
+        />
+        <AdminStatsTable
+          :title="t('adminStats.section.workspaces')"
+          name="workspace-members"
+          :range="range"
+          :columns="memberColumns"
+          :rows="memberRows"
+          :csv-rows="memberCsv"
+        />
+        <AdminStatsTable
+          :title="t('adminStats.section.knowledge')"
+          name="knowledge-images"
+          :range="range"
+          :columns="metricColumns"
+          :rows="knowledge.rows"
+          :csv-rows="knowledge.csv"
+        />
+        <AdminStatsTable
+          :title="t('adminStats.section.publishing')"
+          name="publishing"
+          :range="range"
+          :columns="metricColumns"
+          :rows="publishing.rows"
+          :csv-rows="publishing.csv"
+        />
       </div>
-    </ClientOnly>
-    <div class="grid gap-3 lg:grid-cols-2">
-      <AdminStatsTable
-        :title="t('adminStats.section.documents')"
-        name="documents"
-        :range="range"
-        :columns="metricColumns"
-        :rows="docs.rows"
-        :csv-rows="docs.csv"
-      />
-      <AdminStatsTable
-        :title="t('adminStats.section.workspaces')"
-        name="workspace-members"
-        :range="range"
-        :columns="memberColumns"
-        :rows="memberRows"
-        :csv-rows="memberCsv"
-      />
-      <AdminStatsTable
-        :title="t('adminStats.section.knowledge')"
-        name="knowledge-images"
-        :range="range"
-        :columns="metricColumns"
-        :rows="knowledge.rows"
-        :csv-rows="knowledge.csv"
-      />
-      <AdminStatsTable
-        :title="t('adminStats.section.publishing')"
-        name="publishing"
-        :range="range"
-        :columns="metricColumns"
-        :rows="publishing.rows"
-        :csv-rows="publishing.csv"
-      />
-    </div>
+    </AdminSection>
   </div>
 </template>

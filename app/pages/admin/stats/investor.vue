@@ -3,27 +3,18 @@ import type { OverviewStats, RevenueStats, UsersStats } from '~~/shared/contract
 import { useAdminStatsQuery } from '~/queries/adminStats'
 
 // One-page investor summary: the key numbers and 12 months of monthly
-// charts, laid out to print on A4 (the browser's "Save as PDF").
+// charts, in the same tiles and chart cards as the stats page. Printed
+// (the browser's "Save as PDF") it is an A4 document: the admin chrome
+// and the buttons are left out, the key numbers fill page one and the
+// growth charts page two.
+
+definePageMeta({ layout: 'admin' })
 
 const { t, locale } = useI18n()
-const router = useRouter()
-const { loggedIn } = useUserSession()
-const { primaryLoginPath } = useInstanceConfig()
-const { status: accountStatus } = useAccountStatus()
+const { isAdmin } = useAdminGate()
 
-useHead({ title: () => `${t('adminStats.investorTitle')} · Admin` })
+useHead({ title: () => `${t('adminStats.investorTitle')} · ${t('admin.title')}` })
 
-if (import.meta.client) {
-  watchEffect(() => {
-    if (!loggedIn.value) {
-      globalThis.location.href = primaryLoginPath.value ?? '/'
-    } else if (accountStatus.value && !accountStatus.value.isAdmin) {
-      void router.push('/')
-    }
-  })
-}
-
-const isAdmin = computed(() => loggedIn.value && accountStatus.value?.isAdmin === true)
 const overviewQuery = useAdminStatsQuery('overview', '365', isAdmin, 'month')
 const usersQuery = useAdminStatsQuery('users', '365', isAdmin, 'month')
 const revenueQuery = useAdminStatsQuery('revenue', '30', isAdmin)
@@ -35,8 +26,10 @@ const failed = computed(() => Boolean(overviewQuery.error.value || usersQuery.er
 
 const n = (v: number) => statsCount(v, locale.value)
 const usd = (v: number) => statsMoney(v, 'usd', locale.value)
-const today = new Intl.DateTimeFormat(locale.value, { dateStyle: 'long' }).format(new Date())
+const chf = (v: number) => statsMoney(v, 'chf', locale.value)
+const today = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: 'long' }).format(new Date()))
 const months = (pts: Array<{ t: string }>) => pts.map(p => statsBucketLabel(p.t, 'month', locale.value))
+const subtitle = computed(() => t('adminStats.investor.subtitle', { date: today.value }))
 
 function print(): void {
   globalThis.print()
@@ -45,32 +38,32 @@ function print(): void {
 
 <template>
   <div
-    class="mx-auto max-w-5xl px-4 sm:px-6 py-8 print:p-0 print:max-w-none"
+    class="investor-summary"
     data-testid="admin-stats-investor"
   >
-    <div class="flex flex-wrap items-center justify-between gap-3 mb-6 print:hidden">
-      <UButton
-        to="/admin/stats"
-        variant="ghost"
-        icon="i-lucide-arrow-left"
-      >
-        {{ t('adminStats.back') }}
-      </UButton>
-      <UButton
-        icon="i-lucide-printer"
-        data-testid="admin-stats-print"
-        @click="print"
-      >
-        {{ t('adminStats.print') }}
-      </UButton>
-    </div>
-
-    <h1 class="font-serif text-3xl font-normal tracking-tight text-default mb-1">
-      {{ t('adminStats.investorTitle') }}
-    </h1>
-    <p class="text-sm text-muted mb-6">
-      {{ t('adminStats.investor.subtitle', { date: today }) }}
-    </p>
+    <AdminPageHeader
+      :title="t('adminStats.investorTitle')"
+      :intro="subtitle"
+    >
+      <template #actions>
+        <UButton
+          to="/admin/stats"
+          size="sm"
+          variant="ghost"
+          icon="i-lucide-arrow-left"
+        >
+          {{ t('adminStats.back') }}
+        </UButton>
+        <UButton
+          size="sm"
+          icon="i-lucide-printer"
+          data-testid="admin-stats-print"
+          @click="print"
+        >
+          {{ t('adminStats.print') }}
+        </UButton>
+      </template>
+    </AdminPageHeader>
 
     <div
       v-if="failed"
@@ -87,16 +80,19 @@ function print(): void {
     </div>
     <div
       v-else
-      class="space-y-5"
+      class="space-y-8 print:space-y-5"
     >
-      <section>
-        <h2 class="text-sm text-muted mb-2">
-          {{ t('adminStats.investor.users') }}
-        </h2>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <AdminSection :title="t('adminStats.investor.users')">
+        <AdminStatsKpiGrid>
           <AdminStatsKpi
             :label="t('adminStats.kpi.registered')"
             :value="n(users.registered)"
+          />
+          <AdminStatsKpi
+            :label="t('adminStats.kpi.signups')"
+            :value="n(users.signups.value)"
+            :kpi="users.signups"
+            :hint="t('adminStats.investor.last12Months')"
           />
           <AdminStatsKpi
             :label="t('adminStats.kpi.mau')"
@@ -107,51 +103,38 @@ function print(): void {
             :value="n(users.active.day)"
             :hint="`${t('adminStats.kpi.stickiness')}: ${statsPercent(users.active.stickinessPct, locale)}`"
           />
-          <AdminStatsKpi
-            :label="t('adminStats.kpi.signups')"
-            :value="n(users.signups.value)"
-            :kpi="users.signups"
-          />
-        </div>
-      </section>
-      <section>
-        <h2 class="text-sm text-muted mb-2">
-          {{ t('adminStats.investor.revenue') }}
-        </h2>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        </AdminStatsKpiGrid>
+      </AdminSection>
+
+      <AdminSection
+        :title="t('adminStats.investor.revenue')"
+        :note="revenue.billingEnabled ? t('adminStats.hint.listPrice') : `${t('adminStats.hint.billingOff')} ${t('adminStats.hint.listPrice')}`"
+      >
+        <AdminStatsKpiGrid>
           <AdminStatsKpi
             :label="t('adminStats.kpi.mrrTotal')"
-            :value="statsMoney(revenue.combinedChf.mrr, 'chf', locale)"
-            :hint="`${t('adminStats.kpi.arrTotal')}: ${statsMoney(revenue.combinedChf.arr, 'chf', locale)}`"
+            :value="chf(revenue.combinedChf.mrr)"
+            :hint="`${t('adminStats.kpi.arrTotal')}: ${chf(revenue.combinedChf.arr)}`"
           />
           <AdminStatsKpi
             :label="t('adminStats.kpi.contribution')"
-            :value="statsMoney(revenue.estimate.combinedChf.contribution, 'chf', locale)"
+            :value="chf(revenue.estimate.combinedChf.contribution)"
             :hint="t('adminStats.estimate.estimated')"
-          />
-          <AdminStatsKpi
-            v-for="r in revenue.revenue"
-            :key="r.currency"
-            :label="t('adminStats.kpi.mrr', { currency: r.currency.toUpperCase() })"
-            :value="statsMoney(r.mrr, r.currency, locale)"
-            :hint="t('adminStats.kpi.arr', { currency: r.currency.toUpperCase() }) + ': ' + statsMoney(r.arr, r.currency, locale)"
           />
           <AdminStatsKpi
             :label="t('adminStats.kpi.payingCustomers')"
             :value="n(revenue.payingCustomers)"
-            :hint="revenue.billingEnabled ? null : t('adminStats.hint.billingOff')"
+            :hint="revenue.revenue.map(r => `${t('adminStats.kpi.mrr', { currency: r.currency.toUpperCase() })}: ${statsMoney(r.mrr, r.currency, locale)}`).join(' · ') || null"
           />
           <AdminStatsKpi
             :label="t('adminStats.kpi.waitlistConfirmed')"
             :value="n(revenue.waitlist.confirmed)"
           />
-        </div>
-      </section>
-      <section>
-        <h2 class="text-sm text-muted mb-2">
-          {{ t('adminStats.investor.content') }} · {{ t('adminStats.investor.ai') }}
-        </h2>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        </AdminStatsKpiGrid>
+      </AdminSection>
+
+      <AdminSection :title="`${t('adminStats.investor.content')} · ${t('adminStats.investor.ai')}`">
+        <AdminStatsKpiGrid>
           <AdminStatsKpi
             :label="t('adminStats.kpi.documents')"
             :value="n(overview.content.documents)"
@@ -167,18 +150,23 @@ function print(): void {
           <AdminStatsKpi
             :label="t('adminStats.kpi.aiSpend')"
             :value="usd(overview.ai.spendUsd.value)"
+            :hint="t('adminStats.investor.last12Months')"
           />
-        </div>
-      </section>
-      <ClientOnly>
-        <div class="grid gap-3 sm:grid-cols-2">
+        </AdminStatsKpiGrid>
+      </AdminSection>
+
+      <AdminSection
+        :title="t('adminStats.investor.growth')"
+        page-break
+      >
+        <AdminStatsChartGrid>
           <AdminStatsChart
             type="line"
             :title="t('adminStats.chart.accounts')"
             :labels="months(users.signupSeries)"
             :datasets="[{ label: t('adminStats.chart.accounts'), data: cumulativeSeries(users.signupSeries, users.registered).map(p => p.v) }]"
             :format-value="n"
-            :height="190"
+            :height="200"
           />
           <AdminStatsChart
             type="bar"
@@ -186,7 +174,7 @@ function print(): void {
             :labels="months(users.signupSeries)"
             :datasets="[{ label: t('adminStats.chart.signups'), data: users.signupSeries.map(p => p.v) }]"
             :format-value="n"
-            :height="190"
+            :height="200"
           />
           <AdminStatsChart
             type="line"
@@ -194,7 +182,7 @@ function print(): void {
             :labels="months(users.editorSeries)"
             :datasets="[{ label: t('adminStats.chart.editors'), data: users.editorSeries.map(p => p.v) }]"
             :format-value="n"
-            :height="190"
+            :height="200"
           />
           <AdminStatsChart
             type="bar"
@@ -202,13 +190,29 @@ function print(): void {
             :labels="months(overview.content.documentSeries)"
             :datasets="[{ label: t('adminStats.chart.documents'), data: overview.content.documentSeries.map(p => p.v) }]"
             :format-value="n"
-            :height="190"
+            :height="200"
           />
-        </div>
-      </ClientOnly>
-      <p class="text-xs text-muted">
+        </AdminStatsChartGrid>
+      </AdminSection>
+
+      <p class="text-xs text-muted border-t border-default pt-3">
         {{ t('adminStats.investor.footnote') }}
       </p>
     </div>
   </div>
 </template>
+
+<style>
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 12mm;
+  }
+
+  /* The canvases keep their on-screen bitmap; scale it to the print column. */
+  .investor-summary canvas {
+    width: 100% !important;
+    height: auto !important;
+  }
+}
+</style>

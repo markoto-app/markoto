@@ -87,27 +87,27 @@ export async function deleteSpendLogsBefore(_by: SystemActor, cutoff: Date): Pro
 }
 
 /**
- * Distinct users (`user:*` tag) with a logged call between two dates (`to`
- * inclusive), for the admin's "people using AI". Spend and requests come
- * from `spendByFeature`; a user count cannot be summed from its groups.
+ * Distinct user ids (`user:<id>` tags) with a logged call between two dates
+ * (`to` inclusive), for the admin's "people using AI". Spend and requests
+ * come from `spendByFeature`; a user count cannot be summed from its groups.
+ * The logs keep the calls of accounts deleted since, so the caller matches
+ * the ids against the accounts that still exist (`countExistingUsers`).
  */
-export async function countSpendUsers(_by: AdminActor, window: { from: string, to: string }): Promise<number> {
-  const r = await useLitellmPool().query<{ users: number }>(
+export async function listSpendUserIds(_by: AdminActor, window: { from: string, to: string }): Promise<number[]> {
+  const r = await useLitellmPool().query<{ id: string }>(
     `
-    SELECT count(DISTINCT (
-      SELECT min(t.tag)
-      FROM jsonb_array_elements_text(
+    SELECT DISTINCT substring(t.tag FROM 6) AS id
+    FROM ${TABLE},
+      jsonb_array_elements_text(
         CASE WHEN jsonb_typeof(request_tags) = 'array' THEN request_tags ELSE '[]'::jsonb END
       ) AS t(tag)
-      WHERE t.tag LIKE 'user:%'
-    ))::int AS users
-    FROM ${TABLE}
     WHERE "startTime" >= $1::timestamp
       AND "startTime" < ($2::date + INTERVAL '1 day')
+      AND t.tag ~ '^user:[0-9]{1,15}$'
     `,
     [window.from, window.to]
   )
-  return Number(r.rows[0]?.users ?? 0)
+  return r.rows.map(row => Number(row.id)).filter(id => Number.isSafeInteger(id))
 }
 
 export interface DailySpendRow {

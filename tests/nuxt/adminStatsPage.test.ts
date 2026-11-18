@@ -6,6 +6,7 @@ import { flushPromises } from '@vue/test-utils'
 import type { H3Event } from 'h3'
 import AdminStatsPage from '~/pages/admin/stats/index.vue'
 import InvestorPage from '~/pages/admin/stats/investor.vue'
+import AdminHubPage from '~/pages/admin/index.vue'
 import type { AiStats, ContentStats, OpsStats, OverviewStats, RevenueStats, StatsWindow, UsersStats } from '~~/shared/contracts/adminStats'
 
 // The admin's product stats: tabs and range live in the URL, every tab
@@ -166,6 +167,27 @@ describe('admin product stats page', () => {
     await vi.waitFor(() => expect(charts.length).toBeGreaterThan(0))
   })
 
+  it('steps count axes in whole numbers and keeps decimals on money axes', async () => {
+    type Scale = { suggestedMax?: number, ticks: { precision?: number } }
+    type Config = { options: { scales: { x: Scale, y: Scale } } }
+    await open('')
+    await vi.waitFor(() => expect(charts.length).toBeGreaterThan(0))
+    for (const c of charts as Config[]) {
+      expect(c.options.scales.y.ticks.precision).toBe(0)
+      expect(c.options.scales.y.suggestedMax).toBe(4)
+    }
+    charts.length = 0
+    await open('?tab=users')
+    // The activation chart lies on its side: its values are on the x axis.
+    await vi.waitFor(() => expect((charts as Config[]).some(c => c.options.scales.x.ticks.precision === 0)).toBe(true))
+    charts.length = 0
+    await open('?tab=ai')
+    // Only the AI cost chart is in money.
+    await vi.waitFor(() => expect((charts as Config[]).some(c => c.options.scales.y.ticks.precision === undefined)).toBe(true))
+    const money = (charts as Config[]).find(c => c.options.scales.y.ticks.precision === undefined)!
+    expect(money.options.scales.y.suggestedMax).toBeUndefined()
+  })
+
   it('reads tab and range from the URL', async () => {
     const w = await open('?tab=users&range=7')
     expect(queries.at(-1)).toEqual({ tab: 'users', query: { range: '7' } })
@@ -230,5 +252,20 @@ describe('investor summary', () => {
     await w.get('[data-testid="admin-stats-print"]').trigger('click')
     expect(print).toHaveBeenCalledOnce()
     vi.unstubAllGlobals()
+  })
+})
+
+describe('admin hub', () => {
+  it('links every admin page and shows the numbers that need a look', async () => {
+    const w = await mountSuspended(AdminHubPage, { route: '/admin' })
+    await vi.waitFor(() => expect(w.text()).toContain('1,234'))
+    for (const [key, to] of [['stats', '/admin/stats'], ['investor', '/admin/stats/investor'], ['aiSpend', '/admin/ai-spend'], ['abuseReports', '/admin/abuse-reports']]) {
+      expect(w.get(`[data-testid="admin-hub-${key}"]`).attributes('href')).toBe(to)
+    }
+    // One open report: shown as needing attention.
+    const abuse = w.get('[data-testid="admin-hub-abuseReports"]')
+    expect(abuse.text()).toContain('open or in review')
+    expect(abuse.find('.text-error').text()).toBe('1')
+    expect(w.text()).toContain('$12.50')
   })
 })

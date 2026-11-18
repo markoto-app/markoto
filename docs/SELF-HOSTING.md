@@ -288,7 +288,7 @@ Database roles: `POSTGRES_USER` (default `markoto`) is the admin role; only the 
 | `NUXT_OAUTH_GOOGLE_CLIENT_ID` / `_SECRET` | Google login. |
 | `NUXT_OAUTH_OIDC_ISSUER`, `_CLIENT_ID`, `_CLIENT_SECRET` | Your own OpenID Connect provider ([Login](#your-own-identity-provider-openid-connect)). |
 | `NUXT_OAUTH_OIDC_NAME`, `_SCOPES` | Optional button label and scopes for it. |
-| `NUXT_ADMIN_USER_EMAILS` | Comma-separated emails promoted to admin on login (`/admin/abuse-reports`, `/admin/ai-spend`). Only a verified email counts (GitHub/Google verified address, IdP `email_verified: true`). |
+| `NUXT_ADMIN_USER_EMAILS` | Comma-separated emails promoted to admin on login (the admin area at `/admin`: product stats, investor summary, AI cost, abuse reports; "Admin" in the account menu). Only a verified email counts (GitHub/Google verified address, IdP `email_verified: true`). |
 | `NUXT_SSO_ALLOW_PRIVATE_URLS` | `true` lets workspace single sign-on reach an identity provider on a private network (an on-prem Keycloak, say). Default `false`. |
 
 ### Limits

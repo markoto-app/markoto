@@ -3020,7 +3020,8 @@
       "billingOff": "このインスタンスでは課金がオフです。",
       "comingSoon": "有料プランは「近日公開」と表示され、ウェイトリストが開いています。",
       "aiUsersFrom": "AIを利用した人数は{day}から集計されます(個人別のログは90日間保存されます)。",
-      "churnHistory": "サブスクリプションの履歴はこのバージョンから記録されます。それ以前のワークスペースプランは記録から追加されました。"
+      "churnHistory": "サブスクリプションの履歴はこのバージョンから記録されます。それ以前のワークスペースプランは記録から追加されました。",
+      "aiUsersDefinition": "既存のアカウントのみ。削除済みのアカウントは含まれません。"
     },
     "chart": {
       "signups": "新規登録",
@@ -3076,7 +3077,18 @@
       "planMix": "プランの内訳",
       "exports": "データエクスポート",
       "abuse": "不正利用の報告",
-      "estimate": "推定月間貢献額"
+      "estimate": "推定月間貢献額",
+      "trends": "推移",
+      "details": "詳細",
+      "accounts": "アカウント",
+      "activity": "アクティビティ",
+      "workspacesAndFiles": "ワークスペースとファイル",
+      "aiUsage": "利用状況とコスト",
+      "aiAccess": "アクセス",
+      "recurring": "継続収益",
+      "subscriptionChanges": "サブスクリプションの変動とウェイトリスト",
+      "storage": "ストレージ",
+      "queues": "キューと定期処理"
     },
     "activation": {
       "signedUp": "登録",
@@ -3128,9 +3140,10 @@
       "revenue": "収益",
       "content": "コンテンツ",
       "ai": "AI",
-      "footnote": "アカウントとドキュメントはアプリケーションデータベース、AIコストはAIプロキシのログ(90日間)に基づきます。収益は定価ベースの総額です。定義: docs/contributing/admin-metrics.md。"
+      "footnote": "アカウントとドキュメントはアプリケーションデータベース、AIコストはAIプロキシのログ(90日間)に基づきます。収益は定価ベースの総額です。定義: docs/contributing/admin-metrics.md。",
+      "last12Months": "直近12か月",
+      "growth": "成長、12か月"
     },
-    "menu": "プロダクト統計",
     "estimate": {
       "estimated": "推定",
       "gross": "定価ベースの総額",
@@ -3142,6 +3155,118 @@
       "combined": "合計(CHF)",
       "note": "月あたりの推定値です。EUR/CHFは{eur}、USD/CHFは{usd}で換算しています。前提条件はNUXT_STATS_*で設定します。",
       "aiUnavailable": "AIコストを読み取れなかったため、0として計算しています。"
+    }
+  },
+  "admin": {
+    "title": "管理",
+    "navLabel": "管理ページ",
+    "nav": {
+      "overview": "概要",
+      "stats": "プロダクト統計",
+      "investor": "投資家向けサマリー",
+      "aiSpend": "AIコスト",
+      "abuseReports": "不正利用の報告"
+    },
+    "hub": {
+      "title": "管理",
+      "intro": "このインスタンスの運用: 数値、AIコスト、モデレーションキュー。",
+      "aiSpend30": "AIコスト、30日間",
+      "abuseActive": "未対応または確認中",
+      "description": {
+        "stats": "ユーザー、コンテンツ、AI、収益、運用を推移とCSVダウンロードつきで確認できます。",
+        "investor": "主要な数値と12か月の成長を、印刷できる1ページにまとめています。",
+        "aiSpend": "AIプロキシのログから、任意の期間の機能別AIコストを確認できます。",
+        "abuseReports": "報告フォームからの報告を確認し、判断します。"
+      }
+    },
+    "abuse": {
+      "title": "不正利用の報告",
+      "intro": "/legal/abuse のフォームから送信された報告です。メールでの報告は不正利用の受信箱に届くため、ここには表示されません。",
+      "filter": {
+        "label": "表示",
+        "active": "対応中のキュー",
+        "all": "すべて"
+      },
+      "status": {
+        "open": "未対応",
+        "acknowledged": "受領済み",
+        "actioned": "対応済み",
+        "dismissed": "却下"
+      },
+      "refresh": "更新",
+      "loading": "報告を読み込み中…",
+      "empty": "この表示に報告はありません。",
+      "loadFailed": "報告を読み込めませんでした",
+      "updateFailed": "報告を更新できませんでした",
+      "done": {
+        "acknowledged": "報告を受領しました",
+        "actioned": "対応しました",
+        "dismissed": "報告を却下しました"
+      },
+      "reporter": "報告者",
+      "accountDeleted": "アカウント削除済み",
+      "emailSnapshot": "アカウント削除済み、フォローアップ用にメールアドレスを保持",
+      "mailSubject": "Re: 不正利用の報告 {id}",
+      "reported": "報告日時",
+      "document": "ドキュメント",
+      "notes": "メモ",
+      "signedIn": "報告者はサインイン済み",
+      "notSignedIn": "報告者は未サインイン",
+      "goodFaith": "誠実性の確認あり",
+      "goodFaithLegacy": "誠実性の確認なし(以前の報告)",
+      "decision": "判断",
+      "notices": "通知({n})",
+      "noticeKind": {
+        "receipt": "報告者への受領通知",
+        "decision": "報告者への判断通知",
+        "statement_of_reasons": "所有者への理由説明"
+      },
+      "noticeStatus": {
+        "sent": "送信済み",
+        "not_delivered_no_contact": "未送信、連絡先なし",
+        "failed": "失敗"
+      },
+      "handledBy": "{status}、{name} · {date}",
+      "actionLabel": "対応",
+      "ruleLabel": "規則",
+      "actionOption": {
+        "content_removed": "ドキュメントを削除",
+        "access_restricted": "制限(非公開に設定)"
+      },
+      "decisionAction": {
+        "content_removed": "ドキュメントを削除しました",
+        "access_restricted": "アクセスを制限しました",
+        "no_action": "対応なし"
+      },
+      "rule": {
+        "illegal_content": "違法なコンテンツ",
+        "csam": "児童性的虐待コンテンツ",
+        "phishing_or_fraud": "フィッシング、詐欺",
+        "malware": "マルウェアや有害なダウンロード",
+        "spam_or_seo": "スパムや検索エンジンの操作",
+        "copyright": "著作権・知的財産権の侵害",
+        "harassment_or_hate": "嫌がらせ、脅迫、ヘイトスピーチ",
+        "privacy_violation": "他人の個人データ",
+        "other_terms": "その他の利用規約違反"
+      },
+      "explanationPlaceholder": "説明。報告者に送られ、削除または制限する場合は理由説明として所有者にも送られます。",
+      "notesPlaceholder": "メモ(任意、社内用、監査ログに保存)",
+      "acknowledge": "受領",
+      "dismiss": "却下",
+      "takeAction": "対応する"
+    },
+    "aiSpend": {
+      "title": "AIコスト",
+      "intro": "期間内の機能別AIコストです。AIプロキシのログの1呼び出しが1行です。「その他」が大きい場合は、機能タグを送らない呼び出しがあります。",
+      "from": "開始",
+      "to": "終了",
+      "refresh": "表示",
+      "totals": "合計",
+      "byFeature": "機能別",
+      "otherHint": "ワークスペース、個人、ドキュメント別: APIエンドポイント /api/admin/axis-spend。",
+      "tokens": "トークン",
+      "loadFailed": "AIコストを読み込めませんでした",
+      "empty": "この期間のデータはありません。"
     }
   }
 }

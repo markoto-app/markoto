@@ -4,7 +4,12 @@ import type { Chart as ChartInstance, ChartConfiguration } from 'chart.js'
 // A Chart.js canvas. chart.js is imported on mount, so it ships in its own
 // chunk that only the admin stats pages load. It draws on a canvas: no
 // eval, no injected script, nothing the CSP has to allow. Colours come
-// from the design tokens and follow the colour mode.
+// from the design tokens and follow the colour mode; while printing the
+// chart is redrawn in the light palette (paper is white).
+//
+// `kind` decides the value axis: counts step in whole numbers (a series
+// of 0s and 1s would otherwise label 0.2, 0.4 … and round them to
+// "0 0 1 1"), money keeps its decimals.
 
 export interface StatsDataset {
   label: string
@@ -20,11 +25,11 @@ const props = withDefaults(defineProps<{
   horizontal?: boolean
   formatValue?: (n: number) => string
   height?: number
-}>(), { stacked: false, horizontal: false, formatValue: undefined, height: 240 })
+  kind?: 'count' | 'money'
+}>(), { stacked: false, horizontal: false, formatValue: undefined, height: 240, kind: 'count' })
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 let chart: ChartInstance | null = null
-let registered = false
 const colorMode = useColorMode()
 
 // Light / dark series colours: ink first, then the seal red, alternating
@@ -32,24 +37,62 @@ const colorMode = useColorMode()
 const LIGHT = ['--color-sumi-800', '--color-shu-500', '--color-sumi-400', '--color-shu-300', '--color-sumi-600', '--color-shu-700', '--color-sumi-300', '--color-shu-200', '--color-sumi-500']
 const DARK = ['--color-sumi-100', '--color-shu-400', '--color-sumi-400', '--color-shu-200', '--color-sumi-300', '--color-shu-600', '--color-sumi-500', '--color-shu-300', '--color-sumi-600']
 
+type ChartLib = typeof import('chart.js')
+// Loaded once per page; kept so a print can redraw synchronously.
+let chartLib: ChartLib | null = null
+
+async function loadLib(): Promise<ChartLib> {
+  if (chartLib) return chartLib
+  const lib = await import('chart.js')
+  lib.Chart.register(lib.LineController, lib.BarController, lib.LineElement, lib.BarElement, lib.PointElement,
+    lib.CategoryScale, lib.LinearScale, lib.Tooltip, lib.Legend, lib.Filler)
+  chartLib = lib
+  return lib
+}
+
+/** Smallest axis maximum of a count chart, so 0 / 1 series get a few whole steps. */
+const MIN_COUNT_AXIS = 4
+
+/** Design tokens of the light or dark theme, read from the document. */
+function readTokens(light: boolean): { palette: string[], text: string, grid: string } {
+  const root = document.documentElement
+  const wasDark = root.classList.contains('dark')
+  // Printing in dark mode: read the light values for a moment.
+  if (light && wasDark) root.classList.remove('dark')
+  try {
+    const css = getComputedStyle(root)
+    const token = (name: string): string => css.getPropertyValue(name).trim()
+    const dark = !light && wasDark
+    return { palette: (dark ? DARK : LIGHT).map(token), text: token('--ui-text-muted'), grid: token('--ui-border') }
+  } finally {
+    if (light && wasDark) root.classList.add('dark')
+  }
+}
+
 async function render(): Promise<void> {
+  const lib = await loadLib()
+  draw(lib, false)
+}
+
+function draw(lib: ChartLib, forPrint: boolean): void {
   const el = canvas.value
   if (!el) return
-  const lib = await import('chart.js')
-  if (!registered) {
-    lib.Chart.register(lib.LineController, lib.BarController, lib.LineElement, lib.BarElement, lib.PointElement,
-      lib.CategoryScale, lib.LinearScale, lib.Tooltip, lib.Legend, lib.Filler)
-    registered = true
-  }
-  const css = getComputedStyle(document.documentElement)
-  const token = (name: string): string => css.getPropertyValue(name).trim()
-  const dark = document.documentElement.classList.contains('dark')
-  const palette = (dark ? DARK : LIGHT).map(token)
-  const text = token('--ui-text-muted')
-  const grid = token('--ui-border')
+  const { palette, text, grid } = readTokens(forPrint)
   const fmt = props.formatValue ?? ((n: number) => n.toLocaleString())
   const single = props.datasets.length === 1
   const valueAxis = props.horizontal ? 'x' : 'y'
+  const counts = props.kind === 'count'
+  const valueScale = {
+    beginAtZero: true,
+    ...(counts ? { suggestedMax: MIN_COUNT_AXIS } : {}),
+    ticks: {
+      color: text,
+      ...(counts ? { precision: 0 } : {}),
+      callback: (v: string | number) => fmt(Number(v))
+    },
+    grid: { display: true, color: grid }
+  }
+  const categoryScale = { ticks: { color: text, maxRotation: 0, autoSkip: true }, grid: { display: false, color: grid } }
   const config: ChartConfiguration<'line' | 'bar'> = {
     type: props.type,
     data: {
@@ -79,13 +122,8 @@ async function render(): Promise<void> {
         tooltip: { callbacks: { label: c => `${c.dataset.label ?? ''}: ${fmt(Number(c.raw))}` } }
       },
       scales: {
-        x: { stacked: props.stacked, ticks: { color: text, maxRotation: 0, autoSkip: true }, grid: { display: valueAxis === 'x', color: grid } },
-        y: {
-          stacked: props.stacked,
-          beginAtZero: true,
-          ticks: { color: text, ...(valueAxis === 'y' ? { callback: (v: string | number) => fmt(Number(v)) } : {}) },
-          grid: { display: valueAxis === 'y', color: grid }
-        }
+        x: { stacked: props.stacked, ...(valueAxis === 'x' ? valueScale : categoryScale) },
+        y: { stacked: props.stacked, ...(valueAxis === 'y' ? valueScale : categoryScale) }
       }
     }
   }
@@ -93,10 +131,16 @@ async function render(): Promise<void> {
   chart = new lib.Chart(el, config)
 }
 
+function redrawForPrint(forPrint: boolean): void {
+  if (chartLib) draw(chartLib, forPrint)
+}
+
 onMounted(() => {
   void render()
 })
-watch(() => [props.labels, props.datasets, props.stacked, colorMode.value], () => {
+useEventListener('beforeprint', () => redrawForPrint(true))
+useEventListener('afterprint', () => redrawForPrint(false))
+watch(() => [props.labels, props.datasets, props.stacked, props.kind, colorMode.value], () => {
   void render()
 }, { deep: true })
 onBeforeUnmount(() => {
@@ -106,7 +150,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <figure class="rounded-md bg-default p-4 break-inside-avoid">
+  <figure
+    class="rounded-md bg-default p-4 break-inside-avoid print:border print:border-default print:p-3"
+    data-testid="admin-stats-chart"
+  >
     <figcaption class="text-sm text-default mb-3">
       {{ title }}
     </figcaption>

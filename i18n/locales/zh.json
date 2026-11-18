@@ -3020,7 +3020,8 @@
       "billingOff": "此实例已关闭计费。",
       "comingSoon": "付费方案显示为“即将推出”;候补名单已开放。",
       "aiUsersFrom": "使用 AI 的人数从 {day} 起统计(按人记录的日志保留 90 天)。",
-      "churnHistory": "订阅历史从此版本起开始记录;此前的工作区方案根据其记录补入。"
+      "churnHistory": "订阅历史从此版本起开始记录;此前的工作区方案根据其记录补入。",
+      "aiUsersDefinition": "仅统计现有账户，不含已删除的账户。"
     },
     "chart": {
       "signups": "新注册",
@@ -3076,7 +3077,18 @@
       "planMix": "方案构成",
       "exports": "数据导出",
       "abuse": "滥用举报",
-      "estimate": "预估每月贡献"
+      "estimate": "预估每月贡献",
+      "trends": "趋势",
+      "details": "详情",
+      "accounts": "账户",
+      "activity": "活跃度",
+      "workspacesAndFiles": "工作区和文件",
+      "aiUsage": "用量和成本",
+      "aiAccess": "访问",
+      "recurring": "经常性收入",
+      "subscriptionChanges": "订阅变化和候补名单",
+      "storage": "存储",
+      "queues": "队列和维护"
     },
     "activation": {
       "signedUp": "已注册",
@@ -3128,9 +3140,10 @@
       "revenue": "收入",
       "content": "内容",
       "ai": "AI",
-      "footnote": "账户和文档来自应用数据库,AI 成本来自 AI 代理的日志(90 天)。收入按标价计,为总额。定义:docs/contributing/admin-metrics.md。"
+      "footnote": "账户和文档来自应用数据库,AI 成本来自 AI 代理的日志(90 天)。收入按标价计,为总额。定义:docs/contributing/admin-metrics.md。",
+      "last12Months": "最近 12 个月",
+      "growth": "增长，12 个月"
     },
-    "menu": "产品统计",
     "estimate": {
       "estimated": "预估",
       "gross": "按标价计的总额",
@@ -3142,6 +3155,118 @@
       "combined": "合计,CHF",
       "note": "按月预估。EUR 兑 CHF 按 {eur},USD 兑 CHF 按 {usd}。假设通过 NUXT_STATS_* 设置。",
       "aiUnavailable": "无法读取 AI 成本,按 0 计算。"
+    }
+  },
+  "admin": {
+    "title": "管理",
+    "navLabel": "管理页面",
+    "nav": {
+      "overview": "概览",
+      "stats": "产品统计",
+      "investor": "投资者摘要",
+      "aiSpend": "AI 成本",
+      "abuseReports": "滥用举报"
+    },
+    "hub": {
+      "title": "管理",
+      "intro": "管理此实例：数据、AI 成本和审核队列。",
+      "aiSpend30": "AI 成本，30 天",
+      "abuseActive": "待处理或审核中",
+      "description": {
+        "stats": "用户、内容、AI、收入和运营，含趋势与 CSV 下载。",
+        "investor": "关键数据和 12 个月的增长，集中在一个可打印的页面上。",
+        "aiSpend": "按功能统计任意日期范围内的 AI 成本，数据来自 AI 代理的日志。",
+        "abuseReports": "来自举报表单的举报：审核并作出决定。"
+      }
+    },
+    "abuse": {
+      "title": "滥用举报",
+      "intro": "通过 /legal/abuse 表单提交的举报。通过电子邮件发送的举报会进入滥用邮箱，不在此列出。",
+      "filter": {
+        "label": "显示",
+        "active": "待处理队列",
+        "all": "全部"
+      },
+      "status": {
+        "open": "未处理",
+        "acknowledged": "已确认",
+        "actioned": "已处理",
+        "dismissed": "已驳回"
+      },
+      "refresh": "刷新",
+      "loading": "正在加载举报…",
+      "empty": "此视图中没有举报。",
+      "loadFailed": "无法加载举报",
+      "updateFailed": "无法更新举报",
+      "done": {
+        "acknowledged": "举报已确认",
+        "actioned": "已采取措施",
+        "dismissed": "举报已驳回"
+      },
+      "reporter": "举报人",
+      "accountDeleted": "账户已删除",
+      "emailSnapshot": "账户已删除，保留邮箱用于跟进",
+      "mailSubject": "回复：举报 {id}",
+      "reported": "举报时间",
+      "document": "文档",
+      "notes": "备注",
+      "signedIn": "举报人已登录",
+      "notSignedIn": "举报人未登录",
+      "goodFaith": "已确认善意声明",
+      "goodFaithLegacy": "无善意声明（较早的举报）",
+      "decision": "决定",
+      "notices": "通知（{n}）",
+      "noticeKind": {
+        "receipt": "发给举报人的回执",
+        "decision": "发给举报人的决定",
+        "statement_of_reasons": "发给所有者的理由说明"
+      },
+      "noticeStatus": {
+        "sent": "已发送",
+        "not_delivered_no_contact": "未发送，无联系方式",
+        "failed": "失败"
+      },
+      "handledBy": "{status}，处理人 {name} · {date}",
+      "actionLabel": "措施",
+      "ruleLabel": "规则",
+      "actionOption": {
+        "content_removed": "移除文档",
+        "access_restricted": "限制访问（设为私有）"
+      },
+      "decisionAction": {
+        "content_removed": "文档已移除",
+        "access_restricted": "访问已限制",
+        "no_action": "未采取措施"
+      },
+      "rule": {
+        "illegal_content": "非法内容",
+        "csam": "儿童性虐待材料",
+        "phishing_or_fraud": "钓鱼、骗局或欺诈",
+        "malware": "恶意软件或有害下载",
+        "spam_or_seo": "垃圾信息或搜索引擎操纵",
+        "copyright": "侵犯版权或知识产权",
+        "harassment_or_hate": "骚扰、威胁或仇恨言论",
+        "privacy_violation": "他人的个人数据",
+        "other_terms": "其他违反条款的行为"
+      },
+      "explanationPlaceholder": "说明。会发送给举报人；移除或限制时，也会作为理由说明发送给所有者。",
+      "notesPlaceholder": "备注（可选，仅内部可见，记入审计日志）",
+      "acknowledge": "确认",
+      "dismiss": "驳回",
+      "takeAction": "采取措施"
+    },
+    "aiSpend": {
+      "title": "AI 成本",
+      "intro": "按功能统计日期范围内的 AI 成本，AI 代理日志中每次调用一行。“其他”较大表示有调用位置未发送功能标签。",
+      "from": "从",
+      "to": "到",
+      "refresh": "显示",
+      "totals": "合计",
+      "byFeature": "按功能",
+      "otherHint": "按工作区、人员或文档：API 端点 /api/admin/axis-spend。",
+      "tokens": "Token",
+      "loadFailed": "无法加载 AI 成本",
+      "empty": "此范围内没有数据。"
     }
   }
 }

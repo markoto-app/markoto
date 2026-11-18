@@ -9,7 +9,7 @@ import {
   activation, cancellingGroups, documentStats, editors, firstSignupDay, opsCounts, retentionCohorts,
   revenueCounts, signups, storedContentStats, subscriptionGroups, userTotals, workspaceStats, aiAppStats
 } from '../../server/repos/productStats'
-import { countSpendUsers, spendByFeature } from '../../server/repos/litellmSpend'
+import { listSpendUserIds, spendByFeature } from '../../server/repos/litellmSpend'
 import { anonymiseSubscriptionEventsOfUser, listSubscriptionEventsOfUser, recordSubscriptionEvent } from '../../server/repos/subscriptionEvents'
 import { runAiSpendRollup } from '../../server/utils/litellm/aiSpendRollup'
 import { markSessionUserActive, findSessionUser } from '../../server/repos/users'
@@ -272,7 +272,7 @@ describe('product stats', () => {
     const totals = sumSpendRows(await spendByFeature(admin, { from: w30.from, to: lastDay }))
     expect(totals.spend).toBeCloseTo(0.8)
     expect(totals.requests).toBe(3)
-    expect(await countSpendUsers(admin, { from: w30.from, to: lastDay })).toBe(2)
+    expect((await listSpendUserIds(admin, { from: w30.from, to: lastDay })).sort((a, b) => a - b)).toEqual([ids.u1, ids.u2].sort((a, b) => a - b))
     const rows = await spendByFeature(admin, { from: w30.from, to: lastDay, bucket: 'day' })
     expect(rows.every(r => typeof r.bucket === 'string')).toBe(true)
     const byFeature = new Map<string | null, number>()
@@ -287,6 +287,20 @@ describe('product stats', () => {
     expect(ai.costPerAiUserUsd).toBeCloseTo(0.4)
     expect(ai.costPerActiveUserUsd).toBeCloseTo(0.4)
     expect(ai.byFeature[0]).toEqual({ feature: 'feature:text-loop', spendUsd: 0.5, requests: 1 })
+  })
+
+  it('counts only existing accounts as people using AI', async () => {
+    // A deleted account's calls stay in the spend logs for 90 days.
+    const gone = (await createUser()).id
+    await seedSpend(['feature:text-loop', `user:${ids.u1}`], 0.3, ago(1))
+    await seedSpend(['feature:text-loop', `user:${gone}`], 0.3, ago(1))
+    await seedSpend(['feature:text-loop', 'user:not-a-number'], 0.3, ago(1))
+    await q('DELETE FROM users WHERE id = $1', [gone])
+    const ai = await buildAiStats(admin, w30, 4, now)
+    expect(ai.aiUsers.value).toBe(1)
+    expect(ai.aiUsers.value).toBeLessThanOrEqual((await userTotals(admin, w30)).registered)
+    // The cost per AI user still divides the whole cost by everyone who made a call.
+    expect(ai.costPerAiUserUsd).toBeCloseTo(0.45)
   })
 
   it('has no previous AI window once it is older than the history', async () => {

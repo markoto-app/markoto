@@ -3,30 +3,18 @@ import { STATS_RANGES, type AiStats, type ContentStats, type OpsStats, type Over
 import { ADMIN_STATS_TABS, useAdminStatsQuery, type AdminStatsTab } from '~/queries/adminStats'
 
 // Operator dashboard: product, revenue and usage stats of this instance.
-// Admin-gated on the server (`/api/admin/stats/*`); the page also sends
-// non-admins away so the layout never shows. Tab and range live in the
-// URL, so a view can be shared with another admin.
+// Admin-gated on the server (`/api/admin/stats/*`); `useAdminGate` sends
+// non-admins away. Tab and range live in the URL, so a view can be
+// shared with another admin.
+
+definePageMeta({ layout: 'admin' })
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { loggedIn } = useUserSession()
-const { primaryLoginPath } = useInstanceConfig()
-const { status: accountStatus } = useAccountStatus()
+const { isAdmin } = useAdminGate()
 
 useHead({ title: () => t('adminStats.pageTitle') })
-
-if (import.meta.client) {
-  watchEffect(() => {
-    if (!loggedIn.value) {
-      globalThis.location.href = primaryLoginPath.value ?? '/'
-    } else if (accountStatus.value && !accountStatus.value.isAdmin) {
-      void router.push('/')
-    }
-  })
-}
-
-const isAdmin = computed(() => loggedIn.value && accountStatus.value?.isAdmin === true)
 
 function pick<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
   return typeof value === 'string' && (allowed as readonly string[]).includes(value) ? value as T : fallback
@@ -47,54 +35,56 @@ const tabItems = computed(() => ADMIN_STATS_TABS.map(value => ({ label: t(`admin
 </script>
 
 <template>
-  <div
-    class="mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-10"
-    data-testid="admin-stats-page"
-  >
-    <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
-      <div>
-        <h1 class="font-serif text-3xl font-normal tracking-tight text-default mb-1">
-          {{ t('adminStats.title') }}
-        </h1>
-        <p class="text-sm text-muted">
-          {{ t('adminStats.intro') }} {{ t('adminStats.updated') }}
-        </p>
-      </div>
-      <UButton
-        to="/admin/stats/investor"
-        variant="outline"
-        icon="i-lucide-presentation"
-        data-testid="admin-stats-investor-link"
-      >
-        {{ t('adminStats.investorLink') }}
-      </UButton>
-    </div>
-
-    <div
-      class="flex flex-wrap items-center gap-1 mb-4"
-      role="group"
-      :aria-label="t('adminStats.range.label')"
+  <div data-testid="admin-stats-page">
+    <AdminPageHeader
+      :title="t('adminStats.title')"
+      :intro="`${t('adminStats.intro')} ${t('adminStats.updated')}`"
     >
-      <UButton
-        v-for="r in STATS_RANGES"
-        :key="r"
-        size="sm"
-        :variant="range === r ? 'solid' : 'ghost'"
-        :aria-pressed="range === r"
-        :data-testid="`admin-stats-range-${r}`"
-        @click="range = r"
-      >
-        {{ t(`adminStats.range.${r}`) }}
-      </UButton>
-    </div>
+      <template #actions>
+        <UButton
+          to="/admin/stats/investor"
+          size="sm"
+          variant="outline"
+          icon="i-lucide-presentation"
+          data-testid="admin-stats-investor-link"
+        >
+          {{ t('adminStats.investorLink') }}
+        </UButton>
+      </template>
+    </AdminPageHeader>
 
-    <UTabs
-      v-model="tab"
-      :items="tabItems"
-      :content="false"
-      variant="link"
-      class="mb-6 overflow-x-auto"
-    />
+    <div class="flex flex-col gap-3 mb-6 sm:mb-8 border-b border-default">
+      <div
+        class="flex flex-wrap items-center gap-1"
+        role="group"
+        :aria-label="t('adminStats.range.label')"
+      >
+        <span class="font-mono text-[11px] uppercase tracking-wider text-muted mr-2">
+          {{ t('adminStats.range.label') }}
+        </span>
+        <UButton
+          v-for="r in STATS_RANGES"
+          :key="r"
+          size="xs"
+          :variant="range === r ? 'solid' : 'ghost'"
+          :aria-pressed="range === r"
+          :data-testid="`admin-stats-range-${r}`"
+          @click="range = r"
+        >
+          {{ t(`adminStats.range.${r}`) }}
+        </UButton>
+      </div>
+      <div class="overflow-x-auto -mb-px">
+        <UTabs
+          v-model="tab"
+          :items="tabItems"
+          :content="false"
+          variant="link"
+          color="neutral"
+          class="min-w-max"
+        />
+      </div>
+    </div>
 
     <div
       v-if="error"
@@ -109,10 +99,7 @@ const tabItems = computed(() => ADMIN_STATS_TABS.map(value => ({ label: t(`admin
     >
       {{ t('adminStats.loading') }}
     </div>
-    <div
-      v-else
-      class="rounded-lg bg-muted p-3 sm:p-4"
-    >
+    <template v-else>
       <AdminStatsOverview
         v-if="tab === 'overview'"
         :data="data as OverviewStats"
@@ -142,6 +129,6 @@ const tabItems = computed(() => ADMIN_STATS_TABS.map(value => ({ label: t(`admin
         :data="data as OpsStats"
         :range="range"
       />
-    </div>
+    </template>
   </div>
 </template>

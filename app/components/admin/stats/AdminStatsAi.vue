@@ -34,73 +34,84 @@ const pool = computed(() => props.data.freePool)
 </script>
 
 <template>
-  <div class="space-y-6">
-    <p
-      v-if="spendNote"
-      class="text-sm text-muted"
+  <div class="space-y-8">
+    <AdminSection
+      :title="t('adminStats.section.aiUsage')"
+      :note="spendNote"
     >
-      {{ spendNote }}
-    </p>
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.aiSpend')"
-        :value="usd(data.spendUsd.value)"
-        :kpi="data.spendUsd"
-        lower-is-better
+      <AdminStatsKpiGrid>
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.aiSpend')"
+          :value="usd(data.spendUsd.value)"
+          :kpi="data.spendUsd"
+          lower-is-better
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.aiRequests')"
+          :value="n(data.requests.value)"
+          :kpi="data.requests"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.aiUsers')"
+          :value="n(data.aiUsers.value)"
+          :kpi="data.aiUsers"
+          :hint="t('adminStats.hint.aiUsersDefinition')"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.costPerAiUser')"
+          :value="usd(data.costPerAiUserUsd)"
+          :hint="`${t('adminStats.kpi.costPerActiveUser')}: ${usd(data.costPerActiveUserUsd)}`"
+        />
+      </AdminStatsKpiGrid>
+    </AdminSection>
+    <AdminSection :title="t('adminStats.section.aiAccess')">
+      <AdminStatsKpiGrid>
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.freePool')"
+          :value="pool.capUsd === null ? usd(pool.spentThisMonthUsd) : statsPercent(pool.pct, locale)"
+          :hint="pool.capUsd === null ? t('adminStats.hint.freePoolOff') : t('adminStats.hint.freePool', { spent: usd(pool.spentThisMonthUsd), cap: usd(pool.capUsd) })"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.byokUsers')"
+          :value="n(data.byok.users)"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.mcpSessions')"
+          :value="n(data.mcp.sessions.value)"
+          :kpi="data.mcp.sessions"
+        />
+        <AdminStatsKpi
+          :label="t('adminStats.kpi.mcpTokens')"
+          :value="n(data.mcp.activeTokens)"
+        />
+      </AdminStatsKpiGrid>
+    </AdminSection>
+    <AdminSection
+      v-if="chartDatasets.length > 0"
+      :title="t('adminStats.section.trends')"
+    >
+      <ClientOnly>
+        <AdminStatsChart
+          type="bar"
+          stacked
+          kind="money"
+          :title="t('adminStats.chart.aiSpend')"
+          :labels="chartLabels"
+          :datasets="chartDatasets"
+          :format-value="usd"
+          :height="280"
+        />
+      </ClientOnly>
+    </AdminSection>
+    <AdminSection :title="t('adminStats.section.details')">
+      <AdminStatsTable
+        :title="t('adminStats.section.aiSpend')"
+        name="ai-cost"
+        :range="range"
+        :columns="featureColumns"
+        :rows="featureRows"
+        :csv-rows="featureCsv"
       />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.aiRequests')"
-        :value="n(data.requests.value)"
-        :kpi="data.requests"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.aiUsers')"
-        :value="n(data.aiUsers.value)"
-        :kpi="data.aiUsers"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.costPerAiUser')"
-        :value="usd(data.costPerAiUserUsd)"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.costPerActiveUser')"
-        :value="usd(data.costPerActiveUserUsd)"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.freePool')"
-        :value="pool.capUsd === null ? usd(pool.spentThisMonthUsd) : statsPercent(pool.pct, locale)"
-        :hint="pool.capUsd === null ? t('adminStats.hint.freePoolOff') : t('adminStats.hint.freePool', { spent: usd(pool.spentThisMonthUsd), cap: usd(pool.capUsd) })"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.byokUsers')"
-        :value="n(data.byok.users)"
-      />
-      <AdminStatsKpi
-        :label="t('adminStats.kpi.mcpSessions')"
-        :value="n(data.mcp.sessions.value)"
-        :kpi="data.mcp.sessions"
-        :hint="`${t('adminStats.kpi.mcpTokens')}: ${n(data.mcp.activeTokens)}`"
-      />
-    </div>
-    <ClientOnly>
-      <AdminStatsChart
-        v-if="chartDatasets.length > 0"
-        type="bar"
-        stacked
-        :title="t('adminStats.chart.aiSpend')"
-        :labels="chartLabels"
-        :datasets="chartDatasets"
-        :format-value="usd"
-        :height="280"
-      />
-    </ClientOnly>
-    <AdminStatsTable
-      :title="t('adminStats.section.aiSpend')"
-      name="ai-cost"
-      :range="range"
-      :columns="featureColumns"
-      :rows="featureRows"
-      :csv-rows="featureCsv"
-    />
+    </AdminSection>
   </div>
 </template>
