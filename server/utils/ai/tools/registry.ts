@@ -15,6 +15,8 @@ import { searchActivityLogTool } from './activityTools'
 import { getKnowledgeFileTool, searchKnowledgeTool } from './knowledgeTools'
 import { outlineTool, readSectionTool, searchDocumentTool } from './sectionTools'
 import { deleteSectionTool, editLinesTool, insertMarkdownTool, moveSectionTool, replaceAllTool, replaceSectionTool, setHeadingTool } from './structuralEditTools'
+import { loadSkillTool } from './skillTools'
+import { delegateRewriteTool, delegateScanTool } from './delegateTools'
 
 // The AI tool registry: every tool the in-app loop, the MCP server and the
 // test-only exec route can run, in the order the model is shown them. The
@@ -60,7 +62,10 @@ const CORE_TOOLS = [
   deleteSectionTool,
   setHeadingTool,
   replaceAllTool,
-  editLinesTool
+  editLinesTool,
+  loadSkillTool,
+  delegateScanTool,
+  delegateRewriteTool
 ] as const
 
 /**

@@ -5,7 +5,8 @@ import type { PlanName } from '~~/shared/config/tiers'
 import { aiClientUserId, type SessionJwtPayload } from '~~/shared/contracts/jwt'
 import { checkout, release, type PoolEntry } from '../mcp/yDocPool'
 import type { ToolContext, ToolStatusPhase } from '../agentic/toolContext'
-import { toStatusLine, type AiStatusInput } from '~~/shared/ai/statusSteps'
+import { aiStatus, toStatusLine, type AiStatusInput } from '~~/shared/ai/statusSteps'
+import type { JobConfirmationDetails } from '~~/shared/ai/jobConfirmation'
 import type { ResolvedAiProviders } from '../aiProviders/resolve'
 import type { AiSessionChannel } from '../agentic/sessionChannel'
 import { useEnv } from '~~/shared/env/load'
@@ -58,6 +59,8 @@ export interface SessionMeta {
    * card. Undefined for normal prompt-bar / selection-popup sessions.
    */
   commentThreadId?: string | null
+  /** When the session is aborted (epoch ms), for tools that wait (`sessionDeadlineAt`). */
+  deadlineAt?: number
 }
 
 /**
@@ -174,6 +177,13 @@ export async function createAiSession(
     void meta.channel.setResponse(response)
   }
 
+  // A delegated job's cost confirmation: same initiator-only round trip as
+  // the taint gate (deny / timeout / error = not allowed).
+  const confirmJob = (details: JobConfirmationDetails) => {
+    updateStatus('tool', aiStatus('waitingConfirmation'))
+    return meta.channel.requestConfirmation({ tool: 'delegate_rewrite', target: null, kind: 'job', job: details }, signal)
+  }
+
   const destroy = async (): Promise<void> => {
     // Broadcast the AI's disappearance before releasing, collaborators
     // see the avatar drop immediately rather than waiting for idle
@@ -210,6 +220,9 @@ export async function createAiSession(
     aiProviders: meta.aiProviders,
     updateStatus,
     deliverResponse,
+    confirmJob,
+    sessionDeadlineAt: meta.deadlineAt,
+    sessionSignal: signal,
     channel: meta.channel,
     provider: entry.provider,
     destroy

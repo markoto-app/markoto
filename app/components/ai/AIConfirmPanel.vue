@@ -40,9 +40,32 @@ function deny(): void {
 
 const { t, te } = useI18n()
 
+const isJob = computed(() => props.request?.kind === 'job' && !!props.request.job)
+
+function money(usd: number): string {
+  return usd < 0.01 ? `$${usd.toFixed(3)}` : `$${usd.toFixed(2)}`
+}
+
+/** "Translate 152 sections to English: about $0.11 (22 % of this month's allowance), about 5 minutes." */
+const jobQuestion = computed(() => {
+  const job = props.request?.job
+  if (!job) return ''
+  const what = job.mode === 'translate' && job.targetLanguage
+    ? t('ai.confirm.job.modes.translateTo', { count: job.units, language: job.targetLanguage })
+    : t(`ai.confirm.job.modes.${job.mode}`, { count: job.units })
+  const cost = job.usd === null
+    ? t('ai.confirm.job.tokens', { tokens: (job.inputTokens + job.outputTokens).toLocaleString() })
+    : job.allowanceShare === null
+      ? t('ai.confirm.job.cost', { cost: money(job.usd) })
+      : t('ai.confirm.job.costShare', { cost: money(job.usd), share: `${Math.max(1, Math.round(job.allowanceShare * 100))} %` })
+  const minutes = t('ai.confirm.job.minutes', { minutes: Math.max(1, Math.round(job.minutes)) })
+  return t('ai.confirm.job.question', { what, cost, minutes })
+})
+
 const question = computed(() => {
   const r = props.request
   if (!r) return ''
+  if (isJob.value) return jobQuestion.value
   const key = `ai.confirm.tools.${r.tool}`
   if (te(key)) return t(key, { target: r.target ?? '' })
   return t('ai.confirm.tools.generic', { tool: r.tool })
@@ -59,6 +82,7 @@ const question = computed(() => {
       :aria-label="t('ai.confirm.label')"
       data-testid="ai-confirm-panel"
       :data-tool="request.tool"
+      :data-kind="isJob ? 'job' : 'tool'"
     >
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div class="flex min-w-0 flex-1 items-start gap-3">
@@ -77,7 +101,7 @@ const question = computed(() => {
               {{ question }}
             </p>
             <p class="mt-1 text-xs text-muted">
-              {{ t('ai.confirm.reason') }}
+              {{ isJob ? t('ai.confirm.job.reason') : t('ai.confirm.reason') }}
             </p>
           </div>
         </div>
@@ -90,7 +114,7 @@ const question = computed(() => {
             data-testid="ai-confirm-deny"
             @click="deny"
           >
-            {{ t('ai.confirm.deny') }}
+            {{ isJob ? t('ai.confirm.job.cancel') : t('ai.confirm.deny') }}
           </UButton>
           <UButton
             color="neutral"
@@ -99,7 +123,7 @@ const question = computed(() => {
             data-testid="ai-confirm-allow"
             @click="emit('allow')"
           >
-            {{ t('ai.confirm.allow') }}
+            {{ isJob ? t('ai.confirm.job.start') : t('ai.confirm.allow') }}
           </UButton>
         </div>
       </div>

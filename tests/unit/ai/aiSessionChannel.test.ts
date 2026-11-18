@@ -145,3 +145,29 @@ describe('AiSessionChannel', () => {
     expect(await pending).toEqual({ allowed: false, note: null })
   })
 })
+
+describe('job confirmations (delegated jobs)', () => {
+  const job = { mode: 'translate' as const, units: 152, usd: 0.11, minutes: 4.8, allowanceShare: 0.22, targetLanguage: 'English', inputTokens: 600_000, outputTokens: 125_000 }
+
+  it('carries the estimate to the initiator and a deny note back', async () => {
+    const store = createMemoryChannelStore()
+    const ch = new AiSessionChannel('s1', store)
+    await ch.open(meta)
+    const pending = ch.requestConfirmation({ tool: 'delegate_rewrite', target: null, kind: 'job', job }, new AbortController().signal, 5_000)
+    const snap = await vi.waitFor(async () => {
+      const s = await readSessionChannel('s1', store)
+      if (!s?.confirmation) throw new Error('not yet')
+      return s
+    })
+    expect(snap.confirmation).toMatchObject({ tool: 'delegate_rewrite', kind: 'job', job })
+    expect(await answerSessionConfirmation('s1', snap.confirmation!.id, { allow: false, note: 'Only chapter 3' }, store)).toBe(true)
+    expect(await pending).toEqual({ allowed: false, note: 'Only chapter 3' })
+  })
+
+  it('a job confirmation with unreadable details is not shown (it times out as a deny)', async () => {
+    const store = createMemoryChannelStore()
+    await store.set('ai:session-channel:s1:meta', JSON.stringify(meta), 1000)
+    await store.set('ai:session-channel:s1:confirm', JSON.stringify({ id: 'c1', tool: 'delegate_rewrite', target: null, expiresAt: Date.now() + 1000, kind: 'job', job: { mode: 'delete_all' } }), 1000)
+    expect((await readSessionChannel('s1', store))?.confirmation).toBeNull()
+  })
+})

@@ -389,6 +389,45 @@ const T7_ADD_TABLE: BenchTask = {
   verify: (_initial, final) => (chapter(final, 2).text.includes('Table: Teams der Abteilung Betrieb') ? null : 'table not in chapter 2')
 }
 
+// Variant `step8`: the rule-like rewrites go to a delegated job
+// (`delegate_rewrite`). The planner previews, starts and reports; the
+// worker calls are modelled by `jobModel.ts` and reported separately.
+
+/** The job id from a delegate_rewrite preview result. */
+function jobIdOf(res: ToolOutcome): string {
+  const m = /^job_id: (\S+)$/m.exec(res.output)
+  if (res.isError || !m) throw new Error(`delegate_rewrite preview failed: ${res.output.slice(0, 200)}`)
+  return m[1]!
+}
+
+const T4_TRANSLATE_DELEGATED: BenchTask = {
+  id: 'T4-translate-section',
+  variant: 'step8',
+  title: 'Translate section 9.2 (~1500 words) to French, delegated',
+  prompt: T4_TRANSLATE.prompt,
+  async script(api) {
+    const preview = await api.call('delegate_rewrite', { targets: ['9.2'], mode: 'translate', target_language: 'French', instruction: 'Translate faithfully into French; keep names, product names and numbers.', preview: 1 })
+    const started = await api.call('delegate_rewrite', { job_id: jobIdOf(preview), action: 'start' })
+    if (started.isError) throw new Error(`start failed: ${started.output.slice(0, 200)}`)
+    await api.call('message_to_user', { message: 'Section 9.2 is being translated into French in the background; you can follow it above the prompt bar and undo it in the Activity Log.' })
+  }
+}
+
+const T6_FORMAL_TONE_DELEGATED: BenchTask = {
+  id: 'T6-formal-tone',
+  variant: 'step8',
+  title: 'Formal tone across the whole document, delegated',
+  prompt: T6_FORMAL_TONE.prompt,
+  async script(api) {
+    await openDocument(api)
+    const preview = await api.call('delegate_rewrite', { targets: 'all', mode: 'rewrite', instruction: 'Raise the register to formal, factual German: no colloquial phrases, no second person; keep content, numbers, names and structure.', preview: 2 })
+    const started = await api.call('delegate_rewrite', { job_id: jobIdOf(preview), action: 'start' })
+    if (started.isError) throw new Error(`start failed: ${started.output.slice(0, 200)}`)
+    api.reportProgress(1)
+    await api.call('message_to_user', { message: 'The whole document is being rewritten in a more formal tone in the background; progress shows above the prompt bar, and Undo is in the Activity Log.' })
+  }
+}
+
 export const BASELINE_TASKS: readonly BenchTask[] = [
   T1_REVIEW,
   T2_SWAP,
@@ -396,5 +435,7 @@ export const BASELINE_TASKS: readonly BenchTask[] = [
   T4_TRANSLATE,
   T5_RENAME,
   T6_FORMAL_TONE,
-  T7_ADD_TABLE
+  T7_ADD_TABLE,
+  T4_TRANSLATE_DELEGATED,
+  T6_FORMAL_TONE_DELEGATED
 ]

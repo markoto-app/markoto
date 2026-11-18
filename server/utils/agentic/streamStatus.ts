@@ -166,6 +166,20 @@ function describeResolveComment(args: Record<string, unknown>): AiStatusLine {
   return aiStatus(args.resolved === true ? 'resolveComment' : 'reopenComment')
 }
 
+function describeDelegateRewrite(args: Record<string, unknown>): AiStatusLine {
+  switch (args.action) {
+    case 'start':
+    case 'resume':
+    case 'rerun':
+      return aiStatus('startJob')
+    case 'status':
+    case 'cancel':
+      return aiStatus('jobStatus')
+    default:
+      return aiStatus('previewJob')
+  }
+}
+
 /**
  * Tool-name → formatter registry. The few cases that don't fit the
  * shared `fieldStatus` shape (update_theme, replace_text, view_other_document,
@@ -190,6 +204,7 @@ const FORMATTERS: Record<string, (args: Record<string, unknown>) => AiStatusLine
   set_heading: () => aiStatus('editDocument'),
   replace_all: a => (a.preview === false ? fieldStatus(a, 'query', 'editDocument', 'editPassage', 'passage', 40) : aiStatus('readDocument')),
   edit_lines: () => aiStatus('editDocument'),
+  load_skill: () => aiStatus('thinking'),
   update_theme: describeUpdateTheme,
   get_theme: () => aiStatus('readTheme'),
   list_themes: () => aiStatus('listThemes'),
@@ -206,7 +221,9 @@ const FORMATTERS: Record<string, (args: Record<string, unknown>) => AiStatusLine
   create_comment: () => aiStatus('addComment'),
   reply_to_comment: describeReplyToComment,
   resolve_comment: describeResolveComment,
-  delete_comment: () => aiStatus('deleteComment')
+  delete_comment: () => aiStatus('deleteComment'),
+  delegate_scan: () => aiStatus('scanDocument'),
+  delegate_rewrite: describeDelegateRewrite
 }
 
 /**

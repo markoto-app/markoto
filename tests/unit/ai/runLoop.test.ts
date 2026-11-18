@@ -1083,6 +1083,34 @@ describe('runAgenticLoop: mid-stream transport failure', () => {
   })
 })
 
+describe('runAgenticLoop: opening the stream', () => {
+  it('a 429 when opening the turn is retried after the wait it names', async () => {
+    const { ai, seen } = scriptedAi([
+      { chunks: [], openError: Object.assign(withStatus(new Error('429 rate limited'), 429), { headers: { 'retry-after': '0.01' } }) },
+      { chunks: [{ text: 'All done.', finishReason: FinishReason.STOP }] }
+    ])
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus }))
+    expect(seen).toHaveLength(2)
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
+  })
+
+  it('a 503 when opening the turn gets the one transport retry', async () => {
+    const { ai, seen } = scriptedAi([
+      { chunks: [], openError: withStatus(new Error('503 upstream unavailable'), 503) },
+      { chunks: [{ text: 'All done.', finishReason: FinishReason.STOP }] }
+    ])
+    await runAgenticLoop(makeOpts({ ai }))
+    expect(seen).toHaveLength(2)
+  })
+
+  it('an open error without a status (no request was sent) is not retried', async () => {
+    const { ai, seen } = scriptedAi([{ chunks: [], openError: new Error('No AI chat provider is configured.') }])
+    await expect(runAgenticLoop(makeOpts({ ai }))).rejects.toThrow('No AI chat provider')
+    expect(seen).toHaveLength(1)
+  })
+})
+
 describe('runAgenticLoop: closing turn', () => {
   it('at the turn limit, a forced message_to_user tells the user what is done', async () => {
     executeFunctionByName.mockResolvedValue({ content: 'ok', isError: false })

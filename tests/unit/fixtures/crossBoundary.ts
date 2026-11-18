@@ -3,6 +3,7 @@ import { CrossBoundaryGuard, type CrossBoundaryDeps } from '../../../server/util
 function defaultDeps(deps: Partial<CrossBoundaryDeps>): CrossBoundaryDeps {
   return {
     isDocSolo: async () => true,
+    isSessionDocSolo: async () => true,
     describeDoc: async () => null,
     commentsHaveForeignAuthors: () => false,
     workspaceHasOtherEditors: async () => false,

@@ -66,7 +66,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     ? defaultEventSourceFactory()
     : options.createEventSource
 
-  const { activeSessions, mySessionId, otherSessions } = useAwarenessAiSessions(awareness)
+  const { activeSessions, mySessionId, myJobIds, otherSessions } = useAwarenessAiSessions(awareness)
 
   const submitting = ref(false)
   const lastError = ref<string | null>(null)
@@ -201,6 +201,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     activeSessions,
     mySession,
     mySessionId,
+    myJobIds,
     otherSessions,
     submitting,
     lastError: readonly(lastError),

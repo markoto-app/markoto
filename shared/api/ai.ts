@@ -83,3 +83,12 @@ export const requestUploadBody = z.object({
 
 /** POST /api/upload/confirm */
 export const confirmUploadBody = z.object({ key: z.string().min(1) })
+
+/** Ids of delegated AI jobs (`j-` + nanoid). */
+const AI_JOB_ID_RE = /^j-[A-Za-z0-9_-]{6,40}$/
+
+/** `:docId/:jobId` of /api/docs/:docId/ai-jobs/:jobId/**. */
+export const aiJobParams = z.object({ docId: z.string().min(1), jobId: z.string().regex(AI_JOB_ID_RE) })
+
+/** POST /api/docs/:docId/ai-jobs/:jobId/{cancel,resume,revert}: no fields. */
+export const aiJobActionBody = z.object({}).nullish()

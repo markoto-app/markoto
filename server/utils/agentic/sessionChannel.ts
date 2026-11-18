@@ -5,6 +5,7 @@ import { MINUTE_MS } from '~~/shared/config/units'
 import { useLogger } from '../platform/logger'
 import { parseAiStatusStep, type AiStatusStep } from '~~/shared/ai/statusSteps'
 import { CONFIRM_NOTE_MAX_LENGTH } from '~~/shared/api/ai'
+import { JOB_CONFIRMATION_MODES, type JobConfirmationDetails } from '~~/shared/ai/jobConfirmation'
 
 const log = useLogger('ai-session-channel')
 
@@ -150,10 +151,16 @@ export interface ChannelResponse {
   ts: number
 }
 
-/** What the initiator is asked to allow. `target` is a human-readable label (doc title, query, URL). */
+/**
+ * What the initiator is asked to allow. `target` is a human-readable label
+ * (doc title, query, URL). `kind: 'job'` is the cost confirmation of a
+ * delegated job (with `job`); absent / `tool` the taint gate's question.
+ */
 export interface ConfirmationRequest {
   tool: string
   target: string | null
+  kind?: 'tool' | 'job'
+  job?: JobConfirmationDetails
 }
 
 /**
@@ -244,10 +251,35 @@ function readResponse(raw: string | null): ChannelResponse | null {
   return { message: v.message, isQuestion: v.isQuestion === true, ts: v.ts }
 }
 
+function numberOrNull(v: unknown): number | null {
+  return typeof v === 'number' && Number.isFinite(v) ? v : null
+}
+
+function readJobDetails(v: unknown): JobConfirmationDetails | null {
+  if (!isRecord(v) || !(JOB_CONFIRMATION_MODES as readonly unknown[]).includes(v.mode)) return null
+  const units = numberOrNull(v.units)
+  const minutes = numberOrNull(v.minutes)
+  if (units === null || minutes === null) return null
+  return {
+    mode: v.mode as JobConfirmationDetails['mode'],
+    units,
+    usd: numberOrNull(v.usd),
+    minutes,
+    allowanceShare: numberOrNull(v.allowanceShare),
+    targetLanguage: typeof v.targetLanguage === 'string' ? v.targetLanguage : null,
+    inputTokens: numberOrNull(v.inputTokens) ?? 0,
+    outputTokens: numberOrNull(v.outputTokens) ?? 0
+  }
+}
+
 function readConfirmation(raw: string | null): PendingConfirmation | null {
   const v = parseJson(raw)
   if (!isRecord(v) || typeof v.id !== 'string' || typeof v.tool !== 'string' || typeof v.expiresAt !== 'number') return null
-  return { id: v.id, tool: v.tool, target: typeof v.target === 'string' ? v.target : null, expiresAt: v.expiresAt }
+  const base: PendingConfirmation = { id: v.id, tool: v.tool, target: typeof v.target === 'string' ? v.target : null, expiresAt: v.expiresAt }
+  if (v.kind !== 'job') return base
+  // A job confirmation without readable details is not shown (and times out as a deny).
+  const job = readJobDetails(v.job)
+  return job ? { ...base, kind: 'job', job } : null
 }
 
 function logChannelError(what: string, e: unknown): void {
@@ -307,7 +339,13 @@ export class AiSessionChannel {
   ): Promise<ConfirmationAnswer> {
     const id = nanoid(16)
     const expiresAt = this.now() + timeoutMs
-    const pending: PendingConfirmation = { id, tool: request.tool, target: request.target, expiresAt }
+    const pending: PendingConfirmation = {
+      id,
+      tool: request.tool,
+      target: request.target,
+      expiresAt,
+      ...(request.kind === 'job' && request.job ? { kind: 'job' as const, job: request.job } : {})
+    }
     try {
       await this.store.set(confirmKey(this.sessionId), JSON.stringify(pending), CHANNEL_TTL_MS)
     } catch (e) {

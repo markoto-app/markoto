@@ -34,6 +34,13 @@ export interface ToolResult {
    * Takes precedence over the definition's `activity`.
    */
   activity?: AiToolActivityMetadata
+  /**
+   * The call changed the document although the tool is not a direct edit
+   * (`delegate_rewrite` started a background job that writes it): the
+   * in-app loop treats the session as having edited, so closing prose
+   * ("Done") is not shown as an answer.
+   */
+  countsAsEdit?: boolean
 }
 
 export function toolOk(content: string): ToolResult {

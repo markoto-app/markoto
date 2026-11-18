@@ -19,6 +19,7 @@ function makeGuard(init: Partial<CrossBoundaryInit> = {}, deps: Partial<CrossBou
     { initialTaint: null, invokerText: [], knowledgeFiles: new Map(), ...init },
     {
       isDocSolo: async () => true,
+      isSessionDocSolo: async () => true,
       describeDoc: async () => null,
       commentsHaveForeignAuthors: () => false,
       workspaceHasOtherEditors: async () => true,
@@ -277,5 +278,19 @@ describe('URL helpers', () => {
   it('extracts URLs from prose, dropping trailing punctuation', () => {
     expect([...extractTypedUrls('See https://a.example/x, and b.example.org.')].sort())
       .toEqual(['https://a.example/x', 'https://b.example.org'])
+  })
+})
+
+describe('delegated jobs', () => {
+  it('scan items and job excerpts taint the session when the document is shared', async () => {
+    const { guard } = makeGuard({}, { isSessionDocSolo: async () => false })
+    await guard.afterTool('delegate_scan', { targets: 'all', extract: 'terms' }, { isError: false })
+    expect(guard.tainted).toBe(true)
+  })
+
+  it('stay clean on a solo document', async () => {
+    const { guard } = makeGuard()
+    await guard.afterTool('delegate_rewrite', { job_id: 'j-x', action: 'status' }, { isError: false })
+    expect(guard.tainted).toBe(false)
   })
 })

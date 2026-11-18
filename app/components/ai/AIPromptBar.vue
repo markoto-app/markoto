@@ -20,7 +20,11 @@ const props = defineProps<{
     prompt: ReturnType<typeof useAI>['prompt']
     abort: ReturnType<typeof useAI>['abort']
     clearLastError: ReturnType<typeof useAI>['clearLastError']
+    /** My delegated jobs on the document (awareness); optional for callers / tests without jobs. */
+    myJobIds?: ReturnType<typeof useAI>['myJobIds']
   }
+  /** The document: shows the progress of my delegated AI jobs (`AIJobPanel`) when set. */
+  docId?: string
   /**
    * The document's workspace: inside a Team / Business workspace the AI
    * budget is the workspace's (member limit + team pool).
@@ -193,6 +197,7 @@ const statusIcon = computed(() => {
     case 'thinking': return 'i-lucide-brain'
     case 'tool': return 'i-lucide-wrench'
     case 'editing': return 'i-lucide-pencil'
+    case 'job': return 'i-lucide-layers'
     case 'error': return 'i-lucide-alert-circle'
     case 'done': return 'i-lucide-check-circle'
     // Fallback: pulsing-circle for no phase or any unknown active one. The
@@ -244,6 +249,13 @@ const { bottomOffset } = usePromptBarOffset()
     <!-- Allow / Deny for a cross-document, knowledge or web action the
          AI wants to take after reading other people's text. Private to
          the initiator (session channel), never broadcast. -->
+    <!-- Progress of my delegated job (translation, tone change over many
+         sections), private to me; it keeps running after the session. -->
+    <AIJobPanel
+      v-if="props.docId"
+      :doc-id="props.docId"
+      :my-job-ids="props.ai.myJobIds?.value ?? []"
+    />
     <AIConfirmPanel
       :request="props.ai.pendingConfirmation.value"
       :busy="props.ai.answeringConfirmation.value"

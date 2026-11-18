@@ -1,3 +1,4 @@
+import type { JobConfirmationDetails } from '~~/shared/ai/jobConfirmation'
 import { onScopeDispose } from 'vue'
 import type { AiConfirmationRequest, AiEventSource, AiResponseEntry, AiSessionOutcome } from '~/types/ai/session'
 import { parseAiStatusStep, type AiStatusStep } from '~~/shared/ai/statusSteps'
@@ -44,7 +45,14 @@ function parseStatusEvent(data: unknown): PrivateSessionStatus | null {
     : null
   const c = v.confirmation
   const confirmation = isRecord(c) && typeof c.id === 'string' && typeof c.tool === 'string' && typeof c.expiresAt === 'number'
-    ? { id: c.id, tool: c.tool, target: typeof c.target === 'string' ? c.target : null, expiresAt: c.expiresAt }
+    ? {
+        id: c.id,
+        tool: c.tool,
+        target: typeof c.target === 'string' ? c.target : null,
+        expiresAt: c.expiresAt,
+        // A job's cost confirmation (the server validated the details).
+        ...(c.kind === 'job' && isRecord(c.job) ? { kind: 'job' as const, job: c.job as unknown as JobConfirmationDetails } : {})
+      }
     : null
   return {
     sessionId: v.sessionId,

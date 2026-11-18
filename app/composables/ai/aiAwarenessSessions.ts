@@ -43,8 +43,18 @@ export function useAwarenessAiSessions(awareness: Awareness) {
     if (!loggedIn.value) return null
     const myId = sessionUser.value?.id
     if (typeof myId !== 'number') return null
-    const mine = activeSessions.value.find(s => s.initiatorUserId === myId)
+    // A delegated job joins with its own presence (phase `job`, its job id
+    // as the session id); it is not a prompt session: it has no session
+    // channel, and the prompt bar must stay usable while it runs.
+    const mine = activeSessions.value.find(s => s.initiatorUserId === myId && s.phase !== 'job')
     return mine?.sessionId ?? null
+  })
+
+  /** Ids of my delegated jobs working on the document right now (awareness phase `job`). */
+  const myJobIds = computed<string[]>(() => {
+    const myId = sessionUser.value?.id
+    if (!loggedIn.value || typeof myId !== 'number') return []
+    return activeSessions.value.filter(s => s.initiatorUserId === myId && s.phase === 'job').map(s => s.sessionId)
   })
 
   const otherSessions = computed<AiSessionInfo[]>(() => {
@@ -53,5 +63,5 @@ export function useAwarenessAiSessions(awareness: Awareness) {
     return activeSessions.value.filter(s => s.initiatorUserId !== myId)
   })
 
-  return { activeSessions, mySessionId, otherSessions }
+  return { activeSessions, mySessionId, myJobIds, otherSessions }
 }

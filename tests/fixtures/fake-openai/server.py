@@ -88,6 +88,46 @@ DESIGN_PROPOSAL = {
 DIRECTIVE_RE = re.compile(r"FAKE_DIRECTIVE\s+([a-z_]+)\s+(\{[^\n]*\})")
 MAX_OBEDIENT_TOOL_TURNS = 6
 
+# Delegated-job worker calls (server/utils/ai/jobs/workerPrompt.ts): the
+# system prompt starts with this sentence and the unit to transform is
+# between <unit> tags. The fake "translates" a unit into English filler
+# that keeps every heading level, blank line and placeholder (masked code,
+# links) in place, so the job's validators accept it; comment mode finds
+# nothing, scan mode reports one term.
+WORKER_PROMPT_PREFIX = "You transform one part of a Markdown document"
+WORKER_UNIT_RE = re.compile(r"<unit>\n([\s\S]*)\n</unit>")
+PLACEHOLDER_RE = re.compile(r"⟦P\d+⟧")
+WORKER_FILLER = "this translated text reads clearly in English and keeps the meaning of the original".split()
+
+
+def _is_worker_request(messages):
+    return bool(messages) and messages[0].get("role") == "system" and _content_text(messages[0]).startswith(WORKER_PROMPT_PREFIX)
+
+
+def _worker_line(line):
+    stripped = line.strip()
+    if not stripped or PLACEHOLDER_RE.fullmatch(stripped):
+        return line
+    holders = PLACEHOLDER_RE.findall(line)
+    if stripped.startswith("#"):
+        hashes = stripped.split(" ", 1)[0]
+        return " ".join([hashes, "Translated heading", *holders])
+    count = max(3, len(PLACEHOLDER_RE.sub("", stripped).split()))
+    words = [WORKER_FILLER[i % len(WORKER_FILLER)] for i in range(count)]
+    words[0] = words[0].capitalize()
+    return " ".join(words + holders) + "."
+
+
+def _worker_answer(messages):
+    user = _content_text(messages[-1])
+    if "JOB (mode: comment)" in user:
+        return "[]"
+    if "JOB (mode: scan)" in user:
+        return json.dumps([{"text": "Fake term"}])
+    match = WORKER_UNIT_RE.search(user)
+    unit = match.group(1) if match else ""
+    return "\n".join(_worker_line(line) for line in unit.split("\n"))
+
 
 def _content_text(message):
     content = message.get("content")
@@ -304,6 +344,9 @@ class Handler(BaseHTTPRequestHandler):
                 ],
             }
             finish = "tool_calls"
+        elif _is_worker_request(messages):
+            message = {"role": "assistant", "content": _worker_answer(messages)}
+            finish = "stop"
         else:
             message = {"role": "assistant", "content": "Done."}
             finish = "stop"

@@ -37,6 +37,24 @@ export function renderMarkdownReport(label: string, doc: DocumentInfo, prefix: S
 
   const total = (f: (r: TaskResult) => number): number => results.reduce((s, r) => s + f(r), 0)
 
+  const delegated = results.filter(r => r.worker)
+  const workerRows = delegated.map((r) => {
+    const w = r.worker!
+    return `| ${r.id} (${r.variant}) | ${w.calls} | ${k(w.inputTokens)} | ${k(w.outputTokens)} | ${usd(w.costUncachedUsd)} | ${usd(w.costCachedUsd)} | ${w.estimate ? `${w.estimate.units} units, ${usd(w.estimate.usd ?? 0)}, ${w.estimate.minutes} min` : '-'} | ${usd(r.costCachedUsd + w.costCachedUsd)} |`
+  })
+  const workerSection = delegated.length === 0
+    ? []
+    : [
+        '## Delegated jobs: modelled worker calls',
+        '',
+        'The planner session above only previews, starts and reports a job; the job\'s worker calls run outside it. They are modelled with the pure job modules (`buildJobUnits`, `maskText`, `buildWorkerPrompt`: input = the exact worker prompt per unit, output = the unit\'s masked text) on the `markoto-worker` alias price (GLM-5.3 Flash: $0.165 / $0.033 cached / $0.55 per M), the system prompt and job part cached after a job\'s first call. Preview calls included.',
+        '',
+        '| Task | Worker calls | Input tokens | Output tokens | Cost uncached | Cost cached prefix | Server estimate | Planner + worker (cached) |',
+        '|---|--:|--:|--:|--:|--:|---|--:|',
+        ...workerRows,
+        ''
+      ]
+
   return [
     `# AI loop benchmark: ${label}`,
     '',
@@ -59,6 +77,7 @@ export function renderMarkdownReport(label: string, doc: DocumentInfo, prefix: S
     ...rows.map(r => `| ${r} |`),
     `| **Total** | | ${total(r => r.modelCalls)} | ${total(r => r.toolCalls)} | ${k(total(r => r.inputTokens))} | ${k(total(r => r.inputChars))} | ${k(total(r => r.outputTokens))} | ${usd(total(r => r.costUncachedUsd))} | ${usd(total(r => r.costCachedUsd))} | | | | |`,
     '',
+    ...workerSection,
     '## Method and assumptions',
     '',
     `- Tokens = characters / ${CHARS_PER_TOKEN} (German prose on current BPE tokenizers; JSON and line-numbered tool output counted the same way). Characters are the message contents and tool-call names + JSON arguments of the OpenAI-shape request the loop would send (\`internalToOpenAIMessages\`), plus the tool declarations JSON (\`internalToOpenAITools\`); no per-message framing tokens.`,

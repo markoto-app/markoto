@@ -304,3 +304,56 @@ describe('ActivityFeed: restore-row affordances', () => {
     expect(card.find('.border-t').exists()).toBe(true)
   })
 })
+
+const revertCalls: { count: number } = { count: 0 }
+registerEndpoint('/api/docs/doc-x/ai-jobs/j-abcdef123456/revert', { method: 'POST', handler: () => {
+  revertCalls.count += 1
+  return { reverted: 5, skipped: 1 }
+} })
+
+function jobRow(id: number, over: Record<string, unknown> = {}): ActivityEntry {
+  return makeRestoreEntry({
+    id,
+    action: 'ai.job',
+    actorPrincipal: 'ai-job:j-abcdef123456',
+    agentKind: 'ai',
+    yjsDocIdBefore: null,
+    yjsDocIdAfter: null,
+    metadata: { kind: 'ai.job', jobId: 'j-abcdef123456', mode: 'translate', phase: 'finished', status: 'done', unitsTotal: 6, done: 5, skipped: 1, flagged: 0, ...over }
+  })
+}
+
+describe('ActivityFeed: delegated AI jobs', () => {
+  it('a finished job row says how much changed and offers Undo job with a confirm step', async () => {
+    revertCalls.count = 0
+    entriesResponse.current = [jobRow(60)]
+    const wrapper = await mountSuspended(ActivityFeed, { props: { docId: 'doc-x' } })
+    await flushAsyncState()
+    const card = wrapper.find('[data-activity-id="60"]')
+    expect(card.text()).toContain('5 of 6 parts changed')
+    await wrapper.find('[data-testid="activity-row-undo-job-60"]').trigger('click')
+    expect(card.text()).toContain('Restore what this job changed?')
+    await wrapper.find('[data-testid="activity-row-undo-job-yes-60"]').trigger('click')
+    await flushAsyncState()
+    expect(revertCalls.count).toBe(1)
+  })
+
+  it('no Undo for read-only viewers, started rows or review jobs', async () => {
+    entriesResponse.current = [jobRow(61), jobRow(62, { phase: 'started' }), jobRow(63, { mode: 'comment' })]
+    const ro = await mountSuspended(ActivityFeed, { props: { docId: 'doc-x', readOnly: true } })
+    await flushAsyncState()
+    expect(ro.find('[data-testid="activity-row-undo-job-61"]').exists()).toBe(false)
+    const rw = await mountSuspended(ActivityFeed, { props: { docId: 'doc-x' } })
+    await flushAsyncState()
+    expect(rw.find('[data-testid="activity-row-undo-job-61"]').exists()).toBe(true)
+    expect(rw.find('[data-testid="activity-row-undo-job-62"]').exists()).toBe(false)
+    expect(rw.find('[data-testid="activity-row-undo-job-63"]').exists()).toBe(false)
+  })
+
+  it('an undo row shows its counts', async () => {
+    entriesResponse.current = [makeRestoreEntry({ id: 64, action: 'ai.job.reverted', yjsDocIdBefore: null, metadata: { kind: 'ai.job.reverted', jobId: 'j-abcdef123456', mode: 'translate', reverted: 5, skipped: 1 } })]
+    const wrapper = await mountSuspended(ActivityFeed, { props: { docId: 'doc-x' } })
+    await flushAsyncState()
+    expect(wrapper.find('[data-activity-id="64"]').text()).toContain('5 parts restored, 1 left as edited')
+  })
+})

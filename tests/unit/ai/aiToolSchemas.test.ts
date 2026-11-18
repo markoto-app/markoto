@@ -496,6 +496,8 @@ describe('tool registry', () => {
     expect(declaredNames).toEqual([
       'create_comment',
       'create_document',
+      'delegate_rewrite',
+      'delegate_scan',
       'delete_comment',
       'delete_section',
       'duplicate_document',
@@ -511,6 +513,7 @@ describe('tool registry', () => {
       'list_my_documents',
       'list_themes',
       'list_workspace_documents',
+      'load_skill',
       'message_to_user',
       'move_section',
       'outline',

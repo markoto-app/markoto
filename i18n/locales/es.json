@@ -210,7 +210,9 @@
     "detail": {
       "titleChanged": "{from} → {to}",
       "replacedAll": "{count}× “{from}” → “{to}”",
-      "restoredFrom": "Desde {ago}"
+      "restoredFrom": "Desde {ago}",
+      "jobProgress": "{done} de {total} partes cambiadas",
+      "jobReverted": "{reverted} partes restauradas, {skipped} dejadas tal como se editaron"
     },
     "restore": {
       "button": {
@@ -266,7 +268,15 @@
       "knowledgeNote": "Función de conocimiento del espacio de trabajo.",
       "openViewedImage": "Abrir la imagen vista en una pestaña nueva"
     },
-    "viaAgent": "vía {agent}"
+    "viaAgent": "vía {agent}",
+    "job": {
+      "undo": "Deshacer",
+      "undoConfirm": "¿Restaurar lo que cambió esta edición?",
+      "undoYes": "Deshacer",
+      "undoNo": "Conservar",
+      "undone": "{reverted} partes restauradas; {skipped} editadas después se quedan como están.",
+      "undoFailed": "No se pudo deshacer la edición."
+    }
   },
   "comments": {
     "title": "Comentarios",
@@ -615,6 +625,24 @@
         "fetch_url": "markoto quiere abrir {target}",
         "view_image": "markoto quiere cargar la imagen {target}",
         "generic": "markoto quiere usar {tool}."
+      },
+      "job": {
+        "question": "{what}: {cost}, {minutes}.",
+        "reason": "Se ejecuta en segundo plano. Puedes cancelarla y deshacerla en el registro de actividad.",
+        "start": "Iniciar",
+        "cancel": "Cancelar",
+        "cost": "unos {cost}",
+        "costShare": "unos {cost} ({share} de tu asignación de este mes)",
+        "tokens": "unos {tokens} tokens con tu propia clave",
+        "minutes": "unos {minutes} min",
+        "modes": {
+          "translateTo": "Traducir {count} secciones al {language}",
+          "translate": "Traducir {count} secciones",
+          "rewrite": "Reescribir {count} secciones",
+          "terminology": "Actualizar los términos de {count} secciones",
+          "summarise": "Resumir {count} capítulos",
+          "comment": "Revisar {count} secciones"
+        }
       }
     },
     "placeholder": "Pregúntale a markoto…",
@@ -767,7 +795,38 @@
       "replyCommentAny": "Respondiendo a un comentario…",
       "resolveComment": "Resolviendo un comentario…",
       "reopenComment": "Reabriendo un comentario…",
-      "deleteComment": "Eliminando un comentario…"
+      "deleteComment": "Eliminando un comentario…",
+      "scanDocument": "Analizando el documento…",
+      "previewJob": "Probando el cambio en secciones de muestra…",
+      "startJob": "Iniciando la edición en segundo plano…",
+      "jobProgress": "Edición en segundo plano: {done} de {total} partes listas",
+      "jobStatus": "Comprobando la edición en segundo plano…"
+    },
+    "job": {
+      "label": "Edición en segundo plano",
+      "modes": {
+        "translate": "Traducción",
+        "rewrite": "Reescritura",
+        "terminology": "Terminología",
+        "summarise": "Resúmenes",
+        "comment": "Revisión"
+      },
+      "progress": "{done} de {total} partes",
+      "working": "Trabajando en {heading}",
+      "cost": "Coste hasta ahora: {cost}",
+      "cancel": "Cancelar",
+      "resume": "Reanudar",
+      "undo": "Deshacer",
+      "dismiss": "Cerrar",
+      "done": "Listo: {done} de {total} partes cambiadas.",
+      "cancelled": "Cancelada tras {done} de {total} partes.",
+      "paused": "En pausa: la asignación de IA está agotada.",
+      "interrupted": "Interrumpida. Reanúdala para continuar.",
+      "failed": "La edición en segundo plano se detuvo. {reason}",
+      "reverted": "Deshecha.",
+      "undone": "Deshecha: {count} partes restauradas.",
+      "skipped": "{count} partes se dejaron como estaban.",
+      "flagged": "{count} partes necesitan una revisión."
     }
   },
   "mobileTabBar": {

@@ -53,9 +53,14 @@ const MEMORY_SKIP_TOOLS: ReadonlySet<string> = new Set([
   'list_themes',
   'list_workspace_documents',
   'get_page_count',
+  // Guidance, not an action; a later prompt preselects or loads it again.
+  'load_skill',
   // Recording the memory query tool would make the history contain its own
   // lookups.
-  'search_activity_log'
+  'search_activity_log',
+  // Writes its own rows with the job id and progress (`delegateTools.ts`),
+  // which the call's arguments don't have yet.
+  'delegate_rewrite'
 ])
 
 // Non-recorded calls still execute; they just don't appear in the next
@@ -148,6 +153,8 @@ export function summarizeToolCall(name: string, args: unknown): string {
       return `comment_id=${trim(a.comment_id, 32)} body≈"${trim(a.body, 60)}"`
     case 'resolve_comment':
       return `comment_id=${trim(a.comment_id, 32)} resolved=${a.resolved}`
+    case 'delegate_scan':
+      return `extract=${trim(a.extract, 30)} targets=${typeof a.targets === 'string' ? a.targets : JSON.stringify(a.targets ?? null).slice(0, 60)}`
     case 'delete_comment': {
       const replyPart = a.reply_id ? ` reply_id=${trim(a.reply_id, 32)}` : ''
       return `comment_id=${trim(a.comment_id, 32)}${replyPart}`

@@ -210,7 +210,9 @@
     "detail": {
       "titleChanged": "{from} → {to}",
       "replacedAll": "{count}× “{from}” → “{to}”",
-      "restoredFrom": "来自 {ago}"
+      "restoredFrom": "来自 {ago}",
+      "jobProgress": "已更改 {done}/{total} 部分",
+      "jobReverted": "恢复了 {reverted} 部分,{skipped} 部分保留编辑后的内容"
     },
     "restore": {
       "button": {
@@ -266,7 +268,15 @@
       "knowledgeNote": "工作区知识功能。",
       "openViewedImage": "在新标签页中打开查看过的图片"
     },
-    "viaAgent": "通过 {agent}"
+    "viaAgent": "通过 {agent}",
+    "job": {
+      "undo": "撤销",
+      "undoConfirm": "恢复此编辑更改的内容?",
+      "undoYes": "撤销",
+      "undoNo": "保留",
+      "undone": "恢复了 {reverted} 部分;之后被编辑的 {skipped} 部分保持不变。",
+      "undoFailed": "无法撤销此编辑。"
+    }
   },
   "comments": {
     "title": "评论",
@@ -615,6 +625,24 @@
         "fetch_url": "markoto 想要打开 {target}",
         "view_image": "markoto 想要加载图片 {target}",
         "generic": "markoto 想要使用 {tool}。"
+      },
+      "job": {
+        "question": "{what}:{cost},{minutes}。",
+        "reason": "它在后台运行。你可以取消,也可以在活动记录中撤销。",
+        "start": "开始",
+        "cancel": "取消",
+        "cost": "约 {cost}",
+        "costShare": "约 {cost}(本月额度的 {share})",
+        "tokens": "使用你自己的密钥约 {tokens} 个令牌",
+        "minutes": "约 {minutes} 分钟",
+        "modes": {
+          "translateTo": "将 {count} 个章节翻译为{language}",
+          "translate": "翻译 {count} 个章节",
+          "rewrite": "改写 {count} 个章节",
+          "terminology": "更新 {count} 个章节中的术语",
+          "summarise": "总结 {count} 个章",
+          "comment": "审阅 {count} 个章节"
+        }
       }
     },
     "placeholder": "向 markoto 提问…",
@@ -767,7 +795,38 @@
       "replyCommentAny": "正在回复评论…",
       "resolveComment": "正在解决评论…",
       "reopenComment": "正在重新打开评论…",
-      "deleteComment": "正在删除评论…"
+      "deleteComment": "正在删除评论…",
+      "scanDocument": "正在扫描文档…",
+      "previewJob": "正在示例章节上试用此更改…",
+      "startJob": "正在启动后台编辑…",
+      "jobProgress": "后台编辑:已完成 {done}/{total} 部分",
+      "jobStatus": "正在检查后台编辑…"
+    },
+    "job": {
+      "label": "后台编辑",
+      "modes": {
+        "translate": "翻译",
+        "rewrite": "改写",
+        "terminology": "术语",
+        "summarise": "摘要",
+        "comment": "审阅"
+      },
+      "progress": "{done}/{total} 部分",
+      "working": "正在处理 {heading}",
+      "cost": "目前费用:{cost}",
+      "cancel": "取消",
+      "resume": "继续",
+      "undo": "撤销",
+      "dismiss": "关闭",
+      "done": "完成:已更改 {done}/{total} 部分。",
+      "cancelled": "在 {done}/{total} 部分后取消。",
+      "paused": "已暂停:AI 额度已用完。",
+      "interrupted": "已中断。继续即可接着处理。",
+      "failed": "后台编辑已停止。{reason}",
+      "reverted": "已撤销。",
+      "undone": "已撤销:恢复了 {count} 部分。",
+      "skipped": "{count} 部分保持原样。",
+      "flagged": "{count} 部分需要查看。"
     }
   },
   "mobileTabBar": {

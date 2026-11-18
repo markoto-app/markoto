@@ -4,7 +4,7 @@ import { parseSections } from '../tools/sections/parse'
 import { leadingWhitespace, trailingWhitespace, unitContext, unitRev, type JobMode, type JobUnit } from './units'
 import { maskText, unmaskText } from './mask'
 import { buildWorkerPrompt, type WorkerJobSpec } from './workerPrompt'
-import { parseCommentFindings, parseScanItems, retryFeedback, validateWorkerOutput } from './validate'
+import { parseCommentFindings, parseScanItems, retryFeedback, validateWorkerOutput, type CommentFinding, type ScanItem } from './validate'
 import { addStableAnchors, documentHeadingSlugs } from './anchors'
 import { checkGlossary } from './glossaryCheck'
 import { JOB_MAX_CONCURRENCY, JOB_REQUESTS_PER_MINUTE, maxTokensFor } from './estimate'
@@ -377,7 +377,9 @@ export class JobRunner {
   }
 
   private previewText(unit: AiJobUnitRow, original: string, answer: string, placeholders: string[]): string {
-    if (this.job.mode === 'comment' || this.job.mode === 'scan') return unmaskText(answer, placeholders)
+    // Findings and scan items: parsed first, then unmasked per field, so a
+    // placeholder's content (code with quotes, newlines) cannot break the JSON.
+    if (this.job.mode === 'comment' || this.job.mode === 'scan') return JSON.stringify(structuredOutput(this.job.mode, answer, placeholders))
     return composeUnitText(this.job, original, unmaskText(answer, placeholders))
   }
 
@@ -400,8 +402,8 @@ export class JobRunner {
     const delta = { done: 1, retried: stats.retried, costUsd: stats.costUsd, tokensIn: stats.tokensIn, tokensOut: stats.tokensOut }
     if (this.job.mode === 'comment' || this.job.mode === 'scan') {
       const output: AiJobUnitOutput = this.job.mode === 'comment'
-        ? { kind: 'comments', findings: parseCommentFindings(answer).map(f => ({ ...f, quote: unmaskText(f.quote, placeholders) })) }
-        : { kind: 'scan', items: parseScanItems(answer).map(i => ({ ...i, text: unmaskText(i.text, placeholders), ...(i.example ? { example: unmaskText(i.example, placeholders) } : {}) })) }
+        ? { kind: 'comments', findings: structuredOutput('comment', answer, placeholders) as CommentFinding[] }
+        : { kind: 'scan', items: structuredOutput('scan', answer, placeholders) as ScanItem[] }
       await this.deps.store.updateUnit(unit.ordinal, { ...base, status: 'applied', output })
       await this.progress(delta, unit.headingPath)
       return { status: 'applied' }
@@ -484,6 +486,12 @@ export class JobRunner {
     }
     if (flagged.length > 0) await this.deps.store.addProgress({ flagged: flagged.length })
   }
+}
+
+/** Comment findings or scan items of a worker answer, with placeholders restored in every text field. */
+function structuredOutput(mode: 'comment' | 'scan', answer: string, placeholders: readonly string[]): CommentFinding[] | ScanItem[] {
+  if (mode === 'comment') return parseCommentFindings(answer).map(f => ({ ...f, quote: unmaskText(f.quote, placeholders) }))
+  return parseScanItems(answer).map(i => ({ ...i, text: unmaskText(i.text, placeholders), ...(i.example ? { example: unmaskText(i.example, placeholders) } : {}) }))
 }
 
 export function progressOf(row: Pick<AiJobRow, 'id' | 'status' | 'unitsDone' | 'unitsSkipped' | 'unitsFlagged' | 'unitsTotal' | 'currentHeading' | 'costUsd' | 'costKnown'>): JobProgress {

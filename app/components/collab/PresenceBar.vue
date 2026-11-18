@@ -37,7 +37,7 @@ interface AiSessionMeta {
 }
 
 interface AiStatus {
-  // Known: 'thinking' | 'tool' | 'editing' | 'done' | 'error'. Wider
+  // Known: 'thinking' | 'tool' | 'editing' | 'done' | 'error' | 'job'. Wider
   // string accepts upstream additions without the union drifting.
   phase: string
 }

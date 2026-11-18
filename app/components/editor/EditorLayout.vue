@@ -573,13 +573,13 @@ useHead({
           />
         </RightPanelHost>
 
-        <!-- Overlay at the bottom of the content area, spanning editor + preview +
-             sidebar. Hidden in preview-only mode and when read-only. It positions
-             itself absolutely, so this `<main>` must stay `relative`. -->
+        <!-- Overlay at the bottom of the content area (editor + preview + sidebar), hidden in
+             preview-only mode and read-only; absolutely positioned, so `<main>` stays `relative`. -->
         <AIPromptBar
           v-if="!isReadOnly && viewMode !== 'preview'"
           :ai="ai"
           :workspace-id="docWorkspaceId"
+          :doc-id="docId"
         />
 
         <!-- The only panel navigation below `sm`. Tabs: Document, Comments,

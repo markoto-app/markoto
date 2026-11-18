@@ -21,7 +21,17 @@ vi.mock('../../../server/repos/aiSessionMessages', () => ({
   lastActivityAt: vi.fn(async () => null)
 }))
 
+// Delegated jobs (variant step8): the engine is modelled in memory
+// (`jobModel.ts`), the document facts and the remaining budget are fixed.
+vi.mock('../../../server/utils/ai/jobs/engine', async () => (await import('./jobModel')).benchEngine)
+vi.mock('../../../server/utils/ai/jobs/budget', () => ({ remainingBudgetUsd: vi.fn(async () => 0.5) }))
+vi.mock('../../../server/repos/documents', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../server/repos/documents')>()),
+  getDoc: vi.fn(async () => ({ language: 'de-CH', audience: 'technical' }))
+}))
+
 const { runAgenticLoop } = await import('../../../server/utils/agentic/runLoop')
+const { takeWorkerUsage } = await import('./jobModel')
 
 // Plain process.env: these only steer a manual run (which file to write, and
 // that `vitest run` without `bun run bench:ai` skips the benchmark).
@@ -51,7 +61,10 @@ describe.skipIf(!ENABLED)('AI loop benchmark (scripted planner, large document)'
 
   for (const task of BASELINE_TASKS) {
     it(`${task.id} (${task.variant})`, async () => {
+      takeWorkerUsage()
       const result = await runTask(task, { runAgenticLoop, document, systemPrompt, promptContext, wrapPrompt })
+      const worker = takeWorkerUsage()
+      if (worker.calls > 0) result.worker = worker
       results.push(result)
       expect(result.modelCalls).toBeGreaterThan(0)
       // A finished script must have edited the document as intended.

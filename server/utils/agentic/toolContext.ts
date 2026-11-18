@@ -5,6 +5,7 @@ import type { PlanName } from '~~/shared/config/tiers'
 import type { AiStatusInput } from '~~/shared/ai/statusSteps'
 import type { ResolvedAiProviders } from '../aiProviders/resolve'
 import type { DocAccess, UserScope, WorkspaceAccess } from '../../repos/proofs'
+import type { JobConfirmationDetails } from '~~/shared/ai/jobConfirmation'
 
 // Two-tiered tool context. The split exists to make a class of bug
 // IMPOSSIBLE: a META-typed handler (one that doesn't need Y.js state)
@@ -122,6 +123,16 @@ export interface DocToolContext extends MetaToolContext {
    *  via awareness). Absent where there is no initiator UI (MCP, test
    *  seams): the handler then only records conversation memory. */
   deliverResponse?(response: { message: string, isQuestion: boolean, ts: number }): void
+  /** Ask the initiator to start a delegated job at this cost (prompt bar,
+   *  initiator-only channel). Deny, timeout and errors resolve not allowed.
+   *  Absent where nobody can be asked (MCP, test seams): the tool then
+   *  refuses a job that needs a confirmation. */
+  confirmJob?(details: JobConfirmationDetails): Promise<{ allowed: boolean, note: string | null }>
+  /** When the in-app session is aborted (epoch ms); absent elsewhere. A
+   *  tool that waits (a small delegated job) stops well before it. */
+  sessionDeadlineAt?: number
+  /** The session's abort signal; absent elsewhere. */
+  sessionSignal?: AbortSignal
 }
 
 /**

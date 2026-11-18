@@ -38,6 +38,8 @@ const TARGET_MAX = 200
 export interface CrossBoundaryDeps {
   /** Is `docRef` (id or URL) a document only the invoker owns and edits? Unknown / unreadable → false. */
   isDocSolo(docRef: string): Promise<boolean>
+  /** Is the session's own document solo for the invoker (re-read: someone may have joined since the start)? */
+  isSessionDocSolo(): Promise<boolean>
   /** Human label (title) for a document reference the invoker can open; null when unknown. */
   describeDoc(docRef: string): Promise<string | null>
   /** Whether the session document's comments include anybody but the invoker. */
@@ -245,6 +247,13 @@ export class CrossBoundaryGuard {
         return
       case 'read_comments':
         if (this.deps.commentsHaveForeignAuthors()) this.taint('comments by other people')
+        return
+      case 'delegate_scan':
+      case 'delegate_rewrite':
+        // Scan items, preview excerpts and job reports quote the document
+        // the way view_document does; on a shared document that is other
+        // people's text.
+        if (!(await this.deps.isSessionDocSolo())) this.taint('the shared document')
         return
       default:
     }

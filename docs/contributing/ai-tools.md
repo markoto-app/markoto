@@ -48,7 +48,7 @@ Awareness reaches every participant, including read-only viewers and anonymous v
 |---|---|---|
 | Turns per session | `MAX_TURNS` in `runLoop.ts` | 20, then one closing turn (`loop/wrapUp.ts`) |
 | Interactions per session (turns plus sub-calls; `web_search` / `fetch_url` count 4) | `SESSION_INTERACTION_CAP` in `server/utils/agentic/limits.ts` | 50, then the session aborts with an error |
-| Calls per tool per session | `sessionCallCap` on the tool definition (collected as `SESSION_TOOL_CALL_CAPS` in `server/utils/ai/tools/registry.ts`) | `view_pages` 3, `generate_image` 5, `web_search` 10, `fetch_url` 10, `search_knowledge` 20, `search_activity_log` 8; over the cap the model gets a tool error |
+| Calls per tool per session | `sessionCallCap` on the tool definition (collected as `SESSION_TOOL_CALL_CAPS` in `server/utils/ai/tools/registry.ts`) | `view_pages` 3, `generate_image` 5, `web_search` 10, `fetch_url` 10, `search_knowledge` 20, `search_activity_log` 8, `load_skill` 4, `delegate_scan` 3, `delegate_rewrite` 6; over the cap the model gets a tool error |
 | Size of one tool result | `TOOL_RESULT_CHAR_CAP` in `server/utils/agentic/limits.ts`, applied by `loop/resultCap.ts` | 24,000 characters; longer results are cut with a hint on how to read the rest. `view_document` / `view_other_document` (heading outline with line ranges plus the first lines for a long document, a continuation `view_range` for a long range), `read_comments` and `list_themes` stay below it themselves |
 | Requests and spend | the user's LiteLLM virtual key | `rpm_limit` 60 and the key's `max_budget` |
 | Web search and page fetch | `server/utils/ai/webTools.ts` | per-user hourly and daily allowance, shared with MCP |
@@ -97,6 +97,15 @@ Every tool is one definition (`server/utils/ai/tools/toolDefinition.ts`): name, 
 9. **By hand**: everything the AI can do, a user can do manually. Give the editor a control that calls a route running the tool's own code, not a copy: Insert → "Generate image with AI" (`POST /api/docs/:docId/images/generate`) runs `generateDocumentImage`, the core of `generate_image`, with the same provider, plan, budget and quota checks.
 
 Schema tips: some providers reject Zod tuples, so use `z.array(...).min(n).max(n)`; put `.trim()` before `.min(1)`; prefer a `.refine` with a clear message over a runtime check in the handler, so the model can correct itself.
+
+## Skills
+
+Task guidance that only some sessions need (long documents, translation, review, academic papers) is a skill in `server/utils/agentic/skills/`, not text in the static prompt. A skill is `{ id, title, when, body }`; `when` is one line. Both static prompts carry only the catalogue (`SKILL_CATALOGUE`: one line per skill, sorted by id, built at module load); the editor prompt also carries `TASK_PLAYBOOK` (`taskPlaybook.ts`), whose details live in the `long-document` skill. A body reaches the model in two ways:
+
+- **Preselected**: `preselectSkills` (a keyword classifier over what the user typed, in English, German, French and Spanish, plus the document size from `parseSectionsCached`) picks at most two; `runSession.ts` puts their bodies as `<skill id="...">` blocks into the first user message, after the per-document context and before the conversation memory (`initialUserParts`). `long-document` is picked for a document over 12,000 tokens, or for "throughout / überall / partout / en todo el documento" on one over 2,000 tokens.
+- **Loaded**: the model calls `load_skill({ id })` (cap 4 per session); the body comes back as a normal tool result.
+
+To add a skill: write `skills/<id>.ts` (English, no em-dash, about 250 to 600 tokens, consistent with `WRITING_STYLE_RULES`), add it to `SKILLS` in `skills/index.ts` in id order, add trigger words to `TASK_TRIGGERS` if a request names the task clearly, and update the catalogue string in `tests/unit/ai/skills.test.ts` and the tool golden (`UPDATE_GOLDEN=1`, the `load_skill` enum changes). Never put a skill body, or anything else chosen per session, into a system prompt: the system message and the tools are the prefix every user shares in the prompt cache (`tests/unit/ai/promptCachePrefix.test.ts`).
 
 ## Comment sessions (`@ai`)
 

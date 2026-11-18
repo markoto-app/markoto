@@ -7,6 +7,7 @@ import {
   createAiJob,
   getAiJob,
   getAiJobForDoc,
+  listAiJobsForDoc,
   listAiJobUnits,
   requeueAiJobUnits,
   requeueRunningAiJobUnits,
@@ -647,4 +648,93 @@ export async function listJobFindings(doc: DocAccess<'view'>, jobId: string): Pr
   return units.flatMap(u => (u.output?.kind === 'comments' && u.output.findings.length > 0
     ? [{ ordinal: u.ordinal, headingPath: u.headingPath, startRel: u.startRel, endRel: u.endRel, findings: u.output.findings }]
     : []))
+}
+
+/** One item a scan chunk reported, with the chunk it came from. */
+export interface ScanChunkItem {
+  text: string
+  example?: string
+  ordinal: number
+  headingPath: string
+}
+
+export interface ScanRun {
+  job: AiJobRow
+  /** Worker calls (chunks of about 15k tokens). */
+  chunks: number
+  /** Chunks whose answer failed the checks or the call. */
+  failedChunks: number
+  items: ScanChunkItem[]
+}
+
+/** The items of one scan chunk's preview answer (JSON written by `structuredOutput`). */
+function scanItemsOf(after: string): Array<{ text: string, example?: string }> | null {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(after)
+  } catch {
+    return null
+  }
+  if (!Array.isArray(parsed)) return null
+  return (parsed as Array<{ text?: unknown, example?: unknown }>).flatMap(item => (typeof item.text === 'string' && item.text.trim() !== ''
+    ? [{ text: item.text, ...(typeof item.example === 'string' ? { example: item.example } : {}) }]
+    : []))
+}
+
+/**
+ * A read-only scan (`delegate_scan`): split the targets into large chunks,
+ * run the worker on each in scan mode and return what they reported.
+ * Nothing is applied and nothing runs in the background: it uses the
+ * preview path, so it needs no job lock and does not count as a started
+ * job. The job row keeps the cost; the sweeper removes it.
+ * @public
+ */
+export async function scanDocument(input: Omit<CreateJobInput, 'mode'>): Promise<ScanRun> {
+  const created = await createJob({ ...input, mode: 'scan' })
+  const samples = await previewJob(input.doc, created.job.id, created.units.map(u => u.ordinal))
+  const items: ScanChunkItem[] = []
+  let failedChunks = created.units.length - samples.length
+  for (const s of samples) {
+    const parsed = s.ok ? scanItemsOf(s.after) : null
+    if (!parsed) {
+      failedChunks += 1
+      continue
+    }
+    for (const item of parsed) items.push({ ...item, ordinal: s.ordinal, headingPath: s.headingPath })
+  }
+  const job = (await getAiJob(JOBS, created.job.id)) ?? created.job
+  return { job, chunks: created.units.length, failedChunks, items }
+}
+
+/** A skipped, failed or flagged unit of a job, for the planner's and the user's report. */
+export interface JobUnitNote {
+  ordinal: number
+  headingPath: string
+  status: 'skipped' | 'failed' | 'flagged'
+  reason: string | null
+}
+
+export interface JobReport {
+  job: AiJobRow
+  notes: JobUnitNote[]
+}
+
+/**
+ * The job and its units that need attention (skipped, failed, flagged),
+ * in document order; at most `limit` notes.
+ * @public
+ */
+export async function getJobReport(doc: DocAccess<'view'>, jobId: string, limit = 40): Promise<JobReport> {
+  const job = await requireJob(doc, jobId)
+  const units = await listAiJobUnits(JOBS, jobId, ['skipped', 'failed', 'flagged'])
+  const notes = units.slice(0, limit).map(u => ({ ordinal: u.ordinal, headingPath: u.headingPath, status: u.status as JobUnitNote['status'], reason: u.reason }))
+  return { job, notes }
+}
+
+/**
+ * The document's recent jobs (newest first), without scans.
+ * @public
+ */
+export async function listDocJobs(doc: DocAccess<'view'>, limit = 20): Promise<AiJobRow[]> {
+  return (await listAiJobsForDoc(doc, limit + 10)).filter(j => j.mode !== 'scan').slice(0, limit)
 }

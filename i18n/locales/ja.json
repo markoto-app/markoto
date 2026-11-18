@@ -210,7 +210,9 @@
     "detail": {
       "titleChanged": "{from} → {to}",
       "replacedAll": "{count}× “{from}” → “{to}”",
-      "restoredFrom": "{ago}の状態から"
+      "restoredFrom": "{ago}の状態から",
+      "jobProgress": "{total} 件中 {done} 件を変更",
+      "jobReverted": "{reverted} 件を復元、{skipped} 件は編集後のまま"
     },
     "restore": {
       "button": {
@@ -266,7 +268,15 @@
       "knowledgeNote": "ワークスペースナレッジ機能。",
       "openViewedImage": "閲覧した画像を新しいタブで開く"
     },
-    "viaAgent": "{agent}経由"
+    "viaAgent": "{agent}経由",
+    "job": {
+      "undo": "元に戻す",
+      "undoConfirm": "この編集で変わった部分を元に戻しますか?",
+      "undoYes": "元に戻す",
+      "undoNo": "そのまま",
+      "undone": "{reverted} 件を復元しました。その後編集された {skipped} 件はそのままです。",
+      "undoFailed": "編集を元に戻せませんでした。"
+    }
   },
   "comments": {
     "title": "コメント",
@@ -615,6 +625,24 @@
         "fetch_url": "markoto が {target} を開こうとしています",
         "view_image": "markoto が画像 {target} を読み込もうとしています",
         "generic": "markoto が {tool} を使おうとしています。"
+      },
+      "job": {
+        "question": "{what}: {cost}、{minutes}。",
+        "reason": "バックグラウンドで実行されます。キャンセルでき、アクティビティログから元に戻せます。",
+        "start": "開始",
+        "cancel": "キャンセル",
+        "cost": "約 {cost}",
+        "costShare": "約 {cost}(今月の割り当ての {share})",
+        "tokens": "ご自身のキーで約 {tokens} トークン",
+        "minutes": "約 {minutes} 分",
+        "modes": {
+          "translateTo": "{count} セクションを{language}に翻訳",
+          "translate": "{count} セクションを翻訳",
+          "rewrite": "{count} セクションを書き直す",
+          "terminology": "{count} セクションの用語を更新",
+          "summarise": "{count} 章を要約",
+          "comment": "{count} セクションをレビュー"
+        }
       }
     },
     "placeholder": "markotoに質問…",
@@ -767,7 +795,38 @@
       "replyCommentAny": "コメントに返信中…",
       "resolveComment": "コメントを解決中…",
       "reopenComment": "コメントを再開中…",
-      "deleteComment": "コメントを削除中…"
+      "deleteComment": "コメントを削除中…",
+      "scanDocument": "ドキュメントを走査中…",
+      "previewJob": "サンプルのセクションで変更を試しています…",
+      "startJob": "バックグラウンド編集を開始中…",
+      "jobProgress": "バックグラウンド編集: {total} 件中 {done} 件完了",
+      "jobStatus": "バックグラウンド編集を確認中…"
+    },
+    "job": {
+      "label": "バックグラウンド編集",
+      "modes": {
+        "translate": "翻訳",
+        "rewrite": "書き直し",
+        "terminology": "用語",
+        "summarise": "要約",
+        "comment": "レビュー"
+      },
+      "progress": "{total} 件中 {done} 件",
+      "working": "作業中: {heading}",
+      "cost": "これまでの費用: {cost}",
+      "cancel": "キャンセル",
+      "resume": "再開",
+      "undo": "元に戻す",
+      "dismiss": "閉じる",
+      "done": "完了: {total} 件中 {done} 件を変更しました。",
+      "cancelled": "{total} 件中 {done} 件でキャンセルしました。",
+      "paused": "一時停止: AI の割り当てを使い切りました。",
+      "interrupted": "中断されました。再開して続けてください。",
+      "failed": "バックグラウンド編集が停止しました。{reason}",
+      "reverted": "元に戻しました。",
+      "undone": "元に戻しました: {count} 件を復元しました。",
+      "skipped": "{count} 件はそのままにしました。",
+      "flagged": "{count} 件は確認が必要です。"
     }
   },
   "mobileTabBar": {

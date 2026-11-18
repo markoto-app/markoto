@@ -210,7 +210,9 @@
     "detail": {
       "titleChanged": "{from} → {to}",
       "replacedAll": "{count}× “{from}” → “{to}”",
-      "restoredFrom": "Von {ago}"
+      "restoredFrom": "Von {ago}",
+      "jobProgress": "{done} von {total} Teilen geändert",
+      "jobReverted": "{reverted} Teile wiederhergestellt, {skipped} nach Änderungen belassen"
     },
     "restore": {
       "button": {
@@ -266,7 +268,15 @@
       "knowledgeNote": "Workspace-Wissensfunktion.",
       "openViewedImage": "Angesehenes Bild in neuem Tab öffnen"
     },
-    "viaAgent": "über {agent}"
+    "viaAgent": "über {agent}",
+    "job": {
+      "undo": "Rückgängig machen",
+      "undoConfirm": "Änderungen dieser Bearbeitung zurücknehmen?",
+      "undoYes": "Zurücknehmen",
+      "undoNo": "Behalten",
+      "undone": "{reverted} Teile wiederhergestellt; {skipped} seither geänderte bleiben, wie sie sind.",
+      "undoFailed": "Die Bearbeitung konnte nicht rückgängig gemacht werden."
+    }
   },
   "comments": {
     "title": "Kommentare",
@@ -615,6 +625,24 @@
         "fetch_url": "markoto möchte {target} öffnen",
         "view_image": "markoto möchte das Bild {target} laden",
         "generic": "markoto möchte {tool} verwenden."
+      },
+      "job": {
+        "question": "{what}: {cost}, {minutes}.",
+        "reason": "Läuft im Hintergrund. Du kannst sie abbrechen und im Aktivitätsprotokoll rückgängig machen.",
+        "start": "Starten",
+        "cancel": "Abbrechen",
+        "cost": "etwa {cost}",
+        "costShare": "etwa {cost} ({share} deines Kontingents für diesen Monat)",
+        "tokens": "etwa {tokens} Tokens auf deinem eigenen Schlüssel",
+        "minutes": "etwa {minutes} Min.",
+        "modes": {
+          "translateTo": "{count} Abschnitte auf {language} übersetzen",
+          "translate": "{count} Abschnitte übersetzen",
+          "rewrite": "{count} Abschnitte umschreiben",
+          "terminology": "Begriffe in {count} Abschnitten anpassen",
+          "summarise": "{count} Kapitel zusammenfassen",
+          "comment": "{count} Abschnitte prüfen"
+        }
       }
     },
     "placeholder": "markoto fragen…",
@@ -767,7 +795,38 @@
       "replyCommentAny": "Antwortet auf einen Kommentar…",
       "resolveComment": "Erledigt einen Kommentar…",
       "reopenComment": "Öffnet einen Kommentar wieder…",
-      "deleteComment": "Löscht einen Kommentar…"
+      "deleteComment": "Löscht einen Kommentar…",
+      "scanDocument": "Durchsucht das Dokument…",
+      "previewJob": "Probiert die Änderung an Beispielabschnitten…",
+      "startJob": "Startet die Bearbeitung im Hintergrund…",
+      "jobProgress": "Bearbeitung im Hintergrund: {done} von {total} Teilen fertig",
+      "jobStatus": "Prüft die Bearbeitung im Hintergrund…"
+    },
+    "job": {
+      "label": "Bearbeitung im Hintergrund",
+      "modes": {
+        "translate": "Übersetzung",
+        "rewrite": "Umschreiben",
+        "terminology": "Begriffe",
+        "summarise": "Zusammenfassungen",
+        "comment": "Prüfung"
+      },
+      "progress": "{done} von {total} Teilen",
+      "working": "Arbeitet an {heading}",
+      "cost": "Bisherige Kosten: {cost}",
+      "cancel": "Abbrechen",
+      "resume": "Fortsetzen",
+      "undo": "Rückgängig machen",
+      "dismiss": "Schliessen",
+      "done": "Fertig: {done} von {total} Teilen geändert.",
+      "cancelled": "Nach {done} von {total} Teilen abgebrochen.",
+      "paused": "Pausiert: Das KI-Kontingent ist aufgebraucht.",
+      "interrupted": "Unterbrochen. Setze sie fort, um weiterzumachen.",
+      "failed": "Die Bearbeitung im Hintergrund wurde gestoppt. {reason}",
+      "reverted": "Rückgängig gemacht.",
+      "undone": "Rückgängig gemacht: {count} Teile wiederhergestellt.",
+      "skipped": "{count} Teile blieben unverändert.",
+      "flagged": "{count} Teile solltest du ansehen."
     }
   },
   "mobileTabBar": {

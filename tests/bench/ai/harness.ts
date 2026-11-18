@@ -12,6 +12,7 @@ import type { ResolvedAiProviders } from '../../../server/utils/aiProviders/reso
 import { soloSessionGuard } from '../../unit/fixtures/crossBoundary'
 import { docAs } from '../../helpers/access'
 import { partial } from '../../helpers/fixtures'
+import type { WorkerUsage } from './jobModel'
 
 // Scripted-planner benchmark harness. The REAL `runAgenticLoop` runs with a
 // fake model client whose turns come from a per-task script, and the real tool
@@ -143,6 +144,8 @@ export interface TaskResult {
   progressAtDeadline: number
   verifyProblem: string | null
   requests: RequestMeasure[]
+  /** Delegated job (variant step8): the modelled worker calls, outside the planner session. */
+  worker?: WorkerUsage
 }
 
 export interface StaticPrefix {
@@ -330,7 +333,9 @@ function makeSession(document: string, sessionId: string): { session: AiSession,
     workspaceId: null,
     docAccess: docAs('BenchHandbook01', 1) as AiSession['docAccess'],
     aiProviders: HOSTED_FREE_PROVIDERS,
-    updateStatus: () => {}
+    updateStatus: () => {},
+    // A delegated job's cost confirmation: the user starts it.
+    confirmJob: async () => ({ allowed: true, note: null })
   })
   return { session, ytext }
 }

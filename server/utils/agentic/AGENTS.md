@@ -32,6 +32,7 @@ How the loop works and how to add a tool: `docs/contributing/ai-tools.md`. MCP d
 - Do not tell the model "every turn must call a tool". A reply without a tool call is how a session ends; that wording made it edit until `MAX_TURNS`.
 - Everything the user should read goes through a tool (`message_to_user`, `reply_to_comment`). There is no chat surface for prose.
 - Keep the prompt prefix byte-stable for caching (`promptAssembly.ts`): the system message is the static prompt alone, so it and the tools are identical for every user and document; per-document blocks, then per-prompt context open the first user message; history append-only, tool-call arguments replayed verbatim.
+- Task guidance that only some sessions need is a skill (`skills/`): the static prompts carry only the sorted catalogue; bodies arrive preselected in the first user message or through `load_skill`. Never add per-session text to a system prompt (`docs/contributing/ai-tools.md`, "Skills").
 - Runaway caps: `SESSION_INTERACTION_CAP` (`limits.ts`) aborts the session, a tool's `sessionCallCap` returns a tool error. Give a new cost-bearing tool a per-session cap.
 - The session sweeper threshold (`server/plugins/ai-session-sweep.ts`, 7 min) must stay above the session deadline (5 min, `AI_SESSION_HARD_DEADLINE_MS`, armed in `sessions/sessionSetup.ts`).
 - Stopping early goes through the closing turn (`loop/wrapUp.ts`): same tool list, `tool_choice` forcing the closing tool, and only that tool runs. Never drop tools from the request to force an answer (it breaks the cached prefix). The loop gets the deadline as `deadlineAt` from `openAiSession`.
@@ -45,6 +46,8 @@ How the loop works and how to add a tool: `docs/contributing/ai-tools.md`. MCP d
 - Build request fields with `providerRequestFields(provider)` (`server/utils/aiProviders/requestFields.ts`). Never send `api_key` with a non-`byok/` model: LiteLLM would replace the operator's provider key with it.
 - Wrap calls on a user's own key in `withProviderErrors`, and the chat stream in `redactProviderStream`, so key material never reaches logs, Sentry or the user.
 - Do not add a per-wrapper rate limit for `web_search` / `fetch_url`; the allowance in `server/utils/ai/webTools.ts` is the single control and is shared with MCP.
+- Sampling fields of every chat call come from `modelRequestParams(fields.model, { temperature, purpose })` (`server/utils/litellm/modelParams.ts`), never a bare `temperature`: Mistral Large 4 needs `top_p: 1` and `reasoning_effort: low`. Reasoning switches of the hosted deployments stay in the LiteLLM config, so a fallback never receives a value it refuses.
+- The loop opens its stream with `litellmStream(..., { callerRetries: true })`: 429s are retried only by `loop/rateLimitRetry.ts` (Retry-After or 2 s / 5 s / 10 s, max 3, within the deadline), 5xx / connection errors by `streamTurn`'s one transport retry. Do not add another retry layer.
 - Call LiteLLM through the wrappers in `server/utils/litellm/createCompletion.ts` (`litellmCompletion`, `litellmStream`, `litellmImage`, `litellmTranscription`), not `litellm.chat.completions.create` with a double cast; the wrappers type the `metadata.tags` extension and retry upstream 429s.
 
 ## Dictation

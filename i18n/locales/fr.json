@@ -210,7 +210,9 @@
     "detail": {
       "titleChanged": "{from} → {to}",
       "replacedAll": "{count}× “{from}” → “{to}”",
-      "restoredFrom": "Depuis {ago}"
+      "restoredFrom": "Depuis {ago}",
+      "jobProgress": "{done} parties sur {total} modifiées",
+      "jobReverted": "{reverted} parties restaurées, {skipped} laissées après modification"
     },
     "restore": {
       "button": {
@@ -266,7 +268,15 @@
       "knowledgeNote": "Fonctionnalité de connaissances de l'espace de travail.",
       "openViewedImage": "Ouvrir l'image consultée dans un nouvel onglet"
     },
-    "viaAgent": "via {agent}"
+    "viaAgent": "via {agent}",
+    "job": {
+      "undo": "Défaire",
+      "undoConfirm": "Restaurer ce que cette modification a changé ?",
+      "undoYes": "Défaire",
+      "undoNo": "Garder",
+      "undone": "{reverted} parties restaurées ; {skipped} modifiées depuis restent telles quelles.",
+      "undoFailed": "La modification n’a pas pu être défaite."
+    }
   },
   "comments": {
     "title": "Commentaires",
@@ -615,6 +625,24 @@
         "fetch_url": "markoto veut ouvrir {target}",
         "view_image": "markoto veut charger l’image {target}",
         "generic": "markoto veut utiliser {tool}."
+      },
+      "job": {
+        "question": "{what} : {cost}, {minutes}.",
+        "reason": "Elle s’exécute en arrière-plan. Vous pouvez l’annuler, et la défaire dans le journal d’activité.",
+        "start": "Lancer",
+        "cancel": "Annuler",
+        "cost": "environ {cost}",
+        "costShare": "environ {cost} ({share} de votre allocation du mois)",
+        "tokens": "environ {tokens} jetons sur votre propre clé",
+        "minutes": "environ {minutes} min",
+        "modes": {
+          "translateTo": "Traduire {count} sections en {language}",
+          "translate": "Traduire {count} sections",
+          "rewrite": "Réécrire {count} sections",
+          "terminology": "Mettre à jour les termes de {count} sections",
+          "summarise": "Résumer {count} chapitres",
+          "comment": "Relire {count} sections"
+        }
       }
     },
     "placeholder": "Demandez à markoto…",
@@ -767,7 +795,38 @@
       "replyCommentAny": "Réponse à un commentaire…",
       "resolveComment": "Résolution d’un commentaire…",
       "reopenComment": "Réouverture d’un commentaire…",
-      "deleteComment": "Suppression d’un commentaire…"
+      "deleteComment": "Suppression d’un commentaire…",
+      "scanDocument": "Analyse du document…",
+      "previewJob": "Essai de la modification sur des sections d’exemple…",
+      "startJob": "Lancement de la modification en arrière-plan…",
+      "jobProgress": "Modification en arrière-plan : {done} parties sur {total} terminées",
+      "jobStatus": "Vérification de la modification en arrière-plan…"
+    },
+    "job": {
+      "label": "Modification en arrière-plan",
+      "modes": {
+        "translate": "Traduction",
+        "rewrite": "Réécriture",
+        "terminology": "Terminologie",
+        "summarise": "Résumés",
+        "comment": "Relecture"
+      },
+      "progress": "{done} parties sur {total}",
+      "working": "En cours : {heading}",
+      "cost": "Coût à ce stade : {cost}",
+      "cancel": "Annuler",
+      "resume": "Reprendre",
+      "undo": "Défaire",
+      "dismiss": "Fermer",
+      "done": "Terminé : {done} parties sur {total} modifiées.",
+      "cancelled": "Annulée après {done} parties sur {total}.",
+      "paused": "En pause : l’allocation IA est épuisée.",
+      "interrupted": "Interrompue. Reprenez-la pour continuer.",
+      "failed": "La modification en arrière-plan s’est arrêtée. {reason}",
+      "reverted": "Défaite.",
+      "undone": "Défaite : {count} parties restaurées.",
+      "skipped": "{count} parties laissées telles quelles.",
+      "flagged": "{count} parties à vérifier."
     }
   },
   "mobileTabBar": {
