@@ -84,7 +84,9 @@ test('Explorer context menu', async ({ page, flow, editor }) => {
   await close()
 
   // ---------- a selection ----------
-  await flow.click('Click "Reading list"', explorer.row('Reading list'), {
+  // On the row, beside the name: a second click on the name of the only
+  // selected item would start renaming it.
+  await flow.click('Click "Reading list"', explorer.row('Reading list').locator('td').last(), {
     chain: true,
     after: () => expect(explorer.row('Reading list')).toHaveAttribute('aria-selected', 'true')
   })

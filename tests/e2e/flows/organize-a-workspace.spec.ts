@@ -63,11 +63,9 @@ test('Organize a workspace', async ({ page, flow, editor }) => {
   let planningId = await newFolder('Planning', editor.isMobile ? 'Planning' : 'Planing')
 
   if (!editor.isMobile) {
-    await flow.click('Click the folder with the typo', explorer.row('Planing'), {
-      chain: true,
-      after: () => expect(explorer.row('Planing')).toHaveAttribute('aria-selected', 'true')
-    })
-    await flow.step('Press F2 to rename it', async () => {
+    // The new folder is still selected: F2 renames it.
+    await expect(explorer.row('Planing')).toHaveAttribute('aria-selected', 'true')
+    await flow.step('Typo! The folder is still selected: press F2 to rename it', async () => {
       await page.keyboard.press('F2')
       await expect(explorer.renameInput).toBeFocused()
     })

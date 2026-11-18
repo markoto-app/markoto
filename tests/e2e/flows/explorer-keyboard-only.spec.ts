@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/flow'
-import { ExplorerPage, apiCreateDoc, apiCreateFolder, apiListDocs, apiListFolders } from '../fixtures/explorer'
+import { ExplorerPage, apiCreateDoc, apiCreateFolder, apiCreateWorkspace, apiListDocs, apiListFolders } from '../fixtures/explorer'
 
 // "Organize documents with the keyboard": everything in the explorer
 // without a mouse. Tab into the list, Alt+N for a folder, type to
@@ -14,19 +14,21 @@ test('Explorer keyboard only', async ({ page, flow, editor }) => {
 
   await editor.page.loginAsTestUser('Maya Chen')
   await page.goto('/')
-  const archiveId = await apiCreateFolder(page, 'Archive')
-  await apiCreateDoc(page, { title: '2024 retrospective', folderId: archiveId, content: '# 2024 retrospective\n\nWhat we learned.\n' })
-  const draftId = await apiCreateDoc(page, { title: 'Old draft', content: '# Old draft\n\nAn early version.\n' })
-  const scratchId = await apiCreateDoc(page, { title: 'Scratch notes', content: '# Scratch notes\n\nPhone numbers, a shopping list.\n' })
-  await apiCreateDoc(page, { title: 'Roadmap', content: '# Roadmap\n\nWhat ships next.\n' })
+  const workspaceId = await apiCreateWorkspace(page, 'Design team')
+  const ws = { workspaceId }
+  const archiveId = await apiCreateFolder(page, 'Archive', ws)
+  await apiCreateDoc(page, { ...ws, title: '2024 retrospective', folderId: archiveId, content: '# 2024 retrospective\n\nWhat we learned.\n' })
+  const draftId = await apiCreateDoc(page, { ...ws, title: 'Old draft', content: '# Old draft\n\nAn early version.\n' })
+  const scratchId = await apiCreateDoc(page, { ...ws, title: 'Scratch notes', content: '# Scratch notes\n\nPhone numbers, a shopping list.\n' })
+  await apiCreateDoc(page, { ...ws, title: 'Roadmap', content: '# Roadmap\n\nWhat ships next.\n' })
 
-  await page.goto('/')
+  await page.goto(`/w/${workspaceId}`)
   await explorer.waitForList()
   await expect(explorer.rows).toHaveCount(4)
 
   await flow.heading('Organize documents with the keyboard', 3)
   await flow.narrate(
-    'The list works like a file manager: arrow keys move, Enter opens, and the shortcuts below do the rest. '
+    'A workspace\'s Documents tab (and My documents on the home page) works like a file manager: arrow keys move, Enter opens, and the shortcuts below do the rest. '
     + 'On a Mac, use Cmd where this says Ctrl.'
   )
 
@@ -47,7 +49,7 @@ test('Explorer keyboard only', async ({ page, flow, editor }) => {
     await expect(explorer.row('Drafts')).toBeVisible()
     await expect.poll(() => explorer.focusedKey()).toMatch(/^f:/)
   })
-  await expect.poll(async () => (await apiListFolders(page)).map(f => f.name).sort()).toEqual(['Archive', 'Drafts'])
+  await expect.poll(async () => (await apiListFolders(page, ws)).map(f => f.name).sort()).toEqual(['Archive', 'Drafts'])
 
   // ---------- rename ----------
   await flow.step('Type "old" to jump to "Old draft"', async () => {
@@ -63,7 +65,7 @@ test('Explorer keyboard only', async ({ page, flow, editor }) => {
     await page.keyboard.press('Enter')
     await expect(explorer.row('Old draft 2025')).toBeVisible()
   })
-  await expect.poll(async () => (await apiListDocs(page, 'root')).find(d => d.docId === draftId)?.title).toBe('Old draft 2025')
+  await expect.poll(async () => (await apiListDocs(page, 'root', ws)).find(d => d.docId === draftId)?.title).toBe('Old draft 2025')
 
   // ---------- cut and paste ----------
   await flow.heading('Move with cut and paste', 3)
@@ -86,7 +88,7 @@ test('Explorer keyboard only', async ({ page, flow, editor }) => {
     await page.keyboard.press('ControlOrMeta+V')
     await expect(explorer.row('Old draft 2025')).toBeVisible()
   }, { hero: true, highlights: [{ label: 'Moved here', selector: `[data-testid="explorer-list"] tbody tr[data-key="d:${draftId}"]` }] })
-  await expect.poll(async () => (await apiListDocs(page, archiveId)).map(d => d.title).sort()).toEqual(['2024 retrospective', 'Old draft 2025'])
+  await expect.poll(async () => (await apiListDocs(page, archiveId, ws)).map(d => d.title).sort()).toEqual(['2024 retrospective', 'Old draft 2025'])
   await editor.page.dismissToasts()
 
   // ---------- up and delete ----------
@@ -94,7 +96,7 @@ test('Explorer keyboard only', async ({ page, flow, editor }) => {
   await explorer.tabIntoList()
   await flow.step('Press Backspace to go up one level', async () => {
     await page.keyboard.press('Backspace')
-    await page.waitForURL(url => new URL(url).pathname === '/')
+    await page.waitForURL(url => new URL(url).pathname === `/w/${workspaceId}`)
     await expect(explorer.row('Scratch notes')).toBeVisible()
   })
   await flow.step('Press Tab until the list has the focus, then type "scr"', async () => {

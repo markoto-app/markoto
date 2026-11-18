@@ -44,14 +44,13 @@ export function useExplorerActions(opts: {
   }
 
   /** Per-item results of a bulk call: refreshes, says what failed. */
-  async function settle(results: BulkResult[], doneKey: string, n: number): Promise<number> {
+  async function settle(results: BulkResult[], doneKey: string): Promise<number> {
     await opts.afterChange()
     const failed = results.filter(r => !r.ok)
     if (failed.some(r => r.code && STALE_CODES.has(r.code))) staleToast()
     else if (failed.length > 0) toast.add({ title: t('explorer.someFailed', { n: failed.length }, failed.length), icon: 'i-lucide-alert-circle', color: 'error' })
     const ok = results.length - failed.length
     if (ok > 0) opts.announce(t(doneKey, { n: ok }, ok))
-    void n
     return ok
   }
 
@@ -114,7 +113,7 @@ export function useExplorerActions(opts: {
       await handleError(e, 'explorer.error.move')
       return
     }
-    await settle(results, 'explorer.announce.undone', results.length)
+    await settle(results, 'explorer.announce.undone')
   }
 
   /** Move items into a folder of this scope (null = the root). Offers undo. */
@@ -129,7 +128,7 @@ export function useExplorerActions(opts: {
       return
     }
     const moved = new Set(results.filter(r => r.ok).map(r => r.id))
-    const ok = await settle(results, 'explorer.announce.moved', items.length)
+    const ok = await settle(results, 'explorer.announce.moved')
     if (ok === 0) return
     undoable.value = { placements: placements.filter(p => moved.has(p.item.id)), until: Date.now() + 8000 }
     toast.add({
@@ -147,7 +146,7 @@ export function useExplorerActions(opts: {
     if (docIds.length === 0) return
     try {
       const res = await apiFetch('/api/documents/bulk', { method: 'post', body: { action: 'move-workspace', docIds, workspaceId: target } })
-      await settle(res.results as BulkResult[], 'explorer.announce.movedWorkspace', docIds.length)
+      await settle(res.results as BulkResult[], 'explorer.announce.movedWorkspace')
     } catch (e) {
       await handleError(e, 'explorer.error.move')
     }
@@ -179,7 +178,7 @@ export function useExplorerActions(opts: {
         await handleError(e, 'explorer.error.delete')
       }
     }
-    await settle(results.filter(r => r.code !== 'folder/delete-blocked'), 'explorer.announce.deleted', items.length)
+    await settle(results.filter(r => r.code !== 'folder/delete-blocked'), 'explorer.announce.deleted')
   }
 
   return { createFolder, renameItem, moveItems, moveToWorkspace, deleteItems, undoLastMove, undoable, handleError }
