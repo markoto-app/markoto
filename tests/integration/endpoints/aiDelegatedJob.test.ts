@@ -22,8 +22,8 @@ afterEach(() => {
   for (const c of syncClients.splice(0)) c.destroy()
 })
 
-function directive(): string {
-  const args = { targets: ['2 Installation'], mode: 'translate', target_language: 'English', instruction: 'Translate faithfully.', action: 'start' }
+function directive(action: 'start' | 'preview' = 'start'): string {
+  const args = { targets: ['2 Installation'], mode: 'translate', target_language: 'English', instruction: 'Translate faithfully.', ...(action === 'start' ? { action: 'start' } : {}) }
   return `FAKE_DIRECTIVE delegate_rewrite ${JSON.stringify(args)}`
 }
 
@@ -95,5 +95,52 @@ describe('delegated AI job (delegate_rewrite) end to end', () => {
     expect(await revert.json()).toEqual({ reverted: 1, skipped: 0 })
     await waitFor(async () => ((await readDoc(doc.docId, alice.id)).includes('Die Installation dauert') ? true : null), 15_000, 'the German text to come back')
     expect(await readDoc(doc.docId, alice.id)).toBe(original)
+  }, 180_000)
+
+  it('shows the running job in awareness after a preview (preview, then start)', async () => {
+    // The planner previews first, then starts: both check out the job's
+    // pooled connection, and the preview clears its presence on close.
+    // The run must announce itself again, or the initiator's prompt bar
+    // never notices the job (it reloads its jobs when awareness shows one).
+    const alice = await byokUser('Alice')
+    const client = await loggedInClient(alice.id, 'Alice')
+    const put = await client.put('/api/user/ai-providers/chat', { baseUrl: FAKE, model: 'obedient-chat', apiKey: uniqueKey('job2'), supportsVision: false })
+    expect(put.status).toBe(200)
+    const doc = await createDoc({ ownerId: alice.id, title: 'Teamhandbuch' })
+    const original = `# 1 Einleitung\n\nDieses Handbuch ist für das Team.\n${directive('preview')}\n\n${SECTION_2}`
+    syncClients.push(await writeDocAs(doc.docId, { userId: String(alice.id), userName: 'Alice' }, original))
+
+    // A second client of Alice's counts how often a job presence appears
+    // (absent, then present again; a reappearing client may arrive as an
+    // update of a known client id).
+    const observer = connectSync(doc.docId, { userId: String(alice.id), userName: 'Alice' })
+    syncClients.push(observer)
+    await observer.synced
+    const appearances = new Map<string, number>()
+    const present = new Set<number>()
+    observer.awareness.on('change', ({ added, updated, removed }: { added: number[], updated: number[], removed: number[] }) => {
+      for (const id of removed) present.delete(id)
+      for (const id of [...added, ...updated]) {
+        const state = observer.awareness.getStates().get(id)
+        const session: unknown = state?.aiSession
+        const status: unknown = state?.aiStatus
+        if (typeof session !== 'object' || session === null || typeof status !== 'object' || status === null) continue
+        if (Reflect.get(status, 'phase') !== 'job' || present.has(id)) continue
+        present.add(id)
+        const jobId = String(Reflect.get(session, 'sessionId'))
+        appearances.set(jobId, (appearances.get(jobId) ?? 0) + 1)
+      }
+    })
+
+    const res = await client.post('/api/ai/prompt', { docId: doc.docId, prompt: 'Translate section 2 into English.' })
+    expect(res.status).toBe(200)
+    const job = await waitFor(async () => {
+      const list = await client.get(`/api/docs/${doc.docId}/ai-jobs`)
+      if (list.status !== 200) return null
+      const { jobs }: { jobs: Array<{ jobId: string, status: string }> } = await list.json()
+      return jobs[0]?.status === 'done' ? jobs[0] : null
+    }, 90_000, 'the previewed job to be started and finish')
+    // Once for the preview, once for the run.
+    expect(appearances.get(job.jobId) ?? 0).toBeGreaterThanOrEqual(2)
   }, 180_000)
 })

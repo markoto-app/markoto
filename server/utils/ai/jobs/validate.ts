@@ -497,17 +497,31 @@ export function fixWorkerDashes(mode: JobMode, source: string, output: string): 
 
 // ── JSON modes ──────────────────────────────────────────────────────────
 
-/** Parse a JSON array answer, tolerating a ```json fence around it. */
-function parseJsonArray(output: string): unknown[] | null {
-  const lines = output.trim().split('\n')
-  const fenced = lines.length >= 2 && (lines[0] ?? '').startsWith('```') && (lines.at(-1) ?? '').trim() === '```'
-  const text = (fenced ? lines.slice(1, -1) : lines).join('\n').trim()
+function parseArrayText(text: string): unknown[] | null {
   try {
     const parsed: unknown = JSON.parse(text)
     return Array.isArray(parsed) ? parsed : null
   } catch {
     return null
   }
+}
+
+/**
+ * Parse a JSON array answer, tolerating a ```json fence around it (an
+ * opening fence alone when the answer was cut off). `salvage` keeps the
+ * complete items of an array that ran out of tokens: everything up to the
+ * last closing brace of an item.
+ */
+function parseJsonArray(output: string, salvage = false): unknown[] | null {
+  const lines = output.trim().split('\n')
+  const opens = lines.length >= 2 && (lines[0] ?? '').startsWith('```')
+  const closes = opens && (lines.at(-1) ?? '').trim() === '```'
+  const body = opens ? lines.slice(1) : lines
+  const text = (closes ? body.slice(0, -1) : body).join('\n').trim()
+  const whole = !opens || closes ? parseArrayText(text) : null
+  if (whole || !salvage || !text.startsWith('[')) return whole
+  const lastItemEnd = text.lastIndexOf('}')
+  return lastItemEnd === -1 ? null : parseArrayText(`${text.slice(0, lastItemEnd + 1)}]`)
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -527,7 +541,7 @@ export function parseCommentFindings(output: string): CommentFinding[] {
 
 /** Scan-mode items of a valid answer. */
 export function parseScanItems(output: string): ScanItem[] {
-  const arr = parseJsonArray(output) ?? []
+  const arr = parseJsonArray(output, true) ?? []
   return arr.filter(isRecord).map(i => ({
     text: String(i.text ?? ''),
     ...(typeof i.example === 'string' && i.example.trim() ? { example: i.example } : {})
@@ -559,7 +573,9 @@ function checkComments(input: ValidationInput, out: ValidationProblem[]): void {
 }
 
 function checkScan(input: ValidationInput, out: ValidationProblem[]): void {
-  const arr = parseJsonArray(input.output)
+  // A list cut off by the token limit keeps its complete items: a scan
+  // is an inventory, a shorter one is still useful.
+  const arr = parseJsonArray(input.output, true)
   if (arr === null) {
     out.push(problem('invalid_json', 'Your answer is not a JSON array. Return only the JSON array of items.'))
     return

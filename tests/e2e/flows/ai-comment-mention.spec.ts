@@ -260,8 +260,11 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
   // Comments render plain text, a reply full of Markdown markup
   // (**bold**) would show the asterisks.
   await expect(reply).not.toContainText('**')
-  // The reply is the answer, not a note about what markoto is about to do.
-  await expect(reply).not.toContainText(/\b(I'll|I will|Let me)\b/)
+  // The reply is the answer, not a note about what markoto is about to
+  // do: it must not OPEN with "I'll / I will / Let me". An offer at the
+  // end of a real answer ("say the word and I'll add a paragraph") is fine.
+  const replyBody = (await reply.locator('[data-testid="comment-item-body"]').innerText()).trim()
+  expect(replyBody, 'the reply answers instead of announcing work').not.toMatch(/^(?:@?\p{L}+[,:]?\s+)?(?:(?:Sure|OK|Okay|Got it)[,.!]?\s+)?(?:I'll|I will|I'm going to|Let me)\b/iu)
   await reply.scrollIntoViewIfNeeded()
 
   await flow.shot(

@@ -107,6 +107,31 @@ function serializeKey(k: PoolKey): string {
 const entries = new Map<string, PoolEntry>()
 const inflight = new Map<string, Promise<PoolEntry>>()
 
+/** The checkout's presence (`user` + `awarenessExtra`) as the entry's local awareness state. */
+function applyPresence(awareness: Awareness, opts: PoolCheckoutOpts): void {
+  const state: Record<string, unknown> = {
+    ...(awareness.getLocalState() ?? {}),
+    user: {
+      name: opts.awarenessUser.name,
+      color: opts.awarenessUser.color,
+      ...(opts.awarenessUser.isAI ? { isAI: true } : {})
+    },
+    ...(opts.awarenessExtra ?? {})
+  }
+  awareness.setLocalState(state)
+}
+
+/**
+ * A reused entry whose previous holder cleared its presence on close
+ * (`awareness.setLocalState(null)`, as a delegated job does after its
+ * preview) gets it back: otherwise the next holder works invisibly, with
+ * no presence for the other clients and `setLocalStateField` a no-op on
+ * the null state.
+ */
+function restorePresence(entry: PoolEntry, opts: PoolCheckoutOpts): void {
+  if (entry.awareness.getLocalState() === null) applyPresence(entry.awareness, opts)
+}
+
 /**
  * Open a new HocuspocusProvider, set awareness, await sync. Promise
  * rejects on auth failure, transport close before sync, or timeout.
@@ -118,16 +143,7 @@ async function buildEntry(key: PoolKey, opts: PoolCheckoutOpts): Promise<PoolEnt
   const ydoc = new Y.Doc()
   const awareness = new Awareness(ydoc)
 
-  awareness.setLocalStateField('user', {
-    name: opts.awarenessUser.name,
-    color: opts.awarenessUser.color,
-    ...(opts.awarenessUser.isAI ? { isAI: true } : {})
-  })
-  if (opts.awarenessExtra) {
-    for (const [field, value] of Object.entries(opts.awarenessExtra)) {
-      awareness.setLocalStateField(field, value)
-    }
-  }
+  applyPresence(awareness, opts)
 
   let syncResolved = false
   let resolveSync!: () => void
@@ -212,6 +228,7 @@ export async function checkout(key: PoolKey, opts: PoolCheckoutOpts): Promise<Po
   const existing = entries.get(k)
   if (existing) {
     existing.refCount++
+    restorePresence(existing, opts)
     return existing
   }
 
@@ -219,6 +236,7 @@ export async function checkout(key: PoolKey, opts: PoolCheckoutOpts): Promise<Po
   if (pending) {
     const entry = await pending
     entry.refCount++
+    restorePresence(entry, opts)
     return entry
   }
 
