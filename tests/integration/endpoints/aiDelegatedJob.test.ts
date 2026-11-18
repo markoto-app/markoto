@@ -3,7 +3,7 @@ import { resetDb } from '../setup/db'
 import { loggedInClient } from '../setup/client'
 import { createDoc } from '../setup/fixtures'
 import { fakeOpenAiBaseUrl } from '../setup/env'
-import { byokUser, connectSync, resetFake, uniqueKey, waitFor, writeDocAs, type SyncClient } from '../setup/byok'
+import { byokUser, connectSync, resetFake, uniqueKey, waitFor, waitForAcked, writeDocAs, type SyncClient } from '../setup/byok'
 
 // A delegated translation end to end, through the real prompt route, loop,
 // job engine, LiteLLM and sync server: the `obedient-chat` fake planner
@@ -12,7 +12,9 @@ import { byokUser, connectSync, resetFake, uniqueKey, waitFor, writeDocAs, type 
 // job's worker calls with English filler that keeps headings and
 // placeholders (tests/fixtures/fake-openai/server.py). Checks the document
 // changed (code untouched), the `ai.job` activity row, the job routes'
-// initiator-only rule, and that Undo job restores the German text.
+// initiator-only rule, and that Undo job restores the German text, also
+// after the planner corrected the job's output (`FAKE_AFTER_JOB`), but
+// never over a person's later edit.
 
 const FAKE = fakeOpenAiBaseUrl()
 const CODE = '```bash\nmarkoto sync --all\n```'
@@ -44,6 +46,46 @@ async function startWhenAsked(client: Awaited<ReturnType<typeof loggedInClient>>
   const answer = await client.post(`/api/ai/sessions/${sessionId}/confirm`, { confirmationId: pending.id, allow: true })
   expect(answer.status).toBe(200)
   return pending.job!
+}
+
+/**
+ * The planner's correction once the job has finished: a regex the line
+ * holding it does not match itself (it reads `\\s`, not a space), so only
+ * the translated text changes.
+ */
+const AFTER_JOB = `FAKE_AFTER_JOB replace_all ${JSON.stringify({ query: 'reads\\s+clearly', replacement: 'reads well', regex: true, preview: false })}`
+
+type Client = Awaited<ReturnType<typeof loggedInClient>>
+
+/** Alice with the obedient fake planner and a document holding `original`; runs the prompt, answers Start and waits for the job. */
+async function runTranslation(original: string, keyTag: string): Promise<{ client: Client, docId: string, userId: number, jobId: string, sessionId: string }> {
+  const alice = await byokUser('Alice')
+  const client = await loggedInClient(alice.id, 'Alice')
+  const put = await client.put('/api/user/ai-providers/chat', { baseUrl: FAKE, model: 'obedient-chat', apiKey: uniqueKey(keyTag), supportsVision: false })
+  expect(put.status).toBe(200)
+  const doc = await createDoc({ ownerId: alice.id, title: 'Teamhandbuch' })
+  syncClients.push(await writeDocAs(doc.docId, { userId: String(alice.id), userName: 'Alice' }, original))
+  const res = await client.post('/api/ai/prompt', { docId: doc.docId, prompt: 'Translate section 2 into English.' })
+  expect(res.status).toBe(200)
+  const { sessionId } = (await res.json()) as { sessionId: string }
+  await startWhenAsked(client, sessionId)
+  const job = await waitFor(async () => {
+    const list = await client.get(`/api/docs/${doc.docId}/ai-jobs`)
+    if (list.status !== 200) return null
+    const { jobs }: { jobs: Array<{ jobId: string, status: string }> } = await list.json()
+    return jobs[0]?.status === 'done' ? jobs[0] : null
+  }, 90_000, 'the delegated job to finish')
+  return { client, docId: doc.docId, userId: alice.id, jobId: job.jobId, sessionId }
+}
+
+/** The AI session has ended (its last edits are in the document). */
+async function sessionEnded(client: Client, sessionId: string): Promise<void> {
+  await waitFor(async () => {
+    const r = await client.get(`/api/ai/sessions/${sessionId}`)
+    if (r.status === 404) return true
+    const view: { phase?: string } = await r.json()
+    return view.phase === 'done' || view.phase === 'error' ? true : null
+  }, 60_000, 'the AI session to end')
 }
 
 async function readDoc(docId: string, userId: number): Promise<string> {
@@ -112,7 +154,7 @@ describe('delegated AI job (delegate_rewrite) end to end', () => {
     // Undo job restores the German text and logs it.
     const revert = await client.post(`/api/docs/${doc.docId}/ai-jobs/${job.jobId}/revert`, {})
     expect(revert.status).toBe(200)
-    expect(await revert.json()).toEqual({ reverted: 1, skipped: 0 })
+    expect(await revert.json()).toEqual({ reverted: 1, followUps: 0, skipped: 0, kept: [] })
     await waitFor(async () => ((await readDoc(doc.docId, alice.id)).includes('Die Installation dauert') ? true : null), 15_000, 'the German text to come back')
     expect(await readDoc(doc.docId, alice.id)).toBe(original)
   }, 180_000)
@@ -163,5 +205,40 @@ describe('delegated AI job (delegate_rewrite) end to end', () => {
     }, 90_000, 'the previewed job to be started and finish')
     // Once for the preview, once for the run.
     expect(appearances.get(job.jobId) ?? 0).toBeGreaterThanOrEqual(2)
+  }, 180_000)
+
+  it('Undo job also undoes the corrections the job\'s own AI session made afterwards', async () => {
+    // Staging: after a translation the planner fixed glossary drift in four
+    // chapters; Undo then skipped those as "changed since" and left them English.
+    const original = `# 1 Einleitung\n\nDieses Handbuch ist für das Team.\n${directive()}\n${AFTER_JOB}\n\n${SECTION_2}`
+    const run = await runTranslation(original, 'job-follow')
+    await waitFor(async () => ((await readDoc(run.docId, run.userId)).includes('reads well') ? true : null), 30_000, 'the planner\'s correction')
+    await sessionEnded(run.client, run.sessionId)
+
+    const revert = await run.client.post(`/api/docs/${run.docId}/ai-jobs/${run.jobId}/revert`, {})
+    expect(revert.status).toBe(200)
+    expect(await revert.json()).toEqual({ reverted: 1, followUps: 1, skipped: 0, kept: [] })
+    await waitFor(async () => ((await readDoc(run.docId, run.userId)) === original ? true : null), 15_000, 'the German text to come back')
+  }, 180_000)
+
+  it('Undo job keeps a part a person changed after the job and says which and why', async () => {
+    const original = `# 1 Einleitung\n\nDieses Handbuch ist für das Team.\n${directive()}\n\n${SECTION_2}`
+    const run = await runTranslation(original, 'job-human')
+    await sessionEnded(run.client, run.sessionId)
+    const editor = connectSync(run.docId, { userId: String(run.userId), userName: 'Alice' })
+    syncClients.push(editor)
+    await editor.synced
+    const text = editor.doc.getText('content')
+    await waitFor(async () => (text.toString().includes('Translated heading') ? true : null), 15_000, 'the translation in the editor')
+    const at = text.toString().indexOf('This translated text')
+    editor.doc.transact(() => text.insert(at, 'Note: '))
+    await waitForAcked(editor)
+
+    const revert = await run.client.post(`/api/docs/${run.docId}/ai-jobs/${run.jobId}/revert`, {})
+    expect(revert.status).toBe(200)
+    const body: { reverted: number, followUps: number, skipped: number, kept: Array<{ headingPath: string, kind: string }> } = await revert.json()
+    expect(body).toMatchObject({ reverted: 0, followUps: 0, skipped: 1 })
+    expect(body.kept).toEqual([{ headingPath: expect.stringContaining('Installation'), kind: 'edited' }])
+    expect(await readDoc(run.docId, run.userId)).toContain('Note: This translated text')
   }, 180_000)
 })

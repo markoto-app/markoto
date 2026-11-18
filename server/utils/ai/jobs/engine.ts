@@ -88,12 +88,10 @@ function repoJobStore(jobId: string): JobStore {
 }
 
 /** The parts a job's AI session may still correct as part of the job (`followUps.ts`). */
-export function jobFollowUpStore(jobId: string): FollowUpStore {
-  return {
-    listUnits: () => listAiJobUnits(JOBS, jobId, ['applied', 'flagged']),
-    saveSessionHash: (ordinal, hash) => updateAiJobUnit(JOBS, jobId, ordinal, { sessionAfterHash: hash })
-  }
-}
+export const jobFollowUpStore = (jobId: string): FollowUpStore => ({
+  listUnits: () => listAiJobUnits(JOBS, jobId, ['applied', 'flagged']),
+  saveSessionHash: (ordinal, hash) => updateAiJobUnit(JOBS, jobId, ordinal, { sessionAfterHash: hash })
+})
 
 // ── locks ──────────────────────────────────────────────────────────────
 
@@ -585,10 +583,10 @@ export async function rerunJobUnits(doc: DocAccess<'write'>, jobId: string, ordi
   const units = await listAiJobUnits(JOBS, jobId)
   // Rerun units whose text the job has not changed: their revision is still the one at job start.
   const rerunnable = units.filter(u => ordinals.includes(u.ordinal) && (u.status === 'skipped' || u.status === 'failed' || u.status === 'flagged'))
+  // A flagged unit was applied: its current text is the job's output (or this session's correction of it), so its revision moves with it.
   for (const u of rerunnable.filter(x => x.status === 'flagged')) {
-    // A flagged unit was applied: its current text is the job's output, so its revision moves with it.
-    const current = u.sessionAfterHash ?? u.afterHash
-    if (current) await updateAiJobUnit(JOBS, jobId, u.ordinal, { revBefore: current })
+    const rev = u.sessionAfterHash ?? u.afterHash
+    if (rev) await updateAiJobUnit(JOBS, jobId, u.ordinal, { revBefore: rev })
   }
   await requeueAiJobUnits(JOBS, jobId, rerunnable.map(u => u.ordinal))
   return startJob(doc, jobId)

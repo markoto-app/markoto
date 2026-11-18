@@ -59,7 +59,7 @@ function attach(ydoc: Y.Doc, ytext: Y.Text, origin: string): Tracker {
   })
   ydoc.on('afterTransaction', (tr: Y.Transaction) => {
     const snapshot = tracker.before.get(tr)
-    if (!snapshot || !tr.changed.has(ytext as unknown as Y.AbstractType<Y.YEvent<never>>)) return
+    if (!snapshot) return
     for (const [jobId, job] of tracker.jobs) {
       const was = snapshot.get(jobId)
       if (!was) continue
