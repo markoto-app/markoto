@@ -43,15 +43,36 @@ What the rename leaves alone, so nothing breaks:
 
 - **Code** (code blocks and inline code), math and HTML comments keep the old name, so commands and code samples still work.
 - **Link addresses** keep the old name too, so links still lead where they did. The visible link text is renamed.
-- **Headings** are renamed, and links to them keep working: markoto adds the heading's old link address as an `{#...}` marker at the end of the heading line, which the preview and the PDF don't show.
+- **Headings** are renamed and keep their level, and links in the document that point to a renamed heading are updated to its new address.
 
-Matches are found regardless of upper and lower case, and the AI can also
-catch the word's other forms (plural, compound words). If you want a
-mention kept, say so in the prompt, for example *"except in the
-changelog section"*.
+Matches are found regardless of upper and lower case, and the AI also
+catches the word's other forms (plural, compound words). In compound
+words it replaces the whole word, so German compounds keep their linking
+letters: *Pikettdienst* becomes *Bereitschaftsdienst*, not
+*Bereitschaftdienst*. When a rename changes ten or more places, a card
+above the prompt bar shows how many and which word forms change before
+anything happens: **Apply** makes the change, **Cancel** keeps the
+document as it is (you can type a note first, such as *"not in chapter
+3"*). If you want a mention kept, say so in the prompt, for example
+*"except in the changelog section"*.
 
 Like any AI edit, the rename appears in the Activity tab and can be
 undone ([restore an earlier version](/docs/import-export/restore)).
+
+## Move chapters and keep the numbering in order
+
+Ask the AI to move or swap chapters, for example *Swap chapter 10 and
+chapter 12, and renumber them so the numbering stays in order*. It moves
+the chapters with all their subsections and then renumbers every
+numbered heading in one step: chapter, section and subsection numbers
+follow the new order, each heading keeps its level and its text, and
+links in the document point to the moved sections, including a section
+number in the link text (*see section 10.3*). Numbers mentioned in
+running text, such as *see chapter 12*, are not changed; check them if
+your document refers to chapters that way.
+
+::flow{id="swap-two-chapters-and-renumber-with-ai" hide-title}
+::
 
 ## When a change applies to many sections
 

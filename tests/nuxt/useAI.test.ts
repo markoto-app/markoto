@@ -57,7 +57,9 @@ const TEXTS: Record<string, string> = {
   'apiErrors.common.internal': 'Text for internal',
   'apiErrors.auth.forbidden': 'Text for forbidden',
   'error.generic': 'Generic text',
-  'ai.step.aiRateLimited': 'Text for the rate limit step'
+  'ai.step.aiRateLimited': 'Text for the rate limit step',
+  'ai.step.stoppedEarly': 'Text for stopped early',
+  'ai.step.doneNoAnswer': 'Text for done without an answer'
 }
 mockNuxtImport('useToast', () => () => ({ add: vi.fn() }))
 mockNuxtImport('useI18n', () => () => ({
@@ -593,6 +595,38 @@ describe('useAI: private session channel', () => {
     const ai = useAI(docId, awareness, FAST)
     await ai.prompt('hello')
     await vi.waitFor(() => expect(ai.lastError.value).toBe('No chat provider'))
+  })
+
+  it('a new prompt drops the previous answer; ending without one shows "Done", not the stale answer', async () => {
+    // Staging, 2026-11-18: a renumbering and a rename ended without an
+    // answer and the prompt bar kept the previous session's answer.
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    setPrivateStatus('sid-mine', { phase: 'done', response: { message: 'The two chapters are swapped.', isQuestion: false, ts: 42 } })
+    const peer = pushAiClient(awareness, { sessionId: 'sid-mine', initiatorName: 'Me', initiatorUserId: 7 })
+    const ai = useAI(docId, awareness, FAST)
+    await vi.waitFor(() => expect(ai.lastResponse.value?.message).toBe('The two chapters are swapped.'))
+    removePeer(peer, awareness)
+    setPrivateStatus('srv-sid-1', { phase: 'thinking' })
+    await ai.prompt('Yes, finish the renumbering.')
+    expect(ai.lastResponse.value).toBe(null)
+    setPrivateStatus('srv-sid-1', { phase: 'done', message: 'Done' })
+    await vi.waitFor(() => expect(ai.lastResponse.value).toMatchObject({ sessionId: 'srv-sid-1', message: 'Text for done without an answer', synthetic: true }))
+  })
+
+  it('a summary written at the step limit carries a notice', async () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness, FAST)
+    setPrivateStatus('srv-sid-1', { phase: 'done', step: { key: 'stoppedEarly' }, response: { message: 'Chapters 10 and 12 are swapped; renumbering is left.', isQuestion: false, ts: 7 } })
+    await ai.prompt('Swap chapter 10 and 12 and renumber.')
+    await vi.waitFor(() => expect(ai.lastResponse.value).toMatchObject({
+      sessionId: 'srv-sid-1',
+      message: 'Chapters 10 and 12 are swapped; renumbering is left.',
+      notice: 'Text for stopped early'
+    }))
   })
 
   it('exposes a pending confirmation and posts the answer', async () => {

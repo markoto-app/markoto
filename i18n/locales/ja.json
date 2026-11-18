@@ -627,12 +627,12 @@
         "generic": "markoto が {tool} を使おうとしています。"
       },
       "job": {
-        "question": "{what}: {cost}、{minutes}。",
+        "question": "{what}、{minutes}。",
+        "questionExtra": "{what}、{minutes}（{extra}）。",
         "reason": "バックグラウンドで実行されます。キャンセルでき、アクティビティログから元に戻せます。",
         "start": "開始",
         "cancel": "キャンセル",
-        "cost": "約 {cost}",
-        "costShare": "約 {cost}(今月の割り当ての {share})",
+        "share": "今月の AI 利用枠の約 {share}",
         "tokens": "ご自身のキーで約 {tokens} トークン",
         "minutes": "約 {minutes} 分",
         "modes": {
@@ -643,6 +643,12 @@
           "summarise": "{count} 章を要約",
           "comment": "{count} セクションをレビュー"
         }
+      },
+      "replace": {
+        "question": "{count} 件を置換しますか？",
+        "reason": "markoto が変更する前に語形を確認してください。アクティビティログから元に戻せます。",
+        "apply": "置換",
+        "cancel": "キャンセル"
       }
     },
     "placeholder": "markotoに質問…",
@@ -743,6 +749,8 @@
       "stopped": "停止しました",
       "stoppedReason": "停止しました: {reason}",
       "turnLimit": "ステップが多すぎるため停止しました。もっと具体的に依頼してください。",
+      "stoppedEarly": "タスクの完了前に停止しました（ステップ数または時間の上限）。メモに完了した内容があります。",
+      "doneNoAnswer": "完了しました。変更内容はドキュメントで確認できます。",
       "sessionCap": "{cap} ステップで停止しました。もっと具体的に依頼してください。",
       "waitingConfirmation": "あなたの確認を待っています…",
       "pointsExhausted": "AIポイントを使い切りました",
@@ -799,7 +807,7 @@
       "scanDocument": "ドキュメントを走査中…",
       "previewJob": "サンプルのセクションで変更を試しています…",
       "startJob": "バックグラウンド編集を開始中…",
-      "jobProgress": "バックグラウンド編集: {total} 件中 {done} 件完了",
+      "jobWaiting": "バックグラウンド編集を実行中です。進捗は上に表示されます。",
       "jobStatus": "バックグラウンド編集を確認中…"
     },
     "job": {
@@ -813,7 +821,7 @@
       },
       "progress": "{total} 件中 {done} 件",
       "working": "作業中: {heading}",
-      "cost": "これまでの費用: {cost}",
+      "finishing": "{total} 件すべて完了、仕上げ中…",
       "cancel": "キャンセル",
       "resume": "再開",
       "undo": "元に戻す",

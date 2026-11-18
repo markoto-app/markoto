@@ -29,6 +29,23 @@ function directive(action: 'start' | 'preview' = 'start'): string {
 
 const SECTION_2 = `# 2 Installation\n\nDie Installation dauert nur wenige Minuten und ist einfach.\n\n${CODE}\n\nDanach sind alle Notizen auf deinem Gerät verfügbar.\n`
 
+/**
+ * Every background job asks the initiator before it starts (the prompt
+ * bar's Start / Cancel): wait for the job confirmation of the session and
+ * answer Start, as the user would.
+ */
+async function startWhenAsked(client: Awaited<ReturnType<typeof loggedInClient>>, sessionId: string): Promise<{ units: number, minutes: number }> {
+  const pending = await waitFor(async () => {
+    const r = await client.get(`/api/ai/sessions/${sessionId}`)
+    if (r.status !== 200) return null
+    const view: { confirmation: { id: string, kind?: string, job?: { units: number, minutes: number } } | null } = await r.json()
+    return view.confirmation?.kind === 'job' ? view.confirmation : null
+  }, 60_000, 'the job confirmation')
+  const answer = await client.post(`/api/ai/sessions/${sessionId}/confirm`, { confirmationId: pending.id, allow: true })
+  expect(answer.status).toBe(200)
+  return pending.job!
+}
+
 async function readDoc(docId: string, userId: number): Promise<string> {
   const c = connectSync(docId, { userId: String(userId), userName: 'Reader' })
   syncClients.push(c)
@@ -53,6 +70,9 @@ describe('delegated AI job (delegate_rewrite) end to end', () => {
 
     const res = await client.post('/api/ai/prompt', { docId: doc.docId, prompt: 'Translate section 2 into English.' })
     expect(res.status).toBe(200)
+    // Even this one-part job waits for Start, and the question has no cost in it.
+    const asked = await startWhenAsked(client, ((await res.json()) as { sessionId: string }).sessionId)
+    expect(asked.units).toBe(1)
 
     // The job appears in the caller's list and finishes.
     const job = await waitFor(async () => {
@@ -134,6 +154,7 @@ describe('delegated AI job (delegate_rewrite) end to end', () => {
 
     const res = await client.post('/api/ai/prompt', { docId: doc.docId, prompt: 'Translate section 2 into English.' })
     expect(res.status).toBe(200)
+    await startWhenAsked(client, ((await res.json()) as { sessionId: string }).sessionId)
     const job = await waitFor(async () => {
       const list = await client.get(`/api/docs/${doc.docId}/ai-jobs`)
       if (list.status !== 200) return null

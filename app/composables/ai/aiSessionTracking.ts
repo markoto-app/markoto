@@ -1,4 +1,5 @@
 import type { JobConfirmationDetails } from '~~/shared/ai/jobConfirmation'
+import type { ReplaceConfirmationDetails } from '~~/shared/ai/replaceConfirmation'
 import { onScopeDispose } from 'vue'
 import type { AiConfirmationRequest, AiEventSource, AiResponseEntry, AiSessionOutcome } from '~/types/ai/session'
 import { parseAiStatusStep, type AiStatusStep } from '~~/shared/ai/statusSteps'
@@ -31,6 +32,24 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null
 }
 
+/** The details of a job or replace confirmation (the server validated them). */
+function confirmationDetails(c: Record<string, unknown>): Pick<AiConfirmationRequest, 'kind' | 'job' | 'replace'> {
+  if (c.kind === 'job' && isRecord(c.job)) return { kind: 'job', job: c.job as unknown as JobConfirmationDetails }
+  if (c.kind === 'replace' && isRecord(c.replace) && Array.isArray(c.replace.forms)) return { kind: 'replace', replace: c.replace as unknown as ReplaceConfirmationDetails }
+  return {}
+}
+
+function parseConfirmation(c: unknown): AiConfirmationRequest | null {
+  if (!isRecord(c) || typeof c.id !== 'string' || typeof c.tool !== 'string' || typeof c.expiresAt !== 'number') return null
+  return {
+    id: c.id,
+    tool: c.tool,
+    target: typeof c.target === 'string' ? c.target : null,
+    expiresAt: c.expiresAt,
+    ...confirmationDetails(c)
+  }
+}
+
 function parseStatusEvent(data: unknown): PrivateSessionStatus | null {
   if (typeof data !== 'string') return null
   let v: unknown
@@ -43,17 +62,7 @@ function parseStatusEvent(data: unknown): PrivateSessionStatus | null {
   const response = isRecord(v.response) && typeof v.response.message === 'string' && typeof v.response.ts === 'number'
     ? { message: v.response.message, isQuestion: v.response.isQuestion === true, ts: v.response.ts }
     : null
-  const c = v.confirmation
-  const confirmation = isRecord(c) && typeof c.id === 'string' && typeof c.tool === 'string' && typeof c.expiresAt === 'number'
-    ? {
-        id: c.id,
-        tool: c.tool,
-        target: typeof c.target === 'string' ? c.target : null,
-        expiresAt: c.expiresAt,
-        // A job's cost confirmation (the server validated the details).
-        ...(c.kind === 'job' && isRecord(c.job) ? { kind: 'job' as const, job: c.job as unknown as JobConfirmationDetails } : {})
-      }
-    : null
+  const confirmation = parseConfirmation(v.confirmation)
   return {
     sessionId: v.sessionId,
     prompt: typeof v.prompt === 'string' ? v.prompt : '',
@@ -95,11 +104,32 @@ export function useAiSessionTracking({ mySessionId, lastError, pollMs, createEve
   const trackedSessionId = computed(() => mySessionId.value ?? startedSessionId.value)
 
   const lastResponse = ref<AiResponseEntry | null>(null)
+  // Sessions started from the prompt bar: they owe the user an answer. A
+  // comment-trigger session answers in its thread instead.
+  const promptSessions = new Set<string>()
   // Terminal phase of my latest session; cleared when the next one
   // starts. Mirrored onto the prompt bar so flow tests can tell a
   // finished session from one that ended in an error.
   const lastOutcome = ref<AiSessionOutcome | null>(null)
   let lastErrorSessionId: string | null = null
+
+  /**
+   * A session that ended: a summary written at a step / time limit gets a
+   * notice above it, and a prompt-bar session that ended "done" without
+   * any answer gets the client's own "Done" line, so the panel never keeps
+   * showing the previous session's answer as if it were this one's.
+   */
+  function settleResponse(s: PrivateSessionStatus) {
+    const cur = lastResponse.value
+    const own = cur?.sessionId === s.sessionId ? cur : null
+    if (own && !own.synthetic && s.step?.key === 'stoppedEarly' && !own.notice) {
+      lastResponse.value = { ...own, notice: stepText(s.step) }
+      return
+    }
+    if (!own && s.phase === 'done' && promptSessions.has(s.sessionId)) {
+      lastResponse.value = { sessionId: s.sessionId, message: stepText({ key: 'doneNoAnswer' }), isQuestion: false, ts: Date.now(), synthetic: true }
+    }
+  }
 
   function applyStatus(s: PrivateSessionStatus) {
     privateStatus.value = s
@@ -112,6 +142,7 @@ export function useAiSessionTracking({ mySessionId, lastError, pollMs, createEve
     }
     if (s.phase === 'done' || s.phase === 'error') {
       lastOutcome.value = { sessionId: s.sessionId, phase: s.phase === 'error' ? 'error' : 'done', message: s.message }
+      settleResponse(s)
     }
     // Surface errors that happen mid-loop (server-side) through
     // `lastError` so AIPromptBar can toast them, once per session.
@@ -241,5 +272,11 @@ export function useAiSessionTracking({ mySessionId, lastError, pollMs, createEve
   // composable in a detached effect scope (tests).
   onScopeDispose(stopPolling)
 
-  return { privateStatus, startedSessionId, lastResponse, lastOutcome }
+  /** A prompt was sent: the previous answer goes, and `sid` (once known) owes an answer. */
+  function startPrompt(sid?: string) {
+    lastResponse.value = null
+    if (sid) promptSessions.add(sid)
+  }
+
+  return { privateStatus, startedSessionId, lastResponse, lastOutcome, startPrompt }
 }

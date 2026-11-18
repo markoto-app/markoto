@@ -1,6 +1,7 @@
 import { aiStatus } from '~~/shared/ai/statusSteps'
 import { AI_SESSION_WRAP_UP_MARGIN_MS } from '../limits'
-import { isCommentTriggerSession, throwIfAborted, type LoopContext, type WrapUpReason } from './loopContext'
+import { isCommentTriggerSession, readDocText, throwIfAborted, type LoopContext, type WrapUpReason } from './loopContext'
+import { parseSections } from '../../ai/tools/sections/parse'
 import { streamTurn, type StreamedTurn } from './providerStream'
 import { collectProseText, dispatchSalvageFallback } from './salvage'
 import { dispatchToolCall } from './toolDispatch'
@@ -31,12 +32,35 @@ function closingToolOf(ctx: LoopContext): 'reply_to_comment' | 'message_to_user'
   return isCommentTriggerSession(ctx) ? 'reply_to_comment' : 'message_to_user'
 }
 
+/** Headings listed for the closing turn at most. */
+const CLOSING_HEADINGS_MAX = 60
+
+/**
+ * The document's headings as they stand now, for the closing summary: the
+ * model cannot read the document in the closing turn, and from memory it
+ * reports the state it intended rather than the one it reached (on staging
+ * it said "10, 12, 12" when all three headings read 12). Up to level 2,
+ * or only level 1 when that is too long. Empty when the session did not
+ * edit or the document has no headings.
+ */
+export function currentHeadingsNote(ctx: LoopContext): string {
+  if (!ctx.editedDocument) return ''
+  const text = readDocText(ctx.opts.aiSession)
+  if (!text) return ''
+  const headings = parseSections(text).sections.filter(s => s.level > 0)
+  if (headings.length === 0) return ''
+  const upTo2 = headings.filter(s => s.level <= 2)
+  const shown = (upTo2.length <= CLOSING_HEADINGS_MAX ? upTo2 : headings.filter(s => s.level === 1)).slice(0, CLOSING_HEADINGS_MAX)
+  const lines = shown.map(s => `${'#'.repeat(s.level)} ${s.title.slice(0, 80)}`)
+  return `\nThe document's headings as they read right now (report the state from this list and from tool results, never from what you meant to do):\n${lines.join('\n')}`
+}
+
 /** The instruction appended to the conversation for the closing turn. */
 function wrapUpInstruction(ctx: LoopContext, reason: WrapUpReason): string {
   const how = isCommentTriggerSession(ctx)
     ? `Call reply_to_comment on comment_id "${ctx.opts.commentThreadId}" now`
     : 'Call message_to_user now'
-  return `${REASON_TEXT[reason]} Do not call any other tool. ${how} and tell the user in one or two sentences what is done and what is not.`
+  return `${REASON_TEXT[reason]} Do not call any other tool. ${how} and tell the user in one or two sentences what is done and what is not, as the document actually is now; do not offer to continue unless something is left.${currentHeadingsNote(ctx)}`
 }
 
 /** Append `text` to the pending user message (the last tool results), or open one. */
@@ -120,6 +144,8 @@ export async function wrapUpSession(ctx: LoopContext, reason: WrapUpReason, turn
   if (result === 'handled') return
   ctx.telemetry.outcome = reason
   ctx.telemetry.errorMessage = `Stopped: ${reason}`
-  if (result === 'delivered') ctx.opts.setStatus('done', aiStatus('done'))
+  // The summary arrived, but the session still stopped early: the client
+  // labels the answer so it does not read like a finished task.
+  if (result === 'delivered') ctx.opts.setStatus('done', aiStatus('stoppedEarly'))
   else ctx.opts.setStatus('error', aiStatus('turnLimit'))
 }

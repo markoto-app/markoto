@@ -26,6 +26,7 @@ export const DOC_EDIT_TOOLS: ReadonlySet<string> = new Set([
   'swap_sections',
   'delete_section',
   'set_heading',
+  'renumber_headings',
   'replace_all',
   'edit_lines'
 ])

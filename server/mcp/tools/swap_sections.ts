@@ -7,7 +7,7 @@ import { SwapSectionsArgs } from '../../utils/ai/tools/structuralEditTools'
 // Y.js transaction attributed to the MCP session.
 export default buildDocBoundTool({
   name: 'swap_sections',
-  description: 'Swap two sections of a document, each with its subsections, in one edit on the server, adjacent or far apart. Refused when one contains the other. Comment threads inside both move along; section ids stay with their sections. Headings keep their numbers.',
+  description: 'Swap two sections of a document, each with its subsections, in one edit on the server, adjacent or far apart. Refused when one contains the other. Comment threads inside both move along; section ids stay with their sections. Headings keep their numbers; put them in order with renumber_headings.',
   scope: 'documents:write',
   access: 'edit',
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },

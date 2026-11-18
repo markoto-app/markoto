@@ -103,7 +103,7 @@ describe('AIPromptBar: confirmation request', () => {
     expect(answer.mock.calls).toEqual([[false, 'Use the knowledge base']])
   })
 
-  it('a delegated job asks with its cost, share of the allowance and duration: Start / Cancel', async () => {
+  it('a delegated job asks with its parts, duration and share of the allowance, never a currency: Start / Cancel', async () => {
     available()
     const answer = vi.fn(async (_allow: boolean, _note?: string) => {})
     const request: AiConfirmationRequest = {
@@ -116,7 +116,8 @@ describe('AIPromptBar: confirmation request', () => {
     }
     const wrapper = await mountSuspended(AIPromptBar, { props: { ai: aiProps(request, answer) } })
     expect(wrapper.find('[data-testid="ai-confirm-panel"]').attributes('data-kind')).toBe('job')
-    expect(wrapper.find('[data-testid="ai-confirm-question"]').text()).toBe('Translate 152 sections to English: about $0.11 (22 % of this month\'s allowance), about 5 min.')
+    expect(wrapper.find('[data-testid="ai-confirm-question"]').text()).toBe('Translate 152 sections to English, about 5 min (about 22 % of this month\'s AI allowance).')
+    expect(wrapper.find('[data-testid="ai-confirm-panel"]').text()).not.toContain('$')
     expect(wrapper.find('[data-testid="ai-confirm-allow"]').text()).toBe('Start')
     expect(wrapper.find('[data-testid="ai-confirm-deny"]').text()).toBe('Cancel')
     await wrapper.find('[data-testid="ai-confirm-allow"]').trigger('click')
@@ -134,7 +135,27 @@ describe('AIPromptBar: confirmation request', () => {
       job: { mode: 'rewrite', units: 40, usd: null, minutes: 1.2, allowanceShare: null, targetLanguage: null, inputTokens: 100_000, outputTokens: 20_000 }
     }
     const wrapper = await mountSuspended(AIPromptBar, { props: { ai: aiProps(request) } })
-    expect(wrapper.find('[data-testid="ai-confirm-question"]').text()).toMatch(/^Rewrite 40 sections: about 120,000 tokens on your own key, about 1 min\.$/)
+    expect(wrapper.find('[data-testid="ai-confirm-question"]').text()).toMatch(/^Rewrite 40 sections, about 1 min \(about 120,000 tokens on your own key\)\.$/)
+  })
+
+  it('a large replace_all shows the count and the word forms: Apply / Cancel', async () => {
+    available()
+    const answer = vi.fn(async (_allow: boolean, _note?: string) => {})
+    const request: AiConfirmationRequest = {
+      id: 'c7',
+      tool: 'replace_all',
+      target: null,
+      expiresAt: Date.now() + 60_000,
+      kind: 'replace',
+      replace: { total: 25, forms: [{ from: 'Pikettdienstes', to: 'Bereitschaftsdienstes', count: 12 }, { from: 'Pikettdienst', to: 'Bereitschaftsdienst', count: 10 }] }
+    }
+    const wrapper = await mountSuspended(AIPromptBar, { props: { ai: aiProps(request, answer) } })
+    expect(wrapper.find('[data-testid="ai-confirm-panel"]').attributes('data-kind')).toBe('replace')
+    expect(wrapper.find('[data-testid="ai-confirm-question"]').text()).toBe('Replace 25 occurrences?')
+    expect(wrapper.find('[data-testid="ai-confirm-forms"]').text()).toContain('Pikettdienstes → Bereitschaftsdienstes (12)')
+    expect(wrapper.find('[data-testid="ai-confirm-allow"]').text()).toBe('Apply')
+    await wrapper.find('[data-testid="ai-confirm-allow"]').trigger('click')
+    expect(answer.mock.calls).toEqual([[true]])
   })
 
   it('shows the exact URL for a fetch the user did not type', async () => {

@@ -627,12 +627,12 @@
         "generic": "markoto möchte {tool} verwenden."
       },
       "job": {
-        "question": "{what}: {cost}, {minutes}.",
+        "question": "{what}, {minutes}.",
+        "questionExtra": "{what}, {minutes} ({extra}).",
         "reason": "Läuft im Hintergrund. Du kannst sie abbrechen und im Aktivitätsprotokoll rückgängig machen.",
         "start": "Starten",
         "cancel": "Abbrechen",
-        "cost": "etwa {cost}",
-        "costShare": "etwa {cost} ({share} deines Kontingents für diesen Monat)",
+        "share": "etwa {share} deines KI-Kontingents für diesen Monat",
         "tokens": "etwa {tokens} Tokens auf deinem eigenen Schlüssel",
         "minutes": "etwa {minutes} Min.",
         "modes": {
@@ -643,6 +643,12 @@
           "summarise": "{count} Kapitel zusammenfassen",
           "comment": "{count} Abschnitte prüfen"
         }
+      },
+      "replace": {
+        "question": "{count} Stellen ersetzen?",
+        "reason": "Prüfe die Wortformen, bevor markoto sie ändert. Du kannst es im Aktivitätsprotokoll rückgängig machen.",
+        "apply": "Ersetzen",
+        "cancel": "Abbrechen"
       }
     },
     "placeholder": "markoto fragen…",
@@ -743,6 +749,8 @@
       "stopped": "Gestoppt",
       "stoppedReason": "Gestoppt: {reason}",
       "turnLimit": "Nach zu vielen Schritten gestoppt. Versuche eine genauere Anfrage.",
+      "stoppedEarly": "Gestoppt, bevor die Aufgabe fertig war (Schritt- oder Zeitlimit). Die Notiz sagt, was erledigt ist.",
+      "doneNoAnswer": "Fertig. Die Änderungen siehst du im Dokument.",
       "sessionCap": "Nach {cap} Schritten gestoppt. Versuche eine genauere Anfrage.",
       "waitingConfirmation": "Wartet auf deine Bestätigung…",
       "pointsExhausted": "KI-Punkte aufgebraucht",
@@ -799,7 +807,7 @@
       "scanDocument": "Durchsucht das Dokument…",
       "previewJob": "Probiert die Änderung an Beispielabschnitten…",
       "startJob": "Startet die Bearbeitung im Hintergrund…",
-      "jobProgress": "Bearbeitung im Hintergrund: {done} von {total} Teilen fertig",
+      "jobWaiting": "Bearbeitung im Hintergrund läuft; den Fortschritt siehst du oben.",
       "jobStatus": "Prüft die Bearbeitung im Hintergrund…"
     },
     "job": {
@@ -813,7 +821,7 @@
       },
       "progress": "{done} von {total} Teilen",
       "working": "Arbeitet an {heading}",
-      "cost": "Bisherige Kosten: {cost}",
+      "finishing": "Alle {total} Teile fertig, wird abgeschlossen…",
       "cancel": "Abbrechen",
       "resume": "Fortsetzen",
       "undo": "Rückgängig machen",

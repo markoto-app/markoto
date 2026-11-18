@@ -78,7 +78,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
   const freeAllowanceExhausted = ref(false)
 
   const { t } = useI18n()
-  const { privateStatus, startedSessionId, lastResponse, lastOutcome } = useAiSessionTracking({
+  const { privateStatus, startedSessionId, lastResponse, lastOutcome, startPrompt } = useAiSessionTracking({
     mySessionId, lastError, pollMs, createEventSource, stepText: step => aiStepText(step, t)
   })
 
@@ -137,6 +137,8 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     submitting.value = true
     lastError.value = null
     lastOutcome.value = null
+    // The previous session's answer must not stand in for this one's.
+    startPrompt()
     budgetExhausted.value = false
     freeAllowanceExhausted.value = false
     // The call-site override (selection popup passes a pre-captured range) wins
@@ -147,7 +149,10 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
         method: 'post',
         body: { docId: docId.value, prompt: trimmed, editorSelection }
       })
-      if (typeof res?.sessionId === 'string') startedSessionId.value = res.sessionId
+      if (typeof res?.sessionId === 'string') {
+        startPrompt(res.sessionId)
+        startedSessionId.value = res.sessionId
+      }
       if (!aiUseTracked) {
         aiUseTracked = true
         analyticsClient().track(ANALYTICS_EVENTS.aiFirstUse, {}, APP_PATH)

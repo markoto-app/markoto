@@ -41,31 +41,37 @@ function deny(): void {
 const { t, te } = useI18n()
 
 const isJob = computed(() => props.request?.kind === 'job' && !!props.request.job)
+const isReplace = computed(() => props.request?.kind === 'replace' && !!props.request.replace)
+const kind = computed(() => isJob.value ? 'job' : isReplace.value ? 'replace' : 'tool')
 
-function money(usd: number): string {
-  return usd < 0.01 ? `$${usd.toFixed(3)}` : `$${usd.toFixed(2)}`
-}
-
-/** "Translate 152 sections to English: about $0.11 (22 % of this month's allowance), about 5 minutes." */
+/**
+ * "Translate 152 sections to English, about 5 min (about 22 % of this
+ * month's AI allowance)." Never a currency amount: the only unit users see
+ * is AI points, on the plan and usage pages.
+ */
 const jobQuestion = computed(() => {
   const job = props.request?.job
   if (!job) return ''
   const what = job.mode === 'translate' && job.targetLanguage
     ? t('ai.confirm.job.modes.translateTo', { count: job.units, language: job.targetLanguage })
     : t(`ai.confirm.job.modes.${job.mode}`, { count: job.units })
-  const cost = job.usd === null
-    ? t('ai.confirm.job.tokens', { tokens: (job.inputTokens + job.outputTokens).toLocaleString() })
-    : job.allowanceShare === null
-      ? t('ai.confirm.job.cost', { cost: money(job.usd) })
-      : t('ai.confirm.job.costShare', { cost: money(job.usd), share: `${Math.max(1, Math.round(job.allowanceShare * 100))} %` })
   const minutes = t('ai.confirm.job.minutes', { minutes: Math.max(1, Math.round(job.minutes)) })
-  return t('ai.confirm.job.question', { what, cost, minutes })
+  const extra = job.allowanceShare !== null
+    ? t('ai.confirm.job.share', { share: `${Math.max(1, Math.round(job.allowanceShare * 100))} %` })
+    : job.usd === null
+      ? t('ai.confirm.job.tokens', { tokens: (job.inputTokens + job.outputTokens).toLocaleString() })
+      : null
+  return extra ? t('ai.confirm.job.questionExtra', { what, minutes, extra }) : t('ai.confirm.job.question', { what, minutes })
 })
+
+/** The word forms of a large replace_all, most frequent first. */
+const replaceForms = computed(() => props.request?.replace?.forms ?? [])
 
 const question = computed(() => {
   const r = props.request
   if (!r) return ''
   if (isJob.value) return jobQuestion.value
+  if (isReplace.value) return t('ai.confirm.replace.question', { count: r.replace?.total ?? 0 })
   const key = `ai.confirm.tools.${r.tool}`
   if (te(key)) return t(key, { target: r.target ?? '' })
   return t('ai.confirm.tools.generic', { tool: r.tool })
@@ -82,7 +88,7 @@ const question = computed(() => {
       :aria-label="t('ai.confirm.label')"
       data-testid="ai-confirm-panel"
       :data-tool="request.tool"
-      :data-kind="isJob ? 'job' : 'tool'"
+      :data-kind="kind"
     >
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div class="flex min-w-0 flex-1 items-start gap-3">
@@ -100,8 +106,21 @@ const question = computed(() => {
             >
               {{ question }}
             </p>
+            <ul
+              v-if="isReplace && replaceForms.length > 0"
+              class="mt-1 space-y-0.5 font-mono text-xs text-default"
+              data-testid="ai-confirm-forms"
+            >
+              <li
+                v-for="f in replaceForms"
+                :key="`${f.from}>${f.to}`"
+                class="break-words"
+              >
+                {{ f.from }} → {{ f.to }} <span class="text-muted">({{ f.count }})</span>
+              </li>
+            </ul>
             <p class="mt-1 text-xs text-muted">
-              {{ isJob ? t('ai.confirm.job.reason') : t('ai.confirm.reason') }}
+              {{ isJob ? t('ai.confirm.job.reason') : isReplace ? t('ai.confirm.replace.reason') : t('ai.confirm.reason') }}
             </p>
           </div>
         </div>
@@ -114,7 +133,7 @@ const question = computed(() => {
             data-testid="ai-confirm-deny"
             @click="deny"
           >
-            {{ isJob ? t('ai.confirm.job.cancel') : t('ai.confirm.deny') }}
+            {{ isJob ? t('ai.confirm.job.cancel') : isReplace ? t('ai.confirm.replace.cancel') : t('ai.confirm.deny') }}
           </UButton>
           <UButton
             color="neutral"
@@ -123,7 +142,7 @@ const question = computed(() => {
             data-testid="ai-confirm-allow"
             @click="emit('allow')"
           >
-            {{ isJob ? t('ai.confirm.job.start') : t('ai.confirm.allow') }}
+            {{ isJob ? t('ai.confirm.job.start') : isReplace ? t('ai.confirm.replace.apply') : t('ai.confirm.allow') }}
           </UButton>
         </div>
       </div>
