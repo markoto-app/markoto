@@ -6,7 +6,8 @@ import './boot-env'
 // name from the module also satisfies the side-effect import.
 import { captureMessage } from './sentry'
 import { Server } from '@hocuspocus/server'
-import { persistence, compaction, closePersistencePool } from './persistence-instance'
+import { persistence, compaction, closePersistencePool, searchIndexDb } from './persistence-instance'
+import { indexStoredDocument, isMissingTable } from './search-index'
 import { authFromEnv } from './auth'
 import { memoryGuard, rateLimiter } from './rate-limiter'
 import { graceRooms, makeRoom } from './room-capacity'
@@ -199,7 +200,11 @@ const server = new Server({
     const trackedFetch = await getLastEditor(data.documentName)
     const tracked = trackedFetch.value
 
-    await logEditActivity(data, trackedFetch, yjsDocIdBefore, yjsDocIdAfter)
+    // The text is read once for the activity row and the search index.
+    const currentText = data.document.getText('content').toJSON()
+    if (yjsDocIdAfter !== null) indexDocument(data, currentText, yjsDocIdAfter)
+
+    await logEditActivity(data, currentText, trackedFetch, yjsDocIdBefore, yjsDocIdAfter)
     await logMetaDiffActivity(data, tracked, yjsDocIdBefore, yjsDocIdAfter)
 
     // Postgres mirror of the comments Y.Array, fire-and-forget so a
@@ -388,6 +393,26 @@ function parseActorPrincipal(rawUserId: string | null | undefined): string | nul
 }
 
 /**
+ * Write the document's search index row and list fields (word count, size,
+ * last edited, live title) for the row just stored. Fire-and-forget: the
+ * index is best effort and must never hold up or fail a store; a document
+ * the index misses is picked up by the app's backfill.
+ */
+function indexDocument(data: StoreDocumentData, text: string, yjsId: number): void {
+  const title = data.document.getMap('meta').get('title')
+  indexStoredDocument(searchIndexDb, {
+    docId: data.documentName,
+    title: typeof title === 'string' ? title : '',
+    body: text,
+    yjsId,
+    wordCount: countWords(text)
+  }).catch((e: unknown) => {
+    if (isMissingTable(e)) log.debug('search index table missing (app migration pending)', { docId: data.documentName })
+    else log.warn('search index write failed', { docId: data.documentName, err: e })
+  })
+}
+
+/**
  * Log an `edit` activity entry per store event (debounced 2-10s by
  * Hocuspocus). On a Valkey miss (cold doc / restart) or Valkey error,
  * we skip emitting an edit row but DO write the new baseline so the
@@ -398,13 +423,12 @@ function parseActorPrincipal(rawUserId: string | null | undefined): string | nul
  */
 async function logEditActivity(
   data: StoreDocumentData,
+  currentText: string,
   trackedFetch: Awaited<ReturnType<typeof getLastEditor>>,
   yjsDocIdBefore: number | null,
   yjsDocIdAfter: number | null
 ): Promise<void> {
   try {
-    const ytext = data.document.getText('content')
-    const currentText = ytext.toJSON()
     const wordCount = countWords(currentText)
     const { userName, userId, actorPrincipal, actorAvatarSeed } = resolveAttribution(data, trackedFetch)
 

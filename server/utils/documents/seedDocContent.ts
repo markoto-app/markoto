@@ -11,11 +11,11 @@ import type { DocAccess } from '../../repos/proofs'
 //     sees the text right away, without a browser ever connecting.
 // Only called for a docId minted a moment ago (its documents row exists),
 // so there is no existing history to merge with.
-export async function seedDocContent(doc: DocAccess<'write'>, content: string): Promise<void> {
-  if (content.length === 0) return
+export async function seedDocContent(doc: DocAccess<'write'>, content: string): Promise<number | null> {
+  if (content.length === 0) return null
   const ydoc = new Y.Doc()
   ydoc.getText('content').insert(0, content)
   const update = Y.encodeStateAsUpdate(ydoc)
   ydoc.destroy()
-  await appendYjsUpdate(doc, update)
+  return appendYjsUpdate(doc, update)
 }

@@ -12,5 +12,14 @@ export const importErrors = defineErrors('import', {
   'timeout': { status: 504, statuses: [502] },
   'too-complex': { status: 413 },
   'unavailable': { status: 502, statuses: [504] },
-  'unsupported-format': { status: 415 }
+  'unsupported-format': { status: 415 },
+  // Bulk import jobs.
+  'job-not-found': { status: 404 },
+  'job-active': { status: 409 },
+  'job-not-uploading': { status: 409 },
+  'nothing-to-import': { status: 400 },
+  'path-invalid': { status: 400 },
+  'github-url-invalid': { status: 400 },
+  'github-not-found': { status: 404 },
+  'github-unavailable': { status: 502 }
 })

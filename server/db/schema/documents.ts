@@ -1,9 +1,12 @@
 // Documents and what hangs off one: shares with guests, view counts, saved themes, image uploads.
 
-import { pgTable, serial, integer, text, timestamp, primaryKey, index, jsonb, boolean, date } from 'drizzle-orm/pg-core'
+import { pgTable, serial, integer, bigint, text, timestamp, primaryKey, index, jsonb, boolean, date } from 'drizzle-orm/pg-core'
+import { sql, type SQL } from 'drizzle-orm'
 import type { DocTheme } from '~~/shared/types/theme'
+import { tsvector } from './columns'
 import { users } from './users'
 import { workspaces } from './workspaces'
+import { folders } from './folders'
 
 export const documents = pgTable('documents', {
   id: serial('id').primaryKey(),
@@ -14,6 +17,12 @@ export const documents = pgTable('documents', {
   // on target). Workspace delete cascades per doc in the app via
   // `deleteDocument()`; the `set null` FK is only a fallback.
   workspaceId: text('workspace_id').references(() => workspaces.workspaceId, { onDelete: 'set null' }),
+  // The folder the document is filed in (NULL = the scope's root). Always a
+  // folder of the document's own scope: its workspace, or its owner's
+  // personal folders when it has no workspace (server/repos/folders.ts).
+  // Moving the document to another workspace clears it. The `set null` FK is
+  // a fallback; deleting a folder deletes its documents through the app.
+  folderId: text('folder_id').references(() => folders.folderId, { onDelete: 'set null' }),
   title: text('title').notNull().default('Untitled'),
   // `private` = owner-only (default for logged-in users on creation).
   // `open-edit` = anyone with the link can edit (default for anonymous creation,
@@ -78,13 +87,42 @@ export const documents = pgTable('documents', {
   anonTermsVersion: integer('anon_terms_version'),
   anonTermsAcceptedAt: timestamp('anon_terms_accepted_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  lastActive: timestamp('last_active', { withTimezone: true }).notNull().defaultNow()
+  lastActive: timestamp('last_active', { withTimezone: true }).notNull().defaultNow(),
+  // When the content or the title last changed (written by the sync server
+  // with the search index, and by the app's own content writers). Unlike
+  // `last_active` it is not bumped by moves or settings, so "last edited"
+  // sorts mean what they say.
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
   index('idx_documents_owner').on(table.ownerId),
+  index('idx_documents_workspace_folder').on(table.workspaceId, table.folderId),
+  index('idx_documents_owner_folder').on(table.ownerId, table.folderId),
   index('idx_documents_last_active').on(table.lastActive),
   // Admin product stats: documents created per day.
   index('idx_documents_created').on(table.createdAt),
   index('idx_documents_workspace').on(table.workspaceId)
+])
+
+// Plain-text copy of each document for search: title + Markdown body,
+// written by the sync server on every store and by the app's own content
+// writers (seed, duplicate, import). A separate table so the hot `documents`
+// row never carries the body. `yjs_id` is the `yjs_updates` row the body
+// reflects; an upsert only replaces an older one, so two sync instances
+// can't put an older text back. 'simple' configuration (no stemming):
+// documents are written in many languages. Anonymous documents (no owner, no
+// workspace) are never indexed: nobody can search them.
+export const documentSearch = pgTable('document_search', {
+  docId: text('doc_id').primaryKey().references(() => documents.docId, { onDelete: 'cascade' }),
+  title: text('title').notNull().default(''),
+  body: text('body').notNull().default(''),
+  bodyTsv: tsvector('body_tsv').generatedAlwaysAs(
+    (): SQL => sql`setweight(to_tsvector('simple'::regconfig, ${documentSearch.title}), 'A') || setweight(to_tsvector('simple'::regconfig, ${documentSearch.body}), 'B')`
+  ),
+  yjsId: bigint('yjs_id', { mode: 'number' }),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  index('idx_document_search_tsv').using('gin', table.bodyTsv),
+  index('idx_document_search_title_trgm').using('gin', table.title.op('gin_trgm_ops'))
 ])
 
 // Documents shared with a workspace GUEST: the only way a guest

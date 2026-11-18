@@ -18,6 +18,8 @@ import { adaptCustomCssToDoc } from '~~/shared/utils/theme/customCss'
 import { themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
 import { DOC_DESCRIPTION_MAX_LENGTH, DOC_TITLE_MAX_LENGTH, INITIAL_CONTENT_MAX_LENGTH } from '~~/shared/config/docCreate'
 import { seedDocContent } from './seedDocContent'
+import { indexNewDocument } from './searchIndex'
+import { getFolder } from '../../repos/folders'
 import { apiError } from '../api/apiError'
 import { proveNewDoc } from '../access/docProof'
 
@@ -62,6 +64,10 @@ export interface CreateDocumentParams {
    *  as the doc's first Y.js update. Mutually exclusive with `templateId`
    *  (a template seeds its body in the browser on first open). */
   content?: string
+  /** A longer body limit (imports); default `INITIAL_CONTENT_MAX_LENGTH`. */
+  contentMaxLength?: number
+  /** The folder to file it in (a folder of the workspace, or of the owner's personal documents). */
+  folderId?: string | null
 }
 
 export interface CreateDocumentResult {
@@ -105,7 +111,9 @@ export async function createDocument(input: CreateDocumentParams): Promise<Creat
   // Stored under its current id (an alias like `academic-paper` → `arxiv`).
   if (template !== null) create.templateId = template.id
 
-  const content = parseContent(input.content, input.templateId)
+  const content = parseContent(input.content, input.templateId, input.contentMaxLength ?? INITIAL_CONTENT_MAX_LENGTH)
+  const folderId = await resolveFolder(input.folderId, input.owner, workspace)
+  if (folderId !== null) create.folderId = folderId
 
   const resolved = await resolveTheme(input, input.owner, workspace, template)
   if (resolved !== null) {
@@ -121,7 +129,10 @@ export async function createDocument(input: CreateDocumentParams): Promise<Creat
 
   await createDoc(input.owner, workspace, create)
   // Just created: its creator holds every right on it.
-  if (content !== null) await seedDocContent(proveNewDoc(input.owner, docId), content)
+  const proof = proveNewDoc(input.owner, docId)
+  const yjsId = content !== null ? await seedDocContent(proof, content) : null
+  // Searchable at once (title, and the body when one was given).
+  if (ownerId !== null) await indexNewDocument(proof, { title: create.title ?? '', body: content ?? '', yjsId })
   return { docId, url: `/d/${docId}` }
 }
 
@@ -209,15 +220,24 @@ function parseDescription(raw: string | undefined): string | null {
   return raw.trim()
 }
 
-function parseContent(raw: string | undefined, templateId: string | undefined): string | null {
+function parseContent(raw: string | undefined, templateId: string | undefined, max: number): string | null {
   if (raw === undefined || raw.length === 0) return null
   if (templateId !== undefined) {
     throw createError({ statusCode: 400, message: 'Pass content OR templateId, not both' })
   }
-  if (raw.length > INITIAL_CONTENT_MAX_LENGTH) {
-    throw apiError('docs/content-too-long', { max: INITIAL_CONTENT_MAX_LENGTH })
+  if (raw.length > max) {
+    throw apiError('docs/content-too-long', { max })
   }
   return raw
+}
+
+/** The folder to file a new document in: one of the workspace's, or of the owner's personal folders. */
+async function resolveFolder(raw: string | null | undefined, owner: UserScope | null, workspace: WorkspaceAccess<'editor'> | null): Promise<string | null> {
+  if (raw === undefined || raw === null || raw.length === 0) return null
+  if (owner == null) throw apiError('folder/not-found')
+  const folder = await getFolder(workspace ?? owner, raw)
+  if (!folder) throw apiError('folder/not-found')
+  return folder.folderId
 }
 
 function parseLanguage(raw: string | undefined): string | null {

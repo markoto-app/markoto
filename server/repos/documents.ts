@@ -1,10 +1,12 @@
-import { and, eq, isNull, lt, sql } from 'drizzle-orm'
+import { and, eq, isNull, lt, sql, type SQL } from 'drizzle-orm'
 import type { DocTheme } from '~~/shared/types/theme'
 import type { AudienceKind } from '~~/shared/audiences'
-import { documents } from '../db/schema'
+import type { DocListSort, SortDirection } from '~~/shared/api/explorer'
+import { documents, users } from '../db/schema'
 import { useDatabase } from '../db/client'
 import { NotFoundError } from './errors'
 import { proofUserId, type DocAccess, type SystemActor, type UserScope, type WorkspaceAccess } from './proofs'
+import { docScopeSql, type FolderScope } from './folders'
 
 // Documents repository: every read/write of the `documents` table goes through
 // here, so endpoints work with domain shapes (`DocSnapshot`) instead of
@@ -60,6 +62,8 @@ export interface CreateDocInput {
   /** Anonymous docs only: the Terms version + acceptance time from the gate. */
   anonTermsVersion?: number
   anonTermsAcceptedAt?: Date
+  /** A folder of the document's scope, checked by the caller (`createDocument`). */
+  folderId?: string
 }
 
 export interface MetaUpdate {
@@ -146,6 +150,7 @@ export async function createDoc(
   if (input.anonCreatorKeyHash !== undefined) values.anonCreatorKeyHash = input.anonCreatorKeyHash
   if (input.anonTermsVersion !== undefined) values.anonTermsVersion = input.anonTermsVersion
   if (input.anonTermsAcceptedAt !== undefined) values.anonTermsAcceptedAt = input.anonTermsAcceptedAt
+  if (input.folderId !== undefined) values.folderId = input.folderId
   await db.insert(documents).values(values as typeof documents.$inferInsert)
 }
 
@@ -188,9 +193,10 @@ export async function moveDocToWorkspace(doc: DocAccess<'manage'>, target: Works
   const docId = doc.docId
   const workspaceId = target?.workspaceId ?? null
   const db = useDatabase()
+  // The document leaves its folder: folders belong to one scope.
   const result = await db
     .update(documents)
-    .set({ workspaceId, lastActive: new Date() })
+    .set({ workspaceId, folderId: null, lastActive: new Date() })
     .where(eq(documents.docId, docId))
     .returning({ docId: documents.docId })
   if (result.length === 0) {
@@ -449,4 +455,115 @@ export async function listInactiveAnonymousDocIds(_by: SystemActor, cutoff: Date
     .select({ docId: documents.docId })
     .from(documents)
     .where(and(isNull(documents.ownerId), isNull(documents.workspaceId), lt(documents.lastActive, cutoff)))
+}
+
+/** One row of a paginated document list (explorer, AI and MCP list tools). */
+export interface DocListRow {
+  docId: string
+  title: string
+  description: string
+  language: string
+  accessMode: AccessMode
+  wordCount: number | null
+  sizeBytes: number | null
+  folderId: string | null
+  ownerId: number | null
+  ownerName: string | null
+  isOwner: boolean
+  createdAt: Date
+  updatedAt: Date
+  lastActive: Date
+}
+
+export interface DocListQuery {
+  /** `null` = the scope's root, a folder id = that folder, `'all'` = every document of the scope. */
+  folder: string | null | 'all'
+  sort: DocListSort
+  dir: SortDirection
+  /** Only documents of this owner. */
+  ownerId?: number
+  /** Keyset position from the previous page. */
+  after?: { key: string, docId: string }
+  limit: number
+}
+
+const SORT_COLUMN: Record<DocListSort, SQL> = {
+  updated: sql`${documents.updatedAt}`,
+  created: sql`${documents.createdAt}`,
+  active: sql`${documents.lastActive}`,
+  title: sql`lower(${documents.title})`
+}
+
+/**
+ * A page of the scope's documents (a workspace for any member, or the
+ * user's personal documents), in a stable keyset order: the sort column,
+ * then the document id. `total` counts every match (all pages). The sort
+ * key travels as text so timestamps keep their microseconds.
+ */
+export async function listScopeDocs(scope: FolderScope, q: DocListQuery): Promise<{ rows: Array<DocListRow & { sortKey: string }>, total: number }> {
+  const actorId = proofUserId(scope) ?? -1
+  const col = SORT_COLUMN[q.sort]
+  const isTimestamp = q.sort !== 'title'
+  const filters: SQL[] = [docScopeSql(scope)]
+  if (q.folder === null) filters.push(sql`${documents.folderId} IS NULL`)
+  else if (q.folder !== 'all') filters.push(sql`${documents.folderId} = ${q.folder}`)
+  if (q.ownerId !== undefined) filters.push(sql`${documents.ownerId} = ${q.ownerId}`)
+  const base = and(...filters)
+  const page: SQL[] = []
+  if (q.after) {
+    const key = isTimestamp ? sql`${q.after.key}::timestamptz` : sql`${q.after.key}`
+    page.push(q.dir === 'asc'
+      ? sql`(${col}, ${documents.docId}) > (${key}, ${q.after.docId})`
+      : sql`(${col}, ${documents.docId}) < (${key}, ${q.after.docId})`)
+  }
+  const db = useDatabase()
+  const order = q.dir === 'asc' ? sql`${col} ASC, ${documents.docId} ASC` : sql`${col} DESC, ${documents.docId} DESC`
+  const [rows, count] = await Promise.all([
+    db.select({
+      docId: documents.docId,
+      title: documents.title,
+      description: documents.description,
+      language: documents.language,
+      accessMode: documents.accessMode,
+      wordCount: documents.wordCount,
+      sizeBytes: documents.sizeBytes,
+      folderId: documents.folderId,
+      ownerId: documents.ownerId,
+      ownerName: users.name,
+      isOwner: sql<boolean>`coalesce(${documents.ownerId} = ${actorId}, false)`,
+      createdAt: documents.createdAt,
+      updatedAt: documents.updatedAt,
+      lastActive: documents.lastActive,
+      sortKey: sql<string>`(${col})::text`
+    })
+      .from(documents)
+      .leftJoin(users, eq(users.id, documents.ownerId))
+      .where(page.length > 0 ? and(base, ...page) : base)
+      .orderBy(order)
+      .limit(q.limit),
+    db.select({ n: sql<number>`count(*)::int` }).from(documents).where(base)
+  ])
+  return { rows, total: Number(count[0]?.n ?? 0) }
+}
+
+/** Title and placement of a document, for an AI / MCP answer or a bulk result. */
+export async function getDocPlacement(doc: DocAccess<'view'>): Promise<{ title: string, workspaceId: string | null, folderId: string | null, ownerId: number | null } | null> {
+  return (await useDatabase()
+    .select({ title: documents.title, workspaceId: documents.workspaceId, folderId: documents.folderId, ownerId: documents.ownerId })
+    .from(documents)
+    .where(eq(documents.docId, doc.docId))
+    .limit(1))[0] ?? null
+}
+
+/**
+ * Rename a document (the row; the live title in the Y.Doc is set by the
+ * caller). Counts as an edit for "last edited".
+ */
+export async function renameDoc(doc: DocAccess<'edit'>, title: string): Promise<void> {
+  const now = new Date()
+  const result = await useDatabase().update(documents)
+    .set({ title, updatedAt: now, lastActive: now })
+    .where(eq(documents.docId, doc.docId))
+    .returning({ docId: documents.docId })
+  if (result.length === 0) throw new NotFoundError('Document')
 }

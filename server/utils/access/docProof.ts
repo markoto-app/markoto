@@ -153,6 +153,21 @@ export async function proveDocMembership<K extends 'view' | 'edit' | 'manage'>(
 }
 
 /**
+ * The proof for a signed-in user's `need` on a document, decided like the
+ * HTTP policy `allow.doc(need)` (no document JWT, no anonymous creator key).
+ * For actions on many documents at once (bulk delete, folder delete): each
+ * document is decided on its own. Null when missing or not granted.
+ */
+export async function proveDocNeed<N extends Exclude<DocNeed, 'lookup'>>(userId: number, docId: string, need: N): Promise<DocAccess<DocNeedGrant<N>> | null> {
+  const row = await getDocWithActorRole(docId, userId)
+  if (!row) return null
+  const state = docStateOf(row)
+  const actor: ActorState = { userId, workspaceRole: row.workspaceRole, isGuest: row.isGuest, hasValidDocJwt: false, isAnonCreator: false }
+  if (!decideDocNeed(need, row, state, actor).allow) return null
+  return docProofFor(need, docId, row, state, actor)
+}
+
+/**
  * A document reached through its workspace: workspace admins hold
  * owner-equivalent rights over every document in it (manage, share,
  * delete), editors edit and share, every member views. The document must

@@ -224,3 +224,19 @@ export type ComplianceAuditAction
     | typeof AUDIT_CUSTOM_DOMAIN_DROPPED
     | typeof AUDIT_AI_JOB_STARTED
     | typeof AUDIT_AI_JOB_REVERTED
+
+// Folders (organisation only, no permissions). `scope` workspace (scope_id
+// the workspace id) for a workspace folder, user for a personal one.
+// Metadata: the folder id and names; delete: how many subfolders and
+// documents went with it (each document also gets its own `doc.deleted`).
+export const AUDIT_FOLDER_CREATED = 'folder.created'
+export const AUDIT_FOLDER_RENAMED = 'folder.renamed'
+export const AUDIT_FOLDER_MOVED = 'folder.moved'
+export const AUDIT_FOLDER_DELETED = 'folder.deleted'
+// A document filed into another folder. Before / after: the folder ids.
+export const AUDIT_DOC_FOLDER_MOVED = 'doc.folder_moved'
+
+// A bulk import finished (done, failed or cancelled). `scope` workspace or
+// user; metadata: job id, source, counts. File names and the repository
+// URL stay in the import record, not in the audit log.
+export const AUDIT_IMPORT_COMPLETED = 'import.completed'
