@@ -1,0 +1,158 @@
+{
+  "version": 2,
+  "title": "Translate many sections with AI",
+  "slug": "translate-many-sections-with-ai",
+  "locale": "en",
+  "variant": "light-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Ask for the translation"
+    },
+    {
+      "kind": "narration",
+      "text": "For a change that applies to a large part of the document in the same way, such as a translation, the AI tries it on a sample first and then works through the sections in the background. Code samples stay exactly as they are. For a few short sections the AI makes the change itself.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/d/7yELO4cays"
+    },
+    {
+      "kind": "approach",
+      "file": "01.webp",
+      "caption": "Click into the AI prompt bar",
+      "cursor": {
+        "x": 173,
+        "y": 602
+      },
+      "path": "/d/7yELO4cays"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Say which chapters and which language",
+      "cursor": {
+        "x": 76,
+        "y": 603
+      },
+      "path": "/d/7yELO4cays"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "Your request is ready to send.",
+      "cursor": {
+        "x": 76,
+        "y": 603
+      },
+      "path": "/d/7yELO4cays"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Click send",
+      "cursor": {
+        "x": 350,
+        "y": 602
+      },
+      "path": "/d/7yELO4cays"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "The AI tries the translation on a sample section.",
+      "cursor": {
+        "x": 350,
+        "y": 602
+      },
+      "path": "/d/7yELO4cays"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Watch it work through the sections"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "Chapters 2 to 13 are in English; the introduction, the appendix and every code block stayed as they were.",
+      "cursor": {
+        "x": 350,
+        "y": 602
+      },
+      "path": "/d/7yELO4cays",
+      "hero": true
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Undo the whole job in one step"
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Open the Activity tab",
+      "cursor": {
+        "x": 292,
+        "y": 695
+      },
+      "path": "/d/7yELO4cays"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "The translation is one entry, with the number of sections it changed.",
+      "cursor": {
+        "x": 292,
+        "y": 695
+      },
+      "path": "/d/7yELO4cays"
+    },
+    {
+      "kind": "approach",
+      "file": "07.webp",
+      "caption": "Click Undo job",
+      "cursor": null,
+      "path": "/d/7yELO4cays"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "caption": "markoto asks before it puts the German text back.",
+      "cursor": null,
+      "path": "/d/7yELO4cays"
+    },
+    {
+      "kind": "approach",
+      "file": "08.webp",
+      "caption": "Confirm",
+      "cursor": null,
+      "path": "/d/7yELO4cays"
+    },
+    {
+      "kind": "outcome",
+      "file": "09.webp",
+      "caption": "The chapters are German again. Parts someone edited after the job would have stayed as they are.",
+      "cursor": null,
+      "path": "/d/7yELO4cays"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "The German text is back in every chapter the job had translated.",
+      "cursor": {
+        "x": 348,
+        "y": 42
+      },
+      "path": "/d/7yELO4cays"
+    }
+  ],
+  "next": {
+    "slug": "restore-an-earlier-version",
+    "why": "Go back to any earlier state of a document"
+  }
+}

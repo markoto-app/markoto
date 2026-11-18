@@ -19,7 +19,7 @@
       "text": "The AI prompt bar floats at the bottom of every markoto document. Type what you want, hit send, and the AI joins the doc as another collaborator: you watch it type. It can draft new sections, rewrite passages, restructure outlines, even fetch sources from the web before it writes.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/rwDNFtvGX-"
+      "path": "/d/JEUA5Uhm-e"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 173,
         "y": 602
       },
-      "path": "/d/rwDNFtvGX-",
+      "path": "/d/JEUA5Uhm-e",
       "annotations": [
         {
           "label": "prompt bar",
@@ -49,7 +49,7 @@
         "x": 173,
         "y": 602
       },
-      "path": "/d/rwDNFtvGX-"
+      "path": "/d/JEUA5Uhm-e"
     },
     {
       "kind": "approach",
@@ -59,7 +59,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/rwDNFtvGX-"
+      "path": "/d/JEUA5Uhm-e"
     },
     {
       "kind": "outcome",
@@ -69,7 +69,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/rwDNFtvGX-"
+      "path": "/d/JEUA5Uhm-e"
     },
     {
       "kind": "chapter",
@@ -84,7 +84,7 @@
         "x": 173,
         "y": 602
       },
-      "path": "/d/rwDNFtvGX-"
+      "path": "/d/JEUA5Uhm-e"
     },
     {
       "kind": "approach",
@@ -94,7 +94,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/rwDNFtvGX-"
+      "path": "/d/JEUA5Uhm-e"
     },
     {
       "kind": "outcome",
@@ -104,7 +104,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/rwDNFtvGX-"
+      "path": "/d/JEUA5Uhm-e"
     },
     {
       "kind": "chapter",
@@ -113,13 +113,13 @@
     },
     {
       "kind": "narration",
-      "text": "When the AI is done, the bar fades back to its idle state. The AI's edits are now part of your document, undo them with Cmd / Ctrl + Z if you don't like what it wrote, or iterate by sending another prompt that builds on its work.",
+      "text": "When the AI is done, the bar fades back to its idle state. The AI's edits are now part of your document. Cmd / Ctrl + Z only takes back your own typing, not the AI's changes: if you don't like what it wrote, use Restore on its entry in the Activity tab, or send another prompt that builds on its work.",
       "file": "05.webp",
       "cursor": {
         "x": 350,
         "y": 602
       },
-      "path": "/d/rwDNFtvGX-"
+      "path": "/d/JEUA5Uhm-e"
     },
     {
       "kind": "approach",
@@ -129,7 +129,7 @@
         "x": 359,
         "y": 73
       },
-      "path": "/d/rwDNFtvGX-"
+      "path": "/d/JEUA5Uhm-e"
     },
     {
       "kind": "outcome",
@@ -139,7 +139,7 @@
         "x": 318,
         "y": 73
       },
-      "path": "/d/rwDNFtvGX-",
+      "path": "/d/JEUA5Uhm-e",
       "highlights": [
         {
           "label": "The new section",
