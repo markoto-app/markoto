@@ -16,6 +16,8 @@ import { useExplorerActions } from '~/composables/explorer/useExplorerActions'
 import { useExplorerKeyboard } from '~/composables/explorer/useExplorerKeyboard'
 import { useExplorerMenu } from '~/composables/explorer/useExplorerMenu'
 import { useExplorerColumns } from '~/composables/explorer/useExplorerColumns'
+import { useExplorerGrid } from '~/composables/explorer/useExplorerGrid'
+import { useExplorerLongPress } from '~/composables/explorer/useExplorerLongPress'
 import { explorerDndKey } from '~/composables/explorer/useExplorerDnd'
 import { useExplorerDropMonitor, useExplorerImport } from '~/composables/explorer/useExplorerImportDrop'
 import { DOC_LIST_SORTS, type DocListSort } from '~~/shared/api/explorer'
@@ -141,7 +143,12 @@ function canChange(item: ExplorerItem): boolean {
   return item.kind === 'folder' ? perms.value.canWrite : perms.value.canWrite || item.doc.isOwner
 }
 let slowClickTimer: ReturnType<typeof setTimeout> | null = null
+function cancelSlowClick() {
+  if (slowClickTimer) clearTimeout(slowClickTimer)
+  slowClickTimer = null
+}
 function startRename(key: string | null) {
+  cancelSlowClick()
   const item = key ? byKey.value.get(key) : undefined
   if (item && canChange(item)) renamingKey.value = item.key
 }
@@ -156,6 +163,21 @@ function cancelRename(key: string) {
 }
 
 // ---------- navigation ----------
+// Opened from the keyboard: once the folder's list is there, the focus goes
+// into it (else it would drop to the page and need a Tab back).
+let focusAfterOpen = false
+watch(keys, (k) => {
+  if (!focusAfterOpen || data.docs.isLoading.value) return
+  focusAfterOpen = false
+  void nextTick(() => {
+    if (k[0]) {
+      selectOnly(k[0])
+      focusRow(k[0])
+    } else {
+      scrollEl.value?.parentElement?.focus()
+    }
+  })
+})
 function openFolder(folderId: string | null) {
   const query: Record<string, string> = {}
   for (const n of ['sort', 'dir']) if (typeof route.query[n] === 'string') query[n] = route.query[n] as string
@@ -174,31 +196,21 @@ function goUp() {
 // ---------- rows ----------
 const tableRef = useTemplateRef<{ $el?: HTMLElement }>('table')
 const scrollEl = computed(() => tableRef.value?.$el ?? null)
-const ROW_HEIGHT = 44
-
-function rowEl(key: string): HTMLElement | null {
-  return scrollEl.value?.querySelector<HTMLElement>(`tr[data-key="${CSS.escape(key)}"]`) ?? null
-}
-function focusRow(key: string | null) {
-  if (!key) return
-  void nextTick(() => {
-    const root = scrollEl.value
-    const tr = rowEl(key)
-    if (tr) {
-      tr.focus({ preventScroll: true })
-      tr.scrollIntoView({ block: 'nearest' })
-      return
-    }
-    // Not rendered (virtualised): scroll near it, then focus it.
-    const index = keys.value.indexOf(key)
-    if (root && index >= 0) root.scrollTop = Math.max(0, index * ROW_HEIGHT - root.clientHeight / 2)
-    setTimeout(() => rowEl(key)?.focus(), 50)
-  })
-}
+const { focusRow, rowHeight: ROW_HEIGHT } = useExplorerGrid({
+  scrollEl,
+  keys,
+  focus: () => selection.value.focus,
+  totalCount: () => totalCount.value,
+  label: () => t('explorer.listLabel', { name: currentPath.value.at(-1)?.name ?? props.rootLabel }),
+  hasNextPage: () => data.docs.hasNextPage.value,
+  isLoading: () => data.docs.isLoading.value,
+  loadNextPage: () => void data.docs.loadNextPage()
+})
 
 function onRowSelect(e: Event, row: { original: ExplorerItem }) {
   const item = row.original
   const mouse = e as MouseEvent
+  cancelSlowClick()
   if (renamingKey.value === item.key) return
   if (e.type === 'keydown' || (isMobile.value && !selectMode.value)) {
     openItem(item)
@@ -228,7 +240,9 @@ function onDblclick(e: MouseEvent) {
 
 // ---------- menus and actions ----------
 const menuTargets = shallowRef<ExplorerItem[]>([])
-const cut = shallowRef<{ scope: string, items: ExplorerItem[] } | null>(null)
+// Kept across page changes (the personal folders are separate routes, which
+// mount a new explorer): cut in one folder, paste in another.
+const cut = useState<{ scope: string, items: ExplorerItem[] } | null>('explorer-cut', () => null)
 const scopeKey = computed(() => props.scope.kind === 'workspace' ? `ws:${props.scope.workspaceId}` : 'personal')
 const canPaste = computed(() => cut.value !== null && cut.value.scope === scopeKey.value && cut.value.items.length > 0)
 
@@ -403,9 +417,13 @@ const { onKeydown } = useExplorerKeyboard({
   isRenaming: () => renamingKey.value !== null,
   canWrite: () => perms.value.canWrite,
   focusRow,
-  open: item => openItem(item),
+  open: (item) => {
+    focusAfterOpen = item.kind === 'folder'
+    openItem(item)
+  },
   goUp,
   rename: startRename,
+  beforeKey: cancelSlowClick,
   remove: openDeleteDialog,
   cut: cutItems,
   paste: () => void pasteInto(props.folderId),
@@ -426,37 +444,9 @@ const columns = useExplorerColumns({
   }
 })
 
-// ARIA grid semantics on the table the component renders, and roving
-// focus: only the focused row is a tab stop.
-watchEffect(() => {
-  const root = scrollEl.value
-  const table = root?.querySelector('table')
-  if (!root || !table) return
-  table.setAttribute('role', 'grid')
-  table.setAttribute('aria-multiselectable', 'true')
-  table.setAttribute('aria-rowcount', String(totalCount.value))
-  table.setAttribute('aria-label', t('explorer.listLabel', { name: currentPath.value.at(-1)?.name ?? props.rootLabel }))
-  const focus = selection.value.focus ?? keys.value[0] ?? null
-  for (const tr of root.querySelectorAll<HTMLElement>('tbody tr[data-key]')) tr.tabIndex = tr.dataset.key === focus ? 0 : -1
-})
-
-// Endless scroll: the next page loads near the bottom.
-useInfiniteScroll(scrollEl, () => {
-  if (data.docs.hasNextPage.value && !data.docs.isLoading.value) void data.docs.loadNextPage()
-}, { distance: 300, canLoadMore: () => data.docs.hasNextPage.value })
-
 // ---------- breadcrumbs and phone ----------
 const foldersSheetOpen = ref(false)
-const longPressTarget = shallowRef<ExplorerItem | null>(null)
-function onLongPress(e: PointerEvent) {
-  // Touch only: a long press with the mouse stays a plain press.
-  if (!isMobile.value) return
-  const key = (e.target as HTMLElement | null)?.closest<HTMLElement>('tr[data-key]')?.dataset.key
-  const item = key ? byKey.value.get(key) : undefined
-  if (!item) return
-  selectOnly(item.key)
-  longPressTarget.value = item
-}
+const { longPressTarget, onLongPress } = useExplorerLongPress({ isMobile, find: key => byKey.value.get(key), selectOnly })
 const sheetItem = computed(() => longPressTarget.value
   // No "Cut" on a phone: there is no Paste to go with it there ("Move to..." does the job).
   ? { label: longPressTarget.value.label, actions: menu.menuItems([longPressTarget.value]).flat().filter(a => a.label !== t('explorer.action.cut')) }
@@ -478,7 +468,10 @@ defineExpose({ refresh: data.refresh })
       class="hidden sm:block w-56 shrink-0 max-h-[70vh] overflow-y-auto"
       :aria-label="t('explorer.treeLabel')"
     >
-      <UContextMenu :items="contextItems">
+      <UContextMenu
+        :items="contextItems"
+        :disabled="isMobile"
+      >
         <div>
           <ExplorerTree
             :folders="folders"
@@ -529,11 +522,15 @@ defineExpose({ refresh: data.refresh })
       />
 
       <!-- Right-click on a row: its menu; on empty space: New, Paste, Sort. -->
-      <UContextMenu :items="contextItems">
+      <UContextMenu
+        :items="contextItems"
+        :disabled="isMobile"
+      >
         <!-- eslint-disable-next-line vuejs-accessibility/no-static-element-interactions -- delegates the rows' keyboard, double click and file drops; the rows are the grid's interactive elements -->
         <div
           v-long-press="onLongPress"
-          class="relative rounded-md"
+          :tabindex="items.length === 0 ? 0 : undefined"
+          class="relative rounded-md outline-none focus-visible:ring-2 focus-visible:ring-default"
           :class="fileDragOver ? 'ring-2 ring-default' : ''"
           @contextmenu="onPaneContextmenu"
           @keydown="onKeydown"

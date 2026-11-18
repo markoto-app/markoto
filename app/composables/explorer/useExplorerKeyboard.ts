@@ -34,6 +34,8 @@ export interface ExplorerKeyboardDeps {
   undo: () => void
   newFolder: () => void
   clearCut: () => void
+  /** Any key press: cancels a pending slow-click rename. */
+  beforeKey?: () => void
 }
 
 const MOVES: Record<string, FocusMove> = {
@@ -131,6 +133,7 @@ export function useExplorerKeyboard(d: ExplorerKeyboardDeps) {
   }
 
   function onKeydown(e: KeyboardEvent) {
+    d.beforeKey?.()
     if (d.isRenaming()) return
     if ((e.target as HTMLElement | null)?.closest('input, textarea, [contenteditable="true"]')) return
     if (navigate(e) || command(e) || shortcut(e)) {

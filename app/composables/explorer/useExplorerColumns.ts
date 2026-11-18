@@ -1,6 +1,7 @@
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 import type { ExplorerItem } from '~/utils/explorer/model'
+import { UCheckbox } from '#components'
 
 // The explorer list's columns: (select boxes on a phone in select mode),
 // name, then owner, last edited and size on wider screens. Cells other than
@@ -18,7 +19,7 @@ export function useExplorerColumns(opts: {
       ? [{
           id: 'select',
           header: '',
-          cell: ({ row }: { row: { original: ExplorerItem } }) => h(resolveComponent('UCheckbox'), {
+          cell: ({ row }: { row: { original: ExplorerItem } }) => h(UCheckbox, {
             'modelValue': opts.isSelected(row.original.key),
             'aria-label': t('explorer.selectItem', { name: row.original.label }),
             'onUpdate:modelValue': () => opts.toggle(row.original.key)
