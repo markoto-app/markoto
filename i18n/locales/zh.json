@@ -1537,6 +1537,7 @@
     "failed": "删除失败",
     "remoteTitle": "文档已删除",
     "remoteDesc": "此文档已被删除。请在关闭前下载一份你的文本副本。",
+    "remoteBanner": "此文档已被删除。你的更改将不再保存。",
     "keepReading": "继续阅读",
     "downloadCopy": "下载 Markdown"
   },

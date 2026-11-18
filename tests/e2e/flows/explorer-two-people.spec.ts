@@ -102,6 +102,9 @@ test('Explorer two people', async ({ page, flow, editor }) => {
     highlights: [{ label: 'Document deleted', selector: '[role="dialog"]' }]
   })
   expect(await editor.page.docText()).toContain(added)
+  // The text is kept but no longer saved: the editor takes no more edits.
+  await expect(page.getByTestId('doc-deleted-banner')).toBeVisible()
+  await expect(page.locator('.cm-content')).toHaveAttribute('contenteditable', 'false')
 
   const download = page.waitForEvent('download')
   await flow.click('Maya clicks "Download Markdown"', page.getByTestId('doc-deleted-download'), {

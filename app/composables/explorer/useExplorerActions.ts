@@ -10,6 +10,9 @@ import type { ExplorerScope } from './useExplorerData'
 // while it shows) by moving the items back where they were.
 
 /** Codes meaning "the list you acted on is out of date". */
+/** One toast id for every "someone else changed this" note, so they replace each other. */
+export const EXPLORER_STALE_TOAST_ID = 'explorer-stale'
+
 const STALE_CODES = new Set(['folder/not-found', 'docs/not-found', 'folder/cycle'])
 
 export interface BulkResult { id: string, kind: 'doc' | 'folder', ok: boolean, code?: string }
@@ -28,7 +31,8 @@ export function useExplorerActions(opts: {
   const workspaceId = computed(() => opts.scope.value.kind === 'workspace' ? opts.scope.value.workspaceId : null)
 
   function staleToast(): void {
-    toast.add({ title: t('explorer.stale'), icon: 'i-lucide-refresh-cw', color: 'neutral' })
+    // Same id as the "folder gone" note (View.vue): one toast when both fire.
+    toast.add({ id: EXPLORER_STALE_TOAST_ID, title: t('explorer.stale'), icon: 'i-lucide-refresh-cw', color: 'neutral' })
   }
 
   /** A failed call: stale -> friendly toast + refresh; anything else -> the error toast. Returns true when it was stale. */

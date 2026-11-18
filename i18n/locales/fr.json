@@ -1537,6 +1537,7 @@
     "failed": "Échec de la suppression",
     "remoteTitle": "Document supprimé",
     "remoteDesc": "Ce document a été supprimé. Téléchargez une copie de votre texte avant de le fermer.",
+    "remoteBanner": "Ce document a été supprimé. Vos modifications ne sont plus enregistrées.",
     "keepReading": "Continuer à lire",
     "downloadCopy": "Télécharger le Markdown"
   },

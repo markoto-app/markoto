@@ -1537,6 +1537,7 @@
     "failed": "Error al eliminar",
     "remoteTitle": "Documento eliminado",
     "remoteDesc": "Este documento fue eliminado. Descarga una copia de tu texto antes de cerrarlo.",
+    "remoteBanner": "Este documento fue eliminado. Tus cambios ya no se guardan.",
     "keepReading": "Seguir leyendo",
     "downloadCopy": "Descargar Markdown"
   },

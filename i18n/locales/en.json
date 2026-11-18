@@ -1537,6 +1537,7 @@
     "failed": "Deletion failed",
     "remoteTitle": "Document deleted",
     "remoteDesc": "This document was deleted. Download a copy of your text before you close it.",
+    "remoteBanner": "This document was deleted. Your changes are no longer saved.",
     "keepReading": "Keep reading",
     "downloadCopy": "Download Markdown"
   },

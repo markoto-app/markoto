@@ -27,7 +27,7 @@ const {
   status,
   synced,
   userCount,
-  isReadOnly,
+  isReadOnly: tokenReadOnly,
   syncAuthFailed,
   syncRejection,
   syncBusy,
@@ -64,6 +64,10 @@ const {
   setAccessMode,
   getDocJwt
 } = useDocument(props.docId)
+
+// Deleted by someone else: the text stays readable but is no longer saved,
+// so the editor stops taking edits (they would be lost silently).
+const isReadOnly = computed(() => tokenReadOnly.value || deletedByOther.value)
 
 // What the preview and browser print render. The author's custom CSS is
 // dropped when the plan doesn't include it (a preset's template CSS stays,
@@ -220,7 +224,8 @@ function openShareAtPassword() {
   showShareModal.value = true
 }
 
-const { viewMode, isMobile } = useEditorViewMode(isReadOnly)
+// The access level picks the layout; a deletion keeps the one on screen.
+const { viewMode, isMobile } = useEditorViewMode(tokenReadOnly)
 
 const { syncRejectionMessage } = useSyncProblemToasts(syncAuthFailed, syncRejection)
 
@@ -415,16 +420,11 @@ useHead({
         />
       </div>
 
-      <div
-        v-if="isReadOnly"
-        class="bg-amber-500/10 border-b border-amber-500/30 px-4 py-1.5 text-center text-sm text-amber-600 dark:text-amber-400"
-      >
-        <UIcon
-          name="i-lucide-lock"
-          class="size-3.5 mr-1 align-text-bottom"
-        />
-        {{ t('share.viewOnly') }}
-      </div>
+      <EditorLayoutAccessBanner
+        :deleted="deletedByOther"
+        :read-only="isReadOnly"
+        @download="exportMarkdown()"
+      />
 
       <!-- Flex siblings with `flex-1` / `min-w-0` share the width. Triple-split
            (editor + preview + sidebar) starts at `xl` (1280px); below that the
@@ -596,7 +596,7 @@ useHead({
         :char-count="charCount"
         :page-count="pageCount"
         :view-mode="viewMode"
-        :synced="synced"
+        :synced="synced && !deletedByOther"
         :read-only="isReadOnly"
       />
     </template>

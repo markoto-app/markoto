@@ -139,6 +139,24 @@ describe('folder changes under an open editor', () => {
     expect((await testDb().query('SELECT 1 FROM documents WHERE doc_id = $1', [doc.docId])).rowCount).toBe(0)
   }, 30_000)
 
+  it('a bulk delete by a workspace admin tells every open editor', async () => {
+    const alice = await createUser()
+    const bob = await createUser()
+    const ws = await createWorkspace(bob.id)
+    await setMemberRole(ws.workspaceId, alice.id, 'editor')
+    const d1 = await createDoc({ ownerId: alice.id, workspaceId: ws.workspaceId })
+    const d2 = await createDoc({ ownerId: alice.id, workspaceId: ws.workspaceId })
+    const c1 = connect(d1.docId, alice.id)
+    const c2 = connect(d2.docId, alice.id)
+    await waitFor(() => c1.synced && c2.synced, 10_000, 'synced')
+
+    const b = await loggedInClient(bob.id)
+    const res = await b.post('/api/documents/bulk', { action: 'delete', docIds: [d1.docId, d2.docId] })
+    expect(res.status, await res.clone().text()).toBe(200)
+    expect(await res.json()).toMatchObject({ ok: 2, failed: 0 })
+    await waitFor(() => c1.doc.getMap('meta').get('_deleted') !== undefined && c2.doc.getMap('meta').get('_deleted') !== undefined, 15_000, 'notify-deleted both')
+  }, 30_000)
+
   it('moving an open document to another folder keeps its editor syncing', async () => {
     const alice = await createUser()
     const a = await loggedInClient(alice.id)

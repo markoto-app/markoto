@@ -12,7 +12,7 @@ import {
 } from '~/utils/explorer/model'
 import { clickSelect, EMPTY_SELECTION, pruneSelection, type SelectionState } from '~/utils/explorer/selection'
 import { useExplorerData, type DocListParams, type ExplorerScope } from '~/composables/explorer/useExplorerData'
-import { useExplorerActions } from '~/composables/explorer/useExplorerActions'
+import { EXPLORER_STALE_TOAST_ID, useExplorerActions } from '~/composables/explorer/useExplorerActions'
 import { useExplorerKeyboard } from '~/composables/explorer/useExplorerKeyboard'
 import { useExplorerMenu } from '~/composables/explorer/useExplorerMenu'
 import { useExplorerColumns } from '~/composables/explorer/useExplorerColumns'
@@ -106,7 +106,7 @@ const currentPath = computed(() => folderPathOf(folders.value, props.folderId))
 // person to the root with a note, instead of an empty page.
 watch(() => props.folderId !== null && data.folders.status.value === 'success' && currentPath.value.length === 0, (missing) => {
   if (!missing) return
-  toast.add({ title: t('explorer.folderGone'), icon: 'i-lucide-refresh-cw', color: 'neutral' })
+  toast.add({ id: EXPLORER_STALE_TOAST_ID, title: t('explorer.folderGone'), icon: 'i-lucide-refresh-cw', color: 'neutral' })
   void router.replace(props.folderHref(null))
 })
 

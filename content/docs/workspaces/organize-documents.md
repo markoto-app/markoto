@@ -131,9 +131,11 @@ admin.
   deleted, you are taken back to the top.
 - Moving or renaming a document that someone has open doesn't interrupt
   them: they keep writing.
-- If a document someone has open is deleted, they see a note that it was
-  deleted. Their text stays on screen, and **Download Markdown** saves a
-  copy of it before they close the document.
+- If a document someone has open is deleted (by its owner, a workspace
+  admin, or with the folder it was in), they see a note that it was
+  deleted. Their text stays on screen but is no longer saved, so the editor
+  stops taking changes. **Download Markdown**, in the note and in the bar
+  above the text, saves a copy of it before they close the document.
 
 ## What's next
 

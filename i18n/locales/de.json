@@ -1537,6 +1537,7 @@
     "failed": "Löschen fehlgeschlagen",
     "remoteTitle": "Dokument gelöscht",
     "remoteDesc": "Dieses Dokument wurde gelöscht. Lade eine Kopie deines Texts herunter, bevor du es schliesst.",
+    "remoteBanner": "Dieses Dokument wurde gelöscht. Deine Änderungen werden nicht mehr gespeichert.",
     "keepReading": "Weiterlesen",
     "downloadCopy": "Markdown herunterladen"
   },
