@@ -88,7 +88,7 @@ Mac use Cmd instead of Ctrl.
 | Ctrl + A | Select everything in the folder |
 | Ctrl + X, then Ctrl + V | Cut, then paste into the open folder (a move) |
 | Ctrl + Z | Undo the last move |
-| Ctrl + Shift + N | New folder |
+| Alt + N (Option + N on a Mac) | New folder |
 | Escape | Clear the selection |
 | Typing a name | Jumps to the first item that starts with it |
 | Ctrl + K | Search all your documents |

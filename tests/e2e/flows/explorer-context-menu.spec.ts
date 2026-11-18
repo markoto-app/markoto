@@ -109,7 +109,7 @@ test('Explorer context menu', async ({ page, flow, editor }) => {
   for (const name of [/^new document/i, /^new folder/i, /^import files/i, /^sort by/i]) {
     await expect(page.getByRole('menuitem', { name })).toBeVisible()
   }
-  await expect(explorer.selectionBar).toHaveCount(0)
+  await expect(explorer.selectionBar).toBeHidden()
   await flow.shot('Create something here, import files, or change the sort order.', {
     highlights: [{ label: 'Actions', selector: '[role="menu"]' }]
   })

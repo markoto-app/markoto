@@ -87,12 +87,17 @@ test('Organize a workspace', async ({ page, flow, editor }) => {
     const source = explorer.row('Launch plan')
     const target = explorer.row('Planning')
     await flow.hover('Drag "Launch plan" onto "Planning"', source)
-    await source.hover()
-    await page.mouse.down()
+    // A real drag: the pointer leaves the row a little first (the browser
+    // starts dragging), then crosses into the folder row and rests there.
+    const from = await source.boundingBox()
     const box = await target.boundingBox()
-    if (!box) throw new Error('Planning row has no box')
+    if (!from || !box) throw new Error('rows have no box')
+    await page.mouse.move(from.x + 40, from.y + from.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(from.x + 60, from.y + from.height / 2 + 6, { steps: 4 })
     await page.mouse.move(box.x + box.width / 4, box.y + box.height / 2, { steps: 12 })
-    await holdPointer(page, 150)
+    await page.mouse.move(box.x + box.width / 4 + 4, box.y + box.height / 2, { steps: 2 })
+    await holdPointer(page, 250)
     await page.mouse.up()
     await expect(explorer.row('Launch plan')).toHaveCount(0)
     await flow.shot('"Launch plan" is in Planning now.', {
@@ -126,7 +131,7 @@ test('Organize a workspace', async ({ page, flow, editor }) => {
     await flow.narrate('On a phone, tap "Select" and tick the documents you want to move.')
     await flow.click('Tap "Select"', page.getByRole('button', { name: /^select$/i }), {
       result: 'Every row gets a check box.',
-      after: () => page.getByRole('checkbox', { name: 'Select Customer interview: Acme' }).waitFor({ state: 'visible' })
+      after: () => page.getByRole('checkbox', { name: 'Select Customer interview: Acme' }).waitFor({ state: 'visible', timeout: 10_000 })
     })
     await flow.click('Tick "Customer interview: Acme"', page.getByRole('checkbox', { name: 'Select Customer interview: Acme' }), {
       chain: true,

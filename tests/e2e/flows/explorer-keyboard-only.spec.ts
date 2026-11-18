@@ -2,7 +2,7 @@ import { test, expect } from '../fixtures/flow'
 import { ExplorerPage, apiCreateDoc, apiCreateFolder, apiListDocs, apiListFolders } from '../fixtures/explorer'
 
 // "Organize documents with the keyboard": everything in the explorer
-// without a mouse. Tab into the list, Ctrl+Shift+N for a folder, type to
+// without a mouse. Tab into the list, Alt+N for a folder, type to
 // jump to a name, F2 to rename, Ctrl+X / Ctrl+V to move, Backspace to go
 // up, Delete with a confirmation. Desktop only: a phone has no keyboard
 // shortcuts. No automated accessibility scan here: the suite has no axe
@@ -36,8 +36,8 @@ test('Explorer keyboard only', async ({ page, flow, editor }) => {
   }, { highlights: [{ label: 'Focus', selector: '[data-testid="explorer-list"] tbody tr[data-key]:focus' }] })
 
   // ---------- new folder ----------
-  await flow.step('Press Ctrl+Shift+N for a new folder', async () => {
-    await page.keyboard.press('ControlOrMeta+Shift+N')
+  await flow.step('Press Alt+N (Option+N on a Mac) for a new folder', async () => {
+    await page.keyboard.press('Alt+KeyN')
     await expect(explorer.renameInput).toBeFocused()
     await expect(explorer.renameInput).toHaveValue('New folder')
   })
