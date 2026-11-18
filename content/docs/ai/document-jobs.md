@@ -32,8 +32,9 @@ chapter heading*. Typical background edits:
 
 Code samples, math, link addresses and the headings' structure stay as
 they are. You don't have to ask for a background edit: the AI decides
-from your request and the size of the document. A change to a few
-sections it simply makes itself, like any other edit.
+from your request and the size of the part you want changed. A change to
+a few sections, or to less than roughly 15 pages of text, it simply makes
+itself, like any other edit.
 
 ## Before it starts: the estimate
 

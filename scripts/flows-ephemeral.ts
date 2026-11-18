@@ -138,6 +138,11 @@ const FLOWS_ENV: Record<string, string> = {
   // `ai-provider-settings` flow save the fake OpenAI-compatible provider
   // (`fake-openai-test`) at the docker bridge address.
   NUXT_AI_DEFAULT_CHAT_MODEL: 'deepseek-v4-1-flash-1017',
+  // Delegated jobs and the web-tool synthesis on the hosted worker aliases
+  // (infra/render-env.sh), so `ai-delegated-translation` runs its job on
+  // the model markoto.app uses, not on the planner.
+  NUXT_AI_DEFAULT_WORKER_MODEL: 'markoto-worker',
+  NUXT_AI_DEFAULT_UTILITY_MODEL: 'markoto-utility',
   NUXT_FREE_TIER_TOTAL_BUDGET_USD: '500',
   NUXT_AI_DEFAULT_IMAGE_MODEL: 'flux-3-image-klein',
   NUXT_AI_DEFAULT_TRANSCRIBE_MODEL: 'voxtral-mini-transcribe',

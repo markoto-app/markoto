@@ -13,10 +13,17 @@ import { test, expect, requireLiveAi } from '../fixtures/flow'
 // reads the outline and the one section (outline, read_section) instead of
 // the whole text; the assertions check the answer and the document, not
 // which tools ran.
+//
+// Light variants only (desktop and mobile): the 180-page document makes the
+// setup slow, and the docs page falls back to the other theme of the same
+// form factor (app/components/content/Flow.vue).
+
+test.describe.configure({ retries: 1 })
 
 const HANDBOOK = readFileSync(fileURLToPath(new URL('../fixtures/content/large-handbook/betriebshandbuch.md', import.meta.url)), 'utf8')
 
-test('Ask about one section of a long document', async ({ flow, editor }) => {
+test('Ask about one section of a long document', async ({ flow, editor }, testInfo) => {
+  test.skip(testInfo.project.name.includes('-dark-'), 'Long live-AI flow: light variants only, the docs fall back to them')
   requireLiveAi()
   test.setTimeout(420_000)
 
