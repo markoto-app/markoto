@@ -28,8 +28,9 @@ there is one. See [what the AI needs](/docs/ai/overview).
 The AI reads your document, decides what to do and makes its edits directly
 in the shared document, so collaborators see them live next to any edits of
 their own, with no "wait for it to finish". Everything it changes shows in
-the [activity log](/docs/import-export) as an AI edit, and you can undo or
-[restore an earlier version](/docs/import-export/restore). While it works, the AI
+the [activity log](/docs/import-export) as an AI edit. To take an edit back,
+[restore the version from before it](/docs/import-export/restore); Cmd / Ctrl + Z
+only undoes your own typing, not the AI's changes. While it works, the AI
 appears in the presence bar as working; only you see what it is doing. You
 can stop it at any time.
 

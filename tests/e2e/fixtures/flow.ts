@@ -1046,6 +1046,14 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         if (opts.title) {
           await baseExpect(editor.titleButton).toContainText(opts.title)
         }
+        // The cover goes off BEFORE the body is written: switching it
+        // re-paginates the whole preview, which on a long body (the
+        // 180-page handbook) takes far longer than the cover check waits.
+        // On the short template text it is quick, and the body's own
+        // render then starts without a cover.
+        if (opts.cover === false) {
+          await editor.setCoverEnabled(false)
+        }
         if (opts.body !== undefined) {
           await editor.setDocText(opts.body)
         }
@@ -1055,9 +1063,6 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         if (!isMobile) {
           await editor.switchToSplitView()
           await editor.waitForPreviewPaginated()
-        }
-        if (opts.cover === false) {
-          await editor.setCoverEnabled(false)
         }
       }
     }
