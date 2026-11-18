@@ -29,7 +29,7 @@ export function useSavedThemes(active: MaybeRefOrGetter<boolean> = true) {
   const wanted = sharedEnabled('themes.saved', active)
   const query = useQuery(() => ({
     ...savedThemesQuery({ api: apiFetch }),
-    enabled: () => import.meta.client && loggedIn.value && wanted()
+    enabled: import.meta.client && loggedIn.value && wanted()
   }))
   // A failed load leaves the list empty; the built-in presets still work.
   const themes = computed(() => loggedIn.value ? query.data.value?.themes ?? [] : [])

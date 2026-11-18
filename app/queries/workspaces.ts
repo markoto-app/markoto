@@ -40,7 +40,7 @@ export function useMyWorkspaces(active: MaybeRefOrGetter<boolean> = true) {
   const wanted = sharedEnabled('workspaces.mine', active)
   return useQuery(() => ({
     ...myWorkspacesQuery({ api: apiFetch }),
-    enabled: () => import.meta.client && loggedIn.value && wanted()
+    enabled: import.meta.client && loggedIn.value && wanted()
   }))
 }
 
