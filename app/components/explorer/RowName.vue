@@ -65,12 +65,17 @@ function inputEl(): HTMLInputElement | null {
 function holdFocus() {
   const el = inputEl()
   if (!props.renaming || !el || Date.now() > holdFocusUntil) return
-  if (document.activeElement !== el) {
-    el.focus()
-    // Like a file manager: the whole name is selected, ready to be typed over.
-    if (document.activeElement === el && el.value === props.item.label) el.select()
-  }
+  if (document.activeElement !== el) el.focus()
   requestAnimationFrame(holdFocus)
+}
+// Like a file manager: the whole name is selected, ready to be typed over,
+// whichever way the field got the focus (taken back from a closing menu,
+// handed back by its focus trap) as long as nothing was typed yet. Selecting
+// only after our own focus() call missed the other ways: the typed name then
+// landed in front of "New folder".
+function onFocus() {
+  const el = inputEl()
+  if (el && draft.value === props.item.label) el.select()
 }
 watch(() => props.renaming, async (on) => {
   if (!on) return
@@ -155,6 +160,7 @@ const snippet = computed(() => props.item.kind === 'doc' && props.item.doc.snipp
           data-testid="explorer-rename-input"
           @keydown.enter.prevent="commit"
           @keydown.esc.prevent="cancel"
+          @focus="onFocus"
           @blur="onBlur"
         />
         <p

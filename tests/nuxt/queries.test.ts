@@ -187,6 +187,18 @@ describe('workspaces: create / delete refresh the list and the owned-workspace c
     expect(hits('workspaces')).toBe(2)
   })
 
+  it('a closed dialog mounted after the dashboard does not switch the dashboard\'s list off', async () => {
+    // The dashboard's list, then the explorer's move dialog (closed) further
+    // down the page: both read the same cache entry.
+    await use(() => useMyWorkspaces())
+    await use(() => useMyWorkspaces(ref(false)))
+    const create = await use(() => useCreateWorkspace())
+    const before = hits('workspaces')
+
+    await create.mutateAsync({ name: 'Team' })
+    expect(hits('workspaces')).toBe(before + 1)
+  })
+
   it('deleting a workspace marks the counters stale even when no view shows them', async () => {
     const del = await use(() => useDeleteWorkspace())
     // Loaded earlier by the dashboard, which is gone now.

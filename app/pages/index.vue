@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { DEFAULT_TITLE } from '~~/shared/seo/meta'
 
+// `/f/:folderId` opens a folder of the signed-in user's personal documents
+// in the dashboard's explorer (links, back / forward). One page and one key
+// for both addresses: opening a folder keeps the dashboard mounted. A page
+// of its own remounted the whole dashboard on every folder change, and an
+// action that opens a folder first ("New folder" inside another folder)
+// finished on the unmounted copy: the rename never started.
+definePageMeta({ alias: '/f/:folderId', key: 'home' })
+
 const { t } = useI18n()
 const router = useRouter()
 const { loggedIn } = useUserSession()

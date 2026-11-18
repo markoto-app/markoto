@@ -543,7 +543,6 @@ defineExpose({ refresh: data.refresh })
             :virtualize="{ estimateSize: ROW_HEIGHT, overscan: 12 }"
             sticky
             :style="{ height: `${listHeight}px` }"
-            :class="selectedItems.length > 0 ? 'pb-14' : undefined"
             :ui="{ tr: 'outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-default', td: 'py-2', th: 'whitespace-nowrap' }"
             :on-select="onRowSelect"
             :on-contextmenu="onRowContextmenu"
@@ -595,14 +594,6 @@ defineExpose({ refresh: data.refresh })
               </div>
             </template>
           </UTable>
-          <!-- Floats over the list's bottom edge: selecting must not move the rows under the pointer. -->
-          <ExplorerSelectionBar
-            v-if="selectedItems.length > 0"
-            class="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 w-[min(32rem,calc(100%-1.5rem))] shadow-lg"
-            :count="selectedItems.length"
-            :actions="selectionMenu"
-            @clear="selection = EMPTY_SELECTION"
-          />
           <div
             v-if="fileDragOver"
             class="absolute inset-0 flex items-center justify-center bg-default/80 rounded-md pointer-events-none"
@@ -613,9 +604,22 @@ defineExpose({ refresh: data.refresh })
           </div>
         </div>
       </UContextMenu>
-      <p class="text-xs text-muted">
-        {{ t('explorer.count', { n: totalCount }, totalCount) }}
-      </p>
+      <!-- Below the list, never over its rows; one height with or without a selection, so selecting moves nothing. -->
+      <div class="h-10 flex items-center">
+        <ExplorerSelectionBar
+          v-if="selectedItems.length > 0"
+          class="w-full sm:w-[min(32rem,100%)]"
+          :count="selectedItems.length"
+          :actions="selectionMenu"
+          @clear="selection = EMPTY_SELECTION"
+        />
+        <p
+          v-else
+          class="text-xs text-muted"
+        >
+          {{ t('explorer.count', { n: totalCount }, totalCount) }}
+        </p>
+      </div>
     </div>
 
     <!-- Screen reader announcements (moved, renamed, undo available). -->
