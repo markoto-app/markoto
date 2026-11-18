@@ -36,7 +36,8 @@ sort order and a search are part of the address too.
   note that appears, to put the last move back.
 - **Select several:** Ctrl-click (Cmd-click on a Mac) adds or removes one
   item, Shift-click selects everything between, Ctrl+A selects the whole
-  folder. **Actions** next to the count works on all of them at once.
+  folder. A bar at the bottom of the list shows the count; **Actions** in
+  it works on all of them at once.
 - **Search:** the search box finds documents by title and by any word in
   their text, in the open folder. Tick **All folders** to search the whole
   workspace (or all of My documents). To search everything you can open
@@ -98,8 +99,8 @@ Mac use Cmd instead of Ctrl.
 - Tap a document or folder to open it.
 - Press and hold one to see its actions (rename, move, delete and the
   rest).
-- Tap **Select** to tick several items, then use **Actions** above the
-  list, for example **Move to...**.
+- Tap **Select** to tick several items, then use **Actions** in the bar
+  at the bottom of the list, for example **Move to...**.
 - The folder button next to the path opens the folder tree; the arrow
   goes up one folder.
 

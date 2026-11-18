@@ -84,7 +84,7 @@ function onContextmenu(event: MouseEvent) {
     :get-key="(item: Node) => item.key"
     color="neutral"
     size="sm"
-    :ui="{ link: 'data-[selected]:bg-elevated' }"
+    :ui="{ link: 'data-[selected]:bg-(--explorer-selected-bg)' }"
     data-testid="explorer-tree"
     @update:model-value="(v: unknown) => { const n = v as Node | undefined; if (n) emit('select', n.folderId) }"
     @contextmenu="onContextmenu"

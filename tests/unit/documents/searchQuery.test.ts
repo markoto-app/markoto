@@ -51,7 +51,24 @@ describe('splitSnippet', () => {
     ])
   })
 
-  it('drops empty parts and never interprets HTML', () => {
-    expect(splitSnippet(`${m('')}<b>x</b>`)).toEqual([{ text: '<b>x</b>', match: false }])
+  it('drops empty parts and HTML tags (the text stays plain text)', () => {
+    expect(splitSnippet(`${m('')}<b>x</b> 1 < 2`)).toEqual([{ text: 'x 1 < 2', match: false }])
+  })
+
+  it('shows link and image text without their targets, also with a match inside or a cut-off target', () => {
+    const text = (s: string) => splitSnippet(s).map(p => p.text).join('')
+    expect(text('see [Plan](/d/A-OazMp4f8) and ![logo](/api/files/x.png) now')).toBe('see Plan and logo now')
+    expect(splitSnippet(`see [${m('Plan')}](/d/A-Oaz) now`)).toEqual([
+      { text: 'see ', match: false },
+      { text: 'Plan', match: true },
+      { text: ' now', match: false }
+    ])
+    expect(text('lan](/d/A-Oaz) then [Next](/d/B-')).toBe('lan then Next')
+  })
+
+  it('drops heading, quote, list, emphasis and code markers but keeps a dash in prose', () => {
+    const text = (s: string) => splitSnippet(s).map(p => p.text).join('')
+    expect(text('## Goals\n- **ship** the `api`\n> quoted\n1. first')).toBe('Goals ship the api quoted first')
+    expect(text('before - after')).toBe('before - after')
   })
 })

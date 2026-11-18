@@ -28,9 +28,23 @@ export function prefixTsQuery(query: string): string | null {
 export const SNIPPET_START = '⁣['
 export const SNIPPET_STOP = ']⁣'
 
-/** Markdown markers that only clutter a one-line excerpt (heading hashes, emphasis, code ticks). */
-function plainExcerpt(text: string): string {
-  return text.replace(/(^|\s)#{1,6}\s/g, '$1').replace(/[*_`]{1,3}/g, '').replace(/\s+/g, ' ')
+/**
+ * Markdown syntax that only clutters a one-line excerpt: link and image
+ * targets (also one cut off at the excerpt's end), the brackets around link
+ * text (not the match marks, which carry an invisible separator), HTML tags,
+ * heading hashes, quote and list markers, emphasis and code ticks.
+ */
+export function plainExcerpt(text: string): string {
+  return text
+    .replace(/\]\([^)\s]*\)?/g, ']')
+    .replace(/!(?=\[)/g, '')
+    .replace(/(?<!\u2063)\[/g, '')
+    .replace(/\](?!\u2063)/g, '')
+    .replace(/<\/?[A-Za-z][^>]*>?/g, '')
+    .replace(/(^|\s)#{1,6}\s/g, '$1')
+    .replace(/(^|\n)[ \t]*(?:>[ \t]*)*(?:[-+*]|\d+\.)?[ \t]+/g, '$1')
+    .replace(/[*_`~]{1,3}/g, '')
+    .replace(/\s+/g, ' ')
 }
 
 /** Split a snippet into plain and matched parts (never HTML), without Markdown markers. */

@@ -16,7 +16,7 @@ import { EXPLORER_STALE_TOAST_ID, useExplorerActions } from '~/composables/explo
 import { useExplorerKeyboard } from '~/composables/explorer/useExplorerKeyboard'
 import { useExplorerMenu } from '~/composables/explorer/useExplorerMenu'
 import { useExplorerColumns } from '~/composables/explorer/useExplorerColumns'
-import { useExplorerGrid } from '~/composables/explorer/useExplorerGrid'
+import { useExplorerHeight, useExplorerGrid } from '~/composables/explorer/useExplorerGrid'
 import { useExplorerLongPress } from '~/composables/explorer/useExplorerLongPress'
 import { explorerDndKey } from '~/composables/explorer/useExplorerDnd'
 import { useExplorerDropMonitor, useExplorerImport } from '~/composables/explorer/useExplorerImportDrop'
@@ -193,6 +193,9 @@ function goUp() {
 // ---------- rows ----------
 const tableRef = useTemplateRef<{ $el?: HTMLElement }>('table')
 const scrollEl = computed(() => tableRef.value?.$el ?? null)
+const rootEl = useTemplateRef<HTMLElement>('root')
+const treeEl = useTemplateRef<HTMLElement>('treeNav')
+const { listHeight, treeHeight } = useExplorerHeight(rootEl, scrollEl, treeEl)
 const { focusRow, rowHeight: ROW_HEIGHT } = useExplorerGrid({
   scrollEl,
   keys,
@@ -363,11 +366,11 @@ async function onDeleteConfirmed() {
   const next = keys.value[keys.value.indexOf(targets.at(-1)?.key ?? '') + 1] ?? null
   deleteOpen.value = false
   await actions.deleteItems(targets)
-  // Focus goes to the row after the deleted ones, as in a file manager.
-  if (next && byKey.value.has(next)) {
-    selectOnly(next)
-    focusRow(next)
-  }
+  // Nothing stays selected; the keyboard focus goes to the row after the
+  // deleted ones, as in a file manager.
+  const focus = next && byKey.value.has(next) ? next : null
+  selection.value = { selected: new Set(), anchor: focus, focus }
+  focusRow(focus)
 }
 
 const duplicateTarget = shallowRef<ExplorerItem | null>(null)
@@ -459,11 +462,14 @@ defineExpose({ refresh: data.refresh })
 
 <template>
   <section
+    ref="root"
     class="flex gap-6 min-h-0"
     data-testid="explorer"
   >
     <nav
-      class="hidden sm:block w-56 shrink-0 max-h-[70vh] overflow-y-auto"
+      ref="treeNav"
+      class="hidden sm:block w-56 shrink-0 overflow-y-auto"
+      :style="{ maxHeight: `${treeHeight}px` }"
       :aria-label="t('explorer.treeLabel')"
     >
       <UContextMenu
@@ -510,15 +516,6 @@ defineExpose({ refresh: data.refresh })
         @import="openImport(folderId)"
       />
 
-      <!-- Always laid out (invisible when empty): selecting must not move the rows under the pointer. -->
-      <ExplorerSelectionBar
-        :class="selectedItems.length === 0 ? 'invisible' : ''"
-        :aria-hidden="selectedItems.length === 0 ? 'true' : undefined"
-        :count="selectedItems.length"
-        :actions="selectionMenu"
-        @clear="selection = EMPTY_SELECTION"
-      />
-
       <!-- Right-click on a row: its menu; on empty space: New, Paste, Sort. -->
       <UContextMenu
         :items="contextItems"
@@ -545,8 +542,8 @@ defineExpose({ refresh: data.refresh })
             :loading="data.docs.isLoading.value && items.length === 0"
             :virtualize="{ estimateSize: ROW_HEIGHT, overscan: 12 }"
             sticky
-            class="h-[min(70vh,calc(100vh-18rem))] min-h-64"
-            :ui="{ tr: 'outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-default', td: 'py-2' }"
+            :style="{ height: `${listHeight}px` }"
+            :ui="{ tr: 'outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-default', td: 'py-2', th: 'whitespace-nowrap' }"
             :on-select="onRowSelect"
             :on-contextmenu="onRowContextmenu"
             data-testid="explorer-list"
@@ -597,6 +594,14 @@ defineExpose({ refresh: data.refresh })
               </div>
             </template>
           </UTable>
+          <!-- Floats over the list's bottom edge: selecting must not move the rows under the pointer. -->
+          <ExplorerSelectionBar
+            v-if="selectedItems.length > 0"
+            class="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 w-[min(32rem,calc(100%-1.5rem))] shadow-lg"
+            :count="selectedItems.length"
+            :actions="selectionMenu"
+            @clear="selection = EMPTY_SELECTION"
+          />
           <div
             v-if="fileDragOver"
             class="absolute inset-0 flex items-center justify-center bg-default/80 rounded-md pointer-events-none"
@@ -663,12 +668,3 @@ defineExpose({ refresh: data.refresh })
     />
   </section>
 </template>
-
-<style scoped>
-:deep(tr.explorer-drop-over),
-:deep([data-slot="link"].explorer-drop-over) {
-  outline: 2px solid var(--ui-border-inverted);
-  outline-offset: -2px;
-  border-radius: 0.375rem;
-}
-</style>

@@ -45,37 +45,59 @@ watchEffect(() => {
   tr.classList.toggle('explorer-focus', props.focused)
   // Styled here, not through the table's row options: changing those re-renders
   // every row, which swallowed the second click of a double click.
-  tr.classList.toggle('bg-elevated', props.selected)
+  tr.classList.toggle('explorer-selected', props.selected)
 })
 
 // Inline rename: Enter or leaving the field commits, Escape cancels.
 const draft = ref('')
 const input = useTemplateRef<{ inputRef?: HTMLInputElement }>('input')
-let startedAt = 0
-function focusInput() {
-  const el = input.value?.inputRef
-  el?.focus()
-  // Like a file manager: the whole name is selected, ready to be typed over.
-  el?.select()
+/** Until then a focus taken away from the field is taken back (see below). */
+let holdFocusUntil = 0
+function inputEl(): HTMLInputElement | null {
+  return input.value?.inputRef ?? null
+}
+
+// A menu that just closed (context menu, "New") holds the focus while it is
+// open and hands it back to its trigger as it closes, a moment after the
+// rename started. So the field keeps taking the focus, every frame, for a
+// short while: the first attempts land in the menu's focus trap, a later
+// one sticks once the menu is gone.
+function holdFocus() {
+  const el = inputEl()
+  if (!props.renaming || !el || Date.now() > holdFocusUntil) return
+  if (document.activeElement !== el) {
+    el.focus()
+    // Like a file manager: the whole name is selected, ready to be typed over.
+    if (document.activeElement === el && el.value === props.item.label) el.select()
+  }
+  requestAnimationFrame(holdFocus)
 }
 watch(() => props.renaming, async (on) => {
   if (!on) return
-  startedAt = Date.now()
+  holdFocusUntil = Date.now() + 700
   draft.value = props.item.label
   await nextTick()
-  focusInput()
+  holdFocus()
 }, { immediate: true })
 
-// A menu that just closed (context menu, "New") hands focus back to its
-// trigger a moment after the rename started; that is not the person
-// leaving the field, so the field takes the focus back.
 function onBlur() {
-  if (Date.now() - startedAt < 500) {
-    setTimeout(focusInput, 0)
-    return
-  }
+  if (Date.now() < holdFocusUntil) return
   commit()
 }
+
+// The field never got the focus (or lost it without a blur we saw): a click
+// elsewhere still ends the rename, and Escape anywhere still cancels it.
+useEventListener(document, 'pointerdown', (e: PointerEvent) => {
+  if (!props.renaming || Date.now() < holdFocusUntil) return
+  const el = inputEl()
+  if (el && e.target instanceof Node && el.contains(e.target)) return
+  commit()
+}, { capture: true })
+useEventListener(document, 'keydown', (e: KeyboardEvent) => {
+  if (!props.renaming || e.key !== 'Escape' || document.activeElement === inputEl()) return
+  e.preventDefault()
+  cancel()
+})
 
 const problem = computed(() => {
   if (!props.renaming) return null
