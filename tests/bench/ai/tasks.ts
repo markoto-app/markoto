@@ -7,8 +7,9 @@ import type { BenchTask, ScriptApi, ScriptCall, ToolOutcome } from './harness'
 // numbers, line ranges), read what they need with `read_section` (several
 // sections in one turn, following the continuation hints) and find terms
 // with `search_document`. Variant `step5` adds the structural edit tools:
-// T2 moves a chapter with `move_section` and renumbers its headings with
-// `replace_all` (regex, scoped), T3 rewrites with `replace_section`, T5
+// T2 moved a chapter with `move_section` (variant `final`: swaps both with
+// `swap_sections`) and renumbers its headings with `replace_all` (regex,
+// scoped), T3 rewrites with `replace_section`, T5
 // renames with `replace_all` (two patterns, preview then apply), T7 places
 // the table with `insert_markdown`. Keep the ids and prompts stable so
 // results stay comparable with `results/baseline.*` and the earlier variants.
@@ -230,17 +231,17 @@ function renumberCalls(id: string, from: number, to: number, preview: boolean): 
 
 const T2_SWAP: BenchTask = {
   id: 'T2-swap-chapters',
-  variant: VARIANT,
+  variant: 'final',
   title: 'Swap chapters 4 and 5',
   prompt: 'Vertausche die Kapitel 4 und 5 und passe die Nummerierung der Überschriften an.',
   async script(api) {
     const reader = await openDocument(api)
     const row4 = rowByNumber(reader, '4')
     const row5 = rowByNumber(reader, '5')
-    // Server-side move: no chapter text in the model's output.
-    const moved = await api.call('move_section', { section: row5.id, before: row4.id })
-    if (moved.isError) throw new Error(`move failed: ${moved.output.slice(0, 200)}`)
-    // Ids survive the move; renumber each chapter's headings, preview first.
+    // Server-side swap in one call: no chapter text in the model's output.
+    const swapped = await api.call('swap_sections', { a: row4.id, b: row5.id })
+    if (swapped.isError) throw new Error(`swap failed: ${swapped.output.slice(0, 200)}`)
+    // Ids stay with their sections; renumber each chapter's headings, preview first.
     await api.turn([renumberCalls(row5.id, 5, 4, true), renumberCalls(row4.id, 4, 5, true)])
     const applied = await api.turn([renumberCalls(row5.id, 5, 4, false), renumberCalls(row4.id, 4, 5, false)])
     for (const r of applied) if (!r || r.isError) throw new Error(`renumber failed: ${r?.output.slice(0, 200)}`)

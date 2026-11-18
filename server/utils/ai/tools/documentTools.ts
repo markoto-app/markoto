@@ -9,6 +9,7 @@ import { NO_OP_EDIT_ERROR_PREFIX } from '../../agentic/editProgress'
 import { updateDocMeta } from '../../../repos/documents'
 import * as Sentry from '@sentry/nuxt'
 import { useLogger } from '../../platform/logger'
+import { filterEmDashesAt } from '../dashFilter'
 
 // Reading and editing the current document: view_document, replace_text,
 // insert_text, set_title. Edits are Y.js transactions tagged with the AI
@@ -105,8 +106,9 @@ const TIER_NOTE: Record<MatchTier, string> = {
 
 function handleStrReplace(
   session: DocToolContext,
-  input: { old_str: string, new_str: string }
+  args: { old_str: string, new_str: string }
 ): ToolResult {
+  const input = { old_str: args.old_str, new_str: args.new_str }
   if (input.old_str.length === 0) {
     return toolError('Error: old_str cannot be empty (use `insert_text` for empty insertion)')
   }
@@ -121,6 +123,7 @@ function handleStrReplace(
     return toolError(`Error: Found ${match.count} matches for old_str${loose}, at lines ${match.lines.join(', ')}${more}. Add surrounding text (a neighbouring sentence or line) so old_str matches exactly one location.`)
   }
   const matched = full.slice(match.start, match.end)
+  input.new_str = filterEmDashesAt(full, match.start, input.new_str)
   // A replacement with itself changes nothing. Reporting it as a
   // success let the model "fix" the same passage over and over.
   if (input.old_str === input.new_str || matched === input.new_str) {
@@ -157,7 +160,7 @@ function handleInsert(
 
   const origin = `ai:assistant:${session.sessionId}`
   // Newline-terminated, with the blank lines a Markdown block needs around it.
-  const insertText = blockSpacedInsertText(full, idx, input.insert_text)
+  const insertText = blockSpacedInsertText(full, idx, filterEmDashesAt(full, idx, input.insert_text))
   session.ydoc.transact(() => {
     session.ytext.insert(idx, insertText)
   }, origin)

@@ -1,6 +1,7 @@
 import { diffWordsWithSpace } from 'diff'
 import { countPlaceholders, placeholderToken, stripPlaceholders } from './mask'
 import type { JobMode } from './units'
+import { EM_DASH, filterEmDashes } from '../dashFilter'
 import type { GlossaryEntry } from './workerPrompt'
 
 // Deterministic checks of one worker answer before it is applied. Every
@@ -84,8 +85,6 @@ const LENGTH_CHECK_MIN_CHARS = 200
 const TERMINOLOGY_SPREAD_MAX = 0.05
 const MAX_FINDINGS = 20
 const MAX_SCAN_ITEMS = 300
-
-const EM_DASH = String.fromCodePoint(0x2014)
 
 // Chat prefaces and sign-offs in the languages markoto documents are mostly
 // written in (phrase lists, not one large regex: cheap and easy to extend).
@@ -445,6 +444,55 @@ function checkTerminology(input: ValidationInput, out: ValidationProblem[]): voi
   if (changedOutside / base > TERMINOLOGY_SPREAD_MAX) {
     out.push(problem('terminology_spread', 'Your answer changes text outside the sentences that contain a glossary term. Change only those sentences.'))
   }
+}
+
+// ── em-dash auto-fix ────────────────────────────────────────────────────
+
+export interface DashFix {
+  /** The answer with the worker's em-dashes replaced. */
+  output: string
+  /** How many em-dash runs were replaced (0: unchanged). */
+  fixed: number
+}
+
+/** Output offsets of the parts `diffWordsWithSpace` marks as added (what the worker wrote, not what it kept). */
+function addedOffsets(source: string, output: string): (offset: number) => boolean {
+  const ranges: Array<[number, number]> = []
+  let at = 0
+  for (const part of diffWordsWithSpace(source, output)) {
+    if (part.removed) continue
+    if (part.added) ranges.push([at, at + part.value.length])
+    at += part.value.length
+  }
+  return offset => ranges.some(([a, b]) => offset >= a && offset < b)
+}
+
+/**
+ * Replace the em-dashes a worker wrote, before validation, with the same
+ * filter as the editor tools (`dashFilter.ts`), so a dash never costs a
+ * retry. Rewrites and translations are entirely the worker's text;
+ * terminology keeps the dashes the unit already had (only added parts
+ * are filtered); comment findings filter issue and suggestion but never
+ * the quote (it must match the unit); scan items are terms from the
+ * document and stay as they are.
+ */
+export function fixWorkerDashes(mode: JobMode, source: string, output: string): DashFix {
+  if (!output.includes(EM_DASH) || mode === 'scan') return { output, fixed: 0 }
+  if (mode === 'comment') {
+    const arr = parseJsonArray(output)
+    if (arr === null) return { output, fixed: 0 }
+    let fixed = 0
+    const field = (v: unknown): unknown => {
+      if (typeof v !== 'string') return v
+      const r = filterEmDashes(v)
+      fixed += r.replaced
+      return r.text
+    }
+    const next = arr.map(f => (isRecord(f) ? { ...f, issue: field(f.issue), ...(f.suggestion === undefined ? {} : { suggestion: field(f.suggestion) }) } : f))
+    return fixed === 0 ? { output, fixed: 0 } : { output: JSON.stringify(next), fixed }
+  }
+  const r = filterEmDashes(output, mode === 'terminology' ? { allow: addedOffsets(source, output) } : {})
+  return { output: r.text, fixed: r.replaced }
 }
 
 // ── JSON modes ──────────────────────────────────────────────────────────

@@ -20,6 +20,6 @@ export const WRITING_STYLE_RULES = `WRITING STYLE (for text you write into the d
 - No disclaimers about missing information and no placeholders ("[insert ...]", "2025-XX-XX"): leave it out or ask.
 - Avoid stock AI vocabulary. English examples: delve, tapestry, landscape, realm, crucial, robust, seamless, vibrant, intricate, meticulous, showcase, underscore, foster, garner, leverage, valuable insights. Avoid the equivalents in other languages.
 - Never write an em-dash (the long dash, U+2014), nor "---" or " -- " in its place. Use a comma, colon, parentheses or a new sentence, varied as a careful writer would.
-- Formatting follows content: paragraphs for reasoning, lists for parallel items, tables for comparisons. Bold only for terms a reader must find again; no "**Label:** text" bullets unless the document uses them. Sentence-case headings, no emoji, at most one H1, heading levels in order.
+- Formatting follows content: paragraphs for reasoning, lists for parallel items, tables for comparisons. Bold only for terms a reader must find again; no "**Label:** text" bullets unless the document uses them. Sentence-case headings, no emoji, heading levels in order. The only H1 is the document's title (none when the title is on the cover page); every other heading is H2 or below.
 - Use the same word for the same thing; do not rotate synonyms.
 - Editing someone else's text: keep their voice; apply these rules to what you add or rewrite.`

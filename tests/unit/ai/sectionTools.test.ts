@@ -56,10 +56,18 @@ describe('outline', () => {
     expect(res.content).not.toMatch(/^s-\d+ {2}\S+ {2}## /m)
   })
 
+  it('warns about a second H1 only when there is one', async () => {
+    const one = await run(makeSession('# Title\n\n## A\n\n## B\n').session, 'outline', {})
+    expect(one.content).not.toContain('Warnings')
+    const two = await run(makeSession('# Title\n\n## A\n\n# Fahrzeuge\n\n## B\n').session, 'outline', {})
+    expect(two.content).toContain('Warnings: more than one H1 (s-1, s-3): the document title is the only H1')
+  })
+
   it('lists one subtree with under, and warns about level jumps', async () => {
     const { session } = makeSession('# A\n### Jump\n## B\ntext\n# C\n')
     const all = await run(session, 'outline', {})
-    expect(all.content).toContain('Warnings: level jump: # to ### at line 2 (s-2)')
+    expect(all.content).toContain('Warnings: more than one H1 (s-1, s-4): the document title is the only H1')
+    expect(all.content).toContain('; level jump: # to ### at line 2 (s-2)')
     expect(all.content).not.toContain('delegate_hint')
     const sub = await run(session, 'outline', { under: 'C' })
     expect(sub.content).toContain('Under s-4 "2 C":')

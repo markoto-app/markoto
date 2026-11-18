@@ -151,7 +151,7 @@ describe('move_section', () => {
     expect(ytext.toString().indexOf('# 3 Gamma')).toBeLessThan(ytext.toString().indexOf('# 1 Alpha'))
     expect((await run(session, 'move_section', { section: '1', to_end: true })).isError).toBe(false)
     expect(ytext.toString().trimEnd().endsWith('Sub body.')).toBe(true)
-    expect((await run(session, 'move_section', { section: '1', before: '1.1' })).content).toContain('inside section')
+    expect((await run(session, 'move_section', { section: '1', before: '1.1' })).content).toContain('inside the section being moved')
     expect((await run(session, 'move_section', { section: '1', to_end: true })).content).toMatch(/^Error: No change/)
     expect((await run(session, 'move_section', { section: '1', before: '2', to_end: true })).isError).toBe(true)
   })
@@ -164,6 +164,112 @@ describe('move_section', () => {
     const s = parseSections(after).sections.filter(x => x.level === 1).map(x => x.title.split(' ')[0])
     expect(s.slice(0, 6)).toEqual(['1', '2', '3', '5', '4', '6'])
     expect(after.split('\n').sort()).toEqual(large.split('\n').sort())
+  })
+})
+
+/** The chapter numbers (H1 headings) of a document, in order. */
+function chapters(text: string): string[] {
+  return parseSections(text).sections.filter(x => x.level === 1).map(x => x.title.split(' ')[0]!)
+}
+
+/** Outline id of the section numbered `num` ("10"), from an outline result. */
+function idOf(outline: string, num: string): string {
+  return new RegExp(`^(s-\\d+) {2}${num.replace('.', '\\.')} `, 'm').exec(outline)![1]!
+}
+
+describe('move_section in sequence', () => {
+  it('a second move with ids from the same outline lands where asked (targets are found after the cut)', async () => {
+    const large = generateLargeDocument()
+    const { session, ytext } = makeSession(large)
+    const outline = (await run(session, 'outline', { depth: 1 })).content
+    // Swap chapters 10 and 12 by two moves, all ids from the first outline.
+    const first = await run(session, 'move_section', { section: idOf(outline, '12'), before: idOf(outline, '10') })
+    expect(first.isError).toBe(false)
+    const second = await run(session, 'move_section', { section: idOf(outline, '10'), after: idOf(outline, '11') })
+    expect(second.isError).toBe(false)
+    expect(chapters(ytext.toString())).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9', '12', '11', '10', '13', '14'])
+    expect(ytext.toString().split('\n').sort()).toEqual(large.split('\n').sort())
+    expect(second.content).toContain('Headings keep their numbers')
+  })
+
+  it('moves a subsection after its own parent and before a later sibling', async () => {
+    const { session, ytext } = makeSession(SMALL)
+    expect((await run(session, 'move_section', { section: '1.1', after: '1' })).content).toMatch(/^Error: No change/)
+    expect((await run(session, 'move_section', { section: '1.1', after: '2' })).isError).toBe(false)
+    expect(ytext.toString()).toContain('# 2 Beta\n\nBeta body.\n\n## 1.1 Alpha sub\n\nSub body.\n\n# 3 Gamma')
+  })
+})
+
+describe('swap_sections', () => {
+  it('swaps non-adjacent chapters 10 and 14 of the large document in one transaction', async () => {
+    const large = generateLargeDocument()
+    const { session, ydoc, ytext } = makeSession(large)
+    const outline = (await run(session, 'outline', { depth: 1 })).content
+    const ten = idOf(outline, '10')
+    const fourteen = idOf(outline, '14')
+    const tx = countTransactions(ydoc)
+    const res = await run(session, 'swap_sections', { a: ten, b: fourteen })
+    expect(res.isError).toBe(false)
+    expect(tx.count()).toBe(1)
+    const after = ytext.toString()
+    expect(chapters(after)).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9', '14', '11', '12', '13', '10'])
+    expect(after.split('\n').sort()).toEqual(large.split('\n').sort())
+    // The result lists both sections' new outline lines; ids stayed with their sections.
+    expect(res.content).toMatch(new RegExp(`Now:\\n${fourteen} {2}# 14 Anhang`))
+    expect(res.content).toContain(`\n${ten}  # 10 Servicezeiten`)
+    expect(res.content).toContain('Headings keep their numbers')
+    expect((await run(session, 'read_section', { section: ten })).content).toContain('# 10 Servicezeiten')
+    // A second swap with the same ids restores the document exactly.
+    expect((await run(session, 'swap_sections', { a: fourteen, b: ten })).isError).toBe(false)
+    expect(ytext.toString()).toBe(large)
+  })
+
+  it('swaps adjacent sections, keeps the spacing and moves comments in both', async () => {
+    const { session, ydoc, ytext } = makeSession(SMALL)
+    const alpha = SMALL.indexOf('comment target')
+    addComment(ydoc, ytext, alpha, alpha + 'comment target'.length, 'c1')
+    const gamma = SMALL.indexOf('Gamma body')
+    addComment(ydoc, ytext, gamma, gamma + 'Gamma body'.length, 'c2')
+    const res = await run(session, 'swap_sections', { a: '2', b: '3' })
+    expect(res.isError).toBe(false)
+    expect(ytext.toString()).toBe(SMALL.replace('# 2 Beta\n\nBeta body.\n\n# 3 Gamma\n\nGamma body.\n', '# 3 Gamma\n\nGamma body.\n\n# 2 Beta\n\nBeta body.\n'))
+    expect(commentText(ydoc, ytext, 'c2')).toBe('Gamma body')
+    const res2 = await run(session, 'swap_sections', { a: '1', b: 'Gamma' })
+    expect(res2.isError).toBe(false)
+    expect(ytext.toString().startsWith('Intro text.\n\n# 3 Gamma\n\nGamma body.\n\n# 1 Alpha')).toBe(true)
+    expect(commentText(ydoc, ytext, 'c1')).toBe('comment target')
+    expect(commentText(ydoc, ytext, 'c2')).toBe('Gamma body')
+    expect(res2.content).toContain('2 comment threads moved with them')
+  })
+
+  it('refuses nested sections, the same section and the preamble', async () => {
+    const { session, ytext } = makeSession(SMALL)
+    expect((await run(session, 'swap_sections', { a: '1', b: '1.1' })).content).toContain('lies inside')
+    expect((await run(session, 'swap_sections', { a: '1.1', b: '1' })).content).toContain('lies inside')
+    expect((await run(session, 'swap_sections', { a: '2', b: 'Beta' })).content).toContain('same section')
+    expect((await run(session, 'swap_sections', { a: 's-0', b: '2' })).content).toContain('preamble')
+    expect(ytext.toString()).toBe(SMALL)
+  })
+
+  it('swaps the last section (no trailing newline) with an earlier one', async () => {
+    const doc = '# A\n\na\n\n# B\n\nb\n\n# C\n\nc'
+    const { session, ytext } = makeSession(doc)
+    expect((await run(session, 'swap_sections', { a: 'A', b: 'C' })).isError).toBe(false)
+    expect(ytext.toString()).toBe('# C\n\nc\n\n# B\n\nb\n\n# A\n\na')
+  })
+})
+
+describe('em-dash filter in the edit tools', () => {
+  const D = '\u2014'
+  it('filters what the AI writes, never the text around it', async () => {
+    const { session, ytext } = makeSession(`Old ${D} text stays.\n\n# 1 A\n\nBody.\n`)
+    await run(session, 'insert_markdown', { section: '1', position: 'end', markdown: `| K | V |\n| --- | --- |\n| x | ${D} |` })
+    expect(ytext.toString()).toContain('| x | – |')
+    await run(session, 'set_heading', { section: '1', title: `1 A ${D} B` })
+    expect(ytext.toString()).toContain('# 1 A, B')
+    await run(session, 'replace_text', { old_str: 'Body.', new_str: `Body ${D} new.` })
+    expect(ytext.toString()).toContain('Body, new.')
+    expect(ytext.toString()).toContain(`Old ${D} text stays.`)
   })
 })
 

@@ -85,6 +85,8 @@ function summarizeStructuralEdit(name: string, a: Record<string, unknown>): stri
       return `${cut(a.position, 8)} section=${cut(a.section, 60) || 'document'} text≈"${cut(a.markdown, 60)}"`
     case 'move_section':
       return `section=${cut(a.section, 60)} ${moveTargetSummary(a)}`
+    case 'swap_sections':
+      return `a=${cut(a.a, 60)} b=${cut(a.b, 60)}`
     case 'set_heading':
       return `section=${cut(a.section, 60)}${typeof a.level === 'number' ? ` level=${a.level}` : ''}${a.title ? ` title="${cut(a.title, 60)}"` : ''}`
     case 'replace_all':
@@ -116,6 +118,7 @@ export function summarizeToolCall(name: string, args: unknown): string {
     case 'delete_section':
     case 'insert_markdown':
     case 'move_section':
+    case 'swap_sections':
     case 'set_heading':
     case 'replace_all':
     case 'edit_lines':

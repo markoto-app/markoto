@@ -200,6 +200,7 @@ const FORMATTERS: Record<string, (args: Record<string, unknown>) => AiStatusLine
   replace_section: () => aiStatus('editDocument'),
   insert_markdown: () => aiStatus('insertText'),
   move_section: () => aiStatus('editDocument'),
+  swap_sections: () => aiStatus('editDocument'),
   delete_section: () => aiStatus('editDocument'),
   set_heading: () => aiStatus('editDocument'),
   replace_all: a => (a.preview === false ? fieldStatus(a, 'query', 'editDocument', 'editPassage', 'passage', 40) : aiStatus('readDocument')),

@@ -11,7 +11,8 @@ import { scanBlocks, type LineClass } from '../tools/sections/markdownMask'
 // oversize run without headings at blank lines that are not inside a
 // fence, a table or a list. `granularity` overrides; summaries use whole
 // chapters, scans large chunks, `onlyMatching` paragraph units around the
-// matches.
+// matches. Rewriting modes then pack adjacent units up to
+// `UNIT_TARGET_TOKENS`.
 
 export type JobMode = 'rewrite' | 'translate' | 'terminology' | 'summarise' | 'comment' | 'scan'
 
@@ -22,6 +23,14 @@ export type JobTargets = 'all' | { sections: number[] } | { under: number }
 
 const UNIT_MIN_TOKENS = 400
 export const UNIT_MAX_TOKENS = 2500
+/**
+ * What adjacent units are packed up to for the rewriting modes
+ * (rewrite, translate, terminology): fewer, fuller calls keep a whole
+ * document under the per-job unit cap (200 on the hosted free tier) and
+ * give the worker more context. Never above `UNIT_MAX_TOKENS`.
+ */
+const UNIT_TARGET_TOKENS = 2200
+const PACKED_MODES: ReadonlySet<JobMode> = new Set(['rewrite', 'translate', 'terminology'])
 /** Largest unit of a summary (one chapter). */
 export const SUMMARY_UNIT_MAX_TOKENS = 20_000
 /** Largest chapter unit of the other modes when `granularity: 'chapter'` is asked for. */
@@ -205,6 +214,23 @@ function mergeSmall(spans: Span[], min: number, max: number, acrossGroups: boole
   return out
 }
 
+/**
+ * Greedy packing of adjacent units up to `target` tokens: a unit takes the
+ * next one (a sibling section, or the next section after the end of a
+ * subtree) while the two together stay within the target. Runs after
+ * `mergeSmall`, so it only joins whole units on their existing
+ * boundaries (headings, safe blank lines).
+ */
+function packSiblings(spans: Span[], target: number): Span[] {
+  const out: Span[] = []
+  for (const sp of spans) {
+    const acc = out.at(-1)
+    if (acc && acc.end === sp.start && tokensOf(acc.start, sp.end) <= target) acc.end = sp.end
+    else out.push({ ...sp })
+  }
+  return out
+}
+
 /** The top-level sections the targets name, in document order, without nested duplicates. */
 function rootSections(s: DocumentStructure, targets: JobTargets): Section[] {
   if (targets === 'all') return s.sections.filter(sec => sec.level === 0 || sec.parent === null)
@@ -277,8 +303,8 @@ function spansFor(d: DocLines, roots: Section[], opts: SplitOptions): Span[] {
       return sec ? splitSection(d, sec, -1, chapterMax) : splitRun(d, c.start, c.end, -1, chapterMax)
     })
   }
-  const spans = roots.flatMap(r => splitSection(d, r, -1, max))
-  return mergeSmall(spans, min, max, false)
+  const spans = mergeSmall(roots.flatMap(r => splitSection(d, r, -1, max)), min, max, false)
+  return PACKED_MODES.has(opts.mode) ? packSiblings(spans, Math.min(UNIT_TARGET_TOKENS, max)) : spans
 }
 
 /** Split `text` into the units of a job. Whitespace-only ranges are dropped. */

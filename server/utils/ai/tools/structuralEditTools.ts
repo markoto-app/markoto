@@ -11,6 +11,7 @@ import { describeSkipped } from './sections/search'
 import { applyMinimalDiff } from './sections/ytextDiff'
 import { commentAnchorsInRange, reanchorComments } from './sections/commentAnchors'
 import { atxClosingStart, currentHeadingAnchors, isAtxHeading } from './sections/headingAnchors'
+import { filterEmDashesAt, withoutEmDashes } from '../dashFilter'
 import { headingPinsFor, planReplaceAll, type HeadingPin, type PlannedMatch } from './sections/replaceAll'
 
 // Structural edits of the current document, addressed by section (ids from
@@ -48,6 +49,11 @@ export const MoveSectionArgs = z.object({
   after: SectionRef.optional().describe('Move it right after this section (and its subsections).'),
   to_end: z.boolean().optional().describe('Move it to the end of the document.')
 }).describe('Move a section with its subsections. Give exactly one of before, after, to_end.')
+
+export const SwapSectionsArgs = z.object({
+  a: SectionRef.describe(`One section. ${SECTION_REF_HELP}`),
+  b: SectionRef.describe(`The other section; neither may contain the other. ${SECTION_REF_HELP}`)
+}).describe('Swap two sections, each with its subsections.')
 
 export const DeleteSectionArgs = z.object({
   section: SectionRef.describe(`The section to delete, with its subsections. ${SECTION_REF_HELP}`),
@@ -179,7 +185,7 @@ function handleReplaceSection(ctx: DocToolContext, args: Args<typeof ReplaceSect
   const from = keepHeading ? afterHeading(structure, section) : section.startOffset
   const to = section.endOffset
   const old = structure.text.slice(from, to)
-  const body = trimBlock(args.markdown)
+  const body = trimBlock(withoutEmDashes(args.markdown))
   if (!keepHeading && body === '') return toolError('Error: markdown is empty; use delete_section to remove a section.')
   const next = replacementText(old, body, keepHeading, to < structure.text.length)
   if (next === old) {
@@ -228,7 +234,7 @@ function handleInsertMarkdown(ctx: DocToolContext, args: Args<typeof InsertMarkd
   }
   const at = insertOffset(structure, section, args.position)
   if (typeof at === 'string') return toolError(at)
-  const text = blockSpacedInsertText(structure.text, at, args.markdown)
+  const text = blockSpacedInsertText(structure.text, at, withoutEmDashes(args.markdown))
   ctx.updateStatus('editing', aiStatus('applyInsert'))
   ctx.ydoc.transact(() => {
     ctx.ytext.insert(at, text)
@@ -239,19 +245,54 @@ function handleInsertMarkdown(ctx: DocToolContext, args: Args<typeof InsertMarkd
 
 // move_section
 
-interface MoveTarget { offset: number, label: string }
+/** Added to every move / swap result: headings keep their numbers. */
+const RENUMBER_NOTE = 'Headings keep their numbers; renumber with set_heading (one heading) or replace_all with a regex (many), if the numbers must change.'
 
-function moveTarget(ctx: DocToolContext, args: Args<typeof MoveSectionArgs>, structure: DocumentStructure): MoveTarget | string {
+interface MoveTarget { section: Section, id: string, position: 'before' | 'after' }
+
+function moveTarget(ctx: DocToolContext, args: Args<typeof MoveSectionArgs>): MoveTarget | 'end' | string {
   const given = [args.before, args.after, args.to_end ? 'end' : undefined].filter(v => v !== undefined)
   if (given.length !== 1) return 'Error: give exactly one of before, after or to_end.'
-  if (args.to_end) return { offset: structure.text.length, label: 'to the end of the document' }
-  const ref = args.before ?? args.after ?? ''
-  const r = resolveSection(ctx, ref)
+  if (args.to_end) return 'end'
+  const r = resolveSection(ctx, args.before ?? args.after ?? '')
   if (!r.ok) return r.error
-  if (r.section.level === 0 && args.before === undefined) return { offset: r.section.endOffset, label: 'after the preamble' }
-  return args.before !== undefined
-    ? { offset: r.section.startOffset, label: `before ${r.id} "${sectionLabel(r.section)}"` }
-    : { offset: r.section.endOffset, label: `after ${r.id} "${sectionLabel(r.section)}"` }
+  // The preamble only has an "after" (before it is the start of the document).
+  const position = args.before !== undefined && r.section.level > 0 ? 'before' : 'after'
+  return { section: r.section, id: r.id, position }
+}
+
+/**
+ * Where the moved text goes, resolved in the text AFTER the cut: the
+ * target's heading start is mapped across the removed range and the
+ * target is parsed again there, so its end (for "after") is its end
+ * without the moved section, wherever the two lay.
+ */
+function cutInsertOffset(afterDelete: string, from: number, to: number, target: MoveTarget): number | string {
+  const t = target.section
+  if (t.level > 0 && t.startOffset >= from && t.startOffset < to) {
+    return t.startOffset === from ? 'Error: a section cannot be moved relative to itself.' : `Error: ${target.id} lies inside the section being moved.`
+  }
+  const start = t.startOffset >= to ? t.startOffset - (to - from) : t.startOffset
+  const cut = parseSections(afterDelete).sections.find(s => s.startOffset === start && s.level === t.level)
+  if (!cut) return `Error: ${target.id} could not be found after removing the section; call outline and retry.`
+  return target.position === 'before' ? cut.startOffset : cut.endOffset
+}
+
+function targetLabel(target: MoveTarget | 'end'): string {
+  if (target === 'end') return 'to the end of the document'
+  if (target.section.level === 0) return 'after the preamble'
+  return `${target.position} ${target.id} "${sectionLabel(target.section)}"`
+}
+
+/** Section ids of a section and its subsections, by offset from the section start. */
+function subtreeIds(view: SectionView, section: Section): Array<{ id: string, rel: number }> {
+  return [section, ...descendants(view.structure, section)]
+    .map(s => ({ id: view.ids[s.index] ?? '', rel: s.startOffset - section.startOffset }))
+    .filter(e => e.id !== '')
+}
+
+function threadCount(n: number): string {
+  return `${n} comment thread${n === 1 ? '' : 's'}`
 }
 
 function handleMoveSection(ctx: DocToolContext, args: Args<typeof MoveSectionArgs>): ToolResult {
@@ -259,21 +300,21 @@ function handleMoveSection(ctx: DocToolContext, args: Args<typeof MoveSectionArg
   if (!r.ok) return toolError(r.error)
   const { view, section, id } = r
   if (section.level === 0) return toolError('Error: the preamble (s-0) cannot be moved; move the sections around it instead.')
+  const target = moveTarget(ctx, args)
+  if (typeof target === 'string' && target !== 'end') return toolError(target)
+  // Resolving the target parsed the same text, so `view` is still current.
   const { structure } = view
-  const target = moveTarget(ctx, args, structure)
-  if (typeof target === 'string') return toolError(target)
   const from = section.startOffset
   const to = section.endOffset
-  if (target.offset > from && target.offset < to) return toolError(`Error: the target lies inside section ${id} itself.`)
-  if (target.offset === from || target.offset === to) return toolError(`${NO_OP_EDIT_ERROR_PREFIX}: section ${id} is already ${target.label}. Do not repeat this call.`)
+  const afterDelete = structure.text.slice(0, from) + structure.text.slice(to)
+  const at = target === 'end' ? afterDelete.length : cutInsertOffset(afterDelete, from, to, target)
+  if (typeof at === 'string') return toolError(at)
+  if (at === from) return toolError(`${NO_OP_EDIT_ERROR_PREFIX}: section ${id} is already ${targetLabel(target)}. Do not repeat this call.`)
 
   // The section's own trailing blank lines stay behind; block spacing at the target adds what is needed.
   const moved = `${trimTrailingNewlines(structure.text.slice(from, to))}\n`
-  // The section ids inside the moved range, by offset from its start.
-  const ids = [section, ...descendants(structure, section)].map(s => ({ id: view.ids[s.index] ?? '', rel: s.startOffset - from }))
+  const ids = subtreeIds(view, section)
   const anchors = commentAnchorsInRange(ctx.ydoc, from, to)
-  const afterDelete = structure.text.slice(0, from) + structure.text.slice(to)
-  const at = target.offset > to ? target.offset - (to - from) : target.offset
   const insertion = blockSpacedInsertText(afterDelete, at, moved)
   const lead = insertion.length - insertion.replace(/^\n+/, '').length
 
@@ -283,11 +324,69 @@ function handleMoveSection(ctx: DocToolContext, args: Args<typeof MoveSectionArg
     ctx.ytext.insert(at, insertion)
     reanchorComments(ctx.ytext, anchors, at + lead)
   }, originOf(ctx))
-  rebindSectionIds(ctx, ids.filter(e => e.id).map(e => ({ id: e.id, offset: at + lead + e.rel })))
+  rebindSectionIds(ctx, ids.map(e => ({ id: e.id, offset: at + lead + e.rel })))
 
   const lines = newlineCount(moved)
-  const comments = anchors.length > 0 ? ` ${anchors.length} comment thread${anchors.length === 1 ? '' : 's'} moved with it.` : ''
-  return toolOk(`Moved section ${id} "${sectionLabel(section)}" (${lines} lines, ${ids.length - 1} subsections) ${target.label}.${comments}${sectionAfter(ctx, id)} Line numbers between the old and the new place changed; ids did not. Headings are not renumbered: use set_heading if the numbers must change.`)
+  const comments = anchors.length > 0 ? ` ${threadCount(anchors.length)} moved with it.` : ''
+  return toolOk(`Moved section ${id} "${sectionLabel(section)}" (${lines} lines, ${ids.length - 1} subsections) ${targetLabel(target)}.${comments}${sectionAfter(ctx, id)} Line numbers between the old and the new place changed; ids did not. ${RENUMBER_NOTE}`)
+}
+
+// swap_sections
+
+/** The outline row of one section after an edit: id, heading, lines, rev. */
+function outlineLine(ctx: DocToolContext, id: string): string {
+  const view = sectionView(ctx)
+  const s = view.structure.sections[view.ids.indexOf(id)]
+  return s ? `${id}  ${'#'.repeat(s.level)} ${sectionLabel(s)}  [${s.startLine}-${s.endLine}]  rev ${s.rev}` : id
+}
+
+function handleSwapSections(ctx: DocToolContext, args: Args<typeof SwapSectionsArgs>): ToolResult {
+  const ra = resolveSection(ctx, args.a)
+  if (!ra.ok) return toolError(ra.error)
+  const rb = resolveSection(ctx, args.b)
+  if (!rb.ok) return toolError(rb.error)
+  if (ra.section.level === 0 || rb.section.level === 0) return toolError('Error: the preamble (s-0) cannot be swapped; it has no heading.')
+  if (ra.id === rb.id) return toolError('Error: a and b are the same section.')
+  // Both resolutions parsed the same text.
+  const view = rb.view
+  const { structure } = view
+  const [first, second] = ra.section.startOffset < rb.section.startOffset ? [ra, rb] : [rb, ra]
+  const A = first.section
+  const B = second.section
+  if (B.startOffset < A.endOffset) {
+    return toolError(`Error: ${second.id} "${sectionLabel(B)}" lies inside ${first.id} "${sectionLabel(A)}"; a section can only be swapped with one it does not contain. Swap sections of the same level (call outline).`)
+  }
+  // Each text without its trailing blank lines: those stay at the slot.
+  const coreA = trimTrailingNewlines(structure.text.slice(A.startOffset, A.endOffset))
+  const coreB = trimTrailingNewlines(structure.text.slice(B.startOffset, B.endOffset))
+  const between = structure.text.slice(A.endOffset, B.startOffset)
+  const idsA = subtreeIds(view, A)
+  const idsB = subtreeIds(view, B)
+  const anchorsA = commentAnchorsInRange(ctx.ydoc, A.startOffset, A.startOffset + coreA.length)
+  const anchorsB = commentAnchorsInRange(ctx.ydoc, B.startOffset, B.startOffset + coreB.length)
+  // B's text takes A's slot and A's text B's slot; each slot keeps its own trailing blank lines.
+  const newBStart = A.startOffset
+  const newAStart = A.endOffset - coreA.length + coreB.length + between.length
+
+  ctx.updateStatus('editing', aiStatus('editDocument'))
+  ctx.ydoc.transact(() => {
+    // The later slot first, so A's offsets stay valid.
+    ctx.ytext.delete(B.startOffset, coreB.length)
+    ctx.ytext.insert(B.startOffset, coreA)
+    ctx.ytext.delete(A.startOffset, coreA.length)
+    ctx.ytext.insert(A.startOffset, coreB)
+    reanchorComments(ctx.ytext, anchorsA, newAStart)
+    reanchorComments(ctx.ytext, anchorsB, newBStart)
+  }, originOf(ctx))
+  rebindSectionIds(ctx, [
+    ...idsA.map(e => ({ id: e.id, offset: newAStart + e.rel })),
+    ...idsB.map(e => ({ id: e.id, offset: newBStart + e.rel }))
+  ])
+
+  const movedThreads = anchorsA.length + anchorsB.length
+  const comments = movedThreads > 0 ? ` ${threadCount(movedThreads)} moved with them.` : ''
+  const levels = A.level === B.level ? '' : ` The two headings have different levels (${'#'.repeat(A.level)} and ${'#'.repeat(B.level)}); check the outline.`
+  return toolOk(`Swapped ${first.id} "${sectionLabel(A)}" and ${second.id} "${sectionLabel(B)}" in one edit, each with its subsections.${comments}${levels} Now:\n${outlineLine(ctx, second.id)}\n${outlineLine(ctx, first.id)}\nIds stayed with their sections; line numbers from ${A.startLine} to ${B.endLine} changed. ${RENUMBER_NOTE}`)
 }
 
 // delete_section
@@ -343,7 +442,7 @@ function handleSetHeading(ctx: DocToolContext, args: Args<typeof SetHeadingArgs>
   if (section.level === 0) return toolError('Error: the preamble (s-0) has no heading. Use insert_markdown with position "start" to add one.')
   const { structure } = view
   const level = args.level ?? section.level
-  const title = args.title ?? section.title
+  const title = args.title === undefined ? section.title : withoutEmDashes(args.title)
   const titleChanged = title !== section.title
   const pinId = titleChanged && section.explicitId === null ? currentHeadingAnchors(structure).get(section.index) ?? null : null
   const next = rebuiltHeading(structure, section, level, title, pinId)
@@ -463,7 +562,9 @@ function scopeView(ctx: DocToolContext, scope: string | undefined): { ok: true, 
   return resolveSection(ctx, ref)
 }
 
-function handleReplaceAll(ctx: DocToolContext, args: Args<typeof ReplaceAllArgs>): ToolResult {
+function handleReplaceAll(ctx: DocToolContext, given: Args<typeof ReplaceAllArgs>): ToolResult {
+  // The replacement is AI-written text; it is only filtered when code is excluded (a code match keeps what was asked for).
+  const args = given.excludeCode === false ? given : { ...given, replacement: withoutEmDashes(given.replacement) }
   const r = scopeView(ctx, args.scope)
   if (!r.ok) return toolError(r.error)
   const { view, section: scope } = r
@@ -521,7 +622,7 @@ function planLineEdits(structure: DocumentStructure, edits: Args<typeof EditLine
     prevEnd = e.end_line
     const start = structure.lineOffsets[e.start_line - 1] ?? 0
     const lineEnd = (structure.lineOffsets[e.end_line - 1] ?? 0) + (structure.lines[e.end_line - 1] ?? '').length
-    const body = e.new_text.replace(/\n$/, '')
+    const body = filterEmDashesAt(structure.text, start, e.new_text.replace(/\n$/, ''))
     if (e.new_text === '') {
       // Delete the lines with their line break (the one before, for the last line).
       const lastLine = e.end_line === total
@@ -584,9 +685,16 @@ export const insertMarkdownTool = defineDocTool({
 
 export const moveSectionTool = defineDocTool({
   name: 'move_section',
-  description: 'Move a section with its subsections before or after another section, or to the end of the document, in one step on the server (no text to copy). Comments inside it move along; section ids stay valid. To swap two sections, move one, then the other. Headings are not renumbered (use set_heading).',
+  description: 'Move a section with its subsections before or after another section, or to the end of the document, in one step on the server (no text to copy). Comments inside it move along; section ids stay valid, and the target is found again after the section is cut out, so ids from one outline still work for the next move. Example: to move chapter 15 before chapter 10, move_section({section: "s-15", before: "s-10"}). To swap two chapters use swap_sections, not two moves. Headings keep their numbers (renumber with set_heading or replace_all).',
   schema: MoveSectionArgs,
   handler: handleMoveSection
+})
+
+export const swapSectionsTool = defineDocTool({
+  name: 'swap_sections',
+  description: 'Swap two sections, each with its subsections, in one edit on the server, adjacent or far apart: to swap chapters 10 and 15, swap_sections({a: "s-10", b: "s-15"}). Refused when one section contains the other. Comments inside both move along; ids stay with their sections. Returns the two sections\' new outline lines. Headings keep their numbers (renumber with set_heading or replace_all).',
+  schema: SwapSectionsArgs,
+  handler: handleSwapSections
 })
 
 export const deleteSectionTool = defineDocTool({
@@ -598,7 +706,7 @@ export const deleteSectionTool = defineDocTool({
 
 export const setHeadingTool = defineDocTool({
   name: 'set_heading',
-  description: 'Change a heading\'s level (1-6) and/or text without retyping the section. Its {#id} attribute block is kept; when the text changes, the old anchor is pinned as an explicit id so links keep working. Subsection levels do not shift.',
+  description: 'Change a heading\'s level (1-6) and/or text without retyping the section. Its {#id} attribute block is kept; when the text changes, the old anchor is pinned as an explicit id so links keep working. Subsection levels do not shift. The only H1 is the document\'s title: demote any other H1 to level 2 (and its subsections one level each), keep levels in order.',
   schema: SetHeadingArgs,
   handler: handleSetHeading
 })

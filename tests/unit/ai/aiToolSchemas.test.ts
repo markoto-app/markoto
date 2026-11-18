@@ -530,6 +530,7 @@ describe('tool registry', () => {
       'search_knowledge',
       'set_heading',
       'set_title',
+      'swap_sections',
       'update_theme',
       'view_document',
       'view_image',

@@ -4,7 +4,7 @@ import { parseSections } from '../tools/sections/parse'
 import { leadingWhitespace, trailingWhitespace, unitContext, unitRev, type JobMode, type JobUnit } from './units'
 import { maskText, unmaskText } from './mask'
 import { buildWorkerPrompt, type WorkerJobSpec } from './workerPrompt'
-import { parseCommentFindings, parseScanItems, retryFeedback, validateWorkerOutput, type CommentFinding, type ScanItem } from './validate'
+import { fixWorkerDashes, parseCommentFindings, parseScanItems, retryFeedback, validateWorkerOutput, type CommentFinding, type ScanItem } from './validate'
 import { addStableAnchors, documentHeadingSlugs } from './anchors'
 import { checkGlossary } from './glossaryCheck'
 import { JOB_MAX_CONCURRENCY, JOB_REQUESTS_PER_MINUTE, maxTokensFor } from './estimate'
@@ -81,6 +81,11 @@ export const REASON_ACCESS = 'The person who started the job can no longer edit 
 export const REASON_BUDGET = 'The AI budget is used up. Resume the job after a top-up or when the allowance renews.'
 const REASON_SHUTDOWN = 'The server running the job stopped. Resume the job to continue.'
 
+/** The note an applied unit keeps when the worker's em-dashes were replaced (`fixWorkerDashes`). */
+function dashNote(fixed: number): string {
+  return `Applied; ${fixed} em-dash${fixed === 1 ? '' : 'es'} the AI wrote ${fixed === 1 ? 'was' : 'were'} replaced automatically.`
+}
+
 type StopReason = 'cancelled' | 'stopped_access' | 'paused_budget' | 'aborted'
 
 /** Specification the worker prompt is built from, read from the job row. */
@@ -151,7 +156,7 @@ interface UnitOutcome {
 interface LadderUsage { costUsd: number, tokensIn: number, tokensOut: number }
 
 type LadderResult
-  = | { kind: 'accepted', answer: string, placeholders: string[], attempts: number, usage: LadderUsage }
+  = | { kind: 'accepted', answer: string, placeholders: string[], attempts: number, usage: LadderUsage, note: string | null }
     | { kind: 'rejected', problems: string[], attempts: number, usage: LadderUsage }
     | { kind: 'failed', attempts: number, usage: LadderUsage }
     | { kind: 'requeue' }
@@ -273,7 +278,7 @@ export class JobRunner {
       const why = r.problems.slice(0, 3).join(' ')
       return this.skip(unit, 'skipped', `The AI's answer failed the checks ${r.attempts} times: ${why}`.slice(0, 1000), stats)
     }
-    return this.apply(unit, r.answer, r.placeholders, stats)
+    return this.apply(unit, r.answer, r.placeholders, { ...stats, note: r.note })
   }
 
   /** One worker call: its result, `requeue` (budget refusal or stop) or `failed` (any other error). */
@@ -328,16 +333,18 @@ export class JobRunner {
       workerFailed = result === 'failed'
       if (result === 'failed') continue
       this.addUsage(usage, unit, attempt, result)
+      // Em-dashes are fixed here instead of failing the unit (a retry would cost a call).
+      const dashes = fixWorkerDashes(this.job.mode, masked.masked, result.text)
       const check = validateWorkerOutput({
         mode: this.job.mode,
         source: masked.masked,
-        output: result.text,
+        output: dashes.output,
         placeholderCount: masked.placeholders.length,
         glossary: this.job.params.glossary,
         targetLanguage: this.job.params.targetLanguage,
         lengthBand: this.job.params.lengthBand ?? null
       })
-      if (check.ok) return { kind: 'accepted', answer: result.text, placeholders: masked.placeholders, attempts, usage }
+      if (check.ok) return { kind: 'accepted', answer: dashes.output, placeholders: masked.placeholders, attempts, usage, note: dashes.fixed > 0 ? dashNote(dashes.fixed) : null }
       problems = retryFeedback(check)
     }
     return workerFailed ? { kind: 'failed', attempts, usage } : { kind: 'rejected', problems, attempts, usage }
@@ -383,7 +390,7 @@ export class JobRunner {
     return composeUnitText(this.job, original, unmaskText(answer, placeholders))
   }
 
-  private async apply(unit: AiJobUnitRow, answer: string, placeholders: string[], stats: { attempts: number, retried: number, costUsd: number, tokensIn: number, tokensOut: number }): Promise<UnitOutcome> {
+  private async apply(unit: AiJobUnitRow, answer: string, placeholders: string[], stats: { attempts: number, retried: number, costUsd: number, tokensIn: number, tokensOut: number, note: string | null }): Promise<UnitOutcome> {
     if (this.stop) return this.requeue(unit)
     const live = await this.deps.store.getJob()
     if (!live || live.status !== 'running') {
@@ -404,7 +411,7 @@ export class JobRunner {
       const output: AiJobUnitOutput = this.job.mode === 'comment'
         ? { kind: 'comments', findings: structuredOutput('comment', answer, placeholders) as CommentFinding[] }
         : { kind: 'scan', items: structuredOutput('scan', answer, placeholders) as ScanItem[] }
-      await this.deps.store.updateUnit(unit.ordinal, { ...base, status: 'applied', output })
+      await this.deps.store.updateUnit(unit.ordinal, { ...base, status: 'applied', output, reason: stats.note })
       await this.progress(delta, unit.headingPath)
       return { status: 'applied' }
     }
@@ -421,7 +428,7 @@ export class JobRunner {
       applyMinimalDiff(ytext, at.start, at.end, next)
     }, jobOrigin(this.job.id))
     const rels = relativeRange(ytext, at.start, at.start + next.length)
-    await this.deps.store.updateUnit(unit.ordinal, { ...base, ...rels, status: 'applied', afterHash: unitRev(next), reason: null })
+    await this.deps.store.updateUnit(unit.ordinal, { ...base, ...rels, status: 'applied', afterHash: unitRev(next), reason: stats.note })
     await this.progress(delta, unit.headingPath)
     return { status: 'applied' }
   }

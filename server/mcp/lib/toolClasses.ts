@@ -36,6 +36,7 @@ export const MCP_TOOL_CLASSES: Readonly<Record<string, McpToolClass>> = {
   replace_section: 'write',
   insert_markdown: 'write',
   move_section: 'write',
+  swap_sections: 'write',
   delete_section: 'write',
   set_heading: 'write',
   replace_all: 'write',

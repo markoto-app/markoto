@@ -5,6 +5,7 @@ import { MARKDOWN_REFERENCE } from './markdownReference'
 import { WRITING_STYLE_RULES } from './writingStyle'
 import { SKILL_CATALOGUE } from './skills'
 import { fenceBlock, quoteInline, UNTRUSTED_DATA_RULE } from './untrustedText'
+import { withoutEmDashes } from '../ai/dashFilter'
 import { isAiCommentAuthor } from '~~/shared/ai/author'
 import { readYComment, type YCommentFields } from '~~/shared/utils/documents/yComment'
 
@@ -45,10 +46,11 @@ export function stripAiMention(body: string): string {
  * temperature 0 the model still bolds now and then; this removes the
  * markers deterministically. Only unambiguous markup is touched:
  * `**x**` / `__x__` pairs and leading `#` heading markers. Single `*`
- * (arithmetic, footnotes) and mention tokens stay as they are.
+ * (arithmetic, footnotes) and mention tokens stay as they are. Em-dashes
+ * go through the same filter as document edits (`dashFilter.ts`).
  */
 export function plainCommentText(body: string): string {
-  return body
+  return withoutEmDashes(body)
     .replace(/\*\*([^*\n]+)\*\*/g, unwrapIfTight)
     .replace(/__([^_\n]+)__/g, unwrapIfTight)
     .replace(/^#{1,6}\s+/gm, '')

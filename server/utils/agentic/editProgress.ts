@@ -23,6 +23,7 @@ export const DOC_EDIT_TOOLS: ReadonlySet<string> = new Set([
   'replace_section',
   'insert_markdown',
   'move_section',
+  'swap_sections',
   'delete_section',
   'set_heading',
   'replace_all',

@@ -6,6 +6,7 @@ import { consumeWebToolQuota, isWebToolAvailable } from '../webTools'
 import { chargeWebToolCall } from '../webToolCharge'
 import { useLitellmAdmin, useLitellmForUser } from '../litellmClient'
 import { FEATURE_TAGS, featureMetadata } from '../../litellm/featureTags'
+import { modelRequestParams } from '../../litellm/modelParams'
 import { providerRequestFields, withProviderErrors } from '../../aiProviders/requestFields'
 import { useEnv } from '~~/shared/env/load'
 import { synthesisProvider, type WebToolSpendContext } from './webSearch'
@@ -224,7 +225,7 @@ async function fetchUrlViaJina(
       json_schema: _FETCH_URL_JSON_SCHEMA
     },
     max_tokens: 800,
-    temperature: 0,
+    ...modelRequestParams(providerFields.model, { temperature: 0, purpose: 'subcall' }),
     // Worker-model utility call: its own feature tag so /admin/ai-spend
     // splits it from the loop's turns; same workspace + user + doc axes.
     ...featureMetadata(FEATURE_TAGS.utility, spendCtx)

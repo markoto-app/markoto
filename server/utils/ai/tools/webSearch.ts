@@ -5,6 +5,7 @@ import { consumeWebToolQuota, isWebToolAvailable } from '../webTools'
 import { chargeWebToolCall, type WebToolChargeContext } from '../webToolCharge'
 import { useLitellmAdmin, useLitellmForUser } from '../litellmClient'
 import { FEATURE_TAGS, featureMetadata } from '../../litellm/featureTags'
+import { modelRequestParams } from '../../litellm/modelParams'
 import { providerRequestFields, withProviderErrors } from '../../aiProviders/requestFields'
 import type { ResolvedAiProvider } from '../../aiProviders/resolve'
 import { useEnv } from '~~/shared/env/load'
@@ -191,7 +192,7 @@ async function webSearchViaStaan(
     // Modest temperature for the prose synthesis (no structured-output
     // contract). `fetch_url` synthesis stays at 0 because it has a strict
     // JSON schema; the outer agentic loop stays at 0 for tool determinism.
-    temperature: 0.3,
+    ...modelRequestParams(providerFields.model, { temperature: 0.3, purpose: 'subcall' }),
     // Worker-model utility call: its own feature tag so /admin/ai-spend
     // splits it from the loop's turns; same workspace + user + doc axes.
     ...featureMetadata(FEATURE_TAGS.utility, spendCtx)

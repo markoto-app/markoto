@@ -37,9 +37,23 @@ describe('buildJobUnits', () => {
     const doc = '# A\n\nshort a.\n\n## A1\n\none.\n\n## A2\n\ntwo.\n\n# B\n\nshort b.\n'
     const units = buildJobUnits(doc, 'all', { mode: 'rewrite' })
     expect(units.map(u => u.text)).toEqual([doc])
-    // Siblings too large to merge stay apart.
-    const big = (t: string) => `# ${t}\n\n${'Satz mit Inhalt. '.repeat(140)}\n\n`
-    expect(buildJobUnits(big('A') + big('B'), 'all', { mode: 'rewrite' }).map(u => u.headingPath)).toEqual(['A', 'B'])
+    // Mid-size siblings are packed up to the target in the rewriting modes, not in comment mode.
+    const mid = (t: string) => `# ${t}\n\n${'Satz mit Inhalt. '.repeat(140)}\n\n`
+    expect(buildJobUnits(mid('A') + mid('B'), 'all', { mode: 'rewrite' }).map(u => u.headingPath)).toEqual(['A'])
+    expect(buildJobUnits(mid('A') + mid('B'), 'all', { mode: 'comment' }).map(u => u.headingPath)).toEqual(['A', 'B'])
+    // Siblings too large to pack stay apart.
+    const big = (t: string) => `# ${t}\n\n${'Satz mit Inhalt. '.repeat(400)}\n\n`
+    expect(buildJobUnits(big('A') + big('B'), 'all', { mode: 'translate' }).map(u => u.headingPath)).toEqual(['A', 'B'])
+  })
+
+  it('packs the whole large document well under the 200-unit job cap', () => {
+    for (const mode of ['rewrite', 'translate', 'terminology'] as const) {
+      const units = buildJobUnits(LARGE, 'all', { mode })
+      expect(units.length).toBeGreaterThanOrEqual(80)
+      expect(units.length).toBeLessThanOrEqual(110)
+      expect(units.every(u => u.tokens <= UNIT_MAX_TOKENS)).toBe(true)
+      expect(contiguous(units)).toBe(true)
+    }
   })
 
   it('splits an oversize section at its children and an oversize run at paragraphs', () => {

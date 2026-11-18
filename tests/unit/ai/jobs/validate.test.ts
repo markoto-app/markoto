@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { validateWorkerOutput, parseCommentFindings, parseScanItems, detectLanguage, languageCode, type ValidationInput } from '../../../../server/utils/ai/jobs/validate'
+import { fixWorkerDashes, validateWorkerOutput, parseCommentFindings, parseScanItems, detectLanguage, languageCode, type ValidationInput } from '../../../../server/utils/ai/jobs/validate'
 import { maskText } from '../../../../server/utils/ai/jobs/mask'
 
 const SOURCE = [
@@ -23,6 +23,38 @@ function input(output: string, extra: Partial<ValidationInput> = {}): Validation
 function codes(i: ValidationInput): string[] {
   return validateWorkerOutput(i).problems.map(p => p.code)
 }
+
+describe('fixWorkerDashes', () => {
+  const D = '\u2014'
+
+  it('replaces the dashes of a rewrite before validation, so the unit passes', () => {
+    const out = masked.masked.replace('informiert, danach', `informiert ${D} danach`).replace('| 1 | sofort |', `| 1 | ${D} |`)
+    const fixed = fixWorkerDashes('rewrite', masked.masked, out)
+    expect(fixed.fixed).toBe(2)
+    expect(fixed.output).toContain('informiert, danach')
+    expect(fixed.output).toContain('| 1 | \u2013 |')
+    expect(codes(input(fixed.output))).not.toContain('em_dash')
+  })
+
+  it('terminology keeps the dashes the unit already had and fixes only added ones', () => {
+    const source = `Der Kunde ${D} wichtig ${D} zahlt.`
+    const out = `Der Klient ${D} wichtig ${D} zahlt, neu ${D} hier.`
+    expect(fixWorkerDashes('terminology', source, out).output).toBe(`Der Klient ${D} wichtig ${D} zahlt, neu, hier.`)
+  })
+
+  it('comment mode fixes issue and suggestion, never the quote', () => {
+    const out = JSON.stringify([{ quote: `a ${D} b`, issue: `Unklar ${D} warum`, suggestion: 'x', severity: 'low' }])
+    const fixed = fixWorkerDashes('comment', `a ${D} b`, out)
+    expect(JSON.parse(fixed.output)).toEqual([{ quote: `a ${D} b`, issue: 'Unklar, warum', suggestion: 'x', severity: 'low' }])
+    expect(fixed.fixed).toBe(1)
+  })
+
+  it('leaves answers without dashes and scan items alone', () => {
+    expect(fixWorkerDashes('translate', 'a', 'b')).toEqual({ output: 'b', fixed: 0 })
+    const scan = JSON.stringify([{ text: `A ${D} B` }])
+    expect(fixWorkerDashes('scan', '', scan)).toEqual({ output: scan, fixed: 0 })
+  })
+})
 
 describe('validateWorkerOutput', () => {
   it('accepts an unchanged-structure rewrite', () => {

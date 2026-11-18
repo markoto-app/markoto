@@ -14,7 +14,7 @@ import { messageToUserTool } from './messageTools'
 import { searchActivityLogTool } from './activityTools'
 import { getKnowledgeFileTool, searchKnowledgeTool } from './knowledgeTools'
 import { outlineTool, readSectionTool, searchDocumentTool } from './sectionTools'
-import { deleteSectionTool, editLinesTool, insertMarkdownTool, moveSectionTool, replaceAllTool, replaceSectionTool, setHeadingTool } from './structuralEditTools'
+import { deleteSectionTool, editLinesTool, insertMarkdownTool, moveSectionTool, replaceAllTool, replaceSectionTool, setHeadingTool, swapSectionsTool } from './structuralEditTools'
 import { loadSkillTool } from './skillTools'
 import { delegateRewriteTool, delegateScanTool } from './delegateTools'
 
@@ -59,6 +59,7 @@ const CORE_TOOLS = [
   replaceSectionTool,
   insertMarkdownTool,
   moveSectionTool,
+  swapSectionsTool,
   deleteSectionTool,
   setHeadingTool,
   replaceAllTool,

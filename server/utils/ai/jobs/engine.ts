@@ -28,6 +28,7 @@ import { resolveBillingContext } from '../../billing/billing'
 import { resolveAiProviders, workerProviderFor, isPlatformBilled, type ResolvedAiProvider, type ResolvedAiProviders } from '../../aiProviders/resolve'
 import { providerRequestFields, withProviderErrors } from '../../aiProviders/requestFields'
 import { litellmCompletion } from '../../litellm/createCompletion'
+import { modelRequestParams } from '../../litellm/modelParams'
 import { FEATURE_TAGS, featureMetadata } from '../../litellm/featureTags'
 import { isBudgetExceededError, LitellmBudgetExhausted } from '../../litellm/userKeys'
 import { isFreeAllowanceExhaustedError } from '../../litellm/freeTierTeam'
@@ -238,7 +239,7 @@ function litellmWorkerCall(job: Pick<AiJobRow, 'id' | 'mode' | 'sessionId'>, bil
     const resp = await withProviderErrors(provider, () => litellmCompletion(litellm, {
       ...fields,
       messages: req.messages,
-      temperature: req.temperature,
+      ...modelRequestParams(fields.model, { temperature: req.temperature, purpose: 'worker' }),
       max_tokens: req.maxTokens,
       prompt_cache_key: req.cacheKey,
       metadata: { tags: [...metadata.tags, `job:${job.id}`] }

@@ -144,6 +144,18 @@ describe('job runner', () => {
     expect(store.units.map(u => u.status)).toEqual(['applied', 'pending', 'pending'])
   })
 
+  it('fixes em-dashes in a worker answer instead of retrying, and notes it on the unit', async () => {
+    const doc = makeJobDoc(DOC)
+    const store = makeJob(doc, 'rewrite', {}, { granularity: 'section' }, { sections: [1] })
+    const calls: WorkerCallRequest[] = []
+    const result = await runJob(deps(store, doc, worker(u => u.replace('Der zweite Text.', 'Der zweite Text \u2014 neu.'), calls)))
+    expect(result.status).toBe('done')
+    expect(calls).toHaveLength(1)
+    expect(doc.ytext.toString()).toContain('Der zweite Text, neu.')
+    expect(store.unit(0)).toMatchObject({ status: 'applied', attempts: 1 })
+    expect(store.unit(0).reason).toMatch(/1 em-dash the AI wrote was replaced automatically/)
+  })
+
   it('retry ladder: feedback, then escalation, then skip', async () => {
     const doc = makeJobDoc(DOC)
     const store = makeJob(doc, 'rewrite', {}, { granularity: 'section' }, { sections: [0] })

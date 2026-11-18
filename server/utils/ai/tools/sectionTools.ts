@@ -77,6 +77,31 @@ function outlineRow(view: SectionView, s: Section): string {
   return `${view.ids[s.index]}  ${num}  ${outlineHeading(s)}  ${range}  ${s.words} words  ${s.rev}`
 }
 
+/** "more than one H1 (s-3, s-9): ..." when the document has several H1 headings, else null. */
+function multipleH1Warning(view: SectionView): string | null {
+  const h1 = view.structure.sections.filter(s => s.level === 1)
+  if (h1.length < 2) return null
+  const ids = h1.slice(0, 8).map(s => view.ids[s.index]).join(', ')
+  return `more than one H1 (${ids}${h1.length > 8 ? ', ...' : ''}): the document title is the only H1; when you fix headings, make the others H2 (and their subsections one level lower)`
+}
+
+/** The outline's warnings line (level jumps in scope, a second H1 on the whole outline), or ''. */
+function outlineWarnings(view: SectionView, under: Section | undefined): string {
+  const { structure } = view
+  const lineOf = (w: string): number => Number(/at line (\d+)$/.exec(w)?.[1])
+  const warnings = structure.warnings
+    .filter(w => !under || (lineOf(w) >= under.startLine && lineOf(w) <= under.endLine))
+    .map((w) => {
+      const s = sectionAtLine(structure, lineOf(w))
+      return s ? `${w} (${view.ids[s.index]})` : w
+    })
+  // A document-wide warning: only on the whole outline.
+  const h1 = under ? null : multipleH1Warning(view)
+  if (h1) warnings.unshift(h1)
+  if (warnings.length === 0) return ''
+  return `\nWarnings: ${warnings.slice(0, 5).join('; ')}${warnings.length > 5 ? `; and ${warnings.length - 5} more` : ''}`
+}
+
 /** One line on what to do with a large document, from the server's thresholds. */
 function delegateHint(structure: DocumentStructure): string | null {
   const tokens = structure.totals.tokens
@@ -97,19 +122,7 @@ function formatSectionOutline(view: SectionView, opts: { depth: number, under?: 
   if (opts.under) head.push(`Under ${view.ids[opts.under.index]} "${sectionLabel(opts.under)}":`)
   head.push('id  number  heading  [lines]  words  rev')
 
-  const warnings = structure.warnings.filter((w) => {
-    if (!opts.under) return true
-    const line = Number(/at line (\d+)$/.exec(w)?.[1])
-    return line >= opts.under.startLine && line <= opts.under.endLine
-  })
-  const warningText = warnings.length === 0
-    ? ''
-    : `\nWarnings: ${warnings.slice(0, 5).map((w) => {
-      const line = Number(/at line (\d+)$/.exec(w)?.[1])
-      const s = sectionAtLine(structure, line)
-      return s ? `${w} (${view.ids[s.index]})` : w
-    }).join('; ')}${warnings.length > 5 ? `; and ${warnings.length - 5} more` : ''}`
-
+  const warningText = outlineWarnings(view, opts.under)
   const headText = head.join('\n')
   for (let depth = Math.min(6, opts.depth); depth >= 1; depth--) {
     const maxLevel = base + depth - 1
@@ -250,7 +263,7 @@ function handleSearchDocument(ctx: DocToolContext, args: z.output<typeof SearchD
 
 export const outlineTool = defineDocTool({
   name: 'outline',
-  description: 'List the sections of the current document: for each heading its id (s-12), number (4.2), level, line range (subsections included), word count and rev (changes when the section text changes), plus document totals and level-jump warnings. Call it first on a long document, then read sections with read_section or find text with search_document. Ids stay valid while the document is edited; line numbers do not. `under` lists one section\'s subtree; `depth` limits the heading levels (default 3).',
+  description: 'List the sections of the current document: for each heading its id (s-12), number (4.2), level, line range (subsections included), word count and rev (changes when the section text changes), plus document totals and warnings (level jumps, more than one H1). Call it first on a long document, then read sections with read_section or find text with search_document. Ids stay valid while the document is edited; line numbers do not. `under` lists one section\'s subtree; `depth` limits the heading levels (default 3).',
   schema: OutlineArgs,
   handler: handleOutline
 })
