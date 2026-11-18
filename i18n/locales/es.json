@@ -327,6 +327,8 @@
     "title": "Importar documento",
     "description": "Convierte un archivo a markdown y cárgalo en el editor.",
     "selectFile": "Haz clic para seleccionar un archivo",
+    "dropHere": "Suelta el archivo aquí",
+    "removeFile": "Quitar archivo",
     "changeFile": "Elegir un archivo diferente",
     "formats": "Compatibles: Markdown, DOCX, PDF, PPTX, XLSX, XLS, HTML, EPUB",
     "import": "Importar",
