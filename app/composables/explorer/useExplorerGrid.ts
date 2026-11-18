@@ -45,7 +45,7 @@ export function useExplorerGrid(opts: {
     table.setAttribute('aria-rowcount', String(opts.totalCount()))
     table.setAttribute('aria-label', opts.label())
     const focus = opts.focus() ?? opts.keys.value[0] ?? null
-    for (const tr of root.querySelectorAll<HTMLElement>('tbody tr[data-key]')) tr.tabIndex = tr.dataset.key === focus ? 0 : -1
+    for (const tr of root.querySelectorAll<HTMLElement>('tbody tr[data-key]')) tr.tabIndex = focus !== null && tr.dataset.key === focus ? 0 : -1
   })
 
   useInfiniteScroll(opts.scrollEl, () => {

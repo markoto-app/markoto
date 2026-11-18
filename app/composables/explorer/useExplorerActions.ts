@@ -95,7 +95,7 @@ export function useExplorerActions(opts: {
         docIds: items.filter(i => i.kind === 'doc').map(i => i.id)
       }
     })
-    return res.results as BulkResult[]
+    return res.results
   }
 
   const undoable = shallowRef<{ placements: Placement[], until: number } | null>(null)
@@ -146,7 +146,7 @@ export function useExplorerActions(opts: {
     if (docIds.length === 0) return
     try {
       const res = await apiFetch('/api/documents/bulk', { method: 'post', body: { action: 'move-workspace', docIds, workspaceId: target } })
-      await settle(res.results as BulkResult[], 'explorer.announce.movedWorkspace')
+      await settle(res.results, 'explorer.announce.movedWorkspace')
     } catch (e) {
       await handleError(e, 'explorer.error.move')
     }

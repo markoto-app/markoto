@@ -177,7 +177,7 @@ watch([keys, data.docs.isLoading], ([k, loading]) => {
 })
 function openFolder(folderId: string | null) {
   const query: Record<string, string> = {}
-  for (const n of ['sort', 'dir']) if (typeof route.query[n] === 'string') query[n] = route.query[n] as string
+  for (const n of ['sort', 'dir']) if (typeof route.query[n] === 'string') query[n] = route.query[n]
   void router.push({ path: props.folderHref(folderId), query })
 }
 function openItem(item: ExplorerItem, newTab = false) {
@@ -233,7 +233,7 @@ function onDblclick(e: MouseEvent) {
   slowClickTimer = null
   const key = (e.target as HTMLElement | null)?.closest<HTMLElement>('tr[data-key]')?.dataset.key
   const item = key ? byKey.value.get(key) : undefined
-  if (item && renamingKey.value !== key) openItem(item)
+  if (item && renamingKey.value !== item.key) openItem(item)
 }
 
 // ---------- menus and actions ----------

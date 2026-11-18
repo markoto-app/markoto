@@ -19,10 +19,11 @@ const { t } = useI18n()
 
 interface Crumb { label: string, folderId: string | null | undefined, icon?: string, to?: string }
 const crumbs = computed<Crumb[]>(() => {
-  const all: Crumb[] = [
+  const base: Crumb[] = [
     { label: props.rootLabel, folderId: null, icon: 'i-lucide-hard-drive' },
     ...props.path.map(f => ({ label: f.name, folderId: f.folderId }))
-  ].map((c, i, list) => ({ ...c, to: i === list.length - 1 || c.folderId === undefined ? undefined : props.folderHref(c.folderId) }))
+  ]
+  const all = base.map((c, i, list) => ({ ...c, to: i === list.length - 1 || c.folderId === undefined ? undefined : props.folderHref(c.folderId) }))
   return props.isMobile && all.length > 3 ? [{ label: '...', folderId: undefined }, ...all.slice(-2)] : all
 })
 </script>
