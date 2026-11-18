@@ -420,6 +420,18 @@ export class EditorPage {
    */
   async scrollEditorTo(text: string | RegExp): Promise<void> {
     const line = this.page.locator('.cm-line', { hasText: text }).first()
+    // CodeMirror renders only the lines near the viewport: a line further
+    // down a long document is not in the DOM until the editor scrolls
+    // there. Page through the scroller until it is.
+    for (let step = 0; step < 400 && (await line.count()) === 0; step++) {
+      const atEnd = await this.page.locator('.cm-scroller').first().evaluate((el: HTMLElement) => {
+        const before = el.scrollTop
+        el.scrollTop = before + el.clientHeight * 0.8
+        return el.scrollTop === before
+      })
+      if (atEnd) break
+      await this.page.waitForTimeout(30)
+    }
     await expect(line).toBeAttached({ timeout: 15_000 })
     await line.evaluate((el: HTMLElement) => el.scrollIntoView({ block: 'center' }))
   }

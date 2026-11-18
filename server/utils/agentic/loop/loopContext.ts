@@ -122,6 +122,8 @@ export interface LoopContext {
   answeredUser: boolean
   /** Turns whose tool call was cut off by the output token limit (`finish_reason: length`). */
   outputLimitedTurns: number
+  /** Tool calls refused for invalid arguments, by name + argument hash, with how often they were sent. */
+  invalidCalls: Map<string, number>
 }
 
 export type ResponseParts = NonNullable<Content['parts']>
