@@ -15,6 +15,7 @@ import { readDocText, throwIfAborted, toolErrorResponse, type LoopContext, type 
 import { streamTurn } from './loop/providerStream'
 import { salvageProseTurn } from './loop/salvage'
 import { dispatchToolCall } from './loop/toolDispatch'
+import { pruneReadResults } from './loop/historyPruning'
 import { nearDeadline, wrapUpSession } from './loop/wrapUp'
 
 const loopLog = useLogger('ai-loop')
@@ -66,6 +67,8 @@ async function runOneTurn(ctx: LoopContext, turnCount: number): Promise<TurnResu
   const capResult = chargeTurnBudget(ctx, turnCount)
   if (capResult) return capResult
 
+  pruneHistory(ctx, turnCount)
+
   // A stream that breaks mid-way is re-requested once (no tool has run yet).
   const streamResult = await streamTurn(ctx)
   if (streamResult.kind === 'budget-exhausted') return { kind: 'budget-exhausted' }
@@ -95,6 +98,14 @@ async function runOneTurn(ctx: LoopContext, turnCount: number): Promise<TurnResu
   }
 
   return dispatchToolCallsForTurn(ctx, functionCalls, turnCount, finishReason === FinishReason.MAX_TOKENS)
+}
+
+/** Stub out old read results once enough of them piled up (`loop/historyPruning.ts`). */
+function pruneHistory(ctx: LoopContext, turnCount: number): void {
+  const pruned = pruneReadResults(ctx.contents)
+  if (pruned.prunedResults === 0) return
+  ctx.telemetry.notePruned(pruned.prunedChars, pruned.prunedResults)
+  ctx.log(`turn ${turnCount}: pruned ${pruned.prunedResults} old read result(s), ${pruned.prunedChars} chars`)
 }
 
 /** Charge one interaction against the per-session cap. Returns a `done` TurnResult on cap-exceeded; null otherwise so the caller continues. */

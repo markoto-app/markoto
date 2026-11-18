@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { generateLargeDocument, LARGE_DOC_TITLE } from '../../fixtures/largeDocument/generate'
 import { assemblePromptContext, PROMPT_SYSTEM_PROMPT } from '../../../server/utils/agentic/promptAssembly'
@@ -85,7 +85,11 @@ describe.skipIf(!ENABLED)('AI loop benchmark (scripted planner, large document)'
     const docInfo = { chars: document.length, words: document.split(/\s+/).filter(Boolean).length, lines: document.split('\n').length, tokens: tokens(document.length) }
     mkdirSync(RESULTS_DIR, { recursive: true })
     writeFileSync(`${RESULTS_DIR}${LABEL}.json`, `${JSON.stringify({ label: LABEL, document: docInfo, prefix, tasks: results }, null, 2)}\n`)
-    writeFileSync(`${RESULTS_DIR}${LABEL}.md`, renderMarkdownReport(LABEL, docInfo, prefix, results))
+    const baselineFile = `${RESULTS_DIR}baseline.json`
+    const baseline = LABEL !== 'baseline' && existsSync(baselineFile)
+      ? (JSON.parse(readFileSync(baselineFile, 'utf8')) as { tasks: TaskResult[] }).tasks
+      : []
+    writeFileSync(`${RESULTS_DIR}${LABEL}.md`, renderMarkdownReport(LABEL, docInfo, prefix, results, baseline))
     expect(results).toHaveLength(BASELINE_TASKS.length)
   })
 })

@@ -4,7 +4,7 @@ description: Bring documents in from DOCX/PDF/PPTX/XLSX/HTML/EPUB, export to Mar
 category: import-export
 order: 7
 icon: i-lucide-arrow-right-left
-updated: '2026-11-14'
+updated: '2026-11-18'
 ---
 
 # Import, export and history
@@ -28,3 +28,4 @@ can see exactly what changed and restore the document to that point.
 
 **Elsewhere**
 - [Replay a comment in its original context](/docs/collaborate/comment-replay) lives in Collaborate.
+- [Undo an AI job](/docs/ai/document-jobs#undo-an-ai-job) (a whole background edit in one step) lives in AI assistant.

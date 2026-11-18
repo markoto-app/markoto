@@ -2,8 +2,8 @@
 title: Use your own AI provider
 description: Settings → AI provider. Connect your own Mistral, OpenAI or other OpenAI-compatible account for the writing assistant, images and voice.
 category: ai
-order: 11
-updated: '2026-11-17'
+order: 13
+updated: '2026-11-18'
 ---
 
 # Use your own AI provider
@@ -61,13 +61,19 @@ Tips:
 
 ## Fast or strong model
 
-Where markoto's own AI runs your chat (you haven't added a chat key), the
-page offers **Fast** and **Strong**. Fast answers quickly and uses less of
-your AI budget; Strong is better at long, careful writing and tricky edits
-and uses more. The strong model, image generation and voice input on
-markoto's AI depend on your plan: where your plan doesn't include them,
-the controls show a lock and explain how to get them. Your own key always
-works for them.
+Where markoto's own AI runs your writing assistant (you haven't added a
+key of your own for it) and the instance offers a stronger model, the page
+starts with an **AI model** choice: **Fast** or **Strong**. Fast answers
+quickly and uses less of your AI budget; Strong is better at long, careful
+writing and tricky edits and uses more. Your own writing assistant key,
+once added, always takes over.
+
+The strong model, image generation and voice input on markoto's AI depend
+on your plan. Where your plan doesn't include the strong model, **Strong**
+can't be selected and the page says it is part of the paid plans; image
+generation or voice input that isn't included shows *Not in your plan:
+your own key works*. In the prompt bar a dimmed microphone explains, when
+you click it, how to get voice input. Your own key always works for them.
 
 ## What happens to your key and your data
 

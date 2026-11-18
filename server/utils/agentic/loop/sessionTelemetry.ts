@@ -46,6 +46,11 @@ export class SessionTelemetry {
   errorMessage?: string
   /** Turns re-requested after the stream broke mid-way (`providerStream.ts`). */
   streamRetries = 0
+  /** Characters of old read results replaced by a stub (`historyPruning.ts`). */
+  prunedChars = 0
+  /** Read results replaced by a stub, and in how many batches. */
+  prunedResults = 0
+  pruneBatches = 0
   /**
    * Per-tool ATTEMPT counts (records EVERY invocation, including
    * cap-rejected and errored ones). Distinct from SessionBudget's
@@ -67,6 +72,12 @@ export class SessionTelemetry {
     if (typeof usage.promptTokenCount === 'number') this.totalInputTokens += usage.promptTokenCount
     if (typeof usage.candidatesTokenCount === 'number') this.totalOutputTokens += usage.candidatesTokenCount
     if (typeof usage.thoughtsTokenCount === 'number') this.totalThinkingTokens += usage.thoughtsTokenCount
+  }
+
+  notePruned(chars: number, results: number): void {
+    this.prunedChars += chars
+    this.prunedResults += results
+    this.pruneBatches += 1
   }
 
   noteToolAttempt(name: string): void {
@@ -108,6 +119,9 @@ export class SessionTelemetry {
           toolCallCounts: toolCounts,
           abortReason: this.abortReason,
           streamRetries: this.streamRetries,
+          prunedChars: this.prunedChars,
+          prunedResults: this.prunedResults,
+          pruneBatches: this.pruneBatches,
           callTotals: sumCallUsage(this.calls),
           errorMessage: this.errorMessage,
           durationMs: Date.now() - this.startedAt,

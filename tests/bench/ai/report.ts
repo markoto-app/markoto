@@ -18,7 +18,34 @@ const k = (n: number): string => n >= 10_000 ? `${(n / 1000).toFixed(0)}k` : n.t
 const pct = (n: number): string => `${Math.round(n * 100)} %`
 const yesNo = (b: boolean): string => (b ? 'yes' : 'no')
 
-export function renderMarkdownReport(label: string, doc: DocumentInfo, prefix: StaticPrefix, results: readonly TaskResult[]): string {
+const arrow = (a: string, b: string): string => (a === b ? b : `${a} → ${b}`)
+
+/**
+ * Before/after per task: every task of this run next to the baseline run's
+ * task with the same id (the first variant, `results/baseline.json`), the
+ * delegated tasks with their modelled worker cost.
+ */
+function renderComparison(baseline: readonly TaskResult[], results: readonly TaskResult[]): string[] {
+  const rows = results.flatMap((r) => {
+    const b = baseline.find(x => x.id === r.id)
+    if (!b) return []
+    const w = r.worker
+    return [`| ${r.id} (${r.variant}) | ${arrow(String(b.modelCalls), String(r.modelCalls))} | ${arrow(String(b.toolCalls), String(r.toolCalls))} | ${arrow(k(b.inputTokens), k(r.inputTokens))} | ${arrow(k(b.outputTokens), k(r.outputTokens))} | ${arrow(usd(b.costUncachedUsd), usd(r.costUncachedUsd))} | ${arrow(usd(b.costCachedUsd), usd(r.costCachedUsd))} | ${w ? `${usd(w.costUncachedUsd)} / ${usd(w.costCachedUsd)}` : '-'} | ${arrow(usd(b.costCachedUsd), usd(r.costCachedUsd + (w?.costCachedUsd ?? 0)))} | ${arrow(yesNo(b.feasible), yesNo(r.feasible))} |`]
+  })
+  if (rows.length === 0) return []
+  return [
+    '## Before and after (baseline → this run)',
+    '',
+    'Each task of this run against the same task in `results/baseline.json` (the tools before this branch: whole-document `view_document`, `replace_text` only). Worker = the modelled worker calls of a delegated job (uncached / cached prefix, section below); Total = planner (cached prefix) + worker (cached).',
+    '',
+    '| Task | Model calls | Tool calls | Input tokens | Output tokens | Cost uncached | Cost cached prefix | Worker | Total (cached) | Feasible |',
+    '|---|--:|--:|--:|--:|--:|--:|--:|--:|---|',
+    ...rows,
+    ''
+  ]
+}
+
+export function renderMarkdownReport(label: string, doc: DocumentInfo, prefix: StaticPrefix, results: readonly TaskResult[], baseline: readonly TaskResult[] = []): string {
   const rows = results.map(r => [
     `${r.id} (${r.variant})`,
     r.title,
@@ -78,6 +105,7 @@ export function renderMarkdownReport(label: string, doc: DocumentInfo, prefix: S
     `| **Total** | | ${total(r => r.modelCalls)} | ${total(r => r.toolCalls)} | ${k(total(r => r.inputTokens))} | ${k(total(r => r.inputChars))} | ${k(total(r => r.outputTokens))} | ${usd(total(r => r.costUncachedUsd))} | ${usd(total(r => r.costCachedUsd))} | | | | |`,
     '',
     ...workerSection,
+    ...renderComparison(baseline, results),
     '## Method and assumptions',
     '',
     `- Tokens = characters / ${CHARS_PER_TOKEN} (German prose on current BPE tokenizers; JSON and line-numbered tool output counted the same way). Characters are the message contents and tool-call names + JSON arguments of the OpenAI-shape request the loop would send (\`internalToOpenAIMessages\`), plus the tool declarations JSON (\`internalToOpenAITools\`); no per-message framing tokens.`,

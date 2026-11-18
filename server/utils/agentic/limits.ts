@@ -52,3 +52,17 @@ export const AI_SESSION_WRAP_UP_MARGIN_MS = 30 * SECOND_MS
  * their own output below it and say how to continue.
  */
 export const TOOL_RESULT_CHAR_CAP = 24_000
+
+/**
+ * In-session pruning of old read results (`loop/historyPruning.ts`). A
+ * read result outside the latest `PRUNE_KEEP_RECENT_TURNS` turns is
+ * prunable when it is at least `PRUNE_LARGE_RESULT_CHARS` long (about 4-5k
+ * tokens), or at least `PRUNE_SUPERSEDED_MIN_CHARS` long and superseded (a
+ * later edit of the document, or a later read of the same target). Pruning
+ * only runs once the prunable total passes `PRUNE_BATCH_CHARS`, so the
+ * conversation prefix (and the provider's prompt cache) changes rarely.
+ */
+export const PRUNE_LARGE_RESULT_CHARS = 16_000
+export const PRUNE_SUPERSEDED_MIN_CHARS = 2_000
+export const PRUNE_BATCH_CHARS = 40_000
+export const PRUNE_KEEP_RECENT_TURNS = 2

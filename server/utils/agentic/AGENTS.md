@@ -38,8 +38,17 @@ How the loop works and how to add a tool: `docs/contributing/ai-tools.md`. MCP d
 - Stopping early goes through the closing turn (`loop/wrapUp.ts`): same tool list, `tool_choice` forcing the closing tool, and only that tool runs. Never drop tools from the request to force an answer (it breaks the cached prefix). The loop gets the deadline as `deadlineAt` from `openAiSession`.
 - Retry a turn only while no tool of it has run (`streamTurn` retries a stream that broke mid-way, once). Never retry aborts, budget refusals or 4xx.
 - Every model call goes through `streamTurn`, which writes its `ai.call.usage` record (`loop/callUsage.ts`); keep prompt and document text out of it.
+- Old read results are pruned only in batches (`loop/historyPruning.ts`, thresholds `PRUNE_*` in `limits.ts`), so the prefix changes rarely. Never prune tool-call arguments (they replay verbatim), edit results or the latest 2 turns, and keep the `functionResponse` part (id, name) so the provider still pairs it with its call.
+- Text the AI writes into a document goes through `filterEmDashes` (`server/utils/ai/dashFilter.ts`) in the tool or the job runner, never the text it did not write.
 - Comment bodies are plain text: AI-written comments go through `plainCommentText`, and outgoing `@ai` is stripped so the AI cannot trigger itself. Server and client use the same `@ai` regex (`commentTriggerPrompt.ts`).
 - Encode Y.js anchors with `Buffer`, not `btoa` (server context).
+
+## Sections and delegated jobs
+
+- Section ids (`s-<n>`, `sections/sectionIds.ts`) are relative positions kept per `Y.Doc`; they live as long as the connection (one loop session, one MCP session). Never persist them or hand them to a job: jobs store their own relative positions.
+- A job edits only through `runner.ts`: rev check against the text at job start, minimal word diff, one transaction per unit with origin `ai:job:<id>`. Undo (`revert.ts`) restores only units whose text is still exactly what the job wrote; never a whole-document restore (it would undo other people's edits).
+- The job row's status is the control plane: check it before every claim and every apply, so a cancel from any instance wins. Job locks (one per user, one per document) fail closed.
+- Worker prompts keep the order system (static), then job part, then unit (`workerPrompt.ts`) for prefix caching; put nothing per-unit or per-job into the system message.
 
 ## Providers and LiteLLM
 

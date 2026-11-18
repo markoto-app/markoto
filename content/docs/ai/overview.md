@@ -5,7 +5,7 @@ category: ai
 order: 1
 icon: i-lucide-sparkles
 featured: true
-updated: '2026-11-15'
+updated: '2026-11-18'
 ---
 
 # What the AI can do, and what it needs
@@ -20,6 +20,8 @@ is the map. Each row links to a walkthrough.
 |---|---|---|
 | [Prompt bar](/docs/ai/prompt-bar) | Draft, rewrite, restructure, add sections | A **writing assistant** provider |
 | [Rewrite a selection](/docs/ai/rewrite-selection) | Select text, say what you want, it is replaced in place | A writing assistant provider |
+| [Long documents](/docs/ai/long-documents) | Answers from the right section of a long document; renames a term everywhere in one edit | A writing assistant provider |
+| [Translate or restyle a whole document](/docs/ai/document-jobs) | Works through many sections in the background, with an estimate first and one-step undo | A writing assistant provider |
 | [`@markoto` in comments](/docs/ai/comments) | Ask about one passage; the answer lands in the thread | A writing assistant provider |
 | [Look at another document](/docs/ai/cross-doc) | Reads other documents you can open | A writing assistant provider |
 | [Workspace knowledge](/docs/ai/knowledge-rag) | Answers from files uploaded to a workspace | A writing assistant provider, and the instance's embeddings |
