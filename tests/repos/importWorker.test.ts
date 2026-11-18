@@ -1,12 +1,11 @@
 import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest'
-import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import { PutObjectCommand, GetObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { strToU8, zipSync, type Zippable } from 'fflate'
 import { resetDb, testDb, readYjsRows } from '../integration/setup/db'
 import { createUser, createWorkspace, setMemberRole } from '../integration/setup/fixtures'
 import { stubEnv } from '../helpers/env'
 import { startFakeGithub, type FakeGithub } from '../helpers/fakeGithub'
 import { createImportJob, getImportJobForWorker, type NewImportItem } from '../../server/repos/imports'
-import { useS3Client } from '../../server/utils/storage/s3'
 import { asUser, sys } from '../helpers/access'
 
 // The import worker against the real test stack: Postgres, SeaweedFS and
@@ -14,10 +13,24 @@ import { asUser, sys } from '../helpers/access'
 // this test put into `running` (the app's sweeper would pick it up only
 // every 15 s). GitHub is a local fake reached through the test-mode origin
 // seam. Nitro auto-imports the worker relies on are stubbed with their real
-// implementations (or a no-op for trace headers).
+// implementations (or a no-op for trace headers). The S3 client is this
+// file's own, with the test stack's keys: the app's singleton may already
+// have been built by an earlier file (repos files share one process) under
+// other settings, and another file may have stubbed the auto-import.
 
-vi.stubGlobal('useS3Client', useS3Client)
-vi.stubGlobal('injectTraceHeaders', (h: Record<string, string>) => h)
+const s3 = new S3Client({
+  endpoint: 'http://127.0.0.1:8334',
+  region: 'us-east-1',
+  credentials: { accessKeyId: 'ypad-access-key', secretAccessKey: 'ypad-secret-key' },
+  forcePathStyle: true,
+  requestChecksumCalculation: 'WHEN_REQUIRED',
+  responseChecksumValidation: 'WHEN_REQUIRED'
+})
+function stubAutoImports() {
+  vi.stubGlobal('useS3Client', () => s3)
+  vi.stubGlobal('injectTraceHeaders', (h: Record<string, string>) => h)
+}
+stubAutoImports()
 
 const { processImportJob } = await import('../../server/utils/imports/importWorker')
 
@@ -37,12 +50,12 @@ function testStorageEnv(extra: Record<string, string | undefined> = {}) {
 }
 
 async function put(key: string, body: Uint8Array): Promise<void> {
-  await useS3Client().send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: body }))
+  await s3.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: body }))
 }
 
 async function exists(key: string): Promise<boolean> {
   try {
-    await useS3Client().send(new GetObjectCommand({ Bucket: BUCKET, Key: key }))
+    await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }))
     return true
   } catch {
     return false
@@ -131,6 +144,7 @@ describe('import worker', () => {
   beforeEach(async () => {
     await resetDb()
     testStorageEnv()
+    stubAutoImports()
   })
 
   it('imports a folder of Markdown: folders mirrored, relative image stored, cross links rewritten, text indexed', async () => {
@@ -285,6 +299,7 @@ describe('import worker: GitHub', () => {
   beforeEach(async () => {
     await resetDb()
     testStorageEnv({ TEST_GITHUB_IMPORT_ORIGIN: origin })
+    stubAutoImports()
     gh.requests.length = 0
   })
 
