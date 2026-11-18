@@ -60,13 +60,16 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
   {
     id: 'mistral_ai',
     name: 'Mistral AI SAS',
-    // Hosted: the free AI allowance runs on Z.ai GLM-5.3 Flash, served and
-    // processed by Mistral itself through its EU endpoint
-    // (api.eu.mistral.ai, deploy/config/litellm/config.yaml): Z.ai receives no
-    // data, so it is not a sub-processor.
+    // Hosted chat models (deploy/config/litellm/config.yaml): DeepSeek V4.1
+    // Flash (default), GLM-5.3 Flash (fallback + document-job worker) and
+    // Mistral Large 4 (strong-model plans), all open-weight or Mistral models
+    // served and processed by Mistral itself. The model developers (DeepSeek,
+    // Z.ai) receive no data, so they are not sub-processors. A model swap
+    // within Mistral's EU endpoint only updates the "currently" list here,
+    // in en.json and in the privacy policy.
     // Every request goes to Mistral's EU regional endpoint (api.eu.mistral.ai):
     // the LiteLLM deployments and the live-dictation WebSocket.
-    purpose: 'AI text generation for the writing assistant: the free AI allowance (Z.ai GLM-5.3 Flash, served and processed by Mistral; Z.ai receives no data) with Mistral Small as fallback; voice transcription (Voxtral). All requests go to Mistral\'s EU endpoint (data centres in the EU and EFTA)',
+    purpose: 'AI text generation for the writing assistant, including the free AI allowance: open-weight and Mistral models served and processed by Mistral (currently DeepSeek V4.1 Flash, GLM-5.3 Flash and Mistral Large 4; their developers receive no data); voice transcription (Voxtral). All requests go to Mistral\'s EU endpoint (data centres in the EU and EFTA)',
     location: 'eu',
     transferMechanism: 'intra_eu',
     dpfCertified: false,

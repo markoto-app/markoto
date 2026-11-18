@@ -102,7 +102,7 @@ En cas de doute sur ce qui est autorisé, écrivez à **{{abuseContactEmail}}**.
 
 Si vous êtes connecté à votre compte et n'avez pas configuré votre propre fournisseur pour l'assistant de rédaction, vous pouvez l'utiliser dans la limite d'une allocation mensuelle gratuite :
 
-- L'allocation fonctionne avec le modèle GLM-5.3 Flash de Z.ai, fourni par Mistral AI dans l'UE (voir la Politique de confidentialité).
+- L'allocation fonctionne avec des modèles d'IA fournis par Mistral AI dans l'UE ; la Politique de confidentialité indique les modèles actuels.
 - Chaque compte dispose d'une limite mensuelle, et tous les comptes gratuits partagent une réserve mensuelle commune. L'allocation n'est disponible que tant que la réserve de ce mois n'est pas épuisée ; les deux sont remises à zéro au début de chaque mois. L'allocation non utilisée n'est pas reportée et n'a aucune valeur monétaire.
 - L'allocation est fournie gratuitement et **« en l'état »**, sans garantie de disponibilité, de qualité ni d'un modèle particulier. Il s'agit d'une limite d'utilisation au sens du point 3 : nous pouvons modifier le modèle, les limites ou la réserve, ou mettre fin à l'allocation.
 - N'essayez pas de contourner ces limites, par exemple en utilisant plusieurs comptes.

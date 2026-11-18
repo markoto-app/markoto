@@ -2016,7 +2016,7 @@
       "purpose": {
         "ovh_postgres": "Primary application database, Y.js document state, knowledge embeddings",
         "ovh_object_storage": "Image uploads, knowledge-base originals (deleted post-processing), database backups",
-        "mistral_ai": "AI text generation for the writing assistant: the free AI allowance (Z.ai GLM-5.3 Flash, served and processed by Mistral; Z.ai receives no data) with Mistral Small as fallback; voice transcription (Voxtral). All requests go to Mistral's EU endpoint (data centres in the EU and EFTA)",
+        "mistral_ai": "AI text generation for the writing assistant, including the free AI allowance: open-weight and Mistral models served and processed by Mistral (currently DeepSeek V4.1 Flash, GLM-5.3 Flash and Mistral Large 4; their developers receive no data); voice transcription (Voxtral). All requests go to Mistral's EU endpoint (data centres in the EU and EFTA)",
         "jina_ai": "Embedding generation for knowledge-base RAG; single-URL page content extraction for the fetch-URL tool (Jina Reader; the URL is sent for every user, including users with their own AI provider)",
         "staan": "Web search for the AI writing assistant (the search query is sent for every user, including users with their own AI provider), via a proprietary European search index (EU-only routing)",
         "bfl": "Image generation via FLUX (EU-pinned data plane)",

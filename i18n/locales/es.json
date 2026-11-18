@@ -2016,7 +2016,7 @@
       "purpose": {
         "ovh_postgres": "Base de datos principal de la aplicación, estado Y.js de los documentos, embeddings de la base de conocimiento",
         "ovh_object_storage": "Imágenes subidas, originales de la base de conocimiento (se eliminan tras el procesamiento), copias de seguridad de la base de datos",
-        "mistral_ai": "Generación de texto con IA para el asistente de escritura: la asignación de IA gratuita (Z.ai GLM-5.3 Flash, servido y procesado por Mistral; Z.ai no recibe datos) con Mistral Small como alternativa; transcripción de voz (Voxtral). Todas las solicitudes van al endpoint de Mistral en la UE (centros de datos en la UE y la AELC)",
+        "mistral_ai": "Generación de texto con IA para el asistente de escritura, incluida la asignación de IA gratuita: modelos de pesos abiertos y modelos de Mistral, servidos y procesados por Mistral (actualmente DeepSeek V4.1 Flash, GLM-5.3 Flash y Mistral Large 4; sus desarrolladores no reciben datos); transcripción de voz (Voxtral). Todas las solicitudes van al endpoint de Mistral en la UE (centros de datos en la UE y la AELC)",
         "jina_ai": "Generación de embeddings para la base de conocimiento (RAG); extracción del contenido de una página a partir de una URL para la herramienta de obtener URL (Jina Reader; la URL se envía para todos los usuarios, también para quienes usan su propio proveedor de IA)",
         "staan": "Búsqueda web para el asistente de escritura con IA (la consulta se envía para todos los usuarios, también para quienes usan su propio proveedor de IA), mediante un índice de búsqueda europeo propio (enrutamiento solo en la UE)",
         "bfl": "Generación de imágenes con FLUX (tratamiento de datos fijado en la UE)",

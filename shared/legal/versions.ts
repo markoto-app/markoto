@@ -54,7 +54,13 @@
 // independent controller for the purchase data.
 // v15 (2026-11-18): large AI edits running in the background (jobs): the
 // instruction and settings, and per part the text before the change for
-// "Undo job" (deleted after 7 days; the job record after 90 days).
+// "Undo job" (deleted after 7 days; the job record after 90 days). Hosted
+// AI models: DeepSeek V4.1 Flash (default), GLM-5.3 Flash (fallback,
+// background edits), Mistral Large 4 (strong-model plans), all served by
+// Mistral AI on its EU endpoint (still the only AI text sub-processor;
+// the model developers receive no data). The Terms (v4) now point to the
+// privacy policy for the current models instead of naming one: wording
+// only, no TOS bump.
 export const PRIVACY_VERSION = 15
 export const PRIVACY_EFFECTIVE_DATE = '2026-11-18'
 

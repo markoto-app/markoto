@@ -102,7 +102,7 @@ Si no está seguro de si algo está permitido, escriba a **{{abuseContactEmail}}
 
 Si ha iniciado sesión y no ha conectado su propio proveedor para el asistente de escritura, puede usarlo dentro de una asignación mensual gratuita:
 
-- La asignación funciona con el modelo GLM-5.3 Flash de Z.ai, proporcionado por Mistral AI en la UE (véase la Política de privacidad).
+- La asignación funciona con modelos de IA proporcionados por Mistral AI en la UE; la Política de privacidad indica los modelos actuales.
 - Cada cuenta tiene un límite mensual y todas las cuentas gratuitas comparten una reserva mensual común. La asignación solo está disponible mientras dure la reserva de este mes; ambos se reinician al comienzo de cada mes. La asignación no utilizada no se acumula y no tiene valor monetario.
 - La asignación se ofrece gratuitamente y **«tal cual»**, sin garantía de disponibilidad, calidad ni de un modelo concreto. Es un límite de uso en el sentido del apartado 3: podemos cambiar el modelo, los límites o la reserva, o poner fin a la asignación.
 - No intente eludir los límites, por ejemplo usando varias cuentas.

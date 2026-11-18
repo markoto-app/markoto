@@ -102,8 +102,9 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: ['ovh_postgres']
   },
   {
-    // Includes the hosted free AI allowance (GLM-5.3 Flash on Mistral's EU
-    // endpoint, monthly per-account limit + shared pool). The limits are
+    // Includes the hosted free AI allowance (models served by Mistral on its
+    // EU endpoint, currently DeepSeek V4.1 Flash with GLM-5.3 Flash as
+    // fallback; monthly per-account limit + shared pool). The limits are
     // enforced from LiteLLM's per-request usage records (cost, model, time,
     // internal user ID), kept 90 days by `spend-logs-sweep`, the same
     // retention as the prompt / tool-call records.
