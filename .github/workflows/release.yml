@@ -392,11 +392,15 @@ jobs:
     # Live-AI provider keys live in this main-only Environment.
     environment: release
     runs-on: ubuntu-latest
-    # The flow suite is 160 Playwright tests on ONE worker by design
-    # (flow-docs record ordered manifests against a shared stack),
-    # ~3.1 tests/min in CI ⇒ ~55 min for the suite alone, plus setup and
-    # retries.
-    timeout-minutes: 90
+    # The flow suite is about 210 Playwright tests on ONE worker by design
+    # (flow-docs record ordered manifests against a shared stack): about
+    # 45 min for the passes when green, plus build, setup and retries. The
+    # long live-AI flows (background jobs, the 180-page handbook) run on
+    # the light variants only with one retry, and a flow whose AI session
+    # ends without the expected job fails at once instead of waiting out
+    # its timeout. Release 0.20.0 hit 90 min only because one such flow
+    # waited 4 min on every attempt.
+    timeout-minutes: 120
     env:
       IMAGE_TAG: v${{ needs.resolve-pr.outputs.new_version }}
       TEST_MODE: "1"
@@ -498,8 +502,10 @@ jobs:
 
       # Ship the Playwright error contexts (test-results/) always; they
       # vanish with the runner otherwise.
+      # Also on a timeout (cancelled), so a run that hits timeout-minutes
+      # still leaves its error contexts behind.
       - name: Upload failure artefacts (error contexts + traces)
-        if: failure()
+        if: failure() || cancelled()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: flow-failure-artefacts

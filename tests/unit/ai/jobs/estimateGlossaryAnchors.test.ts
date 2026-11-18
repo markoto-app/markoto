@@ -25,6 +25,8 @@ describe('estimateJob', () => {
     expect(estimateJob({ mode: 'summarise', unitTokens: [10_000], systemChars: 0, jobChars: 0, price }).outputTokens).toBe(Math.round(150 * 1.15))
     expect(maxTokensFor('comment', 3000)).toBe(256)
     expect(maxTokensFor('rewrite', 1000)).toBe(2000)
+    // A scan answer lists up to 300 items of a 15k-token chunk.
+    expect(maxTokensFor('scan', 15_000)).toBe(4000)
   })
 
   it('BYOK: tokens only', () => {

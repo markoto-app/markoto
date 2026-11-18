@@ -129,7 +129,7 @@ describe('MCP auth: scope gating', () => {
     expect(names).toEqual(expected)
   })
 
-  it('documents:read + documents:write → 39 tools (17 read + 22 write, incl. generate_image)', async () => {
+  it('documents:read + documents:write → 40 tools (17 read + 23 write, incl. generate_image)', async () => {
     const user = await createUser()
     const { plaintext } = await mintPat({
       userId: user.id,
@@ -137,7 +137,7 @@ describe('MCP auth: scope gating', () => {
     })
 
     const tools = await mcp(plaintext).listTools()
-    expect(tools.length).toBe(39)
+    expect(tools.length).toBe(40)
 
     const names = tools.map(t => t.name)
     // Spot-check: write tools surface, knowledge + web do not.
@@ -149,7 +149,7 @@ describe('MCP auth: scope gating', () => {
     expect(names).not.toContain('web_search')
   })
 
-  it('all 4 scopes → 43 tools', async () => {
+  it('all 4 scopes → 44 tools', async () => {
     const user = await createUser()
     const { plaintext } = await mintPat({
       userId: user.id,
@@ -157,7 +157,7 @@ describe('MCP auth: scope gating', () => {
     })
 
     const tools = await mcp(plaintext).listTools()
-    expect(tools.length).toBe(43)
+    expect(tools.length).toBe(44)
 
     const names = tools.map(t => t.name).sort()
     expect(names).toContain('search_knowledge')

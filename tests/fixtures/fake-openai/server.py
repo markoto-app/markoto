@@ -20,8 +20,9 @@ Scripted behaviour keyed on the request:
     in content (prompt-injection tests): first it calls `view_document`;
     afterwards, when the latest tool result contains a line
     `FAKE_DIRECTIVE <tool_name> <json-args>`, it calls exactly that tool
-    with those arguments (at most 6 tool turns); otherwise it answers
-    "Done." and the turn ends.
+    with those arguments (at most 6 tool turns); after a delegate_rewrite
+    preview it follows the preview's "call delegate_rewrite with job_id
+    ... and action start"; otherwise it answers "Done." and the turn ends.
   - When the tool `propose_design` is offered ("Create a design from a
     document", a vision request), the reply calls it with DESIGN_PROPOSAL;
     once the prompt carries a `<previous_proposal>` (a comparison round)
@@ -86,6 +87,10 @@ DESIGN_PROPOSAL = {
 }
 
 DIRECTIVE_RE = re.compile(r"FAKE_DIRECTIVE\s+([a-z_]+)\s+(\{[^\n]*\})")
+# A delegate_rewrite preview ends with the next step (delegateTools.ts
+# formatPreview); the obedient model follows it, so a directive without
+# `action` runs preview, then start, like a real planner.
+JOB_START_RE = re.compile(r'call delegate_rewrite with job_id "([^"]+)" and action "start"')
 MAX_OBEDIENT_TOOL_TURNS = 6
 
 # Delegated-job worker calls (server/utils/ai/jobs/workerPrompt.ts): the
@@ -166,7 +171,11 @@ def _obedient_tool_call(messages, names):
         return (names[0], {}) if names else None
     if len(tool_messages) >= MAX_OBEDIENT_TOOL_TURNS:
         return None
-    match = DIRECTIVE_RE.search(_content_text(tool_messages[-1]))
+    latest = _content_text(tool_messages[-1])
+    start = JOB_START_RE.search(latest)
+    if start:
+        return ("delegate_rewrite", {"job_id": start.group(1), "action": "start"})
+    match = DIRECTIVE_RE.search(latest)
     if not match:
         return None
     try:

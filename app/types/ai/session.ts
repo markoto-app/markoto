@@ -1,5 +1,6 @@
 import type { AiStatusStep } from '~~/shared/ai/statusSteps'
 import type { JobConfirmationDetails } from '~~/shared/ai/jobConfirmation'
+import type { ReplaceConfirmationDetails } from '~~/shared/ai/replaceConfirmation'
 
 // Session types shared by `useAI` and its helper modules. They live in this
 // leaf module so the helpers don't import back from `useAI.ts`, which
@@ -40,9 +41,10 @@ export interface AiConfirmationRequest {
   target: string | null
   /** Server wall-clock ms after which an unanswered request counts as "deny". */
   expiresAt: number
-  /** `job`: the cost confirmation of a delegated job (`job` holds the estimate); absent: the taint gate. */
-  kind?: 'tool' | 'job'
+  /** `job`: the confirmation of a delegated job (`job` holds the estimate); `replace`: a large replace_all (`replace` holds count + word forms); absent: the taint gate. */
+  kind?: 'tool' | 'job' | 'replace'
   job?: JobConfirmationDetails
+  replace?: ReplaceConfirmationDetails
 }
 
 /**
@@ -68,6 +70,14 @@ export interface AiResponseEntry {
   isQuestion: boolean
   /** Server-stamped wall-clock ms; drives dedup + the 2s collapse timer. */
   ts: number
+  /**
+   * A line shown above the message, in the UI language: the session
+   * stopped at a step or time limit, so the message may describe an
+   * unfinished task. Null for a normal answer.
+   */
+  notice?: string | null
+  /** The session ended without an answer of its own; `message` is the client's "Done" line. */
+  synthetic?: boolean
 }
 
 /** How my most recent session ended, `error` is what the failure toast reports. */

@@ -77,8 +77,8 @@
       "file": "04.webp",
       "caption": "Pick your provider (here: Mistral), check the model and paste your API key",
       "cursor": {
-        "x": 311,
-        "y": 690
+        "x": 366,
+        "y": 411
       },
       "path": "/settings/ai"
     },
@@ -93,7 +93,7 @@
       "caption": "Click \"Save and verify\"",
       "cursor": {
         "x": 356,
-        "y": 769
+        "y": 399
       },
       "path": "/settings/ai"
     },
@@ -103,21 +103,21 @@
       "caption": "The connection works: the assistant now runs on your provider",
       "cursor": {
         "x": 356,
-        "y": 769
+        "y": 399
       },
       "path": "/settings/ai",
       "highlights": [
         {
           "label": "Verified",
           "x": 297,
-          "y": 554.203125,
+          "y": 335.203125,
           "w": 686,
           "h": 20
         },
         {
           "label": "Only the last four characters are shown",
           "x": 875.90625,
-          "y": 480.5,
+          "y": 261.5,
           "w": 94.09375,
           "h": 20
         }
@@ -130,7 +130,7 @@
       "file": "07.webp",
       "cursor": {
         "x": 356,
-        "y": 769
+        "y": 399
       },
       "path": "/settings/ai"
     }

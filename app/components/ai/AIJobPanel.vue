@@ -3,7 +3,8 @@ import { useAiJobs, type UseAiJobsOptions } from '~/composables/ai/useAiJobs'
 
 // Progress of my delegated AI job on this document (a translation, a tone
 // change over many sections), above the prompt bar: done / total, the
-// heading being worked on, the cost so far and Cancel; afterwards a short
+// heading being worked on and Cancel (no cost: the only unit users see is
+// AI points, on the plan and usage pages); afterwards a short
 // report with "Undo job". Private to the person who started the job (the
 // job routes answer 404 to anyone else). Survives a reload: the jobs are
 // fetched on mount.
@@ -21,15 +22,16 @@ const { current, notes, busy, error, undone, cancel, resume, undo, dismiss } = u
 
 const job = computed(() => current.value)
 const running = computed(() => job.value?.status === 'running')
+/** Every part is through but the job has not reported its end yet (final checks): no Cancel any more. */
+const finishing = computed(() => {
+  const j = job.value
+  return !!j && running.value && j.total > 0 && j.done + j.skipped >= j.total
+})
 const percent = computed(() => {
   const j = job.value
   if (!j || j.total === 0) return 0
   return Math.min(100, Math.round(((j.done + j.skipped) / j.total) * 100))
 })
-
-function money(usd: number): string {
-  return usd < 0.01 ? `$${usd.toFixed(3)}` : `$${usd.toFixed(2)}`
-}
 
 const title = computed(() => {
   const j = job.value
@@ -41,7 +43,7 @@ const summary = computed(() => {
   const j = job.value
   if (!j) return ''
   switch (j.status) {
-    case 'running': return t('ai.job.progress', { done: j.done + j.skipped, total: j.total })
+    case 'running': return finishing.value ? t('ai.job.finishing', { total: j.total }) : t('ai.job.progress', { done: j.done + j.skipped, total: j.total })
     case 'done': return t('ai.job.done', { done: j.done, total: j.total })
     case 'cancelled': return t('ai.job.cancelled', { done: j.done, total: j.total })
     case 'paused_budget': return t('ai.job.paused')
@@ -81,15 +83,8 @@ const flagged = computed(() => notes.value.filter(n => n.status === 'flagged').l
         :class="running ? 'animate-pulse' : ''"
       />
       <div class="min-w-0 flex-1">
-        <div class="flex items-baseline justify-between gap-2">
-          <span class="font-mono text-[10.5px] uppercase tracking-[0.06em] text-muted">
-            {{ t('ai.job.label') }} · {{ title }}
-          </span>
-          <span
-            v-if="job.costKnown && job.costUsd > 0"
-            class="font-mono text-[11px] text-muted"
-            data-testid="ai-job-cost"
-          >{{ t('ai.job.cost', { cost: money(job.costUsd) }) }}</span>
+        <div class="font-mono text-[10.5px] uppercase tracking-[0.06em] text-muted">
+          {{ t('ai.job.label') }} · {{ title }}
         </div>
         <p
           class="mt-0.5 text-sm text-default"
@@ -133,7 +128,7 @@ const flagged = computed(() => notes.value.filter(n => n.status === 'flagged').l
       </div>
       <div class="flex shrink-0 items-center gap-1.5">
         <UButton
-          v-if="running"
+          v-if="running && !finishing"
           color="neutral"
           variant="ghost"
           size="sm"

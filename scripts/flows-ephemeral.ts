@@ -138,6 +138,11 @@ const FLOWS_ENV: Record<string, string> = {
   // `ai-provider-settings` flow save the fake OpenAI-compatible provider
   // (`fake-openai-test`) at the docker bridge address.
   NUXT_AI_DEFAULT_CHAT_MODEL: 'deepseek-v4-1-flash-1017',
+  // Delegated jobs and the web-tool synthesis on the hosted worker aliases
+  // (infra/render-env.sh), so `ai-delegated-translation` runs its job on
+  // the model markoto.app uses, not on the planner.
+  NUXT_AI_DEFAULT_WORKER_MODEL: 'markoto-worker',
+  NUXT_AI_DEFAULT_UTILITY_MODEL: 'markoto-utility',
   NUXT_FREE_TIER_TOTAL_BUDGET_USD: '500',
   NUXT_AI_DEFAULT_IMAGE_MODEL: 'flux-3-image-klein',
   NUXT_AI_DEFAULT_TRANSCRIBE_MODEL: 'voxtral-mini-transcribe',
@@ -178,6 +183,8 @@ const HOSTED_FREE_PLAN_AI: Record<string, string> = {
 // `*.localhost` is loopback, so TEST_MODE stays active.
 type Phase = {
   name: string
+  /** Playwright's output folder for this pass, under test-results/. */
+  output: string
   env: Record<string, string>
   selectEnv: { FLOWS_BILLING_ENABLED: string, FLOWS_MARKETING_ENABLED: string }
   grep: string[]
@@ -185,18 +192,21 @@ type Phase = {
 const HOSTED_BILLING = { NUXT_BILLING_ENABLED: 'false', NUXT_PLANS_COMING_SOON: 'true' }
 const DEFAULT_PHASE: Phase = {
   name: 'default (hosted shape)',
+  output: 'default',
   env: { ...HOSTED_BILLING, NUXT_MARKETING_SITE_ENABLED: 'false' },
   selectEnv: { FLOWS_BILLING_ENABLED: '', FLOWS_MARKETING_ENABLED: '' },
   grep: []
 }
 const BILLING_PHASE: Phase = {
   name: 'billing on (@billing flows)',
+  output: 'billing',
   env: { NUXT_BILLING_ENABLED: 'true', NUXT_PLANS_COMING_SOON: 'false', NUXT_MARKETING_SITE_ENABLED: 'false' },
   selectEnv: { FLOWS_BILLING_ENABLED: '1', FLOWS_MARKETING_ENABLED: '' },
   grep: ['--grep', '@billing']
 }
 const MARKETING_PHASE: Phase = {
   name: 'marketing site on (@marketing flows)',
+  output: 'marketing',
   env: { ...HOSTED_BILLING, NUXT_MARKETING_SITE_ENABLED: 'true', NUXT_SITE_URL: NUXT_URL },
   selectEnv: { FLOWS_BILLING_ENABLED: '', FLOWS_MARKETING_ENABLED: '1' },
   grep: ['--grep', '@marketing']
@@ -383,6 +393,11 @@ async function runPasses(args: string[]) {
     const code = await shellOut([
       'bunx', 'playwright', 'test',
       ...phase.grep,
+      // Each pass keeps its own error contexts and traces: Playwright
+      // empties its output folder at the start of a run, so a shared one
+      // would lose the default pass's failures to the later passes (the
+      // release job uploads test-results/ on failure).
+      '--output', `test-results/${phase.output}`,
       '--pass-with-no-tests',
       ...args
     ])

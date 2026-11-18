@@ -284,15 +284,18 @@ describe('delete_section', () => {
 })
 
 describe('set_heading', () => {
-  it('changes the level and pins the old anchor when the text changes', async () => {
-    const { session, ytext } = makeSession('# Overview\n\ntext\n\n## Old name {.unnumbered}\n\nmore\n\n## Kept {#kept}\n')
+  it('changes the level; a new title moves the links to the new anchor instead of pinning an id', async () => {
+    const { session, ytext } = makeSession('# Overview\n\ntext, see [old](#old-name) and [kept](#kept)\n\n## Old name {.unnumbered}\n\nmore\n\n## Kept {#kept}\n')
     await run(session, 'set_heading', { section: 'Overview', level: 2 })
     expect(ytext.toString().startsWith('## Overview\n')).toBe(true)
     const res = await run(session, 'set_heading', { section: 'Old name', title: 'New name' })
-    expect(res.content).toContain('{#old-name}')
-    expect(ytext.toString()).toContain('## New name {#old-name .unnumbered}')
+    expect(res.content).toContain('1 in-document link now points at the renamed heading\'s new anchor')
+    expect(ytext.toString()).toContain('## New name {.unnumbered}')
+    expect(ytext.toString()).toContain('see [old](#new-name)')
     await run(session, 'set_heading', { section: 'Kept', title: 'Still kept' })
     expect(ytext.toString()).toContain('## Still kept {#kept}')
+    expect(ytext.toString()).toContain('[kept](#kept)')
+    expect(ytext.toString()).not.toContain('{#old-name')
   })
 })
 
@@ -345,10 +348,10 @@ describe('replace_all', () => {
     expect(res.content).toMatch(/^Preview, nothing changed yet\. 8 matches for "MyProduct"/)
     expect(res.content).toContain('Not touched: 1 in link targets, 1 in URLs, 1 in code blocks, 1 in inline code, 1 in math')
     expect(res.content).toMatch(/^m1@[0-9a-f]{8} {2}line 1 /m)
-    expect(res.content).toContain('{#myproduct-overview}')
+    expect(res.content).not.toContain('{#myproduct-overview}')
   })
 
-  it('applies in one transaction with case preserved, possessives matched, headings pinned, code untouched', async () => {
+  it('applies in one transaction with case preserved, possessives matched, no ids added, code untouched', async () => {
     const { session, ydoc, ytext } = makeSession(PRODUCT_DOC)
     const tx = countTransactions(ydoc)
     const res = await run(session, 'replace_all', { query: 'MyProduct', replacement: 'MySuperCoolProduct', wholeWord: true, preview: false })
@@ -356,7 +359,7 @@ describe('replace_all', () => {
     expect(tx.count()).toBe(1)
     expect((res as { activity?: unknown }).activity).toEqual({ kind: 'ai.tool', tool: 'replace_all', query: 'MyProduct', replacement: 'MySuperCoolProduct', count: 8 })
     const text = ytext.toString()
-    expect(text).toContain('# MySuperCoolProduct overview {#myproduct-overview}')
+    expect(text).toContain('# MySuperCoolProduct overview\n')
     expect(text).toContain('MySuperCoolProduct is fast. mysupercoolproduct in lower case, MYSUPERCOOLPRODUCT shouting, MySuperCoolProduct capitalised.')
     expect(text).toContain('MySuperCoolProduct\'s docs and MyProducts plural.')
     expect(text).toContain('See [MySuperCoolProduct](https://example.com/MyProduct) and https://myproduct.example.org.')

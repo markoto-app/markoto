@@ -1,0 +1,98 @@
+{
+  "version": 2,
+  "title": "Ask about one section of a long document",
+  "slug": "ask-about-one-section-of-a-long-document",
+  "locale": "en",
+  "variant": "light-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Ask about one section"
+    },
+    {
+      "kind": "narration",
+      "text": "Long documents are fine: the AI looks at the table of contents first and reads only the part your question is about, so the answer comes quickly even for a whole handbook.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 640,
+        "y": 26
+      },
+      "path": "/d/3k06YV4pNZ"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Click into the AI prompt bar",
+      "cursor": {
+        "x": 618,
+        "y": 722
+      },
+      "path": "/d/3k06YV4pNZ"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Ask your question",
+      "cursor": {
+        "x": 316,
+        "y": 723
+      },
+      "path": "/d/3k06YV4pNZ"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "Your question is ready to send.",
+      "cursor": {
+        "x": 316,
+        "y": 723
+      },
+      "path": "/d/3k06YV4pNZ"
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Click send",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/3k06YV4pNZ"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "The AI finds the right section and reads it.",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/3k06YV4pNZ"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "The answer, with the section it comes from"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "The answer names the 30 minutes and points to section 2.4 Pikettdienst.",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/3k06YV4pNZ",
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "write-with-ai",
+    "why": "Ask the AI to write new sections for you"
+  }
+}

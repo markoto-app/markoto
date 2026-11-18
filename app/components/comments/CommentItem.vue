@@ -68,7 +68,10 @@ const relativeTime = useRelativeTime(() => new Date(props.createdAt))
         <span class="font-mono text-[10.5px] tracking-[0.04em] text-muted shrink-0 lowercase">{{ relativeTime }}</span>
       </div>
 
-      <div class="mt-1 text-sm text-default whitespace-pre-wrap break-words">
+      <div
+        class="mt-1 text-sm text-default whitespace-pre-wrap break-words"
+        data-testid="comment-item-body"
+      >
         <template
           v-for="(seg, i) in segments"
           :key="i"

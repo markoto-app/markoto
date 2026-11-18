@@ -72,23 +72,28 @@ const {
 
 const ACCEPTED = '.md,.markdown,.docx,.pdf,.pptx,.xlsx,.xls,.html,.htm,.epub'
 
-// `reset: true` per `open()` so re-selecting the same file fires
-// onChange again (native input dedupes identical paths otherwise).
-const { open: selectFile, onChange: onFileChange, reset: resetFileDialog } = useFileDialog({
-  accept: ACCEPTED,
-  multiple: false,
-  reset: true
-})
+const fileInput = ref<HTMLInputElement | null>(null)
+const dragging = ref(false)
 
-onFileChange((files) => {
-  selectedFile.value = files?.[0] ?? null
+function pick(file: File | null | undefined) {
+  selectedFile.value = file ?? null
   error.value = ''
-})
+}
 
-function clearSelection(e: Event) {
-  // Stop propagation so the parent dropzone's click-to-pick doesn't fire
-  // immediately after we cleared.
-  e.stopPropagation()
+function onInputChange(e: Event) {
+  pick((e.target as HTMLInputElement).files?.[0])
+}
+
+function onDrop(e: DragEvent) {
+  dragging.value = false
+  pick(e.dataTransfer?.files?.[0])
+}
+
+function resetFileDialog() {
+  if (fileInput.value) fileInput.value.value = ''
+}
+
+function clearSelection() {
   selectedFile.value = null
   error.value = ''
   resetFileDialog()
@@ -259,62 +264,65 @@ function cancelImport() {
             {{ t('import.description') }}
           </p>
 
-          <div
-            role="presentation"
+          <!-- eslint-disable-next-line vuejs-accessibility/no-static-element-interactions -->
+          <label
             :class="[
-              'border-2 rounded-lg p-8 text-center cursor-pointer transition-colors',
-              selectedFile
-                ? 'border-solid border-primary bg-primary/5 hover:bg-primary/10'
-                : 'border-dashed border-default hover:border-muted'
+              'flex flex-col items-center justify-center gap-2 rounded-lg border-2 px-6 py-10 text-center transition-colors',
+              'cursor-pointer focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 focus-within:ring-offset-default',
+              dragging
+                ? 'border-solid border-primary bg-primary/10'
+                : selectedFile
+                  ? 'border-solid border-primary bg-primary/5 hover:bg-primary/10'
+                  : 'border-dashed border-accented bg-elevated/30 hover:border-primary hover:bg-elevated/60'
             ]"
             data-testid="import-dropzone"
-            @click="selectFile()"
+            @dragenter.prevent="dragging = true"
+            @dragover.prevent="dragging = true"
+            @dragleave.prevent="dragging = false"
+            @drop.prevent="onDrop"
           >
+            <input
+              ref="fileInput"
+              type="file"
+              class="sr-only"
+              :accept="ACCEPTED"
+              data-testid="import-file-input"
+              @change="onInputChange"
+            >
             <template v-if="selectedFile">
               <UIcon
                 name="i-lucide-file-check-2"
-                class="size-10 text-primary mx-auto mb-2"
+                class="size-10 text-primary"
               />
-              <p class="text-sm font-medium break-all">
-                {{ selectedFile.name }}
-              </p>
-              <p class="text-xs text-muted mt-1">
-                {{ formatBytes(selectedFile.size) }}
-              </p>
-              <div class="flex items-center justify-center gap-3 mt-3 text-xs">
-                <button
-                  type="button"
-                  class="text-primary hover:underline"
-                  @click.stop="selectFile()"
-                >
-                  {{ t('import.changeFile') }}
-                </button>
-                <span class="text-muted">·</span>
-                <button
-                  type="button"
-                  class="text-muted hover:text-default"
-                  @click="clearSelection"
-                >
-                  {{ t('common.cancel') }}
-                </button>
-              </div>
+              <span
+                class="text-sm font-medium break-all"
+                data-testid="import-file-name"
+              >{{ selectedFile.name }}</span>
+              <span class="text-xs text-muted">{{ formatBytes(selectedFile.size) }}</span>
+              <span class="text-xs text-primary">{{ t('import.changeFile') }}</span>
             </template>
             <template v-else>
               <UIcon
                 name="i-lucide-file-up"
-                class="size-10 text-muted mx-auto mb-2"
+                class="size-10 text-muted"
               />
-              <button
-                type="button"
-                class="text-sm text-muted"
-                @click.stop="selectFile()"
-              >
-                {{ t('import.selectFile') }}
-              </button>
-              <p class="text-xs text-muted mt-1">
-                {{ t('import.formats') }}
-              </p>
+              <span class="text-sm font-medium">{{ dragging ? t('import.dropHere') : t('import.selectFile') }}</span>
+              <span class="text-xs text-muted leading-relaxed max-w-xs">{{ t('import.formats') }}</span>
             </template>
+          </label>
+          <div
+            v-if="selectedFile"
+            class="mt-2 flex justify-center"
+          >
+            <UButton
+              size="xs"
+              variant="link"
+              color="neutral"
+              data-testid="import-clear"
+              @click="clearSelection"
+            >
+              {{ t('import.removeFile') }}
+            </UButton>
           </div>
 
           <p

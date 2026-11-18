@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/qtB3Trj4jP"
+      "path": "/d/3_1ywdkYd1"
     },
     {
       "kind": "chapter",
@@ -32,22 +32,22 @@
     {
       "kind": "narration",
       "text": "Triple-click selects a paragraph; click and drag selects any range.",
-      "file": "01.webp",
+      "file": "02.webp",
       "cursor": {
         "x": 640,
         "y": 26
       },
-      "path": "/d/qtB3Trj4jP"
+      "path": "/d/3_1ywdkYd1"
     },
     {
       "kind": "outcome",
-      "file": "02.webp",
+      "file": "03.webp",
       "caption": "Triple-click the wordy paragraph to select it",
       "cursor": {
         "x": 19,
         "y": 383
       },
-      "path": "/d/qtB3Trj4jP"
+      "path": "/d/3_1ywdkYd1"
     },
     {
       "kind": "chapter",
@@ -57,52 +57,52 @@
     {
       "kind": "narration",
       "text": "Type what you want into the prompt bar. Short instructions work best: \"make this shorter\", \"translate to German\", \"turn this into bullet points\". Your selection stays put while you type.",
-      "file": "02.webp",
+      "file": "03.webp",
       "cursor": {
         "x": 319,
         "y": 333
       },
-      "path": "/d/qtB3Trj4jP"
+      "path": "/d/3_1ywdkYd1"
     },
     {
       "kind": "approach",
-      "file": "03.webp",
+      "file": "04.webp",
       "caption": "Type the rewrite instruction",
       "cursor": {
         "x": 316,
         "y": 723
       },
-      "path": "/d/qtB3Trj4jP"
+      "path": "/d/3_1ywdkYd1"
     },
     {
       "kind": "outcome",
-      "file": "04.webp",
+      "file": "05.webp",
       "caption": "Your instruction is ready; the paragraph is still selected.",
       "cursor": {
         "x": 316,
         "y": 723
       },
-      "path": "/d/qtB3Trj4jP"
+      "path": "/d/3_1ywdkYd1"
     },
     {
       "kind": "approach",
-      "file": "05.webp",
+      "file": "06.webp",
       "caption": "Send it",
       "cursor": {
         "x": 1000,
         "y": 722
       },
-      "path": "/d/qtB3Trj4jP"
+      "path": "/d/3_1ywdkYd1"
     },
     {
       "kind": "outcome",
-      "file": "06.webp",
+      "file": "07.webp",
       "caption": "The wordy paragraph is now one short sentence, in the same place: the paragraphs before and after it are untouched.",
       "cursor": {
         "x": 1000,
         "y": 722
       },
-      "path": "/d/qtB3Trj4jP",
+      "path": "/d/3_1ywdkYd1",
       "highlights": [
         {
           "label": "AI-rewritten passage",

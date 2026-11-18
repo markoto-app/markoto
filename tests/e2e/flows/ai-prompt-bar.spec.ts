@@ -103,9 +103,10 @@ test('Write with AI', async ({ flow, editor }) => {
   await flow.heading('The AI is done', 3)
   await flow.narrate(
     'When the AI is done, the bar fades back to its idle '
-    + 'state. The AI\'s edits are now part of your document, undo '
-    + 'them with Cmd / Ctrl + Z if you don\'t like what it wrote, or '
-    + 'iterate by sending another prompt that builds on its work.'
+    + 'state. The AI\'s edits are now part of your document. '
+    + 'Cmd / Ctrl + Z only takes back your own typing, not the AI\'s '
+    + 'changes: if you don\'t like what it wrote, use Restore on its '
+    + 'entry in the Activity tab, or send another prompt that builds on its work.'
   )
 
   // Idle = the session ended; waitForAiIdle also fails when it ended

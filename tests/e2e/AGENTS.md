@@ -44,6 +44,8 @@ Each spec in `tests/e2e/flows/` is both a test and a page of the user docs at `/
 - Waiting for distinct activity rows from successive edits: `waitForTimeout(3000)` between the edits. The sync server debounces stores by 2 s (`debounce: 2000`, `maxDebounce: 10000` in `sync-server/src/index.ts`); polling cannot help because the next edit would land in the same store batch.
 - AI round-trips take 5–30 s; use `editor.waitForAiIdle()` (default timeout 240 s), don't hand-roll shorter timeouts.
 - Phrase AI prompts that must change the document imperatively ("Insert a paragraph at the end … summarising X"). A question ("Summarise X") may be answered in the prompt-bar panel instead of the document.
+- A flow that expects a delegated background job needs a target above the delegation threshold (about 12k tokens, `LONG_DOCUMENT_TOKENS` in `server/utils/agentic/skills/index.ts`); below it the planner edits the text itself, as the task playbook tells it to. Wait for the job panel OR the end of the session, and fail at once when the session ended without a job, instead of polling until the timeout.
+- Long live-AI flows (background jobs, the 180-page handbook) skip the dark variants and run with `retries: 1`; the docs page falls back to the light variant of the same form factor.
 
 ## Live-provider outages
 

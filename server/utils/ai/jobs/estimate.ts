@@ -59,7 +59,10 @@ function expectedOutputTokens(mode: JobMode, unitTokens: number, sourceLanguage?
     case 'comment':
       return 100
     case 'scan':
-      return 400
+      // A scan chunk is up to 15k tokens (units.ts) and its answer a list
+      // of up to 300 items with examples; at 400 (max_tokens 800) every
+      // chunk of a real handbook ran out of tokens mid-array.
+      return 2000
   }
 }
 

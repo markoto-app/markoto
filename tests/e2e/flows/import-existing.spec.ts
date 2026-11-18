@@ -87,7 +87,7 @@ test('Import existing document', async ({ page, flow, editor }) => {
     + 'Microsoft’s open-source markitdown library, on its own servers.'
   )
 
-  // The dropzone uses VueUse's `useFileDialog` which opens a native
+  // The dropzone is a label around a real file input, which opens a native
   // file picker: Playwright captures it via the filechooser event.
   // CRITICAL: register the waitForEvent BEFORE the click that opens
   // the dialog. The chooser fires synchronously inside the click;
@@ -101,7 +101,7 @@ test('Import existing document', async ({ page, flow, editor }) => {
     dropzone,
     {
       annotations: [
-        { label: 'dropzone', selector: 'div:has-text("Click to select a file"):not(:has(div))', kind: 'box' }
+        { label: 'dropzone', selector: '[data-testid="import-dropzone"]', kind: 'box' }
       ],
       result: 'Your file is selected, its name + size show up so you can confirm.',
       after: async () => {

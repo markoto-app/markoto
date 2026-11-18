@@ -5,8 +5,9 @@ import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-uti
 import { AIJobPanel } from '#components'
 
 // The prompt bar's panel for a delegated AI job: picks up a running job on
-// mount (reload), shows done / total, the heading and the cost, Cancel
-// calls the route; a finished job shows its report and "Undo job".
+// mount (reload), shows done / total and the heading (never a cost), Cancel
+// calls the route until every part is done; a finished job shows its
+// report and "Undo job".
 
 mockNuxtImport('useToast', () => () => ({ add: vi.fn() }))
 
@@ -67,7 +68,7 @@ describe('AIJobPanel', () => {
     expect(wrapper.find('[data-testid="ai-job-panel"]').exists()).toBe(false)
   })
 
-  it('picks up a running job on mount and shows progress, heading and cost; Cancel calls the route', async () => {
+  it('picks up a running job on mount and shows progress and heading, no cost; Cancel calls the route', async () => {
     state.list = [job()]
     const wrapper = await mountSuspended(AIJobPanel, { props: { docId: 'doc-j', myJobIds: [], jobOptions: { createEventSource: null, pollMs: 60_000 } } })
     await flush()
@@ -75,12 +76,22 @@ describe('AIJobPanel', () => {
     expect(panel.attributes('data-job-status')).toBe('running')
     expect(wrapper.find('[data-testid="ai-job-summary"]').text()).toBe('4 of 10 parts')
     expect(wrapper.find('[data-testid="ai-job-heading"]').text()).toContain('2.1 Teams')
-    expect(wrapper.find('[data-testid="ai-job-cost"]').text()).toBe('Cost so far: $0.004')
+    expect(wrapper.find('[data-testid="ai-job-cost"]').exists()).toBe(false)
+    expect(panel.text()).not.toContain('$')
     expect(wrapper.find('[role="progressbar"]').attributes('aria-valuenow')).toBe('40')
     await wrapper.find('[data-testid="ai-job-cancel"]').trigger('click')
     await flush()
     expect(state.cancelled).toBe(1)
     expect(wrapper.find('[data-testid="ai-job-panel"]').attributes('data-job-status')).toBe('cancelled')
+  })
+
+  it('once every part is done there is no Cancel, only "finishing"', async () => {
+    // Staging, 2026-11-18: Cancel clicked at 8 of 8 marked a complete job cancelled.
+    state.list = [job({ done: 9, skipped: 1 })]
+    const wrapper = await mountSuspended(AIJobPanel, { props: { docId: 'doc-j', myJobIds: [], jobOptions: { createEventSource: null, pollMs: 60_000 } } })
+    await flush()
+    expect(wrapper.find('[data-testid="ai-job-summary"]').text()).toBe('All 10 parts done, finishing…')
+    expect(wrapper.find('[data-testid="ai-job-cancel"]').exists()).toBe(false)
   })
 
   it('a finished job shows its report and Undo job restores it', async () => {

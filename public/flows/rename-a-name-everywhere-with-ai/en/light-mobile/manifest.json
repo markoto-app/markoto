@@ -1,0 +1,95 @@
+{
+  "version": 2,
+  "title": "Rename a name everywhere with AI",
+  "slug": "rename-a-name-everywhere-with-ai",
+  "locale": "en",
+  "variant": "light-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Ask for the rename"
+    },
+    {
+      "kind": "narration",
+      "text": "A new product name has to show up everywhere at once. Ask the AI in one sentence: it finds every mention, previews the change, and applies it as one edit. Code samples and link addresses stay as they are, so commands and links keep working.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/d/cE2cXPV_VN"
+    },
+    {
+      "kind": "approach",
+      "file": "01.webp",
+      "caption": "Click into the AI prompt bar",
+      "cursor": {
+        "x": 173,
+        "y": 602
+      },
+      "path": "/d/cE2cXPV_VN"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Type what should change",
+      "cursor": {
+        "x": 76,
+        "y": 603
+      },
+      "path": "/d/cE2cXPV_VN"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "Your request is ready to send.",
+      "cursor": {
+        "x": 76,
+        "y": 603
+      },
+      "path": "/d/cE2cXPV_VN"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Click send",
+      "cursor": {
+        "x": 350,
+        "y": 602
+      },
+      "path": "/d/cE2cXPV_VN"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "The AI searches the document and replaces the name.",
+      "cursor": {
+        "x": 350,
+        "y": 602
+      },
+      "path": "/d/cE2cXPV_VN"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Every mention changed, code and links kept"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "The new name is in the headings and the text; the command and the link address kept the old one.",
+      "cursor": {
+        "x": 350,
+        "y": 602
+      },
+      "path": "/d/cE2cXPV_VN",
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "write-with-ai",
+    "why": "Ask the AI to write new sections for you"
+  }
+}

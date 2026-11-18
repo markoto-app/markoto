@@ -32,35 +32,34 @@ chapter heading*. Typical background edits:
 
 Code samples, math, link addresses and the headings' structure stay as
 they are. You don't have to ask for a background edit: the AI decides
-from your request and the size of the document. A change to a few
-sections it simply makes itself, like any other edit.
+from your request and the size of the part you want changed. A change to
+a few sections, or to less than roughly 15 pages of text, it simply makes
+itself, like any other edit.
 
 ## Before it starts: the estimate
 
-The AI tries the change on a sample first. When the edit is large (many
-sections, or a noticeable part of your AI allowance), a card above the
-prompt bar asks before anything changes, for example *Translate 4
-sections to English: about $0.02, about 1 min.* With your own AI provider
-it shows an estimate in tokens instead of a cost, since your provider
-bills you.
+The AI tries the change on a sample first. Then a card above the prompt
+bar asks before anything changes, with the number of sections and the
+expected time, for example *Translate 4 sections to English, about 1 min
+(about 3 % of this month's AI allowance).* With your own AI provider it
+shows an estimate in tokens instead, since your provider bills you.
 
 - **Start** runs the edit.
 - **Cancel** changes nothing. You can type a short note first (*"only chapter 3"*), and the AI follows it instead.
 - No answer within about a minute and a half counts as Cancel.
 
-A small edit starts straight away without the card. If the estimate is
-more than what is left of your AI allowance, nothing starts and the AI
-offers to do a part of the document instead.
+If the estimate is more than what is left of your AI allowance, nothing
+starts and the AI offers to do a part of the document instead.
 
 ## While it runs
 
 A **Background edit** panel above the prompt bar shows the progress: how
-many parts are done out of the total, the heading being worked on, and
-the cost so far. Collaborators see markoto working in the document and
+many parts are done out of the total and the heading being worked on.
+Collaborators see markoto working in the document and
 the sections changing as they are finished; only you see the panel.
 
 - **You can close the tab.** The edit keeps running on the server. When you open the document again, the panel shows where it stands.
-- **Cancel** stops it. Sections already finished stay changed (you can undo them, see below); the part in progress is dropped.
+- **Cancel** stops it. Sections already finished stay changed (you can undo them, see below); the part in progress is dropped. Once every part is done, Cancel disappears while the edit finishes.
 - **Resume** continues a cancelled edit with the parts that are left. It also appears when an edit was paused because your AI allowance ran out, or interrupted by a server problem.
 - **Sections someone edits while the job runs are left alone.** If a section changed after the job started, the job doesn't overwrite it.
 

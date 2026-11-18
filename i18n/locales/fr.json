@@ -326,6 +326,8 @@
     "title": "Importer un document",
     "description": "Convertissez un fichier en markdown et chargez-le dans l'éditeur.",
     "selectFile": "Cliquez pour sélectionner un fichier",
+    "dropHere": "Déposez le fichier ici",
+    "removeFile": "Retirer le fichier",
     "changeFile": "Choisir un autre fichier",
     "formats": "Formats pris en charge : Markdown, DOCX, PDF, PPTX, XLSX, XLS, HTML, EPUB",
     "import": "Importer",
@@ -627,12 +629,12 @@
         "generic": "markoto veut utiliser {tool}."
       },
       "job": {
-        "question": "{what} : {cost}, {minutes}.",
+        "question": "{what}, {minutes}.",
+        "questionExtra": "{what}, {minutes} ({extra}).",
         "reason": "Elle s’exécute en arrière-plan. Vous pouvez l’annuler, et la défaire dans le journal d’activité.",
         "start": "Lancer",
         "cancel": "Annuler",
-        "cost": "environ {cost}",
-        "costShare": "environ {cost} ({share} de votre allocation du mois)",
+        "share": "environ {share} de votre quota d’IA de ce mois",
         "tokens": "environ {tokens} jetons sur votre propre clé",
         "minutes": "environ {minutes} min",
         "modes": {
@@ -643,6 +645,12 @@
           "summarise": "Résumer {count} chapitres",
           "comment": "Relire {count} sections"
         }
+      },
+      "replace": {
+        "question": "Remplacer {count} occurrences ?",
+        "reason": "Vérifiez les formes des mots avant que markoto les modifie. Vous pouvez annuler dans le journal d’activité.",
+        "apply": "Remplacer",
+        "cancel": "Annuler"
       }
     },
     "placeholder": "Demandez à markoto…",
@@ -743,6 +751,8 @@
       "stopped": "Arrêté",
       "stoppedReason": "Arrêté : {reason}",
       "turnLimit": "Arrêté après trop d’étapes. Essayez une demande plus précise.",
+      "stoppedEarly": "Arrêté avant la fin de la tâche (limite d’étapes ou de temps). La note indique ce qui est fait.",
+      "doneNoAnswer": "Terminé. Les modifications sont dans le document.",
       "sessionCap": "Arrêté après {cap} étapes. Essayez une demande plus précise.",
       "waitingConfirmation": "En attente de votre confirmation…",
       "pointsExhausted": "Points IA épuisés",
@@ -804,7 +814,7 @@
       "scanDocument": "Analyse du document…",
       "previewJob": "Essai de la modification sur des sections d’exemple…",
       "startJob": "Lancement de la modification en arrière-plan…",
-      "jobProgress": "Modification en arrière-plan : {done} parties sur {total} terminées",
+      "jobWaiting": "Modification en arrière-plan en cours ; la progression s’affiche au-dessus.",
       "jobStatus": "Vérification de la modification en arrière-plan…"
     },
     "job": {
@@ -818,7 +828,7 @@
       },
       "progress": "{done} parties sur {total}",
       "working": "En cours : {heading}",
-      "cost": "Coût à ce stade : {cost}",
+      "finishing": "Les {total} parties sont faites, finalisation…",
       "cancel": "Annuler",
       "resume": "Reprendre",
       "undo": "Défaire",

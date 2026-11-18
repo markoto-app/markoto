@@ -7,7 +7,7 @@ import { SetHeadingArgs } from '../../utils/ai/tools/structuralEditTools'
 // Y.js transaction attributed to the MCP session.
 export default buildDocBoundTool({
   name: 'set_heading',
-  description: 'Change a heading\'s level and/or text in a document. Its {#id} attribute block is kept; when the text changes, the old anchor is pinned as an explicit id so links keep working.',
+  description: 'Change a heading\'s level and/or text in a document. Its {#id} attribute block is kept; when the text changes, links in the document to the heading follow its new anchor.',
   scope: 'documents:write',
   access: 'edit',
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },

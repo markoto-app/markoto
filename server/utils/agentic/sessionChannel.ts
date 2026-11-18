@@ -6,6 +6,7 @@ import { useLogger } from '../platform/logger'
 import { parseAiStatusStep, type AiStatusStep } from '~~/shared/ai/statusSteps'
 import { CONFIRM_NOTE_MAX_LENGTH } from '~~/shared/api/ai'
 import { JOB_CONFIRMATION_MODES, type JobConfirmationDetails } from '~~/shared/ai/jobConfirmation'
+import { REPLACE_CONFIRMATION_FORMS_MAX, type ReplaceConfirmationDetails } from '~~/shared/ai/replaceConfirmation'
 
 const log = useLogger('ai-session-channel')
 
@@ -154,13 +155,15 @@ export interface ChannelResponse {
 /**
  * What the initiator is asked to allow. `target` is a human-readable label
  * (doc title, query, URL). `kind: 'job'` is the cost confirmation of a
- * delegated job (with `job`); absent / `tool` the taint gate's question.
+ * delegated job (with `job`), `kind: 'replace'` a large `replace_all`
+ * (with `replace`); absent / `tool` the taint gate's question.
  */
 export interface ConfirmationRequest {
   tool: string
   target: string | null
-  kind?: 'tool' | 'job'
+  kind?: 'tool' | 'job' | 'replace'
   job?: JobConfirmationDetails
+  replace?: ReplaceConfirmationDetails
 }
 
 /**
@@ -272,10 +275,27 @@ function readJobDetails(v: unknown): JobConfirmationDetails | null {
   }
 }
 
+function readReplaceDetails(v: unknown): ReplaceConfirmationDetails | null {
+  if (!isRecord(v)) return null
+  const total = numberOrNull(v.total)
+  if (total === null || !Array.isArray(v.forms)) return null
+  const forms = v.forms.flatMap((f: unknown) => {
+    if (!isRecord(f) || typeof f.from !== 'string' || typeof f.to !== 'string') return []
+    const count = numberOrNull(f.count)
+    return count === null ? [] : [{ from: f.from.slice(0, 120), to: f.to.slice(0, 120), count }]
+  }).slice(0, REPLACE_CONFIRMATION_FORMS_MAX)
+  return { total, forms }
+}
+
 function readConfirmation(raw: string | null): PendingConfirmation | null {
   const v = parseJson(raw)
   if (!isRecord(v) || typeof v.id !== 'string' || typeof v.tool !== 'string' || typeof v.expiresAt !== 'number') return null
   const base: PendingConfirmation = { id: v.id, tool: v.tool, target: typeof v.target === 'string' ? v.target : null, expiresAt: v.expiresAt }
+  if (v.kind === 'replace') {
+    // Without readable details it is not shown (and times out as a deny).
+    const replace = readReplaceDetails(v.replace)
+    return replace ? { ...base, kind: 'replace', replace } : null
+  }
   if (v.kind !== 'job') return base
   // A job confirmation without readable details is not shown (and times out as a deny).
   const job = readJobDetails(v.job)
@@ -344,7 +364,8 @@ export class AiSessionChannel {
       tool: request.tool,
       target: request.target,
       expiresAt,
-      ...(request.kind === 'job' && request.job ? { kind: 'job' as const, job: request.job } : {})
+      ...(request.kind === 'job' && request.job ? { kind: 'job' as const, job: request.job } : {}),
+      ...(request.kind === 'replace' && request.replace ? { kind: 'replace' as const, replace: request.replace } : {})
     }
     try {
       await this.store.set(confirmKey(this.sessionId), JSON.stringify(pending), CHANNEL_TTL_MS)

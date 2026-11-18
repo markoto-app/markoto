@@ -587,8 +587,20 @@ export async function rerunJobUnits(doc: DocAccess<'write'>, jobId: string, ordi
 /** Cancel: stops dispatching; results still in flight are discarded.
  * @public
  */
-export async function cancelJob(doc: DocAccess<'write'>, jobId: string): Promise<AiJobRow> {
+/** Every part of a running job is through; only its final checks are left. */
+export function jobIsFinishing(job: Pick<AiJobRow, 'status' | 'unitsDone' | 'unitsSkipped' | 'unitsTotal'>): boolean {
+  return job.status === 'running' && job.unitsTotal > 0 && job.unitsDone + job.unitsSkipped >= job.unitsTotal
+}
+
+/**
+ * Cancel a job. A job whose parts are all done is left to finish (its
+ * status becomes `done` a moment later): a Cancel clicked in that window
+ * used to mark a complete job "cancelled after 8 of 8 parts" and the
+ * planner reported it as cancelled. `force` (undo) cancels regardless.
+ */
+export async function cancelJob(doc: DocAccess<'write'>, jobId: string, opts: { force?: boolean } = {}): Promise<AiJobRow> {
   const job = await requireJob(doc, jobId)
+  if (!opts.force && jobIsFinishing(job)) return job
   const ok = await transitionAiJob(JOBS, jobId, ['preview', 'awaiting_confirmation', 'running', 'paused_budget', 'interrupted'], 'cancelled', { currentHeading: null })
   if (!ok) throw apiError('ai/job-state', { status: job.status })
   running.get(jobId)?.halt('cancelled')
@@ -604,7 +616,7 @@ export async function cancelJob(doc: DocAccess<'write'>, jobId: string): Promise
  */
 export async function revertJob(doc: DocAccess<'write'>, jobId: string, actorIp: string | null = null): Promise<RevertResult> {
   let job = await requireJob(doc, jobId)
-  if (job.status === 'running') job = await cancelJob(doc, jobId)
+  if (job.status === 'running') job = await cancelJob(doc, jobId, { force: true })
   if (job.status === 'reverted') throw apiError('ai/job-state', { status: job.status })
   if (!(await acquireJobLocks(jobId, job.initiatorUserId, job.docId))) throw apiError('ai/job-busy')
   const conn = await connectJobDoc(job).catch(async (e: unknown) => {

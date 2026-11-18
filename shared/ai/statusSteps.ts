@@ -15,6 +15,8 @@ export const AI_STATUS_STEPS = {
   stopped: 'Stopped',
   stoppedReason: 'Stopped: {reason}',
   turnLimit: 'Stopped after too many steps. Try a more focused prompt.',
+  stoppedEarly: 'Stopped before the task was finished (step or time limit). The note says what is done.',
+  doneNoAnswer: 'Done. Check the document for the changes.',
   sessionCap: 'Stopped after {cap} steps. Try a more focused prompt.',
   waitingConfirmation: 'Waiting for your confirmation…',
   pointsExhausted: 'AI Points exhausted',
@@ -76,7 +78,7 @@ export const AI_STATUS_STEPS = {
   scanDocument: 'Scanning the document…',
   previewJob: 'Trying the change on sample sections…',
   startJob: 'Starting the background edit…',
-  jobProgress: 'Background edit: {done} of {total} parts done',
+  jobWaiting: 'Background edit running; its progress shows above.',
   jobStatus: 'Checking the background edit…'
 } as const
 

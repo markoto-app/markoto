@@ -142,4 +142,14 @@ describe('validateWorkerOutput', () => {
     expect(parseScanItems(good)).toEqual([{ text: 'Netzleitstelle', example: 'Die Netzleitstelle überwacht' }])
     expect(codes(input('[{"name": 1}]', s))).toEqual(['invalid_finding'])
   })
+
+  it('scan mode: a list cut off by the token limit keeps its complete items', () => {
+    const s = { mode: 'scan' as const }
+    const cut = '```json\n[{"text": "Netzleitstelle", "example": "Die Netzleitstelle"}, {"text": "Pikett", "exa'
+    expect(validateWorkerOutput(input(cut, s)).ok).toBe(true)
+    expect(parseScanItems(cut)).toEqual([{ text: 'Netzleitstelle', example: 'Die Netzleitstelle' }])
+    expect(codes(input('[{"text": "Netz', s))).toEqual(['invalid_json'])
+    // Comment findings are not salvaged: a cut-off finding list is retried.
+    expect(codes(input('[{"quote": "Betrieb", "issue": "x", "severity": "low"}, {"quo', { mode: 'comment' as const }))).toEqual(['invalid_json'])
+  })
 })
