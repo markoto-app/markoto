@@ -9,7 +9,7 @@ import { SNIPPET_START, SNIPPET_STOP } from '~~/shared/utils/documents/searchQue
 // content writers through `upsertDocumentSearch`.
 
 /** Longest body kept in the index (characters). Postgres refuses a tsvector over 1 MB. */
-export const SEARCH_BODY_MAX_CHARS = 400_000
+const SEARCH_BODY_MAX_CHARS = 400_000
 
 /**
  * Write a document's indexed text. Only replaces a row that reflects an

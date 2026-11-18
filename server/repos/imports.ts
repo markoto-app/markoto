@@ -193,14 +193,6 @@ export async function listImportItems(self: UserScope, jobId: string, opts: { pr
     .limit(opts.limit)
 }
 
-/** The uploaded files of the user's job in `uploading` state (start: which ones arrived). */
-export async function listUploadingItems(self: UserScope, jobId: string): Promise<Array<{ itemId: string, s3Key: string | null, sizeBytes: number }>> {
-  const job = await getImportJob(self, jobId)
-  if (!job || job.status !== 'uploading') return []
-  return useDatabase().select({ itemId: importJobItems.itemId, s3Key: importJobItems.s3Key, sizeBytes: importJobItems.sizeBytes })
-    .from(importJobItems).where(eq(importJobItems.jobId, jobId))
-}
-
 /** `uploading` → `queued`. False when the job is not the user's or not uploading. */
 export async function queueImportJob(self: UserScope, jobId: string): Promise<boolean> {
   const r = await useDatabase().update(importJobs).set({ status: 'queued' })

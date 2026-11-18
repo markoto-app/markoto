@@ -11,7 +11,7 @@ import type { DocListSort } from '~~/shared/api/explorer'
 
 export type ExplorerScope = { kind: 'workspace', workspaceId: string } | { kind: 'personal' }
 
-export const explorerKeys = {
+const explorerKeys = {
   root: ['explorer'] as const,
   scope: (s: ExplorerScope) => ['explorer', s.kind === 'workspace' ? `ws:${s.workspaceId}` : 'personal'] as const,
   folders: (s: ExplorerScope) => [...explorerKeys.scope(s), 'folders'] as const,

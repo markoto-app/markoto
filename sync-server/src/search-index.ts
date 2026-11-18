@@ -17,7 +17,7 @@ import type { Queryable } from './yjs-store'
 // Best effort: a failure is logged by the caller and never fails the store.
 
 /** Longest body kept in the index (characters). Postgres refuses a tsvector over 1 MB. */
-export const SEARCH_BODY_MAX_CHARS = 400_000
+const SEARCH_BODY_MAX_CHARS = 400_000
 const TITLE_MAX_CHARS = 255
 
 export interface IndexInput {

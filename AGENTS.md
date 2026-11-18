@@ -134,7 +134,7 @@ Docs (humans first, but read the relevant one before a larger change):
 |---|---|
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System overview, security model, data stores, design decisions |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Setup, checks, coding rules, PR conventions |
-| [`docs/contributing/`](docs/contributing/) | `testing`, `logging`, `flow-docs`, `server`, `api-handlers`, `database`, `billing`, `knowledge-base`, `ai-tools`, `mcp`, `privacy-registries`, `sync-server`, `activity-log`, `preview-pipeline`, `design-system`, `templates`, `marketing-site`, `admin-metrics` (admin product stats), `TEMPLATE-WORKFLOW` (design templates), `LOCAL`, `CONTAINER-ENGINES`, `CHEATSHEET` |
+| [`docs/contributing/`](docs/contributing/) | `testing`, `logging`, `flow-docs`, `server`, `api-handlers`, `database`, `billing`, `knowledge-base`, `ai-tools`, `mcp`, `privacy-registries`, `sync-server`, `activity-log`, `preview-pipeline`, `design-system`, `templates`, `marketing-site`, `admin-metrics` (admin product stats), `TEMPLATE-WORKFLOW` (design templates), `explorer` (folders, search, bulk import), `LOCAL`, `CONTAINER-ENGINES`, `CHEATSHEET` |
 | [`docs/reference/rate-limits.md`](docs/reference/rate-limits.md) | Request limits with their source files |
 | [`docs/SELF-HOSTING.md`](docs/SELF-HOSTING.md) | Install, configuration reference, upgrades, backups |
 | [`docs/operations-analytics.md`](docs/operations-analytics.md) | Cookieless analytics (Umami), events and funnels, Google Ads conversions, legal assessment |

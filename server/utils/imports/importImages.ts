@@ -21,7 +21,7 @@ const MIME_EXT: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jp
 export type ImageStoreResult = { url: string } | { skipped: 'too-large' | 'unsupported' | 'quota' | 'failed' }
 
 /** Store one image under the document. */
-export async function storeImportedImage(doc: DocAccess<'write'>, uploader: UserScope, bytes: Uint8Array, quota: ImageQuota): Promise<ImageStoreResult> {
+async function storeImportedImage(doc: DocAccess<'write'>, uploader: UserScope, bytes: Uint8Array, quota: ImageQuota): Promise<ImageStoreResult> {
   if (bytes.byteLength === 0 || bytes.byteLength > IMAGE_UPLOAD_MAX_BYTES) return { skipped: 'too-large' }
   const type = await fileTypeFromBuffer(bytes)
   const ext = type ? MIME_EXT[type.mime] : undefined

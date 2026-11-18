@@ -552,15 +552,6 @@ export async function listScopeDocs(scope: FolderScope, q: DocListQuery): Promis
   return { rows, total: Number(count[0]?.n ?? 0) }
 }
 
-/** Title and placement of a document, for an AI / MCP answer or a bulk result. */
-export async function getDocPlacement(doc: DocAccess<'view'>): Promise<{ title: string, workspaceId: string | null, folderId: string | null, ownerId: number | null } | null> {
-  return (await useDatabase()
-    .select({ title: documents.title, workspaceId: documents.workspaceId, folderId: documents.folderId, ownerId: documents.ownerId })
-    .from(documents)
-    .where(eq(documents.docId, doc.docId))
-    .limit(1))[0] ?? null
-}
-
 /**
  * Rename a document (the row; the live title in the Y.Doc is set by the
  * caller). Counts as an edit for "last edited".

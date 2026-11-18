@@ -17,7 +17,6 @@
     "newDocument": "Nouveau document",
     "openDocument": "Ouvrir un document",
     "recentDocuments": "Documents récents",
-    "noRecent": "Aucun document récent",
     "sharedWithYou": "Partagé avec vous"
   },
   "auth": {
@@ -519,9 +518,6 @@
     "cancel": "Annuler",
     "openPanel": "Ouvrir le panneau",
     "back": "Retour",
-    "delete": "Supprimer",
-    "duplicate": "Dupliquer",
-    "move": "Déplacer vers un espace de travail…",
     "confirm": "Confirmer",
     "close": "Fermer",
     "loading": "Chargement...",
@@ -621,6 +617,10 @@
         "get_knowledge_file": "markoto veut lire le fichier de connaissances « {target} ».",
         "create_document": "markoto veut créer un nouveau document, « {target} ».",
         "duplicate_document": "markoto veut copier « {target} ».",
+        "search_documents": "markoto veut rechercher « {target} » dans vos documents.",
+        "list_folders": "markoto veut lister vos dossiers.",
+        "move_document": "markoto veut déplacer « {target} » vers un autre dossier.",
+        "create_folder": "markoto veut créer le dossier « {target} ».",
         "web_search": "markoto veut chercher « {target} » sur le web.",
         "fetch_url": "markoto veut ouvrir {target}",
         "view_image": "markoto veut charger l’image {target}",
@@ -774,6 +774,11 @@
       "saveTheme": "Enregistrement du thème sous « {name} »",
       "saveThemeAny": "Enregistrement du thème…",
       "listWorkspaceDocuments": "Parcours des documents de l’espace de travail…",
+      "listMyDocuments": "Parcours de vos documents…",
+      "searchDocuments": "Recherche de « {query} » dans les documents",
+      "listFolders": "Parcours des dossiers…",
+      "moveDocument": "Déplacement d'un document vers un dossier…",
+      "createFolder": "Création du dossier « {name} »",
       "readOtherDocument": "Lecture du document {id}",
       "readNamedDocument": "Lecture de « {title} »…",
       "readOtherDocumentAny": "Lecture d’un autre document…",
@@ -1531,7 +1536,9 @@
     "successDesc": "« {title} » a été supprimé définitivement.",
     "failed": "Échec de la suppression",
     "remoteTitle": "Document supprimé",
-    "remoteDesc": "Ce document a été supprimé par le propriétaire."
+    "remoteDesc": "Ce document a été supprimé. Téléchargez une copie de votre texte avant de le fermer.",
+    "keepReading": "Continuer à lire",
+    "downloadCopy": "Télécharger le Markdown"
   },
   "workspace": {
     "tabs": {
@@ -1571,10 +1578,6 @@
     "descriptionPlaceholder": "À quoi sert cet espace de travail ?",
     "create": "Créer l'espace de travail",
     "docCount": "aucun document | {count} document | {count} documents",
-    "empty": "Aucun document pour le moment",
-    "emptyDescription": "Commencez par créer votre premier document dans cet espace de travail.",
-    "emptyDescriptionViewer": "Les documents créés ici apparaîtront dans cette liste.",
-    "newDocument": "Nouveau document",
     "backToHome": "Retour",
     "rename": "Renommer l'espace de travail",
     "edit": "Modifier l'espace de travail",
@@ -2183,7 +2186,10 @@
       "aiJobUnitsPerJob": "Cette tâche dépasse ce que votre forfait permet. Choisissez moins de sections.",
       "aiJobsPerDay": "Vous avez utilisé les tâches IA incluses dans votre forfait pour aujourd'hui. Réessayez demain.",
       "historyEntry": "Cette modification est plus ancienne que l'historique inclus dans le forfait de ce document.",
-      "mcpToolCallsPerDay": "Vous avez utilisé les appels d'outils MCP inclus dans votre forfait pour aujourd'hui. Réessayez demain."
+      "mcpToolCallsPerDay": "Vous avez utilisé les appels d'outils MCP inclus dans votre forfait pour aujourd'hui. Réessayez demain.",
+      "importFilesPerJob": "Cet import contient plus de fichiers que votre offre n'en autorise par import.",
+      "importBytesPerJob": "Cet import est plus volumineux que ce que votre offre autorise par import.",
+      "importJobsPerDay": "Vous avez lancé tous les imports du jour inclus dans votre offre. Réessayez demain."
     },
     "notice": {
       "historyHidden": "L'activité de plus de {days} jours est masquée avec le forfait de ce document. Elle est conservée et réapparaît dès que le forfait inclut plus d'historique."
@@ -2579,16 +2585,9 @@
   "home": {
     "title": "Accueil",
     "greeting": "Bon retour, {name}",
-    "description": "Vos espaces de travail et vos documents.",
-    "access": {
-      "private": "Privé",
-      "protected": "Protégé"
-    }
+    "description": "Vos espaces de travail et vos documents."
   },
   "docRow": {
-    "actions": "Actions du document",
-    "open": "Ouvrir",
-    "openNewTab": "Ouvrir dans un nouvel onglet",
     "words": "{n} mot | {n} mots"
   },
   "credits": {
@@ -2776,7 +2775,13 @@
       "workspace_template_added": "Modèle ajouté",
       "workspace_template_removed": "Modèle supprimé",
       "doc_share_settings_changed": "Paramètres du lien modifiés",
-      "workspace_billing_plan_resumed": "Résiliation annulée"
+      "workspace_billing_plan_resumed": "Résiliation annulée",
+      "folder_created": "Dossier créé",
+      "folder_renamed": "Dossier renommé",
+      "folder_moved": "Dossier déplacé",
+      "folder_deleted": "Dossier supprimé avec son contenu",
+      "doc_folder_moved": "Document déplacé vers un autre dossier",
+      "import_completed": "Import terminé"
     },
     "planNotice": "Le journal d’audit fait partie du plan Business."
   },
@@ -3342,5 +3347,167 @@
       "loadFailed": "Impossible de charger le coût de l'IA",
       "empty": "Aucune donnée pour cette période."
     }
+  },
+  "explorer": {
+    "personalRoot": "Mes documents",
+    "stale": "Cet élément a été déplacé ou supprimé par quelqu'un d'autre. La liste a été actualisée.",
+    "folderGone": "Ce dossier a été déplacé ou supprimé par quelqu'un d'autre.",
+    "someFailed": "{n} élément n'a pas pu être modifié. | {n} éléments n'ont pas pu être modifiés.",
+    "movedTo": "Déplacé vers {name} | {n} éléments déplacés vers {name}",
+    "undo": "Annuler",
+    "cannotMoveHere": "Impossible de déplacer ces éléments à cet endroit.",
+    "newFolderName": "Nouveau dossier",
+    "renameLabel": "Nouveau nom",
+    "nameProblem": {
+      "empty": "Saisissez un nom.",
+      "too-long": "Le nom est trop long.",
+      "invalid": "Un nom ne peut pas contenir / ou \\ ni être . ou .."
+    },
+    "announce": {
+      "folderCreated": "Dossier {name} créé",
+      "renamed": "Renommé en {name}",
+      "moved": "{n} élément déplacé | {n} éléments déplacés",
+      "movedWorkspace": "{n} document déplacé vers un autre espace de travail | {n} documents déplacés vers un autre espace de travail",
+      "deleted": "{n} élément supprimé | {n} éléments supprimés",
+      "undone": "Déplacement annulé",
+      "cut": "{n} élément coupé. Collez-le dans un dossier avec Ctrl+V. | {n} éléments coupés. Collez-les dans un dossier avec Ctrl+V."
+    },
+    "error": {
+      "createFolder": "Impossible de créer le dossier",
+      "rename": "Impossible de renommer",
+      "move": "Impossible de déplacer",
+      "delete": "Impossible de supprimer",
+      "deleteBlocked": "Dossier non supprimé"
+    },
+    "action": {
+      "open": "Ouvrir",
+      "openNewTab": "Ouvrir dans un nouvel onglet",
+      "rename": "Renommer",
+      "moveTo": "Déplacer vers…",
+      "cut": "Couper",
+      "duplicate": "Dupliquer",
+      "copyLink": "Copier le lien",
+      "copyLinks": "Copier les liens",
+      "share": "Partager…",
+      "delete": "Supprimer",
+      "deleteN": "Supprimer {n} élément | Supprimer {n} éléments",
+      "newDocument": "Nouveau document",
+      "newFolder": "Nouveau dossier",
+      "import": "Importer des fichiers…",
+      "paste": "Coller"
+    },
+    "sortBy": "Trier par",
+    "sort": {
+      "updated": "Dernière modification",
+      "created": "Création",
+      "active": "Dernière activité",
+      "title": "Nom"
+    },
+    "sortDirection": {
+      "asc": "Croissant",
+      "desc": "Décroissant"
+    },
+    "selectItem": "Sélectionner {name}",
+    "column": {
+      "name": "Nom",
+      "owner": "Propriétaire",
+      "updated": "Dernière modification",
+      "words": "Taille"
+    },
+    "listLabel": "Contenu de {name}",
+    "treeLabel": "Dossiers",
+    "folders": "Dossiers",
+    "up": "Niveau supérieur",
+    "searchPlaceholder": "Rechercher dans les titres et les textes",
+    "searchEverywhere": "Tous les dossiers",
+    "done": "Terminé",
+    "select": "Sélectionner",
+    "new": "Nouveau",
+    "selected": "{n} sélectionné(s)",
+    "actions": "Actions",
+    "clearSelection": "Effacer la sélection",
+    "you": "Vous",
+    "items": "vide | {n} document | {n} documents",
+    "noResults": "Aucun résultat",
+    "emptyFolder": "Ce dossier est vide",
+    "emptyHint": "Créez un document ou un dossier, ou déposez des fichiers ici pour les importer.",
+    "dropToImport": "Déposez pour importer dans ce dossier",
+    "count": "{n} élément | {n} éléments",
+    "move": {
+      "title": "Déplacer {n} élément | Déplacer {n} éléments",
+      "toFolder": "Vers un dossier",
+      "toWorkspace": "Vers un autre espace de travail",
+      "personal": "Mes documents",
+      "pickWorkspace": "Choisir un espace de travail",
+      "workspaceWarning": "Les membres du nouvel espace de travail verront ces documents ; les membres de celui-ci perdront l'accès.",
+      "here": "Déplacer ici",
+      "toWorkspaceConfirm": "Déplacer"
+    },
+    "delete": {
+      "title": "Supprimer",
+      "items": "{n} élément | {n} éléments",
+      "question": "Supprimer {name} ?",
+      "counting": "Décompte du contenu…",
+      "counts": "Cela supprime {folders} et {documents}, y compris tout ce que contiennent les dossiers.",
+      "blocked": "{n} document à l'intérieur appartient à quelqu'un d'autre et ne peut pas être supprimé par vous. | {n} documents à l'intérieur appartiennent à quelqu'un d'autre et ne peuvent pas être supprimés par vous.",
+      "permanent": "Les documents supprimés ne peuvent pas être restaurés. Les personnes qui les ont ouverts voient qu'ils ont été supprimés.",
+      "confirm": "Supprimer",
+      "folderCount": "aucun dossier | {n} dossier | {n} dossiers",
+      "documentCount": "aucun document | {n} document | {n} documents"
+    },
+    "import": {
+      "title": "Importer dans {name}",
+      "fromFiles": "Fichiers et dossiers",
+      "fromGithub": "GitHub",
+      "filesHint": "Fichiers Markdown, Word, PDF, PowerPoint, Excel, HTML et EPUB, dossiers entiers (leur arborescence est conservée) et archives zip. Les images auxquelles les fichiers Markdown renvoient sont importées avec eux. Vous pouvez aussi déposer des fichiers sur la liste.",
+      "chooseFiles": "Choisir des fichiers",
+      "chooseFolder": "Choisir un dossier",
+      "summary": "{docs} documents, {images} images, {archives} archives zip",
+      "skippedFiles": "{n} fichier est ignoré (type non pris en charge). | {n} fichiers sont ignorés (type non pris en charge).",
+      "githubLabel": "Lien GitHub",
+      "githubHint": "Un dépôt public ou l'un de ses dossiers. Les fichiers Markdown et les images qu'ils utilisent sont importés ; les dépôts privés doivent d'abord être téléchargés sous forme de zip.",
+      "uploading": "Envoi de {done} fichiers sur {total}…",
+      "progress": "{done} documents importés sur {total}, {failed} en échec",
+      "background": "L'import s'exécute sur le serveur. Vous pouvez fermer cette fenêtre ; les documents apparaissent au fur et à mesure de leur import.",
+      "cancel": "Arrêter l'import",
+      "start": "Importer",
+      "activeJob": "Un import est déjà en cours",
+      "failed": "L'import n'a pas pu démarrer",
+      "status": {
+        "done": "Import terminé",
+        "failed": "Échec de l'import",
+        "cancelled": "Import arrêté"
+      },
+      "jobError": {
+        "access-lost": "Vous ne pouvez plus ajouter de documents à cet espace de travail.",
+        "github-url-invalid": "Ce n'est pas un lien vers un dépôt GitHub.",
+        "github-not-found": "Le dépôt est introuvable. Les dépôts privés ne peuvent pas être importés depuis un lien.",
+        "github-unavailable": "GitHub est inaccessible. Réessayez plus tard.",
+        "archive-too-large": "Le dépôt est plus volumineux que ce qu'un import peut contenir.",
+        "too-many-bytes": "Les fichiers sont plus volumineux que ce qu'un import peut contenir avec votre offre.",
+        "archive-unreadable": "L'archive n'a pas pu être lue.",
+        "too-many-files": "Il y a plus de fichiers que ce qu'un import peut contenir avec votre offre.",
+        "internal": "Un problème est survenu de notre côté."
+      },
+      "reason": {
+        "not-uploaded": "Non envoyé",
+        "too-large": "Trop volumineux",
+        "unsupported": "Type non pris en charge",
+        "not-utf8": "Pas un fichier texte UTF-8",
+        "too-long": "Trop long pour un seul document",
+        "conversion-failed": "Conversion impossible",
+        "cancelled": "Arrêté",
+        "unreadable": "Lecture impossible",
+        "unused": "Utilisé par aucun document"
+      }
+    },
+    "quickSearch": {
+      "open": "Rechercher des documents",
+      "placeholder": "Rechercher dans tous vos documents",
+      "empty": "Aucun document trouvé",
+      "personal": "Mes documents",
+      "hint": "Recherche dans les titres et les textes de vos documents, de vos espaces de travail et des documents partagés avec vous."
+    },
+    "subfolders": "{n} dossier | {n} dossiers"
   }
 }

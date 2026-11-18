@@ -17,7 +17,6 @@
     "newDocument": "新建文档",
     "openDocument": "打开文档",
     "recentDocuments": "最近的文档",
-    "noRecent": "暂无最近的文档",
     "sharedWithYou": "与你共享"
   },
   "auth": {
@@ -519,9 +518,6 @@
     "cancel": "取消",
     "openPanel": "打开面板",
     "back": "返回",
-    "delete": "删除",
-    "duplicate": "创建副本",
-    "move": "移动到工作区…",
     "confirm": "确认",
     "close": "关闭",
     "loading": "加载中…",
@@ -621,6 +617,10 @@
         "get_knowledge_file": "markoto 想要读取知识文件“{target}”。",
         "create_document": "markoto 想要新建文档“{target}”。",
         "duplicate_document": "markoto 想要复制“{target}”。",
+        "search_documents": "markoto 想要在你的文档中搜索“{target}”。",
+        "list_folders": "markoto 想要列出你的文件夹。",
+        "move_document": "markoto 想要将“{target}”移动到其他文件夹。",
+        "create_folder": "markoto 想要新建文件夹“{target}”。",
         "web_search": "markoto 想要在网上搜索“{target}”。",
         "fetch_url": "markoto 想要打开 {target}",
         "view_image": "markoto 想要加载图片 {target}",
@@ -774,6 +774,11 @@
       "saveTheme": "正在将主题保存为“{name}”",
       "saveThemeAny": "正在保存主题…",
       "listWorkspaceDocuments": "正在浏览工作区文档…",
+      "listMyDocuments": "正在浏览你的文档…",
+      "searchDocuments": "正在搜索文档“{query}”",
+      "listFolders": "正在浏览文件夹…",
+      "moveDocument": "正在将文档移动到文件夹…",
+      "createFolder": "正在新建文件夹“{name}”",
       "readOtherDocument": "正在阅读文档 {id}",
       "readNamedDocument": "正在阅读“{title}”…",
       "readOtherDocumentAny": "正在阅读另一个文档…",
@@ -1531,7 +1536,9 @@
     "successDesc": "“{title}”已被永久删除。",
     "failed": "删除失败",
     "remoteTitle": "文档已删除",
-    "remoteDesc": "本文档已被所有者删除。"
+    "remoteDesc": "此文档已被删除。请在关闭前下载一份你的文本副本。",
+    "keepReading": "继续阅读",
+    "downloadCopy": "下载 Markdown"
   },
   "workspace": {
     "tabs": {
@@ -1571,10 +1578,6 @@
     "descriptionPlaceholder": "这个工作区用来做什么？",
     "create": "创建工作区",
     "docCount": "暂无文档 | {count} 个文档 | {count} 个文档",
-    "empty": "暂无文档",
-    "emptyDescription": "在此工作区中创建你的第一个文档以开始。",
-    "emptyDescriptionViewer": "在此创建的文档将出现在这个列表中。",
-    "newDocument": "新建文档",
     "backToHome": "返回",
     "rename": "重命名工作区",
     "edit": "编辑工作区",
@@ -2183,7 +2186,10 @@
       "aiJobUnitsPerJob": "此任务超出了你的套餐允许的范围。请选择更少的章节。",
       "aiJobsPerDay": "你已用完套餐中今天的 AI 任务次数。请明天再试。",
       "historyEntry": "此更改早于此文档套餐所包含的历史记录。",
-      "mcpToolCallsPerDay": "你已用完套餐中今天的 MCP 工具调用次数。请明天再试。"
+      "mcpToolCallsPerDay": "你已用完套餐中今天的 MCP 工具调用次数。请明天再试。",
+      "importFilesPerJob": "此次导入的文件数量超出了你的方案允许的单次导入上限。",
+      "importBytesPerJob": "此次导入的大小超出了你的方案允许的单次导入上限。",
+      "importJobsPerDay": "你已用完方案中包含的今日导入次数。请明天再试。"
     },
     "notice": {
       "historyHidden": "在此文档的套餐下，超过 {days} 天的活动已隐藏。这些记录会被保留，套餐包含更长的历史记录后会再次显示。"
@@ -2579,16 +2585,9 @@
   "home": {
     "title": "主页",
     "greeting": "欢迎回来，{name}",
-    "description": "你的工作区和文档",
-    "access": {
-      "private": "私有",
-      "protected": "受保护"
-    }
+    "description": "你的工作区和文档"
   },
   "docRow": {
-    "actions": "文档操作",
-    "open": "打开",
-    "openNewTab": "在新标签页中打开",
     "words": "{n} 字 | {n} 字"
   },
   "credits": {
@@ -2776,7 +2775,13 @@
       "workspace_template_added": "已添加模板",
       "workspace_template_removed": "已删除模板",
       "doc_share_settings_changed": "链接设置已更改",
-      "workspace_billing_plan_resumed": "已撤销取消"
+      "workspace_billing_plan_resumed": "已撤销取消",
+      "folder_created": "文件夹已创建",
+      "folder_renamed": "文件夹已重命名",
+      "folder_moved": "文件夹已移动",
+      "folder_deleted": "文件夹及其内容已删除",
+      "doc_folder_moved": "文档已移动到其他文件夹",
+      "import_completed": "导入已完成"
     },
     "planNotice": "审计日志是 Business 方案的功能。"
   },
@@ -3342,5 +3347,167 @@
       "loadFailed": "无法加载 AI 成本",
       "empty": "此范围内没有数据。"
     }
+  },
+  "explorer": {
+    "personalRoot": "我的文档",
+    "stale": "此项目已被其他人移动或删除。列表已刷新。",
+    "folderGone": "此文件夹已被其他人移动或删除。",
+    "someFailed": "有 {n} 个项目无法更改。 | 有 {n} 个项目无法更改。",
+    "movedTo": "已移动到 {name} | 已将 {n} 个项目移动到 {name}",
+    "undo": "撤销",
+    "cannotMoveHere": "无法将这些项目移动到那里。",
+    "newFolderName": "新建文件夹",
+    "renameLabel": "新名称",
+    "nameProblem": {
+      "empty": "请输入名称。",
+      "too-long": "名称过长。",
+      "invalid": "名称不能包含 / 或 \\，也不能是 . 或 .."
+    },
+    "announce": {
+      "folderCreated": "文件夹 {name} 已创建",
+      "renamed": "已重命名为 {name}",
+      "moved": "已移动 {n} 个项目 | 已移动 {n} 个项目",
+      "movedWorkspace": "已将 {n} 个文档移动到其他工作区 | 已将 {n} 个文档移动到其他工作区",
+      "deleted": "已删除 {n} 个项目 | 已删除 {n} 个项目",
+      "undone": "移动已撤销",
+      "cut": "已剪切 {n} 个项目。按 Ctrl+V 将其粘贴到文件夹中。 | 已剪切 {n} 个项目。按 Ctrl+V 将它们粘贴到文件夹中。"
+    },
+    "error": {
+      "createFolder": "无法新建文件夹",
+      "rename": "无法重命名",
+      "move": "无法移动",
+      "delete": "无法删除",
+      "deleteBlocked": "文件夹未被删除"
+    },
+    "action": {
+      "open": "打开",
+      "openNewTab": "在新标签页中打开",
+      "rename": "重命名",
+      "moveTo": "移动到…",
+      "cut": "剪切",
+      "duplicate": "复制",
+      "copyLink": "复制链接",
+      "copyLinks": "复制链接",
+      "share": "共享…",
+      "delete": "删除",
+      "deleteN": "删除 {n} 个项目 | 删除 {n} 个项目",
+      "newDocument": "新建文档",
+      "newFolder": "新建文件夹",
+      "import": "导入文件…",
+      "paste": "粘贴"
+    },
+    "sortBy": "排序方式",
+    "sort": {
+      "updated": "最近编辑",
+      "created": "创建时间",
+      "active": "最近活动",
+      "title": "名称"
+    },
+    "sortDirection": {
+      "asc": "升序",
+      "desc": "降序"
+    },
+    "selectItem": "选择 {name}",
+    "column": {
+      "name": "名称",
+      "owner": "所有者",
+      "updated": "最近编辑",
+      "words": "大小"
+    },
+    "listLabel": "{name} 的内容",
+    "treeLabel": "文件夹",
+    "folders": "文件夹",
+    "up": "返回上一级",
+    "searchPlaceholder": "搜索标题和正文",
+    "searchEverywhere": "所有文件夹",
+    "done": "完成",
+    "select": "选择",
+    "new": "新建",
+    "selected": "已选择 {n} 项",
+    "actions": "操作",
+    "clearSelection": "取消选择",
+    "you": "你",
+    "items": "空 | {n} 个文档 | {n} 个文档",
+    "noResults": "未找到任何内容",
+    "emptyFolder": "此文件夹为空",
+    "emptyHint": "新建文档或文件夹，或将文件拖放到此处进行导入。",
+    "dropToImport": "松开以导入到此文件夹",
+    "count": "{n} 个项目 | {n} 个项目",
+    "move": {
+      "title": "移动 {n} 个项目 | 移动 {n} 个项目",
+      "toFolder": "移到文件夹",
+      "toWorkspace": "移到其他工作区",
+      "personal": "我的文档",
+      "pickWorkspace": "选择工作区",
+      "workspaceWarning": "新工作区的成员将能看到这些文档；当前工作区的成员将失去访问权限。",
+      "here": "移动到此处",
+      "toWorkspaceConfirm": "移动"
+    },
+    "delete": {
+      "title": "删除",
+      "items": "{n} 个项目 | {n} 个项目",
+      "question": "删除 {name}？",
+      "counting": "正在统计其中的内容…",
+      "counts": "这将删除{folders}和{documents}，包括文件夹内的所有内容。",
+      "blocked": "其中有 {n} 个文档属于其他人，你无法删除。 | 其中有 {n} 个文档属于其他人，你无法删除。",
+      "permanent": "已删除的文档无法恢复。正在打开这些文档的人会看到它们已被删除。",
+      "confirm": "删除",
+      "folderCount": "0 个文件夹 | {n} 个文件夹 | {n} 个文件夹",
+      "documentCount": "0 个文档 | {n} 个文档 | {n} 个文档"
+    },
+    "import": {
+      "title": "导入到 {name}",
+      "fromFiles": "文件和文件夹",
+      "fromGithub": "GitHub",
+      "filesHint": "支持 Markdown、Word、PDF、PowerPoint、Excel、HTML 和 EPUB 文件、整个文件夹（保留其文件夹结构）以及 zip 压缩包。Markdown 文件所链接的图片会一并导入。你也可以将文件拖放到列表上。",
+      "chooseFiles": "选择文件",
+      "chooseFolder": "选择文件夹",
+      "summary": "{docs} 个文档、{images} 张图片、{archives} 个 zip 压缩包",
+      "skippedFiles": "有 {n} 个文件被跳过（不支持的类型）。 | 有 {n} 个文件被跳过（不支持的类型）。",
+      "githubLabel": "GitHub 链接",
+      "githubHint": "公开仓库或其中的某个文件夹。将导入 Markdown 文件及其使用的图片；私有仓库需要先下载为 zip。",
+      "uploading": "正在上传第 {done} 个文件，共 {total} 个…",
+      "progress": "已导入 {done} 个文档，共 {total} 个，{failed} 个失败",
+      "background": "导入在服务器上运行。你可以关闭此窗口；文档会在导入后陆续出现。",
+      "cancel": "停止导入",
+      "start": "导入",
+      "activeJob": "已有导入正在进行",
+      "failed": "无法开始导入",
+      "status": {
+        "done": "导入已完成",
+        "failed": "导入失败",
+        "cancelled": "导入已停止"
+      },
+      "jobError": {
+        "access-lost": "你已无法再向此工作区添加文档。",
+        "github-url-invalid": "这不是 GitHub 仓库的链接。",
+        "github-not-found": "未找到该仓库。无法通过链接导入私有仓库。",
+        "github-unavailable": "无法连接到 GitHub。请稍后重试。",
+        "archive-too-large": "该仓库超出了导入所能处理的大小。",
+        "too-many-bytes": "这些文件超出了你的方案允许的单次导入大小。",
+        "archive-unreadable": "无法读取该压缩包。",
+        "too-many-files": "文件数量超出了你的方案允许的单次导入上限。",
+        "internal": "我们这边出了点问题。"
+      },
+      "reason": {
+        "not-uploaded": "未上传",
+        "too-large": "文件过大",
+        "unsupported": "不支持的类型",
+        "not-utf8": "不是 UTF-8 文本文件",
+        "too-long": "对单个文档来说太长",
+        "conversion-failed": "无法转换",
+        "cancelled": "已停止",
+        "unreadable": "无法读取",
+        "unused": "未被任何文档使用"
+      }
+    },
+    "quickSearch": {
+      "open": "搜索文档",
+      "placeholder": "搜索你的所有文档",
+      "empty": "未找到文档",
+      "personal": "我的文档",
+      "hint": "搜索你的文档、你的工作区以及与你共享的文档的标题和正文。"
+    },
+    "subfolders": "{n} 个文件夹 | {n} 个文件夹"
   }
 }

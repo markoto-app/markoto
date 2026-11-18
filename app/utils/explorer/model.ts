@@ -32,12 +32,8 @@ export type ExplorerItem
   = | { kind: 'folder', key: string, id: string, label: string, folder: FolderRow }
     | { kind: 'doc', key: string, id: string, label: string, doc: DocRow }
 
-export const folderKey = (id: string) => `f:${id}`
-export const docKey = (id: string) => `d:${id}`
-
-export function parseKey(key: string): { kind: 'folder' | 'doc', id: string } {
-  return { kind: key.startsWith('f:') ? 'folder' : 'doc', id: key.slice(2) }
-}
+const folderKey = (id: string) => `f:${id}`
+const docKey = (id: string) => `d:${id}`
 
 export function folderItem(folder: FolderRow): ExplorerItem {
   return { kind: 'folder', key: folderKey(folder.folderId), id: folder.folderId, label: folder.name, folder }
@@ -145,7 +141,7 @@ export function explorerPermissions(role: WorkspaceRoleName | 'owner'): Explorer
 }
 
 /** Per document: edit (rename, move between folders, duplicate) and manage (delete, move workspace, share settings). */
-export function explorerDocPermissions(perms: ExplorerPermissions, doc: Pick<DocRow, 'isOwner'>): { canEdit: boolean, canManage: boolean } {
+function explorerDocPermissions(perms: ExplorerPermissions, doc: Pick<DocRow, 'isOwner'>): { canEdit: boolean, canManage: boolean } {
   return { canEdit: perms.canWrite || doc.isOwner, canManage: perms.isAdmin || doc.isOwner }
 }
 

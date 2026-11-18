@@ -320,13 +320,3 @@ export async function moveDocToFolder(doc: DocAccess<'edit'>, folderId: string |
     return { before: current.folderId }
   })
 }
-
-/** Ids of the documents filed in the scope's root or in one of its folders (for bulk selections by folder). */
-export async function listDocIdsInFolder(scope: FolderScope, folderId: string | null, limit: number): Promise<string[]> {
-  const rows = await useDatabase()
-    .select({ docId: documents.docId })
-    .from(documents)
-    .where(and(docScopeSql(scope), folderId === null ? isNull(documents.folderId) : eq(documents.folderId, folderId)))
-    .limit(limit)
-  return rows.map(r => r.docId)
-}

@@ -205,7 +205,15 @@
       "timeout": "转换耗时过长。",
       "too-complex": "此文件过大或过于复杂，无法转换。",
       "unavailable": "无法连接到转换服务。",
-      "unsupported-format": "不支持此文件格式。"
+      "unsupported-format": "不支持此文件格式。",
+      "job-not-found": "未找到此导入。",
+      "job-active": "已有导入正在进行。请等待其完成或将其停止。",
+      "job-not-uploading": "此导入已经开始。",
+      "nothing-to-import": "这些文件都无法导入。",
+      "path-invalid": "某个文件路径无效。",
+      "github-url-invalid": "这不是公开 GitHub 仓库的链接。",
+      "github-not-found": "未找到该仓库。",
+      "github-unavailable": "无法连接到 GitHub。请稍后重试。"
     },
     "internal": {
       "forbidden": "凭据无效或缺失。"
@@ -408,6 +416,14 @@
       "not-found": "未找到工作区。",
       "role-required": "查看者无法在此工作区中创建文档。",
       "template-rate-limited": "请求过于频繁。请稍候片刻后重试。"
+    },
+    "folder": {
+      "not-found": "此文件夹已被其他人移动或删除。",
+      "name-taken": "此处已存在同名文件夹。",
+      "too-deep": "文件夹最多只能嵌套 {max} 层。",
+      "cycle": "文件夹不能移动到自身或其子文件夹中。",
+      "forbidden": "你无权在此处更改文件夹。",
+      "delete-blocked": "此文件夹中有 {blocked} 个文档你无法删除，因此未删除任何内容。"
     }
   }
 }

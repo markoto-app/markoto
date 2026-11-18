@@ -17,7 +17,6 @@
     "newDocument": "New document",
     "openDocument": "Open document",
     "recentDocuments": "Recent documents",
-    "noRecent": "No recent documents",
     "sharedWithYou": "Shared with you"
   },
   "auth": {
@@ -519,9 +518,6 @@
     "cancel": "Cancel",
     "openPanel": "Open panel",
     "back": "Back",
-    "delete": "Delete",
-    "duplicate": "Duplicate",
-    "move": "Move to workspace…",
     "confirm": "Confirm",
     "close": "Close",
     "loading": "Loading...",
@@ -1582,10 +1578,6 @@
     "descriptionPlaceholder": "What's this workspace for?",
     "create": "Create workspace",
     "docCount": "no documents | {count} document | {count} documents",
-    "empty": "No documents yet",
-    "emptyDescription": "Start by creating your first document in this workspace.",
-    "emptyDescriptionViewer": "Documents created here will appear in this list.",
-    "newDocument": "New document",
     "backToHome": "Back",
     "rename": "Rename workspace",
     "edit": "Edit workspace",
@@ -2593,16 +2585,9 @@
   "home": {
     "title": "Home",
     "greeting": "Welcome back, {name}",
-    "description": "Your workspaces and documents.",
-    "access": {
-      "private": "Private",
-      "protected": "Protected"
-    }
+    "description": "Your workspaces and documents."
   },
   "docRow": {
-    "actions": "Document actions",
-    "open": "Open",
-    "openNewTab": "Open in new tab",
     "words": "{n} word | {n} words"
   },
   "credits": {

@@ -313,6 +313,9 @@ Billing is off on a self-hosted instance (`NUXT_BILLING_ENABLED=false`), so ever
 | `TIER_FREE_HISTORY_DAYS` | empty (no limit) | How far back the Activity Log can be viewed and restored, in days. Older entries stay stored. |
 | `TIER_FREE_SAVED_THEMES` | `20` | Saved theme presets per user. |
 | `TIER_FREE_IMPORT_MAX_BYTES` | `52428800` (50 MiB) | Largest file a user can import (never above 50 MiB). |
+| `TIER_FREE_IMPORT_FILES_PER_JOB` | `5000` | Files one bulk import (files, folders, zip archives, a GitHub repository) may bring in. markoto.app's free plan: `200`. |
+| `TIER_FREE_IMPORT_BYTES_PER_JOB` | `5368709120` (5 GiB) | Bytes one bulk import may bring in (uploaded, or what an archive expands to). A zip archive or repository download itself is at most 100 MiB. markoto.app's free plan: 200 MiB. |
+| `TIER_FREE_IMPORT_JOBS_PER_DAY` | `500` | Bulk imports a user may start per day; one runs at a time. |
 | `TIER_FREE_WEB_TOOLS_PER_DAY` | empty (no limit) | Extra per-user daily web-tool limit on top of `NUXT_WEB_TOOLS_DAILY_LIMIT`; the stricter one applies. |
 | `TIER_FREE_MCP_TOOL_CALLS_PER_DAY` | empty (no limit) | MCP tool calls per user per day. |
 | `TIER_FREE_FEATURE_CUSTOM_CSS` | `true` | Documents may use custom CSS. `false` keeps stored CSS but doesn't apply it. |
