@@ -114,6 +114,39 @@ describe('checkout: fresh entry', () => {
   })
 })
 
+describe('checkout: presence of a reused entry', () => {
+  const jobOpts: PoolCheckoutOpts = {
+    ...fakeOpts,
+    awarenessUser: { name: 'markoto', color: '#d97706', isAI: true },
+    awarenessExtra: { aiSession: { sessionId: 'j-1', initiatorUserId: 7 }, aiStatus: { phase: 'job', message: null } }
+  }
+
+  it('restores the presence a previous holder cleared on close', async () => {
+    // A delegated job: the preview checks the entry out and clears its
+    // presence on close; the start checks the SAME entry out again and
+    // must be visible (the prompt bar finds the job through it).
+    const key: PoolKey = { docId: 'doc-1', principalId: 'job:j-1' }
+    const preview = await checkout(key, jobOpts)
+    preview.awareness.setLocalState(null)
+    release(key)
+    const run = await checkout(key, jobOpts)
+    expect(run).toBe(preview)
+    expect(run.awareness.getLocalState()).toEqual({
+      user: { name: 'markoto', color: '#d97706', isAI: true },
+      aiSession: { sessionId: 'j-1', initiatorUserId: 7 },
+      aiStatus: { phase: 'job', message: null }
+    })
+  })
+
+  it('leaves a live presence alone (a second holder does not reset it)', async () => {
+    const key: PoolKey = { docId: 'doc-1', principalId: 'job:j-1' }
+    const first = await checkout(key, jobOpts)
+    first.awareness.setLocalState({ user: { name: 'markoto' }, cursor: { anchor: 1 } })
+    const second = await checkout(key, jobOpts)
+    expect(second.awareness.getLocalState()).toEqual({ user: { name: 'markoto' }, cursor: { anchor: 1 } })
+  })
+})
+
 describe('checkout: concurrent in-flight dedup', () => {
   it('two concurrent checkouts of the same key share one build', async () => {
     // Slow the builder so both calls land in the in-flight map at once.
