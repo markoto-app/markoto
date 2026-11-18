@@ -186,7 +186,7 @@ describe('job runner', () => {
     doc.ytext.insert(second, 'liebe ')
     const result = await revertJobUnits({ jobId: 'job1', store, doc })
     expect(result.reverted).toBe(2)
-    expect(result.skipped).toEqual([{ ordinal: 1, headingPath: 'Zwei', reason: REVERT_EDITED_SINCE }])
+    expect(result.skipped).toEqual([{ ordinal: 1, headingPath: 'Zwei', kind: 'edited', reason: REVERT_EDITED_SINCE }])
     expect(doc.ytext.toString()).toBe(DOC.replace('Der zweite Text.', 'Der liebe zweite TEXT.'))
     expect(store.job.status).toBe('reverted')
     expect(store.units.map(u => u.status)).toEqual(['reverted', 'applied', 'reverted'])

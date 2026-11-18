@@ -59,6 +59,7 @@ export interface AiJobUnitRow {
   attempts: number
   beforeText: string | null
   afterHash: string | null
+  sessionAfterHash: string | null
   output: AiJobUnitOutput | null
   costUsd: number
   tokensIn: number
@@ -91,7 +92,7 @@ export interface NewAiJobUnit {
 export type AiJobPatch = Partial<Pick<AiJobRow, 'status' | 'estimate' | 'reason' | 'currentHeading' | 'heartbeatAt' | 'finishedAt' | 'workerModel' | 'costKnown' | 'params'>>
 
 /** Fields of a unit the engine changes. */
-export type AiJobUnitPatch = Partial<Pick<AiJobUnitRow, 'status' | 'reason' | 'attempts' | 'afterHash' | 'output' | 'costUsd' | 'tokensIn' | 'tokensOut' | 'startRel' | 'endRel' | 'revBefore' | 'beforeText'>>
+export type AiJobUnitPatch = Partial<Pick<AiJobUnitRow, 'status' | 'reason' | 'attempts' | 'afterHash' | 'sessionAfterHash' | 'output' | 'costUsd' | 'tokensIn' | 'tokensOut' | 'startRel' | 'endRel' | 'revBefore' | 'beforeText'>>
 
 /** Increments of a job's counters. */
 export interface AiJobProgressDelta {
@@ -145,6 +146,7 @@ const UNIT_COLUMNS = {
   attempts: aiJobUnits.attempts,
   beforeText: aiJobUnits.beforeText,
   afterHash: aiJobUnits.afterHash,
+  sessionAfterHash: aiJobUnits.sessionAfterHash,
   output: aiJobUnits.output,
   costUsd: aiJobUnits.costUsd,
   tokensIn: aiJobUnits.tokensIn,

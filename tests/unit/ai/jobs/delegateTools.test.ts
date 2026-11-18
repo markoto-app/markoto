@@ -23,7 +23,8 @@ const engine = vi.hoisted(() => ({
   getJobProgress: vi.fn(),
   getJobReport: vi.fn(),
   listJobFindings: vi.fn(async () => []),
-  scanDocument: vi.fn()
+  scanDocument: vi.fn(),
+  jobFollowUpStore: vi.fn(() => ({ listUnits: async () => [], saveSessionHash: async () => {} }))
 }))
 const budget = vi.hoisted(() => ({ remainingBudgetUsd: vi.fn(async (): Promise<number | null> => 0.5) }))
 const memory = vi.hoisted(() => ({ appendAiMessage: vi.fn(async () => {}) }))

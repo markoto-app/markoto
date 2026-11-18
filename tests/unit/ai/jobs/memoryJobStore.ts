@@ -88,6 +88,7 @@ export function makeJob(doc: { ydoc: Y.Doc, ytext: Y.Text }, mode: AiJobMode, pa
     reason: null,
     attempts: 0,
     afterHash: null,
+    sessionAfterHash: null,
     output: null,
     costUsd: 0,
     tokensIn: 0,

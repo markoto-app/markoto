@@ -46,6 +46,7 @@ import { buildJobPart, WORKER_SYSTEM_PROMPT } from './workerPrompt'
 import { callCostUsd, estimateJob, type JobEstimate } from './estimate'
 import { jobSpecOf, newUnitRows, progressOf, JobRunner, type PreviewSample } from './runner'
 import { revertJobUnits, type RevertResult } from './revert'
+import type { FollowUpStore } from './followUps'
 import { assertJobAllowed } from './jobLimits'
 import { languageCode } from './validate'
 import { regexSafetyProblem } from '../tools/sections/search'
@@ -83,6 +84,14 @@ function repoJobStore(jobId: string): JobStore {
     updateUnit: (ordinal, patch) => updateAiJobUnit(JOBS, jobId, ordinal, patch),
     listUnits: statuses => listAiJobUnits(JOBS, jobId, statuses),
     requeueRunning: () => requeueRunningAiJobUnits(JOBS, jobId)
+  }
+}
+
+/** The parts a job's AI session may still correct as part of the job (`followUps.ts`). */
+export function jobFollowUpStore(jobId: string): FollowUpStore {
+  return {
+    listUnits: () => listAiJobUnits(JOBS, jobId, ['applied', 'flagged']),
+    saveSessionHash: (ordinal, hash) => updateAiJobUnit(JOBS, jobId, ordinal, { sessionAfterHash: hash })
   }
 }
 
@@ -578,7 +587,8 @@ export async function rerunJobUnits(doc: DocAccess<'write'>, jobId: string, ordi
   const rerunnable = units.filter(u => ordinals.includes(u.ordinal) && (u.status === 'skipped' || u.status === 'failed' || u.status === 'flagged'))
   for (const u of rerunnable.filter(x => x.status === 'flagged')) {
     // A flagged unit was applied: its current text is the job's output, so its revision moves with it.
-    if (u.afterHash) await updateAiJobUnit(JOBS, jobId, u.ordinal, { revBefore: u.afterHash })
+    const current = u.sessionAfterHash ?? u.afterHash
+    if (current) await updateAiJobUnit(JOBS, jobId, u.ordinal, { revBefore: current })
   }
   await requeueAiJobUnits(JOBS, jobId, rerunnable.map(u => u.ordinal))
   return startJob(doc, jobId)
@@ -631,7 +641,7 @@ export async function revertJob(doc: DocAccess<'write'>, jobId: string, actorIp:
         userName: null,
         actorPrincipal: aiJobClientUserId(job.id),
         action: 'ai.job.reverted',
-        metadata: { kind: 'ai.job.reverted', jobId, mode: job.mode, reverted: result.reverted, skipped: result.skipped.length }
+        metadata: { kind: 'ai.job.reverted', jobId, mode: job.mode, reverted: result.reverted, followUps: result.followUps, skipped: result.skipped.length }
       })
     } catch (e) {
       log.warn('job revert activity row failed', { err: e, jobId })

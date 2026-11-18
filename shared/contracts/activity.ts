@@ -47,7 +47,7 @@ export const activityMetadata = z.union([
   z.object({ kind: z.literal('restore'), restoredFromActivityId: z.number(), restoredFromTime: z.string() }),
   // A delegated AI edit (job) started or finished; counts only, never text.
   z.object({ kind: z.literal('ai.job'), jobId: z.string(), mode: z.string(), phase: z.enum(['started', 'finished']), status: z.string(), unitsTotal: z.number(), done: z.number(), skipped: z.number(), flagged: z.number() }),
-  z.object({ kind: z.literal('ai.job.reverted'), jobId: z.string(), mode: z.string(), reverted: z.number(), skipped: z.number() })
+  z.object({ kind: z.literal('ai.job.reverted'), jobId: z.string(), mode: z.string(), reverted: z.number(), followUps: z.number().optional(), skipped: z.number() })
 ])
 
 export type ActivityMetadata = z.infer<typeof activityMetadata>
