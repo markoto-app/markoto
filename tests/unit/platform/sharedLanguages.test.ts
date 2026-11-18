@@ -3,7 +3,9 @@ import {
   LANGUAGE_PRESETS,
   resolveLanguageDisplayName,
   languageBadge,
-  isValidLanguage
+  isValidLanguage,
+  languageTagOf,
+  localizedLanguageName
 } from '../../../shared/languages'
 
 describe('shared/languages: LANGUAGE_PRESETS', () => {
@@ -76,5 +78,24 @@ describe('isValidLanguage', () => {
     expect(isValidLanguage(null)).toBe(false)
     expect(isValidLanguage(undefined)).toBe(false)
     expect(isValidLanguage(42)).toBe(false)
+  })
+})
+
+describe('localizedLanguageName', () => {
+  it('names a language written as a name or a tag in the UI language', () => {
+    expect(localizedLanguageName('English', 'de')).toBe('Englisch')
+    expect(localizedLanguageName('english', 'fr')).toBe('anglais')
+    expect(localizedLanguageName('en', 'de')).toBe('Englisch')
+    expect(localizedLanguageName('Deutsch', 'en')).toBe('German')
+    expect(localizedLanguageName('français', 'es')).toBe('francés')
+    expect(localizedLanguageName('Japanese', 'de')).toBe('Japanisch')
+    expect(localizedLanguageName('de-CH', 'de')).toBe('Schweizer Hochdeutsch')
+  })
+
+  it('leaves values that are not a known language as they are', () => {
+    expect(localizedLanguageName('Schwiizerdütsch', 'en')).toBe('Schwiizerdütsch')
+    expect(localizedLanguageName('  Klingon-ish ', 'de')).toBe('Klingon-ish')
+    expect(languageTagOf('')).toBeNull()
+    expect(languageTagOf('Englisch')).toBe('en')
   })
 })

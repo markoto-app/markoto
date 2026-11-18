@@ -5,6 +5,8 @@ import type { AiEventSource } from '~/types/ai/session'
 /** A delegated job as the job routes return it. */
 export type AiJobView = ApiResponse<'/api/docs/:docId/ai-jobs', 'get'>['jobs'][number]
 export type AiJobNote = ApiResponse<'/api/docs/:docId/ai-jobs/:jobId', 'get'>['notes'][number]
+/** What "Undo job" did: parts restored, of those the AI session's later corrections, parts kept and why. */
+export type AiJobUndoResult = ApiResponse<'/api/docs/:docId/ai-jobs/:jobId/revert', 'post'> & { jobId: string }
 
 const ACTIVE = new Set(['preview', 'awaiting_confirmation', 'running'])
 /** Statuses the prompt bar keeps showing until dismissed. */
@@ -42,7 +44,7 @@ export function useAiJobs(docId: () => string, myJobIds: () => readonly string[]
   const dismissed = ref<Set<string>>(new Set())
   const busy = ref(false)
   const error = ref<string | null>(null)
-  const undone = ref<{ jobId: string, reverted: number, skipped: number } | null>(null)
+  const undone = ref<AiJobUndoResult | null>(null)
 
   /** The job the panel shows: the newest one still active, else the newest recent one not dismissed. */
   const current = computed<AiJobView | null>(() => {
@@ -164,8 +166,9 @@ export function useAiJobs(docId: () => string, myJobIds: () => readonly string[]
     error.value = null
     try {
       const res = await apiFetch('/api/docs/:docId/ai-jobs/:jobId/revert', { method: 'post', path: { docId: docId(), jobId } })
-      undone.value = { jobId, reverted: res.reverted, skipped: res.skipped }
-      merge({ jobId, status: 'reverted' })
+      undone.value = { ...res, jobId }
+      // Nothing restored: the job stays as it was (the server did not mark it undone).
+      if (res.reverted > 0) merge({ jobId, status: 'reverted' })
       return true
     } catch (e) {
       error.value = extractError(e).message

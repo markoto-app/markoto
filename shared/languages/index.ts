@@ -71,3 +71,73 @@ export function isValidLanguage(value: unknown): value is string {
     && value.length > 0
     && value.length <= LANGUAGE_MAX_LENGTH
 }
+
+/** Languages whose names `languageTagOf` recognises (ISO 639-1). */
+const KNOWN_LANGUAGE_CODES = [
+  'en', 'de', 'fr', 'es', 'it', 'pt', 'nl', 'pl', 'cs', 'sk', 'sl', 'hr', 'sr', 'bs', 'bg', 'ro', 'hu', 'el', 'tr', 'ru', 'uk',
+  'sv', 'da', 'nb', 'nn', 'fi', 'et', 'lv', 'lt', 'ga', 'cy', 'mt', 'ca', 'eu', 'gl', 'rm', 'lb', 'is', 'sq', 'mk',
+  'ja', 'zh', 'ko', 'ar', 'he', 'hi', 'th', 'vi', 'id', 'ms', 'fa', 'ur', 'bn', 'ta', 'sw', 'tl', 'af'
+] as const
+
+/** Locales whose language names are recognised (the UI languages plus Italian), besides each language's own name. */
+const NAME_LOCALES = ['en', 'de', 'fr', 'es', 'it', 'ja', 'zh'] as const
+
+let namesToTags: Map<string, string> | null = null
+
+function languageNameIndex(): Map<string, string> {
+  if (namesToTags) return namesToTags
+  const index = new Map<string, string>()
+  const add = (locale: string, code: string) => {
+    try {
+      const name = new Intl.DisplayNames([locale], { type: 'language', fallback: 'none' }).of(code)
+      if (name && !index.has(name.toLowerCase())) index.set(name.toLowerCase(), code)
+    } catch {
+      // A runtime without data for this locale: skip it.
+    }
+  }
+  for (const code of KNOWN_LANGUAGE_CODES) {
+    for (const locale of NAME_LOCALES) add(locale, code)
+    add(code, code)
+  }
+  index.set('norwegian', 'no')
+  namesToTags = index
+  return index
+}
+
+const LANGUAGE_TAG_RE = /^[a-z]{2,3}(?:[-_][a-z0-9]{2,8})*$/i
+
+/**
+ * The BCP-47 tag of a language as people and the AI write it: a tag
+ * ("en", "de-CH") or a language name in one of the UI languages or in
+ * the language itself ("English", "Englisch", "français"). Null when it
+ * is neither (a free-text value such as "Schwiizerdütsch").
+ */
+export function languageTagOf(value: string | null | undefined): string | null {
+  const trimmed = value?.trim() ?? ''
+  if (trimmed.length === 0) return null
+  if (LANGUAGE_TAG_RE.test(trimmed)) {
+    try {
+      const tag = Intl.getCanonicalLocales(trimmed.replace(/_/g, '-'))[0]
+      const known = tag ? new Intl.DisplayNames(['en'], { type: 'language', fallback: 'none' }).of(tag) : undefined
+      if (tag && known) return tag
+    } catch {
+      // Not a valid tag: try it as a name below.
+    }
+  }
+  return languageNameIndex().get(trimmed.toLowerCase()) ?? null
+}
+
+/**
+ * A language named in the UI language ("English" shown to a German
+ * reader is "Englisch"). Values that are not a known language stay as
+ * they are.
+ */
+export function localizedLanguageName(value: string, uiLocale: string): string {
+  const tag = languageTagOf(value)
+  if (!tag) return value.trim()
+  try {
+    return new Intl.DisplayNames([uiLocale], { type: 'language', fallback: 'none' }).of(tag) ?? value.trim()
+  } catch {
+    return value.trim()
+  }
+}

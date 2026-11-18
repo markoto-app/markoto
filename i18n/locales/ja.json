@@ -834,6 +834,11 @@
       "failed": "バックグラウンド編集が停止しました。{reason}",
       "reverted": "元に戻しました。",
       "undone": "元に戻しました: {count} 件を復元しました。",
+      "undoneNothing": "復元したものはありません。",
+      "undoneFollowUps": "その後 markoto が {count} 件に加えた修正も含みます。",
+      "keptEdited": "{count} 件は処理の後に変更されたため、その変更が失われないようそのままにしました: {headings}。",
+      "keptDeleted": "{count} 件はもう存在しません: {headings}。",
+      "keptExpired": "{count} 件は、元に戻すためのコピーの保存期間 (7 日) が過ぎたためそのままです: {headings}。",
       "skipped": "{count} 件はそのままにしました。",
       "flagged": "{count} 件は確認が必要です。"
     }

@@ -124,6 +124,27 @@ describe('AIPromptBar: confirmation request', () => {
     expect(answer.mock.calls).toEqual([[true]])
   })
 
+  it('a translation job names the target language in the UI language', async () => {
+    available()
+    const request: AiConfirmationRequest = {
+      id: 'c5de',
+      tool: 'delegate_rewrite',
+      target: null,
+      expiresAt: Date.now() + 60_000,
+      kind: 'job',
+      job: { mode: 'translate', units: 8, usd: 0.01, minutes: 1, allowanceShare: 0.02, targetLanguage: 'English', inputTokens: 6_000, outputTokens: 1_000 }
+    }
+    const i18n = useNuxtApp().$i18n
+    await i18n.setLocale('de')
+    try {
+      const wrapper = await mountSuspended(AIPromptBar, { props: { ai: aiProps(request) } })
+      await vi.waitFor(() => expect(wrapper.find('[data-testid="ai-confirm-question"]').text()).toContain('auf Englisch'))
+      expect(wrapper.find('[data-testid="ai-confirm-question"]').text()).not.toContain('English')
+    } finally {
+      await i18n.setLocale('en')
+    }
+  })
+
   it('a job on the user\'s own key shows tokens instead of a cost', async () => {
     available()
     const request: AiConfirmationRequest = {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { AiConfirmationRequest } from '~/composables/ai/useAI'
 import { CONFIRM_NOTE_MAX_LENGTH } from '~~/shared/api/ai'
+import { localizedLanguageName } from '~~/shared/languages'
 
 // Inline "Allow / Deny" card above the prompt bar. Shown to the person
 // who started the AI session, and only to them (the request arrives
@@ -38,13 +39,15 @@ function deny(): void {
   emit('deny', text.length > 0 ? text : undefined)
 }
 
-const { t, te } = useI18n()
+const { t, te, locale } = useI18n()
 
 const isJob = computed(() => props.request?.kind === 'job' && !!props.request.job)
 const isReplace = computed(() => props.request?.kind === 'replace' && !!props.request.replace)
 const kind = computed(() => isJob.value ? 'job' : isReplace.value ? 'replace' : 'tool')
 
 /**
+ * The target language is named in the UI language: the planner writes
+ * "English", a German reader sees "Englisch".
  * "Translate 152 sections to English, about 5 min (about 22 % of this
  * month's AI allowance)." Never a currency amount: the only unit users see
  * is AI points, on the plan and usage pages.
@@ -53,7 +56,7 @@ const jobQuestion = computed(() => {
   const job = props.request?.job
   if (!job) return ''
   const what = job.mode === 'translate' && job.targetLanguage
-    ? t('ai.confirm.job.modes.translateTo', { count: job.units, language: job.targetLanguage })
+    ? t('ai.confirm.job.modes.translateTo', { count: job.units, language: localizedLanguageName(job.targetLanguage, locale.value) })
     : t(`ai.confirm.job.modes.${job.mode}`, { count: job.units })
   const minutes = t('ai.confirm.job.minutes', { minutes: Math.max(1, Math.round(job.minutes)) })
   const extra = job.allowanceShare !== null

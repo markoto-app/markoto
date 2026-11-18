@@ -48,7 +48,7 @@ const summary = computed(() => {
     case 'cancelled': return t('ai.job.cancelled', { done: j.done, total: j.total })
     case 'paused_budget': return t('ai.job.paused')
     case 'interrupted': return t('ai.job.interrupted')
-    case 'reverted': return undone.value?.jobId === j.jobId ? t('ai.job.undone', { count: undone.value.reverted }) : t('ai.job.reverted')
+    case 'reverted': return t('ai.job.reverted')
     case 'failed':
     case 'stopped_access':
     case 'preview':
@@ -57,13 +57,47 @@ const summary = computed(() => {
   }
 })
 
+/** The result of my "Undo job" on this job, if I just clicked it. */
+const undoReport = computed(() => {
+  const j = job.value
+  const u = undone.value
+  return j && u && u.jobId === j.jobId ? u : null
+})
+
 const canResume = computed(() => ['cancelled', 'paused_budget', 'interrupted'].includes(job.value?.status ?? ''))
 const canUndo = computed(() => {
   const j = job.value
-  return !!j && j.mode !== 'comment' && j.done > 0 && ['done', 'cancelled', 'paused_budget', 'interrupted', 'failed', 'stopped_access'].includes(j.status)
+  return !!j && !undoReport.value && j.mode !== 'comment' && j.done > 0 && ['done', 'cancelled', 'paused_budget', 'interrupted', 'failed', 'stopped_access'].includes(j.status)
 })
 const leftOut = computed(() => notes.value.filter(n => n.status !== 'flagged').length)
 const flagged = computed(() => notes.value.filter(n => n.status === 'flagged').length)
+
+const HEADINGS_SHOWN = 4
+
+function headingList(paths: readonly string[]): string {
+  const shown = paths.slice(0, HEADINGS_SHOWN).join(', ')
+  return paths.length > HEADINGS_SHOWN ? `${shown}, …` : shown
+}
+
+/**
+ * What undo did, in full sentences: restored parts (with the AI session's
+ * later corrections), then each group of parts it kept and why. Replaces
+ * the job's skipped / flagged note, which describes the job, not the undo.
+ */
+const undoLines = computed(() => {
+  const u = undoReport.value
+  if (!u) return []
+  const lines = [u.reverted > 0 ? t('ai.job.undone', { count: u.reverted }, u.reverted) : t('ai.job.undoneNothing')]
+  if (u.followUps > 0) lines.push(t('ai.job.undoneFollowUps', { count: u.followUps }, u.followUps))
+  for (const kind of ['edited', 'deleted', 'expired'] as const) {
+    const paths = u.kept.filter(k => k.kind === kind).map(k => k.headingPath)
+    if (paths.length === 0) continue
+    const key = kind === 'edited' ? 'ai.job.keptEdited' : kind === 'deleted' ? 'ai.job.keptDeleted' : 'ai.job.keptExpired'
+    lines.push(t(key, { count: paths.length, headings: headingList(paths) }, paths.length))
+  }
+  return lines
+})
+const showJobNotes = computed(() => !running.value && !undoReport.value && job.value?.status !== 'reverted' && (leftOut.value > 0 || flagged.value > 0))
 </script>
 
 <template>
@@ -87,11 +121,30 @@ const flagged = computed(() => notes.value.filter(n => n.status === 'flagged').l
           {{ t('ai.job.label') }} · {{ title }}
         </div>
         <p
+          v-if="undoLines.length === 0"
           class="mt-0.5 text-sm text-default"
           data-testid="ai-job-summary"
         >
           {{ summary }}
         </p>
+        <div
+          v-else
+          data-testid="ai-job-undo-report"
+        >
+          <p
+            class="mt-0.5 text-sm text-default"
+            data-testid="ai-job-summary"
+          >
+            {{ undoLines[0] }}
+          </p>
+          <p
+            v-for="(line, i) in undoLines.slice(1)"
+            :key="i"
+            class="mt-1 text-xs text-muted"
+          >
+            {{ line }}
+          </p>
+        </div>
         <div
           v-if="running"
           class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-elevated"
@@ -113,7 +166,7 @@ const flagged = computed(() => notes.value.filter(n => n.status === 'flagged').l
           {{ t('ai.job.working', { heading: job.currentHeading }) }}
         </p>
         <p
-          v-if="!running && (leftOut > 0 || flagged > 0)"
+          v-if="showJobNotes"
           class="mt-1 text-xs text-muted"
         >
           <span v-if="leftOut > 0">{{ t('ai.job.skipped', { count: leftOut }) }}</span>
