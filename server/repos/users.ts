@@ -137,3 +137,9 @@ export async function setAiModelTier(self: UserScope, tier: 'fast' | 'strong'): 
 export async function getAiModelTier(user: UserScope): Promise<'fast' | 'strong' | null> {
   return (await useDatabase().select({ tier: users.aiModelTier }).from(users).where(eq(users.id, user.userId)).limit(1))[0]?.tier ?? null
 }
+
+/** The user's personal explorer change counter (bumped by a trigger on every change to their personal folders / documents). */
+export async function getUserExplorerVersion(self: UserScope): Promise<number> {
+  const row = (await useDatabase().select({ v: users.explorerVersion }).from(users).where(eq(users.id, self.userId)).limit(1))[0]
+  return Number(row?.v ?? 0)
+}

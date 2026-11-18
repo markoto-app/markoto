@@ -34,6 +34,7 @@ CREATE TABLE "import_job_items" (
 	"kind" text NOT NULL,
 	"status" text DEFAULT 'pending' NOT NULL,
 	"reason" text,
+	"planned_doc_id" text,
 	"doc_id" text,
 	"s3_key" text,
 	"size_bytes" bigint DEFAULT 0 NOT NULL,
@@ -63,6 +64,8 @@ CREATE TABLE "import_jobs" (
 	CONSTRAINT "import_jobs_job_id_unique" UNIQUE("job_id")
 );
 --> statement-breakpoint
+ALTER TABLE "users" ADD COLUMN "explorer_version" bigint DEFAULT 0 NOT NULL;--> statement-breakpoint
+ALTER TABLE "workspaces" ADD COLUMN "explorer_version" bigint DEFAULT 0 NOT NULL;--> statement-breakpoint
 ALTER TABLE "documents" ADD COLUMN "folder_id" text;--> statement-breakpoint
 ALTER TABLE "documents" ADD COLUMN "updated_at" timestamp with time zone DEFAULT now() NOT NULL;--> statement-breakpoint
 -- Hand-written: existing documents start with their last activity as "last edited".
@@ -90,4 +93,45 @@ CREATE INDEX "idx_import_jobs_status" ON "import_jobs" USING btree ("status","he
 CREATE INDEX "idx_import_jobs_workspace" ON "import_jobs" USING btree ("workspace_id","created_at");--> statement-breakpoint
 ALTER TABLE "documents" ADD CONSTRAINT "documents_folder_id_folders_folder_id_fk" FOREIGN KEY ("folder_id") REFERENCES "public"."folders"("folder_id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "idx_documents_workspace_folder" ON "documents" USING btree ("workspace_id","folder_id");--> statement-breakpoint
-CREATE INDEX "idx_documents_owner_folder" ON "documents" USING btree ("owner_id","folder_id");
+CREATE INDEX "idx_documents_owner_folder" ON "documents" USING btree ("owner_id","folder_id");--> statement-breakpoint
+-- Hand-written: the explorer change counters. Every change to what an
+-- explorer lists (a folder or a document created, renamed, moved, deleted)
+-- bumps `workspaces.explorer_version` (workspace scope) or
+-- `users.explorer_version` (personal scope) in the same transaction, so no
+-- write path can forget it; open explorers poll the counter and refetch.
+-- Updates that change nothing listed (the sync server's word counts, a
+-- title written back unchanged) don't fire.
+CREATE OR REPLACE FUNCTION markoto_bump_explorer_version(ws text, owner integer) RETURNS void
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF ws IS NOT NULL THEN
+    UPDATE workspaces SET explorer_version = explorer_version + 1 WHERE workspace_id = ws;
+  ELSIF owner IS NOT NULL THEN
+    UPDATE users SET explorer_version = explorer_version + 1 WHERE id = owner;
+  END IF;
+END $$;--> statement-breakpoint
+CREATE OR REPLACE FUNCTION markoto_explorer_change() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF TG_OP <> 'INSERT' THEN
+    PERFORM markoto_bump_explorer_version(OLD.workspace_id, CASE WHEN OLD.workspace_id IS NULL THEN OLD.owner_id END);
+  END IF;
+  IF TG_OP = 'INSERT' OR (TG_OP = 'UPDATE' AND (NEW.workspace_id IS DISTINCT FROM OLD.workspace_id OR NEW.owner_id IS DISTINCT FROM OLD.owner_id)) THEN
+    PERFORM markoto_bump_explorer_version(NEW.workspace_id, CASE WHEN NEW.workspace_id IS NULL THEN NEW.owner_id END);
+  END IF;
+  RETURN NULL;
+END $$;--> statement-breakpoint
+CREATE TRIGGER trg_documents_explorer_insert_delete AFTER INSERT OR DELETE ON documents
+  FOR EACH ROW EXECUTE FUNCTION markoto_explorer_change();--> statement-breakpoint
+CREATE TRIGGER trg_documents_explorer_update AFTER UPDATE ON documents
+  FOR EACH ROW WHEN (
+    OLD.title IS DISTINCT FROM NEW.title OR OLD.folder_id IS DISTINCT FROM NEW.folder_id
+    OR OLD.workspace_id IS DISTINCT FROM NEW.workspace_id OR OLD.owner_id IS DISTINCT FROM NEW.owner_id
+    OR OLD.access_mode IS DISTINCT FROM NEW.access_mode
+  ) EXECUTE FUNCTION markoto_explorer_change();--> statement-breakpoint
+CREATE TRIGGER trg_folders_explorer_insert_delete AFTER INSERT OR DELETE ON folders
+  FOR EACH ROW EXECUTE FUNCTION markoto_explorer_change();--> statement-breakpoint
+CREATE TRIGGER trg_folders_explorer_update AFTER UPDATE ON folders
+  FOR EACH ROW WHEN (
+    OLD.name IS DISTINCT FROM NEW.name OR OLD.parent_id IS DISTINCT FROM NEW.parent_id
+  ) EXECUTE FUNCTION markoto_explorer_change();

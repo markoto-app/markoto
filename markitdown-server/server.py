@@ -273,12 +273,15 @@ def _child_design(conn, body: bytes, ext: str, pages: int) -> None:
         conn.close()
 
 
-def _child_convert(conn, body: bytes, ext: str) -> None:
+def _child_convert(conn, body: bytes, ext: str, keep_images: bool = False) -> None:
     """Runs in the forked child: cap memory, convert, send the outcome."""
     try:
         _cap_child_memory()
         stream_info = StreamInfo(extension=f".{ext}", filename=f"input.{ext}")
-        result = md.convert_stream(io.BytesIO(body), stream_info=stream_info)
+        # keep_data_uris: embedded pictures (DOCX, PPTX, EPUB, HTML) stay as
+        # data: URIs, which the app stores as the document's images. Without
+        # it markitdown cuts them to a placeholder.
+        result = md.convert_stream(io.BytesIO(body), stream_info=stream_info, keep_data_uris=keep_images)
         conn.send(("ok", result.markdown))
     except MemoryError:
         conn.send(("memory", ""))
@@ -307,9 +310,9 @@ def _current_vm_bytes() -> int:
     return 0
 
 
-def convert_isolated(body: bytes, ext: str) -> tuple[str, str]:
+def convert_isolated(body: bytes, ext: str, keep_images: bool = False) -> tuple[str, str]:
     """Convert in a child process. Returns (outcome, payload)."""
-    return run_isolated(_child_convert, body, ext)
+    return run_isolated(_child_convert, body, ext, keep_images)
 
 
 def run_isolated(target, *args):
@@ -378,7 +381,8 @@ async def convert(request: Request) -> PlainTextResponse:
     # Markitdown reads StreamInfo to route to the right converter: extension
     # alone is enough for the formats we accept; mimetype is left to the
     # converter to sniff if needed.
-    outcome, payload = await asyncio.to_thread(convert_isolated, body, raw_ext)
+    keep_images = request.query_params.get("images", "") == "1"
+    outcome, payload = await asyncio.to_thread(convert_isolated, body, raw_ext, keep_images)
     if outcome == "ok":
         return PlainTextResponse(payload, media_type="text/markdown; charset=utf-8")
     if outcome == "memory":

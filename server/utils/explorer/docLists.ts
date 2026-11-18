@@ -2,9 +2,7 @@ import type { z } from 'zod'
 import { listScopeDocs, type DocListRow } from '../../repos/documents'
 import { folderSubtreeIds, getFolder, listFolders, type FolderScope } from '../../repos/folders'
 import { searchDocuments } from '../../repos/documentSearch'
-import { listWorkspacesForUser } from '../../repos/workspaces'
-import type { UserScope, WorkspaceAccess } from '../../repos/proofs'
-import { proveWorkspaceAccess } from '../access/workspaceAccess'
+import type { UserScope } from '../../repos/proofs'
 import { apiError } from '../api/apiError'
 import { decodeDocCursor, encodeDocCursor } from './docCursor'
 import { prefixTsQuery } from '~~/shared/utils/documents/searchQuery'
@@ -110,18 +108,4 @@ export async function listDocsPage(self: UserScope, scope: FolderScope, query: z
 export async function folderTree(scope: FolderScope) {
   const rows = await listFolders(scope)
   return rows.map(r => ({ folderId: r.folderId, parentId: r.parentId, name: r.name, docCount: r.docCount, updatedAt: iso(r.updatedAt) }))
-}
-
-/**
- * Proofs for every workspace the user is a member of (SSO-checked: a
- * workspace that enforces single sign-on without a current sign-in is left
- * out). Guests hold none.
- */
-export async function memberWorkspaceProofs(self: UserScope): Promise<Array<WorkspaceAccess<'member'>>> {
-  const out: Array<WorkspaceAccess<'member'>> = []
-  for (const ws of await listWorkspacesForUser(self)) {
-    const proof = await proveWorkspaceAccess(self.userId, ws.workspaceId, 'member')
-    if (proof) out.push(proof)
-  }
-  return out
 }

@@ -1,6 +1,6 @@
 // Accounts: identity, plan, LiteLLM key, policy acceptance, deletion state.
 
-import { pgTable, serial, integer, text, timestamp, index, uniqueIndex, boolean, check, date } from 'drizzle-orm/pg-core'
+import { pgTable, serial, integer, bigint, text, timestamp, index, uniqueIndex, boolean, check, date } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import type { StripeSubscriptionStatus } from '~~/shared/contracts/stripe'
 
@@ -116,6 +116,10 @@ export const users = pgTable('users', {
   // counts (`docs/contributing/admin-metrics.md`). NULL = not seen since
   // the column exists.
   lastActiveOn: date('last_active_on', { mode: 'string' }),
+  // Bumped by a database trigger on every change to the user's personal
+  // folders and documents (create, rename, move, delete): open explorers
+  // poll it and refetch when it moved (migration 0009).
+  explorerVersion: bigint('explorer_version', { mode: 'number' }).notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
   // Partial indexes: the plan-lapse and account-deletion sweeps scan these

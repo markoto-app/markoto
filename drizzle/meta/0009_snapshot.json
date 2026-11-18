@@ -1,5 +1,5 @@
 {
-  "id": "c0675945-df64-46f1-b198-981483620ef2",
+  "id": "d4a2e68d-1ea5-46b9-be38-6b3e142999a5",
   "prevId": "769c3f06-e4b5-462a-8c23-7342637d3b5f",
   "version": "7",
   "dialect": "postgresql",
@@ -221,6 +221,13 @@
           "type": "date",
           "primaryKey": false,
           "notNull": false
+        },
+        "explorer_version": {
+          "name": "explorer_version",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
         },
         "created_at": {
           "name": "created_at",
@@ -658,6 +665,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "explorer_version": {
+          "name": "explorer_version",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
         },
         "created_at": {
           "name": "created_at",
@@ -1833,6 +1847,12 @@
         },
         "reason": {
           "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "planned_doc_id": {
+          "name": "planned_doc_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false

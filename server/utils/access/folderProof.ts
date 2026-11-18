@@ -10,9 +10,9 @@ import { proveSelf } from './userProof'
 
 export type FolderNeed = 'member' | 'editor' | 'admin'
 
-export type FolderScopeProof<N extends FolderNeed> =
-  | { kind: 'workspace', workspaceId: string, scope: WorkspaceAccess<WorkspaceGrant<N>> }
-  | { kind: 'personal', workspaceId: null, scope: UserScope }
+export type FolderScopeProof<N extends FolderNeed>
+  = | { kind: 'workspace', workspaceId: string, scope: WorkspaceAccess<WorkspaceGrant<N>> }
+    | { kind: 'personal', workspaceId: null, scope: UserScope }
 
 /**
  * The scope proof for a folder the user may reach at `need` (a personal

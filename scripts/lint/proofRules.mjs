@@ -139,6 +139,13 @@ const CREATION = ['^server/utils/documents/createDocument\\.ts$', '^server/utils
 // `ctx.prove` (server/utils/api/policyProver.ts): the policies' prover for a
 // second object, bound to the user the policy authenticated.
 const POLICY_PROVER = '^server/utils/api/policyProver\\.ts$'
+// The explorer's actions on many items (each decided like the single-item
+// route) and its folder routes; bulk imports (the target scope, the editor's
+// single-file import into a document the caller may write).
+const EXPLORER = '^server/utils/explorer/'
+const IMPORTS = '^server/utils/imports/createImportJob\\.ts$'
+const IMPORT_ROUTE = '^server/api/import\\.post\\.ts$'
+const IMPORT_WORKER = '^server/utils/imports/importWorker\\.ts$'
 
 /**
  * Each entry point that mints a proof from something the caller vouches for
@@ -160,7 +167,13 @@ export const PROOF_ENTRY_CALLERS = {
   // A row the caller just inserted.
   proveNewDoc: CREATION,
   // Membership of a user, checked against the database.
-  proveDocMembership: [MCP_WRAPPER, MCP_EXPORT_TOOL, ...AI_SESSION, ...AI_TOOLS, AI_JOBS, POLICY_PROVER],
+  proveDocMembership: [MCP_WRAPPER, MCP_EXPORT_TOOL, ...AI_SESSION, ...AI_TOOLS, AI_JOBS, POLICY_PROVER, EXPLORER],
+  proveDocNeed: [EXPLORER, IMPORT_ROUTE],
+  proveFolderScope: [EXPLORER, IMPORTS, ...AI_TOOLS],
+  proveScope: [EXPLORER, IMPORTS, ...AI_TOOLS],
+  memberWorkspaceProofs: [EXPLORER, ...AI_TOOLS],
+  // The import worker acts for the user who started the job.
+  proveImportJobScope: [IMPORT_WORKER],
   proveWorkspaceAccess: [MCP_WRAPPER, ...AI_SESSION, ...AI_TOOLS, ...CREATION, POLICY_PROVER],
   // The second-object prover for a user id: the policies hand it out as `ctx.prove`.
   proverFor: [POLICY, POLICY_DOC]

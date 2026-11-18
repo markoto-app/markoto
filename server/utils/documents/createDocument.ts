@@ -64,6 +64,8 @@ export interface CreateDocumentParams {
    *  as the doc's first Y.js update. Mutually exclusive with `templateId`
    *  (a template seeds its body in the browser on first open). */
   content?: string
+  /** A pre-chosen id (imports pick ids first so links between imported files can point at them). */
+  docId?: string
   /** A longer body limit (imports); default `INITIAL_CONTENT_MAX_LENGTH`. */
   contentMaxLength?: number
   /** The folder to file it in (a folder of the workspace, or of the owner's personal documents). */
@@ -96,7 +98,7 @@ export interface CreateDocumentResult {
  * past a theme whitelist by also sending a saved id.
  */
 export async function createDocument(input: CreateDocumentParams): Promise<CreateDocumentResult> {
-  const docId = nanoid(10)
+  const docId = input.docId ?? nanoid(10)
   const ownerId = input.owner?.userId ?? null
   const workspace = await resolveWorkspace(input.workspaceId, input.owner)
 

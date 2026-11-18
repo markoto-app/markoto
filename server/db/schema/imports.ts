@@ -66,6 +66,9 @@ export const importJobItems = pgTable('import_job_items', {
   kind: text('kind', { enum: IMPORT_ITEM_KINDS }).notNull(),
   status: text('status', { enum: IMPORT_ITEM_STATUSES }).notNull().default('pending'),
   reason: text('reason', { enum: IMPORT_ITEM_REASONS }),
+  // The id the item's document gets, chosen when the job starts so links
+  // between imported files can be rewritten before the documents exist.
+  plannedDocId: text('planned_doc_id'),
   docId: text('doc_id').references(() => documents.docId, { onDelete: 'set null' }),
   s3Key: text('s3_key'),
   sizeBytes: bigint('size_bytes', { mode: 'number' }).notNull().default(0),
