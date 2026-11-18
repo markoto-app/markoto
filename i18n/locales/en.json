@@ -156,7 +156,6 @@
     "backHome": "Back to home"
   },
   "presence": {
-    "offline": "offline",
     "away": "away",
     "anonymousEditor": "Anonymous editor",
     "guest": "Guest"

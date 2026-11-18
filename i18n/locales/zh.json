@@ -156,7 +156,6 @@
     "backHome": "返回首页"
   },
   "presence": {
-    "offline": "离线",
     "away": "离开",
     "anonymousEditor": "匿名编辑者",
     "guest": "访客"
