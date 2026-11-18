@@ -221,7 +221,7 @@
         "x": 195,
         "y": 521
       },
-      "path": "/d/Z4sz6hLU-b"
+      "path": "/d/EzGGCgP31Z"
     },
     {
       "kind": "chapter",
@@ -233,14 +233,14 @@
       "text": "markoto pre-fills the doc with the template's structure, headings, a table layout, and HTML comments hinting what to write in each section. The comments are visible while you edit but hidden from the preview, the PDF, and anyone you share the link with.",
       "file": "15.webp",
       "cursor": null,
-      "path": "/d/Z4sz6hLU-b"
+      "path": "/d/EzGGCgP31Z"
     },
     {
       "kind": "outcome",
       "file": "15.webp",
       "caption": "Headings, an Action items checklist, comment hints, all ready to fill in.",
       "cursor": null,
-      "path": "/d/Z4sz6hLU-b"
+      "path": "/d/EzGGCgP31Z"
     },
     {
       "kind": "chapter",
@@ -252,7 +252,7 @@
       "text": "markoto documents share by URL. Anyone with the link can read or edit, depending on the access mode you choose. The default for anonymous documents is \"open edit\", anyone with the link can edit.",
       "file": "15.webp",
       "cursor": null,
-      "path": "/d/Z4sz6hLU-b"
+      "path": "/d/EzGGCgP31Z"
     },
     {
       "kind": "approach",
@@ -262,7 +262,7 @@
         "x": 330,
         "y": 20
       },
-      "path": "/d/Z4sz6hLU-b",
+      "path": "/d/EzGGCgP31Z",
       "annotations": [
         {
           "label": "lock icon",
@@ -282,21 +282,21 @@
         "x": 330,
         "y": 20
       },
-      "path": "/d/Z4sz6hLU-b",
+      "path": "/d/EzGGCgP31Z",
       "highlights": [
         {
           "label": "The link to share",
-          "x": 32.12485885620117,
-          "y": 335.5187683105469,
-          "w": 189.54219436645508,
-          "h": 27.978546142578125
+          "x": 32.125247955322266,
+          "y": 335.5188293457031,
+          "w": 189.54174423217773,
+          "h": 27.978485107421875
         },
         {
           "label": "One-click copy",
-          "x": 229.66091918945312,
-          "y": 335.5187683105469,
-          "w": 92.24179077148438,
-          "h": 27.978546142578125
+          "x": 229.6608428955078,
+          "y": 335.5188293457031,
+          "w": 92.24156188964844,
+          "h": 27.978485107421875
         }
       ]
     },
@@ -308,7 +308,7 @@
         "x": 275,
         "y": 349
       },
-      "path": "/d/Z4sz6hLU-b"
+      "path": "/d/EzGGCgP31Z"
     },
     {
       "kind": "outcome",
@@ -318,7 +318,7 @@
         "x": 275,
         "y": 349
       },
-      "path": "/d/Z4sz6hLU-b",
+      "path": "/d/EzGGCgP31Z",
       "hero": true
     }
   ],

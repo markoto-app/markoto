@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/BKldvQIM1d"
+      "path": "/d/7MTRIeJtRB"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 618,
         "y": 722
       },
-      "path": "/d/BKldvQIM1d",
+      "path": "/d/7MTRIeJtRB",
       "annotations": [
         {
           "label": "prompt bar",
@@ -52,7 +52,7 @@
         "x": 618,
         "y": 722
       },
-      "path": "/d/BKldvQIM1d"
+      "path": "/d/7MTRIeJtRB"
     },
     {
       "kind": "approach",
@@ -62,7 +62,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/BKldvQIM1d"
+      "path": "/d/7MTRIeJtRB"
     },
     {
       "kind": "outcome",
@@ -72,7 +72,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/BKldvQIM1d"
+      "path": "/d/7MTRIeJtRB"
     },
     {
       "kind": "chapter",
@@ -87,7 +87,7 @@
         "x": 618,
         "y": 722
       },
-      "path": "/d/BKldvQIM1d"
+      "path": "/d/7MTRIeJtRB"
     },
     {
       "kind": "approach",
@@ -97,7 +97,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/BKldvQIM1d"
+      "path": "/d/7MTRIeJtRB"
     },
     {
       "kind": "outcome",
@@ -107,7 +107,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/BKldvQIM1d"
+      "path": "/d/7MTRIeJtRB"
     },
     {
       "kind": "chapter",
@@ -116,13 +116,13 @@
     },
     {
       "kind": "narration",
-      "text": "When the AI is done, the bar fades back to its idle state. The AI's edits are now part of your document, undo them with Cmd / Ctrl + Z if you don't like what it wrote, or iterate by sending another prompt that builds on its work.",
+      "text": "When the AI is done, the bar fades back to its idle state. The AI's edits are now part of your document. Cmd / Ctrl + Z only takes back your own typing, not the AI's changes: if you don't like what it wrote, use Restore on its entry in the Activity tab, or send another prompt that builds on its work.",
       "file": "07.webp",
       "cursor": {
         "x": 1000,
         "y": 722
       },
-      "path": "/d/BKldvQIM1d"
+      "path": "/d/7MTRIeJtRB"
     },
     {
       "kind": "outcome",
@@ -132,12 +132,12 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/BKldvQIM1d",
+      "path": "/d/7MTRIeJtRB",
       "highlights": [
         {
           "label": "The new section",
           "x": 24.75,
-          "y": 438.5,
+          "y": 429.5,
           "w": 590,
           "h": 27.75
         }
