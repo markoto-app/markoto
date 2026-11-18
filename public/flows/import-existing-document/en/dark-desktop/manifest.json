@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/WyM_m_740A"
+      "path": "/d/b6aifNfGkR"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 28,
         "y": 67
       },
-      "path": "/d/WyM_m_740A",
+      "path": "/d/b6aifNfGkR",
       "annotations": [
         {
           "label": "file menu",
@@ -52,7 +52,7 @@
         "x": 28,
         "y": 67
       },
-      "path": "/d/WyM_m_740A"
+      "path": "/d/b6aifNfGkR"
     },
     {
       "kind": "approach",
@@ -62,7 +62,7 @@
         "x": 103,
         "y": 141
       },
-      "path": "/d/WyM_m_740A",
+      "path": "/d/b6aifNfGkR",
       "annotations": [
         {
           "label": "import",
@@ -82,7 +82,7 @@
         "x": 103,
         "y": 141
       },
-      "path": "/d/WyM_m_740A"
+      "path": "/d/b6aifNfGkR"
     },
     {
       "kind": "chapter",
@@ -97,7 +97,7 @@
         "x": 103,
         "y": 141
       },
-      "path": "/d/WyM_m_740A"
+      "path": "/d/b6aifNfGkR"
     },
     {
       "kind": "approach",
@@ -107,15 +107,15 @@
         "x": 640,
         "y": 414
       },
-      "path": "/d/WyM_m_740A",
+      "path": "/d/b6aifNfGkR",
       "annotations": [
         {
           "label": "dropzone",
           "kind": "box",
           "x": 408,
-          "y": 343,
+          "y": 314.5,
           "w": 464,
-          "h": 142
+          "h": 199
         }
       ]
     },
@@ -127,7 +127,7 @@
         "x": 640,
         "y": 414
       },
-      "path": "/d/WyM_m_740A"
+      "path": "/d/b6aifNfGkR"
     },
     {
       "kind": "chapter",
@@ -142,7 +142,7 @@
         "x": 640,
         "y": 414
       },
-      "path": "/d/WyM_m_740A"
+      "path": "/d/b6aifNfGkR"
     },
     {
       "kind": "approach",
@@ -150,9 +150,9 @@
       "caption": "Click \"Import\" to convert and load",
       "cursor": {
         "x": 828,
-        "y": 541
+        "y": 562
       },
-      "path": "/d/WyM_m_740A"
+      "path": "/d/b6aifNfGkR"
     },
     {
       "kind": "outcome",
@@ -160,9 +160,9 @@
       "caption": "markoto asks how to merge, your existing content vs the imported markdown.",
       "cursor": {
         "x": 828,
-        "y": 541
+        "y": 562
       },
-      "path": "/d/WyM_m_740A"
+      "path": "/d/b6aifNfGkR"
     },
     {
       "kind": "approach",
@@ -172,7 +172,7 @@
         "x": 504,
         "y": 465
       },
-      "path": "/d/WyM_m_740A"
+      "path": "/d/b6aifNfGkR"
     },
     {
       "kind": "outcome",
@@ -182,7 +182,7 @@
         "x": 504,
         "y": 465
       },
-      "path": "/d/WyM_m_740A",
+      "path": "/d/b6aifNfGkR",
       "hero": true
     }
   ],

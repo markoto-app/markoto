@@ -1,0 +1,98 @@
+{
+  "version": 2,
+  "title": "Swap two chapters and renumber with AI",
+  "slug": "swap-two-chapters-and-renumber-with-ai",
+  "locale": "en",
+  "variant": "light-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Ask for the swap"
+    },
+    {
+      "kind": "narration",
+      "text": "Chapters can trade places in one request. Ask for the renumbering in the same sentence: the AI moves both chapters with all their sections and then puts every number back in order.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 640,
+        "y": 26
+      },
+      "path": "/d/s5pg8Y51Gx"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Click into the AI prompt bar",
+      "cursor": {
+        "x": 618,
+        "y": 722
+      },
+      "path": "/d/s5pg8Y51Gx"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Say which chapters should trade places",
+      "cursor": {
+        "x": 316,
+        "y": 723
+      },
+      "path": "/d/s5pg8Y51Gx"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "Your request is ready to send.",
+      "cursor": {
+        "x": 316,
+        "y": 723
+      },
+      "path": "/d/s5pg8Y51Gx"
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Click send",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/s5pg8Y51Gx"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "The AI swaps the chapters and renumbers the headings.",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/s5pg8Y51Gx"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Chapters swapped, numbers in order"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "Chapter 10 is now \"Notfall- und Krisenorganisation\", and every number below it follows the new order.",
+      "cursor": {
+        "x": 1000,
+        "y": 722
+      },
+      "path": "/d/s5pg8Y51Gx",
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "translate-many-sections-with-ai",
+    "why": "Translate or restyle many sections at once"
+  }
+}
