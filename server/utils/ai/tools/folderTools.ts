@@ -23,7 +23,7 @@ const LIST_FOLDERS_MAX = 500
 
 const WorkspaceArg = z.string().trim().min(1).max(64)
 
-export const ListFoldersArgs = z.object({
+const ListFoldersArgs = z.object({
   workspace_id: WorkspaceArg.optional()
     .describe('A workspace id, or "personal" for your personal (non-workspace) documents. Omit for the current document\'s workspace (personal folders when the current document is not in a workspace).')
 }).describe('List the folders of a workspace or of your personal documents: folder_id, full path, parent and the number of documents filed directly in it.')

@@ -281,7 +281,9 @@ def _child_convert(conn, body: bytes, ext: str, keep_images: bool = False) -> No
         # keep_data_uris: embedded pictures (DOCX, PPTX, EPUB, HTML) stay as
         # data: URIs, which the app stores as the document's images. Without
         # it markitdown cuts them to a placeholder.
-        result = md.convert_stream(io.BytesIO(body), stream_info=stream_info, keep_data_uris=keep_images)
+        result = md.convert_stream(
+            io.BytesIO(body), stream_info=stream_info, keep_data_uris=keep_images
+        )
         conn.send(("ok", result.markdown))
     except MemoryError:
         conn.send(("memory", ""))
