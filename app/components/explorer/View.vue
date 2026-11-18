@@ -543,6 +543,7 @@ defineExpose({ refresh: data.refresh })
             :virtualize="{ estimateSize: ROW_HEIGHT, overscan: 12 }"
             sticky
             :style="{ height: `${listHeight}px` }"
+            :class="selectedItems.length > 0 ? 'pb-14' : undefined"
             :ui="{ tr: 'outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-default', td: 'py-2', th: 'whitespace-nowrap' }"
             :on-select="onRowSelect"
             :on-contextmenu="onRowContextmenu"
