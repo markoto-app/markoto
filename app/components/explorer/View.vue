@@ -166,8 +166,9 @@ function cancelRename(key: string) {
 // Opened from the keyboard: once the folder's list is there, the focus goes
 // into it (else it would drop to the page and need a Tab back).
 let focusAfterOpen = false
-watch(keys, (k) => {
-  if (!focusAfterOpen || data.docs.isLoading.value) return
+// Watches the loading flag too: an empty folder's keys stay [] after loading.
+watch([keys, data.docs.isLoading], ([k, loading]) => {
+  if (!focusAfterOpen || loading) return
   focusAfterOpen = false
   void nextTick(() => {
     if (k[0]) {
@@ -213,6 +214,7 @@ function onRowSelect(e: Event, row: { original: ExplorerItem }) {
   cancelSlowClick()
   if (renamingKey.value === item.key) return
   if (e.type === 'keydown' || (isMobile.value && !selectMode.value)) {
+    focusAfterOpen = e.type === 'keydown' && item.kind === 'folder'
     openItem(item)
     return
   }
