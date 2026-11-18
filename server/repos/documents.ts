@@ -1,4 +1,4 @@
-import { and, eq, isNull, lt, sql, type SQL } from 'drizzle-orm'
+import { and, eq, inArray, isNull, lt, sql, type SQL } from 'drizzle-orm'
 import type { DocTheme } from '~~/shared/types/theme'
 import type { AudienceKind } from '~~/shared/audiences'
 import type { DocListSort, SortDirection } from '~~/shared/api/explorer'
@@ -482,6 +482,8 @@ export interface DocListQuery {
   dir: SortDirection
   /** Only documents of this owner. */
   ownerId?: number
+  /** Only these documents (rows for search hits). */
+  docIds?: readonly string[]
   /** Keyset position from the previous page. */
   after?: { key: string, docId: string }
   limit: number
@@ -508,6 +510,10 @@ export async function listScopeDocs(scope: FolderScope, q: DocListQuery): Promis
   if (q.folder === null) filters.push(sql`${documents.folderId} IS NULL`)
   else if (q.folder !== 'all') filters.push(sql`${documents.folderId} = ${q.folder}`)
   if (q.ownerId !== undefined) filters.push(sql`${documents.ownerId} = ${q.ownerId}`)
+  if (q.docIds !== undefined) {
+    if (q.docIds.length === 0) return { rows: [], total: 0 }
+    filters.push(inArray(documents.docId, [...q.docIds]))
+  }
   const base = and(...filters)
   const page: SQL[] = []
   if (q.after) {
