@@ -97,11 +97,30 @@ MAX_OBEDIENT_TOOL_TURNS = 6
 WORKER_PROMPT_PREFIX = "You transform one part of a Markdown document"
 WORKER_UNIT_RE = re.compile(r"<unit>\n([\s\S]*)\n</unit>")
 PLACEHOLDER_RE = re.compile(r"⟦P\d+⟧")
-WORKER_FILLER = "this translated text reads clearly in English and keeps the meaning of the original".split()
+WORKER_FILLER = [
+    "this",
+    "translated",
+    "text",
+    "reads",
+    "clearly",
+    "in",
+    "English",
+    "and",
+    "keeps",
+    "the",
+    "meaning",
+    "of",
+    "the",
+    "original",
+]
 
 
 def _is_worker_request(messages):
-    return bool(messages) and messages[0].get("role") == "system" and _content_text(messages[0]).startswith(WORKER_PROMPT_PREFIX)
+    return (
+        bool(messages)
+        and messages[0].get("role") == "system"
+        and _content_text(messages[0]).startswith(WORKER_PROMPT_PREFIX)
+    )
 
 
 def _worker_line(line):
