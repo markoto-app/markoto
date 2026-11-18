@@ -223,29 +223,35 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
       }
     )
   } else {
-    // Switch back to the Documents tab and click "New document".
+    // Switch back to the Documents tab and pick New -> New document.
     await flow.click(
       'Switch to the Documents tab',
       page.getByRole('tab', { name: /documents/i }),
       {
-        result: 'The Documents tab opens, no docs yet, but a "New document" button is right there.',
-        after: () => page.locator('[data-testid="workspace-new-document"]').first().waitFor({ state: 'visible' })
+        result: 'The Documents tab opens: no documents yet, and a "New" button above the list.',
+        after: () => page.getByTestId('explorer-new').waitFor({ state: 'visible' })
       }
     )
 
-    // Create a workspace doc. The button calls a method that POSTs
+    await flow.click(
+      'Click "New"',
+      page.getByTestId('explorer-new'),
+      {
+        result: 'The menu offers a new document, a new folder or an import.',
+        after: () => page.getByRole('menuitem', { name: /^new document/i }).waitFor({ state: 'visible' })
+      }
+    )
+
+    // "New document" opens the new-document dialog; creating it POSTs
     // to /api/docs with the workspaceId, then routes to the new doc.
     await flow.click(
-      'Click "New document"',
-      page.locator('[data-testid="workspace-new-document"]').first(),
+      'Pick "New document"',
+      page.getByRole('menuitem', { name: /^new document/i }),
       {
         result: 'The new-document dialog opens. Give the doc a name.',
         after: async () => {
-          // Wait for the new-doc dialog. The data-testid is on UModal
-          // (Reka renders it in a portal which doesn't always
-          // surface attributes on the visible dialog content), so
-          // probe the title input which IS reliably inside the open
-          // dialog body.
+          // The data-testid on UModal never reaches the DOM; probe the
+          // title input, which is inside the open dialog body.
           await page.locator('[data-testid="newdoc-title-input"]').waitFor({ state: 'visible', timeout: 10_000 })
         }
       }

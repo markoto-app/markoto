@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { DEFAULT_TITLE } from '~~/shared/seo/meta'
 
-// `/f/:folderId`: a folder of the signed-in user's personal documents
-// (the dashboard's explorer), so back / forward and links work.
-definePageMeta({ alias: ['/f/:folderId'] })
-
 const { t } = useI18n()
 const router = useRouter()
 const { loggedIn } = useUserSession()

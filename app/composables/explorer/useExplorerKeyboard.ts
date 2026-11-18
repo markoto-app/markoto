@@ -14,7 +14,7 @@ import {
 //   the focus only, Ctrl+Space toggles), Enter opens, Backspace or Alt+Up
 //   goes to the parent, F2 renames, Delete deletes, Escape clears, Ctrl+A
 //   selects all, Ctrl+X / Ctrl+V cut and paste, Ctrl+Z undoes the last move,
-//   Ctrl+Shift+N makes a folder, typing jumps to a name.
+//   Alt+N makes a folder, typing jumps to a name.
 
 export interface ExplorerKeyboardDeps {
   selection: Ref<SelectionState>
@@ -100,15 +100,18 @@ export function useExplorerKeyboard(d: ExplorerKeyboardDeps) {
     }
   }
 
-  /** Ctrl / Cmd shortcuts. Returns true when handled. */
+  /** Ctrl / Cmd shortcuts, and Alt+N (new folder: browsers keep Ctrl+Shift+N for a private window). Returns true when handled. */
   function shortcut(e: KeyboardEvent): boolean {
+    if (e.altKey && !mods(e).ctrl && e.code === 'KeyN' && d.canWrite()) {
+      d.newFolder()
+      return true
+    }
     if (!mods(e).ctrl || e.altKey) return false
     const k = e.key.toLowerCase()
     if (k === 'a') d.selection.value = selectAll(d.selection.value, d.keys.value)
     else if (k === 'x') d.cut(d.selectedItems.value)
     else if (k === 'v') d.paste()
     else if (k === 'z') d.undo()
-    else if (k === 'n' && e.shiftKey && d.canWrite()) d.newFolder()
     else return false
     return true
   }

@@ -48,15 +48,31 @@ watchEffect(() => {
 // Inline rename: Enter or leaving the field commits, Escape cancels.
 const draft = ref('')
 const input = useTemplateRef<{ inputRef?: HTMLInputElement }>('input')
-watch(() => props.renaming, async (on) => {
-  if (!on) return
-  draft.value = props.item.label
-  await nextTick()
+let startedAt = 0
+function focusInput() {
   const el = input.value?.inputRef
   el?.focus()
-  // Like a file manager: the name is selected, the extension-less title whole.
+  // Like a file manager: the whole name is selected, ready to be typed over.
   el?.select()
+}
+watch(() => props.renaming, async (on) => {
+  if (!on) return
+  startedAt = Date.now()
+  draft.value = props.item.label
+  await nextTick()
+  focusInput()
 }, { immediate: true })
+
+// A menu that just closed (context menu, "New") hands focus back to its
+// trigger a moment after the rename started; that is not the person
+// leaving the field, so the field takes the focus back.
+function onBlur() {
+  if (Date.now() - startedAt < 500) {
+    setTimeout(focusInput, 0)
+    return
+  }
+  commit()
+}
 
 const problem = computed(() => {
   if (!props.renaming) return null
@@ -114,7 +130,7 @@ const snippet = computed(() => props.item.kind === 'doc' && props.item.doc.snipp
           data-testid="explorer-rename-input"
           @keydown.enter.prevent="commit"
           @keydown.esc.prevent="cancel"
-          @blur="commit"
+          @blur="onBlur"
         />
         <p
           v-if="problem"

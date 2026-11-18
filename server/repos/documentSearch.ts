@@ -20,7 +20,10 @@ export const SEARCH_BODY_MAX_CHARS = 400_000
  */
 export async function upsertDocumentSearch(
   doc: DocAccess<'write'>,
-  input: { title: string, body: string, yjsId: number | null, wordCount: number, sizeBytes: number }
+  input: { title: string, body: string, yjsId: number | null, wordCount: number, sizeBytes: number },
+  // false for a rebuild of the index from the stored state (backfill): the
+  // text did not change, so "last edited" must not move.
+  opts: { touch: boolean } = { touch: true }
 ): Promise<void> {
   const body = input.body.slice(0, SEARCH_BODY_MAX_CHARS)
   const title = input.title.trim().slice(0, 255)
@@ -41,8 +44,8 @@ export async function upsertDocumentSearch(
       size_bytes = ${input.sizeBytes},
       title = CASE WHEN ${title} <> '' THEN ${title} ELSE d.title END,
       updated_at = CASE
-        WHEN (SELECT body FROM prev) IS DISTINCT FROM (SELECT body FROM up)
-          OR (SELECT title FROM prev) IS DISTINCT FROM (SELECT title FROM up) THEN now()
+        WHEN ${opts.touch} AND ((SELECT body FROM prev) IS DISTINCT FROM (SELECT body FROM up)
+          OR (SELECT title FROM prev) IS DISTINCT FROM (SELECT title FROM up)) THEN now()
         ELSE d.updated_at END
     WHERE d.doc_id = ${doc.docId} AND EXISTS (SELECT 1 FROM up)
   `)

@@ -446,6 +446,8 @@ useInfiniteScroll(scrollEl, () => {
 const foldersSheetOpen = ref(false)
 const longPressTarget = shallowRef<ExplorerItem | null>(null)
 function onLongPress(e: PointerEvent) {
+  // Touch only: a long press with the mouse stays a plain press.
+  if (!isMobile.value) return
   const key = (e.target as HTMLElement | null)?.closest<HTMLElement>('tr[data-key]')?.dataset.key
   const item = key ? byKey.value.get(key) : undefined
   if (!item) return
@@ -524,6 +526,7 @@ defineExpose({ refresh: data.refresh })
       <UContextMenu :items="contextItems">
         <!-- eslint-disable-next-line vuejs-accessibility/no-static-element-interactions -- delegates the rows' keyboard, double click and file drops; the rows are the grid's interactive elements -->
         <div
+          v-long-press="onLongPress"
           class="relative rounded-md"
           :class="fileDragOver ? 'ring-2 ring-default' : ''"
           @contextmenu="onPaneContextmenu"
@@ -535,7 +538,6 @@ defineExpose({ refresh: data.refresh })
         >
           <UTable
             ref="table"
-            v-long-press="onLongPress"
             :data="items"
             :columns="columns"
             :get-row-id="(row: ExplorerItem) => row.key"

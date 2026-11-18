@@ -13,9 +13,10 @@ const toast = useToast()
 const { showError, extractError } = useErrorHandler()
 const { loggedIn, user } = useUserSession()
 
-// `/w/:id/f/:folderId` opens a folder of the workspace's explorer (same
-// page; the folder is part of the URL so back / forward and links work).
-definePageMeta({ alias: ['/w/:id/f/:folderId'] })
+// `/w/:id/f/:folderId` opens a folder of the workspace's explorer: the same
+// page instance (keyed by the workspace), the folder in the URL so back /
+// forward and links work. `sub` only ever matches the literal `f`.
+definePageMeta({ path: '/w/:id/:sub(f)?/:folderId?', key: route => `w:${String(route.params.id)}` })
 
 const workspaceId = computed(() => route.params.id as string)
 const folderId = computed(() => typeof route.params.folderId === 'string' && route.params.folderId ? route.params.folderId : null)

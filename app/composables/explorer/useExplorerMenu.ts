@@ -18,7 +18,7 @@ const ACTION_META: Record<MenuAction, { icon: string, kbds?: string[], color?: '
   share: { icon: 'i-lucide-share-2' },
   delete: { icon: 'i-lucide-trash-2', kbds: ['delete'], color: 'error' },
   newDocument: { icon: 'i-lucide-file-plus' },
-  newFolder: { icon: 'i-lucide-folder-plus', kbds: ['meta', 'shift', 'n'] },
+  newFolder: { icon: 'i-lucide-folder-plus', kbds: ['alt', 'n'] },
   import: { icon: 'i-lucide-upload' },
   paste: { icon: 'i-lucide-clipboard-paste', kbds: ['meta', 'v'] }
 }

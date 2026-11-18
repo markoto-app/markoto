@@ -51,6 +51,7 @@ const crumbs = computed<Crumb[]>(() => {
     <UBreadcrumb
       :items="crumbs"
       class="min-w-0"
+      :ui="{ link: 'aria-[current=page]:text-highlighted' }"
       data-testid="explorer-breadcrumb"
     >
       <template #item-label="{ item }">

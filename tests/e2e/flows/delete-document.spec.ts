@@ -47,7 +47,8 @@ test('Delete a document', async ({ page, flow, editor }) => {
     + 'doc\'s title back as a confirmation, strong friction by '
     + 'design, because deletion is permanent. The text, its history, '
     + 'its comments and every image in it are removed, and anyone '
-    + 'who has the doc open is sent back to their dashboard.'
+    + 'who has the doc open is told it was deleted and can download '
+    + 'a Markdown copy of the text.'
   )
 
   // Open the menu containing Delete
@@ -106,9 +107,9 @@ test('Delete a document', async ({ page, flow, editor }) => {
     {
       hero: true,
       result: 'The doc is gone. You land back on your dashboard, and '
-        + 'your recent documents no longer list it.',
+        + 'your documents no longer list it.',
       highlights: [
-        { label: 'Recent documents', selector: '[data-testid="landing-recent-documents"]' }
+        { label: 'Your documents', selector: '[data-testid="landing-recent-documents"]' }
       ],
       after: async () => {
         await page.waitForURL('/', { timeout: 10_000 })

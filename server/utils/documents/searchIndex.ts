@@ -63,7 +63,7 @@ export async function reindexDocument(doc: DocAccess<'write'>): Promise<void> {
         ydoc.destroy()
       }
     }
-    await upsertDocumentSearch(doc, { title, body, yjsId, wordCount: wordsIn(body), sizeBytes: Buffer.byteLength(body, 'utf8') })
+    await upsertDocumentSearch(doc, { title, body, yjsId, wordCount: wordsIn(body), sizeBytes: Buffer.byteLength(body, 'utf8') }, { touch: false })
   } catch (e) {
     log.warn('reindex failed', { docId: doc.docId, err: e })
   }

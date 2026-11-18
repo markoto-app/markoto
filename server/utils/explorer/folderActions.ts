@@ -48,65 +48,32 @@ export async function createFolderInScope(proof: FolderScopeProof<'editor'>, act
   }
 }
 
+/** Apply a rename and / or move. Both together are one update: a refused move must not leave the rename applied. Returns what changed. */
+async function applyFolderUpdate(proof: FolderScopeProof<'editor'>, folderId: string, body: z.output<typeof updateFolderBody>) {
+  if (body.parentId === undefined) {
+    const renamed = body.name === undefined ? null : await renameFolder(proof.scope, folderId, body.name)
+    return { nameBefore: renamed?.before, parentBefore: undefined }
+  }
+  const nameBefore = body.name === undefined ? undefined : (await getFolder(proof.scope, folderId))?.name
+  const { before } = await moveFolder(proof.scope, folderId, body.parentId, body.name)
+  return { nameBefore, parentBefore: before }
+}
+
 export async function updateFolder(actor: Actor, folderId: string, body: z.output<typeof updateFolderBody>) {
   const proof = await proveFolderScope(actor.userId, folderId, 'editor')
   if (!proof) throw apiError('folder/not-found')
+  let changed: Awaited<ReturnType<typeof applyFolderUpdate>> = { nameBefore: undefined, parentBefore: undefined }
   try {
-    // Rename and move together are one update: a refused move must not leave the rename applied.
-    const beforeName = body.name !== undefined && body.parentId !== undefined ? (await getFolder(proof.scope, folderId))?.name : undefined
-    if (body.name !== undefined && body.parentId !== undefined) {
-      const { before } = await moveFolder(proof.scope, folderId, body.parentId, body.name)
-      if (beforeName !== undefined && beforeName !== body.name) {
-        await appendAuditEvent({
-          by: proof.scope,
-          actorIp: actor.ip,
-          ...auditScope(proof, actor.userId),
-          action: 'folder.renamed',
-          before: { name: beforeName },
-          after: { name: body.name },
-          metadata: { folderId }
-        })
-      }
-      if (before !== body.parentId) {
-        await appendAuditEvent({
-          by: proof.scope,
-          actorIp: actor.ip,
-          ...auditScope(proof, actor.userId),
-          action: 'folder.moved',
-          before: { parentId: before },
-          after: { parentId: body.parentId },
-          metadata: { folderId }
-        })
-      }
-    } else if (body.name !== undefined) {
-      const { before } = await renameFolder(proof.scope, folderId, body.name)
-      if (before !== body.name) {
-        await appendAuditEvent({
-          by: proof.scope,
-          actorIp: actor.ip,
-          ...auditScope(proof, actor.userId),
-          action: 'folder.renamed',
-          before: { name: before },
-          after: { name: body.name },
-          metadata: { folderId }
-        })
-      }
-    } else if (body.parentId !== undefined) {
-      const { before } = await moveFolder(proof.scope, folderId, body.parentId)
-      if (before !== body.parentId) {
-        await appendAuditEvent({
-          by: proof.scope,
-          actorIp: actor.ip,
-          ...auditScope(proof, actor.userId),
-          action: 'folder.moved',
-          before: { parentId: before },
-          after: { parentId: body.parentId },
-          metadata: { folderId }
-        })
-      }
-    }
+    changed = await applyFolderUpdate(proof, folderId, body)
   } catch (e) {
     folderError(e)
+  }
+  const audit = { by: proof.scope, actorIp: actor.ip, ...auditScope(proof, actor.userId) }
+  if (body.name !== undefined && changed.nameBefore !== undefined && changed.nameBefore !== body.name) {
+    await appendAuditEvent({ ...audit, action: 'folder.renamed', before: { name: changed.nameBefore }, after: { name: body.name }, metadata: { folderId } })
+  }
+  if (body.parentId !== undefined && changed.parentBefore !== body.parentId) {
+    await appendAuditEvent({ ...audit, action: 'folder.moved', before: { parentId: changed.parentBefore ?? null }, after: { parentId: body.parentId }, metadata: { folderId } })
   }
   const folder = await getFolder(proof.scope, folderId)
   if (!folder) throw apiError('folder/not-found')

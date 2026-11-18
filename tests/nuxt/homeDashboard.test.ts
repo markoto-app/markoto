@@ -8,8 +8,8 @@ import { HomeDashboard } from '#components'
 // The home page (`/`) for everyone who doesn't get the product tour:
 //   - logged out: the plain hero with "New document", unchanged;
 //   - logged in: an app dashboard, compact page header, no hero, the
-//     create buttons in their sections' headers, and a working "…" menu
-//     on every document row.
+//     create buttons in their sections' headers, and the documents
+//     explorer (folder tree, list, quick search).
 
 const loggedIn = ref(true)
 mockNuxtImport('useUserSession', () => () => ({
@@ -21,18 +21,30 @@ mockNuxtImport('useUserSession', () => () => ({
 }))
 mockNuxtImport('useToast', () => () => ({ add: vi.fn() }))
 
-registerEndpoint('/api/user/documents', () => [{
-  docId: 'doc1',
-  title: 'Quarterly notes',
-  description: '',
-  language: 'en',
-  accessMode: 'private',
-  wordCount: 12,
-  lastActive: new Date().toISOString(),
-  sizeBytes: 100,
-  workspaceId: null,
-  isOwner: true
-}])
+registerEndpoint('/api/user/personal-documents', () => ({
+  items: [{
+    docId: 'doc1',
+    title: 'Quarterly notes',
+    description: '',
+    language: 'en',
+    accessMode: 'private',
+    wordCount: 12,
+    folderId: null,
+    ownerId: 1,
+    ownerName: 'Maya',
+    isOwner: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    lastActive: new Date().toISOString()
+  }],
+  total: 1,
+  nextCursor: null
+}))
+registerEndpoint('/api/user/folders', () => ({
+  folders: [{ folderId: 'fold1', parentId: null, name: 'Reports', docCount: 0, updatedAt: new Date().toISOString() }]
+}))
+registerEndpoint('/api/user/explorer-version', () => ({ version: 1 }))
+registerEndpoint('/api/user/shared-documents', () => [])
 registerEndpoint('/api/user/workspaces', () => [])
 registerEndpoint('/api/user/invites', () => [])
 registerEndpoint('/api/user/billing', () => ({
@@ -57,7 +69,10 @@ async function mountDashboard() {
   mounted.push(wrapper)
   await flushPromises()
   await vi.waitFor(() => {
-    if (loggedIn.value && !wrapper.text().includes('Quarterly notes')) throw new Error('documents not loaded')
+    // The list is virtualised and happy-dom lays nothing out, so its rows
+    // don't render here (the flows drive them); the item count and the
+    // folder tree show that both lists loaded.
+    if (loggedIn.value && !wrapper.text().includes('2 items')) throw new Error('documents not loaded')
   })
   return wrapper
 }
@@ -100,21 +115,12 @@ describe('HomeDashboard', () => {
     expect(wrapper.emitted('new-document')).toHaveLength(1)
   })
 
-  it('logged in: the row\'s "…" button opens the menu with every action for an owned doc', async () => {
+  it('logged in: the documents section holds the explorer with the folder tree', async () => {
     loggedIn.value = true
     const wrapper = await mountDashboard()
-    await wrapper.get('[data-testid="doc-row-menu"]').trigger('click', { button: 0, ctrlKey: false })
-    await vi.waitFor(() => {
-      if (!document.body.querySelector('[role="menu"]')) throw new Error('menu not open')
-    })
-    const actions = Array.from(document.body.querySelectorAll('[data-testid^="doc-row-action-"]'))
-      .map(el => el.getAttribute('data-testid'))
-    expect(actions).toEqual([
-      'doc-row-action-open',
-      'doc-row-action-openNewTab',
-      'doc-row-action-duplicate',
-      'doc-row-action-move',
-      'doc-row-action-delete'
-    ])
+    const section = wrapper.get('[data-testid="landing-recent-documents"]')
+    expect(section.find('[data-testid="explorer"]').exists()).toBe(true)
+    expect(section.get('[data-testid="explorer-tree"]').text()).toContain('Reports')
+    expect(section.find('[data-testid="quick-search-open"]').exists()).toBe(true)
   })
 })
