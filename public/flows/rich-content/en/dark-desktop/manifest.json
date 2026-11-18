@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/_GB8f0RgZe"
+      "path": "/d/JlLMJjDNPj"
     },
     {
       "kind": "chapter",
@@ -37,7 +37,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/_GB8f0RgZe"
+      "path": "/d/JlLMJjDNPj"
     },
     {
       "kind": "approach",
@@ -47,7 +47,7 @@
         "x": 173,
         "y": 67
       },
-      "path": "/d/_GB8f0RgZe",
+      "path": "/d/JlLMJjDNPj",
       "annotations": [
         {
           "label": "insert menu",
@@ -67,7 +67,7 @@
         "x": 173,
         "y": 67
       },
-      "path": "/d/_GB8f0RgZe"
+      "path": "/d/JlLMJjDNPj"
     },
     {
       "kind": "approach",
@@ -77,7 +77,7 @@
         "x": 280,
         "y": 246
       },
-      "path": "/d/_GB8f0RgZe"
+      "path": "/d/JlLMJjDNPj"
     },
     {
       "kind": "outcome",
@@ -87,7 +87,7 @@
         "x": 280,
         "y": 246
       },
-      "path": "/d/_GB8f0RgZe"
+      "path": "/d/JlLMJjDNPj"
     },
     {
       "kind": "chapter",
@@ -102,7 +102,7 @@
         "x": 280,
         "y": 246
       },
-      "path": "/d/_GB8f0RgZe"
+      "path": "/d/JlLMJjDNPj"
     },
     {
       "kind": "approach",
@@ -112,7 +112,7 @@
         "x": 173,
         "y": 67
       },
-      "path": "/d/_GB8f0RgZe"
+      "path": "/d/JlLMJjDNPj"
     },
     {
       "kind": "approach",
@@ -122,7 +122,7 @@
         "x": 280,
         "y": 511
       },
-      "path": "/d/_GB8f0RgZe",
+      "path": "/d/JlLMJjDNPj",
       "annotations": [
         {
           "label": "alert flavours",
@@ -142,7 +142,7 @@
         "x": 480,
         "y": 543
       },
-      "path": "/d/_GB8f0RgZe"
+      "path": "/d/JlLMJjDNPj"
     },
     {
       "kind": "outcome",
@@ -152,7 +152,7 @@
         "x": 480,
         "y": 543
       },
-      "path": "/d/_GB8f0RgZe"
+      "path": "/d/JlLMJjDNPj"
     },
     {
       "kind": "chapter",
@@ -167,7 +167,7 @@
         "x": 480,
         "y": 543
       },
-      "path": "/d/_GB8f0RgZe"
+      "path": "/d/JlLMJjDNPj"
     },
     {
       "kind": "approach",
@@ -177,7 +177,7 @@
         "x": 173,
         "y": 67
       },
-      "path": "/d/_GB8f0RgZe"
+      "path": "/d/JlLMJjDNPj"
     },
     {
       "kind": "approach",
@@ -187,7 +187,7 @@
         "x": 280,
         "y": 543
       },
-      "path": "/d/_GB8f0RgZe"
+      "path": "/d/JlLMJjDNPj"
     },
     {
       "kind": "approach",
@@ -197,7 +197,7 @@
         "x": 489,
         "y": 575
       },
-      "path": "/d/_GB8f0RgZe"
+      "path": "/d/JlLMJjDNPj"
     },
     {
       "kind": "outcome",
@@ -207,7 +207,7 @@
         "x": 489,
         "y": 575
       },
-      "path": "/d/_GB8f0RgZe"
+      "path": "/d/JlLMJjDNPj"
     },
     {
       "kind": "chapter",
@@ -222,7 +222,7 @@
         "x": 489,
         "y": 575
       },
-      "path": "/d/_GB8f0RgZe"
+      "path": "/d/JlLMJjDNPj"
     },
     {
       "kind": "approach",
@@ -232,7 +232,7 @@
         "x": 173,
         "y": 67
       },
-      "path": "/d/_GB8f0RgZe"
+      "path": "/d/JlLMJjDNPj"
     },
     {
       "kind": "approach",
@@ -242,7 +242,7 @@
         "x": 280,
         "y": 575
       },
-      "path": "/d/_GB8f0RgZe"
+      "path": "/d/JlLMJjDNPj"
     },
     {
       "kind": "approach",
@@ -252,7 +252,7 @@
         "x": 502,
         "y": 543
       },
-      "path": "/d/_GB8f0RgZe"
+      "path": "/d/JlLMJjDNPj"
     },
     {
       "kind": "outcome",
@@ -262,7 +262,7 @@
         "x": 502,
         "y": 543
       },
-      "path": "/d/_GB8f0RgZe"
+      "path": "/d/JlLMJjDNPj"
     },
     {
       "kind": "chapter",
@@ -277,17 +277,17 @@
         "x": 502,
         "y": 543
       },
-      "path": "/d/_GB8f0RgZe"
+      "path": "/d/JlLMJjDNPj"
     },
     {
       "kind": "outcome",
-      "file": "22.webp",
+      "file": "21.webp",
       "caption": "Code block, Tip alert, math equation, pie chart, all in one doc, all rendered live.",
       "cursor": {
         "x": 502,
         "y": 543
       },
-      "path": "/d/_GB8f0RgZe",
+      "path": "/d/JlLMJjDNPj",
       "hero": true
     }
   ],

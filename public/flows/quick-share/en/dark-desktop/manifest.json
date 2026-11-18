@@ -221,7 +221,7 @@
         "x": 803,
         "y": 549
       },
-      "path": "/d/B7vRHVVI3t"
+      "path": "/d/SECNbNSFMO"
     },
     {
       "kind": "chapter",
@@ -236,7 +236,7 @@
         "x": 640,
         "y": 24
       },
-      "path": "/d/B7vRHVVI3t"
+      "path": "/d/SECNbNSFMO"
     },
     {
       "kind": "outcome",
@@ -246,7 +246,7 @@
         "x": 640,
         "y": 24
       },
-      "path": "/d/B7vRHVVI3t"
+      "path": "/d/SECNbNSFMO"
     },
     {
       "kind": "chapter",
@@ -261,7 +261,7 @@
         "x": 640,
         "y": 24
       },
-      "path": "/d/B7vRHVVI3t"
+      "path": "/d/SECNbNSFMO"
     },
     {
       "kind": "approach",
@@ -271,7 +271,7 @@
         "x": 1119,
         "y": 24
       },
-      "path": "/d/B7vRHVVI3t",
+      "path": "/d/SECNbNSFMO",
       "annotations": [
         {
           "label": "lock icon",
@@ -291,21 +291,21 @@
         "x": 1119,
         "y": 24
       },
-      "path": "/d/B7vRHVVI3t",
+      "path": "/d/SECNbNSFMO",
       "highlights": [
         {
           "label": "The link to share",
-          "x": 408.4144592285156,
-          "y": 375.54376220703125,
-          "w": 327.1021423339844,
-          "h": 27.949981689453125
+          "x": 408.17767333984375,
+          "y": 375.51873779296875,
+          "w": 327.43658447265625,
+          "h": 27.97857666015625
         },
         {
           "label": "One-click copy",
-          "x": 743.60791015625,
-          "y": 375.518798828125,
-          "w": 92.24169921875,
-          "h": 27.978515625
+          "x": 743.608154296875,
+          "y": 375.51873779296875,
+          "w": 92.2418212890625,
+          "h": 27.97857666015625
         }
       ]
     },
@@ -317,7 +317,7 @@
         "x": 789,
         "y": 389
       },
-      "path": "/d/B7vRHVVI3t"
+      "path": "/d/SECNbNSFMO"
     },
     {
       "kind": "outcome",
@@ -327,7 +327,7 @@
         "x": 789,
         "y": 389
       },
-      "path": "/d/B7vRHVVI3t",
+      "path": "/d/SECNbNSFMO",
       "hero": true
     }
   ],

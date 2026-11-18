@@ -19,7 +19,7 @@
       "text": "When the document looks right in the preview on the right, the PDF looks the same: same theme, same cover page, same page breaks. markoto builds the file for you and downloads it. No print dialog, no fiddling with margins.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/RFS2Bn8qvS"
+      "path": "/d/i7DQGq2jEh"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 362,
         "y": 20
       },
-      "path": "/d/RFS2Bn8qvS"
+      "path": "/d/i7DQGq2jEh"
     },
     {
       "kind": "outcome",
@@ -39,7 +39,7 @@
         "x": 362,
         "y": 20
       },
-      "path": "/d/RFS2Bn8qvS"
+      "path": "/d/i7DQGq2jEh"
     },
     {
       "kind": "approach",
@@ -49,7 +49,7 @@
         "x": 287,
         "y": 188
       },
-      "path": "/d/RFS2Bn8qvS"
+      "path": "/d/i7DQGq2jEh"
     },
     {
       "kind": "outcome",
@@ -59,7 +59,7 @@
         "x": 287,
         "y": 188
       },
-      "path": "/d/RFS2Bn8qvS"
+      "path": "/d/i7DQGq2jEh"
     },
     {
       "kind": "chapter",
@@ -71,7 +71,7 @@
       "file": "05.webp",
       "caption": "The downloaded PDF opens with the same cover page as the preview.",
       "cursor": null,
-      "path": "/api/docs/RFS2Bn8qvS/pdf?inline=1",
+      "path": "/api/docs/i7DQGq2jEh/pdf?inline=1",
       "hero": true,
       "actor": "pdf"
     }

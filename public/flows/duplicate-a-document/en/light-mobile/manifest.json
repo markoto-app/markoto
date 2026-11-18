@@ -19,7 +19,7 @@
       "text": "A template gives you an empty structure; Duplicate copies a document you already have: its text, theme, images and document settings. Comments stay with the original. Handy when your team starts every new piece of work from a copy of a \"house\" document. The copy is independent: editing one never changes the other.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/Vdk7kYV_yl"
+      "path": "/d/s4a1HjX7b-"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 362,
         "y": 20
       },
-      "path": "/d/Vdk7kYV_yl"
+      "path": "/d/s4a1HjX7b-"
     },
     {
       "kind": "outcome",
@@ -39,7 +39,7 @@
         "x": 362,
         "y": 20
       },
-      "path": "/d/Vdk7kYV_yl"
+      "path": "/d/s4a1HjX7b-"
     },
     {
       "kind": "approach",
@@ -49,7 +49,7 @@
         "x": 278,
         "y": 220
       },
-      "path": "/d/Vdk7kYV_yl"
+      "path": "/d/s4a1HjX7b-"
     },
     {
       "kind": "outcome",
@@ -59,7 +59,7 @@
         "x": 278,
         "y": 220
       },
-      "path": "/d/Vdk7kYV_yl"
+      "path": "/d/s4a1HjX7b-"
     },
     {
       "kind": "chapter",
@@ -74,27 +74,27 @@
         "x": 278,
         "y": 220
       },
-      "path": "/d/Vdk7kYV_yl"
+      "path": "/d/s4a1HjX7b-"
     },
     {
       "kind": "approach",
-      "file": "05.webp",
+      "file": "06.webp",
       "caption": "Click \"Duplicate\" to commit",
       "cursor": {
         "x": 296,
         "y": 452
       },
-      "path": "/d/Vdk7kYV_yl"
+      "path": "/d/s4a1HjX7b-"
     },
     {
       "kind": "outcome",
-      "file": "06.webp",
+      "file": "07.webp",
       "caption": "The new doc opens, same body, same theme, fresh URL. Edit either copy independently from now on.",
       "cursor": {
         "x": 296,
         "y": 452
       },
-      "path": "/d/Bn65xMcBGt",
+      "path": "/d/_cbGqkwDTQ",
       "hero": true
     }
   ],

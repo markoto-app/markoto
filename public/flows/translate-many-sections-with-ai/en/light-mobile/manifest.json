@@ -19,7 +19,7 @@
       "text": "For a change that applies to a large part of the document in the same way, such as a translation, the AI tries it on a sample first and then works through the sections in the background. Code samples stay exactly as they are. For a few short sections the AI makes the change itself.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/7yELO4cays"
+      "path": "/d/3cd-Mc83mD"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 173,
         "y": 602
       },
-      "path": "/d/7yELO4cays"
+      "path": "/d/3cd-Mc83mD"
     },
     {
       "kind": "approach",
@@ -39,7 +39,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/7yELO4cays"
+      "path": "/d/3cd-Mc83mD"
     },
     {
       "kind": "outcome",
@@ -49,7 +49,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/7yELO4cays"
+      "path": "/d/3cd-Mc83mD"
     },
     {
       "kind": "approach",
@@ -59,7 +59,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/7yELO4cays"
+      "path": "/d/3cd-Mc83mD"
     },
     {
       "kind": "outcome",
@@ -69,7 +69,27 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/7yELO4cays"
+      "path": "/d/3cd-Mc83mD"
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Start the translation",
+      "cursor": {
+        "x": 333,
+        "y": 506
+      },
+      "path": "/d/3cd-Mc83mD"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "The prompt bar showed how many sections change and how long it takes before anything changed.",
+      "cursor": {
+        "x": 333,
+        "y": 506
+      },
+      "path": "/d/3cd-Mc83mD"
     },
     {
       "kind": "chapter",
@@ -78,13 +98,13 @@
     },
     {
       "kind": "outcome",
-      "file": "05.webp",
+      "file": "07.webp",
       "caption": "Chapters 2 to 13 are in English; the introduction, the appendix and every code block stayed as they were.",
       "cursor": {
-        "x": 350,
-        "y": 602
+        "x": 333,
+        "y": 506
       },
-      "path": "/d/7yELO4cays",
+      "path": "/d/3cd-Mc83mD",
       "hero": true
     },
     {
@@ -94,61 +114,61 @@
     },
     {
       "kind": "approach",
-      "file": "05.webp",
+      "file": "07.webp",
       "caption": "Open the Activity tab",
       "cursor": {
         "x": 292,
         "y": 695
       },
-      "path": "/d/7yELO4cays"
+      "path": "/d/3cd-Mc83mD"
     },
     {
       "kind": "outcome",
-      "file": "06.webp",
+      "file": "08.webp",
       "caption": "The translation is one entry, with the number of sections it changed.",
       "cursor": {
         "x": 292,
         "y": 695
       },
-      "path": "/d/7yELO4cays"
+      "path": "/d/3cd-Mc83mD"
     },
     {
       "kind": "approach",
-      "file": "07.webp",
+      "file": "09.webp",
       "caption": "Click Undo job",
       "cursor": null,
-      "path": "/d/7yELO4cays"
-    },
-    {
-      "kind": "outcome",
-      "file": "08.webp",
-      "caption": "markoto asks before it puts the German text back.",
-      "cursor": null,
-      "path": "/d/7yELO4cays"
-    },
-    {
-      "kind": "approach",
-      "file": "08.webp",
-      "caption": "Confirm",
-      "cursor": null,
-      "path": "/d/7yELO4cays"
-    },
-    {
-      "kind": "outcome",
-      "file": "09.webp",
-      "caption": "The chapters are German again. Parts someone edited after the job would have stayed as they are.",
-      "cursor": null,
-      "path": "/d/7yELO4cays"
+      "path": "/d/3cd-Mc83mD"
     },
     {
       "kind": "outcome",
       "file": "10.webp",
+      "caption": "markoto asks before it puts the German text back.",
+      "cursor": null,
+      "path": "/d/3cd-Mc83mD"
+    },
+    {
+      "kind": "approach",
+      "file": "10.webp",
+      "caption": "Confirm",
+      "cursor": null,
+      "path": "/d/3cd-Mc83mD"
+    },
+    {
+      "kind": "outcome",
+      "file": "11.webp",
+      "caption": "The chapters are German again. Parts someone edited after the job would have stayed as they are.",
+      "cursor": null,
+      "path": "/d/3cd-Mc83mD"
+    },
+    {
+      "kind": "outcome",
+      "file": "12.webp",
       "caption": "The German text is back in every chapter the job had translated.",
       "cursor": {
         "x": 348,
         "y": 42
       },
-      "path": "/d/7yELO4cays"
+      "path": "/d/3cd-Mc83mD"
     }
   ],
   "next": {

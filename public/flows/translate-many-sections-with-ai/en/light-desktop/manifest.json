@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/8YKaXwq2Qr"
+      "path": "/d/TGoJLSU1Cz"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 618,
         "y": 722
       },
-      "path": "/d/8YKaXwq2Qr"
+      "path": "/d/TGoJLSU1Cz"
     },
     {
       "kind": "approach",
@@ -42,7 +42,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/8YKaXwq2Qr"
+      "path": "/d/TGoJLSU1Cz"
     },
     {
       "kind": "outcome",
@@ -52,7 +52,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/8YKaXwq2Qr"
+      "path": "/d/TGoJLSU1Cz"
     },
     {
       "kind": "approach",
@@ -62,7 +62,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/8YKaXwq2Qr"
+      "path": "/d/TGoJLSU1Cz"
     },
     {
       "kind": "outcome",
@@ -72,7 +72,27 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/8YKaXwq2Qr"
+      "path": "/d/TGoJLSU1Cz"
+    },
+    {
+      "kind": "approach",
+      "file": "07.webp",
+      "caption": "Start the translation",
+      "cursor": {
+        "x": 983,
+        "y": 609
+      },
+      "path": "/d/TGoJLSU1Cz"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "caption": "The prompt bar showed how many sections change and how long it takes before anything changed.",
+      "cursor": {
+        "x": 983,
+        "y": 609
+      },
+      "path": "/d/TGoJLSU1Cz"
     },
     {
       "kind": "chapter",
@@ -81,13 +101,13 @@
     },
     {
       "kind": "outcome",
-      "file": "07.webp",
+      "file": "09.webp",
       "caption": "Chapters 2 to 13 are in English; the introduction, the appendix and every code block stayed as they were.",
       "cursor": {
-        "x": 1000,
-        "y": 722
+        "x": 983,
+        "y": 609
       },
-      "path": "/d/8YKaXwq2Qr",
+      "path": "/d/TGoJLSU1Cz",
       "hero": true
     },
     {
@@ -97,73 +117,73 @@
     },
     {
       "kind": "approach",
-      "file": "08.webp",
+      "file": "10.webp",
       "caption": "Open the Activity tab",
       "cursor": {
         "x": 1234,
         "y": 98
       },
-      "path": "/d/8YKaXwq2Qr"
+      "path": "/d/TGoJLSU1Cz"
     },
     {
       "kind": "outcome",
-      "file": "09.webp",
+      "file": "11.webp",
       "caption": "The translation is one entry, with the number of sections it changed.",
       "cursor": {
         "x": 1234,
         "y": 98
       },
-      "path": "/d/8YKaXwq2Qr"
+      "path": "/d/TGoJLSU1Cz"
     },
     {
       "kind": "approach",
-      "file": "10.webp",
+      "file": "12.webp",
       "caption": "Click Undo job",
       "cursor": {
         "x": 1221,
         "y": 410
       },
-      "path": "/d/8YKaXwq2Qr"
+      "path": "/d/TGoJLSU1Cz"
     },
     {
       "kind": "outcome",
-      "file": "11.webp",
+      "file": "13.webp",
       "caption": "markoto asks before it puts the German text back.",
       "cursor": {
         "x": 1221,
         "y": 410
       },
-      "path": "/d/8YKaXwq2Qr"
+      "path": "/d/TGoJLSU1Cz"
     },
     {
       "kind": "approach",
-      "file": "11.webp",
+      "file": "13.webp",
       "caption": "Confirm",
       "cursor": {
         "x": 1238,
         "y": 416
       },
-      "path": "/d/8YKaXwq2Qr"
+      "path": "/d/TGoJLSU1Cz"
     },
     {
       "kind": "outcome",
-      "file": "12.webp",
+      "file": "14.webp",
       "caption": "The chapters are German again. Parts someone edited after the job would have stayed as they are.",
       "cursor": {
         "x": 1238,
         "y": 416
       },
-      "path": "/d/8YKaXwq2Qr"
+      "path": "/d/TGoJLSU1Cz"
     },
     {
       "kind": "outcome",
-      "file": "13.webp",
+      "file": "15.webp",
       "caption": "The German text is back in every chapter the job had translated.",
       "cursor": {
         "x": 1238,
         "y": 42
       },
-      "path": "/d/8YKaXwq2Qr"
+      "path": "/d/TGoJLSU1Cz"
     }
   ],
   "next": {

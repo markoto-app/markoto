@@ -29,13 +29,13 @@
     {
       "kind": "narration",
       "text": "The archive covers your account profile, every document you own as Markdown, comments you wrote, your AI prompts and what the AI did for you, your billing records, the security log entries about your account and every consent decision you made. A README in the archive explains each file in plain English.",
-      "file": "01.webp",
+      "file": "02.webp",
       "cursor": null,
       "path": "/settings/profile"
     },
     {
       "kind": "approach",
-      "file": "02.webp",
+      "file": "03.webp",
       "caption": "Click \"Request export\"",
       "cursor": {
         "x": 368,
@@ -45,7 +45,7 @@
     },
     {
       "kind": "outcome",
-      "file": "03.webp",
+      "file": "04.webp",
       "caption": "A new row appears under Recent exports with the status \"queued\", markoto builds it in the background.",
       "cursor": {
         "x": 368,
@@ -61,7 +61,7 @@
     {
       "kind": "narration",
       "text": "Building the archive usually takes under a minute. You can close the page meanwhile: markoto emails you when it is done, and the row here switches to ready with a Download button.",
-      "file": "04.webp",
+      "file": "05.webp",
       "cursor": {
         "x": 368,
         "y": 399
@@ -70,7 +70,7 @@
     },
     {
       "kind": "outcome",
-      "file": "05.webp",
+      "file": "06.webp",
       "caption": "The row says ready, with the archive's size and the date the link expires. Download is one click away.",
       "cursor": null,
       "path": "/settings/profile",
@@ -93,13 +93,13 @@
     {
       "kind": "narration",
       "text": "Click Download and the ZIP lands on disk. Each click hands your browser a short-lived link to the file, so a link that leaks stops working after a few minutes. If a slow connection drops mid-download, click Download again, the archive is not rebuilt.",
-      "file": "05.webp",
+      "file": "06.webp",
       "cursor": null,
       "path": "/settings/profile"
     },
     {
       "kind": "outcome",
-      "file": "05.webp",
+      "file": "06.webp",
       "caption": "Download hands your browser a fresh, short-lived link to the archive: valid long enough for a slow connection, not long enough to linger in someone else's chat history.",
       "cursor": null,
       "path": "/settings/profile"

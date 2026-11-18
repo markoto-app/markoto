@@ -19,14 +19,14 @@
       "text": "Documents share by URL. To gate one, its owner switches the access mode to password-protected and chooses a passphrase. Visitors hit a blocking dialog before they see anything; only the right passphrase gets them past it. Only the owner sees the access-mode picker: sign in first, because a document created without an account has no owner and can't be locked.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/l-sknhDCuq"
+      "path": "/d/bFm7jBChTa"
     },
     {
       "kind": "narration",
       "text": "Open the share dialog from the lock icon in the topbar.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/l-sknhDCuq"
+      "path": "/d/bFm7jBChTa"
     },
     {
       "kind": "approach",
@@ -36,7 +36,7 @@
         "x": 330,
         "y": 20
       },
-      "path": "/d/l-sknhDCuq",
+      "path": "/d/bFm7jBChTa",
       "annotations": [
         {
           "label": "lock icon",
@@ -56,7 +56,7 @@
         "x": 330,
         "y": 20
       },
-      "path": "/d/l-sknhDCuq"
+      "path": "/d/bFm7jBChTa"
     },
     {
       "kind": "chapter",
@@ -71,7 +71,7 @@
         "x": 330,
         "y": 20
       },
-      "path": "/d/l-sknhDCuq"
+      "path": "/d/bFm7jBChTa"
     },
     {
       "kind": "approach",
@@ -81,7 +81,7 @@
         "x": 195,
         "y": 410
       },
-      "path": "/d/l-sknhDCuq",
+      "path": "/d/bFm7jBChTa",
       "annotations": [
         {
           "label": "password mode",
@@ -101,7 +101,7 @@
         "x": 195,
         "y": 410
       },
-      "path": "/d/l-sknhDCuq"
+      "path": "/d/bFm7jBChTa"
     },
     {
       "kind": "approach",
@@ -111,7 +111,7 @@
         "x": 59,
         "y": 495
       },
-      "path": "/d/l-sknhDCuq"
+      "path": "/d/bFm7jBChTa"
     },
     {
       "kind": "outcome",
@@ -121,7 +121,7 @@
         "x": 59,
         "y": 495
       },
-      "path": "/d/l-sknhDCuq"
+      "path": "/d/bFm7jBChTa"
     },
     {
       "kind": "approach",
@@ -131,7 +131,7 @@
         "x": 321,
         "y": 495
       },
-      "path": "/d/l-sknhDCuq"
+      "path": "/d/bFm7jBChTa"
     },
     {
       "kind": "outcome",
@@ -141,7 +141,7 @@
         "x": 321,
         "y": 495
       },
-      "path": "/d/l-sknhDCuq",
+      "path": "/d/bFm7jBChTa",
       "highlights": [
         {
           "label": "Password protected",
@@ -165,7 +165,7 @@
         "x": 321,
         "y": 495
       },
-      "path": "/d/l-sknhDCuq"
+      "path": "/d/bFm7jBChTa"
     },
     {
       "kind": "outcome",
@@ -175,7 +175,7 @@
         "x": 54,
         "y": 414
       },
-      "path": "/d/l-sknhDCuq",
+      "path": "/d/bFm7jBChTa",
       "annotations": [
         {
           "label": "password input",
@@ -198,51 +198,51 @@
       "text": "Type the passphrase and the gate lifts. Too many wrong guesses and markoto pauses password checks on the document for a while, so a passphrase can't be brute-forced.",
       "file": "09.webp",
       "cursor": null,
-      "path": "/d/l-sknhDCuq",
+      "path": "/d/bFm7jBChTa",
       "actor": "visitor"
     },
     {
       "kind": "approach",
-      "file": "09.webp",
+      "file": "10.webp",
       "caption": "Type the passphrase",
       "cursor": {
         "x": 54,
         "y": 414
       },
-      "path": "/d/l-sknhDCuq",
+      "path": "/d/bFm7jBChTa",
       "actor": "visitor"
     },
     {
       "kind": "outcome",
-      "file": "10.webp",
+      "file": "11.webp",
       "caption": "The passphrase is ready, Unlock submits it for verification.",
       "cursor": {
         "x": 54,
         "y": 414
       },
-      "path": "/d/l-sknhDCuq",
+      "path": "/d/bFm7jBChTa",
       "actor": "visitor"
     },
     {
       "kind": "approach",
-      "file": "11.webp",
+      "file": "12.webp",
       "caption": "Click \"Unlock\" to enter the doc",
       "cursor": {
         "x": 274,
         "y": 460
       },
-      "path": "/d/l-sknhDCuq",
+      "path": "/d/bFm7jBChTa",
       "actor": "visitor"
     },
     {
       "kind": "outcome",
-      "file": "12.webp",
+      "file": "13.webp",
       "caption": "The password dialog closes and the document opens.",
       "cursor": {
         "x": 274,
         "y": 460
       },
-      "path": "/d/l-sknhDCuq",
+      "path": "/d/bFm7jBChTa",
       "hero": true,
       "actor": "visitor"
     }
