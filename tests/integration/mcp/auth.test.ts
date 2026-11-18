@@ -111,7 +111,7 @@ describe('MCP auth: scope gating', () => {
     await resetDb()
   })
 
-  it('documents:read alone → exactly the 12 read tools', async () => {
+  it('documents:read alone → exactly the 15 read tools', async () => {
     const user = await createUser()
     const { plaintext } = await mintPat({ userId: user.id, scopes: ['documents:read'] })
 
@@ -121,14 +121,15 @@ describe('MCP auth: scope gating', () => {
     const expected = [
       'export_document_as_markdown', 'export_document_as_pdf',
       'get_page_count', 'get_theme', 'list_my_documents', 'list_themes',
-      'list_workspace_documents', 'read_comments', 'search_activity_log',
-      'view_document', 'view_image', 'view_pages'
+      'list_workspace_documents', 'outline', 'read_comments', 'read_section',
+      'search_activity_log', 'search_document', 'view_document', 'view_image',
+      'view_pages'
     ].sort()
 
     expect(names).toEqual(expected)
   })
 
-  it('documents:read + documents:write → 24 tools (12 read + 12 write, incl. generate_image)', async () => {
+  it('documents:read + documents:write → 35 tools (15 read + 20 write, incl. generate_image)', async () => {
     const user = await createUser()
     const { plaintext } = await mintPat({
       userId: user.id,
@@ -136,7 +137,7 @@ describe('MCP auth: scope gating', () => {
     })
 
     const tools = await mcp(plaintext).listTools()
-    expect(tools.length).toBe(24)
+    expect(tools.length).toBe(35)
 
     const names = tools.map(t => t.name)
     // Spot-check: write tools surface, knowledge + web do not.
@@ -148,7 +149,7 @@ describe('MCP auth: scope gating', () => {
     expect(names).not.toContain('web_search')
   })
 
-  it('all 4 scopes → 28 tools', async () => {
+  it('all 4 scopes → 39 tools', async () => {
     const user = await createUser()
     const { plaintext } = await mintPat({
       userId: user.id,
@@ -156,7 +157,7 @@ describe('MCP auth: scope gating', () => {
     })
 
     const tools = await mcp(plaintext).listTools()
-    expect(tools.length).toBe(28)
+    expect(tools.length).toBe(39)
 
     const names = tools.map(t => t.name).sort()
     expect(names).toContain('search_knowledge')

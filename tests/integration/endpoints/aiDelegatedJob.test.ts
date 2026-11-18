@@ -73,10 +73,11 @@ describe('delegated AI job (delegate_rewrite) end to end', () => {
     // The old heading anchor is pinned so links to it keep working.
     expect(translated).toMatch(/^# Translated heading \{#[^}]+\}$/m)
 
-    // Progress is the initiator's: someone else gets 404.
+    // Progress is the initiator's: a user without edit rights is refused by
+    // the route (403); another editor would get 404 (initiator-only read).
     const bob = await byokUser('Bob')
     const bobClient = await loggedInClient(bob.id, 'Bob')
-    expect((await bobClient.get(`/api/docs/${doc.docId}/ai-jobs/${job.jobId}`)).status).toBe(404)
+    expect((await bobClient.get(`/api/docs/${doc.docId}/ai-jobs/${job.jobId}`)).status).toBe(403)
     const mine = await client.get(`/api/docs/${doc.docId}/ai-jobs/${job.jobId}`)
     expect(mine.status).toBe(200)
 
