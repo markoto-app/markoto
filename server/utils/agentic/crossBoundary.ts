@@ -143,7 +143,7 @@ const NO_SEARCH_HITS = /^No documents match /
  * The document ids in a search_documents result; [] for "no matches";
  * null when the result has an unexpected shape.
  */
-export function searchHitIds(content: string | undefined): string[] | null {
+function searchHitIds(content: string | undefined): string[] | null {
   if (content === undefined) return null
   if (NO_SEARCH_HITS.test(content)) return []
   let parsed: unknown
