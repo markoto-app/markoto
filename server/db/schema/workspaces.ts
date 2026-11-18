@@ -1,6 +1,6 @@
 // Workspaces, their members and pending invitations.
 
-import { pgTable, serial, integer, text, timestamp, primaryKey, index, uniqueIndex, jsonb, boolean, doublePrecision } from 'drizzle-orm/pg-core'
+import { pgTable, serial, integer, bigint, text, timestamp, primaryKey, index, uniqueIndex, jsonb, boolean, doublePrecision } from 'drizzle-orm/pg-core'
 import type { DocTheme } from '~~/shared/types/theme'
 import { users } from './users'
 
@@ -22,6 +22,10 @@ export const workspaces = pgTable('workspaces', {
   // only its cover text stays its own (shared/utils/theme/brandLock.ts).
   // Enforced at render time; the documents' own themes are untouched.
   brandLocked: boolean('brand_locked').notNull().default(false),
+  // Bumped by a database trigger on every change to the workspace's folders
+  // and documents (create, rename, move, delete), in the same transaction:
+  // open explorers poll it and refetch when it moved (migration 0009).
+  explorerVersion: bigint('explorer_version', { mode: 'number' }).notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
   index('idx_workspaces_owner').on(table.ownerId)

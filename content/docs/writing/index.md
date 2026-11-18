@@ -4,7 +4,7 @@ description: Markdown syntax, rich content, dictation and the everyday editor fe
 category: writing
 order: 2
 icon: i-lucide-pen-line
-updated: '2026-11-14'
+updated: '2026-11-18'
 ---
 
 # Write
@@ -26,3 +26,4 @@ without losing their visual structure.
 **Elsewhere**
 - Writing with the AI has its own section: [AI assistant](/docs/ai).
 - Comments and live co-editing are under [Collaborate](/docs/collaborate).
+- Folders for your documents, moving and searching them: [Organize documents in folders](/docs/workspaces/organize-documents) lives in Workspaces.

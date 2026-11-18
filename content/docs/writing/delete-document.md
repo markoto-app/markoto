@@ -3,7 +3,7 @@ title: Delete a document
 description: Owner-only. Immediate. Irreversible. The doc, its history, its uploads, all of it.
 category: writing
 order: 6
-updated: '2026-11-03'
+updated: '2026-11-18'
 ---
 
 # Delete a document
@@ -30,6 +30,11 @@ Deleting a document removes:
 
 For docs that live in a workspace, admins can delete any doc; editors
 can only delete their own.
+
+Anyone who has the doc open when it is deleted sees a note that it was
+deleted. Their text stays on screen until they close it, but changes are
+no longer saved, and **Download Markdown** saves a copy. To delete a whole folder of documents, see
+[Delete a folder](/docs/workspaces/organize-documents#delete-a-folder).
 
 Anonymous docs (created without signing in) can be deleted only from
 the browser that created them: markoto remembers that browser with a

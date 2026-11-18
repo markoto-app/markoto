@@ -49,6 +49,12 @@ Server logic grouped by domain (`auth/`, `documents/`, `workspaces/`, `storage/`
 - Run the account purge only from `account-deletion-sweep` (`privacy/accountDeletionSweep.ts`). A new table with user data must be covered by `privacy/accountDeletionExecute.ts` and the data export (`privacy/dataExport.ts`: sections that read tables directly; `privacy/dataExportSections.ts`: sections that read through repos or Stripe; the archive's README in `privacy/dataExportReadme.ts`).
 - After the primary state has committed, send email with `safeSendTransactionalEmail` (`email/sendEmail.ts`). Pass `bodyContainsSecrets: true` for emails carrying single-use links, so stub mode never logs them.
 
+## Explorer and imports
+
+- Folders carry no permissions: decide access through the folder's workspace (`access/folderProof.ts`), never per folder. Background: `docs/contributing/explorer.md`.
+- Deleting many documents (folder delete, bulk) goes through `documents/documentLifecycle.ts#deleteDocuments`, so every document gets its storage clean-up and the sync server's `notify-deleted`.
+- Content the app writes to `yjs_updates` itself must be indexed (`documents/searchIndex.ts`); the sync server indexes everything it stores.
+
 ## Knowledge base
 
 - `file-type` returning nothing is not a pass: text formats go through the printable-UTF-8 check in `storage/fileTypeGuard.ts`.

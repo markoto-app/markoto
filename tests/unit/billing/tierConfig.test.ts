@@ -208,12 +208,43 @@ describe('resolveTiersFromEnv: entitlement overrides', () => {
     expect(resolveTiersFromEnv({ TIER_FREE_FEATURE_CUSTOM_CSS: 'true' }).free.customCss).toBe(true)
   })
 
+  it('parses the bulk import caps per plan', () => {
+    const tiers = resolveTiersFromEnv({
+      TIER_FREE_IMPORT_FILES_PER_JOB: '200',
+      TIER_FREE_IMPORT_BYTES_PER_JOB: String(200 * 1024 * 1024),
+      TIER_FREE_IMPORT_JOBS_PER_DAY: '10',
+      TIER_TEAM_IMPORT_FILES_PER_JOB: ' 7000 '
+    })
+    expect(tiers.free.importFilesPerJob).toBe(200)
+    expect(tiers.free.importBytesPerJob).toBe(200 * 1024 * 1024)
+    expect(tiers.free.importJobsPerDay).toBe(10)
+    expect(tiers.team.importFilesPerJob).toBe(7000)
+    expect(tiers.pro.importFilesPerJob).toBe(DEFAULT_TIERS.pro.importFilesPerJob)
+  })
+
+  it('has no `unlimited` for the bulk import caps (they bound one job\'s work)', () => {
+    for (const name of ['TIER_FREE_IMPORT_FILES_PER_JOB', 'TIER_PRO_IMPORT_BYTES_PER_JOB', 'TIER_BUSINESS_IMPORT_JOBS_PER_DAY']) {
+      expect(() => resolveTiersFromEnv({ [name]: 'unlimited' }), name).toThrow(new RegExp(`${name}: expected a number > 0`))
+      expect(() => resolveTiersFromEnv({ [name]: '0' }), name).toThrow(new RegExp(name))
+    }
+  })
+
+  it('keeps the committed (self-host) free tier at least as generous as every plan for bulk imports', () => {
+    for (const plan of PLAN_NAMES) {
+      for (const field of ['importFilesPerJob', 'importBytesPerJob', 'importJobsPerDay'] as const) {
+        expect(DEFAULT_TIERS[plan][field], `${plan}.${field}`).toBeGreaterThan(0)
+        expect(DEFAULT_TIERS.free[field], `free.${field} vs ${plan}`).toBeGreaterThanOrEqual(DEFAULT_TIERS[plan][field])
+      }
+    }
+  })
+
   it('refuses an unparseable switch or number', () => {
     for (const [name, raw] of [
       ['TIER_FREE_FEATURE_CUSTOM_CSS', 'maybe'],
       ['TIER_FREE_HISTORY_DAYS', '0'],
       ['TIER_FREE_MEMBERS_PER_WORKSPACE', '-1'],
-      ['TIER_FREE_IMPORT_MAX_BYTES', 'big']
+      ['TIER_FREE_IMPORT_MAX_BYTES', 'big'],
+      ['TIER_PRO_IMPORT_FILES_PER_JOB', 'many']
     ] as const) {
       expect(() => resolveTiersFromEnv({ [name]: raw }), name).toThrow(new RegExp(name))
     }

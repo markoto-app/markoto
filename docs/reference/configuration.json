@@ -3220,6 +3220,60 @@
       "deprecatedNames": []
     },
     {
+      "name": "TIER_FREE_IMPORT_FILES_PER_JOB",
+      "namespace": "tiers",
+      "key": "TIER_FREE_IMPORT_FILES_PER_JOB",
+      "type": "number > 0",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TIER_FREE_IMPORT_FILES_PER_JOB"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "TIER_FREE_IMPORT_BYTES_PER_JOB",
+      "namespace": "tiers",
+      "key": "TIER_FREE_IMPORT_BYTES_PER_JOB",
+      "type": "number > 0",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TIER_FREE_IMPORT_BYTES_PER_JOB"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
+      "name": "TIER_FREE_IMPORT_JOBS_PER_DAY",
+      "namespace": "tiers",
+      "key": "TIER_FREE_IMPORT_JOBS_PER_DAY",
+      "type": "number > 0",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TIER_FREE_IMPORT_JOBS_PER_DAY"
+      },
+      "scope": "both",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
       "name": "TIER_FREE_WEB_TOOLS_PER_DAY",
       "namespace": "tiers",
       "key": "TIER_FREE_WEB_TOOLS_PER_DAY",
@@ -3661,6 +3715,60 @@
       ],
       "names": {
         "app": "TIER_PRO_IMPORT_MAX_BYTES"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "TIER_PRO_IMPORT_FILES_PER_JOB",
+      "namespace": "tiers",
+      "key": "TIER_PRO_IMPORT_FILES_PER_JOB",
+      "type": "number > 0",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TIER_PRO_IMPORT_FILES_PER_JOB"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "TIER_PRO_IMPORT_BYTES_PER_JOB",
+      "namespace": "tiers",
+      "key": "TIER_PRO_IMPORT_BYTES_PER_JOB",
+      "type": "number > 0",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TIER_PRO_IMPORT_BYTES_PER_JOB"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "TIER_PRO_IMPORT_JOBS_PER_DAY",
+      "namespace": "tiers",
+      "key": "TIER_PRO_IMPORT_JOBS_PER_DAY",
+      "type": "number > 0",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TIER_PRO_IMPORT_JOBS_PER_DAY"
       },
       "scope": "hosted",
       "required": null,
@@ -4120,6 +4228,60 @@
       "deprecatedNames": []
     },
     {
+      "name": "TIER_TEAM_IMPORT_FILES_PER_JOB",
+      "namespace": "tiers",
+      "key": "TIER_TEAM_IMPORT_FILES_PER_JOB",
+      "type": "number > 0",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TIER_TEAM_IMPORT_FILES_PER_JOB"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "TIER_TEAM_IMPORT_BYTES_PER_JOB",
+      "namespace": "tiers",
+      "key": "TIER_TEAM_IMPORT_BYTES_PER_JOB",
+      "type": "number > 0",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TIER_TEAM_IMPORT_BYTES_PER_JOB"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "TIER_TEAM_IMPORT_JOBS_PER_DAY",
+      "namespace": "tiers",
+      "key": "TIER_TEAM_IMPORT_JOBS_PER_DAY",
+      "type": "number > 0",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TIER_TEAM_IMPORT_JOBS_PER_DAY"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
       "name": "TIER_TEAM_WEB_TOOLS_PER_DAY",
       "namespace": "tiers",
       "key": "TIER_TEAM_WEB_TOOLS_PER_DAY",
@@ -4561,6 +4723,60 @@
       ],
       "names": {
         "app": "TIER_BUSINESS_IMPORT_MAX_BYTES"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "TIER_BUSINESS_IMPORT_FILES_PER_JOB",
+      "namespace": "tiers",
+      "key": "TIER_BUSINESS_IMPORT_FILES_PER_JOB",
+      "type": "number > 0",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TIER_BUSINESS_IMPORT_FILES_PER_JOB"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "TIER_BUSINESS_IMPORT_BYTES_PER_JOB",
+      "namespace": "tiers",
+      "key": "TIER_BUSINESS_IMPORT_BYTES_PER_JOB",
+      "type": "number > 0",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TIER_BUSINESS_IMPORT_BYTES_PER_JOB"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": null,
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "TIER_BUSINESS_IMPORT_JOBS_PER_DAY",
+      "namespace": "tiers",
+      "key": "TIER_BUSINESS_IMPORT_JOBS_PER_DAY",
+      "type": "number > 0",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TIER_BUSINESS_IMPORT_JOBS_PER_DAY"
       },
       "scope": "hosted",
       "required": null,
@@ -6086,6 +6302,24 @@
       "required": null,
       "secret": false,
       "default": false,
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
+      "name": "TEST_GITHUB_IMPORT_ORIGIN",
+      "namespace": "test",
+      "key": "githubImportOrigin",
+      "type": "string",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TEST_GITHUB_IMPORT_ORIGIN"
+      },
+      "scope": "test",
+      "required": null,
+      "secret": false,
+      "default": "",
       "passedByCompose": false,
       "deprecatedNames": []
     },

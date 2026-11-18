@@ -2,7 +2,6 @@
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { ApiResponse } from '~/utils/api/client'
 import { apiErrorData, errorStatus } from '~/utils/api/errors'
-import type { WorkspaceDoc } from '~/components/workspace/WorkspaceDocTable.vue'
 import { isPaymentProblem } from '~/utils/billing/workspaceBilling'
 import type { WorkspaceMember } from '~/components/workspace/WorkspaceMemberAvatars.vue'
 import { useRemoveMember } from '~/queries/workspaces'
@@ -14,7 +13,16 @@ const toast = useToast()
 const { showError, extractError } = useErrorHandler()
 const { loggedIn, user } = useUserSession()
 
+// `/w/:id/f/:folderId` opens a folder of the workspace's explorer: the same
+// page instance (keyed by the workspace), the folder in the URL so back /
+// forward and links work. `sub` only ever matches the literal `f`.
+definePageMeta({ path: '/w/:id/:sub(f)?/:folderId?', key: route => `w:${String(route.params.id)}` })
+
 const workspaceId = computed(() => route.params.id as string)
+const folderId = computed(() => typeof route.params.folderId === 'string' && route.params.folderId ? route.params.folderId : null)
+function folderHref(id: string | null): string {
+  return id === null ? `/w/${encodeURIComponent(workspaceId.value)}` : `/w/${encodeURIComponent(workspaceId.value)}/f/${encodeURIComponent(id)}`
+}
 
 type WorkspaceDetail = ApiResponse<'/api/workspaces/:wsId', 'get'>
 
@@ -40,9 +48,9 @@ const {
   {
     immediate: false,
     resetOnExecute: false,
-    // Deep-reactive: callers mutate `data.value.documents = …` and
-    // `data.value.workspace.name = …` post-load. shallowRef (the
-    // useAsyncState default) wouldn't notify on those nested writes.
+    // Deep-reactive: callers mutate `data.value.workspace.name = …`
+    // post-load. shallowRef (the useAsyncState default) wouldn't notify on
+    // those nested writes.
     shallow: false,
     onError: (e: unknown) => {
       const status = errorStatus(e)
@@ -61,6 +69,7 @@ const {
 // flip both cause hydration mismatches; deferring to client mount
 // sidesteps both).
 tryOnMounted(() => {
+  // Folder changes stay on the loaded workspace (the explorer fetches its own data).
   watch([workspaceId, loggedIn], () => loadWorkspace(), { immediate: true })
 })
 
@@ -79,7 +88,6 @@ useClaimAiWorkspaceContext(() => {
   return ws?.pooled && ws.myRole && ws.workspaceId === workspaceId.value ? ws.workspaceId : null
 })
 const isAdmin = computed(() => myRole.value === 'admin')
-const canCreateDoc = computed(() => myRole.value === 'admin' || myRole.value === 'editor')
 const myUserId = computed(() => (user.value as { id?: number } | null)?.id)
 
 // Tabs split the workspace into three concerns. Default is Documents
@@ -168,7 +176,9 @@ tryOnMounted(() => {
 // Same dialog flow as the home page; just pass our workspaceId so the
 // new doc files into this workspace from the start.
 const showNewDocDialog = ref(false)
-function createDocument() {
+const newDocFolder = ref<string | null>(null)
+function createDocument(inFolder: string | null) {
+  newDocFolder.value = inFolder
   showNewDocDialog.value = true
 }
 function onDocCreated(docId: string) {
@@ -186,63 +196,6 @@ function openMembers(focusInvite: boolean) {
   membersFocusInvite.value = focusInvite
   membersOpen.value = true
 }
-const deleteTargetDoc = ref<WorkspaceDoc | null>(null)
-const showDocDeleteConfirm = ref(false)
-
-// Duplicate / Move per-row targets. Using a single ref per action rather
-// than a single "active doc" ref because the modals are independent and
-// the user could (in theory) cancel one while the other is open.
-const duplicateTargetDoc = ref<WorkspaceDoc | null>(null)
-const showDuplicateModal = ref(false)
-const moveTargetDoc = ref<WorkspaceDoc | null>(null)
-const showMoveModal = ref(false)
-
-function openDocDelete(doc: WorkspaceDoc) {
-  deleteTargetDoc.value = doc
-  showDocDeleteConfirm.value = true
-}
-
-function openDocDuplicate(doc: WorkspaceDoc) {
-  duplicateTargetDoc.value = doc
-  showDuplicateModal.value = true
-}
-
-function openDocMove(doc: WorkspaceDoc) {
-  moveTargetDoc.value = doc
-  showMoveModal.value = true
-}
-
-function onDocDeleted() {
-  const target = deleteTargetDoc.value
-  if (!target || !data.value) return
-  data.value.documents = data.value.documents.filter(d => d.docId !== target.docId)
-  deleteTargetDoc.value = null
-}
-
-function onDocDuplicated(newDocId: string) {
-  // Send the user into their fresh copy, matches the "file → duplicate"
-  // flow in desktop apps, and the workspace view will re-hydrate on the
-  // next visit. If the duplicate stayed in this workspace, reloading
-  // here would surface it in the list too, but we'd rather the user
-  // start editing immediately.
-  void router.push(`/d/${newDocId}`)
-}
-
-function onDocMoved(newWorkspaceId: string | null) {
-  // Doc left this workspace (target is different): drop it from the
-  // current list. Same-workspace no-op is impossible here because the
-  // row's modal doesn't allow picking the current workspace's option
-  // server-side it's a no-op anyway.
-  const target = moveTargetDoc.value
-  if (!target || !data.value) return
-  if (newWorkspaceId !== workspaceId.value) {
-    data.value.documents = data.value.documents.filter(
-      d => d.docId !== target.docId
-    )
-  }
-  moveTargetDoc.value = null
-}
-
 function onWorkspaceUpdated(payload: { name: string, description: string | null }) {
   if (!data.value) return
   data.value.workspace.name = payload.name
@@ -365,6 +318,7 @@ async function leaveWorkspace() {
         </span>
       </div>
       <div class="flex items-center gap-2">
+        <ExplorerQuickSearch v-if="loggedIn" />
         <AuthUserMenu />
         <UColorModeButton />
       </div>
@@ -440,7 +394,7 @@ async function leaveWorkspace() {
 
       <div
         v-else-if="data"
-        class="max-w-3xl mx-auto space-y-4 sm:space-y-6"
+        class="max-w-6xl mx-auto space-y-4 sm:space-y-6"
       >
         <!-- Header block with title + description + avatar row + actions -->
         <div class="flex items-start justify-between gap-4">
@@ -552,15 +506,13 @@ async function leaveWorkspace() {
           }"
         >
           <template #documents>
-            <WorkspaceDocumentsTab
-              :documents="data.documents"
-              :my-role="myRole || 'viewer'"
-              :workspace-id="data.workspace.workspaceId"
-              :can-create-doc="canCreateDoc"
-              @create="createDocument"
-              @duplicate-requested="openDocDuplicate"
-              @move-requested="openDocMove"
-              @delete-requested="openDocDelete"
+            <ExplorerView
+              :scope="{ kind: 'workspace', workspaceId: data.workspace.workspaceId }"
+              :access="myRole || 'viewer'"
+              :folder-id="folderId"
+              :root-label="data.workspace.name"
+              :folder-href="folderHref"
+              @new-document="createDocument"
             />
           </template>
 
@@ -585,7 +537,6 @@ async function leaveWorkspace() {
           <template #brand>
             <WorkspaceBrandKitPanel
               :workspace-id="data.workspace.workspaceId"
-              :documents="data.documents"
               :default-theme="data.workspace.defaultTheme"
               :locked="data.workspace.brandLocked ?? false"
               @changed="loadWorkspace()"
@@ -627,7 +578,7 @@ async function leaveWorkspace() {
       v-model:open="deleteOpen"
       :workspace-id="data.workspace.workspaceId"
       :name="data.workspace.name"
-      :doc-count="data.documents.length"
+      :doc-count="data.documentCount"
       @deleted="onWorkspaceDeleted"
     />
 
@@ -652,32 +603,8 @@ async function leaveWorkspace() {
       v-if="data"
       v-model:open="showNewDocDialog"
       :workspace-id="data.workspace.workspaceId"
+      :folder-id="newDocFolder"
       @created="onDocCreated"
-    />
-
-    <DocumentDeleteConfirmModal
-      v-if="deleteTargetDoc"
-      v-model:open="showDocDeleteConfirm"
-      :doc-id="deleteTargetDoc.docId"
-      :title="deleteTargetDoc.title"
-      @deleted="onDocDeleted"
-    />
-
-    <DocumentDuplicateDocModal
-      v-if="duplicateTargetDoc"
-      v-model:open="showDuplicateModal"
-      :doc-id="duplicateTargetDoc.docId"
-      :source-title="duplicateTargetDoc.title"
-      @duplicated="onDocDuplicated"
-    />
-
-    <DocumentMoveWorkspaceModal
-      v-if="moveTargetDoc && data"
-      v-model:open="showMoveModal"
-      :doc-id="moveTargetDoc.docId"
-      :doc-title="moveTargetDoc.title"
-      :current-workspace-id="data.workspace.workspaceId"
-      @moved="onDocMoved"
     />
   </div>
 </template>

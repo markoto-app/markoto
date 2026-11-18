@@ -2,7 +2,7 @@
 title: Restore an earlier version
 description: One click rolls the doc back to that version. The restore is itself an undoable activity row.
 category: import-export
-order: 5
+order: 6
 updated: '2026-11-04'
 ---
 

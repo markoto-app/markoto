@@ -69,6 +69,14 @@ const { mounted: newDocDialogMounted, open: showNewDocDialog, show: createDocume
 function onDocCreated(docId: string) {
   void router.push(`/d/${docId}`)
 }
+const pageRoute = useRoute()
+const personalFolderId = computed(() => typeof pageRoute.params.folderId === 'string' && pageRoute.params.folderId ? pageRoute.params.folderId : null)
+// "New document" in a personal folder files the document there.
+const newDocFolder = ref<string | null>(null)
+function createDocumentIn(folderId?: string | null) {
+  newDocFolder.value = folderId ?? null
+  createDocument()
+}
 </script>
 
 <template>
@@ -110,7 +118,8 @@ function onDocCreated(docId: string) {
          product page never ships the dashboard's code. -->
     <LazyHomeDashboard
       v-else
-      @new-document="createDocument"
+      :folder-id="personalFolderId"
+      @new-document="createDocumentIn"
       @warm-new-document="warmNewDocDialog"
     />
 
@@ -121,6 +130,7 @@ function onDocCreated(docId: string) {
       v-if="newDocDialogMounted"
       v-model:open="showNewDocDialog"
       :workspace-id="null"
+      :folder-id="newDocFolder"
       @created="onDocCreated"
     />
 

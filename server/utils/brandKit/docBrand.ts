@@ -34,18 +34,24 @@ export async function resolveDocBrand(doc: DocAccess<'view'> | null): Promise<Do
   if (!doc) return NONE
   const [workspace, assets] = await Promise.all([getWorkspaceOfDoc(doc), listBrandAssetsForDoc(doc)])
   if (!workspace) return NONE
-  const workspaceId = workspace.workspaceId
   const fonts = brandFontsOf(assets)
   // Logos count too: deleting one a document's own theme still points at
   // must re-render its cached PDF without it.
   const images = assets.filter(a => a.kind === 'image').map(a => a.id).sort(compareCodeUnits)
-  let lockedTheme: DocTheme | null = null
-  if (workspace.brandLocked && workspace.defaultTheme && isValidTheme(workspace.defaultTheme) && await brandKitAvailable(workspaceId)) {
-    lockedTheme = workspace.defaultTheme
-  }
+  const lockedTheme = await lockedWorkspaceTheme(workspace)
   if (fonts.length === 0 && images.length === 0 && !lockedTheme) return NONE
   const fingerprint = createHash('sha256').update(JSON.stringify({ fonts, images, lockedTheme })).digest('hex').slice(0, 16)
   return { fonts, lockedTheme, fingerprint }
+}
+
+/**
+ * The design a workspace locks its documents to, or null: locked, with a
+ * valid default design, and on a plan that includes the brand kit (without
+ * it the lock pauses).
+ */
+export async function lockedWorkspaceTheme(workspace: { workspaceId: string, brandLocked: boolean, defaultTheme: unknown }): Promise<DocTheme | null> {
+  if (!workspace.brandLocked || !workspace.defaultTheme || !isValidTheme(workspace.defaultTheme)) return null
+  return await brandKitAvailable(workspace.workspaceId) ? workspace.defaultTheme : null
 }
 
 /** The client shape (token + meta endpoints). */

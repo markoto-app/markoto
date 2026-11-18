@@ -167,3 +167,7 @@ export const TEST_TRAEFIK_IP = process.env.TEST_TRAEFIK_IP ?? '10.213.47.40'
 
 /** Co-branding name of the primary test server (managed private instance). */
 export const TEST_INSTANCE_BRAND_NAME = 'Kanton Musterstadt'
+
+// The fake GitHub of the import tests (endpoints/imports.test.ts) listens here;
+// the app servers get it as TEST_GITHUB_IMPORT_ORIGIN.
+export const TEST_GITHUB_IMPORT_PORT = 4199

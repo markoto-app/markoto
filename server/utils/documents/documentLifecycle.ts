@@ -157,20 +157,55 @@ async function dropSyncDocState(docId: string): Promise<void> {
  * this; tests drive the steps directly for finer-grained assertions.
  */
 export async function deleteDocument(doc: DocAccess<'delete'>): Promise<void> {
-  const docId = doc.docId
   // A published web page goes with the document (FK cascade); its
   // copied files are read first and deleted after (the orphan sweep is the
   // backstop).
   const published = await getPublishedPageSummary(doc)
   await deleteDocDbRows(doc)
+  await cleanupDeletedDocument(doc.docId, published?.id ?? null)
+}
 
+/**
+ * Many documents at once (a folder with everything in it, a bulk delete).
+ * Each document's rows go first, one by one, so the request answers once
+ * they are gone from every list; the storage, render and sync clean-up then
+ * runs in the background, a few documents at a time (the orphan sweep reaps
+ * whatever it misses). Returns the ids whose rows were deleted.
+ */
+export async function deleteDocuments(docs: ReadonlyArray<DocAccess<'delete'>>): Promise<string[]> {
+  const deleted: Array<{ docId: string, publishedId: string | null }> = []
+  for (const doc of docs) {
+    try {
+      const published = await getPublishedPageSummary(doc)
+      await deleteDocDbRows(doc)
+      deleted.push({ docId: doc.docId, publishedId: published?.id ?? null })
+    } catch (e) {
+      log.error('document delete failed', { docId: doc.docId, err: e })
+    }
+  }
+  void (async () => {
+    const queue = [...deleted]
+    const worker = async () => {
+      for (let next = queue.shift(); next; next = queue.shift()) {
+        await cleanupDeletedDocument(next.docId, next.publishedId).catch((e: unknown) => {
+          log.warn('background clean-up failed', { docId: next.docId, err: e })
+        })
+      }
+    }
+    await Promise.all([worker(), worker(), worker(), worker()])
+  })()
+  return deleted.map(d => d.docId)
+}
+
+/** Steps 2 and 3 for a document whose rows are gone. */
+async function cleanupDeletedDocument(docId: string, publishedId: string | null): Promise<void> {
   const env = useEnv()
   await cleanupDocS3(docId, { s3: useS3Client(), bucket: env.storage.bucket })
   // Wipe any cached PDF / PNG renders for this doc. Same swallow-on-error
   // semantics as cleanupDocS3: orphaned render objects cost nothing
   // material and the bucket lifecycle policy will reap them eventually.
   await cleanupRendersForDoc(docId)
-  if (published) await prunePublishedObjects(published.id)
+  if (publishedId !== null) await prunePublishedObjects(publishedId)
   await dropSyncDocState(docId)
   notifySyncDeleted(docId, {
     syncInternalUrl: env.sync.internalUrl,

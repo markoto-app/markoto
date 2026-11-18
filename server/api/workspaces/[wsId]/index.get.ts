@@ -1,7 +1,7 @@
 import { countBrandAssets } from '../../../repos/brandAssets'
 import { countWorkspaceTemplates } from '../../../repos/workspaceTemplates'
 import { getWorkspace } from '../../../repos/workspaces'
-import { listWorkspaceDocsWithOwnerFlag } from '../../../repos/documents'
+import { listScopeDocs } from '../../../repos/documents'
 import { listMembers } from '../../../repos/workspaceMembers'
 import { planHasFeature, resolveWorkspacePlan } from '../../../utils/billing/entitlements'
 import { getSsoConnectionForWorkspace } from '../../../repos/sso'
@@ -10,12 +10,9 @@ import { getWorkspaceSubscription } from '../../../repos/workspaceSubscriptions'
 import { isBillingEnabled } from '../../../utils/billing/billingMode'
 
 // Workspace detail. Gated by membership (any role). Returns the workspace
-// row, the complete doc list (every doc in the workspace, not just the
-// caller's), plus the members list so the UI can render the avatar bar +
-// manage-members modal in a single fetch.
-//
-// Per-doc ownership is surfaced via `isOwner` so the UI can gate the delete
-// button for editors (who can only delete their own docs).
+// row, how many documents it has (the documents are paged by the explorer's
+// GET /api/workspaces/:wsId/documents), plus the members list so the UI can
+// render the avatar bar + manage-members modal in a single fetch.
 
 export default defineApiHandler({
   // A member of a workspace that enforces single sign-on, without a current
@@ -26,8 +23,9 @@ export default defineApiHandler({
     const ws = await getWorkspace(workspaceAccess)
     if (!ws) throw apiError('workspace/not-found')
 
-    const [documents, members, pool] = await Promise.all([
-      listWorkspaceDocsWithOwnerFlag(workspaceAccess),
+    // The documents themselves are paged by GET /api/workspaces/:wsId/documents.
+    const [{ total: documentCount }, members, pool] = await Promise.all([
+      listScopeDocs(workspaceAccess, { folder: 'all', sort: 'updated', dir: 'desc', limit: 1 }),
       listMembers(workspaceAccess),
       getPooledWorkspace(wsId)
     ])
@@ -94,7 +92,7 @@ export default defineApiHandler({
         brandKit,
         brandLocked: ws.brandLocked
       },
-      documents,
+      documentCount,
       members
     }
   }

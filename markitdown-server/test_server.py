@@ -90,6 +90,94 @@ class SecretTest(unittest.TestCase):
         self.assertFalse(server.secret_matches("anything", ""))
 
 
+# A 1x1 PNG, the smallest picture a DOCX can embed.
+PNG_1X1 = bytes.fromhex(
+    "89504e470d0a1a0a0000000d4948445200000001000000010806000000"
+    "1f15c4890000000d4944415478da636460f85f0f0002870180eb47ba92"
+    "0000000049454e44ae426082"
+)
+
+
+def make_docx_with_picture(text: str) -> bytes:
+    """A one-paragraph DOCX with an embedded PNG: only the parts Word needs."""
+    rels_ns = "http://schemas.openxmlformats.org/package/2006/relationships"
+    office = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+    return make_zip(
+        {
+            "[Content_Types].xml": (
+                b'<?xml version="1.0" encoding="UTF-8"?>'
+                b'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+                b'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+                b'<Default Extension="xml" ContentType="application/xml"/>'
+                b'<Default Extension="png" ContentType="image/png"/>'
+                b'<Override PartName="/word/document.xml" ContentType="application/'
+                b'vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'
+            ),
+            "_rels/.rels": (
+                f'<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="{rels_ns}">'
+                f'<Relationship Id="rId1" Type="{office}/officeDocument" Target="word/document.xml"/>'
+                "</Relationships>"
+            ).encode(),
+            "word/_rels/document.xml.rels": (
+                f'<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="{rels_ns}">'
+                f'<Relationship Id="rId5" Type="{office}/image" Target="media/image1.png"/>'
+                "</Relationships>"
+            ).encode(),
+            "word/media/image1.png": PNG_1X1,
+            "word/document.xml": (
+                '<?xml version="1.0" encoding="UTF-8"?>'
+                '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+                f' xmlns:r="{office}"'
+                ' xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"'
+                ' xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"'
+                ' xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>'
+                f"<w:p><w:r><w:t>{text}</w:t></w:r></w:p>"
+                '<w:p><w:r><w:drawing><wp:inline><wp:extent cx="95250" cy="95250"/>'
+                '<wp:docPr id="1" name="Picture 1" descr="a dot"/><a:graphic>'
+                '<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+                '<pic:pic><pic:nvPicPr><pic:cNvPr id="0" name="image1.png"/><pic:cNvPicPr/></pic:nvPicPr>'
+                '<pic:blipFill><a:blip r:embed="rId5"/></pic:blipFill><pic:spPr/></pic:pic>'
+                "</a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>"
+                "</w:body></w:document>"
+            ).encode(),
+        }
+    )
+
+
+class FakeConn:
+    def __init__(self):
+        self.sent = []
+
+    def send(self, message):
+        self.sent.append(message)
+
+    def close(self):
+        pass
+
+
+class ConvertImagesTest(unittest.TestCase):
+    """`/convert?images=1` keeps embedded pictures as data: URIs (the bulk
+    import stores them as the document's images); without it they are cut."""
+
+    def convert(self, body: bytes, keep_images: bool) -> str:
+        conn = FakeConn()
+        # The child's memory cap would apply to the test process itself.
+        with mock.patch.object(server, "_cap_child_memory"):
+            server._child_convert(conn, body, "docx", keep_images)
+        self.assertEqual(conn.sent[0][0], "ok", conn.sent)
+        return conn.sent[0][1]
+
+    def test_keeps_pictures_when_asked(self):
+        markdown = self.convert(make_docx_with_picture("Quarterly report"), keep_images=True)
+        self.assertIn("Quarterly report", markdown)
+        self.assertIn("data:image/png;base64,", markdown)
+
+    def test_cuts_pictures_by_default(self):
+        markdown = self.convert(make_docx_with_picture("Quarterly report"), keep_images=False)
+        self.assertIn("Quarterly report", markdown)
+        self.assertNotIn("data:image/png;base64,iVBOR", markdown)
+
+
 # httpx (needed by fastapi.testclient) is not part of the service image.
 HAS_HTTPX = importlib.util.find_spec("httpx") is not None
 

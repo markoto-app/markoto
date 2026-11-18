@@ -39,10 +39,14 @@ export const SWEEPS = {
   dataExportWorker: { intervalMs: MINUTE_MS },
   imageGc: { intervalMs: 6 * HOUR_MS, startupDelayMs: 10 * MINUTE_MS },
   inactiveDocs: { intervalMs: DAY_MS, startupDelayMs: 30 * SECOND_MS },
+  // Bulk imports: a running job's heartbeat is every few seconds; older than
+  // `staleAfterMs` means its instance died and the job is queued again.
+  imports: { intervalMs: 15 * SECOND_MS, startupDelayMs: 20 * SECOND_MS, staleAfterMs: 2 * MINUTE_MS },
   knowledge: { intervalMs: 2 * MINUTE_MS, staleAfterMs: 10 * MINUTE_MS },
   litellmKeyReconcile: { intervalMs: 6 * HOUR_MS },
   mcpSessions: { intervalMs: DAY_MS, startupDelayMs: 30 * SECOND_MS, idleAfterDays: 90 },
   orphanCleanup: { intervalMs: HOUR_MS, startupDelayMs: 30 * SECOND_MS },
+  searchIndexBackfill: { intervalMs: MINUTE_MS, startupDelayMs: MINUTE_MS },
   spendLogs: { intervalMs: DAY_MS },
   subscriptionCancelBackfill: { intervalMs: DAY_MS, startupDelayMs: 2 * MINUTE_MS },
   waitlist: { intervalMs: HOUR_MS },

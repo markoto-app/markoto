@@ -27,7 +27,7 @@ const {
   status,
   synced,
   userCount,
-  isReadOnly,
+  isReadOnly: tokenReadOnly,
   syncAuthFailed,
   syncRejection,
   syncBusy,
@@ -65,6 +65,10 @@ const {
   getDocJwt
 } = useDocument(props.docId)
 
+// Deleted by someone else: the text stays readable but is no longer saved,
+// so the editor stops taking edits (they would be lost silently).
+const isReadOnly = computed(() => tokenReadOnly.value || deletedByOther.value)
+
 // What the preview and browser print render. The author's custom CSS is
 // dropped when the plan doesn't include it (a preset's template CSS stays,
 // `customCssForPlan`); it stays in the theme and Y.js, so upgrading applies it
@@ -96,19 +100,12 @@ const dictation = useEditorDictation({
   userId: () => sessionUser.value?.id ?? null
 })
 
-const showShareModal = ref(false)
-// Delete confirmation, under File → Delete (also reachable from Sharing).
-const showDeleteModal = ref(false)
-// Duplicate + Move modals under the File menu. The server re-checks authz,
-// so the menu's canManage gate is UX-only.
-const showDuplicateModal = ref(false)
-const showMoveModal = ref(false)
+const { showShareModal, showDeleteModal, showDuplicateModal, showMoveModal, showImportModal, anyOpen: anyModalOpen } = useEditorModals()
 // Owner or workspace admin; mirrors server-side canManageDoc. Editors and
 // viewers can edit content (`!isReadOnly`) but not move the doc.
 const canManageDoc = computed(() =>
   isOwner.value || docWorkspaceRole.value === 'admin'
 )
-const showImportModal = ref(false)
 // Right-sidebar slot, mutually exclusive between activity, theme, knowledge,
 // document, comments and the mobile-only "editor" drawer (command palette), so
 // the layout shift is predictable. Knowledge only appears for workspace docs
@@ -125,13 +122,7 @@ function closeSidebar() {
 // (delete/duplicate/move/import/share) is up: Nuxt UI modals own Escape in
 // their stack, and it must not also reach the sidebar after dismissing the modal.
 onKeyStroke('Escape', () => {
-  if (
-    showShareModal.value
-    || showDeleteModal.value
-    || showDuplicateModal.value
-    || showMoveModal.value
-    || showImportModal.value
-  ) return
+  if (anyModalOpen.value) return
   if (rightSidebar.value) closeSidebar()
 })
 
@@ -147,7 +138,7 @@ const { commentRanges, commentsPanelRef, onCommentClickInEditor, triggerCreateCo
 
 const { hasKnowledgeAccess } = useDocWorkspaceContext(docWorkspaceId, docWorkspaceRole, rightSidebar)
 
-const { passwordModalOpen } = useDocAccessPrompts(requiresPassword, deletedByOther)
+const { passwordModalOpen, deletedNoticeOpen } = useDocAccessPrompts(requiresPassword, deletedByOther)
 
 // Page count from the paged.js preview, shown in the status bar.
 const pageCount = ref(0)
@@ -233,7 +224,8 @@ function openShareAtPassword() {
   showShareModal.value = true
 }
 
-const { viewMode, isMobile } = useEditorViewMode(isReadOnly)
+// The access level picks the layout; a deletion keeps the one on screen.
+const { viewMode, isMobile } = useEditorViewMode(tokenReadOnly)
 
 const { syncRejectionMessage } = useSyncProblemToasts(syncAuthFailed, syncRejection)
 
@@ -428,16 +420,11 @@ useHead({
         />
       </div>
 
-      <div
-        v-if="isReadOnly"
-        class="bg-amber-500/10 border-b border-amber-500/30 px-4 py-1.5 text-center text-sm text-amber-600 dark:text-amber-400"
-      >
-        <UIcon
-          name="i-lucide-lock"
-          class="size-3.5 mr-1 align-text-bottom"
-        />
-        {{ t('share.viewOnly') }}
-      </div>
+      <EditorLayoutAccessBanner
+        :deleted="deletedByOther"
+        :read-only="isReadOnly"
+        @download="exportMarkdown()"
+      />
 
       <!-- Flex siblings with `flex-1` / `min-w-0` share the width. Triple-split
            (editor + preview + sidebar) starts at `xl` (1280px); below that the
@@ -609,7 +596,7 @@ useHead({
         :char-count="charCount"
         :page-count="pageCount"
         :view-mode="viewMode"
-        :synced="synced"
+        :synced="synced && !deletedByOther"
         :read-only="isReadOnly"
       />
     </template>
@@ -699,6 +686,12 @@ useHead({
       :view="editorView"
       :disabled="isReadOnly"
       @trigger="triggerCreateComment"
+    />
+
+    <!-- Someone else deleted the document: keep the text, offer a copy. -->
+    <EditorLayoutDeletedNotice
+      v-model:open="deletedNoticeOpen"
+      @download="exportMarkdown()"
     />
   </div>
 </template>

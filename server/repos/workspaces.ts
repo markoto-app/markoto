@@ -176,3 +176,10 @@ export async function getWorkspaceOfDoc(doc: DocAccess<'view'>): Promise<Workspa
     .limit(1))[0]
   return row?.ws ?? null
 }
+
+/** The workspace's explorer change counter (bumped by a trigger on every folder / document change). */
+export async function getWorkspaceExplorerVersion(ws: WorkspaceAccess<'member'>): Promise<number> {
+  const row = (await useDatabase().select({ v: workspaces.explorerVersion }).from(workspaces)
+    .where(eq(workspaces.workspaceId, ws.workspaceId)).limit(1))[0]
+  return Number(row?.v ?? 0)
+}

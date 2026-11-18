@@ -1,6 +1,7 @@
 import { boundConfirmNote, type ConfirmationAnswer, type ConfirmationRequest } from './sessionChannel'
 import { trimEndChars } from '~~/shared/utils/trimChars'
 import { CONFIRM_WHEN_TAINTED, URL_ARG_TOOLS } from '../ai/tools/registry'
+import { PERSONAL_SCOPE } from '../ai/tools/folderTools'
 
 // Taint + confirm gate for the in-editor AI loop.
 //
@@ -237,6 +238,9 @@ export class CrossBoundaryGuard {
       case 'view_other_document':
         if (!(await this.deps.isDocSolo(stringArg(args, 'doc_id')))) this.taint('another person\'s document')
         return
+      case 'search_documents':
+      case 'list_folders':
+        return this.applyLibraryTaint(name, args)
       case 'search_knowledge':
         if ([...this.knowledgeFiles.values()].some(f => f.foreign)) this.taint('workspace knowledge')
         return
@@ -259,6 +263,22 @@ export class CrossBoundaryGuard {
     }
   }
 
+  private async applyLibraryTaint(name: string, args: unknown): Promise<void> {
+    if (name === 'search_documents') {
+      // Titles and snippets from every scope the invoker reaches: shared
+      // workspaces, documents shared with them, open-edit documents.
+      this.taint('document search results')
+      return
+    }
+    // list_folders. Folder names are written by whoever edits the
+    // workspace. Personal folders are the invoker's own; no workspace_id =
+    // the session workspace (personal folders when there is none, where
+    // workspaceHasOtherEditors is false).
+    const workspaceId = stringArg(args, 'workspace_id')
+    if (workspaceId === PERSONAL_SCOPE) return
+    if (workspaceId !== '' || await this.deps.workspaceHasOtherEditors()) this.taint('workspace folder names')
+  }
+
   private async describeTarget(name: string, args: unknown): Promise<string | null> {
     switch (name) {
       case 'view_other_document': {
@@ -269,8 +289,15 @@ export class CrossBoundaryGuard {
         const ref = stringArg(args, 'source_doc_id')
         return truncateTarget((await this.deps.describeDoc(ref)) ?? ref)
       }
+      case 'move_document': {
+        const ref = stringArg(args, 'doc_id')
+        return truncateTarget((await this.deps.describeDoc(ref)) ?? ref)
+      }
       case 'create_document':
         return truncateTarget(stringArg(args, 'title')) || null
+      case 'create_folder':
+        return truncateTarget(stringArg(args, 'name')) || null
+      case 'search_documents':
       case 'search_knowledge':
       case 'web_search':
         return truncateTarget(stringArg(args, 'query')) || null

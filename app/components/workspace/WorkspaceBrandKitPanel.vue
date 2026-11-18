@@ -11,8 +11,6 @@ type FontRow = BrandKitFontRow
 
 const props = defineProps<{
   workspaceId: string
-  /** The workspace's documents (design source, template targets). */
-  documents: Array<{ docId: string, title: string }>
   defaultTheme: DocTheme | null
   locked: boolean
 }>()
@@ -32,6 +30,16 @@ async function load(): Promise<void> {
   }
 }
 onMounted(load)
+
+// The workspace's documents for the design source and template pickers,
+// by title (the first 200; the pickers search within them).
+const documents = ref<Array<{ docId: string, title: string }>>([])
+onMounted(async () => {
+  try {
+    const page = await apiFetch('/api/workspaces/:wsId/documents', { path: { wsId: props.workspaceId }, query: { folder: 'all', sort: 'title', limit: 200 } })
+    documents.value = page.items.map(d => ({ docId: d.docId, title: d.title }))
+  } catch { /* the pickers stay empty */ }
+})
 
 // Show each font in its own face here too (same-origin, session).
 useHead(() => ({

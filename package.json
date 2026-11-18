@@ -91,6 +91,8 @@
     "check:links": "lychee --config lychee.toml $(git ls-files '*.md' ':!:content' ':!:tests/fixtures' ':!:CHANGELOG.md' ':!:shared/templates/content')"
   },
   "dependencies": {
+    "@atlaskit/pragmatic-drag-and-drop": "^4.0.0",
+    "@atlaskit/pragmatic-drag-and-drop-auto-scroll": "^3.2.1",
     "@aws-sdk/client-s3": "^3.1164.0",
     "@aws-sdk/s3-request-presigner": "^3.1164.0",
     "@codemirror/commands": "^6.11.1",

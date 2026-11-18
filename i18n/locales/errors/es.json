@@ -205,7 +205,15 @@
       "timeout": "La conversión tardó demasiado.",
       "too-complex": "Este archivo es demasiado grande o complejo para convertirlo.",
       "unavailable": "No se pudo contactar con el servicio de conversión.",
-      "unsupported-format": "Este formato de archivo no es compatible."
+      "unsupported-format": "Este formato de archivo no es compatible.",
+      "job-not-found": "No se encontró esta importación.",
+      "job-active": "Ya hay una importación en curso. Espera a que termine o detenla.",
+      "job-not-uploading": "Esta importación ya ha comenzado.",
+      "nothing-to-import": "Ninguno de estos archivos se puede importar.",
+      "path-invalid": "La ruta de un archivo no es válida.",
+      "github-url-invalid": "Esto no es un enlace a un repositorio público de GitHub.",
+      "github-not-found": "No se encontró el repositorio.",
+      "github-unavailable": "No se pudo conectar con GitHub. Inténtalo de nuevo más tarde."
     },
     "internal": {
       "forbidden": "Credenciales no válidas o ausentes."
@@ -408,6 +416,14 @@
       "not-found": "No se encontró el espacio de trabajo.",
       "role-required": "Los lectores no pueden crear documentos en este espacio de trabajo.",
       "template-rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
+    },
+    "folder": {
+      "not-found": "Otra persona movió o eliminó esta carpeta.",
+      "name-taken": "Ya existe aquí una carpeta con este nombre.",
+      "too-deep": "Las carpetas pueden anidarse como máximo {max} niveles.",
+      "cycle": "Una carpeta no se puede mover dentro de sí misma ni de una de sus subcarpetas.",
+      "forbidden": "No puedes modificar carpetas aquí.",
+      "delete-blocked": "No puedes eliminar {blocked} documentos de esta carpeta, así que no se eliminó nada."
     }
   }
 }

@@ -17,8 +17,10 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { defineNuxtModule, useLogger } from '@nuxt/kit'
+import { eventHandler, setResponseHeaders } from 'h3'
 import { generateVendorAssets, vendorInputsKey } from '../scripts/lib/vendorAssets'
 import { VENDOR_BASE } from '../shared/utils/vendor/vendorAssets'
+import { vendorAssetHeaders } from '../server/utils/rendering/vendorAssetHeaders'
 
 export default defineNuxtModule({
   meta: { name: 'markoto-vendor-assets' },
@@ -40,5 +42,19 @@ export default defineNuxtModule({
     // the versioned files and the per-family font stylesheets
     // (server/plugins/vendor-assets.ts).
     nuxt.options.nitro.publicAssets.push({ dir: outDir, baseURL: VENDOR_BASE.replace(/\/$/, ''), maxAge: 0 })
+    // `nuxt dev` serves public-asset directories from its own static
+    // middleware, before the Nitro app and its `request` hook run, so the
+    // CORS header the sandboxed preview iframe needs (SRI scripts load in
+    // CORS mode) would be missing and paged.js would fail to load. A dev
+    // handler sets the same headers ahead of that middleware.
+    if (nuxt.options.dev) {
+      nuxt.options.nitro.devHandlers ||= []
+      nuxt.options.nitro.devHandlers.push({
+        handler: eventHandler((event) => {
+          const headers = vendorAssetHeaders(event.path)
+          if (headers) setResponseHeaders(event, headers)
+        })
+      })
+    }
   }
 })

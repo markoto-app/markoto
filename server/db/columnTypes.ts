@@ -119,8 +119,14 @@ export interface AuditEventShapes {
   'ai_provider.deleted': { metadata: { capability: string } }
   'doc.deleted': {
     before: AuditDocSnapshot | null
-    metadata: { reason: 'user_initiated' | 'inactive_sweep' } | { reason: 'workspace_cascade', workspaceId: string } | ModerationReason
+    metadata: { reason: 'user_initiated' | 'inactive_sweep' | 'bulk' } | { reason: 'workspace_cascade', workspaceId: string } | { reason: 'folder_deleted', folderId: string } | ModerationReason
   }
+  'doc.folder_moved': { before: { folderId: string | null }, after: { folderId: string | null } }
+  'folder.created': { metadata: { folderId: string, name: string, parentId: string | null } }
+  'folder.renamed': { before: { name: string }, after: { name: string }, metadata: { folderId: string } }
+  'folder.moved': { before: { parentId: string | null }, after: { parentId: string | null }, metadata: { folderId: string } }
+  'folder.deleted': { before: { name: string, parentId: string | null }, metadata: { folderId: string, folders: number, documents: number } }
+  'import.completed': { metadata: { jobId: string, source: string, status: string, total: number, done: number, failed: number, skipped: number } }
   'doc.workspace_moved': { before: { workspaceId: string | null }, after: { workspaceId: string | null }, metadata?: { templatesRemoved?: number, guestSharesRemoved?: number } }
   'doc.password_set': { before: { accessMode: AccessMode, hasPassword: boolean }, after: { accessMode: 'password-protected', hasPassword: true } }
   'doc.password_removed': { before: { accessMode: AccessMode, hasPassword: boolean }, after: { accessMode: 'open-edit', hasPassword: false } }

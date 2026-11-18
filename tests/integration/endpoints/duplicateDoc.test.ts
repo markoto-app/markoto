@@ -260,7 +260,7 @@ describe('POST /api/docs/:docId/duplicate', () => {
       expect(row.title.length).toBe(255)
     })
 
-    it('inherits accessMode, passwordHash, theme, word/size counters', async () => {
+    it('inherits accessMode, passwordHash, theme; counters follow the copied text', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'password-protected' })
       await setDocPasswordHash(doc.docId, 'secret-hash')
@@ -277,8 +277,10 @@ describe('POST /api/docs/:docId/duplicate', () => {
       const row = (await readDoc(docId))!
       expect(row.access_mode).toBe('password-protected')
       expect(row.password_hash).toBe('secret-hash')
-      expect(row.word_count).toBe(500)
-      expect(row.size_bytes).toBe(4000)
+      // The copy is indexed from its copied Y.js state (none here), so its
+      // counts are those of that text, not the source row's stored numbers.
+      expect(row.word_count).toBe(0)
+      expect(row.size_bytes).toBe(0)
       expect(row.theme).toEqual({ foo: 'bar' })
     })
 

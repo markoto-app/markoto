@@ -62,6 +62,13 @@ describe('admitToolCall: plan checks', () => {
     expect(checkRateLimit).not.toHaveBeenCalled()
   })
 
+  it.each(['move_document', 'create_folder'])('refuses %s on a read-only plan; search and folder listing stay', async (name) => {
+    const event = fakeEvent({ mcpWrite: false, mcpToolCallsPerDay: null })
+    await expect(admitToolCall(event as never, name, 'documents:write')).rejects.toMatchObject({ statusCode: 409, data: { code: 'plan/feature-unavailable' } })
+    await expect(admitToolCall(event as never, 'search_documents', 'documents:read')).resolves.toMatchObject({ userId: 7 })
+    await expect(admitToolCall(event as never, 'list_folders', 'documents:read')).resolves.toMatchObject({ userId: 7 })
+  })
+
   it('admits a read tool on a read-only plan', async () => {
     const event = fakeEvent({ mcpWrite: false, mcpToolCallsPerDay: null })
     await expect(admitToolCall(event as never, 'view_document', 'documents:read')).resolves.toMatchObject({ userId: 7 })

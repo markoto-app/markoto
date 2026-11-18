@@ -1,7 +1,8 @@
 import { getDocWithActorRole } from '../../repos/access/docAuthz'
 import { getMemberRole, getMemberRoleIgnoringSso, getMembershipRole } from '../../repos/access/workspaceRoles'
 import { mintWorkspaceAccess, userActor } from '../../repos/proofs/mint'
-import type { WorkspaceAccess, WorkspaceGrant, WorkspaceLevel } from '../../repos/proofs'
+import type { UserScope, WorkspaceAccess, WorkspaceGrant, WorkspaceLevel } from '../../repos/proofs'
+import { listWorkspacesForUser } from '../../repos/workspaces'
 import { isEffectiveDocOwner, type MembershipRole, type WorkspaceRole } from '../../../shared/utils/documents/docPermissions'
 
 // Thin authz shortcuts for workspace / document operations. Delegates to
@@ -55,6 +56,20 @@ export async function proveWorkspaceAccess<N extends WorkspaceLevel>(
 ): Promise<WorkspaceAccess<WorkspaceGrant<N>> | null> {
   const role = o?.ignoreSso ? await getMemberRoleIgnoringSso(wsId, userId) : await getMemberRole(wsId, userId)
   return role ? workspaceProofFor(userId, wsId, role, need) : null
+}
+
+/**
+ * Proofs for every workspace the user is a member of (SSO-checked: a
+ * workspace that enforces single sign-on without a current sign-in is left
+ * out). Guests hold none. For searches across everything the user can reach.
+ */
+export async function memberWorkspaceProofs(self: UserScope): Promise<Array<WorkspaceAccess<'member'>>> {
+  const out: Array<WorkspaceAccess<'member'>> = []
+  for (const ws of await listWorkspacesForUser(self)) {
+    const proof = await proveWorkspaceAccess(self.userId, ws.workspaceId, 'member')
+    if (proof) out.push(proof)
+  }
+  return out
 }
 
 /** The proof for a role the caller already looked up; null when it is below `need`. */

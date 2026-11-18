@@ -25,6 +25,12 @@ The request limits the app and the sync server enforce, with the file each value
 | Workspace brand files for a document | 300 per client per minute | `server/api/docs/[docId]/brand/[file].get.ts` |
 | Document from a workspace template | 60 per user per hour | `server/api/workspaces/[wsId]/templates/[templateId]/documents.post.ts` |
 | Import | 10 per client per minute | `server/api/import.post.ts` |
+| Bulk import jobs | 20 per user per hour (plus the plan's imports per day, one at a time) | `server/api/imports/index.post.ts` |
+| Folder create / rename / move | 120 per user per minute | `server/api/workspaces/[wsId]/folders/index.post.ts`, `server/api/user/folders/index.post.ts`, `server/api/folders/[folderId]/index.patch.ts` |
+| Folder delete | 20 per user per minute | `server/api/folders/[folderId]/index.delete.ts` |
+| Bulk actions (move, delete) | 30 per user per minute, at most 200 items each | `server/api/documents/bulk.post.ts`, `server/api/folders/bulk-move.post.ts` |
+| Document rename | 60 per user per minute | `server/api/docs/[docId]/title.put.ts` |
+| Document search | 60 per user per minute | `server/api/search/documents.get.ts` |
 | Server-rendered PDF | 10 per client per minute (MCP render tools share it) | `server/utils/rendering/renderRateLimit.ts` |
 | Preview image token (`GET /api/docs/:id/file-token`) | 60 per client per minute | `server/api/docs/[docId]/file-token.get.ts` |
 | Image upload request / confirm | 60 each per user per minute | `server/api/upload/request.post.ts`, `server/api/upload/confirm.post.ts` |

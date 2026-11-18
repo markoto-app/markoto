@@ -1,16 +1,14 @@
-import { z } from 'zod'
 import { buildUserOnlyTool } from '../lib/wrapDocBoundTool'
+import { ListMyDocumentsArgs } from '../../utils/ai/tools/crossDocumentTools'
 
-// User-only: lists docs the caller owns across every workspace they
-// participate in. The tool is `listMyDocumentsTool`
-// (`server/utils/ai/tools/crossDocumentTools.ts`), the same definition the
-// in-app agentic loop runs, same code path for both consumers.
+// User-only: one page of the caller's personal documents (owned, in no
+// workspace). Same definition as the in-app loop's `list_my_documents`
+// (`server/utils/ai/tools/crossDocumentTools.ts`).
 export default buildUserOnlyTool({
   name: 'list_my_documents',
-  description: 'List recent documents owned by the authenticated user, across all workspaces. Returns id, title, description, language, access mode, workspace_id, word_count, and last-active timestamp.',
+  description: 'List one page of your personal documents (owned by you, not in any workspace), most recently edited first: id, title, folder path, last edited and a short description, plus total and next_cursor. Workspace documents: list_workspace_documents or search_documents.',
   scope: 'documents:read',
   annotations: { readOnlyHint: true, openWorldHint: false },
-  inputSchema: {
-    limit: z.number().int().min(1).max(100).optional().describe('Max documents to return. Default 25, cap 100.')
-  }
+  // The in-app tool's arguments, unchanged.
+  inputSchema: ListMyDocumentsArgs.shape
 })

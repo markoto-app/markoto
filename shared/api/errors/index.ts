@@ -22,6 +22,7 @@ import { docsErrors } from './docs'
 import { dpaErrors } from './dpa'
 import { exportErrors } from './export'
 import { filesErrors } from './files'
+import { folderErrors } from './folder'
 import { importErrors } from './import'
 import { knowledgeErrors } from './knowledge'
 import { legalErrors } from './legal'
@@ -61,6 +62,7 @@ export const API_ERRORS = {
   ...dpaErrors,
   ...exportErrors,
   ...filesErrors,
+  ...folderErrors,
   ...importErrors,
   ...knowledgeErrors,
   ...legalErrors,

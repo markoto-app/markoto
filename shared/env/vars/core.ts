@@ -210,6 +210,15 @@ export const test = defineNamespace({
       scope: 'test',
       notPassed: 'set by the test harness only'
     }),
+    githubImportOrigin: v({
+      name: 'TEST_GITHUB_IMPORT_ORIGIN',
+      type: string,
+      default: '',
+      doc: 'With TEST_MODE: origin of a fake GitHub that GitHub imports call instead of api.github.com / raw.githubusercontent.com (plain HTTP, no address checks).',
+      services: ['app'],
+      scope: 'test',
+      notPassed: 'set by the test harness only'
+    }),
     exposeTestHandles: v({
       name: 'NUXT_PUBLIC_EXPOSE_TEST_HANDLES',
       type: bool,

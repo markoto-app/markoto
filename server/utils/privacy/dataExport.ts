@@ -30,6 +30,7 @@ import {
   addAiProvidersEntry,
   addBillingEntries,
   addCreditGrantsEntry,
+  addImportJobsEntry,
   addSubscriptionHistoryEntry,
   addPublishingEntries,
   addWaitlistEntry,
@@ -66,6 +67,7 @@ import {
 //   consent.ndjson
 //   waitlist.ndjson                 ← paid-plans waitlist sign-ups linked to the account
 //   ad_conversions.ndjson           ← Google Ads click ids of the account's sign-up / first document
+//   imports.json                    ← bulk imports you started: file paths, outcome, no contents
 //   abuse_reports.ndjson            ← reports the user filed while signed in + notices sent to them
 //   moderation_notices.ndjson       ← statements of reasons the user got as a document owner
 //   billing/invoices.ndjson         ← Stripe invoice history (if any)
@@ -150,6 +152,7 @@ export async function buildExportZip(by: SystemActor, userId: number): Promise<B
   await addBrandAssetsEntry(entries, user)
   await addPublishingEntries(entries, user)
   await addAdConversionsEntry(entries, user)
+  await addImportJobsEntry(entries, user)
 
   return {
     bytes: zipSync(entries, { level: 6 }),

@@ -4,7 +4,7 @@ import { resolveThemeCustomCss } from '../../../server/utils/ai/tools/themeTools
 import { parseInternalFileRef } from '../../../server/utils/ai/tools/imageFetch'
 import { sanitizeAltText } from '../../../server/utils/ai/tools/imageTools'
 import { lineToCharOffset } from '../../../server/utils/ai/tools/documentText'
-import { parseDocIdFromInput } from '../../../server/utils/ai/tools/crossDocumentTools'
+import { parseDocIdFromInput } from '../../../server/utils/ai/tools/docRef'
 import { defaultTheme } from '../../../shared/utils/theme/defaultTheme'
 import type { HeadingLevels } from '../../../shared/types/theme'
 import { UpdateThemeArgs, type UpdateThemeInput } from '../../../server/utils/ai/tools/themeSchema'
