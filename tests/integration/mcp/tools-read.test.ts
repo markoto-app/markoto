@@ -82,6 +82,54 @@ describe('MCP read tools: view_document', () => {
   })
 })
 
+describe('MCP read tools: outline, read_section, search_document', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  const BODY = '# 1 Intro\nHello customer.\n## 1.1 Detail\nThe customer pays `customer` fees.\n# 2 End\nbye\n'
+
+  it('outline lists the sections with ids that read_section accepts in the same session', async () => {
+    const user = await createUser()
+    const doc = await createDoc({ ownerId: user.id })
+    await seedYjs(doc.docId, BODY)
+    const { plaintext } = await mintPat({ userId: user.id, scopes: READ_SCOPES })
+    const client = mcp(plaintext)
+
+    const outline = await client.callText('outline', { doc_id: doc.docId })
+    expect(outline).toMatch(/^s-1 {2}1 {2}# Intro {2}\[1-4\]/m)
+    const id = /^(s-\d+) {2}1\.1 /m.exec(outline)![1]!
+
+    const section = await client.callText('read_section', { doc_id: doc.docId, section: id })
+    expect(section).toContain(`Section ${id} "1.1 Detail" (lines 3-4`)
+    expect(section).toContain('4: The customer pays `customer` fees.')
+    const byNumber = await client.callText('read_section', { doc_id: doc.docId, section: '2' })
+    expect(byNumber).toContain('5: # 2 End')
+  })
+
+  it('search_document counts matches and skips inline code', async () => {
+    const user = await createUser()
+    const doc = await createDoc({ ownerId: user.id })
+    await seedYjs(doc.docId, BODY)
+    const { plaintext } = await mintPat({ userId: user.id, scopes: READ_SCOPES })
+
+    const text = await mcp(plaintext).callText('search_document', { doc_id: doc.docId, query: 'customer' })
+    expect(text).toMatch(/^2 matches for "customer"/)
+    expect(text).toContain('Not counted: 1 in inline code.')
+    expect(text).toContain('«customer»')
+  })
+
+  it('denies a document the token user cannot read', async () => {
+    const owner = await createUser()
+    const stranger = await createUser()
+    const doc = await createDoc({ ownerId: owner.id })
+    await seedYjs(doc.docId, BODY)
+    const { plaintext } = await mintPat({ userId: stranger.id, scopes: READ_SCOPES })
+    const res = await mcp(plaintext).call('search_document', { doc_id: doc.docId, query: 'customer' })
+    expect(res.isError).toBe(true)
+  })
+})
+
 describe('MCP read tools: list_my_documents', () => {
   beforeEach(async () => {
     await resetDb()

@@ -258,9 +258,12 @@ export async function* openAIStreamToInternalChunks(
 ): AsyncGenerator<StreamChunk, void, unknown> {
   const accum = new Map<number, AccumulatingToolCall>()
   let finishReason: string | undefined
+  let model: string | undefined
   const usage: StreamUsage = {}
 
   for await (const chunk of stream) {
+    // The model the provider reports (may differ from the requested alias).
+    model = chunk.model || model
     // Usage arrives on the FINAL chunk (via `stream_options:
     // {include_usage: true}`), which carries `choices: []`, read it
     // before the choice guard below, or it is skipped.
@@ -277,7 +280,8 @@ export async function* openAIStreamToInternalChunks(
     if (choice.finish_reason) finishReason = choice.finish_reason
   }
 
-  yield buildTerminalChunk(accum, finishReason, usage)
+  const terminal = buildTerminalChunk(accum, finishReason, usage)
+  yield model ? { ...terminal, modelVersion: model } : terminal
 }
 
 interface StreamUsage {
@@ -345,11 +349,15 @@ function buildTerminalChunk(
   const calls: NonNullable<StreamChunk['functionCalls']> = []
   const modelParts: Part[] = []
   for (const [, t] of accum) {
-    const parsedArgs = parseToolCallArgs(t.argsBuffer)
-    calls.push({ id: t.id, name: t.name, args: parsedArgs })
+    const parsed = parseToolCallArgs(t.argsBuffer)
+    const parsedArgs = parsed ?? {}
     // Keep the raw argument text only when it is the JSON we parsed,
     // replaying a malformed buffer would make the next request invalid.
     const rawArgs = rawArgsIfValid(t.argsBuffer)
+    // Not a JSON object: typically cut off by the output token limit. The
+    // loop answers it with an error instead of running it.
+    const argsInvalid = parsed === null
+    calls.push({ id: t.id, name: t.name, args: parsedArgs, ...(argsInvalid ? { argsInvalid } : {}) })
     modelParts.push({ functionCall: { id: t.id, name: t.name, args: parsedArgs, ...(rawArgs === null ? {} : { rawArgs }) } })
   }
   return {
@@ -377,17 +385,24 @@ function rawArgsIfValid(buf: string): string | null {
   }
 }
 
+function asObject(v: unknown): Record<string, unknown> | null {
+  return typeof v === 'object' && v !== null && !Array.isArray(v) ? v as Record<string, unknown> : null
+}
+
 /**
- * Parse the accumulated `function.arguments` JSON buffer. Empty / whitespace
- * buffers and JSON-parse failures surface as empty `{}`, the loop's Zod
- * validation then catches the malformed call and lets the model retry.
+ * Parse the accumulated `function.arguments` JSON buffer. An empty buffer is
+ * `{}` (a call without arguments); a buffer that is not a JSON object (cut
+ * off, malformed) is null. Some models double-encode the object as a JSON
+ * string; that is unwrapped once.
  */
-function parseToolCallArgs(buf: string): Record<string, unknown> {
+function parseToolCallArgs(buf: string): Record<string, unknown> | null {
   if (!buf || buf.trim().length === 0) return {}
   try {
-    return JSON.parse(buf) as Record<string, unknown>
+    const parsed: unknown = JSON.parse(buf)
+    if (typeof parsed === 'string') return asObject(JSON.parse(parsed))
+    return asObject(parsed)
   } catch {
-    return {}
+    return null
   }
 }
 

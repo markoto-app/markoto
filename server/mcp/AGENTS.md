@@ -19,3 +19,5 @@ How the server works and how to add a tool: `docs/contributing/mcp.md`. Tool han
 - Never log or return a token's plaintext or hash; plaintext is shown once at issue.
 - Token CRUD (`server/api/mcp/tokens/`) is authenticated by the web session, never by a token.
 - Multi-instance needs sticky routing for `/mcp`: the toolkit's sessions are per process even though the bindings are in Valkey.
+- Section ids (`s-12`) are kept per pooled `Y.Doc`, so they are valid for one MCP session; keep the pool key per MCP session or ids leak between clients.
+- `delegate_scan` / `delegate_rewrite` and `load_skill` have no wrapper (decided, `docs/contributing/mcp.md`). A job wrapper needs a budget argument in place of the prompt-bar cost confirmation first.

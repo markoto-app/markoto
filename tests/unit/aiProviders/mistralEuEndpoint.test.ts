@@ -94,16 +94,20 @@ describe('LiteLLM: every Mistral deployment is EU-pinned', () => {
     }
   })
 
-  it('thinking is off on the free-allowance model, set at the proxy for every caller, and not sent to its fallback', () => {
+  it('thinking is off on the free-allowance model and its fallback, each set at the proxy for every caller', () => {
     // YAML of one deployment, comments dropped (the next entry's header
     // comment would otherwise count as part of this one).
     const block = (name: string) => (config.split(/\n {2}- model_name: /).find(b => b.startsWith(`${name}\n`)) ?? '')
       .split('\n').filter(l => !/^\s*#/.test(l)).join('\n')
-    // Mistral accepts low / high / max only; `low` is the "off" switch
-    // (0 reasoning tokens on almost every turn, verified live).
+    // The hosted chat default (DeepSeek V4.1 Flash): `none`, which GLM
+    // would refuse, so it is a deployment param and never travels with a
+    // request to the GLM fallback.
+    // GLM-5.3 Flash: Mistral accepts low / high / max only; `low` is the
+    // "off" switch (0 reasoning tokens on almost every turn, verified live).
     expect(block('zai-glm-5-3-flash')).toMatch(/\n {6}reasoning_effort: low\n/)
-    expect(block('mistral-small-2603')).not.toContain('reasoning_effort')
-    expect(config).toMatch(/- zai-glm-5-3-flash: \[mistral-small-2603\]/)
+    expect(block('deepseek-v4-1-flash-1017')).toMatch(/\n {6}reasoning_effort: none\n/)
+    expect(config).toMatch(/- zai-glm-5-3-flash: \[deepseek-v4-1-flash-1017\]/)
+    expect(config).toMatch(/- deepseek-v4-1-flash-1017: \[zai-glm-5-3-flash\]/)
   })
 
   it('the Voxtral transcription handler posts to the EU endpoint', () => {

@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nuxt'
 import type { AiSession } from '../../ai/aiClient'
 import { useLogger } from '../../platform/logger'
+import { sumCallUsage, type CallUsageRecord } from './callUsage'
 
 const loopLog = useLogger('ai-loop')
 
@@ -20,6 +21,8 @@ export type SessionOutcome
     | 'member-limit-reached'
     | 'provider-unavailable'
     | 'turn-limit'
+    | 'time-limit'
+    | 'output-limit'
     | 'stalled'
 
 /**
@@ -41,12 +44,25 @@ export class SessionTelemetry {
   outcome: SessionOutcome = 'error'
   abortReason?: string
   errorMessage?: string
+  /** Turns re-requested after the stream broke mid-way (`providerStream.ts`). */
+  streamRetries = 0
+  /** Characters of old read results replaced by a stub (`historyPruning.ts`). */
+  prunedChars = 0
+  /** Read results replaced by a stub, and in how many batches. */
+  prunedResults = 0
+  pruneBatches = 0
   /**
    * Per-tool ATTEMPT counts (records EVERY invocation, including
    * cap-rejected and errored ones). Distinct from SessionBudget's
    * tool-cap counter which only ticks on accepted slots.
    */
   readonly toolCallCounts = new Map<string, number>()
+  /** One usage record per model call, in order (`callUsage.ts`). */
+  readonly calls: CallUsageRecord[] = []
+
+  noteCall(record: CallUsageRecord): void {
+    this.calls.push(record)
+  }
 
   noteUsage(usage: { promptTokenCount?: number, candidatesTokenCount?: number, thoughtsTokenCount?: number, cachedContentTokenCount?: number } | undefined): void {
     if (!usage) return
@@ -56,6 +72,12 @@ export class SessionTelemetry {
     if (typeof usage.promptTokenCount === 'number') this.totalInputTokens += usage.promptTokenCount
     if (typeof usage.candidatesTokenCount === 'number') this.totalOutputTokens += usage.candidatesTokenCount
     if (typeof usage.thoughtsTokenCount === 'number') this.totalThinkingTokens += usage.thoughtsTokenCount
+  }
+
+  notePruned(chars: number, results: number): void {
+    this.prunedChars += chars
+    this.prunedResults += results
+    this.pruneBatches += 1
   }
 
   noteToolAttempt(name: string): void {
@@ -96,6 +118,11 @@ export class SessionTelemetry {
           totalCachedInputTokens: this.sawAnyUsageMetadata ? this.totalCachedInputTokens : -1,
           toolCallCounts: toolCounts,
           abortReason: this.abortReason,
+          streamRetries: this.streamRetries,
+          prunedChars: this.prunedChars,
+          prunedResults: this.prunedResults,
+          pruneBatches: this.pruneBatches,
+          callTotals: sumCallUsage(this.calls),
           errorMessage: this.errorMessage,
           durationMs: Date.now() - this.startedAt,
           plan: args.plan,

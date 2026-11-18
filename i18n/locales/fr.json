@@ -189,7 +189,12 @@
         "changed": "a changé le thème"
       },
       "ai": {
-        "tool": "a utilisé un outil"
+        "tool": "a utilisé un outil",
+        "job": {
+          "started": "a lancé une grande modification par l'IA",
+          "finished": "a terminé une grande modification par l'IA",
+          "reverted": "a annulé une grande modification par l'IA"
+        }
       },
       "restore": "a restauré le document",
       "aiTool": {
@@ -198,12 +203,16 @@
         "generate_image": "a généré une image",
         "view_image": "a examiné une image",
         "search_knowledge": "a fait une recherche dans la base de connaissances",
-        "get_knowledge_file": "a lu un fichier de connaissances"
+        "get_knowledge_file": "a lu un fichier de connaissances",
+        "replace_all": "a remplacé du texte dans tout le document"
       }
     },
     "detail": {
       "titleChanged": "{from} → {to}",
-      "restoredFrom": "Depuis {ago}"
+      "replacedAll": "{count}× “{from}” → “{to}”",
+      "restoredFrom": "Depuis {ago}",
+      "jobProgress": "{done} parties sur {total} modifiées",
+      "jobReverted": "{reverted} parties restaurées, {skipped} laissées après modification"
     },
     "restore": {
       "button": {
@@ -259,7 +268,15 @@
       "knowledgeNote": "Fonctionnalité de connaissances de l'espace de travail.",
       "openViewedImage": "Ouvrir l'image consultée dans un nouvel onglet"
     },
-    "viaAgent": "via {agent}"
+    "viaAgent": "via {agent}",
+    "job": {
+      "undo": "Défaire",
+      "undoConfirm": "Restaurer ce que cette modification a changé ?",
+      "undoYes": "Défaire",
+      "undoNo": "Garder",
+      "undone": "{reverted} parties restaurées ; {skipped} modifiées depuis restent telles quelles.",
+      "undoFailed": "La modification n’a pas pu être défaite."
+    }
   },
   "comments": {
     "title": "Commentaires",
@@ -594,6 +611,8 @@
       "waiting": "En attente de votre confirmation…",
       "allow": "Autoriser",
       "deny": "Refuser",
+      "notePlaceholder": "Facultatif : dites à markoto quoi faire à la place, puis Refuser",
+      "noteLabel": "Note pour markoto avec Refuser",
       "tools": {
         "view_other_document": "markoto veut lire « {target} ».",
         "list_my_documents": "markoto veut lister vos documents.",
@@ -606,6 +625,24 @@
         "fetch_url": "markoto veut ouvrir {target}",
         "view_image": "markoto veut charger l’image {target}",
         "generic": "markoto veut utiliser {tool}."
+      },
+      "job": {
+        "question": "{what} : {cost}, {minutes}.",
+        "reason": "Elle s’exécute en arrière-plan. Vous pouvez l’annuler, et la défaire dans le journal d’activité.",
+        "start": "Lancer",
+        "cancel": "Annuler",
+        "cost": "environ {cost}",
+        "costShare": "environ {cost} ({share} de votre allocation du mois)",
+        "tokens": "environ {tokens} jetons sur votre propre clé",
+        "minutes": "environ {minutes} min",
+        "modes": {
+          "translateTo": "Traduire {count} sections en {language}",
+          "translate": "Traduire {count} sections",
+          "rewrite": "Réécrire {count} sections",
+          "terminology": "Mettre à jour les termes de {count} sections",
+          "summarise": "Résumer {count} chapitres",
+          "comment": "Relire {count} sections"
+        }
       }
     },
     "placeholder": "Demandez à markoto…",
@@ -758,7 +795,38 @@
       "replyCommentAny": "Réponse à un commentaire…",
       "resolveComment": "Résolution d’un commentaire…",
       "reopenComment": "Réouverture d’un commentaire…",
-      "deleteComment": "Suppression d’un commentaire…"
+      "deleteComment": "Suppression d’un commentaire…",
+      "scanDocument": "Analyse du document…",
+      "previewJob": "Essai de la modification sur des sections d’exemple…",
+      "startJob": "Lancement de la modification en arrière-plan…",
+      "jobProgress": "Modification en arrière-plan : {done} parties sur {total} terminées",
+      "jobStatus": "Vérification de la modification en arrière-plan…"
+    },
+    "job": {
+      "label": "Modification en arrière-plan",
+      "modes": {
+        "translate": "Traduction",
+        "rewrite": "Réécriture",
+        "terminology": "Terminologie",
+        "summarise": "Résumés",
+        "comment": "Relecture"
+      },
+      "progress": "{done} parties sur {total}",
+      "working": "En cours : {heading}",
+      "cost": "Coût à ce stade : {cost}",
+      "cancel": "Annuler",
+      "resume": "Reprendre",
+      "undo": "Défaire",
+      "dismiss": "Fermer",
+      "done": "Terminé : {done} parties sur {total} modifiées.",
+      "cancelled": "Annulée après {done} parties sur {total}.",
+      "paused": "En pause : l’allocation IA est épuisée.",
+      "interrupted": "Interrompue. Reprenez-la pour continuer.",
+      "failed": "La modification en arrière-plan s’est arrêtée. {reason}",
+      "reverted": "Défaite.",
+      "undone": "Défaite : {count} parties restaurées.",
+      "skipped": "{count} parties laissées telles quelles.",
+      "flagged": "{count} parties à vérifier."
     }
   },
   "mobileTabBar": {
@@ -1948,7 +2016,7 @@
       "purpose": {
         "ovh_postgres": "Base de données principale de l’application, état Y.js des documents, embeddings de la base de connaissances",
         "ovh_object_storage": "Images téléversées, originaux de la base de connaissances (supprimés après traitement), sauvegardes de la base de données",
-        "mistral_ai": "Génération de texte par IA pour l’assistant d’écriture : l’allocation d’IA gratuite (Z.ai GLM-5.3 Flash, servi et traité par Mistral ; Z.ai ne reçoit aucune donnée) avec Mistral Small en secours ; transcription vocale (Voxtral). Toutes les requêtes passent par le point d’accès européen de Mistral (centres de données dans l’UE et l’AELE)",
+        "mistral_ai": "Génération de texte par IA pour l’assistant d’écriture, y compris l’allocation d’IA gratuite : modèles à poids ouverts et modèles de Mistral, servis et traités par Mistral (actuellement DeepSeek V4.1 Flash, GLM-5.3 Flash et Mistral Large 4 ; leurs développeurs ne reçoivent aucune donnée) ; transcription vocale (Voxtral). Toutes les requêtes passent par le point d’accès européen de Mistral (centres de données dans l’UE et l’AELE)",
         "jina_ai": "Génération d’embeddings pour la base de connaissances (RAG) ; extraction du contenu d’une page à partir d’une URL pour l’outil de récupération d’URL (Jina Reader ; l’URL est envoyée pour tous les utilisateurs, y compris ceux qui utilisent leur propre fournisseur d’IA)",
         "staan": "Recherche web pour l’assistant d’écriture IA (la requête est envoyée pour tous les utilisateurs, y compris ceux qui utilisent leur propre fournisseur d’IA), via un index de recherche européen propriétaire (acheminement uniquement dans l’UE)",
         "bfl": "Génération d’images avec FLUX (traitement des données fixé dans l’UE)",
@@ -2112,6 +2180,8 @@
       "membersPerWorkspace": "Cet espace de travail a atteint la limite de membres de son forfait.",
       "savedThemes": "Vous avez atteint la limite de thèmes enregistrés de votre forfait. Supprimez-en un pour en enregistrer un nouveau.",
       "importMaxBytes": "Ce fichier dépasse la taille que votre forfait autorise pour les imports.",
+      "aiJobUnitsPerJob": "Cette tâche dépasse ce que votre forfait permet. Choisissez moins de sections.",
+      "aiJobsPerDay": "Vous avez utilisé les tâches IA incluses dans votre forfait pour aujourd'hui. Réessayez demain.",
       "historyEntry": "Cette modification est plus ancienne que l'historique inclus dans le forfait de ce document.",
       "mcpToolCallsPerDay": "Vous avez utilisé les appels d'outils MCP inclus dans votre forfait pour aujourd'hui. Réessayez demain."
     },
@@ -2193,6 +2263,8 @@
       "baseUrlHint": "La racine de l'API compatible OpenAI du fournisseur, qui se termine souvent par /v1.",
       "model": "Modèle",
       "modelPlaceholder": "L'identifiant du modèle chez le fournisseur",
+      "fastModel": "Modèle rapide (facultatif)",
+      "fastModelHint": "Un modèle moins cher et plus rapide chez le même fournisseur, avec la même clé, utilisé pour les grandes modifications déléguées et les synthèses web. Vide = le modèle ci-dessus.",
       "suggestions": "Modèles suggérés : {list}",
       "apiKey": "Clé d'API",
       "apiKeyKeep": "Laissez vide pour conserver la clé enregistrée. Obligatoire si vous changez l'URL.",
@@ -3132,6 +3204,8 @@
       "image-gen": "Génération d'images",
       "embeddings": "Embeddings des connaissances",
       "design-import": "Design à partir d'un document",
+      "delegate-rewrite": "Réécritures déléguées",
+      "utility": "Synthèses web",
       "other": "Autre"
     },
     "investor": {

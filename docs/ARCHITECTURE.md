@@ -89,6 +89,7 @@ The AI edits documents as a Y.js client, not through a text-patching API. A prom
 - The provider is resolved per capability (chat, image, transcription): the user's own key, else the instance default, else unavailable (`server/utils/aiProviders/`). Every call goes through LiteLLM.
 - The model calls Zod-defined tools: read and edit text, theme, comments, other documents, web search and page fetch, image generation, workspace knowledge search.
 - Edits go through a Hocuspocus connection that identifies as `ai:assistant:<session>`, so collaborators watch them land live and the activity log attributes them.
+- A document-wide rewrite (translate, change tone) runs as a delegated job (`server/utils/ai/jobs/`): the loop plans and previews it, then a background job engine connects to the document as its own Y.js client (`ai-job:<id>`), sends one section at a time to a cheaper worker model, checks each answer and applies it. The job outlives the 5-minute session, can be cancelled and resumed, and can be undone as a whole from the Activity Log.
 - Per-tool caps and a per-session interaction cap stop runaway loops. Once a session has read text someone else wrote, tools that cross a boundary (other documents, knowledge, web) wait for the invoking user's confirmation.
 - The MCP server (`server/mcp/`, personal access tokens) wraps the same tool implementations, so external clients edit documents the same way.
 

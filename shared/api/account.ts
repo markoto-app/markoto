@@ -34,6 +34,10 @@ export const aiProviderParams = z.object({ capability: z.enum(AI_CAPABILITIES) }
 export const saveAiProviderBody = z.object({
   baseUrl: z.string().trim().min(1).max(500),
   model: z.string().trim().min(1).max(200).regex(/^[\w.:/@+-]+$/, 'Invalid model id'),
+  // Chat only: the worker model on the same base URL and key (no URL or
+  // key of its own, so it can never point anywhere the chat model can't).
+  // Omitted, null or empty = none.
+  fastModel: z.string().trim().max(200).regex(/^([\w.:/@+-]+)?$/, 'Invalid model id').nullish(),
   // Optional on update: omitted = keep the stored key, but ONLY while the
   // base URL is unchanged (a stored key must never be redirected to a
   // new host without the user re-entering it).

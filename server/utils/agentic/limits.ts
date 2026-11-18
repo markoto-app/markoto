@@ -9,7 +9,7 @@
 // cost-amplifying tools (image gen, web search) are capped per session
 // even when the budget would allow more.
 
-import { MINUTE_MS } from '~~/shared/config/units'
+import { MINUTE_MS, SECOND_MS } from '~~/shared/config/units'
 
 /**
  * Total interactions any single agentic-loop run is allowed to
@@ -35,3 +35,34 @@ export const SESSION_INTERACTION_CAP = 50
  * (`SWEEPS.aiSessions.staleAfterMs`, 7 min) must stay longer than this.
  */
 export const AI_SESSION_HARD_DEADLINE_MS = 5 * MINUTE_MS
+
+/**
+ * With less than this left before the hard deadline the loop starts no
+ * further work turn: it runs one closing turn that tells the user what is
+ * done and what is not (`loop/wrapUp.ts`), instead of being cut off.
+ */
+export const AI_SESSION_WRAP_UP_MARGIN_MS = 30 * SECOND_MS
+
+/**
+ * Most characters one tool result may put into the conversation (about 6-7k
+ * tokens). Every later model call resends the whole history, so one
+ * unbounded read (a book-length document, a long comment list) is paid for
+ * on every turn after it. Longer results are cut by the loop with a hint
+ * on how to read the rest (`loop/resultCap.ts`); the reading tools keep
+ * their own output below it and say how to continue.
+ */
+export const TOOL_RESULT_CHAR_CAP = 24_000
+
+/**
+ * In-session pruning of old read results (`loop/historyPruning.ts`). A
+ * read result outside the latest `PRUNE_KEEP_RECENT_TURNS` turns is
+ * prunable when it is at least `PRUNE_LARGE_RESULT_CHARS` long (about 4-5k
+ * tokens), or at least `PRUNE_SUPERSEDED_MIN_CHARS` long and superseded (a
+ * later edit of the document, or a later read of the same target). Pruning
+ * only runs once the prunable total passes `PRUNE_BATCH_CHARS`, so the
+ * conversation prefix (and the provider's prompt cache) changes rarely.
+ */
+export const PRUNE_LARGE_RESULT_CHARS = 16_000
+export const PRUNE_SUPERSEDED_MIN_CHARS = 2_000
+export const PRUNE_BATCH_CHARS = 40_000
+export const PRUNE_KEEP_RECENT_TURNS = 2

@@ -2,7 +2,7 @@
 title: Summon markoto inside a comment
 description: Mention @markoto in any comment thread to ask a question about a specific passage. markoto reads the anchor, replies, or edits the doc.
 category: ai
-order: 4
+order: 6
 icon: i-lucide-message-square-dashed
 updated: '2026-11-04'
 ---

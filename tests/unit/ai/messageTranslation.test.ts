@@ -165,6 +165,7 @@ describe('internalToOpenAITools', () => {
 // chunks and accumulate by index.
 
 type OAIChunk = {
+  model?: string
   choices?: Array<{
     index?: number
     delta?: {
@@ -287,5 +288,38 @@ describe('openAIStreamToInternalChunks', () => {
       if (c.functionCalls) calls = c.functionCalls
     }
     expect(calls[0]?.args).toEqual({})
+    expect(calls[0]?.argsInvalid).toBe(true)
+  })
+
+  it('marks a call cut off by the output limit, keeps complete ones, and reports the provider model', async () => {
+    const stream = mockStream([
+      { model: 'mistral-small-2603', choices: [{ delta: { tool_calls: [{ index: 0, id: 'a', type: 'function', function: { name: 'view_document', arguments: '' } }] } }] },
+      { choices: [{ delta: { tool_calls: [{ index: 1, id: 'b', type: 'function', function: { name: 'replace_text', arguments: '{"old_str":"abc","new_' } }] } }] },
+      { choices: [{ finish_reason: 'length' }] }
+    ])
+    let calls: FunctionCall[] = []
+    let finish: string | undefined
+    let model: string | undefined
+    for await (const c of openAIStreamToInternalChunks(stream as never)) {
+      if (c.functionCalls) calls = c.functionCalls
+      if (c.candidates?.[0]?.finishReason) finish = c.candidates[0].finishReason
+      if (c.modelVersion) model = c.modelVersion
+    }
+    expect(finish).toBe('MAX_TOKENS')
+    expect(calls[0]).toEqual({ id: 'a', name: 'view_document', args: {} })
+    expect(calls[1]).toMatchObject({ id: 'b', name: 'replace_text', args: {}, argsInvalid: true })
+    expect(model).toBe('mistral-small-2603')
+  })
+
+  it('unwraps arguments double-encoded as a JSON string', async () => {
+    const stream = mockStream([
+      { choices: [{ delta: { tool_calls: [{ index: 0, id: 'a', type: 'function', function: { name: 'insert_text', arguments: JSON.stringify(JSON.stringify({ insert_line: 1, insert_text: 'x' })) } }] } }] },
+      { choices: [{ finish_reason: 'tool_calls' }] }
+    ])
+    let calls: FunctionCall[] = []
+    for await (const c of openAIStreamToInternalChunks(stream as never)) {
+      if (c.functionCalls) calls = c.functionCalls
+    }
+    expect(calls[0]).toEqual({ id: 'a', name: 'insert_text', args: { insert_line: 1, insert_text: 'x' } })
   })
 })

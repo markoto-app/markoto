@@ -5,36 +5,59 @@ import type { ToolResult } from '../../ai/tools/toolDefinition'
 import { DOC_EDIT_TOOLS, NO_OP_EDIT_ERROR_PREFIX, stalledEditNote } from '../editProgress'
 import { unseenImageError } from '../imageProvenance'
 import { readDocText, throwIfAborted, toolErrorResponse, isCommentTriggerSession, type DispatchOutcome, type LoopContext, type ResponseParts } from './loopContext'
+import { coerceToolArgs } from './argCoercion'
+import { capToolOutput } from './resultCap'
 import { logToolActivity } from './toolActivity'
 import { runSubCall } from './webSubCalls'
 
 // One tool call of a turn, in a fixed order: offered? → valid arguments →
 // conversation memory → per-tool cap → taint gate → image provenance (doc
 // edits) → run → taint / provenance / edit-progress bookkeeping → the
-// functionResponse part(s) for the next turn.
+// functionResponse part(s) for the next turn, cut to the result cap
+// (`resultCap.ts`).
 
-/** Text a `replace_text` / `insert_text` call would add to the document. */
+/**
+ * Text a document edit would add: `new_str` / `insert_text` (replace_text,
+ * insert_text), `markdown` (replace_section, insert_markdown), `title`
+ * (set_heading), `replacement` (replace_all; capture groups only repeat
+ * text already in the document) and every `new_text` of edit_lines.
+ */
 function addedEditText(args: unknown): string {
   if (typeof args !== 'object' || args === null) return ''
   const fields = args as Record<string, unknown>
-  const added = fields.new_str ?? fields.insert_text
-  return typeof added === 'string' ? added : ''
+  const parts: unknown[] = [fields.new_str, fields.insert_text, fields.markdown, fields.replacement, fields.title]
+  if (Array.isArray(fields.edits)) {
+    for (const e of fields.edits) if (typeof e === 'object' && e !== null) parts.push((e as Record<string, unknown>).new_text)
+  }
+  return parts.filter((p): p is string => typeof p === 'string').join('\n')
 }
 
 /**
- * Validate args against the registered Zod schema. Returns the
- * validated args on success; on failure returns a `continue` outcome
- * with a tool-error response part so the model sees the schema failure
- * cleanly and can retry. Tools without a registered schema get raw
- * args passed through (executeFunctionByName surfaces "unsupported").
+ * Validate args against the registered Zod schema, after repairing the
+ * usual model mistakes (numbers as strings, `null` for an optional field,
+ * stringified objects; `argCoercion.ts`). Returns the validated args on
+ * success; on failure returns a `continue` outcome with a tool-error
+ * response part so the model sees the schema failure cleanly and can
+ * retry. Tools without a registered schema get raw args passed through
+ * (executeFunctionByName surfaces "unsupported").
  */
 function validateToolArgs(
   ctx: LoopContext,
   call: FunctionCall
 ): { ok: true, args: unknown } | { ok: false, outcome: DispatchOutcome } {
+  if (call.argsInvalid) {
+    ctx.log(`function_call arguments are not valid JSON: ${call.name}`)
+    return {
+      ok: false,
+      outcome: {
+        kind: 'continue',
+        responseParts: [toolErrorResponse(call, `Error: the arguments for ${call.name} were not a complete JSON object. Send the call again with valid JSON.`)]
+      }
+    }
+  }
   const schema = toolSchema(call.name ?? '')
   if (!schema) return { ok: true, args: call.args ?? {} }
-  const parsed = schema.safeParse(call.args ?? {})
+  const parsed = schema.safeParse(coerceToolArgs(schema, call.args ?? {}))
   if (parsed.success) return { ok: true, args: parsed.data }
   const zodMsg = parsed.error.issues
     .map(i => `${i.path.join('.') || '(root)'}: ${i.message}`)
@@ -109,7 +132,7 @@ async function runOneTool(
   }
   try {
     const result = await executeFunctionByName(ctx.opts.aiSession, name, validatedArgs)
-    if (!result.isError) logToolActivity(ctx, name, validatedArgs)
+    if (!result.isError) logToolActivity(ctx, name, validatedArgs, result)
     return { kind: 'ok', result }
   } catch (e: unknown) {
     if (ctx.opts.abortController.signal.aborted) throw e
@@ -161,6 +184,7 @@ async function noteToolResult(ctx: LoopContext, name: string, validatedArgs: unk
   if (!result.isError) ctx.imageProvenance.note(result.content)
   await ctx.opts.crossBoundary.afterTool(name, validatedArgs, result)
   if (!result.isError && name === 'message_to_user') ctx.answeredUser = true
+  if (!result.isError && result.countsAsEdit) ctx.editedDocument = true
 }
 
 /**
@@ -251,7 +275,7 @@ export async function dispatchToolCall(
     return { kind: 'provider-unavailable', message: result.endSessionWith }
   }
 
-  const output = isDocEdit ? noteEditProgress(ctx, call, validatedArgs, textBefore, result) : result.content
+  const output = capToolOutput(call.name, validatedArgs, isDocEdit ? noteEditProgress(ctx, call, validatedArgs, textBefore, result) : result.content)
   const responseParts = toolResponseParts(call, output, result)
   return repliedToTriggerThread(ctx, call.name, validatedArgs, result)
     ? { kind: 'comment-trigger-done', responseParts }

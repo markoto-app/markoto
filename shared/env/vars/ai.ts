@@ -251,7 +251,7 @@ export const providers = defineNamespace({
   }
 })
 
-function instanceDefault(capability: 'CHAT' | 'IMAGE' | 'TRANSCRIBE', what: string) {
+function instanceDefault(capability: 'CHAT' | 'IMAGE' | 'TRANSCRIBE' | 'WORKER', what: string) {
   const prefix = `NUXT_AI_DEFAULT_${capability}`
   return {
     model: v({
@@ -283,6 +283,7 @@ function instanceDefault(capability: 'CHAT' | 'IMAGE' | 'TRANSCRIBE', what: stri
 const chat = instanceDefault('CHAT', 'chat')
 const image = instanceDefault('IMAGE', 'image generation')
 const transcribe = instanceDefault('TRANSCRIBE', 'transcription')
+const worker = instanceDefault('WORKER', 'worker')
 
 export const ai = defineNamespace({
   name: 'ai',
@@ -314,6 +315,28 @@ export const ai = defineNamespace({
     transcribeModel: transcribe.model,
     transcribeBaseUrl: transcribe.baseUrl,
     transcribeApiKey: transcribe.apiKey,
+    workerModel: v({
+      ...worker.model,
+      doc: 'Worker model for delegated section rewrites, scans and (unless NUXT_AI_DEFAULT_UTILITY_MODEL is set) the fetch_url / web_search synthesis: a LiteLLM alias (platform-paid), or with _BASE_URL + _API_KEY any OpenAI-compatible model. Empty = the chat default.'
+    }),
+    workerBaseUrl: worker.baseUrl,
+    workerApiKey: worker.apiKey,
+    workerStrongModel: v({
+      name: 'NUXT_AI_DEFAULT_WORKER_STRONG_MODEL',
+      type: string,
+      default: 'markoto-worker-strong',
+      doc: 'Stronger LiteLLM worker alias for delegated translations and rewrites, for plans with aiStrongModel. Used only while NUXT_AI_DEFAULT_WORKER_MODEL is a LiteLLM alias.',
+      services: ['app'],
+      scope: 'both'
+    }),
+    utilityModel: v({
+      name: 'NUXT_AI_DEFAULT_UTILITY_MODEL',
+      type: string,
+      default: '',
+      doc: 'LiteLLM alias (platform-paid) for the utility sub-calls: fetch_url / web_search synthesis. Empty = the worker model. A user\'s own key is never replaced.',
+      services: ['app'],
+      scope: 'both'
+    }),
     realtimeModel: v({
       name: 'NUXT_AI_REALTIME_MODEL',
       type: string,

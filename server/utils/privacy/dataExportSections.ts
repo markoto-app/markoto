@@ -76,6 +76,7 @@ export async function addAiProvidersEntry(entries: ExportEntries, user: UserScop
     capability: r.capability,
     baseUrl: r.baseUrl,
     model: r.model,
+    fastModel: r.fastModel,
     supportsVision: r.supportsVision,
     supportsTools: r.supportsTools,
     lastVerifiedAt: r.lastVerifiedAt ? r.lastVerifiedAt.toISOString() : null,

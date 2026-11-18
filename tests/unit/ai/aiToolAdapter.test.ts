@@ -93,14 +93,12 @@ describe('view_document', () => {
     expect(res.content).toContain('view_range end must be >= start')
   })
 
-  it('range beyond file returns empty slice with start prefix (no error)', async () => {
-    // Current behaviour: documented here so a future change to "error on
-    // past-end range" is an explicit decision, not an accident. Model
-    // should figure it out from the empty result; we don't need to block.
+  it('range beyond file says how many lines there are (no error)', async () => {
+    // Not an error: the model only needs to know where the document ends.
     const { session } = makeSession('a\nb')
     const res = await executeFunctionByName(session, 'view_document', { view_range: [5, 10] })
     expect(res.isError).toBe(false)
-    expect(res.content).toBe('5: ')
+    expect(res.content).toBe('The document has only 2 lines; view_range [5, 10] starts after the last line.')
   })
 })
 
@@ -424,7 +422,7 @@ describe('edit results tell the model what happened', () => {
     const big = Array.from({ length: 40 }, (_, i) => `line ${i}`).join('\n')
     const res = await executeFunctionByName(session, 'insert_text', { insert_line: 1, insert_text: big })
     expect(res.isError).toBe(false)
-    expect(res.content).toContain('call view_document')
+    expect(res.content).toContain('view_range [2, 42]')
     expect(res.content).not.toContain('line 39')
   })
 })

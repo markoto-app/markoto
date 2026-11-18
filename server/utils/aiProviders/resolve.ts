@@ -19,7 +19,7 @@
 
 import { openProviderKey } from './keyCrypto'
 import { listAiProviders, type AiProviderRow } from '../../repos/aiProviders'
-import { readInstanceDefault, realtimeDictationModel } from './config'
+import { readInstanceDefault, readWorkerDefault, realtimeDictationModel, utilityModel, workerStrongModel } from './config'
 import { getWebToolAvailability } from '../ai/webTools'
 import { planHasFeature } from '../billing/entitlements'
 import { getAiModelTier } from '../../repos/users'
@@ -53,7 +53,94 @@ export interface ResolvedAiProvider {
   supportsVision: boolean
 }
 
-export type ResolvedAiProviders = Record<AiCapability, ResolvedAiProvider | null>
+/**
+ * The worker model: delegated per-section rewrites, scans and the
+ * utility sub-calls (fetch_url extraction, web_search synthesis). All
+ * entries are chat-completions providers (`capability: 'chat'`).
+ */
+export interface WorkerProviders {
+  /** Scans, terminology, summaries and comments. */
+  fast: ResolvedAiProvider
+  /** Translate and rewrite; the same as `fast` unless a stronger model applies. */
+  strong: ResolvedAiProvider
+  /** Utility sub-calls (web-tool synthesis); the same as `fast` unless the operator names a utility alias. */
+  utility: ResolvedAiProvider
+}
+
+export type ResolvedAiProviders = Record<AiCapability, ResolvedAiProvider | null> & {
+  /** Null exactly when there is no chat provider. */
+  worker: WorkerProviders | null
+}
+
+/** What a worker call does. Translate and rewrite get the strong worker, `utility` the utility model. */
+export type WorkerMode = 'translate' | 'rewrite' | 'scan' | 'terminology' | 'summarise' | 'comment' | 'utility'
+
+const STRONG_WORKER_MODES: ReadonlySet<WorkerMode> = new Set<WorkerMode>(['translate', 'rewrite'])
+
+export interface WorkerResolutionInput {
+  /** The chat provider BEFORE the user's strong-chat pick is applied. */
+  chat: ResolvedAiProvider | null
+  /** The user's own chat config's "Fast model" (only read when `chat` is theirs). */
+  fastModel: string | null
+  plan: PlanName
+}
+
+/**
+ * Resolve the worker model, in this order:
+ *   1. the chat provider is the user's own key: their "Fast model" on that
+ *      endpoint and key, else their chat model. A user's own key is never
+ *      replaced by a platform-paid model; `strong` is their chat model.
+ *   2. `NUXT_AI_DEFAULT_WORKER_MODEL` (+ `_BASE_URL` / `_API_KEY`): a LiteLLM
+ *      alias (platform-paid) or an operator endpoint. When it is an alias
+ *      and the plan has `aiStrongModel`, `strong` is
+ *      `NUXT_AI_DEFAULT_WORKER_STRONG_MODEL`.
+ *   3. the chat default itself.
+ * `utility` is the fast worker, except on the platform (no user key) with
+ * `NUXT_AI_DEFAULT_UTILITY_MODEL` set: then that LiteLLM alias, so ops can
+ * move the web-tool synthesis to another model without touching the
+ * delegated edits.
+ * No chat provider = no worker.
+ */
+export function resolveWorkerProviders(input: WorkerResolutionInput, source?: RawEnv): WorkerProviders | null {
+  const { chat } = input
+  if (!chat) return null
+  if (chat.source === 'user') {
+    const fast = input.fastModel && input.fastModel !== chat.model
+      ? { ...chat, model: input.fastModel, supportsVision: false }
+      : chat
+    return { fast, strong: chat, utility: fast }
+  }
+  const utilityAlias = utilityModel(source)
+  const utilityOr = (fast: ResolvedAiProvider): ResolvedAiProvider => utilityAlias
+    ? { capability: 'chat', source: 'instance', model: utilityAlias, credentials: null, supportsVision: false }
+    : fast
+  const def = readWorkerDefault(source)
+  if (!def) return { fast: chat, strong: chat, utility: utilityOr(chat) }
+  const fast: ResolvedAiProvider = {
+    capability: 'chat',
+    source: 'instance',
+    model: def.model,
+    credentials: def.credentials,
+    supportsVision: false
+  }
+  const strongModel = workerStrongModel(source)
+  const strongApplies = fast.credentials === null && strongModel !== null && planHasFeature(input.plan, 'aiStrongModel')
+  return { fast, strong: strongApplies ? { ...fast, model: strongModel } : fast, utility: utilityOr(fast) }
+}
+
+/**
+ * The provider for one worker call: `strong: true` (or the modes
+ * `translate` / `rewrite`) picks the strong worker, the mode `utility` the
+ * utility model, everything else the fast one. Null when there is no chat
+ * provider.
+ */
+export function workerProviderFor(providers: Pick<ResolvedAiProviders, 'worker'>, pick: WorkerMode | { strong: boolean }): ResolvedAiProvider | null {
+  const worker = providers.worker
+  if (!worker) return null
+  if (pick === 'utility') return worker.utility
+  const strong = typeof pick === 'string' ? STRONG_WORKER_MODES.has(pick) : pick.strong
+  return strong ? worker.strong : worker.fast
+}
 
 /** Calls through this provider debit the user's platform AI budget. */
 export function isPlatformBilled(provider: ResolvedAiProvider | null): boolean {
@@ -147,7 +234,14 @@ export async function resolveAiAccess(user: UserScope, plan: PlanName): Promise<
     }
     return def
   }
-  const providers: ResolvedAiProviders = { chat: pick('chat'), image: pick('image'), transcription: pick('transcription') }
+  const chatProvider = pick('chat')
+  const chatRow = chatProvider?.source === 'user' ? rows.find(r => r.capability === 'chat') : undefined
+  const providers: ResolvedAiProviders = {
+    chat: chatProvider,
+    image: pick('image'),
+    transcription: pick('transcription'),
+    worker: resolveWorkerProviders({ chat: chatProvider, fastModel: chatRow?.fastModel ?? null, plan })
+  }
   const strong = strongChatModel()
   const strongAllowed = planHasFeature(plan, 'aiStrongModel')
   const selected = userRow?.tier === 'strong' ? 'strong' : 'fast'

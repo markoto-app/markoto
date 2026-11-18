@@ -144,7 +144,8 @@ export async function executeAccountDeletion(
   summary.litellmKeyDeleted = await deleteUserKey(userId)
 
   // ── Drop the user row ────────────────────────────────────────────
-  // `data_export_jobs`, `ai_session_messages`, `consent_log`,
+  // `data_export_jobs`, `ai_session_messages`, `ai_jobs` (+ their units,
+  // the undo copies of the jobs this user started), `consent_log`,
   // `activity_log`, `audit_log`, `abuse_reports`, `uploads.uploader_id`,
   // and `workspace_knowledge.uploader_id` all CASCADE / SET NULL via
   // FK and are handled by this row delete.

@@ -189,7 +189,12 @@
         "changed": "cambió el tema"
       },
       "ai": {
-        "tool": "usó una herramienta"
+        "tool": "usó una herramienta",
+        "job": {
+          "started": "inició una gran edición de IA",
+          "finished": "terminó una gran edición de IA",
+          "reverted": "deshizo una gran edición de IA"
+        }
       },
       "restore": "restauró el documento",
       "aiTool": {
@@ -198,12 +203,16 @@
         "generate_image": "generó una imagen",
         "view_image": "miró una imagen",
         "search_knowledge": "buscó en la base de conocimiento",
-        "get_knowledge_file": "leyó un archivo de conocimiento"
+        "get_knowledge_file": "leyó un archivo de conocimiento",
+        "replace_all": "reemplazó texto en todo el documento"
       }
     },
     "detail": {
       "titleChanged": "{from} → {to}",
-      "restoredFrom": "Desde {ago}"
+      "replacedAll": "{count}× “{from}” → “{to}”",
+      "restoredFrom": "Desde {ago}",
+      "jobProgress": "{done} de {total} partes cambiadas",
+      "jobReverted": "{reverted} partes restauradas, {skipped} dejadas tal como se editaron"
     },
     "restore": {
       "button": {
@@ -259,7 +268,15 @@
       "knowledgeNote": "Función de conocimiento del espacio de trabajo.",
       "openViewedImage": "Abrir la imagen vista en una pestaña nueva"
     },
-    "viaAgent": "vía {agent}"
+    "viaAgent": "vía {agent}",
+    "job": {
+      "undo": "Deshacer",
+      "undoConfirm": "¿Restaurar lo que cambió esta edición?",
+      "undoYes": "Deshacer",
+      "undoNo": "Conservar",
+      "undone": "{reverted} partes restauradas; {skipped} editadas después se quedan como están.",
+      "undoFailed": "No se pudo deshacer la edición."
+    }
   },
   "comments": {
     "title": "Comentarios",
@@ -594,6 +611,8 @@
       "waiting": "Esperando tu confirmación…",
       "allow": "Permitir",
       "deny": "Denegar",
+      "notePlaceholder": "Opcional: dile a markoto qué hacer en su lugar y pulsa Denegar",
+      "noteLabel": "Nota para markoto al denegar",
       "tools": {
         "view_other_document": "markoto quiere leer «{target}».",
         "list_my_documents": "markoto quiere listar tus documentos.",
@@ -606,6 +625,24 @@
         "fetch_url": "markoto quiere abrir {target}",
         "view_image": "markoto quiere cargar la imagen {target}",
         "generic": "markoto quiere usar {tool}."
+      },
+      "job": {
+        "question": "{what}: {cost}, {minutes}.",
+        "reason": "Se ejecuta en segundo plano. Puedes cancelarla y deshacerla en el registro de actividad.",
+        "start": "Iniciar",
+        "cancel": "Cancelar",
+        "cost": "unos {cost}",
+        "costShare": "unos {cost} ({share} de tu asignación de este mes)",
+        "tokens": "unos {tokens} tokens con tu propia clave",
+        "minutes": "unos {minutes} min",
+        "modes": {
+          "translateTo": "Traducir {count} secciones al {language}",
+          "translate": "Traducir {count} secciones",
+          "rewrite": "Reescribir {count} secciones",
+          "terminology": "Actualizar los términos de {count} secciones",
+          "summarise": "Resumir {count} capítulos",
+          "comment": "Revisar {count} secciones"
+        }
       }
     },
     "placeholder": "Pregúntale a markoto…",
@@ -758,7 +795,38 @@
       "replyCommentAny": "Respondiendo a un comentario…",
       "resolveComment": "Resolviendo un comentario…",
       "reopenComment": "Reabriendo un comentario…",
-      "deleteComment": "Eliminando un comentario…"
+      "deleteComment": "Eliminando un comentario…",
+      "scanDocument": "Analizando el documento…",
+      "previewJob": "Probando el cambio en secciones de muestra…",
+      "startJob": "Iniciando la edición en segundo plano…",
+      "jobProgress": "Edición en segundo plano: {done} de {total} partes listas",
+      "jobStatus": "Comprobando la edición en segundo plano…"
+    },
+    "job": {
+      "label": "Edición en segundo plano",
+      "modes": {
+        "translate": "Traducción",
+        "rewrite": "Reescritura",
+        "terminology": "Terminología",
+        "summarise": "Resúmenes",
+        "comment": "Revisión"
+      },
+      "progress": "{done} de {total} partes",
+      "working": "Trabajando en {heading}",
+      "cost": "Coste hasta ahora: {cost}",
+      "cancel": "Cancelar",
+      "resume": "Reanudar",
+      "undo": "Deshacer",
+      "dismiss": "Cerrar",
+      "done": "Listo: {done} de {total} partes cambiadas.",
+      "cancelled": "Cancelada tras {done} de {total} partes.",
+      "paused": "En pausa: la asignación de IA está agotada.",
+      "interrupted": "Interrumpida. Reanúdala para continuar.",
+      "failed": "La edición en segundo plano se detuvo. {reason}",
+      "reverted": "Deshecha.",
+      "undone": "Deshecha: {count} partes restauradas.",
+      "skipped": "{count} partes se dejaron como estaban.",
+      "flagged": "{count} partes necesitan una revisión."
     }
   },
   "mobileTabBar": {
@@ -1948,7 +2016,7 @@
       "purpose": {
         "ovh_postgres": "Base de datos principal de la aplicación, estado Y.js de los documentos, embeddings de la base de conocimiento",
         "ovh_object_storage": "Imágenes subidas, originales de la base de conocimiento (se eliminan tras el procesamiento), copias de seguridad de la base de datos",
-        "mistral_ai": "Generación de texto con IA para el asistente de escritura: la asignación de IA gratuita (Z.ai GLM-5.3 Flash, servido y procesado por Mistral; Z.ai no recibe datos) con Mistral Small como alternativa; transcripción de voz (Voxtral). Todas las solicitudes van al endpoint de Mistral en la UE (centros de datos en la UE y la AELC)",
+        "mistral_ai": "Generación de texto con IA para el asistente de escritura, incluida la asignación de IA gratuita: modelos de pesos abiertos y modelos de Mistral, servidos y procesados por Mistral (actualmente DeepSeek V4.1 Flash, GLM-5.3 Flash y Mistral Large 4; sus desarrolladores no reciben datos); transcripción de voz (Voxtral). Todas las solicitudes van al endpoint de Mistral en la UE (centros de datos en la UE y la AELC)",
         "jina_ai": "Generación de embeddings para la base de conocimiento (RAG); extracción del contenido de una página a partir de una URL para la herramienta de obtener URL (Jina Reader; la URL se envía para todos los usuarios, también para quienes usan su propio proveedor de IA)",
         "staan": "Búsqueda web para el asistente de escritura con IA (la consulta se envía para todos los usuarios, también para quienes usan su propio proveedor de IA), mediante un índice de búsqueda europeo propio (enrutamiento solo en la UE)",
         "bfl": "Generación de imágenes con FLUX (tratamiento de datos fijado en la UE)",
@@ -2112,6 +2180,8 @@
       "membersPerWorkspace": "Este espacio de trabajo ha alcanzado el límite de miembros de su plan.",
       "savedThemes": "Has alcanzado el límite de temas guardados de tu plan. Elimina uno para guardar uno nuevo.",
       "importMaxBytes": "Este archivo supera el tamaño que tu plan permite para importaciones.",
+      "aiJobUnitsPerJob": "Esta tarea es mayor de lo que permite tu plan. Elige menos secciones.",
+      "aiJobsPerDay": "Has usado las tareas de IA de hoy incluidas en tu plan. Inténtalo de nuevo mañana.",
       "historyEntry": "Este cambio es más antiguo que el historial incluido en el plan de este documento.",
       "mcpToolCallsPerDay": "Has usado las llamadas a herramientas MCP de hoy incluidas en tu plan. Inténtalo de nuevo mañana."
     },
@@ -2193,6 +2263,8 @@
       "baseUrlHint": "La raíz de la API compatible con OpenAI del proveedor, que suele terminar en /v1.",
       "model": "Modelo",
       "modelPlaceholder": "El identificador del modelo en el proveedor",
+      "fastModel": "Modelo rápido (opcional)",
+      "fastModelHint": "Un modelo más barato y rápido del mismo proveedor y con la misma clave, para ediciones delegadas grandes y resúmenes web. Vacío = el modelo de arriba.",
       "suggestions": "Modelos sugeridos: {list}",
       "apiKey": "Clave de API",
       "apiKeyKeep": "Déjalo vacío para conservar la clave guardada. Es obligatoria si cambias la URL.",
@@ -3132,6 +3204,8 @@
       "image-gen": "Generación de imágenes",
       "embeddings": "Embeddings de conocimiento",
       "design-import": "Diseño a partir de un documento",
+      "delegate-rewrite": "Reescrituras delegadas",
+      "utility": "Resúmenes web",
       "other": "Otros"
     },
     "investor": {

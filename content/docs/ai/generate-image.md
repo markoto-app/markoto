@@ -2,7 +2,7 @@
 title: Ask the AI to draw an image
 description: Describe what you want - the AI generates it, stores it with your document and inserts the markdown image.
 category: ai
-order: 10
+order: 12
 updated: '2026-11-16'
 ---
 

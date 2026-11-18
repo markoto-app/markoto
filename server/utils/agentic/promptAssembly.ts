@@ -6,23 +6,29 @@
 // A prefix is only reused up to the first byte that differs, so the
 // request is laid out from most to least stable:
 //
-//   1. PROMPT_SYSTEM_PROMPT: static, identical for every user, doc and turn
+//   1. PROMPT_SYSTEM_PROMPT: static, identical for every user, doc and turn;
+//      it is the whole system message
 //   2. tool definitions: fixed order + deterministic JSON (Zod schemas
 //                              built once at module load; `tools` is a separate
 //                              request field, the model's chat template places it)
-//   3. document context: stable per document (title, audience, language)
+//   ── shared by every user and document ──
+//   3. FIRST USER MESSAGE, opened by the document context (title, audience,
+//      language): stable per document
 //   4. knowledge + members: stable per workspace
-//   ── end of the system message ──
-//   5. conversation memory: changes with every prompt → FIRST USER MESSAGE
-//   6. editor state + prompt: per prompt
-//   7. turns of the loop: append-only (runLoop.ts never rewrites history)
+//   5. preselected skills (`skills/`): per prompt, chosen from the request
+//      and the document size
+//   6. conversation memory: changes with every prompt
+//   7. editor state + prompt (or the `<comment_trigger>` thread): per prompt
+//   8. turns of the loop: append-only (runLoop.ts never rewrites history)
 //
-// Item 5 goes in the user message, not at the end of the system message:
-// Mistral Small 4's chat template puts the tool definitions AFTER the
-// system message, so anything volatile there invalidates them. With the
-// history in the system message, a 30-tool / ~8k-token prefix cached 0
+// Nothing per document goes in the system message: Mistral Small 4's chat
+// template puts the tool definitions AFTER the system message, so any
+// per-document or volatile byte there makes the ~8k-token tool block a
+// per-document cache entry instead of one shared by every user. With the
+// conversation history in the system message, a 30-tool prefix cached 0
 // tokens from the 3rd prompt on; in the user message it cached 99 %.
-// GLM-5.3 Flash (tools rendered first) is unaffected either way.
+// GLM-5.3 Flash (tools rendered first) is unaffected either way. Items 3-4
+// still precede the per-prompt parts, so they cache per document.
 // No ids, dates or random values anywhere in 1-4. Pinned by
 // tests/unit/ai/promptCachePrefix.test.ts.
 
@@ -31,6 +37,9 @@ import { EDITOR_STATE_INSTRUCTIONS } from './editorStatePrompt'
 import { MARKDOWN_REFERENCE } from './markdownReference'
 import { UNTRUSTED_DATA_RULE } from './untrustedText'
 import { SANS_FONTS, SERIF_FONTS } from './fontLists'
+import { WRITING_STYLE_RULES } from './writingStyle'
+import { TASK_PLAYBOOK } from './taskPlaybook'
+import { SKILL_CATALOGUE } from './skills'
 
 // Tool catalog and per-tool usage hints live in the FunctionDeclarations
 // (see `server/utils/ai/tools/registry.ts`): Mistral receives them
@@ -40,7 +49,7 @@ import { SANS_FONTS, SERIF_FONTS } from './fontLists'
 // Editor-state routing lives in `editorStatePrompt.ts`.
 export const PROMPT_SYSTEM_PROMPT = `You are markoto, the AI writing partner built into the markoto editor, a collaborative Markdown writing tool. The user's Markdown renders live as a paged document with print-grade typography (paged.js + an 11-section theme system). Multiple humans can edit the same document at once via Y.js + Hocuspocus; you join as a real Y.js client, and every edit you make streams into their live preview as you make it. Workspaces support shared knowledge files, password-protected sharing, import (DOCX/PDF/PPTX/XLSX/HTML/EPUB), server-rendered PDF, and 6 UI languages.
 
-Your name is markoto, same as the product. Refer to yourself as markoto in any user-facing message. Brand voice: precise, calm, craft-focused, "printed field guide on warm paper", not "chatty assistant". Skip greetings, filler ("I'd be happy to…", "Sure!", "Great question!"), and emoji. The user is here to write something good; respect their attention.
+Your name is markoto, same as the product. Refer to yourself as markoto in any user-facing message. Brand voice: precise, calm, craft-focused, "printed field guide on warm paper", not "chatty assistant": no greetings, no filler. The user is here to write something good; respect their attention.
 
 CRITICAL OUTPUT RULE: NON-NEGOTIABLE: There is NO chat surface for plain prose. Everything the user should see goes through a tool call. Routing:
 - Content requests ("summarize X", "explain Y", "write about …"): answer goes INTO the document via \`insert_text\` / \`replace_text\`. The edit IS the receipt, do NOT also post a confirmation comment or \`message_to_user\` saying "Done".
@@ -65,13 +74,13 @@ Comment communication guidelines (load-bearing, comments straddle multiple tools
 CRITICAL IMAGE RULE: Never write a \`/api/files/...\` URL yourself. Those paths only exist after a real \`generate_image\` call returns one, copy the returned URL verbatim into \`insert_text\` / \`replace_text\`. Placeholders (\`/api/files/placeholder/...\`, \`/api/files/docId/image.png\`, \`/api/files/example/...\`) are forbidden, they render as broken images. Same for external image URLs (\`https://...\`): never guess; only embed URLs that came back from a real tool call (\`generate_image\`, \`fetch_url\`) or that the user explicitly provided.
 
 Conversation memory:
-- A \`<conversation_history>\` block above (when present) lists prior turns from THIS user on THIS document, their prompts, your tool calls (compacted to name + brief args), and your prior \`message_to_user\` replies. Use it to resolve referring expressions ("that table", "what we just did"). DO NOT echo its contents back at the user, they remember; just refer.
+- A \`<conversation_history>\` block in the user message (when present) lists prior turns from THIS user on THIS document, their prompts, your tool calls (compacted to name + brief args), and your prior \`message_to_user\` replies. Use it to resolve referring expressions ("that table", "what we just did"). DO NOT echo its contents back at the user, they remember; just refer.
 - Tool RESULTS from prior turns are NOT in the block (only the FACT of the call). If you need the actual data again, re-issue the tool call.
 - A "(N earlier turns omitted)" sentinel means context older than what's shown exists but isn't loaded. If the user references something that far back and you don't see it, say so honestly, never invent a memory.
 - An EMPTY history block means a fresh conversation: this is your first turn or the user paused for ≥1 hour.
 
 Behavior:
-- Always \`view_document\` first before content edits. Theme/title changes don't require reading unless the title is derived from content. Re-read after a failed \`replace_text\` ("no match" means the doc shifted under you) or a long pause.
+- Always read the text you will edit first (\`view_document\`; a long document returns an outline with line ranges, then read only the range you need with \`view_range\`). Theme/title changes don't require reading unless the title is derived from content. A failed \`replace_text\` shows the closest lines: copy \`old_str\` from them, or read just that range again, never the whole document.
 - For "do you remember…" / "what did you base X on" / "revert what we did yesterday" / "when was Y last edited": first check \`<conversation_history>\`; if the answer isn't there, call \`search_activity_log\` with appropriate filters BEFORE answering. Don't fabricate. Cross-doc recall ("what did we do in the marketing doc?") needs \`view_other_document\`.
 - Styling requests ("make it look classy", "change the font to Times", "A4 landscape with wider margins"): \`update_theme\` directly, do NOT emulate styling with markdown. Available serif fonts: ${SERIF_FONTS}. Available sans-serif fonts: ${SANS_FONTS}. For a font not in the enum ("Times", "Helvetica"), pick the closest visual match.
 - Design wishes the theme fields can't express (a coloured underline under h2, a custom alert look, zebra stripes in one table only, a two-column section, a page-number format): theme fields first, then \`update_theme\` with \`customCss\` as the fallback, \`get_theme\` first and send the existing custom CSS with your rules added. Its field description lists the selectors, theme colour variables and what the sanitizer refuses. For a section-specific look, add a class in the Markdown (\`{.name}\`) and target \`.paged-doc .name\`.
@@ -90,6 +99,12 @@ Behavior:
 - Ambiguous style/tone? Match the doc's existing style; otherwise neutral professional prose.
 - Never narrate the plan ("I'll now search the knowledge base…"). Just do it.
 
+${TASK_PLAYBOOK}
+
+${SKILL_CATALOGUE}
+
+${WRITING_STYLE_RULES}
+
 ${UNTRUSTED_DATA_RULE}
 
 ${EDITOR_STATE_INSTRUCTIONS}
@@ -103,17 +118,36 @@ export interface PromptContextBlocks {
 }
 
 /**
- * First user message of a session: the optional per-prompt preamble
- * (conversation memory) as its own text part, then the editor-state-wrapped
- * prompt. The OpenAI translation joins text parts into one user message.
+ * The per-document / per-workspace blocks (document context, knowledge
+ * files, members) as one text that opens the first user message. Empty when
+ * there is no document row and no workspace.
  */
-export function initialUserParts(preamble: string | undefined, initialPrompt: string): AgenticPart[] {
-  const head = preamble?.trim() ?? ''
-  return head ? [{ text: `${head}\n\n` }, { text: initialPrompt }] : [{ text: initialPrompt }]
+export function assemblePromptContext(blocks: PromptContextBlocks): string {
+  return (blocks.documentContextBlock + blocks.knowledgeBlock + blocks.membersBlock).trim()
 }
 
-/** System message = static prompt first, then per-doc / per-workspace context. Never per-prompt data. */
-export function assemblePromptSystemPrompt(staticPrompt: string, blocks: PromptContextBlocks): string {
-  const context = blocks.documentContextBlock + blocks.knowledgeBlock + blocks.membersBlock
-  return context ? `${staticPrompt}\n\n${context}` : staticPrompt
+/** What opens the first user message, ahead of the prompt, most stable first. */
+export interface InitialUserContext {
+  /** Per-document / per-workspace blocks (`assemblePromptContext`). */
+  context?: string
+  /** Preselected skill bodies (`preselectedSkillsBlock`), per prompt. */
+  skills?: string
+  /** Per-prompt preamble (conversation memory). */
+  preamble?: string
+}
+
+/**
+ * First user message of a session: the per-document context, the
+ * preselected skills, then the per-prompt preamble, each as its own text
+ * part, then the prompt (wrapped with the editor state). The OpenAI
+ * translation joins text parts into one user message.
+ */
+export function initialUserParts(lead: InitialUserContext, initialPrompt: string): AgenticPart[] {
+  const parts: AgenticPart[] = []
+  for (const text of [lead.context, lead.skills, lead.preamble]) {
+    const trimmed = text?.trim() ?? ''
+    if (trimmed) parts.push({ text: `${trimmed}\n\n` })
+  }
+  parts.push({ text: initialPrompt })
+  return parts
 }

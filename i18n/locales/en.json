@@ -189,7 +189,12 @@
         "changed": "changed the theme"
       },
       "ai": {
-        "tool": "used a tool"
+        "tool": "used a tool",
+        "job": {
+          "started": "started a large AI edit",
+          "finished": "finished a large AI edit",
+          "reverted": "undid a large AI edit"
+        }
       },
       "restore": "restored the document",
       "aiTool": {
@@ -198,12 +203,16 @@
         "generate_image": "generated an image",
         "view_image": "looked at an image",
         "search_knowledge": "searched the knowledge base",
-        "get_knowledge_file": "read a knowledge file"
+        "get_knowledge_file": "read a knowledge file",
+        "replace_all": "replaced text throughout the document"
       }
     },
     "detail": {
       "titleChanged": "{from} → {to}",
-      "restoredFrom": "From {ago}"
+      "replacedAll": "{count}× “{from}” → “{to}”",
+      "restoredFrom": "From {ago}",
+      "jobProgress": "{done} of {total} parts changed",
+      "jobReverted": "{reverted} parts restored, {skipped} left as edited"
     },
     "restore": {
       "button": {
@@ -259,7 +268,15 @@
       "knowledgeNote": "Workspace knowledge feature.",
       "openViewedImage": "Open the viewed image in a new tab"
     },
-    "viaAgent": "via {agent}"
+    "viaAgent": "via {agent}",
+    "job": {
+      "undo": "Undo job",
+      "undoConfirm": "Restore what this job changed?",
+      "undoYes": "Undo",
+      "undoNo": "Keep",
+      "undone": "Restored {reverted} parts; {skipped} edited since stay as they are.",
+      "undoFailed": "The job could not be undone."
+    }
   },
   "comments": {
     "title": "Comments",
@@ -594,6 +611,8 @@
       "waiting": "Waiting for your confirmation…",
       "allow": "Allow",
       "deny": "Deny",
+      "notePlaceholder": "Optional: tell markoto what to do instead, then Deny",
+      "noteLabel": "Note for markoto with Deny",
       "tools": {
         "view_other_document": "markoto wants to read “{target}”.",
         "list_my_documents": "markoto wants to list your documents.",
@@ -606,6 +625,24 @@
         "fetch_url": "markoto wants to open {target}",
         "view_image": "markoto wants to load the image {target}",
         "generic": "markoto wants to use {tool}."
+      },
+      "job": {
+        "question": "{what}: {cost}, {minutes}.",
+        "reason": "It runs in the background. You can cancel it, and undo it in the Activity Log.",
+        "start": "Start",
+        "cancel": "Cancel",
+        "cost": "about {cost}",
+        "costShare": "about {cost} ({share} of this month's allowance)",
+        "tokens": "about {tokens} tokens on your own key",
+        "minutes": "about {minutes} min",
+        "modes": {
+          "translateTo": "Translate {count} sections to {language}",
+          "translate": "Translate {count} sections",
+          "rewrite": "Rewrite {count} sections",
+          "terminology": "Update the terms in {count} sections",
+          "summarise": "Summarise {count} chapters",
+          "comment": "Review {count} sections"
+        }
       }
     },
     "placeholder": "Ask markoto…",
@@ -758,7 +795,38 @@
       "replyCommentAny": "Replying to a comment…",
       "resolveComment": "Resolving a comment…",
       "reopenComment": "Reopening a comment…",
-      "deleteComment": "Deleting a comment…"
+      "deleteComment": "Deleting a comment…",
+      "scanDocument": "Scanning the document…",
+      "previewJob": "Trying the change on sample sections…",
+      "startJob": "Starting the background edit…",
+      "jobProgress": "Background edit: {done} of {total} parts done",
+      "jobStatus": "Checking the background edit…"
+    },
+    "job": {
+      "label": "Background edit",
+      "modes": {
+        "translate": "Translation",
+        "rewrite": "Rewrite",
+        "terminology": "Terminology",
+        "summarise": "Summaries",
+        "comment": "Review"
+      },
+      "progress": "{done} of {total} parts",
+      "working": "Working on {heading}",
+      "cost": "Cost so far: {cost}",
+      "cancel": "Cancel",
+      "resume": "Resume",
+      "undo": "Undo job",
+      "dismiss": "Dismiss",
+      "done": "Done: {done} of {total} parts changed.",
+      "cancelled": "Cancelled after {done} of {total} parts.",
+      "paused": "Paused: the AI allowance is used up.",
+      "interrupted": "Interrupted. Resume it to continue.",
+      "failed": "The background edit stopped. {reason}",
+      "reverted": "Undone.",
+      "undone": "Undone: {count} parts restored.",
+      "skipped": "{count} parts left as they were.",
+      "flagged": "{count} parts need a look."
     }
   },
   "mobileTabBar": {
@@ -1948,7 +2016,7 @@
       "purpose": {
         "ovh_postgres": "Primary application database, Y.js document state, knowledge embeddings",
         "ovh_object_storage": "Image uploads, knowledge-base originals (deleted post-processing), database backups",
-        "mistral_ai": "AI text generation for the writing assistant: the free AI allowance (Z.ai GLM-5.3 Flash, served and processed by Mistral; Z.ai receives no data) with Mistral Small as fallback; voice transcription (Voxtral). All requests go to Mistral's EU endpoint (data centres in the EU and EFTA)",
+        "mistral_ai": "AI text generation for the writing assistant, including the free AI allowance: open-weight and Mistral models served and processed by Mistral (currently DeepSeek V4.1 Flash, GLM-5.3 Flash and Mistral Large 4; their developers receive no data); voice transcription (Voxtral). All requests go to Mistral's EU endpoint (data centres in the EU and EFTA)",
         "jina_ai": "Embedding generation for knowledge-base RAG; single-URL page content extraction for the fetch-URL tool (Jina Reader; the URL is sent for every user, including users with their own AI provider)",
         "staan": "Web search for the AI writing assistant (the search query is sent for every user, including users with their own AI provider), via a proprietary European search index (EU-only routing)",
         "bfl": "Image generation via FLUX (EU-pinned data plane)",
@@ -2112,6 +2180,8 @@
       "membersPerWorkspace": "This workspace has reached the member limit of its plan.",
       "savedThemes": "You've reached the saved-theme limit of your plan. Delete one to save a new theme.",
       "importMaxBytes": "This file is larger than your plan allows for imports.",
+      "aiJobUnitsPerJob": "This job is larger than your plan allows. Choose fewer sections.",
+      "aiJobsPerDay": "You've started today's AI jobs included in your plan. Try again tomorrow.",
       "historyEntry": "This change is older than the history this document's plan includes.",
       "mcpToolCallsPerDay": "You've used today's MCP tool calls included in your plan. Try again tomorrow."
     },
@@ -2193,6 +2263,8 @@
       "baseUrlHint": "The provider's OpenAI-compatible API root, usually ending in /v1.",
       "model": "Model",
       "modelPlaceholder": "The provider's model id",
+      "fastModel": "Fast model (optional)",
+      "fastModelHint": "A cheaper, faster model on the same provider and key, used for large delegated edits and web summaries. Empty = the model above.",
       "suggestions": "Suggested models: {list}",
       "apiKey": "API key",
       "apiKeyKeep": "Leave empty to keep the saved key. Required when you change the URL.",
@@ -3132,6 +3204,8 @@
       "image-gen": "Image generation",
       "embeddings": "Knowledge embeddings",
       "design-import": "Design from a document",
+      "delegate-rewrite": "Delegated rewrites",
+      "utility": "Web tool summaries",
       "other": "Other"
     },
     "investor": {

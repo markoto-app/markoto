@@ -1,0 +1,634 @@
+{
+  "label": "step1",
+  "document": {
+    "chars": 622052,
+    "words": 81757,
+    "lines": 3457,
+    "tokens": 172792
+  },
+  "prefix": {
+    "systemPromptChars": 22998,
+    "systemPromptTokens": 6388,
+    "toolCount": 26,
+    "toolsChars": 63580,
+    "toolsTokens": 17661
+  },
+  "tasks": [
+    {
+      "id": "T1-review-chapter",
+      "variant": "step1",
+      "title": "Review chapter 13, five comments",
+      "outcome": "done:done",
+      "modelCalls": 4,
+      "toolCalls": 8,
+      "toolErrors": 0,
+      "inputChars": 501904,
+      "inputTokens": 139418,
+      "prefixTokens": 96198,
+      "outputChars": 1748,
+      "outputTokens": 486,
+      "costUncachedUsd": 0.02327127,
+      "costCachedUsd": 0.010573134,
+      "estSeconds": 7,
+      "withinTurnLimit": true,
+      "withinDeadline": true,
+      "feasible": true,
+      "progress": 1,
+      "progressAtDeadline": 1,
+      "verifyProblem": null,
+      "requests": [
+        {
+          "call": 1,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 1257,
+          "outputChars": 15,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 2,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 22696,
+          "outputChars": 78,
+          "toolCalls": 2,
+          "progress": null
+        },
+        {
+          "call": 3,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 64872,
+          "outputChars": 1655,
+          "toolCalls": 5,
+          "progress": null
+        },
+        {
+          "call": 4,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 66767,
+          "outputChars": 0,
+          "toolCalls": 0,
+          "progress": null
+        }
+      ]
+    },
+    {
+      "id": "T2-swap-chapters",
+      "variant": "step1",
+      "title": "Swap chapters 4 and 5",
+      "outcome": "done:done",
+      "modelCalls": 5,
+      "toolCalls": 12,
+      "toolErrors": 0,
+      "inputChars": 1065111,
+      "inputTokens": 295864,
+      "prefixTokens": 120247,
+      "outputChars": 213353,
+      "outputTokens": 59265,
+      "costUncachedUsd": 0.08141331000000002,
+      "costCachedUsd": 0.065540706,
+      "estSeconds": 400,
+      "withinTurnLimit": true,
+      "withinDeadline": false,
+      "feasible": false,
+      "progress": 1,
+      "progressAtDeadline": 0,
+      "verifyProblem": null,
+      "requests": [
+        {
+          "call": 1,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 1251,
+          "outputChars": 15,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 2,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 22690,
+          "outputChars": 229,
+          "toolCalls": 6,
+          "progress": null
+        },
+        {
+          "call": 3,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 129620,
+          "outputChars": 115,
+          "toolCalls": 3,
+          "progress": null
+        },
+        {
+          "call": 4,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 132586,
+          "outputChars": 212994,
+          "toolCalls": 2,
+          "progress": null
+        },
+        {
+          "call": 5,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 346074,
+          "outputChars": 0,
+          "toolCalls": 0,
+          "progress": null
+        }
+      ]
+    },
+    {
+      "id": "T3-shorten-intro",
+      "variant": "step1",
+      "title": "Shorten the introduction (chapter 1)",
+      "outcome": "done:done",
+      "modelCalls": 4,
+      "toolCalls": 3,
+      "toolErrors": 0,
+      "inputChars": 474765,
+      "inputTokens": 131879,
+      "prefixTokens": 96198,
+      "outputChars": 35635,
+      "outputTokens": 9899,
+      "costUncachedUsd": 0.027204485,
+      "costCachedUsd": 0.014506349000000002,
+      "estSeconds": 70,
+      "withinTurnLimit": true,
+      "withinDeadline": true,
+      "feasible": true,
+      "progress": 1,
+      "progressAtDeadline": 1,
+      "verifyProblem": null,
+      "requests": [
+        {
+          "call": 1,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 1268,
+          "outputChars": 15,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 2,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 22707,
+          "outputChars": 37,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 3,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 34328,
+          "outputChars": 35583,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 4,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 70150,
+          "outputChars": 0,
+          "toolCalls": 0,
+          "progress": null
+        }
+      ]
+    },
+    {
+      "id": "T4-translate-section",
+      "variant": "step1",
+      "title": "Translate section 9.2 (~1500 words) to French",
+      "outcome": "done:done",
+      "modelCalls": 4,
+      "toolCalls": 3,
+      "toolErrors": 0,
+      "inputChars": 462038,
+      "inputTokens": 128344,
+      "prefixTokens": 96198,
+      "outputChars": 22853,
+      "outputTokens": 6348,
+      "costUncachedUsd": 0.024668160000000005,
+      "costCachedUsd": 0.011970024,
+      "estSeconds": 46,
+      "withinTurnLimit": true,
+      "withinDeadline": true,
+      "feasible": true,
+      "progress": 1,
+      "progressAtDeadline": 1,
+      "verifyProblem": null,
+      "requests": [
+        {
+          "call": 1,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 1231,
+          "outputChars": 15,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 2,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 22670,
+          "outputChars": 39,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 3,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 34435,
+          "outputChars": 22799,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 4,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 57390,
+          "outputChars": 0,
+          "toolCalls": 0,
+          "progress": null
+        }
+      ]
+    },
+    {
+      "id": "T5-rename-term",
+      "variant": "step1",
+      "title": "Rename Kunde to Klient in all forms (40x)",
+      "outcome": "done:done",
+      "modelCalls": 8,
+      "toolCalls": 84,
+      "toolErrors": 0,
+      "inputChars": 4696959,
+      "inputTokens": 1304711,
+      "prefixTokens": 192396,
+      "outputChars": 8689,
+      "outputTokens": 2414,
+      "costUncachedUsd": 0.216605015,
+      "costCachedUsd": 0.19120874300000001,
+      "estSeconds": 24,
+      "withinTurnLimit": true,
+      "withinDeadline": true,
+      "feasible": true,
+      "progress": 1,
+      "progressAtDeadline": 1,
+      "verifyProblem": null,
+      "requests": [
+        {
+          "call": 1,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 1267,
+          "outputChars": 15,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 2,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 22706,
+          "outputChars": 1116,
+          "toolCalls": 29,
+          "progress": null
+        },
+        {
+          "call": 3,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 631486,
+          "outputChars": 614,
+          "toolCalls": 16,
+          "progress": null
+        },
+        {
+          "call": 4,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 650857,
+          "outputChars": 2061,
+          "toolCalls": 10,
+          "progress": null
+        },
+        {
+          "call": 5,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 661319,
+          "outputChars": 1523,
+          "toolCalls": 10,
+          "progress": null
+        },
+        {
+          "call": 6,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 669765,
+          "outputChars": 2087,
+          "toolCalls": 10,
+          "progress": null
+        },
+        {
+          "call": 7,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 679556,
+          "outputChars": 1273,
+          "toolCalls": 8,
+          "progress": null
+        },
+        {
+          "call": 8,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 687379,
+          "outputChars": 0,
+          "toolCalls": 0,
+          "progress": null
+        }
+      ]
+    },
+    {
+      "id": "T6-formal-tone",
+      "variant": "step1",
+      "title": "Formal tone across the whole document",
+      "outcome": "error:turnLimit",
+      "modelCalls": 20,
+      "toolCalls": 38,
+      "toolErrors": 0,
+      "inputChars": 6915149,
+      "inputTokens": 1920875,
+      "prefixTokens": 480989,
+      "outputChars": 376659,
+      "outputTokens": 104628,
+      "costUncachedUsd": 0.374489775,
+      "costCachedUsd": 0.310999227,
+      "estSeconds": 718,
+      "withinTurnLimit": false,
+      "withinDeadline": false,
+      "feasible": false,
+      "progress": 0.3000247567727457,
+      "progressAtDeadline": 0.11366413097297332,
+      "verifyProblem": null,
+      "requests": [
+        {
+          "call": 1,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 1244,
+          "outputChars": 15,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 2,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 22683,
+          "outputChars": 16535,
+          "toolCalls": 1,
+          "progress": 0.013193430774276106
+        },
+        {
+          "call": 3,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 39366,
+          "outputChars": 12594,
+          "toolCalls": 2,
+          "progress": 0.02319741757923775
+        },
+        {
+          "call": 4,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 58127,
+          "outputChars": 14750,
+          "toolCalls": 2,
+          "progress": 0.03493437847639747
+        },
+        {
+          "call": 5,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 78591,
+          "outputChars": 10898,
+          "toolCalls": 2,
+          "progress": 0.04358799585886711
+        },
+        {
+          "call": 6,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 100555,
+          "outputChars": 21450,
+          "toolCalls": 2,
+          "progress": 0.0606814221319118
+        },
+        {
+          "call": 7,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 134588,
+          "outputChars": 24380,
+          "toolCalls": 2,
+          "progress": 0.08010905840669269
+        },
+        {
+          "call": 8,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 168478,
+          "outputChars": 18402,
+          "toolCalls": 2,
+          "progress": 0.09476538938866848
+        },
+        {
+          "call": 9,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 199079,
+          "outputChars": 23700,
+          "toolCalls": 2,
+          "progress": 0.11366413097297332
+        },
+        {
+          "call": 10,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 231510,
+          "outputChars": 16832,
+          "toolCalls": 2,
+          "progress": 0.12706815507385236
+        },
+        {
+          "call": 11,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 262560,
+          "outputChars": 27602,
+          "toolCalls": 2,
+          "progress": 0.14907596149518046
+        },
+        {
+          "call": 12,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 302949,
+          "outputChars": 24752,
+          "toolCalls": 2,
+          "progress": 0.1687833171503347
+        },
+        {
+          "call": 13,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 338229,
+          "outputChars": 20378,
+          "toolCalls": 2,
+          "progress": 0.1850118639599262
+        },
+        {
+          "call": 14,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 368569,
+          "outputChars": 19290,
+          "toolCalls": 2,
+          "progress": 0.2003787464713561
+        },
+        {
+          "call": 15,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 398658,
+          "outputChars": 20888,
+          "toolCalls": 2,
+          "progress": 0.21702687235150758
+        },
+        {
+          "call": 16,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 429257,
+          "outputChars": 18788,
+          "toolCalls": 2,
+          "progress": 0.2319902516188357
+        },
+        {
+          "call": 17,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 460681,
+          "outputChars": 24502,
+          "toolCalls": 2,
+          "progress": 0.2515191656003035
+        },
+        {
+          "call": 18,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 497000,
+          "outputChars": 22825,
+          "toolCalls": 2,
+          "progress": 0.269691279828696
+        },
+        {
+          "call": 19,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 530743,
+          "outputChars": 21160,
+          "toolCalls": 2,
+          "progress": 0.28655321420074203
+        },
+        {
+          "call": 20,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 560722,
+          "outputChars": 16918,
+          "toolCalls": 2,
+          "progress": 0.3000247567727457
+        }
+      ]
+    },
+    {
+      "id": "T7-add-table",
+      "variant": "step1",
+      "title": "Add a table to chapter 2",
+      "outcome": "done:done",
+      "modelCalls": 4,
+      "toolCalls": 3,
+      "toolErrors": 0,
+      "inputChars": 423374,
+      "inputTokens": 117604,
+      "prefixTokens": 96198,
+      "outputChars": 482,
+      "outputTokens": 134,
+      "costUncachedUsd": 0.01947836,
+      "costCachedUsd": 0.0067802240000000005,
+      "estSeconds": 5,
+      "withinTurnLimit": true,
+      "withinDeadline": true,
+      "feasible": true,
+      "progress": 1,
+      "progressAtDeadline": 1,
+      "verifyProblem": null,
+      "requests": [
+        {
+          "call": 1,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 1271,
+          "outputChars": 15,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 2,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 22710,
+          "outputChars": 37,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 3,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 25770,
+          "outputChars": 430,
+          "toolCalls": 1,
+          "progress": null
+        },
+        {
+          "call": 4,
+          "systemChars": 22998,
+          "toolsChars": 63580,
+          "conversationChars": 27311,
+          "outputChars": 0,
+          "toolCalls": 0,
+          "progress": null
+        }
+      ]
+    }
+  ]
+}

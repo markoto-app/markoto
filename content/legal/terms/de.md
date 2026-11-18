@@ -102,7 +102,7 @@ Wenn du unsicher bist, ob etwas erlaubt ist, schreibe an **{{abuseContactEmail}}
 
 Wenn du angemeldet bist und für den Schreibassistenten keinen eigenen Anbieter angebunden hast, kannst du ihn im Rahmen eines kostenlosen monatlichen Kontingents nutzen:
 
-- Das Kontingent läuft auf dem Modell GLM-5.3 Flash von Z.ai, bereitgestellt von Mistral AI in der EU (siehe Datenschutzerklärung).
+- Das Kontingent läuft auf KI-Modellen, die Mistral AI in der EU bereitstellt; die Datenschutzerklärung nennt die aktuellen Modelle.
 - Jedes Konto hat ein monatliches Limit, und alle kostenlosen Konten teilen sich einen monatlichen Topf. Das Kontingent steht nur zur Verfügung, solange der Topf dieses Monats reicht; beide werden zu Beginn jedes Monats zurückgesetzt. Nicht genutztes Kontingent verfällt und hat keinen Geldwert.
 - Das Kontingent wird kostenlos und **«wie besehen»** bereitgestellt, ohne Gewähr für Verfügbarkeit, Qualität oder ein bestimmtes Modell. Es ist ein Nutzungslimit im Sinne von §3: Wir können das Modell, die Limiten oder den Topf ändern oder das Kontingent beenden.
 - Versuche nicht, die Limiten zu umgehen, zum Beispiel mit mehreren Konten.

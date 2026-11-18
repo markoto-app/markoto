@@ -4,7 +4,7 @@ description: Write, rewrite and research with the AI, connect your own provider,
 category: ai
 order: 3
 icon: i-lucide-sparkles
-updated: '2026-11-14'
+updated: '2026-11-18'
 ---
 
 # AI assistant
@@ -19,6 +19,10 @@ what each feature needs. AI features require an account.
 - [Rewrite a selection with the AI](/docs/ai/rewrite-selection): highlight, prompt, replace.
 - [Summon the AI from a comment](/docs/ai/comments): `@markoto` mention in any thread.
 - [Tell the AI who you're writing for](/docs/ai/document-context): audience + language steering.
+
+**Large documents and large edits**
+- [Work with long documents](/docs/ai/long-documents): ask about one section, rename a term everywhere.
+- [Translate or restyle a whole document](/docs/ai/document-jobs): background edits you can cancel, resume and undo as a whole.
 
 **Research and sources**
 - [Ask the AI for current information](/docs/ai/web-search): grounded answers from live web results.

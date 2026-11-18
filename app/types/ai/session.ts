@@ -1,4 +1,5 @@
 import type { AiStatusStep } from '~~/shared/ai/statusSteps'
+import type { JobConfirmationDetails } from '~~/shared/ai/jobConfirmation'
 
 // Session types shared by `useAI` and its helper modules. They live in this
 // leaf module so the helpers don't import back from `useAI.ts`, which
@@ -16,7 +17,8 @@ export interface AiSessionInfo {
   sessionId: string
   initiatorName: string
   initiatorUserId: number
-  // Known phases: 'thinking' | 'tool' | 'editing' | 'done' | 'error'.
+  // Known phases: 'thinking' | 'tool' | 'editing' | 'done' | 'error', and
+  // 'job' for a delegated job's presence (`server/utils/ai/jobs/engine.ts`).
   // The wider `string` accepts upstream phase additions without forcing
   // this union to drift.
   phase: string
@@ -38,6 +40,9 @@ export interface AiConfirmationRequest {
   target: string | null
   /** Server wall-clock ms after which an unanswered request counts as "deny". */
   expiresAt: number
+  /** `job`: the cost confirmation of a delegated job (`job` holds the estimate); absent: the taint gate. */
+  kind?: 'tool' | 'job'
+  job?: JobConfirmationDetails
 }
 
 /**

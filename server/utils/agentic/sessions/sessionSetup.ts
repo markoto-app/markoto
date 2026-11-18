@@ -80,6 +80,8 @@ export interface OpenedSession {
   initiatorColor: string
   abortController: AbortController
   deadlineTimer: ReturnType<typeof setTimeout>
+  /** When `deadlineTimer` aborts the session (epoch ms); the loop wraps up shortly before. */
+  deadlineAt: number
   channel: AiSessionChannel
   billingContext: BillingContext
   aiProviders: ResolvedAiProviders
@@ -125,12 +127,13 @@ export async function openAiSession(event: H3Event, request: OpenSessionRequest)
   })
 
   await claimAiSession({ sessionId, docAccess: request.docAccess, self: request.self, userId, initiatorName, initiatorColor, abortController })
+  const deadlineAt = Date.now() + AI_SESSION_HARD_DEADLINE_MS
   const deadlineTimer = setTimeout(() => abortController.abort(), AI_SESSION_HARD_DEADLINE_MS)
   // Initiator-only channel: prompt, status text, answers, confirmations.
   // Opened before the response so the client's first poll finds it.
   const channel = new AiSessionChannel(sessionId)
   await channel.open({ initiatorUserId: userId, docId, prompt: request.channelPrompt, commentThreadId: request.commentThreadId })
-  return { sessionId, initiatorName, initiatorColor, abortController, deadlineTimer, channel, billingContext, aiProviders }
+  return { sessionId, initiatorName, initiatorColor, abortController, deadlineTimer, deadlineAt, channel, billingContext, aiProviders }
 }
 
 interface ClaimSessionArgs {

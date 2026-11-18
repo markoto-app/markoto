@@ -17,6 +17,8 @@ export interface AiProviderUpsert {
   capability: AiCapability
   baseUrl: string
   model: string
+  /** Chat only: the worker model on the same endpoint; null = the chat model. */
+  fastModel?: string | null
   apiKeyEncrypted: string
   apiKeyLast4: string
   supportsVision: boolean
@@ -45,6 +47,7 @@ export async function upsertAiProvider(self: UserScope, input: AiProviderUpsert)
   const values = {
     baseUrl: input.baseUrl,
     model: input.model,
+    fastModel: input.capability === 'chat' ? (input.fastModel ?? null) : null,
     apiKeyEncrypted: input.apiKeyEncrypted,
     apiKeyLast4: input.apiKeyLast4,
     supportsVision: input.supportsVision,

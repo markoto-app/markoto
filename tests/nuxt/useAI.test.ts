@@ -611,6 +611,25 @@ describe('useAI: private session channel', () => {
     expect(confirmCalls).toEqual([{ sid: 'sid-mine', body: { confirmationId: 'conf-1', allow: false } }])
     expect(ai.pendingConfirmation.value).toBe(null)
   })
+
+  it('a deny carries the typed note; an allow never does', async () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    const confirmation = { id: 'conf-2', tool: 'web_search', target: 'q', expiresAt: Date.now() + 60_000 }
+    setPrivateStatus('sid-mine', { phase: 'tool', confirmation })
+    pushAiClient(awareness, { sessionId: 'sid-mine', initiatorName: 'Me', initiatorUserId: 7, phase: 'tool' })
+    const ai = useAI(docId, awareness, FAST)
+    await vi.waitFor(() => expect(ai.pendingConfirmation.value).toEqual(confirmation))
+    await ai.answerConfirmation(false, '  search the knowledge base  ')
+    expect(confirmCalls).toEqual([{ sid: 'sid-mine', body: { confirmationId: 'conf-2', allow: false, note: 'search the knowledge base' } }])
+
+    confirmCalls.length = 0
+    setPrivateStatus('sid-mine', { phase: 'tool', confirmation: { ...confirmation, id: 'conf-3' } })
+    await vi.waitFor(() => expect(ai.pendingConfirmation.value?.id).toBe('conf-3'))
+    await ai.answerConfirmation(true, 'ignored')
+    expect(confirmCalls).toEqual([{ sid: 'sid-mine', body: { confirmationId: 'conf-3', allow: true } }])
+  })
 })
 
 describe('useAI: push stream (SSE) for my session', () => {

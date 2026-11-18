@@ -3,6 +3,7 @@ import { defineDocTool, toolOk, type ToolResult } from './toolDefinition'
 import type { DocToolContext } from '../../agentic/toolContext'
 import { appendAiMessage } from '../../../repos/aiSessionMessages'
 import { useLogger } from '../../platform/logger'
+import { withoutEmDashes } from '../dashFilter'
 
 const log = useLogger('ai-tools')
 
@@ -48,7 +49,8 @@ async function handleMessageToUser(
   input: z.output<typeof MessageToUserArgs>
 ): Promise<ToolResult> {
   const isQuestion = input.is_question === true
-  session.deliverResponse?.({ message: input.message, isQuestion, ts: Date.now() })
+  const message = withoutEmDashes(input.message)
+  session.deliverResponse?.({ message, isQuestion, ts: Date.now() })
 
   // Persist a verbatim memory row so a follow-up prompt's
   // `<conversation_history>` block can show what the AI told the user.
@@ -59,7 +61,7 @@ async function handleMessageToUser(
     await appendAiMessage(session.docAccess, {
       sessionId: session.sessionId,
       kind: 'message_to_user',
-      body: { message: input.message, isQuestion }
+      body: { message, isQuestion }
     })
   } catch (e) {
     log.warn('message_to_user memory append failed', { err: e })

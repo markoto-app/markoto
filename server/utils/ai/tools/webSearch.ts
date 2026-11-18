@@ -5,6 +5,7 @@ import { consumeWebToolQuota, isWebToolAvailable } from '../webTools'
 import { chargeWebToolCall, type WebToolChargeContext } from '../webToolCharge'
 import { useLitellmAdmin, useLitellmForUser } from '../litellmClient'
 import { FEATURE_TAGS, featureMetadata } from '../../litellm/featureTags'
+import { modelRequestParams } from '../../litellm/modelParams'
 import { providerRequestFields, withProviderErrors } from '../../aiProviders/requestFields'
 import type { ResolvedAiProvider } from '../../aiProviders/resolve'
 import { useEnv } from '~~/shared/env/load'
@@ -24,11 +25,23 @@ import { useEnv } from '~~/shared/env/load'
  */
 export interface WebToolSpendContext extends WebToolChargeContext {
   /**
-   * The session's chat provider (BYOK key or instance default). The
-   * synthesis step runs on it; when null (no provider configured) the
-   * tools return the raw search results / page text unsynthesised.
+   * The session's chat provider (BYOK key or instance default). Read for
+   * the refusal wording, and as the synthesis model when `workerProvider`
+   * is not given.
    */
   chatProvider?: ResolvedAiProvider | null
+  /**
+   * The session's fast worker model (`workerProviderFor(providers, 'utility')`).
+   * The synthesis step runs on it; when it and `chatProvider` are null (no
+   * provider configured) the tools return the raw search results / page
+   * text unsynthesised.
+   */
+  workerProvider?: ResolvedAiProvider | null
+}
+
+/** The model a web tool's synthesis runs on: the worker, else the chat provider, else none. */
+export function synthesisProvider(ctx: WebToolSpendContext): ResolvedAiProvider | null {
+  return ctx.workerProvider !== undefined ? ctx.workerProvider : (ctx.chatProvider ?? null)
 }
 
 export interface WebSearchResult {
@@ -40,7 +53,7 @@ export interface WebSearchResult {
 }
 
 /**
- * Web-search sub-call: Staan returns ranked results, then Mistral synthesises
+ * Web-search sub-call: Staan returns ranked results, then the worker model synthesises
  * a cited answer. The outer loop emits the per-call status ("Searching the
  * web for ...") from the validated args before this runs, and we control the
  * output format (answer + bulleted sources).
@@ -71,9 +84,9 @@ export async function webSearch(
 // AI grounding providers:
 //
 //   web_search → Staan /search/web (staan.ai): the European search index
-//                returns ranked results (title/url/snippet) → Mistral
+//                returns ranked results (title/url/snippet) → worker-model
 //                synthesis compresses them into a cited answer.
-//   fetch_url  → Jina Reader (r.jina.ai) → Mistral synthesis with
+//   fetch_url  → Jina Reader (r.jina.ai) → worker-model synthesis with
 //                json_schema strict:true extracting {summary, images[]}.
 //                Jina stays for the direct-URL-fetch case: the user (or the
 //                model) supplies a specific URL, so there is no Google/Bing
@@ -143,7 +156,7 @@ async function webSearchViaStaan(
     }
   }
 
-  // 2) Mistral synthesis: pass results as a numbered list, ask for a
+  // 2) Worker-model synthesis: pass results as a numbered list, ask for a
   //    concise answer with [n] citations.
   const dump = results.slice(0, 8).map((r, i) =>
     `[${i + 1}] ${r.title ?? ''}\nURL: ${r.url ?? ''}\n${(r.snippet ?? '').slice(0, 1500)}`
@@ -157,14 +170,14 @@ async function webSearchViaStaan(
   // No chat provider (no BYOK key, no instance default): hand the raw
   // ranked results back instead of a synthesised answer. Search itself is
   // platform-provided and works without a key.
-  const provider = spendCtx.chatProvider
+  const provider = synthesisProvider(spendCtx)
   if (!provider) {
     return { text: `Search results for "${query}":\n\n${dump}`, sources }
   }
 
   // Authenticate the synthesis with the caller's virtual key (rpm limits
-  // + spend tags) and run it on the session's chat provider, the user's
-  // own key under BYOK. Fall back to the master key only when a key-less
+  // + spend tags) and run it on the session's worker model, the user's
+  // own key (and their fast model, if set) under BYOK. Fall back to the master key only when a key-less
   // harness path reaches here.
   const litellm = spendCtx.virtualKey ? useLitellmForUser(spendCtx.virtualKey) : useLitellmAdmin()
   const providerFields = await providerRequestFields(provider)
@@ -179,11 +192,10 @@ async function webSearchViaStaan(
     // Modest temperature for the prose synthesis (no structured-output
     // contract). `fetch_url` synthesis stays at 0 because it has a strict
     // JSON schema; the outer agentic loop stays at 0 for tool determinism.
-    temperature: 0.3,
-    // Sub-step of the text agentic loop, same tag set so /admin/ai-spend's
-    // "text-loop" total includes web_search synthesis and the workspace +
-    // user breakdowns attribute correctly.
-    ...featureMetadata(FEATURE_TAGS.textLoop, spendCtx)
+    ...modelRequestParams(providerFields.model, { temperature: 0.3, purpose: 'subcall' }),
+    // Worker-model utility call: its own feature tag so /admin/ai-spend
+    // splits it from the loop's turns; same workspace + user + doc axes.
+    ...featureMetadata(FEATURE_TAGS.utility, spendCtx)
   }, { signal }))
 
   const answer = (synth.choices?.[0]?.message?.content ?? '').trim()

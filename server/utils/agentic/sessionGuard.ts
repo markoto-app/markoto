@@ -93,6 +93,7 @@ export async function buildSessionGuard(args: SessionGuardArgs): Promise<CrossBo
     { initialTaint, invokerText: args.invokerText, knowledgeFiles },
     {
       isDocSolo: ref => isDocSoloForUser(ref, args.initiatorUserId),
+      isSessionDocSolo: () => isDocSoloForUser(args.docId, args.initiatorUserId),
       describeDoc: ref => accessibleDocTitle(args.initiatorUserId, ref),
       commentsHaveForeignAuthors: () => commentsHaveForeignAuthors(args.ydoc, args.initiatorUserId, sessionDocSolo),
       workspaceHasOtherEditors: async () => args.workspaceAccess !== null && (await countOtherWorkspaceEditors(args.workspaceAccess, args.initiatorUserId)) > 0,

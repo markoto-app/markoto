@@ -187,5 +187,11 @@ function hostOf(rawUrl: string): string {
         {{ t('activity.aiTool.knowledgeNote') }}
       </div>
     </template>
+
+    <template v-else-if="metadata.tool === 'replace_all'">
+      <div class="text-xs text-default break-words">
+        {{ t('activity.detail.replacedAll', { count: metadata.count, from: metadata.query, to: metadata.replacement }) }}
+      </div>
+    </template>
   </div>
 </template>

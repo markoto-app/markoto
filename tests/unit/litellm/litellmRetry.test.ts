@@ -192,3 +192,12 @@ describe('litellmStream: 429 retry', () => {
     expect(client.chat.completions.create).toHaveBeenCalledTimes(2)
   })
 })
+
+describe('litellmStream: callerRetries', () => {
+  it('neither retries a 429 itself nor lets the SDK retry', async () => {
+    const client = createClient([() => new RateLimitError()])
+    await expect(litellmStream(client as never, { model: 'm', messages: [], stream: true }, { callerRetries: true })).rejects.toThrow('429')
+    expect(client.chat.completions.create).toHaveBeenCalledTimes(1)
+    expect(client.chat.completions.create.mock.calls[0]?.[1]).toMatchObject({ maxRetries: 0 })
+  })
+})

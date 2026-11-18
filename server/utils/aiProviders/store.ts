@@ -7,7 +7,7 @@ import { openProviderKey, sealProviderKey } from './keyCrypto'
 import { getAiProvider, upsertAiProvider, type AiProviderRow } from '../../repos/aiProviders'
 import { resolveByokUrlPolicy } from './config'
 import { checkProviderBaseUrl } from './urlPolicy'
-import { verifyProvider, type VerifyResult } from './verify'
+import { verifyFastModel, verifyProvider, type VerifyResult } from './verify'
 import type { ResolvedAiProvider } from './resolve'
 import type { saveAiProviderBody } from '~~/shared/api/account'
 import { apiKeyLast4, baseUrlHost, normalizeBaseUrl, type AiCapability, type AiProviderConfigView } from '~~/shared/ai/providers'
@@ -19,6 +19,7 @@ export function toProviderView(row: AiProviderRow): AiProviderConfigView {
     baseUrl: row.baseUrl,
     host: baseUrlHost(row.baseUrl),
     model: row.model,
+    fastModel: row.capability === 'chat' ? row.fastModel : null,
     apiKeyLast4: row.apiKeyLast4,
     supportsVision: row.supportsVision,
     supportsTools: row.supportsTools,
@@ -67,11 +68,19 @@ export async function saveUserProvider(
   }
   const verify = await verifyProvider(capability, candidate, virtualKey)
   if (!verify.ok) return { kind: 'verify-failed', verify }
+  // The fast model has no URL or key of its own: it is probed on the chat
+  // provider's endpoint and key, through the same SSRF policy.
+  const fastModel = capability === 'chat' ? normalizeFastModel(body.fastModel, body.model) : null
+  if (fastModel) {
+    const fast = await verifyFastModel({ ...candidate, model: fastModel, supportsVision: false }, virtualKey)
+    if (!fast.ok) return { kind: 'verify-failed', verify: { ...fast, message: `Fast model: ${fast.message}` } }
+  }
 
   const row = await upsertAiProvider(self, {
     capability,
     baseUrl,
     model: body.model,
+    fastModel,
     apiKeyEncrypted: sealProviderKey(userId, capability, apiKey),
     apiKeyLast4: apiKeyLast4(apiKey),
     supportsVision,
@@ -79,6 +88,12 @@ export async function saveUserProvider(
     lastVerifiedAt: new Date()
   })
   return { kind: 'saved', view: toProviderView(row), verify }
+}
+
+/** The fast model to store: trimmed, null when empty or the same as the chat model. */
+function normalizeFastModel(raw: string | null | undefined, model: string): string | null {
+  const fast = raw?.trim() ?? ''
+  return fast && fast !== model ? fast : null
 }
 
 /** Re-verify a stored config. Null when the user has none for `capability`. */
@@ -92,11 +107,15 @@ export async function reverifyUserProvider(
   } catch {
     return { code: 'auth-failed', ok: false, supportsTools: null, message: 'The stored key can no longer be read. Enter it again.' }
   }
-  return verifyProvider(row.capability, {
+  const provider: ResolvedAiProvider = {
     capability: row.capability,
     source: 'user',
     model: row.model,
     credentials: { baseUrl: row.baseUrl, apiKey },
     supportsVision: row.supportsVision
-  }, virtualKey)
+  }
+  const verify = await verifyProvider(row.capability, provider, virtualKey)
+  if (!verify.ok || row.capability !== 'chat' || !row.fastModel) return verify
+  const fast = await verifyFastModel({ ...provider, model: row.fastModel, supportsVision: false }, virtualKey)
+  return fast.ok ? verify : { ...fast, supportsTools: verify.supportsTools, message: `Fast model: ${fast.message}` }
 }

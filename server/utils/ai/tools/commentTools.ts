@@ -9,6 +9,7 @@ import { readYComment, type YCommentFields } from '~~/shared/utils/documents/yCo
 import { plainCommentText, stripAiMention } from '../../agentic/commentTriggerPrompt'
 import { AI_COMMENT_AUTHOR_NAME, isAiCommentAuthor } from '~~/shared/ai/author'
 import { canManageDoc } from '../../access/workspaceAccess'
+import { TOOL_RESULT_CHAR_CAP } from '../../agentic/limits'
 
 // Comments are the primary channel for AI <-> user communication; every comment
 // appears in the sidebar in real time (same as collaborator comments).
@@ -94,6 +95,11 @@ function fmtDate(ms: number): string {
 
 const COMMENT_ANCHOR_PREVIEW_MAX = 150
 
+/** Room the read_comments result gets, below the loop's result cap. */
+const READ_COMMENTS_CHAR_BUDGET = TOOL_RESULT_CHAR_CAP - 2_000
+/** Room kept for the one-line list of threads that do not fit in full (about 80 lines). */
+const COMMENT_SUMMARY_RESERVE = 5_000
+
 /** Build a human-readable anchor label from a resolved Y.js anchor. */
 function formatAnchorLabel(
   anchor: { from: number, to: number } | null,
@@ -146,17 +152,58 @@ function handleReadComments(
   if (ycomments.length === 0) return toolOk('No comments on this document.')
 
   const fullText = session.ytext.toJSON()
-  const lines: string[] = [`Found ${ycomments.length} comment thread(s):\n`]
+  const header = `Found ${ycomments.length} comment thread(s):\n`
+  const maps: Array<Y.Map<unknown>> = []
   for (let i = 0; i < ycomments.length; i++) {
     const map = ycomments.get(i)
-    if (!(map instanceof Y.Map)) continue
-    lines.push(
-      ...formatThreadHeader(map, fullText, session.ydoc),
-      ...formatThreadReplies(map),
-      ''
-    )
+    if (map instanceof Y.Map) maps.push(map)
   }
+  const threads = maps.map(map => [...formatThreadHeader(map, fullText, session.ydoc), ...formatThreadReplies(map), ''].join('\n'))
+  const total = threads.reduce((n, t) => n + t.length + 1, header.length)
+  if (total <= READ_COMMENTS_CHAR_BUDGET) return toolOk([header, ...threads].join('\n'))
+
+  // Too many for one result: threads in full while they fit (leaving room
+  // for the list), the rest one line each, so every id stays reachable for
+  // reply / resolve / delete.
+  const lines = [header]
+  let size = header.length
+  let fullCount = 0
+  for (const thread of threads) {
+    if (size + thread.length > READ_COMMENTS_CHAR_BUDGET - COMMENT_SUMMARY_RESERVE) break
+    lines.push(thread)
+    size += thread.length + 1
+    fullCount += 1
+  }
+  const summaries = maps.slice(fullCount).map(map => formatThreadSummary(map, fullText, session.ydoc))
+  lines.push(...summaryBlock(summaries, READ_COMMENTS_CHAR_BUDGET - size))
   return toolOk(lines.join('\n'))
+}
+
+/** The one-line-per-thread list, cut at a line to fit `room` characters. */
+function summaryBlock(summaries: readonly string[], room: number): string[] {
+  let listed = summaries.join('\n')
+  if (listed.length > room) {
+    const cut = listed.lastIndexOf('\n', Math.max(0, room))
+    listed = cut > 0 ? listed.slice(0, cut) : ''
+  }
+  const unlisted = summaries.length - (listed ? listed.split('\n').length : 0)
+  return [
+    `${summaries.length} more thread(s) did not fit in full (result size limit). Their ids, anchors and authors:`,
+    ...(listed ? [listed] : []),
+    ...(unlisted > 0 ? [`(${unlisted} further thread(s) not listed.)`] : [])
+  ]
+}
+
+/** One line per thread for the part of read_comments that does not fit in full. */
+function formatThreadSummary(map: Y.Map<unknown>, fullText: string, ydoc: Y.Doc): string {
+  const c = readYComment(map)
+  const anchor = resolveCommentAnchor(c, ydoc)
+  const where = anchor
+    ? `lines ${fullText.slice(0, anchor.from).split('\n').length}-${fullText.slice(0, anchor.to).split('\n').length}`
+    : 'orphaned'
+  const replies = map.get('replies')
+  const replyCount = replies instanceof Y.Array ? replies.length : 0
+  return `- Thread ${c.id ?? ''}${c.resolved ? ' [RESOLVED]' : ''}, ${where}, by ${c.authorName ?? 'Unknown'}, ${replyCount} repl${replyCount === 1 ? 'y' : 'ies'}`
 }
 
 async function handleCreateComment(
@@ -371,7 +418,7 @@ async function deleteWholeThread(
 
 export const readCommentsTool = defineDocTool({
   name: 'read_comments',
-  description: 'Read all comment threads on the document: IDs, anchored line ranges, resolved status, full bodies, and replies. Always call this before creating, replying to, resolving, or deleting any comment so you have current IDs and context.',
+  description: 'Read all comment threads on the document: IDs, anchored line ranges, resolved status, full bodies, and replies (threads past the result size limit are listed one line each). Always call this before creating, replying to, resolving, or deleting any comment so you have current IDs and context.',
   schema: ReadCommentsArgs,
   handler: handleReadComments
 })

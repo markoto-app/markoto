@@ -2,7 +2,7 @@
 title: Connect Claude Desktop, Cursor or scripts (MCP)
 description: Create a personal access token and let any MCP client read and edit your documents, with live edits visible to collaborators.
 category: ai
-order: 12
+order: 14
 icon: i-lucide-plug
 updated: '2026-11-04'
 ---

@@ -149,3 +149,95 @@ describe('fetch_url synthesis billing key', () => {
     expect(out.text).toContain('Body text.')
   })
 })
+
+describe('web-tool synthesis on the worker model', () => {
+  const worker: ResolvedAiProvider = { capability: 'chat', source: 'instance', model: 'markoto-worker', credentials: null, supportsVision: false }
+
+  function synthesisBodies(): Array<Record<string, unknown>> {
+    return litellmCompletion.mock.calls.map(c => c[1]).filter(b => !String(b.model).endsWith('-tick'))
+  }
+
+  it('web_search synthesises on the worker, tagged feature:utility', async () => {
+    stubFetch('staan')
+    await webSearch(undefined, '', 'query', neverAbort, { virtualKey: 'sk-user-1', workspaceId: 'w1', docId: 'd1', chatProvider: aliasProvider, workerProvider: worker })
+    const [body] = synthesisBodies()
+    expect(body?.model).toBe('markoto-worker')
+    expect(body?.metadata).toEqual({ tags: ['feature:utility', 'workspace:w1', 'doc:d1'] })
+  })
+
+  it('fetch_url extracts on the worker, tagged feature:utility', async () => {
+    stubFetch('jina')
+    await fetchUrl(undefined, '', 'https://example.com', neverAbort, { virtualKey: 'sk-user-1', chatProvider: aliasProvider, workerProvider: worker })
+    const [body] = synthesisBodies()
+    expect(body?.model).toBe('markoto-worker')
+    expect(body?.metadata).toEqual({ tags: ['feature:utility'] })
+  })
+
+  it('a BYOK fast model runs with the chat provider\'s clientside credentials', async () => {
+    stubFetch('jina')
+    const fast = { ...byokProvider, model: 'gpt-5.4-nano' }
+    await fetchUrl(undefined, '', 'https://example.com', neverAbort, { virtualKey: 'sk-user-1', chatProvider: byokProvider, workerProvider: fast })
+    const [body] = synthesisBodies()
+    expect(body).toMatchObject({ model: 'byok/gpt-5.4-nano', api_key: 'sk-user-own-provider-key', api_base: 'https://93.184.215.14/v1' })
+  })
+
+  it('an explicit null worker means no synthesis, even with a chat provider', async () => {
+    stubFetch('jina')
+    const out = await fetchUrl(undefined, '', 'https://example.com', neverAbort, { chatProvider: aliasProvider, workerProvider: null })
+    expect(synthesisBodies()).toEqual([])
+    expect(out.text).toContain('Body text.')
+  })
+})
+
+describe('fetch_url question and extract modes', () => {
+  function stubPage(content: string) {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ data: { content, title: 'Long page' } }) })))
+  }
+
+  it('question: the extractor is asked the question and the answer is labelled', async () => {
+    stubFetch('jina')
+    litellmCompletion.mockImplementationOnce(async () => ({ choices: [{ message: { content: JSON.stringify({ summary: 'It opened in 1999.', images: [] }) } }] }))
+    const out = await fetchUrl(undefined, '', 'https://example.com', neverAbort, { chatProvider: aliasProvider }, { question: 'When did it open?' })
+    const messages = lastBody().messages as Array<{ role: string, content: string }>
+    expect(messages[0]?.content).toContain('answers the question')
+    expect(messages[1]?.content.startsWith('Question: When did it open?\n')).toBe(true)
+    expect(out.text).toContain('Answer from the page:\nIt opened in 1999.')
+    expect(out.summary).toBe('It opened in 1999.')
+  })
+
+  it('extract: returns the Markdown in ~8k-character pages without a model call', async () => {
+    const paragraphs = Array.from({ length: 30 }, (_, i) => `Paragraph ${i + 1}. ${'word '.repeat(100)}`.trim())
+    const markdown = paragraphs.join('\n\n')
+    stubPage(markdown)
+    const first = await fetchUrl(undefined, '', 'https://example.com', neverAbort, { chatProvider: aliasProvider }, { mode: 'extract' })
+    expect(litellmCompletion.mock.calls.filter(c => !String(c[1].model).endsWith('-tick'))).toEqual([])
+    const total = Number(/Part 1 of (\d+)\./.exec(first.text)?.[1])
+    expect(total).toBeGreaterThan(1)
+    expect(first.text).toContain('Call fetch_url with mode "extract" and page 2 for the next page.')
+    expect(first.text).toContain('Paragraph 1.')
+
+    // Pages break between paragraphs and together hold the whole page.
+    const bodies: string[] = []
+    for (let page = 1; page <= total; page++) {
+      stubPage(markdown)
+      const out = await fetchUrl(undefined, '', 'https://example.com', neverAbort, {}, { mode: 'extract', page })
+      const body = out.text.split('\n\n').slice(1).join('\n\n')
+      expect(body.length).toBeLessThanOrEqual(8000)
+      bodies.push(body)
+    }
+    expect(bodies.join('\n\n')).toBe(markdown)
+    expect(bodies.at(-1)).toContain('Paragraph 30.')
+
+    // Past the end: the last page, which says so.
+    stubPage(markdown)
+    const past = await fetchUrl(undefined, '', 'https://example.com', neverAbort, {}, { mode: 'extract', page: total + 5 })
+    expect(past.text).toContain(`Part ${total} of ${total}. This is the last page.`)
+  })
+
+  it('extract: a short page is one page', async () => {
+    stubFetch('jina')
+    const out = await fetchUrl(undefined, '', 'https://example.com', neverAbort, {}, { mode: 'extract' })
+    expect(out.text).toContain('Part 1 of 1. This is the last page.')
+    expect(out.text).toContain('# Page\n\nBody text.')
+  })
+})

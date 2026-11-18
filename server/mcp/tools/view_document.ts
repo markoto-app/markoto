@@ -2,11 +2,12 @@ import { z } from 'zod'
 import { buildDocBoundTool } from '../lib/wrapDocBoundTool'
 
 // MCP-side `view_document`. Same body as the in-app loop tool, read
-// the doc with 1-indexed line prefixes, gated on `documents:read`
+// the doc with 1-indexed line prefixes (a long document without
+// view_range returns a heading outline), gated on `documents:read`
 // and the user's view access to the requested doc_id.
 export default buildDocBoundTool({
   name: 'view_document',
-  description: 'Read a document with 1-indexed line numbers prefixed on each line. Optional view_range to fetch a slice.',
+  description: 'Read a document with 1-indexed line numbers prefixed on each line. Without view_range a short document is returned in full; a long one returns a heading outline with each section\'s line range plus the first lines, then read the parts you need with view_range. A result that hits the size limit says which view_range continues it.',
   scope: 'documents:read',
   access: 'view',
   annotations: { readOnlyHint: true, openWorldHint: false },

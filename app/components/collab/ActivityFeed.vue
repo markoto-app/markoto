@@ -107,7 +107,9 @@ const actionIcons: Record<ActivityEntry['action'], string> = {
   'theme.changed': 'i-lucide-palette',
   'ai.tool': 'i-lucide-wrench',
   // Same "go back" meaning as comment.reopened's rotate-ccw, told apart by the clock glyph.
-  'restore': 'i-lucide-history'
+  'restore': 'i-lucide-history',
+  'ai.job': 'i-lucide-layers',
+  'ai.job.reverted': 'i-lucide-undo-2'
 }
 
 const aiToolIcons: Record<ActivityMetadataAiTool['tool'], string> = {
@@ -116,7 +118,8 @@ const aiToolIcons: Record<ActivityMetadataAiTool['tool'], string> = {
   generate_image: 'i-lucide-image-plus',
   view_image: 'i-lucide-image',
   search_knowledge: 'i-lucide-book-open',
-  get_knowledge_file: 'i-lucide-file-text'
+  get_knowledge_file: 'i-lucide-file-text',
+  replace_all: 'i-lucide-replace-all'
 }
 
 function iconFor(entry: ActivityEntry): string {
@@ -146,6 +149,10 @@ function detailFor(entry: ActivityEntry): string | null {
     case 'restore':
       // Relative to the source row's timestamp, formatted like the row's own.
       return t('activity.detail.restoredFrom', { ago: formatTime(m.restoredFromTime) })
+    case 'ai.job':
+      return m.phase === 'finished' ? t('activity.detail.jobProgress', { done: m.done, total: m.unitsTotal }) : null
+    case 'ai.job.reverted':
+      return t('activity.detail.jobReverted', { reverted: m.reverted, skipped: m.skipped })
     case 'theme.changed':
     default:
       return null
@@ -166,6 +173,8 @@ function detailForAiTool(m: ActivityMetadataAiTool): string | null {
       return m.src ? truncate(m.src, 120) : null
     case 'get_knowledge_file':
       return m.knowledgeId ? truncate(m.knowledgeId, 64) : null
+    case 'replace_all':
+      return t('activity.detail.replacedAll', { count: m.count, from: truncate(m.query, 60), to: truncate(m.replacement, 60) })
     default:
       return null
   }
@@ -175,6 +184,10 @@ function actionLabel(entry: ActivityEntry): string {
   if (entry.action === 'ai.tool' && entry.metadata?.kind === 'ai.tool') {
     return t(`activity.action.aiTool.${entry.metadata.tool}`)
   }
+  if (entry.action === 'ai.job') {
+    return t(entry.metadata?.kind === 'ai.job' && entry.metadata.phase === 'finished' ? 'activity.action.ai.job.finished' : 'activity.action.ai.job.started')
+  }
+  if (entry.action === 'ai.job.reverted') return t('activity.action.ai.job.reverted')
   // comment.deleted has a thread/reply variant (metadata.isReply)
   if (entry.action === 'comment.deleted' && entry.metadata?.kind === 'comment.deleted' && entry.metadata.isReply) {
     return t('activity.action.comment.deletedReply')
@@ -345,6 +358,35 @@ function openRestoreModal(entry: ActivityEntry) {
   restoreModalOpen.value = true
 }
 
+// "Undo job" on a delegated job's row: restores what the job wrote that
+// nobody changed since (`POST .../ai-jobs/:jobId/revert`). Inline confirm,
+// hidden for read-only viewers like the restore button.
+const undoCandidate = ref<number | null>(null)
+const undoBusy = ref(false)
+const toast = useToast()
+
+function undoJobId(entry: ActivityEntry): string | null {
+  if (props.readOnly || entry.action !== 'ai.job' || entry.metadata?.kind !== 'ai.job') return null
+  if (entry.metadata.mode === 'comment' || entry.metadata.phase !== 'finished' || entry.metadata.done === 0) return null
+  return entry.metadata.jobId
+}
+
+async function undoJob(entry: ActivityEntry): Promise<void> {
+  const jobId = undoJobId(entry)
+  if (!jobId || undoBusy.value) return
+  undoBusy.value = true
+  try {
+    const res = await apiFetch('/api/docs/:docId/ai-jobs/:jobId/revert', { method: 'post', path: { docId: props.docId, jobId } })
+    toast.add({ title: t('activity.job.undone', { reverted: res.reverted, skipped: res.skipped }), color: 'success' })
+    undoCandidate.value = null
+    void loadActivity()
+  } catch (e) {
+    showContextualError(e, 'activity.job.undoFailed')
+  } finally {
+    undoBusy.value = false
+  }
+}
+
 function onRestored() {
   // Refetch now rather than waiting for the 30 s poll. The editor body
   // updates through the Hocuspocus broadcast.
@@ -487,6 +529,47 @@ function onRestored() {
 
           <!-- Caret (left) and restore button (right). The restore button uses
                @click.stop so it doesn't also toggle expansion. -->
+          <!-- Undo a delegated job: two steps, the second confirms. -->
+          <div
+            v-if="undoJobId(entry)"
+            class="mt-1 flex items-center justify-end gap-1.5 text-[11px]"
+            @click.stop
+          >
+            <template v-if="undoCandidate === entry.id">
+              <span class="mr-auto text-muted">{{ t('activity.job.undoConfirm') }}</span>
+              <button
+                type="button"
+                class="px-1.5 py-0.5 rounded hover:bg-elevated text-muted"
+                :data-testid="`activity-row-undo-job-no-${entry.id}`"
+                @click="undoCandidate = null"
+              >
+                {{ t('activity.job.undoNo') }}
+              </button>
+              <button
+                type="button"
+                class="px-1.5 py-0.5 rounded hover:bg-elevated text-primary"
+                :disabled="undoBusy"
+                :data-testid="`activity-row-undo-job-yes-${entry.id}`"
+                @click="undoJob(entry)"
+              >
+                {{ t('activity.job.undoYes') }}
+              </button>
+            </template>
+            <button
+              v-else
+              type="button"
+              class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-elevated text-muted hover:text-primary transition-colors"
+              :data-testid="`activity-row-undo-job-${entry.id}`"
+              @click="undoCandidate = entry.id"
+            >
+              <UIcon
+                name="i-lucide-undo-2"
+                class="size-3"
+              />
+              <span>{{ t('activity.job.undo') }}</span>
+            </button>
+          </div>
+
           <div
             v-if="isExpandable(entry) || isRestorable(entry)"
             class="mt-1 flex items-center justify-between gap-2 text-[11px]"

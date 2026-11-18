@@ -59,6 +59,9 @@ The request limits the app and the sync server enforce, with the file each value
 | AI requests | 60 per minute per user virtual key, plus the key's `max_budget`, enforced by LiteLLM | `server/utils/litellm/userKeys.ts` |
 | Web tools (`web_search`, `fetch_url`), editor AI and MCP together | 30 per user per hour and 100 per day; `NUXT_WEB_TOOLS_HOURLY_LIMIT` / `NUXT_WEB_TOOLS_DAILY_LIMIT`, `0` = unlimited | `server/utils/ai/webTools.ts` |
 | Agentic loop | 50 interactions per session, plus per-tool call caps | `server/utils/agentic/limits.ts` |
+| Delegated AI job (worker calls) | 40 call starts per minute and 4 calls in flight per job (the rest of the key's 60 per minute stays free for the editor) | `server/utils/ai/jobs/estimate.ts` |
+| Delegated AI jobs running | 1 per user and 1 per document at a time (Valkey lock, fails closed) | `server/utils/ai/jobs/engine.ts` |
+| Delegated AI job size and count | per plan: units per job (`TIER_<PLAN>_AI_JOB_UNITS_PER_JOB`) and jobs per user per day (`TIER_<PLAN>_AI_JOBS_PER_DAY`); no limit by default, markoto.app free: 200 units, 3 jobs | `server/utils/ai/jobs/jobLimits.ts`, `shared/config/tiers.ts` |
 | Generate image with AI (by hand) | 20 per user per hour | `server/api/docs/[docId]/images/generate.post.ts` |
 | Live dictation | 1 session per user, 10 minutes per session, 30 s idle timeout | `server/routes/api/ai/dictate.ts` |
 | MCP requests | 300 per client per minute, 240 per token per minute | `server/mcp/lib/mcpGate.ts` |

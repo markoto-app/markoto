@@ -189,7 +189,12 @@
         "changed": "更改了主题"
       },
       "ai": {
-        "tool": "使用了一个工具"
+        "tool": "使用了一个工具",
+        "job": {
+          "started": "开始了一项大型 AI 编辑",
+          "finished": "完成了一项大型 AI 编辑",
+          "reverted": "撤销了一项大型 AI 编辑"
+        }
       },
       "restore": "还原了文档",
       "aiTool": {
@@ -198,12 +203,16 @@
         "generate_image": "生成了一张图片",
         "view_image": "查看了一张图片",
         "search_knowledge": "搜索了知识库",
-        "get_knowledge_file": "读取了一个知识文件"
+        "get_knowledge_file": "读取了一个知识文件",
+        "replace_all": "在整个文档中替换了文本"
       }
     },
     "detail": {
       "titleChanged": "{from} → {to}",
-      "restoredFrom": "来自 {ago}"
+      "replacedAll": "{count}× “{from}” → “{to}”",
+      "restoredFrom": "来自 {ago}",
+      "jobProgress": "已更改 {done}/{total} 部分",
+      "jobReverted": "恢复了 {reverted} 部分,{skipped} 部分保留编辑后的内容"
     },
     "restore": {
       "button": {
@@ -259,7 +268,15 @@
       "knowledgeNote": "工作区知识功能。",
       "openViewedImage": "在新标签页中打开查看过的图片"
     },
-    "viaAgent": "通过 {agent}"
+    "viaAgent": "通过 {agent}",
+    "job": {
+      "undo": "撤销",
+      "undoConfirm": "恢复此编辑更改的内容?",
+      "undoYes": "撤销",
+      "undoNo": "保留",
+      "undone": "恢复了 {reverted} 部分;之后被编辑的 {skipped} 部分保持不变。",
+      "undoFailed": "无法撤销此编辑。"
+    }
   },
   "comments": {
     "title": "评论",
@@ -594,6 +611,8 @@
       "waiting": "正在等待你的确认…",
       "allow": "允许",
       "deny": "拒绝",
+      "notePlaceholder": "可选：告诉 markoto 改做什么，然后点“拒绝”",
+      "noteLabel": "拒绝时给 markoto 的说明",
       "tools": {
         "view_other_document": "markoto 想要读取“{target}”。",
         "list_my_documents": "markoto 想要列出你的文档。",
@@ -606,6 +625,24 @@
         "fetch_url": "markoto 想要打开 {target}",
         "view_image": "markoto 想要加载图片 {target}",
         "generic": "markoto 想要使用 {tool}。"
+      },
+      "job": {
+        "question": "{what}:{cost},{minutes}。",
+        "reason": "它在后台运行。你可以取消,也可以在活动记录中撤销。",
+        "start": "开始",
+        "cancel": "取消",
+        "cost": "约 {cost}",
+        "costShare": "约 {cost}(本月额度的 {share})",
+        "tokens": "使用你自己的密钥约 {tokens} 个令牌",
+        "minutes": "约 {minutes} 分钟",
+        "modes": {
+          "translateTo": "将 {count} 个章节翻译为{language}",
+          "translate": "翻译 {count} 个章节",
+          "rewrite": "改写 {count} 个章节",
+          "terminology": "更新 {count} 个章节中的术语",
+          "summarise": "总结 {count} 个章",
+          "comment": "审阅 {count} 个章节"
+        }
       }
     },
     "placeholder": "向 markoto 提问…",
@@ -758,7 +795,38 @@
       "replyCommentAny": "正在回复评论…",
       "resolveComment": "正在解决评论…",
       "reopenComment": "正在重新打开评论…",
-      "deleteComment": "正在删除评论…"
+      "deleteComment": "正在删除评论…",
+      "scanDocument": "正在扫描文档…",
+      "previewJob": "正在示例章节上试用此更改…",
+      "startJob": "正在启动后台编辑…",
+      "jobProgress": "后台编辑:已完成 {done}/{total} 部分",
+      "jobStatus": "正在检查后台编辑…"
+    },
+    "job": {
+      "label": "后台编辑",
+      "modes": {
+        "translate": "翻译",
+        "rewrite": "改写",
+        "terminology": "术语",
+        "summarise": "摘要",
+        "comment": "审阅"
+      },
+      "progress": "{done}/{total} 部分",
+      "working": "正在处理 {heading}",
+      "cost": "目前费用:{cost}",
+      "cancel": "取消",
+      "resume": "继续",
+      "undo": "撤销",
+      "dismiss": "关闭",
+      "done": "完成:已更改 {done}/{total} 部分。",
+      "cancelled": "在 {done}/{total} 部分后取消。",
+      "paused": "已暂停:AI 额度已用完。",
+      "interrupted": "已中断。继续即可接着处理。",
+      "failed": "后台编辑已停止。{reason}",
+      "reverted": "已撤销。",
+      "undone": "已撤销:恢复了 {count} 部分。",
+      "skipped": "{count} 部分保持原样。",
+      "flagged": "{count} 部分需要查看。"
     }
   },
   "mobileTabBar": {
@@ -1948,7 +2016,7 @@
       "purpose": {
         "ovh_postgres": "应用主数据库、Y.js 文档状态、知识库嵌入向量",
         "ovh_object_storage": "图片上传、知识库原始文件（处理后删除）、数据库备份",
-        "mistral_ai": "写作助手的 AI 文本生成：免费 AI 额度（Z.ai GLM-5.3 Flash，由 Mistral 提供和处理；Z.ai 不接收任何数据），以 Mistral Small 作为备用；语音转写（Voxtral）。所有请求都发送到 Mistral 的欧盟端点（数据中心位于欧盟和欧洲自由贸易联盟）",
+        "mistral_ai": "写作助手的 AI 文本生成（包括免费 AI 额度）：由 Mistral 提供和处理的开放权重模型及 Mistral 模型（目前为 DeepSeek V4.1 Flash、GLM-5.3 Flash 和 Mistral Large 4；模型开发方不接收任何数据）；语音转写（Voxtral）。所有请求都发送到 Mistral 的欧盟端点（数据中心位于欧盟和欧洲自由贸易联盟）",
         "jina_ai": "为知识库（RAG）生成嵌入向量；为获取 URL 工具提取单个 URL 的页面内容（Jina Reader；所有用户的 URL 都会发送，包括使用自己 AI 提供商的用户）",
         "staan": "AI 写作助手的网页搜索（所有用户的搜索词都会发送，包括使用自己 AI 提供商的用户），使用自有的欧洲搜索索引（仅在欧盟内路由）",
         "bfl": "使用 FLUX 生成图片（数据处理固定在欧盟）",
@@ -2112,6 +2180,8 @@
       "membersPerWorkspace": "此工作区已达到其套餐的成员上限。",
       "savedThemes": "你已达到套餐的已保存主题上限。请删除一个后再保存新主题。",
       "importMaxBytes": "此文件超出了你的套餐允许导入的大小。",
+      "aiJobUnitsPerJob": "此任务超出了你的套餐允许的范围。请选择更少的章节。",
+      "aiJobsPerDay": "你已用完套餐中今天的 AI 任务次数。请明天再试。",
       "historyEntry": "此更改早于此文档套餐所包含的历史记录。",
       "mcpToolCallsPerDay": "你已用完套餐中今天的 MCP 工具调用次数。请明天再试。"
     },
@@ -2193,6 +2263,8 @@
       "baseUrlHint": "服务商的 OpenAI 兼容 API 根地址，通常以 /v1 结尾。",
       "model": "模型",
       "modelPlaceholder": "服务商的模型 ID",
+      "fastModel": "快速模型（可选）",
+      "fastModelHint": "同一服务商、同一密钥下更便宜、更快的模型，用于大规模委派编辑和网页摘要。留空 = 使用上面的模型。",
       "suggestions": "推荐模型：{list}",
       "apiKey": "API 密钥",
       "apiKeyKeep": "留空则继续使用已保存的密钥。更改 URL 时必须填写。",
@@ -3132,6 +3204,8 @@
       "image-gen": "图片生成",
       "embeddings": "知识库嵌入",
       "design-import": "从文档生成设计",
+      "delegate-rewrite": "委派改写",
+      "utility": "网页摘要",
       "other": "其他"
     },
     "investor": {

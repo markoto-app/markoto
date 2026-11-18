@@ -6,6 +6,9 @@ import { z } from 'zod'
 //     through LiteLLM's `byok/*` deployment, the exact path real agent
 //     calls take. A tool call back = OK. A plain-text answer = saved with
 //     a `no-tool-support` warning (the agent needs tool calling).
+//   - chat "Fast model" (the worker model on the same endpoint and key):
+//     a plain completion of a few tokens, no tools (the worker rewrites
+//     text, it never calls tools). Any answer = OK.
 //   - transcription: a 0.5 s silent WAV through LiteLLM's
 //     `/audio/transcriptions` (same path as the voice prompt). Costs a
 //     fraction of a cent on the user's account; proves auth + model.
@@ -23,6 +26,7 @@ import { z } from 'zod'
 import type OpenAI from 'openai'
 import { useLitellmForUser } from '../ai/litellmClient'
 import { litellmCompletion, litellmTranscription } from '../litellm/createCompletion'
+import { modelRequestParams } from '../litellm/modelParams'
 import { PROVIDER_ERROR_MESSAGES, classifyProviderError, logProviderFailure, providerErrorMessage, providerRequestFields } from './requestFields'
 import type { ResolvedAiProvider } from './resolve'
 import type { AiCapability, VerifyCode } from '~~/shared/ai/providers'
@@ -85,7 +89,7 @@ async function verifyChat(provider: ResolvedAiProvider, virtualKey: string, apiK
       ],
       tools: [PROBE_TOOL],
       tool_choice: 'auto',
-      temperature: 0,
+      ...modelRequestParams(fields.model, { temperature: 0, purpose: 'subcall' }),
       max_tokens: 64
     })
     const calls = resp.choices?.[0]?.message?.tool_calls ?? []
@@ -98,6 +102,27 @@ async function verifyChat(provider: ResolvedAiProvider, virtualKey: string, apiK
       supportsTools: false,
       message: 'Connected, but the model answered without calling the test tool. The writing agent needs tool calling and may not work with this model.'
     }
+  } catch (e) {
+    return failure(e, apiKey)
+  }
+}
+
+/**
+ * Probe the chat provider's optional fast model: the candidate carries the
+ * chat provider's base URL and key with the fast model's id, so it passes
+ * the same SSRF policy (`providerRequestFields`) as every real call.
+ */
+export async function verifyFastModel(provider: ResolvedAiProvider, virtualKey: string): Promise<VerifyResult> {
+  const apiKey = provider.credentials?.apiKey ?? ''
+  try {
+    const fields = await providerRequestFields(provider)
+    await litellmCompletion(useLitellmForUser(virtualKey), {
+      ...fields,
+      messages: [{ role: 'user', content: 'Reply with the word ok.' }],
+      ...modelRequestParams(fields.model, { temperature: 0, purpose: 'subcall' }),
+      max_tokens: 8
+    })
+    return { code: 'ok', ok: true, supportsTools: null, message: 'Connected. The fast model answers.' }
   } catch (e) {
     return failure(e, apiKey)
   }

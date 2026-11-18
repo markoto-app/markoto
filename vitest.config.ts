@@ -26,6 +26,8 @@ import { fileURLToPath } from 'node:url'
 //   - tests/billing-sandbox/**: the app against Stripe's real test-mode
 //                            API (test clocks, real events). Skipped
 //                            unless STRIPE_SANDBOX_SECRET_KEY is set.
+//   - tests/bench/**: offline benchmarks (`bun run bench:ai`), writing their
+//                            results to tests/bench/*/results/. Manual only.
 // Node 25 defines its own global `localStorage` (Web Storage, on by
 // default), which shadows the DOM test environment's and has no methods
 // without `--localstorage-file` ("localStorage.setItem is not a
@@ -249,6 +251,18 @@ export default defineConfig({
           testTimeout: 300_000,
           hookTimeout: 300_000,
           globalSetup: ['./tests/billing-sandbox/setup/globalSetup.ts']
+        }
+      },
+      {
+        extends: true,
+        test: {
+          name: 'bench',
+          include: ['tests/bench/**/*.test.ts'],
+          environment: 'node',
+          // One run writes one results file; keep the tasks in order.
+          fileParallelism: false,
+          sequence: { concurrent: false },
+          testTimeout: 300_000
         }
       }
     ]

@@ -150,6 +150,12 @@ export const AUDIT_CUSTOM_DOMAIN_REMOVED = 'custom_domain.removed'
 // A live domain whose DNS stayed wrong past the grace period stops (system).
 export const AUDIT_CUSTOM_DOMAIN_DROPPED = 'custom_domain.dropped'
 
+// Delegated AI edits ("jobs"): one started (the user confirmed it) /
+// undone. `scope` doc, `scope_id` the document id. Metadata: job id, mode,
+// unit counts; never the instruction, glossary or any document text.
+export const AUDIT_AI_JOB_STARTED = 'ai.job.started'
+export const AUDIT_AI_JOB_REVERTED = 'ai.job.reverted'
+
 // Tagged union of every compliance audit action, useful for
 // exhaustiveness checks at call sites.
 export type ComplianceAuditAction
@@ -216,3 +222,5 @@ export type ComplianceAuditAction
     | typeof AUDIT_CUSTOM_DOMAIN_VERIFIED
     | typeof AUDIT_CUSTOM_DOMAIN_REMOVED
     | typeof AUDIT_CUSTOM_DOMAIN_DROPPED
+    | typeof AUDIT_AI_JOB_STARTED
+    | typeof AUDIT_AI_JOB_REVERTED

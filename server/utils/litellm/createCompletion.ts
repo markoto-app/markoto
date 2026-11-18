@@ -43,7 +43,11 @@ interface RetryableError {
   headers?: Record<string, string | undefined> | { get?: (k: string) => string | null }
 }
 
-function get429RetryAfterMs(e: unknown): number | null {
+/**
+ * For a 429: the wait the upstream asked for in ms (`Retry-After`, seconds),
+ * 0 when it named none. null for any other error.
+ */
+export function rateLimitRetryAfterMs(e: unknown): number | null {
   const re = e as RetryableError
   if (re.status !== 429) return null
   const headers = re.headers
@@ -58,7 +62,7 @@ function get429RetryAfterMs(e: unknown): number | null {
   return Number.isFinite(n) && n > 0 ? n * 1000 : 0
 }
 
-async function sleepCancellable(ms: number, signal: AbortSignal | undefined): Promise<void> {
+export async function sleepCancellable(ms: number, signal: AbortSignal | undefined): Promise<void> {
   if (ms <= 0) return
   await new Promise<void>((resolve, reject) => {
     const t = setTimeout(() => {
@@ -90,7 +94,7 @@ async function withRetry<T>(
       lastErr = e
       // Budget exhaustion is correctness, not flake, never retry.
       if (isBudgetExceededError(e)) throw e
-      const retryAfterHint = get429RetryAfterMs(e)
+      const retryAfterHint = rateLimitRetryAfterMs(e)
       if (retryAfterHint === null) throw e // not a 429
       if (i === MAX_RETRIES) throw e // out of attempts
       const backoff = retryAfterHint > 0 ? retryAfterHint : BACKOFF_BASE_MS * Math.pow(2, i)
@@ -202,8 +206,20 @@ export async function litellmCompletion(
 export async function litellmStream(
   client: OpenAI,
   body: LitellmCreateStreamParams,
-  opts?: { signal?: AbortSignal }
+  opts?: {
+    signal?: AbortSignal
+    /**
+     * The caller retries itself (the agentic loop: `loop/rateLimitRetry.ts`
+     * for 429s, `streamTurn`'s transport retry for the rest). Then neither
+     * this wrapper's 429 backoff nor the SDK's own retries run, so one
+     * throttle is not retried by three layers at once.
+     */
+    callerRetries?: boolean
+  }
 ): Promise<AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>> {
+  if (opts?.callerRetries) {
+    return client.chat.completions.create(sdkParams(body), { signal: opts.signal, body, maxRetries: 0 })
+  }
   // 429 surfaces synchronously from the SDK before the stream starts,
   // retrying here covers the "I never got a single chunk" failure
   // mode. A 429 mid-stream (rare; happens if the proxy bills as you

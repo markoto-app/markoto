@@ -8,8 +8,8 @@ import { quoteInline } from './untrustedText'
 const LANGUAGE_MAX = 50
 
 /**
- * Build the `<document_context>` block prepended to every AI system
- * prompt. The block carries the durable per-document properties the
+ * Build the `<document_context>` block that opens the first user message
+ * of every AI session (`promptAssembly.ts`). The block carries the durable per-document properties the
  * model needs every turn:
  *   - `Title`: what to call this thing
  *   - `About`: the user's one-line description (omitted line if empty
@@ -23,8 +23,8 @@ const LANGUAGE_MAX = 50
  * schema makes all four fields NOT NULL with defaults, so every doc has
  * authoritative values.
  *
- * Returns the block as a string ready to concatenate into the system
- * prompt: including its trailing newlines so the next block can be
+ * Returns the block as a string ready to concatenate with the other
+ * prompt blocks: including its trailing newlines so the next block can be
  * appended raw without spacing fixes at the call site.
  */
 
@@ -54,7 +54,7 @@ export function buildDocumentContext(ctx: DocumentContext): string {
     + `Language: ${languageName}\n\n`
     + `Audience guidance:\n${fragment}\n\n`
     + `Language guidance:\n`
-    + `Write all prose in ${languageName}. This includes section headings, body text, bullet labels, and any prose you generate. Do NOT translate code blocks, technical identifiers, or proper nouns that have an established form in another language. If the existing document body contains text in another language, treat it as legacy content, write your additions in ${languageName} regardless.\n`
+    + `Write all prose in ${languageName}. This includes section headings, body text, bullet labels, and any prose you generate. Do NOT translate code blocks, technical identifiers, or proper nouns that have an established form in another language. If the existing document body contains text in another language, treat it as legacy content, write your additions in ${languageName} regardless. An explicit request in the user's prompt for another language ("translate to French", "answer in German") overrides this for that request.\n`
     + `</document_context>\n\n`
   )
 }

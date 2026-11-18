@@ -235,6 +235,11 @@ Per request: the user's own provider → the instance default below → unavaila
 | `NUXT_AI_DEFAULT_TRANSCRIBE_MODEL` | string | (empty) |  | app | both | Instance default for transcription: a LiteLLM alias (platform-paid), or with _BASE_URL + _API_KEY any OpenAI-compatible model. Empty = none. |
 | `NUXT_AI_DEFAULT_TRANSCRIBE_BASE_URL` | http/https URL |  |  | app | self-host | OpenAI-compatible endpoint of the transcription default (needs _MODEL and _API_KEY). |
 | `NUXT_AI_DEFAULT_TRANSCRIBE_API_KEY` | string |  |  | app | self-host | API key for NUXT_AI_DEFAULT_TRANSCRIBE_BASE_URL (any placeholder for servers that need none). Secret. |
+| `NUXT_AI_DEFAULT_WORKER_MODEL` | string | (empty) |  | app | both | Worker model for delegated section rewrites, scans and (unless NUXT_AI_DEFAULT_UTILITY_MODEL is set) the fetch_url / web_search synthesis: a LiteLLM alias (platform-paid), or with _BASE_URL + _API_KEY any OpenAI-compatible model. Empty = the chat default. |
+| `NUXT_AI_DEFAULT_WORKER_BASE_URL` | http/https URL |  |  | app | self-host | OpenAI-compatible endpoint of the worker default (needs _MODEL and _API_KEY). |
+| `NUXT_AI_DEFAULT_WORKER_API_KEY` | string |  |  | app | self-host | API key for NUXT_AI_DEFAULT_WORKER_BASE_URL (any placeholder for servers that need none). Secret. |
+| `NUXT_AI_DEFAULT_WORKER_STRONG_MODEL` | string | `markoto-worker-strong` |  | app | both | Stronger LiteLLM worker alias for delegated translations and rewrites, for plans with aiStrongModel. Used only while NUXT_AI_DEFAULT_WORKER_MODEL is a LiteLLM alias. |
+| `NUXT_AI_DEFAULT_UTILITY_MODEL` | string | (empty) |  | app | both | LiteLLM alias (platform-paid) for the utility sub-calls: fetch_url / web_search synthesis. Empty = the worker model. A user's own key is never replaced. |
 | `NUXT_AI_REALTIME_MODEL` | string | `voxtral-mini-transcribe-realtime-2602` |  | app | both | Voxtral Realtime model for live dictation (Mistral only). |
 | `NUXT_AI_BYOK_ALLOWED_BASE_URLS` | comma-separated http/https URL list | (empty) | when NUXT_LEGAL_SURFACES_ENABLED=true | app | both | Allowlist of provider base URLs users may configure. Empty = any public URL. Required with NUXT_LEGAL_SURFACES_ENABLED=true. |
 | `NUXT_AI_BYOK_ALLOW_PRIVATE_URLS` | boolean | `false` |  | app | both | Let users point at private-network providers (Ollama, vLLM). Self-host only. |
@@ -282,6 +287,8 @@ TIER_<FREE|PRO|TEAM|BUSINESS>_<FIELD>. Numbers > 0, `unlimited` for the per-day 
 | `TIER_FREE_IMPORT_MAX_BYTES` | number > 0 | `52428800` |  | app | both | free plan: importMaxBytes (committed default in shared/config/tiers.ts). |
 | `TIER_FREE_WEB_TOOLS_PER_DAY` | number > 0, or unlimited | no limit |  | app | both | free plan: webToolsPerDay (committed default in shared/config/tiers.ts). |
 | `TIER_FREE_MCP_TOOL_CALLS_PER_DAY` | number > 0, or unlimited | no limit |  | app | both | free plan: mcpToolCallsPerDay (committed default in shared/config/tiers.ts). |
+| `TIER_FREE_AI_JOB_UNITS_PER_JOB` | number > 0, or unlimited | no limit |  | app | both | free plan: aiJobUnitsPerJob (committed default in shared/config/tiers.ts). |
+| `TIER_FREE_AI_JOBS_PER_DAY` | number > 0, or unlimited | no limit |  | app | both | free plan: aiJobsPerDay (committed default in shared/config/tiers.ts). |
 | `TIER_FREE_FEATURE_CUSTOM_CSS` | boolean | `true` |  | app | both | free plan: customCss (committed default in shared/config/tiers.ts). |
 | `TIER_FREE_FEATURE_MCP_WRITE` | boolean | `true` |  | app | both | free plan: mcpWrite (committed default in shared/config/tiers.ts). |
 | `TIER_FREE_FEATURE_AI_IMAGE` | boolean | `true` |  | app | both | free plan: aiImage (committed default in shared/config/tiers.ts). |
@@ -458,7 +465,7 @@ Checked at boot after every value parsed. Rules marked *warning* only log; *rela
 | OIDC issuer, client id and secret are set together or not at all. | `NUXT_OAUTH_OIDC_ISSUER`, `NUXT_OAUTH_OIDC_CLIENT_ID`, `NUXT_OAUTH_OIDC_CLIENT_SECRET` | relaxed |
 | The OIDC issuer is https (http only with NODE_ENV=development or TEST_MODE) and has no query or fragment. | `NUXT_OAUTH_OIDC_ISSUER` |  |
 | With OIDC configured, NUXT_OAUTH_OIDC_REDIRECT_URL or NUXT_SITE_URL is set (never the request Host). | `NUXT_OAUTH_OIDC_REDIRECT_URL`, `NUXT_SITE_URL` | relaxed |
-| A half-configured AI instance default is ignored (warning at boot). | `NUXT_AI_DEFAULT_CHAT_MODEL`, `NUXT_AI_DEFAULT_CHAT_BASE_URL`, `NUXT_AI_DEFAULT_CHAT_API_KEY`, `NUXT_AI_DEFAULT_IMAGE_MODEL`, `NUXT_AI_DEFAULT_IMAGE_BASE_URL`, `NUXT_AI_DEFAULT_IMAGE_API_KEY`, `NUXT_AI_DEFAULT_TRANSCRIBE_MODEL`, `NUXT_AI_DEFAULT_TRANSCRIBE_BASE_URL`, `NUXT_AI_DEFAULT_TRANSCRIBE_API_KEY` | warning |
+| A half-configured AI instance default is ignored (warning at boot). | `NUXT_AI_DEFAULT_CHAT_MODEL`, `NUXT_AI_DEFAULT_CHAT_BASE_URL`, `NUXT_AI_DEFAULT_CHAT_API_KEY`, `NUXT_AI_DEFAULT_IMAGE_MODEL`, `NUXT_AI_DEFAULT_IMAGE_BASE_URL`, `NUXT_AI_DEFAULT_IMAGE_API_KEY`, `NUXT_AI_DEFAULT_TRANSCRIBE_MODEL`, `NUXT_AI_DEFAULT_TRANSCRIBE_BASE_URL`, `NUXT_AI_DEFAULT_TRANSCRIBE_API_KEY`, `NUXT_AI_DEFAULT_WORKER_MODEL`, `NUXT_AI_DEFAULT_WORKER_BASE_URL`, `NUXT_AI_DEFAULT_WORKER_API_KEY` | warning |
 | Billing on in production needs the Stripe secret key and webhook secret. | `NUXT_BILLING_ENABLED`, `NUXT_STRIPE_SECRET_KEY`, `NUXT_STRIPE_WEBHOOK_SECRET` | relaxed |
 | The legal pages need the operator's postal address and representative. | `NUXT_LEGAL_SURFACES_ENABLED`, `NUXT_LEGAL_CONTROLLER_ADDRESS`, `NUXT_LEGAL_REPRESENTED_BY` | relaxed |
 | The hosted shape restricts user-supplied AI provider URLs to an allowlist. | `NUXT_LEGAL_SURFACES_ENABLED`, `NUXT_AI_BYOK_ALLOWED_BASE_URLS` | relaxed |

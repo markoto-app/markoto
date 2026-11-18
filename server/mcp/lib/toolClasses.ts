@@ -17,6 +17,9 @@ export type McpToolClass = 'read' | 'write' | 'cost'
 
 export const MCP_TOOL_CLASSES: Readonly<Record<string, McpToolClass>> = {
   view_document: 'read',
+  outline: 'read',
+  read_section: 'read',
+  search_document: 'read',
   list_my_documents: 'read',
   list_workspace_documents: 'read',
   read_comments: 'read',
@@ -30,6 +33,14 @@ export const MCP_TOOL_CLASSES: Readonly<Record<string, McpToolClass>> = {
 
   insert_text: 'write',
   replace_text: 'write',
+  replace_section: 'write',
+  insert_markdown: 'write',
+  move_section: 'write',
+  swap_sections: 'write',
+  delete_section: 'write',
+  set_heading: 'write',
+  replace_all: 'write',
+  edit_lines: 'write',
   set_title: 'write',
   create_document: 'write',
   duplicate_document: 'write',

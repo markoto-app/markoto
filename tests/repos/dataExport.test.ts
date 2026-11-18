@@ -63,6 +63,7 @@ describe('buildExportZip', () => {
       'activity.ndjson',
       'ad_conversions.ndjson',
       'ai/edit-provenance.ndjson',
+      'ai/jobs.ndjson',
       'ai/messages.ndjson',
       'ai/providers.json',
       'ai/sessions.ndjson',

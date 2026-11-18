@@ -23,6 +23,10 @@ export const SWEEPS = {
   adConversions: { intervalMs: HOUR_MS, startupDelayMs: 40 * SECOND_MS },
   accountDeletion: { intervalMs: HOUR_MS },
   aiCreditSettlement: { intervalMs: HOUR_MS },
+  // Delegated AI jobs: a running job's heartbeat is every 30 s; older than
+  // `staleAfterMs` means its instance died. Unit before-texts are kept
+  // `idleAfterDays` (the undo window), finished job rows 90 days.
+  aiJobs: { intervalMs: MINUTE_MS, startupDelayMs: 20 * SECOND_MS, staleAfterMs: 2 * MINUTE_MS, idleAfterDays: 7 },
   aiRecords: { intervalMs: DAY_MS, startupDelayMs: 30 * SECOND_MS },
   aiSpendRollup: { intervalMs: 6 * HOUR_MS, startupDelayMs: 5 * MINUTE_MS },
   // Must stay strictly longer than the 5-minute agentic-loop deadline

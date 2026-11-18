@@ -45,20 +45,57 @@ export const CONVERSATION_MAX_ROWS = 40
 // set in runLoop's `logAiTool`.
 const MEMORY_SKIP_TOOLS: ReadonlySet<string> = new Set([
   'view_document',
+  'outline',
+  'read_section',
+  'search_document',
   'read_comments',
   'get_theme',
   'list_themes',
   'list_workspace_documents',
   'get_page_count',
+  // Guidance, not an action; a later prompt preselects or loads it again.
+  'load_skill',
   // Recording the memory query tool would make the history contain its own
   // lookups.
-  'search_activity_log'
+  'search_activity_log',
+  // Writes its own rows with the job id and progress (`delegateTools.ts`),
+  // which the call's arguments don't have yet.
+  'delegate_rewrite'
 ])
 
 // Non-recorded calls still execute; they just don't appear in the next
 // prompt's `<conversation_history>` block.
 export function shouldRecordToolInMemory(name: string): boolean {
   return !MEMORY_SKIP_TOOLS.has(name)
+}
+
+function cut(s: unknown, n: number): string {
+  return typeof s === 'string' ? s.slice(0, n) : ''
+}
+
+function moveTargetSummary(a: Record<string, unknown>): string {
+  if (a.to_end) return 'to_end'
+  return a.before ? `before=${cut(a.before, 60)}` : `after=${cut(a.after, 60)}`
+}
+
+/** Memory summary of the section-addressed edit tools. */
+function summarizeStructuralEdit(name: string, a: Record<string, unknown>): string {
+  switch (name) {
+    case 'insert_markdown':
+      return `${cut(a.position, 8)} section=${cut(a.section, 60) || 'document'} text≈"${cut(a.markdown, 60)}"`
+    case 'move_section':
+      return `section=${cut(a.section, 60)} ${moveTargetSummary(a)}`
+    case 'swap_sections':
+      return `a=${cut(a.a, 60)} b=${cut(a.b, 60)}`
+    case 'set_heading':
+      return `section=${cut(a.section, 60)}${typeof a.level === 'number' ? ` level=${a.level}` : ''}${a.title ? ` title="${cut(a.title, 60)}"` : ''}`
+    case 'replace_all':
+      return `${a.preview === false ? 'apply' : 'preview'} "${cut(a.query, 60)}" → "${cut(a.replacement, 60)}"`
+    case 'edit_lines':
+      return `edits=${Array.isArray(a.edits) ? a.edits.length : '?'}`
+    default:
+      return `section=${cut(a.section, 60)}`
+  }
 }
 
 /**
@@ -77,6 +114,15 @@ export function summarizeToolCall(name: string, args: unknown): string {
       return `old≈"${trim(a.old_str, 60)}"`
     case 'insert_text':
       return `at_line=${numOrQ(a.insert_line)} text≈"${trim(a.insert_text, 60)}"`
+    case 'replace_section':
+    case 'delete_section':
+    case 'insert_markdown':
+    case 'move_section':
+    case 'swap_sections':
+    case 'set_heading':
+    case 'replace_all':
+    case 'edit_lines':
+      return summarizeStructuralEdit(name, a)
     case 'set_title':
       return `title="${trim(a.title, 80)}"`
     case 'web_search':
@@ -110,6 +156,8 @@ export function summarizeToolCall(name: string, args: unknown): string {
       return `comment_id=${trim(a.comment_id, 32)} body≈"${trim(a.body, 60)}"`
     case 'resolve_comment':
       return `comment_id=${trim(a.comment_id, 32)} resolved=${a.resolved}`
+    case 'delegate_scan':
+      return `extract=${trim(a.extract, 30)} targets=${typeof a.targets === 'string' ? a.targets : JSON.stringify(a.targets ?? null).slice(0, 60)}`
     case 'delete_comment': {
       const replyPart = a.reply_id ? ` reply_id=${trim(a.reply_id, 32)}` : ''
       return `comment_id=${trim(a.comment_id, 32)}${replyPart}`

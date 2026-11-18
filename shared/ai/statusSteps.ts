@@ -67,7 +67,12 @@ export const AI_STATUS_STEPS = {
   replyCommentAny: 'Replying to a comment…',
   resolveComment: 'Resolving a comment…',
   reopenComment: 'Reopening a comment…',
-  deleteComment: 'Deleting a comment…'
+  deleteComment: 'Deleting a comment…',
+  scanDocument: 'Scanning the document…',
+  previewJob: 'Trying the change on sample sections…',
+  startJob: 'Starting the background edit…',
+  jobProgress: 'Background edit: {done} of {total} parts done',
+  jobStatus: 'Checking the background edit…'
 } as const
 
 export type AiStatusStepKey = keyof typeof AI_STATUS_STEPS

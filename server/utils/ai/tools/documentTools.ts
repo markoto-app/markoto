@@ -1,12 +1,15 @@
 import { aiStatus } from '~~/shared/ai/statusSteps'
 import { z } from 'zod'
 import { defineDocTool, toolError, toolOk, type ToolResult } from './toolDefinition'
-import { blockSpacedInsertText, describeEditedRegion, findIndexOfOnlyMatch, lineToCharOffset, withLineNumbers } from './documentText'
+import { blockSpacedInsertText, boundedDocumentView, describeEditedRegion, lineShiftNote, lineToCharOffset, newlineCount } from './documentText'
+import { closestLineRange, findEditTarget, firstOccurrenceLine, formatClosestLines, lineOfOffset, type MatchTier } from './textMatch'
+import { TOOL_RESULT_CHAR_CAP } from '../../agentic/limits'
 import { writeAccessOf, type DocToolContext } from '../../agentic/toolContext'
 import { NO_OP_EDIT_ERROR_PREFIX } from '../../agentic/editProgress'
 import { updateDocMeta } from '../../../repos/documents'
 import * as Sentry from '@sentry/nuxt'
 import { useLogger } from '../../platform/logger'
+import { filterEmDashesAt } from '../dashFilter'
 
 // Reading and editing the current document: view_document, replace_text,
 // insert_text, set_title. Edits are Y.js transactions tagged with the AI
@@ -35,10 +38,10 @@ const ViewDocumentArgs = z.object({
 
 const ReplaceTextArgs = z.object({
   old_str: z.string().min(1)
-    .describe('The exact text to replace. Must match EXACTLY ONE location including whitespace, include enough surrounding context to be unique.'),
+    .describe('The text to replace, copied from view_document without the line-number prefixes. Must match exactly one location; include enough surrounding text to be unique.'),
   new_str: z.string()
     .describe('The replacement text. Use an empty string to delete the match.')
-}).describe('Replace a unique exact-match string in the document.')
+}).describe('Replace the one location of old_str in the document with new_str.')
 
 const InsertTextArgs = z.object({
   insert_line: z.number().int().min(0)
@@ -55,52 +58,75 @@ const SetTitleArgs = z.object({
     .describe('The new document title (1–255 characters after trimming leading/trailing whitespace).')
 }).describe('Set the document title shown in the tab, topbar, and document listings.')
 
+/**
+ * Room a view_document result gets: below the loop's result cap
+ * (`TOOL_RESULT_CHAR_CAP`), so the tool's own continuation hint is what the
+ * model reads, not the loop's generic cut.
+ */
+const VIEW_DOCUMENT_CHAR_BUDGET = TOOL_RESULT_CHAR_CAP - 2_000
+
+/** Added to a too-long view_document result: the section tools read a long document with less noise. */
+const LONG_DOCUMENT_HINT = 'Better for a long document: outline (section ids, numbers and sizes), read_section and search_document.'
+
 function handleView(
   session: DocToolContext,
-  input: { view_range?: [number, number], max_characters?: number }
+  input: { view_range?: [number, number] }
 ): ToolResult {
   const fullText = session.ytext.toJSON()
-  const lines = fullText.split('\n')
-  let startLine = 1
-  let endLine = lines.length
   if (input.view_range) {
     const [start, end] = input.view_range
     if (start < 1) return toolError('Error: view_range start must be >= 1')
-    startLine = start
-    endLine = end === -1 ? lines.length : end
-    if (endLine < startLine) return toolError('Error: view_range end must be >= start')
+    if (end !== -1 && end < start) return toolError('Error: view_range end must be >= start')
   }
+  return toolOk(boundedDocumentView(fullText, input.view_range, VIEW_DOCUMENT_CHAR_BUDGET, 'view_document', LONG_DOCUMENT_HINT))
+}
 
-  const slice = lines.slice(startLine - 1, endLine).join('\n')
-  let output = withLineNumbers(slice, startLine)
+const MIN_APPLIED_CHECK_CHARS = 4
 
-  if (typeof input.max_characters === 'number' && output.length > input.max_characters) {
-    output = output.slice(0, input.max_characters) + '\n[truncated]'
+/** The error for an `old_str` that matches nowhere, with what the model needs to fix the call. */
+function noMatchError(full: string, input: { old_str: string, new_str: string }): ToolResult {
+  const base = 'Error: No match found for old_str, even ignoring differences in quotes, dashes, spaces and trailing whitespace. The document context and conversation history are not part of the document and cannot be edited.'
+  // A very short new_str ("x", "a") occurs anywhere and proves nothing.
+  const appliedAt = input.new_str.trim().length >= MIN_APPLIED_CHECK_CHARS ? firstOccurrenceLine(full, input.new_str) : null
+  if (appliedAt !== null) {
+    return toolError(`${base} new_str is already in the document (line ${appliedAt}), so this edit may already be applied. Check with view_document and view_range [${appliedAt}, ${appliedAt + newlineCount(input.new_str)}] before editing again.`)
   }
+  const range = closestLineRange(full, input.old_str)
+  if (!range) {
+    return toolError(`${base} Read the passage with view_document and view_range, then copy old_str from it exactly.`)
+  }
+  return toolError(`${base} The closest lines in the document:\n${formatClosestLines(full, range)}\nIf this is the passage you meant, copy old_str from these lines exactly.`)
+}
 
-  return toolOk(output)
+const TIER_NOTE: Record<MatchTier, string> = {
+  'exact': '',
+  'typographic': ' old_str matched after normalising quotes, dashes and spaces; the document\'s own characters were replaced.',
+  'trailing-whitespace': ' old_str matched after normalising quotes, dashes, spaces and trailing whitespace; the document\'s own characters were replaced.'
 }
 
 function handleStrReplace(
   session: DocToolContext,
-  input: { old_str: string, new_str: string }
+  args: { old_str: string, new_str: string }
 ): ToolResult {
+  const input = { old_str: args.old_str, new_str: args.new_str }
   if (input.old_str.length === 0) {
     return toolError('Error: old_str cannot be empty (use `insert_text` for empty insertion)')
   }
 
   const full = session.ytext.toJSON()
-  const { found, count } = findIndexOfOnlyMatch(full, input.old_str)
+  const match = findEditTarget(full, input.old_str)
 
-  if (count === 0) {
-    return toolError('Error: No match found for old_str. The string must match the document text exactly, including whitespace, call view_document to see it. The document context and conversation history are not part of the document and cannot be edited.')
+  if (match.kind === 'none') return noMatchError(full, input)
+  if (match.kind === 'multiple') {
+    const loose = match.tier === 'exact' ? '' : ' (after normalising quotes, dashes and spaces)'
+    const more = match.count > match.lines.length ? ', ...' : ''
+    return toolError(`Error: Found ${match.count} matches for old_str${loose}, at lines ${match.lines.join(', ')}${more}. Add surrounding text (a neighbouring sentence or line) so old_str matches exactly one location.`)
   }
-  if (count > 1) {
-    return toolError(`Error: Found ${count} matches for old_str. Please provide more surrounding context to make a unique match.`)
-  }
+  const matched = full.slice(match.start, match.end)
+  input.new_str = filterEmDashesAt(full, match.start, input.new_str)
   // A replacement with itself changes nothing. Reporting it as a
   // success let the model "fix" the same passage over and over.
-  if (input.old_str === input.new_str) {
+  if (input.old_str === input.new_str || matched === input.new_str) {
     return toolError(`${NO_OP_EDIT_ERROR_PREFIX}: new_str is identical to old_str, so the document already reads this way. Do not repeat this call. If the request is done, finish without calling another tool.`)
   }
 
@@ -108,11 +134,15 @@ function handleStrReplace(
 
   const origin = `ai:assistant:${session.sessionId}`
   session.ydoc.transact(() => {
-    session.ytext.delete(found, input.old_str.length)
-    session.ytext.insert(found, input.new_str)
+    session.ytext.delete(match.start, matched.length)
+    session.ytext.insert(match.start, input.new_str)
   }, origin)
 
-  return toolOk(`Replaced text at exactly one location. ${describeEditedRegion(session.ytext.toJSON(), found, input.new_str.length)}`)
+  // The last line the match touched (a match ending in a newline ends on the line before).
+  const lastOldLine = lineOfOffset(full, match.start) + newlineCount(matched) - (matched.endsWith('\n') ? 1 : 0)
+  const shift = match.end < full.length ? lineShiftNote(lastOldLine, newlineCount(input.new_str) - newlineCount(matched)) : null
+  const region = describeEditedRegion(session.ytext.toJSON(), match.start, input.new_str.length)
+  return toolOk(`Replaced text at exactly one location.${TIER_NOTE[match.tier]} ${region}${shift ? `\n${shift}` : ''}`)
 }
 
 function handleInsert(
@@ -130,12 +160,14 @@ function handleInsert(
 
   const origin = `ai:assistant:${session.sessionId}`
   // Newline-terminated, with the blank lines a Markdown block needs around it.
-  const insertText = blockSpacedInsertText(full, idx, input.insert_text)
+  const insertText = blockSpacedInsertText(full, idx, filterEmDashesAt(full, idx, input.insert_text))
   session.ydoc.transact(() => {
     session.ytext.insert(idx, insertText)
   }, origin)
 
-  return toolOk(`Inserted text after line ${input.insert_line}. ${describeEditedRegion(session.ytext.toJSON(), idx, insertText.length)}`)
+  // Lines after the insertion point move down; at the end there are none.
+  const shift = idx < full.length ? lineShiftNote(input.insert_line, newlineCount(insertText)) : null
+  return toolOk(`Inserted text after line ${input.insert_line}. ${describeEditedRegion(session.ytext.toJSON(), idx, insertText.length)}${shift ? `\n${shift}` : ''}`)
 }
 
 async function handleSetTitle(
@@ -172,7 +204,7 @@ async function handleSetTitle(
 
 export const viewDocumentTool = defineDocTool({
   name: 'view_document',
-  description: 'Read the current document with 1-indexed line numbers prepended to each line. Always call this before making any edits so you have current content to match against. Returns the full text unless a view_range is specified.',
+  description: 'Read the current document with 1-indexed line numbers prepended to each line. Always read before editing so you have current content to match against. Use it for short documents and for exact line ranges; for a long document start with outline and read sections with read_section, and find words with search_document. Without view_range a short document is returned in full; a long one returns a heading outline with each section\'s line range plus the first lines. A result that hits the size limit says which view_range continues it.',
   schema: ViewDocumentArgs,
   handler: (ctx, args) => {
     // The schema keeps `view_range` an array of exactly two (a tuple schema
@@ -186,7 +218,7 @@ export const viewDocumentTool = defineDocTool({
 
 export const replaceTextTool = defineDocTool({
   name: 'replace_text',
-  description: 'Replace a single exact-match occurrence of `old_str` with `new_str` in the document. `old_str` must match EXACTLY ONE location including whitespace, include enough surrounding context to be unique. Returns an error if zero or multiple matches are found, or if `new_str` equals `old_str`. On success the result shows the edited lines as they now read.',
+  description: 'Replace the one occurrence of `old_str` with `new_str` in the document. `old_str` must match exactly one location; include enough surrounding text to be unique. Differences in quotes, dashes, non-breaking spaces and trailing whitespace are tolerated. Errors on zero or several matches (a miss shows the closest lines) or when `new_str` equals `old_str`. On success the result shows the edited lines as they now read and says when line numbers below the edit shifted.',
   schema: ReplaceTextArgs,
   handler: handleStrReplace
 })

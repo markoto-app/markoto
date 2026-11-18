@@ -3,6 +3,7 @@ import { aiClientUserId } from '~~/shared/contracts/jwt'
 import type { DocAccess } from '../../../repos/proofs'
 import { docExists } from '../../../repos/documents'
 import { findTool } from '../../ai/tools/registry'
+import type { ToolResult } from '../../ai/tools/toolDefinition'
 import { useLogger } from '../../platform/logger'
 import type { LoopContext } from './loopContext'
 
@@ -48,8 +49,8 @@ export async function logAiTool(
  * `activity` in the registry; view_document and read_comments have none
  * (pure noise: AI reads doc state every turn).
  */
-export function logToolActivity(ctx: LoopContext, name: string, validatedArgs: unknown): void {
-  const activity = findTool(name)?.activity
-  if (!activity) return
-  void logAiTool(ctx.opts.aiSession.docAccess, ctx.opts.aiSession.sessionId, activity(validatedArgs))
+export function logToolActivity(ctx: LoopContext, name: string, validatedArgs: unknown, result: ToolResult): void {
+  const metadata = result.activity ?? findTool(name)?.activity?.(validatedArgs)
+  if (!metadata) return
+  void logAiTool(ctx.opts.aiSession.docAccess, ctx.opts.aiSession.sessionId, metadata)
 }

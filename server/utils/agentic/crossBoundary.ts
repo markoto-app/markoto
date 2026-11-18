@@ -1,4 +1,4 @@
-import type { ConfirmationRequest } from './sessionChannel'
+import { boundConfirmNote, type ConfirmationAnswer, type ConfirmationRequest } from './sessionChannel'
 import { trimEndChars } from '~~/shared/utils/trimChars'
 import { CONFIRM_WHEN_TAINTED, URL_ARG_TOOLS } from '../ai/tools/registry'
 
@@ -38,14 +38,16 @@ const TARGET_MAX = 200
 export interface CrossBoundaryDeps {
   /** Is `docRef` (id or URL) a document only the invoker owns and edits? Unknown / unreadable → false. */
   isDocSolo(docRef: string): Promise<boolean>
+  /** Is the session's own document solo for the invoker (re-read: someone may have joined since the start)? */
+  isSessionDocSolo(): Promise<boolean>
   /** Human label (title) for a document reference the invoker can open; null when unknown. */
   describeDoc(docRef: string): Promise<string | null>
   /** Whether the session document's comments include anybody but the invoker. */
   commentsHaveForeignAuthors(): boolean
   /** Whether anyone besides the invoker can edit documents in the session's workspace (their titles / descriptions). */
   workspaceHasOtherEditors(): Promise<boolean>
-  /** Ask the invoker. Resolves true only on an explicit allow. */
-  confirm(request: ConfirmationRequest, signal: AbortSignal): Promise<boolean>
+  /** Ask the invoker. Allowed only on an explicit allow; a plain boolean is an answer without a note. */
+  confirm(request: ConfirmationRequest, signal: AbortSignal): Promise<ConfirmationAnswer | boolean>
 }
 
 export interface CrossBoundaryInit {
@@ -115,6 +117,24 @@ function isExternalUrl(src: string): boolean {
   return /^https?:\/\//i.test(src.trim())
 }
 
+function toAnswer(answer: ConfirmationAnswer | boolean): ConfirmationAnswer {
+  if (typeof answer === 'boolean') return { allowed: answer, note: null }
+  return { allowed: answer.allowed === true, note: answer.allowed ? null : boundConfirmNote(answer.note) }
+}
+
+/**
+ * Tool error for a declined call. The note is the initiator's own text
+ * (typed in the confirm prompt, bounded): an instruction from the user,
+ * not untrusted content, so it goes in as their words.
+ */
+function declineMessage(name: string, note: string | null): string {
+  const base = `The user did not allow this ${name} call. This session has read content written by other people, so reaching other documents, workspace knowledge or the web needs the user's approval, and they declined`
+  if (note) {
+    return `${base}. Do not retry the same call. The user added this instruction, follow it: ${JSON.stringify(note)}`
+  }
+  return `${base} (or did not answer). Do not retry it. Finish the user's request without it and tell them briefly what you could not do.`
+}
+
 export class CrossBoundaryGuard {
   private readonly reasons: string[] = []
   private readonly typedUrls: Set<string>
@@ -178,15 +198,12 @@ export class CrossBoundaryGuard {
     }
     const request: ConfirmationRequest = { tool: name, target }
     // Fail closed: an error instead of an answer counts as "deny".
-    const ok = await this.deps.confirm(request, signal).catch(() => false)
-    if (ok) {
+    const answer = toAnswer(await this.deps.confirm(request, signal).catch(() => false))
+    if (answer.allowed) {
       this.approved.add(key)
       return { allowed: true }
     }
-    return {
-      allowed: false,
-      message: `The user did not allow this ${name} call. This session has read content written by other people, so reaching other documents, workspace knowledge or the web needs the user's approval, and they declined (or did not answer). Do not retry it. Finish the user's request without it and tell them briefly what you could not do.`
-    }
+    return { allowed: false, message: declineMessage(name, answer.note) }
   }
 
   /**
@@ -230,6 +247,13 @@ export class CrossBoundaryGuard {
         return
       case 'read_comments':
         if (this.deps.commentsHaveForeignAuthors()) this.taint('comments by other people')
+        return
+      case 'delegate_scan':
+      case 'delegate_rewrite':
+        // Scan items, preview excerpts and job reports quote the document
+        // the way view_document does; on a shared document that is other
+        // people's text.
+        if (!(await this.deps.isSessionDocSolo())) this.taint('the shared document')
         return
       default:
     }

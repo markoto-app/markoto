@@ -1,8 +1,8 @@
 ---
 slug: privacy
 locale: en
-version: 14
-effectiveDate: 2026-11-17
+version: 15
+effectiveDate: 2026-11-18
 translationStatus: authoritative
 ---
 
@@ -97,6 +97,7 @@ Retention follows the register in §13. In general:
 - **Documents and content** are kept until you delete them or your account.
 - **Anonymous documents** (created without an account and not part of a workspace) are deleted automatically after **30 days** without being edited. Documents owned by an account and workspace documents are not deleted automatically.
 - **AI prompts and tool calls** (what you asked and what the AI did) are kept for 90 days for abuse review, then deleted.
+- **Large AI edits in the background** (when the assistant translates, rewrites or reviews many sections of a document at once): we keep the instruction and settings the assistant gave the job, its status, counts and cost, and for each part of the document the text it had before the change, so that you can undo the whole job. These copies of the earlier text are deleted **7 days** after the job started (undo is no longer possible after that); the job record itself is deleted after 90 days. Deleting the document deletes them at once, and deleting your account deletes the jobs you started.
 - **AI cost records** (for each AI request we pay for: cost, model, time and your internal user ID; no content) are kept by our AI gateway for 90 days, and your monthly total until the allowance resets. We use them to enforce the per-account limit and the shared monthly pool. Requests to your own provider are recorded too, at zero cost, to apply rate limits.
 - **Audit log.** Our security audit log records who changed access controls, deleted content or performed other security-relevant actions, with IP addresses shortened (IPv4 to /24, IPv6 to /48). Entries are deleted automatically after **2 years**. If you delete your account earlier, your account ID is removed from them straight away. In a workspace whose plan includes the audit log (Business), the workspace's admins can see and download the entries about that workspace, including your name and the shortened IP address for actions you took in it.
 - **Backups.** We take an encrypted backup of the database once a day and keep the last 30, so each backup is kept for about **30 days**. Data you delete therefore remains in our backups for up to 30 days before it is overwritten. Our database provider OVHcloud also keeps its own automatic backups for a limited period. We use backups only to restore the service after a failure.
@@ -175,7 +176,7 @@ We do not make decisions with legal or similarly significant effects on you base
 
 ## 8. AI features and transparency
 
-markoto includes an AI writing assistant and a knowledge-base search. AI requests go through our own AI gateway to these EU-based providers: Mistral AI (text generation, voice transcription; every request goes to its EU endpoint, data centres in the EU and in EFTA countries), Jina AI (embeddings for the knowledge base, extracting the content of a single web page), Staan (web search via a European search index) and Black Forest Labs (image generation, EU-pinned region).
+markoto includes an AI writing assistant and a knowledge-base search. AI requests go through our own AI gateway to these EU-based providers: Mistral AI (text generation with open-weight and Mistral models, voice transcription; every request goes to its EU endpoint, data centres in the EU and in EFTA countries), Jina AI (embeddings for the knowledge base, extracting the content of a single web page), Staan (web search via a European search index) and Black Forest Labs (image generation, EU-pinned region).
 
 **AI transparency.** When the AI works in a document, it appears as a separate collaborator, its answers are labelled as coming from markoto's AI, and its edits are recorded in the document's activity log as made by the AI.
 
@@ -189,7 +190,7 @@ markoto includes an AI writing assistant and a knowledge-base search. AI request
 
 If you are signed in and have not connected your own provider for the writing assistant, the assistant runs on our **free AI allowance**:
 
-- **Model and provider.** The allowance uses the model **GLM-5.3 Flash**, developed by Z.ai. It is served and processed by **Mistral AI SAS** on Mistral's own infrastructure through its **EU endpoint** (data centres in the EU and in EFTA countries). Z.ai receives no data. Mistral AI processes the requests as our sub-processor under our agreement with it, including the training opt-out described above.
+- **Models and provider.** The allowance uses open-weight and Mistral models that **Mistral AI SAS** serves and processes on its own infrastructure through its **EU endpoint** (data centres in the EU and in EFTA countries). Currently these are **DeepSeek V4.1 Flash** (developed by DeepSeek) and, as a fallback and for large edits running in the background, **GLM-5.3 Flash** (developed by Z.ai). Plans that include the stronger model use **Mistral Large 4**. The companies that developed these models receive no data. Mistral AI processes the requests as our sub-processor under our agreement with it, including the training opt-out described above. We may switch to other models that Mistral AI serves in the EU; the provider and the location of the processing stay the same.
 - **What is sent.** Your prompt, the parts of the document the assistant reads, the results of the tools it uses (for example the text of a fetched page or search results to be summarised) and, if you ask about an image, the image. The answer comes back the same way.
 - **Who can use it.** Only signed-in users. Anonymous visitors cannot use the AI.
 - **Limits.** Each account has a monthly limit (currently 500 AI Points, about USD 0.50 of model usage). In addition, all free accounts together share a monthly pool. The allowance is available only while this month's pool lasts; when it is used up, the assistant tells you so until the next month starts. To enforce these limits, our AI gateway records the cost, the model used and the time of each request, linked to your internal user ID (retention: see §5).
@@ -263,6 +264,7 @@ This is **version {{currentVersion}}**, effective **{{effectiveDate}}**. Materia
 
 ### Change log
 
+- **v15 (2026-11-18).** Described large AI edits that run in the background (§5): the instruction and settings of such a job, and copies of the earlier text of each changed part for undoing the job, deleted after 7 days; the job record after 90 days. The writing assistant and the free AI allowance now run on DeepSeek V4.1 Flash, with GLM-5.3 Flash as fallback and for background edits and Mistral Large 4 for plans with the stronger model, all served and processed by Mistral AI on its EU endpoint; the developers of these models receive no data, and Mistral AI remains the only sub-processor for AI text generation (§8).
 - **v14 (2026-11-17).** Added visitor statistics of our public pages with Umami, which we run ourselves, without cookies or other storage on your device, deleted after 13 months; and ad measurement for our Google ads without any Google script: if you come from one of our ads and sign up, join the waitlist or create your first document, we keep the ad's click identifier for 90 days and report it with the time of that step to Google Ads, which is a new recipient (§2, §4, §5, §9, §9b). Global Privacy Control and Do Not Track switch both off. Added to your data export (`ad_conversions.ndjson`). Added the last active day (§2): one date, replaced every day, used only to count active accounts. Added to your data export (`profile.json`, `lastActiveOn`). Once paid plans are offered we also record when a plan started, changed, was cancelled or ended (§2); your data export lists yours (`billing/subscription_history.json`), and after you delete your account these records stay without any link to you. Paid plans and AI credits, once offered, are sold through Link (Sold through Link, LLC, a Stripe company) as seller and merchant of record (§2, §4, §5, §5b, §7): the payment details, billing address and VAT number you enter at checkout go to Link and Stripe, which process them as independent controllers under their own privacy policies; we receive the order data needed to provide your plan.
 - **v13 (2026-11-10).** Described publishing a document as a web page and showing it on your own domain (§2, §5): the published copy and its address, the domain name, its verification and DNS checks, and the HTTPS certificate requested from Let's Encrypt, which makes the domain name public in Certificate Transparency logs. Added to your data export (`published_pages.json`, `custom_domains.json`).
 - **v12 (2026-11-09).** Described workspace guests (§2): who sees a guest's name and email address, the record of which documents were shared with them, and the per-person usage view for workspace admins. Added to your data export (`document_shares.json`).

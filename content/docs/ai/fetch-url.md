@@ -2,7 +2,7 @@
 title: Ask the AI to read a URL
 description: Paste any public URL into your prompt - the AI reads the page and grounds its answer in the content.
 category: ai
-order: 7
+order: 9
 updated: '2026-11-15'
 ---
 

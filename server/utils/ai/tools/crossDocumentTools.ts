@@ -6,6 +6,8 @@ import { listWorkspaceDocsWithOwnerFlag, listOwnedByUser } from '../../../repos/
 import { getDocWithActorRole } from '../../access/docProof'
 import { docStateOf, isEffectiveDocOwner, decideTokenAccess } from '~~/shared/utils/documents/docPermissions'
 import { openTrustedCommentClient } from '../../documents/commentsServerClient'
+import { TOOL_RESULT_CHAR_CAP } from '../../agentic/limits'
+import { boundedDocumentView } from './documentText'
 
 // Cross-document reads: two tools that let the AI reach BEYOND the current document:
 //
@@ -13,7 +15,7 @@ import { openTrustedCommentClient } from '../../documents/commentsServerClient'
 //     current session's workspace (current doc excluded). Useful for
 //     "summarise everything in this workspace" or "find the doc
 //     about X that I wrote last week".
-//   - view_other_document: read the full body of any doc the user
+//   - view_other_document: read the body of any doc the user
 //     could open in their browser. Same access surface: own private
 //     docs, workspace member, public open-edit/open-view, password-
 //     protected (workspace-membership bypass only, there's no way
@@ -35,7 +37,7 @@ const ViewOtherDocumentArgs = z.object({
   view_range: z.array(z.number().int()).min(2).max(2)
     .refine(([s, e]) => s !== undefined && (s >= 1) && (e === -1 || (e !== undefined && e >= s)), { message: 'view_range must be [start, end] where start >= 1 and end is either -1 (read to EOF) or >= start' })
     .optional()
-    .describe('Optional 1-indexed inclusive line range [start, end]. Use -1 for end to read through to the end of the document. Default: full document, capped at the first 50 000 characters. Page through long docs by repeating the call with non-overlapping ranges.')
+    .describe('Optional 1-indexed inclusive line range [start, end]. Use -1 for end to read through to the end of the document. Without it a short document is returned in full, a long one as a heading outline (with line ranges) plus its first lines.')
 }).describe('Read another document\'s body + metadata. Permission check is the SAME as if the user opened the URL in their browser: their own docs, any doc in any workspace they belong to (any role, viewer is enough), and any anonymous open-edit / open-view doc. Private docs owned by other users return "not found." Password-protected docs are accessible only when the initiator is a member of that doc\'s workspace (workspace membership bypasses the password gate). Returns line-numbered body so you can quote / replace specific lines. The current document cannot be read this way, use `view_document` instead.')
 
 /**
@@ -149,7 +151,11 @@ async function handleListMyDocuments(
   return toolOk(JSON.stringify(payload, null, 2))
 }
 
-const VIEW_OTHER_DOC_CHAR_CAP = 50_000
+/**
+ * Room the document body gets in a view_other_document result: the loop's
+ * result cap minus the metadata and citation blocks that follow it.
+ */
+const VIEW_OTHER_DOC_CHAR_BUDGET = TOOL_RESULT_CHAR_CAP - 3_000
 
 async function handleViewOtherDocument(
   session: MetaToolContext,
@@ -175,7 +181,9 @@ async function handleViewOtherDocument(
   const bodyResult = await readOtherDocBody(session, targetId)
   if (!bodyResult.ok) return bodyResult.error
 
-  const view = applyViewRange(bodyResult.body, input.view_range)
+  const [rangeStart, rangeEnd] = input.view_range ?? []
+  const range = rangeStart !== undefined && rangeEnd !== undefined ? [rangeStart, rangeEnd] as const : undefined
+  const view = boundedDocumentView(bodyResult.body, range, VIEW_OTHER_DOC_CHAR_BUDGET, `view_other_document (doc_id "${targetId}")`)
   const meta = {
     doc_id: targetId,
     title: ctx.title,
@@ -185,23 +193,18 @@ async function handleViewOtherDocument(
     access_mode: ctx.accessMode,
     workspace_id: ctx.workspaceId,
     scope: scopeLabelFor(ctx, session.initiatorUserId),
-    line_count: view.totalLines,
-    showed_lines: { start: view.startLine, end: view.endLineClamped },
-    truncated_chars_at: view.truncated ? VIEW_OTHER_DOC_CHAR_CAP : null
+    line_count: bodyResult.body.split('\n').length
   }
 
   // Body BEFORE meta in the formatted response so the model doesn't
   // have to scroll past the header to find the content. The trailing
   // metadata block is parseable JSON for fields the model wants to
   // reuse (title, scope, etc).
-  const trailer = view.truncated
-    ? '\n\n[Truncated at 50 000 chars, call view_other_document again with view_range to read more.]'
-    : ''
   // Readers know documents by their title, not their id: a summary that
   // cited `workspace doc "Kf50UWihca"` showed the raw id to the user.
   const citeTitle = (ctx.title || 'Untitled').replaceAll(']', ')').replaceAll('[', '(')
   const citation = `\n\nIf you mention or cite this document in the text, call it by its title, or link it exactly like this: [${citeTitle}](/d/${targetId}). Never write the bare document id, and never label the link with another document's title.`
-  return toolOk(`${view.formatted}${trailer}${citation}\n\n--- metadata ---\n${JSON.stringify(meta, null, 2)}`)
+  return toolOk(`${view}${citation}\n\n--- metadata ---\n${JSON.stringify(meta, null, 2)}`)
 }
 
 type CrossDocCtx = NonNullable<Awaited<ReturnType<typeof getDocWithActorRole>>>
@@ -286,43 +289,6 @@ async function readOtherDocBody(session: MetaToolContext, targetId: string): Pro
   }
 }
 
-interface ViewSlice {
-  formatted: string
-  truncated: boolean
-  totalLines: number
-  startLine: number
-  endLineClamped: number
-}
-
-/**
- * Apply view_range. Same line-indexing semantics as `view_document`,
- * 1-indexed inclusive, end=-1 means EOF. Validation already happened
- * at the Zod schema (start >= 1, end >= start || end === -1). We
- * still clamp here so a huge end value doesn't crash anything
- * downstream, and we cap the formatted string at
- * `VIEW_OTHER_DOC_CHAR_CAP` chars.
- */
-function applyViewRange(body: string, range: z.output<typeof ViewOtherDocumentArgs>['view_range']): ViewSlice {
-  const allLines = body.split('\n')
-  let startLine = 1
-  let endLine = allLines.length
-  if (range) {
-    const [s = startLine, e = endLine] = range
-    startLine = s
-    endLine = e === -1 ? allLines.length : e
-  }
-  const sliceStart = Math.max(0, startLine - 1)
-  const sliceEnd = Math.min(allLines.length, endLine)
-  const sliced = allLines.slice(sliceStart, sliceEnd)
-  let formatted = sliced.map((line, i) => `${startLine + i}: ${line}`).join('\n')
-  let truncated = false
-  if (formatted.length > VIEW_OTHER_DOC_CHAR_CAP) {
-    formatted = formatted.slice(0, VIEW_OTHER_DOC_CHAR_CAP)
-    truncated = true
-  }
-  return { formatted, truncated, totalLines: allLines.length, startLine, endLineClamped: Math.min(allLines.length, endLine) }
-}
-
 /**
  * Tells the AI WHY it could read the doc, useful when composing a
  * quote ("From your workspace doc 'Q3 plan': …").
@@ -353,7 +319,7 @@ export const listMyDocumentsTool = defineMetaTool({
 
 export const viewOtherDocumentTool = defineMetaTool({
   name: 'view_other_document',
-  description: 'Read the body and metadata of ANOTHER document, anything the user could open by URL: their own private docs, any doc in any workspace they belong to (viewer role is enough), public open-edit / open-view docs, or workspace docs (membership bypasses password gates). Accepts the doc_id directly OR a full markoto URL like https://markoto.app/d/xyz. Use when the user references a specific doc by id, by name in the workspace, or by URL ("can you summarise https://markoto.app/d/abc into this doc?"). The current document cannot be read this way, call `view_document` instead. Returns line-numbered body and full metadata so you can quote, link, or summarise. Long docs are capped at 50 000 chars; use the optional `view_range` to page through.',
+  description: 'Read the body and metadata of ANOTHER document, anything the user could open by URL: their own private docs, any doc in any workspace they belong to (viewer role is enough), public open-edit / open-view docs, or workspace docs (membership bypasses password gates). Accepts the doc_id directly OR a full markoto URL like https://markoto.app/d/xyz. Use when the user references a specific doc by id, by name in the workspace, or by URL ("can you summarise https://markoto.app/d/abc into this doc?"). The current document cannot be read this way, call `view_document` instead. Returns line-numbered body and full metadata so you can quote, link, or summarise. A long document returns its heading outline with line ranges plus the first lines; read the parts you need with `view_range`.',
   schema: ViewOtherDocumentArgs,
   trustBoundary: 'confirm',
   handler: handleViewOtherDocument

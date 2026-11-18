@@ -134,6 +134,12 @@ const ACTIVITY_SUMMARIES: Readonly<Record<ActivityEntry['action'], (row: Activit
   'theme.changed': () => 'theme updated',
   'ai.tool': ({ metadata: m }) => formatAiToolMetadata(m?.kind === 'ai.tool' ? m : null),
   'restore': restoreSummary,
+  'ai.job': ({ metadata: m }) => (m?.kind === 'ai.job'
+    ? `AI job ${m.jobId} (${m.mode}) ${m.phase}: ${m.done}/${m.unitsTotal} done, ${m.skipped} skipped, ${m.flagged} flagged`
+    : 'AI job'),
+  'ai.job.reverted': ({ metadata: m }) => (m?.kind === 'ai.job.reverted'
+    ? `AI job ${m.jobId} undone: ${m.reverted} parts restored, ${m.skipped} kept`
+    : 'AI job undone'),
   'join': row => row.action,
   'leave': row => row.action
 }
@@ -153,6 +159,8 @@ function formatAiToolMetadata(m: AiToolActivityMetadata | null): string {
       return `search_knowledge query="${trim(m.query, 120)}"`
     case 'get_knowledge_file':
       return `get_knowledge_file knowledge_id=${trim(m.knowledgeId, 64)}`
+    case 'replace_all':
+      return `replace_all ${m.count}x "${trim(m.query, 80)}" -> "${trim(m.replacement, 80)}"`
     case undefined:
     default:
       // No metadata, or a tool written by newer code than this formatter:

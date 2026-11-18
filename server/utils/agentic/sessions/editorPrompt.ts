@@ -5,7 +5,7 @@ import { appendAiMessage, lastActivityAt, loadRecentMessages } from '../../../re
 import { buildConversationContextForPrompt, shouldRecordToolInMemory, summarizeToolCall } from '../conversationMemory'
 import { validateEditorSelection, wrapPromptWithEditorState } from '../editorStatePrompt'
 import { buildKnowledgeBlock, buildWorkspaceMembersBlock, withKnowledgeNote } from '../workspacePromptBlocks'
-import { assemblePromptSystemPrompt, PROMPT_SYSTEM_PROMPT } from '../promptAssembly'
+import { assemblePromptContext, PROMPT_SYSTEM_PROMPT } from '../promptAssembly'
 import { useLogger } from '../../platform/logger'
 import { documentContextBlockFor, openAiSession, resolveSessionWorkspace } from './sessionSetup'
 import { runAgentSession } from './runSession'
@@ -40,10 +40,12 @@ export async function startEditorPrompt(event: H3Event, request: EditorPromptReq
   const documentContextBlock = documentContextBlockFor(doc)
   const conversationBlock = await loadConversationBlock(docAccess)
   // Ordered for prompt caching (`agentic/promptAssembly.ts`): the system
-  // message is static-first, and the per-prompt conversation memory opens the
-  // first USER message (`promptPreamble`) instead. Placing it in the system
-  // message invalidated the cached tool definitions on Mistral Small.
-  const systemPrompt = assemblePromptSystemPrompt(PROMPT_SYSTEM_PROMPT, {
+  // message is the static prompt alone; the per-document blocks
+  // (`promptContext`) and then the per-prompt conversation memory
+  // (`promptPreamble`) open the first USER message. Anything per document in
+  // the system message would make the cached tool definitions per document
+  // on Mistral Small.
+  const promptContext = assemblePromptContext({
     documentContextBlock,
     knowledgeBlock: buildKnowledgeBlock(wsCtx.knowledgeFiles),
     membersBlock: buildWorkspaceMembersBlock(wsCtx.members)
@@ -68,10 +70,14 @@ export async function startEditorPrompt(event: H3Event, request: EditorPromptReq
     self,
     workspace: wsCtx,
     session,
-    systemPrompt,
+    systemPrompt: PROMPT_SYSTEM_PROMPT,
+    promptContext,
     initialPrompt: withKnowledgeNote(wrappedPrompt, wsCtx.exposeKnowledgeTools),
     promptPreamble: conversationBlock,
     invokerText: prompt,
+    // Skills matching the prompt (or a large document) open the first user
+    // message, after the per-document blocks (`agentic/skills/`).
+    skillRequest: prompt,
     toolDeclarations: wsCtx.toolDeclarations,
     workspaceId: wsCtx.workspaceId,
     knowledgeFiles: wsCtx.knowledgeFiles,

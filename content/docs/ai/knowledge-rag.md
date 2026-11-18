@@ -2,7 +2,7 @@
 title: Ask the AI about a file you uploaded
 description: Upload PDFs, Word documents and more to a workspace, then let the AI answer from your files.
 category: ai
-order: 9
+order: 11
 updated: '2026-11-03'
 ---
 

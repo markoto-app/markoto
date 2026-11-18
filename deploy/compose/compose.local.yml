@@ -281,6 +281,11 @@ services:
       - NUXT_AI_DEFAULT_TRANSCRIBE_MODEL=${NUXT_AI_DEFAULT_TRANSCRIBE_MODEL:-}
       - NUXT_AI_DEFAULT_TRANSCRIBE_BASE_URL=${NUXT_AI_DEFAULT_TRANSCRIBE_BASE_URL:-}
       - NUXT_AI_DEFAULT_TRANSCRIBE_API_KEY=${NUXT_AI_DEFAULT_TRANSCRIBE_API_KEY:-}
+      - NUXT_AI_DEFAULT_WORKER_MODEL=${NUXT_AI_DEFAULT_WORKER_MODEL:-}
+      - NUXT_AI_DEFAULT_WORKER_BASE_URL=${NUXT_AI_DEFAULT_WORKER_BASE_URL:-}
+      - NUXT_AI_DEFAULT_WORKER_API_KEY=${NUXT_AI_DEFAULT_WORKER_API_KEY:-}
+      - NUXT_AI_DEFAULT_WORKER_STRONG_MODEL=${NUXT_AI_DEFAULT_WORKER_STRONG_MODEL:-}
+      - NUXT_AI_DEFAULT_UTILITY_MODEL=${NUXT_AI_DEFAULT_UTILITY_MODEL:-}
       # Local mirrors the hosted shape (legal surfaces on), which requires a
       # provider allowlist; default to the hosted list.
       - NUXT_AI_BYOK_ALLOWED_BASE_URLS=${NUXT_AI_BYOK_ALLOWED_BASE_URLS:-https://api.mistral.ai/v1,https://api.openai.com/v1,https://openrouter.ai/api/v1,https://api.groq.com/openai/v1,https://api.together.xyz/v1,https://api.deepinfra.com/v1/openai,https://api.fireworks.ai/inference/v1,https://api.scaleway.ai/v1}

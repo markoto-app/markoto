@@ -4,6 +4,8 @@ import type { ToolStatusPhase } from './toolContext'
 import { MINUTE_MS } from '~~/shared/config/units'
 import { useLogger } from '../platform/logger'
 import { parseAiStatusStep, type AiStatusStep } from '~~/shared/ai/statusSteps'
+import { CONFIRM_NOTE_MAX_LENGTH } from '~~/shared/api/ai'
+import { JOB_CONFIRMATION_MODES, type JobConfirmationDetails } from '~~/shared/ai/jobConfirmation'
 
 const log = useLogger('ai-session-channel')
 
@@ -149,10 +151,44 @@ export interface ChannelResponse {
   ts: number
 }
 
-/** What the initiator is asked to allow. `target` is a human-readable label (doc title, query, URL). */
+/**
+ * What the initiator is asked to allow. `target` is a human-readable label
+ * (doc title, query, URL). `kind: 'job'` is the cost confirmation of a
+ * delegated job (with `job`); absent / `tool` the taint gate's question.
+ */
 export interface ConfirmationRequest {
   tool: string
   target: string | null
+  kind?: 'tool' | 'job'
+  job?: JobConfirmationDetails
+}
+
+/**
+ * The initiator's answer. `note` is what they typed with a Deny ("No,
+ * search for X instead"): their own words, trimmed and bounded, handed to
+ * the model with the decline.
+ */
+export interface ConfirmationAnswer {
+  allowed: boolean
+  note: string | null
+}
+
+const DENIED: ConfirmationAnswer = { allowed: false, note: null }
+
+/** Trim and bound a decline note; empty → null. */
+export function boundConfirmNote(note: string | null | undefined): string | null {
+  const trimmed = (note ?? '').trim().slice(0, CONFIRM_NOTE_MAX_LENGTH).trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+// Stored answer values: 'allow', 'deny', or 'deny:' + the note.
+const DENY_NOTE_PREFIX = 'deny:'
+
+function readAnswer(raw: string | null): ConfirmationAnswer | null {
+  if (raw === 'allow') return { allowed: true, note: null }
+  if (raw === 'deny') return DENIED
+  if (raw?.startsWith(DENY_NOTE_PREFIX)) return { allowed: false, note: boundConfirmNote(raw.slice(DENY_NOTE_PREFIX.length)) }
+  return null
 }
 
 export interface PendingConfirmation extends ConfirmationRequest {
@@ -215,10 +251,35 @@ function readResponse(raw: string | null): ChannelResponse | null {
   return { message: v.message, isQuestion: v.isQuestion === true, ts: v.ts }
 }
 
+function numberOrNull(v: unknown): number | null {
+  return typeof v === 'number' && Number.isFinite(v) ? v : null
+}
+
+function readJobDetails(v: unknown): JobConfirmationDetails | null {
+  if (!isRecord(v) || !(JOB_CONFIRMATION_MODES as readonly unknown[]).includes(v.mode)) return null
+  const units = numberOrNull(v.units)
+  const minutes = numberOrNull(v.minutes)
+  if (units === null || minutes === null) return null
+  return {
+    mode: v.mode as JobConfirmationDetails['mode'],
+    units,
+    usd: numberOrNull(v.usd),
+    minutes,
+    allowanceShare: numberOrNull(v.allowanceShare),
+    targetLanguage: typeof v.targetLanguage === 'string' ? v.targetLanguage : null,
+    inputTokens: numberOrNull(v.inputTokens) ?? 0,
+    outputTokens: numberOrNull(v.outputTokens) ?? 0
+  }
+}
+
 function readConfirmation(raw: string | null): PendingConfirmation | null {
   const v = parseJson(raw)
   if (!isRecord(v) || typeof v.id !== 'string' || typeof v.tool !== 'string' || typeof v.expiresAt !== 'number') return null
-  return { id: v.id, tool: v.tool, target: typeof v.target === 'string' ? v.target : null, expiresAt: v.expiresAt }
+  const base: PendingConfirmation = { id: v.id, tool: v.tool, target: typeof v.target === 'string' ? v.target : null, expiresAt: v.expiresAt }
+  if (v.kind !== 'job') return base
+  // A job confirmation without readable details is not shown (and times out as a deny).
+  const job = readJobDetails(v.job)
+  return job ? { ...base, kind: 'job', job } : null
 }
 
 function logChannelError(what: string, e: unknown): void {
@@ -266,23 +327,30 @@ export class AiSessionChannel {
   }
 
   /**
-   * Ask the initiator to allow `request`. Resolves true only on an
+   * Ask the initiator to allow `request`. Resolves allowed only on an
    * explicit "allow" within `timeoutMs`; deny, timeout, abort and any
-   * storage error resolve false.
+   * storage error resolve not allowed (a deny may carry the initiator's
+   * note).
    */
   async requestConfirmation(
     request: ConfirmationRequest,
     signal: AbortSignal,
     timeoutMs: number = CONFIRMATION_TIMEOUT_MS
-  ): Promise<boolean> {
+  ): Promise<ConfirmationAnswer> {
     const id = nanoid(16)
     const expiresAt = this.now() + timeoutMs
-    const pending: PendingConfirmation = { id, tool: request.tool, target: request.target, expiresAt }
+    const pending: PendingConfirmation = {
+      id,
+      tool: request.tool,
+      target: request.target,
+      expiresAt,
+      ...(request.kind === 'job' && request.job ? { kind: 'job' as const, job: request.job } : {})
+    }
     try {
       await this.store.set(confirmKey(this.sessionId), JSON.stringify(pending), CHANNEL_TTL_MS)
     } catch (e) {
       logChannelError('confirmation request', e)
-      return false
+      return DENIED
     }
     await this.store.notify(this.sessionId)
     try {
@@ -297,20 +365,20 @@ export class AiSessionChannel {
     }
   }
 
-  private async waitForAnswer(id: string, expiresAt: number, signal: AbortSignal): Promise<boolean> {
+  private async waitForAnswer(id: string, expiresAt: number, signal: AbortSignal): Promise<ConfirmationAnswer> {
     while (!signal.aborted && this.now() < expiresAt) {
       let raw: string | null
       try {
         raw = await this.store.get(answerKey(this.sessionId, id))
       } catch (e) {
         logChannelError('confirmation answer read', e)
-        return false
+        return DENIED
       }
-      if (raw === 'allow') return true
-      if (raw === 'deny') return false
+      const answer = readAnswer(raw)
+      if (answer) return answer
       await sleep(ANSWER_POLL_MS, signal)
     }
-    return false
+    return DENIED
   }
 }
 
@@ -373,14 +441,14 @@ export function toSessionView(snapshot: ChannelSnapshot): SessionView {
 }
 
 /**
- * Record the initiator's answer for the pending confirmation `confirmationId`.
- * Returns false when no such confirmation is pending (expired, answered,
- * or a stale id), the first answer wins.
+ * Record the initiator's answer for the pending confirmation `confirmationId`
+ * (`note` only with a deny). Returns false when no such confirmation is
+ * pending (expired, answered, or a stale id), the first answer wins.
  */
 export async function answerSessionConfirmation(
   sessionId: string,
   confirmationId: string,
-  allow: boolean,
+  answer: { allow: boolean, note?: string | null },
   store: ChannelStore = valkeyChannelStore,
   now: () => number = Date.now
 ): Promise<boolean> {
@@ -388,7 +456,9 @@ export async function answerSessionConfirmation(
   if (!pending || pending.id !== confirmationId || pending.expiresAt <= now()) return false
   // The loop picks the answer up and clears the request; that write
   // notifies the stream.
-  return store.setIfAbsent(answerKey(sessionId, confirmationId), allow ? 'allow' : 'deny', CHANNEL_TTL_MS)
+  const note = answer.allow ? null : boundConfirmNote(answer.note)
+  const value = answer.allow ? 'allow' : (note ? `${DENY_NOTE_PREFIX}${note}` : 'deny')
+  return store.setIfAbsent(answerKey(sessionId, confirmationId), value, CHANNEL_TTL_MS)
 }
 
 /** In-memory store for unit tests and the test seam. */

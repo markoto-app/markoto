@@ -8,6 +8,7 @@ export type ActivityAction
     | 'comment.resolved' | 'comment.reopened' | 'comment.deleted'
     | 'theme.changed' | 'title.changed' | 'ai.tool'
     | 'restore'
+    | 'ai.job' | 'ai.job.reverted'
 
 export interface ActivityLike {
   action: ActivityAction
@@ -30,6 +31,8 @@ export type FilterKey = 'all' | 'edits' | 'comments' | 'ai' | 'meta'
  */
 export function categoryOf(entry: ActivityLike): FilterKey {
   if (entry.userName === 'AI Assistant') return 'ai'
+  // Delegated AI jobs (started / finished, undone).
+  if (entry.action === 'ai.job' || entry.action === 'ai.job.reverted') return 'ai'
   if (entry.action === 'edit') return 'edits'
   if (entry.action.startsWith('comment.')) return 'comments'
   if (entry.action === 'title.changed' || entry.action === 'theme.changed') return 'meta'

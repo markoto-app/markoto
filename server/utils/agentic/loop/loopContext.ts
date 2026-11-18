@@ -29,11 +29,22 @@ export interface RunLoopOptions {
   systemPrompt: string
   initialPrompt: string
   /**
-   * Per-prompt context (conversation memory) that OPENS the first user
-   * message, ahead of `initialPrompt`. Kept out of `systemPrompt` so the
-   * system message + tool definitions stay a cacheable prefix across
-   * prompts (see `promptAssembly.ts`). Not part of the image-provenance
-   * "seen" text: that stays what the user typed + the document.
+   * Per-document / per-workspace blocks (document context, knowledge files,
+   * members) that OPEN the first user message. Kept out of `systemPrompt` so
+   * the system message + tool definitions are one cacheable prefix for every
+   * user and document (see `promptAssembly.ts`).
+   */
+  promptContext?: string
+  /**
+   * Preselected skill bodies (`agentic/skills/`) that follow `promptContext`
+   * in the first user message. Never part of `systemPrompt`.
+   */
+  promptSkills?: string
+  /**
+   * Per-prompt context (conversation memory) that follows `promptContext`
+   * in the first user message, ahead of `initialPrompt`. Neither is part of
+   * the image-provenance "seen" text: that stays what the user typed + the
+   * document.
    */
   promptPreamble?: string
   aiSession: AiSession
@@ -78,6 +89,15 @@ export interface RunLoopOptions {
    * `buildSessionGuard` in the prompt / comment-trigger endpoints.
    */
   crossBoundary: CrossBoundaryGuard
+  /**
+   * When the session's hard deadline fires (epoch ms, armed in
+   * `sessions/sessionSetup.ts`). With less than
+   * `AI_SESSION_WRAP_UP_MARGIN_MS` left the loop runs its closing turn
+   * instead of another work turn. Unset = no deadline (tests).
+   */
+  deadlineAt?: number
+  /** Clock seam for the deadline check; defaults to `Date.now`. */
+  now?: () => number
 }
 
 /**
@@ -100,6 +120,8 @@ export interface LoopContext {
   editedDocument: boolean
   /** A `message_to_user` answer was delivered in this session. */
   answeredUser: boolean
+  /** Turns whose tool call was cut off by the output token limit (`finish_reason: length`). */
+  outputLimitedTurns: number
 }
 
 export type ResponseParts = NonNullable<Content['parts']>
@@ -123,6 +145,10 @@ export type TurnResult
   = | { kind: 'continue' }
     | { kind: 'done', outcome: SessionOutcome }
     | { kind: 'budget-exhausted' }
+    | { kind: 'wrap-up', reason: WrapUpReason }
+
+/** Why the loop stops early and runs its closing turn (`wrapUp.ts`); also the session outcome. */
+export type WrapUpReason = 'turn-limit' | 'time-limit' | 'output-limit'
 
 /** Build a tool-error functionResponse part for the given call. */
 export function toolErrorResponse(call: FunctionCall, output: string): ResponseParts[number] {

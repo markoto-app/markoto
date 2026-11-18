@@ -102,7 +102,7 @@ If you are unsure whether something is allowed, write to **{{abuseContactEmail}}
 
 If you are signed in and have not connected your own provider for the writing assistant, you can use it within a free monthly allowance:
 
-- The allowance runs on the model GLM-5.3 Flash by Z.ai, served by Mistral AI in the EU (see the Privacy Policy).
+- The allowance runs on AI models served by Mistral AI in the EU; the Privacy Policy names the current models.
 - Each account has a monthly limit, and all free accounts together share a monthly pool. The allowance is available only while this month's pool lasts; both reset at the start of each month. Unused allowance does not carry over and has no cash value.
 - The allowance is provided free of charge and **"as is"**, without any guarantee of availability, quality or a particular model. It is a usage limit under §3: we may change the model, the limits or the pool, or end the allowance.
 - Do not try to get around the limits, for example by using several accounts.

@@ -15,6 +15,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 
 import { executeFunctionByName } from '../../../server/utils/ai/tools/registry'
+import { TOOL_RESULT_CHAR_CAP } from '../../../server/utils/agentic/limits'
 import { listWorkspaceDocsWithOwnerFlag } from '../../../server/repos/documents'
 import { getDocWithActorRole } from '../../../server/repos/access/docAuthz'
 import { openTrustedCommentClient } from '../../../server/utils/documents/commentsServerClient'
@@ -354,42 +355,45 @@ describe('view_other_document: body formatting', () => {
     expect(res.content).toMatch(/(^|\n)3:\s*gamma/)
   })
 
-  it('truncates body at 50 000 chars and emits a marker pointing at view_range', async () => {
-    // Spec: long docs are capped to keep the model's context
-    // bounded; the marker tells the model how to page through.
-    // Using ASCII-only chars so the byte count == char count.
-    const longLine = 'x'.repeat(120)
-    const lines = []
-    // ~600 lines × 120 chars = ~72k of body (plus prefixes), well
-    // over the 50k cap.
-    for (let i = 0; i < 600; i++) lines.push(longLine)
+  it('returns the outline and first lines of a long document, with a view_range hint naming the doc', async () => {
+    // Spec: long docs stay within the tool result budget; the result says
+    // how to read the rest.
+    const lines = ['# Part one']
+    for (let i = 0; i < 300; i++) lines.push('x'.repeat(120))
+    lines.push('# Part two')
+    for (let i = 0; i < 300; i++) lines.push('y'.repeat(120))
     mockedGetCtx.mockResolvedValue(ctx({ ownerId: 100 }))
     mockedOpenTrusted.mockResolvedValue(makeTrustedClient(lines.join('\n')))
     const session = makeSession({ initiatorUserId: 100 })
     const res = await executeFunctionByName(session, 'view_other_document', { doc_id: 't' })
     expect(res.isError).toBe(false)
-    // Must contain a truncation marker that names view_range.
-    expect(res.content.toLowerCase()).toMatch(/truncat/)
-    expect(res.content.toLowerCase()).toContain('view_range')
+    expect(res.content.length).toBeLessThanOrEqual(TOOL_RESULT_CHAR_CAP)
+    expect(res.content).toContain('too long for one result')
+    expect(res.content).toContain('[1-301] # Part one')
+    expect(res.content).toContain('[302-602] # Part two')
+    expect(res.content).toContain('view_other_document (doc_id "t") and view_range')
   })
 
-  it('does NOT emit a truncation marker in the BODY when content is under the cap', async () => {
-    // Look at the body section only, the metadata block has a
-    // `truncated_chars_at` JSON key that must stay regardless (it's
-    // null when not truncated). The contract is about the prose
-    // marker, not the metadata field.
+  it('a ranged read that does not fit says which range continues it', async () => {
+    const lines = Array.from({ length: 600 }, () => 'z'.repeat(120))
+    mockedGetCtx.mockResolvedValue(ctx({ ownerId: 100 }))
+    mockedOpenTrusted.mockResolvedValue(makeTrustedClient(lines.join('\n')))
+    const session = makeSession({ initiatorUserId: 100 })
+    const res = await executeFunctionByName(session, 'view_other_document', { doc_id: 't', view_range: [1, -1] })
+    expect(res.content).toMatch(/Continue with view_other_document \(doc_id "t"\) and view_range \[\d+, \d+\]/)
+  })
+
+  it('a short document comes back in full, without hints', async () => {
     mockedGetCtx.mockResolvedValue(ctx({ ownerId: 100 }))
     mockedOpenTrusted.mockResolvedValue(makeTrustedClient('short'))
     const session = makeSession({ initiatorUserId: 100 })
     const res = await executeFunctionByName(session, 'view_other_document', { doc_id: 't' })
     expect(res.isError).toBe(false)
     const bodySection = res.content.split('--- metadata ---')[0]!
-    // No human-readable truncation prose / "view_range" hint in the body.
-    expect(bodySection.toLowerCase()).not.toMatch(/truncat/)
-    // And the metadata field reports null (no clamp happened).
-    const metaSection = res.content.split('--- metadata ---')[1] ?? ''
-    const meta = JSON.parse(metaSection.trim())
-    expect(meta.truncated_chars_at).toBeNull()
+    expect(bodySection.startsWith('1: short')).toBe(true)
+    expect(bodySection).not.toContain('view_range')
+    const meta = JSON.parse((res.content.split('--- metadata ---')[1] ?? '').trim())
+    expect(meta.line_count).toBe(1)
   })
 
   it('tells the model to cite the document by title, never by its bare id', async () => {

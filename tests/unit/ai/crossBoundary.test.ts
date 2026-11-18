@@ -19,6 +19,7 @@ function makeGuard(init: Partial<CrossBoundaryInit> = {}, deps: Partial<CrossBou
     { initialTaint: null, invokerText: [], knowledgeFiles: new Map(), ...init },
     {
       isDocSolo: async () => true,
+      isSessionDocSolo: async () => true,
       describeDoc: async () => null,
       commentsHaveForeignAuthors: () => false,
       workspaceHasOtherEditors: async () => true,
@@ -222,6 +223,36 @@ describe('tainted session', () => {
     expect(r.allowed).toBe(false)
   })
 
+  it('a deny with a note hands the initiator\'s words to the model as an instruction', async () => {
+    const { guard } = makeGuard({ initialTaint: 'shared' }, {
+      confirm: async () => ({ allowed: false, note: '  No, search for "EU pricing" instead  ' })
+    })
+    const r = await guard.beforeTool('web_search', { query: 'pricing' }, signal)
+    expect(r.allowed).toBe(false)
+    const message = r.allowed ? '' : r.message
+    expect(message).toContain('did not allow this web_search call')
+    expect(message).toContain(JSON.stringify('No, search for "EU pricing" instead'))
+    expect(message).not.toContain('did not answer')
+  })
+
+  it('a note is bounded, and an allow never carries one', async () => {
+    const { guard } = makeGuard({ initialTaint: 'shared' }, {
+      confirm: async () => ({ allowed: false, note: 'y'.repeat(1_000) })
+    })
+    const r = await guard.beforeTool('list_my_documents', {}, signal)
+    expect(r.allowed ? '' : r.message).toContain(JSON.stringify('y'.repeat(300)))
+    expect(r.allowed ? '' : r.message).not.toContain('y'.repeat(301))
+
+    const allowed = makeGuard({ initialTaint: 'shared' }, { confirm: async () => ({ allowed: true, note: 'ignored' }) })
+    expect(await allowed.guard.beforeTool('list_my_documents', {}, signal)).toEqual({ allowed: true })
+  })
+
+  it('a deny without a note keeps the generic decline', async () => {
+    const { guard } = makeGuard({ initialTaint: 'shared' }, { confirm: async () => ({ allowed: false, note: null }) })
+    const r = await guard.beforeTool('list_my_documents', {}, signal)
+    expect(r.allowed ? '' : r.message).toMatch(/did not answer\)\. Do not retry it/)
+  })
+
   it('forwards the abort signal to the confirmation', async () => {
     const confirm = vi.fn<CrossBoundaryDeps['confirm']>(async () => false)
     const { guard } = makeGuard({ initialTaint: 'shared' }, { confirm })
@@ -247,5 +278,19 @@ describe('URL helpers', () => {
   it('extracts URLs from prose, dropping trailing punctuation', () => {
     expect([...extractTypedUrls('See https://a.example/x, and b.example.org.')].sort())
       .toEqual(['https://a.example/x', 'https://b.example.org'])
+  })
+})
+
+describe('delegated jobs', () => {
+  it('scan items and job excerpts taint the session when the document is shared', async () => {
+    const { guard } = makeGuard({}, { isSessionDocSolo: async () => false })
+    await guard.afterTool('delegate_scan', { targets: 'all', extract: 'terms' }, { isError: false })
+    expect(guard.tainted).toBe(true)
+  })
+
+  it('stay clean on a solo document', async () => {
+    const { guard } = makeGuard()
+    await guard.afterTool('delegate_rewrite', { job_id: 'j-x', action: 'status' }, { isError: false })
+    expect(guard.tainted).toBe(false)
   })
 })

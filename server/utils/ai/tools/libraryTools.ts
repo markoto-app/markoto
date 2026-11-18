@@ -14,6 +14,7 @@ import type { WorkspaceAccess } from '../../../repos/proofs'
 import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from '../../access/shareSettings'
 import { openTrustedCommentClient } from '../../documents/commentsServerClient'
 import { createDocument } from '../../documents/createDocument'
+import { withoutEmDashes } from '../dashFilter'
 import { duplicateDocument } from '../../documents/duplicateDocument'
 import { useS3Client } from '../../storage/s3'
 import { resolveImageQuota } from '../../storage/imageQuota'
@@ -102,7 +103,7 @@ async function handleCreateDocument(
   // emits for this transact carries this string in `actor_principal`,
   // so the audit chain still resolves to the human (no agent kind,
   // because seeding isn't an agent action, just bootstrapping).
-  const seed = input.initial_markdown
+  const seed = input.initial_markdown === undefined ? undefined : withoutEmDashes(input.initial_markdown)
   if (seed && seed.length > 0) {
     try {
       const client = await openTrustedCommentClient(

@@ -43,10 +43,14 @@ export const aiPromptBody = z.object({
 /** `:sessionId` of /api/ai/sessions/:sessionId/**. */
 export const aiSessionParams = z.object({ sessionId: z.string().regex(ID_RE) })
 
-/** POST /api/ai/sessions/:sessionId/confirm */
+/** Longest note the initiator may send with a Deny ("No, search for X instead"). */
+export const CONFIRM_NOTE_MAX_LENGTH = 300
+
+/** POST /api/ai/sessions/:sessionId/confirm. `note` is read only with `allow: false`. */
 export const confirmAiSessionBody = z.object({
   confirmationId: z.string().regex(ID_RE),
-  allow: z.boolean()
+  allow: z.boolean(),
+  note: z.string().trim().max(CONFIRM_NOTE_MAX_LENGTH).optional()
 })
 
 /** POST /api/ai/transcribe. The audio rules (type, size) answer with their own codes in the handler. */
@@ -79,3 +83,12 @@ export const requestUploadBody = z.object({
 
 /** POST /api/upload/confirm */
 export const confirmUploadBody = z.object({ key: z.string().min(1) })
+
+/** Ids of delegated AI jobs (`j-` + nanoid). */
+const AI_JOB_ID_RE = /^j-[A-Za-z0-9_-]{6,40}$/
+
+/** `:docId/:jobId` of /api/docs/:docId/ai-jobs/:jobId/**. */
+export const aiJobParams = z.object({ docId: z.string().min(1), jobId: z.string().regex(AI_JOB_ID_RE) })
+
+/** POST /api/docs/:docId/ai-jobs/:jobId/{cancel,resume,revert}: no fields. */
+export const aiJobActionBody = z.object({}).nullish()

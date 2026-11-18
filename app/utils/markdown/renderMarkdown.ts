@@ -20,6 +20,7 @@ import { tableAttrsRowPlugin } from './markdownTableAttrs'
 import { unnumberedShorthandPlugin } from './markdownUnnumbered'
 import { tablePlugin } from './markdownTables'
 import { markersPlugin } from './markdownMarkers'
+import { headingSlugBase, selectorSafeId } from '~~/shared/utils/markdown/headingSlug'
 
 interface MarkdownPipeline {
   md: MarkdownIt
@@ -135,32 +136,13 @@ function commentPlugin(md: MarkdownIt): void {
 
 /**
  * Slugify shared by anchor + toc so heading IDs and TOC link targets
- * agree. Same shape as GitHub's slugger: lowercase, strip punctuation,
- * hyphenate spaces.
+ * agree (`headingSlugBase`, shared with the server, which predicts anchors).
  */
 function defaultSlugify(s: string): string {
-  const slug = s
-    .toLowerCase()
-    .trim()
-    .replace(/[\s\u00A0]+/g, '-')
-    .replace(/[^\p{L}\p{N}\-_]/gu, '')
-    .replace(/-+/g, '-')
-    // No `--` runs remain after the collapse, so stripping a SINGLE
-    // leading/trailing dash suffices (`/^-+|-+$/` backtracks super-linearly).
-    .replace(/^-|-$/g, '')
-  return clobberSafeId(selectorSafeId(slug))
+  return clobberSafeId(headingSlugBase(s))
 }
 
-/**
- * An id that starts with a digit (heading "2024 results" → `2024-results`)
- * is a valid HTML id but not a valid CSS `#id` selector, and paged.js
- * resolves `target-counter()` / internal links with `querySelector('#…')`
- * without escaping; it throws and the whole preview stays blank. Such
- * slugs get an `h-` prefix.
- */
-export function selectorSafeId(slug: string): string {
-  return /^\p{N}/u.test(slug) ? `h-${slug}` : slug
-}
+export { selectorSafeId }
 
 let clobberProbe: HTMLFormElement | null = null
 

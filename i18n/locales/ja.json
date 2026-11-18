@@ -189,7 +189,12 @@
         "changed": "テーマを変更しました"
       },
       "ai": {
-        "tool": "ツールを使用しました"
+        "tool": "ツールを使用しました",
+        "job": {
+          "started": "大規模な AI 編集を開始しました",
+          "finished": "大規模な AI 編集を完了しました",
+          "reverted": "大規模な AI 編集を元に戻しました"
+        }
       },
       "restore": "ドキュメントを復元しました",
       "aiTool": {
@@ -198,12 +203,16 @@
         "generate_image": "画像を生成しました",
         "view_image": "画像を確認しました",
         "search_knowledge": "ナレッジベースを検索しました",
-        "get_knowledge_file": "ナレッジファイルを読み込みました"
+        "get_knowledge_file": "ナレッジファイルを読み込みました",
+        "replace_all": "文書全体のテキストを置換しました"
       }
     },
     "detail": {
       "titleChanged": "{from} → {to}",
-      "restoredFrom": "{ago}の状態から"
+      "replacedAll": "{count}× “{from}” → “{to}”",
+      "restoredFrom": "{ago}の状態から",
+      "jobProgress": "{total} 件中 {done} 件を変更",
+      "jobReverted": "{reverted} 件を復元、{skipped} 件は編集後のまま"
     },
     "restore": {
       "button": {
@@ -259,7 +268,15 @@
       "knowledgeNote": "ワークスペースナレッジ機能。",
       "openViewedImage": "閲覧した画像を新しいタブで開く"
     },
-    "viaAgent": "{agent}経由"
+    "viaAgent": "{agent}経由",
+    "job": {
+      "undo": "元に戻す",
+      "undoConfirm": "この編集で変わった部分を元に戻しますか?",
+      "undoYes": "元に戻す",
+      "undoNo": "そのまま",
+      "undone": "{reverted} 件を復元しました。その後編集された {skipped} 件はそのままです。",
+      "undoFailed": "編集を元に戻せませんでした。"
+    }
   },
   "comments": {
     "title": "コメント",
@@ -594,6 +611,8 @@
       "waiting": "あなたの確認を待っています…",
       "allow": "許可",
       "deny": "拒否",
+      "notePlaceholder": "任意：代わりに何をしてほしいか markoto に伝えてから「拒否」",
+      "noteLabel": "拒否時の markoto へのメモ",
       "tools": {
         "view_other_document": "markoto が「{target}」を読もうとしています。",
         "list_my_documents": "markoto があなたのドキュメント一覧を取得しようとしています。",
@@ -606,6 +625,24 @@
         "fetch_url": "markoto が {target} を開こうとしています",
         "view_image": "markoto が画像 {target} を読み込もうとしています",
         "generic": "markoto が {tool} を使おうとしています。"
+      },
+      "job": {
+        "question": "{what}: {cost}、{minutes}。",
+        "reason": "バックグラウンドで実行されます。キャンセルでき、アクティビティログから元に戻せます。",
+        "start": "開始",
+        "cancel": "キャンセル",
+        "cost": "約 {cost}",
+        "costShare": "約 {cost}(今月の割り当ての {share})",
+        "tokens": "ご自身のキーで約 {tokens} トークン",
+        "minutes": "約 {minutes} 分",
+        "modes": {
+          "translateTo": "{count} セクションを{language}に翻訳",
+          "translate": "{count} セクションを翻訳",
+          "rewrite": "{count} セクションを書き直す",
+          "terminology": "{count} セクションの用語を更新",
+          "summarise": "{count} 章を要約",
+          "comment": "{count} セクションをレビュー"
+        }
       }
     },
     "placeholder": "markotoに質問…",
@@ -758,7 +795,38 @@
       "replyCommentAny": "コメントに返信中…",
       "resolveComment": "コメントを解決中…",
       "reopenComment": "コメントを再開中…",
-      "deleteComment": "コメントを削除中…"
+      "deleteComment": "コメントを削除中…",
+      "scanDocument": "ドキュメントを走査中…",
+      "previewJob": "サンプルのセクションで変更を試しています…",
+      "startJob": "バックグラウンド編集を開始中…",
+      "jobProgress": "バックグラウンド編集: {total} 件中 {done} 件完了",
+      "jobStatus": "バックグラウンド編集を確認中…"
+    },
+    "job": {
+      "label": "バックグラウンド編集",
+      "modes": {
+        "translate": "翻訳",
+        "rewrite": "書き直し",
+        "terminology": "用語",
+        "summarise": "要約",
+        "comment": "レビュー"
+      },
+      "progress": "{total} 件中 {done} 件",
+      "working": "作業中: {heading}",
+      "cost": "これまでの費用: {cost}",
+      "cancel": "キャンセル",
+      "resume": "再開",
+      "undo": "元に戻す",
+      "dismiss": "閉じる",
+      "done": "完了: {total} 件中 {done} 件を変更しました。",
+      "cancelled": "{total} 件中 {done} 件でキャンセルしました。",
+      "paused": "一時停止: AI の割り当てを使い切りました。",
+      "interrupted": "中断されました。再開して続けてください。",
+      "failed": "バックグラウンド編集が停止しました。{reason}",
+      "reverted": "元に戻しました。",
+      "undone": "元に戻しました: {count} 件を復元しました。",
+      "skipped": "{count} 件はそのままにしました。",
+      "flagged": "{count} 件は確認が必要です。"
     }
   },
   "mobileTabBar": {
@@ -1948,7 +2016,7 @@
       "purpose": {
         "ovh_postgres": "アプリケーションのメインデータベース、Y.js のドキュメント状態、ナレッジの埋め込み",
         "ovh_object_storage": "画像のアップロード、ナレッジベースの元ファイル（処理後に削除）、データベースのバックアップ",
-        "mistral_ai": "文章作成アシスタントの AI テキスト生成：無料の AI 枠（Z.ai GLM-5.3 Flash。Mistral が提供・処理し、Z.ai にはデータが渡りません）と、フォールバックとしての Mistral Small。音声の文字起こし（Voxtral）。すべてのリクエストは Mistral の EU エンドポイント（EU および EFTA のデータセンター）に送られます",
+        "mistral_ai": "無料の AI 枠を含む、文章作成アシスタントの AI テキスト生成：Mistral が提供・処理するオープンウェイトモデルと Mistral のモデル（現在は DeepSeek V4.1 Flash、GLM-5.3 Flash、Mistral Large 4。各モデルの開発元にはデータが渡りません）。音声の文字起こし（Voxtral）。すべてのリクエストは Mistral の EU エンドポイント（EU および EFTA のデータセンター）に送られます",
         "jina_ai": "ナレッジベース（RAG）用の埋め込みの生成。URL 取得ツールでの単一 URL のページ内容の抽出（Jina Reader。URL は独自の AI プロバイダーを使うユーザーを含め、すべてのユーザーについて送信されます）",
         "staan": "AI 文章作成アシスタントのウェブ検索（検索語は独自の AI プロバイダーを使うユーザーを含め、すべてのユーザーについて送信されます）。独自の欧州検索インデックスを使用（EU 内のみでルーティング）",
         "bfl": "FLUX による画像生成（データ処理は EU に固定）",
@@ -2112,6 +2180,8 @@
       "membersPerWorkspace": "このワークスペースはプランのメンバー上限に達しました。",
       "savedThemes": "プランで保存できるテーマの上限に達しました。新しいテーマを保存するには、いずれかを削除してください。",
       "importMaxBytes": "このファイルは、プランでインポートできるサイズを超えています。",
+      "aiJobUnitsPerJob": "このジョブはプランの上限を超えています。セクションを減らしてください。",
+      "aiJobsPerDay": "プランに含まれる本日の AI ジョブを使い切りました。明日もう一度お試しください。",
       "historyEntry": "この変更は、このドキュメントのプランに含まれる履歴より古いものです。",
       "mcpToolCallsPerDay": "プランに含まれる本日の MCP ツール呼び出しを使い切りました。明日もう一度お試しください。"
     },
@@ -2193,6 +2263,8 @@
       "baseUrlHint": "プロバイダーの OpenAI 互換 API のルート。通常は /v1 で終わります。",
       "model": "モデル",
       "modelPlaceholder": "プロバイダーのモデル ID",
+      "fastModel": "高速モデル（任意）",
+      "fastModelHint": "同じプロバイダーとキーで使う、安くて速いモデル。大きな委任編集と Web 要約に使います。空欄 = 上のモデル。",
       "suggestions": "おすすめのモデル：{list}",
       "apiKey": "API キー",
       "apiKeyKeep": "空欄のままにすると保存済みのキーを使い続けます。URL を変更する場合は必須です。",
@@ -3132,6 +3204,8 @@
       "image-gen": "画像生成",
       "embeddings": "ナレッジの埋め込み",
       "design-import": "ドキュメントからデザイン",
+      "delegate-rewrite": "委任された書き換え",
+      "utility": "Web要約",
       "other": "その他"
     },
     "investor": {

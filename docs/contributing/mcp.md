@@ -72,6 +72,10 @@ activity_log.actor_principal = 'mcp:<sid>'
 3. Add the tool to `MCP_TOOL_CLASSES` in `server/mcp/lib/toolClasses.ts`; `tests/unit/mcp/mcpToolClasses.test.ts` fails without it. An unlisted tool counts as `write`.
 4. If it costs platform money or renderer time, give it an extra limit through `admitToolCall`.
 
+The section tools of the loop have wrappers ([ai-tools.md](ai-tools.md), "Long documents: sections"): `outline`, `read_section` and `search_document` (class `read`, `documents:read`), `replace_section`, `insert_markdown`, `move_section`, `swap_sections`, `delete_section`, `set_heading`, `replace_all` and `edit_lines` (class `write`). They spread the in-app argument schema plus `doc_id`. Section ids (`s-12`) live on the pooled connection of the MCP session (`mcp:{mcpSessionId}`), so ids from one `outline` call stay valid for later calls in the same MCP session, and are unknown in a new one.
+
+Not every loop tool has a wrapper. `load_skill` has none (an MCP client brings its own instructions). `delegate_scan` and `delegate_rewrite` (delegated jobs, `server/utils/ai/jobs/`) stay in-app for now: an MCP client is its own planner and can call the section tools itself, a job's cost confirmation goes through the prompt bar (MCP has no channel to ask the person), and a job outlives the call that started it, which the MCP tool shape has no way to report. A later version may offer them as a `cost`-class tool with an explicit budget argument.
+
 ## Limits of the current design
 
 The session bindings live in Valkey, but the toolkit's own sessions are per process. Running several app instances needs sticky routing for `/mcp` (or a shared toolkit session store). MCP tool calls have no abort signal; web tools rely on upstream timeouts.

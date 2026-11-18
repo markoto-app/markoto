@@ -1,0 +1,1 @@
+ALTER TABLE "user_ai_providers" ADD COLUMN "fast_model" text;

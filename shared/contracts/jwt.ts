@@ -94,8 +94,19 @@ export const SYNTHETIC_USER_ID_PREFIXES = [
   // activity-log rows stay attributable to the originating MCP
   // session. Real-user attribution is recoverable via the
   // `mcp_sessions` table.
-  'mcp:'
+  'mcp:',
+  // Delegated AI edits: the job engine's own connection, one per job
+  // (`server/utils/ai/jobs/engine.ts`). Activity rows join `ai_jobs.id`
+  // for the initiating user. The job re-checks the initiator's edit
+  // right before every unit it applies.
+  'ai-job:'
 ] as const
+
+/** Build the synthetic userId of a delegated AI job's connection. Used by
+ *  `server/utils/ai/jobs/engine.ts`. */
+export function aiJobClientUserId(jobId: string): `ai-job:${string}` {
+  return `ai-job:${jobId}`
+}
 
 /** Build the synthetic userId for an AI client session. Used by
  *  `server/utils/ai/aiClient.ts`. */

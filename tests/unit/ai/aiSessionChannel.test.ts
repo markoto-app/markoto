@@ -52,8 +52,8 @@ describe('AiSessionChannel', () => {
       return s
     })
     expect(snap.confirmation).toMatchObject({ tool: 'view_other_document', target: 'Q3 plan' })
-    expect(await answerSessionConfirmation('s1', snap.confirmation?.id ?? '', true, store)).toBe(true)
-    expect(await pending).toBe(true)
+    expect(await answerSessionConfirmation('s1', snap.confirmation?.id ?? '', { allow: true }, store)).toBe(true)
+    expect(await pending).toEqual({ allowed: true, note: null })
     expect((await readSessionChannel('s1', store))?.confirmation).toBe(null)
   })
 
@@ -68,13 +68,43 @@ describe('AiSessionChannel', () => {
       return s
     })
     const id = snap.confirmation?.id ?? ''
-    expect(await answerSessionConfirmation('s1', 'stale-id', true, store)).toBe(false)
-    expect(await answerSessionConfirmation('s1', id, false, store)).toBe(true)
-    expect(await answerSessionConfirmation('s1', id, true, store)).toBe(false)
-    expect(await pending).toBe(false)
+    expect(await answerSessionConfirmation('s1', 'stale-id', { allow: true }, store)).toBe(false)
+    expect(await answerSessionConfirmation('s1', id, { allow: false }, store)).toBe(true)
+    expect(await answerSessionConfirmation('s1', id, { allow: true }, store)).toBe(false)
+    expect(await pending).toEqual({ allowed: false, note: null })
 
     const timedOut = await ch.requestConfirmation({ tool: 'web_search', target: 'y' }, new AbortController().signal, 50)
-    expect(timedOut).toBe(false)
+    expect(timedOut).toEqual({ allowed: false, note: null })
+  })
+
+  it('confirmation: a deny carries the initiator\'s note, trimmed and bounded; an allow drops it', async () => {
+    const store = createMemoryChannelStore()
+    const ch = new AiSessionChannel('s1', store)
+    await ch.open(meta)
+    const ask = async () => {
+      const pending = ch.requestConfirmation({ tool: 'web_search', target: 'q' }, new AbortController().signal, 5_000)
+      const snap = await vi.waitFor(async () => {
+        const s = await readSessionChannel('s1', store)
+        if (!s?.confirmation) throw new Error('not yet')
+        return s
+      })
+      return { pending, id: snap.confirmation?.id ?? '' }
+    }
+    const first = await ask()
+    expect(await answerSessionConfirmation('s1', first.id, { allow: false, note: '  No, search for pricing instead  ' }, store)).toBe(true)
+    expect(await first.pending).toEqual({ allowed: false, note: 'No, search for pricing instead' })
+
+    const second = await ask()
+    expect(await answerSessionConfirmation('s1', second.id, { allow: false, note: 'x'.repeat(500) }, store)).toBe(true)
+    expect((await second.pending).note).toHaveLength(300)
+
+    const third = await ask()
+    expect(await answerSessionConfirmation('s1', third.id, { allow: true, note: 'ignored' }, store)).toBe(true)
+    expect(await third.pending).toEqual({ allowed: true, note: null })
+
+    const fourth = await ask()
+    expect(await answerSessionConfirmation('s1', fourth.id, { allow: false, note: '   ' }, store)).toBe(true)
+    expect(await fourth.pending).toEqual({ allowed: false, note: null })
   })
 
   it('confirmation: abort ends the wait with false', async () => {
@@ -83,7 +113,7 @@ describe('AiSessionChannel', () => {
     const ac = new AbortController()
     const pending = ch.requestConfirmation({ tool: 'web_search', target: 'z' }, ac.signal, 60_000)
     setTimeout(() => ac.abort(), 20)
-    expect(await pending).toBe(false)
+    expect(await pending).toEqual({ allowed: false, note: null })
   })
 
   it('fails closed when the store cannot hold the request', async () => {
@@ -95,7 +125,7 @@ describe('AiSessionChannel', () => {
       }
     }
     const ch = new AiSessionChannel('s1', broken)
-    expect(await ch.requestConfirmation({ tool: 'web_search', target: 'q' }, new AbortController().signal, 1_000)).toBe(false)
+    expect(await ch.requestConfirmation({ tool: 'web_search', target: 'q' }, new AbortController().signal, 1_000)).toEqual({ allowed: false, note: null })
   })
 
   it('an expired request cannot be answered', async () => {
@@ -111,7 +141,33 @@ describe('AiSessionChannel', () => {
       return s
     })
     now = 2_000
-    expect(await answerSessionConfirmation('s1', snap.confirmation?.id ?? '', true, store, clock)).toBe(false)
-    expect(await pending).toBe(false)
+    expect(await answerSessionConfirmation('s1', snap.confirmation?.id ?? '', { allow: true }, store, clock)).toBe(false)
+    expect(await pending).toEqual({ allowed: false, note: null })
+  })
+})
+
+describe('job confirmations (delegated jobs)', () => {
+  const job = { mode: 'translate' as const, units: 152, usd: 0.11, minutes: 4.8, allowanceShare: 0.22, targetLanguage: 'English', inputTokens: 600_000, outputTokens: 125_000 }
+
+  it('carries the estimate to the initiator and a deny note back', async () => {
+    const store = createMemoryChannelStore()
+    const ch = new AiSessionChannel('s1', store)
+    await ch.open(meta)
+    const pending = ch.requestConfirmation({ tool: 'delegate_rewrite', target: null, kind: 'job', job }, new AbortController().signal, 5_000)
+    const snap = await vi.waitFor(async () => {
+      const s = await readSessionChannel('s1', store)
+      if (!s?.confirmation) throw new Error('not yet')
+      return s
+    })
+    expect(snap.confirmation).toMatchObject({ tool: 'delegate_rewrite', kind: 'job', job })
+    expect(await answerSessionConfirmation('s1', snap.confirmation!.id, { allow: false, note: 'Only chapter 3' }, store)).toBe(true)
+    expect(await pending).toEqual({ allowed: false, note: 'Only chapter 3' })
+  })
+
+  it('a job confirmation with unreadable details is not shown (it times out as a deny)', async () => {
+    const store = createMemoryChannelStore()
+    await store.set('ai:session-channel:s1:meta', JSON.stringify(meta), 1000)
+    await store.set('ai:session-channel:s1:confirm', JSON.stringify({ id: 'c1', tool: 'delegate_rewrite', target: null, expiresAt: Date.now() + 1000, kind: 'job', job: { mode: 'delete_all' } }), 1000)
+    expect((await readSessionChannel('s1', store))?.confirmation).toBeNull()
   })
 })

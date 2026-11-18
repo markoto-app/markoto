@@ -3,6 +3,7 @@ import type OpenAI from 'openai'
 import type { DesignImportErrorCode, DesignImportExt } from '~~/shared/config/designImport'
 import { DESIGN_IMPORT_MAX_ROUNDS } from '~~/shared/config/designImport'
 import { litellmCompletion } from '../litellm/createCompletion'
+import { modelRequestParams } from '../litellm/modelParams'
 import { FEATURE_TAGS, featureMetadata } from '../litellm/featureTags'
 import { isBudgetExceededError } from '../litellm/userKeys'
 import { isFreeAllowanceExhaustedError } from '../litellm/freeTierTeam'
@@ -50,7 +51,7 @@ async function callModel(args: StartRunArgs, messages: OpenAI.Chat.Completions.C
     messages,
     tools: [proposeDesignTool()],
     tool_choice: 'required',
-    temperature: 0,
+    ...modelRequestParams(fields.model, { temperature: 0, purpose: 'subcall' }),
     max_tokens: MAX_OUTPUT_TOKENS,
     ...featureMetadata(FEATURE_TAGS.designImport, { userId: args.userId })
   }, { signal }))
