@@ -327,6 +327,8 @@
     "title": "导入文档",
     "description": "将文件转换为 Markdown 并加载到编辑器中。",
     "selectFile": "点击选择文件",
+    "dropHere": "将文件拖放到此处",
+    "removeFile": "移除文件",
     "changeFile": "选择其他文件",
     "formats": "支持：Markdown、DOCX、PDF、PPTX、XLSX、XLS、HTML、EPUB",
     "import": "导入",

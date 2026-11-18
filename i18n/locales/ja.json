@@ -327,6 +327,8 @@
     "title": "ドキュメントをインポート",
     "description": "ファイルをMarkdownに変換してエディターに読み込みます。",
     "selectFile": "クリックしてファイルを選択",
+    "dropHere": "ここにファイルをドロップ",
+    "removeFile": "ファイルを削除",
     "changeFile": "別のファイルを選択",
     "formats": "対応形式：Markdown、DOCX、PDF、PPTX、XLSX、XLS、HTML、EPUB",
     "import": "インポート",

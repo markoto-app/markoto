@@ -327,6 +327,8 @@
     "title": "Dokument importieren",
     "description": "Konvertiere eine Datei in Markdown und lade sie in den Editor.",
     "selectFile": "Klicken, um eine Datei auszuwählen",
+    "dropHere": "Datei hier ablegen",
+    "removeFile": "Datei entfernen",
     "changeFile": "Eine andere Datei wählen",
     "formats": "Unterstützt: Markdown, DOCX, PDF, PPTX, XLSX, XLS, HTML, EPUB",
     "import": "Importieren",
