@@ -3,17 +3,15 @@ import type { Awareness } from 'y-protocols/awareness'
 import type { ApiResponse } from '~/utils/api/client'
 import { normalizeAwarenessUser } from '~~/shared/utils/documents/awarenessUser'
 
-// Shows:
-//   1. Live editors: full opacity, colored ring. A live editor whose tab is
-//      hidden (`away` in their awareness state, see
-//      utils/collab/hiddenTabPause.ts) is dimmed and marked away.
-//   2. Offline workspace members with access: 50% opacity, no ring (fetched
-//      only for workspace docs; standalone/anonymous docs show live only).
+// Shows only the people who have this document open right now (colored
+// ring). A live editor whose tab is hidden (`away` in their awareness
+// state, see utils/collab/hiddenTabPause.ts) is dimmed and marked away.
+// Members who could open it but don't are not listed.
 //
-// Live entries are matched to the roster by userId, so a live roster member
-// gets the colored ring and drops out of the offline list. Signed-in users
-// outside the workspace (open-edit/open-view docs) render live-only with a
-// "Guest" tooltip; anonymous editors stay "Anonymous".
+// The workspace roster (fetched for workspace docs only) just labels a live
+// member with their role. Signed-in users outside the workspace
+// (open-edit/open-view docs) get a "Guest" tooltip; anonymous editors stay
+// "Anonymous".
 
 const props = defineProps<{
   awareness: Awareness
@@ -57,15 +55,7 @@ type WorkspaceRole = 'admin' | 'editor' | 'viewer'
 
 type RosterMember = ApiResponse<'/api/docs/:docId/members', 'get'>['members'][number]
 
-interface OfflineEntry {
-  kind: 'offline'
-  userId: number
-  name: string
-  role: WorkspaceRole
-  isDocOwner: boolean
-}
-
-type DisplayEntry = LiveEntry | OfflineEntry
+type DisplayEntry = LiveEntry
 
 const { user: sessionUser } = useUserSession()
 const myUserId = computed(() => sessionUser.value?.id ?? null)
@@ -146,29 +136,12 @@ onUnmounted(() => {
 
 watch(() => props.docId, () => loadRoster())
 
-// Anyone in the roster who isn't live gets an offline entry. The local viewer
-// never appears (their own presence is in the editor). Live entries come first.
-const merged = computed<DisplayEntry[]>(() => {
-  const liveUserIds = new Set<number>()
-  for (const e of liveEntries.value) {
-    if (e.userId !== null) liveUserIds.add(e.userId)
-  }
-  const me = myUserId.value
-  const offline: OfflineEntry[] = roster.value
-    .filter(m => !liveUserIds.has(m.userId) && m.userId !== me)
-    .map(m => ({
-      kind: 'offline',
-      userId: m.userId,
-      name: m.name,
-      role: m.role,
-      isDocOwner: m.isDocOwner
-    }))
-  return [...liveEntries.value, ...offline]
-})
+// The local viewer never appears (their own presence is in the editor).
+const merged = computed<DisplayEntry[]>(() => liveEntries.value)
 
 // Tooltip: live roster member "Alice Test · Editor"; live non-roster
 // "Bob · Guest" ("Anonymous" if unauthenticated); AI helper uses the
-// ai.helpingTooltip key; offline "Alice Test · Editor (offline)".
+// ai.helpingTooltip key.
 function roleLabel(role: WorkspaceRole) {
   if (role === 'admin') return t('workspace.roles.admin')
   if (role === 'editor') return t('workspace.roles.editor')
@@ -182,7 +155,7 @@ function parseUserIdFromAwareness(raw: unknown): number | null {
 }
 
 function tooltipFor(e: DisplayEntry): string {
-  if (e.kind === 'live' && e.isAI) {
+  if (e.isAI) {
     // Deliberately generic ("markoto is helping Joel, markoto is working…"):
     // what the AI reads or queries is private to whoever started it, so
     // awareness carries only the phase.
@@ -194,11 +167,8 @@ function tooltipFor(e: DisplayEntry): string {
     }
     return base
   }
-  if (e.kind === 'live') {
-    const away = e.away ? ` (${t('presence.away')})` : ''
-    return `${liveHumanLabel(e)}${away}`
-  }
-  return `${e.name} · ${roleLabel(e.role)} (${t('presence.offline')})`
+  const away = e.away ? ` (${t('presence.away')})` : ''
+  return `${liveHumanLabel(e)}${away}`
 }
 
 function liveHumanLabel(e: LiveEntry): string {
@@ -232,13 +202,12 @@ function liveSeed(e: LiveEntry): string {
     <div class="flex flex-row flex-nowrap -space-x-1.5">
       <UTooltip
         v-for="e in merged.slice(0, 7)"
-        :key="e.kind === 'live' ? `l-${e.clientId}` : `o-${e.userId}`"
+        :key="`l-${e.clientId}`"
         :text="tooltipFor(e)"
       >
-        <!-- Live: colored ring + full opacity; offline: no ring, 50% opacity.
+        <!-- Colored ring; dimmed while the tab is hidden.
              `inline-flex` keeps wrappers inline even if the tooltip renders a block host. -->
         <div
-          v-if="e.kind === 'live'"
           class="relative inline-flex rounded-full ring-2 shrink-0 transition-opacity duration-200"
           :class="{ 'ai-pulse': e.isAI && isActivePhase(e.aiStatus), 'opacity-60': e.away }"
           :data-away="e.away ? 'true' : undefined"
@@ -256,18 +225,6 @@ function liveSeed(e: LiveEntry): string {
             :seed="liveSeed(e)"
             :name="e.user.name"
             :size="24"
-          />
-        </div>
-
-        <div
-          v-else
-          class="relative inline-flex rounded-full ring-2 ring-default shrink-0 opacity-50 transition-opacity duration-200"
-        >
-          <CommonUserAvatar
-            :seed="avatarSeedFor({ id: e.userId })"
-            :name="e.name"
-            :size="24"
-            class="grayscale"
           />
         </div>
       </UTooltip>

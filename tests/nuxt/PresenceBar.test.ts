@@ -126,3 +126,29 @@ describe('<PresenceBar>: away', () => {
     expect(wrapper.find('[data-away="true"]').exists()).toBe(false)
   })
 })
+
+describe('<PresenceBar>: only people who have the document open', () => {
+  it('does not list workspace members who are not connected; a connected one gets their role', async () => {
+    registerEndpoint('/api/docs/doc-roster/members', () => ({
+      members: [
+        { userId: 11, name: 'Bob Offline', role: 'editor', isDocOwner: false },
+        { userId: 12, name: 'Cleo Live', role: 'admin', isDocOwner: true }
+      ]
+    }))
+    const awareness = new Awareness(new Y.Doc())
+    const wrapper = await mountSuspended(defineComponent({
+      render: () => h(TooltipProvider, null, {
+        default: () => h(PresenceBar, { awareness, docId: 'doc-roster' })
+      })
+    }))
+    await nextTick()
+    expect(wrapper.findAll('[data-testid="user-avatar"]')).toHaveLength(0)
+
+    receiveRemoteState(awareness, { user: { id: 12, name: 'Cleo Live', color: '#336699' } })
+    await nextTick()
+    const avatars = wrapper.findAll('[data-testid="user-avatar"]')
+    expect(avatars).toHaveLength(1)
+    expect(avatars[0]!.attributes('aria-label')).toBe('Cleo Live')
+    expect(wrapper.html()).not.toContain('Bob Offline')
+  })
+})
