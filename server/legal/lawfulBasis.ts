@@ -70,26 +70,18 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     // and body (`document_search`) that the document search reads. Deleted
     // with the document. `document_folders`: the folders documents are
     // filed in (name, place in the tree, who created it), deleted with the
-    // workspace or the account they belong to.
-    dataCategories: ['document_content', 'document_metadata', 'images', 'edit_attribution', 'guest_document_shares', 'workspace_brand_kit', 'document_search_index', 'document_folders'],
+    // workspace or the account they belong to. `import_records`: bulk
+    // imports (server/utils/imports/) are document storage the user asked
+    // for: the names and paths of the files, the repository URL of a GitHub
+    // import, which document each file became and how it ended. No file
+    // contents (uploads are staged in object storage only until the worker
+    // read them); kept 30 days after the import, or until the account goes.
+    // A GitHub import fetches the public repository from GitHub on the
+    // user's instruction and sends nothing about the user, so GitHub is not
+    // a sub-processor. All of this sits inside the existing purpose, so the
+    // policy version (shared/legal/versions.ts) is unchanged (owner decision).
+    dataCategories: ['document_content', 'document_metadata', 'images', 'edit_attribution', 'guest_document_shares', 'workspace_brand_kit', 'document_search_index', 'document_folders', 'import_records'],
     retention: 'until_deletion',
-    subProcessors: ['ovh_postgres', 'ovh_object_storage']
-  },
-  {
-    // Bulk imports (server/utils/imports/): the record of an import the
-    // user started: the names and paths of the files, the repository URL
-    // of a GitHub import, which document each file became and how it
-    // ended. No file contents: uploaded files are staged in object storage
-    // only until the import worker has read them. The documents created
-    // are covered by `document_storage`. A GitHub import fetches the public
-    // repository from GitHub on the user's instruction; nothing about the
-    // user is sent to GitHub, so GitHub is not a sub-processor here. Records
-    // are deleted 30 days after the import finishes, or with the account.
-    id: 'bulk_imports',
-    label: 'Importing files and repositories',
-    basis: 'contract',
-    dataCategories: ['import_file_names', 'import_repository_url', 'import_outcomes'],
-    retention: 30,
     subProcessors: ['ovh_postgres', 'ovh_object_storage']
   },
   {
