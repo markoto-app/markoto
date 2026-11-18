@@ -61,7 +61,6 @@ describe('taint sources', () => {
     ['fetch_url', { url: 'https://a.example' }],
     ['view_image', { src: 'https://a.example/x.png' }],
     ['list_workspace_documents', {}],
-    ['search_documents', { query: 'q', workspace_id: 'personal' }],
     ['list_folders', { workspace_id: 'ws-other' }]
   ])('%s taints the session', async (name, args) => {
     const { guard } = makeGuard()
@@ -73,6 +72,25 @@ describe('taint sources', () => {
     const { guard } = makeGuard({}, { workspaceHasOtherEditors: async () => false })
     await guard.afterTool('list_workspace_documents', {}, { isError: false })
     expect(guard.tainted).toBe(false)
+  })
+
+  it('search results taint unless every hit is the invoker\'s solo document', async () => {
+    const hits = (...ids: string[]) => JSON.stringify({ query: 'q', results: ids.map(id => ({ doc_id: id, title: id, snippet: '' })) })
+    const deps = { isDocSolo: async (ref: string) => ref.startsWith('mine') }
+    const own = makeGuard({}, deps).guard
+    await own.afterTool('search_documents', { query: 'q' }, { isError: false, content: hits('mine-1', 'mine-2') })
+    await own.afterTool('search_documents', { query: 'q' }, { isError: false, content: 'No documents match "q". Try other words.' })
+    expect(own.tainted).toBe(false)
+
+    const mixed = makeGuard({}, deps).guard
+    await mixed.afterTool('search_documents', { query: 'q' }, { isError: false, content: hits('mine-1', 'theirs') })
+    expect(mixed.tainted).toBe(true)
+
+    for (const content of [undefined, 'not json', '{"results":[{"title":"no id"}]}']) {
+      const odd = makeGuard({}, deps).guard
+      await odd.afterTool('search_documents', { query: 'q' }, { isError: false, content })
+      expect(odd.tainted).toBe(true)
+    }
   })
 
   it('folder names taint only when they can be someone else\'s', async () => {
