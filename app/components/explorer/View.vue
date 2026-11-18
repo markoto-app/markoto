@@ -163,20 +163,16 @@ function cancelRename(key: string) {
 }
 
 // ---------- navigation ----------
-// Opened from the keyboard: once the folder's list is there, the focus goes
-// into it (else it would drop to the page and need a Tab back).
+// Opened from the keyboard: once the folder's list has loaded (even empty),
+// the focus goes into it (else it drops to the page and needs a Tab back).
 let focusAfterOpen = false
-// Watches the loading flag too: an empty folder's keys stay [] after loading.
 watch([keys, data.docs.isLoading], ([k, loading]) => {
   if (!focusAfterOpen || loading) return
   focusAfterOpen = false
   void nextTick(() => {
-    if (k[0]) {
-      selectOnly(k[0])
-      focusRow(k[0])
-    } else {
-      scrollEl.value?.parentElement?.focus()
-    }
+    if (!k[0]) return scrollEl.value?.parentElement?.focus()
+    selectOnly(k[0])
+    focusRow(k[0])
   })
 })
 function openFolder(folderId: string | null) {
