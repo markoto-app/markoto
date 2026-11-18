@@ -83,10 +83,14 @@ tab shows it as *started a large AI edit* and, when it is finished,
 3. Confirm with **Undo** (*Restore what this job changed?*), or keep it with **Keep**.
 
 markoto puts back the original text of every section the job changed.
+Fixes markoto made to those sections in the same request, right after
+the job (for example making a term consistent across chapters), count as
+part of the job and are undone with it.
 **Sections someone edited after the job are left as they are**, so
 undoing never throws away later work by you or a collaborator. A message
-tells you how many parts were restored and how many stayed because they
-were edited since, and the Activity tab records *undid a large AI edit*.
+tells you how many parts were restored, and names the parts that stayed
+and why (edited since, deleted, or older than 7 days). The Activity tab
+records *undid a large AI edit*.
 
 - The person who started the job can also press **Undo job** in the progress panel.
 - Anyone who can edit the document can undo a job from the Activity tab.

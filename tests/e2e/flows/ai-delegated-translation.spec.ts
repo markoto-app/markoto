@@ -106,6 +106,8 @@ test('Translate many sections with AI', async ({ flow, editor }, testInfo) => {
     throw new Error(`The AI session ended (${outcome ?? 'no outcome'}${message ? `: ${message}` : ''}) without asking to start a background job`)
   }
   await expect(page.locator('[data-testid="ai-confirm-question"]')).toContainText(/min/)
+  // The target language reads in the UI language, whatever the planner wrote ("en", "English").
+  await expect(page.locator('[data-testid="ai-confirm-question"]')).toContainText('to English')
   await expect(confirm).not.toContainText('$')
   await flow.click('Start the translation', page.locator('[data-testid="ai-confirm-allow"]'), {
     result: 'The prompt bar showed how many sections change and how long it takes before anything changed.'
@@ -143,7 +145,7 @@ test('Translate many sections with AI', async ({ flow, editor }, testInfo) => {
   })
   await flow.click('Confirm', page.locator('[data-testid^="activity-row-undo-job-yes-"]').first(), {
     force: editor.isMobile,
-    result: 'The chapters are German again. Parts someone edited after the job would have stayed as they are.'
+    result: 'The chapters are German again, together with any fixes markoto made to them right after the job. Parts someone else edited after the job would have stayed as they are.'
   })
   await expect.poll(() => editor.page.docText(), { timeout: 30_000 }).toBe(DRAFT)
   await editor.page.dismissToasts()
