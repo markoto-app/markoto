@@ -234,7 +234,7 @@ describe('delete a folder tree', () => {
     await moveDocToFolder(docAs(editorsDoc.docId), 'top')
 
     expect(await folderDeletePreview(editor.id, 'top')).toEqual({ folders: 2, documents: 2, blocked: 1 })
-    await expect(deleteFolderTree({ userId: editor.id, ip: null }, 'top')).rejects.toMatchObject({ statusCode: 409, data: { code: 'folder/delete-blocked', blocked: 1 } })
+    await expect(deleteFolderTree({ userId: editor.id, ip: null }, 'top')).rejects.toMatchObject({ statusCode: 403, data: { code: 'folder/delete-blocked', blocked: 1 } })
     expect(await folderExists('top')).toBe(true)
     expect(await docRow(editorsDoc.docId)).toBeDefined()
     await expect(deleteFolderTree({ userId: viewer.id, ip: null }, 'top')).rejects.toMatchObject({ data: { code: 'folder/not-found' } })
