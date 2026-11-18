@@ -24,6 +24,10 @@ import { createDocument } from '../documents/createDocument'
 import { seedDocContent } from '../documents/seedDocContent'
 import { indexNewDocument } from '../documents/searchIndex'
 import { deleteDocument } from '../documents/documentLifecycle'
+import { importBulkMarkdown } from '../documents/markdownImport'
+import { customCssAppOrigins } from '../rendering/themeCustomCss'
+import { lockedWorkspaceTheme } from '../brandKit/docBrand'
+import { getWorkspace } from '../../repos/workspaces'
 import { s3ObjectStore } from '../storage/objectStore'
 import { useLogger } from '../platform/logger'
 import { attachImportImages } from './importImages'
@@ -35,8 +39,9 @@ import { useEnv } from '~~/shared/env/load'
 import { classifyImportFile, importExtension, IMPORT_DOC_MAX_CHARS, IMPORT_FILE_MAX_BYTES, type ImportItemReason } from '~~/shared/config/imports'
 import { importBaseName, importFolderChain, linkFragment, resolveImportLink } from '~~/shared/utils/documents/importPaths'
 import { folderNameFromSegment } from '~~/shared/utils/documents/folderName'
-import { splitAnyFrontmatter } from '~~/shared/utils/markdown/markdownFrontmatter'
 import { DOC_TITLE_MAX_LENGTH } from '~~/shared/config/docCreate'
+import type { AudienceKind } from '~~/shared/audiences'
+import type { DocTheme } from '~~/shared/types/theme'
 
 const log = useLogger('import-worker')
 
@@ -85,6 +90,8 @@ interface JobContext {
   folders: Map<string, string | null>
   usedImages: Set<string>
   importMaxBytes: number
+  /** The target workspace locks its documents' design (an imported design is not applied). */
+  brandLocked: boolean
 }
 
 class ItemFailure extends Error {
@@ -138,17 +145,37 @@ function firstHeading(markdown: string): string | null {
   return null
 }
 
+/** What a file's frontmatter sets on its document, besides the text. */
+interface ImportedProperties {
+  title: string
+  description?: string
+  audience?: AudienceKind
+  language?: string
+  templateId?: string
+  theme?: DocTheme
+}
+
 /**
- * Title: the frontmatter's `title` (markoto's or a site generator's), else
- * the first `# heading`, else the file name. Returns the body without the
- * frontmatter block: in an imported repository it is metadata, not text.
+ * The document's text and properties. Frontmatter is never text: markoto's
+ * own (written by Download Markdown) gives every property it carries,
+ * validated for this document like the single-file import does
+ * (`importBulkMarkdown`); another tool's gives its title and description.
+ * Title fallback: the first `# heading`, else the file name. A design is not
+ * applied in a workspace that locks its design; a template only with a body
+ * (an empty document would get the template's starting text on first open).
  */
-function titleAndBody(markdown: string, path: string): { title: string, body: string } {
-  const split = splitAnyFrontmatter(markdown)
-  const body = split ? split.body : markdown
-  const fromFrontmatter = split && typeof split.data.title === 'string' ? split.data.title.trim() : ''
-  const title = fromFrontmatter || firstHeading(body) || importBaseName(path)
-  return { title: title.slice(0, DOC_TITLE_MAX_LENGTH), body }
+function propertiesAndBody(ctx: JobContext, markdown: string, path: string, docId: string): { properties: ImportedProperties, body: string } {
+  const imported = importBulkMarkdown(markdown, { docId, allowedOrigins: customCssAppOrigins() })
+  const body = imported.markdown
+  const from = imported.properties ?? {}
+  const title = (from.title || firstHeading(body) || importBaseName(path)).slice(0, DOC_TITLE_MAX_LENGTH)
+  const properties: ImportedProperties = { title }
+  if (from.description !== undefined) properties.description = from.description
+  if (from.audience !== undefined) properties.audience = from.audience as AudienceKind
+  if (from.language !== undefined) properties.language = from.language
+  if (from.templateId !== undefined && body.trim() !== '') properties.templateId = from.templateId
+  if (from.theme !== undefined && !ctx.brandLocked) properties.theme = from.theme
+  return { properties, body }
 }
 
 async function markdownOf(ctx: JobContext, item: ImportItemRow, bytes: Uint8Array): Promise<string> {
@@ -188,13 +215,13 @@ async function importOne(ctx: JobContext, item: ImportItemRow): Promise<void> {
   const docId = item.plannedDocId as string
   const bytes = await readItem(ctx, item)
   if (!bytes) throw new ItemFailure(archiveRef(item.s3Key) ? 'unreadable' : 'not-uploaded')
-  const { title, body } = titleAndBody(await markdownOf(ctx, item, bytes), item.relativePath)
+  const { properties, body } = propertiesAndBody(ctx, await markdownOf(ctx, item, bytes), item.relativePath, docId)
   if (body.length > IMPORT_DOC_MAX_CHARS) throw new ItemFailure('too-long')
 
   // A document left half-made by an interrupted run is made again.
   if (await docExists(docId)) await deleteDocument(by.doc(docId))
   const folderId = await folderFor(ctx, item.relativePath)
-  await createDocument({ owner: ctx.proofs.owner, docId, title, workspaceId: ctx.job.workspaceId, folderId })
+  await createDocument({ owner: ctx.proofs.owner, docId, workspaceId: ctx.job.workspaceId, folderId, ...properties })
   const doc = ctx.proofs.newDoc(docId)
 
   const result = await attachImportImages({
@@ -210,8 +237,15 @@ async function importOne(ctx: JobContext, item: ImportItemRow): Promise<void> {
       return readItem(ctx, image)
     }
   })
-  const yjsId = await seedDocContent(doc, result.markdown)
-  await indexNewDocument(doc, { title, body: result.markdown, yjsId })
+  // The live document carries the imported properties too (ymeta wins over the row).
+  const yjsId = await seedDocContent(doc, result.markdown, {
+    description: properties.description,
+    audience: properties.audience,
+    language: properties.language,
+    templateId: properties.templateId,
+    theme: properties.theme
+  })
+  await indexNewDocument(doc, { title: properties.title, body: result.markdown, yjsId })
   await finishJobItem(by, ctx.job.jobId, item.itemId, { status: 'done', docId, imagesSkipped: result.imagesSkipped })
 }
 
@@ -389,7 +423,17 @@ export async function processImportJob(job: ImportJobRow): Promise<void> {
     return
   }
   const caps = capsFor(await resolveUserPlan(job.userId))
-  const ctx: JobContext = { job, proofs, archives: new Map(), byPath: new Map(), folders: new Map(), usedImages: new Set(), importMaxBytes: caps.importMaxBytes }
+  const workspace = job.workspaceId !== null && 'workspaceId' in proofs.scope ? await getWorkspace(proofs.scope) : null
+  const ctx: JobContext = {
+    job,
+    proofs,
+    archives: new Map(),
+    byPath: new Map(),
+    folders: new Map(),
+    usedImages: new Set(),
+    importMaxBytes: caps.importMaxBytes,
+    brandLocked: workspace !== null && await lockedWorkspaceTheme(workspace) !== null
+  }
 
   const failure = await expandArchives(ctx, await listJobItems(by, job.jobId), { files: caps.importFilesPerJob, bytes: caps.importBytesPerJob })
   if (failure) {

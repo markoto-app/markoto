@@ -8,7 +8,7 @@ import { DOC_DESCRIPTION_MAX_LENGTH, DOC_TITLE_MAX_LENGTH } from '~~/shared/conf
 import { isBoundedJsonValue, META_THEME_MAX_DEPTH, META_THEME_MAX_NODES } from '~~/shared/utils/documents/ymetaValidation'
 import { adaptCustomCssToDoc, sanitizeCustomCss } from '~~/shared/utils/theme/customCss'
 import { themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
-import { splitMarkotoFrontmatter, type ImportedDocProperties } from '~~/shared/utils/markdown/markdownFrontmatter'
+import { splitAnyFrontmatter, splitMarkotoFrontmatter, type ImportedDocProperties } from '~~/shared/utils/markdown/markdownFrontmatter'
 
 /**
  * Server side of the Markdown import (`POST /api/import` with a `.md`
@@ -78,6 +78,33 @@ export function importMarkdownFile(
   const result: MarkdownImportResult = { markdown: split.body, properties }
   if (ignored.length > 0) result.ignored = ignored
   if (droppedCustomCssRules > 0) result.droppedCustomCssRules = droppedCustomCssRules
+  return result
+}
+
+/**
+ * Frontmatter of a file in a bulk import (folder, zip, GitHub repository),
+ * where the document is created from the file. markoto's own frontmatter
+ * goes through `importMarkdownFile` (every field validated for `docId`);
+ * another tool's (Hugo, Docusaurus, Nuxt Content, ...) is metadata, not
+ * text: it is stripped and only its `title` (clipped to the title limit)
+ * and `description` (left out when over the limit) are used. Without
+ * frontmatter the text is returned as it is.
+ */
+export function importBulkMarkdown(
+  text: string,
+  opts: { docId: string, allowedOrigins: readonly string[] }
+): MarkdownImportResult {
+  const markoto = importMarkdownFile(text, opts)
+  if (markoto.properties) return markoto
+  const split = splitAnyFrontmatter(text)
+  if (!split) return { markdown: text }
+  const properties: ImportedDocProperties = {}
+  const title = typeof split.data.title === 'string' ? split.data.title.trim().slice(0, DOC_TITLE_MAX_LENGTH) : ''
+  if (title) properties.title = title
+  const description = readString(split.data.description, DOC_DESCRIPTION_MAX_LENGTH, false)
+  if (description !== undefined) properties.description = description
+  const result: MarkdownImportResult = { markdown: split.body, properties }
+  if ('description' in split.data && description === undefined) result.ignored = ['description']
   return result
 }
 

@@ -7,6 +7,11 @@ import { stubEnv } from '../helpers/env'
 import { startFakeGithub, type FakeGithub } from '../helpers/fakeGithub'
 import { createImportJob, getImportJobForWorker, type NewImportItem } from '../../server/repos/imports'
 import { asUser, sys } from '../helpers/access'
+import * as Y from 'yjs'
+import { buildMarkdownExport } from '../../shared/utils/markdown/markdownFrontmatter'
+import { defaultTheme } from '../../shared/utils/theme/defaultTheme'
+import { THEME_PRESETS } from '../../shared/utils/theme/themePresets'
+import type { DocTheme } from '../../shared/types/theme'
 
 // The import worker against the real test stack: Postgres, SeaweedFS and
 // the markitdown container. `processImportJob` is called directly on a job
@@ -268,6 +273,108 @@ describe('import worker', () => {
     expect(doc).toMatchObject({ owner_id: editor.id, workspace_id: ws.workspaceId })
     const folder = (await testDb().query<{ workspace_id: string | null, owner_id: number | null }>('SELECT workspace_id, owner_id FROM folders WHERE folder_id = $1', [doc.folder_id])).rows[0]
     expect(folder).toEqual({ workspace_id: ws.workspaceId, owner_id: null })
+  })
+})
+
+/** The document row's properties and the live document's (ymeta) of an imported file. */
+async function propertiesOf(jobId: string, path: string) {
+  const item = (await items(jobId)).find(i => i.relative_path === path)
+  if (!item?.doc_id) throw new Error(`no document for ${path}`)
+  const row = (await testDb().query<{ title: string, description: string, audience: string, language: string, template_id: string, theme: DocTheme | null }>(
+    'SELECT title, description, audience, language, template_id, theme FROM documents WHERE doc_id = $1', [item.doc_id]
+  )).rows[0]!
+  const ydoc = new Y.Doc()
+  for (const row of await readYjsRows(item.doc_id)) Y.applyUpdate(ydoc, row.data)
+  const meta = ydoc.getMap('meta').toJSON() as Record<string, unknown>
+  const text = ydoc.getText('content').toString()
+  ydoc.destroy()
+  return { docId: item.doc_id, row, meta, text }
+}
+
+/** A markoto export (Download Markdown) of a document with its own design. */
+function markotoExport(overrides: { theme?: unknown } = {}): string {
+  const theme: DocTheme = structuredClone(defaultTheme)
+  theme.body.font = 'Lora'
+  theme.headings.color = '#123456'
+  theme.brand.logoUrl = '/api/files/origDoc123/logo.png'
+  theme.customCss = '.paged-doc h2 { letter-spacing: 0.02em; }'
+  return buildMarkdownExport('# Report\n\nThe body.\n', {
+    title: 'Q3 report',
+    description: 'Numbers for the board',
+    audience: 'business',
+    language: 'de',
+    templateId: 'report',
+    theme: (overrides.theme ?? theme) as DocTheme
+  })
+}
+
+describe('import worker: frontmatter', () => {
+  beforeEach(async () => {
+    await resetDb()
+    testStorageEnv()
+    stubAutoImports()
+  })
+
+  it('applies a markoto export: description, audience, language, template and design, in the row and the live document', async () => {
+    const alice = await createUser()
+    const jobId = 'fm-markoto'
+    await runJob(alice.id, { jobId, items: [await uploaded(jobId, 'q3.md', strToU8(markotoExport()))] })
+    const doc = await propertiesOf(jobId, 'q3.md')
+    expect(doc.row).toMatchObject({ title: 'Q3 report', description: 'Numbers for the board', audience: 'business', language: 'de', template_id: 'report' })
+    expect(doc.row.theme?.body.font).toBe('Lora')
+    expect(doc.row.theme?.headings.color).toBe('#123456')
+    expect(doc.row.theme?.customCss).toContain('letter-spacing')
+    // The original document's logo was not imported: the field is cleared.
+    expect(doc.row.theme?.brand.logoUrl).toBe('')
+    expect(doc.meta).toMatchObject({ description: 'Numbers for the board', audience: 'business', language: 'de', templateId: 'report' })
+    expect(doc.meta.theme).toEqual(doc.row.theme)
+    // Frontmatter is never text.
+    expect(doc.text).toBe('# Report\n\nThe body.\n')
+  })
+
+  it('keeps the workspace design when the workspace locks it', async () => {
+    const alice = await createUser()
+    const ws = await createWorkspace(alice.id)
+    const brand = THEME_PRESETS.find(p => p.id === 'modern')!.theme
+    await testDb().query('UPDATE workspaces SET default_theme = $2, brand_locked = true WHERE workspace_id = $1', [ws.workspaceId, JSON.stringify(brand)])
+    const jobId = 'fm-locked'
+    await runJob(alice.id, { jobId, workspaceId: ws.workspaceId, items: [await uploaded(jobId, 'q3.md', strToU8(markotoExport()))] })
+    const doc = await propertiesOf(jobId, 'q3.md')
+    expect(doc.row).toMatchObject({ description: 'Numbers for the board', audience: 'business', language: 'de' })
+    expect(doc.row.theme?.body.font).not.toBe('Lora')
+    expect(doc.meta.theme).toBeUndefined()
+    expect(doc.meta.description).toBe('Numbers for the board')
+  })
+
+  it('ignores an invalid design and keeps the valid properties', async () => {
+    const alice = await createUser()
+    const jobId = 'fm-invalid'
+    const broken = { ...structuredClone(defaultTheme), body: { ...defaultTheme.body, color: 'red; background: url(x)' } }
+    await runJob(alice.id, { jobId, items: [await uploaded(jobId, 'q3.md', strToU8(markotoExport({ theme: broken })))] })
+    const doc = await propertiesOf(jobId, 'q3.md')
+    expect(doc.row).toMatchObject({ description: 'Numbers for the board', audience: 'business', language: 'de' })
+    // No imported design: the document got the report template's design.
+    expect(doc.row.theme?.body.color).not.toBe('red; background: url(x)')
+    expect(doc.meta.theme).toBeUndefined()
+  })
+
+  it('takes only title and description from another tool\'s frontmatter', async () => {
+    const alice = await createUser()
+    const jobId = 'fm-foreign'
+    const hugo = '---\ntitle: Getting started\ndescription: First steps with the CLI\naudience: business\nlanguage: fr\nweight: 10\ntags: [cli]\n---\n\nInstall it.\n'
+    const tooLong = `---\ntitle: Long\ndescription: ${'x'.repeat(600)}\n---\nBody\n`
+    await runJob(alice.id, {
+      jobId,
+      items: [await uploaded(jobId, 'start.md', strToU8(hugo)), await uploaded(jobId, 'long.md', strToU8(tooLong))]
+    })
+    const start = await propertiesOf(jobId, 'start.md')
+    expect(start.row).toMatchObject({ title: 'Getting started', description: 'First steps with the CLI' })
+    expect(start.row.audience).not.toBe('business')
+    expect(start.row.language).not.toBe('fr')
+    expect(start.meta).toEqual({ description: 'First steps with the CLI' })
+    expect(start.text).toBe('Install it.\n')
+    const long = await propertiesOf(jobId, 'long.md')
+    expect(long.row).toMatchObject({ title: 'Long', description: '' })
   })
 })
 

@@ -64,6 +64,12 @@ export interface CreateDocumentParams {
    *  as the doc's first Y.js update. Mutually exclusive with `templateId`
    *  (a template seeds its body in the browser on first open). */
   content?: string
+  /**
+   * A design already validated for THIS document (imports: markoto's
+   * frontmatter, `server/utils/documents/markdownImport.ts`). Wins over
+   * every other source; with `themeId` / `themePreset` it is an error.
+   */
+  theme?: DocTheme
   /** A pre-chosen id (imports pick ids first so links between imported files can point at them). */
   docId?: string
   /** A longer body limit (imports); default `INITIAL_CONTENT_MAX_LENGTH`. */
@@ -86,6 +92,7 @@ export interface CreateDocumentResult {
  * status codes 400 / 401 / 403 / 404; HTTP and tool callers get the same errors.
  *
  * Theme precedence (first match wins):
+ *   0. `theme`: an imported design, validated by the caller
  *   1. `themeId`: caller's own saved-theme preset
  *   2. `themePreset`: built-in preset id
  *   3. The template's design (a template is a text + design bundle;
@@ -278,9 +285,11 @@ async function resolveTheme(
   workspace: WorkspaceAccess<'member'> | null,
   template: TemplateMeta | null
 ): Promise<ResolvedTheme | null> {
-  if (input.themeId !== undefined && input.themePreset !== undefined) {
-    throw createError({ statusCode: 400, message: 'Pass themeId OR themePreset, not both' })
+  const sources = [input.theme, input.themeId, input.themePreset].filter(v => v !== undefined).length
+  if (sources > 1) {
+    throw createError({ statusCode: 400, message: 'Pass one of theme, themeId OR themePreset, not more' })
   }
+  if (input.theme !== undefined) return { theme: input.theme, preset: null }
   if (input.themeId !== undefined) {
     if (owner == null) {
       throw createError({ statusCode: 401, message: 'Login required to use saved themes' })

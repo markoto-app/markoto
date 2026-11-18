@@ -50,6 +50,20 @@ can't read them.
 - A document's title is its first heading, or the file name when it has
   none.
 
+## Files saved from markoto, and other tools' settings
+
+A Markdown file [saved from markoto](/docs/import-export/save-markdown)
+comes back with its settings: title, description, audience, language,
+template and the whole design, including custom CSS. Images the design
+used (a cover logo, a header or footer picture) belong to the original
+document and are not imported, so those fields start empty. In a workspace
+whose design is locked, the document takes the workspace design instead.
+
+Many tools put a settings block between two `---` lines at the top of a
+file (Hugo, Docusaurus, Obsidian and others). markoto removes that block
+from the text and keeps its `title` and `description`; everything else in
+it is left out.
+
 ## While it runs
 
 The import runs on markoto's side: you can close the window and keep
