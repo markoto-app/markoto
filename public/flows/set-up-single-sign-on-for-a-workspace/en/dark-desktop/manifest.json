@@ -19,22 +19,22 @@
       "text": "Workspace admins find single sign-on in its own tab. Choose OpenID Connect or SAML and enter what your identity provider gave you when you registered markoto there.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/P6027lLbYE"
+      "path": "/w/l1oxlnvHHu"
     },
     {
       "kind": "approach",
       "file": "02.webp",
       "caption": "Open the Single sign-on tab",
       "cursor": {
-        "x": 902,
+        "x": 710,
         "y": 257
       },
-      "path": "/w/P6027lLbYE",
+      "path": "/w/l1oxlnvHHu",
       "annotations": [
         {
           "label": "Single sign-on",
           "kind": "arrow",
-          "x": 839.046875,
+          "x": 647.046875,
           "y": 235,
           "w": 127.40625,
           "h": 44
@@ -49,13 +49,13 @@
         "x": 662,
         "y": 708
       },
-      "path": "/w/P6027lLbYE",
+      "path": "/w/l1oxlnvHHu",
       "highlights": [
         {
           "label": "Identity provider",
-          "x": 277,
+          "x": 85,
           "y": 592,
-          "w": 726,
+          "w": 1110,
           "h": 32
         }
       ]
@@ -65,36 +65,36 @@
       "file": "04.webp",
       "caption": "Save",
       "cursor": {
-        "x": 302,
+        "x": 110,
         "y": 565
       },
-      "path": "/w/P6027lLbYE"
+      "path": "/w/l1oxlnvHHu"
     },
     {
       "kind": "outcome",
       "file": "05.webp",
       "caption": "markoto shows the redirect URI to enter at your identity provider. Single sign-on is not switched on yet.",
       "cursor": {
-        "x": 302,
+        "x": 110,
         "y": 565
       },
-      "path": "/w/P6027lLbYE"
+      "path": "/w/l1oxlnvHHu"
     },
     {
       "kind": "outcome",
       "file": "06.webp",
       "caption": "Copy the redirect URI into your identity provider's app settings",
       "cursor": {
-        "x": 302,
+        "x": 110,
         "y": 565
       },
-      "path": "/w/P6027lLbYE",
+      "path": "/w/l1oxlnvHHu",
       "highlights": [
         {
           "label": "Redirect URI",
-          "x": 445,
+          "x": 253,
           "y": 1082,
-          "w": 526,
+          "w": 910,
           "h": 24
         }
       ]
@@ -109,26 +109,26 @@
       "text": "Only addresses in a domain you verify are linked to existing markoto accounts or join the workspace on their first sign-in. markoto gives you a TXT record to publish in that domain's DNS.",
       "file": "07.webp",
       "cursor": {
-        "x": 302,
+        "x": 110,
         "y": 565
       },
-      "path": "/w/P6027lLbYE"
+      "path": "/w/l1oxlnvHHu"
     },
     {
       "kind": "outcome",
       "file": "08.webp",
       "caption": "Add your domain",
       "cursor": {
-        "x": 589,
+        "x": 397,
         "y": 784
       },
-      "path": "/w/P6027lLbYE",
+      "path": "/w/l1oxlnvHHu",
       "highlights": [
         {
           "label": "TXT record",
-          "x": 277,
+          "x": 85,
           "y": 768,
-          "w": 726,
+          "w": 1110,
           "h": 44
         }
       ]
@@ -143,25 +143,25 @@
       "text": "Sign in once through your identity provider with your own account. When that works, single sign-on is switched on, so a typo in the settings can never lock your team out.",
       "file": "09.webp",
       "cursor": {
-        "x": 589,
+        "x": 397,
         "y": 784
       },
-      "path": "/w/P6027lLbYE"
+      "path": "/w/l1oxlnvHHu"
     },
     {
       "kind": "outcome",
       "file": "10.webp",
       "caption": "Click \"Test sign-in and switch on\" and sign in at your identity provider as usual",
       "cursor": {
-        "x": 589,
+        "x": 397,
         "y": 784
       },
-      "path": "/w/P6027lLbYE",
+      "path": "/w/l1oxlnvHHu",
       "annotations": [
         {
           "label": "Test sign-in",
           "kind": "arrow",
-          "x": 336.609375,
+          "x": 144.609375,
           "y": 368,
           "w": 214.90625,
           "h": 32
@@ -176,20 +176,20 @@
         "x": 1238,
         "y": 42
       },
-      "path": "/w/P6027lLbYE",
+      "path": "/w/l1oxlnvHHu",
       "highlights": [
         {
           "label": "On",
-          "x": 445.609375,
+          "x": 253.609375,
           "y": 329,
           "w": 25.6875,
           "h": 20
         },
         {
           "label": "Members sign in through your identity provider",
-          "x": 256,
+          "x": 64,
           "y": 443,
-          "w": 768,
+          "w": 1152,
           "h": 52
         }
       ],
@@ -205,7 +205,7 @@
       "file": "12.webp",
       "caption": "Ben opens the workspace and is asked to sign in with the organisation",
       "cursor": null,
-      "path": "/w/P6027lLbYE",
+      "path": "/w/l1oxlnvHHu",
       "highlights": [
         {
           "label": "Sign in with your organisation",

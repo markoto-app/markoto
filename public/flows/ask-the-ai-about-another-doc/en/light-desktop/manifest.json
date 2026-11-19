@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/m4FgQ0Tk30"
+      "path": "/d/t05_Xz5Dpl"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 618,
         "y": 722
       },
-      "path": "/d/m4FgQ0Tk30"
+      "path": "/d/t05_Xz5Dpl"
     },
     {
       "kind": "outcome",
@@ -42,7 +42,7 @@
         "x": 618,
         "y": 722
       },
-      "path": "/d/m4FgQ0Tk30"
+      "path": "/d/t05_Xz5Dpl"
     },
     {
       "kind": "approach",
@@ -52,7 +52,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/m4FgQ0Tk30"
+      "path": "/d/t05_Xz5Dpl"
     },
     {
       "kind": "outcome",
@@ -62,7 +62,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/m4FgQ0Tk30"
+      "path": "/d/t05_Xz5Dpl"
     },
     {
       "kind": "approach",
@@ -72,7 +72,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/m4FgQ0Tk30"
+      "path": "/d/t05_Xz5Dpl"
     },
     {
       "kind": "outcome",
@@ -82,7 +82,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/m4FgQ0Tk30"
+      "path": "/d/t05_Xz5Dpl"
     },
     {
       "kind": "outcome",
@@ -92,14 +92,14 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/m4FgQ0Tk30",
+      "path": "/d/t05_Xz5Dpl",
       "highlights": [
         {
           "label": "Answer from the other doc",
           "x": 24.75,
           "y": 389,
           "w": 590,
-          "h": 99
+          "h": 123.75
         }
       ],
       "hero": true

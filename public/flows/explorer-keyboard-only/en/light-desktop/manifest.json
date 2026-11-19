@@ -1,0 +1,162 @@
+{
+  "version": 2,
+  "title": "Explorer keyboard only",
+  "slug": "explorer-keyboard-only",
+  "locale": "en",
+  "variant": "light-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Organize documents with the keyboard"
+    },
+    {
+      "kind": "narration",
+      "text": "A workspace's Documents tab (and My documents on the home page) works like a file manager: arrow keys move, Enter opens, and the shortcuts below do the rest. On a Mac, use Cmd where this says Ctrl.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/w/s6CeBxr9XI"
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "Press Tab until the list has the focus",
+      "cursor": null,
+      "path": "/w/s6CeBxr9XI",
+      "highlights": [
+        {
+          "label": "Focus",
+          "x": 312,
+          "y": 417,
+          "w": 904,
+          "h": 40.5
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "Press Alt+N (Option+N on a Mac) for a new folder",
+      "cursor": {
+        "x": 368,
+        "y": 480
+      },
+      "path": "/w/s6CeBxr9XI"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "Type \"Drafts\" and press Enter",
+      "cursor": null,
+      "path": "/w/s6CeBxr9XI"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "Type \"old\" to jump to \"Old draft\"",
+      "cursor": null,
+      "path": "/w/s6CeBxr9XI"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "Press F2 to rename it",
+      "cursor": {
+        "x": 368,
+        "y": 603
+      },
+      "path": "/w/s6CeBxr9XI"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "Type \"Old draft 2025\" and press Enter",
+      "cursor": null,
+      "path": "/w/s6CeBxr9XI"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Move with cut and paste"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "Press Ctrl+X to cut it",
+      "cursor": null,
+      "path": "/w/s6CeBxr9XI"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "caption": "Type \"arc\" to jump to \"Archive\" and press Enter to open it",
+      "cursor": null,
+      "path": "/w/s6CeBxr9XI/f/P4cvWAd4wXlK"
+    },
+    {
+      "kind": "outcome",
+      "file": "09.webp",
+      "caption": "Press Tab until the list has the focus again",
+      "cursor": null,
+      "path": "/w/s6CeBxr9XI/f/P4cvWAd4wXlK"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "Press Ctrl+V to paste",
+      "cursor": null,
+      "path": "/w/s6CeBxr9XI/f/P4cvWAd4wXlK",
+      "highlights": [
+        {
+          "label": "Moved here",
+          "x": 312,
+          "y": 421,
+          "w": 904,
+          "h": 40.5
+        }
+      ],
+      "hero": true
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Go up and delete"
+    },
+    {
+      "kind": "outcome",
+      "file": "11.webp",
+      "caption": "Press Backspace to go up one level",
+      "cursor": null,
+      "path": "/w/s6CeBxr9XI"
+    },
+    {
+      "kind": "outcome",
+      "file": "12.webp",
+      "caption": "Press Tab until the list has the focus, then type \"scr\"",
+      "cursor": null,
+      "path": "/w/s6CeBxr9XI"
+    },
+    {
+      "kind": "outcome",
+      "file": "13.webp",
+      "caption": "Press Delete",
+      "cursor": null,
+      "path": "/w/s6CeBxr9XI"
+    },
+    {
+      "kind": "outcome",
+      "file": "14.webp",
+      "caption": "Press Tab until \"Delete\" has the focus, then Enter",
+      "cursor": null,
+      "path": "/w/s6CeBxr9XI"
+    }
+  ],
+  "next": {
+    "slug": "delete-a-folder",
+    "why": "Deleting a folder deletes everything inside it; markoto tells you how much first."
+  }
+}

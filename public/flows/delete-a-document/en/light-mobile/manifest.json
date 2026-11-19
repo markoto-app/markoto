@@ -16,10 +16,10 @@
     },
     {
       "kind": "narration",
-      "text": "When you're done with a draft and don't want it lingering, delete it from File → Delete. markoto asks you to type the doc's title back as a confirmation, strong friction by design, because deletion is permanent. The text, its history, its comments and every image in it are removed, and anyone who has the doc open is sent back to their dashboard.",
+      "text": "When you're done with a draft and don't want it lingering, delete it from File → Delete. markoto asks you to type the doc's title back as a confirmation, strong friction by design, because deletion is permanent. The text, its history, its comments and every image in it are removed, and anyone who has the doc open is told it was deleted and can download a Markdown copy of the text.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/f1wM5n4S37"
+      "path": "/d/2ya8s5c38p"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 362,
         "y": 20
       },
-      "path": "/d/f1wM5n4S37"
+      "path": "/d/2ya8s5c38p"
     },
     {
       "kind": "outcome",
@@ -39,7 +39,7 @@
         "x": 362,
         "y": 20
       },
-      "path": "/d/f1wM5n4S37"
+      "path": "/d/2ya8s5c38p"
     },
     {
       "kind": "approach",
@@ -49,7 +49,7 @@
         "x": 278,
         "y": 284
       },
-      "path": "/d/f1wM5n4S37",
+      "path": "/d/2ya8s5c38p",
       "annotations": [
         {
           "label": "delete",
@@ -69,7 +69,7 @@
         "x": 278,
         "y": 284
       },
-      "path": "/d/f1wM5n4S37"
+      "path": "/d/2ya8s5c38p"
     },
     {
       "kind": "chapter",
@@ -84,7 +84,7 @@
         "x": 278,
         "y": 284
       },
-      "path": "/d/f1wM5n4S37"
+      "path": "/d/2ya8s5c38p"
     },
     {
       "kind": "approach",
@@ -94,7 +94,7 @@
         "x": 54,
         "y": 435
       },
-      "path": "/d/f1wM5n4S37"
+      "path": "/d/2ya8s5c38p"
     },
     {
       "kind": "outcome",
@@ -104,7 +104,7 @@
         "x": 54,
         "y": 435
       },
-      "path": "/d/f1wM5n4S37"
+      "path": "/d/2ya8s5c38p"
     },
     {
       "kind": "approach",
@@ -114,12 +114,12 @@
         "x": 273,
         "y": 483
       },
-      "path": "/d/f1wM5n4S37"
+      "path": "/d/2ya8s5c38p"
     },
     {
       "kind": "outcome",
       "file": "07.webp",
-      "caption": "The doc is gone. You land back on your dashboard, and your recent documents no longer list it.",
+      "caption": "The doc is gone. You land back on your dashboard, and your documents no longer list it.",
       "cursor": {
         "x": 273,
         "y": 483
@@ -127,11 +127,11 @@
       "path": "/",
       "highlights": [
         {
-          "label": "Recent documents",
+          "label": "Your documents",
           "x": 16,
-          "y": 322,
+          "y": 112,
           "w": 358,
-          "h": 114
+          "h": 608
         }
       ],
       "hero": true

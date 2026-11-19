@@ -1,0 +1,468 @@
+{
+  "version": 2,
+  "title": "Organize a workspace",
+  "slug": "organize-a-workspace",
+  "locale": "en",
+  "variant": "dark-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Organize a workspace"
+    },
+    {
+      "kind": "narration",
+      "text": "The Documents tab of a workspace works like the file manager on your computer: folders on the left, the open folder on the right. Here five documents sit loose at the top level; let's give them a home.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "outcome",
+      "file": "01.webp",
+      "caption": "Five documents, no folders yet.",
+      "cursor": null,
+      "path": "/w/p4US1_nstq",
+      "highlights": [
+        {
+          "label": "Documents",
+          "x": 12,
+          "y": 365,
+          "w": 366,
+          "h": 320
+        }
+      ]
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Create folders"
+    },
+    {
+      "kind": "approach",
+      "file": "01.webp",
+      "caption": "Click \"New\"",
+      "cursor": {
+        "x": 344,
+        "y": 339
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "New document, New folder or Import.",
+      "cursor": {
+        "x": 344,
+        "y": 339
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Pick \"New folder\"",
+      "cursor": {
+        "x": 307,
+        "y": 413
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "Type \"Research\" and press Enter",
+      "cursor": {
+        "x": 307,
+        "y": 413
+      },
+      "path": "/w/p4US1_nstq",
+      "highlights": [
+        {
+          "label": "Research",
+          "x": 12,
+          "y": 413,
+          "w": 366,
+          "h": 40.5
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Click \"New\"",
+      "cursor": {
+        "x": 344,
+        "y": 339
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "New document, New folder or Import.",
+      "cursor": {
+        "x": 344,
+        "y": 339
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
+      "caption": "Pick \"New folder\"",
+      "cursor": {
+        "x": 307,
+        "y": 413
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "Type \"Planning\" and press Enter",
+      "cursor": {
+        "x": 307,
+        "y": 413
+      },
+      "path": "/w/p4US1_nstq",
+      "highlights": [
+        {
+          "label": "Planning",
+          "x": 12,
+          "y": 413,
+          "w": 366,
+          "h": 40.5
+        }
+      ]
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Move documents into folders"
+    },
+    {
+      "kind": "narration",
+      "text": "On a phone, tap \"Select\" and tick the documents you want to move.",
+      "file": "07.webp",
+      "cursor": {
+        "x": 307,
+        "y": 413
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "approach",
+      "file": "07.webp",
+      "caption": "Tap \"Select\"",
+      "cursor": {
+        "x": 264,
+        "y": 339
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "caption": "Every row gets a check box.",
+      "cursor": {
+        "x": 264,
+        "y": 339
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "approach",
+      "file": "08.webp",
+      "caption": "Tick \"Customer interview: Acme\"",
+      "cursor": {
+        "x": 36,
+        "y": 556
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "approach",
+      "file": "09.webp",
+      "caption": "Tick \"Customer interview: Globex\"",
+      "cursor": {
+        "x": 36,
+        "y": 515
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "Both interviews are selected.",
+      "cursor": {
+        "x": 36,
+        "y": 515
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "approach",
+      "file": "11.webp",
+      "caption": "Open \"Actions\"",
+      "cursor": {
+        "x": 294,
+        "y": 708
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "outcome",
+      "file": "12.webp",
+      "caption": "Everything you can do with the selection.",
+      "cursor": {
+        "x": 294,
+        "y": 708
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "approach",
+      "file": "13.webp",
+      "caption": "Pick \"Move to...\"",
+      "cursor": {
+        "x": 294,
+        "y": 554
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "outcome",
+      "file": "14.webp",
+      "caption": "Pick the folder they should go to.",
+      "cursor": {
+        "x": 294,
+        "y": 554
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "approach",
+      "file": "15.webp",
+      "caption": "Pick \"Research\"",
+      "cursor": {
+        "x": 119,
+        "y": 413
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "approach",
+      "file": "16.webp",
+      "caption": "Click \"Move here\"",
+      "cursor": {
+        "x": 314,
+        "y": 481
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "outcome",
+      "file": "17.webp",
+      "caption": "Both interviews moved to Research.",
+      "cursor": {
+        "x": 314,
+        "y": 481
+      },
+      "path": "/w/p4US1_nstq",
+      "highlights": [
+        {
+          "label": "Research",
+          "x": 12,
+          "y": 444.5,
+          "w": 366,
+          "h": 41
+        }
+      ],
+      "hero": true
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Folders inside folders"
+    },
+    {
+      "kind": "approach",
+      "file": "18.webp",
+      "caption": "Tap \"Research\" to open it",
+      "cursor": {
+        "x": 195,
+        "y": 465
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "outcome",
+      "file": "19.webp",
+      "caption": "The folder has its own address; the path above the list shows where you are.",
+      "cursor": null,
+      "path": "/w/p4US1_nstq/f/HGPxhwzeCBPn",
+      "highlights": [
+        {
+          "label": "Path",
+          "x": 76,
+          "y": 255,
+          "w": 204.828125,
+          "h": 20
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "19.webp",
+      "caption": "Click \"New\"",
+      "cursor": {
+        "x": 344,
+        "y": 339
+      },
+      "path": "/w/p4US1_nstq/f/HGPxhwzeCBPn"
+    },
+    {
+      "kind": "outcome",
+      "file": "20.webp",
+      "caption": "New document, New folder or Import.",
+      "cursor": {
+        "x": 344,
+        "y": 339
+      },
+      "path": "/w/p4US1_nstq/f/HGPxhwzeCBPn"
+    },
+    {
+      "kind": "approach",
+      "file": "21.webp",
+      "caption": "Pick \"New folder\"",
+      "cursor": {
+        "x": 307,
+        "y": 413
+      },
+      "path": "/w/p4US1_nstq/f/HGPxhwzeCBPn"
+    },
+    {
+      "kind": "outcome",
+      "file": "22.webp",
+      "caption": "Type \"Interviews\" and press Enter",
+      "cursor": {
+        "x": 307,
+        "y": 413
+      },
+      "path": "/w/p4US1_nstq/f/HGPxhwzeCBPn",
+      "highlights": [
+        {
+          "label": "Interviews",
+          "x": 12,
+          "y": 413,
+          "w": 366,
+          "h": 40.5
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "23.webp",
+      "caption": "Tap \"Interviews\" to open it",
+      "cursor": {
+        "x": 195,
+        "y": 433
+      },
+      "path": "/w/p4US1_nstq/f/HGPxhwzeCBPn"
+    },
+    {
+      "kind": "outcome",
+      "file": "24.webp",
+      "caption": "Product team / Research / Interviews.",
+      "cursor": null,
+      "path": "/w/p4US1_nstq/f/lRBXqdtob-7a",
+      "highlights": [
+        {
+          "label": "Path",
+          "x": 76,
+          "y": 255,
+          "w": 302,
+          "h": 20
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "25.webp",
+      "caption": "Use the browser's Back button",
+      "cursor": {
+        "x": 195,
+        "y": 433
+      },
+      "path": "/w/p4US1_nstq/f/HGPxhwzeCBPn"
+    },
+    {
+      "kind": "outcome",
+      "file": "26.webp",
+      "caption": "And Forward again",
+      "cursor": null,
+      "path": "/w/p4US1_nstq/f/lRBXqdtob-7a"
+    },
+    {
+      "kind": "approach",
+      "file": "26.webp",
+      "caption": "Click \"Product team\" in the path to go back to the top",
+      "cursor": {
+        "x": 132,
+        "y": 265
+      },
+      "path": "/w/p4US1_nstq/f/lRBXqdtob-7a"
+    },
+    {
+      "kind": "outcome",
+      "file": "27.webp",
+      "caption": "Back at the top of the workspace: three folders and two documents.",
+      "cursor": {
+        "x": 132,
+        "y": 265
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Find a document by a word in it"
+    },
+    {
+      "kind": "narration",
+      "text": "The search box looks at titles and text. It searches the open folder; tick \"All folders\" to search the whole workspace.",
+      "file": "27.webp",
+      "cursor": null,
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "approach",
+      "file": "28.webp",
+      "caption": "Type \"pricing\"",
+      "cursor": {
+        "x": 26,
+        "y": 303
+      },
+      "path": "/w/p4US1_nstq"
+    },
+    {
+      "kind": "outcome",
+      "file": "29.webp",
+      "caption": "\"Launch plan\" mentions the pricing review.",
+      "cursor": {
+        "x": 26,
+        "y": 303
+      },
+      "path": "/w/p4US1_nstq?q=pricing"
+    }
+  ],
+  "next": {
+    "slug": "explorer-context-menu",
+    "why": "Every action on a document or folder is also a right-click away."
+  }
+}

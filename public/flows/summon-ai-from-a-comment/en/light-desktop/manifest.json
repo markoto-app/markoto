@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/m7h2hfyKQc"
+      "path": "/d/ymGsXiPpay"
     },
     {
       "kind": "outcome",
@@ -32,7 +32,7 @@
         "x": 19,
         "y": 383
       },
-      "path": "/d/m7h2hfyKQc"
+      "path": "/d/ymGsXiPpay"
     },
     {
       "kind": "approach",
@@ -42,7 +42,7 @@
         "x": 364,
         "y": 328
       },
-      "path": "/d/m7h2hfyKQc"
+      "path": "/d/ymGsXiPpay"
     },
     {
       "kind": "outcome",
@@ -52,7 +52,7 @@
         "x": 364,
         "y": 328
       },
-      "path": "/d/m7h2hfyKQc"
+      "path": "/d/ymGsXiPpay"
     },
     {
       "kind": "chapter",
@@ -67,7 +67,7 @@
         "x": 364,
         "y": 328
       },
-      "path": "/d/m7h2hfyKQc"
+      "path": "/d/ymGsXiPpay"
     },
     {
       "kind": "outcome",
@@ -77,7 +77,7 @@
         "x": 996,
         "y": 236
       },
-      "path": "/d/m7h2hfyKQc",
+      "path": "/d/ymGsXiPpay",
       "highlights": [
         {
           "label": "markoto: synthetic entry, always available",
@@ -96,7 +96,7 @@
         "x": 1110,
         "y": 252
       },
-      "path": "/d/m7h2hfyKQc",
+      "path": "/d/ymGsXiPpay",
       "annotations": [
         {
           "label": "markoto entry",
@@ -116,7 +116,7 @@
         "x": 1110,
         "y": 252
       },
-      "path": "/d/m7h2hfyKQc"
+      "path": "/d/ymGsXiPpay"
     },
     {
       "kind": "approach",
@@ -126,7 +126,7 @@
         "x": 996,
         "y": 236
       },
-      "path": "/d/m7h2hfyKQc"
+      "path": "/d/ymGsXiPpay"
     },
     {
       "kind": "outcome",
@@ -136,7 +136,7 @@
         "x": 996,
         "y": 236
       },
-      "path": "/d/m7h2hfyKQc"
+      "path": "/d/ymGsXiPpay"
     },
     {
       "kind": "chapter",
@@ -151,7 +151,7 @@
         "x": 1120,
         "y": 235
       },
-      "path": "/d/m7h2hfyKQc"
+      "path": "/d/ymGsXiPpay"
     },
     {
       "kind": "approach",
@@ -161,7 +161,7 @@
         "x": 1067,
         "y": 313
       },
-      "path": "/d/m7h2hfyKQc"
+      "path": "/d/ymGsXiPpay"
     },
     {
       "kind": "outcome",
@@ -171,7 +171,7 @@
         "x": 1067,
         "y": 313
       },
-      "path": "/d/m7h2hfyKQc",
+      "path": "/d/ymGsXiPpay",
       "highlights": [
         {
           "label": "markoto is responding",
@@ -195,7 +195,7 @@
         "x": 1067,
         "y": 313
       },
-      "path": "/d/m7h2hfyKQc"
+      "path": "/d/ymGsXiPpay"
     },
     {
       "kind": "outcome",
@@ -205,14 +205,14 @@
         "x": 1067,
         "y": 313
       },
-      "path": "/d/m7h2hfyKQc",
+      "path": "/d/ymGsXiPpay",
       "highlights": [
         {
           "label": "markoto's reply",
           "x": 969,
           "y": 172,
           "w": 303,
-          "h": 577.75
+          "h": 537.75
         }
       ],
       "hero": true

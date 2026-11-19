@@ -1,0 +1,99 @@
+{
+  "version": 2,
+  "title": "Delete a folder",
+  "slug": "delete-a-folder",
+  "locale": "en",
+  "variant": "light-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Delete a folder"
+    },
+    {
+      "kind": "narration",
+      "text": "\"Old projects\" holds two documents and a subfolder with one more. Deleting the folder deletes all of it, so markoto first tells you how much that is.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Right-click \"Old projects\"",
+      "cursor": {
+        "x": 764,
+        "y": 558
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "Delete is at the bottom of the folder's actions.",
+      "cursor": {
+        "x": 764,
+        "y": 558
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Click \"Delete\"",
+      "cursor": {
+        "x": 851,
+        "y": 780
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "The confirmation names what goes: the two folders and the three documents in them.",
+      "cursor": {
+        "x": 851,
+        "y": 780
+      },
+      "path": "/",
+      "highlights": [
+        {
+          "label": "What gets deleted",
+          "x": 408.17803955078125,
+          "y": 369.5234069824219,
+          "w": 463.64398193359375,
+          "h": 39.96929931640625
+        }
+      ],
+      "hero": true
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
+      "caption": "Click \"Delete\" to confirm",
+      "cursor": {
+        "x": 841,
+        "y": 518
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "The folder and everything in it are gone. Documents outside it stay.",
+      "cursor": {
+        "x": 841,
+        "y": 518
+      },
+      "path": "/"
+    }
+  ],
+  "next": {
+    "slug": "explorer-two-people",
+    "why": "What someone sees when you move or delete a document they have open."
+  }
+}

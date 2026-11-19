@@ -19,22 +19,22 @@
       "text": "The audit log lists what happened in the workspace, newest first: members and roles, invitations, sharing and deletions, billing and single sign-on: with who did it and their shortened network address.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/a5Ua51aVWP"
+      "path": "/w/7RJYQGWRyh"
     },
     {
       "kind": "approach",
       "file": "02.webp",
       "caption": "Open the Audit log tab",
       "cursor": {
-        "x": 978,
+        "x": 844,
         "y": 257
       },
-      "path": "/w/a5Ua51aVWP",
+      "path": "/w/7RJYQGWRyh",
       "annotations": [
         {
           "label": "Audit log",
           "kind": "arrow",
-          "x": 932.453125,
+          "x": 798.453125,
           "y": 235,
           "w": 91.40625,
           "h": 44
@@ -46,16 +46,16 @@
       "file": "03.webp",
       "caption": "Each change with when, what and who",
       "cursor": {
-        "x": 978,
+        "x": 844,
         "y": 257
       },
-      "path": "/w/a5Ua51aVWP",
+      "path": "/w/7RJYQGWRyh",
       "highlights": [
         {
           "label": "Who changed what",
-          "x": 257,
-          "y": 568,
-          "w": 766,
+          "x": 65,
+          "y": 524,
+          "w": 1150,
           "h": 45
         }
       ],
@@ -67,15 +67,15 @@
       "caption": "Click an entry for its details",
       "cursor": {
         "x": 640,
-        "y": 635
+        "y": 591
       },
-      "path": "/w/a5Ua51aVWP",
+      "path": "/w/7RJYQGWRyh",
       "highlights": [
         {
           "label": "Before and after",
-          "x": 273,
-          "y": 653,
-          "w": 734,
+          "x": 81,
+          "y": 609,
+          "w": 1118,
           "h": 280
         }
       ]
@@ -91,14 +91,14 @@
       "caption": "Download the selected events as CSV or JSON Lines",
       "cursor": {
         "x": 640,
-        "y": 635
+        "y": 591
       },
-      "path": "/w/a5Ua51aVWP",
+      "path": "/w/7RJYQGWRyh",
       "highlights": [
         {
           "label": "CSV",
-          "x": 820.53125,
-          "y": 511,
+          "x": 1012.53125,
+          "y": 467,
           "w": 73.953125,
           "h": 32
         }
