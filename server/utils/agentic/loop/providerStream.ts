@@ -384,7 +384,7 @@ export async function streamTurn(ctx: LoopContext, request: TurnRequestOptions =
     }
     if (opened.kind === 'budget-exhausted') return opened
     const stats: CallStats = { firstChunkAt: null, usage: undefined, providerModel: null }
-    const record = (finishReason: string | null): void => {
+    const record = (finishReason: string | null, tools?: readonly string[]): void => {
       noteCallUsage(ctx, buildCallUsageRecord({
         sessionId: ctx.opts.sessionId,
         docId: ctx.opts.aiSession.docId ?? null,
@@ -397,12 +397,13 @@ export async function streamTurn(ctx: LoopContext, request: TurnRequestOptions =
         firstChunkAt: stats.firstChunkAt,
         endedAt: Date.now(),
         finishReason,
-        retry: attempt > 1
+        retry: attempt > 1,
+        tools
       }))
     }
     try {
       const turn = await consumeStreamTurn(opened.stream, ctx, stats)
-      record(turn.finishReason ?? null)
+      record(turn.finishReason ?? null, turn.functionCalls.map(c => (c.name ?? '').slice(0, 64)))
       return { kind: 'turn', turn }
     } catch (e) {
       record('error')

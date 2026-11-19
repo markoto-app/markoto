@@ -41,6 +41,13 @@ export interface ToolResult {
    * ("Done") is not shown as an answer.
    */
   countsAsEdit?: boolean
+  /**
+   * A delegated job of this session finished (`finished`) or now runs in
+   * the background (`running`): its report is the result, so the in-app
+   * loop allows only a short look at flagged parts before it closes with
+   * the answer (`agentic/loop/turnSteering.ts`).
+   */
+  settlesJob?: 'finished' | 'running'
 }
 
 export function toolOk(content: string): ToolResult {
