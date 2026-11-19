@@ -11,6 +11,7 @@ import { apiError } from '../../api/apiError'
 import { useLogger } from '../../platform/logger'
 import { documentContextBlockFor, openAiSession, resolveSessionWorkspace, type SessionWorkspace } from './sessionSetup'
 import { runAgentSession } from './runSession'
+import { withSuggestNote, type SessionSuggestMode } from './suggestMode'
 
 const log = useLogger('ai-trigger')
 
@@ -35,6 +36,8 @@ export interface CommentTriggerRequest {
   commentId: string
   replyId: string | null
   user: { id: number, name: string }
+  /** Suggestion mode of the session (null = edit directly). */
+  suggest: SessionSuggestMode | null
 }
 
 export async function startCommentTrigger(event: H3Event, request: CommentTriggerRequest): Promise<{ sessionId: string }> {
@@ -43,7 +46,7 @@ export async function startCommentTrigger(event: H3Event, request: CommentTrigge
   const userId = request.user.id
 
   const doc = await getDoc(docAccess)
-  const wsCtx = await resolveSessionWorkspace(doc?.workspaceId ?? null, userId)
+  const wsCtx = await resolveSessionWorkspace(doc?.workspaceId ?? null, userId, docAccess)
   const triggerCtx = await peekTriggerThread(docId, userId, commentId, request.replyId)
   // The thread is written by whoever commented: it goes into the USER
   // message as quoted data, never into the system prompt. It follows the
@@ -75,7 +78,8 @@ export async function startCommentTrigger(event: H3Event, request: CommentTrigge
     session,
     systemPrompt: COMMENT_TRIGGER_SYSTEM_PROMPT,
     promptContext,
-    initialPrompt: withKnowledgeNote(wrappedSeedPrompt, wsCtx.exposeKnowledgeTools),
+    initialPrompt: withSuggestNote(withKnowledgeNote(wrappedSeedPrompt, wsCtx.exposeKnowledgeTools), request.suggest),
+    suggest: request.suggest,
     // The triggering message is the caller's own (checked in
     // `peekTriggerThread`); the rest of the thread may not be.
     invokerText: triggerCtx.seedPrompt,
@@ -174,5 +178,5 @@ function buildTriggerPromptContext(doc: Awaited<ReturnType<typeof getDoc>>, ws: 
   const documentContextBlock = documentContextBlockFor(doc)
   const knowledgeBlock = ws.exposeKnowledgeTools ? buildKnowledgeBlock(ws.knowledgeFiles) : ''
   const membersBlock = buildWorkspaceMembersBlock(ws.members)
-  return assemblePromptContext({ documentContextBlock, knowledgeBlock, membersBlock })
+  return assemblePromptContext({ documentContextBlock, projectContextBlock: ws.projectContextBlock, knowledgeBlock, membersBlock })
 }

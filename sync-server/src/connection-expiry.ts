@@ -28,7 +28,7 @@ const TOKEN_EXPIRY_GRACE_MS = 5_000
 
 /** The parts of a Hocuspocus `Connection` this module touches. */
 export interface ReauthConnection {
-  context?: { userId?: string | number | null, tokenExpiresAt?: number } | null
+  context?: { userId?: string | number | null, tokenExpiresAt?: number, suggestOnly?: boolean } | null
   readOnly?: boolean
   requestToken?(): void
   close?(event?: { code: number, reason: string }): void
@@ -175,7 +175,10 @@ export function createConnectionExpiry(options: ConnectionExpiryOptions = {}) {
     }
     const ctx = conn.context
     const samePrincipal = ctx?.userId != null && String(ctx.userId) === String(verified.userId)
-    if (!samePrincipal || verified.readOnly !== (conn.readOnly ?? true)) {
+    // A changed write level (read-only, suggest-only) takes effect through
+    // a fresh handshake, like a changed principal.
+    const sameAccess = verified.readOnly === (conn.readOnly ?? true) && verified.suggestOnly === (ctx?.suggestOnly ?? false)
+    if (!samePrincipal || !sameAccess) {
       untrack(conn)
       closeForReauth(conn)
       return

@@ -79,13 +79,28 @@ export interface SessionGuardArgs {
   /** Text the initiator typed (prompt / their triggering comment). */
   invokerText: readonly string[]
   knowledgeFiles: readonly KnowledgeBrief[]
+  /** Project context documents in the prompt (`projectContextPrompt.ts`). */
+  contextDocIds?: readonly string[]
   /** Extra reason the session starts tainted (e.g. a comment thread with other participants). */
   extraInitialTaint?: string | null
 }
 
+/**
+ * Project context is in the prompt from the first turn: it is other
+ * people's text unless every context document is solo for the initiator
+ * (`isDocSoloForUser`), exactly as if the session had read it with
+ * `view_other_document`.
+ */
+async function projectContextTaint(contextDocIds: readonly string[], userId: number): Promise<string | null> {
+  if (contextDocIds.length === 0) return null
+  const solo = await Promise.all(contextDocIds.map(id => isDocSoloForUser(id, userId)))
+  return solo.every(Boolean) ? null : 'project context written by other people'
+}
+
 export async function buildSessionGuard(args: SessionGuardArgs): Promise<CrossBoundaryGuard> {
   const sessionDocSolo = await isDocSoloForUser(args.docId, args.initiatorUserId)
-  const initialTaint = sessionDocSolo ? (args.extraInitialTaint ?? null) : 'the shared document'
+  const contextTaint = await projectContextTaint(args.contextDocIds ?? [], args.initiatorUserId)
+  const initialTaint = sessionDocSolo ? (args.extraInitialTaint ?? contextTaint) : 'the shared document'
   const knowledgeFiles = new Map(args.knowledgeFiles.map(f => [
     f.knowledgeId,
     { filename: f.filename, foreign: f.uploaderId !== args.initiatorUserId }

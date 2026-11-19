@@ -9,7 +9,12 @@ defineProps<{
   viewMode: 'edit' | 'preview' | 'split'
   synced: boolean
   readOnly: boolean
+  /** Markdown source for the accessibility check (editors only). */
+  text: string
+  /** Edits become suggestions. */
+  suggesting?: boolean
 }>()
+const emit = defineEmits<{ jumpTo: [from: number, to: number] }>()
 const { t } = useI18n()
 </script>
 
@@ -31,6 +36,27 @@ const { t } = useI18n()
         aria-hidden="true"
       >·</span>
       <span data-testid="char-count">{{ charCount }} <span class="opacity-70">{{ t('editor.footer.chars', charCount) }}</span></span>
+      <EditorLayoutA11yStatus
+        v-if="!readOnly"
+        :text="text"
+        @jump="(from: number, to: number) => emit('jumpTo', from, to)"
+      />
+      <template v-if="suggesting">
+        <span
+          class="opacity-50"
+          aria-hidden="true"
+        >·</span>
+        <span
+          class="inline-flex items-center gap-1 text-default"
+          data-testid="suggesting-indicator"
+        >
+          <UIcon
+            name="i-lucide-file-diff"
+            class="size-3"
+          />
+          {{ t('suggestions.mode.suggestingFooter') }}
+        </span>
+      </template>
     </div>
     <div
       class="flex items-center gap-3"

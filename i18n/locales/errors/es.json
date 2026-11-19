@@ -133,6 +133,12 @@
       "too-many-fonts": "Un espacio de trabajo puede tener hasta {limit} archivos de fuente.",
       "too-many-images": "Un espacio de trabajo puede tener hasta {limit} imágenes de marca."
     },
+    "citations": {
+      "doi-invalid": "Eso no es un DOI. Un DOI tiene este aspecto: 10.1000/xyz123.",
+      "doi-not-found": "Crossref no tiene ningún registro para este DOI. Revisa el DOI o añade la referencia como BibTeX.",
+      "doi-lookup-failed": "Falló la búsqueda del DOI en Crossref. Inténtalo de nuevo en un momento.",
+      "rate-limited": "Demasiadas búsquedas de DOI. Espera unos minutos y vuelve a intentarlo."
+    },
     "common": {
       "internal": "Algo salió mal por nuestra parte. Inténtalo de nuevo; ya nos han avisado."
     },
@@ -424,6 +430,21 @@
       "cycle": "Una carpeta no se puede mover dentro de sí misma ni de una de sus subcarpetas.",
       "forbidden": "No puedes modificar carpetas aquí.",
       "delete-blocked": "No puedes eliminar {blocked} documentos de esta carpeta, así que no se eliminó nada."
+    },
+    "suggestion": {
+      "invalid": "Esta sugerencia no es válida.",
+      "not-allowed": "No puedes hacer sugerencias en este documento.",
+      "review-not-allowed": "Solo quienes pueden editar este documento pueden aceptar o rechazar sugerencias.",
+      "not-found": "Esta sugerencia ya no existe. Puede que otra persona la haya aceptado o rechazado.",
+      "too-many": "Este documento tiene demasiadas sugerencias abiertas ({max}). Acepta o rechaza algunas primero.",
+      "too-many-authors": "Acepta las sugerencias de como máximo {max} personas a la vez.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
+    },
+    "context": {
+      "not-found": "Ese documento no existe o no puedes abrirlo.",
+      "self": "Un documento no puede ser su propio contexto.",
+      "too-many": "Un documento puede tener como máximo {max} documentos de contexto adicionales.",
+      "not-attached": "Este documento no está adjunto como contexto."
     }
   }
 }

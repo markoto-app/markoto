@@ -9,6 +9,7 @@ import { assemblePromptContext, PROMPT_SYSTEM_PROMPT } from '../promptAssembly'
 import { useLogger } from '../../platform/logger'
 import { documentContextBlockFor, openAiSession, resolveSessionWorkspace } from './sessionSetup'
 import { runAgentSession } from './runSession'
+import { withSuggestNote, type SessionSuggestMode } from './suggestMode'
 
 const log = useLogger('ai-prompt')
 
@@ -24,6 +25,8 @@ export interface EditorPromptRequest {
   user: { id: number, name: string }
   prompt: string
   editorSelection?: unknown
+  /** Suggestion mode of the session (null = edit directly). */
+  suggest: SessionSuggestMode | null
 }
 
 export async function startEditorPrompt(event: H3Event, request: EditorPromptRequest): Promise<{ sessionId: string }> {
@@ -36,7 +39,7 @@ export async function startEditorPrompt(event: H3Event, request: EditorPromptReq
   const wrappedPrompt = wrapPromptWithEditorState(prompt, validateEditorSelection(request.editorSelection))
 
   const doc = await getDoc(docAccess)
-  const wsCtx = await resolveSessionWorkspace(doc?.workspaceId ?? null, userId)
+  const wsCtx = await resolveSessionWorkspace(doc?.workspaceId ?? null, userId, docAccess)
   const documentContextBlock = documentContextBlockFor(doc)
   const conversationBlock = await loadConversationBlock(docAccess)
   // Ordered for prompt caching (`agentic/promptAssembly.ts`): the system
@@ -47,6 +50,7 @@ export async function startEditorPrompt(event: H3Event, request: EditorPromptReq
   // on Mistral Small.
   const promptContext = assemblePromptContext({
     documentContextBlock,
+    projectContextBlock: wsCtx.projectContextBlock,
     knowledgeBlock: buildKnowledgeBlock(wsCtx.knowledgeFiles),
     membersBlock: buildWorkspaceMembersBlock(wsCtx.members)
   })
@@ -72,7 +76,8 @@ export async function startEditorPrompt(event: H3Event, request: EditorPromptReq
     session,
     systemPrompt: PROMPT_SYSTEM_PROMPT,
     promptContext,
-    initialPrompt: withKnowledgeNote(wrappedPrompt, wsCtx.exposeKnowledgeTools),
+    initialPrompt: withSuggestNote(withKnowledgeNote(wrappedPrompt, wsCtx.exposeKnowledgeTools), request.suggest),
+    suggest: request.suggest,
     promptPreamble: conversationBlock,
     invokerText: prompt,
     // Skills matching the prompt (or a large document) open the first user

@@ -68,7 +68,7 @@ describe('context menu matrix', () => {
 
   it('a document: editors rename and move, only the owner or an admin shares and deletes', () => {
     const someoneElses = docItem(d('d1', null))
-    expect(flat(menuActions(editor, [someoneElses], { canPaste: false }))).toEqual(['open', 'openNewTab', 'rename', 'moveTo', 'cut', 'duplicate', 'copyLink'])
+    expect(flat(menuActions(editor, [someoneElses], { canPaste: false }))).toEqual(['open', 'openNewTab', 'rename', 'moveTo', 'cut', 'duplicate', 'copyLink', 'aiContext'])
     expect(flat(menuActions(admin, [someoneElses], { canPaste: false }))).toContain('delete')
     expect(flat(menuActions(viewer, [someoneElses], { canPaste: false }))).toEqual(['open', 'openNewTab', 'copyLink'])
     expect(flat(menuActions(viewer, [docItem(d('d2', null, true))], { canPaste: false }))).toEqual(expect.arrayContaining(['rename', 'share', 'delete']))

@@ -22,6 +22,8 @@ export interface DocRow {
   ownerId: number | null
   ownerName: string | null
   isOwner: boolean
+  /** Marked as project context (null = an ordinary document). */
+  contextScope?: 'folder' | 'all' | null
   createdAt: string
   updatedAt: string
   lastActive: string
@@ -147,7 +149,10 @@ function explorerDocPermissions(perms: ExplorerPermissions, doc: Pick<DocRow, 'i
 
 export type MenuAction
   = | 'open' | 'openNewTab' | 'rename' | 'moveTo' | 'duplicate' | 'copyLink' | 'share' | 'delete'
-    | 'newDocument' | 'newFolder' | 'import' | 'paste' | 'cut' | 'copyLinks'
+    | 'newDocument' | 'newFolder' | 'import' | 'paste' | 'cut' | 'copyLinks' | 'aiContext'
+
+/** Actions that run a command; `aiContext` only opens its submenu of choices. */
+export type CommandAction = Exclude<MenuAction, 'aiContext'>
 
 function nonEmpty(...groups: MenuAction[][]): MenuAction[][] {
   return groups.filter(g => g.length > 0)
@@ -175,6 +180,7 @@ function docActions(perms: ExplorerPermissions, doc: DocRow): MenuAction[][] {
   return nonEmpty(
     ['open', 'openNewTab'],
     p.canEdit ? ['rename', 'moveTo', 'cut', 'duplicate', 'copyLink'] : ['copyLink'],
+    p.canEdit ? ['aiContext'] : [],
     p.canManage ? ['share'] : [],
     p.canManage ? ['delete'] : []
   )

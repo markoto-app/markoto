@@ -49,15 +49,15 @@
 
 ## Stand der Forschung
 
-<!-- Zwei bis vier Themen, bei grossem Umfang je ein eigener Abschnitt. Fasse zusammen, statt Artikel für Artikel nachzuerzählen. -->
+<!-- Zwei bis vier Themen, bei grossem Umfang je ein eigener Abschnitt. Fasse zusammen, statt Artikel für Artikel nachzuerzählen. Zitiere mit [@schluessel] oder [@schluessel, S. 12], mit den Schlüsseln der Quellen, die du im Bereich Literatur hinzugefügt hast. -->
 
 # Methodik
 
-<!-- Wie du die Forschungsfragen beantwortet hast, so genau, dass man es wiederholen kann: Untersuchungsdesign, Daten oder Material, Vorgehen, Werkzeuge und Auswertung. Begründe jede Entscheidung gegenüber den Alternativen. Abgesetzte Formeln, auf die du verweist, nummeriere mit \tag{1}. -->
+<!-- Wie du die Forschungsfragen beantwortet hast, so genau, dass man es wiederholen kann: Untersuchungsdesign, Daten oder Material, Vorgehen, Werkzeuge und Auswertung. Begründe jede Entscheidung gegenüber den Alternativen. Gib einer abgesetzten Formel, auf die du verweist, nach dem schliessenden $$ eine Marke wie {#eq:modell}; sie wird automatisch nummeriert, und @eq:modell im Text setzt ihre Nummer. -->
 
 $$
-y = f(x) \tag{1}
-$$
+y = f(x)
+$$ {#eq:modell}
 
 ## Daten
 
@@ -71,11 +71,13 @@ Erster Schritt.[^1]
 
 # Ergebnisse
 
-<!-- Was du gefunden hast, nach Forschungsfrage geordnet und ohne Deutung. Jede Aussage verweist auf eine Tabelle oder Abbildung („Tabelle 4.1 zeigt …“). Die Beschriftung einer Tabelle steht auf einer Zeile „Table:“ direkt darüber; eine Abbildung ist ein Bild allein in seinem Absatz, sein Alternativtext wird zur Bildunterschrift. -->
+<!-- Was du gefunden hast, nach Forschungsfrage geordnet und ohne Deutung. Jede Aussage verweist auf eine Tabelle oder Abbildung. Die Beschriftung einer Tabelle steht auf einer Zeile „Table:“ direkt darüber, eine Abbildung ist ein Bild allein in seinem Absatz mit dem Alternativtext als Bildunterschrift; gib beiden eine Marke ({#tbl:name} am Ende der Beschriftung, {#fig:name} nach dem Bild) und schreibe im Text @tbl:name, das ergibt „Tabelle 4.1“. -->
 
 ## Erstes Ergebnis
 
-Table: Beschriftung der Tabelle.
+@tbl:ergebnisse vergleicht die Bedingungen.
+
+Table: Beschriftung der Tabelle. {#tbl:ergebnisse}
 
 | Bedingung | Messgrösse | Messgrösse |
 |---|--:|--:|
@@ -98,11 +100,9 @@ Table: Beschriftung der Tabelle.
 
 # Literaturverzeichnis {.unnumbered}
 
-<!-- Ein Absatz pro Eintrag, alphabetisch nach dem Nachnamen der Erstautorin oder des Erstautors, im Stil, den dein Institut verlangt (hier Autor–Jahr); das Design setzt einen hängenden Einzug. Es gibt kein BibTeX: Schreibe die Einträge von Hand. -->
+<!-- Entsteht aus den Quellen, die du zitierst. Füge sie im Bereich Literatur hinzu (Buchsymbol über der Seitenleiste): per DOI, als eingefügtes BibTeX oder als .bib- oder CSL-JSON-Export aus Zotero. Wähle dort den Stil, den dein Institut verlangt (APA, Chicago, Harvard, IEEE, Vancouver, DIN 1505-2). -->
 
-Nachname, A., & Nachname, B. (Jahr). Titel des Artikels. *Name der Zeitschrift*, *1*(1), 1–10.
-
-Nachname, C. (Jahr). *Titel des Buches*. Verlag.
+[[bibliography]]
 
 # Anhang {.unnumbered}
 

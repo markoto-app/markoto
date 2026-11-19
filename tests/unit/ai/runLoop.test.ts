@@ -28,7 +28,7 @@ import { TOOL_RESULT_CHAR_CAP } from '../../../server/utils/agentic/limits'
 // outbound HTTP. Every test can program what each tool returns. The rest of
 // the registry (schemas, declarations) stays real: the validation-failure
 // tests rely on safeParse.
-const executeFunctionByName = vi.hoisted(() => vi.fn<(session: unknown, name: string, args: unknown) => Promise<{ content: string, isError: boolean, extraParts?: unknown[], endSessionWith?: string }>>())
+const executeFunctionByName = vi.hoisted(() => vi.fn<(session: unknown, name: string, args: unknown) => Promise<{ content: string, isError: boolean, extraParts?: unknown[], endSessionWith?: string, countsAsEdit?: boolean, settlesJob?: 'finished' | 'running' }>>())
 const webSearch = vi.hoisted(() => vi.fn<typeof import('../../../server/utils/ai/tools/webSearch').webSearch>())
 
 vi.mock('../../../server/utils/ai/tools/registry', async importOriginal => ({
@@ -1295,5 +1295,144 @@ describe('runAgenticLoop: decline with feedback', () => {
     await runAgenticLoop(makeOpts({ ai, crossBoundary: taintedSessionGuard({ confirm }) }))
     expect(executeFunctionByName).not.toHaveBeenCalled()
     expect(lastToolOutput(seenAt(seen, 1).contents)).toContain('"No, search for EU pricing instead"')
+  })
+})
+
+// Live sessions of a large translation (12 of 14 chapters, about 15k tokens)
+// ran into the turn limit two ways: the planner read sections one by one
+// after its scan and never created the job, or the job translated every
+// part and the planner then re-read each translated chapter until the
+// limit. These fake planners do the same.
+describe('runAgenticLoop: turn steering', () => {
+  const JOB = 'j-abcdef123456'
+  const finishedJob = { content: 'job_id: j-abcdef123456 (translate) status: done\nFinished.', isError: false, countsAsEdit: true, settlesJob: 'finished' as const }
+
+  function toolsByName(results: Record<string, { content: string, isError: boolean, countsAsEdit?: boolean, settlesJob?: 'finished' | 'running' }>): void {
+    executeFunctionByName.mockImplementation(async (_s, name) => results[name] ?? { content: 'ok', isError: false })
+  }
+
+  it('after a finished job, a planner that keeps reading closes with its answer after two reads', async () => {
+    toolsByName({ delegate_rewrite: finishedJob, read_section: { content: '# 2 Organisation\n...', isError: false } })
+    const { ai, seen } = scriptedAi([
+      toolTurn('outline', {}),
+      toolTurn('delegate_rewrite', { job_id: JOB, action: 'start' }),
+      toolTurn('read_section', { section: '2' }),
+      toolTurn('read_section', { section: '3' }),
+      // The loop forces the answer here; this planner would have read on.
+      toolTurn('message_to_user', { message: 'Chapters 2 to 13 are in English. Undo is in the Activity Log.', is_question: false }, 'w'),
+      ...['4', '5', '6', '7', '8', '9', '10'].map(n => toolTurn('read_section', { section: n }))
+    ])
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus }))
+    // outline, start, two reads, then the closing turn: not 20 turns of reading.
+    expect(seen).toHaveLength(5)
+    expect(seenAt(seen, 4).forceFunction).toBe('message_to_user')
+    expect(lastUserText(seenAt(seen, 4).contents)).toMatch(/^The job's report above is the result; .*The background job of this session is finished: .*flagged or skipped .*Undo is in the Activity Log\.$/)
+    expect(executeFunctionByName).toHaveBeenLastCalledWith(expect.anything(), 'message_to_user', { message: 'Chapters 2 to 13 are in English. Undo is in the Activity Log.', is_question: false })
+    // A finished session, not "stopped before the task was finished".
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
+  })
+
+  it('fixing a flagged part after the job does not count as reading', async () => {
+    toolsByName({ delegate_rewrite: finishedJob })
+    const { ai, seen } = scriptedAi([
+      toolTurn('delegate_rewrite', { job_id: JOB, action: 'start' }),
+      toolTurn('read_section', { section: '7' }),
+      toolTurn('replace_text', { old_str: 'Schicht', new_str: 'shift' }),
+      toolTurn('read_section', { section: '7' }),
+      toolTurn('message_to_user', { message: 'Done; fixed one term in chapter 7.', is_question: false }, 'w')
+    ])
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus }))
+    expect(seen).toHaveLength(5)
+    expect(seenAt(seen, 4).forceFunction).toBe('message_to_user')
+    expect(executeFunctionByName).toHaveBeenCalledWith(expect.anything(), 'replace_text', expect.anything())
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
+  })
+
+  it('a job that went to the background closes the same way and says it keeps running', async () => {
+    toolsByName({ delegate_rewrite: { content: 'job_id: j-abcdef123456 status: running', isError: false, countsAsEdit: true, settlesJob: 'running' } })
+    const { ai, seen } = scriptedAi([
+      toolTurn('delegate_rewrite', { job_id: JOB, action: 'start' }),
+      toolTurn('read_section', { section: '2' }),
+      toolTurn('read_section', { section: '3' }),
+      toolTurn('message_to_user', { message: 'The translation runs in the background.', is_question: false }, 'w')
+    ])
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus }))
+    expect(seen).toHaveLength(4)
+    expect(lastUserText(seenAt(seen, 3).contents)).toContain('keeps running: say that, and that its progress shows above the prompt bar')
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
+  })
+
+  it('a planner that ends on its own after the job is not cut short', async () => {
+    toolsByName({ delegate_rewrite: finishedJob })
+    const { ai, seen } = scriptedAi([
+      toolTurn('delegate_rewrite', { job_id: JOB, action: 'start' }),
+      toolTurn('message_to_user', { message: 'Done.', is_question: false }),
+      { chunks: [{ text: '', finishReason: FinishReason.STOP }] }
+    ])
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus }))
+    expect(seen).toHaveLength(3)
+    expect(seen.every(s => s.forceFunction === undefined)).toBe(true)
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
+  })
+
+  it('reading section after section gets a note to act, naming delegate_rewrite', async () => {
+    toolsByName({})
+    const { ai, seen } = scriptedAi([
+      ...['2', '3', '4', '5', '6'].map(n => toolTurn('read_section', { section: n })),
+      toolTurn('delegate_rewrite', { targets: ['2', '3'], mode: 'translate', target_language: 'English', instruction: 'Translate faithfully.' }),
+      { chunks: [{ text: '', finishReason: FinishReason.STOP }] }
+    ])
+    await runAgenticLoop(makeOpts({ ai }))
+    for (let i = 1; i < 5; i++) expect(lastUserText(seenAt(seen, i).contents)).toBe('')
+    const note = lastUserText(seenAt(seen, 5).contents)
+    expect(note).toMatch(/^Note: the last 5 steps only read the document, and 15 steps are left in this session\. /)
+    expect(note).toContain('call delegate_rewrite now: its workers read each part')
+    // Not repeated on the next turn: the job call broke the streak.
+    expect(lastUserText(seenAt(seen, 6).contents)).toBe('')
+  })
+
+  it('without delegate_rewrite offered, the note only asks to act', async () => {
+    toolsByName({})
+    const { ai, seen } = scriptedAi([
+      ...Array.from({ length: 5 }, () => toolTurn('view_document', {})),
+      { chunks: [{ text: '', finishReason: FinishReason.STOP }] }
+    ])
+    const { ALL_TOOL_DECLARATIONS } = await import('../../../server/utils/ai/tools/registry')
+    await runAgenticLoop(makeOpts({ ai, toolDeclarations: ALL_TOOL_DECLARATIONS.filter(d => d.name !== 'delegate_rewrite') }))
+    const note = lastUserText(seenAt(seen, 5).contents)
+    expect(note).toMatch(/^Note: the last 5 steps only read the document/)
+    expect(note).not.toContain('delegate_rewrite')
+  })
+
+  it('three steps before the limit the model is told once to finish and answer', async () => {
+    toolsByName({})
+    const { ai, seen } = scriptedAi([
+      ...Array.from({ length: 20 }, (_, i) => toolTurn('read_section', { section: String(i + 1) })),
+      toolTurn('message_to_user', { message: 'Read chapters 1-20, nothing changed.', is_question: false }, 'w')
+    ])
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus }))
+    const reserve = /3 steps are left before this session stops\. Use them to finish the task .* answer the user with message_to_user\./
+    expect(lastUserText(seenAt(seen, 17).contents)).toMatch(reserve)
+    expect(seen.filter(s => reserve.test(lastUserText(s.contents)))).toHaveLength(1)
+    // No job and no edit: the honest "stopped early" label stays.
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('stoppedEarly'))
+  })
+
+  it('a session whose job is settled and that hits the step limit anyway ends as done', async () => {
+    toolsByName({ delegate_rewrite: finishedJob })
+    const { ai } = scriptedAi([
+      toolTurn('delegate_rewrite', { job_id: JOB, action: 'start' }),
+      ...Array.from({ length: 19 }, () => toolTurn('load_skill', { id: 'translation' })),
+      toolTurn('message_to_user', { message: 'Translated; Undo is in the Activity Log.', is_question: false }, 'w')
+    ])
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus }))
+    expect(executeFunctionByName).toHaveBeenLastCalledWith(expect.anything(), 'message_to_user', expect.anything())
+    expect(setStatus).toHaveBeenLastCalledWith('done', aiStatus('done'))
   })
 })

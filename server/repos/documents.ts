@@ -1,4 +1,5 @@
 import { and, eq, inArray, isNull, lt, sql, type SQL } from 'drizzle-orm'
+import type { SuggestionPolicy } from '~~/shared/utils/suggestions/record'
 import type { DocTheme } from '~~/shared/types/theme'
 import type { AudienceKind } from '~~/shared/audiences'
 import type { DocListSort, SortDirection } from '~~/shared/api/explorer'
@@ -284,6 +285,14 @@ export async function setShareSettings(doc: DocAccess<'manage'>, settings: { sha
   if (result.length === 0) throw new NotFoundError('Document')
 }
 
+/** Store a document's suggestion mode settings. */
+export async function setSuggestionPolicy(doc: DocAccess<'manage'>, policy: SuggestionPolicy): Promise<void> {
+  const result = await useDatabase().update(documents).set({ suggestionPolicy: policy })
+    .where(eq(documents.docId, doc.docId))
+    .returning({ docId: documents.docId })
+  if (result.length === 0) throw new NotFoundError('Document')
+}
+
 /** Set the password hash AND flip accessMode to password-protected in one write. */
 export async function setDocPassword(doc: DocAccess<'manage'>, passwordHash: string): Promise<void> {
   const docId = doc.docId
@@ -470,6 +479,8 @@ export interface DocListRow {
   ownerId: number | null
   ownerName: string | null
   isOwner: boolean
+  /** Marked as project context (null = an ordinary document). */
+  contextScope: 'folder' | 'all' | null
   createdAt: Date
   updatedAt: Date
   lastActive: Date
@@ -537,6 +548,7 @@ export async function listScopeDocs(scope: FolderScope, q: DocListQuery): Promis
       ownerId: documents.ownerId,
       ownerName: users.name,
       isOwner: sql<boolean>`coalesce(${documents.ownerId} = ${actorId}, false)`,
+      contextScope: documents.contextScope,
       createdAt: documents.createdAt,
       updatedAt: documents.updatedAt,
       lastActive: documents.lastActive,

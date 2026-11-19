@@ -7,7 +7,7 @@ import {
   folderPathOf,
   freeFolderName,
   type ExplorerItem,
-  type MenuAction,
+  type CommandAction,
   type WorkspaceRoleName
 } from '~/utils/explorer/model'
 import { clickSelect, EMPTY_SELECTION, pruneSelection, type SelectionState } from '~/utils/explorer/selection'
@@ -267,10 +267,8 @@ function onTreeContextmenu(folderId: string | null) {
   menuTargets.value = folder ? [folderItem(folder)] : []
 }
 
-function itemUrl(item: ExplorerItem): string {
-  return `${window.location.origin}${item.kind === 'doc' ? `/d/${item.id}` : props.folderHref(item.id)}`
-}
-const ACTIONS: Record<MenuAction, (targets: readonly ExplorerItem[], into: string | null) => void> = {
+const itemUrl = (item: ExplorerItem): string => `${window.location.origin}${item.kind === 'doc' ? `/d/${item.id}` : props.folderHref(item.id)}`
+const ACTIONS: Record<CommandAction, (targets: readonly ExplorerItem[], into: string | null) => void> = {
   open: ([first]) => first && openItem(first),
   openNewTab: ([first]) => first && openItem(first, true),
   rename: ([first]) => first && startRename(first.key),
@@ -290,7 +288,7 @@ const ACTIONS: Record<MenuAction, (targets: readonly ExplorerItem[], into: strin
   import: (_t, into) => openImport(into),
   paste: () => void pasteInto(props.folderId)
 }
-function runAction(action: MenuAction, targets: readonly ExplorerItem[]) {
+function runAction(action: CommandAction, targets: readonly ExplorerItem[]) {
   const first = targets[0]
   ACTIONS[action](targets, first?.kind === 'folder' ? first.id : props.folderId)
 }
@@ -301,7 +299,8 @@ const menu = useExplorerMenu({
   sort,
   dir,
   setSort: (s, d) => setQuery({ ...(s ? { sort: s, dir: undefined } : {}), ...(d ? { dir: d } : {}) }),
-  run: runAction
+  run: runAction,
+  context: useExplorerContextScope({ scope: scopeRef, afterChange: data.afterChange, announce, handleError: actions.handleError })
 })
 const contextItems = computed(() => menu.contextMenu(menuTargets.value))
 const selectionMenu = computed(() => menu.menuItems(selectedItems.value))

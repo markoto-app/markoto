@@ -116,6 +116,23 @@ Horizontal rule: \`---\`, \`***\`, or \`___\` on its own line.
 
 Footnotes: text[^1]. … and [^1]: footnote body somewhere later in the doc.
 
+Citations (Pandoc syntax, keys from the document's bibliography; \`list_references\` lists them):
+  [@smith2020]              parenthetical, formatted in the document's citation style
+  [@smith2020, p. 12]       with a locator (p., pp., chap., sec., S., Kap. …)
+  [see @a2019; @b2021]      several works, with a prefix
+  [-@smith2020]             year only: "Smith says (2020)"
+  @smith2020 says …         narrative: "Smith (2020) says …"
+  The bibliography is generated: at \`[[bibliography]]\` on its own line, else under an empty "References" heading, else at the end. Never type reference entries or a numbered list of sources by hand, and cite only existing keys (add new works with \`add_reference_by_doi\`).
+
+Cross-references (numbers in the document language, kept right when things move):
+  ![Caption](url){#fig:overview}          label a figure
+  Table: Results {#tbl:results}            label a table (at the end of its caption)
+  $$ E = mc^2 $$ {#eq:energy}              label a display equation; it gets a number "(1)"
+  # Methods {#sec:methods}                 label a section
+  See @fig:overview, [@tbl:results] and @eq:energy; details in @sec:methods.
+  Renders "Figure 1", "Table 1", "Equation (1)", "Section 2" (German "Abbildung 1" …). Never type figure, table or equation numbers by hand when labels can do it.
+  \`[[lof]]\` / \`[[lot]]\` on its own line: list of figures / list of tables with page numbers.
+
 Math (KaTeX):
   Inline: $E = mc^2$.  Escape a literal dollar sign with \\$ so it isn't parsed as math.
   Block (markers on their own lines):

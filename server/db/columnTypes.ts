@@ -3,6 +3,7 @@
 // column of the row (a kind / action), the union is keyed by that column, and
 // readers pair the two with the parsers here: rows written by older code are
 // read back through zod, not trusted by a cast.
+import type { SuggestionPolicy } from '../../shared/utils/suggestions/record'
 import { z } from 'zod'
 
 // ── ai_session_messages.body ────────────────────────────────────────────
@@ -52,6 +53,8 @@ export interface AiJobParams {
   headingMap?: Array<{ from: string, to: string }>
   /** Length band override (shorten jobs). */
   lengthBand?: { min: number, max: number } | null
+  /** Suggestion mode: each unit's change is stored as suggestions a person accepts, the text stays. */
+  suggest?: boolean
 }
 
 export interface AiJobEstimate {
@@ -139,6 +142,7 @@ export interface AuditEventShapes {
   'doc.shared': { before: { access: 'view' | 'edit' } | null, after: { access: 'view' | 'edit' }, metadata: { affectedUserId: number } }
   'doc.unshared': { metadata: { affectedUserId: number } }
   'doc.share_settings_changed': { before: { expiresAt: string | null, noDownload: boolean }, after: { expiresAt: string | null, noDownload: boolean } }
+  'doc.suggestion_settings_changed': { before: SuggestionPolicy, after: SuggestionPolicy }
   'doc.published': { metadata: { pageId: string, slug: string, republish: boolean, indexable: boolean } }
   'doc.unpublished': { metadata: { pageId: string } | ModerationReason & { pageId: string } }
   'doc.publish_settings_changed': { before: { slug: string, indexable: boolean }, after: { slug: string, indexable: boolean } }

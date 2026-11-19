@@ -1,6 +1,7 @@
 import type { ContextMenuItem } from '@nuxt/ui'
-import { menuActions, type ExplorerItem, type ExplorerPermissions, type MenuAction } from '~/utils/explorer/model'
+import { menuActions, type CommandAction, type ExplorerItem, type ExplorerPermissions, type MenuAction } from '~/utils/explorer/model'
 import { DOC_LIST_SORTS, type DocListSort } from '~~/shared/api/explorer'
+import type { ContextScope } from '~~/shared/config/projectContext'
 
 // The explorer's menus: the context menu of a row, a selection, a tree
 // node or the empty space, and the toolbar's "Actions" menu, built from the
@@ -20,8 +21,15 @@ const ACTION_META: Record<MenuAction, { icon: string, kbds?: string[], color?: '
   newDocument: { icon: 'i-lucide-file-plus' },
   newFolder: { icon: 'i-lucide-folder-plus', kbds: ['alt', 'n'] },
   import: { icon: 'i-lucide-upload' },
-  paste: { icon: 'i-lucide-clipboard-paste', kbds: ['meta', 'v'] }
+  paste: { icon: 'i-lucide-clipboard-paste', kbds: ['meta', 'v'] },
+  aiContext: { icon: 'i-lucide-book-marked' }
 }
+
+const CONTEXT_CHOICES: ReadonlyArray<{ scope: ContextScope | null, key: string }> = [
+  { scope: null, key: 'off' },
+  { scope: 'folder', key: 'folder' },
+  { scope: 'all', key: 'all' }
+]
 
 export function useExplorerMenu(opts: {
   perms: Readonly<Ref<ExplorerPermissions>>
@@ -30,20 +38,58 @@ export function useExplorerMenu(opts: {
   sort: Readonly<Ref<DocListSort>>
   dir: Readonly<Ref<'asc' | 'desc'>>
   setSort: (sort: DocListSort | undefined, dir: 'asc' | 'desc' | undefined) => void
-  run: (action: MenuAction, targets: readonly ExplorerItem[]) => void
+  run: (action: CommandAction, targets: readonly ExplorerItem[]) => void
+  /** "Use as AI context" (`useExplorerContextScope`). */
+  context: {
+    setContextScope: (item: ExplorerItem, scope: ContextScope | null) => Promise<void>
+    inWorkspace: Readonly<Ref<boolean>>
+  }
 }) {
   const { t } = useI18n()
 
+  /**
+   * "Use as AI context": a submenu with the three choices on desktop; on
+   * mobile (the long-press sheet has no submenus) a toggle between off and
+   * the document's folder, the whole-scope choice lives in the document panel.
+   */
+  function contextItem(target: ExplorerItem | undefined): ContextMenuItem {
+    const current = target?.kind === 'doc' ? target.doc.contextScope ?? null : null
+    const set = (scope: ContextScope | null) => {
+      if (target) void opts.context.setContextScope(target, scope)
+    }
+    const label = t('explorer.action.aiContext')
+    if (opts.isMobile.value) {
+      return {
+        label: current ? t('explorer.context.stop') : label,
+        icon: ACTION_META.aiContext.icon,
+        onSelect: () => set(current ? null : 'folder')
+      }
+    }
+    return {
+      label,
+      icon: ACTION_META.aiContext.icon,
+      children: [CONTEXT_CHOICES.map(c => ({
+        label: t(`explorer.context.${c.key === 'all' && !opts.context.inWorkspace.value ? 'allPersonal' : c.key}`),
+        type: 'checkbox' as const,
+        checked: current === c.scope,
+        onUpdateChecked: () => set(c.scope)
+      }))]
+    }
+  }
+
   function menuItems(targets: readonly ExplorerItem[]): ContextMenuItem[][] {
-    return menuActions(opts.perms.value, targets, { canPaste: opts.canPaste.value }).map(group => group.map(action => ({
-      label: action === 'delete' && targets.length > 1
-        ? t('explorer.action.deleteN', { n: targets.length }, targets.length)
-        : t(`explorer.action.${action}`),
-      icon: ACTION_META[action].icon,
-      kbds: opts.isMobile.value ? undefined : ACTION_META[action].kbds,
-      color: ACTION_META[action].color,
-      onSelect: () => opts.run(action, targets)
-    })))
+    return menuActions(opts.perms.value, targets, { canPaste: opts.canPaste.value }).map(group => group.map((action) => {
+      if (action === 'aiContext') return contextItem(targets[0])
+      return {
+        label: action === 'delete' && targets.length > 1
+          ? t('explorer.action.deleteN', { n: targets.length }, targets.length)
+          : t(`explorer.action.${action}`),
+        icon: ACTION_META[action].icon,
+        kbds: opts.isMobile.value ? undefined : ACTION_META[action].kbds,
+        color: ACTION_META[action].color,
+        onSelect: () => opts.run(action, targets)
+      }
+    }))
   }
 
   // Sort lives in the empty-space menu too (and in the toolbar).

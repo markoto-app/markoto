@@ -1,5 +1,7 @@
 import { parseDocument, stringify } from 'yaml'
 import type { DocTheme } from '../../types/theme'
+import type { CslItem } from '../citations/cslItem'
+import type { CitationStyleId } from '../citations/citationStyles'
 
 /**
  * YAML frontmatter that "Download Markdown" writes on top of the file and
@@ -13,11 +15,16 @@ import type { DocTheme } from '../../types/theme'
  *   audience: business
  *   language: en
  *   templateId: blank
+ *   citationStyle: apa
  *   theme:
  *     page: { … }
  *     …
  *     customCss: |
  *       .paged-doc h2 { … }
+ *   references:          # the bibliography, CSL YAML (as Pandoc reads it)
+ *     - id: smith2020
+ *       type: article-journal
+ *       …
  *   ---
  *
  *   # Q3 report
@@ -38,8 +45,8 @@ import type { DocTheme } from '../../types/theme'
 
 export const MARKOTO_FRONTMATTER_VERSION = 1
 
-/** Larger frontmatter blocks are not read at all (a theme with 64 KB of custom CSS is ~70 KB). */
-export const FRONTMATTER_MAX_BYTES = 256 * 1024
+/** Larger frontmatter blocks are not read at all (a theme with 64 KB of custom CSS is ~70 KB; a 2000-entry bibliography ~1.5 MB). */
+export const FRONTMATTER_MAX_BYTES = 2 * 1024 * 1024
 
 export interface MarkdownExportProperties {
   title: string
@@ -48,6 +55,9 @@ export interface MarkdownExportProperties {
   language: string
   templateId?: string
   theme: DocTheme
+  /** The bibliography; written (with the style) only when there is one. */
+  references?: readonly CslItem[]
+  citationStyle?: CitationStyleId
 }
 
 /** Markdown file text with markoto frontmatter on top of `body`. */
@@ -60,7 +70,11 @@ export function buildMarkdownExport(body: string, props: MarkdownExportPropertie
     language: props.language
   }
   if (props.templateId) data.templateId = props.templateId
+  const references = props.references ?? []
+  if (references.length > 0 && props.citationStyle) data.citationStyle = props.citationStyle
   data.theme = props.theme
+  // Pandoc's key and shape: `pandoc --citeproc` formats the file as it is.
+  if (references.length > 0) data.references = references.map(item => ({ ...item }))
   // `lineWidth: 0` keeps long strings on one line; multi-line strings
   // (custom CSS) become literal block scalars.
   const yaml = stringify(data, { lineWidth: 0, aliasDuplicateObjects: false })
@@ -75,6 +89,8 @@ export interface ImportedDocProperties {
   language?: string
   templateId?: string
   theme?: DocTheme
+  references?: CslItem[]
+  citationStyle?: CitationStyleId
 }
 
 export type FrontmatterSplit

@@ -11,6 +11,7 @@ import {
   WidgetType,
   type DecorationSet
 } from '@codemirror/view'
+import { isSuggesting } from '~/utils/suggestions/suggestionExtension'
 import { StateEffect, StateField } from '@codemirror/state'
 import type * as Y from 'yjs'
 
@@ -126,6 +127,13 @@ export function commitDictationFinal(
   // tests/dom/dictationCommit.test.ts.
   const needsLeadSpace = /\w/.test(charBefore)
   const insert = (needsLeadSpace ? ' ' : '') + trimmed + ' '
+
+  // Suggesting: the phrase goes through the editor like typed text, so it
+  // becomes a suggestion (suggestionExtension.ts) instead of an edit.
+  if (isSuggesting(view.state)) {
+    view.dispatch({ changes: { from: caret, insert }, userEvent: 'input.dictation' })
+    return
+  }
 
   const origin = userId === null ? 'dictation:anon' : `dictation:${userId}`
   ydoc.transact(() => {

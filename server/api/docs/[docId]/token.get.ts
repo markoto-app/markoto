@@ -1,7 +1,7 @@
 import { docBrandForClient } from '../../../utils/brandKit/docBrand'
 import jwt from 'jsonwebtoken'
 import { ssoLoginUrlForMember } from '../../../utils/sso/required'
-import { canDownload, decideDocDelete, decideTokenAccess, isVisitor } from '../../../../shared/utils/documents/docPermissions'
+import { canDownload, decideDocDelete, decideSuggestionAccess, decideTokenAccess, isVisitor } from '../../../../shared/utils/documents/docPermissions'
 import { docJwtLifetimeSeconds } from '../../../utils/documents/docJwt'
 import { recordDocumentOpen } from '../../../repos/documentViews'
 import { anonCreatorKeyMatches, readAnonCreatorKey } from '../../../utils/auth/anonCreator'
@@ -59,6 +59,9 @@ export default defineApiHandler({
         requiresPassword: decision.outcome === 'password-required',
         forbidden: decision.outcome === 'forbidden',
         readOnly: true,
+        suggestOnly: false,
+        suggestionsRequired: false,
+        contentWriter: false,
         accessMode: row.accessMode,
         ownerId: null,
         workspaceId: null,
@@ -78,12 +81,24 @@ export default defineApiHandler({
     // write paths check the plan themselves; this is UI hydration only.
     const docPlan = await resolveDocPlanFor({ ownerId: row.ownerId, workspaceId: row.workspaceId })
 
+    // Suggestion mode: whether this caller edits directly, may only
+    // suggest (forced by the document, or a viewer allowed to suggest) or
+    // only reads. The JWT carries it; the sync server enforces it.
+    const write = decideSuggestionAccess(doc, actor, row.suggestionPolicy, decision)
+
     // workspaceId + workspaceRole leak to the client so the editor UI can
     // decide which File-menu items to render without a second round-trip.
     // They don't widen access, the client already knows it has the doc
     // open, and the server re-checks every mutation anyway.
     const responseBase = {
-      readOnly: decision.readOnly,
+      readOnly: write.readOnly,
+      // Edits become suggestions; the editor stays in suggesting mode.
+      suggestOnly: write.suggestOnly,
+      // The document asks everyone not exempt to suggest (the editor says so).
+      suggestionsRequired: row.suggestionPolicy.required,
+      // Holds the content-write right (an editor, also when made to
+      // suggest), not a viewer allowed to suggest: AI and imports need it.
+      contentWriter: !decision.readOnly,
       accessMode: row.accessMode,
       ownerId: row.ownerId,
       workspaceId: row.workspaceId,
@@ -142,7 +157,8 @@ export default defineApiHandler({
       // steal attribution from a real edit by User B). Anonymous users
       // end up with null here; the sync-server falls back to awareness.
       userName: user?.name ?? null,
-      readOnly: decision.readOnly
+      readOnly: write.readOnly,
+      ...(write.suggestOnly ? { suggestOnly: true } : {})
     } satisfies SessionJwtPayload
     // ≤ 2 h, and never past the share link's expiry.
     const token = jwt.sign(payload, env.auth.jwtSecret, { expiresIn: docJwtLifetimeSeconds(row.shareExpiresAt) })

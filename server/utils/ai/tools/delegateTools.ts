@@ -261,8 +261,16 @@ async function handleDelegateScan(ctx: DocToolContext, args: ScanArgs): Promise<
     const example = i.example ? ` e.g. ${quoteInline(i.example, 160)}` : ''
     return `- ${quoteInline(i.text, 120)} x${i.count} in ${where}${example}`
   })
-  return toolOk([...head, ...rows].join('\n'))
+  return toolOk([...head, ...rows, SCAN_NEXT].join('\n'))
 }
+
+/**
+ * After the inventory, the planner decides the glossary from the list and
+ * starts the rewrite. Without this line a planner read the target sections
+ * one by one after the scan (to check terms in context, then to translate
+ * them itself) until the turn limit, and no job was ever created.
+ */
+const SCAN_NEXT = 'Next, for a translation or rewrite: pick the terms that need a decision from this list (the examples show them in context) and call delegate_rewrite with them as the glossary. Do not read the target sections first: the workers read each part.'
 
 // ── delegate_rewrite ──────────────────────────────────────────────────
 
@@ -279,8 +287,10 @@ function isNewJobArgs(a: RewriteArgs): a is NewJobArgs {
   return a.targets !== undefined && a.mode !== undefined && a.instruction !== undefined
 }
 
-function jobParams(args: NewJobArgs, facts: { sourceLanguage: string | null, audience: string | null }): AiJobParams {
+function jobParams(args: NewJobArgs, facts: { sourceLanguage: string | null, audience: string | null }, suggest: boolean): AiJobParams {
   return {
+    // The session suggests: so does the job it starts.
+    ...(suggest ? { suggest: true } : {}),
     instruction: args.instruction,
     targetLanguage: args.target_language ?? null,
     sourceLanguage: facts.sourceLanguage,
@@ -320,7 +330,7 @@ async function createAndPreview(ctx: DocToolContext, args: NewJobArgs): Promise<
   if (!targets.ok) return toolError(targets.error)
   if (!ctx.aiProviders.worker) return toolError('Error: no AI model is set up for delegated work in this session.')
   ctx.updateStatus('tool', aiStatus('previewJob'))
-  const params = jobParams(args, await documentFacts(ctx))
+  const params = jobParams(args, await documentFacts(ctx), Boolean(ctx.suggestSink))
   const doc = writeAccessOf(ctx)
   let created
   try {
@@ -402,8 +412,29 @@ async function statusResult(ctx: DocToolContext, jobId: string, step: string): P
   const parts = [formatReport(report)]
   if (report.job.mode === 'comment' && report.job.status === 'done') parts.push(await formatFindings(ctx, jobId))
   if (report.job.status === 'running') parts.push('The job is still running in the background. Tell the user in one short message that it continues and that its progress shows above the prompt bar, then stop.')
-  if (report.job.status === 'done' && report.job.mode !== 'comment') parts.push('Finished. Tell the user in one short message what was done and what was left out (skipped or flagged parts by heading), that Undo is in the Activity Log, and stop. Rerun flagged or skipped parts with action "rerun" only when that can help.')
-  return toolOk(parts.join('\n'))
+  if (report.job.status === 'done' && report.job.mode !== 'comment') parts.push(finishedNote(report))
+  return { ...toolOk(parts.join('\n')), ...settles(report.job) }
+}
+
+/**
+ * The planner's next step after a finished rewrite. Every applied part
+ * already passed the job's checks, so re-reading the changed sections
+ * only spends the session's steps: a planner that did so after a
+ * twelve-part translation ran into the turn limit without an answer.
+ */
+function finishedNote(report: JobReport): string {
+  const attention = report.notes.length > 0
+    ? 'Only the parts listed above may need a look; leave the rest.'
+    : 'No part was flagged or skipped.'
+  return `Finished. Tell the user in one short message what was done and what was left out (skipped or flagged parts by heading), that Undo is in the Activity Log, and stop. Every changed part passed the job's checks (Markdown structure, code, links, language), so do not read the changed sections to verify them. ${attention} Rerun flagged or skipped parts with action "rerun" only when that can help.`
+}
+
+/** A rewrite job that no longer needs the planner (`ToolResult.settlesJob`); comment jobs still have findings to post. */
+function settles(job: Pick<AiJobRow, 'mode' | 'status'>): Pick<ToolResult, 'settlesJob'> {
+  if (job.mode === 'comment' || job.mode === 'scan') return {}
+  if (job.status === 'running') return { settlesJob: 'running' }
+  if (job.status === 'done') return { settlesJob: 'finished' }
+  return {}
 }
 
 function sleep(ms: number, signal: AbortSignal | undefined): Promise<void> {
@@ -486,7 +517,8 @@ async function startFlow(ctx: DocToolContext, job: AiJobRow): Promise<ToolResult
       'It runs in the background and continues after this session ends; its progress shows above the prompt bar and Undo will be in the Activity Log. Tell the user that in one short message and stop. Check it later with action "status".'
     ].join('\n'),
     isError: false,
-    countsAsEdit: true
+    countsAsEdit: true,
+    ...settles(started)
   }
 }
 

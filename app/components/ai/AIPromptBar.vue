@@ -391,6 +391,8 @@ const { bottomOffset } = usePromptBarOffset()
         @click="explainLocked('aiVoice')"
       />
 
+      <AiPromptSuggestToggle v-if="!isActive && loggedIn && !chatMissing && !isRecording && !isTranscribing" />
+
       <!-- Primary slot: send. Stays primary across idle + recording so the
            bar doesn't shift when the user starts speaking. Clicking while
            recording stops the mic, which triggers transcription +

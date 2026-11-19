@@ -133,6 +133,12 @@
       "too-many-fonts": "Ein Workspace kann bis zu {limit} Schriftdateien haben.",
       "too-many-images": "Ein Workspace kann bis zu {limit} Markenbilder haben."
     },
+    "citations": {
+      "doi-invalid": "Das ist keine DOI. Eine DOI sieht so aus: 10.1000/xyz123.",
+      "doi-not-found": "Crossref hat keinen Eintrag zu dieser DOI. Prüfe die DOI oder füge die Literatur als BibTeX hinzu.",
+      "doi-lookup-failed": "Die DOI-Abfrage bei Crossref ist fehlgeschlagen. Versuche es gleich noch einmal.",
+      "rate-limited": "Zu viele DOI-Abfragen. Warte ein paar Minuten und versuche es dann erneut."
+    },
     "common": {
       "internal": "Auf unserer Seite ist etwas schiefgelaufen. Bitte versuche es noch einmal – wir wurden benachrichtigt."
     },
@@ -424,6 +430,21 @@
       "cycle": "Ein Ordner kann nicht in sich selbst oder in einen seiner Unterordner verschoben werden.",
       "forbidden": "Du darfst hier keine Ordner ändern.",
       "delete-blocked": "{blocked} Dokumente in diesem Ordner kannst du nicht löschen, deshalb wurde nichts gelöscht."
+    },
+    "suggestion": {
+      "invalid": "Dieser Vorschlag ist ungültig.",
+      "not-allowed": "Du darfst in diesem Dokument keine Vorschläge machen.",
+      "review-not-allowed": "Nur Personen, die dieses Dokument bearbeiten dürfen, können Vorschläge annehmen oder ablehnen.",
+      "not-found": "Diesen Vorschlag gibt es nicht mehr. Vielleicht hat ihn jemand anderes angenommen oder abgelehnt.",
+      "too-many": "Dieses Dokument hat zu viele offene Vorschläge ({max}). Nimm zuerst einige an oder lehne sie ab.",
+      "too-many-authors": "Nimm die Vorschläge von höchstens {max} Personen auf einmal an.",
+      "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut."
+    },
+    "context": {
+      "not-found": "Dieses Dokument gibt es nicht, oder du kannst es nicht öffnen.",
+      "self": "Ein Dokument kann nicht sein eigener Kontext sein.",
+      "too-many": "Ein Dokument kann höchstens {max} zusätzliche Kontextdokumente haben.",
+      "not-attached": "Dieses Dokument ist nicht als Kontext angehängt."
     }
   }
 }

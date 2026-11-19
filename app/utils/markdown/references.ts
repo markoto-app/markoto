@@ -35,12 +35,12 @@ const REFERENCES_HEADING_CLASS = 'markoto-references-heading'
 const HEADING = /^H([1-6])$/
 const ENTRY_TAGS = new Set(['OL', 'UL', 'P'])
 
-function headingLevel(el: Element): number {
+export function headingLevel(el: Element): number {
   const m = HEADING.exec(el.tagName)
   return m ? Number(m[1]) : 0
 }
 
-function isReferencesHeading(el: Element): boolean {
+export function isReferencesHeading(el: Element): boolean {
   return REFERENCE_HEADINGS.has(headingKey(el))
 }
 

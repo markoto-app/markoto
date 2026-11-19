@@ -19,7 +19,8 @@ function comment(anchor: DerivedComment['anchor']): DerivedComment {
     createdAt: 0,
     updatedAt: 0,
     resolved: false,
-    replies: []
+    replies: [],
+    suggestionId: null
   }
 }
 

@@ -49,7 +49,8 @@
       "updateTooLarge": "Este cambio es demasiado grande para sincronizarlo de una vez. Recarga y añade el contenido en partes más pequeñas.",
       "documentTooLarge": "Este documento ha alcanzado su tamaño máximo. Recarga y elimina contenido o divídelo en varios documentos.",
       "invalidMeta": "Un ajuste del documento (título, tema o detalles) tenía un valor que el servidor no puede aceptar. Recarga para continuar.",
-      "invalidUpdate": "El servidor no pudo procesar un cambio de esta pestaña. Recarga para continuar."
+      "invalidUpdate": "El servidor no pudo procesar un cambio de esta pestaña. Recarga para continuar.",
+      "invalidSuggestion": "Esta pestaña intentó cambiar algo en lo que solo puedes sugerir cambios (por ejemplo, después de que el propietario activara el modo de sugerencias). Recarga para continuar en modo de sugerencias."
     },
     "bold": "Negrita",
     "italic": "Cursiva",
@@ -203,6 +204,10 @@
         "search_knowledge": "buscó en la base de conocimiento",
         "get_knowledge_file": "leyó un archivo de conocimiento",
         "replace_all": "reemplazó texto en todo el documento"
+      },
+      "suggestion": {
+        "accepted": "aceptó una sugerencia | aceptó una sugerencia | aceptó {n} sugerencias",
+        "rejected": "rechazó una sugerencia | rechazó una sugerencia | rechazó {n} sugerencias"
       }
     },
     "detail": {
@@ -210,7 +215,8 @@
       "replacedAll": "{count}× “{from}” → “{to}”",
       "restoredFrom": "Desde {ago}",
       "jobProgress": "{done} de {total} partes cambiadas",
-      "jobReverted": "{reverted} partes restauradas, {skipped} dejadas tal como se editaron"
+      "jobReverted": "{reverted} partes restauradas, {skipped} dejadas tal como se editaron",
+      "suggestions": "{preview} ({authors}) | {preview} ({authors}) | {count} de {authors}, p. ej. {preview}"
     },
     "restore": {
       "button": {
@@ -478,7 +484,67 @@
     "audience": {
       "label": "Público",
       "help": "Indica a markoto para quién está escrito. Afecta al tono, la estructura y la elección de palabras."
+    },
+    "context": {
+      "label": "Contexto de IA",
+      "help": "Documentos que la IA lee en cada solicitud aquí, como personajes, un glosario, una guía de estilo o datos de producto.",
+      "scope": {
+        "label": "Este documento como contexto",
+        "help": "La IA también leerá este documento cuando trabaje en otros documentos.",
+        "off": "No se usa como contexto",
+        "folder": "Para su carpeta y subcarpetas",
+        "workspace": "Para todo el espacio de trabajo",
+        "personal": "Para todos mis documentos"
+      },
+      "appliedLabel": "Contexto que la IA lee aquí",
+      "sourceWorkspace": "Todo el espacio de trabajo",
+      "sourcePersonal": "Todos tus documentos",
+      "sourceFolder": "Desde la carpeta",
+      "sourceAttached": "Adjunto a este documento",
+      "notIncluded": "Adjunto, no incluido (límite alcanzado)",
+      "none": "Todavía no se aplica ningún documento de contexto aquí.",
+      "omitted": "{n} documento de contexto más no está incluido. | {n} documentos de contexto más no están incluidos.",
+      "detach": "Quitar de este documento",
+      "attachLabel": "Adjuntar un documento",
+      "attachHelp": "Busca un documento para usarlo como contexto adicional aquí.",
+      "attachLimit": "Se pueden adjuntar como máximo {max} documentos.",
+      "attachPlaceholder": "Buscar documentos…",
+      "saveFailed": "No se pudo cambiar el contexto de IA",
+      "untitled": "Sin título"
     }
+  },
+  "references": {
+    "title": "Referencias",
+    "style": {
+      "label": "Estilo de cita",
+      "help": "Cómo se escriben las citas y la bibliografía. Se aplica a todo el documento."
+    },
+    "problemsTitle": "Un problema en el documento | {n} problemas en el documento",
+    "problem": {
+      "missing-citation": "{key} no está en la bibliografía.",
+      "missing-label": "Ninguna figura, tabla, ecuación o sección tiene la etiqueta {key}.",
+      "duplicate-label": "La etiqueta {key} se usa más de una vez."
+    },
+    "addDoi": "Añadir por DOI",
+    "addPaste": "Pegar BibTeX",
+    "addFile": "Importar archivo",
+    "doiSignIn": "Inicia sesión para añadir referencias por DOI.",
+    "doiPlaceholder": "10.1000/xyz123 o un enlace de doi.org",
+    "pastePlaceholder": "Pega entradas BibTeX, CSL JSON o CSL YAML, por ejemplo de Zotero o Google Scholar",
+    "add": "Añadir",
+    "addedCount": "No se añadió ninguna referencia. | Se añadió 1 referencia. | Se añadieron {n} referencias.",
+    "replacedCount": "Se actualizó 1 entrada existente. | Se actualizaron {n} entradas existentes.",
+    "skippedCount": "Se omitió 1 entrada ilegible. | Se omitieron {n} entradas ilegibles.",
+    "nothingFound": "No se encontraron referencias. Pega BibTeX (de Zotero, Google Scholar o la página de una editorial) o CSL JSON.",
+    "fileTooLarge": "Este archivo es demasiado grande (máximo 4 MB).",
+    "doiFailed": "No se pudo añadir el DOI",
+    "entries": "Sin entradas | 1 entrada | {n} entradas",
+    "search": "Buscar referencias",
+    "empty": "Aún no hay referencias. Añade una por DOI, pega BibTeX o importa un archivo .bib de Zotero.",
+    "cite": "Insertar cita",
+    "remove": "Quitar de la bibliografía",
+    "syntaxHelp": "Cita con [{'@'}clave] o [{'@'}clave, p. 12]. La bibliografía aparece en [[bibliography]], bajo un encabezado Referencias vacío o al final del documento.",
+    "unknownKey": "{key} no está en la bibliografía ni es una etiqueta de este documento."
   },
   "audiences": {
     "technical": {
@@ -577,6 +643,11 @@
       "diagramPie": "Gráfico circular",
       "diagramMindmap": "Mapa mental",
       "toc": "Tabla de contenidos",
+      "references": "Referencias",
+      "citation": "Cita",
+      "bibliography": "Bibliografía",
+      "listOfFigures": "Índice de figuras",
+      "listOfTables": "Índice de tablas",
       "definitionList": "Lista de definiciones"
     },
     "format": {
@@ -625,7 +696,8 @@
         "web_search": "markoto quiere buscar «{target}» en la web.",
         "fetch_url": "markoto quiere abrir {target}",
         "view_image": "markoto quiere cargar la imagen {target}",
-        "generic": "markoto quiere usar {tool}."
+        "generic": "markoto quiere usar {tool}.",
+        "edit_project_context": "markoto quiere actualizar el documento de contexto «{target}»."
       },
       "job": {
         "question": "{what}, {minutes}.",
@@ -765,6 +837,10 @@
       "fetchUrl": "Abriendo {url}",
       "fetchUrlAny": "Abriendo una página web…",
       "readDocument": "Leyendo el documento…",
+      "readReferences": "Leyendo la bibliografía…",
+      "addReference": "Buscando el DOI {doi}",
+      "addReferenceAny": "Buscando un DOI…",
+      "checkCitations": "Comprobando las citas…",
       "editPassage": "Editando «{passage}»",
       "editDocument": "Editando el documento…",
       "insertText": "Insertando texto…",
@@ -814,7 +890,9 @@
       "previewJob": "Probando el cambio en secciones de muestra…",
       "startJob": "Iniciando la edición en segundo plano…",
       "jobWaiting": "Edición en segundo plano en curso; el progreso se muestra arriba.",
-      "jobStatus": "Comprobando la edición en segundo plano…"
+      "jobStatus": "Comprobando la edición en segundo plano…",
+      "readProjectContext": "Leyendo el contexto del proyecto…",
+      "editProjectContext": "Actualizando el contexto del proyecto…"
     },
     "job": {
       "label": "Edición en segundo plano",
@@ -858,7 +936,8 @@
     "commentsShort": "Comentarios",
     "activityShort": "Actividad",
     "themeShort": "Tema",
-    "knowledgeShort": "Conocimiento"
+    "knowledgeShort": "Conocimiento",
+    "suggestionsShort": "Sugerir"
   },
   "editorCommands": {
     "formatting": "Formato",
@@ -3016,11 +3095,11 @@
     "loading": "Cargando…",
     "updated": "Las cifras tienen como máximo un minuto. Los días son en UTC.",
     "range": {
-      "label": "Periodo",
       "7": "7 días",
       "30": "30 días",
       "90": "90 días",
       "365": "12 meses",
+      "label": "Periodo",
       "all": "Todo el tiempo"
     },
     "tabs": {
@@ -3391,14 +3470,17 @@
       "movedWorkspace": "{n} documento movido a otro espacio de trabajo | {n} documentos movidos a otro espacio de trabajo",
       "deleted": "{n} elemento eliminado | {n} elementos eliminados",
       "undone": "Movimiento deshecho",
-      "cut": "{n} elemento cortado. Pégalo en una carpeta con Ctrl+V. | {n} elementos cortados. Pégalos en una carpeta con Ctrl+V."
+      "cut": "{n} elemento cortado. Pégalo en una carpeta con Ctrl+V. | {n} elementos cortados. Pégalos en una carpeta con Ctrl+V.",
+      "contextOn": "{name} ahora es contexto de IA",
+      "contextOff": "{name} ya no es contexto de IA"
     },
     "error": {
       "createFolder": "No se pudo crear la carpeta",
       "rename": "No se pudo renombrar",
       "move": "No se pudo mover",
       "delete": "No se pudo eliminar",
-      "deleteBlocked": "Carpeta no eliminada"
+      "deleteBlocked": "Carpeta no eliminada",
+      "context": "No se pudo cambiar el contexto de IA"
     },
     "action": {
       "open": "Abrir",
@@ -3415,7 +3497,8 @@
       "newDocument": "Documento nuevo",
       "newFolder": "Carpeta nueva",
       "import": "Importar archivos...",
-      "paste": "Pegar"
+      "paste": "Pegar",
+      "aiContext": "Usar como contexto de IA"
     },
     "sortBy": "Ordenar por",
     "sort": {
@@ -3529,6 +3612,82 @@
       "personal": "Mis documentos",
       "hint": "Busca en los títulos y el texto de tus documentos, tus espacios de trabajo y los documentos compartidos contigo."
     },
-    "subfolders": "{n} carpeta | {n} carpetas"
+    "subfolders": "{n} carpeta | {n} carpetas",
+    "context": {
+      "off": "No se usa como contexto",
+      "folder": "Para esta carpeta",
+      "all": "Para todo el espacio de trabajo",
+      "allPersonal": "Para todos mis documentos",
+      "stop": "Dejar de usar como contexto de IA"
+    },
+    "contextBadge": "Contexto de IA",
+    "contextBadgeAll": "La IA lee este documento en cada documento de aquí.",
+    "contextBadgeFolder": "La IA lee este documento en los documentos de su carpeta."
+  },
+  "suggestions": {
+    "title": "Sugerencias",
+    "aiAuthor": "markoto AI",
+    "kind": {
+      "insert": "Añadir",
+      "delete": "Eliminar",
+      "replace": "Reemplazar",
+      "obsolete": "Nada que cambiar"
+    },
+    "accept": "Aceptar",
+    "reject": "Rechazar",
+    "withdraw": "Retirar tu sugerencia",
+    "obsoleteHint": "Alguien eliminó este texto entretanto. Rechaza la sugerencia para quitarla.",
+    "changedHint": "El texto cambió desde que se hizo esta sugerencia. Al aceptarla se aplica al texto tal como está ahora.",
+    "replyPlaceholder": "Responder a esta sugerencia…",
+    "allAuthors": "Todos",
+    "filterAuthor": "Mostrar sugerencias de",
+    "acceptAll": "Aceptar todas",
+    "rejectAll": "Rechazar todas",
+    "acceptShown": "Aceptar estas",
+    "rejectShown": "Rechazar estas",
+    "acceptedN": "Ninguna sugerencia aceptada | {n} sugerencia aceptada | {n} sugerencias aceptadas",
+    "rejectedN": "Ninguna sugerencia rechazada | {n} sugerencia rechazada | {n} sugerencias rechazadas",
+    "failed": "No se pudieron actualizar las sugerencias. Inténtalo de nuevo.",
+    "empty": "Aún no hay sugerencias. Cambia a Sugiriendo para proponer cambios que otros puedan aceptar o rechazar.",
+    "emptyReadOnly": "No hay sugerencias en este documento.",
+    "mode": {
+      "editing": "Editando",
+      "suggesting": "Sugiriendo",
+      "editingHint": "Editas el texto directamente. Cambia a Sugiriendo para proponer cambios en su lugar.",
+      "suggestingHint": "Tus cambios se convierten en sugerencias que otros pueden aceptar o rechazar.",
+      "requiredHint": "El propietario de este documento pide sugerencias: tus cambios se convierten en sugerencias que otros aceptan o rechazan.",
+      "viewerHint": "Puedes sugerir cambios en este documento. Quienes lo editan los aceptan o rechazan.",
+      "suggestingFooter": "sugiriendo"
+    },
+    "ai": {
+      "toggle": "La IA sugiere cambios",
+      "on": "La IA propone sus cambios como sugerencias que aceptas o rechazas. Haz clic para que edite directamente.",
+      "off": "La IA edita el texto directamente. Haz clic para que proponga sugerencias en su lugar.",
+      "forced": "Este documento pide sugerencias, así que la IA también propone sus cambios como sugerencias.",
+      "settingTitle": "Sugerencias",
+      "settingLabel": "La IA sugiere en lugar de editar",
+      "settingDescription": "Los cambios que la IA hace en un documento, también en las ediciones grandes que se ejecutan en segundo plano, llegan como sugerencias que tú o tu equipo aceptáis o rechazáis. Puedes cambiarlo por petición en la barra de IA.",
+      "saveFailed": "No se pudo guardar el ajuste. Inténtalo de nuevo."
+    },
+    "settings": {
+      "title": "Sugerencias",
+      "required": "Todos sugieren cambios",
+      "requiredHelp": "Los cambios de los demás se convierten en sugerencias que aceptas o rechazas, como un supervisor que revisa un borrador. Tú siempre editas directamente.",
+      "exemptTitle": "Estos roles del espacio de trabajo siguen editando directamente:",
+      "exemptAdmins": "Administradores del espacio de trabajo",
+      "exemptEditors": "Editores del espacio de trabajo",
+      "viewers": "Los lectores pueden sugerir",
+      "viewersHelp": "Las personas con sesión iniciada que solo pueden ver este documento pueden sugerir cambios y responder a las sugerencias.",
+      "saveFailed": "No se pudo guardar la configuración de sugerencias"
+    },
+    "exportCritic": "Descargar Markdown con sugerencias (CriticMarkup)"
+  },
+  "a11yCheck": {
+    "issues": "{n} problema de accesibilidad | {n} problemas de accesibilidad",
+    "intro": "Corrige estos puntos para que los lectores de pantalla y el PDF etiquetado presenten bien tu documento.",
+    "imageAlt": "Imagen sin texto alternativo",
+    "emptyLink": "Enlace sin texto",
+    "headingSkip": "Un encabezado de nivel {level} sigue a uno de nivel {previous}: se salta un nivel",
+    "line": "Línea {line}"
   }
 }

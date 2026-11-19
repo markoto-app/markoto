@@ -13,6 +13,8 @@ const props = defineProps<{
   canShareWithGuests?: boolean
   /** Owner or workspace admin (share-link controls). */
   canManage?: boolean
+  /** The document belongs to a workspace (suggestion mode: exempt roles). */
+  inWorkspace?: boolean
 }>()
 
 const open = defineModel<boolean>('open', { required: true })
@@ -325,6 +327,12 @@ async function setPassword() {
         <SharingShareControls
           v-if="canManage && accessMode !== 'private'"
           :doc-id="docId"
+        />
+
+        <SharingSuggestionSettings
+          v-if="canManage"
+          :doc-id="docId"
+          :in-workspace="inWorkspace ?? false"
         />
 
         <SharingGuestShares

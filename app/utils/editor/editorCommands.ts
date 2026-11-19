@@ -714,6 +714,14 @@ export function insertToc(view: EditorView): void {
 }
 
 /**
+ * Insert a `[[bibliography]]` / `[[lof]]` / `[[lot]]` placeholder on a
+ * line of its own (the renderer fills it: citationResolve.ts).
+ */
+export function insertListPlaceholder(view: EditorView, kind: 'bibliography' | 'lof' | 'lot'): void {
+  insertBlock(view, `\n[[${kind}]]\n`)
+}
+
+/**
  * Insert a definition-list template (`Term\n: Definition`) and select
  * "Term" so typing replaces it.
  */

@@ -15,6 +15,15 @@
 //      same validation as `PUT /api/docs/:id/meta`
 //      (`shared/utils/documents/ymetaValidation.ts`); nested Y types inside ymeta are
 //      refused outright.
+//   4. `suggestions` map writes: every value must be one valid suggestion
+//      record (`shared/utils/suggestions/record.ts`) stored under its id.
+//   5. suggest-only connections (JWT `suggestOnly`): they may write only
+//      the `suggestions` map (records authored by themselves) and the
+//      `comments` array. Text, document settings and other people's
+//      suggestions are refused, as are deletions of anything else. Their
+//      items must be placeable right away: a suggest-only client has no
+//      reason to reference state the server lacks, and an item that can't
+//      be placed can't be checked.
 //
 // Locating ymeta writes without applying the update. A decoded Y.js item
 // only names its parent when it has no left/right neighbour; otherwise the
@@ -43,11 +52,25 @@
 
 import * as Y from 'yjs'
 import { isValidMetaValue } from '../../shared/utils/documents/ymetaValidation'
+import { parseSuggestion, SUGGESTIONS_ROOT, type SuggestionRecord } from '../../shared/utils/suggestions/record'
 import { SYNC_CLOSE_CODES, SYNC_CLOSE_REASONS, type SyncCloseReason } from '../../shared/contracts/syncClose'
 import type { SyncLimits } from './limits'
 import { ByteReader, MESSAGE_TYPE, readFrameHeader } from './frame'
 
 const META_ROOT = 'meta'
+const COMMENTS_ROOT = 'comments'
+/** Roots a suggest-only connection may write. */
+const SUGGEST_ONLY_ROOTS: ReadonlySet<string> = new Set([SUGGESTIONS_ROOT, COMMENTS_ROOT])
+
+/** What the connection a message came in on may write. */
+export interface ConnectionAccess {
+  /** Only suggestions (its own) and comments, never the text. */
+  suggestOnly: boolean
+  /** The connection's JWT principal: a numeric user id, `anonymous`, or a synthetic one. */
+  userId: string | number | null
+}
+
+const FULL_ACCESS: ConnectionAccess = { suggestOnly: false, userId: null }
 
 export class SyncRejection extends Error {
   // Hocuspocus reads `code` + `reason` off the thrown value when it
@@ -132,6 +155,7 @@ function placementOfType(type: Y.AbstractType<unknown>, parentSub: string | null
 }
 
 type DecodedStruct = Y.Item | Y.GC | Y.Skip
+type DeleteSet = ReturnType<typeof Y.decodeUpdate>['ds']
 type StructIndex = Map<number, Array<Y.Item | Y.GC>>
 
 /** Structs per client, in clock order (decodeUpdate emits them that way). */
@@ -266,24 +290,30 @@ function pendingStructsOf(doc: Y.Doc): DecodedStruct[] {
   return structs
 }
 
+type PlacementOf = ReturnType<typeof createPlacementResolver>
+
 /**
  * Throw a SyncRejection if any struct of the decoded update writes an
- * invalid value into ymeta or nests a Y type inside it. Items that can't
- * be placed yet stay pending in Y.js and are checked by the update that
- * completes them (see the header).
+ * invalid value into ymeta or the suggestions map, nests a Y type inside
+ * them, or (suggest-only) writes outside what the connection may write.
+ * Items that can't be placed yet stay pending in Y.js and are checked by
+ * the update that completes them (see the header).
  */
-function checkMetaWrites(doc: Y.Doc, structs: ReadonlyArray<DecodedStruct>): void {
-  const pending = pendingStructsOf(doc)
-  const placementOf = createPlacementResolver(doc, indexStructs(structs), indexStructs(pending))
+function checkItemWrites(doc: Y.Doc, structs: ReadonlyArray<DecodedStruct>, placementOf: PlacementOf, pending: ReadonlyArray<DecodedStruct>, access: ConnectionAccess): void {
   for (const s of structs) {
     if (!(s instanceof Y.Item) || isIntegrated(doc, s)) continue
-    checkMetaItem(s, placementOf(s))
+    const placement = placementOf(s)
+    if (access.suggestOnly) checkSuggestOnlyItem(doc, s, placement, access)
+    checkMetaItem(s, placement)
+    checkSuggestionItem(s, placement)
   }
   // Pending items this update makes placeable integrate together with it.
   for (const s of pending) {
     if (!(s instanceof Y.Item) || isIntegrated(doc, s)) continue
     try {
-      checkMetaItem(s, placementOf(s))
+      const placement = placementOf(s)
+      checkMetaItem(s, placement)
+      checkSuggestionItem(s, placement)
     } catch (e) {
       if (!(e instanceof SyncRejection)) throw e
       // Sent earlier, possibly by another connection: drop what is parked
@@ -311,6 +341,105 @@ function checkMetaItem(s: Y.Item, placement: Resolution): void {
   const values = content instanceof Y.ContentAny || content instanceof Y.ContentJSON ? content.arr : null
   if (values?.length !== 1 || !isValidMetaValue(placement.key, values[0])) {
     throw new SyncRejection(SYNC_CLOSE_REASONS.invalidMeta, `key ${placement.key.slice(0, 64)}`)
+  }
+}
+
+// Suggestions
+
+/** The single JSON value a map item stores, or undefined for anything else (a nested type, a deletion, several values). */
+function itemValue(s: Y.Item): unknown {
+  const content: unknown = s.content
+  if (!(content instanceof Y.ContentAny || content instanceof Y.ContentJSON)) return undefined
+  return content.arr.length === 1 ? content.arr[0] : undefined
+}
+
+/** A write to the suggestions map must be one valid record stored under its own id. */
+function checkSuggestionItem(s: Y.Item, placement: Resolution): void {
+  if (typeof placement !== 'object' || placement.root !== SUGGESTIONS_ROOT) return
+  if (s.content instanceof Y.ContentDeleted) return
+  if (placement.nested || placement.key === null) {
+    throw new SyncRejection(SYNC_CLOSE_REASONS.invalidSuggestion, 'nested value')
+  }
+  const record = parseSuggestion(itemValue(s))
+  if (record?.id !== placement.key) {
+    throw new SyncRejection(SYNC_CLOSE_REASONS.invalidSuggestion, `key ${placement.key.slice(0, 64)}`)
+  }
+}
+
+/** Whether a stored record was written by this connection's author (a person, never the AI). */
+function isOwnRecord(record: SuggestionRecord | null, access: ConnectionAccess): boolean {
+  if (!record || record.authorPrincipal !== null) return false
+  const n = typeof access.userId === 'number' ? access.userId : Number(access.userId)
+  if (Number.isSafeInteger(n) && n > 0) return record.authorId === n
+  // An anonymous connection: only anonymous records (all anonymous
+  // visitors share the principal, so they can't be told apart here).
+  return record.authorId === null && access.userId === 'anonymous'
+}
+
+function checkSuggestOnlyItem(doc: Y.Doc, s: Y.Item, placement: Resolution, access: ConnectionAccess): void {
+  if (typeof placement !== 'object') {
+    throw new SyncRejection(SYNC_CLOSE_REASONS.invalidSuggestion, `unplaceable item (${placement})`)
+  }
+  if (!SUGGEST_ONLY_ROOTS.has(placement.root)) {
+    throw new SyncRejection(SYNC_CLOSE_REASONS.invalidSuggestion, `write to ${placement.root.slice(0, 32)}`)
+  }
+  if (placement.root !== SUGGESTIONS_ROOT || placement.key === null || s.content instanceof Y.ContentDeleted) return
+  if (!isOwnRecord(parseSuggestion(itemValue(s)), access)) {
+    throw new SyncRejection(SYNC_CLOSE_REASONS.invalidSuggestion, 'record of another author')
+  }
+  // Overwriting an existing entry: it has to be this author's too.
+  // getMap, not `doc.share`: a root that arrived through updates is a
+  // plain AbstractType until something asks for it as a map.
+  const existing: unknown = doc.getMap(SUGGESTIONS_ROOT).get(placement.key)
+  if (existing !== undefined && !isOwnRecord(parseSuggestion(existing), access)) {
+    throw new SyncRejection(SYNC_CLOSE_REASONS.invalidSuggestion, 'overwrites another author')
+  }
+}
+
+/**
+ * Suggest-only: every item the update deletes must sit in a root the
+ * connection may write, and a deleted suggestion must be its own.
+ * Already deleted (or garbage-collected) items are a no-op and pass.
+ */
+function checkSuggestOnlyDeletions(doc: Y.Doc, ds: DeleteSet, update: StructIndex, placementOf: PlacementOf, access: ConnectionAccess): void {
+  for (const [client, ranges] of ds.clients) {
+    for (const range of ranges) {
+      for (const s of structsInRange(doc, update, client, range.clock, range.clock + range.len)) {
+        if (s instanceof Y.Item && !s.deleted) checkSuggestOnlyDeletion(s, placementOf(s), access)
+      }
+    }
+  }
+}
+
+/** The structs covering `client`'s clocks `from` .. `end`, from the document or the update itself. */
+function* structsInRange(doc: Y.Doc, update: StructIndex, client: number, from: number, end: number): Generator<Y.Item | Y.GC> {
+  let clock = from
+  while (clock < end) {
+    const s = structAt(doc, update, Y.createID(client, clock))
+    if (s === null) throw new SyncRejection(SYNC_CLOSE_REASONS.invalidSuggestion, 'deletes unknown state')
+    yield s
+    clock = s.id.clock + s.length
+  }
+}
+
+function structAt(doc: Y.Doc, update: StructIndex, id: Y.ID): Y.Item | Y.GC | null {
+  try {
+    if (Y.getState(doc.store, id.client) > id.clock) {
+      const s: unknown = Y.getItem(doc.store, id)
+      return s instanceof Y.Item || s instanceof Y.GC ? s : null
+    }
+    return findIn(update, id)
+  } catch {
+    return null
+  }
+}
+
+function checkSuggestOnlyDeletion(s: Y.Item, placement: Resolution, access: ConnectionAccess): void {
+  if (typeof placement !== 'object' || !SUGGEST_ONLY_ROOTS.has(placement.root)) {
+    throw new SyncRejection(SYNC_CLOSE_REASONS.invalidSuggestion, 'deletion outside suggestions and comments')
+  }
+  if (placement.root === SUGGESTIONS_ROOT && placement.key !== null && !isOwnRecord(parseSuggestion(itemValue(s)), access)) {
+    throw new SyncRejection(SYNC_CLOSE_REASONS.invalidSuggestion, 'deletes a suggestion of another author')
   }
 }
 
@@ -354,8 +483,12 @@ export function createUpdateGuard(limits: SyncLimits) {
   }
 
   return {
-    /** Throws SyncRejection when `message` must not be applied to `doc`. */
-    check(doc: Y.Doc, message: Uint8Array, readOnly: boolean): void {
+    /**
+     * Throws SyncRejection when `message` must not be applied to `doc`.
+     * `access` describes a writable connection (suggest-only or not);
+     * omitted means unrestricted.
+     */
+    check(doc: Y.Doc, message: Uint8Array, readOnly: boolean, access: ConnectionAccess = FULL_ACCESS): void {
       if (message.byteLength > limits.maxMessageBytes) {
         throw new SyncRejection(SYNC_CLOSE_REASONS.updateTooLarge, `${message.byteLength} bytes`)
       }
@@ -373,8 +506,9 @@ export function createUpdateGuard(limits: SyncLimits) {
       }
 
       let structs: DecodedStruct[]
+      let ds: DeleteSet
       try {
-        structs = Y.decodeUpdate(update).structs
+        ({ structs, ds } = Y.decodeUpdate(update))
       } catch {
         throw new SyncRejection(SYNC_CLOSE_REASONS.invalidUpdate, 'undecodable update')
       }
@@ -388,7 +522,11 @@ export function createUpdateGuard(limits: SyncLimits) {
         }
       }
 
-      checkMetaWrites(doc, structs)
+      const pending = pendingStructsOf(doc)
+      const updateIndex = indexStructs(structs)
+      const placementOf = createPlacementResolver(doc, updateIndex, indexStructs(pending))
+      checkItemWrites(doc, structs, placementOf, pending, access)
+      if (access.suggestOnly) checkSuggestOnlyDeletions(doc, ds, updateIndex, placementOf, access)
       sizes.set(doc, size + update.byteLength)
     }
   }

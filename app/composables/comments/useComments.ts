@@ -39,6 +39,8 @@ export interface DerivedComment {
   updatedAt: number
   resolved: boolean
   replies: DerivedReply[]
+  /** Set on the reply thread of a suggestion: shown on the suggestion's card, not in the comments list. */
+  suggestionId: string | null
 }
 
 interface AuthorIdentity {
@@ -131,7 +133,8 @@ function deriveComment(map: Y.Map<unknown>, ydoc: Y.Doc): DerivedComment | null 
     anchor: resolveCommentAnchor(map, ydoc),
     ...deriveAuthorAndTimestamps(map),
     resolved: Boolean(map.get('resolved')),
-    replies: deriveReplies(map)
+    replies: deriveReplies(map),
+    suggestionId: typeof map.get('suggestionId') === 'string' ? map.get('suggestionId') as string : null
   }
 }
 
@@ -198,7 +201,11 @@ export function useComments(ydoc: Y.Doc, awareness: Awareness, docId?: string) {
     return null
   }
 
-  function createComment(anchor: SerializedAnchor, body: string): string {
+  /**
+   * `suggestionId`: the thread discusses that suggestion (its first
+   * message is `body`); it shows on the suggestion's card.
+   */
+  function createComment(anchor: SerializedAnchor, body: string, suggestionId?: string): string {
     const author = readAuthor(awareness)
     const id = nanoid(12)
     const now = Date.now()
@@ -216,6 +223,7 @@ export function useComments(ydoc: Y.Doc, awareness: Awareness, docId?: string) {
       map.set('updatedAt', now)
       map.set('resolved', false)
       map.set('replies', new Y.Array<Y.Map<unknown>>())
+      if (suggestionId) map.set('suggestionId', suggestionId)
       ycomments.push([map])
     }, 'comments')
     return id

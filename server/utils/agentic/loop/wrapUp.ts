@@ -8,7 +8,8 @@ import { dispatchToolCall } from './toolDispatch'
 
 // The closing turn. When the loop has to stop before the model finished
 // (turn limit, deadline close, responses that keep hitting the output
-// token limit) it asks the model once more, with the SAME tool list (the
+// token limit, a settled delegated job the model keeps reading after;
+// `turnSteering.ts`) it asks the model once more, with the SAME tool list (the
 // cached prompt prefix stays valid) and `tool_choice` forcing the closing
 // tool, to tell the user what is done and what is not. The user gets that
 // message instead of a bare "stopped" error; the session outcome still
@@ -25,7 +26,16 @@ export function nearDeadline(ctx: LoopContext): boolean {
 const REASON_TEXT: Record<WrapUpReason, string> = {
   'turn-limit': 'Step limit reached.',
   'time-limit': 'Time limit almost reached.',
-  'output-limit': 'Your responses keep hitting the output token limit, so this session stops here.'
+  'output-limit': 'Your responses keep hitting the output token limit, so this session stops here.',
+  'job-settled': 'The job\'s report above is the result; the parts need no further reading.'
+}
+
+/** What the closing answer says about the session's delegated job. */
+function jobNote(ctx: LoopContext): string {
+  const job = ctx.steering.settledJob
+  if (job === 'finished') return ' The background job of this session is finished: say what it changed, name the parts it flagged or skipped by heading (from its report), and that Undo is in the Activity Log.'
+  if (job === 'running') return ' The background job of this session keeps running: say that, and that its progress shows above the prompt bar.'
+  return ''
 }
 
 function closingToolOf(ctx: LoopContext): 'reply_to_comment' | 'message_to_user' {
@@ -60,7 +70,7 @@ function wrapUpInstruction(ctx: LoopContext, reason: WrapUpReason): string {
   const how = isCommentTriggerSession(ctx)
     ? `Call reply_to_comment on comment_id "${ctx.opts.commentThreadId}" now`
     : 'Call message_to_user now'
-  return `${REASON_TEXT[reason]} Do not call any other tool. ${how} and tell the user in one or two sentences what is done and what is not, as the document actually is now; do not offer to continue unless something is left.${currentHeadingsNote(ctx)}`
+  return `${REASON_TEXT[reason]} Do not call any other tool. ${how} and tell the user in one or two sentences what is done and what is not, as the document actually is now; do not offer to continue unless something is left.${jobNote(ctx)}${currentHeadingsNote(ctx)}`
 }
 
 /** Append `text` to the pending user message (the last tool results), or open one. */
@@ -142,10 +152,22 @@ export async function wrapUpSession(ctx: LoopContext, reason: WrapUpReason, turn
     result = 'not-delivered'
   }
   if (result === 'handled') return
-  ctx.telemetry.outcome = reason
-  ctx.telemetry.errorMessage = `Stopped: ${reason}`
-  // The summary arrived, but the session still stopped early: the client
-  // labels the answer so it does not read like a finished task.
-  if (result === 'delivered') ctx.opts.setStatus('done', aiStatus('stoppedEarly'))
-  else ctx.opts.setStatus('error', aiStatus('turnLimit'))
+  // A settled job did the task: the answer closes a finished session, not
+  // one cut off in the middle of its work.
+  const jobDidTheWork = ctx.steering.settledJob !== null
+  if (reason === 'job-settled') {
+    ctx.telemetry.outcome = 'success'
+  } else {
+    ctx.telemetry.outcome = reason
+    ctx.telemetry.errorMessage = `Stopped: ${reason}`
+  }
+  if (result === 'delivered') {
+    // Otherwise the client labels the answer so it does not read like a
+    // finished task.
+    ctx.opts.setStatus('done', aiStatus(jobDidTheWork ? 'done' : 'stoppedEarly'))
+  } else if (jobDidTheWork) {
+    ctx.opts.setStatus('done', aiStatus('done'))
+  } else {
+    ctx.opts.setStatus('error', aiStatus('turnLimit'))
+  }
 }

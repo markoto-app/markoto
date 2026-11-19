@@ -133,6 +133,12 @@
       "too-many-fonts": "一个工作区最多可有 {limit} 个字体文件。",
       "too-many-images": "一个工作区最多可有 {limit} 张品牌图片。"
     },
+    "citations": {
+      "doi-invalid": "这不是有效的 DOI。DOI 形如 10.1000/xyz123。",
+      "doi-not-found": "Crossref 中没有该 DOI 的记录。请检查 DOI，或以 BibTeX 添加该参考文献。",
+      "doi-lookup-failed": "在 Crossref 查询 DOI 失败。请稍后再试。",
+      "rate-limited": "DOI 查询次数过多。请等几分钟后再试。"
+    },
     "common": {
       "internal": "我们这边出了点问题。请重试，我们已收到通知。"
     },
@@ -424,6 +430,21 @@
       "cycle": "文件夹不能移动到自身或其子文件夹中。",
       "forbidden": "你无权在此处更改文件夹。",
       "delete-blocked": "此文件夹中有 {blocked} 个文档你无法删除，因此未删除任何内容。"
+    },
+    "suggestion": {
+      "invalid": "此建议无效。",
+      "not-allowed": "你无法在此文档中提出建议。",
+      "review-not-allowed": "只有能编辑此文档的人才能接受或拒绝建议。",
+      "not-found": "此建议已不存在。可能已被其他人接受或拒绝。",
+      "too-many": "此文档的未处理建议过多({max} 条)。请先接受或拒绝一部分。",
+      "too-many-authors": "一次最多只能接受 {max} 位作者的建议。",
+      "rate-limited": "请求过多。请稍等片刻后重试。"
+    },
+    "context": {
+      "not-found": "该文档不存在，或你无权打开。",
+      "self": "文档不能作为自身的上下文。",
+      "too-many": "一个文档最多可以附加 {max} 个额外的上下文文档。",
+      "not-attached": "该文档未作为上下文附加。"
     }
   }
 }

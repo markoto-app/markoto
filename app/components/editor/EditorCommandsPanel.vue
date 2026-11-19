@@ -54,6 +54,8 @@ const emit = defineEmits<{
   'open-server-pdf': []
   /** Trigger the client-side `.md` download (mirrors File → Save as Markdown on desktop). */
   'export-markdown': []
+  /** Switch the sheet to the References panel (the bibliography; no tab of its own on mobile). */
+  'open-references': []
 }>()
 
 const { t } = useI18n()
@@ -437,6 +439,17 @@ function applyDiagram(kind: MermaidKind) {
             {{ t('menubar.file.title') }}
           </h3>
           <div class="ecp__grid">
+            <button
+              class="ecp__btn"
+              data-testid="ecp-references"
+              @click="emit('open-references')"
+            >
+              <UIcon
+                name="i-lucide-book-marked"
+                class="size-5"
+              />
+              <span>{{ t('references.title') }}</span>
+            </button>
             <button
               class="ecp__btn"
               data-testid="ecp-file-import"

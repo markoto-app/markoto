@@ -6,7 +6,7 @@ keywords:
   - markoto vs overleaf
   - overleaf alternative without latex
   - overleaf markdown
-updated: '2026-11-04'
+updated: '2026-11-19'
 navGroup: compare
 navLabel: markoto vs Overleaf
 navOrder: 30
@@ -18,7 +18,7 @@ Overleaf and markoto both let several people write one document in the browser a
 
 **Overleaf** is a LaTeX editor. It is widely used for scientific papers, theses and journal submissions: LaTeX gives precise control over typesetting, journal templates and BibTeX bibliographies. You can write Markdown inside a LaTeX document with a package, but the document is still LaTeX.
 
-**markoto** is a Markdown editor. You write plain Markdown, the preview shows it as printed pages, and a print theme decides fonts, margins, columns, headers and footers. It suits reports, handouts, proposals and papers that don't need a journal template or a bibliography.
+**markoto** is a Markdown editor. You write plain Markdown, the preview shows it as printed pages, and a print theme decides fonts, margins, columns, headers and footers. It suits reports, handouts, proposals, theses and papers that don't need a journal's LaTeX template; citations and a bibliography work with BibTeX or a Zotero export.
 
 ## Feature comparison
 
@@ -28,7 +28,7 @@ Overleaf and markoto both let several people write one document in the browser a
 ## Where Overleaf is better
 
 - **LaTeX itself.** Full control over typesetting, any LaTeX package, and journal and university templates. markoto has print themes and custom CSS, but no LaTeX.
-- **Citations.** Overleaf works with BibTeX, natbib and biblatex, and connects to Zotero, Mendeley and ReadCube on paid plans. markoto has footnotes but no citation or bibliography support.
+- **Citations.** Overleaf works with BibTeX, natbib and biblatex, any style a LaTeX package provides, and connects live to Zotero, Mendeley and ReadCube on paid plans. markoto reads BibTeX and CSL JSON, looks up DOIs and formats six built-in styles (APA, Chicago author-date, Harvard, IEEE, Vancouver, DIN 1505-2), but has no other styles and no live reference-manager sync: you import an export file.
 - **Track changes.** Overleaf's paid plans have track changes. markoto has no suggestion or track-changes mode; it keeps every version with a diff and a restore button instead.
 - **Git and GitHub.** Overleaf's paid plans sync projects with Git and GitHub. markoto has no Git integration.
 - **Open source edition.** Overleaf Community Edition is AGPL-3.0 open source. markoto is source-available (FSL-1.1, Apache-2.0 two years after each release), not OSI open source.
@@ -46,7 +46,7 @@ Overleaf and markoto both let several people write one document in the browser a
 
 ## Who should pick which
 
-Pick **Overleaf** if you submit to journals or conferences, need a bibliography, need track changes, or already write LaTeX.
+Pick **Overleaf** if you submit to journals or conferences with a LaTeX template, need a citation style markoto doesn't have, need track changes, or already write LaTeX.
 
 Pick **markoto** if you would rather write Markdown, if your co-authors don't know LaTeX, if you need more than one collaborator without paying, or if your data has to stay in the EU or on your own server.
 
@@ -60,7 +60,7 @@ Overleaf projects are LaTeX, so there is no direct import into markoto. Overleaf
 ---
 items:
   - q: Can markoto replace Overleaf for a thesis?
-    a: Only if you don't need a citation manager or a university LaTeX template. markoto has footnotes, math, tables and a table of contents, but no BibTeX support.
+    a: Often, yes, if you don't need a university LaTeX template. markoto has citations from a BibTeX file or a Zotero export in six styles, numbered figures, tables and equations with cross-references, footnotes, math and a table of contents.
   - q: Does markoto support LaTeX math?
     a: Yes, inside Markdown. Inline and display math in LaTeX syntax is rendered with KaTeX in the preview and the PDF.
   - q: Does markoto have track changes?
