@@ -30,7 +30,12 @@ const props = defineProps<{
    * budget is the workspace's (member limit + team pool).
    */
   workspaceId?: string | null
+  /** The document requires suggestions: the AI suggests whatever the switch says. */
+  suggestForced?: boolean
 }>()
+
+/** The AI proposes its edits as suggestions (this tab's choice, starting from the user's setting). */
+const aiSuggest = defineModel<boolean>('suggest', { default: false })
 
 const { t } = useI18n()
 const { loggedIn } = useUserSession()
@@ -390,6 +395,24 @@ const { bottomOffset } = usePromptBarOffset()
         class="ai-prompt-bar__secondary opacity-50"
         @click="explainLocked('aiVoice')"
       />
+
+      <!-- The AI suggests instead of editing (fixed on where the document requires suggestions). -->
+      <UTooltip
+        v-if="!isActive && loggedIn && !chatMissing && !isRecording && !isTranscribing"
+        :text="suggestForced ? t('suggestions.ai.forced') : (aiSuggest ? t('suggestions.ai.on') : t('suggestions.ai.off'))"
+      >
+        <UButton
+          icon="i-lucide-file-diff"
+          color="neutral"
+          :variant="aiSuggest || suggestForced ? 'soft' : 'ghost'"
+          size="sm"
+          :aria-label="t('suggestions.ai.toggle')"
+          :aria-pressed="aiSuggest || suggestForced"
+          :aria-disabled="suggestForced"
+          data-testid="ai-prompt-bar-suggest"
+          @click="suggestForced || (aiSuggest = !aiSuggest)"
+        />
+      </UTooltip>
 
       <!-- Primary slot: send. Stays primary across idle + recording so the
            bar doesn't shift when the user starts speaking. Clicking while

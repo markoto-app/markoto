@@ -17,6 +17,14 @@ import type * as Y from 'yjs'
  * caller's origin. Pure (no Nitro), safe in unit tests and the MCP pool.
  */
 
+/** A Y.Text, or the plain copy suggesting mode writes to (`textWrite.ts`). */
+export interface DiffTarget {
+  readonly length: number
+  toString(): string
+  insert(index: number, text: string): void
+  delete(index: number, length: number): void
+}
+
 export interface MinimalDiffResult {
   changed: boolean
   insertedChars: number
@@ -195,7 +203,7 @@ function trimHunkWhitespace(oldText: string, hunk: Hunk): Hunk {
  * Replace `ytext[start, end)` with `newText` as a minimal word-level diff.
  * Call inside the caller's `ydoc.transact`.
  */
-export function applyMinimalDiff(ytext: Y.Text, start: number, end: number, newText: string): MinimalDiffResult {
+export function applyMinimalDiff(ytext: DiffTarget, start: number, end: number, newText: string): MinimalDiffResult {
   const length = ytext.length
   const from = Math.max(0, Math.min(start, length))
   const to = Math.max(from, Math.min(end, length))

@@ -10,6 +10,8 @@ import { flushSyncDocument } from './syncNotify'
 import { restoreClientUserId, type SessionJwtPayload } from '~~/shared/contracts/jwt'
 import { isValidMetaValue } from '~~/shared/utils/documents/ymetaValidation'
 import { useEnv } from '~~/shared/env/load'
+import { anchorRange, readSuggestions, suggestionsMap } from '~~/shared/utils/suggestions/ySuggestions'
+import type { SuggestionRecord } from '~~/shared/utils/suggestions/record'
 
 const RESTORABLE_META_KEYS = ['title', 'theme', 'description', 'audience', 'language', 'templateId'] as const
 
@@ -77,7 +79,7 @@ const ACK_TIMEOUT_MS = 10_000
  * when that takes longer than `ACK_TIMEOUT_MS`, e.g. the server refused
  * the update.
  */
-function waitForServerAck(provider: HocuspocusProvider): Promise<void> {
+export function waitForServerAck(provider: HocuspocusProvider): Promise<void> {
   if (!provider.hasUnsyncedChanges) return Promise.resolve()
   return new Promise((resolve, reject) => {
     const onChange = () => {
@@ -179,6 +181,10 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
     const pastText = past.getText('content').toJSON()
     const pastComments = past.getArray('comments').toJSON() as unknown[]
     const pastMeta = readRestorableMeta(past.getMap('meta'))
+    // Suggestions by their offsets in the past text: the restored text is
+    // freshly inserted (new Y.js items), so the old anchors would point at
+    // deleted items. Re-anchored at the same offsets below.
+    const pastSuggestions = readSuggestions(past).map(s => ({ record: s.record, from: s.from, to: s.to }))
     past.destroy()
 
     // Step 2: open a synthetic Hocuspocus client as the acting user.
@@ -286,6 +292,9 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
         for (const [k, v] of Object.entries(pastMeta)) {
           ymeta.set(k, v)
         }
+
+        // Suggestions: exactly the past set, anchored in the restored text.
+        restoreSuggestions(ydoc, pastSuggestions)
       }, `restore:${opts.actorUserId}:${opts.sessionId}`)
 
       // Step 4: the update is in the sync server's document once it
@@ -321,4 +330,14 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
 
     return { yjsDocIdBeforeRestore, yjsDocIdAfterRestore }
   })
+}
+
+/** Replace the live suggestions with past ones, re-anchored at their past offsets (call inside the restore transaction, after the text). */
+export function restoreSuggestions(ydoc: Y.Doc, past: ReadonlyArray<{ record: SuggestionRecord, from: number, to: number }>): void {
+  const map = suggestionsMap(ydoc)
+  const ytext = ydoc.getText('content')
+  for (const key of [...map.keys()]) map.delete(key)
+  for (const s of past) {
+    map.set(s.record.id, { ...s.record, ...anchorRange(ytext, s.from, s.to) })
+  }
 }

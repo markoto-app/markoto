@@ -3,6 +3,7 @@
 export type TabName
   = | 'document'
     | 'comments'
+    | 'suggestions'
     | 'activity'
     | 'theme'
     | 'knowledge'

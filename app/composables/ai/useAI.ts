@@ -14,6 +14,8 @@ let aiUseTracked = false
 export type { AiConfirmationRequest, AiEventSource, AiResponseEntry, AiSessionInfo, AiSessionOutcome, MyAiSessionInfo } from '~/types/ai/session'
 
 export interface UseAIOptions {
+  /** The AI proposes its edits as suggestions for this prompt; undefined = the user's setting. */
+  getSuggest?: () => boolean | undefined
   /**
    * Optional callback invoked at prompt-submit time to snapshot the
    * user's current caret or selection. The result is shipped alongside
@@ -145,9 +147,10 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     // over `options.getEditorSelection`. Absent = server treats it as `kind: 'none'`.
     const editorSelection = overrides?.editorSelection ?? options.getEditorSelection?.()
     try {
+      const suggest = options.getSuggest?.()
       const res = await apiFetch('/api/ai/prompt', {
         method: 'post',
-        body: { docId: docId.value, prompt: trimmed, editorSelection }
+        body: { docId: docId.value, prompt: trimmed, editorSelection, ...(suggest === undefined ? {} : { suggest }) }
       })
       if (typeof res?.sessionId === 'string') {
         startPrompt(res.sessionId)

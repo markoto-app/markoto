@@ -26,6 +26,9 @@ import { mcpToolAllowed } from './toolClasses'
 import { PLAN_FEATURE_UNAVAILABLE_CODE, PLAN_LIMIT_REACHED_CODE } from '~~/shared/config/planErrors'
 import { limitRecovery } from '../../utils/billing/billingMode'
 import { apiError } from '../../utils/api/apiError'
+import type { DocAuthzRow } from '../../repos/access/docAuthz'
+import { sessionSuggestMode } from '../../utils/agentic/sessions/suggestMode'
+import { mcpClientUserId } from '~~/shared/contracts/jwt'
 
 // Wrappers that bake the per-class boilerplate every MCP tool needs.
 // Three flavors based on what context the tool needs to operate on:
@@ -190,6 +193,13 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
         self,
         workspaceAccess: authz.workspaceId ? await proveWorkspaceAccess(auth.userId, authz.workspaceId, 'member') : null
       })
+      // Suggestion mode: where the document requires suggestions of this
+      // user (or they asked the AI to suggest), text edits become
+      // suggestions of this MCP session; the text stays.
+      if (opts.access === 'edit') {
+        const mode = await sessionSuggestMode(authz.row, self, undefined)
+        handle.ctx.suggestSink = mode ? { principal: mcpClientUserId(mcpSessionId), name: 'MCP', forced: mode.forced, written: 0 } : null
+      }
       try {
         // The registry runs DOC and META tools alike with handle.ctx
         // (DocToolContext): META handlers via structural subtyping
@@ -332,7 +342,7 @@ function titleFromName(name: string): string {
   return name.split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')
 }
 
-function mcpSessionIdFromEvent(event: H3Event): string | null {
+export function mcpSessionIdFromEvent(event: H3Event): string | null {
   const v = getHeader(event, 'mcp-session-id')
   return typeof v === 'string' && v.length > 0 ? v : null
 }
@@ -354,14 +364,14 @@ async function assertDocAccess(
   userId: number,
   docId: string,
   kind: 'view' | 'edit'
-): Promise<{ workspaceId: string | null, access: DocAccess<'view'> }> {
+): Promise<{ workspaceId: string | null, access: DocAccess<'view'>, row: DocAuthzRow }> {
   const proven = await proveDocMembership(userId, docId, kind)
   if (!proven) {
     // 404-shape (not 403) for missing and refused alike, matches the
     // in-app endpoints' anti-enumeration policy.
     throw apiError('mcp/doc-not-found')
   }
-  return { workspaceId: proven.workspaceId, access: proven.access }
+  return { workspaceId: proven.workspaceId, access: proven.access, row: proven.row }
 }
 
 /**

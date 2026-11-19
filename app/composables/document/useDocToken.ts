@@ -33,7 +33,7 @@ const TOKEN_REFRESH_BUFFER_MS = 60_000
  * decides when to refetch, and the sync server re-verifies on every
  * handshake. Null (unparseable) makes the caller refresh now.
  */
-function jwtExpiryMs(token: string): number | null {
+function jwtClaims(token: string): Record<string, unknown> | null {
   const parts = token.split('.')
   if (parts.length !== 3) return null
   try {
@@ -41,11 +41,16 @@ function jwtExpiryMs(token: string): number | null {
     // payload is ASCII JSON, so atob's binary string parses cleanly.
     const b64 = (parts[1] ?? '').replaceAll('-', '+').replaceAll('_', '/')
     const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4)
-    const payload = JSON.parse(atob(padded)) as { exp?: unknown }
-    return typeof payload.exp === 'number' ? payload.exp * 1000 : null
+    const payload: unknown = JSON.parse(atob(padded))
+    return payload && typeof payload === 'object' ? payload as Record<string, unknown> : null
   } catch {
     return null
   }
+}
+
+function jwtExpiryMs(token: string): number | null {
+  const exp = jwtClaims(token)?.exp
+  return typeof exp === 'number' ? exp * 1000 : null
 }
 
 function isTokenExpiringSoon(token: string): boolean {
@@ -104,6 +109,8 @@ export function useDocToken(docId: string) {
       if (!data.token) return null
       tokenData.value = { token: data.token, readOnly: data.readOnly }
       isReadOnly.value = data.readOnly
+      state.suggestOnly.value = data.suggestOnly === true
+      state.suggestionsRequired.value = data.suggestionsRequired === true
       if (typeof data.noDownload === 'boolean') noDownload.value = data.noDownload
       tokenStale = false
       return data.token
@@ -145,8 +152,13 @@ export function useDocToken(docId: string) {
    */
   function onPasswordVerified(newToken: string) {
     pendingPasswordUnlock.value = true
-    isReadOnly.value = false
-    tokenData.value = { token: newToken, readOnly: false }
+    // The unlock token's own claims say what it allows (the sync server
+    // enforces them): edit, suggest only, or read (a workspace viewer).
+    const claims = jwtClaims(newToken)
+    const readOnly = claims?.readOnly !== false
+    isReadOnly.value = readOnly
+    state.suggestOnly.value = !readOnly && claims?.suggestOnly === true
+    tokenData.value = { token: newToken, readOnly }
     tokenStale = false
   }
 
@@ -177,6 +189,7 @@ export function useDocToken(docId: string) {
   /** Called by the sync layer on `onAuthenticationFailed`. */
   function markReadOnly() {
     isReadOnly.value = true
+    state.suggestOnly.value = false
     // Handshake rejected (rate limit, clock skew, changed secret…). EditorLayout
     // shows a banner so users can tell this from "you don't have edit access".
     syncAuthFailed.value = true

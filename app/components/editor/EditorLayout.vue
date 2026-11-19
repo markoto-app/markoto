@@ -7,6 +7,7 @@ import type { ImportedDocProperties } from '~~/shared/utils/markdown/markdownFro
 import { customCssForPlan } from '~~/shared/utils/theme/themePresets'
 import { applyBrandLock } from '~~/shared/utils/theme/brandLock'
 import type { DocTheme } from '~~/shared/types/theme'
+import { useAiSuggestQuery } from '~/queries/ai'
 
 /**
  * The editor page: composes the top bar, menu and tool rows, the editor and
@@ -28,6 +29,9 @@ const {
   synced,
   userCount,
   isReadOnly: tokenReadOnly,
+  suggestOnly,
+  suggestionsRequired,
+  contentWriter,
   syncAuthFailed,
   syncRejection,
   syncBusy,
@@ -69,6 +73,14 @@ const {
 // so the editor stops taking edits (they would be lost silently).
 const isReadOnly = computed(() => tokenReadOnly.value || deletedByOther.value)
 
+// Suggestion mode. `suggestOnly` (from the token) fixes it on; otherwise
+// the person picks Editing or Suggesting. Accepting and rejecting is for
+// people who edit directly.
+const suggestions = useProvideSuggestions(ydoc, awareness, props.docId)
+const suggestingChosen = ref(false)
+const suggesting = computed(() => !isReadOnly.value && (suggestOnly.value || suggestingChosen.value))
+const canReviewSuggestions = computed(() => !isReadOnly.value && !suggestOnly.value)
+
 // What the preview and browser print render. The author's custom CSS is
 // dropped when the plan doesn't include it (a preset's template CSS stays,
 // `customCssForPlan`); it stays in the theme and Y.js, so upgrading applies it
@@ -85,7 +97,19 @@ const renderTheme = computed(() => {
 // snapshots the caret/selection at submit time so the model can resolve
 // "here" / "this" to a concrete location.
 const ai = useAI(computed(() => props.docId), awareness, {
-  getEditorSelection: () => snapshotEditorSelection(editorView.value, editorEverFocused.value)
+  getEditorSelection: () => snapshotEditorSelection(editorView.value, editorEverFocused.value),
+  getSuggest: () => aiSuggestChosen.value ?? undefined
+})
+// "AI suggests instead of editing" for this tab: starts from the user's
+// setting (Settings > AI), the prompt bar's switch overrides it per prompt;
+// the server forces it on where the document requires suggestions.
+const aiSuggestPreference = useAiSuggestQuery()
+const aiSuggestChosen = ref<boolean | null>(null)
+const aiSuggest = computed({
+  get: () => aiSuggestChosen.value ?? aiSuggestPreference.data.value?.suggest ?? false,
+  set: (v: boolean) => {
+    aiSuggestChosen.value = v
+  }
 })
 
 const toast = useToast()
@@ -136,6 +160,20 @@ const { commentRanges, commentsPanelRef, onCommentClickInEditor, triggerCreateCo
   flashRange: (from, to) => editorPaneRef.value?.flashCommentRange?.(from, to)
 })
 
+const suggestionsPanelRef = ref<{ focusSuggestion: (id: string) => void } | null>(null)
+
+// A suggestion clicked or tapped in the text: open its card (a bottom sheet on a phone).
+function onSuggestionClick(id: string) {
+  rightSidebar.value = 'suggestions'
+  void nextTick(() => suggestionsPanelRef.value?.focusSuggestion(id))
+}
+
+// A card clicked: show its place in the text.
+function onSuggestionFocus(id: string) {
+  const s = suggestions.suggestions.value.find(x => x.id === id)
+  if (s) editorPaneRef.value?.flashCommentRange?.(s.from, s.to)
+}
+
 const { hasKnowledgeAccess } = useDocWorkspaceContext(docWorkspaceId, docWorkspaceRole, rightSidebar)
 
 const { passwordModalOpen, deletedNoticeOpen } = useDocAccessPrompts(requiresPassword, deletedByOther)
@@ -145,7 +183,7 @@ const pageCount = ref(0)
 
 const { textContent, wordCount, charCount } = useDocTextStats({ docId: props.docId, ydoc, ytext, synced, isOwner, requiresPassword })
 
-const { exportPdf, exportMarkdown, openServerPdf } = useEditorExports({
+const { exportPdf, exportMarkdown, exportMarkdownWithSuggestions, openServerPdf } = useEditorExports({
   docId: props.docId,
   ytext,
   renderTheme,
@@ -303,6 +341,14 @@ useHead({
            group to center and only two icons here: they take their own
            width and the title gets the rest. -->
       <div class="shrink-0 sm:shrink sm:flex-1 min-w-0 flex items-center gap-2 justify-end">
+        <!-- Editing / Suggesting. Hidden for read-only viewers. -->
+        <EditorLayoutEditModeToggle
+          v-if="!isReadOnly"
+          v-model="suggestingChosen"
+          :forced="suggestOnly"
+          :required="suggestionsRequired"
+        />
+
         <!-- Also under Sharing → Access; kept here because the open/closed lock doubles as an access indicator. -->
         <EditorLayoutAccessButton
           :access-mode="accessMode"
@@ -414,6 +460,7 @@ useHead({
         <!-- Desktop: 5-button strip; hidden on mobile, where it plus the title would overflow at 390px. -->
         <EditorLayoutSidebarTabs
           :right-sidebar="rightSidebar"
+          :suggestion-count="suggestions.suggestions.value.length"
           :can-edit-theme="canEditTheme"
           :has-knowledge-access="hasKnowledgeAccess"
           @toggle="toggleSidebar"
@@ -456,6 +503,10 @@ useHead({
             :read-only="isReadOnly"
             :comment-ranges="commentRanges"
             :on-comment-click="onCommentClickInEditor"
+            :suggesting="suggesting"
+            :suggestion-marks="suggestions.marks.value"
+            :on-suggestion-plan="suggestions.applyPlan"
+            :on-suggestion-click="onSuggestionClick"
           />
         </EditorImageDropZone>
 
@@ -514,6 +565,17 @@ useHead({
             @focus="onCommentPanelFocus"
             @close="closeSidebar"
           />
+          <SuggestionsSuggestionsPanel
+            v-else-if="rightSidebar === 'suggestions'"
+            ref="suggestionsPanelRef"
+            :doc-id="docId"
+            :awareness="awareness"
+            :can-review="canReviewSuggestions"
+            :can-write="!isReadOnly"
+            @focus="onSuggestionFocus"
+            @export="exportMarkdownWithSuggestions(suggestions.suggestions.value)"
+            @close="closeSidebar"
+          />
           <EditorLayoutActivitySidebar
             v-else-if="rightSidebar === 'activity'"
             :doc-id="docId"
@@ -563,7 +625,9 @@ useHead({
         <!-- Overlay at the bottom of the content area (editor + preview + sidebar), hidden in
              preview-only mode and read-only; absolutely positioned, so `<main>` stays `relative`. -->
         <AIPromptBar
-          v-if="!isReadOnly && viewMode !== 'preview'"
+          v-if="!isReadOnly && contentWriter && viewMode !== 'preview'"
+          v-model:suggest="aiSuggest"
+          :suggest-forced="suggestOnly"
           :ai="ai"
           :workspace-id="docWorkspaceId"
           :doc-id="docId"
@@ -575,6 +639,7 @@ useHead({
         <MobileTabBar
           v-if="!isReadOnly && viewMode !== 'preview'"
           :active-panel="rightSidebar"
+          :suggestion-count="suggestions.suggestions.value.length"
           :can-edit-theme="canEditTheme"
           :has-knowledge-access="hasKnowledgeAccess"
           :dictation-state="dictation.state.value"
@@ -598,6 +663,7 @@ useHead({
         :view-mode="viewMode"
         :synced="synced && !deletedByOther"
         :read-only="isReadOnly"
+        :suggesting="suggesting"
       />
     </template>
 
@@ -618,7 +684,7 @@ useHead({
     <DocumentImportModal
       v-model:open="showImportModal"
       :ytext="ytext"
-      :read-only="isReadOnly"
+      :read-only="isReadOnly || suggesting"
       :doc-id="docId"
       @apply-properties="applyImportedProperties"
     />
@@ -638,6 +704,7 @@ useHead({
       :current-access-mode="accessMode"
       :can-manage="canManageDoc"
       :can-share-with-guests="!!docWorkspaceId && (docWorkspaceRole === 'admin' || docWorkspaceRole === 'editor')"
+      :in-workspace="!!docWorkspaceId"
       @updated="(mode: string) => { setAccessMode(mode); showShareModal = false }"
     />
 

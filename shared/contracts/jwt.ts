@@ -103,8 +103,17 @@ export const SYNTHETIC_USER_ID_PREFIXES = [
   // (`server/utils/ai/jobs/engine.ts`). Activity rows join `ai_jobs.id`
   // for the initiating user. The job re-checks the initiator's edit
   // right before every unit it applies.
-  'ai-job:'
+  'ai-job:',
+  // Accepting / rejecting suggestions: the reviewer's short-lived client
+  // (`server/utils/suggestions/resolveSuggestions.ts`). The accepted text
+  // itself is applied under the suggester's own principal.
+  'suggestions-server:'
 ] as const
+
+/** Build the synthetic userId of the client that reads and decides suggestions for a reviewer. */
+export function suggestionsServerUserId(verb: 'accept' | 'reject', reviewerUserId: number): `suggestions-server:${string}` {
+  return `suggestions-server:${verb}:${reviewerUserId}`
+}
 
 /** Build the synthetic userId of a delegated AI job's connection. Used by
  *  `server/utils/ai/jobs/engine.ts`. */

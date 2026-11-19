@@ -7,6 +7,7 @@ import type { ResolvedAiProviders } from '../aiProviders/resolve'
 import type { DocAccess, UserScope, WorkspaceAccess } from '../../repos/proofs'
 import type { JobConfirmationDetails } from '~~/shared/ai/jobConfirmation'
 import type { ReplaceConfirmationDetails } from '~~/shared/ai/replaceConfirmation'
+import type { SuggestSink } from '../ai/tools/textWrite'
 
 // Two-tiered tool context. The split exists to make a class of bug
 // IMPOSSIBLE: a META-typed handler (one that doesn't need Y.js state)
@@ -120,6 +121,8 @@ export interface DocToolContext extends MetaToolContext {
   ytext: Y.Text
   ymeta: Y.Map<unknown>
   awareness: Awareness
+  /** Suggesting mode: text edits become suggestions (`ai/tools/textWrite.ts`); null / absent = edit directly. */
+  suggestSink?: SuggestSink | null
   /** Deliver a `message_to_user` answer to the initiator only (never
    *  via awareness). Absent where there is no initiator UI (MCP, test
    *  seams): the handler then only records conversation memory. */

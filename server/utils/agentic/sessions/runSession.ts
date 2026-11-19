@@ -49,6 +49,8 @@ export interface AgentSessionSpec {
   /** Why the session starts tainted even on a solo document (a thread with other participants). */
   extraInitialTaint?: string | null
   onToolCall?: (name: string, validatedArgs: unknown) => Promise<void>
+  /** Suggestion mode: the AI's text edits become suggestions. */
+  suggest?: { forced: boolean } | null
   /** Runs first, before the AI joins the document (conversation memory of the prompt). */
   beforeStart?: () => Promise<void>
   log: Logger
@@ -94,7 +96,8 @@ export async function runAgentSession(spec: AgentSessionSpec): Promise<void> {
       virtualKey: session.billingContext.virtualKey,
       aiProviders: session.aiProviders,
       commentThreadId: spec.commentThreadId,
-      deadlineAt: session.deadlineAt
+      deadlineAt: session.deadlineAt,
+      suggest: spec.suggest ?? null
     }, session.abortController.signal)
 
     // Taint gate: other people's text (document edits, comments, web pages,

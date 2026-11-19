@@ -12,6 +12,8 @@ import { editorKeymap } from '~/utils/editor/collabHistory'
 import { promptBarClearance } from '~/utils/editor/promptBarClearance'
 import { markotoMarkdownHighlight } from '~/utils/markdown/markdownHighlight'
 import { commentDecorationsExtension, setCommentRanges, setFlashRange, type CommentRange } from '~/utils/comments/commentDecorations'
+import { setSuggestionMarks, suggestingFacet, suggestionExtension, type SuggestionMark } from '~/utils/suggestions/suggestionExtension'
+import type { SuggestPlan } from '~~/shared/utils/suggestions/plan'
 
 const props = withDefaults(defineProps<{
   ytext: YText
@@ -22,9 +24,21 @@ const props = withDefaults(defineProps<{
   commentRanges?: readonly CommentRange[]
   /** Click on a comment underline; invoked with the id. */
   onCommentClick?: (id: string) => void
+  /** Suggesting mode: local edits become suggestions instead of changing the text. */
+  suggesting?: boolean
+  /** Open suggestions to draw (struck and inserted text). */
+  suggestionMarks?: readonly SuggestionMark[]
+  /** The suggestion writes of a local edit made while suggesting. */
+  onSuggestionPlan?: (plan: SuggestPlan) => void
+  /** Click / tap on a suggestion in the text. */
+  onSuggestionClick?: (id: string) => void
 }>(), {
   commentRanges: () => [],
-  onCommentClick: undefined
+  onCommentClick: undefined,
+  suggesting: false,
+  suggestionMarks: () => [],
+  onSuggestionPlan: undefined,
+  onSuggestionClick: undefined
 })
 
 const editorRef = ref<HTMLElement | null>(null)
@@ -37,6 +51,7 @@ const view = shallowRef<EditorView | null>(null)
 const editableCompartment = new Compartment()
 const readOnlyCompartment = new Compartment()
 const responsiveThemeCompartment = new Compartment()
+const suggestingCompartment = new Compartment()
 
 // Matches Tailwind's sm: breakpoint (640px and up is not mobile)
 const isMobile = useMediaQuery('(max-width: 639px)')
@@ -110,7 +125,28 @@ function buildResponsiveTheme(mobile: boolean) {
     '.cm-comment-flash': {
       backgroundColor: 'rgba(234, 179, 8, 0.55)',
       animation: 'cm-comment-flash-pulse 1.2s ease-out 1'
-    }
+    },
+    // Suggestions in the author's colour (`--suggest-color` set per mark):
+    // struck text crossed out, proposed text underlined. Both open the
+    // suggestion's card on click / tap.
+    '.cm-suggest-del': {
+      textDecoration: 'line-through',
+      textDecorationColor: 'var(--suggest-color)',
+      textDecorationThickness: '2px',
+      backgroundColor: 'color-mix(in srgb, var(--suggest-color) 12%, transparent)',
+      cursor: 'pointer'
+    },
+    '.cm-suggest-ins': {
+      textDecoration: 'underline',
+      textDecorationColor: 'var(--suggest-color)',
+      textDecorationThickness: '2px',
+      textUnderlineOffset: '3px',
+      color: 'var(--suggest-color)',
+      backgroundColor: 'color-mix(in srgb, var(--suggest-color) 10%, transparent)',
+      whiteSpace: 'pre-wrap',
+      cursor: 'pointer'
+    },
+    '.cm-suggest-obsolete': { opacity: '0.5' }
   })
 }
 
@@ -146,7 +182,14 @@ onMounted(() => {
     ...dictationExtensions,
     // Comment-anchor underlines + flash + click-to-focus router; the decoration
     // sets are driven by `setCommentRanges` effects dispatched by the watcher below.
-    commentDecorationsExtension({ onCommentClick: props.onCommentClick })
+    commentDecorationsExtension({ onCommentClick: props.onCommentClick }),
+    // Suggestions: marks for everyone, and in suggesting mode the filter
+    // that turns local edits into suggestion writes.
+    suggestingCompartment.of(suggestingFacet.of(props.suggesting)),
+    suggestionExtension({
+      onPlan: plan => props.onSuggestionPlan?.(plan),
+      onSuggestionClick: id => props.onSuggestionClick?.(id)
+    })
   ]
 
   view.value = new EditorView({
@@ -163,6 +206,23 @@ onMounted(() => {
   if (props.commentRanges.length > 0) {
     view.value.dispatch({ effects: setCommentRanges.of([...props.commentRanges]) })
   }
+  if (props.suggestionMarks.length > 0) {
+    view.value.dispatch({ effects: setSuggestionMarks.of([...props.suggestionMarks]) })
+  }
+})
+
+// Re-sent whenever the Y.js suggestions or the text change. Deferred a
+// microtask: the change may come from a suggestion write made inside an
+// editor update (the plan listener), and CodeMirror refuses a dispatch
+// during an update.
+watch(() => props.suggestionMarks, (marks) => {
+  queueMicrotask(() => {
+    view.value?.dispatch({ effects: setSuggestionMarks.of([...marks]) })
+  })
+})
+
+watch(() => props.suggesting, (on) => {
+  view.value?.dispatch({ effects: suggestingCompartment.reconfigure(suggestingFacet.of(on)) })
 })
 
 // The host updates `commentRanges` whenever the Y.js comments array changes;
