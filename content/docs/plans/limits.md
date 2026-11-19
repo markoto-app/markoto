@@ -1,6 +1,6 @@
 ---
 title: Plans and limits
-description: What the free tier includes on markoto.app and on a self-hosted instance, and what paid plans will add. Self-hosted instances have only the limits their operator sets.
+description: What the free tier includes on markoto.app and when self-hosted, and what paid plans will add. Self-hosted limits are set by the operator.
 category: plans
 order: 1
 featured: true
