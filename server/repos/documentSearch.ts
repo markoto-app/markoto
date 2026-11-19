@@ -161,3 +161,18 @@ export async function searchDocuments(
     rank: Number(r.rank)
   }))
 }
+
+/**
+ * The indexed text of one document (live title + Markdown body as of its
+ * last store, a few seconds behind the editor at most). Null when the
+ * document has no index row yet.
+ */
+export async function getIndexedText(doc: DocAccess<'view'>): Promise<{ title: string, body: string } | null> {
+  const result = await useDatabase().execute<{ title: string, body: string }>(sql`
+    SELECT d.title, s.body
+    FROM documents d JOIN document_search s ON s.doc_id = d.doc_id
+    WHERE d.doc_id = ${doc.docId}
+  `)
+  const row = result.rows[0]
+  return row ? { title: row.title, body: row.body } : null
+}

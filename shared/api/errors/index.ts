@@ -16,6 +16,7 @@ import { billingErrors } from './billing'
 import { brandErrors } from './brand'
 import { citationsErrors } from './citations'
 import { consentErrors } from './consent'
+import { contextErrors } from './context'
 import { csrfErrors } from './csrf'
 import { customDomainErrors } from './customDomain'
 import { designImportErrors } from './designImport'
@@ -57,6 +58,7 @@ export const API_ERRORS = {
   ...brandErrors,
   ...citationsErrors,
   ...consentErrors,
+  ...contextErrors,
   ...csrfErrors,
   ...customDomainErrors,
   ...designImportErrors,

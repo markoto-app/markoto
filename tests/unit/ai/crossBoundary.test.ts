@@ -329,3 +329,47 @@ describe('delegated jobs', () => {
     expect(guard.tainted).toBe(false)
   })
 })
+
+describe('project context', () => {
+  const list = (...ids: string[]) => JSON.stringify({ context_documents: ids.map(id => ({ context_doc_id: id, title: id, applies_to: 'whole workspace', characters: 10 })), omitted: 0 })
+  const deps = { isDocSolo: async (ref: string) => ref.startsWith('mine') }
+
+  it('reading one context document taints unless it is the invoker\'s solo document', async () => {
+    const own = makeGuard({}, deps).guard
+    await own.afterTool('read_project_context', { context_doc_id: 'mine-bible' }, { isError: false, content: 'text' })
+    expect(own.tainted).toBe(false)
+    const shared = makeGuard({}, deps).guard
+    await shared.afterTool('read_project_context', { context_doc_id: 'team-glossary' }, { isError: false, content: 'text' })
+    expect(shared.taintReasons).toEqual(['project context'])
+  })
+
+  it('the list taints when any listed document is not solo, and fails closed on an unreadable result', async () => {
+    const own = makeGuard({}, deps).guard
+    await own.afterTool('read_project_context', {}, { isError: false, content: list('mine-a', 'mine-b') })
+    expect(own.tainted).toBe(false)
+    const mixed = makeGuard({}, deps).guard
+    await mixed.afterTool('read_project_context', {}, { isError: false, content: list('mine-a', 'team-b') })
+    expect(mixed.tainted).toBe(true)
+    const garbled = makeGuard({}, deps).guard
+    await garbled.afterTool('read_project_context', {}, { isError: false, content: 'not json' })
+    expect(garbled.tainted).toBe(true)
+  })
+
+  it('reading needs no confirmation even in a tainted session (the documents are in the prompt already)', () => {
+    const { guard } = makeGuard({ initialTaint: 'project context written by other people' })
+    expect(guard.needsConfirmation('read_project_context', { context_doc_id: 'x' })).toBe(false)
+  })
+
+  it('editing a context document is cross-boundary: asked for once tainted, labelled with its title', async () => {
+    const confirm = vi.fn<CrossBoundaryDeps['confirm']>(async () => false)
+    const { guard } = makeGuard({ initialTaint: 'project context written by other people' }, { confirm, describeDoc: async ref => (ref === 'bible' ? 'Story bible' : null) })
+    const r = await guard.beforeTool('edit_project_context', { context_doc_id: 'bible', new_str: 'Mara' }, signal)
+    expect(r.allowed).toBe(false)
+    expect(confirm.mock.calls[0]?.[0]).toEqual({ tool: 'edit_project_context', target: 'Story bible' })
+  })
+
+  it('a solo session edits its own context document without asking', () => {
+    const { guard } = makeGuard()
+    expect(guard.needsConfirmation('edit_project_context', { context_doc_id: 'bible', new_str: 'x' })).toBe(false)
+  })
+})

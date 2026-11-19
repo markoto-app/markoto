@@ -3,7 +3,7 @@ title: Polish your doc and download it as a PDF
 description: What you see in the preview is what lands in the PDF. Export it from the File menu in one click.
 category: import-export
 order: 3
-updated: '2026-11-06'
+updated: '2026-11-19'
 ---
 
 # Polish your doc and download it as a PDF
@@ -42,6 +42,21 @@ leave a large empty space at the bottom of a page: then they split, with at
 least three lines or rows on each side. A table that continues on the next
 page repeats its header row. In two-column themes a footnote stays on the
 page of its reference.
+
+## Accessible PDFs
+
+The exported PDF is a tagged PDF, so screen readers and other assistive
+technology can follow it: headings, lists, tables, links and images keep
+their meaning, and the image descriptions you write
+(`![A chart of monthly sales](...)`) travel with the images. The PDF also
+carries the document's title (shown in the PDF viewer's title bar), its
+language (from the Document tab) and bookmarks built from your headings.
+
+While you write, the status bar at the bottom of the editor counts what
+would make the document harder to use with assistive technology: an image
+without a description, a link without text (`[](https://...)`), or a
+heading that skips a level (a level 3 heading straight after a level 1).
+Click the count to see the list; click an entry to jump to that line.
 
 ## What's next
 

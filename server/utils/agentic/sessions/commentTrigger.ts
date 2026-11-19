@@ -43,7 +43,7 @@ export async function startCommentTrigger(event: H3Event, request: CommentTrigge
   const userId = request.user.id
 
   const doc = await getDoc(docAccess)
-  const wsCtx = await resolveSessionWorkspace(doc?.workspaceId ?? null, userId)
+  const wsCtx = await resolveSessionWorkspace(doc?.workspaceId ?? null, userId, docAccess)
   const triggerCtx = await peekTriggerThread(docId, userId, commentId, request.replyId)
   // The thread is written by whoever commented: it goes into the USER
   // message as quoted data, never into the system prompt. It follows the
@@ -174,5 +174,5 @@ function buildTriggerPromptContext(doc: Awaited<ReturnType<typeof getDoc>>, ws: 
   const documentContextBlock = documentContextBlockFor(doc)
   const knowledgeBlock = ws.exposeKnowledgeTools ? buildKnowledgeBlock(ws.knowledgeFiles) : ''
   const membersBlock = buildWorkspaceMembersBlock(ws.members)
-  return assemblePromptContext({ documentContextBlock, knowledgeBlock, membersBlock })
+  return assemblePromptContext({ documentContextBlock, projectContextBlock: ws.projectContextBlock, knowledgeBlock, membersBlock })
 }

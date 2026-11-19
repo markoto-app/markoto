@@ -146,6 +146,10 @@ const EXPLORER = '^server/utils/explorer/'
 const IMPORTS = '^server/utils/imports/createImportJob\\.ts$'
 const IMPORT_ROUTE = '^server/api/import\\.post\\.ts$'
 const IMPORT_WORKER = '^server/utils/imports/importWorker\\.ts$'
+// Project context: each context document is decided for the reader on its
+// own, like opening its URL (the resolver), and the AI's edit of one
+// re-proves the initiator's write access to that document (the tool).
+const PROJECT_CONTEXT = ['^server/utils/documents/projectContext\\.ts$', '^server/utils/ai/tools/projectContextTools\\.ts$']
 
 /**
  * Each entry point that mints a proof from something the caller vouches for
@@ -168,7 +172,7 @@ export const PROOF_ENTRY_CALLERS = {
   proveNewDoc: CREATION,
   // Membership of a user, checked against the database.
   proveDocMembership: [MCP_WRAPPER, MCP_EXPORT_TOOL, ...AI_SESSION, ...AI_TOOLS, AI_JOBS, POLICY_PROVER, EXPLORER],
-  proveDocNeed: [EXPLORER, IMPORT_ROUTE],
+  proveDocNeed: [EXPLORER, IMPORT_ROUTE, ...PROJECT_CONTEXT],
   proveFolderScope: [EXPLORER, IMPORTS, ...AI_TOOLS],
   proveScope: [EXPLORER, IMPORTS, ...AI_TOOLS],
   memberWorkspaceProofs: [EXPLORER, ...AI_TOOLS],

@@ -478,6 +478,33 @@
     "audience": {
       "label": "Público",
       "help": "Indica a markoto para quién está escrito. Afecta al tono, la estructura y la elección de palabras."
+    },
+    "context": {
+      "label": "Contexto de IA",
+      "help": "Documentos que la IA lee en cada solicitud aquí, como personajes, un glosario, una guía de estilo o datos de producto.",
+      "scope": {
+        "label": "Este documento como contexto",
+        "help": "La IA también leerá este documento cuando trabaje en otros documentos.",
+        "off": "No se usa como contexto",
+        "folder": "Para su carpeta y subcarpetas",
+        "workspace": "Para todo el espacio de trabajo",
+        "personal": "Para todos mis documentos"
+      },
+      "appliedLabel": "Contexto que la IA lee aquí",
+      "sourceWorkspace": "Todo el espacio de trabajo",
+      "sourcePersonal": "Todos tus documentos",
+      "sourceFolder": "Desde la carpeta",
+      "sourceAttached": "Adjunto a este documento",
+      "notIncluded": "Adjunto, no incluido (límite alcanzado)",
+      "none": "Todavía no se aplica ningún documento de contexto aquí.",
+      "omitted": "{n} documento de contexto más no está incluido. | {n} documentos de contexto más no están incluidos.",
+      "detach": "Quitar de este documento",
+      "attachLabel": "Adjuntar un documento",
+      "attachHelp": "Busca un documento para usarlo como contexto adicional aquí.",
+      "attachLimit": "Se pueden adjuntar como máximo {max} documentos.",
+      "attachPlaceholder": "Buscar documentos…",
+      "saveFailed": "No se pudo cambiar el contexto de IA",
+      "untitled": "Sin título"
     }
   },
   "references": {
@@ -663,7 +690,8 @@
         "web_search": "markoto quiere buscar «{target}» en la web.",
         "fetch_url": "markoto quiere abrir {target}",
         "view_image": "markoto quiere cargar la imagen {target}",
-        "generic": "markoto quiere usar {tool}."
+        "generic": "markoto quiere usar {tool}.",
+        "edit_project_context": "markoto quiere actualizar el documento de contexto «{target}»."
       },
       "job": {
         "question": "{what}, {minutes}.",
@@ -856,7 +884,9 @@
       "previewJob": "Probando el cambio en secciones de muestra…",
       "startJob": "Iniciando la edición en segundo plano…",
       "jobWaiting": "Edición en segundo plano en curso; el progreso se muestra arriba.",
-      "jobStatus": "Comprobando la edición en segundo plano…"
+      "jobStatus": "Comprobando la edición en segundo plano…",
+      "readProjectContext": "Leyendo el contexto del proyecto…",
+      "editProjectContext": "Actualizando el contexto del proyecto…"
     },
     "job": {
       "label": "Edición en segundo plano",
@@ -3433,14 +3463,17 @@
       "movedWorkspace": "{n} documento movido a otro espacio de trabajo | {n} documentos movidos a otro espacio de trabajo",
       "deleted": "{n} elemento eliminado | {n} elementos eliminados",
       "undone": "Movimiento deshecho",
-      "cut": "{n} elemento cortado. Pégalo en una carpeta con Ctrl+V. | {n} elementos cortados. Pégalos en una carpeta con Ctrl+V."
+      "cut": "{n} elemento cortado. Pégalo en una carpeta con Ctrl+V. | {n} elementos cortados. Pégalos en una carpeta con Ctrl+V.",
+      "contextOn": "{name} ahora es contexto de IA",
+      "contextOff": "{name} ya no es contexto de IA"
     },
     "error": {
       "createFolder": "No se pudo crear la carpeta",
       "rename": "No se pudo renombrar",
       "move": "No se pudo mover",
       "delete": "No se pudo eliminar",
-      "deleteBlocked": "Carpeta no eliminada"
+      "deleteBlocked": "Carpeta no eliminada",
+      "context": "No se pudo cambiar el contexto de IA"
     },
     "action": {
       "open": "Abrir",
@@ -3457,7 +3490,8 @@
       "newDocument": "Documento nuevo",
       "newFolder": "Carpeta nueva",
       "import": "Importar archivos...",
-      "paste": "Pegar"
+      "paste": "Pegar",
+      "aiContext": "Usar como contexto de IA"
     },
     "sortBy": "Ordenar por",
     "sort": {
@@ -3571,6 +3605,24 @@
       "personal": "Mis documentos",
       "hint": "Busca en los títulos y el texto de tus documentos, tus espacios de trabajo y los documentos compartidos contigo."
     },
-    "subfolders": "{n} carpeta | {n} carpetas"
+    "subfolders": "{n} carpeta | {n} carpetas",
+    "context": {
+      "off": "No se usa como contexto",
+      "folder": "Para esta carpeta",
+      "all": "Para todo el espacio de trabajo",
+      "allPersonal": "Para todos mis documentos",
+      "stop": "Dejar de usar como contexto de IA"
+    },
+    "contextBadge": "Contexto de IA",
+    "contextBadgeAll": "La IA lee este documento en cada documento de aquí.",
+    "contextBadgeFolder": "La IA lee este documento en los documentos de su carpeta."
+  },
+  "a11yCheck": {
+    "issues": "{n} problema de accesibilidad | {n} problemas de accesibilidad",
+    "intro": "Corrige estos puntos para que los lectores de pantalla y el PDF etiquetado presenten bien tu documento.",
+    "imageAlt": "Imagen sin texto alternativo",
+    "emptyLink": "Enlace sin texto",
+    "headingSkip": "Un encabezado de nivel {level} sigue a uno de nivel {previous}: se salta un nivel",
+    "line": "Línea {line}"
   }
 }

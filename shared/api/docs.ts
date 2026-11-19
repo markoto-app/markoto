@@ -8,6 +8,7 @@ import { LANGUAGE_MAX_LENGTH } from '../languages'
 import { isTemplateId, resolveTemplateId } from '../templates'
 import { DOC_DESCRIPTION_MAX_LENGTH, DOC_TITLE_MAX_LENGTH } from '../config/docCreate'
 import { DOC_PASSWORD_MAX_LENGTH } from '../config/docPassword'
+import { CONTEXT_SCOPES } from '../config/projectContext'
 import { isValidTheme } from '../utils/theme/themeValidation'
 import type { DocTheme } from '../types/theme'
 
@@ -98,4 +99,20 @@ export const docPdfQuery = z.object({
 export const activityParams = z.object({
   docId: z.string().min(1),
   activityId: serialId
+})
+
+/** PUT /api/docs/:docId/context/scope: mark the document as project context (folder / whole scope) or unmark it (null). */
+export const updateContextScopeBody = z.object({
+  scope: z.enum(CONTEXT_SCOPES).nullable()
+})
+
+/** POST /api/docs/:docId/context/links: attach another document as extra project context. */
+export const addContextLinkBody = z.object({
+  contextDocId: z.string().trim().min(1).max(64)
+})
+
+/** DELETE /api/docs/:docId/context/links/:contextDocId */
+export const deleteContextLinkParams = z.object({
+  docId: z.string().min(1),
+  contextDocId: z.string().min(1).max(64)
 })

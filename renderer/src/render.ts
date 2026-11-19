@@ -271,10 +271,18 @@ async function doRender(
     // emulateMedia({ media: 'print' }) makes @page rules apply.
     // preferCSSPageSize lets the theme's @page declaration drive paper
     // size: without it page.pdf() silently falls back to Letter.
+    // `tagged` writes a structure tree (headings, lists, tables, figures
+    // with alt text, links) built from the accessibility tree, and
+    // `outline` adds bookmarks from the headings. Title and language
+    // come from the print page's <title> / <html lang>; running headers,
+    // footers and page numbers are aria-hidden there so they stay out of
+    // the structure tree (docs/contributing/accessible-pdf.md).
     await page.emulateMedia({ media: 'print' })
     const pdfBytes = await page.pdf({
       printBackground: true,
-      preferCSSPageSize: true
+      preferCSSPageSize: true,
+      tagged: true,
+      outline: true
     })
     pdfKey = `${prefix}/document.pdf`
     uploads.push(putBytes(pdfKey, pdfBytes, 'application/pdf'))
