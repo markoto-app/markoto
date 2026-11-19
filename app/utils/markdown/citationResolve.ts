@@ -414,7 +414,8 @@ function fillList(doc: Document, slot: Element, numbering: NumberingResult, loca
 
 export function resolveCrossrefs(bodyHtml: string, theme: DocTheme, locale: string, captionLabels: CaptionLabels): { html: string, problems: ReferenceProblem[] } {
   const hasLabel = /(?:id|data-markoto-label)="(?:fig|tbl|eq|sec):/.test(bodyHtml)
-  if (!hasLabel && !bodyHtml.includes(CITE_CLASS) && !bodyHtml.includes(LIST_SLOT_CLASS)) return { html: bodyHtml, problems: [] }
+  // Resolved citations keep the class but lose `data-cite`: only unresolved spans (cross-references) need this pass.
+  if (!hasLabel && !bodyHtml.includes('data-cite=') && !bodyHtml.includes(LIST_SLOT_CLASS)) return { html: bodyHtml, problems: [] }
   const tpl = parse(bodyHtml)
   const root = tpl.content
   const doc = root.ownerDocument

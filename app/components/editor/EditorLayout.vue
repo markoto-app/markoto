@@ -3,12 +3,10 @@ import RightPanelHost from './RightPanelHost.vue'
 import MobileTabBar from './MobileTabBar.vue'
 import EditorCommandsPanel from './EditorCommandsPanel.vue'
 import type { TabName } from './tabBarTypes'
-import type { ImportedDocProperties } from '~~/shared/utils/markdown/markdownFrontmatter'
 import { customCssForPlan } from '~~/shared/utils/theme/themePresets'
 import { applyBrandLock } from '~~/shared/utils/theme/brandLock'
 import type { DocTheme } from '~~/shared/types/theme'
 import type { ReferenceProblem } from '~/utils/markdown/citationResolve'
-import { insertInline } from '~/utils/editor/editorCommands'
 
 /**
  * The editor page: composes the top bar, menu and tool rows, the editor and
@@ -147,9 +145,6 @@ const { passwordModalOpen, deletedNoticeOpen } = useDocAccessPrompts(requiresPas
 const pageCount = ref(0)
 // Unknown citation keys / labels from the last preview render (References panel).
 const referenceProblems = ref<ReferenceProblem[]>([])
-function insertCitation(text: string) {
-  if (editorView.value && !isReadOnly.value) insertInline(editorView.value, text)
-}
 const citationSource = useCitationSource(bibliography, language)
 
 const { textContent, wordCount, charCount } = useDocTextStats({ docId: props.docId, ydoc, ytext, synced, isOwner, requiresPassword })
@@ -171,30 +166,7 @@ const { exportPdf, exportMarkdown, openServerPdf } = useEditorExports({
   getDocJwt
 })
 
-// Theme + properties from an imported markoto Markdown file. The server has
-// validated every field (server/utils/documents/markdownImport.ts); the
-// setters check again (setTheme: schema; ymeta: the sync server).
-function applyImportedProperties(
-  properties: ImportedDocProperties,
-  notes: { ignored: string[], droppedCustomCssRules: number }
-) {
-  if (isReadOnly.value) return
-  if (properties.title !== undefined) title.value = properties.title
-  if (properties.description !== undefined) description.value = properties.description
-  if (properties.audience !== undefined) audience.value = properties.audience
-  if (properties.language !== undefined) language.value = properties.language
-  if (properties.templateId !== undefined) setTemplateId(properties.templateId)
-  if (properties.theme && canEditTheme.value) setTheme(properties.theme)
-  if (properties.references) bibliography.addItems(properties.references)
-  if (properties.citationStyle) bibliography.setStyle(properties.citationStyle)
-  const skipped = notes.ignored.length > 0 || notes.droppedCustomCssRules > 0
-  toast.add({
-    title: t('import.propertiesApplied'),
-    description: skipped ? t('import.propertiesPartlyApplied') : undefined,
-    icon: 'i-lucide-file-check-2',
-    color: skipped ? 'neutral' : 'success'
-  })
-}
+const applyImportedProperties = useImportedProperties({ isReadOnly, title, description, audience, language, setTemplateId, canEditTheme, setTheme, bibliography })
 
 const { tableModalOpen, onTableModalSelect, openImagePicker } = useEditorInserts(props.docId, () => editorView.value, isReadOnly)
 
@@ -549,19 +521,13 @@ useHead({
             @reset="resetTheme"
             @close="closeSidebar"
           />
-          <DocumentReferencesPanel
+          <EditorLayoutReferencesSidebar
             v-else-if="rightSidebar === 'references'"
-            :items="bibliography.items.value"
-            :style-id="bibliography.style.value"
+            :bibliography="bibliography"
             :language="language"
             :problems="referenceProblems"
-            :can-edit="!isReadOnly"
-            :can-lookup="loggedIn"
-            :add-items="bibliography.addItems"
-            :has-key="bibliography.hasKey"
-            @update:style-id="bibliography.setStyle"
-            @remove="bibliography.removeItem"
-            @insert="insertCitation"
+            :read-only="isReadOnly"
+            :view="editorView"
             @close="closeSidebar"
           />
           <!-- Same upload/list/delete surface as the workspace overview, scoped to

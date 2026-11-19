@@ -65,15 +65,7 @@ export function importMarkdownFile(
   take('language', readString(data.language, LANGUAGE_MAX_LENGTH, false))
   take('templateId', resolveTemplateId(data.templateId) ?? undefined)
   take('citationStyle', isCitationStyleId(data.citationStyle) ? data.citationStyle : undefined)
-  // The bibliography: every entry normalised like any other import; an
-  // unreadable entry is dropped and reported.
-  if (Array.isArray(data.references)) {
-    const refs = cslItemsFrom(data.references)
-    if (refs.items.length > 0) properties.references = refs.items
-    if (refs.skipped > 0) ignored.push('references')
-  } else if ('references' in data) {
-    ignored.push('references')
-  }
+  readReferences(data, properties, ignored)
 
   let droppedCustomCssRules = 0
   if ('theme' in data) {
@@ -178,4 +170,16 @@ function readTheme(
     }
   }
   return { theme, droppedCustomCssRules, customCssRemoved }
+}
+
+/** The bibliography (`references:`): every entry normalised like any other import; unreadable entries are dropped and reported. */
+function readReferences(data: Record<string, unknown>, properties: ImportedDocProperties, ignored: string[]): void {
+  if (!('references' in data)) return
+  if (!Array.isArray(data.references)) {
+    ignored.push('references')
+    return
+  }
+  const refs = cslItemsFrom(data.references)
+  if (refs.items.length > 0) properties.references = refs.items
+  if (refs.skipped > 0) ignored.push('references')
 }

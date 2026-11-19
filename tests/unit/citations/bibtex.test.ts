@@ -107,7 +107,7 @@ describe('latexToUnicode', () => {
 
 describe('parseBibliographyText', () => {
   it('detects CSL JSON (Zotero export)', () => {
-    const r = parseBibliographyText(JSON.stringify([{ 'id': 'doe2020', 'type': 'book', 'title': 'Book', 'author': [{ family: 'Doe', given: 'J.' }], 'issued': { 'date-parts': [[2020]] } }]))
+    const r = parseBibliographyText(JSON.stringify([{ id: 'doe2020', type: 'book', title: 'Book', author: [{ family: 'Doe', given: 'J.' }], issued: { 'date-parts': [[2020]] } }]))
     expect(r.format).toBe('csl-json')
     expect(r.items[0]?.id).toBe('doe2020')
   })

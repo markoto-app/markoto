@@ -121,7 +121,7 @@ describe('every style', () => {
   })
 
   it('disambiguates same author and year', () => {
-    const a: CslItem = { 'id': 'a', 'type': 'book', 'title': 'Alpha', 'author': [{ family: 'Roe', given: 'A' }], 'issued': { 'date-parts': [[2020]] } }
+    const a: CslItem = { id: 'a', type: 'book', title: 'Alpha', author: [{ family: 'Roe', given: 'A' }], issued: { 'date-parts': [[2020]] } }
     const b: CslItem = { ...a, id: 'b', title: 'Beta' }
     const plan = planBibliography([b, a], 'apa', 'en')
     expect(plan.ctx.yearSuffix.get('a')).toBe('a')
