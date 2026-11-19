@@ -1,6 +1,6 @@
 ---
 title: Novel writing software in the browser
-description: Write a novel in Markdown in the browser. Chapters on new pages, comments from readers, a PDF that matches the preview, and an AI editor that only acts when you ask.
+description: Write a novel in Markdown in the browser. Chapters on new pages, reader comments, a PDF that matches the preview, and an AI editor that acts only when you ask.
 keywords:
   - novel writing software
   - write a novel online

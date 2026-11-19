@@ -1,6 +1,6 @@
 ---
 title: 'markoto vs Scrivener for writing a novel'
-description: A Scrivener alternative in the browser? markoto and Scrivener compared on planning, research, drafts, output, collaboration and price, with where Scrivener is better.
+description: A Scrivener alternative in the browser? markoto and Scrivener compared on planning, research, drafts, output, collaboration and price, and where Scrivener wins.
 keywords:
   - scrivener alternative
   - markoto vs scrivener

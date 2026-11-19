@@ -1,6 +1,6 @@
 ---
 title: Review AI agent plans and specs with comments
-description: Let Claude Code, Cursor or any MCP agent write its plan into markoto. Your team reads the rendered version, comments on it, and the agent reads the comments back.
+description: Let Claude Code, Cursor or any MCP agent write its plan into markoto. Your team reads and comments on the rendered page, and the agent reads the comments back.
 keywords:
   - review ai agent plans
   - claude code plan review

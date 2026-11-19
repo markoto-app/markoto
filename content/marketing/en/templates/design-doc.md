@@ -1,6 +1,6 @@
 ---
 title: Design doc and RFC template in Markdown
-description: A design doc template in Markdown with status header, goals, proposal with a diagram, alternatives, decisions and rollout. Review it with comments, export a PDF.
+description: A design doc template in Markdown with status header, goals, proposal and diagram, alternatives, decisions and rollout. Review it with comments, export a PDF.
 keywords:
   - design doc template
   - rfc template markdown

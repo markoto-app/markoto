@@ -1,6 +1,6 @@
 ---
 title: Markdown templates for documents with pages
-description: Free Markdown templates with a print layout: report, resume, thesis, essay, proposal, manuscript, newsletter, runbook and more. Start in the browser, export a PDF.
+description: Free Markdown templates with a print layout, including report, resume, thesis, essay, proposal, manuscript, newsletter and runbook. Export a PDF in the browser.
 keywords:
   - markdown templates
   - markdown document templates

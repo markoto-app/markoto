@@ -1,6 +1,6 @@
 ---
 title: On-call runbook template in Markdown
-description: A runbook template in Markdown with severity levels, one procedure per alert, escalation contacts and a quick reference. Numbered sections and a PDF for the pager.
+description: A runbook template in Markdown with severity levels, one procedure per alert, escalation contacts and a quick reference. Numbered sections, and a PDF to print.
 keywords:
   - runbook template
   - on-call runbook template
