@@ -586,6 +586,7 @@ function row(over: Partial<ScopeRow> & { docId: string }): ScopeRow {
     ownerId: 100,
     ownerName: 'Alice',
     isOwner: true,
+    contextScope: null,
     createdAt: at,
     updatedAt: at,
     lastActive: at,

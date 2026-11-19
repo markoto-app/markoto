@@ -37,7 +37,7 @@ const { t } = useI18n()
       <EditorLayoutA11yStatus
         v-if="!readOnly"
         :text="text"
-        @jump="(from, to) => emit('jumpTo', from, to)"
+        @jump="(from: number, to: number) => emit('jumpTo', from, to)"
       />
     </div>
     <div
