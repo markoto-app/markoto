@@ -12,6 +12,7 @@ import { editorKeymap } from '~/utils/editor/collabHistory'
 import { promptBarClearance } from '~/utils/editor/promptBarClearance'
 import { markotoMarkdownHighlight } from '~/utils/markdown/markdownHighlight'
 import { commentDecorationsExtension, setCommentRanges, setFlashRange, type CommentRange } from '~/utils/comments/commentDecorations'
+import { citationAssist, type CitationAssistSource } from '~/utils/editor/citationAssist'
 
 const props = withDefaults(defineProps<{
   ytext: YText
@@ -22,9 +23,12 @@ const props = withDefaults(defineProps<{
   commentRanges?: readonly CommentRange[]
   /** Click on a comment underline; invoked with the id. */
   onCommentClick?: (id: string) => void
+  /** Bibliography keys and labels for `@` completion and hover (citationAssist.ts). */
+  citationSource?: CitationAssistSource
 }>(), {
   commentRanges: () => [],
-  onCommentClick: undefined
+  onCommentClick: undefined,
+  citationSource: undefined
 })
 
 const editorRef = ref<HTMLElement | null>(null)
@@ -97,6 +101,12 @@ function buildResponsiveTheme(mobile: boolean) {
     // Comment-anchor underline: subtle yellow background + dashed underline reads
     // as "annotated" without competing with highlights or links; pointer cursor
     // makes the click target discoverable.
+    '.cm-citation-tooltip': {
+      maxWidth: '28rem',
+      padding: '6px 8px',
+      fontSize: '12px',
+      lineHeight: '1.45'
+    },
     '.cm-comment-anchor': {
       backgroundColor: 'rgba(234, 179, 8, 0.16)',
       borderBottom: '1px dashed rgba(234, 179, 8, 0.7)',
@@ -146,7 +156,9 @@ onMounted(() => {
     ...dictationExtensions,
     // Comment-anchor underlines + flash + click-to-focus router; the decoration
     // sets are driven by `setCommentRanges` effects dispatched by the watcher below.
-    commentDecorationsExtension({ onCommentClick: props.onCommentClick })
+    commentDecorationsExtension({ onCommentClick: props.onCommentClick }),
+    // `@` completion of bibliography keys and labels, hover cards on `@key`.
+    ...(props.citationSource ? [citationAssist(props.citationSource)] : [])
   ]
 
   view.value = new EditorView({

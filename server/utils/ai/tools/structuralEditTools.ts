@@ -12,6 +12,7 @@ import { atxClosingStart, isAtxHeading } from './sections/headingAnchors'
 import { filterEmDashesAt, withoutEmDashes } from '../dashFilter'
 import { applyTextEdits, headingLinkEdits, linkNote, withoutOverlaps, type TextEdit } from './sections/anchorLinks'
 import { applyEdits, originOf, SECTION_REF_HELP, SectionRef, type Args } from './sectionEditShared'
+import { ungroundedCitationError } from '../citationGuard'
 
 // Structural edits of the current document, addressed by section (ids from
 // outline, numbers, heading text) instead of by copied text: replace,
@@ -162,6 +163,8 @@ function handleReplaceSection(ctx: DocToolContext, args: Args<typeof ReplaceSect
   const old = structure.text.slice(from, to)
   const body = trimBlock(withoutEmDashes(args.markdown))
   if (!keepHeading && body === '') return toolError('Error: markdown is empty; use delete_section to remove a section.')
+  const ungrounded = ungroundedCitationError(body, old, ctx.ydoc)
+  if (ungrounded) return toolError(ungrounded)
   const next = replacementText(old, body, keepHeading, to < structure.text.length)
   if (next === old) {
     return toolError(`${NO_OP_EDIT_ERROR_PREFIX}: section ${id} already reads exactly like this. Do not repeat this call.`)
@@ -210,6 +213,8 @@ function handleInsertMarkdown(ctx: DocToolContext, args: Args<typeof InsertMarkd
   const at = insertOffset(structure, section, args.position)
   if (typeof at === 'string') return toolError(at)
   const text = blockSpacedInsertText(structure.text, at, withoutEmDashes(args.markdown))
+  const ungrounded = ungroundedCitationError(text, '', ctx.ydoc)
+  if (ungrounded) return toolError(ungrounded)
   ctx.updateStatus('editing', aiStatus('applyInsert'))
   ctx.ydoc.transact(() => {
     ctx.ytext.insert(at, text)
@@ -493,6 +498,8 @@ function handleEditLines(ctx: DocToolContext, args: Args<typeof EditLinesArgs>):
   if (typeof plan === 'string') return toolError(plan)
   const changed = plan.filter(e => structure.text.slice(e.start, e.end) !== e.text)
   if (changed.length === 0) return toolError(`${NO_OP_EDIT_ERROR_PREFIX}: every edit already reads like its new_text. Do not repeat this call.`)
+  const ungrounded = ungroundedCitationError(changed.map(e => e.text).join('\n'), changed.map(e => structure.text.slice(e.start, e.end)).join('\n'), ctx.ydoc)
+  if (ungrounded) return toolError(ungrounded)
   ctx.updateStatus('editing', aiStatus('editDocument'))
   ctx.ydoc.transact(() => {
     for (const e of [...changed].reverse()) applyMinimalDiff(ctx.ytext, e.start, e.end, e.text)

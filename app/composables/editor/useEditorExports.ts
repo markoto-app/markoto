@@ -75,7 +75,9 @@ export function useEditorExports(opts: {
       language: opts.language.value,
       templateId: opts.templateId.value,
       // Plain copy: the theme ref is a readonly proxy.
-      theme: structuredClone(toRaw(opts.theme.value)) as DocTheme
+      theme: structuredClone(toRaw(opts.theme.value)) as DocTheme,
+      references: opts.citations.value.items,
+      citationStyle: opts.citations.value.style
     })
     downloadMarkdown(content, opts.title.value)
   }

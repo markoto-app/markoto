@@ -510,7 +510,8 @@
     "empty": "No references yet. Add one by DOI, paste BibTeX or import a .bib file from Zotero.",
     "cite": "Insert citation",
     "remove": "Remove from bibliography",
-    "syntaxHelp": "Cite with [{'@'}key] or [{'@'}key, p. 12]. The bibliography appears at [[bibliography]], under an empty References heading, or at the end of the document."
+    "syntaxHelp": "Cite with [{'@'}key] or [{'@'}key, p. 12]. The bibliography appears at [[bibliography]], under an empty References heading, or at the end of the document.",
+    "unknownKey": "{key} is not in the bibliography and is not a label in this document."
   },
   "audiences": {
     "technical": {
@@ -802,6 +803,10 @@
       "fetchUrl": "正在打开 {url}",
       "fetchUrlAny": "正在打开网页…",
       "readDocument": "正在阅读文档…",
+      "readReferences": "Reading the bibliography…",
+      "addReference": "Looking up DOI {doi}",
+      "addReferenceAny": "Looking up a DOI…",
+      "checkCitations": "Checking citations…",
       "editPassage": "正在编辑“{passage}”",
       "editDocument": "正在编辑文档…",
       "insertText": "正在插入文本…",

@@ -10,6 +10,7 @@ import { updateDocMeta } from '../../../repos/documents'
 import * as Sentry from '@sentry/nuxt'
 import { useLogger } from '../../platform/logger'
 import { filterEmDashesAt } from '../dashFilter'
+import { ungroundedCitationError } from '../citationGuard'
 
 // Reading and editing the current document: view_document, replace_text,
 // insert_text, set_title. Edits are Y.js transactions tagged with the AI
@@ -124,6 +125,8 @@ function handleStrReplace(
   }
   const matched = full.slice(match.start, match.end)
   input.new_str = filterEmDashesAt(full, match.start, input.new_str)
+  const ungrounded = ungroundedCitationError(input.new_str, matched, session.ydoc)
+  if (ungrounded) return toolError(ungrounded)
   // A replacement with itself changes nothing. Reporting it as a
   // success let the model "fix" the same passage over and over.
   if (input.old_str === input.new_str || matched === input.new_str) {
@@ -161,6 +164,8 @@ function handleInsert(
   const origin = `ai:assistant:${session.sessionId}`
   // Newline-terminated, with the blank lines a Markdown block needs around it.
   const insertText = blockSpacedInsertText(full, idx, filterEmDashesAt(full, idx, input.insert_text))
+  const ungrounded = ungroundedCitationError(insertText, '', session.ydoc)
+  if (ungrounded) return toolError(ungrounded)
   session.ydoc.transact(() => {
     session.ytext.insert(idx, insertText)
   }, origin)

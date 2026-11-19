@@ -150,6 +150,7 @@ const referenceProblems = ref<ReferenceProblem[]>([])
 function insertCitation(text: string) {
   if (editorView.value && !isReadOnly.value) insertInline(editorView.value, text)
 }
+const citationSource = useCitationSource(bibliography, language)
 
 const { textContent, wordCount, charCount } = useDocTextStats({ docId: props.docId, ydoc, ytext, synced, isOwner, requiresPassword })
 
@@ -184,6 +185,8 @@ function applyImportedProperties(
   if (properties.language !== undefined) language.value = properties.language
   if (properties.templateId !== undefined) setTemplateId(properties.templateId)
   if (properties.theme && canEditTheme.value) setTheme(properties.theme)
+  if (properties.references) bibliography.addItems(properties.references)
+  if (properties.citationStyle) bibliography.setStyle(properties.citationStyle)
   const skipped = notes.ignored.length > 0 || notes.droppedCustomCssRules > 0
   toast.add({
     title: t('import.propertiesApplied'),
@@ -465,6 +468,7 @@ useHead({
             :read-only="isReadOnly"
             :comment-ranges="commentRanges"
             :on-comment-click="onCommentClickInEditor"
+            :citation-source="citationSource"
           />
         </EditorImageDropZone>
 
