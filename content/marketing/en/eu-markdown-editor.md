@@ -38,6 +38,7 @@ In short: storage and every AI provider sit in the EU. The providers based in th
 
 - **Google and GitHub** only if you choose to sign in with them. markoto reads your name, verified email address and account ID, and nothing else from those accounts.
 - **Resend** delivers the few emails markoto sends (for example invitations and account-deletion confirmations).
+- **Google Ads** receives the ad click identifier described under "No tracking cookies" below, only if ad conversion measurement is switched on.
 - **Sentry** receives error reports. They are stored in Sentry's EU region (Frankfurt); the US company may access them for support and operations.
 
 These transfers rely on the EU-U.S. and Swiss-U.S. Data Privacy Framework, with standard contractual clauses as fallback, as the privacy policy describes.
@@ -56,7 +57,7 @@ The writing assistant, voice input, web search, page fetching and image generati
 
 ## No tracking cookies
 
-markoto.app uses only storage that is strictly needed to run the service: the sign-in session, your language, and a few keys for anonymous documents. Visits to the public pages, like this one, are counted with a statistics tool we run ourselves, without cookies and without storing anything on your device; documents are never counted. There is no session replay, no advertising and no cross-site tracking, so there is no cookie banner. The privacy policy lists every cookie and storage key and explains the statistics.
+markoto.app uses only storage that is strictly needed to run the service: the sign-in session, your language, and a few keys for anonymous documents. Visits to the public pages, like this one, are counted with a statistics tool we run ourselves, without cookies and without storing anything on your device; documents are never counted. There is no session replay, no advertising in the product and no cross-site tracking, so there is no cookie banner. If the operator has switched on ad conversion measurement for markoto's own Google ads, a visit that arrives from one of those ads and then signs up, joins the waitlist or creates a first document is recorded on our server with the ad's click identifier and passed to Google Ads (no name, email address or IP address) for 90 days at most; this rests on our legitimate interest rather than on consent, no Google script or cookie is loaded, nothing is stored on your device, and browsers that send Global Privacy Control or Do Not Track are left out. It is off unless the operator enables it. The privacy policy lists every cookie and storage key and explains the statistics and the ad measurement.
 
 Documents are not indexed by search engines: every document page sends a `noindex` instruction. A link can still be passed on, so treat a shared link as public.
 
