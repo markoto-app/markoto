@@ -256,7 +256,7 @@ describe('delegate_rewrite: status of a finished rewrite', () => {
     const res = await executeFunctionByName(makeCtx(), 'delegate_rewrite', { job_id: 'j-abcdef123456', action: 'status' })
     expect(res.isError).toBe(false)
     expect(res.settlesJob).toBe('finished')
-    expect(res.content).toMatch(/No part was flagged or skipped\. Tell the user in one short message/)
+    expect(res.content).toMatch(/^Finished\. Tell the user in one short message .*do not read the changed sections to verify them\. No part was flagged or skipped\. /m)
   })
 
   it('a failed job does not settle the session (the planner may still act)', async () => {

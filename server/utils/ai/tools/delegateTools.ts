@@ -424,7 +424,7 @@ function finishedNote(report: JobReport): string {
   const attention = report.notes.length > 0
     ? 'Only the parts listed above may need a look; leave the rest.'
     : 'No part was flagged or skipped.'
-  return `Finished. Every changed part passed the job's checks (Markdown structure, code, links, language), so do not read the changed sections to verify them. ${attention} Tell the user in one short message what was done and what was left out (skipped or flagged parts by heading), that Undo is in the Activity Log, and stop. Rerun flagged or skipped parts with action "rerun" only when that can help.`
+  return `Finished. Tell the user in one short message what was done and what was left out (skipped or flagged parts by heading), that Undo is in the Activity Log, and stop. Every changed part passed the job's checks (Markdown structure, code, links, language), so do not read the changed sections to verify them. ${attention} Rerun flagged or skipped parts with action "rerun" only when that can help.`
 }
 
 /** A rewrite job that no longer needs the planner (`ToolResult.settlesJob`); comment jobs still have findings to post. */
