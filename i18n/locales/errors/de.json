@@ -424,6 +424,12 @@
       "cycle": "Ein Ordner kann nicht in sich selbst oder in einen seiner Unterordner verschoben werden.",
       "forbidden": "Du darfst hier keine Ordner ändern.",
       "delete-blocked": "{blocked} Dokumente in diesem Ordner kannst du nicht löschen, deshalb wurde nichts gelöscht."
+    },
+    "context": {
+      "not-found": "Dieses Dokument gibt es nicht, oder du kannst es nicht öffnen.",
+      "self": "Ein Dokument kann nicht sein eigener Kontext sein.",
+      "too-many": "Ein Dokument kann höchstens {max} zusätzliche Kontextdokumente haben.",
+      "not-attached": "Dieses Dokument ist nicht als Kontext angehängt."
     }
   }
 }

@@ -45,6 +45,7 @@ const document = generateLargeDocument()
 const systemPrompt = PROMPT_SYSTEM_PROMPT
 const promptContext = assemblePromptContext({
   documentContextBlock: buildDocumentContext({ title: LARGE_DOC_TITLE, description: '', audience: 'technical', language: 'de-CH' }),
+  projectContextBlock: '',
   knowledgeBlock: '',
   membersBlock: ''
 })

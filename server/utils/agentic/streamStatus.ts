@@ -229,6 +229,8 @@ const FORMATTERS: Record<string, (args: Record<string, unknown>) => AiStatusLine
   reply_to_comment: describeReplyToComment,
   resolve_comment: describeResolveComment,
   delete_comment: () => aiStatus('deleteComment'),
+  read_project_context: () => aiStatus('readProjectContext'),
+  edit_project_context: () => aiStatus('editProjectContext'),
   delegate_scan: () => aiStatus('scanDocument'),
   delegate_rewrite: describeDelegateRewrite
 }

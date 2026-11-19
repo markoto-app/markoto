@@ -161,6 +161,24 @@ function searchHitIds(content: string | undefined): string[] | null {
   return ids
 }
 
+/** The context document ids in a read_project_context list result; null when the result has an unexpected shape. */
+function contextListIds(content: string | undefined): string[] | null {
+  if (content === undefined) return null
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(content)
+  } catch {
+    return null
+  }
+  if (!isRecord(parsed) || !Array.isArray(parsed.context_documents)) return null
+  const ids: string[] = []
+  for (const d of parsed.context_documents) {
+    if (!isRecord(d) || typeof d.context_doc_id !== 'string' || d.context_doc_id === '') return null
+    ids.push(d.context_doc_id)
+  }
+  return ids
+}
+
 export class CrossBoundaryGuard {
   private readonly reasons: string[] = []
   private readonly typedUrls: Set<string>
@@ -278,6 +296,8 @@ export class CrossBoundaryGuard {
       case 'read_comments':
         if (this.deps.commentsHaveForeignAuthors()) this.taint('comments by other people')
         return
+      case 'read_project_context':
+        return this.applyProjectContextTaint(args, content)
       case 'delegate_scan':
       case 'delegate_rewrite':
         // Scan items, preview excerpts and job reports quote the document
@@ -308,6 +328,23 @@ export class CrossBoundaryGuard {
     if (solo.includes(false)) this.taint('document search results')
   }
 
+  /**
+   * read_project_context: one context document (its id in the arguments),
+   * or the list of them (ids in the result). Context documents are other
+   * people's text unless they are solo for the invoker; an unreadable
+   * result taints (fail closed).
+   */
+  private async applyProjectContextTaint(args: unknown, content: string | undefined): Promise<void> {
+    const one = stringArg(args, 'context_doc_id')
+    const ids = one ? [one] : contextListIds(content)
+    if (ids === null) {
+      this.taint('project context')
+      return
+    }
+    const solo = await Promise.all(ids.map(id => this.deps.isDocSolo(id)))
+    if (solo.includes(false)) this.taint('project context')
+  }
+
   private async applyFolderTaint(args: unknown): Promise<void> {
     // list_folders. Folder names are written by whoever edits the
     // workspace. Personal folders are the invoker's own; no workspace_id =
@@ -330,6 +367,10 @@ export class CrossBoundaryGuard {
       }
       case 'move_document': {
         const ref = stringArg(args, 'doc_id')
+        return truncateTarget((await this.deps.describeDoc(ref)) ?? ref)
+      }
+      case 'edit_project_context': {
+        const ref = stringArg(args, 'context_doc_id')
         return truncateTarget((await this.deps.describeDoc(ref)) ?? ref)
       }
       case 'create_document':

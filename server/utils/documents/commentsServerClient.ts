@@ -37,7 +37,8 @@ const SYNC_TIMEOUT_MS = 10_000
  */
 export async function openTrustedCommentClient(
   docId: string,
-  actorPrincipal: string
+  actorPrincipal: string,
+  userName = 'Comments Service'
 ): Promise<TrustedClient> {
   const env = useEnv()
   if (!env.auth.jwtSecret) throw new Error('jwtSecret not configured')
@@ -45,7 +46,7 @@ export async function openTrustedCommentClient(
   const payload = {
     docId,
     userId: actorPrincipal,
-    userName: 'Comments Service',
+    userName,
     readOnly: false
   } satisfies SessionJwtPayload
   const token = jwt.sign(payload, env.auth.jwtSecret, { expiresIn: '5m' })

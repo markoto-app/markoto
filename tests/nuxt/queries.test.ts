@@ -3,12 +3,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, ref } from 'vue'
 import { mountSuspended, mockNuxtImport, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
+import { readBody } from 'h3'
 import { hydrateQueryCache, serializeQueryCache, useQueryCache } from '@pinia/colada'
 import { aiKeys, useAiAvailabilityQuery, useAiCreditsQuery, useSaveAiProvider } from '~/queries/ai'
 import { billingKeys, useInvalidatePlan, usePlanPricesQuery, useUserBillingQuery } from '~/queries/billing'
 import { themeKeys, useCreateSavedTheme, useDeleteSavedTheme, useSavedThemes } from '~/queries/themes'
 import { useCreateWorkspace, useDeleteWorkspace, useMyWorkspaces, workspaceKeys } from '~/queries/workspaces'
 import { accountKeys } from '~/queries/account'
+import { useAddContextLink, useProjectContext, useRemoveContextLink, useSetContextScope } from '~/queries/projectContext'
 import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 
 // The query layer (app/queries): each domain's keys nest under its root, so
@@ -77,6 +79,36 @@ registerEndpoint('/api/billing/prices', () => {
   return { prices: { eur: {} } }
 })
 
+let contextCalls: Array<{ method: string, url: string, body?: unknown }> = []
+let contextState = { scope: null as string | null }
+registerEndpoint('/api/docs/d1/context', () => {
+  count('context:d1')
+  return { contextScope: contextState.scope, inWorkspace: true, canEdit: true, applied: [], omitted: 0, attached: [], hiddenAttached: 0, maxAttached: 10 }
+})
+registerEndpoint('/api/docs/d1/context/scope', {
+  method: 'PUT',
+  handler: async (event) => {
+    const body = await readBody(event)
+    contextCalls.push({ method: 'PUT', url: 'scope', body })
+    contextState = { scope: body.scope }
+    return { contextScope: body.scope }
+  }
+})
+registerEndpoint('/api/docs/d1/context/links', {
+  method: 'POST',
+  handler: async (event) => {
+    contextCalls.push({ method: 'POST', url: 'links', body: await readBody(event) })
+    return { ok: true }
+  }
+})
+registerEndpoint('/api/docs/d1/context/links/ctx9', {
+  method: 'DELETE',
+  handler: () => {
+    contextCalls.push({ method: 'DELETE', url: 'links/ctx9' })
+    return { ok: true }
+  }
+})
+
 /** Mounts a component whose setup runs `setup` and keeps its result for the test. */
 async function withSetup<T>(setup: () => T): Promise<{ result: T, unmount: () => void }> {
   let result!: T
@@ -103,6 +135,8 @@ afterEach(() => {
   for (const entry of cache.getEntries()) cache.remove(entry)
   hitCounts.clear()
   themes = [{ themeId: 't1', name: 'Report' }]
+  contextCalls = []
+  contextState = { scope: null }
 })
 
 describe('key factories', () => {
@@ -255,5 +289,42 @@ describe('SSR hydration', () => {
     await prices.refresh()
     expect(prices.data.value).toEqual(serverData)
     expect(hits('prices')).toBe(0)
+  })
+})
+
+describe('project context', () => {
+  it('loads a document\'s context for a signed-in reader while the panel is open', async () => {
+    const open = ref(false)
+    const q = await use(() => useProjectContext('d1', open))
+    expect(hits('context:d1')).toBe(0)
+    open.value = true
+    await vi.waitFor(() => expect(q.data.value).toMatchObject({ contextScope: null, attached: [] }))
+    expect(hits('context:d1')).toBe(1)
+  })
+
+  it('marking a document sends the scope and refreshes the open panel', async () => {
+    const q = await use(() => useProjectContext('d1'))
+    await vi.waitFor(() => expect(q.data.value?.contextScope).toBeNull())
+    const set = await use(() => useSetContextScope())
+
+    await set.mutateAsync({ docId: 'd1', scope: 'folder' })
+    expect(contextCalls).toEqual([{ method: 'PUT', url: 'scope', body: { scope: 'folder' } }])
+    expect(q.data.value?.contextScope).toBe('folder')
+  })
+
+  it('attaching and detaching a document call their endpoints and refresh the panel', async () => {
+    const q = await use(() => useProjectContext('d1'))
+    await vi.waitFor(() => expect(q.data.value).toBeDefined())
+    const add = await use(() => useAddContextLink())
+    const remove = await use(() => useRemoveContextLink())
+    const before = hits('context:d1')
+
+    await add.mutateAsync({ docId: 'd1', contextDocId: 'ctx9' })
+    expect(contextCalls.at(-1)).toEqual({ method: 'POST', url: 'links', body: { contextDocId: 'ctx9' } })
+    expect(hits('context:d1')).toBe(before + 1)
+
+    await remove.mutateAsync({ docId: 'd1', contextDocId: 'ctx9' })
+    expect(contextCalls.at(-1)).toEqual({ method: 'DELETE', url: 'links/ctx9' })
+    expect(hits('context:d1')).toBe(before + 2)
   })
 })

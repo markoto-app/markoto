@@ -109,6 +109,7 @@ export async function runAgentSession(spec: AgentSessionSpec): Promise<void> {
       channel: session.channel,
       invokerText: [spec.invokerText],
       knowledgeFiles: spec.knowledgeFiles,
+      contextDocIds: spec.workspace.contextDocIds,
       extraInitialTaint: spec.extraInitialTaint
     })
 

@@ -4,6 +4,7 @@ import { COMMENT_TRIGGER_SYSTEM_PROMPT } from '../../../server/utils/agentic/com
 import { buildDocumentContext } from '../../../server/utils/agentic/documentContextPrompt'
 import { preselectedSkillsBlock } from '../../../server/utils/agentic/skills'
 import { buildKnowledgeBlock, buildWorkspaceMembersBlock } from '../../../server/utils/agentic/workspacePromptBlocks'
+import { buildProjectContextBlock } from '../../../server/utils/agentic/projectContextPrompt'
 import { wrapPromptWithEditorState } from '../../../server/utils/agentic/editorStatePrompt'
 import { ALL_TOOL_DECLARATIONS, KNOWLEDGE_TOOL_DECLARATIONS, filterToolsForProviders } from '../../../server/utils/ai/tools/registry'
 import { internalToOpenAIMessages, internalToOpenAITools, openAIStreamToInternalChunks } from '../../../server/utils/agentic/messageTranslation'
@@ -31,11 +32,14 @@ interface DocShape {
   language?: string
   members?: Array<{ userId: number, name: string }>
   knowledge?: string[]
+  /** Project context documents (title → body). */
+  context?: Record<string, string>
 }
 
 function contextFor(doc: DocShape): string {
   return assemblePromptContext({
     documentContextBlock: buildDocumentContext({ title: doc.title, description: `About ${doc.title}`, audience: doc.audience ?? 'business', language: doc.language ?? 'en' }),
+    projectContextBlock: buildProjectContextBlock(Object.entries(doc.context ?? {}).map(([title, body], i) => ({ docId: `ctx${i}`, title, source: 'all' as const, body }))),
     knowledgeBlock: buildKnowledgeBlock((doc.knowledge ?? []).map((filename, i) => ({ knowledgeId: `k${i}`, filename, sizeBytes: 2048, sourceExt: 'md', tokenCount: 300 }))),
     membersBlock: buildWorkspaceMembersBlock(doc.members ?? [])
   })
@@ -106,6 +110,21 @@ describe('prompt-cache prefix stability', () => {
     const order = ['<document_context>', '<knowledge_files>', '<workspace_members>', '<conversation_history>', 'Now add a conclusion.'].map(m => user.indexOf(m))
     expect(order.every(i => i >= 0)).toBe(true)
     expect([...order].sort((x, y) => x - y)).toEqual(order)
+  })
+
+  it('the project context follows the document context, before knowledge and members', () => {
+    const { messages } = firstRequest({ title: 'Novel', context: { Characters: 'Mara, 34, a ferry pilot.' }, members: [{ userId: 1, name: 'Ada' }], knowledge: ['notes.md'] }, '', 'Write the next scene.')
+    const user = String(messages[1]?.content)
+    const order = ['<document_context>', '<project_context>', 'Mara, 34, a ferry pilot.', '<knowledge_files>', '<workspace_members>', 'Write the next scene.'].map(m => user.indexOf(m))
+    expect(order.every(i => i >= 0)).toBe(true)
+    expect([...order].sort((x, y) => x - y)).toEqual(order)
+  })
+
+  it('project context changes neither the system message nor the tools', () => {
+    const plain = firstRequest({ title: 'Novel' }, '', 'Write the next scene.')
+    const withContext = firstRequest({ title: 'Novel', context: { Glossary: 'Ferry: the island boat.' } }, '', 'Write the next scene.')
+    expect(withContext.messages[0]).toEqual(plain.messages[0])
+    expect(withContext.tools).toEqual(plain.tools)
   })
 
   it('two prompts on the same document share system, tools and the per-document blocks', () => {

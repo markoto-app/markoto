@@ -478,6 +478,33 @@
     "audience": {
       "label": "Audience",
       "help": "Tells markoto who this is written for. Affects tone, structure, and word choice."
+    },
+    "context": {
+      "label": "AI context",
+      "help": "Documents the AI reads with every request here, such as characters, a glossary, a style guide or product facts.",
+      "scope": {
+        "label": "This document as context",
+        "help": "The AI then also reads this document when it works in other documents.",
+        "off": "Not used as context",
+        "folder": "For its folder and subfolders",
+        "workspace": "For the whole workspace",
+        "personal": "For all my documents"
+      },
+      "appliedLabel": "Context the AI reads here",
+      "sourceWorkspace": "Whole workspace",
+      "sourcePersonal": "All your documents",
+      "sourceFolder": "From the folder",
+      "sourceAttached": "Attached to this document",
+      "notIncluded": "Attached, not included (limit reached)",
+      "none": "No context documents apply here yet.",
+      "omitted": "{n} more context document is not included. | {n} more context documents are not included.",
+      "detach": "Remove from this document",
+      "attachLabel": "Attach a document",
+      "attachHelp": "Search for a document to use as extra context in this one.",
+      "attachLimit": "At most {max} documents can be attached.",
+      "attachPlaceholder": "Search documents…",
+      "saveFailed": "Couldn't change the AI context",
+      "untitled": "Untitled"
     }
   },
   "audiences": {
@@ -625,7 +652,8 @@
         "web_search": "markoto wants to search the web for “{target}”.",
         "fetch_url": "markoto wants to open {target}",
         "view_image": "markoto wants to load the image {target}",
-        "generic": "markoto wants to use {tool}."
+        "generic": "markoto wants to use {tool}.",
+        "edit_project_context": "markoto wants to update the context document “{target}”."
       },
       "job": {
         "question": "{what}, {minutes}.",
@@ -814,7 +842,9 @@
       "previewJob": "Trying the change on sample sections…",
       "startJob": "Starting the background edit…",
       "jobWaiting": "Background edit running; its progress shows above.",
-      "jobStatus": "Checking the background edit…"
+      "jobStatus": "Checking the background edit…",
+      "readProjectContext": "Reading the project context…",
+      "editProjectContext": "Updating the project context…"
     },
     "job": {
       "label": "Background edit",
@@ -3391,14 +3421,17 @@
       "movedWorkspace": "{n} document moved to another workspace | {n} documents moved to another workspace",
       "deleted": "{n} item deleted | {n} items deleted",
       "undone": "Move undone",
-      "cut": "{n} item cut. Paste it into a folder with Ctrl+V. | {n} items cut. Paste them into a folder with Ctrl+V."
+      "cut": "{n} item cut. Paste it into a folder with Ctrl+V. | {n} items cut. Paste them into a folder with Ctrl+V.",
+      "contextOn": "{name} is now AI context",
+      "contextOff": "{name} is no longer AI context"
     },
     "error": {
       "createFolder": "Couldn't create the folder",
       "rename": "Couldn't rename",
       "move": "Couldn't move",
       "delete": "Couldn't delete",
-      "deleteBlocked": "Folder not deleted"
+      "deleteBlocked": "Folder not deleted",
+      "context": "Couldn't change the AI context"
     },
     "action": {
       "open": "Open",
@@ -3415,7 +3448,8 @@
       "newDocument": "New document",
       "newFolder": "New folder",
       "import": "Import files...",
-      "paste": "Paste"
+      "paste": "Paste",
+      "aiContext": "Use as AI context"
     },
     "sortBy": "Sort by",
     "sort": {
@@ -3529,6 +3563,24 @@
       "personal": "My documents",
       "hint": "Searches titles and text of your documents, your workspaces and documents shared with you."
     },
-    "subfolders": "{n} folder | {n} folders"
+    "subfolders": "{n} folder | {n} folders",
+    "context": {
+      "off": "Not used as context",
+      "folder": "For this folder",
+      "all": "For the whole workspace",
+      "allPersonal": "For all my documents",
+      "stop": "Stop using as AI context"
+    },
+    "contextBadge": "AI context",
+    "contextBadgeAll": "The AI reads this document in every document here.",
+    "contextBadgeFolder": "The AI reads this document in the documents of its folder."
+  },
+  "a11yCheck": {
+    "issues": "{n} accessibility issue | {n} accessibility issues",
+    "intro": "Fix these so screen readers and the tagged PDF can present your document well.",
+    "imageAlt": "Image without alternative text",
+    "emptyLink": "Link without text",
+    "headingSkip": "Heading level {level} follows level {previous}: a level is skipped",
+    "line": "Line {line}"
   }
 }

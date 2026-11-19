@@ -22,6 +22,8 @@ export interface DocListItem {
   ownerId: number | null
   ownerName: string | null
   isOwner: boolean
+  /** Marked as project context for its folder or its whole scope (null = not). */
+  contextScope: 'folder' | 'all' | null
   createdAt: string
   updatedAt: string
   lastActive: string
@@ -50,6 +52,7 @@ function toItem(r: DocListRow): DocListItem {
     ownerId: r.ownerId,
     ownerName: r.ownerName,
     isOwner: r.isOwner,
+    contextScope: r.contextScope,
     createdAt: iso(r.createdAt),
     updatedAt: iso(r.updatedAt),
     lastActive: iso(r.lastActive)

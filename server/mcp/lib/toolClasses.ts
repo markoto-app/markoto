@@ -32,6 +32,7 @@ export const MCP_TOOL_CLASSES: Readonly<Record<string, McpToolClass>> = {
   search_activity_log: 'read',
   view_image: 'read',
   export_document_as_markdown: 'read',
+  read_project_context: 'read',
 
   insert_text: 'write',
   replace_text: 'write',

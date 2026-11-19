@@ -478,6 +478,33 @@
     "audience": {
       "label": "Zielgruppe",
       "help": "Teilt markoto mit, für wen dies geschrieben ist. Beeinflusst Ton, Struktur und Wortwahl."
+    },
+    "context": {
+      "label": "KI-Kontext",
+      "help": "Dokumente, die die KI bei jeder Anfrage hier liest, etwa Figuren, ein Glossar, ein Styleguide oder Produktfakten.",
+      "scope": {
+        "label": "Dieses Dokument als Kontext",
+        "help": "Die KI liest dieses Dokument dann auch, wenn sie in anderen Dokumenten arbeitet.",
+        "off": "Nicht als Kontext verwenden",
+        "folder": "Für seinen Ordner und die Unterordner",
+        "workspace": "Für den ganzen Workspace",
+        "personal": "Für alle meine Dokumente"
+      },
+      "appliedLabel": "Kontext, den die KI hier liest",
+      "sourceWorkspace": "Ganzer Workspace",
+      "sourcePersonal": "Alle deine Dokumente",
+      "sourceFolder": "Aus dem Ordner",
+      "sourceAttached": "An dieses Dokument angehängt",
+      "notIncluded": "Angehängt, nicht enthalten (Limite erreicht)",
+      "none": "Hier gelten noch keine Kontextdokumente.",
+      "omitted": "{n} weiteres Kontextdokument ist nicht enthalten. | {n} weitere Kontextdokumente sind nicht enthalten.",
+      "detach": "Von diesem Dokument entfernen",
+      "attachLabel": "Dokument anhängen",
+      "attachHelp": "Suche ein Dokument, das hier als zusätzlicher Kontext dienen soll.",
+      "attachLimit": "Es können höchstens {max} Dokumente angehängt werden.",
+      "attachPlaceholder": "Dokumente suchen…",
+      "saveFailed": "KI-Kontext konnte nicht geändert werden",
+      "untitled": "Ohne Titel"
     }
   },
   "audiences": {
@@ -625,7 +652,8 @@
         "web_search": "markoto möchte im Web nach „{target}“ suchen.",
         "fetch_url": "markoto möchte {target} öffnen",
         "view_image": "markoto möchte das Bild {target} laden",
-        "generic": "markoto möchte {tool} verwenden."
+        "generic": "markoto möchte {tool} verwenden.",
+        "edit_project_context": "markoto möchte das Kontextdokument „{target}“ ändern."
       },
       "job": {
         "question": "{what}, {minutes}.",
@@ -814,7 +842,9 @@
       "previewJob": "Probiert die Änderung an Beispielabschnitten…",
       "startJob": "Startet die Bearbeitung im Hintergrund…",
       "jobWaiting": "Bearbeitung im Hintergrund läuft; den Fortschritt siehst du oben.",
-      "jobStatus": "Prüft die Bearbeitung im Hintergrund…"
+      "jobStatus": "Prüft die Bearbeitung im Hintergrund…",
+      "readProjectContext": "Liest den Projektkontext…",
+      "editProjectContext": "Aktualisiert den Projektkontext…"
     },
     "job": {
       "label": "Bearbeitung im Hintergrund",
@@ -3391,14 +3421,17 @@
       "movedWorkspace": "{n} Dokument in einen anderen Workspace verschoben | {n} Dokumente in einen anderen Workspace verschoben",
       "deleted": "{n} Element gelöscht | {n} Elemente gelöscht",
       "undone": "Verschieben rückgängig gemacht",
-      "cut": "{n} Element ausgeschnitten. Füge es mit Strg+V in einen Ordner ein. | {n} Elemente ausgeschnitten. Füge sie mit Strg+V in einen Ordner ein."
+      "cut": "{n} Element ausgeschnitten. Füge es mit Strg+V in einen Ordner ein. | {n} Elemente ausgeschnitten. Füge sie mit Strg+V in einen Ordner ein.",
+      "contextOn": "{name} ist jetzt KI-Kontext",
+      "contextOff": "{name} ist kein KI-Kontext mehr"
     },
     "error": {
       "createFolder": "Der Ordner konnte nicht erstellt werden",
       "rename": "Umbenennen fehlgeschlagen",
       "move": "Verschieben fehlgeschlagen",
       "delete": "Löschen fehlgeschlagen",
-      "deleteBlocked": "Ordner nicht gelöscht"
+      "deleteBlocked": "Ordner nicht gelöscht",
+      "context": "KI-Kontext konnte nicht geändert werden"
     },
     "action": {
       "open": "Öffnen",
@@ -3415,7 +3448,8 @@
       "newDocument": "Neues Dokument",
       "newFolder": "Neuer Ordner",
       "import": "Dateien importieren…",
-      "paste": "Einfügen"
+      "paste": "Einfügen",
+      "aiContext": "Als KI-Kontext verwenden"
     },
     "sortBy": "Sortieren nach",
     "sort": {
@@ -3529,6 +3563,24 @@
       "personal": "Meine Dokumente",
       "hint": "Durchsucht Titel und Text deiner Dokumente, deiner Workspaces und der mit dir geteilten Dokumente."
     },
-    "subfolders": "{n} Ordner | {n} Ordner"
+    "subfolders": "{n} Ordner | {n} Ordner",
+    "context": {
+      "off": "Nicht als Kontext verwenden",
+      "folder": "Für diesen Ordner",
+      "all": "Für den ganzen Workspace",
+      "allPersonal": "Für alle meine Dokumente",
+      "stop": "Nicht mehr als KI-Kontext verwenden"
+    },
+    "contextBadge": "KI-Kontext",
+    "contextBadgeAll": "Die KI liest dieses Dokument in jedem Dokument hier.",
+    "contextBadgeFolder": "Die KI liest dieses Dokument in den Dokumenten seines Ordners."
+  },
+  "a11yCheck": {
+    "issues": "{n} Barrierefreiheitsproblem | {n} Barrierefreiheitsprobleme",
+    "intro": "Behebe diese Punkte, damit Screenreader und das getaggte PDF dein Dokument gut wiedergeben.",
+    "imageAlt": "Bild ohne Alternativtext",
+    "emptyLink": "Link ohne Text",
+    "headingSkip": "Überschrift der Ebene {level} folgt auf Ebene {previous}: eine Ebene fehlt",
+    "line": "Zeile {line}"
   }
 }

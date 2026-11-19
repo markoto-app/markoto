@@ -478,6 +478,33 @@
     "audience": {
       "label": "対象読者",
       "help": "このドキュメントが誰向けに書かれているかをmarkotoに伝えます。トーン、構成、言葉選びに影響します。"
+    },
+    "context": {
+      "label": "AI コンテキスト",
+      "help": "ここでの各リクエストで AI が読むドキュメントです。登場人物、用語集、スタイルガイド、製品情報など。",
+      "scope": {
+        "label": "このドキュメントをコンテキストに",
+        "help": "AI は他のドキュメントで作業するときにも、このドキュメントを読みます。",
+        "off": "コンテキストに使用しない",
+        "folder": "所属フォルダーとサブフォルダー用",
+        "workspace": "ワークスペース全体用",
+        "personal": "自分のすべてのドキュメント用"
+      },
+      "appliedLabel": "ここで AI が読むコンテキスト",
+      "sourceWorkspace": "ワークスペース全体",
+      "sourcePersonal": "あなたのすべてのドキュメント",
+      "sourceFolder": "フォルダーから",
+      "sourceAttached": "このドキュメントに追加",
+      "notIncluded": "追加済み、上限のため未使用",
+      "none": "ここに適用されるコンテキストドキュメントはまだありません。",
+      "omitted": "さらに {n} 件のコンテキストドキュメントは含まれていません。 | さらに {n} 件のコンテキストドキュメントは含まれていません。",
+      "detach": "このドキュメントから外す",
+      "attachLabel": "ドキュメントを追加",
+      "attachHelp": "このドキュメントで追加のコンテキストとして使うドキュメントを検索します。",
+      "attachLimit": "追加できるドキュメントは最大 {max} 件です。",
+      "attachPlaceholder": "ドキュメントを検索…",
+      "saveFailed": "AI コンテキストを変更できませんでした",
+      "untitled": "無題"
     }
   },
   "audiences": {
@@ -625,7 +652,8 @@
         "web_search": "markoto がウェブで「{target}」を検索しようとしています。",
         "fetch_url": "markoto が {target} を開こうとしています",
         "view_image": "markoto が画像 {target} を読み込もうとしています",
-        "generic": "markoto が {tool} を使おうとしています。"
+        "generic": "markoto が {tool} を使おうとしています。",
+        "edit_project_context": "markoto がコンテキストドキュメント「{target}」を更新しようとしています。"
       },
       "job": {
         "question": "{what}、{minutes}。",
@@ -814,7 +842,9 @@
       "previewJob": "サンプルのセクションで変更を試しています…",
       "startJob": "バックグラウンド編集を開始中…",
       "jobWaiting": "バックグラウンド編集を実行中です。進捗は上に表示されます。",
-      "jobStatus": "バックグラウンド編集を確認中…"
+      "jobStatus": "バックグラウンド編集を確認中…",
+      "readProjectContext": "プロジェクトコンテキストを読んでいます…",
+      "editProjectContext": "プロジェクトコンテキストを更新しています…"
     },
     "job": {
       "label": "バックグラウンド編集",
@@ -3391,14 +3421,17 @@
       "movedWorkspace": "{n} 件のドキュメントを別のワークスペースに移動しました | {n} 件のドキュメントを別のワークスペースに移動しました",
       "deleted": "{n} 件の項目を削除しました | {n} 件の項目を削除しました",
       "undone": "移動を元に戻しました",
-      "cut": "{n} 件の項目を切り取りました。Ctrl+V でフォルダに貼り付けます。 | {n} 件の項目を切り取りました。Ctrl+V でフォルダに貼り付けます。"
+      "cut": "{n} 件の項目を切り取りました。Ctrl+V でフォルダに貼り付けます。 | {n} 件の項目を切り取りました。Ctrl+V でフォルダに貼り付けます。",
+      "contextOn": "{name} を AI コンテキストにしました",
+      "contextOff": "{name} を AI コンテキストから外しました"
     },
     "error": {
       "createFolder": "フォルダを作成できませんでした",
       "rename": "名前を変更できませんでした",
       "move": "移動できませんでした",
       "delete": "削除できませんでした",
-      "deleteBlocked": "フォルダは削除されませんでした"
+      "deleteBlocked": "フォルダは削除されませんでした",
+      "context": "AI コンテキストを変更できませんでした"
     },
     "action": {
       "open": "開く",
@@ -3415,7 +3448,8 @@
       "newDocument": "新しいドキュメント",
       "newFolder": "新しいフォルダ",
       "import": "ファイルをインポート…",
-      "paste": "貼り付け"
+      "paste": "貼り付け",
+      "aiContext": "AI コンテキストとして使用"
     },
     "sortBy": "並べ替え",
     "sort": {
@@ -3529,6 +3563,24 @@
       "personal": "マイドキュメント",
       "hint": "あなたのドキュメント、ワークスペース、共有されたドキュメントのタイトルと本文を検索します。"
     },
-    "subfolders": "{n} 件のフォルダ | {n} 件のフォルダ"
+    "subfolders": "{n} 件のフォルダ | {n} 件のフォルダ",
+    "context": {
+      "off": "コンテキストに使用しない",
+      "folder": "このフォルダー用",
+      "all": "ワークスペース全体用",
+      "allPersonal": "自分のすべてのドキュメント用",
+      "stop": "AI コンテキストとしての使用をやめる"
+    },
+    "contextBadge": "AI コンテキスト",
+    "contextBadgeAll": "AI はここにあるすべてのドキュメントでこのドキュメントを読みます。",
+    "contextBadgeFolder": "AI は同じフォルダーのドキュメントでこのドキュメントを読みます。"
+  },
+  "a11yCheck": {
+    "issues": "アクセシビリティの問題 {n} 件 | アクセシビリティの問題 {n} 件",
+    "intro": "スクリーンリーダーとタグ付き PDF で文書が正しく伝わるように、これらを修正してください。",
+    "imageAlt": "代替テキストのない画像",
+    "emptyLink": "テキストのないリンク",
+    "headingSkip": "見出しレベル {level} がレベル {previous} の後に続いています（レベルが飛んでいます）",
+    "line": "{line} 行目"
   }
 }
