@@ -4,7 +4,7 @@ import { defineDocTool, toolError, toolOk, type ToolResult } from './toolDefinit
 import { blockSpacedInsertText, describeEditedRegion, lineShiftNote, newlineCount, numberedLines } from './documentText'
 import type { DocToolContext } from '../../agentic/toolContext'
 import { NO_OP_EDIT_ERROR_PREFIX } from '../../agentic/editProgress'
-import { descendants, parseSections, sectionLabel, splitHeadingText, type DocumentStructure, type Section } from './sections/parse'
+import { descendants, parseSections, sectionLabel, splitHeadingText, titleKeepingNumber, type DocumentStructure, type Section } from './sections/parse'
 import { rebindSectionIds, resolveSection, sectionView, type SectionView } from './sections/sectionIds'
 import { applyMinimalDiff } from './sections/ytextDiff'
 import { commentAnchorsInRange, reanchorComments } from './sections/commentAnchors'
@@ -60,7 +60,8 @@ export const DeleteSectionArgs = z.object({
 export const SetHeadingArgs = z.object({
   section: SectionRef.describe(`The heading to change. ${SECTION_REF_HELP}`),
   level: z.number().int().min(1).max(6).optional().describe('New heading level 1-6 (subsections are not shifted).'),
-  title: z.string().trim().min(1).max(300).optional().describe('New heading text, without # marks; include the number if the document numbers its headings ("4.2 Results").')
+  title: z.string().trim().min(1).max(300).optional().describe('New heading text, without # marks. A number the heading already has ("2 Methods") is kept in front of a title given without one; give a number only to change it ("4.2 Results").'),
+  remove_number: z.boolean().optional().describe('true only when the user explicitly asks to drop the heading\'s number; the number is kept otherwise.')
 }).describe('Change a heading\'s level or text.')
 
 export const EditLinesArgs = z.object({
@@ -408,14 +409,15 @@ function rebuiltHeading(structure: DocumentStructure, s: Section, level: number,
 }
 
 function handleSetHeading(ctx: DocToolContext, args: Args<typeof SetHeadingArgs>): ToolResult {
-  if (args.level === undefined && args.title === undefined) return toolError('Error: give level, title or both.')
+  if (args.level === undefined && args.title === undefined && !args.remove_number) return toolError('Error: give level, title or both.')
   const r = resolveSection(ctx, args.section)
   if (!r.ok) return toolError(r.error)
   const { view, section, id } = r
   if (section.level === 0) return toolError('Error: the preamble (s-0) has no heading. Use insert_markdown with position "start" to add one.')
   const { structure } = view
   const level = args.level ?? section.level
-  const title = args.title === undefined ? section.title : withoutEmDashes(args.title)
+  // A written heading number stays unless the user asked to drop it.
+  const title = titleKeepingNumber(section.title, args.title === undefined ? section.title : withoutEmDashes(args.title), args.remove_number === true)
   const next = rebuiltHeading(structure, section, level, title)
   const from = section.startOffset
   const lastLine = section.startLine + section.headingLines - 1
@@ -540,7 +542,7 @@ export const deleteSectionTool = defineDocTool({
 
 export const setHeadingTool = defineDocTool({
   name: 'set_heading',
-  description: 'Change a heading\'s level (1-6) and/or text without retyping the section. Its {#id} attribute block is kept; when the text changes, links in the document to the heading follow its new anchor. Subsection levels do not shift. The only H1 is the document\'s title: demote any other H1 to level 2 (and its subsections one level each), keep levels in order.',
+  description: 'Change a heading\'s level (1-6) and/or text without retyping the section. Its {#id} attribute block is kept; when the text changes, links in the document to the heading follow its new anchor. Subsection levels do not shift. Renaming a numbered heading keeps its number ("2 Methods" renamed to "Approach" reads "2 Approach"); drop it only when the user asks (remove_number). The only H1 is the document\'s title: demote any other H1 to level 2 (and its subsections one level each), keep levels in order.',
   schema: SetHeadingArgs,
   handler: handleSetHeading
 })
