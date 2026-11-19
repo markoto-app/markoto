@@ -46,7 +46,7 @@ Where the configuration goes differs between clients and versions, so check your
 
 ## What your agent can do
 
-markoto offers 44 tools. Which ones a client sees depends on the token's scopes; a new token gets all four.
+markoto offers 48 tools. Which ones a client sees depends on the token's scopes; a new token gets all four.
 
 | Scope | Tools |
 |---|---|
