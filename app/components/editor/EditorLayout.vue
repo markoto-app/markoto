@@ -599,6 +599,8 @@ useHead({
         :view-mode="viewMode"
         :synced="synced && !deletedByOther"
         :read-only="isReadOnly"
+        :text="textContent"
+        @jump-to="(from, to) => editorPaneRef?.flashCommentRange?.(from, to)"
       />
     </template>
 

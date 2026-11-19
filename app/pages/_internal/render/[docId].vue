@@ -15,6 +15,8 @@ import { sanitizeCustomCssForRender } from '~/utils/preview/customCssLoader'
 import { themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
 import { attachRenderFileTokens, renderBrandFileUrl, withRenderFileToken, type RenderFileAccess } from '~/utils/preview/renderFileTokens'
 import { brandFontFaceCss } from '~~/shared/utils/theme/brandFonts'
+import { documentLanguageTag, pdfDocumentTitle } from '~~/shared/utils/documents/pdfMetadata'
+import { prepareForTaggedPdf } from '~/utils/preview/pdfAccessibility'
 
 // Cheap structural sanity check, the bootstrap endpoint already returns
 // a DB-validated theme, so we just need a guard against truly broken
@@ -152,7 +154,11 @@ onMounted(async () => {
     imageUrl: url => withRenderFileToken(url, fileAccess)
   })
 
-  document.title = title || 'Render'
+  // The tagged PDF takes its title from <title> and its language from
+  // <html lang> (PDF/UA needs both), so they describe the document, not
+  // this page.
+  document.title = pdfDocumentTitle(title)
+  document.documentElement.lang = documentLanguageTag(bootstrap.value?.language)
 
   // CRITICAL: paged.js 0.4.3's CSS atrule parser does NOT understand
   // modern color functions like oklch() or color-mix(). Nuxt UI injects
@@ -296,6 +302,8 @@ onMounted(async () => {
   // Mermaid diagrams were atomic <img>s for pagination; now inline them
   // (sanitised) so their text uses the document's web fonts.
   inlineMermaidSvgs(mount)
+  // Page furniture out of the PDF structure tree, footnotes as notes.
+  prepareForTaggedPdf(mount)
   const paginatedImgs = Array.from(mount.querySelectorAll('img'))
   if (paginatedImgs.length > 0) {
     await Promise.all(paginatedImgs.map(img => img.decode().catch(() => undefined)))

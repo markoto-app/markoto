@@ -3574,5 +3574,13 @@
     "contextBadge": "KI-Kontext",
     "contextBadgeAll": "Die KI liest dieses Dokument in jedem Dokument hier.",
     "contextBadgeFolder": "Die KI liest dieses Dokument in den Dokumenten seines Ordners."
+  },
+  "a11yCheck": {
+    "issues": "{n} Barrierefreiheitsproblem | {n} Barrierefreiheitsprobleme",
+    "intro": "Behebe diese Punkte, damit Screenreader und das getaggte PDF dein Dokument gut wiedergeben.",
+    "imageAlt": "Bild ohne Alternativtext",
+    "emptyLink": "Link ohne Text",
+    "headingSkip": "Überschrift der Ebene {level} folgt auf Ebene {previous}: eine Ebene fehlt",
+    "line": "Zeile {line}"
   }
 }
