@@ -2,6 +2,7 @@
 import { SOURCE_REPO_URL } from '~~/shared/config/links'
 import { DEMO_VIDEO } from '~~/shared/media/demoVideo'
 import { pageBreadcrumbs } from '~~/shared/seo/breadcrumbs'
+import type { PageStructuredData } from '~/composables/marketing/usePageStructuredData'
 
 // /demo: the two-minute demo video (scripts/demo-video/), so a link to it
 // plays in the browser instead of a download page. Hosted marketing site
@@ -42,7 +43,7 @@ function isoDuration(seconds: number): string {
 // None on an unreviewed (noindex) language version.
 usePageStructuredData(() => (noindex.value ? null : demoStructuredData()))
 
-function demoStructuredData() {
+function demoStructuredData(): PageStructuredData {
   return {
     name: title.value,
     description: description.value,

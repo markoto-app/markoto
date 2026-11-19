@@ -69,7 +69,7 @@ describe('marketingUrlLocale (which routes take their language from the URL)', (
   })
 
   it('the app, docs and legal pages keep the visitor\'s language', () => {
-    for (const [routeName, path] of [['d-id', '/d/abc'], ['w-id', '/w/x'], ['settings-profile', '/settings/profile'], ['docs-slug', '/docs/x'], ['legal-slug', '/legal/privacy'], ['admin', '/admin']]) {
+    for (const [routeName, path] of [['d-id', '/d/abc'], ['w-id', '/w/x'], ['settings-profile', '/settings/profile'], ['docs-slug', '/docs/x'], ['legal-slug', '/legal/privacy'], ['admin', '/admin']] as const) {
       expect(marketingUrlLocale({ ...base, routeName, path }), path).toBeNull()
     }
   })

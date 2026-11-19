@@ -181,7 +181,7 @@ export function marketingGroups(files: readonly SourceFile[], base: string): Mar
 }
 
 /** The product summary and the fixed pages (home, pricing, demo). English, like the docs. */
-export const LLMS_SUMMARY = 'markoto is a collaborative Markdown editor with a live, paginated preview: write plain Markdown together in real time and export a PDF that matches the preview page for page.'
+const LLMS_SUMMARY = 'markoto is a collaborative Markdown editor with a live, paginated preview: write plain Markdown together in real time and export a PDF that matches the preview page for page.'
 
 const LLMS_DETAILS = [
   'markoto runs as a hosted service at markoto.app (EU data path: hosting, storage and AI providers in the EU) and can be self-hosted from its source-available code (FSL-1.1-ALv2).',
