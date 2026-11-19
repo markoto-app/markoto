@@ -35,8 +35,10 @@ function completionSource(src: CitationAssistSource) {
   return (ctx: CompletionContext): CompletionResult | null => {
     const word = ctx.matchBefore(/-?@[\p{L}\p{N}_:.#$%&+?<>~/-]{0,100}$/u)
     if (!word) return null
+    // The character before the whole match: for `[-@key` that is the `[`,
+    // not the `-` of the suppress-author form.
     const at = word.text.startsWith('-') ? word.from + 1 : word.from
-    const before = at > 0 ? ctx.state.sliceDoc(at - 1, at) : ''
+    const before = word.from > 0 ? ctx.state.sliceDoc(word.from - 1, word.from) : ''
     if (!bareCiteAllowedAfter(before || undefined)) return null
     if (word.text.length <= 1 && !ctx.explicit && before !== '[' && before !== ';' && before !== ' ') return null
     const options: Completion[] = src.items().map(item => ({

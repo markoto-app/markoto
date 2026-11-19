@@ -61,6 +61,13 @@ describe('citation completion', () => {
     expect(r!.options.find(o => o.label === 'smith2020')!.detail).toContain('Smith')
   })
 
+  it('offers keys in the suppress-author form [-@', async () => {
+    const r = await complete('As shown [-@sm')
+    expect(r).not.toBeNull()
+    expect(r!.from).toBe('As shown [-@'.length)
+    expect(r!.options.map(o => o.label)).toContain('smith2020')
+  })
+
   it('does not trigger on an @ inside a word (e-mail address)', async () => {
     expect(await complete('mail me at joe@exa')).toBeNull()
   })
