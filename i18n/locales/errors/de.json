@@ -134,10 +134,10 @@
       "too-many-images": "Ein Workspace kann bis zu {limit} Markenbilder haben."
     },
     "citations": {
-      "doi-invalid": "That is not a DOI. A DOI looks like 10.1000/xyz123.",
-      "doi-not-found": "Crossref has no record for this DOI. Check the DOI, or add the reference as BibTeX.",
-      "doi-lookup-failed": "The DOI lookup at Crossref failed. Try again in a moment.",
-      "rate-limited": "Too many DOI lookups. Wait a few minutes and try again."
+      "doi-invalid": "Das ist keine DOI. Eine DOI sieht so aus: 10.1000/xyz123.",
+      "doi-not-found": "Crossref hat keinen Eintrag zu dieser DOI. Prüfe die DOI oder füge die Literatur als BibTeX hinzu.",
+      "doi-lookup-failed": "Die DOI-Abfrage bei Crossref ist fehlgeschlagen. Versuche es gleich noch einmal.",
+      "rate-limited": "Zu viele DOI-Abfragen. Warte ein paar Minuten und versuche es dann erneut."
     },
     "common": {
       "internal": "Auf unserer Seite ist etwas schiefgelaufen. Bitte versuche es noch einmal – wir wurden benachrichtigt."
