@@ -19,22 +19,22 @@
       "text": "Team is bought for a workspace, not for a person. You pay per seat, and everyone in the workspace gets Team inside it, with one shared AI budget for the month. Only workspace admins see the Billing tab.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/l1IG9A-Hnf"
+      "path": "/w/P3mbt7dbHM"
     },
     {
       "kind": "approach",
       "file": "02.webp",
       "caption": "Open the Billing tab",
       "cursor": {
-        "x": 983,
+        "x": 950,
         "y": 283
       },
-      "path": "/w/l1IG9A-Hnf",
+      "path": "/w/P3mbt7dbHM",
       "annotations": [
         {
           "label": "Billing",
           "kind": "arrow",
-          "x": 946.859375,
+          "x": 913.859375,
           "y": 261,
           "w": 73.203125,
           "h": 44
@@ -46,25 +46,25 @@
       "file": "03.webp",
       "caption": "The billing tab shows Team and Business, the billing period, the seats and the total.",
       "cursor": {
-        "x": 983,
+        "x": 950,
         "y": 283
       },
-      "path": "/w/l1IG9A-Hnf"
+      "path": "/w/P3mbt7dbHM"
     },
     {
       "kind": "outcome",
       "file": "04.webp",
       "caption": "Set four seats, one for the colleague you're about to invite",
       "cursor": {
-        "x": 983,
+        "x": 950,
         "y": 283
       },
-      "path": "/w/l1IG9A-Hnf",
+      "path": "/w/P3mbt7dbHM",
       "highlights": [
         {
           "label": "Total",
-          "x": 277,
-          "y": 707,
+          "x": 85,
+          "y": 667,
           "w": 196.375,
           "h": 20
         }
@@ -75,38 +75,38 @@
       "file": "04.webp",
       "caption": "Tick the box to accept the Paid Plans Terms",
       "cursor": {
-        "x": 285,
-        "y": 749
+        "x": 93,
+        "y": 709
       },
-      "path": "/w/l1IG9A-Hnf"
+      "path": "/w/P3mbt7dbHM"
     },
     {
       "kind": "outcome",
       "file": "05.webp",
       "caption": "Buying needs the box: it accepts the terms and asks for the plan to start right away.",
       "cursor": {
-        "x": 285,
-        "y": 749
+        "x": 93,
+        "y": 709
       },
-      "path": "/w/l1IG9A-Hnf"
+      "path": "/w/P3mbt7dbHM"
     },
     {
       "kind": "approach",
       "file": "06.webp",
       "caption": "Click \"Continue to payment\"",
       "cursor": {
-        "x": 365,
-        "y": 784
+        "x": 173,
+        "y": 747
       },
-      "path": "/w/l1IG9A-Hnf"
+      "path": "/w/P3mbt7dbHM"
     },
     {
       "kind": "outcome",
       "file": "07.webp",
       "caption": "markoto opens Stripe Checkout for the workspace.",
       "cursor": {
-        "x": 365,
-        "y": 784
+        "x": 173,
+        "y": 747
       },
       "path": "/pay/c/cs_test_a1YS1URlnyQCN5fUUduORoQ7Pw41PJqDWkIVQCpJPqkfIhd6tVY8XB1OLY"
     },
@@ -130,21 +130,21 @@
         "x": 1238,
         "y": 42
       },
-      "path": "/w/l1IG9A-Hnf",
+      "path": "/w/P3mbt7dbHM",
       "highlights": [
         {
           "label": "Team",
-          "x": 531.5,
+          "x": 339.5,
           "y": 111,
           "w": 28.375,
           "h": 16
         },
         {
           "label": "Seats",
-          "x": 256,
+          "x": 64,
           "y": 405,
-          "w": 768,
-          "h": 343.75
+          "w": 1152,
+          "h": 315.75
         }
       ],
       "hero": true
@@ -162,7 +162,7 @@
         "x": 1238,
         "y": 42
       },
-      "path": "/w/l1IG9A-Hnf"
+      "path": "/w/P3mbt7dbHM"
     },
     {
       "kind": "approach",
@@ -172,7 +172,7 @@
         "x": 831,
         "y": 595
       },
-      "path": "/w/l1IG9A-Hnf"
+      "path": "/w/P3mbt7dbHM"
     },
     {
       "kind": "outcome",
@@ -182,7 +182,7 @@
         "x": 831,
         "y": 595
       },
-      "path": "/w/l1IG9A-Hnf"
+      "path": "/w/P3mbt7dbHM"
     },
     {
       "kind": "approach",
@@ -192,7 +192,7 @@
         "x": 793,
         "y": 649
       },
-      "path": "/w/l1IG9A-Hnf"
+      "path": "/w/P3mbt7dbHM"
     },
     {
       "kind": "outcome",
@@ -202,7 +202,7 @@
         "x": 793,
         "y": 649
       },
-      "path": "/w/l1IG9A-Hnf"
+      "path": "/w/P3mbt7dbHM"
     },
     {
       "kind": "chapter",
@@ -217,27 +217,27 @@
         "x": 793,
         "y": 649
       },
-      "path": "/w/l1IG9A-Hnf"
+      "path": "/w/P3mbt7dbHM"
     },
     {
       "kind": "approach",
       "file": "15.webp",
       "caption": "Save Ben's limit of 3,000 AI Points a month",
       "cursor": {
-        "x": 979,
-        "y": 618
+        "x": 1171,
+        "y": 786
       },
-      "path": "/w/l1IG9A-Hnf"
+      "path": "/w/P3mbt7dbHM"
     },
     {
       "kind": "outcome",
       "file": "16.webp",
       "caption": "Ben can now use up to 3,000 of the workspace's AI Points this month.",
       "cursor": {
-        "x": 979,
-        "y": 618
+        "x": 1171,
+        "y": 786
       },
-      "path": "/w/l1IG9A-Hnf"
+      "path": "/w/P3mbt7dbHM"
     },
     {
       "kind": "chapter",
@@ -249,30 +249,30 @@
       "text": "If the workspace needs more AI this month, buy extra AI Points. They are used only after the month's points are spent and last a year.",
       "file": "17.webp",
       "cursor": {
-        "x": 979,
-        "y": 618
+        "x": 1171,
+        "y": 786
       },
-      "path": "/w/l1IG9A-Hnf"
+      "path": "/w/P3mbt7dbHM"
     },
     {
       "kind": "approach",
       "file": "18.webp",
       "caption": "Tick the box for the AI Points",
       "cursor": {
-        "x": 285,
-        "y": 264
+        "x": 93,
+        "y": 452
       },
-      "path": "/w/l1IG9A-Hnf"
+      "path": "/w/P3mbt7dbHM"
     },
     {
       "kind": "outcome",
       "file": "19.webp",
       "caption": "For AI Points the box also says that the right of withdrawal ends once they are used.",
       "cursor": {
-        "x": 285,
-        "y": 264
+        "x": 93,
+        "y": 452
       },
-      "path": "/w/l1IG9A-Hnf"
+      "path": "/w/P3mbt7dbHM"
     },
     {
       "kind": "approach",
@@ -280,9 +280,9 @@
       "caption": "Buy 25,000 AI Points for €25",
       "cursor": {
         "x": 639,
-        "y": 326
+        "y": 494
       },
-      "path": "/w/l1IG9A-Hnf"
+      "path": "/w/P3mbt7dbHM"
     },
     {
       "kind": "outcome",
@@ -290,7 +290,7 @@
       "caption": "Stripe takes the payment.",
       "cursor": {
         "x": 639,
-        "y": 326
+        "y": 494
       },
       "path": "/pay/c/cs_test_a1YS1URlnyQCN5fUUduORoQ7Pw41PJqDWkIVQCpJPqkfIhd6tVY8XB1OLY"
     },
@@ -302,14 +302,14 @@
         "x": 1238,
         "y": 42
       },
-      "path": "/w/l1IG9A-Hnf",
+      "path": "/w/P3mbt7dbHM",
       "highlights": [
         {
           "label": "Extra AI Points",
-          "x": 277,
-          "y": 295.75,
-          "w": 726,
-          "h": 209
+          "x": 85,
+          "y": 305.75,
+          "w": 1110,
+          "h": 189
         }
       ]
     }

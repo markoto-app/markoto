@@ -134,17 +134,17 @@
       "highlights": [
         {
           "label": "deleted with you",
-          "x": 40.028751373291016,
-          "y": 366.99871826171875,
-          "w": 305.94323348999023,
-          "h": 137.97439575195312
+          "x": 40.27640151977539,
+          "y": 366.9875183105469,
+          "w": 305.45437240600586,
+          "h": 137.75390625
         },
         {
           "label": "gets a new admin",
-          "x": 40.028751373291016,
-          "y": 516.9708862304688,
-          "w": 305.94323348999023,
-          "h": 157.970703125
+          "x": 40.118614196777344,
+          "y": 516.8798828125,
+          "w": 305.7658462524414,
+          "h": 157.8790283203125
         }
       ]
     },
@@ -156,7 +156,7 @@
     {
       "kind": "narration",
       "text": "Every workspace and every new admin is named. Want to keep a workspace that would be deleted? Close the modal, invite a co-admin to it first, and come back: it moves into the \"new admin\" group. Nothing is lost by accident, and nobody is surprised.",
-      "file": "07.webp",
+      "file": "08.webp",
       "cursor": {
         "x": 136,
         "y": 359
@@ -171,7 +171,7 @@
     {
       "kind": "narration",
       "text": "The destructive button is gated behind a phrase you have to type. Same shape as GitHub repo deletion or AWS account closure: irreversible actions should never be one click away. The button stays disabled until your input matches \"delete my account\" exactly.",
-      "file": "07.webp",
+      "file": "08.webp",
       "cursor": {
         "x": 136,
         "y": 359
@@ -180,7 +180,7 @@
     },
     {
       "kind": "approach",
-      "file": "07.webp",
+      "file": "08.webp",
       "caption": "Type \"delete my account\"",
       "cursor": {
         "x": 54,
@@ -190,7 +190,7 @@
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
+      "file": "09.webp",
       "caption": "The Schedule deletion button enables.",
       "cursor": {
         "x": 54,
@@ -206,7 +206,7 @@
     {
       "kind": "narration",
       "text": "The 30-day grace clock starts. Until it elapses, a banner sits pinned across the top of every page in markoto with a one-click cancel. The page itself flips into \"scheduled for deletion\" state too: same cancel button, same date. Either path restores your account exactly as it was.",
-      "file": "08.webp",
+      "file": "09.webp",
       "cursor": {
         "x": 195,
         "y": 538
@@ -215,7 +215,7 @@
     },
     {
       "kind": "approach",
-      "file": "08.webp",
+      "file": "09.webp",
       "caption": "Click \"Schedule deletion\"",
       "cursor": {
         "x": 195,
@@ -225,7 +225,7 @@
     },
     {
       "kind": "outcome",
-      "file": "09.webp",
+      "file": "10.webp",
       "caption": "The modal closes; the delete-account section now says your account is scheduled for deletion, with the date and a Cancel button.",
       "cursor": {
         "x": 195,
@@ -235,7 +235,7 @@
     },
     {
       "kind": "outcome",
-      "file": "10.webp",
+      "file": "11.webp",
       "caption": "Top of every page for the next 30 days: the grace banner, with the deletion date and a one-click cancel.",
       "cursor": {
         "x": 348,
@@ -261,7 +261,7 @@
     {
       "kind": "narration",
       "text": "During the grace window you can cancel from any page, click \"Cancel deletion\" in the banner and the deletion request is cleared on the spot. No data lost, no collaborators surprised. Your account is back to the state it was in before the click.",
-      "file": "10.webp",
+      "file": "11.webp",
       "cursor": {
         "x": 348,
         "y": 42
@@ -270,7 +270,7 @@
     },
     {
       "kind": "approach",
-      "file": "10.webp",
+      "file": "11.webp",
       "caption": "Click \"Cancel deletion\" in the banner",
       "cursor": {
         "x": 235,
@@ -280,7 +280,7 @@
     },
     {
       "kind": "outcome",
-      "file": "11.webp",
+      "file": "12.webp",
       "caption": "The banner disappears and your account is back to normal, nothing was deleted.",
       "cursor": {
         "x": 235,

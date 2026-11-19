@@ -19,7 +19,7 @@
       "text": "Workspaces have a Knowledge tab, drop in PDFs, Word docs, HTML exports, the team's RFCs, customer FAQs. markoto reads each file and indexes it, so the AI can look things up in it whenever you write inside the workspace, and answer from your files instead of from general knowledge.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/_2hmgGoKmb"
+      "path": "/w/u1XWfsoNAY"
     },
     {
       "kind": "chapter",
@@ -31,15 +31,15 @@
       "file": "02.webp",
       "caption": "Open the Knowledge tab",
       "cursor": {
-        "x": 444,
+        "x": 252,
         "y": 231
       },
-      "path": "/w/_2hmgGoKmb",
+      "path": "/w/u1XWfsoNAY",
       "annotations": [
         {
           "label": "knowledge tab",
           "kind": "arrow",
-          "x": 391.40625,
+          "x": 199.40625,
           "y": 209,
           "w": 106.40625,
           "h": 44
@@ -51,25 +51,25 @@
       "file": "03.webp",
       "caption": "The Knowledge panel opens, empty until you upload your first file.",
       "cursor": {
-        "x": 444,
+        "x": 252,
         "y": 231
       },
-      "path": "/w/_2hmgGoKmb"
+      "path": "/w/u1XWfsoNAY"
     },
     {
       "kind": "approach",
       "file": "04.webp",
       "caption": "Click Upload to pick a file",
       "cursor": {
-        "x": 971,
+        "x": 1163,
         "y": 313
       },
-      "path": "/w/_2hmgGoKmb",
+      "path": "/w/u1XWfsoNAY",
       "annotations": [
         {
           "label": "upload",
           "kind": "arrow",
-          "x": 918.59375,
+          "x": 1110.59375,
           "y": 299,
           "w": 105.40625,
           "h": 28
@@ -81,10 +81,10 @@
       "file": "05.webp",
       "caption": "Pick the postmortem file, it lands in the list and markoto starts reading it.",
       "cursor": {
-        "x": 971,
+        "x": 1163,
         "y": 313
       },
-      "path": "/w/_2hmgGoKmb"
+      "path": "/w/u1XWfsoNAY"
     },
     {
       "kind": "chapter",
@@ -96,20 +96,20 @@
       "text": "markoto converts the file to text, splits it into sections and indexes them, both by meaning and by exact words. A small file is ready in a few seconds; the badge flips to Ready when the AI can use it.",
       "file": "06.webp",
       "cursor": {
-        "x": 971,
+        "x": 1163,
         "y": 313
       },
-      "path": "/w/_2hmgGoKmb"
+      "path": "/w/u1XWfsoNAY"
     },
     {
       "kind": "outcome",
       "file": "07.webp",
       "caption": "The file is Ready, the AI can now look things up in it.",
       "cursor": {
-        "x": 971,
+        "x": 1163,
         "y": 313
       },
-      "path": "/w/_2hmgGoKmb"
+      "path": "/w/u1XWfsoNAY"
     },
     {
       "kind": "chapter",
@@ -121,70 +121,90 @@
       "text": "Create a new document in this workspace. Inside a workspace the AI can search its files whenever your request refers to them : no extra setup.",
       "file": "07.webp",
       "cursor": {
-        "x": 971,
+        "x": 1163,
         "y": 313
       },
-      "path": "/w/_2hmgGoKmb"
+      "path": "/w/u1XWfsoNAY"
     },
     {
       "kind": "approach",
       "file": "08.webp",
       "caption": "Switch to the Documents tab",
       "cursor": {
-        "x": 313,
+        "x": 121,
         "y": 231
       },
-      "path": "/w/_2hmgGoKmb"
+      "path": "/w/u1XWfsoNAY"
     },
     {
       "kind": "outcome",
       "file": "09.webp",
-      "caption": "The Documents tab opens, no docs yet, but a \"New document\" button is right there.",
+      "caption": "The Documents tab opens: no documents yet, and a \"New\" button above the list.",
       "cursor": {
-        "x": 313,
+        "x": 121,
         "y": 231
       },
-      "path": "/w/_2hmgGoKmb"
+      "path": "/w/u1XWfsoNAY"
     },
     {
       "kind": "approach",
       "file": "10.webp",
-      "caption": "Click \"New document\"",
+      "caption": "Click \"New\"",
       "cursor": {
-        "x": 961,
-        "y": 313
+        "x": 1182,
+        "y": 343
       },
-      "path": "/w/_2hmgGoKmb"
+      "path": "/w/u1XWfsoNAY"
     },
     {
       "kind": "outcome",
       "file": "11.webp",
-      "caption": "The new-document dialog opens. Give the doc a name.",
+      "caption": "The menu offers a new document, a new folder or an import.",
       "cursor": {
-        "x": 961,
-        "y": 313
+        "x": 1182,
+        "y": 343
       },
-      "path": "/w/_2hmgGoKmb"
+      "path": "/w/u1XWfsoNAY"
     },
     {
       "kind": "approach",
       "file": "12.webp",
+      "caption": "Pick \"New document\"",
+      "cursor": {
+        "x": 1182,
+        "y": 385
+      },
+      "path": "/w/u1XWfsoNAY"
+    },
+    {
+      "kind": "outcome",
+      "file": "13.webp",
+      "caption": "The new-document dialog opens. Give the doc a name.",
+      "cursor": {
+        "x": 1182,
+        "y": 385
+      },
+      "path": "/w/u1XWfsoNAY"
+    },
+    {
+      "kind": "approach",
+      "file": "14.webp",
       "caption": "Click \"Create document\"",
       "cursor": {
         "x": 839,
         "y": 544
       },
-      "path": "/w/_2hmgGoKmb"
+      "path": "/w/u1XWfsoNAY"
     },
     {
       "kind": "outcome",
-      "file": "13.webp",
+      "file": "15.webp",
       "caption": "The editor opens inside the workspace, with the AI prompt bar at the bottom.",
       "cursor": {
         "x": 839,
         "y": 544
       },
-      "path": "/d/34LiPThjFI"
+      "path": "/d/JI1e_6E0Fm"
     },
     {
       "kind": "chapter",
@@ -194,82 +214,82 @@
     {
       "kind": "narration",
       "text": "The uploaded postmortem has specific facts no AI could guess: the staged rollout caught an avatar bug at 5%, and the team wants to cut the 24-hour rollout interval to 12 hours. Ask about it and the AI looks it up in the file before it writes.",
-      "file": "13.webp",
+      "file": "15.webp",
       "cursor": {
         "x": 640,
         "y": 26
       },
-      "path": "/d/34LiPThjFI"
+      "path": "/d/JI1e_6E0Fm"
     },
     {
       "kind": "approach",
-      "file": "14.webp",
+      "file": "16.webp",
       "caption": "Click into the AI prompt bar",
       "cursor": {
         "x": 618,
         "y": 722
       },
-      "path": "/d/34LiPThjFI"
+      "path": "/d/JI1e_6E0Fm"
     },
     {
       "kind": "outcome",
-      "file": "15.webp",
+      "file": "17.webp",
       "caption": "The prompt bar lifts and glows, ready for your question.",
       "cursor": {
         "x": 618,
         "y": 722
       },
-      "path": "/d/34LiPThjFI"
+      "path": "/d/JI1e_6E0Fm"
     },
     {
       "kind": "approach",
-      "file": "15.webp",
+      "file": "17.webp",
       "caption": "Type a question only the file knows the answer to",
       "cursor": {
         "x": 316,
         "y": 723
       },
-      "path": "/d/34LiPThjFI"
+      "path": "/d/JI1e_6E0Fm"
     },
     {
       "kind": "outcome",
-      "file": "16.webp",
+      "file": "18.webp",
       "caption": "The question is ready. Send it and the AI searches your files first.",
       "cursor": {
         "x": 316,
         "y": 723
       },
-      "path": "/d/34LiPThjFI"
+      "path": "/d/JI1e_6E0Fm"
     },
     {
       "kind": "approach",
-      "file": "17.webp",
+      "file": "19.webp",
       "caption": "Send it",
       "cursor": {
         "x": 1000,
         "y": 722
       },
-      "path": "/d/34LiPThjFI"
+      "path": "/d/JI1e_6E0Fm"
     },
     {
       "kind": "outcome",
-      "file": "18.webp",
+      "file": "20.webp",
       "caption": "The AI is working, it searches the workspace files, then writes the paragraph.",
       "cursor": {
         "x": 1000,
         "y": 722
       },
-      "path": "/d/34LiPThjFI"
+      "path": "/d/JI1e_6E0Fm"
     },
     {
       "kind": "outcome",
-      "file": "19.webp",
+      "file": "21.webp",
       "caption": "The AI quoted the postmortem, the avatar bug caught at 5%, and the plan to cut the 24-hour rollout interval to 12 hours. None of this is generic AI knowledge, it came straight from the file.",
       "cursor": {
         "x": 1000,
         "y": 722
       },
-      "path": "/d/34LiPThjFI",
+      "path": "/d/JI1e_6E0Fm",
       "highlights": [
         {
           "label": "AI's grounded answer",

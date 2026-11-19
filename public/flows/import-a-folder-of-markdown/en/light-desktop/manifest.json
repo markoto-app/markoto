@@ -1,0 +1,213 @@
+{
+  "version": 2,
+  "title": "Import a folder of Markdown",
+  "slug": "import-a-folder-of-markdown",
+  "locale": "en",
+  "variant": "light-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Import a folder of Markdown files"
+    },
+    {
+      "kind": "narration",
+      "text": "Bring a whole folder in at once: Markdown, Word, PDF and the other formats markoto reads, with its subfolders. Images that the Markdown files show come along, and links between the files keep working.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Click \"New\"",
+      "cursor": {
+        "x": 1182,
+        "y": 464
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "New document, New folder or Import.",
+      "cursor": {
+        "x": 1182,
+        "y": 464
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Pick \"Import files...\"",
+      "cursor": {
+        "x": 1182,
+        "y": 570
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "Choose files, a folder or a zip archive, or paste a GitHub link.",
+      "cursor": {
+        "x": 1182,
+        "y": 570
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
+      "caption": "Click \"Choose a folder\" and pick the folder",
+      "cursor": {
+        "x": 613,
+        "y": 461
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "markoto lists what it will import before anything is uploaded: two documents and one image.",
+      "cursor": {
+        "x": 613,
+        "y": 461
+      },
+      "path": "/",
+      "highlights": [
+        {
+          "label": "What will be imported",
+          "x": 408,
+          "y": 461.5,
+          "w": 464,
+          "h": 44
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "08.webp",
+      "caption": "Click \"Import\"",
+      "cursor": {
+        "x": 841,
+        "y": 562
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "09.webp",
+      "caption": "The files upload and are imported one by one; the progress shows how far it got.",
+      "cursor": {
+        "x": 841,
+        "y": 562
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "Done: two documents imported, nothing failed.",
+      "cursor": {
+        "x": 841,
+        "y": 562
+      },
+      "path": "/",
+      "highlights": [
+        {
+          "label": "Result",
+          "x": 408,
+          "y": 401.5,
+          "w": 464,
+          "h": 52
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "11.webp",
+      "caption": "Close the window",
+      "cursor": {
+        "x": 843,
+        "y": 510
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "12.webp",
+      "caption": "The folder is in your documents, with its name from your computer.",
+      "cursor": {
+        "x": 843,
+        "y": 510
+      },
+      "path": "/",
+      "highlights": [
+        {
+          "label": "Imported folder",
+          "x": 312,
+          "y": 538,
+          "w": 904,
+          "h": 40
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "13.webp",
+      "caption": "Double-click the folder to open it",
+      "cursor": {
+        "x": 764,
+        "y": 558
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "14.webp",
+      "caption": "Both files are documents now, titled by their first heading.",
+      "cursor": null,
+      "path": "/f/MiJKvX0nGj4y"
+    },
+    {
+      "kind": "approach",
+      "file": "14.webp",
+      "caption": "Double-click \"Team handbook\"",
+      "cursor": {
+        "x": 764,
+        "y": 562
+      },
+      "path": "/f/MiJKvX0nGj4y"
+    },
+    {
+      "kind": "outcome",
+      "file": "15.webp",
+      "caption": "The image shows in the document, and \"onboarding guide\" links to the other imported document.",
+      "cursor": {
+        "x": 640,
+        "y": 26
+      },
+      "path": "/d/J_MncoAILq",
+      "highlights": [
+        {
+          "label": "Imported image",
+          "x": 24.75,
+          "y": 308.75,
+          "w": 590,
+          "h": 24.75
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "organize-a-workspace",
+    "why": "Sort what you imported into folders, and find it again by a word in it."
+  }
+}

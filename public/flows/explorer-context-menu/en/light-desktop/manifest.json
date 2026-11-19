@@ -1,0 +1,195 @@
+{
+  "version": 2,
+  "title": "Explorer context menu",
+  "slug": "explorer-context-menu",
+  "locale": "en",
+  "variant": "light-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Right-click for every action"
+    },
+    {
+      "kind": "narration",
+      "text": "Your documents and folders on the home page. Right-click anything in the list to see what you can do with it.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Right-click \"Reading list\"",
+      "cursor": {
+        "x": 764,
+        "y": 639
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "Open, rename, move, cut, duplicate, copy the link, share or delete the document.",
+      "cursor": {
+        "x": 764,
+        "y": 639
+      },
+      "path": "/",
+      "highlights": [
+        {
+          "label": "Actions",
+          "x": 766,
+          "y": 477,
+          "w": 157.609375,
+          "h": 323
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Right-click the folder",
+      "cursor": {
+        "x": 764,
+        "y": 558
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "A folder can also get a new document or folder inside it, or an import.",
+      "cursor": {
+        "x": 764,
+        "y": 558
+      },
+      "path": "/",
+      "highlights": [
+        {
+          "label": "Actions",
+          "x": 766,
+          "y": 445,
+          "w": 171.9375,
+          "h": 355
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
+      "caption": "Click \"Reading list\"",
+      "cursor": {
+        "x": 1160,
+        "y": 639
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "07.webp",
+      "caption": "Ctrl-click \"Trip notes\" (Cmd-click on a Mac)",
+      "cursor": {
+        "x": 764,
+        "y": 599
+      },
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "08.webp",
+      "caption": "Right-click one of the selected documents",
+      "cursor": {
+        "x": 764,
+        "y": 599
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "09.webp",
+      "caption": "The menu now acts on both: move, cut, copy both links or delete them together.",
+      "cursor": {
+        "x": 764,
+        "y": 599
+      },
+      "path": "/",
+      "highlights": [
+        {
+          "label": "Actions",
+          "x": 766,
+          "y": 599,
+          "w": 167.171875,
+          "h": 154
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "10.webp",
+      "caption": "Right-click the empty space below the list",
+      "cursor": {
+        "x": 764,
+        "y": 640
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "11.webp",
+      "caption": "Create something here, import files, or change the sort order.",
+      "cursor": {
+        "x": 764,
+        "y": 770
+      },
+      "path": "/",
+      "highlights": [
+        {
+          "label": "Actions",
+          "x": 766,
+          "y": 655,
+          "w": 171.9375,
+          "h": 145
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "12.webp",
+      "caption": "Pick \"New folder\"",
+      "cursor": {
+        "x": 851,
+        "y": 707
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "13.webp",
+      "caption": "Type \"Taxes\" and press Enter",
+      "cursor": {
+        "x": 851,
+        "y": 707
+      },
+      "path": "/",
+      "highlights": [
+        {
+          "label": "New folder",
+          "x": 312,
+          "y": 568.5,
+          "w": 904,
+          "h": 41
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "explorer-keyboard-only",
+    "why": "Everything in the menus also has a keyboard shortcut."
+  }
+}

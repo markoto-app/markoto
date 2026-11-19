@@ -19,22 +19,22 @@
       "text": "Workspaces start with one member, you, the admin. To bring others in, click \"Invite people\" at the top of the workspace page, type their email, pick a role (admin, editor, or viewer). Invitations are exact-email, no typeahead, so the directory isn't enumerable. Nobody joins until they accept.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/T0VkD_ZRjK"
+      "path": "/w/2WJRCorjZ1"
     },
     {
       "kind": "approach",
       "file": "02.webp",
       "caption": "Click \"Invite people\" at the top of the workspace page",
       "cursor": {
-        "x": 932,
+        "x": 1124,
         "y": 115
       },
-      "path": "/w/T0VkD_ZRjK",
+      "path": "/w/2WJRCorjZ1",
       "annotations": [
         {
           "label": "invite people",
           "kind": "arrow",
-          "x": 877.890625,
+          "x": 1069.890625,
           "y": 101,
           "w": 110.109375,
           "h": 28
@@ -46,10 +46,10 @@
       "file": "03.webp",
       "caption": "The Members modal opens with the email field ready, current roster + invite-by-email form.",
       "cursor": {
-        "x": 932,
+        "x": 1124,
         "y": 115
       },
-      "path": "/w/T0VkD_ZRjK"
+      "path": "/w/2WJRCorjZ1"
     },
     {
       "kind": "chapter",
@@ -61,10 +61,10 @@
       "text": "Type the exact email Sam signed up with. The default role is \"editor\": they can read, write, comment, but can't change access controls or remove other members. Switch to \"viewer\" for read-only access or \"admin\" to delegate full control.",
       "file": "04.webp",
       "cursor": {
-        "x": 932,
+        "x": 1124,
         "y": 115
       },
-      "path": "/w/T0VkD_ZRjK"
+      "path": "/w/2WJRCorjZ1"
     },
     {
       "kind": "approach",
@@ -74,7 +74,7 @@
         "x": 422,
         "y": 476
       },
-      "path": "/w/T0VkD_ZRjK"
+      "path": "/w/2WJRCorjZ1"
     },
     {
       "kind": "outcome",
@@ -84,7 +84,7 @@
         "x": 422,
         "y": 476
       },
-      "path": "/w/T0VkD_ZRjK"
+      "path": "/w/2WJRCorjZ1"
     },
     {
       "kind": "approach",
@@ -94,7 +94,7 @@
         "x": 831,
         "y": 475
       },
-      "path": "/w/T0VkD_ZRjK"
+      "path": "/w/2WJRCorjZ1"
     },
     {
       "kind": "outcome",
@@ -104,7 +104,7 @@
         "x": 831,
         "y": 475
       },
-      "path": "/w/T0VkD_ZRjK"
+      "path": "/w/2WJRCorjZ1"
     },
     {
       "kind": "chapter",
@@ -119,14 +119,14 @@
         "x": 831,
         "y": 475
       },
-      "path": "/w/T0VkD_ZRjK"
+      "path": "/w/2WJRCorjZ1"
     },
     {
       "kind": "approach",
       "file": "09.webp",
       "caption": "Click Accept on the invitation",
       "cursor": {
-        "x": 972,
+        "x": 1100,
         "y": 339
       },
       "path": "/",
@@ -137,16 +137,16 @@
       "file": "10.webp",
       "caption": "Sam is in, as an editor: the workspace now sits in My Workspaces on Sam's dashboard, ready to open.",
       "cursor": {
-        "x": 972,
+        "x": 1100,
         "y": 339
       },
       "path": "/",
       "highlights": [
         {
           "label": "Newly joined workspace",
-          "x": 192,
+          "x": 64,
           "y": 302,
-          "w": 290.65625,
+          "w": 376,
           "h": 98
         }
       ],

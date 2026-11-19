@@ -56,7 +56,7 @@
     {
       "kind": "narration",
       "text": "Name your document and you can start. Under Details, tell markoto what you're writing, who it's for and in which language: the AI uses this every time it helps you write, so a minute here saves you re-typing context on every prompt later. All optional.",
-      "file": "03.webp",
+      "file": "04.webp",
       "cursor": {
         "x": 195,
         "y": 296
@@ -65,7 +65,7 @@
     },
     {
       "kind": "approach",
-      "file": "03.webp",
+      "file": "04.webp",
       "caption": "Give your document a name",
       "cursor": {
         "x": 46,
@@ -75,7 +75,7 @@
     },
     {
       "kind": "outcome",
-      "file": "04.webp",
+      "file": "05.webp",
       "caption": "The title is set.",
       "cursor": {
         "x": 46,
@@ -85,7 +85,7 @@
     },
     {
       "kind": "approach",
-      "file": "04.webp",
+      "file": "05.webp",
       "caption": "Open \"Details\"",
       "cursor": {
         "x": 195,
@@ -95,7 +95,7 @@
     },
     {
       "kind": "outcome",
-      "file": "05.webp",
+      "file": "06.webp",
       "caption": "Description, language and audience open.",
       "cursor": {
         "x": 195,
@@ -105,7 +105,7 @@
     },
     {
       "kind": "approach",
-      "file": "06.webp",
+      "file": "07.webp",
       "caption": "Add a one-line description so the AI knows what you're writing about",
       "cursor": {
         "x": 59,
@@ -115,7 +115,7 @@
     },
     {
       "kind": "outcome",
-      "file": "07.webp",
+      "file": "08.webp",
       "caption": "The description is captured, the AI will see this on every prompt.",
       "cursor": {
         "x": 59,
@@ -125,7 +125,7 @@
     },
     {
       "kind": "approach",
-      "file": "07.webp",
+      "file": "08.webp",
       "caption": "Open \"Template\" to start from a template",
       "cursor": {
         "x": 195,
@@ -135,7 +135,7 @@
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
+      "file": "09.webp",
       "caption": "The templates open: each card shows the first page of its text in its design.",
       "cursor": {
         "x": 195,
@@ -145,7 +145,7 @@
     },
     {
       "kind": "approach",
-      "file": "09.webp",
+      "file": "10.webp",
       "caption": "Pick a template: Meeting notes seeds the right structure",
       "cursor": {
         "x": 272,
@@ -155,7 +155,7 @@
     },
     {
       "kind": "outcome",
-      "file": "10.webp",
+      "file": "11.webp",
       "caption": "\"Meeting notes\" is selected, the editor will be pre-filled with its skeleton, in its design.",
       "cursor": {
         "x": 272,
@@ -165,7 +165,7 @@
     },
     {
       "kind": "approach",
-      "file": "10.webp",
+      "file": "11.webp",
       "caption": "Click \"Create document\"",
       "cursor": {
         "x": 293,
@@ -175,7 +175,7 @@
     },
     {
       "kind": "outcome",
-      "file": "11.webp",
+      "file": "12.webp",
       "caption": "Without an account, markoto asks once: accept the Terms and confirm you're at least 16. A quick bot check runs in your browser meanwhile.",
       "cursor": {
         "x": 293,
@@ -185,7 +185,7 @@
     },
     {
       "kind": "approach",
-      "file": "12.webp",
+      "file": "13.webp",
       "caption": "Tick the box to accept the Terms",
       "cursor": {
         "x": 44,
@@ -195,7 +195,7 @@
     },
     {
       "kind": "outcome",
-      "file": "13.webp",
+      "file": "14.webp",
       "caption": "Accepted. You won't be asked again in this browser.",
       "cursor": {
         "x": 44,
@@ -205,7 +205,7 @@
     },
     {
       "kind": "approach",
-      "file": "14.webp",
+      "file": "15.webp",
       "caption": "Click \"Accept and create\" to open the editor",
       "cursor": {
         "x": 195,
@@ -215,13 +215,13 @@
     },
     {
       "kind": "outcome",
-      "file": "15.webp",
+      "file": "16.webp",
       "caption": "The editor opens, your skeleton is ready to fill in.",
       "cursor": {
         "x": 195,
         "y": 521
       },
-      "path": "/d/mulUot0MXZ"
+      "path": "/d/uZlh28O8ne"
     },
     {
       "kind": "chapter",
@@ -231,16 +231,16 @@
     {
       "kind": "narration",
       "text": "markoto pre-fills the doc with the template's structure, headings, a table layout, and HTML comments hinting what to write in each section. The comments are visible while you edit but hidden from the preview, the PDF, and anyone you share the link with.",
-      "file": "15.webp",
+      "file": "16.webp",
       "cursor": null,
-      "path": "/d/mulUot0MXZ"
+      "path": "/d/uZlh28O8ne"
     },
     {
       "kind": "outcome",
-      "file": "15.webp",
+      "file": "16.webp",
       "caption": "Headings, an Action items checklist, comment hints, all ready to fill in.",
       "cursor": null,
-      "path": "/d/mulUot0MXZ"
+      "path": "/d/uZlh28O8ne"
     },
     {
       "kind": "chapter",
@@ -250,19 +250,19 @@
     {
       "kind": "narration",
       "text": "markoto documents share by URL. Anyone with the link can read or edit, depending on the access mode you choose. The default for anonymous documents is \"open edit\", anyone with the link can edit.",
-      "file": "15.webp",
+      "file": "16.webp",
       "cursor": null,
-      "path": "/d/mulUot0MXZ"
+      "path": "/d/uZlh28O8ne"
     },
     {
       "kind": "approach",
-      "file": "15.webp",
+      "file": "16.webp",
       "caption": "Open the share dialog from the lock icon",
       "cursor": {
         "x": 330,
         "y": 20
       },
-      "path": "/d/mulUot0MXZ",
+      "path": "/d/uZlh28O8ne",
       "annotations": [
         {
           "label": "lock icon",
@@ -276,49 +276,49 @@
     },
     {
       "kind": "outcome",
-      "file": "16.webp",
+      "file": "17.webp",
       "caption": "The share dialog opens, your shareable link is right at the top.",
       "cursor": {
         "x": 330,
         "y": 20
       },
-      "path": "/d/mulUot0MXZ",
+      "path": "/d/uZlh28O8ne",
       "highlights": [
         {
           "label": "The link to share",
-          "x": 32.124732971191406,
-          "y": 335.51873779296875,
-          "w": 189.54235076904297,
-          "h": 27.97857666015625
+          "x": 32.124969482421875,
+          "y": 335.518798828125,
+          "w": 189.5420684814453,
+          "h": 27.978515625
         },
         {
           "label": "One-click copy",
-          "x": 229.6609649658203,
-          "y": 335.51873779296875,
-          "w": 92.24186706542969,
-          "h": 27.97857666015625
+          "x": 229.66090393066406,
+          "y": 335.518798828125,
+          "w": 92.24171447753906,
+          "h": 27.978515625
         }
       ]
     },
     {
       "kind": "approach",
-      "file": "16.webp",
+      "file": "18.webp",
       "caption": "Click \"Copy link\" to copy it to your clipboard",
       "cursor": {
         "x": 275,
         "y": 349
       },
-      "path": "/d/mulUot0MXZ"
+      "path": "/d/uZlh28O8ne"
     },
     {
       "kind": "outcome",
-      "file": "17.webp",
+      "file": "19.webp",
       "caption": "Done: your link is on your clipboard. Paste it anywhere to share.",
       "cursor": {
         "x": 275,
         "y": 349
       },
-      "path": "/d/mulUot0MXZ",
+      "path": "/d/uZlh28O8ne",
       "hero": true
     }
   ],

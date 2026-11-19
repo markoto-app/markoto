@@ -1,0 +1,105 @@
+{
+  "version": 2,
+  "title": "Explorer context menu",
+  "slug": "explorer-context-menu",
+  "locale": "en",
+  "variant": "dark-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Right-click for every action"
+    },
+    {
+      "kind": "narration",
+      "text": "Your documents and folders on the home page. Press and hold one to see what you can do with it.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Press and hold \"Reading list\"",
+      "cursor": {
+        "x": 195,
+        "y": 699
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "Open, rename, move, cut, duplicate, copy the link, share or delete the document.",
+      "cursor": {
+        "x": 96,
+        "y": 700
+      },
+      "path": "/",
+      "highlights": [
+        {
+          "label": "Actions",
+          "x": 0,
+          "y": 0,
+          "w": 390,
+          "h": 720
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Press and hold the folder",
+      "cursor": {
+        "x": 195,
+        "y": 618
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "A folder can also get a new document or folder inside it, or an import.",
+      "cursor": {
+        "x": 96,
+        "y": 618
+      },
+      "path": "/",
+      "highlights": [
+        {
+          "label": "Actions",
+          "x": 0,
+          "y": 0,
+          "w": 390,
+          "h": 720
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
+      "caption": "Tap \"New folder\"",
+      "cursor": {
+        "x": 195,
+        "y": 540
+      },
+      "path": "/"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "Type \"Invoices\" and tap Enter",
+      "cursor": null,
+      "path": "/f/8bPqWueZhOMX",
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "organize-a-workspace",
+    "why": "Folders, moving several documents at once and search."
+  }
+}
