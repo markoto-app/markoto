@@ -4,7 +4,7 @@ import { anonClient, loggedInClient } from '../setup/client'
 import { createUser } from '../setup/fixtures'
 import { TEST_BILLING_OFF_BASE_URL } from '../setup/env'
 
-// Google Ads click-id conversions over real HTTP (docs/operations-analytics.md).
+// Google Ads click-id conversions over real HTTP (docs/SELF-HOSTING.md#analytics-optional).
 // The billing-off twin runs the hosted shape with
 // NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS=true; the primary has it off.
 

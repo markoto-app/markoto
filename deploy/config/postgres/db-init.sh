@@ -17,7 +17,7 @@
 #      separate roles) are handed over to the owning role;
 #   5. the app database exists with the `vector` extension (a managed
 #      cluster starts without it; the bundled image creates it at init);
-#   6. when UMAMI_DB is set (hosted analytics, docs/operations-analytics.md),
+#   6. when UMAMI_DB is set (hosted analytics, docs/SELF-HOSTING.md#analytics-optional),
 #      the `umami` database exists with the `pgcrypto` extension Umami's
 #      migrations need, owned by its own role like LiteLLM's.
 #

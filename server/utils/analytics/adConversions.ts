@@ -15,7 +15,7 @@ import { useEnv } from '~~/shared/env/load'
 
 const log = useLogger('ad-conversions')
 
-// Google Ads click-id conversions (docs/operations-analytics.md). The click
+// Google Ads click-id conversions (docs/SELF-HOSTING.md#analytics-optional). The click
 // id reaches the server only inside a request that is itself the
 // conversion: the body of POST /api/docs and POST /api/waitlist, or the
 // query of the sign-in link (/auth/google?gclid=…), from where it waits in

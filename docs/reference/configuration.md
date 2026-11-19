@@ -370,7 +370,7 @@ Publishing at /p/<slug> always works. A pages host of its own is required for th
 
 ## Analytics and ad conversions
 
-Cookieless page analytics through a self-hosted Umami on the same origin, and the click-ID conversion record for Google Ads. Off by default; docs/operations-analytics.md.
+Cookieless page analytics through a self-hosted Umami on the same origin, and the click-ID conversion record for Google Ads. Off by default; docs/SELF-HOSTING.md#analytics-optional.
 
 | Variable | Type | Default | Required | Services | Scope | Description |
 |---|---|---|---|---|---|---|

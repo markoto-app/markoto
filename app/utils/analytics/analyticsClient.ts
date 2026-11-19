@@ -1,4 +1,4 @@
-// The browser side of the cookieless analytics (docs/operations-analytics.md).
+// The browser side of the cookieless analytics (docs/SELF-HOSTING.md#analytics-optional).
 //
 // Plain module state, created once per tab by `app/plugins/analytics.client.ts`:
 // nothing is written to cookies or web storage, and nothing survives a reload.

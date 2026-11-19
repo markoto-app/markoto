@@ -247,7 +247,7 @@ done
 render_config "$tmp/iso.json" "$tmp/prod.env" "deploy/compose/compose.prod.yml"
 check_isolation "prod" "$tmp/iso.json"
 
-# Cookieless analytics (docs/operations-analytics.md): Umami runs only with
+# Cookieless analytics (docs/SELF-HOSTING.md#analytics-optional): Umami runs only with
 # the `analytics` profile; hardened like the rest; on the main domain only
 # POST /a/api/send reaches it; its dashboard host always has a login; it
 # keeps no visitor IP beyond the daily-salted hash; the app never has an

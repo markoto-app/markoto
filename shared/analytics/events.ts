@@ -1,7 +1,7 @@
 // Every analytics event markoto sends, in one place. Names are
 // `object_action` in snake_case; data values are short enums or numbers,
 // never free text, ids, emails, document titles or content.
-// docs/operations-analytics.md lists them with the funnels built from them.
+// docs/SELF-HOSTING.md#analytics-optional lists them with the funnels built from them.
 
 export const ANALYTICS_EVENTS = {
   /** The landing URL carried a Google Ads click id (the id itself is not sent). */

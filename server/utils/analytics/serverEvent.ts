@@ -2,7 +2,7 @@ import type { H3Event } from 'h3'
 import { useEnv } from '~~/shared/env/load'
 import { ANALYTICS_EVENTS } from '~~/shared/analytics/events'
 
-// Server-side analytics counts (docs/operations-analytics.md). Published
+// Server-side analytics counts (docs/SELF-HOSTING.md#analytics-optional). Published
 // pages carry no script at all (their CSP has no script-src), so their views
 // are counted here: one aggregate `published_page_view` per request, sent
 // to Umami in the network with a fixed placeholder address and user agent.

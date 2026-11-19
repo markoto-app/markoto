@@ -1,4 +1,4 @@
-// Cookieless analytics + ad-click attribution (docs/operations-analytics.md).
+// Cookieless analytics + ad-click attribution (docs/SELF-HOSTING.md#analytics-optional).
 //
 // Off unless the instance sets NUXT_PUBLIC_ANALYTICS_WEBSITE_ID (page views
 // and events) and / or NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS (the Google

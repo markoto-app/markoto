@@ -370,7 +370,7 @@ if env -i "${ENVARGS[@]}" "NUXT_PUBLISH_PAGES_HOST=" bash infra/render-env.sh >/
 fi
 echo "VALUE SAFETY OK - spaces quoted, trailing newline stripped, newline/quote/bad DOMAIN/pages host rejected"
 
-# Analytics (docs/operations-analytics.md): UMAMI_APP_SECRET turns on the
+# Analytics (docs/SELF-HOSTING.md#analytics-optional): UMAMI_APP_SECRET turns on the
 # `analytics` profile and needs the dashboard host + its edge login; a
 # website id without Umami, a bad host or a bad login line fail the render.
 # shellcheck disable=SC2016 # a literal bcrypt hash, not an expansion

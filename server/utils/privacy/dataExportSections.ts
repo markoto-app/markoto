@@ -59,7 +59,7 @@ export async function addWaitlistEntry(entries: ExportEntries, user: UserScope):
   return rows.length
 }
 
-/** Google Ads click-id conversions recorded for the account (docs/operations-analytics.md). */
+/** Google Ads click-id conversions recorded for the account (docs/SELF-HOSTING.md#analytics-optional). */
 export async function addAdConversionsEntry(entries: ExportEntries, user: UserScope): Promise<number> {
   const rows = await adConversionsForExport(user)
   entries['ad_conversions.ndjson'] = strToU8(toNdjson(rows))

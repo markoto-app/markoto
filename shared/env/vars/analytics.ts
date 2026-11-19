@@ -4,7 +4,7 @@ import { defineNamespace, v } from '../define'
 // Cookieless page analytics (a self-hosted Umami next to the app) and the
 // server-side record of Google Ads click conversions. Both are off unless
 // configured: self-hosted instances never send an analytics request.
-// Design, events and the legal assessment: docs/operations-analytics.md.
+// Design, events and the legal assessment: docs/SELF-HOSTING.md#analytics-optional.
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const SAME_ORIGIN_PATH = /^\/[A-Za-z0-9/_.-]*$/
@@ -12,7 +12,7 @@ const SAME_ORIGIN_PATH = /^\/[A-Za-z0-9/_.-]*$/
 export const analytics = defineNamespace({
   name: 'analytics',
   title: 'Analytics and ad conversions',
-  intro: 'Cookieless page analytics through a self-hosted Umami on the same origin, and the click-ID conversion record for Google Ads. Off by default; docs/operations-analytics.md.',
+  intro: 'Cookieless page analytics through a self-hosted Umami on the same origin, and the click-ID conversion record for Google Ads. Off by default; docs/SELF-HOSTING.md#analytics-optional.',
   vars: {
     websiteId: v({
       name: 'NUXT_PUBLIC_ANALYTICS_WEBSITE_ID',

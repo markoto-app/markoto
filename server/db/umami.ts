@@ -1,5 +1,5 @@
 // Umami's database (`umami`), next to the app's on the same Postgres
-// (docs/operations-analytics.md). The app only deletes expired visitor data
+// (docs/SELF-HOSTING.md#analytics-optional). The app only deletes expired visitor data
 // there (Umami itself keeps everything forever); `server/repos/umamiRetention.ts`
 // is the only user of this pool.
 //

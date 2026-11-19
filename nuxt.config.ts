@@ -169,7 +169,7 @@ export default defineNuxtConfig({
         // flow screenshots; a flow embed can pass its own.
         chromeDomain: observability.vars.docsChromeDomain.default
       },
-      // Cookieless page analytics + click-id conversions (docs/operations-analytics.md).
+      // Cookieless page analytics + click-id conversions (docs/SELF-HOSTING.md#analytics-optional).
       // Empty website id = the browser sends nothing.
       analytics: {
         websiteId: '', // NUXT_PUBLIC_ANALYTICS_WEBSITE_ID

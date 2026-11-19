@@ -380,7 +380,7 @@ services:
       # query (server/utils/litellm/litellmDb.ts); empty = the app role.
       - NUXT_LITELLM_DB_USER=${POSTGRES_LITELLM_USER:-}
       - NUXT_LITELLM_DB_PASSWORD=${POSTGRES_LITELLM_PASSWORD:-}
-      # Cookieless analytics (docs/operations-analytics.md). The website id
+      # Cookieless analytics (docs/SELF-HOSTING.md#analytics-optional). The website id
       # (from Umami, after its first login) switches the browser side on;
       # the in-network URL counts published-page views (only while the
       # `analytics` profile runs Umami); Umami's own role lets the app
@@ -733,7 +733,7 @@ services:
       - render
       - renderer-egress
 
-  # Cookieless page analytics (docs/operations-analytics.md). Runs only with
+  # Cookieless page analytics (docs/SELF-HOSTING.md#analytics-optional). Runs only with
   # COMPOSE_PROFILES=analytics, which infra/render-env.sh sets when
   # UMAMI_APP_SECRET is set. Two routers:
   #   - `umami-collect`: ONLY POST /a/api/send on the main domain (the

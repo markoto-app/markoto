@@ -150,7 +150,7 @@ jobs:
           # Separate DB roles (optional; empty = POSTGRES_USER for everything).
           POSTGRES_APP_PASSWORD: ${{ secrets.POSTGRES_APP_PASSWORD }}
           POSTGRES_LITELLM_PASSWORD: ${{ secrets.POSTGRES_LITELLM_PASSWORD }}
-          # Cookieless analytics (docs/operations-analytics.md); empty = off.
+          # Cookieless analytics (docs/SELF-HOSTING.md#analytics-optional); empty = off.
           POSTGRES_UMAMI_PASSWORD: ${{ secrets.POSTGRES_UMAMI_PASSWORD }}
           UMAMI_APP_SECRET: ${{ secrets.UMAMI_APP_SECRET }}
           UMAMI_BASIC_AUTH_USERS: ${{ secrets.UMAMI_BASIC_AUTH_USERS }}

@@ -275,7 +275,7 @@ else
   compose_profiles=
 fi
 
-# Cookieless analytics (docs/operations-analytics.md). UMAMI_APP_SECRET set
+# Cookieless analytics (docs/SELF-HOSTING.md#analytics-optional). UMAMI_APP_SECRET set
 # = the `analytics` profile runs Umami (database `umami`, db-init); its
 # dashboard host needs a DNS record and always gets an edge login, since
 # Umami starts with a default admin password until the first login changes
@@ -528,7 +528,7 @@ NUXT_SITE_INDEXABLE=${NUXT_SITE_INDEXABLE}
 # Staging: https://markoto.app, so its copy never competes with the real site.
 NUXT_CANONICAL_SITE_URL=${NUXT_CANONICAL_SITE_URL:-}
 
-# ─── Cookieless analytics + ad conversions (docs/operations-analytics.md) ───
+# ─── Cookieless analytics + ad conversions (docs/SELF-HOSTING.md#analytics-optional) ───
 # Empty UMAMI_APP_SECRET = no Umami; empty website id = the browser sends nothing.
 UMAMI_APP_SECRET=${UMAMI_APP_SECRET}
 UMAMI_HOST=${UMAMI_HOST}
