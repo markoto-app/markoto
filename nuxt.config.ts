@@ -189,6 +189,17 @@ export default defineNuxtConfig({
     }
   },
 
+  // The explorer's drag-and-drop libraries are client-side code that SSR
+  // still imports (the composables are set up in components that render on
+  // the server). Their subpath entries (`adapter/element-adapter`, ...) are
+  // directories with their own package.json, which Nitro's NFT tracer does
+  // not copy into .output: production then failed with "Cannot find
+  // package". Bundling them into the server build avoids the external
+  // lookup entirely.
+  build: {
+    transpile: ['@atlaskit/pragmatic-drag-and-drop', '@atlaskit/pragmatic-drag-and-drop-auto-scroll']
+  },
+
   // Old /docs addresses (before the docs were regrouped into task-based
   // sections) answer with a 301 to the new one; the query string is kept.
   // The map lives in shared/docs/docsRedirects.ts.
