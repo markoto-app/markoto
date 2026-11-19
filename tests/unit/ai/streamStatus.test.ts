@@ -380,3 +380,10 @@ describe('processChunk: dedupe + state machine', () => {
     expect(setStatus).toHaveBeenCalledTimes(2)
   })
 })
+
+describe('describeToolInput: project context', () => {
+  it('shows a status line for reading and for editing the project context', () => {
+    expect(textOf('read_project_context', {})).toBe('Reading the project context…')
+    expect(textOf('edit_project_context', { context_doc_id: 'bible', new_str: 'x' })).toBe('Updating the project context…')
+  })
+})
