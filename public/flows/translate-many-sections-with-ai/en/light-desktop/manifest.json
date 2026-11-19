@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/efc8DFb5IA"
+      "path": "/d/SKUf6dck8-"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 618,
         "y": 722
       },
-      "path": "/d/efc8DFb5IA"
+      "path": "/d/SKUf6dck8-"
     },
     {
       "kind": "approach",
@@ -42,7 +42,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/efc8DFb5IA"
+      "path": "/d/SKUf6dck8-"
     },
     {
       "kind": "outcome",
@@ -52,7 +52,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/efc8DFb5IA"
+      "path": "/d/SKUf6dck8-"
     },
     {
       "kind": "approach",
@@ -62,7 +62,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/efc8DFb5IA"
+      "path": "/d/SKUf6dck8-"
     },
     {
       "kind": "outcome",
@@ -72,7 +72,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/efc8DFb5IA"
+      "path": "/d/SKUf6dck8-"
     },
     {
       "kind": "approach",
@@ -82,7 +82,7 @@
         "x": 983,
         "y": 609
       },
-      "path": "/d/efc8DFb5IA"
+      "path": "/d/SKUf6dck8-"
     },
     {
       "kind": "outcome",
@@ -92,7 +92,7 @@
         "x": 983,
         "y": 609
       },
-      "path": "/d/efc8DFb5IA"
+      "path": "/d/SKUf6dck8-"
     },
     {
       "kind": "chapter",
@@ -107,7 +107,7 @@
         "x": 983,
         "y": 609
       },
-      "path": "/d/efc8DFb5IA",
+      "path": "/d/SKUf6dck8-",
       "hero": true
     },
     {
@@ -123,7 +123,7 @@
         "x": 1234,
         "y": 98
       },
-      "path": "/d/efc8DFb5IA"
+      "path": "/d/SKUf6dck8-"
     },
     {
       "kind": "outcome",
@@ -133,7 +133,7 @@
         "x": 1234,
         "y": 98
       },
-      "path": "/d/efc8DFb5IA"
+      "path": "/d/SKUf6dck8-"
     },
     {
       "kind": "approach",
@@ -141,9 +141,9 @@
       "caption": "Click Undo job",
       "cursor": {
         "x": 1221,
-        "y": 315
+        "y": 410
       },
-      "path": "/d/efc8DFb5IA"
+      "path": "/d/SKUf6dck8-"
     },
     {
       "kind": "outcome",
@@ -151,9 +151,9 @@
       "caption": "markoto asks before it puts the German text back.",
       "cursor": {
         "x": 1221,
-        "y": 315
+        "y": 410
       },
-      "path": "/d/efc8DFb5IA"
+      "path": "/d/SKUf6dck8-"
     },
     {
       "kind": "approach",
@@ -161,19 +161,19 @@
       "caption": "Confirm",
       "cursor": {
         "x": 1238,
-        "y": 321
+        "y": 416
       },
-      "path": "/d/efc8DFb5IA"
+      "path": "/d/SKUf6dck8-"
     },
     {
       "kind": "outcome",
       "file": "14.webp",
-      "caption": "The chapters are German again. Parts someone edited after the job would have stayed as they are.",
+      "caption": "The chapters are German again, together with any fixes markoto made to them right after the job. Parts someone else edited after the job would have stayed as they are.",
       "cursor": {
         "x": 1238,
-        "y": 321
+        "y": 416
       },
-      "path": "/d/efc8DFb5IA"
+      "path": "/d/SKUf6dck8-"
     },
     {
       "kind": "outcome",
@@ -183,7 +183,7 @@
         "x": 1238,
         "y": 42
       },
-      "path": "/d/efc8DFb5IA"
+      "path": "/d/SKUf6dck8-"
     }
   ],
   "next": {

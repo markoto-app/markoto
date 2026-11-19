@@ -19,7 +19,7 @@
       "text": "You don't have to ask the assistant for a picture. Describe it yourself, pick a format, and markoto draws it with your image provider and puts it where your cursor is, stored with the document like an uploaded image.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/sLeGxWcx85"
+      "path": "/d/hxhz8_AQQ_"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 32,
         "y": 695
       },
-      "path": "/d/sLeGxWcx85"
+      "path": "/d/hxhz8_AQQ_"
     },
     {
       "kind": "outcome",
@@ -39,51 +39,51 @@
         "x": 32,
         "y": 695
       },
-      "path": "/d/sLeGxWcx85"
+      "path": "/d/hxhz8_AQQ_"
     },
     {
       "kind": "approach",
       "file": "04.webp",
       "caption": "Tap \"AI image\"",
       "cursor": null,
-      "path": "/d/sLeGxWcx85"
+      "path": "/d/hxhz8_AQQ_"
     },
     {
       "kind": "outcome",
       "file": "05.webp",
       "caption": "The image dialog opens.",
       "cursor": null,
-      "path": "/d/sLeGxWcx85"
+      "path": "/d/hxhz8_AQQ_"
     },
     {
       "kind": "approach",
-      "file": "06.webp",
+      "file": "05.webp",
       "caption": "Describe the picture",
       "cursor": {
         "x": 54,
         "y": 324
       },
-      "path": "/d/sLeGxWcx85"
+      "path": "/d/hxhz8_AQQ_"
     },
     {
       "kind": "outcome",
-      "file": "07.webp",
+      "file": "06.webp",
       "caption": "Your description is ready.",
       "cursor": {
         "x": 54,
         "y": 324
       },
-      "path": "/d/sLeGxWcx85"
+      "path": "/d/hxhz8_AQQ_"
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
+      "file": "07.webp",
       "caption": "Pick a format. The dialog says what one image costs before you generate it.",
       "cursor": {
         "x": 194,
         "y": 428
       },
-      "path": "/d/sLeGxWcx85",
+      "path": "/d/hxhz8_AQQ_",
       "highlights": [
         {
           "label": "Cost",
@@ -96,33 +96,33 @@
     },
     {
       "kind": "approach",
-      "file": "09.webp",
+      "file": "08.webp",
       "caption": "Click \"Generate\"",
       "cursor": {
         "x": 298,
         "y": 506
       },
-      "path": "/d/sLeGxWcx85"
+      "path": "/d/hxhz8_AQQ_"
     },
     {
       "kind": "outcome",
-      "file": "10.webp",
+      "file": "09.webp",
       "caption": "markoto draws the picture; this takes a few seconds.",
       "cursor": {
         "x": 298,
         "y": 506
       },
-      "path": "/d/sLeGxWcx85"
+      "path": "/d/hxhz8_AQQ_"
     },
     {
       "kind": "outcome",
-      "file": "10.webp",
+      "file": "09.webp",
       "caption": "The picture is in your document, right where the cursor was.",
       "cursor": {
         "x": 298,
         "y": 506
       },
-      "path": "/d/sLeGxWcx85",
+      "path": "/d/hxhz8_AQQ_",
       "highlights": [
         {
           "label": "The image in your text",

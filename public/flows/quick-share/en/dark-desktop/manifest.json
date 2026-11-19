@@ -221,7 +221,7 @@
         "x": 803,
         "y": 549
       },
-      "path": "/d/zXzun2QgF6"
+      "path": "/d/mZMdneeY5s"
     },
     {
       "kind": "chapter",
@@ -236,7 +236,7 @@
         "x": 640,
         "y": 24
       },
-      "path": "/d/zXzun2QgF6"
+      "path": "/d/mZMdneeY5s"
     },
     {
       "kind": "outcome",
@@ -246,7 +246,7 @@
         "x": 640,
         "y": 24
       },
-      "path": "/d/zXzun2QgF6"
+      "path": "/d/mZMdneeY5s"
     },
     {
       "kind": "chapter",
@@ -261,7 +261,7 @@
         "x": 640,
         "y": 24
       },
-      "path": "/d/zXzun2QgF6"
+      "path": "/d/mZMdneeY5s"
     },
     {
       "kind": "approach",
@@ -271,7 +271,7 @@
         "x": 1119,
         "y": 24
       },
-      "path": "/d/zXzun2QgF6",
+      "path": "/d/mZMdneeY5s",
       "annotations": [
         {
           "label": "lock icon",
@@ -291,21 +291,21 @@
         "x": 1119,
         "y": 24
       },
-      "path": "/d/zXzun2QgF6",
+      "path": "/d/mZMdneeY5s",
       "highlights": [
         {
           "label": "The link to share",
-          "x": 408.4142150878906,
-          "y": 375.54376220703125,
-          "w": 327.1024475097656,
-          "h": 27.95001220703125
+          "x": 408.1777648925781,
+          "y": 375.5187683105469,
+          "w": 327.4363708496094,
+          "h": 27.978546142578125
         },
         {
           "label": "One-click copy",
-          "x": 743.5023803710938,
-          "y": 375.54376220703125,
-          "w": 92.14764404296875,
-          "h": 27.95001220703125
+          "x": 743.6080322265625,
+          "y": 375.5187683105469,
+          "w": 92.2418212890625,
+          "h": 27.978546142578125
         }
       ]
     },
@@ -317,7 +317,7 @@
         "x": 789,
         "y": 389
       },
-      "path": "/d/zXzun2QgF6"
+      "path": "/d/mZMdneeY5s"
     },
     {
       "kind": "outcome",
@@ -327,7 +327,7 @@
         "x": 789,
         "y": 389
       },
-      "path": "/d/zXzun2QgF6",
+      "path": "/d/mZMdneeY5s",
       "hero": true
     }
   ],

@@ -64,7 +64,7 @@
     {
       "kind": "narration",
       "text": "A template is a starting text in a design that suits it: a report with a cover page and contents, a paper with a title block and numbered sections, a runbook with numbered steps and framed commands. Demo, picked for your first document, is a short tour of markdown and of markoto itself; Blank is an empty page in your default design. Grey comments in each skeleton say what goes where; the preview and the PDF never show them.",
-      "file": "05.webp",
+      "file": "06.webp",
       "cursor": {
         "x": 640,
         "y": 425
@@ -79,7 +79,7 @@
     {
       "kind": "narration",
       "text": "Each card shows the template's first page in its design, its name and one line about what is in it. The tabs sort them by who they are for: engineering, academic, business, writing.",
-      "file": "05.webp",
+      "file": "06.webp",
       "cursor": {
         "x": 640,
         "y": 425
@@ -88,7 +88,7 @@
     },
     {
       "kind": "approach",
-      "file": "06.webp",
+      "file": "07.webp",
       "caption": "Hover \"Demo\"",
       "cursor": {
         "x": 470,
@@ -98,7 +98,7 @@
     },
     {
       "kind": "approach",
-      "file": "07.webp",
+      "file": "06.webp",
       "caption": "Hover \"Blank\"",
       "cursor": {
         "x": 640,
@@ -239,7 +239,7 @@
         "x": 839,
         "y": 736
       },
-      "path": "/d/ms9-3Qo2OW",
+      "path": "/d/mMHwFLDq8R",
       "highlights": [
         {
           "label": "Ready-made structure",
