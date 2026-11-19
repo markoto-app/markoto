@@ -5,7 +5,7 @@ import { SOURCE_REPO_NEW_ISSUE_URL, SOURCE_REPO_URL } from '~~/shared/config/lin
 import {
   toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode, toggleComment,
   insertBlock, insertFootnote, insertAlert, insertMath, insertDiagram,
-  insertToc, insertPageBreak, insertDefinitionList
+  insertToc, insertPageBreak, insertDefinitionList, insertListPlaceholder
 } from '~/utils/editor/editorCommands'
 
 /**
@@ -57,7 +57,7 @@ const emit = defineEmits<{
   'move-document': []
   'delete-document': []
   'set-view-mode': ['edit' | 'split' | 'preview']
-  'toggle-sidebar': ['document' | 'activity' | 'theme' | 'knowledge' | 'comments']
+  'toggle-sidebar': ['document' | 'activity' | 'theme' | 'knowledge' | 'comments' | 'references']
   'undo': []
   'redo': []
   'open-image-picker': []
@@ -216,6 +216,13 @@ const viewItems = computed(() => [
       checked: props.rightSidebar === 'theme',
       onSelect: () => emit('toggle-sidebar', 'theme')
     },
+    {
+      label: t('references.title'),
+      icon: 'i-lucide-book-marked',
+      type: 'checkbox' as const,
+      checked: props.rightSidebar === 'references',
+      onSelect: () => emit('toggle-sidebar', 'references')
+    },
     // Workspace docs only, so the menu doesn't advertise an unavailable capability.
     ...(props.hasKnowledgeAccess
       ? [{
@@ -324,6 +331,16 @@ const insertItems = computed(() => {
       ]
     },
     { label: t('menubar.insert.toc'), icon: 'i-lucide-list-tree', onSelect: () => call(v => insertToc(v)) },
+    {
+      label: t('menubar.insert.references'),
+      icon: 'i-lucide-book-marked',
+      children: [
+        { label: t('menubar.insert.citation'), icon: 'i-lucide-quote', onSelect: () => emit('toggle-sidebar', 'references') },
+        { label: t('menubar.insert.bibliography'), icon: 'i-lucide-library-big', onSelect: () => call(v => insertListPlaceholder(v, 'bibliography')) },
+        { label: t('menubar.insert.listOfFigures'), icon: 'i-lucide-images', onSelect: () => call(v => insertListPlaceholder(v, 'lof')) },
+        { label: t('menubar.insert.listOfTables'), icon: 'i-lucide-table', onSelect: () => call(v => insertListPlaceholder(v, 'lot')) }
+      ]
+    },
     { label: t('menubar.insert.definitionList'), icon: 'i-lucide-book-open-text', onSelect: () => call(v => insertDefinitionList(v)) },
     { type: 'separator' as const },
     // Toggles a Mistral Voxtral Realtime session that streams speech into the

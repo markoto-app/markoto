@@ -2,6 +2,7 @@ import type { DeepReadonly } from 'vue'
 import type * as Y from 'yjs'
 import type { BrandFont } from '~~/shared/config/brandKit'
 import type { DocTheme } from '~~/shared/types/theme'
+import type { CitationInputs } from '~/utils/markdown/citationResolve'
 
 /**
  * The editor's ways out of the document: browser print (the hidden-iframe
@@ -24,6 +25,8 @@ export function useEditorExports(opts: {
   templateId: Readonly<Ref<string>>
   noDownload: Readonly<Ref<boolean>>
   brandFonts: Readonly<Ref<readonly BrandFont[]>>
+  /** The document's bibliography and citation style. */
+  citations: Readonly<Ref<CitationInputs>>
   getDocJwt: () => Promise<string | null>
 }) {
   const { t } = useI18n()
@@ -50,7 +53,8 @@ export function useEditorExports(opts: {
         docId: opts.docId,
         language: opts.language.value,
         getDocJwt: opts.getDocJwt,
-        brandFonts: opts.brandFonts.value
+        brandFonts: opts.brandFonts.value,
+        citations: opts.citations.value
       })
     } catch (e) {
       showError('error.pdfExportFailedTitle', e)

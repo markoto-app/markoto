@@ -7,6 +7,8 @@ import type { ImportedDocProperties } from '~~/shared/utils/markdown/markdownFro
 import { customCssForPlan } from '~~/shared/utils/theme/themePresets'
 import { applyBrandLock } from '~~/shared/utils/theme/brandLock'
 import type { DocTheme } from '~~/shared/types/theme'
+import type { ReferenceProblem } from '~/utils/markdown/citationResolve'
+import { insertInline } from '~/utils/editor/editorCommands'
 
 /**
  * The editor page: composes the top bar, menu and tool rows, the editor and
@@ -55,6 +57,7 @@ const {
   description,
   audience,
   language,
+  bibliography,
   templateId,
   setTemplateId,
   canEditTheme,
@@ -142,6 +145,11 @@ const { passwordModalOpen, deletedNoticeOpen } = useDocAccessPrompts(requiresPas
 
 // Page count from the paged.js preview, shown in the status bar.
 const pageCount = ref(0)
+// Unknown citation keys / labels from the last preview render (References panel).
+const referenceProblems = ref<ReferenceProblem[]>([])
+function insertCitation(text: string) {
+  if (editorView.value && !isReadOnly.value) insertInline(editorView.value, text)
+}
 
 const { textContent, wordCount, charCount } = useDocTextStats({ docId: props.docId, ydoc, ytext, synced, isOwner, requiresPassword })
 
@@ -158,6 +166,7 @@ const { exportPdf, exportMarkdown, openServerPdf } = useEditorExports({
   templateId,
   noDownload,
   brandFonts,
+  citations: bibliography.citations,
   getDocJwt
 })
 
@@ -478,7 +487,9 @@ useHead({
             :get-doc-jwt="getDocJwt"
             :brand-fonts="brandFonts"
             :zoom-control="!isMobile"
+            :citations="bibliography.citations.value"
             @print-shortcut="exportPdf"
+            @reference-problems="(p) => referenceProblems = p"
           />
         </div>
 
@@ -532,6 +543,21 @@ useHead({
             :can-manage-brand="docWorkspaceRole === 'admin'"
             @update:theme="setTheme"
             @reset="resetTheme"
+            @close="closeSidebar"
+          />
+          <DocumentReferencesPanel
+            v-else-if="rightSidebar === 'references'"
+            :items="bibliography.items.value"
+            :style-id="bibliography.style.value"
+            :language="language"
+            :problems="referenceProblems"
+            :can-edit="!isReadOnly"
+            :can-lookup="loggedIn"
+            :add-items="bibliography.addItems"
+            :has-key="bibliography.hasKey"
+            @update:style-id="bibliography.setStyle"
+            @remove="bibliography.removeItem"
+            @insert="insertCitation"
             @close="closeSidebar"
           />
           <!-- Same upload/list/delete surface as the workspace overview, scoped to

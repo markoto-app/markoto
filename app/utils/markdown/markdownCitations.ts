@@ -35,7 +35,7 @@ export interface CiteData {
 
 function citeToken(state: StateInline, data: CiteData, raw: string): void {
   const token = state.push('markoto_cite', 'span', 0)
-  token.meta = data
+  token.meta = { cite: data }
   token.content = raw
 }
 
@@ -197,7 +197,7 @@ function headingLabels(state: StateCore): void {
   for (const token of state.tokens) {
     if (token.type !== 'heading_open') continue
     const id = token.attrGet('id')
-    if (!id || !/^sec:./.test(id)) continue
+    if (typeof id !== 'string' || !/^sec:./.test(id)) continue
     token.attrs = (token.attrs ?? []).filter(([name]) => name !== 'id')
     token.attrSet(LABEL_ATTR, id)
   }
@@ -213,7 +213,7 @@ export function citationsPlugin(md: MarkdownIt): void {
   md.renderer.rules.markoto_cite = (tokens, idx) => {
     const token = tokens[idx]
     if (!token) return ''
-    const data = md.utils.escapeHtml(JSON.stringify(token.meta as CiteData))
+    const data = md.utils.escapeHtml(JSON.stringify((token.meta as { cite?: CiteData } | null)?.cite ?? null))
     return `<span class="${CITE_CLASS}" data-cite="${data}">${md.utils.escapeHtml(token.content)}</span>`
   }
 }

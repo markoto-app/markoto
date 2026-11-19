@@ -203,6 +203,7 @@ export function useDocument(docId: string) {
   })
 
   const meta = useDocumentMeta(docId, ymeta, tokenState)
+  const bibliography = useBibliography(ydoc, ymeta, tokenState.isReadOnly)
 
   const docSizeWarning = computed(() => computeDocSizeWarning(sync.docSizeBytes.value))
 
@@ -285,6 +286,8 @@ export function useDocument(docId: string) {
     description: meta.description,
     audience: meta.audience,
     language: meta.language,
+    /** The document's bibliography and citation style (Y.js). */
+    bibliography,
     templateId: readonly(tokenState.templateId),
     setTemplateId: meta.setTemplateId,
     canEditTheme: readonly(meta.canEditTheme),

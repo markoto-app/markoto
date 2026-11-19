@@ -7,6 +7,7 @@ import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 import { documentTexts } from '~~/shared/utils/documents/documentLocale'
 import { sanitizeCustomCssForRender, currentAppOrigins } from './customCssLoader'
 import type { BrandFont } from '~~/shared/config/brandKit'
+import type { CitationInputs } from '../markdown/citationResolve'
 import {
   PRINT_SANDBOX,
   buildPreviewSrcdoc,
@@ -57,6 +58,8 @@ export async function printDocumentAsPdf(opts: {
   getDocJwt?: () => Promise<string | null>
   /** The workspace's brand-kit fonts. */
   brandFonts?: readonly BrandFont[] | null
+  /** The document's bibliography and citation style. */
+  citations?: CitationInputs | null
 }): Promise<void> {
   // Re-validate the theme here: it comes from `ymeta.theme`, which any
   // editor can write over Y.js. Invalid → default theme; image URLs that
@@ -67,7 +70,9 @@ export async function printDocumentAsPdf(opts: {
     theme,
     title: opts.title || '',
     date: documentTexts(theme, opts.language).date,
-    bodyHtml
+    bodyHtml,
+    language: opts.language,
+    citations: opts.citations ?? null
   })
   // The opaque-origin iframe's image requests carry no cookie: the
   // document's own upload URLs get the short-lived file-access token, as

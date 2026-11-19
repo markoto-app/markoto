@@ -714,6 +714,30 @@ export function insertToc(view: EditorView): void {
 }
 
 /**
+ * Insert a `[[bibliography]]` / `[[lof]]` / `[[lot]]` placeholder on a
+ * line of its own (the renderer fills it: citationResolve.ts).
+ */
+export function insertListPlaceholder(view: EditorView, kind: 'bibliography' | 'lof' | 'lot'): void {
+  const { from, to } = view.state.selection.main
+  const block = `\n[[${kind}]]\n`
+  view.dispatch({
+    changes: { from, to, insert: block },
+    selection: { anchor: from + block.length }
+  })
+  view.focus()
+}
+
+/** Replace the selection with `text` (a citation from the References panel) and put the caret after it. */
+export function insertInline(view: EditorView, text: string): void {
+  const { from, to } = view.state.selection.main
+  view.dispatch({
+    changes: { from, to, insert: text },
+    selection: { anchor: from + text.length }
+  })
+  view.focus()
+}
+
+/**
  * Insert a definition-list template (`Term\n: Definition`) and select
  * "Term" so typing replaces it.
  */

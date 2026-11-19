@@ -7,17 +7,17 @@
  */
 
 export interface CslName {
-  family?: string
-  given?: string
-  literal?: string
+  'family'?: string
+  'given'?: string
+  'literal'?: string
   'non-dropping-particle'?: string
   'dropping-particle'?: string
-  suffix?: string
+  'suffix'?: string
 }
 
 export interface CslDate {
   'date-parts'?: number[][]
-  literal?: string
+  'literal'?: string
 }
 
 export const CSL_TEXT_FIELDS = [

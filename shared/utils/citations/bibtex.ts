@@ -315,9 +315,9 @@ export function parseBibtexName(raw: string): CslName | null {
     let vonEnd = vonStart
     while (vonEnd + 1 < ws.length - 1 && isLowerWord(ws[vonEnd + 1] ?? '')) vonEnd++
     return trimName({
-      given: clean(ws.slice(0, vonStart).join(' ')),
+      'given': clean(ws.slice(0, vonStart).join(' ')),
       'non-dropping-particle': clean(ws.slice(vonStart, vonEnd + 1).join(' ')),
-      family: clean(ws.slice(vonEnd + 1).join(' '))
+      'family': clean(ws.slice(vonEnd + 1).join(' '))
     })
   }
   return trimName({ given: clean(ws.slice(0, -1).join(' ')), family: clean(ws.at(-1)) })

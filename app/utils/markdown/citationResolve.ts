@@ -454,4 +454,3 @@ function renderXref(doc: Document, data: CiteData, targets: Map<string, Target>,
   if (suffix) out.append(doc.createTextNode(`, ${suffix}`))
   return out
 }
-

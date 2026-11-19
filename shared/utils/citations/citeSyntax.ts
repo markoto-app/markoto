@@ -57,7 +57,7 @@ const LOCATOR_TERMS: ReadonlyArray<[RegExp, LocatorLabel]> = [
   [/^(?:col\.|cols\.|columns?|Sp\.)/i, 'column']
 ]
 
-const LOCATOR_VALUE = /^[\dIVXLCDMivxlcdm]+[a-z]?(?:\s*[-–,&]\s*[\dIVXLCDMivxlcdm]+[a-z]?)*(?:\s*f{1,2}\.)?/
+const LOCATOR_VALUE = /^[\dIVXLCDMivxlcdm]+(?:[-\u2013,&][\dIVXLCDMivxlcdm]+)*(?: ?f{1,2}\.)?/
 
 /** `, p. 12, emphasis added` → locator `page 12` + suffix `emphasis added`. */
 export function parseSuffix(raw: string): { locator?: Locator, suffix: string } {
@@ -122,7 +122,7 @@ export function parseBracketCluster(inner: string): CiteRef[] | null {
 
 /** Character before a bare `@key` that allows it (start, space, opening punctuation): not an e-mail. */
 export function bareCiteAllowedAfter(prev: string | undefined): boolean {
-  return prev === undefined || prev === "" || /[\s([{"'\u201C\u2018\u00AB*_~]/.test(prev)
+  return prev === undefined || prev === '' || /[\s([{"'\u201C\u2018\u00AB*_~]/.test(prev)
 }
 
 export interface CitationOccurrence {
