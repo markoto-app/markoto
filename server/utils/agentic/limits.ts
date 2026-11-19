@@ -66,3 +66,19 @@ export const PRUNE_LARGE_RESULT_CHARS = 16_000
 export const PRUNE_SUPERSEDED_MIN_CHARS = 2_000
 export const PRUNE_BATCH_CHARS = 40_000
 export const PRUNE_KEEP_RECENT_TURNS = 2
+
+/**
+ * Turn steering (`loop/turnSteering.ts`). A run of this many turns that
+ * only read gets a note to act (or to delegate a rule-like bulk change).
+ */
+export const READ_STREAK_NOTE_TURNS = 5
+
+/** With this many turns left the model is told once to finish and answer. */
+export const STEP_RESERVE_TURNS = 3
+
+/**
+ * Reading turns allowed after a delegated job of the session finished or
+ * went to the background (a look at its flagged parts); then the loop
+ * closes with the answer. The job's report already says what changed.
+ */
+export const POST_JOB_READ_TURNS = 2

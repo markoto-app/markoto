@@ -17,6 +17,7 @@ import { salvageProseTurn } from './loop/salvage'
 import { dispatchToolCall } from './loop/toolDispatch'
 import { pruneReadResults } from './loop/historyPruning'
 import { nearDeadline, wrapUpSession } from './loop/wrapUp'
+import { TurnSteering } from './loop/turnSteering'
 
 const loopLog = useLogger('ai-loop')
 
@@ -32,7 +33,9 @@ const loopLog = useLogger('ai-loop')
  * At the turn limit, close to the session deadline, or after
  * `OUTPUT_LIMIT_TURNS` turns cut off by the output token limit, one
  * closing turn tells the user what is done and what is not
- * (`loop/wrapUp.ts`).
+ * (`loop/wrapUp.ts`). Turns that only read get steering notes, and a
+ * session whose delegated job is settled closes after a short look at
+ * the flagged parts (`loop/turnSteering.ts`).
  *
  * Returns normally on STOP; throws on abort. Status transitions are
  * reported via setStatus(...) at every state change.
@@ -205,7 +208,17 @@ async function dispatchToolCallsForTurn(
     return { kind: 'done', outcome: 'success' }
   }
 
-  ctx.contents.push({ role: 'user', parts: responseParts })
+  const steer = ctx.steering.endTurn({
+    calls: functionCalls.map(c => c.name ?? ''),
+    turn: turnCount,
+    maxTurns: MAX_TURNS,
+    canDelegate: ctx.toolDeclarations.some(d => d.name === 'delegate_rewrite')
+  })
+  ctx.contents.push({ role: 'user', parts: steer.note ? [...responseParts, { text: steer.note }] : responseParts })
+  if (steer.closeForJob) {
+    ctx.log(`turn ${turnCount}: the session's job is settled and the model keeps reading, closing`)
+    return { kind: 'wrap-up', reason: 'job-settled' }
+  }
   return { kind: 'continue' }
 }
 
@@ -232,7 +245,8 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
     editedDocument: false,
     answeredUser: false,
     outputLimitedTurns: 0,
-    invalidCalls: new Map()
+    invalidCalls: new Map(),
+    steering: new TurnSteering()
   }
 
   log(`[billing] session resolved: ${opts.billingContext.attributedTo} plan=${opts.billingContext.plan}`)
