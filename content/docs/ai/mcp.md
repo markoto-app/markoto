@@ -52,10 +52,12 @@ A token acts as you, limited to its scopes. New tokens get all four:
 
 | Scope | Allows |
 |---|---|
-| `documents:read` | List your documents, read them, comments, themes, activity, page images, export as markdown or PDF |
-| `documents:write` | Create, edit and duplicate documents, set titles, change themes, save theme presets, add, reply to, resolve and delete comments, generate images into a document (image generation also needs an image provider under your [AI provider settings](/docs/ai/provider) or an instance default) |
+| `documents:read` | List your documents and folders, search across documents, read them (or one section at a time), comments, themes, activity, page images, export as markdown or PDF |
+| `documents:write` | Create, move and duplicate documents, create folders, edit documents (insert, replace, edit lines, replace all, move, swap, delete and renumber sections), set titles, change themes, save theme presets, add, reply to, resolve and delete comments, generate images into a document (image generation also needs an image provider under your [AI provider settings](/docs/ai/provider) or an instance default) |
 | `knowledge:read` | Search and read knowledge files in workspaces you belong to |
 | `web:fetch` | Web search and URL reading |
+
+**On markoto.app's free plan MCP is read-only** and limited to 100 tool calls a day: only the reading tools are listed, so the write scopes have no effect until a plan with MCP write access is live. Self-hosted instances have write access and no daily cap unless the operator sets one.
 
 A token can never exceed your own access: it can't edit a document you can't
 edit, or read a workspace you aren't in. Tools for a scope the token lacks

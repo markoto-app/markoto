@@ -67,7 +67,7 @@ The PDF is made on our server from a saved document, so **Download PDF** saves y
 
 A converter turns Markdown into one long HTML page and prints it. markoto lays the text out as pages first, so you can see and control where things land:
 
-- **Page size and margins.** A4, Letter or Legal, portrait or landscape, with the margins you set.
+- **Page size and margins.** A4, A5, Letter or Legal, portrait or landscape, with the margins you set.
 - **Headers and footers.** Left, centre and right slots with the document title, page number, page count and date, plus an optional logo.
 - **A cover page.** Four layouts with title, subtitle, authors, date and logo. Headers and page numbers are left off the cover.
 - **A table of contents with page numbers.** Write `[[toc]]` where it should go.
@@ -94,7 +94,7 @@ More in the docs: [pick a theme](/docs/themes/pick-a-theme), [edit the cover pag
 
 ## Already have a .md file?
 
-Create a document, then choose **File › Import** and pick the file. Markdown files up to 10 MB load as they are. Word (.docx), PDF, PowerPoint, Excel, HTML and EPUB files up to 50 MB are converted to Markdown first. Then export with **File › Export › PDF**.
+Create a document, then choose **File › Import** and pick the file. Markdown files up to 10 MB load as they are. Word (.docx), PDF, PowerPoint, Excel, HTML and EPUB files (up to 10 MB on markoto.app's free plan, up to 50 MB when you self-host) are converted to Markdown first. Then export with **File › Export › PDF**.
 
 ::flow-strip{id="import-existing-document" frames="11" caption="An imported file in the editor, with the paged preview next to it."}
 ::
@@ -103,7 +103,7 @@ Create a document, then choose **File › Import** and pick the file. Markdown f
 
 - **The PDF is made on the server.** A new PDF takes a few seconds; asking again without changes is instant. You can export up to 10 PDFs a minute from one network. `Cmd/Ctrl + P` prints the same pages through your browser instead.
 - **Raw HTML is not rendered.** HTML tags in the Markdown show as text. Use Markdown syntax or the theme instead.
-- **Three page sizes.** A4, Letter and Legal. There are no custom page sizes.
+- **Four page sizes.** A4, A5, Letter and Legal. There are no custom page sizes.
 - **Images need an account.** Without one you can't upload pictures into a document.
 - **One document at a time.** There is no batch converter on the page. To export many documents from a script, use the [MCP server](/docs/ai/mcp) with an account.
 
@@ -125,7 +125,7 @@ items:
   - q: Which Markdown is supported?
     a: CommonMark and GitHub Markdown (tables, task lists, strikethrough, footnotes, alerts), plus LaTeX math, Mermaid diagrams and a few extensions such as highlights and definition lists. The Markdown cheat sheet lists them.
   - q: Can I use Letter size instead of A4?
-    a: Yes. Each theme sets the page size; A4, Letter and Legal are available, in portrait or landscape.
+    a: Yes. Each theme sets the page size; A4, A5, Letter and Legal are available, in portrait or landscape.
 ---
 ::
 

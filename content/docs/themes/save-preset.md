@@ -35,6 +35,8 @@ For shared team styling, you don't need to save personally: set the
 preset as the [workspace default theme](/docs/workspaces/default-theme)
 and every member sees it on every new doc.
 
+On markoto.app's free plan you can keep 3 saved themes; a self-hosted instance has no such limit unless its operator sets one.
+
 ## What's next
 
 - [Set a workspace default](/docs/workspaces/default-theme): same idea, but for a team.

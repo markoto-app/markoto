@@ -25,10 +25,10 @@ When in doubt, ask it to cite.
 
 ## Good to know
 
-- **It needs to be set up.** Web search only appears when the instance has a search key. On a self-hosted instance the operator adds `STAAN_API_KEY` ([self-hosting guide](https://github.com/markoto-app/markoto/blob/main/docs/SELF-HOSTING.md#ai)); without it the AI doesn't offer search.
+- **It needs to be set up.** Web search only appears when the instance has a search key. On a self-hosted instance the operator adds a search key ([self-hosting guide](https://github.com/markoto-app/markoto/blob/main/docs/SELF-HOSTING.md#ai)); without it the AI doesn't offer search.
 - **Each search uses 5 AI Points.** The search itself is paid for by the instance, so it counts against your monthly [AI Points](/docs/plans/ai-budget), also when you use your own provider. When your points are used up, the AI tells you and searches no more until they refill.
 - **You still need a writing assistant provider.** The AI that reads the results and writes the answer runs on your own provider or the instance default ([what the AI needs](/docs/ai/overview)). Without a provider, the raw results come back unsummarised.
-- **There is an allowance.** Search and page reading share a limit per person: by default 30 calls an hour and 100 a day. When it is used up the AI tells you and carries on without the web. An instance operator can change the numbers.
+- **There is an allowance.** Search and page reading share a limit per person: by default 30 calls an hour and 100 a day (on markoto.app's free plan 30 an hour and 20 a day). When it is used up the AI tells you and carries on without the web. An instance operator can change the numbers.
 - **Per session** the AI searches at most 10 times, so one prompt can't run away.
 - Searches are English-market searches today; the AI can still write the answer in your document's language.
 - **It may ask first.** If the AI has already read text other people wrote in this session, a **markoto asks first** card appears above the prompt bar with **Allow** and **Deny**. [Why it asks](/docs/ai/prompt-bar#when-the-ai-asks-first).

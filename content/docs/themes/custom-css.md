@@ -25,6 +25,8 @@ Try the theme settings first. They keep working when you switch presets,
 and the markoto assistant can change them for you. Reach for CSS when no
 setting does what you want.
 
+Custom CSS is available on every self-hosted instance. On markoto.app it is not part of the free plan: it needs a paid plan once plans launch.
+
 ## Where your CSS applies
 
 Everything you write in the editor ends up inside one element,

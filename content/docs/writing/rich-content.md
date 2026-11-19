@@ -32,7 +32,7 @@ You used the Insert menu to add four non-trivial markdown extensions:
 - **A KaTeX block equation.** Inline math (`$...$`) and block math
   (`$$...$$`) both render in the preview the moment you finish
   typing.
-- **A Mermaid pie chart.** Eight diagram kinds: flowchart, sequence,
+- **A Mermaid pie chart.** Ten diagram kinds are supported; the Insert menu has eight: flowchart, sequence,
   class, ER, Gantt, pie, mind-map, state. The Insert menu seeds a
   working starter snippet for each so you don't need to learn
   Mermaid's syntax cold.

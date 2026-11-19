@@ -33,13 +33,17 @@ What's in the ZIP:
 - `comments.ndjson`: every comment you wrote.
 - `workspace_memberships.json` and `workspace_invites.json`: the workspaces you belong to, and the invitations you received or sent.
 - `themes.json`: the themes you saved.
-- `ai/`: your AI sessions, prompts and the AI's steps, plus your AI provider settings (never the key).
+- `document_shares.json`, `sso_identities.json` and `brand_assets.json`: documents shared with you or by you as a guest share, the single sign-on connections your account is linked to, and the brand fonts and logos you uploaded to a workspace (the files stay with the workspace).
+- `published_pages.json` and `custom_domains.json`: your documents published as web pages, and your custom domains.
+- `imports.json`: the imports you started in the last 30 days (source, outcome, and per file its path and the document it became; file contents are not kept).
+- `ai/`: your AI sessions, prompts and the AI's steps, which AI sessions you started on which document, your large background AI edits (`jobs.ndjson`), plus your AI provider settings (never the key).
 - `activity.ndjson` and `audit.ndjson`: your entries in the activity and audit logs.
-- `consent.ndjson`: your cookie and analytics choices.
+- `consent.ndjson`: the consent decisions recorded for your account. markoto has no cookie banner, so in practice this holds only older records from the banner we used to show.
+- `ad_conversions.ndjson`: if you arrived from a Google ad and then signed up, joined the waitlist or created your first document: the ad's click identifier, which step it counted as and when (kept 90 days).
 - `waitlist.ndjson`: your paid-plans waitlist sign-up, if any.
 - `abuse_reports.ndjson`: reports you sent while signed in, with our decision and the emails we sent you about them.
 - `moderation_notices.ndjson`: the explanations we sent you if we removed or restricted one of your documents.
-- `billing/`: your billing records, empty where billing is off.
+- `billing/`: your billing records (customer, invoices, AI credits you bought, subscription history and workspace subscriptions you manage), empty where billing is off.
 
 Files that would be empty are still included, so the layout is always the
 same.

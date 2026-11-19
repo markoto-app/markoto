@@ -41,6 +41,8 @@ the **×** next to one to revoke it. A workspace can have up to 50 open
 invitations at a time, and there's an hourly limit on how many you can
 send.
 
+On markoto.app's free plan a workspace has up to 3 members; a self-hosted instance has no such limit unless its operator sets one. See [Plans and limits](/docs/plans/limits).
+
 ## What's next
 
 - [Pick the right role](/docs/workspaces/roles): admin / editor / viewer side-by-side.

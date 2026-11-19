@@ -26,6 +26,8 @@ Very large changes (pasting over the whole document, for example) are
 cut off after 200 changed passages; to see the full earlier text, use
 [restore](/docs/import-export/restore).
 
+The history you can browse is limited by your plan: 30 days on markoto.app's free plan, unlimited on a self-hosted instance unless its operator sets a limit.
+
 ## What's next
 
 - [Restore an earlier version](/docs/import-export/restore): rewind to that exact state.

@@ -29,7 +29,8 @@ seeded, markoto offered to either replace or append; you chose
 replace.
 
 The accepted formats: `.docx`, `.pdf`, `.pptx`, `.xlsx`, `.html`,
-`.htm`, `.epub`. Up to 50 MB. The conversion preserves structure;
+`.htm`, `.epub`. Up to 50 MB on a self-hosted instance (the
+limit an operator can lower), 10 MB on markoto.app's free plan. The conversion preserves structure;
 custom fonts and page chrome are dropped (you're going to re-style
 with a markoto theme anyway).
 
@@ -47,7 +48,7 @@ settings" to keep only the text. Settings that aren't valid are left out,
 and custom CSS rules that use another document's images are removed.
 
 A block written by another tool (Jekyll, Hugo, Obsidian and similar) is
-not markoto's, so it stays in your text, unchanged.
+not markoto's, so it stays in your text, unchanged. (When you import several files at once, a settings block like that is removed and only its title and description are kept: see [bulk import](/docs/import-export/bulk-import).)
 
 ## What's next
 
