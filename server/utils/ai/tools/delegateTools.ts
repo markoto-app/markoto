@@ -10,6 +10,7 @@ import {
   createJob,
   getJobProgress,
   getJobReport,
+  jobFollowUpStore,
   listJobFindings,
   previewJob,
   rerunJobUnits,
@@ -25,6 +26,8 @@ import type { AiJobParams, AiJobRow } from '../../../repos/aiJobs'
 import { getDoc } from '../../../repos/documents'
 import { appendAiMessage } from '../../../repos/aiSessionMessages'
 import { noteJobSeen } from '../jobs/sessionJobs'
+import { trackSessionFollowUps } from '../jobs/followUps'
+import { originOf } from './sectionEditShared'
 import { useLogger } from '../../platform/logger'
 import { aiStatus } from '~~/shared/ai/statusSteps'
 import type { JobConfirmationDetails } from '~~/shared/ai/jobConfirmation'
@@ -389,6 +392,13 @@ async function formatFindings(ctx: DocToolContext, jobId: string): Promise<strin
 async function statusResult(ctx: DocToolContext, jobId: string, step: string): Promise<ToolResult> {
   const report = await getJobReport(ctx.docAccess, jobId)
   await rememberJob(ctx, report.job, step)
+  // Corrections this session makes to the job's parts from now on are part
+  // of the job: "Undo job" puts them back too (staging: a translation undone
+  // after the planner's glossary fixes stayed half English).
+  if (report.job.mode !== 'comment') {
+    await trackSessionFollowUps(ctx, originOf(ctx), jobId, jobFollowUpStore(jobId))
+      .catch((e: unknown) => log.warn('job follow-up tracking failed', { err: e, jobId }))
+  }
   const parts = [formatReport(report)]
   if (report.job.mode === 'comment' && report.job.status === 'done') parts.push(await formatFindings(ctx, jobId))
   if (report.job.status === 'running') parts.push('The job is still running in the background. Tell the user in one short message that it continues and that its progress shows above the prompt bar, then stop.')

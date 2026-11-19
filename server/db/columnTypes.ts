@@ -181,7 +181,7 @@ export interface AuditEventShapes {
   'custom_domain.dropped': { metadata: { domainId: string, hostname: string, problem?: string } }
   'custom_domain.removed': { metadata: { domainId: string, hostname: string } }
   'ai.job.started': { metadata: { jobId: string, mode: string, units: number, resumed: boolean } }
-  'ai.job.reverted': { metadata: { jobId: string, mode: string, reverted: number, skipped: number } }
+  'ai.job.reverted': { metadata: { jobId: string, mode: string, reverted: number, followUps?: number, skipped: number } }
 }
 
 export type AuditAction = keyof AuditEventShapes

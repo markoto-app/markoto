@@ -22,7 +22,10 @@ Scripted behaviour keyed on the request:
     `FAKE_DIRECTIVE <tool_name> <json-args>`, it calls exactly that tool
     with those arguments (at most 6 tool turns); after a delegate_rewrite
     preview it follows the preview's "call delegate_rewrite with job_id
-    ... and action start"; otherwise it answers "Done." and the turn ends.
+    ... and action start"; once a delegate_rewrite report says the job
+    finished, it calls the `FAKE_AFTER_JOB <tool_name> <json-args>` line of
+    the document (a planner correcting the job's output); otherwise it
+    answers "Done." and the turn ends.
   - When the tool `propose_design` is offered ("Create a design from a
     document", a vision request), the reply calls it with DESIGN_PROPOSAL;
     once the prompt carries a `<previous_proposal>` (a comparison round)
@@ -92,6 +95,10 @@ DIRECTIVE_RE = re.compile(r"FAKE_DIRECTIVE\s+([a-z_]+)\s+(\{[^\n]*\})")
 # `action` runs preview, then start, like a real planner.
 JOB_START_RE = re.compile(r'call delegate_rewrite with job_id "([^"]+)" and action "start"')
 MAX_OBEDIENT_TOOL_TURNS = 6
+# The planner's correction after a finished job (delegateTools.ts
+# statusResult): read from the first tool result (the document).
+AFTER_JOB_RE = re.compile(r"FAKE_AFTER_JOB\s+([a-z_]+)\s+(\{[^\n]*\})")
+JOB_FINISHED_MARK = "Finished. Tell the user"
 
 # Delegated-job worker calls (server/utils/ai/jobs/workerPrompt.ts): the
 # system prompt starts with this sentence and the unit to transform is
@@ -175,6 +182,13 @@ def _obedient_tool_call(messages, names):
     start = JOB_START_RE.search(latest)
     if start:
         return ("delegate_rewrite", {"job_id": start.group(1), "action": "start"})
+    if JOB_FINISHED_MARK in latest:
+        after = AFTER_JOB_RE.search(_content_text(tool_messages[0]))
+        if after:
+            try:
+                return (after.group(1), json.loads(after.group(2)))
+            except ValueError:
+                return None
     match = DIRECTIVE_RE.search(latest)
     if not match:
         return None

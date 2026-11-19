@@ -838,7 +838,12 @@
       "interrupted": "Unterbrochen. Setze sie fort, um weiterzumachen.",
       "failed": "Die Bearbeitung im Hintergrund wurde gestoppt. {reason}",
       "reverted": "Rückgängig gemacht.",
-      "undone": "Rückgängig gemacht: {count} Teile wiederhergestellt.",
+      "undone": "Rückgängig gemacht: {count} Teil wiederhergestellt. | Rückgängig gemacht: {count} Teile wiederhergestellt.",
+      "undoneNothing": "Nichts wurde wiederhergestellt.",
+      "undoneFollowUps": "Inklusive der späteren Korrekturen von markoto in {count} Teil. | Inklusive der späteren Korrekturen von markoto in {count} Teilen.",
+      "keptEdited": "{count} Teil wurde nach der Bearbeitung noch geändert und bleibt so, damit diese Änderung erhalten bleibt: {headings}. | {count} Teile wurden nach der Bearbeitung noch geändert und bleiben so, damit diese Änderungen erhalten bleiben: {headings}.",
+      "keptDeleted": "{count} Teil gibt es nicht mehr: {headings}. | {count} Teile gibt es nicht mehr: {headings}.",
+      "keptExpired": "{count} Teil bleibt so, weil die Kopie zum Rückgängigmachen nur 7 Tage aufbewahrt wird: {headings}. | {count} Teile bleiben so, weil die Kopie zum Rückgängigmachen nur 7 Tage aufbewahrt wird: {headings}.",
       "skipped": "{count} Teile blieben unverändert.",
       "flagged": "{count} Teile solltest du ansehen."
     }

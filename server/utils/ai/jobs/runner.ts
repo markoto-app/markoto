@@ -428,7 +428,7 @@ export class JobRunner {
       applyMinimalDiff(ytext, at.start, at.end, next)
     }, jobOrigin(this.job.id))
     const rels = relativeRange(ytext, at.start, at.start + next.length)
-    await this.deps.store.updateUnit(unit.ordinal, { ...base, ...rels, status: 'applied', afterHash: unitRev(next), reason: stats.note })
+    await this.deps.store.updateUnit(unit.ordinal, { ...base, ...rels, status: 'applied', afterHash: unitRev(next), sessionAfterHash: null, reason: stats.note })
     await this.progress(delta, unit.headingPath)
     return { status: 'applied' }
   }

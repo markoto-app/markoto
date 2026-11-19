@@ -197,6 +197,10 @@ export const aiJobUnits = pgTable('ai_job_units', {
   beforeText: text('before_text'),
   // Hash of the text the job wrote; undo restores only while the current text still has it.
   afterHash: text('after_hash'),
+  // Hash of the unit after the AI session that ran the job corrected it
+  // further (a glossary fix after the job); undo treats that text as the
+  // job's own. Null when the session did not touch the unit.
+  sessionAfterHash: text('session_after_hash'),
   // Comment / scan results and preview samples: JSON, never applied to the document by the engine.
   output: jsonb('output').$type<AiJobUnitOutput>(),
   costUsd: doublePrecision('cost_usd').notNull().default(0),

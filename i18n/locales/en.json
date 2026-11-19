@@ -838,7 +838,12 @@
       "interrupted": "Interrupted. Resume it to continue.",
       "failed": "The background edit stopped. {reason}",
       "reverted": "Undone.",
-      "undone": "Undone: {count} parts restored.",
+      "undone": "Undone: {count} part restored. | Undone: {count} parts restored.",
+      "undoneNothing": "Nothing was restored.",
+      "undoneFollowUps": "This includes markoto's later corrections in {count} part. | This includes markoto's later corrections in {count} parts.",
+      "keptEdited": "{count} part was changed after the job and stays as it is, so that change is not lost: {headings}. | {count} parts were changed after the job and stay as they are, so those changes are not lost: {headings}.",
+      "keptDeleted": "{count} part no longer exists: {headings}. | {count} parts no longer exist: {headings}.",
+      "keptExpired": "{count} part stays as it is because the undo copy is kept for 7 days only: {headings}. | {count} parts stay as they are because the undo copy is kept for 7 days only: {headings}.",
       "skipped": "{count} parts left as they were.",
       "flagged": "{count} parts need a look."
     }

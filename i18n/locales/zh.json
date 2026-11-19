@@ -839,6 +839,11 @@
       "failed": "后台编辑已停止。{reason}",
       "reverted": "已撤销。",
       "undone": "已撤销:恢复了 {count} 部分。",
+      "undoneNothing": "没有恢复任何内容。",
+      "undoneFollowUps": "包括 markoto 之后在 {count} 部分中所做的修正。",
+      "keptEdited": "{count} 部分在处理之后又被修改过,为保留这些修改,保持不变:{headings}。",
+      "keptDeleted": "{count} 部分已不存在:{headings}。",
+      "keptExpired": "{count} 部分保持不变,因为用于撤销的副本只保留 7 天:{headings}。",
       "skipped": "{count} 部分保持原样。",
       "flagged": "{count} 部分需要查看。"
     }

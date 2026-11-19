@@ -1,0 +1,1 @@
+ALTER TABLE "ai_job_units" ADD COLUMN "session_after_hash" text;

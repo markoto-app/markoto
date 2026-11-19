@@ -838,7 +838,12 @@
       "interrupted": "Interrompue. Reprenez-la pour continuer.",
       "failed": "La modification en arrière-plan s’est arrêtée. {reason}",
       "reverted": "Défaite.",
-      "undone": "Défaite : {count} parties restaurées.",
+      "undone": "Annulée : {count} partie restaurée. | Annulée : {count} parties restaurées.",
+      "undoneNothing": "Rien n'a été restauré.",
+      "undoneFollowUps": "Y compris les corrections faites ensuite par markoto dans {count} partie. | Y compris les corrections faites ensuite par markoto dans {count} parties.",
+      "keptEdited": "{count} partie a été modifiée après le traitement et reste telle quelle, pour ne pas perdre cette modification : {headings}. | {count} parties ont été modifiées après le traitement et restent telles quelles, pour ne pas perdre ces modifications : {headings}.",
+      "keptDeleted": "{count} partie n'existe plus : {headings}. | {count} parties n'existent plus : {headings}.",
+      "keptExpired": "{count} partie reste telle quelle, car la copie d'annulation n'est gardée que 7 jours : {headings}. | {count} parties restent telles quelles, car la copie d'annulation n'est gardée que 7 jours : {headings}.",
       "skipped": "{count} parties laissées telles quelles.",
       "flagged": "{count} parties à vérifier."
     }

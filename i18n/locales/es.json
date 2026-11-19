@@ -838,7 +838,12 @@
       "interrupted": "Interrumpida. Reanúdala para continuar.",
       "failed": "La edición en segundo plano se detuvo. {reason}",
       "reverted": "Deshecha.",
-      "undone": "Deshecha: {count} partes restauradas.",
+      "undone": "Deshecha: {count} parte restaurada. | Deshecha: {count} partes restauradas.",
+      "undoneNothing": "No se restauró nada.",
+      "undoneFollowUps": "Incluye las correcciones posteriores de markoto en {count} parte. | Incluye las correcciones posteriores de markoto en {count} partes.",
+      "keptEdited": "{count} parte se modificó después del trabajo y se queda como está, para no perder ese cambio: {headings}. | {count} partes se modificaron después del trabajo y se quedan como están, para no perder esos cambios: {headings}.",
+      "keptDeleted": "{count} parte ya no existe: {headings}. | {count} partes ya no existen: {headings}.",
+      "keptExpired": "{count} parte se queda como está porque la copia para deshacer solo se guarda 7 días: {headings}. | {count} partes se quedan como están porque la copia para deshacer solo se guarda 7 días: {headings}.",
       "skipped": "{count} partes se dejaron como estaban.",
       "flagged": "{count} partes necesitan una revisión."
     }
