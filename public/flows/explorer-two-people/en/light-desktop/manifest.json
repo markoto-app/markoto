@@ -22,82 +22,82 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/biI63pTIWu"
+      "path": "/d/HGr9_mdt05"
     },
     {
       "kind": "outcome",
-      "file": "01.webp",
+      "file": "02.webp",
       "caption": "Maya is writing.",
       "cursor": {
         "x": 640,
         "y": 26
       },
-      "path": "/d/biI63pTIWu"
+      "path": "/d/HGr9_mdt05"
     },
     {
       "kind": "approach",
-      "file": "02.webp",
+      "file": "03.webp",
       "caption": "Sam right-clicks \"API design notes\"",
       "cursor": {
         "x": 764,
         "y": 467
       },
-      "path": "/w/ZH_Wtg46Nx/f/ZycF_3CXzYuJ",
-      "actor": "Sam"
-    },
-    {
-      "kind": "approach",
-      "file": "03.webp",
-      "caption": "and picks \"Move to...\"",
-      "cursor": {
-        "x": 844,
-        "y": 592
-      },
-      "path": "/w/ZH_Wtg46Nx/f/ZycF_3CXzYuJ",
+      "path": "/w/UBShHEAYfO/f/oSXkjzM2dAmy",
       "actor": "Sam"
     },
     {
       "kind": "approach",
       "file": "04.webp",
-      "caption": "Sam picks \"Archive\"",
+      "caption": "and picks \"Move to...\"",
       "cursor": {
-        "x": 490,
-        "y": 425
+        "x": 844,
+        "y": 592
       },
-      "path": "/w/ZH_Wtg46Nx/f/ZycF_3CXzYuJ",
+      "path": "/w/UBShHEAYfO/f/oSXkjzM2dAmy",
       "actor": "Sam"
     },
     {
       "kind": "approach",
       "file": "05.webp",
+      "caption": "Sam picks \"Archive\"",
+      "cursor": {
+        "x": 490,
+        "y": 425
+      },
+      "path": "/w/UBShHEAYfO/f/oSXkjzM2dAmy",
+      "actor": "Sam"
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
       "caption": "and clicks \"Move here\"",
       "cursor": {
         "x": 828,
         "y": 529
       },
-      "path": "/w/ZH_Wtg46Nx/f/ZycF_3CXzYuJ",
-      "actor": "Sam"
-    },
-    {
-      "kind": "outcome",
-      "file": "06.webp",
-      "caption": "The document is in Archive now.",
-      "cursor": {
-        "x": 828,
-        "y": 529
-      },
-      "path": "/w/ZH_Wtg46Nx/f/ZycF_3CXzYuJ",
+      "path": "/w/UBShHEAYfO/f/oSXkjzM2dAmy",
       "actor": "Sam"
     },
     {
       "kind": "outcome",
       "file": "07.webp",
+      "caption": "The document is in Archive now.",
+      "cursor": {
+        "x": 828,
+        "y": 529
+      },
+      "path": "/w/UBShHEAYfO/f/oSXkjzM2dAmy",
+      "actor": "Sam"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
       "caption": "Maya keeps typing: the move doesn't interrupt her",
       "cursor": {
         "x": 19,
         "y": 383
       },
-      "path": "/d/biI63pTIWu",
+      "path": "/d/HGr9_mdt05",
       "highlights": [
         {
           "label": "Still editing",
@@ -110,68 +110,68 @@
     },
     {
       "kind": "approach",
-      "file": "08.webp",
+      "file": "09.webp",
       "caption": "Sam right-clicks the Archive folder",
       "cursor": {
         "x": 764,
         "y": 463
       },
-      "path": "/w/ZH_Wtg46Nx",
+      "path": "/w/UBShHEAYfO",
       "actor": "Sam"
     },
     {
       "kind": "approach",
-      "file": "09.webp",
+      "file": "10.webp",
       "caption": "and picks \"Delete\"",
       "cursor": {
         "x": 851,
         "y": 780
       },
-      "path": "/w/ZH_Wtg46Nx",
+      "path": "/w/UBShHEAYfO",
       "actor": "Sam"
     },
     {
       "kind": "outcome",
-      "file": "10.webp",
+      "file": "11.webp",
       "caption": "Sam is told the folder holds one document.",
       "cursor": {
         "x": 851,
         "y": 780
       },
-      "path": "/w/ZH_Wtg46Nx",
+      "path": "/w/UBShHEAYfO",
       "actor": "Sam"
     },
     {
       "kind": "approach",
-      "file": "11.webp",
+      "file": "12.webp",
       "caption": "Sam confirms",
       "cursor": {
         "x": 841,
         "y": 518
       },
-      "path": "/w/ZH_Wtg46Nx",
-      "actor": "Sam"
-    },
-    {
-      "kind": "outcome",
-      "file": "12.webp",
-      "caption": "Archive and the document in it are deleted.",
-      "cursor": {
-        "x": 841,
-        "y": 518
-      },
-      "path": "/w/ZH_Wtg46Nx",
+      "path": "/w/UBShHEAYfO",
       "actor": "Sam"
     },
     {
       "kind": "outcome",
       "file": "13.webp",
+      "caption": "Archive and the document in it are deleted.",
+      "cursor": {
+        "x": 841,
+        "y": 518
+      },
+      "path": "/w/UBShHEAYfO",
+      "actor": "Sam"
+    },
+    {
+      "kind": "outcome",
+      "file": "14.webp",
       "caption": "Maya is told the document was deleted. Her text is still on screen.",
       "cursor": {
         "x": 319,
         "y": 383
       },
-      "path": "/d/biI63pTIWu",
+      "path": "/d/HGr9_mdt05",
       "highlights": [
         {
           "label": "Document deleted",
@@ -185,17 +185,17 @@
     },
     {
       "kind": "approach",
-      "file": "14.webp",
+      "file": "15.webp",
       "caption": "Maya clicks \"Download Markdown\"",
       "cursor": {
         "x": 780,
         "y": 476
       },
-      "path": "/d/biI63pTIWu"
+      "path": "/d/HGr9_mdt05"
     },
     {
       "kind": "outcome",
-      "file": "15.webp",
+      "file": "16.webp",
       "caption": "Her copy has everything she wrote, including the last sentence.",
       "cursor": null,
       "path": "Downloads/API design notes.md",

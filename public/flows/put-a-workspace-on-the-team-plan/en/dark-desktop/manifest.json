@@ -19,7 +19,7 @@
       "text": "Team is bought for a workspace, not for a person. You pay per seat, and everyone in the workspace gets Team inside it, with one shared AI budget for the month. Only workspace admins see the Billing tab.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/5ugxvdqJ5G"
+      "path": "/w/zcI8UHrh-O"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 950,
         "y": 283
       },
-      "path": "/w/5ugxvdqJ5G",
+      "path": "/w/zcI8UHrh-O",
       "annotations": [
         {
           "label": "Billing",
@@ -49,7 +49,7 @@
         "x": 950,
         "y": 283
       },
-      "path": "/w/5ugxvdqJ5G"
+      "path": "/w/zcI8UHrh-O"
     },
     {
       "kind": "outcome",
@@ -59,7 +59,7 @@
         "x": 950,
         "y": 283
       },
-      "path": "/w/5ugxvdqJ5G",
+      "path": "/w/zcI8UHrh-O",
       "highlights": [
         {
           "label": "Total",
@@ -78,7 +78,7 @@
         "x": 93,
         "y": 709
       },
-      "path": "/w/5ugxvdqJ5G"
+      "path": "/w/zcI8UHrh-O"
     },
     {
       "kind": "outcome",
@@ -88,7 +88,7 @@
         "x": 93,
         "y": 709
       },
-      "path": "/w/5ugxvdqJ5G"
+      "path": "/w/zcI8UHrh-O"
     },
     {
       "kind": "approach",
@@ -98,7 +98,7 @@
         "x": 173,
         "y": 747
       },
-      "path": "/w/5ugxvdqJ5G"
+      "path": "/w/zcI8UHrh-O"
     },
     {
       "kind": "outcome",
@@ -130,7 +130,7 @@
         "x": 1238,
         "y": 42
       },
-      "path": "/w/5ugxvdqJ5G",
+      "path": "/w/zcI8UHrh-O",
       "highlights": [
         {
           "label": "Team",
@@ -162,7 +162,7 @@
         "x": 1238,
         "y": 42
       },
-      "path": "/w/5ugxvdqJ5G"
+      "path": "/w/zcI8UHrh-O"
     },
     {
       "kind": "approach",
@@ -172,7 +172,7 @@
         "x": 831,
         "y": 595
       },
-      "path": "/w/5ugxvdqJ5G"
+      "path": "/w/zcI8UHrh-O"
     },
     {
       "kind": "outcome",
@@ -182,7 +182,7 @@
         "x": 831,
         "y": 595
       },
-      "path": "/w/5ugxvdqJ5G"
+      "path": "/w/zcI8UHrh-O"
     },
     {
       "kind": "approach",
@@ -192,7 +192,7 @@
         "x": 793,
         "y": 649
       },
-      "path": "/w/5ugxvdqJ5G"
+      "path": "/w/zcI8UHrh-O"
     },
     {
       "kind": "outcome",
@@ -202,7 +202,7 @@
         "x": 793,
         "y": 649
       },
-      "path": "/w/5ugxvdqJ5G"
+      "path": "/w/zcI8UHrh-O"
     },
     {
       "kind": "chapter",
@@ -217,7 +217,7 @@
         "x": 793,
         "y": 649
       },
-      "path": "/w/5ugxvdqJ5G"
+      "path": "/w/zcI8UHrh-O"
     },
     {
       "kind": "approach",
@@ -225,9 +225,9 @@
       "caption": "Save Ben's limit of 3,000 AI Points a month",
       "cursor": {
         "x": 1171,
-        "y": 618
+        "y": 786
       },
-      "path": "/w/5ugxvdqJ5G"
+      "path": "/w/zcI8UHrh-O"
     },
     {
       "kind": "outcome",
@@ -235,9 +235,9 @@
       "caption": "Ben can now use up to 3,000 of the workspace's AI Points this month.",
       "cursor": {
         "x": 1171,
-        "y": 618
+        "y": 786
       },
-      "path": "/w/5ugxvdqJ5G"
+      "path": "/w/zcI8UHrh-O"
     },
     {
       "kind": "chapter",
@@ -250,9 +250,9 @@
       "file": "16.webp",
       "cursor": {
         "x": 1171,
-        "y": 618
+        "y": 786
       },
-      "path": "/w/5ugxvdqJ5G"
+      "path": "/w/zcI8UHrh-O"
     },
     {
       "kind": "approach",
@@ -260,9 +260,9 @@
       "caption": "Tick the box for the AI Points",
       "cursor": {
         "x": 93,
-        "y": 284
+        "y": 452
       },
-      "path": "/w/5ugxvdqJ5G"
+      "path": "/w/zcI8UHrh-O"
     },
     {
       "kind": "outcome",
@@ -270,9 +270,9 @@
       "caption": "For AI Points the box also says that the right of withdrawal ends once they are used.",
       "cursor": {
         "x": 93,
-        "y": 284
+        "y": 452
       },
-      "path": "/w/5ugxvdqJ5G"
+      "path": "/w/zcI8UHrh-O"
     },
     {
       "kind": "approach",
@@ -280,9 +280,9 @@
       "caption": "Buy 25,000 AI Points for €25",
       "cursor": {
         "x": 639,
-        "y": 326
+        "y": 494
       },
-      "path": "/w/5ugxvdqJ5G"
+      "path": "/w/zcI8UHrh-O"
     },
     {
       "kind": "outcome",
@@ -290,7 +290,7 @@
       "caption": "Stripe takes the payment.",
       "cursor": {
         "x": 639,
-        "y": 326
+        "y": 494
       },
       "path": "/pay/c/cs_test_a1YS1URlnyQCN5fUUduORoQ7Pw41PJqDWkIVQCpJPqkfIhd6tVY8XB1OLY"
     },
@@ -302,7 +302,7 @@
         "x": 1238,
         "y": 42
       },
-      "path": "/w/5ugxvdqJ5G",
+      "path": "/w/zcI8UHrh-O",
       "highlights": [
         {
           "label": "Extra AI Points",
