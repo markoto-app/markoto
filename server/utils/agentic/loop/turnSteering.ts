@@ -47,6 +47,8 @@ export interface TurnSteeringInput {
   maxTurns: number
   /** `delegate_rewrite` is offered in this session. */
   canDelegate: boolean
+  /** The tool that answers the user: `message_to_user`, or `reply_to_comment` in a comment session. */
+  answerTool: string
 }
 
 function isReadOnlyTurn(calls: readonly string[]): boolean {
@@ -60,8 +62,8 @@ function readStreakNote(streak: number, left: number, canDelegate: boolean): str
   return `Note: the last ${streak} steps only read the document, and ${left} steps are left in this session.${delegate} Otherwise act on what you have read now; when you still need text, read several sections in one step.`
 }
 
-function reserveNote(left: number): string {
-  return `Note: ${left} steps are left before this session stops. Use them to finish the task (make the edit, start the job) and then answer the user with message_to_user. Do not spend them reading.`
+function reserveNote(left: number, answerTool: string): string {
+  return `Note: ${left} steps are left before this session stops. Use them to finish the task (make the edit, start the job) and then answer the user with ${answerTool}. Do not spend them reading.`
 }
 
 export class TurnSteering {
@@ -103,7 +105,7 @@ export class TurnSteering {
     }
     if (!this.reserveNoted && left <= STEP_RESERVE_TURNS) {
       this.reserveNoted = true
-      notes.push(reserveNote(left))
+      notes.push(reserveNote(left, input.answerTool))
     }
     return { note: notes.length > 0 ? notes.join('\n') : null, closeForJob: false }
   }

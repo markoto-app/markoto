@@ -11,7 +11,7 @@ import { initialUserParts } from './promptAssembly'
 import { useLogger } from '../platform/logger'
 import { SessionBudget, sessionCapStatus } from './loop/sessionBudget'
 import { SessionTelemetry } from './loop/sessionTelemetry'
-import { readDocText, throwIfAborted, toolErrorResponse, type LoopContext, type ResponseParts, type RunLoopOptions, type TurnResult, type WrapUpReason } from './loop/loopContext'
+import { isCommentTriggerSession, readDocText, throwIfAborted, toolErrorResponse, type LoopContext, type ResponseParts, type RunLoopOptions, type TurnResult, type WrapUpReason } from './loop/loopContext'
 import { streamTurn } from './loop/providerStream'
 import { salvageProseTurn } from './loop/salvage'
 import { dispatchToolCall } from './loop/toolDispatch'
@@ -212,7 +212,8 @@ async function dispatchToolCallsForTurn(
     calls: functionCalls.map(c => c.name ?? ''),
     turn: turnCount,
     maxTurns: MAX_TURNS,
-    canDelegate: ctx.toolDeclarations.some(d => d.name === 'delegate_rewrite')
+    canDelegate: ctx.toolDeclarations.some(d => d.name === 'delegate_rewrite'),
+    answerTool: isCommentTriggerSession(ctx) ? 'reply_to_comment' : 'message_to_user'
   })
   ctx.contents.push({ role: 'user', parts: steer.note ? [...responseParts, { text: steer.note }] : responseParts })
   if (steer.closeForJob) {

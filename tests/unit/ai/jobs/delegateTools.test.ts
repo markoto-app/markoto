@@ -176,6 +176,7 @@ describe('delegate_rewrite: start', () => {
     expect(res.countsAsEdit).toBe(true)
     expect(res.content).toMatch(/status: running/)
     expect(res.content).toMatch(/runs in the background/)
+    expect(res.settlesJob).toBe('running')
     expect(confirmJob).toHaveBeenCalledTimes(1)
     expect(confirmJob).toHaveBeenCalledWith(expect.objectContaining({ mode: 'translate', minutes: 0.2 }))
   })
@@ -238,11 +239,30 @@ describe('delegate_rewrite: start', () => {
       await vi.advanceTimersByTimeAsync(2_500)
       const res = await pending
       expect(res.countsAsEdit).toBe(true)
+      expect(res.settlesJob).toBe('finished')
       expect(res.content).toMatch(/status: done/)
       expect(res.content).toMatch(/- u2 skipped "Zwei": "Changed by someone else/)
+      // The report is the result: the planner looks at the listed parts only.
+      expect(res.content).toMatch(/do not read the changed sections to verify them\. Only the parts listed above may need a look/)
     } finally {
       vi.useRealTimers()
     }
+  })
+})
+
+describe('delegate_rewrite: status of a finished rewrite', () => {
+  it('without flagged parts it tells the planner to answer, not to read', async () => {
+    engine.getJobReport.mockResolvedValue({ job: jobRow({ status: 'done', unitsDone: 12, unitsTotal: 12 }), notes: [] })
+    const res = await executeFunctionByName(makeCtx(), 'delegate_rewrite', { job_id: 'j-abcdef123456', action: 'status' })
+    expect(res.isError).toBe(false)
+    expect(res.settlesJob).toBe('finished')
+    expect(res.content).toMatch(/No part was flagged or skipped\. Tell the user in one short message/)
+  })
+
+  it('a failed job does not settle the session (the planner may still act)', async () => {
+    engine.getJobReport.mockResolvedValue({ job: jobRow({ status: 'failed' }), notes: [] })
+    const res = await executeFunctionByName(makeCtx(), 'delegate_rewrite', { job_id: 'j-abcdef123456', action: 'status' })
+    expect(res.settlesJob).toBeUndefined()
   })
 })
 
@@ -261,6 +281,8 @@ describe('delegate_rewrite: status of a comment job', () => {
     const lines = res.content.split('\n').filter(l => l.startsWith('- ['))
     expect(lines[0]).toMatch(/^- \[high\] u2 "Zwei": quote "Zweiter Text"; create_comment \{"start_line":7,"end_line":7,"body":"Unklar. Suggestion: Präzisieren."\}$/)
     expect(lines[1]).toMatch(/^- \[low\]/)
+    // The findings still have to be posted: a comment job does not end the session.
+    expect(res.settlesJob).toBeUndefined()
   })
 })
 
@@ -276,6 +298,8 @@ describe('delegate_scan', () => {
     expect(res.isError).toBe(false)
     expect(res.content).toMatch(/^Scan \(terms\) over 1 chunk; cost 3 AI points\./)
     expect(res.content).toMatch(/^- "Text" x2 in "Eins", "Zwei" e\.g\. "Zweiter ‹Text›"$/m)
+    // The next step is the job, not reading the target sections.
+    expect(res.content.split('\n').at(-1)).toMatch(/^Next, for a translation or rewrite: .*call delegate_rewrite .*Do not read the target sections first/)
   })
 
   it('custom needs an instruction (schema)', async () => {
