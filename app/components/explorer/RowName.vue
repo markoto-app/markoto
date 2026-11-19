@@ -77,8 +77,38 @@ function onFocus() {
   const el = inputEl()
   if (el && draft.value === props.item.label) el.select()
 }
+// The selection above can still be lost to a re-render or a focus hand-back
+// that lands between the field appearing and the first keystroke: typing then
+// went in front of the old name ("ResearchNew folder"). So the first edit of
+// an untouched field replaces the whole name no matter where the caret is.
+// Moving the caret or clicking into the field first ends that, like any
+// editor.
+let pristine = false
+function onBeforeInput(e: InputEvent) {
+  if (!pristine) return
+  pristine = false
+  if (e.inputType.startsWith('insert')) {
+    const text = e.data ?? e.dataTransfer?.getData('text/plain') ?? ''
+    e.preventDefault()
+    draft.value = text
+    void nextTick(() => {
+      const el = inputEl()
+      el?.setSelectionRange(text.length, text.length)
+    })
+  } else if (e.inputType.startsWith('delete')) {
+    e.preventDefault()
+    draft.value = ''
+  }
+}
+function onFieldPointerDown() {
+  pristine = false
+}
+function onCaretKey(e: KeyboardEvent) {
+  if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) pristine = false
+}
 watch(() => props.renaming, async (on) => {
   if (!on) return
+  pristine = true
   holdFocusUntil = Date.now() + 700
   draft.value = props.item.label
   await nextTick()
@@ -162,6 +192,9 @@ const snippet = computed(() => props.item.kind === 'doc' && props.item.doc.snipp
           @keydown.esc.prevent="cancel"
           @focus="onFocus"
           @blur="onBlur"
+          @beforeinput="onBeforeInput"
+          @keydown="onCaretKey"
+          @pointerdown="onFieldPointerDown"
         />
         <p
           v-if="problem"
