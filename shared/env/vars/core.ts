@@ -219,6 +219,15 @@ export const test = defineNamespace({
       scope: 'test',
       notPassed: 'set by the test harness only'
     }),
+    crossrefOrigin: v({
+      name: 'TEST_CROSSREF_ORIGIN',
+      type: string,
+      default: '',
+      doc: 'With TEST_MODE: origin of a fake Crossref that DOI lookups call instead of api.crossref.org (plain HTTP, no address checks).',
+      services: ['app'],
+      scope: 'test',
+      notPassed: 'set by the test harness only'
+    }),
     exposeTestHandles: v({
       name: 'NUXT_PUBLIC_EXPOSE_TEST_HANDLES',
       type: bool,

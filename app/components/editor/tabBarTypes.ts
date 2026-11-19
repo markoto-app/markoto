@@ -6,4 +6,5 @@ export type TabName
     | 'activity'
     | 'theme'
     | 'knowledge'
+    | 'references'
     | 'editor'

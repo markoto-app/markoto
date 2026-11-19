@@ -8,6 +8,7 @@ import { documentTexts } from '~~/shared/utils/documents/documentLocale'
 import type { BrandFont } from '~~/shared/config/brandKit'
 import { createCustomCssCache, createFileTokenGate } from './previewRenderInputs'
 import type { PreviewZoomCommand } from '~/composables/preview/usePreviewZoom'
+import type { CitationInputs, ReferenceProblem } from '~/utils/markdown/citationResolve'
 import {
   PREVIEW_SANDBOX,
   appIsDark,
@@ -53,6 +54,10 @@ export interface PagedPreviewOptions {
   container: Ref<HTMLElement | null>
   /** The workspace's brand-kit fonts; none outside a workspace. */
   brandFonts?: Ref<readonly BrandFont[] | null>
+  /** The document's bibliography and citation style; none = citations stay unresolved markers. */
+  citations?: Ref<CitationInputs | null>
+  /** Unknown citation keys / labels after each render (the editor's warning list). */
+  onReferenceProblems?: (problems: ReferenceProblem[]) => void
   /**
    * Fired when the user presses Cmd/Ctrl+P while focus is INSIDE the
    * preview iframe. The parent's document-level handler doesn't see
@@ -186,7 +191,10 @@ export function usePagedPreview(opts: PagedPreviewOptions) {
       theme,
       title: opts.title.value || '',
       date: documentTexts(theme, language).date,
-      bodyHtml: opts.html.value
+      bodyHtml: opts.html.value,
+      language,
+      citations: opts.citations?.value ?? null,
+      onReferenceProblems: opts.onReferenceProblems
     })
     const rawCustomCss = theme.customCss ?? ''
     // No document (the marketing `::try-it` block): there are no uploads to
@@ -219,7 +227,7 @@ export function usePagedPreview(opts: PagedPreviewOptions) {
   const debouncedRender = useDebounceFn(render, 250)
 
   let firstRender = true
-  watch([opts.html, opts.theme, opts.title, () => opts.language?.value, () => opts.brandFonts?.value], () => {
+  watch([opts.html, opts.theme, opts.title, () => opts.language?.value, () => opts.brandFonts?.value, () => opts.citations?.value], () => {
     if (firstRender) {
       firstRender = false
       render() // immediate first paint after sync

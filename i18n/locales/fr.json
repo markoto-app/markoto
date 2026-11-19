@@ -480,6 +480,39 @@
       "help": "Indique à markoto à qui ce document s'adresse. Influence le ton, la structure et le choix des mots."
     }
   },
+  "references": {
+    "title": "Références",
+    "style": {
+      "label": "Style de citation",
+      "help": "La façon dont les citations et la bibliographie sont rédigées. S'applique à l'ensemble du document."
+    },
+    "problemsTitle": "Un problème dans le document | {n} problèmes dans le document",
+    "problem": {
+      "missing-citation": "{key} ne figure pas dans la bibliographie.",
+      "missing-label": "Aucune figure, table, équation ni section n'a l'étiquette {key}.",
+      "duplicate-label": "L'étiquette {key} est utilisée plusieurs fois."
+    },
+    "addDoi": "Ajouter par DOI",
+    "addPaste": "Coller du BibTeX",
+    "addFile": "Importer un fichier",
+    "doiSignIn": "Connectez-vous pour ajouter des références par DOI.",
+    "doiPlaceholder": "10.1000/xyz123 ou un lien doi.org",
+    "pastePlaceholder": "Collez des entrées BibTeX, CSL JSON ou CSL YAML, par exemple depuis Zotero ou Google Scholar",
+    "add": "Ajouter",
+    "addedCount": "Aucune référence ajoutée. | 1 référence ajoutée. | {n} références ajoutées.",
+    "replacedCount": "1 entrée existante mise à jour. | {n} entrées existantes mises à jour.",
+    "skippedCount": "1 entrée illisible ignorée. | {n} entrées illisibles ignorées.",
+    "nothingFound": "Aucune référence trouvée. Collez du BibTeX (depuis Zotero, Google Scholar ou la page d'un éditeur) ou du CSL JSON.",
+    "fileTooLarge": "Ce fichier est trop volumineux (4 Mo maximum).",
+    "doiFailed": "Impossible d'ajouter le DOI",
+    "entries": "Aucune entrée | 1 entrée | {n} entrées",
+    "search": "Rechercher des références",
+    "empty": "Aucune référence pour l'instant. Ajoutez-en une par DOI, collez du BibTeX ou importez un fichier .bib depuis Zotero.",
+    "cite": "Insérer une citation",
+    "remove": "Retirer de la bibliographie",
+    "syntaxHelp": "Citez avec [{'@'}key] ou [{'@'}key, p. 12]. La bibliographie apparaît à l'emplacement de [[bibliography]], sous un titre Références vide, ou à la fin du document.",
+    "unknownKey": "{key} ne figure pas dans la bibliographie et n'est pas une étiquette de ce document."
+  },
   "audiences": {
     "technical": {
       "label": "Technique",
@@ -577,6 +610,11 @@
       "diagramPie": "Diagramme circulaire",
       "diagramMindmap": "Carte mentale",
       "toc": "Table des matières",
+      "references": "Références",
+      "citation": "Citation",
+      "bibliography": "Bibliographie",
+      "listOfFigures": "Liste des figures",
+      "listOfTables": "Liste des tableaux",
       "definitionList": "Liste de définitions"
     },
     "format": {
@@ -765,6 +803,10 @@
       "fetchUrl": "Ouverture de {url}",
       "fetchUrlAny": "Ouverture d’une page web…",
       "readDocument": "Lecture du document…",
+      "readReferences": "Lecture de la bibliographie…",
+      "addReference": "Recherche du DOI {doi}",
+      "addReferenceAny": "Recherche d'un DOI…",
+      "checkCitations": "Vérification des citations…",
       "editPassage": "Modification de « {passage} »",
       "editDocument": "Modification du document…",
       "insertText": "Insertion de texte…",

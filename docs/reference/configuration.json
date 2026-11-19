@@ -6324,6 +6324,24 @@
       "deprecatedNames": []
     },
     {
+      "name": "TEST_CROSSREF_ORIGIN",
+      "namespace": "test",
+      "key": "crossrefOrigin",
+      "type": "string",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "TEST_CROSSREF_ORIGIN"
+      },
+      "scope": "test",
+      "required": null,
+      "secret": false,
+      "default": "",
+      "passedByCompose": false,
+      "deprecatedNames": []
+    },
+    {
       "name": "NUXT_PUBLIC_EXPOSE_TEST_HANDLES",
       "namespace": "test",
       "key": "exposeTestHandles",

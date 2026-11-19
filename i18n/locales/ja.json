@@ -480,6 +480,39 @@
       "help": "このドキュメントが誰向けに書かれているかをmarkotoに伝えます。トーン、構成、言葉選びに影響します。"
     }
   },
+  "references": {
+    "title": "参考文献",
+    "style": {
+      "label": "引用スタイル",
+      "help": "引用と文献リストの書き方です。ドキュメント全体に適用されます。"
+    },
+    "problemsTitle": "ドキュメントに 1 件の問題があります | ドキュメントに {n} 件の問題があります",
+    "problem": {
+      "missing-citation": "{key} は文献リストにありません。",
+      "missing-label": "ラベル {key} の図、表、数式、節はありません。",
+      "duplicate-label": "ラベル {key} が複数回使われています。"
+    },
+    "addDoi": "DOIで追加",
+    "addPaste": "BibTeXを貼り付け",
+    "addFile": "ファイルをインポート",
+    "doiSignIn": "DOIで参考文献を追加するにはサインインしてください。",
+    "doiPlaceholder": "10.1000/xyz123 または doi.org のリンク",
+    "pastePlaceholder": "BibTeX、CSL JSON、CSL YAML のエントリを貼り付けてください（Zotero や Google Scholar など）",
+    "add": "追加",
+    "addedCount": "参考文献は追加されませんでした。 | 参考文献を 1 件追加しました。 | 参考文献を {n} 件追加しました。",
+    "replacedCount": "既存のエントリを 1 件更新しました。 | 既存のエントリを {n} 件更新しました。",
+    "skippedCount": "読み取れないエントリを 1 件スキップしました。 | 読み取れないエントリを {n} 件スキップしました。",
+    "nothingFound": "参考文献が見つかりません。BibTeX（Zotero、Google Scholar、出版社のページから）または CSL JSON を貼り付けてください。",
+    "fileTooLarge": "ファイルが大きすぎます（最大 4 MB）。",
+    "doiFailed": "DOIを追加できませんでした",
+    "entries": "エントリなし | 1 件のエントリ | {n} 件のエントリ",
+    "search": "参考文献を検索",
+    "empty": "参考文献はまだありません。DOIで追加するか、BibTeX を貼り付けるか、Zotero の .bib ファイルをインポートしてください。",
+    "cite": "引用を挿入",
+    "remove": "文献リストから削除",
+    "syntaxHelp": "引用は [{'@'}key] または [{'@'}key, p. 12] と書きます。文献リストは [[bibliography]] の位置、空の「参考文献」見出しの下、またはドキュメントの末尾に表示されます。",
+    "unknownKey": "{key} は文献リストになく、このドキュメントのラベルでもありません。"
+  },
   "audiences": {
     "technical": {
       "label": "技術者向け",
@@ -577,6 +610,11 @@
       "diagramPie": "円グラフ",
       "diagramMindmap": "マインドマップ",
       "toc": "目次",
+      "references": "参考文献",
+      "citation": "引用",
+      "bibliography": "文献リスト",
+      "listOfFigures": "図の一覧",
+      "listOfTables": "表の一覧",
       "definitionList": "定義リスト"
     },
     "format": {
@@ -765,6 +803,10 @@
       "fetchUrl": "{url} を開いています",
       "fetchUrlAny": "ウェブページを開いています…",
       "readDocument": "ドキュメントを読んでいます…",
+      "readReferences": "文献リストを読んでいます…",
+      "addReference": "DOI {doi} を検索中",
+      "addReferenceAny": "DOIを検索中…",
+      "checkCitations": "引用を確認中…",
       "editPassage": "「{passage}」を編集中",
       "editDocument": "ドキュメントを編集中…",
       "insertText": "テキストを挿入中…",

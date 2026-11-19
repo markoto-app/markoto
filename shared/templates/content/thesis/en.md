@@ -45,15 +45,15 @@
 
 ## Related work
 
-<!-- Two to four themes, one section each if they are long. Synthesise rather than summarise paper by paper. -->
+<!-- Two to four themes, one section each if they are long. Synthesise rather than summarise paper by paper. Cite with [@key] or [@key, p. 12], using the keys of the sources you added in the References panel. -->
 
 # Method
 
-<!-- How you answered the research questions, in enough detail to reproduce: design, data or materials, procedure, tools and how you evaluated. Justify each choice against the alternatives. Number display equations you refer to with \tag{1}. -->
+<!-- How you answered the research questions, in enough detail to reproduce: design, data or materials, procedure, tools and how you evaluated. Justify each choice against the alternatives. Give a display equation you refer to a label such as {#eq:model} after its closing $$; it is numbered for you, and @eq:model in the text prints its number. -->
 
 $$
-y = f(x) \tag{1}
-$$
+y = f(x)
+$$ {#eq:model}
 
 ## Data
 
@@ -67,11 +67,13 @@ Step one.[^1]
 
 # Results
 
-<!-- What you found, per research question, without interpretation. Each claim points to a table or figure ("Table 4.1 shows …"). A table's caption goes on a "Table:" line directly above it; a figure is an image alone in its paragraph, its alt text becomes the caption. -->
+<!-- What you found, per research question, without interpretation. Each claim points to a table or figure. A table's caption goes on a "Table:" line directly above it, a figure is an image alone in its paragraph with its alt text as the caption; give each a label ({#tbl:name} at the end of the caption, {#fig:name} after the image) and write @tbl:name in the text, which prints "Table 4.1". -->
 
 ## First result
 
-Table: Caption of the table.
+@tbl:results compares the conditions.
+
+Table: Caption of the table. {#tbl:results}
 
 | Condition | Measure | Measure |
 |---|--:|--:|
@@ -94,11 +96,9 @@ Table: Caption of the table.
 
 # Bibliography {.unnumbered}
 
-<!-- One paragraph per entry, alphabetical by first author's surname, in the style your department asks for (author–year shown here); the theme sets a hanging indent. There is no BibTeX: type the entries by hand. -->
+<!-- Generated from the sources you cite. Add them in the References panel (book icon above the sidebar): by DOI, by pasting BibTeX, or by importing a .bib or CSL JSON export from Zotero. Pick the style your department asks for there (APA, Chicago, Harvard, IEEE, Vancouver, DIN 1505-2). -->
 
-Author, A., & Author, B. (Year). Title of the article. *Journal Name*, *1*(1), 1–10.
-
-Author, C. (Year). *Title of the book*. Publisher.
+[[bibliography]]
 
 # Appendix {.unnumbered}
 

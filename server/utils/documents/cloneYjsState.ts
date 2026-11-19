@@ -4,6 +4,9 @@ import { withThemeDocId } from '~~/shared/utils/theme/customCss'
 import { withThemeImagesDocId } from '~~/shared/utils/theme/themeImages'
 import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
 import type { DocAccess } from '../../repos/proofs'
+import { BIBLIOGRAPHY_ROOT } from '~~/shared/utils/citations/docBibliography'
+import { serializeItem } from '~~/shared/utils/citations/cslItem'
+import { readDocCitations } from '../citations/docCitations'
 
 // Clones Y.js state from one docId to another, rewriting image URLs so the
 // target's markdown references its own `/api/files/{targetDocId}/...` paths.
@@ -72,6 +75,10 @@ export async function cloneYjsStateWithUrlRewrite(
   })
 
   if (overrides?.title !== undefined && targetMeta.has('title')) targetMeta.set('title', overrides.title)
+
+  // The bibliography travels with the text that cites it (validated entries only).
+  const targetBib = targetDoc.getMap(BIBLIOGRAPHY_ROOT)
+  for (const item of readDocCitations(sourceDoc).items) targetBib.set(item.id, serializeItem(item))
 
   await appendYjsUpdate(target, Y.encodeStateAsUpdate(targetDoc))
 }

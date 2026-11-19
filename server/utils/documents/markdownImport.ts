@@ -9,6 +9,8 @@ import { isBoundedJsonValue, META_THEME_MAX_DEPTH, META_THEME_MAX_NODES } from '
 import { adaptCustomCssToDoc, sanitizeCustomCss } from '~~/shared/utils/theme/customCss'
 import { themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
 import { splitAnyFrontmatter, splitMarkotoFrontmatter, type ImportedDocProperties } from '~~/shared/utils/markdown/markdownFrontmatter'
+import { cslItemsFrom } from '~~/shared/utils/citations/bibImport'
+import { isCitationStyleId } from '~~/shared/utils/citations/citationStyles'
 
 /**
  * Server side of the Markdown import (`POST /api/import` with a `.md`
@@ -62,6 +64,8 @@ export function importMarkdownFile(
   take('audience', isAudienceKind(data.audience) ? data.audience : undefined)
   take('language', readString(data.language, LANGUAGE_MAX_LENGTH, false))
   take('templateId', resolveTemplateId(data.templateId) ?? undefined)
+  take('citationStyle', isCitationStyleId(data.citationStyle) ? data.citationStyle : undefined)
+  readReferences(data, properties, ignored)
 
   let droppedCustomCssRules = 0
   if ('theme' in data) {
@@ -166,4 +170,16 @@ function readTheme(
     }
   }
   return { theme, droppedCustomCssRules, customCssRemoved }
+}
+
+/** The bibliography (`references:`): every entry normalised like any other import; unreadable entries are dropped and reported. */
+function readReferences(data: Record<string, unknown>, properties: ImportedDocProperties, ignored: string[]): void {
+  if (!('references' in data)) return
+  if (!Array.isArray(data.references)) {
+    ignored.push('references')
+    return
+  }
+  const refs = cslItemsFrom(data.references)
+  if (refs.items.length > 0) properties.references = refs.items
+  if (refs.skipped > 0) ignored.push('references')
 }

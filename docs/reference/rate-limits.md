@@ -20,6 +20,7 @@ The request limits the app and the sync server enforce, with the file each value
 | Anonymous-gate challenge | 60 per client per minute | `server/api/anon-gate/challenge.get.ts` |
 | Document delete | 10 per client per minute | `server/api/docs/[docId]/index.delete.ts` |
 | Share settings | 30 per user per 10 minutes | `server/api/docs/[docId]/share-settings/index.put.ts` |
+| DOI lookup (References panel) | 30 per user per 10 minutes | `server/api/citations/doi.post.ts` |
 | Publish a page | 30 per user per hour | `shared/config/publish.ts` |
 | Published page files | 300 per client per minute | `server/api/published/[pageId]/[kind]/[file].get.ts` |
 | Workspace brand files for a document | 300 per client per minute | `server/api/docs/[docId]/brand/[file].get.ts` |

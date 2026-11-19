@@ -133,6 +133,12 @@
       "too-many-fonts": "ワークスペースに登録できるフォントファイルは {limit} 個までです。",
       "too-many-images": "ワークスペースに登録できるブランド画像は {limit} 枚までです。"
     },
+    "citations": {
+      "doi-invalid": "これはDOIではありません。DOIは 10.1000/xyz123 のような形式です。",
+      "doi-not-found": "このDOIは Crossref に登録されていません。DOIを確認するか、BibTeX として参考文献を追加してください。",
+      "doi-lookup-failed": "Crossref でのDOI検索に失敗しました。しばらくしてからもう一度お試しください。",
+      "rate-limited": "DOI検索が多すぎます。数分待ってからもう一度お試しください。"
+    },
     "common": {
       "internal": "こちら側で問題が発生しました。もう一度お試しください。この問題は当方に通知されています。"
     },

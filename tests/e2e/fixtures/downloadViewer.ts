@@ -68,6 +68,26 @@ export async function showTextFile(page: Page, text: string): Promise<void> {
 }
 
 /**
+ * The text of every page of `pdf`, extracted with pdf.js in `page` (which
+ * is navigated to a blank document). For assertions on what the PDF says.
+ */
+export async function pdfText(page: Page, pdf: Buffer): Promise<string> {
+  await page.setContent('<!doctype html><html><head><meta charset="utf-8"></head><body></body></html>')
+  return page.evaluate(async ({ base64, version }) => {
+    const pdfjs = await import(/* @vite-ignore */ `https://cdn.jsdelivr.net/npm/pdfjs-dist@${version}/build/pdf.min.mjs`)
+    pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${version}/build/pdf.worker.min.mjs`
+    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0))
+    const doc = await pdfjs.getDocument({ data: bytes }).promise
+    const parts: string[] = []
+    for (let n = 1; n <= doc.numPages; n++) {
+      const content = await (await doc.getPage(n)).getTextContent()
+      parts.push(content.items.map((item: { str?: string }) => item.str ?? '').join(' '))
+    }
+    return parts.join('\n')
+  }, { base64: pdf.toString('base64'), version: PDFJS_VERSION })
+}
+
+/**
  * Open `url` in `page` showing the first `pages` pages of `pdf`.
  * Resolves once every page is drawn; returns the PDF's page count.
  */

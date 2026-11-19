@@ -7,7 +7,7 @@ keywords:
   - markdown math katex
   - latex math in markdown
   - markdown with diagrams pdf
-updated: '2026-11-04'
+updated: '2026-11-19'
 navGroup: use-cases
 navLabel: Diagrams and math
 navOrder: 50
@@ -168,7 +168,7 @@ The [Markdown cheat sheet](/markdown-cheat-sheet) lists every syntax with exampl
 - **Mermaid only.** Graphviz, PlantUML, Vega-Lite and music notation are not rendered; they show as code blocks.
 - **KaTeX, not full LaTeX.** KaTeX draws LaTeX math, but there are no LaTeX packages, document classes or macro files. For papers that need those, LaTeX or Typst fits better; see [markoto vs Overleaf](/compare/overleaf) and [markoto vs Typst](/compare/typst).
 - **No drawing tool.** Diagrams are written as text. There is no canvas to drag boxes around.
-- **No citations.** BibTeX references are not supported yet.
+- **Six citation styles.** Citations from BibTeX work ([Citations, bibliography and cross-references](/docs/writing/citations)), but only in the built-in styles.
 
 ## Questions
 

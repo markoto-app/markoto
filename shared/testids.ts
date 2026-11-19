@@ -54,6 +54,7 @@ export const TESTID = {
   SIDEBAR_TAB_ACTIVITY: 'sidebar-tab-activity',
   SIDEBAR_TAB_THEME: 'sidebar-tab-theme',
   SIDEBAR_TAB_KNOWLEDGE: 'sidebar-tab-knowledge',
+  SIDEBAR_TAB_REFERENCES: 'sidebar-tab-references',
 
   // Mobile bottom drawer (EditorCommandsPanel insert grid)
   ECP_INSERT_CODE_BLOCK: 'ecp-insert-code-block',

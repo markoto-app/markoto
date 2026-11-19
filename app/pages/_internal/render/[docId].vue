@@ -15,6 +15,7 @@ import { sanitizeCustomCssForRender } from '~/utils/preview/customCssLoader'
 import { themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
 import { attachRenderFileTokens, renderBrandFileUrl, withRenderFileToken, type RenderFileAccess } from '~/utils/preview/renderFileTokens'
 import { brandFontFaceCss } from '~~/shared/utils/theme/brandFonts'
+import { citationStyleOf } from '~~/shared/utils/citations/citationStyles'
 
 // Cheap structural sanity check, the bootstrap endpoint already returns
 // a DB-validated theme, so we just need a guard against truly broken
@@ -126,7 +127,13 @@ onMounted(async () => {
     theme,
     title,
     date: texts.date,
-    bodyHtml
+    bodyHtml,
+    language: bootstrap.value?.language ?? '',
+    // Validated server-side from Y.js (render-bootstrap, readDocCitations).
+    citations: {
+      items: bootstrap.value?.bibliography ?? [],
+      style: citationStyleOf(bootstrap.value?.citationStyle)
+    }
   })
   html = attachRenderFileTokens(html, fileAccess)
 

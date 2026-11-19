@@ -14,6 +14,7 @@ import { auditErrors } from './audit'
 import { authErrors } from './auth'
 import { billingErrors } from './billing'
 import { brandErrors } from './brand'
+import { citationsErrors } from './citations'
 import { consentErrors } from './consent'
 import { csrfErrors } from './csrf'
 import { customDomainErrors } from './customDomain'
@@ -54,6 +55,7 @@ export const API_ERRORS = {
   ...authErrors,
   ...billingErrors,
   ...brandErrors,
+  ...citationsErrors,
   ...consentErrors,
   ...csrfErrors,
   ...customDomainErrors,

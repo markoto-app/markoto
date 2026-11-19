@@ -72,11 +72,11 @@ rows:
       source: https://support.google.com/docs/answer/6388102
       checked: '2026-11-04'
   - feature: Citations and bibliography
-    note: markoto has footnotes.
+    note: Six built-in styles; no custom CSL style files.
     markoto:
-      value: false
-      source: /docs/writing/markdown-reference
-      checked: '2026-11-04'
+      value: BibTeX, CSL JSON or a DOI; APA, Chicago, Harvard, IEEE, Vancouver, DIN 1505-2
+      source: /docs/writing/citations
+      checked: '2026-11-19'
     competitor:
       value: MLA, APA, Chicago author-date
       source: https://support.google.com/docs/answer/10090962

@@ -2,6 +2,7 @@ import { isValidTheme } from '../theme/themeValidation'
 import { isAudienceKind } from '../../audiences'
 import { LANGUAGE_MAX_LENGTH } from '../../languages'
 import { DOC_DESCRIPTION_MAX_LENGTH, DOC_TITLE_MAX_LENGTH } from '../../config/docCreate'
+import { isCitationStyleId } from '../citations/citationStyles'
 
 /**
  * Validation of the values clients write into the shared `meta` Y.Map
@@ -100,6 +101,8 @@ export function isValidMetaValue(key: string, value: unknown): boolean {
       return isAudienceKind(value)
     case '_deleted':
       return typeof value === 'boolean'
+    case 'citationStyle':
+      return isCitationStyleId(value)
     case 'theme':
       // Bounds first: they are cheap and iterative, and keep the schema
       // parse away from pathological input.

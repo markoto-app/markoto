@@ -3,10 +3,10 @@ import RightPanelHost from './RightPanelHost.vue'
 import MobileTabBar from './MobileTabBar.vue'
 import EditorCommandsPanel from './EditorCommandsPanel.vue'
 import type { TabName } from './tabBarTypes'
-import type { ImportedDocProperties } from '~~/shared/utils/markdown/markdownFrontmatter'
 import { customCssForPlan } from '~~/shared/utils/theme/themePresets'
 import { applyBrandLock } from '~~/shared/utils/theme/brandLock'
 import type { DocTheme } from '~~/shared/types/theme'
+import type { ReferenceProblem } from '~/utils/markdown/citationResolve'
 
 /**
  * The editor page: composes the top bar, menu and tool rows, the editor and
@@ -55,6 +55,7 @@ const {
   description,
   audience,
   language,
+  bibliography,
   templateId,
   setTemplateId,
   canEditTheme,
@@ -142,6 +143,9 @@ const { passwordModalOpen, deletedNoticeOpen } = useDocAccessPrompts(requiresPas
 
 // Page count from the paged.js preview, shown in the status bar.
 const pageCount = ref(0)
+// Unknown citation keys / labels from the last preview render (References panel).
+const referenceProblems = ref<ReferenceProblem[]>([])
+const citationSource = useCitationSource(bibliography, language)
 
 const { textContent, wordCount, charCount } = useDocTextStats({ docId: props.docId, ydoc, ytext, synced, isOwner, requiresPassword })
 
@@ -158,31 +162,11 @@ const { exportPdf, exportMarkdown, openServerPdf } = useEditorExports({
   templateId,
   noDownload,
   brandFonts,
+  citations: bibliography.citations,
   getDocJwt
 })
 
-// Theme + properties from an imported markoto Markdown file. The server has
-// validated every field (server/utils/documents/markdownImport.ts); the
-// setters check again (setTheme: schema; ymeta: the sync server).
-function applyImportedProperties(
-  properties: ImportedDocProperties,
-  notes: { ignored: string[], droppedCustomCssRules: number }
-) {
-  if (isReadOnly.value) return
-  if (properties.title !== undefined) title.value = properties.title
-  if (properties.description !== undefined) description.value = properties.description
-  if (properties.audience !== undefined) audience.value = properties.audience
-  if (properties.language !== undefined) language.value = properties.language
-  if (properties.templateId !== undefined) setTemplateId(properties.templateId)
-  if (properties.theme && canEditTheme.value) setTheme(properties.theme)
-  const skipped = notes.ignored.length > 0 || notes.droppedCustomCssRules > 0
-  toast.add({
-    title: t('import.propertiesApplied'),
-    description: skipped ? t('import.propertiesPartlyApplied') : undefined,
-    icon: 'i-lucide-file-check-2',
-    color: skipped ? 'neutral' : 'success'
-  })
-}
+const applyImportedProperties = useImportedProperties({ isReadOnly, title, description, audience, language, setTemplateId, canEditTheme, setTheme, bibliography })
 
 const { tableModalOpen, onTableModalSelect, openImagePicker } = useEditorInserts(props.docId, () => editorView.value, isReadOnly)
 
@@ -456,6 +440,7 @@ useHead({
             :read-only="isReadOnly"
             :comment-ranges="commentRanges"
             :on-comment-click="onCommentClickInEditor"
+            :citation-source="citationSource"
           />
         </EditorImageDropZone>
 
@@ -478,7 +463,9 @@ useHead({
             :get-doc-jwt="getDocJwt"
             :brand-fonts="brandFonts"
             :zoom-control="!isMobile"
+            :citations="bibliography.citations.value"
             @print-shortcut="exportPdf"
+            @reference-problems="(p) => referenceProblems = p"
           />
         </div>
 
@@ -534,6 +521,15 @@ useHead({
             @reset="resetTheme"
             @close="closeSidebar"
           />
+          <EditorLayoutReferencesSidebar
+            v-else-if="rightSidebar === 'references'"
+            :bibliography="bibliography"
+            :language="language"
+            :problems="referenceProblems"
+            :read-only="isReadOnly"
+            :view="editorView"
+            @close="closeSidebar"
+          />
           <!-- Same upload/list/delete surface as the workspace overview, scoped to
                this doc's workspace. Rendered only with hasKnowledgeAccess, so
                workspaceId / docWorkspaceRole are non-null here. -->
@@ -557,6 +553,7 @@ useHead({
             @open-import="showImportModal = true"
             @open-server-pdf="openServerPdf"
             @export-markdown="exportMarkdown"
+            @open-references="rightSidebar = 'references'"
           />
         </RightPanelHost>
 

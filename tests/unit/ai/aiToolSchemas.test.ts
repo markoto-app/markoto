@@ -533,6 +533,8 @@ const declaredNames = [
 describe('tool registry', () => {
   it('declares exactly these tools (drift guard against added/removed entries)', () => {
     expect(declaredNames).toEqual([
+      'add_reference_by_doi',
+      'check_citations',
       'create_comment',
       'create_document',
       'create_folder',
@@ -552,6 +554,7 @@ describe('tool registry', () => {
       'insert_text',
       'list_folders',
       'list_my_documents',
+      'list_references',
       'list_themes',
       'list_workspace_documents',
       'load_skill',

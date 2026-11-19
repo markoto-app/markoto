@@ -133,6 +133,12 @@
       "too-many-fonts": "Un espace de travail peut contenir jusqu’à {limit} fichiers de police.",
       "too-many-images": "Un espace de travail peut contenir jusqu’à {limit} images de marque."
     },
+    "citations": {
+      "doi-invalid": "Ce n'est pas un DOI. Un DOI ressemble à 10.1000/xyz123.",
+      "doi-not-found": "Crossref n'a aucune notice pour ce DOI. Vérifiez le DOI ou ajoutez la référence au format BibTeX.",
+      "doi-lookup-failed": "La recherche du DOI chez Crossref a échoué. Réessayez dans un instant.",
+      "rate-limited": "Trop de recherches de DOI. Patientez quelques minutes et réessayez."
+    },
     "common": {
       "internal": "Un problème est survenu de notre côté. Veuillez réessayer : nous avons été prévenus."
     },

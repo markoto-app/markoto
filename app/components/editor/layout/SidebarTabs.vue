@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TabName } from '../tabBarTypes'
 
-// Desktop panel toggles (Document, Comments, Activity, Theme, Knowledge),
+// Desktop panel toggles (Document, Comments, Activity, Theme, References, Knowledge),
 // right-aligned above the sidebar column they open. Mobile picks panels in
 // the bottom MobileTabBar instead.
 defineProps<{
@@ -64,6 +64,18 @@ const { t } = useI18n()
         :aria-pressed="rightSidebar === 'theme'"
         data-testid="sidebar-tab-theme"
         @click="emit('toggle', 'theme')"
+      />
+    </UTooltip>
+    <UTooltip :text="t('references.title')">
+      <UButton
+        icon="i-lucide-book-marked"
+        color="neutral"
+        :variant="rightSidebar === 'references' ? 'soft' : 'ghost'"
+        size="xs"
+        :aria-label="t('references.title')"
+        :aria-pressed="rightSidebar === 'references'"
+        data-testid="sidebar-tab-references"
+        @click="emit('toggle', 'references')"
       />
     </UTooltip>
     <UTooltip
