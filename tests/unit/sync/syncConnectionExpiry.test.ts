@@ -59,7 +59,7 @@ function fakeConn(userId: string | number = 42, readOnly = false) {
 }
 
 function verified(over: Partial<VerifiedDocToken> = {}): VerifiedDocToken {
-  return { readOnly: false, userId: 42, userName: 'Alice', tokenExpiresAt: 0, ...over }
+  return { readOnly: false, suggestOnly: false, userId: 42, userName: 'Alice', tokenExpiresAt: 0, ...over }
 }
 
 describe('connection expiry', () => {
@@ -127,6 +127,12 @@ describe('connection expiry', () => {
     expiry.track(other, exp)
     await expiry.renew(other, 't', 'doc-1', async () => verified({ userId: 'anonymous', tokenExpiresAt: exp }))
     expect(other.close).toHaveBeenCalledOnce()
+
+    // Suggestion mode turned on for this person: a fresh handshake applies it.
+    const nowSuggesting = fakeConn(42, false)
+    expiry.track(nowSuggesting, exp)
+    await expiry.renew(nowSuggesting, 't', 'doc-1', async () => verified({ suggestOnly: true, tokenExpiresAt: exp }))
+    expect(nowSuggesting.close).toHaveBeenCalledOnce()
   })
 
   it('asks a short-lived token only once instead of looping, then closes at its expiry', async () => {

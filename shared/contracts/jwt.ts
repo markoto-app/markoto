@@ -75,6 +75,10 @@ export interface SessionJwtPayload {
    *  carry `readOnly: false` to get write access. The verifier
    *  treats absence/missing-field as read-only. */
   readOnly?: boolean
+  /** Optional. With `readOnly: false`: the connection may write only
+   *  suggestions (its own) and comments, never the text
+   *  (`sync-server/src/update-guard.ts`). Absent = unrestricted. */
+  suggestOnly?: boolean
 }
 
 /** Synthetic-userId prefixes the verifier accepts. Add new prefixes
