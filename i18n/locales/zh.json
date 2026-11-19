@@ -480,6 +480,39 @@
       "help": "告诉 markoto 本文档是写给谁看的。会影响语气、结构和用词。"
     }
   },
+  "references": {
+    "title": "参考文献",
+    "style": {
+      "label": "引用样式",
+      "help": "引用和参考文献的书写方式，适用于整个文档。"
+    },
+    "problemsTitle": "文档中有 1 个问题 | 文档中有 {n} 个问题",
+    "problem": {
+      "missing-citation": "参考文献中没有 {key}。",
+      "missing-label": "没有标签为 {key} 的图、表、公式或章节。",
+      "duplicate-label": "标签 {key} 被多次使用。"
+    },
+    "addDoi": "通过 DOI 添加",
+    "addPaste": "粘贴 BibTeX",
+    "addFile": "导入文件",
+    "doiSignIn": "登录后才能通过 DOI 添加参考文献。",
+    "doiPlaceholder": "10.1000/xyz123 或 doi.org 链接",
+    "pastePlaceholder": "粘贴 BibTeX、CSL JSON 或 CSL YAML 条目，例如来自 Zotero 或 Google Scholar",
+    "add": "添加",
+    "addedCount": "未添加参考文献。 | 已添加 1 条参考文献。 | 已添加 {n} 条参考文献。",
+    "replacedCount": "已更新 1 个现有条目。 | 已更新 {n} 个现有条目。",
+    "skippedCount": "已跳过 1 个无法读取的条目。 | 已跳过 {n} 个无法读取的条目。",
+    "nothingFound": "未找到参考文献。请粘贴 BibTeX（来自 Zotero、Google Scholar 或出版商页面）或 CSL JSON。",
+    "fileTooLarge": "文件过大（最大 4 MB）。",
+    "doiFailed": "无法添加该 DOI",
+    "entries": "没有条目 | 1 个条目 | {n} 个条目",
+    "search": "搜索参考文献",
+    "empty": "还没有参考文献。可通过 DOI 添加、粘贴 BibTeX，或导入 Zotero 的 .bib 文件。",
+    "cite": "插入引用",
+    "remove": "从参考文献中移除",
+    "syntaxHelp": "用 [{'@'}key] 或 [{'@'}key, p. 12] 引用。参考文献会显示在 [[bibliography]] 处、空的“参考文献”标题下，或文档末尾。",
+    "unknownKey": "参考文献中没有 {key}，它也不是本文档中的标签。"
+  },
   "audiences": {
     "technical": {
       "label": "技术",
@@ -577,6 +610,11 @@
       "diagramPie": "饼图",
       "diagramMindmap": "思维导图",
       "toc": "目录",
+      "references": "参考文献",
+      "citation": "引用",
+      "bibliography": "参考文献列表",
+      "listOfFigures": "图目录",
+      "listOfTables": "表目录",
       "definitionList": "定义列表"
     },
     "format": {
@@ -765,6 +803,10 @@
       "fetchUrl": "正在打开 {url}",
       "fetchUrlAny": "正在打开网页…",
       "readDocument": "正在阅读文档…",
+      "readReferences": "正在读取参考文献…",
+      "addReference": "正在查询 DOI {doi}",
+      "addReferenceAny": "正在查询 DOI…",
+      "checkCitations": "正在检查引用…",
       "editPassage": "正在编辑“{passage}”",
       "editDocument": "正在编辑文档…",
       "insertText": "正在插入文本…",

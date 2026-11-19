@@ -1,4 +1,7 @@
 import * as Y from 'yjs'
+import { BIBLIOGRAPHY_ROOT } from '~~/shared/utils/citations/docBibliography'
+import { serializeItem } from '~~/shared/utils/citations/cslItem'
+import { readDocCitations } from '../citations/docCitations'
 import jwt from 'jsonwebtoken'
 import { HocuspocusProvider } from '@hocuspocus/provider'
 import { Awareness } from 'y-protocols/awareness'
@@ -11,7 +14,7 @@ import { restoreClientUserId, type SessionJwtPayload } from '~~/shared/contracts
 import { isValidMetaValue } from '~~/shared/utils/documents/ymetaValidation'
 import { useEnv } from '~~/shared/env/load'
 
-const RESTORABLE_META_KEYS = ['title', 'theme', 'description', 'audience', 'language', 'templateId'] as const
+const RESTORABLE_META_KEYS = ['title', 'theme', 'description', 'audience', 'language', 'templateId', 'citationStyle'] as const
 
 /**
  * The past state's restorable ymeta values as plain JS. Only values that
@@ -179,6 +182,7 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
     const pastText = past.getText('content').toJSON()
     const pastComments = past.getArray('comments').toJSON() as unknown[]
     const pastMeta = readRestorableMeta(past.getMap('meta'))
+    const pastBibliography = readDocCitations(past).items
     past.destroy()
 
     // Step 2: open a synthetic Hocuspocus client as the acting user.
@@ -286,6 +290,11 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
         for (const [k, v] of Object.entries(pastMeta)) {
           ymeta.set(k, v)
         }
+
+        // The bibliography as it was: the restored text cites these keys.
+        const ybib = ydoc.getMap(BIBLIOGRAPHY_ROOT)
+        for (const key of Array.from(ybib.keys())) ybib.delete(key)
+        for (const item of pastBibliography) ybib.set(item.id, serializeItem(item))
       }, `restore:${opts.actorUserId}:${opts.sessionId}`)
 
       // Step 4: the update is in the sync server's document once it

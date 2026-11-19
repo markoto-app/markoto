@@ -9,6 +9,7 @@ import { resolveSection, sectionView, type SectionView } from './sections/sectio
 import { classifyMarkdownCached } from './sections/markdownMask'
 import { describeSkipped } from './sections/search'
 import { withoutEmDashes } from '../dashFilter'
+import { ungroundedCitationError } from '../citationGuard'
 import { headingLevelChanges, missingLinkingS, planReplaceAll, textAfterChanges, wordAround, wordForms, type PlannedMatch, type WordFormCount } from './sections/replaceAll'
 import { applyTextEdits, headingLinkEdits, linkNote, withoutOverlaps, type LinkRetarget, type TextEdit } from './sections/anchorLinks'
 import { planRenumber } from './sections/renumber'
@@ -240,6 +241,8 @@ async function handleReplaceAll(ctx: DocToolContext, given: Args<typeof ReplaceA
   const next = plannedChanges(structure, args, selected)
   if ('content' in next) return next
   const { changes, afterText } = next
+  const ungrounded = ungroundedCitationError(changes.map(m => m.after).join('\n'), changes.map(m => m.before).join('\n'), ctx.ydoc)
+  if (ungrounded) return toolError(ungrounded)
   const links = headingLinkEdits(structure, afterText)
   const c: ReplaceAllContext = {
     ctx,

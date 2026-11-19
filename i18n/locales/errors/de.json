@@ -133,6 +133,12 @@
       "too-many-fonts": "Ein Workspace kann bis zu {limit} Schriftdateien haben.",
       "too-many-images": "Ein Workspace kann bis zu {limit} Markenbilder haben."
     },
+    "citations": {
+      "doi-invalid": "Das ist keine DOI. Eine DOI sieht so aus: 10.1000/xyz123.",
+      "doi-not-found": "Crossref hat keinen Eintrag zu dieser DOI. Prüfe die DOI oder füge die Literatur als BibTeX hinzu.",
+      "doi-lookup-failed": "Die DOI-Abfrage bei Crossref ist fehlgeschlagen. Versuche es gleich noch einmal.",
+      "rate-limited": "Zu viele DOI-Abfragen. Warte ein paar Minuten und versuche es dann erneut."
+    },
     "common": {
       "internal": "Auf unserer Seite ist etwas schiefgelaufen. Bitte versuche es noch einmal – wir wurden benachrichtigt."
     },

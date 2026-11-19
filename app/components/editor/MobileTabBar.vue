@@ -19,7 +19,7 @@ import type { TabName } from './tabBarTypes'
 
 const props = defineProps<{
   /** Currently-open panel; null when no drawer is open. */
-  activePanel: 'document' | 'comments' | 'activity' | 'theme' | 'knowledge' | 'editor' | null
+  activePanel: TabName | null
   /** Hides Theme tab when the user can't edit theme. */
   canEditTheme: boolean
   /** Hides Knowledge tab when the doc isn't in a workspace with files. */

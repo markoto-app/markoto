@@ -480,6 +480,39 @@
       "help": "Indica a markoto para quién está escrito. Afecta al tono, la estructura y la elección de palabras."
     }
   },
+  "references": {
+    "title": "Referencias",
+    "style": {
+      "label": "Estilo de cita",
+      "help": "Cómo se escriben las citas y la bibliografía. Se aplica a todo el documento."
+    },
+    "problemsTitle": "Un problema en el documento | {n} problemas en el documento",
+    "problem": {
+      "missing-citation": "{key} no está en la bibliografía.",
+      "missing-label": "Ninguna figura, tabla, ecuación o sección tiene la etiqueta {key}.",
+      "duplicate-label": "La etiqueta {key} se usa más de una vez."
+    },
+    "addDoi": "Añadir por DOI",
+    "addPaste": "Pegar BibTeX",
+    "addFile": "Importar archivo",
+    "doiSignIn": "Inicia sesión para añadir referencias por DOI.",
+    "doiPlaceholder": "10.1000/xyz123 o un enlace de doi.org",
+    "pastePlaceholder": "Pega entradas BibTeX, CSL JSON o CSL YAML, por ejemplo de Zotero o Google Scholar",
+    "add": "Añadir",
+    "addedCount": "No se añadió ninguna referencia. | Se añadió 1 referencia. | Se añadieron {n} referencias.",
+    "replacedCount": "Se actualizó 1 entrada existente. | Se actualizaron {n} entradas existentes.",
+    "skippedCount": "Se omitió 1 entrada ilegible. | Se omitieron {n} entradas ilegibles.",
+    "nothingFound": "No se encontraron referencias. Pega BibTeX (de Zotero, Google Scholar o la página de una editorial) o CSL JSON.",
+    "fileTooLarge": "Este archivo es demasiado grande (máximo 4 MB).",
+    "doiFailed": "No se pudo añadir el DOI",
+    "entries": "Sin entradas | 1 entrada | {n} entradas",
+    "search": "Buscar referencias",
+    "empty": "Aún no hay referencias. Añade una por DOI, pega BibTeX o importa un archivo .bib de Zotero.",
+    "cite": "Insertar cita",
+    "remove": "Quitar de la bibliografía",
+    "syntaxHelp": "Cita con [{'@'}clave] o [{'@'}clave, p. 12]. La bibliografía aparece en [[bibliography]], bajo un encabezado Referencias vacío o al final del documento.",
+    "unknownKey": "{key} no está en la bibliografía ni es una etiqueta de este documento."
+  },
   "audiences": {
     "technical": {
       "label": "Técnico",
@@ -577,6 +610,11 @@
       "diagramPie": "Gráfico circular",
       "diagramMindmap": "Mapa mental",
       "toc": "Tabla de contenidos",
+      "references": "Referencias",
+      "citation": "Cita",
+      "bibliography": "Bibliografía",
+      "listOfFigures": "Índice de figuras",
+      "listOfTables": "Índice de tablas",
       "definitionList": "Lista de definiciones"
     },
     "format": {
@@ -765,6 +803,10 @@
       "fetchUrl": "Abriendo {url}",
       "fetchUrlAny": "Abriendo una página web…",
       "readDocument": "Leyendo el documento…",
+      "readReferences": "Leyendo la bibliografía…",
+      "addReference": "Buscando el DOI {doi}",
+      "addReferenceAny": "Buscando un DOI…",
+      "checkCitations": "Comprobando las citas…",
       "editPassage": "Editando «{passage}»",
       "editDocument": "Editando el documento…",
       "insertText": "Insertando texto…",

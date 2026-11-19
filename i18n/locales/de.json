@@ -480,6 +480,39 @@
       "help": "Teilt markoto mit, für wen dies geschrieben ist. Beeinflusst Ton, Struktur und Wortwahl."
     }
   },
+  "references": {
+    "title": "Literatur",
+    "style": {
+      "label": "Zitierstil",
+      "help": "Wie Zitate und das Literaturverzeichnis geschrieben werden. Gilt für das ganze Dokument."
+    },
+    "problemsTitle": "Ein Problem im Dokument | {n} Probleme im Dokument",
+    "problem": {
+      "missing-citation": "{key} fehlt im Literaturverzeichnis.",
+      "missing-label": "Keine Abbildung, Tabelle, Gleichung und kein Abschnitt hat die Beschriftung {key}.",
+      "duplicate-label": "Die Beschriftung {key} wird mehrfach verwendet."
+    },
+    "addDoi": "Per DOI hinzufügen",
+    "addPaste": "BibTeX einfügen",
+    "addFile": "Datei importieren",
+    "doiSignIn": "Melde dich an, um Literatur per DOI hinzuzufügen.",
+    "doiPlaceholder": "10.1000/xyz123 oder ein doi.org-Link",
+    "pastePlaceholder": "BibTeX-, CSL-JSON- oder CSL-YAML-Einträge einfügen, zum Beispiel aus Zotero oder Google Scholar",
+    "add": "Hinzufügen",
+    "addedCount": "Keine Literatur hinzugefügt. | 1 Eintrag hinzugefügt. | {n} Einträge hinzugefügt.",
+    "replacedCount": "1 bestehender Eintrag aktualisiert. | {n} bestehende Einträge aktualisiert.",
+    "skippedCount": "1 nicht lesbarer Eintrag übersprungen. | {n} nicht lesbare Einträge übersprungen.",
+    "nothingFound": "Keine Literatur gefunden. Füge BibTeX (aus Zotero, Google Scholar oder von der Seite eines Verlags) oder CSL JSON ein.",
+    "fileTooLarge": "Diese Datei ist zu gross (höchstens 4 MB).",
+    "doiFailed": "Die DOI konnte nicht hinzugefügt werden",
+    "entries": "Keine Einträge | 1 Eintrag | {n} Einträge",
+    "search": "Literatur durchsuchen",
+    "empty": "Noch keine Literatur. Füge sie per DOI hinzu, füge BibTeX ein oder importiere eine .bib-Datei aus Zotero.",
+    "cite": "Zitat einfügen",
+    "remove": "Aus dem Literaturverzeichnis entfernen",
+    "syntaxHelp": "Zitiere mit [{'@'}key] oder [{'@'}key, S. 12]. Das Literaturverzeichnis erscheint bei [[bibliography]], unter einer leeren Überschrift «Literatur» oder am Ende des Dokuments.",
+    "unknownKey": "{key} fehlt im Literaturverzeichnis und ist keine Beschriftung in diesem Dokument."
+  },
   "audiences": {
     "technical": {
       "label": "Technisch",
@@ -577,6 +610,11 @@
       "diagramPie": "Kreisdiagramm",
       "diagramMindmap": "Mindmap",
       "toc": "Inhaltsverzeichnis",
+      "references": "Literatur",
+      "citation": "Zitat",
+      "bibliography": "Literaturverzeichnis",
+      "listOfFigures": "Abbildungsverzeichnis",
+      "listOfTables": "Tabellenverzeichnis",
       "definitionList": "Definitionsliste"
     },
     "format": {
@@ -765,6 +803,10 @@
       "fetchUrl": "Öffnet {url}",
       "fetchUrlAny": "Öffnet eine Webseite…",
       "readDocument": "Liest das Dokument…",
+      "readReferences": "Literaturverzeichnis wird gelesen…",
+      "addReference": "DOI {doi} wird nachgeschlagen",
+      "addReferenceAny": "DOI wird nachgeschlagen…",
+      "checkCitations": "Zitate werden geprüft…",
       "editPassage": "Bearbeitet „{passage}“",
       "editDocument": "Bearbeitet das Dokument…",
       "insertText": "Fügt Text ein…",

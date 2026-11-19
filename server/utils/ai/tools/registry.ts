@@ -19,6 +19,7 @@ import { deleteSectionTool, editLinesTool, insertMarkdownTool, moveSectionTool, 
 import { renumberHeadingsTool, replaceAllTool } from './replaceAllTools'
 import { loadSkillTool } from './skillTools'
 import { delegateRewriteTool, delegateScanTool } from './delegateTools'
+import { addReferenceByDoiTool, checkCitationsTool, listReferencesTool } from './citationTools'
 
 // The AI tool registry: every tool the in-app loop, the MCP server and the
 // test-only exec route can run, in the order the model is shown them. The
@@ -71,6 +72,9 @@ const CORE_TOOLS = [
   renumberHeadingsTool,
   replaceAllTool,
   editLinesTool,
+  listReferencesTool,
+  addReferenceByDoiTool,
+  checkCitationsTool,
   loadSkillTool,
   delegateScanTool,
   delegateRewriteTool

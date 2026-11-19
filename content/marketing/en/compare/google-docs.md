@@ -6,7 +6,7 @@ keywords:
   - google docs alternative
   - google docs markdown
   - markdown alternative to google docs
-updated: '2026-11-04'
+updated: '2026-11-19'
 navGroup: compare
 navLabel: markoto vs Google Docs
 navOrder: 40
@@ -30,7 +30,7 @@ Google Docs and markoto are both online editors where several people write the s
 - **Familiar and everywhere.** Most collaborators already know Google Docs and have a Google account. There is nothing to explain.
 - **Suggesting mode.** Collaborators propose edits that the owner accepts or rejects. markoto has no suggestion or track-changes mode; it keeps every version with a diff and a restore button instead.
 - **Offline editing.** Google Docs works without a connection in Chrome and Edge once offline access is turned on. markoto needs a connection: edits made during a short drop sync when you are back, but you can't open documents offline.
-- **Citations.** Google Docs inserts citations and a bibliography in MLA, APA or Chicago style. markoto has footnotes only.
+- **MLA citations.** Google Docs inserts citations and a bibliography in MLA, APA or Chicago style. markoto has APA, Chicago author-date, Harvard, IEEE, Vancouver and DIN 1505-2, but no MLA.
 - **The Workspace around it.** Drive, Gmail, Calendar, Meet and Sheets, with admin controls for organisations. markoto is a document editor only.
 - **Rich formatting without syntax.** Anyone can format with the toolbar; markoto's toolbar inserts Markdown, and the source is visible while you write.
 
@@ -46,7 +46,7 @@ Google Docs and markoto are both online editors where several people write the s
 
 ## Who should pick which
 
-Pick **Google Docs** if your collaborators expect it, if you need suggesting mode, offline work or citations, or if your organisation already lives in Google Workspace.
+Pick **Google Docs** if your collaborators expect it, if you need suggesting mode, offline work or MLA citations, or if your organisation already lives in Google Workspace.
 
 Pick **markoto** if you want to write in Markdown, need well laid-out pages without manual formatting, or need your documents in the EU or on your own server.
 
