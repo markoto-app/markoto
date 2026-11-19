@@ -106,23 +106,31 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
   // Create a new doc, see the inheritance
   await flow.heading('Create a blank doc, it starts in your default', 3)
   await flow.narrate(
-    'Hit "+ New document" in the workspace. Under Template, Blank is a '
+    'Pick New → New document in the workspace. Under Template, Blank is a '
     + 'page in the workspace design, Corporate report, your pick. The '
     + 'other templates bring a design of their own; the theme panel '
     + 'switches any document to another one later.'
   )
 
-  // Switch back to the Documents tab so the workspace-level "+ New
-  // document" button is in view.
+  // Switch back to the Documents tab so the workspace's "New" button
+  // is in view.
   // Close the "Default theme updated" toast first, it would sit on
   // the new-document dialog in the next frames.
   await editor.page.dismissToasts()
   await page.getByRole('tab', { name: /^documents$/i }).click()
-  await page.locator('[data-testid="workspace-new-document"]').waitFor({ state: 'visible', timeout: 5_000 })
+  await page.getByTestId('explorer-new').waitFor({ state: 'visible', timeout: 5_000 })
 
   await flow.click(
-    'Click "+ New document"',
-    page.locator('[data-testid="workspace-new-document"]'),
+    'Click "New"',
+    page.getByTestId('explorer-new'),
+    {
+      result: 'The menu offers a new document, a new folder or an import.',
+      after: () => page.getByRole('menuitem', { name: /^new document/i }).waitFor({ state: 'visible' })
+    }
+  )
+  await flow.click(
+    'Pick "New document"',
+    page.getByRole('menuitem', { name: /^new document/i }),
     {
       result: 'The new-doc dialog opens.',
       after: () => editor.page.waitForNewDocDialog()

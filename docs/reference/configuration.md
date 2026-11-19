@@ -285,6 +285,9 @@ TIER_<FREE|PRO|TEAM|BUSINESS>_<FIELD>. Numbers > 0, `unlimited` for the per-day 
 | `TIER_FREE_HISTORY_DAYS` | number > 0, or unlimited | no limit |  | app | both | free plan: historyDays (committed default in shared/config/tiers.ts). |
 | `TIER_FREE_SAVED_THEMES` | number > 0 | `20` |  | app | both | free plan: savedThemes (committed default in shared/config/tiers.ts). |
 | `TIER_FREE_IMPORT_MAX_BYTES` | number > 0 | `52428800` |  | app | both | free plan: importMaxBytes (committed default in shared/config/tiers.ts). |
+| `TIER_FREE_IMPORT_FILES_PER_JOB` | number > 0 | `5000` |  | app | both | free plan: importFilesPerJob (committed default in shared/config/tiers.ts). |
+| `TIER_FREE_IMPORT_BYTES_PER_JOB` | number > 0 | `5368709120` |  | app | both | free plan: importBytesPerJob (committed default in shared/config/tiers.ts). |
+| `TIER_FREE_IMPORT_JOBS_PER_DAY` | number > 0 | `500` |  | app | both | free plan: importJobsPerDay (committed default in shared/config/tiers.ts). |
 | `TIER_FREE_WEB_TOOLS_PER_DAY` | number > 0, or unlimited | no limit |  | app | both | free plan: webToolsPerDay (committed default in shared/config/tiers.ts). |
 | `TIER_FREE_MCP_TOOL_CALLS_PER_DAY` | number > 0, or unlimited | no limit |  | app | both | free plan: mcpToolCallsPerDay (committed default in shared/config/tiers.ts). |
 | `TIER_FREE_AI_JOB_UNITS_PER_JOB` | number > 0, or unlimited | no limit |  | app | both | free plan: aiJobUnitsPerJob (committed default in shared/config/tiers.ts). |
@@ -408,6 +411,7 @@ Test-only switches. Ignored on an instance whose NUXT_SITE_URL is a real (non-lo
 | `TEST_ENFORCE_RATE_LIMITS` | string | (empty) |  | app | test | Comma-separated rate-limit namespaces (or *) enforced despite TEST_MODE. Not passed by the compose files: set by the test harness only. |
 | `LITELLM_TEST_STUB` | boolean | `false` |  | app | test | Skip LiteLLM key/team calls (unit/repos test tiers). Not passed by the compose files: set by the test harness only. |
 | `NUXT_VOXTRAL_REALTIME_MOCK` | boolean | `false` |  | app | test | With TEST_MODE: canned live-dictation transcripts instead of Mistral. Not passed by the compose files: set by the test harness only. |
+| `TEST_GITHUB_IMPORT_ORIGIN` | string | (empty) |  | app | test | With TEST_MODE: origin of a fake GitHub that GitHub imports call instead of api.github.com / raw.githubusercontent.com (plain HTTP, no address checks). Not passed by the compose files: set by the test harness only. |
 | `NUXT_PUBLIC_EXPOSE_TEST_HANDLES` | boolean | `false` |  | app | test | Expose the editor's Y.Doc on window for end-to-end tests (runtimeConfig.public). Not passed by the compose files: set by the flow-test stack only. |
 
 ## Deployment (compose only)

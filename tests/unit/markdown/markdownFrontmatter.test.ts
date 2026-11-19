@@ -5,7 +5,7 @@ import {
   buildMarkdownExport,
   splitMarkotoFrontmatter
 } from '../../../shared/utils/markdown/markdownFrontmatter'
-import { importMarkdownFile } from '../../../server/utils/documents/markdownImport'
+import { importBulkMarkdown, importMarkdownFile } from '../../../server/utils/documents/markdownImport'
 import { defaultTheme } from '../../../shared/utils/theme/defaultTheme'
 import { THEME_PRESETS } from '../../../shared/utils/theme/themePresets'
 import type { DocTheme } from '../../../shared/types/theme'
@@ -128,5 +128,31 @@ describe('importMarkdownFile (server-side validation)', () => {
     expect(css).toContain('color:red')
     expect(css).not.toContain('evil')
     expect(css).not.toContain('@import')
+  })
+})
+
+describe('importBulkMarkdown (folder / zip / GitHub imports)', () => {
+  const opts = { docId: 'newDoc1234', allowedOrigins: [] }
+
+  test('markoto frontmatter: every validated property, frontmatter removed', () => {
+    const result = importBulkMarkdown(buildMarkdownExport(BODY, PROPS), opts)
+    expect(result.markdown).toBe(BODY)
+    expect(result.properties).toMatchObject({ title: PROPS.title, description: PROPS.description, audience: 'business', language: PROPS.language, templateId: 'blank' })
+    expect(result.properties?.theme?.body.font).toBe(defaultTheme.body.font)
+  })
+
+  test('another tool\'s frontmatter: stripped, only title and description', () => {
+    const result = importBulkMarkdown('---\ntitle: " Start "\ndescription: First steps\naudience: business\ntheme: {}\n---\n\nBody\n', opts)
+    expect(result).toEqual({ markdown: 'Body\n', properties: { title: 'Start', description: 'First steps' } })
+  })
+
+  test('another tool\'s description over the limit is left out', () => {
+    const result = importBulkMarkdown(`---\ntitle: T\ndescription: ${'x'.repeat(501)}\n---\nBody`, opts)
+    expect(result.properties).toEqual({ title: 'T' })
+    expect(result.ignored).toEqual(['description'])
+  })
+
+  test('no frontmatter: the text as it is', () => {
+    expect(importBulkMarkdown('# Hi\n', opts)).toEqual({ markdown: '# Hi\n' })
   })
 })

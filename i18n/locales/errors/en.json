@@ -205,7 +205,15 @@
       "timeout": "Conversion took too long.",
       "too-complex": "This file is too large or too complex to convert.",
       "unavailable": "The conversion service could not be reached.",
-      "unsupported-format": "This file format is not supported."
+      "unsupported-format": "This file format is not supported.",
+      "job-not-found": "This import was not found.",
+      "job-active": "An import is already running. Wait for it to finish or stop it.",
+      "job-not-uploading": "This import has already started.",
+      "nothing-to-import": "None of these files can be imported.",
+      "path-invalid": "A file path is not valid.",
+      "github-url-invalid": "This isn't a link to a public GitHub repository.",
+      "github-not-found": "The repository was not found.",
+      "github-unavailable": "GitHub couldn't be reached. Try again later."
     },
     "internal": {
       "forbidden": "Invalid or missing credentials."
@@ -408,6 +416,14 @@
       "not-found": "Workspace not found.",
       "role-required": "Viewers can't create documents in this workspace.",
       "template-rate-limited": "Too many requests. Please wait a moment and try again."
+    },
+    "folder": {
+      "not-found": "This folder was moved or deleted by someone else.",
+      "name-taken": "A folder with this name already exists here.",
+      "too-deep": "Folders can be nested at most {max} levels deep.",
+      "cycle": "A folder can't be moved into itself or one of its subfolders.",
+      "forbidden": "You can't change folders here.",
+      "delete-blocked": "{blocked} documents in this folder can't be deleted by you, so nothing was deleted."
     }
   }
 }

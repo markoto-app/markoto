@@ -66,7 +66,21 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     // shared with which guest (view / edit) and by whom.
     // `workspace_brand_kit`: fonts + logos a workspace's admins
     // uploaded (and who), workspace templates.
-    dataCategories: ['document_content', 'document_metadata', 'images', 'edit_attribution', 'guest_document_shares', 'workspace_brand_kit'],
+    // `document_search_index`: a plain-text copy of each document's title
+    // and body (`document_search`) that the document search reads. Deleted
+    // with the document. `document_folders`: the folders documents are
+    // filed in (name, place in the tree, who created it), deleted with the
+    // workspace or the account they belong to. `import_records`: bulk
+    // imports (server/utils/imports/) are document storage the user asked
+    // for: the names and paths of the files, the repository URL of a GitHub
+    // import, which document each file became and how it ended. No file
+    // contents (uploads are staged in object storage only until the worker
+    // read them); kept 30 days after the import, or until the account goes.
+    // A GitHub import fetches the public repository from GitHub on the
+    // user's instruction and sends nothing about the user, so GitHub is not
+    // a sub-processor. All of this sits inside the existing purpose, so the
+    // policy version (shared/legal/versions.ts) is unchanged (owner decision).
+    dataCategories: ['document_content', 'document_metadata', 'images', 'edit_attribution', 'guest_document_shares', 'workspace_brand_kit', 'document_search_index', 'document_folders', 'import_records'],
     retention: 'until_deletion',
     subProcessors: ['ovh_postgres', 'ovh_object_storage']
   },

@@ -17,7 +17,6 @@
     "newDocument": "Nuevo documento",
     "openDocument": "Abrir documento",
     "recentDocuments": "Documentos recientes",
-    "noRecent": "No hay documentos recientes",
     "sharedWithYou": "Compartido contigo"
   },
   "auth": {
@@ -520,9 +519,6 @@
     "cancel": "Cancelar",
     "openPanel": "Abrir panel",
     "back": "Atrás",
-    "delete": "Eliminar",
-    "duplicate": "Duplicar",
-    "move": "Mover al espacio de trabajo…",
     "confirm": "Confirmar",
     "close": "Cerrar",
     "loading": "Cargando...",
@@ -622,6 +618,10 @@
         "get_knowledge_file": "markoto quiere leer el archivo de conocimiento «{target}».",
         "create_document": "markoto quiere crear un documento nuevo, «{target}».",
         "duplicate_document": "markoto quiere copiar «{target}».",
+        "search_documents": "markoto quiere buscar «{target}» en tus documentos.",
+        "list_folders": "markoto quiere listar tus carpetas.",
+        "move_document": "markoto quiere mover «{target}» a otra carpeta.",
+        "create_folder": "markoto quiere crear la carpeta «{target}».",
         "web_search": "markoto quiere buscar «{target}» en la web.",
         "fetch_url": "markoto quiere abrir {target}",
         "view_image": "markoto quiere cargar la imagen {target}",
@@ -783,6 +783,11 @@
       "saveTheme": "Guardando el tema como «{name}»",
       "saveThemeAny": "Guardando el tema…",
       "listWorkspaceDocuments": "Revisando los documentos del espacio de trabajo…",
+      "listMyDocuments": "Explorando tus documentos…",
+      "searchDocuments": "Buscando «{query}» en los documentos",
+      "listFolders": "Explorando las carpetas…",
+      "moveDocument": "Moviendo un documento a una carpeta…",
+      "createFolder": "Creando la carpeta «{name}»",
       "readOtherDocument": "Leyendo el documento {id}",
       "readNamedDocument": "Leyendo «{title}»…",
       "readOtherDocumentAny": "Leyendo otro documento…",
@@ -1545,7 +1550,10 @@
     "successDesc": "«{title}» ha sido eliminado permanentemente.",
     "failed": "Error al eliminar",
     "remoteTitle": "Documento eliminado",
-    "remoteDesc": "Este documento fue eliminado por el propietario."
+    "remoteDesc": "Este documento fue eliminado. Descarga una copia de tu texto antes de cerrarlo.",
+    "remoteBanner": "Este documento fue eliminado. Tus cambios ya no se guardan.",
+    "keepReading": "Seguir leyendo",
+    "downloadCopy": "Descargar Markdown"
   },
   "workspace": {
     "tabs": {
@@ -1585,10 +1593,6 @@
     "descriptionPlaceholder": "¿Para qué es este espacio de trabajo?",
     "create": "Crear espacio de trabajo",
     "docCount": "sin documentos | {count} documento | {count} documentos",
-    "empty": "Aún no hay documentos",
-    "emptyDescription": "Empieza creando tu primer documento en este espacio de trabajo.",
-    "emptyDescriptionViewer": "Los documentos creados aquí aparecerán en esta lista.",
-    "newDocument": "Nuevo documento",
     "backToHome": "Atrás",
     "rename": "Renombrar espacio de trabajo",
     "edit": "Editar espacio de trabajo",
@@ -2197,7 +2201,10 @@
       "aiJobUnitsPerJob": "Esta tarea es mayor de lo que permite tu plan. Elige menos secciones.",
       "aiJobsPerDay": "Has usado las tareas de IA de hoy incluidas en tu plan. Inténtalo de nuevo mañana.",
       "historyEntry": "Este cambio es más antiguo que el historial incluido en el plan de este documento.",
-      "mcpToolCallsPerDay": "Has usado las llamadas a herramientas MCP de hoy incluidas en tu plan. Inténtalo de nuevo mañana."
+      "mcpToolCallsPerDay": "Has usado las llamadas a herramientas MCP de hoy incluidas en tu plan. Inténtalo de nuevo mañana.",
+      "importFilesPerJob": "Esta importación tiene más archivos de los que tu plan permite en una sola importación.",
+      "importBytesPerJob": "Esta importación es mayor de lo que tu plan permite en una sola importación.",
+      "importJobsPerDay": "Has usado las importaciones de hoy incluidas en tu plan. Inténtalo de nuevo mañana."
     },
     "notice": {
       "historyHidden": "La actividad de hace más de {days} días está oculta con el plan de este documento. Se conserva y vuelve a mostrarse cuando el plan incluya más historial."
@@ -2593,16 +2600,9 @@
   "home": {
     "title": "Inicio",
     "greeting": "Hola de nuevo, {name}",
-    "description": "Tus espacios de trabajo y documentos.",
-    "access": {
-      "private": "Privado",
-      "protected": "Protegido"
-    }
+    "description": "Tus espacios de trabajo y documentos."
   },
   "docRow": {
-    "actions": "Acciones del documento",
-    "open": "Abrir",
-    "openNewTab": "Abrir en una pestaña nueva",
     "words": "{n} palabra | {n} palabras"
   },
   "credits": {
@@ -2790,7 +2790,13 @@
       "workspace_template_added": "Plantilla añadida",
       "workspace_template_removed": "Plantilla eliminada",
       "doc_share_settings_changed": "Ajustes del enlace modificados",
-      "workspace_billing_plan_resumed": "Cancelación anulada"
+      "workspace_billing_plan_resumed": "Cancelación anulada",
+      "folder_created": "Carpeta creada",
+      "folder_renamed": "Carpeta renombrada",
+      "folder_moved": "Carpeta movida",
+      "folder_deleted": "Carpeta eliminada con su contenido",
+      "doc_folder_moved": "Documento movido a otra carpeta",
+      "import_completed": "Importación finalizada"
     },
     "planNotice": "El registro de auditoría forma parte del plan Business."
   },
@@ -3356,5 +3362,167 @@
       "loadFailed": "No se pudo cargar el coste de IA",
       "empty": "No hay datos para este rango."
     }
+  },
+  "explorer": {
+    "personalRoot": "Mis documentos",
+    "stale": "Otra persona movió o eliminó este elemento. Se ha actualizado la lista.",
+    "folderGone": "Otra persona movió o eliminó esta carpeta.",
+    "someFailed": "No se pudo modificar {n} elemento. | No se pudieron modificar {n} elementos.",
+    "movedTo": "Movido a {name} | {n} elementos movidos a {name}",
+    "undo": "Deshacer",
+    "cannotMoveHere": "No se pueden mover estos elementos ahí.",
+    "newFolderName": "Carpeta nueva",
+    "renameLabel": "Nombre nuevo",
+    "nameProblem": {
+      "empty": "Escribe un nombre.",
+      "too-long": "El nombre es demasiado largo.",
+      "invalid": "Un nombre no puede contener / ni \\ ni ser . o .."
+    },
+    "announce": {
+      "folderCreated": "Carpeta {name} creada",
+      "renamed": "Renombrado a {name}",
+      "moved": "{n} elemento movido | {n} elementos movidos",
+      "movedWorkspace": "{n} documento movido a otro espacio de trabajo | {n} documentos movidos a otro espacio de trabajo",
+      "deleted": "{n} elemento eliminado | {n} elementos eliminados",
+      "undone": "Movimiento deshecho",
+      "cut": "{n} elemento cortado. Pégalo en una carpeta con Ctrl+V. | {n} elementos cortados. Pégalos en una carpeta con Ctrl+V."
+    },
+    "error": {
+      "createFolder": "No se pudo crear la carpeta",
+      "rename": "No se pudo renombrar",
+      "move": "No se pudo mover",
+      "delete": "No se pudo eliminar",
+      "deleteBlocked": "Carpeta no eliminada"
+    },
+    "action": {
+      "open": "Abrir",
+      "openNewTab": "Abrir en una pestaña nueva",
+      "rename": "Renombrar",
+      "moveTo": "Mover a...",
+      "cut": "Cortar",
+      "duplicate": "Duplicar",
+      "copyLink": "Copiar enlace",
+      "copyLinks": "Copiar enlaces",
+      "share": "Compartir...",
+      "delete": "Eliminar",
+      "deleteN": "Eliminar {n} elemento | Eliminar {n} elementos",
+      "newDocument": "Documento nuevo",
+      "newFolder": "Carpeta nueva",
+      "import": "Importar archivos...",
+      "paste": "Pegar"
+    },
+    "sortBy": "Ordenar por",
+    "sort": {
+      "updated": "Última edición",
+      "created": "Creación",
+      "active": "Última actividad",
+      "title": "Nombre"
+    },
+    "sortDirection": {
+      "asc": "Ascendente",
+      "desc": "Descendente"
+    },
+    "selectItem": "Seleccionar {name}",
+    "column": {
+      "name": "Nombre",
+      "owner": "Propietario",
+      "updated": "Última edición",
+      "words": "Tamaño"
+    },
+    "listLabel": "Contenido de {name}",
+    "treeLabel": "Carpetas",
+    "folders": "Carpetas",
+    "up": "Subir un nivel",
+    "searchPlaceholder": "Buscar en títulos y texto",
+    "searchEverywhere": "Todas las carpetas",
+    "done": "Listo",
+    "select": "Seleccionar",
+    "new": "Nuevo",
+    "selected": "{n} seleccionados",
+    "actions": "Acciones",
+    "clearSelection": "Borrar selección",
+    "you": "Tú",
+    "items": "vacía | {n} documento | {n} documentos",
+    "noResults": "No se encontró nada",
+    "emptyFolder": "Esta carpeta está vacía",
+    "emptyHint": "Crea un documento o una carpeta, o suelta archivos aquí para importarlos.",
+    "dropToImport": "Suelta para importar en esta carpeta",
+    "count": "{n} elemento | {n} elementos",
+    "move": {
+      "title": "Mover {n} elemento | Mover {n} elementos",
+      "toFolder": "A una carpeta",
+      "toWorkspace": "A otro espacio de trabajo",
+      "personal": "Mis documentos",
+      "pickWorkspace": "Elige un espacio de trabajo",
+      "workspaceWarning": "Los miembros del nuevo espacio de trabajo verán estos documentos; los miembros de este perderán el acceso.",
+      "here": "Mover aquí",
+      "toWorkspaceConfirm": "Mover"
+    },
+    "delete": {
+      "title": "Eliminar",
+      "items": "{n} elemento | {n} elementos",
+      "question": "¿Eliminar {name}?",
+      "counting": "Contando lo que hay dentro...",
+      "counts": "Esto elimina {folders} y {documents}, incluido todo lo que hay dentro de las carpetas.",
+      "blocked": "{n} documento de dentro pertenece a otra persona y no puedes eliminarlo. | {n} documentos de dentro pertenecen a otras personas y no puedes eliminarlos.",
+      "permanent": "Los documentos eliminados no se pueden restaurar. Quienes los tengan abiertos verán que se han eliminado.",
+      "confirm": "Eliminar",
+      "folderCount": "ninguna carpeta | {n} carpeta | {n} carpetas",
+      "documentCount": "ningún documento | {n} documento | {n} documentos"
+    },
+    "import": {
+      "title": "Importar a {name}",
+      "fromFiles": "Archivos y carpetas",
+      "fromGithub": "GitHub",
+      "filesHint": "Archivos Markdown, Word, PDF, PowerPoint, Excel, HTML y EPUB, carpetas completas (se conservan sus carpetas) y archivos zip. Las imágenes enlazadas desde archivos Markdown se incluyen. También puedes soltar archivos sobre la lista.",
+      "chooseFiles": "Elegir archivos",
+      "chooseFolder": "Elegir una carpeta",
+      "summary": "{docs} documentos, {images} imágenes, {archives} archivos zip",
+      "skippedFiles": "Se omite {n} archivo (tipo no admitido). | Se omiten {n} archivos (tipo no admitido).",
+      "githubLabel": "Enlace de GitHub",
+      "githubHint": "Un repositorio público o una carpeta de uno. Se importan los archivos Markdown y las imágenes que usan; los repositorios privados hay que descargarlos antes como zip.",
+      "uploading": "Subiendo {done} de {total} archivos...",
+      "progress": "{done} de {total} documentos importados, {failed} con error",
+      "background": "La importación se ejecuta en el servidor. Puedes cerrar esta ventana; los documentos aparecen a medida que se importan.",
+      "cancel": "Detener importación",
+      "start": "Importar",
+      "activeJob": "Ya hay una importación en curso",
+      "failed": "No se pudo iniciar la importación",
+      "status": {
+        "done": "Importación finalizada",
+        "failed": "Error en la importación",
+        "cancelled": "Importación detenida"
+      },
+      "jobError": {
+        "access-lost": "Ya no puedes añadir documentos a este espacio de trabajo.",
+        "github-url-invalid": "Esto no es un enlace a un repositorio de GitHub.",
+        "github-not-found": "No se encontró el repositorio. Los repositorios privados no se pueden importar desde un enlace.",
+        "github-unavailable": "No se pudo conectar con GitHub. Inténtalo de nuevo más tarde.",
+        "archive-too-large": "El repositorio es mayor de lo que admite una importación.",
+        "too-many-bytes": "Los archivos superan el tamaño que una importación puede tener en tu plan.",
+        "archive-unreadable": "No se pudo leer el archivo comprimido.",
+        "too-many-files": "Hay más archivos de los que una importación puede traer en tu plan.",
+        "internal": "Algo salió mal por nuestra parte."
+      },
+      "reason": {
+        "not-uploaded": "No subido",
+        "too-large": "Demasiado grande",
+        "unsupported": "Tipo no admitido",
+        "not-utf8": "No es un archivo de texto UTF-8",
+        "too-long": "Demasiado largo para un documento",
+        "conversion-failed": "No se pudo convertir",
+        "cancelled": "Detenido",
+        "unreadable": "No se pudo leer",
+        "unused": "No lo usa ningún documento"
+      }
+    },
+    "quickSearch": {
+      "open": "Buscar documentos",
+      "placeholder": "Buscar en todos tus documentos",
+      "empty": "No se encontraron documentos",
+      "personal": "Mis documentos",
+      "hint": "Busca en los títulos y el texto de tus documentos, tus espacios de trabajo y los documentos compartidos contigo."
+    },
+    "subfolders": "{n} carpeta | {n} carpetas"
   }
 }

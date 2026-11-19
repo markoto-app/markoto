@@ -39,6 +39,13 @@ describe('MCP tool classes', () => {
     for (const name of toolNames) expect(mcpToolAllowed(name, true), name).toBe(true)
   })
 
+  it('document search and folder listing are reads; filing and creating folders are writes', () => {
+    expect(mcpToolClass('search_documents')).toBe('read')
+    expect(mcpToolClass('list_folders')).toBe('read')
+    expect(mcpToolAllowed('move_document', false)).toBe(false)
+    expect(mcpToolAllowed('create_folder', false)).toBe(false)
+  })
+
   it('every render / image / web tool is classed as cost', () => {
     for (const name of ['export_document_as_pdf', 'view_pages', 'get_page_count', 'generate_image', 'web_search', 'fetch_url']) {
       expect(mcpToolClass(name), name).toBe('cost')

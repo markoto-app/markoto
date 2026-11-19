@@ -42,6 +42,8 @@ export interface SweeperOptions {
   awaitMigrations?: boolean
   /** Send a failed run to Sentry. false where a failure is an expected transient (LiteLLM still starting). It is still logged. Default true. */
   reportErrors?: boolean
+  /** Receives a function that runs the sweeper now (skipped when a run is in progress), for work that should not wait a whole interval. */
+  onReady?: (runNow: () => void) => void
   /** Extra shutdown work, after the timers are cleared. */
   onClose?: () => void | Promise<void>
   /** The work (sync or async). Return a summary object to get it logged; return nothing to stay silent. Throw to fail the run. */
@@ -103,6 +105,8 @@ export function defineSweeper(options: SweeperOptions): (nitroApp: SweeperHost) 
         running = false
       }
     }
+
+    options.onReady?.(() => void tick())
 
     const timers: Array<ReturnType<typeof setTimeout>> = []
     if (runAtBoot) timers.push(setTimeout(() => void tick(), schedule.startupDelayMs ?? 0))

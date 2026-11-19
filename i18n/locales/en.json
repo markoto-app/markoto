@@ -17,7 +17,6 @@
     "newDocument": "New document",
     "openDocument": "Open document",
     "recentDocuments": "Recent documents",
-    "noRecent": "No recent documents",
     "sharedWithYou": "Shared with you"
   },
   "auth": {
@@ -520,9 +519,6 @@
     "cancel": "Cancel",
     "openPanel": "Open panel",
     "back": "Back",
-    "delete": "Delete",
-    "duplicate": "Duplicate",
-    "move": "Move to workspace…",
     "confirm": "Confirm",
     "close": "Close",
     "loading": "Loading...",
@@ -622,6 +618,10 @@
         "get_knowledge_file": "markoto wants to read the knowledge file “{target}”.",
         "create_document": "markoto wants to create a new document, “{target}”.",
         "duplicate_document": "markoto wants to copy “{target}”.",
+        "search_documents": "markoto wants to search your documents for “{target}”.",
+        "list_folders": "markoto wants to list your folders.",
+        "move_document": "markoto wants to move “{target}” to another folder.",
+        "create_folder": "markoto wants to create the folder “{target}”.",
         "web_search": "markoto wants to search the web for “{target}”.",
         "fetch_url": "markoto wants to open {target}",
         "view_image": "markoto wants to load the image {target}",
@@ -783,6 +783,11 @@
       "saveTheme": "Saving theme as \"{name}\"",
       "saveThemeAny": "Saving theme as preset…",
       "listWorkspaceDocuments": "Browsing workspace documents…",
+      "listMyDocuments": "Browsing your documents…",
+      "searchDocuments": "Searching documents for \"{query}\"",
+      "listFolders": "Browsing folders…",
+      "moveDocument": "Moving a document to a folder…",
+      "createFolder": "Creating folder \"{name}\"",
       "readOtherDocument": "Reading document {id}",
       "readNamedDocument": "Reading {title}…",
       "readOtherDocumentAny": "Reading another document…",
@@ -1545,7 +1550,10 @@
     "successDesc": "\"{title}\" has been permanently deleted.",
     "failed": "Deletion failed",
     "remoteTitle": "Document deleted",
-    "remoteDesc": "This document was deleted by the owner."
+    "remoteDesc": "This document was deleted. Download a copy of your text before you close it.",
+    "remoteBanner": "This document was deleted. Your changes are no longer saved.",
+    "keepReading": "Keep reading",
+    "downloadCopy": "Download Markdown"
   },
   "workspace": {
     "tabs": {
@@ -1585,10 +1593,6 @@
     "descriptionPlaceholder": "What's this workspace for?",
     "create": "Create workspace",
     "docCount": "no documents | {count} document | {count} documents",
-    "empty": "No documents yet",
-    "emptyDescription": "Start by creating your first document in this workspace.",
-    "emptyDescriptionViewer": "Documents created here will appear in this list.",
-    "newDocument": "New document",
     "backToHome": "Back",
     "rename": "Rename workspace",
     "edit": "Edit workspace",
@@ -2197,7 +2201,10 @@
       "aiJobUnitsPerJob": "This job is larger than your plan allows. Choose fewer sections.",
       "aiJobsPerDay": "You've started today's AI jobs included in your plan. Try again tomorrow.",
       "historyEntry": "This change is older than the history this document's plan includes.",
-      "mcpToolCallsPerDay": "You've used today's MCP tool calls included in your plan. Try again tomorrow."
+      "mcpToolCallsPerDay": "You've used today's MCP tool calls included in your plan. Try again tomorrow.",
+      "importFilesPerJob": "This import has more files than your plan allows for one import.",
+      "importBytesPerJob": "This import is larger than your plan allows for one import.",
+      "importJobsPerDay": "You've started today's imports included in your plan. Try again tomorrow."
     },
     "notice": {
       "historyHidden": "Activity older than {days} days is hidden on this document's plan. It is kept and shows again once the plan includes more history."
@@ -2593,16 +2600,9 @@
   "home": {
     "title": "Home",
     "greeting": "Welcome back, {name}",
-    "description": "Your workspaces and documents.",
-    "access": {
-      "private": "Private",
-      "protected": "Protected"
-    }
+    "description": "Your workspaces and documents."
   },
   "docRow": {
-    "actions": "Document actions",
-    "open": "Open",
-    "openNewTab": "Open in new tab",
     "words": "{n} word | {n} words"
   },
   "credits": {
@@ -2790,7 +2790,13 @@
       "workspace_template_added": "Template added",
       "workspace_template_removed": "Template removed",
       "doc_share_settings_changed": "Link settings changed",
-      "workspace_billing_plan_resumed": "Plan resumed"
+      "workspace_billing_plan_resumed": "Plan resumed",
+      "folder_created": "Folder created",
+      "folder_renamed": "Folder renamed",
+      "folder_moved": "Folder moved",
+      "folder_deleted": "Folder deleted with its contents",
+      "doc_folder_moved": "Document moved to another folder",
+      "import_completed": "Import finished"
     },
     "planNotice": "The audit log is part of the Business plan."
   },
@@ -3356,5 +3362,167 @@
       "loadFailed": "Couldn't load the AI cost",
       "empty": "No data for this range."
     }
+  },
+  "explorer": {
+    "personalRoot": "My documents",
+    "stale": "This item was moved or deleted by someone else. The list was refreshed.",
+    "folderGone": "This folder was moved or deleted by someone else.",
+    "someFailed": "{n} item could not be changed. | {n} items could not be changed.",
+    "movedTo": "Moved to {name} | Moved {n} items to {name}",
+    "undo": "Undo",
+    "cannotMoveHere": "Can't move these items there.",
+    "newFolderName": "New folder",
+    "renameLabel": "New name",
+    "nameProblem": {
+      "empty": "Enter a name.",
+      "too-long": "The name is too long.",
+      "invalid": "A name can't contain / or \\ or be . or ..."
+    },
+    "announce": {
+      "folderCreated": "Folder {name} created",
+      "renamed": "Renamed to {name}",
+      "moved": "{n} item moved | {n} items moved",
+      "movedWorkspace": "{n} document moved to another workspace | {n} documents moved to another workspace",
+      "deleted": "{n} item deleted | {n} items deleted",
+      "undone": "Move undone",
+      "cut": "{n} item cut. Paste it into a folder with Ctrl+V. | {n} items cut. Paste them into a folder with Ctrl+V."
+    },
+    "error": {
+      "createFolder": "Couldn't create the folder",
+      "rename": "Couldn't rename",
+      "move": "Couldn't move",
+      "delete": "Couldn't delete",
+      "deleteBlocked": "Folder not deleted"
+    },
+    "action": {
+      "open": "Open",
+      "openNewTab": "Open in new tab",
+      "rename": "Rename",
+      "moveTo": "Move to...",
+      "cut": "Cut",
+      "duplicate": "Duplicate",
+      "copyLink": "Copy link",
+      "copyLinks": "Copy links",
+      "share": "Share...",
+      "delete": "Delete",
+      "deleteN": "Delete {n} item | Delete {n} items",
+      "newDocument": "New document",
+      "newFolder": "New folder",
+      "import": "Import files...",
+      "paste": "Paste"
+    },
+    "sortBy": "Sort by",
+    "sort": {
+      "updated": "Last edited",
+      "created": "Created",
+      "active": "Last activity",
+      "title": "Name"
+    },
+    "sortDirection": {
+      "asc": "Ascending",
+      "desc": "Descending"
+    },
+    "selectItem": "Select {name}",
+    "column": {
+      "name": "Name",
+      "owner": "Owner",
+      "updated": "Last edited",
+      "words": "Size"
+    },
+    "listLabel": "Contents of {name}",
+    "treeLabel": "Folders",
+    "folders": "Folders",
+    "up": "Up one level",
+    "searchPlaceholder": "Search titles and text",
+    "searchEverywhere": "All folders",
+    "done": "Done",
+    "select": "Select",
+    "new": "New",
+    "selected": "{n} selected",
+    "actions": "Actions",
+    "clearSelection": "Clear selection",
+    "you": "You",
+    "items": "empty | {n} document | {n} documents",
+    "noResults": "Nothing found",
+    "emptyFolder": "This folder is empty",
+    "emptyHint": "Create a document or folder, or drop files here to import them.",
+    "dropToImport": "Drop to import into this folder",
+    "count": "{n} item | {n} items",
+    "move": {
+      "title": "Move {n} item | Move {n} items",
+      "toFolder": "To a folder",
+      "toWorkspace": "To another workspace",
+      "personal": "My documents",
+      "pickWorkspace": "Choose a workspace",
+      "workspaceWarning": "The members of the new workspace will see these documents; the members of this one lose access.",
+      "here": "Move here",
+      "toWorkspaceConfirm": "Move"
+    },
+    "delete": {
+      "title": "Delete",
+      "items": "{n} item | {n} items",
+      "question": "Delete {name}?",
+      "counting": "Counting what is inside...",
+      "counts": "This deletes {folders} and {documents}, including everything inside the folders.",
+      "blocked": "{n} document inside belongs to someone else and can't be deleted by you. | {n} documents inside belong to someone else and can't be deleted by you.",
+      "permanent": "Deleted documents can't be restored. People who have them open see that they were deleted.",
+      "confirm": "Delete",
+      "folderCount": "no folders | {n} folder | {n} folders",
+      "documentCount": "no documents | {n} document | {n} documents"
+    },
+    "import": {
+      "title": "Import into {name}",
+      "fromFiles": "Files and folders",
+      "fromGithub": "GitHub",
+      "filesHint": "Markdown, Word, PDF, PowerPoint, Excel, HTML and EPUB files, whole folders (their folders are kept) and zip archives. Images that Markdown files link to come along. You can also drop files onto the list.",
+      "chooseFiles": "Choose files",
+      "chooseFolder": "Choose a folder",
+      "summary": "{docs} documents, {images} images, {archives} zip archives",
+      "skippedFiles": "{n} file is skipped (not a supported type). | {n} files are skipped (not a supported type).",
+      "githubLabel": "GitHub link",
+      "githubHint": "A public repository or a folder of one. Markdown files and the images they use are imported; private repositories need to be downloaded as a zip first.",
+      "uploading": "Uploading {done} of {total} files...",
+      "progress": "{done} of {total} documents imported, {failed} failed",
+      "background": "The import runs on the server. You can close this window; the documents appear as they are imported.",
+      "cancel": "Stop import",
+      "start": "Import",
+      "activeJob": "An import is already running",
+      "failed": "The import couldn't start",
+      "status": {
+        "done": "Import finished",
+        "failed": "Import failed",
+        "cancelled": "Import stopped"
+      },
+      "jobError": {
+        "access-lost": "You can no longer add documents to this workspace.",
+        "github-url-invalid": "This isn't a link to a GitHub repository.",
+        "github-not-found": "The repository wasn't found. Private repositories can't be imported from a link.",
+        "github-unavailable": "GitHub couldn't be reached. Try again later.",
+        "archive-too-large": "The repository is larger than an import can be.",
+        "too-many-bytes": "The files are larger than one import may be on your plan.",
+        "archive-unreadable": "The archive couldn't be read.",
+        "too-many-files": "There are more files than one import may bring in on your plan.",
+        "internal": "Something went wrong on our side."
+      },
+      "reason": {
+        "not-uploaded": "Not uploaded",
+        "too-large": "Too large",
+        "unsupported": "Not a supported type",
+        "not-utf8": "Not a UTF-8 text file",
+        "too-long": "Too long for one document",
+        "conversion-failed": "Couldn't be converted",
+        "cancelled": "Stopped",
+        "unreadable": "Couldn't be read",
+        "unused": "Not used by any document"
+      }
+    },
+    "quickSearch": {
+      "open": "Search documents",
+      "placeholder": "Search all your documents",
+      "empty": "No documents found",
+      "personal": "My documents",
+      "hint": "Searches titles and text of your documents, your workspaces and documents shared with you."
+    },
+    "subfolders": "{n} folder | {n} folders"
   }
 }

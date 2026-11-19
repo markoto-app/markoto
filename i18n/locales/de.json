@@ -17,7 +17,6 @@
     "newDocument": "Neues Dokument",
     "openDocument": "Dokument öffnen",
     "recentDocuments": "Zuletzt verwendete Dokumente",
-    "noRecent": "Keine zuletzt verwendeten Dokumente",
     "sharedWithYou": "Mit dir geteilt"
   },
   "auth": {
@@ -520,9 +519,6 @@
     "cancel": "Abbrechen",
     "openPanel": "Panel öffnen",
     "back": "Zurück",
-    "delete": "Löschen",
-    "duplicate": "Duplizieren",
-    "move": "In Workspace verschieben…",
     "confirm": "Bestätigen",
     "close": "Schliessen",
     "loading": "Wird geladen...",
@@ -622,6 +618,10 @@
         "get_knowledge_file": "markoto möchte die Wissensdatei „{target}“ lesen.",
         "create_document": "markoto möchte ein neues Dokument erstellen: „{target}“.",
         "duplicate_document": "markoto möchte „{target}“ kopieren.",
+        "search_documents": "markoto möchte deine Dokumente nach «{target}» durchsuchen.",
+        "list_folders": "markoto möchte deine Ordner auflisten.",
+        "move_document": "markoto möchte «{target}» in einen anderen Ordner verschieben.",
+        "create_folder": "markoto möchte den Ordner «{target}» erstellen.",
         "web_search": "markoto möchte im Web nach „{target}“ suchen.",
         "fetch_url": "markoto möchte {target} öffnen",
         "view_image": "markoto möchte das Bild {target} laden",
@@ -783,6 +783,11 @@
       "saveTheme": "Speichert das Design als „{name}“",
       "saveThemeAny": "Speichert das Design…",
       "listWorkspaceDocuments": "Sieht die Dokumente im Workspace durch…",
+      "listMyDocuments": "Durchsucht deine Dokumente…",
+      "searchDocuments": "Sucht in Dokumenten nach \"{query}\"",
+      "listFolders": "Durchsucht Ordner…",
+      "moveDocument": "Verschiebt ein Dokument in einen Ordner…",
+      "createFolder": "Erstellt Ordner \"{name}\"",
       "readOtherDocument": "Liest das Dokument {id}",
       "readNamedDocument": "Liest „{title}“…",
       "readOtherDocumentAny": "Liest ein anderes Dokument…",
@@ -1545,7 +1550,10 @@
     "successDesc": "\"{title}\" wurde dauerhaft gelöscht.",
     "failed": "Löschen fehlgeschlagen",
     "remoteTitle": "Dokument gelöscht",
-    "remoteDesc": "Dieses Dokument wurde vom Eigentümer gelöscht."
+    "remoteDesc": "Dieses Dokument wurde gelöscht. Lade eine Kopie deines Texts herunter, bevor du es schliesst.",
+    "remoteBanner": "Dieses Dokument wurde gelöscht. Deine Änderungen werden nicht mehr gespeichert.",
+    "keepReading": "Weiterlesen",
+    "downloadCopy": "Markdown herunterladen"
   },
   "workspace": {
     "tabs": {
@@ -1585,10 +1593,6 @@
     "descriptionPlaceholder": "Wofür ist dieser Workspace gedacht?",
     "create": "Workspace erstellen",
     "docCount": "keine Dokumente | {count} Dokument | {count} Dokumente",
-    "empty": "Noch keine Dokumente",
-    "emptyDescription": "Beginne, indem du dein erstes Dokument in diesem Workspace erstellst.",
-    "emptyDescriptionViewer": "Hier erstellte Dokumente erscheinen in dieser Liste.",
-    "newDocument": "Neues Dokument",
     "backToHome": "Zurück",
     "rename": "Workspace umbenennen",
     "edit": "Workspace bearbeiten",
@@ -2197,7 +2201,10 @@
       "aiJobUnitsPerJob": "Dieser Auftrag ist grösser, als dein Plan erlaubt. Wähle weniger Abschnitte.",
       "aiJobsPerDay": "Du hast die KI-Aufträge deines Plans für heute aufgebraucht. Versuche es morgen wieder.",
       "historyEntry": "Diese Änderung ist älter als der Verlauf, den der Plan dieses Dokuments enthält.",
-      "mcpToolCallsPerDay": "Du hast die MCP-Werkzeugaufrufe deines Plans für heute aufgebraucht. Versuche es morgen wieder."
+      "mcpToolCallsPerDay": "Du hast die MCP-Werkzeugaufrufe deines Plans für heute aufgebraucht. Versuche es morgen wieder.",
+      "importFilesPerJob": "Dieser Import enthält mehr Dateien, als dein Plan für einen Import erlaubt.",
+      "importBytesPerJob": "Dieser Import ist grösser, als dein Plan für einen Import erlaubt.",
+      "importJobsPerDay": "Du hast die in deinem Plan enthaltenen Importe für heute gestartet. Versuche es morgen wieder."
     },
     "notice": {
       "historyHidden": "Aktivitäten, die älter als {days} Tage sind, werden im Plan dieses Dokuments ausgeblendet. Sie bleiben gespeichert und erscheinen wieder, sobald der Plan mehr Verlauf enthält."
@@ -2593,16 +2600,9 @@
   "home": {
     "title": "Start",
     "greeting": "Willkommen zurück, {name}",
-    "description": "Deine Workspaces und Dokumente.",
-    "access": {
-      "private": "Privat",
-      "protected": "Geschützt"
-    }
+    "description": "Deine Workspaces und Dokumente."
   },
   "docRow": {
-    "actions": "Dokumentaktionen",
-    "open": "Öffnen",
-    "openNewTab": "In neuem Tab öffnen",
     "words": "{n} Wort | {n} Wörter"
   },
   "credits": {
@@ -2790,7 +2790,13 @@
       "workspace_template_added": "Vorlage hinzugefügt",
       "workspace_template_removed": "Vorlage entfernt",
       "doc_share_settings_changed": "Link-Einstellungen geändert",
-      "workspace_billing_plan_resumed": "Kündigung zurückgenommen"
+      "workspace_billing_plan_resumed": "Kündigung zurückgenommen",
+      "folder_created": "Ordner erstellt",
+      "folder_renamed": "Ordner umbenannt",
+      "folder_moved": "Ordner verschoben",
+      "folder_deleted": "Ordner mit Inhalt gelöscht",
+      "doc_folder_moved": "Dokument in einen anderen Ordner verschoben",
+      "import_completed": "Import abgeschlossen"
     },
     "planNotice": "Der Audit-Log ist Teil des Business-Plans."
   },
@@ -3356,5 +3362,167 @@
       "loadFailed": "Die KI-Kosten konnten nicht geladen werden",
       "empty": "Keine Daten für diesen Zeitraum."
     }
+  },
+  "explorer": {
+    "personalRoot": "Meine Dokumente",
+    "stale": "Dieses Element wurde von jemand anderem verschoben oder gelöscht. Die Liste wurde aktualisiert.",
+    "folderGone": "Dieser Ordner wurde von jemand anderem verschoben oder gelöscht.",
+    "someFailed": "{n} Element konnte nicht geändert werden. | {n} Elemente konnten nicht geändert werden.",
+    "movedTo": "Nach {name} verschoben | {n} Elemente nach {name} verschoben",
+    "undo": "Rückgängig",
+    "cannotMoveHere": "Diese Elemente können nicht dorthin verschoben werden.",
+    "newFolderName": "Neuer Ordner",
+    "renameLabel": "Neuer Name",
+    "nameProblem": {
+      "empty": "Gib einen Namen ein.",
+      "too-long": "Der Name ist zu lang.",
+      "invalid": "Ein Name darf weder / noch \\ enthalten und nicht . oder .. lauten."
+    },
+    "announce": {
+      "folderCreated": "Ordner {name} erstellt",
+      "renamed": "Umbenannt in {name}",
+      "moved": "{n} Element verschoben | {n} Elemente verschoben",
+      "movedWorkspace": "{n} Dokument in einen anderen Workspace verschoben | {n} Dokumente in einen anderen Workspace verschoben",
+      "deleted": "{n} Element gelöscht | {n} Elemente gelöscht",
+      "undone": "Verschieben rückgängig gemacht",
+      "cut": "{n} Element ausgeschnitten. Füge es mit Strg+V in einen Ordner ein. | {n} Elemente ausgeschnitten. Füge sie mit Strg+V in einen Ordner ein."
+    },
+    "error": {
+      "createFolder": "Der Ordner konnte nicht erstellt werden",
+      "rename": "Umbenennen fehlgeschlagen",
+      "move": "Verschieben fehlgeschlagen",
+      "delete": "Löschen fehlgeschlagen",
+      "deleteBlocked": "Ordner nicht gelöscht"
+    },
+    "action": {
+      "open": "Öffnen",
+      "openNewTab": "In neuem Tab öffnen",
+      "rename": "Umbenennen",
+      "moveTo": "Verschieben nach…",
+      "cut": "Ausschneiden",
+      "duplicate": "Duplizieren",
+      "copyLink": "Link kopieren",
+      "copyLinks": "Links kopieren",
+      "share": "Teilen…",
+      "delete": "Löschen",
+      "deleteN": "{n} Element löschen | {n} Elemente löschen",
+      "newDocument": "Neues Dokument",
+      "newFolder": "Neuer Ordner",
+      "import": "Dateien importieren…",
+      "paste": "Einfügen"
+    },
+    "sortBy": "Sortieren nach",
+    "sort": {
+      "updated": "Zuletzt bearbeitet",
+      "created": "Erstellt",
+      "active": "Letzte Aktivität",
+      "title": "Name"
+    },
+    "sortDirection": {
+      "asc": "Aufsteigend",
+      "desc": "Absteigend"
+    },
+    "selectItem": "{name} auswählen",
+    "column": {
+      "name": "Name",
+      "owner": "Eigentümer",
+      "updated": "Zuletzt bearbeitet",
+      "words": "Grösse"
+    },
+    "listLabel": "Inhalt von {name}",
+    "treeLabel": "Ordner",
+    "folders": "Ordner",
+    "up": "Eine Ebene höher",
+    "searchPlaceholder": "Titel und Text durchsuchen",
+    "searchEverywhere": "Alle Ordner",
+    "done": "Fertig",
+    "select": "Auswählen",
+    "new": "Neu",
+    "selected": "{n} ausgewählt",
+    "actions": "Aktionen",
+    "clearSelection": "Auswahl aufheben",
+    "you": "Du",
+    "items": "leer | {n} Dokument | {n} Dokumente",
+    "noResults": "Nichts gefunden",
+    "emptyFolder": "Dieser Ordner ist leer",
+    "emptyHint": "Erstelle ein Dokument oder einen Ordner oder ziehe Dateien hierher, um sie zu importieren.",
+    "dropToImport": "Zum Importieren in diesen Ordner ablegen",
+    "count": "{n} Element | {n} Elemente",
+    "move": {
+      "title": "{n} Element verschieben | {n} Elemente verschieben",
+      "toFolder": "In einen Ordner",
+      "toWorkspace": "In einen anderen Workspace",
+      "personal": "Meine Dokumente",
+      "pickWorkspace": "Workspace auswählen",
+      "workspaceWarning": "Die Mitglieder des neuen Workspace sehen diese Dokumente, die Mitglieder dieses Workspace verlieren den Zugriff.",
+      "here": "Hierher verschieben",
+      "toWorkspaceConfirm": "Verschieben"
+    },
+    "delete": {
+      "title": "Löschen",
+      "items": "{n} Element | {n} Elemente",
+      "question": "{name} löschen?",
+      "counting": "Zähle den Inhalt…",
+      "counts": "Dadurch werden {folders} und {documents} gelöscht, einschliesslich allem, was in den Ordnern liegt.",
+      "blocked": "{n} Dokument darin gehört jemand anderem und kann von dir nicht gelöscht werden. | {n} Dokumente darin gehören jemand anderem und können von dir nicht gelöscht werden.",
+      "permanent": "Gelöschte Dokumente können nicht wiederhergestellt werden. Wer sie geöffnet hat, sieht, dass sie gelöscht wurden.",
+      "confirm": "Löschen",
+      "folderCount": "keine Ordner | {n} Ordner | {n} Ordner",
+      "documentCount": "keine Dokumente | {n} Dokument | {n} Dokumente"
+    },
+    "import": {
+      "title": "In {name} importieren",
+      "fromFiles": "Dateien und Ordner",
+      "fromGithub": "GitHub",
+      "filesHint": "Markdown-, Word-, PDF-, PowerPoint-, Excel-, HTML- und EPUB-Dateien, ganze Ordner (ihre Ordnerstruktur bleibt erhalten) und Zip-Archive. Bilder, auf die Markdown-Dateien verweisen, werden mitgeliefert. Du kannst Dateien auch auf die Liste ziehen.",
+      "chooseFiles": "Dateien auswählen",
+      "chooseFolder": "Ordner auswählen",
+      "summary": "{docs} Dokumente, {images} Bilder, {archives} Zip-Archive",
+      "skippedFiles": "{n} Datei wird übersprungen (nicht unterstützter Typ). | {n} Dateien werden übersprungen (nicht unterstützter Typ).",
+      "githubLabel": "GitHub-Link",
+      "githubHint": "Ein öffentliches Repository oder ein Ordner daraus. Markdown-Dateien und die darin verwendeten Bilder werden importiert; private Repositories musst du zuerst als Zip herunterladen.",
+      "uploading": "Lade {done} von {total} Dateien hoch…",
+      "progress": "{done} von {total} Dokumenten importiert, {failed} fehlgeschlagen",
+      "background": "Der Import läuft auf dem Server. Du kannst dieses Fenster schliessen; die Dokumente erscheinen, sobald sie importiert sind.",
+      "cancel": "Import stoppen",
+      "start": "Importieren",
+      "activeJob": "Es läuft bereits ein Import",
+      "failed": "Der Import konnte nicht gestartet werden",
+      "status": {
+        "done": "Import abgeschlossen",
+        "failed": "Import fehlgeschlagen",
+        "cancelled": "Import gestoppt"
+      },
+      "jobError": {
+        "access-lost": "Du kannst diesem Workspace keine Dokumente mehr hinzufügen.",
+        "github-url-invalid": "Das ist kein Link zu einem GitHub-Repository.",
+        "github-not-found": "Das Repository wurde nicht gefunden. Private Repositories können nicht über einen Link importiert werden.",
+        "github-unavailable": "GitHub war nicht erreichbar. Versuche es später erneut.",
+        "archive-too-large": "Das Repository ist grösser, als ein Import sein darf.",
+        "too-many-bytes": "Die Dateien sind grösser, als ein Import in deinem Plan sein darf.",
+        "archive-unreadable": "Das Archiv konnte nicht gelesen werden.",
+        "too-many-files": "Es sind mehr Dateien, als ein Import in deinem Plan enthalten darf.",
+        "internal": "Auf unserer Seite ist etwas schiefgelaufen."
+      },
+      "reason": {
+        "not-uploaded": "Nicht hochgeladen",
+        "too-large": "Zu gross",
+        "unsupported": "Kein unterstützter Typ",
+        "not-utf8": "Keine UTF-8-Textdatei",
+        "too-long": "Zu lang für ein Dokument",
+        "conversion-failed": "Konnte nicht konvertiert werden",
+        "cancelled": "Gestoppt",
+        "unreadable": "Konnte nicht gelesen werden",
+        "unused": "Von keinem Dokument verwendet"
+      }
+    },
+    "quickSearch": {
+      "open": "Dokumente durchsuchen",
+      "placeholder": "Alle deine Dokumente durchsuchen",
+      "empty": "Keine Dokumente gefunden",
+      "personal": "Meine Dokumente",
+      "hint": "Durchsucht Titel und Text deiner Dokumente, deiner Workspaces und der mit dir geteilten Dokumente."
+    },
+    "subfolders": "{n} Ordner | {n} Ordner"
   }
 }

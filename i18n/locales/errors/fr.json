@@ -205,7 +205,15 @@
       "timeout": "La conversion a pris trop de temps.",
       "too-complex": "Ce fichier est trop volumineux ou trop complexe pour être converti.",
       "unavailable": "Le service de conversion est injoignable.",
-      "unsupported-format": "Ce format de fichier n’est pas pris en charge."
+      "unsupported-format": "Ce format de fichier n’est pas pris en charge.",
+      "job-not-found": "Cet import est introuvable.",
+      "job-active": "Un import est déjà en cours. Attendez qu'il se termine ou arrêtez-le.",
+      "job-not-uploading": "Cet import a déjà démarré.",
+      "nothing-to-import": "Aucun de ces fichiers ne peut être importé.",
+      "path-invalid": "Un chemin de fichier n'est pas valide.",
+      "github-url-invalid": "Ce n'est pas un lien vers un dépôt GitHub public.",
+      "github-not-found": "Le dépôt est introuvable.",
+      "github-unavailable": "GitHub est inaccessible. Réessayez plus tard."
     },
     "internal": {
       "forbidden": "Identifiants non valides ou manquants."
@@ -408,6 +416,14 @@
       "not-found": "Espace de travail introuvable.",
       "role-required": "Les lecteurs ne peuvent pas créer de documents dans cet espace de travail.",
       "template-rate-limited": "Trop de requêtes. Veuillez patienter un instant et réessayer."
+    },
+    "folder": {
+      "not-found": "Ce dossier a été déplacé ou supprimé par quelqu'un d'autre.",
+      "name-taken": "Un dossier portant ce nom existe déjà ici.",
+      "too-deep": "Les dossiers peuvent être imbriqués sur {max} niveaux au maximum.",
+      "cycle": "Un dossier ne peut pas être déplacé dans lui-même ni dans l'un de ses sous-dossiers.",
+      "forbidden": "Vous ne pouvez pas modifier les dossiers ici.",
+      "delete-blocked": "{blocked} documents de ce dossier ne peuvent pas être supprimés par vous, donc rien n'a été supprimé."
     }
   }
 }

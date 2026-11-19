@@ -32,3 +32,13 @@ export async function settleAnimations(page: Page, ms: number): Promise<void> {
 export async function waitForNothingToHappen(page: Page, ms: number): Promise<void> {
   await page.waitForTimeout(ms)
 }
+
+/**
+ * Keep a pointer (a finger, a dragged item) where it is for `ms`.
+ *
+ * A long press is defined by how long the finger stays down, and a drop target sees a dragged item only after the
+ * browser has delivered `dragover` to it: in both cases time has to pass with nothing on the page to wait for.
+ */
+export async function holdPointer(page: Page, ms: number): Promise<void> {
+  await page.waitForTimeout(ms)
+}

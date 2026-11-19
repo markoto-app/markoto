@@ -76,6 +76,19 @@ export interface TierCaps {
    */
   importMaxBytes: number
   /**
+   * Files one bulk import may bring in (documents plus the images their
+   * Markdown links to; files skipped by type don't count). Judged against
+   * the importing user's plan.
+   */
+  importFilesPerJob: number
+  /**
+   * Bytes one bulk import may bring in: the uploaded files, or what an
+   * archive / a GitHub repository expands to.
+   */
+  importBytesPerJob: number
+  /** Bulk imports a user may start per day. */
+  importJobsPerDay: number
+  /**
    * Platform-paid `web_search` + `fetch_url` calls per user per day,
    * on top of the operator ceiling `NUXT_WEB_TOOLS_DAILY_LIMIT`
    * (the stricter one wins). `null` = no plan limit.
@@ -187,6 +200,7 @@ export function wouldExceed(limit: number | null, used: number): boolean {
 }
 
 const MB = 1024 * 1024
+const GB = 1024 * MB
 
 // Paid-plan values of the Phase-A entitlements (no limit, every feature).
 const PAID_PLAN_ENTITLEMENTS = {
@@ -227,6 +241,10 @@ export const DEFAULT_TIERS = {
     historyDays: null,
     savedThemes: 20,
     importMaxBytes: 50 * MB,
+    // Self-host default; markoto.app's free plan: 200 files / 200 MB / 10 a day (infra/render-env.sh).
+    importFilesPerJob: 5000,
+    importBytesPerJob: 5 * GB,
+    importJobsPerDay: 500,
     webToolsPerDay: null,
     mcpToolCallsPerDay: null,
     aiJobUnitsPerJob: null,
@@ -251,6 +269,9 @@ export const DEFAULT_TIERS = {
     knowledgeBytesPerUser: 2 * 1024 * 1024 * 1024,
     imageBytesPerUser: 2 * 1024 * 1024 * 1024,
     ...PAID_PLAN_ENTITLEMENTS,
+    importFilesPerJob: 1000,
+    importBytesPerJob: GB,
+    importJobsPerDay: 50,
     sso: true,
     auditLog: true,
     guests: true,
@@ -271,6 +292,9 @@ export const DEFAULT_TIERS = {
     knowledgeBytesPerUser: 5 * 1024 * 1024 * 1024,
     imageBytesPerUser: 10 * 1024 * 1024 * 1024,
     ...PAID_PLAN_ENTITLEMENTS,
+    importFilesPerJob: 5000,
+    importBytesPerJob: 5 * GB,
+    importJobsPerDay: 200,
     sso: true,
     auditLog: true,
     guests: true,
@@ -286,6 +310,9 @@ export const DEFAULT_TIERS = {
     knowledgeBytesPerUser: 10 * 1024 * 1024 * 1024,
     imageBytesPerUser: 20 * 1024 * 1024 * 1024,
     ...PAID_PLAN_ENTITLEMENTS,
+    importFilesPerJob: 5000,
+    importBytesPerJob: 5 * GB,
+    importJobsPerDay: 500,
     sso: true,
     auditLog: true,
     guests: true,
@@ -313,6 +340,9 @@ const TIER_FIELD_ENV_SUFFIX: Record<keyof TierCaps, string> = {
   historyDays: 'HISTORY_DAYS',
   savedThemes: 'SAVED_THEMES',
   importMaxBytes: 'IMPORT_MAX_BYTES',
+  importFilesPerJob: 'IMPORT_FILES_PER_JOB',
+  importBytesPerJob: 'IMPORT_BYTES_PER_JOB',
+  importJobsPerDay: 'IMPORT_JOBS_PER_DAY',
   webToolsPerDay: 'WEB_TOOLS_PER_DAY',
   mcpToolCallsPerDay: 'MCP_TOOL_CALLS_PER_DAY',
   aiJobUnitsPerJob: 'AI_JOB_UNITS_PER_JOB',

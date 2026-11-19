@@ -39,8 +39,8 @@ describe('shouldRecordToolInMemory', () => {
     [
       'view_document', 'read_comments',
       'get_theme', 'list_themes',
-      'list_workspace_documents', 'get_page_count',
-      'search_activity_log'
+      'list_workspace_documents', 'list_my_documents', 'list_folders',
+      'get_page_count', 'search_activity_log'
     ]
   )('returns false for skip-listed tool %s', (name) => {
     expect(shouldRecordToolInMemory(name)).toBe(false)
@@ -53,7 +53,8 @@ describe('shouldRecordToolInMemory', () => {
       'view_pages', 'search_knowledge', 'get_knowledge_file',
       'view_other_document', 'update_theme', 'save_theme_as_preset',
       'create_comment', 'reply_to_comment', 'resolve_comment',
-      'delete_comment', 'message_to_user'
+      'delete_comment', 'message_to_user',
+      'search_documents', 'move_document', 'create_folder'
     ]
   )('returns true for recordable tool %s', (name) => {
     expect(shouldRecordToolInMemory(name)).toBe(true)
@@ -103,7 +104,12 @@ describe('summarizeToolCall', () => {
     ['generate_image', { prompt: 'A handshake, photorealistic' }, 'prompt="A handshake, photorealistic"'],
     ['search_knowledge', { query: 'vendor onboarding' }, 'query="vendor onboarding"'],
     ['get_knowledge_file', { knowledge_id: 'k_abc123' }, 'knowledge_id=k_abc123'],
-    ['view_other_document', { doc_id: 'doc-9' }, 'doc=doc-9']
+    ['view_other_document', { doc_id: 'doc-9' }, 'doc=doc-9'],
+    ['search_documents', { query: 'q3 retro' }, 'query="q3 retro"'],
+    ['move_document', { doc_id: 'doc-9', folder_id: 'f_1' }, 'doc=doc-9 folder_id=f_1'],
+    ['move_document', { doc_id: 'doc-9', folder_id: null }, 'doc=doc-9 folder_id=null'],
+    ['create_folder', { name: 'Specs', parent_id: 'f_1' }, 'name="Specs" parent_id=f_1'],
+    ['create_folder', { name: 'Specs' }, 'name="Specs"']
   ])('summarises %s tightly', (name, args, expected) => {
     expect(summarizeToolCall(name, args)).toBe(expected)
   })

@@ -2,7 +2,7 @@
 title: Guests in a workspace
 description: Invite clients and freelancers as guests. They see only the documents you share with them, take no seat and use their own AI budget.
 category: workspaces
-order: 4
+order: 5
 updated: '2026-11-09'
 ---
 

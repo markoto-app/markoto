@@ -71,6 +71,9 @@ export const persistence = createDocumentPersistence({
   onSnapshotDue: docId => compaction.enqueue(docId)
 })
 
+/** The pool the search index writes through (`search-index.ts`). */
+export const searchIndexDb = pool
+
 export async function closePersistencePool(): Promise<void> {
   await pool.end()
 }

@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/5mQVL15bbT"
+      "path": "/d/pfMpIEmO5m"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 618,
         "y": 722
       },
-      "path": "/d/5mQVL15bbT"
+      "path": "/d/pfMpIEmO5m"
     },
     {
       "kind": "approach",
@@ -42,7 +42,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/5mQVL15bbT"
+      "path": "/d/pfMpIEmO5m"
     },
     {
       "kind": "outcome",
@@ -52,7 +52,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/5mQVL15bbT"
+      "path": "/d/pfMpIEmO5m"
     },
     {
       "kind": "approach",
@@ -62,7 +62,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/5mQVL15bbT"
+      "path": "/d/pfMpIEmO5m"
     },
     {
       "kind": "outcome",
@@ -72,7 +72,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/5mQVL15bbT"
+      "path": "/d/pfMpIEmO5m"
     },
     {
       "kind": "chapter",
@@ -87,14 +87,14 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/5mQVL15bbT",
+      "path": "/d/pfMpIEmO5m",
       "highlights": [
         {
           "label": "Renamed heading",
           "x": 24.75,
           "y": 179,
           "w": 590,
-          "h": 61.5
+          "h": 30.75
         }
       ],
       "hero": true

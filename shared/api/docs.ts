@@ -35,6 +35,8 @@ export const createDocBody = z.object({
   acceptTerms: z.unknown().optional(),
   // Anything but a string means "no workspace", as it always did.
   workspaceId: z.string().nullish().catch(null),
+  // A folder of that workspace (or of the creator's personal documents).
+  folderId: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/).nullish(),
   title: z.string().optional(),
   description: z.string().optional(),
   audience: audience.optional(),

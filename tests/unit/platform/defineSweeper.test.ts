@@ -76,6 +76,28 @@ describe('defineSweeper', () => {
     expect(run).toHaveBeenCalledTimes(1)
   })
 
+  it('onReady hands out a trigger that runs now, but not on top of a run in progress', async () => {
+    let release!: () => void
+    const run = vi.fn(() => new Promise<void>((r) => {
+      release = r
+    }))
+    let runNow!: () => void
+    start({ run, runAtBoot: false, schedule: { intervalMs: 60_000 }, onReady: (fn) => {
+      runNow = fn
+    } })
+    runNow()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(run).toHaveBeenCalledTimes(1)
+    runNow()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(run).toHaveBeenCalledTimes(1)
+    release()
+    await vi.advanceTimersByTimeAsync(0)
+    runNow()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(run).toHaveBeenCalledTimes(2)
+  })
+
   it('runAtBoot: false waits one full interval for the first run', async () => {
     const run = vi.fn(async () => {})
     start({ run, runAtBoot: false })

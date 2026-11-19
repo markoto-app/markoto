@@ -205,7 +205,15 @@
       "timeout": "Die Konvertierung hat zu lange gedauert.",
       "too-complex": "Diese Datei ist zu gross oder zu komplex für die Konvertierung.",
       "unavailable": "Der Konvertierungsdienst ist nicht erreichbar.",
-      "unsupported-format": "Dieses Dateiformat wird nicht unterstützt."
+      "unsupported-format": "Dieses Dateiformat wird nicht unterstützt.",
+      "job-not-found": "Dieser Import wurde nicht gefunden.",
+      "job-active": "Es läuft bereits ein Import. Warte, bis er fertig ist, oder stoppe ihn.",
+      "job-not-uploading": "Dieser Import hat bereits begonnen.",
+      "nothing-to-import": "Keine dieser Dateien kann importiert werden.",
+      "path-invalid": "Ein Dateipfad ist ungültig.",
+      "github-url-invalid": "Das ist kein Link zu einem öffentlichen GitHub-Repository.",
+      "github-not-found": "Das Repository wurde nicht gefunden.",
+      "github-unavailable": "GitHub war nicht erreichbar. Versuche es später erneut."
     },
     "internal": {
       "forbidden": "Ungültige oder fehlende Zugangsdaten."
@@ -408,6 +416,14 @@
       "not-found": "Workspace nicht gefunden.",
       "role-required": "Betrachter können in diesem Workspace keine Dokumente erstellen.",
       "template-rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut."
+    },
+    "folder": {
+      "not-found": "Dieser Ordner wurde von jemand anderem verschoben oder gelöscht.",
+      "name-taken": "Hier gibt es bereits einen Ordner mit diesem Namen.",
+      "too-deep": "Ordner können höchstens {max} Ebenen tief verschachtelt werden.",
+      "cycle": "Ein Ordner kann nicht in sich selbst oder in einen seiner Unterordner verschoben werden.",
+      "forbidden": "Du darfst hier keine Ordner ändern.",
+      "delete-blocked": "{blocked} Dokumente in diesem Ordner kannst du nicht löschen, deshalb wurde nichts gelöscht."
     }
   }
 }

@@ -1,6 +1,7 @@
 import { boundConfirmNote, type ConfirmationAnswer, type ConfirmationRequest } from './sessionChannel'
 import { trimEndChars } from '~~/shared/utils/trimChars'
 import { CONFIRM_WHEN_TAINTED, URL_ARG_TOOLS } from '../ai/tools/registry'
+import { PERSONAL_SCOPE } from '../ai/tools/folderTools'
 
 // Taint + confirm gate for the in-editor AI loop.
 //
@@ -135,6 +136,31 @@ function declineMessage(name: string, note: string | null): string {
   return `${base} (or did not answer). Do not retry it. Finish the user's request without it and tell them briefly what you could not do.`
 }
 
+/** Plain-text answer of search_documents without hits (it echoes only the query). */
+const NO_SEARCH_HITS = /^No documents match /
+
+/**
+ * The document ids in a search_documents result; [] for "no matches";
+ * null when the result has an unexpected shape.
+ */
+function searchHitIds(content: string | undefined): string[] | null {
+  if (content === undefined) return null
+  if (NO_SEARCH_HITS.test(content)) return []
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(content)
+  } catch {
+    return null
+  }
+  if (!isRecord(parsed) || !Array.isArray(parsed.results)) return null
+  const ids: string[] = []
+  for (const r of parsed.results) {
+    if (!isRecord(r) || typeof r.doc_id !== 'string' || r.doc_id === '') return null
+    ids.push(r.doc_id)
+  }
+  return ids
+}
+
 export class CrossBoundaryGuard {
   private readonly reasons: string[] = []
   private readonly typedUrls: Set<string>
@@ -211,16 +237,16 @@ export class CrossBoundaryGuard {
    * can't be established (a lookup fails) the session is treated as
    * tainted: fail closed.
    */
-  async afterTool(name: string, args: unknown, result: { isError: boolean }): Promise<void> {
+  async afterTool(name: string, args: unknown, result: { isError: boolean, content?: string }): Promise<void> {
     if (result.isError) return
     try {
-      await this.applyTaint(name, args)
+      await this.applyTaint(name, args, result.content)
     } catch {
       this.taint('content of unknown origin')
     }
   }
 
-  private async applyTaint(name: string, args: unknown): Promise<void> {
+  private async applyTaint(name: string, args: unknown, content: string | undefined): Promise<void> {
     switch (name) {
       case 'web_search':
         this.taint('web search results')
@@ -237,6 +263,10 @@ export class CrossBoundaryGuard {
       case 'view_other_document':
         if (!(await this.deps.isDocSolo(stringArg(args, 'doc_id')))) this.taint('another person\'s document')
         return
+      case 'search_documents':
+        return this.applySearchTaint(content)
+      case 'list_folders':
+        return this.applyFolderTaint(args)
       case 'search_knowledge':
         if ([...this.knowledgeFiles.values()].some(f => f.foreign)) this.taint('workspace knowledge')
         return
@@ -259,6 +289,35 @@ export class CrossBoundaryGuard {
     }
   }
 
+  /**
+   * search_documents: titles, snippets, workspace and folder names of the
+   * hits. Each hit can come from any scope the invoker reaches (shared
+   * workspaces, documents shared with them, open-edit documents), so the
+   * session stays clean only when every hit is a document only the
+   * invoker owns and edits (`isDocSolo`: also no other editor in its
+   * workspace, so its folder and workspace names are the invoker's too).
+   * A result that cannot be read taints (fail closed).
+   */
+  private async applySearchTaint(content: string | undefined): Promise<void> {
+    const ids = searchHitIds(content)
+    if (ids === null) {
+      this.taint('document search results')
+      return
+    }
+    const solo = await Promise.all(ids.map(id => this.deps.isDocSolo(id)))
+    if (solo.includes(false)) this.taint('document search results')
+  }
+
+  private async applyFolderTaint(args: unknown): Promise<void> {
+    // list_folders. Folder names are written by whoever edits the
+    // workspace. Personal folders are the invoker's own; no workspace_id =
+    // the session workspace (personal folders when there is none, where
+    // workspaceHasOtherEditors is false).
+    const workspaceId = stringArg(args, 'workspace_id')
+    if (workspaceId === PERSONAL_SCOPE) return
+    if (workspaceId !== '' || await this.deps.workspaceHasOtherEditors()) this.taint('workspace folder names')
+  }
+
   private async describeTarget(name: string, args: unknown): Promise<string | null> {
     switch (name) {
       case 'view_other_document': {
@@ -269,8 +328,15 @@ export class CrossBoundaryGuard {
         const ref = stringArg(args, 'source_doc_id')
         return truncateTarget((await this.deps.describeDoc(ref)) ?? ref)
       }
+      case 'move_document': {
+        const ref = stringArg(args, 'doc_id')
+        return truncateTarget((await this.deps.describeDoc(ref)) ?? ref)
+      }
       case 'create_document':
         return truncateTarget(stringArg(args, 'title')) || null
+      case 'create_folder':
+        return truncateTarget(stringArg(args, 'name')) || null
+      case 'search_documents':
       case 'search_knowledge':
       case 'web_search':
         return truncateTarget(stringArg(args, 'query')) || null

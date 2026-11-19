@@ -78,6 +78,7 @@ describe('buildExportZip', () => {
       'consent.ndjson',
       'custom_domains.json',
       'document_shares.json',
+      'imports.json',
       'moderation_notices.ndjson',
       'profile.json',
       'published_pages.json',
@@ -359,5 +360,25 @@ describe('buildExportZip', () => {
     expect(customer).toBe('{}')
     expect(readEntry(result.bytes, 'billing/invoices.ndjson')).toBe('')
     expect(result.counts.invoices).toBe(0)
+  })
+
+  it('exports the user\'s import records: paths and outcomes, never storage keys', async () => {
+    const u = await createUser()
+    const other = await createUser()
+    await testDb().query(
+      `INSERT INTO import_jobs (job_id, user_id, source, source_ref, status, total, done) VALUES
+        ('job1', $1, 'github', 'https://github.com/acme/docs', 'done', 1, 1),
+        ('job2', $2, 'upload', NULL, 'done', 0, 0)`,
+      [u.id, other.id]
+    )
+    await testDb().query(
+      `INSERT INTO import_job_items (job_id, item_id, relative_path, kind, status, s3_key) VALUES ('job1', 'i1', 'docs/a.md', 'doc', 'done', 'imports/job1/i1')`
+    )
+    const result = await buildExportZip(sys(), u.id)
+    const raw = readEntry(result.bytes, 'imports.json')
+    const jobs = JSON.parse(raw) as Array<{ jobId: string, repositoryUrl: string | null, files: Array<{ path: string, status: string }> }>
+    expect(jobs.map(j => j.jobId)).toEqual(['job1'])
+    expect(jobs[0]).toMatchObject({ repositoryUrl: 'https://github.com/acme/docs', files: [{ path: 'docs/a.md', status: 'done' }] })
+    expect(raw).not.toContain('imports/job1/i1')
   })
 })

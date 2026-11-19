@@ -4,7 +4,7 @@ description: A shared home for a team's documents, with roles, invitations, gues
 category: workspaces
 order: 8
 icon: i-lucide-users
-updated: '2026-11-14'
+updated: '2026-11-18'
 ---
 
 # Workspaces
@@ -15,6 +15,7 @@ roles (**admin**, **editor**, **viewer**) gate who can edit, manage
 access, or invite members.
 
 - [Start a workspace](/docs/workspaces/start): create one, name it, set defaults.
+- [Organize documents in folders](/docs/workspaces/organize-documents): folders, drag and drop, right-click menus, shortcuts and search.
 - [Invite a teammate](/docs/workspaces/invite): invite by email; they join once they accept.
 - [Roles inside a workspace](/docs/workspaces/roles): what admins, editors, and viewers can each do.
 - [Guests in a workspace](/docs/workspaces/guests): clients and freelancers who see only what you share with them.

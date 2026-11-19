@@ -16,6 +16,7 @@ import { proveNewDoc } from '../access/docProof'
 import type { DocAccess, UserScope, WorkspaceAccess } from '../../repos/proofs'
 import { imageQuotaMessage, type ImageQuota } from '../storage/imageQuota'
 import { cloneYjsStateWithUrlRewrite } from './cloneYjsState'
+import { reindexDocument } from './searchIndex'
 import { withThemeDocId } from '~~/shared/utils/theme/customCss'
 import { withThemeImagesDocId } from '~~/shared/utils/theme/themeImages'
 import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
@@ -148,6 +149,8 @@ export async function duplicateDocument(
     }
     throw e
   }
+  // The copy's text, searchable right away (no editor has stored it yet).
+  await reindexDocument(copy)
 }
 
 /**

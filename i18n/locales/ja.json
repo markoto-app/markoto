@@ -17,7 +17,6 @@
     "newDocument": "新しいドキュメント",
     "openDocument": "ドキュメントを開く",
     "recentDocuments": "最近のドキュメント",
-    "noRecent": "最近のドキュメントはありません",
     "sharedWithYou": "共有されたもの"
   },
   "auth": {
@@ -520,9 +519,6 @@
     "cancel": "キャンセル",
     "openPanel": "パネルを開く",
     "back": "戻る",
-    "delete": "削除",
-    "duplicate": "複製",
-    "move": "ワークスペースに移動…",
     "confirm": "確認",
     "close": "閉じる",
     "loading": "読み込み中...",
@@ -622,6 +618,10 @@
         "get_knowledge_file": "markoto がナレッジファイル「{target}」を読もうとしています。",
         "create_document": "markoto が新しいドキュメント「{target}」を作成しようとしています。",
         "duplicate_document": "markoto が「{target}」をコピーしようとしています。",
+        "search_documents": "markoto があなたのドキュメントで「{target}」を検索しようとしています。",
+        "list_folders": "markoto があなたのフォルダ一覧を取得しようとしています。",
+        "move_document": "markoto が「{target}」を別のフォルダに移動しようとしています。",
+        "create_folder": "markoto がフォルダ「{target}」を作成しようとしています。",
         "web_search": "markoto がウェブで「{target}」を検索しようとしています。",
         "fetch_url": "markoto が {target} を開こうとしています",
         "view_image": "markoto が画像 {target} を読み込もうとしています",
@@ -783,6 +783,11 @@
       "saveTheme": "テーマを「{name}」として保存中",
       "saveThemeAny": "テーマを保存中…",
       "listWorkspaceDocuments": "ワークスペースのドキュメントを確認中…",
+      "listMyDocuments": "あなたのドキュメントを閲覧中…",
+      "searchDocuments": "ドキュメントで「{query}」を検索中",
+      "listFolders": "フォルダを閲覧中…",
+      "moveDocument": "ドキュメントをフォルダに移動中…",
+      "createFolder": "フォルダ「{name}」を作成中",
       "readOtherDocument": "ドキュメント {id} を読んでいます",
       "readNamedDocument": "「{title}」を読んでいます…",
       "readOtherDocumentAny": "別のドキュメントを読んでいます…",
@@ -1545,7 +1550,10 @@
     "successDesc": "「{title}」を完全に削除しました。",
     "failed": "削除に失敗しました",
     "remoteTitle": "ドキュメントが削除されました",
-    "remoteDesc": "このドキュメントは所有者によって削除されました。"
+    "remoteDesc": "このドキュメントは削除されました。閉じる前に、あなたのテキストのコピーをダウンロードしてください。",
+    "remoteBanner": "このドキュメントは削除されました。変更は保存されなくなりました。",
+    "keepReading": "読み続ける",
+    "downloadCopy": "Markdown をダウンロード"
   },
   "workspace": {
     "tabs": {
@@ -1585,10 +1593,6 @@
     "descriptionPlaceholder": "このワークスペースは何のためのものですか？",
     "create": "ワークスペースを作成",
     "docCount": "ドキュメントなし | {count}件のドキュメント | {count}件のドキュメント",
-    "empty": "まだドキュメントはありません",
-    "emptyDescription": "このワークスペースで最初のドキュメントを作成してみましょう。",
-    "emptyDescriptionViewer": "ここで作成されたドキュメントがこのリストに表示されます。",
-    "newDocument": "新しいドキュメント",
     "backToHome": "戻る",
     "rename": "ワークスペースの名前を変更",
     "edit": "ワークスペースを編集",
@@ -2197,7 +2201,10 @@
       "aiJobUnitsPerJob": "このジョブはプランの上限を超えています。セクションを減らしてください。",
       "aiJobsPerDay": "プランに含まれる本日の AI ジョブを使い切りました。明日もう一度お試しください。",
       "historyEntry": "この変更は、このドキュメントのプランに含まれる履歴より古いものです。",
-      "mcpToolCallsPerDay": "プランに含まれる本日の MCP ツール呼び出しを使い切りました。明日もう一度お試しください。"
+      "mcpToolCallsPerDay": "プランに含まれる本日の MCP ツール呼び出しを使い切りました。明日もう一度お試しください。",
+      "importFilesPerJob": "このインポートは、プランで 1 回にインポートできるファイル数を超えています。",
+      "importBytesPerJob": "このインポートは、プランで 1 回にインポートできるサイズを超えています。",
+      "importJobsPerDay": "プランに含まれる本日のインポート回数を使い切りました。明日もう一度お試しください。"
     },
     "notice": {
       "historyHidden": "このドキュメントのプランでは、{days} 日より前のアクティビティは表示されません。データは保持され、より長い履歴を含むプランで再び表示されます。"
@@ -2593,16 +2600,9 @@
   "home": {
     "title": "ホーム",
     "greeting": "おかえりなさい、{name}さん",
-    "description": "ワークスペースとドキュメント",
-    "access": {
-      "private": "非公開",
-      "protected": "保護あり"
-    }
+    "description": "ワークスペースとドキュメント"
   },
   "docRow": {
-    "actions": "ドキュメントの操作",
-    "open": "開く",
-    "openNewTab": "新しいタブで開く",
     "words": "{n} 語 | {n} 語"
   },
   "credits": {
@@ -2790,7 +2790,13 @@
       "workspace_template_added": "テンプレートを追加",
       "workspace_template_removed": "テンプレートを削除",
       "doc_share_settings_changed": "リンクの設定を変更",
-      "workspace_billing_plan_resumed": "解約を取り消し"
+      "workspace_billing_plan_resumed": "解約を取り消し",
+      "folder_created": "フォルダを作成",
+      "folder_renamed": "フォルダ名を変更",
+      "folder_moved": "フォルダを移動",
+      "folder_deleted": "フォルダを内容ごと削除",
+      "doc_folder_moved": "ドキュメントを別のフォルダに移動",
+      "import_completed": "インポートが完了"
     },
     "planNotice": "監査ログは Business プランに含まれます。"
   },
@@ -3356,5 +3362,167 @@
       "loadFailed": "AIコストを読み込めませんでした",
       "empty": "この期間のデータはありません。"
     }
+  },
+  "explorer": {
+    "personalRoot": "マイドキュメント",
+    "stale": "この項目は他のユーザーによって移動または削除されました。一覧を更新しました。",
+    "folderGone": "このフォルダは他のユーザーによって移動または削除されました。",
+    "someFailed": "{n} 件の項目を変更できませんでした。 | {n} 件の項目を変更できませんでした。",
+    "movedTo": "{name} に移動しました | {n} 件の項目を {name} に移動しました",
+    "undo": "元に戻す",
+    "cannotMoveHere": "これらの項目はそこに移動できません。",
+    "newFolderName": "新しいフォルダ",
+    "renameLabel": "新しい名前",
+    "nameProblem": {
+      "empty": "名前を入力してください。",
+      "too-long": "名前が長すぎます。",
+      "invalid": "名前に / や \\ を含めたり、. や .. にしたりすることはできません。"
+    },
+    "announce": {
+      "folderCreated": "フォルダ {name} を作成しました",
+      "renamed": "{name} に名前を変更しました",
+      "moved": "{n} 件の項目を移動しました | {n} 件の項目を移動しました",
+      "movedWorkspace": "{n} 件のドキュメントを別のワークスペースに移動しました | {n} 件のドキュメントを別のワークスペースに移動しました",
+      "deleted": "{n} 件の項目を削除しました | {n} 件の項目を削除しました",
+      "undone": "移動を元に戻しました",
+      "cut": "{n} 件の項目を切り取りました。Ctrl+V でフォルダに貼り付けます。 | {n} 件の項目を切り取りました。Ctrl+V でフォルダに貼り付けます。"
+    },
+    "error": {
+      "createFolder": "フォルダを作成できませんでした",
+      "rename": "名前を変更できませんでした",
+      "move": "移動できませんでした",
+      "delete": "削除できませんでした",
+      "deleteBlocked": "フォルダは削除されませんでした"
+    },
+    "action": {
+      "open": "開く",
+      "openNewTab": "新しいタブで開く",
+      "rename": "名前を変更",
+      "moveTo": "移動先…",
+      "cut": "切り取り",
+      "duplicate": "複製",
+      "copyLink": "リンクをコピー",
+      "copyLinks": "リンクをコピー",
+      "share": "共有…",
+      "delete": "削除",
+      "deleteN": "{n} 件の項目を削除 | {n} 件の項目を削除",
+      "newDocument": "新しいドキュメント",
+      "newFolder": "新しいフォルダ",
+      "import": "ファイルをインポート…",
+      "paste": "貼り付け"
+    },
+    "sortBy": "並べ替え",
+    "sort": {
+      "updated": "最終編集",
+      "created": "作成日",
+      "active": "最終アクティビティ",
+      "title": "名前"
+    },
+    "sortDirection": {
+      "asc": "昇順",
+      "desc": "降順"
+    },
+    "selectItem": "{name} を選択",
+    "column": {
+      "name": "名前",
+      "owner": "所有者",
+      "updated": "最終編集",
+      "words": "サイズ"
+    },
+    "listLabel": "{name} の内容",
+    "treeLabel": "フォルダ",
+    "folders": "フォルダ",
+    "up": "1 つ上の階層へ",
+    "searchPlaceholder": "タイトルと本文を検索",
+    "searchEverywhere": "すべてのフォルダ",
+    "done": "完了",
+    "select": "選択",
+    "new": "新規",
+    "selected": "{n} 件選択中",
+    "actions": "操作",
+    "clearSelection": "選択を解除",
+    "you": "あなた",
+    "items": "空 | {n} 件のドキュメント | {n} 件のドキュメント",
+    "noResults": "見つかりませんでした",
+    "emptyFolder": "このフォルダは空です",
+    "emptyHint": "ドキュメントやフォルダを作成するか、ここにファイルをドロップしてインポートしてください。",
+    "dropToImport": "ドロップしてこのフォルダにインポート",
+    "count": "{n} 件の項目 | {n} 件の項目",
+    "move": {
+      "title": "{n} 件の項目を移動 | {n} 件の項目を移動",
+      "toFolder": "フォルダへ",
+      "toWorkspace": "別のワークスペースへ",
+      "personal": "マイドキュメント",
+      "pickWorkspace": "ワークスペースを選択",
+      "workspaceWarning": "新しいワークスペースのメンバーはこれらのドキュメントを閲覧できるようになり、現在のワークスペースのメンバーはアクセスできなくなります。",
+      "here": "ここに移動",
+      "toWorkspaceConfirm": "移動"
+    },
+    "delete": {
+      "title": "削除",
+      "items": "{n} 件の項目 | {n} 件の項目",
+      "question": "{name} を削除しますか？",
+      "counting": "中身を数えています…",
+      "counts": "{folders} と {documents} を削除します。フォルダ内のすべてが対象です。",
+      "blocked": "中の {n} 件のドキュメントは他のユーザーのもので、あなたは削除できません。 | 中の {n} 件のドキュメントは他のユーザーのもので、あなたは削除できません。",
+      "permanent": "削除したドキュメントは復元できません。開いている人には、削除されたことが表示されます。",
+      "confirm": "削除",
+      "folderCount": "フォルダなし | {n} 件のフォルダ | {n} 件のフォルダ",
+      "documentCount": "ドキュメントなし | {n} 件のドキュメント | {n} 件のドキュメント"
+    },
+    "import": {
+      "title": "{name} にインポート",
+      "fromFiles": "ファイルとフォルダ",
+      "fromGithub": "GitHub",
+      "filesHint": "Markdown、Word、PDF、PowerPoint、Excel、HTML、EPUB ファイル、フォルダ全体（フォルダ構成は維持されます）、zip アーカイブに対応しています。Markdown ファイルがリンクしている画像も一緒に取り込まれます。一覧にファイルをドロップすることもできます。",
+      "chooseFiles": "ファイルを選択",
+      "chooseFolder": "フォルダを選択",
+      "summary": "ドキュメント {docs} 件、画像 {images} 件、zip アーカイブ {archives} 件",
+      "skippedFiles": "{n} 件のファイルはスキップされます（非対応の形式）。 | {n} 件のファイルはスキップされます（非対応の形式）。",
+      "githubLabel": "GitHub のリンク",
+      "githubHint": "公開リポジトリ、またはそのフォルダ。Markdown ファイルと、それらが使う画像をインポートします。非公開リポジトリは、先に zip としてダウンロードしてください。",
+      "uploading": "{total} 件中 {done} 件のファイルをアップロード中…",
+      "progress": "{total} 件中 {done} 件のドキュメントをインポートしました（失敗 {failed} 件）",
+      "background": "インポートはサーバー上で実行されます。このウィンドウは閉じても構いません。インポートされたドキュメントから順に表示されます。",
+      "cancel": "インポートを停止",
+      "start": "インポート",
+      "activeJob": "インポートがすでに実行中です",
+      "failed": "インポートを開始できませんでした",
+      "status": {
+        "done": "インポートが完了しました",
+        "failed": "インポートに失敗しました",
+        "cancelled": "インポートを停止しました"
+      },
+      "jobError": {
+        "access-lost": "このワークスペースにドキュメントを追加する権限がなくなりました。",
+        "github-url-invalid": "GitHub リポジトリへのリンクではありません。",
+        "github-not-found": "リポジトリが見つかりません。非公開リポジトリはリンクからインポートできません。",
+        "github-unavailable": "GitHub に接続できませんでした。しばらくしてからもう一度お試しください。",
+        "archive-too-large": "リポジトリがインポートできるサイズを超えています。",
+        "too-many-bytes": "ファイルが、プランで 1 回にインポートできるサイズを超えています。",
+        "archive-unreadable": "アーカイブを読み込めませんでした。",
+        "too-many-files": "ファイル数が、プランで 1 回にインポートできる数を超えています。",
+        "internal": "サーバー側で問題が発生しました。"
+      },
+      "reason": {
+        "not-uploaded": "アップロードされていません",
+        "too-large": "大きすぎます",
+        "unsupported": "非対応の形式です",
+        "not-utf8": "UTF-8 のテキストファイルではありません",
+        "too-long": "1 つのドキュメントには長すぎます",
+        "conversion-failed": "変換できませんでした",
+        "cancelled": "停止しました",
+        "unreadable": "読み込めませんでした",
+        "unused": "どのドキュメントでも使われていません"
+      }
+    },
+    "quickSearch": {
+      "open": "ドキュメントを検索",
+      "placeholder": "すべてのドキュメントを検索",
+      "empty": "ドキュメントが見つかりません",
+      "personal": "マイドキュメント",
+      "hint": "あなたのドキュメント、ワークスペース、共有されたドキュメントのタイトルと本文を検索します。"
+    },
+    "subfolders": "{n} 件のフォルダ | {n} 件のフォルダ"
   }
 }

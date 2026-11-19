@@ -49,6 +49,8 @@ const props = defineProps<{
   open: boolean
   /** When set, the new doc files into this workspace. */
   workspaceId?: string | null
+  /** When set, the new doc is filed into this folder (of the workspace, or personal). */
+  folderId?: string | null
   /** Template selected on open (a registered id or alias); demo / blank otherwise. */
   initialTemplateId?: string | null
   /** A built-in design for the initial template instead of its own. */
@@ -282,6 +284,7 @@ const submitting = ref(false)
 function documentFields(): Record<string, unknown> {
   const body: Record<string, unknown> = {}
   if (props.workspaceId) body.workspaceId = props.workspaceId
+  if (props.folderId) body.folderId = props.folderId
   const trimmedTitle = title.value.trim()
   if (trimmedTitle) body.title = trimmedTitle
   const trimmedDesc = description.value.trim()
@@ -318,6 +321,10 @@ async function createDocument(): Promise<string> {
       path: { wsId: props.workspaceId, templateId: c.templateId },
       body: trimmedTitle ? { title: trimmedTitle } : {}
     })
+    // A template copy is created at the root; file it where the person was.
+    if (props.folderId) {
+      await apiFetch('/api/docs/:docId/folder', { method: 'patch', path: { docId: res.docId }, body: { folderId: props.folderId } }).catch(() => {})
+    }
     return res.docId
   }
   return anonDoc.createDocument({ ...documentFields(), ...designFields(c) })

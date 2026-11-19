@@ -9,6 +9,7 @@ import { defineQueryOptions, useMutation, useQuery, useQueryCache, type QueryCac
 import { apiFetch, type ApiCall, type ApiFetcher } from '~/utils/api/client'
 import { billingKeys } from './billing'
 import { invalidate } from './invalidate'
+import { sharedEnabled } from './sharedEnabled'
 
 export const workspaceKeys = {
   root: ['workspaces'] as const,
@@ -28,14 +29,18 @@ const myWorkspacesQuery = defineQueryOptions(({ api }: { api: ApiFetcher }) => (
 
 /**
  * Loaded after mount (the server render has no list: a cookie-less SSR
- * call would 401), and only while `active`, the move dialog stays mounted
- * while closed.
+ * call would 401), and only while some reader is `active` (the move
+ * dialogs stay mounted while closed). Every reader passes the same
+ * `enabled` (see `sharedEnabled`), else a closed dialog mounted after the
+ * dashboard switched the shared entry off and accepting an invitation no
+ * longer refreshed "My workspaces".
  */
 export function useMyWorkspaces(active: MaybeRefOrGetter<boolean> = true) {
   const { loggedIn } = useUserSession()
+  const wanted = sharedEnabled('workspaces.mine', active)
   return useQuery(() => ({
     ...myWorkspacesQuery({ api: apiFetch }),
-    enabled: import.meta.client && loggedIn.value && toValue(active)
+    enabled: import.meta.client && loggedIn.value && wanted()
   }))
 }
 
