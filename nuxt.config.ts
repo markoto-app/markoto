@@ -307,8 +307,13 @@ export default defineNuxtConfig({
     // `/fr/demo`, ... use the same page component as `/`, `/pricing`,
     // `/demo` (shared/seo/marketing.ts). The app keeps `no_prefix`; the
     // content pages' prefixes are handled by pages/[...marketing].vue.
+    // `/f/:folderId` is the dashboard's folder view on `/` (pages/index.vue),
+    // set here so the copies of `/` don't get it.
     'pages:extend'(pages) {
-      pages.push(...marketingUiRoutes(pages))
+      const copies = marketingUiRoutes(pages)
+      const home = pages.find(page => page.name === 'index')
+      if (home) home.alias = ['/f/:folderId']
+      pages.push(...copies)
     },
     // Production server entry: the bun preset's entry plus a request-body
     // size limit enforced by Bun (the preset buffers every body before

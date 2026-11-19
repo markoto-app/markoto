@@ -66,8 +66,9 @@ export default defineNuxtPlugin({
     // (window.location on the client) is the page being rendered.
     const first = await apply(useRequestURL().pathname)
     if (import.meta.server && first === null) {
-      const event = useRequestEvent()
-      if (event) appendResponseHeader(event, 'Vary', 'Accept-Language')
+      const vary = useResponseHeader('Vary')
+      const current = typeof vary.value === 'string' ? vary.value : ''
+      if (!/\baccept-language\b/i.test(current)) vary.value = current ? `${current}, Accept-Language` : 'Accept-Language'
     }
     router.beforeEach(async (to) => {
       await apply(to.fullPath)

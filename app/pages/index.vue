@@ -6,8 +6,10 @@ import { DEFAULT_TITLE } from '~~/shared/seo/meta'
 // for both addresses: opening a folder keeps the dashboard mounted. A page
 // of its own remounted the whole dashboard on every folder change, and an
 // action that opens a folder first ("New folder" inside another folder)
-// finished on the unmounted copy: the rename never started.
-definePageMeta({ alias: '/f/:folderId', key: 'home' })
+// finished on the unmounted copy: the rename never started. The alias is
+// set in nuxt.config.ts (`pages:extend`), not here: a `definePageMeta`
+// alias would also land on the page's per-language copies (`/de`, ...).
+definePageMeta({ key: 'home' })
 
 const { t } = useI18n()
 const router = useRouter()
