@@ -33,7 +33,7 @@ everything that differs is configuration.
 ```sh
 git clone https://github.com/markoto-app/markoto.git markoto
 cd markoto
-git checkout v0.0.9        # optional: pin a release; the installer then uses the matching images
+git checkout vX.Y.Z        # optional (a release tag from GitHub Releases): pin a release; the installer then uses the matching images
 ./install.sh
 ```
 
@@ -55,6 +55,8 @@ Non-interactive (every question has a flag; `./install.sh help` lists them):
 # Plain HTTP on port 8080
 ./install.sh -y --http-port 8080 --admin-email you@example.org
 ```
+
+Other useful flags: `--no-backup` (skip the encrypted backup sidecar), `--instance NAME` (compose project name, so several instances can share a host), `--env-file PATH` (where the configuration is kept) and `--no-start` (write `.env` only). `MARKOTO_HEALTH_TIMEOUT` (seconds, default 900) sets how long the installer waits for the app to become healthy.
 
 Re-running `./install.sh` is safe: existing secrets are kept, current values are offered as defaults. After the first install, the normal Compose commands work from the repository directory, because `.env` selects the compose files (`COMPOSE_FILE`) and the project name:
 
@@ -272,7 +274,7 @@ To show a logo, create a `branding/` directory at the top of the checkout, next 
 
 ### Secrets (generated)
 
-`POSTGRES_PASSWORD`, `VALKEY_PASSWORD`, `NUXT_SESSION_PASSWORD`, `NUXT_JWT_SECRET`, `NUXT_INTERNAL_API_SECRET`, `NUXT_AI_DICTATE_JWT_SECRET`, `NUXT_MARKITDOWN_API_SECRET` (app ↔ document converter), `NUXT_ENCRYPTION_KEY` (encrypts the AI provider keys, LiteLLM keys and SSO client secrets the app stores: losing it makes them unreadable), `LITELLM_MASTER_KEY`, `LITELLM_SALT_KEY` (encrypts LiteLLM's own stored keys: never change it on a running instance), `NUXT_S3_ACCESS_KEY` / `NUXT_S3_SECRET_KEY`, `BACKUP_GPG_PASSPHRASE` (needed to restore backups: store a copy outside this machine), `POSTGRES_APP_PASSWORD` / `POSTGRES_LITELLM_PASSWORD`. `POSTGRES_PASSWORD` is set when the database volume is first created; changing it later needs an `ALTER USER` inside Postgres too.
+`POSTGRES_PASSWORD`, `VALKEY_PASSWORD`, `NUXT_SESSION_PASSWORD`, `NUXT_JWT_SECRET`, `NUXT_INTERNAL_API_SECRET`, `NUXT_AI_DICTATE_JWT_SECRET`, `NUXT_MARKITDOWN_API_SECRET` (app ↔ document converter), `NUXT_ENCRYPTION_KEY` (encrypts the AI provider keys, LiteLLM keys and SSO client secrets the app stores: losing it makes them unreadable), `LITELLM_MASTER_KEY`, `LITELLM_SALT_KEY` (encrypts LiteLLM's own stored keys: never change it on a running instance), `NUXT_S3_ACCESS_KEY` / `NUXT_S3_SECRET_KEY`, `BACKUP_GPG_PASSPHRASE` (needed to restore backups: store a copy outside this machine), `POSTGRES_APP_PASSWORD` / `POSTGRES_LITELLM_PASSWORD`, `NUXT_ALTCHA_HMAC_KEY` (the anonymous bot check). `POSTGRES_PASSWORD` is set when the database volume is first created; changing it later needs an `ALTER USER` inside Postgres too.
 
 Rotating secrets:
 
@@ -316,6 +318,8 @@ Billing is off on a self-hosted instance (`NUXT_BILLING_ENABLED=false`), so ever
 | `TIER_FREE_IMPORT_FILES_PER_JOB` | `5000` | Files one bulk import (files, folders, zip archives, a GitHub repository) may bring in. markoto.app's free plan: `200`. |
 | `TIER_FREE_IMPORT_BYTES_PER_JOB` | `5368709120` (5 GiB) | Bytes one bulk import may bring in (uploaded, or what an archive expands to). A zip archive or repository download itself is at most 100 MiB. markoto.app's free plan: 200 MiB. |
 | `TIER_FREE_IMPORT_JOBS_PER_DAY` | `500` | Bulk imports a user may start per day; one runs at a time. |
+| `TIER_FREE_AI_JOB_UNITS_PER_JOB` | empty (no limit) | Largest background AI edit (job) a user may start, in AI units. markoto.app's free plan: `200`. |
+| `TIER_FREE_AI_JOBS_PER_DAY` | empty (no limit) | Background AI jobs a user may start per day. markoto.app's free plan: `3`. |
 | `TIER_FREE_WEB_TOOLS_PER_DAY` | empty (no limit) | Extra per-user daily web-tool limit on top of `NUXT_WEB_TOOLS_DAILY_LIMIT`; the stricter one applies. |
 | `TIER_FREE_MCP_TOOL_CALLS_PER_DAY` | empty (no limit) | MCP tool calls per user per day. |
 | `TIER_FREE_FEATURE_CUSTOM_CSS` | `true` | Documents may use custom CSS. `false` keeps stored CSS but doesn't apply it. |

@@ -6,7 +6,7 @@ It is separate from the audit log (`audit_log`, `server/repos/audit.ts`), which 
 
 ## Where rows come from
 
-Rows live in `activity_log` (`server/db/schema/collab.ts`, `server/repos/activity.ts`). Actions: `edit`, `join`, `leave`, `comment.added` / `replied` / `resolved` / `reopened` / `deleted`, `theme.changed`, `title.changed`, `ai.tool`, `restore`. The column is a text enum, so a new action is a TypeScript change only.
+Rows live in `activity_log` (`server/db/schema/collab.ts`, `server/repos/activity.ts`). Actions: `edit`, `join`, `leave`, `comment.added` / `replied` / `resolved` / `reopened` / `deleted`, `theme.changed`, `title.changed`, `ai.tool`, `ai.job`, `ai.job.reverted`, `restore`. The column is a text enum, so a new action is a TypeScript change only.
 
 - `edit`, `title.changed`, `theme.changed` are written by the sync server after each store (see [sync-server.md](sync-server.md#activity-logging)). The actor name comes from the editing connection's JWT, never from the awareness name a client chooses; anonymous editors appear as "Anonymous" with their per-tab avatar seed.
 - Comment, AI tool and restore rows are written by the app's endpoints.
@@ -35,7 +35,7 @@ The restore button (history icon) opens `RestoreConfirmModal.vue` and posts `POS
 `restoreDocToYjsId` (`server/utils/documents/restoreDoc.ts`) runs inside one Postgres transaction holding `pg_advisory_xact_lock(hashtext(docId))`:
 
 1. Read the newest `yjs_updates` id of the document: the live state before the restore.
-2. Replay the document at the target id. If history retention has pruned that point (the sync server's `COMPACT_RETAIN_HISTORY_DAYS`, off by default), it throws `RestorePointCompactedError` and the endpoint answers 410 (error code `restore-compacted`); the diff of such a row answers 410 (`diff-unavailable`). Snapshots never make a point unavailable.
+2. Replay the document at the target id. If history retention has pruned that point (the sync server's `COMPACT_RETAIN_HISTORY_DAYS`, off by default), it throws `RestorePointCompactedError` and the endpoint answers 410 (error code `docs/restore-compacted`); the diff of such a row answers 410 (`docs/diff-unavailable`). Snapshots never make a point unavailable.
 3. Connect a short-lived Hocuspocus client as the acting user (principal `restore:{userId}:{sessionId}`) so collaborators see who restored.
 4. In one Y.js transaction, empty the text and comments and insert the past values, and copy the past `meta` values (title, theme, description, audience, language, template). Transient keys such as `_deleted` are left alone. Every client receives one update.
 5. Disconnect and return the boundary ids.

@@ -170,7 +170,7 @@ prod-up: ## Start the PROD stack (GHCR images, Let's Encrypt)
 prod-down: ## Stop the PROD stack
 	$(PROD) down
 
-.PHONY: prod-logs
+.PHONY: prod-logs-local
 prod-logs-local: ## Tail PROD stack logs (local invocation)
 	$(PROD) logs -f --tail=200
 
@@ -213,7 +213,7 @@ rollback: ## Roll back to a specific image tag (TAG=v1.2.3)
 	$(MAKE) -C infra rollback TAG=$(TAG)
 
 .PHONY: ssh
-ssh: ## SSH into the VPS as the markoto user
+ssh: ## SSH into the VPS as the admin user (debian)
 	$(MAKE) -C infra ssh
 
 .PHONY: prod-status

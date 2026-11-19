@@ -1,6 +1,6 @@
 # markoto: agent guide
 
-markoto is a collaborative markdown editor. A Nuxt 4 app on Bun (SSR, Nitro API, sign-in, MCP server) serves the UI; documents are Y.js CRDTs synced by a separate Hocuspocus container and stored in PostgreSQL (append-only `yjs_updates` log), with pgvector for the workspace knowledge base. Valkey holds rate limits, locks and per-document sync state. Sidecars: a Playwright renderer (PDF/PNG), markitdown (imports), LiteLLM (every AI call), a backup job. Login is optional; anonymous users can edit public documents. Billing is off unless `NUXT_BILLING_ENABLED=true`. The system overview is [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); read it before changing anything cross-cutting.
+markoto is a collaborative markdown editor. A Nuxt 4 app on Bun (SSR, Nitro API, sign-in, MCP server) serves the UI; documents are Y.js CRDTs synced by a separate Hocuspocus container and stored in PostgreSQL (append-only `yjs_updates` log), with pgvector for the workspace knowledge base. Valkey holds rate limits, locks and per-document sync state. Sidecars: a Playwright renderer (PDF/PNG), markitdown (imports), LiteLLM (every AI call), a backup job, and an optional Umami container for cookieless page statistics (hosted stack only). Login is optional; anonymous users can edit public documents. Billing is off unless `NUXT_BILLING_ENABLED=true`. The system overview is [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); read it before changing anything cross-cutting.
 
 ## Commands
 
@@ -134,7 +134,7 @@ Docs (humans first, but read the relevant one before a larger change):
 |---|---|
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System overview, security model, data stores, design decisions |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Setup, checks, coding rules, PR conventions |
-| [`docs/contributing/`](docs/contributing/) | `testing`, `logging`, `flow-docs`, `server`, `api-handlers`, `database`, `billing`, `knowledge-base`, `ai-tools`, `mcp`, `privacy-registries`, `sync-server`, `activity-log`, `preview-pipeline`, `design-system`, `templates`, `marketing-site`, `admin-metrics` (admin product stats), `TEMPLATE-WORKFLOW` (design templates), `explorer` (folders, search, bulk import), `LOCAL`, `CONTAINER-ENGINES`, `CHEATSHEET` |
+| [`docs/contributing/`](docs/contributing/) | `testing`, `logging`, `flow-docs`, `server`, `api-handlers`, `database`, `billing`, `knowledge-base`, `ai-tools`, `mcp`, `privacy-registries`, `sync-server`, `activity-log`, `preview-pipeline`, `design-system`, `templates`, `marketing-site`, `admin-metrics` (admin product stats), `TEMPLATE-WORKFLOW` (design templates), `explorer` (folders, search, bulk import), `client-data`, `configuration` (the env registry; the generated list is [`docs/reference/configuration.md`](docs/reference/configuration.md)), `LOCAL`, `CONTAINER-ENGINES`, `CHEATSHEET` |
 | [`docs/reference/rate-limits.md`](docs/reference/rate-limits.md) | Request limits with their source files |
 | [`docs/SELF-HOSTING.md`](docs/SELF-HOSTING.md) | Install, configuration reference, upgrades, backups |
 | [`docs/AI-MODELS.md`](docs/AI-MODELS.md), [`docs/SECURITY-HARDENING.md`](docs/SECURITY-HARDENING.md), [`docs/S3-SETUP.md`](docs/S3-SETUP.md) | AI models, hardening, external S3 |

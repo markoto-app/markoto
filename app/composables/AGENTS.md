@@ -1,6 +1,6 @@
 # Composables
 
-Grouped by domain (`account/`, `ai/`, `billing/`, `comments/`, `document/`, `editor/`, `marketing/`, `platform/`, `preview/`). A composable's internal parts sit next to it (`documentMeta.ts`, `aiSessionTracking.ts`, `voiceCapture.ts` …); its public API is the `use*` function callers import. Every file here is auto-imported, so give exports names that can't collide. Preview rendering: `app/utils/AGENTS.md`. Sync server side of the connection: [`docs/contributing/sync-server.md`](../../docs/contributing/sync-server.md).
+Grouped by domain (`account/`, `admin/`, `ai/`, `billing/`, `comments/`, `docs/`, `document/`, `editor/`, `explorer/`, `marketing/`, `platform/`, `preview/`). A composable's internal parts sit next to it (`documentMeta.ts`, `aiSessionTracking.ts`, `voiceCapture.ts` …); its public API is the `use*` function callers import. Every file here is auto-imported, so give exports names that can't collide. Preview rendering: `app/utils/AGENTS.md`. Sync server side of the connection: [`docs/contributing/sync-server.md`](../../docs/contributing/sync-server.md).
 
 ## Document lifecycle (`document/`)
 

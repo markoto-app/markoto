@@ -1,6 +1,6 @@
 # Database schema and migrations
 
-markoto keeps all application data in PostgreSQL. The schema is defined with Drizzle in `server/db/schema/`, one file per domain (users, workspaces, documents, sync, collab, brand kit, billing, ai, knowledge, privacy, sso, publish, mcp) re-exported from `server/db/schema/index.ts`, which is what drizzle-kit reads and what `server/db/schema` imports resolve to. Domain files import each other's tables only downwards (a table's file imports the files of the tables it references), never in a cycle; `drizzle-kit` generates SQL migrations into `drizzle/` (committed together with the snapshots in `drizzle/meta/`). Agent rules for this area: `server/db/AGENTS.md`.
+markoto keeps all application data in PostgreSQL. The schema is defined with Drizzle in `server/db/schema/`, one file per domain (users, workspaces, documents, folders, imports, sync, collab, brand kit, billing, ads, ai, knowledge, privacy, sso, publish, mcp) re-exported from `server/db/schema/index.ts`, which is what drizzle-kit reads and what `server/db/schema` imports resolve to. Domain files import each other's tables only downwards (a table's file imports the files of the tables it references), never in a cycle; `drizzle-kit` generates SQL migrations into `drizzle/` (committed together with the snapshots in `drizzle/meta/`). Agent rules for this area: `server/db/AGENTS.md`.
 
 ## How migrations run
 
@@ -78,7 +78,7 @@ ALTER TABLE child VALIDATE CONSTRAINT fk_child_parent;
 
 ## Who may query
 
-Only `server/repos/**` talks to the database; everything else calls a repo function (dependency-cruiser rule `db-access-only-in-repos`, ESLint `markoto/data-access-boundaries`). `server/db/` holds the schema, the connection (`client.ts`), the boot migrator (`migrate.ts`), the LiteLLM spend-log pool (`litellm.ts`, the only second pool) and the embedding-column maintenance used by `bun run knowledge:reembed`. Raw SQL is written with Drizzle's `sql` template, so every value is a bound parameter.
+Only `server/repos/**` talks to the database; everything else calls a repo function (dependency-cruiser rule `db-access-only-in-repos`, ESLint `markoto/data-access-boundaries`). `server/db/` holds the schema, the connection (`client.ts`), the boot migrator (`migrate.ts`), the LiteLLM spend-log pool (`litellm.ts`) and the Umami pool (`umami.ts`, used only by `server/repos/umamiRetention.ts`; these are the only extra pools) and the embedding-column maintenance used by `bun run knowledge:reembed`. Raw SQL is written with Drizzle's `sql` template, so every value is a bound parameter.
 
 Repo functions that write or return tenant-private data take a capability proof instead of a bare id; see `server/repos/AGENTS.md` and `docs/SECURITY-HARDENING.md` → Tenancy.
 
