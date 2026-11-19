@@ -3530,5 +3530,13 @@
       "hint": "Durchsucht Titel und Text deiner Dokumente, deiner Workspaces und der mit dir geteilten Dokumente."
     },
     "subfolders": "{n} Ordner | {n} Ordner"
+  },
+  "a11yCheck": {
+    "issues": "{n} Barrierefreiheitsproblem | {n} Barrierefreiheitsprobleme",
+    "intro": "Behebe diese Punkte, damit Screenreader und das getaggte PDF dein Dokument gut wiedergeben.",
+    "imageAlt": "Bild ohne Alternativtext",
+    "emptyLink": "Link ohne Text",
+    "headingSkip": "Überschrift der Ebene {level} folgt auf Ebene {previous}: eine Ebene fehlt",
+    "line": "Zeile {line}"
   }
 }

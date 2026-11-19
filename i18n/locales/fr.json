@@ -3530,5 +3530,13 @@
       "hint": "Recherche dans les titres et les textes de vos documents, de vos espaces de travail et des documents partagés avec vous."
     },
     "subfolders": "{n} dossier | {n} dossiers"
+  },
+  "a11yCheck": {
+    "issues": "{n} problème d’accessibilité | {n} problèmes d’accessibilité",
+    "intro": "Corrigez ces points pour que les lecteurs d’écran et le PDF balisé restituent bien votre document.",
+    "imageAlt": "Image sans texte alternatif",
+    "emptyLink": "Lien sans texte",
+    "headingSkip": "Un titre de niveau {level} suit un niveau {previous} : un niveau est sauté",
+    "line": "Ligne {line}"
   }
 }

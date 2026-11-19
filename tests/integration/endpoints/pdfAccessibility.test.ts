@@ -46,7 +46,7 @@ async function renderPdf(opts: { title: string, language: string, name: string }
   expect(res.status).toBe(302)
   const got = await s3.send(new GetObjectCommand({ Bucket: 'ypad', Key: `renders/${doc.docId}/${snapId}/document.pdf` }))
   const bytes = await got.Body!.transformToByteArray()
-  // eslint-disable-next-line markoto/no-raw-env -- output switch of scripts/pdf-a11y-check.sh, not app configuration
+  // Output switch of scripts/pdf-a11y-check.sh, not app configuration.
   const outDir = process.env.PDF_A11Y_OUT_DIR
   if (outDir) {
     mkdirSync(outDir, { recursive: true })

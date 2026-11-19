@@ -3530,5 +3530,13 @@
       "hint": "Busca en los títulos y el texto de tus documentos, tus espacios de trabajo y los documentos compartidos contigo."
     },
     "subfolders": "{n} carpeta | {n} carpetas"
+  },
+  "a11yCheck": {
+    "issues": "{n} problema de accesibilidad | {n} problemas de accesibilidad",
+    "intro": "Corrige estos puntos para que los lectores de pantalla y el PDF etiquetado presenten bien tu documento.",
+    "imageAlt": "Imagen sin texto alternativo",
+    "emptyLink": "Enlace sin texto",
+    "headingSkip": "Un encabezado de nivel {level} sigue a uno de nivel {previous}: se salta un nivel",
+    "line": "Línea {line}"
   }
 }

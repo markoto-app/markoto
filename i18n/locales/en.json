@@ -3530,5 +3530,13 @@
       "hint": "Searches titles and text of your documents, your workspaces and documents shared with you."
     },
     "subfolders": "{n} folder | {n} folders"
+  },
+  "a11yCheck": {
+    "issues": "{n} accessibility issue | {n} accessibility issues",
+    "intro": "Fix these so screen readers and the tagged PDF can present your document well.",
+    "imageAlt": "Image without alternative text",
+    "emptyLink": "Link without text",
+    "headingSkip": "Heading level {level} follows level {previous}: a level is skipped",
+    "line": "Line {line}"
   }
 }

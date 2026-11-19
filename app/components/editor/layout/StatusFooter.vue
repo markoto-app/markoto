@@ -9,7 +9,10 @@ defineProps<{
   viewMode: 'edit' | 'preview' | 'split'
   synced: boolean
   readOnly: boolean
+  /** Markdown source for the accessibility check (editors only). */
+  text: string
 }>()
+const emit = defineEmits<{ jumpTo: [from: number, to: number] }>()
 const { t } = useI18n()
 </script>
 
@@ -31,6 +34,11 @@ const { t } = useI18n()
         aria-hidden="true"
       >·</span>
       <span data-testid="char-count">{{ charCount }} <span class="opacity-70">{{ t('editor.footer.chars', charCount) }}</span></span>
+      <EditorLayoutA11yStatus
+        v-if="!readOnly"
+        :text="text"
+        @jump="(from, to) => emit('jumpTo', from, to)"
+      />
     </div>
     <div
       class="flex items-center gap-3"
